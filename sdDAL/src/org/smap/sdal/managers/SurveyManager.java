@@ -743,7 +743,7 @@ public class SurveyManager {
 
 			String msg = localisation.getString("log_sc");
 			msg = msg.replace("%s1", name).replace("%s2", ident);
-			lm.writeLog(sd, sId, user, LogManager.CREATE, msg, 0);
+			lm.writeLog(sd, sId, user, LogManager.CREATE, msg, 0, null);
 			sd.commit();
 
 		} catch (SQLException e) {
@@ -3740,7 +3740,7 @@ public class SurveyManager {
 			pstmt.setInt(1, sId);
 			log.info(pstmt.toString());
 			pstmt.executeUpdate();
-			lm.writeLog(sd, sId, user, LogManager.RESTORE, "Restore survey ", 0);
+			lm.writeLog(sd, sId, user, LogManager.RESTORE, "Restore survey ", 0, null);
 			log.info("userevent: " + user + " : un delete survey : " + sId);
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -3878,7 +3878,7 @@ public class SurveyManager {
 				log.info("Soft delete survey: " + pstmt.toString());
 				pstmt.executeUpdate();
 	
-				lm.writeLog(sd, sId, user, LogManager.DELETE, "Soft Delete survey " + surveyDisplayName, 0);
+				lm.writeLog(sd, sId, user, LogManager.DELETE, "Soft Delete survey " + surveyDisplayName, 0, null);
 				log.info("userevent: " + user + " : soft delete survey : " + sId);
 	
 				// Rename files

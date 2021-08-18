@@ -7112,7 +7112,7 @@ public class GeneralUtilityMethods {
 			String msg = localisation.getString("filter_error");
 			msg = msg.replace("%s1", caller + ": " + filter);
 			msg = msg.replace("%s2",  e.getMessage());
-			lm.writeLog(sd, survey.id, user, LogManager.ERROR, msg, 0);
+			lm.writeLog(sd, survey.id, user, LogManager.ERROR, msg, 0, null);
 			throw new Exception(e);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}

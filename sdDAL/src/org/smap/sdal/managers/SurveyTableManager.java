@@ -1083,7 +1083,7 @@ public class SurveyTableManager {
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
-			lm.writeLog(sd, sId, userName, LogManager.ERROR, "Creating CSV file: " + e.getMessage(), 0);
+			lm.writeLog(sd, sId, userName, LogManager.ERROR, "Creating CSV file: " + e.getMessage(), 0, null);
 			status = false;
 		} finally {
 			if (pstmtData != null) {try {pstmtData.close();} catch (Exception e) {}}

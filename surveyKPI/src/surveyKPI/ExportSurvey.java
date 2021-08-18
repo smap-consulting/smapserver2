@@ -198,7 +198,7 @@ public class ExportSurvey extends Application {
 
 		tz = (tz == null) ? "UTC" : tz;
 		
-		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "Export to XLS", 0);
+		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "Export to XLS", 0, request.getServerName());
 
 		String escapedFileName = null;
 		try {
@@ -691,7 +691,7 @@ public class ExportSurvey extends Application {
 				outWriter.close();
 
 			} catch (Exception e) {
-				lm.writeLog(sd, sId, request.getRemoteUser(), "error", "Exporting survey to XLS: " + e.getMessage(), 0);
+				lm.writeLog(sd, sId, request.getRemoteUser(), "error", "Exporting survey to XLS: " + e.getMessage(), 0, request.getServerName());
 				log.log(Level.SEVERE, "Exception", e);
 			} finally {
 
