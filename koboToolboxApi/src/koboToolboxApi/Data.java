@@ -583,7 +583,7 @@ public class Data extends Application {
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
-			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_VIEW, "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk), 0);
+			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_VIEW, "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk), 0, request.getServerName());
 			
 			response.setContentType("application/json; charset=UTF-8");
 			response.setCharacterEncoding("UTF-8");
@@ -998,7 +998,7 @@ public class Data extends Application {
 
 		Response response;
 			
-			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_SINGLE_VIEW, "Managed Forms or the API. ", 0);
+			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_SINGLE_VIEW, "Managed Forms or the API. ", 0, request.getServerName());
 			
 			
 			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {

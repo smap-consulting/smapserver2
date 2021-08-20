@@ -172,7 +172,7 @@ public class PdfUtilities {
 				ImageIO.write(tempImg, "png", file);			       
 				img = Image.getInstance(file.getAbsolutePath());
 			    
-				lm.writeLog(sd, sId, user, LogManager.MAPBOX_REQUEST, map, 0);
+				lm.writeLog(sd, sId, user, LogManager.MAPBOX_REQUEST, map, 0, null);
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Exception", e);
 			}

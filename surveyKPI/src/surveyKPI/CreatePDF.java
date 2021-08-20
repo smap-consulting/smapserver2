@@ -113,7 +113,7 @@ public class CreatePDF extends Application {
 		}
 		// End Authorisation 
 		
-		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.CREATE_PDF, "Create PDF for instance: " + instanceId, 0);
+		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.CREATE_PDF, "Create PDF for instance: " + instanceId, 0, request.getServerName());
 		
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		
@@ -172,7 +172,7 @@ public class CreatePDF extends Application {
 			response = Response.ok("").build();
 			
 		} catch(Exception e) {
-			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.CREATE_PDF, e.getMessage(), 0);
+			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.CREATE_PDF, e.getMessage(), 0, request.getServerName());
 			log.log(Level.SEVERE, e.getMessage(), e);
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {

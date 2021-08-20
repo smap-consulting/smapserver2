@@ -440,7 +440,7 @@ public class NotificationManager {
 				nName = "";
 			}
 			logMessage = logMessage.replaceAll("%s1", nName);
-			lm.writeLog(sd, 0, user, LogManager.DELETE, logMessage, 0);
+			lm.writeLog(sd, 0, user, LogManager.DELETE, logMessage, 0, null);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
@@ -628,7 +628,7 @@ public class NotificationManager {
 						lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
 								localisation.getString("filter_error")
 								.replace("%s1", filter)
-								.replace("%s2", msg), 0);
+								.replace("%s2", msg), 0, null);
 					}
 				}
 				
@@ -666,7 +666,7 @@ public class NotificationManager {
 							localisation.getString("filter_applied")
 							.replace("%s1", survey.displayName)
 							.replace("%s2", filter)
-							.replace("%s3", instanceId), 0);
+							.replace("%s3", instanceId), 0, null);
 					
 				}
 			}
@@ -1000,7 +1000,7 @@ public class NotificationManager {
 							}
 						} else {
 							log.log(Level.INFO, "Info: List of email recipients is empty");
-							lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"), 0);
+							lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"), 0, null);
 							writeToMonitor = false;
 						}
 					} else {
@@ -1162,7 +1162,7 @@ public class NotificationManager {
 					logTopic = LogManager.NOTIFICATION;
 				}
 				
-				lm.writeLog(sd, surveyId, "subscriber", logTopic, status + " : " + notify_details + (error_details == null ? "" : error_details), 0);
+				lm.writeLog(sd, surveyId, "subscriber", logTopic, status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null);
 			}
 			
 			/*
@@ -1427,7 +1427,7 @@ public class NotificationManager {
 							}
 						} else {
 							log.log(Level.INFO, "Info: List of email recipients is empty");
-							lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"), 0);
+							lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"), 0, null);
 							writeToMonitor = false;
 						}
 					} else {

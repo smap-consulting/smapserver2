@@ -1016,7 +1016,7 @@ public class SurveyTemplate {
 			
 			String msg = localisation.getString("log_sc_xml");
 			msg = msg.replace("%s1", survey.getDisplayName()).replace("%s2", survey.getIdent());
-			lm.writeLog(sd, sId, user, LogManager.CREATE, msg, 0);
+			lm.writeLog(sd, sId, user, LogManager.CREATE, msg, 0, null);
 			
 			sd.commit();
 		} catch (Exception e) {

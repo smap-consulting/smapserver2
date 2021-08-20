@@ -149,7 +149,7 @@ public class AllAssignments extends Application {
 		// End Authorisation
 
 		if(sId > 0) {
-			lm.writeLog(sd, sId, request.getRemoteUser(), "create tasks", "Create tasks from survey data", 0);
+			lm.writeLog(sd, sId, request.getRemoteUser(), "create tasks", "Create tasks from survey data", 0, request.getServerName());
 		}
 
 		Connection cResults = null; 
@@ -1123,7 +1123,7 @@ public class AllAssignments extends Application {
 
 			logMessage += ". " + tMessage;
 			
-			lm.writeLog(sd, sId, request.getRemoteUser(), "import data", logMessage, 0);
+			lm.writeLog(sd, sId, request.getRemoteUser(), "import data", logMessage, 0, request.getServerName());
 			log.info("userevent: " + request.getRemoteUser() + " : loading file into survey: " + sId + " Previous contents are" + (clear_existing ? " deleted" : " preserved"));  // Write user event in english only
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -1352,7 +1352,7 @@ public class AllAssignments extends Application {
 			// Log the delete event
 			String logMessage = localisation.getString("lm_del_task_group");
 			logMessage = logMessage.replaceAll("%s1", tgName);
-			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.DELETE, logMessage, 0);
+			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.DELETE, logMessage, 0, request.getServerName());
 
 		} catch (Exception e) {
 			response = Response.serverError().build();

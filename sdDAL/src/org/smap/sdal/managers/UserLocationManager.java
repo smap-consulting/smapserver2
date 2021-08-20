@@ -409,8 +409,8 @@ public class UserLocationManager {
 				+ "values(?, ?, now(),  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326), ?, ?)";
 		
 		String sqlInsertLog = "insert into last_refresh_log "
-				+ "(o_id, user_ident, refresh_time, device_time, deviceid, geo_point) "
-				+ "values(?, ?, ?, now(), ?, ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326))";
+				+ "(o_id, user_ident, refresh_time, geo_point, device_time, deviceid) "
+				+ "values(?, ?, now(), ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326), ?, ?)";
 		
 		PreparedStatement pstmt = null;
 
@@ -452,16 +452,16 @@ public class UserLocationManager {
 					pstmt = sd.prepareStatement(sqlInsertLog);
 					pstmt.setInt(1, oId);
 					pstmt.setString(2, user);
-					pstmt.setTimestamp(3,  deviceTimeStamp);
-					pstmt.setString(4,  deviceid);
 					if(GeneralUtilityMethods.isLocationServer(hostname)) {
 						log.info("Is location server setting location");
-						pstmt.setDouble(5, lon);
-						pstmt.setDouble(6, lat);
+						pstmt.setDouble(3, lon);
+						pstmt.setDouble(4, lat);
 					} else {
-						pstmt.setDouble(5, 0.0);
-						pstmt.setDouble(6, 0.0);
+						pstmt.setDouble(3, 0.0);
+						pstmt.setDouble(4, 0.0);
 					}
+					pstmt.setTimestamp(5,  deviceTimeStamp);
+					pstmt.setString(6,  deviceid);
 					pstmt.executeUpdate();
 				}
 				

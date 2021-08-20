@@ -459,7 +459,7 @@ public class Lookup extends Application{
 				response = Response.ok(e.getMessage()).build();
 			}
 				
-			lm.writeLog(sd, sId, request.getRemoteUser(), "Rekognition Request", "Online for survey: " + surveyIdent, 0);
+			lm.writeLog(sd, sId, request.getRemoteUser(), "Rekognition Request", "Online for survey: " + surveyIdent, 0, request.getServerName());
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Exception", e);
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();

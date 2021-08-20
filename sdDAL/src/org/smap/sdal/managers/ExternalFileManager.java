@@ -106,7 +106,7 @@ public class ExternalFileManager {
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
-			lm.writeLog(sd, sId, userName, LogManager.ERROR, "Creating CSV file: " + e.getMessage(), 0);
+			lm.writeLog(sd, sId, userName, LogManager.ERROR, "Creating CSV file: " + e.getMessage(), 0, null);
 		} 
 
 		return regenerate;

@@ -444,7 +444,7 @@ public class SubscriberBatch {
 								}
 								
 								lm.writeLog(sd, ue.getSurveyId(), ue.getUserName(), topic, se.getStatus() + " : " 
-										+ (se.getReason() == null ? "" : se.getReason()) + " : " + ue.getImei(), 0);
+										+ (se.getReason() == null ? "" : se.getReason()) + " : " + ue.getImei(), 0, null);
 							}
 						}
 					} 

@@ -720,7 +720,7 @@ public class MailoutManager {
 													GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident), 
 													ia.getAddress(), 
 													LogManager.MAILOUT, 
-													localisation.getString("mo_sent"), 0);
+													localisation.getString("mo_sent"), 0, null);
 
 											em.sendEmailHtml(
 													ia.getAddress(), 
@@ -779,7 +779,7 @@ public class MailoutManager {
 							}
 						} else {
 							log.log(Level.INFO, "Info: List of email recipients is empty");
-							lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"), 0);
+							lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"), 0, null);
 							writeToMonitor = false;
 						}
 					} else {

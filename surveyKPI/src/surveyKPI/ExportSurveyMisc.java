@@ -151,7 +151,7 @@ public class ExportSurveyMisc extends Application {
 		}
 		// End Authorisation
 
-		lm.writeLog(sd, targetId, request.getRemoteUser(), LogManager.VIEW, "Export as: " + format, 0);
+		lm.writeLog(sd, targetId, request.getRemoteUser(), LogManager.VIEW, "Export as: " + format, 0, request.getServerName());
 
 		String escapedFileName = null;
 		try {

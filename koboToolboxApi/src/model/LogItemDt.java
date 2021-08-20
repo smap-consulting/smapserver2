@@ -13,4 +13,5 @@ public class LogItemDt {
 	public String userIdent;
 	public String event;
 	public String note;
+	public String server;
 }
