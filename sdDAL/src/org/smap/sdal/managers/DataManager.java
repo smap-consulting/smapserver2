@@ -108,7 +108,7 @@ public class DataManager {
 
 		Response response;
 
-		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_SINGLE_VIEW, "Hierarchy view. ", 0);
+		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_SINGLE_VIEW, "Hierarchy view. ", 0, request.getServerName());
 
 		DataManager dm = new DataManager(localisation, tz);
 

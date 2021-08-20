@@ -725,7 +725,7 @@ public class UploadFiles extends Application {
 				}
 				
 				msg = msg.replace("%s1", s.getDisplayName()).replace("%s2", s.getIdent());
-				lm.writeLog(sd, s.getId(), user, title, msg, 0);
+				lm.writeLog(sd, s.getId(), user, title, msg, 0, request.getServerName());
 				
 				/*
 				 * If the survey is being replaced and if it has an existing  geometry called the_geom and there is no

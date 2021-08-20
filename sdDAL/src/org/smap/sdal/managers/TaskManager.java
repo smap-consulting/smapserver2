@@ -1109,7 +1109,7 @@ public class TaskManager {
 					}
 				} catch (Exception e) {
 					log.info("Assignment: " + asString);
-					lm.writeLog(sd, source_s_id, "subscriber", LogManager.TASK, e.getMessage(), 0);
+					lm.writeLog(sd, source_s_id, "subscriber", LogManager.TASK, e.getMessage(), 0, null);
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
 			}
@@ -3330,7 +3330,7 @@ public class TaskManager {
 													survey.id, 
 													ia.getAddress(), 
 													LogManager.EMAIL_TASK, 
-													localisation.getString("mo_sent"), 0);
+													localisation.getString("mo_sent"), 0, null);
 
 										} else {
 											/*
@@ -3358,7 +3358,7 @@ public class TaskManager {
 							}
 						} else {
 							log.log(Level.INFO, "Info: List of email recipients is empty");
-							lm.writeLog(sd, msg.sId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"), 0);
+							lm.writeLog(sd, msg.sId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"), 0, null);
 							writeToMonitor = false;
 						}
 					} else {

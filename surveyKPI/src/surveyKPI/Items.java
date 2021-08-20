@@ -155,7 +155,7 @@ public class Items extends Application {
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
-		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.DASHBOARD_VIEW, "View Results for form: " + fId, 0);
+		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.DASHBOARD_VIEW, "View Results for form: " + fId, 0, request.getServerName());
 	
 		tz = (tz == null) ? "UTC" : tz;
 		
@@ -845,7 +845,7 @@ public class Items extends Application {
 		a.isValidUser(sd, request.getRemoteUser(), uId);
 		// End Authorisation
 		
-		lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.USER_ACTIVITY_VIEW, "User Activity for " + uId, 0);
+		lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.USER_ACTIVITY_VIEW, "User Activity for " + uId, 0, request.getServerName());
 	
 		tz = (tz == null) ? "UTC" : tz;
 		
@@ -1082,7 +1082,7 @@ public class Items extends Application {
 		a.projectInUsersOrganisation(sd, request.getRemoteUser(), pId);
 		// End Authorisation
 		
-		lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.USER_LOCATION_VIEW, "User Locations " + pId, 0);
+		lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.USER_LOCATION_VIEW, "User Locations " + pId, 0, request.getServerName());
 	
 		tz = (tz == null) ? "UTC" : tz;
 		
