@@ -407,7 +407,7 @@ public class CsvTableManager {
 	 * Look up a value
 	 */
 	public ArrayList<HashMap<String, String>> lookup(int oId, int sId, String fileName, String key_column, 
-			String key_value, String expression, String tz) throws SQLException, ApplicationException {
+			String key_value, String expression, String tz, String selection, ArrayList<String> arguments) throws SQLException, ApplicationException {
 		
 		ArrayList<HashMap<String, String>> records = null;
 		
@@ -420,13 +420,13 @@ public class CsvTableManager {
 			log.info("Getting csv file name for lookup value: (survey level) " + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			if(rs.next()) {
-				records = readRecordsFromTable(rs.getInt(1), rs.getString(2), key_column, key_value, fileName, expression, tz);				
+				records = readRecordsFromTable(rs.getInt(1), rs.getString(2), key_column, key_value, fileName, expression, tz, selection, arguments);				
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
 				log.info("Getting csv file name fo lookup value: (organisation level) " + pstmtGetCsvTable.toString());
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
-					records = readRecordsFromTable(rsx.getInt(1), rsx.getString(2), key_column, key_value, fileName, expression, tz);	
+					records = readRecordsFromTable(rsx.getInt(1), rsx.getString(2), key_column, key_value, fileName, expression, tz, selection, arguments);	
 				} else {
 					log.info("record not found");
 				}
@@ -675,7 +675,7 @@ public class CsvTableManager {
 	 * Read data records from a csv table
 	 */
 	private ArrayList<HashMap<String, String>> readRecordsFromTable(int tableId, String sHeaders, String key_column, String key_value,
-			String filename, String expression, String tz) throws SQLException, ApplicationException {
+			String filename, String expression, String tz, String selection, ArrayList<String> arguments) throws SQLException, ApplicationException {
 			
 		ArrayList<HashMap<String, String>> records = new ArrayList<> ();
 		
@@ -716,7 +716,7 @@ public class CsvTableManager {
 			} else if(tKeyColumn == null) {
 				throw new ApplicationException("Column " + key_column + " not found in table " + table);
 			} else {
-				sql.append(" where ").append(tKeyColumn).append(" = ?");
+				sql.append(" where ").append(selection);
 			}
 			
 			pstmt = sd.prepareStatement(sql.toString());
@@ -724,7 +724,9 @@ public class CsvTableManager {
 			if(expression != null) {
 				paramCount = GeneralUtilityMethods.setFragParams(pstmt, expressionFrag, paramCount, tz);
 			} else {
-				pstmt.setString(1, key_value);
+				for(String arg : arguments) {
+					pstmt.setString(paramCount++, arg);
+				}
 			}
 			log.info("Get CSV lookup values: " + pstmt.toString());
 			ResultSet rsx = pstmt.executeQuery();

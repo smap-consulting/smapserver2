@@ -243,7 +243,7 @@ public class Lookup extends Application{
 				} else {
 					// Get data from a csv file
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);
-					resultsArray = ctm.lookup(oId, sId, fileName + ".csv", keyColumn, keyValue, expression, tz);
+					resultsArray = ctm.lookup(oId, sId, fileName + ".csv", keyColumn, keyValue, expression, tz, selection.toString(), arguments);
 				}
 			}
 
@@ -596,7 +596,7 @@ public class Lookup extends Application{
 		type = type.trim().toLowerCase();
 
 		if(type.equals(IN) || type.equals(NOT_IN)) {
-			if(type.equals(IN)) {
+			if(type.equals(NOT_IN)) {
 				sb.append(qColumn).append(" not in (");
 			} else {
 				sb.append(qColumn).append(" in (");
