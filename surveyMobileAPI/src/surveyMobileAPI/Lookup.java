@@ -255,10 +255,10 @@ public class Lookup extends Application{
 			} else if(indexFn.equals(FN_COUNT)) {				
 				results.put("_count", String.valueOf(resultsArray.size()));
 			} else if(indexFn.equals(FN_INDEX)) {
-				if(index < resultsArray.size()) {
-					results = resultsArray.get(index);
+				if(index < resultsArray.size() + 1) {
+					results = resultsArray.get(index - 1);
 				} else {
-					throw new ApplicationException("Index: " + index + " is out of bounds.  There are only " + resultsArray.size() + " items");
+					//throw new ApplicationException("Index: " + index + " is out of bounds.  There are only " + resultsArray.size() + " items");
 				}
 			} else if(indexFn.equals(FN_SUM) || indexFn.equals(FN_SUM) || indexFn.equals(FN_MEAN) ||
 					indexFn.equals(FN_MIN) || indexFn.equals(FN_MAX) || indexFn.equals(FN_LIST)) {
