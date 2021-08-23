@@ -277,9 +277,19 @@ public class Lookup extends Application{
 							} else {
 								results.put(k, l + " " + v);
 							}
-						} else if(indexFn.equals(FN_SUM) || indexFn.equals(FN_MEAN)) {
+						} else if(indexFn.equals(FN_SUM) || indexFn.equals(FN_MEAN) ||
+								indexFn.equals(FN_MIN) || indexFn.equals(FN_MAX)) {
 							double cValue = 0.0;
 							double vValue = 0.0;
+							
+							// initialise max / min
+							if(indexFn.equals(FN_MIN) || indexFn.equals(FN_MAX)) {
+								if(indexFn.equals(FN_MIN)) {
+									cValue = Double.MAX_VALUE;
+								} else if(indexFn.equals(FN_MAX)) {
+									cValue = Double.MIN_VALUE;
+								}
+							}
 							if(l != null) {
 								try {
 									cValue = Double.valueOf(l);
@@ -290,7 +300,22 @@ public class Lookup extends Application{
 									vValue = Double.valueOf(v);
 								} catch (Exception e) { }
 							}
-							results.put(k, String.valueOf(cValue + vValue));
+							
+							if(indexFn.equals(FN_SUM) || indexFn.equals(FN_MEAN)) {
+								results.put(k, String.valueOf(cValue + vValue));
+							} else if(indexFn.equals(FN_MIN)) {
+								if(vValue < cValue) {
+									results.put(k, String.valueOf(vValue));
+								} else {
+									results.put(k, String.valueOf(cValue));
+								}
+							} else if(indexFn.equals(FN_MAX)) {
+								if(vValue > cValue) {
+									results.put(k, String.valueOf(vValue));
+								} else {
+									results.put(k, String.valueOf(cValue));
+								}
+							}
 						}
 					}
 				}
