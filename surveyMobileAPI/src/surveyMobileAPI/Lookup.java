@@ -90,6 +90,15 @@ public class Lookup extends Application{
 	private final String STARTS = "startswith";
 	private final String ENDS = "endswith";
 	
+    // Valid pulldata functions
+    public static final String FN_COUNT = "count";
+    public static final String FN_LIST = "list";
+    public static final String FN_INDEX = "index";
+    public static final String FN_SUM = "sum";
+    public static final String FN_MAX = "max";
+    public static final String FN_MIN = "min";
+    public static final String FN_MEAN = "mean";
+	
 	private class ColDetails {
 		String colName = null;
 		public ArrayList<SqlFrag> filterArray = null;
@@ -115,7 +124,7 @@ public class Lookup extends Application{
 			@PathParam("filename") String fileName,				// CSV filename, could be the identifier of another survey
 			@PathParam("key_column") String keyColumn,
 			@PathParam("key_value") String keyValue,
-			@QueryParam("index") int index,
+			@QueryParam("index") String indexFn,
 			@QueryParam("searchType") String searchType,
 			@QueryParam("expression") String expression
 			) throws IOException {
@@ -150,8 +159,37 @@ public class Lookup extends Application{
 
 			if(searchType == null) {
 				searchType = "matches";
-				index = 1;
 			}
+			
+			int index = 0;
+			if(indexFn != null) {
+				   // Support legacy function values
+                if(indexFn.equals("-1")) { // legacy
+                    indexFn = FN_COUNT;
+                } else if(indexFn.equals("0")) { // legacy
+                    indexFn = FN_LIST;
+                }
+                
+                /*
+                 * If the function is a number greater than 0 then set the function to "index",
+                 * if less than 0 set it to "count" otherwise if equal to 0 then it should be "list"
+                 * if it is not a number then it will not be changed
+                 */
+                try {
+                    index = Integer.valueOf(indexFn);
+                    if(index > 0) {
+                        indexFn = FN_INDEX;
+                    } else if(index < 0) {
+                        indexFn = FN_COUNT;
+                    } else {
+                        indexFn = FN_LIST;
+                    }
+                } catch (Exception e) {
+
+                }
+			}
+            
+			
 			
 			String tz = "UTC";
 			ArrayList<String> arguments = new ArrayList<> ();
@@ -160,6 +198,7 @@ public class Lookup extends Application{
 			StringBuffer selection = new StringBuffer(createLikeExpression(colDetails.getExpression(), keyValue, searchType, arguments));
 			whereColumns.add(keyColumn);
 			
+			ArrayList<HashMap<String, String>> resultsArray = null;
 			HashMap<String, String> results = null;
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			if(fileName != null) {
@@ -174,10 +213,10 @@ public class Lookup extends Application{
 					int count = 0;
 					while((line = stm.getLineAsHash()) != null) {
 						count++;
-						if(count == index) {
+						if(indexFn.equals(FN_INDEX)  && count == index) {
 							results = line;
 							break;
-						} else if(index == 0) {
+						} else if(indexFn.equals(FN_LIST)) {
 							if(results == null) {
 								results = line;
 							} else {
@@ -197,18 +236,55 @@ public class Lookup extends Application{
 						}
 					}
 					
-					if(index == -1) {
+					if(indexFn.equals(FN_COUNT)) {
 						results = new HashMap<String, String> ();
 						results.put("_count", String.valueOf(count));
 					}
 				} else {
 					// Get data from a csv file
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);
-					results = ctm.lookup(oId, sId, fileName + ".csv", keyColumn, keyValue, expression, tz);
+					resultsArray = ctm.lookup(oId, sId, fileName + ".csv", keyColumn, keyValue, expression, tz);
 				}
 			}
-			if (results == null) {
-				results =  new HashMap<> ();
+
+			results = new HashMap<String, String> ();
+			if(indexFn == null) {
+				if(resultsArray.size() > 0) {
+					results = resultsArray.get(0);
+				} 
+			} else if(indexFn.equals(FN_COUNT)) {				
+				results.put("_count", String.valueOf(resultsArray.size()));
+			} else if(indexFn.equals(FN_INDEX)) {
+				if(index < resultsArray.size()) {
+					results = resultsArray.get(index);
+				} else {
+					throw new ApplicationException("Index: " + index + " is out of bounds.  There are only " + resultsArray.size() + " items");
+				}
+			} else if(indexFn.equals(FN_SUM) || indexFn.equals(FN_SUM) || indexFn.equals(FN_MEAN) ||
+					indexFn.equals(FN_MIN) || indexFn.equals(FN_MAX) || indexFn.equals(FN_LIST)) {
+				
+				for(HashMap<String, String> r : resultsArray) {
+					for(String k : r.keySet()) {
+						String v = r.get(k);
+						String l = results.get(k);
+						
+						if(indexFn.equals(FN_LIST)) {
+							if(l == null) {
+								l = "";
+							}
+							if(l.length() == 0) {
+								results.put(k,  v);
+							} else {
+								results.put(k, l + " " + v);
+							}
+						} else if(indexFn.equals(FN_SUM) || indexFn.equals(FN_MEAN)) {
+							
+						}
+					}
+					
+					
+           
+				}
 			}
 			response = Response.ok(gson.toJson(results)).build();
 		
