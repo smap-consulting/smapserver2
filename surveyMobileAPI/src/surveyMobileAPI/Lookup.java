@@ -278,12 +278,30 @@ public class Lookup extends Application{
 								results.put(k, l + " " + v);
 							}
 						} else if(indexFn.equals(FN_SUM) || indexFn.equals(FN_MEAN)) {
-							
+							double cValue = 0.0;
+							double vValue = 0.0;
+							if(l != null) {
+								try {
+									cValue = Double.valueOf(l);
+								} catch (Exception e) { }
+							}
+							if(v != null) {
+								try {
+									vValue = Double.valueOf(v);
+								} catch (Exception e) { }
+							}
+							results.put(k, String.valueOf(cValue + vValue));
 						}
 					}
-					
-					
-           
+				}
+				if(indexFn.equals(FN_MEAN)) {
+					for(String k : results.keySet()) {
+						String l = results.get(k);
+						if(resultsArray.size() > 0) {
+							Double cValue = Double.valueOf(l);
+							results.put(k, String.valueOf(cValue / resultsArray.size()));
+						}
+					}
 				}
 			}
 			response = Response.ok(gson.toJson(results)).build();
