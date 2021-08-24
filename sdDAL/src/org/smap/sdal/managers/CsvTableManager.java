@@ -428,7 +428,7 @@ public class CsvTableManager {
 				if(rsx.next()) {
 					records = readRecordsFromTable(rsx.getInt(1), rsx.getString(2), key_column, key_value, fileName, expression, tz, selection, arguments);	
 				} else {
-					log.info("record not found");
+					throw new ApplicationException(localisation.getString("mf_mf") + " " + fileName);
 				}
 			}
 		} finally {
@@ -447,7 +447,6 @@ public class CsvTableManager {
 			HashMap<String, String> mlLabelColumns,
 			String selection,
 			ArrayList<String> arguments,
-			ArrayList<String> whereColumns,
 			SqlFrag expressionFrag) throws SQLException, ApplicationException {
 		
 		ArrayList<SelectChoice> choices = null;
@@ -464,11 +463,11 @@ public class CsvTableManager {
 				if(mlLabelColumns != null) {
 					choices = mlReadChoicesFromTable(rs.getInt(1), rs.getString(2), value_column, 
 							mlLabelColumns, fileName,
-							selection, arguments, whereColumns, expressionFrag);	
+							selection, arguments, expressionFrag);	
 				} else {
 					choices = readChoicesFromTable(rs.getInt(1), rs.getString(2), value_column, label_columns, 
 							fileName,
-							selection, arguments, whereColumns, expressionFrag);	
+							selection, arguments, expressionFrag);	
 				}
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
@@ -478,11 +477,11 @@ public class CsvTableManager {
 					if(mlLabelColumns != null) {
 						choices= mlReadChoicesFromTable(rsx.getInt(1), rsx.getString(2), 
 								value_column, mlLabelColumns, fileName,
-								selection, arguments, whereColumns, expressionFrag);	
+								selection, arguments, expressionFrag);	
 					} else {
 						choices= readChoicesFromTable(rsx.getInt(1), rsx.getString(2), 
 								value_column, label_columns, fileName,
-								selection, arguments, whereColumns, expressionFrag);	
+								selection, arguments, expressionFrag);	
 					}
 				}				
 			}
@@ -705,7 +704,7 @@ public class CsvTableManager {
 			
 			SqlFrag expressionFrag = null;
 			if(expression != null) {
-				// Convert #{qname} syntax to ${qname} syntax - also remove any encollosing single quotes
+				// Convert #{qname} syntax to ${qname} syntax - also remove any enclosing single quotes
 				expression = expression.replace("#{", "${");
 				expression = expression.replace("\'${", "${");
 				expression = expression.replace("}\'", "}");
@@ -756,7 +755,6 @@ public class CsvTableManager {
 			String filename,
 			String selection,
 			ArrayList<String> arguments,
-			ArrayList<String> whereColumns,
 			SqlFrag expressionFrag) throws SQLException, ApplicationException {
 			
 		ArrayList<SelectChoice> choices = new ArrayList<> ();
@@ -824,6 +822,7 @@ public class CsvTableManager {
 			
 			
 			// Check the where columns
+			/*
 			for(String col : whereColumns) {
 				boolean foundCol = false;
 				for(CsvHeader item : headers) {
@@ -836,6 +835,7 @@ public class CsvTableManager {
 					throw new ApplicationException("Column " + col + " not found in table " + table);
 				}
 			}
+			*/
 			
 			sql.append(" from ").append(table);
 			if(selection != null) {
@@ -887,7 +887,6 @@ public class CsvTableManager {
 			String filename,
 			String selection,
 			ArrayList<String> arguments,
-			ArrayList<String> whereColumns,
 			SqlFrag expressionFrag) throws SQLException, ApplicationException {
 			
 		ArrayList<SelectChoice> choices = new ArrayList<> ();
@@ -960,6 +959,7 @@ public class CsvTableManager {
 			}
 			
 			// Check the where columns
+			/*
 			for(String col : whereColumns) {
 				boolean foundCol = false;
 				for(CsvHeader item : headers) {
@@ -972,6 +972,7 @@ public class CsvTableManager {
 					throw new ApplicationException("Column " + col + " not found in table " + table);
 				}
 			}
+			*/
 			
 			sql.append(" from ").append(table);
 			if(selection != null) {
