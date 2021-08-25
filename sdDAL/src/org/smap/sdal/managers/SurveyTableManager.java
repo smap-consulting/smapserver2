@@ -221,15 +221,17 @@ public class SurveyTableManager {
 				}
 			}
 			*/
-			if(sqlDef.hasWhere) {
-				sql.append(" and ");
-			} else {
-				sql.append(" where ");
-			}
-			if(expressionFrag != null) {
-				sql.append(" ( ").append(expressionFrag.sql).append(")");
-			} else if(selection != null) {
-				sql.append(selection);
+			if(expressionFrag != null || selection != null) { 
+				if(sqlDef.hasWhere) {
+					sql.append(" and ");
+				} else {
+					sql.append(" where ");
+				}
+				if(expressionFrag != null) {
+					sql.append(" ( ").append(expressionFrag.sql).append(")");
+				} else if(selection != null) {
+					sql.append(selection);
+				}
 			}
 
 			sql.append(sqlDef.order_by);
@@ -251,7 +253,6 @@ public class SurveyTableManager {
 			}
 			
 			if(expressionFrag != null) {
-				System.out.println("+++++ " + pstmt.toString());
 				paramCount = GeneralUtilityMethods.setFragParams(pstmt, expressionFrag, paramCount, tz);
 			} else if(arguments != null) {
 				for(String arg : arguments) {
@@ -268,6 +269,7 @@ public class SurveyTableManager {
 					log.info("Attempting to get data from a survey that has had no data submitted. " + msg);
 				} else {
 					log.log(Level.SEVERE, msg, e);
+					throw new ApplicationException(msg + " : " + pstmt.toString());
 				}
 				rs = null;
 			}
