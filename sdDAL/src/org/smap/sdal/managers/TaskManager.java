@@ -118,7 +118,7 @@ public class TaskManager {
 			STATUS_T_DELETED,
 			STATUS_T_PENDING,
 			"error",
-			"blocked"
+			STATUS_T_BLOCKED
 			};
 	
 	public class TaskInstanceData {
@@ -2909,7 +2909,7 @@ public class TaskManager {
 	/*
 	 * Create all assignments for specific user id, role or emails
 	 */
-	public String applyAllAssignments(
+	public void applyAllAssignments(
 			Connection sd,
 			Connection cResults,
 			PreparedStatement pstmtRoles, 
@@ -2986,7 +2986,10 @@ public class TaskManager {
 		} else if(emails != null && emails.length() > 0) {
 			boolean emailTaskBlocked = GeneralUtilityMethods.emailTaskBlocked(sd, oId);
 			String [] emailArray = emails.split(",");
-			if(autosendEmails) {
+			
+			if(emailTaskBlocked) { 
+				status = STATUS_T_BLOCKED;
+			} else if(autosendEmails) {
 				status = STATUS_T_PENDING;
 			} else {
 				status = STATUS_T_UNSENT;
@@ -3031,23 +3034,23 @@ public class TaskManager {
 				
 				action.email = email;
 				
-				if(emailTaskBlocked) {
-					insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, null, email, "blocked", taskId, update_id, sIdent, 
-							remoteUser, scheduledAt, scheduledFinish,
-							assign_auto);
-				} else {
-					// Create the assignment
-					int aId = insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, null, email, status, taskId, update_id, sIdent, 
-							remoteUser, scheduledAt, scheduledFinish,
-							assign_auto);
+				// Create the assignment
+				int aId = insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, null, email, status, taskId, update_id, sIdent, 
+						remoteUser, scheduledAt, scheduledFinish,
+						assign_auto);
+				// Create a temporary user embedding the assignment id in the action link, get the link to that user
+				action.assignmentId = aId;
+				log.info("######## Creating action link inside task manager: " + action.single);
+				String link = am.getLink(sd, action, oId, true);
+				
+				// Update the assignment with the link to the action
+				setAssignmentLink(sd, aId, link);
+				
+				/*
+				 * Send the email if it is not blocked
+				 */
+				if(!emailTaskBlocked) {
 					
-					// Create a temporary user embedding the assignment id in the action link, get the link to that user
-					action.assignmentId = aId;
-					log.info("######## Creating action link inside task manager: " + action.single);
-					String link = am.getLink(sd, action, oId, true);
-					
-					// Update the assignment with the link to the action
-					setAssignmentLink(sd, aId, link);
 					MessagingManager mm = new MessagingManager(localisation);
 					if(autosendEmails) {
 						// Create a submission message (The task may or may not have come from a submission)
@@ -3077,38 +3080,7 @@ public class TaskManager {
 			insertAssignment(sd, cResults, gson, pstmtAssign, task_name, userId, userIdent, null, "new", taskId, update_id, sIdent, 
 					remoteUser, scheduledAt, scheduledFinish, assign_auto);
 			
-			/*
-			log.info("No matching assignments found");
-			// Write an entry in the RecordEvent Log anyway (if the update id is not null and the results table exists)
-			if(update_id != null) {
-				String eventStatus = RecordEventManager.STATUS_NEW;
-				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
-				log.info("Record event: " + sIdent + " : " + tableName);
-				if(tableName != null) {
-					TaskItemChange tic = new TaskItemChange(taskId, 0, task_name, eventStatus, null, null, null, null);
-					RecordEventManager rem = new RecordEventManager(localisation, tz);
-					rem.writeEvent(
-							sd, 
-							cResults, 
-							RecordEventManager.TASK, 
-							eventStatus,
-							remoteUser, 
-							tableName, 
-							update_id, 
-							null,				// Change object
-							gson.toJson(tic),	// Task Object
-							null,				// Notification object
-							"Task created", 
-							0,				// sId (don't care legacy)
-							sIdent,
-							taskId,
-							0				// Assignment id
-							);
-				}
-			}
-			*/
 		}
-		return status;
 	}
 	
 	public PreparedStatement getRoles(Connection sd) throws SQLException {
