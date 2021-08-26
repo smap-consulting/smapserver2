@@ -1466,7 +1466,7 @@ public class GetHtml {
 			parent.appendChild(getRequiredMsg(q.required_msg, null, true));
 		}
 		
-		if (q.readonly && !(parent.getNodeName() == null || parent.getNodeName().equals("label"))) {
+		if (q.readonly && !(parent.getNodeName() == null || parent.getNodeName().equals("label") || parent.getNodeName().equals("h4"))) {
 			parent.setAttribute("readonly", "readonly");
 		}
 		
