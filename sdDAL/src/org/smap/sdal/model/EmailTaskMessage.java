@@ -1,7 +1,5 @@
 package org.smap.sdal.model;
 
-import java.util.ArrayList;
-
 public class EmailTaskMessage {
 	public int sId;
 	public int pId;
