@@ -661,12 +661,9 @@ public class UserManager {
 				}
 				
 				/*
-				 * If the update does not identify the organisation then it will be for the organisation
-				 * of the person doing the update
+				 * The update will be for the organisation of the person doing the update
 				 */
-				if(u.o_id == 0) {
-					u.o_id = adminUserOrgId;
-				}
+				u.o_id = adminUserOrgId;
 				
 				// Update the saved settings for this user
 				updateSavedSettings(sd, u, u.id, u.o_id, isOrgUser, isSecurityManager);
