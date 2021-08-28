@@ -738,9 +738,10 @@ public class CsvTableManager {
 				records.add(record);			
 			}	
 		} catch (Exception e) {
-			log.log(Level.SEVERE, e.getMessage() + " : " + pstmt.toString(), e);
+			String s = pstmt == null ? "" : pstmt.toString();
+			log.log(Level.SEVERE, e.getMessage() + " : " + s, e);
 			throw new ApplicationException(localisation.getString("c_error") + " : " + filename + " " 
-					+ e.getMessage() + " : " + pstmt.toString());
+					+ e.getMessage() + " : " + s);
 		} finally {
 			try {pstmt.close();} catch(Exception e) {}
 		}
