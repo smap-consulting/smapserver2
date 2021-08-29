@@ -90,6 +90,15 @@ public class Lookup extends Application{
 	private final String STARTS = "startswith";
 	private final String ENDS = "endswith";
 	
+    // Valid pulldata functions
+    public static final String FN_COUNT = "count";
+    public static final String FN_LIST = "list";
+    public static final String FN_INDEX = "index";
+    public static final String FN_SUM = "sum";
+    public static final String FN_MAX = "max";
+    public static final String FN_MIN = "min";
+    public static final String FN_MEAN = "mean";
+	
 	private class ColDetails {
 		String colName = null;
 		public ArrayList<SqlFrag> filterArray = null;
@@ -115,8 +124,9 @@ public class Lookup extends Application{
 			@PathParam("filename") String fileName,				// CSV filename, could be the identifier of another survey
 			@PathParam("key_column") String keyColumn,
 			@PathParam("key_value") String keyValue,
-			@QueryParam("index") int index,
-			@QueryParam("searchType") String searchType
+			@QueryParam("index") String indexFn,
+			@QueryParam("searchType") String searchType,
+			@QueryParam("expression") String expression
 			) throws IOException {
 
 		Response response = null;
@@ -124,7 +134,7 @@ public class Lookup extends Application{
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		int sId = 0;
 		
-		log.info("Lookup: Filename=" + fileName + " key_column=" + keyColumn + " key_value=" + keyValue);
+		log.info("Lookup: Filename=" + fileName + " key_column=" + keyColumn + " key_value=" + keyValue + " searchType=" + searchType + " Expression=" + expression);
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);		
@@ -149,40 +159,102 @@ public class Lookup extends Application{
 
 			if(searchType == null) {
 				searchType = "matches";
-				index = 1;
 			}
+			
+			int index = 0;
+			if(indexFn != null) {
+				   // Support legacy function values
+                if(indexFn.equals("-1")) { // legacy
+                    indexFn = FN_COUNT;
+                } else if(indexFn.equals("0")) { // legacy
+                    indexFn = FN_LIST;
+                }
+                
+                /*
+                 * If the function is a number greater than 0 then set the function to "index",
+                 * if less than 0 set it to "count" otherwise if equal to 0 then it should be "list"
+                 * if it is not a number then it will not be changed
+                 */
+                try {
+                    index = Integer.valueOf(indexFn);
+                    if(index > 0) {
+                        indexFn = FN_INDEX;
+                    } else if(index < 0) {
+                        indexFn = FN_COUNT;
+                    } else {
+                        indexFn = FN_LIST;
+                    }
+                } catch (Exception e) {
+
+                }
+			}
+            
+			
 			
 			String tz = "UTC";
 			ArrayList<String> arguments = new ArrayList<> ();
-			ArrayList<String> whereColumns = new ArrayList<> ();
 			ColDetails colDetails = getDetails(sd, gson, localisation, sId, keyColumn, fileName);		
 			StringBuffer selection = new StringBuffer(createLikeExpression(colDetails.getExpression(), keyValue, searchType, arguments));
-			whereColumns.add(keyColumn);
 			
+			ArrayList<HashMap<String, String>> resultsArray = null;
 			HashMap<String, String> results = null;
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			if(fileName != null) {
 				if(fileName.startsWith("linked_s") || fileName.startsWith("chart_s")) {
 					// Get data from a survey
+					
+					// Get expression sql fragment
+					SqlFrag expressionFrag = null;
+					if(expression != null) {
+						// Convert #{qname} syntax to ${qname} syntax - also remove any enclosing single quotes
+						expression = expression.replace("#{", "${");
+						expression = expression.replace("\'${", "${");
+						expression = expression.replace("}\'", "}");
+						expressionFrag = new SqlFrag();
+						log.info("Lookup with expression: " + expression);
+						expressionFrag.addSqlFragment(expression, false, localisation, 0);
+					}
+					
 					cResults = ResultsDataSource.getConnection(connectionString);				
 					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
-					stm.initData(pstmt, "lookup", selection.toString(), arguments, whereColumns, 
-							null, 		// expression Fragment
+					stm.initData(pstmt, "lookup", selection.toString(), arguments, 
+							expressionFrag, 		// expression Fragment
 							tz, null, null);
 					HashMap<String, String> line = null;
-					int count = 0;
+					resultsArray = new ArrayList<> ();
 					while((line = stm.getLineAsHash()) != null) {
-						count++;
-						if(count == index) {
-							results = line;
-							break;
-						} else if(index == 0) {
-							if(results == null) {
-								results = line;
-							} else {
-								for(String k : line.keySet()) {
-									String v = line.get(k);
-									String l = results.get(k);
+						resultsArray.add(line);
+					}
+					
+				} else {
+					// Get data from a csv file
+					CsvTableManager ctm = new CsvTableManager(sd, localisation);
+					resultsArray = ctm.lookup(oId, sId, fileName + ".csv", keyColumn, keyValue, expression, tz, selection.toString(), arguments);
+				} 
+
+				results = new HashMap<String, String> ();
+				if(resultsArray != null) {
+					if(indexFn == null) {
+						if(resultsArray.size() > 0) {
+							results = resultsArray.get(0);
+						} 
+					} else if(indexFn.equals(FN_COUNT)) {				
+						results.put("_count", String.valueOf(resultsArray.size()));
+					} else if(indexFn.equals(FN_INDEX)) {
+						if(index < resultsArray.size() + 1) {
+							results = resultsArray.get(index - 1);
+						} else {
+							//throw new ApplicationException("Index: " + index + " is out of bounds.  There are only " + resultsArray.size() + " items");
+						}
+					} else if(indexFn.equals(FN_SUM) || indexFn.equals(FN_SUM) || indexFn.equals(FN_MEAN) ||
+							indexFn.equals(FN_MIN) || indexFn.equals(FN_MAX) || indexFn.equals(FN_LIST)) {
+						
+						for(HashMap<String, String> r : resultsArray) {
+							for(String k : r.keySet()) {
+								String v = r.get(k);
+								String l = results.get(k);
+								
+								if(indexFn.equals(FN_LIST)) {
 									if(l == null) {
 										l = "";
 									}
@@ -191,24 +263,61 @@ public class Lookup extends Application{
 									} else {
 										results.put(k, l + " " + v);
 									}
+								} else if(indexFn.equals(FN_SUM) || indexFn.equals(FN_MEAN) ||
+										indexFn.equals(FN_MIN) || indexFn.equals(FN_MAX)) {
+									double cValue = 0.0;
+									double vValue = 0.0;
+									
+									// initialise max / min
+									if(indexFn.equals(FN_MIN) || indexFn.equals(FN_MAX)) {
+										if(indexFn.equals(FN_MIN)) {
+											cValue = Double.MAX_VALUE;
+										} else if(indexFn.equals(FN_MAX)) {
+											cValue = Double.MIN_VALUE;
+										}
+									}
+									if(l != null) {
+										try {
+											cValue = Double.valueOf(l);
+										} catch (Exception e) { }
+									}
+									if(v != null) {
+										try {
+											vValue = Double.valueOf(v);
+										} catch (Exception e) { }
+									}
+									
+									if(indexFn.equals(FN_SUM) || indexFn.equals(FN_MEAN)) {
+										results.put(k, String.valueOf(cValue + vValue));
+									} else if(indexFn.equals(FN_MIN)) {
+										if(vValue < cValue) {
+											results.put(k, String.valueOf(vValue));
+										} else {
+											results.put(k, String.valueOf(cValue));
+										}
+									} else if(indexFn.equals(FN_MAX)) {
+										if(vValue > cValue) {
+											results.put(k, String.valueOf(vValue));
+										} else {
+											results.put(k, String.valueOf(cValue));
+										}
+									}
+								}
+							}
+						}
+						if(indexFn.equals(FN_MEAN)) {
+							for(String k : results.keySet()) {
+								String l = results.get(k);
+								if(resultsArray.size() > 0) {
+									Double cValue = Double.valueOf(l);
+									results.put(k, String.valueOf(cValue / resultsArray.size()));
 								}
 							}
 						}
 					}
-					
-					if(index == -1) {
-						results = new HashMap<String, String> ();
-						results.put("_count", String.valueOf(count));
-					}
-				} else {
-					// Get data from a csv file
-					CsvTableManager ctm = new CsvTableManager(sd, localisation);
-					results = ctm.lookup(oId, sId, fileName + ".csv", keyColumn, keyValue);
 				}
-			}
-			if (results == null) {
-				results =  new HashMap<> ();
-			}
+			} 
+			
 			response = Response.ok(gson.toJson(results)).build();
 		
 		}  catch (Exception e) {
@@ -239,7 +348,7 @@ public class Lookup extends Application{
 			@QueryParam("q_value") String qValue,
 			@QueryParam("f_column") String fColumn,
 			@QueryParam("f_value") String fValue,
-			@QueryParam("expression") String expression	
+			@QueryParam("expression") String expression
 			) throws IOException {
 
 		Response response = null;
@@ -476,7 +585,7 @@ public class Lookup extends Application{
 		type = type.trim().toLowerCase();
 
 		if(type.equals(IN) || type.equals(NOT_IN)) {
-			if(type.equals(IN)) {
+			if(type.equals(NOT_IN)) {
 				sb.append(qColumn).append(" not in (");
 			} else {
 				sb.append(qColumn).append(" in (");
@@ -579,13 +688,12 @@ public class Lookup extends Application{
 			String tz = "UTC";
 			
 			// Clean the data
-			ArrayList<String> whereColumns = new ArrayList<String> ();
+		
 			if(searchType != null) {
 				searchType = searchType.trim().toLowerCase();
 			}
 			if(qColumn != null) {
 				qColumn = qColumn.trim();
-				whereColumns.add(qColumn);
 			}
 			if(qValue != null) {
 				qValue = qValue.trim();
@@ -595,7 +703,6 @@ public class Lookup extends Application{
 			}
 			if(fColumn != null) {
 				fColumn = fColumn.trim();
-				whereColumns.add(fColumn);
 			}
 			// Create a where clause and where parameters
 			StringBuffer selection = new StringBuffer("");
@@ -621,7 +728,6 @@ public class Lookup extends Application{
 			if(expression != null) {
 				// Convert #{qname} syntax to ${qname} syntax
 				expression = expression.replace("#{", "${");
-				// TODO convert expression into a selection
 				frag = new SqlFrag();
 				log.info("Lookup with expression: " + expression);
 				frag.addSqlFragment(expression, false, localisation, 0);
@@ -650,7 +756,7 @@ public class Lookup extends Application{
 					// Get data from a survey				
 					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
 					stm.initData(pstmt, "choices",
-							selectionString, arguments, whereColumns, frag, tz, qDetails.filterArray, fDetails.filterArray);
+							selectionString, arguments, frag, tz, qDetails.filterArray, fDetails.filterArray);
 					
 					HashMap<String, String> choiceMap = new HashMap<>();	// Use for uniqueness
 					HashMap<String, String> line = null;
@@ -700,7 +806,7 @@ public class Lookup extends Application{
 					// Get data from a csv file
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);
 					results = ctm.lookupChoices(oId, sId, fileName + ".csv", valueColumn, labelColumns, mlLabelColumns,
-							selectionString, arguments, whereColumns, frag);
+							selectionString, arguments, frag);
 				}
 			}
 			if (results == null) {
