@@ -406,10 +406,10 @@ public class CsvTableManager {
 	/*
 	 * Look up a value
 	 */
-	public HashMap<String, String> lookup(int oId, int sId, String fileName, String key_column, 
-			String key_value) throws SQLException, ApplicationException {
+	public ArrayList<HashMap<String, String>> lookup(int oId, int sId, String fileName, String key_column, 
+			String key_value, String expression, String tz, String selection, ArrayList<String> arguments) throws SQLException, ApplicationException {
 		
-		HashMap<String, String> record = null;
+		ArrayList<HashMap<String, String>> records = null;
 		
 		PreparedStatement pstmtGetCsvTable = null;	
 		try {
@@ -420,22 +420,22 @@ public class CsvTableManager {
 			log.info("Getting csv file name for lookup value: (survey level) " + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			if(rs.next()) {
-				record = readRecordFromTable(rs.getInt(1), rs.getString(2), key_column, key_value, fileName);				
+				records = readRecordsFromTable(rs.getInt(1), rs.getString(2), key_column, key_value, fileName, expression, tz, selection, arguments);				
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
 				log.info("Getting csv file name fo lookup value: (organisation level) " + pstmtGetCsvTable.toString());
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
-					record = readRecordFromTable(rsx.getInt(1), rsx.getString(2), key_column, key_value, fileName);	
+					records = readRecordsFromTable(rsx.getInt(1), rsx.getString(2), key_column, key_value, fileName, expression, tz, selection, arguments);	
 				} else {
-					log.info("record not found");
+					throw new ApplicationException(localisation.getString("mf_mf") + " " + fileName);
 				}
 			}
 		} finally {
 			try {pstmtGetCsvTable.close();} catch(Exception e) {}
 		}
 		
-		return record;
+		return records;
 	}
 	
 	/*
@@ -447,7 +447,6 @@ public class CsvTableManager {
 			HashMap<String, String> mlLabelColumns,
 			String selection,
 			ArrayList<String> arguments,
-			ArrayList<String> whereColumns,
 			SqlFrag expressionFrag) throws SQLException, ApplicationException {
 		
 		ArrayList<SelectChoice> choices = null;
@@ -464,11 +463,11 @@ public class CsvTableManager {
 				if(mlLabelColumns != null) {
 					choices = mlReadChoicesFromTable(rs.getInt(1), rs.getString(2), value_column, 
 							mlLabelColumns, fileName,
-							selection, arguments, whereColumns, expressionFrag);	
+							selection, arguments, expressionFrag);	
 				} else {
 					choices = readChoicesFromTable(rs.getInt(1), rs.getString(2), value_column, label_columns, 
 							fileName,
-							selection, arguments, whereColumns, expressionFrag);	
+							selection, arguments, expressionFrag);	
 				}
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
@@ -478,11 +477,11 @@ public class CsvTableManager {
 					if(mlLabelColumns != null) {
 						choices= mlReadChoicesFromTable(rsx.getInt(1), rsx.getString(2), 
 								value_column, mlLabelColumns, fileName,
-								selection, arguments, whereColumns, expressionFrag);	
+								selection, arguments, expressionFrag);	
 					} else {
 						choices= readChoicesFromTable(rsx.getInt(1), rsx.getString(2), 
 								value_column, label_columns, fileName,
-								selection, arguments, whereColumns, expressionFrag);	
+								selection, arguments, expressionFrag);	
 					}
 				}				
 			}
@@ -672,12 +671,12 @@ public class CsvTableManager {
 	}
 	
 	/*
-	 * Read the a data record from a csv table
+	 * Read data records from a csv table
 	 */
-	private HashMap<String, String> readRecordFromTable(int tableId, String sHeaders, String key_column, String key_value,
-			String filename) throws SQLException, ApplicationException {
+	private ArrayList<HashMap<String, String>> readRecordsFromTable(int tableId, String sHeaders, String key_column, String key_value,
+			String filename, String expression, String tz, String selection, ArrayList<String> arguments) throws SQLException, ApplicationException {
 			
-		HashMap<String, String> record = new HashMap<String, String> ();
+		ArrayList<HashMap<String, String>> records = new ArrayList<> ();
 		
 		Type headersType = new TypeToken<ArrayList<CsvHeader>>() {}.getType();
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
@@ -696,34 +695,57 @@ public class CsvTableManager {
 				}
 				first = false;
 				sql.append(item.tName);
-				if(item.fName.equals(key_column)) {
+				if(key_column != null && item.fName.equals(key_column)) {
 					tKeyColumn = item.tName;
 				}
 			}
-			if(tKeyColumn == null) {
-				throw new ApplicationException("Column " + key_column + " not found in table " + table);
-			}
 			
 			sql.append(" from ").append(table);
-			sql.append(" where ").append(tKeyColumn).append(" = ?");
-				
-			pstmt = sd.prepareStatement(sql.toString());		
-			pstmt.setString(1, key_value);
+			
+			SqlFrag expressionFrag = null;
+			if(expression != null) {
+				// Convert #{qname} syntax to ${qname} syntax - also remove any enclosing single quotes
+				expression = expression.replace("#{", "${");
+				expression = expression.replace("\'${", "${");
+				expression = expression.replace("}\'", "}");
+				expressionFrag = new SqlFrag();
+				log.info("Lookup with expression: " + expression);
+				expressionFrag.addSqlFragment(expression, false, localisation, 0);
+				sql.append(" where ( ").append(expressionFrag.sql).append(")");
+			} else if(tKeyColumn == null) {
+				throw new ApplicationException("Column " + key_column + " not found in table " + table);
+			} else {
+				sql.append(" where ").append(selection);
+			}
+			
+			pstmt = sd.prepareStatement(sql.toString());
+			int paramCount = 1;
+			if(expression != null) {
+				paramCount = GeneralUtilityMethods.setFragParams(pstmt, expressionFrag, paramCount, tz);
+			} else {
+				for(String arg : arguments) {
+					pstmt.setString(paramCount++, arg);
+				}
+			}
 			log.info("Get CSV lookup values: " + pstmt.toString());
 			ResultSet rsx = pstmt.executeQuery();
 			
-			if(rsx.next()) {
+			while(rsx.next()) {
+				HashMap<String, String> record = new HashMap<> ();
 				for(CsvHeader item : headers) {
 					record.put(item.fName, rsx.getString(item.tName));
 				}
+				records.add(record);			
 			}	
 		} catch (Exception e) {
-			log.log(Level.SEVERE, e.getMessage(), e);
-			throw new ApplicationException("Error getting a record of data from a CSV file: " + filename + " " + e.getMessage());
+			String s = pstmt == null ? "" : pstmt.toString();
+			log.log(Level.SEVERE, e.getMessage() + " : " + s, e);
+			throw new ApplicationException(localisation.getString("c_error") + " : " + filename + " " 
+					+ e.getMessage() + " : " + s);
 		} finally {
 			try {pstmt.close();} catch(Exception e) {}
 		}
-		return record;
+		return records;
 	}
 	
 	/*
@@ -734,7 +756,6 @@ public class CsvTableManager {
 			String filename,
 			String selection,
 			ArrayList<String> arguments,
-			ArrayList<String> whereColumns,
 			SqlFrag expressionFrag) throws SQLException, ApplicationException {
 			
 		ArrayList<SelectChoice> choices = new ArrayList<> ();
@@ -802,6 +823,7 @@ public class CsvTableManager {
 			
 			
 			// Check the where columns
+			/*
 			for(String col : whereColumns) {
 				boolean foundCol = false;
 				for(CsvHeader item : headers) {
@@ -814,6 +836,7 @@ public class CsvTableManager {
 					throw new ApplicationException("Column " + col + " not found in table " + table);
 				}
 			}
+			*/
 			
 			sql.append(" from ").append(table);
 			if(selection != null) {
@@ -865,7 +888,6 @@ public class CsvTableManager {
 			String filename,
 			String selection,
 			ArrayList<String> arguments,
-			ArrayList<String> whereColumns,
 			SqlFrag expressionFrag) throws SQLException, ApplicationException {
 			
 		ArrayList<SelectChoice> choices = new ArrayList<> ();
@@ -938,6 +960,7 @@ public class CsvTableManager {
 			}
 			
 			// Check the where columns
+			/*
 			for(String col : whereColumns) {
 				boolean foundCol = false;
 				for(CsvHeader item : headers) {
@@ -950,6 +973,7 @@ public class CsvTableManager {
 					throw new ApplicationException("Column " + col + " not found in table " + table);
 				}
 			}
+			*/
 			
 			sql.append(" from ").append(table);
 			if(selection != null) {

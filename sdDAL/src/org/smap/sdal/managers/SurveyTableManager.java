@@ -193,7 +193,6 @@ public class SurveyTableManager {
 			String type, 
 			String selection, 
 			ArrayList<String> arguments, 
-			ArrayList<String> whereColumns,
 			SqlFrag expressionFrag,		// A more general approach than using "whereColumns". The latter should probably be deprecated
 			String tz,
 			ArrayList<SqlFrag> qArray,
@@ -204,6 +203,7 @@ public class SurveyTableManager {
 			StringBuilder sql = new StringBuilder(sqlDef.sql);
 			
 			// Check the where questions
+			/*
 			if(whereColumns != null) {
 				for(String col : whereColumns) {
 					boolean foundCol = false;
@@ -220,13 +220,18 @@ public class SurveyTableManager {
 					}
 				}
 			}
-			if(selection != null) {
+			*/
+			if(expressionFrag != null || selection != null) { 
 				if(sqlDef.hasWhere) {
 					sql.append(" and ");
 				} else {
 					sql.append(" where ");
 				}
-				sql.append(selection);
+				if(expressionFrag != null) {
+					sql.append(" ( ").append(expressionFrag.sql).append(")");
+				} else if(selection != null) {
+					sql.append(selection);
+				}
 			}
 
 			sql.append(sqlDef.order_by);
@@ -264,6 +269,7 @@ public class SurveyTableManager {
 					log.info("Attempting to get data from a survey that has had no data submitted. " + msg);
 				} else {
 					log.log(Level.SEVERE, msg, e);
+					throw new ApplicationException(msg + " : " + pstmt.toString());
 				}
 				rs = null;
 			}

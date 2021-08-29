@@ -4994,8 +4994,9 @@ public class GeneralUtilityMethods {
 									filename = "linked_" + surveyIdent;
 								}
 								
-								ArrayList<String> matchCols = null; 
+								//ArrayList<String> matchCols = null; 
 								String selection = null;
+								/*
 								if(matches != null && matches.size() == 1) {
 									// Match on ovalue
 									matchCols = new ArrayList<> ();
@@ -5003,9 +5004,10 @@ public class GeneralUtilityMethods {
 									
 									selection = oColumn + " = ?";
 								}
+								*/
 								// Get data from another form
 								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
-								stm.initData(pstmt, "choices", selection, matches, matchCols, 
+								stm.initData(pstmt, "choices", selection, matches, 
 										null,	// expression fragment
 										tz, null, null);						
 								choices = stm.getChoices(ovalue, languageItems, wfFilters);
