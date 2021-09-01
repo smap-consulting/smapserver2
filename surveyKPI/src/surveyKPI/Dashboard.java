@@ -342,7 +342,7 @@ public class Dashboard extends Application {
 					" ds_subject_type = ?, " +
 					" ds_u_id = ?, " +
 					" ds_inc_ro = ?," +
-					" ds_geom_questions = ? " +
+					" ds_geom_questions = ?, " +
 					" ds_selected_geom_question = ? " +
 					" where ds_id = ? " +
 					" and ds_user_ident = ?;";						
@@ -442,9 +442,10 @@ public class Dashboard extends Application {
 							gQuestions = gson.toJson(s.geomFormQuestions);
 						}
 						pstmtReplaceView.setString(29, gQuestions);
+						pstmtReplaceView.setString(30, s.selectedGeomQuestion);
 						
-						pstmtReplaceView.setInt(30, s.id);
-						pstmtReplaceView.setString(31, user);
+						pstmtReplaceView.setInt(31, s.id);
+						pstmtReplaceView.setString(32, user);
 						
 						log.info("Update view: " + pstmtReplaceView.toString());
 						pstmtReplaceView.executeUpdate();
