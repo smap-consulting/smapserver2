@@ -7,12 +7,16 @@ surveyMobileAPI/build/classes/.gitignore
 koboToolboxApi/.gitignore
 
 surveyKPI/WebContent/WEB-INF/lib/
+sdDAL/src/META-INF/
 
 Servers/
 
 subscribers/target/
 tdh/target/
 subscribers/.aws/
+koboToolboxApi/.aws/
+koboToolboxApi/target/
+surveyMobileAPI/src/main/
 
 build/css.orig
 
