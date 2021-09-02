@@ -8,6 +8,9 @@ koboToolboxApi/.gitignore
 
 surveyKPI/WebContent/WEB-INF/lib/
 sdDAL/src/META-INF/
+!surveyKPI/WebContent/WEB-INF/lib/
+surveyKPI/WebContent/WEB-INF/lib/*
+!surveyKPI/WebContent/WEB-INF/lib/javarosa*
 
 Servers/
 
