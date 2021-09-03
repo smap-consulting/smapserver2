@@ -1131,7 +1131,12 @@ public class CsvTableManager {
 			for(String r : records) {
 				String[] data = parser.parseLine(r);
 				for(int i = 0; i < data.length && i < headerSize; i++) {
-					pstmt.setString(i + 1, data[i].trim());
+					String v = "";	// fill empty cells with zero length string
+					if(i < data.length) {
+						v = data[i];
+					}
+					v = v.trim();
+					pstmt.setString(i + 1, v);
 				}
 				pstmt.executeUpdate();
 				if(idx++ == 0) {
