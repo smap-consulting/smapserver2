@@ -71,10 +71,10 @@
 		</dependency>
 
 		<dependency>
-            <groupId>com.sun.mail</groupId>
-            <artifactId>javax.mail</artifactId>
-            <version>1.6.2</version>
-        </dependency>
+			<groupId>com.sun.mail</groupId>
+			<artifactId>javax.mail</artifactId>
+			<version>1.6.2</version>
+		</dependency>
 
 		<dependency>
 			<groupId>javax.activation</groupId>
@@ -152,6 +152,6 @@
 			<artifactId>httpmime</artifactId>
 			<version>4.5.2</version>
 		</dependency>
-		
+
 	</dependencies>
 </project>
