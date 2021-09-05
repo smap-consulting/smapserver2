@@ -19,7 +19,6 @@ tdh/target/
 subscribers/.aws/
 koboToolboxApi/.aws/
 koboToolboxApi/target/
-surveyMobileAPI/src/main/
 
 build/css.orig
 
