@@ -25,10 +25,7 @@ build/css.orig
 # Eclipse artifacts
 *.pydevproject
 .metadata
-.classpath
-sdDAL/.classpath
 .gradle
-.project
 bin/
 tmp/
 *.tmp
