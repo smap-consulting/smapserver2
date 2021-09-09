@@ -7,18 +7,18 @@
 	<version>1.0.1</version>
 	<packaging>war</packaging>
 	<properties>
-		<failOnMissingWebXml>false</failOnMissingWebXml>
+		<failOnMissingWebXml>true</failOnMissingWebXml>
 	</properties>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.6.1</version>
-				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
-				</configuration>
+        		<version>3.6.1</version>
+        		<configuration>
+          			<source>1.8</source>
+          			<target>1.8</target>
+        		</configuration>
 			</plugin>
 			<plugin>
 	      		<groupId>org.apache.maven.plugins</groupId>
