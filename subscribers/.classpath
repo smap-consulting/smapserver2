@@ -19,6 +19,6 @@
 	</classpathentry>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess-P"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL-P"/>
-	<classpathentry kind="lib" path="/Users/neilpenman/git/prop_smapserver/smap/deploy/version1/jdbc/postgresql-42.2.1.jar"/>
+	<classpathentry kind="lib" path="/smap-P/deploy/version1/jdbc/postgresql-42.2.1.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
