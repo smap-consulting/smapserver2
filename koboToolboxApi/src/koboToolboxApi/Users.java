@@ -46,8 +46,6 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.UserLocationManager;
 import org.smap.sdal.managers.UserManager;
 
-import net.bull.javamelody.internal.common.LOG;
-
 /*
  * Provides access to audit views on the surveys
  */

@@ -600,7 +600,7 @@ public class GeneralUtilityMethods {
 
 		String language = null;
 
-		String sql = "select language " + "from users u " + "where u.ident = ?";
+		String sql = "select language from users u where u.ident = ?";
 
 		PreparedStatement pstmt = null;
 
