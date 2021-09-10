@@ -109,8 +109,8 @@ public class UserTrail extends Application {
 		ResultSet resultSet = null;
 		try {
 			
-			StringBuffer sql = new StringBuffer("SELECT ut.id as id, ST_X(ST_Transform(ut.the_geom, 3857)) as x, " +			// keep this
-						"ST_Y(ST_Transform(ut.the_geom, 3857)) as y, ut.event_time as event_time, " +	// keep this
+			StringBuffer sql = new StringBuffer("SELECT ut.id as id, ST_X(ST_Transform(ut.the_geom, 3857)) as x, " +
+						"ST_Y(ST_Transform(ut.the_geom, 3857)) as y, ut.event_time as event_time, " +
 						"extract(epoch from ut.event_time) * 1000 as raw_time, " + 
 						"u.name as user_name " +	
 					"FROM user_trail ut, users u  " +
