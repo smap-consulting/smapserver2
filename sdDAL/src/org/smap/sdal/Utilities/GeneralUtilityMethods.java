@@ -542,7 +542,7 @@ public class GeneralUtilityMethods {
 				log.info("Processing attachment: " + srcUrl + " as " + dstPathFile);
 				FileUtils.copyURLToFile(new URL(srcUrl), dstPathFile);
 			}
-			processAttachment(dstName, dstDir, contentType, srcExt);
+			processAttachment(dstName, dstDir, contentType, srcExt, basePath);
 
 		} catch (IOException e) {
 			log.log(Level.SEVERE, "Error", e);
@@ -558,10 +558,11 @@ public class GeneralUtilityMethods {
 	/*
 	 * Create thumbnails, reformat video files etc
 	 */
-	private static void processAttachment(String fileName, String destDir, String contentType, String ext) {
+	private static void processAttachment(String fileName, String destDir, String contentType, String ext, String basePath) {
 
 		// note this function is called from subscriber hence can echo to the attachments log
-		String cmd = "/smap_bin/processAttachment.sh " + fileName + " " + destDir + " \"" + contentType + "\" " + ext
+		String scriptPath = basePath + "_bin" + File.separator + "processAttachment.sh ";
+		String cmd = scriptPath + fileName + " " + destDir + " \"" + contentType + "\" " + ext
 				+ " >> /var/log/subscribers/attachments.log 2>&1";
 		log.info("Exec: " + cmd);
 		try {
