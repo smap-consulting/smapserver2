@@ -851,8 +851,8 @@ public class SurveyTableManager {
 			uniqueChoice.append(o.value);
 			if(wfFilterColumns != null && wfFilterColumns.size() > 0) {
 				for(KeyValueSimp fc : wfFilterColumns) {	
-			//		o.cascade_filters.put(fc.k, fc.v); 
-					uniqueChoice.append(":::").append(fc.v);
+					String filterValue = o.cascade_filters.get(fc.k);
+					uniqueChoice.append(":::").append(filterValue);
 				}
 			}
 			if(choicesLoaded.get(uniqueChoice.toString()) == null) {
