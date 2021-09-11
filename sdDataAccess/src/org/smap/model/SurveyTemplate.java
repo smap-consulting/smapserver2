@@ -1321,9 +1321,6 @@ public class SurveyTemplate {
 								}
 								o.setListName(cascadeName);
 								cascade_options.put(oRef, o);
-								// else {
-								//	options.put(oRef, o);  // Only used by putXForm
-								//}
 							}	
 						} 
 					}
@@ -1607,7 +1604,6 @@ public class SurveyTemplate {
 					options.add(oLegacy);
 				}
 			}
-			// Convert new SDAL options to the legacy SDDataAccess Options
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 		}
