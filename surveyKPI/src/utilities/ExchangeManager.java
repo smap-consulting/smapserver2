@@ -784,6 +784,14 @@ public class ExchangeManager {
         Cell cell = row.createCell(idx);        
 		cell.setCellStyle(style);
         
+		// String cell values are limited to 32767 characters
+		if(value == null) {
+			value = "";
+		}
+		if(value.length() > 32767) {
+			value = value.substring(0, 32763) + "...";
+		}
+		
         cell.setCellValue(value);
 
 
@@ -1400,6 +1408,8 @@ public class ExchangeManager {
 				} else if(col.type.equals("geoshape") || col.type.equals("geotrace")) {
 					if(!notEmpty(value)) {		
 						value = null;
+					} else if(value.endsWith("...")) {
+						value = null;		// An overlong invalid geometry so ignore it
 					}
 					eh.pstmtInsert.setString(index++, value);
 				} else {
@@ -1414,6 +1424,7 @@ public class ExchangeManager {
 				log.info("Inserting first record: " + eh.pstmtInsert.toString());
 			}
 			eh.pstmtInsert.executeUpdate();
+		
 			ResultSet rs = eh.pstmtInsert.getGeneratedKeys();
 			if(rs.next()) {
 				form.keyMap.put(prikey, rs.getString(1));

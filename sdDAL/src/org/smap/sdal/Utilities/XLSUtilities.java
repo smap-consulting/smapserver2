@@ -514,6 +514,13 @@ public class XLSUtilities {
 			}
 
 			if(!cellWritten) {
+				// String cell values are limited to 32767 characters
+				if(value == null) {
+					value = "";
+				}
+				if(value.length() > 32767) {
+					value = value.substring(0, 32763) + "...";
+				}
 				cell.setCellStyle(styles.get("default"));
 				cell.setCellValue(value);
 			}
