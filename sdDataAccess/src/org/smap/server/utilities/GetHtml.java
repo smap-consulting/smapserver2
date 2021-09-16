@@ -1942,4 +1942,32 @@ public class GetHtml {
 		return count;
 	}
 	
+	/*
+	 * Remove data casts these are required for database expressions but not for xpath
+	 */
+	private String removeCasts(String in) {
+		StringBuilder sb = new StringBuilder("");
+		
+		if(in == null) {
+			return null;
+		} else {
+			int lastIdx = 0;
+			int idx = in.indexOf("cast(", 0);
+			while(idx >= 0 && idx < in.length()) {
+				sb.append(in.substring(lastIdx, idx));
+				lastIdx = in.indexOf("#{", idx);
+				if(lastIdx >= 0) {
+					idx = in.indexOf('}', lastIdx);
+					if(idx >= 0) {
+						sb.append(in.substring(lastIdx, idx));
+						idx = in.indexOf(')', idx);
+						if(idx >= 0) {
+							idx++;
+						}
+					}
+				}
+			}
+		}
+		return sb.toString();
+	}
 }
