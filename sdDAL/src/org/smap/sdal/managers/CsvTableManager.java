@@ -686,21 +686,22 @@ public class CsvTableManager {
 		PreparedStatement pstmt = null;
 		try {
 			
-			StringBuffer sql = new StringBuffer("select distinct ");
+			StringBuilder sql = new StringBuilder("select distinct ");
+			StringBuilder columns = new StringBuilder("");
 			String tKeyColumn = null;
 			boolean first = true;
 			for(CsvHeader item : headers) {
 				if(!first) {
-					sql.append(",");
+					columns.append(",");
 				}
 				first = false;
-				sql.append(item.tName);
+				columns.append(item.tName);
 				if(key_column != null && item.fName.equals(key_column)) {
 					tKeyColumn = item.tName;
 				}
 			}
 			
-			sql.append(" from ").append(table);
+			sql.append(columns).append(" from ").append(table);
 			
 			SqlFrag expressionFrag = null;
 			if(expression != null) {
@@ -717,6 +718,8 @@ public class CsvTableManager {
 			} else {
 				sql.append(" where ").append(selection);
 			}
+			
+			sql.append(" order by _id");
 			
 			pstmt = sd.prepareStatement(sql.toString());
 			int paramCount = 1;
