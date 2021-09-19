@@ -807,6 +807,10 @@ public class XLSTemplateUploadManager {
 			}
 			
 		}
+		
+		if(parentFormIndex >= 0) {
+			throw XLSUtilities.getApplicationException(localisation, "tu_mer", rowNumSurvey, "survey", name, null, null);
+		}
 		return f;
 
 	}
@@ -1642,6 +1646,7 @@ public class XLSTemplateUploadManager {
 				throw XLSUtilities.getApplicationException(localisation, "tu_meg", rowNumber, "survey", groupName, null, null);
 			}
 		}
+		
 	}
 
 	private void validateOption(Option o, int rowNumber) throws ApplicationException {
