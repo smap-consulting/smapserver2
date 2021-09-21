@@ -19,22 +19,36 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.core.Response.Status;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.constants.SmapExportTypes;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -173,6 +187,155 @@ public class UserTrail extends Application {
 		}
 		
 		return response;
+	}
+	
+	/*
+	 * Export th elocations
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/export")
+	public Response export(@Context HttpServletRequest request, 
+			@QueryParam("userId") int uId,
+			@QueryParam("startDate") long start_t,
+			@QueryParam("endDate") long end_t,
+			@PathParam("filename") String filename,
+			@QueryParam("format") String format,
+			@Context HttpServletResponse response) {
+
+		ResponseBuilder builder = Response.ok();
+		Response responseVal = null;
+
+		Timestamp startDate = new Timestamp(start_t);
+		Timestamp endDate = new Timestamp(end_t);
+
+		String user = request.getRemoteUser();
+		String connectionString = "usertrail - trail";
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, user);
+		a.isValidUser(sd, user, uId);
+		// End Authorisation
+		if(filename == null) {
+			filename = "locations";
+		}
+		
+		PreparedStatement pstmt = null;
+		ResultSet resultSet = null;
+		try {
+			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String escapedFileName = null;
+			try {
+				escapedFileName = URLDecoder.decode(filename, "UTF-8");
+				escapedFileName = URLEncoder.encode(escapedFileName, "UTF-8");
+			} catch (UnsupportedEncodingException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+
+			escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
+			escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
+			
+
+			StringBuffer sql = new StringBuffer("SELECT ut.id as id, ut.the_geom as location, " +
+					"ut.event_time as event_time, " +
+					"extract(epoch from ut.event_time) * 1000 as raw_time, " + 
+					"u.name as user_name " +	
+				"FROM user_trail ut, users u  " +
+				"where u.id = ut.u_id ");
+			
+			if(start_t > 0) {
+				sql.append("and ut.event_time >= ? ");
+			}
+			if(end_t > 0) {
+				sql.append("and ut.event_time <  ? ");
+			}
+			sql.append("and ut.u_id = ? " +
+					"order by ut.event_time asc");
+			
+			pstmt = sd.prepareStatement(sql.toString());
+			int idx = 1;
+			if(start_t > 0) {
+				pstmt.setTimestamp(idx++, startDate);
+			}
+			if(end_t > 0) {
+				pstmt.setTimestamp(idx++, endDate);
+			}
+			pstmt.setInt(idx++, uId);
+			
+			 
+			String basePath = GeneralUtilityMethods.getBasePath(request);					
+			String filepath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());	// Use a random sequence to keep survey name unique
+			String database_name = "survey_definitions";
+			String scriptPath = basePath + "_bin" + File.separator + "getshape.sh";
+			Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", scriptPath + " " + 
+					database_name + " " +
+					"na " +		// Not applicable
+					"\"" + pstmt.toString() + "\" " +
+					filepath + 
+					" " + format});
+			int code = proc.waitFor();
+			if(code > 0) {
+				int len;
+				if ((len = proc.getErrorStream().available()) > 0) {
+					byte[] buf = new byte[len];
+					proc.getErrorStream().read(buf);
+					log.info("Command error:\t\"" + new String(buf) + "\"");
+				}
+			} else {
+				int len;
+				
+				if ((len = proc.getErrorStream().available()) > 0) {
+					byte[] buf = new byte[len];
+					proc.getErrorStream().read(buf);
+					log.info("Command error:\t\"" + new String(buf) + "\"");
+				}
+				
+				if ((len = proc.getInputStream().available()) > 0) {
+					byte[] buf = new byte[len];
+					proc.getInputStream().read(buf);
+					log.info("Completed getshape process:\t\"" + new String(buf) + "\"");
+				}
+			}
+			
+			log.info("Process exitValue: " + code);
+			if(code == 0) {
+				File file = new File(filepath + ".zip");
+
+				if(file.exists()) {
+					builder = Response.ok(file);
+					if(format.equals(SmapExportTypes.KML)) {
+						builder.header("Content-Disposition", "attachment;Filename=\"" + escapedFileName + ".kmz\"");
+					} else {
+						builder.header("Content-Disposition", "attachment;Filename=\"" + escapedFileName + ".zip\"");
+					}
+					builder.header("Content-type","application/zip");
+					responseVal = builder.build();
+				} else {
+					throw new ApplicationException(localisation.getString("msg_no_data"));
+				}
+
+			} else {
+				throw new ApplicationException("Error exporting file");
+			}
+			 
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error", e);
+			response.setHeader("Content-type",  "text/html; charset=UTF-8");
+			responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
+		} finally {
+			try {if(resultSet != null) {resultSet.close();}	} catch (SQLException e) {	}	
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return responseVal;
 	}
 
 	/*
