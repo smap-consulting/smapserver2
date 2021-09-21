@@ -459,6 +459,13 @@ public class ExportSurveyMisc extends Application {
 						}
 					} else {
 						int len;
+						
+						if ((len = proc.getErrorStream().available()) > 0) {
+							byte[] buf = new byte[len];
+							proc.getErrorStream().read(buf);
+							log.info("Command error:\t\"" + new String(buf) + "\"");
+						}
+						
 						if ((len = proc.getInputStream().available()) > 0) {
 							byte[] buf = new byte[len];
 							proc.getInputStream().read(buf);
