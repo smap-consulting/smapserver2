@@ -97,8 +97,9 @@ public class MailoutSvc extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			MailoutManager mm = new MailoutManager(localisation);	
-			mm.deleteMailout(sd, mailoutId);
+			mm.deleteMailout(sd, mailoutId, oId);
 			
 			response = Response.ok("").build();
 			

@@ -8081,7 +8081,7 @@ public class GeneralUtilityMethods {
 				pstmtClearObsoleteKeys = sd.prepareStatement(sqlClearObsoleteKeys);
 				pstmtClearObsoleteKeys.setString(1, uIdent);
 				pstmtClearObsoleteKeys.setInt(2,  oId);
-				log.info("Delete access keys for tempoary user: " + pstmtClearObsoleteKeys.toString());
+				log.info("Delete access keys for temporary user: " + pstmtClearObsoleteKeys.toString());
 				pstmtClearObsoleteKeys.executeUpdate();
 				
 				// Delete the user
@@ -8091,7 +8091,7 @@ public class GeneralUtilityMethods {
 				log.info("Delete temporary user: " + pstmt.toString());
 				int count = pstmt.executeUpdate();
 				if(count == 0) {
-					log.info("error: failed to delete temporay user: " + uIdent);
+					log.info("error: failed to delete temporary user: " + uIdent);
 				}
 
 
