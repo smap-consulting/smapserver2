@@ -84,7 +84,7 @@ public class MailoutManager {
 		
 		ArrayList<Mailout> mailouts = new ArrayList<> ();
 		
-		String sql = "select id, survey_ident, name, subject, content "
+		String sql = "select id, survey_ident, name, subject, content, multiple_select "
 				+ "from mailout "
 				+ "where survey_ident = ?";
 		
@@ -101,7 +101,8 @@ public class MailoutManager {
 						rs.getString("survey_ident"), 
 						rs.getString("name"),
 						rs.getString("subject"),
-						rs.getString("content"));
+						rs.getString("content"),
+						rs.getBoolean("multiple_select"));
 				
 				if(links) {
 					mo.links = new MailoutLinks();
@@ -125,8 +126,8 @@ public class MailoutManager {
 		int mailoutId = 0;
 		
 		String sql = "insert into mailout "
-				+ "(survey_ident, name, subject, content, created, modified) "
-				+ "values(?, ?, ?, ?, now(), now())";
+				+ "(survey_ident, name, subject, content, multiple_select, created, modified) "
+				+ "values(?, ?, ?, ?, ?, now(), now())";
 		
 		PreparedStatement pstmt = null;
 		
@@ -136,6 +137,7 @@ public class MailoutManager {
 			pstmt.setString(2, mailout.name);
 			pstmt.setString(3, mailout.subject);
 			pstmt.setString(4, mailout.content);
+			pstmt.setBoolean(5, mailout.ms);
 			log.info("Add mailout: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
@@ -167,7 +169,8 @@ public class MailoutManager {
 				+ "set survey_ident = ?, "
 				+ "name = ?,"
 				+ "subject = ?, "
-				+ "content = ?, "
+				+ "content = ?,"
+				+ "multiple_select = ?,"
 				+ "modified = now() "
 				+ "where id = ?";
 		
@@ -179,7 +182,8 @@ public class MailoutManager {
 			pstmt.setString(2, mailout.name);
 			pstmt.setString(3, mailout.subject);
 			pstmt.setString(4, mailout.content);
-			pstmt.setInt(5, mailout.id);
+			pstmt.setBoolean(5, mailout.ms);
+			pstmt.setInt(6, mailout.id);
 			log.info("Update mailout: " + pstmt.toString());
 			pstmt.executeUpdate();
 		
@@ -220,7 +224,8 @@ public class MailoutManager {
 						rs.getString("survey_ident"), 
 						rs.getString("name"),
 						rs.getString("subject"),
-						rs.getString("content"));
+						rs.getString("content"),
+						rs.getBoolean("multiple_select"));
 				
 			}
 		
