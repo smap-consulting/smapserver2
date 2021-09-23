@@ -851,21 +851,43 @@ public class MailoutManager {
 	/*
 	 * Delete a mailout
 	 */
-	public void deleteMailout(Connection sd, int mailoutId) throws SQLException {
+	public void deleteMailout(Connection sd, int mailoutId, int oId) throws Exception {
 		
+		String sqlGet = "select link from mailout_people where m_id = ?";
 		String sql = "delete from mailout where id = ?";
 		
+		PreparedStatement pstmtGet = null;
 		PreparedStatement pstmt = null;
 		
 		try {
+			/*
+			 * Delete temporary users
+			 */
+			pstmtGet = sd.prepareStatement(sqlGet);
+			pstmtGet.setInt(1, mailoutId);
+			ResultSet rs = pstmtGet.executeQuery();
+			while (rs.next()) {
+				String link = rs.getString(1);
+				if(link != null) {
+					int idx = link.lastIndexOf("/");
+					if(idx >= 0) {
+						String temp_user = link.substring(idx + 1);
+						GeneralUtilityMethods.deleteTempUser(sd, localisation, oId, temp_user);
+					}
+				}
+			}
+			
+			/*
+			 * Delete mailout entries
+			 */
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, mailoutId);
 			log.info("Delete Mailout: " + pstmt.toString());
 			pstmt.executeUpdate();
-			
 		
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+			try {if (pstmtGet != null) {pstmtGet.close();} } catch (SQLException e) {	}
 		}
 		
 		return;

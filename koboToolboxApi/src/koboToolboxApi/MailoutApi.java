@@ -368,8 +368,9 @@ public class MailoutApi extends Application {
 				}
 				
 				mailoutPerson.id = mailoutPersonId;
+				String link = am.getLink(sd, a, oId, true);
 				mailoutPerson.url = "https://" + request.getServerName() 
-						+ "/webForm" + am.getLink(sd, a, oId, true);
+						+ "/app/myWork/webForm" + link;
 				
 				// Write the URL to the mailout
 				pstmtSent = sd.prepareStatement(sqlUrl);
