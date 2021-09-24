@@ -359,7 +359,7 @@ public class MailoutApi extends Application {
 				Action a = new Action("mailout");
 				a.surveyIdent = mo.survey_ident;
 				a.pId = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, mo.survey_ident);
-				a.single = true;
+				a.single = !mo.multiple_submit;
 				a.mailoutPersonId = mailoutPersonId;
 				a.email = mailoutPerson.email;
 				
