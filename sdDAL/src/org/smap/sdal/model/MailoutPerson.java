@@ -8,6 +8,7 @@ public class MailoutPerson {
 	public String status_loc;		// Localised name of status
 	public String status_details;
 	public String url;
+	public int submissions;
 	
 	public Instance initialData;
 	public String initial_data;		// JSON version of initial data
