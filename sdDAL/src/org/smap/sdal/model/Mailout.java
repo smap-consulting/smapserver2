@@ -7,7 +7,7 @@ public class Mailout {
 	public String name;
 	public String subject;
 	public String content;
-	public boolean ms;
+	public boolean multiple_submit;		// The URL can be used for multiple submissions
 	
 	public MailoutLinks links;
 	
@@ -17,6 +17,6 @@ public class Mailout {
 		this.name = name;
 		this.subject = subject;
 		this.content = content;
-		this.ms = ms;
+		this.multiple_submit = ms;
 	}
 }
