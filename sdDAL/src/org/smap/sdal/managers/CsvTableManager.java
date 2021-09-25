@@ -719,8 +719,6 @@ public class CsvTableManager {
 				sql.append(" where ").append(selection);
 			}
 			
-			sql.append(" order by _id");
-			
 			pstmt = sd.prepareStatement(sql.toString());
 			int paramCount = 1;
 			if(expression != null) {
