@@ -17,7 +17,8 @@ public class MailoutPerson {
 			String name, 
 			String status, 
 			String status_details,
-			String url) {
+			String url,
+			int submissions) {
 		
 		this.id = id;
 		this.email = email;
@@ -25,6 +26,7 @@ public class MailoutPerson {
 		this.status = status;
 		this.status_details = status_details;
 		this.url = url;
+		this.submissions = submissions;
 		
 		if(this.name == null) {
 			this.name = "";		// For datatables

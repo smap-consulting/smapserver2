@@ -239,12 +239,18 @@ public class MailoutManager {
 	/*
 	 * Get People in a mailout
 	 */
-	public ArrayList<MailoutPerson> getMailoutPeople(Connection sd, int mailoutId) throws SQLException {
+	public ArrayList<MailoutPerson> getMailoutPeople(Connection sd, int mailoutId, int oId) throws SQLException {
 		
 		ArrayList<MailoutPerson> mpList = new ArrayList<> ();
 		
 		String sql = "select mp.id, p.name, p.email, mp.status, mp.status_details, "
-				+ "mp.initial_data, mp.link "
+				+ "mp.initial_data, mp.link, "
+				+ "(select  count(*) from upload_event ue, subscriber_event se "
+					+ "where ue.ue_id = se.ue_id "
+					+ "and ue.o_id = ? "
+					+ "and ue.user_name = p.email "
+					+ "and se.status = 'success' "
+					+ "and subscriber = 'results_db') as submissions "
 				+ "from mailout_people mp, people p "
 				+ "where p.id = mp.p_id "
 				+ "and mp.m_id = ? "
@@ -265,7 +271,8 @@ public class MailoutManager {
 
 		try {
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, mailoutId);
+			pstmt.setInt(1, oId);
+			pstmt.setInt(2, mailoutId);
 			log.info("Get mailout people: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
@@ -275,7 +282,8 @@ public class MailoutManager {
 						rs.getString("name"),
 						rs.getString("status"),
 						rs.getString("status_details"),
-						rs.getString("link"));	
+						rs.getString("link"),
+						rs.getInt("submissions"));	
 				
 				String initialData = rs.getString("initial_data");
 				if(initialData != null) {
@@ -565,7 +573,7 @@ public class MailoutManager {
 		PreparedStatement pstmt = null;
 		
 		// SQL to record the link
-		String sqlLinkCreated = "update mailout_people set link = ? where id = ?";
+		String sqlLinkCreated = "update mailout_people set link = ?, user_ident = ? where id = ?";
 		PreparedStatement pstmtLinkCreated = null;
 		
 		try {
@@ -600,10 +608,16 @@ public class MailoutManager {
 				}
 					
 				String link = am.getLink(sd, action, oId, true);
+				String userIdent = null;
+				int idx = link.lastIndexOf("/");
+				if(idx >= 0) {
+					userIdent = link.substring(idx + 1);
+				}
 				
 				// record the sending of the notification
 				pstmtLinkCreated.setString(1, "https://" + serverName + "/webForm" + link);
-				pstmtLinkCreated.setInt(2, id);
+				pstmtLinkCreated.setString(2, userIdent);
+				pstmtLinkCreated.setInt(3, id);
 				log.info("Generate link: " + pstmtLinkCreated.toString());
 				pstmtLinkCreated.executeUpdate();
 				
