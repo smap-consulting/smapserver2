@@ -209,8 +209,9 @@ public class MailoutApi extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
 			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			MailoutManager mm = new MailoutManager(localisation);
-			data = mm.getMailoutPeople(sd, mailoutId);				
+			data = mm.getMailoutPeople(sd, mailoutId, oId);				
 			
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
@@ -315,7 +316,8 @@ public class MailoutApi extends Application {
 			throw new SystemException(msg);
 		}
 		
-		String sqlUrl = "update mailout_people set link = ? where id = ?";
+		String sqlUrl = "update mailout_people set link = ?,"
+				+ "set user_ident = ? where id = ?";
 		PreparedStatement pstmtSent = null;
 		
 		// Authorisation - Access
@@ -373,9 +375,15 @@ public class MailoutApi extends Application {
 						+ "/app/myWork/webForm" + link;
 				
 				// Write the URL to the mailout
+				String userIdent = null;
+				int idx = link.lastIndexOf("/");
+				if(idx >= 0) {
+					userIdent = link.substring(idx + 1);
+				}
 				pstmtSent = sd.prepareStatement(sqlUrl);
 				pstmtSent.setString(1,mailoutPerson.url);
-				pstmtSent.setInt(2, mailoutPersonId);
+				pstmtSent.setString(2,userIdent);
+				pstmtSent.setInt(3, mailoutPersonId);
 				pstmtSent.executeUpdate();
 				
 				response = Response.status(Status.OK).entity(gson.toJson(mailoutPerson)).build();
