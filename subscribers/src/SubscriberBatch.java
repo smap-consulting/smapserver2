@@ -1260,6 +1260,7 @@ public class SubscriberBatch {
 				+ "mp.id, "
 				+ "p.o_id, "
 				+ "m.survey_ident, "
+				+ "m.multiple_submit,"
 				+ "p.id as p_id, "
 				+ "ppl.email, "
 				+ "ppl.name, "
@@ -1302,6 +1303,7 @@ public class SubscriberBatch {
 				String subject = rs.getString("subject");
 				String initialData = rs.getString("initial_data");
 				String link = rs.getString("link");
+				boolean single = !rs.getBoolean("multiple_submit");
 				
 				ResourceBundle localisation = locMap.get(surveyIdent);
 				
@@ -1311,7 +1313,7 @@ public class SubscriberBatch {
 					Action action = new Action("mailout");
 					action.surveyIdent = surveyIdent;
 					action.pId = pId;
-					action.single = true;
+					action.single = single;
 					action.mailoutPersonId = id;
 					action.email = email;
 					
@@ -1334,6 +1336,8 @@ public class SubscriberBatch {
 						String url = "https://" + serverName + "/webForm" + link;
 						content = content.replaceAll("\\$\\{url\\}", url);
 						link = null;	// Default link replaced
+					} else {
+						link = "https://" + serverName + "/webForm" + link;
 					}
 				}
 				
