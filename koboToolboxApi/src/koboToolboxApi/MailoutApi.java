@@ -317,7 +317,7 @@ public class MailoutApi extends Application {
 		}
 		
 		String sqlUrl = "update mailout_people set link = ?,"
-				+ "set user_ident = ? where id = ?";
+				+ "user_ident = ? where id = ?";
 		PreparedStatement pstmtSent = null;
 		
 		// Authorisation - Access
@@ -384,6 +384,7 @@ public class MailoutApi extends Application {
 				pstmtSent.setString(1,mailoutPerson.url);
 				pstmtSent.setString(2,userIdent);
 				pstmtSent.setInt(3, mailoutPersonId);
+				log.info(pstmtSent.toString());
 				pstmtSent.executeUpdate();
 				
 				response = Response.status(Status.OK).entity(gson.toJson(mailoutPerson)).build();
