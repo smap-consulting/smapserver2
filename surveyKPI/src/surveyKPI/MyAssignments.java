@@ -52,8 +52,6 @@ import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.Task;
-import org.smap.sdal.model.TaskAssignment;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskLocation;
@@ -67,6 +65,9 @@ import taskModel.FormLocator;
 import taskModel.ReferenceSurvey;
 import taskModel.TaskCompletionInfo;
 import taskModel.TaskResponse;
+import taskModel.TaskResponseAssignment;
+import taskModel.TrAssignment;
+import taskModel.TrTask;
 
 import java.io.File;
 import java.lang.reflect.Type;
@@ -80,7 +81,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /*
- * Returns data for the passed in table name
+ * Returns tasks for the user that made the request
  */
 @Path("/myassignments")
 public class MyAssignments extends Application {
@@ -416,24 +417,33 @@ public class MyAssignments extends Application {
 
 				// Create the list of task assignments if it has not already been created
 				if(tr.taskAssignments == null) {
-					tr.taskAssignments = new ArrayList<TaskAssignment>();
+					tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
 				}
 
 				// Create the new Task Assignment Objects
-				TaskAssignment ta = new TaskAssignment();
-				ta.task = new Task();
+				TaskResponseAssignment ta = new TaskResponseAssignment();
+				ta.task = new TrTask();
 				ta.location = new TaskLocation();
-				ta.assignment = new Assignment();
+				ta.assignment = new TrAssignment();
 
 				// Populate the new Task Assignment
 				t_id = resultSet.getInt("task_id");
 				ta.task.id = t_id;
 				ta.task.type = "xform";									// Kept for backward compatibility with old versions of fieldTask
 				ta.task.title = resultSet.getString("title");
-				ta.task.pid = resultSet.getString("pid");
+				//ta.task.pid = resultSet.getString("pid");
 				ta.task.url = resultSet.getString("url");
 				ta.task.form_id = resultSet.getString("form_ident");		// Form id is survey ident
-				ta.task.form_version = resultSet.getString("form_version");
+				
+				String sVersion = resultSet.getString("form_version");
+				int version = 0;
+				try {
+					version = Integer.valueOf(sVersion);
+				} catch (Exception e) {
+					
+				}
+				ta.task.form_version = version;
+				
 				ta.task.update_id = resultSet.getString("update_id");
 				ta.task.initial_data_source = resultSet.getString("initial_data_source");
 				ta.task.scheduled_at = resultSet.getTimestamp("schedule_at");
@@ -490,22 +500,31 @@ public class MyAssignments extends Application {
 					
 					// Create the list of task assignments if it has not already been created
 					if(tr.taskAssignments == null) {
-						tr.taskAssignments = new ArrayList<TaskAssignment>();
+						tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
 					}
 					
 					// Create the new Task Assignment Objects
-					TaskAssignment ta = new TaskAssignment();
-					ta.task = new Task();
+					TaskResponseAssignment ta = new TaskResponseAssignment();
+					ta.task = new TrTask();
 					ta.location = new TaskLocation();
-					ta.assignment = new Assignment();
+					ta.assignment = new TrAssignment();
 					
 					// Populate the new Task Assignment
 					ta.task.id = task.properties.id;
 					ta.task.type = "xform";									// Kept for backward compatibility with old versions of fieldTask
 					ta.task.title = task.properties.name;					
-					ta.task.pid = String.valueOf(task.properties.p_id);				
+					//ta.task.pid = String.valueOf(task.properties.p_id);				
 					ta.task.form_id = task.properties.survey_ident;		// Form id is survey ident
-					ta.task.form_version = task.properties.form_version;				
+					
+					int version = 0;
+					String sVersion = task.properties.form_version;
+					try {
+						version = Integer.valueOf(sVersion);
+					} catch (Exception e) {
+						
+					}
+					ta.task.form_version = version;
+					
 					ta.task.update_id = task.properties.update_id;				
 					ta.task.initial_data_source = task.properties.initial_data_source;				
 					ta.task.scheduled_at = task.properties.from;	
@@ -910,12 +929,12 @@ public class MyAssignments extends Application {
 			pstmtUpdateId = sd.prepareStatement(sqlUpdateId);
 			
 			sd.setAutoCommit(false);
-			for(TaskAssignment ta : tr.taskAssignments) {
+			for(TaskResponseAssignment ta : tr.taskAssignments) {
 				if(ta.assignment.assignment_id > 0) {
 					log.info("Task Assignment: " + ta.assignment.assignment_status);
 
 					if(ta.task == null) {
-						ta.task = new Task();
+						ta.task = new TrTask();
 						ta.task.id = GeneralUtilityMethods.getTaskId(sd, ta.assignment.assignment_id);
 					}
 					updateAssignment(
