@@ -41,10 +41,12 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.io.File;
+import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.sql.*;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -190,7 +192,7 @@ public class UserTrail extends Application {
 	}
 	
 	/*
-	 * Export th elocations
+	 * Export the locations
 	 */
 	@GET
 	@Produces("application/json")
@@ -220,8 +222,9 @@ public class UserTrail extends Application {
 			filename = "locations";
 		}
 		
+		PreparedStatement pstmtDistance = null;
 		PreparedStatement pstmt = null;
-		ResultSet resultSet = null;
+
 		try {
 			
 			// Get the users locale
@@ -240,11 +243,16 @@ public class UserTrail extends Application {
 			escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
 			escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
 			
+			String sqlDistance = "SELECT ST_Distance( "
+					+ "ST_Transform(?::geometry, 3857),"
+					+ "ST_Transform(?::geometry, 3857)"
+					+ ")";
+			pstmtDistance = sd.prepareStatement(sqlDistance);
 
-			StringBuffer sql = new StringBuffer("SELECT ut.id as id, ut.the_geom as location, " +
-					"ut.event_time as event_time, " +
-					"extract(epoch from ut.event_time) * 1000 as raw_time, " + 
-					"u.name as user_name " +	
+			StringBuffer sql = new StringBuffer("SELECT ut.id as id, " +
+					"ST_X(the_geom::geometry) as x, " +		
+					"ST_Y(the_geom::geometry) as y, " +
+					"ut.event_time as event_time " +
 				"FROM user_trail ut, users u  " +
 				"where u.id = ut.u_id ");
 			
@@ -255,7 +263,7 @@ public class UserTrail extends Application {
 				sql.append("and ut.event_time <  ? ");
 			}
 			sql.append("and ut.u_id = ? " +
-					"order by ut.event_time asc");
+					"order by ut.event_time asc, ut.id asc");
 			
 			pstmt = sd.prepareStatement(sql.toString());
 			int idx = 1;
@@ -267,6 +275,72 @@ public class UserTrail extends Application {
 			}
 			pstmt.setInt(idx++, uId);
 			
+			/*
+			 * Export KML
+			 */
+			String basePath = GeneralUtilityMethods.getBasePath(request);					
+			String filepath = basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".kml";	// Use a random sequence to keep survey name unique
+			File tempFile = new File(filepath);
+			PrintWriter writer = new PrintWriter(tempFile);
+			writeKmlHeader(writer);
+			
+			ArrayList<ArrayList<Feature>> featureList = getKmlFeatures(pstmt, pstmtDistance, 200);
+			DecimalFormat df = new DecimalFormat("#.0000");
+			for(ArrayList<Feature> features : featureList) {
+				if(features.size() == 0) {
+					// ignore
+				} else if(features.size() == 1) { 
+					// point
+					writer.println("<Placemark>");
+					writer.println("<styleUrl>#trail_style</styleUrl>");
+					writer.println("<Point>");
+					
+					writer.println("<coordinates>");
+					for(Feature f : features) {					
+					    String lon = df.format(f.coordinates[0]);
+					    String lat = df.format(f.coordinates[1]);
+					    writer.println(lon + "," + lat + ",0");
+					}
+					writer.println("</coordinates>");
+					
+					writer.println("</Point>");
+					writer.println("</Placemark>");
+					
+				} else if(features.size() > 1) {	// line
+					// Add line
+					writer.println("<Placemark>");
+					writer.println("<styleUrl>#trail_style</styleUrl>");
+					writer.println("<LineString>");
+					writer.println("<tessellate>1</tessellate>");
+					
+					writer.println("<coordinates>");
+					for(Feature f : features) {	
+					    String lon = df.format(f.coordinates[0]);
+					    String lat = df.format(f.coordinates[1]);
+						writer.println(lon + "," + lat + ",0");
+					}
+					writer.println("</coordinates>");
+					
+					writer.println("</LineString>");
+					writer.println("</Placemark>");
+					
+				}
+			}
+			
+			writeKmlFooter(writer);
+			writer.flush();
+			writer.close();
+
+			if(tempFile.exists()) {
+				builder = Response.ok(tempFile);
+				builder.header("Content-Disposition", "attachment;Filename=\"" + escapedFileName + ".kml\"");			
+				builder.header("Content-type","application/vnd.google-earth.kml+xml");
+				responseVal = builder.build();
+			} else {
+				throw new ApplicationException(localisation.getString("msg_no_data"));
+			}
+			
+			/*
 			 
 			String basePath = GeneralUtilityMethods.getBasePath(request);					
 			String filepath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());	// Use a random sequence to keep survey name unique
@@ -322,6 +396,7 @@ public class UserTrail extends Application {
 			} else {
 				throw new ApplicationException("Error exporting file");
 			}
+			*/
 			 
 
 		} catch (Exception e) {
@@ -329,8 +404,8 @@ public class UserTrail extends Application {
 			response.setHeader("Content-type",  "text/html; charset=UTF-8");
 			responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
 		} finally {
-			try {if(resultSet != null) {resultSet.close();}	} catch (SQLException e) {	}	
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtDistance != null) {pstmtDistance.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection(connectionString, sd);
 		}
@@ -428,5 +503,76 @@ public class UserTrail extends Application {
 	}
 
 
+	private void writeKmlHeader(PrintWriter writer) {
+		writer.println("<?xml version=\"1.0\" encoding=\"utf-8\" ?>");
+		writer.println("<kml xmlns=\"http://www.opengis.net/kml/2.2\"");
+		writer.println("xmlns:gx=\"http://www.google.com/kml/ext/2.2\">");
+		
+		writer.println("<Document>");
+		
+		writer.println("<Style id=\"trail_style\">");
+		writer.println("<LineStyle>");
+		writer.println("<color>ff0000ff</color>");
+		writer.println("<width>5</width>");
+		writer.println("</LineStyle>");
+		writer.println("</Style>");
+	}
+	
+	private void writeKmlFooter(PrintWriter writer) {
+		writer.println("</Document>");
+		writer.println("</kml>");
+	}
+	
+	/*
+	 * Get features, consecutive points are converted to lines unless the break distance between points is exceeded
+	 */
+	ArrayList<ArrayList<Feature>> getKmlFeatures(PreparedStatement pstmt, PreparedStatement pstmtDistance, int breakDistance) throws SQLException {
+		ArrayList<ArrayList<Feature>> featureList = new ArrayList<> ();
+		
+		ArrayList<Feature> features = new ArrayList<Feature> ();
+		boolean havePrev = false;
+		Double prevX = 0.0;
+		Double prevY = 0.0;
+		ResultSet rs = pstmt.executeQuery();
+		while(rs.next()) {
+			Feature f = new Feature();
+			f.coordinates[0] = rs.getDouble("x");
+			f.coordinates[1] = rs.getDouble("y");
+			if(havePrev) {
+				if(isGreaterThanBreakDistance(pstmtDistance, prevX, prevY, f.coordinates[0], f.coordinates[1], breakDistance)) {
+					featureList.add(features);
+					features = new ArrayList<Feature> ();
+					havePrev = false;
+					
+				}
+			} else {
+				havePrev = true;
+			}
+			prevX = f.coordinates[0];
+			prevY = f.coordinates[1];
+			features.add(f);
+		}
+		featureList.add(features);
+		
+		return featureList;
+	}
+	
+	private boolean isGreaterThanBreakDistance(PreparedStatement pstmtDistance, double prevX, double prevY, double x, double y, int breakDistance) throws SQLException {
+		
+		StringBuilder p1 = new StringBuilder("SRID=4326;POINT(");
+		p1.append(prevX).append(" ").append(prevY).append(")");
+		StringBuilder p2 = new StringBuilder("SRID=4326;POINT(");
+		p2.append(x).append(" ").append(y).append(")");
+		
+		pstmtDistance.setString(1, p1.toString());
+		pstmtDistance.setString(2, p2.toString());
+		
+		log.info(pstmtDistance.toString());
+		ResultSet rs = pstmtDistance.executeQuery();
+		if(rs.next()) {
+			return rs.getInt(1) > breakDistance;
+		}
+		return false;
+	}
 }
 
