@@ -203,6 +203,7 @@ public class UserTrail extends Application {
 			@QueryParam("endDate") long end_t,
 			@PathParam("filename") String filename,
 			@QueryParam("format") String format,
+			@QueryParam("mps") int mps,
 			@Context HttpServletResponse response) {
 
 		ResponseBuilder builder = Response.ok();
@@ -284,7 +285,7 @@ public class UserTrail extends Application {
 			PrintWriter writer = new PrintWriter(tempFile);
 			writeKmlHeader(writer);
 			
-			ArrayList<ArrayList<Feature>> featureList = getKmlFeatures(pstmt, pstmtDistance, 200);
+			ArrayList<ArrayList<Feature>> featureList = getKmlFeatures(pstmt, pstmtDistance, mps);
 			DecimalFormat df = new DecimalFormat("#.0000");
 			for(ArrayList<Feature> features : featureList) {
 				if(features.size() == 0) {
