@@ -542,14 +542,11 @@ public class UserTrail extends Application {
 				if(isGreaterThanBreakDistance(pstmtDistance, prevX, prevY, f.coordinates[0], f.coordinates[1], breakDistance)) {
 					featureList.add(features);
 					features = new ArrayList<Feature> ();
-					havePrev = false;
-					
 				}
-			} else {
-				havePrev = true;
-			}
+			} 
 			prevX = f.coordinates[0];
 			prevY = f.coordinates[1];
+			havePrev = true;
 			features.add(f);
 		}
 		featureList.add(features);
