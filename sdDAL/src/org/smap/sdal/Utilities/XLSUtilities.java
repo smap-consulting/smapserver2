@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.io.IOUtils;
@@ -263,7 +264,13 @@ public class XLSUtilities {
 		for(int i = 0; i <= lastCellNum; i++) {
 			cell = row.getCell(i);
 			if(cell != null) {
-				name = cell.getStringCellValue();
+				try {
+					name = cell.getStringCellValue();
+				} catch (Exception e) {
+					name = null;		// Ignore non string headers
+					log.log(Level.SEVERE, "Ignoring " + e.getMessage(), e);
+				}
+				
 				if(name != null && name.trim().length() > 0) {
 					name = name.trim();
 					if(name.toLowerCase().equals("list name") ||
