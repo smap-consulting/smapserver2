@@ -35,8 +35,6 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.constants.SmapExportTypes;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -139,7 +137,7 @@ public class UserTrail extends Application {
 				sql.append("and ut.event_time <  ? ");
 			}
 			sql.append("and ut.u_id = ? " +
-					"order by ut.event_time asc limit 5000");
+					"order by ut.event_time asc");
 			
 			pstmt = sd.prepareStatement(sql.toString());
 			int idx = 1;
@@ -201,7 +199,7 @@ public class UserTrail extends Application {
 			@QueryParam("userId") int uId,
 			@QueryParam("startDate") long start_t,
 			@QueryParam("endDate") long end_t,
-			@PathParam("filename") String filename,
+			@QueryParam("filename") String filename,
 			@QueryParam("format") String format,
 			@QueryParam("mps") int mps,
 			@Context HttpServletResponse response) {
