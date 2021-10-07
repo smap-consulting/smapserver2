@@ -431,7 +431,7 @@ public class MyAssignments extends Application {
 				ta.task.id = t_id;
 				ta.task.type = "xform";									// Kept for backward compatibility with old versions of fieldTask
 				ta.task.title = resultSet.getString("title");
-				//ta.task.pid = resultSet.getString("pid");
+				ta.task.pid = resultSet.getString("pid");
 				ta.task.url = resultSet.getString("url");
 				ta.task.form_id = resultSet.getString("form_ident");		// Form id is survey ident
 				
@@ -513,7 +513,7 @@ public class MyAssignments extends Application {
 					ta.task.id = task.properties.id;
 					ta.task.type = "xform";									// Kept for backward compatibility with old versions of fieldTask
 					ta.task.title = task.properties.name;					
-					//ta.task.pid = String.valueOf(task.properties.p_id);				
+					ta.task.pid = String.valueOf(task.properties.p_id);				
 					ta.task.form_id = task.properties.survey_ident;		// Form id is survey ident
 					
 					int version = 0;
