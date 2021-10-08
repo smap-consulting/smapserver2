@@ -22,7 +22,6 @@ package org.smap.subscribers;
 import java.io.File;
 import java.io.InputStream;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -36,7 +35,6 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.smap.model.IE;
@@ -54,6 +52,7 @@ import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.DataItemChange;
+import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.ForeignKey;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Survey;
@@ -61,8 +60,6 @@ import org.smap.server.entities.Form;
 import org.smap.server.entities.SubscriberEvent;
 import org.smap.server.exceptions.SQLInsertException;
 import org.smap.server.utilities.UtilityMethods;
-import org.w3c.dom.Document;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -75,18 +72,6 @@ public class SubRelationalDB extends Subscriber {
 		ArrayList<Integer> duplicateKeys = new ArrayList<Integer>();
 		int newKey = 0;
 	}
-
-	// Details of survey definitions database
-	String dbClassMeta = null;
-	String databaseMeta = null;
-	String userMeta = null;
-	String passwordMeta = null;
-
-	// Details for results database
-	String dbClass = null;
-	String database = null;
-	String user = null;
-	String password = null;
 
 	String gBasePath = null;
 	String gFilePath = null;
@@ -128,43 +113,17 @@ public class SubRelationalDB extends Subscriber {
 
 		// Open the configuration file
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		DocumentBuilder db = null;
-		Document xmlConf = null;		
-		Connection sd = null;
-		Connection cResults = null;
+		DatabaseConnections dbc = new DatabaseConnections();
+	
 		try {
 
-			// Get the connection details for the database with survey definitions
-			db = dbf.newDocumentBuilder();
-			xmlConf = db.parse(new File(confFilePath + "/metaDataModel.xml"));
-			dbClassMeta = xmlConf.getElementsByTagName("dbclass").item(0).getTextContent();
-			databaseMeta = xmlConf.getElementsByTagName("database").item(0).getTextContent();
-			userMeta = xmlConf.getElementsByTagName("user").item(0).getTextContent();
-			passwordMeta = xmlConf.getElementsByTagName("password").item(0).getTextContent();
-
-			// Get the connection details for the target results database
-			xmlConf = db.parse(new File(confFilePath + "/" + getSubscriberName() + ".xml"));
-			dbClass = xmlConf.getElementsByTagName("dbclass").item(0).getTextContent();
-			database = xmlConf.getElementsByTagName("database").item(0).getTextContent();
-			user = xmlConf.getElementsByTagName("user").item(0).getTextContent();
-			password = xmlConf.getElementsByTagName("password").item(0).getTextContent();
-
-			/*
-			 * Verify that the survey is valid for the submitting user
-			 *  Only do this if the survey id is numeric otherwise it is an old style
-			 *  survey and it will be ignored as eventually there will be no surveys identified by name
-			 */
-
-			// Authorisation - Access
-			Class.forName(dbClassMeta);		 
-			sd = DriverManager.getConnection(databaseMeta, userMeta, passwordMeta);
-			cResults = DriverManager.getConnection(database, user, password);
+			GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);			
 			
 			this.survey = survey;
 
-			int assignmentId = getAssignmentId(sd, ue_id);
+			int assignmentId = getAssignmentId(dbc.sd, ue_id);
 			
-			writeAllTableContent(sd, cResults, instance, submittingUser, server, device, 
+			writeAllTableContent(dbc.sd, dbc.results, instance, submittingUser, server, device, 
 					formStatus, updateId, uploadTime, surveyNotes, 
 					locationTrigger, assignmentId);
 			
@@ -173,16 +132,16 @@ public class SubRelationalDB extends Subscriber {
 			 * Apply foreign keys
 			 */
 			ForeignKeyManager fkm = new ForeignKeyManager();
-			fkm.apply(sd, cResults);
+			fkm.apply(dbc.sd, dbc.results);
 			
-			applySubmissionNotifications(sd, cResults, ue_id, submittingUser, server, survey.ident, survey.exclude_empty);
+			applySubmissionNotifications(dbc.sd, dbc.results, ue_id, submittingUser, server, survey.ident, survey.exclude_empty);
 			
 			if(assignmentId > 0) {
 				String id = updateId;
 				if(id == null) {
 					id = instance.getUuid();
 				}
-				applyAssignmentStatus(sd, cResults, assignmentId, ue_id, id);
+				applyAssignmentStatus(dbc.sd, dbc.results, assignmentId, ue_id, id);
 			}
 			
 			se.setStatus("success");			
@@ -199,16 +158,16 @@ public class SubRelationalDB extends Subscriber {
 			
 		} finally {
 			try {
-				if (sd != null) {
-					sd.close();
+				if (dbc.sd != null) {
+					dbc.sd.close();
 				}
 			} catch (SQLException e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 			
 			try {
-				if (cResults != null) {
-					cResults.close();
+				if (dbc.results != null) {
+					dbc.results.close();
 				}
 			} catch (SQLException e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
