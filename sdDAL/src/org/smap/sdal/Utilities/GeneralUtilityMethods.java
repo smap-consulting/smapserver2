@@ -17,6 +17,7 @@ import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.Date;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -44,6 +45,9 @@ import java.util.zip.ZipOutputStream;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
@@ -65,6 +69,7 @@ import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.ChoiceList;
 import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.ColValues;
+import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.FileDescription;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.FormLength;
@@ -104,6 +109,8 @@ import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TempUserFinal;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -9971,6 +9978,70 @@ public class GeneralUtilityMethods {
 		return valid;
 		
 	}
+	
+	/*
+	 * Get database connections for background jobs
+	 */
+	public static void getDatabaseConnections(DocumentBuilderFactory dbf, DatabaseConnections dbc, String confFilePath) throws ParserConfigurationException, SAXException, IOException, ClassNotFoundException, SQLException {
+		
+		DocumentBuilder db = null;
+		Document xmlConf = null;
+		
+		String dbClassMeta = null;
+		String databaseMeta = null;
+		String userMeta = null;
+		String passwordMeta = null;
+
+		String database = null;
+		String user = null;
+		String password = null;
+		
+		// Return if we already have a connection
+		if(dbc.sd != null && dbc.results != null && dbc.sd.isValid(1) && dbc.results.isValid(1)) {
+			return;
+		}
+		
+		// Make sure any existing connections are closed
+		if(dbc.sd != null) {
+			log.info("Messaging: Closing sd connection");
+			try {
+				dbc.sd.close();
+			} catch (Exception e) {
+				
+			}
+		}
+		
+		if(dbc.results != null) {
+			try {
+				log.info("Messaging: Closing cResults connection");
+				dbc.results.close();
+			} catch (Exception e) {
+				
+			}
+		}
+		
+		// Get the database connection
+		
+		db = dbf.newDocumentBuilder();
+		xmlConf = db.parse(new File(confFilePath + "/metaDataModel.xml"));
+		dbClassMeta = xmlConf.getElementsByTagName("dbclass").item(0).getTextContent();
+		databaseMeta = xmlConf.getElementsByTagName("database").item(0).getTextContent();
+		userMeta = xmlConf.getElementsByTagName("user").item(0).getTextContent();
+		passwordMeta = xmlConf.getElementsByTagName("password").item(0).getTextContent();
+
+		// Get the connection details for the target results database
+		xmlConf = db.parse(new File(confFilePath + "/results_db.xml"));
+		database = xmlConf.getElementsByTagName("database").item(0).getTextContent();
+		user = xmlConf.getElementsByTagName("user").item(0).getTextContent();
+		password = xmlConf.getElementsByTagName("password").item(0).getTextContent();
+
+		Class.forName(dbClassMeta);
+		dbc.sd = DriverManager.getConnection(databaseMeta, userMeta, passwordMeta);
+		dbc.results = DriverManager.getConnection(database, user, password);
+		
+	}
+
+
 	
 	private static int getManifestParamStart(String property) {
 	

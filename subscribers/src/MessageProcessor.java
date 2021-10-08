@@ -173,12 +173,11 @@ public class MessageProcessor {
 			File pFile = new File(basePath + "_bin/resources/properties/aws.properties");
 			if (pFile.exists()) {
 				awsPropertiesFile = pFile.getAbsolutePath();
+				Thread t = new Thread(new MessageLoop(sd, cResults, basePath, awsPropertiesFile));
+				t.start();
 			} else {
 				log.info("Skipping notifications to devices. No aws properties file at: " + pFile.getAbsolutePath());
-			}
-			Thread t = new Thread(new MessageLoop(sd, cResults, basePath, awsPropertiesFile));
-			t.start();
-			
+			}	
 
 		} catch (Exception e) {
 			e.printStackTrace();

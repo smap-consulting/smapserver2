@@ -60,6 +60,13 @@ public class Manager {
 			
 			AutoUpdateProcessor au = new AutoUpdateProcessor();
 			au.go(smapId, fileLocn, mediaBucket, region);
+		} else if(subscriberType.equals("forward")) {
+			
+			/*
+			 * Start the report processor
+			 */
+			ReportProcessor rp = new ReportProcessor();
+			rp.go(smapId, fileLocn);
 		}
 		
 		log.info("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);
@@ -77,7 +84,7 @@ public class Manager {
 				log.info("######## Stopped");		
 				loop = false;
 			} else {
-				log.info("SSSSSSSSSSSSSSSSSSSSSSSSS Submission Processor");
+				log.info("SSSSSSSSSSSSSSSSSSSSSSSSS run batch job");
 				SubscriberBatch batchJob = new SubscriberBatch();
 				batchJob.go(smapId, fileLocn, subscriberType);	// Run the batch job for the specified server
 
