@@ -8,7 +8,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -61,6 +60,7 @@ import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
+import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.MailoutMessage;
@@ -112,10 +112,7 @@ public class SubscriberBatch {
 	String confFilePath;
 
 	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-	DocumentBuilder db = null;
-	Document xmlConf = null;		
-	Connection sd = null;
-	Connection cResults;
+	DatabaseConnections dbc = new DatabaseConnections();
 
 	private static Logger log =
 			Logger.getLogger(Subscriber.class.getName());
@@ -130,14 +127,7 @@ public class SubscriberBatch {
 		confFilePath = "./" + smapId;
 
 		// Get the connection details for the meta data database
-		String dbClassMeta = null;
-		String databaseMeta = null;
-		String userMeta = null;
-		String passwordMeta = null;
 
-		String database = null;
-		String user = null;
-		String password = null;
 		JdbcUploadEventManager uem = null;
 		
 		Survey sdalSurvey = null;
@@ -158,26 +148,12 @@ public class SubscriberBatch {
 
 		String language = "none";
 		try {
-			db = dbf.newDocumentBuilder();
-			xmlConf = db.parse(new File(confFilePath + "/metaDataModel.xml"));
-			dbClassMeta = xmlConf.getElementsByTagName("dbclass").item(0).getTextContent();
-			databaseMeta = xmlConf.getElementsByTagName("database").item(0).getTextContent();
-			userMeta = xmlConf.getElementsByTagName("user").item(0).getTextContent();
-			passwordMeta = xmlConf.getElementsByTagName("password").item(0).getTextContent();
+			GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
+			serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 
-			// Get the connection details for the target results database
-			xmlConf = db.parse(new File(confFilePath + "/results_db.xml"));
-			database = xmlConf.getElementsByTagName("database").item(0).getTextContent();
-			user = xmlConf.getElementsByTagName("user").item(0).getTextContent();
-			password = xmlConf.getElementsByTagName("password").item(0).getTextContent();
-
-			Class.forName(dbClassMeta);
-			sd = DriverManager.getConnection(databaseMeta, userMeta, passwordMeta);	
-			cResults = DriverManager.getConnection(database, user, password);
-
-			uem = new JdbcUploadEventManager(sd);
-			pstmt = sd.prepareStatement(sqlUpdateStatus);
-			pstmtResultsDB = sd.prepareStatement(sqlResultsDB);
+			uem = new JdbcUploadEventManager(dbc.sd);
+			pstmt = dbc.sd.prepareStatement(sqlUpdateStatus);
+			pstmtResultsDB = dbc.sd.prepareStatement(sqlResultsDB);
 
 			// Default to English though we could get the locales from a server level setting
 			Locale locale = new Locale("en");
@@ -187,7 +163,7 @@ public class SubscriberBatch {
 			} catch(Exception e) {
 				localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", locale);
 			}
-			serverName = GeneralUtilityMethods.getSubmissionServer(sd);
+			serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 
 			/*
 			 * Get subscribers and their configuration
@@ -198,9 +174,9 @@ public class SubscriberBatch {
 			 */
 			List<Subscriber> subscribers = null;
 			if(subscriberType.equals("upload")) {
-				subscribers = init(sd);		// Get subscribers 
+				subscribers = init(dbc.sd);		// Get subscribers 
 			} else if(subscriberType.equals("forward")) {
-				subscribers = initForward(sd, localisation);		// Get subscribers 
+				subscribers = initForward(dbc.sd, localisation);		// Get subscribers 
 			} else {
 				log.info("Unknown subscriber type: " + subscriberType + " known values are upload, forward");
 			}
@@ -250,8 +226,8 @@ public class SubscriberBatch {
 								ArrayList<MediaChange> mediaChanges = null;
 
 								try {
-									int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, ue.getSurveyId());
-									Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+									int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
+									Organisation organisation = GeneralUtilityMethods.getOrganisation(dbc.sd, oId);
 									Locale orgLocale = new Locale(organisation.locale);
 									ResourceBundle orgLocalisation;
 									try {
@@ -298,14 +274,14 @@ public class SubscriberBatch {
 										SurveyTemplate template = new SurveyTemplate(orgLocalisation);
 
 										SurveyManager sm = new SurveyManager(localisation, "UTC");
-										sdalSurvey = sm.getSurveyId(sd, templateName);	// Get the survey from the templateName / ident
+										sdalSurvey = sm.getSurveyId(dbc.sd, templateName);	// Get the survey from the templateName / ident
 										
-										template.readDatabase(sd, cResults, templateName, false);					
-										template.extendInstance(sd, instance, true, sdalSurvey);	// Extend the instance with information from the template
+										template.readDatabase(dbc.sd, dbc.results, templateName, false);					
+										template.extendInstance(dbc.sd, instance, true, sdalSurvey);	// Extend the instance with information from the template
 										// instance.getTopElement().printIEModel("   ");	// Debug
 
 										// Get attachments from incomplete submissions
-										getAttachmentsFromIncompleteSurveys(sd, s.getSubscriberName(), ue.getFilePath(), ue.getOrigSurveyIdent(), ue.getIdent(), 
+										getAttachmentsFromIncompleteSurveys(dbc.sd, s.getSubscriberName(), ue.getFilePath(), ue.getOrigSurveyIdent(), ue.getIdent(), 
 												ue.getInstanceId());
 
 										is3 = new FileInputStream(uploadFile);	// Get an input stream for the file in case the subscriber uses that rather than an Instance object
@@ -437,13 +413,13 @@ public class SubscriberBatch {
 									}
 								} else if(ue.getAssignmentId() > 0) {
 									topic =  LogManager.SUBMISSION_TASK;
-								} else if(ue.getTemporaryUser() || GeneralUtilityMethods.isTemporaryUser(sd, ue.getUserName())) {	// Note the temporaryUser flag in ue is only set for submissions with an action
+								} else if(ue.getTemporaryUser() || GeneralUtilityMethods.isTemporaryUser(dbc.sd, ue.getUserName())) {	// Note the temporaryUser flag in ue is only set for submissions with an action
 									topic = LogManager.SUBMISSION_ANON;
 								} else {
 									topic = LogManager.SUBMISSION;
 								}
 								
-								lm.writeLog(sd, ue.getSurveyId(), ue.getUserName(), topic, se.getStatus() + " : " 
+								lm.writeLog(dbc.sd, ue.getSurveyId(), ue.getUserName(), topic, se.getStatus() + " : " 
 										+ (se.getReason() == null ? "" : se.getReason()) + " : " + ue.getImei(), 0, null);
 							}
 						}
@@ -457,16 +433,16 @@ public class SubscriberBatch {
 			 * Apply any other subscriber type dependent processing
 			 */
 			if(subscriberType.equals("upload")) {
-				applyReminderNotifications(sd, cResults, basePath, serverName);
-				sendMailouts(sd, basePath, serverName);
-				expireTemporaryUsers(localisation, sd);
+				applyReminderNotifications(dbc.sd, dbc.results, basePath, serverName);
+				sendMailouts(dbc.sd, basePath, serverName);
+				expireTemporaryUsers(localisation, dbc.sd);
 				
 			} else if(subscriberType.equals("forward")) {
 				// Erase any templates that were deleted more than a set time ago
-				eraseOldTemplates(sd, cResults, localisation, basePath);
+				eraseOldTemplates(dbc.sd, dbc.results, localisation, basePath);
 
 				// Delete linked csv files logically deleted more than 10 minutes age
-				deleteOldLinkedCSVFiles(sd, cResults, localisation, basePath);
+				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
 				
 				// Generate reports
 				log.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%% Generate reports");
@@ -477,16 +453,16 @@ public class SubscriberBatch {
 				// 2.a  Synchronise
 				// 2.b  Update sync table
 
-				if(GeneralUtilityMethods.documentSyncEnabled(sd)) {
+				if(GeneralUtilityMethods.documentSyncEnabled(dbc.sd)) {
 					boolean haveSyncNotifications = false;
 					String urlprefix = "https://" + serverName + "/";	// Need to get server name for image processing
-					HashMap<String, String> docServerConfig = GeneralUtilityMethods.docServerConfig(sd);
+					HashMap<String, String> docServerConfig = GeneralUtilityMethods.docServerConfig(dbc.sd);
 
 					String sqlNot = "select id, s_id, notify_details from forward where enabled = 'true' and target = 'document'";
-					PreparedStatement pstmtNot = sd.prepareStatement(sqlNot);
+					PreparedStatement pstmtNot = dbc.sd.prepareStatement(sqlNot);
 
 					String sqlMarkDone = "insert into sync (s_id, n_id, prikey) values(?, ?, ?)";
-					PreparedStatement pstmtMarkDone = cResults.prepareStatement(sqlMarkDone);
+					PreparedStatement pstmtMarkDone = dbc.results.prepareStatement(sqlMarkDone);
 					
 					PreparedStatement pstmtRecord = null;
 					PreparedStatement pstmtCheckNeed = null;
@@ -500,9 +476,9 @@ public class SubscriberBatch {
 							int nId = rs.getInt(1);
 							int sId = rs.getInt(2);
 
-							Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
+							Form topForm = GeneralUtilityMethods.getTopLevelForm(dbc.sd, sId);
 
-							if(GeneralUtilityMethods.tableExists(cResults, topForm.tableName)) {
+							if(GeneralUtilityMethods.tableExists(dbc.results, topForm.tableName)) {
 
 								// Get the records that need synchronising
 								String prikeyFilter = "prikey not in (select prikey from sync where s_id = " + 
@@ -511,7 +487,7 @@ public class SubscriberBatch {
 								// Confirm we need to do this synchronisation
 								boolean syncRequired = false;
 								String sqlCheckNeed = "select count(*) from " + topForm.tableName + " where " + prikeyFilter;
-								pstmtCheckNeed = cResults.prepareStatement(sqlCheckNeed);
+								pstmtCheckNeed = dbc.results.prepareStatement(sqlCheckNeed);
 								try {
 									ResultSet rsCN = pstmtCheckNeed.executeQuery();
 									if(rsCN.next()) {
@@ -534,10 +510,10 @@ public class SubscriberBatch {
 									boolean getParkey = false;	// For top level form TODO loop through forms
 									boolean mgmt = false;		// TODO get from notification
 									int managedId = 0;			// TODO get from notification
-									String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+									String surveyIdent = GeneralUtilityMethods.getSurveyIdent(dbc.sd, sId);
 									ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
-											sd,
-											cResults,
+											dbc.sd,
+											dbc.results,
 											localisation,
 											language,
 											sId,
@@ -567,13 +543,13 @@ public class SubscriberBatch {
 	
 									if(mgmt) {
 										CustomReportsManager crm = new CustomReportsManager ();
-										ReportConfig config = crm.get(sd, managedId, -1);
+										ReportConfig config = crm.get(dbc.sd, managedId, -1);
 										columns.addAll(config.columns);
 									}
 	
 									pstmt = tdm.getPreparedStatement(
-											sd, 
-											cResults,
+											dbc.sd, 
+											dbc.results,
 											columns,
 											urlprefix,
 											sId,
@@ -682,9 +658,9 @@ public class SubscriberBatch {
 			if(uem != null) {uem.close();}
 
 			try {				
-				if (sd != null) {
-					sd.close();
-					sd = null;
+				if (dbc.sd != null) {
+					dbc.sd.close();
+					dbc.sd = null;
 				}
 			} catch (SQLException e) {
 				log.log(Level.SEVERE, "Failed to close connection");
@@ -692,9 +668,9 @@ public class SubscriberBatch {
 			}
 
 			try {
-				if (cResults != null) {
-					cResults.close();
-					cResults = null;
+				if (dbc.results != null) {
+					dbc.results.close();
+					dbc.results = null;
 				}
 			} catch (SQLException e) {
 				log.log(Level.SEVERE, "Failed to close results connection");
@@ -1007,12 +983,12 @@ public class SubscriberBatch {
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtUpdate = null;
 		try {
-			pstmt = sd.prepareStatement(sql);
+			pstmt = dbc.sd.prepareStatement(sql);
 			pstmt.setString(1, origIdent);
 			pstmt.setString(2, ident);
 			pstmt.setString(3, instanceId);
 
-			pstmtUpdate = sd.prepareStatement(sqlUpdate);
+			pstmtUpdate = dbc.sd.prepareStatement(sqlUpdate);
 
 			File finalFile = new File(finalPath);
 			File finalDirFile = finalFile.getParentFile();
