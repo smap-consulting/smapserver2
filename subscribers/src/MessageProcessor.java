@@ -1,19 +1,13 @@
 import java.io.File;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.MessagingManagerApply;
+import org.smap.sdal.model.DatabaseConnections;
 import org.smap.subscribers.Subscriber;
-import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
 
 /*****************************************************************************
  * 
@@ -39,22 +33,16 @@ public class MessageProcessor {
 
 	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 	DocumentBuilder db = null;
-	Document xmlConf = null;
-	Connection sd = null;
-	Connection cResults;
 
 	private static Logger log = Logger.getLogger(Subscriber.class.getName());
 
 	private class MessageLoop implements Runnable {
-		Connection sd;
-		Connection cResults;
+		DatabaseConnections dbc = new DatabaseConnections();
 		String serverName;
 		String basePath;
 		String awsPropertiesFile;
 
-		public MessageLoop(Connection sd, Connection cResults, String basePath, String awsPropertiesFile) {
-			this.sd = sd;
-			this.cResults = cResults;
+		public MessageLoop(String basePath, String awsPropertiesFile) {
 			this.basePath = basePath;
 			this.awsPropertiesFile = awsPropertiesFile;
 		}
@@ -77,12 +65,13 @@ public class MessageProcessor {
 					
 					try {
 						// Make sure we have a connection to the database
-						getDatabaseConnection();
+						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
+						serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 						
 						// Apply messages
 						MessagingManagerApply mma = new MessagingManagerApply();
-						mma.applyOutbound(sd, cResults, serverName, basePath, count++, awsPropertiesFile);
-						mma.applyPendingEmailMessages(sd, cResults, serverName, basePath);
+						mma.applyOutbound(dbc.sd, dbc.results, serverName, basePath, count++, awsPropertiesFile);
+						mma.applyPendingEmailMessages(dbc.sd, dbc.results, serverName, basePath);
 						
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
@@ -99,64 +88,6 @@ public class MessageProcessor {
 			}
 		}
 		
-		private void getDatabaseConnection() throws ParserConfigurationException, SAXException, IOException, ClassNotFoundException, SQLException {
-			// Get the connection details for the meta data database
-			String dbClassMeta = null;
-			String databaseMeta = null;
-			String userMeta = null;
-			String passwordMeta = null;
-
-			String database = null;
-			String user = null;
-			String password = null;
-			
-			// Return if we already have a connection
-			if(sd != null && cResults != null && sd.isValid(1) && cResults.isValid(1)) {
-				return;
-			}
-			
-			// Make sure any existing connections are closed
-			if(sd != null) {
-				log.info("Messaging: Closing sd connection");
-				try {
-					sd.close();
-				} catch (Exception e) {
-					
-				}
-			}
-			
-			if(cResults != null) {
-				try {
-					log.info("Messaging: Closing cResults connection");
-					cResults.close();
-				} catch (Exception e) {
-					
-				}
-			}
-			
-			// Get the database connection
-			
-			db = dbf.newDocumentBuilder();
-			xmlConf = db.parse(new File(confFilePath + "/metaDataModel.xml"));
-			dbClassMeta = xmlConf.getElementsByTagName("dbclass").item(0).getTextContent();
-			databaseMeta = xmlConf.getElementsByTagName("database").item(0).getTextContent();
-			userMeta = xmlConf.getElementsByTagName("user").item(0).getTextContent();
-			passwordMeta = xmlConf.getElementsByTagName("password").item(0).getTextContent();
-
-			// Get the connection details for the target results database
-			xmlConf = db.parse(new File(confFilePath + "/results_db.xml"));
-			database = xmlConf.getElementsByTagName("database").item(0).getTextContent();
-			user = xmlConf.getElementsByTagName("user").item(0).getTextContent();
-			password = xmlConf.getElementsByTagName("password").item(0).getTextContent();
-
-			Class.forName(dbClassMeta);
-			sd = DriverManager.getConnection(databaseMeta, userMeta, passwordMeta);
-			cResults = DriverManager.getConnection(database, user, password);
-			
-			serverName = GeneralUtilityMethods.getSubmissionServer(sd);
-			
-		}
-
 	}
 
 	/**
@@ -173,7 +104,7 @@ public class MessageProcessor {
 			File pFile = new File(basePath + "_bin/resources/properties/aws.properties");
 			if (pFile.exists()) {
 				awsPropertiesFile = pFile.getAbsolutePath();
-				Thread t = new Thread(new MessageLoop(sd, cResults, basePath, awsPropertiesFile));
+				Thread t = new Thread(new MessageLoop(basePath, awsPropertiesFile));
 				t.start();
 			} else {
 				log.info("Skipping notifications to devices. No aws properties file at: " + pFile.getAbsolutePath());
