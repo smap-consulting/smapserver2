@@ -228,7 +228,7 @@ public class SubscriberBatch {
 
 						if(uel.isEmpty()) {
 
-							log.info("................... Submission Processor");
+							log.info("................... " + subscriberType + " Submission Processor");
 
 						} else {
 							log.info("\nUploading subscriber: " + s.getSubscriberName() + " : " + timeNow.toString());
@@ -467,6 +467,9 @@ public class SubscriberBatch {
 
 				// Delete linked csv files logically deleted more than 10 minutes age
 				deleteOldLinkedCSVFiles(sd, cResults, localisation, basePath);
+				
+				// Generate reports
+				log.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%% Generate reports");
 				
 				// Apply synchronisation
 				// 1. Get all synchronisation notifications
@@ -980,7 +983,7 @@ public class SubscriberBatch {
 	 * ODK sends large attachments in separate "incomplete" posts
 	 * Get these now
 	 * Only do it once for all subscribers, so once the attachments from the incomplete posts have been moved
-	 *  to the complete submission then the first subscriber to do this will be marked as having processed the
+	 *  to the complete submission then the first subscriber to do thi)s will be marked as having processed the
 	 *  attachments.  All other subscribers will then ignore incomplete attachments
 	 */
 	private void getAttachmentsFromIncompleteSurveys(Connection connectionSD, 
