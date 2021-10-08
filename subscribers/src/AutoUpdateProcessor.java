@@ -13,6 +13,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.AutoUpdateManager;
 import org.smap.sdal.model.AutoUpdate;
+import org.smap.sdal.model.DatabaseConnections;
 import org.smap.subscribers.Subscriber;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
@@ -43,24 +44,17 @@ public class AutoUpdateProcessor {
 	String confFilePath;
 
 	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-	DocumentBuilder db = null;
-	Document xmlConf = null;
-	Connection sd = null;
-	Connection cResults;
 
 	private static Logger log = Logger.getLogger(Subscriber.class.getName());
 
 	private class UpdateLoop implements Runnable {
-		Connection sd;
-		Connection cResults;
+		DatabaseConnections dbc = new DatabaseConnections();
 		String serverName;
 		String basePath;
 		String mediaBucket;
 		String region;
 
-		public UpdateLoop(Connection sd, Connection cResults, String basePath, String mediaBucket, String region) {
-			this.sd = sd;
-			this.cResults = cResults;
+		public UpdateLoop(String basePath, String mediaBucket, String region) {
 			this.basePath = basePath;
 			this.mediaBucket = mediaBucket;
 			this.region = region;
@@ -81,22 +75,24 @@ public class AutoUpdateProcessor {
 					
 					try {
 						// Make sure we have a connection to the database
-						getDatabaseConnection();
+						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
+						serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
+						
 						AutoUpdateManager aum = new AutoUpdateManager();
 						Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 						
 						/*
 						 * Check for pending jobs
 						 */	
-						aum.checkPendingJobs(sd, cResults, gson, region);
+						aum.checkPendingJobs(dbc.sd, dbc.results, gson, region);
 									
 						/*
 						 * Apply auto updates
 						 */	
-						ArrayList<AutoUpdate> autoUpdates = aum.identifyAutoUpdates(sd, cResults, gson);
+						ArrayList<AutoUpdate> autoUpdates = aum.identifyAutoUpdates(dbc.sd, dbc.results, gson);
 						if(autoUpdates != null && autoUpdates.size() > 0) {
 							//log.info("-------------- AutoUpdate applying " + autoUpdates.size() + " updates");
-							aum.applyAutoUpdates(sd, cResults, gson, serverName, autoUpdates, mediaBucket, region, basePath);
+							aum.applyAutoUpdates(dbc.sd, dbc.results, gson, serverName, autoUpdates, mediaBucket, region, basePath);
 						}
 						
 					} catch (Exception e) {
@@ -113,62 +109,6 @@ public class AutoUpdateProcessor {
 
 			}
 		}
-		
-		private void getDatabaseConnection() throws ParserConfigurationException, SAXException, IOException, ClassNotFoundException, SQLException {
-			// Get the connection details for the meta data database
-			String dbClassMeta = null;
-			String databaseMeta = null;
-			String userMeta = null;
-			String passwordMeta = null;
-
-			String database = null;
-			String user = null;
-			String password = null;
-			
-			// Return if we already have a connection
-			if(sd != null && cResults != null && sd.isValid(1) && cResults.isValid(1)) {
-				return;
-			}
-			
-			// Make sure any existing connections are closed
-			if(sd != null) {
-				try {
-					sd.close();
-				} catch (Exception e) {
-					
-				}
-			}
-			
-			if(cResults != null) {
-				try {
-					cResults.close();
-				} catch (Exception e) {
-					
-				}
-			}
-			
-			// Get the database connection
-			
-			db = dbf.newDocumentBuilder();
-			xmlConf = db.parse(new File(confFilePath + "/metaDataModel.xml"));
-			dbClassMeta = xmlConf.getElementsByTagName("dbclass").item(0).getTextContent();
-			databaseMeta = xmlConf.getElementsByTagName("database").item(0).getTextContent();
-			userMeta = xmlConf.getElementsByTagName("user").item(0).getTextContent();
-			passwordMeta = xmlConf.getElementsByTagName("password").item(0).getTextContent();
-
-			// Get the connection details for the target results database
-			xmlConf = db.parse(new File(confFilePath + "/results_db.xml"));
-			database = xmlConf.getElementsByTagName("database").item(0).getTextContent();
-			user = xmlConf.getElementsByTagName("user").item(0).getTextContent();
-			password = xmlConf.getElementsByTagName("password").item(0).getTextContent();
-
-			Class.forName(dbClassMeta);
-			sd = DriverManager.getConnection(databaseMeta, userMeta, passwordMeta);
-			cResults = DriverManager.getConnection(database, user, password);
-			
-			serverName = GeneralUtilityMethods.getSubmissionServer(sd);
-			
-		}
 
 	}
 
@@ -184,7 +124,7 @@ public class AutoUpdateProcessor {
 			// Send any pending messages
 			File pFile = new File(basePath + "_bin/resources/properties/aws.properties");
 			if (pFile.exists()) {
-				Thread t = new Thread(new UpdateLoop(sd, cResults, basePath, mediaBucket, region));
+				Thread t = new Thread(new UpdateLoop(basePath, mediaBucket, region));
 				t.start();
 			} else {
 				// No message!
