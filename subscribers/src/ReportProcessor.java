@@ -10,6 +10,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.managers.BackgroundReportsManager;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.subscribers.Subscriber;
 import org.w3c.dom.Document;
@@ -70,12 +71,21 @@ public class ReportProcessor {
 						// Make sure we have a connection to the database
 						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 						serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
-						
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
 					}
 					
-					// Sleep and then go again
+					/*
+					 * Loop trough available reports
+					 */
+					BackgroundReportsManager brm = new BackgroundReportsManager(null, null);
+					while(brm.processNextReport()) {
+						log.info("..............................report processed");
+					}
+					
+					/*
+					 * Sleep and then go again
+					 */
 					try {
 						Thread.sleep(delaySecs * 1000);
 					} catch (Exception e) {
