@@ -21,8 +21,11 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -63,6 +66,60 @@ public class BackgroundReportSvc extends Application {
 		a = new Authorise(authorisations, null);		
 	}
 
+	@GET
+	@Path("/{project_id}")
+	@Produces("application/json")
+	public Response getBackgroundReports(@Context HttpServletRequest request,
+			@PathParam("project_id") int pId) { 
+		
+		ArrayList<BackgroundReport> reports = new ArrayList<>();
+		String requestName = "surveyKPI - Create Background Report";
+		Response response = null;
+		
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		Connection sd = SDDataSource.getConnection(requestName);
+		a.isAuthorised(sd, request.getRemoteUser());
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			String sql = "select br.id, br.report_name, u.name, br.status,"
+					+ "br.status_msg "
+					+ "from background_report br, users u "
+					+ "where br.u_id = u.id "
+					+ "and br.o_id = ? "
+					+ "and br.p_id = ? "
+					+ "and (u.ident = ? or br.share) ";
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setInt(2, pId);
+			pstmt.setString(3, request.getRemoteUser());
+			
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				BackgroundReport br = new BackgroundReport();
+				br.id = rs.getInt("id");
+				br.report_name = rs.getString("report_name");
+				br.userName = rs.getString("name");
+				br.status = rs.getString("status");
+				br.status_msg = rs.getString("status_msg");
+				reports.add(br);
+			}
+			response = Response.ok(gson.toJson(reports)).build();	
+			
+		} catch (Exception e) {		
+			log.log(Level.SEVERE,"Error: ", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		    
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			SDDataSource.closeConnection(requestName, sd);
+		}
+		return response;
+	}
+	
 	/*
 	 * Create a new background report
 	 */
@@ -76,7 +133,6 @@ public class BackgroundReportSvc extends Application {
 		String requestName = "surveyKPI - Create Background Report";
 		Response response = null;
 		
-		System.out.println(sReport);
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		Connection sd = SDDataSource.getConnection(requestName);
@@ -120,15 +176,16 @@ public class BackgroundReportSvc extends Application {
 			 * Save the report
 			 */
 			String sql = "insert into background_report "
-					+ "(o_id, u_id, status, report_type, report_name, details, start_time) "
-					+ "values(?, ?, 'new', ?, ?, ?, now())";
+					+ "(o_id, u_id, p_id, status, report_type, report_name, details, start_time) "
+					+ "values(?, ?, ?, 'new', ?, ?, ?, now())";
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
 			pstmt.setInt(2, uId);
-			pstmt.setString(3, br.report_type);
-			pstmt.setString(4, br.report_name);
-			pstmt.setString(5, br.details);
+			pstmt.setInt(3, br.pId);
+			pstmt.setString(4, br.report_type);
+			pstmt.setString(5, br.report_name);
+			pstmt.setString(6, br.details);
 			log.info("background report insert " + pstmtDuplicate.toString());
 			
 			pstmt.executeUpdate();
