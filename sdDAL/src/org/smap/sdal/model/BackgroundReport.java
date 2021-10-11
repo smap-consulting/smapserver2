@@ -6,6 +6,8 @@ public class BackgroundReport {
 	public int id;
 	public int oId;
 	public int uId;
+	public int pId;
+	public String userName;
 	public String status;
 	public String status_msg;
 	public String report_type;
