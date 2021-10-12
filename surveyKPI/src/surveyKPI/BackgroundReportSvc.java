@@ -26,6 +26,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -75,6 +76,7 @@ public class BackgroundReportSvc extends Application {
 		ArrayList<BackgroundReport> reports = new ArrayList<>();
 		String requestName = "surveyKPI - Create Background Report";
 		Response response = null;
+		ResourceBundle localisation = null;
 		
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
@@ -84,6 +86,11 @@ public class BackgroundReportSvc extends Application {
 		PreparedStatement pstmt = null;
 		
 		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			String sql = "select br.id, br.report_name, u.name, br.status,"
 					+ "br.status_msg "
@@ -104,6 +111,7 @@ public class BackgroundReportSvc extends Application {
 				br.report_name = rs.getString("report_name");
 				br.userName = rs.getString("name");
 				br.status = rs.getString("status");
+				br.status_loc = localisation.getString("c_" + br.status);
 				br.status_msg = rs.getString("status_msg");
 				reports.add(br);
 			}
@@ -127,7 +135,8 @@ public class BackgroundReportSvc extends Application {
 	@Consumes("application/json")
 	public Response createBackgroundReport(
 			@Context HttpServletRequest request, 
-			@FormParam("report") String sReport
+			@FormParam("report") String sReport,
+			@QueryParam("tz") String tz					// Timezone
 			) { 
 		
 		String requestName = "surveyKPI - Create Background Report";
@@ -140,6 +149,10 @@ public class BackgroundReportSvc extends Application {
 		
 		PreparedStatement pstmtDuplicate = null;
 		PreparedStatement pstmt = null;
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
 		
 		try {
 			
@@ -176,8 +189,8 @@ public class BackgroundReportSvc extends Application {
 			 * Save the report
 			 */
 			String sql = "insert into background_report "
-					+ "(o_id, u_id, p_id, status, report_type, report_name, details, start_time) "
-					+ "values(?, ?, ?, 'new', ?, ?, ?, now())";
+					+ "(o_id, u_id, p_id, status, report_type, report_name, tz, language, details, start_time) "
+					+ "values(?, ?, ?, 'new', ?, ?, ?, ?, ?, now())";
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
@@ -185,7 +198,9 @@ public class BackgroundReportSvc extends Application {
 			pstmt.setInt(3, br.pId);
 			pstmt.setString(4, br.report_type);
 			pstmt.setString(5, br.report_name);
-			pstmt.setString(6, br.details);
+			pstmt.setString(6, tz);
+			pstmt.setString(7, locale.getLanguage());
+			pstmt.setString(8, br.details);
 			log.info("background report insert " + pstmtDuplicate.toString());
 			
 			pstmt.executeUpdate();

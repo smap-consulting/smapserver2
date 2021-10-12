@@ -15,6 +15,8 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -10041,7 +10043,13 @@ public class GeneralUtilityMethods {
 		
 	}
 
-
+	public static void createDirectory(String f) throws IOException {
+		File file = new File(f);
+		if(!file.exists()) {
+			Path path = Paths.get(f);
+			Files.createDirectories(path);
+		}
+	}
 	
 	private static int getManifestParamStart(String property) {
 	
@@ -10064,5 +10072,6 @@ public class GeneralUtilityMethods {
 		
 		return idx;
 	}
+	
 }
 
