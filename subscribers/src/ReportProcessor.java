@@ -79,8 +79,12 @@ public class ReportProcessor {
 					 * Loop trough available reports
 					 */
 					BackgroundReportsManager brm = new BackgroundReportsManager(null, null);
-					while(brm.processNextReport()) {
-						log.info("..............................report processed");
+					try {
+						while(brm.processNextReport(dbc.sd, basePath)) {
+							log.info("..............................report processed");
+						}
+					} catch (SQLException e1) {
+						e1.printStackTrace();
 					}
 					
 					/*

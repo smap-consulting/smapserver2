@@ -56,7 +56,7 @@ public class UserLocationManager {
 	}
 
 	/*
-	 * Get laest location information
+	 * Get latest location information
 	 */
 	public String getUserLocations(
 			Connection sd,

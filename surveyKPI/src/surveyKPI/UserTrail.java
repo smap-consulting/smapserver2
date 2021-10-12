@@ -35,6 +35,9 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.UserTrailManager;
+import org.smap.sdal.model.UserTrailFeature;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -46,6 +49,7 @@ import java.net.URLEncoder;
 import java.sql.*;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.UUID;
@@ -60,16 +64,9 @@ public class UserTrail extends Application {
 	private static Logger log =
 			 Logger.getLogger(UserTrail.class.getName());
 	
-	public class Feature {
-		public int id;
-		public double[] coordinates = new double[2];
-		public Timestamp time;
-		public long rawTime;
-	}
-	
 	public class Trail {
 		String userName = null;
-		public ArrayList<Feature> features = null;
+		public ArrayList<UserTrailFeature> features = null;
 		
 	}
 	
@@ -153,7 +150,7 @@ public class UserTrail extends Application {
 			resultSet = pstmt.executeQuery();
 			 
 			Trail trail = new Trail();
-			trail.features = new ArrayList<Feature> ();
+			trail.features = new ArrayList<UserTrailFeature> ();
 			 
 			while (resultSet.next()) {
 				
@@ -161,7 +158,7 @@ public class UserTrail extends Application {
 					trail.userName = resultSet.getString("user_name");
 				}
 				
-				Feature f = new Feature();
+				UserTrailFeature f = new UserTrailFeature();
 				f.id = resultSet.getInt("id");
 				f.time = resultSet.getTimestamp("event_time");	
 				f.rawTime = resultSet.getLong("raw_time");
@@ -207,9 +204,6 @@ public class UserTrail extends Application {
 		ResponseBuilder builder = Response.ok();
 		Response responseVal = null;
 
-		Timestamp startDate = new Timestamp(start_t);
-		Timestamp endDate = new Timestamp(end_t);
-
 		String user = request.getRemoteUser();
 		String connectionString = "usertrail - trail";
 		// Authorisation - Access
@@ -230,6 +224,7 @@ public class UserTrail extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			UserTrailManager utm = new UserTrailManager(localisation, "UTC");	// TODO incorporate user time zone
 			String escapedFileName = null;
 			try {
 				escapedFileName = URLDecoder.decode(filename, "UTF-8");
@@ -242,161 +237,36 @@ public class UserTrail extends Application {
 			escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
 			escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
 			
-			String sqlDistance = "SELECT ST_Distance( "
-					+ "ST_Transform(?::geometry, 3857),"
-					+ "ST_Transform(?::geometry, 3857)"
-					+ ")";
-			pstmtDistance = sd.prepareStatement(sqlDistance);
+			String basePath = GeneralUtilityMethods.getBasePath(request);
 
-			StringBuffer sql = new StringBuffer("SELECT ut.id as id, " +
-					"ST_X(the_geom::geometry) as x, " +		
-					"ST_Y(the_geom::geometry) as y, " +
-					"ut.event_time as event_time " +
-				"FROM user_trail ut, users u  " +
-				"where u.id = ut.u_id ");
-			
-			if(start_t > 0) {
-				sql.append("and ut.event_time >= ? ");
-			}
-			if(end_t > 0) {
-				sql.append("and ut.event_time <  ? ");
-			}
-			sql.append("and ut.u_id = ? " +
-					"order by ut.event_time asc, ut.id asc");
-			
-			pstmt = sd.prepareStatement(sql.toString());
-			int idx = 1;
-			if(start_t > 0) {
-				pstmt.setTimestamp(idx++, startDate);
-			}
-			if(end_t > 0) {
-				pstmt.setTimestamp(idx++, endDate);
-			}
-			pstmt.setInt(idx++, uId);
-			
 			/*
-			 * Export KML
+			 * Create a params hashmap as if this was a background report
 			 */
-			String basePath = GeneralUtilityMethods.getBasePath(request);					
-			String filepath = basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".kml";	// Use a random sequence to keep survey name unique
-			File tempFile = new File(filepath);
-			PrintWriter writer = new PrintWriter(tempFile);
-			writeKmlHeader(writer);
-			
-			ArrayList<ArrayList<Feature>> featureList = getKmlFeatures(pstmt, pstmtDistance, mps);
-			DecimalFormat df = new DecimalFormat("#.0000");
-			for(ArrayList<Feature> features : featureList) {
-				if(features.size() == 0) {
-					// ignore
-				} else if(features.size() == 1) { 
-					// point
-					writer.println("<Placemark>");
-					writer.println("<styleUrl>#trail_style</styleUrl>");
-					writer.println("<Point>");
-					
-					writer.println("<coordinates>");
-					for(Feature f : features) {					
-					    String lon = df.format(f.coordinates[0]);
-					    String lat = df.format(f.coordinates[1]);
-					    writer.println(lon + "," + lat + ",0");
-					}
-					writer.println("</coordinates>");
-					
-					writer.println("</Point>");
-					writer.println("</Placemark>");
-					
-				} else if(features.size() > 1) {	// line
-					// Add line
-					writer.println("<Placemark>");
-					writer.println("<styleUrl>#trail_style</styleUrl>");
-					writer.println("<LineString>");
-					writer.println("<tessellate>1</tessellate>");
-					
-					writer.println("<coordinates>");
-					for(Feature f : features) {	
-					    String lon = df.format(f.coordinates[0]);
-					    String lat = df.format(f.coordinates[1]);
-						writer.println(lon + "," + lat + ",0");
-					}
-					writer.println("</coordinates>");
-					
-					writer.println("</LineString>");
-					writer.println("</Placemark>");
-					
-				}
+			HashMap<String, String> params = new HashMap<> ();
+			if(start_t > 0) {
+				params.put("startDate", String.valueOf(start_t));
+			}
+			if(end_t > 0) {
+				params.put("endDate", String.valueOf(end_t));
+			}
+			if(mps > 0) {
+				params.put("mps", String.valueOf(mps));
+			}
+			if(uId > 0) {
+				params.put("userId", String.valueOf(uId));
 			}
 			
-			writeKmlFooter(writer);
-			writer.flush();
-			writer.close();
+			String filepath = utm.generateKML(sd, params, basePath);
+			File reportFile = new File(filepath);
 
-			if(tempFile.exists()) {
-				builder = Response.ok(tempFile);
+			if(reportFile.exists()) {
+				builder = Response.ok(reportFile);
 				builder.header("Content-Disposition", "attachment;Filename=\"" + escapedFileName + ".kml\"");			
 				builder.header("Content-type","application/vnd.google-earth.kml+xml");
 				responseVal = builder.build();
 			} else {
 				throw new ApplicationException(localisation.getString("msg_no_data"));
-			}
-			
-			/*
-			 
-			String basePath = GeneralUtilityMethods.getBasePath(request);					
-			String filepath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());	// Use a random sequence to keep survey name unique
-			String database_name = "survey_definitions";
-			String scriptPath = basePath + "_bin" + File.separator + "getshape.sh";
-			Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", scriptPath + " " + 
-					database_name + " " +
-					"na " +		// Not applicable
-					"\"" + pstmt.toString() + "\" " +
-					filepath + 
-					" " + format});
-			int code = proc.waitFor();
-			if(code > 0) {
-				int len;
-				if ((len = proc.getErrorStream().available()) > 0) {
-					byte[] buf = new byte[len];
-					proc.getErrorStream().read(buf);
-					log.info("Command error:\t\"" + new String(buf) + "\"");
-				}
-			} else {
-				int len;
-				
-				if ((len = proc.getErrorStream().available()) > 0) {
-					byte[] buf = new byte[len];
-					proc.getErrorStream().read(buf);
-					log.info("Command error:\t\"" + new String(buf) + "\"");
-				}
-				
-				if ((len = proc.getInputStream().available()) > 0) {
-					byte[] buf = new byte[len];
-					proc.getInputStream().read(buf);
-					log.info("Completed getshape process:\t\"" + new String(buf) + "\"");
-				}
-			}
-			
-			log.info("Process exitValue: " + code);
-			if(code == 0) {
-				File file = new File(filepath + ".zip");
-
-				if(file.exists()) {
-					builder = Response.ok(file);
-					if(format.equals(SmapExportTypes.KML)) {
-						builder.header("Content-Disposition", "attachment;Filename=\"" + escapedFileName + ".kmz\"");
-					} else {
-						builder.header("Content-Disposition", "attachment;Filename=\"" + escapedFileName + ".zip\"");
-					}
-					builder.header("Content-type","application/zip");
-					responseVal = builder.build();
-				} else {
-					throw new ApplicationException(localisation.getString("msg_no_data"));
-				}
-
-			} else {
-				throw new ApplicationException("Error exporting file");
-			}
-			*/
-			 
+			} 
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error", e);
@@ -502,73 +372,8 @@ public class UserTrail extends Application {
 	}
 
 
-	private void writeKmlHeader(PrintWriter writer) {
-		writer.println("<?xml version=\"1.0\" encoding=\"utf-8\" ?>");
-		writer.println("<kml xmlns=\"http://www.opengis.net/kml/2.2\"");
-		writer.println("xmlns:gx=\"http://www.google.com/kml/ext/2.2\">");
-		
-		writer.println("<Document>");
-		
-		writer.println("<Style id=\"trail_style\">");
-		writer.println("<LineStyle>");
-		writer.println("<color>ff0000ff</color>");
-		writer.println("<width>5</width>");
-		writer.println("</LineStyle>");
-		writer.println("</Style>");
-	}
+
 	
-	private void writeKmlFooter(PrintWriter writer) {
-		writer.println("</Document>");
-		writer.println("</kml>");
-	}
-	
-	/*
-	 * Get features, consecutive points are converted to lines unless the break distance between points is exceeded
-	 */
-	ArrayList<ArrayList<Feature>> getKmlFeatures(PreparedStatement pstmt, PreparedStatement pstmtDistance, int breakDistance) throws SQLException {
-		ArrayList<ArrayList<Feature>> featureList = new ArrayList<> ();
-		
-		ArrayList<Feature> features = new ArrayList<Feature> ();
-		boolean havePrev = false;
-		Double prevX = 0.0;
-		Double prevY = 0.0;
-		ResultSet rs = pstmt.executeQuery();
-		while(rs.next()) {
-			Feature f = new Feature();
-			f.coordinates[0] = rs.getDouble("x");
-			f.coordinates[1] = rs.getDouble("y");
-			if(havePrev) {
-				if(isGreaterThanBreakDistance(pstmtDistance, prevX, prevY, f.coordinates[0], f.coordinates[1], breakDistance)) {
-					featureList.add(features);
-					features = new ArrayList<Feature> ();
-				}
-			} 
-			prevX = f.coordinates[0];
-			prevY = f.coordinates[1];
-			havePrev = true;
-			features.add(f);
-		}
-		featureList.add(features);
-		
-		return featureList;
-	}
-	
-	private boolean isGreaterThanBreakDistance(PreparedStatement pstmtDistance, double prevX, double prevY, double x, double y, int breakDistance) throws SQLException {
-		
-		StringBuilder p1 = new StringBuilder("SRID=4326;POINT(");
-		p1.append(prevX).append(" ").append(prevY).append(")");
-		StringBuilder p2 = new StringBuilder("SRID=4326;POINT(");
-		p2.append(x).append(" ").append(y).append(")");
-		
-		pstmtDistance.setString(1, p1.toString());
-		pstmtDistance.setString(2, p2.toString());
-		
-		log.info(pstmtDistance.toString());
-		ResultSet rs = pstmtDistance.executeQuery();
-		if(rs.next()) {
-			return rs.getInt(1) > breakDistance;
-		}
-		return false;
-	}
+
 }
 

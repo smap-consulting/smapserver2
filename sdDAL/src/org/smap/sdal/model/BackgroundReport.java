@@ -1,6 +1,7 @@
 package org.smap.sdal.model;
 
 import java.sql.Timestamp;
+import java.util.HashMap;
 
 public class BackgroundReport {
 	public int id;
@@ -9,9 +10,13 @@ public class BackgroundReport {
 	public int pId;
 	public String userName;
 	public String status;
+	public String status_loc;
 	public String status_msg;
 	public String report_type;
 	public String report_name;
+	public String tz;
+	public String language;
 	public String details;	
 	public Timestamp start_time;
+	public HashMap<String, String> params;
 }
