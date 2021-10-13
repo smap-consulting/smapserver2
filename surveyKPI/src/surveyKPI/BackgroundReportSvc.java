@@ -93,7 +93,7 @@ public class BackgroundReportSvc extends Application {
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			String sql = "select br.id, br.report_name, u.name, br.status,"
-					+ "br.status_msg "
+					+ "br.status_msg, br.filename "
 					+ "from background_report br, users u "
 					+ "where br.u_id = u.id "
 					+ "and br.o_id = ? "
@@ -113,6 +113,7 @@ public class BackgroundReportSvc extends Application {
 				br.status = rs.getString("status");
 				br.status_loc = localisation.getString("c_" + br.status);
 				br.status_msg = rs.getString("status_msg");
+				br.filename = rs.getString("filename");
 				reports.add(br);
 			}
 			response = Response.ok(gson.toJson(reports)).build();	
@@ -159,6 +160,7 @@ public class BackgroundReportSvc extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			System.out.println(sReport);
 			BackgroundReport br = gson.fromJson(sReport, BackgroundReport.class);
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
@@ -171,13 +173,13 @@ public class BackgroundReportSvc extends Application {
 					+ "and u_id = ? "
 					+ "and status = 'new' "
 					+ "and report_type = ? "
-					+ "and details = ?";
+					+ "and params = ?";
 			
 			pstmtDuplicate = sd.prepareStatement(sqlDuplicate);
 			pstmtDuplicate.setInt(1, oId);
 			pstmtDuplicate.setInt(2, uId);
 			pstmtDuplicate.setString(3, br.report_type);
-			pstmtDuplicate.setString(4, br.details);
+			pstmtDuplicate.setString(4, gson.toJson(br.params));
 			log.info("background report duplicate check: " + pstmtDuplicate.toString());
 			
 			ResultSet rs = pstmtDuplicate.executeQuery();
@@ -189,7 +191,7 @@ public class BackgroundReportSvc extends Application {
 			 * Save the report
 			 */
 			String sql = "insert into background_report "
-					+ "(o_id, u_id, p_id, status, report_type, report_name, tz, language, details, start_time) "
+					+ "(o_id, u_id, p_id, status, report_type, report_name, tz, language, params, start_time) "
 					+ "values(?, ?, ?, 'new', ?, ?, ?, ?, ?, now())";
 			
 			pstmt = sd.prepareStatement(sql);
@@ -200,7 +202,7 @@ public class BackgroundReportSvc extends Application {
 			pstmt.setString(5, br.report_name);
 			pstmt.setString(6, tz);
 			pstmt.setString(7, locale.getLanguage());
-			pstmt.setString(8, br.details);
+			pstmt.setString(8, gson.toJson(br.params));
 			log.info("background report insert " + pstmtDuplicate.toString());
 			
 			pstmt.executeUpdate();

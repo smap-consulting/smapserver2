@@ -82,6 +82,35 @@ public class FileManager {
 	}
 	
 	/*
+	 * Get a background report
+	 */
+	public Response getBackgroundReport(
+			Connection sd,
+			HttpServletRequest request, 
+			HttpServletResponse response, 
+			String user, 	
+			String filename,
+			String reportname
+		) throws IOException, ApplicationException {
+		
+		Response r = null;
+		
+		// Authorisation - Access
+		
+		log.info("Get Report File: " + filename);
+
+		String basepath = GeneralUtilityMethods.getBasePath(request);
+		String filepath = null;
+			filepath = basepath + "/reports/" + filename;
+		
+		getFile(response, filepath, reportname);
+			
+		r = Response.ok("").build();
+		
+		return r;
+	}
+	
+	/*
 	 * Add the file to the response stream
 	 */
 	public void getFile(HttpServletResponse response, String filepath, String filename) throws IOException, ApplicationException {
