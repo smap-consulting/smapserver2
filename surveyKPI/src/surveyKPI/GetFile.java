@@ -81,6 +81,23 @@ public class GetFile extends Application {
 		return getOrganisationFile(request, response, request.getRemoteUser(), requestedOrgId, filename, settings, false, thumbs);
 	}
 	
+	@GET
+	@Path("/report")
+	@Produces("application/x-download")
+	public Response getBackgroundReport (
+			@Context HttpServletRequest request, 
+			@Context HttpServletResponse response,
+			@PathParam("filename") String filename,
+			@QueryParam("reportname") String reportname) throws Exception {
+		
+		log.info("------- " + filename);
+		if(reportname == null) {
+			reportname = filename;
+		}
+		return getReportFile(request, response, request.getRemoteUser(), filename, reportname);
+	
+	}
+	
 	/*
 	 * Get file authenticated with a key
 	 */
@@ -325,18 +342,18 @@ public class GetFile extends Application {
 		String connectionString = "Get Organisation File";
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection(connectionString);	
+		Connection sd = SDDataSource.getConnection(connectionString);	
 		if (isTemporaryUser) {
-			a.isValidTemporaryUser(connectionSD, user);
+			a.isValidTemporaryUser(sd, user);
 		}
-		a.isAuthorised(connectionSD, user);		
+		a.isAuthorised(sd, user);		
 		try {		
-			oId = GeneralUtilityMethods.getOrganisationId(connectionSD, user);
+			oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 		} catch(Exception e) {
 			// ignore error
 		}
 		if(requestedOrgId > 0 && requestedOrgId != oId) {
-			aOrg.isAuthorised(connectionSD, user);	// Must be org admin to work on another organisations data
+			aOrg.isAuthorised(sd, user);	// Must be org admin to work on another organisations data
 			oId = requestedOrgId;
 		}
 		// End Authorisation 
@@ -346,14 +363,49 @@ public class GetFile extends Application {
 		try {
 			
 			FileManager fm = new FileManager();
-			r = fm.getOrganisationFile(connectionSD, request, response, user, oId, 
+			r = fm.getOrganisationFile(sd, request, response, user, oId, 
 					filename, settings, isTemporaryUser, thumbs);
 			
 		}  catch (Exception e) {
 			log.info("Error: Failed to get file:" + e.getMessage());
 			r = Response.status(Status.NOT_FOUND).build();
 		} finally {	
-			SDDataSource.closeConnection(connectionString, connectionSD);	
+			SDDataSource.closeConnection(connectionString, sd);	
+		}
+		
+		return r;
+	}
+
+	/*
+	 * Get a report file
+	 */
+	private Response getReportFile(
+			HttpServletRequest request, 
+			HttpServletResponse response, 
+			String user, 
+			String filename, 
+			String reportname) {
+		
+		Response r = null;
+		String connectionString = "Get Report File";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);	
+		a.isAuthorised(sd, user);		
+		// End Authorisation 
+		
+		
+		try {
+			
+			FileManager fm = new FileManager();
+			r = fm.getBackgroundReport(sd, request, response, user, 
+					filename, reportname);
+			
+		}  catch (Exception e) {
+			log.info("Error: Failed to get file:" + e.getMessage());
+			r = Response.status(Status.NOT_FOUND).build();
+		} finally {	
+			SDDataSource.closeConnection(connectionString, sd);	
 		}
 		
 		return r;

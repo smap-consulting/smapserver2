@@ -4,10 +4,17 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
+import org.smap.sdal.managers.ActionManager.Update;
 import org.smap.sdal.model.BackgroundReport;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 /*****************************************************************************
  * 
@@ -37,8 +44,10 @@ public class BackgroundReportsManager {
 	private ResourceBundle localisation;
 	private String tz;
 	
-	private String getNextSql = null;
-	private String updateStatus = null;
+	public String REPORT_STATUS_COMPLETED = "complete";
+	public String REPORT_STATUS_FAILED = "failed";
+	public String REPORT_STATUS_PENDING = "pending";
+	public String REPORT_STATUS_NEW = "new";
 	
 	public BackgroundReportsManager(ResourceBundle l, String tz) {
 		localisation = l;
@@ -57,17 +66,43 @@ public class BackgroundReportsManager {
 			return false;	// no more reports
 		} else {
 			// Process the report
+			String filename = null;
 			try {
-				UserTrailManager utm = new UserTrailManager(localisation, report.tz);
-				String filepath = utm.generateKML(sd, report.params, basePath);
-				System.out.println("Filepath: " + filepath);
-			} catch (Exception e) {
+				if(report.report_type.equals("locations_kml")) {
+					UserTrailManager utm = new UserTrailManager(localisation, report.tz);
+					filename = utm.generateKML(sd, report.params, basePath);
+				}
+				updateReportStatus(sd, report.id, true, filename, null);
 				
+			} catch (Exception e) {
+				updateReportStatus(sd, report.id, false, null, e.getMessage());
 			}
 		}
 		return true;
 	}
 	
+	private void updateReportStatus(Connection sd, int id, boolean success, String filename, String msg) throws SQLException {
+		PreparedStatement pstmt = null;
+		try {
+			String sql = "update background_report "
+					+ "set filename = ?,"
+					+ "status = ?,"
+					+ "status_msg = ?,"
+					+ "end_time = now() "
+					+ "where id = ?;";
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, filename);
+			pstmt.setString(2,  success ? REPORT_STATUS_COMPLETED : REPORT_STATUS_FAILED);
+			pstmt.setString(3,  msg);
+			pstmt.setInt(4, id);
+			log.info("Update report status: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+	}
 	
 	private BackgroundReport getNextReport(Connection sd) throws SQLException {
 		
@@ -75,15 +110,20 @@ public class BackgroundReportsManager {
 		
 		PreparedStatement pstmtGet = null;
 		PreparedStatement pstmtUpdate = null;
+		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+		
 		try {
 			sd.setAutoCommit(false);
 			
 			/*
 			 * Get the next report to be processed
 			 */
-			String sql = "select id, report_type, tz, language from background_report where status = 'new' "
+			String sql = "select id, report_type, tz, language, params "
+					+ "from background_report "
+					+ "where status = ? "
 					+ "order by id asc limit 1";
 			pstmtGet = sd.prepareStatement(sql);
+			pstmtGet.setString(1, REPORT_STATUS_NEW);
 			ResultSet rs = pstmtGet.executeQuery();
 			if(rs.next()) {
 				br = new BackgroundReport();
@@ -91,6 +131,7 @@ public class BackgroundReportsManager {
 				br.report_type = rs.getString("report_type");
 				br.tz = rs.getString("tz");
 				br.language = rs.getString("language");
+				br.params = gson.fromJson(rs.getString("params"), new TypeToken<HashMap<String, String>>() {}.getType());
 			}
 			
 			/*
@@ -98,10 +139,11 @@ public class BackgroundReportsManager {
 			 */
 			if(br != null) {
 				
-				String sqlUpdate = "update background_report set status = 'pending' "
+				String sqlUpdate = "update background_report set status = ? "
 						+ "where id = ?";
 				pstmtUpdate = sd.prepareStatement(sqlUpdate);
-				pstmtUpdate.setInt(1,  br.id);
+				pstmtUpdate.setString(1, REPORT_STATUS_PENDING);
+				pstmtUpdate.setInt(2,  br.id);
 				pstmtUpdate.executeUpdate();
 			}
 			

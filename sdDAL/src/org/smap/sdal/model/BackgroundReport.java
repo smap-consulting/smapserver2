@@ -14,9 +14,9 @@ public class BackgroundReport {
 	public String status_msg;
 	public String report_type;
 	public String report_name;
+	public String filename;
 	public String tz;
 	public String language;
-	public String details;	
 	public Timestamp start_time;
 	public HashMap<String, String> params;
 }

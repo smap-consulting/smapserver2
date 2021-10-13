@@ -62,7 +62,7 @@ public class UserTrailManager {
 	 */
 	public String generateKML(Connection sd, HashMap<String, String> params, String basePath) throws SQLException, IOException {
 		
-		String filepath = null;
+		String filename = null;
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtDistance = null;
 		
@@ -148,7 +148,8 @@ public class UserTrailManager {
 			 * Export KML
 			 */		
 			GeneralUtilityMethods.createDirectory(basePath + "/reports");
-			filepath = basePath + "/reports/" + String.valueOf(UUID.randomUUID()) + ".kml";	// Use a random sequence to keep survey name unique
+			filename = String.valueOf(UUID.randomUUID()) + ".kml";
+			String filepath = basePath + "/reports/" + filename;	// Use a random sequence to keep survey name unique
 			File tempFile = new File(filepath);
 			PrintWriter writer = new PrintWriter(tempFile);
 			writeKmlHeader(writer);
@@ -205,7 +206,7 @@ public class UserTrailManager {
 			if(pstmtDistance != null) try {pstmtDistance.close();} catch (Exception e) {}
 		}
 		
-		return filepath;
+		return filename;
 	
 	}
 	
