@@ -21,6 +21,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.UserTrailFeature;
+import org.smap.sdal.model.UserTrailPoint;
 
 
 /*****************************************************************************
@@ -134,8 +135,8 @@ public class UserTrailManager {
 		
 		String filename = String.valueOf(UUID.randomUUID()) + ".kml";
 
-		Parameters p = new Parameters(params);   // Extract parameters
-		ArrayList<ArrayList<UserTrailFeature>> featureList = getGeomFeatures(sd, p);  // Get the features
+		Parameters pobj = new Parameters(params);   // Extract parameters
+		ArrayList<UserTrailFeature> featureList = getGeomFeatures(sd, pobj);  // Get the features
 
 		/*
 		 * Export KML
@@ -148,19 +149,22 @@ public class UserTrailManager {
 
 
 		DecimalFormat df = new DecimalFormat("#.0000");
-		for(ArrayList<UserTrailFeature> features : featureList) {
-			if(features.size() == 0) {
+		for(UserTrailFeature feature : featureList) {
+			if(feature.points.size() == 0) {
 				// ignore
-			} else if(features.size() == 1) { 
+			} else if(feature.points.size() == 1) { 
 				// point
 				writer.println("<Placemark>");
+				writer.println("<name>");
+				writer.println(feature.ident);
+				writer.println("</name>");
 				writer.println("<styleUrl>#trail_style</styleUrl>");
 				writer.println("<Point>");
 
 				writer.println("<coordinates>");
-				for(UserTrailFeature f : features) {					
-					String lon = df.format(f.coordinates[0]);
-					String lat = df.format(f.coordinates[1]);
+				for(UserTrailPoint p : feature.points) {					
+					String lon = df.format(p.coordinates[0]);
+					String lat = df.format(p.coordinates[1]);
 					writer.println(lon + "," + lat + ",0");
 				}
 				writer.println("</coordinates>");
@@ -168,17 +172,20 @@ public class UserTrailManager {
 				writer.println("</Point>");
 				writer.println("</Placemark>");
 
-			} else if(features.size() > 1) {	// line
+			} else if(feature.points.size() > 1) {	// line
 				// Add line
 				writer.println("<Placemark>");
 				writer.println("<styleUrl>#trail_style</styleUrl>");
+				writer.println("<name>");
+				writer.println(feature.ident);
+				writer.println("</name>");
 				writer.println("<LineString>");
 				writer.println("<tessellate>1</tessellate>");
 
 				writer.println("<coordinates>");
-				for(UserTrailFeature f : features) {	
-					String lon = df.format(f.coordinates[0]);
-					String lat = df.format(f.coordinates[1]);
+				for(UserTrailPoint p : feature.points) {	
+					String lon = df.format(p.coordinates[0]);
+					String lat = df.format(p.coordinates[1]);
 					writer.println(lon + "," + lat + ",0");
 				}
 				writer.println("</coordinates>");
@@ -204,7 +211,7 @@ public class UserTrailManager {
 		String filename = String.valueOf(UUID.randomUUID()) + ".xlsx";
 		
 		Parameters p = new Parameters(params);   // Extract parameters
-		ArrayList<ArrayList<UserTrailFeature>> featureList = getGeomFeatures(sd, p);  // Get the features
+		ArrayList<UserTrailFeature> featureList = getGeomFeatures(sd, p);  // Get the features
 		TravelDistance distance = getTravelDistances(sd, filename, GeneralUtilityMethods.getUserName(sd, p.uId), featureList);
 		
 		GeneralUtilityMethods.createDirectory(basePath + "/reports");
@@ -242,9 +249,9 @@ public class UserTrailManager {
 	/*
 	 * Get features, consecutive points are converted to lines unless the break distance between points is exceeded
 	 */
-	private ArrayList<ArrayList<UserTrailFeature>> getGeomFeatures(Connection sd, Parameters p) throws SQLException {
+	private ArrayList<UserTrailFeature> getGeomFeatures(Connection sd, Parameters p) throws SQLException {
 		
-		ArrayList<ArrayList<UserTrailFeature>> featureList = new ArrayList<> ();
+		ArrayList<UserTrailFeature> featureList = new ArrayList<> ();
 		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtDistance = null;
@@ -282,27 +289,30 @@ public class UserTrailManager {
 			}
 			pstmt.setInt(idx++, p.uId);
 			
-			ArrayList<UserTrailFeature> features = new ArrayList<UserTrailFeature> ();
+			String userIdent = GeneralUtilityMethods.getUserIdent(sd, p.uId);
+			
+			UserTrailFeature feature = new UserTrailFeature(userIdent);
+			
 			boolean havePrev = false;
 			Double prevX = 0.0;
 			Double prevY = 0.0;
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
-				UserTrailFeature f = new UserTrailFeature();
+				UserTrailPoint f = new UserTrailPoint();
 				f.coordinates[0] = rs.getDouble("x");
 				f.coordinates[1] = rs.getDouble("y");
 				if(havePrev) {
 					if(isGreaterThanBreakDistance(pstmtDistance, prevX, prevY, f.coordinates[0], f.coordinates[1], p.mps)) {
-						featureList.add(features);
-						features = new ArrayList<UserTrailFeature> ();
+						featureList.add(feature);
+						feature = new UserTrailFeature(userIdent);
 					}
 				} 
 				prevX = f.coordinates[0];
 				prevY = f.coordinates[1];
 				havePrev = true;
-				features.add(f);
+				feature.points.add(f);
 			}
-			featureList.add(features);
+			featureList.add(feature);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
 			if(pstmtDistance != null) try {pstmtDistance.close();} catch (Exception e) {}
@@ -321,7 +331,6 @@ public class UserTrailManager {
 		pstmtDistance.setString(1, p1.toString());
 		pstmtDistance.setString(2, p2.toString());
 		
-		log.info(pstmtDistance.toString());
 		ResultSet rs = pstmtDistance.executeQuery();
 		if(rs.next()) {
 			return rs.getInt(1) > breakDistance;
@@ -330,11 +339,38 @@ public class UserTrailManager {
 	}
 	
 
-	private TravelDistance getTravelDistances(Connection sd, String filename, String user, ArrayList<ArrayList<UserTrailFeature>> featureList) throws SQLException {
+	private TravelDistance getTravelDistances(Connection sd, String filename, String user, ArrayList<UserTrailFeature> featureList) throws SQLException {
 		
 		TravelDistance td = new TravelDistance(user, 0);
+		clearTempLines(sd, filename);
+		
+		PreparedStatement pstmt = null;
+		String sql = "insert into distance_calculation (filename) values(?)";
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1,  filename);
+			for(UserTrailFeature f : featureList) {
+				if(f.points.size() > 1) {
+					pstmt.executeUpdate();
+				}
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+		}
 		
 		return td;
+	}
+	
+	private void clearTempLines(Connection sd, String filename) throws SQLException {
+		PreparedStatement pstmt = null;
+		String sql = "delete from distance_calculation where filename = ?";
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, filename);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+		}
 	}
 
 }

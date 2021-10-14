@@ -36,7 +36,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.UserTrailManager;
-import org.smap.sdal.model.UserTrailFeature;
+import org.smap.sdal.model.UserTrailPoint;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -66,7 +66,7 @@ public class UserTrail extends Application {
 	
 	public class Trail {
 		String userName = null;
-		public ArrayList<UserTrailFeature> features = null;
+		public ArrayList<UserTrailPoint> features = null;
 		
 	}
 	
@@ -150,7 +150,7 @@ public class UserTrail extends Application {
 			resultSet = pstmt.executeQuery();
 			 
 			Trail trail = new Trail();
-			trail.features = new ArrayList<UserTrailFeature> ();
+			trail.features = new ArrayList<UserTrailPoint> ();
 			 
 			while (resultSet.next()) {
 				
@@ -158,7 +158,7 @@ public class UserTrail extends Application {
 					trail.userName = resultSet.getString("user_name");
 				}
 				
-				UserTrailFeature f = new UserTrailFeature();
+				UserTrailPoint f = new UserTrailPoint();
 				f.id = resultSet.getInt("id");
 				f.time = resultSet.getTimestamp("event_time");	
 				f.rawTime = resultSet.getLong("raw_time");
