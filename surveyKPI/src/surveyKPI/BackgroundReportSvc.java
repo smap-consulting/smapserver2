@@ -35,6 +35,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.BackgroundReportsManager;
 import org.smap.sdal.model.BackgroundReport;
 
 import com.google.gson.Gson;
@@ -166,6 +167,22 @@ public class BackgroundReportSvc extends Application {
 			BackgroundReport br = gson.fromJson(sReport, BackgroundReport.class);
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			
+			// Start validation
+			if(br.params != null) {
+				String reportUserString = br.params.get(BackgroundReportsManager.PARAM_USER_ID);
+				if(reportUserString != null) {
+					int reportUser = 0;
+					try {
+						reportUser = Integer.valueOf(reportUserString);
+					} catch(Exception e) {
+						
+					}
+					if(reportUser > 0) {
+						a.isValidUser(sd, request.getRemoteUser(), reportUser);
+					}
+				}
+			}
 			
 			/*
 			 * Has this report already been requested
