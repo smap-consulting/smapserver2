@@ -47,10 +47,15 @@ public class BackgroundReportsManager {
 	private ResourceBundle localisation;
 	private String tz;
 	
-	public String REPORT_STATUS_COMPLETED = "complete";
-	public String REPORT_STATUS_ERROR = "error";
-	public String REPORT_STATUS_PENDING = "pending";
-	public String REPORT_STATUS_NEW = "new";
+	public static String REPORT_STATUS_COMPLETED = "complete";
+	public static String REPORT_STATUS_ERROR = "error";
+	public static String REPORT_STATUS_PENDING = "pending";
+	public static String REPORT_STATUS_NEW = "new";
+	
+	public static String PARAM_START_DATE = "startDate";
+	public static String PARAM_END_DATE = "endDate";
+	public static String PARAM_USER_ID = "userId";
+	public static String PARAM_MPS = "mps";
 	
 	public BackgroundReportsManager(ResourceBundle l, String tz) {
 		localisation = l;
