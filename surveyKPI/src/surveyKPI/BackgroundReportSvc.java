@@ -92,13 +92,14 @@ public class BackgroundReportSvc extends Application {
 			
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			String sql = "select br.id, br.report_name, u.name, br.status,"
+			String sql = "select br.id, br.report_name, br.report_type, u.name, br.status,"
 					+ "br.status_msg, br.filename "
 					+ "from background_report br, users u "
 					+ "where br.u_id = u.id "
 					+ "and br.o_id = ? "
 					+ "and br.p_id = ? "
-					+ "and (u.ident = ? or br.share) ";
+					+ "and (u.ident = ? or br.share) "
+					+ "order by br.id desc";
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
 			pstmt.setInt(2, pId);
@@ -109,6 +110,7 @@ public class BackgroundReportSvc extends Application {
 				BackgroundReport br = new BackgroundReport();
 				br.id = rs.getInt("id");
 				br.report_name = rs.getString("report_name");
+				br.report_type = rs.getString("report_type");
 				br.userName = rs.getString("name");
 				br.status = rs.getString("status");
 				br.status_loc = localisation.getString("c_" + br.status);

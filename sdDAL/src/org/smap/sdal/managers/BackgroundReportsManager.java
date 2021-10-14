@@ -6,9 +6,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.ActionManager.Update;
 import org.smap.sdal.model.BackgroundReport;
 
@@ -45,7 +48,7 @@ public class BackgroundReportsManager {
 	private String tz;
 	
 	public String REPORT_STATUS_COMPLETED = "complete";
-	public String REPORT_STATUS_FAILED = "failed";
+	public String REPORT_STATUS_ERROR = "error";
 	public String REPORT_STATUS_PENDING = "pending";
 	public String REPORT_STATUS_NEW = "new";
 	
@@ -67,14 +70,20 @@ public class BackgroundReportsManager {
 		} else {
 			// Process the report
 			String filename = null;
+			Locale locale = new Locale(report.language);
+			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			try {
 				if(report.report_type.equals("locations_kml")) {
 					UserTrailManager utm = new UserTrailManager(localisation, report.tz);
 					filename = utm.generateKML(sd, report.params, basePath);
+				} else if(report.report_type.equals("locations_distance")) {
+					UserTrailManager utm = new UserTrailManager(localisation, report.tz);
+					filename = utm.generateDistanceReport(sd, report.params, basePath);
 				}
 				updateReportStatus(sd, report.id, true, filename, null);
 				
 			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
 				updateReportStatus(sd, report.id, false, null, e.getMessage());
 			}
 		}
@@ -93,7 +102,7 @@ public class BackgroundReportsManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, filename);
-			pstmt.setString(2,  success ? REPORT_STATUS_COMPLETED : REPORT_STATUS_FAILED);
+			pstmt.setString(2,  success ? REPORT_STATUS_COMPLETED : REPORT_STATUS_ERROR);
 			pstmt.setString(3,  msg);
 			pstmt.setInt(4, id);
 			log.info("Update report status: " + pstmt.toString());

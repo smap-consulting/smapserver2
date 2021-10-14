@@ -1,7 +1,7 @@
 package org.smap.sdal.managers;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -16,6 +16,9 @@ import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.UserTrailFeature;
 
@@ -100,7 +103,7 @@ public class UserTrailManager {
 			}
 		}
 		
-		// Maximum distance between poojts for which it is assumed there is a single line
+		// Maximum distance between pojnts for which it is assumed there is a single line
 		int mps = 200;
 		String mpsString = params.get("mps");
 		if(mpsString != null) {
@@ -208,6 +211,25 @@ public class UserTrailManager {
 		
 		return filename;
 	
+	}
+	
+	/*
+	 * Generate a KML file in the reports directory and return its name
+	 */
+	public String generateDistanceReport(Connection sd, HashMap<String, String> params, String basePath) throws SQLException, IOException {
+		String filename = null;
+		
+		GeneralUtilityMethods.createDirectory(basePath + "/reports");
+		filename = String.valueOf(UUID.randomUUID()) + ".xlsx";
+		String filepath = basePath + "/reports/" + filename;	// Use a random sequence to keep survey name unique
+		FileOutputStream outputStream = new FileOutputStream(filepath);
+		
+		Workbook wb = new XSSFWorkbook();
+		Sheet sheet = wb.createSheet(localisation.getString("rep_data"));
+		
+		wb.write(outputStream);
+		outputStream.close();
+		return filename;
 	}
 	
 	private void writeKmlHeader(PrintWriter writer) {
