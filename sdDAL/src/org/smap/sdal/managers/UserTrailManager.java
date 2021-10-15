@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -16,6 +17,13 @@ import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CreationHelper;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -63,11 +71,11 @@ public class UserTrailManager {
 	
 	private class TravelDistance {
 		public String user;
-		public int km;
+		public int distance;	// meters
 		
-		public TravelDistance(String user, int km) {
+		public TravelDistance(String user, int distance) {
 			this.user = user;
-			this.km = km;
+			this.distance = distance;
 		}
 	}
 	
@@ -212,7 +220,7 @@ public class UserTrailManager {
 		
 		Parameters p = new Parameters(params);   // Extract parameters
 		ArrayList<UserTrailFeature> featureList = getGeomFeatures(sd, p);  // Get the features
-		TravelDistance distance = getTravelDistances(sd, filename, GeneralUtilityMethods.getUserName(sd, p.uId), featureList);
+		TravelDistance distance = getTravelDistance(sd, filename, GeneralUtilityMethods.getUserName(sd, p.uId), featureList);
 		
 		GeneralUtilityMethods.createDirectory(basePath + "/reports");
 		String filepath = basePath + "/reports/" + filename;	// Use a random sequence to keep survey name unique
@@ -221,6 +229,87 @@ public class UserTrailManager {
 		Workbook wb = new XSSFWorkbook();
 		Sheet sheet = wb.createSheet(localisation.getString("rep_data"));
 		
+
+		/*
+		 * Set styles
+		 */
+		CreationHelper createHelper = wb.getCreationHelper();
+		Font boldFont = wb.createFont();
+		boldFont.setBold(true);
+		
+		CellStyle settingsStyle = wb.createCellStyle();
+		settingsStyle.setFillForegroundColor(IndexedColors.CORNFLOWER_BLUE.getIndex());
+		settingsStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+		
+		CellStyle headerStyle = wb.createCellStyle();
+		headerStyle.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
+		headerStyle.setFont(boldFont);
+		headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+		
+		CellStyle dateStyle = wb.createCellStyle();
+		dateStyle.setDataFormat(createHelper.createDataFormat().getFormat("d/m/yyyy"));
+		
+		int rowIdx = 0;
+		
+		/*
+		 * Write the settings information
+		 */
+		sheet.setColumnWidth(1, 25 * 256);
+		Row row = sheet.createRow(rowIdx++);
+		Cell cell = row.createCell(0);
+        cell.setCellStyle(settingsStyle);
+        cell.setCellValue(localisation.getString("c_from"));
+        
+        cell = row.createCell(1);
+        cell.setCellStyle(dateStyle);
+     
+        cell.setCellValue(p.startDate);   
+        
+        row = sheet.createRow(rowIdx++);
+    	cell = row.createCell(0);
+        cell.setCellStyle(settingsStyle);
+        cell.setCellValue(localisation.getString("c_to"));
+        
+        cell = row.createCell(1);
+        cell.setCellStyle(dateStyle);
+        cell.setCellValue(p.endDate);
+     
+        // Timezone
+        row = sheet.createRow(rowIdx++);
+    	cell = row.createCell(0);
+        cell.setCellStyle(settingsStyle);
+        cell.setCellValue(localisation.getString("a_tz"));
+        
+        cell = row.createCell(1);
+        cell.setCellValue(tz);
+		
+        rowIdx++;	// Blank line
+        
+        /*
+         * Write the column headings
+         */
+        row = sheet.createRow(rowIdx++);
+        cell = row.createCell(0);
+        cell.setCellStyle(headerStyle);
+        cell.setCellValue(localisation.getString("mf_u"));
+        
+        cell = row.createCell(1);
+        cell.setCellStyle(headerStyle);
+        cell.setCellValue(localisation.getString("rep_distance"));
+        
+        /*
+         * Write the data
+         */
+        row = sheet.createRow(rowIdx++);
+        cell = row.createCell(0);
+        cell.setCellValue(distance.user);
+        
+        cell = row.createCell(1);
+        cell.setCellValue(distance.distance);
+        
+        /*
+         * Finalise
+         */
 		wb.write(outputStream);
 		outputStream.close();
 		return filename;
@@ -339,19 +428,37 @@ public class UserTrailManager {
 	}
 	
 
-	private TravelDistance getTravelDistances(Connection sd, String filename, String user, ArrayList<UserTrailFeature> featureList) throws SQLException {
+	private TravelDistance getTravelDistance(Connection sd, String filename, String user, ArrayList<UserTrailFeature> featureList) throws SQLException {
 		
 		TravelDistance td = new TravelDistance(user, 0);
-		clearTempLines(sd, filename);
-		
-		PreparedStatement pstmt = null;
-		String sql = "insert into distance_calculation (filename) values(?)";
+		String s1 = "select ST_Length(the_geog) "
+				+ "from (select ST_GeographyFromText(" 
+				+ "'SRID=4326;LINESTRING(";
+		String s2 = ")') As the_geog) as foo";
+
+		Statement pstmt = sd.createStatement();
+		ResultSet rs;
 		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1,  filename);
+		
 			for(UserTrailFeature f : featureList) {
 				if(f.points.size() > 1) {
-					pstmt.executeUpdate();
+					StringBuilder query = new StringBuilder(s1);
+					boolean first = true;
+					for(UserTrailPoint point : f.points) {
+						if(!first) {
+							query.append(",");
+						}
+						first = false;
+						query.append(point.coordinates[0])
+							.append(" ")
+							.append(point.coordinates[1]);
+					}
+					query.append(s2);
+					rs = pstmt.executeQuery(query.toString());
+					if(rs.next()) {
+						System.out.println("Distance: " + rs.getInt(1));
+					}
+					td.distance += rs.getInt(1);			
 				}
 			}
 		} finally {
@@ -359,18 +466,6 @@ public class UserTrailManager {
 		}
 		
 		return td;
-	}
-	
-	private void clearTempLines(Connection sd, String filename) throws SQLException {
-		PreparedStatement pstmt = null;
-		String sql = "delete from distance_calculation where filename = ?";
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, filename);
-			pstmt.executeUpdate();
-		} finally {
-			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
-		}
 	}
 
 }
