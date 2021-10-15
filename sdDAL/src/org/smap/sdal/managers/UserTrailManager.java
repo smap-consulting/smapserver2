@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -371,10 +372,12 @@ public class UserTrailManager {
 			pstmt = sd.prepareStatement(sql.toString());
 			int idx = 1;
 			if(p.startDateString != null) {
-				pstmt.setTimestamp(idx++, p.startDate);
+				Date startDate = new Date(p.startDate.getTime());
+				pstmt.setTimestamp(idx++, GeneralUtilityMethods.startOfDay(startDate, tz));
 			}
 			if(p.endDateString != null) {
-				pstmt.setTimestamp(idx++, p.endDate);
+				Date endDate = new Date(p.endDate.getTime());
+				pstmt.setTimestamp(idx++, GeneralUtilityMethods.endOfDay(endDate, tz));
 			}
 			pstmt.setInt(idx++, p.uId);
 			
@@ -385,6 +388,7 @@ public class UserTrailManager {
 			boolean havePrev = false;
 			Double prevX = 0.0;
 			Double prevY = 0.0;
+			log.info("Get location features: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				UserTrailPoint f = new UserTrailPoint();
@@ -456,9 +460,9 @@ public class UserTrailManager {
 					query.append(s2);
 					rs = pstmt.executeQuery(query.toString());
 					if(rs.next()) {
-						System.out.println("Distance: " + rs.getInt(1));
+						td.distance += rs.getInt(1);
 					}
-					td.distance += rs.getInt(1);			
+								
 				}
 			}
 		} finally {
