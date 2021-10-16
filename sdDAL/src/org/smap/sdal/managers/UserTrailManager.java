@@ -140,12 +140,12 @@ public class UserTrailManager {
 	/*
 	 * Generate a KML file in the reports directory and return its name
 	 */
-	public String generateKML(Connection sd, HashMap<String, String> params, String basePath) throws SQLException, IOException {
+	public String generateKML(Connection sd, int pId, HashMap<String, String> params, String basePath) throws SQLException, IOException {
 		
 		String filename = String.valueOf(UUID.randomUUID()) + ".kml";
 
 		Parameters pobj = new Parameters(params);   // Extract parameters
-		ArrayList<UserTrailFeature> featureList = getGeomFeatures(sd, pobj);  // Get the features
+		ArrayList<UserTrailFeature> featureList = getGeomFeatures(sd, pId, pobj);  // Get the features
 
 		/*
 		 * Export KML
@@ -216,12 +216,12 @@ public class UserTrailManager {
 	/*
 	 * Generate a KML file in the reports directory and return its name
 	 */
-	public String generateDistanceReport(Connection sd, HashMap<String, String> params, String basePath) throws SQLException, IOException {
+	public String generateDistanceReport(Connection sd, int pId, HashMap<String, String> params, String basePath) throws SQLException, IOException {
 		String filename = String.valueOf(UUID.randomUUID()) + ".xlsx";
 		
 		Parameters p = new Parameters(params);   // Extract parameters
-		ArrayList<UserTrailFeature> featureList = getGeomFeatures(sd, p);  // Get the features
-		TravelDistance distance = getTravelDistance(sd, filename, GeneralUtilityMethods.getUserName(sd, p.uId), featureList);
+		ArrayList<UserTrailFeature> featureList = getGeomFeatures(sd, pId, p);  // Get the features
+		HashMap<String, TravelDistance> distances = getTravelDistances(sd, filename, featureList);
 		
 		GeneralUtilityMethods.createDirectory(basePath + "/reports");
 		String filepath = basePath + "/reports/" + filename;	// Use a random sequence to keep survey name unique
@@ -230,7 +230,6 @@ public class UserTrailManager {
 		Workbook wb = new XSSFWorkbook();
 		Sheet sheet = wb.createSheet(localisation.getString("rep_data"));
 		
-
 		/*
 		 * Set styles
 		 */
@@ -301,17 +300,21 @@ public class UserTrailManager {
         /*
          * Write the data
          */
-        row = sheet.createRow(rowIdx++);
-        cell = row.createCell(0);
-        cell.setCellValue(distance.user);
-        
-        cell = row.createCell(1);
-        cell.setCellValue(distance.distance);
+        for(String user : distances.keySet()) {
+        	TravelDistance distance = distances.get(user);
+	        row = sheet.createRow(rowIdx++);
+	        cell = row.createCell(0);
+	        cell.setCellValue(distance.user);
+	        
+	        cell = row.createCell(1);
+	        cell.setCellValue(distance.distance);
+        }
         
         /*
          * Finalise
          */
 		wb.write(outputStream);
+		wb.close();
 		outputStream.close();
 		return filename;
 	}
@@ -339,14 +342,25 @@ public class UserTrailManager {
 	/*
 	 * Get features, consecutive points are converted to lines unless the break distance between points is exceeded
 	 */
-	private ArrayList<UserTrailFeature> getGeomFeatures(Connection sd, Parameters p) throws SQLException {
+	private ArrayList<UserTrailFeature> getGeomFeatures(Connection sd, int pId, Parameters p) throws SQLException {
 		
 		ArrayList<UserTrailFeature> featureList = new ArrayList<> ();
 		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtDistance = null;
+		PreparedStatement pstmtUsers = null;
 		
 		try {
+			String sqlUsersProject = "select u.id, u.ident, u.name from users u, user_project up "
+					+ "where u.id = up.u_id "
+					+ "and not temporary "
+					+ "and up.p_id = ?";
+			String sqlSingleUser = "select u.id, u.ident, u.name from users u "
+					+ "where u.id = ? ";
+			
+			pstmtUsers = p.uId > 0 ? sd.prepareStatement(sqlSingleUser) : sd.prepareStatement(sqlUsersProject);
+			pstmtUsers.setInt(1,p.uId > 0 ? p.uId : pId);
+			
 			String sqlDistance = "SELECT ST_Distance( "
 					+ "ST_Transform(?::geometry, 3857),"
 					+ "ST_Transform(?::geometry, 3857)"
@@ -364,7 +378,7 @@ public class UserTrailManager {
 				sql.append("and ut.event_time >= ? ");
 			}
 			if(p.endDateString != null) {
-				sql.append("and ut.event_time <  ? ");
+				sql.append("and ut.event_time < ? ");
 			}
 			sql.append("and ut.u_id = ? " +
 					"order by ut.event_time asc, ut.id asc");
@@ -379,36 +393,45 @@ public class UserTrailManager {
 				Date endDate = new Date(p.endDate.getTime());
 				pstmt.setTimestamp(idx++, GeneralUtilityMethods.endOfDay(endDate, tz));
 			}
-			pstmt.setInt(idx++, p.uId);
 			
-			String userIdent = GeneralUtilityMethods.getUserIdent(sd, p.uId);
+			/*
+			 * Process for each user
+			 */
+			ResultSet rsUsers = pstmtUsers.executeQuery();
+			log.info("Getting users for report: " + pstmtUsers.toString());
+			while (rsUsers.next()) {		
+				pstmt.setInt(idx, rsUsers.getInt("id"));	
+				String userIdent = rsUsers.getString("ident");
+				String userName = rsUsers.getString("name");
 			
-			UserTrailFeature feature = new UserTrailFeature(userIdent);
+				UserTrailFeature feature = new UserTrailFeature(userIdent, userName);
 			
-			boolean havePrev = false;
-			Double prevX = 0.0;
-			Double prevY = 0.0;
-			log.info("Get location features: " + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
-			while(rs.next()) {
-				UserTrailPoint f = new UserTrailPoint();
-				f.coordinates[0] = rs.getDouble("x");
-				f.coordinates[1] = rs.getDouble("y");
-				if(havePrev) {
-					if(isGreaterThanBreakDistance(pstmtDistance, prevX, prevY, f.coordinates[0], f.coordinates[1], p.mps)) {
-						featureList.add(feature);
-						feature = new UserTrailFeature(userIdent);
-					}
-				} 
-				prevX = f.coordinates[0];
-				prevY = f.coordinates[1];
-				havePrev = true;
-				feature.points.add(f);
+				boolean havePrev = false;
+				Double prevX = 0.0;
+				Double prevY = 0.0;
+				log.info("Get location features: " + pstmt.toString());
+				ResultSet rs = pstmt.executeQuery();
+				while(rs.next()) {
+					UserTrailPoint f = new UserTrailPoint();
+					f.coordinates[0] = rs.getDouble("x");
+					f.coordinates[1] = rs.getDouble("y");
+					if(havePrev) {
+						if(isGreaterThanBreakDistance(pstmtDistance, prevX, prevY, f.coordinates[0], f.coordinates[1], p.mps)) {
+							featureList.add(feature);
+							feature = new UserTrailFeature(userIdent, userName);
+						}
+					} 
+					prevX = f.coordinates[0];
+					prevY = f.coordinates[1];
+					havePrev = true;
+					feature.points.add(f);
+				}
+				featureList.add(feature);
 			}
-			featureList.add(feature);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
 			if(pstmtDistance != null) try {pstmtDistance.close();} catch (Exception e) {}
+			if(pstmtUsers != null) try {pstmtUsers.close();} catch (Exception e) {}
 		}
 		
 		return featureList;
@@ -432,9 +455,10 @@ public class UserTrailManager {
 	}
 	
 
-	private TravelDistance getTravelDistance(Connection sd, String filename, String user, ArrayList<UserTrailFeature> featureList) throws SQLException {
+	private HashMap<String, TravelDistance> getTravelDistances(Connection sd, String filename, ArrayList<UserTrailFeature> featureList) throws SQLException {
 		
-		TravelDistance td = new TravelDistance(user, 0);
+		HashMap<String, TravelDistance> distances = new HashMap<>();
+		
 		String s1 = "select ST_Length(the_geog) "
 				+ "from (select ST_GeographyFromText(" 
 				+ "'SRID=4326;LINESTRING(";
@@ -445,7 +469,11 @@ public class UserTrailManager {
 		try {
 		
 			for(UserTrailFeature f : featureList) {
-				if(f.points.size() > 1) {
+				TravelDistance td = distances.get(f.ident);
+				if(td == null) {
+					td = new TravelDistance(f.ident, 0);
+				}
+				if(f.points.size() > 1) {				
 					StringBuilder query = new StringBuilder(s1);
 					boolean first = true;
 					for(UserTrailPoint point : f.points) {
@@ -461,15 +489,15 @@ public class UserTrailManager {
 					rs = pstmt.executeQuery(query.toString());
 					if(rs.next()) {
 						td.distance += rs.getInt(1);
-					}
-								
+					}			
 				}
+				distances.put(f.ident, td);
 			}
 		} finally {
 			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 		}
 		
-		return td;
+		return distances;
 	}
 
 }
