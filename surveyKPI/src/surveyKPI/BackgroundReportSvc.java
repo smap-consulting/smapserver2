@@ -183,6 +183,9 @@ public class BackgroundReportSvc extends Application {
 					}
 				}
 			}
+			if(br.pId > 0) {
+				a.isValidProject(sd, request.getRemoteUser(), br.pId);
+			}
 			
 			/*
 			 * Has this report already been requested

@@ -80,10 +80,10 @@ public class BackgroundReportsManager {
 			try {
 				if(report.report_type.equals("locations_kml")) {
 					UserTrailManager utm = new UserTrailManager(localisation, report.tz);
-					filename = utm.generateKML(sd, report.params, basePath);
+					filename = utm.generateKML(sd, report.pId, report.params, basePath);
 				} else if(report.report_type.equals("locations_distance")) {
 					UserTrailManager utm = new UserTrailManager(localisation, report.tz);
-					filename = utm.generateDistanceReport(sd, report.params, basePath);
+					filename = utm.generateDistanceReport(sd, report.pId, report.params, basePath);
 				}
 				updateReportStatus(sd, report.id, true, filename, null);
 				
@@ -132,7 +132,7 @@ public class BackgroundReportsManager {
 			/*
 			 * Get the next report to be processed
 			 */
-			String sql = "select id, report_type, tz, language, params "
+			String sql = "select id, o_id, p_id, report_type, tz, language, params "
 					+ "from background_report "
 					+ "where status = ? "
 					+ "order by id asc limit 1";
@@ -142,6 +142,8 @@ public class BackgroundReportsManager {
 			if(rs.next()) {
 				br = new BackgroundReport();
 				br.id = rs.getInt("id");
+				br.oId = rs.getInt("o_id");
+				br.pId = rs.getInt("p_id");
 				br.report_type = rs.getString("report_type");
 				br.tz = rs.getString("tz");
 				br.language = rs.getString("language");
