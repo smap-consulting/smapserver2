@@ -157,7 +157,9 @@ public class UserTrailManager {
 		writeKmlHeader(writer);
 
 
+		HashMap<String, Integer> userColors = new HashMap<> ();
 		DecimalFormat df = new DecimalFormat("#.0000");
+		int userCount = 0;
 		for(UserTrailFeature feature : featureList) {
 			if(feature.points.size() == 0) {
 				// ignore
@@ -168,6 +170,7 @@ public class UserTrailManager {
 				writer.println(feature.ident);
 				writer.println("</name>");
 				writer.println("<styleUrl>#trail_style</styleUrl>");
+				
 				writer.println("<Point>");
 
 				writer.println("<coordinates>");
@@ -184,7 +187,17 @@ public class UserTrailManager {
 			} else if(feature.points.size() > 1) {	// line
 				// Add line
 				writer.println("<Placemark>");
-				writer.println("<styleUrl>#trail_style</styleUrl>");
+				
+				// Add the color
+				writer.print("<styleUrl>#ts");
+				Integer colorIdx = userColors.get(feature.ident);
+				if(colorIdx == null) {
+					colorIdx = new Integer(userCount++ % 3);
+					userColors.put(feature.ident, colorIdx);
+				}
+				writer.print(colorIdx);
+				writer.println("</styleUrl>");
+				
 				writer.println("<name>");
 				writer.println(feature.ident);
 				writer.println("</name>");
@@ -326,9 +339,23 @@ public class UserTrailManager {
 		
 		writer.println("<Document>");
 		
-		writer.println("<Style id=\"trail_style\">");
+		writer.println("<Style id=\"ts0\">");
 		writer.println("<LineStyle>");
 		writer.println("<color>ff0000ff</color>");
+		writer.println("<width>5</width>");
+		writer.println("</LineStyle>");
+		writer.println("</Style>");
+		
+		writer.println("<Style id=\"ts1\">");
+		writer.println("<LineStyle>");
+		writer.println("<color>ff00ff00</color>");
+		writer.println("<width>5</width>");
+		writer.println("</LineStyle>");
+		writer.println("</Style>");
+		
+		writer.println("<Style id=\"ts2\">");
+		writer.println("<LineStyle>");
+		writer.println("<color>ffff0000</color>");
 		writer.println("<width>5</width>");
 		writer.println("</LineStyle>");
 		writer.println("</Style>");
