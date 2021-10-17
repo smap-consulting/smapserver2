@@ -18,5 +18,7 @@ public class BackgroundReport {
 	public String tz;
 	public String language;
 	public Timestamp start_time;
+	public String completed;
+	public int duration;
 	public HashMap<String, String> params;
 }
