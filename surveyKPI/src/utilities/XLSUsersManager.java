@@ -157,6 +157,7 @@ public class XLSUsersManager {
 		processUserListForXLS(users, userSheet, styles, cols, tz);
 		
 		wb.write(outputStream);
+		wb.close();
 		outputStream.close();
 	}
 	

@@ -19,40 +19,23 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.Response.Status;
-
-import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.managers.UserTrailManager;
 import org.smap.sdal.model.UserTrailPoint;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import java.io.File;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.sql.*;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.ResourceBundle;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -101,9 +84,14 @@ public class UserTrail extends Application {
 	public Response getTrail(@Context HttpServletRequest request, 
 			@QueryParam("userId") int uId,
 			@QueryParam("startDate") long start_t,
-			@QueryParam("endDate") long end_t) {
+			@QueryParam("endDate") long end_t,
+			@QueryParam("tz") String tz) {
 
 		Response response = null;
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
 
 		Timestamp startDate = new Timestamp(start_t);
 		Timestamp endDate = new Timestamp(end_t);
@@ -139,10 +127,10 @@ public class UserTrail extends Application {
 			pstmt = sd.prepareStatement(sql.toString());
 			int idx = 1;
 			if(start_t > 0) {
-				pstmt.setTimestamp(idx++, startDate);
+				pstmt.setTimestamp(idx++, GeneralUtilityMethods.startOfDay(new Date(startDate.getTime()), tz));
 			}
 			if(end_t > 0) {
-				pstmt.setTimestamp(idx++, endDate);
+				pstmt.setTimestamp(idx++, GeneralUtilityMethods.endOfDay(new Date(endDate.getTime()), tz));
 			}
 			pstmt.setInt(idx++, uId);
 
@@ -196,9 +184,14 @@ public class UserTrail extends Application {
 			@QueryParam("projectId") int projectId,
 			@QueryParam("userId") int uId,
 			@QueryParam("startDate") long start_t,
-			@QueryParam("endDate") long end_t) {
+			@QueryParam("endDate") long end_t,
+			@QueryParam("tz") String tz) {
 
 		Response response = null;
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
 
 		log.info("Get Survey Locations: Project id:" + projectId);
 
@@ -231,8 +224,8 @@ public class UserTrail extends Application {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, projectId);
-			pstmt.setTimestamp(2, startDate);
-			pstmt.setTimestamp(3, endDate);
+			pstmt.setTimestamp(2, GeneralUtilityMethods.startOfDay(new Date(startDate.getTime()), tz));
+			pstmt.setTimestamp(3, GeneralUtilityMethods.endOfDay(new Date(endDate.getTime()), tz));
 			pstmt.setInt(4, uId);
 
 			log.info("Events List: " + sql + " : " + uId + " : " + projectId + " : " + startDate + " : " + endDate);
