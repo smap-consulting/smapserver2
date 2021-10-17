@@ -72,13 +72,17 @@ public class BackgroundReportSvc extends Application {
 	@Path("/{project_id}")
 	@Produces("application/json")
 	public Response getBackgroundReports(@Context HttpServletRequest request,
-			@PathParam("project_id") int pId) { 
+			@PathParam("project_id") int pId,
+			@QueryParam("tz") String tz) { 
 		
 		ArrayList<BackgroundReport> reports = new ArrayList<>();
 		String requestName = "surveyKPI - Create Background Report";
 		Response response = null;
 		ResourceBundle localisation = null;
 		
+		if(tz == null) {
+			tz = "UTC";
+		}
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		Connection sd = SDDataSource.getConnection(requestName);
@@ -94,7 +98,9 @@ public class BackgroundReportSvc extends Application {
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			String sql = "select br.id, br.report_name, br.report_type, u.name, br.status,"
-					+ "br.status_msg, br.filename "
+					+ "br.status_msg, br.filename, "
+					+ "to_char(timezone(?, end_time), 'YYYY-MM-DD HH24:MI:SS') as end_time, "
+					+ "extract(epoch from (end_time - start_time)) as duration "
 					+ "from background_report br, users u "
 					+ "where br.u_id = u.id "
 					+ "and br.o_id = ? "
@@ -102,10 +108,12 @@ public class BackgroundReportSvc extends Application {
 					+ "and (u.ident = ? or br.share) "
 					+ "order by br.id desc";
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, oId);
-			pstmt.setInt(2, pId);
-			pstmt.setString(3, request.getRemoteUser());
+			pstmt.setString(1, tz);
+			pstmt.setInt(2, oId);
+			pstmt.setInt(3, pId);
+			pstmt.setString(4, request.getRemoteUser());
 			
+			log.info("Get background reports: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				BackgroundReport br = new BackgroundReport();
@@ -117,6 +125,8 @@ public class BackgroundReportSvc extends Application {
 				br.status_loc = localisation.getString("c_" + br.status);
 				br.status_msg = rs.getString("status_msg");
 				br.filename = rs.getString("filename");
+				br.completed = rs.getString("end_time");
+				br.duration = rs.getInt("duration");
 				reports.add(br);
 			}
 			response = Response.ok(gson.toJson(reports)).build();	
