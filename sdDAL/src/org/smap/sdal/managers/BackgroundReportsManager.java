@@ -76,7 +76,12 @@ public class BackgroundReportsManager {
 			// Process the report
 			String filename = null;
 			Locale locale = new Locale(report.language);
-			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			try {
+				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			} catch(Exception e) {
+				localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", locale);
+			}
+			
 			try {
 				if(report.report_type.equals("locations_kml")) {
 					UserTrailManager utm = new UserTrailManager(localisation, report.tz);
