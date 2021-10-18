@@ -13,8 +13,10 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.ResourceBundle;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -275,8 +277,11 @@ public class UserTrailManager {
         
         cell = row.createCell(1);
         cell.setCellStyle(dateStyle);
-     
-        cell.setCellValue(p.startDate);   
+        if(tz != null) {        	
+        	cell.setCellValue(GeneralUtilityMethods.endOfDay(new Date(p.startDate.getTime()), tz));
+        } else {
+        	cell.setCellValue(p.startDate);
+        }  
         
         row = sheet.createRow(rowIdx++);
     	cell = row.createCell(0);
@@ -285,7 +290,11 @@ public class UserTrailManager {
         
         cell = row.createCell(1);
         cell.setCellStyle(dateStyle);
-        cell.setCellValue(p.endDate);
+        if(tz != null) {
+        	cell.setCellValue(GeneralUtilityMethods.endOfDay(new Date(p.endDate.getTime()), tz));
+        } else {
+        	cell.setCellValue(p.endDate);
+        }
      
         // Timezone
         row = sheet.createRow(rowIdx++);
