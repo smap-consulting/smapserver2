@@ -13,16 +13,15 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.ResourceBundle;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CreationHelper;
+import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
@@ -322,6 +321,10 @@ public class UserTrailManager {
         /*
          * Write the data
          */
+        DataFormat format = wb.createDataFormat();
+        CellStyle distanceCellStyle = wb.createCellStyle();
+        distanceCellStyle.setDataFormat(format.getFormat("#,##0"));
+        
         for(String user : distances.keySet()) {
         	TravelDistance distance = distances.get(user);
 	        row = sheet.createRow(rowIdx++);
@@ -329,6 +332,7 @@ public class UserTrailManager {
 	        cell.setCellValue(distance.user);
 	        
 	        cell = row.createCell(1);
+	        cell.setCellStyle(distanceCellStyle);
 	        cell.setCellValue(distance.distance);
         }
         
