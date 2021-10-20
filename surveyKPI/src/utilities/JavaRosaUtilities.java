@@ -107,7 +107,8 @@ public class JavaRosaUtilities {
 			@Override
 			public Object eval(Object[] arg0, org.javarosa.core.model.condition.EvaluationContext arg1) {
 				// TODO Auto-generated method stub
-				return arg0[0];
+				//return arg0[0];
+				return "";
 			}
 		});
     }
