@@ -277,7 +277,7 @@ public class UserTrailManager {
         cell = row.createCell(1);
         cell.setCellStyle(dateStyle);
         if(tz != null) {        	
-        	cell.setCellValue(GeneralUtilityMethods.endOfDay(new Date(p.startDate.getTime()), tz));
+        	cell.setCellValue(GeneralUtilityMethods.localDate(new Date(p.startDate.getTime()), tz));
         } else {
         	cell.setCellValue(p.startDate);
         }  
@@ -290,7 +290,7 @@ public class UserTrailManager {
         cell = row.createCell(1);
         cell.setCellStyle(dateStyle);
         if(tz != null) {
-        	cell.setCellValue(GeneralUtilityMethods.endOfDay(new Date(p.endDate.getTime()), tz));
+        	cell.setCellValue(GeneralUtilityMethods.localDate(new Date(p.endDate.getTime()), tz));
         } else {
         	cell.setCellValue(p.endDate);
         }

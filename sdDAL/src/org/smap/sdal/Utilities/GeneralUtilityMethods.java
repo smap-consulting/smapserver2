@@ -6763,6 +6763,28 @@ public class GeneralUtilityMethods {
 
 		return startOfDay;
 	}
+	
+	/*
+	 * Convert a date to local time
+	 */
+	public static Date localDate(Date d, String tz) {
+
+		Calendar cal = new GregorianCalendar();
+		cal.setTime(d);
+		
+		TimeZone timeZone = TimeZone.getTimeZone(tz);
+		int offsetFromUTC = timeZone.getOffset(d.getTime());
+		
+		// Add the offset between the tz and UTC in order to get the localtime of the calendar value assuming it is in the specified timezone
+		cal.add(Calendar.MILLISECOND, offsetFromUTC);
+		cal.set(Calendar.HOUR_OF_DAY, 0);
+		cal.set(Calendar.MINUTE, 0);
+		cal.set(Calendar.SECOND, 0);
+		cal.set(Calendar.MILLISECOND, 0);
+		Date localDate = new Date(cal.getTime().getTime());
+
+		return localDate;
+	}
 
 	/*
 	 * Update the survey version
