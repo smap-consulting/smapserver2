@@ -3256,13 +3256,14 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmtOption = null;
 		PreparedStatement pstmtResults = null;
 
-		String sqlQuestion = "select qType, q_id, f_id from question where qname = ? and f_id in "
+		String sqlQuestion = "select qType, q_id, f_id, column_name from question where qname = ? and f_id in "
 				+ "(select f_id from form where s_id = ?)";
 		String sqlOption = "select o.ovalue, o.column_name from option o, question q where q.q_id = ? and q.l_id = o.l_id";
 
 		String qType = null;
 		int fId = 0;
 		int qId = 0;
+		String columnName = null;
 
 		ArrayList<String> responses = new ArrayList<String>();
 		try {
@@ -3275,7 +3276,7 @@ public class GeneralUtilityMethods {
 				qType = rs.getString(1);
 				qId = rs.getInt(2);
 				fId = rs.getInt(3);
-
+				columnName = rs.getString(4);
 				ArrayList<String> tableStack = getTableStack(sd, fId);
 				ArrayList<String> options = new ArrayList<String>();
 
@@ -3301,7 +3302,7 @@ public class GeneralUtilityMethods {
 							query.append(",");
 						}
 						query.append(" t0.");
-						query.append(qName);
+						query.append(columnName);
 						query.append("__");
 						query.append(oColumnName);
 						query.append(" as ");
@@ -3310,7 +3311,7 @@ public class GeneralUtilityMethods {
 					}
 					query.append(" from ");
 				} else {
-					query.append("select t0." + qName + " from ");
+					query.append("select t0." + columnName + " from ");
 				}
 
 				// Add the tables
