@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
@@ -157,8 +158,10 @@ public class AdminReportUsage extends Application {
 					+ "where ue.ue_id = se.ue_id "
 					+ "and se.status = 'success' "
 					+ "and se.subscriber = 'results_db' "
-					+ "and extract(month from upload_time) = ? "
-					+ "and extract(year from upload_time) = ? "
+					+ "and upload_time >=  ? "		// current month
+					+ "and upload_time < ? "		// next month
+					//+ "and extract(month from upload_time) = ? "
+					//+ "and extract(year from upload_time) = ? "
 					+ "and ue.user_name = users.ident) as month,"
 				+ "(select count (*) from upload_event ue, subscriber_event se "
 					+ "where ue.ue_id = se.ue_id and se.status = 'success' "
@@ -174,9 +177,14 @@ public class AdminReportUsage extends Application {
 		PreparedStatement pstmt = null;
 		
 		try {
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			
 			pstmt = sd.prepareStatement(sql.toString());
-			pstmt.setInt(1, month);
-			pstmt.setInt(2, year);
+			//pstmt.setInt(1, month);
+			//pstmt.setInt(2, year);
+			pstmt.setTimestamp(1, t1);
+			pstmt.setTimestamp(2, t2);
 			pstmt.setInt(3, oId);
 			log.info("Admin report: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
@@ -213,8 +221,10 @@ public class AdminReportUsage extends Application {
 				+ "where ue.ue_id = se.ue_id "
 				+ "and se.status = 'success' "
 				+ "and se.subscriber = 'results_db' "
-				+ "and extract(month from upload_time) = ? "
-				+ "and extract(year from upload_time) = ? "
+				+ "and upload_time >=  ? "		// current month
+				+ "and upload_time < ? "		// next month
+				//+ "and extract(month from upload_time) = ? "
+				//+ "and extract(year from upload_time) = ? "
 				+ "and users.o_id = ? "
 				+ "and users.ident = ue.user_name ");
 		
@@ -246,9 +256,14 @@ public class AdminReportUsage extends Application {
 		PreparedStatement pstmtAllTime = null;
 		
 		try {
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			
 			pstmtMonth = sd.prepareStatement(sqlMonth.toString());
-			pstmtMonth.setInt(1, month);
-			pstmtMonth.setInt(2, year);
+			//pstmtMonth.setInt(1, month);
+			//pstmtMonth.setInt(2, year);
+			pstmtMonth.setTimestamp(1, t1);
+			pstmtMonth.setTimestamp(2, t2);
 			pstmtMonth.setInt(3, oId);
 			log.info("Monthly Admin report by project: " + pstmtMonth.toString());
 			ResultSet rs = pstmtMonth.executeQuery();
@@ -316,8 +331,10 @@ public class AdminReportUsage extends Application {
 				+ "where ue.ue_id = se.ue_id "
 				+ "and se.status = 'success' "
 				+ "and se.subscriber = 'results_db' "
-				+ "and extract(month from upload_time) = ? "
-				+ "and extract(year from upload_time) = ? "
+				+ "and upload_time >=  ? "		// current month
+				+ "and upload_time < ? "		// next month
+				//+ "and extract(month from upload_time) = ? "
+				//+ "and extract(year from upload_time) = ? "
 				+ "and users.o_id = ? "
 				+ "and users.ident = ue.user_name ");
 		if(!includeTemporaryUsers) {
@@ -351,9 +368,14 @@ public class AdminReportUsage extends Application {
 		PreparedStatement pstmtAllTime = null;
 		
 		try {
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			
 			pstmtMonth = sd.prepareStatement(sqlMonth.toString());
-			pstmtMonth.setInt(1, month);
-			pstmtMonth.setInt(2, year);
+			//pstmtMonth.setInt(1, month);
+			//pstmtMonth.setInt(2, year);
+			pstmtMonth.setTimestamp(1, t1);
+			pstmtMonth.setTimestamp(2, t2);
 			pstmtMonth.setInt(3, oId);
 			log.info("Monthly Admin report by survey: " + pstmtMonth.toString());
 			ResultSet rs = pstmtMonth.executeQuery();
@@ -421,8 +443,10 @@ public class AdminReportUsage extends Application {
 				+ "where ue.ue_id = se.ue_id "
 				+ "and se.status = 'success' "
 				+ "and se.subscriber = 'results_db' "
-				+ "and extract(month from upload_time) = ? "
-				+ "and extract(year from upload_time) = ? "
+				//+ "and extract(month from upload_time) = ? "
+				//+ "and extract(year from upload_time) = ? "
+				+ "and upload_time >=  ? "		// current month
+				+ "and upload_time < ? "		// next month
 				+ "and users.o_id = ? "
 				+ "and users.ident = ue.user_name ");
 		if(!includeTemporaryUsers) {
@@ -453,9 +477,14 @@ public class AdminReportUsage extends Application {
 		PreparedStatement pstmtAllTime = null;
 		
 		try {
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			
 			pstmtMonth = sd.prepareStatement(sqlMonth.toString());
-			pstmtMonth.setInt(1, month);
-			pstmtMonth.setInt(2, year);
+			//pstmtMonth.setInt(1, month);
+			//pstmtMonth.setInt(2, year);
+			pstmtMonth.setTimestamp(1, t1);
+			pstmtMonth.setTimestamp(2, t2);
 			pstmtMonth.setInt(3, oId);
 			log.info("Monthly Admin report by device: " + pstmtMonth.toString());
 			ResultSet rs = pstmtMonth.executeQuery();
