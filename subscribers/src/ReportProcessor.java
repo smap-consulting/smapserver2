@@ -83,9 +83,16 @@ public class ReportProcessor {
 						while(brm.processNextReport(dbc.sd, basePath)) {
 							log.info("..............................report processed");
 						}
+						
+						/*
+						 * Delete reports older than 2 weeks
+						 */
+						brm.deleteOldReports(dbc.sd);
+						
 					} catch (SQLException e1) {
 						e1.printStackTrace();
 					}
+					
 					
 					/*
 					 * Sleep and then go again

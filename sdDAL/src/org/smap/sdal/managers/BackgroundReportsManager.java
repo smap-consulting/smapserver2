@@ -123,6 +123,21 @@ public class BackgroundReportsManager {
 		}
 	}
 	
+	public void deleteOldReports(Connection sd) throws SQLException {
+		PreparedStatement pstmt = null;
+		try {
+			String sql = "delete from background_report "
+					+ "where end_time < now() - interval '14 days'";
+			
+			pstmt = sd.prepareStatement(sql);
+			log.info("Delete old reports: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+	}
+	
 	private BackgroundReport getNextReport(Connection sd) throws SQLException {
 		
 		BackgroundReport br = null;
