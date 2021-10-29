@@ -127,10 +127,10 @@ public class UserTrail extends Application {
 			pstmt = sd.prepareStatement(sql.toString());
 			int idx = 1;
 			if(start_t > 0) {
-				pstmt.setTimestamp(idx++, GeneralUtilityMethods.startOfDay(new Date(startDate.getTime()), tz));
+				pstmt.setTimestamp(idx++, startDate);
 			}
 			if(end_t > 0) {
-				pstmt.setTimestamp(idx++, GeneralUtilityMethods.endOfDay(new Date(endDate.getTime()), tz));
+				pstmt.setTimestamp(idx++, endDate);
 			}
 			pstmt.setInt(idx++, uId);
 
@@ -224,8 +224,8 @@ public class UserTrail extends Application {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, projectId);
-			pstmt.setTimestamp(2, GeneralUtilityMethods.startOfDay(new Date(startDate.getTime()), tz));
-			pstmt.setTimestamp(3, GeneralUtilityMethods.endOfDay(new Date(endDate.getTime()), tz));
+			pstmt.setTimestamp(2, startDate);
+			pstmt.setTimestamp(3, endDate);
 			pstmt.setInt(4, uId);
 
 			log.info("Events List: " + sql + " : " + uId + " : " + projectId + " : " + startDate + " : " + endDate);

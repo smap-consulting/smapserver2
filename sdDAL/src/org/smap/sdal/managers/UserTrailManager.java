@@ -426,12 +426,11 @@ public class UserTrailManager {
 			pstmt = sd.prepareStatement(sql.toString());
 			int idx = 1;
 			if(p.startDateString != null) {
-				Date startDate = new Date(p.startDate.getTime());
-				pstmt.setTimestamp(idx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+
+				pstmt.setTimestamp(idx++, p.startDate);
 			}
 			if(p.endDateString != null) {
-				Date endDate = new Date(p.endDate.getTime());
-				pstmt.setTimestamp(idx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+				pstmt.setTimestamp(idx++, p.endDate);
 			}
 			
 			/*
