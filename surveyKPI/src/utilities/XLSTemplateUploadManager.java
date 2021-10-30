@@ -1046,6 +1046,7 @@ public class XLSTemplateUploadManager {
 				|| q.type.equals("begin matrix") 
 				|| q.type.equals("end matrix") 
 				|| q.type.equals("server_calculate") 
+				|| q.type.equals("pdf_field") 
 				|| q.type.equals("begin repeat")) {
 			q.source = null;
 		} else {
@@ -1243,7 +1244,7 @@ public class XLSTemplateUploadManager {
 
 	private boolean convertVisible(String type) throws Exception {
 		boolean visible = true;
-		if(type.equals("calculate") || type.equals("server_calculate")) {
+		if(type.equals("calculate") || type.equals("server_calculate") || type.equals("pdf_field")) {
 			visible = false;
 		} else if(type.equals("end group")) {
 			visible = false;
@@ -1821,6 +1822,8 @@ public class XLSTemplateUploadManager {
 			out = "trigger";
 		} else if (type.equals("background-audio")) {
 			out = "background-audio";
+		} else if (type.equals("pdf_field")) {
+			out = "pdf_field";
 		}
 				
 		return out;
