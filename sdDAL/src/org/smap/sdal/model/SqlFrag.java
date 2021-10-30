@@ -147,7 +147,7 @@ public class SqlFrag {
 	}
 	
 	/*
-	 * convert st_area and st_length functions into using geography
+	 * convert st_area and st_length functions into geography
 	 */
 	StringBuilder convertToGeography(StringBuilder sql, String fn) {
 		StringBuilder out = null;
