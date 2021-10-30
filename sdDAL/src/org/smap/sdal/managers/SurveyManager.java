@@ -2693,7 +2693,7 @@ public class SurveyManager {
 							continue;		// Keep begin repeats even if not published since the table exists
 											// This would not be needed if there were not issues with the publishing record
 						}
-					} else if(q.type != null && q.type.equals("server_calculate")) {
+					} else if(q.type != null && (q.type.equals("server_calculate") || q.type.equals("pdf_field"))) {
 						continue;		// Sever calculations do not need to be published
 					} else if(q.type != null && q.type.equals("begin group")) {
 						continue;		// groups do not need to be published
@@ -2717,7 +2717,7 @@ public class SurveyManager {
 
 					if(s.getSubForm(form, q) == null || q.name.startsWith("geopolygon_") || q.name.startsWith("geolinestring_")) {
 						// This question is not a place holder for a subform
-						if(q.source != null || q.type.equals("server_calculate")) {		// Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
+						if(q.source != null || q.type.equals("server_calculate") || q.type.equals("pdf_field")) {		// Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
 							String qType = q.type;
 							if(qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace") || q.name.startsWith("geopolygon_") || q.name.startsWith("geolinestring_")) {
 
@@ -2740,7 +2740,10 @@ public class SurveyManager {
 								} else {
 									col = new StringBuffer("").append("'' as ").append(q.columnName).toString();	// No value
 								} 
-							} else {
+							} else if(qType.equals("pdf_field")) { 
+								col = new StringBuffer("").append("'' as ").append(q.columnName).toString();	// No value for pdf fields
+							} 
+							else {
 								col = q.columnName;
 							}
 
@@ -3170,7 +3173,7 @@ public class SurveyManager {
 
 				index--;		// Decrement the index as the select multiple was not in the SQL query
 
-			} else if(qSource != null || qType.equals("server_calculate")) {
+			} else if(qSource != null || qType.equals("server_calculate") || qType.equals("pdf_field")) {
 
 				String value = "";
 				if(resultSet != null) {
