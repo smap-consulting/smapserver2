@@ -28,6 +28,7 @@ import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
+import org.smap.sdal.model.LineMap;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
@@ -1350,15 +1351,31 @@ public class PDFSurveyManager {
 	private String lookupInRecord(String name, ArrayList<Result> record) {
 		String value = null;
 
-		for(Result r : record) {
-			if(r.name.equals(name)) {
-				value = r.value;
-				break;
+		if(name != null) {
+			for(Result r : record) {
+				if(r.name.equals(name)) {
+					value = r.value;
+					break;
+				}
 			}
 		}
 
 		return value;
-
+	}
+	
+	/*
+	 * Get an array of values for the specified question in the survey
+	 * There will only be more than one value if the question is in a repeat
+	 */
+	ArrayList<String> lookupInSurvey(String qname, ArrayList<ArrayList<Result>> records) {
+		ArrayList<String> values = new ArrayList<>();
+		for(ArrayList<Result> r : records) {
+			String v = lookupInRecord(qname, r);
+			if(v != null) {
+				values.add(v);
+			}
+		}
+		return values;
 	}
 
 	/*
@@ -1439,8 +1456,8 @@ public class PDFSurveyManager {
 							di.map = map;
 							di.account = "mapbox";
 						}
-					} else if(app.startsWith("pdfcustommap")) {		// custom map style
-						di.map = getAppValue(app);
+					} else if(app.startsWith("pdflinemap")) {		// Multiple points to be joined into a map
+						di.linemap = new LineMap(getAppValueArray(app));
 					} else if(app.startsWith("pdfaccount")) {			// mapbox account
 						di.account = getAppValue(app);
 					} else if(app.startsWith("pdflocation")) {
@@ -1559,6 +1576,10 @@ public class PDFSurveyManager {
 			return parts[1];   		
 		}
 		else return null;
+	}
+	
+	String[] getAppValueArray(String aValue) {
+		return aValue.split("_");
 	}
 
 	/*
@@ -1794,6 +1815,37 @@ public class PDFSurveyManager {
 				valueCell.addElement(img);
 			} else {
 				valueCell.addElement(getPara(" ", di, gv, deps, null));
+			}
+
+		} else if(di.type.equals("pdf_field") && di.linemap != null) { 
+			System.out.println("pdf field");
+			
+			String startValue = "0 0";
+			String endValue = "0 0";
+			ArrayList<String> markerValues = new ArrayList<String> ();
+			
+			// Start point
+			ArrayList<String> startValues = lookupInSurvey(di.linemap.startPoint, survey.instance.results);
+			if(startValues.size() > 0) {
+				startValue = startValues.get(0);
+			}
+			System.out.println("     start: " + startValue);
+
+			// End point
+			ArrayList<String> endValues = lookupInSurvey(di.linemap.endPoint, survey.instance.results);
+			if(endValues.size() > 0) {
+				endValue = endValues.get(0);
+			}
+			System.out.println("     end: " + endValue);
+
+			
+			if(di.linemap.markers.size() > 0) {
+				for(String markerName : di.linemap.markers) {
+					markerValues.addAll(lookupInSurvey(markerName, survey.instance.results));
+				}		
+			}
+			for(String mv : markerValues) {
+				System.out.println("     marker: " + mv);
 			}
 
 		} else if(di.isBarcode) { 

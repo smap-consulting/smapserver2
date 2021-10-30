@@ -38,6 +38,7 @@ public class DisplayItem {
 	public boolean isHyperlink = false;
 	public boolean hideRepeatingLabels = false;
 	public boolean tsep = false;		// Thousands separator
+	public LineMap linemap;
 	
 	public void debug() {
 		log.info("======== Display Item:   width: " + width + "   value: " + value + " text: " + text + " : " + type  );
