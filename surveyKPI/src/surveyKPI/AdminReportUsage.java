@@ -1,5 +1,6 @@
 package surveyKPI;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -14,7 +15,9 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
@@ -27,8 +30,13 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.BackgroundReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.AR;
+import org.smap.sdal.model.BackgroundReport;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import utilities.XLSXAdminReportsManager;
 
@@ -62,47 +70,55 @@ public class AdminReportUsage extends Application {
 	/*
 	 * Get usage for a specific month
 	 */
-	@GET
-	@Path("/{year}/{month}")
+	@POST
 	public Response exportSurveyXlsx (@Context HttpServletRequest request, 
-			@PathParam("year") int year,
-			@PathParam("month") int month,
-			@QueryParam("project") boolean byProject,
-			@QueryParam("survey") boolean bySurvey,
-			@QueryParam("device") boolean byDevice,
-			@QueryParam("inc_temp") boolean inc_temp,
-			@QueryParam("org") int oId,
+			@FormParam("report") String sReport,
 			@Context HttpServletResponse response) {
 
-		Response responseVal;
+		Response responseVal = null;
 		
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		System.out.println(sReport);
 		// Authorisation - Access
 		String connectionString = "surveyKPI - AdminReports - Usage";
-		Connection sd = SDDataSource.getConnection(connectionString);
-		if(oId > 0) {
-			aOrg.isAuthorised(sd, request.getRemoteUser());
-		} else {
-			a.isAuthorised(sd, request.getRemoteUser());
-		}
-		// End Authorisation
-		
-		includeTemporaryUsers = inc_temp;	
+		Connection sd = SDDataSource.getConnection(connectionString);		
+		// End Authorisation		
 		
 		try {
-			
+		
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			if(month < 1) {
-				throw new ApplicationException(localisation.getString("ar_month_gt_0"));
-			}
+			BackgroundReport br = gson.fromJson(sReport, BackgroundReport.class);
 			
+			// Get params
+			int oId = GeneralUtilityMethods.getKeyValueInt(BackgroundReportsManager.PARAM_O_ID, br.params);
+			int month = GeneralUtilityMethods.getKeyValueInt(BackgroundReportsManager.PARAM_MONTH, br.params);	
+			int year = GeneralUtilityMethods.getKeyValueInt(BackgroundReportsManager.PARAM_YEAR, br.params);	
+			boolean bySurvey = GeneralUtilityMethods.getKeyValueBoolean(BackgroundReportsManager.PARAM_BY_SURVEY, br.params);	
+			boolean byProject = GeneralUtilityMethods.getKeyValueBoolean(BackgroundReportsManager.PARAM_BY_PROJECT, br.params);
+			boolean byDevice = GeneralUtilityMethods.getKeyValueBoolean(BackgroundReportsManager.PARAM_BY_DEVICE, br.params);
+			includeTemporaryUsers = GeneralUtilityMethods.getKeyValueBoolean(BackgroundReportsManager.PARAM_INC_TEMP, br.params);
+			
+			// start validation			
+			if(oId > 0) {
+				aOrg.isAuthorised(sd, request.getRemoteUser());
+			} else {
+				a.isAuthorised(sd, request.getRemoteUser());
+			}
 			String orgName = "";
 			if(oId <= 0) {
 				oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			} else {
 				orgName = GeneralUtilityMethods.getOrganisationName(sd, oId);
 			}
+						
+			if(month < 1) {
+				throw new ApplicationException(localisation.getString("ar_month_gt_0"));
+			}
+			// End Validation
+
 			
 			String filename = localisation.getString("ar_report_name") + "_" + (oId > 0 ? orgName + "_" : "") + year + "_" + month;
 			
@@ -135,8 +151,14 @@ public class AdminReportUsage extends Application {
 			header.add(localisation.getString("ar_usage_month"));
 			header.add(localisation.getString("ar_usage_at"));
 			
+			// Get temp file
+			String basePath = GeneralUtilityMethods.getBasePath(request);
+			GeneralUtilityMethods.createDirectory(basePath + "/reports");
+			String filepath = basePath + "/reports/" + filename;	// Use a random sequence to keep survey name unique
+			File tempFile = new File(filepath);
+			
 			XLSXAdminReportsManager rm = new XLSXAdminReportsManager(localisation);
-			responseVal = rm.getNewReport(sd, request, response, header, report, filename, byProject, bySurvey, byDevice, year, month,
+			rm.getNewReport(sd, tempFile, header, report, byProject, bySurvey, byDevice, year, month,
 					GeneralUtilityMethods.getOrganisationName(sd, oId));
 			
 		} catch(Exception e) {
