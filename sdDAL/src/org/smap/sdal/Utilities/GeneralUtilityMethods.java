@@ -56,6 +56,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
+import org.smap.sdal.managers.BackgroundReportsManager;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LanguageCodeManager;
 import org.smap.sdal.managers.LogManager;
@@ -10072,6 +10073,36 @@ public class GeneralUtilityMethods {
 			Path path = Paths.get(f);
 			Files.createDirectories(path);
 		}
+	}
+	
+	public static int getKeyValueInt(String key, HashMap<String, String> kvs) {
+		int v = 0;
+		if(kvs != null) {
+			String vString = kvs.get(key);
+			if(vString != null) {
+				try {
+					v = Integer.valueOf(vString);
+				} catch(Exception e) {
+					
+				}
+			}
+		}
+		return v;
+	}
+	
+	public static boolean getKeyValueBoolean(String key, HashMap<String, String> kvs) {
+		boolean v = false;
+		if(kvs != null) {
+			String vString = kvs.get(key);
+			if(vString != null) {
+				try {
+					v = Boolean.valueOf(vString);
+				} catch(Exception e) {
+					
+				}
+			}
+		}
+		return v;
 	}
 	
 	private static int getManifestParamStart(String property) {

@@ -228,7 +228,7 @@ public class UserTrailManager {
 	}
 	
 	/*
-	 * Generate a KML file in the reports directory and return its name
+	 * Generate a Distance file in the reports directory and return its name
 	 */
 	public String generateDistanceReport(Connection sd, int pId, HashMap<String, String> params, String basePath) throws SQLException, IOException {
 		String filename = String.valueOf(UUID.randomUUID()) + ".xlsx";

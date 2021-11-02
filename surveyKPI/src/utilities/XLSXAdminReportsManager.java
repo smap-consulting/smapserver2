@@ -1,5 +1,10 @@
 package utilities;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 /*
 This file is part of SMAP.
 
@@ -19,13 +24,18 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,10 +46,13 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.AR;
+import org.smap.sdal.model.UserTrailFeature;
+import org.smap.sdal.model.UserTrailPoint;
 
 
 /*
@@ -59,34 +72,41 @@ public class XLSXAdminReportsManager {
 	}
 
 	/*
+	 * Write new background report
+	 */
+	public String writeNewReport(Connection sd, int pId, HashMap<String, String> params, String basePath) throws SQLException, IOException {
+		
+		String filename = String.valueOf(UUID.randomUUID()) + ".kml";
+	
+		GeneralUtilityMethods.createDirectory(basePath + "/reports");
+		String filepath = basePath + "/reports/" + filename;	// Use a random sequence to keep survey name unique
+		File tempFile = new File(filepath);
+		
+		//getNewReport(sd, tempFile, header, report, byProject, bySurvey, byDevice, year, month, orgName);
+
+		
+
+		
+		return filename;
+	
+	}
+	
+	/*
 	 * Create the new style XLSX report
 	 */
-	public Response getNewReport(
+	public void getNewReport(
 			Connection sd,
-			HttpServletRequest request,
-			HttpServletResponse response,
+			File tempFile,
 			ArrayList<String> header,
 			ArrayList <AR> report,
-			String filename,
 			boolean byProject,
 			boolean bySurvey,
 			boolean byDevice,
 			int year,
 			int month,
-			String orgName) {
-		
-		Response responseVal = null;
+			String orgName) throws ApplicationException, FileNotFoundException {
 
-		String escapedFileName = null;
-		try {
-			escapedFileName = URLDecoder.decode(filename, "UTF-8");
-			escapedFileName = URLEncoder.encode(escapedFileName, "UTF-8");
-		} catch (UnsupportedEncodingException e1) {
-			e1.printStackTrace();
-		}
-
-		escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
-		escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
+		FileOutputStream outputStream = new FileOutputStream(tempFile);
 		
 		if(header != null) {
 
@@ -100,7 +120,6 @@ public class XLSXAdminReportsManager {
 				/*
 				 * Create XLSX File
 				 */
-				GeneralUtilityMethods.setFilenameInResponse(filename + "." + "xlsx", response); // Set file name
 				wb = new SXSSFWorkbook(10);		// Serialised output
 				dataSheet = wb.createSheet("data");
 				rowNumber = 0;
@@ -210,7 +229,6 @@ public class XLSXAdminReportsManager {
 
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Error", e);
-				response.setHeader("Content-type",  "text/html; charset=UTF-8");
 				
 				String msg = e.getMessage();
 				if(msg.contains("does not exist")) {
@@ -221,14 +239,13 @@ public class XLSXAdminReportsManager {
 				cell.setCellStyle(errorStyle);
 				cell.setCellValue(msg);
 				
-				responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
+				throw new ApplicationException("Error: " + e.getMessage());
 			} finally {	
 
 				try {
-					OutputStream outputStream = response.getOutputStream();
 					wb.write(outputStream);
 					wb.close();
-					outputStream.close();
+
 					((SXSSFWorkbook) wb).dispose();		// Dispose of temporary files
 				} catch (Exception ex) {
 					log.log(Level.SEVERE, "Error", ex);
@@ -238,7 +255,7 @@ public class XLSXAdminReportsManager {
 			}
 		}
 
-		return responseVal;
+		return;
 	}
 	
 	private String getColAlpha(int col) {
