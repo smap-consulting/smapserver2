@@ -78,7 +78,7 @@ public class XLSXAdminReportsManager {
 	 */
 	public String writeNewReport(Connection sd, String user, HashMap<String, String> params, String basePath) throws SQLException, IOException, ApplicationException {
 		
-		String filename = String.valueOf(UUID.randomUUID()) + ".kml";
+		String filename = String.valueOf(UUID.randomUUID()) + ".xlsx";
 	
 		GeneralUtilityMethods.createDirectory(basePath + "/reports");
 		String filepath = basePath + "/reports/" + filename;	// Use a random sequence to keep survey name unique
