@@ -17,6 +17,7 @@ import javax.imageio.ImageIO;
 
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PDFTableManager;
+import org.smap.sdal.model.PdfMapValues;
 
 import com.itextpdf.text.Anchor;
 import com.itextpdf.text.BadElementException;
@@ -97,8 +98,7 @@ public class PdfUtilities {
 	public static Image getMapImage(Connection sd, 
 			String map, 
 			String account,
-			String value, 
-			String startGeopointValue,
+			PdfMapValues mapValues, 
 			String location, 
 			String zoom,
 			String mapbox_key,
@@ -125,15 +125,15 @@ public class PdfUtilities {
 		}
 		url.append("/static/");
 		
-		if((value != null && value.trim().length() > 0) || (startGeopointValue != null && startGeopointValue.trim().length() > 0)) {
+		if((mapValues.hasGeometry() || mapValues.hasLine())) {
 			
 			url.append("geojson(")
-				.append(URLEncoder.encode(createGeoJsonMapValue(value, markerColor, startGeopointValue), "UTF-8"))
+				.append(URLEncoder.encode(createGeoJsonMapValue(mapValues, markerColor), "UTF-8"))
 				.append(")/");
 			if(zoom != null && zoom.trim().length() > 0) {
-				String centroidValue = value;
+				String centroidValue = mapValues.geometry;
 				if(centroidValue == null) {
-					centroidValue = startGeopointValue;
+					centroidValue = mapValues.startGeometry;
 				}
 				url.append(GeneralUtilityMethods.getGeoJsonCentroid(centroidValue) + "," + zoom);
 			} else if(location != null) {
@@ -181,7 +181,7 @@ public class PdfUtilities {
 		return img;
 	}
 	
-	private static String createGeoJsonMapValue(String coords, String markerColor, String coordsStartGeopoint) {
+	private static String createGeoJsonMapValue(PdfMapValues mapValues, String markerColor) {
 		
 		// GeoJson data - add styling
 		StringBuffer out = new StringBuffer("");
@@ -189,22 +189,42 @@ public class PdfUtilities {
 		
 		// Add the Geom if it is not null
 		boolean addedGeom = false;
-		if(coords != null) {
+		if(mapValues.geometry != null) {
 			if(markerColor == null) {
 				markerColor = "f00";
 			}
-			out.append(addGeoJsonFeature(coords, markerColor, null));		
+			out.append(addGeoJsonFeature(mapValues.geometry, markerColor, null));		
 			addedGeom=true;
 		}
 		// Add the start Geo Point if it is not null
-		if(coordsStartGeopoint != null) {
+		if(mapValues.startGeometry != null) {
 			if(addedGeom) {
 				out.append(",");
 			}
-			out.append(addGeoJsonFeature(coordsStartGeopoint, "0f0", "harbor"));	
+			out.append(addGeoJsonFeature(mapValues.startGeometry, "0f0", "harbor"));	
+			addedGeom=true;
+		}
+		if(mapValues.hasLine()) {
+			if(addedGeom) {			// line
+				out.append(",");
+			}
+			out.append(addGeoJsonFeature(mapValues.getLineGeometry(), "00f", null));
+				
+			out.append(",");
+			out.append(addGeoJsonFeature(mapValues.startLine, "f0f", "triangle"));
+			out.append(",");
+			out.append(addGeoJsonFeature(mapValues.endLine, "f0f", "triangle"));
+			
+			if(mapValues.hasMarkers()) {
+				for(String marker : mapValues.markers) {
+					out.append(",");
+					out.append(addGeoJsonFeature(marker, "0ff", "roadblock"));
+				}
+			}
 		}
 		out.append("]}");
 		
+		System.out.println(out.toString());
 		return out.toString();
 	}
 	
@@ -218,14 +238,17 @@ public class PdfUtilities {
 		out.append("\"marker-color\":\"#").append(markerColor).append("\"");		// Add marker color
 		out.append(",");
 		out.append("\"stroke\":\"#").append(markerColor).append("\"");				// Add stroke
-		out.append(",");
-		out.append("\"fill\":\"#").append(markerColor).append("\"");				// Add fill
+		if(!coords.toLowerCase().contains("linestring")) {
+			out.append(",");
+			out.append("\"fill\":\"#").append(markerColor).append("\"");				// Add fill, unless its a line
+		}
 		if(icon != null) {
 			out.append(",");
 			out.append("\"marker-symbol\":\"").append(icon).append("\"");				// Add fill
 		}
 		
 		out.append("}}");
+		System.out.println(out.toString());
 		return out.toString();
 	}
 }
