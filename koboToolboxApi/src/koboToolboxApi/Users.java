@@ -149,7 +149,7 @@ public class Users extends Application {
 			if(!(lat == 0.0 && lon == 0.0)) {
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				ulm.recordRefresh(sd, oId, request.getRemoteUser(), lat, lon, 
-						0L, null, null, false);
+						0L, null, null, null, false);
 				log.info("User Location update: " + latString + " : " + lonString);
 			} else {
 				log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ User Location 0.0 0.0: ");
