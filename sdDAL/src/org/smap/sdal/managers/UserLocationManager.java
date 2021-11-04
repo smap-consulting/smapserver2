@@ -389,7 +389,7 @@ public class UserLocationManager {
 	 * Log a refresh
 	 */
 	public void recordRefresh(Connection sd, int oId, String user, Double lat, Double lon, 
-			long deviceTime, String hostname, String deviceid, boolean updateLog) throws SQLException {
+			long deviceTime, String hostname, String deviceid, String appVersion, boolean updateLog) throws SQLException {
 
 		StringBuilder sql = new StringBuilder("update last_refresh "
 				+ "set refresh_time = now(), "
@@ -401,16 +401,19 @@ public class UserLocationManager {
 		if(deviceid != null) {
 			sql.append(", deviceid = ? ");
 		}
+		if(appVersion != null) {
+			sql.append(", appversion = ? ");
+		}
 		sql.append("where o_id = ? "
 				+ "and user_ident = ?");
 
 		String sqlInsert = "insert into last_refresh "
-				+ "(o_id, user_ident, refresh_time, geo_point, device_time, deviceid) "
-				+ "values(?, ?, now(),  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326), ?, ?)";
+				+ "(o_id, user_ident, refresh_time, geo_point, device_time, deviceid, appversion) "
+				+ "values(?, ?, now(),  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326), ?, ?, ?)";
 		
 		String sqlInsertLog = "insert into last_refresh_log "
-				+ "(o_id, user_ident, refresh_time, geo_point, device_time, deviceid) "
-				+ "values(?, ?, now(), ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326), ?, ?)";
+				+ "(o_id, user_ident, refresh_time, geo_point, device_time, deviceid, appversion) "
+				+ "values(?, ?, now(), ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326), ?, ?, ?)";
 		
 		PreparedStatement pstmt = null;
 
@@ -430,6 +433,9 @@ public class UserLocationManager {
 				if(deviceid != null) {
 					pstmt.setString(idx++,  deviceid);
 				}
+				if(appVersion != null) {
+					pstmt.setString(idx++,  appVersion);
+				}
 				pstmt.setInt(idx++, oId);
 				pstmt.setString(idx++,  user);
 				int count = pstmt.executeUpdate();
@@ -443,6 +449,7 @@ public class UserLocationManager {
 					pstmt.setDouble(4, lat);
 					pstmt.setTimestamp(5,  deviceTimeStamp);
 					pstmt.setString(6,  deviceid);
+					pstmt.setString(7,  appVersion);
 					pstmt.executeUpdate();
 				}
 	
@@ -462,6 +469,7 @@ public class UserLocationManager {
 					}
 					pstmt.setTimestamp(5,  deviceTimeStamp);
 					pstmt.setString(6,  deviceid);
+					pstmt.setString(7,  appVersion);
 					pstmt.executeUpdate();
 				}
 				
