@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 public class LineMap {
 	
+	public String type;			// map or image
 	public String startPoint;
 	public String endPoint;
 	public ArrayList<String> markers = new ArrayList<>();

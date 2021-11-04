@@ -95,6 +95,9 @@ public class PdfUtilities {
 		} 
 	}
 	
+	/*
+	 * Convert geospatial data into an map image
+	 */
 	public static Image getMapImage(Connection sd, 
 			String map, 
 			String account,
@@ -177,6 +180,22 @@ public class PdfUtilities {
 				log.log(Level.SEVERE, "Exception", e);
 			}
 		} 
+		
+		return img;
+	}
+	
+	/*
+	 * Convert geospatial data into an abstract image
+	 */
+	public static Image getLineImage(Connection sd, 
+			PdfMapValues mapValues, 
+			int sId,
+			String user,
+			String markerColor,
+			String basePath) throws BadElementException, MalformedURLException, IOException, SQLException {
+		
+		Image img = null;
+	
 		
 		return img;
 	}

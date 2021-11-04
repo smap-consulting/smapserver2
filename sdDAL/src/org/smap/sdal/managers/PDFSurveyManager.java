@@ -1459,8 +1459,13 @@ public class PDFSurveyManager {
 							di.map = map;
 							di.account = "mapbox";
 						}
-					} else if(app.startsWith("pdflinemap")) {		// Multiple points to be joined into a map
+					} else if(app.startsWith("pdflinemap") || app.startsWith("pdflineimage")) {		// Multiple points to be joined into a map or image
 						di.linemap = new LineMap(getAppValueArray(app));
+						if(app.startsWith("pdflinemap")) {
+							di.linemap.type = "map";
+						} else {
+							di.linemap.type = "image";
+						}
 					} else if(app.startsWith("pdfaccount")) {			// mapbox account
 						di.account = getAppValue(app);
 					} else if(app.startsWith("pdflocation")) {
@@ -1854,14 +1859,24 @@ public class PDFSurveyManager {
 				System.out.println("     marker: " + mv);
 			}
 			
-			Image img = PdfUtilities.getMapImage(sd, di.map, 
-					di.account, 
-					mapValues,
-					di.location, di.zoom, gv.mapbox_key,
-					survey.id,
-					user,
-					di.markerColor,
-					basePath);
+			Image img = null;
+			if(di.linemap.type.equals("map")) {
+				 img = PdfUtilities.getMapImage(sd, di.map, 
+						di.account, 
+						mapValues,
+						di.location, di.zoom, gv.mapbox_key,
+						survey.id,
+						user,
+						di.markerColor,
+						basePath);
+			} else {
+				img = PdfUtilities.getLineImage(sd, 
+						mapValues,
+						survey.id,
+						user,
+						di.markerColor,
+						basePath);
+			}
 			
 			if(img != null) {
 				valueCell.addElement(img);
