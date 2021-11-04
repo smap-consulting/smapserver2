@@ -32,6 +32,7 @@ import org.smap.sdal.model.LineMap;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
+import org.smap.sdal.model.PdfMapValues;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Row;
@@ -625,8 +626,12 @@ public class PDFSurveyManager {
 
 				PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
 				if(ad != null) {
-					Image img = PdfUtilities.getMapImage(sd, di.map, di.account, r.value, 
-							r.value,
+					
+					PdfMapValues mapValues = new PdfMapValues();
+					mapValues.geometry = r.value;
+					// TODO no start geopoint
+					
+					Image img = PdfUtilities.getMapImage(sd, di.map, di.account, mapValues, 
 							di.location, di.zoom,gv.mapbox_key,
 							survey.id,
 							user,
@@ -849,7 +854,7 @@ public class PDFSurveyManager {
 		}
 
 		/*
-		 * Hide any start geopoints if we have a standard geometry in this form
+		 * Get the start geopoint value if it has been set
 		 */
 		String startGeopointValue = null;
 		boolean hideStartGeopoint = false;
@@ -863,10 +868,8 @@ public class PDFSurveyManager {
 				if(!question.visible) {
 					startGeopointValue = r.value;
 					startGeopointIndex = j;
-				} else {
-					hideStartGeopoint = true;
-					startGeopointValue = r.value;
-				}
+					break;
+				} 
 			}
 		}
 
@@ -1802,9 +1805,13 @@ public class PDFSurveyManager {
 
 		} else if(di.type.equals("geopoint") || di.type.equals("geoshape") || di.type.equals("geotrace") || di.type.startsWith("geopolygon_") || di.type.startsWith("geolinestring_")) {
 
+			PdfMapValues mapValues = new PdfMapValues();
+			mapValues.geometry = di.value;
+			mapValues.startGeometry = startGeopointValue;
+			
 			Image img = PdfUtilities.getMapImage(sd, di.map, 
-					di.account, di.value, 
-					startGeopointValue,
+					di.account, 
+					mapValues,
 					di.location, di.zoom, gv.mapbox_key,
 					survey.id,
 					user,
@@ -1820,32 +1827,46 @@ public class PDFSurveyManager {
 		} else if(di.type.equals("pdf_field") && di.linemap != null) { 
 			System.out.println("pdf field");
 			
-			String startValue = "0 0";
-			String endValue = "0 0";
-			ArrayList<String> markerValues = new ArrayList<String> ();
+			PdfMapValues mapValues = new PdfMapValues();
 			
 			// Start point
 			ArrayList<String> startValues = lookupInSurvey(di.linemap.startPoint, survey.instance.results);
 			if(startValues.size() > 0) {
-				startValue = startValues.get(0);
+				mapValues.startLine = startValues.get(0);
 			}
-			System.out.println("     start: " + startValue);
+			System.out.println("     start: " + mapValues.startLine);
 
 			// End point
 			ArrayList<String> endValues = lookupInSurvey(di.linemap.endPoint, survey.instance.results);
 			if(endValues.size() > 0) {
-				endValue = endValues.get(0);
+				mapValues.endLine = endValues.get(0);
 			}
-			System.out.println("     end: " + endValue);
+			System.out.println("     end: " + mapValues.endLine);
 
 			
 			if(di.linemap.markers.size() > 0) {
+				mapValues.markers = new ArrayList<String> ();
 				for(String markerName : di.linemap.markers) {
-					markerValues.addAll(lookupInSurvey(markerName, survey.instance.results));
+					mapValues.markers.addAll(lookupInSurvey(markerName, survey.instance.results));
 				}		
 			}
-			for(String mv : markerValues) {
+			for(String mv : mapValues.markers) {
 				System.out.println("     marker: " + mv);
+			}
+			
+			Image img = PdfUtilities.getMapImage(sd, di.map, 
+					di.account, 
+					mapValues,
+					di.location, di.zoom, gv.mapbox_key,
+					survey.id,
+					user,
+					di.markerColor,
+					basePath);
+			
+			if(img != null) {
+				valueCell.addElement(img);
+			} else {
+				valueCell.addElement(getPara(" ", di, gv, deps, null));
 			}
 
 		} else if(di.isBarcode) { 
