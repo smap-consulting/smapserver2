@@ -141,7 +141,9 @@ public class PasswordReset extends Application {
 					    EmailManager em = new EmailManager();
 					    
 					    StringBuilder content = new StringBuilder(); 
-					    content.append("<p>").append(localisation.getString("c_goto")).append(" ")
+					    String info = localisation.getString("c_rp_info");
+					    info = info.replace("%s1", request.getServerName());
+					    content.append("<p>").append(info).append("</p><p>").append(localisation.getString("c_goto")).append(" ")
 							.append("<a href=\"").append("https").append("://").append(request.getServerName())
 							.append("/app/resetPassword.html?token=")
 							.append(uuid)
