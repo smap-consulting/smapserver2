@@ -319,6 +319,8 @@ public class MyAssignments extends Application {
 		// Get the deviceid if set
 		String deviceid = request.getHeader("deviceid");
 		
+		// Get the app version of set
+		String appVersion = request.getHeader("appversion");
 		log.info("Refresh assignments: " + deviceTimeString);
 		
 		PreparedStatement pstmtGetSettings = null;
@@ -815,7 +817,7 @@ public class MyAssignments extends Application {
 			 */
 			UserLocationManager ulm = new UserLocationManager(localisation, tz);
 			ulm.recordRefresh(sd, oId, userName, 
-					lat, lon, deviceTime, request.getServerName(), deviceid, true);
+					lat, lon, deviceTime, request.getServerName(), deviceid, appVersion, true);
 			
 			/*
 			 * Return the response

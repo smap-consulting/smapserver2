@@ -31,10 +31,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -547,7 +545,8 @@ public class Audit extends Application {
 				+ "to_char(timezone(?, refresh_time), 'YYYY-MM-DD HH24:MI:SS') as refresh_time, "
 				+ "to_char(timezone(?, device_time), 'YYYY-MM-DD HH24:MI:SS') as device_time,  "
 				+ "refresh_time - device_time as server_ahead,"
-				+ "deviceid ");
+				+ "deviceid,"
+				+ "appversion ");
 		
 		boolean locationServer = GeneralUtilityMethods.isLocationServer(request.getServerName());
 		if(locationServer) {
@@ -642,6 +641,7 @@ public class Audit extends Application {
 				jf.put("device_time", rs.getString("device_time"));
 				jf.put("server_ahead", rs.getString("server_ahead"));
 				jf.put("deviceid", rs.getString("deviceid"));
+				jf.put("appversion", rs.getString("appversion"));
 				
 				if(locationServer) {
 					if(isGeoJson) {
