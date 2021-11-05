@@ -54,7 +54,6 @@ public class ReportProcessor {
 		public void run() {
 
 			int delaySecs = 5;
-			int count = 0;
 		
 			boolean loop = true;
 			while(loop) {
@@ -92,7 +91,6 @@ public class ReportProcessor {
 					} catch (SQLException e1) {
 						e1.printStackTrace();
 					}
-					
 					
 					/*
 					 * Sleep and then go again
