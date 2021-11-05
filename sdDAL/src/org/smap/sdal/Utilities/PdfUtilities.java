@@ -1,5 +1,7 @@
 package org.smap.sdal.Utilities;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -14,6 +16,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
+import javax.swing.JEditorPane;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PDFTableManager;
@@ -157,8 +162,7 @@ public class PdfUtilities {
 		
 		if(getMap && mapbox_key == null) {
 			log.info("Mapbox key not specified.  PDF Map not created");
-		} else if(getMap) {
-			//url.append("500x300.png?access_token=");
+		} else if(getMap) {;
 			url.append("500x300?access_token=");
 			url.append(mapbox_key);
 			try {
@@ -195,7 +199,27 @@ public class PdfUtilities {
 			String basePath) throws BadElementException, MalformedURLException, IOException, SQLException {
 		
 		Image img = null;
-	
+		int width = 200;
+		int height = 100;
+		
+		BufferedImage tempImg = new BufferedImage(width, height,
+                BufferedImage.TYPE_INT_ARGB);
+		
+		Graphics2D g2d = (Graphics2D) tempImg.getGraphics();
+        
+        // some sample drawing
+       
+        g2d.setColor(Color.RED);
+        g2d.drawLine(0, height / 2, width, height / 2);
+        
+        // drawing on images can be very memory-consuming
+        // so it's better to free resources early
+        // it's not necessary, though
+        g2d.dispose();
+        
+		File file = new File(basePath + "/temp/pdfimage_" + UUID.randomUUID() + ".png");
+		ImageIO.write(tempImg, "png", file);			       
+		img = Image.getInstance(file.getAbsolutePath());
 		
 		return img;
 	}
@@ -230,9 +254,9 @@ public class PdfUtilities {
 			out.append(addGeoJsonFeature(mapValues.getLineGeometry(), "00f", null));
 				
 			out.append(",");
-			out.append(addGeoJsonFeature(mapValues.startLine, "f0f", "triangle"));
+			out.append(addGeoJsonFeature(mapValues.startLine, "f0f", "1"));
 			out.append(",");
-			out.append(addGeoJsonFeature(mapValues.endLine, "f0f", "triangle"));
+			out.append(addGeoJsonFeature(mapValues.endLine, "f0f", "2"));
 			
 			if(mapValues.hasMarkers()) {
 				for(String marker : mapValues.markers) {
