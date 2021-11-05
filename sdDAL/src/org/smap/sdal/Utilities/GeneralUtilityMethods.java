@@ -10105,6 +10105,18 @@ public class GeneralUtilityMethods {
 		return v;
 	}
 	
+	public static double getDouble(String in) {
+		double out = 0.0;
+		if(in != null) {
+			try {
+				out = Double.valueOf(in);
+			} catch (Exception e) {
+				
+			}
+		}
+		return out;
+	}
+	
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");
@@ -10126,6 +10138,8 @@ public class GeneralUtilityMethods {
 		
 		return idx;
 	}
+	
+	
 	
 }
 
