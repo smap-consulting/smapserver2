@@ -29,16 +29,21 @@ public class PdfMapValues {
 	public String getLineGeometry() {
 		StringBuilder sb = new StringBuilder("{\"type\":\"LineString\",\"coordinates\":[");
 		
-		sb.append(getCoordinates(startLine));
-		sb.append(",").append(getCoordinates(endLine));
+		sb.append(getCoordinates(startLine, false));
+		sb.append(",").append(getCoordinates(endLine, false));
 		sb.append("]}");
 		return sb.toString();
 	}
 	
 	// Get the coordinates of a point
-	public String getCoordinates(String geometry) {
+	public String getCoordinates(String geometry, boolean removeBrackets) {
 		int idx = geometry.indexOf("[");
 		int idx2 = geometry.lastIndexOf("]");
-		return(geometry.substring(idx, idx2 + 1));
+		
+		String coords = geometry.substring(idx, idx2 + 1);
+		if(removeBrackets) {
+			coords = coords.substring(1, coords.length() - 1);
+		}
+		return(coords);
 	}
 }

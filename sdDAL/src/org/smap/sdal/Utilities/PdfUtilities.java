@@ -9,6 +9,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
@@ -201,27 +203,70 @@ public class PdfUtilities {
 		Image img = null;
 		int width = 200;
 		int height = 100;
+		int margin = 10;
 		
-		BufferedImage tempImg = new BufferedImage(width, height,
-                BufferedImage.TYPE_INT_ARGB);
+
+        // Add the faults
+		String sql = "SELECT ST_Distance(gg1, gg2) As spheroid_dist "
+				+ "FROM (SELECT "
+				+ "?::geography as gg1,"
+				+ "?::geography as gg2"
+				+ ") As foo";
+		PreparedStatement pstmt = null;;
+		Graphics2D g2d = null;
 		
-		Graphics2D g2d = (Graphics2D) tempImg.getGraphics();
-        
-        // some sample drawing
-       
-        g2d.setColor(Color.RED);
-        g2d.drawLine(0, height / 2, width, height / 2);
-        
-        // drawing on images can be very memory-consuming
-        // so it's better to free resources early
-        // it's not necessary, though
-        g2d.dispose();
-        
-		File file = new File(basePath + "/temp/pdfimage_" + UUID.randomUUID() + ".png");
-		ImageIO.write(tempImg, "png", file);			       
-		img = Image.getInstance(file.getAbsolutePath());
+		try {
+			BufferedImage tempImg = new BufferedImage(width, height,
+	                BufferedImage.TYPE_INT_ARGB);
+			
+			g2d = (Graphics2D) tempImg.getGraphics();
+		    java.awt.Font font = new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 8);
+		    g2d.setFont(font);
+			
+			// Add the line
+	        g2d.setColor(Color.BLACK);
+	        g2d.drawLine(margin, height / 2, width - margin, height / 2);
+	        
+	        // Add the faults
+	        if(mapValues.markers.size() > 0) {
+		        pstmt = sd.prepareStatement(sql);	// Prepared statement to get distances
+				int lineDistance = getDistance(pstmt, mapValues, mapValues.startLine, mapValues.endLine);
+				System.out.println("Distance: " + lineDistance);
+				for(int i = 0; i < mapValues.markers.size(); i++) {
+					addMarkerImage(g2d, pstmt, mapValues, lineDistance, i, height, width, margin);
+				}
+	        }
+
+			File file = new File(basePath + "/temp/pdfimage_" + UUID.randomUUID() + ".png");
+			ImageIO.write(tempImg, "png", file);			       
+			img = Image.getInstance(file.getAbsolutePath());
+		} finally {
+			 if(g2d != null) try{g2d.dispose();} catch(Exception e) {}
+			 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
+		}
 		
 		return img;
+	}
+	
+	private static void addMarkerImage(Graphics2D g2d, PreparedStatement pstmt, PdfMapValues mapValues, int lineDistance, int idx, 
+			int height, int width, int margin) throws SQLException {
+		int distanceFromP1 = getDistance(pstmt, mapValues, mapValues.startLine, mapValues.markers.get(idx));
+		int offset = distanceFromP1 * (width - (2 * margin)) / lineDistance;
+		g2d.setColor(Color.RED);
+	    g2d.drawLine(margin + offset, height / 2, margin + offset - 5, (height / 2) - 5);
+	    g2d.drawLine(margin + offset, height / 2, margin + offset + 5, (height / 2) - 5);
+	    
+	    g2d.drawOval(margin + offset - 3, (height / 2) - 12, 6, 6);
+	    g2d.drawLine(margin + offset - 2, (height / 2) - 5, margin + offset + 2, (height / 2) - 3);
+	    // Add distance to P1
+	    g2d.setColor(Color.BLACK);
+	    if(idx == 0) {
+	    	g2d.drawString(distanceFromP1 + "m", margin + 10, (height / 2) + 10);
+	    }
+	    // Add Distance to P2
+	    if(mapValues.markers.size() -1 == idx) {
+	    	g2d.drawString((lineDistance - distanceFromP1) + "m", width - (2 * margin) - 10, (height / 2) + 10);
+	    }
 	}
 	
 	private static String createGeoJsonMapValue(PdfMapValues mapValues, String markerColor) {
@@ -293,5 +338,30 @@ public class PdfUtilities {
 		out.append("}}");
 		System.out.println(out.toString());
 		return out.toString();
+	}
+	
+	/*
+	 * Get the distance in meters between two points
+	 * Assume they are reasonably close together so use 
+	 */
+	private static int getDistance(PreparedStatement pstmt, PdfMapValues mapValues, String p1, String p2) throws SQLException {
+		
+		int distance = -1;
+		String[] coords1 = mapValues.getCoordinates(p1, true).split(",");
+		String[] coords2 = mapValues.getCoordinates(p2, true).split(",");
+		
+		if(coords1.length > 1 && coords2.length > 1) {
+			
+			pstmt.setString(1, "SRID=4326;POINT(" + GeneralUtilityMethods.getDouble(coords1[1]) + " " + GeneralUtilityMethods.getDouble(coords1[1]) + ")");
+			pstmt.setString(2, "SRID=4326;POINT(" + GeneralUtilityMethods.getDouble(coords2[1]) + " " + GeneralUtilityMethods.getDouble(coords2[1]) + ")");
+			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				distance = rs.getInt(1);
+			}
+		}
+
+		
+		return distance;
 	}
 }
