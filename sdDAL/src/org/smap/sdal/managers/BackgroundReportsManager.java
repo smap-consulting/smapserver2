@@ -57,6 +57,14 @@ public class BackgroundReportsManager {
 	public static String PARAM_USER_ID = "userId";
 	public static String PARAM_MPS = "mps";
 	
+	public static String PARAM_O_ID = "oId";
+	public static String PARAM_MONTH = "month";
+	public static String PARAM_YEAR = "month";
+	public static String PARAM_BY_SURVEY = "bySurvey";
+	public static String PARAM_BY_PROJECT = "byProject";
+	public static String PARAM_BY_DEVICE = "byDevice";
+	public static String PARAM_INC_TEMP = "incTemp";
+	
 	public BackgroundReportsManager(ResourceBundle l, String tz) {
 		localisation = l;
 		if(tz == null) {
@@ -89,6 +97,10 @@ public class BackgroundReportsManager {
 				} else if(report.report_type.equals("locations_distance")) {
 					UserTrailManager utm = new UserTrailManager(localisation, report.tz);
 					filename = utm.generateDistanceReport(sd, report.pId, report.params, basePath);
+				} else if(report.report_type.equals("u_usage")) {
+					XLSXAdminReportsManager rm = new XLSXAdminReportsManager(localisation);
+					String userIdent = GeneralUtilityMethods.getUserIdent(sd, report.uId);
+					filename = rm.writeNewReport(sd, userIdent, report.params, basePath);
 				}
 				updateReportStatus(sd, report.id, true, filename, null);
 				
@@ -152,7 +164,7 @@ public class BackgroundReportsManager {
 			/*
 			 * Get the next report to be processed
 			 */
-			String sql = "select id, o_id, p_id, report_type, tz, language, params "
+			String sql = "select id, u_id, o_id, p_id, report_type, tz, language, params "
 					+ "from background_report "
 					+ "where status = ? "
 					+ "order by id asc limit 1";
@@ -162,6 +174,7 @@ public class BackgroundReportsManager {
 			if(rs.next()) {
 				br = new BackgroundReport();
 				br.id = rs.getInt("id");
+				br.uId = rs.getInt("u_id");
 				br.oId = rs.getInt("o_id");
 				br.pId = rs.getInt("p_id");
 				br.report_type = rs.getString("report_type");
