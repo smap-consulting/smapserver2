@@ -59,7 +59,7 @@ public class BackgroundReportsManager {
 	
 	public static String PARAM_O_ID = "oId";
 	public static String PARAM_MONTH = "month";
-	public static String PARAM_YEAR = "month";
+	public static String PARAM_YEAR = "year";
 	public static String PARAM_BY_SURVEY = "bySurvey";
 	public static String PARAM_BY_PROJECT = "byProject";
 	public static String PARAM_BY_DEVICE = "byDevice";
