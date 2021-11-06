@@ -31,12 +31,9 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.server.entities.Form;
-import org.smap.server.entities.Option;
 import org.smap.server.entities.Question;
 import org.smap.server.utilities.GetXForm;
 import org.smap.server.utilities.UtilityMethods;
-import org.w3c.dom.Element;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
