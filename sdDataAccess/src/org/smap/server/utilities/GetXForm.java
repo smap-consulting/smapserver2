@@ -300,6 +300,25 @@ public class GetXForm {
 		Survey s = template.getSurvey();
 
 		HashMap<String, HashMap<String, HashMap<String, Translation>>> translations = template.getTranslations();
+		
+		// If there are no translations add a dummy translation
+		if(translations.size() == 0) {
+			Translation dt = new Translation();		// Translation
+			String textId = "_dummyQuestion:label";
+			dt.setLanguage("language");
+			dt.setTextId(textId);
+			dt.setType("none");
+			dt.setValue(localisation.getString("nq"));
+			
+			HashMap<String, Translation> elemTrans = new HashMap<>();	// Translation elements in a question
+			elemTrans.put(textId, dt);
+			
+			HashMap<String, HashMap<String, Translation>> qTrans = new HashMap<>();		// Questions
+			qTrans.put(textId, elemTrans);
+			
+			translations.put("language", qTrans);			// Languages
+		}
+		
 		// Write the translation objects
 		Collection<HashMap<String, HashMap<String, Translation>>> c = translations.values();
 		Iterator<HashMap<String, HashMap<String, Translation>>> itr = c.iterator();
@@ -615,6 +634,22 @@ public class GetXForm {
 		 * Add the questions from the template
 		 */
 		List<Question> questions = f.getQuestions(sd, f.getPath(null));
+		
+		// If there are no questions in the top level form add a dummy question
+		if(!f.hasParent() && questions.size() == 0) {
+			String dqName = "_dummy";
+			Question dq = new Question();
+			dq.setType("note");
+			dq.setName(dqName);
+			dq.setVisible(true);
+			dq.setQTextId("_dummyQuestion:label");
+			questions.add(dq);	
+			
+			// Add a question path
+			HashMap<String, String> questionPaths = template.getQuestionPaths();
+			questionPaths.put(dqName, "/main/" + dqName);
+		}
+		
 		for (Question q : questions) {
 
 			// Backward compatability - Ignore Meta  questions 
