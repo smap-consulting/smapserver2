@@ -226,8 +226,8 @@ public class PdfUtilities {
 		DOMImplementation impl = SVGDOMImplementation.getDOMImplementation();
 		
 		try {
-			BufferedImage tempImg = new BufferedImage(width, height,
-	                BufferedImage.TYPE_INT_ARGB);
+			//BufferedImage tempImg = new BufferedImage(width, height,
+	        //        BufferedImage.TYPE_INT_ARGB);
 			
 			String svgNS = SVGDOMImplementation.SVG_NAMESPACE_URI;
 			Document doc = impl.createDocument(svgNS, "svg", null);
@@ -236,20 +236,54 @@ public class PdfUtilities {
 			org.w3c.dom.Element svgRoot = doc.getDocumentElement();
 			
 			// Set the width and height attributes on the root 'svg' element.
-			svgRoot.setAttributeNS(null, "width", "400");
-			svgRoot.setAttributeNS(null, "height", "450");
+			svgRoot.setAttributeNS(null, "width", String.valueOf(width));
+			svgRoot.setAttributeNS(null, "height",  String.valueOf(height));
 			
 			// Create the rectangle.
-			org.w3c.dom.Element rectangle = doc.createElementNS(svgNS, "rect");
-			rectangle.setAttributeNS(null, "x", "10");
-			rectangle.setAttributeNS(null, "y", "20");
-			rectangle.setAttributeNS(null, "width", "100");
-			rectangle.setAttributeNS(null, "height", "50");
-			rectangle.setAttributeNS(null, "fill", "red");
+			//org.w3c.dom.Element rectangle = doc.createElementNS(svgNS, "rect");
+			//rectangle.setAttributeNS(null, "x", "10");
+			//rectangle.setAttributeNS(null, "y", "20");
+			//rectangle.setAttributeNS(null, "width", "100");
+			//rectangle.setAttributeNS(null, "height", "50");
+			//rectangle.setAttributeNS(null, "fill", "red");
 			
 			// Attach the rectangle to the root 'svg' element.
-			svgRoot.appendChild(rectangle);
+			//svgRoot.appendChild(rectangle);
 			
+
+			
+			/*
+			g2d = (Graphics2D) tempImg.getGraphics();
+		    java.awt.Font font = new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 8);
+		    g2d.setFont(font);
+			
+			// Add the line
+	        g2d.setColor(Color.BLACK);
+	        g2d.drawLine(margin, height / 2, width - margin, height / 2);
+	        */
+			org.w3c.dom.Element mainLine = doc.createElementNS(svgNS, "line");
+			mainLine.setAttribute("id", "mainLine");
+			mainLine.setAttribute("x1",String.valueOf(margin));
+			mainLine.setAttribute("y1",String.valueOf(height / 2));
+			mainLine.setAttribute("x2",String.valueOf(width - margin));
+			mainLine.setAttribute("y2",String.valueOf((height / 2)));
+			mainLine.setAttribute("stroke", "black");			
+			svgRoot.appendChild(mainLine);
+			
+	        // Add the faults
+	        if(mapValues.markers.size() > 0) {
+		        pstmt = sd.prepareStatement(sql);	// Prepared statement to get distances
+				int lineDistance = getDistance(pstmt, mapValues, mapValues.startLine, mapValues.endLine);
+				System.out.println("Distance: " + lineDistance);
+				for(int i = 0; i < mapValues.markers.size(); i++) {
+					addMarkerSvgImage(doc, svgRoot, svgNS, pstmt, mapValues, lineDistance, i, height, width, margin);
+				}
+	        }
+			
+	        
+	        /*
+	         * Convert the SVG into an image
+	         */
 			PNGTranscoder t = new PNGTranscoder();
 			
 			// set the transcoding hints
@@ -260,26 +294,6 @@ public class PdfUtilities {
 
 			// create the transcoder input
 			 TranscoderInput input = new TranscoderInput(doc);
-			
-			/*
-			g2d = (Graphics2D) tempImg.getGraphics();
-		    java.awt.Font font = new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 8);
-		    g2d.setFont(font);
-			
-			// Add the line
-	        g2d.setColor(Color.BLACK);
-	        g2d.drawLine(margin, height / 2, width - margin, height / 2);
-	        
-	        // Add the faults
-	        if(mapValues.markers.size() > 0) {
-		        pstmt = sd.prepareStatement(sql);	// Prepared statement to get distances
-				int lineDistance = getDistance(pstmt, mapValues, mapValues.startLine, mapValues.endLine);
-				System.out.println("Distance: " + lineDistance);
-				for(int i = 0; i < mapValues.markers.size(); i++) {
-					addMarkerImage(g2d, pstmt, mapValues, lineDistance, i, height, width, margin);
-				}
-	        }
-			*/
 			
 			File file = new File(basePath + "/temp/pdfimage_" + UUID.randomUUID() + ".png");
 			ostream = new FileOutputStream(file);
@@ -318,6 +332,82 @@ public class PdfUtilities {
 	    if(mapValues.markers.size() -1 == idx) {
 	    	g2d.drawString((lineDistance - distanceFromP1) + "m", width - (2 * margin) - 10, (height / 2) + 10);
 	    }
+	}
+	
+	private static void addMarkerSvgImage(Document doc, org.w3c.dom.Element svgRoot, String svgNS, PreparedStatement pstmt, PdfMapValues mapValues, int lineDistance, int idx, 
+			int height, int width, int margin) throws SQLException {
+		
+		int distanceFromP1 = getDistance(pstmt, mapValues, mapValues.startLine, mapValues.markers.get(idx));
+		int offset = distanceFromP1 * (width - (2 * margin)) / lineDistance;
+		
+		org.w3c.dom.Element tick1 = doc.createElementNS(svgNS, "line");
+		tick1.setAttribute("id", "m" + idx + "_1");
+		tick1.setAttribute("x1",String.valueOf(margin + offset));
+		tick1.setAttribute("y1",String.valueOf(height / 2));
+		tick1.setAttribute("x2",String.valueOf(margin + offset - 5));
+		tick1.setAttribute("y2",String.valueOf((height / 2) - 5));
+		tick1.setAttribute("stroke", "red");		
+		svgRoot.appendChild(tick1);
+		
+		org.w3c.dom.Element tick2 = doc.createElementNS(svgNS, "line");
+		tick2.setAttribute("id", "m" + idx + "_2");
+		tick2.setAttribute("x1",String.valueOf(margin + offset));
+		tick2.setAttribute("y1",String.valueOf(height / 2));
+		tick2.setAttribute("x2",String.valueOf(margin + offset + 5));
+		tick2.setAttribute("y2",String.valueOf((height / 2) - 5));
+		tick2.setAttribute("stroke", "red");		
+		svgRoot.appendChild(tick2);
+		
+		org.w3c.dom.Element circle1 = doc.createElementNS(svgNS, "circle");
+		double cx = margin + offset;
+		double cy = (height / 2) - 6;
+		double radius = 2.0;
+		circle1.setAttribute("id", "c" + idx + "_1");
+		circle1.setAttribute("cx",String.valueOf(cx));
+		circle1.setAttribute("cy",String.valueOf(cy));
+		circle1.setAttribute("r","2");
+		circle1.setAttributeNS(null, "style", "fill:white;");
+		circle1.setAttribute("stroke", "red");		
+		svgRoot.appendChild(circle1);
+		
+		org.w3c.dom.Element circle2 = doc.createElementNS(svgNS, "line");
+		circle2.setAttribute("id", "c" + idx + "_2");
+		circle2.setAttribute("x1",String.valueOf(cx - radius * Math.cos(45.0)));
+		circle2.setAttribute("y1",String.valueOf(cy - radius * Math.sin(45.0)));
+		circle2.setAttribute("x2",String.valueOf(cx + radius * Math.cos(45.0)));
+		circle2.setAttribute("y2",String.valueOf(cy + radius * Math.sin(45.0)));
+		circle2.setAttribute("stroke", "red");		
+		svgRoot.appendChild(circle2);
+	    
+
+
+	  
+	    if(idx == 0) {
+			org.w3c.dom.Element d1 = doc.createElementNS(svgNS,"text");
+			d1.setAttributeNS(null,"x", String.valueOf(margin + 10));    
+			d1.setAttributeNS(null,"y", String.valueOf((height / 2) + 12)); 
+			d1.setAttributeNS(null,"font-size","10");
+			
+			org.w3c.dom.Text tNode1 = doc.createTextNode(distanceFromP1 + "m");
+			d1.appendChild(tNode1);
+			svgRoot.appendChild(d1);
+			
+	    	//g2d.drawString(distanceFromP1 + "m", margin + 10, (height / 2) + 10);
+	    }
+	    
+	    // Add Distance to P2
+	    if(mapValues.markers.size() -1 == idx) {
+	    	org.w3c.dom.Element d2 = doc.createElementNS(svgNS,"text");
+			d2.setAttributeNS(null,"x", String.valueOf(width - (2 * margin) - 10));    
+			d2.setAttributeNS(null,"y", String.valueOf((height / 2) + 12)); 
+			d2.setAttributeNS(null,"font-size","10");
+			
+			org.w3c.dom.Text tNode1 = doc.createTextNode((lineDistance - distanceFromP1) + "m");
+			d2.appendChild(tNode1);
+			svgRoot.appendChild(d2);
+	    	//g2d.drawString((lineDistance - distanceFromP1) + "m", width - (2 * margin) - 10, (height / 2) + 10);
+	    }
+	    
 	}
 	
 	private static String createGeoJsonMapValue(PdfMapValues mapValues, String markerColor) {
