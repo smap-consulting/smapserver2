@@ -4,7 +4,10 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Reader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -18,13 +21,17 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
-import javax.swing.JEditorPane;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
 
+import org.apache.batik.dom.svg.SVGDOMImplementation;
+import org.apache.batik.transcoder.TranscoderException;
+import org.apache.batik.transcoder.TranscoderInput;
+import org.apache.batik.transcoder.TranscoderOutput;
+import org.apache.batik.transcoder.image.PNGTranscoder;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PDFTableManager;
 import org.smap.sdal.model.PdfMapValues;
+import org.w3c.dom.DOMImplementation;
+import org.w3c.dom.Document;
 
 import com.itextpdf.text.Anchor;
 import com.itextpdf.text.BadElementException;
@@ -198,7 +205,7 @@ public class PdfUtilities {
 			int sId,
 			String user,
 			String markerColor,
-			String basePath) throws BadElementException, MalformedURLException, IOException, SQLException {
+			String basePath) throws BadElementException, MalformedURLException, IOException, SQLException, TranscoderException {
 		
 		Image img = null;
 		int width = 200;
@@ -213,12 +220,48 @@ public class PdfUtilities {
 				+ "?::geography as gg2"
 				+ ") As foo";
 		PreparedStatement pstmt = null;;
-		Graphics2D g2d = null;
+		
+		//Graphics2D g2d = null;
+		OutputStream ostream = null;
+		DOMImplementation impl = SVGDOMImplementation.getDOMImplementation();
 		
 		try {
 			BufferedImage tempImg = new BufferedImage(width, height,
 	                BufferedImage.TYPE_INT_ARGB);
 			
+			String svgNS = SVGDOMImplementation.SVG_NAMESPACE_URI;
+			Document doc = impl.createDocument(svgNS, "svg", null);
+
+			// Get the root element (the 'svg' element).
+			org.w3c.dom.Element svgRoot = doc.getDocumentElement();
+			
+			// Set the width and height attributes on the root 'svg' element.
+			svgRoot.setAttributeNS(null, "width", "400");
+			svgRoot.setAttributeNS(null, "height", "450");
+			
+			// Create the rectangle.
+			org.w3c.dom.Element rectangle = doc.createElementNS(svgNS, "rect");
+			rectangle.setAttributeNS(null, "x", "10");
+			rectangle.setAttributeNS(null, "y", "20");
+			rectangle.setAttributeNS(null, "width", "100");
+			rectangle.setAttributeNS(null, "height", "50");
+			rectangle.setAttributeNS(null, "fill", "red");
+			
+			// Attach the rectangle to the root 'svg' element.
+			svgRoot.appendChild(rectangle);
+			
+			PNGTranscoder t = new PNGTranscoder();
+			
+			// set the transcoding hints
+			t.addTranscodingHint(PNGTranscoder.KEY_WIDTH, new Float(1000));
+			t.addTranscodingHint(PNGTranscoder.KEY_ALLOWED_SCRIPT_TYPES, "*");
+			t.addTranscodingHint(PNGTranscoder.KEY_CONSTRAIN_SCRIPT_ORIGIN, new Boolean(true));
+			t.addTranscodingHint(PNGTranscoder.KEY_EXECUTE_ONLOAD, new Boolean(true));
+
+			// create the transcoder input
+			 TranscoderInput input = new TranscoderInput(doc);
+			
+			/*
 			g2d = (Graphics2D) tempImg.getGraphics();
 		    java.awt.Font font = new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 8);
 		    g2d.setFont(font);
@@ -236,13 +279,21 @@ public class PdfUtilities {
 					addMarkerImage(g2d, pstmt, mapValues, lineDistance, i, height, width, margin);
 				}
 	        }
-
+			*/
+			
 			File file = new File(basePath + "/temp/pdfimage_" + UUID.randomUUID() + ".png");
-			ImageIO.write(tempImg, "png", file);			       
+			ostream = new FileOutputStream(file);
+			TranscoderOutput output = new TranscoderOutput(ostream);
+			t.transcode(input, output);
+			ostream.flush();
+	        
+			//ImageIO.write(tempImg, "png", file);		
+			
 			img = Image.getInstance(file.getAbsolutePath());
 		} finally {
-			 if(g2d != null) try{g2d.dispose();} catch(Exception e) {}
+			 //if(g2d != null) try{g2d.dispose();} catch(Exception e) {}
 			 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
+			 if(ostream != null)  try{ostream.close();} catch(Exception e) {}
 		}
 		
 		return img;
