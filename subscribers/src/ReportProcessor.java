@@ -42,7 +42,7 @@ public class ReportProcessor {
 
 	private class ReportsLoop implements Runnable {
 		DatabaseConnections dbc = new DatabaseConnections();
-		String serverName;
+
 		String basePath;
 		String confFilePath;
 
@@ -69,7 +69,6 @@ public class ReportProcessor {
 					try {
 						// Make sure we have a connection to the database
 						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
-						serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
 					}

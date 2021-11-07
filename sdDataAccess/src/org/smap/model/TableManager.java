@@ -374,7 +374,7 @@ public class TableManager {
 		/*
 		 * Attempt to create the table, Don't create if the table already exists
 		 */
-		if(columns.size() > 0) {
+		if(columns.size() > 0 || !form.hasParent()) {
 			sql.append("CREATE TABLE ").append(tableName).append(" (")
 					.append("prikey SERIAL PRIMARY KEY, ")
 					.append("parkey int default 0");
