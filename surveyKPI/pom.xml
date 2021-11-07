@@ -233,6 +233,19 @@
   			<version>1.0.1</version>
 		</dependency>
 		
+		<dependency>
+    		<groupId>batik</groupId>
+    		<artifactId>batik-svg-dom</artifactId>
+    		<version>1.6-1</version>
+		</dependency>
+        
+        <dependency>
+            <groupId>batik</groupId>
+            <artifactId>batik-transcoder</artifactId>
+            <version>1.6-1</version>
+        </dependency>
+        
+        
 		<!--
 		<dependency>
     		<groupId>net.bull.javamelody</groupId>
