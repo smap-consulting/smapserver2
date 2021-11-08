@@ -205,13 +205,13 @@ public class PdfUtilities {
 			int sId,
 			String user,
 			String markerColor,
-			String basePath) throws BadElementException, MalformedURLException, IOException, SQLException, TranscoderException {
+			String basePath,
+			Float width,
+			Float height) throws BadElementException, MalformedURLException, IOException, SQLException, TranscoderException {
 		
 		Image img = null;
-		int width = 200;
-		int height = 100;
-		int margin = 10;
-		
+	
+		int margin = 10;	
 
         // Add the faults
 		String sql = "SELECT ST_Distance(gg1, gg2) As spheroid_dist "
@@ -248,7 +248,7 @@ public class PdfUtilities {
 	        // Add the faults
 	        if(mapValues.markers.size() > 0) {
 		        pstmt = sd.prepareStatement(sql);	// Prepared statement to get distances
-				int lineDistance = getDistance(pstmt, mapValues, mapValues.startLine, mapValues.endLine);
+				Float lineDistance = getDistance(pstmt, mapValues, mapValues.startLine, mapValues.endLine);
 				System.out.println("Distance: " + lineDistance);
 				for(int i = 0; i < mapValues.markers.size(); i++) {
 					addMarkerSvgImage(doc, svgRoot, svgNS, pstmt, mapValues, lineDistance, i, height, width, margin);
@@ -288,11 +288,11 @@ public class PdfUtilities {
 	/*
 	 * Add a marker to an SVG image
 	 */
-	private static void addMarkerSvgImage(Document doc, org.w3c.dom.Element svgRoot, String svgNS, PreparedStatement pstmt, PdfMapValues mapValues, int lineDistance, int idx, 
-			int height, int width, int margin) throws SQLException {
+	private static void addMarkerSvgImage(Document doc, org.w3c.dom.Element svgRoot, String svgNS, PreparedStatement pstmt, PdfMapValues mapValues, Float lineDistance, int idx, 
+			Float height, Float width, int margin) throws SQLException {
 		
-		int distanceFromP1 = getDistance(pstmt, mapValues, mapValues.startLine, mapValues.markers.get(idx));
-		int offset = distanceFromP1 * (width - (2 * margin)) / lineDistance;
+		Float distanceFromP1 = getDistance(pstmt, mapValues, mapValues.startLine, mapValues.markers.get(idx));
+		Float offset = distanceFromP1 * (width - (2 * margin)) / lineDistance;
 		
 		org.w3c.dom.Element tick1 = doc.createElementNS(svgNS, "line");
 		tick1.setAttribute("id", "m" + idx + "_1");
@@ -439,9 +439,9 @@ public class PdfUtilities {
 	 * Get the distance in meters between two points
 	 * Assume they are reasonably close together so use 
 	 */
-	private static int getDistance(PreparedStatement pstmt, PdfMapValues mapValues, String p1, String p2) throws SQLException {
+	private static Float getDistance(PreparedStatement pstmt, PdfMapValues mapValues, String p1, String p2) throws SQLException {
 		
-		int distance = -1;
+		Float distance = (float) -1.0;
 		String[] coords1 = mapValues.getCoordinates(p1, true).split(",");
 		String[] coords2 = mapValues.getCoordinates(p2, true).split(",");
 		
@@ -452,7 +452,7 @@ public class PdfUtilities {
 			
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
-				distance = rs.getInt(1);
+				distance = rs.getFloat(1);
 			}
 		}
 
