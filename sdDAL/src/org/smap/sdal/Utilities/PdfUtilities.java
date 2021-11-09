@@ -286,6 +286,7 @@ public class PdfUtilities {
 			t.addTranscodingHint(PNGTranscoder.KEY_ALLOWED_SCRIPT_TYPES, "*");
 			t.addTranscodingHint(PNGTranscoder.KEY_CONSTRAIN_SCRIPT_ORIGIN, new Boolean(true));
 			t.addTranscodingHint(PNGTranscoder.KEY_EXECUTE_ONLOAD, new Boolean(true));
+			t.addTranscodingHint(PNGTranscoder.KEY_BACKGROUND_COLOR, Color.white);
 
 			// create the transcoder input
 			 TranscoderInput input = new TranscoderInput(doc);
