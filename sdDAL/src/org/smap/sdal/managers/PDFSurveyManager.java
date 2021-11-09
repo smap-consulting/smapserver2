@@ -645,43 +645,44 @@ public class PDFSurveyManager {
 				}
 
 			} else if(r.type.equals("pdf_field") && di.linemap != null) {
-				
+
+
+				Float width = (float) 200.0;
+				Float height = (float) 100.0;
+
+
+				// If a push button field is used set the image size from that field
 				PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
-			
 				if(ad != null) {
-					PdfMapValues mapValues = getMapValues(di);
-					
-					ad.setText("");
-					
 					Rectangle rect = ad.getBox();
-					Float width = rect.getWidth();
-					Float height = rect.getHeight();
-					//Float width = (float) 200.0;
-					//Float height = (float) 100.0;
-					Image img = null;
-					if(di.linemap.type.equals("map")) {
-						 img = PdfUtilities.getMapImage(sd, di.map, 
-								di.account, 
-								mapValues,
-								di.location, di.zoom, gv.mapbox_key,
-								survey.id,
-								user,
-								di.markerColor,
-								basePath);
-					} else {
-						img = PdfUtilities.getLineImage(sd, 
-								mapValues,
-								survey.id,
-								user,
-								di.markerColor,
-								basePath,
-								width,
-								height);
-					}
-					
-					PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img);
+					width = rect.getWidth();
+					height = rect.getHeight();
 				}
-				
+				PdfMapValues mapValues = getMapValues(di);
+				Image img = null;
+				if(di.linemap.type.equals("map")) {
+					img = PdfUtilities.getMapImage(sd, di.map, 
+							di.account, 
+							mapValues,
+							di.location, di.zoom, gv.mapbox_key,
+							survey.id,
+							user,
+							di.markerColor,
+							basePath);
+				} else {
+					img = PdfUtilities.getLineImage(sd, 
+							mapValues,
+							survey.id,
+							user,
+							di.markerColor,
+							basePath,
+							width,
+							height);
+				}
+
+				PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img);
+
+
 			} else if(r.type.equals("image") || r.type.equals("video") || r.type.equals("audio")  || r.type.equals("file")) {
 				PdfUtilities.addImageTemplate(pdfForm, fieldName, basePath, value, serverRoot, stamper, defaultFontLink);
 
