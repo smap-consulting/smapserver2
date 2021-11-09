@@ -250,7 +250,7 @@ public class PdfUtilities {
 			// Add start and end of line
 			org.w3c.dom.Text p1t = doc.createTextNode("1");
 			org.w3c.dom.Element p1te = doc.createElementNS(svgNS,"text");
-			p1te.setAttributeNS(null,"x", String.valueOf(margin));   // Position should be half the width of the text    
+			p1te.setAttributeNS(null,"x", String.valueOf(margin - 5));   // Position should be half the width of the text    
 			p1te.setAttributeNS(null,"y", String.valueOf((height / 2) - 2)); 
 			p1te.setAttributeNS(null,"font-size",fontSize);		
 			p1te.setAttribute("stroke", "red");	
@@ -259,7 +259,7 @@ public class PdfUtilities {
 			
 			org.w3c.dom.Text p2t = doc.createTextNode("2");
 			org.w3c.dom.Element p2te = doc.createElementNS(svgNS,"text");
-			p2te.setAttributeNS(null,"x", String.valueOf(width - margin -5));   // Position should be half the width of the text    
+			p2te.setAttributeNS(null,"x", String.valueOf(width - margin + 2));   // Position should be half the width of the text    
 			p2te.setAttributeNS(null,"y", String.valueOf((height / 2) - 2)); 
 			p2te.setAttributeNS(null,"font-size",fontSize);		
 			p2te.setAttribute("stroke", "red");	
@@ -359,10 +359,9 @@ public class PdfUtilities {
 		String coords = mapValues.getCoordinates(mapValues.markers.get(idx), true);
 		String [] coordsArray = coords.split(",");
 		
-		System.out.println("coords");
 		org.w3c.dom.Text latNode = doc.createTextNode("lat: " + coordsArray[1]);
 		org.w3c.dom.Element lat = doc.createElementNS(svgNS,"text");
-		lat.setAttributeNS(null,"x", String.valueOf(cx - 30));   // Position should be half the width of the text    
+		lat.setAttributeNS(null,"x", String.valueOf((cx - 30) > 0 ? cx - 30 : 0));   // Position should be half the width of the text    
 		lat.setAttributeNS(null,"y", String.valueOf((height / 2) - 30)); 
 		lat.setAttributeNS(null,"font-size",fontSize);			
 		lat.appendChild(latNode);
@@ -370,7 +369,7 @@ public class PdfUtilities {
 		
 		org.w3c.dom.Text lonNode = doc.createTextNode("lon: " + coordsArray[0]);
 		org.w3c.dom.Element lon = doc.createElementNS(svgNS,"text");
-		lon.setAttributeNS(null,"x", String.valueOf(cx - 30));   // Position should be half the width of the text    
+		lon.setAttributeNS(null,"x", String.valueOf((cx - 30) > 0 ? cx - 30 : 0));   // Position should be half the width of the text    
 		lon.setAttributeNS(null,"y", String.valueOf((height / 2) - 20)); 
 		lon.setAttributeNS(null,"font-size",fontSize);			
 		lon.appendChild(lonNode);
