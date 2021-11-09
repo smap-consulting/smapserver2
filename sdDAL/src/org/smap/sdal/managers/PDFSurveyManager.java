@@ -1412,10 +1412,15 @@ public class PDFSurveyManager {
 	 */
 	ArrayList<String> lookupInSurvey(String qname, ArrayList<ArrayList<Result>> records) {
 		ArrayList<String> values = new ArrayList<>();
-		for(ArrayList<Result> r : records) {
-			String v = lookupInRecord(qname, r);
-			if(v != null) {
-				values.add(v);
+		if(qname != null && records != null && records.size() > 0) {
+			for(ArrayList<Result> r : records) {
+				for(Result result : r) {
+					if(result.subForm == null && result.name.equals(qname)) {
+						values.add(result.value);
+					} else if(result.subForm != null) {
+						values.addAll(lookupInSurvey(qname, result.subForm));
+					}
+				}		
 			}
 		}
 		return values;

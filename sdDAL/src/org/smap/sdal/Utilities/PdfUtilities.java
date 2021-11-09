@@ -15,6 +15,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -212,6 +213,7 @@ public class PdfUtilities {
 		Image img = null;
 	
 		int margin = 10;	
+		String fontSize = "8";
 
         // Add the faults
 		String sql = "SELECT ST_Distance(gg1, gg2) As spheroid_dist "
@@ -245,17 +247,35 @@ public class PdfUtilities {
 			mainLine.setAttribute("stroke", "black");			
 			svgRoot.appendChild(mainLine);
 			
+			// Add start and end of line
+			org.w3c.dom.Text p1t = doc.createTextNode("1");
+			org.w3c.dom.Element p1te = doc.createElementNS(svgNS,"text");
+			p1te.setAttributeNS(null,"x", String.valueOf(margin));   // Position should be half the width of the text    
+			p1te.setAttributeNS(null,"y", String.valueOf((height / 2) - 2)); 
+			p1te.setAttributeNS(null,"font-size",fontSize);		
+			p1te.setAttribute("stroke", "red");	
+			p1te.appendChild(p1t);
+			svgRoot.appendChild(p1te);
+			
+			org.w3c.dom.Text p2t = doc.createTextNode("2");
+			org.w3c.dom.Element p2te = doc.createElementNS(svgNS,"text");
+			p2te.setAttributeNS(null,"x", String.valueOf(width - margin -5));   // Position should be half the width of the text    
+			p2te.setAttributeNS(null,"y", String.valueOf((height / 2) - 2)); 
+			p2te.setAttributeNS(null,"font-size",fontSize);		
+			p2te.setAttribute("stroke", "red");	
+			p2te.appendChild(p2t);
+			svgRoot.appendChild(p2te);
+			
 	        // Add the faults
 	        if(mapValues.markers.size() > 0) {
 		        pstmt = sd.prepareStatement(sql);	// Prepared statement to get distances
 				Float lineDistance = getDistance(pstmt, mapValues, mapValues.startLine, mapValues.endLine);
 				System.out.println("Distance: " + lineDistance);
 				for(int i = 0; i < mapValues.markers.size(); i++) {
-					addMarkerSvgImage(doc, svgRoot, svgNS, pstmt, mapValues, lineDistance, i, height, width, margin);
+					addMarkerSvgImage(doc, svgRoot, svgNS, pstmt, mapValues, lineDistance, i, height, width, margin, fontSize);
 				}
 	        }
 			
-	        
 	        /*
 	         * Convert the SVG into an image
 	         */
@@ -289,7 +309,9 @@ public class PdfUtilities {
 	 * Add a marker to an SVG image
 	 */
 	private static void addMarkerSvgImage(Document doc, org.w3c.dom.Element svgRoot, String svgNS, PreparedStatement pstmt, PdfMapValues mapValues, Float lineDistance, int idx, 
-			Float height, Float width, int margin) throws SQLException {
+			Float height, Float width, int margin, String fontSize) throws SQLException {
+		
+	    DecimalFormat decFormat = new DecimalFormat("0.00");
 		
 		Float distanceFromP1 = getDistance(pstmt, mapValues, mapValues.startLine, mapValues.markers.get(idx));
 		Float offset = distanceFromP1 * (width - (2 * margin)) / lineDistance;
@@ -332,34 +354,49 @@ public class PdfUtilities {
 		circle2.setAttribute("y2",String.valueOf(cy + radius * Math.sin(45.0)));
 		circle2.setAttribute("stroke", "red");		
 		svgRoot.appendChild(circle2);
-	    
-
-
+		
+		// Add lat long
+		String coords = mapValues.getCoordinates(mapValues.markers.get(idx), true);
+		String [] coordsArray = coords.split(",");
+		
+		System.out.println("coords");
+		org.w3c.dom.Text latNode = doc.createTextNode("lat: " + coordsArray[1]);
+		org.w3c.dom.Element lat = doc.createElementNS(svgNS,"text");
+		lat.setAttributeNS(null,"x", String.valueOf(cx - 30));   // Position should be half the width of the text    
+		lat.setAttributeNS(null,"y", String.valueOf((height / 2) - 30)); 
+		lat.setAttributeNS(null,"font-size",fontSize);			
+		lat.appendChild(latNode);
+		svgRoot.appendChild(lat);
+		
+		org.w3c.dom.Text lonNode = doc.createTextNode("lon: " + coordsArray[0]);
+		org.w3c.dom.Element lon = doc.createElementNS(svgNS,"text");
+		lon.setAttributeNS(null,"x", String.valueOf(cx - 30));   // Position should be half the width of the text    
+		lon.setAttributeNS(null,"y", String.valueOf((height / 2) - 20)); 
+		lon.setAttributeNS(null,"font-size",fontSize);			
+		lon.appendChild(lonNode);
+		svgRoot.appendChild(lon);
 	  
 	    if(idx == 0) {
 			org.w3c.dom.Element d1 = doc.createElementNS(svgNS,"text");
-			d1.setAttributeNS(null,"x", String.valueOf(margin + 10));    
+			d1.setAttributeNS(null,"x", String.valueOf(margin));    
 			d1.setAttributeNS(null,"y", String.valueOf((height / 2) + 12)); 
-			d1.setAttributeNS(null,"font-size","10");
+			d1.setAttributeNS(null,"font-size",fontSize);
 			
-			org.w3c.dom.Text tNode1 = doc.createTextNode(distanceFromP1 + "m");
+			org.w3c.dom.Text tNode1 = doc.createTextNode(decFormat.format(distanceFromP1) + " m");
 			d1.appendChild(tNode1);
 			svgRoot.appendChild(d1);
-			
-	    	//g2d.drawString(distanceFromP1 + "m", margin + 10, (height / 2) + 10);
 	    }
 	    
 	    // Add Distance to P2
 	    if(mapValues.markers.size() -1 == idx) {
 	    	org.w3c.dom.Element d2 = doc.createElementNS(svgNS,"text");
-			d2.setAttributeNS(null,"x", String.valueOf(width - (2 * margin) - 10));    
+			d2.setAttributeNS(null,"x", String.valueOf(width - (2 * margin) - 20));    
 			d2.setAttributeNS(null,"y", String.valueOf((height / 2) + 12)); 
-			d2.setAttributeNS(null,"font-size","10");
+			d2.setAttributeNS(null,"font-size",fontSize);
 			
-			org.w3c.dom.Text tNode1 = doc.createTextNode((lineDistance - distanceFromP1) + "m");
+			org.w3c.dom.Text tNode1 = doc.createTextNode(decFormat.format(lineDistance - distanceFromP1) + " m");
 			d2.appendChild(tNode1);
 			svgRoot.appendChild(d2);
-	    	//g2d.drawString((lineDistance - distanceFromP1) + "m", width - (2 * margin) - 10, (height / 2) + 10);
 	    }
 	    
 	}
@@ -459,4 +496,6 @@ public class PdfUtilities {
 		
 		return distance;
 	}
+	
+	
 }
