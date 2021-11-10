@@ -357,23 +357,27 @@ public class PdfUtilities {
 		
 		// Add lat long
 		String coords = mapValues.getCoordinates(mapValues.markers.get(idx), true);
-		String [] coordsArray = coords.split(",");
-		
-		org.w3c.dom.Text latNode = doc.createTextNode("lat: " + coordsArray[1]);
-		org.w3c.dom.Element lat = doc.createElementNS(svgNS,"text");
-		lat.setAttributeNS(null,"x", String.valueOf((cx - 30) > 0 ? cx - 30 : 0));   // Position should be half the width of the text    
-		lat.setAttributeNS(null,"y", String.valueOf((height / 2) - 30)); 
-		lat.setAttributeNS(null,"font-size",fontSize);			
-		lat.appendChild(latNode);
-		svgRoot.appendChild(lat);
-		
-		org.w3c.dom.Text lonNode = doc.createTextNode("lon: " + coordsArray[0]);
-		org.w3c.dom.Element lon = doc.createElementNS(svgNS,"text");
-		lon.setAttributeNS(null,"x", String.valueOf((cx - 30) > 0 ? cx - 30 : 0));   // Position should be half the width of the text    
-		lon.setAttributeNS(null,"y", String.valueOf((height / 2) - 20)); 
-		lon.setAttributeNS(null,"font-size",fontSize);			
-		lon.appendChild(lonNode);
-		svgRoot.appendChild(lon);
+		if(coords != null) {
+			String [] coordsArray = coords.split(",");
+			
+			if(coordsArray.length > 1) {
+				org.w3c.dom.Text latNode = doc.createTextNode("lat: " + coordsArray[1]);
+				org.w3c.dom.Element lat = doc.createElementNS(svgNS,"text");
+				lat.setAttributeNS(null,"x", String.valueOf((cx - 30) > 0 ? cx - 30 : 0));   // Position should be half the width of the text    
+				lat.setAttributeNS(null,"y", String.valueOf((height / 2) - 30)); 
+				lat.setAttributeNS(null,"font-size",fontSize);			
+				lat.appendChild(latNode);
+				svgRoot.appendChild(lat);
+			}
+			
+			org.w3c.dom.Text lonNode = doc.createTextNode("lon: " + coordsArray[0]);
+			org.w3c.dom.Element lon = doc.createElementNS(svgNS,"text");
+			lon.setAttributeNS(null,"x", String.valueOf((cx - 30) > 0 ? cx - 30 : 0));   // Position should be half the width of the text    
+			lon.setAttributeNS(null,"y", String.valueOf((height / 2) - 20)); 
+			lon.setAttributeNS(null,"font-size",fontSize);			
+			lon.appendChild(lonNode);
+			svgRoot.appendChild(lon);
+		}
 	  
 	    if(idx == 0) {
 			org.w3c.dom.Element d1 = doc.createElementNS(svgNS,"text");
@@ -476,17 +480,19 @@ public class PdfUtilities {
 	private static Float getDistance(PreparedStatement pstmt, PdfMapValues mapValues, String p1, String p2) throws SQLException {
 		
 		Float distance = (float) -1.0;
-		String[] coords1 = mapValues.getCoordinates(p1, true).split(",");
-		String[] coords2 = mapValues.getCoordinates(p2, true).split(",");
-		
-		if(coords1.length > 1 && coords2.length > 1) {
+		if(p1 != null && p2 != null) {
+			String[] coords1 = mapValues.getCoordinates(p1, true).split(",");
+			String[] coords2 = mapValues.getCoordinates(p2, true).split(",");
 			
-			pstmt.setString(1, "SRID=4326;POINT(" + GeneralUtilityMethods.getDouble(coords1[1]) + " " + GeneralUtilityMethods.getDouble(coords1[1]) + ")");
-			pstmt.setString(2, "SRID=4326;POINT(" + GeneralUtilityMethods.getDouble(coords2[1]) + " " + GeneralUtilityMethods.getDouble(coords2[1]) + ")");
-			
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				distance = rs.getFloat(1);
+			if(coords1.length > 1 && coords2.length > 1) {
+				
+				pstmt.setString(1, "SRID=4326;POINT(" + GeneralUtilityMethods.getDouble(coords1[1]) + " " + GeneralUtilityMethods.getDouble(coords1[1]) + ")");
+				pstmt.setString(2, "SRID=4326;POINT(" + GeneralUtilityMethods.getDouble(coords2[1]) + " " + GeneralUtilityMethods.getDouble(coords2[1]) + ")");
+				
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					distance = rs.getFloat(1);
+				}
 			}
 		}
 
