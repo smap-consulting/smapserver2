@@ -476,8 +476,11 @@ public class XLSFormManager {
 			} else if(type == COL_HIDE_ON_DEVICE) {				
 				value = survey.getHideOnDevice() ? "yes" : "no";
 
-			} else if(type == COL_SEARCH_LOCAL_DATA) {				
-				value = survey.getSearchLocalData() ? "yes" : "no";
+			} else if(type == COL_TIMING_DATA) {				
+				value = survey.timing_data ? "yes" : "no";
+
+			} else if(type == COL_AUDIT_LOCATION_DATA) {				
+					value = survey.audit_location_data ? "yes" : "no";
 
 			} else if(type == COL_DATA_SURVEY) {				
 				value = survey.dataSurvey ? "yes" : "no";
@@ -488,14 +491,11 @@ public class XLSFormManager {
 			} else if(type == COL_AUTO_TRANSLATE) {				
 				value = survey.autoTranslate ? "yes" : "no";
 
-			} else if(type == COL_AUTO_TRANSLATE) {				
-				value = survey.autoTranslate ? "yes" : "no";
-
 			} else if(type == COL_REPORT_LOGO) {				
 				value = survey.default_logo;
 
-			} else if(type == COL_AUDIT_LOCATION_DATA) {				
-				value = survey.audit_location_data ? "yes" : "no";
+			} else if(type == COL_SEARCH_LOCAL_DATA) {				
+				value = survey.getSearchLocalData() ? "yes" : "no";
 
 			} else if(type == COL_TRACK_CHANGES) {				
 				value = survey.track_changes ? "yes" : "no";
