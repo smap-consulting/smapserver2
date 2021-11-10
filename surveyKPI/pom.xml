@@ -25,6 +25,14 @@
 	      		<artifactId>maven-war-plugin</artifactId>
 	      		<version>3.3.1</version>
 	      	</plugin>
+	      	<plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>1.4.1</version>
+                <configuration>
+                    <rules><dependencyConvergence/></rules>
+                </configuration>
+            </plugin>
 		</plugins>
 	</build>
 	<dependencyManagement>
@@ -39,6 +47,20 @@
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
+	
+		<dependency>
+    		<groupId>xml-apis</groupId>
+    		<artifactId>xml-apis</artifactId>
+    		<version>1.4.01</version>
+		</dependency>
+	
+		<dependency>
+    		<groupId>xerces</groupId>
+    		<artifactId>xercesImpl</artifactId>
+    		<version>2.12.1</version>
+		</dependency>
+	
+	
 		<!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-core -->
 		<dependency>
 			<groupId>com.amazonaws</groupId>
@@ -123,6 +145,7 @@
 			<artifactId>poi-ooxml</artifactId>
 			<version>4.1.2</version>
 		</dependency>
+
 
 		<dependency>
 			<groupId>org.apache.poi</groupId>
@@ -234,16 +257,24 @@
 		</dependency>
 		
 		<dependency>
-    		<groupId>batik</groupId>
-    		<artifactId>batik-svg-dom</artifactId>
-    		<version>1.6-1</version>
+    		<groupId>org.apache.xmlgraphics</groupId>
+    		<artifactId>batik-codec</artifactId>
+    		<version>1.14</version>
 		</dependency>
+
+		<dependency>
+    		<groupId>org.apache.xmlgraphics</groupId>
+    		<artifactId>batik-svg-dom</artifactId>
+    		<version>1.14</version>
+		</dependency>
+
         
-        <dependency>
-            <groupId>batik</groupId>
-            <artifactId>batik-transcoder</artifactId>
-            <version>1.6-1</version>
-        </dependency>
+       <dependency>
+    		<groupId>org.apache.xmlgraphics</groupId>
+    		<artifactId>batik-transcoder</artifactId>
+    		<version>1.14</version>
+		</dependency>
+
         
         
 		<!--
