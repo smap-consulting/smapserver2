@@ -37,12 +37,15 @@ public class PdfMapValues {
 	
 	// Get the coordinates of a point
 	public String getCoordinates(String geometry, boolean removeBrackets) {
-		int idx = geometry.indexOf("[");
-		int idx2 = geometry.lastIndexOf("]");
-		
-		String coords = geometry.substring(idx, idx2 + 1);
-		if(removeBrackets) {
-			coords = coords.substring(1, coords.length() - 1);
+		String coords = null;
+		if(geometry != null) {
+			int idx = geometry.indexOf("[");
+			int idx2 = geometry.lastIndexOf("]");
+			
+			coords = geometry.substring(idx, idx2 + 1);
+			if(removeBrackets) {
+				coords = coords.substring(1, coords.length() - 1);
+			}
 		}
 		return(coords);
 	}

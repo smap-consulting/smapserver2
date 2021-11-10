@@ -2694,7 +2694,7 @@ public class SurveyManager {
 											// This would not be needed if there were not issues with the publishing record
 						}
 					} else if(q.type != null && (q.type.equals("server_calculate") || q.type.equals("pdf_field"))) {
-						continue;		// Sever calculations do not need to be published
+						continue;		// Server calculations do not need to be published
 					} else if(q.type != null && q.type.equals("begin group")) {
 						continue;		// groups do not need to be published
 					}
