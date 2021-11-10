@@ -77,7 +77,7 @@ public class Register extends Application {
 		
 		RegistrationDetails rd = new Gson().fromJson(registrationDetails, RegistrationDetails.class);
 		
-		log.info("Registering a new user: " + rd.email);
+		log.info("Registering a new user: " + rd.email + " : " + rd.admin_name);
 		
 		Connection sd = SDDataSource.getConnection("surveyKPI-Register");
 		
@@ -85,6 +85,11 @@ public class Register extends Application {
 		try {
 			
 			sd.setAutoCommit(false);  // Transaction
+			
+			if(rd.admin_name.contains("https:") || rd.admin_name.contains("http:")) {
+				log.info("Attempted registration of organisation with user name: " + rd.admin_name);		// Attack?
+				throw new Exception("xxxx");
+			}
 			
 			// Localisation
 			String hostname = request.getServerName();
@@ -205,7 +210,10 @@ public class Register extends Application {
 		} catch(Exception e) {
 			try {sd.rollback();}catch(Exception ex) {}
 			response = Response.serverError().entity(e.getMessage()).build();
-			log.log(Level.SEVERE,"Error", e);
+			String msg = e.getMessage();
+			if(msg == null || !msg.equals("xxxx")) {
+				log.log(Level.SEVERE,"Error", e);
+			}
 		} finally {
 			
 			try{sd.setAutoCommit(true);}catch(Exception ex) {}
