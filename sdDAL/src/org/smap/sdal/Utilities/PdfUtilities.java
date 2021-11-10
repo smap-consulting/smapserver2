@@ -270,7 +270,6 @@ public class PdfUtilities {
 	        if(mapValues.markers.size() > 0) {
 		        pstmt = sd.prepareStatement(sql);	// Prepared statement to get distances
 				Float lineDistance = getDistance(pstmt, mapValues, mapValues.startLine, mapValues.endLine);
-				System.out.println("Distance: " + lineDistance);
 				for(int i = 0; i < mapValues.markers.size(); i++) {
 					addMarkerSvgImage(doc, svgRoot, svgNS, pstmt, mapValues, lineDistance, i, height, width, margin, fontSize);
 				}
@@ -444,7 +443,6 @@ public class PdfUtilities {
 		}
 		out.append("]}");
 		
-		System.out.println(out.toString());
 		return out.toString();
 	}
 	
@@ -468,7 +466,6 @@ public class PdfUtilities {
 		}
 		
 		out.append("}}");
-		System.out.println(out.toString());
 		return out.toString();
 	}
 	
