@@ -83,7 +83,7 @@ public class PDFTableManager {
 	
 	public static Font Symbols = null;
 	public static Font defaultFont = null;
-	private static final String DEFAULT_CSS = "/smap_bin/resources/css/default_pdf.css";
+	private static final String DEFAULT_CSS = "/resources/css/default_pdf.css";
 	
 	Font font = new Font(FontFamily.HELVETICA, 10);
     Font fontbold = new Font(FontFamily.HELVETICA, 10, Font.BOLD);
@@ -163,7 +163,7 @@ public class PDFTableManager {
 			 * If we need to add a letter head then create document in two passes, the second pass adds the letter head
 			 * Else just create the document directly in a single pass
 			 */
-			Parser parser = getXMLParser();
+			Parser parser = getXMLParser(basePath);
 			
 			// Step 1 - Create the underlying document as a byte array
 			Document document = null;
@@ -207,7 +207,7 @@ public class PDFTableManager {
 	/*
 	 * Get an XML Parser
 	 */
-	private Parser getXMLParser() {
+	private Parser getXMLParser(String basePath) {
 		
 		Parser parser = new Parser();
 		
@@ -215,7 +215,7 @@ public class PDFTableManager {
 		 CSSResolver cssResolver = new StyleAttrCSSResolver();
 		 FileInputStream fis = null;
 		 try {
-			 fis = new FileInputStream(DEFAULT_CSS);
+			 fis = new FileInputStream(basePath + "_bin" + DEFAULT_CSS);
 			 CssFile cssFile = XMLWorkerHelper.getCSS(fis);
 		     cssResolver.addCss(cssFile);
 		 } catch(Exception e) {
