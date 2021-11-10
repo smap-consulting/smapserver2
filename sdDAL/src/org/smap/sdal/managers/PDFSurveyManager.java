@@ -1876,7 +1876,6 @@ public class PDFSurveyManager {
 			}
 
 		} else if(di.type.equals("pdf_field") && di.linemap != null) { 
-			System.out.println("pdf field");
 			
 			PdfMapValues mapValues = getMapValues(di);
 			
