@@ -22,7 +22,6 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.math3.ode.nonstiff.AdamsBashforthFieldIntegrator;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfPageSizer;
 import org.smap.sdal.Utilities.PdfUtilities;
