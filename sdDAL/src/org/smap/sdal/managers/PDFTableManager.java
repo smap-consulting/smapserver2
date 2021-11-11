@@ -18,7 +18,6 @@ import org.smap.sdal.Utilities.TableReportUtilities;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SurveyViewDefn;
-import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.TableReportsColumn;
 import org.smap.sdal.model.User;
 
