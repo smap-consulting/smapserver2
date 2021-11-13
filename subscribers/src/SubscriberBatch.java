@@ -1405,7 +1405,8 @@ public class SubscriberBatch {
 				
 				um.deleteSingleSubmissionTemporaryUser(sd, userIdent, UserManager.STATUS_EXPIRED);
 				String modIdent = action.email != null ? action.email : userIdent;			
-				lm.writeLogOrganisation(sd, oId, modIdent, LogManager.EXPIRED, localisation.getString("msg_expired"), 0);
+				lm.writeLogOrganisation(sd, oId, modIdent, LogManager.EXPIRED, localisation.getString("msg_expired")
+						+ ": " + userIdent, 0);
 				
 			}
 		} finally {
