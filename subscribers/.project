@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>subscribers-P</name>
+	<name>subscribers</name>
 	<comment></comment>
 	<projects>
-		<project>sdDAL-P</project>
+		<project>sdDAL</project>
 		<project>sdDataAccess</project>
 	</projects>
 	<buildSpec>

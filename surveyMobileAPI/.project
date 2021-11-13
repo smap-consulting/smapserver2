@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>surveyMobileAPI-P</name>
+	<name>surveyMobileAPI</name>
 	<comment></comment>
 	<projects>
 		<project>amazon</project>
-		<project>sdDAL-P</project>
-		<project>sdDataAccess-P</project>
+		<project>sdDAL</project>
+		<project>sdDataAccess</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
