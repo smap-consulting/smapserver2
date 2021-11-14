@@ -1067,24 +1067,28 @@ public class UserManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1,  userIdent);	
 			log.info("Deleting single submisison user: " + pstmt.toString());
-			pstmt.executeUpdate();
+			int count = pstmt.executeUpdate();
 			
-			/*
-			 * Write the archive record
-			 * First try updating an existing record
-			 */
-			pstmtArchiveUpdate = sd.prepareStatement(sqlArchiveUpdate);
-			pstmtArchiveUpdate.setString(1, status);
-			pstmtArchiveUpdate.setString(2,  userIdent);
-			
-			int count = pstmtArchiveUpdate.executeUpdate();
-			
-			// Insert a new entry if none were updated
-			if(count == 0) {		
-				pstmtArchive = sd.prepareStatement(sqlArchive);
-				pstmtArchive.setString(1,  userIdent);	
-				pstmtArchive.setString(2, status);
-				pstmtArchive.executeUpdate();
+			if(count > 0) {
+				/*
+				 * Write the archive record
+				 * First try updating an existing record
+				 */
+				pstmtArchiveUpdate = sd.prepareStatement(sqlArchiveUpdate);
+				pstmtArchiveUpdate.setString(1, status);
+				pstmtArchiveUpdate.setString(2,  userIdent);
+				
+				count = pstmtArchiveUpdate.executeUpdate();
+				
+				// Insert a new entry if none were updated
+				if(count == 0) {		
+					pstmtArchive = sd.prepareStatement(sqlArchive);
+					pstmtArchive.setString(1,  userIdent);	
+					pstmtArchive.setString(2, status);
+					pstmtArchive.executeUpdate();
+				}
+			} else {
+				log.info("Deletion did not happen.");
 			}
 			
 		} finally {	
