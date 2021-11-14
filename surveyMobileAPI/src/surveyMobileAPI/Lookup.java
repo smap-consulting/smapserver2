@@ -216,7 +216,7 @@ public class Lookup extends Application{
 					}
 					
 					cResults = ResultsDataSource.getConnection(connectionString);				
-					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
+					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser(), tz);
 					stm.initData(pstmt, "lookup", selection.toString(), arguments, 
 							expressionFrag, 		// expression Fragment
 							tz, null, null);
@@ -754,7 +754,7 @@ public class Lookup extends Application{
 			if(fileName != null) {
 				if(fileName.startsWith("linked_s")) {
 					// Get data from a survey				
-					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
+					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser(), tz);
 					stm.initData(pstmt, "choices",
 							selectionString, arguments, frag, tz, qDetails.filterArray, fDetails.filterArray);
 					

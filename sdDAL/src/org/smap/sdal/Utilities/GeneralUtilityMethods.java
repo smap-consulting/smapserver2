@@ -1168,7 +1168,41 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the current organisation id for the user 
+	 * Get the current organisation timezone for the user 
+	 */
+	static public String getUserOrganisationTimeZone(Connection sd, String user) throws SQLException {
+
+		String tz = null;
+
+		String sql = "select o.timezone " 
+				+ " from users u, organisation o " 
+				+ "where u.o_id = o.id "
+				+ "and u.ident = ?";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, user);
+
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				tz = rs.getString(1);
+			} 
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {	}
+		}
+
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
+		return tz;
+	}
+	
+	/*
+	 * Get the current organisation id from the organisation name
 	 */
 	static public int getOrganisationIdfromName(Connection sd, String orgName) throws SQLException {
 
@@ -5008,7 +5042,7 @@ public class GeneralUtilityMethods {
 								String selection = null;
 						
 								// Get data from another form
-								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
+								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser, tz);
 								stm.initData(pstmt, "choices", selection, matches, 
 										null,	// expression fragment
 										tz, null, null);						

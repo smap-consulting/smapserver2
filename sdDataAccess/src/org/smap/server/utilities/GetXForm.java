@@ -278,7 +278,7 @@ public class GetXForm {
 						populateCSVElements(outputDoc, rootElement, mv.filePath);
 					} else {
 						int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
-						SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, mv.sId, mv.fileName, user);
+						SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, mv.sId, mv.fileName, user, tz);
 						populateCSVElementsFromSurvey(outputDoc, rootElement, stm);
 					}
 				} 

@@ -339,7 +339,7 @@ public class MyAssignments extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			String tz = "UTC";
+			String tz = GeneralUtilityMethods.getUserOrganisationTimeZone(sd, request.getRemoteUser());
 			String basepath = GeneralUtilityMethods.getBasePath(request);
 			
 			String sqlDeleteCancelled = "update assignments set status = 'deleted', deleted_date = now() where id = ?";

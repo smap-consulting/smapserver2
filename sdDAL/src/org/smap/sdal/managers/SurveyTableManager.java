@@ -64,13 +64,20 @@ public class SurveyTableManager {
 	 */
 	private class SqlDef {
 		private String sql;
-		private String order_by;
 		private boolean hasWhere = false; 
 		private ArrayList<String> colNames;
 		private ArrayList<String> qnames;
 		private boolean hasRbacFilter = false;
 		private ArrayList<SqlFrag> rfArray = null;
 		private ArrayList<SqlFrag> calcArray = null;
+	}
+	
+	/*
+	 * Details on a sub query
+	 */
+	private class SubQuery {
+		int subTableId;
+		String subTable;
 	}
 	
 	LogManager lm = new LogManager(); // Application log
@@ -89,16 +96,18 @@ public class SurveyTableManager {
 	private String linked_sIdent;
 	private String chart_key;
 	private boolean linked_s_pd = false;
+	private String tz;
 	
 	/*
 	 * Constructor to create a table to hold the CSV data if it does not already exist
 	 */
-	public SurveyTableManager(Connection sd, Connection cResults, ResourceBundle l, int oId, int sId, String fileName, String user)
+	public SurveyTableManager(Connection sd, Connection cResults, ResourceBundle l, int oId, int sId, String fileName, String user, String tz)
 			throws Exception {
 		
 		this.sd = sd;
 		this.cResults = cResults;
 		this.localisation = l;
+		this.tz = tz;
 		
 		if(oId <= 0) {
 			log.info("************************ Error: Create Survey Table Manager : Organisation id is less than or equal to 0");
@@ -201,26 +210,7 @@ public class SurveyTableManager {
 		
 		if(sqlDef != null && sqlDef.colNames != null && sqlDef.colNames.size() > 0) {
 			StringBuilder sql = new StringBuilder(sqlDef.sql);
-			
-			// Check the where questions
-			/*
-			if(whereColumns != null) {
-				for(String col : whereColumns) {
-					boolean foundCol = false;
-					for(String h : sqlDef.colNames) {
-						if(h.equals(col)) {
-							foundCol = true;
-							break;
-						}
-					}
-					if(!foundCol) {
-						String msg = localisation.getString("qlu");
-						msg = msg.replace("%s1", col);
-						throw new ApplicationException(msg);
-					}
-				}
-			}
-			*/
+	
 			if(expressionFrag != null || selection != null) { 
 				if(sqlDef.hasWhere) {
 					sql.append(" and ");
@@ -234,7 +224,6 @@ public class SurveyTableManager {
 				}
 			}
 
-			sql.append(sqlDef.order_by);
 			String sqlString = sql.toString();
 			sqlString = sqlString.replace("\\", "");		// Extra \ escapes are required of the string is passed to PSQL for generation - we don't need them here
 			pstmt = cResults.prepareStatement(sqlString);
@@ -604,24 +593,20 @@ public class SurveyTableManager {
 	}
 	
 	/*
-	 * Get the SQL to retrieve dynamic CSV data TODO replace this with the query
-	 * generator from SDAL
+	 * Get the SQL to retrieve dynamic CSV data
 	 */
 	public SqlDef getSql(Connection sd, int sId, ArrayList<String> qnames, boolean linked_s_pd, String data_key,
 			String chart_key) throws Exception {
 
-		StringBuffer sql = new StringBuffer("select ");
-		if(chart_key == null) {		// Time series data should not be made distinct
-			sql.append("distinct ");
-		}
-		StringBuffer where = new StringBuffer("");
-		StringBuffer tabs = new StringBuffer("");
+		StringBuffer sql = new StringBuffer("");
+
 		StringBuffer order_cols = new StringBuffer("");
 		String linked_s_pd_sel = null;
 		SqlDef sqlDef = new SqlDef();		// TODO why does this override a global sqlDef?
-		ArrayList<String> colNames = new ArrayList<>();
-		ArrayList<String> subTables = new ArrayList<>();
-		HashMap<String, String> tables = new HashMap<>();
+		ArrayList<String> colNames = new ArrayList<>();         // List of column in the order in which they are to be generated
+		HashMap<String, String> tables = new HashMap<>();		// All tables that contain data to be extracted
+		HashMap<String, String> columnTables = new HashMap<>();	// Mapping between column name and the table that it is in
+		HashMap<String, String> columnDbNames = new HashMap<>();	// Mapping between question name and the table column namethat it is in
 		Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
@@ -633,21 +618,13 @@ public class SurveyTableManager {
 		
 		try {
 
-			// 1. Get the columns in the group
+			// Get the columns in the group
 			SurveyManager sm = new SurveyManager(localisation, "UTC");					
 			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 			HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestionsMap(sd, groupSurveyIdent, null, false);
 
 			log.info("Question forms: " + refQuestionMap.toString());
-
-			boolean first = true;
-			if (linked_s_pd) {
-				linked_s_pd_sel = GeneralUtilityMethods.convertAllxlsNamesToQuery(data_key, sId, sd);
-				sql.append(linked_s_pd_sel);
-				sql.append(" as _data_key");
-				first = false;
-			}
-
+			
 			tables.put(topForm.tableName, topForm.tableName); // Always add top level form
 			for (int i = 0; i < qnames.size(); i++) {
 				String name = qnames.get(i);
@@ -689,94 +666,191 @@ public class SurveyTableManager {
 						continue; // Name not found
 					}
 					colNames.add(n);
+					columnTables.put(n, tableName);
 					tables.put(tableName, tableName);
-	
-					if (!first) {
-						sql.append(",");
-						//order_cols.append(",");
+					
+					String sqlName = colName;
+					if(colType.equals("date")) {
+						sqlName = "to_char(timezone('" + tz + "', " + colName + "), 'YYYY-MM-DD')";
+					} else if(colType.equals("dateTime")) {
+						sqlName = "to_char(timezone('" + tz + "', " + colName + "), 'YYYY-MM-DD HH24:MI:SS')";
+					} else if(colType.startsWith("int") || colType.equals("decimal")) {
+						sqlName = "cast(" + colName + " as text)";
 					}
-					sql.append(colName);
-					sql.append(" as ");
-					sql.append("\\\"" + n + "\\\"");
-					first = false;
+					columnDbNames.put(n, sqlName);
+
+					System.out.println(colName + " : " + colType + " : " + sqlName);
 	
-					//order_cols.append("\"" + n + "\"" );
 				}
 			}
 
-			// 2. Add the tables
+			/*
+			 * Get the list of SQL sub querys that need to be created
+			 * 1 per 2nd level form
+			 */
+			ArrayList<SubQuery> subQueries = new ArrayList<> ();
 			pstmtGetTable = sd.prepareStatement(sqlGetTable);
 			pstmtGetTable.setInt(1, sId);
-			log.info("Tables: " + tables.size() + " : " + tables.toString());
-			getTables(pstmtGetTable, 0, null, tabs, where, tables, subTables);
-			log.info("Subtables: " + subTables.size());
+			pstmtGetTable.setInt(2, topForm.id);
+			log.info("Get tables: " + pstmtGetTable.toString());
+			ResultSet rs = pstmtGetTable.executeQuery();
+			while (rs.next()) {
+				SubQuery sq = new SubQuery();
+				sq.subTableId = rs.getInt(1);
+				sq.subTable = rs.getString(2);
+				subQueries.add(sq);
+			}
+			if(subQueries.size() == 0) {	// If there are no sub forms then add a sub query for the main form alone
+				subQueries.add(new SubQuery());	
+			}
 			
-			// 2.5 Add the order clause
-			sql.append(",")
-				.append(topForm.tableName)
-				.append(".prikey as prikey_").append(topForm.tableName);
-			order_cols.append(topForm.tableName  + ".prikey desc");
-			if (subTables.size() > 0) {
-				for (String subTable : subTables) {
-					sql.append(",")
-						.append(subTable)
-						.append(".prikey as prikey_").append(subTable);
-					order_cols.append(","  + subTable  + ".prikey desc");   // Use descending to align with local data
+			// TODO
+			
+			/*
+			 * For each SQL union create the SQL
+			 */
+			for(SubQuery sq : subQueries) {
+				
+				HashMap<String, String> subQueryTables = new HashMap<> ();	// Tables involved in this subquery
+				ArrayList<String> subTables = new ArrayList<>();			// Tables that are joined to the main table
+				StringBuilder subQuerySql = new StringBuilder("select ");
+				StringBuffer where = new StringBuffer("");
+				StringBuffer tabs = new StringBuffer("");
+				/*
+				 * Get a map of the tables in this sub query
+				 */
+				
+				subQueryTables.put(topForm.tableName, topForm.tableName); 		// Always add top level form
+				subQueryTables.put(sq.subTable, sq.subTable);
+				getSubQueryTables(pstmtGetTable, sq.subTableId, subQueryTables, tables);
+				
+				if(chart_key == null) {		// Time series data should not be made distinct
+					subQuerySql.append("distinct ");
 				}
-			}
-
-			sql.append(" from ");
-			sql.append(tabs);
-
-			// 3. Add the where clause
-			if (where.length() > 0) {
-				sql.append(" where ");
-				sqlDef.hasWhere = true;
-				sql.append(where);
-			}
-
-			// 4. Add the RBAC/Row filter
-			// Add RBAC/Role Row Filter
-			sqlDef.rfArray = null;
-			sqlDef.hasRbacFilter = false;
-
-			// If this is a pulldata linked file then order the data by _data_key and then
-			// the primary keys of sub forms
-			StringBuffer orderBy = new StringBuffer("");
-			if(chart_key != null) {
-				orderBy.append(" order by ");
-				orderBy.append(chart_key);
-				orderBy.append(" asc");		// Historically used ascending
-			} else if (linked_s_pd) {
-				orderBy.append(" order by _data_key");
-				if (subTables.size() > 0) {
-					for (String subTable : subTables) {
-						orderBy.append(",");
-						orderBy.append(subTable);
-						orderBy.append(".prikey asc");	// Historically this has used ascending ordering
+				
+				boolean first = true;
+				if (linked_s_pd) {
+					linked_s_pd_sel = GeneralUtilityMethods.convertAllxlsNamesToQuery(data_key, sId, sd);
+					subQuerySql.append(linked_s_pd_sel);
+					subQuerySql.append(" as _data_key");
+					first = false;
+				}
+				
+				/*
+				 * 1. Add the selections
+				 */
+				for(String col : colNames) {
+					if (!first) {
+						subQuerySql.append(",");
 					}
-				} else {
-					orderBy.append(" asc");
+					/*
+					 * If the column is not in this subquery then get the string 'null'
+					 */
+					if(subQueryTables.get(columnTables.get(col)) == null) {
+						subQuerySql.append("'null'");
+					} else {
+						subQuerySql.append(columnDbNames.get(col));
+					}
+					subQuerySql.append(" as ");
+					subQuerySql.append("\\\"" + col + "\\\"");
+					first = false;
+					
+					
 				}
-			} else if(order_cols != null) {
-				// order by the columns
-				orderBy.append(" order by ");
-				orderBy.append(order_cols);
-			}
-			sqlDef.order_by = orderBy.toString();
+			
+				
+				// 2. Add the tables for this subquery			
+				getTables(pstmtGetTable, 0, null, tabs, where, subQueryTables, subTables);
+				log.info("Tables for subquery: " + tabs.toString());
+				
+				// 2.5 Add the order clause
+				subQuerySql.append(",")
+					.append(topForm.tableName)
+					.append(".prikey as prikey_").append(topForm.tableName);
+				order_cols.append(topForm.tableName  + ".prikey desc");
+				
+				if (tables.size() > 0) {
+					for (String sortTable : tables.keySet()) {
+						if(!sortTable.equals(topForm.tableName)) {
+							subQuerySql.append(",");
+							if(subQueryTables.get(sortTable) == null) {
+								subQuerySql.append("0");
+							} else {
+								subQuerySql.append(sortTable)
+								.append(".prikey");
+							}
+							subQuerySql.append(" as prikey_").append(sortTable);
+							order_cols.append(","  + sortTable  + ".prikey desc");   // Use descending to align with local data
+						}
+					}
+				}
 
+				subQuerySql.append(" from ");
+				subQuerySql.append(tabs);
+	
+				// 3. Add the where clause
+				if (where.length() > 0) {
+					subQuerySql.append(" where ");
+					sqlDef.hasWhere = true;
+					subQuerySql.append(where);
+				}
+	
+
+				// If this is a pulldata linked file then order the data by _data_key and then
+				// the primary keys of sub forms
+				StringBuffer orderBy = new StringBuffer("");
+				if(chart_key != null) {
+					orderBy.append(" order by ");
+					orderBy.append(chart_key);
+					orderBy.append(" asc");		// Historically used ascending
+				} else if (linked_s_pd) {
+					orderBy.append(" order by _data_key");
+					if (subTables.size() > 0) {
+						for (String subTable : subTables) {
+							orderBy.append(",");
+							orderBy.append(subTable);
+							orderBy.append(".prikey asc");	// Historically this has used ascending ordering
+						}
+					} else {
+						orderBy.append(" asc");
+					}
+				} else if(order_cols != null) {
+					// order by the columns
+					orderBy.append(" order by ");
+					orderBy.append(order_cols);
+				}
+				
+				/*
+				 * Append subquery to overall query
+				 */
+				if(sql.length() > 0) {
+					sql.append(" union ");
+				}
+				sql.append(subQuerySql);
+			}
+
+			
 		} finally {
 			
 			if (pstmtGetTable != null) try {pstmtGetTable.close();} catch (Exception e) {}
 		}
 
+		// RBAC not used for csv reference data
+		sqlDef.rfArray = null;
+		sqlDef.hasRbacFilter = false;
+
 		sqlDef.sql = sql.toString();
 		sqlDef.colNames = colNames;
+		
+		String sqlDebug = sqlDef.sql;
+		sqlDebug = sqlDebug.replace("\\", "");
+		System.out.println("yyyyy: " + sqlDebug);
 		return sqlDef;
 	}
 	
 	/*
 	 * Get table details
+	 * The hashmap "tables" contains the list of tables that have referenced questions.  Other tables where reference data is not required are ignored.
 	 */
 	private void getTables(PreparedStatement pstmt, int parentId, String parentTable, StringBuffer tabs,
 			StringBuffer where, HashMap<String, String> tables, ArrayList<String> subTables) throws SQLException {
@@ -795,7 +869,7 @@ public class SurveyTableManager {
 			log.info(tables.toString());
 			
 			/*
-			 * Ignore tables that where no questions have been asked for
+			 * Ignore tables where no questions have been asked for
 			 * Use Left outer join processing so that situations where a subform is empty do not cause disappearance of data
 			 */
 			if (tables.get(table) != null) {
@@ -837,6 +911,43 @@ public class SurveyTableManager {
 			String table = parentTables.get(i);
 			getTables(pstmt, fId, table, tabs, where, tables, subTables);
 		}
+
+	}
+	
+	/*
+	 * Get the tables that are part of a subquery
+	 * The hashmap "tables" contains the list of tables that have referenced questions.  Other tables where reference data is not required are ignored.
+	 */
+	private void getSubQueryTables(PreparedStatement pstmt, int parentId, 
+			HashMap<String, String> subQueryTables, HashMap<String, String> tables) throws SQLException {
+
+		ArrayList<Integer> parents = new ArrayList<>();
+
+
+		pstmt.setInt(2, parentId);
+		log.info("Get tables: " + pstmt.toString());
+		ResultSet rs = pstmt.executeQuery();
+		while (rs.next()) {
+			int fId = rs.getInt(1);
+			String table = rs.getString(2);
+
+			/*
+			 * Ignore tables where no questions have been asked for
+			 * Use Left outer join processing so that situations where a subform is empty do not cause disappearance of data
+			 */
+			if (tables.get(table) != null) {
+
+				subQueryTables.put(table, table);			
+				parents.add(fId);
+			}
+
+		}
+
+		for (int i = 0; i < parents.size(); i++) {
+			int fId = parents.get(i);
+			getSubQueryTables(pstmt, fId, subQueryTables, tables);
+		}
+		
 
 	}
 
@@ -907,7 +1018,7 @@ public class SurveyTableManager {
 		PreparedStatement pstmtData = null;
 		boolean status = false;
 		try {
-			String sql = sqlDef.sql + sqlDef.order_by;			// Escape quotes when passing sql to psql
+			String sql = sqlDef.sql;							// Escape quotes when passing sql to psql
 			String sqlNoEscapes = sql.replace("\\", "");		// Remove escaping of quotes when used in prepared statement
 			
 			if(sqlDef.colNames.size() == 0) {
@@ -1082,6 +1193,13 @@ public class SurveyTableManager {
 						byte[] buf = new byte[len];
 						proc.getInputStream().read(buf);
 						log.info("Completed getshape process:\t\"" + new String(buf) + "\"");
+					}
+					
+					// Also log the error stream as there could be a failure even though the script ends ok
+					if ((len = proc.getErrorStream().available()) > 0) {
+						byte[] buf = new byte[len];
+						proc.getErrorStream().read(buf);
+						log.info("Command error:\t\"" + new String(buf) + "\"");
 					}
 				}
 			}

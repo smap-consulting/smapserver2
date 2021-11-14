@@ -94,7 +94,7 @@ public class ExternalFileManager {
 		try {
 			String physicalFilePath = getLinkedPhysicalFilePath(sd, logicalFilePath);
 			File currentPhysicalFile = new File(physicalFilePath + ".csv"); // file path does not include the extension because getshape.sh adds it
-			SurveyTableManager stm = new SurveyTableManager(sd, cRel, localisation, oId, sId, filename, userName);  
+			SurveyTableManager stm = new SurveyTableManager(sd, cRel, localisation, oId, sId, filename, userName, tz);  
 
 			regenerate = stm.testForRegenerateFile(sd, cRel,  sId, logicalFilePath, currentPhysicalFile);
 			if(regenerate) {
