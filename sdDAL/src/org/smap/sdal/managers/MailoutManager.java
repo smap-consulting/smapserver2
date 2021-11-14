@@ -607,7 +607,7 @@ public class MailoutManager {
 					action.initialData = gson.fromJson(initialData, Instance.class);
 				}
 					
-				String link = am.getLink(sd, action, oId, true);
+				String link = am.getLink(sd, action, oId, action.single);
 				String userIdent = null;
 				int idx = link.lastIndexOf("/");
 				if(idx >= 0) {

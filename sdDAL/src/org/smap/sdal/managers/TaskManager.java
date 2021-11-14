@@ -3041,7 +3041,7 @@ public class TaskManager {
 				// Create a temporary user embedding the assignment id in the action link, get the link to that user
 				action.assignmentId = aId;
 				log.info("######## Creating action link inside task manager: " + action.single);
-				String link = am.getLink(sd, action, oId, true);
+				String link = am.getLink(sd, action, oId, true);	// For email tasks it is always a single submission
 				
 				// Update the assignment with the link to the action
 				setAssignmentLink(sd, aId, link);

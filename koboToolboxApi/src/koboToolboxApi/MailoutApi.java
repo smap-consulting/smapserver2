@@ -370,7 +370,7 @@ public class MailoutApi extends Application {
 				}
 				
 				mailoutPerson.id = mailoutPersonId;
-				String link = am.getLink(sd, a, oId, true);
+				String link = am.getLink(sd, a, oId, a.single);
 				mailoutPerson.url = "https://" + request.getServerName() 
 						+ "/app/myWork/webForm" + link;
 				

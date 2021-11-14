@@ -1300,7 +1300,7 @@ public class SubscriberBatch {
 						action.initialData = gson.fromJson(initialData, Instance.class);
 					}
 					
-					link = am.getLink(sd, action, oId, true);
+					link = am.getLink(sd, action, oId, action.single);
 				}
 				
 				// Add user name to content
@@ -1387,6 +1387,7 @@ public class SubscriberBatch {
 		
 		try {
 			pstmt = sd.prepareStatement(sql);
+			log.info("Find temporary users to expire: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				String userIdent = rs.getString("ident");
