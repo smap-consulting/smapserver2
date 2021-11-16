@@ -4559,7 +4559,8 @@ public class SurveyManager {
 			int toLanguageIndex,
 			String fromCode,
 			String toCode,
-			boolean overwrite) throws Exception {
+			boolean overwrite,
+			String basePath) throws Exception {
 
 		String result = null;
 		
@@ -4590,7 +4591,7 @@ public class SurveyManager {
 					);
 			
 			// Get the text processor
-			TextProcessing tp = new TextProcessing(GeneralUtilityMethods.getSettingFromFile("/smap/settings/region"));		// TODO get base path
+			TextProcessing tp = new TextProcessing(GeneralUtilityMethods.getSettingFromFile("/smap/settings/region"), basePath);		// TODO get base path
 
 			ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
 			ChangeSet cs = new ChangeSet();

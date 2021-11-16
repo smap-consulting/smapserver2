@@ -35,8 +35,12 @@ import javax.ws.rs.core.Response;
 import org.smap.notifications.interfaces.QuickSight;
 import org.smap.notifications.interfaces.STS;
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.OrganisationManager;
+import org.smap.sdal.model.DashboardDetails;
+
 import com.amazonaws.auth.BasicSessionCredentials;
 
 /*
@@ -80,20 +84,28 @@ public class QuicksightService extends Application {
 	
 		try {
 
-			String region = "us-east-1";
-			STS sts = new STS(region);
-			BasicSessionCredentials credentials = sts.getSessionCredentials();
-			log.info("xoxoxoxoxo accessKey: " + credentials.getAWSAccessKeyId());
+			OrganisationManager om = new OrganisationManager(null);
+			DashboardDetails dbd = om.getDashboardDetails(sd, request.getRemoteUser());
+			String basePath = GeneralUtilityMethods.getBasePath(request);
 			
-			QuickSight quicksight = new QuickSight(region, credentials);
-			
-			String userArn = quicksight.registerUser(request.getRemoteUser());
-			log.info("xoxoxoxoxo User ARN:  " + userArn);			
-			
-			String url = quicksight.getDashboardUrl(userArn);		
-			log.info("xoxoxoxoxo Dashboard URL:  " + url);
-			      
-			response = Response.ok(url).build();
+			if(dbd != null && dbd.region != null) {
+				String region = dbd.region;
+				STS sts = new STS(region, basePath);
+				BasicSessionCredentials credentials = sts.getSessionCredentials(dbd.roleArn, dbd.roleSessionName);
+				log.info("xoxoxoxoxo accessKey: " + credentials.getAWSAccessKeyId());
+				
+				QuickSight quicksight = new QuickSight(region, credentials, basePath);
+				
+				String userArn = quicksight.registerUser(request.getRemoteUser());
+				log.info("xoxoxoxoxo User ARN:  " + userArn);			
+				
+				String url = quicksight.getDashboardUrl(userArn);		
+				log.info("xoxoxoxoxo Dashboard URL:  " + url);
+				      
+				response = Response.ok(url).build();
+			} else {
+				throw new Exception("No quicksight region specified for this organisation");
+			}
 	
 		} catch(Exception ex) {
 			log.log(Level.SEVERE,ex.getMessage(), ex);

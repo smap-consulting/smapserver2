@@ -199,6 +199,9 @@ create TABLE organisation (
 	api_rate_limit integer,
 	css text,
 	owner integer default 0,				-- User that owns this organisation
+	dashboard_region text,
+	dashboard_arn text,
+	dashboard_session_name text,
 	changed_ts TIMESTAMP WITH TIME ZONE
 	);
 CREATE UNIQUE INDEX idx_organisation ON organisation(name);

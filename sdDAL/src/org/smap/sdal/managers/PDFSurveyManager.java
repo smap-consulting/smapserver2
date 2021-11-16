@@ -324,8 +324,12 @@ public class PDFSurveyManager {
 				String templateName = templateFile.getAbsolutePath();
 
 				reader = new PdfReader(templateName);
-				stamper = new PdfStamper(reader, outputStream);
-
+				stamper = new PdfStamper(reader, outputStream, PdfWriter.VERSION_1_7);
+				stamper.getWriter().setCompressionLevel(9);	// Todo configure
+				stamper.setFullCompression();
+				stamper.setFormFlattening(true);
+				stamper.setAnnotationFlattening(true);
+				stamper.setFreeTextFlattening(true);
 				for(int i = 0; i < survey.instance.results.size(); i++) {
 					fillTemplate(gv, stamper.getAcroFields(), survey.instance.results.get(i), 
 							basePath, null, i, serverRoot, stamper, oId);
@@ -333,7 +337,14 @@ public class PDFSurveyManager {
 				if(user != null) {
 					fillTemplateUserDetails(stamper.getAcroFields(), user, basePath);
 				}
-				stamper.setFormFlattening(true);
+				
+				// Reapply stamper to all content as per https://what-when-how.com/itext-5/pdf-and-compression-itext-5/
+				int total = reader.getNumberOfPages() + 1;
+				for(int i = 1; i < total; i++) {
+					reader.setPageContent(i, reader.getPageContent(i));
+				}
+				
+
 
 			} else {
 				log.info("++++No template exists creating a pdf file programmatically");

@@ -922,7 +922,8 @@ public class UploadFiles extends Application {
 									i,	// to language index
 									fromLanguage.code,
 									toLanguage.code,
-									false	// Do not overwrite
+									false,	// Do not overwrite
+									basePath
 									);
 							if(result != null) {
 								responseCode = "warning";

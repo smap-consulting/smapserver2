@@ -84,7 +84,7 @@ public class AutoUpdateProcessor {
 						/*
 						 * Check for pending jobs
 						 */	
-						aum.checkPendingJobs(dbc.sd, dbc.results, gson, region);
+						aum.checkPendingJobs(dbc.sd, dbc.results, gson, region, basePath);
 									
 						/*
 						 * Apply auto updates

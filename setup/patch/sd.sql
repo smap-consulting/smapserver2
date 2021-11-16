@@ -448,3 +448,7 @@ ALTER TABLE background_report OWNER TO ws;
 
 alter table last_refresh add column appversion text;
 alter table last_refresh_log add column appversion text;
+
+alter table organisation add column dashboard_region text;
+alter table organisation add column dashboard_arn text;
+alter table organisation add column dashboard_session_name text;

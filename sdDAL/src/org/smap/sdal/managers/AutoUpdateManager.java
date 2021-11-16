@@ -192,9 +192,10 @@ public class AutoUpdateManager {
 		Connection sd,
 		Connection cResults,
 		Gson gson,
-		String region) {
+		String region,
+		String basePath) {
 		
-		AudioProcessing ap = new AudioProcessing(region);	
+		AudioProcessing ap = new AudioProcessing(region, basePath);	
 		ResourceManager rm = new ResourceManager();
 		
 		String sql = "select "
@@ -257,7 +258,7 @@ public class AutoUpdateManager {
 						try {	
 							TranscribeResultSmap trs = null;
 							if(medical) {
-								S3 s3 = new S3(region, urlString);
+								S3 s3 = new S3(region, urlString, basePath);
 								trs = gson.fromJson(s3.get(), TranscribeResultSmap.class);
 								s3.rm();    // Remove from s3 after retrieval
 								
@@ -355,9 +356,9 @@ public class AutoUpdateManager {
 
 			pstmtAsync = sd.prepareStatement(sqlAsync);
 			
-			ImageProcessing ip = new ImageProcessing(region);
-			AudioProcessing ap = new AudioProcessing(region);	
-			TextProcessing tp = new TextProcessing(region);	
+			ImageProcessing ip = new ImageProcessing(region, basePath);
+			AudioProcessing ap = new AudioProcessing(region, basePath);	
+			TextProcessing tp = new TextProcessing(region, basePath);	
 			ResourceManager rm = new ResourceManager();
 			
 			// For each update item get the records that are null and need updating

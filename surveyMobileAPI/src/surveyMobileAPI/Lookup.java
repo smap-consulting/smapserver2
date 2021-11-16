@@ -552,7 +552,7 @@ public class Lookup extends Application{
 			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);				
 
 			String region = GeneralUtilityMethods.getSettingFromFile("/smap/settings/region");
-			ImageProcessing ip = new ImageProcessing(region);
+			ImageProcessing ip = new ImageProcessing(region, basePath);
 			try {
 				log.info("xxxxxxxx Image lookup: " + tempFileName + " : " + region);
 				String labels = ip.getLabels(

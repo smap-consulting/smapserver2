@@ -1491,13 +1491,16 @@ public class Surveys extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String basePath = GeneralUtilityMethods.getBasePath(request);
+			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");			
 			String result = sm.translate(sd, request.getRemoteUser(), sId,
 					fromLanguageIndex,
 					toLanguageIndex,
 					fromCode,
 					toCode,
-					overwrite);
+					overwrite,
+					basePath);
 			
 			if(result != null) {
 				response = Response.serverError().entity(

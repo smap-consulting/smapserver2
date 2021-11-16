@@ -17,6 +17,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.AppearanceOptions;
+import org.smap.sdal.model.DashboardDetails;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.MySensitiveData;
 import org.smap.sdal.model.Organisation;
@@ -649,6 +650,36 @@ public class OrganisationManager {
 		}
 		
 		return ao;
+	}
+	
+	public DashboardDetails getDashboardDetails(Connection sd, String user) throws SQLException {
+		DashboardDetails dbd = null;
+		
+		String sql = "select dashboard_region, dashboard_arn, dashboard_session_name "
+				+ "from organisation "
+				+ "where "
+				+ "id = (select o_id from users where ident = ?)";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setString(1, user);
+			
+			log.info("Get organisation dashboard options: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			
+			if(rs.next()) {
+				dbd = new DashboardDetails();
+				dbd.region = rs.getString("dashboard_region");
+				dbd.roleArn = rs.getString("dashboard_arn");
+				dbd.roleSessionName = rs.getString("dashboard_session_name");
+			}
+			
+			
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}	
+		}
+		return dbd;
 	}
 	
 }

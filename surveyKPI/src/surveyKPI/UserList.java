@@ -296,7 +296,7 @@ public class UserList extends Application {
 					"and up.p_id = ? " +
 					"and u.o_id = ? " +
 					"and not u.temporary " +
-					"order by u.ident";
+					"order by u.name";
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, projectId);
