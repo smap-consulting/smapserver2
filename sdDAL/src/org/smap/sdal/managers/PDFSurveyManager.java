@@ -324,8 +324,7 @@ public class PDFSurveyManager {
 				String templateName = templateFile.getAbsolutePath();
 
 				reader = new PdfReader(templateName);
-				stamper = new PdfStamper(reader, outputStream, PdfWriter.VERSION_1_7);
-				stamper.getWriter().setCompressionLevel(9);	// Todo configure
+				stamper = new PdfStamper(reader, outputStream);
 				stamper.setFullCompression();
 				stamper.setFormFlattening(true);
 				stamper.setAnnotationFlattening(true);
