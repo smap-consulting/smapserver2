@@ -200,7 +200,8 @@ create TABLE organisation (
 	css text,
 	owner integer default 0,				-- User that owns this organisation
 	dashboard_region text,
-	dashboard_arn text,
+	aws_account_id text,
+	dashboard_id text,
 	dashboard_session_name text,
 	changed_ts TIMESTAMP WITH TIME ZONE
 	);

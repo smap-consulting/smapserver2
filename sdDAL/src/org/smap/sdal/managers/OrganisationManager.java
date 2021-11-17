@@ -655,7 +655,7 @@ public class OrganisationManager {
 	public DashboardDetails getDashboardDetails(Connection sd, String user) throws SQLException {
 		DashboardDetails dbd = null;
 		
-		String sql = "select dashboard_region, dashboard_arn, dashboard_session_name "
+		String sql = "select dashboard_region, aws_account_id, dashboard_id, dashboard_session_name "
 				+ "from organisation "
 				+ "where "
 				+ "id = (select o_id from users where ident = ?)";
@@ -671,7 +671,8 @@ public class OrganisationManager {
 			if(rs.next()) {
 				dbd = new DashboardDetails();
 				dbd.region = rs.getString("dashboard_region");
-				dbd.roleArn = rs.getString("dashboard_arn");
+				dbd.awsAccountId = rs.getString("aws_account_id");
+				dbd.dashboardId = rs.getString("dashboard_id");
 				dbd.roleSessionName = rs.getString("dashboard_session_name");
 			}
 			

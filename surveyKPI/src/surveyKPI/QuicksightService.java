@@ -89,12 +89,13 @@ public class QuicksightService extends Application {
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			
 			if(dbd != null && dbd.region != null) {
-				String region = dbd.region;
-				STS sts = new STS(region, basePath);
-				BasicSessionCredentials credentials = sts.getSessionCredentials(dbd.roleArn, dbd.roleSessionName);
+				STS sts = new STS(dbd.region, basePath);
+				BasicSessionCredentials credentials = sts.getSessionCredentials(dbd.getRoleArn(), dbd.roleSessionName);
 				log.info("xoxoxoxoxo accessKey: " + credentials.getAWSAccessKeyId());
 				
-				QuickSight quicksight = new QuickSight(region, credentials, basePath);
+				QuickSight quicksight = new QuickSight(dbd.region, credentials, basePath, 
+						dbd.dashboardId,
+						dbd.awsAccountId);	
 				
 				String userArn = quicksight.registerUser(request.getRemoteUser());
 				log.info("xoxoxoxoxo User ARN:  " + userArn);			
