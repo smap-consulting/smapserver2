@@ -94,7 +94,9 @@ public class QuicksightService extends Application {
 				BasicSessionCredentials credentials = sts.getSessionCredentials(dbd.roleArn, dbd.roleSessionName);
 				log.info("xoxoxoxoxo accessKey: " + credentials.getAWSAccessKeyId());
 				
-				QuickSight quicksight = new QuickSight(region, credentials, basePath);
+				QuickSight quicksight = new QuickSight(region, credentials, basePath, 
+						"dashboardid",
+						"awsaccountid");
 				
 				String userArn = quicksight.registerUser(request.getRemoteUser());
 				log.info("xoxoxoxoxo User ARN:  " + userArn);			
