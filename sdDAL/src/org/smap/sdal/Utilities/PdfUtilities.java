@@ -484,9 +484,10 @@ public class PdfUtilities {
 			
 			if(coords1.length > 1 && coords2.length > 1) {
 				
-				pstmt.setString(1, "SRID=4326;POINT(" + GeneralUtilityMethods.getDouble(coords1[1]) + " " + GeneralUtilityMethods.getDouble(coords1[1]) + ")");
-				pstmt.setString(2, "SRID=4326;POINT(" + GeneralUtilityMethods.getDouble(coords2[1]) + " " + GeneralUtilityMethods.getDouble(coords2[1]) + ")");
+				pstmt.setString(1, "SRID=4326;POINT(" + GeneralUtilityMethods.getDouble(coords1[0]) + " " + GeneralUtilityMethods.getDouble(coords1[1]) + ")");
+				pstmt.setString(2, "SRID=4326;POINT(" + GeneralUtilityMethods.getDouble(coords2[0]) + " " + GeneralUtilityMethods.getDouble(coords2[1]) + ")");
 				
+				log.info(pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) {
 					distance = rs.getFloat(1);

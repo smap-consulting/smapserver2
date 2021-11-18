@@ -2721,7 +2721,7 @@ public class SurveyManager {
 							String qType = q.type;
 							if(qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace") || q.name.startsWith("geopolygon_") || q.name.startsWith("geolinestring_")) {
 
-								col = "ST_AsGeoJSON(" + q.columnName + ", 5)";
+								col = "ST_AsGeoJSON(" + q.columnName + ")";
 
 							} else if(qType.equals("select") && !q.compressed){
 								continue;	// Select data columns are retrieved separately as there are multiple columns per question
