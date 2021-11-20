@@ -1879,7 +1879,7 @@ public class XLSTemplateUploadManager {
 	}
 	
 	/*
-	 * Test for valid java rosa functions in an XPath expression
+	 * Test for valid javarosa functions in an XPath expression
 	 * If the call is for an appearance then only the search function is valid and "search" without parameters is also valid
 	 */
 	private void testXExprFunctions(String in, ResourceBundle localisation, 
