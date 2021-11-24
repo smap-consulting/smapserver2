@@ -1282,30 +1282,36 @@ public class GetHtml {
 	
 	private void addMinimalOptionLabels(Connection sd, Element parent, Question q, Form form) throws Exception {
 
-		ArrayList<Option> options = survey.optionLists.get(q.list_name).options;
-		for (Option o : options) {
+		OptionList ol = survey.optionLists.get(q.list_name);
+		if(ol != null) {
+			ArrayList<Option> options = ol.options;
 			
-			//Element inputElement = outputDoc.createElement("span");
-			//parent.appendChild(inputElement);
-			int idx = 0;
-			for (Language lang : survey.languages) {
-				Element optionElement = outputDoc.createElement("span");
-				parent.appendChild(optionElement);
-				optionElement.setAttribute("lang", lang.name);
-				optionElement.setAttribute("class", "option-label" + (lang.name.equals(survey.def_lang) ? " active" : ""));
-				optionElement.setAttribute("data-itext-id", o.text_id);
+			for (Option o : options) {
 				
-				String label = o.labels.get(idx).text;
-				try {
-					label = convertMarkdown(label);
-					label = UtilityMethods.convertAllxlsNames(label, true, paths, form.id, true, q.name, false);
-
-				} catch (Exception e) {
-					log.log(Level.SEVERE, e.getMessage(), e);
+				//Element inputElement = outputDoc.createElement("span");
+				//parent.appendChild(inputElement);
+				int idx = 0;
+				for (Language lang : survey.languages) {
+					Element optionElement = outputDoc.createElement("span");
+					parent.appendChild(optionElement);
+					optionElement.setAttribute("lang", lang.name);
+					optionElement.setAttribute("class", "option-label" + (lang.name.equals(survey.def_lang) ? " active" : ""));
+					optionElement.setAttribute("data-itext-id", o.text_id);
+					
+					String label = o.labels.get(idx).text;
+					try {
+						label = convertMarkdown(label);
+						label = UtilityMethods.convertAllxlsNames(label, true, paths, form.id, true, q.name, false);
+	
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+					}
+					optionElement.setTextContent(label);
+					idx++;
 				}
-				optionElement.setTextContent(label);
-				idx++;
 			}
+		} else {
+			throw new Exception("List name: " +  q.list_name + " referenced by question " + q.name + " was not found");
 		}
 
 
