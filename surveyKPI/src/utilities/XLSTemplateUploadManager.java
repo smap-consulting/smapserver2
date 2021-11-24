@@ -1433,7 +1433,8 @@ public class XLSTemplateUploadManager {
 		if(inFieldList) {
 			if(q.type.equals("end group")) {
 				inFieldList = false;
-			} else if(q.type.equals("begin group") || q.type.equals("begin repeat")) {
+			//} else if(q.type.equals("begin group") || q.type.equals("begin repeat")) {
+			} else if(q.type.equals("begin repeat")) {		// Tentatively should be ok to have a group inside a fieldlist group
 				Stack<Question> groupStack = getGroupStack(formIndex);
 				String groupName = groupStack.pop().name;
 				throw XLSUtilities.getApplicationException(localisation, "tu_fl", rowNumber, "survey", q.type, groupName, null);
