@@ -416,6 +416,7 @@ public class SurveyManager {
 				+ "s.version, "
 				+ "s.key_policy, "
 				+ "s.exclude_empty,"
+				+ "s.compress_pdf,"
 				+ "s.meta,"
 				+ "s.group_survey_ident,"
 				+ "s.public_link, "
@@ -495,18 +496,19 @@ public class SurveyManager {
 
 				s.version = resultSet.getInt(20);
 				s.key_policy = resultSet.getString(21);
-				s.exclude_empty = resultSet.getBoolean(22);
-				String meta = resultSet.getString(23);
+				s.exclude_empty = resultSet.getBoolean("exclude_empty");
+				s.compress_pdf = resultSet.getBoolean("compress_pdf");
+				String meta = resultSet.getString("meta");
 				if(meta != null) {
 					s.meta = new Gson().fromJson(meta, 
 							new TypeToken<ArrayList<MetaItem>>(){}.getType()); 
 				} else {
 					getLegacyMeta();
 				}
-				s.groupSurveyIdent = resultSet.getString(24);
-				s.publicLink = resultSet.getString(25);
-				s.e_id = resultSet.getInt(26);
-				s.setHideOnDevice(resultSet.getBoolean(27));
+				s.groupSurveyIdent = resultSet.getString("group_survey_ident");
+				s.publicLink = resultSet.getString("public_link");
+				s.e_id = resultSet.getInt("e_id");
+				s.setHideOnDevice(resultSet.getBoolean("hide_on_device"));
 				s.setSearchLocalData(resultSet.getBoolean("search_local_data"));
 				s.dataSurvey = resultSet.getBoolean("data_survey");
 				s.oversightSurvey = resultSet.getBoolean("oversight_survey");

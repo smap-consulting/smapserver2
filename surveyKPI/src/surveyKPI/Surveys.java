@@ -915,6 +915,7 @@ public class Surveys extends Application {
 					+ "hrk = ?,"
 					+ "key_policy = ?, "
 					+ "exclude_empty = ?, "
+					+ "compress_pdf = ?, "
 					+ "hide_on_device = ?, "
 					+ "search_local_data = ?, "
 					+ "data_survey = ?, "
@@ -942,18 +943,19 @@ public class Surveys extends Application {
 			pstmt.setString(10, survey.hrk);
 			pstmt.setString(11, survey.key_policy);
 			pstmt.setBoolean(12, survey.exclude_empty);
-			pstmt.setBoolean(13, survey.getHideOnDevice());
-			pstmt.setBoolean(14, survey.getSearchLocalData());
-			pstmt.setBoolean(15, survey.dataSurvey);
-			pstmt.setBoolean(16, survey.oversightSurvey);
-			pstmt.setBoolean(17, survey.audit_location_data);
-			pstmt.setBoolean(18, survey.track_changes);
-			pstmt.setString(19, survey.default_logo);
+			pstmt.setBoolean(13, survey.compress_pdf);
+			pstmt.setBoolean(14, survey.getHideOnDevice());
+			pstmt.setBoolean(15, survey.getSearchLocalData());
+			pstmt.setBoolean(16, survey.dataSurvey);
+			pstmt.setBoolean(17, survey.oversightSurvey);
+			pstmt.setBoolean(18, survey.audit_location_data);
+			pstmt.setBoolean(19, survey.track_changes);
+			pstmt.setString(20, survey.default_logo);
 			if(updatePDFName) {
-				pstmt.setString(20, fileName);
-				pstmt.setInt(21, sId);
+				pstmt.setString(21, fileName);
+				pstmt.setInt(22, sId);
 			} else {
-				pstmt.setInt(20, sId);
+				pstmt.setInt(21, sId);
 			}
 			
 			log.info("Saving survey: " + pstmt.toString());

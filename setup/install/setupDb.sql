@@ -576,7 +576,8 @@ CREATE TABLE survey (
 	group_survey_id integer default 0,				-- deprecate
 	group_survey_ident text,						-- common ident linking grouped surveys
 	pulldata text,									-- Settings to customise pulling data from another survey into a csv file
-	exclude_empty boolean default false,				-- True if reports should not include empty data
+	exclude_empty boolean default false,			-- True if reports should not include empty data
+	compress_pdf boolean default false,				-- True if PDFs of data should have images compressed
 	created timestamp with time zone,				-- Date / Time the survey was created
 	meta text,										-- Meta items to collect with this survey
 	public_link text,

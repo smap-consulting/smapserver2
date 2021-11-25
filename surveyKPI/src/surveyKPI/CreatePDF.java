@@ -165,11 +165,10 @@ public class CreatePDF extends Application {
 			
 			String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";
 			
-			boolean compress = true;
 			OutputStream os = null;
 			String filePath = null;
 			
-			if(compress) {		// Write the PDF to a temporary file			
+			if(survey.compress_pdf) {		// Write the PDF to a temporary file			
 				filePath = basePath + "/temp/" + String.valueOf(UUID.randomUUID() + ".pdf");
 				File tempFile = new File(filePath);
 				os = new FileOutputStream(tempFile);
@@ -191,7 +190,7 @@ public class CreatePDF extends Application {
 					landscape,
 					resp);
 			
-			if(compress) {
+			if(survey.compress_pdf) {
 				// Compress the temporary file and write it to the servlet output stream
 				os.close();
 				os = resp.getOutputStream();
