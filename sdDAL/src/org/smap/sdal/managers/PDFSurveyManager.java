@@ -1,5 +1,8 @@
 package org.smap.sdal.managers;
 
+import java.awt.Graphics2D;
+import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -7,6 +10,7 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.lang.reflect.Type;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.text.DateFormat;
@@ -39,6 +43,8 @@ import org.smap.sdal.model.Row;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.User;
+
+import javax.imageio.ImageIO;
 
 import com.github.binodnme.dateconverter.converter.DateConverter;
 import com.github.binodnme.dateconverter.utils.DateBS;
@@ -1841,6 +1847,36 @@ public class PDFSurveyManager {
 						} else {
 							img = Image.getInstance(serverRoot + di.value);
 						}
+						
+						// start compress
+						/*
+						float width = img.getWidth();
+						float height = img.getHeight();
+						float cWidth = valueCell.getWidth();
+						float cHeight = valueCell.getHeight();
+						
+						if(cWidth == 0) {
+							cWidth = 500;
+						}
+						if(cHeight == 0) {
+							cHeight = 500;
+						}
+						
+						double scaleWidth = (cWidth / width);
+						double scaleHeight = (cHeight / height);
+						
+						
+						BufferedImage compressed = new BufferedImage((int)cWidth, (int)cHeight, img.getType());
+						AffineTransform at = AffineTransform.getScaleInstance(scaleWidth, scaleHeight);
+						Graphics2D g = compressed.createGraphics();
+				        g.drawRenderedImage(img, at);
+				        
+				        Image pdfImage = Image.getInstance(compressed, null);
+				        
+				        pdfImage = Image.getInstance(basePath + "/" + di.value);
+				        */
+				        // End compress
+						
 						valueCell.addElement(img);
 					} catch(Exception e) {
 						log.info("Error: image " + basePath + "/" + di.value + " not added: " + e.getMessage());

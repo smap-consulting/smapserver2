@@ -19,6 +19,7 @@ import org.codehaus.jettison.json.JSONArray;
 import org.smap.notifications.interfaces.EmitAwsSMS;
 import org.smap.notifications.interfaces.EmitSMS;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Notification;
@@ -827,6 +828,19 @@ public class NotificationManager {
 								landscape,
 								null);
 						
+						outputStream.close();
+						if(survey.compress_pdf) {
+							// Compress the temporary file and write it toa new temporary file
+							String compressedPath = msg.basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";	// New temporary file
+							try {
+								outputStream = new FileOutputStream(compressedPath); 
+							} catch (Exception e) {
+								log.log(Level.SEVERE, "Error creating temporary PDF file", e);
+							}
+							PdfUtilities.resizePdf(filePath, outputStream);
+							outputStream.close();
+							filePath = compressedPath;
+						}
 						logContent = filePath;
 						
 					} else {

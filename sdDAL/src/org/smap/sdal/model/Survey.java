@@ -68,6 +68,7 @@ public class Survey {
 	public String basedOn;
 	public Timestamp created;
 	public boolean exclude_empty;
+	public boolean compress_pdf;
 	public String projectName;
 	private boolean hideOnDevice;		// Replaces projectTasksOnly
 	private boolean searchLocalData;

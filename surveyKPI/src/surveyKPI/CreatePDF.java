@@ -1,5 +1,9 @@
 package surveyKPI;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+
 /*
 This file is part of SMAP.
 
@@ -22,6 +26,7 @@ import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,6 +42,7 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
@@ -158,8 +164,23 @@ public class CreatePDF extends Application {
 			PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, request.getRemoteUser(), tz);
 			
 			String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";
+			
+			OutputStream os = null;
+			String filePath = null;
+			
+			if(survey.compress_pdf) {		// Write the PDF to a temporary file			
+				filePath = basePath + "/temp/" + String.valueOf(UUID.randomUUID() + ".pdf");
+				File tempFile = new File(filePath);
+				os = new FileOutputStream(tempFile);
+				log.info("Writing PDF to temporary file: " + filePath);
+				
+			} else {			// Write directly to the servlet output stream
+				os = resp.getOutputStream();
+			}
+				
+			// Create PDF	
 			pm.createPdf(
-					resp.getOutputStream(),
+					os,
 					basePath, 
 					urlprefix,
 					request.getRemoteUser(),
@@ -168,6 +189,13 @@ public class CreatePDF extends Application {
 					filename,
 					landscape,
 					resp);
+			
+			if(survey.compress_pdf) {
+				// Compress the temporary file and write it to the servlet output stream
+				os.close();
+				os = resp.getOutputStream();
+				PdfUtilities.resizePdf(filePath, os);
+			}
 			
 			response = Response.ok("").build();
 			

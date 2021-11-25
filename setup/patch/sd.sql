@@ -452,3 +452,6 @@ alter table last_refresh_log add column appversion text;
 alter table organisation add column dashboard_region text;
 alter table organisation add column dashboard_arn text;
 alter table organisation add column dashboard_session_name text;
+
+-- upgrade to version 21.12
+alter table survey add column compress_pdf boolean;
