@@ -1,7 +1,10 @@
 package org.smap.sdal.Utilities;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -42,8 +45,14 @@ import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.AcroFields;
 import com.itextpdf.text.pdf.AcroFields.FieldPosition;
 import com.itextpdf.text.pdf.ColumnText;
+import com.itextpdf.text.pdf.PRStream;
+import com.itextpdf.text.pdf.PdfName;
+import com.itextpdf.text.pdf.PdfNumber;
+import com.itextpdf.text.pdf.PdfObject;
+import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfStamper;
 import com.itextpdf.text.pdf.PushbuttonField;
+import com.itextpdf.text.pdf.parser.PdfImageObject;
 
 public class PdfUtilities {
 
@@ -499,5 +508,67 @@ public class PdfUtilities {
 		return distance;
 	}
 	
+	// Uses code from https://stackoverflow.com/questions/20614350/compress-pdf-with-large-images-via-java
+	public static void resizePdf(String src, OutputStream os) throws IOException, DocumentException {
+	    
+	    // Read the file
+	    PdfReader reader = new PdfReader(src);
+	    int n = reader.getXrefSize();
+	    PdfObject object;
+	    PRStream stream;
+	    float factor = 1.0f;
+	    // Look for image and manipulate image stream
+	    for (int i = 0; i < n; i++) {
+	        object = reader.getPdfObject(i);
+	        if (object == null || !object.isStream())
+	            continue;
+	        stream = (PRStream)object;
+	       // if (value.equals(stream.get(key))) {
+	        PdfObject pdfsubtype = stream.get(PdfName.SUBTYPE);
+	        System.out.println(stream.type());
+	        if (pdfsubtype != null && pdfsubtype.toString().equals(PdfName.IMAGE.toString())) {
+	            PdfImageObject image = new PdfImageObject(stream);
+	            BufferedImage bi = image.getBufferedImage();
+	            if (bi == null) continue;
+	            int width = bi.getWidth();
+	            int height = bi.getHeight();
+	            
+	            /*
+	             * Calculate amount of compression
+	             */
+	            if(width > 2000 && height > 2000) {
+	            	factor = 0.25f;
+	            } else if(width > 1000 && height > 1000) {
+	            	factor = 0.5f;
+	            } else if(width > 500 && height > 500) {
+	            	factor = 0.8f;
+	            }
+	            width = (int) (bi.getWidth() * factor);
+	            height = (int) (bi.getHeight() * factor);
+	            
+	            BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+	            AffineTransform at = AffineTransform.getScaleInstance(factor, factor);
+	            Graphics2D g = img.createGraphics();
+	            g.drawRenderedImage(bi, at);
+	            ByteArrayOutputStream imgBytes = new ByteArrayOutputStream();
+	            ImageIO.write(img, "JPG", imgBytes);
+	            stream.clear();
+	            stream.setData(imgBytes.toByteArray(), false, PRStream.BEST_COMPRESSION);
+	            stream.put(PdfName.TYPE, PdfName.XOBJECT);
+	            stream.put(PdfName.SUBTYPE, PdfName.IMAGE);
+	            //stream.put(key, value);
+	            stream.put(PdfName.FILTER, PdfName.DCTDECODE);
+	            stream.put(PdfName.WIDTH, new PdfNumber(width));
+	            stream.put(PdfName.HEIGHT, new PdfNumber(height));
+	            stream.put(PdfName.BITSPERCOMPONENT, new PdfNumber(8));
+	            stream.put(PdfName.COLORSPACE, PdfName.DEVICERGB);
+	        }
+	    }
+	    // Save altered PDF
+	    PdfStamper stamper = new PdfStamper(reader, os);
+	    stamper.close();
+	    reader.close();
+	    
+	}
 	
 }

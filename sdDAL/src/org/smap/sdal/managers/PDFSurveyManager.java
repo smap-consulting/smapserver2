@@ -1841,15 +1841,15 @@ public class PDFSurveyManager {
 				} else {
 					try {
 						File f = new File(basePath + "/" + di.value);
-						BufferedImage img = null;
+						Image img = null;
 						if(f.exists()) {
-							img = ImageIO.read(f);
+							img = Image.getInstance(basePath + "/" + di.value);
 						} else {
-							URL url = new URL(serverRoot + di.value);
-							img = ImageIO.read(url);
+							img = Image.getInstance(serverRoot + di.value);
 						}
 						
 						// start compress
+						/*
 						float width = img.getWidth();
 						float height = img.getHeight();
 						float cWidth = valueCell.getWidth();
@@ -1874,10 +1874,10 @@ public class PDFSurveyManager {
 				        Image pdfImage = Image.getInstance(compressed, null);
 				        
 				        pdfImage = Image.getInstance(basePath + "/" + di.value);
-				        
+				        */
 				        // End compress
 						
-						valueCell.addElement(pdfImage);
+						valueCell.addElement(img);
 					} catch(Exception e) {
 						log.info("Error: image " + basePath + "/" + di.value + " not added: " + e.getMessage());
 						log.log(Level.SEVERE, "Adding image to pdf", e);
