@@ -433,6 +433,7 @@ public class XLSTemplateUploadManager {
 				survey.timing_data = getBooleanColumn(row, "timing_data", settingsHeader, lastCellNum, false);
 				survey.audit_location_data = getBooleanColumn(row, "audit_location_data", settingsHeader, lastCellNum, false);
 				survey.track_changes = getBooleanColumn(row, "track_changes", settingsHeader, lastCellNum, false);
+				survey.compress_pdf = getBooleanColumn(row, "compress_pdf", settingsHeader, lastCellNum, false);
 
 				survey.hrk = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum, null);
 				

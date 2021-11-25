@@ -118,6 +118,7 @@ public class XLSFormManager {
 		public static final int COL_AUTO_TRANSLATE = 214;
 		public static final int COL_REPORT_LOGO = 215;
 		public static final int COL_SEARCH_LOCAL_DATA = 216;
+		public static final int COL_COMPRESS_PDF = 217;
 
 		// Style sheet columns
 		public static final int COL_STYLE_LIST2 = 300;
@@ -499,6 +500,9 @@ public class XLSFormManager {
 
 			} else if(type == COL_TRACK_CHANGES) {				
 				value = survey.track_changes ? "yes" : "no";
+
+			} else if(type == COL_COMPRESS_PDF) {				
+				value = survey.compress_pdf ? "yes" : "no";
 
 			} else {
 				log.info("Unknown settings type: " + type);
@@ -1128,6 +1132,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "pulldata_repeat", Column.COL_PULLDATA_REPEAT, 0, "pulldata_repeat"));
 		cols.add(new Column(colNumber++, "auto_translate", Column.COL_AUTO_TRANSLATE, 0, "auto_translate"));
 		cols.add(new Column(colNumber++, "report_logo", Column.COL_REPORT_LOGO, 0, "report_logo"));
+		cols.add(new Column(colNumber++, "compress_pdf", Column.COL_COMPRESS_PDF, 0, "compress_pdf"));
 
 		// Add role columns
 		for(String role : survey.roles.keySet()) {

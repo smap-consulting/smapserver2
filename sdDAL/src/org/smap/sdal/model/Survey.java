@@ -294,9 +294,10 @@ public class Survey {
 				+ "audit_location_data,"
 				+ "track_changes,"
 				+ "auto_translate,"
-				+ "default_logo) "
+				+ "default_logo,"
+				+ "compress_pdf) "
 				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
@@ -337,6 +338,7 @@ public class Survey {
 			pstmt.setBoolean(23, track_changes);
 			pstmt.setBoolean(24, autoTranslate);
 			pstmt.setString(25, default_logo);
+			pstmt.setBoolean(26, compress_pdf);
 			pstmt.executeUpdate();
 			
 			// If an ident was not provided then assign a new ident based on the survey id
