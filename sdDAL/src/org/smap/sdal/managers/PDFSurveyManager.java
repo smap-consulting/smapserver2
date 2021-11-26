@@ -1533,6 +1533,8 @@ public class PDFSurveyManager {
 						di.hideRepeatingLabels = true;		
 					} else if(app.equals("thousands-sep")) {
 						di.tsep = true;		
+					} else if(app.equals("pdfshowimage")) {
+						di.showImage = true;		
 					}
 				}
 			}
