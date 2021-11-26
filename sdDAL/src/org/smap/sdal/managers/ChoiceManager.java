@@ -47,7 +47,8 @@ public class ChoiceManager {
 			int oId, int sId, int qId, int l_id, boolean external_choices, String external_table, String languageName,
 			int languageIdx,
 			ArrayList<String> matches,
-			String surveyIdent) throws Exception {
+			String surveyIdent,
+			boolean getImage) throws Exception {
 		
 		StringBuffer labels = new StringBuffer("");
 		
@@ -76,7 +77,7 @@ public class ChoiceManager {
 
 				// Try for static choices first	
 				if(!external_choices || isInteger) {
-					String label = UtilityMethodsEmail.getSingleLabel(sd, sId, languageName, l_id, match);
+					String label = UtilityMethodsEmail.getSingleLabel(sd, sId, languageName, l_id, match, getImage);
 					if(label != null) {
 						if(labels.length() > 0) {
 							labels.append(", ");

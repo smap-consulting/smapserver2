@@ -29,6 +29,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfPageSizer;
 import org.smap.sdal.Utilities.PdfUtilities;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
@@ -155,6 +156,8 @@ public class PDFSurveyManager {
 	int marginBottom_2 = 100;
 
 	boolean mExcludeEmpty = false;
+	String mBasePath;
+	String mServerRoot;
 
 	private class StringElement {
 		public boolean htmlToken;
@@ -207,6 +210,8 @@ public class PDFSurveyManager {
 		}
 
 		mExcludeEmpty = survey.exclude_empty;
+		mBasePath = basePath;
+		mServerRoot = serverRoot;
 
 		User user = null;
 
@@ -308,7 +313,7 @@ public class PDFSurveyManager {
 			 * Get a template for the PDF report if it exists
 			 * The template name will be the same as the XLS form name but with an extension of pdf
 			 */
-			File templateFile = GeneralUtilityMethods.getPdfTemplate(basePath, survey.displayName, survey.p_id);
+			File templateFile = GeneralUtilityMethods.getPdfTemplate(mBasePath, survey.displayName, survey.p_id);
 
 			/*
 			 * Get dependencies between Display Items, for example if a question result should be added to another
@@ -337,10 +342,10 @@ public class PDFSurveyManager {
 				stamper.setFreeTextFlattening(true);
 				for(int i = 0; i < survey.instance.results.size(); i++) {
 					fillTemplate(gv, stamper.getAcroFields(), survey.instance.results.get(i), 
-							basePath, null, i, serverRoot, stamper, oId);
+							null, i, serverRoot, stamper, oId);
 				}
 				if(user != null) {
-					fillTemplateUserDetails(stamper.getAcroFields(), user, basePath);
+					fillTemplateUserDetails(stamper.getAcroFields(), user, mBasePath);
 				}
 				
 				// Reapply stamper to all content as per https://what-when-how.com/itext-5/pdf-and-compression-itext-5/
@@ -359,7 +364,7 @@ public class PDFSurveyManager {
 				 * If we need to add a letter head then create document in two passes, the second pass adds the letter head
 				 * Else just create the document directly in a single pass
 				 */
-				Parser parser = getXMLParser(basePath);
+				Parser parser = getXMLParser();
 
 				// Step 1 - Create the underlying document as a byte array
 				if(landscape) {
@@ -388,7 +393,7 @@ public class PDFSurveyManager {
 				writer.setInitialLeading(12);	
 
 				writer.setPageEvent(new PdfPageSizer(title, 
-						user, basePath, null,
+						user, mBasePath, null,
 						marginLeft, marginRight, marginTop_2, marginBottom_2,
 						survey.ident, survey.default_logo)); 
 				document.open();
@@ -404,8 +409,6 @@ public class PDFSurveyManager {
 							parser, 
 							document, 
 							survey.instance.results.get(i), 
-							basePath, 
-							serverRoot,
 							generateBlank,
 							0,
 							i,
@@ -431,8 +434,6 @@ public class PDFSurveyManager {
 								parser, 
 								document, 
 								survey.instance.results.get(i), 
-								basePath, 
-								serverRoot,
 								generateBlank,
 								0,
 								i,
@@ -517,7 +518,6 @@ public class PDFSurveyManager {
 			GlobalVariables gv,
 			AcroFields pdfForm, 
 			ArrayList<Result> record, 
-			String basePath,
 			String formName,
 			int repeatIndex,
 			String serverRoot,
@@ -547,7 +547,7 @@ public class PDFSurveyManager {
 			 */
 			if(r.type.equals("form")) {
 				for(int k = 0; k < r.subForm.size(); k++) {
-					fillTemplate(gv, pdfForm, r.subForm.get(k), basePath, fieldName, k, serverRoot, stamper, oId);
+					fillTemplate(gv, pdfForm, r.subForm.get(k),fieldName, k, serverRoot, stamper, oId);
 				} 
 			} else if(r.type.equals("select1")) {
 
@@ -558,7 +558,7 @@ public class PDFSurveyManager {
 				matches.add(r.value);
 				value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id, 
 						question.external_choices, question.external_table, 
-						survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident);
+						survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident, di.showImage);
 
 			} else if(r.type.equals("select")) {
 
@@ -575,7 +575,7 @@ public class PDFSurveyManager {
 					Question question = form.questions.get(r.qIdx);
 					value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id,  question.external_choices, 
 							question.external_table, 
-							survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident);
+							survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident, false);
 				}
 
 			} else if(r.type.equals("dateTime") || r.type.equals("timestamp")) {
@@ -653,7 +653,7 @@ public class PDFSurveyManager {
 							survey.id,
 							user,
 							di.markerColor,
-							basePath);
+							mBasePath);
 					PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img);
 				} else {
 					log.info("No field for image (Mapbox not called: " + fieldName);
@@ -683,14 +683,14 @@ public class PDFSurveyManager {
 							survey.id,
 							user,
 							di.markerColor,
-							basePath);
+							mBasePath);
 				} else {
 					img = PdfUtilities.getLineImage(sd, 
 							mapValues,
 							survey.id,
 							user,
 							di.markerColor,
-							basePath,
+							mBasePath,
 							width,
 							height);
 				}
@@ -699,7 +699,7 @@ public class PDFSurveyManager {
 
 
 			} else if(r.type.equals("image") || r.type.equals("video") || r.type.equals("audio")  || r.type.equals("file")) {
-				PdfUtilities.addImageTemplate(pdfForm, fieldName, basePath, value, serverRoot, stamper, defaultFontLink);
+				PdfUtilities.addImageTemplate(pdfForm, fieldName, mBasePath, value, serverRoot, stamper, defaultFontLink);
 
 			} else {				
 				if(hideLabel) {
@@ -808,7 +808,7 @@ public class PDFSurveyManager {
 	/*
 	 * Get an XML Parser
 	 */
-	private Parser getXMLParser(String basePath) {
+	private Parser getXMLParser() {
 
 		Parser parser = new Parser();
 
@@ -816,7 +816,7 @@ public class PDFSurveyManager {
 		CSSResolver cssResolver = new StyleAttrCSSResolver();
 		FileInputStream fis = null;
 		try {
-			fis = new FileInputStream(basePath + "_bin" + DEFAULT_CSS);
+			fis = new FileInputStream(mBasePath + "_bin" + DEFAULT_CSS);
 			CssFile cssFile = XMLWorkerHelper.getCSS(fis);
 			cssResolver.addCss(cssFile);
 		} catch(Exception e) {
@@ -891,8 +891,6 @@ public class PDFSurveyManager {
 			Parser parser,
 			Document document,  
 			ArrayList<Result> record,
-			String basePath,
-			String serverRoot,
 			boolean generateBlank,
 			int depth,
 			int length,
@@ -948,8 +946,6 @@ public class PDFSurveyManager {
 								parser, 
 								document, 
 								r.subForm.get(0), 
-								basePath, 
-								serverRoot,
 								generateBlank, 
 								depth + 1,
 								k,
@@ -970,8 +966,6 @@ public class PDFSurveyManager {
 								parser, 
 								document, 
 								r.subForm.get(k),
-								basePath, 
-								serverRoot,
 								generateBlank, 
 								depth + 1,
 								k,
@@ -1011,8 +1005,6 @@ public class PDFSurveyManager {
 							PdfPTable newTable = processRow(
 									parser, 
 									row, 
-									basePath, 
-									serverRoot,
 									generateBlank, 
 									depth, 
 									repIndexes, 
@@ -1136,8 +1128,6 @@ public class PDFSurveyManager {
 	private PdfPTable processRow(
 			Parser parser, 
 			Row row, 
-			String basePath,
-			String serverRoot,
 			boolean generateBlank,
 			int depth,
 			int[] repIndexes,
@@ -1168,7 +1158,7 @@ public class PDFSurveyManager {
 			if(di.hideRepeatingLabels && depth > 0 && repIndexes[depth - 1] > 0) {
 				hideLabel = true;
 			}
-			PdfPCell cell = new PdfPCell(addDisplayItem(parser, di, basePath, serverRoot, 
+			PdfPCell cell = new PdfPCell(addDisplayItem(parser, di, mBasePath, mServerRoot, 
 					generateBlank, gv, remoteUser, oId, startGeopointValue, hideLabel));
 			cell.setBorderColor(BaseColor.LIGHT_GRAY);
 
@@ -1848,35 +1838,6 @@ public class PDFSurveyManager {
 							img = Image.getInstance(serverRoot + di.value);
 						}
 						
-						// start compress
-						/*
-						float width = img.getWidth();
-						float height = img.getHeight();
-						float cWidth = valueCell.getWidth();
-						float cHeight = valueCell.getHeight();
-						
-						if(cWidth == 0) {
-							cWidth = 500;
-						}
-						if(cHeight == 0) {
-							cHeight = 500;
-						}
-						
-						double scaleWidth = (cWidth / width);
-						double scaleHeight = (cHeight / height);
-						
-						
-						BufferedImage compressed = new BufferedImage((int)cWidth, (int)cHeight, img.getType());
-						AffineTransform at = AffineTransform.getScaleInstance(scaleWidth, scaleHeight);
-						Graphics2D g = compressed.createGraphics();
-				        g.drawRenderedImage(img, at);
-				        
-				        Image pdfImage = Image.getInstance(compressed, null);
-				        
-				        pdfImage = Image.getInstance(basePath + "/" + di.value);
-				        */
-				        // End compress
-						
 						valueCell.addElement(img);
 					} catch(Exception e) {
 						log.info("Error: image " + basePath + "/" + di.value + " not added: " + e.getMessage());
@@ -2247,7 +2208,7 @@ public class PDFSurveyManager {
 					matches.add(di.value);
 					value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id, 
 							question.external_choices, question.external_table, 
-							survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident);
+							survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident, di.showImage);
 				} else if(di.type.equals("select")) {
 					String nameValue = value;
 					if(nameValue != null) {
@@ -2262,75 +2223,51 @@ public class PDFSurveyManager {
 						Question question = form.questions.get(di.qIdx);
 						value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, 
 								question.l_id, question.external_choices, question.external_table, 
-								survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident);
+								survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident, false);		// Do not get images for multi select
 					}
 				}
 
 				if(GeneralUtilityMethods.isRtlLanguage(di.value)) {
 					cell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
 				}
-				parser.elements.clear();
-				String html = getHtml(value, di, gv, deps);
-				try {
-					parser.xmlParser.parse(new StringReader(html));
-				} catch (Exception e) {
-					log.log(Level.SEVERE, "Error parsing: " + html.toString() + " : " + e.getMessage(), e);
-					String msg = e.getMessage();
-					if(msg == null) {
-						msg = "Error parsing PDF. Ignoring."; 
+				
+				if(di.showImage) {
+					String filePath = UtilityMethodsEmail.getMediaPath(survey.ident, value, mBasePath, oId, survey.id);
+					if(filePath != null) {
+						File imageFile = new File(filePath);
+						Image img = null;
+						if(imageFile.exists()) {
+							img = Image.getInstance(filePath);
+						} 
+						if(img != null) {
+							cell.addElement(img);
+						} else {
+							cell.addElement(getPara(" ", di, gv, deps, null));
+						}
 					}
-					lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, msg + " for: " + html.toString(), 0, null);
-					cell.addElement(getPara(html.toString(), di, gv, null, null));
+				} else {
+					parser.elements.clear();
+					String html = getHtml(value, di, gv, deps);
+					try {
+						parser.xmlParser.parse(new StringReader(html));
+					} catch (Exception e) {
+						log.log(Level.SEVERE, "Error parsing: " + html.toString() + " : " + e.getMessage(), e);
+						String msg = e.getMessage();
+						if(msg == null) {
+							msg = "Error parsing PDF. Ignoring."; 
+						}
+						lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, msg + " for: " + html.toString(), 0, null);
+						cell.addElement(getPara(html.toString(), di, gv, null, null));
+					}
+					for(Element element : parser.elements) {					
+						cell.addElement(element);
+					}
 				}
-				for(Element element : parser.elements) {					
-					cell.addElement(element);
-				}
-				//cell.addElement(getPara(value, di, gv, deps, null));
 			}
 
 		}
 
 	}
-
-	/*
-	 * Get the value of a select question
-	 *
-	String getSelectValue(boolean isSelectMultiple, DisplayItem di, ArrayList<String> deps) {
-		StringBuffer sb = new StringBuffer("");
-
-		for(DisplayItem aChoice : di.choices) {
-
-			if(isSelectMultiple) {
-				if(aChoice.isSet) {
-
-					if(deps == null || (aChoice.name != null && !aChoice.name.trim().toLowerCase().equals("other"))) {
-						if(sb.length() > 0) {
-							sb.append(", ");
-						}
-						sb.append(aChoice.text);
-					}
-
-				} 
-			} else {
-				if(aChoice.isSet) {
-
-					if(deps == null || (aChoice.name != null && !aChoice.name.trim().toLowerCase().equals("other"))) {
-						if(sb.length() > 0) {
-							sb.append(", ");
-						}
-						sb.append(aChoice.text);
-					}
-
-				}
-			}
-
-
-		}
-
-		return sb.toString();
-
-	}
-	 */
 
 	/*
 	 * Fill in user details for the output when their is no template

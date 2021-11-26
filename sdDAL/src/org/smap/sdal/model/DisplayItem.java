@@ -37,6 +37,7 @@ public class DisplayItem {
 	public boolean isSignature = false;
 	public boolean isHyperlink = false;
 	public boolean hideRepeatingLabels = false;
+	public boolean showImage = false;		// Show label image instead of label text
 	public boolean tsep = false;		// Thousands separator
 	public LineMap linemap;
 	

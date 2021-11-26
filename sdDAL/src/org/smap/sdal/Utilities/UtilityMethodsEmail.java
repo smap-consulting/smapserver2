@@ -806,7 +806,8 @@ public class UtilityMethodsEmail {
 			int sId,
 			String languageName, 
 			int l_id,
-			String value) throws Exception {
+			String value,
+			boolean getImage) throws Exception {
 
 		PreparedStatement pstmt = null;
 		String label =  null;
@@ -845,11 +846,15 @@ public class UtilityMethodsEmail {
 				while(resultSet.next()) {
 	
 					String t = resultSet.getString(1).trim();
-					String v = resultSet.getString(2);
-	
-					if(t.equals("none")) {
+					String v = resultSet.getString("value");
+					
+					if(getImage && t.equals("image")) {
+						label = v;
+					} else if(!getImage && t.equals("none")) {
 						label = GeneralUtilityMethods.convertAllEmbeddedOutput(v, true);
-					} 
+					}
+	
+					
 				}
 			}
 		} catch (Exception e) {
@@ -994,6 +999,30 @@ public class UtilityMethodsEmail {
 				}
 			}		
 		}
+	}
+	
+	/*
+	 * Get the path to the media file
+	 */
+	public static String getMediaPath(String sIdent, String fileName, String basePath, int oId, int sId) {
+
+		String path = null;
+		File file = null;
+
+		// First try the survey level
+		path = basePath + "/media/" + sIdent + "/" + fileName;	
+
+		file = new File(path);
+		if(!file.exists()) {
+			
+			// Second try the organisation level
+			path = basePath + "/media/organisation/" + oId + "/" + fileName;
+			file = new File(path);
+			if(!file.exists()) {
+				path = null;
+			}		
+		}
+		return path;
 	}
 	
 	/*
