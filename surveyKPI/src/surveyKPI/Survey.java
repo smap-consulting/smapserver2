@@ -188,6 +188,9 @@ public class Survey extends Application {
 				} else if(type.equals("xls")) {
 					ext = ".xls";
 					sourceExt = ".xls";
+				} else if(type.equals("xlsx")) {
+					ext = ".xlsx";
+					sourceExt = ".xlsx";
 				} else if(type.equals("xml")) {	
 					ext = "_gen.xml";		// Generate xml
 					sourceExt = "_gen.xml";
@@ -199,7 +202,7 @@ public class Survey extends Application {
 				
 				String sourceNameXls = null;
 				String sourceNameXlsX = null;
-				if(type.equals("xls")) {
+				if(type.equals("xlsx") || type.equals("xls")) {
 					sourceNameXls = fileBasePath + ".xls";
 					sourceNameXlsX = fileBasePath + ".xlsx";
 				}
@@ -245,10 +248,13 @@ public class Survey extends Application {
 
 				// Check for the existence of the source file
 				File outputFile = null;
-				if(type.equals("xls")) {
+				if(type.equals("xlsx")) {
 					outputFile = new File(sourceNameXlsX);
 					if(!outputFile.exists()) {
 						outputFile = new File(sourceNameXls);
+						type = "xls";
+						ext = ".xls";
+						sourceExt = ".xls";
 					}
 				} else {
 					String filepath = fileBasePath + ext;
@@ -287,6 +293,8 @@ public class Survey extends Application {
 						builder.header("Content-type","application/pdf; charset=UTF-8");
 					} else if(type.equals("xls")) {
 						builder.header("Content-type","application/vnd.ms-excel; charset=UTF-8");
+					} else if(type.equals("xlsx")) {
+						builder.header("Content-type","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; charset=UTF-8");
 					} else if(type.equals("xml")) {
 						builder.header("Content-type","text/xml; charset=UTF-8");
 					}
