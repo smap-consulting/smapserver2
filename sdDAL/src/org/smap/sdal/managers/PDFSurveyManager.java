@@ -336,7 +336,7 @@ public class PDFSurveyManager {
 
 				reader = new PdfReader(templateName);
 				stamper = new PdfStamper(reader, outputStream);
-				stamper.setFullCompression();
+				//stamper.setFullCompression();
 				stamper.setFormFlattening(true);
 				stamper.setAnnotationFlattening(true);
 				stamper.setFreeTextFlattening(true);
@@ -699,8 +699,15 @@ public class PDFSurveyManager {
 
 
 			} else if(r.type.equals("image") || r.type.equals("video") || r.type.equals("audio")  || r.type.equals("file")) {
-				PdfUtilities.addImageTemplate(pdfForm, fieldName, mBasePath, value, serverRoot, stamper, defaultFontLink);
+				PdfUtilities.addImageTemplate(pdfForm, fieldName, mBasePath, value, serverRoot, stamper, defaultFontLink, di.stretch);
 
+			} else if(r.type.equals("select1") && di.showImage) {
+				String filePath = UtilityMethodsEmail.getMediaPath(survey.ident, value, mBasePath, oId, survey.id);
+				if(filePath != null) {
+					// remove base path from file path as it will be added in again
+					String remnantPath = filePath.substring(mBasePath.length());
+					PdfUtilities.addImageTemplate(pdfForm, fieldName, mBasePath, remnantPath, serverRoot, stamper, defaultFontLink, di.stretch);
+				}
 			} else {				
 				if(hideLabel) {
 					try {
@@ -1523,6 +1530,8 @@ public class PDFSurveyManager {
 						di.location = getAppValue(app);			// lon,lat,zoom
 					} else if(app.startsWith("pdfbarcode")) {
 						di.isBarcode = true;		
+					} else if(app.equals("pdfstretch")) {
+						di.stretch = true;		
 					} else if(app.startsWith("pdfzoom")) {
 						di.zoom = getAppValue(app);		
 					} else if(app.startsWith("pdfhyperlink")) {

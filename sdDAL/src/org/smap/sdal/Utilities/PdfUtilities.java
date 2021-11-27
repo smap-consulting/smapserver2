@@ -62,17 +62,19 @@ public class PdfUtilities {
 	private static LogManager lm = new LogManager();		// Application log
 	
 	public static void addImageTemplate(AcroFields pdfForm, String fieldName, String basePath, 
-			String value, String serverRoot, PdfStamper stamper, Font symbols_font) throws IOException, DocumentException {
+			String value, String serverRoot, PdfStamper stamper, Font symbols_font,
+			boolean stretch) throws IOException, DocumentException {
+		
 		PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
 		if(ad != null) {
 			ad.setLayout(PushbuttonField.LAYOUT_ICON_ONLY);
-			ad.setProportionalIcon(true);
+			ad.setProportionalIcon(!stretch);
 			try {
 				File f = new File(basePath + "/" + value);
 				if(f.exists()) {
 					ad.setImage(Image.getInstance(basePath + "/" + value));
 				} else {
-					// mus be on s3
+					// must be on s3
 					ad.setImage(Image.getInstance(serverRoot + "/" + value));
 				}
 				pdfForm.replacePushbuttonField(fieldName, ad.getField());
@@ -516,7 +518,7 @@ public class PdfUtilities {
 	    int n = reader.getXrefSize();
 	    PdfObject object;
 	    PRStream stream;
-	    float factor = 1.0f;
+
 	    // Look for image and manipulate image stream
 	    for (int i = 0; i < n; i++) {
 	        object = reader.getPdfObject(i);
@@ -525,7 +527,6 @@ public class PdfUtilities {
 	        stream = (PRStream)object;
 	       // if (value.equals(stream.get(key))) {
 	        PdfObject pdfsubtype = stream.get(PdfName.SUBTYPE);
-	        System.out.println(stream.type());
 	        if (pdfsubtype != null && pdfsubtype.toString().equals(PdfName.IMAGE.toString())) {
 	            PdfImageObject image = new PdfImageObject(stream);
 	            BufferedImage bi = image.getBufferedImage();
@@ -536,6 +537,8 @@ public class PdfUtilities {
 	            /*
 	             * Calculate amount of compression
 	             */
+	    	    float factor = 1.0f;
+	            log.info("compressing.  width: " + width + " height: " + height);
 	            if(width > 2000 && height > 2000) {
 	            	factor = 0.25f;
 	            } else if(width > 1000 && height > 1000) {

@@ -38,6 +38,7 @@ public class DisplayItem {
 	public boolean isHyperlink = false;
 	public boolean hideRepeatingLabels = false;
 	public boolean showImage = false;		// Show label image instead of label text
+	public boolean stretch = false;			// Stretch an image to fit a box
 	public boolean tsep = false;		// Thousands separator
 	public LineMap linemap;
 	
