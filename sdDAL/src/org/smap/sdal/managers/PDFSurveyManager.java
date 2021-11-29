@@ -654,7 +654,7 @@ public class PDFSurveyManager {
 							user,
 							di.markerColor,
 							mBasePath);
-					PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img);
+					PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img, di.stretch);
 				} else {
 					log.info("No field for image (Mapbox not called: " + fieldName);
 				}
@@ -695,7 +695,7 @@ public class PDFSurveyManager {
 							height);
 				}
 
-				PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img);
+				PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img, di.stretch);
 
 
 			} else if(r.type.equals("image") || r.type.equals("video") || r.type.equals("audio")  || r.type.equals("file")) {
@@ -723,7 +723,7 @@ public class PDFSurveyManager {
 							Image qrcodeImage = qrcode.getImage();
 							qrcodeImage.setAbsolutePosition(10,500);
 							qrcodeImage.scalePercent(200);
-							PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, qrcodeImage);
+							PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, qrcodeImage, di.stretch);
 						}
 					} else {
 						pdfForm.setField(fieldName, value);
@@ -742,7 +742,7 @@ public class PDFSurveyManager {
 					Image qrcodeImage = qrcode.getImage();
 					qrcodeImage.setAbsolutePosition(10,500);
 					qrcodeImage.scalePercent(200);
-					PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldNameQR, qrcodeImage);
+					PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldNameQR, qrcodeImage, di.stretch);
 				}
 			}
 

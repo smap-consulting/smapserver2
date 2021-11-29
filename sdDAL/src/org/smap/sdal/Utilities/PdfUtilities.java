@@ -104,11 +104,11 @@ public class PdfUtilities {
 		}
 	}
 	
-	public static void addMapImageTemplate(AcroFields pdfForm, PushbuttonField ad, String fieldName, Image img) throws IOException, DocumentException {
+	public static void addMapImageTemplate(AcroFields pdfForm, PushbuttonField ad, String fieldName, Image img, boolean stretch) throws IOException, DocumentException {
 		
 		if(ad != null) {
 			ad.setLayout(PushbuttonField.LAYOUT_ICON_ONLY);
-			ad.setProportionalIcon(true);
+			ad.setProportionalIcon(!stretch);
 			try {
 				ad.setImage(img);
 			} catch (Exception e) {
