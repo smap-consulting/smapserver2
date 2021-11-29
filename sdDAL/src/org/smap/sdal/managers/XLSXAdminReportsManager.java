@@ -112,13 +112,13 @@ public class XLSXAdminReportsManager {
 		
 		ArrayList<AR> report = null;
 		if(bySurvey) {
-			report = getAdminReportSurvey(sd, oId, month, year);
+			report = getAdminReportSurvey(sd, oId, month, year, null);	// Get for all users
 		} else if(byProject) {
-			report = getAdminReportProject(sd, oId, month, year);
+			report = getAdminReportProject(sd, oId, month, year, null);
 		} else if(byDevice) {
-			report = getAdminReportDevice(sd, oId, month, year);
+			report = getAdminReportDevice(sd, oId, month, year, null);
 		} else {
-			report = getAdminReport(sd, oId, month, year);
+			report = getAdminReport(sd, oId, month, year, null);
 		}
 		
 		ArrayList<String> header = new ArrayList<String> ();
@@ -143,14 +143,11 @@ public class XLSXAdminReportsManager {
 		rm.getNewReport(sd, tempFile, header, report, byProject, bySurvey, byDevice, year, month,
 				GeneralUtilityMethods.getOrganisationName(sd, oId));
 
-		
-
-		
 		return filename;
 	
 	}
 	
-	private ArrayList<AR> getAdminReport(Connection sd, int oId, int month, int year) throws SQLException {
+	public ArrayList<AR> getAdminReport(Connection sd, int oId, int month, int year, String userIdent) throws SQLException {
 		ArrayList<AR> rows = new ArrayList<AR> ();
 		StringBuilder sql = new StringBuilder("select users.id as id,users.ident as ident, users.name as name, users.created as created, "
 				+ "(select count (*) from upload_event ue, subscriber_event se "
@@ -159,8 +156,6 @@ public class XLSXAdminReportsManager {
 					+ "and se.subscriber = 'results_db' "
 					+ "and upload_time >=  ? "		// current month
 					+ "and upload_time < ? "		// next month
-					//+ "and extract(month from upload_time) = ? "
-					//+ "and extract(year from upload_time) = ? "
 					+ "and ue.user_name = users.ident) as month,"
 				+ "(select count (*) from upload_event ue, subscriber_event se "
 					+ "where ue.ue_id = se.ue_id and se.status = 'success' "
@@ -172,6 +167,9 @@ public class XLSXAdminReportsManager {
 		if(!includeTemporaryUsers) {
 			sql.append("and not users.temporary ");
 		}
+		if(userIdent != null) {
+			sql.append("and users.ident = ? ");
+		}
 		sql.append("order by users.ident");
 		PreparedStatement pstmt = null;
 		
@@ -180,11 +178,12 @@ public class XLSXAdminReportsManager {
 			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
 			
 			pstmt = sd.prepareStatement(sql.toString());
-			//pstmt.setInt(1, month);
-			//pstmt.setInt(2, year);
 			pstmt.setTimestamp(1, t1);
 			pstmt.setTimestamp(2, t2);
 			pstmt.setInt(3, oId);
+			if(userIdent != null) {
+				pstmt.setString(4, userIdent);
+			}
 			log.info("Admin report: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
@@ -204,7 +203,7 @@ public class XLSXAdminReportsManager {
 		return rows;
 	}
 	
-	private ArrayList<AR> getAdminReportProject(Connection sd, int oId, int month, int year) throws SQLException {
+	public ArrayList<AR> getAdminReportProject(Connection sd, int oId, int month, int year, String userIdent) throws SQLException {
 		
 		ArrayList<AR> rows = new ArrayList<AR> ();
 		HashMap<String, AR> monthMap = new HashMap<> ();
@@ -222,13 +221,14 @@ public class XLSXAdminReportsManager {
 				+ "and se.subscriber = 'results_db' "
 				+ "and upload_time >=  ? "		// current month
 				+ "and upload_time < ? "		// next month
-				//+ "and extract(month from upload_time) = ? "
-				//+ "and extract(year from upload_time) = ? "
 				+ "and users.o_id = ? "
 				+ "and users.ident = ue.user_name ");
 		
 		if(!includeTemporaryUsers) {
 			sqlMonth.append("and not users.temporary ");
+		}
+		if(userIdent != null) {
+			sqlMonth.append("and users.ident = ? ");
 		}
 		sqlMonth.append("group by ue.user_name, users.name, ue.p_id, project.name, users.created "
 				+ "order by ue.user_name, ue.p_id;");
@@ -250,6 +250,9 @@ public class XLSXAdminReportsManager {
 		if(!includeTemporaryUsers) {
 			sqlAllTime.append("and not users.temporary ");
 		}
+		if(userIdent != null) {
+			sqlAllTime.append("and users.ident = ? ");
+		}
 		sqlAllTime.append("group by ue.user_name, users.name, ue.p_id, project.name, users.created "
 				+ "order by ue.user_name, ue.p_id");
 		PreparedStatement pstmtAllTime = null;
@@ -259,11 +262,12 @@ public class XLSXAdminReportsManager {
 			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
 			
 			pstmtMonth = sd.prepareStatement(sqlMonth.toString());
-			//pstmtMonth.setInt(1, month);
-			//pstmtMonth.setInt(2, year);
 			pstmtMonth.setTimestamp(1, t1);
 			pstmtMonth.setTimestamp(2, t2);
 			pstmtMonth.setInt(3, oId);
+			if(userIdent != null) {
+				pstmtMonth.setString(4, userIdent);
+			}
 			log.info("Monthly Admin report by project: " + pstmtMonth.toString());
 			ResultSet rs = pstmtMonth.executeQuery();
 			
@@ -282,6 +286,9 @@ public class XLSXAdminReportsManager {
 			// Get the all time
 			pstmtAllTime = sd.prepareStatement(sqlAllTime.toString());
 			pstmtAllTime.setInt(1, oId);
+			if(userIdent != null) {
+				pstmtAllTime.setString(2, userIdent);
+			}
 			log.info("All Time Admin report by project: " + pstmtAllTime.toString());
 			rs = pstmtAllTime.executeQuery();
 			while(rs.next()) {
@@ -311,7 +318,7 @@ public class XLSXAdminReportsManager {
 		return rows;
 	}
 
-	private ArrayList<AR> getAdminReportSurvey(Connection sd, int oId, int month, int year) throws SQLException {
+	public ArrayList<AR> getAdminReportSurvey(Connection sd, int oId, int month, int year, String userIdent) throws SQLException {
 		
 		ArrayList<AR> rows = new ArrayList<AR> ();
 		HashMap<String, AR> monthMap = new HashMap<> ();
@@ -332,12 +339,13 @@ public class XLSXAdminReportsManager {
 				+ "and se.subscriber = 'results_db' "
 				+ "and upload_time >=  ? "		// current month
 				+ "and upload_time < ? "		// next month
-				//+ "and extract(month from upload_time) = ? "
-				//+ "and extract(year from upload_time) = ? "
 				+ "and users.o_id = ? "
 				+ "and users.ident = ue.user_name ");
 		if(!includeTemporaryUsers) {
 			sqlMonth.append("and not users.temporary ");
+		}
+		if(userIdent != null) {
+			sqlMonth.append("and users.ident = ? ");
 		}
 		sqlMonth.append("group by ue.user_name, users.name, ue.p_id, project.name, ue.s_id, survey.display_name, users.created "
 				+ "order by ue.user_name, ue.p_id, ue.s_id");		
@@ -362,6 +370,9 @@ public class XLSXAdminReportsManager {
 		if(!includeTemporaryUsers) {
 			sqlAllTime.append("and not users.temporary ");
 		}
+		if(userIdent != null) {
+			sqlAllTime.append("and users.ident = ? ");
+		}
 		sqlAllTime.append("group by ue.user_name, users.name, ue.p_id, project.name, ue.s_id, survey.display_name, users.created "
 				+ "order by ue.user_name, ue.p_id, ue.s_id");
 		PreparedStatement pstmtAllTime = null;
@@ -371,11 +382,12 @@ public class XLSXAdminReportsManager {
 			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
 			
 			pstmtMonth = sd.prepareStatement(sqlMonth.toString());
-			//pstmtMonth.setInt(1, month);
-			//pstmtMonth.setInt(2, year);
 			pstmtMonth.setTimestamp(1, t1);
 			pstmtMonth.setTimestamp(2, t2);
 			pstmtMonth.setInt(3, oId);
+			if(userIdent != null) {
+				pstmtMonth.setString(4, userIdent);
+			}
 			log.info("Monthly Admin report by survey: " + pstmtMonth.toString());
 			ResultSet rs = pstmtMonth.executeQuery();
 			
@@ -396,7 +408,10 @@ public class XLSXAdminReportsManager {
 			// Get the all time
 			pstmtAllTime = sd.prepareStatement(sqlAllTime.toString());
 			pstmtAllTime.setInt(1, oId);
-			log.info("All Time Admin report by project: " + pstmtAllTime.toString());
+			if(userIdent != null) {
+				pstmtAllTime.setString(2, userIdent);
+			}
+			log.info("All Time Admin report by survey: " + pstmtAllTime.toString());
 			rs = pstmtAllTime.executeQuery();
 			while(rs.next()) {
 						
@@ -428,7 +443,7 @@ public class XLSXAdminReportsManager {
 		return rows;
 	}
 	
-	private ArrayList<AR> getAdminReportDevice(Connection sd, int oId, int month, int year) throws SQLException {
+	public ArrayList<AR> getAdminReportDevice(Connection sd, int oId, int month, int year, String userIdent) throws SQLException {
 		
 		ArrayList<AR> rows = new ArrayList<AR> ();
 		HashMap<String, AR> monthMap = new HashMap<> ();
@@ -442,14 +457,15 @@ public class XLSXAdminReportsManager {
 				+ "where ue.ue_id = se.ue_id "
 				+ "and se.status = 'success' "
 				+ "and se.subscriber = 'results_db' "
-				//+ "and extract(month from upload_time) = ? "
-				//+ "and extract(year from upload_time) = ? "
 				+ "and upload_time >=  ? "		// current month
 				+ "and upload_time < ? "		// next month
 				+ "and users.o_id = ? "
 				+ "and users.ident = ue.user_name ");
 		if(!includeTemporaryUsers) {
 			sqlMonth.append("and not users.temporary ");
+		}
+		if(userIdent != null) {
+			sqlMonth.append("and users.ident = ? ");
 		}
 		sqlMonth.append("group by ue.user_name, users.name, ue.imei, users.created "
 				+ "order by ue.user_name, ue.imei");		
@@ -471,6 +487,9 @@ public class XLSXAdminReportsManager {
 		if(!includeTemporaryUsers) {
 			sqlAllTime.append("and not users.temporary ");
 		}
+		if(userIdent != null) {
+			sqlAllTime.append("and users.ident = ? ");
+		}
 		sqlAllTime.append("group by ue.user_name, users.name, ue.imei, users.created "
 				+ "order by ue.user_name, ue.imei");	
 		PreparedStatement pstmtAllTime = null;
@@ -480,11 +499,12 @@ public class XLSXAdminReportsManager {
 			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
 			
 			pstmtMonth = sd.prepareStatement(sqlMonth.toString());
-			//pstmtMonth.setInt(1, month);
-			//pstmtMonth.setInt(2, year);
 			pstmtMonth.setTimestamp(1, t1);
 			pstmtMonth.setTimestamp(2, t2);
 			pstmtMonth.setInt(3, oId);
+			if(userIdent != null) {
+				pstmtMonth.setString(4, userIdent);
+			}
 			log.info("Monthly Admin report by device: " + pstmtMonth.toString());
 			ResultSet rs = pstmtMonth.executeQuery();
 			
@@ -502,7 +522,10 @@ public class XLSXAdminReportsManager {
 			// Get the all time
 			pstmtAllTime = sd.prepareStatement(sqlAllTime.toString());
 			pstmtAllTime.setInt(1, oId);
-			log.info("All Time Admin report by project: " + pstmtAllTime.toString());
+			if(userIdent != null) {
+				pstmtAllTime.setString(2, userIdent);
+			}
+			log.info("All Time Admin report by device: " + pstmtAllTime.toString());
 			rs = pstmtAllTime.executeQuery();
 			while(rs.next()) {
 						
@@ -653,18 +676,22 @@ public class XLSXAdminReportsManager {
 				Row row = dataSheet.createRow(rowNumber++);	
 				
 				// Monthly
-				cell = row.createCell(monthlyCol);
-				String colAlpha = getColAlpha(monthlyCol);
-				String formula= "SUM(" + colAlpha + firstDataRow + ":" + colAlpha + (rowNumber - 1) + ")";
-				cell.setCellStyle(styles.get("bold"));
-				cell.setCellFormula(formula);
+				if(monthlyCol > 0) {
+					cell = row.createCell(monthlyCol);
+					String colAlpha = getColAlpha(monthlyCol);
+					String formula= "SUM(" + colAlpha + firstDataRow + ":" + colAlpha + (rowNumber - 1) + ")";
+					cell.setCellStyle(styles.get("bold"));
+					cell.setCellFormula(formula);
+				}
 				
 				// All time
-				cell = row.createCell(allTimeCol);
-				colAlpha = getColAlpha(allTimeCol);
-				formula = "SUM(" + colAlpha + firstDataRow + ":" + colAlpha + (rowNumber - 1) + ")";
-				cell.setCellStyle(styles.get("bold"));
-				cell.setCellFormula(formula);
+				if(allTimeCol > 0) {
+					cell = row.createCell(allTimeCol);
+					String colAlpha = getColAlpha(allTimeCol);
+					String formula = "SUM(" + colAlpha + firstDataRow + ":" + colAlpha + (rowNumber - 1) + ")";
+					cell.setCellStyle(styles.get("bold"));
+					cell.setCellFormula(formula);
+				}
 
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Error", e);
