@@ -46,12 +46,15 @@ import com.itextpdf.text.pdf.AcroFields;
 import com.itextpdf.text.pdf.AcroFields.FieldPosition;
 import com.itextpdf.text.pdf.ColumnText;
 import com.itextpdf.text.pdf.PRStream;
+import com.itextpdf.text.pdf.PdfCopy;
+import com.itextpdf.text.pdf.PdfImportedPage;
 import com.itextpdf.text.pdf.PdfName;
 import com.itextpdf.text.pdf.PdfNumber;
 import com.itextpdf.text.pdf.PdfObject;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfStamper;
 import com.itextpdf.text.pdf.PushbuttonField;
+import com.itextpdf.text.pdf.RandomAccessFileOrArray;
 import com.itextpdf.text.pdf.parser.PdfImageObject;
 
 public class PdfUtilities {
@@ -572,6 +575,49 @@ public class PdfUtilities {
 	    stamper.close();
 	    reader.close();
 	    
+	}
+	
+	/*
+	 * https://stackoverflow.com/questions/2464166/how-can-i-remove-blank-page-from-pdf-in-itext/3309453
+	 */
+	public static void removeBlankPages(String pdfSourceFile, String pdfDestinationFile) throws IOException, DocumentException
+	{
+
+		// step 1: create new reader
+		PdfReader r = new PdfReader(pdfSourceFile);
+		RandomAccessFileOrArray raf = new RandomAccessFileOrArray(pdfSourceFile);
+		com.itextpdf.text.Document document = new com.itextpdf.text.Document(r.getPageSizeWithRotation(1));
+		// step 2: create a writer that listens to the document
+		PdfCopy writer = new PdfCopy(document, new FileOutputStream(pdfDestinationFile));
+		// step 3: we open the document
+		document.open();
+		// step 4: we add content
+		PdfImportedPage page = null;
+
+
+		//loop through each page and if the bs is larger than 20 than we know it is not blank.
+		//if it is less than 20 than we don't include that blank page.
+		for (int i=1;i<=r.getNumberOfPages();i++)
+		{
+			//get the page content
+			byte bContent [] = r.getPageContent(i,raf);
+			ByteArrayOutputStream bs = new ByteArrayOutputStream();
+			//write the content to an output stream
+			bs.write(bContent);
+			//add the page to the new pdf
+			if (bs.size() > 200)
+			{
+				page = writer.getImportedPage(r, i);
+				writer.addPage(page);
+			}
+			bs.close();
+		}
+		//close everything
+		document.close();
+		writer.close();
+		raf.close();
+		r.close();
+
 	}
 	
 }

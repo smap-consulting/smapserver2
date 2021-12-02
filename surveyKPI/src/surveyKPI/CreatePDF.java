@@ -191,10 +191,14 @@ public class CreatePDF extends Application {
 					resp);
 			
 			if(survey.compress_pdf) {
+				// Remove blank pages from the temporary file and write it to a new temporary file
+				String newFilePath = basePath + "/temp/" + String.valueOf(UUID.randomUUID() + ".pdf");
+				PdfUtilities.removeBlankPages(filePath, newFilePath);
+				
 				// Compress the temporary file and write it to the servlet output stream
 				os.close();
 				os = resp.getOutputStream();
-				PdfUtilities.resizePdf(filePath, os);
+				PdfUtilities.resizePdf(newFilePath, os);
 			}
 			
 			response = Response.ok("").build();
