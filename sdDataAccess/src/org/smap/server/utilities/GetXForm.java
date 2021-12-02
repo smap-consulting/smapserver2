@@ -994,6 +994,8 @@ public class GetXForm {
 			String qualityParam = GeneralUtilityMethods.getSurveyParameter("quality", q.getParameters());
 			if(qualityParam != null) {
 				questionElement.setAttribute("odk:quality", qualityParam);
+			} else if(q.getType().equals("audio")) {
+				questionElement.setAttribute("odk:quality", "normal");		// Set default quality for audio to normal
 			}
 		}
 
