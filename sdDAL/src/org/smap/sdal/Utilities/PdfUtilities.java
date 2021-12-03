@@ -55,7 +55,9 @@ import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfStamper;
 import com.itextpdf.text.pdf.PushbuttonField;
 import com.itextpdf.text.pdf.RandomAccessFileOrArray;
+import com.itextpdf.text.pdf.parser.LocationTextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.PdfImageObject;
+import com.itextpdf.text.pdf.parser.PdfTextExtractor;
 
 public class PdfUtilities {
 
@@ -603,10 +605,12 @@ public class PdfUtilities {
 			byte bContent [] = r.getPageContent(i,raf);
 			ByteArrayOutputStream bs = new ByteArrayOutputStream();
 			//write the content to an output stream
-			bs.write(bContent);
+			
+			String text = PdfTextExtractor.getTextFromPage(r, i, new LocationTextExtractionStrategy());
+			System.out.println("text: " + i + " : " + text);
+			
 			//add the page to the new pdf
-			if (bs.size() > 200)
-			{
+			if (text != null && text.length() > 0) {
 				page = writer.getImportedPage(r, i);
 				writer.addPage(page);
 			}

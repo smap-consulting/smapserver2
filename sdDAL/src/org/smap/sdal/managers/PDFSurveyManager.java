@@ -661,10 +661,8 @@ public class PDFSurveyManager {
 
 			} else if(r.type.equals("pdf_field") && di.linemap != null) {
 
-
 				Float width = (float) 200.0;
 				Float height = (float) 100.0;
-
 
 				// If a push button field is used set the image size from that field
 				PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
