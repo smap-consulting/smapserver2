@@ -1609,6 +1609,18 @@ public class SubRelationalDB extends Subscriber {
 					}
 
 				} else if(qType.equals("date") || qType.equals("dateTime") || qType.equals("time") ) {
+					
+					// Hack to fix badly formatted types
+					if(qType.equals("time")) {
+						if(value.contains("T")) {
+							String v[] = value.split("T");
+							if(v.length > 1) {
+								value = v[1];
+							} else {
+								value = "";
+							}
+						}
+					}
 					if(value.length() > 0) {
 						value = "'" + value + "'";
 					} else {

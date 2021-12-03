@@ -184,7 +184,7 @@ public class EventList extends Application {
 	}
 	
 	/*
-	 * Retry asubmission
+	 * Retry a submission
 	 */
 	@GET
 	@Path("/submission_retry/{sName}")
