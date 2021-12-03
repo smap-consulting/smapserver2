@@ -1057,6 +1057,22 @@ public class XLSTemplateUploadManager {
 		// 2. Visibility
 		q.visible = convertVisible(q.type);
 
+		/*
+		 * Validate question type compatability
+		 */
+		if(merge) {
+			QuestionForm qt = questionNames.get(q.name);
+			if(qt != null) {
+				if(q.source != null && qt.published) {
+					String newColType = GeneralUtilityMethods.getPostgresColType(q.type, false);
+					String oldColType = GeneralUtilityMethods.getPostgresColType(qt.qType, false);
+					if(!newColType.equals(oldColType)) {
+						throw XLSUtilities.getApplicationException(localisation, "tu_it", rowNumSurvey, "survey", q.name, q.type, qt.qType);
+					}
+				}
+			} 
+		} 	
+		
 		return q;
 	}
 
