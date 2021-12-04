@@ -597,16 +597,15 @@ public class PdfUtilities {
 		PdfImportedPage page = null;
 
 
-		//loop through each page and if the bs is larger than 20 than we know it is not blank.
-		//if it is less than 20 than we don't include that blank page.
+		//loop through each page and if there is no text on the page then delete it
 		for (int i=1;i<=r.getNumberOfPages();i++)
 		{
 			//get the page content
-			byte bContent [] = r.getPageContent(i,raf);
 			ByteArrayOutputStream bs = new ByteArrayOutputStream();
 			//write the content to an output stream
 			
 			String text = PdfTextExtractor.getTextFromPage(r, i, new LocationTextExtractionStrategy());
+			
 			System.out.println("text: " + i + " : " + text);
 			
 			//add the page to the new pdf

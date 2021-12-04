@@ -70,6 +70,7 @@ import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.AcroFields;
 import com.itextpdf.text.pdf.BarcodeQRCode;
 import com.itextpdf.text.pdf.BaseFont;
+import com.itextpdf.text.pdf.PdfFormField;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfReader;
@@ -548,7 +549,7 @@ public class PDFSurveyManager {
 				 * TODO fix this so it also removes records if there are no instances for the form
 				 */
 				if(r.subForm.size() > 0) {
-					removeRepeatFields(pdfForm, r.subForm.get(0), r.subForm.size(), fieldName);
+					removeRepeatFields(stamper, pdfForm, r.subForm.get(0), r.subForm.size(), fieldName);
 				}
 				
 			} else if(r.type.equals("select1")) {
@@ -752,6 +753,7 @@ public class PDFSurveyManager {
 	 * Remove repeating fields which have not been populated
 	 */
 	private void removeRepeatFields(
+			PdfStamper stamper,
 			AcroFields pdfForm, 
 			ArrayList<Result> record, 
 			int size,
@@ -763,6 +765,14 @@ public class PDFSurveyManager {
 			boolean exists = true;
 			while(exists) {
 				String fieldName = getFieldName(formName, repeatIndex++, r.name);
+				PushbuttonField current = pdfForm.getNewPushbuttonFromField(fieldName);
+				if(current != null) {
+					PushbuttonField ad = new PushbuttonField(stamper.getWriter(), current.getBox(), null);
+					boolean replaced = pdfForm.replacePushbuttonField(fieldName, ad.getField());
+					if(replaced) {
+						System.out.println("Replaced: " + fieldName);
+					}
+				}
 				exists = pdfForm.removeField(fieldName);
 			}
 		}
