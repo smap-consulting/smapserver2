@@ -1,0 +1,11 @@
+[Unit]
+Description=Smap Database Subscriber
+
+[Service]
+Type=simple
+User=tomcat8
+ExecStart=/smap_bin/subscribers.sh default /smap upload
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

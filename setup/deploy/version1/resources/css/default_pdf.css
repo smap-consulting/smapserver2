@@ -1,0 +1,34 @@
+.label {
+	font-size: 14px;	
+}
+
+.lbold {
+	font-weight: bold;
+	font-size: 14px;	
+}
+
+.hint {
+	font-style: italic;
+	font-size: 14px;
+	color: blue;
+}
+
+group {
+	color: #ce4f07
+}
+
+.arabic { 
+	font-family: "noto naskh arabic"; 
+}
+
+.bengali { 
+	font-family: "noto sans bengali", "noto sans bengali bold"; 
+}
+
+.devanagari { 
+	font-family: "noto sans devanagari light", "notosansdevanagari-bold"; 
+}
+
+* { 
+	font-family: "noto sans", "noto sans bold";
+}
