@@ -336,10 +336,7 @@ public class PDFSurveyManager {
 
 				reader = new PdfReader(templateName);
 				stamper = new PdfStamper(reader, outputStream);
-				//stamper.setFullCompression();
-				stamper.setFormFlattening(true);
-				stamper.setAnnotationFlattening(true);
-				stamper.setFreeTextFlattening(true);
+
 				for(int i = 0; i < survey.instance.results.size(); i++) {
 					fillTemplate(gv, stamper.getAcroFields(), survey.instance.results.get(i), 
 							null, i, serverRoot, stamper, oId);
@@ -347,14 +344,10 @@ public class PDFSurveyManager {
 				if(user != null) {
 					fillTemplateUserDetails(stamper.getAcroFields(), user, mBasePath);
 				}
-				
-				// Reapply stamper to all content as per https://what-when-how.com/itext-5/pdf-and-compression-itext-5/
-				int total = reader.getNumberOfPages() + 1;
-				for(int i = 1; i < total; i++) {
-					reader.setPageContent(i, reader.getPageContent(i));
-				}
-				
-
+				stamper.setFormFlattening(true);
+				stamper.flush();
+				stamper.close();
+				stamper = null;
 
 			} else {
 				log.info("++++No template exists creating a pdf file programmatically");
@@ -549,6 +542,15 @@ public class PDFSurveyManager {
 				for(int k = 0; k < r.subForm.size(); k++) {
 					fillTemplate(gv, pdfForm, r.subForm.get(k),fieldName, k, serverRoot, stamper, oId);
 				} 
+				
+				/*
+				 * Remove unused repeat fields
+				 * TODO fix this so it also removes records if there are no instances for the form
+				 */
+				if(r.subForm.size() > 0) {
+					removeRepeatFields(pdfForm, r.subForm.get(0), r.subForm.size(), fieldName);
+				}
+				
 			} else if(r.type.equals("select1")) {
 
 				Form form = survey.forms.get(r.fIdx);
@@ -743,11 +745,30 @@ public class PDFSurveyManager {
 					PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldNameQR, qrcodeImage, di.stretch);
 				}
 			}
-
 		}
-
 	}
 
+	/*
+	 * Remove repeating fields which have not been populated
+	 */
+	private void removeRepeatFields(
+			AcroFields pdfForm, 
+			ArrayList<Result> record, 
+			int size,
+			String formName
+			) throws Exception {
+
+		for(Result r : record) {
+			int repeatIndex = size;
+			boolean exists = true;
+			while(exists) {
+				String fieldName = getFieldName(formName, repeatIndex++, r.name);
+				exists = pdfForm.removeField(fieldName);
+			}
+		}
+	}
+	
+	
 	private String getFieldName(String formName, int index, String qName) {
 		String name = null;
 
