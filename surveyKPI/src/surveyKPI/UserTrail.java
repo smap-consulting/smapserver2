@@ -29,13 +29,17 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.model.UserTrailPoint;
-
+import org.smap.sdal.managers.BackgroundReportsManager;
+import org.smap.sdal.managers.UserTrailManager;
+import org.smap.sdal.model.Trail;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,12 +50,6 @@ public class UserTrail extends Application {
 	
 	private static Logger log =
 			 Logger.getLogger(UserTrail.class.getName());
-	
-	public class Trail {
-		String userName = null;
-		public ArrayList<UserTrailPoint> features = null;
-		
-	}
 	
 	public class Survey {
 		public int id;
@@ -83,8 +81,8 @@ public class UserTrail extends Application {
 	@Path("/trail")
 	public Response getTrail(@Context HttpServletRequest request, 
 			@QueryParam("userId") int uId,
-			@QueryParam("startDate") long start_t,
-			@QueryParam("endDate") long end_t,
+			@QueryParam("startDate") String start_t,
+			@QueryParam("endDate") String end_t,
 			@QueryParam("tz") String tz) {
 
 		Response response = null;
@@ -93,8 +91,8 @@ public class UserTrail extends Application {
 			tz = "UTC";
 		}
 
-		Timestamp startDate = new Timestamp(start_t);
-		Timestamp endDate = new Timestamp(end_t);
+		//Timestamp startDate = new Timestamp(start_t);
+		//Timestamp endDate = new Timestamp(end_t);
 
 		String user = request.getRemoteUser();
 		String connectionString = "usertrail - trail";
@@ -108,6 +106,20 @@ public class UserTrail extends Application {
 		ResultSet resultSet = null;
 		try {
 			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			// Create a params object
+			HashMap<String, String> params = new HashMap<>();
+			params.put(BackgroundReportsManager.PARAM_START_DATE, start_t);
+			params.put(BackgroundReportsManager.PARAM_END_DATE, end_t);
+			params.put(BackgroundReportsManager.PARAM_USER_ID, String.valueOf(uId));
+			
+			UserTrailManager utm = new UserTrailManager(localisation, tz);
+			Trail trail = new Trail();
+			trail.features = utm.generateGeoJson(sd, 0, params, false);	// Set project to 0 as we are getting data for a single user, specify 3857 coordinate system
+			
+			/*
 			StringBuffer sql = new StringBuffer("SELECT ut.id as id, ST_X(ST_Transform(ut.the_geom, 3857)) as x, " +
 						"ST_Y(ST_Transform(ut.the_geom, 3857)) as y, ut.event_time as event_time, " +
 						"extract(epoch from ut.event_time) * 1000 as raw_time, " + 
@@ -154,14 +166,15 @@ public class UserTrail extends Application {
 				f.coordinates[1] = resultSet.getDouble("y");
 				trail.features.add(f);
 			}
-			 
+			 */
+			
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			String resp = gson.toJson(trail);
 			response = Response.ok(resp).build();
 			 
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "SQL Exception", e);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
 			response = Response.serverError().entity(e.getMessage()).build();
 
 		} finally {

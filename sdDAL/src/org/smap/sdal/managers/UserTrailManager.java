@@ -30,8 +30,10 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.Trail;
 import org.smap.sdal.model.UserTrailFeature;
 import org.smap.sdal.model.UserTrailPoint;
+
 
 
 /*****************************************************************************
@@ -81,7 +83,7 @@ public class UserTrailManager {
 		}
 	}
 	
-	private class Parameters {
+	public class Parameters {
 		public Timestamp startDate;
 		public Timestamp endDate;
 		public int uId;
@@ -146,7 +148,7 @@ public class UserTrailManager {
 		String filename = String.valueOf(UUID.randomUUID()) + ".kml";
 
 		Parameters pobj = new Parameters(params);   // Extract parameters
-		ArrayList<UserTrailFeature> featureList = getGeomFeatures(sd, pId, pobj);  // Get the features
+		ArrayList<UserTrailFeature> featureList = getGeomFeatures(sd, pId, pobj, true);  // Get the features
 
 		/*
 		 * Export KML
@@ -228,13 +230,29 @@ public class UserTrailManager {
 	}
 	
 	/*
+	 * Generate a GeoJson file
+	 */
+	public ArrayList<UserTrailFeature> generateGeoJson(Connection sd, int pId, HashMap<String, String> params, boolean wgs84) throws SQLException, IOException {
+		
+		
+		Trail trail = new Trail();
+		trail.features = new ArrayList<UserTrailFeature> ();
+		
+		Parameters pobj = new Parameters(params);   // Extract parameters
+		ArrayList<UserTrailFeature> featureList = getGeomFeatures(sd, pId, pobj, wgs84);  // Get the features
+
+		return featureList;
+	
+	}
+	
+	/*
 	 * Generate a Distance file in the reports directory and return its name
 	 */
 	public String generateDistanceReport(Connection sd, int pId, HashMap<String, String> params, String basePath) throws SQLException, IOException {
 		String filename = String.valueOf(UUID.randomUUID()) + ".xlsx";
 		
 		Parameters p = new Parameters(params);   // Extract parameters
-		ArrayList<UserTrailFeature> featureList = getGeomFeatures(sd, pId, p);  // Get the features
+		ArrayList<UserTrailFeature> featureList = getGeomFeatures(sd, pId, p, true);  // Get the features
 		HashMap<String, TravelDistance> distances = getTravelDistances(sd, filename, featureList);
 		
 		GeneralUtilityMethods.createDirectory(basePath + "/reports");
@@ -382,7 +400,7 @@ public class UserTrailManager {
 	/*
 	 * Get features, consecutive points are converted to lines unless the break distance between points is exceeded
 	 */
-	private ArrayList<UserTrailFeature> getGeomFeatures(Connection sd, int pId, Parameters p) throws SQLException {
+	private ArrayList<UserTrailFeature> getGeomFeatures(Connection sd, int pId, Parameters p, boolean wgs84) throws SQLException {
 		
 		ArrayList<UserTrailFeature> featureList = new ArrayList<> ();
 		
@@ -407,12 +425,22 @@ public class UserTrailManager {
 					+ ")";
 			pstmtDistance = sd.prepareStatement(sqlDistance);
 	
-			StringBuffer sql = new StringBuffer("SELECT ut.id as id, " +
-					"ST_X(the_geom::geometry) as x, " +		
-					"ST_Y(the_geom::geometry) as y, " +
-					"ut.event_time as event_time " +
-				"FROM user_trail ut, users u  " +
-				"where u.id = ut.u_id ");
+			StringBuffer sql = null;
+			if(wgs84) {
+				sql = new StringBuffer("SELECT ut.id as id, " +
+						"ST_X(the_geom::geometry) as x, " +		
+						"ST_Y(the_geom::geometry) as y, " +
+						"ut.event_time as event_time " +
+						"FROM user_trail ut, users u  " +
+						"where u.id = ut.u_id ");
+			} else {
+				sql = new StringBuffer("SELECT ut.id as id, " +
+						"ST_X(ST_Transform(ut.the_geom, 3857)) as x, " +		
+						"ST_Y(ST_Transform(ut.the_geom, 3857)) as y, " +
+						"ut.event_time as event_time " +
+						"FROM user_trail ut, users u  " +
+						"where u.id = ut.u_id ");
+			}
 			
 			if(p.startDateString != null) {
 				sql.append("and ut.event_time >= ? ");
@@ -455,7 +483,7 @@ public class UserTrailManager {
 					f.coordinates[0] = rs.getDouble("x");
 					f.coordinates[1] = rs.getDouble("y");
 					if(havePrev) {
-						if(isGreaterThanBreakDistance(pstmtDistance, prevX, prevY, f.coordinates[0], f.coordinates[1], p.mps)) {
+						if(isGreaterThanBreakDistance(pstmtDistance, prevX, prevY, f.coordinates[0], f.coordinates[1], p.mps, wgs84)) {
 							featureList.add(feature);
 							feature = new UserTrailFeature(userIdent, userName);
 						}
@@ -476,11 +504,12 @@ public class UserTrailManager {
 		return featureList;
 	}
 	
-	private boolean isGreaterThanBreakDistance(PreparedStatement pstmtDistance, double prevX, double prevY, double x, double y, int breakDistance) throws SQLException {
+	private boolean isGreaterThanBreakDistance(PreparedStatement pstmtDistance, double prevX, double prevY, double x, double y, 
+			int breakDistance, boolean wgs84) throws SQLException {
 		
-		StringBuilder p1 = new StringBuilder("SRID=4326;POINT(");
+		StringBuilder p1 = wgs84 ? new StringBuilder("SRID=4326;POINT(") : new StringBuilder("SRID=3857;POINT(");
 		p1.append(prevX).append(" ").append(prevY).append(")");
-		StringBuilder p2 = new StringBuilder("SRID=4326;POINT(");
+		StringBuilder p2 = wgs84 ? new StringBuilder("SRID=4326;POINT(") : new StringBuilder("SRID=3857;POINT(");
 		p2.append(x).append(" ").append(y).append(")");
 		
 		pstmtDistance.setString(1, p1.toString());
