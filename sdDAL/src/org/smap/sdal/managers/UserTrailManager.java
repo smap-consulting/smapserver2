@@ -430,14 +430,16 @@ public class UserTrailManager {
 				sql = new StringBuffer("SELECT ut.id as id, " +
 						"ST_X(the_geom::geometry) as x, " +		
 						"ST_Y(the_geom::geometry) as y, " +
-						"ut.event_time as event_time " +
+						"ut.event_time as event_time, " +
+						"extract(epoch from ut.event_time) * 1000 as raw_time " + 
 						"FROM user_trail ut, users u  " +
 						"where u.id = ut.u_id ");
 			} else {
 				sql = new StringBuffer("SELECT ut.id as id, " +
 						"ST_X(ST_Transform(ut.the_geom, 3857)) as x, " +		
 						"ST_Y(ST_Transform(ut.the_geom, 3857)) as y, " +
-						"ut.event_time as event_time " +
+						"ut.event_time as event_time, " +
+						"extract(epoch from ut.event_time) * 1000 as raw_time " + 
 						"FROM user_trail ut, users u  " +
 						"where u.id = ut.u_id ");
 			}
@@ -482,6 +484,7 @@ public class UserTrailManager {
 					UserTrailPoint f = new UserTrailPoint();
 					f.coordinates[0] = rs.getDouble("x");
 					f.coordinates[1] = rs.getDouble("y");
+					f.rawTime = rs.getLong("raw_time");
 					if(havePrev) {
 						if(isGreaterThanBreakDistance(pstmtDistance, prevX, prevY, f.coordinates[0], f.coordinates[1], p.mps, wgs84)) {
 							featureList.add(feature);
