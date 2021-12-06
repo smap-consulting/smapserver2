@@ -446,6 +446,9 @@ public class XLSXReportsManager {
 				Row dataRow = null;
 				while(rs.next()) {
 					
+					// Re-get the survey name for the survey that wrote this record, this may vary in groups
+					surveyName = GeneralUtilityMethods.getSurveyName(sd, rs.getInt("_s_id"));
+					
 					// If we are doing a transform then get the key of this record
 					if(transform != null && transform.enabled) {
 						key = getKeyValue(rs, transform);
