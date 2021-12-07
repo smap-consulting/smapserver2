@@ -104,6 +104,7 @@ public class XLSXReportsManager {
 		Response responseVal = null;
 
 		HashMap<ArrayList<OptionDesc>, String> labelListMap = new  HashMap<ArrayList<OptionDesc>, String> ();
+		HashMap<String, String> surveyNames = new HashMap<String, String> ();
 
 		log.info("userevent: " + username + " Export " + sId + " as an xlsx file to " + filename + " starting from form " + fId);
 
@@ -447,7 +448,12 @@ public class XLSXReportsManager {
 				while(rs.next()) {
 					
 					// Re-get the survey name for the survey that wrote this record, this may vary in groups
-					surveyName = GeneralUtilityMethods.getSurveyName(sd, rs.getInt("_s_id"));
+					String recordSId = rs.getString("_s_id");
+					surveyName = surveyNames.get(recordSId);
+					if(surveyName == null) {
+						surveyName = GeneralUtilityMethods.getSurveyName(sd, Integer.parseInt(recordSId));
+						surveyNames.put(recordSId, surveyName);
+					}
 					
 					// If we are doing a transform then get the key of this record
 					if(transform != null && transform.enabled) {
