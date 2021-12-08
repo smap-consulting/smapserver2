@@ -12,6 +12,7 @@ import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -649,7 +650,6 @@ public class PDFSurveyManager {
 					
 					PdfMapValues mapValues = new PdfMapValues();
 					mapValues.geometry = r.value;
-					// TODO no start geopoint
 					
 					Image img = PdfUtilities.getMapImage(sd, di.map, di.account, mapValues, 
 							di.location, di.zoom,gv.mapbox_key,
@@ -1923,7 +1923,14 @@ public class PDFSurveyManager {
 
 		} else if(di.type.equals("pdf_field") && di.linemap != null) { 
 			
-			PdfMapValues mapValues = getMapValues(di);
+			PreparedStatement pstmt = null;
+			PdfMapValues mapValues = getMapValues(di);	
+			try {
+				pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
+				PdfUtilities.sequenceMarkers(pstmt, mapValues);		// Put markers in sequence increasing from start
+			} finally {
+				 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
+			}
 			
 			Image img = null;
 			Float width = (float) 200.0;

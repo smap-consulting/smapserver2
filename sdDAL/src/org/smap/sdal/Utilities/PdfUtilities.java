@@ -17,6 +17,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -31,6 +34,7 @@ import org.apache.batik.transcoder.TranscoderOutput;
 import org.apache.batik.transcoder.image.PNGTranscoder;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PDFTableManager;
+import org.smap.sdal.model.DistanceMarker;
 import org.smap.sdal.model.PdfMapValues;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
@@ -230,13 +234,7 @@ public class PdfUtilities {
 		String fontSize = "8";
 
         // Add the faults
-		String sql = "SELECT ST_Distance(gg1, gg2) As spheroid_dist "
-				+ "FROM (SELECT "
-				+ "?::geography as gg1,"
-				+ "?::geography as gg2"
-				+ ") As foo";
 		PreparedStatement pstmt = null;;
-		
 		OutputStream ostream = null;
 		DOMImplementation impl = SVGDOMImplementation.getDOMImplementation();
 		
@@ -281,11 +279,10 @@ public class PdfUtilities {
 			svgRoot.appendChild(p2te);
 			
 	        // Add the faults
-	        if(mapValues.markers.size() > 0) {
-		        pstmt = sd.prepareStatement(sql);	// Prepared statement to get distances
-				Float lineDistance = getDistance(pstmt, mapValues, mapValues.startLine, mapValues.endLine);
-				for(int i = 0; i < mapValues.markers.size(); i++) {
-					addMarkerSvgImage(doc, svgRoot, svgNS, pstmt, mapValues, lineDistance, i, height, width, margin, fontSize);
+	        if(mapValues.hasMarkers()) {
+				Float lineDistance = getDistanceAlongLine(sd, mapValues, -1);
+				for(int i = 0; i < mapValues.orderedMarkers.size(); i++) {
+					addMarkerSvgImage(doc, svgRoot, svgNS, sd, mapValues, lineDistance, i, height, width, margin, fontSize);
 				}
 	        }
 			
@@ -322,12 +319,12 @@ public class PdfUtilities {
 	/*
 	 * Add a marker to an SVG image
 	 */
-	private static void addMarkerSvgImage(Document doc, org.w3c.dom.Element svgRoot, String svgNS, PreparedStatement pstmt, PdfMapValues mapValues, Float lineDistance, int idx, 
+	private static void addMarkerSvgImage(Document doc, org.w3c.dom.Element svgRoot, String svgNS, Connection sd, PdfMapValues mapValues, Float lineDistance, int idx, 
 			Float height, Float width, int margin, String fontSize) throws SQLException {
 		
 	    DecimalFormat decFormat = new DecimalFormat("0.00");
 		
-		Float distanceFromP1 = getDistance(pstmt, mapValues, mapValues.startLine, mapValues.markers.get(idx));
+		Float distanceFromP1 = getDistanceAlongLine(sd, mapValues, idx);
 		Float offset = distanceFromP1 * (width - (2 * margin)) / lineDistance;
 		
 		org.w3c.dom.Element tick1 = doc.createElementNS(svgNS, "line");
@@ -445,7 +442,7 @@ public class PdfUtilities {
 			if(addedGeom) {			// line
 				out.append(",");
 			}
-			out.append(addGeoJsonFeature(mapValues.getLineGeometry(), "00f", null));
+			out.append(addGeoJsonFeature(mapValues.getLineGeometryWithMarkers(-1), "00f", null));
 				
 			out.append(",");
 			out.append(addGeoJsonFeature(mapValues.startLine, "f0f", "1"));
@@ -453,9 +450,9 @@ public class PdfUtilities {
 			out.append(addGeoJsonFeature(mapValues.endLine, "f0f", "2"));
 			
 			if(mapValues.hasMarkers()) {
-				for(String marker : mapValues.markers) {
+				for(DistanceMarker marker : mapValues.orderedMarkers) {
 					out.append(",");
-					out.append(addGeoJsonFeature(marker, "0ff", "roadblock"));
+					out.append(addGeoJsonFeature(marker.marker, "0ff", "roadblock"));
 				}
 			}
 		}
@@ -488,6 +485,40 @@ public class PdfUtilities {
 	}
 	
 	/*
+	 * Put the markers in the order that they should appear in the line
+	 */
+	public static void sequenceMarkers(PreparedStatement pstmt, PdfMapValues mapValues) throws SQLException {
+		
+		if(mapValues.hasMarkers() && mapValues.startLine != null && mapValues.orderedMarkers == null) {
+			/*
+			 * Get the distance of each marker from the first point, the markers will be put in order of increasing distance
+			 */
+			mapValues.orderedMarkers = new ArrayList<DistanceMarker> ();
+			for(String marker : mapValues.markers) {
+				Float distance = getDistance(pstmt, mapValues, mapValues.startLine, marker);
+				mapValues.orderedMarkers.add(new DistanceMarker(distance, marker));
+				//System.out.println("Marker: " + marker + " Distance: " + distance);
+			}
+			
+			/*
+			 * Sort the ordered markers
+			 */
+			Collections.sort(mapValues.orderedMarkers, new Comparator<DistanceMarker>() {
+			    public int compare( DistanceMarker a, DistanceMarker b ) {
+			    	return Float.compare(a.distance, b.distance);
+			    }
+			});
+			
+			//for(DistanceMarker dMarker : mapValues.orderedMarkers) {
+			//	System.out.println("Distance Marker: " + dMarker.marker + " Distance: " + dMarker.distance);
+			//}
+			
+		}
+		
+		
+	}
+	
+	/*
 	 * Get the distance in meters between two points
 	 * Assume they are reasonably close together so use 
 	 */
@@ -511,6 +542,37 @@ public class PdfUtilities {
 			}
 		}
 
+		
+		return distance;
+	}
+	
+	/*
+	 * Get the distance in meters along a linestring
+	 * Pass in the index of the ordered marker to use as the end point
+	 * If the index is -1 then do all points including the second pit
+	 */
+	private static Float getDistanceAlongLine(Connection sd, PdfMapValues mapValues, int idx) throws SQLException {
+		
+		Float distance = (float) -1.0;
+		StringBuilder sb = new StringBuilder("select ST_Length(ST_GeomFromGeoJSON('");
+		sb.append(mapValues.getLineGeometryWithMarkers(idx));
+		sb.append("')::geography)");
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sb.toString());
+				
+			log.info(pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				distance = rs.getFloat(1);
+			}
+		} finally {
+			 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
+		}
+
+		System.out.println("Distance along line to idx " + idx + " is " + distance);
 		
 		return distance;
 	}

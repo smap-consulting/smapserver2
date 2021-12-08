@@ -1,11 +1,15 @@
 package org.smap.sdal.model;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 
 /*
  * Contains details of a change item
  */
 public class PdfMapValues {
+
 	public String geometry;				// A geopoint, geoshape or geotrace question
 	public String startGeometry;		// A preload value
 
@@ -13,6 +17,7 @@ public class PdfMapValues {
 	public String startLine;
 	public String endLine;
 	public ArrayList<String> markers;
+	public ArrayList<DistanceMarker> orderedMarkers;	// Markers converted into the sequence for use in a line
 
 	public boolean hasGeometry() {
 		return geometry != null || startGeometry != null;
@@ -26,11 +31,29 @@ public class PdfMapValues {
 		return markers != null && markers.size() > 0;
 	}
 	
-	public String getLineGeometry() {
+	public String getStraightLineGeometry() {
 		StringBuilder sb = new StringBuilder("{\"type\":\"LineString\",\"coordinates\":[");
 		
 		sb.append(getCoordinates(startLine, false));
 		sb.append(",").append(getCoordinates(endLine, false));
+		sb.append("]}");
+		return sb.toString();
+	}
+	
+	public String getLineGeometryWithMarkers(int idx) {
+		
+		StringBuilder sb = new StringBuilder("{\"type\":\"LineString\",\"coordinates\":[");		
+		
+		sb.append(getCoordinates(startLine, false));
+		for(int i = 0; i < orderedMarkers.size(); i++) {
+			DistanceMarker marker = orderedMarkers.get(i);
+			if(idx == -1 || i <= idx) {
+				sb.append(",").append(getCoordinates(marker.marker, false));
+			}
+		}
+		if(idx == -1) {
+			sb.append(",").append(getCoordinates(endLine, false));
+		}
 		sb.append("]}");
 		return sb.toString();
 	}
@@ -48,5 +71,14 @@ public class PdfMapValues {
 			}
 		}
 		return(coords);
+	}
+	
+	public PreparedStatement getDistancePreparedStatement(Connection sd) throws SQLException {
+		String sql = "SELECT ST_Distance(gg1, gg2) As spheroid_dist "
+				+ "FROM (SELECT "
+				+ "?::geography as gg1,"
+				+ "?::geography as gg2"
+				+ ") As foo";
+		return sd.prepareStatement(sql);
 	}
 }
