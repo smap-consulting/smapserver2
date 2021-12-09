@@ -1992,54 +1992,77 @@ public class PDFSurveyManager {
 					}
 				}
 
-				if(di.type.equals("dateTime") || di.type.equals("timestamp")) {		// Set date time to local time				
-					df.setTimeZone(TimeZone.getTimeZone("UTC"));
-					Date date = df.parse(di.value);
-					df.setTimeZone(TimeZone.getTimeZone(tz));
-					value = df.format(date);
+				if(di.type.equals("dateTime") || di.type.equals("timestamp") || di.type.equals("date")) {		// Set date time to local time				
+					Date date;
+					String utcValue = di.value;
+					if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
+						df.setTimeZone(TimeZone.getTimeZone("UTC"));
+						date = df.parse(di.value);
+						df.setTimeZone(TimeZone.getTimeZone(tz));
+						value = df.format(date);
+					} else {
+						dfDateOnly.setTimeZone(TimeZone.getTimeZone("UTC"));
+						date = dfDateOnly.parse(di.value);
+						dfDateOnly.setTimeZone(TimeZone.getTimeZone(tz));
+						value = dfDateOnly.format(date);
+					}
+					
 					log.info("Convert date to local time: " + di.name + " : " + di.value + " : " + " : " + value + " : " + di.type + " : " + tz);
+					
+					// If Bikram Sambat date output is required convert  
+					if(di.bs) {
+
+						Date nepalDate;
+						if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
+							df.setTimeZone(TimeZone.getTimeZone("UTC"));
+							date = df.parse(utcValue);
+							df.setTimeZone(TimeZone.getTimeZone("Asia/Kathmandu"));
+							value = df.format(date);
+							nepalDate = df.parse(value);
+						} else {
+							dfDateOnly.setTimeZone(TimeZone.getTimeZone("UTC"));
+							date = dfDateOnly.parse(utcValue);
+							dfDateOnly.setTimeZone(TimeZone.getTimeZone("Asia/Kathmandu"));
+							value = dfDateOnly.format(date);
+							nepalDate = dfDateOnly.parse(value);
+						}
+							
+						StringBuilder bsValue = new StringBuilder("");
+
+						if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
+
+							DateBS dateBS = DateConverter.convertADToBS(nepalDate);  //returns corresponding DateBS
+
+							bsValue.append(dateBS.getYear())
+							.append("/")
+							.append(dateBS.getMonth() + 1)
+							.append("/")
+							.append(dateBS.getDay());
+
+							String [] components = value.split(" ");
+							if(components.length > 1) {
+								bsValue.append(" ")
+								.append(components[1]);
+							}				
+						} else {
+
+							DateBS dateBS = DateConverter.convertADToBS(nepalDate);  //returns corresponding DateBS
+
+							bsValue.append(dateBS.getYear())
+							.append("/")
+							.append(dateBS.getMonth() + 1)
+							.append("/")
+							.append(dateBS.getDay());
+						}
+
+						value = bsValue.toString();
+					}
+
 				} else {
 					value = di.value;
 				}
 
-				// If Bikram Sambat date output is required convert  
-				if(di.bs && (di.type.equals("date") || di.type.equals("dateTime") || di.type.equals("timestamp"))) {		// Set date time to local time
-
-					StringBuilder bsValue = new StringBuilder("");
-
-
-					if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
-
-						Date date = df.parse(di.value);
-						DateBS dateBS = DateConverter.convertADToBS(date);  //returns corresponding DateBS
-
-						bsValue.append(dateBS.getYear())
-						.append("/")
-						.append(dateBS.getMonth() + 1)
-						.append("/")
-						.append(dateBS.getDay() + 1);
-
-						bsValue.append(" ")
-						.append(date.getHours())
-						.append(":")
-						.append(date.getMinutes())
-						.append(":")
-						.append(date.getSeconds());					
-					} else {
-
-						Date date = dfDateOnly.parse(di.value);  
-						DateBS dateBS = DateConverter.convertADToBS(date);  //returns corresponding DateBS
-
-						bsValue.append(dateBS.getYear())
-						.append("/")
-						.append(dateBS.getMonth() + 1)
-						.append("/")
-						.append(dateBS.getDay() + 1);
-					}
-
-					value = bsValue.toString();
-				}
-
+				
 			}
 			valueCell.addElement(getPara(value, di, gv, deps, null));
 		}
