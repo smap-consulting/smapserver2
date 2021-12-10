@@ -83,12 +83,17 @@ public class UserTrail extends Application {
 			@QueryParam("userId") int uId,
 			@QueryParam("startDate") String start_t,
 			@QueryParam("endDate") String end_t,
+			@QueryParam("mps") int mps,
 			@QueryParam("tz") String tz) {
 
 		Response response = null;
 		
 		if(tz == null) {
 			tz = "UTC";
+		}
+		
+		if(mps == 0) {
+			mps = 200;
 		}
 
 		//Timestamp startDate = new Timestamp(start_t);
@@ -114,6 +119,7 @@ public class UserTrail extends Application {
 			params.put(BackgroundReportsManager.PARAM_START_DATE, start_t);
 			params.put(BackgroundReportsManager.PARAM_END_DATE, end_t);
 			params.put(BackgroundReportsManager.PARAM_USER_ID, String.valueOf(uId));
+			params.put(BackgroundReportsManager.PARAM_MPS, String.valueOf(mps));
 			
 			UserTrailManager utm = new UserTrailManager(localisation, tz);
 			Trail trail = new Trail();
