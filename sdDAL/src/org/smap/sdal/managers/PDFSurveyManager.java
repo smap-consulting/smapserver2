@@ -675,6 +675,13 @@ public class PDFSurveyManager {
 					height = rect.getHeight();
 				}
 				PdfMapValues mapValues = getMapValues(di);
+				PreparedStatement pstmt = null;
+				try {
+					pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
+					PdfUtilities.sequenceMarkers(pstmt, mapValues);		// Put markers in sequence increasing from start
+				} finally {
+					 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
+				}
 				Image img = null;
 				if(di.linemap.type.equals("map")) {
 					img = PdfUtilities.getMapImage(sd, di.map, 
