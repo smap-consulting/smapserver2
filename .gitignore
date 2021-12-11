@@ -35,6 +35,7 @@ tmp/
 *~.nib
 local.properties
 .loadpath
+.component
 
 .idea/
 workspace.xml
