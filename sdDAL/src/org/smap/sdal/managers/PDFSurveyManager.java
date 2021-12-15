@@ -44,10 +44,9 @@ import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Row;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.TrafficLight;
 import org.smap.sdal.model.PdfTrafficLightValues;
 import org.smap.sdal.model.User;
-
-import javax.imageio.ImageIO;
 
 import com.github.binodnme.dateconverter.converter.DateConverter;
 import com.github.binodnme.dateconverter.utils.DateBS;
@@ -779,9 +778,6 @@ public class PDFSurveyManager {
 				if(current != null) {
 					PushbuttonField ad = new PushbuttonField(stamper.getWriter(), current.getBox(), null);
 					boolean replaced = pdfForm.replacePushbuttonField(fieldName, ad.getField());
-					if(replaced) {
-						System.out.println("Replaced: " + fieldName);
-					}
 				}
 				exists = pdfForm.removeField(fieldName);
 			}
@@ -1563,6 +1559,11 @@ public class PDFSurveyManager {
 						} else {
 							di.linemap.type = "image";
 						}
+					} else if(app.startsWith("pdftl")) {		// Multiple points to be joined into a map or image
+						if(di.trafficLight == null) {
+							di.trafficLight = new TrafficLight();
+						}
+						di.trafficLight.addApp(getAppValueArray(app));
 					} else if(app.startsWith("pdfaccount")) {			// mapbox account
 						di.account = getAppValue(app);
 					} else if(app.startsWith("pdflocation")) {
@@ -2121,23 +2122,17 @@ public class PDFSurveyManager {
 	private PdfTrafficLightValues getTrafficLightValues(DisplayItem di) {
 		PdfTrafficLightValues tlValues = new PdfTrafficLightValues();
 		
-		// Start point
-		ArrayList<String> startValues = lookupInSurvey(di.linemap.startPoint, survey.instance.results);
-		if(startValues.size() > 0) {
-			tlValues.startLine = startValues.get(0);
-		}
-
-		// End point
-		ArrayList<String> endValues = lookupInSurvey(di.linemap.endPoint, survey.instance.results);
-		if(endValues.size() > 0) {
-			tlValues.endLine = endValues.get(0);
-		}
-		
-		if(di.linemap.markers.size() > 0) {
-			tlValues.markers = new ArrayList<String> ();
-			for(String markerName : di.linemap.markers) {
-				tlValues.markers.addAll(lookupInSurvey(markerName, survey.instance.results));
+		if(di.trafficLight.lights.size() > 0) {
+			tlValues.lightValues = new ArrayList<ArrayList<String>> ();
+			
+			for(ArrayList<String> singleLight : di.trafficLight.lights) {	
+				ArrayList<String> bulbValues = new ArrayList<String> ();
+				for(String bulb : singleLight) {
+					bulbValues.addAll(lookupInSurvey(bulb, survey.instance.results));
+				}
+				tlValues.lightValues.add(bulbValues);
 			}		
+			
 		}
 		
 		return tlValues;

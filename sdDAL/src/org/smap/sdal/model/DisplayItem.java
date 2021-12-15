@@ -41,6 +41,7 @@ public class DisplayItem {
 	public boolean stretch = false;			// Stretch an image to fit a box
 	public boolean tsep = false;		// Thousands separator
 	public LineMap linemap;
+	public TrafficLight trafficLight;
 	
 	public void debug() {
 		log.info("======== Display Item:   width: " + width + "   value: " + value + " text: " + text + " : " + type  );

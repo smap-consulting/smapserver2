@@ -291,7 +291,9 @@ public class PdfUtilities {
 	        
 	        // Add traffic lights
 	        if(tlValues != null) {
-	        	
+	        	for(int i = 0; i < tlValues.lightValues.size(); i++) {
+	        		addLightSvgImage(doc, svgRoot, svgNS, sd, tlValues.lightValues.get(i), i, height, width, margin, fontSize);
+	        	}
 	        }
 			
 	        /*
@@ -420,6 +422,35 @@ public class PdfUtilities {
 			d2.appendChild(tNode1);
 			svgRoot.appendChild(d2);
 	    }
+	    
+	}
+	
+	/*
+	 * Add a traffic light
+	 */
+	private static void addLightSvgImage(Document doc, org.w3c.dom.Element svgRoot, String svgNS, Connection sd, ArrayList<String> colors, int idx, 
+			Float height, Float width, int margin, String fontSize) throws SQLException {
+		
+	   
+		float offset = (float) 10.0;
+		double radius = 2.0;
+		
+		for(int i = 0; i < colors.size(); i++) {
+		
+			org.w3c.dom.Element circle1 = doc.createElementNS(svgNS, "circle");
+			double cx = margin + offset + 2 * radius * i;
+			double cy = (height / 2) - 6;
+			
+			circle1.setAttribute("id", "c" + idx + "_1");
+			circle1.setAttribute("cx",String.valueOf(cx));
+			circle1.setAttribute("cy",String.valueOf(cy));
+			circle1.setAttribute("r","2");
+			circle1.setAttributeNS(null, "style", "fill:" + colors.get(i));
+			circle1.setAttribute("stroke", "red");		
+			svgRoot.appendChild(circle1);
+		
+	    }
+	 
 	    
 	}
 	
@@ -579,8 +610,6 @@ public class PdfUtilities {
 		} finally {
 			 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
 		}
-
-		System.out.println("Distance along line to idx " + idx + " is " + distance);
 		
 		return distance;
 	}
@@ -675,8 +704,6 @@ public class PdfUtilities {
 			//write the content to an output stream
 			
 			String text = PdfTextExtractor.getTextFromPage(r, i, new LocationTextExtractionStrategy());
-			
-			System.out.println("text: " + i + " : " + text);
 			
 			//add the page to the new pdf
 			if (text != null && text.length() > 0) {
