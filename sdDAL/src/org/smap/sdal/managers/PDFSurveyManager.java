@@ -44,6 +44,7 @@ import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Row;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.PdfTrafficLightValues;
 import org.smap.sdal.model.User;
 
 import javax.imageio.ImageIO;
@@ -675,6 +676,7 @@ public class PDFSurveyManager {
 					height = rect.getHeight();
 				}
 				PdfMapValues mapValues = getMapValues(di);
+				PdfTrafficLightValues tlValues = getTrafficLightValues(di);
 				PreparedStatement pstmt = null;
 				try {
 					pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
@@ -695,9 +697,10 @@ public class PDFSurveyManager {
 				} else {
 					img = PdfUtilities.getLineImage(sd, 
 							mapValues,
+							tlValues,
 							survey.id,
 							user,
-							di.markerColor,
+							di,
 							mBasePath,
 							width,
 							height);
@@ -1932,6 +1935,7 @@ public class PDFSurveyManager {
 			
 			PreparedStatement pstmt = null;
 			PdfMapValues mapValues = getMapValues(di);	
+			PdfTrafficLightValues tlValues = getTrafficLightValues(di);
 			try {
 				pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
 				PdfUtilities.sequenceMarkers(pstmt, mapValues);		// Put markers in sequence increasing from start
@@ -1954,9 +1958,10 @@ public class PDFSurveyManager {
 			} else {
 				img = PdfUtilities.getLineImage(sd, 
 						mapValues,
+						tlValues,
 						survey.id,
 						user,
-						di.markerColor,
+						di,
 						basePath,
 						width,
 						height);
@@ -2108,6 +2113,34 @@ public class PDFSurveyManager {
 		}
 		
 		return mapValues;
+	}
+	
+	/*
+	 * Extract the compound traffic light values from the display item specification
+	 */
+	private PdfTrafficLightValues getTrafficLightValues(DisplayItem di) {
+		PdfTrafficLightValues tlValues = new PdfTrafficLightValues();
+		
+		// Start point
+		ArrayList<String> startValues = lookupInSurvey(di.linemap.startPoint, survey.instance.results);
+		if(startValues.size() > 0) {
+			tlValues.startLine = startValues.get(0);
+		}
+
+		// End point
+		ArrayList<String> endValues = lookupInSurvey(di.linemap.endPoint, survey.instance.results);
+		if(endValues.size() > 0) {
+			tlValues.endLine = endValues.get(0);
+		}
+		
+		if(di.linemap.markers.size() > 0) {
+			tlValues.markers = new ArrayList<String> ();
+			for(String markerName : di.linemap.markers) {
+				tlValues.markers.addAll(lookupInSurvey(markerName, survey.instance.results));
+			}		
+		}
+		
+		return tlValues;
 	}
 	
 	private Paragraph getPara(String value, DisplayItem di, GlobalVariables gv, ArrayList<String> deps, Anchor anchor) {

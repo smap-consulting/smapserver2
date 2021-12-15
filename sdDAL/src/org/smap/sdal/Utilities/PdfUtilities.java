@@ -34,8 +34,10 @@ import org.apache.batik.transcoder.TranscoderOutput;
 import org.apache.batik.transcoder.image.PNGTranscoder;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PDFTableManager;
+import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.DistanceMarker;
 import org.smap.sdal.model.PdfMapValues;
+import org.smap.sdal.model.PdfTrafficLightValues;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
 
@@ -220,10 +222,11 @@ public class PdfUtilities {
 	 * Convert geospatial data into an abstract image
 	 */
 	public static Image getLineImage(Connection sd, 
-			PdfMapValues mapValues, 
+			PdfMapValues mapValues,
+			PdfTrafficLightValues tlValues,
 			int sId,
 			String user,
-			String markerColor,
+			DisplayItem di,
 			String basePath,
 			Float width,
 			Float height) throws BadElementException, MalformedURLException, IOException, SQLException, TranscoderException {
@@ -232,7 +235,7 @@ public class PdfUtilities {
 	
 		int margin = 10;	
 		String fontSize = "8";
-
+		
         // Add the faults
 		PreparedStatement pstmt = null;;
 		OutputStream ostream = null;
@@ -284,6 +287,11 @@ public class PdfUtilities {
 				for(int i = 0; i < mapValues.orderedMarkers.size(); i++) {
 					addMarkerSvgImage(doc, svgRoot, svgNS, sd, mapValues, lineDistance, i, height, width, margin, fontSize);
 				}
+	        }
+	        
+	        // Add traffic lights
+	        if(tlValues != null) {
+	        	
 	        }
 			
 	        /*
