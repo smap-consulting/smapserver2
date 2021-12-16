@@ -2122,7 +2122,7 @@ public class PDFSurveyManager {
 	private PdfTrafficLightValues getTrafficLightValues(DisplayItem di) {
 		PdfTrafficLightValues tlValues = new PdfTrafficLightValues();
 		
-		if(di.trafficLight.lights.size() > 0) {
+		if(di.trafficLight != null && di.trafficLight.lights != null && di.trafficLight.lights.size() > 0) {
 			tlValues.lightValues = new ArrayList<ArrayList<String>> ();
 			
 			for(ArrayList<String> singleLight : di.trafficLight.lights) {	
