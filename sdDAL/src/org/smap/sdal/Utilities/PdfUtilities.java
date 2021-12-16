@@ -433,20 +433,22 @@ public class PdfUtilities {
 		
 	   
 		float offset = (float) 10.0;
-		double radius = 2.0;
+		int radius = 5;
 		
 		for(int i = 0; i < colors.size(); i++) {
 		
 			org.w3c.dom.Element circle1 = doc.createElementNS(svgNS, "circle");
-			double cx = margin + offset + 2 * radius * i;
-			double cy = (height / 2) - 6;
+			double cx = margin + offset + idx * 50 + 2 * radius * i;
+			double cy = height - 20;
 			
 			circle1.setAttribute("id", "c" + idx + "_1");
 			circle1.setAttribute("cx",String.valueOf(cx));
 			circle1.setAttribute("cy",String.valueOf(cy));
-			circle1.setAttribute("r","2");
-			circle1.setAttributeNS(null, "style", "fill:" + colors.get(i));
-			circle1.setAttribute("stroke", "red");		
+			circle1.setAttribute("r", String.valueOf(radius));
+			
+			String color = colors.get(i);
+			circle1.setAttribute("fill", color);	
+			circle1.setAttribute("stroke", "black");		
 			svgRoot.appendChild(circle1);
 		
 	    }
