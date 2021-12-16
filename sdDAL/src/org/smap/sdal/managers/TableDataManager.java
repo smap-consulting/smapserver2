@@ -25,6 +25,7 @@ import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
 
+import org.apache.commons.text.StringEscapeUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -576,7 +577,7 @@ public class TableDataManager {
 
 					if (c.type != null && c.type.equals("select1") && c.selectDisplayNames) {
 						// Convert value to display name
-						value = rs.getString(i + 1);
+						value = getSafeText(rs.getString(i + 1), isDt);
 						for(KeyValue kv: c.choices) {
 							if(kv.k.equals(value)) {
 								value = kv.v;
@@ -642,7 +643,7 @@ public class TableDataManager {
 							if(c.type.equals(SmapQuestionTypes.AUDIT)) {
 								jf.put(name, jsonAudit.get(name));
 							} else {
-								jf.put(name, value);
+								jf.put(name, getSafeText(value, isDt));
 							}
 						}
 					}
@@ -828,6 +829,20 @@ public class TableDataManager {
 			}
 		}
 		return type;
+	}
+	
+	/*
+	 * Get a safe text value, escape html if this is destined for data tables
+	 */
+	private String getSafeText(String input, boolean isDt) {
+		if(input == null) {
+			input = "";
+		}
+		if(isDt) {
+			return StringEscapeUtils.escapeHtml4(input);
+		} else {
+			return input;
+		}
 	}
 
 }
