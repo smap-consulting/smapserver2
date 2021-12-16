@@ -42,6 +42,8 @@ import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.GroupSurvey;
 import org.smap.sdal.model.User;
 
+import org.apache.commons.text.StringEscapeUtils;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -278,10 +280,10 @@ public class UserSvc extends Application {
 			}
 			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, u.name);
+			pstmt.setString(1, StringEscapeUtils.escapeHtml4(u.name));
 			pstmt.setString(2, u.settings);
 			pstmt.setString(3, u.language);
-			pstmt.setString(4, u.email);
+			pstmt.setString(4, StringEscapeUtils.escapeHtml4(u.email));
 			pstmt.setString(5, u.timezone);
 			if(u.password == null) {
 				pstmt.setString(6, ident);
