@@ -16,7 +16,7 @@ case $choice in
         n|N) break;;
         y|Y)
 
-echo "Exiting anyway.  Comment out these two lines if you really want to restore your database from a backups
+echo "Exiting anyway.  Comment out these two lines if you really want to restore your database from a backups"
 exit
 
 echo "copy files...."

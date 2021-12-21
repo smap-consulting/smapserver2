@@ -701,11 +701,6 @@ public class WebForm extends Application {
 		
 		String html = output.toString();
 		
-		// Convert escaped XML into HTML
-		html = html.replaceAll("&gt;", ">");
-		html = html.replaceAll("&lt;", "<");
-		html = html.replaceAll("\\\\\\\\", "\\\\");
-	    
 		String dynamic = "";
 		if(isTemporaryUser) {
 			dynamic = "/id/" + userIdent;		
@@ -953,10 +948,10 @@ public class WebForm extends Application {
 	/*
 	 * Add the body
 	 */
-	private StringBuffer addBody(HttpServletRequest request, String dataToEditId, int orgId,
+	private String addBody(HttpServletRequest request, String dataToEditId, int orgId,
 			String surveyClass, boolean superUser)
 			throws TransformerFactoryConfigurationError, SQLException, Exception {
-		StringBuffer output = new StringBuffer();
+		StringBuilder output = new StringBuilder();
 
 		output.append("<body class='clearfix edit'>");
 		output.append(getAside());
@@ -973,7 +968,15 @@ public class WebForm extends Application {
 
 		output.append("</body>");
 
-		return output;
+		/*
+		 * Replace escaping of html with real tags
+		 */
+		String html = output.toString();
+		html = html.replaceAll("&gt;", ">");
+		html = html.replaceAll("&lt;", "<");
+		html = html.replaceAll("\\\\\\\\", "\\\\");
+		
+		return html;
 	}
 
 	/*
