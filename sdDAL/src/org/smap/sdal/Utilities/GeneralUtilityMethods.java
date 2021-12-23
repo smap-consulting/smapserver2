@@ -2749,11 +2749,13 @@ public class GeneralUtilityMethods {
 			String line = br.readLine();
 
 			log.info(" Start Get Audit =======================================================");
+			int lineNumber = 0;
 			while (line != null) {
 				
+				lineNumber++;
 				data.rawAudit.append(line).append("\n");		// Save the raw data
 				
-				String[] auditCols = parser.parseLine(line);
+				String[] auditCols = parser.parseLine(line, lineNumber);
 				int time = 0;
 				if (auditCols.length >= 4 && auditCols[0] != null && auditCols[0].equals("question")) {
 					String id = auditCols[1];

@@ -210,7 +210,7 @@ public class CsvTableManager {
 				
 			// Get the column headings from the new file
 			String newLine = GeneralUtilityMethods.removeBOM(brNew.readLine());
-			String cols[] = parser.parseLine(newLine);
+			String cols[] = parser.parseLine(newLine, 1);
 			headers = new ArrayList<CsvHeader> ();
 			for(String n : cols) {
 				if(n != null && !n.isEmpty()) {
@@ -1130,7 +1130,7 @@ public class CsvTableManager {
 			pstmt = sd.prepareStatement(sql.toString());
 			int idx = 0;
 			for(String r : records) {
-				String[] data = parser.parseLine(r);
+				String[] data = parser.parseLine(r, idx + 1);
 				for(int i = 0; i < data.length && i < headerSize; i++) {
 					String v = "";	// fill empty cells with zero length string
 					if(i < data.length) {
@@ -1178,8 +1178,9 @@ public class CsvTableManager {
 		
 		try {
 			pstmt = sd.prepareStatement(sql.toString());
+			int lineNumber = 1;
 			for(String r : records) {
-				String[] data = parser.parseLine(r);
+				String[] data = parser.parseLine(r, lineNumber++);
 				for(int i = 0; i < data.length; i++) {
 					pstmt.setString(i + 1, data[i]);
 				}
