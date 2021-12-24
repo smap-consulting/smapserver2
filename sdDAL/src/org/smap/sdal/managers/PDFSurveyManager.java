@@ -942,7 +942,7 @@ public class PDFSurveyManager {
 			ArrayList<ArrayList<Result>> parentRecords,
 			String remoteUser,
 			int oId,
-			boolean showSubFormIndex) throws DocumentException, IOException, SQLException {
+			boolean showSubFormIndex) throws Exception {
 
 		// Check that the depth of repeats hasn't exceeded the maximum
 		if(depth > repIndexes.length - 1) {
@@ -1258,7 +1258,7 @@ public class PDFSurveyManager {
 			ArrayList<ArrayList<Result>> parentRecords,
 			boolean generateBlank,
 			int startGeopointIndex,
-			boolean hideStartGeopoint) throws SQLException {
+			boolean hideStartGeopoint) throws Exception {
 
 		Row row = new Row();
 		row.groupWidth = gv.cols.length;
@@ -1350,7 +1350,7 @@ public class PDFSurveyManager {
 			boolean isNewPage,
 			int recNumber,
 			ArrayList<Result> record,
-			ArrayList<ArrayList<Result>> parentRecords) {
+			ArrayList<ArrayList<Result>> parentRecords) throws Exception {
 
 		int [] cols = gv.cols;
 		DisplayItem di = new DisplayItem();
@@ -1521,7 +1521,7 @@ public class PDFSurveyManager {
 	/*
 	 * Set the attributes for this question from keys set in the appearance column
 	 */
-	void setQuestionFormats(String appearance, DisplayItem di) {
+	void setQuestionFormats(String appearance, DisplayItem di) throws Exception {
 
 		if(appearance != null) {
 			String [] appValues = appearance.split(" ");
