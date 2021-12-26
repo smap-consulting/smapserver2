@@ -37,7 +37,8 @@ import org.smap.sdal.managers.PDFTableManager;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.DistanceMarker;
 import org.smap.sdal.model.PdfMapValues;
-import org.smap.sdal.model.PdfTrafficLightValues;
+import org.smap.sdal.model.TrafficLightBulb;
+import org.smap.sdal.model.TrafficLightValues;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
 
@@ -223,7 +224,7 @@ public class PdfUtilities {
 	 */
 	public static Image getLineImage(Connection sd, 
 			PdfMapValues mapValues,
-			PdfTrafficLightValues tlValues,
+			TrafficLightValues tlValues,
 			int sId,
 			String user,
 			DisplayItem di,
@@ -291,8 +292,10 @@ public class PdfUtilities {
 	        
 	        // Add traffic lights
 	        if(tlValues != null) {
-	        	for(int i = 0; i < tlValues.lightValues.size(); i++) {
-	        		addLightSvgImage(doc, svgRoot, svgNS, sd, tlValues.lightValues.get(i), i, height, width, margin, fontSize);
+	        	for(int i = 0; i < tlValues.lights.size(); i++) {
+	        		addLightSvgImage(doc, svgRoot, svgNS, sd, 
+	        				tlValues.lights.get(i),
+	        				i, height, width, margin, fontSize);
 	        	}
 	        }
 			
@@ -428,14 +431,16 @@ public class PdfUtilities {
 	/*
 	 * Add a traffic light
 	 */
-	private static void addLightSvgImage(Document doc, org.w3c.dom.Element svgRoot, String svgNS, Connection sd, ArrayList<String> colors, int idx, 
+	private static void addLightSvgImage(Document doc, org.w3c.dom.Element svgRoot, String svgNS, Connection sd, 
+			ArrayList<TrafficLightBulb> bulbs, 
+			int idx, 
 			Float height, Float width, int margin, String fontSize) throws SQLException {
 		
 	   
 		float offset = (float) 10.0;
 		int radius = 5;
 		
-		for(int i = 0; i < colors.size(); i++) {
+		for(int i = 0; i < bulbs.size(); i++) {
 		
 			org.w3c.dom.Element circle1 = doc.createElementNS(svgNS, "circle");
 			double cx = margin + offset + idx * 50 + 2 * radius * i;
@@ -446,10 +451,32 @@ public class PdfUtilities {
 			circle1.setAttribute("cy",String.valueOf(cy));
 			circle1.setAttribute("r", String.valueOf(radius));
 			
-			String color = colors.get(i);
+			String color = bulbs.get(i).color;
 			circle1.setAttribute("fill", color);	
 			circle1.setAttribute("stroke", "black");		
 			svgRoot.appendChild(circle1);
+			
+			String cross = bulbs.get(i).cross.toLowerCase();
+			if(cross.equals("yes") || cross.equals("true")) {
+				System.out.println("Do cross for " + i);
+				org.w3c.dom.Element l1 = doc.createElementNS(svgNS, "line");
+				l1.setAttribute("id", "c" + idx + "_2");
+				l1.setAttribute("x1",String.valueOf(cx - radius * Math.cos(45.0)));
+				l1.setAttribute("y1",String.valueOf(cy - radius * Math.sin(45.0)));
+				l1.setAttribute("x2",String.valueOf(cx + radius * Math.cos(45.0)));
+				l1.setAttribute("y2",String.valueOf(cy + radius * Math.sin(45.0)));
+				l1.setAttribute("stroke", "black");		
+				svgRoot.appendChild(l1);
+				
+				org.w3c.dom.Element l2 = doc.createElementNS(svgNS, "line");
+				l2.setAttribute("id", "c" + idx + "_3");
+				l2.setAttribute("x1",String.valueOf(cx + radius * Math.cos(45.0)));
+				l2.setAttribute("y1",String.valueOf(cy - radius * Math.sin(45.0)));
+				l2.setAttribute("x2",String.valueOf(cx - radius * Math.cos(45.0)));
+				l2.setAttribute("y2",String.valueOf(cy + radius * Math.sin(45.0)));
+				l2.setAttribute("stroke", "black");		
+				svgRoot.appendChild(l2);
+			}
 		
 	    }
 	 

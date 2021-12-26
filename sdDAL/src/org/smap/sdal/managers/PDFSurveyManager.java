@@ -1,8 +1,5 @@
 package org.smap.sdal.managers;
 
-import java.awt.Graphics2D;
-import java.awt.geom.AffineTransform;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -10,7 +7,6 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.lang.reflect.Type;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -44,8 +40,9 @@ import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Row;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TrafficLight;
-import org.smap.sdal.model.PdfTrafficLightValues;
+import org.smap.sdal.model.TrafficLightBulb;
+import org.smap.sdal.model.TrafficLightQuestions;
+import org.smap.sdal.model.TrafficLightValues;
 import org.smap.sdal.model.User;
 
 import com.github.binodnme.dateconverter.converter.DateConverter;
@@ -71,7 +68,6 @@ import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.AcroFields;
 import com.itextpdf.text.pdf.BarcodeQRCode;
 import com.itextpdf.text.pdf.BaseFont;
-import com.itextpdf.text.pdf.PdfFormField;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfReader;
@@ -675,7 +671,7 @@ public class PDFSurveyManager {
 					height = rect.getHeight();
 				}
 				PdfMapValues mapValues = getMapValues(di);
-				PdfTrafficLightValues tlValues = getTrafficLightValues(di);
+				TrafficLightValues tlValues = getTrafficLightValues(di);
 				PreparedStatement pstmt = null;
 				try {
 					pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
@@ -1464,12 +1460,82 @@ public class PDFSurveyManager {
 			for(ArrayList<Result> r : records) {
 				for(Result result : r) {
 					if(result.subForm == null && result.name.equals(qname)) {
-						values.add(result.value);
+						values.add(result.value != null ? result.value : "");
 					} else if(result.subForm != null) {
 						values.addAll(lookupInSurvey(qname, result.subForm));
 					}
 				}		
 			}
+		}
+		return values;
+	}
+	
+	/*
+	 * Get an array of values for the specified group of questions in the survey
+	 * There will only be more than one value if the question is in a repeat
+	 * Note colors are primary and will determine the number of bulbs that are returned
+	 */
+	ArrayList<TrafficLightBulb> lookupGroupInSurvey(TrafficLightBulb qGroup, ArrayList<ArrayList<Result>> records) {
+		ArrayList<TrafficLightBulb> values = new ArrayList<>();
+		if(qGroup != null && qGroup.color != null && qGroup.color.length() > 0 && records != null && records.size() > 0) {
+			
+			ArrayList<String> colors = new ArrayList<>();
+			for(ArrayList<Result> r : records) {
+				for(Result result : r) {
+					if(result.subForm == null && result.name.equals(qGroup.color)) {
+						colors.add(result.value != null ? result.value : "");
+					} else if(result.subForm != null) {
+						colors.addAll(lookupInSurvey(qGroup.color, result.subForm));
+					}
+				}		
+			}
+			
+			// Get the crosses
+			ArrayList<String> crosses = new ArrayList<>();
+			if(qGroup.cross != null && qGroup.cross.length() > 0) {
+				for(ArrayList<Result> r : records) {
+					for(Result result : r) {
+						if(result.subForm == null && result.name.equals(qGroup.cross)) {
+							crosses.add(result.value != null ? result.value : "");
+						} else if(result.subForm != null) {
+							crosses.addAll(lookupInSurvey(qGroup.cross, result.subForm));
+						}
+					}		
+				}
+			}
+			
+			// Get the labels
+			ArrayList<String> labels = new ArrayList<>();
+			if(qGroup.label != null && qGroup.label.length() > 0) {
+				for(ArrayList<Result> r : records) {
+					for(Result result : r) {
+						if(result.subForm == null && result.name.equals(qGroup.label)) {
+							labels.add(result.value != null ? result.value : "");
+						} else if(result.subForm != null) {
+							labels.addAll(lookupInSurvey(qGroup.label, result.subForm));
+						}
+					}		
+				}
+			}
+			
+			// Combine the bulb components
+			for(int i = 0; i < colors.size(); i++) {
+				TrafficLightBulb b = new TrafficLightBulb();
+				b.color = colors.get(i);
+				if(i < crosses.size()) {
+					b.cross = crosses.get(i);
+				} else {
+					b.cross = "";
+				}
+				if(i < labels.size()) {
+					b.label = labels.get(i);
+				} else {
+					b.label = "";
+				}
+				values.add(b);
+				
+			}
+			
 		}
 		return values;
 	}
@@ -1561,7 +1627,7 @@ public class PDFSurveyManager {
 						}
 					} else if(app.startsWith("pdftl")) {		// Multiple points to be joined into a map or image
 						if(di.trafficLight == null) {
-							di.trafficLight = new TrafficLight();
+							di.trafficLight = new TrafficLightQuestions();
 						}
 						di.trafficLight.addApp(getAppValueArray(app));
 					} else if(app.startsWith("pdfaccount")) {			// mapbox account
@@ -1936,7 +2002,7 @@ public class PDFSurveyManager {
 			
 			PreparedStatement pstmt = null;
 			PdfMapValues mapValues = getMapValues(di);	
-			PdfTrafficLightValues tlValues = getTrafficLightValues(di);
+			TrafficLightValues tlValues = getTrafficLightValues(di);
 			try {
 				pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
 				PdfUtilities.sequenceMarkers(pstmt, mapValues);		// Put markers in sequence increasing from start
@@ -2117,21 +2183,22 @@ public class PDFSurveyManager {
 	}
 	
 	/*
-	 * Extract the compound traffic light values from the display item specification
+	 * Extract the compound traffic light values from the traffic light questions
 	 */
-	private PdfTrafficLightValues getTrafficLightValues(DisplayItem di) {
-		PdfTrafficLightValues tlValues = new PdfTrafficLightValues();
+	private TrafficLightValues getTrafficLightValues(DisplayItem di) {
+		TrafficLightValues tlValues = new TrafficLightValues();
 		
 		if(di.trafficLight != null && di.trafficLight.lights != null && di.trafficLight.lights.size() > 0) {
-			tlValues.lightValues = new ArrayList<ArrayList<String>> ();
 			
-			for(ArrayList<String> singleLight : di.trafficLight.lights) {	
-				ArrayList<String> bulbValues = new ArrayList<String> ();
-				for(String bulb : singleLight) {
-					bulbValues.addAll(lookupInSurvey(bulb, survey.instance.results));
+			tlValues.lights = new ArrayList<> ();			
+			
+			for(ArrayList<TrafficLightBulb> singleLight : di.trafficLight.lights) {	
+				ArrayList<TrafficLightBulb> values = new ArrayList<> ();
+				for(TrafficLightBulb bulb : singleLight) {
+					values.addAll(lookupGroupInSurvey(bulb, survey.instance.results));
 				}
-				tlValues.lightValues.add(bulbValues);
-			}		
+				tlValues.lights.add(values);
+			}	
 			
 		}
 		

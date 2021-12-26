@@ -2,22 +2,23 @@ package org.smap.sdal.model;
 
 import java.util.ArrayList;
 
-public class TrafficLight {
+/*
+ * Contains information used for displaying traffic lights
+ * including colors, crossed out and labels
+ */
+public class TrafficLightQuestions {
 	
-	public ArrayList<ArrayList<String>> lights = new ArrayList<>();
-	public ArrayList<ArrayList<String>> crosses = new ArrayList<>();
-	public ArrayList<ArrayList<String>> labels = new ArrayList<>();
+	public ArrayList<ArrayList<TrafficLightBulb>> lights = new ArrayList<>();
 	
 	public void addApp(String [] points) throws Exception {
 		// Point 0 is the appearance tag
 		if(points.length > 1) {
-			ArrayList<String> light = new ArrayList<String> ();
-			ArrayList<String> cross = new ArrayList<String> ();
-			ArrayList<String> label = new ArrayList<String> ();
+			ArrayList<TrafficLightBulb> light = new ArrayList<> ();
+		
 			for(int i = 1; i < points.length; i++) {
 				System.out.println("point " + points[i]);
 				String[] components = points[i].split(":");
-				light.add(components[0]);
+				String color = components[0];
 				String crossItem = "";
 				String labelItem = "";
 				if(components.length > 1) {
@@ -29,13 +30,11 @@ public class TrafficLight {
 						} 
 					}
 				}
-				cross.add(crossItem);
-				label.add(labelItem);
+				light.add(new TrafficLightBulb(color, crossItem, labelItem));
 				
 			}
 			lights.add(light);
-			crosses.add(cross);
-			labels.add(label);
+			
 		}
 	}
 }
