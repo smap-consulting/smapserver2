@@ -4,6 +4,10 @@ DROP SEQUENCE IF EXISTS sc_seq CASCADE;
 CREATE SEQUENCE sc_seq START 1;
 ALTER SEQUENCE sc_seq OWNER TO ws;
 
+DROP SEQUENCE IF EXISTS st_seq CASCADE;
+CREATE SEQUENCE st_seq START 1;
+ALTER SEQUENCE st_seq OWNER TO ws;
+
 DROP SEQUENCE IF EXISTS re_seq CASCADE;
 CREATE SEQUENCE re_seq START 1;
 ALTER SEQUENCE re_seq OWNER TO ws;
@@ -611,6 +615,20 @@ CREATE TABLE survey_change (
 	updated_time TIMESTAMP WITH TIME ZONE		-- Time and date of change
 	);
 ALTER TABLE survey_change OWNER TO ws;
+
+DROP TABLE IF EXISTS survey_template CASCADE;
+CREATE TABLE survey_template (
+	t_id integer DEFAULT NEXTVAL('st_seq') CONSTRAINT pk_survey_template PRIMARY KEY,
+	ident text REFERENCES survey(ident) ON DELETE CASCADE,		-- Survey containing this version
+	name text,
+	filename text,
+	available boolean default true,				-- Set to true if the template is available for selection
+	deleted boolean default false,				-- Set true if the update was a success
+	text type,									-- pdf || word
+	user_id integer,							-- Person who made the changes				
+	updated_time TIMESTAMP WITH TIME ZONE		-- Time and date of change
+	);
+ALTER TABLE survey_template OWNER TO ws;
 
 -- record events on data records by HRK or instanceid if HRK not set
 -- Events include

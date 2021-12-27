@@ -455,3 +455,19 @@ alter table organisation add column dashboard_session_name text;
 
 -- upgrade to version 21.12
 alter table survey add column compress_pdf boolean;
+
+CREATE SEQUENCE st_seq START 1;
+ALTER SEQUENCE st_seq OWNER TO ws;
+
+CREATE TABLE survey_template (
+	t_id integer DEFAULT NEXTVAL('st_seq') CONSTRAINT pk_survey_template PRIMARY KEY,
+	ident text REFERENCES survey(ident) ON DELETE CASCADE,		-- Survey containing this version
+	name text,
+	filename text,
+	available boolean default true,				-- Set to true if the template is available for selection
+	deleted boolean default false,				-- Set true if the update was a success
+	template_type text,									-- pdf || word
+	user_id integer,							-- Person who made the changes				
+	updated_time TIMESTAMP WITH TIME ZONE		-- Time and date of change
+	);
+ALTER TABLE survey_template OWNER TO ws;
