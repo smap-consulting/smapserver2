@@ -457,7 +457,7 @@ public class PdfUtilities {
 			
 			org.w3c.dom.Element circle1 = doc.createElementNS(svgNS, "circle");
 			double cx = margin + offset + tlOffset + 2 * radius * i;
-			double cy = height - 20;
+			double cy = height - 30;
 			
 			circle1.setAttribute("id", "c" + idx + "_1");
 			circle1.setAttribute("cx",String.valueOf(cx));
@@ -471,7 +471,6 @@ public class PdfUtilities {
 			
 			String cross = bulbs.get(i).cross.toLowerCase();
 			if(cross.equals("yes") || cross.equals("true")) {
-				System.out.println("Do cross for " + i);
 				org.w3c.dom.Element l1 = doc.createElementNS(svgNS, "line");
 				l1.setAttribute("id", "c" + idx + "_2");
 				l1.setAttribute("x1",String.valueOf(cx - radius * Math.cos(45.0)));
@@ -489,6 +488,18 @@ public class PdfUtilities {
 				l2.setAttribute("y2",String.valueOf(cy + radius * Math.sin(45.0)));
 				l2.setAttribute("stroke", "black");		
 				svgRoot.appendChild(l2);
+			}
+			
+			String label = bulbs.get(i).label;
+			if(label.length() > 0) {
+				org.w3c.dom.Element d1 = doc.createElementNS(svgNS,"text");
+				d1.setAttributeNS(null,"x", String.valueOf(cx - radius + (label.length() == 1 ? radius - 2 : 0)));    
+				d1.setAttributeNS(null,"y", String.valueOf(cy + 12 + radius)); 
+				d1.setAttributeNS(null,"font-size",fontSize);
+				
+				org.w3c.dom.Text tNode1 = doc.createTextNode(label);
+				d1.appendChild(tNode1);
+				svgRoot.appendChild(d1);
 			}
 		
 	    }
