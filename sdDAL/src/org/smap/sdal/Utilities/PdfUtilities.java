@@ -295,7 +295,7 @@ public class PdfUtilities {
 	        	for(int i = 0; i < tlValues.lights.size(); i++) {
 	        		addLightSvgImage(doc, svgRoot, svgNS, sd, 
 	        				tlValues.lights.get(i),
-	        				i, height, width, margin, fontSize);
+	        				i, tlValues.lights.size(), height, width, margin, fontSize);
 	        	}
 	        }
 			
@@ -434,16 +434,29 @@ public class PdfUtilities {
 	private static void addLightSvgImage(Document doc, org.w3c.dom.Element svgRoot, String svgNS, Connection sd, 
 			ArrayList<TrafficLightBulb> bulbs, 
 			int idx, 
+			int lightCount,
 			Float height, Float width, int margin, String fontSize) throws SQLException {
 		
 	   
 		float offset = (float) 10.0;
+		float tlOffset; 
 		int radius = 5;
+		if(idx == 0 && lightCount > 1) {	// Position at beginning
+			tlOffset = (float) 0.0;
+		} else if(idx == 0 && lightCount == 1) {	// Position in the middle
+			tlOffset = width / 2 - bulbs.size() * radius - margin - offset;
+		} else if(idx == lightCount - 1) {			// Position at end
+			tlOffset = width - margin - 2 * offset - 2 * bulbs.size() * radius;
+		} else {
+			tlOffset = width / (lightCount - idx) - bulbs.size() * radius - margin - offset;
+		}
+				
 		
 		for(int i = 0; i < bulbs.size(); i++) {
 		
+			
 			org.w3c.dom.Element circle1 = doc.createElementNS(svgNS, "circle");
-			double cx = margin + offset + idx * 50 + 2 * radius * i;
+			double cx = margin + offset + tlOffset + 2 * radius * i;
 			double cy = height - 20;
 			
 			circle1.setAttribute("id", "c" + idx + "_1");
