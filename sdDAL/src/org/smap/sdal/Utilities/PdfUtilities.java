@@ -362,6 +362,8 @@ public class PdfUtilities {
 		double cx = margin + offset;
 		double cy = (height / 2) - 6;
 		double radius = 2.0;
+		double halfTextWidth = (idx == 0) ? 30 : 20;
+		
 		circle1.setAttribute("id", "c" + idx + "_1");
 		circle1.setAttribute("cx",String.valueOf(cx));
 		circle1.setAttribute("cy",String.valueOf(cy));
@@ -385,18 +387,18 @@ public class PdfUtilities {
 			String [] coordsArray = coords.split(",");
 			
 			if(coordsArray.length > 1) {
-				org.w3c.dom.Text latNode = doc.createTextNode("lat: " + coordsArray[1]);
+				org.w3c.dom.Text latNode = doc.createTextNode((idx == 0 ? "lat: " : "") + coordsArray[1]);
 				org.w3c.dom.Element lat = doc.createElementNS(svgNS,"text");
-				lat.setAttributeNS(null,"x", String.valueOf((cx - 30) > 0 ? cx - 30 : 0));   // Position should be half the width of the text    
+				lat.setAttributeNS(null,"x", String.valueOf((cx - halfTextWidth) > 0 ? cx - halfTextWidth : 0));   // Position should be half the width of the text    
 				lat.setAttributeNS(null,"y", String.valueOf((height / 2) - 30)); 
 				lat.setAttributeNS(null,"font-size",fontSize);			
 				lat.appendChild(latNode);
 				svgRoot.appendChild(lat);
 			}
 			
-			org.w3c.dom.Text lonNode = doc.createTextNode("lon: " + coordsArray[0]);
+			org.w3c.dom.Text lonNode = doc.createTextNode((idx == 0 ? "lon: " : "") + coordsArray[0]);
 			org.w3c.dom.Element lon = doc.createElementNS(svgNS,"text");
-			lon.setAttributeNS(null,"x", String.valueOf((cx - 30) > 0 ? cx - 30 : 0));   // Position should be half the width of the text    
+			lon.setAttributeNS(null,"x", String.valueOf((cx - halfTextWidth) > 0 ? cx - halfTextWidth : 0));   // Position should be half the width of the text    
 			lon.setAttributeNS(null,"y", String.valueOf((height / 2) - 20)); 
 			lon.setAttributeNS(null,"font-size",fontSize);			
 			lon.appendChild(lonNode);
@@ -470,7 +472,7 @@ public class PdfUtilities {
 			svgRoot.appendChild(circle1);
 			
 			String cross = bulbs.get(i).cross.toLowerCase();
-			if(cross.equals("yes") || cross.equals("true")) {
+			if(cross.equals("yes") || cross.equals("true") || cross.equals("1")) {
 				org.w3c.dom.Element l1 = doc.createElementNS(svgNS, "line");
 				l1.setAttribute("id", "c" + idx + "_2");
 				l1.setAttribute("x1",String.valueOf(cx - radius * Math.cos(45.0)));
