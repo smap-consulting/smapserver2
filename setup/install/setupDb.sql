@@ -623,8 +623,7 @@ CREATE TABLE survey_template (
 	name text,
 	filename text,
 	available boolean default true,				-- Set to true if the template is available for selection
-	deleted boolean default false,				-- Set true if the update was a success
-	text type,									-- pdf || word
+	template_type text,							-- pdf || word
 	user_id integer,							-- Person who made the changes				
 	updated_time TIMESTAMP WITH TIME ZONE		-- Time and date of change
 	);

@@ -47,6 +47,7 @@ import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.ConsoleColumn;
 import org.smap.sdal.model.MetaItem;
+import org.smap.sdal.model.Template;
 import org.smap.sdal.model.SurveyLinkDetails;
 import org.smap.server.utilities.GetXForm;
 
@@ -338,9 +339,10 @@ public class Survey extends Application {
 			@PathParam("sId") int sId) { 
 
 		Response response = null;
+		String connectionString = "surveyKPI-Survey-getLink";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Survey-getLink");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		boolean superUser = false;
 		try {
@@ -384,11 +386,14 @@ public class Survey extends Application {
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			SDDataSource.closeConnection("surveyKPI-Survey-getLink", sd);
+			SDDataSource.closeConnection(connectionString
+					, sd);
 		}
 		
 		return response;
 	}
+	
+
 	
 	/*
 	 * Delete a public link to a webform for this survey
@@ -1227,37 +1232,5 @@ public class Survey extends Application {
 		return null; 
 	}
 
-	/* no longer used
-	private void addToSurveyBounds(float[] bbox, String bounds) {
-		int idx = bounds.indexOf('(');
-		if(idx > 0) {
-			String b2 = bounds.substring(idx + 1, bounds.length() - 1);
-			String [] coords = b2.split(",");
-			if(coords.length > 1) {
-				String [] c1 = coords[0].split(" ");
-				String [] c2 = coords[1].split(" ");
-
-				float [] newBounds = new float[4];
-				newBounds[0] = Float.parseFloat(c1[0]);
-				newBounds[1] = Float.parseFloat(c1[1]);
-				newBounds[2] = Float.parseFloat(c2[0]);
-				newBounds[3] = Float.parseFloat(c2[1]);
-
-				if(newBounds[0] < bbox[0]) {
-					bbox[0] = newBounds[0];
-				}
-				if(newBounds[1] < bbox[1]) {
-					bbox[1] = newBounds[1];
-				}
-				if(newBounds[2] > bbox[2]) {
-					bbox[2] = newBounds[2];
-				}
-				if(newBounds[3] > bbox[3]) {
-					bbox[3] = newBounds[3];
-				}
-			}
-		}
-	}
-	*/
 }
 

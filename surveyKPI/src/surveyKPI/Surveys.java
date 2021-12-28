@@ -56,6 +56,7 @@ import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.SurveyIdent;
 import org.smap.sdal.model.SurveySummary;
+import org.smap.sdal.model.Template;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -294,6 +295,50 @@ public class Surveys extends Application {
 			SDDataSource.closeConnection(connectionString , sd);				
 		}
 
+		return response;
+	}
+	
+	/*
+	 * Get the survey templates
+	 */
+	@Path("/templates/{sIdent}")
+	@GET
+	@Produces("application/json")
+	public Response getTemplates(@Context HttpServletRequest request,
+			@PathParam("sIdent") String sIdent) { 
+ 
+		Response response = null;
+		String connectionString = "surveyKPI - Get Survey Templates";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		aUpdate.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);
+		// End Authorisation
+		
+		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			ArrayList<Template> templates = sm.getTemplates(sd, sIdent);
+			
+			response = Response.ok(gson.toJson(templates)).build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,e.getMessage(), e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
 		return response;
 	}
 	

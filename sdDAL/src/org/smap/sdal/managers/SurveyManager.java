@@ -83,6 +83,7 @@ import org.smap.sdal.model.SurveyLinks;
 import org.smap.sdal.model.SurveySummary;
 import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.TableColumnMarkup;
+import org.smap.sdal.model.Template;
 import org.smap.sdal.model.User;
 
 import com.google.gson.Gson;
@@ -4852,6 +4853,42 @@ public class SurveyManager {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
 		}
 		return summary;
+	}
+	
+	/*
+	 * Get the templates for a survey
+	 */
+	public ArrayList<Template> getTemplates(Connection sd, String sIdent) throws SQLException {
+		
+		String sql = "select s.pdf_template "
+				+ "from survey s "
+				+ "where s.ident = ? ";
+		PreparedStatement pstmt = null;
+		
+		ArrayList<Template> templates = new ArrayList<> ();
+		
+		try {
+	
+			/*
+			 * Get the settings template if it has been specified
+			 * Deprecate this.  Storing a single template in the survey table is the old way
+			 */
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, sIdent);
+
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				Template t = new Template();
+				t.name = rs.getString("pdf_template");
+				if(t.name != null && t.name.trim().length() > 0) {
+					t.fromSettings = true;
+					templates.add(t);
+				}
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+		}
+		return templates;
 	}
 	
 	public ArrayList<SurveyIdent> getSurveyIdentList(Connection sd, String user, boolean superUser) throws SQLException {
