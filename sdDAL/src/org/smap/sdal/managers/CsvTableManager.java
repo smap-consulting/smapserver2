@@ -210,7 +210,7 @@ public class CsvTableManager {
 				
 			// Get the column headings from the new file
 			String newLine = GeneralUtilityMethods.removeBOM(brNew.readLine());
-			String cols[] = parser.parseLine(newLine, 1);
+			String cols[] = parser.parseLine(newLine, 1, newFile.getName());
 			headers = new ArrayList<CsvHeader> ();
 			for(String n : cols) {
 				if(n != null && !n.isEmpty()) {
@@ -317,11 +317,11 @@ public class CsvTableManager {
 			 */
 			delta = false;			// XXXX temporarily disable delta's they are not used yet and there is a risk that they could go wrong
 			if(delta) {
-				remove(listDel);
-				insert(listAdd, headers.size());
+				remove(listDel, newFile.getName());
+				insert(listAdd, headers.size(), newFile.getName());
 			} else {
 				truncate();
-				insert(listNew, headers.size());
+				insert(listNew, headers.size(), newFile.getName());
 				updateInitialisationTimetamp();
 			}		
 			
@@ -1099,7 +1099,7 @@ public class CsvTableManager {
 	/*
 	 * Insert a csv record into the table
 	 */
-	private void insert(ArrayList<String> records, int headerSize) throws SQLException, IOException {
+	private void insert(ArrayList<String> records, int headerSize, String filename) throws SQLException, IOException {
 		
 		if(records.size() == 0) {
 			return;
@@ -1130,7 +1130,7 @@ public class CsvTableManager {
 			pstmt = sd.prepareStatement(sql.toString());
 			int idx = 0;
 			for(String r : records) {
-				String[] data = parser.parseLine(r, idx + 1);
+				String[] data = parser.parseLine(r, idx + 1, filename);
 				for(int i = 0; i < data.length && i < headerSize; i++) {
 					String v = "";	// fill empty cells with zero length string
 					if(i < data.length) {
@@ -1155,7 +1155,7 @@ public class CsvTableManager {
 	/*
 	 * Remove a CSV record from the table
 	 */
-	private void remove(ArrayList<String> records) throws SQLException, IOException {
+	private void remove(ArrayList<String> records, String filename) throws SQLException, IOException {
 		
 		if(records.size() == 0) {
 			return;
@@ -1180,7 +1180,7 @@ public class CsvTableManager {
 			pstmt = sd.prepareStatement(sql.toString());
 			int lineNumber = 1;
 			for(String r : records) {
-				String[] data = parser.parseLine(r, lineNumber++);
+				String[] data = parser.parseLine(r, lineNumber++, filename);
 				for(int i = 0; i < data.length; i++) {
 					pstmt.setString(i + 1, data[i]);
 				}
