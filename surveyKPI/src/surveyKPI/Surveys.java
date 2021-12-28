@@ -301,11 +301,11 @@ public class Surveys extends Application {
 	/*
 	 * Get the survey templates
 	 */
-	@Path("/templates/{sIdent}")
+	@Path("/templates/{sId}")
 	@GET
 	@Produces("application/json")
 	public Response getTemplates(@Context HttpServletRequest request,
-			@PathParam("sIdent") String sIdent) { 
+			@PathParam("sId") int sId) { 
  
 		Response response = null;
 		String connectionString = "surveyKPI - Get Survey Templates";
@@ -318,7 +318,7 @@ public class Surveys extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);
+		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
 		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
@@ -327,6 +327,7 @@ public class Surveys extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			ArrayList<Template> templates = sm.getTemplates(sd, sIdent);
 			
