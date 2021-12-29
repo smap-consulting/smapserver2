@@ -806,13 +806,14 @@ public class Surveys extends Application {
 			@PathParam("sId") int sId) { 
 		
 		Response response = null;
+		String connectionString = "surveyKPI-Save Settings";
 		
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();	
 		fileItemFactory.setSizeThreshold(20*1024*1024);
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Survey");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -919,7 +920,8 @@ public class Surveys extends Application {
 			
 			/*
 			 * PDF Template
-			 */
+			 * No longer updated through settings
+			 *
 
 			String archivedTemplateName = null;
 			boolean updatePDFName = true;
@@ -946,6 +948,8 @@ public class Surveys extends Application {
 
 				updatePDFName = false;	// PDF was not changed
 			}
+			*/
+			boolean updatePDFName = false;	// PDF was not changed - PDF updated through separate service now
 			
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, updated_time) " +
@@ -1016,7 +1020,7 @@ public class Surveys extends Application {
 				
 				ChangeElement change = new ChangeElement();
 				change.action = "settings_update";
-				change.fileName = archivedTemplateName;
+				change.fileName = null;				// No change to PDF template name
 				change.origSId = sId;
 				change.msg = localisation.getString("name") + ": " + survey.displayName 
 						+ ", " + localisation.getString("cr_lang") + ": " + survey.def_lang 
@@ -1039,7 +1043,7 @@ public class Surveys extends Application {
 			
 			// If the human readable key (HRK) is not null then make sure the HRK column exists in the results file
 			if(survey.hrk != null) {
-				cResults = ResultsDataSource.getConnection("surveyKPI-Surveys-saveSettings");
+				cResults = ResultsDataSource.getConnection(connectionString);
 				String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 				if(tableName != null){
 					boolean hasHrk = GeneralUtilityMethods.hasColumn(cResults, tableName, "_hrk");
@@ -1092,8 +1096,171 @@ public class Surveys extends Application {
 			if (pstmtAddHrk != null) try {pstmtAddHrk.close();} catch (SQLException e) {}
 			
 			try {sd.setAutoCommit(true);} catch(Exception e) {}
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+			
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Add a new survey template
+	 */
+	@Path("/add_template/{sId}")
+	@POST
+	public Response addTemplate(@Context HttpServletRequest request,
+			@PathParam("sId") int sId) { 
+		
+		Response response = null;
+		String connectionString = "SurveyKPI - AddTemplate";
+		
+		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();	
+		fileItemFactory.setSizeThreshold(20*1024*1024);
+		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		// End Authorisation
+		
+		FileItem pdfItem = null;
+		String name = null;
+		int version = 0;
+				
+		PreparedStatement pstmtUpdate = null;
+		PreparedStatement pstmtInsert = null;
+		PreparedStatement pstmtChangeLog = null;
+		
+		try {
+				
+			// Localisation			
+			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			/*
+			 * Parse the request
+			 */
+			List<?> items = uploadHandler.parseRequest(request);
+			Iterator<?> itr = items.iterator();
+
+			while(itr.hasNext()) {
+				FileItem item = (FileItem) itr.next();
+				
+				if(item.isFormField()) {
+					log.info("Form field:" + item.getFieldName() + " - " + item.getString());
+		
+					if(item.getFieldName().equals("templateName")) {
+						try {
+							name = item.getString("UTF-8");  // Set encoding type to UTF-8 as per http://stackoverflow.com/questions/22025999/sending-files-and-text-with-ajax-multipart-form-data-utf-8-encoding
+						} catch (Exception e) {
+							
+						}
+					}
+					
+				} else if(!item.isFormField()) {
+					// Handle Uploaded files.
+					log.info("Field Name = "+item.getFieldName()+
+						", File Name = "+item.getName()+
+						", Content type = "+item.getContentType()+
+						", File Size = "+item.getSize());
+					
+					if(item.getSize() > 0) {
+						pdfItem = item;
+					}				
+				}
+
+			}
+			
+			if(pdfItem != null && name != null) {
+
+				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);							
+				String filepath = writePdf(request, name, pdfItem, true, sIdent);	
+				int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+				
+				String sqlChangeLog = "insert into survey_change " +
+						"(s_id, version, changes, user_id, apply_results, updated_time) " +
+						"values(?, ?, ?, ?, 'true', ?)";
+				
+				// Update a Survey Template
+				String sqlUpdate = "update survey_template "
+						+ "set filepath = ?, "
+						+ "user_id = ?, "
+						+ "updated_time = now() "
+						+ "where ident = ? "
+						+ "and name = ?";
+				
+				// Insert a new survey template
+				String sqlInsert = "insert into survey_template "
+						+ "(ident, name, filepath, template_type, user_id, updated_time) "
+						+ "values(?, ?, ?, ?, ?, now()) ";
+		
+				
+				/*
+				 * Try updating the survey template first
+				 */
+				pstmtUpdate = sd.prepareStatement(sqlUpdate);
+				pstmtUpdate.setString(1, filepath);
+				pstmtUpdate.setInt(2,  uId);
+				pstmtUpdate.setString(3, sIdent);
+				pstmtUpdate.setString(4, name);
+				
+				log.info("Updating template: " + pstmtUpdate.toString());
+				int count = pstmtUpdate.executeUpdate();
+	
+				if(count == 0) {
+					/*
+					 * Insert the new template
+					 */
+					pstmtInsert = sd.prepareStatement(sqlInsert);
+					pstmtInsert.setString(1, sIdent);
+					pstmtInsert.setString(2,  name);
+					pstmtInsert.setString(3, filepath);
+					pstmtInsert.setString(4, "pdf");
+					pstmtInsert.setInt(5,  uId);
+					
+					log.info("Inserting template: " + pstmtInsert.toString());
+					pstmtInsert.executeUpdate();
+				} 
+					
+				ChangeElement change = new ChangeElement();
+				change.action = "settings_update";
+				change.fileName = filepath;
+				change.origSId = sId;
+				
+				// Write to the change log
+				pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+				pstmtChangeLog.setInt(1, sId);
+				pstmtChangeLog.setInt(2, version);
+				pstmtChangeLog.setString(3, null);
+				pstmtChangeLog.setInt(4, uId);
+				pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
+				pstmtChangeLog.execute();
+			
+				response = Response.ok().build();
+			} else {
+				 response = Response.serverError().entity("Template not specified").build();
+			}
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Exception loading settings", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
+		    try {sd.setAutoCommit(true);} catch(Exception ex) {}
+		} finally {
+			
+			if (pstmtUpdate != null) try {pstmtUpdate.close();} catch (SQLException e) {}
+			if (pstmtInsert != null) try {pstmtInsert.close();} catch (SQLException e) {}
+			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
+
+			
+			try {sd.setAutoCommit(true);} catch(Exception e) {}
 			SDDataSource.closeConnection("surveyKPI-Survey", sd);
-			ResultsDataSource.closeConnection("surveyKPI-Survey", cResults);
 			
 		}
 
@@ -1577,21 +1744,20 @@ public class Surveys extends Application {
 			String fileName, 
 			FileItem pdfItem,
 			boolean archiveVersion,		// If set then add date time to file so it can be recovered
-			int pId) {
+			String sIdent) {
 	
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		fileName = GeneralUtilityMethods.getSafeTemplateName(fileName);
-		if(archiveVersion) {
-			// Add date and time to the display name
-			DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HHmmss");
-			dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));		// Store all dates in UTC
-			fileName += dateFormat.format(cal.getTime());
-		}
-		fileName += "_template.pdf";
+
+		// Add date and time to the file name
+		DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HHmmss");
+		dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));		// Store all dates in UTC
+		fileName += dateFormat.format(cal.getTime());
+		fileName += ".pdf";
 		
-		String folderPath = basePath + "/templates/" + pId ;						
+		String folderPath = basePath + "/templates/survey/" + sIdent ;						
 		String filePath = folderPath + "/" + fileName;
 	    File savedFile = new File(filePath);
 	    
@@ -1604,7 +1770,7 @@ public class Surveys extends Application {
 			e.printStackTrace();
 		}
 	 
-	    return fileName;
+	    return filePath;
 	}
 	
 	/*

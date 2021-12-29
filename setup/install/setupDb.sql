@@ -621,7 +621,7 @@ CREATE TABLE survey_template (
 	t_id integer DEFAULT NEXTVAL('st_seq') CONSTRAINT pk_survey_template PRIMARY KEY,
 	ident text REFERENCES survey(ident) ON DELETE CASCADE,		-- Survey containing this version
 	name text,
-	filename text,
+	filepath text,
 	available boolean default true,				-- Set to true if the template is available for selection
 	template_type text,							-- pdf || word
 	user_id integer,							-- Person who made the changes				
