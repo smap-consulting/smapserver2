@@ -857,7 +857,7 @@ public class NotificationManager {
 				notify_details = null;				// Notification log
 				error_details = null;				// Notification log
 				if(msg.target.equals("email")) {
-					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
+					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user, organisation.id);
 					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 						ArrayList<String> emailList = null;
 						if(msg.emailQuestionSet()) {
@@ -1219,6 +1219,7 @@ public class NotificationManager {
 	public void processReminderNotification(Connection sd, 
 			Connection cResults, 
 			Organisation organisation,
+			int o_id,
 			String tz,
 			SubmissionMessage msg,
 			int messageId,
@@ -1300,7 +1301,7 @@ public class NotificationManager {
 				notify_details = null;				// Notification log
 				error_details = null;				// Notification log
 				if(msg.target.equals("email")) {
-					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
+					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user, o_id);
 					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 						
 						

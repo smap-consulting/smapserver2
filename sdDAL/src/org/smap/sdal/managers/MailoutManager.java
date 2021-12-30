@@ -679,7 +679,7 @@ public class MailoutManager {
 				error_details = null;				// Notification log
 				unsubscribed = false;
 				if(msg.target.equals("email")) {
-					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
+					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user, organisation.id);
 					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 						if(UtilityMethodsEmail.isValidEmail(msg.email)) {
 								

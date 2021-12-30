@@ -186,6 +186,7 @@ public class MessagingManagerApply {
 							sd, 
 							cResults, 
 							organisation, 
+							o_id,
 							tz,
 							msg,
 							id,
@@ -236,7 +237,7 @@ public class MessagingManagerApply {
 					// Assume a direct email to be processed immediately
 
 					log.info("+++++++++ opt in +++++++++ Direct Email");
-					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, null);
+					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, null, o_id);
 					if (isValidEmail(topic) && 
 							emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 	
@@ -455,6 +456,7 @@ public class MessagingManagerApply {
 							sd, 
 							cResults, 
 							organisation, 
+							o_id,
 							tz,
 							msg,
 							messageId,

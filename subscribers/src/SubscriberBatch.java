@@ -1138,6 +1138,7 @@ public class SubscriberBatch {
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
 			
+			log.info("Get reminders: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			int idx = 0;
 			while (rs.next()) {

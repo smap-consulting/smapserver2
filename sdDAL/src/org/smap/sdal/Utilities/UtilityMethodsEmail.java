@@ -325,19 +325,24 @@ public class UtilityMethodsEmail {
 	static public EmailServer getSmtpHost(
 			Connection sd, 
 			String email,
-			String user) throws SQLException {
+			String user,
+			int o_id) throws SQLException {
 
 		EmailServer emailServer = new EmailServer();
 
+		String sqlOrg = "select o.smtp_host, o.email_domain, o.email_user, o.email_password, o.email_port " +
+				" from organisation o " +
+				" where o.id = ?";
+		
 		String sqlIdent = "select o.smtp_host, o.email_domain, o.email_user, o.email_password, o.email_port " +
 				" from organisation o, users u " +
 				" where u.o_id = o.id " +
-				" and u.ident = ?;";
+				" and u.ident = ?";
 
 		String sqlEmail = "select o.smtp_host, o.email_domain, o.email_user, o.email_password, o.email_port " +
 				" from organisation o, users u " +
 				" where u.o_id = o.id " +
-				" and u.email ilike ?;";
+				" and u.email ilike ?";
 
 		String sqlServer = "select smtp_host, email_domain, email_user, email_password, email_port " +
 				" from server ";
@@ -350,40 +355,6 @@ public class UtilityMethodsEmail {
 			if(user != null) {
 				pstmt = sd.prepareStatement(sqlIdent);
 				pstmt.setString(1, user);
-				log.info("Get smtp_host based on user ident, SQL:" + pstmt.toString());
-				rs = pstmt.executeQuery();
-				if(rs.next()) {
-					String host = rs.getString(1);
-					String domain = rs.getString(2);
-					String emailuser = rs.getString(3);
-					String emailpassword = rs.getString(4);
-					int emailport = rs.getInt(5);
-
-					if(host != null) {
-						if(host.trim().length() > 0) {
-							emailServer.smtpHost = host;
-						}
-					}
-					if(domain != null) {		
-						if(domain.trim().length() > 0) {
-							emailServer.emailDomain = domain;
-						}
-					}
-					if(emailuser != null) {		
-						if(emailuser.trim().length() > 0) {
-							emailServer.emailUser = emailuser;
-						}
-					}
-					if(emailpassword != null) {		
-						if(emailpassword.trim().length() > 0) {
-							emailServer.emailPassword = emailpassword;
-						}
-					}
-					if(emailport > 0) {		
-						emailServer.emailPort = emailport;	
-					}
-
-				}
 			} else if(email != null) {
 				/*
 				 * This will be for a forgotton password
@@ -391,7 +362,13 @@ public class UtilityMethodsEmail {
 				 */
 				pstmt = sd.prepareStatement(sqlEmail);
 				pstmt.setString(1, email);
-				log.info("Get smtp_host based on email, SQL:" + pstmt.toString());
+			} else if(o_id > 0) {
+				pstmt = sd.prepareStatement(sqlOrg);
+				pstmt.setInt(1, o_id);
+			}
+			
+			if(pstmt != null) {
+				log.info("Get smtp_host SQL:" + pstmt.toString());
 				rs = pstmt.executeQuery();
 				if(rs.next()) {
 					String host = rs.getString(1);
@@ -424,7 +401,7 @@ public class UtilityMethodsEmail {
 						emailServer.emailPort = emailport;	
 					}
 				}
-			} 
+			}
 
 			/*
 			 * If the smtp_host or the email_domain was not set at the organisation level try the server level defaults

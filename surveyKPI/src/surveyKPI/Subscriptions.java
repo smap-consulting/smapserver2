@@ -138,7 +138,7 @@ public class Subscriptions extends Application {
 					// Update succeeded
 					log.info("Sending email");
 
-					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, email, request.getRemoteUser());
+					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, email, request.getRemoteUser(), oId);
 					Organisation o = GeneralUtilityMethods.getOrganisation(sd, oId);
 					String adminEmail = o.getAdminEmail();
 					if(emailServer.smtpHost != null) {
