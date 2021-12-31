@@ -154,7 +154,7 @@ public class Surveys extends Application {
 					false,		// Get links
 					null
 					);
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(surveys);
 			response = Response.ok(resp).build();
 			
@@ -1134,6 +1134,8 @@ public class Surveys extends Application {
 		String name = null;
 		int version = 0;
 				
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
 		PreparedStatement pstmtUpdate = null;
 		PreparedStatement pstmtInsert = null;
 		PreparedStatement pstmtChangeLog = null;
@@ -1230,7 +1232,7 @@ public class Surveys extends Application {
 				} 
 					
 				ChangeElement change = new ChangeElement();
-				change.action = "settings_update";
+				change.action = "template_update";
 				change.fileName = filepath;
 				change.origSId = sId;
 				
@@ -1238,12 +1240,12 @@ public class Surveys extends Application {
 				pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
 				pstmtChangeLog.setInt(1, sId);
 				pstmtChangeLog.setInt(2, version);
-				pstmtChangeLog.setString(3, null);
+				pstmtChangeLog.setString(3, gson.toJson(change));
 				pstmtChangeLog.setInt(4, uId);
 				pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
 				pstmtChangeLog.execute();
 			
-				response = Response.ok().build();
+				response = Response.ok("{}").build();
 			} else {
 				 response = Response.serverError().entity("Template not specified").build();
 			}
@@ -1258,8 +1260,6 @@ public class Surveys extends Application {
 			if (pstmtInsert != null) try {pstmtInsert.close();} catch (SQLException e) {}
 			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
 
-			
-			try {sd.setAutoCommit(true);} catch(Exception e) {}
 			SDDataSource.closeConnection("surveyKPI-Survey", sd);
 			
 		}
@@ -1630,7 +1630,7 @@ public class Surveys extends Application {
 			change.msg = required ? "Questions set required" : "Questions set not required"; 
 				
 			// Write to the change log
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, updated_time) " +
 					"values(?, ?, ?, ?, 'true', ?)";

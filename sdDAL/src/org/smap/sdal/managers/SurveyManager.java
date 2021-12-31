@@ -4865,6 +4865,12 @@ public class SurveyManager {
 				+ "where s.ident = ? ";
 		PreparedStatement pstmt = null;
 		
+		String sqlTemplates = "select name, available "
+				+ "from survey_template "
+				+ "where ident = ? "
+				+ "order by t_id desc";
+		PreparedStatement pstmtTemplates = null;
+		
 		ArrayList<Template> templates = new ArrayList<> ();
 		
 		try {
@@ -4885,8 +4891,26 @@ public class SurveyManager {
 					templates.add(t);
 				}
 			}
+			
+			/*
+			 * Get any other templates
+			 */
+			pstmtTemplates = sd.prepareStatement(sqlTemplates);
+			pstmtTemplates.setString(1, sIdent);
+
+			rs = pstmtTemplates.executeQuery();
+			while(rs.next()) {
+				Template t = new Template();
+				t.name = rs.getString("name");
+				if(t.name != null && t.name.trim().length() > 0) {
+					t.available = rs.getBoolean("available");
+					templates.add(t);
+				}
+			}
+			
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+			if(pstmtTemplates != null) {try {pstmtTemplates.close();} catch(Exception e) {}};
 		}
 		return templates;
 	}
