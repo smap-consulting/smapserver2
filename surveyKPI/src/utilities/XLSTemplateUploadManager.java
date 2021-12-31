@@ -1066,7 +1066,12 @@ public class XLSTemplateUploadManager {
 				if(q.source != null && qt.published) {
 					String newColType = GeneralUtilityMethods.getPostgresColType(q.type, false);
 					String oldColType = GeneralUtilityMethods.getPostgresColType(qt.qType, false);
-					if(!newColType.equals(oldColType)) {
+					if(!newColType.equals(oldColType) &&
+							!newColType.equals("end repeat") &&	// Not sure why these are needed as source type should be null
+							!oldColType.equals("end repeat")&& 
+							!newColType.equals("end group") &&
+							!oldColType.equals("end group")
+							) {
 						throw XLSUtilities.getApplicationException(localisation, "tu_it", rowNumSurvey, "survey", q.name, q.type, qt.qType);
 					}
 				}
