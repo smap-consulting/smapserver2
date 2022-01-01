@@ -1,7 +1,8 @@
-[Smap smapserver](http://www.smap.com.au) 
+[Smap Server](http://www.smap.com.au) 
 ======
 
-The Smap Server manages survey definitions, stores submitted results and helps analyse those results.  This component contains the home page for the Smap server which has links to other components such as analysis and management.  It includes common files referenced by these other components.
+The Smap Server manages survey definitions, stores submitted results and helps analyse those results.  Access to the server is via REST APIS which can be used to create your own data 
+collection system.
 
 Components
 ----------
@@ -17,12 +18,30 @@ Components
 
 Follow the latest news about Smap on our [blog](http://blog.smap.com.au)
 
-Instructions on installing a Smap server can be found in the operations manual [here](http://www.smap.com.au/downloads.shtml)
-
 Development
 -----------
 * Code contributions are very welcome. 
 * [Issue Tracker](https://github.com/smap-consulting/smapserver/issues)
 
+*  Install Eclipse
+*  Clone this project
+*  Import the modules you want to work in from the file system
+*  For each war file set the project facets as: Dynamic Web Module 3.0, Java 1.8, JAX-RS 1.1.
+
 How to Install
 --------------
+
+The installation scripts currently are tested only on supported Ubuntu LTS versions and contain some lines specific to Ubuntu.
+
+*  Copy the setup folder to the location on the linux server that you want to install the Smap server
+*  Build the war files for surveyMobileAPI, surveyKPI, koboToolbox API and copy them the deploy/version1 folder under setup
+*  Create a runnable jar file for subscribers and copy it to the deply/version1 folder
+*  run the install script in the install folder as: sudo su install.sh
+
+Upgrades
+--------
+
+*  Copy the updated war file or runnable jar file to the version1 folder
+*  in the deploy folder run:
+*    sudo ./patchdb.sh
+*    sudo ./deploy.sh
