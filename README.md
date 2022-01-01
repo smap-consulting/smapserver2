@@ -29,13 +29,13 @@ Development
 *  Import the modules you want to work in from the file system
 *  For each war file set the project facets as: Dynamic Web Module 3.0, Java 1.8, JAX-RS 1.1.
 *  koboToolboxApi
-*    Add sdDAL to projects on build path and to deployment assembly
+    *  Add sdDAL to projects on build path and to deployment assembly
 *  surveyMobileApi
-*    Add sdDAL, sdDataAccess, cloudInterface to projects to build path and to deployment assembly
+    *  Add sdDAL, sdDataAccess, cloudInterface to projects to build path and to deployment assembly
 *  surveyKPI
-*    Add sdDAL, sdDataAccess, cloudInterface to projects to build path and to deployment assembly
+    *  Add sdDAL, sdDataAccess, cloudInterface to projects to build path and to deployment assembly
 *  subscribers
-*    Add sdDAL, sdDataAccess, cloudInterface to projects to build path
+    *  Add sdDAL, sdDataAccess, cloudInterface to projects to build path
 
 
 How to Install
@@ -44,8 +44,9 @@ How to Install
 The installation scripts currently are tested only on supported Ubuntu LTS versions and contain some lines specific to Ubuntu.
 
 *  Copy the setup folder to the location on the linux server that you want to install the Smap server
-*  Build the war files for surveyMobileAPI, surveyKPI, koboToolbox API and copy them the deploy/version1 folder under setup
-*  Create a runnable jar file for subscribers and copy it to the deply/version1 folder
+*  Build the war files for surveyMobileAPI, surveyKPI, koboToolbox API and copy them the setup/deploy/version1 folder 
+*  Create a runnable jar file for subscribers and copy it to the setup/deploy/version1 folder
+*  Create a folder subscribers in setup/deploy/version1 and export the default and forward folders in the subscribers project into there
 *  run the install script in the install folder as: sudo su install.sh
 
 Upgrades
