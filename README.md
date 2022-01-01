@@ -4,6 +4,9 @@
 The Smap Server manages survey definitions, stores submitted results and helps analyse those results.  Access to the server is via REST APIS which can be used to create your own data 
 collection system.
 
+* Code contributions are very welcome. 
+* [Issue Tracker](https://github.com/smap-consulting/smapserver/issues)
+
 Components
 ----------
 * surveyMobileAPI. Web services used by data collection clients
@@ -20,21 +23,19 @@ Follow the latest news about Smap on our [blog](http://blog.smap.com.au)
 
 Development
 -----------
-* Code contributions are very welcome. 
-* [Issue Tracker](https://github.com/smap-consulting/smapserver/issues)
 
 *  Install Eclipse
 *  Clone this project
 *  Import the modules you want to work in from the file system
 *  For each war file set the project facets as: Dynamic Web Module 3.0, Java 1.8, JAX-RS 1.1.
-* koboToolboxApi
-*   Add sdDAL to projects on build path and to deployment assembly
-* surveyMobileApi
-*   Add sdDAL, sdDataAccess, cloudInterface to projects to build path and to deployment assembly
-* surveyKPI
-*   Add sdDAL, sdDataAccess, cloudInterface to projects to build path and to deployment assembly
-* subscribers
-*   Add sdDAL, sdDataAccess, cloudInterface to projects to build path
+*  koboToolboxApi
+*    Add sdDAL to projects on build path and to deployment assembly
+*  surveyMobileApi
+*    Add sdDAL, sdDataAccess, cloudInterface to projects to build path and to deployment assembly
+*  surveyKPI
+*    Add sdDAL, sdDataAccess, cloudInterface to projects to build path and to deployment assembly
+*  subscribers
+*    Add sdDAL, sdDataAccess, cloudInterface to projects to build path
 
 
 How to Install
