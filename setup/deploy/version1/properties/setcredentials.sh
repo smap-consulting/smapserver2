@@ -1,2 +1,1 @@
-export AWS_ACCESS_KEY_ID=X
-export AWS_SECRET_ACCESS_KEY=X
+export KEY_ID=X
