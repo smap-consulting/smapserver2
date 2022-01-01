@@ -27,6 +27,15 @@ Development
 *  Clone this project
 *  Import the modules you want to work in from the file system
 *  For each war file set the project facets as: Dynamic Web Module 3.0, Java 1.8, JAX-RS 1.1.
+* koboToolboxApi
+*   Add sdDAL to projects on build path and to deployment assembly
+* surveyMobileApi
+*   Add sdDAL, sdDataAccess, cloudInterface to projects to build path and to deployment assembly
+* surveyKPI
+*   Add sdDAL, sdDataAccess, cloudInterface to projects to build path and to deployment assembly
+* subscribers
+*   Add sdDAL, sdDataAccess, cloudInterface to projects to build path
+
 
 How to Install
 --------------

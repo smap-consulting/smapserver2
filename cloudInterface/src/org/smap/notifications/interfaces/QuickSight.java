@@ -14,9 +14,10 @@ import com.amazonaws.auth.BasicSessionCredentials;
  */
 public class QuickSight extends AWSService {
 
-	public QuickSight(String r, BasicSessionCredentials credentials) {
+	public QuickSight(String r, BasicSessionCredentials credentials, String b,
+			String d, String a) {
 		
-		super(r);
+		super(r, b);
 		
 
 	}

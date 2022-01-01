@@ -12,8 +12,8 @@ package org.smap.notifications.interfaces;
  */
 public class TextProcessing extends AWSService {
 	
-	public TextProcessing(String region) {
-		super(region);	
+	public TextProcessing(String region, String b) {
+		super(region, b);	
 	}
 
 	/*

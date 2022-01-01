@@ -14,8 +14,8 @@ import java.io.IOException;
  */
 public class S3 extends AWSService {
 	
-	public S3(String r, String uri) {		
-		super(r);
+	public S3(String r, String uri, String b) {		
+		super(r, b);
 	}
 	
 	public String get() throws Exception {

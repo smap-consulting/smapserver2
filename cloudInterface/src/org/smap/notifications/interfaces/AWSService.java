@@ -13,7 +13,7 @@ package org.smap.notifications.interfaces;
 public abstract class AWSService {
 	
 
-	public AWSService(String r) {
+	public AWSService(String r, String b) {
 		
 	 
 	}

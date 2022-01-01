@@ -3,9 +3,9 @@
 	<name>surveyMobileAPI</name>
 	<comment></comment>
 	<projects>
-		<project>amazon</project>
 		<project>sdDAL</project>
 		<project>sdDataAccess</project>
+		<project>cloudInterface</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
