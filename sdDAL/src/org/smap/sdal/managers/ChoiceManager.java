@@ -56,7 +56,14 @@ public class ChoiceManager {
 		Question q = GeneralUtilityMethods.getQuestion(sd,  qId);
 		boolean checkLabels = true;
 		if(q != null && q.appearance != null && q.appearance.contains("pdfvalue")) {
-			checkLabels = false;
+			
+			String [] appValues = q.appearance.split(" ");	// Make sure the apperance value is exactly pdfvalue
+			for(int i = 0; i < appValues.length; i++) {
+				String app = appValues[i].trim().toLowerCase();
+				if(app.equals("pdfvalue")) {
+					checkLabels = false;
+				}
+			}
 		}
 		if(checkLabels) {
 			

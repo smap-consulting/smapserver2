@@ -1591,66 +1591,64 @@ public class PDFSurveyManager {
 
 		if(appearance != null) {
 			String [] appValues = appearance.split(" ");
-			if(appearance != null) {
-				for(int i = 0; i < appValues.length; i++) {
-					String app = appValues[i].trim().toLowerCase();
-					if(app.startsWith("pdflabelbg")) {
-						setColor(app, di, true);
-					} else if(app.startsWith("pdfvaluebg")) {
-						setColor(app, di, false);
-					} else if(app.startsWith("pdfmarkercolor")) {
-						di.markerColor = getRGBColor(app);
-					} else if(app.startsWith("pdflabelw")) {
-						setWidths(app, di);
-					} else if(app.startsWith("pdfheight")) {
-						setHeight(app, di);
-					} else if(app.startsWith("pdfspace")) {
-						setSpace(app, di);
-					} else if(app.equals("pdflabelcaps")) {
-						di.labelcaps = true;
-					} else if(app.equals("pdfbs")) {
-						di.bs = true;
-					} else if(app.equals("pdflabelbold")) {
-						di.labelbold = true;
-					} else if(app.startsWith("pdfmap")) {			// mapbox map id
-						String map = getAppValue(app);
-						if(!map.equals("custom")) {
-							di.map = map;
-							di.account = "mapbox";
-						}
-					} else if(app.startsWith("pdflinemap") || app.startsWith("pdflineimage")) {		// Multiple points to be joined into a map or image
-						di.linemap = new LineMap(getAppValueArray(app));
-						if(app.startsWith("pdflinemap")) {
-							di.linemap.type = "map";
-						} else {
-							di.linemap.type = "image";
-						}
-					} else if(app.startsWith("pdftl")) {		// Multiple points to be joined into a map or image
-						if(di.trafficLight == null) {
-							di.trafficLight = new TrafficLightQuestions();
-						}
-						di.trafficLight.addApp(getAppValueArray(app));
-					} else if(app.startsWith("pdfaccount")) {			// mapbox account
-						di.account = getAppValue(app);
-					} else if(app.startsWith("pdflocation")) {
-						di.location = getAppValue(app);			// lon,lat,zoom
-					} else if(app.startsWith("pdfbarcode")) {
-						di.isBarcode = true;		
-					} else if(app.equals("pdfstretch")) {
-						di.stretch = true;		
-					} else if(app.startsWith("pdfzoom")) {
-						di.zoom = getAppValue(app);		
-					} else if(app.startsWith("pdfhyperlink")) {
-						di.isHyperlink = true;		
-					} else if(app.equals("signature")) {
-						di.isSignature = true;		
-					} else if(app.equals("pdfhiderepeatinglabels")) {
-						di.hideRepeatingLabels = true;		
-					} else if(app.equals("thousands-sep")) {
-						di.tsep = true;		
-					} else if(app.equals("pdfshowimage")) {
-						di.showImage = true;		
+			for(int i = 0; i < appValues.length; i++) {
+				String app = appValues[i].trim().toLowerCase();
+				if(app.startsWith("pdflabelbg")) {
+					setColor(app, di, true);
+				} else if(app.startsWith("pdfvaluebg")) {
+					setColor(app, di, false);
+				} else if(app.startsWith("pdfmarkercolor")) {
+					di.markerColor = getRGBColor(app);
+				} else if(app.startsWith("pdflabelw")) {
+					setWidths(app, di);
+				} else if(app.startsWith("pdfheight")) {
+					setHeight(app, di);
+				} else if(app.startsWith("pdfspace")) {
+					setSpace(app, di);
+				} else if(app.equals("pdflabelcaps")) {
+					di.labelcaps = true;
+				} else if(app.equals("pdfbs")) {
+					di.bs = true;
+				} else if(app.equals("pdflabelbold")) {
+					di.labelbold = true;
+				} else if(app.startsWith("pdfmap")) {			// mapbox map id
+					String map = getAppValue(app);
+					if(!map.equals("custom")) {
+						di.map = map;
+						di.account = "mapbox";
 					}
+				} else if(app.startsWith("pdflinemap") || app.startsWith("pdflineimage")) {		// Multiple points to be joined into a map or image
+					di.linemap = new LineMap(getAppValueArray(app));
+					if(app.startsWith("pdflinemap")) {
+						di.linemap.type = "map";
+					} else {
+						di.linemap.type = "image";
+					}
+				} else if(app.startsWith("pdftl")) {		// Multiple points to be joined into a map or image
+					if(di.trafficLight == null) {
+						di.trafficLight = new TrafficLightQuestions();
+					}
+					di.trafficLight.addApp(getAppValueArray(app));
+				} else if(app.startsWith("pdfaccount")) {			// mapbox account
+					di.account = getAppValue(app);
+				} else if(app.startsWith("pdflocation")) {
+					di.location = getAppValue(app);			// lon,lat,zoom
+				} else if(app.startsWith("pdfbarcode")) {
+					di.isBarcode = true;		
+				} else if(app.equals("pdfstretch")) {
+					di.stretch = true;		
+				} else if(app.startsWith("pdfzoom")) {
+					di.zoom = getAppValue(app);		
+				} else if(app.startsWith("pdfhyperlink")) {
+					di.isHyperlink = true;		
+				} else if(app.equals("signature")) {
+					di.isSignature = true;		
+				} else if(app.equals("pdfhiderepeatinglabels")) {
+					di.hideRepeatingLabels = true;		
+				} else if(app.equals("thousands-sep")) {
+					di.tsep = true;		
+				} else if(app.equals("pdfshowimage")) {
+					di.showImage = true;		
 				}
 			}
 		}
