@@ -4865,7 +4865,7 @@ public class SurveyManager {
 				+ "where s.ident = ? ";
 		PreparedStatement pstmt = null;
 		
-		String sqlTemplates = "select name, available "
+		String sqlTemplates = "select t_id, name, not_available "
 				+ "from survey_template "
 				+ "where ident = ? "
 				+ "order by t_id desc";
@@ -4901,11 +4901,10 @@ public class SurveyManager {
 			rs = pstmtTemplates.executeQuery();
 			while(rs.next()) {
 				Template t = new Template();
+				t.id = rs.getInt("t_id");
 				t.name = rs.getString("name");
-				if(t.name != null && t.name.trim().length() > 0) {
-					t.available = rs.getBoolean("available");
-					templates.add(t);
-				}
+				t.not_available = rs.getBoolean("not_available");
+				templates.add(t);
 			}
 			
 		} finally {
@@ -4913,6 +4912,81 @@ public class SurveyManager {
 			if(pstmtTemplates != null) {try {pstmtTemplates.close();} catch(Exception e) {}};
 		}
 		return templates;
+	}
+	
+	/*
+	 * Get the templates for a survey
+	 */
+	public Template getTemplate(Connection sd, String sIdent, String name, String basepath) throws SQLException {
+		
+		String sql = "select s.pdf_template "
+				+ "from survey s "
+				+ "where s.ident = ? ";
+		PreparedStatement pstmt = null;
+		
+		String sqlTemplates = "select t_id, filepath, not_available "
+				+ "from survey_template "
+				+ "where ident = ? "
+				+ "and name = ? "
+				+ "order by t_id desc";
+		PreparedStatement pstmtTemplates = null;
+		
+		Template t = new Template();
+		
+		try {
+		
+			/*
+			 * Try the survey templates table
+			 */
+			pstmtTemplates = sd.prepareStatement(sqlTemplates);
+			pstmtTemplates.setString(1, sIdent);
+			pstmtTemplates.setString(2, name);
+
+			log.info(pstmtTemplates.toString());
+			ResultSet rs = pstmtTemplates.executeQuery();
+			if(rs.next()) {
+				t.id = rs.getInt("t_id");
+				t.filepath = rs.getString("filepath");
+				t.not_available = rs.getBoolean("not_available");
+			}
+			
+			/*
+			 * Get the settings template if it has been specified
+			 * Deprecate this.  Storing a single template in the survey table is the old way
+			 */
+			if(t.filepath == null) {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, sIdent);
+	
+				rs = pstmt.executeQuery();
+				if(rs.next()) {
+					t.name = rs.getString("pdf_template");
+					if(t.name != null && t.name.trim().length() > 0) {
+						t.fromSettings = true;
+						
+						/*
+						 * If the template was not found try the legacy location used when templates
+						 * were stored with survey details
+						 */
+						int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+						String displayName = GeneralUtilityMethods.getSurveyName(sd, sId);
+						String filename = GeneralUtilityMethods.getSafeTemplateName(displayName);
+						filename += "_template.pdf";
+						
+						int pId = GeneralUtilityMethods.getProjectId(sd, sId);
+						String folderPath = basepath + "/templates/" + pId ;						
+						t.filepath = folderPath + "/" + filename;
+					}
+				}
+			}
+			
+			
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+			if(pstmtTemplates != null) {try {pstmtTemplates.close();} catch(Exception e) {}};
+		}
+		
+		return t;
 	}
 	
 	public ArrayList<SurveyIdent> getSurveyIdentList(Connection sd, String user, boolean superUser) throws SQLException {

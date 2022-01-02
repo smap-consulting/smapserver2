@@ -42,6 +42,8 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.FileManager;
+import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.Template;
 
 /*
  * Authorises the user and then
@@ -201,6 +203,7 @@ public class GetFile extends Application {
 	
 	/*
 	 * Get template pdf file
+	 * Legacy - deprecate
 	 */
 	@GET
 	@Path("/surveyPdfTemplate/{sId}")
@@ -248,6 +251,54 @@ public class GetFile extends Application {
 			
 			FileManager fm = new FileManager();
 			fm.getFile(response, filepath, filename);
+			
+			r = Response.ok("").build();
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Error getting file", e);
+			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
+		} finally {	
+			SDDataSource.closeConnection("Get Survey File", sd);	
+		}
+		
+		return r;
+	}
+	
+	/*
+	 * Get template pdf file
+	 */
+	@GET
+	@Path("/pdfTemplate/{sId}")
+	@Produces("application/x-download")
+	public Response getNewPdfTemplateFile (
+			@Context HttpServletRequest request, 
+			@Context HttpServletResponse response,			
+			@PathParam("filename") String filename,
+			@PathParam("sId") int sId) throws Exception {
+		
+		log.info("Get PDF Template File:  for survey: " + sId);
+		
+		Response r = null;
+	
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("Get Survey File");
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidDelSurvey(sd, request.getRemoteUser(), sId, superUser);
+		// End Authorisation 
+		
+		try {
+			String basepath = GeneralUtilityMethods.getBasePath(request);
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			SurveyManager sm = new SurveyManager(null, "UTC");	// Assume we don't need localisation
+			Template t = sm.getTemplate(sd, sIdent, filename, basepath);
+			
+			FileManager fm = new FileManager();
+			fm.getFile(response, t.filepath, filename);
 			
 			r = Response.ok("").build();
 			

@@ -1132,7 +1132,6 @@ public class Surveys extends Application {
 		
 		FileItem pdfItem = null;
 		String name = null;
-		int version = 0;
 				
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
@@ -1187,8 +1186,8 @@ public class Surveys extends Application {
 				int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 				
 				String sqlChangeLog = "insert into survey_change " +
-						"(s_id, version, changes, user_id, apply_results, updated_time) " +
-						"values(?, ?, ?, ?, 'true', ?)";
+						"(s_id, version, changes, user_id, apply_results, updated_time, msg) " +
+						"values(?, (select version from survey where ident = ?), ?, ?, 'true', now(), ?)";
 				
 				// Update a Survey Template
 				String sqlUpdate = "update survey_template "
@@ -1207,6 +1206,7 @@ public class Surveys extends Application {
 				/*
 				 * Try updating the survey template first
 				 */
+				String action = "template_update";
 				pstmtUpdate = sd.prepareStatement(sqlUpdate);
 				pstmtUpdate.setString(1, filepath);
 				pstmtUpdate.setInt(2,  uId);
@@ -1229,20 +1229,22 @@ public class Surveys extends Application {
 					
 					log.info("Inserting template: " + pstmtInsert.toString());
 					pstmtInsert.executeUpdate();
+					
+					action = "template_add";
 				} 
 					
 				ChangeElement change = new ChangeElement();
-				change.action = "template_update";
+				change.action = action;
 				change.fileName = filepath;
 				change.origSId = sId;
 				
 				// Write to the change log
 				pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
 				pstmtChangeLog.setInt(1, sId);
-				pstmtChangeLog.setInt(2, version);
+				pstmtChangeLog.setString(2, sIdent);
 				pstmtChangeLog.setString(3, gson.toJson(change));
 				pstmtChangeLog.setInt(4, uId);
-				pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
+				pstmtChangeLog.setString(5, name);
 				pstmtChangeLog.execute();
 			
 				response = Response.ok("{}").build();
@@ -1260,7 +1262,118 @@ public class Surveys extends Application {
 			if (pstmtInsert != null) try {pstmtInsert.close();} catch (SQLException e) {}
 			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
 
-			SDDataSource.closeConnection("surveyKPI-Survey", sd);
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Delete a template
+	 */
+	@Path("/delete_template/{sId}/{tId}")
+	@DELETE
+	public Response deleteTemplate(@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@PathParam("tId") int tId) { 
+		
+		Response response = null;
+		String connectionString = "SurveyKPI - DeleteTemplate";
+	
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		// End Authorisation
+		
+		int version = 0;
+		
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtGet = null;
+		PreparedStatement pstmtChangeLog = null;
+		
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		try {
+				
+			// Localisation			
+			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			/*
+			 * Delete the entry for the file in the table
+			 * The file itself will not be deleted until the survey is deleted so
+			 * that it can be recovered using the changes page
+			 */
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);								
+			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+				
+			String sqlChangeLog = "insert into survey_change " +
+					"(s_id, version, changes, user_id, apply_results, updated_time, msg) " +
+					"values(?, (select version from survey where ident = ?), ?, ?, 'true', now(), ?)";
+				
+			String sqlGet = "select name, filepath "
+					+ "from survey_template "
+					+ "where t_id = ? and ident = ?";
+			
+			String sql = "delete from survey_template "
+					+ "where t_id = ? and ident = ? ";
+				
+			// Get the filepath for the change log
+			pstmtGet = sd.prepareStatement(sqlGet);
+			pstmtGet.setInt(1, tId);
+			pstmtGet.setString(2,  sIdent);
+			
+			ResultSet rs = pstmtGet.executeQuery();
+			String filepath = null;
+			String name = null;
+			if(rs.next()) {
+				filepath = rs.getString("filepath");
+				name = rs.getString("name");
+			}
+			
+			// Delete the pdf template
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, tId);
+			pstmt.setString(2,  sIdent);
+				
+			log.info("deleting pdf template: " + pstmt.toString());
+			pstmt.executeUpdate();
+					
+				ChangeElement change = new ChangeElement();
+				change.action = "template_delete";
+				change.fileName = filepath;
+				change.origSId = sId;
+				
+				// Write to the change log
+				pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+				pstmtChangeLog.setInt(1, sId);
+				pstmtChangeLog.setString(2, sIdent);
+				pstmtChangeLog.setString(3, gson.toJson(change));
+				pstmtChangeLog.setInt(4, uId);
+				pstmtChangeLog.setString(5, name);
+				pstmtChangeLog.execute();
+			
+				response = Response.ok("{}").build();
+			
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Exception loading settings", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
+		    try {sd.setAutoCommit(true);} catch(Exception ex) {}
+		} finally {
+			
+			if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
+			if (pstmtGet != null) try {pstmtGet.close();} catch (SQLException e) {}
+			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
+
+			SDDataSource.closeConnection(connectionString, sd);
 			
 		}
 

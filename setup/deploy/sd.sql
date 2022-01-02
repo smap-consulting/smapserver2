@@ -464,7 +464,7 @@ CREATE TABLE survey_template (
 	ident text REFERENCES survey(ident) ON DELETE CASCADE,		-- Survey containing this version
 	name text,
 	filepath text,
-	available boolean default true,				-- Set to true if the template is available for selection
+	not_available boolean default false,				-- Set to true if the template is not available for selection
 	template_type text,							-- pdf || word
 	user_id integer,							-- Person who made the changes				
 	updated_time TIMESTAMP WITH TIME ZONE		-- Time and date of change
