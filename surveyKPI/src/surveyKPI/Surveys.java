@@ -327,9 +327,10 @@ public class Surveys extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String basePath = GeneralUtilityMethods.getBasePath(request);
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			ArrayList<Template> templates = sm.getTemplates(sd, sIdent);
+			ArrayList<Template> templates = sm.getTemplates(sd, sIdent, basePath);
 			
 			response = Response.ok(gson.toJson(templates)).build();
 			
@@ -921,7 +922,7 @@ public class Surveys extends Application {
 			/*
 			 * PDF Template
 			 * No longer updated through settings
-			 *
+			 */
 
 			String archivedTemplateName = null;
 			boolean updatePDFName = true;
@@ -930,8 +931,8 @@ public class Surveys extends Application {
 				// Temporary save the old file.  This will no longer be necessary once all clients have uploaded their PDFs with the filename saved to the change log
 				copyPdf(request, survey.displayName, survey.displayName + "__prev__", survey.p_id);
 				
-				archivedTemplateName = writePdf(request, survey.displayName, pdfItem, true, survey.p_id);		
-	            writePdf(request, survey.displayName, pdfItem, false, survey.p_id);				// Save the "current" version of the file			
+				archivedTemplateName = writePdfLegacy(request, survey.displayName, pdfItem, true, survey.p_id);		
+				writePdfLegacy(request, survey.displayName, pdfItem, false, survey.p_id);				// Save the "current" version of the file			
 			
 			} else if(pdfSet.equals("no")) {
 				
@@ -948,8 +949,6 @@ public class Surveys extends Application {
 
 				updatePDFName = false;	// PDF was not changed
 			}
-			*/
-			boolean updatePDFName = false;	// PDF was not changed - PDF updated through separate service now
 			
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, updated_time) " +
@@ -1020,7 +1019,7 @@ public class Surveys extends Application {
 				
 				ChangeElement change = new ChangeElement();
 				change.action = "settings_update";
-				change.fileName = null;				// No change to PDF template name
+				change.fileName = archivedTemplateName;
 				change.origSId = sId;
 				change.msg = localisation.getString("name") + ": " + survey.displayName 
 						+ ", " + localisation.getString("cr_lang") + ": " + survey.def_lang 
@@ -1847,6 +1846,43 @@ public class Surveys extends Application {
 		}
 
 		return response;
+	}
+	/*
+	 * Legacy method to Write the PDF to disk
+	 * Return the name
+	 */
+	private String writePdfLegacy(HttpServletRequest request, 
+			String fileName, 
+			FileItem pdfItem,
+			boolean archiveVersion,		// If set then add date time to file so it can be recovered
+			int pId) {
+	
+		String basePath = GeneralUtilityMethods.getBasePath(request);
+		
+		fileName = GeneralUtilityMethods.getSafeTemplateName(fileName);
+		if(archiveVersion) {
+			// Add date and time to the display name
+			DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HHmmss");
+			dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));		// Store all dates in UTC
+			fileName += dateFormat.format(cal.getTime());
+		}
+		fileName += "_template.pdf";
+		
+		String folderPath = basePath + "/templates/" + pId ;						
+		String filePath = folderPath + "/" + fileName;
+	    File savedFile = new File(filePath);
+	    
+	    log.info("userevent: " + request.getRemoteUser() + " : saving pdf template : " + filePath);
+	    
+	    try {
+	    	FileUtils.forceMkdir(new File(folderPath));
+			pdfItem.write(savedFile);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	 
+	    return fileName;
 	}
 	
 	/*

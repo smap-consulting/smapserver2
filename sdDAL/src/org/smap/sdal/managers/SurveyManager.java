@@ -4858,7 +4858,7 @@ public class SurveyManager {
 	/*
 	 * Get the templates for a survey
 	 */
-	public ArrayList<Template> getTemplates(Connection sd, String sIdent) throws SQLException {
+	public ArrayList<Template> getTemplates(Connection sd, String sIdent, String basePath) throws SQLException {
 		
 		String sql = "select s.pdf_template "
 				+ "from survey s "
@@ -4888,6 +4888,21 @@ public class SurveyManager {
 				t.name = rs.getString("pdf_template");
 				if(t.name != null && t.name.trim().length() > 0) {
 					t.fromSettings = true;
+									
+					String fileName = GeneralUtilityMethods.getSafeTemplateName(t.name);
+					// Add date and time to the display name
+					DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HHmmss");
+					dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+					Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));		// Store all dates in UTC
+					fileName += dateFormat.format(cal.getTime());
+					fileName += "_template.pdf";
+					
+					int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+					int pId = GeneralUtilityMethods.getProjectId(sd, sId);
+					String folderPath = basePath + "/templates/" + pId ;						
+					String filePath = folderPath + "/" + fileName;
+
+				    t.filepath = filePath;
 					templates.add(t);
 				}
 			}

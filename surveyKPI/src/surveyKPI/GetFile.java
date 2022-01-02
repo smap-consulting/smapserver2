@@ -21,6 +21,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -273,7 +275,7 @@ public class GetFile extends Application {
 	public Response getNewPdfTemplateFile (
 			@Context HttpServletRequest request, 
 			@Context HttpServletResponse response,			
-			@PathParam("filename") String filename,
+			@PathParam("filename") String name,
 			@PathParam("sId") int sId) throws Exception {
 		
 		log.info("Get PDF Template File:  for survey: " + sId);
@@ -292,13 +294,21 @@ public class GetFile extends Application {
 		// End Authorisation 
 		
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);	
+			
 			String basepath = GeneralUtilityMethods.getBasePath(request);
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-			SurveyManager sm = new SurveyManager(null, "UTC");	// Assume we don't need localisation
-			Template t = sm.getTemplate(sd, sIdent, filename, basepath);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			Template t = sm.getTemplate(sd, sIdent, name, basepath);
 			
+			if(t.filepath == null) {
+				String msg = localisation.getString("mf_mt");
+				msg = msg.replace("%s1", name);
+				throw new Exception(msg);
+			}
 			FileManager fm = new FileManager();
-			fm.getFile(response, t.filepath, filename);
+			fm.getFile(response, t.filepath, name);
 			
 			r = Response.ok("").build();
 			
