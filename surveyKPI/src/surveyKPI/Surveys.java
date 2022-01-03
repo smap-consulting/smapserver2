@@ -57,6 +57,7 @@ import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.SurveyIdent;
 import org.smap.sdal.model.SurveySummary;
 import org.smap.sdal.model.Template;
+import org.smap.sdal.model.User;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -1291,8 +1292,6 @@ public class Surveys extends Application {
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
-		int version = 0;
-		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtGet = null;
 		PreparedStatement pstmtChangeLog = null;
@@ -1365,7 +1364,6 @@ public class Surveys extends Application {
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Exception loading settings", e);
 		    response = Response.serverError().entity(e.getMessage()).build();
-		    try {sd.setAutoCommit(true);} catch(Exception ex) {}
 		} finally {
 			
 			if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
@@ -1376,6 +1374,94 @@ public class Surveys extends Application {
 			
 		}
 
+		return response;
+	}
+	
+	class TemplateProperty {
+		public int id;
+		public String property;
+		public String value;
+	}
+	
+	/*
+	 * Update a template property
+	 */
+	@Path("/update_template_property")
+	@POST
+	public Response updateTemplateProperty(@Context HttpServletRequest request,
+			@FormParam("prop") String prop) { 
+		
+		Response response = null;
+		String connectionString = "SurveyKPI - UpdateTemplateProperty";
+	
+		TemplateProperty tp = new Gson().fromJson(prop, TemplateProperty.class);
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidPdfTemplate(sd, request.getRemoteUser(), tp.id);	// Validate that the user can access this template
+		// End Authorisation
+
+		/*
+		 * Validate property
+		 */
+		String col = null;
+		boolean value = false;
+		if(tp.property.equals("not_available") || tp.property.equals("default_template")) {
+			col = tp.property;
+			
+			if(tp.value != null) {
+				if(tp.value.toLowerCase().equals("true") || tp.value.equals("1") || tp.value.toLowerCase().equals("yes")) {
+					value = true;
+				}
+			}
+		}
+		if(col != null) {
+				
+			String sqlClear = "update survey_template "
+					+ "set " + col + " = false "
+					+ "where ident = (select ident from survey_template where t_id = ?) ";
+			PreparedStatement pstmtClear = null;
+			
+			/*
+			 * Update the property
+			 */
+			String sql = "update survey_template "
+					+ "set " + col + " = ?, "
+					+ "user_id = ?, "
+					+ "updated_time = now() "
+					+ "where t_id = ? ";
+			PreparedStatement pstmt = null;
+			
+			try {
+				/*
+				 * Clear defaults if required
+				 */
+				if(tp.property.equals("default_template")) {
+					pstmtClear = sd.prepareStatement(sqlClear);
+					pstmtClear.setInt(1, tp.id);
+					pstmtClear.executeUpdate();
+				}
+				
+				int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setBoolean(1,  value);
+				pstmt.setInt(2, uId);
+				pstmt.setInt(3,  tp.id);
+				log.info("Update pdf template property: " + pstmt.toString());
+				pstmt.executeUpdate();
+				
+				response = Response.ok("{}").build();
+				
+			} catch (Exception e) {
+				log.log(Level.SEVERE,"Exception loading settings", e);
+			    response = Response.serverError().entity(e.getMessage()).build();
+			} finally {
+				if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
+				if (pstmtClear != null) try {pstmtClear.close();} catch (SQLException e) {}
+			}
+		}
+		
 		return response;
 	}
 	

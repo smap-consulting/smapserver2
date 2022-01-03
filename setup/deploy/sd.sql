@@ -465,6 +465,7 @@ CREATE TABLE survey_template (
 	name text,
 	filepath text,
 	not_available boolean default false,				-- Set to true if the template is not available for selection
+	default_template boolean default false,
 	template_type text,							-- pdf || word
 	user_id integer,							-- Person who made the changes				
 	updated_time TIMESTAMP WITH TIME ZONE		-- Time and date of change

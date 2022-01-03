@@ -4865,7 +4865,7 @@ public class SurveyManager {
 				+ "where s.ident = ? ";
 		PreparedStatement pstmt = null;
 		
-		String sqlTemplates = "select t_id, name, not_available "
+		String sqlTemplates = "select t_id, name, not_available, default_template "
 				+ "from survey_template "
 				+ "where ident = ? "
 				+ "order by t_id desc";
@@ -4919,6 +4919,7 @@ public class SurveyManager {
 				t.id = rs.getInt("t_id");
 				t.name = rs.getString("name");
 				t.not_available = rs.getBoolean("not_available");
+				t.default_template = rs.getBoolean("default_template");
 				templates.add(t);
 			}
 			
