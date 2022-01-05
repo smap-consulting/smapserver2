@@ -446,14 +446,53 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Get the PDF Template File
+	 * else if the templateId is > 0 use that
+	 * else attempt to get the default template from survey_templates
+	 * else attempt to get a legacy template definition specified in the survey settings
 	 */
-	static public File getPdfTemplate(String basePath, String displayName, int pId) {
+	static public File getPdfTemplate(Connection sd, String basePath, String displayName, int pId, int templateId, String sIdent) throws SQLException {
 
-		String templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName)
-		+ "_template.pdf";
-
-		log.info("Attempt to get a pdf template with name: " + templateName);
-		File templateFile = new File(templateName);
+		File templateFile = null;
+		PreparedStatement pstmt = null;
+		
+		try {
+			if(templateId > 0) {	// Template specified
+				
+				String sql = "select filepath "
+						+ "from survey_template "
+						+ "where t_id = ?";
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, templateId);
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					templateFile = new File(rs.getString(1));
+				}
+				
+			} else if(templateId == 0) {
+				String sql = "select filepath "
+						+ "from survey_template "
+						+ "where default_template "
+						+ "and ident = ?";
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, sIdent);
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					templateFile = new File(rs.getString(1));
+				}
+				if(templateFile == null || !templateFile.exists()) {  // legacy templates
+					
+					if(displayName != null) {
+						String templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName)
+							+ "_template.pdf";
+		
+						log.info("Attempt to get a pdf template with name: " + templateName);
+						templateFile = new File(templateName);
+					}
+				}
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
 
 		return templateFile;
 	}

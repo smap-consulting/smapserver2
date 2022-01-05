@@ -518,8 +518,8 @@ public class SurveyManager {
 				s.autoTranslate = resultSet.getBoolean("auto_translate");
 				
 				
-				// Get the pdf template
-				File templateFile = GeneralUtilityMethods.getPdfTemplate(basePath, s.displayName, s.p_id);
+				// Get the pdf template  - deprecate
+				File templateFile = GeneralUtilityMethods.getPdfTemplate(sd, basePath, s.displayName, s.p_id, 0, s.ident);
 				if(templateFile.exists()) {
 					String newName = resultSet.getString("pdf_template");
 					if(newName != null) {
@@ -4931,7 +4931,7 @@ public class SurveyManager {
 	}
 	
 	/*
-	 * Get the templates for a survey
+	 * Get the template details for the template with the specified name
 	 */
 	public Template getTemplate(Connection sd, String sIdent, String name, String basepath) throws SQLException {
 		

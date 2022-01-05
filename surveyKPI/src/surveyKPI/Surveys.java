@@ -57,8 +57,6 @@ import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.SurveyIdent;
 import org.smap.sdal.model.SurveySummary;
 import org.smap.sdal.model.Template;
-import org.smap.sdal.model.User;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;

@@ -196,6 +196,7 @@ public class PDFSurveyManager {
 			String serverRoot,
 			String remoteUser,
 			String language, 
+			int pdfTemplateId,
 			boolean generateBlank,
 			String filename,
 			boolean landscape,					// Set true if landscape
@@ -311,7 +312,7 @@ public class PDFSurveyManager {
 			 * Get a template for the PDF report if it exists
 			 * The template name will be the same as the XLS form name but with an extension of pdf
 			 */
-			File templateFile = GeneralUtilityMethods.getPdfTemplate(mBasePath, survey.displayName, survey.p_id);
+			File templateFile = GeneralUtilityMethods.getPdfTemplate(sd, mBasePath, survey.displayName, survey.p_id, pdfTemplateId, survey.ident);
 
 			/*
 			 * Get dependencies between Display Items, for example if a question result should be added to another
@@ -327,7 +328,7 @@ public class PDFSurveyManager {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
 
 			languageIdx = GeneralUtilityMethods.getLanguageIdx(survey, language);
-			if(templateFile.exists()) {
+			if(templateFile != null && templateFile.exists()) {
 
 				log.info("PDF Template Exists");
 				String templateName = templateFile.getAbsolutePath();

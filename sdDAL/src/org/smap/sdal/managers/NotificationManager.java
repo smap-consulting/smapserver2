@@ -823,6 +823,7 @@ public class NotificationManager {
 								urlprefix,
 								msg.user,
 								"none", 
+								0,					// Get default template if it exists
 								generateBlank,
 								null,
 								landscape,
