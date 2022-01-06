@@ -300,7 +300,7 @@ public class EmailManager {
 			content = new StringBuilder(template.toString());
 			
 			if(org.admin_email != null) {
-				emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, userIdent);
+				emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, userIdent, oId);
 				if(emailServer.smtpHost != null) {
 					
 					PeopleManager pm = new PeopleManager(localisation);

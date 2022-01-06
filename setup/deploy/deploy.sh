@@ -204,8 +204,3 @@ else
     systemctl disable subscribers
     systemctl disable subscribers_fwd
 fi
-
-# Hosted Only
-# Start disk monitor
-cd $cwd
-sudo -u postgres $PSQL -f ./rates.sql -q -d survey_definitions 2>&1 | grep -v duplicate | grep -v "already exists"

@@ -182,7 +182,7 @@ public class UserManager {
 			/*
 			 * Set a flag if email is enabled on the server
 			 */
-			user.sendEmail = UtilityMethodsEmail.getSmtpHost(sd, null, ident) != null;
+			user.sendEmail = UtilityMethodsEmail.getSmtpHost(sd, null, ident, 0) != null;
 
 			/*
 			 * Get the groups that the user belongs to
@@ -413,7 +413,7 @@ public class UserManager {
 		EmailServer emailServer = null;
 		SubscriptionStatus subStatus = null;
 		if(u.sendEmail) {
-			emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, userIdent);
+			emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, userIdent, o_id);
 			if(emailServer.smtpHost == null) {
 				throw new Exception(localisation.getString("email_ne2"));
 			}

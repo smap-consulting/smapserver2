@@ -14,13 +14,13 @@ import com.amazonaws.auth.BasicSessionCredentials;
  */
 public class STS extends AWSService {
 
-	public STS(String r) {
+	public STS(String r, String b) {
 		
-		super(r);
+		super(r, b);
 	
 	}
 	
-	public BasicSessionCredentials getSessionCredentials() {
+	public BasicSessionCredentials getSessionCredentials(String roleARN, String roleSessionName) {
 		
         BasicSessionCredentials awsCredentials = new BasicSessionCredentials(
                 null,

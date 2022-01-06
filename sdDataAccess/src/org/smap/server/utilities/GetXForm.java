@@ -1598,14 +1598,14 @@ public class GetXForm {
 			// Get Header
 			int lineNumber = 1;
 			String line = GeneralUtilityMethods.removeBOM(br.readLine());
-			String cols[] = parser.parseLine(line, lineNumber);
+			String cols[] = parser.parseLine(line, lineNumber, file.getName());
 			log.info("Header line for csv file: " + filepath + " is: " + line);
 
 			while (line != null) {
 				lineNumber++;
 				line = br.readLine();
 				if (line != null && line.trim().length() > 0) {
-					String[] values = parser.parseLine(line, lineNumber);
+					String[] values = parser.parseLine(line, lineNumber, file.getName());
 					
 					// Warning log message if the number of columns does not match the data
 					if(values.length != cols.length) {

@@ -1387,7 +1387,6 @@ public class SubscriberBatch {
 		
 		try {
 			pstmt = sd.prepareStatement(sql);
-			log.info("Find temporary users to expire: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				String userIdent = rs.getString("ident");

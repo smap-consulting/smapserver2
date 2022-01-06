@@ -174,12 +174,12 @@ public class CSVParser {
         return pending != null;
     }
 
-    public String[] parseLineMulti(String nextLine, int lineNumber) throws IOException {
-        return parseLine(nextLine, true, lineNumber);
+    public String[] parseLineMulti(String nextLine, int lineNumber, String filename) throws IOException {
+        return parseLine(nextLine, true, lineNumber, filename);
     }
 
-    public String[] parseLine(String nextLine, int lineNumber) throws IOException {
-        return parseLine(nextLine, false, lineNumber);
+    public String[] parseLine(String nextLine, int lineNumber, String filename) throws IOException {
+        return parseLine(nextLine, false, lineNumber, filename);
     }
 
     /**
@@ -190,7 +190,7 @@ public class CSVParser {
      * @return the comma-tokenized list of elements, or null if nextLine is null
      * @throws IOException if bad things happen during the read
      */
-    private String[] parseLine(String nextLine, boolean multi, int lineNumber) throws IOException {
+    private String[] parseLine(String nextLine, boolean multi, int lineNumber, String filename) throws IOException {
 
         if (!multi && pending != null) {
             pending = null;
@@ -272,6 +272,7 @@ public class CSVParser {
             	String msg = localisation.getString("msg_no_term");
             	msg = msg.replace("%s1", String.valueOf(lineNumber));
             	msg = msg.replace("%s2", nextLine);
+            	msg = msg.replace("%s3", filename);
                 throw new IOException(msg);
             }
         }

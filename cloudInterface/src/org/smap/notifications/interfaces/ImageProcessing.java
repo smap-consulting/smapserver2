@@ -12,8 +12,8 @@ package org.smap.notifications.interfaces;
  */
 public class ImageProcessing extends AWSService {
 
-	public ImageProcessing(String region) {
-		super(region);	
+	public ImageProcessing(String region, String basePath) {
+		super(region, basePath);	
 	}
 
 	/*

@@ -152,7 +152,7 @@ public class EventList extends Application {
 			MessagingManager mm = new MessagingManager(localisation);
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
-			EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, request.getRemoteUser());
+			EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, request.getRemoteUser(), oId);
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);

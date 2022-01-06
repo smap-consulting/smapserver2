@@ -3143,11 +3143,6 @@ public class TaskManager {
 		boolean writeToMonitor = true;
 		MessagingManager mm = new MessagingManager(localisation);
 		
-		PreparedStatement pstmtNotificationLog = null;
-		String sqlNotificationLog = "insert into notification_log " +
-				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type) " +
-				"values( ?, ?,?, ?, ?, ?, now(), ?, 'task'); ";
-		
 		boolean generateBlank =  (msg.instanceId == null) ? true : false;	// If false only show selected options
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		Survey survey = sm.getById(sd, cResults, msg.user, msg.temporaryUser, msg.sId, true, basePath, 
@@ -3159,8 +3154,6 @@ public class TaskManager {
 				);
 		
 		try {
-			
-			pstmtNotificationLog = sd.prepareStatement(sqlNotificationLog);
 			
 			// Notification log
 			String error_details = null;
@@ -3204,7 +3197,7 @@ public class TaskManager {
 				error_details = null;				// Notification log
 				unsubscribed = false;
 				if(msg.target.equals("email")) {
-					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
+					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user, organisation.id);
 					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 						if(UtilityMethodsEmail.isValidEmail(msg.email)) {
 								
@@ -3355,18 +3348,13 @@ public class TaskManager {
 				if(unsubscribed) {
 					error_details += localisation.getString("c_unsubscribed") + ": " + msg.email;
 				}
-				pstmtNotificationLog.setInt(1, organisation.id);
-				pstmtNotificationLog.setInt(2, msg.pId);
-				pstmtNotificationLog.setInt(3, msg.sId);
-				pstmtNotificationLog.setString(4, notify_details);
-				pstmtNotificationLog.setString(5, status);
-				pstmtNotificationLog.setString(6, error_details);
-				pstmtNotificationLog.setInt(7, messageId);
+				NotificationManager nm = new NotificationManager(localisation);
+				nm.writeToLog(sd, organisation.id, msg.pId, msg.sId, notify_details, status, 
+						error_details, messageId);
 				
-				pstmtNotificationLog.executeUpdate();
 			}
 		} finally {
-			try {if (pstmtNotificationLog != null) {pstmtNotificationLog.close();}} catch (SQLException e) {}
+			//
 			
 		}
 	}

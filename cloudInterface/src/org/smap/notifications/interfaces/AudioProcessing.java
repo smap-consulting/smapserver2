@@ -15,9 +15,9 @@ import java.util.ResourceBundle;
  */
 public class AudioProcessing extends AWSService {
 
-	public AudioProcessing(String r) {
+	public AudioProcessing(String r, String b) {
 		
-		super(r);
+		super(r, b);
 		
 	
 	}
