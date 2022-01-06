@@ -166,16 +166,22 @@ public class MessagingManagerApply {
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
 			
 					NotificationManager nm = new NotificationManager(localisation);
-					nm.processSubmissionNotification(
-							sd, 
-							cResults, 
-							organisation, 
-							tz,
-							msg,
-							id,
-							topic,
-							true		// create pending if needed
-							); 
+					try {
+						nm.processSubmissionNotification(
+								sd, 
+								cResults, 
+								organisation, 
+								tz,
+								msg,
+								id,
+								topic,
+								true		// create pending if needed
+								); 
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+						nm.writeToLog(sd, organisation.id, msg.pId, msg.sId, organisation.name, status, 
+								e.getMessage(), id);
+					}
 					
 				} else if(topic.equals("reminder")) {
 					// Use SubmissionMessage structure - this may change

@@ -467,6 +467,9 @@ public class PdfUtilities {
 			circle1.setAttribute("r", String.valueOf(radius));
 			
 			String color = bulbs.get(i).color;
+			if(color.trim().length() == 0) {
+				color = "white";
+			}
 			circle1.setAttribute("fill", color);	
 			circle1.setAttribute("stroke", "black");		
 			svgRoot.appendChild(circle1);

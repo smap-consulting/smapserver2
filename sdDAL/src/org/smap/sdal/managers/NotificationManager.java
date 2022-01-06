@@ -714,11 +714,6 @@ public class NotificationManager {
 		
 		PreparedStatement pstmtGetSMSUrl = null;
 		
-		PreparedStatement pstmtNotificationLog = null;
-		String sqlNotificationLog = "insert into notification_log " +
-				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type) " +
-				"values( ?, ?,?, ?, ?, ?, now(), ?, 'submission'); ";
-		
 		MessagingManager mm = new MessagingManager(localisation);
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		DataManager dm = new DataManager(localisation, "UTC");
@@ -752,8 +747,6 @@ public class NotificationManager {
 		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, msg.user, organisation.timeZone);
 		
 		try {
-			
-			pstmtNotificationLog = sd.prepareStatement(sqlNotificationLog);
 			
 			// Notification log
 			ArrayList<String> unsubscribedList  = new ArrayList<> ();
@@ -1155,20 +1148,12 @@ public class NotificationManager {
 					}
 					error_details += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
 				}
-				pstmtNotificationLog.setInt(1, organisation.id);
-				pstmtNotificationLog.setInt(2, msg.pId);
-				pstmtNotificationLog.setInt(3, surveyId);
-				pstmtNotificationLog.setString(4, notify_details);
-				pstmtNotificationLog.setString(5, status);
-				pstmtNotificationLog.setString(6, error_details);
-				pstmtNotificationLog.setInt(7, messageId);
-				
-				pstmtNotificationLog.executeUpdate();
+				writeToLog(sd, organisation.id, msg.pId, surveyId, notify_details, status, 
+						error_details, messageId);
 				
 				/*
 				 * Write log entry
 				 */
-
 				String logTopic;
 				if(status.toLowerCase().equals("error")) {
 					logTopic = LogManager.NOTIFICATION_ERROR;
@@ -1205,7 +1190,6 @@ public class NotificationManager {
 			}
 			
 		} finally {
-			try {if (pstmtNotificationLog != null) {pstmtNotificationLog.close();}} catch (SQLException e) {}
 			try {if (pstmtGetSMSUrl != null) {pstmtGetSMSUrl.close();}} catch (SQLException e) {}
 			
 		}
@@ -1234,11 +1218,6 @@ public class NotificationManager {
 		MessagingManager mm = new MessagingManager(localisation);
 		PreparedStatement pstmtGetSMSUrl = null;
 		
-		PreparedStatement pstmtNotificationLog = null;
-		String sqlNotificationLog = "insert into notification_log " +
-				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type) " +
-				"values( ?, ?,?, ?, ?, ?, now(), ?, 'reminder'); ";
-		
 
 		String urlprefix = msg.scheme + "://" + msg.server;
 		TaskManager tm = new TaskManager(localisation, tz);
@@ -1264,8 +1243,6 @@ public class NotificationManager {
 		}
 		
 		try {
-			
-			pstmtNotificationLog = sd.prepareStatement(sqlNotificationLog);
 			
 			// Notification log
 			ArrayList<String> unsubscribedList  = new ArrayList<> ();
@@ -1542,20 +1519,35 @@ public class NotificationManager {
 					}
 					error_details += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
 				}
-				pstmtNotificationLog.setInt(1, organisation.id);
-				pstmtNotificationLog.setInt(2, msg.pId);
-				pstmtNotificationLog.setInt(3, surveyId);
-				pstmtNotificationLog.setString(4, notify_details);
-				pstmtNotificationLog.setString(5, status);
-				pstmtNotificationLog.setString(6, error_details);
-				pstmtNotificationLog.setInt(7, messageId);
-				
-				pstmtNotificationLog.executeUpdate();
+				writeToLog(sd, organisation.id, msg.pId, surveyId, notify_details, status, 
+						error_details, messageId);
 			}
 		} finally {
-			try {if (pstmtNotificationLog != null) {pstmtNotificationLog.close();}} catch (SQLException e) {}
 			try {if (pstmtGetSMSUrl != null) {pstmtGetSMSUrl.close();}} catch (SQLException e) {}
 			
+		}
+	}
+	
+	public void writeToLog(Connection sd, int oId, int pId, int surveyId, String notify_details,
+			String status, String error_details, int messageId) throws SQLException {
+		PreparedStatement pstmt = null;
+		String sql = "insert into notification_log " +
+				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type) " +
+				"values( ?, ?,?, ?, ?, ?, now(), ?, 'submission'); ";
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setInt(2, pId);
+			pstmt.setInt(3, surveyId);
+			pstmt.setString(4, notify_details);
+			pstmt.setString(5, status);
+			pstmt.setString(6, error_details);
+			pstmt.setInt(7, messageId);
+			
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 	}
 	

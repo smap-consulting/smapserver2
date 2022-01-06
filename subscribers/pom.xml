@@ -62,5 +62,23 @@
 			<artifactId>jettison</artifactId>
 			<version>1.4.0</version>
 		</dependency>
+		
+		<dependency>
+    		<groupId>org.apache.xmlgraphics</groupId>
+    		<artifactId>batik-codec</artifactId>
+    		<version>1.14</version>
+		</dependency>
+		
+		<dependency>
+    		<groupId>org.apache.xmlgraphics</groupId>
+    		<artifactId>batik-svg-dom</artifactId>
+    		<version>1.14</version>
+		</dependency>
+		 
+       <dependency>
+    		<groupId>org.apache.xmlgraphics</groupId>
+    		<artifactId>batik-transcoder</artifactId>
+    		<version>1.14</version>
+		</dependency>
 	</dependencies>
 </project>
