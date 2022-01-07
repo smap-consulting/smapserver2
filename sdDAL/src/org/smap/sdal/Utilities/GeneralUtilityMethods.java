@@ -56,7 +56,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
-import org.smap.sdal.managers.BackgroundReportsManager;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LanguageCodeManager;
 import org.smap.sdal.managers.LogManager;
@@ -446,7 +445,8 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Get the PDF Template File
-	 * else if the templateId is > 0 use that
+	 * If the template id is < 0 then return null as no template is to be used
+	 * else if the templateId is > 0 get that template id
 	 * else attempt to get the default template from survey_templates
 	 * else attempt to get a legacy template definition specified in the survey settings
 	 */

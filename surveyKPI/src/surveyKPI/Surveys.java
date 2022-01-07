@@ -1288,13 +1288,19 @@ public class Surveys extends Application {
 		}
 		aUpdate.isAuthorised(sd, request.getRemoteUser());
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		if(tId > 0) {
+			aUpdate.isValidPdfTemplate(sd, request.getRemoteUser(), tId);
+		}
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtGet = null;
 		PreparedStatement pstmtChangeLog = null;
+		PreparedStatement pstmtSurvey = null;
+		PreparedStatement pstmtGetLegacy = null;
 		
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		try {
 				
@@ -1309,6 +1315,7 @@ public class Surveys extends Application {
 			 */
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);								
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			String name = null;
 				
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, updated_time, msg) " +
@@ -1321,44 +1328,67 @@ public class Surveys extends Application {
 			String sql = "delete from survey_template "
 					+ "where t_id = ? and ident = ? ";
 				
-			// Get the filepath for the change log
-			pstmtGet = sd.prepareStatement(sqlGet);
-			pstmtGet.setInt(1, tId);
-			pstmtGet.setString(2,  sIdent);
+			String sqlSurvey = "update survey "
+					+ "set pdf_template = null "
+					+ "where s_id = ?";
 			
-			ResultSet rs = pstmtGet.executeQuery();
-			String filepath = null;
-			String name = null;
-			if(rs.next()) {
-				filepath = rs.getString("filepath");
-				name = rs.getString("name");
+			String sqlGetLegacy = "select pdf_template, p_id "
+					+ "from survey "
+					+ "where s_id = ?";
+			
+			if(tId == 0) {
+				// Get the filepath and name for the change log
+				pstmtGetLegacy = sd.prepareStatement(sqlGetLegacy);
+				pstmtGetLegacy.setInt(1, sId);
+				
+				ResultSet rs = pstmtGetLegacy.executeQuery();
+				if(rs.next()) {
+					name = rs.getString(1);
+				}
+				
+				
+				// Delete the template
+				pstmtSurvey = sd.prepareStatement(sqlSurvey);
+				pstmtSurvey.setInt(1, sId);
+				pstmtSurvey.executeUpdate();
+			} else {
+				// Get the filepath and name for the change log
+				pstmtGet = sd.prepareStatement(sqlGet);
+				pstmtGet.setInt(1, tId);
+				pstmtGet.setString(2,  sIdent);
+
+				ResultSet rs = pstmtGet.executeQuery();				
+				if(rs.next()) {
+					name = rs.getString("name");
+				}
+
+				// Delete the pdf template
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, tId);
+				pstmt.setString(2,  sIdent);
+
+				log.info("deleting pdf template: " + pstmt.toString());
+				pstmt.executeUpdate();
+
+
 			}
-			
-			// Delete the pdf template
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, tId);
-			pstmt.setString(2,  sIdent);
-				
-			log.info("deleting pdf template: " + pstmt.toString());
-			pstmt.executeUpdate();
-					
-				ChangeElement change = new ChangeElement();
-				change.action = "template_delete";
-				change.fileName = filepath;
-				change.origSId = sId;
-				
-				// Write to the change log
-				pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
-				pstmtChangeLog.setInt(1, sId);
-				pstmtChangeLog.setString(2, sIdent);
-				pstmtChangeLog.setString(3, gson.toJson(change));
-				pstmtChangeLog.setInt(4, uId);
-				pstmtChangeLog.setString(5, name);
-				pstmtChangeLog.execute();
-			
-				response = Response.ok("{}").build();
-			
-			
+			ChangeElement change = new ChangeElement();
+			change.action = "template_delete";
+			change.fileName = null;		// Do not need to show path to deleted files only added files
+			change.origSId = sId;
+
+			// Write to the change log
+			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+			pstmtChangeLog.setInt(1, sId);
+			pstmtChangeLog.setString(2, sIdent);
+			pstmtChangeLog.setString(3, gson.toJson(change));
+			pstmtChangeLog.setInt(4, uId);
+			pstmtChangeLog.setString(5, name);
+			pstmtChangeLog.execute();
+
+			response = Response.ok("{}").build();
+
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Exception loading settings", e);
 		    response = Response.serverError().entity(e.getMessage()).build();
@@ -1367,6 +1397,8 @@ public class Surveys extends Application {
 			if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
 			if (pstmtGet != null) try {pstmtGet.close();} catch (SQLException e) {}
 			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
+			if (pstmtSurvey != null) try {pstmtSurvey.close();} catch (SQLException e) {}
+			if (pstmtGetLegacy != null) try {pstmtGetLegacy.close();} catch (SQLException e) {}
 
 			SDDataSource.closeConnection(connectionString, sd);
 			

@@ -303,9 +303,8 @@ public class GetFile extends Application {
 			Template t = sm.getTemplate(sd, sIdent, name, basepath);
 			
 			if(t.filepath == null) {
-				String msg = localisation.getString("mf_mt");
-				msg = msg.replace("%s1", name);
-				throw new Exception(msg);
+				// Template may have been deleted and the user is attempting to recover
+				t.filepath = basepath + "/templates/survey/" + sIdent + "/" + name;
 			}
 			FileManager fm = new FileManager();
 			fm.getFile(response, t.filepath, name);
