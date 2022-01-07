@@ -10119,6 +10119,34 @@ public class GeneralUtilityMethods {
 		return out;
 	}
 	
+	/*
+	 * Return the question names that have a compound question type
+	 */
+	public static ArrayList<String> getCompoundQuestions(Connection sd, int sId) throws SQLException {
+		ArrayList<String> questions = new ArrayList<>();
+		
+    	String sql = "select qname from question "
+    			+ "where f_id in (select f_id from form where s_id = ?) "
+    			+ "and qtype = 'pdf_field' "
+    			+ "and not soft_deleted" ;
+    	PreparedStatement pstmt = null;
+    	
+    	try {
+    		pstmt = sd.prepareStatement(sql);
+    		pstmt.setInt(1,  sId);
+    		log.info(pstmt.toString());
+    		ResultSet rs = pstmt.executeQuery();
+    		while(rs.next()) {
+    			questions.add(rs.getString(1));
+    		}
+    		
+    	} finally {
+    		if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+    	}
+    	
+		return questions;
+	}
+	
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");

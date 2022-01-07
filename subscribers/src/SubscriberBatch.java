@@ -400,6 +400,14 @@ public class SubscriberBatch {
 								}
 								
 								/*
+								 * Process compound widgets
+								 */
+								ArrayList<String> compoundQuestions = GeneralUtilityMethods.getCompoundQuestions(dbc.sd, sdalSurvey.id);
+								if(compoundQuestions.size() > 0) {
+									System.out.println("####################### Compound");
+								}
+								
+								/*
 								 * Write log entry
 								 */
 								String status = se.getStatus();
@@ -433,6 +441,7 @@ public class SubscriberBatch {
 			 * Apply any other subscriber type dependent processing
 			 */
 			if(subscriberType.equals("upload")) {
+				
 				applyReminderNotifications(dbc.sd, dbc.results, basePath, serverName);
 				sendMailouts(dbc.sd, basePath, serverName);
 				expireTemporaryUsers(localisation, dbc.sd);
