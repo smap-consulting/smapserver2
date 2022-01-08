@@ -352,7 +352,10 @@ public class UtilityMethodsEmail {
 
 		try {
 
-			if(user != null) {
+			if(o_id > 0) {
+				pstmt = sd.prepareStatement(sqlOrg);
+				pstmt.setInt(1, o_id);
+			} else if(user != null) {
 				pstmt = sd.prepareStatement(sqlIdent);
 				pstmt.setString(1, user);
 			} else if(email != null) {
@@ -362,10 +365,7 @@ public class UtilityMethodsEmail {
 				 */
 				pstmt = sd.prepareStatement(sqlEmail);
 				pstmt.setString(1, email);
-			} else if(o_id > 0) {
-				pstmt = sd.prepareStatement(sqlOrg);
-				pstmt.setInt(1, o_id);
-			}
+			} 
 			
 			if(pstmt != null) {
 				log.info("Get smtp_host SQL:" + pstmt.toString());
