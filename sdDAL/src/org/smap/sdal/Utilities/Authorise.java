@@ -505,6 +505,66 @@ public class Authorise {
 		return true;
 	}
 	
+	
+	/*
+	 * Verify that the user is entitled to access this particular pdf templates
+	 */
+	public boolean isValidPdfTemplate(Connection conn, String user, int id)
+			throws ServerException, AuthorisationException, NotFoundException {
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		boolean sqlError = false;
+		
+		/*
+		 * 1) Make sure the survey has not been soft deleted and exists or alternately 
+		 *    that it has been soft deleted and exists
+		 * 2) Make sure survey is in a project that the user has access to
+		 */
+
+		StringBuffer sql = new StringBuffer("select count(*) from survey s, users u, user_project up, project p, survey_template st "
+				+ "where u.id = up.u_id "
+				+ "and p.id = up.p_id "
+				+ "and s.p_id = up.p_id "
+				+ "and s.ident = st.ident "
+				+ "and st.t_id = ? "
+				+ "and u.ident = ? ");
+		
+		try {		
+			
+			pstmt = conn.prepareStatement(sql.toString());
+			pstmt.setInt(1, id);
+			pstmt.setString(2, user);
+			
+			resultSet = pstmt.executeQuery();
+			if(resultSet.next()) {
+				count = resultSet.getInt(1);
+			}
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error in Authorisation", e);
+			sqlError = true;
+		} finally {
+			if(resultSet != null) {try{resultSet.close();}catch(Exception e) {}};
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}};
+		}
+		
+ 		if(count == 0) {
+			log.info("IsValidPdfTemplate: " + pstmt.toString());
+ 			log.info("Pdf validation failed for: " + user + "  template was: " + id);
+ 			
+ 			SDDataSource.closeConnection("isValidPdfTemplate", conn);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new AuthorisationException("PdfTemplate validation failed for: " + user + " template was: " + id);	 
+			}
+		} 
+ 		
+		return true;
+	}
+	
 	/*
 	 * Use with anonymous requests to verify that the survey exists only
 	 */

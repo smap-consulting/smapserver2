@@ -198,6 +198,7 @@ public class PDFReportsManager {
 						urlprefix, 
 						username, 
 						language, 
+						0,			// Get default template if it exists
 						false, 
 						filename, 
 						landscape, 

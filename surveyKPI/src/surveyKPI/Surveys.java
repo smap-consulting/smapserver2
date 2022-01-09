@@ -56,7 +56,7 @@ import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.SurveyIdent;
 import org.smap.sdal.model.SurveySummary;
-
+import org.smap.sdal.model.Template;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -153,7 +153,7 @@ public class Surveys extends Application {
 					false,		// Get links
 					null
 					);
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(surveys);
 			response = Response.ok(resp).build();
 			
@@ -294,6 +294,53 @@ public class Surveys extends Application {
 			SDDataSource.closeConnection(connectionString , sd);				
 		}
 
+		return response;
+	}
+	
+	/*
+	 * Get the survey templates
+	 */
+	@Path("/templates/{sId}")
+	@GET
+	@Produces("application/json")
+	public Response getTemplates(@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@QueryParam("get_not_available") boolean getNotAvailable) { 
+ 
+		Response response = null;
+		String connectionString = "surveyKPI - Get Survey Templates";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+		
+		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String basePath = GeneralUtilityMethods.getBasePath(request);
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			ArrayList<Template> templates = sm.getTemplates(sd, sIdent, basePath, getNotAvailable);
+			
+			response = Response.ok(gson.toJson(templates)).build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,e.getMessage(), e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
 		return response;
 	}
 	
@@ -760,13 +807,14 @@ public class Surveys extends Application {
 			@PathParam("sId") int sId) { 
 		
 		Response response = null;
+		String connectionString = "surveyKPI-Save Settings";
 		
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();	
 		fileItemFactory.setSizeThreshold(20*1024*1024);
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Survey");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -873,6 +921,7 @@ public class Surveys extends Application {
 			
 			/*
 			 * PDF Template
+			 * No longer updated through settings
 			 */
 
 			String archivedTemplateName = null;
@@ -882,8 +931,8 @@ public class Surveys extends Application {
 				// Temporary save the old file.  This will no longer be necessary once all clients have uploaded their PDFs with the filename saved to the change log
 				copyPdf(request, survey.displayName, survey.displayName + "__prev__", survey.p_id);
 				
-				archivedTemplateName = writePdf(request, survey.displayName, pdfItem, true, survey.p_id);		
-	            writePdf(request, survey.displayName, pdfItem, false, survey.p_id);				// Save the "current" version of the file			
+				archivedTemplateName = writePdfLegacy(request, survey.displayName, pdfItem, true, survey.p_id);		
+				writePdfLegacy(request, survey.displayName, pdfItem, false, survey.p_id);				// Save the "current" version of the file			
 			
 			} else if(pdfSet.equals("no")) {
 				
@@ -993,7 +1042,7 @@ public class Surveys extends Application {
 			
 			// If the human readable key (HRK) is not null then make sure the HRK column exists in the results file
 			if(survey.hrk != null) {
-				cResults = ResultsDataSource.getConnection("surveyKPI-Surveys-saveSettings");
+				cResults = ResultsDataSource.getConnection(connectionString);
 				String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 				if(tableName != null){
 					boolean hasHrk = GeneralUtilityMethods.hasColumn(cResults, tableName, "_hrk");
@@ -1046,11 +1095,409 @@ public class Surveys extends Application {
 			if (pstmtAddHrk != null) try {pstmtAddHrk.close();} catch (SQLException e) {}
 			
 			try {sd.setAutoCommit(true);} catch(Exception e) {}
-			SDDataSource.closeConnection("surveyKPI-Survey", sd);
-			ResultsDataSource.closeConnection("surveyKPI-Survey", cResults);
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
 			
 		}
 
+		return response;
+	}
+	
+	/*
+	 * Add a new survey template
+	 */
+	@Path("/add_template/{sId}")
+	@POST
+	public Response addTemplate(@Context HttpServletRequest request,
+			@PathParam("sId") int sId) { 
+		
+		Response response = null;
+		String connectionString = "SurveyKPI - AddTemplate";
+		
+		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();	
+		fileItemFactory.setSizeThreshold(20*1024*1024);
+		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		// End Authorisation
+		
+		FileItem pdfItem = null;
+		String name = null;
+				
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		PreparedStatement pstmtUpdate = null;
+		PreparedStatement pstmtInsert = null;
+		PreparedStatement pstmtChangeLog = null;
+		
+		try {
+				
+			// Localisation			
+			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			/*
+			 * Parse the request
+			 */
+			List<?> items = uploadHandler.parseRequest(request);
+			Iterator<?> itr = items.iterator();
+
+			while(itr.hasNext()) {
+				FileItem item = (FileItem) itr.next();
+				
+				if(item.isFormField()) {
+					log.info("Form field:" + item.getFieldName() + " - " + item.getString());
+		
+					if(item.getFieldName().equals("templateName")) {
+						try {
+							name = item.getString("UTF-8");  // Set encoding type to UTF-8 as per http://stackoverflow.com/questions/22025999/sending-files-and-text-with-ajax-multipart-form-data-utf-8-encoding
+						} catch (Exception e) {
+							
+						}
+					}
+					
+				} else if(!item.isFormField()) {
+					// Handle Uploaded files.
+					log.info("Field Name = "+item.getFieldName()+
+						", File Name = "+item.getName()+
+						", Content type = "+item.getContentType()+
+						", File Size = "+item.getSize());
+					
+					if(item.getSize() > 0) {
+						pdfItem = item;
+					}				
+				}
+
+			}
+			
+			if(pdfItem != null && name != null) {
+
+				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);							
+				String filepath = writePdf(request, name, pdfItem, true, sIdent);	
+				int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+				
+				String sqlChangeLog = "insert into survey_change " +
+						"(s_id, version, changes, user_id, apply_results, updated_time, msg) " +
+						"values(?, (select version from survey where ident = ?), ?, ?, 'true', now(), ?)";
+				
+				// Update a Survey Template
+				String sqlUpdate = "update survey_template "
+						+ "set filepath = ?, "
+						+ "user_id = ?, "
+						+ "updated_time = now() "
+						+ "where ident = ? "
+						+ "and name = ?";
+				
+				// Insert a new survey template
+				String sqlInsert = "insert into survey_template "
+						+ "(ident, name, filepath, template_type, user_id, updated_time) "
+						+ "values(?, ?, ?, ?, ?, now()) ";
+		
+				
+				/*
+				 * Try updating the survey template first
+				 */
+				String action = "template_update";
+				pstmtUpdate = sd.prepareStatement(sqlUpdate);
+				pstmtUpdate.setString(1, filepath);
+				pstmtUpdate.setInt(2,  uId);
+				pstmtUpdate.setString(3, sIdent);
+				pstmtUpdate.setString(4, name);
+				
+				log.info("Updating template: " + pstmtUpdate.toString());
+				int count = pstmtUpdate.executeUpdate();
+	
+				if(count == 0) {
+					/*
+					 * Insert the new template
+					 */
+					pstmtInsert = sd.prepareStatement(sqlInsert);
+					pstmtInsert.setString(1, sIdent);
+					pstmtInsert.setString(2,  name);
+					pstmtInsert.setString(3, filepath);
+					pstmtInsert.setString(4, "pdf");
+					pstmtInsert.setInt(5,  uId);
+					
+					log.info("Inserting template: " + pstmtInsert.toString());
+					pstmtInsert.executeUpdate();
+					
+					action = "template_add";
+				} 
+					
+				ChangeElement change = new ChangeElement();
+				change.action = action;
+				change.fileName = filepath;
+				change.origSId = sId;
+				
+				// Write to the change log
+				pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+				pstmtChangeLog.setInt(1, sId);
+				pstmtChangeLog.setString(2, sIdent);
+				pstmtChangeLog.setString(3, gson.toJson(change));
+				pstmtChangeLog.setInt(4, uId);
+				pstmtChangeLog.setString(5, name);
+				pstmtChangeLog.execute();
+			
+				response = Response.ok("{}").build();
+			} else {
+				 response = Response.serverError().entity("Template not specified").build();
+			}
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Exception loading settings", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
+		    try {sd.setAutoCommit(true);} catch(Exception ex) {}
+		} finally {
+			
+			if (pstmtUpdate != null) try {pstmtUpdate.close();} catch (SQLException e) {}
+			if (pstmtInsert != null) try {pstmtInsert.close();} catch (SQLException e) {}
+			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
+
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Delete a template
+	 */
+	@Path("/delete_template/{sId}/{tId}")
+	@DELETE
+	public Response deleteTemplate(@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@PathParam("tId") int tId) { 
+		
+		Response response = null;
+		String connectionString = "SurveyKPI - DeleteTemplate";
+	
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		if(tId > 0) {
+			aUpdate.isValidPdfTemplate(sd, request.getRemoteUser(), tId);
+		}
+		// End Authorisation
+		
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtGet = null;
+		PreparedStatement pstmtChangeLog = null;
+		PreparedStatement pstmtSurvey = null;
+		PreparedStatement pstmtGetLegacy = null;
+		
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		String basePath = GeneralUtilityMethods.getBasePath(request);
+		
+		try {
+				
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			/*
+			 * Delete the entry for the file in the table
+			 * The file itself will not be deleted until the survey is deleted so
+			 * that it can be recovered using the changes page
+			 */
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);								
+			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			String name = null;
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+				
+			String sqlChangeLog = "insert into survey_change " +
+					"(s_id, version, changes, user_id, apply_results, updated_time, msg) " +
+					"values(?, (select version from survey where ident = ?), ?, ?, 'true', now(), ?)";
+				
+			String sqlGet = "select name, filepath "
+					+ "from survey_template "
+					+ "where t_id = ? and ident = ?";
+			
+			String sql = "delete from survey_template "
+					+ "where t_id = ? and ident = ? ";
+				
+			String sqlSurvey = "update survey "
+					+ "set pdf_template = null "
+					+ "where s_id = ?";
+			
+			String sqlGetLegacy = "select pdf_template, p_id "
+					+ "from survey "
+					+ "where s_id = ?";
+			
+			if(tId == 0) {
+				// Get the filepath and name for the change log
+				pstmtGetLegacy = sd.prepareStatement(sqlGetLegacy);
+				pstmtGetLegacy.setInt(1, sId);
+				
+				ResultSet rs = pstmtGetLegacy.executeQuery();
+				if(rs.next()) {
+					name = rs.getString(1);
+				}
+					
+				// Delete the template
+				pstmtSurvey = sd.prepareStatement(sqlSurvey);
+				pstmtSurvey.setInt(1, sId);
+				pstmtSurvey.executeUpdate();
+				
+				File templateFile = sm.getLegacyPdfTemplateFile(sd, sIdent, basePath);
+				if(templateFile != null && templateFile.exists()) {
+					templateFile.delete();
+				}
+			} else {
+				// Get the filepath and name for the change log
+				pstmtGet = sd.prepareStatement(sqlGet);
+				pstmtGet.setInt(1, tId);
+				pstmtGet.setString(2,  sIdent);
+
+				ResultSet rs = pstmtGet.executeQuery();				
+				if(rs.next()) {
+					name = rs.getString("name");
+				}
+
+				// Delete the pdf template
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, tId);
+				pstmt.setString(2,  sIdent);
+
+				log.info("deleting pdf template: " + pstmt.toString());
+				pstmt.executeUpdate();
+
+
+			}
+			ChangeElement change = new ChangeElement();
+			change.action = "template_delete";
+			change.fileName = null;		// Do not need to show path to deleted files only added files
+			change.origSId = sId;
+
+			// Write to the change log
+			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+			pstmtChangeLog.setInt(1, sId);
+			pstmtChangeLog.setString(2, sIdent);
+			pstmtChangeLog.setString(3, gson.toJson(change));
+			pstmtChangeLog.setInt(4, uId);
+			pstmtChangeLog.setString(5, name);
+			pstmtChangeLog.execute();
+
+			response = Response.ok("{}").build();
+
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Exception loading settings", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			
+			if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
+			if (pstmtGet != null) try {pstmtGet.close();} catch (SQLException e) {}
+			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
+			if (pstmtSurvey != null) try {pstmtSurvey.close();} catch (SQLException e) {}
+			if (pstmtGetLegacy != null) try {pstmtGetLegacy.close();} catch (SQLException e) {}
+
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+
+		return response;
+	}
+	
+	class TemplateProperty {
+		public int id;
+		public String property;
+		public String value;
+	}
+	
+	/*
+	 * Update a template property
+	 */
+	@Path("/update_template_property")
+	@POST
+	public Response updateTemplateProperty(@Context HttpServletRequest request,
+			@FormParam("prop") String prop) { 
+		
+		Response response = null;
+		String connectionString = "SurveyKPI - UpdateTemplateProperty";
+	
+		TemplateProperty tp = new Gson().fromJson(prop, TemplateProperty.class);
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidPdfTemplate(sd, request.getRemoteUser(), tp.id);	// Validate that the user can access this template
+		// End Authorisation
+
+		/*
+		 * Validate property
+		 */
+		String col = null;
+		boolean value = false;
+		if(tp.property.equals("not_available") || tp.property.equals("default_template")) {
+			col = tp.property;
+			
+			if(tp.value != null) {
+				if(tp.value.toLowerCase().equals("true") || tp.value.equals("1") || tp.value.toLowerCase().equals("yes")) {
+					value = true;
+				}
+			}
+		}
+		if(col != null) {
+				
+			String sqlClear = "update survey_template "
+					+ "set " + col + " = false "
+					+ "where ident = (select ident from survey_template where t_id = ?) ";
+			PreparedStatement pstmtClear = null;
+			
+			/*
+			 * Update the property
+			 */
+			String sql = "update survey_template "
+					+ "set " + col + " = ?, "
+					+ "user_id = ?, "
+					+ "updated_time = now() "
+					+ "where t_id = ? ";
+			PreparedStatement pstmt = null;
+			
+			try {
+				/*
+				 * Clear defaults if required
+				 */
+				if(tp.property.equals("default_template")) {
+					pstmtClear = sd.prepareStatement(sqlClear);
+					pstmtClear.setInt(1, tp.id);
+					pstmtClear.executeUpdate();
+				}
+				
+				int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setBoolean(1,  value);
+				pstmt.setInt(2, uId);
+				pstmt.setInt(3,  tp.id);
+				log.info("Update pdf template property: " + pstmt.toString());
+				pstmt.executeUpdate();
+				
+				response = Response.ok("{}").build();
+				
+			} catch (Exception e) {
+				log.log(Level.SEVERE,"Exception loading settings", e);
+			    response = Response.serverError().entity(e.getMessage()).build();
+			} finally {
+				if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
+				if (pstmtClear != null) try {pstmtClear.close();} catch (SQLException e) {}
+			}
+		}
+		
 		return response;
 	}
 	
@@ -1417,7 +1864,7 @@ public class Surveys extends Application {
 			change.msg = required ? "Questions set required" : "Questions set not required"; 
 				
 			// Write to the change log
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, updated_time) " +
 					"values(?, ?, ?, ?, 'true', ?)";
@@ -1522,12 +1969,11 @@ public class Surveys extends Application {
 
 		return response;
 	}
-	
 	/*
-	 * Write the PDF to disk
+	 * Legacy method to Write the PDF to disk
 	 * Return the name
 	 */
-	private String writePdf(HttpServletRequest request, 
+	private String writePdfLegacy(HttpServletRequest request, 
 			String fileName, 
 			FileItem pdfItem,
 			boolean archiveVersion,		// If set then add date time to file so it can be recovered
@@ -1559,6 +2005,43 @@ public class Surveys extends Application {
 		}
 	 
 	    return fileName;
+	}
+	
+	/*
+	 * Write the PDF to disk
+	 * Return the name
+	 */
+	private String writePdf(HttpServletRequest request, 
+			String fileName, 
+			FileItem pdfItem,
+			boolean archiveVersion,		// If set then add date time to file so it can be recovered
+			String sIdent) {
+	
+		String basePath = GeneralUtilityMethods.getBasePath(request);
+		
+		fileName = GeneralUtilityMethods.getSafeTemplateName(fileName);
+
+		// Add date and time to the file name
+		DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HHmmss");
+		dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));		// Store all dates in UTC
+		fileName += dateFormat.format(cal.getTime());
+		fileName += ".pdf";
+		
+		String folderPath = basePath + "/templates/survey/" + sIdent ;						
+		String filePath = folderPath + "/" + fileName;
+	    File savedFile = new File(filePath);
+	    
+	    log.info("userevent: " + request.getRemoteUser() + " : saving pdf template : " + filePath);
+	    
+	    try {
+	    	FileUtils.forceMkdir(new File(folderPath));
+			pdfItem.write(savedFile);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	 
+	    return filePath;
 	}
 	
 	/*

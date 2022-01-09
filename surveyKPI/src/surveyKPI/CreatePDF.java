@@ -85,6 +85,7 @@ public class CreatePDF extends Application {
 			@QueryParam("instance") String instanceId,
 			@QueryParam("language") String language,
 			@QueryParam("landscape") boolean landscape,
+			@QueryParam("pdftemplate") int pdfTemplateId,
 			@QueryParam("filename") String filename,
 			@QueryParam("tz") String tz,					// Timezone
 			@QueryParam("reference_surveys") boolean referenceSurveys,	// Follow links to child surveys,
@@ -114,6 +115,15 @@ public class CreatePDF extends Application {
 		} catch (Exception e) {
 			errorMsg = "Error:" + localisation.getString("mf_snf");			
 		}
+		
+		if(errorMsg == null && pdfTemplateId > 0) {
+			try {
+				a.isValidPdfTemplate(sd, request.getRemoteUser(), pdfTemplateId);
+			} catch (Exception e) {
+				errorMsg = "Error:" + localisation.getString("mf_tnf");			
+			}
+		}
+		
 		if(errorMsg != null) {
 			return Response.serverError().entity(errorMsg).build();		// Don't throw an authorisation exception just report the error
 		}
@@ -185,6 +195,7 @@ public class CreatePDF extends Application {
 					urlprefix,
 					request.getRemoteUser(),
 					language, 
+					pdfTemplateId,
 					generateBlank,
 					filename,
 					landscape,

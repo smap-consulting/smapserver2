@@ -21,6 +21,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,6 +44,8 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.FileManager;
+import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.Template;
 
 /*
  * Authorises the user and then
@@ -201,6 +205,7 @@ public class GetFile extends Application {
 	
 	/*
 	 * Get template pdf file
+	 * Legacy - deprecate
 	 */
 	@GET
 	@Path("/surveyPdfTemplate/{sId}")
@@ -248,6 +253,61 @@ public class GetFile extends Application {
 			
 			FileManager fm = new FileManager();
 			fm.getFile(response, filepath, filename);
+			
+			r = Response.ok("").build();
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Error getting file", e);
+			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
+		} finally {	
+			SDDataSource.closeConnection("Get Survey File", sd);	
+		}
+		
+		return r;
+	}
+	
+	/*
+	 * Get template pdf file
+	 */
+	@GET
+	@Path("/pdfTemplate/{sId}")
+	@Produces("application/x-download")
+	public Response getNewPdfTemplateFile (
+			@Context HttpServletRequest request, 
+			@Context HttpServletResponse response,			
+			@PathParam("filename") String name,
+			@PathParam("sId") int sId) throws Exception {
+		
+		log.info("Get PDF Template File:  for survey: " + sId);
+		
+		Response r = null;
+	
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("Get Survey File");
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidDelSurvey(sd, request.getRemoteUser(), sId, superUser);
+		// End Authorisation 
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);	
+			
+			String basepath = GeneralUtilityMethods.getBasePath(request);
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			Template t = sm.getTemplate(sd, sIdent, name, basepath);
+			
+			if(t.filepath == null) {
+				// Template may have been deleted and the user is attempting to recover
+				t.filepath = basepath + "/templates/survey/" + sIdent + "/" + name;
+			}
+			FileManager fm = new FileManager();
+			fm.getFile(response, t.filepath, name);
 			
 			r = Response.ok("").build();
 			

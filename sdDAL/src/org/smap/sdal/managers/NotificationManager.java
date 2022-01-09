@@ -533,7 +533,6 @@ public class NotificationManager {
 		PreparedStatement pstmtGetNotifications = null;
 		PreparedStatement pstmtUpdateUploadEvent = null;
 		
-		// TODO remove sId as key for survey in notifications and replace with sIdent
 		int sId = GeneralUtilityMethods.getSurveyId(sd, ident);
 		
 		try {
@@ -816,6 +815,7 @@ public class NotificationManager {
 								urlprefix,
 								msg.user,
 								"none", 
+								0,					// Get default template if it exists
 								generateBlank,
 								null,
 								landscape,

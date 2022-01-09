@@ -469,7 +469,7 @@ public class UploadFiles extends Application {
 	}
 	
 	/*
-	 * Upload a survey template
+	 * Upload a survey form
 	 * curl -u neil -i -X POST -H "Content-Type: multipart/form-data" -F "projectId=1" -F "templateName=age" -F "tname=@x.xls" http://localhost/surveyKPI/upload/surveytemplate
 	 */
 	@POST
@@ -479,6 +479,7 @@ public class UploadFiles extends Application {
 			@Context HttpServletRequest request) {
 		
 		Response response = null;
+		String connectionString = "CreateXLSForm-uploadForm";
 		
 		log.info("upload survey -----------------------");
 		
@@ -498,8 +499,8 @@ public class UploadFiles extends Application {
 		fileItemFactory.setSizeThreshold(5*1024*1024); 
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 	
-		Connection sd = SDDataSource.getConnection("CreateXLSForm-uploadForm"); 
-		Connection cResults = ResultsDataSource.getConnection("CreateXLSForm-uploadForm");
+		Connection sd = SDDataSource.getConnection(connectionString); 
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		ArrayList<ApplicationWarning> warnings = new ArrayList<> ();
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -962,8 +963,8 @@ public class UploadFiles extends Application {
 		} finally {
 			if(pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (Exception e) {}
 			if(pstmtUpdateChangeLog != null) try {pstmtUpdateChangeLog.close();} catch (Exception e) {}
-			SDDataSource.closeConnection("CreateXLSForm-uploadForm", sd);
-			ResultsDataSource.closeConnection("CreateXLSForm-uploadForm", cResults);
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
 			
 		}
 		
