@@ -304,7 +304,8 @@ public class Surveys extends Application {
 	@GET
 	@Produces("application/json")
 	public Response getTemplates(@Context HttpServletRequest request,
-			@PathParam("sId") int sId) { 
+			@PathParam("sId") int sId,
+			@QueryParam("get_not_available") boolean getNotAvailable) { 
  
 		Response response = null;
 		String connectionString = "surveyKPI - Get Survey Templates";
@@ -329,7 +330,7 @@ public class Surveys extends Application {
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			ArrayList<Template> templates = sm.getTemplates(sd, sIdent, basePath);
+			ArrayList<Template> templates = sm.getTemplates(sd, sIdent, basePath, getNotAvailable);
 			
 			response = Response.ok(gson.toJson(templates)).build();
 			
@@ -1305,8 +1306,8 @@ public class Surveys extends Application {
 		try {
 				
 			// Localisation			
-			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			/*
 			 * Delete the entry for the file in the table
@@ -1316,6 +1317,7 @@ public class Surveys extends Application {
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);								
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 			String name = null;
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
 				
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, updated_time, msg) " +
@@ -1345,12 +1347,16 @@ public class Surveys extends Application {
 				if(rs.next()) {
 					name = rs.getString(1);
 				}
-				
-				
+					
 				// Delete the template
 				pstmtSurvey = sd.prepareStatement(sqlSurvey);
 				pstmtSurvey.setInt(1, sId);
 				pstmtSurvey.executeUpdate();
+				
+				File templateFile = sm.getLegacyPdfTemplateFile(sd, sIdent, basePath);
+				if(templateFile != null && templateFile.exists()) {
+					templateFile.delete();
+				}
 			} else {
 				// Get the filepath and name for the change log
 				pstmtGet = sd.prepareStatement(sqlGet);

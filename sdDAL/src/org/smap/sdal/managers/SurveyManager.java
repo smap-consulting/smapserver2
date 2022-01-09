@@ -4858,17 +4858,14 @@ public class SurveyManager {
 	/*
 	 * Get the templates for a survey
 	 */
-	public ArrayList<Template> getTemplates(Connection sd, String sIdent, String basePath) throws SQLException {
+	public ArrayList<Template> getTemplates(Connection sd, String sIdent, String basePath, boolean getNotAvailable) throws SQLException {
 		
-		String sql = "select s.pdf_template "
-				+ "from survey s "
-				+ "where s.ident = ? ";
-		PreparedStatement pstmt = null;
+
 		
 		String sqlTemplates = "select t_id, name, not_available, default_template "
 				+ "from survey_template "
-				+ "where ident = ? "
-				+ "order by t_id desc";
+				+ "where ident = ? ";
+		String sqlTemplates3 = "order by t_id desc";
 		PreparedStatement pstmtTemplates = null;
 		
 		ArrayList<Template> templates = new ArrayList<> ();
@@ -4879,12 +4876,18 @@ public class SurveyManager {
 			 * Get the settings template if it has been specified
 			 * Deprecate this.  Storing a single template in the survey table is the old way
 			 */
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, sIdent);
-
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
+			File templateFile = getLegacyPdfTemplateFile(sd, sIdent, basePath);
+			if(templateFile != null && templateFile.exists()) {
 				Template t = new Template();
+				t.name = templateFile.getName();
+				t.filepath = templateFile.getAbsolutePath();
+				t.fromSettings = true;
+				templates.add(t);
+			}
+
+/*			ResultSet rs = pstmt.executeQuery();
+//			if(rs.next()) {
+			
 				t.name = rs.getString("pdf_template");
 				if(t.name != null && t.name.trim().length() > 0) {
 					t.fromSettings = true;
@@ -4899,15 +4902,18 @@ public class SurveyManager {
 				    t.filepath = filePath;
 					templates.add(t);
 				}
-			}
+//			}
+ * 
+ */
 			
 			/*
-			 * Get any other templates
+			 * Get other templates
 			 */
-			pstmtTemplates = sd.prepareStatement(sqlTemplates);
+			pstmtTemplates = sd.prepareStatement(sqlTemplates 
+					+ (!getNotAvailable ? "and not_available = 'false' " : "") + sqlTemplates3);
 			pstmtTemplates.setString(1, sIdent);
 
-			rs = pstmtTemplates.executeQuery();
+			ResultSet rs = pstmtTemplates.executeQuery();
 			while(rs.next()) {
 				Template t = new Template();
 				t.id = rs.getInt("t_id");
@@ -4918,7 +4924,7 @@ public class SurveyManager {
 			}
 			
 		} finally {
-			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+
 			if(pstmtTemplates != null) {try {pstmtTemplates.close();} catch(Exception e) {}};
 		}
 		return templates;
@@ -4928,11 +4934,6 @@ public class SurveyManager {
 	 * Get the template details for the template with the specified name
 	 */
 	public Template getTemplate(Connection sd, String sIdent, String name, String basepath) throws SQLException {
-		
-		String sql = "select s.pdf_template "
-				+ "from survey s "
-				+ "where s.ident = ? ";
-		PreparedStatement pstmt = null;
 		
 		String sqlTemplates = "select t_id, filepath, not_available "
 				+ "from survey_template "
@@ -4961,23 +4962,18 @@ public class SurveyManager {
 			}
 			
 			/*
-			 * Get the settings template if it has been specified
+			 * Try the setting template
 			 * Deprecate this.  Storing a single template in the survey table is the old way
 			 */
 			if(t.filepath == null) {
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, sIdent);
-	
-				rs = pstmt.executeQuery();
+				File templateFile = getLegacyPdfTemplateFile(sd, sIdent, basepath);
 				if(rs.next()) {
-					t.name = rs.getString("pdf_template");
+					t.filepath = templateFile.getAbsolutePath();
+					t.name = templateFile.getName();
+					/*
 					if(t.name != null && t.name.trim().length() > 0) {
 						t.fromSettings = true;
 						
-						/*
-						 * If the template was not found try the legacy location used when templates
-						 * were stored with survey details
-						 */
 						int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 						String displayName = GeneralUtilityMethods.getSurveyName(sd, sId);
 						String filename = GeneralUtilityMethods.getSafeTemplateName(displayName);
@@ -4987,12 +4983,12 @@ public class SurveyManager {
 						String folderPath = basepath + "/templates/" + pId ;						
 						t.filepath = folderPath + "/" + filename;
 					}
+					*/
 				}
 			}
 			
 			
 		} finally {
-			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
 			if(pstmtTemplates != null) {try {pstmtTemplates.close();} catch(Exception e) {}};
 		}
 		
@@ -5037,5 +5033,32 @@ public class SurveyManager {
 		}
 		
 		return surveys;
+	}
+	
+	public File getLegacyPdfTemplateFile(Connection sd, String sIdent, String basePath) throws SQLException {
+		
+		File templateFile = null;
+		
+		String sql = "select s.p_id, s.display_name "
+				+ "from survey s "
+				+ "where s.ident = ? ";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, sIdent);
+			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				int pId = rs.getInt(1);
+				String displayName = rs.getString(2);
+				templateFile = GeneralUtilityMethods.getPdfTemplate(sd, basePath, displayName, pId, 0, sIdent);
+				
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+		}
+		
+		return templateFile;
 	}
 }
