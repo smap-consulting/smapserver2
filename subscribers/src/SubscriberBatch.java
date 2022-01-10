@@ -410,7 +410,6 @@ public class SubscriberBatch {
 								 */
 								ArrayList<String> compoundQuestions = GeneralUtilityMethods.getCompoundQuestions(dbc.sd, sdalSurvey.id);
 								if(compoundQuestions.size() > 0) {
-									System.out.println("####################### Compound");
 									SurveyManager sm = new SurveyManager(localisation, "UTC");
 									processCompoundWidgets(dbc.sd, dbc.results, sm, sdalSurvey.id, basePath, ue.getInstanceId());
 								}
@@ -697,12 +696,12 @@ public class SubscriberBatch {
 
 	}
 
-	private void processCompoundWidgets(Connection sd, Connection cResults, SurveyManager sm, int sId, 
+	private void processCompoundWidgets(Connection sd, Connection results, SurveyManager sm, int sId, 
 			String basePath, String instanceId) throws SQLException, Exception {
 		
 		Survey survey = sm.getById(
 				sd, 
-				cResults, 
+				results, 
 				null,	// Anonymous user 
 				false,	// Not necessarily temporary user
 				sId, 
@@ -724,25 +723,25 @@ public class SubscriberBatch {
 				false);	       // Don't merge set values into default value	
 		
 		for(int i = 0; i < survey.instance.results.size(); i++) {
-			setCompoundWidgetValues(sd, survey.instance.results.get(i), survey);
+			setCompoundWidgetValues(sd, results, survey.instance.results.get(i), survey);
 		}
 	}
 	
-	private void setCompoundWidgetValues(Connection sd, ArrayList<Result> record, Survey survey) throws SQLException {
+	private void setCompoundWidgetValues(Connection sd, Connection results, ArrayList<Result> record, Survey survey) throws Exception {
+		int prikey = 0;
 		for(Result r : record) {
-			if(r.type.equals("form")) {
+			if(r.name.equals("prikey")) {
+				prikey = Integer.valueOf(r.value);
+			} else if(r.type.equals("form")) {
 				for(int k = 0; k < r.subForm.size(); k++) {
-					setCompoundWidgetValues(sd, r.subForm.get(k), survey);
+					setCompoundWidgetValues(sd, results, r.subForm.get(k), survey);
 				} 
 			} else if(r.type.equals("pdf_field")) {
 				DisplayItem di = new DisplayItem();
-				try {
-					Form form = survey.forms.get(r.fIdx);
-					Question question = PdfUtilities.getQuestionFromResult(sd, survey, r, form);
-					PdfUtilities.setQuestionFormats(question.appearance, di);
-				} catch (Exception e) {
-					// If we can't get the question details for this data then that is ok
-				}
+				
+				Form form = survey.forms.get(r.fIdx);
+				Question question = PdfUtilities.getQuestionFromResult(sd, survey, r, form);
+				PdfUtilities.setQuestionFormats(question.appearance, di);
 				
 				if(r.type.equals("pdf_field") && di.linemap != null) {
 					PdfMapValues mapValues = PdfUtilities.getMapValues(survey, di);
@@ -754,12 +753,52 @@ public class SubscriberBatch {
 						 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
 					}
 					if((mapValues.hasLine())) {
-						System.out.println("Geometry: " + mapValues.getLineGeometryWithMarkers(-1));
+						createLinestringColumn(results, form.tableName, question.columnName);
+						writeLinestringColumn(results, form.tableName, question.columnName, mapValues.getLineGeometryWithMarkers(-1), prikey);
 					}
 				}
 			}
 		}
 	}
+	
+
+	/*
+	 * Create a linestring column for the path in a pdf_field
+	 */
+	private void createLinestringColumn(Connection results, String tableName, String columnName) throws SQLException {
+		String sql = "select AddGeometryColumn('" + tableName + 
+				"', '" + columnName + "', 4326, 'LINESTRING', 2)";
+		if(!GeneralUtilityMethods.hasColumn(results, tableName, columnName)) {
+			PreparedStatement pstmt = null;
+			try {
+				pstmt = results.prepareStatement(sql);
+				pstmt.executeQuery();
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
+			}
+		}
+	}
+	
+	/*
+	 * Create a linestring column for the path in a pdf_field
+	 */
+	private void writeLinestringColumn(Connection results, String tableName, String columnName, String value, int prikey) throws SQLException {
+		String sql = "update " + tableName + 
+						" set " + columnName + " = ST_GeomFromGeoJSON(?) "
+						+ "where prikey = ?";
+		
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = results.prepareStatement(sql);
+			pstmt.setString(1, value);
+			pstmt.setInt(2,  prikey);
+			log.info(pstmt.toString());
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
+		}
+	}
+	
 	/*
 	 * Erase deleted templates more than a specified number of days old
 	 */

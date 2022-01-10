@@ -288,8 +288,7 @@ public class TableManager {
 		boolean tableCreated = false;
 		String sql = "select count(*) from information_schema.tables where table_name =?";		
 		PreparedStatement pstmt = null;
-		try {
-			//Class.forName(dbClass);	 
+		try {	 
 
 			List<Form> forms = template.getAllForms();	
 			if(cResults.getAutoCommit()) {

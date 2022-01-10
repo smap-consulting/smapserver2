@@ -40,6 +40,10 @@ public class PdfMapValues {
 		return sb.toString();
 	}
 	
+	/*
+	 * Get a geojson line string
+	 * If a non negative idx is passed then only get markers up to that index
+	 */
 	public String getLineGeometryWithMarkers(int idx) {
 		
 		StringBuilder sb = new StringBuilder("{\"type\":\"LineString\",\"coordinates\":[");		
