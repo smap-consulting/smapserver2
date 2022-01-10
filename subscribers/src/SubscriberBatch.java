@@ -48,6 +48,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
@@ -61,6 +62,7 @@ import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.DatabaseConnections;
+import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.MailoutMessage;
@@ -68,6 +70,7 @@ import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.Question;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.Result;
 import org.smap.sdal.model.ServerData;
@@ -719,13 +722,26 @@ public class SubscriberBatch {
 				false);	       // Don't merge set values into default value	
 		
 		for(int i = 0; i < survey.instance.results.size(); i++) {
-			setCompoundWidgetValues(survey.instance.results.get(i));
+			setCompoundWidgetValues(sd, survey.instance.results.get(i), survey);
 		}
 	}
 	
-	private void setCompoundWidgetValues(ArrayList<Result> record) {
+	private void setCompoundWidgetValues(Connection sd, ArrayList<Result> record, Survey survey) {
 		for(Result r : record) {
-			System.out.println(r.type);
+			if(r.type.equals("form")) {
+				for(int k = 0; k < r.subForm.size(); k++) {
+					setCompoundWidgetValues(sd, r.subForm.get(k), survey);
+				} 
+			} else if(r.type.equals("pdf_field")) {
+				DisplayItem di = new DisplayItem();
+				try {
+					Form form = survey.forms.get(r.fIdx);
+					Question question = PdfUtilities.getQuestionFromResult(sd, survey, r, form);
+					PdfUtilities.setQuestionFormats(question.appearance, di);
+				} catch (Exception e) {
+					// If we can't get the question details for this data then that is ok
+				}
+			}
 		}
 	}
 	/*

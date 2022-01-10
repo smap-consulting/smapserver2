@@ -36,14 +36,22 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PDFTableManager;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.DistanceMarker;
+import org.smap.sdal.model.Form;
+import org.smap.sdal.model.LineMap;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.PdfMapValues;
+import org.smap.sdal.model.Question;
+import org.smap.sdal.model.Result;
+import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TrafficLightBulb;
+import org.smap.sdal.model.TrafficLightQuestions;
 import org.smap.sdal.model.TrafficLightValues;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
 
 import com.itextpdf.text.Anchor;
 import com.itextpdf.text.BadElementException;
+import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.Font;
@@ -778,4 +786,189 @@ public class PdfUtilities {
 
 	}
 	
+	public static Question getQuestionFromResult(Connection sd, Survey survey, Result r, Form form) throws SQLException {
+
+		Question question = null;
+		if(r.qIdx >= 0) {
+			question = form.questions.get(r.qIdx);
+		} if(r.qIdx <= MetaItem.INITIAL_ID) {
+			question = GeneralUtilityMethods.getPreloadAsQuestion(sd, survey.id, r.qIdx);	// A preload
+		} else if(r.qIdx == -1) {
+			question = new Question();													// Server generated
+			question.name = r.name;
+			question.type = r.type;
+		}
+		return question;
+	}
+	
+	/*
+	 * Set the attributes for this question from keys set in the appearance column
+	 */
+	public static void setQuestionFormats(String appearance, DisplayItem di) throws Exception {
+
+		if(appearance != null) {
+			String [] appValues = appearance.split(" ");
+			for(int i = 0; i < appValues.length; i++) {
+				String app = appValues[i].trim().toLowerCase();
+				if(app.startsWith("pdflabelbg")) {
+					setColor(app, di, true);
+				} else if(app.startsWith("pdfvaluebg")) {
+					setColor(app, di, false);
+				} else if(app.startsWith("pdfmarkercolor")) {
+					di.markerColor = getRGBColor(app);
+				} else if(app.startsWith("pdflabelw")) {
+					setWidths(app, di);
+				} else if(app.startsWith("pdfheight")) {
+					setHeight(app, di);
+				} else if(app.startsWith("pdfspace")) {
+					setSpace(app, di);
+				} else if(app.equals("pdflabelcaps")) {
+					di.labelcaps = true;
+				} else if(app.equals("pdfbs")) {
+					di.bs = true;
+				} else if(app.equals("pdflabelbold")) {
+					di.labelbold = true;
+				} else if(app.startsWith("pdfmap")) {			// mapbox map id
+					String map = getAppValue(app);
+					if(!map.equals("custom")) {
+						di.map = map;
+						di.account = "mapbox";
+					}
+				} else if(app.startsWith("pdflinemap") || app.startsWith("pdflineimage")) {		// Multiple points to be joined into a map or image
+					di.linemap = new LineMap(getAppValueArray(app));
+					if(app.startsWith("pdflinemap")) {
+						di.linemap.type = "map";
+					} else {
+						di.linemap.type = "image";
+					}
+				} else if(app.startsWith("pdftl")) {		// Multiple points to be joined into a map or image
+					if(di.trafficLight == null) {
+						di.trafficLight = new TrafficLightQuestions();
+					}
+					di.trafficLight.addApp(getAppValueArray(app));
+				} else if(app.startsWith("pdfaccount")) {			// mapbox account
+					di.account = getAppValue(app);
+				} else if(app.startsWith("pdflocation")) {
+					di.location = getAppValue(app);			// lon,lat,zoom
+				} else if(app.startsWith("pdfbarcode")) {
+					di.isBarcode = true;		
+				} else if(app.equals("pdfstretch")) {
+					di.stretch = true;		
+				} else if(app.startsWith("pdfzoom")) {
+					di.zoom = getAppValue(app);		
+				} else if(app.startsWith("pdfhyperlink")) {
+					di.isHyperlink = true;		
+				} else if(app.equals("signature")) {
+					di.isSignature = true;		
+				} else if(app.equals("pdfhiderepeatinglabels")) {
+					di.hideRepeatingLabels = true;		
+				} else if(app.equals("thousands-sep")) {
+					di.tsep = true;		
+				} else if(app.equals("pdfshowimage")) {
+					di.showImage = true;		
+				}
+			}
+		}
+	}
+	
+	/*
+	 * Get the color values for a single appearance value
+	 * Format is:  xxxx_0Xrr_0Xgg_0xbb
+	 */
+	private static void setColor(String aValue, DisplayItem di, boolean isLabel) {
+
+		BaseColor color = null;
+
+		String [] parts = aValue.split("_");
+		if(parts.length >= 4) {
+			if(parts[1].startsWith("0x")) {
+				color = new BaseColor(Integer.decode(parts[1]), 
+						Integer.decode(parts[2]),
+						Integer.decode(parts[3]));
+			} else {
+				color = new BaseColor(Integer.decode("0x" + parts[1]), 
+						Integer.decode("0x" + parts[2]),
+						Integer.decode("0x" + parts[3]));
+			}
+		}
+
+		if(isLabel) {
+			di.labelbg = color;
+		} else {
+			di.valuebg = color;
+		}
+
+	}
+	
+	/*
+	 * Get the color values for a single appearance value
+	 * Output is just the RGB value
+	 * Format is:  xxxx_0Xrr_0Xgg_0xbb
+	 */
+	private static String getRGBColor(String aValue) {
+
+		String rgbValue = "";
+
+		String [] parts = aValue.split("_");
+		if(parts.length >= 4) {
+			rgbValue = parts[1] + parts[2] + parts[3];
+		}
+		return rgbValue;
+
+	}
+	
+	private static String getAppValue(String aValue) {
+		String [] parts = aValue.split("_");
+		if(parts.length >= 2) {
+			return parts[1];   		
+		}
+		else return null;
+	}
+	
+	private static String[] getAppValueArray(String aValue) {
+		return aValue.split("_");
+	}
+	
+	/*
+	 * Set the widths of the label and the value
+	 * Appearance is:  pdflabelw_## where ## is a number from 0 to 10
+	 */
+	private static void setWidths(String aValue, DisplayItem di) {
+
+		String [] parts = aValue.split("_");
+		if(parts.length >= 2) {
+			di.widthLabel = Integer.valueOf(parts[1]);   		
+		}
+
+		// Do bounds checking
+		if(di.widthLabel < 0 || di.widthLabel > 10) {
+			di.widthLabel = 5;		
+		}
+	}
+	
+	/*
+	 * Set the height of the value
+	 * Appearance is:  pdfheight_## where ## is the height
+	 */
+	private static void setHeight(String aValue, DisplayItem di) {
+
+		String [] parts = aValue.split("_");
+		if(parts.length >= 2) {
+			di.valueHeight = Double.valueOf(parts[1]);   		
+		}
+
+	}
+
+	/*
+	 * Set space before this item
+	 * Appearance is:  pdfheight_## where ## is the height
+	 */
+	private static void setSpace(String aValue, DisplayItem di) {
+
+		String [] parts = aValue.split("_");
+		if(parts.length >= 2) {
+			di.space = Integer.valueOf(parts[1]);   		
+		}
+
+	}
 }
