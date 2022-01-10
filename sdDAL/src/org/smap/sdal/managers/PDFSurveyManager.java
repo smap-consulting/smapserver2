@@ -671,7 +671,7 @@ public class PDFSurveyManager {
 					width = rect.getWidth();
 					height = rect.getHeight();
 				}
-				PdfMapValues mapValues = getMapValues(di);
+				PdfMapValues mapValues = PdfUtilities.getMapValues(survey, di);
 				TrafficLightValues tlValues = getTrafficLightValues(di);
 				PreparedStatement pstmt = null;
 				try {
@@ -1437,26 +1437,6 @@ public class PDFSurveyManager {
 	}
 	
 	/*
-	 * Get an array of values for the specified question in the survey
-	 * There will only be more than one value if the question is in a repeat
-	 */
-	ArrayList<String> lookupInSurvey(String qname, ArrayList<ArrayList<Result>> records) {
-		ArrayList<String> values = new ArrayList<>();
-		if(qname != null && records != null && records.size() > 0) {
-			for(ArrayList<Result> r : records) {
-				for(Result result : r) {
-					if(result.subForm == null && result.name.equals(qname)) {
-						values.add(result.value != null ? result.value : "");
-					} else if(result.subForm != null) {
-						values.addAll(lookupInSurvey(qname, result.subForm));
-					}
-				}		
-			}
-		}
-		return values;
-	}
-	
-	/*
 	 * Get an array of values for the specified group of questions in the survey
 	 * There will only be more than one value if the question is in a repeat
 	 * Note colors are primary and will determine the number of bulbs that are returned
@@ -1471,7 +1451,7 @@ public class PDFSurveyManager {
 					if(result.subForm == null && result.name.equals(qGroup.color)) {
 						colors.add(result.value != null ? result.value : "");
 					} else if(result.subForm != null) {
-						colors.addAll(lookupInSurvey(qGroup.color, result.subForm));
+						colors.addAll(PdfUtilities.lookupInSurvey(qGroup.color, result.subForm));
 					}
 				}		
 			}
@@ -1484,7 +1464,7 @@ public class PDFSurveyManager {
 						if(result.subForm == null && result.name.equals(qGroup.cross)) {
 							crosses.add(result.value != null ? result.value : "");
 						} else if(result.subForm != null) {
-							crosses.addAll(lookupInSurvey(qGroup.cross, result.subForm));
+							crosses.addAll(PdfUtilities.lookupInSurvey(qGroup.cross, result.subForm));
 						}
 					}		
 				}
@@ -1498,7 +1478,7 @@ public class PDFSurveyManager {
 						if(result.subForm == null && result.name.equals(qGroup.label)) {
 							labels.add(result.value != null ? result.value : "");
 						} else if(result.subForm != null) {
-							labels.addAll(lookupInSurvey(qGroup.label, result.subForm));
+							labels.addAll(PdfUtilities.lookupInSurvey(qGroup.label, result.subForm));
 						}
 					}		
 				}
@@ -1813,7 +1793,7 @@ public class PDFSurveyManager {
 		} else if(di.type.equals("pdf_field") && di.linemap != null) { 
 			
 			PreparedStatement pstmt = null;
-			PdfMapValues mapValues = getMapValues(di);	
+			PdfMapValues mapValues = PdfUtilities.getMapValues(survey, di);	
 			TrafficLightValues tlValues = getTrafficLightValues(di);
 			try {
 				pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
@@ -1964,34 +1944,6 @@ public class PDFSurveyManager {
 			}
 			valueCell.addElement(getPara(value, di, gv, deps, null));
 		}
-	}
-
-	/*
-	 * Extract the compound map values from the display item specification
-	 */
-	private PdfMapValues getMapValues(DisplayItem di) {
-		PdfMapValues mapValues = new PdfMapValues();
-		
-		// Start point
-		ArrayList<String> startValues = lookupInSurvey(di.linemap.startPoint, survey.instance.results);
-		if(startValues.size() > 0) {
-			mapValues.startLine = startValues.get(0);
-		}
-
-		// End point
-		ArrayList<String> endValues = lookupInSurvey(di.linemap.endPoint, survey.instance.results);
-		if(endValues.size() > 0) {
-			mapValues.endLine = endValues.get(0);
-		}
-		
-		if(di.linemap.markers.size() > 0) {
-			mapValues.markers = new ArrayList<String> ();
-			for(String markerName : di.linemap.markers) {
-				mapValues.markers.addAll(lookupInSurvey(markerName, survey.instance.results));
-			}		
-		}
-		
-		return mapValues;
 	}
 	
 	/*

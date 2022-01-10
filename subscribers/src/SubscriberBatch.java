@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -70,6 +71,7 @@ import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.PdfMapValues;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.Result;
@@ -726,7 +728,7 @@ public class SubscriberBatch {
 		}
 	}
 	
-	private void setCompoundWidgetValues(Connection sd, ArrayList<Result> record, Survey survey) {
+	private void setCompoundWidgetValues(Connection sd, ArrayList<Result> record, Survey survey) throws SQLException {
 		for(Result r : record) {
 			if(r.type.equals("form")) {
 				for(int k = 0; k < r.subForm.size(); k++) {
@@ -740,6 +742,20 @@ public class SubscriberBatch {
 					PdfUtilities.setQuestionFormats(question.appearance, di);
 				} catch (Exception e) {
 					// If we can't get the question details for this data then that is ok
+				}
+				
+				if(r.type.equals("pdf_field") && di.linemap != null) {
+					PdfMapValues mapValues = PdfUtilities.getMapValues(survey, di);
+					PreparedStatement pstmt = null;
+					try {
+						pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
+						PdfUtilities.sequenceMarkers(pstmt, mapValues);		// Put markers in sequence increasing from start
+					} finally {
+						 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
+					}
+					if((mapValues.hasLine())) {
+						System.out.println("Geometry: " + mapValues.getLineGeometryWithMarkers(-1));
+					}
 				}
 			}
 		}

@@ -971,4 +971,52 @@ public class PdfUtilities {
 		}
 
 	}
+	
+	/*
+	 * Extract the compound map values from the display item specification
+	 */
+	public static PdfMapValues getMapValues(Survey survey, DisplayItem di) {
+		PdfMapValues mapValues = new PdfMapValues();
+		
+		// Start point
+		ArrayList<String> startValues = lookupInSurvey(di.linemap.startPoint, survey.instance.results);
+		if(startValues.size() > 0) {
+			mapValues.startLine = startValues.get(0);
+		}
+
+		// End point
+		ArrayList<String> endValues = lookupInSurvey(di.linemap.endPoint, survey.instance.results);
+		if(endValues.size() > 0) {
+			mapValues.endLine = endValues.get(0);
+		}
+		
+		if(di.linemap.markers.size() > 0) {
+			mapValues.markers = new ArrayList<String> ();
+			for(String markerName : di.linemap.markers) {
+				mapValues.markers.addAll(lookupInSurvey(markerName, survey.instance.results));
+			}		
+		}
+		
+		return mapValues;
+	}
+	
+	/*
+	 * Get an array of values for the specified question in the survey
+	 * There will only be more than one value if the question is in a repeat
+	 */
+	public static ArrayList<String> lookupInSurvey(String qname, ArrayList<ArrayList<Result>> records) {
+		ArrayList<String> values = new ArrayList<>();
+		if(qname != null && records != null && records.size() > 0) {
+			for(ArrayList<Result> r : records) {
+				for(Result result : r) {
+					if(result.subForm == null && result.name.equals(qname)) {
+						values.add(result.value != null ? result.value : "");
+					} else if(result.subForm != null) {
+						values.addAll(lookupInSurvey(qname, result.subForm));
+					}
+				}		
+			}
+		}
+		return values;
+	}
 }
