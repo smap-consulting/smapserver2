@@ -69,6 +69,7 @@ import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.ReportConfig;
+import org.smap.sdal.model.Result;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
@@ -405,6 +406,8 @@ public class SubscriberBatch {
 								ArrayList<String> compoundQuestions = GeneralUtilityMethods.getCompoundQuestions(dbc.sd, sdalSurvey.id);
 								if(compoundQuestions.size() > 0) {
 									System.out.println("####################### Compound");
+									SurveyManager sm = new SurveyManager(localisation, "UTC");
+									processCompoundWidgets(dbc.sd, dbc.results, sm, sdalSurvey.id, basePath, ue.getInstanceId());
 								}
 								
 								/*
@@ -643,7 +646,7 @@ public class SubscriberBatch {
 						if(!haveSyncNotifications) {
 							log.info("=== No enabled synchronisation notifications");
 						}
-					} finally {
+				} finally {
 						if(pstmtNot != null) {try {pstmtNot.close();} catch(Exception e) {}}
 						if(pstmtRecord != null) {try {pstmtRecord.close();} catch(Exception e) {}}
 						if(pstmtMarkDone != null) {try {pstmtMarkDone.close();} catch(Exception e) {}}
@@ -689,6 +692,42 @@ public class SubscriberBatch {
 
 	}
 
+	private void processCompoundWidgets(Connection sd, Connection cResults, SurveyManager sm, int sId, 
+			String basePath, String instanceId) throws SQLException, Exception {
+		
+		Survey survey = sm.getById(
+				sd, 
+				cResults, 
+				null,	// Anonymous user 
+				false,	// Not necessarily temporary user
+				sId, 
+				true, 
+				basePath, 
+				instanceId, 
+				true, 			// get results
+				false, 			// Don't generate a blank
+				true, 
+				false, 
+				true, 
+				"real", 
+				false, 
+				false, 
+				false,		// not super user 
+				"geojson",
+				false,
+				false,
+				false);	       // Don't merge set values into default value	
+		
+		for(int i = 0; i < survey.instance.results.size(); i++) {
+			setCompoundWidgetValues(survey.instance.results.get(i));
+		}
+	}
+	
+	private void setCompoundWidgetValues(ArrayList<Result> record) {
+		for(Result r : record) {
+			System.out.println(r.type);
+		}
+	}
 	/*
 	 * Erase deleted templates more than a specified number of days old
 	 */
