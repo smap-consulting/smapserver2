@@ -304,7 +304,7 @@ public class GetHtml {
 			if (!q.inMeta && !q.name.equals("meta_groupEnd") && !q.isPreload() 
 					&& !q.type.equals("calculate")
 					&& !q.type.equals("server_calculate")
-					&& !q.type.equals("pdf_field")
+					&& !(q.type.equals("pdf_field") && !q.source.equals("user"))
 					&& !q.type.equals("chart")) {	// Charts not supported in webforms
 				if (q.type.equals("end group")) {
 

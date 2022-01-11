@@ -753,7 +753,7 @@ public class SubscriberBatch {
 						 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
 					}
 					if((mapValues.hasLine())) {
-						createLinestringColumn(results, form.tableName, question.columnName);
+						createLinestringColumn(sd, results, form.tableName, question.columnName, form.id);
 						writeLinestringColumn(results, form.tableName, question.columnName, mapValues.getLineGeometryWithMarkers(-1), prikey);
 					}
 				}
@@ -765,22 +765,34 @@ public class SubscriberBatch {
 	/*
 	 * Create a linestring column for the path in a pdf_field
 	 */
-	private void createLinestringColumn(Connection results, String tableName, String columnName) throws SQLException {
+	private void createLinestringColumn(Connection sd, Connection results, String tableName, String columnName, int fId) throws SQLException {
 		String sql = "select AddGeometryColumn('" + tableName + 
 				"', '" + columnName + "', 4326, 'LINESTRING', 2)";
 		if(!GeneralUtilityMethods.hasColumn(results, tableName, columnName)) {
 			PreparedStatement pstmt = null;
+			PreparedStatement pstmtReady = null;
 			try {
 				pstmt = results.prepareStatement(sql);
 				pstmt.executeQuery();
+				
+				String sqlReady = "update question "
+						+ "set source = 'user', published = true "
+						+ "where column_name = ? "
+						+ "and f_id in select f_id ";
+				pstmtReady = sd.prepareStatement(sqlReady);
+				pstmtReady.setString(1, columnName);
+				pstmtReady.setInt(2, fId);
+				pstmtReady.executeUpdate();
+						
 			} finally {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
+				try {if (pstmtReady != null) {pstmtReady.close();}} catch (SQLException e) {}	
 			}
 		}
 	}
 	
 	/*
-	 * Create a linestring column for the path in a pdf_field
+	 * Write the path to a geometry column
 	 */
 	private void writeLinestringColumn(Connection results, String tableName, String columnName, String value, int prikey) throws SQLException {
 		String sql = "update " + tableName + 
