@@ -1510,7 +1510,7 @@ public class SubRelationalDB extends Subscriber {
 					}		
 				}
 			} else if(colType.equals("geopolygon") || colType.equals("geolinestring") || colType.equals("geopoint")
-					|| colType.equals("geoshape") || colType.equals("geotrace")) {
+					|| colType.equals("geoshape") || colType.equals("geotrace") || colType.equals("pdf_field")) {
 				sql.append(",").append(col.getColumnName());
 				if(colType.equals("geopoint") && GeneralUtilityMethods.hasColumn(cResults, tableName, col.getColumnName() + "_alt")) {
 					// Geopoint also has altitude and accuracy
@@ -1701,7 +1701,7 @@ public class SubRelationalDB extends Subscriber {
 								mediaChanges) + "'";		
 
 					}
-				} else if(qType.equals("geoshape") || qType.equals("geotrace")) {
+				} else if(qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("pdf_field")) {
 					/*
 					 * ODK polygon / linestring
 					 * The coordinates are in a String separated by ;
@@ -1711,7 +1711,7 @@ public class SubRelationalDB extends Subscriber {
 					 */
 					int min_points = 3;
 					StringBuffer ptString = null;
-					if(qType.equals("geotrace")) {
+					if(qType.equals("geotrace") || qType.equals("pdf_field")) {
 						min_points = 2;
 					}
 

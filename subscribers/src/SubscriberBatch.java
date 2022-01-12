@@ -797,7 +797,8 @@ public class SubscriberBatch {
 	private void writeLinestringColumn(Connection results, String tableName, String columnName, String value, int prikey) throws SQLException {
 		String sql = "update " + tableName + 
 						" set " + columnName + " = ST_GeomFromGeoJSON(?) "
-						+ "where prikey = ?";
+						+ "where prikey = ? "
+						+ "and " + columnName + " is null";
 		
 		PreparedStatement pstmt = null;
 		try {

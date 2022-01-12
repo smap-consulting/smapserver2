@@ -2120,13 +2120,13 @@ public class GetXForm {
 			// Set the value from the instance data
 			String value = "";
 			if(instance != null) {
-				if(qType.equals("geopoint")  || qType.equals("geoshape") || qType.equals("geotrace")) {
+				if(qType.equals("geopoint")  || qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("pdf_field")) {
 
 					if(qType.equals("geopoint") && instance.point_geometry != null) {		
 						value = instance.point_geometry.getAsOdk();
 					} else if(qType.equals("geoshape") && instance.polygon_geometry != null) {
 						value = GeneralUtilityMethods.getOdkPolygon(instance.polygon_geometry);
-					} else if(qType.equals("geotrace") && instance.line_geometry != null) {
+					} else if((qType.equals("geotrace") || qType.equals("pdf_field")) && instance.line_geometry != null) {
 						value = GeneralUtilityMethods.getOdkLine(instance.line_geometry);
 					}
 					
@@ -2426,7 +2426,7 @@ public class GetXForm {
 					if (q.getSource() != null) { // Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
 
 						String qType = q.getType();
-						if (qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace")) {
+						if (qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("pdf_field")) {
 							col = "ST_AsGeoJson(" + q.getColumnName(isReference) + ")";
 							if(qType.equals("geopoint")) {
 								hasPoint = true;
@@ -2643,7 +2643,7 @@ public class GetXForm {
 					} else if (value != null && qType.equals("geoshape")) {
 						Polygon p = gson.fromJson(value, Polygon.class);
 						value = GeneralUtilityMethods.getOdkPolygon(p);
-					} else if (value != null && qType.equals("geotrace")) {
+					} else if (value != null && (qType.equals("geotrace") || qType.equals("pdf_field"))) {
 						Line l = gson.fromJson(value, Line.class);
 						value = GeneralUtilityMethods.getOdkLine(l);
 					}
