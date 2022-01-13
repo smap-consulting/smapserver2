@@ -778,7 +778,7 @@ public class SubscriberBatch {
 				String sqlReady = "update question "
 						+ "set source = 'user', published = true "
 						+ "where column_name = ? "
-						+ "and f_id in select f_id ";
+						+ "and f_id = ?";
 				pstmtReady = sd.prepareStatement(sqlReady);
 				pstmtReady.setString(1, columnName);
 				pstmtReady.setInt(2, fId);

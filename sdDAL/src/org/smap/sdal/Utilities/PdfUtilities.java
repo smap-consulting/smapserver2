@@ -528,7 +528,7 @@ public class PdfUtilities {
 		
 		// Add the Geom if it is not null
 		boolean addedGeom = false;
-		if(mapValues.geometry != null) {
+		if(mapValues.geometry != null && mapValues.geometry.trim().length() > 0) {
 			if(markerColor == null) {
 				markerColor = "f00";
 			}
@@ -546,10 +546,11 @@ public class PdfUtilities {
 		if(mapValues.hasLine()) {
 			if(addedGeom) {			// line
 				out.append(",");
+			} else {
+				out.append(addGeoJsonFeature(mapValues.getLineGeometryWithMarkers(-1), "00f", null));	// only add the line from the markers if a geometry is not available
+				out.append(",");
 			}
-			out.append(addGeoJsonFeature(mapValues.getLineGeometryWithMarkers(-1), "00f", null));
-				
-			out.append(",");
+			
 			out.append(addGeoJsonFeature(mapValues.startLine, "f0f", "1"));
 			out.append(",");
 			out.append(addGeoJsonFeature(mapValues.endLine, "f0f", "2"));

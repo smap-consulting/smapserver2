@@ -672,6 +672,7 @@ public class PDFSurveyManager {
 					height = rect.getHeight();
 				}
 				PdfMapValues mapValues = PdfUtilities.getMapValues(survey, di);
+				mapValues.geometry = r.value;
 				TrafficLightValues tlValues = getTrafficLightValues(di);
 				PreparedStatement pstmt = null;
 				try {
@@ -1794,6 +1795,7 @@ public class PDFSurveyManager {
 			
 			PreparedStatement pstmt = null;
 			PdfMapValues mapValues = PdfUtilities.getMapValues(survey, di);	
+			mapValues.geometry = di.value;
 			TrafficLightValues tlValues = getTrafficLightValues(di);
 			try {
 				pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances

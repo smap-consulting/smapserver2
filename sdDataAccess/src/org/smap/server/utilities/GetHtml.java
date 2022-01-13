@@ -302,10 +302,14 @@ public class GetHtml {
 			}
 
 			if (!q.inMeta && !q.name.equals("meta_groupEnd") && !q.isPreload() 
-					&& !q.type.equals("calculate")
+					&& !q.type.equals("calculate")		// Calculates are pricessed seperate from questions for webforms
 					&& !q.type.equals("server_calculate")
-					&& !(q.type.equals("pdf_field") && !q.source.equals("user"))
 					&& !q.type.equals("chart")) {	// Charts not supported in webforms
+				
+				if(q.type.equals("pdf_field") && q.source == null) {
+					continue;
+				}
+				
 				if (q.type.equals("end group")) {
 
 					currentParent = elementStack.pop();

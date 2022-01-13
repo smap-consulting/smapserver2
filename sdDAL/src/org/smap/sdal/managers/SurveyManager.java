@@ -2722,7 +2722,8 @@ public class SurveyManager {
 						// This question is not a place holder for a subform
 						if(q.source != null || q.type.equals("server_calculate") || q.type.equals("pdf_field")) {		// Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
 							String qType = q.type;
-							if(qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace") || q.name.startsWith("geopolygon_") || q.name.startsWith("geolinestring_")) {
+							if(qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace") 
+									|| (qType.equals("pdf_field") && q.source != null) || q.name.startsWith("geopolygon_") || q.name.startsWith("geolinestring_")) {
 
 								col = "ST_AsGeoJSON(" + q.columnName + ")";
 
@@ -2744,7 +2745,7 @@ public class SurveyManager {
 									col = new StringBuffer("").append("'' as ").append(q.columnName).toString();	// No value
 								} 
 							} else if(qType.equals("pdf_field")) { 
-								col = new StringBuffer("").append("'' as ").append(q.columnName).toString();	// No value for pdf fields
+								col = new StringBuffer("").append("'' as ").append(q.columnName).toString();	// No value for pdf fields that have no source (legacy ones)
 							} 
 							else {
 								col = q.columnName;

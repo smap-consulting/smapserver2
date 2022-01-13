@@ -20,7 +20,7 @@ public class PdfMapValues {
 	public ArrayList<DistanceMarker> orderedMarkers;	// Markers converted into the sequence for use in a line
 
 	public boolean hasGeometry() {
-		return geometry != null || startGeometry != null;
+		return (geometry != null && geometry.trim().length() > 0) || (startGeometry != null && startGeometry.trim().length() > 0);
 	}
 	
 	public boolean hasLine() {
