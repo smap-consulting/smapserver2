@@ -65,6 +65,8 @@ public class BackgroundReportSvc extends Application {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.VIEW_OWN_DATA);
 		a = new Authorise(authorisations, null);		
 	}
 
@@ -76,7 +78,7 @@ public class BackgroundReportSvc extends Application {
 			@QueryParam("tz") String tz) { 
 		
 		ArrayList<BackgroundReport> reports = new ArrayList<>();
-		String requestName = "surveyKPI - Create Background Report";
+		String requestName = "surveyKPI - Get Background Reports";
 		Response response = null;
 		ResourceBundle localisation = null;
 		
