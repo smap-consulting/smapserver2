@@ -471,3 +471,5 @@ CREATE TABLE survey_template (
 	updated_time TIMESTAMP WITH TIME ZONE		-- Time and date of change
 	);
 ALTER TABLE survey_template OWNER TO ws;
+
+Alter table survey_template add column rule text;

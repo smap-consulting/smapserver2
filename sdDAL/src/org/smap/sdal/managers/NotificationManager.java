@@ -589,7 +589,6 @@ public class NotificationManager {
 				String remoteUser = rsNotifications.getString(4);
 				String remotePassword = rsNotifications.getString(5);
 				NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
-
 				
 				/*
 				 * Get survey details
@@ -618,7 +617,7 @@ public class NotificationManager {
 				boolean proceed = true;
 				if(filter != null && filter.trim().length() > 0) {
 					try {
-						proceed = GeneralUtilityMethods.testFilter(sd, cResults, submittingUser, localisation, survey, filter, instanceId, tz, "Notifications");
+						proceed = GeneralUtilityMethods.testFilter(sd, cResults, submittingUser, localisation, survey, filter, instanceId, tz, "PdfTemplate Selection");
 					} catch(Exception e) {
 						String msg = e.getMessage();
 						if(msg == null) {
@@ -633,9 +632,14 @@ public class NotificationManager {
 				}
 				
 				if(!proceed) {
-					log.info("Notification not sent");
+					log.info("Notification not sent because of filter rule: " + filter);
 				} else {
 		
+					if(nd.attach != null && nd.attach.equals("pdf")) {
+						// Get the id of a PDF template that matches the template rules or set it to 0
+						nd.pdfTemplateId = GeneralUtilityMethods.testForPdfTemplate(sd, cResults, localisation, survey, submittingUser,
+								instanceId, tz);
+					}
 					SubmissionMessage subMsg = new SubmissionMessage(
 							0,				// Task Id - ignore, only relevant for a reminder
 							ident,			// Survey Ident
@@ -659,7 +663,8 @@ public class NotificationManager {
 							basePath,
 							nd.callback_url,
 							remoteUser,
-							remotePassword);
+							remotePassword,
+							nd.pdfTemplateId);
 					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
 					
 					lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
@@ -815,7 +820,7 @@ public class NotificationManager {
 								urlprefix,
 								msg.user,
 								"none", 
-								0,					// Get default template if it exists
+								msg.pdfTemplateId,
 								generateBlank,
 								null,
 								landscape,

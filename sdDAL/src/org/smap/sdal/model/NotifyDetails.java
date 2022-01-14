@@ -16,5 +16,6 @@ public class NotifyDetails {
 	public boolean include_references;
 	public boolean launched_only;
 	public String callback_url;
+	public int pdfTemplateId;
 
 }

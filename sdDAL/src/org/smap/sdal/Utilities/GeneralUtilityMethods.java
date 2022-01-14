@@ -444,6 +444,42 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * Get the first template whose rule matches
+	 */
+	static public int testForPdfTemplate(Connection sd, Connection cResults, 
+			ResourceBundle localisation, 
+			Survey survey, 
+			String user,
+			String instanceId,
+			String tz) throws Exception {
+		
+		String sql = "select t_id, rule "
+				+ "from survey_template "
+				+ "where ident = ? "
+				+ "and rule is not null";
+		
+		PreparedStatement pstmt = null;		
+		int t_id = 0;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, survey.ident);
+			
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				int id = rs.getInt(1);
+				if(GeneralUtilityMethods.testFilter(sd, cResults, user, localisation, survey, rs.getString(2), instanceId, tz, "Notifications")) {
+					t_id = id;		// Use this template
+					break;
+				}
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}		
+		return t_id;
+	}
+	
+	/*
 	 * Get the PDF Template File
 	 * If the template id is < 0 then return null as no template is to be used
 	 * else if the templateId is > 0 get that template id
@@ -461,6 +497,7 @@ public class GeneralUtilityMethods {
 				String sql = "select filepath "
 						+ "from survey_template "
 						+ "where t_id = ?";
+				
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, templateId);
 				ResultSet rs = pstmt.executeQuery();
@@ -479,7 +516,7 @@ public class GeneralUtilityMethods {
 				if(rs.next()) {
 					templateFile = new File(rs.getString(1));
 				}
-				if(templateFile == null || !templateFile.exists()) {  // legacy templates
+				if(templateFile == null || !templateFile.exists()) {  // Try legacy templates
 					
 					if(displayName != null) {
 						String templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName)
@@ -494,6 +531,13 @@ public class GeneralUtilityMethods {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
+		/*
+		 * Check that the template file exists
+		 */
+		if(templateFile != null && !templateFile.exists()) {
+			templateFile = null;
+		}
+		
 		return templateFile;
 	}
 

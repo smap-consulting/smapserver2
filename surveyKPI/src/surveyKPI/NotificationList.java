@@ -581,7 +581,9 @@ public class NotificationList extends Application {
 					basePath,
 					nd.callback_url,
 					n.remote_user,
-					n.remote_password);
+					n.remote_password,
+					0			// Use default pdfTemplateId TODO make this selectable
+					);
 			MessagingManager mm = new MessagingManager(localisation);
 			mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
 			
