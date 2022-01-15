@@ -66,6 +66,7 @@ import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
+import org.smap.sdal.model.LineMap;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Notification;
@@ -753,42 +754,54 @@ public class SubscriberBatch {
 						 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
 					}
 					if((mapValues.hasLine())) {
-						createLinestringColumn(sd, results, form.tableName, question.columnName, form.id);
-						writeLinestringColumn(results, form.tableName, question.columnName, mapValues.getLineGeometryWithMarkers(-1), prikey);
+						/*
+						 * The column name for compound data is based on the questions that make up that data
+						 */
+						String columnName = di.linemap.getCompoundColumnName();
+						createLinestringColumn(sd, results, form.tableName, question.name, columnName, form.id);
+						writeLinestringColumn(results, form.tableName, columnName, mapValues.getLineGeometryWithMarkers(-1), prikey);
 					}
 				}
 			}
 		}
 	}
 	
-
 	/*
 	 * Create a linestring column for the path in a pdf_field
 	 */
-	private void createLinestringColumn(Connection sd, Connection results, String tableName, String columnName, int fId) throws SQLException {
+	private void createLinestringColumn(Connection sd, Connection results, String tableName, String qName, String columnName, int fId) throws SQLException {
+		
 		String sql = "select AddGeometryColumn('" + tableName + 
 				"', '" + columnName + "', 4326, 'LINESTRING', 2)";
-		if(!GeneralUtilityMethods.hasColumn(results, tableName, columnName)) {
-			PreparedStatement pstmt = null;
-			PreparedStatement pstmtReady = null;
+		
+		PreparedStatement pstmtReady = null;
+		PreparedStatement pstmt = null;
+		
+
 			try {
-				pstmt = results.prepareStatement(sql);
-				pstmt.executeQuery();
+				if(!GeneralUtilityMethods.hasColumn(results, tableName, columnName)) {
+					pstmt = results.prepareStatement(sql);
+					log.info(pstmt.toString());
+					pstmt.executeQuery();
+				}
 				
+				// Always update the question as this question may share the created column with another question
 				String sqlReady = "update question "
-						+ "set source = 'user', published = true "
-						+ "where column_name = ? "
+						+ "set source = 'user', published = true, column_name = ? "
+						+ "where qname = ? "
 						+ "and f_id = ?";
+				
 				pstmtReady = sd.prepareStatement(sqlReady);
 				pstmtReady.setString(1, columnName);
-				pstmtReady.setInt(2, fId);
+				pstmtReady.setString(2, qName);
+				pstmtReady.setInt(3, fId);
 				pstmtReady.executeUpdate();
 						
 			} finally {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
 				try {if (pstmtReady != null) {pstmtReady.close();}} catch (SQLException e) {}	
 			}
-		}
+
 	}
 	
 	/*
