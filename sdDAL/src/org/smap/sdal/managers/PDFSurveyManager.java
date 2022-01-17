@@ -330,7 +330,7 @@ public class PDFSurveyManager {
 			languageIdx = GeneralUtilityMethods.getLanguageIdx(survey, language);
 			if(templateFile != null && templateFile.exists()) {
 
-				log.info("PDF Template Exists");
+				log.info("PDF Template Exists: " + templateFile.getAbsolutePath());
 				String templateName = templateFile.getAbsolutePath();
 
 				reader = new PdfReader(templateName);
