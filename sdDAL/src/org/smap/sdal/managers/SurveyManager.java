@@ -519,6 +519,7 @@ public class SurveyManager {
 				
 				
 				// Get the pdf template  - deprecate
+				/*
 				File templateFile = GeneralUtilityMethods.getPdfTemplate(sd, basePath, s.displayName, s.p_id, 0, s.ident);
 				if(templateFile.exists()) {
 					String newName = resultSet.getString("pdf_template");
@@ -528,6 +529,7 @@ public class SurveyManager {
 						s.pdfTemplateName = templateFile.getName();
 					}
 				}
+				*/
 				s.default_logo = resultSet.getString("default_logo");
 				
 			} else {
@@ -4862,7 +4864,7 @@ public class SurveyManager {
 		
 
 		
-		String sqlTemplates = "select t_id, name, not_available, default_template "
+		String sqlTemplates = "select t_id, name, not_available, default_template, rule "
 				+ "from survey_template "
 				+ "where ident = ? ";
 		String sqlTemplates3 = "order by t_id desc";
@@ -4920,6 +4922,7 @@ public class SurveyManager {
 				t.name = rs.getString("name");
 				t.not_available = rs.getBoolean("not_available");
 				t.default_template = rs.getBoolean("default_template");
+				t.rule = rs.getString("rule");
 				templates.add(t);
 			}
 			

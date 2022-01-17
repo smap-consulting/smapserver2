@@ -1443,10 +1443,12 @@ public class Surveys extends Application {
 		 */
 		String col = null;
 		boolean value = false;
-		if(tp.property.equals("not_available") || tp.property.equals("default_template")) {
+		if(tp.property.equals("not_available") || tp.property.equals("default_template")
+				|| tp.property.equals("rule")) {
+			
 			col = tp.property;
 			
-			if(tp.value != null) {
+			if(tp.value != null && (tp.property.equals("not_available") || tp.property.equals("default_template"))) {
 				if(tp.value.toLowerCase().equals("true") || tp.value.equals("1") || tp.value.toLowerCase().equals("yes")) {
 					value = true;
 				}
@@ -1481,7 +1483,11 @@ public class Surveys extends Application {
 				
 				int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 				pstmt = sd.prepareStatement(sql);
-				pstmt.setBoolean(1,  value);
+				if(tp.property.equals("not_available") || tp.property.equals("default_template")) {
+					pstmt.setBoolean(1,  value);
+				} else {
+					pstmt.setString(1,  tp.value);
+				}
 				pstmt.setInt(2, uId);
 				pstmt.setInt(3,  tp.id);
 				log.info("Update pdf template property: " + pstmt.toString());
