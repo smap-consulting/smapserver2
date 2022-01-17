@@ -787,7 +787,7 @@ public class SubscriberBatch {
 				
 				// Always update the question as this question may share the created column with another question
 				String sqlReady = "update question "
-						+ "set source = 'user', published = true, column_name = ? "
+						+ "set column_name = ? "
 						+ "where qname = ? "
 						+ "and f_id = ?";
 				
