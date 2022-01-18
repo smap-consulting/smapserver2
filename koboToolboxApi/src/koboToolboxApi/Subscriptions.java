@@ -120,8 +120,8 @@ public class Subscriptions extends Application {
 				SubItemDt item = new SubItemDt();
 
 				item.id = rs.getInt("id");
-				item.email = rs.getString("email");
-				item.name = rs.getString("name");
+				item.email = GeneralUtilityMethods.getSafeText(rs.getString("email"), dt);
+				item.name = GeneralUtilityMethods.getSafeText(rs.getString("name"), dt);
 				if(item.name == null) {
 					item.name = "";
 				}

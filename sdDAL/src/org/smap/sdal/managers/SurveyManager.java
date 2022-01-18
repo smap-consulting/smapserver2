@@ -4886,27 +4886,6 @@ public class SurveyManager {
 				t.fromSettings = true;
 				templates.add(t);
 			}
-
-/*			ResultSet rs = pstmt.executeQuery();
-//			if(rs.next()) {
-			
-				t.name = rs.getString("pdf_template");
-				if(t.name != null && t.name.trim().length() > 0) {
-					t.fromSettings = true;
-									
-					String fileName = GeneralUtilityMethods.getSafeTemplateName(t.name);
-				
-					int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
-					int pId = GeneralUtilityMethods.getProjectId(sd, sId);
-					String folderPath = basePath + "/templates/" + pId ;						
-					String filePath = folderPath + "/" + fileName;
-
-				    t.filepath = filePath;
-					templates.add(t);
-				}
-//			}
- * 
- */
 			
 			/*
 			 * Get other templates

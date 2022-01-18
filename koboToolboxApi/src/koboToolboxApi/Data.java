@@ -850,7 +850,7 @@ public class Data extends Application {
 							mergeSelectMultiple,
 							isGeoJson,
 							geomQuestion,
-							incLinks	,
+							incLinks,
 							sIdent,
 							viewOwnDataOnly
 							);

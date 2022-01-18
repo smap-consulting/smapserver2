@@ -54,6 +54,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.apache.commons.text.StringEscapeUtils;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.CsvTableManager;
@@ -456,7 +457,8 @@ public class GeneralUtilityMethods {
 		String sql = "select t_id, rule "
 				+ "from survey_template "
 				+ "where ident = ? "
-				+ "and rule is not null";
+				+ "and rule is not null "
+				+ "and not_available = 'false' ";
 		
 		PreparedStatement pstmt = null;		
 		int t_id = 0;
@@ -10200,6 +10202,20 @@ public class GeneralUtilityMethods {
 			}
 		}
 		return out;
+	}
+	
+	/*
+	 * Get a safe text value, escape html if this is destined for data tables
+	 */
+	public static String getSafeText(String input, boolean isDt) {
+		if(input == null) {
+			input = "";
+		}
+		if(isDt) {
+			return StringEscapeUtils.escapeHtml4(input);
+		} else {
+			return input;
+		}
 	}
 	
 	private static int getManifestParamStart(String property) {

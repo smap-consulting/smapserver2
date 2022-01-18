@@ -211,7 +211,7 @@ public class MailoutApi extends Application {
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			MailoutManager mm = new MailoutManager(localisation);
-			data = mm.getMailoutPeople(sd, mailoutId, oId);				
+			data = mm.getMailoutPeople(sd, mailoutId, oId, dt);				
 			
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			

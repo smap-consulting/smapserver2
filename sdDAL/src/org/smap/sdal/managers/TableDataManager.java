@@ -577,7 +577,7 @@ public class TableDataManager {
 
 					if (c.type != null && c.type.equals("select1") && c.selectDisplayNames) {
 						// Convert value to display name
-						value = getSafeText(rs.getString(i + 1), isDt);
+						value = GeneralUtilityMethods.getSafeText(rs.getString(i + 1), isDt);
 						for(KeyValue kv: c.choices) {
 							if(kv.k.equals(value)) {
 								value = kv.v;
@@ -643,7 +643,7 @@ public class TableDataManager {
 							if(c.type.equals(SmapQuestionTypes.AUDIT)) {
 								jf.put(name, jsonAudit.get(name));
 							} else {
-								jf.put(name, getSafeText(value, isDt));
+								jf.put(name, GeneralUtilityMethods.getSafeText(value, isDt));
 							}
 						}
 					}
@@ -829,20 +829,6 @@ public class TableDataManager {
 			}
 		}
 		return type;
-	}
-	
-	/*
-	 * Get a safe text value, escape html if this is destined for data tables
-	 */
-	private String getSafeText(String input, boolean isDt) {
-		if(input == null) {
-			input = "";
-		}
-		if(isDt) {
-			return StringEscapeUtils.escapeHtml4(input);
-		} else {
-			return input;
-		}
 	}
 
 }

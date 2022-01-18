@@ -202,7 +202,7 @@ public class PDFSurveyManager {
 			boolean landscape,					// Set true if landscape
 			HttpServletResponse response) throws Exception {
 
-		if(language != null) {
+ 		if(language != null) {
 			language = language.replace("'", "''");	// Escape apostrophes
 		} else {
 			language = "none";

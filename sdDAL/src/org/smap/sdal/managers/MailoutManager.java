@@ -239,7 +239,7 @@ public class MailoutManager {
 	/*
 	 * Get People in a mailout
 	 */
-	public ArrayList<MailoutPerson> getMailoutPeople(Connection sd, int mailoutId, int oId) throws SQLException {
+	public ArrayList<MailoutPerson> getMailoutPeople(Connection sd, int mailoutId, int oId, boolean isDt) throws SQLException {
 		
 		ArrayList<MailoutPerson> mpList = new ArrayList<> ();
 		
@@ -278,8 +278,8 @@ public class MailoutManager {
 			while(rs.next()) {
 				MailoutPerson mp = new MailoutPerson(
 						rs.getInt("id"),
-						rs.getString("email"), 
-						rs.getString("name"),
+						GeneralUtilityMethods.getSafeText(rs.getString("email"), isDt),
+						GeneralUtilityMethods.getSafeText(rs.getString("name"), isDt),
 						rs.getString("status"),
 						rs.getString("status_details"),
 						rs.getString("link"),
