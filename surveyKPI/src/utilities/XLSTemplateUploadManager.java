@@ -1773,6 +1773,8 @@ public class XLSTemplateUploadManager {
 			out = "geopoint";
 		} else if (type.equals("geotrace")) {
 			out = "geotrace";
+		} else if (type.equals("geocompound")) {
+			out = "geocompound";
 		} else if (type.equals("geoshape")) {
 			out = "geoshape";
 		} else if (type.equals("date")) {
