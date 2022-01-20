@@ -562,6 +562,18 @@ public class PdfUtilities {
 				}
 			}
 		}
+		if(mapValues.geoCompound) {
+			// Add the distance markers submitted from the compound widget
+			int pitCount = 1;
+			for(DistanceMarker marker : mapValues.orderedMarkers) {
+				out.append(",");
+				if(marker.properties.get("type").equals("fault")) {
+					out.append(addGeoJsonFeature(marker.marker, "0ff", "roadblock"));
+				} else {
+					out.append(addGeoJsonFeature(marker.marker, "f0f", String.valueOf(pitCount++)));
+				}
+			}
+		}
 		out.append("]}");
 		
 		return out.toString();

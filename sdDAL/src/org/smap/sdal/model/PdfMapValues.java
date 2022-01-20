@@ -18,6 +18,7 @@ public class PdfMapValues {
 	public String endLine;
 	public ArrayList<String> markers;
 	public ArrayList<DistanceMarker> orderedMarkers;	// Markers converted into the sequence for use in a line
+	public boolean geoCompound = false;
 
 	public boolean hasGeometry() {
 		return (geometry != null && geometry.trim().length() > 0) || (startGeometry != null && startGeometry.trim().length() > 0);

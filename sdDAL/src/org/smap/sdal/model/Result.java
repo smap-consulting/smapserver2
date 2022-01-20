@@ -15,8 +15,9 @@ public class Result {
 	public ArrayList<ArrayList<Result>> subForm = null;
 	public String appearance;	// Appearance directives including nopdf
 	public boolean hide = false;
+	public ArrayList<DistanceMarker> markers;		// used with geo compound widgets
 	
-	public Result (String n, String t, String v, boolean set, int f, int q, int c, String ln, String app) {
+	public Result (String n, String t, String v, boolean set, int f, int q, int c, String ln, String app, ArrayList<DistanceMarker> m) {
 		name = n;
 		type = t;
 		value = v;
@@ -26,10 +27,8 @@ public class Result {
 		cIdx = c;
 		listName = ln;
 		appearance = app;
+		markers = m;
 		
-		//if(t.startsWith("select")) {
-		//	choices = new ArrayList<Result> ();
-		//} else 
 		if(t.equals("form")) {
 			subForm = new ArrayList<ArrayList<Result>> ();
 		}

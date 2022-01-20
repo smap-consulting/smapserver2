@@ -1,5 +1,6 @@
 package org.smap.sdal.model;
 
+import java.util.ArrayList;
 import java.util.logging.Logger;
 
 import com.itextpdf.text.BaseColor;
@@ -42,6 +43,7 @@ public class DisplayItem {
 	public boolean tsep = false;		// Thousands separator
 	public LineMap linemap;
 	public TrafficLightQuestions trafficLight;
+	public ArrayList<DistanceMarker> markers;
 	
 	public void debug() {
 		log.info("======== Display Item:   width: " + width + "   value: " + value + " text: " + text + " : " + type  );

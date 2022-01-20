@@ -640,7 +640,8 @@ public class PDFSurveyManager {
 					log.info("Error removing field: " + fieldName + ": " + e.getMessage());
 				}
 
-			} else if(r.type.equals("geopoint") || r.type.equals("geoshape") || r.type.equals("geotrace") || r.type.startsWith("geopolygon_") || r.type.startsWith("geolinestring_")) {
+			} else if(r.type.equals("geopoint") || r.type.equals("geoshape") || r.type.equals("geotrace") || r.type.startsWith("geopolygon_") 
+					|| r.type.startsWith("geolinestring_") || r.type.equals("geocompound")) {
 
 				PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
 				if(ad != null) {
@@ -672,7 +673,6 @@ public class PDFSurveyManager {
 					height = rect.getHeight();
 				}
 				PdfMapValues mapValues = PdfUtilities.getMapValues(survey, di);
-				mapValues.geometry = r.value;
 				TrafficLightValues tlValues = getTrafficLightValues(di);
 				PreparedStatement pstmt = null;
 				try {
@@ -1357,6 +1357,7 @@ public class PDFSurveyManager {
 		di.fIdx = r.fIdx;
 		di.qIdx = r.qIdx;
 		di.rec_number = recNumber;
+		di.markers = r.markers;
 
 		items.add(di);
 	}
@@ -1770,9 +1771,15 @@ public class PDFSurveyManager {
 				// TODO add empty image
 			}
 
-		} else if(di.type.equals("geopoint") || di.type.equals("geoshape") || di.type.equals("geotrace") || di.type.startsWith("geopolygon_") || di.type.startsWith("geolinestring_")) {
+		} else if(di.type.equals("geopoint") || di.type.equals("geoshape") || di.type.equals("geotrace") 
+				|| di.type.equals("geocompound") || di.type.startsWith("geopolygon_") || di.type.startsWith("geolinestring_")) {
 
-			PdfMapValues mapValues = new PdfMapValues();
+			PdfMapValues mapValues = new PdfMapValues();		
+			if(di.type.equals("geocompound")) {
+				mapValues.orderedMarkers = di.markers;	
+				mapValues.geoCompound = true;
+			} 
+			
 			mapValues.geometry = di.value;
 			mapValues.startGeometry = startGeopointValue;
 			
