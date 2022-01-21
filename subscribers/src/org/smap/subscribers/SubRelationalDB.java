@@ -806,10 +806,11 @@ public class SubRelationalDB extends Subscriber {
 						pstmt = cResults.prepareStatement(compoundSql);
 						
 						String compoundValue = col.getValue();
+						log.info("------------------------------ Adding compound Value: " + compoundValue);
 						if(compoundValue != null) {
 							String components[] = compoundValue.split("#");
 							for(int i = 0; i < components.length; i++) {
-								if(components[i].startsWith("point:")) {
+								if(components[i].startsWith("marker:")) {
 									String pointComponents [] = components[i].split(":");
 									HashMap<String, String> propObj = new HashMap<>();
 									String locnText = null;
