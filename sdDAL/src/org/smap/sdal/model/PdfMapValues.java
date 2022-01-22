@@ -77,8 +77,6 @@ public class PdfMapValues {
 	 */
 	public String getLineGeometryBetweenPoints(int idx1, int idx2) {
 		
-		System.out.println("Geometry: " + geometry);
-		
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		Line line = gson.fromJson(geometry, Line.class);
 		
