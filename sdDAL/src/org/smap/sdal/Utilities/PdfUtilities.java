@@ -20,6 +20,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -292,9 +293,18 @@ public class PdfUtilities {
 			
 	        // Add the faults
 	        if(mapValues.hasMarkers()) {
-				Float lineDistance = getDistanceAlongLine(sd, mapValues, -1);
+				Float lineDistance = getLineDistance(sd, mapValues, -1);
+				int index = 0;
 				for(int i = 0; i < mapValues.orderedMarkers.size(); i++) {
-					addMarkerSvgImage(doc, svgRoot, svgNS, sd, mapValues, lineDistance, i, height, width, margin, fontSize);
+					if(mapValues.geoCompound) {
+						// Only call for fault types
+						HashMap<String, String> properties = mapValues.orderedMarkers.get(i).properties;
+						String type = properties.get("type");
+						if(type == null || !type.equals("fault")) {
+							continue;
+						}
+					}
+					addMarkerSvgImage(doc, svgRoot, svgNS, sd, mapValues, lineDistance, index++, height, width, margin, fontSize);
 				}
 	        }
 	        
@@ -345,7 +355,7 @@ public class PdfUtilities {
 		
 	    DecimalFormat decFormat = new DecimalFormat("0.00");
 		
-		Float distanceFromP1 = getDistanceAlongLine(sd, mapValues, idx);
+		Float distanceFromP1 = getLineDistance(sd, mapValues, idx);
 		Float offset = distanceFromP1 * (width - (2 * margin)) / lineDistance;
 		
 		org.w3c.dom.Element tick1 = doc.createElementNS(svgNS, "line");
@@ -390,7 +400,7 @@ public class PdfUtilities {
 		svgRoot.appendChild(circle2);
 		
 		// Add lat long
-		String coords = mapValues.getCoordinates(mapValues.markers.get(idx), true);
+		String coords = mapValues.getCoordinates(mapValues.orderedMarkers.get(idx).marker, true);
 		if(coords != null) {
 			String [] coordsArray = coords.split(",");
 			
@@ -425,7 +435,8 @@ public class PdfUtilities {
 	    }
 	    
 	    // Add Distance to P2
-	    if(mapValues.markers.size() -1 == idx) {
+	    if((!mapValues.geoCompound && mapValues.orderedMarkers.size() - 1 == idx) ||
+	    		(mapValues.geoCompound && mapValues.idxMarkers.size() - 1 == idx)) {
 	    	org.w3c.dom.Element d2 = doc.createElementNS(svgNS,"text");
 			d2.setAttributeNS(null,"x", String.valueOf(width - (2 * margin) - 20));    
 			d2.setAttributeNS(null,"y", String.valueOf((height / 2) + 12)); 
@@ -665,6 +676,25 @@ public class PdfUtilities {
 	}
 	
 	/*
+	 * Get the line distance
+	 */
+	private static Float getLineDistance(Connection sd, PdfMapValues mapValues, int idx) throws SQLException {
+		Float distance = (float) -1.0;
+		
+		if(mapValues.geoCompound) {
+			int idx1 = mapValues.idxStart;
+			int idx2 = mapValues.idxEnd;
+			if(idx >= 0) {
+				idx2 = mapValues.idxMarkers.get(idx);
+			}
+			distance = getDistanceBetweenPoints(sd, mapValues, idx1, idx2);		// Geo compound
+		} else {
+			distance = getDistanceAlongLine(sd, mapValues, idx);				// Constructed geometry
+		}
+		return distance;
+	}
+	
+	/*
 	 * Get the distance in meters along a linestring
 	 * Pass in the index of the ordered marker to use as the end point
 	 * If the index is -1 then do all points including the second pit
@@ -673,7 +703,38 @@ public class PdfUtilities {
 		
 		Float distance = (float) -1.0;
 		StringBuilder sb = new StringBuilder("select ST_Length(ST_GeomFromGeoJSON('");
+	
 		sb.append(mapValues.getLineGeometryWithMarkers(idx));
+		sb.append("')::geography)");
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sb.toString());
+				
+			log.info(pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				distance = rs.getFloat(1);
+			}
+		} finally {
+			 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
+		}
+		
+		return distance;
+	}
+	
+	/*
+	 * Get the distance in meters along a linestring
+	 * Passes in the indexes of the two points that form a sub section fo the line
+	 */
+	private static Float getDistanceBetweenPoints(Connection sd, PdfMapValues mapValues, int idx1, int idx2) throws SQLException {
+		
+		Float distance = (float) -1.0;
+		
+		StringBuilder sb = new StringBuilder("select ST_Length(ST_GeomFromGeoJSON('");
+	
+		sb.append(mapValues.getLineGeometryBetweenPoints(idx1, idx2));
 		sb.append("')::geography)");
 		
 		PreparedStatement pstmt = null;
@@ -991,26 +1052,82 @@ public class PdfUtilities {
 	public static PdfMapValues getMapValues(Survey survey, DisplayItem di) {
 		PdfMapValues mapValues = new PdfMapValues();
 		
-		// Start point
-		ArrayList<String> startValues = lookupInSurvey(di.linemap.startPoint, survey.instance.results);
-		if(startValues.size() > 0) {
-			mapValues.startLine = startValues.get(0);
-		}
-
-		// End point
-		ArrayList<String> endValues = lookupInSurvey(di.linemap.endPoint, survey.instance.results);
-		if(endValues.size() > 0) {
-			mapValues.endLine = endValues.get(0);
-		}
+		// Geo compound
+		lookupGeoCompoundValueInSurvey(di.linemap.geoCompoundQuestion, survey.instance.results, mapValues);
 		
-		if(di.linemap.markers.size() > 0) {
-			mapValues.markers = new ArrayList<String> ();
-			for(String markerName : di.linemap.markers) {
-				mapValues.markers.addAll(lookupInSurvey(markerName, survey.instance.results));
-			}		
+		if(mapValues.geoCompound) {
+			
+			mapValues.idxStart = -1;
+			mapValues.idxEnd = -1;
+			mapValues.idxMarkers = new ArrayList<>();
+			if(mapValues.orderedMarkers != null) {
+				for(DistanceMarker marker: mapValues.orderedMarkers) {
+					String indexString = marker.properties.get("index");
+					if(indexString != null) {
+						int idx = Integer.valueOf(indexString);
+						String type = marker.properties.get("type");
+						if(type != null) {
+							if(type.equals("pit")) {
+								if(mapValues.idxStart == -1) {
+									mapValues.idxStart = idx;
+								} else {
+									mapValues.idxEnd = idx;
+								}
+							} else {
+								mapValues.idxLastMarker = idx;
+								mapValues.idxMarkers.add(idx);
+							}
+						}
+					}
+				}
+			}
+			Collections.reverse(mapValues.idxMarkers);
+		} else if(!mapValues.geoCompound) {
+			// Start point
+			ArrayList<String> startValues = lookupInSurvey(di.linemap.startPoint, survey.instance.results);
+			if(startValues.size() > 0) {
+				mapValues.startLine = startValues.get(0);
+			}
+	
+			// End point
+			ArrayList<String> endValues = lookupInSurvey(di.linemap.endPoint, survey.instance.results);
+			if(endValues.size() > 0) {
+				mapValues.endLine = endValues.get(0);
+			}
+			
+			if(di.linemap.markers.size() > 0) {
+				mapValues.markers = new ArrayList<String> ();
+				for(String markerName : di.linemap.markers) {
+					mapValues.markers.addAll(lookupInSurvey(markerName, survey.instance.results));
+				}		
+			}
 		}
 		
 		return mapValues;
+	}
+	
+	/*
+	 * Get the data from a referenced geo-compound widget
+	 * Only return the first found - geo-compounds in repeats are undefined
+	 */
+	public static void lookupGeoCompoundValueInSurvey(String qname, ArrayList<ArrayList<Result>> records, 
+			PdfMapValues mapValues) {
+
+		if(qname != null && records != null && records.size() > 0) {
+			for(ArrayList<Result> r : records) {
+				for(Result result : r) {
+					if(result.subForm == null && result.name.equals(qname) && result.type.equals("geocompound")) {
+						mapValues.geoCompound = true;
+						mapValues.geometry = result.value;
+						mapValues.orderedMarkers = result.markers;
+						break;
+					} else if(result.subForm != null) {
+						lookupGeoCompoundValueInSurvey(qname, result.subForm, mapValues);
+					}
+				}		
+			}
+		}
+		return;
 	}
 	
 	/*

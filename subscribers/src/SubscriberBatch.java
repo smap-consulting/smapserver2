@@ -408,12 +408,13 @@ public class SubscriberBatch {
 								
 								/*
 								 * Process compound widgets
-								 */
+								 *
 								ArrayList<String> compoundQuestions = GeneralUtilityMethods.getCompoundQuestions(dbc.sd, sdalSurvey.id);
 								if(compoundQuestions.size() > 0) {
 									SurveyManager sm = new SurveyManager(localisation, "UTC");
 									processCompoundWidgets(dbc.sd, dbc.results, sm, sdalSurvey.id, basePath, ue.getInstanceId());
 								}
+								*/
 								
 								/*
 								 * Write log entry
@@ -697,6 +698,7 @@ public class SubscriberBatch {
 
 	}
 
+	/*
 	private void processCompoundWidgets(Connection sd, Connection results, SurveyManager sm, int sId, 
 			String basePath, String instanceId) throws SQLException, Exception {
 		
@@ -727,7 +729,9 @@ public class SubscriberBatch {
 			setCompoundWidgetValues(sd, results, survey.instance.results.get(i), survey);
 		}
 	}
+	*/
 	
+	/*
 	private void setCompoundWidgetValues(Connection sd, Connection results, ArrayList<Result> record, Survey survey) throws Exception {
 		int prikey = 0;
 		for(Result r : record) {
@@ -756,7 +760,7 @@ public class SubscriberBatch {
 					if((mapValues.hasLine())) {
 						/*
 						 * The column name for compound data is based on the questions that make up that data
-						 */
+						 *
 						String columnName = di.linemap.getCompoundColumnName();
 						createLinestringColumn(sd, results, form.tableName, question.name, columnName, form.id);
 						writeLinestringColumn(results, form.tableName, columnName, mapValues.getLineGeometryWithMarkers(-1), prikey);
@@ -765,10 +769,11 @@ public class SubscriberBatch {
 			}
 		}
 	}
+	*/
 	
 	/*
 	 * Create a linestring column for the path in a pdf_field
-	 */
+	 *
 	private void createLinestringColumn(Connection sd, Connection results, String tableName, String qName, String columnName, int fId) throws SQLException {
 		
 		String sql = "select AddGeometryColumn('" + tableName + 
@@ -803,10 +808,11 @@ public class SubscriberBatch {
 			}
 
 	}
+	*/
 	
 	/*
 	 * Write the path to a geometry column
-	 */
+	 *
 	private void writeLinestringColumn(Connection results, String tableName, String columnName, String value, int prikey) throws SQLException {
 		String sql = "update " + tableName + 
 						" set " + columnName + " = ST_GeomFromGeoJSON(?) "
@@ -824,6 +830,7 @@ public class SubscriberBatch {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
 		}
 	}
+	*/
 	
 	/*
 	 * Erase deleted templates more than a specified number of days old

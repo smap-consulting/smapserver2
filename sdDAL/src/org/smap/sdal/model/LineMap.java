@@ -2,18 +2,19 @@ package org.smap.sdal.model;
 
 import java.util.ArrayList;
 
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-
 public class LineMap {
 	
 	public String type;			// map or image
-	public String startPoint;
-	public String endPoint;
-	public ArrayList<String> markers = new ArrayList<>();
+	public String geoCompoundQuestion;
+	public String startPoint;	// deprecate
+	public String endPoint;		// deprecate
+	public ArrayList<String> markers = new ArrayList<>();	// Deprecate
 	
 	public LineMap(String [] points) {
 		// Point 0 is the appearance tag
-		if(points.length > 1) {
+		if(points.length == 2) {
+			geoCompoundQuestion = points[1];
+		} else if(points.length > 1) {
 			startPoint = points[1];
 		}
 		if(points.length > 2) {
@@ -26,6 +27,7 @@ public class LineMap {
 		}
 	}
 	
+	/*
 	public String getCompoundColumnName() {
 		StringBuilder name = new StringBuilder("_cmp");
 		if(startPoint != null) {
@@ -41,4 +43,5 @@ public class LineMap {
 		}
 		return GeneralUtilityMethods.cleanName(name.toString(), true, true, true);
 	}
+	*/
 }

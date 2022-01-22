@@ -2746,7 +2746,7 @@ public class SurveyManager {
 									col = new StringBuffer("").append("'' as ").append(q.columnName).toString();	// No value
 								} 
 							} else if(qType.equals("pdf_field")) { 
-								col = new StringBuffer("").append("'' as ").append(q.columnName).toString();	// No value for pdf fields that have no source (legacy ones)
+								col = new StringBuffer("").append("'' as ").append(q.columnName).toString();	// No value for pdf fields
 							} 
 							else {
 								col = q.columnName;
@@ -3177,7 +3177,7 @@ public class SurveyManager {
 
 				index--;		// Decrement the index as the select multiple was not in the SQL query
 
-			} else if(qSource != null || qType.equals("server_calculate")) {
+			} else if(qSource != null || qType.equals("server_calculate") || qType.equals("pdf_field")) {
 
 				String value = "";
 				if(resultSet != null) {

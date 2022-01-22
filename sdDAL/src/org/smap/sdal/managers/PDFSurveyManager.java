@@ -1357,7 +1357,7 @@ public class PDFSurveyManager {
 		di.fIdx = r.fIdx;
 		di.qIdx = r.qIdx;
 		di.rec_number = recNumber;
-		di.markers = r.markers;
+		di.markers = r.markers;			// geocompound markers
 
 		items.add(di);
 	}
@@ -1802,7 +1802,6 @@ public class PDFSurveyManager {
 			
 			PreparedStatement pstmt = null;
 			PdfMapValues mapValues = PdfUtilities.getMapValues(survey, di);	
-			mapValues.geometry = di.value;
 			TrafficLightValues tlValues = getTrafficLightValues(di);
 			try {
 				pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
