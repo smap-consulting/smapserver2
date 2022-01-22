@@ -5034,7 +5034,7 @@ public class SurveyManager {
 			if(rs.next()) {
 				int pId = rs.getInt(1);
 				String displayName = rs.getString(2);
-				templateFile = GeneralUtilityMethods.getPdfTemplate(sd, basePath, displayName, pId, 0, sIdent);
+				templateFile = GeneralUtilityMethods.getLegacyPdfTemplate(basePath, displayName, pId);
 				
 			}
 		} finally {

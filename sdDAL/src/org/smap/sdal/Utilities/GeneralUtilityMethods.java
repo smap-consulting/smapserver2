@@ -532,7 +532,28 @@ public class GeneralUtilityMethods {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
+		
+		/*
+		 * Check that the template file exists
+		 */
+		if(templateFile != null && !templateFile.exists()) {
+			templateFile = null;
+		}
+		
+		return templateFile;
+	}
+		
+	static public File getLegacyPdfTemplate(String basePath, String displayName, int pId) throws SQLException {
 
+		File templateFile = null;
+
+		if(displayName != null) {
+			String templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName)
+						+ "_template.pdf";
+			
+			log.info("Attempt to get a pdf template with name: " + templateName);
+			templateFile = new File(templateName);	
+		}
 		/*
 		 * Check that the template file exists
 		 */
