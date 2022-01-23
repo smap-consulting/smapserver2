@@ -647,6 +647,10 @@ public class PDFSurveyManager {
 				if(ad != null) {
 					
 					PdfMapValues mapValues = new PdfMapValues();
+					if(r.type.equals("geocompound")) {
+						mapValues.orderedMarkers = r.markers;	
+						mapValues.geoCompound = true;
+					} 
 					mapValues.geometry = r.value;
 					
 					Image img = PdfUtilities.getMapImage(sd, di.map, di.account, mapValues, 

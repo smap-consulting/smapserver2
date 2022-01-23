@@ -1081,7 +1081,7 @@ public class PdfUtilities {
 					}
 				}
 			}
-			Collections.reverse(mapValues.idxMarkers);
+			
 		} else if(!mapValues.geoCompound) {
 			// Start point
 			ArrayList<String> startValues = lookupInSurvey(di.linemap.startPoint, survey.instance.results);
