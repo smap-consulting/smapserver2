@@ -527,8 +527,8 @@ public class PDFSurveyManager {
 			DisplayItem di = new DisplayItem();
 			try {
 				Form form = survey.forms.get(r.fIdx);
-				Question question = getQuestionFromResult(sd, r, form);
-				setQuestionFormats(question.appearance, di);
+				Question question = PdfUtilities.getQuestionFromResult(sd, survey, r, form);
+				PdfUtilities.setQuestionFormats(question.appearance, di);
 			} catch (Exception e) {
 				// If we can't get the question details for this data then that is ok
 			}
@@ -640,12 +640,17 @@ public class PDFSurveyManager {
 					log.info("Error removing field: " + fieldName + ": " + e.getMessage());
 				}
 
-			} else if(r.type.equals("geopoint") || r.type.equals("geoshape") || r.type.equals("geotrace") || r.type.startsWith("geopolygon_") || r.type.startsWith("geolinestring_")) {
+			} else if(r.type.equals("geopoint") || r.type.equals("geoshape") || r.type.equals("geotrace") || r.type.startsWith("geopolygon_") 
+					|| r.type.startsWith("geolinestring_") || r.type.equals("geocompound")) {
 
 				PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
 				if(ad != null) {
 					
 					PdfMapValues mapValues = new PdfMapValues();
+					if(r.type.equals("geocompound")) {
+						mapValues.orderedMarkers = r.markers;	
+						mapValues.geoCompound = true;
+					} 
 					mapValues.geometry = r.value;
 					
 					Image img = PdfUtilities.getMapImage(sd, di.map, di.account, mapValues, 
@@ -671,7 +676,7 @@ public class PDFSurveyManager {
 					width = rect.getWidth();
 					height = rect.getHeight();
 				}
-				PdfMapValues mapValues = getMapValues(di);
+				PdfMapValues mapValues = PdfUtilities.getMapValues(survey, di);
 				TrafficLightValues tlValues = getTrafficLightValues(di);
 				PreparedStatement pstmt = null;
 				try {
@@ -957,7 +962,7 @@ public class PDFSurveyManager {
 
 			if(r.type.equals("geopoint")) {
 				Form form = survey.forms.get(r.fIdx);
-				Question question = getQuestionFromResult(sd, r, form);
+				Question question = PdfUtilities.getQuestionFromResult(sd, survey, r, form);
 				if(!question.visible) {
 					startGeopointValue = r.value;
 					startGeopointIndex = j;
@@ -1021,7 +1026,7 @@ public class PDFSurveyManager {
 				// Process the question
 
 				Form form = survey.forms.get(r.fIdx);
-				Question question = getQuestionFromResult(sd, r, form);
+				Question question = PdfUtilities.getQuestionFromResult(sd, survey, r, form);
 
 				if(question != null) {
 					if(includeResult(r, question, appendix, gv, generateBlank, startGeopointIndex,
@@ -1081,21 +1086,6 @@ public class PDFSurveyManager {
 		}
 
 		return;
-	}
-
-	private Question getQuestionFromResult(Connection sd, Result r, Form form) throws SQLException {
-
-		Question question = null;
-		if(r.qIdx >= 0) {
-			question = form.questions.get(r.qIdx);
-		} if(r.qIdx <= MetaItem.INITIAL_ID) {
-			question = GeneralUtilityMethods.getPreloadAsQuestion(sd, survey.id, r.qIdx);	// A preload
-		} else if(r.qIdx == -1) {
-			question = new Question();													// Server generated
-			question.name = r.name;
-			question.type = r.type;
-		}
-		return question;
 	}
 
 	/*
@@ -1264,7 +1254,7 @@ public class PDFSurveyManager {
 			Result r = record.get(i);
 
 			Form form = survey.forms.get(r.fIdx);
-			Question question = getQuestionFromResult(sd, r, form);
+			Question question = PdfUtilities.getQuestionFromResult(sd, survey, r, form);
 
 			Label label = null;
 			if(question.display_name != null && question.display_name.trim().length() > 0) {
@@ -1367,10 +1357,11 @@ public class PDFSurveyManager {
 		di.value = r.value;
 		di.isNewPage = isNewPage;
 
-		setQuestionFormats(question.appearance, di);
+		PdfUtilities.setQuestionFormats(question.appearance, di);
 		di.fIdx = r.fIdx;
 		di.qIdx = r.qIdx;
 		di.rec_number = recNumber;
+		di.markers = r.markers;			// geocompound markers
 
 		items.add(di);
 	}
@@ -1452,26 +1443,6 @@ public class PDFSurveyManager {
 	}
 	
 	/*
-	 * Get an array of values for the specified question in the survey
-	 * There will only be more than one value if the question is in a repeat
-	 */
-	ArrayList<String> lookupInSurvey(String qname, ArrayList<ArrayList<Result>> records) {
-		ArrayList<String> values = new ArrayList<>();
-		if(qname != null && records != null && records.size() > 0) {
-			for(ArrayList<Result> r : records) {
-				for(Result result : r) {
-					if(result.subForm == null && result.name.equals(qname)) {
-						values.add(result.value != null ? result.value : "");
-					} else if(result.subForm != null) {
-						values.addAll(lookupInSurvey(qname, result.subForm));
-					}
-				}		
-			}
-		}
-		return values;
-	}
-	
-	/*
 	 * Get an array of values for the specified group of questions in the survey
 	 * There will only be more than one value if the question is in a repeat
 	 * Note colors are primary and will determine the number of bulbs that are returned
@@ -1486,7 +1457,7 @@ public class PDFSurveyManager {
 					if(result.subForm == null && result.name.equals(qGroup.color)) {
 						colors.add(result.value != null ? result.value : "");
 					} else if(result.subForm != null) {
-						colors.addAll(lookupInSurvey(qGroup.color, result.subForm));
+						colors.addAll(PdfUtilities.lookupInSurvey(qGroup.color, result.subForm));
 					}
 				}		
 			}
@@ -1499,7 +1470,7 @@ public class PDFSurveyManager {
 						if(result.subForm == null && result.name.equals(qGroup.cross)) {
 							crosses.add(result.value != null ? result.value : "");
 						} else if(result.subForm != null) {
-							crosses.addAll(lookupInSurvey(qGroup.cross, result.subForm));
+							crosses.addAll(PdfUtilities.lookupInSurvey(qGroup.cross, result.subForm));
 						}
 					}		
 				}
@@ -1513,7 +1484,7 @@ public class PDFSurveyManager {
 						if(result.subForm == null && result.name.equals(qGroup.label)) {
 							labels.add(result.value != null ? result.value : "");
 						} else if(result.subForm != null) {
-							labels.addAll(lookupInSurvey(qGroup.label, result.subForm));
+							labels.addAll(PdfUtilities.lookupInSurvey(qGroup.label, result.subForm));
 						}
 					}		
 				}
@@ -1583,178 +1554,6 @@ public class PDFSurveyManager {
 		}
 
 		return show;
-	}
-
-	/*
-	 * Set the attributes for this question from keys set in the appearance column
-	 */
-	void setQuestionFormats(String appearance, DisplayItem di) throws Exception {
-
-		if(appearance != null) {
-			String [] appValues = appearance.split(" ");
-			for(int i = 0; i < appValues.length; i++) {
-				String app = appValues[i].trim().toLowerCase();
-				if(app.startsWith("pdflabelbg")) {
-					setColor(app, di, true);
-				} else if(app.startsWith("pdfvaluebg")) {
-					setColor(app, di, false);
-				} else if(app.startsWith("pdfmarkercolor")) {
-					di.markerColor = getRGBColor(app);
-				} else if(app.startsWith("pdflabelw")) {
-					setWidths(app, di);
-				} else if(app.startsWith("pdfheight")) {
-					setHeight(app, di);
-				} else if(app.startsWith("pdfspace")) {
-					setSpace(app, di);
-				} else if(app.equals("pdflabelcaps")) {
-					di.labelcaps = true;
-				} else if(app.equals("pdfbs")) {
-					di.bs = true;
-				} else if(app.equals("pdflabelbold")) {
-					di.labelbold = true;
-				} else if(app.startsWith("pdfmap")) {			// mapbox map id
-					String map = getAppValue(app);
-					if(!map.equals("custom")) {
-						di.map = map;
-						di.account = "mapbox";
-					}
-				} else if(app.startsWith("pdflinemap") || app.startsWith("pdflineimage")) {		// Multiple points to be joined into a map or image
-					di.linemap = new LineMap(getAppValueArray(app));
-					if(app.startsWith("pdflinemap")) {
-						di.linemap.type = "map";
-					} else {
-						di.linemap.type = "image";
-					}
-				} else if(app.startsWith("pdftl")) {		// Multiple points to be joined into a map or image
-					if(di.trafficLight == null) {
-						di.trafficLight = new TrafficLightQuestions();
-					}
-					di.trafficLight.addApp(getAppValueArray(app));
-				} else if(app.startsWith("pdfaccount")) {			// mapbox account
-					di.account = getAppValue(app);
-				} else if(app.startsWith("pdflocation")) {
-					di.location = getAppValue(app);			// lon,lat,zoom
-				} else if(app.startsWith("pdfbarcode")) {
-					di.isBarcode = true;		
-				} else if(app.equals("pdfstretch")) {
-					di.stretch = true;		
-				} else if(app.startsWith("pdfzoom")) {
-					di.zoom = getAppValue(app);		
-				} else if(app.startsWith("pdfhyperlink")) {
-					di.isHyperlink = true;		
-				} else if(app.equals("signature")) {
-					di.isSignature = true;		
-				} else if(app.equals("pdfhiderepeatinglabels")) {
-					di.hideRepeatingLabels = true;		
-				} else if(app.equals("thousands-sep")) {
-					di.tsep = true;		
-				} else if(app.equals("pdfshowimage")) {
-					di.showImage = true;		
-				}
-			}
-		}
-	}
-
-	/*
-	 * Get the color values for a single appearance value
-	 * Format is:  xxxx_0Xrr_0Xgg_0xbb
-	 */
-	void setColor(String aValue, DisplayItem di, boolean isLabel) {
-
-		BaseColor color = null;
-
-		String [] parts = aValue.split("_");
-		if(parts.length >= 4) {
-			if(parts[1].startsWith("0x")) {
-				color = new BaseColor(Integer.decode(parts[1]), 
-						Integer.decode(parts[2]),
-						Integer.decode(parts[3]));
-			} else {
-				color = new BaseColor(Integer.decode("0x" + parts[1]), 
-						Integer.decode("0x" + parts[2]),
-						Integer.decode("0x" + parts[3]));
-			}
-		}
-
-		if(isLabel) {
-			di.labelbg = color;
-		} else {
-			di.valuebg = color;
-		}
-
-	}
-
-	/*
-	 * Get the color values for a single appearance value
-	 * Output is just the RGB value
-	 * Format is:  xxxx_0Xrr_0Xgg_0xbb
-	 */
-	String getRGBColor(String aValue) {
-
-		String rgbValue = "";
-
-		String [] parts = aValue.split("_");
-		if(parts.length >= 4) {
-			rgbValue = parts[1] + parts[2] + parts[3];
-		}
-		return rgbValue;
-
-	}
-
-	/*
-	 * Set the widths of the label and the value
-	 * Appearance is:  pdflabelw_## where ## is a number from 0 to 10
-	 */
-	void setWidths(String aValue, DisplayItem di) {
-
-		String [] parts = aValue.split("_");
-		if(parts.length >= 2) {
-			di.widthLabel = Integer.valueOf(parts[1]);   		
-		}
-
-		// Do bounds checking
-		if(di.widthLabel < 0 || di.widthLabel > 10) {
-			di.widthLabel = 5;		
-		}
-
-	}
-
-	/*
-	 * Set the height of the value
-	 * Appearance is:  pdfheight_## where ## is the height
-	 */
-	void setHeight(String aValue, DisplayItem di) {
-
-		String [] parts = aValue.split("_");
-		if(parts.length >= 2) {
-			di.valueHeight = Double.valueOf(parts[1]);   		
-		}
-
-	}
-
-	/*
-	 * Set space before this item
-	 * Appearance is:  pdfheight_## where ## is the height
-	 */
-	void setSpace(String aValue, DisplayItem di) {
-
-		String [] parts = aValue.split("_");
-		if(parts.length >= 2) {
-			di.space = Integer.valueOf(parts[1]);   		
-		}
-
-	}
-
-	String getAppValue(String aValue) {
-		String [] parts = aValue.split("_");
-		if(parts.length >= 2) {
-			return parts[1];   		
-		}
-		else return null;
-	}
-	
-	String[] getAppValueArray(String aValue) {
-		return aValue.split("_");
 	}
 
 	/*
@@ -1976,9 +1775,15 @@ public class PDFSurveyManager {
 				// TODO add empty image
 			}
 
-		} else if(di.type.equals("geopoint") || di.type.equals("geoshape") || di.type.equals("geotrace") || di.type.startsWith("geopolygon_") || di.type.startsWith("geolinestring_")) {
+		} else if(di.type.equals("geopoint") || di.type.equals("geoshape") || di.type.equals("geotrace") 
+				|| di.type.equals("geocompound") || di.type.startsWith("geopolygon_") || di.type.startsWith("geolinestring_")) {
 
-			PdfMapValues mapValues = new PdfMapValues();
+			PdfMapValues mapValues = new PdfMapValues();		
+			if(di.type.equals("geocompound")) {
+				mapValues.orderedMarkers = di.markers;	
+				mapValues.geoCompound = true;
+			} 
+			
 			mapValues.geometry = di.value;
 			mapValues.startGeometry = startGeopointValue;
 			
@@ -2000,7 +1805,7 @@ public class PDFSurveyManager {
 		} else if(di.type.equals("pdf_field") && di.linemap != null) { 
 			
 			PreparedStatement pstmt = null;
-			PdfMapValues mapValues = getMapValues(di);	
+			PdfMapValues mapValues = PdfUtilities.getMapValues(survey, di);	
 			TrafficLightValues tlValues = getTrafficLightValues(di);
 			try {
 				pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
@@ -2151,34 +1956,6 @@ public class PDFSurveyManager {
 			}
 			valueCell.addElement(getPara(value, di, gv, deps, null));
 		}
-	}
-
-	/*
-	 * Extract the compound map values from the display item specification
-	 */
-	private PdfMapValues getMapValues(DisplayItem di) {
-		PdfMapValues mapValues = new PdfMapValues();
-		
-		// Start point
-		ArrayList<String> startValues = lookupInSurvey(di.linemap.startPoint, survey.instance.results);
-		if(startValues.size() > 0) {
-			mapValues.startLine = startValues.get(0);
-		}
-
-		// End point
-		ArrayList<String> endValues = lookupInSurvey(di.linemap.endPoint, survey.instance.results);
-		if(endValues.size() > 0) {
-			mapValues.endLine = endValues.get(0);
-		}
-		
-		if(di.linemap.markers.size() > 0) {
-			mapValues.markers = new ArrayList<String> ();
-			for(String markerName : di.linemap.markers) {
-				mapValues.markers.addAll(lookupInSurvey(markerName, survey.instance.results));
-			}		
-		}
-		
-		return mapValues;
 	}
 	
 	/*

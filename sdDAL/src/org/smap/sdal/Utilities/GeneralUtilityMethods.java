@@ -73,6 +73,7 @@ import org.smap.sdal.model.ChoiceList;
 import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.ColValues;
 import org.smap.sdal.model.DatabaseConnections;
+import org.smap.sdal.model.DistanceMarker;
 import org.smap.sdal.model.FileDescription;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.FormLength;
@@ -10237,6 +10238,82 @@ public class GeneralUtilityMethods {
 		} else {
 			return input;
 		}
+        }
+
+        /*
+	 * Return the question names that have a compound question type
+	 */
+	public static ArrayList<String> getCompoundQuestions(Connection sd, int sId) throws SQLException {
+		ArrayList<String> questions = new ArrayList<>();
+		
+    	String sql = "select qname from question "
+    			+ "where f_id in (select f_id from form where s_id = ?) "
+    			+ "and qtype = 'pdf_field' "
+    			+ "and not soft_deleted" ;
+    	PreparedStatement pstmt = null;
+    	
+    	try {
+    		pstmt = sd.prepareStatement(sql);
+    		pstmt.setInt(1,  sId);
+    		log.info(pstmt.toString());
+    		ResultSet rs = pstmt.executeQuery();
+    		while(rs.next()) {
+    			questions.add(rs.getString(1));
+    		}
+    		
+    	} finally {
+    		if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+    	}
+    	
+		return questions;
+	}
+	
+	/*
+	 * Return the markers for a geocompound questions
+	 */
+	public static ArrayList<DistanceMarker> getMarkersForQuestion(Connection cResults, 
+			String tableName,		// Table containing the geocompund linestring
+			String columnName,		// Column name of the linestring
+			int key
+			) throws SQLException {
+		
+		ArrayList<DistanceMarker> markers = new ArrayList<>();
+		
+		String markerTable = tableName + "_" + columnName;
+		
+		if (tableExists(cResults, tableName)) {
+	    	String sql = "select properties, ST_AsGeoJson(locn) "
+	    			+ "from " + markerTable + " "
+	    			+ "where parkey = ? "
+	    			+ "order by prikey asc" ;
+	    	PreparedStatement pstmt = null;
+	    	
+	    	Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+	    	Type type = new TypeToken<HashMap<String, String>>() {}.getType();
+	    	
+	    	try {
+	    		pstmt = cResults.prepareStatement(sql);
+	    		pstmt.setInt(1,  key);
+	    		log.info(pstmt.toString());
+	    		ResultSet rs = pstmt.executeQuery();
+	    		while(rs.next()) {
+	    			if(markers == null) {
+	    				markers = new ArrayList<DistanceMarker> ();
+	    			}
+	    			DistanceMarker marker = new DistanceMarker(0, rs.getString(2));
+	    			String properties = rs.getString(1);
+	    			if(properties != null) {
+	    				marker.properties = gson.fromJson(properties, type);
+	    			}
+	    			markers.add(marker);
+	    		}
+	    		
+	    	} finally {
+	    		if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+	    	}
+		}
+    	
+		return markers;
 	}
 	
 	private static int getManifestParamStart(String property) {

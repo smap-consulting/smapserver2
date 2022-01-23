@@ -194,6 +194,7 @@ public class IE {
 								|| qt.equals("barcode")
 								|| qt.equals("geoshape")
 								|| qt.equals("geotrace")
+								|| qt.equals("geocompound")
 								|| qt.equals("acknowledge")
 								|| qt.equals("calculate")
 								|| qt.equals("rank")

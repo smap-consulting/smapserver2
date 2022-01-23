@@ -20,6 +20,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -36,14 +37,22 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PDFTableManager;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.DistanceMarker;
+import org.smap.sdal.model.Form;
+import org.smap.sdal.model.LineMap;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.PdfMapValues;
+import org.smap.sdal.model.Question;
+import org.smap.sdal.model.Result;
+import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TrafficLightBulb;
+import org.smap.sdal.model.TrafficLightQuestions;
 import org.smap.sdal.model.TrafficLightValues;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
 
 import com.itextpdf.text.Anchor;
 import com.itextpdf.text.BadElementException;
+import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.Font;
@@ -284,9 +293,18 @@ public class PdfUtilities {
 			
 	        // Add the faults
 	        if(mapValues.hasMarkers()) {
-				Float lineDistance = getDistanceAlongLine(sd, mapValues, -1);
+				Float lineDistance = getLineDistance(sd, mapValues, -1);
+				int index = 0;
 				for(int i = 0; i < mapValues.orderedMarkers.size(); i++) {
-					addMarkerSvgImage(doc, svgRoot, svgNS, sd, mapValues, lineDistance, i, height, width, margin, fontSize);
+					if(mapValues.geoCompound) {
+						// Only call for fault types
+						HashMap<String, String> properties = mapValues.orderedMarkers.get(i).properties;
+						String type = properties.get("type");
+						if(type == null || !type.equals("fault")) {
+							continue;
+						}
+					}
+					addMarkerSvgImage(doc, svgRoot, svgNS, sd, mapValues, lineDistance, index++, height, width, margin, fontSize);
 				}
 	        }
 	        
@@ -337,7 +355,7 @@ public class PdfUtilities {
 		
 	    DecimalFormat decFormat = new DecimalFormat("0.00");
 		
-		Float distanceFromP1 = getDistanceAlongLine(sd, mapValues, idx);
+		Float distanceFromP1 = getLineDistance(sd, mapValues, idx);
 		Float offset = distanceFromP1 * (width - (2 * margin)) / lineDistance;
 		
 		org.w3c.dom.Element tick1 = doc.createElementNS(svgNS, "line");
@@ -382,7 +400,7 @@ public class PdfUtilities {
 		svgRoot.appendChild(circle2);
 		
 		// Add lat long
-		String coords = mapValues.getCoordinates(mapValues.markers.get(idx), true);
+		String coords = mapValues.getCoordinates(mapValues.orderedMarkers.get(idx).marker, true);
 		if(coords != null) {
 			String [] coordsArray = coords.split(",");
 			
@@ -417,7 +435,8 @@ public class PdfUtilities {
 	    }
 	    
 	    // Add Distance to P2
-	    if(mapValues.markers.size() -1 == idx) {
+	    if((!mapValues.geoCompound && mapValues.orderedMarkers.size() - 1 == idx) ||
+	    		(mapValues.geoCompound && mapValues.idxMarkers.size() - 1 == idx)) {
 	    	org.w3c.dom.Element d2 = doc.createElementNS(svgNS,"text");
 			d2.setAttributeNS(null,"x", String.valueOf(width - (2 * margin) - 20));    
 			d2.setAttributeNS(null,"y", String.valueOf((height / 2) + 12)); 
@@ -520,7 +539,7 @@ public class PdfUtilities {
 		
 		// Add the Geom if it is not null
 		boolean addedGeom = false;
-		if(mapValues.geometry != null) {
+		if(mapValues.geometry != null && mapValues.geometry.trim().length() > 0) {
 			if(markerColor == null) {
 				markerColor = "f00";
 			}
@@ -538,10 +557,11 @@ public class PdfUtilities {
 		if(mapValues.hasLine()) {
 			if(addedGeom) {			// line
 				out.append(",");
+			} else {
+				out.append(addGeoJsonFeature(mapValues.getLineGeometryWithMarkers(-1), "00f", null));	// only add the line from the markers if a geometry is not available
+				out.append(",");
 			}
-			out.append(addGeoJsonFeature(mapValues.getLineGeometryWithMarkers(-1), "00f", null));
-				
-			out.append(",");
+			
 			out.append(addGeoJsonFeature(mapValues.startLine, "f0f", "1"));
 			out.append(",");
 			out.append(addGeoJsonFeature(mapValues.endLine, "f0f", "2"));
@@ -550,6 +570,18 @@ public class PdfUtilities {
 				for(DistanceMarker marker : mapValues.orderedMarkers) {
 					out.append(",");
 					out.append(addGeoJsonFeature(marker.marker, "0ff", "roadblock"));
+				}
+			}
+		}
+		if(mapValues.geoCompound) {
+			// Add the distance markers submitted from the compound widget
+			int pitCount = 1;
+			for(DistanceMarker marker : mapValues.orderedMarkers) {
+				out.append(",");
+				if(marker.properties.get("type").equals("fault")) {
+					out.append(addGeoJsonFeature(marker.marker, "0ff", "roadblock"));
+				} else {
+					out.append(addGeoJsonFeature(marker.marker, "f0f", String.valueOf(pitCount++)));
 				}
 			}
 		}
@@ -644,6 +676,25 @@ public class PdfUtilities {
 	}
 	
 	/*
+	 * Get the line distance
+	 */
+	private static Float getLineDistance(Connection sd, PdfMapValues mapValues, int idx) throws SQLException {
+		Float distance = (float) -1.0;
+		
+		if(mapValues.geoCompound) {
+			int idx1 = mapValues.idxStart;
+			int idx2 = mapValues.idxEnd;
+			if(idx >= 0) {
+				idx2 = mapValues.idxMarkers.get(idx);
+			}
+			distance = getDistanceBetweenPoints(sd, mapValues, idx1, idx2);		// Geo compound
+		} else {
+			distance = getDistanceAlongLine(sd, mapValues, idx);				// Constructed geometry
+		}
+		return distance;
+	}
+	
+	/*
 	 * Get the distance in meters along a linestring
 	 * Pass in the index of the ordered marker to use as the end point
 	 * If the index is -1 then do all points including the second pit
@@ -652,7 +703,38 @@ public class PdfUtilities {
 		
 		Float distance = (float) -1.0;
 		StringBuilder sb = new StringBuilder("select ST_Length(ST_GeomFromGeoJSON('");
+	
 		sb.append(mapValues.getLineGeometryWithMarkers(idx));
+		sb.append("')::geography)");
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sb.toString());
+				
+			log.info(pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				distance = rs.getFloat(1);
+			}
+		} finally {
+			 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
+		}
+		
+		return distance;
+	}
+	
+	/*
+	 * Get the distance in meters along a linestring
+	 * Passes in the indexes of the two points that form a sub section fo the line
+	 */
+	private static Float getDistanceBetweenPoints(Connection sd, PdfMapValues mapValues, int idx1, int idx2) throws SQLException {
+		
+		Float distance = (float) -1.0;
+		
+		StringBuilder sb = new StringBuilder("select ST_Length(ST_GeomFromGeoJSON('");
+	
+		sb.append(mapValues.getLineGeometryBetweenPoints(idx1, idx2));
 		sb.append("')::geography)");
 		
 		PreparedStatement pstmt = null;
@@ -778,4 +860,293 @@ public class PdfUtilities {
 
 	}
 	
+	public static Question getQuestionFromResult(Connection sd, Survey survey, Result r, Form form) throws SQLException {
+
+		Question question = null;
+		if(r.qIdx >= 0) {
+			question = form.questions.get(r.qIdx);
+		} if(r.qIdx <= MetaItem.INITIAL_ID) {
+			question = GeneralUtilityMethods.getPreloadAsQuestion(sd, survey.id, r.qIdx);	// A preload
+		} else if(r.qIdx == -1) {
+			question = new Question();													// Server generated
+			question.name = r.name;
+			question.type = r.type;
+		}
+		return question;
+	}
+	
+	/*
+	 * Set the attributes for this question from keys set in the appearance column
+	 */
+	public static void setQuestionFormats(String appearance, DisplayItem di) throws Exception {
+
+		if(appearance != null) {
+			String [] appValues = appearance.split(" ");
+			for(int i = 0; i < appValues.length; i++) {
+				String app = appValues[i].trim().toLowerCase();
+				if(app.startsWith("pdflabelbg")) {
+					setColor(app, di, true);
+				} else if(app.startsWith("pdfvaluebg")) {
+					setColor(app, di, false);
+				} else if(app.startsWith("pdfmarkercolor")) {
+					di.markerColor = getRGBColor(app);
+				} else if(app.startsWith("pdflabelw")) {
+					setWidths(app, di);
+				} else if(app.startsWith("pdfheight")) {
+					setHeight(app, di);
+				} else if(app.startsWith("pdfspace")) {
+					setSpace(app, di);
+				} else if(app.equals("pdflabelcaps")) {
+					di.labelcaps = true;
+				} else if(app.equals("pdfbs")) {
+					di.bs = true;
+				} else if(app.equals("pdflabelbold")) {
+					di.labelbold = true;
+				} else if(app.startsWith("pdfmap")) {			// mapbox map id
+					String map = getAppValue(app);
+					if(!map.equals("custom")) {
+						di.map = map;
+						di.account = "mapbox";
+					}
+				} else if(app.startsWith("pdflinemap") || app.startsWith("pdflineimage")) {		// Multiple points to be joined into a map or image
+					di.linemap = new LineMap(getAppValueArray(app));
+					if(app.startsWith("pdflinemap")) {
+						di.linemap.type = "map";
+					} else {
+						di.linemap.type = "image";
+					}
+				} else if(app.startsWith("pdftl")) {		// Multiple points to be joined into a map or image
+					if(di.trafficLight == null) {
+						di.trafficLight = new TrafficLightQuestions();
+					}
+					di.trafficLight.addApp(getAppValueArray(app));
+				} else if(app.startsWith("pdfaccount")) {			// mapbox account
+					di.account = getAppValue(app);
+				} else if(app.startsWith("pdflocation")) {
+					di.location = getAppValue(app);			// lon,lat,zoom
+				} else if(app.startsWith("pdfbarcode")) {
+					di.isBarcode = true;		
+				} else if(app.equals("pdfstretch")) {
+					di.stretch = true;		
+				} else if(app.startsWith("pdfzoom")) {
+					di.zoom = getAppValue(app);		
+				} else if(app.startsWith("pdfhyperlink")) {
+					di.isHyperlink = true;		
+				} else if(app.equals("signature")) {
+					di.isSignature = true;		
+				} else if(app.equals("pdfhiderepeatinglabels")) {
+					di.hideRepeatingLabels = true;		
+				} else if(app.equals("thousands-sep")) {
+					di.tsep = true;		
+				} else if(app.equals("pdfshowimage")) {
+					di.showImage = true;		
+				}
+			}
+		}
+	}
+	
+	/*
+	 * Get the color values for a single appearance value
+	 * Format is:  xxxx_0Xrr_0Xgg_0xbb
+	 */
+	private static void setColor(String aValue, DisplayItem di, boolean isLabel) {
+
+		BaseColor color = null;
+
+		String [] parts = aValue.split("_");
+		if(parts.length >= 4) {
+			if(parts[1].startsWith("0x")) {
+				color = new BaseColor(Integer.decode(parts[1]), 
+						Integer.decode(parts[2]),
+						Integer.decode(parts[3]));
+			} else {
+				color = new BaseColor(Integer.decode("0x" + parts[1]), 
+						Integer.decode("0x" + parts[2]),
+						Integer.decode("0x" + parts[3]));
+			}
+		}
+
+		if(isLabel) {
+			di.labelbg = color;
+		} else {
+			di.valuebg = color;
+		}
+
+	}
+	
+	/*
+	 * Get the color values for a single appearance value
+	 * Output is just the RGB value
+	 * Format is:  xxxx_0Xrr_0Xgg_0xbb
+	 */
+	private static String getRGBColor(String aValue) {
+
+		String rgbValue = "";
+
+		String [] parts = aValue.split("_");
+		if(parts.length >= 4) {
+			rgbValue = parts[1] + parts[2] + parts[3];
+		}
+		return rgbValue;
+
+	}
+	
+	private static String getAppValue(String aValue) {
+		String [] parts = aValue.split("_");
+		if(parts.length >= 2) {
+			return parts[1];   		
+		}
+		else return null;
+	}
+	
+	private static String[] getAppValueArray(String aValue) {
+		return aValue.split("_");
+	}
+	
+	/*
+	 * Set the widths of the label and the value
+	 * Appearance is:  pdflabelw_## where ## is a number from 0 to 10
+	 */
+	private static void setWidths(String aValue, DisplayItem di) {
+
+		String [] parts = aValue.split("_");
+		if(parts.length >= 2) {
+			di.widthLabel = Integer.valueOf(parts[1]);   		
+		}
+
+		// Do bounds checking
+		if(di.widthLabel < 0 || di.widthLabel > 10) {
+			di.widthLabel = 5;		
+		}
+	}
+	
+	/*
+	 * Set the height of the value
+	 * Appearance is:  pdfheight_## where ## is the height
+	 */
+	private static void setHeight(String aValue, DisplayItem di) {
+
+		String [] parts = aValue.split("_");
+		if(parts.length >= 2) {
+			di.valueHeight = Double.valueOf(parts[1]);   		
+		}
+
+	}
+
+	/*
+	 * Set space before this item
+	 * Appearance is:  pdfheight_## where ## is the height
+	 */
+	private static void setSpace(String aValue, DisplayItem di) {
+
+		String [] parts = aValue.split("_");
+		if(parts.length >= 2) {
+			di.space = Integer.valueOf(parts[1]);   		
+		}
+
+	}
+	
+	/*
+	 * Extract the compound map values from the display item specification
+	 */
+	public static PdfMapValues getMapValues(Survey survey, DisplayItem di) {
+		PdfMapValues mapValues = new PdfMapValues();
+		
+		// Geo compound
+		lookupGeoCompoundValueInSurvey(di.linemap.geoCompoundQuestion, survey.instance.results, mapValues);
+		
+		if(mapValues.geoCompound) {
+			
+			mapValues.idxStart = -1;
+			mapValues.idxEnd = -1;
+			mapValues.idxMarkers = new ArrayList<>();
+			if(mapValues.orderedMarkers != null) {
+				for(DistanceMarker marker: mapValues.orderedMarkers) {
+					String indexString = marker.properties.get("index");
+					if(indexString != null) {
+						int idx = Integer.valueOf(indexString);
+						String type = marker.properties.get("type");
+						if(type != null) {
+							if(type.equals("pit")) {
+								if(mapValues.idxStart == -1) {
+									mapValues.idxStart = idx;
+								} else {
+									mapValues.idxEnd = idx;
+								}
+							} else {
+								mapValues.idxLastMarker = idx;
+								mapValues.idxMarkers.add(idx);
+							}
+						}
+					}
+				}
+			}
+			
+		} else if(!mapValues.geoCompound) {
+			// Start point
+			ArrayList<String> startValues = lookupInSurvey(di.linemap.startPoint, survey.instance.results);
+			if(startValues.size() > 0) {
+				mapValues.startLine = startValues.get(0);
+			}
+	
+			// End point
+			ArrayList<String> endValues = lookupInSurvey(di.linemap.endPoint, survey.instance.results);
+			if(endValues.size() > 0) {
+				mapValues.endLine = endValues.get(0);
+			}
+			
+			if(di.linemap.markers.size() > 0) {
+				mapValues.markers = new ArrayList<String> ();
+				for(String markerName : di.linemap.markers) {
+					mapValues.markers.addAll(lookupInSurvey(markerName, survey.instance.results));
+				}		
+			}
+		}
+		
+		return mapValues;
+	}
+	
+	/*
+	 * Get the data from a referenced geo-compound widget
+	 * Only return the first found - geo-compounds in repeats are undefined
+	 */
+	public static void lookupGeoCompoundValueInSurvey(String qname, ArrayList<ArrayList<Result>> records, 
+			PdfMapValues mapValues) {
+
+		if(qname != null && records != null && records.size() > 0) {
+			for(ArrayList<Result> r : records) {
+				for(Result result : r) {
+					if(result.subForm == null && result.name.equals(qname) && result.type.equals("geocompound")) {
+						mapValues.geoCompound = true;
+						mapValues.geometry = result.value;
+						mapValues.orderedMarkers = result.markers;
+						break;
+					} else if(result.subForm != null) {
+						lookupGeoCompoundValueInSurvey(qname, result.subForm, mapValues);
+					}
+				}		
+			}
+		}
+		return;
+	}
+	
+	/*
+	 * Get an array of values for the specified question in the survey
+	 * There will only be more than one value if the question is in a repeat
+	 */
+	public static ArrayList<String> lookupInSurvey(String qname, ArrayList<ArrayList<Result>> records) {
+		ArrayList<String> values = new ArrayList<>();
+		if(qname != null && records != null && records.size() > 0) {
+			for(ArrayList<Result> r : records) {
+				for(Result result : r) {
+					if(result.subForm == null && result.name.equals(qname)) {
+						values.add(result.value != null ? result.value : "");
+					} else if(result.subForm != null) {
+						values.addAll(lookupInSurvey(qname, result.subForm));
+					}
+				}		
+			}
+		}
+		return values;
+	}
 }

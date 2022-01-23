@@ -585,6 +585,7 @@ public class SubRelationalDB extends Subscriber {
 
 		Keys keys = new Keys();
 		PreparedStatement pstmt = null;
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 
 		try {
 			/*
@@ -768,7 +769,6 @@ public class SubRelationalDB extends Subscriber {
 									GeneralUtilityMethods.getAuditValues(auditData,
 									getColNames(columns), localisation);
 
-							Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 							auditString = gson.toJson(auditValues);
 						}	
 						pstmt.setString(stmtIndex++, auditString);
@@ -793,6 +793,52 @@ public class SubRelationalDB extends Subscriber {
 					}
 					foreignKeys.addAll(thisTableKeys);
 				}
+				/*
+				 * Write into the points table of geocompound types
+				 */
+				for(IE col : columns) {
+					if(col.getQType().equals("geocompound")) {
+						if (pstmt != null) try {	pstmt.close();} catch (Exception e) {}
+						
+						String compoundSql = "insert into " + tableName + "_" + col.getColumnName()
+								+ "(parkey, properties, locn) "
+								+ "values(?, ?, ST_GeomFromText(?, 4326))";
+						pstmt = cResults.prepareStatement(compoundSql);
+						
+						String compoundValue = col.getValue();
+						log.info("------------------------------ Adding compound Value: " + compoundValue);
+						if(compoundValue != null) {
+							String components[] = compoundValue.split("#");
+							for(int i = 0; i < components.length; i++) {
+								if(components[i].startsWith("marker:")) {
+									String pointComponents [] = components[i].split(":");
+									HashMap<String, String> propObj = new HashMap<>();
+									String locnText = null;
+									if(pointComponents.length > 1) {
+										String locn = pointComponents[1];
+										String pLocn[] = locn.split(" ");
+										if(pLocn.length > 1) { 
+											locnText = "POINT(" + pLocn[1] + " " + pLocn[0] + ")";
+										}
+										
+										String props = pointComponents[2];		
+										String pComp [] = props.split(";");
+										for(int k = 0; k < pComp.length; k++) {
+											String pe [] = pComp[k].split("=");
+											propObj.put(pe[0].trim(), pe[1].trim());
+										}
+									}
+									pstmt.setInt(1, parent_key);
+									pstmt.setString(2, gson.toJson(propObj));
+									pstmt.setString(3, locnText);
+									log.info("Update compound points: " + pstmt.toString());
+									pstmt.executeUpdate();
+								}
+							}
+							
+						}
+					}
+				}
 			}
 
 			// Write any child forms
@@ -812,6 +858,7 @@ public class SubRelationalDB extends Subscriber {
 					recCounter++;
 				}
 			}
+			
 		} finally {
 			if (pstmt != null) try {	pstmt.close();} catch (Exception e) {}
 		}
@@ -1510,7 +1557,7 @@ public class SubRelationalDB extends Subscriber {
 					}		
 				}
 			} else if(colType.equals("geopolygon") || colType.equals("geolinestring") || colType.equals("geopoint")
-					|| colType.equals("geoshape") || colType.equals("geotrace")) {
+					|| colType.equals("geoshape") || colType.equals("geotrace") || colType.equals("geocompound")) {
 				sql.append(",").append(col.getColumnName());
 				if(colType.equals("geopoint") && GeneralUtilityMethods.hasColumn(cResults, tableName, col.getColumnName() + "_alt")) {
 					// Geopoint also has altitude and accuracy
@@ -1635,43 +1682,8 @@ public class SubRelationalDB extends Subscriber {
 				} else if(qType.equals("geopoint")) {
 					// Geo point parameters are separated by a space and in the order Y X Altitude Accuracy
 					// To store as a Point in the db this order needs to be reversed
-					String params[] = value.split(" ");
 					boolean hasAltitude = GeneralUtilityMethods.hasColumn(cResults, tableName, colName + "_alt");
-					log.info("Has altitude: " + tableName + " : " + colName + " : " + hasAltitude);
-					if(params.length > 1) {
-						try {
-							value = "ST_SetSRID(ST_MakePoint(" 
-									+ String.valueOf(Double.parseDouble(params[1])) + ","
-									+ String.valueOf(Double.parseDouble(params[0]))
-									+ "), 4326)";
-	
-							// Add altitude and accuracy
-							if(hasAltitude) {
-								if(params.length > 3) {
-									value += "," + String.valueOf(Double.parseDouble(params[2])) + "," 
-											+ String.valueOf(Double.parseDouble(params[3]));
-								} else {
-									value += ",null, null";
-								}
-							}
-						} catch (Exception e) {
-							log.info("Error: Invalid geometry point detected: " + tableName + " : " + colName + " : " + value);
-							if(hasAltitude) {
-								value = "null, null, null";
-							} else {
-								value = "null";
-							}
-						}
-
-					} else {
-						log.info("Info: Empty geometry point detected: " + tableName + " : " + colName + " : " + value);
-						if(hasAltitude) {
-							value = "null, null, null";
-						} else {
-							value = "null";
-						}
-					}
-
+					value = getGeopointValue(value, hasAltitude, tableName, colName);
 
 				} else if(GeneralUtilityMethods.isAttachmentType(qType)) {
 
@@ -1701,7 +1713,24 @@ public class SubRelationalDB extends Subscriber {
 								mediaChanges) + "'";		
 
 					}
-				} else if(qType.equals("geoshape") || qType.equals("geotrace")) {
+				} else if(qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("geocompound")) {
+					/*
+					 * Extract the linestring from geocompound types
+					 */
+					if(qType.equals("geocompound")) {
+						String components[] = value.split("#");
+						for(int i = 0; i < components.length; i++) {
+							if(components[i].startsWith("line:")) {
+								String lineComponents [] = components[i].split(":");
+								if(lineComponents.length > 0) {
+									value = lineComponents[1];
+									break;
+								}
+								
+							}
+						}
+					}
+					
 					/*
 					 * ODK polygon / linestring
 					 * The coordinates are in a String separated by ;
@@ -1711,7 +1740,7 @@ public class SubRelationalDB extends Subscriber {
 					 */
 					int min_points = 3;
 					StringBuffer ptString = null;
-					if(qType.equals("geotrace")) {
+					if(qType.equals("geotrace") || qType.equals("pdf_field")) {
 						min_points = 2;
 					}
 
@@ -1798,6 +1827,46 @@ public class SubRelationalDB extends Subscriber {
 		return value;
 	}
 
+	private String getGeopointValue(String in, boolean hasAltitude, String tableName, String colName) {
+		String value;
+		String params[] = in.split(" ");
+		
+		if(params.length > 1) {
+			try {
+				value = "ST_SetSRID(ST_MakePoint(" 
+						+ String.valueOf(Double.parseDouble(params[1])) + ","
+						+ String.valueOf(Double.parseDouble(params[0]))
+						+ "), 4326)";
+
+				// Add altitude and accuracy
+				if(hasAltitude) {
+					if(params.length > 3) {
+						value += "," + String.valueOf(Double.parseDouble(params[2])) + "," 
+								+ String.valueOf(Double.parseDouble(params[3]));
+					} else {
+						value += ",null, null";
+					}
+				}
+			} catch (Exception e) {
+				log.info("Error: Invalid geometry point detected: " + tableName + " : " + colName + " : " + in);
+				if(hasAltitude) {
+					value = "null, null, null";
+				} else {
+					value = "null";
+				}
+			}
+
+		} else {
+			log.info("Info: Empty geometry point detected: " + tableName + " : " + colName + " : " + in);
+			if(hasAltitude) {
+				value = "null, null, null";
+			} else {
+				value = "null";
+			}
+		}
+		return value;
+	}
+	
 	/*
 	 * Check for duplicates specified using a column named instanceid or _instanceid
 	 * Return true if this instance has already been uploaded

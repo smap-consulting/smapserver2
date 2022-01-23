@@ -50,6 +50,7 @@ import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.ChangeLog;
 import org.smap.sdal.model.ChangeResponse;
 import org.smap.sdal.model.ChangeSet;
+import org.smap.sdal.model.DistanceMarker;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.Instance;
@@ -2724,7 +2725,8 @@ public class SurveyManager {
 						// This question is not a place holder for a subform
 						if(q.source != null || q.type.equals("server_calculate") || q.type.equals("pdf_field")) {		// Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
 							String qType = q.type;
-							if(qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace") || q.name.startsWith("geopolygon_") || q.name.startsWith("geolinestring_")) {
+							if(qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace") 
+									|| (qType.equals("geocompound") && q.source != null) || q.name.startsWith("geopolygon_") || q.name.startsWith("geolinestring_")) {
 
 								col = "ST_AsGeoJSON(" + q.columnName + ")";
 
@@ -2837,18 +2839,18 @@ public class SurveyManager {
 
 					String priKey = resultSet.getString(index);
 					int newParentKey = resultSet.getInt(index++);   		
-					record.add(new Result("prikey", "key", priKey, false, fIdx, -1, 0, null, null));     // SERVERMETA
+					record.add(new Result("prikey", "key", priKey, false, fIdx, -1, 0, null, null, null));     // SERVERMETA
 
 					if(isTopLevel) {
 						String user = resultSet.getString(index++);
-						record.add(new Result("user", "user", user, false, fIdx, -1, 0, null, null));		// SERVERMETA
+						record.add(new Result("user", "user", user, false, fIdx, -1, 0, null, null, null));		// SERVERMETA
 						gPrimaryKey = priKey;		// The primary key of the top level form
 						for(MetaItem mi : preloads) {
 							if(mi.isPreload && mi.published) {			
-								record.add(new Result(mi.name, mi.dataType, resultSet.getString(mi.columnName), false, fIdx, mi.id, 0, null, null));
+								record.add(new Result(mi.name, mi.dataType, resultSet.getString(mi.columnName), false, fIdx, mi.id, 0, null, null, null));
 							}
 						}
-						record.add(new Result("instancename", "instancename", resultSet.getString("instancename"), false, fIdx, -1, 0, null, null));
+						record.add(new Result("instancename", "instancename", resultSet.getString("instancename"), false, fIdx, -1, 0, null, null, null));
 						
 					}
 
@@ -2889,10 +2891,10 @@ public class SurveyManager {
 
 				String priKey = "";
 				int newParentKey = 0;
-				record.add(new Result("prikey", "key", priKey, false, fIdx, -1, 0, null, null)); 
+				record.add(new Result("prikey", "key", priKey, false, fIdx, -1, 0, null, null, null)); 
 
 				if(isTopLevel) {
-					record.add(new Result("user", "user", null, false, fIdx, -1, 0, null, null)); 
+					record.add(new Result("user", "user", null, false, fIdx, -1, 0, null, null, null)); 
 				}
 
 				addDataForQuestions(
@@ -2987,7 +2989,7 @@ public class SurveyManager {
 				Form subForm = s.getSubForm(form, q);
 
 				if(subForm != null) {	
-					Result nr = new Result(qName, "form", null, false, fIdx, qIdx, 0, null, appearance);		// Result entry for this question
+					Result nr = new Result(qName, "form", null, false, fIdx, qIdx, 0, null, appearance, null);		// Result entry for this question
 
 					nr.subForm = getResults(subForm, 
 							s.getFormIdx(subForm.id),
@@ -3057,7 +3059,7 @@ public class SurveyManager {
 					s.forms.addAll(refSurvey.forms);
 					
 					Form mainSubForm = refSurvey.getFirstForm();					
-					Result nr = new Result(qName, "form", null, false, fIdx, qIdx, 0, null, appearance);		// Result entry for this question
+					Result nr = new Result(qName, "form", null, false, fIdx, qIdx, 0, null, appearance, null);		// Result entry for this question
 					
 					String instanceId = null;
 					String keyQuestionName = null;
@@ -3111,12 +3113,12 @@ public class SurveyManager {
 
 			} else if(qType.equals("begin group")) {
 
-				record.add(new Result(qName, qType, null, false, fIdx, qIdx, 0, null, appearance));
+				record.add(new Result(qName, qType, null, false, fIdx, qIdx, 0, null, appearance, null));
 				index--;		// Decrement the index as the begin group was not in the SQL query
 
 			} else if(qType.equals("end group")) {
 
-				record.add(new Result(qName, qType, null, false, fIdx, qIdx, 0, null, appearance));
+				record.add(new Result(qName, qType, null, false, fIdx, qIdx, 0, null, appearance, null));
 				index--;		// Decrement the index as the end group was not in the SQL query
 
 			} else if(qType.equals("select") && !compressed) {		// Get the data from all the option columns
@@ -3172,9 +3174,8 @@ public class SurveyManager {
 					}
 					//nr.choices.add(new Result(option.value, "choice", null, optSet, fIdx, qIdx, oIdx, listName, appearance)); 
 
-				}
-				//record.add(nr);	
-				record.add(new Result(qName, qType, vBuffer.toString(), false, fIdx, qIdx, 0, listName, appearance));
+				}	
+				record.add(new Result(qName, qType, vBuffer.toString(), false, fIdx, qIdx, 0, listName, appearance, null));
 
 				index--;		// Decrement the index as the select multiple was not in the SQL query
 
@@ -3206,8 +3207,15 @@ public class SurveyManager {
 						log.severe("Invalid value for geopoint: " + value);
 					}
 				} 
-
-				record.add(new Result(qName, qType, value, false, fIdx, qIdx, 0, null, appearance));
+				
+				/*
+				 * If this is a compound question add the marker array
+				 */
+				ArrayList<DistanceMarker> markers = null;
+				if(value != null && qType.equals("geocompound")) {
+					markers = GeneralUtilityMethods.getMarkersForQuestion(cResults, form.tableName, q.columnName, Integer.valueOf(priKey));
+				}
+				record.add(new Result(qName, qType, value, false, fIdx, qIdx, 0, null, appearance, markers));
 
 			}
 			try {

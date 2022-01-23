@@ -16,7 +16,6 @@ public class TrafficLightQuestions {
 			ArrayList<TrafficLightBulb> light = new ArrayList<> ();
 		
 			for(int i = 1; i < points.length; i++) {
-				System.out.println("point " + points[i]);
 				String[] components = points[i].split(":");
 				String color = components[0];
 				String crossItem = "";

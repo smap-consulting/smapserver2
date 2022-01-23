@@ -288,8 +288,7 @@ public class TableManager {
 		boolean tableCreated = false;
 		String sql = "select count(*) from information_schema.tables where table_name =?";		
 		PreparedStatement pstmt = null;
-		try {
-			//Class.forName(dbClass);	 
+		try {	 
 
 			List<Form> forms = template.getAllForms();	
 			if(cResults.getAutoCommit()) {
@@ -367,7 +366,7 @@ public class TableManager {
 
 		String tableName = form.getTableName();
 		List<Question> columns = form.getQuestions(sd, form.getPath(null));
-		StringBuffer sql = new StringBuffer("");	
+		StringBuilder sql = new StringBuilder("");	
 		List <GeometryColumn> geoms = new ArrayList<GeometryColumn> ();
 
 		/*
@@ -463,7 +462,7 @@ public class TableManager {
 						geoms.add(gc);
 						continue;
 
-					} else if(colType.equals("geolinestring") || colType.equals("geotrace")) {
+					} else if(colType.equals("geolinestring") || colType.equals("geotrace") || colType.equals("geocompound")) {
 
 						String qName = q.getColumnName(false);
 						int idx = qName.lastIndexOf("_parentquestion");
@@ -472,6 +471,11 @@ public class TableManager {
 						}
 						GeometryColumn gc = new GeometryColumn(tableName, q.getColumnName(false), "LINESTRING");
 						geoms.add(gc);
+						
+						if(colType.equals("geocompound")) {
+							// Add the points table
+							addPointsTable(cResults, tableName, q.getColumnName(false));
+						}
 						continue;
 
 					} 
@@ -539,6 +543,40 @@ public class TableManager {
 
 	}
 	
+	/*
+	 * Create a secondary table to hold compound points
+	 */
+	private void addPointsTable(Connection cResults, String parentTable, String parentColumn) throws SQLException {
+		
+		String tableName = parentTable + "_" + parentColumn;
+		
+		StringBuilder sql = new StringBuilder("CREATE TABLE ")
+				.append(tableName).append(" (")
+		.append("prikey SERIAL PRIMARY KEY, ")
+		.append("parkey int default 0, ")
+		.append("properties text)");
+		
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtGeom = null;
+		try {
+			if(!GeneralUtilityMethods.tableExists(cResults, tableName)) {
+				pstmt = cResults.prepareStatement(sql.toString());
+				log.info("Sql statement: " + pstmt.toString());
+				pstmt.executeUpdate();
+				
+				// Add geometry column
+				String gSql = "SELECT AddGeometryColumn('" + tableName + "', 'locn', 4326, 'POINT', 2)";
+				pstmtGeom = cResults.prepareStatement(gSql);
+				log.info("Add geometry columns: " + pstmtGeom.toString());
+				pstmtGeom.executeQuery();
+
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+			if(pstmtGeom != null) try{pstmtGeom.close();}catch(Exception e) {}
+		}
+
+	}
 
 
 	/*

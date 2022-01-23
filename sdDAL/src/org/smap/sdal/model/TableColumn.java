@@ -68,7 +68,7 @@ public class TableColumn {
 	public boolean isGeometry () {
 		boolean geom = false;
 		if(type.equals("geopoint") || type.equals("geopolygon") || type.equals("geolinestring") 
-				|| type.equals("geoshape") || type.equals("geotrace")) {
+				|| type.equals("geoshape") || type.equals("geotrace") || type.equals("pdf_field")) {
 			geom = true;
 		}
 		return geom;

@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -48,6 +49,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
@@ -61,14 +63,19 @@ import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.DatabaseConnections;
+import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
+import org.smap.sdal.model.LineMap;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.PdfMapValues;
+import org.smap.sdal.model.Question;
 import org.smap.sdal.model.ReportConfig;
+import org.smap.sdal.model.Result;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
@@ -400,6 +407,16 @@ public class SubscriberBatch {
 								}
 								
 								/*
+								 * Process compound widgets
+								 *
+								ArrayList<String> compoundQuestions = GeneralUtilityMethods.getCompoundQuestions(dbc.sd, sdalSurvey.id);
+								if(compoundQuestions.size() > 0) {
+									SurveyManager sm = new SurveyManager(localisation, "UTC");
+									processCompoundWidgets(dbc.sd, dbc.results, sm, sdalSurvey.id, basePath, ue.getInstanceId());
+								}
+								*/
+								
+								/*
 								 * Write log entry
 								 */
 								String status = se.getStatus();
@@ -433,6 +450,7 @@ public class SubscriberBatch {
 			 * Apply any other subscriber type dependent processing
 			 */
 			if(subscriberType.equals("upload")) {
+				
 				applyReminderNotifications(dbc.sd, dbc.results, basePath, serverName);
 				sendMailouts(dbc.sd, basePath, serverName);
 				expireTemporaryUsers(localisation, dbc.sd);
@@ -634,7 +652,7 @@ public class SubscriberBatch {
 						if(!haveSyncNotifications) {
 							log.info("=== No enabled synchronisation notifications");
 						}
-					} finally {
+				} finally {
 						if(pstmtNot != null) {try {pstmtNot.close();} catch(Exception e) {}}
 						if(pstmtRecord != null) {try {pstmtRecord.close();} catch(Exception e) {}}
 						if(pstmtMarkDone != null) {try {pstmtMarkDone.close();} catch(Exception e) {}}
@@ -680,6 +698,140 @@ public class SubscriberBatch {
 
 	}
 
+	/*
+	private void processCompoundWidgets(Connection sd, Connection results, SurveyManager sm, int sId, 
+			String basePath, String instanceId) throws SQLException, Exception {
+		
+		Survey survey = sm.getById(
+				sd, 
+				results, 
+				null,	// Anonymous user 
+				false,	// Not necessarily temporary user
+				sId, 
+				true, 
+				basePath, 
+				instanceId, 
+				true, 			// get results
+				false, 			// Don't generate a blank
+				true, 
+				false, 
+				true, 
+				"real", 
+				false, 
+				false, 
+				false,		// not super user 
+				"geojson",
+				false,
+				false,
+				false);	       // Don't merge set values into default value	
+		
+		for(int i = 0; i < survey.instance.results.size(); i++) {
+			setCompoundWidgetValues(sd, results, survey.instance.results.get(i), survey);
+		}
+	}
+	*/
+	
+	/*
+	private void setCompoundWidgetValues(Connection sd, Connection results, ArrayList<Result> record, Survey survey) throws Exception {
+		int prikey = 0;
+		for(Result r : record) {
+			if(r.name.equals("prikey")) {
+				prikey = Integer.valueOf(r.value);
+			} else if(r.type.equals("form")) {
+				for(int k = 0; k < r.subForm.size(); k++) {
+					setCompoundWidgetValues(sd, results, r.subForm.get(k), survey);
+				} 
+			} else if(r.type.equals("pdf_field")) {
+				DisplayItem di = new DisplayItem();
+				
+				Form form = survey.forms.get(r.fIdx);
+				Question question = PdfUtilities.getQuestionFromResult(sd, survey, r, form);
+				PdfUtilities.setQuestionFormats(question.appearance, di);
+				
+				if(r.type.equals("pdf_field") && di.linemap != null) {
+					PdfMapValues mapValues = PdfUtilities.getMapValues(survey, di);
+					PreparedStatement pstmt = null;
+					try {
+						pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
+						PdfUtilities.sequenceMarkers(pstmt, mapValues);		// Put markers in sequence increasing from start
+					} finally {
+						 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
+					}
+					if((mapValues.hasLine())) {
+						/*
+						 * The column name for compound data is based on the questions that make up that data
+						 *
+						String columnName = di.linemap.getCompoundColumnName();
+						createLinestringColumn(sd, results, form.tableName, question.name, columnName, form.id);
+						writeLinestringColumn(results, form.tableName, columnName, mapValues.getLineGeometryWithMarkers(-1), prikey);
+					}
+				}
+			}
+		}
+	}
+	*/
+	
+	/*
+	 * Create a linestring column for the path in a pdf_field
+	 *
+	private void createLinestringColumn(Connection sd, Connection results, String tableName, String qName, String columnName, int fId) throws SQLException {
+		
+		String sql = "select AddGeometryColumn('" + tableName + 
+				"', '" + columnName + "', 4326, 'LINESTRING', 2)";
+		
+		PreparedStatement pstmtReady = null;
+		PreparedStatement pstmt = null;
+		
+
+			try {
+				if(!GeneralUtilityMethods.hasColumn(results, tableName, columnName)) {
+					pstmt = results.prepareStatement(sql);
+					log.info(pstmt.toString());
+					pstmt.executeQuery();
+				}
+				
+				// Always update the question as this question may share the created column with another question
+				String sqlReady = "update question "
+						+ "set column_name = ? "
+						+ "where qname = ? "
+						+ "and f_id = ?";
+				
+				pstmtReady = sd.prepareStatement(sqlReady);
+				pstmtReady.setString(1, columnName);
+				pstmtReady.setString(2, qName);
+				pstmtReady.setInt(3, fId);
+				pstmtReady.executeUpdate();
+						
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
+				try {if (pstmtReady != null) {pstmtReady.close();}} catch (SQLException e) {}	
+			}
+
+	}
+	*/
+	
+	/*
+	 * Write the path to a geometry column
+	 *
+	private void writeLinestringColumn(Connection results, String tableName, String columnName, String value, int prikey) throws SQLException {
+		String sql = "update " + tableName + 
+						" set " + columnName + " = ST_GeomFromGeoJSON(?) "
+						+ "where prikey = ? "
+						+ "and " + columnName + " is null";
+		
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = results.prepareStatement(sql);
+			pstmt.setString(1, value);
+			pstmt.setInt(2,  prikey);
+			log.info(pstmt.toString());
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
+		}
+	}
+	*/
+	
 	/*
 	 * Erase deleted templates more than a specified number of days old
 	 */

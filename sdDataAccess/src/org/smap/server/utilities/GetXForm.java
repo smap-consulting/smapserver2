@@ -44,6 +44,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
+import org.smap.sdal.model.DistanceMarker;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Line;
@@ -2120,13 +2121,13 @@ public class GetXForm {
 			// Set the value from the instance data
 			String value = "";
 			if(instance != null) {
-				if(qType.equals("geopoint")  || qType.equals("geoshape") || qType.equals("geotrace")) {
+				if(qType.equals("geopoint")  || qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("pdf_field")) {
 
 					if(qType.equals("geopoint") && instance.point_geometry != null) {		
 						value = instance.point_geometry.getAsOdk();
 					} else if(qType.equals("geoshape") && instance.polygon_geometry != null) {
 						value = GeneralUtilityMethods.getOdkPolygon(instance.polygon_geometry);
-					} else if(qType.equals("geotrace") && instance.line_geometry != null) {
+					} else if((qType.equals("geotrace") || qType.equals("pdf_field")) && instance.line_geometry != null) {
 						value = GeneralUtilityMethods.getOdkLine(instance.line_geometry);
 					}
 					
@@ -2426,11 +2427,12 @@ public class GetXForm {
 					if (q.getSource() != null) { // Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
 
 						String qType = q.getType();
-						if (qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace")) {
+						if (qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("geocompound")) {
 							col = "ST_AsGeoJson(" + q.getColumnName(isReference) + ")";
 							if(qType.equals("geopoint")) {
 								hasPoint = true;
 							}
+							
 						} else if (qType.equals("select") && !q.isCompressed()) {
 							continue; 
 						} else {
@@ -2458,6 +2460,7 @@ public class GetXForm {
 		}
 		/*
 		 * Get geometry altitude and accuracy of they are available
+		 * TODO - This is wrong as it assmumes a single geometry called the_geom
 		 */
 		if(hasPoint) {
 			if(GeneralUtilityMethods.hasColumn(cResults, processForm.getTableName(), "the_geom_alt")) {
@@ -2643,9 +2646,33 @@ public class GetXForm {
 					} else if (value != null && qType.equals("geoshape")) {
 						Polygon p = gson.fromJson(value, Polygon.class);
 						value = GeneralUtilityMethods.getOdkPolygon(p);
-					} else if (value != null && qType.equals("geotrace")) {
+					} else if (value != null && (qType.equals("geotrace") || qType.equals("geocompound"))) {
 						Line l = gson.fromJson(value, Line.class);
 						value = GeneralUtilityMethods.getOdkLine(l);
+						
+						/*
+						 * If this is a compound question add the marker array
+						 */
+						if(value != null && qType.equals("geocompound")) {
+							ArrayList<DistanceMarker> markers = null;	
+							StringBuilder newValue = new StringBuilder("line:").append(value);
+							markers = GeneralUtilityMethods.getMarkersForQuestion(cResults, form.getTableName(), q.getColumnName(isReference), Integer.valueOf(priKey));
+							if(markers.size() > 0) {
+								for(DistanceMarker marker : markers) {
+									newValue.append("#marker:");
+									if(marker.properties != null && marker.properties.size() > 0) {
+										int idx = 0;
+										for(String key : marker.properties.keySet()) {
+											if(idx++ > 0) {
+												newValue.append(";");
+											}
+											newValue.append(key).append("=").append(marker.properties.get(key));
+										}
+									}
+								}
+							}
+							value = newValue.toString();
+						}
 					}
 					
 
