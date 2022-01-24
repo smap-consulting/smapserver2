@@ -65,22 +65,13 @@ public class TableColumn {
 		hide = false;
 	}
 	
-	public boolean isGeometry () {
-		boolean geom = false;
-		if(type.equals("geopoint") || type.equals("geopolygon") || type.equals("geolinestring") 
-				|| type.equals("geoshape") || type.equals("geotrace") || type.equals("pdf_field")) {
-			geom = true;
-		}
-		return geom;
-	}
-	
 	public String getGeomType () {
 		String geomType = null;
 		if(type.equals("geopoint")) { 
 			geomType = "Point"; 
 		} else if(type.equals("geopolygon") || type.equals("geoshape")) {
 			geomType = "Polygon";
-		} else if(type.equals("geolinestring") || type.equals("geotrace")) {
+		} else if(type.equals("geolinestring") || type.equals("geotrace") || type.equals("geocompound")) {
 			geomType = "Linestring";	
 		} 
 		return geomType;
@@ -106,7 +97,7 @@ public class TableColumn {
 		
 		if(isAttachment()) {
 			selName = "'" + urlprefix + "' || " + column_name + " as " + column_name;
-		} else if(isGeometry()) {
+		} else if(GeneralUtilityMethods.isGeometry(type)) {
 			selName = "ST_AsGeoJson(" + column_name + ") ";
 		} else if(isCalculate()) {
 			if(calculation != null) {

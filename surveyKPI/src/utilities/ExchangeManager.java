@@ -247,7 +247,7 @@ public class ExchangeManager {
 						
 						// Set the sql selection text for this column
 						String selName = null;
-						if(c.isGeometry()) {
+						if(GeneralUtilityMethods.isGeometry(c.type)) {
 							selName = "ST_AsTEXT(" + c.column_name + ") ";
 						} else if(qType.equals("dateTime")) {	// Return all timestamps at UTC with no time zone
 							selName = "timezone('UTC', " + c.column_name + ") as " + c.column_name;	
@@ -1179,7 +1179,7 @@ public class ExchangeManager {
 					if(col.type.equals("geoshape")) {
 						sqlInsert.append(",").append("ST_GeomFromText('POLYGON((' || ? || '))', 4326)");
 					
-					} else if(col.type.equals("geotrace")) {
+					} else if(col.type.equals("geotrace") || col.type.equals("geocompound")) {
 						sqlInsert.append(",").append("ST_GeomFromText('LINESTRING(' || ? || ')', 4326)");
 					
 					}  else if(col.type.equals("geopoint")) {
@@ -1405,7 +1405,7 @@ public class ExchangeManager {
 					
 					Time tVal = new Time(hour, minute, second);
 					eh.pstmtInsert.setTime(index++, tVal);
-				} else if(col.type.equals("geoshape") || col.type.equals("geotrace")) {
+				} else if(col.type.equals("geoshape") || col.type.equals("geotrace") || col.type.equals("geocompound")) {
 					if(!notEmpty(value)) {		
 						value = null;
 					} else if(value.endsWith("...")) {

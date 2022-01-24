@@ -134,7 +134,7 @@ public class QuestionInfo {
 							columnName = columnName.substring(0, idx);
 						}
 						isGeom = true;
-					} else if(qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace")) {
+					} else if(qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("geocompound")) {
 						isGeom = true;
 					}
 					

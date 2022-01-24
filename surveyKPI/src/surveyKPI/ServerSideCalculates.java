@@ -90,7 +90,7 @@ public class ServerSideCalculates extends Application {
 				sql = "SELECT DISTINCT f.f_id, f.name from form f, question q " +
 						" where f.f_id = q.f_id " +
 						" and f.s_id = ? " + 
-						" and (q.qtype='geopolygon' OR q.qtype='geoshape' OR q.qtype='geolinestring' OR q.qtype='geotrace') " +
+						" and (q.qtype='geopolygon' OR q.qtype='geoshape' OR q.qtype='geolinestring' OR q.qtype='geotrace' OR q.qtype='geocompound') " +
 						" order by f.name;";
 			} else {	// All forms are valid
 				sql = "SELECT DISTINCT f.f_id, f.name from form f " +

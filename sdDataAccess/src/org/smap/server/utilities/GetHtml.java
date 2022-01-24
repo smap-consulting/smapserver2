@@ -1608,7 +1608,7 @@ public class GetHtml {
 			type = "radio";
 		} else if (q.type.equals("select")) {
 			type = "checkbox";
-		} else if (q.type.equals("geopoint") || q.type.equals("geoshape") || q.type.equals("geotrace") || q.type.equals("pdf_field")) {
+		} else if (q.type.equals("geopoint") || q.type.equals("geoshape") || q.type.equals("geotrace") || q.type.equals("geocompound")) {
 			type = "text";
 		} else if (q.type.equals("image") || q.type.equals("audio") || q.type.equals("video") || q.type.equals("file")) {
 			type = "file";

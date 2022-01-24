@@ -4189,7 +4189,7 @@ public class GeneralUtilityMethods {
 	 */
 	static public String getFirstGeometryQuestionName(ArrayList<TableColumn> columns) {
 		for(TableColumn tc : columns) {
-			if(tc.isGeometry()) {
+			if(isGeometry(tc.type)) {
 				return tc.question_name;
 			}
 		}
@@ -4786,13 +4786,13 @@ public class GeneralUtilityMethods {
 	public static boolean isGeometry(String qType) {
 		boolean isGeom = false;
 		if (qType.equals("geopoint") || qType.equals("geopolygon") || qType.equals("geolinestring")
-				|| qType.equals("geotrace") || qType.equals("geoshape")) {
+				|| qType.equals("geotrace") || qType.equals("geoshape") || qType.equals("geocompound")) {
 
 			isGeom = true;
 		}
 		return isGeom;
 	}
-
+	
 	/*
 	 * Get the readonly value for a question as stored in the database
 	 */
@@ -8981,13 +8981,15 @@ public class GeneralUtilityMethods {
 		status.msg = "";
 
 		try {
-			if(type.equals("geopoint") || type.equals("geotrace") || type.equals("geoshape")) {
+			if(type.equals("geopoint") || type.equals("geotrace") || type.equals("geoshape") || type.equals("geocompound")) {
 
 				String geoType = null;
 
 				if(type.equals("geopoint")) {
 					geoType = "POINT";
 				} else if (type.equals("geotrace")) {
+					geoType = "LINESTRING";
+				} else if (type.equals("geocompound")) {
 					geoType = "LINESTRING";
 				} else if (type.equals("geoshape")) {
 					geoType = "POLYGON";
@@ -9922,7 +9924,7 @@ public class GeneralUtilityMethods {
     	String geomColumn = null;
     	String sql = "select column_name,qtype from question "
     			+ "where f_id = ? "
-    			+ "and (qtype = 'geopoint' or qtype = 'geotrace' or qtype = 'geoshape') "
+    			+ "and (qtype = 'geopoint' or qtype = 'geotrace' or qtype = 'geoshape' or qtype = 'geocompound') "
     			+ "and published "
     			+ "and not soft_deleted" ;
     	PreparedStatement pstmt = null;
@@ -10315,6 +10317,8 @@ public class GeneralUtilityMethods {
     	
 		return markers;
 	}
+	
+	
 	
 	private static int getManifestParamStart(String property) {
 	

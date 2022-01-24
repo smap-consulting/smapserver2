@@ -226,7 +226,7 @@ public class TextManager {
 				if(value == null ) {
 					value = "";
 				} else if(r.type.equals("geopoint") || r.type.equals("geoshape") 
-						|| r.type.equals("geotrace") || r.type.startsWith("geopolygon_") 
+						|| r.type.equals("geotrace") || r.type.equals("geocompound") || r.type.startsWith("geopolygon_") 
 						|| r.type.startsWith("geolinestring_")) {			
 					
 				} else if(r.type.equals("image")) {

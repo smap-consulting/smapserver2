@@ -31,6 +31,7 @@ public class SmapQuestionTypes {
 	public static final String GEOLINESTRING = "geolinestring";
 	public static final String GEOPOLYGON = "geopolygon";
 	public static final String GEOTRACE = "geotrace";
+	public static final String GEOCOMPOUND = "geocompound";
 	public static final String DURATION = "duration";
 	public static final String BOOLEAN = "boolean";
 	public static final String AUDIT = "audit";

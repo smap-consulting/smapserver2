@@ -1350,7 +1350,7 @@ public class Data extends Application {
 							String name = null;
 							String value = null;
 
-							if(c.isGeometry()) {							
+							if(GeneralUtilityMethods.isGeometry(c.type)) {							
 								// Add Geometry (assume one geometry type per table)
 								String geomValue = rsD.getString(i + 1);	
 								

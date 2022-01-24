@@ -99,7 +99,7 @@ public class SpssManager {
 					Question q = f.questions.get(j);
 
 					String label = q.labels.get(languageIdx).text;
-					if(label != null && !q.type.equals("begin group") && !q.type.equals("end group") && !q.readonly  && !q.isGeom()) {
+					if(label != null && !q.type.equals("begin group") && !q.type.equals("end group") && !q.readonly  && !GeneralUtilityMethods.isGeometry(q.type)) {
 						if(hasVariable) {
 							sps.append("\n");
 						}

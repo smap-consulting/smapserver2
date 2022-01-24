@@ -4442,7 +4442,7 @@ public class SurveyManager {
 							instance.point_geometry = gson.fromJson(rs.getString(i + 1), Point.class);
 						} else if (c.type.equals("geoshape")) {
 							instance.polygon_geometry = gson.fromJson(rs.getString(i + 1), Polygon.class);
-						} else if (c.type.equals("geotrace")) {
+						} else if (c.type.equals("geotrace") || c.type.equals("geocompound")) {
 							instance.line_geometry = gson.fromJson(rs.getString(i + 1), Line.class);
 						} else if (c.type.equals("select1") && c.selectDisplayNames) {
 							// Convert value to display name

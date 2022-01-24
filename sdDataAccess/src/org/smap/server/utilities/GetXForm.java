@@ -2121,13 +2121,13 @@ public class GetXForm {
 			// Set the value from the instance data
 			String value = "";
 			if(instance != null) {
-				if(qType.equals("geopoint")  || qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("pdf_field")) {
+				if(qType.equals("geopoint")  || qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("geocompound")) {
 
 					if(qType.equals("geopoint") && instance.point_geometry != null) {		
 						value = instance.point_geometry.getAsOdk();
 					} else if(qType.equals("geoshape") && instance.polygon_geometry != null) {
 						value = GeneralUtilityMethods.getOdkPolygon(instance.polygon_geometry);
-					} else if((qType.equals("geotrace") || qType.equals("pdf_field")) && instance.line_geometry != null) {
+					} else if((qType.equals("geotrace") || qType.equals("geocompound")) && instance.line_geometry != null) {
 						value = GeneralUtilityMethods.getOdkLine(instance.line_geometry);
 					}
 					

@@ -286,7 +286,7 @@ public class Items extends Application {
 					if(newColIdx > 0) {
 						cols.append(",");
 					}
-					if(bGeom && c.isGeometry()) {
+					if(bGeom && GeneralUtilityMethods.isGeometry(c.type)) {
 						
 						cols.append("ST_AsText(" + tName + "." + c.column_name + ") " + " as " +  c.column_name);
 						if(geomQuestionMap != null && geomQuestionMap.size() > 0) {

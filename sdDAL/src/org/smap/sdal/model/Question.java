@@ -115,17 +115,6 @@ public class Question {
 	}
 	
 	/*
-	 * Return true of this is a geometry questions
-	 */
-	public boolean isGeom() {
-		if(type.equals("geopoint") || type.equals("geotrace") || type.equals("geoshape")) {
-			return true;
-		} else {
-			return false;
-		}			
-	}
-	
-	/*
 	 * Get the selectable choices for this question
 	 *  If the choices came from an external file then one of the choices will be a dummy choice describing the file
 	 *  in that case only return the choices marked as coming from an external file

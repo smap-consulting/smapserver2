@@ -289,7 +289,7 @@ public class ExportSurveyOSM extends Application {
 							
 						// Set the sql selection text for this column 			
 						String selName = null;
-						if(col.isGeometry() && col.question_name.equals(geomQuestion)) {
+						if(GeneralUtilityMethods.isGeometry(col.type) && col.question_name.equals(geomQuestion)) {
 							selName = "ST_AsTEXT(" + col.column_name + ") as " + col.column_name;
 							geomColumn = col.column_name;
 						} else if(qType.equals("dateTime")) {	// Return all timestamps at UTC with no time zone

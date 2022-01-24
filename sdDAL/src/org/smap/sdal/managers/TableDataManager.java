@@ -399,7 +399,7 @@ public class TableDataManager {
 				String name = null;
 				String value = null;
 
-				if (c.isGeometry()) {
+				if (GeneralUtilityMethods.isGeometry(c.type)) {
 					// Add Geometry (assume one geometry type per table)
 					String geomValue = rs.getString(i + 1);
 					if (geomValue == null) {
@@ -524,7 +524,7 @@ public class TableDataManager {
 					name = c.displayName;
 				}
 				
-				if (c.isGeometry() && c.question_name.equals(geomQuestion)) {
+				if (GeneralUtilityMethods.isGeometry(c.type) && c.question_name.equals(geomQuestion)) {
 					// Add Geometry 
 					String geomValue = rs.getString(i + 1);
 					if (geomValue == null) {
@@ -537,7 +537,7 @@ public class TableDataManager {
 						jf.put("_geolocation", new JSONObject(geomValue));
 					}
 
-				} else if (c.isGeometry()) {
+				} else if (GeneralUtilityMethods.isGeometry(c.type)) {
 					// Some other geometry in the table
 					String geomValue = rs.getString(i + 1);
 					if (geomValue == null) {

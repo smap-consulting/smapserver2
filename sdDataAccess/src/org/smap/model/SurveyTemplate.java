@@ -1526,7 +1526,7 @@ public class SurveyTemplate {
 						q.isCompressed());
 				
 				// Set the overall survey location to the last geopoint type found in the survey				
-				if(q.getType().equals("geopoint") || q.getType().equals("geoshape") || q.getType().equals("geotrace")) {
+				if(q.getType().equals("geopoint") || q.getType().equals("geoshape") || q.getType().equals("geotrace") || q.getType().equals("geocompound")) {
 					//instance.setOverallLocation(referencePath);
 					instance.setOverallLocation(questionPath);
 				}

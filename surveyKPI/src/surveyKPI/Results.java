@@ -597,7 +597,7 @@ public class Results extends Application {
 						if(groupValue != null && groupValue.trim().length() > 0) {
 							matchingGroups.add(timeValue + groupValue);
 						}
-					} else if(isGeom(group.getType())) {
+					} else if(GeneralUtilityMethods.isGeometry(group.getType())) {
 						theGeom = resultSet.getString(group.getColumnName());
 						if(externalGeom) {
 							groupValue = resultSet.getString(geoTable + "_name");
@@ -664,7 +664,7 @@ public class Results extends Application {
 							 nonPeriodGroupValue = groupValue;
 						}
 						if(group != null) {
-							if(isGeom(group.getType()) && !externalGeom) {
+							if(GeneralUtilityMethods.isGeometry(group.getType()) && !externalGeom) {
 								groupName = "geom" + featureIndex;	// Make up a dummy geometry name
 							} else if(group.getType().startsWith("select")) {
 								groupName = nonPeriodGroupValue;
@@ -902,22 +902,7 @@ public class Results extends Application {
 
 	}
 	
-	private boolean isGeom(String type) {
-		boolean geom = false;
-		
-		if(type != null) {
-			if(type.equals("geopoint") || 
-					type.equals("geopolygon") || 
-					type.equals("geolinestring") ||
-					type.equals("geoshape") ||
-					type.equals("geotrace")) {
-				geom = true;
-			}
-		}
-		return geom;
-	}
-	
-	
+
 	/*
 	 * Returns the SQL fragment that makes up the select
 	 */
@@ -928,7 +913,7 @@ public class Results extends Application {
 		int count = 0;
 		for(int i = 0; i < q.size(); i++) {
 			QuestionInfo aQuestion = q.get(i);
-			if(externalGeom && isGeom(aQuestion.getType()) )  {
+			if(externalGeom && GeneralUtilityMethods.isGeometry(aQuestion.getType()) )  {
 				// Skip the internal geometry question if geometry is being sourced from an external table
 			} else {
 				if(count++ > 0) {
@@ -953,7 +938,7 @@ public class Results extends Application {
 		
 		for(int i = 0; i < q.size(); i++) {
 			QuestionInfo aQuestion = q.get(i);
-			if(isGeom(aQuestion.getType())) {
+			if(GeneralUtilityMethods.isGeometry(aQuestion.getType())) {
 				geomInternalTable = aQuestion.getTableName();
 				geomInternalColumn = aQuestion.getColumnName();
 			} else if(aQuestion.isGeom()) {

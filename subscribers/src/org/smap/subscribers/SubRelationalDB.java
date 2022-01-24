@@ -1740,7 +1740,7 @@ public class SubRelationalDB extends Subscriber {
 					 */
 					int min_points = 3;
 					StringBuffer ptString = null;
-					if(qType.equals("geotrace") || qType.equals("pdf_field")) {
+					if(qType.equals("geotrace") || qType.equals("geocompound")) {
 						min_points = 2;
 					}
 

@@ -504,6 +504,7 @@ public class Survey extends Application {
 					+ "or q.qtype='geolinestring' "
 					+ "or q.qtype='geoshape' "
 					+ "or q.qtype='geotrace' "
+					+ "or q.qtype='geocompound' "
 					+ "or (q.qtype='pdf_field' and q.source='user')) "
 					+ "and f.f_id = ? "
 					+ "and f.s_id = ?";

@@ -510,7 +510,7 @@ public class ExportSurvey extends Application {
 							if(k == 0) {
 
 								String selName = null;
-								if(c.isGeometry()) {
+								if(GeneralUtilityMethods.isGeometry(c.type)) {
 									selName = "ST_AsTEXT(" + name + ") ";
 									geomType = c.type;
 								} else if(qType.equals("dateTime")) {
@@ -534,7 +534,7 @@ public class ExportSurvey extends Application {
 								f.columnCount++;
 
 								// Increment the column count if this is a geopoint question and the lat/lon are being split
-								if(c.isGeometry() && split_locn) {
+								if(GeneralUtilityMethods.isGeometry(c.type) && split_locn) {
 									if(geomType.equals("geopoint")) {
 										f.columnCount++;
 									}
