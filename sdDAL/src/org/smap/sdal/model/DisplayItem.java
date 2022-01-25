@@ -42,6 +42,7 @@ public class DisplayItem {
 	public boolean stretch = false;			// Stretch an image to fit a box
 	public boolean tsep = false;		// Thousands separator
 	public LineMap linemap;
+	public MarkerLocation markerLocation;
 	public TrafficLightQuestions trafficLight;
 	public ArrayList<DistanceMarker> markers;
 	

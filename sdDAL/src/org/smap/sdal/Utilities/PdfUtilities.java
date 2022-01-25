@@ -39,6 +39,7 @@ import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.DistanceMarker;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.LineMap;
+import org.smap.sdal.model.MarkerLocation;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.PdfMapValues;
 import org.smap.sdal.model.Question;
@@ -350,16 +351,16 @@ public class PdfUtilities {
 	/*
 	 * Add a marker to an SVG image
 	 */
-	private static void addMarkerSvgImage(Document doc, org.w3c.dom.Element svgRoot, String svgNS, Connection sd, PdfMapValues mapValues, Float lineDistance, int idx, 
+	private static void addMarkerSvgImage(Document doc, org.w3c.dom.Element svgRoot, String svgNS, Connection sd, PdfMapValues mapValues, Float lineDistance, int markerIdx, 
 			Float height, Float width, int margin, String fontSize) throws SQLException {
 		
 	    DecimalFormat decFormat = new DecimalFormat("0.00");
 		
-		Float distanceFromP1 = getLineDistance(sd, mapValues, idx);
+		Float distanceFromP1 = getLineDistance(sd, mapValues, markerIdx);
 		Float offset = distanceFromP1 * (width - (2 * margin)) / lineDistance;
 		
 		org.w3c.dom.Element tick1 = doc.createElementNS(svgNS, "line");
-		tick1.setAttribute("id", "m" + idx + "_1");
+		tick1.setAttribute("id", "m" + markerIdx + "_1");
 		tick1.setAttribute("x1",String.valueOf(margin + offset));
 		tick1.setAttribute("y1",String.valueOf(height / 2));
 		tick1.setAttribute("x2",String.valueOf(margin + offset - 5));
@@ -368,7 +369,7 @@ public class PdfUtilities {
 		svgRoot.appendChild(tick1);
 		
 		org.w3c.dom.Element tick2 = doc.createElementNS(svgNS, "line");
-		tick2.setAttribute("id", "m" + idx + "_2");
+		tick2.setAttribute("id", "m" + markerIdx + "_2");
 		tick2.setAttribute("x1",String.valueOf(margin + offset));
 		tick2.setAttribute("y1",String.valueOf(height / 2));
 		tick2.setAttribute("x2",String.valueOf(margin + offset + 5));
@@ -380,9 +381,9 @@ public class PdfUtilities {
 		double cx = margin + offset;
 		double cy = (height / 2) - 6;
 		double radius = 2.0;
-		double halfTextWidth = (idx == 0) ? 30 : 20;
+		double halfTextWidth = (markerIdx == 0) ? 30 : 20;
 		
-		circle1.setAttribute("id", "c" + idx + "_1");
+		circle1.setAttribute("id", "c" + markerIdx + "_1");
 		circle1.setAttribute("cx",String.valueOf(cx));
 		circle1.setAttribute("cy",String.valueOf(cy));
 		circle1.setAttribute("r","2");
@@ -391,7 +392,7 @@ public class PdfUtilities {
 		svgRoot.appendChild(circle1);
 		
 		org.w3c.dom.Element circle2 = doc.createElementNS(svgNS, "line");
-		circle2.setAttribute("id", "c" + idx + "_2");
+		circle2.setAttribute("id", "c" + markerIdx + "_2");
 		circle2.setAttribute("x1",String.valueOf(cx - radius * Math.cos(45.0)));
 		circle2.setAttribute("y1",String.valueOf(cy - radius * Math.sin(45.0)));
 		circle2.setAttribute("x2",String.valueOf(cx + radius * Math.cos(45.0)));
@@ -400,12 +401,12 @@ public class PdfUtilities {
 		svgRoot.appendChild(circle2);
 		
 		// Add lat long
-		String coords = mapValues.getCoordinates(mapValues.orderedMarkers.get(idx).marker, true);
+		String coords = mapValues.getCoordinates(mapValues.orderedMarkers.get(markerIdx).marker, true);
 		if(coords != null) {
 			String [] coordsArray = coords.split(",");
 			
 			if(coordsArray.length > 1) {
-				org.w3c.dom.Text latNode = doc.createTextNode((idx == 0 ? "lat: " : "") + coordsArray[1]);
+				org.w3c.dom.Text latNode = doc.createTextNode((markerIdx == 0 ? "lat: " : "") + coordsArray[1]);
 				org.w3c.dom.Element lat = doc.createElementNS(svgNS,"text");
 				lat.setAttributeNS(null,"x", String.valueOf((cx - halfTextWidth) > 0 ? cx - halfTextWidth : 0));   // Position should be half the width of the text    
 				lat.setAttributeNS(null,"y", String.valueOf((height / 2) - 30)); 
@@ -414,7 +415,7 @@ public class PdfUtilities {
 				svgRoot.appendChild(lat);
 			}
 			
-			org.w3c.dom.Text lonNode = doc.createTextNode((idx == 0 ? "lon: " : "") + coordsArray[0]);
+			org.w3c.dom.Text lonNode = doc.createTextNode((markerIdx == 0 ? "lon: " : "") + coordsArray[0]);
 			org.w3c.dom.Element lon = doc.createElementNS(svgNS,"text");
 			lon.setAttributeNS(null,"x", String.valueOf((cx - halfTextWidth) > 0 ? cx - halfTextWidth : 0));   // Position should be half the width of the text    
 			lon.setAttributeNS(null,"y", String.valueOf((height / 2) - 20)); 
@@ -423,7 +424,7 @@ public class PdfUtilities {
 			svgRoot.appendChild(lon);
 		}
 	  
-	    if(idx == 0) {
+	    if(markerIdx == 0) {
 			org.w3c.dom.Element d1 = doc.createElementNS(svgNS,"text");
 			d1.setAttributeNS(null,"x", String.valueOf(margin));    
 			d1.setAttributeNS(null,"y", String.valueOf((height / 2) + 12)); 
@@ -435,8 +436,8 @@ public class PdfUtilities {
 	    }
 	    
 	    // Add Distance to P2
-	    if((!mapValues.geoCompound && mapValues.orderedMarkers.size() - 1 == idx) ||
-	    		(mapValues.geoCompound && mapValues.idxMarkers.size() - 1 == idx)) {
+	    if((!mapValues.geoCompound && mapValues.orderedMarkers.size() - 1 == markerIdx) ||
+	    		(mapValues.geoCompound && mapValues.idxMarkers.size() - 1 == markerIdx)) {
 	    	org.w3c.dom.Element d2 = doc.createElementNS(svgNS,"text");
 			d2.setAttributeNS(null,"x", String.valueOf(width - (2 * margin) - 20));    
 			d2.setAttributeNS(null,"y", String.valueOf((height / 2) + 12)); 
@@ -678,20 +679,52 @@ public class PdfUtilities {
 	/*
 	 * Get the line distance
 	 */
-	private static Float getLineDistance(Connection sd, PdfMapValues mapValues, int idx) throws SQLException {
+	private static Float getLineDistance(Connection sd, PdfMapValues mapValues, int markerIdx) throws SQLException {
 		Float distance = (float) -1.0;
 		
 		if(mapValues.geoCompound) {
 			int idx1 = mapValues.idxStart;
 			int idx2 = mapValues.idxEnd;
-			if(idx >= 0) {
-				idx2 = mapValues.idxMarkers.get(idx);
+			if(markerIdx >= 0) {
+				idx2 = mapValues.idxMarkers.get(markerIdx);
 			}
 			distance = getDistanceBetweenPoints(sd, mapValues, idx1, idx2);		// Geo compound
 		} else {
-			distance = getDistanceAlongLine(sd, mapValues, idx);				// Constructed geometry
+			distance = getDistanceAlongLine(sd, mapValues, markerIdx);				// Constructed geometry
 		}
 		return distance;
+	}
+	
+	/*
+	 * Get coordinates of the marker with the specified type
+	 * if the count is set to 1 the first occurence will be returned else if 2 the end occurence etc
+	 */
+	public static String getMarkerCoordinates(PdfMapValues mapValues, String type, int count) throws SQLException {
+
+		count = count - 1;
+		int pointIdx;
+		String value = null;
+		
+		if(mapValues.geoCompound && mapValues.orderedMarkers != null) {
+			int markerIdx = -1;
+			for(int i = 0; i < mapValues.orderedMarkers.size(); i++) {
+				DistanceMarker marker = mapValues.orderedMarkers.get(i);
+				String mType = marker.properties.get("type");
+				if(mType != null && type.equals(mType)) {
+					if(count-- <= 0) {
+						markerIdx = i;
+						break;
+					}
+				}
+			}
+			
+			if(markerIdx >= 0) {
+				pointIdx = mapValues.idxMarkers.get(markerIdx);
+				value = mapValues.getPointCoordinates(pointIdx);
+			}
+
+		} 
+		return value;
 	}
 	
 	/*
@@ -726,7 +759,7 @@ public class PdfUtilities {
 	
 	/*
 	 * Get the distance in meters along a linestring
-	 * Passes in the indexes of the two points that form a sub section fo the line
+	 * Passes in the indexes of the two points that form a sub section of the line
 	 */
 	private static Float getDistanceBetweenPoints(Connection sd, PdfMapValues mapValues, int idx1, int idx2) throws SQLException {
 		
@@ -908,10 +941,13 @@ public class PdfUtilities {
 						di.map = map;
 						di.account = "mapbox";
 					}
-				} else if(app.startsWith("pdflinemap") || app.startsWith("pdflineimage")) {		// Multiple points to be joined into a map or image
+				} else if(app.startsWith("pdflinemap") || app.startsWith("pdflineimage") || app.startsWith("pdflinelocation")) {		// Multiple points to be joined into a map or image
 					di.linemap = new LineMap(getAppValueArray(app));
 					if(app.startsWith("pdflinemap")) {
 						di.linemap.type = "map";
+					} else if(app.startsWith("pdflinelocation")) { 
+						di.linemap.type = "location";
+						di.markerLocation = new MarkerLocation(getAppValueArray(app));
 					} else {
 						di.linemap.type = "image";
 					}

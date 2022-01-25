@@ -666,48 +666,57 @@ public class PDFSurveyManager {
 
 			} else if(r.type.equals("pdf_field") && di.linemap != null) {
 
-				Float width = (float) 200.0;
-				Float height = (float) 100.0;
-
-				// If a push button field is used set the image size from that field
-				PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
-				if(ad != null) {
-					Rectangle rect = ad.getBox();
-					width = rect.getWidth();
-					height = rect.getHeight();
-				}
 				PdfMapValues mapValues = PdfUtilities.getMapValues(survey, di);
-				TrafficLightValues tlValues = getTrafficLightValues(di);
-				PreparedStatement pstmt = null;
-				try {
-					pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
-					PdfUtilities.sequenceMarkers(pstmt, mapValues);		// Put markers in sequence increasing from start
-				} finally {
-					 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
-				}
-				Image img = null;
-				if(di.linemap.type.equals("map")) {
-					img = PdfUtilities.getMapImage(sd, di.map, 
-							di.account, 
-							mapValues,
-							di.location, di.zoom, gv.mapbox_key,
-							survey.id,
-							user,
-							di.markerColor,
-							mBasePath);
+				
+				if(di.linemap.type.equals("location") && di.markerLocation != null) {
+					
+					String location = PdfUtilities.getMarkerCoordinates(mapValues, di.markerLocation.type, di.markerLocation.count);
+					pdfForm.setField(fieldName, location);
+					
 				} else {
-					img = PdfUtilities.getLineImage(sd, 
-							mapValues,
-							tlValues,
-							survey.id,
-							user,
-							di,
-							mBasePath,
-							width,
-							height);
+					Float width = (float) 200.0;
+					Float height = (float) 100.0;
+	
+					// If a push button field is used set the image size from that field
+					PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
+					if(ad != null) {
+						Rectangle rect = ad.getBox();
+						width = rect.getWidth();
+						height = rect.getHeight();
+					}
+					
+					TrafficLightValues tlValues = getTrafficLightValues(di);
+					PreparedStatement pstmt = null;
+					try {
+						pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
+						PdfUtilities.sequenceMarkers(pstmt, mapValues);		// Put markers in sequence increasing from start
+					} finally {
+						 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
+					}
+					Image img = null;
+					if(di.linemap.type.equals("map")) {
+						img = PdfUtilities.getMapImage(sd, di.map, 
+								di.account, 
+								mapValues,
+								di.location, di.zoom, gv.mapbox_key,
+								survey.id,
+								user,
+								di.markerColor,
+								mBasePath);
+					} else {
+						img = PdfUtilities.getLineImage(sd, 
+								mapValues,
+								tlValues,
+								survey.id,
+								user,
+								di,
+								mBasePath,
+								width,
+								height);
+					}
+	
+					PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img, di.stretch);
 				}
-
-				PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img, di.stretch);
 
 
 			} else if(r.type.equals("image") || r.type.equals("video") || r.type.equals("audio")  || r.type.equals("file")) {
@@ -1804,44 +1813,53 @@ public class PDFSurveyManager {
 
 		} else if(di.type.equals("pdf_field") && di.linemap != null) { 
 			
-			PreparedStatement pstmt = null;
 			PdfMapValues mapValues = PdfUtilities.getMapValues(survey, di);	
-			TrafficLightValues tlValues = getTrafficLightValues(di);
-			try {
-				pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
-				PdfUtilities.sequenceMarkers(pstmt, mapValues);		// Put markers in sequence increasing from start
-			} finally {
-				 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
-			}
 			
-			Image img = null;
-			Float width = (float) 200.0;
-			Float height = (float) 100.0;
-			if(di.linemap.type.equals("map")) {
-				 img = PdfUtilities.getMapImage(sd, di.map, 
-						di.account, 
-						mapValues,
-						di.location, di.zoom, gv.mapbox_key,
-						survey.id,
-						user,
-						di.markerColor,
-						basePath);
+			if(di.linemap.type.equals("location") && di.markerLocation != null) {
+				
+				String location = PdfUtilities.getMarkerCoordinates(mapValues, di.markerLocation.type, di.markerLocation.count);
+				valueCell.addElement(getPara(location, di, gv, deps, null));
+				
 			} else {
-				img = PdfUtilities.getLineImage(sd, 
-						mapValues,
-						tlValues,
-						survey.id,
-						user,
-						di,
-						basePath,
-						width,
-						height);
-			}
 			
-			if(img != null) {
-				valueCell.addElement(img);
-			} else {
-				valueCell.addElement(getPara(" ", di, gv, deps, null));
+				PreparedStatement pstmt = null;			
+				TrafficLightValues tlValues = getTrafficLightValues(di);
+				try {
+					pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
+					PdfUtilities.sequenceMarkers(pstmt, mapValues);		// Put markers in sequence increasing from start
+				} finally {
+					 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
+				}
+				
+				Image img = null;
+				Float width = (float) 200.0;
+				Float height = (float) 100.0;
+				if(di.linemap.type.equals("map")) {
+					 img = PdfUtilities.getMapImage(sd, di.map, 
+							di.account, 
+							mapValues,
+							di.location, di.zoom, gv.mapbox_key,
+							survey.id,
+							user,
+							di.markerColor,
+							basePath);
+				} else {
+					img = PdfUtilities.getLineImage(sd, 
+							mapValues,
+							tlValues,
+							survey.id,
+							user,
+							di,
+							basePath,
+							width,
+							height);
+				}
+				
+				if(img != null) {
+					valueCell.addElement(img);
+				} else {
+					valueCell.addElement(getPara(" ", di, gv, deps, null));
+				}
 			}
 
 		} else if(di.isBarcode) { 

@@ -73,28 +73,49 @@ public class PdfMapValues {
 	
 	/*
 	 * Get a sub section of a geojson line string
-	 * If a non negative idx is passed then only get markers up to that index
+	 * If a non negative idx is passed then only get points up to that index
 	 */
-	public String getLineGeometryBetweenPoints(int idx1, int idx2) {
+	public String getLineGeometryBetweenPoints(int pointIdx1, int pointIdx2) {
 		
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		Line line = gson.fromJson(geometry, Line.class);
 		
 		// Remove line segments before idx1
-		if(idx1 > 0) {
-			for(int i = idx1 -1 ; i >= 0; i--) {  
+		if(pointIdx1 > 0) {
+			for(int i = pointIdx1 -1 ; i >= 0; i--) {  
 				line.coordinates.remove(i);
 			}
 		}
 		
 		// Remove line segments after idx2
-		if(idx2 < line.coordinates.size() - 1) {
-			for(int i = line.coordinates.size() - 1; i > idx2; i--) {  
+		if(pointIdx2 < line.coordinates.size() - 1) {
+			for(int i = line.coordinates.size() - 1; i > pointIdx2; i--) {  
 				line.coordinates.remove(i);
 			}
 		}
 			
 		return gson.toJson(line);
+	}
+	
+	/*
+	 * Get the coordinates of a point index in a linestring
+	 */
+	public String getPointCoordinates(int pointIdx) {
+		
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		Line line = gson.fromJson(geometry, Line.class);
+		String value = "";
+		
+		if(pointIdx >= 0 && pointIdx < line.coordinates.size()) {
+			
+			ArrayList<Double> coords = line.coordinates.get(pointIdx);
+			if(coords.size() > 0) {
+				value = String.valueOf(coords.get(1)) + " " + String.valueOf(coords.get(0));
+			}
+		
+		}
+			
+		return value;
 	}
 	
 	// Get the coordinates of a point
