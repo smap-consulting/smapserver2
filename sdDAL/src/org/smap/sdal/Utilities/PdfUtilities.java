@@ -305,7 +305,7 @@ public class PdfUtilities {
 							continue;
 						}
 					}
-					addMarkerSvgImage(doc, svgRoot, svgNS, sd, mapValues, lineDistance, index++, height, width, margin, fontSize);
+					addMarkerSvgImage(doc, svgRoot, svgNS, sd, mapValues, lineDistance, i, index++, height, width, margin, fontSize);
 				}
 	        }
 	        
@@ -351,7 +351,9 @@ public class PdfUtilities {
 	/*
 	 * Add a marker to an SVG image
 	 */
-	private static void addMarkerSvgImage(Document doc, org.w3c.dom.Element svgRoot, String svgNS, Connection sd, PdfMapValues mapValues, Float lineDistance, int markerIdx, 
+	private static void addMarkerSvgImage(Document doc, org.w3c.dom.Element svgRoot, String svgNS, Connection sd, PdfMapValues mapValues, Float lineDistance, 
+			int markerIdx,
+			int selectedMarkerIdx, 
 			Float height, Float width, int margin, String fontSize) throws SQLException {
 		
 	    DecimalFormat decFormat = new DecimalFormat("0.00");
@@ -360,7 +362,7 @@ public class PdfUtilities {
 		Float offset = distanceFromP1 * (width - (2 * margin)) / lineDistance;
 		
 		org.w3c.dom.Element tick1 = doc.createElementNS(svgNS, "line");
-		tick1.setAttribute("id", "m" + markerIdx + "_1");
+		tick1.setAttribute("id", "m" + selectedMarkerIdx + "_1");
 		tick1.setAttribute("x1",String.valueOf(margin + offset));
 		tick1.setAttribute("y1",String.valueOf(height / 2));
 		tick1.setAttribute("x2",String.valueOf(margin + offset - 5));
@@ -369,7 +371,7 @@ public class PdfUtilities {
 		svgRoot.appendChild(tick1);
 		
 		org.w3c.dom.Element tick2 = doc.createElementNS(svgNS, "line");
-		tick2.setAttribute("id", "m" + markerIdx + "_2");
+		tick2.setAttribute("id", "m" + selectedMarkerIdx + "_2");
 		tick2.setAttribute("x1",String.valueOf(margin + offset));
 		tick2.setAttribute("y1",String.valueOf(height / 2));
 		tick2.setAttribute("x2",String.valueOf(margin + offset + 5));
@@ -381,9 +383,9 @@ public class PdfUtilities {
 		double cx = margin + offset;
 		double cy = (height / 2) - 6;
 		double radius = 2.0;
-		double halfTextWidth = (markerIdx == 0) ? 30 : 20;
+		double halfTextWidth = (selectedMarkerIdx == 0) ? 30 : 20;
 		
-		circle1.setAttribute("id", "c" + markerIdx + "_1");
+		circle1.setAttribute("id", "c" + selectedMarkerIdx + "_1");
 		circle1.setAttribute("cx",String.valueOf(cx));
 		circle1.setAttribute("cy",String.valueOf(cy));
 		circle1.setAttribute("r","2");
@@ -392,7 +394,7 @@ public class PdfUtilities {
 		svgRoot.appendChild(circle1);
 		
 		org.w3c.dom.Element circle2 = doc.createElementNS(svgNS, "line");
-		circle2.setAttribute("id", "c" + markerIdx + "_2");
+		circle2.setAttribute("id", "c" + selectedMarkerIdx + "_2");
 		circle2.setAttribute("x1",String.valueOf(cx - radius * Math.cos(45.0)));
 		circle2.setAttribute("y1",String.valueOf(cy - radius * Math.sin(45.0)));
 		circle2.setAttribute("x2",String.valueOf(cx + radius * Math.cos(45.0)));
@@ -406,7 +408,7 @@ public class PdfUtilities {
 			String [] coordsArray = coords.split(",");
 			
 			if(coordsArray.length > 1) {
-				org.w3c.dom.Text latNode = doc.createTextNode((markerIdx == 0 ? "lat: " : "") + coordsArray[1]);
+				org.w3c.dom.Text latNode = doc.createTextNode((selectedMarkerIdx == 0 ? "lat: " : "") + coordsArray[1]);
 				org.w3c.dom.Element lat = doc.createElementNS(svgNS,"text");
 				lat.setAttributeNS(null,"x", String.valueOf((cx - halfTextWidth) > 0 ? cx - halfTextWidth : 0));   // Position should be half the width of the text    
 				lat.setAttributeNS(null,"y", String.valueOf((height / 2) - 30)); 
@@ -415,7 +417,7 @@ public class PdfUtilities {
 				svgRoot.appendChild(lat);
 			}
 			
-			org.w3c.dom.Text lonNode = doc.createTextNode((markerIdx == 0 ? "lon: " : "") + coordsArray[0]);
+			org.w3c.dom.Text lonNode = doc.createTextNode((selectedMarkerIdx == 0 ? "lon: " : "") + coordsArray[0]);
 			org.w3c.dom.Element lon = doc.createElementNS(svgNS,"text");
 			lon.setAttributeNS(null,"x", String.valueOf((cx - halfTextWidth) > 0 ? cx - halfTextWidth : 0));   // Position should be half the width of the text    
 			lon.setAttributeNS(null,"y", String.valueOf((height / 2) - 20)); 
@@ -424,7 +426,7 @@ public class PdfUtilities {
 			svgRoot.appendChild(lon);
 		}
 	  
-	    if(markerIdx == 0) {
+	    if(selectedMarkerIdx == 0) {
 			org.w3c.dom.Element d1 = doc.createElementNS(svgNS,"text");
 			d1.setAttributeNS(null,"x", String.valueOf(margin));    
 			d1.setAttributeNS(null,"y", String.valueOf((height / 2) + 12)); 
@@ -437,7 +439,7 @@ public class PdfUtilities {
 	    
 	    // Add Distance to P2
 	    if((!mapValues.geoCompound && mapValues.orderedMarkers.size() - 1 == markerIdx) ||
-	    		(mapValues.geoCompound && mapValues.idxMarkers.size() - 1 == markerIdx)) {
+	    		(mapValues.geoCompound && mapValues.lastFaultIdx == markerIdx)) {
 	    	org.w3c.dom.Element d2 = doc.createElementNS(svgNS,"text");
 			d2.setAttributeNS(null,"x", String.valueOf(width - (2 * margin) - 20));    
 			d2.setAttributeNS(null,"y", String.valueOf((height / 2) + 12)); 
@@ -1097,25 +1099,27 @@ public class PdfUtilities {
 			mapValues.idxEnd = -1;
 			mapValues.idxMarkers = new ArrayList<>();
 			if(mapValues.orderedMarkers != null) {
+				int markerIdx = 0;
 				for(DistanceMarker marker: mapValues.orderedMarkers) {
 					String indexString = marker.properties.get("index");
 					if(indexString != null) {
-						int idx = Integer.valueOf(indexString);
+						int pointIdx = Integer.valueOf(indexString);
 						String type = marker.properties.get("type");
 						if(type != null) {
 							if(type.equals("pit")) {
 								if(mapValues.idxStart == -1) {
-									mapValues.idxStart = idx;
+									mapValues.idxStart = pointIdx;
 								} else {
-									mapValues.idxEnd = idx;
+									mapValues.idxEnd = pointIdx;
 								}
-								mapValues.idxMarkers.add(idx);
+								mapValues.idxMarkers.add(pointIdx);
 							} else {
-								mapValues.idxLastMarker = idx;
-								mapValues.idxMarkers.add(idx);
+								mapValues.lastFaultIdx = markerIdx;
+								mapValues.idxMarkers.add(pointIdx);
 							}
 						}
 					}
+					markerIdx++;
 				}
 			}
 			

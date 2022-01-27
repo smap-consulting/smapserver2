@@ -25,7 +25,7 @@ public class PdfMapValues {
 	public boolean geoCompound = false;		// Geocompound section
 	public int idxStart;
 	public int idxEnd;
-	public int idxLastMarker;
+	public int lastFaultIdx;
 	public ArrayList<Integer> idxMarkers = new ArrayList<>();
 
 	public boolean hasGeometry() {
