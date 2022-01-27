@@ -1109,6 +1109,7 @@ public class PdfUtilities {
 								} else {
 									mapValues.idxEnd = idx;
 								}
+								mapValues.idxMarkers.add(idx);
 							} else {
 								mapValues.idxLastMarker = idx;
 								mapValues.idxMarkers.add(idx);
