@@ -504,8 +504,8 @@ public class Survey extends Application {
 					+ "or q.qtype='geolinestring' "
 					+ "or q.qtype='geoshape' "
 					+ "or q.qtype='geotrace' "
-					+ "or q.qtype='geocompound' "
-					+ "or (q.qtype='pdf_field' and q.source='user')) "
+					+ "or q.qtype='geocompound') "
+					+ "and not q.soft_deleted "
 					+ "and f.f_id = ? "
 					+ "and f.s_id = ?";
 			pstmtGeom = sd.prepareStatement(sqlTables);	

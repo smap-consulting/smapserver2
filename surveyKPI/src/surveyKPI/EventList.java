@@ -434,6 +434,9 @@ public class EventList extends Application {
 					String geom = resultSet.getString("location");					 
 					if(geom != null) {
 						JSONArray jCoords = new JSONArray();
+						if(geom.contains("line:")) {
+							geom = geom.replace("line:", "");	// Remove the line: from a geocompound location
+						}
 						String[] coords = geom.split(" ");
 						if(coords.length == 2) {
 							jCoords.put(Double.parseDouble(coords[0]));

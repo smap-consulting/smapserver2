@@ -1722,7 +1722,7 @@ public class SubRelationalDB extends Subscriber {
 						for(int i = 0; i < components.length; i++) {
 							if(components[i].startsWith("line:")) {
 								String lineComponents [] = components[i].split(":");
-								if(lineComponents.length > 0) {
+								if(lineComponents.length > 1) {
 									value = lineComponents[1];
 									break;
 								}
