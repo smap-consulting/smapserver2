@@ -448,11 +448,13 @@ public class XLSXReportsManager {
 				while(rs.next()) {
 					
 					// Re-get the survey name for the survey that wrote this record, this may vary in groups
-					String recordSId = rs.getString("_s_id");
-					surveyName = surveyNames.get(recordSId);
-					if(surveyName == null) {
-						surveyName = GeneralUtilityMethods.getSurveyName(sd, Integer.parseInt(recordSId));
-						surveyNames.put(recordSId, surveyName);
+					if(meta) {
+						String recordSId = rs.getString("_s_id");
+						surveyName = surveyNames.get(recordSId);
+						if(surveyName == null) {
+							surveyName = GeneralUtilityMethods.getSurveyName(sd, Integer.parseInt(recordSId));
+							surveyNames.put(recordSId, surveyName);
+						}
 					}
 					
 					// If we are doing a transform then get the key of this record
