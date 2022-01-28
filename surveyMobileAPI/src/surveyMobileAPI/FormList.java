@@ -189,7 +189,7 @@ public class FormList extends Application {
 				form.formID = String.valueOf(s.getIdent());
 				form.name = s.getDisplayName();
 				form.version = String.valueOf(s.version);
-				form.hash = "version:" + form.version;		// If the version changes the form should be re-downloaded
+				form.hash = "md5:version:" + form.version + ":" + form.formID;		// If the version changes the form should be re-downloaded
 				form.downloadUrl = protocol + host + port + responsePath + "/formXML?key=" + form.formID;
 				if(s.hasManifest()) {
 					form.manifestUrl = protocol + host + port + responsePath +
