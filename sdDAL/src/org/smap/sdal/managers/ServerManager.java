@@ -173,11 +173,36 @@ public class ServerManager {
 								log.info(sql + " : " + tableName);
 								stmtRel = rel.createStatement();
 								stmtRel.executeUpdate(sql);	
+								
+								/*
+								 * Drop any tables for compound data
+								 */
+								if(tableName.length() > 3) {
+									sql = "select table_name from information_schema.tables where table_name like '" + tableName + "_%'";
+									if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+									pstmt = rel.prepareStatement(sql);
+									ResultSet rs = pstmt.executeQuery();
+									while (rs.next()) {
+										
+										String markerTable = rs.getString(1);
+										// Check that this looks like a marker table
+										if(GeneralUtilityMethods.hasColumn(rel, markerTable, "properties") 
+												&& GeneralUtilityMethods.hasColumn(rel, markerTable, "locn")) {
+											
+											stmtRel.close();
+	
+											sql = "drop table " + markerTable;
+											stmtRel = rel.createStatement();
+											stmtRel.executeUpdate(sql);	
+										}
+									}
+								}
+								
 							} else {
 								nonEmptyDataTables = true;
 							}
 						} catch (Exception e) {
-							log.severe("failed to get count from table");
+							log.log(Level.SEVERE, e.getMessage(), e);
 						} finally {
 							stmtRel.close();
 						}
