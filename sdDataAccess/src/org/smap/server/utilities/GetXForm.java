@@ -1699,7 +1699,7 @@ public class GetXForm {
 		gPaths = new ArrayList<String>();
 		gInstanceId = null;
 
-		log.info("Getting instance data: " + templateName + " : " + key + " : " + keyval);
+		log.info("Getting instance data (sdDataAccess): " + templateName + " : " + key + " : " + keyval);
 		
 		// Get template details
 		String firstFormRef = template.getFirstFormRef();
@@ -1747,10 +1747,10 @@ public class GetXForm {
 				hasData = true;
 				TaskManager tm = new TaskManager(localisation, tz);
 				Instance instance = tm.getInstance(sd, taskKey);
-				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, instance, urlprefix, true, isWebForms);
+				populateTaskDataForm(cResults, outputXML, firstForm, sd, template, null, sId, templateName, instance, urlprefix, true, isWebForms);
 			} else if(initialData != null) {
 				hasData = true;
-				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, initialData, urlprefix, true, isWebForms);
+				populateTaskDataForm(cResults, outputXML, firstForm, sd, template, null, sId, templateName, initialData, urlprefix, true, isWebForms);
 			} else if(createBlank) {
 				hasData = true;
 				populateBlankForm(outputXML, firstForm, sd, template, null, sId, null, null, templateName, false, true);
@@ -2067,7 +2067,7 @@ public class GetXForm {
 	/*
 	 * Create a form populated with the initial data supplied in a task
 	 */
-	public void populateTaskDataForm(Document outputDoc, Form form, Connection sd, SurveyTemplate template,
+	public void populateTaskDataForm(Connection cResults, Document outputDoc, Form form, Connection sd, SurveyTemplate template,
 				Element parentElement, int sId, String survey_ident, 
 				Instance instance,
 				String urlprefix,
@@ -2129,6 +2129,14 @@ public class GetXForm {
 						value = GeneralUtilityMethods.getOdkPolygon(instance.polygon_geometry);
 					} else if((qType.equals("geotrace") || qType.equals("geocompound")) && instance.line_geometry != null) {
 						value = GeneralUtilityMethods.getOdkLine(instance.line_geometry);
+						/*
+						 * If this is a compound question add the marker array
+						 */
+						if(value != null && qType.equals("geocompound")) {						
+							value = GeneralUtilityMethods.getCompoundValue(cResults, value, form.getTableName(), 
+									q.getColumnName(q.isReference()), 0, 
+									instance.values.get("instanceid"));
+						}
 					}
 					
 				} else {
@@ -2205,7 +2213,7 @@ public class GetXForm {
 					ArrayList<Instance> subInstanceList = instance.repeats.get(item.name);
 					if(subInstanceList != null && subInstanceList.size() > 0) {
 						for(Instance iSub : subInstanceList) {
-							populateTaskDataForm(outputDoc, item.subForm, sd, template, currentParent, sId, 
+							populateTaskDataForm(cResults, outputDoc, item.subForm, sd, template, currentParent, sId, 
 									survey_ident, iSub, urlprefix, false, webform);	
 						}
 					}
@@ -2653,25 +2661,9 @@ public class GetXForm {
 						/*
 						 * If this is a compound question add the marker array
 						 */
-						if(value != null && qType.equals("geocompound")) {
-							ArrayList<DistanceMarker> markers = null;	
-							StringBuilder newValue = new StringBuilder("line:").append(value);
-							markers = GeneralUtilityMethods.getMarkersForQuestion(cResults, form.getTableName(), q.getColumnName(isReference), Integer.valueOf(priKey));
-							if(markers.size() > 0) {
-								for(DistanceMarker marker : markers) {
-									newValue.append("#marker:");
-									if(marker.properties != null && marker.properties.size() > 0) {
-										int idx = 0;
-										for(String key : marker.properties.keySet()) {
-											if(idx++ > 0) {
-												newValue.append(";");
-											}
-											newValue.append(key).append("=").append(marker.properties.get(key));
-										}
-									}
-								}
-							}
-							value = newValue.toString();
+						if(value != null && qType.equals("geocompound")) {						
+							value = GeneralUtilityMethods.getCompoundValue(cResults, value, form.getTableName(), 
+									q.getColumnName(isReference), Integer.valueOf(priKey), null);
 						}
 					}
 					

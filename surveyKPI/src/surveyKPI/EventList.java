@@ -439,6 +439,8 @@ public class EventList extends Application {
 						}
 						String[] coords = geom.split(" ");
 						if(coords.length == 2) {
+							coords[0] = coords[0].replace(";", "");    // hack these coords with semi colons are probably coming from compound widgets
+							coords[1] = coords[1].replace(";", "");
 							jCoords.put(Double.parseDouble(coords[0]));
 							jCoords.put(Double.parseDouble(coords[1]));
 							jg = new JSONObject();

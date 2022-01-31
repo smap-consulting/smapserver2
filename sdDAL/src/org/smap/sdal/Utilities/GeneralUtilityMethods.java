@@ -10276,7 +10276,8 @@ public class GeneralUtilityMethods {
 	public static ArrayList<DistanceMarker> getMarkersForQuestion(Connection cResults, 
 			String tableName,		// Table containing the geocompund linestring
 			String columnName,		// Column name of the linestring
-			int key
+			int key,
+			String instanceId
 			) throws SQLException {
 		
 		ArrayList<DistanceMarker> markers = new ArrayList<>();
@@ -10284,10 +10285,18 @@ public class GeneralUtilityMethods {
 		String markerTable = tableName + "_" + columnName;
 		
 		if (tableExists(cResults, tableName)) {
-	    	String sql = "select properties, ST_AsGeoJson(locn) "
-	    			+ "from " + markerTable + " "
-	    			+ "where parkey = ? "
-	    			+ "order by prikey asc" ;
+			String sql;
+			if(key > 0) {
+		    	sql = "select properties, ST_AsGeoJson(locn) "
+		    			+ "from " + markerTable + " "
+		    			+ "where parkey = ? "
+		    			+ "order by prikey asc" ;
+			} else {
+				sql = "select properties, ST_AsGeoJson(locn) "
+		    			+ "from " + markerTable + " "
+		    			+ "where parkey = (select prikey from " + tableName + " where instanceid = ?) "
+		    			+ "order by prikey asc" ;
+			}
 	    	PreparedStatement pstmt = null;
 	    	
 	    	Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
@@ -10295,7 +10304,11 @@ public class GeneralUtilityMethods {
 	    	
 	    	try {
 	    		pstmt = cResults.prepareStatement(sql);
-	    		pstmt.setInt(1,  key);
+	    		if(key > 0) {
+	    			pstmt.setInt(1,  key);
+	    		} else {
+	    			pstmt.setString(1, instanceId);
+	    		}
 	    		log.info(pstmt.toString());
 	    		ResultSet rs = pstmt.executeQuery();
 	    		while(rs.next()) {
@@ -10318,6 +10331,31 @@ public class GeneralUtilityMethods {
 		return markers;
 	}
 	
+	/*
+	 * Get the compound value given the linestring value
+	 */
+	public static String getCompoundValue(Connection cResults, String value, String tableName, String columnName, 
+			int prikey, String instanceId) throws SQLException {
+		
+		ArrayList<DistanceMarker> markers = null;	
+		StringBuilder newValue = new StringBuilder("line:").append(value);
+		markers = GeneralUtilityMethods.getMarkersForQuestion(cResults, tableName, columnName, prikey, instanceId);
+		if(markers.size() > 0) {
+			for(DistanceMarker marker : markers) {
+				newValue.append("#marker:");
+				if(marker.properties != null && marker.properties.size() > 0) {
+					int idx = 0;
+					for(String key : marker.properties.keySet()) {
+						if(idx++ > 0) {
+							newValue.append(";");
+						}
+						newValue.append(key).append("=").append(marker.properties.get(key));
+					}
+				}
+			}
+		}
+		return newValue.toString();
+	}
 	
 	
 	private static int getManifestParamStart(String property) {

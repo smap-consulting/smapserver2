@@ -3213,7 +3213,7 @@ public class SurveyManager {
 				 */
 				ArrayList<DistanceMarker> markers = null;
 				if(value != null && qType.equals("geocompound")) {
-					markers = GeneralUtilityMethods.getMarkersForQuestion(cResults, form.tableName, q.columnName, Integer.valueOf(priKey));
+					markers = GeneralUtilityMethods.getMarkersForQuestion(cResults, form.tableName, q.columnName, Integer.valueOf(priKey), null);
 				}
 				record.add(new Result(qName, qType, value, false, fIdx, qIdx, 0, null, appearance, markers));
 
