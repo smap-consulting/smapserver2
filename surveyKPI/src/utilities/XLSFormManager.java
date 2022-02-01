@@ -209,7 +209,7 @@ public class XLSFormManager {
 				value = q.display_name;	
 				
 			} else if(type == COL_LABEL) {
-				if(q.type.equals("calculate")) {
+				if(q.type.equals("calculate") || q.type.equals("end group")) {
 					value = "";
 				} else {
 					value = q.labels.get(labelIndex).text;
