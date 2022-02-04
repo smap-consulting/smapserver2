@@ -10333,13 +10333,37 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Get the compound value given the linestring value
-	 */
+	 *
 	public static String getCompoundValue(Connection cResults, String value, String tableName, String columnName, 
 			int prikey, String instanceId) throws SQLException {
 		
 		ArrayList<DistanceMarker> markers = null;	
 		StringBuilder newValue = new StringBuilder("line:").append(value);
 		markers = GeneralUtilityMethods.getMarkersForQuestion(cResults, tableName, columnName, prikey, instanceId);
+		if(markers.size() > 0) {
+			for(DistanceMarker marker : markers) {
+				newValue.append("#marker:");
+				if(marker.properties != null && marker.properties.size() > 0) {
+					int idx = 0;
+					for(String key : marker.properties.keySet()) {
+						if(idx++ > 0) {
+							newValue.append(";");
+						}
+						newValue.append(key).append("=").append(marker.properties.get(key));
+					}
+				}
+			}
+		}
+		return newValue.toString();
+	}
+	*/
+	
+	/*
+	 * Get the compound value given the linestring value
+	 */
+	public static String applyCompoundValue(ArrayList<DistanceMarker> markers, String value) throws SQLException {
+		
+		StringBuilder newValue = new StringBuilder("line:").append(value);
 		if(markers.size() > 0) {
 			for(DistanceMarker marker : markers) {
 				newValue.append("#marker:");

@@ -2133,9 +2133,7 @@ public class GetXForm {
 						 * If this is a compound question add the marker array
 						 */
 						if(value != null && qType.equals("geocompound")) {						
-							value = GeneralUtilityMethods.getCompoundValue(cResults, value, form.getTableName(), 
-									q.getColumnName(q.isReference()), 0, 
-									instance.values.get("instanceid"));
+							value = GeneralUtilityMethods.applyCompoundValue(instance.markers, value);			
 						}
 					}
 					
@@ -2662,8 +2660,9 @@ public class GetXForm {
 						 * If this is a compound question add the marker array
 						 */
 						if(value != null && qType.equals("geocompound")) {						
-							value = GeneralUtilityMethods.getCompoundValue(cResults, value, form.getTableName(), 
-									q.getColumnName(isReference), Integer.valueOf(priKey), null);
+							value = GeneralUtilityMethods.applyCompoundValue(
+									GeneralUtilityMethods.getMarkersForQuestion(cResults, form.getTableName(), q.getColumnName(isReference), Integer.valueOf(priKey), null), 
+									value);
 						}
 					}
 					

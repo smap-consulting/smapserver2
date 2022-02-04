@@ -8,5 +8,6 @@ public class Instance {
 	public Point point_geometry; 
 	public Polygon polygon_geometry; 
 	public Line line_geometry; 
-	public HashMap<String, ArrayList<Instance>> repeats;	
+	public HashMap<String, ArrayList<Instance>> repeats;
+	public ArrayList<DistanceMarker> markers;
 }

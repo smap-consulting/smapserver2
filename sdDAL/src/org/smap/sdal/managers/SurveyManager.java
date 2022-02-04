@@ -4444,6 +4444,10 @@ public class SurveyManager {
 							instance.polygon_geometry = gson.fromJson(rs.getString(i + 1), Polygon.class);
 						} else if (c.type.equals("geotrace") || c.type.equals("geocompound")) {
 							instance.line_geometry = gson.fromJson(rs.getString(i + 1), Line.class);
+							if(c.type.equals("geocompound")) {
+								instance.markers = GeneralUtilityMethods.getMarkersForQuestion(cResults, form.tableName, c.column_name, Integer.valueOf(prikey), null);
+								
+							}
 						} else if (c.type.equals("select1") && c.selectDisplayNames) {
 							// Convert value to display name
 							value = rs.getString(i + 1);
