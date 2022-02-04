@@ -307,7 +307,7 @@ public class GetFile extends Application {
 				t.filepath = basepath + "/templates/survey/" + sIdent + "/" + name;
 			}
 			FileManager fm = new FileManager();
-			fm.getFile(response, t.filepath, name);
+			fm.getFile(response, t.filepath, name + ".pdf");
 			
 			r = Response.ok("").build();
 			
