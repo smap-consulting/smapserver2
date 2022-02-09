@@ -19,6 +19,6 @@
 	<classpathentry kind="lib" path="/smap-P/deploy/version1/jdbc/postgresql-42.2.1.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/cloudInterface"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/amazon"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

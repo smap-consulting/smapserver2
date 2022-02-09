@@ -275,7 +275,11 @@
       		<version>1.7.25</version>
     	</dependency>
         
-        
+        	<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpmime</artifactId>
+			<version>4.5.2</version>
+		</dependency>
 		<!--
 		<dependency>
     		<groupId>net.bull.javamelody</groupId>

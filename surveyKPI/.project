@@ -6,6 +6,7 @@
 		<project>sdDAL</project>
 		<project>sdDataAccess</project>
 		<project>cloudInterface</project>
+		<project>amazon</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
