@@ -213,11 +213,12 @@ public class ProjectList extends Application {
 							
 							// Remove users from project
 							sql = "delete from user_project " +
-									" where p_id = ?";
+									" where p_id = ? "
+									+ "and u_id not in (select id from users where temporary)";
 							try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
 							pstmt = sd.prepareStatement(sql);
 							pstmt.setInt(1, p.id);
-							log.info("Delete existing users from project " + pstmt.toString());
+							log.info("Delete existing non temp users from project " + pstmt.toString());
 							pstmt.executeUpdate();
 
 						}

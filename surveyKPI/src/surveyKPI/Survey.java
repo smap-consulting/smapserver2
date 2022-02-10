@@ -47,7 +47,6 @@ import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.ConsoleColumn;
 import org.smap.sdal.model.MetaItem;
-import org.smap.sdal.model.Template;
 import org.smap.sdal.model.SurveyLinkDetails;
 import org.smap.server.utilities.GetXForm;
 
