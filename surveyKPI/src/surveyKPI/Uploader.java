@@ -210,8 +210,10 @@ public class Uploader extends Application {
 						log.log(Level.SEVERE, dir, e);
 					} finally {
 						try {
-							httpclient.close();
-						} catch (IOException e) {
+							if(httpclient != null) {
+								httpclient.close();
+							}
+						} catch (Exception e) {
 							
 						}
 					}
