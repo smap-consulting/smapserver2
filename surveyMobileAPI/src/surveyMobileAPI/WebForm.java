@@ -1195,9 +1195,10 @@ public class WebForm extends Application {
 
 		output.append("<section class='form-footer'>\n");
 		output.append("<div class='content'>\n");
-		output.append(
+		if(!options.wf_hide_draft) {
+			output.append(
 				"<fieldset class='draft question'><div class='option-wrapper'><label class='select'><input class='ignore' type='checkbox' name='draft'/><span class='option-label lang' data-lang='formfooter.savedraft.label'>Save as Draft</span></label></div></fieldset>\n");
-
+		}
 		output.append("<div class='main-controls'>\n");
 		if (dataToEditId == null) {
 			output.append("<button id='submit-form' class='btn btn-primary btn-large lang' data-lang='formfooter.submit.btn'>Submit</button>\n");
