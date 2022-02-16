@@ -116,7 +116,7 @@ public class SurveyInstance {
 	public void setOverallLocation(String ref) {
 		List<IE> matches = topInstanceElement.getMatchingElements(ref);
 		for(IE match : matches) {
-			surveyGeopoint = match.getValue();
+			surveyGeopoint = GeneralUtilityMethods.getLinestringValue(match.getValue());
 			break;
 		}
 	}

@@ -433,16 +433,22 @@ public class EventList extends Application {
 					JSONObject jg = null;
 					String geom = resultSet.getString("location");					 
 					if(geom != null) {
+						log.info("Geom: " + geom);
 						JSONArray jCoords = new JSONArray();
 						if(geom.contains("line:")) {
 							geom = geom.replace("line:", "");	// Remove the line: from a geocompound location
 						}
 						String[] coords = geom.split(" ");
 						if(coords.length == 2) {
-							coords[0] = coords[0].replace(";", "");    // hack these coords with semi colons are probably coming from compound widgets
+							coords[0] = coords[0].replace(";", "");    // hack these coords with semicolons are probably coming from compound widgets
 							coords[1] = coords[1].replace(";", "");
-							jCoords.put(Double.parseDouble(coords[0]));
-							jCoords.put(Double.parseDouble(coords[1]));
+							log.info("Coords: "  + coords[0] + " : " + coords[1]);
+							try {
+								jCoords.put(Double.parseDouble(coords[0]));
+								jCoords.put(Double.parseDouble(coords[1]));
+							} catch (Exception e) {
+								log.log(Level.SEVERE, geom, e);
+							}
 							jg = new JSONObject();
 							jg.put("type", "Point");
 							jg.put("coordinates", jCoords);
