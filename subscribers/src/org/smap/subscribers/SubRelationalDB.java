@@ -819,9 +819,17 @@ public class SubRelationalDB extends Subscriber {
 										String pLocn[] = locn.split(" ");
 										if(pLocn.length > 1) { 
 											locnText = "POINT(" + pLocn[1] + " " + pLocn[0] + ")";
+										} else {
+											locnText = "POINT(0 0)";
 										}
 										
-										String props = pointComponents[2];		
+										String props;
+										if(pointComponents.length > 2) {
+											props = pointComponents[2];	
+										} else {
+											props = pointComponents[1];		// old versions of webforms could miss out on the point coords
+										}
+										
 										String pComp [] = props.split(";");
 										for(int k = 0; k < pComp.length; k++) {
 											String pe [] = pComp[k].split("=");
