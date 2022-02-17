@@ -25,11 +25,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 import org.smap.server.entities.UploadEvent;
 
 public class JdbcUploadEventManager {
 
+	private static Logger log =
+			 Logger.getLogger(JdbcUploadEventManager.class.getName());
+	
 	PreparedStatement pstmt = null;
 	String sql = "insert into upload_event ("
 			+ "ue_id, "
@@ -108,7 +112,7 @@ public class JdbcUploadEventManager {
 	
 	String sqlOrder = " order by ue.ue_id asc";
 	
-	String sqlLimit = " limit 1000";
+	String sqlLimit = " limit 100";
 	
 	/*
 	 * Constructor
@@ -189,6 +193,7 @@ public class JdbcUploadEventManager {
 	private List <UploadEvent> getUploadEventList(PreparedStatement pstmt) throws SQLException {
 		ArrayList <UploadEvent> ueList = new ArrayList<UploadEvent> ();
 		
+		log.info("Get upload event list: " + pstmt.toString());
 		ResultSet rs = pstmt.executeQuery();
 		while(rs.next()) {
 			UploadEvent ue = new UploadEvent();

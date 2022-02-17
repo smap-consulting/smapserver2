@@ -45,7 +45,7 @@ public class ReportProcessor {
 
 		public void run() {
 
-			int delaySecs = 5;
+			int delaySecs = 30;
 		
 			boolean loop = true;
 			while(loop) {
