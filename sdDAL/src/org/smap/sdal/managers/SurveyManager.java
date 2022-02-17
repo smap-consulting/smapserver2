@@ -3858,6 +3858,18 @@ public class SurveyManager {
 							basePath,
 							delData,
 							tables);
+					
+					/*
+					 * Delete survey templates unless the survey is being replaced
+					 */
+					if(newSurveyId == 0) {
+						sql = "delete from survey_template where ident = ?";	
+						try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+						pstmt = sd.prepareStatement(sql);
+						pstmt.setString(1, surveyIdent);
+						log.info("Delete survey templates: " + pstmt.toString());
+						pstmt.executeUpdate();
+					} 
 				}
 	
 			} else {
@@ -3887,6 +3899,7 @@ public class SurveyManager {
 						" display_name = ? " +
 						"where s_id = ?;";	
 	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, newName);
 				pstmt.setString(2, newDisplayName);
@@ -3963,7 +3976,7 @@ public class SurveyManager {
 				log.info("Delete notifications: " + pstmt.toString());
 				pstmt.executeUpdate();
 			} else {
-				sql = "update forward set s_id = ? where s_id = ?;";	
+				sql = "update forward set s_id = ? where s_id = ?";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, newSurveyId);

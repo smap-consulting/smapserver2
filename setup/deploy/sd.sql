@@ -461,7 +461,7 @@ ALTER SEQUENCE st_seq OWNER TO ws;
 
 CREATE TABLE survey_template (
 	t_id integer DEFAULT NEXTVAL('st_seq') CONSTRAINT pk_survey_template PRIMARY KEY,
-	ident text REFERENCES survey(ident) ON DELETE CASCADE,		-- Survey containing this version
+	ident text,										-- Survey containing this version
 	name text,
 	filepath text,
 	not_available boolean default false,				-- Set to true if the template is not available for selection
@@ -473,3 +473,5 @@ CREATE TABLE survey_template (
 ALTER TABLE survey_template OWNER TO ws;
 
 Alter table survey_template add column rule text;
+
+alter table survey_template drop constraint survey_template_ident_fkey;  -- Some deployments will have this set

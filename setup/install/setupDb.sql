@@ -619,7 +619,7 @@ ALTER TABLE survey_change OWNER TO ws;
 DROP TABLE IF EXISTS survey_template CASCADE;
 CREATE TABLE survey_template (
 	t_id integer DEFAULT NEXTVAL('st_seq') CONSTRAINT pk_survey_template PRIMARY KEY,
-	ident text REFERENCES survey(ident) ON DELETE CASCADE,		-- Survey containing this version
+	ident text,									-- Survey containing this version
 	name text,
 	filepath text,
 	not_available boolean default false,		-- Set to true if the template is not available for selection
