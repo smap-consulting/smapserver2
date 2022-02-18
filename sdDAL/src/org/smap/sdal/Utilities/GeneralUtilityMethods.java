@@ -10242,7 +10242,7 @@ public class GeneralUtilityMethods {
 		}
         }
 
-        /*
+    /*
 	 * Return the question names that have a compound question type
 	 */
 	public static ArrayList<String> getCompoundQuestions(Connection sd, int sId) throws SQLException {
@@ -10332,7 +10332,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the compound value given the linestring value
+	 * Get the compound value given the linestring value and an array of markers
 	 */
 	public static String applyCompoundValue(ArrayList<DistanceMarker> markers, String value) throws SQLException {
 		
@@ -10340,6 +10340,12 @@ public class GeneralUtilityMethods {
 		if(markers.size() > 0) {
 			for(DistanceMarker marker : markers) {
 				newValue.append("#marker:");
+				if(marker.markerLocation != null) {
+					String [] lonLat = getLonLat(getWKTfromGeoJson(marker.markerLocation));
+					if(lonLat != null && lonLat.length > 1) {
+						newValue.append(lonLat[1]).append(" ").append(lonLat[0]).append(":");
+					}
+				}
 				if(marker.properties != null && marker.properties.size() > 0) {
 					int idx = 0;
 					for(String key : marker.properties.keySet()) {

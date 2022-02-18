@@ -61,7 +61,7 @@ public class PdfMapValues {
 		for(int i = 0; i < orderedMarkers.size(); i++) {
 			DistanceMarker marker = orderedMarkers.get(i);
 			if(idx == -1 || i <= idx) {
-				sb.append(",").append(getCoordinates(marker.marker, false));
+				sb.append(",").append(getCoordinates(marker.markerLocation, false));
 			}
 		}
 		if(idx == -1) {

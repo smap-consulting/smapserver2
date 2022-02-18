@@ -403,7 +403,7 @@ public class PdfUtilities {
 		svgRoot.appendChild(circle2);
 		
 		// Add lat long
-		String coords = mapValues.getCoordinates(mapValues.orderedMarkers.get(markerIdx).marker, true);
+		String coords = mapValues.getCoordinates(mapValues.orderedMarkers.get(markerIdx).markerLocation, true);
 		if(coords != null) {
 			String [] coordsArray = coords.split(",");
 			
@@ -572,7 +572,7 @@ public class PdfUtilities {
 			if(mapValues.hasMarkers()) {
 				for(DistanceMarker marker : mapValues.orderedMarkers) {
 					out.append(",");
-					out.append(addGeoJsonFeature(marker.marker, "0ff", "roadblock"));
+					out.append(addGeoJsonFeature(marker.markerLocation, "0ff", "roadblock"));
 				}
 			}
 		}
@@ -582,9 +582,9 @@ public class PdfUtilities {
 			for(DistanceMarker marker : mapValues.orderedMarkers) {
 				out.append(",");
 				if(marker.properties.get("type").equals("fault")) {
-					out.append(addGeoJsonFeature(marker.marker, "0ff", "roadblock"));
+					out.append(addGeoJsonFeature(marker.markerLocation, "0ff", "roadblock"));
 				} else {
-					out.append(addGeoJsonFeature(marker.marker, "f0f", String.valueOf(pitCount++)));
+					out.append(addGeoJsonFeature(marker.markerLocation, "f0f", String.valueOf(pitCount++)));
 				}
 			}
 		}
