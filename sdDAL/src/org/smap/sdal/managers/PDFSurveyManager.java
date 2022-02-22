@@ -1928,7 +1928,6 @@ public class PDFSurveyManager {
 						if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
 							df.setTimeZone(TimeZone.getTimeZone("UTC"));
 							date = df.parse(utcValue);
-							//df.setTimeZone(TimeZone.getTimeZone("Asia/Kathmandu"));
 							df.setTimeZone(TimeZone.getTimeZone(tz));
 							value = df.format(date);
 							log.info("xxxxxxxxx: " + value);
@@ -1938,9 +1937,6 @@ public class PDFSurveyManager {
 							dfDateOnly.setTimeZone(TimeZone.getTimeZone("UTC"));
 							date = dfDateOnly.parse(utcValue);
 							date.setHours(12);
-							//dfDateOnly.setTimeZone(TimeZone.getTimeZone("Asia/Kathmandu"));
-							//dfDateOnly.setTimeZone(TimeZone.getTimeZone(tz));
-							//value = dfDateOnly.format(date);
 							nepalDate = date;
 						} 		
 							
