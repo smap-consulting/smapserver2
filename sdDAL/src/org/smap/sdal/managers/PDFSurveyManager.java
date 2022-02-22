@@ -1921,47 +1921,47 @@ public class PDFSurveyManager {
 					if(di.bs) {
 
 						Date nepalDate;
+						
+						log.info("utc value: " + utcValue);
+						
+						
 						if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
 							df.setTimeZone(TimeZone.getTimeZone("UTC"));
 							date = df.parse(utcValue);
-							df.setTimeZone(TimeZone.getTimeZone("Asia/Kathmandu"));
+							//df.setTimeZone(TimeZone.getTimeZone("Asia/Kathmandu"));
+							df.setTimeZone(TimeZone.getTimeZone(tz));
 							value = df.format(date);
+							log.info("xxxxxxxxx: " + value);
+							df.setTimeZone(TimeZone.getTimeZone("UTC"));
 							nepalDate = df.parse(value);
-						} else {
+						} else {	
 							dfDateOnly.setTimeZone(TimeZone.getTimeZone("UTC"));
 							date = dfDateOnly.parse(utcValue);
-							dfDateOnly.setTimeZone(TimeZone.getTimeZone("Asia/Kathmandu"));
-							value = dfDateOnly.format(date);
-							nepalDate = dfDateOnly.parse(value);
-						}
+							date.setHours(12);
+							//dfDateOnly.setTimeZone(TimeZone.getTimeZone("Asia/Kathmandu"));
+							//dfDateOnly.setTimeZone(TimeZone.getTimeZone(tz));
+							//value = dfDateOnly.format(date);
+							nepalDate = date;
+						} 		
 							
+						log.info("Value: " + value);
+						
 						StringBuilder bsValue = new StringBuilder("");
-
+						DateBS dateBS = DateConverter.convertADToBS(nepalDate);  //returns corresponding DateBS
+						
+						bsValue.append(dateBS.getYear())
+						.append("/")
+						.append(dateBS.getMonth() + 1)
+						.append("/")
+						.append(dateBS.getDay());
+						
 						if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
-
-							DateBS dateBS = DateConverter.convertADToBS(nepalDate);  //returns corresponding DateBS
-
-							bsValue.append(dateBS.getYear())
-							.append("/")
-							.append(dateBS.getMonth() + 1)
-							.append("/")
-							.append(dateBS.getDay());
-
 							String [] components = value.split(" ");
 							if(components.length > 1) {
 								bsValue.append(" ")
 								.append(components[1]);
 							}				
-						} else {
-
-							DateBS dateBS = DateConverter.convertADToBS(nepalDate);  //returns corresponding DateBS
-
-							bsValue.append(dateBS.getYear())
-							.append("/")
-							.append(dateBS.getMonth() + 1)
-							.append("/")
-							.append(dateBS.getDay());
-						}
+						} 
 
 						value = bsValue.toString();
 					}

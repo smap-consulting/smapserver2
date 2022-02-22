@@ -44,6 +44,7 @@ if [ -f /smap/settings/bucket ]; then
         prefix="/smap"
         region=`cat /smap/settings/region`
 
+	echo "Sending to aws bucket `cat /smap/settings/bucket`"
         if [ -f  $destfile ]; then
                 relPath=${destfile#"$prefix"}
                 awsPath="s3://`cat /smap/settings/bucket`$relPath"
