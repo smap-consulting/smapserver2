@@ -193,12 +193,15 @@ public class PDFReportsManager {
 				String tempFilePath = filePath + "/" + name;
 				File tempFile = new File(tempFilePath);
 				FileOutputStream tempFileStream = new FileOutputStream(tempFile);
+				int pdfTemplateId = GeneralUtilityMethods.testForPdfTemplate(sd, cResults, localisation, survey, username,
+						instanceId, tz);
+				
 				pm.createPdf(tempFileStream, 
 						basePath, 
 						urlprefix, 
 						username, 
 						language, 
-						0,			// Get default template if it exists
+						pdfTemplateId,
 						false, 
 						filename, 
 						landscape, 
