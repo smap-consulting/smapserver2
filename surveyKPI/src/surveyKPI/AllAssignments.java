@@ -68,6 +68,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -119,7 +121,7 @@ public class AllAssignments extends Application {
 			@FormParam("settings") String settings) { 
 
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
-
+		String connectionString = "surveyKPI-AllAssignments-addSurvey";
 		Response response = null;
 		ArrayList<TaskAddress> addressArray = null;
 		String projectName = null;
@@ -135,7 +137,7 @@ public class AllAssignments extends Application {
 		int sId = as.source_survey_id;								// Source survey id (optional)
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-AllAssignments");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -159,7 +161,7 @@ public class AllAssignments extends Application {
 
 		int taskGroupId = -1;
 		try {
-			cResults = ResultsDataSource.getConnection("surveyKPI-AllAssignments");
+			cResults = ResultsDataSource.getConnection(connectionString);
 			log.info("Set autocommit sd false");
 
 			// Localisation			
@@ -518,8 +520,8 @@ public class AllAssignments extends Application {
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
 			if(pstmtGetSurveyIdent != null) try {	pstmtGetSurveyIdent.close(); } catch(SQLException e) {};
 
-			SDDataSource.closeConnection("surveyKPI-AllAssignments", sd);
-			ResultsDataSource.closeConnection("surveyKPI-AllAssignments", cResults);
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
 
 		}
 
@@ -537,6 +539,7 @@ public class AllAssignments extends Application {
 			@FormParam("settings") String settings) { 
 
 		Response response = null;
+		String connectionString = "surveyKPI-updateTaskGroup";
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		AssignFromSurvey as = gson.fromJson(settings, AssignFromSurvey.class);
@@ -545,7 +548,7 @@ public class AllAssignments extends Application {
 		int sId = as.source_survey_id;								// Source survey id (optional)
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-AllAssignments");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -615,7 +618,7 @@ public class AllAssignments extends Application {
 
 			if(pstmtTaskGroup != null) try {	pstmtTaskGroup.close(); } catch(SQLException e) {};
 		
-			SDDataSource.closeConnection("surveyKPI-AllAssignments", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;
@@ -629,13 +632,14 @@ public class AllAssignments extends Application {
 			@FormParam("settings") String settings) { 
 
 		Response response = null;
+		String connectionString = "surveyKPI-updateAssignmentStatus";
 
 		log.info("Assignment:" + settings);
 		Type type = new TypeToken<ArrayList<Assignment>>(){}.getType();		
 		ArrayList<Assignment> aArray = new Gson().fromJson(settings, type);	
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-AllAssignments");
+		Connection connectionSD = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(connectionSD, request.getRemoteUser());
 		for(int i = 0; i < aArray.size(); i++) {
 
@@ -703,7 +707,7 @@ public class AllAssignments extends Application {
 			try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (SQLException e) {}
 			try {if (pstmtDelete != null) {pstmtDelete.close();}} catch (SQLException e) {}
 
-			SDDataSource.closeConnection("surveyKPI-AllAssignments", connectionSD);
+			SDDataSource.closeConnection(connectionString, connectionSD);
 		}
 
 		return response;
@@ -725,9 +729,9 @@ public class AllAssignments extends Application {
 		Response response = null;
 
 		log.info("Load results from file");
-
+		String connectionString = "surveyKPI-AllAssignments-LoadTasks From File";
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-AllAssignments-LoadTasks From File");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End role based authorisation - Check access to the requested survey once the survey id has been extracted
 
@@ -787,7 +791,7 @@ public class AllAssignments extends Application {
 		Calendar cal = Calendar.getInstance();
 		Timestamp importTime = new Timestamp(cal.getTime().getTime());
 
-		Connection results = ResultsDataSource.getConnection("surveyKPI-AllAssignments-LoadTasks From File");
+		Connection results = ResultsDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		ResourceBundle localisation = null;
 		try {
@@ -1139,7 +1143,7 @@ public class AllAssignments extends Application {
 				f.delete();
 			}
 			if(zipFolder != null) {
-				zipFolder.delete();
+				FileUtils.deleteDirectory(zipFolder);
 			}
 			
 			/*
@@ -1189,10 +1193,239 @@ public class AllAssignments extends Application {
 			try {results.setAutoCommit(true);} catch (SQLException e) {}
 
 			try {
-				SDDataSource.closeConnection("surveyKPI-AllAssignments-LoadTasks From File", sd);
+				SDDataSource.closeConnection(connectionString, sd);
 			} catch(Exception e) {};
 			try {
-				ResultsDataSource.closeConnection("surveyKPI-AllAssignments-LoadTasks From File", results);
+				ResultsDataSource.closeConnection(connectionString, results);
+			} catch(Exception e) {};
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Load submissions from XML files that are included in a zip file
+	 */
+	@POST
+	@Path("/loadsubmissions")
+	public Response loadSubmissionsFromFile(@Context HttpServletRequest request) { 
+
+		Response response = null;
+
+		log.info("Load submissions from file");
+		String connectionString = "surveyKPI-AllAssignments-LoadSubmissions From File";
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End role based authorisation - Check access to the requested survey once the survey id has been extracted
+
+		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();	
+		fileItemFactory.setSizeThreshold(20*1024*1024); // 20 MB TODO handle this with exception and redirect to an error page
+		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+
+		String uploadedFileName = null;
+		String sourceFormName = null;
+		String fileName = null;
+		String filePath = null;
+		File savedFile = null;									// The uploaded file
+		File zipFolder = null;									// Temporary folder created using the contents of a zip
+		String contentType = null;
+		String importSource = "file";		// default to file
+		int sId = 0;
+		int sourceSurveyId = 0;
+		String sIdent = null;		// Survey Ident
+		String sName = null;			// Survey Name
+		ArrayList<MetaItem> preloads = null;
+		boolean clear_existing = false;
+		HashMap<String, File> mediaFiles = new HashMap<String, File> ();
+		HashMap<String, File> formFileMap = null;
+		ArrayList<String> responseMsg = new ArrayList<String> ();
+		int recordsWritten = 0;
+		String validateSurvey = null;
+		
+		Calendar cal = Calendar.getInstance();
+		Timestamp importTime = new Timestamp(cal.getTime().getTime());
+
+		Connection results = ResultsDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		ResourceBundle localisation = null;
+		try {
+
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			try {
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			} catch (Exception e) {
+			}
+			
+			String tz = "UTC";	// get default timezone
+			// Get the base path
+			String basePath = GeneralUtilityMethods.getBasePath(request);
+
+			// Get the items from the multi part mime
+			List<?> items = uploadHandler.parseRequest(request);
+			Iterator<?> itr = items.iterator();
+			while(itr.hasNext()) {
+				FileItem item = (FileItem) itr.next();
+
+				if(item.isFormField()) {
+					log.info("Form field:" + item.getFieldName() + " - " + item.getString());
+					if(item.getFieldName().equals("survey")) {
+						sId = Integer.parseInt(item.getString());
+						
+						if(sId > 0) {
+							validateSurvey = "target";
+							a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+							a.canLoadTasks(sd, sId);
+	
+							sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+							sName = GeneralUtilityMethods.getSurveyName(sd, sId);
+						}
+						preloads = GeneralUtilityMethods.getPreloads(sd, sId);
+					} else if(item.getFieldName().equals("clear_existing")) {
+						clear_existing = true;
+					} else if(item.getFieldName().equals("import_source")) {
+						importSource = item.getString();
+					} else if(item.getFieldName().equals("import_form")) {
+						sourceSurveyId = Integer.parseInt(item.getString());
+						if(sourceSurveyId > 0) {
+							validateSurvey = "source";
+							a.isValidSurvey(sd, request.getRemoteUser(), sourceSurveyId, false, superUser);
+							
+							sourceFormName = GeneralUtilityMethods.getSurveyName(sd, sourceSurveyId);
+						}
+					} 
+
+
+				} else if(!item.isFormField()) {
+					// Handle Uploaded file
+					log.info("Field Name = "+item.getFieldName()+
+							", File Name = "+item.getName()+
+							", Content type = "+item.getContentType()+
+							", File Size = "+item.getSize());
+
+					uploadedFileName = item.getName();
+
+					if(item.getSize() > 0) {
+						contentType = item.getContentType();
+
+						String ext = "";
+						if(contentType.contains("zip")) {
+							ext = ".zip";
+						} else if(contentType.contains("xml")) {
+							// TODO
+						} else {
+							throw new Exception("Either a zip file or an xml file must be loaded");
+						}
+						fileName = String.valueOf(UUID.randomUUID()) + ext;
+
+						filePath = basePath + "/temp/" + fileName;
+						savedFile = new File(filePath);
+						item.write(savedFile);
+					}					
+				}
+
+			}
+			
+			// TODO
+			log.info("Content Type: " + contentType);
+			if(importSource.equals("file") && contentType == null) {
+				throw new Exception(localisation.getString("mf_mf"));
+			} 
+
+			// If this is a zip file extract the contents and set the path to the expanded data file that should be inside
+			// Refer to http://www.mkyong.com/java/how-to-decompress-files-from-a-zip-file/
+			String zipFolderPath = savedFile.getAbsolutePath() + ".dir";
+			zipFolder = new File(zipFolderPath);
+			if(!zipFolder.exists()) {
+				zipFolder.mkdir();
+			}
+			if(savedFile.getName().endsWith(".zip")) {
+				
+				ZipInputStream zis = new ZipInputStream(new FileInputStream(savedFile));
+				ZipEntry ze = null;
+				byte[] buffer = new byte[1024];
+				while((ze = zis.getNextEntry()) != null) {
+					String zFileName = ze.getName();
+					if(!zFileName.startsWith("__MAC")) {	// Files added by macintosh zip utility
+
+						log.info("File in zip: " + ze.getName());
+						File zFile = new File(zipFolderPath + File.separator + zFileName);
+
+						new File(zFile.getParent()).mkdirs();	// Make sure path is complete 
+
+						if(ze.isDirectory()) {
+							zFile.mkdir();
+						} else {
+
+							// Write the file
+							FileOutputStream fos = new FileOutputStream(zFile);
+							int len;
+							while ((len = zis.read(buffer)) > 0) {
+								fos.write(buffer, 0, len);
+							}
+							fos.close();
+						}
+					}
+					zis.closeEntry();
+				}
+				zis.close();
+				savedFile.delete();		// clean up
+			} else {
+				Files.move(Paths.get(savedFile.getAbsolutePath()), Paths.get(zipFolder.getAbsolutePath()));
+			} 
+
+
+			if(zipFolder != null) {
+				FileUtils.deleteDirectory(zipFolder);
+			}
+			
+			/*
+			 * Return results
+			 */
+			responseMsg.add(localisation.getString("imp_c"));
+			response = Response.status(Status.OK).entity("").build();
+
+		} catch (AuthorisationException e) {
+			log.log(Level.SEVERE,"", e);
+			try { results.rollback();} catch (Exception ex){}
+			
+			String msg = "";
+			if(validateSurvey != null && validateSurvey.equals("target")) {
+				msg = localisation.getString("msg_load_file");
+				msg = msg.replace("%s1", String.valueOf(sId));
+			} else {
+				msg = localisation.getString("msg_load_form");
+				msg = msg.replace("%s1", String.valueOf(sourceSurveyId));
+			}
+			response = Response.status(Status.FORBIDDEN).entity(msg).build();
+
+		} catch (NotFoundException e) {
+			log.log(Level.SEVERE,"", e);
+			try { results.rollback();} catch (Exception ex){}
+			throw new NotFoundException();
+
+		} catch (Exception e) {
+			String msg = e.getMessage();
+			if(msg != null && (msg.startsWith("org.postgresql.util.PSQLException: Zero bytes") 
+					|| msg.equals("java.lang.reflect.InvocationTargetException"))) {
+				msg = localisation.getString("msg_load_format");
+			} else {
+				log.log(Level.SEVERE,"", e);
+			}
+			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(msg).build();
+			try { results.rollback();} catch (Exception ex){}
+
+
+		} finally {
+
+			try {
+				SDDataSource.closeConnection(connectionString, sd);
+			} catch(Exception e) {};
+			try {
+				ResultsDataSource.closeConnection(connectionString, results);
 			} catch(Exception e) {};
 		}
 
