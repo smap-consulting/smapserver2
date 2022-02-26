@@ -19,6 +19,7 @@ import java.util.zip.ZipOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Response;
+import org.smap.sdal.Utilities.ApplicationException;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.QueryGenerator;
@@ -104,6 +105,10 @@ public class PDFReportsManager {
 			 * Get the sql
 			 */
 			Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId);
+			if(!GeneralUtilityMethods.tableExists(cResults, f.tableName)) {
+				log.info("Table: " + f.tableName + " does not exist. Presumably no data has been submitted to this survey");
+				throw new ApplicationException(localisation.getString("msg_no_data"));
+			}
 			QueryManager qm = new QueryManager();	
 			ArrayList<QueryForm> queryList = null;
 			queryList = qm.getFormList(sd, sId, f.id);		// Get a form list for this survey / form combo
