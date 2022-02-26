@@ -60,6 +60,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.SubmissionsManager;
 
 /*
  * Upload submissions from a folder.  A survey ident is specified and all submissions found in that folder are reapplied if they
@@ -91,7 +92,7 @@ public class Uploader extends Application {
 	
 
 	/*
-	 * Get data identified in an action
+	 * Re upload submissions submitted for a survey if they have not already been procesed
 	 */
 	@GET
 	public Response uploadSubmissions(
@@ -106,121 +107,25 @@ public class Uploader extends Application {
 		String requester = "surveyKPI-uploadSubmissions";
 
 		Connection sd = SDDataSource.getConnection(requester);
-		Connection cResults = ResultsDataSource.getConnection(requester);
-		PreparedStatement pstmt = null;
 
 		try {
 			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
-			CloseableHttpClient httpclient = null;
-			ContentType ct = null;
-			String host_name = request.getServerName();
-			HttpResponse reqResponse = null;
-			int responseCode = 0;
-			String responseReason = null;
-			
-			
-			int port;
-			String protocol = "https";
-			port = 443;
-			if(host_name.contains("localhost")) {
-				protocol = "http";
-				port = 80;
-			}
-			String user = request.getRemoteUser();
-			
 
-			
-			
-			String urlString = protocol + "://" + host_name +  "/submission";
-			urlString += "?deviceID=uploader"; 
-			
-			String sql = "select count(*) from upload_event where file_path = ?";
-			pstmt = sd.prepareStatement(sql);
-			
+			String host_name = request.getServerName();
+
+			String user = request.getRemoteUser();	
+
 			/*
 			 * Process the directories
 			 */
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			String folderPath = basePath + "/uploadedSurveys/" + surveyIdent;
 			
-			File folder = new File(folderPath);
-			if(folder.exists()) {
-				String dirs [] = folder.list();
-				for(String dir : dirs) {
-					try {
-						HttpPost req = new HttpPost(URI.create(urlString));
-						File instanceDir = new File(folderPath + "/" + dir);
-						if(instanceDir.exists() && instanceDir.isDirectory()) {
-							String[] files = instanceDir.list();
-							
-							for(String file : files) {
-								if(file.endsWith(".xml")) {
-									File instanceFile = new File(folderPath + "/" + dir + "/" + file);
-									
-									// check this instance has not already been submitted - When used to resubmit survey data this would create a loop of ever increasing duplicates
-									pstmt.setString(1, instanceFile.getAbsolutePath());
-									ResultSet rs = pstmt.executeQuery();
-									if(rs.next() && rs.getInt(1) > 0) {
-										log.info("Skipping as already uploaded: " + instanceFile.getName());
-									} else {
-										MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
-										FileBody fb = new FileBody(instanceFile);
-										entityBuilder.addPart("xml_submission_file", fb);	
-										req.setEntity(entityBuilder.build());	// TODO do this after adding media
-										
-										log.info("	Info: submitting to: " + req.getURI().toString());
-										HttpHost target = new HttpHost(host_name, port, protocol);
-										CredentialsProvider credsProvider = new BasicCredentialsProvider();
-										credsProvider.setCredentials(
-												new AuthScope(target.getHostName(), target.getPort()),
-												new UsernamePasswordCredentials(user, password));
-										httpclient = HttpClients.custom()
-												.setDefaultCredentialsProvider(credsProvider)
-												.build();
-										HttpClientContext localContext = HttpClientContext.create();
-										
-										reqResponse = httpclient.execute(target, req, localContext);
-										responseCode = reqResponse.getStatusLine().getStatusCode();
-										responseReason = reqResponse.getStatusLine().getReasonPhrase(); 
-				
-										
-										// verify that the response was a 201 or 202.
-										// If it wasn't, the submission has failed.
-										log.info("	Info: Response code: " + responseCode + " : " + responseReason);
-										if (responseCode != HttpStatus.SC_CREATED && responseCode != HttpStatus.SC_ACCEPTED) {      
-											log.info("	Error: local upload failed: " + dir + " : " + responseCode + ":" + responseReason);
-										} else {
-											log.info("  Success: local upload sent: " + dir);
-										}
-										
-									}
-								} else {
-									// TODO
-									throw new Exception("Error:  Not processing attachments");
-								}
-							}
-						} else {
-							log.info("Ignoring file: " + dir);
-						}
-						
-					} catch (Exception e) {
-						log.log(Level.SEVERE, dir, e);
-					} finally {
-						try {
-							if(httpclient != null) {
-								httpclient.close();
-							}
-						} catch (Exception e) {
-							
-						}
-					}
-				}
-			} else {
-				throw new Exception("Submission folder not found");
-			}
+			SubmissionsManager sm = new SubmissionsManager(localisation, "UTC");
+			sm.loadSubmissions(sd, folderPath, user, host_name);
 			
 			responseVal = Response.status(Status.OK).entity(outputString.toString()).build();
 		} catch (AuthorisationException e) {
@@ -230,9 +135,7 @@ public class Uploader extends Application {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			responseVal = Response.status(Status.OK).entity(e.getMessage()).build();
 		} finally {
-			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}};
 			SDDataSource.closeConnection(requester, sd);
-			ResultsDataSource.closeConnection(requester, cResults);
 		}
 
 		return responseVal;

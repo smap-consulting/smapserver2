@@ -1,35 +1,33 @@
 package org.smap.sdal.managers;
 
-import java.lang.reflect.Type;
+import java.io.File;
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
-import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.constants.SmapQuestionTypes;
-import org.smap.sdal.model.AuditItem;
-import org.smap.sdal.model.GeoPoint;
-import org.smap.sdal.model.KeyFilter;
-import org.smap.sdal.model.KeyValue;
-import org.smap.sdal.model.Role;
-import org.smap.sdal.model.RoleColumnFilter;
-import org.smap.sdal.model.SqlFrag;
-import org.smap.sdal.model.SqlParam;
-import org.smap.sdal.model.TableColumn;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 
 /*****************************************************************************
  * 
@@ -337,6 +335,114 @@ public class SubmissionsManager {
 		return jr;
 	}
 
+	/*
+	 * Load submissions from the specified directory
+	 */
+	public void loadSubmissions(Connection sd, String folderPath, String user, String host_name) throws Exception {
+		
+		CloseableHttpClient httpclient = null;
+		HttpResponse reqResponse = null;
+		int responseCode = 0;
+		String responseReason = null;
+		
+		int port;
+		String protocol = "https";
+		port = 443;
+		if(host_name.contains("localhost")) {
+			protocol = "http";
+			port = 80;
+		}
+		
+		String urlString = protocol + "://" + host_name +  "/submission";
+		urlString += "?deviceID=uploader"; 
+		
+		String sql = "select count(*) from upload_event where file_path = ?";
+		PreparedStatement pstmt = null;
+		
+		File folder = new File(folderPath);
+		if(folder.exists()) {
+			try {
+				pstmt = sd.prepareStatement(sql);
+				
+				String dirs [] = folder.list();
+				for(String dir : dirs) {
+					try {
+						HttpPost req = new HttpPost(URI.create(urlString));
+						File instanceDir = new File(folderPath + "/" + dir);
+						if(instanceDir.exists() && instanceDir.isDirectory()) {
+							String[] files = instanceDir.list();
+							
+							for(String file : files) {
+								if(file.endsWith(".xml")) {
+									File instanceFile = new File(folderPath + "/" + dir + "/" + file);
+									
+									// check this instance has not already been submitted - When used to resubmit survey data this would create a loop of ever increasing duplicates
+									pstmt.setString(1, instanceFile.getAbsolutePath());
+									ResultSet rs = pstmt.executeQuery();
+									if(rs.next() && rs.getInt(1) > 0) {
+										log.info("Skipping as already uploaded: " + instanceFile.getName());
+									} else {
+										MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
+										FileBody fb = new FileBody(instanceFile);
+										entityBuilder.addPart("xml_submission_file", fb);	
+										req.setEntity(entityBuilder.build());	// TODO do this after adding media
+										
+										log.info("	Info: submitting to: " + req.getURI().toString());
+										HttpHost target = new HttpHost(host_name, port, protocol);
+										CredentialsProvider credsProvider = new BasicCredentialsProvider();
+										//credsProvider.setCredentials(
+										//		new AuthScope(target.getHostName(), target.getPort()),
+										//		new UsernamePasswordCredentials(user, password));
+										httpclient = HttpClients.custom()
+												.setDefaultCredentialsProvider(credsProvider)
+												.build();
+										HttpClientContext localContext = HttpClientContext.create();
+										
+										reqResponse = httpclient.execute(target, req, localContext);
+										responseCode = reqResponse.getStatusLine().getStatusCode();
+										responseReason = reqResponse.getStatusLine().getReasonPhrase(); 
+				
+										
+										// verify that the response was a 201 or 202.
+										// If it wasn't, the submission has failed.
+										log.info("	Info: Response code: " + responseCode + " : " + responseReason);
+										if (responseCode != HttpStatus.SC_CREATED && responseCode != HttpStatus.SC_ACCEPTED) {      
+											log.info("	Error: local upload failed: " + dir + " : " + responseCode + ":" + responseReason);
+										} else {
+											log.info("  Success: local upload sent: " + dir);
+										}
+										
+									}
+								} else {
+									// TODO
+									throw new Exception("Error:  Not processing attachments");
+								}
+							}
+						} else {
+							log.info("Ignoring file: " + dir);
+						}
+						
+					} catch (Exception e) {
+						log.log(Level.SEVERE, dir, e);
+					} finally {
+						try {
+							if(httpclient != null) {
+								httpclient.close();
+							}
+						} catch (Exception e) {
+							
+						}
+					}
+				} 
+			} finally {
+				if(pstmt != null) {try {pstmt.close();}catch(Exception e) {}					
+				}
+			}
+		} else {
+			throw new Exception("Submission folder not found");
+		}
+	}
+	
 	private String getJoin(StringBuffer whereClause) {
 		if(whereClause.length() == 0) {
 			return "where ";
