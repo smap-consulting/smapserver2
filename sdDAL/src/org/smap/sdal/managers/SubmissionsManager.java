@@ -353,8 +353,7 @@ public class SubmissionsManager {
 			port = 80;
 		}
 		
-		String urlString = protocol + "://" + host_name +  "/submission";
-		urlString += "?deviceID=uploader"; 
+		String urlString = protocol + "://" + host_name +  "/submission/user/" + user + "?deviceID=uploader";
 		
 		String sql = "select count(*) from upload_event where file_path = ?";
 		PreparedStatement pstmt = null;

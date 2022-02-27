@@ -86,7 +86,7 @@ public class Upload extends Application {
 			@Context HttpServletRequest request) throws IOException {
 		
 		log.info("New submssion from device: " + deviceId);
-		return submission(request, null, null, deviceId);
+		return submission(request, null, null, deviceId, null);
 	}
 	
 	/*
@@ -102,7 +102,7 @@ public class Upload extends Application {
 	        @PathParam("instanceId") String instanceId) throws IOException {
 		
 		log.info("Update submssion: " + instanceId);
-		return submission(request, instanceId, null, deviceId);
+		return submission(request, instanceId, null, deviceId, null);
 	}
 	
 	/*
@@ -118,7 +118,23 @@ public class Upload extends Application {
 			@PathParam("key") String key) throws IOException {
 		
 		log.info("New submssion with key from device: " + deviceId);
-		return submission(request, null, key, deviceId);
+		return submission(request, null, key, deviceId, null);
+	}
+	
+	/*
+	 * New Submission
+	 * Localhost user ident supplied but no password
+	 */
+	@POST
+	@Path("/user/{user}")
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	public Response postInstanceWithUser(
+			@Context HttpServletRequest request,
+			@QueryParam("deviceID") String deviceId,
+			@PathParam("user") String user) throws IOException {
+		
+		log.info("New submssion with key from device: " + deviceId);
+		return submission(request, null, null, deviceId, user);
 	}
 	
 	/*
@@ -135,13 +151,13 @@ public class Upload extends Application {
 	        @PathParam("instanceId") String instanceId) throws IOException {
 		
 		log.info("Update submssion with key: " + instanceId);
-		return submission(request, instanceId, key, deviceId);
+		return submission(request, instanceId, key, deviceId, null);
 	}
 	
 	/*
 	 * Process the actual submission
 	 */
-	private Response submission(HttpServletRequest request,  String instanceId, String key, String deviceId) 
+	private Response submission(HttpServletRequest request,  String instanceId, String key, String deviceId, String localUser) 
 			throws IOException {
 	
 		Response response = null;
@@ -161,6 +177,10 @@ public class Upload extends Application {
 			}
 		} else {
 			user = request.getRemoteUser();
+		}
+		
+		if(user == null) {
+			user = localUser;	// Try local user from a local submission	
 		}
 		
 		if(user != null) {

@@ -98,8 +98,7 @@ public class Uploader extends Application {
 	public Response uploadSubmissions(
 			@Context HttpServletRequest request, 
 			@Context HttpServletResponse response,
-			@QueryParam("survey") String surveyIdent,
-			@QueryParam("password") String password)
+			@QueryParam("survey") String surveyIdent)
 			throws IOException {
 
 		Response responseVal = null;
