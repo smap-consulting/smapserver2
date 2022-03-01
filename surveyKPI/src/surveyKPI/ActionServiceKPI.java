@@ -37,6 +37,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import org.smap.sdal.Utilities.ApplicationException;
 
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
@@ -212,17 +213,20 @@ public class ActionServiceKPI extends Application {
 						dateId, 
 						filter);
 			} else {
-				throw new Exception(localisation.getString("Unknow report type: " + a.reportType));
+				throw new Exception(localisation.getString("Unknown report type: " + a.reportType));
 			}
 
 			responseVal = Response.status(Status.OK).entity(outputString.toString()).build();
 		} catch (AuthorisationException e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			throw e;
+		} catch (ApplicationException e) {
+			log.info("Error: " + e.getMessage());
+			responseVal = Response.status(Status.OK).entity(e.getMessage()).build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			responseVal = Response.status(Status.OK).entity(e.getMessage()).build();
-		} finally {
+		}  finally {
 			SDDataSource.closeConnection(requester, sd);
 			ResultsDataSource.closeConnection(requester, cResults);
 		}
