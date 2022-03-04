@@ -230,6 +230,7 @@ create TABLE log (
 	server text
 	);
 CREATE INDEX log_time_key ON log(log_time);
+CREATE INDEX log_org_idx ON log(o_id);
 ALTER TABLE log OWNER TO ws;
 
 -- Log table archive

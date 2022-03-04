@@ -475,3 +475,4 @@ ALTER TABLE survey_template OWNER TO ws;
 Alter table survey_template add column rule text;
 
 alter table survey_template drop constraint survey_template_ident_fkey;  -- Some deployments will have this set
+CREATE INDEX log_org_idx ON log(o_id);
