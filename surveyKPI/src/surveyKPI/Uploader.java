@@ -92,7 +92,7 @@ public class Uploader extends Application {
 	
 
 	/*
-	 * Re upload submissions submitted for a survey if they have not already been procesed
+	 * Re upload submissions submitted for a survey if they have not already been processed
 	 */
 	@GET
 	public Response uploadSubmissions(

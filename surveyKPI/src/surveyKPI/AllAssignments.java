@@ -43,6 +43,7 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.managers.SubmissionsManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.AssignFromSurvey;
@@ -1224,7 +1225,6 @@ public class AllAssignments extends Application {
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 
 		String uploadedFileName = null;
-		String sourceFormName = null;
 		String fileName = null;
 		String filePath = null;
 		File savedFile = null;									// The uploaded file
@@ -1233,14 +1233,8 @@ public class AllAssignments extends Application {
 		String importSource = "file";		// default to file
 		int sId = 0;
 		int sourceSurveyId = 0;
-		String sIdent = null;		// Survey Ident
-		String sName = null;			// Survey Name
-		ArrayList<MetaItem> preloads = null;
-		boolean clear_existing = false;
-		HashMap<String, File> mediaFiles = new HashMap<String, File> ();
-		HashMap<String, File> formFileMap = null;
+		
 		ArrayList<String> responseMsg = new ArrayList<String> ();
-		int recordsWritten = 0;
 		String validateSurvey = null;
 		
 		Calendar cal = Calendar.getInstance();
@@ -1270,36 +1264,7 @@ public class AllAssignments extends Application {
 			while(itr.hasNext()) {
 				FileItem item = (FileItem) itr.next();
 
-				if(item.isFormField()) {
-					log.info("Form field:" + item.getFieldName() + " - " + item.getString());
-					if(item.getFieldName().equals("survey")) {
-						sId = Integer.parseInt(item.getString());
-						
-						if(sId > 0) {
-							validateSurvey = "target";
-							a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
-							a.canLoadTasks(sd, sId);
-	
-							sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-							sName = GeneralUtilityMethods.getSurveyName(sd, sId);
-						}
-						preloads = GeneralUtilityMethods.getPreloads(sd, sId);
-					} else if(item.getFieldName().equals("clear_existing")) {
-						clear_existing = true;
-					} else if(item.getFieldName().equals("import_source")) {
-						importSource = item.getString();
-					} else if(item.getFieldName().equals("import_form")) {
-						sourceSurveyId = Integer.parseInt(item.getString());
-						if(sourceSurveyId > 0) {
-							validateSurvey = "source";
-							a.isValidSurvey(sd, request.getRemoteUser(), sourceSurveyId, false, superUser);
-							
-							sourceFormName = GeneralUtilityMethods.getSurveyName(sd, sourceSurveyId);
-						}
-					} 
-
-
-				} else if(!item.isFormField()) {
+				if(!item.isFormField()) {
 					// Handle Uploaded file
 					log.info("Field Name = "+item.getFieldName()+
 							", File Name = "+item.getName()+
@@ -1373,11 +1338,13 @@ public class AllAssignments extends Application {
 				}
 				zis.close();
 				savedFile.delete();		// clean up
-			} else {
-				Files.move(Paths.get(savedFile.getAbsolutePath()), Paths.get(zipFolder.getAbsolutePath()));
 			} 
+			
+			// Process the submissions
+			SubmissionsManager sm = new SubmissionsManager(localisation, "UTC");
+			sm.loadSubmissions(sd, zipFolderPath, request.getRemoteUser(), request.getServerName());
 
-
+			// Clean up
 			if(zipFolder != null) {
 				FileUtils.deleteDirectory(zipFolder);
 			}
@@ -1392,14 +1359,8 @@ public class AllAssignments extends Application {
 			log.log(Level.SEVERE,"", e);
 			try { results.rollback();} catch (Exception ex){}
 			
-			String msg = "";
-			if(validateSurvey != null && validateSurvey.equals("target")) {
-				msg = localisation.getString("msg_load_file");
-				msg = msg.replace("%s1", String.valueOf(sId));
-			} else {
-				msg = localisation.getString("msg_load_form");
-				msg = msg.replace("%s1", String.valueOf(sourceSurveyId));
-			}
+			String msg = localisation.getString("msg_load_form");
+			msg = msg.replace("%s1", String.valueOf(sourceSurveyId));
 			response = Response.status(Status.FORBIDDEN).entity(msg).build();
 
 		} catch (NotFoundException e) {
