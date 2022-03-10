@@ -29,7 +29,9 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -55,6 +57,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.text.StringEscapeUtils;
+import org.apache.poi.ss.formula.functions.Now;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.CsvTableManager;
@@ -484,7 +487,7 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Get the PDF Template File
-	 * If the template id is < 0 then return null as no template is to be used
+	 * If the template id is == -1 then return null as no template is to be used
 	 * else if the templateId is > 0 get that template id
 	 * else attempt to get the default template from survey_templates
 	 * else attempt to get a legacy template definition specified in the survey settings
@@ -529,7 +532,7 @@ public class GeneralUtilityMethods {
 						templateFile = new File(templateName);
 					}
 				}
-			}
+			} 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
@@ -8801,7 +8804,7 @@ public class GeneralUtilityMethods {
 		} else {
 			return null;
 		}
-		
+		url.append(getCacheBuster(url.toString()));
 		return url.toString();
 	}
 	
@@ -8815,6 +8818,7 @@ public class GeneralUtilityMethods {
 		url.append("?instance=").append(updateId);
 		url.append("&tz=").append(tz);
 			
+		url.append(getCacheBuster(url.toString()));
 		return url.toString();
 	}
 	
@@ -8838,6 +8842,19 @@ public class GeneralUtilityMethods {
 		url.append("api/v1/audit/log/").append(surveyIdent).append("/").append(updateId);
 			
 		return url.toString();
+	}
+	
+	/*
+	 * Return a cache buster
+	 */
+	public static String getCacheBuster(String url) {
+		String sep = "?";
+		 LocalDateTime now = LocalDateTime.now(); 
+		
+		if(url.contains("?")) {
+			sep = "&";
+		}
+		return sep + "_v=" +  now.toEpochSecond(ZoneOffset.UTC);
 	}
 	
 	/*
