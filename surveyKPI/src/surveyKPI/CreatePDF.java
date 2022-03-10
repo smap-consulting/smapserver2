@@ -146,10 +146,9 @@ public class CreatePDF extends Application {
 				throw new ApplicationException("Invalid Timezone: " + tz);
 			}
 			
-			SurveyManager sm = new SurveyManager(localisation, tz);
-			org.smap.sdal.model.Survey survey = null;
 			boolean generateBlank =  (instanceId == null) ? true : false;	// If false only show selected options
-			survey = sm.getById(
+			SurveyManager sm = new SurveyManager(localisation, tz);
+			org.smap.sdal.model.Survey survey = sm.getById(
 					sd, 
 					cResults, 
 					request.getRemoteUser(), 
@@ -174,6 +173,11 @@ public class CreatePDF extends Application {
 			PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, request.getRemoteUser(), tz);
 			
 			String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";
+			
+			if(pdfTemplateId == -2) { // auto
+				pdfTemplateId = GeneralUtilityMethods.testForPdfTemplate(sd, cResults, localisation, survey, request.getRemoteUser(),
+						instanceId, tz);
+			}
 			
 			OutputStream os = null;
 			String filePath = null;
