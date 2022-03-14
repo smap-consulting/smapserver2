@@ -156,7 +156,8 @@ public class SurveyManager {
 		StringBuffer sqlGetGroupDetails = new StringBuffer("select p.name, s.display_name "
 				+ "from survey s, project p "
 				+ "where s.p_id = p.id "
-				+ "and s.ident = ?");
+				+ "and s.ident = ? "
+				+ "and (select count(*) from survey where group_survey_ident = ? and not deleted) > 1");
 		PreparedStatement pstmtGetGroupDetails = null;
 		
 		ResultSet resultSet = null;
@@ -243,6 +244,7 @@ public class SurveyManager {
 				
 				if(getGroupDetails) {
 					pstmtGetGroupDetails.setString(1, s.groupSurveyIdent);
+					pstmtGetGroupDetails.setString(2, s.groupSurveyIdent);
 					ResultSet rsGroup = pstmtGetGroupDetails.executeQuery();
 					if(rsGroup.next()) {
 						s.groupSurveyDetails = rsGroup.getString(1) + " : " + rsGroup.getString(2);
