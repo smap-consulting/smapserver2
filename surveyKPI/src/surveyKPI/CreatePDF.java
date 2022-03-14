@@ -122,6 +122,8 @@ public class CreatePDF extends Application {
 			} catch (Exception e) {
 				errorMsg = "Error:" + localisation.getString("mf_tnf");			
 			}
+		} else if(pdfTemplateId == 0) {
+			pdfTemplateId = -2;	  // Set default to auto
 		}
 		
 		if(errorMsg != null) {
