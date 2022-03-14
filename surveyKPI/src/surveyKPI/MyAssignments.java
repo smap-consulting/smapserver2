@@ -571,11 +571,11 @@ public class MyAssignments extends Application {
 					false, 
 					0,
 					superUser,
-					false,
-					false,
-					true,
+					false,	// only group
+					false,	// Group Details
+					true,	// Only data survey
 					false,	// get links
-					null);
+					null);	// UrL prefix
 			
 			SurveyTableManager stm = new SurveyTableManager(sd, localisation);
 			TranslationManager translationMgr = new TranslationManager();

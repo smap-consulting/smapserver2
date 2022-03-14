@@ -116,10 +116,10 @@ public class FormList extends Application {
 					0, 
 					superUser, 
 					false, 
-					false, 
-					true,
+					false, 		// get group details
+					true,		// only data survey
 					false,		// links
-					null);
+					null);		// url prefix
 			
 			// Determine whether or not a manifest identifying media files exists for this survey
 			TranslationManager translationMgr = new TranslationManager();
