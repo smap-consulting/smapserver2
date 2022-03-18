@@ -222,6 +222,7 @@ public class SqlFrag {
 				token.equals("/") ||
 				token.equals(")") ||
 				token.equals("(") ||
+				token.equals("||") ||
 				token.equals("or") ||
 				token.equals(SmapServerMeta.UPLOAD_TIME_NAME) ||
 				token.equals(SmapServerMeta.SCHEDULED_START_NAME) ||
