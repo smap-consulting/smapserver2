@@ -254,13 +254,6 @@ public class ServerManager {
 				int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 			    CsvTableManager tm = new CsvTableManager(sd, localisation);
 			    tm.delete(oId, sId, null);		
-			    
-				// Delete the templates
-				try {
-					GeneralUtilityMethods.deleteTemplateFiles(surveyDisplayName, basePath, projectId );
-				} catch (Exception e) {
-					log.info("Error deleting templates: " + surveyDisplayName + " : " + e.getMessage());
-				}
 
 				// Delete survey definition
 				sql = "delete from survey where s_id = ?;";	

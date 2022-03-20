@@ -410,6 +410,8 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Delete template files
+	 * Deletes:
+	 *  uploaded excel templates
 	 */
 	static public void deleteTemplateFiles(String name, String basePath, int projectId) throws IOException {
 
@@ -417,6 +419,10 @@ public class GeneralUtilityMethods {
 
 		String directory = basePath + "/templates/" + projectId;
 		log.info("Deleting files in " + directory + " with stem: " + fileName);
+		/*
+		 * Note this is safe because the survey will have been deleted before being erased
+		 * Hence its stem name will include the date and time of deletion it should not pick up any other survey templates
+		 */
 		File dir = new File(directory);
 		FileFilter fileFilter = new WildcardFileFilter(fileName + ".*");
 		File[] files = dir.listFiles(fileFilter);

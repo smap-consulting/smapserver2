@@ -3871,6 +3871,18 @@ public class SurveyManager {
 						pstmt.setString(1, surveyIdent);
 						log.info("Delete survey templates: " + pstmt.toString());
 						pstmt.executeUpdate();
+						
+						// Delete the template files
+						try {
+							GeneralUtilityMethods.deleteTemplateFiles(surveyDisplayName, basePath, projectId );
+						} catch (Exception e) {
+							log.info("Error deleting templates: " + surveyDisplayName + " : " + e.getMessage());
+						}
+						try {
+							GeneralUtilityMethods.deleteDirectory(basePath + "/templates/survey/" + surveyIdent);
+						} catch (Exception e) {
+							log.info("Error deleting pdf templates: " + surveyDisplayName + " : " + e.getMessage());
+						}
 					} 
 				}
 	
