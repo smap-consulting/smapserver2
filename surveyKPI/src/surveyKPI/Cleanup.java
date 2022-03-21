@@ -1,5 +1,6 @@
 package surveyKPI;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -10,7 +11,9 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -80,7 +83,7 @@ public class Cleanup extends Application {
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "Error", e);
 			response.setHeader("Content-type",  "text/html; charset=UTF-8");
-			responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
+			responseVal = Response.status(Status.INTERNAL_SERVER_ERROR).entity("Error: " + e.getMessage()).build();
 		} finally {
 			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 			SDDataSource.closeConnection(connectionString, sd);
@@ -128,9 +131,60 @@ public class Cleanup extends Application {
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "Error", e);
 			response.setHeader("Content-type",  "text/html; charset=UTF-8");
-			responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
+			responseVal = Response.status(Status.INTERNAL_SERVER_ERROR).entity("Error: " + e.getMessage()).build();
 		} finally {
 			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return responseVal;
+
+	}
+	
+	/*
+	 * Get survey details from an ident
+	 */
+	@POST
+	@Produces("application/json")
+	@Path("/deletetemplate")
+	public Response deleteSurveyTemplate (@Context HttpServletRequest request, 
+			@FormParam("path") String path,
+			@Context HttpServletResponse response) {
+
+		Response responseVal = null;
+		
+		// Authorisation - Access
+		String connectionString = "surveyKPI - cleanup - survey details";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		log.info("Request to delete template: " + path);
+
+		try {
+			if(path.startsWith("templates/")) {
+					
+				String basePath = GeneralUtilityMethods.getBasePath(request);
+				File f = new File(basePath + "/" + path);
+				if(f.exists()) {
+					f.delete();
+				}
+				log.info("Cleanup: Deleted template file: " + f.getAbsolutePath());
+				responseVal = Response.status(Status.OK).entity("").build();
+					
+				log.info("Request to delete template: " + path);
+				
+			
+			} else {
+					log.info("Error: File " + path + " is not a template");
+					responseVal = Response.status(Status.INTERNAL_SERVER_ERROR).entity("Error: File " + path + " is not a template").build();
+			}
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "Error", e);
+			response.setHeader("Content-type",  "text/html; charset=UTF-8");
+			responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
+		} finally {
+
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
