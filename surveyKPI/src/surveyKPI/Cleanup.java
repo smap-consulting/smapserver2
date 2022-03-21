@@ -168,12 +168,12 @@ public class Cleanup extends Application {
 				File f = new File(basePath + "/" + path);
 				if(f.exists()) {
 					f.delete();
-				}
-				log.info("Cleanup: Deleted template file: " + f.getAbsolutePath());
-				responseVal = Response.status(Status.OK).entity("").build();
 					
-				log.info("Request to delete template: " + path);
-				
+					log.info("Cleanup: Deleted template file: " + f.getAbsolutePath());
+					responseVal = Response.status(Status.OK).entity("").build();
+				} else {
+					Response.status(Status.NOT_FOUND).build();
+				}
 			
 			} else {
 					log.info("Error: File " + path + " is not a template");
@@ -182,7 +182,7 @@ public class Cleanup extends Application {
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "Error", e);
 			response.setHeader("Content-type",  "text/html; charset=UTF-8");
-			responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
+			responseVal = Response.status(Status.INTERNAL_SERVER_ERROR).entity("Error: " + e.getMessage()).build();
 		} finally {
 
 			SDDataSource.closeConnection(connectionString, sd);

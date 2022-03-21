@@ -30,4 +30,4 @@ aws s3 cp $file.gpg s3://{db-bu-bucket}/$final_file
 rm $file.gpg
 
 # Synchronise other files
-aws s3 sync /smap s3://$bucket --exclude "temp/*"
+aws s3 sync /smap s3://$bucket --exclude "temp/*"  --exclude "reports/*" --exclude "settings/*"

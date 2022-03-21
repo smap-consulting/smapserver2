@@ -297,7 +297,7 @@ public class WebForm extends Application {
 		 */
 		if(assignmentId > 0) {
 			
-			String requester = "WebForm - getFormHtml";
+			String requester = "WebForm - getFormHtml for assignment";
 			Connection sd = SDDataSource.getConnection(requester);
 
 			String status = null;
