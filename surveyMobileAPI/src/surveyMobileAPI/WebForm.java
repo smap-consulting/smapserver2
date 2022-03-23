@@ -59,6 +59,7 @@ import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
+import org.smap.sdal.model.ChainRule;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.ServerData;
@@ -118,6 +119,7 @@ public class WebForm extends Application {
 	boolean isApp = false;
 	boolean myWork = false;			// When set use the myWork app to submit data rather than the form
 	String gFormIdent = null;
+	Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 
 	/*
 	 * Get instance data Respond with JSON
@@ -907,6 +909,14 @@ public class WebForm extends Application {
 		} else {
 			output.append("surveyData.viewOnly=false;\n");
 		}
+		
+		// Add chaining rules - TODO get rules from database
+		ArrayList<ChainRule> chainRules = new ArrayList<> ();
+		ChainRule a = new ChainRule();
+		chainRules.add(a);
+		a.url = "https://www.smap.com.au?instance=${instanceid}";
+ 		output.append("surveyData.chain=");
+ 		output.append(gson.toJson(chainRules));
 
 		output.append("</script>\n");
 		return output;
