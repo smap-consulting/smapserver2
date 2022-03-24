@@ -610,7 +610,7 @@ public class PDFSurveyManager {
 			} else if(di.tsep && r.type.equals("int")) {
 				long iValue = 0;
 				try {
-					iValue = Long.parseLong(di.value);
+					iValue = Long.parseLong(r.value);
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
@@ -618,7 +618,7 @@ public class PDFSurveyManager {
 			} else if(di.tsep && r.type.equals("decimal")) {
 				Double dValue = 0.0;
 				try {
-					dValue = Double.parseDouble(di.value);
+					dValue = Double.parseDouble(r.value);
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
