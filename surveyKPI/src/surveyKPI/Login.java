@@ -62,20 +62,20 @@ public class Login extends Application {
 		Response response = null;
 		 		
 		// No authorisation is required - the key is returned to the authenticated user
-		
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-login-key");	
+		String connectionString ="surveyKPI-login-key";
+		Connection sd = SDDataSource.getConnection(connectionString);	
 		
 		String user = request.getRemoteUser();
 		
 		Key accessToken = new Key();
 		try {
-			accessToken.key = GeneralUtilityMethods.getNewAccessKey(connectionSD, user, false);
+			accessToken.key = GeneralUtilityMethods.getNewAccessKey(sd, user, false);
 			log.info("userevent: " + user + " : requested access key : " + accessToken.key);
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Failed to get access key", e);
 			response = Response.serverError().build();
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-login-key", connectionSD);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
