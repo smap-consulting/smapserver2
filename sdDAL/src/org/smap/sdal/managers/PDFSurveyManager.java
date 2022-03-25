@@ -607,18 +607,18 @@ public class PDFSurveyManager {
 				}
 
 
-			} else if(di.tsep && r.type.equals("int")) {
+			} else if(di.tsep && (r.type.equals("int") || (r.type.equals("string") && r.value != null && !r.value.contains(".")))) {
 				long iValue = 0;
 				try {
-					iValue = Long.parseLong(r.value);
+					iValue = Long.parseLong(r.value.replace(",", ""));
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
 				value = String.format("%,d", iValue);
-			} else if(di.tsep && r.type.equals("decimal")) {
+			} else if(di.tsep && (r.type.equals("decimal") || (r.type.equals("string") && r.value != null && r.value.contains(".")))) {
 				Double dValue = 0.0;
 				try {
-					dValue = Double.parseDouble(r.value);
+					dValue = Double.parseDouble(r.value.replace(",", ""));
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
@@ -1870,19 +1870,19 @@ public class PDFSurveyManager {
 
 			valueCell.addElement((qrcodeImage));
 
-		} else if(di.tsep && di.type.equals("int")) {
+		} else if(di.tsep && (di.type.equals("int") || (di.type.equals("string") && di.value != null && !di.value.contains(".")))) {
 			long iValue = 0;
 			try {
-				iValue = Long.parseLong(di.value);
+				iValue = Long.parseLong(di.value.replace(",", ""));
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 			String value = String.format("%,d", iValue);
 			valueCell.addElement(getPara(value, di, gv, deps, null));
-		} else if(di.tsep && di.type.equals("decimal")) {
+		} else if(di.tsep && (di.type.equals("decimal") || (di.type.equals("string") && di.value != null && di.value.contains(".")))) {
 			Double dValue = 0.0;
 			try {
-				dValue = Double.parseDouble(di.value);
+				dValue = Double.parseDouble(di.value.replace(",", ""));
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
