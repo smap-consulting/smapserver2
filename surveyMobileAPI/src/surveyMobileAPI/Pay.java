@@ -74,7 +74,7 @@ public class Pay extends Application {
 		try {	
 			
 			EsewaManager mgr = new EsewaManager(true, request.getServerName());
-			mgr.pay(instanceId);
+			response = mgr.pay(instanceId);
 			
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Failed to get access key", e);
@@ -110,6 +110,7 @@ public class Pay extends Application {
 		
 		try {
 			
+			log.info("Payment success");
 			response = Response.ok("").build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
@@ -142,6 +143,7 @@ public class Pay extends Application {
 		try {
 			
 			response = Response.ok("").build();
+			log.info("Failed payment");
 			
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Failed to get access key", e);

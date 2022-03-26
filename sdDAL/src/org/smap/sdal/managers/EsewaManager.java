@@ -1,21 +1,28 @@
 package org.smap.sdal.managers;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
+
+import javax.ws.rs.core.Response;
 
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.http.message.BasicNameValuePair;
 
 /*****************************************************************************
@@ -65,34 +72,33 @@ public class EsewaManager {
 		this.test = test;
 		this.hostname = hostname;
 		this.paymentsHost = getPaymentsHost();
-		this.user = "9806800001/2/3/4/5";
-		this.password = "Nepal@123";
+		this.user = "9801085351";
+		this.password = "Jubusolu@99911999";
 		
 
 		protocol = "https";
 		port = 443;
 
-		target = new HttpHost(hostname, port, protocol);
+		target = new HttpHost(paymentsHost, port, protocol);
 
 		credsProvider = new BasicCredentialsProvider();
 		credsProvider.setCredentials(
-				new AuthScope(hostname, port),
+				new AuthScope(paymentsHost, port),
 				new UsernamePasswordCredentials(user, password));	
 	}
 	
-	public void pay(String instanceId) {
+	public Response pay(String instanceId) throws ClientProtocolException, IOException {
 		log.info("Paying eSewa........");
 		
-		HttpResponse response = null;
+		Response response = null;
 		
 		try {
 			URL url = new URL("https://" + getPaymentsHost() + "/epay/main"); 
 			
 			
-			httpclient = HttpClients.custom()
-					.setDefaultCredentialsProvider(credsProvider)
-					.build();
-	
+			HttpClients.custom();
+			httpclient = HttpClientBuilder.create().setRedirectStrategy(new LaxRedirectStrategy()).setDefaultCredentialsProvider(credsProvider).build();
+					
 			HttpClientContext localContext = HttpClientContext.create();
 			HttpPost req = new HttpPost(URI.create(url.toString()));
 			
@@ -101,18 +107,27 @@ public class EsewaManager {
 	
 	        log.info("Calling esewa: " + url);
 	        
-			response = httpclient.execute(target, req, localContext);
-			if(response != null) {
-				log.info("Response Code: " + response.getStatusLine().getStatusCode());
+			HttpResponse resp = httpclient.execute(target, req, localContext);
+			if(resp != null) {
+				log.info("Response Code: " + resp.getStatusLine().getStatusCode() + " : " + resp.getStatusLine().getReasonPhrase());
 			} else {
 				log.info("Response is null");
 			}
 			
-		} catch (Exception e) {	
-			e.printStackTrace();
+			URI finalUrl = req.getURI();
+			List<URI> locations = localContext.getRedirectLocations();
+			if (locations != null) {
+			    finalUrl = locations.get(locations.size() - 1);
+			}
+			
+			log.info("Final URL: " + finalUrl);
+			response =  Response.temporaryRedirect(finalUrl).build();
+			
 		} finally {
-			try{httpclient.close();} catch(Exception e) {e.printStackTrace();}
+			try{if(httpclient != null) {httpclient.close();}} catch(Exception e) {e.printStackTrace();}
 		}
+		
+		return response;
 	}
 	
 	private ArrayList<BasicNameValuePair> getPayParamValues(String instanceId) {
@@ -127,7 +142,7 @@ public class EsewaManager {
         nameValuePairs.add(new BasicNameValuePair("scd", "EPAYTEST"));		// TODO get amount from record 
         nameValuePairs.add(new BasicNameValuePair("pid", instanceId));		// Product Id
         nameValuePairs.add(new BasicNameValuePair("su", "https://" + hostname + "/esewa/success?q=su"));
-        nameValuePairs.add(new BasicNameValuePair("su", "https://" + hostname + "/esewa/failed?q=fu"));
+        nameValuePairs.add(new BasicNameValuePair("fu", "https://" + hostname + "/esewa/failed?q=fu"));
         
         return nameValuePairs;
 	}
