@@ -293,7 +293,7 @@ public class PDFSurveyManager {
 			log.info("Filename passed to createPDF is: " + filename);
 			if(filename == null) {
 				filename = survey.getInstanceName();
-				filename = GeneralUtilityMethods.getSafeTemplateName(filename);
+				filename = GeneralUtilityMethods.convertDisplayNameToFileName(filename, false);
 				filename += ".pdf";
 
 			} else {

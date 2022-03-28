@@ -76,7 +76,7 @@ public class Cleanup extends Application {
 			pstmt.setInt(1, pId);
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
-				surveys.put(GeneralUtilityMethods.convertDisplayNameToFileName(rs.getString(1)), rs.getString(1));
+				surveys.put(GeneralUtilityMethods.convertDisplayNameToFileName(rs.getString(1), false), rs.getString(1));
 			}
 			responseVal = Response.ok(gson.toJson(surveys)).build();
 				

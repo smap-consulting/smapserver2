@@ -239,7 +239,7 @@ public class GetFile extends Application {
 			if(!archive) {
 				// Ignore the provided filename, get the filename from the survey details
 				String displayName = GeneralUtilityMethods.getSurveyName(sd, sId);
-				filename = GeneralUtilityMethods.getSafeTemplateName(displayName);
+				filename = GeneralUtilityMethods.convertDisplayNameToFileName(displayName, false);
 				if(recovery) {
 					filename += "__prev___template.pdf";
 				} else {

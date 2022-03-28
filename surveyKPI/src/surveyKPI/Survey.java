@@ -176,7 +176,7 @@ public class Survey extends Application {
 				projectId = resultSet.getInt(2);
 
 				String basePath = GeneralUtilityMethods.getBasePath(request);
-				String target_name = GeneralUtilityMethods.convertDisplayNameToFileName(display_name);
+				String target_name = GeneralUtilityMethods.convertDisplayNameToFileName(display_name, false);
 
 				fileBasePath = basePath + "/templates/" + projectId + "/" + target_name; 
 				folderPath = basePath + "/templates/" + projectId;
