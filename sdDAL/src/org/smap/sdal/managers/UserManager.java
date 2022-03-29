@@ -661,8 +661,10 @@ public class UserManager {
 				}
 				
 				/*
-				 * If the update:
+				 * If the organisation id is zero
 				 * then it will be for the organisation of the person doing the update
+				 * However if the current organisation is not in the list of organisations then the user has access to
+				 * then their organisation acess is being removed.
 				 */
 				if(u.o_id == 0) {
 					u.o_id = adminUserOrgId;
