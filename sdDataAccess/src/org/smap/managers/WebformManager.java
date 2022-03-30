@@ -1,0 +1,997 @@
+package org.smap.managers;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.xml.transform.TransformerFactoryConfigurationError;
+
+import org.smap.model.SurveyTemplate;
+import org.smap.sdal.Utilities.AuthorisationException;
+import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.NotFoundException;
+import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.OrganisationManager;
+import org.smap.sdal.managers.PeopleManager;
+import org.smap.sdal.managers.ServerManager;
+import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.TranslationManager;
+import org.smap.sdal.model.ChainRule;
+import org.smap.sdal.model.Instance;
+import org.smap.sdal.model.ManifestValue;
+import org.smap.sdal.model.ServerData;
+import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.SurveyData;
+import org.smap.sdal.model.WebformOptions;
+import org.smap.server.utilities.GetHtml;
+import org.smap.server.utilities.GetXForm;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+
+
+/*****************************************************************************
+
+This file is part of SMAP.
+
+SMAP is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+SMAP is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
+
+ ******************************************************************************/
+
+/*
+ * Manage Webform responses
+ */
+public class WebformManager {
+
+	private static Logger log =
+			Logger.getLogger(WebformManager.class.getName());
+
+	LogManager lm = new LogManager();		// Application log
+
+	Authorise a = new Authorise(null, Authorise.ENUM);
+	
+	class JsonResponse {
+		List<ManifestValue> manifestList;
+		SurveyData surveyData = new SurveyData();
+		String main;
+	}
+
+	// Globals
+	private ServerData serverData = null;
+	private List<ManifestValue> manifestList = null;
+	private JsonResponse jr = null;
+	private String gFormIdent = null;
+	private WebformOptions options;
+	HashMap<String, Integer> gRecordCounts = null;
+	SurveyTemplate template = null;
+	boolean myWork = false;			// When set use the myWork app to submit data rather than the form
+	
+	Locale locale = null;
+	ResourceBundle localisation = null;
+	Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+	
+	private String mimeType = null;
+	private String userIdent = null;
+	boolean isTemporaryUser = false;
+	String debug = "no";
+	String tz = "UTC";
+	boolean viewOnly = false;
+	boolean isApp = false;
+
+	
+	public WebformManager(String mimeType, String userIdent, boolean isTemporaryUser, String debug, boolean viewOnly,
+			boolean isApp) {
+		this.mimeType = mimeType;
+		this.userIdent = userIdent;
+		this.isTemporaryUser = isTemporaryUser;
+		this.debug = debug;
+		this.viewOnly = viewOnly;
+		this.isApp = isApp;
+	}
+
+	/*
+	 * Get the response as either HTML or JSON
+	 */
+	public Response getWebform(HttpServletRequest request, 
+			String action, 
+			String email,
+			String formIdent, 
+			String datakey,
+			String datakeyvalue, 
+			int assignmentId, 
+			int taskKey, 
+			String callback, 
+			boolean simplifyMedia,
+			boolean isWebForm,
+			boolean single,
+			Instance initialData) {
+
+		Response response = null;
+
+		log.info("webForm:" + formIdent + " datakey:" + datakey + " datakeyvalue:" + datakeyvalue + "assignmentId:"
+				+ assignmentId + " taskKey: " + taskKey);
+
+		Survey survey = null;
+		int orgId = 0;
+		String accessKey = null;
+		String requester = "surveyMobileAPI-getWebForm";
+		boolean superUser = false;
+		
+		gFormIdent = formIdent;
+		
+		/*
+		 * Get the media manifest so we can set the url's of media files used the form
+		 * Also get the google api key
+		 */
+		String basePath = GeneralUtilityMethods.getBasePath(request);
+		TranslationManager translationMgr = new TranslationManager();
+		ServerManager sm = new ServerManager();
+		StringBuffer outputString = new StringBuffer();
+
+		if (userIdent != null) {
+			
+			// Authorisation
+			Connection sd = SDDataSource.getConnection(requester);
+			
+			// Get the users locale
+			try {
+				locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, userIdent));
+				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			} catch (Exception e) {
+
+			}
+			tz = "UTC";
+			
+			if (isTemporaryUser) {
+				a.isValidTemporaryUser(sd, userIdent);
+			} else {
+				try {
+					a.isAuthorised(sd, userIdent);
+				} catch(Exception e) {
+					throw new AuthorisationException(localisation.getString("web_blocked"));
+				}
+			}
+			
+			SurveyManager surveyManager = new SurveyManager(localisation, "UTC");
+			survey = surveyManager.getSurveyId(sd, formIdent); // Get the survey id from the templateName / key
+			if (survey == null) {
+				log.info("Error: Could not find survey id");
+				SDDataSource.closeConnection(requester, sd);
+				throw new NotFoundException();
+			}
+			try {
+				// Assume that if a temporary user has been specifically assigned this form to complete then the
+				// lack of a role should not stop them
+				superUser = isTemporaryUser || GeneralUtilityMethods.isSuperUser(sd, userIdent);
+			} catch (Exception e) {
+			}
+			if(!isTemporaryUser) {
+				a.isValidSurvey(sd, userIdent, survey.id, false, superUser); // Validate that the user has access	
+			}
+																					
+			a.isBlocked(sd, survey.id, false); // Validate that the survey is not blocked
+			if(!isTemporaryUser && taskKey > 0) {
+				a.isValidTask(sd, userIdent, taskKey);
+			}
+			
+			// End Authorisation
+			
+			// Get the organisation id and an access key to upload the results of this form
+			// (used from iPhones which do not do authentication on POSTs)
+			try {
+				orgId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
+				accessKey = GeneralUtilityMethods.getNewAccessKey(sd, userIdent, isTemporaryUser);
+				
+				manifestList = translationMgr.getManifestBySurvey(sd, userIdent, survey.id, basePath, formIdent);
+				serverData = sm.getServer(sd, localisation);
+				
+				// Get the organisation specific options
+				OrganisationManager om = new OrganisationManager(localisation);
+				options = om.getWebform(sd, userIdent);
+				
+				log.info("++++++ Action: " + action);
+				// If this request is for a mailout then opt in
+				if(action.equals("mailout")) {
+					PeopleManager pm = new PeopleManager(localisation);
+					pm.subscribeEmail(sd, email, orgId);
+					lm.writeLog(sd, survey.id, email, LogManager.MAILOUT, localisation.getString("mo_submitted"), 0, request.getServerName());
+				} else 	if(action.equals("task")) {
+					lm.writeLog(sd, survey.id, email, LogManager.EMAIL_TASK, localisation.getString("mo_submitted"), 0, request.getServerName());
+				}
+				
+			} catch (Exception e) {
+				log.log(Level.SEVERE, "WebForm", e);
+			} finally {
+				SDDataSource.closeConnection(requester, sd);
+			}
+		} else {
+			throw new AuthorisationException();
+		}
+
+		// Generate the web form
+		try {
+
+			// Get the XML of the Form
+			template = new SurveyTemplate(localisation);
+			template.readDatabase(survey.id, true);
+			String surveyClass = template.getSurveyClass();
+
+			// If required get the instance data
+			String instanceXML = null;
+			String instanceStrToEditId = null;
+			
+			if ((datakey != null && datakeyvalue != null) || taskKey > 0 || initialData != null) {
+				log.info("Adding initial data");
+				String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+				GetXForm xForm = new GetXForm(localisation, userIdent, tz);
+				instanceXML = xForm.getInstanceXml(survey.id, formIdent, template, datakey, datakeyvalue, 0, simplifyMedia,
+						isWebForm, taskKey, urlprefix, initialData, false);
+				instanceStrToEditId = xForm.getInstanceId();
+				gRecordCounts = xForm.getRecordCounts();
+			} 
+
+			if (mimeType.equals("json")) {
+				jr = new JsonResponse();
+				jr.manifestList = new ArrayList<ManifestValue>();
+			}
+
+			// Convert to HTML / Json
+			if (mimeType.equals("json")) {
+
+				jr.surveyData.modelStr = getModelStr(request);
+				if (instanceXML != null) {
+					jr.surveyData.instanceStrToEdit = instanceXML.replace("\n", "").replace("\r", "");
+				}
+				jr.surveyData.instanceStrToEditId = instanceStrToEditId;
+
+				// Add the assignment id if this was set
+				if (assignmentId != 0) {
+					jr.surveyData.assignmentId = assignmentId;
+				}
+
+				// Add access key for authentication
+				if (accessKey != null) {
+					jr.surveyData.accessKey = accessKey;
+				}
+
+				// Add survey class's - used for paging
+				jr.surveyData.surveyClass = survey.surveyClass;
+				//jr.surveyData.surveyClass = xForm.getSurveyClass();
+
+				jr.main = addMain(request, instanceStrToEditId, orgId, true, surveyClass, superUser).toString();
+
+				if (callback != null) {
+					outputString.append(callback + " (");
+				}
+				Gson gsonResp = new GsonBuilder().disableHtmlEscaping().create();
+				outputString.append(gsonResp.toJson(jr));
+				if (callback != null) {
+					outputString.append(")");
+				}
+			} else {
+				// MAIN ENTRY POINT
+				outputString.append(addDocument(request, instanceXML, instanceStrToEditId, assignmentId,
+						survey.surveyClass, orgId, accessKey, superUser, single));
+			}
+			
+			String respString = outputString.toString();
+			response = Response.status(Status.OK).entity(respString).build();
+
+			log.info("userevent: " + userIdent + " : webForm : " + formIdent);
+
+		} catch (Exception e) {
+			StringBuffer sb = new StringBuffer("");
+			sb.append("<html>").append("<head></head>").append("<body>");
+			sb.append("<b>").append(e.getMessage()).append("</b>");
+			String msg = e.getMessage();
+			if(msg != null && msg.contains("ERROR: column") && msg.contains("does not exist")) {
+				sb.append("<p>").append(localisation.getString("msg_no_col")).append("</p>");
+			}
+			
+			sb.append("</body>").append("</html>");
+			response = Response.status(Status.OK).entity(sb.toString()).build();
+			log.log(Level.SEVERE, e.getMessage(), e);
+		}
+
+		return response;
+	}
+
+	/*
+	 * Get instance data as JSON
+	 */
+	public Response getInstanceData(Connection sd, HttpServletRequest request, String formIdent,
+			String updateid, int taskKey, boolean simplifyMedia) {
+
+		Response response = null;
+
+		log.info("webForm:" + formIdent + " updateid:" + updateid + " user: " + userIdent);
+
+		Survey survey = null;
+		StringBuffer outputString = new StringBuffer();
+		boolean superUser = false;
+
+		// Authorisation
+		if (userIdent != null) {
+			a.isAuthorised(sd, userIdent);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			survey = sm.getSurveyId(sd, formIdent); // Get the survey id from the templateName / key
+			if (survey == null) {
+				throw new NotFoundException();
+			}
+
+			try {
+				superUser = GeneralUtilityMethods.isSuperUser(sd, userIdent);
+			} catch (Exception e) {
+			}
+			a.isValidSurvey(sd, userIdent, survey.id, false, superUser); // Validate that the user can access this
+																				// survey
+			a.isBlocked(sd, survey.id, false); // Validate that the survey is not blocked
+
+			if(taskKey > 0) {
+				a.isValidTask(sd, request.getRemoteUser(), taskKey);
+			}
+		} else {
+			throw new AuthorisationException();
+		}
+		// End Authorisation
+
+		// Get the data
+		try {
+
+			// Get the XML of the Form
+			SurveyTemplate template = new SurveyTemplate(localisation);
+			template.readDatabase(survey.id, false);
+
+			String instanceXML = null;
+			String dataKey = "instanceid";
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+
+			GetXForm xForm = new GetXForm(localisation, userIdent, tz);
+			instanceXML = xForm.getInstanceXml(survey.id, formIdent, template, dataKey, updateid, 0, simplifyMedia, 
+					false, taskKey, urlprefix, null, false);
+
+			SurveyData surveyData = new SurveyData();
+			surveyData.instanceStrToEdit = instanceXML.replace("\n", "").replace("\r", "");
+			surveyData.instanceStrToEditId = updateid;
+			surveyData.files = xForm.getFilenames();
+			surveyData.paths = xForm.getMediaPaths();
+
+			Gson gsonResp = new GsonBuilder().disableHtmlEscaping().create();
+			outputString.append(gsonResp.toJson(surveyData));
+
+			response = Response.status(Status.OK).entity(outputString.toString()).build();
+
+			log.info("userevent: " + userIdent + " : instanceData : " + formIdent + " : updateId : " + updateid);
+
+		} catch (Exception e) {
+			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			lm.writeLog(sd, survey.id, userIdent, "Error", "Failed to get instance data: " + e.getMessage(), 0, request.getServerName());
+			log.log(Level.SEVERE, e.getMessage(), e);
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Add the HTML
+	 */
+	private String addDocument(HttpServletRequest request, String instanceXML,
+			String dataToEditId, int assignmentId, String surveyClass, int orgId, String accessKey, 
+			boolean superUser,
+			boolean single)
+			throws TransformerFactoryConfigurationError, Exception {
+
+		StringBuilder output = new StringBuilder();
+
+		output.append("<!DOCTYPE html>\n");
+
+		// Append locale
+		output.append("<html lang='").append(locale.toString()).append("'  class='no-js'");
+
+		if (instanceXML == null) {
+			// Single shot requests do not have a manifest
+			// TODO add manifest
+		}
+		output.append(">\n");
+
+		output.append(
+				addHead(request, instanceXML, dataToEditId, assignmentId, surveyClass, 
+						accessKey, single));
+		output.append(addBody(request, dataToEditId, orgId, surveyClass, superUser));
+
+		output.append("</html>\n");
+		String html = postProcessHtml(output);		// Set URL links and replace escaped XML
+		
+		return html;
+	}
+
+
+	/*
+	 * 
+	 */
+	private String postProcessHtml(StringBuilder output) {
+		
+		String html = output.toString();
+		
+		String dynamic = "";
+		if(isTemporaryUser) {
+			dynamic = "/id/" + userIdent;		
+		}
+		for (int i = 0; i < manifestList.size(); i++) {
+			log.info(manifestList.get(i).fileName + " : " + manifestList.get(i).url + " : "
+					+ manifestList.get(i).type);
+			String type = manifestList.get(i).type;
+			String name = manifestList.get(i).fileName;
+			String url = manifestList.get(i).url;
+			if (type.equals("image")) {
+				type = "images";
+			}
+			
+			if (url != null) {
+				if (mimeType.equals("json")) {
+					ManifestValue mv = new ManifestValue(); // Create a new version of the manifest to send to a
+															// client that doesn't have unneeded data
+					mv.type = type;
+					mv.fileName = name;
+					mv.url = url;
+					jr.manifestList.add(mv);
+				} else {
+					url = url.replaceFirst("/surveyKPI/file", "/surveyKPI/file" + dynamic);
+					html = html.replace("jr://" + type + "/" + name, url);
+				}
+			}
+		}
+		return html;
+	}
+	/*
+	 * Add the head section
+	 */
+	private StringBuffer addHead(HttpServletRequest request, String instanceXML, String dataToEditId,
+			int assignmentId, String surveyClass, String accessKey, boolean single)
+			throws TransformerFactoryConfigurationError, Exception {
+
+		StringBuffer output = new StringBuffer();
+
+		// head
+		output.append("<head>\n");
+		output.append("<link rel=\"preload\" as=\"font\" href=\"/fonts/OpenSans-Regular-webfont.woff\" type=\"font/woff\" crossorigin>");
+		output.append("<link rel=\"preload\"as=\"font\" href=\"/fonts/OpenSans-Bold-webfont.woff\" type=\"font/woff\" crossorigin>");
+		output.append("<link rel=\"preload\" as=\"font\" href=\"/fonts/fontawesome-webfont.woff\" type=\"font/woff\" crossorigin>");
+		
+		if (surveyClass != null && surveyClass.trim().contains("theme-grid")) {		
+			output.append("<link type='text/css' href='/build/css/theme-grid.css' media='all' rel='stylesheet' />\n");
+			output.append("<link type='text/css' href='/build/css/grid-print.css' media='print' rel='stylesheet'/>\n");
+		} else {
+			output.append("<link type='text/css' href='/build/css/theme-smap.css' media='all' rel='stylesheet' />\n");
+			output.append("<link type='text/css' href='/build/css/theme-smap.print.css' media='print' rel='stylesheet'/>\n");
+		}
+		output.append("<link type='text/css' href='/build/css/webform.css' media='all' rel='stylesheet' />\n");
+		output.append("<link type='text/css' href='/build/css/webform.print.css' media='print' rel='stylesheet' />\n");
+
+		/*
+		 * Add organisation specific css settings
+		 */
+		if(options != null) {
+			output.append("<style type=\"text/css\">");
+			if(options.page_background_color != null && options.page_background_color.trim().length() > 0) {
+				output.append("body {background-color: " + options.page_background_color + "}");
+			}
+			if(options.paper_background_color != null && options.paper_background_color.trim().length() > 0) {
+				output.append(".paper {background-color: " + options.paper_background_color + "}");
+			}
+			output.append(".form-footer .enketo-power {position:absolute; right: " + options.footer_horizontal_offset + "px}");
+
+			// Set the background button colors
+			if((options.button_background_color != null && options.button_background_color.trim().length() > 0) ||
+					(options.button_text_color != null && options.button_text_color.trim().length() > 0)) {
+				
+				output.append(" .btn-primary.disabled, .btn-primary.disabled:hover, .btn-primary.disabled:focus, .btn-primary.disabled:active, .btn-primary.disabled.active, .btn-primary[disabled], .btn-primary[disabled]:hover, .btn-primary[disabled]:focus, .btn-primary[disabled]:active, .btn-primary[disabled].active,\n" + 
+						"  fieldset[disabled] .btn-primary,\n" + 
+						"  fieldset[disabled] .btn-primary:hover,\n" + 
+						"  fieldset[disabled] .btn-primary:focus,\n" + 
+						"  fieldset[disabled] .btn-primary:active,\n" + 
+						"  fieldset[disabled] .btn-primary.active, .btn,.btn.disabled, .btn:focus {");
+				if(options.button_background_color != null && options.button_background_color.trim().length() > 0) {
+					output.append("background-color: " + options.button_background_color +";");
+					output.append("border-color: " + GeneralUtilityMethods.adjustColor(options.button_background_color, 20) +";");
+				}
+				if(options.button_text_color != null && options.button_text_color.trim().length() > 0) {
+					output.append("color: " + options.button_text_color + ";");
+				}
+				output.append("}");
+				
+				if(options.button_background_color != null && options.button_background_color.trim().length() > 0) {
+					output.append("button.btn:hover, button.btn.disabled:hover, button.btn.disabled:focus {");
+					output.append("background-color: " + options.button_background_color +";");
+					output.append("filter: brightness(180%);");
+					output.append("}");
+				}
+			
+			}
+			if(options.header_text_color != null && options.header_text_color.trim().length() > 0) {
+				output.append(".or > h3, .or > h4, .or-group > h4 {color: " + options.header_text_color + "}");
+			}
+			output.append("</style>");
+		}
+		output.append("<link rel='shortcut icon' href='/favicon.ico'>\n");
+		// <!-- For third-generation iPad with high-resolution Retina display: -->
+		output.append(
+				"<link rel='apple-touch-icon-precomposed' sizes='144x144' href='images/fieldTask_144_144_min.png'>\n");
+		// <!-- For iPhone with high-resolution Retina display: -->
+		output.append(
+				"<link rel='apple-touch-icon-precomposed' sizes='114x114' href='images/fieldTask_114_114_min.png'>\n");
+		// <!-- For first- and second-generation iPad: -->
+		output.append(
+				"<link rel='apple-touch-icon-precomposed' sizes='72x72' href='images/fieldTask_72_72_min.png'>\n");
+		// <!-- For non-Retina iPhone, iPod Touch, and Android 2.1+ devices: -->
+		output.append("<link rel='apple-touch-icon-precomposed' href='images/fieldTask_57_57_min.png'>\n");
+
+		output.append("<meta charset='utf-8' />\n");
+		output.append("<meta name='viewport' content='width=device-width, initial-scale=1.0' />\n");
+		output.append("<meta name='apple-mobile-web-app-capable' content='yes' />\n");
+		output.append("<script>");
+		output.append("if ( navigator.userAgent.indexOf( 'Trident/' ) >= 0 ) {");
+		output.append("window.location.href = '/browser-support.html'}");
+		output.append("</script>");
+
+		output.append("<script src='/js/libs/modernizr.js'></script>");
+		output.append("<script src='/js/app/idbconfig.js'></script>");
+		output.append("<script src='/js/app/pwacommon.js'></script>");
+		//output.append("<script src='/js/libs/textile.js'></script>");		in browser markdown - don't currently use
+		output.append(addData(request, instanceXML, dataToEditId, assignmentId, accessKey, single));
+		// Add the google API key
+		output.append("<script>");
+		output.append("window.smapConfig = {};");
+		if (serverData.google_key != null) {
+			output.append("window.smapConfig.googleApiKey=\"");
+			output.append(serverData.google_key);
+			output.append("\";");
+		}
+		output.append("window.smapConfig.myWork=" + (myWork ? "true" : "false") + ";");
+		output.append("registerForServiceWorkerMessages();");
+		output.append("</script>");
+		output.append("</head>\n");
+
+		return output;
+	}
+	
+	/*
+	 * Add the body
+	 */
+	private String addBody(HttpServletRequest request, String dataToEditId, int orgId,
+			String surveyClass, boolean superUser)
+			throws TransformerFactoryConfigurationError, SQLException, Exception {
+		StringBuilder output = new StringBuilder();
+
+		output.append("<body class='clearfix edit'>");
+		output.append(getAside());
+		output.append(addMain(request, dataToEditId, orgId, false, surveyClass, superUser));
+		output.append(getDialogs());
+
+		// Webforms script
+		if(debug != null && debug.equals("yes")) {
+			output.append("<script src='/build/js/webform-bundle.js'></script>\n");
+		} else {
+			//output.append("<script src='/build/js/webform-bundle.js'></script>\n");	// TODO Fix compression
+			output.append("<script src='/build/js/webform-bundle.min.js'></script>\n");
+		}
+
+		output.append("</body>");
+
+		/*
+		 * Replace escaping of html with real tags
+		 */
+		String html = output.toString();
+		html = html.replaceAll("&gt;", ">");
+		html = html.replaceAll("&lt;", "<");
+		html = html.replaceAll("\\\\\\\\", "\\\\");
+		
+		return html;
+	}
+
+	/*
+	 * Get the "Main" element of an web form
+	 */
+	private StringBuffer addMain(HttpServletRequest request, String dataToEditId, int orgId,
+			boolean minimal, String surveyClass, boolean superUser)
+			throws TransformerFactoryConfigurationError, SQLException, Exception {
+
+		StringBuffer output = new StringBuffer();
+		output.append(openMain(orgId, minimal));
+
+		GetHtml getHtml = new GetHtml(localisation);
+		String html = getHtml.get(request, template.getSurvey().getId(), superUser, userIdent, 
+				gRecordCounts, isTemporaryUser);
+
+		output.append(html);
+
+		if (!minimal) {
+			output.append(closeMain(dataToEditId, surveyClass));
+		}
+
+		return output;
+	}
+
+	/*
+	 * Add some dialogs
+	 */
+	private StringBuffer getDialogs() {
+		StringBuffer output = new StringBuffer();
+
+		output.append("<!-- Start Dialogs -->\n");
+		output.append(
+				"<div id='dialog-alert' class='modal fade' role='dialog' aria-labelledby='alert dialog' aria-hidden='true'  data-keyboard='true'>\n");
+		output.append("<div class='modal-dialog'>\n");
+		output.append("<div class='modal-content'>\n");
+		output.append("<div class='modal-header'>\n");
+		output.append("<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>\n");
+		output.append("<h3></h3>\n");
+		output.append("</div>\n");
+		output.append("<div class='modal-body'>\n");
+		output.append("<p class=''></p>\n");
+		output.append("</div>\n");
+		output.append("<div class='modal-footer'>\n");
+		output.append("<span class='self-destruct-timer'></span>\n");
+		output.append("<button class='btn btn-primary lang close-dialog' data-lang='alert.default.button' data-dismiss='modal' aria-hidden='true'>Close</button>\n");
+		output.append("</div>\n");
+		output.append("</div>\n");
+		output.append("</div>\n");
+		output.append("</div>  <!-- end dialog-alert -->\n");
+
+		output.append(
+				"<div id='dialog-confirm' class='modal fade' role='dialog' aria-labelledby='confirmation dialog' aria-hidden='true'  data-keyboard='true'>\n");
+		output.append("<div class='modal-dialog'>\n");
+		output.append("<div class='modal-content'>\n");
+		output.append("<div class='modal-header'>\n");
+		output.append("<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>\n");
+		output.append("</div>\n");
+		output.append("<div class='modal-body'>\n");
+		output.append("<h4></h4>\n");
+		output.append("<p class='alert alert-danger'></p>\n");
+		output.append("<p class='msg'></p>\n");
+		output.append("<span id=\"recname\"></span><span>: </span>");
+		output.append("<input type=\"text\" name=\"record-name\">\n");
+		output.append("</div>\n");
+		output.append("<div class='modal-footer'>\n");
+		output.append("<span class='self-destruct-timer'></span>\n");
+		output.append("<button class='negative btn lang' data-lang='alert.default.button'>Close</button>\n");
+		output.append("<button class='positive btn btn-primary' data-lang='confirm.default.posButton'>Confirm</button>\n");
+		output.append("</div>\n");
+		output.append("</div>\n");
+		output.append("</div>\n");
+		output.append("</div>   <!-- end dialog-confirm -->\n");
+		// TRANSLATION LIMIT
+
+		output.append(
+				"<div id='dialog-save' class='modal fade' role='dialog' aria-labelledby='save dialog' aria-hidden='true' data-keyboard='true'>\n");
+		output.append("<div class='modal-dialog'>\n");
+		output.append("<div class='modal-content'>\n");
+		output.append("<div class='modal-header'>\n");
+		output.append("<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>\n");
+		output.append("</div>\n");
+		output.append("<div class='modal-body'>\n");
+		output.append("<h4></h4>\n");
+		output.append("<form onsubmit='return false;'>\n");
+		output.append("<div class='alert alert-danger'></div>\n");
+		output.append("<label>\n");
+		output.append("<span>Record Name</span>\n");
+		output.append(
+				"<span class='or-hint active'>This name allows you to easily find your draft record to finish it later. The record name will not be submitted to the server.</span>\n");
+		output.append("<input name='record-name' type='text' required='required'/>\n");
+		output.append("</label>\n");
+		output.append("</form>\n");
+		output.append("</div>\n");
+		output.append("<div class='modal-footer'>\n");
+		output.append("<button class='negative btn'>Close</button>\n");
+		output.append("<button class='positive btn btn-primary'>Save &amp; Close</button>\n");
+		output.append("</div>\n");
+		output.append("</div>\n");
+		output.append("</div>\n");
+		output.append("</div> <!-- end dialog-save -->\n");
+
+		// used for Grid theme only
+		output.append(
+				"<div id='dialog-print' class='modal fade' role='dialog' aria-labelledby='print dialog' aria-hidden='true'  data-keyboard='true'>\n");
+		output.append("<div class='modal-dialog'>\n");
+		output.append("<div class='modal-content'>\n");
+		output.append("<div class='modal-header'>\n");
+		output.append("<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>\n");
+		output.append("<h3 class='select-format'>Select Print Settings</h3>\n");
+		output.append("<h3 class='progress'>Preparing...</h3>\n");
+		output.append("</div>");
+		output.append("<div class='modal-body'>\n");
+		output.append("<section class='progress'>\n");
+		output.append("<p>Working hard to prepare your optimized print view. Hold on!</p>\n");
+		output.append("<progress></progress>\n");
+		output.append("</section>\n");
+		output.append("<section class='select-format'>\n");
+		output.append("<p>To prepare an optimized print, please select the print settings below</p>\n");
+		output.append("<form onsubmit='return false;'>\n");
+		output.append("<fieldset>\n");
+		output.append("<legend>Paper Size</legend>\n");
+		output.append("<label>\n");
+		output.append("<input name='format' type='radio' value='A4' required checked/>\n");
+		output.append("<span>A4</span>\n");
+		output.append("</label>\n");
+		output.append("<label>\n");
+		output.append("<input name='format' type='radio' value='letter' required/>\n");
+		output.append("<span>Letter</span>\n");
+		output.append("</label>\n");
+		output.append("</fieldset>\n");
+		output.append("<fieldset>\n");
+		output.append("<legend>Paper Orientation</legend>\n");
+		output.append("<label>\n");
+		output.append("<input name='orientation' type='radio' value='portrait' required checked/>\n");
+		output.append("<span>Portrait</span>\n");
+		output.append("</label>\n");
+		output.append("<label>\n");
+		output.append("<input name='orientation' type='radio' value='landscape' required/>\n");
+		output.append("<span>Landscape</span>\n");
+		output.append("</label>\n");
+		output.append("</fieldset>\n");
+		output.append("</form>\n");
+		output.append(
+				"<p class='alert alert-info'>Remember to set these same print settings in the browser's print menu afterwards!</p>\n");
+		output.append("</section>\n");
+		output.append("</div>\n");
+		output.append("<div class='modal-footer'>\n");
+		output.append("<button class='negative btn'>Close</button>\n");
+		output.append("<button class='positive btn btn-primary'>Prepare</button>\n");
+		output.append("</div>\n");
+		output.append("</div>\n");
+		output.append("</div>\n");
+		output.append("</div> <!-- end dialog-print for grid -->\n");
+
+		return output;
+	}
+
+	private StringBuffer getAside() {
+
+		StringBuffer output = new StringBuffer();
+
+		output.append("<div id='feedback-bar' class='alert alert-warning'>\n");
+		output.append("<span class='glyphicon glyphicon-info-sign'></span>\n");
+		output.append("<button class='close'><span class='glyphicon glyphicon-step-backward'></span></button>\n");
+		output.append("</div>\n");
+
+		output.append("<aside class='side-slider'>\n");
+		output.append("<button type='button' class='close' data-dismiss='side-slider' aria-hidden='true'>×</button>\n");
+		output.append("<nav></nav>\n");
+		output.append("<div class='content'>\n");
+		output.append("</div>\n");
+		output.append("</aside>\n");
+
+		output.append("<button class='handle side-slider-toggle open'></button>\n");
+		output.append("<button class='handle side-slider-toggle close'></button>\n");
+		output.append("<div class='side-slider-toggle slider-overlay'></div>\n");
+
+		return output;
+	}
+	
+
+
+	private StringBuffer openMain(int orgId, boolean minimal) {
+		StringBuffer output = new StringBuffer();
+
+		output.append("<div class='main'>\n");
+
+		// Add the google api key
+		if (serverData != null) {
+			output.append("<div id='googleApiKey' style='display:none;'>");
+			output.append(serverData.google_key);
+			output.append("</div>");
+		}
+
+		output.append("<div class='loader'></div>");
+		output.append("<article class='paper' style='display:none;'>\n");
+		if (!minimal) {
+			output.append("<header class='form-header clearfix'>\n");
+			output.append("<div class='offline-enabled'>\n");
+			output.append("<div title='Records Queued' class='queue-length side-slider-toggle'>0</div>\n");
+			if(isApp) {		// include back button
+				output.append("<div style=' font-size: large;'><button onclick='window.history.back();'><i class='fa fa-arrow-left' aria-hidden='true'></i></button></div>\n");
+			}
+			output.append("<div><img id=\"hour_glass\" src=\"/images/ajax-loader.gif\" style=\"display:none;\" alt=\"hourglass\" height=\"34\" width=\"34\"></div>\n");
+			output.append("</div>\n");
+			//output.append("<button onclick='window.print();' class='print' title='Print this Form'> </button>\n");
+			output.append("<button class=\"print form-header__button--print btn-bg-icon-only\" onclick=\"return false;\"></button>");
+			output.append("<span class='form-language-selector'><span class='lang' data-lang='form.chooseLanguage'>language</span></span>\n");
+			output.append("<div class='form-progress'></div>\n");
+
+			output.append("<span class='logo-wrapper'>\n");
+			output.append(addNoScriptWarning());
+			output.append("<img class='banner_logo' src='/media/organisation/");
+			output.append(orgId);
+			output.append(
+					"/settings/bannerLogo' onerror=\"if(this.src.indexOf('smap_logo.png') < 0) this.src='/images/smap_logo.png';\" alt='logo'>\n");
+			output.append("</span>\n");
+
+			output.append("</header>\n");
+		}
+		return output;
+	}
+
+	private StringBuffer closeMain(String dataToEditId, String surveyClass) {
+		StringBuffer output = new StringBuffer();
+
+		output.append("<section class='form-footer'>\n");
+		output.append("<div class='content'>\n");
+		if(!options.wf_hide_draft) {
+			output.append(
+				"<fieldset class='draft question'><div class='option-wrapper'><label class='select'><input class='ignore' type='checkbox' name='draft'/><span class='option-label lang' data-lang='formfooter.savedraft.label'>Save as Draft</span></label></div></fieldset>\n");
+		}
+		output.append("<div class='main-controls'>\n");
+		if (dataToEditId == null) {
+			output.append("<button id='submit-form' class='btn btn-primary btn-large lang' data-lang='formfooter.submit.btn'>Submit</button>\n");
+		} else {
+			output.append("<button id='submit-form-single' class='btn btn-primary btn-large lang' data-lang='formfooter.submit.btn'>Submit</button>\n");
+		}
+		if (surveyClass != null && surveyClass.contains("pages")) {
+			output.append("<button class='btn previous-page disabled' href='#'><<<</button>\n");
+			output.append("<button class='btn next-page' href='#'>>>></span></button>\n");
+		}
+		output.append(
+				"<div class=\"enketo-power\" style=\"margin-bottom: 30px;\"><span class='lang' data-lang='enketo.power'>Powered by</span> <a href=\"http://enketo.org\" title=\"enketo.org website\"><img src=\"/images/enketo_bare_150x56.png\" alt=\"enketo logo\" /></a> </div>");
+		// output.append("<img src=/images/enketo.png style=\"position: absolute; right:
+		// 0px; bottom: 0px; height:40px;\">");
+		output.append("</div>\n"); // main controls
+
+		if (surveyClass != null && surveyClass.contains("pages")) {
+
+			output.append("<div class='jump-nav'>\n");
+			output.append("<a class='lang btn btn-default disabled first-page' data-lang='forms.pages.return' href='#'>Return to Beginning</a>\n");
+			output.append("<a class='lang btn btn-default disabled last-page' data-lang='form.pages.end' href='#'>Go to End</a>\n");
+			output.append("</div>");
+		}
+
+		output.append("</div>\n"); // content
+		output.append("</section> <!-- end form-footer -->\n");
+
+		output.append("</article>\n");
+		output.append("</div> <!-- end main -->\n");
+
+		return output;
+	}
+	
+	private String addNoScriptWarning() {
+		StringBuffer output = new StringBuffer();
+		output.append("<noscript>");
+		output.append("<div>");
+		output.append("<span style=\"color:red\">");
+		output.append(localisation.getString("wf_njs"));
+		output.append("</span>");
+		output.append("</div>");
+		output.append("</noscript>");
+
+		return output.toString();
+	}
+	
+
+	
+	/*
+	 * Add the data
+	 */
+	private StringBuffer addData(HttpServletRequest request, String instanceXML, String dataToEditId,
+			int assignmentId, String accessKey, boolean single)
+			throws TransformerFactoryConfigurationError, Exception {
+
+		StringBuffer output = new StringBuffer();
+
+		output.append("<script type='text/javascript'>\n");
+		output.append("settings = {};\n");
+
+		output.append("surveyData = {};\n");
+		output.append("surveyData.surveyIdent=\"").append(gFormIdent).append("\";\n");
+		// Data model
+		output.append("surveyData.modelStr=\"");
+		output.append(getModelStr(request));
+		output.append("\";\n");
+
+		// Instance Data
+		if (instanceXML != null) {
+			output.append("surveyData.instanceStrToEdit='");
+			output.append(instanceXML.replace("\n", "").replace("\r", ""));
+			output.append("';\n");
+		}
+
+		// Add identifier of existing record, use this as a key on results submission to
+		// update an existing record
+		if (dataToEditId == null) {
+			output.append("surveyData.instanceStrToEditId = undefined;\n");
+		} else {
+			output.append("surveyData.instanceStrToEditId='");
+			output.append(dataToEditId);
+			output.append("';\n");
+		}
+
+		// Add the assignment id if this was set
+		if (assignmentId == 0) {
+			output.append("surveyData.assignmentId = undefined;\n");
+		} else {
+			output.append("surveyData.assignmentId='");
+			output.append(assignmentId);
+			output.append("';\n");
+		}
+		
+		if(single) {
+			output.append("surveyData.closeAfterSending = true;\n");
+		}
+
+		// Add access key for authentication
+		if (accessKey == null) {
+			output.append("surveyData.key = undefined;\n");
+		} else {
+			output.append("surveyData.key='");
+			output.append(accessKey);
+			output.append("';\n");
+		}
+		
+		// Add viewOnly flag if set
+		if(viewOnly) {
+			output.append("surveyData.viewOnly=true;\n");
+		} else {
+			output.append("surveyData.viewOnly=false;\n");
+		}
+		
+		// Add chaining rules - TODO get rules from database
+		ArrayList<ChainRule> chainRules = new ArrayList<> ();
+		ChainRule a = new ChainRule();
+		chainRules.add(a);
+		a.url = "https://www.smap.com.au?instance=${instanceid}";
+		a.type = "esewa";
+ 		output.append("surveyData.chain=");
+ 		output.append(gson.toJson(chainRules));
+
+		output.append("</script>\n");
+		return output;
+	}
+
+	/*
+	 * Get the model string
+	 */
+	private String getModelStr(HttpServletRequest request)
+			throws TransformerFactoryConfigurationError, Exception {
+
+		GetXForm xForm = new GetXForm(localisation, userIdent, tz);
+		String model = xForm.get(template, true, true, true, userIdent, request);
+
+		// We only want the model - remove any XML preanble
+		int modelIdx = model.indexOf("<model>");
+		
+		if(modelIdx > 0) {
+			model = model.substring(modelIdx);
+			
+			model = model.replace("\n", "");
+			model = model.replace("\r", "");
+			model = model.replaceAll("\"", "'");
+		} 
+		
+		return model;
+
+	}
+}
+
+
