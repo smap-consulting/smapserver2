@@ -46,6 +46,13 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import me.gosimple.nbvcxz.Nbvcxz;
+import me.gosimple.nbvcxz.resources.Configuration;
+import me.gosimple.nbvcxz.resources.ConfigurationBuilder;
+import me.gosimple.nbvcxz.resources.Dictionary;
+import me.gosimple.nbvcxz.scoring.Result;
+import me.gosimple.nbvcxz.scoring.TimeEstimate;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -201,7 +208,8 @@ public class UserSvc extends Application {
 	 */
 	@POST
 	@Consumes("application/json")
-	public Response updateUser(@Context HttpServletRequest request, @FormParam("user") String user) { 
+	public Response updateUser(@Context HttpServletRequest request,
+			@FormParam("user") String user) { 
 		
 		Response response = null;
 
@@ -240,9 +248,37 @@ public class UserSvc extends Application {
 					// log but otherwise ignore any errors
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
+			}			
+			
+			/*
+			 * Verify that the password is strong enough
+			 */
+			if(u.password != null) {
+				// Create a map of excluded words on a per-user basis using a hypothetical "User" object that contains this info
+				List<Dictionary> dictionaryList = ConfigurationBuilder.getDefaultDictionaries();
+
+				// Create our configuration object and set our custom minimum
+				// entropy, and custom dictionary list
+				Configuration configuration = new ConfigurationBuilder()
+				        .setMinimumEntropy(40d)
+				        .setLocale(Locale.forLanguageTag(locale.getLanguage()))
+				        .setDictionaries(dictionaryList)
+				        .createConfiguration();
+				        
+				// Create our Nbvcxz object with the configuration we built
+				Nbvcxz nbvcxz = new Nbvcxz(configuration);
+				Result result = nbvcxz.estimate(u.password);
+				if(!result.isMinimumEntropyMet()) {
+					String timeToCrackOff = TimeEstimate.getTimeToCrackFormatted(result, "OFFLINE_BCRYPT_12");
+					String timeToCrackOn = TimeEstimate.getTimeToCrackFormatted(result, "ONLINE_THROTTLED");
+					
+					StringBuilder errorMsg = new StringBuilder("");
+					errorMsg.append("Password does not meet the minimum strength requirements.");
+					errorMsg.append("<br>Time to crack - online: ").append(timeToCrackOn);
+					errorMsg.append("<br>Time to crack - offline: ").append(timeToCrackOff);
+					throw new Exception(errorMsg.toString());
+				}
 			}
-			
-			
 			/*
 			 * Update what can be updated by the user, excluding the current project id, survey id, form id and task group
 			 */
