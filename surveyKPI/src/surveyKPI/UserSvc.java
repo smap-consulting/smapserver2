@@ -35,6 +35,7 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.UserManager;
@@ -269,14 +270,7 @@ public class UserSvc extends Application {
 				Nbvcxz nbvcxz = new Nbvcxz(configuration);
 				Result result = nbvcxz.estimate(u.password);
 				if(!result.isMinimumEntropyMet()) {
-					String timeToCrackOff = TimeEstimate.getTimeToCrackFormatted(result, "OFFLINE_BCRYPT_12");
-					String timeToCrackOn = TimeEstimate.getTimeToCrackFormatted(result, "ONLINE_THROTTLED");
-					
-					StringBuilder errorMsg = new StringBuilder("");
-					errorMsg.append("Password does not meet the minimum strength requirements.");
-					errorMsg.append("<br>Time to crack - online: ").append(timeToCrackOn);
-					errorMsg.append("<br>Time to crack - offline: ").append(timeToCrackOff);
-					throw new Exception(errorMsg.toString());
+					throw new ApplicationException(localisation.getString("msg_wp"));
 				}
 			}
 			/*
@@ -338,6 +332,10 @@ public class UserSvc extends Application {
 			String resp = gson.toJson(userResp);
 			response = Response.ok(resp).build();
 			
+			
+		} catch (ApplicationException e) {
+			String msg = "{\"error\": true, \"msg\": \"" + e.getMessage() + "\"}";
+			response = Response.ok(msg).build();
 			
 		} catch (Exception e) {
 
