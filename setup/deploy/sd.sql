@@ -475,3 +475,7 @@ ALTER TABLE survey_template OWNER TO ws;
 Alter table survey_template add column rule text;
 
 alter table survey_template drop constraint survey_template_ident_fkey;  -- Some deployments will have this set
+
+alter table server add column password_strength decimal default 0.0;
+alter table organisation add column password_strength decimal default 0.0;
+

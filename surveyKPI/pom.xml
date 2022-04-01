@@ -281,11 +281,6 @@
 			<version>4.5.2</version>
 		</dependency>
 		
-		<dependency>
-    		<groupId>me.gosimple</groupId>
-    		<artifactId>nbvcxz</artifactId>
-    		<version>1.5.0</version>
-		</dependency>
 		<!--
 		<dependency>
     		<groupId>net.bull.javamelody</groupId>

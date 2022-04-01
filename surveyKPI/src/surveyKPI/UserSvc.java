@@ -38,6 +38,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.PasswordManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.GroupSurvey;
@@ -46,13 +47,6 @@ import org.smap.sdal.model.User;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-
-import me.gosimple.nbvcxz.Nbvcxz;
-import me.gosimple.nbvcxz.resources.Configuration;
-import me.gosimple.nbvcxz.resources.ConfigurationBuilder;
-import me.gosimple.nbvcxz.resources.Dictionary;
-import me.gosimple.nbvcxz.scoring.Result;
-import me.gosimple.nbvcxz.scoring.TimeEstimate;
 
 import java.io.File;
 import java.io.IOException;
@@ -214,7 +208,7 @@ public class UserSvc extends Application {
 		
 		Response response = null;
 
-		// Authorisation - Not Required
+		// Authorisation - Not Required - the user is updating their own settings
 		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
 		
 		Type type = new TypeToken<User>(){}.getType();		
@@ -255,23 +249,9 @@ public class UserSvc extends Application {
 			 * Verify that the password is strong enough
 			 */
 			if(u.password != null) {
-				// Create a map of excluded words on a per-user basis using a hypothetical "User" object that contains this info
-				List<Dictionary> dictionaryList = ConfigurationBuilder.getDefaultDictionaries();
-
-				// Create our configuration object and set our custom minimum
-				// entropy, and custom dictionary list
-				Configuration configuration = new ConfigurationBuilder()
-				        .setMinimumEntropy(40d)
-				        .setLocale(Locale.forLanguageTag(locale.getLanguage()))
-				        .setDictionaries(dictionaryList)
-				        .createConfiguration();
-				        
-				// Create our Nbvcxz object with the configuration we built
-				Nbvcxz nbvcxz = new Nbvcxz(configuration);
-				Result result = nbvcxz.estimate(u.password);
-				if(!result.isMinimumEntropyMet()) {
-					throw new ApplicationException(localisation.getString("msg_wp"));
-				}
+				PasswordManager pwm = new PasswordManager(sd, locale, localisation, request.getRemoteUser());
+				pwm.checkStrength(u.password);
+				
 			}
 			/*
 			 * Update what can be updated by the user, excluding the current project id, survey id, form id and task group
