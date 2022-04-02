@@ -251,8 +251,8 @@ public class UserSvc extends Application {
 			if(u.password != null) {
 				PasswordManager pwm = new PasswordManager(sd, locale, localisation, request.getRemoteUser());
 				pwm.checkStrength(u.password);
-				
 			}
+			
 			/*
 			 * Update what can be updated by the user, excluding the current project id, survey id, form id and task group
 			 */

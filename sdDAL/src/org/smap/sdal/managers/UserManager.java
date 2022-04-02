@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -65,7 +66,7 @@ public class UserManager {
 	public static String STATUS_EXPIRED = "expired";
 	
 	public UserManager(ResourceBundle l) {
-		localisation = l;
+		this.localisation = l;
 	}
 	
 	/*
@@ -693,6 +694,16 @@ public class UserManager {
 								+ "id = ?";
 					} else {
 						// Update the password
+						
+						/*
+						 * Verify that the password is strong enough
+						 */
+						if(u.password != null) {
+							// Note password rules for the users current organisation will be used
+							PasswordManager pwm = new PasswordManager(sd, localisation.getLocale(), localisation, u.ident);
+							pwm.checkStrength(u.password);	
+						}
+						
 						sql = "update users set "
 								+ "ident = ?, "
 								+ "realm = ?, "
