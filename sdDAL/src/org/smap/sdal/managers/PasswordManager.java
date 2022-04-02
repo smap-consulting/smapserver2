@@ -47,22 +47,27 @@ public class PasswordManager {
 
 	LogManager lm = new LogManager();		// Application log
 	
-	Connection sd;
-	String userIdent;
-	boolean checkStrength = false;
-	double minStrength = 0.0;
-	ResourceBundle localisation;
-	Locale locale;
+	private Connection sd;
+	private String userIdent;
+	private boolean checkStrength = false;
+	private double minStrength = 0.0;
+	private ResourceBundle localisation;
+	private Locale locale;
+	private String hostname;
+	Result result;
 	
 	public PasswordManager(Connection sd, 
 			Locale locale, 
 			ResourceBundle localisation, 
-			String userIdent) throws SQLException {
+			String userIdent,
+			String hostname) throws SQLException {
 		
 		this.sd = sd;
 		this.locale = locale;
 		this.localisation = localisation;
 		this.userIdent = userIdent;
+		this.hostname = hostname;
+		
 		minStrength = getMinStrength();
 		if(minStrength > 0.0) {
 			checkStrength = validUser();
@@ -86,11 +91,23 @@ public class PasswordManager {
 			        
 			// Create our Nbvcxz object with the configuration we built
 			Nbvcxz nbvcxz = new Nbvcxz(configuration);
-			Result result = nbvcxz.estimate(password);
+			result = nbvcxz.estimate(password);
 			if(!result.isMinimumEntropyMet()) {
+				String logMessage = localisation.getString("msg_wpl");
+				logMessage = logMessage.replace("%s1", String.format("%.0f", result.getEntropy()));
+				logMessage = logMessage.replace("%s2", String.format("%.0f", minStrength));
+				lm.writeLog(sd, 0, userIdent, LogManager.USER, logMessage, 0, hostname);
+				
 				throw new ApplicationException(localisation.getString("msg_wp"));
 			}
 		}
+	}
+	
+	public void logReset() {
+		String logMessage = localisation.getString("msg_pr");
+		logMessage = logMessage.replace("%s1", String.format("%.0f", result.getEntropy()));
+		logMessage = logMessage.replace("%s2", String.format("%.0f", minStrength));
+		lm.writeLog(sd, 0, userIdent, LogManager.USER, logMessage, 0, hostname);
 	}
 	
 	private double getMinStrength() throws SQLException {

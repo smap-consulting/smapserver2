@@ -293,8 +293,9 @@ public class PasswordReset extends Application {
 				/*
 				 * Verify that the password is strong enough
 				 */
+				PasswordManager pwm = null;
 				if(pd.password != null) {
-					PasswordManager pwm = new PasswordManager(sd, locale, localisation,ident);
+					pwm = new PasswordManager(sd, locale, localisation,ident, request.getServerName());
 					pwm.checkStrength(pd.password);
 				}
 				
@@ -310,6 +311,10 @@ public class PasswordReset extends Application {
 				log.info("Password updated");
 				count++;
 				
+
+				if(pwm != null) {
+					pwm.logReset();		// Record the sucessful password reset
+				}
 				log.info("userevent: " + ident + "reset password / forgot password");
 			} 
 			

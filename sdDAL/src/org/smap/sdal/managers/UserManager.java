@@ -674,6 +674,17 @@ public class UserManager {
 				// Update the saved settings for this user
 				updateSavedSettings(sd, u, u.id, u.o_id, isOrgUser, isSecurityManager);
 				
+				
+				/*
+				 * Verify that the password is strong enough
+				 */
+				PasswordManager pwm = null;;
+				if(u.password != null) {
+					// Note password rules for the users current organisation will be used
+					pwm = new PasswordManager(sd, localisation.getLocale(), localisation, u.ident, serverName);
+					pwm.checkStrength(u.password);	
+				}
+				
 				/*
 				 * Update the current settings if the organisation to be updated is the same
 				 * as the current organisation
@@ -694,15 +705,6 @@ public class UserManager {
 								+ "id = ?";
 					} else {
 						// Update the password
-						
-						/*
-						 * Verify that the password is strong enough
-						 */
-						if(u.password != null) {
-							// Note password rules for the users current organisation will be used
-							PasswordManager pwm = new PasswordManager(sd, localisation.getLocale(), localisation, u.ident);
-							pwm.checkStrength(u.password);	
-						}
 						
 						sql = "update users set "
 								+ "ident = ?, "
@@ -742,6 +744,11 @@ public class UserManager {
 					if(!isSwitch) {
 						insertUserOrganisations(sd, u, u.id, u.o_id, isOrgUser, userIdent);
 					}
+					
+					if(pwm != null) {
+						pwm.logReset();		// Record the sucessful password reset
+					}
+					
 				} else {
 					// update the list of organisation that the user has access to.  These are always stored as current
 					if(!isSwitch) {
