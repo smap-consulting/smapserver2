@@ -181,7 +181,8 @@ public class OrganisationList extends Application {
 					+ "server_description,"
 					+ "limits,"
 					+ "refresh_rate, "
-					+ "api_rate_limit "
+					+ "api_rate_limit,"
+					+ "password_strength "
 					+ "from organisation "
 					+ "where organisation.e_id = ? ");			
 			
@@ -244,6 +245,7 @@ public class OrganisationList extends Application {
 				org.limits = (limits == null) ? null : gson.fromJson(limits, new TypeToken<HashMap<String, Integer>>() {}.getType());	
 				org.refresh_rate = resultSet.getInt("refresh_rate");
 				org.api_rate_limit = resultSet.getInt("api_rate_limit");
+				org.password_strength = resultSet.getInt("password_strength");
 				organisations.add(org);
 			}
 	
