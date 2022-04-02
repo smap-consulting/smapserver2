@@ -10,6 +10,7 @@ public class ServerData {
 	public String mapbox_default;
 	public String google_key;
 	public String sms_url;
+	public double password_strength;
 	public int keep_erased_days;
 	public String css;
 }

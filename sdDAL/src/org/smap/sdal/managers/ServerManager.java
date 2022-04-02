@@ -61,6 +61,7 @@ public class ServerManager {
 				+ "mapbox_default,"
 				+ "google_key,"
 				+ "sms_url,"
+				+ "password_strength,"
 				+ "keep_erased_days,"
 				+ "css "
 				+ "from server;";
@@ -80,6 +81,7 @@ public class ServerManager {
 				data.mapbox_default = rs.getString("mapbox_default");
 				data.google_key = rs.getString("google_key");
 				data.sms_url = rs.getString("sms_url");
+				data.password_strength = rs.getDouble("password_strength");
 				data.keep_erased_days = rs.getInt("keep_erased_days");
 				data.css = rs.getString("css");
 			}
