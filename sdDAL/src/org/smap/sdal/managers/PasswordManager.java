@@ -78,6 +78,14 @@ public class PasswordManager {
 	public void checkStrength(String password) throws ApplicationException {
 
 		if(checkStrength) {
+			// Check for blocked password
+			if(password.equals("password") 
+					|| password.equals("Passw0rd")
+					|| password.equals("b0Gota987")
+					|| password.equals("q2@dFgVPx")
+					|| password.equals("q2@dFgVPxFvv%67d")) {
+				throw new ApplicationException(localisation.getString("msg_bp"));
+			}
 			// Create a map of excluded words on a per-user basis using a hypothetical "User" object that contains this info
 			List<Dictionary> dictionaryList = ConfigurationBuilder.getDefaultDictionaries();
 	
@@ -104,10 +112,14 @@ public class PasswordManager {
 	}
 	
 	public void logReset() {
-		String logMessage = localisation.getString("msg_pr");
-		logMessage = logMessage.replace("%s1", String.format("%.0f", result.getEntropy()));
-		logMessage = logMessage.replace("%s2", String.format("%.0f", minStrength));
-		lm.writeLog(sd, 0, userIdent, LogManager.USER, logMessage, 0, hostname);
+		if(result != null) {
+			String logMessage = localisation.getString("msg_pr");
+			logMessage = logMessage.replace("%s1", String.format("%.0f", result.getEntropy()));
+			logMessage = logMessage.replace("%s2", String.format("%.0f", minStrength));
+			lm.writeLog(sd, 0, userIdent, LogManager.USER, logMessage, 0, hostname);
+		} else {
+			lm.writeLog(sd, 0, userIdent, LogManager.USER, localisation.getString("msg_prns"), 0, hostname);
+		}
 	}
 	
 	private double getMinStrength() throws SQLException {
