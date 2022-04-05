@@ -186,6 +186,7 @@ public class Users extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			log.info("New organisation name: " + orgName);
 			UserManager um = new UserManager(localisation);
 			int newOrgId = GeneralUtilityMethods.getOrganisationIdfromName(sd, orgName);
 			um.switchUsersOrganisation(sd, newOrgId, request.getRemoteUser(), true);
