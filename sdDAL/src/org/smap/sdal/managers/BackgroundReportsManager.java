@@ -56,6 +56,7 @@ public class BackgroundReportsManager {
 	public static String PARAM_MPS = "mps";
 	
 	public static String PARAM_O_ID = "oId";
+	public static String PARAM_DAY = "day";
 	public static String PARAM_MONTH = "month";
 	public static String PARAM_YEAR = "year";
 	public static String PARAM_BY_SURVEY = "bySurvey";
@@ -100,6 +101,10 @@ public class BackgroundReportsManager {
 					XLSXAdminReportsManager rm = new XLSXAdminReportsManager(localisation);
 					String userIdent = GeneralUtilityMethods.getUserIdent(sd, report.uId);
 					filename = rm.writeNewReport(sd, userIdent, report.params, basePath);
+				} else if(report.report_type.equals("u_attendance")) {
+					XLSXAttendanceReportsManager rm = new XLSXAttendanceReportsManager(localisation);
+					String userIdent = GeneralUtilityMethods.getUserIdent(sd, report.uId);
+					filename = rm.writeNewAttendanceReport(sd, userIdent, report.params, basePath);
 				} else {
 					updateReportStatus(sd, report.id, false, null, "Unsupported report type: " + report.report_type);
 					error = true;

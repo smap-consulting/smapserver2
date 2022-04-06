@@ -13,5 +13,7 @@ public class AR {
 	public Date created;
 	public int usageInPeriod;
 	public int allTimeUsage;
-	
+	public String firstRefresh;
+	public String lastRefresh;
+	public String duration;
 }
