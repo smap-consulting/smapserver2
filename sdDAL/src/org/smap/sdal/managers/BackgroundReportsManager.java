@@ -88,6 +88,7 @@ public class BackgroundReportsManager {
 				localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", locale);
 			}
 			
+			boolean error = false;
 			try {
 				if(report.report_type.equals("locations_kml")) {
 					UserTrailManager utm = new UserTrailManager(localisation, report.tz);
@@ -99,8 +100,13 @@ public class BackgroundReportsManager {
 					XLSXAdminReportsManager rm = new XLSXAdminReportsManager(localisation);
 					String userIdent = GeneralUtilityMethods.getUserIdent(sd, report.uId);
 					filename = rm.writeNewReport(sd, userIdent, report.params, basePath);
+				} else {
+					updateReportStatus(sd, report.id, false, null, "Unsupported report type: " + report.report_type);
+					error = true;
 				}
-				updateReportStatus(sd, report.id, true, filename, null);
+				if(!error) {
+					updateReportStatus(sd, report.id, true, filename, null);
+				}
 				
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
