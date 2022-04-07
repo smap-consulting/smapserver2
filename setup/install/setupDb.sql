@@ -1467,6 +1467,7 @@ create TABLE last_refresh_log (
 	appversion text
 	);
 SELECT AddGeometryColumn('last_refresh_log', 'geo_point', 4326, 'POINT', 2);
+create index idx_refresh_time on last_refresh_log (refresh_time);
 ALTER TABLE last_refresh_log OWNER TO ws;
 
 -- Group Surveys
