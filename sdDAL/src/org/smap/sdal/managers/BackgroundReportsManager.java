@@ -102,7 +102,7 @@ public class BackgroundReportsManager {
 					String userIdent = GeneralUtilityMethods.getUserIdent(sd, report.uId);
 					filename = rm.writeNewReport(sd, userIdent, report.params, basePath);
 				} else if(report.report_type.equals("u_attendance")) {
-					XLSXAttendanceReportsManager rm = new XLSXAttendanceReportsManager(localisation);
+					XLSXAttendanceReportsManager rm = new XLSXAttendanceReportsManager(localisation, report.tz);
 					String userIdent = GeneralUtilityMethods.getUserIdent(sd, report.uId);
 					filename = rm.writeNewAttendanceReport(sd, userIdent, report.params, basePath);
 				} else {

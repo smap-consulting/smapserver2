@@ -24,11 +24,13 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -59,9 +61,11 @@ public class XLSXAttendanceReportsManager {
 	
 	LogManager lm = new LogManager();		// Application log
 	ResourceBundle localisation = null;
+	String tz;
 	
-	public XLSXAttendanceReportsManager(ResourceBundle l) {
+	public XLSXAttendanceReportsManager(ResourceBundle l, String tz) {
 		localisation = l;
+		this.tz = tz;
 		
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ADMIN);
@@ -114,13 +118,11 @@ public class XLSXAttendanceReportsManager {
 		ArrayList<String> header = new ArrayList<String> ();
 		header.add(localisation.getString("ar_ident"));
 		header.add(localisation.getString("ar_user_name"));
-		header.add(localisation.getString("ar_st"));
-		header.add(localisation.getString("ar_et"));
-		
+		header.add(localisation.getString("a_st"));
+		header.add(localisation.getString("a_et"));		
 		header.add(localisation.getString("ar_sub"));
 		
-		XLSXAttendanceReportsManager rm = new XLSXAttendanceReportsManager(localisation);
-		rm.getReport(sd, tempFile, header, report, year, month, day,
+		getReport(sd, tempFile, header, report, year, month, day,
 				GeneralUtilityMethods.getOrganisationName(sd, oId));
 
 		return filename;
@@ -146,7 +148,7 @@ public class XLSXAttendanceReportsManager {
 		
 		PreparedStatement pstmt = null;
 		
-		String sqlDurn = "select min(refresh_time), max(refresh_time), age(max(refresh_time), min(refresh_time)) "
+		String sqlDurn = "select min(timezone(?, refresh_time)), max(timezone(?, refresh_time)), age(max(refresh_time), min(refresh_time)) "
 				+ "from last_refresh_log "
 				+ "where refresh_time >= ? "
 				+ "and refresh_time < ? "
@@ -156,18 +158,26 @@ public class XLSXAttendanceReportsManager {
 		
 		try {
 			
+			log.info("###### tx: " + tz);
 			
 			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, day);
+			Date d1 = Date.valueOf(t1.toLocalDateTime().toLocalDate());
+			log.info("     " + t1.toString());
+			log.info("     " + d1.toString());
+			
 			Timestamp t2 = GeneralUtilityMethods.getTimestampNextDay(t1);
+			Date d2 = Date.valueOf(t2.toLocalDateTime().toLocalDate());
 			
 			pstmtDurn = sd.prepareStatement(sqlDurn);
-			pstmtDurn.setTimestamp(1, t1);
-			pstmtDurn.setTimestamp(2, t2);
-			pstmtDurn.setInt(3, oId);
+			pstmtDurn.setString(1, tz);
+			pstmtDurn.setString(2, tz);
+			pstmtDurn.setTimestamp(3, GeneralUtilityMethods.startOfDay(d1, tz));
+			pstmtDurn.setTimestamp(4, GeneralUtilityMethods.startOfDay(d2, tz));
+			pstmtDurn.setInt(5, oId);
 			
 			pstmt = sd.prepareStatement(sql.toString());
-			pstmt.setTimestamp(1, t1);
-			pstmt.setTimestamp(2, t2);
+			pstmt.setTimestamp(1, GeneralUtilityMethods.startOfDay(d1, tz));
+			pstmt.setTimestamp(2, GeneralUtilityMethods.startOfDay(d2, tz));
 			pstmt.setInt(3, oId);
 			pstmt.setInt(4,  Authorise.ENUM_ID);
 			
@@ -181,13 +191,14 @@ public class XLSXAttendanceReportsManager {
 				ar.created = rs.getDate("created");
 				ar.usageInPeriod = rs.getInt("month");
 				
-				pstmtDurn.setString(4,  ar.userIdent);
+				pstmtDurn.setString(6,  ar.userIdent);
+				log.info("Get attendance: " + pstmtDurn.toString());
 				ResultSet rsDurn = pstmtDurn.executeQuery();
 				if(rsDurn.next()) {
 					System.out.println("Start: " + rsDurn.getString(1) + " End: " + rsDurn.getString(2) + " : Durn: " + rsDurn.getString(3));
-					ar.firstRefresh = rs.getString(1);
-					ar.lastRefresh = rs.getString(2);
-					ar.duration = rs.getString(3);
+					ar.firstRefresh = rsDurn.getTimestamp(1);
+					ar.lastRefresh = rsDurn.getTimestamp(2);
+					ar.duration = rsDurn.getString(3);
 				}
 				rows.add(ar);
 				
@@ -253,9 +264,9 @@ public class XLSXAttendanceReportsManager {
 				cell.setCellValue(month);
 				
 				Row dayRow = dataSheet.createRow(rowNumber++);		
-				cell = monthRow.createCell(0);	// Day
+				cell = dayRow.createCell(0);	// Day
 				cell.setCellValue(localisation.getString("c_day"));
-				cell = monthRow.createCell(1);	
+				cell = dayRow.createCell(1);	
 				cell.setCellValue(day);
 				
 				Row orgRow = dataSheet.createRow(rowNumber++);		
@@ -273,39 +284,43 @@ public class XLSXAttendanceReportsManager {
 					cell.setCellValue(header.get(colNumber));
 					colNumber++;
 				}
-				
-				int monthlyCol = 0;
-				int allTimeCol = 0;
-				int firstDataRow = rowNumber + 1;
+
 				for(AR ar : report) {
-					if(ar.usageInPeriod > 0 || ar.allTimeUsage > 0) {
-						colNumber = 0;
-						Row row = dataSheet.createRow(rowNumber++);	
-						cell = row.createCell(colNumber++);	// ident
-						cell.setCellValue(ar.userIdent);
+					colNumber = 0;
+					Row row = dataSheet.createRow(rowNumber++);	
+					cell = row.createCell(colNumber++);	// ident
+					cell.setCellValue(ar.userIdent);
+
+					cell = row.createCell(colNumber++);	// Name
+					cell.setCellValue(ar.userName);
+
+					cell = row.createCell(colNumber++);	// Start Time
+					if(ar.firstRefresh != null) {
+						cell.setCellStyle(styles.get("time"));
 						
-						cell = row.createCell(colNumber++);	// Name
-						cell.setCellValue(ar.userName);
-						
-						cell = row.createCell(colNumber++);	// Start Time
-						if(ar.created != null) {
-							cell.setCellStyle(styles.get("date"));
-							cell.setCellValue(ar.firstRefresh);
-						}
-						
-						cell = row.createCell(colNumber++);	// Start Time
-						if(ar.created != null) {
-							cell.setCellStyle(styles.get("date"));
-							cell.setCellValue(ar.lastRefresh);
-						}	
-					
-						monthlyCol = colNumber;
-						cell = row.createCell(colNumber++);	// Monthly Usage
-						cell.setCellValue(ar.usageInPeriod);
-					
+						Calendar cal = Calendar.getInstance();
+						cal.setTime(ar.firstRefresh);
+						cell.setCellValue(cal.get(Calendar.HOUR)  
+								+ ":" + cal.get(Calendar.MINUTE)
+								+ ":" + cal.get(Calendar.SECOND));
 					}
+
+					cell = row.createCell(colNumber++);	// Start Time
+					if(ar.lastRefresh != null) {
+						cell.setCellStyle(styles.get("time"));
+						
+						Calendar cal = Calendar.getInstance();
+						cal.setTime(ar.lastRefresh);
+						cell.setCellValue(cal.get(Calendar.HOUR)  
+								+ ":" + cal.get(Calendar.MINUTE)
+								+ ":" + cal.get(Calendar.SECOND));
+					}	
+
+					cell = row.createCell(colNumber++);	// Monthly Usage
+					cell.setCellValue(ar.usageInPeriod);
+
 				}
-				
+
 
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Error", e);

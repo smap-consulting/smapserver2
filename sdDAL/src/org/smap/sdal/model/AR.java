@@ -1,6 +1,7 @@
 package org.smap.sdal.model;
 
 import java.sql.Date;
+import java.sql.Timestamp;
 
 public class AR {
 	public String userIdent;
@@ -13,7 +14,7 @@ public class AR {
 	public Date created;
 	public int usageInPeriod;
 	public int allTimeUsage;
-	public String firstRefresh;
-	public String lastRefresh;
+	public Timestamp firstRefresh;
+	public Timestamp lastRefresh;
 	public String duration;
 }
