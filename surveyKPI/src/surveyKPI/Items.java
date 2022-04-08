@@ -61,6 +61,7 @@ import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
 import java.sql.*;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
@@ -130,6 +131,7 @@ public class Items extends Application {
 		ArrayList<String> colNames = new ArrayList<String> ();
 		HashMap<String, String> surveyNames = new HashMap<String, String> ();
 		String connectionString = "surveyKPI-Items";
+		DecimalFormat decimalFormat = new DecimalFormat("0.00");
 		
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";	
 
@@ -682,13 +684,24 @@ public class Items extends Application {
 						}
 					}
 					for(int i = 0; i < colNames.size(); i++) {	
-
-						//String name = rsMetaData.getColumnName(i);	
+	
 						String name = colNames.get(i);
 						String headerName = columns.getString(i);
 						String value = resultSet.getString(i + 1);	
 						if(value == null) {
 							value = "";
+						}
+						
+						/*
+						 * Truncate number of decimal places
+						 */
+						if(types.get(i).equals("decimal")) {
+							try {
+								double dv = Double.parseDouble(value);
+								value = decimalFormat.format(dv);
+							} catch (Exception e) {
+								log.log(Level.SEVERE, e.getMessage(), e);
+							}
 						}
 
 						if(name.equals("prikey")) {

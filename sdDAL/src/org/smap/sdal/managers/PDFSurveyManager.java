@@ -11,6 +11,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -532,6 +533,23 @@ public class PDFSurveyManager {
 				PdfUtilities.setQuestionFormats(question.appearance, di);
 			} catch (Exception e) {
 				// If we can't get the question details for this data then that is ok
+			}
+			
+			/*
+			 * Round decimals if required
+			 */
+			if(r.type.equals("decimal") && di.round >= 0) {
+				try {
+					StringBuilder f = new StringBuilder("0.");
+					for(int i = 0; i < di.round; i++) {
+						f.append("0");
+					}
+					DecimalFormat decimalFormat = new DecimalFormat(f.toString());
+					double dv = Double.parseDouble(r.value);
+					r.value = decimalFormat.format(dv);
+				} catch (Exception e) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
 			}
 
 			/*
@@ -1744,6 +1762,23 @@ public class PDFSurveyManager {
 		// Questions that append their values to this question
 		ArrayList<String> deps = gv.addToList.get(di.fIdx + "_" + di.rec_number + "_" + di.name);
 
+		/*
+		 * Round decimals if required
+		 */
+		if(di.type.equals("decimal") && di.round >= 0) {
+			try {
+				StringBuilder f = new StringBuilder("0.");
+				for(int i = 0; i < di.round; i++) {
+					f.append("0");
+				}
+				DecimalFormat decimalFormat = new DecimalFormat(f.toString());
+				double dv = Double.parseDouble(di.value);
+				di.value = decimalFormat.format(dv);
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
+		}
+		
 		if(di.type.startsWith("select")) {
 			processSelect(parser, remoteUser, valueCell, di, generateBlank, gv, oId);
 		} else if (di.type.equals("image")) {

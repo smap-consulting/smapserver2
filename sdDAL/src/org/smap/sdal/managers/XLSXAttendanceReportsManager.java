@@ -162,8 +162,6 @@ public class XLSXAttendanceReportsManager {
 			
 			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, day);
 			Date d1 = Date.valueOf(t1.toLocalDateTime().toLocalDate());
-			log.info("     " + t1.toString());
-			log.info("     " + d1.toString());
 			
 			Timestamp t2 = GeneralUtilityMethods.getTimestampNextDay(t1);
 			Date d2 = Date.valueOf(t2.toLocalDateTime().toLocalDate());

@@ -968,6 +968,12 @@ public class PdfUtilities {
 					di.stretch = true;		
 				} else if(app.startsWith("pdfzoom")) {
 					di.zoom = getAppValue(app);		
+				} else if(app.startsWith("pdfround")) {
+					try {
+						di.round = Integer.valueOf(getAppValue(app));	
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+					}
 				} else if(app.startsWith("pdfhyperlink")) {
 					di.isHyperlink = true;		
 				} else if(app.equals("signature")) {

@@ -98,7 +98,7 @@ public class BackgroundReportsManager {
 					UserTrailManager utm = new UserTrailManager(localisation, report.tz);
 					filename = utm.generateDistanceReport(sd, report.pId, report.params, basePath);
 				} else if(report.report_type.equals("u_usage")) {
-					XLSXAdminReportsManager rm = new XLSXAdminReportsManager(localisation);
+					XLSXAdminReportsManager rm = new XLSXAdminReportsManager(localisation, report.tz);
 					String userIdent = GeneralUtilityMethods.getUserIdent(sd, report.uId);
 					filename = rm.writeNewReport(sd, userIdent, report.params, basePath);
 				} else if(report.report_type.equals("u_attendance")) {
