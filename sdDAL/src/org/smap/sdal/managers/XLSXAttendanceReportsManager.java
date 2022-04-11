@@ -298,7 +298,7 @@ public class XLSXAttendanceReportsManager {
 						
 						Calendar cal = Calendar.getInstance();
 						cal.setTime(ar.firstRefresh);
-						cell.setCellValue(cal.get(Calendar.HOUR)  
+						cell.setCellValue(cal.get(Calendar.HOUR_OF_DAY)  
 								+ ":" + cal.get(Calendar.MINUTE)
 								+ ":" + cal.get(Calendar.SECOND));
 					}
@@ -309,7 +309,7 @@ public class XLSXAttendanceReportsManager {
 						
 						Calendar cal = Calendar.getInstance();
 						cal.setTime(ar.lastRefresh);
-						cell.setCellValue(cal.get(Calendar.HOUR)  
+						cell.setCellValue(cal.get(Calendar.HOUR_OF_DAY)  
 								+ ":" + cal.get(Calendar.MINUTE)
 								+ ":" + cal.get(Calendar.SECOND));
 					}	
