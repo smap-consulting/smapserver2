@@ -83,6 +83,7 @@ public class AdminReportUsage extends Application {
 			@QueryParam("device") boolean byDevice,
 			@QueryParam("inc_temp") boolean includeTemporaryUsers,
 			@QueryParam("o_id") int oId,
+			@QueryParam("tz") String tz,
 			@Context HttpServletResponse response) {
 
 		Response responseVal = null;
@@ -91,6 +92,10 @@ public class AdminReportUsage extends Application {
 		String connectionString = "surveyKPI - AdminReports - Usage";
 		Connection sd = SDDataSource.getConnection(connectionString);		
 		// End Authorisation		
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
 		
 		try {
 		
@@ -126,7 +131,7 @@ public class AdminReportUsage extends Application {
 			String filename = localisation.getString("ar_report_name") + (oId > 0 ? "_" + orgName : "") + year + "_" + month + "_" + userIdent + ".xlsx";
 			
 			ArrayList<AR> report = null;
-			XLSXAdminReportsManager rm = new XLSXAdminReportsManager(localisation);
+			XLSXAdminReportsManager rm = new XLSXAdminReportsManager(localisation, tz);
 			if(bySurvey) {
 				report = rm.getAdminReportSurvey(sd, oId, month, year, userIdent);
 			} else if(byProject) {

@@ -373,10 +373,8 @@ public class Log extends Application {
 				if(li.event == null) {
 					li.event = "";
 				}
-				li.note = rs.getString("note");
-				if(li.note == null) {
-					li.note = "";
-				}
+				li.note = GeneralUtilityMethods.getSafeText(rs.getString("note"), true);
+				
 				li.server = rs.getString("server");
 				if(li.server == null) {
 					li.server = "";

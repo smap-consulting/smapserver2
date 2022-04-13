@@ -61,6 +61,7 @@ public class ServerManager {
 				+ "mapbox_default,"
 				+ "google_key,"
 				+ "sms_url,"
+				+ "password_strength,"
 				+ "keep_erased_days,"
 				+ "css "
 				+ "from server;";
@@ -80,6 +81,7 @@ public class ServerManager {
 				data.mapbox_default = rs.getString("mapbox_default");
 				data.google_key = rs.getString("google_key");
 				data.sms_url = rs.getString("sms_url");
+				data.password_strength = rs.getDouble("password_strength");
 				data.keep_erased_days = rs.getInt("keep_erased_days");
 				data.css = rs.getString("css");
 			}
@@ -115,6 +117,7 @@ public class ServerManager {
 		 */
 		String sql = null;
 		PreparedStatement pstmt = null;
+		PreparedStatement pstmtCompound = null;
 		ResultSet resultSet = null;
 		
 		SurveyManager surveyManager = new SurveyManager(localisation, "UTC");
@@ -156,9 +159,9 @@ public class ServerManager {
 						if(!delData) {
 							try {
 								sql = "select count(*) from " + tableName + ";";
-								if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
-								pstmt = rel.prepareStatement(sql);
-								ResultSet resultSetCount = pstmt.executeQuery();
+								if(pstmtCompound != null) try {pstmtCompound.close();}catch(Exception e) {}
+								pstmtCompound = rel.prepareStatement(sql);
+								ResultSet resultSetCount = pstmtCompound.executeQuery();
 								resultSetCount.next();							
 								rowCount = resultSetCount.getInt(1);
 							} catch (Exception e) {
@@ -169,19 +172,21 @@ public class ServerManager {
 						Statement stmtRel = null;
 						try {
 							if(delData || (rowCount == 0)) {
-								sql = "drop table " + tableName + ";";
-								log.info(sql + " : " + tableName);
-								stmtRel = rel.createStatement();
-								stmtRel.executeUpdate(sql);	
+								if(GeneralUtilityMethods.tableExists(sd, tableName)) {
+									sql = "drop table " + tableName + ";";
+									log.info(sql + " : " + tableName);
+									stmtRel = rel.createStatement();
+									stmtRel.executeUpdate(sql);	
+								}
 								
 								/*
 								 * Drop any tables for compound data
 								 */
 								if(tableName.length() > 3) {
 									sql = "select table_name from information_schema.tables where table_name like '" + tableName + "_%'";
-									if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
-									pstmt = rel.prepareStatement(sql);
-									ResultSet rs = pstmt.executeQuery();
+									if(pstmtCompound != null) try {pstmtCompound.close();}catch(Exception e) {}
+									pstmtCompound = rel.prepareStatement(sql);
+									ResultSet rs = pstmtCompound.executeQuery();
 									while (rs.next()) {
 										
 										String markerTable = rs.getString(1);
@@ -189,7 +194,7 @@ public class ServerManager {
 										if(GeneralUtilityMethods.hasColumn(rel, markerTable, "properties") 
 												&& GeneralUtilityMethods.hasColumn(rel, markerTable, "locn")) {
 											
-											stmtRel.close();
+											if(stmtRel != null) try{stmtRel.close();} catch(Exception e) {}
 	
 											sql = "drop table " + markerTable;
 											stmtRel = rel.createStatement();
@@ -204,7 +209,7 @@ public class ServerManager {
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 						} finally {
-							stmtRel.close();
+							if(stmtRel != null) try{stmtRel.close();} catch(Exception e) {}
 						}
 					}
 
@@ -271,11 +276,36 @@ public class ServerManager {
 				log.info("Delete changeset data: " + pstmt.toString());
 				pstmt.execute();
 				
+				
+				/*
+				 * Delete survey templates
+				 */
+				sql = "delete from survey_template where ident = ?";	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, surveyIdent);
+				log.info("Delete survey templates: " + pstmt.toString());
+				pstmt.executeUpdate();
+
+				// Delete the template files
+				try {
+					GeneralUtilityMethods.deleteTemplateFiles(surveyDisplayName, basePath, projectId );
+				} catch (Exception e) {
+					log.info("Error deleting templates: " + surveyDisplayName + " : " + e.getMessage());
+				}
+				try {
+					GeneralUtilityMethods.deleteDirectory(basePath + "/templates/survey/" + surveyIdent);
+				} catch (Exception e) {
+					log.info("Error deleting pdf templates: " + surveyDisplayName + " : " + e.getMessage());
+				}
+
+				
 			}
 
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtCompound != null) {pstmtCompound.close();}} catch (SQLException e) {}
 		}
 	}
 

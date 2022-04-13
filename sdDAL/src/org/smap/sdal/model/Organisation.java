@@ -59,6 +59,7 @@ public class Organisation {
 	public int e_id;		// Enterprise id
 	public int refresh_rate;
 	public int api_rate_limit;
+	public double password_strength;
 	public WebformOptions webform;
 	public AppearanceOptions appearance = new AppearanceOptions();
 	public HashMap<String, Integer> limits;

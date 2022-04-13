@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -65,7 +66,7 @@ public class UserManager {
 	public static String STATUS_EXPIRED = "expired";
 	
 	public UserManager(ResourceBundle l) {
-		localisation = l;
+		this.localisation = l;
 	}
 	
 	/*
@@ -661,8 +662,10 @@ public class UserManager {
 				}
 				
 				/*
-				 * If the update:
+				 * If the organisation id is zero
 				 * then it will be for the organisation of the person doing the update
+				 * However if the current organisation is not in the list of organisations then the user has access to
+				 * then their organisation acess is being removed.
 				 */
 				if(u.o_id == 0) {
 					u.o_id = adminUserOrgId;
@@ -670,6 +673,17 @@ public class UserManager {
 				
 				// Update the saved settings for this user
 				updateSavedSettings(sd, u, u.id, u.o_id, isOrgUser, isSecurityManager);
+				
+				
+				/*
+				 * Verify that the password is strong enough
+				 */
+				PasswordManager pwm = null;;
+				if(u.password != null) {
+					// Note password rules for the users current organisation will be used
+					pwm = new PasswordManager(sd, localisation.getLocale(), localisation, u.ident, serverName);
+					pwm.checkStrength(u.password);	
+				}
 				
 				/*
 				 * Update the current settings if the organisation to be updated is the same
@@ -691,6 +705,7 @@ public class UserManager {
 								+ "id = ?";
 					} else {
 						// Update the password
+						
 						sql = "update users set "
 								+ "ident = ?, "
 								+ "realm = ?, "
@@ -729,6 +744,11 @@ public class UserManager {
 					if(!isSwitch) {
 						insertUserOrganisations(sd, u, u.id, u.o_id, isOrgUser, userIdent);
 					}
+					
+					if(pwm != null) {
+						pwm.logReset();		// Record the sucessful password reset
+					}
+					
 				} else {
 					// update the list of organisation that the user has access to.  These are always stored as current
 					if(!isSwitch) {

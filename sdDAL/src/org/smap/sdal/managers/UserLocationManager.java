@@ -250,9 +250,6 @@ public class UserLocationManager {
 						// Based on requirements for half hour intervals get a count of the number of half hours since the last refresh
 						long v = (now.getTime() - refreshWhen.getTime()) / 1800000;
 						
-						log.info("---------------------------- v is: " + v);
-						log.info("    now: " + now.getTime());
-						log.info("   refreshWhen: " + now.getTime());
 						if(v >= 4) {
 							jp.put("value", 4);	// More than 120 mins - red
 						} else if(v >= 3) {

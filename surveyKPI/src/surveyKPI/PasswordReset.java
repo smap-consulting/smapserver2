@@ -25,6 +25,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -36,6 +37,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.PasswordManager;
 import org.smap.sdal.managers.PeopleManager;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Organisation;
@@ -255,6 +257,7 @@ public class PasswordReset extends Application {
 	
 	@POST
 	public Response setPassword(@Context HttpServletRequest request, 
+			@QueryParam("lang") String lang,
 			@FormParam("passwordDetails") String passwordDetails) { 
 
 		Response response = null;
@@ -270,6 +273,9 @@ public class PasswordReset extends Application {
 			
 			sd.setAutoCommit(false);
 			
+			Locale locale = new Locale(lang);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			// Get the user ident just for logging, also check that there is a valid onetime token
 			String sql = "select ident, name from users where one_time_password = ? and one_time_password_expiry > timestamp 'now'"; 
 			pstmt = sd.prepareStatement(sql);
@@ -284,6 +290,15 @@ public class PasswordReset extends Application {
 				
 				log.info("Updating password for user " + name + " with ident " + ident);
 				
+				/*
+				 * Verify that the password is strong enough
+				 */
+				PasswordManager pwm = null;
+				if(pd.password != null) {
+					pwm = new PasswordManager(sd, locale, localisation,ident, request.getServerName());
+					pwm.checkStrength(pd.password);
+				}
+				
 				sql = "update users set password = md5(?), password_reset = 'true' where one_time_password = ? and ident = ?;";
 				pstmtUpdate = sd.prepareStatement(sql);
 				String pwdString = ident + ":smap:" + pd.password;
@@ -296,6 +311,10 @@ public class PasswordReset extends Application {
 				log.info("Password updated");
 				count++;
 				
+
+				if(pwm != null) {
+					pwm.logReset();		// Record the sucessful password reset
+				}
 				log.info("userevent: " + ident + "reset password / forgot password");
 			} 
 			
@@ -317,9 +336,13 @@ public class PasswordReset extends Application {
 
 			sd.commit();
 	
+			response = Response.status(Status.OK).entity("").build();
 				
-		} catch (Exception e) {		
-			response = Response.serverError().build();
+		} catch (ApplicationException e) {	
+			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		    try { sd.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
+		} catch (Exception e) {	
+			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		    e.printStackTrace();
 		    try { sd.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
 		} finally {

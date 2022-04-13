@@ -24,6 +24,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -60,9 +61,11 @@ public class XLSXAdminReportsManager {
 	LogManager lm = new LogManager();		// Application log
 	ResourceBundle localisation = null;
 	boolean includeTemporaryUsers = false;
+	String tz;
 	
-	public XLSXAdminReportsManager(ResourceBundle l) {
+	public XLSXAdminReportsManager(ResourceBundle l, String tz) {
 		localisation = l;
+		this.tz = tz;
 		
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ADMIN);
@@ -139,8 +142,7 @@ public class XLSXAdminReportsManager {
 		header.add(localisation.getString("ar_usage_month"));
 		header.add(localisation.getString("ar_usage_at"));
 		
-		XLSXAdminReportsManager rm = new XLSXAdminReportsManager(localisation);
-		rm.getNewReport(sd, tempFile, header, report, byProject, bySurvey, byDevice, year, month,
+		getNewReport(sd, tempFile, header, report, byProject, bySurvey, byDevice, year, month,
 				GeneralUtilityMethods.getOrganisationName(sd, oId));
 
 		return filename;
@@ -175,11 +177,14 @@ public class XLSXAdminReportsManager {
 		
 		try {
 			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Date d1 = Date.valueOf(t1.toLocalDateTime().toLocalDate());
+			
 			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			Date d2 = Date.valueOf(t2.toLocalDateTime().toLocalDate());
 			
 			pstmt = sd.prepareStatement(sql.toString());
-			pstmt.setTimestamp(1, t1);
-			pstmt.setTimestamp(2, t2);
+			pstmt.setTimestamp(1, GeneralUtilityMethods.startOfDay(d1, tz));
+			pstmt.setTimestamp(2, GeneralUtilityMethods.startOfDay(d2, tz));
 			pstmt.setInt(3, oId);
 			if(userIdent != null) {
 				pstmt.setString(4, userIdent);
@@ -259,11 +264,14 @@ public class XLSXAdminReportsManager {
 		
 		try {
 			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Date d1 = Date.valueOf(t1.toLocalDateTime().toLocalDate());
+			
 			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			Date d2 = Date.valueOf(t2.toLocalDateTime().toLocalDate());
 			
 			pstmtMonth = sd.prepareStatement(sqlMonth.toString());
-			pstmtMonth.setTimestamp(1, t1);
-			pstmtMonth.setTimestamp(2, t2);
+			pstmtMonth.setTimestamp(1, GeneralUtilityMethods.startOfDay(d1, tz));
+			pstmtMonth.setTimestamp(2, GeneralUtilityMethods.startOfDay(d2, tz));
 			pstmtMonth.setInt(3, oId);
 			if(userIdent != null) {
 				pstmtMonth.setString(4, userIdent);
@@ -379,11 +387,14 @@ public class XLSXAdminReportsManager {
 		
 		try {
 			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Date d1 = Date.valueOf(t1.toLocalDateTime().toLocalDate());
+			
 			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			Date d2 = Date.valueOf(t2.toLocalDateTime().toLocalDate());
 			
 			pstmtMonth = sd.prepareStatement(sqlMonth.toString());
-			pstmtMonth.setTimestamp(1, t1);
-			pstmtMonth.setTimestamp(2, t2);
+			pstmtMonth.setTimestamp(1, GeneralUtilityMethods.startOfDay(d1, tz));
+			pstmtMonth.setTimestamp(2, GeneralUtilityMethods.startOfDay(d2, tz));
 			pstmtMonth.setInt(3, oId);
 			if(userIdent != null) {
 				pstmtMonth.setString(4, userIdent);
@@ -496,11 +507,14 @@ public class XLSXAdminReportsManager {
 		
 		try {
 			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Date d1 = Date.valueOf(t1.toLocalDateTime().toLocalDate());
+			
 			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			Date d2 = Date.valueOf(t2.toLocalDateTime().toLocalDate());
 			
 			pstmtMonth = sd.prepareStatement(sqlMonth.toString());
-			pstmtMonth.setTimestamp(1, t1);
-			pstmtMonth.setTimestamp(2, t2);
+			pstmtMonth.setTimestamp(1, GeneralUtilityMethods.startOfDay(d1, tz));
+			pstmtMonth.setTimestamp(2, GeneralUtilityMethods.startOfDay(d2, tz));
 			pstmtMonth.setInt(3, oId);
 			if(userIdent != null) {
 				pstmtMonth.setString(4, userIdent);

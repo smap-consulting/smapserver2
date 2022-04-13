@@ -915,7 +915,7 @@ public class Surveys extends Application {
 			if(originalName != null) {
 				int idx = originalName.lastIndexOf('/');
 				if(idx > 0) {
-					newSurveyName = originalName.substring(0, idx + 1) + GeneralUtilityMethods.convertDisplayNameToFileName(survey.displayName) + ".xml";
+					newSurveyName = originalName.substring(0, idx + 1) + GeneralUtilityMethods.convertDisplayNameToFileName(survey.displayName, false) + ".xml";
 				}
 			}
 			
@@ -929,7 +929,7 @@ public class Surveys extends Application {
 			if(fileName != null) {  // Save the file
 				
 				// Temporary save the old file.  This will no longer be necessary once all clients have uploaded their PDFs with the filename saved to the change log
-				copyPdf(request, survey.displayName, survey.displayName + "__prev__", survey.p_id);
+				renamePdf(request, survey.displayName, survey.displayName + "__prev__", survey.p_id, true);
 				
 				archivedTemplateName = writePdfLegacy(request, survey.displayName, pdfItem, true, survey.p_id);		
 				writePdfLegacy(request, survey.displayName, pdfItem, false, survey.p_id);				// Save the "current" version of the file			
@@ -937,14 +937,14 @@ public class Surveys extends Application {
 			} else if(pdfSet.equals("no")) {
 				
 				// Temporary save the old file.  This will no longer be necessary once all clients have uploaded their PDFs with the filename saved to the change log
-				copyPdf(request, survey.displayName, survey.displayName + "_previous", survey.p_id);
+				renamePdf(request, survey.displayName, survey.displayName + "_previous", survey.p_id, true);
 				
 				// Try to delete the template file if it exists
 				delPdf(request, survey.displayName, survey.p_id);
 			} else {
 				  // If the survey name has been changed then change the name of the template on disk
 				if(originalDisplayName != null && !originalDisplayName.equals(survey.displayName)) {
-					renamePdf(request, originalDisplayName, survey.displayName, survey.p_id);
+					renamePdf(request, originalDisplayName, survey.displayName, survey.p_id, false);
 				}
 
 				updatePDFName = false;	// PDF was not changed
@@ -1987,7 +1987,7 @@ public class Surveys extends Application {
 	
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
-		fileName = GeneralUtilityMethods.getSafeTemplateName(fileName);
+		fileName = GeneralUtilityMethods.convertDisplayNameToFileName(fileName, false);
 		if(archiveVersion) {
 			// Add date and time to the display name
 			DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HHmmss");
@@ -2025,7 +2025,7 @@ public class Surveys extends Application {
 	
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
-		fileName = GeneralUtilityMethods.getSafeTemplateName(fileName);
+		fileName = GeneralUtilityMethods.convertDisplayNameToFileName(fileName, false);
 
 		// Add date and time to the file name
 		DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HHmmss");
@@ -2059,7 +2059,7 @@ public class Surveys extends Application {
 	
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
-		fileName = GeneralUtilityMethods.getSafeTemplateName(fileName);
+		fileName = GeneralUtilityMethods.convertDisplayNameToFileName(fileName, false);
 		fileName = fileName + "_template.pdf";
 		
 		String folderPath = basePath + "/templates/" + pId ;						
@@ -2081,12 +2081,13 @@ public class Surveys extends Application {
 	private String renamePdf(HttpServletRequest request, 
 			String originalName,
 			String newName, 
-			int pId) {
+			int pId,
+			boolean copy) {
 	
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
-		newName = GeneralUtilityMethods.getSafeTemplateName(newName) + "_template.pdf";
-		originalName = GeneralUtilityMethods.getSafeTemplateName(originalName) + "_template.pdf";
+		newName = GeneralUtilityMethods.convertDisplayNameToFileName(newName, false) + "_template.pdf";
+		originalName = GeneralUtilityMethods.convertDisplayNameToFileName(originalName, false) + "_template.pdf";
 		
 		String folderPath = basePath + "/templates/" + pId ;						
 		String newFilePath = folderPath + "/" + newName;
@@ -2096,7 +2097,11 @@ public class Surveys extends Application {
 		File renFile = new File(originalFilePath);
 	   
 	    try {
-			renFile.renameTo(newFile);
+	    	if(copy) {
+	    		FileUtils.copyFile(renFile, newFile);
+	    	} else {
+	    		renFile.renameTo(newFile);
+	    	}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -2104,34 +2109,7 @@ public class Surveys extends Application {
 	    return newName;
 	}
 	
-	/*
-	 * copy the pdf template
-	 */
-	private String copyPdf(HttpServletRequest request, 
-			String originalName,
-			String newName, 
-			int pId) {
-	
-		String basePath = GeneralUtilityMethods.getBasePath(request);
-		
-		newName = GeneralUtilityMethods.getSafeTemplateName(newName) + "_template.pdf";
-		originalName = GeneralUtilityMethods.getSafeTemplateName(originalName) + "_template.pdf";
-		
-		String folderPath = basePath + "/templates/" + pId ;						
-		String newFilePath = folderPath + "/" + newName;
-		String originalFilePath = folderPath + "/" + originalName;
-	    
-		File newFile = new File(newFilePath);
-		File oldFile = new File(originalFilePath);
-	   
-	    try {
-	    	FileUtils.copyFile(oldFile, newFile);
-		} catch (Exception e) {
-			log.info(e.getMessage());;
-		}
-	 
-	    return newName;
-	}
+
 	
 	
 }

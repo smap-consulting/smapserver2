@@ -11,10 +11,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.TimeZone;
 import java.util.logging.Level;
@@ -293,7 +295,7 @@ public class PDFSurveyManager {
 			log.info("Filename passed to createPDF is: " + filename);
 			if(filename == null) {
 				filename = survey.getInstanceName();
-				filename = GeneralUtilityMethods.getSafeTemplateName(filename);
+				filename = GeneralUtilityMethods.convertDisplayNameToFileName(filename, false);
 				filename += ".pdf";
 
 			} else {
@@ -532,6 +534,23 @@ public class PDFSurveyManager {
 			} catch (Exception e) {
 				// If we can't get the question details for this data then that is ok
 			}
+			
+			/*
+			 * Round decimals if required
+			 */
+			if(r.type.equals("decimal") && di.round >= 0) {
+				try {
+					StringBuilder f = new StringBuilder("0.");
+					for(int i = 0; i < di.round; i++) {
+						f.append("0");
+					}
+					DecimalFormat decimalFormat = new DecimalFormat(f.toString());
+					double dv = Double.parseDouble(r.value);
+					r.value = decimalFormat.format(dv);
+				} catch (Exception e) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
+			}
 
 			/*
 			 * Set the value based on the result
@@ -607,18 +626,18 @@ public class PDFSurveyManager {
 				}
 
 
-			} else if(di.tsep && r.type.equals("int")) {
+			} else if(di.tsep && (r.type.equals("int") || (r.type.equals("string") && r.value != null && !r.value.contains(".")))) {
 				long iValue = 0;
 				try {
-					iValue = Long.parseLong(di.value);
+					iValue = Long.parseLong(r.value.replace(",", ""));
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
 				value = String.format("%,d", iValue);
-			} else if(di.tsep && r.type.equals("decimal")) {
+			} else if(di.tsep && (r.type.equals("decimal") || (r.type.equals("string") && r.value != null && r.value.contains(".")))) {
 				Double dValue = 0.0;
 				try {
-					dValue = Double.parseDouble(di.value);
+					dValue = Double.parseDouble(r.value.replace(",", ""));
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
@@ -1743,6 +1762,23 @@ public class PDFSurveyManager {
 		// Questions that append their values to this question
 		ArrayList<String> deps = gv.addToList.get(di.fIdx + "_" + di.rec_number + "_" + di.name);
 
+		/*
+		 * Round decimals if required
+		 */
+		if(di.type.equals("decimal") && di.round >= 0) {
+			try {
+				StringBuilder f = new StringBuilder("0.");
+				for(int i = 0; i < di.round; i++) {
+					f.append("0");
+				}
+				DecimalFormat decimalFormat = new DecimalFormat(f.toString());
+				double dv = Double.parseDouble(di.value);
+				di.value = decimalFormat.format(dv);
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
+		}
+		
 		if(di.type.startsWith("select")) {
 			processSelect(parser, remoteUser, valueCell, di, generateBlank, gv, oId);
 		} else if (di.type.equals("image")) {
@@ -1870,19 +1906,19 @@ public class PDFSurveyManager {
 
 			valueCell.addElement((qrcodeImage));
 
-		} else if(di.tsep && di.type.equals("int")) {
+		} else if(di.tsep && (di.type.equals("int") || (di.type.equals("string") && di.value != null && !di.value.contains(".")))) {
 			long iValue = 0;
 			try {
-				iValue = Long.parseLong(di.value);
+				iValue = Long.parseLong(di.value.replace(",", ""));
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 			String value = String.format("%,d", iValue);
 			valueCell.addElement(getPara(value, di, gv, deps, null));
-		} else if(di.tsep && di.type.equals("decimal")) {
+		} else if(di.tsep && (di.type.equals("decimal") || (di.type.equals("string") && di.value != null && di.value.contains(".")))) {
 			Double dValue = 0.0;
 			try {
-				dValue = Double.parseDouble(di.value);
+				dValue = Double.parseDouble(di.value.replace(",", ""));
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}

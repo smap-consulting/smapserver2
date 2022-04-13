@@ -3860,30 +3860,7 @@ public class SurveyManager {
 							basePath,
 							delData,
 							tables);
-					
-					/*
-					 * Delete survey templates unless the survey is being replaced
-					 */
-					if(newSurveyId == 0) {
-						sql = "delete from survey_template where ident = ?";	
-						try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-						pstmt = sd.prepareStatement(sql);
-						pstmt.setString(1, surveyIdent);
-						log.info("Delete survey templates: " + pstmt.toString());
-						pstmt.executeUpdate();
-						
-						// Delete the template files
-						try {
-							GeneralUtilityMethods.deleteTemplateFiles(surveyDisplayName, basePath, projectId );
-						} catch (Exception e) {
-							log.info("Error deleting templates: " + surveyDisplayName + " : " + e.getMessage());
-						}
-						try {
-							GeneralUtilityMethods.deleteDirectory(basePath + "/templates/survey/" + surveyIdent);
-						} catch (Exception e) {
-							log.info("Error deleting pdf templates: " + surveyDisplayName + " : " + e.getMessage());
-						}
-					} 
+
 				}
 	
 			} else {
@@ -3900,7 +3877,7 @@ public class SurveyManager {
 					int idx = surveyName.lastIndexOf('/');
 					newName = surveyName;
 					if(idx > 0) {
-						newName = surveyName.substring(0, idx + 1) + GeneralUtilityMethods.convertDisplayNameToFileName(newDisplayName) + ".xml";
+						newName = surveyName.substring(0, idx + 1) + GeneralUtilityMethods.convertDisplayNameToFileName(newDisplayName, false) + ".xml";
 					}
 				}
 	
@@ -4991,20 +4968,6 @@ public class SurveyManager {
 				if(rs.next()) {
 					t.filepath = templateFile.getAbsolutePath();
 					t.name = templateFile.getName();
-					/*
-					if(t.name != null && t.name.trim().length() > 0) {
-						t.fromSettings = true;
-						
-						int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
-						String displayName = GeneralUtilityMethods.getSurveyName(sd, sId);
-						String filename = GeneralUtilityMethods.getSafeTemplateName(displayName);
-						filename += "_template.pdf";
-						
-						int pId = GeneralUtilityMethods.getProjectId(sd, sId);
-						String folderPath = basepath + "/templates/" + pId ;						
-						t.filepath = folderPath + "/" + filename;
-					}
-					*/
 				}
 			}
 			

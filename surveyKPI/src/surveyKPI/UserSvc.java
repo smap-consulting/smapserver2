@@ -35,8 +35,10 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.PasswordManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.GroupSurvey;
@@ -201,11 +203,12 @@ public class UserSvc extends Application {
 	 */
 	@POST
 	@Consumes("application/json")
-	public Response updateUser(@Context HttpServletRequest request, @FormParam("user") String user) { 
+	public Response updateUser(@Context HttpServletRequest request,
+			@FormParam("user") String user) { 
 		
 		Response response = null;
 
-		// Authorisation - Not Required
+		// Authorisation - Not Required - the user is updating their own settings
 		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
 		
 		Type type = new TypeToken<User>(){}.getType();		
@@ -240,15 +243,15 @@ public class UserSvc extends Application {
 					// log but otherwise ignore any errors
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
-			}
-			
-			
+			}			
+
 			/*
 			 * Update what can be updated by the user, excluding the current project id, survey id, form id and task group
 			 */
 			String pwdString = null;
 			String sql = null;
 			String ident = request.getRemoteUser();
+			PasswordManager pwm  = null;
 			if(u.password == null) {
 				// Do not update the password
 				sql = "update users set "
@@ -261,6 +264,13 @@ public class UserSvc extends Application {
 						+ "ident = ?";
 			} else {
 				// Update the password
+				
+				/*
+				 * Verify that the password is strong enough
+				 */
+				pwm = new PasswordManager(sd, locale, localisation, request.getRemoteUser(), request.getServerName());
+				pwm.checkStrength(u.password);
+				
 				sql = "update users set "
 						+ "name = ?, " 
 						+ "settings = ?, "
@@ -275,6 +285,7 @@ public class UserSvc extends Application {
 				
 				// Delete any session keys for this user
 				GeneralUtilityMethods.deleteAccessKeys(sd, u.ident);
+
 			}
 			
 			pstmt = sd.prepareStatement(sql);
@@ -289,11 +300,16 @@ public class UserSvc extends Application {
 				pstmt.setString(6, pwdString);
 				pstmt.setString(7, ident);
 			}
-			
-			log.info("userevent: " + request.getRemoteUser() + (u.password == null ? " : updated user details : " : " : updated password : ") + u.name);
-			lm.writeLog(sd, -1, request.getRemoteUser(), "user details", (u.password == null ? "updated user details" : "updated password"), 0, request.getServerName());
 			log.info("Update user details: " + pstmt.toString());
 			pstmt.executeUpdate();
+			
+			// Write logs
+			log.info("userevent: " + request.getRemoteUser() + (u.password == null ? " : updated user details : " : " : updated password : ") + u.name);
+			if(pwm != null) {
+				pwm.logReset();
+			} else {
+				lm.writeLog(sd, -1, request.getRemoteUser(), "user details", "updated user details", 0, request.getServerName());
+			}			
 			
 			UserManager um = new UserManager(localisation);
 			User userResp = um.getByIdent(sd, request.getRemoteUser());
@@ -302,6 +318,10 @@ public class UserSvc extends Application {
 			String resp = gson.toJson(userResp);
 			response = Response.ok(resp).build();
 			
+			
+		} catch (ApplicationException e) {
+			String msg = "{\"error\": true, \"msg\": \"" + e.getMessage() + "\"}";
+			response = Response.ok(msg).build();
 			
 		} catch (Exception e) {
 

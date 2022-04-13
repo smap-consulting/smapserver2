@@ -115,7 +115,8 @@ create TABLE server (
 	doc_server_password text,
 	keep_erased_days integer default 0,
 	billing_enabled boolean default false,
-	css text
+	css text,
+	password_strength decimal default 0.0
 	);
 ALTER TABLE server OWNER TO ws;
 
@@ -206,6 +207,7 @@ create TABLE organisation (
 	dashboard_region text,
 	dashboard_arn text,
 	dashboard_session_name text,
+	password_strength decimal default 0.0,
 	changed_ts TIMESTAMP WITH TIME ZONE
 	);
 CREATE UNIQUE INDEX idx_organisation ON organisation(name);
@@ -1465,6 +1467,7 @@ create TABLE last_refresh_log (
 	appversion text
 	);
 SELECT AddGeometryColumn('last_refresh_log', 'geo_point', 4326, 'POINT', 2);
+create index idx_refresh_time on last_refresh_log (refresh_time);
 ALTER TABLE last_refresh_log OWNER TO ws;
 
 -- Group Surveys

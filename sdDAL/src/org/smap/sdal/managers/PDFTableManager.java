@@ -313,64 +313,8 @@ public class PDFTableManager {
 					
 		return repeats;
 	}
-	/*
-	 * Set the attributes for this question from keys set in the appearance column
-	 */
-	void setQuestionFormats(String appearance, DisplayItem di) {
 	
-		if(appearance != null) {
-			String [] appValues = appearance.split(" ");
-			if(appearance != null) {
-				for(int i = 0; i < appValues.length; i++) {
-					if(appValues[i].startsWith("pdflabelbg")) {
-						setColor(appValues[i], di, true);
-					} else if(appValues[i].startsWith("pdfvaluebg")) {
-						setColor(appValues[i], di, false);
-					} else if(appValues[i].startsWith("pdflabelw")) {
-						setWidths(appValues[i], di);
-					} else if(appValues[i].startsWith("pdfheight")) {
-						setHeight(appValues[i], di);
-					} else if(appValues[i].startsWith("pdfspace")) {
-						setSpace(appValues[i], di);
-					} else if(appValues[i].equals("pdflabelcaps")) {
-						di.labelcaps = true;
-					} else if(appValues[i].equals("pdflabelbold")) {
-						di.labelbold = true;
-					}
-				}
-			}
-		}
-	}
-	
-	/*
-	 * Get the color values for a single appearance value
-	 * Format is:  xxxx_0Xrr_0Xgg_0xbb
-	 */
-	void setColor(String aValue, DisplayItem di, boolean isLabel) {
-		
-		BaseColor color = null;
-		
-		String [] parts = aValue.split("_");
-		if(parts.length >= 4) {
-			if(parts[1].startsWith("0x")) {
-				color = new BaseColor(Integer.decode(parts[1]), 
-						Integer.decode(parts[2]),
-						Integer.decode(parts[3]));
-			} else {
-				color = new BaseColor(Integer.decode("0x" + parts[1]), 
-					Integer.decode("0x" + parts[2]),
-					Integer.decode("0x" + parts[3]));
-			}
-		}
-		
-		if(isLabel) {
-			di.labelbg = color;
-		} else {
-			di.valuebg = color;
-		}
 
-	}
-	
 	/*
 	 * Set the widths of the label and the value
 	 * Appearance is:  pdflabelw_## where ## is a number from 0 to 10

@@ -354,8 +354,8 @@ public class GeneralUtilityMethods {
 	static public void renameTemplateFiles(String oldName, String newName, String basePath, int oldProjectId,
 			int newProjectId) throws IOException {
 
-		String oldFileName = convertDisplayNameToFileName(oldName);
-		String newFileName = convertDisplayNameToFileName(newName);
+		String oldFileName = convertDisplayNameToFileName(oldName, false);
+		String newFileName = convertDisplayNameToFileName(newName, false);
 
 		String fromDirectory = basePath + "/templates/" + oldProjectId;
 		String toDirectory = basePath + "/templates/" + newProjectId;
@@ -415,7 +415,7 @@ public class GeneralUtilityMethods {
 	 */
 	static public void deleteTemplateFiles(String name, String basePath, int projectId) throws IOException {
 
-		String fileName = convertDisplayNameToFileName(name);
+		String fileName = convertDisplayNameToFileName(name, false);	// Note legacy templates will not be deleted now but should be picked up by purge
 
 		String directory = basePath + "/templates/" + projectId;
 		log.info("Deleting files in " + directory + " with stem: " + fileName);
@@ -531,12 +531,22 @@ public class GeneralUtilityMethods {
 				if(templateFile == null || !templateFile.exists()) {  // Try legacy templates
 					
 					if(displayName != null) {
-						String templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName)
+						String templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName, false)
 							+ "_template.pdf";
 		
 						log.info("Attempt to get a pdf template with name: " + templateName);
 						templateFile = new File(templateName);
+						
+						if(templateFile == null || !templateFile.exists()) {  // Try legacy names
+							// Try legacy template names
+							templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName, true)
+								+ "_template.pdf";
+		
+						log.info("Attempt to get a pdf template with name: " + templateName);
+						templateFile = new File(templateName);
+						}
 					}
+					
 				}
 			} 
 		} finally {
@@ -558,11 +568,20 @@ public class GeneralUtilityMethods {
 		File templateFile = null;
 
 		if(displayName != null) {
-			String templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName)
+			String templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName, false)
 						+ "_template.pdf";
 			
 			log.info("Attempt to get a pdf template with name: " + templateName);
 			templateFile = new File(templateName);	
+			
+			if(templateFile == null || !templateFile.exists()) {  // Try legacy names
+				// Try legacy template names
+				templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName, true)
+					+ "_template.pdf";
+
+				log.info("Attempt to get a pdf template with name: " + templateName);
+				templateFile = new File(templateName);
+			}
 		}
 		/*
 		 * Check that the template file exists
@@ -590,14 +609,14 @@ public class GeneralUtilityMethods {
 	/*
 	 * convert display name to file name
 	 */
-	static public String convertDisplayNameToFileName(String name) {
-		// Remove special characters from the display name. Use the display name rather
-		// than the source name as old survey files had spaces replaced by "_" wheras
-		// source name had the space removed
+	static public String convertDisplayNameToFileName(String name, boolean legacy) {
+		// Remove special characters from the display name. 
 		String specRegex = "[\\.\\[\\\\^\\$\\|\\?\\*\\+\\(\\)\\]\"\';,:!@#&%/{}<>-]";
 		String file_name = name.replaceAll(specRegex, "");
 		file_name = file_name.replaceAll(" ", "_");
-		file_name = file_name.replaceAll("\\P{Print}", "_"); // remove all non printable (non ascii) characters.
+		if(legacy) {
+			file_name = file_name.replaceAll("\\P{Print}", "_"); // remove all non printable (non ascii) characters.  This removed unicode not needed
+		}
 
 		return file_name;
 	}
@@ -1185,7 +1204,8 @@ public class GeneralUtilityMethods {
 				+ "e_id,"
 				+ "limits,"
 				+ "refresh_rate,"
-				+ "api_rate_limit "
+				+ "api_rate_limit,"
+				+ "password_strength "
 				+ "from organisation "
 				+ "where organisation.id = ? "
 				+ "order by name asc;";			
@@ -1243,6 +1263,7 @@ public class GeneralUtilityMethods {
 				org.limits = (limits == null) ? null : gson.fromJson(limits, new TypeToken<HashMap<String, Integer>>() {}.getType());
 				org.refresh_rate = resultSet.getInt("refresh_rate");
 				org.api_rate_limit = resultSet.getInt("api_rate_limit");
+				org.password_strength = resultSet.getDouble("password_strength");
 			}
 
 	
@@ -2019,21 +2040,6 @@ public class GeneralUtilityMethods {
 
 		return serverName;
 
-	}
-
-	/*
-	 * Get Safe Template File Name Returns safe file names from the display name for
-	 * the template
-	 */
-	static public String getSafeTemplateName(String targetName) {
-		String specRegex = "[\\.\\[\\\\^\\$\\|\\?\\*\\+\\(\\)\\]\"\';,:!@#&%/{}<>-]";
-		targetName = targetName.replaceAll(specRegex, "");
-		targetName = targetName.replaceAll(" ", "_");
-		// The target name is not shown to users so it doesn't need to support unicode,
-		// however pyxform fails if it includes unicode chars
-		targetName = targetName.replaceAll("\\P{Print}", "_"); // remove all non printable (non ascii) characters.
-
-		return targetName;
 	}
 
 	/*

@@ -34,6 +34,7 @@ public class DisplayItem {
 	public String account;
 	public String location;
 	public String zoom;					// Map zoom
+	public int round = -1;
 	public boolean isBarcode = false;
 	public boolean isSignature = false;
 	public boolean isHyperlink = false;

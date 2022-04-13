@@ -851,7 +851,7 @@ public class UploadFiles extends Application {
 			 * Save the file to disk
 			 */
 			String fileFolder = basePath + "/templates/" + projectId +"/"; 
-			String targetName = GeneralUtilityMethods.getSafeTemplateName(displayName);
+			String targetName = GeneralUtilityMethods.convertDisplayNameToFileName(displayName, false);
 			String filePath = fileFolder + targetName + "." + type;
 			
 			// 1. Create the project folder if it does not exist
