@@ -538,7 +538,7 @@ public class PDFSurveyManager {
 			/*
 			 * Round decimals if required
 			 */
-			if(r.type.equals("decimal") && di.round >= 0) {
+			if(r.type.equals("decimal") && di.round >= 0  && r.value != null && r.value.trim().length() > 0) {
 				try {
 					StringBuilder f = new StringBuilder("0.");
 					for(int i = 0; i < di.round; i++) {
@@ -1765,7 +1765,7 @@ public class PDFSurveyManager {
 		/*
 		 * Round decimals if required
 		 */
-		if(di.type.equals("decimal") && di.round >= 0) {
+		if(di.type.equals("decimal") && di.round >= 0 && di.value != null && di.value.trim().length() > 0) {
 			try {
 				StringBuilder f = new StringBuilder("0.");
 				for(int i = 0; i < di.round; i++) {

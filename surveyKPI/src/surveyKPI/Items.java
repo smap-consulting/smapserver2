@@ -695,7 +695,7 @@ public class Items extends Application {
 						/*
 						 * Truncate number of decimal places
 						 */
-						if(types.get(i).equals("decimal")) {
+						if(types.get(i).equals("decimal") && value.trim().length() > 0) {
 							try {
 								double dv = Double.parseDouble(value);
 								value = decimalFormat.format(dv);
