@@ -114,8 +114,14 @@ public class BackgroundReportsManager {
 				}
 				
 			} catch (Exception e) {
+				String msg = e.getMessage(); 
+				if(msg == null) {
+					if(e.getClass().getName().equals("org.smap.sdal.Utilities.AuthorisationException")) {
+						msg = localisation.getString("ae");
+					}
+				}
 				log.log(Level.SEVERE, e.getMessage(), e);
-				updateReportStatus(sd, report.id, false, null, e.getMessage());
+				updateReportStatus(sd, report.id, false, null, msg);
 			}
 		}
 		return true;

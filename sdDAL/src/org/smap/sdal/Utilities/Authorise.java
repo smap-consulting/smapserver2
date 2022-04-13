@@ -82,6 +82,24 @@ public class Authorise {
 	 * Check to see if the user has the rights to perform the requested action
 	 */
 	public boolean isAuthorised(Connection sd, String user) {
+		
+		authoriseUser(sd, user, true);
+ 		
+		return true;
+	}
+	
+	/*
+	 * Check to see if the user has the rights to perform the requested action
+	 */
+	public boolean isAuthorisedNoClose(Connection sd, String user) {
+		
+		authoriseUser(sd, user, false);
+ 		
+		return true;
+	}
+	
+	
+	private void authoriseUser(Connection sd, String user, boolean closeConnectionOnError) {
 		ResultSet resultSet = null;
 		PreparedStatement pstmt = null;
 		int count = 0;
@@ -146,18 +164,17 @@ public class Authorise {
  			
  			lm.writeLog(sd, 0, user, LogManager.ERROR, msg.toString(), 0, null);		// Write the application log
  			
- 			// Close the connection as throwing an exception will end the service call
-			
- 			SDDataSource.closeConnection("isAuthorised", sd);
+ 			// Close the connection as throwing an exception will end the service call			
+ 			if(closeConnectionOnError) {
+ 				SDDataSource.closeConnection("isAuthorised", sd);
+ 			}
 			
 			if(sqlError) {
 				throw new ServerException();
 			} else {
-				throw new AuthorisationException();
+				throw new AuthorisationException(msg.toString());
 			}
 		} 
- 		
-		return true;
 	}
 	
 	/*

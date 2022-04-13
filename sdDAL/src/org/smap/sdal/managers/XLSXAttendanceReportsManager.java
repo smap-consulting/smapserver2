@@ -69,6 +69,7 @@ public class XLSXAttendanceReportsManager {
 		
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.ANALYST);
 		a = new Authorise(authorisations, null);
 		
 		ArrayList<String> authorisationsOrg = new ArrayList<String> ();	
@@ -96,9 +97,9 @@ public class XLSXAttendanceReportsManager {
 		
 		// start validation			
 		if(oId > 0) {
-			aOrg.isAuthorised(sd, user);
+			aOrg.isAuthorisedNoClose(sd, user);
 		} else {
-			a.isAuthorised(sd, user);
+			a.isAuthorisedNoClose(sd, user);
 		}
 
 		if(oId <= 0) {
