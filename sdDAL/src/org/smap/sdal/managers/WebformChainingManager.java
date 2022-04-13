@@ -85,4 +85,65 @@ public class WebformChainingManager {
 	}
 	
 
+	/*
+	 * write a rule to the database
+	 */
+	public void writeRule(Connection sd, String user, String serverName, int sId, WebformChainRule rule) throws SQLException {
+		
+
+		String sqlNew = "insert into wf_chain "
+				+ "(survey_ident, type, new_survey_ident, instance, rule) "
+				+ "values(?, ?, ?, ?, ?) ";
+		
+		String sqlUpdate = "update wf_chain "
+				+ "set type = ?,"
+				+ "new_survey_ident = ?,"
+				+ "instance = ?,"
+				+ "rule = ? "
+				+ "where id = ? "
+				+ "and survey_ident = ?";
+
+		PreparedStatement pstmt = null;
+		
+		
+		try {
+	
+			if(rule.rule == null) {
+				rule.rule = "";		// Rule can be empty, it indicates a default
+			}
+			String msg;
+			if(rule.id <= 0) {
+				pstmt = sd.prepareStatement(sqlNew);
+				pstmt.setString(1, rule.sIdent);
+				pstmt.setString(2, rule.type);
+				pstmt.setString(3, rule.newSurveyIdent);
+				pstmt.setBoolean(4, rule.instance);
+				pstmt.setString(5, rule.rule);
+				
+				msg = localisation.getString("lm_ncr");				
+				
+			} else {
+				pstmt = sd.prepareStatement(sqlUpdate);	
+				pstmt.setString(1, rule.type);
+				pstmt.setString(2, rule.newSurveyIdent);
+				pstmt.setBoolean(3, rule.instance);
+				pstmt.setString(4, rule.rule);
+				pstmt.setInt(5,rule.id);
+				pstmt.setString(6, rule.sIdent);
+				
+				msg = localisation.getString("lm_ucr");
+			}
+
+			log.info("Webform chain rule: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+			msg = msg.replace("%s1", rule.rule);
+			lm.writeLog(sd, sId, user, LogManager.CHAIN, msg, 0, serverName);
+			
+		} finally {
+
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+		}
+		
+	}
 }

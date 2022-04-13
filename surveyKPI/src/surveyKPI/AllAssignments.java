@@ -148,9 +148,7 @@ public class AllAssignments extends Application {
 		}
 		// End Authorisation
 
-		if(sId > 0) {
-			lm.writeLog(sd, sId, request.getRemoteUser(), "create tasks", "Create tasks from survey data", 0, request.getServerName());
-		}
+	
 
 		Connection cResults = null; 
 		PreparedStatement pstmt = null;
@@ -165,6 +163,10 @@ public class AllAssignments extends Application {
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			if(sId > 0) {
+				lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.TASK, localisation.getString("lm_ctsd"), 0, request.getServerName());
+			}
 			
 			String target_survey_ident = GeneralUtilityMethods.getSurveyIdent(sd, as.target_survey_id);
 			

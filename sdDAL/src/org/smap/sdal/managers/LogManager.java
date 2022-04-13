@@ -45,6 +45,7 @@ public class LogManager {
 	public static String API_VIEW = "API view";
 	public static String API_AUDIT_VIEW = "API audit view";
 	public static String API_SINGLE_VIEW = "API single record view";
+	public static String CHAIN = "Webform Chaining";
 	public static String CREATE = "create";
 	public static String CREATE_PDF = "create pdf";
 	public static String DASHBOARD_VIEW = "dashboard view";

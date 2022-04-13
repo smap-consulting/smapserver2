@@ -84,9 +84,9 @@ public class Reports extends Application {
 			) { 
 		
 		Response response = null;
-		
+		String connectionString = "surveyKPI - Reports - GetLink";
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI - Reports - GetLink");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -146,7 +146,7 @@ public class Reports extends Application {
 			log.log(Level.SEVERE,"Error", e);
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI - Reports - GetLink", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
