@@ -1657,3 +1657,18 @@ create TABLE background_report (
 	end_time TIMESTAMP WITH TIME ZONE
 );
 ALTER TABLE background_report OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS wf_chain_seq CASCADE;
+CREATE SEQUENCE wf_chain_seq START 1;
+ALTER SEQUENCE wf_chain_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS wf_chain;
+create TABLE wf_chain (
+	id integer DEFAULT NEXTVAL('wf_chain_seq') CONSTRAINT pk_wf_chain PRIMARY KEY,
+	survey_ident text,
+	type text,
+	new_survey_ident text,
+	instance boolean,
+	rule text
+);
+ALTER TABLE wf_chain OWNER TO ws;
