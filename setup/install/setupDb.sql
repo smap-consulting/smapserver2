@@ -1669,6 +1669,7 @@ create TABLE wf_chain (
 	type text,
 	new_survey_ident text,
 	instance boolean,
-	rule text
+	rule text,
+	seq integer
 );
 ALTER TABLE wf_chain OWNER TO ws;
