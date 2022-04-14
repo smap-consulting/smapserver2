@@ -3,6 +3,7 @@
 	<name>sdDataAccess</name>
 	<comment></comment>
 	<projects>
+		<project>sdDAL</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
