@@ -47,12 +47,13 @@ public class WebformChainingManager {
 	}
 	
 	/*
-	 * Get the webform chain rules for a project
+	 * Get the webform chain rules for a survey
 	 */
 	public ArrayList<WebformChainRule> getRules(Connection sd, String sIdent) throws SQLException {
 		
 
-		String sql = "select id, type, new_survey_ident, instance, rule "
+		String sql = "select id, type, new_survey_ident, instance, rule, "
+				+ "(select display_name from survey where ident = new_survey_ident) as new_survey_name "
 				+ "from wf_chain "
 				+ "where survey_ident = ? "
 				+ "order by seq asc";
@@ -64,6 +65,7 @@ public class WebformChainingManager {
 	
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sIdent);
+			log.info("Get chain rules: " + pstmt.toString());
 
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
@@ -74,6 +76,7 @@ public class WebformChainingManager {
 				r.newSurveyIdent = rs.getString("new_survey_ident");
 				r.instance = rs.getBoolean("instance");
 				r.rule = rs.getString("rule");
+				r.newSurveyName = rs.getString("new_survey_name");
 				rules.add(r);
 			}
 			

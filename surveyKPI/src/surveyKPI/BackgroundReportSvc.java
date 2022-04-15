@@ -106,7 +106,7 @@ public class BackgroundReportSvc extends Application {
 					+ "from background_report br, users u "
 					+ "where br.u_id = u.id "
 					+ "and br.o_id = ? "
-					+ "and br.p_id = ? "
+					+ "and (br.p_id = ? or br.p_id = 0) "
 					+ "and (u.ident = ? or br.share) "
 					+ "order by br.id desc";
 			pstmt = sd.prepareStatement(sql);
