@@ -194,7 +194,6 @@ public class XLSXAttendanceReportsManager {
 				log.info("Get attendance: " + pstmtDurn.toString());
 				ResultSet rsDurn = pstmtDurn.executeQuery();
 				if(rsDurn.next()) {
-					System.out.println("Start: " + rsDurn.getString(1) + " End: " + rsDurn.getString(2) + " : Durn: " + rsDurn.getString(3));
 					ar.firstRefresh = rsDurn.getTimestamp(1);
 					ar.lastRefresh = rsDurn.getTimestamp(2);
 					ar.duration = rsDurn.getString(3);
