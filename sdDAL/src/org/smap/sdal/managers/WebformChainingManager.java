@@ -52,11 +52,12 @@ public class WebformChainingManager {
 	public ArrayList<WebformChainRule> getRules(Connection sd, String sIdent) throws SQLException {
 		
 
-		String sql = "select id, type, new_survey_ident, instance, rule, "
-				+ "(select display_name from survey where ident = new_survey_ident) as new_survey_name "
-				+ "from wf_chain "
-				+ "where survey_ident = ? "
-				+ "order by seq asc";
+		String sql = "select w.id, w.type, w.new_survey_ident, w.instance, rule, s.display_name as new_survey_name, s.s_id as new_survey_id "
+				+ "from wf_chain w "
+				+ "left outer join survey s on "
+				+ "w.new_survey_ident = s.ident "
+				+ "where w.survey_ident = ? "
+				+ "order by w.seq asc";
 		PreparedStatement pstmt = null;
 		
 		ArrayList<WebformChainRule> rules = new ArrayList<> ();
@@ -74,6 +75,7 @@ public class WebformChainingManager {
 				r.id = rs.getInt("id");
 				r.type = rs.getString("type");
 				r.newSurveyIdent = rs.getString("new_survey_ident");
+				r.newSurveyId = rs.getInt("new_survey_id");
 				r.instance = rs.getBoolean("instance");
 				r.rule = rs.getString("rule");
 				r.newSurveyName = rs.getString("new_survey_name");
