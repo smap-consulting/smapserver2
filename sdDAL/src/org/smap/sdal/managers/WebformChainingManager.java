@@ -52,7 +52,8 @@ public class WebformChainingManager {
 	public ArrayList<WebformChainRule> getRules(Connection sd, String sIdent) throws SQLException {
 		
 
-		String sql = "select w.id, w.type, w.new_survey_ident, w.instance, rule, s.display_name as new_survey_name, s.s_id as new_survey_id "
+		String sql = "select w.id, w.type, w.new_survey_ident, w.instance, rule, "
+				+ "s.display_name as new_survey_name, s.s_id as new_survey_id, w.seq "
 				+ "from wf_chain w "
 				+ "left outer join survey s on "
 				+ "w.new_survey_ident = s.ident "
@@ -79,6 +80,7 @@ public class WebformChainingManager {
 				r.instance = rs.getBoolean("instance");
 				r.rule = rs.getString("rule");
 				r.newSurveyName = rs.getString("new_survey_name");
+				r.seq = rs.getInt("seq");
 				rules.add(r);
 			}
 			
@@ -97,14 +99,15 @@ public class WebformChainingManager {
 		
 
 		String sqlNew = "insert into wf_chain "
-				+ "(survey_ident, type, new_survey_ident, instance, rule) "
-				+ "values(?, ?, ?, ?, ?) ";
+				+ "(survey_ident, type, new_survey_ident, instance, rule, seq) "
+				+ "values(?, ?, ?, ?, ?, ?) ";
 		
 		String sqlUpdate = "update wf_chain "
 				+ "set type = ?,"
 				+ "new_survey_ident = ?,"
 				+ "instance = ?,"
-				+ "rule = ? "
+				+ "rule = ?, "
+				+ "seq = ? "
 				+ "where id = ? "
 				+ "and survey_ident = ?";
 
@@ -124,6 +127,7 @@ public class WebformChainingManager {
 				pstmt.setString(3, rule.newSurveyIdent);
 				pstmt.setBoolean(4, rule.instance);
 				pstmt.setString(5, rule.rule);
+				pstmt.setInt(6, rule.seq);
 				
 				msg = localisation.getString("lm_ncr");				
 				
@@ -133,8 +137,9 @@ public class WebformChainingManager {
 				pstmt.setString(2, rule.newSurveyIdent);
 				pstmt.setBoolean(3, rule.instance);
 				pstmt.setString(4, rule.rule);
-				pstmt.setInt(5,rule.id);
-				pstmt.setString(6, rule.sIdent);
+				pstmt.setInt(5, rule.seq);
+				pstmt.setInt(6,rule.id);
+				pstmt.setString(7, rule.sIdent);
 				
 				msg = localisation.getString("lm_ucr");
 			}

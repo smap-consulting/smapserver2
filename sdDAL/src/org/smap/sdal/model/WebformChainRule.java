@@ -9,5 +9,5 @@ public class WebformChainRule {
 	public String newSurveyName;		// Used by the client to show to the user
 	public boolean instance;			// If true the new surveys is an instance
 	public String rule;
-	
+	public int seq;	
 }
