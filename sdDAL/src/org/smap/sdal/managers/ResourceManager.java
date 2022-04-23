@@ -11,6 +11,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.Limit;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -48,10 +49,10 @@ public class ResourceManager {
 	/*
 	 * Get the limit for a resource
 	 */
-	public int getLimit(Connection sd, int oId, String resource) {
-		int limit = 0;
+	public Limit getLimit(Connection sd, int oId, String resource) {
+		Limit limit = new Limit();
 		
-		String sql = "select limits "
+		String sql = "select limits, limit_type "
 				+ " from organisation where id = ?";		
 		PreparedStatement pstmt = null;
 		
@@ -62,12 +63,14 @@ public class ResourceManager {
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				String limitString = rs.getString(1);
+				limit.type = rs.getString(2);
+				
 				if(limitString != null) {
 					HashMap<String, Integer> limits = gson.fromJson(limitString, 
 							new TypeToken<HashMap<String, Integer>>() {}.getType());
 					Integer l = limits.get(resource);
 					if(l != null) {
-						limit = l;
+						limit.value = l;
 					}
 				}
 			}
@@ -203,16 +206,16 @@ public class ResourceManager {
 			String resource) throws SQLException {
 		
 		boolean decision = false;
-		int limit = getLimit(sd, oId, resource);
+		Limit limit = getLimit(sd, oId, resource);
 		String period = "";
 		int usage = 0;
 		
 		// A limit of 0 for submissions means no restrictions
-		if(limit == 0 && resource.equals(LogManager.SUBMISSION)) {
+		if(limit.value == 0 && resource.equals(LogManager.SUBMISSION)) {
 			return true;
 		}
 		
-		if(limit > 0) {
+		if(limit.value > 0) {
 			
 			LocalDate d = LocalDate.now();
 			int month = d.getMonth().getValue();
@@ -220,7 +223,7 @@ public class ResourceManager {
 			period = String.valueOf(year) + String.valueOf(month);
 			
 			usage = getUsage(sd, oId, resource, month, year);
-			decision = usage < limit;
+			decision = usage < limit.value;
 		}
 		
 		if(!decision) {

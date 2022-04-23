@@ -6,6 +6,8 @@
 		<project>sdDAL</project>
 		<project>sdDataAccess</project>
 		<project>amazon</project>
+		<project>surveyKPI</project>
+		<project>surveyMobileAPI</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
