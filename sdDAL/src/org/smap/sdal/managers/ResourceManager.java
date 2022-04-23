@@ -217,12 +217,19 @@ public class ResourceManager {
 		
 		if(limit.value > 0) {
 			
-			LocalDate d = LocalDate.now();
-			int month = d.getMonth().getValue();
-			int year = d.getYear();
-			period = String.valueOf(year) + String.valueOf(month);
+			if(limit.type.equals(Limit.ALLTIME)) {
+				usage = getUsage(sd, oId, resource);
+				
+			} else {
+				// assume monthly
+
+				LocalDate d = LocalDate.now();
+				int month = d.getMonth().getValue();
+				int year = d.getYear();
+				period = String.valueOf(year) + String.valueOf(month);
 			
-			usage = getUsage(sd, oId, resource, month, year);
+				usage = getUsage(sd, oId, resource, month, year);
+			}
 			decision = usage < limit.value;
 		}
 		
