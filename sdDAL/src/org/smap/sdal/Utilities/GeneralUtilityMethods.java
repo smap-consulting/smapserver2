@@ -2421,7 +2421,9 @@ public class GeneralUtilityMethods {
 
 		String hrk = null;
 
-		String sql = "select hrk " + " from survey " + " where s_id = ?;";
+		String sql = "select hrk " 
+				+ " from survey " 
+				+ " where s_id = ?";
 
 		PreparedStatement pstmt = null;
 
