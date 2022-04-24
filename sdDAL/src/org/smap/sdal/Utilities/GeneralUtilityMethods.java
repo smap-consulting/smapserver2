@@ -4608,7 +4608,8 @@ public class GeneralUtilityMethods {
 	/*
 	 * Convert names in xls format ${ } to an SQL query
 	 */
-	public static String convertAllxlsNamesToQuery(String input, int sId, Connection sd) throws SQLException, ApplicationException {
+	public static String convertAllxlsNamesToQuery(String input, int sId, 
+			Connection sd, String tableName) throws SQLException, ApplicationException {
 
 		if (input == null) {
 			return null;
@@ -4630,7 +4631,7 @@ public class GeneralUtilityMethods {
 			// Add any text before the match
 			int startOfGroup = matcher.start();
 			item = input.substring(start, startOfGroup).trim();
-			convertSqlFragToHrkElement(item, output);
+			convertSqlFragToHrkElement(sd, sId, item, output, tableName);
 
 			// Add the column name
 			if (output.length() > 0) {
@@ -4655,7 +4656,7 @@ public class GeneralUtilityMethods {
 		// Get the remainder of the string
 		if (start < input.length()) {
 			item = input.substring(start).trim();
-			convertSqlFragToHrkElement(item, output);
+			convertSqlFragToHrkElement(sd, sId, item, output, tableName);
 		}
 
 		return output.toString().trim();
@@ -4708,14 +4709,20 @@ public class GeneralUtilityMethods {
 	/*
 	 * Add a component that is not a data
 	 */
-	private static void convertSqlFragToHrkElement(String item, StringBuffer output) {
+	private static void convertSqlFragToHrkElement(Connection sd, int sId, 
+			String item, StringBuffer output, String tableName) {
 
 		if (item.length() > 0) {
 			if (output.length() > 0) {
 				output.append(" || ");
 			}
-			if (item.contains("serial(")) {
-				int idx0 = item.indexOf("serial(");
+			if (item.contains("serial(") || item.contains("seq(")) {
+				int idx0 = -1;
+				if (item.contains("serial(")) {
+					idx0 = item.indexOf("serial(");
+				} else if(item.contains("seq(")) {
+					idx0 = item.indexOf("seq(");
+				}
 				int idx1 = item.indexOf('(');
 				int idx2 = item.indexOf(')');
 
@@ -4728,17 +4735,35 @@ public class GeneralUtilityMethods {
 					output.append(" || ");
 				}
 				if (idx2 > idx1) {
-					String offset = item.substring(idx1 + 1, idx2);
-					if (offset.trim().length() > 0) {
-						try {
-							Integer.valueOf(offset);
-							output.append("prikey + " + offset);
-						} catch (Exception e) {
-							log.info("Error parsing HRK item: " + item);
+					if (item.contains("serial(")) {
+						String offset = item.substring(idx1 + 1, idx2);
+						if (offset.trim().length() > 0) {
+							try {
+								Integer.valueOf(offset);
+								output.append("prikey + " + offset);
+							} catch (Exception e) {
+								log.info("Error parsing HRK item: " + item);
+								output.append("prikey");
+							}
+						} else {
 							output.append("prikey");
 						}
-					} else {
-						output.append("prikey");
+					} else if (item.contains("seq(")) {
+						String filterColumn = item.substring(idx1 + 1, idx2);
+						if (filterColumn.trim().length() > 0) {
+							try {
+								String columnName = getColumnName(sd, sId, filterColumn.trim());
+								if(columnName != null) {
+									output.append("(select count(*) from " + tableName + " f1 "
+											+ "where f1." + columnName 
+											+ " = m." + columnName
+											+ ")");
+								}
+							} catch (SQLException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}		
 					}
 				} else {
 					log.info("Error parsing HRK item: " + item);

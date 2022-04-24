@@ -373,6 +373,7 @@ public class SubRelationalDB extends Subscriber {
 
 		int sId = survey.id;
 		
+		PreparedStatement pstmt = null;
 		PreparedStatement pstmtHrk = null;
 		PreparedStatement pstmtAddHrk = null;
 		boolean resAutoCommitSetFalse = false;
@@ -444,14 +445,21 @@ public class SubRelationalDB extends Subscriber {
 					pstmtAddHrk.executeUpdate();
 				}
 
-				String sql = "update " + topLevelForm.tableName + " set _hrk = "
-						+ GeneralUtilityMethods.convertAllxlsNamesToQuery(hrk, sId, sd);
-
-				sql += " where _hrk is null;";
-				pstmtHrk = cResults.prepareStatement(sql);
-				log.info("Adding HRK: " + pstmtHrk.toString());
-				pstmtHrk.executeUpdate();
+				String sql = "select prikey from " + topLevelForm.tableName 
+						+ " where _hrk is null "
+						+ "order by prikey asc";
+				pstmt = cResults.prepareStatement(sql);
 				
+				String sqlHrk = "update " + topLevelForm.tableName + " m set _hrk = "
+						+ GeneralUtilityMethods.convertAllxlsNamesToQuery(hrk, sId, sd, topLevelForm.tableName)
+						+ " where prikey = ?;";
+				pstmtHrk = cResults.prepareStatement(sqlHrk);
+				ResultSet rs = pstmt.executeQuery();
+				while(rs.next()) {
+					pstmtHrk.setInt(1, rs.getInt(1));
+					log.info("Applying HRK: " + pstmtHrk.toString());
+					pstmtHrk.executeUpdate();
+				}	
 			}
 
 			/*
@@ -555,6 +563,8 @@ public class SubRelationalDB extends Subscriber {
 			}
 			
 			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {};
+			if(pstmtAddHrk != null) try{pstmtAddHrk.close();}catch(Exception e) {};
+			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
 		}		
 	}
 
