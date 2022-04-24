@@ -4757,7 +4757,7 @@ public class GeneralUtilityMethods {
 									output.append("(select count(*) from " + tableName + " f1 "
 											+ "where f1." + columnName 
 											+ " = m." + columnName
-											+ ")");
+											+ " and f1._hrk is not null) + 1");
 								}
 							} catch (SQLException e) {
 								// TODO Auto-generated catch block
