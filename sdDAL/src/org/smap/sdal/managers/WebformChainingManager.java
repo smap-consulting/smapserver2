@@ -100,14 +100,13 @@ public class WebformChainingManager {
 
 		String sqlNew = "insert into wf_chain "
 				+ "(survey_ident, type, new_survey_ident, instance, rule, seq) "
-				+ "values(?, ?, ?, ?, ?, ?) ";
+				+ "values(?, ?, ?, ?, ?, (select count(*) from wf_chain where survey_ident = ?) + 1) ";
 		
 		String sqlUpdate = "update wf_chain "
 				+ "set type = ?,"
 				+ "new_survey_ident = ?,"
 				+ "instance = ?,"
 				+ "rule = ?, "
-				+ "seq = ? "
 				+ "where id = ? "
 				+ "and survey_ident = ?";
 
@@ -127,7 +126,7 @@ public class WebformChainingManager {
 				pstmt.setString(3, rule.newSurveyIdent);
 				pstmt.setBoolean(4, rule.instance);
 				pstmt.setString(5, rule.rule);
-				pstmt.setInt(6, rule.seq);
+				pstmt.setString(6, rule.sIdent);
 				
 				msg = localisation.getString("lm_ncr");				
 				
@@ -137,9 +136,8 @@ public class WebformChainingManager {
 				pstmt.setString(2, rule.newSurveyIdent);
 				pstmt.setBoolean(3, rule.instance);
 				pstmt.setString(4, rule.rule);
-				pstmt.setInt(5, rule.seq);
-				pstmt.setInt(6,rule.id);
-				pstmt.setString(7, rule.sIdent);
+				pstmt.setInt(5,rule.id);
+				pstmt.setString(6, rule.sIdent);
 				
 				msg = localisation.getString("lm_ucr");
 			}
@@ -153,7 +151,40 @@ public class WebformChainingManager {
 		} finally {
 
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
-		}
+		}		
 		
 	}
+	/*
+	 * write a rule to the database
+	 */
+	public void resequence(Connection sd, String user, String serverName, String sIdent, ArrayList<Integer> seq) throws SQLException {
+		
+		
+		String sql = "update wf_chain "
+				+ "set seq = ? "
+				+ "where id = ? "
+				+ "and survey_ident = ?";
+
+		PreparedStatement pstmt = null;
+		
+		try {
+	
+		
+			String msg;
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setString(3, sIdent);
+			for(int i = 0; i < seq.size(); i++) {
+				pstmt.setInt(1, i + 1);		// Start sequencing from 1
+				pstmt.setInt(2, seq.get(i));
+				
+				pstmt.executeUpdate();
+			}
+
+			
+		} finally {
+
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+		}
+	}
+	
 }

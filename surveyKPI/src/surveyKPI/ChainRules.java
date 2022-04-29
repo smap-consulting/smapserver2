@@ -38,6 +38,8 @@ import org.smap.sdal.model.WebformChainRule;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -166,5 +168,48 @@ public class ChainRules extends Application {
 		return response;
 	}
 	
+	@POST
+	@Produces("application/json")
+	@Path("/resequence/{sId}")
+	public Response resequence(
+			@Context HttpServletRequest request, 
+			@PathParam("sId") int sId,
+			@FormParam("item") String item,
+			@QueryParam("tz") String tz	
+			) {
+		
+		Response response = null;
+		String connectionString = "surveyKPI - Resequence webform chain rules";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+		
+		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);	
+			ArrayList<Integer> seq = gson.fromJson(item, new TypeToken<ArrayList<Integer>>() {}.getType());
+			
+			WebformChainingManager cm = new WebformChainingManager(localisation, "UTC");
+			cm.resequence(sd, request.getRemoteUser(), request.getServerName(), 
+					GeneralUtilityMethods.getSurveyIdent(sd, sId), seq);
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,e.getMessage(), e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		return response;
+	}
 }
 
