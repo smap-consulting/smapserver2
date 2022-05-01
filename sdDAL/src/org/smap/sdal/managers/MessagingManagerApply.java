@@ -293,7 +293,7 @@ public class MessagingManagerApply {
 						}
 	
 					} else {
-						log.log(Level.SEVERE, "Error: Attempt to do email notification but email server not set");
+						log.log(Level.SEVERE, "Error: Messaging: Attempt to do email notification but email server not set");
 						status = localisation.getString("email_cs");
 					}
 					
@@ -386,7 +386,8 @@ public class MessagingManagerApply {
 				+ "and pm.o_id = p.o_id "
 				+ "and p.unsubscribed = false "
 				+ "and (p.opted_in = true or p.o_id in (select id from organisation where not send_optin)) "
-				+ "and pm.processed_time is null";
+				+ "and pm.processed_time is null "
+				+ "order by id asc";	// Send in order
 
 		String sqlConfirm = "update pending_message set processed_time = now(), status = ? where id = ?; ";
 

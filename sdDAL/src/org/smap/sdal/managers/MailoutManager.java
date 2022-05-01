@@ -799,7 +799,7 @@ public class MailoutManager {
 					} else {
 						status = "error";
 						error_details = "smtp_host not set";
-						log.log(Level.SEVERE, "Error: Attempt to do email notification but email server not set");
+						log.log(Level.SEVERE, "Error: Mailout, Attempt to do email notification but email server not set");
 					}
 					
 				}  else {

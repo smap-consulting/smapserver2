@@ -2,10 +2,12 @@ package org.smap.sdal.managers;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -188,6 +190,17 @@ public class MessagingManager {
 				+ "values(?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmt = null;
 		
+		String sqlTrim = "update pending_message "
+				+ "set processed_time = now(), "
+				+ "status = 'auto_cancel' "
+				+ "where id = ?";
+		PreparedStatement pstmtTrim = null;
+		
+		String sqlOld = "select id from pending_message "
+				+ "where o_id = ? "
+				+ "and email = ? "
+				+ "and processed_time is null "
+				+ "order by id desc";
 		try {
 			
 			/*
@@ -202,6 +215,24 @@ public class MessagingManager {
 				pstmt.setInt(5, messageId);
 				log.info("Add pending message: " + pstmt.toString());
 				pstmt.executeUpdate();	
+				
+				// Cancel all but the last 5
+				pstmtTrim = sd.prepareStatement(sqlTrim);
+				
+				try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sqlOld);
+				pstmt.setInt(1,oId);
+				pstmt.setString(2, email);
+				ResultSet rs = pstmt.executeQuery();
+				
+				int count = 0;
+				while(rs.next()) {
+					count++;
+					if(count > 5) {
+						pstmtTrim.setInt(1, rs.getInt(1));
+						pstmtTrim.executeUpdate();
+					}
+				}
 			}
 			
 			/*
@@ -211,9 +242,14 @@ public class MessagingManager {
 				sendOptinEmail(sd, oId, email, 
 						adminEmail, emailServer, emailKey, scheme, server, true);
 			}
+		
 			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			throw e;
 		} finally {
 			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtTrim != null) {	pstmtTrim.close();}} catch (SQLException e) {}
 		}
 	}
 	
