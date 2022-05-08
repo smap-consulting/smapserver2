@@ -126,7 +126,7 @@ public class XLSXReportsManager {
 		if(sId != 0) {
 
 			PreparedStatement pstmt = null;
-			Workbook wb = null;
+			SXSSFWorkbook wb = null;
 			int rowNumber = 0;
 			Sheet dataSheet = null;
 			Sheet settingsSheet = null;
@@ -445,8 +445,12 @@ public class XLSXReportsManager {
 				ResultSet rs = pstmt.executeQuery();
 				ArrayList<ReadData> dataItems = null;
 				Row dataRow = null;
+				int rowCount = 1;
 				while(rs.next()) {
 					
+					if(rowCount++ % 1000 == 0) {
+						log.info("#report row: " + rowCount);
+					}
 					// Re-get the survey name for the survey that wrote this record, this may vary in groups
 					if(meta) {
 						String recordSId = rs.getString("_s_id");
@@ -683,7 +687,7 @@ public class XLSXReportsManager {
 				lm.writeLog(sd, sId, username, "error", e.getMessage(), 0, request.getServerName());
 				
 				String msg = e.getMessage();
-				if(msg.contains("does not exist")) {
+				if(msg != null && msg.contains("does not exist")) {
 					msg = localisation.getString("msg_no_data");
 				}
 				Row dataRow = dataSheet.createRow(rowNumber + 1);	
@@ -699,7 +703,7 @@ public class XLSXReportsManager {
 					wb.write(outputStream);
 					wb.close();
 					outputStream.close();
-					((SXSSFWorkbook) wb).dispose();		// Dispose of temporary files
+					wb.dispose();		// Dispose of temporary files
 				} catch (Exception ex) {
 					log.log(Level.SEVERE, "Error", ex);
 				}
@@ -752,7 +756,7 @@ public class XLSXReportsManager {
 	private void writeOutData(ArrayList<ReadData> dataItems, Transform transform, 
 			HashMap<String, HashMap<String, String>> transformData,
 			Row dataRow,
-			Workbook wb,
+			SXSSFWorkbook wb,
 			Sheet dataSheet,
 			Map<String, CellStyle> styles,
 			boolean embedImages,

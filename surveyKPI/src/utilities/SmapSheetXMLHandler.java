@@ -23,6 +23,8 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -30,8 +32,6 @@ import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.ExcelNumberFormat;
 import org.apache.poi.ss.usermodel.RichTextString;
 import org.apache.poi.ss.util.CellAddress;
-import org.apache.poi.util.POILogFactory;
-import org.apache.poi.util.POILogger;
 import org.apache.poi.xssf.model.*;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFComment;
@@ -46,8 +46,10 @@ import org.xml.sax.helpers.DefaultHandler;
  *  row and cell events for it.
  */
 public class SmapSheetXMLHandler extends DefaultHandler {
-	private static final POILogger logger = POILogFactory.getLogger(SmapSheetXMLHandler.class);
 
+	private static Logger log =
+			 Logger.getLogger(SurveyInfo.class.getName());
+	
 	/**
 	 * These are the different kinds of cells we support.
 	 * We keep track of the current one between
@@ -237,7 +239,7 @@ public class SmapSheetXMLHandler extends DefaultHandler {
 					// TODO Retrieve the shared formula and tweak it to 
 					//  match the current cell
 					if(formulasNotResults) {
-						logger.log(POILogger.WARN, "shared formulas not yet supported!");
+						log.info("shared formulas not yet supported!");
 					} /*else {
                    // It's a shared formula, so we can't get at the formula string yet
                    // However, they don't care about the formula string, so that's ok!
@@ -364,7 +366,7 @@ public class SmapSheetXMLHandler extends DefaultHandler {
 					thisStr = rtss.toString();
 				}
 				catch (NumberFormatException ex) {
-					logger.log(POILogger.ERROR, "Failed to parse SST index '" + sstIndex, ex);
+					log.log(Level.SEVERE, "Failed to parse SST index " + sstIndex, ex);
 				}
 				break;
 

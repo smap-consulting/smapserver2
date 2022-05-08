@@ -1,5 +1,7 @@
 package org.smap.sdal.Utilities;
 
+import java.awt.Image;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -57,7 +59,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.text.StringEscapeUtils;
-import org.apache.poi.ss.formula.functions.Now;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.CsvTableManager;
@@ -10431,6 +10432,29 @@ public class GeneralUtilityMethods {
 		return value;
 	}
 	
+	/*
+	 * Resize the image to the specified width maintaining aspect ration
+	 */
+	public static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth) throws IOException {
+		int targetHeight = (originalImage.getHeight() * targetWidth) / originalImage.getWidth();
+	    Image resultingImage = originalImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_DEFAULT);	// Keep aspect ration
+	    BufferedImage outputImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+	    outputImage.getGraphics().drawImage(resultingImage, 0, 0, null);
+	    return outputImage;
+	}
+	
+	public static String getThumbsUrl(String in) {
+		String url = null;
+		if(in != null) {
+			int fIdx = in.lastIndexOf('/');
+			if(fIdx >= 0) {
+				String fName = in.substring(fIdx + 1);
+				String base = in.substring(0, fIdx + 1);
+				url = base + "thumbs/" + fName + ".jpg";
+			}
+		}
+		return url;
+	}
 	
 	private static int getManifestParamStart(String property) {
 	
