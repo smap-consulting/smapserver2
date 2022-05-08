@@ -552,7 +552,7 @@ public class MessagingManagerApply {
 	}
 	
 	/*
-	 * Upload files to s3 - probably should be on its own thread
+	 * Upload files to s3
 	 */
 	public void uploadToS3(Connection sd, String basePath) throws SQLException {
 		
@@ -562,39 +562,51 @@ public class MessagingManagerApply {
 				+ "limit 100"; 	
 		PreparedStatement pstmt = null;
 		
-		String sqlSuccess = "delete from s3upload where id = ?";
-		PreparedStatement pstmtSuccess = null;
+		String sqlClean = "delete from s3upload "
+				+ "where status = 'success' "
+				+ "and processed_time < now() - interval '1 day'";
+		PreparedStatement pstmtClean = null;
 		
-		String sqlFail = "update s3upload "
-				+ "set status = 'failed', reason = ? "
+		String sqlDone = "update s3upload "
+				+ "set status = ?, "
+				+ "reason = ?, "
+				+ "processed_time = now() "
 				+ "where id = ?";
-		PreparedStatement pstmtFail = null;
+		PreparedStatement pstmtDone = null;
 		
 		try {
-			pstmtFail = sd.prepareStatement(sqlFail);
-			pstmtSuccess = sd.prepareStatement(sqlSuccess);
+			pstmtDone = sd.prepareStatement(sqlDone);
 			
 			pstmt = sd.prepareStatement(sql);
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				
-				
-				String filepath = rs.getString("filepath");				
+				String status;
+				String reason = null;
 				try {
-					S3AttachmentUpload.put(basePath, filepath);
-					
-					pstmtSuccess.setInt(1, rs.getInt("id"));
-					pstmtSuccess.executeUpdate();
+					S3AttachmentUpload.put(basePath, rs.getString("filepath"));
+					status = "success";
 				} catch (Exception e) {
-					pstmtFail.setInt(1, rs.getInt("id"));
-					pstmtFail.setString(2,e.getMessage());
-					pstmtFail.executeUpdate();
+					status = "failed";
+					reason = e.getMessage();					
 				}	
+
+				pstmtDone.setString(1, status);
+				pstmtDone.setString(2, reason);
+				pstmtDone.setInt(3, rs.getInt("id"));
+				pstmtDone.executeUpdate();
 			}
+			
+			/*
+			 * Clean up old data
+			 */
+			pstmtClean = sd.prepareStatement(sqlClean);
+			pstmtClean.executeUpdate();
+			
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			try {if (pstmtFail != null) {pstmtFail.close();}} catch (SQLException e) {}
-			try {if (pstmtSuccess != null) {pstmtSuccess.close();}} catch (SQLException e) {}
+			try {if (pstmtDone != null) {pstmtDone.close();}} catch (SQLException e) {}
+			try {if (pstmtClean != null) {pstmtClean.close();}} catch (SQLException e) {}
 		}
 	}
 	

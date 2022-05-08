@@ -748,6 +748,7 @@ public class GeneralUtilityMethods {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1,  filePath);
+			log.info("xx upload file to s3: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
