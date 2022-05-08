@@ -1657,3 +1657,17 @@ create TABLE background_report (
 	end_time TIMESTAMP WITH TIME ZONE
 );
 ALTER TABLE background_report OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS s3upload_seq CASCADE;
+CREATE SEQUENCE s3upload_seq START 1;
+ALTER SEQUENCE s3upload_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS s3upload;
+CREATE TABLE s3upload (
+	id integer DEFAULT NEXTVAL('s3upload_seq') CONSTRAINT pk_s3upload PRIMARY KEY,
+	filepath text,
+	status text,    -- new or failed
+	reason text,	-- failure reason
+	processed_time TIMESTAMP WITH TIME ZONE		-- Time of processing
+	);
+ALTER TABLE s3upload OWNER TO ws;

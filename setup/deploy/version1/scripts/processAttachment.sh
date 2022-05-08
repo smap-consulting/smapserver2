@@ -38,21 +38,21 @@ if [ x"$type" = xvideo ]; then
 fi
 
 # If there is an s3 bucket available then send files to it
-# TODO get base path
-if [ -f /smap/settings/bucket ]; then
-
-        prefix="/smap"
-        region=`cat /smap/settings/region`
-
-	echo "Sending to aws bucket `cat /smap/settings/bucket`"
-        if [ -f  $destfile ]; then
-                relPath=${destfile#"$prefix"}
-                awsPath="s3://`cat /smap/settings/bucket`$relPath"
-                aws s3 --region $region cp $destfile $awsPath
-        fi
-        if [ -f  $destthumbnail ]; then
-                relPath=${destthumbnail#"$prefix"}
-                awsPath="s3://`cat /smap/settings/bucket`$relPath"
-                aws s3 --region $region cp $destthumbnail $awsPath
-        fi
-fi
+# Replaced with S3 API
+#if [ -f /smap/settings/bucket ]; then
+#
+#        prefix="/smap"
+#        region=`cat /smap/settings/region`
+#
+#	echo "Sending to aws bucket `cat /smap/settings/bucket`"
+#        if [ -f  $destfile ]; then
+#                relPath=${destfile#"$prefix"}
+#                awsPath="s3://`cat /smap/settings/bucket`$relPath"
+#                aws s3 --region $region cp $destfile $awsPath
+#        fi
+#        if [ -f  $destthumbnail ]; then
+#                relPath=${destthumbnail#"$prefix"}
+#                awsPath="s3://`cat /smap/settings/bucket`$relPath"
+#                aws s3 --region $region cp $destthumbnail $awsPath
+#        fi
+#fi

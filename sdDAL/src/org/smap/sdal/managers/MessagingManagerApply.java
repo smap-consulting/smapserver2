@@ -15,6 +15,7 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
 import org.smap.notifications.interfaces.EmitDeviceNotification;
+import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
@@ -548,6 +549,53 @@ public class MessagingManagerApply {
 			isValid = false;
 		}
 		return isValid;
+	}
+	
+	/*
+	 * Upload files to s3 - probably should be on its own thread
+	 */
+	public void uploadToS3(Connection sd, String basePath) throws SQLException {
+		
+		String sql = "select id, filepath "
+				+ "from s3upload "
+				+ "where status = 'new' "
+				+ "limit 100"; 	
+		PreparedStatement pstmt = null;
+		
+		String sqlSuccess = "delete from s3upload where id = ?";
+		PreparedStatement pstmtSuccess = null;
+		
+		String sqlFail = "update s3upload "
+				+ "set status = 'failed', reason = ? "
+				+ "where id = ?";
+		PreparedStatement pstmtFail = null;
+		
+		try {
+			pstmtFail = sd.prepareStatement(sqlFail);
+			pstmtSuccess = sd.prepareStatement(sqlSuccess);
+			
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				
+				
+				String filepath = rs.getString("filepath");				
+				try {
+					S3AttachmentUpload.put(basePath, filepath);
+					
+					pstmtSuccess.setInt(1, rs.getInt("id"));
+					pstmtSuccess.executeUpdate();
+				} catch (Exception e) {
+					pstmtFail.setInt(1, rs.getInt("id"));
+					pstmtFail.setString(2,e.getMessage());
+					pstmtFail.executeUpdate();
+				}	
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtFail != null) {pstmtFail.close();}} catch (SQLException e) {}
+			try {if (pstmtSuccess != null) {pstmtSuccess.close();}} catch (SQLException e) {}
+		}
 	}
 	
 	/*

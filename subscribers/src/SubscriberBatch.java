@@ -48,6 +48,7 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
+import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.managers.ActionManager;
@@ -398,7 +399,11 @@ public class SubscriberBatch {
 								if(mediaChanges != null && mediaChanges.size() > 0) {
 									processMediaChanges(uploadFile, mediaChanges);
 								}
-								GeneralUtilityMethods.sendToS3(uploadFile);
+								try {
+									GeneralUtilityMethods.sendToS3(dbc.sd, basePath, uploadFile);
+								} catch (Exception e) {
+									log.log(Level.SEVERE, e.getMessage(), e);
+								}
 								
 								// If the host is unreachable stop processing this subscriber, it may be that it has been taken off line
 								if(se.getStatus() != null && se.getStatus().equals("host_unreachable")) {
