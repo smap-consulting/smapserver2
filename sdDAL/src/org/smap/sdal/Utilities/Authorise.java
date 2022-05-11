@@ -454,6 +454,65 @@ public class Authorise {
 	}
 	
 	/*
+	 * Verify that the user is entitled to access this particular case management setting
+	 */
+	public boolean isValidCaseManagementSetting(Connection conn, String user, int id)
+			throws ServerException, AuthorisationException, NotFoundException {
+		
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		boolean sqlError = false;
+		
+		/*
+		 * 1) Make sure the survey has not been soft deleted and exists or alternately 
+		 *    that it has been soft deleted and exists
+		 * 2) Make sure survey is in a project that the user has access to
+		 */
+
+		StringBuffer sql = new StringBuffer("select count(*) from case_management_setting "
+				+ "where id = ? "
+				+ "and o_id in "
+				+ "( select o.id from organisation o, users u "
+				+ "where o.id = u.o_id "
+				+ "and u.ident = ?)");
+		
+		try {		
+			
+			pstmt = conn.prepareStatement(sql.toString());
+			pstmt.setInt(1, id);
+			pstmt.setString(2, user);
+			
+			resultSet = pstmt.executeQuery();
+			if(resultSet.next()) {
+				count = resultSet.getInt(1);
+			}
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error in Authorisation", e);
+			sqlError = true;
+		} finally {
+			if(resultSet != null) {try{resultSet.close();}catch(Exception e) {}};
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}};
+		}
+		
+ 		if(count == 0) {
+			log.info("IsValidCaseManagementSetting: " + pstmt.toString());
+ 			log.info("Case management setting validation failed for: " + user + " case management setting id was: " + id);
+ 			
+ 			SDDataSource.closeConnection("isValidSurvey", conn);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new AuthorisationException();	 
+			}
+		} 
+ 		
+		return true;
+	}
+	
+	/*
 	 * Verify that the user is entitled to access this particular survey passing a survey ident
 	 */
 	public boolean isValidSurveyIdent(Connection conn, String user, String sIdent, boolean isDeleted, boolean superUser)

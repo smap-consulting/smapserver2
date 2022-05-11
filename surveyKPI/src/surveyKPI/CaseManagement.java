@@ -20,6 +20,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -34,9 +35,15 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.model.CMS;
+import org.smap.sdal.model.Role;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -126,14 +133,16 @@ public class CaseManagement extends Application {
 		
 		Response response = null;
 		String connectionString = "surveyKPI-updateRoles";
+		CMS cms = new Gson().fromJson(settings, CMS.class);
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
+		if(cms.id > 0) {
+			a.isValidCaseManagementSetting(sd, request.getRemoteUser(), cms.id);
+		}
 		// End Authorisation
 			
-		CMS cms = new Gson().fromJson(settings, CMS.class);
-		
 		try {	
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
@@ -171,6 +180,44 @@ public class CaseManagement extends Application {
 		return response;
 	}
 	
+	/*
+	 * Delete case management settings
+	 */
+	@Path("/settings")
+	@DELETE
+	@Consumes("application/json")
+	public Response delCaseManagementSetting(@Context HttpServletRequest request, @FormParam("cms") String settings) { 
+		
+		Response response = null;
+		String requestName = "surveyKPI- delete case management setting";
+		CMS cms = new Gson().fromJson(settings, CMS.class);
 
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(requestName);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidCaseManagementSetting(sd, request.getRemoteUser(), cms.id);
+		// End Authorisation			
+		
+		try {	
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			CaseManager cm = new CaseManager(localisation);
+			
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			cm.deleteSetting(sd, cms.id, o_id, request.getRemoteUser());
+			
+			response = Response.ok().build();			
+		}  catch (Exception ex) {
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			response = Response.serverError().entity(ex.getMessage()).build();
+			
+		} finally {			
+			SDDataSource.closeConnection(requestName, sd);
+		}
+		
+		return response;
+	}
+	
 }
 

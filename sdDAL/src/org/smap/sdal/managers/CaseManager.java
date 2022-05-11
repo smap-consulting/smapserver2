@@ -56,14 +56,14 @@ public class CaseManager {
 			ResultSet rs = null;
 			
 			/*
-			 * Get the roles for this organisation
+			 * Get the case management settings for this organisation
 			 */
 			sql = "SELECT id, "
 					+ "name, "
 					+ "type,"
 					+ "p_id,"
-					+ "r.changed_by as changed_by,"
-					+ "r.changed_ts as changed_ts "
+					+ "changed_by as changed_by,"
+					+ "changed_ts as changed_ts "
 					+ "from case_management_setting "
 					+ "where o_id = ? "
 					+ "order by type, name asc";
@@ -73,9 +73,8 @@ public class CaseManager {
 			log.info("Get case management settings: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 							
-			CMS cms = null;
 			while(rs.next()) {
-				settings.add(new CMS(rs.getInt("id"), rs.getString("name"), rs.getString("type"), rs.getInt("p_id")));
+				settings.add(new CMS(rs.getInt("id"), rs.getString("name"), rs.getString("type"), rs.getInt("p_id"), rs.getString("changed_by")));
 			}
 
 					    
@@ -94,7 +93,6 @@ public class CaseManager {
 			int oId, 
 			String ident) throws Exception {
 		
-		int rId = 0;
 		String sql = "insert into case_management_setting (o_id, name, type, p_id, changed_by, changed_ts) " +
 				" values (?, ?, ?, ?, ?, now());";
 		
@@ -149,6 +147,36 @@ public class CaseManager {
 			pstmt.setString(4, ident);
 			pstmt.setInt(5, o_id);
 			pstmt.setInt(6, cms.id);
+
+			log.info("SQL: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+		}  finally {		
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+			
+		}
+
+	}
+	
+	/*
+	 * Delete a Setting
+	 */
+	public void deleteSetting(Connection sd, 
+			int id, 
+			int o_id, 
+			String ident) throws Exception {
+		
+		String sql = "delete from case_management_setting where id = ? "
+				+ "and o_id = ?";
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+
+			pstmt.setInt(1, id);
+			pstmt.setInt(2, o_id);
 
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
