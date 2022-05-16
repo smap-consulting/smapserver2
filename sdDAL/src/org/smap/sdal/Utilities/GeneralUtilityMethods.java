@@ -68,6 +68,7 @@ import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyTableManager;
+import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AssignmentDetails;
 import org.smap.sdal.model.AuditData;
@@ -6274,7 +6275,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Method to assign a record to a user
 	 */
-	public static int assignRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
+	public static int assignRecord(Connection cResults, String tablename, String instanceId, String user) throws SQLException {
 
 		int count = 0;
 		
@@ -6286,7 +6287,12 @@ public class GeneralUtilityMethods {
 		if(user != null && user.equals("_none")) {
 			user = null;
 		}
-		PreparedStatement pstmt = conn.prepareStatement(sql);
+		
+		if(!hasColumn(cResults, tablename, SurveyViewManager.ASSIGNED_COLUMN)) {
+			addColumn(cResults, tablename, SurveyViewManager.ASSIGNED_COLUMN, "text");
+		}
+		
+		PreparedStatement pstmt = cResults.prepareStatement(sql);
 		pstmt.setString(1, user);
 		pstmt.setString(2,instanceId);
 		log.info("locking record: " + pstmt.toString());

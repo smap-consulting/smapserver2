@@ -180,7 +180,9 @@ public class MessagingManagerApply {
 								); 
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
-						nm.writeToLog(sd, organisation.id, msg.pId, msg.sId, organisation.name, status, 
+						nm.writeToLog(sd, organisation.id, msg.pId, 
+								GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident), 
+								organisation.name, status, 
 								e.getMessage(), id);
 					}
 					

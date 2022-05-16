@@ -14,6 +14,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.mail.internet.InternetAddress;
+import javax.ws.rs.core.Response;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.smap.notifications.interfaces.EmitAwsSMS;
@@ -723,12 +724,7 @@ public class NotificationManager {
 		MessagingManager mm = new MessagingManager(localisation);
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		DataManager dm = new DataManager(localisation, "UTC");
-		int surveyId;
-		if(msg.survey_ident != null) {
-			surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
-		} else {
-			surveyId = msg.sId;		// A legacy message
-		}
+		int surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
 
 		Survey survey = sm.getById(sd, cResults, null, false, surveyId, true, msg.basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
@@ -1140,11 +1136,19 @@ public class NotificationManager {
 
 					log.info("+++++ escalate notification");
 					notify_details = localisation.getString("esc_nd");
-					notify_details = notify_details.replaceAll("%s1", msg.remoteUser);
+					notify_details = notify_details.replaceAll("%s1", msg.instanceId);
+					notify_details = notify_details.replaceAll("%s2", survey.displayName);
+					notify_details = notify_details.replaceAll("%s3", survey.projectName);
+					notify_details = notify_details.replaceAll("%s4", msg.remoteUser);
 
 					try {
-
-
+						String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
+						int count = GeneralUtilityMethods.assignRecord(cResults, tableName, msg.instanceId, msg.remoteUser);
+						if(count == 0) {
+							status = "error";
+							error_details = "case not found, attempting: " + notify_details;
+							log.log(Level.SEVERE, "Error: " + error_details);
+						} 
 					} catch (Exception e) {
 						status = "error";
 						error_details = e.getMessage();
@@ -1273,12 +1277,8 @@ public class NotificationManager {
 			String notify_details = null;
 			String status = null;
 
-			int surveyId;
-			if(msg.survey_ident != null) {
-				surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
-			} else {
-				surveyId = msg.sId;		// A legacy message
-			}
+			int surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
+			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 
 			Survey survey = sm.getById(sd, cResults, null, false, surveyId, true, msg.basePath, 
