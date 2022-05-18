@@ -3383,7 +3383,8 @@ public class SurveyManager {
 				groupSurveys.add(new GroupDetails(rs.getInt(1), rs.getString(2), 
 						rs.getString(3),
 						rs.getBoolean(4),
-						rs.getBoolean(5)));
+						rs.getBoolean(5),
+						groupSurveyIdent));
 			}
 		} finally {
 			try {
@@ -3592,7 +3593,8 @@ public class SurveyManager {
 				groupSurveys.add(new GroupDetails(rs.getInt(1), rs.getString(2), 
 						rs.getString(3),
 						rs.getBoolean(4),
-						rs.getBoolean(5)));
+						rs.getBoolean(5),
+						groupSurveyIdent));
 			}
 		} finally {
 			try {

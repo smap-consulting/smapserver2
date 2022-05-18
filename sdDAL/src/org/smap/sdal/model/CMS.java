@@ -22,17 +22,17 @@ public class CMS {
 	public int id;
 	public String name;
 	public String type;
-	public int pId;
+	public String group_survey_ident;
 	public String changed_by;
 	
 	public CMS() {
 	}
 	
-	public CMS(int id, String name, String type, int pId, String changed_by) {
+	public CMS(int id, String name, String type, String group_survey_ident, String changed_by) {
 		this.id = id;
 		this.name = name;
 		this.type = type;
-		this.pId = pId;
+		this.group_survey_ident = group_survey_ident;
 		this.changed_by = changed_by;
 	}
 	

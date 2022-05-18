@@ -51,6 +51,7 @@ import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.ChangeResponse;
 import org.smap.sdal.model.ChangeSet;
+import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Pulldata;
@@ -333,6 +334,51 @@ public class Surveys extends Application {
 			ArrayList<Template> templates = sm.getTemplates(sd, sIdent, basePath, getNotAvailable);
 			
 			response = Response.ok(gson.toJson(templates)).build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,e.getMessage(), e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Get the surveys in the group of the passed in survey id
+	 */
+	@Path("/groups/{sId}")
+	@GET
+	@Produces("application/json")
+	public Response getGroups(@Context HttpServletRequest request,
+			@PathParam("sId") int sId) { 
+ 
+		Response response = null;
+		String connectionString = "surveyKPI - Get Survey Groups";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aGet.isAuthorised(sd, request.getRemoteUser());
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+		
+		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			ArrayList<GroupDetails> groupSurveys = sm.getGroupSurveysAnonymous(sd, groupSurveyIdent);
+			
+			response = Response.ok(gson.toJson(groupSurveys)).build();
 			
 		} catch (Exception e) {
 			log.log(Level.SEVERE,e.getMessage(), e);

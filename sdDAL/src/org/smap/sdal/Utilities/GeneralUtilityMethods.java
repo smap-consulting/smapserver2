@@ -5777,7 +5777,7 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Get the group surveys
-	 * Always add the survey corresponding to sId to the group
+	 * Always add the survey corresponding to groupSurveyIdent to the group
 	 */
 	public static HashMap<Integer, Integer> getGroupSurveys(Connection sd, 
 			String groupSurveyIdent) throws SQLException {

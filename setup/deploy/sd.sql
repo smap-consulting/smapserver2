@@ -501,11 +501,11 @@ CREATE TABLE case_management_setting (
 	o_id integer,
 	name text,
 	type text,   
-	p_id integer,	
+	group_survey_ident text,	
 	changed_by text,
 	changed_ts TIMESTAMP WITH TIME ZONE	
 	);
-CREATE UNIQUE INDEX cms_unique_name ON case_management_setting(o_id, name);
+CREATE UNIQUE INDEX cms_unique_name ON case_management_setting(group_survey_ident, name);
 ALTER TABLE case_management_setting OWNER TO ws;
 
 

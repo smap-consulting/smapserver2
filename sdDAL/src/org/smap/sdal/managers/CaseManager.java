@@ -47,7 +47,7 @@ public class CaseManager {
 	/*
 	 * Get available roles
 	 */
-	public ArrayList<CMS> getCases(Connection sd, int o_id) throws SQLException {
+	public ArrayList<CMS> getCases(Connection sd, int o_id, String groupSurveyIdent) throws SQLException {
 		PreparedStatement pstmt = null;
 		ArrayList<CMS> settings = new ArrayList<CMS> ();
 		
@@ -61,20 +61,22 @@ public class CaseManager {
 			sql = "SELECT id, "
 					+ "name, "
 					+ "type,"
-					+ "p_id,"
+					+ "group_survey_ident,"
 					+ "changed_by as changed_by,"
 					+ "changed_ts as changed_ts "
 					+ "from case_management_setting "
 					+ "where o_id = ? "
+					+ "and group_survey_ident = ? "
 					+ "order by type, name asc";
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, o_id);
+			pstmt.setString(2,  groupSurveyIdent);
 			log.info("Get case management settings: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 							
 			while(rs.next()) {
-				settings.add(new CMS(rs.getInt("id"), rs.getString("name"), rs.getString("type"), rs.getInt("p_id"), rs.getString("changed_by")));
+				settings.add(new CMS(rs.getInt("id"), rs.getString("name"), rs.getString("type"), rs.getString("group_survey_ident"), rs.getString("changed_by")));
 			}
 
 					    
@@ -93,7 +95,7 @@ public class CaseManager {
 			int oId, 
 			String ident) throws Exception {
 		
-		String sql = "insert into case_management_setting (o_id, name, type, p_id, changed_by, changed_ts) " +
+		String sql = "insert into case_management_setting (o_id, name, type, group_survey_ident, changed_by, changed_ts) " +
 				" values (?, ?, ?, ?, ?, now());";
 		
 		PreparedStatement pstmt = null;
@@ -104,7 +106,7 @@ public class CaseManager {
 			pstmt.setInt(1, oId);
 			pstmt.setString(2, cms.name);
 			pstmt.setString(3, cms.type);
-			pstmt.setInt(4, cms.pId);
+			pstmt.setString(4, cms.group_survey_ident);
 			pstmt.setString(5, ident);
 
 			log.info("SQL: " + pstmt.toString());
@@ -129,7 +131,7 @@ public class CaseManager {
 		
 		String sql = "update case_management_setting set name = ?, "
 				+ "type = ?,"
-				+ "p_id = ?,"
+				+ "group_survey_ident = ?,"
 				+ "changed_by = ?,"
 				+ "changed_ts = now() "
 				+ "where o_id = ? "
@@ -143,7 +145,7 @@ public class CaseManager {
 
 			pstmt.setString(1, cms.name);
 			pstmt.setString(2, cms.type);
-			pstmt.setInt(3, cms.pId);
+			pstmt.setString(3, cms.group_survey_ident);
 			pstmt.setString(4, ident);
 			pstmt.setInt(5, o_id);
 			pstmt.setInt(6, cms.id);

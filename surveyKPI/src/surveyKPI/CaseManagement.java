@@ -25,6 +25,7 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
@@ -35,15 +36,9 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.model.CMS;
-import org.smap.sdal.model.Role;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
-import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -79,13 +74,14 @@ public class CaseManagement extends Application {
 	}
 	
 	/*
-	 * Get the case management settings for the organisation
+	 * Get the case management settings for passed in survey
 	 */
 	@GET
-	@Path("/settings")
+	@Path("/settings/{survey_id}")
 	@Produces("application/json")
 	public Response getCaseManagementSettings(
-			@Context HttpServletRequest request
+			@Context HttpServletRequest request,
+			@PathParam("survey_id") int sId
 			) { 
 
 		Response response = null;
@@ -105,8 +101,8 @@ public class CaseManagement extends Application {
 			CaseManager cm = new CaseManager(localisation);
 			
 			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			
-			ArrayList<CMS> settings = cm.getCases(sd, o_id);
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			ArrayList<CMS> settings = cm.getCases(sd, o_id, groupSurveyIdent);
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(settings);
 			response = Response.ok(resp).build();
@@ -129,7 +125,7 @@ public class CaseManagement extends Application {
 	@Path("/settings")
 	@POST
 	@Consumes("application/json")
-	public Response updateRoles(@Context HttpServletRequest request, @FormParam("settings") String settings) { 
+	public Response updateCaseManagementSettings(@Context HttpServletRequest request, @FormParam("settings") String settings) { 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-updateRoles";
