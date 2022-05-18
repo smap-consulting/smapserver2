@@ -4016,15 +4016,7 @@ public class SurveyManager {
 			 * Update group ids
 			 */
 			if(newSurveyId == 0) {
-				// Deleting survey
-				//sql = "update survey "
-				//		+ "set group_survey_id = 0 "
-				//		+ "where group_survey_id = ?";	
-				//try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				//pstmt = sd.prepareStatement(sql);
-				//pstmt.setInt(1, sId);
-				//log.info("Update group survey ids: " + pstmt.toString());
-				//pstmt.executeUpdate();
+				// No action
 			} else {
 				// Replacing survey
 				String newGroupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, newSurveyId);

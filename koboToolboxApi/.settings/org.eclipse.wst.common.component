@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?><project-modules id="moduleCoreId" project-version="1.5.0">
-                                            
+                                                
+    
     
     
     
@@ -10,7 +11,8 @@
     
     
     <wb-module deploy-name="koboToolboxApi-1.0.0">
-                                                                        
+                                                                                
+        
         
         
         
@@ -19,29 +21,6 @@
         
         
         <wb-resource deploy-path="/" source-path="/target/m2e-wtp/web-resources"/>
-                                                                                
-        
-        
-        
-        
-        
-        
-        
-        
-        <wb-resource deploy-path="/" source-path="/src/main/webapp" tag="defaultRootSource"/>
-                                                                                
-        
-        
-        
-        
-        
-        
-        
-        
-        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src"/>
-        <dependent-module archiveName="sdDAL-P.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/sdDAL/sdDAL">
-            <dependency-type>uses</dependency-type>
-        </dependent-module>
                                                                                         
         
         
@@ -52,8 +31,32 @@
         
         
         
+        <wb-resource deploy-path="/" source-path="/src/main/webapp" tag="defaultRootSource"/>
+                                                                                        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src"/>
+                                                                                                
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         <property name="java-output-path" value="/koboToolboxApi/target/classes"/>
-                                                                                
+                                                                                        
+        
         
         
         
@@ -63,7 +66,8 @@
         
         
         <property name="context-root" value="koboToolboxApi"/>
-                                                                                    
+                                                                                            
+    
     
     
     
@@ -74,7 +78,8 @@
     
     
     </wb-module>
-                                        
+                                            
+
 
 
 

@@ -309,7 +309,6 @@ alter table organisation add column refresh_rate integer default 0;
 update organisation set refresh_rate = 0 where refresh_rate is null;
 
 CREATE INDEX record_event_key ON record_event(key);
-CREATE INDEX survey_group_survey_key ON survey(group_survey_id);
 CREATE INDEX question_column_name_key ON question(column_name);
 
 create index idx_ue_upload_time on upload_event (upload_time);
