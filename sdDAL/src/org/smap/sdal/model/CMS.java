@@ -21,22 +21,18 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 public class CMS {
-	public int id;
-	public CaseManagementSettings settings;
-	public ArrayList<CaseManagementAlert> alerts;
 	
+	public CaseManagementSettings settings;
+	public ArrayList<CaseManagementAlert> alerts;	
 	public String group_survey_ident;
-	public String changed_by;
 	
 	public CMS() {
 	}
 	
-	public CMS(int id, CaseManagementSettings settings, ArrayList<CaseManagementAlert> alerts, String group_survey_ident, String changed_by) {
-		this.id = id;
+	public CMS(CaseManagementSettings settings, ArrayList<CaseManagementAlert> alerts, String group_survey_ident) {
 		this.settings = settings;
 		this.alerts = alerts;
 		this.group_survey_ident = group_survey_ident;
-		this.changed_by = changed_by;
 	}
 	
 }

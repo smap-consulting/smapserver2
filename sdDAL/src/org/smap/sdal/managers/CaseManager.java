@@ -115,7 +115,7 @@ public class CaseManager {
 			}
 			
 			// Create the combined settings object
-			cms = new CMS(rs.getInt("id"), settings, alerts, rs.getString("group_survey_ident"), rs.getString("changed_by"));
+			cms = new CMS(settings, alerts, groupSurveyIdent);
 					    
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -183,10 +183,10 @@ public class CaseManager {
 
 			pstmt.setString(1, alert.group_survey_ident);
 			pstmt.setString(2, alert.name);
-			pstmt.setString(2, alert.period);
+			pstmt.setString(3, alert.period);
 			pstmt.setString(4, user);
-			pstmt.setInt(4, o_id);
-			pstmt.setInt(5, alert.id);
+			pstmt.setInt(5, o_id);
+			pstmt.setInt(6, alert.id);
 
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
