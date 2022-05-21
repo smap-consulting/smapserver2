@@ -499,9 +499,9 @@ ALTER SEQUENCE case_management_setting_seq OWNER TO ws;
 CREATE TABLE case_management_setting (
 	id integer DEFAULT NEXTVAL('case_management_setting_seq') CONSTRAINT pk_case_management_setting PRIMARY KEY,
 	o_id integer,
-	name text,
-	type text,   
-	group_survey_ident text,	
+	name text,  
+	group_survey_ident text,
+	period text,
 	changed_by text,
 	changed_ts TIMESTAMP WITH TIME ZONE	
 	);

@@ -52,6 +52,7 @@ import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.managers.ActionManager;
+import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
@@ -457,6 +458,7 @@ public class SubscriberBatch {
 			if(subscriberType.equals("upload")) {
 				
 				applyReminderNotifications(dbc.sd, dbc.results, basePath, serverName);
+				applyCaseManagementReminders(dbc.sd, dbc.results, basePath, serverName);
 				sendMailouts(dbc.sd, basePath, serverName);
 				expireTemporaryUsers(localisation, dbc.sd);
 				
@@ -1384,6 +1386,90 @@ public class SubscriberBatch {
 			try {if (pstmtSent != null) {pstmtSent.close();}} catch (SQLException e) {}
 			
 		}
+	}
+	
+	/*
+	 * Apply Reminder notifications
+	 * Set up on cases
+	 */
+	private void applyCaseManagementReminders(Connection sd, Connection cResults, String basePath, String serverName) {
+
+		String sql = "select cms.name, cms.group_survey_ident, cms.period, "
+				+ "f.table_name, "
+				+ "s.case_final_status "
+				+ "from forward n, case_management_setting cms, survey s, form f "
+				+ "where n.trigger = cms.name "
+				+ "and f.s_id = s.s_id "
+				+ "and f.parentform = 0 "
+				+ "and s.s_id = n.s_id "
+				+ "and s.group_survey_ident = cms.group_survey_ident ";				
+		PreparedStatement pstmt = null;
+		
+		PreparedStatement pstmtMatches = null;
+		
+		// SQL to record a reminder being sent
+		String sqlTriggered = "insert into case_notification_triggered (n_id, a_id, reminder_date) values (?, ?, now())";
+		PreparedStatement pstmtTriggered = null;
+		
+		try {
+			
+			// 1. Get case management alerts that are associated with a notification
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				System.out.println(rs.getString("name"));
+				
+				// 2. For each alert check to see if any records match the criteria and that have not already been notified
+				String table = rs.getString("table_name");
+				String final_status = rs.getString("case_final_status");
+				String period = rs.getString("period");				
+				if(GeneralUtilityMethods.tableExists(cResults, table)) {
+					
+					StringBuilder sqlMatch = new StringBuilder("select prikey, _thread from "); 
+					sqlMatch.append(table); 
+					sqlMatch.append("where not _bad and not status = ? ");
+					sqlMatch.append("and _thread_created > now() - interval ? ");	
+					
+					pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
+					int idx = 1;
+					pstmtMatches.setString(idx++, final_status);
+					pstmtMatches.setString(idx++, period);
+					log.info("Looking for timed out cases: " + pstmtMatches.toString());
+					ResultSet mrs = pstmtMatches.executeQuery();
+					while(mrs.next()) {
+						System.out.println("Record: " + mrs.getInt(1));
+					}
+				
+					// 3. Process each matching record within a single transaction
+					//    3a. Send notification
+					//    3b. update case_notification_triggered to record the sending of the notification
+				}
+			}
+			
+			
+			// 4. Delete from case notification triggered where criteria no longer matches triggering criteria
+
+			pstmtTriggered = sd.prepareStatement(sqlTriggered);	
+		
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtTriggered != null) {pstmtTriggered.close();}} catch (SQLException e) {}
+			try {if (pstmtMatches != null) {pstmtMatches.close();}} catch (SQLException e) {}
+			
+		}
+	}
+	
+	/*
+	 * Get where clause for matching case management events
+	 */
+	private String getMatchingCaseManagementWhereClause(String final_status) {
+		StringBuilder where = new StringBuilder("status != ?");
+		
+		return where.toString();
 	}
 	
 	/*
