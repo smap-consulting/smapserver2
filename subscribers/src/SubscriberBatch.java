@@ -64,6 +64,8 @@ import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
+import org.smap.sdal.model.CMS;
+import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.Form;
@@ -1394,18 +1396,26 @@ public class SubscriberBatch {
 	 */
 	private void applyCaseManagementReminders(Connection sd, Connection cResults, String basePath, String serverName) {
 
-		String sql = "select cms.name, cms.group_survey_ident, cms.period, "
-				+ "f.table_name, "
-				+ "s.case_final_status "
-				+ "from forward n, case_management_setting cms, survey s, form f "
+		String sql = "select cms.group_survey_ident, cms.name, cms.period "
+				+ "f.table_name "
+				+ "from forward n, cms_alert cms, survey s, form f "
 				+ "where n.trigger = cms.name "
 				+ "and f.s_id = s.s_id "
 				+ "and f.parentform = 0 "
 				+ "and s.s_id = n.s_id "
-				+ "and s.group_survey_ident = cms.group_survey_ident ";				
-		PreparedStatement pstmt = null;
+				+ "and s.group_survey_ident = cms.group_survey_ident ";		
+		
+		PreparedStatement pstmt = null;	
+		
+		String sqlSettings = "select settings from cms_setting "
+				+ "where group_survey_ident = ? "
+				+ "and settings is not null";
+		PreparedStatement pstmtSettings = null;
 		
 		PreparedStatement pstmtMatches = null;
+
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		HashMap<String, CaseManagementSettings> settingsCache = new HashMap<>();
 		
 		// SQL to record a reminder being sent
 		String sqlTriggered = "insert into case_notification_triggered (n_id, a_id, reminder_date) values (?, ?, now())";
@@ -1413,36 +1423,54 @@ public class SubscriberBatch {
 		
 		try {
 			
+			pstmtSettings = sd.prepareStatement(sqlSettings);
+			
 			// 1. Get case management alerts that are associated with a notification
 			pstmt = sd.prepareStatement(sql);
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
-				System.out.println(rs.getString("name"));
+				System.out.println("Group survey: " + rs.getString("group_survey_ident"));
 				
 				// 2. For each alert check to see if any records match the criteria and that have not already been notified
+				String name = rs.getString("name");
+				String groupSurveyIdent = rs.getString("group_survey_ident");
 				String table = rs.getString("table_name");
-				String final_status = rs.getString("case_final_status");
 				String period = rs.getString("period");				
 				if(GeneralUtilityMethods.tableExists(cResults, table)) {
 					
-					StringBuilder sqlMatch = new StringBuilder("select prikey, _thread from "); 
-					sqlMatch.append(table); 
-					sqlMatch.append("where not _bad and not status = ? ");
-					sqlMatch.append("and _thread_created > now() - interval ? ");	
-					
-					pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
-					int idx = 1;
-					pstmtMatches.setString(idx++, final_status);
-					pstmtMatches.setString(idx++, period);
-					log.info("Looking for timed out cases: " + pstmtMatches.toString());
-					ResultSet mrs = pstmtMatches.executeQuery();
-					while(mrs.next()) {
-						System.out.println("Record: " + mrs.getInt(1));
+					/*
+					 * Get the settings for this group survey ident
+					 */
+					CaseManagementSettings settings = settingsCache.get(groupSurveyIdent);
+					if(settings == null) {
+						pstmtSettings.setString(1,groupSurveyIdent);
+						ResultSet srs = pstmtSettings.executeQuery();
+						if(rs.next()) {
+							settings = gson.fromJson(rs.getString("settings"), CaseManagementSettings.class);
+							settingsCache.put(groupSurveyIdent, settings);
+						}						
 					}
-				
-					// 3. Process each matching record within a single transaction
-					//    3a. Send notification
-					//    3b. update case_notification_triggered to record the sending of the notification
+					if(settings != null) {
+					
+						StringBuilder sqlMatch = new StringBuilder("select prikey, _thread from "); 
+						sqlMatch.append(table); 
+						sqlMatch.append("where not _bad and not status = ? ");
+						sqlMatch.append("and _thread_created > now() - interval ? ");	
+						
+						pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
+						int idx = 1;
+						pstmtMatches.setString(idx++, settings.finalStatus);
+						pstmtMatches.setString(idx++, period);
+						log.info("Looking for timed out cases: " + pstmtMatches.toString());
+						ResultSet mrs = pstmtMatches.executeQuery();
+						while(mrs.next()) {
+							System.out.println("Record: " + mrs.getInt(1));
+						}
+					
+						// 3. Process each matching record within a single transaction
+						//    3a. Send notification
+						//    3b. update case_notification_triggered to record the sending of the notification
+					}
 				}
 			}
 			
@@ -1458,6 +1486,7 @@ public class SubscriberBatch {
 
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtTriggered != null) {pstmtTriggered.close();}} catch (SQLException e) {}
+			try {if (pstmtSettings != null) {pstmtSettings.close();}} catch (SQLException e) {}
 			try {if (pstmtMatches != null) {pstmtMatches.close();}} catch (SQLException e) {}
 			
 		}

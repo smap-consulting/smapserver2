@@ -1672,19 +1672,35 @@ CREATE TABLE s3upload (
 	);
 ALTER TABLE s3upload OWNER TO ws;
 
-DROP SEQUENCE IF EXISTS case_management_setting_seq CASCADE;
-CREATE SEQUENCE case_management_setting_seq START 1;
-ALTER SEQUENCE case_management_setting_seq OWNER TO ws;
+DROP SEQUENCE IF EXISTS cms_alert_seq CASCADE;
+CREATE SEQUENCE cms_alert_seq START 1;
+ALTER SEQUENCE cms_alert_seq OWNER TO ws;
 
-DROP TABLE IF EXISTS case_management_setting;
-CREATE TABLE case_management_setting (
-	id integer DEFAULT NEXTVAL('case_management_setting_seq') CONSTRAINT pk_case_management_setting PRIMARY KEY,
+DROP TABLE IF EXISTS cms_alert;
+CREATE TABLE cms_alert (
+	id integer DEFAULT NEXTVAL('cms_alert_seq') CONSTRAINT pk_cms_alert PRIMARY KEY,
 	o_id integer,
-	name text,
 	group_survey_ident text,
+	name text,
 	period text,
 	changed_by text,
 	changed_ts TIMESTAMP WITH TIME ZONE	
 	);
-CREATE UNIQUE INDEX cms_unique_name ON case_management_setting(group_survey_ident, name);
-ALTER TABLE case_management_setting OWNER TO ws;
+CREATE UNIQUE INDEX cms_unique_alert ON cms_alert(group_survey_ident, name);
+ALTER TABLE cms_alert OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS cms_setting_seq CASCADE;
+CREATE SEQUENCE cms_setting_seq START 1;
+ALTER SEQUENCE cms_setting_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS cms_setting;
+CREATE TABLE cms_setting (
+	id integer DEFAULT NEXTVAL('cms_setting_seq') CONSTRAINT pk_setting_alert PRIMARY KEY,
+	o_id integer,
+	group_survey_ident text,
+	settings text,
+	changed_by text,
+	changed_ts TIMESTAMP WITH TIME ZONE	
+	);
+CREATE UNIQUE INDEX cms_unique_setting ON cms_setting(group_survey_ident);
+ALTER TABLE cms_setting OWNER TO ws;

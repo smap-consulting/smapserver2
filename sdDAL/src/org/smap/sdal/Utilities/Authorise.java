@@ -456,7 +456,7 @@ public class Authorise {
 	/*
 	 * Verify that the user is entitled to access this particular case management setting
 	 */
-	public boolean isValidCaseManagementSetting(Connection conn, String user, int id)
+	public boolean isValidCaseManagementAlert(Connection conn, String user, int id)
 			throws ServerException, AuthorisationException, NotFoundException {
 		
 		ResultSet resultSet = null;
@@ -470,7 +470,7 @@ public class Authorise {
 		 * 2) Make sure survey is in a project that the user has access to
 		 */
 
-		StringBuffer sql = new StringBuffer("select count(*) from case_management_setting "
+		StringBuffer sql = new StringBuffer("select count(*) from cms_alert "
 				+ "where id = ? "
 				+ "and o_id in "
 				+ "( select o.id from organisation o, users u "
@@ -497,8 +497,8 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
-			log.info("IsValidCaseManagementSetting: " + pstmt.toString());
- 			log.info("Case management setting validation failed for: " + user + " case management setting id was: " + id);
+			log.info("IsValidCaseManagementAlert: " + pstmt.toString());
+ 			log.info("Case management setting validation failed for: " + user + " case management alert id was: " + id);
  			
  			SDDataSource.closeConnection("isValidSurvey", conn);
 			

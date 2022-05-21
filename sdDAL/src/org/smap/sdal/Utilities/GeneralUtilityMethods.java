@@ -8382,6 +8382,7 @@ public class GeneralUtilityMethods {
 		String sqlCopyThreadCol = "update " + table 
 						+ " set _thread = (select _thread from " + table + " where prikey = ?),"
 						+ " _assigned = (select _assigned from " + table + " where prikey = ?) "
+						+ " _thread_created = (select _thread_created from " + table + " where prikey = ?) "
 						+ "where prikey = ?";
 		PreparedStatement pstmtCopyThreadCol = null;
 			
@@ -8392,7 +8393,8 @@ public class GeneralUtilityMethods {
 			pstmtCopyThreadCol = cResults.prepareStatement(sqlCopyThreadCol);
 			pstmtCopyThreadCol.setInt(1, sourceKey);
 			pstmtCopyThreadCol.setInt(2, sourceKey);
-			pstmtCopyThreadCol.setInt(3, prikey);
+			pstmtCopyThreadCol.setInt(3, sourceKey);
+			pstmtCopyThreadCol.setInt(4, prikey);
 			log.info("continue thread: " + pstmtCopyThreadCol.toString());
 			pstmtCopyThreadCol.executeUpdate();
 			
@@ -8421,6 +8423,9 @@ public class GeneralUtilityMethods {
 			}
 			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_assigned")) {
 				GeneralUtilityMethods.addColumn(cResults, table, "_assigned", "text");
+			}
+			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_thread_created")) {
+				GeneralUtilityMethods.addColumn(cResults, table, "_thread_created", "timestamp with time zone");
 			}
 			
 			// Initialise the thread column
@@ -9020,7 +9025,7 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmt = null;
 		String sql = "select instanceid "
 				+ "from " + tableName + " "
-				+ "where _thread = (select distinct _thread from " + tableName + " where instanceid = ?) "
+				+ "where _thread = (select _thread from " + tableName + " where instanceid = ?) "
 				+ "order by prikey desc limit 1";
 
 		if(GeneralUtilityMethods.hasColumn(cResults, tableName, "_thread")) {

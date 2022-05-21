@@ -37,6 +37,8 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.CMS;
+import org.smap.sdal.model.CaseManagementAlert;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.sql.*;
@@ -102,9 +104,9 @@ public class CaseManagement extends Application {
 			
 			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
-			ArrayList<CMS> settings = cm.getCases(sd, o_id, groupSurveyIdent);
+			CMS cms = cm.getCases(sd, o_id, groupSurveyIdent);
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-			String resp = gson.toJson(settings);
+			String resp = gson.toJson(cms);
 			response = Response.ok(resp).build();
 		} catch (Exception e) {
 			
@@ -120,22 +122,22 @@ public class CaseManagement extends Application {
 	}
 	
 	/*
-	 * Update the case management settings
+	 * Update the case management alerts
 	 */
-	@Path("/settings")
+	@Path("/settings/alert")
 	@POST
 	@Consumes("application/json")
-	public Response updateCaseManagementSettings(@Context HttpServletRequest request, @FormParam("settings") String settings) { 
+	public Response updateCaseManagementAlert(@Context HttpServletRequest request, @FormParam("alert") String alertString) { 
 		
 		Response response = null;
-		String connectionString = "surveyKPI-updateRoles";
-		CMS cms = new Gson().fromJson(settings, CMS.class);
+		String connectionString = "surveyKPI-updateCaseManagementAlert";
+		CaseManagementAlert alert = new Gson().fromJson(alertString, CaseManagementAlert.class);
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
-		if(cms.id > 0) {
-			a.isValidCaseManagementSetting(sd, request.getRemoteUser(), cms.id);
+		if(alert.id > 0) {
+			a.isValidCaseManagementAlert(sd, request.getRemoteUser(), alert.id);
 		}
 		// End Authorisation
 			
@@ -148,18 +150,19 @@ public class CaseManagement extends Application {
 			CaseManager cm = new CaseManager(localisation);
 
 			String msg = null;
-			if(cms.id == -1) {
+			if(alert.id == -1) {
 					
 				// New settings
-				cm.createCMS(sd, cms, o_id, request.getRemoteUser());
+				cm.createAlert(sd, request.getRemoteUser(), alert, o_id);
 				msg = localisation.getString("cm_s_created");
 					
 			} else {
 				// Existing setting
-				cm.updateCMS(sd, cms, o_id, request.getRemoteUser());
+				cm.updateAlert(sd, request.getRemoteUser(), alert, o_id);
 				msg = localisation.getString("r_modified");	
 			}
-			msg = msg.replace("%s1",  cms.name);
+			msg = msg.replace("%s1", alert.name);
+			msg = msg.replace("%s2",  alert.group_survey_ident);
 			lm.writeLogOrganisation(sd, o_id, request.getRemoteUser(), LogManager.CASE_MANAGEMENT, msg, 0);
 				
 			response = Response.ok().build();
@@ -177,21 +180,21 @@ public class CaseManagement extends Application {
 	}
 	
 	/*
-	 * Delete case management settings
+	 * Delete case management alert
 	 */
-	@Path("/settings")
+	@Path("/settings/alert")
 	@DELETE
 	@Consumes("application/json")
-	public Response delCaseManagementSetting(@Context HttpServletRequest request, @FormParam("cms") String settings) { 
+	public Response delCaseManagementSetting(@Context HttpServletRequest request, @FormParam("alert") String alertString) { 
 		
 		Response response = null;
-		String requestName = "surveyKPI- delete case management setting";
-		CMS cms = new Gson().fromJson(settings, CMS.class);
+		String requestName = "surveyKPI- delete case management alert";
+		CaseManagementAlert alert = new Gson().fromJson(alertString, CaseManagementAlert.class);
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requestName);
 		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidCaseManagementSetting(sd, request.getRemoteUser(), cms.id);
+		a.isValidCaseManagementAlert(sd, request.getRemoteUser(), alert.id);
 		// End Authorisation			
 		
 		try {	
@@ -201,7 +204,7 @@ public class CaseManagement extends Application {
 			CaseManager cm = new CaseManager(localisation);
 			
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			cm.deleteSetting(sd, cms.id, o_id, request.getRemoteUser());
+			cm.deleteAlert(sd, alert.id, o_id, request.getRemoteUser());
 			
 			response = Response.ok().build();			
 		}  catch (Exception ex) {
