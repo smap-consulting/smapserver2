@@ -199,6 +199,57 @@ public class CaseManager {
 	}
 	
 	/*
+	 * Update a Case Management Setting
+	 */
+	public void updateSettings(Connection sd, 
+			String user,
+			String group_survey_ident,
+			CaseManagementSettings settings, 
+			int o_id) throws Exception {
+		
+		String sql = "update cms_setting "
+				+ "set settings = ?, "
+				+ "changed_by = ?,"
+				+ "changed_ts = now() "
+				+ "where o_id = ? "
+				+ "and group_survey_ident = ?"; 
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+
+			pstmt.setString(1, gson.toJson(settings));
+			pstmt.setString(2, user);
+			pstmt.setInt(3, o_id);
+			pstmt.setString(4, group_survey_ident);
+
+			log.info("SQL: " + pstmt.toString());
+			int count = pstmt.executeUpdate();
+			if(count < 1) {
+				try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+				
+				sql = "insert into cms_setting "
+						+ "(settings, changed_by, o_id, group_survey_ident, changed_ts) "
+						+ "values(?,?, ?, ?, now())"; 
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, gson.toJson(settings));
+				pstmt.setString(2, user);
+				pstmt.setInt(3, o_id);
+				pstmt.setString(4, group_survey_ident);
+				log.info("SQL: " + pstmt.toString());
+				pstmt.executeUpdate();
+			}
+			
+		}  finally {		
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+			
+		}
+
+	}
+	
+	/*
 	 * Delete a case management alert
 	 */
 	public void deleteAlert(Connection sd, 

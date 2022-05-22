@@ -38,6 +38,7 @@ import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.CaseManagementAlert;
+import org.smap.sdal.model.CaseManagementSettings;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -122,6 +123,56 @@ public class CaseManagement extends Application {
 	}
 	
 	/*
+	 * Update the case management settings
+	 */
+	@Path("/settings/{group_survey_ident}")
+	@POST
+	@Consumes("application/json")
+	public Response updateCaseManagementSettings(@Context HttpServletRequest request, 
+			@PathParam("group_survey_ident") String groupSurveyIdent,
+			@FormParam("settings") String settingsString) { 
+		
+		Response response = null;
+		String connectionString = "surveyKPI-updateCaseManagementSettings";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+			
+		try {	
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			
+			// Validate setting structure
+			CaseManagementSettings settings = new Gson().fromJson(settingsString, CaseManagementSettings.class);
+			
+			CaseManager cm = new CaseManager(localisation);
+
+			String msg = null;
+			cm.updateSettings(sd, request.getRemoteUser(), groupSurveyIdent, settings, o_id);
+			msg = localisation.getString("cm_s_updated");	
+			msg = msg.replace("%s1", groupSurveyIdent);
+			msg = msg.replace("%s2", new Gson().toJson(settings));
+			lm.writeLogOrganisation(sd, o_id, request.getRemoteUser(), LogManager.CASE_MANAGEMENT, msg, 0);
+				
+			response = Response.ok().build();
+				
+		} catch (Exception e) {
+			
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
 	 * Update the case management alerts
 	 */
 	@Path("/settings/alert")
@@ -154,12 +205,12 @@ public class CaseManagement extends Application {
 					
 				// New settings
 				cm.createAlert(sd, request.getRemoteUser(), alert, o_id);
-				msg = localisation.getString("cm_s_created");
+				msg = localisation.getString("cm_a_created");
 					
 			} else {
 				// Existing setting
 				cm.updateAlert(sd, request.getRemoteUser(), alert, o_id);
-				msg = localisation.getString("r_modified");	
+				msg = localisation.getString("cm_a_modified");	
 			}
 			msg = msg.replace("%s1", alert.name);
 			msg = msg.replace("%s2",  alert.group_survey_ident);
