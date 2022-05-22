@@ -92,9 +92,9 @@ public class CaseManagement extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());		
+		a.isAuthorised(sd, request.getRemoteUser());	
+		a.isValidSurvey(sd, connectionString, sId, false, false);
 		// End Authorisation
-		
 		
 		try {
 			// Get the users locale
@@ -103,9 +103,8 @@ public class CaseManagement extends Application {
 			
 			CaseManager cm = new CaseManager(localisation);
 			
-			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
-			CMS cms = cm.getCases(sd, o_id, groupSurveyIdent);
+			CMS cms = cm.getCases(sd, groupSurveyIdent);
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(cms);
 			response = Response.ok(resp).build();

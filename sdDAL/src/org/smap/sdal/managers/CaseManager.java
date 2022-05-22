@@ -54,7 +54,7 @@ public class CaseManager {
 	/*
 	 * Get Case Management settings
 	 */
-	public CMS getCases(Connection sd, int o_id, String groupSurveyIdent) throws SQLException {
+	public CMS getCases(Connection sd, String groupSurveyIdent) throws SQLException {
 		
 		PreparedStatement pstmt = null;
 		CMS cms;
@@ -75,12 +75,10 @@ public class CaseManager {
 					+ "changed_by as changed_by,"
 					+ "changed_ts as changed_ts "
 					+ "from cms_setting "
-					+ "where o_id = ? "
-					+ "and group_survey_ident = ? ";
+					+ "where group_survey_ident = ? ";
 			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, o_id);
-			pstmt.setString(2,  groupSurveyIdent);
+			pstmt.setString(1,  groupSurveyIdent);
 			log.info("Get case management settings: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 							
@@ -99,19 +97,18 @@ public class CaseManager {
 			 */
 			sql = "select id, name, period "
 					+ "from cms_alert "
-					+ "where o_id = ? "
-					+ "and group_survey_ident = ? "
+					+ "where group_survey_ident = ? "
 					+ "order by name asc";
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, o_id);
-			pstmt.setString(2,  groupSurveyIdent);
+			pstmt.setString(1,  groupSurveyIdent);
 			log.info("Get case management alerts: " + pstmt.toString());
 			
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
 				alerts.add(new CaseManagementAlert(rs.getInt("id"), 
-						groupSurveyIdent, rs.getString("name"), rs.getString("period")));
+						groupSurveyIdent, rs.getString("name"), 
+						rs.getString("period")));
 			}
 			
 			// Create the combined settings object
