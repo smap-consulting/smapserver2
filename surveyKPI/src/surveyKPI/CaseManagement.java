@@ -93,7 +93,7 @@ public class CaseManagement extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());	
-		a.isValidSurvey(sd, connectionString, sId, false, false);
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, false);
 		// End Authorisation
 		
 		try {

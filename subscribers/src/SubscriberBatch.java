@@ -1396,14 +1396,14 @@ public class SubscriberBatch {
 	 */
 	private void applyCaseManagementReminders(Connection sd, Connection cResults, String basePath, String serverName) {
 
-		String sql = "select cms.group_survey_ident, cms.name, cms.period "
+		String sql = "select a.group_survey_ident, a.name, a.period "
 				+ "f.table_name "
-				+ "from forward n, cms_alert cms, survey s, form f "
-				+ "where n.trigger = cms.name "
+				+ "from forward n, cms_alert a, survey s, form f "
+				+ "where n.trigger = a.id "
 				+ "and f.s_id = s.s_id "
 				+ "and f.parentform = 0 "
 				+ "and s.s_id = n.s_id "
-				+ "and s.group_survey_ident = cms.group_survey_ident ";		
+				+ "and s.group_survey_ident = a.group_survey_ident ";		
 		
 		PreparedStatement pstmt = null;	
 		
