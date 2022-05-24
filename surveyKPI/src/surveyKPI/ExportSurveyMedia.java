@@ -257,6 +257,13 @@ public class ExportSurveyMedia extends Application {
 				 * 2. Copy files to the folder, renaming them as per the export request
 				 */
 				pstmtGetData = cResults.prepareStatement(sqlDesc.sql); 
+				
+				// Add table column parameters
+				int paramCount = 1;
+				if (sqlDesc.columnSqlFrags.size() > 0) {
+					paramCount = GeneralUtilityMethods.setArrayFragParams(pstmtGetData, sqlDesc.columnSqlFrags, paramCount, tz);
+				}
+				
 				log.info("Generated SQL:" + pstmtGetData.toString());
 				ResultSet rs = pstmtGetData.executeQuery();
 				while(rs.next()) {

@@ -15,6 +15,7 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
 import org.smap.notifications.interfaces.EmitDeviceNotification;
+import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
@@ -293,7 +294,7 @@ public class MessagingManagerApply {
 						}
 	
 					} else {
-						log.log(Level.SEVERE, "Error: Attempt to do email notification but email server not set");
+						log.log(Level.SEVERE, "Error: Messaging: Attempt to do email notification but email server not set");
 						status = localisation.getString("email_cs");
 					}
 					
@@ -386,7 +387,8 @@ public class MessagingManagerApply {
 				+ "and pm.o_id = p.o_id "
 				+ "and p.unsubscribed = false "
 				+ "and (p.opted_in = true or p.o_id in (select id from organisation where not send_optin)) "
-				+ "and pm.processed_time is null";
+				+ "and pm.processed_time is null "
+				+ "order by id asc";	// Send in order
 
 		String sqlConfirm = "update pending_message set processed_time = now(), status = ? where id = ?; ";
 
@@ -547,6 +549,65 @@ public class MessagingManagerApply {
 			isValid = false;
 		}
 		return isValid;
+	}
+	
+	/*
+	 * Upload files to s3
+	 */
+	public void uploadToS3(Connection sd, String basePath) throws SQLException {
+		
+		String sql = "select id, filepath "
+				+ "from s3upload "
+				+ "where status = 'new' "
+				+ "limit 100"; 	
+		PreparedStatement pstmt = null;
+		
+		String sqlClean = "delete from s3upload "
+				+ "where status = 'success' "
+				+ "and processed_time < now() - interval '1 day'";
+		PreparedStatement pstmtClean = null;
+		
+		String sqlDone = "update s3upload "
+				+ "set status = ?, "
+				+ "reason = ?, "
+				+ "processed_time = now() "
+				+ "where id = ?";
+		PreparedStatement pstmtDone = null;
+		
+		try {
+			pstmtDone = sd.prepareStatement(sqlDone);
+			
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				
+				String status;
+				String reason = null;
+				try {
+					S3AttachmentUpload.put(basePath, rs.getString("filepath"));
+					status = "success";
+				} catch (Exception e) {
+					status = "failed";
+					reason = e.getMessage();					
+				}	
+
+				pstmtDone.setString(1, status);
+				pstmtDone.setString(2, reason);
+				pstmtDone.setInt(3, rs.getInt("id"));
+				pstmtDone.executeUpdate();
+			}
+			
+			/*
+			 * Clean up old data
+			 */
+			pstmtClean = sd.prepareStatement(sqlClean);
+			pstmtClean.executeUpdate();
+			
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtDone != null) {pstmtDone.close();}} catch (SQLException e) {}
+			try {if (pstmtClean != null) {pstmtClean.close();}} catch (SQLException e) {}
+		}
 	}
 	
 	/*

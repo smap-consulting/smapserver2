@@ -43,7 +43,6 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.model.ChangeElement;
-import org.smap.sdal.model.Language;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
@@ -359,7 +358,7 @@ public class Roles extends Application {
 			} else if(property.equals("row_filter")) {
 				rm.updateSurveyRoleRowFilter(sd, sId, role, localisation);
 				change.msg = localisation.getString("ed_c_rrf");
-				change.msg = change.msg.replace("%s2", role.row_filter);
+				change.msg = change.msg.replace("%s2", GeneralUtilityMethods.getSafeText(role.row_filter, true));
 			} else if(property.equals("column_filter")) {
 				rm.updateSurveyRoleColumnFilter(sd, sId, role, localisation);
 				change.msg = localisation.getString("ed_c_rcf");
@@ -371,7 +370,7 @@ public class Roles extends Application {
 					}
 					colMsg.append(col);
 				}
-				change.msg = change.msg.replace("%s2", colMsg.toString());
+				change.msg = change.msg.replace("%s2", GeneralUtilityMethods.getSafeText(colMsg.toString(), true));
 			}
 
 			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -382,7 +381,7 @@ public class Roles extends Application {
 
 			change.action = "role";
 			change.origSId = sId;	
-			change.msg = change.msg.replace("%s1", role.name);
+			change.msg = change.msg.replace("%s1", GeneralUtilityMethods.getSafeText(role.name, true));
 			
 			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
 			pstmtChangeLog.setInt(1, sId);

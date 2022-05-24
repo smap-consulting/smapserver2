@@ -7,7 +7,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -438,7 +437,11 @@ public class UserManager {
 			String pwdString = u.ident + ":smap:" + u.password;
 			String language = u.language;
 			if(language == null || language.trim().length() == 0) {
-				language = "en";
+				/*
+				 * Attempt to get the language from the default organisation language
+				 */
+				Organisation o = GeneralUtilityMethods.getOrganisation(sd, o_id);
+				language = o.locale;
 			}
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setString(1, u.ident);

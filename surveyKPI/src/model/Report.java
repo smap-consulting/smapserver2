@@ -1,9 +1,5 @@
 package model;
 
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Date;
-
 /*
 This file is part of SMAP.
 

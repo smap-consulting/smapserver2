@@ -72,6 +72,7 @@ public class MessageProcessor {
 						MessagingManagerApply mma = new MessagingManagerApply();
 						mma.applyOutbound(dbc.sd, dbc.results, serverName, basePath, count++, awsPropertiesFile);
 						mma.applyPendingEmailMessages(dbc.sd, dbc.results, serverName, basePath);
+						mma.uploadToS3(dbc.sd, basePath);
 						
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);

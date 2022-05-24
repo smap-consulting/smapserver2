@@ -373,6 +373,7 @@ public class SubRelationalDB extends Subscriber {
 
 		int sId = survey.id;
 		
+		PreparedStatement pstmt = null;
 		PreparedStatement pstmtHrk = null;
 		PreparedStatement pstmtAddHrk = null;
 		boolean resAutoCommitSetFalse = false;
@@ -444,14 +445,21 @@ public class SubRelationalDB extends Subscriber {
 					pstmtAddHrk.executeUpdate();
 				}
 
-				String sql = "update " + topLevelForm.tableName + " set _hrk = "
-						+ GeneralUtilityMethods.convertAllxlsNamesToQuery(hrk, sId, sd);
-
-				sql += " where _hrk is null;";
-				pstmtHrk = cResults.prepareStatement(sql);
-				log.info("Adding HRK: " + pstmtHrk.toString());
-				pstmtHrk.executeUpdate();
+				String sql = "select prikey from " + topLevelForm.tableName 
+						+ " where _hrk is null "
+						+ "order by prikey asc";
+				pstmt = cResults.prepareStatement(sql);
 				
+				String sqlHrk = "update " + topLevelForm.tableName + " m set _hrk = "
+						+ GeneralUtilityMethods.convertAllxlsNamesToQuery(hrk, sId, sd, topLevelForm.tableName)
+						+ " where prikey = ?;";
+				pstmtHrk = cResults.prepareStatement(sqlHrk);
+				ResultSet rs = pstmt.executeQuery();
+				while(rs.next()) {
+					pstmtHrk.setInt(1, rs.getInt(1));
+					log.info("Applying HRK: " + pstmtHrk.toString());
+					pstmtHrk.executeUpdate();
+				}	
 			}
 
 			/*
@@ -555,6 +563,8 @@ public class SubRelationalDB extends Subscriber {
 			}
 			
 			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {};
+			if(pstmtAddHrk != null) try{pstmtAddHrk.close();}catch(Exception e) {};
+			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
 		}		
 	}
 
@@ -728,7 +738,7 @@ public class SubRelationalDB extends Subscriber {
 						sql += ", ?";
 					}
 					ArrayList<ForeignKey> thisTableKeys = new ArrayList<> ();
-					sql += addSqlValues(columns, sIdent, device, server, false, thisTableKeys, cResults, tableName);
+					sql += addSqlValues(sd, columns, sIdent, device, server, false, thisTableKeys, cResults, tableName);
 					sql += ");";
 
 					pstmt = cResults.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
@@ -1583,7 +1593,7 @@ public class SubRelationalDB extends Subscriber {
 		return sql.toString();
 	}
 
-	String addSqlValues(List<IE> columns, String sName, String device, 
+	String addSqlValues(Connection sd, List<IE> columns, String sName, String device, 
 			String server, 
 			boolean phoneOnly, 
 			ArrayList<ForeignKey> foreignKeys,
@@ -1607,9 +1617,9 @@ public class SubRelationalDB extends Subscriber {
 				}
 			} else if(colType.equals("begin group")) {
 				// Non repeating group, process these child columns at the same level as the parent
-				sql.append(addSqlValues(col.getQuestions(), sName, device, server, colPhoneOnly, foreignKeys, cResults, tableName));
+				sql.append(addSqlValues(sd, col.getQuestions(), sName, device, server, colPhoneOnly, foreignKeys, cResults, tableName));
 			} else {
-				sql.append(",").append(getDbString(col, sName, device, server, colPhoneOnly, cResults, tableName));
+				sql.append(",").append(getDbString(sd, col, sName, device, server, colPhoneOnly, cResults, tableName));
 				// Check for a foreign key, the value will start with :::::
 				if(col.getValue() != null && col.getValue().startsWith(":::::") && col.getValue().length() > 5) {
 					ForeignKey fl = new ForeignKey();
@@ -1626,7 +1636,7 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Format the value into a string appropriate to its type
 	 */
-	String getDbString(IE col, String surveyName, String device, String server, boolean phoneOnly, Connection cResults, String tableName) {
+	String getDbString(Connection sd, IE col, String surveyName, String device, String server, boolean phoneOnly, Connection cResults, String tableName) {
 
 		String qType = col.getQType();
 		String value = col.getValue();	
@@ -1713,6 +1723,7 @@ public class SubRelationalDB extends Subscriber {
 						File srcPathFile = new File(srcXmlDirFile.getAbsolutePath() + "/" + srcName);
 
 						value = "'" + GeneralUtilityMethods.createAttachments(
+								sd,
 								srcName, 
 								srcPathFile, 
 								gBasePath, 

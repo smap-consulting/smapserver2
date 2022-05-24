@@ -82,14 +82,12 @@ public class DocumentXLSManager {
 		
 		Sheet sheet = wb.getSheetAt(0);
 		for(KeyValue kv : data) {
-			int namedCellIdx = wb.getNameIndex(kv.k);
-		    Name aNamedCell = wb.getNameAt(namedCellIdx);
+			XSSFName aNamedCell = wb.getName(kv.k);
 
 		    AreaReference aref = new AreaReference(aNamedCell.getRefersToFormula(), null);
 		    CellReference[] crefs = aref.getAllReferencedCells();
 		  
 		    for (int i = 0; i < crefs.length; i++) {
-		        Sheet s = wb.getSheet(crefs[i].getSheetName());
 		        Row r = sheet.getRow(crefs[i].getRow());
 		        Cell cell = r.getCell(crefs[i].getCol());
 		        // extract the cell contents based on cell type etc.

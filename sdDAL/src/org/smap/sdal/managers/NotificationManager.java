@@ -1018,7 +1018,7 @@ public class NotificationManager {
 					} else {
 						status = "error";
 						error_details = "smtp_host not set";
-						log.log(Level.SEVERE, "Error: Attempt to do email notification but email server not set");
+						log.log(Level.SEVERE, "Error: Notification, Attempt to do email notification but email server not set");
 					}
 					
 				} else if(msg.target.equals("sms")) {   // SMS URL notification - SMS message is posted to an arbitrary URL 
@@ -1430,7 +1430,7 @@ public class NotificationManager {
 					} else {
 						status = "error";
 						error_details = "smtp_host not set";
-						log.log(Level.SEVERE, "Error: Attempt to do email notification but email server not set");
+						log.log(Level.SEVERE, "Error: Notification, Attempt to do email notification but email server not set");
 					}
 					
 				} else if(msg.target.equals("sms")) {   // SMS URL notification - SMS message is posted to an arbitrary URL 

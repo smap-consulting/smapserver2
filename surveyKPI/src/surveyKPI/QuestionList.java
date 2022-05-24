@@ -151,7 +151,7 @@ public class QuestionList extends Application {
 					" AND t.type = 'none' " + 
 					" AND f.s_id = t.s_id " +
 					" WHERE f.s_id = ? " +
-					" AND q.source is not null "
+					" AND (q.source is not null or q.qtype = 'server_calculate') "
 					+ "and q.soft_deleted = false ";
 			
 			if(exc_read_only) {

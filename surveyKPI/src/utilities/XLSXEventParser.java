@@ -145,7 +145,8 @@ public class XLSXEventParser {
 					}
 				} else {
 					try {
-						recordsWritten += em.processRecord(eh, 
+						recordsWritten += em.processRecord(sd,
+								eh, 
 								line, 
 								form, 
 								importSource, 

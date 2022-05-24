@@ -1,5 +1,7 @@
 package org.smap.sdal.Utilities;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.sql.Timestamp;
@@ -12,10 +14,11 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.imageio.ImageIO;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.poi.common.usermodel.HyperlinkType;
 import org.apache.poi.hssf.usermodel.HSSFDataFormat;
-import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
@@ -32,6 +35,7 @@ import org.apache.poi.ss.usermodel.Hyperlink;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.DateUtil;
 
 public class XLSUtilities {
 
@@ -347,7 +351,7 @@ public class XLSUtilities {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm");
 
 		if(c.getCellType() == CellType.NUMERIC) {
-			if (HSSFDateUtil.isCellDateFormatted(c)) {
+			if (DateUtil.isCellDateFormatted(c)) {
 				dateValue = c.getDateCellValue();
 				value = dateFormat.format(dateValue);
 			} else {
@@ -425,6 +429,8 @@ public class XLSUtilities {
 			int col,
 			boolean isXLSX) {
 		
+		final int IMAGE_WIDTH = 300;
+		final int IMAGE_CELL_WIDTH = 256 * IMAGE_WIDTH / 8;	// Dell width in characters, assume 8 px for each characters
 		if(value != null && value.startsWith("POINT")) {
 			CreationHelper createHelper = wb.getCreationHelper();
 			String coords [] = GeneralUtilityMethods.getLonLat(value);
@@ -446,12 +452,27 @@ public class XLSUtilities {
 			CreationHelper createHelper = wb.getCreationHelper();
 			if(embedImages) {
 				if(value.endsWith(".jpg") || value.endsWith(".png")) {
+					InputStream inputStream = null;
+					ByteArrayOutputStream baos = null;
 						try {
-							//InputStream inputStream = new FileInputStream(imageName);
-							InputStream inputStream = new URL(value).openStream();
+							String thumbsUrl = GeneralUtilityMethods.getThumbsUrl(value);
+							inputStream = new URL(thumbsUrl).openStream();
+							
+							// Resize - From https://mkyong.com and https://www.baeldung.com/
+							/*
+							 * Too slow!
+							BufferedImage bi = GeneralUtilityMethods.resizeImage(ImageIO.read(inputStream), 300);
+							baos = new ByteArrayOutputStream();
+							String format = value.endsWith(".jpg") ? "jpg" : "png";
+							ImageIO.write(bi, format, baos);
+							byte[] imageBytes = baos.toByteArray();
+							*/
 							byte[] imageBytes = IOUtils.toByteArray(inputStream);
+							if(sheet.getColumnWidth(col) != IMAGE_CELL_WIDTH) {
+								sheet.setColumnWidth(col, IMAGE_CELL_WIDTH);
+							}
+							
 							int pictureureIdx = wb.addPicture(imageBytes, Workbook.PICTURE_TYPE_JPEG);
-							inputStream.close();
 
 							ClientAnchor anchor = createHelper.createClientAnchor();
 							anchor.setCol1(col);
@@ -459,12 +480,27 @@ public class XLSUtilities {
 							anchor.setCol2(col + 1);
 							anchor.setRow2(row);
 							anchor.setAnchorType(ClientAnchor.AnchorType.MOVE_AND_RESIZE); 
-							//sheet.setColumnWidth(i, 20 * 256);
+							
 							Drawing drawing = sheet.createDrawingPatriarch();
 							drawing.createPicture(anchor, pictureureIdx);
-							//pict.resize();
+							
 						} catch (Exception e) {
-							log.info("Error: Missing image file: " + value);
+							log.log(Level.SEVERE, "Error: Missing image file: " + value, e);
+						} finally {
+							if(inputStream != null) {
+								try {
+									inputStream.close();
+								} catch (Exception ex) {
+									
+								}
+							}
+							if(baos != null) {
+								try {
+									baos.close();
+								} catch (Exception ex) {
+									
+								}
+							}
 						}
 
 				}
@@ -583,7 +619,7 @@ public class XLSUtilities {
 				Cell c = row.getCell(idx);
 				if(c != null) {
 					if(c.getCellType() == CellType.NUMERIC || c.getCellType() == CellType.FORMULA) {
-						if (HSSFDateUtil.isCellDateFormatted(c)) {
+						if (DateUtil.isCellDateFormatted(c)) {
 							dateValue = c.getDateCellValue();
 							value = dateFormat.format(dateValue);
 						} else {
@@ -627,7 +663,7 @@ public class XLSUtilities {
 				if(c != null) {
 					log.info("Get date column: " + name);
 					if(c.getCellType() == CellType.NUMERIC) {
-						if (HSSFDateUtil.isCellDateFormatted(c)) {
+						if (DateUtil.isCellDateFormatted(c)) {
 							tsValue = new Timestamp(c.getDateCellValue().getTime());
 						} 
 					} 

@@ -1,23 +1,14 @@
 import java.io.File;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.AutoUpdateManager;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.subscribers.Subscriber;
-import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 

@@ -1,5 +1,7 @@
 package org.smap.sdal.Utilities;
 
+import java.awt.Image;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -57,7 +59,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.text.StringEscapeUtils;
-import org.apache.poi.ss.formula.functions.Now;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.CsvTableManager;
@@ -624,7 +625,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Add an attachment to a survey
 	 */
-	static public String createAttachments(String srcName, File srcPathFile, String basePath, 
+	static public String createAttachments(Connection sd, String srcName, File srcPathFile, String basePath, 
 			String surveyName, 
 			String srcUrl,
 			ArrayList<MediaChange> mediaChanges) {
@@ -687,7 +688,7 @@ public class GeneralUtilityMethods {
 				log.info("Processing attachment: " + srcUrl + " as " + dstPathFile);
 				FileUtils.copyURLToFile(new URL(srcUrl), dstPathFile);
 			}
-			processAttachment(dstName, dstDir, contentType, srcExt, basePath);
+			processAttachment(sd, dstName, dstDir, contentType, srcExt, basePath);
 
 		} catch (IOException e) {
 			log.log(Level.SEVERE, "Error", e);
@@ -699,11 +700,11 @@ public class GeneralUtilityMethods {
 		log.info("Media value: " + value);
 		return value;
 	}
-
+	
 	/*
 	 * Create thumbnails, reformat video files etc
 	 */
-	private static void processAttachment(String fileName, String destDir, String contentType, String ext, String basePath) {
+	private static void processAttachment(Connection sd, String fileName, String destDir, String contentType, String ext, String basePath) {
 
 		// note this function is called from subscriber hence can echo to the attachments log
 		String scriptPath = basePath + "_bin" + File.separator + "processAttachment.sh ";
@@ -712,7 +713,22 @@ public class GeneralUtilityMethods {
 		log.info("Exec: " + cmd);
 		try {
 
-			Runtime.getRuntime().exec(new String[] { "/bin/sh", "-c", cmd });
+			Process proc = Runtime.getRuntime().exec(new String[] { "/bin/sh", "-c", cmd });
+			proc.waitFor();	// Wait for this to finish so the thumbnails have been created before sending to S3
+			
+			/*
+			 * Send files to S3
+			 */
+			File destFile = new File(destDir + "/" + fileName + "." + ext);
+			if(destFile.exists()) {
+				GeneralUtilityMethods.sendToS3(sd, basePath, destFile.getAbsolutePath());
+			}
+
+			File destThumb = new File(destDir + "/thumbs/" + fileName + "." + ext + ".jpg");
+			if(destThumb.exists()) {
+				GeneralUtilityMethods.sendToS3(sd, basePath, destThumb.getAbsolutePath());
+			}
+			
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -722,19 +738,19 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Send a file to S3
+	 * Write the file to a table to be processed separately
 	 */
-	public static void sendToS3(String filePath) {
+	public static void sendToS3(Connection sd, String basePath, String filePath) throws SQLException {
 
-		// note this function is called from subscriber and hence can still echo to attachments log
-		String cmd = "/smap_bin/sendToS3.sh " + filePath 
-				+ " >> /var/log/subscribers/attachments.log 2>&1";
-		log.info("Exec: " + cmd);
+		String sql = "insert into s3upload (filepath, status) values(?, 'new')";
+		PreparedStatement pstmt = null;
 		try {
-
-			Runtime.getRuntime().exec(new String[] { "/bin/sh", "-c", cmd });
-
-		} catch (Exception e) {
-			e.printStackTrace();
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1,  filePath);
+			log.info("xx upload file to s3: " + pstmt.toString());
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
 
 	}
@@ -4608,7 +4624,8 @@ public class GeneralUtilityMethods {
 	/*
 	 * Convert names in xls format ${ } to an SQL query
 	 */
-	public static String convertAllxlsNamesToQuery(String input, int sId, Connection sd) throws SQLException, ApplicationException {
+	public static String convertAllxlsNamesToQuery(String input, int sId, 
+			Connection sd, String tableName) throws SQLException, ApplicationException {
 
 		if (input == null) {
 			return null;
@@ -4630,7 +4647,7 @@ public class GeneralUtilityMethods {
 			// Add any text before the match
 			int startOfGroup = matcher.start();
 			item = input.substring(start, startOfGroup).trim();
-			convertSqlFragToHrkElement(item, output);
+			convertSqlFragToHrkElement(sd, sId, item, output, tableName);
 
 			// Add the column name
 			if (output.length() > 0) {
@@ -4655,7 +4672,7 @@ public class GeneralUtilityMethods {
 		// Get the remainder of the string
 		if (start < input.length()) {
 			item = input.substring(start).trim();
-			convertSqlFragToHrkElement(item, output);
+			convertSqlFragToHrkElement(sd, sId, item, output, tableName);
 		}
 
 		return output.toString().trim();
@@ -4708,14 +4725,20 @@ public class GeneralUtilityMethods {
 	/*
 	 * Add a component that is not a data
 	 */
-	private static void convertSqlFragToHrkElement(String item, StringBuffer output) {
+	private static void convertSqlFragToHrkElement(Connection sd, int sId, 
+			String item, StringBuffer output, String tableName) {
 
 		if (item.length() > 0) {
 			if (output.length() > 0) {
 				output.append(" || ");
 			}
-			if (item.contains("serial(")) {
-				int idx0 = item.indexOf("serial(");
+			if (item.contains("serial(") || item.contains("seq(")) {
+				int idx0 = -1;
+				if (item.contains("serial(")) {
+					idx0 = item.indexOf("serial(");
+				} else if(item.contains("seq(")) {
+					idx0 = item.indexOf("seq(");
+				}
 				int idx1 = item.indexOf('(');
 				int idx2 = item.indexOf(')');
 
@@ -4728,17 +4751,35 @@ public class GeneralUtilityMethods {
 					output.append(" || ");
 				}
 				if (idx2 > idx1) {
-					String offset = item.substring(idx1 + 1, idx2);
-					if (offset.trim().length() > 0) {
-						try {
-							Integer.valueOf(offset);
-							output.append("prikey + " + offset);
-						} catch (Exception e) {
-							log.info("Error parsing HRK item: " + item);
+					if (item.contains("serial(")) {
+						String offset = item.substring(idx1 + 1, idx2);
+						if (offset.trim().length() > 0) {
+							try {
+								Integer.valueOf(offset);
+								output.append("prikey + " + offset);
+							} catch (Exception e) {
+								log.info("Error parsing HRK item: " + item);
+								output.append("prikey");
+							}
+						} else {
 							output.append("prikey");
 						}
-					} else {
-						output.append("prikey");
+					} else if (item.contains("seq(")) {
+						String filterColumn = item.substring(idx1 + 1, idx2);
+						if (filterColumn.trim().length() > 0) {
+							try {
+								String columnName = getColumnName(sd, sId, filterColumn.trim());
+								if(columnName != null) {
+									output.append("(select count(*) from " + tableName + " f1 "
+											+ "where f1." + columnName 
+											+ " = m." + columnName
+											+ " and f1._hrk is not null) + 1");
+								}
+							} catch (SQLException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}		
 					}
 				} else {
 					log.info("Error parsing HRK item: " + item);
@@ -10406,6 +10447,29 @@ public class GeneralUtilityMethods {
 		return value;
 	}
 	
+	/*
+	 * Resize the image to the specified width maintaining aspect ration
+	 */
+	public static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth) throws IOException {
+		int targetHeight = (originalImage.getHeight() * targetWidth) / originalImage.getWidth();
+	    Image resultingImage = originalImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_DEFAULT);	// Keep aspect ration
+	    BufferedImage outputImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+	    outputImage.getGraphics().drawImage(resultingImage, 0, 0, null);
+	    return outputImage;
+	}
+	
+	public static String getThumbsUrl(String in) {
+		String url = null;
+		if(in != null) {
+			int fIdx = in.lastIndexOf('/');
+			if(fIdx >= 0) {
+				String fName = in.substring(fIdx + 1);
+				String base = in.substring(0, fIdx + 1);
+				url = base + "thumbs/" + fName + ".jpg";
+			}
+		}
+		return url;
+	}
 	
 	private static int getManifestParamStart(String property) {
 	

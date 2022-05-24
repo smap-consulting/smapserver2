@@ -1658,3 +1658,34 @@ create TABLE background_report (
 	end_time TIMESTAMP WITH TIME ZONE
 );
 ALTER TABLE background_report OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS s3upload_seq CASCADE;
+CREATE SEQUENCE s3upload_seq START 1;
+ALTER SEQUENCE s3upload_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS s3upload;
+CREATE TABLE s3upload (
+	id integer DEFAULT NEXTVAL('s3upload_seq') CONSTRAINT pk_s3upload PRIMARY KEY,
+	filepath text,
+	status text,    -- new or failed
+	reason text,	-- failure reason
+	processed_time TIMESTAMP WITH TIME ZONE		-- Time of processing
+	);
+ALTER TABLE s3upload OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS case_management_setting_seq CASCADE;
+CREATE SEQUENCE case_management_setting_seq START 1;
+ALTER SEQUENCE case_management_setting_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS case_management_setting;
+CREATE TABLE case_management_setting (
+	id integer DEFAULT NEXTVAL('case_management_setting_seq') CONSTRAINT pk_case_management_setting PRIMARY KEY,
+	o_id integer,
+	name text,
+	type text,   
+	p_id integer,	
+	changed_by text,
+	changed_ts TIMESTAMP WITH TIME ZONE	
+	);
+CREATE UNIQUE INDEX cms_unique_name ON case_management_setting(o_id, name);
+ALTER TABLE case_management_setting OWNER TO ws;

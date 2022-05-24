@@ -456,7 +456,8 @@ public class ExchangeManager {
 							break;
 						}
 						
-						recordsWritten += processRecord(eh, 
+						recordsWritten += processRecord(sd, 
+								eh, 
 								line, 
 								form, 
 								importSource, 
@@ -1199,7 +1200,9 @@ public class ExchangeManager {
 		}
 	}
 
-	public int processRecord(ExchangeHeader eh, 
+	public int processRecord(
+			Connection sd,
+			ExchangeHeader eh, 
 			String [] line, 
 			FormDesc form,
 			String importSource,
@@ -1319,6 +1322,7 @@ public class ExchangeManager {
 					// Copy the attachments to the target location and get the new name
 					if(srcPathFile != null || srcUrl != null) {
 						value = GeneralUtilityMethods.createAttachments(
+							sd,
 							value, 
 							srcPathFile, 
 							basePath, 
