@@ -437,7 +437,11 @@ public class UserManager {
 			String pwdString = u.ident + ":smap:" + u.password;
 			String language = u.language;
 			if(language == null || language.trim().length() == 0) {
-				language = "en";
+				/*
+				 * Attempt to get the language from the default organisation language
+				 */
+				Organisation o = GeneralUtilityMethods.getOrganisation(sd, o_id);
+				language = o.locale;
 			}
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setString(1, u.ident);

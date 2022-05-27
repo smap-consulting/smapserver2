@@ -5821,17 +5821,25 @@ public class GeneralUtilityMethods {
 		 * param[2] params[4] is the filter column name (Get this one) params[5] is the
 		 * filter value
 		 * 
-		 */
+		 * If the function is eval then the expression is in params[2]
+		 * 
+		 */	
+		
 		if (params.length > 2) {
-			param = params[2].trim();
-			param = param.substring(1, param.length() - 1); // Remove quotes
-			refQuestions.add(param);
+			if(params[1].trim().equals("'eval'")) {
+				refQuestions.addAll(getCsvNames(params[2]));
+			} else {				
+				param = params[2].trim();
+				param = param.substring(1, param.length() - 1); // Remove quotes
+				refQuestions.add(param);
+			}
 		}
 		if (params.length > 4) {
 			param = params[4].trim();
 			param = param.substring(1, param.length() - 1); // Remove quotes
 			refQuestions.add(param);
 		}
+				
 		return refQuestions;
 	}
 	
