@@ -100,7 +100,8 @@ public class NotificationManager {
 				+ "f.update_survey,"
 				+ "f.update_question,"
 				+ "f.update_value,"
-				+ "f.remote_password "
+				+ "f.remote_password,"
+				+ "f.alert_id "
 				+ "from forward f, survey s "
 				+ "where f.s_id = s.s_id "
 				+ "and f.enabled = 'true' "
@@ -138,9 +139,10 @@ public class NotificationManager {
 		String sql = "insert into forward(" +
 				" s_id, enabled, " +
 				" remote_s_id, remote_s_name, remote_host, remote_user, remote_password, notify_details, "
-				+ "trigger, target, filter, name, tg_id, period, update_survey, update_question, update_value) " +
+				+ "trigger, target, filter, name, tg_id, period, update_survey, update_question, update_value,"
+				+ "alert_id) " +
 				" values (?, ?, ?, ?, ?, ?, ?, ?"
-				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?); ";
+				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?); ";
 
 		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 
@@ -165,6 +167,7 @@ public class NotificationManager {
 		pstmt.setString(15, n.updateSurvey);
 		pstmt.setString(16, n.updateQuestion);
 		pstmt.setString(17, n.updateValue);
+		pstmt.setInt(18, n.alert_id);
 		pstmt.executeUpdate();
 	}
 
@@ -192,7 +195,8 @@ public class NotificationManager {
 					+ "period = ?, "
 					+ "update_survey = ?, "
 					+ "update_question = ?, "
-					+ "update_value = ?, "
+					+ "update_value = ?,"
+					+ "alert_id = ?,"
 					+ "remote_password = ? "
 					+ "where id = ?";
 		} else {
@@ -212,7 +216,8 @@ public class NotificationManager {
 					+ "period = ?, "
 					+ "update_survey = ?, "
 					+ "update_question = ?, "
-					+ "update_value = ? "
+					+ "update_value = ?, "
+					+ "alert_id = ? "
 					+ "where id = ?";
 		}
 
@@ -237,11 +242,12 @@ public class NotificationManager {
 		pstmt.setString(14, n.updateSurvey);
 		pstmt.setString(15, n.updateQuestion);
 		pstmt.setString(16, n.updateValue);
+		pstmt.setInt(17, n.alert_id);
 		if(n.update_password) {
-			pstmt.setString(17, n.remote_password);
-			pstmt.setInt(18, n.id);
+			pstmt.setString(18, n.remote_password);
+			pstmt.setInt(19, n.id);
 		} else {
-			pstmt.setInt(17, n.id);
+			pstmt.setInt(18, n.id);
 		}
 
 		log.info("Update Forward: " + pstmt.toString());
@@ -292,7 +298,7 @@ public class NotificationManager {
 		String sql = "select f.id, f.s_id, f.enabled, "
 				+ "f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user,"
 				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
-				+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value "
+				+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value, f.alert_id "
 				+ "from forward f, survey s, users u, user_project up, project p "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -333,7 +339,7 @@ public class NotificationManager {
 				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
 				+ "f.tg_id, f.period, f.update_survey,"
 				+ "f.update_question, f.update_value,"
-				+ "p.name as project_name  "
+				+ "p.name as project_name, f.alert_id  "
 				+ "from forward f, survey s, project p "
 				+ "where s.s_id = f.s_id "
 				+ "and s.p_id = p.id "
@@ -483,6 +489,7 @@ public class NotificationManager {
 			n.updateSurvey = resultSet.getString("update_survey");
 			n.updateQuestion = resultSet.getString("update_question");
 			n.updateValue = resultSet.getString("update_value");
+			n.alert_id = resultSet.getInt("alert_id");
 
 			if(getPassword) {
 				n.remote_password = resultSet.getString("remote_password");

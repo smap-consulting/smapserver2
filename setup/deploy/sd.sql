@@ -521,3 +521,5 @@ CREATE TABLE cms_setting (
 	);
 CREATE UNIQUE INDEX cms_unique_setting ON cms_setting(group_survey_ident);
 ALTER TABLE cms_setting OWNER TO ws;
+
+alter table forward add column alert_id integer;

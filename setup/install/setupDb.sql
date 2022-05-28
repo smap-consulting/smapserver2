@@ -835,7 +835,8 @@ CREATE TABLE forward (
 	period text,						-- Reminder notifications
 	update_survey text references survey(ident) on delete cascade,
 	update_question text,				-- Update notifications
-	update_value text
+	update_value text,
+	alert_id integer					-- Set where the source is a case management reminder
 	);
 ALTER TABLE forward OWNER TO ws;
 CREATE UNIQUE INDEX ForwardDest ON forward(s_id, remote_s_id, remote_host);

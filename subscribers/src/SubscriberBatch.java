@@ -1396,10 +1396,14 @@ public class SubscriberBatch {
 	 */
 	private void applyCaseManagementReminders(Connection sd, Connection cResults, String basePath, String serverName) {
 
-		String sql = "select a.group_survey_ident, a.name, a.period "
+		/*
+		 * Get the alerts that are associated with a reminder notification
+		 */
+		String sql = "select a.group_survey_ident, a.name, a.period, "
 				+ "f.table_name "
 				+ "from forward n, cms_alert a, survey s, form f "
-				+ "where n.trigger = a.id "
+				+ "where n.trigger = 'cm_alert'"
+				+ "and n.alert_id = a.id "
 				+ "and f.s_id = s.s_id "
 				+ "and f.parentform = 0 "
 				+ "and s.s_id = n.s_id "
@@ -1427,6 +1431,7 @@ public class SubscriberBatch {
 			
 			// 1. Get case management alerts that are associated with a notification
 			pstmt = sd.prepareStatement(sql);
+			log.info("Get case management alerts: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				System.out.println("Group survey: " + rs.getString("group_survey_ident"));
@@ -1445,8 +1450,8 @@ public class SubscriberBatch {
 					if(settings == null) {
 						pstmtSettings.setString(1,groupSurveyIdent);
 						ResultSet srs = pstmtSettings.executeQuery();
-						if(rs.next()) {
-							settings = gson.fromJson(rs.getString("settings"), CaseManagementSettings.class);
+						if(srs.next()) {
+							settings = gson.fromJson(srs.getString("settings"), CaseManagementSettings.class);
 							settingsCache.put(groupSurveyIdent, settings);
 						}						
 					}
@@ -1454,7 +1459,7 @@ public class SubscriberBatch {
 					
 						StringBuilder sqlMatch = new StringBuilder("select prikey, _thread from "); 
 						sqlMatch.append(table); 
-						sqlMatch.append("where not _bad and not status = ? ");
+						sqlMatch.append(" where not _bad and not status = ? ");
 						sqlMatch.append("and _thread_created > now() - interval ? ");	
 						
 						pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
