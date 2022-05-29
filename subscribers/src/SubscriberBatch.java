@@ -1434,7 +1434,7 @@ public class SubscriberBatch {
 			log.info("Get case management alerts: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
-				System.out.println("Group survey: " + rs.getString("group_survey_ident"));
+				log.info("Group survey: " + rs.getString("group_survey_ident"));
 				
 				// 2. For each alert check to see if any records match the criteria and that have not already been notified
 				String name = rs.getString("name");
@@ -1442,6 +1442,8 @@ public class SubscriberBatch {
 				String table = rs.getString("table_name");
 				String period = rs.getString("period");				
 				if(GeneralUtilityMethods.tableExists(cResults, table)) {
+					
+					GeneralUtilityMethods.initialiseThread(cResults, table);
 					
 					/*
 					 * Get the settings for this group survey ident
@@ -1455,12 +1457,13 @@ public class SubscriberBatch {
 							settingsCache.put(groupSurveyIdent, settings);
 						}						
 					}
-					if(settings != null) {
+					if(settings != null && settings.finalStatus != null && settings.statusQuestion != null &&
+							GeneralUtilityMethods.hasColumn(cResults, table, settings.statusQuestion)) {
 					
 						StringBuilder sqlMatch = new StringBuilder("select prikey, _thread from "); 
 						sqlMatch.append(table); 
-						sqlMatch.append(" where not _bad and not status = ? ");
-						sqlMatch.append("and _thread_created > now() - interval ? ");	
+						sqlMatch.append(" where not _bad and not ").append(settings.statusQuestion).append(" = ? ");
+						sqlMatch.append("and _thread_created < now() - ?::interval ");	
 						
 						pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
 						int idx = 1;
@@ -1469,12 +1472,14 @@ public class SubscriberBatch {
 						log.info("Looking for timed out cases: " + pstmtMatches.toString());
 						ResultSet mrs = pstmtMatches.executeQuery();
 						while(mrs.next()) {
-							System.out.println("Record: " + mrs.getInt(1));
+							log.info("Record: " + mrs.getInt(1));
 						}
 					
 						// 3. Process each matching record within a single transaction
 						//    3a. Send notification
 						//    3b. update case_notification_triggered to record the sending of the notification
+					} else {
+						log.info("cm: no status settings");
 					}
 				}
 			}

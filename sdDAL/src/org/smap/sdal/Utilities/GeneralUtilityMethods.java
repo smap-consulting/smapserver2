@@ -8395,7 +8395,7 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmtCopyThreadCol = null;
 			
 		try {
-			initialiseThread(cResults, table, sourceKey, null);
+			initialiseThread(cResults, table);
 			
 			// At this point the thread col must exist and the _thread value for the source must exist
 			pstmtCopyThreadCol = cResults.prepareStatement(sqlCopyThreadCol);
@@ -8417,12 +8417,18 @@ public class GeneralUtilityMethods {
 	 * Add the thread value that links replaced records
 	 * Either get the thread key using the sourceKey or if that is not set use the passed in instanceId directly
 	 */
-	public static void initialiseThread(Connection cResults, String table, int sourceKey, String instanceId) throws SQLException {
+	public static void initialiseThread(Connection cResults, String table) throws SQLException {
 		
-		String sqlInitThreadCol = "update " + table + " set _thread = instanceid where prikey = ? and _thread is null";
+		String sqlInitThreadCol = "update " 
+				+ table 
+				+ " set _thread = instanceid "
+				+ "where _thread is null";
 		PreparedStatement pstmtInitThreadCol = null;
 		
-		String sqlInitThreadCol2 = "update " + table + " set _thread = instanceid where instanceid = ? and _thread is null";
+		String sqlInitThreadCol2 = "update " 
+				+ table 
+				+ " set _thread_created = _upload_time "
+				+ "where _thread_created is null";
 		PreparedStatement pstmtInitThreadCol2 = null;
 			
 		try {
@@ -8437,17 +8443,14 @@ public class GeneralUtilityMethods {
 			}
 			
 			// Initialise the thread column
-			if(sourceKey > 0) {
-				pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
-				pstmtInitThreadCol.setInt(1, sourceKey);
-				log.info("Initialise Thread: " + pstmtInitThreadCol.toString());
-				pstmtInitThreadCol.executeUpdate();
-			} else {
-				pstmtInitThreadCol2 = cResults.prepareStatement(sqlInitThreadCol2);
-				pstmtInitThreadCol2.setString(1, instanceId);
-				log.info("Initialise Thread: " + pstmtInitThreadCol2.toString());
-				pstmtInitThreadCol2.executeUpdate();
-			}
+			pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
+			log.info("Initialise Thread: " + pstmtInitThreadCol.toString());
+			pstmtInitThreadCol.executeUpdate();
+			
+			// Initialise the _thread_created columns
+			pstmtInitThreadCol2 = cResults.prepareStatement(sqlInitThreadCol2);
+			log.info("Initialise Thread: " + pstmtInitThreadCol2.toString());
+			pstmtInitThreadCol2.executeUpdate();
 			
 		} finally {
 			if(pstmtInitThreadCol != null) try{pstmtInitThreadCol.close();}catch(Exception e) {}
@@ -8475,7 +8478,7 @@ public class GeneralUtilityMethods {
 			
 		try {
 			
-			initialiseThread(cResults, table, 0, instanceId);
+			initialiseThread(cResults, table);
 			
 			pstmt = cResults.prepareStatement(sql);
 			pstmt.setString(1, instanceId);

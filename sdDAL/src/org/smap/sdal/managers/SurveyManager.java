@@ -3647,21 +3647,25 @@ public class SurveyManager {
 	 */
 	public ArrayList<QuestionLite> getGroupQuestionsArray(Connection sd, 
 			String groupSurveyIdent,
-			String filter) throws SQLException {
+			String filter,
+			boolean statusOnly) throws SQLException {
 		
 		ArrayList<QuestionLite> groupQuestions = new ArrayList<> ();
 		HashMap<String, QuestionLite> qMap =  new HashMap<> ();
 
-		String sql = sqlGetGroupQuestions;
+		StringBuilder sql = new StringBuilder(sqlGetGroupQuestions);
 		
 		if(filter != null) {
-			sql += " and " + filter;
+			sql.append(" and ").append(filter);
 		}
-		sql += " order by q.qname asc";
+		if(statusOnly) {
+			sql.append(" and (q.qtype = 'string' or q.qtype = 'select1' or q.qtype = 'int')");
+		}
+		sql.append(" order by q.qname asc");
 		
 		PreparedStatement pstmt = null;
 		try {
-			pstmt = sd.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql.toString());
 			pstmt.setString(1, groupSurveyIdent);
 			log.info("++++++++ Get Group Questions: " + pstmt.toString());
 			
@@ -3676,29 +3680,31 @@ public class SurveyManager {
 			}
 			
 			// Check for background audio
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			sql = "select meta from survey where group_survey_ident = ? and deleted = 'false' and not hidden and meta like '%background-audio%'";
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, groupSurveyIdent);
-			log.info("++++++++ Get background audio questions: " + pstmt.toString());
-			rs = pstmt.executeQuery();
-
-			while (rs.next()) {
-				String metaString = rs.getString(1);
-				if(metaString != null) {
-					Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-					ArrayList<MetaItem> preloads = gson.fromJson(metaString, new TypeToken<ArrayList<MetaItem>>() {}.getType());
-					for(MetaItem item : preloads) {
-						if(item.isPreload && item.sourceParam.equals("background-audio")) {
-							QuestionLite q = new QuestionLite();
-							q.column_name = item.columnName; 
-							q.name = item.name; 
-							q.type = "audio";
-							qMap.put(q.name, q);
-							break;
+			if(!statusOnly) {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				sql = new StringBuilder("select meta from survey where group_survey_ident = ? and deleted = 'false' and not hidden and meta like '%background-audio%'");
+				pstmt = sd.prepareStatement(sql.toString());
+				pstmt.setString(1, groupSurveyIdent);
+				log.info("++++++++ Get background audio questions: " + pstmt.toString());
+				rs = pstmt.executeQuery();
+	
+				while (rs.next()) {
+					String metaString = rs.getString(1);
+					if(metaString != null) {
+						Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+						ArrayList<MetaItem> preloads = gson.fromJson(metaString, new TypeToken<ArrayList<MetaItem>>() {}.getType());
+						for(MetaItem item : preloads) {
+							if(item.isPreload && item.sourceParam.equals("background-audio")) {
+								QuestionLite q = new QuestionLite();
+								q.column_name = item.columnName; 
+								q.name = item.name; 
+								q.type = "audio";
+								qMap.put(q.name, q);
+								break;
+							}
 						}
-					}
-				} 
+					} 
+				}
 			}
 			
 			for (String qName : qMap.keySet()) {
