@@ -298,13 +298,20 @@ public class NotificationManager {
 		String sql = "select f.id, f.s_id, f.enabled, "
 				+ "f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user,"
 				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
-				+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value, f.alert_id "
-				+ "from forward f, survey s, users u, user_project up, project p "
-				+ "where u.id = up.u_id "
-				+ "and p.id = up.p_id "
-				+ "and s.p_id = up.p_id "
-				+ "and s.s_id = f.s_id "
-				+ "and u.ident = ? "
+				+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value, f.alert_id,"
+				+ "a.name as alert_name "
+				+ "from forward f "
+				+ "inner join survey s "
+				+ "on s.s_id = f.s_id "
+				+ "inner join user_project up "
+				+ "on s.p_id = up.p_id "
+				+ "inner join users u "
+				+ "on u.id = up.u_id "
+				+ "inner join project p "
+				+ "on p.id = up.p_id "
+				+ "left outer join cms_alert a "
+				+ "on a.id = f.alert_id "
+				+ "where u.ident = ? "
 				+ "and s.p_id = ? "
 				+ "and s.deleted = 'false' "
 				+ "order by f.name, s.display_name asc";
@@ -339,11 +346,15 @@ public class NotificationManager {
 				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
 				+ "f.tg_id, f.period, f.update_survey,"
 				+ "f.update_question, f.update_value,"
-				+ "p.name as project_name, f.alert_id  "
-				+ "from forward f, survey s, project p "
-				+ "where s.s_id = f.s_id "
-				+ "and s.p_id = p.id "
-				+ "and p.o_id = ? "
+				+ "p.name as project_name, f.alert_id, a.name as alert_name "
+				+ "from forward f "
+				+ "inner join survey s "
+				+ "on s.s_id = f.s_id "
+				+ "inner join project p "
+				+ "on s.p_id = p.id "
+				+ "left join cms_alert a "
+				+ "on a.id = f.alert_id "
+				+ "where p.o_id = ? "
 				+ "and s.deleted = 'false' "
 				+ "order by p.name, f.name, s.display_name asc";
 
@@ -490,6 +501,7 @@ public class NotificationManager {
 			n.updateQuestion = resultSet.getString("update_question");
 			n.updateValue = resultSet.getString("update_value");
 			n.alert_id = resultSet.getInt("alert_id");
+			n.alert_name = resultSet.getString("alert_name");
 
 			if(getPassword) {
 				n.remote_password = resultSet.getString("remote_password");
@@ -1582,5 +1594,3 @@ public class NotificationManager {
 	}
 
 }
-
-
