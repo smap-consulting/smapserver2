@@ -50,14 +50,11 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.SurveySettingsDefn;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 

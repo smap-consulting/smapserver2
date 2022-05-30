@@ -400,17 +400,17 @@ public class XLSUtilities {
 		msg = msg.replaceAll("%row", String.valueOf(row));
 
 		if(param1 != null) {
-			msg = msg.replace("%s1", param1);
+			msg = msg.replace("%s1", GeneralUtilityMethods.getSafeText(param1, true));
 		}
 		
-		msg = msg.replace("%s2", sheet);
+		msg = msg.replace("%s2", GeneralUtilityMethods.getSafeText(sheet, true));
 		
 		if(param2 != null) {
-			msg = msg.replace("%s3", param2);
+			msg = msg.replace("%s3", GeneralUtilityMethods.getSafeText(param2, true));
 		}
 		
 		if(param3 != null) {
-			msg = msg.replace("%s4", param3);
+			msg = msg.replace("%s4", GeneralUtilityMethods.getSafeText(param3, true));
 		}
 		
 

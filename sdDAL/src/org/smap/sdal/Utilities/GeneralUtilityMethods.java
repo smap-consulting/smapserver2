@@ -10309,13 +10309,13 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get a safe text value, escape html if this is destined for data tables
+	 * Get a safe text value, escape html if this is destined for an html page
 	 */
-	public static String getSafeText(String input, boolean isDt) {
+	public static String getSafeText(String input, boolean isForHtml) {
 		if(input == null) {
 			input = "";
 		}
-		if(isDt) {
+		if(isForHtml) {
 			return StringEscapeUtils.escapeHtml4(input);
 		} else {
 			return input;
