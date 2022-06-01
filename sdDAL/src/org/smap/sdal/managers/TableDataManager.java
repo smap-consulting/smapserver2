@@ -25,7 +25,6 @@ import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
 
-import org.apache.commons.text.StringEscapeUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;

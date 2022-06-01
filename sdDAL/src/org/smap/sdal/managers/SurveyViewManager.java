@@ -15,7 +15,6 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapServerMeta;
-import org.smap.sdal.model.ChartDefn;
 import org.smap.sdal.model.ConsoleColumn;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValue;

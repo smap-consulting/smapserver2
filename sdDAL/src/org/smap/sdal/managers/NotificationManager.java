@@ -14,8 +14,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.mail.internet.InternetAddress;
-import javax.ws.rs.core.Response;
-
 import org.codehaus.jettison.json.JSONArray;
 import org.smap.notifications.interfaces.EmitAwsSMS;
 import org.smap.notifications.interfaces.EmitSMS;
@@ -333,7 +331,7 @@ public class NotificationManager {
 	/*
 	 * Get all Notifications in the users organisation
 	 */
-	public ArrayList<Notification> getAllNotifications(
+	public ArrayList<Notification> getOrganisationNotifications(
 			Connection sd, 
 			PreparedStatement pstmt,
 			int oId) throws SQLException {

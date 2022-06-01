@@ -163,7 +163,10 @@ public class MessagingManagerApply {
 					
 					changedResources.put(orm.resourceName, orm);
 					
-				} else if(topic.equals("submission")) {
+				} else if(topic.equals("submission") || topic.equals("cm_alert")) {
+					/*
+					 * A submission notification is a notification associated with a record of data
+					 */
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
 			
 					NotificationManager nm = new NotificationManager(localisation);

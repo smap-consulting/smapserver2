@@ -5,31 +5,16 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.ws.rs.core.Response;
-
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.ChartDefn;
 import org.smap.sdal.model.ConsoleColumn;
-import org.smap.sdal.model.Form;
-import org.smap.sdal.model.KeyValue;
-import org.smap.sdal.model.SurveyViewDefn;
-import org.smap.sdal.model.ManagedFormItem;
 import org.smap.sdal.model.MapLayer;
-import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SurveySettingsDefn;
-import org.smap.sdal.model.TableColumn;
-import org.smap.sdal.model.TableColumnConfig;
-import org.smap.sdal.model.TableColumnMarkup;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;

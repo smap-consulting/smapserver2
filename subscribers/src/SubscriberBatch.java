@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -48,11 +47,8 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
-import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.managers.ActionManager;
-import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
@@ -64,22 +60,16 @@ import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
-import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.DatabaseConnections;
-import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
-import org.smap.sdal.model.LineMap;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.PdfMapValues;
-import org.smap.sdal.model.Question;
 import org.smap.sdal.model.ReportConfig;
-import org.smap.sdal.model.Result;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
@@ -1205,7 +1195,7 @@ public class SubscriberBatch {
 						remotePassword,
 						0);
 				
-				ResourceBundle localisation = locMap.get(nId);
+				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
 					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
 					Locale orgLocale = new Locale(organisation.locale);
@@ -1214,7 +1204,7 @@ public class SubscriberBatch {
 					} catch(Exception e) {
 						localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
 					}
-					locMap.put(nId, localisation);
+					locMap.put(oId, localisation);
 				}
 				MessagingManager mm = new MessagingManager(localisation);
 				mm.createMessage(sd, oId, "reminder", "", gson.toJson(subMgr));
@@ -1231,8 +1221,7 @@ public class SubscriberBatch {
 					logMessage = logMessage.replaceAll("%s1", GeneralUtilityMethods.getNotificationName(sd, nId));
 				}
 				lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
-				
-				
+							
 			}
 			
 
@@ -1255,15 +1244,22 @@ public class SubscriberBatch {
 		/*
 		 * Get the alerts that are associated with a reminder notification
 		 */
-		String sql = "select a.group_survey_ident, a.name, a.period, "
-				+ "f.table_name "
+		String sql = "select a.id as a_id, a.group_survey_ident, a.name, a.period,"
+				+ "s.p_id,"
+				+ "f.table_name,"
+				+ "n.name as notification_name,"
+				+ "n.id as n_id,"
+				+ "n.target,"
+				+ "n.remote_user as user,"
+				+ "n.notify_details "
 				+ "from forward n, cms_alert a, survey s, form f "
 				+ "where n.trigger = 'cm_alert'"
 				+ "and n.alert_id = a.id "
 				+ "and f.s_id = s.s_id "
 				+ "and f.parentform = 0 "
 				+ "and s.s_id = n.s_id "
-				+ "and s.group_survey_ident = a.group_survey_ident ";		
+				+ "and s.group_survey_ident = a.group_survey_ident "
+				+ "and a.id not in (select a_id from case_alert_triggered where n_id = n.id)";		
 		
 		PreparedStatement pstmt = null;	
 		
@@ -1276,30 +1272,43 @@ public class SubscriberBatch {
 
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		HashMap<String, CaseManagementSettings> settingsCache = new HashMap<>();
+		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
 		
 		// SQL to record a reminder being sent
-		String sqlTriggered = "insert into case_notification_triggered (n_id, a_id, reminder_date) values (?, ?, now())";
+		String sqlTriggered = "insert into case_alert_triggered (n_id, a_id, instanceid, final_status, alert_sent) values (?, ?, ?, ?, now())";
 		PreparedStatement pstmtTriggered = null;
 		
 		try {
 			
 			pstmtSettings = sd.prepareStatement(sqlSettings);
+			pstmtTriggered = sd.prepareStatement(sqlTriggered);
 			
-			// 1. Get case management alerts that are associated with a notification
+			// 1. Get case management alerts that are associated with any notification
 			pstmt = sd.prepareStatement(sql);
 			log.info("Get case management alerts: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
+			
 			while(rs.next()) {
+				
 				log.info("Group survey: " + rs.getString("group_survey_ident"));
 				
-				// 2. For each alert check to see if any records match the criteria and that have not already been notified
+				int aId = rs.getInt("a_id");
 				String name = rs.getString("name");
 				String groupSurveyIdent = rs.getString("group_survey_ident");
 				String table = rs.getString("table_name");
-				String period = rs.getString("period");				
+				int pId = rs.getInt("p_id");
+				String period = rs.getString("period");	
+				int nId = rs.getInt("n_id");
+				String notificationName = rs.getString("notification_name");
+				int oId = GeneralUtilityMethods.getOrganisationIdForNotification(sd, nId);
+				String target = rs.getString("target");
+				String user = rs.getString("user");
+				String notifyDetailsString = rs.getString("notify_details");
+
+				
 				if(GeneralUtilityMethods.tableExists(cResults, table)) {
 					
-					GeneralUtilityMethods.initialiseThread(cResults, table);
+					GeneralUtilityMethods.initialiseThread(cResults, table);NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
 					
 					/*
 					 * Get the settings for this group survey ident
@@ -1316,7 +1325,7 @@ public class SubscriberBatch {
 					if(settings != null && settings.finalStatus != null && settings.statusQuestion != null &&
 							GeneralUtilityMethods.hasColumn(cResults, table, settings.statusQuestion)) {
 					
-						StringBuilder sqlMatch = new StringBuilder("select prikey, _thread from "); 
+						StringBuilder sqlMatch = new StringBuilder("select prikey, instanceid from "); 
 						sqlMatch.append(table); 
 						sqlMatch.append(" where not _bad and not ").append(settings.statusQuestion).append(" = ? ");
 						sqlMatch.append("and _thread_created < now() - ?::interval ");	
@@ -1327,13 +1336,75 @@ public class SubscriberBatch {
 						pstmtMatches.setString(idx++, period);
 						log.info("Looking for timed out cases: " + pstmtMatches.toString());
 						ResultSet mrs = pstmtMatches.executeQuery();
+						
+						// 2. For each alert notification combo check to see if any records match the criteria and that have not already been notified
 						while(mrs.next()) {
 							log.info("Record: " + mrs.getInt(1));
+							// Send the case management alert
+							String instanceid = mrs.getString("instanceid");
+							SubmissionMessage subMgr = new SubmissionMessage(
+									0,
+									groupSurveyIdent,
+									null,
+									pId,
+									instanceid, 
+									nd.from,
+									nd.subject, 
+									nd.content,
+									nd.attach,
+									nd.include_references,
+									nd.launched_only,
+									nd.emailQuestion,
+									nd.emailQuestionName,
+									nd.emailMeta,
+									nd.emails,
+									target,
+									user,
+									"https",
+									serverName,
+									basePath,
+									nd.callback_url,
+									user,
+									null,
+									0);
+							
+							ResourceBundle localisation = locMap.get(oId);
+							if(localisation == null) {
+								Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+								Locale orgLocale = new Locale(organisation.locale);
+								try {
+									localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+								} catch(Exception e) {
+									localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+								}
+								locMap.put(oId, localisation);
+							}
+							
+							MessagingManager mm = new MessagingManager(localisation);
+							mm.createMessage(sd, oId, "cm_alert", "", gson.toJson(subMgr));
+							
+							// update case_alert_triggered to record the sending of the notification
+							pstmtTriggered.setInt(1, nId);		
+							pstmtTriggered.setInt(2, aId);	
+							pstmtTriggered.setString(3, instanceid);
+							pstmtTriggered.setString(4, settings.finalStatus);
+							
+							pstmtTriggered.executeUpdate();
+							
+							// Write to the log
+							String logMessage = "Case Management Alert sent for: " + nId;
+							if(localisation != null) {
+								logMessage = localisation.getString("cm_alert");
+								logMessage = logMessage.replaceAll("%s1", name);
+								logMessage = logMessage.replaceAll("%s2", notificationName);
+							}
+							lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
+
 						}
 					
 						// 3. Process each matching record within a single transaction
 						//    3a. Send notification
-						//    3b. update case_notification_triggered to record the sending of the notification
+						//    3b. 
 					} else {
 						log.info("cm: no status settings");
 					}
@@ -1341,7 +1412,7 @@ public class SubscriberBatch {
 			}
 			
 			
-			// 4. Delete from case notification triggered where criteria no longer matches triggering criteria
+			// 4. Delete from case notification triggered where final status has been reached
 
 			pstmtTriggered = sd.prepareStatement(sqlTriggered);	
 		
