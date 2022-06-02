@@ -103,3 +103,19 @@ create TABLE sync (
 	prikey integer				-- Primary key of synchronised record
 	);
 ALTER TABLE sync OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS cat_seq CASCADE;
+CREATE SEQUENCE cat_seq START 1;
+ALTER SEQUENCE cat_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS case_alert_triggered;
+CREATE TABLE case_alert_triggered (
+	id integer DEFAULT NEXTVAL('cat_seq') CONSTRAINT pk_cat PRIMARY KEY,
+	a_id integer,
+	n_id integer,
+	table_name text,
+	thread text,
+	final_status text,
+	alert_sent TIMESTAMP WITH TIME ZONE	
+	);
+ALTER TABLE case_alert_triggered OWNER TO ws;

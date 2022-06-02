@@ -1706,17 +1706,3 @@ CREATE TABLE cms_setting (
 CREATE UNIQUE INDEX cms_unique_setting ON cms_setting(group_survey_ident);
 ALTER TABLE cms_setting OWNER TO ws;
 
-DROP SEQUENCE IF EXISTS cat_seq CASCADE;
-CREATE SEQUENCE cat_seq START 1;
-ALTER SEQUENCE cat_seq OWNER TO ws;
-
-DROP TABLE IF EXISTS case_alert_triggered;
-CREATE TABLE case_alert_triggered (
-	id integer DEFAULT NEXTVAL('cat_seq') CONSTRAINT pk_cat PRIMARY KEY,
-	n_id integer,
-	a_id integer,
-	instanceid text,
-	final_status text,
-	alert_sent TIMESTAMP WITH TIME ZONE	
-	);
-ALTER TABLE case_alert_triggered OWNER TO ws;

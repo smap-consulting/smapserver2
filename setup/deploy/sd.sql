@@ -524,16 +524,5 @@ ALTER TABLE cms_setting OWNER TO ws;
 
 alter table forward add column alert_id integer;
 
-CREATE SEQUENCE cat_seq START 1;
-ALTER SEQUENCE cat_seq OWNER TO ws;
 
-CREATE TABLE case_alert_triggered (
-	id integer DEFAULT NEXTVAL('cat_seq') CONSTRAINT pk_cat PRIMARY KEY,
-	n_id integer,
-	a_id integer,
-	instanceid text,
-	final_status text,
-	alert_sent TIMESTAMP WITH TIME ZONE	
-	);
-ALTER TABLE case_alert_triggered OWNER TO ws;
 

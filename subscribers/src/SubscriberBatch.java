@@ -1242,7 +1242,7 @@ public class SubscriberBatch {
 	private void applyCaseManagementReminders(Connection sd, Connection cResults, String basePath, String serverName) {
 
 		/*
-		 * Get the alerts that are associated with a reminder notification
+		 * SQL to get the alerts that are associated with a reminder notification
 		 */
 		String sql = "select a.id as a_id, a.group_survey_ident, a.name, a.period,"
 				+ "s.p_id,"
@@ -1258,8 +1258,7 @@ public class SubscriberBatch {
 				+ "and f.s_id = s.s_id "
 				+ "and f.parentform = 0 "
 				+ "and s.s_id = n.s_id "
-				+ "and s.group_survey_ident = a.group_survey_ident "
-				+ "and a.id not in (select a_id from case_alert_triggered where n_id = n.id)";		
+				+ "and s.group_survey_ident = a.group_survey_ident ";	
 		
 		PreparedStatement pstmt = null;	
 		
@@ -1275,13 +1274,13 @@ public class SubscriberBatch {
 		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
 		
 		// SQL to record a reminder being sent
-		String sqlTriggered = "insert into case_alert_triggered (n_id, a_id, instanceid, final_status, alert_sent) values (?, ?, ?, ?, now())";
+		String sqlTriggered = "insert into case_alert_triggered (n_id, a_id, table_name, thread, final_status, alert_sent) values (?, ?,?,  ?, ?, now())";
 		PreparedStatement pstmtTriggered = null;
 		
 		try {
 			
 			pstmtSettings = sd.prepareStatement(sqlSettings);
-			pstmtTriggered = sd.prepareStatement(sqlTriggered);
+			pstmtTriggered = cResults.prepareStatement(sqlTriggered);
 			
 			// 1. Get case management alerts that are associated with any notification
 			pstmt = sd.prepareStatement(sql);
@@ -1311,7 +1310,7 @@ public class SubscriberBatch {
 					GeneralUtilityMethods.initialiseThread(cResults, table);NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
 					
 					/*
-					 * Get the settings for this group survey ident
+					 * Get the case management settings for this case (group survey)
 					 */
 					CaseManagementSettings settings = settingsCache.get(groupSurveyIdent);
 					if(settings == null) {
@@ -1325,23 +1324,28 @@ public class SubscriberBatch {
 					if(settings != null && settings.finalStatus != null && settings.statusQuestion != null &&
 							GeneralUtilityMethods.hasColumn(cResults, table, settings.statusQuestion)) {
 					
-						StringBuilder sqlMatch = new StringBuilder("select prikey, instanceid from "); 
+						StringBuilder sqlMatch = new StringBuilder("select prikey, instanceid, _thread from "); 
 						sqlMatch.append(table); 
-						sqlMatch.append(" where not _bad and not ").append(settings.statusQuestion).append(" = ? ");
+						sqlMatch.append(" where not _bad and (").append(settings.statusQuestion).append(" is null or ").append(settings.statusQuestion).append(" != ? )");
+						sqlMatch.append("and  _thread not in (select thread from case_alert_triggered where table_name = ? and a_id = ? and n_id = ?) ");
 						sqlMatch.append("and _thread_created < now() - ?::interval ");	
 						
 						pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
 						int idx = 1;
 						pstmtMatches.setString(idx++, settings.finalStatus);
+						pstmtMatches.setString(idx++, table);
+						pstmtMatches.setInt(idx++, aId);
+						pstmtMatches.setInt(idx++,  nId);
 						pstmtMatches.setString(idx++, period);
 						log.info("Looking for timed out cases: " + pstmtMatches.toString());
 						ResultSet mrs = pstmtMatches.executeQuery();
 						
-						// 2. For each alert notification combo check to see if any records match the criteria and that have not already been notified
+						// 2. For each alert notification combo check to see if any records match the criteria and that have not already been alerted
 						while(mrs.next()) {
 							log.info("Record: " + mrs.getInt(1));
 							// Send the case management alert
 							String instanceid = mrs.getString("instanceid");
+							String thread = mrs.getString("_thread");
 							SubmissionMessage subMgr = new SubmissionMessage(
 									0,
 									groupSurveyIdent,
@@ -1386,8 +1390,9 @@ public class SubscriberBatch {
 							// update case_alert_triggered to record the sending of the notification
 							pstmtTriggered.setInt(1, nId);		
 							pstmtTriggered.setInt(2, aId);	
-							pstmtTriggered.setString(3, instanceid);
-							pstmtTriggered.setString(4, settings.finalStatus);
+							pstmtTriggered.setString(3, table);
+							pstmtTriggered.setString(4, thread);
+							pstmtTriggered.setString(5, settings.finalStatus);
 							
 							pstmtTriggered.executeUpdate();
 							
