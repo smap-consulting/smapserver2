@@ -47,23 +47,19 @@ public class RecordEventManager {
 	
 	private static Logger log =
 			 Logger.getLogger(RecordEventManager.class.getName());
-	private static ResourceBundle localisation;
-	private String tz;
 	
 	public static String CREATED = "created";
 	public static String CHANGES = "changes";
 	public static String TASK = "task";
+	public static String ALERT = "alert";
+	public static String ASSIGNED = "assigned";
 	public static String NOTIFICATION = "notification";
 	
 	public static String STATUS_SUCCESS = "success";
 	public static String STATUS_NEW = "new";
 	
-	public RecordEventManager(ResourceBundle l, String tz) {
-		localisation = l;
-		if(tz == null) {
-			tz = "UTC";
-		}
-		this.tz = tz;
+	public RecordEventManager() {
+		
 	}
 	
 	/*
@@ -306,7 +302,7 @@ public class RecordEventManager {
 	/*
 	 * Get a list of event changes for a thread
 	 */
-	public ArrayList<DataItemChangeEvent> getChangeEvents(Connection sd, String tableName, String key) throws SQLException {
+	public ArrayList<DataItemChangeEvent> getChangeEvents(Connection sd, String tz, String tableName, String key) throws SQLException {
 		
 		ArrayList<DataItemChangeEvent> events = new ArrayList<DataItemChangeEvent> ();
 		

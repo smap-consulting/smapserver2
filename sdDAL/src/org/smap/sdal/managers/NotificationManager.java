@@ -1160,7 +1160,7 @@ public class NotificationManager {
 
 					try {
 						String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
-						int count = GeneralUtilityMethods.assignRecord(cResults, tableName, msg.instanceId, msg.remoteUser);
+						int count = GeneralUtilityMethods.assignRecord(sd, cResults, tableName, msg.instanceId, msg.remoteUser);
 						if(count == 0) {
 							status = "error";
 							error_details = "case not found, attempting: " + notify_details;
@@ -1212,7 +1212,7 @@ public class NotificationManager {
 			 * If this notification is for a record then update the Record Event Manager
 			 */
 			if(msg.instanceId != null) {
-				RecordEventManager rem = new RecordEventManager(localisation, tz);
+				RecordEventManager rem = new RecordEventManager();
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
 
 				rem.writeEvent(

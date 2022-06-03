@@ -66,6 +66,7 @@ import org.smap.sdal.managers.LanguageCodeManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.OrganisationManager;
+import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.SurveyViewManager;
@@ -6283,7 +6284,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Method to assign a record to a user
 	 */
-	public static int assignRecord(Connection cResults, String tablename, String instanceId, String user) throws SQLException {
+	public static int assignRecord(Connection sd, Connection cResults, String tablename, String instanceId, String user) throws SQLException {
 
 		int count = 0;
 		
@@ -6304,6 +6305,26 @@ public class GeneralUtilityMethods {
 		pstmt.setString(1, user);
 		pstmt.setString(2,instanceId);
 		log.info("locking record: " + pstmt.toString());
+		
+		RecordEventManager rem = new RecordEventManager();
+		rem.writeEvent(
+				sd, 
+				cResults, 
+				RecordEventManager.ASSIGNED, 
+				"success",
+				user, 
+				tablename, 
+				instanceId, 
+				null,				// Change object
+				null,	// Task Object
+				null,				// Notification object
+				"Task created", 
+				0,				// sId (don't care legacy)
+				null,
+				0,				// Don't need task id if we have an assignment id
+				0				// Assignment id
+				);
+		
 		try {
 			count = pstmt.executeUpdate();
 		} finally {

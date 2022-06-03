@@ -1727,7 +1727,7 @@ public class TaskManager {
 					 * RecordEventManager
 					 * Update the Record Event Manager
 					 */
-					RecordEventManager rem = new RecordEventManager(localisation, "UTC");
+					RecordEventManager rem = new RecordEventManager();
 					rem.writeTaskStatusEvent(
 							sd, 
 							cResults,
@@ -1917,7 +1917,7 @@ public class TaskManager {
 		PreparedStatement pstmtDeleteNewAssignments = null;
 		PreparedStatement pstmtDeleteHardNewAssignments = null;
 
-		RecordEventManager rem = new RecordEventManager(localisation, "UTC");
+		RecordEventManager rem = new RecordEventManager();
 		
 		try {
 
@@ -2432,7 +2432,7 @@ public class TaskManager {
 			pstmtCancel.executeUpdate();
 			
 			// Update Record Event Manager
-			RecordEventManager rem = new RecordEventManager(localisation, "UTC");
+			RecordEventManager rem = new RecordEventManager();
 			rem.writeTaskStatusEvent(
 					sd, 
 					cResults,
@@ -2778,7 +2778,7 @@ public class TaskManager {
 						scheduledAt, 
 						scheduledFinish,
 						assign_auto);
-				RecordEventManager rem = new RecordEventManager(localisation, tz);
+				RecordEventManager rem = new RecordEventManager();
 				rem.writeEvent(
 						sd, 
 						cResults, 

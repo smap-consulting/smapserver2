@@ -510,7 +510,7 @@ public class ActionManager {
 			/*
 			 * save change log
 			 */
-			RecordEventManager rem = new RecordEventManager(localisation, tz);
+			RecordEventManager rem = new RecordEventManager();
 			for(String inst : changeMap.keySet()) {
 				rem.writeEvent(
 						sd, 
@@ -807,7 +807,7 @@ public class ActionManager {
 			/*
 			 * save change log
 			 */
-			RecordEventManager rem = new RecordEventManager(localisation, tz);
+			RecordEventManager rem = new RecordEventManager();
 			rem.writeEvent(
 					sd, 
 					cResults, 

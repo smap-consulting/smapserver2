@@ -66,7 +66,6 @@ ALTER SEQUENCE cat_seq OWNER TO ws;
 CREATE TABLE case_alert_triggered (
 	id integer DEFAULT NEXTVAL('cat_seq') CONSTRAINT pk_cat PRIMARY KEY,
 	a_id integer,
-	n_id integer,
 	table_name text,
 	thread text,
 	final_status text,

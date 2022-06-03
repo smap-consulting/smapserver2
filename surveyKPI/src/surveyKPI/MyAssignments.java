@@ -1119,7 +1119,7 @@ public class MyAssignments extends Application {
 			String status,
 			String comment) throws SQLException {
 		
-		RecordEventManager rem = new RecordEventManager(localisation, "UTC");
+		RecordEventManager rem = new RecordEventManager();
 		TaskManager tm = new TaskManager(localisation, "UTC");
 		
 		/*

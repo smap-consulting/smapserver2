@@ -54,6 +54,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
+import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TableDataManager;
@@ -1242,25 +1243,30 @@ public class SubscriberBatch {
 	private void applyCaseManagementReminders(Connection sd, Connection cResults, String basePath, String serverName) {
 
 		/*
-		 * SQL to get the alerts that are associated with a reminder notification
+		 * SQL to get the alerts
 		 */
 		String sql = "select a.id as a_id, a.group_survey_ident, a.name, a.period,"
 				+ "s.p_id,"
-				+ "f.table_name,"
-				+ "n.name as notification_name,"
-				+ "n.id as n_id,"
-				+ "n.target,"
-				+ "n.remote_user as user,"
-				+ "n.notify_details "
-				+ "from forward n, cms_alert a, survey s, form f "
-				+ "where n.trigger = 'cm_alert'"
-				+ "and n.alert_id = a.id "
-				+ "and f.s_id = s.s_id "
+				+ "f.table_name "
+				+ "from cms_alert a, survey s, form f "
+				+ "where f.s_id = s.s_id "
 				+ "and f.parentform = 0 "
-				+ "and s.s_id = n.s_id "
 				+ "and s.group_survey_ident = a.group_survey_ident ";	
 		
 		PreparedStatement pstmt = null;	
+		
+		/*
+		 * Get the notifications associated with an alert
+		 */
+		String sqlNotifications = "select name as notification_name,"
+				+ "id,"
+				+ "target,"
+				+ "remote_user,"
+				+ "notify_details "
+				+ "from forward "
+				+ "where trigger = 'cm_alert' "
+				+ "and alert_id = ? ";
+		PreparedStatement pstmtNotifications = null;
 		
 		String sqlSettings = "select settings from cms_setting "
 				+ "where group_survey_ident = ? "
@@ -1273,41 +1279,49 @@ public class SubscriberBatch {
 		HashMap<String, CaseManagementSettings> settingsCache = new HashMap<>();
 		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
 		
-		// SQL to record a reminder being sent
-		String sqlTriggered = "insert into case_alert_triggered (n_id, a_id, table_name, thread, final_status, alert_sent) values (?, ?,?,  ?, ?, now())";
+		// SQL to record an alert being triggered
+		String sqlTriggered = "insert into case_alert_triggered (a_id, table_name, thread, final_status, alert_sent) values (?, ?,  ?, ?, now())";
 		PreparedStatement pstmtTriggered = null;
 		
 		try {
 			
 			pstmtSettings = sd.prepareStatement(sqlSettings);
 			pstmtTriggered = cResults.prepareStatement(sqlTriggered);
+			pstmtNotifications = sd.prepareStatement(sqlNotifications);
 			
-			// 1. Get case management alerts that are associated with any notification
+			// 1. Get case management alerts 
 			pstmt = sd.prepareStatement(sql);
-			log.info("Get case management alerts: " + pstmt.toString());
+			System.out.println("Get case management alerts: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
 				
-				log.info("Group survey: " + rs.getString("group_survey_ident"));
-				
 				int aId = rs.getInt("a_id");
-				String name = rs.getString("name");
+				String alertName = rs.getString("name");
 				String groupSurveyIdent = rs.getString("group_survey_ident");
 				String table = rs.getString("table_name");
 				int pId = rs.getInt("p_id");
 				String period = rs.getString("period");	
-				int nId = rs.getInt("n_id");
-				String notificationName = rs.getString("notification_name");
-				int oId = GeneralUtilityMethods.getOrganisationIdForNotification(sd, nId);
-				String target = rs.getString("target");
-				String user = rs.getString("user");
-				String notifyDetailsString = rs.getString("notify_details");
+				int oId = GeneralUtilityMethods.getOrganisationIdForSurveyIdent(sd, groupSurveyIdent);
+				
+				System.out.println("Case: " + groupSurveyIdent + " alert: " + alertName);
+				
+				ResourceBundle localisation = locMap.get(oId);
+				if(localisation == null) {
+					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+					Locale orgLocale = new Locale(organisation.locale);
+					try {
+						localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+					} catch(Exception e) {
+						localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+					}
+					locMap.put(oId, localisation);
+				}
 
 				
 				if(GeneralUtilityMethods.tableExists(cResults, table)) {
 					
-					GeneralUtilityMethods.initialiseThread(cResults, table);NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
+					GeneralUtilityMethods.initialiseThread(cResults, table);
 					
 					/*
 					 * Get the case management settings for this case (group survey)
@@ -1324,10 +1338,13 @@ public class SubscriberBatch {
 					if(settings != null && settings.finalStatus != null && settings.statusQuestion != null &&
 							GeneralUtilityMethods.hasColumn(cResults, table, settings.statusQuestion)) {
 					
+						/*
+						 * Find records in the case that match this alert
+						 */
 						StringBuilder sqlMatch = new StringBuilder("select prikey, instanceid, _thread from "); 
 						sqlMatch.append(table); 
-						sqlMatch.append(" where not _bad and (").append(settings.statusQuestion).append(" is null or ").append(settings.statusQuestion).append(" != ? )");
-						sqlMatch.append("and  _thread not in (select thread from case_alert_triggered where table_name = ? and a_id = ? and n_id = ?) ");
+						sqlMatch.append(" where not _bad and (").append(settings.statusQuestion).append(" is null or ").append(settings.statusQuestion).append(" != ? ) ");
+						sqlMatch.append("and  _thread not in (select thread from case_alert_triggered where table_name = ? and a_id = ?) ");
 						sqlMatch.append("and _thread_created < now() - ?::interval ");	
 						
 						pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
@@ -1335,75 +1352,103 @@ public class SubscriberBatch {
 						pstmtMatches.setString(idx++, settings.finalStatus);
 						pstmtMatches.setString(idx++, table);
 						pstmtMatches.setInt(idx++, aId);
-						pstmtMatches.setInt(idx++,  nId);
 						pstmtMatches.setString(idx++, period);
-						log.info("Looking for timed out cases: " + pstmtMatches.toString());
+						System.out.println("Looking for cases that match an alert: " + pstmtMatches.toString());
 						ResultSet mrs = pstmtMatches.executeQuery();
 						
-						// 2. For each alert notification combo check to see if any records match the criteria and that have not already been alerted
 						while(mrs.next()) {
-							log.info("Record: " + mrs.getInt(1));
-							// Send the case management alert
+							
 							String instanceid = mrs.getString("instanceid");
 							String thread = mrs.getString("_thread");
-							SubmissionMessage subMgr = new SubmissionMessage(
-									0,
-									groupSurveyIdent,
-									null,
-									pId,
+							
+							System.out.println("        Record: " + mrs.getInt("prikey") + " instance: " + instanceid);
+							/*
+							 * Record the triggering of the alert
+							 */
+							RecordEventManager rem = new RecordEventManager();
+							rem.writeEvent(
+									sd, 
+									cResults, 
+									RecordEventManager.ALERT, 
+									"success",
+									null, 
+									table, 
 									instanceid, 
-									nd.from,
-									nd.subject, 
-									nd.content,
-									nd.attach,
-									nd.include_references,
-									nd.launched_only,
-									nd.emailQuestion,
-									nd.emailQuestionName,
-									nd.emailMeta,
-									nd.emails,
-									target,
-									user,
-									"https",
-									serverName,
-									basePath,
-									nd.callback_url,
-									user,
-									null,
-									0);
+									null,				// Change object
+									null,				// Task Object
+									null,				// Notification object
+									"Alerted", 
+									0,					// sId (don't care legacy)
+									groupSurveyIdent,
+									0,					// Don't need task id if we have an assignment id
+									0					// Assignment id
+									);
 							
-							ResourceBundle localisation = locMap.get(oId);
-							if(localisation == null) {
-								Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
-								Locale orgLocale = new Locale(organisation.locale);
-								try {
-									localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
-								} catch(Exception e) {
-									localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
-								}
-								locMap.put(oId, localisation);
-							}
-							
-							MessagingManager mm = new MessagingManager(localisation);
-							mm.createMessage(sd, oId, "cm_alert", "", gson.toJson(subMgr));
-							
-							// update case_alert_triggered to record the sending of the notification
-							pstmtTriggered.setInt(1, nId);		
-							pstmtTriggered.setInt(2, aId);	
-							pstmtTriggered.setString(3, table);
-							pstmtTriggered.setString(4, thread);
-							pstmtTriggered.setString(5, settings.finalStatus);
+							// update case_alert_triggered to record the raising of this alert	
+							pstmtTriggered.setInt(1, aId);	
+							pstmtTriggered.setString(2, table);
+							pstmtTriggered.setString(3, thread);
+							pstmtTriggered.setString(4, settings.finalStatus);
 							
 							pstmtTriggered.executeUpdate();
 							
-							// Write to the log
-							String logMessage = "Case Management Alert sent for: " + nId;
-							if(localisation != null) {
-								logMessage = localisation.getString("cm_alert");
-								logMessage = logMessage.replaceAll("%s1", name);
-								logMessage = logMessage.replaceAll("%s2", notificationName);
+							/*
+							 * Process notifications associated with this alert
+							 */
+							pstmtNotifications.setInt(1, aId);
+							System.out.println("Notifications to be triggered: " + pstmtNotifications.toString());
+							
+							ResultSet notrs = pstmtNotifications.executeQuery();
+							
+							while(notrs.next()) {
+							
+								int nId = notrs.getInt("id");
+								String notificationName = notrs.getString("notification_name");
+								String notifyDetailsString = notrs.getString("notify_details");
+								NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
+								String target = notrs.getString("target");
+								String user = notrs.getString("remote_user");
+								
+								System.out.println("     Notification: " + notificationName);
+								
+								SubmissionMessage subMgr = new SubmissionMessage(
+										0,
+										groupSurveyIdent,
+										null,
+										pId,
+										instanceid, 
+										nd.from,
+										nd.subject, 
+										nd.content,
+										nd.attach,
+										nd.include_references,
+										nd.launched_only,
+										nd.emailQuestion,
+										nd.emailQuestionName,
+										nd.emailMeta,
+										nd.emails,
+										target,
+										user,
+										"https",
+										serverName,
+										basePath,
+										nd.callback_url,
+										user,
+										null,
+										0);
+													
+								MessagingManager mm = new MessagingManager(localisation);
+								mm.createMessage(sd, oId, "cm_alert", "", gson.toJson(subMgr));						
+							
+								// Write to the log
+								String logMessage = "Notification triggered by alert id " + aId + " for notification: " + nId;
+								if(localisation != null) {
+									logMessage = localisation.getString("cm_alert");
+									logMessage = logMessage.replaceAll("%s1", alertName);
+									logMessage = logMessage.replaceAll("%s2", notificationName);
+								}
+								lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
 							}
-							lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
 
 						}
 					
@@ -1430,6 +1475,7 @@ public class SubscriberBatch {
 			try {if (pstmtTriggered != null) {pstmtTriggered.close();}} catch (SQLException e) {}
 			try {if (pstmtSettings != null) {pstmtSettings.close();}} catch (SQLException e) {}
 			try {if (pstmtMatches != null) {pstmtMatches.close();}} catch (SQLException e) {}
+			try {if (pstmtNotifications != null) {pstmtNotifications.close();}} catch (SQLException e) {}
 			
 		}
 	}

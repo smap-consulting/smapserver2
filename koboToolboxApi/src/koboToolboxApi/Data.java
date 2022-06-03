@@ -430,8 +430,8 @@ public class Data extends Application {
 			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			String thread = GeneralUtilityMethods.getThread(cResults, tableName, key);
-			RecordEventManager rem = new RecordEventManager(localisation, tz);
-			ArrayList<DataItemChangeEvent> changeEvents = rem.getChangeEvents(sd, tableName, thread);
+			RecordEventManager rem = new RecordEventManager();
+			ArrayList<DataItemChangeEvent> changeEvents = rem.getChangeEvents(sd, tz, tableName, thread);
 			
 			response = Response.ok(gson.toJson(changeEvents)).build();
 		} catch (Exception e) {
