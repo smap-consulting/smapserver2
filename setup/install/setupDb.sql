@@ -1633,6 +1633,7 @@ create TABLE linked_files_old (
 	erase_time TIMESTAMP WITH TIME ZONE
 );
 ALTER TABLE linked_files_old OWNER TO ws;
+create index idx_lfo_erase on linked_files_old (erase_time);
 
 DROP SEQUENCE IF EXISTS background_report_seq CASCADE;
 CREATE SEQUENCE background_report_seq START 1;

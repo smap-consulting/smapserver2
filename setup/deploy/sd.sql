@@ -509,4 +509,7 @@ CREATE TABLE case_management_setting (
 CREATE UNIQUE INDEX cms_unique_name ON case_management_setting(o_id, name);
 ALTER TABLE case_management_setting OWNER TO ws;
 
+-- improve performance of scanning linked_files_old for files ready to be deleted
+create index idx_lfo_erase on linked_files_old (erase_time);
+
 
