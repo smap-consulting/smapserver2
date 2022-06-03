@@ -564,7 +564,7 @@ public class MessagingManagerApply {
 		
 		String sqlClean = "delete from s3upload "
 				+ "where status = 'success' "
-				+ "and processed_time < now() - interval '1 day'";
+				+ "and processed_time < now() - interval '3 day'";
 		PreparedStatement pstmtClean = null;
 		
 		String sqlDone = "update s3upload "

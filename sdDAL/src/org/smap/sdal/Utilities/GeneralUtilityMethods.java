@@ -9022,7 +9022,7 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmt = null;
 		String sql = "select instanceid "
 				+ "from " + tableName + " "
-				+ "where _thread = (select distinct _thread from " + tableName + " where instanceid = ?) "
+				+ "where _thread = (select _thread from " + tableName + " where instanceid = ?) "
 				+ "order by prikey desc limit 1";
 
 		if(GeneralUtilityMethods.hasColumn(cResults, tableName, "_thread")) {
