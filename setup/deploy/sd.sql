@@ -511,5 +511,7 @@ ALTER TABLE case_management_setting OWNER TO ws;
 
 -- improve performance of scanning linked_files_old for files ready to be deleted
 create index idx_lfo_erase on linked_files_old (erase_time);
+create index idx_assignments_task_id on assignments (task_id);
+create index idx_tasks_del_auto on tasks (deleted, assign_auto);
 
 
