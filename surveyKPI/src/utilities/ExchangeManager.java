@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.Date;
@@ -34,10 +33,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 
-//import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-//import org.apache.poi.ss.usermodel.Workbook;
-//import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,10 +43,10 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.commons.io.FileUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.smap.model.FormDesc;
+import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.constants.SmapServerMeta;
@@ -163,7 +158,8 @@ public class ExchangeManager {
 						" and q.qname = ?;";
 				pstmtQType = sd.prepareStatement(sqlQType);
 				
-				ArrayList <FormDesc> formList = getFormList(sd, sId);
+				TableManager tm = new TableManager(localisation, tz);
+				ArrayList <FormDesc> formList = tm.getFormList(sd, sId);
 				
 				/*
 				 * Create a work sheet for each form
@@ -338,55 +334,7 @@ public class ExchangeManager {
 		}
 		return level;
 	}
-	/*
-	 * Get a sorted list of forms in order from parents to children
-	 */
-	public ArrayList <FormDesc> getFormList(Connection sd, int sId) throws SQLException {
-		
-		HashMap<String, FormDesc> forms = new HashMap<String, FormDesc> ();			// A description of each form in the survey
-		ArrayList <FormDesc> formList = new ArrayList<FormDesc> ();					// A list of all the forms
-		FormDesc topForm = null;	
-		
-		
-		/*
-		 * Get the tables / forms in this survey 
-		 */
-		String sql = null;
-		sql = "SELECT name, f_id, table_name, parentform FROM form" +
-				" WHERE s_id = ? " +
-				" ORDER BY f_id;";	
 
-		PreparedStatement pstmt = null;
-		
-		try {
-			pstmt = sd.prepareStatement(sql);	
-			pstmt.setInt(1, sId);
-			ResultSet resultSet = pstmt.executeQuery();
-			
-			while (resultSet.next()) {
-	
-				FormDesc fd = new FormDesc();
-				fd.name = resultSet.getString("name");
-				fd.f_id = resultSet.getInt("f_id");
-				fd.parent = resultSet.getInt("parentform");
-				fd.table_name = resultSet.getString("table_name");
-				forms.put(fd.name, fd);
-				if(fd.parent == 0) {
-					topForm = fd;
-				}
-			}
-			
-			/*
-			 * Put the forms into a list in top down order
-			 */
-			formList.add(topForm);		// The top level form
-			addChildren(topForm, forms, formList);
-		} finally {
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-		}
-		
-		return formList;
-	}
 	
 	/*
 	 * Load data from a file into the form
@@ -559,25 +507,6 @@ public class ExchangeManager {
 		return coords;
 	}
 	
-
-	/*
-	 * Add the list of children to parent forms
-	 */
-	private void addChildren(FormDesc parentForm, HashMap<String, FormDesc> forms, ArrayList<FormDesc> formList) {
-		
-		for(FormDesc fd : forms.values()) {
-			if(fd.parent != 0 && fd.parent == parentForm.f_id) {
-				if(parentForm.children == null) {
-					parentForm.children = new ArrayList<FormDesc> ();
-				}
-				parentForm.children.add(fd);
-				fd.parentForm = parentForm;
-				formList.add(fd);
-				addChildren(fd,  forms, formList);
-			}
-		}
-		
-	}
 	
 	private boolean notEmpty(String v) {
 		if(v == null || v.trim().length() == 0) {

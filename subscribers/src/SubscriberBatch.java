@@ -827,6 +827,7 @@ public class SubscriberBatch {
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtFix = null;
+		PreparedStatement pstmtDel = null;
 
 		try {
 
@@ -840,7 +841,7 @@ public class SubscriberBatch {
 			pstmtFix = sd.prepareStatement(sqlFix);
 
 			/*
-			 * Temporary fix for lack of accurate date when a survey was deleted
+			 * Delete the files that have expired
 			 */
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
@@ -856,12 +857,21 @@ public class SubscriberBatch {
 				pstmtFix.setInt(1,  id);
 				pstmtFix.executeUpdate();
 			}
+			
+			/*
+			 * Erase record of files older than 7 days
+			 * The last 7 days can be kept for performance analysis
+			 */
+			String sqlDel = "delete from linked_files_old where erase_time < (now() - interval '7 days')";
+			pstmtDel = sd.prepareStatement(sqlDel);
+			pstmtDel.executeUpdate();
 
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
 			try {if (pstmtFix != null) {pstmtFix.close();}} catch (SQLException e) {}
+			try {if (pstmtDel != null) {pstmtDel.close();}} catch (SQLException e) {}
 		}
 	}
 	

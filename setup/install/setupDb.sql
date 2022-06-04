@@ -1034,6 +1034,7 @@ CREATE TABLE public.tasks (
 SELECT AddGeometryColumn('tasks', 'geo_point', 4326, 'POINT', 2);
 SELECT AddGeometryColumn('tasks', 'geo_point_actual', 4326, 'POINT', 2);
 CREATE INDEX task_task_group ON tasks(tg_id);
+create index idx_tasks_del_auto on tasks (deleted, assign_auto);
 ALTER TABLE public.tasks OWNER TO ws;
 
 CREATE TABLE public.task_rejected (
@@ -1072,6 +1073,7 @@ CREATE TABLE public.assignments (
 	deleted_date timestamp with time zone
 );
 CREATE INDEX assignments_status ON assignments(status);
+create index idx_assignments_task_id on assignments (task_id);
 ALTER TABLE public.assignments OWNER TO ws;
 
 -- Table to manage state of user downloads of forms
@@ -1634,6 +1636,7 @@ create TABLE linked_files_old (
 	erase_time TIMESTAMP WITH TIME ZONE
 );
 ALTER TABLE linked_files_old OWNER TO ws;
+create index idx_lfo_erase on linked_files_old (erase_time);
 
 DROP SEQUENCE IF EXISTS background_report_seq CASCADE;
 CREATE SEQUENCE background_report_seq START 1;

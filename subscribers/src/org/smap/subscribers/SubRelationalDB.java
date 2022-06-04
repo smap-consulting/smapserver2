@@ -125,8 +125,7 @@ public class SubRelationalDB extends Subscriber {
 			
 			writeAllTableContent(dbc.sd, dbc.results, instance, submittingUser, server, device, 
 					formStatus, updateId, uploadTime, surveyNotes, 
-					locationTrigger, assignmentId);
-			
+					locationTrigger, assignmentId);	
 
 			/*
 			 * Apply foreign keys
