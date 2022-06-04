@@ -4542,40 +4542,6 @@ public class SurveyManager {
 		return instances;
 	}
 	
-	/*
-	 * Add a record to a survey
-	 */
-	public void postInstance(
-			Connection sd,
-			Connection cResults, 
-			Instance instance,
-			Survey s, 
-			Form form, 
-			SurveyManager sm
-			) throws Exception {
-
-		ArrayList<TableColumn> columns = null;
-		
-		StringBuffer sql = new StringBuffer("");
-		sql.append("select prikey ");
-		
-		PreparedStatement pstmt = null;
-		PreparedStatement pstmtSelect = null;
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-
-		try {
-			
-
-			
-			
-		} finally {
-			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-			if(pstmtSelect != null) try {pstmtSelect.close();} catch(Exception e) {};
-		}
-
-		return;
-	}
-	
 	public static boolean isValidSurveyKeyPolicy(String policy) {
 		boolean valid = false;
 		
