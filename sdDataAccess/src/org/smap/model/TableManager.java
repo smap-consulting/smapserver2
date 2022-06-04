@@ -361,6 +361,75 @@ public class TableManager {
 		
 		return tablesCreated;
 	}
+	
+	/*
+	 * Get a sorted list of forms in order from parents to children
+	 */
+	public ArrayList <FormDesc> getFormList(Connection sd, int sId) throws SQLException {
+		
+		HashMap<String, FormDesc> forms = new HashMap<String, FormDesc> ();			// A description of each form in the survey
+		ArrayList <FormDesc> formList = new ArrayList<FormDesc> ();					// A list of all the forms
+		FormDesc topForm = null;	
+		
+		
+		/*
+		 * Get the tables / forms in this survey 
+		 */
+		String sql = null;
+		sql = "SELECT name, f_id, table_name, parentform FROM form" +
+				" WHERE s_id = ? " +
+				" ORDER BY f_id;";	
+
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setInt(1, sId);
+			ResultSet resultSet = pstmt.executeQuery();
+			
+			while (resultSet.next()) {
+	
+				FormDesc fd = new FormDesc();
+				fd.name = resultSet.getString("name");
+				fd.f_id = resultSet.getInt("f_id");
+				fd.parent = resultSet.getInt("parentform");
+				fd.table_name = resultSet.getString("table_name");
+				forms.put(fd.name, fd);
+				if(fd.parent == 0) {
+					topForm = fd;
+				}
+			}
+			
+			/*
+			 * Put the forms into a list in top down order
+			 */
+			formList.add(topForm);		// The top level form
+			addChildren(topForm, forms, formList);
+		} finally {
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+		}
+		
+		return formList;
+	}
+	
+	/*
+	 * Add the list of children to parent forms
+	 */
+	private void addChildren(FormDesc parentForm, HashMap<String, FormDesc> forms, ArrayList<FormDesc> formList) {
+		
+		for(FormDesc fd : forms.values()) {
+			if(fd.parent != 0 && fd.parent == parentForm.f_id) {
+				if(parentForm.children == null) {
+					parentForm.children = new ArrayList<FormDesc> ();
+				}
+				parentForm.children.add(fd);
+				fd.parentForm = parentForm;
+				formList.add(fd);
+				addChildren(fd,  forms, formList);
+			}
+		}
+		
+	}
 
 	private void writeTableStructure(Form form, Connection sd, Connection cResults, boolean hasHrk, SurveyTemplate template) throws Exception {
 

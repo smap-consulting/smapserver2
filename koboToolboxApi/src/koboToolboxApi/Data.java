@@ -37,7 +37,9 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -49,6 +51,8 @@ import javax.ws.rs.core.Response.Status;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
+import org.smap.model.FormDesc;
+import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -75,6 +79,7 @@ import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.SurveySettingsDefn;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableColumn;
+import org.smap.server.utilities.UtilityMethods;
 
 /*
  * Provides access to collected data
@@ -84,6 +89,7 @@ public class Data extends Application {
 
 	Authorise a = null;
 	Authorise aSuper = null;
+	Authorise aUpload = null;
 
 	private static Logger log =
 			Logger.getLogger(Data.class.getName());
@@ -112,6 +118,11 @@ public class Data extends Application {
 		authorisationsSuper.add(Authorise.VIEW_OWN_DATA);
 		authorisationsSuper.add(Authorise.ADMIN);
 		aSuper = new Authorise(authorisationsSuper, null);
+		
+		ArrayList<String> authorisationsUpload = new ArrayList<String> ();	
+		authorisationsUpload.add(Authorise.ANALYST);
+		authorisationsUpload.add(Authorise.ADMIN);
+		aUpload = new Authorise(authorisationsUpload, null);
 
 	}
 
@@ -314,6 +325,79 @@ public class Data extends Application {
 						includeMeta
 						);	
 			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			String resp = "{error: " + e.getMessage() + "}";
+			response = Response.serverError().entity(resp).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * KoboToolBox API version 1 /data
+	 * Upload a single data record in json format
+	 */
+	@POST
+	@Produces("application/json")
+	@Path("/{sIdent}")
+	public Response postSingleDataRecord(@Context HttpServletRequest request,
+			@PathParam("sIdent") String sIdent,	
+			@QueryParam("tz") String tz,					// Timezone
+			@QueryParam("geojson") String geojson,			// if set to yes then format is in geojson
+			@FormParam("record") String record
+			) throws ApplicationException, Exception { 
+		
+		Response response = null;
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
+		String connectionString = "koboToolboxApi - upload single data record";
+		
+		Connection cResults = null;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		
+		try {
+			
+			cResults = ResultsDataSource.getConnection(connectionString);
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
+				throw new ApplicationException(localisation.getString("susp_api"));
+			}
+			
+			DataManager dm = new DataManager(localisation, tz);
+			int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);	
+			
+			aUpload.isAuthorised(sd, request.getRemoteUser());
+			aUpload.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+			aUpload.canLoadTasks(sd, sId);
+			// End Authorisation	
+
+			response = postSingleRecord(
+					sd,
+					cResults,
+					request,
+					sIdent,
+					sId,
+					localisation,
+					tz
+					);	
+			
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
 			String resp = "{error: " + e.getMessage() + "}";
@@ -1056,6 +1140,72 @@ public class Data extends Application {
 
 	}
 	
+	/*
+	 * KoboToolBox API version 1 /data
+	 * Get a single record in JSON format
+	 */
+	private Response postSingleRecord(
+			Connection sd,
+			Connection cResults,
+			HttpServletRequest request,
+			String sIdent,
+			int sId,
+			ResourceBundle localisation,
+			String tz
+			) throws ApplicationException, Exception { 
+
+		Response response;
+			
+			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_SINGLE_VIEW, "Managed Forms or the API. ", 0, request.getServerName());
+			
+			
+			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
+				throw new ApplicationException(localisation.getString("susp_api"));
+			}
+
+			SurveyManager sm = new SurveyManager(localisation, tz);
+			
+			Survey s = sm.getById(
+					sd, 
+					cResults, 
+					request.getRemoteUser(),
+					false,
+					sId, 
+					true, 		// full
+					null, 		// basepath
+					null, 		// instance id
+					false, 		// get results
+					false, 		// generate dummy values
+					true, 		// get property questions
+					false, 		// get soft deleted
+					true, 		// get HRK
+					"external", 	// get external options
+					false, 		// get change history
+					false, 		// get roles
+					true,		// superuser 
+					null, 		// geomformat
+					false, 		// reference surveys
+					false,		// only get launched
+					false		// Don't merge set value into default values
+					);
+			
+			/*
+			 * Create the results tables for the survey if they do not exist
+			 */
+			TableManager tm = new TableManager(localisation, tz);
+			ArrayList <FormDesc> formList = tm.getFormList(sd, sId);	
+			UtilityMethods.createSurveyTables(sd, cResults, localisation, sId, formList, sIdent, tz);
+			
+			// Write the instance via the survey manager
+		
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			
+			response = Response.ok("").build();
+			
+
+		return response;
+
+	}
 
 
 	/*
