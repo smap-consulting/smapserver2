@@ -55,6 +55,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.RateLimiter;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.LogManager;
@@ -63,6 +64,7 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.TableDataManager;
+import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.ConsoleTotals;
 import org.smap.sdal.model.DataEndPoint;
 import org.smap.sdal.model.DataItemChangeEvent;
@@ -916,6 +918,13 @@ public class Data extends Application {
 					outWriter.print(",\"forms\":");
 					ArrayList<FormLink> forms = GeneralUtilityMethods.getFormLinks(sd, sId);
 					outWriter.print(gson.toJson(forms));
+					
+					// 5. Add case settings
+					outWriter.print(",\"case\":");
+					CaseManager cm = new CaseManager(localisation);				
+					String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+					CMS cms = cm.getCases(sd, groupSurveyIdent);
+					outWriter.print(gson.toJson(cms));
 				}
 				
 				outWriter.print("}");
