@@ -35,6 +35,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RecordEventManager;
@@ -45,6 +46,7 @@ import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.managers.UserLocationManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Assignment;
+import org.smap.sdal.model.Case;
 import org.smap.sdal.model.GeometryString;
 import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.MediaFile;
@@ -267,14 +269,14 @@ public class MyAssignments extends Application {
 
 		Response response = null;
 
-		String connection = "surveyKPI-getTasks";
+		String connectionString = "surveyKPI-getTasks";
 		TaskResponse tr = new TaskResponse();
 		tr.message = "OK Task retrieved";	// Overwritten if there is an error
 		tr.status = "200";
 		tr.version = 1;
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connection);
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, userName);
 		// End Authorisation
 
@@ -330,7 +332,7 @@ public class MyAssignments extends Application {
 		PreparedStatement pstmtNumberTasks = null;
 		PreparedStatement pstmtDeleteCancelled = null;
 
-		Connection cRel = null;
+		Connection cResults = null;
 
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, userName);
 
@@ -355,7 +357,7 @@ public class MyAssignments extends Application {
 			
 			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 
-			cRel = ResultsDataSource.getConnection(connection);
+			cResults = ResultsDataSource.getConnection(connectionString);
 			sd.setAutoCommit(true);
 
 			// Get the assignments
@@ -513,7 +515,7 @@ public class MyAssignments extends Application {
 					
 					// Populate the new Task Assignment
 					ta.task.id = task.properties.id;
-					ta.task.type = "xform";									// Kept for backward compatibility with old versions of fieldTask
+					ta.task.type = "xform";	
 					ta.task.title = task.properties.name;					
 					ta.task.pid = String.valueOf(task.properties.p_id);				
 					ta.task.form_id = task.properties.survey_ident;		// Form id is survey ident
@@ -633,7 +635,7 @@ public class MyAssignments extends Application {
 							File dir = new File(dirPath);
 							dir.mkdirs();
 		
-							efm.createLinkedFile(sd, cRel, oId, survey.id, m.fileName ,  logicalFilePath, userName, tz, basepath);
+							efm.createLinkedFile(sd, cResults, oId, survey.id, m.fileName ,  logicalFilePath, userName, tz, basepath);
 							
 							/*
 							 * Get pulldata definitions so that local data on the device can be searched
@@ -676,11 +678,8 @@ public class MyAssignments extends Application {
 									mediaFiles.add(new MediaFile(m.fileName, 
 											GeneralUtilityMethods.getMd5(physicalFilePath), protocol + host + m.url));
 								}
-								
 							}
 						}
-						
-						
 					}
 				}
 
@@ -700,6 +699,34 @@ public class MyAssignments extends Application {
 					fl.mediaFiles = mediaFiles;
 				}
 				tr.forms.add(fl);
+				
+				/*
+				 * Add any cases assigned to this user
+				 */
+				CaseManager cm = new CaseManager(localisation);
+				ArrayList<Case> cases = cm.getCases(sd, cResults, survey.id, survey.groupSurveyIdent, userName);
+				if(cases.size() > 0) {
+					if(tr.taskAssignments == null) {
+						tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
+						
+						for(Case c : cases) {
+							
+							// Convert to cases
+							TaskResponseAssignment ta = new TaskResponseAssignment();
+							ta.task = new TrTask();
+							ta.location = new TaskLocation();
+							ta.assignment = new TrAssignment();
+							
+							ta.task.form_id = survey.ident;
+							ta.task.update_id = c.instanceid;
+							ta.task.type = "case";
+							ta.task.title = c.title;
+							ta.assignment.assignment_status = TaskManager.STATUS_T_ACCEPTED;
+							
+							tr.taskAssignments.add(ta);
+						}
+					}
+				}
 			}
 
 			/*
@@ -839,8 +866,8 @@ public class MyAssignments extends Application {
 			try {if (pstmtNumberTasks != null) {pstmtNumberTasks.close();} } catch (Exception e) {}
 			try {if (pstmtDeleteCancelled != null) {pstmtDeleteCancelled.close();} } catch (Exception e) {}
 
-			SDDataSource.closeConnection(connection, sd);
-			ResultsDataSource.closeConnection(connection, cRel);	
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
 		}
 
 		return response;

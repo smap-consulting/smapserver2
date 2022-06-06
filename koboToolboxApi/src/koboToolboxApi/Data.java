@@ -923,7 +923,7 @@ public class Data extends Application {
 					outWriter.print(",\"case\":");
 					CaseManager cm = new CaseManager(localisation);				
 					String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
-					CMS cms = cm.getCases(sd, groupSurveyIdent);
+					CMS cms = cm.getCaseManagementSettings(sd, groupSurveyIdent);
 					outWriter.print(gson.toJson(cms));
 				}
 				

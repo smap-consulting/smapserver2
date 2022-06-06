@@ -104,7 +104,7 @@ public class CaseManagement extends Application {
 			CaseManager cm = new CaseManager(localisation);
 			
 			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
-			CMS cms = cm.getCases(sd, groupSurveyIdent);
+			CMS cms = cm.getCaseManagementSettings(sd, groupSurveyIdent);
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(cms);
 			response = Response.ok(resp).build();
@@ -254,7 +254,7 @@ public class CaseManagement extends Application {
 			CaseManager cm = new CaseManager(localisation);
 			
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			cm.deleteAlert(sd, alert.id, o_id, request.getRemoteUser());
+			cm.deleteAlert(sd, alert.id, o_id);
 			
 			response = Response.ok().build();			
 		}  catch (Exception ex) {

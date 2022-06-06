@@ -8,7 +8,9 @@ import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.CMS;
+import org.smap.sdal.model.Case;
 import org.smap.sdal.model.CaseManagementAlert;
 import org.smap.sdal.model.CaseManagementSettings;
 
@@ -54,7 +56,7 @@ public class CaseManager {
 	/*
 	 * Get Case Management settings
 	 */
-	public CMS getCases(Connection sd, String groupSurveyIdent) throws SQLException {
+	public CMS getCaseManagementSettings(Connection sd, String groupSurveyIdent) throws SQLException {
 		
 		PreparedStatement pstmt = null;
 		CMS cms;
@@ -251,8 +253,7 @@ public class CaseManager {
 	 */
 	public void deleteAlert(Connection sd, 
 			int id, 
-			int o_id, 
-			String ident) throws Exception {
+			int o_id) throws Exception {
 		
 		String sql = "delete from cms_alert where id = ? "
 				+ "and o_id = ?";
@@ -271,9 +272,66 @@ public class CaseManager {
 			
 		}  finally {		
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
-			
 		}
-
 	}
-
+	
+	/*
+	 * Get cases for a user and survey
+	 */
+	public ArrayList<Case> getCases(
+			Connection sd, 
+			Connection cResults,
+			int sId,
+			String groupSurveyIdent,
+			String user) throws Exception {
+		
+		PreparedStatement pstmt = null;
+			
+		ArrayList<Case> cases = new ArrayList<>();
+		
+		try {
+			/*
+			 * Only return cases which have a final status
+			 */
+			CMS cms = getCaseManagementSettings(sd, groupSurveyIdent);
+			if(cms != null && cms.settings != null && cms.settings.statusQuestion != null) {
+	
+				String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+				if(GeneralUtilityMethods.hasColumn(cResults, tableName, cms.settings.statusQuestion)) {
+					
+					// Ignore cases that are bad or where the status value is null or if the case has been completed
+					StringBuilder sql = new StringBuilder("select instanceid, prikey, instancename, _hrk from ")
+							.append(tableName)
+							.append(" where not _bad and _assigned = ? and ")
+							.append(cms.settings.statusQuestion)
+							.append(" != ?");
+					pstmt = cResults.prepareStatement(sql.toString());
+					pstmt.setString(1, user);
+					pstmt.setString(2,  cms.settings.finalStatus);
+					log.info("Get cases: " + pstmt.toString());
+					ResultSet rs = pstmt.executeQuery();
+					
+					while(rs.next()) {
+						String title = null;
+						String prikey = rs.getString("prikey");
+						String instanceName = rs.getString("instancename");
+						String hrk = rs.getString("_hrk");
+						if(instanceName != null && instanceName.trim().length() > 0) {
+							title = instanceName;
+						} else if(hrk != null && hrk.trim().length() > 0) {
+							title = hrk;
+						} else {
+							title = prikey;
+						}
+						
+						cases.add(new Case(title, rs.getString("instanceid")));
+					}
+				}
+			}
+				
+		}  finally {		
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+		return cases;
+	}
 }

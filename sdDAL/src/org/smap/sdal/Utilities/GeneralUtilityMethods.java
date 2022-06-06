@@ -6053,7 +6053,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the main results table for a survey if it exists
 	 */
-	public static String getMainResultsTable(Connection sd, Connection conn, int sId) {
+	public static String getMainResultsTable(Connection sd, Connection cResults, int sId) {
 		String table = null;
 
 		String sql = "select table_name from form where s_id = ? and parentform = 0";
@@ -6068,7 +6068,7 @@ public class GeneralUtilityMethods {
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				String table_name = rs.getString(1);
-				if (tableExists(conn, table_name)) {
+				if (tableExists(cResults, table_name)) {
 					table = table_name;
 				}
 			}
@@ -8410,7 +8410,7 @@ public class GeneralUtilityMethods {
 		
 		String sqlCopyThreadCol = "update " + table 
 						+ " set _thread = (select _thread from " + table + " where prikey = ?),"
-						+ " _assigned = (select _assigned from " + table + " where prikey = ?) "
+						+ " _assigned = (select _assigned from " + table + " where prikey = ?), "
 						+ " _thread_created = (select _thread_created from " + table + " where prikey = ?) "
 						+ "where prikey = ?";
 		PreparedStatement pstmtCopyThreadCol = null;
