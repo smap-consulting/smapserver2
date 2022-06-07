@@ -10514,6 +10514,30 @@ public class GeneralUtilityMethods {
 		return url;
 	}
 	
+	/*
+	 * Get the user currently assigned to a record
+	 */
+	public static String getAssignedUser(Connection cResults, String tableName, String key) throws SQLException {
+		String userIdent = null;
+		
+		StringBuilder sql = new StringBuilder("select _assigned from ")
+			.append(tableName)
+			.append(" where not _bad and _thread = ?");
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = cResults.prepareStatement(sql.toString());
+			pstmt.setString(1, key);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				userIdent = rs.getString(1);
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+		return userIdent;
+	}
+	
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");

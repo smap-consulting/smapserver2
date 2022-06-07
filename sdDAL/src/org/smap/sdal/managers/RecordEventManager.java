@@ -7,7 +7,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -147,6 +146,16 @@ public class RecordEventManager {
 			pstmt.setInt(15,  taskId);
 			pstmt.setInt(16,  assignmentId);
 			pstmt.executeUpdate();
+			
+			/*
+			 * Alert the user assigned to this record
+			 */
+			MessagingManager mm = new MessagingManager(null);	// Assume no messages will require localisation!
+			String assignedUser = GeneralUtilityMethods.getAssignedUser(cResults, tableName, key);
+			if(assignedUser != null) {
+				mm.userChange(sd, assignedUser);
+			}
+			
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
 			if(pstmtSurvey != null) try{pstmtSurvey.close();}catch(Exception e) {};

@@ -151,7 +151,6 @@ public class MessagingManagerApply {
 					UserMessage um = gson.fromJson(data, UserMessage.class);
 					
 					usersImpacted.put(um.ident, um.ident);
-					log.info("zzzzzzzzzzzzzzz: user change users: " + um.ident);
 					
 				} else if(topic.equals("project")) {
 					ProjectMessage pm = gson.fromJson(data, ProjectMessage.class);

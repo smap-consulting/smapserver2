@@ -1314,8 +1314,6 @@ public class SubscriberBatch {
 				String period = rs.getString("period");	
 				int oId = GeneralUtilityMethods.getOrganisationIdForSurveyIdent(sd, groupSurveyIdent);
 				
-				System.out.println("Case: " + groupSurveyIdent + " alert: " + alertName);
-				
 				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
 					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
@@ -1363,7 +1361,6 @@ public class SubscriberBatch {
 						pstmtMatches.setString(idx++, table);
 						pstmtMatches.setInt(idx++, aId);
 						pstmtMatches.setString(idx++, period);
-						System.out.println("Looking for cases that match an alert: " + pstmtMatches.toString());
 						ResultSet mrs = pstmtMatches.executeQuery();
 						
 						while(mrs.next()) {
@@ -1371,7 +1368,6 @@ public class SubscriberBatch {
 							String instanceid = mrs.getString("instanceid");
 							String thread = mrs.getString("_thread");
 							
-							System.out.println("        Record: " + mrs.getInt("prikey") + " instance: " + instanceid);
 							/*
 							 * Record the triggering of the alert
 							 */
