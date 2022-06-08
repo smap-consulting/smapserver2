@@ -575,6 +575,8 @@ public class SubscriberBatch {
 											true,			// Super User
 											false,			// Return records greater than or equal to primary key
 											"none",			// Do not return bad records
+											"yes",			// return completed
+											null,			// case management settings can be null
 											prikeyFilter,
 											null	,			// key filter
 											tz,
@@ -1298,7 +1300,7 @@ public class SubscriberBatch {
 			
 			// 1. Get case management alerts 
 			pstmt = sd.prepareStatement(sql);
-			System.out.println("Get case management alerts: " + pstmt.toString());
+			log.info("Get case management alerts: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			while(rs.next()) {

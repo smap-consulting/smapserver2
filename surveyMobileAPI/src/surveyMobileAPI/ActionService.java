@@ -453,6 +453,8 @@ public class ActionService extends Application {
 					superUser, 
 					true, 	// Return the specific primary key
 					"none", 				// include bad
+					"yes",			// return completed
+					null,			// case management settings can be null
 					null	,				// no custom filter
 					null,				// no key filter
 					tz,

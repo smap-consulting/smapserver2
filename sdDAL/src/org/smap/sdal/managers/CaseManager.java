@@ -291,7 +291,7 @@ public class CaseManager {
 		
 		try {
 			/*
-			 * Only return cases which have a final status
+			 * Only return cases which can have a final status
 			 */
 			CMS cms = getCaseManagementSettings(sd, groupSurveyIdent);
 			if(cms != null && cms.settings != null && cms.settings.statusQuestion != null) {
