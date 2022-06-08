@@ -61,7 +61,7 @@ public class MessageProcessor {
 					loop = false;
 				} else {
 					
-					log.info("mmmmmmmmmmmmmmmmmmm Message Processor");
+					System.out.print("(m)");		// Record the running of the message processor
 					
 					try {
 						// Make sure we have a connection to the database
