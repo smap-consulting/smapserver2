@@ -193,7 +193,7 @@ public class JdbcUploadEventManager {
 	private List <UploadEvent> getUploadEventList(PreparedStatement pstmt) throws SQLException {
 		ArrayList <UploadEvent> ueList = new ArrayList<UploadEvent> ();
 		
-		log.info("Get upload event list: " + pstmt.toString());
+		// log.info("Get upload event list: " + pstmt.toString());  // debug only
 		ResultSet rs = pstmt.executeQuery();
 		while(rs.next()) {
 			UploadEvent ue = new UploadEvent();

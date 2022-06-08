@@ -206,7 +206,7 @@ public class SubscriberBatch {
 
 						if(uel.isEmpty()) {
 
-							log.info("................... " + subscriberType + " Submission Processor");
+							System.out.print(".");		// Log the runnig of the upload processor
 
 						} else {
 							log.info("\nUploading subscriber: " + s.getSubscriberName() + " : " + timeNow.toString());
@@ -432,7 +432,7 @@ public class SubscriberBatch {
 					} 
 				}
 			} else {
-				log.info("###########################################################################");
+				// log.info("###########################################################################");  // debug only
 			}
 
 			/*
@@ -451,9 +451,6 @@ public class SubscriberBatch {
 
 				// Delete linked csv files logically deleted more than 10 minutes age
 				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
-				
-				// Generate reports
-				log.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%% Generate reports");
 				
 				// Apply synchronisation
 				// 1. Get all synchronisation notifications
@@ -795,8 +792,8 @@ public class SubscriberBatch {
 			/*
 			 * Process surveys to be deleted for real now
 			 */
-			log.info("Erase interval set to: " + interval);
-			log.info("Check for templates to erase: " + pstmt.toString());
+			// log.info("Erase interval set to: " + interval);	// debug only
+			// log.info("Check for templates to erase: " + pstmt.toString());  // debug only
 			rs = pstmt.executeQuery();	
 			while(rs.next()) {
 				int sId = rs.getInt("s_id");

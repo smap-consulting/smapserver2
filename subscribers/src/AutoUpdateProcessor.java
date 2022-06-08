@@ -62,7 +62,7 @@ public class AutoUpdateProcessor {
 					log.info("========== Auto update Processor Stopped");
 					loop = false;
 				} else {
-					log.info("uuuuuuuuuuuuuuuuuuu Update Processor");
+					System.out.print("(u)");	// Log running of update processor
 					
 					try {
 						// Make sure we have a connection to the database
