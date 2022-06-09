@@ -122,10 +122,12 @@ public class ChoiceManager {
 			// No label found, return the original value as the label
 			int idx = 0;
 			for(String match : matches) {
-				if(idx++ > 0) {
-					labels.append(", ");
+				if(match != null) {
+					if(idx++ > 0) {
+						labels.append(", ");
+					}
+					labels.append(match);
 				}
-				labels.append(match);
 			}
 		}
 		
