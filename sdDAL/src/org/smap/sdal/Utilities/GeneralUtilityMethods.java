@@ -3802,7 +3802,7 @@ public class GeneralUtilityMethods {
 			columnList.add(c);
 		}
 		
-		// Add assigned if this is a management request
+		// Add assigned and alert if this is a management request
 		if(mgmt) {
 			// Make sure there is an _assigned column at the top level of the survey
 			// Don't add one if we are getting columns for a subform
@@ -3811,10 +3811,20 @@ public class GeneralUtilityMethods {
 				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
 					GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
 				}
+				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_alert")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "text");
+				}
 			
 				c = new TableColumn();
 				c.column_name = "_assigned";
 				c.displayName = "_assigned";
+				c.type = SmapQuestionTypes.STRING;
+				c.question_name = c.column_name;
+				columnList.add(c);
+				
+				c = new TableColumn();
+				c.column_name = "_alert";
+				c.displayName = "_alert";
 				c.type = SmapQuestionTypes.STRING;
 				c.question_name = c.column_name;
 				columnList.add(c);
@@ -8412,6 +8422,7 @@ public class GeneralUtilityMethods {
 						+ " set _thread = (select _thread from " + table + " where prikey = ?),"
 						+ " _assigned = (select _assigned from " + table + " where prikey = ?), "
 						+ " _thread_created = (select _thread_created from " + table + " where prikey = ?) "
+						+ " _alert = (select _alert from " + table + " where prikey = ?) "
 						+ "where prikey = ?";
 		PreparedStatement pstmtCopyThreadCol = null;
 			
@@ -8423,7 +8434,8 @@ public class GeneralUtilityMethods {
 			pstmtCopyThreadCol.setInt(1, sourceKey);
 			pstmtCopyThreadCol.setInt(2, sourceKey);
 			pstmtCopyThreadCol.setInt(3, sourceKey);
-			pstmtCopyThreadCol.setInt(4, prikey);
+			pstmtCopyThreadCol.setInt(4, sourceKey);
+			pstmtCopyThreadCol.setInt(5, prikey);
 			log.info("continue thread: " + pstmtCopyThreadCol.toString());
 			pstmtCopyThreadCol.executeUpdate();
 			
@@ -8461,6 +8473,9 @@ public class GeneralUtilityMethods {
 			}
 			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_thread_created")) {
 				GeneralUtilityMethods.addColumn(cResults, table, "_thread_created", "timestamp with time zone");
+			}
+			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_alert")) {
+				GeneralUtilityMethods.addColumn(cResults, table, "_alert", "text");
 			}
 			
 			// Initialise the thread column

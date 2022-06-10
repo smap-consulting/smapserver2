@@ -1283,9 +1283,11 @@ public class SubscriberBatch {
 		PreparedStatement pstmtSettings = null;
 		
 		PreparedStatement pstmtMatches = null;
+		PreparedStatement pstmtCaseUpdated = null;
 
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		HashMap<String, CaseManagementSettings> settingsCache = new HashMap<>();
+		HashMap<String, String> initialisedCache = new HashMap<>();
 		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
 		
 		// SQL to record an alert being triggered
@@ -1328,7 +1330,6 @@ public class SubscriberBatch {
 				
 				if(GeneralUtilityMethods.tableExists(cResults, table)) {
 					
-					GeneralUtilityMethods.initialiseThread(cResults, table);
 					
 					/*
 					 * Get the case management settings for this case (group survey)
@@ -1345,6 +1346,14 @@ public class SubscriberBatch {
 					if(settings != null && settings.finalStatus != null && settings.statusQuestion != null &&
 							GeneralUtilityMethods.hasColumn(cResults, table, settings.statusQuestion)) {
 					
+						// reduce the number of times initialise is called
+						String initialised = initialisedCache.get(table);
+						if(initialised == null) {
+							GeneralUtilityMethods.initialiseThread(cResults, table);
+							initialisedCache.put(table, table);
+						}
+						
+						
 						/*
 						 * Find records in the case that match this alert
 						 */
@@ -1364,7 +1373,7 @@ public class SubscriberBatch {
 						
 						while(mrs.next()) {
 							
-							String instanceid = mrs.getString("instanceid");
+							int prikey = rs.getInt("prikey");						String instanceid = mrs.getString("instanceid");
 							String thread = mrs.getString("_thread");
 							
 							/*
@@ -1396,6 +1405,16 @@ public class SubscriberBatch {
 							pstmtTriggered.setString(4, settings.finalStatus);
 							
 							pstmtTriggered.executeUpdate();
+							
+							// Update the case so that the alert status can be charted
+							StringBuilder sqlUpdate = new StringBuilder("update ") 
+									.append(table)
+									.append(" set _alert = ? where prikey = ?");	
+							
+							pstmtCaseUpdated = cResults.prepareStatement(sqlUpdate.toString());
+							pstmtCaseUpdated.setString(1, alertName);
+							pstmtCaseUpdated.setInt(2, prikey);	
+							pstmtCaseUpdated.executeUpdate();
 							
 							/*
 							 * Process notifications associated with this alert
@@ -1481,7 +1500,7 @@ public class SubscriberBatch {
 			try {if (pstmtSettings != null) {pstmtSettings.close();}} catch (SQLException e) {}
 			try {if (pstmtMatches != null) {pstmtMatches.close();}} catch (SQLException e) {}
 			try {if (pstmtNotifications != null) {pstmtNotifications.close();}} catch (SQLException e) {}
-			
+			try {if (pstmtCaseUpdated != null) {pstmtCaseUpdated.close();}} catch (SQLException e) {}
 		}
 	}
 	
