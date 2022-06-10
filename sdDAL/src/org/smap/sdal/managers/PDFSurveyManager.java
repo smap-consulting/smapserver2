@@ -2197,6 +2197,7 @@ public class PDFSurveyManager {
 			if(deps == null || (di.value != null && !di.value.trim().toLowerCase().equals("other"))) {
 
 				String value = di.value;
+				
 				if(di.type.equals("select1")) {
 
 					Form form = survey.forms.get(di.fIdx);
