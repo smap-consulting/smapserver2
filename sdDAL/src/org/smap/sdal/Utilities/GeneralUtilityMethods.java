@@ -28,6 +28,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -10477,6 +10478,22 @@ public class GeneralUtilityMethods {
 			}
 		}
 		return url;
+	}
+	
+	public static String round(String in, int to) {
+		String out = in;
+		try {
+			StringBuilder f = new StringBuilder("0.");
+			for(int i = 0; i < to; i++) {
+				f.append("0");
+			}
+			DecimalFormat decimalFormat = new DecimalFormat(f.toString());
+			double dv = Double.parseDouble(in);
+			out = decimalFormat.format(dv);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+		}
+		return out;
 	}
 	
 	private static int getManifestParamStart(String property) {

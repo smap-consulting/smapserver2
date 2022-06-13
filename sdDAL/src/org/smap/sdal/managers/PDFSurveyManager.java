@@ -534,23 +534,6 @@ public class PDFSurveyManager {
 			} catch (Exception e) {
 				// If we can't get the question details for this data then that is ok
 			}
-			
-			/*
-			 * Round decimals if required
-			 */
-			if(r.type.equals("decimal") && di.round >= 0  && r.value != null && r.value.trim().length() > 0) {
-				try {
-					StringBuilder f = new StringBuilder("0.");
-					for(int i = 0; i < di.round; i++) {
-						f.append("0");
-					}
-					DecimalFormat decimalFormat = new DecimalFormat(f.toString());
-					double dv = Double.parseDouble(r.value);
-					r.value = decimalFormat.format(dv);
-				} catch (Exception e) {
-					log.log(Level.SEVERE, e.getMessage(), e);
-				}
-			}
 
 			/*
 			 * Set the value based on the result
@@ -634,15 +617,24 @@ public class PDFSurveyManager {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
 				value = String.format("%,d", iValue);
+				
 			} else if(di.tsep && (r.type.equals("decimal") || (r.type.equals("string") && r.value != null && r.value.contains(".")))) {
 				Double dValue = 0.0;
 				try {
-					dValue = Double.parseDouble(r.value.replace(",", ""));
+					r.value = r.value.replace(",", "");
+					if(di.round >= 0) {
+						r.value = GeneralUtilityMethods.round(r.value, di.round);	
+					}
+					dValue = Double.parseDouble(r.value);
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
-				value = String.format("%,f", dValue);
+				DecimalFormat formatter = (DecimalFormat) DecimalFormat.getInstance(localisation.getLocale());
+				value = formatter.format(dValue);
 
+			} else if(r.type.equals("decimal") && di.round >= 0 && r.value != null && r.value.trim().length() > 0) {
+				value = GeneralUtilityMethods.round(r.value, di.round);	
+				
 			} else {
 				value = r.value;
 			}
@@ -1762,23 +1754,7 @@ public class PDFSurveyManager {
 		// Questions that append their values to this question
 		ArrayList<String> deps = gv.addToList.get(di.fIdx + "_" + di.rec_number + "_" + di.name);
 
-		/*
-		 * Round decimals if required
-		 */
-		if(di.type.equals("decimal") && di.round >= 0 && di.value != null && di.value.trim().length() > 0) {
-			try {
-				StringBuilder f = new StringBuilder("0.");
-				for(int i = 0; i < di.round; i++) {
-					f.append("0");
-				}
-				DecimalFormat decimalFormat = new DecimalFormat(f.toString());
-				double dv = Double.parseDouble(di.value);
-				di.value = decimalFormat.format(dv);
-			} catch (Exception e) {
-				log.log(Level.SEVERE, e.getMessage(), e);
-			}
-		}
-		
+
 		if(di.type.startsWith("select")) {
 			processSelect(parser, remoteUser, valueCell, di, generateBlank, gv, oId);
 		} else if (di.type.equals("image")) {
@@ -1913,16 +1889,29 @@ public class PDFSurveyManager {
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
-			String value = String.format("%,d", iValue);
+			DecimalFormat formatter = (DecimalFormat) DecimalFormat.getInstance(localisation.getLocale());
+			String value = formatter.format(iValue);
 			valueCell.addElement(getPara(value, di, gv, deps, null));
 		} else if(di.tsep && (di.type.equals("decimal") || (di.type.equals("string") && di.value != null && di.value.contains(".")))) {
 			Double dValue = 0.0;
 			try {
-				dValue = Double.parseDouble(di.value.replace(",", ""));
+				di.value = di.value.replace(",", "");
+				if(di.round >= 0) {
+					di.value = GeneralUtilityMethods.round(di.value, di.round);	
+				}
+				dValue = Double.parseDouble(di.value);
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
-			String value = String.format("%,f", dValue);
+			
+			DecimalFormat formatter = (DecimalFormat) DecimalFormat.getInstance(localisation.getLocale());
+			String value = formatter.format(dValue);
+			
+
+			
+			valueCell.addElement(getPara(value, di, gv, deps, null));
+		} else if(di.type.equals("decimal") && di.round >= 0 && di.value != null && di.value.trim().length() > 0) {
+			String value = GeneralUtilityMethods.round(di.value, di.round);	
 			valueCell.addElement(getPara(value, di, gv, deps, null));
 		} else {
 			String value = null;
