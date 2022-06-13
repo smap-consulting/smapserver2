@@ -1470,19 +1470,18 @@ public class SubscriberBatch {
 				
 				// Add user name to content
 				log.info("Add username to content: " + name);
+				String messageLink = link;
 				if(content == null) {
 					content = "Mailout";
 				} else {
 					if(name != null) {
 						content = content.replaceAll("\\$\\{name\\}", name);
 					}
-					if(content.contains("${url}")) {
-						String url = "https://" + serverName + "/webForm" + link;
+					String url = "https://" + serverName + "/webForm" + link;
+					if(content.contains("${url}")) {					
 						content = content.replaceAll("\\$\\{url\\}", url);
-						link = null;	// Default link replaced
-					} else {
-						link = "https://" + serverName + "/webForm" + link;
-					}
+						messageLink = null;	// Default link replaced
+					} 
 				}
 				
 				// Send the Mailout Message
@@ -1500,7 +1499,7 @@ public class SubscriberBatch {
 						"https",
 						serverName,
 						basePath,
-						link);
+						messageLink);
 				
 				if(localisation == null) {
 					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
