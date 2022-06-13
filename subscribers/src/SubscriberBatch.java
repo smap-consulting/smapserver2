@@ -1369,11 +1369,12 @@ public class SubscriberBatch {
 						pstmtMatches.setString(idx++, table);
 						pstmtMatches.setInt(idx++, aId);
 						pstmtMatches.setString(idx++, period);
+						log.info("Find matchng records: " + pstmtMatches.toString());
 						ResultSet mrs = pstmtMatches.executeQuery();
 						
 						while(mrs.next()) {
 							
-							int prikey = rs.getInt("prikey");						String instanceid = mrs.getString("instanceid");
+							int prikey = mrs.getInt("prikey");						String instanceid = mrs.getString("instanceid");
 							String thread = mrs.getString("_thread");
 							
 							/*

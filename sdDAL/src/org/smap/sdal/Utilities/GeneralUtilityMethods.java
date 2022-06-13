@@ -8481,12 +8481,12 @@ public class GeneralUtilityMethods {
 			
 			// Initialise the thread column
 			pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
-			log.info("Initialise Thread: " + pstmtInitThreadCol.toString());
+			//log.info("Initialise Thread: " + pstmtInitThreadCol.toString());
 			pstmtInitThreadCol.executeUpdate();
 			
 			// Initialise the _thread_created columns
 			pstmtInitThreadCol2 = cResults.prepareStatement(sqlInitThreadCol2);
-			log.info("Initialise Thread: " + pstmtInitThreadCol2.toString());
+			//log.info("Initialise Thread: " + pstmtInitThreadCol2.toString());
 			pstmtInitThreadCol2.executeUpdate();
 			
 		} finally {
