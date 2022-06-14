@@ -20,26 +20,26 @@ if [ $dbhost_set -eq 0 ]; then
 fi
 
 # Set flag for ubuntu version
-u1404=`lsb_release -r | grep -c "14\.04"`
-u1604=`lsb_release -r | grep -c "16\.04"`
 u1804=`lsb_release -r | grep -c "18\.04"`
 u2004=`lsb_release -r | grep -c "20\.04"`
+u2204=`lsb_release -r | grep -c "22\.04"`
 
 # Check that this version of ubuntu is supported
-if [ $u2004 -eq 1 ]; then
+if [ $u2204 -eq 1 ]; then
+    echo "Installing on Ubuntu 22.04"
+elif [ $u2004 -eq 1 ]; then
     echo "Installing on Ubuntu 20.04"
 elif [ $u1804 -eq 1 ]; then
     echo "Installing on Ubuntu 18.04"
-elif [ $u1604 -eq 1 ]; then
-    echo "Installing on Ubuntu 16.04"
-elif [ $u1404 -eq 1 ]; then
-    echo "Installing on Ubuntu 14.04"
 else
-    echo "Unsupported version of Ubuntu, you need 20.04, 18.04 or 16.04"
+    echo "Unsupported version of Ubuntu, you need 22.04, 20.04, or 18.04"
     exit 1;
 fi
 
-if [ $u2004 -eq 1 ]; then
+if [ $u2204 -eq 1 ]; then
+    TOMCAT_VERSION=tomcat9
+    TOMCAT_USER=tomcat
+elif [ $u2004 -eq 1 ]; then
     TOMCAT_VERSION=tomcat9
     TOMCAT_USER=tomcat
 elif [ $u1804 -eq 1 ]; then
@@ -103,6 +103,13 @@ echo '##### 5. Install Postgres / Postgis'
 if [ "$DBHOST" = "127.0.0.1" ]; then
 
 # Install Postgres for Ubuntu 20.04
+if [ $u2204 -eq 1 ]; then
+    echo 'installing postgres'
+    PGV=14
+    sudo apt-get install postgresql postgresql-contrib postgis -y
+fi
+
+# Install Postgres for Ubuntu 20.04
 if [ $u2004 -eq 1 ]; then
     echo 'installing postgres'
     PGV=12
@@ -116,30 +123,8 @@ if [ $u1804 -eq 1 ]; then
     sudo apt-get install postgresql postgresql-contrib postgis -y
 fi
 
-# Install Postgres for Ubuntu 16.04
-if [ $u1604 -eq 1 ]; then
-    echo 'installing postgres'
-    PGV=9.5
-    sudo apt-get install postgresql postgresql-contrib postgis postgresql-$PGV-postgis-2.2 -y
-fi
-
-# Install Postgres for Ubuntu 14.04
-if [ $u1404 -eq 1 ]; then
-    echo 'installing postgres'
-    PGV=9.3
-    sudo apt-get install postgresql postgresql-contrib postgis postgresql-$PGV-postgis-2.1 -y
-    sudo apt-get install postgresql-server-dev-9.3 -y
-    sudo apt-get install build-essential libxml2-dev -y
-    sudo apt-get install libgeos-dev libpq-dev libbz2-dev -y
-fi
-
 pg_conf="/etc/postgresql/$PGV/main/postgresql.conf"
 
-else
-    # Just install the psql client and create a postgres user
-    sudo useradd -s /bin/sh -d /home/postgres -m postgres
-    sudo apt-get install postgresql-client
-fi
 # End of conditional install
 
 echo "##### 6. Create folders for files in $filelocn"
@@ -155,6 +140,12 @@ sudo mkdir $filelocn/uploadedSurveys
 sudo mkdir $filelocn/misc
 sudo mkdir $filelocn/temp
 sudo mkdir $filelocn/settings
+
+# For ubuntu 2204 allow tomcat9 to write to /smap
+if [ $u2204 -eq 1 ]; then
+mkdir /etc/systemd/system/tomcat9.service.d
+cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
+fi
 
 # For ubuntu 2004 allow tomcat9 to write to /smap
 if [ $u2004 -eq 1 ]; then
@@ -229,6 +220,16 @@ then
 	sudo ./apacheConfig.sh
 
 	echo '# copy subscriber upstart files'
+	if [ $u2204 -eq 1 ]; then
+		sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
+		sudo chmod 664 $service_dir/subscribers.service
+		sudo cp config_files/subscribers_fwd.service.u2004 $service_dir/subscribers_fwd.service
+		sudo chmod 664 $service_dir/subscribers_fwd.service
+		
+		sudo systemctl enable subscribers.service
+		sudo systemctl enable subscribers_fwd.service
+	fi
+
 	if [ $u2004 -eq 1 ]; then
 		sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
 		sudo chmod 664 $service_dir/subscribers.service
@@ -249,21 +250,6 @@ then
 		sudo systemctl enable subscribers_fwd.service
 	fi
 	
-	if [ $u1604 -eq 1 ]; then
-		sudo cp config_files/subscribers.service $service_dir
-		sudo chmod 664 $service_dir/subscribers.service
-		sudo cp config_files/subscribers_fwd.service $service_dir
-		sudo chmod 664 $service_dir/subscribers_fwd.service
-		
-		sudo systemctl enable subscribers.service
-		sudo systemctl enable subscribers_fwd.service
-	fi
-	
-	if [ $u1404 -eq 1 ]; then
-		sudo cp config_files/subscribers.conf $upstart_dir
-		sudo cp config_files/subscribers_fwd.conf $upstart_dir
-	fi
-
         if [ "$DBHOST" = "127.0.0.1" ]; then
 	    echo '# update bu.sh file'
 	    sudo cp bu.sh ~postgres/bu.sh
