@@ -67,8 +67,10 @@ import org.smap.sdal.managers.LanguageCodeManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.OrganisationManager;
+import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyTableManager;
+import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AssignmentDetails;
 import org.smap.sdal.model.AuditData;
@@ -3801,7 +3803,7 @@ public class GeneralUtilityMethods {
 			columnList.add(c);
 		}
 		
-		// Add assigned if this is a management request
+		// Add assigned and alert if this is a management request
 		if(mgmt) {
 			// Make sure there is an _assigned column at the top level of the survey
 			// Don't add one if we are getting columns for a subform
@@ -3810,10 +3812,20 @@ public class GeneralUtilityMethods {
 				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
 					GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
 				}
+				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_alert")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "text");
+				}
 			
 				c = new TableColumn();
 				c.column_name = "_assigned";
 				c.displayName = "_assigned";
+				c.type = SmapQuestionTypes.STRING;
+				c.question_name = c.column_name;
+				columnList.add(c);
+				
+				c = new TableColumn();
+				c.column_name = "_alert";
+				c.displayName = "_alert";
 				c.type = SmapQuestionTypes.STRING;
 				c.question_name = c.column_name;
 				columnList.add(c);
@@ -5777,7 +5789,7 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Get the group surveys
-	 * Always add the survey corresponding to sId to the group
+	 * Always add the survey corresponding to groupSurveyIdent to the group
 	 */
 	public static HashMap<Integer, Integer> getGroupSurveys(Connection sd, 
 			String groupSurveyIdent) throws SQLException {
@@ -6052,7 +6064,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the main results table for a survey if it exists
 	 */
-	public static String getMainResultsTable(Connection sd, Connection conn, int sId) {
+	public static String getMainResultsTable(Connection sd, Connection cResults, int sId) {
 		String table = null;
 
 		String sql = "select table_name from form where s_id = ? and parentform = 0";
@@ -6067,7 +6079,7 @@ public class GeneralUtilityMethods {
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				String table_name = rs.getString(1);
-				if (tableExists(conn, table_name)) {
+				if (tableExists(cResults, table_name)) {
 					table = table_name;
 				}
 			}
@@ -6283,7 +6295,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Method to assign a record to a user
 	 */
-	public static int assignRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
+	public static int assignRecord(Connection sd, Connection cResults, String tablename, String instanceId, String user) throws SQLException {
 
 		int count = 0;
 		
@@ -6295,10 +6307,35 @@ public class GeneralUtilityMethods {
 		if(user != null && user.equals("_none")) {
 			user = null;
 		}
-		PreparedStatement pstmt = conn.prepareStatement(sql);
+		
+		if(!hasColumn(cResults, tablename, SurveyViewManager.ASSIGNED_COLUMN)) {
+			addColumn(cResults, tablename, SurveyViewManager.ASSIGNED_COLUMN, "text");
+		}
+		
+		PreparedStatement pstmt = cResults.prepareStatement(sql);
 		pstmt.setString(1, user);
 		pstmt.setString(2,instanceId);
 		log.info("locking record: " + pstmt.toString());
+		
+		RecordEventManager rem = new RecordEventManager();
+		rem.writeEvent(
+				sd, 
+				cResults, 
+				RecordEventManager.ASSIGNED, 
+				"success",
+				user, 
+				tablename, 
+				instanceId, 
+				null,				// Change object
+				null,	// Task Object
+				null,				// Notification object
+				"Task created", 
+				0,				// sId (don't care legacy)
+				null,
+				0,				// Don't need task id if we have an assignment id
+				0				// Assignment id
+				);
+		
 		try {
 			count = pstmt.executeUpdate();
 		} finally {
@@ -8384,18 +8421,22 @@ public class GeneralUtilityMethods {
 		
 		String sqlCopyThreadCol = "update " + table 
 						+ " set _thread = (select _thread from " + table + " where prikey = ?),"
-						+ " _assigned = (select _assigned from " + table + " where prikey = ?) "
+						+ " _assigned = (select _assigned from " + table + " where prikey = ?), "
+						+ " _thread_created = (select _thread_created from " + table + " where prikey = ?) "
+						+ " _alert = (select _alert from " + table + " where prikey = ?) "
 						+ "where prikey = ?";
 		PreparedStatement pstmtCopyThreadCol = null;
 			
 		try {
-			initialiseThread(cResults, table, sourceKey, null);
+			initialiseThread(cResults, table);
 			
 			// At this point the thread col must exist and the _thread value for the source must exist
 			pstmtCopyThreadCol = cResults.prepareStatement(sqlCopyThreadCol);
 			pstmtCopyThreadCol.setInt(1, sourceKey);
 			pstmtCopyThreadCol.setInt(2, sourceKey);
-			pstmtCopyThreadCol.setInt(3, prikey);
+			pstmtCopyThreadCol.setInt(3, sourceKey);
+			pstmtCopyThreadCol.setInt(4, sourceKey);
+			pstmtCopyThreadCol.setInt(5, prikey);
 			log.info("continue thread: " + pstmtCopyThreadCol.toString());
 			pstmtCopyThreadCol.executeUpdate();
 			
@@ -8410,12 +8451,18 @@ public class GeneralUtilityMethods {
 	 * Add the thread value that links replaced records
 	 * Either get the thread key using the sourceKey or if that is not set use the passed in instanceId directly
 	 */
-	public static void initialiseThread(Connection cResults, String table, int sourceKey, String instanceId) throws SQLException {
+	public static void initialiseThread(Connection cResults, String table) throws SQLException {
 		
-		String sqlInitThreadCol = "update " + table + " set _thread = instanceid where prikey = ? and _thread is null";
+		String sqlInitThreadCol = "update " 
+				+ table 
+				+ " set _thread = instanceid "
+				+ "where _thread is null";
 		PreparedStatement pstmtInitThreadCol = null;
 		
-		String sqlInitThreadCol2 = "update " + table + " set _thread = instanceid where instanceid = ? and _thread is null";
+		String sqlInitThreadCol2 = "update " 
+				+ table 
+				+ " set _thread_created = _upload_time "
+				+ "where _thread_created is null";
 		PreparedStatement pstmtInitThreadCol2 = null;
 			
 		try {
@@ -8425,19 +8472,22 @@ public class GeneralUtilityMethods {
 			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_assigned")) {
 				GeneralUtilityMethods.addColumn(cResults, table, "_assigned", "text");
 			}
+			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_thread_created")) {
+				GeneralUtilityMethods.addColumn(cResults, table, "_thread_created", "timestamp with time zone");
+			}
+			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_alert")) {
+				GeneralUtilityMethods.addColumn(cResults, table, "_alert", "text");
+			}
 			
 			// Initialise the thread column
-			if(sourceKey > 0) {
-				pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
-				pstmtInitThreadCol.setInt(1, sourceKey);
-				log.info("Initialise Thread: " + pstmtInitThreadCol.toString());
-				pstmtInitThreadCol.executeUpdate();
-			} else {
-				pstmtInitThreadCol2 = cResults.prepareStatement(sqlInitThreadCol2);
-				pstmtInitThreadCol2.setString(1, instanceId);
-				log.info("Initialise Thread: " + pstmtInitThreadCol2.toString());
-				pstmtInitThreadCol2.executeUpdate();
-			}
+			pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
+			//log.info("Initialise Thread: " + pstmtInitThreadCol.toString());
+			pstmtInitThreadCol.executeUpdate();
+			
+			// Initialise the _thread_created columns
+			pstmtInitThreadCol2 = cResults.prepareStatement(sqlInitThreadCol2);
+			//log.info("Initialise Thread: " + pstmtInitThreadCol2.toString());
+			pstmtInitThreadCol2.executeUpdate();
 			
 		} finally {
 			if(pstmtInitThreadCol != null) try{pstmtInitThreadCol.close();}catch(Exception e) {}
@@ -8465,7 +8515,7 @@ public class GeneralUtilityMethods {
 			
 		try {
 			
-			initialiseThread(cResults, table, 0, instanceId);
+			initialiseThread(cResults, table);
 			
 			pstmt = cResults.prepareStatement(sql);
 			pstmt.setString(1, instanceId);
@@ -10480,6 +10530,30 @@ public class GeneralUtilityMethods {
 		return url;
 	}
 	
+	/*
+	 * Get the user currently assigned to a record
+	 */
+	public static String getAssignedUser(Connection cResults, String tableName, String key) throws SQLException {
+		String userIdent = null;
+		
+		StringBuilder sql = new StringBuilder("select _assigned from ")
+			.append(tableName)
+			.append(" where not _bad and _thread = ?");
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = cResults.prepareStatement(sql.toString());
+			pstmt.setString(1, key);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				userIdent = rs.getString(1);
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+		return userIdent;
+       }
+
 	public static String round(String in, int to) {
 		String out = in;
 		try {

@@ -282,6 +282,8 @@ public class DataManager {
 					false,		// super user
 					false,		// Return records greater than or equal to primary key
 					"none",		// include bad
+					"yes",			// return completed
+					null,			// case management settings can be null
 					null,		// no custom filter
 					null,		// key filter
 					tz,

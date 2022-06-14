@@ -16,6 +16,7 @@ import org.smap.sdal.Utilities.QueryGenerator;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.AuditItem;
+import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.GeoPoint;
 import org.smap.sdal.model.KeyFilter;
 import org.smap.sdal.model.KeyValue;
@@ -25,7 +26,6 @@ import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
 
-import org.apache.commons.text.StringEscapeUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -92,6 +92,8 @@ public class TableDataManager {
 			boolean superUser, 
 			boolean specificPrikey, 
 			String include_bad,
+			String include_completed,
+			CMS cms,
 			String customFilter,
 			ArrayList<KeyFilter> keyFilters,
 			String tz,
@@ -182,10 +184,21 @@ public class TableDataManager {
 				}
 			}
 
+			// Include bad filter
 			if (include_bad.equals("none")) {
 				sqlGetData.append(" and ").append(table_name).append("._bad = 'false' ");
 			} else if (include_bad.equals("only")) {
 				sqlGetData.append(" and ").append(table_name).append("._bad = 'true' ");
+			}
+			
+			// include completed filter
+			boolean completedFilter = false;
+			if(include_completed != null && include_completed.equals("no") && cms != null && cms.settings != null && cms.settings.statusQuestion != null) {
+				completedFilter = true;
+				sqlGetData.append(" and (").append(cms.settings.statusQuestion)
+					.append(" is null or ")
+					.append(cms.settings.statusQuestion)
+					.append(" != ?)");
 			}
 
 			// Add row selection clause
@@ -315,6 +328,9 @@ public class TableDataManager {
 			pstmt.setInt(paramCount++, start);
 			if (getParkey) {
 				pstmt.setInt(paramCount++, start_parkey);
+			}
+			if(completedFilter) {
+				pstmt.setString(paramCount++,  cms.settings.finalStatus);
 			}
 			if (parkey > 0) {
 				pstmt.setInt(paramCount++, parkey);

@@ -55,6 +55,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.RateLimiter;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.LogManager;
@@ -63,6 +64,7 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.TableDataManager;
+import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.ConsoleTotals;
 import org.smap.sdal.model.DataEndPoint;
 import org.smap.sdal.model.DataItemChangeEvent;
@@ -180,6 +182,7 @@ public class Data extends Application {
 			@QueryParam("key") String key,				// Unique key (optional, use to restrict records to a specific key - same as hrk)
 			@QueryParam("format") String format,			// dt for datatables otherwise assume kobo
 			@QueryParam("bad") String include_bad,		// yes | only | none Include records marked as bad
+			@QueryParam("completed") String include_completed,		// Uf yes return unassigned records that have the final status
 			@QueryParam("audit") String audit_set,		// if yes return audit data
 			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
 			@QueryParam("tz") String tz,					// Timezone
@@ -218,7 +221,7 @@ public class Data extends Application {
 		// Authorisation is done in getDataRecords
 		getDataRecords(request, response, sIdent, start, limit, mgmt, oversightSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,
-				parkey, hrk, format, include_bad, audit_set, merge, geojson, geomQuestion,
+				parkey, hrk, format, include_bad, include_completed, audit_set, merge, geojson, geomQuestion,
 				tz, incLinks, 
 				filter, dd_filter, prikey, dd_hrk, dateName, startDate, endDate, getSettings, 
 				instanceId, includeMeta);
@@ -430,8 +433,8 @@ public class Data extends Application {
 			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			String thread = GeneralUtilityMethods.getThread(cResults, tableName, key);
-			RecordEventManager rem = new RecordEventManager(localisation, tz);
-			ArrayList<DataItemChangeEvent> changeEvents = rem.getChangeEvents(sd, tableName, thread);
+			RecordEventManager rem = new RecordEventManager();
+			ArrayList<DataItemChangeEvent> changeEvents = rem.getChangeEvents(sd, tz, tableName, thread);
 			
 			response = Response.ok(gson.toJson(changeEvents)).build();
 		} catch (Exception e) {
@@ -468,6 +471,7 @@ public class Data extends Application {
 			String hrk,				// Unique key (optional, use to restrict records to a specific hrk)
 			String format,			// dt for datatables otherwise assume kobo
 			String include_bad,		// yes | only | none Include records marked as bad
+			String include_completed,
 			String audit_set,		// if yes return audit data
 			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
 			String geojson,			// If set to yes then render as geoJson rather than the kobo toolbox structure
@@ -566,6 +570,10 @@ public class Data extends Application {
 		if(include_bad == null) {
 			include_bad = "none";
 		}
+		
+		if(include_completed == null) {
+			include_completed = "yes";
+		}
 
 		boolean isDt = false;
 		if(format != null && format.equals("dt")) {
@@ -638,6 +646,7 @@ public class Data extends Application {
 					ssd.fromDate = startDate;
 					ssd.toDate = endDate;
 					ssd.include_bad = include_bad;
+					ssd.include_completed = include_completed;
 					ssd.overridenDefaultLimit = "yes";
 					
 					ssm.setSurveySettings(sd, uId, sIdent, ssd);
@@ -708,6 +717,7 @@ public class Data extends Application {
 				ssd.fromDate = startDate;
 				ssd.toDate = endDate;
 				ssd.include_bad = include_bad;
+				ssd.include_completed = include_completed;
 				ssd.overridenDefaultLimit = "yes";
 				
 				if(fId == 0) {
@@ -768,6 +778,16 @@ public class Data extends Application {
 	
 			}
 			
+			/*
+			 * Get Case Management Settings
+			 */
+			CaseManager cm = new CaseManager(localisation);				
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			CMS cms = cm.getCaseManagementSettings(sd, groupSurveyIdent);
+						
+			/*
+			 * Get the prepared statement
+			 */
 			TableDataManager tdm = new TableDataManager(localisation, tz);
 			pstmt = tdm.getPreparedStatement(
 					sd, 
@@ -792,7 +812,9 @@ public class Data extends Application {
 					superUser,
 					false,			// Return records greater than or equal to primary key
 					ssd.include_bad,
-					null	,			// no custom filter
+					ssd.include_completed,
+					cms,
+					null,			// no custom filter
 					null,			// key filter
 					tz,
 					instanceId,			// instanceId
@@ -916,6 +938,10 @@ public class Data extends Application {
 					outWriter.print(",\"forms\":");
 					ArrayList<FormLink> forms = GeneralUtilityMethods.getFormLinks(sd, sId);
 					outWriter.print(gson.toJson(forms));
+					
+					// 5. Add case settings
+					outWriter.print(",\"case\":");
+					outWriter.print(gson.toJson(cms));
 				}
 				
 				outWriter.print("}");

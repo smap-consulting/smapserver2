@@ -222,7 +222,7 @@ public class SubRelationalDB extends Subscriber {
 				pstmtUpdateId.executeUpdate();
 				
 				// Write a message to the record event manager
-				RecordEventManager rem = new RecordEventManager(localisation, "UTC");
+				RecordEventManager rem = new RecordEventManager();
 				rem.writeTaskStatusEvent(
 						sd, 
 						cResults,
@@ -513,7 +513,7 @@ public class SubRelationalDB extends Subscriber {
 			 * If this is a simple create without an HRK then write to the record event manager
 			 */
 			if(updateId == null && !hasHrk) {
-				RecordEventManager rem = new RecordEventManager(localisation, tz);
+				RecordEventManager rem = new RecordEventManager();
 				rem.writeEvent(sd, cResults, 
 						RecordEventManager.CREATED, 
 						RecordEventManager.STATUS_SUCCESS,
@@ -964,7 +964,7 @@ public class SubRelationalDB extends Subscriber {
 			
 			log.info("++++++++++++++ Merge Begins +++++++++++++++++");
 			log.info("++++++++++++++ Source Key: " + sourceKey );
-			RecordEventManager rem = new RecordEventManager(localisation, tz);
+			RecordEventManager rem = new RecordEventManager();
 			if(sourceKey > 0) {
 
 				changes = mergeRecords(sd, cResults, table, prikey, sourceKey, replace, f_id, false, groupSurveyIdent);

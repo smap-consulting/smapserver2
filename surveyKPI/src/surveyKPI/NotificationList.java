@@ -411,7 +411,7 @@ public class NotificationList extends Application {
 			
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"SQL Exception", e);
-		    response = Response.serverError().entity("SQL Error").build();
+		    response = Response.serverError().entity("SQL Error: " + e.getMessage()).build();
 		} catch (AuthorisationException e) {
 			log.info("Authorisation Exception");
 		    response = Response.serverError().entity("Not authorised").build();

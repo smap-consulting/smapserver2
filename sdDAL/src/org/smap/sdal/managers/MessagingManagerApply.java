@@ -151,7 +151,6 @@ public class MessagingManagerApply {
 					UserMessage um = gson.fromJson(data, UserMessage.class);
 					
 					usersImpacted.put(um.ident, um.ident);
-					log.info("zzzzzzzzzzzzzzz: user change users: " + um.ident);
 					
 				} else if(topic.equals("project")) {
 					ProjectMessage pm = gson.fromJson(data, ProjectMessage.class);
@@ -163,7 +162,10 @@ public class MessagingManagerApply {
 					
 					changedResources.put(orm.resourceName, orm);
 					
-				} else if(topic.equals("submission")) {
+				} else if(topic.equals("submission") || topic.equals("cm_alert")) {
+					/*
+					 * A submission notification is a notification associated with a record of data
+					 */
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
 			
 					NotificationManager nm = new NotificationManager(localisation);
@@ -180,7 +182,9 @@ public class MessagingManagerApply {
 								); 
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
-						nm.writeToLog(sd, organisation.id, msg.pId, msg.sId, organisation.name, status, 
+						nm.writeToLog(sd, organisation.id, msg.pId, 
+								GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident), 
+								organisation.name, status, 
 								e.getMessage(), id);
 					}
 					

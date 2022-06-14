@@ -309,7 +309,6 @@ alter table organisation add column refresh_rate integer default 0;
 update organisation set refresh_rate = 0 where refresh_rate is null;
 
 CREATE INDEX record_event_key ON record_event(key);
-CREATE INDEX survey_group_survey_key ON survey(group_survey_id);
 CREATE INDEX question_column_name_key ON question(column_name);
 
 create index idx_ue_upload_time on upload_event (upload_time);
@@ -494,20 +493,37 @@ CREATE TABLE s3upload (
 	);
 ALTER TABLE s3upload OWNER TO ws;
 
-CREATE SEQUENCE case_management_setting_seq START 1;
-ALTER SEQUENCE case_management_setting_seq OWNER TO ws;
+CREATE SEQUENCE cms_alert_seq START 1;
+ALTER SEQUENCE cms_alert_seq OWNER TO ws;
 
-CREATE TABLE case_management_setting (
-	id integer DEFAULT NEXTVAL('case_management_setting_seq') CONSTRAINT pk_case_management_setting PRIMARY KEY,
+CREATE TABLE cms_alert (
+	id integer DEFAULT NEXTVAL('cms_alert_seq') CONSTRAINT pk_cms_alert PRIMARY KEY,
 	o_id integer,
+	group_survey_ident text,
 	name text,
-	type text,   
-	p_id integer,	
+	period text,
 	changed_by text,
 	changed_ts TIMESTAMP WITH TIME ZONE	
 	);
-CREATE UNIQUE INDEX cms_unique_name ON case_management_setting(o_id, name);
-ALTER TABLE case_management_setting OWNER TO ws;
+CREATE UNIQUE INDEX cms_unique_alert ON cms_alert(group_survey_ident, name);
+ALTER TABLE cms_alert OWNER TO ws;
+
+CREATE SEQUENCE cms_setting_seq START 1;
+ALTER SEQUENCE cms_setting_seq OWNER TO ws;
+
+CREATE TABLE cms_setting (
+	id integer DEFAULT NEXTVAL('cms_setting_seq') CONSTRAINT pk_setting_alert PRIMARY KEY,
+	o_id integer,
+	group_survey_ident text,
+	settings text,
+	changed_by text,
+	changed_ts TIMESTAMP WITH TIME ZONE	
+	);
+CREATE UNIQUE INDEX cms_unique_setting ON cms_setting(group_survey_ident);
+ALTER TABLE cms_setting OWNER TO ws;
+
+alter table forward add column alert_id integer;
+
 
 -- improve performance of scanning linked_files_old for files ready to be deleted
 create index idx_lfo_erase on linked_files_old (erase_time);

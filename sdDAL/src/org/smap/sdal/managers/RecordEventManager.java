@@ -7,7 +7,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -47,23 +46,19 @@ public class RecordEventManager {
 	
 	private static Logger log =
 			 Logger.getLogger(RecordEventManager.class.getName());
-	private static ResourceBundle localisation;
-	private String tz;
 	
 	public static String CREATED = "created";
 	public static String CHANGES = "changes";
 	public static String TASK = "task";
+	public static String ALERT = "alert";
+	public static String ASSIGNED = "assigned";
 	public static String NOTIFICATION = "notification";
 	
 	public static String STATUS_SUCCESS = "success";
 	public static String STATUS_NEW = "new";
 	
-	public RecordEventManager(ResourceBundle l, String tz) {
-		localisation = l;
-		if(tz == null) {
-			tz = "UTC";
-		}
-		this.tz = tz;
+	public RecordEventManager() {
+		
 	}
 	
 	/*
@@ -151,6 +146,16 @@ public class RecordEventManager {
 			pstmt.setInt(15,  taskId);
 			pstmt.setInt(16,  assignmentId);
 			pstmt.executeUpdate();
+			
+			/*
+			 * Alert the user assigned to this record
+			 */
+			MessagingManager mm = new MessagingManager(null);	// Assume no messages will require localisation!
+			String assignedUser = GeneralUtilityMethods.getAssignedUser(cResults, tableName, key);
+			if(assignedUser != null) {
+				mm.userChange(sd, assignedUser);
+			}
+			
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
 			if(pstmtSurvey != null) try{pstmtSurvey.close();}catch(Exception e) {};
@@ -306,7 +311,7 @@ public class RecordEventManager {
 	/*
 	 * Get a list of event changes for a thread
 	 */
-	public ArrayList<DataItemChangeEvent> getChangeEvents(Connection sd, String tableName, String key) throws SQLException {
+	public ArrayList<DataItemChangeEvent> getChangeEvents(Connection sd, String tz, String tableName, String key) throws SQLException {
 		
 		ArrayList<DataItemChangeEvent> events = new ArrayList<DataItemChangeEvent> ();
 		

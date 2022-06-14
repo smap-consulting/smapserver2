@@ -37,8 +37,6 @@ import com.google.gson.GsonBuilder;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -84,8 +82,8 @@ public class Languages extends Application {
 		try {
 			String sql = null;
 
-			sql = "select distinct language "
-					+ "from translation "
+			sql = "select language "
+					+ "from language "
 					+ "where s_id = ? "
 					+ "order by language asc";
 

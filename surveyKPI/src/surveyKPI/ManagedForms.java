@@ -190,7 +190,7 @@ public class ManagedForms extends Application {
 				}
 			}
 			if(instances == null || instances.size() == 0) {
-				throw(new ApplicationException("No instances to vulk update"));
+				throw(new ApplicationException("No instances to bulk update"));
 			}
 			for(String instance : instances) {
 				response = am.processUpdateGroupSurvey(request, sd, cResults, 
@@ -324,10 +324,8 @@ public class ManagedForms extends Application {
 			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, SurveyViewManager.ASSIGNED_COLUMN)) {
-					GeneralUtilityMethods.addColumn(cResults, tableName, SurveyViewManager.ASSIGNED_COLUMN, "text");
-				}
-				int count = GeneralUtilityMethods.assignRecord(cResults, tableName, instanceId, uIdent);
+				
+				int count = GeneralUtilityMethods.assignRecord(sd, cResults, tableName, instanceId, uIdent);
 				if(count == 0) {
 					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 				} else {

@@ -114,7 +114,7 @@ public class XLSXAdminReportsNotifications {
 			 * Get the data
 			 */
 			NotificationManager nm = new NotificationManager(localisation);
-			ArrayList<Notification> nList = nm.getAllNotifications(sd, pstmt, oId);
+			ArrayList<Notification> nList = nm.getOrganisationNotifications(sd, pstmt, oId);
 								
 			/*
 			 * Add the headings 

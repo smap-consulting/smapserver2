@@ -8,7 +8,14 @@ import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.CMS;
+import org.smap.sdal.model.Case;
+import org.smap.sdal.model.CaseManagementAlert;
+import org.smap.sdal.model.CaseManagementSettings;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 /*****************************************************************************
 
@@ -39,63 +46,92 @@ public class CaseManager {
 
 	LogManager lm = new LogManager(); // Application log
 	ResourceBundle localisation = null;
+	Gson gson;
 	
 	public CaseManager(ResourceBundle l) {
 		localisation = l;
+		gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 	}
 
 	/*
-	 * Get available roles
+	 * Get Case Management settings
 	 */
-	public ArrayList<CMS> getCases(Connection sd, int o_id) throws SQLException {
+	public CMS getCaseManagementSettings(Connection sd, String groupSurveyIdent) throws SQLException {
+		
 		PreparedStatement pstmt = null;
-		ArrayList<CMS> settings = new ArrayList<CMS> ();
+		CMS cms;
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		try {
 			String sql = null;
 			ResultSet rs = null;
 			
 			/*
-			 * Get the roles for this organisation
+			 * Get the settings for this survey group
 			 */
-			sql = "SELECT id, "
-					+ "name, "
-					+ "type,"
-					+ "p_id,"
-					+ "r.changed_by as changed_by,"
-					+ "r.changed_ts as changed_ts "
-					+ "from case_management_setting "
-					+ "where o_id = ? "
-					+ "order by type, name asc";
+			CaseManagementSettings settings = new CaseManagementSettings();
+			ArrayList<CaseManagementAlert> alerts = new ArrayList<>();
+			
+			sql = "select id, "
+					+ "settings, "
+					+ "changed_by as changed_by,"
+					+ "changed_ts as changed_ts "
+					+ "from cms_setting "
+					+ "where group_survey_ident = ? ";
 			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, o_id);
+			pstmt.setString(1,  groupSurveyIdent);
 			log.info("Get case management settings: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 							
-			CMS cms = null;
-			while(rs.next()) {
-				settings.add(new CMS(rs.getInt("id"), rs.getString("name"), rs.getString("type"), rs.getInt("p_id")));
+			if(rs.next()) {
+				String sString = rs.getString("settings");
+				
+				if(sString != null ) {
+					settings = gson.fromJson(sString, CaseManagementSettings.class); 
+				} 
 			}
-
+			
+			/*
+			 * Get the alerts for this survey group
+			 * Note the alerts are stored in separate records in the database so
+			 * they can be used in queries to find active notification alerts
+			 */
+			sql = "select id, name, period "
+					+ "from cms_alert "
+					+ "where group_survey_ident = ? "
+					+ "order by name asc";
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1,  groupSurveyIdent);
+			log.info("Get case management alerts: " + pstmt.toString());
+			
+			rs = pstmt.executeQuery();
+			while(rs.next()) {
+				alerts.add(new CaseManagementAlert(rs.getInt("id"), 
+						groupSurveyIdent, rs.getString("name"), 
+						rs.getString("period")));
+			}
+			
+			// Create the combined settings object
+			cms = new CMS(settings, alerts, groupSurveyIdent);
 					    
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 		
-		return settings;
+		return cms;
 	}
 
 	/*
-	 * Create a new Case Management Setting
+	 * Create a new Case Management Alert
 	 */
-	public void createCMS(Connection sd, 
-			CMS cms, 
-			int oId, 
-			String ident) throws Exception {
+	public void createAlert(Connection sd, 
+			String user,
+			CaseManagementAlert alert, 
+			int oId) throws Exception {
 		
-		int rId = 0;
-		String sql = "insert into case_management_setting (o_id, name, type, p_id, changed_by, changed_ts) " +
+		String sql = "insert into cms_alert (o_id, group_survey_ident, name, period, changed_by, changed_ts) " +
 				" values (?, ?, ?, ?, ?, now());";
 		
 		PreparedStatement pstmt = null;
@@ -104,10 +140,10 @@ public class CaseManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
-			pstmt.setString(2, cms.name);
-			pstmt.setString(3, cms.type);
-			pstmt.setInt(4, cms.pId);
-			pstmt.setString(5, ident);
+			pstmt.setString(2, alert.group_survey_ident);
+			pstmt.setString(3, alert.name);
+			pstmt.setString(4,  alert.period);
+			pstmt.setString(5,  user);
 
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -124,14 +160,15 @@ public class CaseManager {
 	/*
 	 * Update a Case Management Setting
 	 */
-	public void updateCMS(Connection sd, 
-			CMS cms, 
-			int o_id, 
-			String ident) throws Exception {
+	public void updateAlert(Connection sd, 
+			String user,
+			CaseManagementAlert alert, 
+			int o_id) throws Exception {
 		
-		String sql = "update case_management_setting set name = ?, "
-				+ "type = ?,"
-				+ "p_id = ?,"
+		String sql = "update cms_alert "
+				+ "set group_survey_ident = ?, "
+				+ "name = ?,"
+				+ "period = ?,"
 				+ "changed_by = ?,"
 				+ "changed_ts = now() "
 				+ "where o_id = ? "
@@ -143,12 +180,12 @@ public class CaseManager {
 			
 			pstmt = sd.prepareStatement(sql);
 
-			pstmt.setString(1, cms.name);
-			pstmt.setString(2, cms.type);
-			pstmt.setInt(3, cms.pId);
-			pstmt.setString(4, ident);
+			pstmt.setString(1, alert.group_survey_ident);
+			pstmt.setString(2, alert.name);
+			pstmt.setString(3, alert.period);
+			pstmt.setString(4, user);
 			pstmt.setInt(5, o_id);
-			pstmt.setInt(6, cms.id);
+			pstmt.setInt(6, alert.id);
 
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -159,5 +196,142 @@ public class CaseManager {
 		}
 
 	}
+	
+	/*
+	 * Update a Case Management Setting
+	 */
+	public void updateSettings(Connection sd, 
+			String user,
+			String group_survey_ident,
+			CaseManagementSettings settings, 
+			int o_id) throws Exception {
+		
+		String sql = "update cms_setting "
+				+ "set settings = ?, "
+				+ "changed_by = ?,"
+				+ "changed_ts = now() "
+				+ "where o_id = ? "
+				+ "and group_survey_ident = ?"; 
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
 
+			pstmt.setString(1, gson.toJson(settings));
+			pstmt.setString(2, user);
+			pstmt.setInt(3, o_id);
+			pstmt.setString(4, group_survey_ident);
+
+			log.info("SQL: " + pstmt.toString());
+			int count = pstmt.executeUpdate();
+			if(count < 1) {
+				try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+				
+				sql = "insert into cms_setting "
+						+ "(settings, changed_by, o_id, group_survey_ident, changed_ts) "
+						+ "values(?,?, ?, ?, now())"; 
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, gson.toJson(settings));
+				pstmt.setString(2, user);
+				pstmt.setInt(3, o_id);
+				pstmt.setString(4, group_survey_ident);
+				log.info("SQL: " + pstmt.toString());
+				pstmt.executeUpdate();
+			}
+			
+		}  finally {		
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+			
+		}
+
+	}
+	
+	/*
+	 * Delete a case management alert
+	 */
+	public void deleteAlert(Connection sd, 
+			int id, 
+			int o_id) throws Exception {
+		
+		String sql = "delete from cms_alert where id = ? "
+				+ "and o_id = ?";
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+
+			pstmt.setInt(1, id);
+			pstmt.setInt(2, o_id);
+
+			log.info("SQL: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+		}  finally {		
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+	}
+	
+	/*
+	 * Get cases for a user and survey
+	 */
+	public ArrayList<Case> getCases(
+			Connection sd, 
+			Connection cResults,
+			int sId,
+			String groupSurveyIdent,
+			String user) throws Exception {
+		
+		PreparedStatement pstmt = null;
+			
+		ArrayList<Case> cases = new ArrayList<>();
+		
+		try {
+			/*
+			 * Only return cases which can have a final status
+			 */
+			CMS cms = getCaseManagementSettings(sd, groupSurveyIdent);
+			if(cms != null && cms.settings != null && cms.settings.statusQuestion != null) {
+	
+				String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+				if(GeneralUtilityMethods.hasColumn(cResults, tableName, cms.settings.statusQuestion)) {
+					
+					// Ignore cases that are bad or where the status value is null or if the case has been completed
+					StringBuilder sql = new StringBuilder("select instanceid, prikey, instancename, _hrk from ")
+							.append(tableName)
+							.append(" where not _bad and _assigned = ? and ")
+							.append(cms.settings.statusQuestion)
+							.append(" != ?");
+					pstmt = cResults.prepareStatement(sql.toString());
+					pstmt.setString(1, user);
+					pstmt.setString(2,  cms.settings.finalStatus);
+					log.info("Get cases: " + pstmt.toString());
+					ResultSet rs = pstmt.executeQuery();
+					
+					while(rs.next()) {
+						String title = null;
+						String prikey = rs.getString("prikey");
+						String instanceName = rs.getString("instancename");
+						String hrk = rs.getString("_hrk");
+						if(instanceName != null && instanceName.trim().length() > 0) {
+							title = instanceName;
+						} else if(hrk != null && hrk.trim().length() > 0) {
+							title = hrk;
+						} else {
+							title = prikey;
+						}
+						
+						cases.add(new Case(title, rs.getString("instanceid")));
+					}
+				}
+			}
+				
+		}  finally {		
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+		return cases;
+	}
 }

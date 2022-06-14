@@ -13,11 +13,6 @@ import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Question;
-import com.itextpdf.text.BaseColor;
-import com.itextpdf.text.Font;
-import com.itextpdf.text.Font.FontFamily;
-import com.itextpdf.tool.xml.ElementList;
-import com.itextpdf.tool.xml.parser.XMLParser;
 
 /*****************************************************************************
 
