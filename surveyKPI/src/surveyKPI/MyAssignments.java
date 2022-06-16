@@ -723,7 +723,7 @@ public class MyAssignments extends Application {
 						ta.task.type = "case";
 						ta.task.title = c.title;
 						ta.assignment.assignment_status = TaskManager.STATUS_T_ACCEPTED;
-
+						ta.assignment.assignment_id = 0;
 						tr.taskAssignments.add(ta);
 					}
 				}

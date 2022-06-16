@@ -1302,7 +1302,7 @@ public class SubscriberBatch {
 			
 			// 1. Get case management alerts 
 			pstmt = sd.prepareStatement(sql);
-			log.info("Get case management alerts: " + pstmt.toString());
+
 			ResultSet rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
@@ -1369,7 +1369,6 @@ public class SubscriberBatch {
 						pstmtMatches.setString(idx++, table);
 						pstmtMatches.setInt(idx++, aId);
 						pstmtMatches.setString(idx++, period);
-						log.info("Find matchng records: " + pstmtMatches.toString());
 						ResultSet mrs = pstmtMatches.executeQuery();
 						
 						while(mrs.next()) {
