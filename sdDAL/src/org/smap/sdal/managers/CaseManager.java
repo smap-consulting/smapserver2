@@ -104,7 +104,6 @@ public class CaseManager {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1,  groupSurveyIdent);
-			log.info("Get case management alerts: " + pstmt.toString());
 			
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
@@ -300,7 +299,7 @@ public class CaseManager {
 				if(GeneralUtilityMethods.hasColumn(cResults, tableName, cms.settings.statusQuestion)) {
 					
 					// Ignore cases that are bad or where the status value is null or if the case has been completed
-					StringBuilder sql = new StringBuilder("select instanceid, prikey, instancename, _hrk from ")
+					StringBuilder sql = new StringBuilder("select instanceid, _thread, prikey, instancename, _hrk from ")
 							.append(tableName)
 							.append(" where not _bad and _assigned = ? and ")
 							.append(cms.settings.statusQuestion)
@@ -313,18 +312,22 @@ public class CaseManager {
 					
 					while(rs.next()) {
 						String title = null;
-						String prikey = rs.getString("prikey");
+						int prikey = rs.getInt("prikey");
 						String instanceName = rs.getString("instancename");
+						String thread = rs.getString("_thread");
+						if(thread == null) {
+							thread = rs.getString("instanceid");
+						}
 						String hrk = rs.getString("_hrk");
 						if(instanceName != null && instanceName.trim().length() > 0) {
 							title = instanceName;
 						} else if(hrk != null && hrk.trim().length() > 0) {
 							title = hrk;
 						} else {
-							title = prikey;
+							title = String.valueOf(prikey);
 						}
 						
-						cases.add(new Case(title, rs.getString("instanceid")));
+						cases.add(new Case(prikey, title, thread));
 					}
 				}
 			}

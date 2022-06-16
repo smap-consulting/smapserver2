@@ -8422,7 +8422,7 @@ public class GeneralUtilityMethods {
 		String sqlCopyThreadCol = "update " + table 
 						+ " set _thread = (select _thread from " + table + " where prikey = ?),"
 						+ " _assigned = (select _assigned from " + table + " where prikey = ?), "
-						+ " _thread_created = (select _thread_created from " + table + " where prikey = ?) "
+						+ " _thread_created = (select _thread_created from " + table + " where prikey = ?), "
 						+ " _alert = (select _alert from " + table + " where prikey = ?) "
 						+ "where prikey = ?";
 		PreparedStatement pstmtCopyThreadCol = null;
@@ -8449,7 +8449,7 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Add the thread value that links replaced records
-	 * Either get the thread key using the sourceKey or if that is not set use the passed in instanceId directly
+	 * This function should be removed and initialisation happen on record creation
 	 */
 	public static void initialiseThread(Connection cResults, String table) throws SQLException {
 		
@@ -8466,6 +8466,10 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmtInitThreadCol2 = null;
 			
 		try {
+			/*
+			 * New tables should have these columns added automatically
+			 * Remove by end 2022
+			 */
 			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_thread")) {
 				GeneralUtilityMethods.addColumn(cResults, table, "_thread", "text");		// Add the thread column
 			}
@@ -8479,6 +8483,9 @@ public class GeneralUtilityMethods {
 				GeneralUtilityMethods.addColumn(cResults, table, "_alert", "text");
 			}
 			
+			/*
+			 * TODO initialise these columns when the record is inserted
+			 */
 			// Initialise the thread column
 			pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
 			//log.info("Initialise Thread: " + pstmtInitThreadCol.toString());
