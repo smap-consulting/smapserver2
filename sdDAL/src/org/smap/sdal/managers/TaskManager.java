@@ -2790,7 +2790,7 @@ public class TaskManager {
 						null,				// Change object
 						gson.toJson(tic),	// Task Object
 						null,				// Notification object
-						"Task created", 
+						localisation.getString("t_tc"), 
 						0,				// sId (don't care legacy)
 						sIdent,
 						0,				// Don't need task id if we have an assignment id

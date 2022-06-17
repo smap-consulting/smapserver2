@@ -6295,7 +6295,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Method to assign a record to a user
 	 */
-	public static int assignRecord(Connection sd, Connection cResults, String tablename, String instanceId, String user) throws SQLException {
+	public static int assignRecord(Connection sd, Connection cResults, ResourceBundle localisation, String tablename, String instanceId, String user) throws SQLException {
 
 		int count = 0;
 		
@@ -6318,6 +6318,12 @@ public class GeneralUtilityMethods {
 		log.info("locking record: " + pstmt.toString());
 		
 		RecordEventManager rem = new RecordEventManager();
+		String details = null;
+		if(user != null) {
+			details = localisation.getString("assignee_ident");
+		} else {
+			details = localisation.getString("cm_ua");
+		}
 		rem.writeEvent(
 				sd, 
 				cResults, 
@@ -6329,7 +6335,7 @@ public class GeneralUtilityMethods {
 				null,				// Change object
 				null,	// Task Object
 				null,				// Notification object
-				"Task created", 
+				details, 
 				0,				// sId (don't care legacy)
 				null,
 				0,				// Don't need task id if we have an assignment id

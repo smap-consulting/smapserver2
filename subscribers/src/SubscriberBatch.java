@@ -1379,6 +1379,8 @@ public class SubscriberBatch {
 							/*
 							 * Record the triggering of the alert
 							 */
+							String details = localisation.getString("cm_alert");
+							details = details.replace("%s1", alertName);
 							RecordEventManager rem = new RecordEventManager();
 							rem.writeEvent(
 									sd, 
@@ -1391,7 +1393,7 @@ public class SubscriberBatch {
 									null,				// Change object
 									null,				// Task Object
 									null,				// Notification object
-									"Alerted", 
+									details, 
 									0,					// sId (don't care legacy)
 									groupSurveyIdent,
 									0,					// Don't need task id if we have an assignment id

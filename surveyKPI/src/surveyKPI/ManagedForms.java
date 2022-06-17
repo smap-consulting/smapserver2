@@ -325,7 +325,7 @@ public class ManagedForms extends Application {
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
 				
-				int count = GeneralUtilityMethods.assignRecord(sd, cResults, tableName, instanceId, uIdent);
+				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, uIdent);
 				if(count == 0) {
 					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 				} else {
