@@ -6324,6 +6324,10 @@ public class GeneralUtilityMethods {
 		} else {
 			details = localisation.getString("cm_ua");
 		}
+		
+		/*
+		 * Write the event before applying the update so that an alert can be sent to the previously assigned user
+		 */
 		rem.writeEvent(
 				sd, 
 				cResults, 
