@@ -1252,6 +1252,9 @@ public class SubscriberBatch {
 	private void applyCaseManagementReminders(Connection sd, Connection cResults, String basePath, String serverName) {
 
 		/*
+		 * SQL to set case closed date
+		 */
+		/*
 		 * SQL to get the alerts
 		 */
 		String sql = "select a.id as a_id, a.group_survey_ident, a.name, a.period,"

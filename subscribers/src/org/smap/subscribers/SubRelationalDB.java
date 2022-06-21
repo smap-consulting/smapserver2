@@ -666,11 +666,13 @@ public class SubRelationalDB extends Subscriber {
 					boolean hasUploadTime = false;
 					boolean hasVersion = false;
 					boolean hasSurveyNotes  = false;	
+					boolean hasCaseClosed  = false;	
 					if(parent_key == 0) {
 						hasScheduledStart = GeneralUtilityMethods.hasColumn(cResults, tableName, SmapServerMeta.SCHEDULED_START_NAME);
 						hasUploadTime = GeneralUtilityMethods.hasColumn(cResults, tableName, SmapServerMeta.UPLOAD_TIME_NAME);
 						hasVersion = GeneralUtilityMethods.hasColumn(cResults, tableName, "_version");
 						hasSurveyNotes = GeneralUtilityMethods.hasColumn(cResults, tableName, "_survey_notes");
+						hasCaseClosed = GeneralUtilityMethods.hasColumn(cResults, tableName, "_case_closed");
 					}
 
 					boolean hasAudit = GeneralUtilityMethods.hasColumn(cResults, tableName, "_audit");
@@ -681,6 +683,9 @@ public class SubRelationalDB extends Subscriber {
 						auditData = GeneralUtilityMethods.getAuditHashMap(auditFile, auditPath, localisation);
 					}
 					
+					//####################################################### START
+					pstmt = getSubmissionStatement(cResults, tableName, columns, parent_key);
+					log.info("1111111111: " + pstmt.toString());
 					sql = "INSERT INTO " + tableName + " (parkey";
 					if (parent_key == 0) {
 						sql += ",_user, _complete"; // Add remote user, _complete automatically (top level table only)
@@ -698,6 +703,9 @@ public class SubRelationalDB extends Subscriber {
 						}
 						if (isBad) {
 							sql += ",_bad, _bad_reason";
+						}
+						if (hasCaseClosed) {
+							sql += ",_case_closed";
 						}
 					}
 
@@ -727,6 +735,9 @@ public class SubRelationalDB extends Subscriber {
 						}
 						if (isBad) {
 							sql += ", ?, ?"; // _bad, _bad_reason
+						}
+						if (hasCaseClosed) {
+							sql += ", ?";
 						}
 					}
 
@@ -769,6 +780,9 @@ public class SubRelationalDB extends Subscriber {
 							pstmt.setBoolean(stmtIndex++, true);
 							pstmt.setString(stmtIndex++, bad_reason);
 						}
+						if (hasCaseClosed) {
+							pstmt.setTimestamp(stmtIndex++, null);		// TODO check to see if the case is closed
+						}
 					}
 
 					if (hasAudit) {
@@ -786,6 +800,7 @@ public class SubRelationalDB extends Subscriber {
 						} 
 					}	
 
+					//################################################################ END
 					log.info("        SQL statement: " + pstmt.toString());
 					pstmt.executeUpdate();
 
@@ -884,6 +899,97 @@ public class SubRelationalDB extends Subscriber {
 
 	}
 
+	private class TableColumn {
+		String colName;
+		String value;
+		String type;
+		public TableColumn(String colName, String value, String type) {
+			this.colName = colName;
+			this.value = value;
+			this.type = type;
+		}
+	}
+	/*
+	 * Get a prepared statement to insert the submission into the database
+	 */
+	private PreparedStatement getSubmissionStatement(Connection cResults, String 
+			tableName,
+			List<IE> columns,
+			int parentKey) throws SQLException {
+		
+		PreparedStatement pstmt = null;
+		
+		StringBuilder sql = new StringBuilder("");
+		StringBuilder cols = new StringBuilder("");
+		StringBuilder vals = new StringBuilder("");
+		
+		/*
+		 * Convert the submission column names into 
+		 * actual column names
+		 */
+		ArrayList<TableColumn> tableCols = new ArrayList<>();
+		
+		addTableCol(cols, vals, tableCols, "parkey", String.valueOf(parentKey), "int");
+		for(IE col : columns) {
+			
+		}
+		
+		/*
+		 * Construct sql
+		 */
+		sql.append("insert into ")
+			.append(tableName)
+			.append(" (")
+			.append(cols)
+			.append(") values (")
+			.append(vals)
+			.append(")");
+		
+		pstmt = cResults.prepareStatement(sql.toString());
+		
+		/*
+		 * Insert the values
+		 */
+		for(TableColumn c : tableCols) {
+			int idx = 0;
+			if(c.type.equals("string")) {
+				
+			} else if(c.type.equals("int")) {
+				if(c.value.equals("null")) {
+					pstmt.setNull(idx++, java.sql.Types.INTEGER);
+				} else {
+					pstmt.setInt(1, Integer.valueOf(c.value));
+				}
+			}
+		}
+		
+		return pstmt;
+	}
+	
+	/*
+	 * Create a table column
+	 */
+	private void addTableCol(StringBuilder cols, 
+			StringBuilder vals, 
+			ArrayList<TableColumn> tableCols, 
+			String colName, String value, String type) {
+		
+		// Add column name sql
+		if(cols.length() > 0) {
+			cols.append(",");
+		}
+		cols.append(colName);
+		
+		// Add value sql
+		if(vals.length() > 0) {
+			vals.append(",");
+		}
+		vals.append("?");
+		
+		// Add a table entry to allow insertion of value into value string
+		tableCols.add(new TableColumn(colName, value, type));
+		
+	}
 	/*
 	 * Method to merge a previous records content into this new record
 	 * Source = the old records
@@ -1656,7 +1762,7 @@ public class SubRelationalDB extends Subscriber {
 			}
 		} else {
 
-			if(value != null) {				
+			if(value != null) {			
 
 				value = value.replace("'", "''").trim();
 

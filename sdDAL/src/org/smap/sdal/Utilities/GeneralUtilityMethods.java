@@ -8507,6 +8507,9 @@ public class GeneralUtilityMethods {
 			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_alert")) {
 				GeneralUtilityMethods.addColumn(cResults, table, "_alert", "text");
 			}
+			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_case_closed")) {
+				GeneralUtilityMethods.addColumn(cResults, table, "_case_closed", "timestamp with time zone");
+			}
 			
 			/*
 			 * TODO initialise these columns when the record is inserted
