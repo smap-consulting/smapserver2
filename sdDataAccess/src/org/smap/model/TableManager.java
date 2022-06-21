@@ -457,6 +457,7 @@ public class TableManager {
 						.append(SmapServerMeta.UPLOAD_TIME_NAME).append(" timestamp with time zone, ")
 						.append(SmapServerMeta.SURVEY_ID_NAME).append(" integer,")
 						.append("instanceid text, ")
+						.append("instancename text,")
 						.append("_thread text, ")
 						.append("_thread_created timestamp with time zone,")
 						.append("_case_closed timestamp with time zone,")
