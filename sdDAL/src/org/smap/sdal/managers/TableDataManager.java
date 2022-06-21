@@ -191,14 +191,17 @@ public class TableDataManager {
 				sqlGetData.append(" and ").append(table_name).append("._bad = 'true' ");
 			}
 			
-			// include completed filter
+			/*
+			 * Include completed filter
+			 * A completed task is one where the status question has its final value and the case is not assigned
+			 */
 			boolean completedFilter = false;
 			if(include_completed != null && include_completed.equals("no") && cms != null && cms.settings != null && cms.settings.statusQuestion != null) {
 				completedFilter = true;
 				sqlGetData.append(" and (").append(cms.settings.statusQuestion)
 					.append(" is null or ")
 					.append(cms.settings.statusQuestion)
-					.append(" != ?)");
+					.append(" != ? or _assigned is not null)");
 			}
 
 			// Add row selection clause
