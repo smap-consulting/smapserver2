@@ -661,92 +661,50 @@ public class SubRelationalDB extends Subscriber {
 				 * Write the record
 				 */
 				if (columns.size() > 0 || parent_key == 0) {
+					
+					// Every survey should have the above columns
+					addNewColumns(cResults, tableName, parent_key);
 
-					boolean hasScheduledStart = false;
-					boolean hasUploadTime = false;
-					boolean hasVersion = false;
-					boolean hasSurveyNotes  = false;	
-					boolean hasCaseClosed  = false;	
-					if(parent_key == 0) {
-						hasScheduledStart = GeneralUtilityMethods.hasColumn(cResults, tableName, SmapServerMeta.SCHEDULED_START_NAME);
-						hasUploadTime = GeneralUtilityMethods.hasColumn(cResults, tableName, SmapServerMeta.UPLOAD_TIME_NAME);
-						hasVersion = GeneralUtilityMethods.hasColumn(cResults, tableName, "_version");
-						hasSurveyNotes = GeneralUtilityMethods.hasColumn(cResults, tableName, "_survey_notes");
-						hasCaseClosed = GeneralUtilityMethods.hasColumn(cResults, tableName, "_case_closed");
-					}
-
-					boolean hasAudit = GeneralUtilityMethods.hasColumn(cResults, tableName, "_audit");
-					boolean hasAuditRaw = GeneralUtilityMethods.hasColumn(cResults, tableName, AuditData.AUDIT_RAW_COLUMN_NAME);
-
-					if(hasAudit && parent_key == 0 && gAuditFilePath != null) {
+					if(parent_key == 0 && gAuditFilePath != null) {
 						File auditFile = new File(gAuditFilePath);
 						auditData = GeneralUtilityMethods.getAuditHashMap(auditFile, auditPath, localisation);
 					}
 					
 					//####################################################### START
-					pstmt = getSubmissionStatement(cResults, tableName, columns, parent_key);
+					pstmt = getSubmissionStatement(cResults, tableName, columns, parent_key,
+							remoteUser,
+							complete);
+					
 					log.info("1111111111: " + pstmt.toString());
 					sql = "INSERT INTO " + tableName + " (parkey";
 					if (parent_key == 0) {
 						sql += ",_user, _complete"; // Add remote user, _complete automatically (top level table only)
-						if (hasUploadTime) {
-							sql += "," + SmapServerMeta.UPLOAD_TIME_NAME + "," + SmapServerMeta.SURVEY_ID_NAME;
-						}
-						if (hasVersion) {
-							sql += ",_version";
-						}
-						if (hasSurveyNotes) {
-							sql += ",_survey_notes, _location_trigger";
-						}
-						if (hasScheduledStart) {
-							sql += "," + SmapServerMeta.SCHEDULED_START_NAME;
-						}
-						if (isBad) {
-							sql += ",_bad, _bad_reason";
-						}
-						if (hasCaseClosed) {
-							sql += ",_case_closed";
-						}
+						sql += "," + SmapServerMeta.UPLOAD_TIME_NAME + "," + SmapServerMeta.SURVEY_ID_NAME;
+						sql += ",_version";
+						sql += ",_survey_notes, _location_trigger";
+						sql += "," + SmapServerMeta.SCHEDULED_START_NAME;
+						sql += ",_bad, _bad_reason";
+						sql += ",_case_closed";
 					}
 
-					if (hasAudit) {
-						sql += ", _audit";
-					}
-					if (hasAudit && hasAuditRaw && auditData != null && auditData.rawAudit != null) {
-						sql += ", _audit_raw";
-					}
+					sql += ", _audit";
+					sql += ", _audit_raw";
 
 					sql += addSqlColumns(columns, cResults, tableName);
 
 					sql += ") VALUES (?"; // parent key
 					if (parent_key == 0) {
 						sql += ", ?, ?"; // remote user, complete
-						if (hasUploadTime) {
-							sql += ", ?, ?"; // upload time, survey id
-						}
-						if (hasVersion) {
-							sql += ", ?"; // Version
-						}
-						if (hasSurveyNotes) {
-							sql += ", ?, ?"; // Survey Notes and Location Trigger
-						}
-						if (hasScheduledStart) {
-							sql += ", ?";
-						}
-						if (isBad) {
-							sql += ", ?, ?"; // _bad, _bad_reason
-						}
-						if (hasCaseClosed) {
-							sql += ", ?";
-						}
+						sql += ", ?, ?"; // upload time, survey id
+						sql += ", ?"; // Version
+						sql += ", ?, ?"; // Survey Notes and Location Trigger
+						sql += ", ?";
+						sql += ", ?, ?"; // _bad, _bad_reason
+						sql += ", ?";	//_case closed
 					}
 
-					if (hasAudit) {
-						sql += ", ?";
-					}
-					if(hasAudit && hasAuditRaw && auditData != null && auditData.rawAudit != null) {
-						sql += ", ?";
-					}
+					sql += ", ?";		// audit
+					sql += ", ?";		// audit_raw
 					ArrayList<ForeignKey> thisTableKeys = new ArrayList<> ();
 					sql += addSqlValues(sd, columns, sIdent, device, server, false, thisTableKeys, cResults, tableName);
 					sql += ");";
@@ -757,48 +715,42 @@ public class SubRelationalDB extends Subscriber {
 					if (parent_key == 0) {
 						pstmt.setString(stmtIndex++, remoteUser);
 						pstmt.setBoolean(stmtIndex++, complete);
-						if (hasUploadTime) {
-							pstmt.setTimestamp(stmtIndex++, new Timestamp(uploadTime.getTime()));
-							pstmt.setInt(stmtIndex++, sId);
+						pstmt.setTimestamp(stmtIndex++, new Timestamp(uploadTime.getTime()));
+						pstmt.setInt(stmtIndex++, sId);
+						pstmt.setInt(stmtIndex++, version);
+						pstmt.setString(stmtIndex++, surveyNotes);
+						pstmt.setString(stmtIndex++, locationTrigger);
+
+						if(assignmentId == 0) {
+							pstmt.setTimestamp(stmtIndex++, null);
+						} else {
+							pstmt.setTimestamp(stmtIndex++, GeneralUtilityMethods.getScheduledStart(sd, assignmentId));
 						}
-						if (hasVersion) {
-							pstmt.setInt(stmtIndex++, version);
-						}
-						if (hasSurveyNotes) {
-							pstmt.setString(stmtIndex++, surveyNotes);
-							pstmt.setString(stmtIndex++, locationTrigger);
-						}
-						if (hasScheduledStart) {
-							log.info("### Table has scheduled start.  Assignment id is: " + assignmentId);
-							if(assignmentId == 0) {
-								pstmt.setTimestamp(stmtIndex++, null);
-							} else {
-								pstmt.setTimestamp(stmtIndex++, GeneralUtilityMethods.getScheduledStart(sd, assignmentId));
-							}
-						}
-						if (isBad) {
-							pstmt.setBoolean(stmtIndex++, true);
-							pstmt.setString(stmtIndex++, bad_reason);
-						}
-						if (hasCaseClosed) {
-							pstmt.setTimestamp(stmtIndex++, null);		// TODO check to see if the case is closed
-						}
+
+						pstmt.setBoolean(stmtIndex++, isBad);
+						pstmt.setString(stmtIndex++, bad_reason);
+
+						pstmt.setTimestamp(stmtIndex++, null);		// TODO check to see if the case is closed
 					}
 
-					if (hasAudit) {
-						String auditString = null;
-						if (auditData != null) {
-							HashMap<String, AuditItem> auditValues = 
-									GeneralUtilityMethods.getAuditValues(auditData,
-									getColNames(columns), localisation);
+					// Audit data
+					String auditString = null;
+					if (auditData != null) {
+						HashMap<String, AuditItem> auditValues = 
+								GeneralUtilityMethods.getAuditValues(auditData,
+								getColNames(columns), localisation);
 
-							auditString = gson.toJson(auditValues);
-						}	
-						pstmt.setString(stmtIndex++, auditString);
-						if(hasAuditRaw && auditData != null && auditData.rawAudit != null) {
-							pstmt.setString(stmtIndex++, auditData.rawAudit.toString());
-						} 
+						auditString = gson.toJson(auditValues);
 					}	
+					pstmt.setString(stmtIndex++, auditString);
+					
+					// Raw audit data
+					String rawAuditString = null;
+					if(auditData != null && auditData.rawAudit != null) {
+						rawAuditString = auditData.rawAudit.toString();
+					}
+					pstmt.setString(stmtIndex++, rawAuditString);
+						
 
 					//################################################################ END
 					log.info("        SQL statement: " + pstmt.toString());
@@ -899,6 +851,44 @@ public class SubRelationalDB extends Subscriber {
 
 	}
 
+	/*
+	 * Add columns that may not have been required when the survey was first created
+	 * These should be removed after the submissions table has stabilized
+	 */
+	private void addNewColumns(Connection cResults, String tableName, int parent_key) throws SQLException {
+
+		if(parent_key == 0) {
+			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, SmapServerMeta.SCHEDULED_START_NAME)) {
+				GeneralUtilityMethods.addColumn(cResults, tableName, SmapServerMeta.SCHEDULED_START_NAME, "timestamp with time zone");
+			}
+			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, SmapServerMeta.UPLOAD_TIME_NAME)) {
+				GeneralUtilityMethods.addColumn(cResults, tableName, SmapServerMeta.UPLOAD_TIME_NAME, "timestamp with time zone");
+			}
+			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, SmapServerMeta.SURVEY_ID_NAME)) {
+				GeneralUtilityMethods.addColumn(cResults, tableName, SmapServerMeta.SURVEY_ID_NAME, "integer");
+			}
+			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_version")) {
+				GeneralUtilityMethods.addColumn(cResults, tableName, "_version", "text");
+			}
+			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_survey_notes")) {
+				GeneralUtilityMethods.addColumn(cResults, tableName, "_survey_notes", "text");
+			}
+			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_location_trigger")) {
+				GeneralUtilityMethods.addColumn(cResults, tableName, "_location_trigger", "text");
+			}
+			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_case_closed")) {
+				GeneralUtilityMethods.addColumn(cResults, tableName, "_case_closed", "timestamp with time zone");
+			}
+		}
+
+		if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_audit")) {
+			GeneralUtilityMethods.addColumn(cResults, tableName, "_audit", "text");
+		}
+		if(!GeneralUtilityMethods.hasColumn(cResults, tableName, AuditData.AUDIT_RAW_COLUMN_NAME)) {
+			GeneralUtilityMethods.addColumn(cResults, tableName, AuditData.AUDIT_RAW_COLUMN_NAME, "text");
+		}
+	}
+	
 	private class TableColumn {
 		String colName;
 		String value;
@@ -915,7 +905,9 @@ public class SubRelationalDB extends Subscriber {
 	private PreparedStatement getSubmissionStatement(Connection cResults, String 
 			tableName,
 			List<IE> columns,
-			int parentKey) throws SQLException {
+			int parentKey,
+			String remoteUser,
+			boolean complete) throws SQLException {
 		
 		PreparedStatement pstmt = null;
 		
@@ -930,6 +922,9 @@ public class SubRelationalDB extends Subscriber {
 		ArrayList<TableColumn> tableCols = new ArrayList<>();
 		
 		addTableCol(cols, vals, tableCols, "parkey", String.valueOf(parentKey), "int");
+		addTableCol(cols, vals, tableCols, "_user", String.valueOf(remoteUser), "string");
+		addTableCol(cols, vals, tableCols, "_complete", String.valueOf(complete), "boolean");
+		
 		for(IE col : columns) {
 			
 		}
@@ -950,18 +945,27 @@ public class SubRelationalDB extends Subscriber {
 		/*
 		 * Insert the values
 		 */
+		int idx = 1;
 		for(TableColumn c : tableCols) {
-			int idx = 0;
-			if(c.type.equals("string")) {
-				
-			} else if(c.type.equals("int")) {
+			
+			if(c.type.equals("string")) {		// string
+				if(c.value.equals("null")) {
+					pstmt.setNull(idx++, java.sql.Types.VARCHAR);
+				} else {
+					pstmt.setString(idx++, c.value);
+				}
+			
+			} else if(c.type.equals("int")) {	// int
 				if(c.value.equals("null")) {
 					pstmt.setNull(idx++, java.sql.Types.INTEGER);
 				} else {
-					pstmt.setInt(1, Integer.valueOf(c.value));
+					pstmt.setInt(idx++, Integer.valueOf(c.value));
 				}
+			} else if(c.type.equals("boolean")) {	// boolean
+				pstmt.setBoolean(idx++, Boolean.valueOf(c.value));
 			}
-		}
+			
+		} 
 		
 		return pstmt;
 	}
