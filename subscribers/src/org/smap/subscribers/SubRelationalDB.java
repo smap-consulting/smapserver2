@@ -710,6 +710,7 @@ public class SubRelationalDB extends Subscriber {
 							rawAuditString);
 					
 					log.info("1111111111: " + pstmt.toString());
+					pstmt.executeUpdate();
 					pstmt.close();
 					
 					sql = "INSERT INTO " + tableName + " (parkey";
@@ -1016,7 +1017,15 @@ public class SubRelationalDB extends Subscriber {
 		int idx = 1;
 		for(TableColumn c : tableCols) {
 			
-			if(c.type.equals("string") || c.type.equals("geopoint")) {		// string
+			if(c.type.equals("string") 
+					|| c.type.equals("geopoint")
+					|| c.type.equals("geoshape")
+					|| c.type.equals("geotrace")
+					|| c.type.equals("geocompound")
+					|| c.type.equals("geopolygon")
+					|| c.type.equals("geolinestring")
+					) {		// string
+				
 				pstmt.setString(idx++, c.value);
 			
 			} else if(c.type.equals("int")) {	// int
@@ -1087,17 +1096,22 @@ public class SubRelationalDB extends Subscriber {
 						addTableCol(cols, vals, tableCols, option.getColumnName(), colPhoneOnly ? "" : option.getValue(), "string");
 					}		
 				}
-			} else if(colType.equals("geopolygon") || colType.equals("geolinestring") || colType.equals("geopoint")
-					|| colType.equals("geoshape") || colType.equals("geotrace") || colType.equals("geocompound")) {
+			} else if(colType.equals("geopoint")) {
 				
 				GeopointComponents components = getGeopointComponents(col.getValue());
 				addTableCol(cols, vals, tableCols, col.getColumnName(), components.value, "geopoint");
 
-				if(colType.equals("geopoint") && GeneralUtilityMethods.hasColumn(cResults, tableName, col.getColumnName() + "_alt")) {
+				if(GeneralUtilityMethods.hasColumn(cResults, tableName, col.getColumnName() + "_alt")) {
 					// Geopoint also has altitude and accuracy
 					addTableCol(cols, vals, tableCols, col.getColumnName() + "_alt", components.alt, "double");
 					addTableCol(cols, vals, tableCols, col.getColumnName() + "_acc", components.acc, "double");
 				}
+			} else if(colType.equals("geopolygon") || colType.equals("geolinestring")
+					|| colType.equals("geoshape") || colType.equals("geotrace") || colType.equals("geocompound")) {
+				
+				addTableCol(cols, vals, tableCols, col.getColumnName(), 
+						getDbValue(sd, col, sIdent, device, server, colPhoneOnly, cResults, tableName), colType);
+
 			} else if(colType.equals("begin group")) {
 				// Non repeating group, process these child columns at the same level as the parent
 				addSurveyColumns(sd, cResults, sIdent, device, server, tableName, col.getQuestions(), cols, vals, tableCols, foreignKeys, phoneOnly);	
@@ -1137,6 +1151,10 @@ public class SubRelationalDB extends Subscriber {
 		}
 		if(type.equals("geopoint")) {
 			vals.append("ST_GeomFromText('POINT(' || ? || ')', 4326)");
+		} else if(type.equals("geoshape")) {
+			vals.append("ST_GeomFromText('POLYGON((' || ? || '))', 4326)");
+		} else if(type.equals("geotrace")) {
+			vals.append("ST_GeomFromText('LINESTRING(' || ? || ')', 4326)");
 		} else {
 			vals.append("?");
 		}
@@ -1953,12 +1971,6 @@ public class SubRelationalDB extends Subscriber {
 						value = null;
 					}
 
-				} else if(qType.equals("geopoint")) {
-					// Geo point parameters are separated by a space and in the order Y X Altitude Accuracy
-					// To store as a Point in the db this order needs to be reversed
-					boolean hasAltitude = GeneralUtilityMethods.hasColumn(cResults, tableName, colName + "_alt");
-					value = getGeopointValue(value, hasAltitude, tableName, colName); // TODO
-
 				} else if(GeneralUtilityMethods.isAttachmentType(qType)) {
 
 					log.info("Processing media. Value: " + value);
@@ -2015,18 +2027,14 @@ public class SubRelationalDB extends Subscriber {
 					 *   To store as a Point in the db this order needs to be reversed to (lon lat)
 					 */
 					int min_points = 3;
-					StringBuffer ptString = null;
+					StringBuilder ptString = new StringBuilder("");
 					if(qType.equals("geotrace") || qType.equals("geocompound")) {
 						min_points = 2;
 					}
 
 					String coords[] = value.split(";");
 					if(coords.length >= min_points) {
-						if(qType.equals("geoshape")) {
-							ptString = new StringBuffer("ST_GeomFromText('POLYGON((");
-						} else {
-							ptString = new StringBuffer("ST_GeomFromText('LINESTRING(");
-						}
+						
 						for(int i = 0; i < coords.length; i++) {
 							String [] points = coords[i].trim().split(" ");
 							if(points.length > 1) {
@@ -2040,11 +2048,7 @@ public class SubRelationalDB extends Subscriber {
 								log.info("Error: " + qType + " Badly formed point." + coords[i]);
 							}
 						}
-						if(qType.equals("geoshape")) {
-							ptString.append("))', 4326)");
-						} else {
-							ptString.append(")', 4326)");
-						}
+						
 						value = ptString.toString();
 
 					} else {
