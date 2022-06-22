@@ -1016,7 +1016,7 @@ public class SubRelationalDB extends Subscriber {
 		int idx = 1;
 		for(TableColumn c : tableCols) {
 			
-			if(c.type.equals("string")) {		// string
+			if(c.type.equals("string") || c.type.equals("geopoint")) {		// string
 				pstmt.setString(idx++, c.value);
 			
 			} else if(c.type.equals("int")) {	// int
@@ -1024,6 +1024,13 @@ public class SubRelationalDB extends Subscriber {
 					pstmt.setNull(idx++, java.sql.Types.INTEGER);
 				} else {
 					pstmt.setInt(idx++, Integer.valueOf(c.value));
+				}
+				
+			} else if(c.type.equals("double")) {	// int
+				if(c.value == null) {
+					pstmt.setNull(idx++, java.sql.Types.DOUBLE);
+				} else {
+					pstmt.setDouble(idx++, Double.valueOf(c.value));
 				}
 				
 			} else if(c.type.equals("boolean")) {	// boolean
@@ -1082,12 +1089,14 @@ public class SubRelationalDB extends Subscriber {
 				}
 			} else if(colType.equals("geopolygon") || colType.equals("geolinestring") || colType.equals("geopoint")
 					|| colType.equals("geoshape") || colType.equals("geotrace") || colType.equals("geocompound")) {
-				//addTableCol(cols, vals, tableCols, col.getColumnName(), xxxx, xxxx);
+				
+				GeopointComponents components = getGeopointComponents(col.getValue());
+				addTableCol(cols, vals, tableCols, col.getColumnName(), components.value, "geopoint");
 
 				if(colType.equals("geopoint") && GeneralUtilityMethods.hasColumn(cResults, tableName, col.getColumnName() + "_alt")) {
 					// Geopoint also has altitude and accuracy
-					//addTableCol(cols, vals, tableCols, col.getColumnName() + "_alt", xxxx, xxxx);
-					//addTableCol(cols, vals, tableCols, col.getColumnName() + "_acc", xxxx, xxxx);
+					addTableCol(cols, vals, tableCols, col.getColumnName() + "_alt", components.alt, "double");
+					addTableCol(cols, vals, tableCols, col.getColumnName() + "_acc", components.acc, "double");
 				}
 			} else if(colType.equals("begin group")) {
 				// Non repeating group, process these child columns at the same level as the parent
@@ -1126,7 +1135,11 @@ public class SubRelationalDB extends Subscriber {
 		if(vals.length() > 0) {
 			vals.append(",");
 		}
-		vals.append("?");
+		if(type.equals("geopoint")) {
+			vals.append("ST_GeomFromText('POINT(' || ? || ')', 4326)");
+		} else {
+			vals.append("?");
+		}
 		
 		// Add a table entry to allow insertion of value into value string
 		tableCols.add(new TableColumn(colName, value, type));
@@ -2302,6 +2315,44 @@ public class SubRelationalDB extends Subscriber {
 		return value;
 	}
 
+	private class GeopointComponents {
+		String value = null;
+		String alt = null;
+		String acc = null;
+	}
+	private GeopointComponents getGeopointComponents(String in) {
+		
+		GeopointComponents components = new GeopointComponents();
+		
+		if(in != null) {
+			String params[] = in.split(" ");
+			
+			if(params.length > 1) {
+				try {
+					components.value = String.valueOf(Double.parseDouble(params[1])) + " "
+							+ String.valueOf(Double.parseDouble(params[0]));
+	
+					// Add altitude and accuracy
+					if(params.length > 3) {
+						components.alt = String.valueOf(Double.parseDouble(params[2]));
+						components.acc = String.valueOf(Double.parseDouble(params[3]));
+						
+					}
+	
+				} catch (Exception e) {
+					log.info("Error: Invalid geometry point detected: "  + in);
+				}
+	
+			} else {
+				log.info("Info: Empty geometry point detected: " + in);
+			}
+		}
+		return components;
+	}
+	
+	/*
+	 * TODO delete
+	 */
 	private String getGeopointValue(String in, boolean hasAltitude, String tableName, String colName) {
 		String value;
 		String params[] = in.split(" ");
