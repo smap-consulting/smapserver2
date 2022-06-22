@@ -687,7 +687,14 @@ public class SubRelationalDB extends Subscriber {
 					}
 					
 					//####################################################### START
-					pstmt = getSubmissionStatement(sd, cResults, tableName, columns, 
+					ArrayList<ForeignKey> thisTableKeys = new ArrayList<> ();
+					pstmt = getSubmissionStatement(sd, cResults, 
+							sIdent,
+							device,
+							server,
+							tableName, 
+							columns, 
+							thisTableKeys,
 							parent_key,
 							remoteUser,
 							complete,
@@ -734,7 +741,7 @@ public class SubRelationalDB extends Subscriber {
 
 					sql += ", ?";		// audit
 					sql += ", ?";		// audit_raw
-					ArrayList<ForeignKey> thisTableKeys = new ArrayList<> ();
+					
 					sql += addSqlValues(sd, columns, sIdent, device, server, false, thisTableKeys, cResults, tableName);
 					sql += ");";
 
@@ -928,9 +935,15 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Get a prepared statement to insert the submission into the database
 	 */
-	private PreparedStatement getSubmissionStatement(Connection sd, Connection cResults, String 
-			tableName,
+	private PreparedStatement getSubmissionStatement(
+			Connection sd, 
+			Connection cResults, 
+			String sIdent,
+			String device,
+			String server,
+			String tableName,
 			List<IE> columns,
+			ArrayList<ForeignKey> foreignKeys,
 			int parentKey,
 			String remoteUser,
 			boolean complete,
@@ -962,7 +975,7 @@ public class SubRelationalDB extends Subscriber {
 		if(parentKey == 0) {
 			addTableCol(cols, vals, tableCols, "_user", String.valueOf(remoteUser), "string");
 			addTableCol(cols, vals, tableCols, "_complete", String.valueOf(complete), "boolean");
-			addTableCol(cols, vals, tableCols, "_complete", String.valueOf(new Timestamp(uploadTime.getTime())), "timestamp");
+			addTableCol(cols, vals, tableCols, SmapServerMeta.UPLOAD_TIME_NAME, String.valueOf(new Timestamp(uploadTime.getTime())), "timestamp");
 			addTableCol(cols, vals, tableCols, SmapServerMeta.SURVEY_ID_NAME, String.valueOf(sId), "int");
 			addTableCol(cols, vals, tableCols, "_version", String.valueOf(version), "int");
 			addTableCol(cols, vals, tableCols, "_survey_notes", surveyNotes, "string");
@@ -979,9 +992,7 @@ public class SubRelationalDB extends Subscriber {
 		addTableCol(cols, vals, tableCols, "_audit", audit, "string");
 		addTableCol(cols, vals, tableCols, "_audit_raw", auditRaw, "string");
 		
-		for(IE col : columns) {
-			
-		}
+		addSurveyColumns(sd, cResults, sIdent, device, server, tableName, columns, cols, vals, tableCols, foreignKeys, false);		
 		
 		/*
 		 * Construct sql
@@ -1022,17 +1033,79 @@ public class SubRelationalDB extends Subscriber {
 					pstmt.setBoolean(idx++, Boolean.valueOf(c.value));
 				}
 				
-			} else if(c.type.equals("timestamp")) {	// boolean
+			} else if(c.type.equals("timestamp") || c.type.equals("dateTime")) {	// Timestamp
 				if(c.value == null) {
 					pstmt.setTimestamp(idx++, null);
 				} else {
-					pstmt.setTimestamp(idx++, Timestamp.valueOf(c.value));
+					pstmt.setTimestamp(idx++, GeneralUtilityMethods.getTimestamp(c.value));
 				}
+			} else {
+				log.info("Error:  unknown column type: " + c.type + " : " + c.value);
 			}
 			
 		} 
 		
 		return pstmt;
+	}
+	
+	/*
+	 * Add the survey columns to be used in a submission insert
+	 */
+	private void addSurveyColumns(
+			Connection sd,
+			Connection cResults,
+			String sIdent,
+			String device,
+			String server,
+			String tableName,
+			List<IE> columns, 
+			StringBuilder cols, 
+			StringBuilder vals, 
+			ArrayList<TableColumn> tableCols,
+			ArrayList<ForeignKey> foreignKeys,
+			boolean phoneOnly) {
+		
+		for(IE col : columns) {
+			String colType = col.getQType();
+			boolean colPhoneOnly = phoneOnly || col.isPhoneOnly();	// Set phone only if the group is phone only or just this column
+			
+			// TODO Deprecate this all select questions are now stored compressed
+			if(colType.equals("select") && !col.isCompressed()) {
+				List<IE> options = col.getChildren();
+				UtilityMethods.sortElements(options);
+				HashMap<String, String> uniqueColumns = new HashMap<String, String> (); 
+				for(IE option : options) {
+					if(uniqueColumns.get(option.getColumnName()) == null) {
+						uniqueColumns.put(option.getColumnName(), option.getColumnName());
+						addTableCol(cols, vals, tableCols, option.getColumnName(), colPhoneOnly ? "" : option.getValue(), "string");
+					}		
+				}
+			} else if(colType.equals("geopolygon") || colType.equals("geolinestring") || colType.equals("geopoint")
+					|| colType.equals("geoshape") || colType.equals("geotrace") || colType.equals("geocompound")) {
+				//addTableCol(cols, vals, tableCols, col.getColumnName(), xxxx, xxxx);
+
+				if(colType.equals("geopoint") && GeneralUtilityMethods.hasColumn(cResults, tableName, col.getColumnName() + "_alt")) {
+					// Geopoint also has altitude and accuracy
+					//addTableCol(cols, vals, tableCols, col.getColumnName() + "_alt", xxxx, xxxx);
+					//addTableCol(cols, vals, tableCols, col.getColumnName() + "_acc", xxxx, xxxx);
+				}
+			} else if(colType.equals("begin group")) {
+				// Non repeating group, process these child columns at the same level as the parent
+				addSurveyColumns(sd, cResults, sIdent, device, server, tableName, col.getQuestions(), cols, vals, tableCols, foreignKeys, phoneOnly);	
+			} else {
+				addTableCol(cols, vals, tableCols, col.getColumnName(), 
+						getDbValue(sd, col, sIdent, device, server, colPhoneOnly, cResults, tableName), 
+						colType);
+				
+				// Check for a foreign key, the value will start with :::::
+				if(col.getValue() != null && col.getValue().startsWith(":::::") && col.getValue().length() > 5) {
+					ForeignKey fl = new ForeignKey();
+					fl.instanceId = col.getValue().substring(5);
+					fl.qName = col.getName();
+					foreignKeys.add(fl);
+				}
+			}
+		}
 	}
 	
 	/*
@@ -1809,6 +1882,215 @@ public class SubRelationalDB extends Subscriber {
 
 	/*
 	 * Format the value into a string appropriate to its type
+	 */
+	String getDbValue(Connection sd, IE col, String surveyName, String device, String server, boolean phoneOnly, Connection cResults, String tableName) {
+
+		String qType = col.getQType();
+		String value = col.getValue();	
+		String colName = col.getColumnName();
+
+		// If the deviceId is not in the form results add it from the form meta data
+		if(colName != null && colName.equals("_device")) {
+			if(value == null || value.trim().length() == 0) {
+				value = device;
+			}
+		}
+
+		if(phoneOnly) {
+			if(qType.equals("string")) {
+				value = "'xxxx'";			// Provide feedback to user that this value was withheld
+			} else {
+				value = null;				// For non string types will just set to null
+			}
+		} else {
+
+			if(value != null) {			
+
+				if(qType.equals("string") || qType.equals("calculate") || qType.equals("select1") || qType.equals("barcode") 
+						|| qType.equals("acknowledge")
+						|| qType.equals("note")
+						|| qType.equals("select")
+						|| qType.equals("rank")) {		// Compressed select
+					// No change to value
+
+				} else if(qType.equals("int") || qType.equals("decimal")) {
+					if(value.length() == 0) {
+						value = null;
+					}
+
+				} else if(qType.equals("date") || qType.equals("dateTime") || qType.equals("time") ) {
+					
+					// Hack to fix badly formatted types
+					if(qType.equals("time")) {
+						if(value.contains("T")) {
+							String v[] = value.split("T");
+							if(v.length > 1) {
+								value = v[1];
+							} else {
+								value = "";
+							}
+						}
+					}
+					if(value.length() == 0) {
+						value = null;
+					}
+
+				} else if(qType.equals("range") ) {
+					if(value.length() == 0) {
+						value = null;
+					}
+
+				} else if(qType.equals("geopoint")) {
+					// Geo point parameters are separated by a space and in the order Y X Altitude Accuracy
+					// To store as a Point in the db this order needs to be reversed
+					boolean hasAltitude = GeneralUtilityMethods.hasColumn(cResults, tableName, colName + "_alt");
+					value = getGeopointValue(value, hasAltitude, tableName, colName); // TODO
+
+				} else if(GeneralUtilityMethods.isAttachmentType(qType)) {
+
+					log.info("Processing media. Value: " + value);
+					if(value.length() == 0) {
+						value = null;
+					
+					} else {
+						/*
+						 * If this is a new file then rename the attachment to use a UUID
+						 * Where this is an update to an existing survey and the file has not been re-submitted then 
+						 * leave its value unchanged
+						 */
+						String srcName = value;
+
+						log.info("Creating file: " + srcName);				
+
+						File srcXmlFile = new File(gFilePath);
+						File srcXmlDirFile = srcXmlFile.getParentFile();
+						File srcPathFile = new File(srcXmlDirFile.getAbsolutePath() + "/" + srcName);
+
+						value = GeneralUtilityMethods.createAttachments(
+								sd,
+								srcName, 
+								srcPathFile, 
+								gBasePath, 
+								surveyName,
+								null,
+								mediaChanges);		
+
+					}
+				} else if(qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("geocompound")) { // TODO
+					/*
+					 * Extract the linestring from geocompound types
+					 */
+					if(qType.equals("geocompound")) {
+						String components[] = value.split("#");
+						for(int i = 0; i < components.length; i++) {
+							if(components[i].startsWith("line:")) {
+								String lineComponents [] = components[i].split(":");
+								if(lineComponents.length > 1) {
+									value = lineComponents[1];
+									break;
+								}
+								
+							}
+						}
+					}
+					
+					/*
+					 * ODK polygon / linestring
+					 * The coordinates are in a String separated by ;
+					 * Each coordinate consists of space separated lat lon height accuracy
+					 *   Actually I'm not sure about the last two but they will be ignored anyway
+					 *   To store as a Point in the db this order needs to be reversed to (lon lat)
+					 */
+					int min_points = 3;
+					StringBuffer ptString = null;
+					if(qType.equals("geotrace") || qType.equals("geocompound")) {
+						min_points = 2;
+					}
+
+					String coords[] = value.split(";");
+					if(coords.length >= min_points) {
+						if(qType.equals("geoshape")) {
+							ptString = new StringBuffer("ST_GeomFromText('POLYGON((");
+						} else {
+							ptString = new StringBuffer("ST_GeomFromText('LINESTRING(");
+						}
+						for(int i = 0; i < coords.length; i++) {
+							String [] points = coords[i].trim().split(" ");
+							if(points.length > 1) {
+								if(i > 0) {
+									ptString.append(",");
+								}
+								ptString.append(points[1]);
+								ptString.append(" ");
+								ptString.append(points[0]);
+							} else {
+								log.info("Error: " + qType + " Badly formed point." + coords[i]);
+							}
+						}
+						if(qType.equals("geoshape")) {
+							ptString.append("))', 4326)");
+						} else {
+							ptString.append(")', 4326)");
+						}
+						value = ptString.toString();
+
+					} else {
+						value = null;
+						log.info("Error: " + qType + " Insufficient points for " + qType + ": " + coords.length);
+					}
+
+				} else if(qType.equals("geopolygon") || qType.equals("geolinestring")) {
+					// Complex types
+					IE firstPoint = null;
+					String ptString = "";
+					List<IE> points = col.getChildren();
+					int number_points = points.size();
+					if(number_points < 3 && qType.equals("geopolygon")) {
+						value = null;
+						log.info("Error: Insufficient points for polygon." + number_points);
+					} else if(number_points < 2 && qType.equals("geolinestring")) {
+						value = null;
+						log.info("Error: Insufficient points for line." + number_points);
+					} else {
+						for(IE point : points) {
+
+							String params[] = point.getValue().split(" ");
+							if(params.length > 1) {
+								if(firstPoint == null) {
+									firstPoint = point;		// Used to loop back for a polygon
+								} else {
+									ptString += ",";
+								}
+								ptString += params[1] + " " + params[0];
+							}
+						}
+						if(ptString.length() > 0) {
+							if(qType.equals("geopolygon")) {
+								if(firstPoint != null) {
+									String params[] = firstPoint.getValue().split(" ");
+									if(params.length > 1) {
+										ptString += "," + params[1] + " " + params[0];
+									}
+								}
+								value = "ST_GeomFromText('POLYGON((" + ptString + "))', 4326)";
+							} else if(qType.equals("geolinestring")) {
+								value = "ST_GeomFromText('LINESTRING(" + ptString + ")', 4326)";
+							}
+						} else {
+							value = null;
+						}
+					}
+
+				}
+			} 
+		}
+
+		return value;
+	}
+	
+	/*
+	 * Format the value into a string appropriate to its type
+	 * TODO Deprecate and delete
 	 */
 	String getDbString(Connection sd, IE col, String surveyName, String device, String server, boolean phoneOnly, Connection cResults, String tableName) {
 

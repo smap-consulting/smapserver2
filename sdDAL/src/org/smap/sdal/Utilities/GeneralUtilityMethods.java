@@ -8755,6 +8755,20 @@ public class GeneralUtilityMethods {
 			timeString = workAroundJava8bug00(timeString);
 			timeString = timeString.trim().replace(' ', 'T');
 			
+			// Ensure there is an offset in the string
+			if ( timeString.indexOf ( "+" ) != ( timeString.length () - 6 ) && timeString.indexOf ( "-" ) != ( timeString.length () - 6 )) {
+				TimeZone tz = TimeZone.getDefault();
+				long offset = tz.getOffset((new java.util.Date()).getTime());
+				String dirn = "+";
+				if(offset < 0) {
+					dirn = "-";
+					offset = -offset;
+				}
+				long hours = offset / 3600000;
+				long minutes = (offset - (hours * 3600000)) / 60000;
+				timeString += dirn + String.format("%02d:%02d", hours, minutes);
+			}
+			
 			log.info("timestring to test: " + timeString);
 
 			try {
