@@ -45,6 +45,7 @@ import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
+import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
@@ -52,6 +53,8 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
+import org.smap.sdal.model.CMS;
+import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.ForeignKey;
@@ -619,6 +622,7 @@ public class SubRelationalDB extends Subscriber {
 				 */
 				keys.duplicateKeys = new ArrayList<Integer>();
 				TableManager tm = new TableManager(localisation, tz);
+				CMS cms = null;
 				if (parent_key == 0) { // top level survey has a parent key of 0
 					
 					// Create new tables
@@ -647,6 +651,13 @@ public class SubRelationalDB extends Subscriber {
 							tm.markPublished(sd, f.getId(), sId); // only mark published if there have been changes made
 						}
 					}
+					
+					/*
+					 * Get Case Management Settings
+					 */
+					CaseManager cm = new CaseManager(localisation);				
+					String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+					cms = cm.getCaseManagementSettings(sd, groupSurveyIdent);
 				}
 
 				boolean isBad = false;
@@ -664,7 +675,7 @@ public class SubRelationalDB extends Subscriber {
 				if (columns.size() > 0 || parent_key == 0) {
 					
 					// Every survey should have the above columns
-					addNewColumns(cResults, tableName, parent_key);
+					addNewMetaColumns(cResults, tableName, parent_key);
 
 					/*
 					 * Process audit data
@@ -697,6 +708,7 @@ public class SubRelationalDB extends Subscriber {
 							thisTableKeys,
 							parent_key,
 							remoteUser,
+							cms,
 							complete,
 							uploadTime,
 							sId,
@@ -880,7 +892,7 @@ public class SubRelationalDB extends Subscriber {
 	 * Add columns that may not have been required when the survey was first created
 	 * These should be removed after the submissions table has stabilized
 	 */
-	private void addNewColumns(Connection cResults, String tableName, int parent_key) throws SQLException {
+	private void addNewMetaColumns(Connection cResults, String tableName, int parent_key) throws SQLException {
 		
 		if(parent_key == 0) {
 			
@@ -948,6 +960,11 @@ public class SubRelationalDB extends Subscriber {
 			this.type = type;
 		}
 	}
+	
+	private class DynamicMetaValues {
+		public Timestamp case_closed;
+	}
+	
 	/*
 	 * Get a prepared statement to insert the submission into the database
 	 */
@@ -962,6 +979,7 @@ public class SubRelationalDB extends Subscriber {
 			ArrayList<ForeignKey> foreignKeys,
 			int parentKey,
 			String remoteUser,
+			CMS cms,
 			boolean complete,
 			Date uploadTime,
 			int sId,
@@ -1008,7 +1026,14 @@ public class SubRelationalDB extends Subscriber {
 		addTableCol(cols, vals, tableCols, "_audit", audit, "string");
 		addTableCol(cols, vals, tableCols, "_audit_raw", auditRaw, "string");
 		
-		addSurveyColumns(sd, cResults, sIdent, device, server, tableName, columns, cols, vals, tableCols, foreignKeys, false);		
+		DynamicMetaValues dmv = addSurveyColumns(sd, cResults, sIdent, cms, device, server, tableName, columns, cols, vals, tableCols, foreignKeys, false);		
+		
+		/*
+		 * Add dynamic meta value columns
+		 */
+		if(dmv.case_closed != null) {
+			addTableCol(cols, vals, tableCols, "_case_closed", String.valueOf(dmv.case_closed), "timestamp");
+		}
 		
 		/*
 		 * Construct sql
@@ -1026,9 +1051,6 @@ public class SubRelationalDB extends Subscriber {
 		 */
 		pstmt = cResults.prepareStatement(sql.toString(), Statement.RETURN_GENERATED_KEYS);
 		
-		/*
-		 * Insert the values
-		 */
 		int idx = 1;
 		for(TableColumn c : tableCols) {
 			
@@ -1088,10 +1110,11 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Add the survey columns to be used in a submission insert
 	 */
-	private void addSurveyColumns(
+	private DynamicMetaValues addSurveyColumns(
 			Connection sd,
 			Connection cResults,
 			String sIdent,
+			CMS cms,
 			String device,
 			String server,
 			String tableName,
@@ -1100,10 +1123,23 @@ public class SubRelationalDB extends Subscriber {
 			StringBuilder vals, 
 			ArrayList<TableColumn> tableCols,
 			ArrayList<ForeignKey> foreignKeys,
-			boolean phoneOnly) {
+			boolean phoneOnly) {	
+		
+		DynamicMetaValues dmv = new DynamicMetaValues();
+		
+		/*
+		 * Prepare for checking for case closed
+		 */
+		String statusQuestion = null;
+		String finalStatus = null;
+		if(cms != null && cms.settings != null && cms.settings.statusQuestion != null && cms.settings.finalStatus != null) {
+			statusQuestion = cms.settings.statusQuestion;
+			finalStatus = cms.settings.finalStatus;
+		}
 		
 		for(IE col : columns) {
 			String colType = col.getQType();
+			String colName = col.getColumnName();
 			boolean colPhoneOnly = phoneOnly || col.isPhoneOnly();	// Set phone only if the group is phone only or just this column
 			
 			// TODO Deprecate this all select questions are now stored compressed
@@ -1135,11 +1171,10 @@ public class SubRelationalDB extends Subscriber {
 
 			} else if(colType.equals("begin group")) {
 				// Non repeating group, process these child columns at the same level as the parent
-				addSurveyColumns(sd, cResults, sIdent, device, server, tableName, col.getQuestions(), cols, vals, tableCols, foreignKeys, phoneOnly);	
+				addSurveyColumns(sd, cResults, sIdent, cms, device, server, tableName, col.getQuestions(), cols, vals, tableCols, foreignKeys, phoneOnly);	
 			} else {
-				addTableCol(cols, vals, tableCols, col.getColumnName(), 
-						getDbValue(sd, col, sIdent, device, server, colPhoneOnly, cResults, tableName), 
-						colType);
+				String value = getDbValue(sd, col, sIdent, device, server, colPhoneOnly, cResults, tableName);
+				addTableCol(cols, vals, tableCols, colName, value, colType);
 				
 				// Check for a foreign key, the value will start with :::::
 				if(col.getValue() != null && col.getValue().startsWith(":::::") && col.getValue().length() > 5) {
@@ -1148,8 +1183,15 @@ public class SubRelationalDB extends Subscriber {
 					fl.qName = col.getName();
 					foreignKeys.add(fl);
 				}
+				
+				// Check for case closed
+				if(statusQuestion != null && colName.equals(statusQuestion) && value.equals(finalStatus)) {
+					dmv.case_closed = new Timestamp(new java.util.Date().getTime());
+				}
 			}
 		}
+		
+		return dmv;
 	}
 	
 	/*

@@ -59,7 +59,7 @@ public class CaseManager {
 	public CMS getCaseManagementSettings(Connection sd, String groupSurveyIdent) throws SQLException {
 		
 		PreparedStatement pstmt = null;
-		CMS cms;
+		CMS cms = null;
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		try {
@@ -92,28 +92,30 @@ public class CaseManager {
 				} 
 			}
 			
-			/*
-			 * Get the alerts for this survey group
-			 * Note the alerts are stored in separate records in the database so
-			 * they can be used in queries to find active notification alerts
-			 */
-			sql = "select id, name, period "
-					+ "from cms_alert "
-					+ "where group_survey_ident = ? "
-					+ "order by name asc";
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1,  groupSurveyIdent);
-			
-			rs = pstmt.executeQuery();
-			while(rs.next()) {
-				alerts.add(new CaseManagementAlert(rs.getInt("id"), 
-						groupSurveyIdent, rs.getString("name"), 
-						rs.getString("period")));
+			if(settings != null) {
+				/*
+				 * Get the alerts for this survey group
+				 * Note the alerts are stored in separate records in the database so
+				 * they can be used in queries to find active notification alerts
+				 */
+				sql = "select id, name, period "
+						+ "from cms_alert "
+						+ "where group_survey_ident = ? "
+						+ "order by name asc";
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1,  groupSurveyIdent);
+				
+				rs = pstmt.executeQuery();
+				while(rs.next()) {
+					alerts.add(new CaseManagementAlert(rs.getInt("id"), 
+							groupSurveyIdent, rs.getString("name"), 
+							rs.getString("period")));
+				}
+				
+				// Create the combined settings object
+				cms = new CMS(settings, alerts, groupSurveyIdent);
 			}
-			
-			// Create the combined settings object
-			cms = new CMS(settings, alerts, groupSurveyIdent);
 					    
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
