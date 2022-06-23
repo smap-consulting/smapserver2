@@ -27,6 +27,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -711,6 +712,20 @@ public class SubRelationalDB extends Subscriber {
 					
 					log.info("1111111111: " + pstmt.toString());
 					pstmt.executeUpdate();
+					ResultSet rs = pstmt.getGeneratedKeys();
+					
+					if (rs.next()) {
+						parent_key = rs.getInt(1);
+						keys.newKey = parent_key;
+					}
+					// Add primary key, instanceId and table name to the foreign keys for this table
+					for(ForeignKey fk : thisTableKeys) {
+						fk.primaryKey = parent_key;
+						fk.tableName = tableName;
+						fk.instanceIdLaunchingForm  = uuid;
+					}
+					foreignKeys.addAll(thisTableKeys);
+					
 					pstmt.close();
 					
 					sql = "INSERT INTO " + tableName + " (parkey";
@@ -776,20 +791,8 @@ public class SubRelationalDB extends Subscriber {
 
 					//################################################################ END
 					log.info("        SQL statement: " + pstmt.toString());
-					pstmt.executeUpdate();
+					//pstmt.executeUpdate();  
 
-					ResultSet rs = pstmt.getGeneratedKeys();
-					if (rs.next()) {
-						parent_key = rs.getInt(1);
-						keys.newKey = parent_key;
-					}
-					// Add primary key, instanceId and table name to the foreign keys for this table
-					for(ForeignKey fk : thisTableKeys) {
-						fk.primaryKey = parent_key;
-						fk.tableName = tableName;
-						fk.instanceIdLaunchingForm  = uuid;
-					}
-					foreignKeys.addAll(thisTableKeys);
 				}
 				/*
 				 * Write into the points table of geocompound types
@@ -1055,10 +1058,16 @@ public class SubRelationalDB extends Subscriber {
 				} else {
 					pstmt.setTimestamp(idx++, GeneralUtilityMethods.getTimestamp(c.value));
 				}
+			} else if(c.type.equals("date")) {	// Date
+				if(c.value == null) {
+					pstmt.setDate(idx++, null);
+				} else {
+					pstmt.setDate(idx++, java.sql.Date.valueOf(LocalDate.parse(c.value)));
+				}
 			} else {
 				log.info("Error:  unknown column type: " + c.type + " : " + c.value);
 			}
-			
+
 		} 
 		
 		return pstmt;
@@ -1153,7 +1162,7 @@ public class SubRelationalDB extends Subscriber {
 			vals.append("ST_GeomFromText('POINT(' || ? || ')', 4326)");
 		} else if(type.equals("geoshape")) {
 			vals.append("ST_GeomFromText('POLYGON((' || ? || '))', 4326)");
-		} else if(type.equals("geotrace")) {
+		} else if(type.equals("geotrace") || type.equals("geocompound")) {
 			vals.append("ST_GeomFromText('LINESTRING(' || ? || ')', 4326)");
 		} else {
 			vals.append("?");
@@ -1836,6 +1845,7 @@ public class SubRelationalDB extends Subscriber {
 
 	/*
 	 * Generate the sql for the column names
+	 * delete
 	 */
 	String addSqlColumns(List<IE> columns, Connection cResults, String tableName) {
 		StringBuffer sql = new StringBuffer("");
