@@ -8474,7 +8474,7 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Add the thread value that links replaced records
-	 * This function should be removed and initialisation happen on record creation
+	 * Initialisation now also happens on insert of records
 	 */
 	public static void initialiseThread(Connection cResults, String table) throws SQLException {
 		
@@ -8491,25 +8491,6 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmtInitThreadCol2 = null;
 			
 		try {
-			/*
-			 * New tables should have these columns added automatically
-			 * Remove by end 2022
-			 */
-			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_thread")) {
-				GeneralUtilityMethods.addColumn(cResults, table, "_thread", "text");		// Add the thread column
-			}
-			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_assigned")) {
-				GeneralUtilityMethods.addColumn(cResults, table, "_assigned", "text");
-			}
-			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_thread_created")) {
-				GeneralUtilityMethods.addColumn(cResults, table, "_thread_created", "timestamp with time zone");
-			}
-			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_alert")) {
-				GeneralUtilityMethods.addColumn(cResults, table, "_alert", "text");
-			}
-			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_case_closed")) {
-				GeneralUtilityMethods.addColumn(cResults, table, "_case_closed", "timestamp with time zone");
-			}
 			
 			/*
 			 * TODO initialise these columns when the record is inserted

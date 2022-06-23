@@ -687,7 +687,6 @@ public class SubRelationalDB extends Subscriber {
 						rawAuditString = auditData.rawAudit.toString();
 					}
 					
-					//####################################################### START
 					ArrayList<ForeignKey> thisTableKeys = new ArrayList<> ();
 					pstmt = getSubmissionStatement(sd, cResults, 
 							sIdent,
@@ -726,6 +725,7 @@ public class SubRelationalDB extends Subscriber {
 					}
 					foreignKeys.addAll(thisTableKeys);
 					
+					//####################################################### START for DELETION
 					pstmt.close();
 					
 					sql = "INSERT INTO " + tableName + " (parkey";
@@ -886,7 +886,7 @@ public class SubRelationalDB extends Subscriber {
 			
 			/*
 			 * Test for the presence of the last column that has been added first
-			 * If this one is present then all the others should be
+			 * If this is present then all the others should be
 			 */
 			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_case_closed")) {
 				GeneralUtilityMethods.addColumn(cResults, tableName, "_case_closed", "timestamp with time zone");
@@ -908,6 +908,18 @@ public class SubRelationalDB extends Subscriber {
 				}
 				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_location_trigger")) {
 					GeneralUtilityMethods.addColumn(cResults, tableName, "_location_trigger", "text");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_thread")) {
+					GeneralUtilityMethods.addColumn(cResults, tableName, "_thread", "text");		// Add the thread column
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_assigned")) {
+					GeneralUtilityMethods.addColumn(cResults, tableName, "_assigned", "text");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_thread_created")) {
+					GeneralUtilityMethods.addColumn(cResults, tableName, "_thread_created", "timestamp with time zone");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_alert")) {
+					GeneralUtilityMethods.addColumn(cResults, tableName, "_alert", "text");
 				}
 			}
 			
