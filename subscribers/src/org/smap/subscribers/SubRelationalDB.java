@@ -1033,6 +1033,8 @@ public class SubRelationalDB extends Subscriber {
 		 */
 		if(dmv.case_closed != null) {
 			addTableCol(cols, vals, tableCols, "_case_closed", String.valueOf(dmv.case_closed), "timestamp");
+		} else {
+			addTableCol(cols, vals, tableCols, "_case_closed", null, "timestamp");
 		}
 		
 		/*
