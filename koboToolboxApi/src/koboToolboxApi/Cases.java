@@ -27,6 +27,7 @@ import java.util.logging.Logger;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -35,13 +36,14 @@ import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.UserLocationManager;
 
 /*
- * Provides access to audit views on the surveys
+ * Provides access to statistics on cases
  */
 @Path("/v1/cases")
 public class Cases extends Application {
@@ -66,14 +68,15 @@ public class Cases extends Application {
 	@GET
 	@Path("/progress/{sident}")
 	@Produces("application/json")
-	public Response getUserLocation(@Context HttpServletRequest request,
+	public Response getOpenClosed(@Context HttpServletRequest request,
+			@PathParam("sIdent") String sIdent,				// Any survey in the survey bundle
 			@QueryParam("interval") String interval,		// hour, day, week
 			@QueryParam("intevalCount") int intervalCount,
 			@QueryParam("aggregationInterval") String aggregationInterval,	// hour, day, week
 			@QueryParam("tz") String tz) { 
 
 		Response response = null;
-		String connectionString = "API - getUserLocations";
+		String connectionString = "API - getOpenClosed";
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -81,37 +84,46 @@ public class Cases extends Application {
 		
 		tz = (tz == null) ? "UTC" : tz;
 		
+		Connection cResults = null;
 		try {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			cResults = ResultsDataSource.getConnection(connectionString);
+			
 			// Validate parameters
-			interval = validateInterval(interval, "day");
+			interval = "day";
 			if(intervalCount <= 0) {
-				intervalCount = 1;
+				intervalCount = 7;		// By default last week of data
 			}
-			aggregationInterval = validateInterval(aggregationInterval, "week");
+			aggregationInterval = "day";
 
 			CaseManager cm = new CaseManager(localisation);
+			cm.getOpenClosed(sd, cResults, sIdent, interval, intervalCount, aggregationInterval);
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
 			response = Response.serverError().build();
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
 		}
 
 		return response;
 	}
 	
 
+	/*
+	 * TODO 
+	 * Stick to days for all intervals 
+	 */
 	private String validateInterval(String interval, String defInterval) {
 		String valInterval = defInterval;	
 		
 		if(interval != null) {
 			interval = interval.trim();
-			if(interval.equals("hour") || interval.equals("day") || interval.equals("week")) {
+			if(interval.equals("day") || interval.equals("week")) {
 				valInterval = interval;
 			} else {
 				log.info("Error: Invalid Interval: " + interval);

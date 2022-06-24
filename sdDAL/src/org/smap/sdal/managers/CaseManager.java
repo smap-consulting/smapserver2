@@ -341,7 +341,13 @@ public class CaseManager {
 		return cases;
 	}
 	
-	public ArrayList<CaseCount> getOpenClosed(Connection sd, Connection cResults) {
+	public ArrayList<CaseCount> getOpenClosed(Connection sd, Connection cResults,
+			String sIdent, String interval, int intervalCount, String aggregationInterval) {
+		
+		String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
+		StringBuilder sql = new StringBuilder("select count(*) as opened, extract(DOY from _thread_created) as day,  from ")
+				.append(table)
+				.append(" ");
 		ArrayList<CaseCount> cc = new ArrayList<>();
 		return cc;
 	}

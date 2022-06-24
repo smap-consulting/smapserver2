@@ -3809,24 +3809,48 @@ public class GeneralUtilityMethods {
 			// Don't add one if we are getting columns for a subform
 			if(formParent == 0) {
 				
-				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
+				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_case_closed")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_case_closed", "timestamp with timezone");
+					
+					if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
+						GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
+					}
+					if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_alert")) {
+						GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "text");
+					}
+					if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_thread_created")) {
+						GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "timestamp with timezone");
+					}
+				} else {
+					uptodateTable = true;
 				}
-				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_alert")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "text");
-				}
+				
 			
 				c = new TableColumn();
 				c.column_name = "_assigned";
-				c.displayName = "_assigned";
+				c.displayName = localisation.getString("assignee_ident");
 				c.type = SmapQuestionTypes.STRING;
 				c.question_name = c.column_name;
 				columnList.add(c);
 				
 				c = new TableColumn();
 				c.column_name = "_alert";
-				c.displayName = "_alert";
+				c.displayName = localisation.getString("a_alert");
 				c.type = SmapQuestionTypes.STRING;
+				c.question_name = c.column_name;
+				columnList.add(c);
+				
+				c = new TableColumn();
+				c.column_name = "_thread_created";
+				c.displayName = localisation.getString("a_c_created");
+				c.type = SmapQuestionTypes.DATETIME;
+				c.question_name = c.column_name;
+				columnList.add(c);
+				
+				c = new TableColumn();
+				c.column_name = "_case_closed";
+				c.displayName = localisation.getString("a_cc");
+				c.type = SmapQuestionTypes.DATETIME;
 				c.question_name = c.column_name;
 				columnList.add(c);
 			}
@@ -3836,7 +3860,7 @@ public class GeneralUtilityMethods {
 		if (includeOtherMeta && GeneralUtilityMethods.columnType(cResults, table_name, "_hrk") != null) {
 			c = new TableColumn();
 			c.column_name = "_hrk";
-			c.displayName = "Key";
+			c.displayName = localisation.getString("cr_key");
 			c.type = SmapQuestionTypes.STRING;
 			c.question_name = c.column_name;
 			columnList.add(c);
@@ -3866,14 +3890,14 @@ public class GeneralUtilityMethods {
 		if (includeBad) {
 			c = new TableColumn();
 			c.column_name = "_bad";
-			c.displayName = "_bad";
+			c.displayName = localisation.getString("c_del");
 			c.type = SmapQuestionTypes.BOOLEAN;
 			c.question_name = c.column_name;
 			columnList.add(c);
 
 			c = new TableColumn();
 			c.column_name = "_bad_reason";
-			c.displayName = "_bad_reason";
+			c.displayName = localisation.getString("c_del_reason");
 			c.type = SmapQuestionTypes.STRING;
 			c.question_name = c.column_name;
 			columnList.add(c);
@@ -3889,10 +3913,6 @@ public class GeneralUtilityMethods {
 			c.isMeta = true;
 			c.question_name = c.column_name;
 			columnList.add(c);
-
-			if (GeneralUtilityMethods.columnType(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME) != null) {
-				uptodateTable = true; // This is the latest meta column that was added
-			}
 
 			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, SmapServerMeta.UPLOAD_TIME_NAME) != null) {
 
@@ -3916,7 +3936,7 @@ public class GeneralUtilityMethods {
 			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME) != null) {
 				c = new TableColumn();
 				c.column_name = SmapServerMeta.SCHEDULED_START_NAME;
-				c.displayName = SmapServerMeta.SCHEDULED_START_NAME;
+				c.displayName = localisation.getString("a_ss");
 				c.type = SmapQuestionTypes.DATETIME;
 				c.isMeta = true;
 				columnList.add(c);
@@ -3974,7 +3994,13 @@ public class GeneralUtilityMethods {
 						if(GeneralUtilityMethods.hasColumn(cResults, table_name, mi.columnName)) {
 							c = new TableColumn();
 							c.column_name = mi.columnName;
-							c.displayName = mi.name;
+							if(c.column_name.equals("_start")) {
+								c.displayName = localisation.getString("a_st");
+							} else if(c.column_name.equals("_end")) {
+								c.displayName = localisation.getString("a_et");
+							} else {
+								c.displayName = mi.display_name;
+							}
 							c.question_name = mi.name;
 							c.type = mi.type;
 							if(c.type != null && c.type.equals("timestamp")) {
@@ -3992,7 +4018,7 @@ public class GeneralUtilityMethods {
 				|| GeneralUtilityMethods.columnType(cResults, table_name, "instanceid") != null)) {
 			c = new TableColumn();
 			c.column_name = "instanceid";
-			c.displayName = "instanceid";
+			c.displayName = localisation.getString("a_ii");
 			c.type = "";
 			c.isMeta = true;
 			columnList.add(c);
@@ -4001,7 +4027,7 @@ public class GeneralUtilityMethods {
 		if (audit && GeneralUtilityMethods.columnType(cResults, table_name, "_audit") != null) {
 			c = new TableColumn();
 			c.column_name = "_audit";
-			c.displayName = "Audit";
+			c.displayName = localisation.getString("audit");
 			c.type = SmapQuestionTypes.AUDIT;
 			c.question_name = c.column_name;
 			columnList.add(c);
