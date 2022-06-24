@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.Case;
+import org.smap.sdal.model.CaseCount;
 import org.smap.sdal.model.CaseManagementAlert;
 import org.smap.sdal.model.CaseManagementSettings;
 
@@ -338,5 +339,10 @@ public class CaseManager {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
 		return cases;
+	}
+	
+	public ArrayList<CaseCount> getOpenClosed(Connection sd, Connection cResults) {
+		ArrayList<CaseCount> cc = new ArrayList<>();
+		return cc;
 	}
 }
