@@ -21,10 +21,8 @@ import javax.servlet.http.HttpServletRequest;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -57,13 +55,6 @@ public class Users extends Application {
 			Logger.getLogger(UserLocationManager.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
-
-	// Tell class loader about the root classes.  (needed as tomcat6 does not support servlet 3)
-	public Set<Class<?>> getClasses() {
-		Set<Class<?>> s = new HashSet<Class<?>>();
-		s.add(Users.class);
-		return s;
-	}
 
 	public Users() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
