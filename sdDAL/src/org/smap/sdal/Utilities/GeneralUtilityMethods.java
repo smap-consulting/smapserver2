@@ -3803,57 +3803,33 @@ public class GeneralUtilityMethods {
 			columnList.add(c);
 		}
 		
-		// Add assigned and alert if this is a management request
-		if(mgmt) {
-			// Make sure there is an _assigned column at the top level of the survey
-			// Don't add one if we are getting columns for a subform
-			if(formParent == 0) {
-				
-				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_case_closed")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_case_closed", "timestamp with timezone");
-					
-					if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
-						GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
-					}
-					if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_alert")) {
-						GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "text");
-					}
-					if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_thread_created")) {
-						GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "timestamp with timezone");
-					}
-				} else {
-					uptodateTable = true;
-				}
-				
+		if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_case_closed")) {
+			GeneralUtilityMethods.addColumn(cResults, table_name, "_case_closed", "timestamp with timezone");
 			
-				c = new TableColumn();
-				c.column_name = "_assigned";
-				c.displayName = localisation.getString("assignee_ident");
-				c.type = SmapQuestionTypes.STRING;
-				c.question_name = c.column_name;
-				columnList.add(c);
-				
-				c = new TableColumn();
-				c.column_name = "_alert";
-				c.displayName = localisation.getString("a_alert");
-				c.type = SmapQuestionTypes.STRING;
-				c.question_name = c.column_name;
-				columnList.add(c);
-				
-				c = new TableColumn();
-				c.column_name = "_thread_created";
-				c.displayName = localisation.getString("a_c_created");
-				c.type = SmapQuestionTypes.DATETIME;
-				c.question_name = c.column_name;
-				columnList.add(c);
-				
-				c = new TableColumn();
-				c.column_name = "_case_closed";
-				c.displayName = localisation.getString("a_cc");
-				c.type = SmapQuestionTypes.DATETIME;
-				c.question_name = c.column_name;
-				columnList.add(c);
+			if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
+				GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
 			}
+			if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_alert")) {
+				GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "text");
+			}
+			if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_thread_created")) {
+				GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "timestamp with timezone");
+			}
+		} else {
+			uptodateTable = true;
+		}
+		
+		
+		// Add assigned if this is a management request
+		if(mgmt && formParent == 0) {
+
+			c = new TableColumn();
+			c.column_name = "_assigned";
+			c.displayName = localisation.getString("assignee_ident");
+			c.type = SmapQuestionTypes.STRING;
+			c.question_name = c.column_name;
+			columnList.add(c);
+
 		}
 
 		// Add HRK if it has been specified
@@ -3914,6 +3890,27 @@ public class GeneralUtilityMethods {
 			c.question_name = c.column_name;
 			columnList.add(c);
 
+			c = new TableColumn();
+			c.column_name = "_alert";
+			c.displayName = localisation.getString("a_alert");
+			c.type = SmapQuestionTypes.STRING;
+			c.question_name = c.column_name;
+			columnList.add(c);
+
+			c = new TableColumn();
+			c.column_name = "_thread_created";
+			c.displayName = localisation.getString("a_c_created");
+			c.type = SmapQuestionTypes.DATETIME;
+			c.question_name = c.column_name;
+			columnList.add(c);
+
+			c = new TableColumn();
+			c.column_name = "_case_closed";
+			c.displayName = localisation.getString("a_cc");
+			c.type = SmapQuestionTypes.DATETIME;
+			c.question_name = c.column_name;
+			columnList.add(c);
+			
 			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, SmapServerMeta.UPLOAD_TIME_NAME) != null) {
 
 				c = new TableColumn();

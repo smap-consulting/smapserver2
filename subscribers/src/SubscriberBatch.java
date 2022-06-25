@@ -1425,7 +1425,7 @@ public class SubscriberBatch {
 							 * Process notifications associated with this alert
 							 */
 							pstmtNotifications.setInt(1, aId);
-							System.out.println("Notifications to be triggered: " + pstmtNotifications.toString());
+							log.info("Notifications to be triggered: " + pstmtNotifications.toString());
 							
 							ResultSet notrs = pstmtNotifications.executeQuery();
 							
