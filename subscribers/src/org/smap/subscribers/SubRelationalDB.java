@@ -675,7 +675,7 @@ public class SubRelationalDB extends Subscriber {
 				if (columns.size() > 0 || parent_key == 0) {
 					
 					// Every survey should have the above columns
-					addNewMetaColumns(cResults, tableName, parent_key);
+					GeneralUtilityMethods.ensureTableCurrent(cResults, tableName, parent_key == 0);
 
 					/*
 					 * Process audit data
@@ -885,68 +885,6 @@ public class SubRelationalDB extends Subscriber {
 		}
 
 		return keys;
-
-	}
-
-	/*
-	 * Add columns that may not have been required when the survey was first created
-	 * These should be removed after the submissions table has stabilized
-	 */
-	private void addNewMetaColumns(Connection cResults, String tableName, int parent_key) throws SQLException {
-		
-		if(parent_key == 0) {
-			
-			/*
-			 * Test for the presence of the last column that has been added first
-			 * If this is present then all the others should be
-			 */
-			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_case_closed")) {
-				GeneralUtilityMethods.addColumn(cResults, tableName, "_case_closed", "timestamp with time zone");
-
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, SmapServerMeta.SCHEDULED_START_NAME)) {
-					GeneralUtilityMethods.addColumn(cResults, tableName, SmapServerMeta.SCHEDULED_START_NAME, "timestamp with time zone");
-				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, SmapServerMeta.UPLOAD_TIME_NAME)) {
-					GeneralUtilityMethods.addColumn(cResults, tableName, SmapServerMeta.UPLOAD_TIME_NAME, "timestamp with time zone");
-				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, SmapServerMeta.SURVEY_ID_NAME)) {
-					GeneralUtilityMethods.addColumn(cResults, tableName, SmapServerMeta.SURVEY_ID_NAME, "integer");
-				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_version")) {
-					GeneralUtilityMethods.addColumn(cResults, tableName, "_version", "text");
-				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_survey_notes")) {
-					GeneralUtilityMethods.addColumn(cResults, tableName, "_survey_notes", "text");
-				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_location_trigger")) {
-					GeneralUtilityMethods.addColumn(cResults, tableName, "_location_trigger", "text");
-				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_thread")) {
-					GeneralUtilityMethods.addColumn(cResults, tableName, "_thread", "text");		// Add the thread column
-				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_assigned")) {
-					GeneralUtilityMethods.addColumn(cResults, tableName, "_assigned", "text");
-				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_thread_created")) {
-					GeneralUtilityMethods.addColumn(cResults, tableName, "_thread_created", "timestamp with time zone");
-				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_alert")) {
-					GeneralUtilityMethods.addColumn(cResults, tableName, "_alert", "text");
-				}
-			}
-			
-		}
-
-		if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_audit")) {
-			GeneralUtilityMethods.addColumn(cResults, tableName, "_audit", "text");
-			
-			/*
-			 * Audit and audit raw should have been added together
-			 */
-			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, AuditData.AUDIT_RAW_COLUMN_NAME)) {
-				GeneralUtilityMethods.addColumn(cResults, tableName, AuditData.AUDIT_RAW_COLUMN_NAME, "text");
-			}
-		}
 
 	}
 	
