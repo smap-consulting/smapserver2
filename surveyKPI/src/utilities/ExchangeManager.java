@@ -144,13 +144,6 @@ public class ExchangeManager {
 				
 				basePath = GeneralUtilityMethods.getBasePath(request);
 				
-				// Prepare statement to get server side includes
-				String sqlSSC = "select ssc.name, ssc.function, ssc.type, ssc.units from ssc ssc, form f " +
-						" where f.f_id = ssc.f_id " +
-						" and f.table_name = ? " +
-						" order by ssc.id;";
-				pstmtSSC = sd.prepareStatement(sqlSSC);
-				
 				// Prepare the statement to get the question type and read only attribute
 				String sqlQType = "select q.qtype, q.readonly from question q, form f " +
 						" where q.f_id = f.f_id " +
@@ -875,8 +868,7 @@ public class ExchangeManager {
 				return null;
 			}
 		}
-		
-
+			
 		if(qName.equals("prikey") || qName.equals("metainstanceid")) {
 			col = new ExchangeColumn();
 			col.name = qName;
@@ -893,9 +885,6 @@ public class ExchangeManager {
 			col.name = qName;
 			col.columnName = "_hrk";
 			col.type = "string";
-			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, col.columnName)) {			// Add this column if it is not already in the table
-				GeneralUtilityMethods.addColumn(cResults, tableName, col.columnName, "text");
-			}
 		} else if(qName.equals("User") || qName.equals("_user")) {
 			col = new ExchangeColumn();
 			col.name = qName;
@@ -926,9 +915,6 @@ public class ExchangeManager {
 			col.name = qName;
 			col.columnName = SmapServerMeta.SCHEDULED_START_NAME;
 			col.type = "dateTime";
-			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, col.columnName)) {			// Add this column if it is not already in the table
-				GeneralUtilityMethods.addColumn(cResults, tableName, col.columnName, "timestamp with time zone");
-			}
 		} else if(qName.equals("Version") || qName.equals("_version")) {
 			col = new ExchangeColumn();
 			col.name = qName;
@@ -956,6 +942,21 @@ public class ExchangeManager {
 			col.name = qName;
 			col.columnName = geomColumnName + "_acc";
 			col.type = "decimal";
+		} else if(qName.equals("_alert")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = "_alert";
+			col.type = "string";
+		} else if(qName.equals("_thread_created")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = "_thread_created";
+			col.type = "dateTime";
+		} else if(qName.equals("_case_closed")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = "_case_closed";
+			col.type = "dateTime";
 		} else {
 			pstmtGetCol.setString(2, qName.toLowerCase());		// Search for a question
 			ResultSet rs = pstmtGetCol.executeQuery();
