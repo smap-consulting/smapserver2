@@ -342,13 +342,50 @@ public class CaseManager {
 	}
 	
 	public ArrayList<CaseCount> getOpenClosed(Connection sd, Connection cResults,
-			String sIdent, String interval, int intervalCount, String aggregationInterval) {
+			String sIdent, String interval, int intervalCount, String aggregationInterval) throws SQLException {
 		
 		String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
-		StringBuilder sql = new StringBuilder("select count(*) as opened, extract(DOY from _thread_created) as day,  from ")
+		
+		StringBuilder cte = new StringBuilder("with days as (select generate_series(")
+				.append("date_trunc('day', now()) - '").append(intervalCount).append(" day'::interval,")
+				.append("date_trunc('day', now()),")
+				.append("'1 day'::interval")
+				.append(") as day) ");
+		
+		StringBuilder sqlOpened = new StringBuilder("select days.day, count(")
+				.append(table).append(".prikey) as opened from days left join ")
 				.append(table)
-				.append(" ");
+				.append(" on date_trunc('day', _thread_created) = days.day ")
+				.append("group by 1 order by 1 asc");
+		
+		StringBuilder sqlClosed = new StringBuilder("select days.day, count(")
+				.append(table).append(".prikey) as closed from days left join ")
+				.append(table)
+				.append(" on date_trunc('day', _case_closed) = days.day ")
+				.append("group by 1 order by 1 asc");
+		
 		ArrayList<CaseCount> cc = new ArrayList<>();
+		
+		PreparedStatement pstmtOpened = null;
+		PreparedStatement pstmtClosed = null;
+		
+		try {
+		
+			pstmtOpened = cResults.prepareStatement(cte.toString() + sqlOpened.toString());
+			pstmtClosed = cResults.prepareStatement(cte.toString() + sqlClosed.toString());
+			
+			ResultSet rs = pstmtOpened.executeQuery();
+			ResultSet rsc = pstmtClosed.executeQuery();
+			while(rs.next()) {
+				rsc.next();
+				String day = rs.getString(1);
+				String [] dayComp = day.split(" ");
+				cc.add(new CaseCount(dayComp[0], rs.getInt(2), rsc.getInt(2)));
+			}
+		} finally {
+			if(pstmtOpened != null) {try {pstmtOpened.close();} catch(Exception e) {}}
+			if(pstmtClosed != null) {try {pstmtClosed.close();} catch(Exception e) {}}
+		}
 		return cc;
 	}
 }

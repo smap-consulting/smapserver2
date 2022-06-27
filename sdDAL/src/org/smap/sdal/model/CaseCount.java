@@ -1,9 +1,13 @@
 package org.smap.sdal.model;
 
 public class CaseCount {
-	public String hour;
 	public String day;
-	public String week;
-	public int open;
+	public int opened;
 	public int closed;
+	
+	public CaseCount(String day, int opened, int closed) {
+		this.day = day;
+		this.opened = opened;
+		this.closed = closed;
+	}
 }

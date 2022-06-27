@@ -41,6 +41,10 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.UserLocationManager;
+import org.smap.sdal.model.CaseCount;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 /*
  * Provides access to statistics on cases
@@ -66,12 +70,12 @@ public class Cases extends Application {
 	 * Returns counts of created and closed cases over time
 	 */
 	@GET
-	@Path("/progress/{sident}")
+	@Path("/progress/{sIdent}")
 	@Produces("application/json")
 	public Response getOpenClosed(@Context HttpServletRequest request,
 			@PathParam("sIdent") String sIdent,				// Any survey in the survey bundle
 			@QueryParam("interval") String interval,		// hour, day, week
-			@QueryParam("intevalCount") int intervalCount,
+			@QueryParam("intervalCount") int intervalCount,
 			@QueryParam("aggregationInterval") String aggregationInterval,	// hour, day, week
 			@QueryParam("tz") String tz) { 
 
@@ -100,7 +104,10 @@ public class Cases extends Application {
 			aggregationInterval = "day";
 
 			CaseManager cm = new CaseManager(localisation);
-			cm.getOpenClosed(sd, cResults, sIdent, interval, intervalCount, aggregationInterval);
+			ArrayList<CaseCount> cc = cm.getOpenClosed(sd, cResults, sIdent, interval, intervalCount, aggregationInterval);
+			
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+			response = Response.ok(gson.toJson(cc)).build();
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
