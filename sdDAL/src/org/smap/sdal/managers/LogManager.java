@@ -119,17 +119,21 @@ public class LogManager {
 			if(oId <= 0) {
 				 oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 			}
-			pstmt = sd.prepareStatement(sql);	
-			pstmt.setInt(1, sId);
-			pstmt.setInt(2, oId);
-			pstmt.setInt(3, oId);
-			pstmt.setString(4, uIdent);
-			pstmt.setString(5,  event);
-			pstmt.setString(6,  note);
-			pstmt.setInt(7, measure);
-			pstmt.setString(8,  server);
-			
-			pstmt.executeUpdate();
+			if(oId > 0) {
+				pstmt = sd.prepareStatement(sql);	
+				pstmt.setInt(1, sId);
+				pstmt.setInt(2, oId);
+				pstmt.setInt(3, oId);
+				pstmt.setString(4, uIdent);
+				pstmt.setString(5,  event);
+				pstmt.setString(6,  note);
+				pstmt.setInt(7, measure);
+				pstmt.setString(8,  server);
+				
+				pstmt.executeUpdate();
+			} else {
+				log.info("Error: Attempting to write log entry without a valid organisation");
+			}
 
 
 		} catch(Exception e) {
