@@ -144,56 +144,6 @@ public class LogManager {
 	}
 	
 	/*
-	 * write log without server
-	 * Deprecate
-	 *
-	public void writeLog(
-			Connection sd, 
-			int sId,
-			String uIdent,
-			String event,
-			String note,
-			int measure)  {
-		
-		String sql = "insert into log ("
-				+ "log_time,"
-				+ "s_id,"
-				+ "o_id,"
-				+ "e_id,"
-				+ "user_ident,"
-				+ "event,"
-				+ "note,"
-				+ "measure) values (now(), ?, ?, (select e_id from organisation where id = ?), ?, ?, ?, ?);";
-
-		PreparedStatement pstmt = null;
-		
-		try {
-			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, uIdent);
-			if(oId <= 0) {
-				 oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
-			}
-			pstmt = sd.prepareStatement(sql);	
-			pstmt.setInt(1, sId);
-			pstmt.setInt(2, oId);
-			pstmt.setInt(3, oId);
-			pstmt.setString(4, uIdent);
-			pstmt.setString(5,  event);
-			pstmt.setString(6,  note);
-			pstmt.setInt(7, measure);
-			
-			pstmt.executeUpdate();
-
-
-		} catch(Exception e) {
-			log.log(Level.SEVERE, "SQL Error", e);
-		} finally {
-			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
-		}
-	}
-	*/
-	
-	/*
 	 * Write a log entry at the organisation level
 	 */
 	public void writeLogOrganisation(
