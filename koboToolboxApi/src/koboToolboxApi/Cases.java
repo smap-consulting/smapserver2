@@ -70,21 +70,22 @@ public class Cases extends Application {
 	 * Returns counts of created and closed cases over time
 	 */
 	@GET
-	@Path("/progress/{sIdent}")
+	@Path("/progress/{sId}")
 	@Produces("application/json")
 	public Response getOpenClosed(@Context HttpServletRequest request,
-			@PathParam("sIdent") String sIdent,				// Any survey in the survey bundle
+			@PathParam("sId") int sId,						// Any survey in the survey bundle
 			@QueryParam("interval") String interval,		// hour, day, week
 			@QueryParam("intervalCount") int intervalCount,
 			@QueryParam("aggregationInterval") String aggregationInterval,	// hour, day, week
 			@QueryParam("tz") String tz) { 
 
 		Response response = null;
-		String connectionString = "API - getOpenClosed";
+		String connectionString = "API - getOpenClosedCases";
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, false);
 		
 		tz = (tz == null) ? "UTC" : tz;
 		
@@ -104,6 +105,7 @@ public class Cases extends Application {
 			aggregationInterval = "day";
 
 			CaseManager cm = new CaseManager(localisation);
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			ArrayList<CaseCount> cc = cm.getOpenClosed(sd, cResults, sIdent, interval, intervalCount, aggregationInterval);
 			
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
