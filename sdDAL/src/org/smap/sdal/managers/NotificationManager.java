@@ -386,7 +386,7 @@ public class NotificationManager {
 
 		types.add("email");
 		types.add("webhook");
-		types.add("forward");
+		//types.add("forward");
 		types.add("escalate");
 
 		boolean awsSMS = false;
