@@ -366,25 +366,28 @@ public class CaseManager {
 		
 		ArrayList<CaseCount> cc = new ArrayList<>();
 		
-		PreparedStatement pstmtOpened = null;
-		PreparedStatement pstmtClosed = null;
-		
-		try {
-		
-			pstmtOpened = cResults.prepareStatement(cte.toString() + sqlOpened.toString());
-			pstmtClosed = cResults.prepareStatement(cte.toString() + sqlClosed.toString());
+		if(table != null) {
+			PreparedStatement pstmtOpened = null;
+			PreparedStatement pstmtClosed = null;
 			
-			ResultSet rs = pstmtOpened.executeQuery();
-			ResultSet rsc = pstmtClosed.executeQuery();
-			while(rs.next()) {
-				rsc.next();
-				String day = rs.getString(1);
-				String [] dayComp = day.split(" ");
-				cc.add(new CaseCount(dayComp[0], rs.getInt(2), rsc.getInt(2)));
+			try {
+			
+				pstmtOpened = cResults.prepareStatement(cte.toString() + sqlOpened.toString());
+				pstmtClosed = cResults.prepareStatement(cte.toString() + sqlClosed.toString());
+				log.info("Open: " + pstmtOpened.toString());
+				log.info("Closed: " + pstmtOpened.toString());
+				ResultSet rs = pstmtOpened.executeQuery();
+				ResultSet rsc = pstmtClosed.executeQuery();
+				while(rs.next()) {
+					rsc.next();
+					String day = rs.getString(1);
+					String [] dayComp = day.split(" ");
+					cc.add(new CaseCount(dayComp[0], rs.getInt(2), rsc.getInt(2)));
+				}
+			} finally {
+				if(pstmtOpened != null) {try {pstmtOpened.close();} catch(Exception e) {}}
+				if(pstmtClosed != null) {try {pstmtClosed.close();} catch(Exception e) {}}
 			}
-		} finally {
-			if(pstmtOpened != null) {try {pstmtOpened.close();} catch(Exception e) {}}
-			if(pstmtClosed != null) {try {pstmtClosed.close();} catch(Exception e) {}}
 		}
 		return cc;
 	}
