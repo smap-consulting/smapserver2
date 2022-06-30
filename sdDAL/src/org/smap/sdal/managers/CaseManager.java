@@ -375,7 +375,7 @@ public class CaseManager {
 				pstmtOpened = cResults.prepareStatement(cte.toString() + sqlOpened.toString());
 				pstmtClosed = cResults.prepareStatement(cte.toString() + sqlClosed.toString());
 				log.info("Open: " + pstmtOpened.toString());
-				log.info("Closed: " + pstmtOpened.toString());
+				log.info("Closed: " + pstmtClosed.toString());
 				ResultSet rs = pstmtOpened.executeQuery();
 				ResultSet rsc = pstmtClosed.executeQuery();
 				while(rs.next()) {
