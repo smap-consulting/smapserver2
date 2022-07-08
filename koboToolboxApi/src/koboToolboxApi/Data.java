@@ -182,7 +182,7 @@ public class Data extends Application {
 			@QueryParam("key") String key,				// Unique key (optional, use to restrict records to a specific key - same as hrk)
 			@QueryParam("format") String format,			// dt for datatables otherwise assume kobo
 			@QueryParam("bad") String include_bad,		// yes | only | none Include records marked as bad
-			@QueryParam("completed") String include_completed,		// Uf yes return unassigned records that have the final status
+			@QueryParam("completed") String include_completed,		// If yes return unassigned records that have the final status
 			@QueryParam("audit") String audit_set,		// if yes return audit data
 			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
 			@QueryParam("tz") String tz,					// Timezone

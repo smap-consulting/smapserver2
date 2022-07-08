@@ -23,7 +23,12 @@ import java.util.ArrayList;
 
 public class ChartDefn {
 	public String title;
+	
+	public String subject;
 	public String chart_type;
+	public String label;
+	public String color;
+	
 	public String group;
 	public String fn;
 	public boolean tSeries;
