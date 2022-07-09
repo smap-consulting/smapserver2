@@ -925,7 +925,6 @@ public class Data extends Application {
 						 * Remove the settings not used by the client
 						 */
 						ssd.columnSettings = null;
-						ssd.charts = null;
 						ssd.layers = null;
 						outWriter.print(gson.toJson(ssd));
 					}
