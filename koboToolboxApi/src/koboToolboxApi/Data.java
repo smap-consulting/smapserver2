@@ -918,16 +918,14 @@ public class Data extends Application {
 					outWriter.print(gson.toJson(sv));		// Add the survey view
 					
 					// 3. Add the survey settings to the results
-					if(getSettings) {
-						outWriter.print(",\"settings\":");
-						/*
-						 * Setting values get applied to the schema with the exception of a few parameters
-						 * Remove the settings not used by the client
-						 */
-						ssd.columnSettings = null;
-						ssd.layers = null;
-						outWriter.print(gson.toJson(ssd));
-					}
+					outWriter.print(",\"settings\":");
+					/*
+					 * Setting values get applied to the schema with the exception of a few parameters
+					 * Remove the settings not used by the client
+					 */
+					ssd.columnSettings = null;
+					ssd.layers = null;
+					outWriter.print(gson.toJson(ssd));
 					
 					// 4. Add totals to the results
 					outWriter.print(",\"totals\":");
