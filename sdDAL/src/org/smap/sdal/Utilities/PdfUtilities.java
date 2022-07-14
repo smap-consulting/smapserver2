@@ -16,12 +16,17 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -51,6 +56,8 @@ import org.smap.sdal.model.TrafficLightValues;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
 
+import com.github.binodnme.dateconverter.converter.DateConverter;
+import com.github.binodnme.dateconverter.utils.DateBS;
 import com.itextpdf.text.Anchor;
 import com.itextpdf.text.BadElementException;
 import com.itextpdf.text.BaseColor;
@@ -908,6 +915,75 @@ public class PdfUtilities {
 			question.type = r.type;
 		}
 		return question;
+	}
+	
+	public static String getDateValue(DisplayItem di, String tz, String inValue) throws ParseException {
+		
+		DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		DateFormat dfDateOnly = new SimpleDateFormat("yyyy-MM-dd");
+		
+		String value = "";
+		Date date;
+		String utcValue = inValue;
+		if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
+			df.setTimeZone(TimeZone.getTimeZone("UTC"));
+			date = df.parse(inValue);
+			df.setTimeZone(TimeZone.getTimeZone(tz));
+			value = df.format(date);
+		} else {
+			dfDateOnly.setTimeZone(TimeZone.getTimeZone("UTC"));
+			date = dfDateOnly.parse(inValue);
+			dfDateOnly.setTimeZone(TimeZone.getTimeZone(tz));
+			value = dfDateOnly.format(date);
+		}
+		
+		log.info("Convert date to local time: " + di.name + " : " + inValue + " : " + " : " + value + " : " + di.type + " : " + tz);
+		
+		// If Bikram Sambat date output is required convert  
+		if(di.bs) {
+
+			Date nepalDate;
+			
+			log.info("utc value: " + utcValue);
+			
+			
+			if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
+				df.setTimeZone(TimeZone.getTimeZone("UTC"));
+				date = df.parse(utcValue);
+				df.setTimeZone(TimeZone.getTimeZone(tz));
+				value = df.format(date);
+				log.info("xxxxxxxxx: " + value);
+				df.setTimeZone(TimeZone.getTimeZone("UTC"));
+				nepalDate = df.parse(value);
+			} else {	
+				dfDateOnly.setTimeZone(TimeZone.getTimeZone("UTC"));
+				date = dfDateOnly.parse(utcValue);
+				date.setHours(12);
+				nepalDate = date;
+			} 		
+				
+			log.info("Value: " + value);
+			
+			StringBuilder bsValue = new StringBuilder("");
+			DateBS dateBS = DateConverter.convertADToBS(nepalDate);  //returns corresponding DateBS
+			
+			bsValue.append(dateBS.getYear())
+			.append("/")
+			.append(dateBS.getMonth() + 1)
+			.append("/")
+			.append(dateBS.getDay());
+			
+			if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
+				String [] components = value.split(" ");
+				if(components.length > 1) {
+					bsValue.append(" ")
+					.append(components[1]);
+				}				
+			} 
+
+			value = bsValue.toString();
+		}
+		return value;
 	}
 	
 	/*

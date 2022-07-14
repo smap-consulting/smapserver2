@@ -583,31 +583,8 @@ public class PDFSurveyManager {
 
 			} else if(r.type.equals("dateTime") || r.type.equals("timestamp")) {
 
-				value = null;
-				if(r.value != null) {
-					// Convert date to local time
-					try {
-						DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-						df.setTimeZone(TimeZone.getTimeZone("UTC"));
-						Date date = df.parse(r.value);					
-						df.setTimeZone(TimeZone.getTimeZone(tz));
-						value = df.format(date);
-					} catch (Exception e) {
-						// Try alternate date format
-						try {
-							DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-							df.setTimeZone(TimeZone.getTimeZone("UTC"));
-							Date date = df.parse(r.value);					
-							df.setTimeZone(TimeZone.getTimeZone(tz));
-							value = df.format(date);
-						} catch (Exception ex) {
-							log.log(Level.SEVERE, e.getMessage(), e);
-						}				
-
-					}
-					log.info("Convert date to local time (template): " + r.name + " : " + r.value + " : " + " : " + value + " : " + r.type + " : " + tz);
-				}
-
+				value = PdfUtilities.getDateValue(di, tz, r.value);
+				
 
 			} else if(di.tsep && (r.type.equals("int") || (r.type.equals("string") && r.value != null && !r.value.contains(".")))) {
 				long iValue = 0;
@@ -1748,8 +1725,6 @@ public class PDFSurveyManager {
 			String startGeopointValue
 			) throws Exception {
 
-		DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		DateFormat dfDateOnly = new SimpleDateFormat("yyyy-MM-dd");
 
 		// Questions that append their values to this question
 		ArrayList<String> deps = gv.addToList.get(di.fIdx + "_" + di.rec_number + "_" + di.name);
@@ -1926,66 +1901,9 @@ public class PDFSurveyManager {
 				}
 
 				if(di.type.equals("dateTime") || di.type.equals("timestamp") || di.type.equals("date")) {		// Set date time to local time				
-					Date date;
-					String utcValue = di.value;
-					if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
-						df.setTimeZone(TimeZone.getTimeZone("UTC"));
-						date = df.parse(di.value);
-						df.setTimeZone(TimeZone.getTimeZone(tz));
-						value = df.format(date);
-					} else {
-						dfDateOnly.setTimeZone(TimeZone.getTimeZone("UTC"));
-						date = dfDateOnly.parse(di.value);
-						dfDateOnly.setTimeZone(TimeZone.getTimeZone(tz));
-						value = dfDateOnly.format(date);
-					}
 					
-					log.info("Convert date to local time: " + di.name + " : " + di.value + " : " + " : " + value + " : " + di.type + " : " + tz);
+					value = PdfUtilities.getDateValue(di, tz, di.value);
 					
-					// If Bikram Sambat date output is required convert  
-					if(di.bs) {
-
-						Date nepalDate;
-						
-						log.info("utc value: " + utcValue);
-						
-						
-						if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
-							df.setTimeZone(TimeZone.getTimeZone("UTC"));
-							date = df.parse(utcValue);
-							df.setTimeZone(TimeZone.getTimeZone(tz));
-							value = df.format(date);
-							log.info("xxxxxxxxx: " + value);
-							df.setTimeZone(TimeZone.getTimeZone("UTC"));
-							nepalDate = df.parse(value);
-						} else {	
-							dfDateOnly.setTimeZone(TimeZone.getTimeZone("UTC"));
-							date = dfDateOnly.parse(utcValue);
-							date.setHours(12);
-							nepalDate = date;
-						} 		
-							
-						log.info("Value: " + value);
-						
-						StringBuilder bsValue = new StringBuilder("");
-						DateBS dateBS = DateConverter.convertADToBS(nepalDate);  //returns corresponding DateBS
-						
-						bsValue.append(dateBS.getYear())
-						.append("/")
-						.append(dateBS.getMonth() + 1)
-						.append("/")
-						.append(dateBS.getDay());
-						
-						if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
-							String [] components = value.split(" ");
-							if(components.length > 1) {
-								bsValue.append(" ")
-								.append(components[1]);
-							}				
-						} 
-
-						value = bsValue.toString();
-					}
 
 				} else {
 					value = di.value;
