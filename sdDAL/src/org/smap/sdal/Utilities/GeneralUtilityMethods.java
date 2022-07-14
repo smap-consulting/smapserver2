@@ -6270,7 +6270,7 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Method to lock a record out to a user
-	 */
+	 *
 	public static int lockRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
 
 		int count = 0;
@@ -6290,33 +6290,58 @@ public class GeneralUtilityMethods {
 		}
 		
 		return count;
-	}
+	}*/
 	
 	/*
 	 * Method to assign a record to a user
 	 */
-	public static int assignRecord(Connection sd, Connection cResults, String tablename, String instanceId, String user) throws SQLException {
+	public static int assignRecord(Connection sd, Connection cResults, ResourceBundle localisation, String tablename, String instanceId, String user, 
+			String type					// lock || release || assign
+			) throws SQLException {
 
 		int count = 0;
 		
-		String sql = "update " 
-				+ tablename 
-				+ " set _assigned = ? "
-				+ "where instanceid = ? ";
+		StringBuilder sql = new StringBuilder("update ") 
+				.append(tablename) 
+				.append(" set _assigned = ? ")
+				.append("where instanceid = ? ");
 
 		if(user != null && user.equals("_none")) {
 			user = null;
+		}
+		
+		String assignTo = user;
+		String details = null;
+		if(type.equals("lock")) {
+			sql.append("and _assigned is null");		// User can only self assign if no one else is assigned
+			details = localisation.getString("cm_lock");
+		} else if(type.equals("release")) {
+			assignTo = null;
+			sql.append("and _assigned = ?");			// User can only release records that they are assigned to
+			details = localisation.getString("cm_release");
+		} else {
+			if(user != null) {
+				details = localisation.getString("assignee_ident");
+			} else {
+				details = localisation.getString("cm_ua");
+			}
 		}
 		
 		if(!hasColumn(cResults, tablename, SurveyViewManager.ASSIGNED_COLUMN)) {
 			addColumn(cResults, tablename, SurveyViewManager.ASSIGNED_COLUMN, "text");
 		}
 		
-		PreparedStatement pstmt = cResults.prepareStatement(sql);
-		pstmt.setString(1, user);
+		PreparedStatement pstmt = cResults.prepareStatement(sql.toString());
+		pstmt.setString(1, assignTo);
 		pstmt.setString(2,instanceId);
-		log.info("locking record: " + pstmt.toString());
+		if(type.equals("release")) {
+			pstmt.setString(3,user);
+		}
+		log.info("Assign record: " + pstmt.toString());
 		
+		/*
+		 * Write the event before applying the update so that an alert can be sent to the previously assigned user
+		 */
 		RecordEventManager rem = new RecordEventManager();
 		rem.writeEvent(
 				sd, 
@@ -6329,7 +6354,7 @@ public class GeneralUtilityMethods {
 				null,				// Change object
 				null,	// Task Object
 				null,				// Notification object
-				"Task created", 
+				details, 
 				0,				// sId (don't care legacy)
 				null,
 				0,				// Don't need task id if we have an assignment id
@@ -6347,7 +6372,7 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Method to release a record 
-	 */
+	 *
 	public static int releaseRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
 
 		int count = 0;
@@ -6367,7 +6392,7 @@ public class GeneralUtilityMethods {
 		
 		return count;
 		
-	}
+	}*/
 	
 	/*
 	 * Method to check for presence of the specified column in a specific schema
@@ -8422,7 +8447,7 @@ public class GeneralUtilityMethods {
 		String sqlCopyThreadCol = "update " + table 
 						+ " set _thread = (select _thread from " + table + " where prikey = ?),"
 						+ " _assigned = (select _assigned from " + table + " where prikey = ?), "
-						+ " _thread_created = (select _thread_created from " + table + " where prikey = ?) "
+						+ " _thread_created = (select _thread_created from " + table + " where prikey = ?), "
 						+ " _alert = (select _alert from " + table + " where prikey = ?) "
 						+ "where prikey = ?";
 		PreparedStatement pstmtCopyThreadCol = null;
@@ -8449,7 +8474,7 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Add the thread value that links replaced records
-	 * Either get the thread key using the sourceKey or if that is not set use the passed in instanceId directly
+	 * This function should be removed and initialisation happen on record creation
 	 */
 	public static void initialiseThread(Connection cResults, String table) throws SQLException {
 		
@@ -8466,6 +8491,10 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmtInitThreadCol2 = null;
 			
 		try {
+			/*
+			 * New tables should have these columns added automatically
+			 * Remove by end 2022
+			 */
 			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_thread")) {
 				GeneralUtilityMethods.addColumn(cResults, table, "_thread", "text");		// Add the thread column
 			}
@@ -8479,6 +8508,9 @@ public class GeneralUtilityMethods {
 				GeneralUtilityMethods.addColumn(cResults, table, "_alert", "text");
 			}
 			
+			/*
+			 * TODO initialise these columns when the record is inserted
+			 */
 			// Initialise the thread column
 			pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
 			//log.info("Initialise Thread: " + pstmtInitThreadCol.toString());

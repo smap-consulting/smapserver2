@@ -148,12 +148,15 @@ public class RecordEventManager {
 			pstmt.executeUpdate();
 			
 			/*
-			 * Alert the user assigned to this record
+			 * Alert the user previously assigned to this record and the new user
 			 */
 			MessagingManager mm = new MessagingManager(null);	// Assume no messages will require localisation!
 			String assignedUser = GeneralUtilityMethods.getAssignedUser(cResults, tableName, key);
 			if(assignedUser != null) {
 				mm.userChange(sd, assignedUser);
+			}
+			if(user != null && (assignedUser == null || !assignedUser.equals(user))) {
+				mm.userChange(sd, user);
 			}
 			
 		} finally {

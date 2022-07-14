@@ -708,23 +708,23 @@ public class MyAssignments extends Application {
 				if(cases.size() > 0) {
 					if(tr.taskAssignments == null) {
 						tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
+					}
 						
-						for(Case c : cases) {
-							
-							// Convert to cases
-							TaskResponseAssignment ta = new TaskResponseAssignment();
-							ta.task = new TrTask();
-							ta.location = new TaskLocation();
-							ta.assignment = new TrAssignment();
-							
-							ta.task.form_id = survey.ident;
-							ta.task.update_id = c.instanceid;
-							ta.task.type = "case";
-							ta.task.title = c.title;
-							ta.assignment.assignment_status = TaskManager.STATUS_T_ACCEPTED;
-							
-							tr.taskAssignments.add(ta);
-						}
+					for(Case c : cases) {
+
+						// Convert to cases
+						TaskResponseAssignment ta = new TaskResponseAssignment();
+						ta.task = new TrTask();
+						ta.location = new TaskLocation();
+						ta.assignment = new TrAssignment();
+
+						ta.task.form_id = survey.ident;
+						ta.task.update_id = c.instanceid;
+						ta.task.type = "case";
+						ta.task.title = c.title;
+						ta.assignment.assignment_status = TaskManager.STATUS_T_ACCEPTED;
+						ta.assignment.assignment_id = 0;
+						tr.taskAssignments.add(ta);
 					}
 				}
 			}

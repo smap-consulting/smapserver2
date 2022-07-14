@@ -1302,7 +1302,7 @@ public class SubscriberBatch {
 			
 			// 1. Get case management alerts 
 			pstmt = sd.prepareStatement(sql);
-			log.info("Get case management alerts: " + pstmt.toString());
+
 			ResultSet rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
@@ -1369,7 +1369,6 @@ public class SubscriberBatch {
 						pstmtMatches.setString(idx++, table);
 						pstmtMatches.setInt(idx++, aId);
 						pstmtMatches.setString(idx++, period);
-						log.info("Find matchng records: " + pstmtMatches.toString());
 						ResultSet mrs = pstmtMatches.executeQuery();
 						
 						while(mrs.next()) {
@@ -1380,6 +1379,8 @@ public class SubscriberBatch {
 							/*
 							 * Record the triggering of the alert
 							 */
+							String details = localisation.getString("cm_alert");
+							details = details.replace("%s1", alertName);
 							RecordEventManager rem = new RecordEventManager();
 							rem.writeEvent(
 									sd, 
@@ -1392,7 +1393,7 @@ public class SubscriberBatch {
 									null,				// Change object
 									null,				// Task Object
 									null,				// Notification object
-									"Alerted", 
+									details, 
 									0,					// sId (don't care legacy)
 									groupSurveyIdent,
 									0,					// Don't need task id if we have an assignment id

@@ -386,7 +386,7 @@ public class NotificationManager {
 
 		types.add("email");
 		types.add("webhook");
-		types.add("forward");
+		//types.add("forward");
 		types.add("escalate");
 
 		boolean awsSMS = false;
@@ -1160,7 +1160,7 @@ public class NotificationManager {
 
 					try {
 						String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
-						int count = GeneralUtilityMethods.assignRecord(sd, cResults, tableName, msg.instanceId, msg.remoteUser);
+						int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, msg.remoteUser, "assign");
 						if(count == 0) {
 							status = "error";
 							error_details = "case not found, attempting: " + notify_details;
