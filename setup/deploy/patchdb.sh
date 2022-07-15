@@ -19,8 +19,12 @@ u1404=`lsb_release -r | grep -c "14\.04"`
 u1604=`lsb_release -r | grep -c "16\.04"`
 u1804=`lsb_release -r | grep -c "18\.04"`
 u2004=`lsb_release -r | grep -c "20\.04"`
+u2204=`lsb_release -r | grep -c "22\.04"`
 
-if [ $u2004 -eq 1 ]; then
+if [ $u2204 -eq 1 ]; then
+    TOMCAT_VERSION=tomcat9
+    TOMCAT_USER=tomcat
+elif [ $u2004 -eq 1 ]; then
     TOMCAT_VERSION=tomcat9
     TOMCAT_USER=tomcat
 elif [ $u1804 -eq 1 ]; then
@@ -57,17 +61,17 @@ echo "Current Smap Version is $version"
 if [ $version -lt "1908" ]
 then
 echo "applying pre 1909 patches to survey_definitions"
-sudo -u postgres $PSQL -f ./sd_pre_1908.sql -q -d survey_definitions 2>&1 | grep -v "already exists" | grep -v "duplicate key" | grep -vi "addgeometrycolumn" | grep -v "implicit index" | grep -v "skipping" | grep -v "is duplicated" | grep -v "create unique index" | grep -v CONTEXT
+cat ./sd_pre_1908.sql | sudo -i -u postgres $PSQL -q -d survey_definitions 2>&1 | grep -v "already exists" | grep -v "duplicate key" | grep -vi "addgeometrycolumn" | grep -v "implicit index" | grep -v "skipping" | grep -v "is duplicated" | grep -v "create unique index" | grep -v CONTEXT
 fi
 
 echo "applying new patches to survey_definitions"
-sudo -u postgres $PSQL -f ./sd.sql -q -d survey_definitions 2>&1 | grep -v "already exists" | grep -v "duplicate key" | grep -vi "addgeometrycolumn" | grep -v "implicit index" | grep -v "skipping" | grep -v "is duplicated" | grep -v "create unique index" | grep -v CONTEXT | grep -v "does not exist"
+cat ./sd.sql | sudo -i -u postgres $PSQL -q -d survey_definitions 2>&1 | grep -v "already exists" | grep -v "duplicate key" | grep -vi "addgeometrycolumn" | grep -v "implicit index" | grep -v "skipping" | grep -v "is duplicated" | grep -v "create unique index" | grep -v CONTEXT | grep -v "does not exist"
 
 echo "applying patches to results"
-sudo -u postgres $PSQL -f ./results.sql -q -d results 2>&1 | grep -v "already exists"
+cat ./results.sql | sudo -i -u postgres $PSQL -q -d results 2>&1 | grep -v "already exists"
 
 echo "Archiving records in survey_definitions"
-sudo -u postgres $PSQL -f ./archive.sql -q -d survey_definitions 2>&1 
+cat ./archive.sql | sudo -i -u postgres $PSQL -q -d survey_definitions 2>&1 
 
 # Version 14.02
 if [ $version -lt "1402" ]
@@ -277,7 +281,9 @@ fi
 # Copy the new apache configuration files and tomcat directory access
 # Copy aws credentials
 
-if [ $u2004 -eq 1 ]; then
+if [ $u2204 -eq 1 ]; then
+    sudo cp  $deploy_from/resources/properties/credentials /var/lib/$TOMCAT_VERSION/.aws
+elif [ $u2004 -eq 1 ]; then
     sudo cp  $deploy_from/resources/properties/credentials /var/lib/$TOMCAT_VERSION/.aws
 elif [ $u1804 -eq 1 ]; then
     sudo cp  $deploy_from/resources/properties/credentials /var/lib/$TOMCAT_VERSION/.aws
@@ -304,6 +310,9 @@ cd ../install
 chmod +x apacheConfig.sh
 ./apacheConfig.sh
 
+if [ $u2204 -eq 1 ]; then
+cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
+fi
 if [ $u2004 -eq 1 ]; then
 cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
 fi
@@ -313,8 +322,8 @@ cd ../deploy
 
 # Get the AWS language codes
 cp language_codes.csv /smap_bin
-echo "truncate language_codes" | sudo -u postgres $PSQL -d survey_definitions
-echo "\COPY language_codes (code, aws_translate, aws_transcribe, transcribe_default, transcribe_medical) FROM '/smap_bin/language_codes.csv' DELIMITER ',' CSV HEADER;" | sudo -u postgres $PSQL -d survey_definitions
+echo "truncate language_codes" | sudo -i -u postgres $PSQL -d survey_definitions
+echo "\COPY language_codes (code, aws_translate, aws_transcribe, transcribe_default, transcribe_medical) FROM '/smap_bin/language_codes.csv' DELIMITER ',' CSV HEADER;" | sudo -i -u postgres $PSQL -d survey_definitions
 
 
 # update version reference

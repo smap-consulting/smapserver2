@@ -102,29 +102,34 @@ echo '##### 5. Install Postgres / Postgis'
 # Skip this section if the database is remote
 if [ "$DBHOST" = "127.0.0.1" ]; then
 
-# Install Postgres for Ubuntu 20.04
-if [ $u2204 -eq 1 ]; then
-    echo 'installing postgres'
-    PGV=14
-    sudo apt-get install postgresql postgresql-contrib postgis -y
+    # Install Postgres for Ubuntu 20.04
+    if [ $u2204 -eq 1 ]; then
+        echo 'installing postgres'
+        PGV=14
+        sudo apt-get install postgresql postgresql-contrib postgis -y
+    fi
+
+    # Install Postgres for Ubuntu 20.04
+    if [ $u2004 -eq 1 ]; then
+        echo 'installing postgres'
+        PGV=12
+        sudo apt-get install postgresql postgresql-contrib postgis -y
+    fi
+
+    # Install Postgres for Ubuntu 18.04
+    if [ $u1804 -eq 1 ]; then
+        echo 'installing postgres'
+        PGV=10
+        sudo apt-get install postgresql postgresql-contrib postgis -y
+    fi
+
+    pg_conf="/etc/postgresql/$PGV/main/postgresql.conf"
+
+else
+    # Just install the psql client and create a postgres user
+    sudo useradd -s /bin/sh -d /home/postgres -m postgres
+    sudo apt-get install postgresql-client
 fi
-
-# Install Postgres for Ubuntu 20.04
-if [ $u2004 -eq 1 ]; then
-    echo 'installing postgres'
-    PGV=12
-    sudo apt-get install postgresql postgresql-contrib postgis -y
-fi
-
-# Install Postgres for Ubuntu 18.04
-if [ $u1804 -eq 1 ]; then
-    echo 'installing postgres'
-    PGV=10
-    sudo apt-get install postgresql postgresql-contrib postgis -y
-fi
-
-pg_conf="/etc/postgresql/$PGV/main/postgresql.conf"
-
 # End of conditional install
 
 echo "##### 6. Create folders for files in $filelocn"
@@ -266,27 +271,28 @@ else
 fi
 
 if [ "$DBHOST" = "127.0.0.1" ]; then
+
     echo '##### 9. Create user and databases'
     sudo service postgresql start
-    sudo -u postgres createuser -S -D -R ws
-    echo "alter user ws with password 'ws1234'" | sudo -u postgres psql
+    sudo -i -u postgres createuser -S -D -R ws
+    echo "alter user ws with password 'ws1234'" | sudo -i -u postgres psql
 
     echo '##### 10. Create $sd database'
 
     if [ "$force" = "force" ]
     then
-	echo "drop database $sd;" | sudo -u postgres psql
+	echo "drop database $sd;" | sudo -i -u postgres psql
     fi
 
-    sd_exists=`sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -w $sd | wc -l`
+    sd_exists=`sudo -i -u postgres psql -lqt | cut -d \| -f 1 | grep -w $sd | wc -l`
     if [ "$sd_exists"  = "0" ]
     then
         echo 'survey_definitions database does not exist'
-        sudo -u postgres createdb -E UTF8 -O ws $sd
-        echo "CREATE EXTENSION postgis;" | sudo -u postgres psql -d $sd 
-        echo "ALTER TABLE geometry_columns OWNER TO ws; ALTER TABLE spatial_ref_sys OWNER TO ws; ALTER TABLE geography_columns OWNER TO ws;" | sudo -u postgres psql -d $sd
-        sudo -u postgres psql -f setupDb.sql -d $sd | grep -v "does not exist, skipping"
-        else
+        sudo -i -u postgres createdb -E UTF8 -O ws $sd
+        echo "CREATE EXTENSION postgis;" | sudo -i -u postgres psql -d $sd 
+        echo "ALTER TABLE geometry_columns OWNER TO ws; ALTER TABLE spatial_ref_sys OWNER TO ws; ALTER TABLE geography_columns OWNER TO ws;" | sudo -i -u postgres psql -d $sd
+        cat setupDb.sql | sudo -i -u postgres psql -d $sd | grep -v "does not exist, skipping"
+    else
         echo "==================> $sd database already exists.  Apply patches if necessary, to upgrade it."
     fi
 
@@ -294,23 +300,24 @@ if [ "$DBHOST" = "127.0.0.1" ]; then
 
     if [ "$force" = "force" ]
     then
-	echo "drop database $results;" | sudo -u postgres psql
+	echo "drop database $results;" | sudo -i -u postgres psql
     fi
 
-    results_exists=`sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -w $results | wc -l`
+    results_exists=`sudo -i -u postgres psql -lqt | cut -d \| -f 1 | grep -w $results | wc -l`
     if [ "$results_exists"  = "0" ]
     then
         echo 'results database does not exist'
-        sudo -u postgres createdb -E UTF8 -O ws $results
+        sudo -i -u postgres createdb -E UTF8 -O ws $results
         echo "CREATE EXTENSION postgis;" | sudo -u postgres psql -d $results
-        sudo -u postgres echo "ALTER TABLE geometry_columns OWNER TO ws; ALTER TABLE spatial_ref_sys OWNER TO ws; ALTER TABLE geography_columns OWNER TO ws;" | sudo -u postgres psql -d $results
-        sudo -u postgres psql -f resultsDb.sql -d $results
+        sudo -i -u postgres echo "ALTER TABLE geometry_columns OWNER TO ws; ALTER TABLE spatial_ref_sys OWNER TO ws; ALTER TABLE geography_columns OWNER TO ws;" | sudo -i -u postgres psql -d $results
+        cat resultsDb.sql | sudo -i -u postgres psql -d $results
 
-        cd ../geospatial
-        echo '# adding countries shape files'
-        sudo -u postgres shp2pgsql -s 4326 -I world_countries_boundary_file_world_2002.shp | sudo -u postgres psql -d $results
-        sudo -u postgres echo "alter table world_countries_boundary_file_world_2002 owner to ws;" | sudo -u postgres psql -d $results
-        cd ../install
+# Boundary files can be created manually - remove from install
+#        cd ../geospatial
+#        echo '# adding countries shape files'
+#        sudo -i -u postgres shp2pgsql -s 4326 -I world_countries_boundary_file_world_2002.shp | sudo -u postgres psql -d $results
+#        sudo -i -u postgres echo "alter table world_countries_boundary_file_world_2002 owner to ws;" | sudo -u postgres psql -d $results
+#        cd ../install
 
     else
         echo "==================> $results database already exists.  Apply patches if necessary, to upgrade it."
