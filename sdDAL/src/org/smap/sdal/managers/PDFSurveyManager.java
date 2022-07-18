@@ -572,7 +572,7 @@ public class PDFSurveyManager {
 
 			} else if(r.type.equals("dateTime") || r.type.equals("timestamp")) {
 
-				value = PdfUtilities.getDateValue(di, tz, r.value);
+				value = PdfUtilities.getDateValue(di, tz, r.value, r.type);
 				
 
 			} else if(di.tsep && (r.type.equals("int") || (r.type.equals("string") && r.value != null && !r.value.contains(".")))) {
@@ -1891,7 +1891,7 @@ public class PDFSurveyManager {
 
 				if(di.type.equals("dateTime") || di.type.equals("timestamp") || di.type.equals("date")) {		// Set date time to local time				
 					
-					value = PdfUtilities.getDateValue(di, tz, di.value);
+					value = PdfUtilities.getDateValue(di, tz, di.value, di.type);
 					
 
 				} else {

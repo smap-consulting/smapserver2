@@ -917,7 +917,7 @@ public class PdfUtilities {
 		return question;
 	}
 	
-	public static String getDateValue(DisplayItem di, String tz, String inValue) throws ParseException {
+	public static String getDateValue(DisplayItem di, String tz, String inValue, String type) throws ParseException {
 		
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		DateFormat dfDateOnly = new SimpleDateFormat("yyyy-MM-dd");
@@ -925,7 +925,7 @@ public class PdfUtilities {
 		String value = "";
 		Date date;
 		String utcValue = inValue;
-		if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
+		if(type.equals("dateTime") || type.equals("timestamp")) {
 			df.setTimeZone(TimeZone.getTimeZone("UTC"));
 			date = df.parse(inValue);
 			df.setTimeZone(TimeZone.getTimeZone(tz));
@@ -937,8 +937,6 @@ public class PdfUtilities {
 			value = dfDateOnly.format(date);
 		}
 		
-		log.info("Convert date to local time: " + di.name + " : " + inValue + " : " + " : " + value + " : " + di.type + " : " + tz);
-		
 		// If Bikram Sambat date output is required convert  
 		if(di.bs) {
 
@@ -947,7 +945,7 @@ public class PdfUtilities {
 			log.info("utc value: " + utcValue);
 			
 			
-			if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
+			if(type.equals("dateTime") || type.equals("timestamp")) {
 				df.setTimeZone(TimeZone.getTimeZone("UTC"));
 				date = df.parse(utcValue);
 				df.setTimeZone(TimeZone.getTimeZone(tz));
@@ -973,7 +971,7 @@ public class PdfUtilities {
 			.append("/")
 			.append(dateBS.getDay());
 			
-			if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
+			if(type.equals("dateTime") || type.equals("timestamp")) {
 				String [] components = value.split(" ");
 				if(components.length > 1) {
 					bsValue.append(" ")
