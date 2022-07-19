@@ -3965,7 +3965,11 @@ public class GeneralUtilityMethods {
 							} else if(c.column_name.equals("_end")) {
 								c.displayName = localisation.getString("a_et");
 							} else {
-								c.displayName = mi.display_name;
+								if(mi.display_name != null) {
+									c.displayName = mi.display_name;
+								} else {
+									c.displayName = mi.name;
+								}
 							}
 							c.question_name = mi.name;
 							c.type = mi.type;
