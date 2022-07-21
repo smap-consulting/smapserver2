@@ -570,7 +570,7 @@ public class PDFSurveyManager {
 							survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident, false);
 				}
 
-			} else if(r.type.equals("dateTime") || r.type.equals("timestamp")) {
+			} else if(r.type.equals("dateTime") || r.type.equals("timestamp") || r.type.equals("date")) {
 
 				value = PdfUtilities.getDateValue(di, tz, r.value, r.type);
 				
