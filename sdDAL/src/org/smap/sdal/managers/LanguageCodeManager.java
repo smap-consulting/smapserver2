@@ -4,35 +4,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.mail.internet.InternetAddress;
-
-import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.Utilities.UtilityMethodsEmail;
-import org.smap.sdal.model.EmailServer;
-import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.LanguageCode;
-import org.smap.sdal.model.Mailout;
-import org.smap.sdal.model.MailoutLinks;
-import org.smap.sdal.model.MailoutMessage;
-import org.smap.sdal.model.MailoutPerson;
-import org.smap.sdal.model.MailoutPersonTotals;
-import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.SubscriptionStatus;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 /*****************************************************************************
 

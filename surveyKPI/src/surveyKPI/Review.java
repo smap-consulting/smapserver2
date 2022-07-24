@@ -172,29 +172,28 @@ public class Review extends Application {
 		PreparedStatement  pstmt = null;
 		PreparedStatement  pstmtTarget = null;
 
-		Connection dConnection = null;
-			
-		log.info("Other question id: " + targetQId);
+		Connection cResults = null;
 		
+		String connectionString = "surveyKPI-Review";
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Review");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aView.isAuthorised(connectionSD, request.getRemoteUser());
-		aView.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		aView.isAuthorised(sd, request.getRemoteUser());
+		aView.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
-		lm.writeLog(connectionSD, sId, request.getRemoteUser(), LogManager.VIEW, "Review of text data", 0, request.getServerName());
+		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "Review of text data", 0, request.getServerName());
 		
 		try {
 			// Localisation			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			dConnection = ResultsDataSource.getConnection("surveyKPI-Review");
+			cResults = ResultsDataSource.getConnection(connectionString);
 
 			if(sort != null) {
 				if(!sort.equals("asc") && !sort.equals("desc")) {
@@ -211,7 +210,7 @@ public class Review extends Application {
 			if(qId > 0) {
 				// Standard Question
 
-				pstmt = connectionSD.prepareStatement(sql);	
+				pstmt = sd.prepareStatement(sql);	
 				pstmt.setInt(1, qId);
 				log.info("Get question: " + pstmt.toString());
 				ResultSet resultSet = pstmt.executeQuery();
@@ -223,15 +222,15 @@ public class Review extends Application {
 				}
 			} else if(qId <= MetaItem.INITIAL_ID) {
 				// Meta question
-				MetaItem item = GeneralUtilityMethods.getPreloadDetails(connectionSD, sId, qId);
+				MetaItem item = GeneralUtilityMethods.getPreloadDetails(sd, sId, qId);
 				if(item != null) {
-					Form f = GeneralUtilityMethods.getTopLevelForm(connectionSD, sId);
+					Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 					table = f.tableName;
 					qtype = item.type;
 					name = item.columnName;
 				}
 			} else if(f_id > 0) {		
-				Form f = GeneralUtilityMethods.getForm(connectionSD, sId, f_id);
+				Form f = GeneralUtilityMethods.getForm(sd, sId, f_id);
 				table = f.tableName;
 				qtype = "int";
 				name = "prikey";
@@ -245,7 +244,7 @@ public class Review extends Application {
 							" and f.table_name = ?" +
 							" and q.q_id = ?";
 					
-					pstmtTarget = connectionSD.prepareStatement(sqlTarget);	
+					pstmtTarget = sd.prepareStatement(sqlTarget);	
 					pstmtTarget.setString(1, table);
 					pstmtTarget.setInt(2, targetQId);
 					log.info("Get question: " + pstmtTarget.toString());
@@ -258,9 +257,9 @@ public class Review extends Application {
 					
 				} else {
 					// Meta question
-					MetaItem item = GeneralUtilityMethods.getPreloadDetails(connectionSD, sId, targetQId);
+					MetaItem item = GeneralUtilityMethods.getPreloadDetails(sd, sId, targetQId);
 					if(item != null) {
-						Form f = GeneralUtilityMethods.getTopLevelForm(connectionSD, sId);
+						Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 						table = f.tableName;
 						qtype = item.type;
 						targetName = item.columnName;
@@ -290,7 +289,7 @@ public class Review extends Application {
 						" and " + name + " is not null " +
 						" group by " + name + targetN +
 						" order by " + name + targetN;
-				pstmt = dConnection.prepareStatement(sql);
+				pstmt = cResults.prepareStatement(sql);
 				log.info("Getting data for review: " + pstmt.toString());
 				ResultSet resultSet = pstmt.executeQuery();
 				
@@ -339,8 +338,8 @@ public class Review extends Application {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtTarget != null) {pstmtTarget.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Review", connectionSD);
-			ResultsDataSource.closeConnection("surveyKPI-Review", dConnection);
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
 		}
 
 		return response;
@@ -530,21 +529,22 @@ public class Review extends Application {
 	
 		Response response = null;
 		PreparedStatement  pstmt = null;
+		String connectionString = "surveyKPI-Review-Audit";
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Review");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
-		lm.writeLog(connectionSD, sId, request.getRemoteUser(), LogManager.VIEW, "Audit changes to text data", 0, request.getServerName());
+		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "Audit changes to text data", 0, request.getServerName());
 		
-		Connection dConnection = ResultsDataSource.getConnection("surveyKPI-Audit");
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		
 		try {
 
@@ -557,7 +557,7 @@ public class Review extends Application {
 					" order by id desc";
 	
 
-			pstmt = dConnection.prepareStatement(sql);
+			pstmt = cResults.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 			
 			log.info("Get change log: " + pstmt.toString());
@@ -595,8 +595,8 @@ public class Review extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Review", connectionSD);
-			ResultsDataSource.closeConnection("surveyKPI-Audit", dConnection);
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
 		}
 
 
@@ -1209,46 +1209,47 @@ public class Review extends Application {
 		PreparedStatement pstmtGetChangeHistory = null;
 		PreparedStatement pstmtGetLaterChangeset = null;
 
-		Connection dConnection = null;
+		String connectionString = "surveyKPI-Results-undo";
+		Connection cResults = null;
 				
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Results");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
 
 		
 		try {
-			dConnection = ResultsDataSource.getConnection("surveyKPI-ReviewResultsText");
+			cResults = ResultsDataSource.getConnection("surveyKPI-ReviewResultsText");
 			ArrayList<UpdateItem> uiList = new ArrayList<UpdateItem> ();
 			
 			/*
 			 * Prepare statements
 			 */
-			dConnection = ResultsDataSource.getConnection("surveyKPI-Review");
+			cResults = ResultsDataSource.getConnection(connectionString);
 			
 			String sqlGetUserName = "select name from users where ident = ?;";
-			pstmtGetUserName = connectionSD.prepareStatement(sqlGetUserName);
+			pstmtGetUserName = sd.prepareStatement(sqlGetUserName);
 			
 			String sqlUpdateChangeset = "update changeset set reversed_by_user = ?, reversed = 'true' " +
 					"where id = ? and s_id = ? and reversed = 'false'";
-			pstmtUpdateChangeset = dConnection.prepareStatement(sqlUpdateChangeset);
+			pstmtUpdateChangeset = cResults.prepareStatement(sqlUpdateChangeset);
 			
 			String sqlGetTable = "select f.table_name, q.qname, q.qtype from form f, question q " +
 					" where f.f_id = q.f_id" +
 					" and q.q_id = ?";
-			pstmtGetTable = connectionSD.prepareStatement(sqlGetTable);	
+			pstmtGetTable = sd.prepareStatement(sqlGetTable);	
 			
 			String sqlGetChangeHistory = "select q_id, r_id, old_value, new_value, qname, qtype, tablename, oname, question_column_name, option_column_name  " +
 					" from change_history " +
 					" where c_id = ?;";
-			pstmtGetChangeHistory = dConnection.prepareStatement(sqlGetChangeHistory);
+			pstmtGetChangeHistory = cResults.prepareStatement(sqlGetChangeHistory);
 			
 			String sqlGetLaterChangeset = "select cs.id " +
 					" from changeset cs, change_history ch " +
@@ -1257,7 +1258,7 @@ public class Review extends Application {
 					" and cs.reversed = 'false'" +
 					" and ch.q_id = ? " +
 					" and ch.r_id = ?;";
-			pstmtGetLaterChangeset = dConnection.prepareStatement(sqlGetLaterChangeset);
+			pstmtGetLaterChangeset = cResults.prepareStatement(sqlGetLaterChangeset);
 			
 			// Get the user id
 			pstmtGetUserName.setString(1, request.getRemoteUser());
@@ -1332,7 +1333,7 @@ public class Review extends Application {
 			applyUpdateItems (
 					csId,
 					uiList,
-					dConnection,
+					cResults,
 					pstmtData,
 					null
 					);
@@ -1342,7 +1343,7 @@ public class Review extends Application {
 		} catch (InvalidUndoException e) {
 			
 			if(!autoCommit) {
-				try { dConnection.rollback();} catch (Exception ex){}
+				try { cResults.rollback();} catch (Exception ex){}
 			}
 		    String msg = e.getMessage();
 		    log.info(msg);
@@ -1351,7 +1352,7 @@ public class Review extends Application {
 		} catch (ApplicationException e) {
 			
 			if(!autoCommit) {
-				try { dConnection.rollback();} catch (Exception ex){}
+				try { cResults.rollback();} catch (Exception ex){}
 			}
 			
 		    String msg = e.getMessage();
@@ -1361,7 +1362,7 @@ public class Review extends Application {
 		} catch (SQLException e) {
 			
 			if(!autoCommit) {
-				try { dConnection.rollback();} catch (Exception ex){}
+				try { cResults.rollback();} catch (Exception ex){}
 			}
 		    log.log(Level.SEVERE,"Exception", e);
 		    String msg = e.getMessage();
@@ -1372,7 +1373,7 @@ public class Review extends Application {
 		} catch (Exception e) {
 			
 			if(!autoCommit) {
-				try { dConnection.rollback();} catch (Exception ex) {}
+				try { cResults.rollback();} catch (Exception ex) {}
 			}
 			
 			log.log(Level.SEVERE,"Exception", e);
@@ -1380,8 +1381,8 @@ public class Review extends Application {
 		
 		} finally {
 			
-			try {connectionSD.setAutoCommit(true);} catch (Exception e) {}	
-			try {dConnection.setAutoCommit(true);} catch (Exception e) {}
+			try {sd.setAutoCommit(true);} catch (Exception e) {}	
+			try {cResults.setAutoCommit(true);} catch (Exception e) {}
 			try {if (pstmtGetTable != null) {pstmtGetTable.close();}} catch (SQLException e) {}
 			try {if (pstmtData != null) {pstmtData.close();}} catch (SQLException e) {}
 			try {if (pstmtGetCurrentValue != null) {pstmtGetCurrentValue.close();}} catch (SQLException e) {}
@@ -1389,8 +1390,8 @@ public class Review extends Application {
 			try {if (pstmtGetUserName != null) {pstmtGetUserName.close();}} catch (SQLException e) {}
 			try {if (pstmtGetLaterChangeset != null) {pstmtGetLaterChangeset.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Results", connectionSD);
-			ResultsDataSource.closeConnection("surveyKPI-ReviewResultsText", dConnection);
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
 		}
 
 		return response;

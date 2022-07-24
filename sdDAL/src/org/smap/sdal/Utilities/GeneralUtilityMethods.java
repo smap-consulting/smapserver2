@@ -3715,9 +3715,8 @@ public class GeneralUtilityMethods {
 
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 		ArrayList<TableColumn> columnList = new ArrayList<TableColumn>();
-		ArrayList<TableColumn> realQuestions = new ArrayList<TableColumn>(); // Temporary array so that all property
-		// questions can be added first
-		boolean uptodateTable = false; // Set true if the results table has the latest meta data columns
+		ArrayList<TableColumn> realQuestions = new ArrayList<TableColumn>(); // Temporary array so that all property questions can be added first
+
 		TableColumn durationColumn = null;
 
 		// Get sensitive data restrictions
@@ -3793,6 +3792,7 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmtSelectChoices = sd.prepareStatement(sqlSelectMultiple);
 
 		updateUnPublished(sd, cResults, table_name, f_id, true);		// Ensure that all columns marked not published really are
+		ensureTableCurrent(cResults, table_name, formParent == 0);		// Ensure all meta columns are present
 		
 		TableColumn c = new TableColumn();
 		c.column_name = "prikey";
@@ -3801,42 +3801,25 @@ public class GeneralUtilityMethods {
 		c.question_name = "prikey";
 		if (includePrikey) {
 			columnList.add(c);
-		}
+		}	
 		
-		// Add assigned and alert if this is a management request
-		if(mgmt) {
-			// Make sure there is an _assigned column at the top level of the survey
-			// Don't add one if we are getting columns for a subform
-			if(formParent == 0) {
-				
-				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
-				}
-				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_alert")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "text");
-				}
-			
-				c = new TableColumn();
-				c.column_name = "_assigned";
-				c.displayName = "_assigned";
-				c.type = SmapQuestionTypes.STRING;
-				c.question_name = c.column_name;
-				columnList.add(c);
-				
-				c = new TableColumn();
-				c.column_name = "_alert";
-				c.displayName = "_alert";
-				c.type = SmapQuestionTypes.STRING;
-				c.question_name = c.column_name;
-				columnList.add(c);
-			}
+		// Add assigned if this is a management request
+		if(mgmt && formParent == 0) {
+
+			c = new TableColumn();
+			c.column_name = "_assigned";
+			c.displayName = localisation.getString("assignee_ident");
+			c.type = SmapQuestionTypes.STRING;
+			c.question_name = c.column_name;
+			columnList.add(c);
+
 		}
 
 		// Add HRK if it has been specified
-		if (includeOtherMeta && GeneralUtilityMethods.columnType(cResults, table_name, "_hrk") != null) {
+		if (includeOtherMeta) {
 			c = new TableColumn();
 			c.column_name = "_hrk";
-			c.displayName = "Key";
+			c.displayName = localisation.getString("cr_key");
 			c.type = SmapQuestionTypes.STRING;
 			c.question_name = c.column_name;
 			columnList.add(c);
@@ -3866,14 +3849,14 @@ public class GeneralUtilityMethods {
 		if (includeBad) {
 			c = new TableColumn();
 			c.column_name = "_bad";
-			c.displayName = "_bad";
+			c.displayName = localisation.getString("c_del");
 			c.type = SmapQuestionTypes.BOOLEAN;
 			c.question_name = c.column_name;
 			columnList.add(c);
 
 			c = new TableColumn();
 			c.column_name = "_bad_reason";
-			c.displayName = "_bad_reason";
+			c.displayName = localisation.getString("c_del_reason");
 			c.type = SmapQuestionTypes.STRING;
 			c.question_name = c.column_name;
 			columnList.add(c);
@@ -3890,82 +3873,85 @@ public class GeneralUtilityMethods {
 			c.question_name = c.column_name;
 			columnList.add(c);
 
-			if (GeneralUtilityMethods.columnType(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME) != null) {
-				uptodateTable = true; // This is the latest meta column that was added
-			}
+			c = new TableColumn();
+			c.column_name = "_alert";
+			c.displayName = localisation.getString("a_alert");
+			c.type = SmapQuestionTypes.STRING;
+			c.question_name = c.column_name;
+			columnList.add(c);
 
-			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, SmapServerMeta.UPLOAD_TIME_NAME) != null) {
+			c = new TableColumn();
+			c.column_name = "_thread_created";
+			c.displayName = localisation.getString("a_c_created");
+			c.type = SmapQuestionTypes.DATETIME;
+			c.question_name = c.column_name;
+			columnList.add(c);
 
-				c = new TableColumn();
-				c.column_name = SmapServerMeta.UPLOAD_TIME_NAME;
-				c.displayName = localisation.getString("a_ut");
-				c.type = SmapQuestionTypes.DATETIME;
-				c.isMeta = true;
-				c.question_name = c.column_name;
-				columnList.add(c);
-
-				c = new TableColumn();
-				c.column_name = SmapServerMeta.SURVEY_ID_NAME;
-				c.displayName = localisation.getString("a_name");
-				c.type = "";
-				c.isMeta = true;
-				c.question_name = c.column_name;
-				columnList.add(c);
-			}
-
-			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME) != null) {
-				c = new TableColumn();
-				c.column_name = SmapServerMeta.SCHEDULED_START_NAME;
-				c.displayName = SmapServerMeta.SCHEDULED_START_NAME;
-				c.type = SmapQuestionTypes.DATETIME;
-				c.isMeta = true;
-				columnList.add(c);
-			}
+			c = new TableColumn();
+			c.column_name = "_case_closed";
+			c.displayName = localisation.getString("a_cc");
+			c.type = SmapQuestionTypes.DATETIME;
+			c.question_name = c.column_name;
+			columnList.add(c);
 			
-			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_version") != null) {
-				c = new TableColumn();
-				c.column_name = "_version";
-				c.displayName = localisation.getString("a_v");
-				c.type = SmapQuestionTypes.STRING;
-				c.isMeta = true;
-				columnList.add(c);
-			}
 
-			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_complete") != null) {
-				c = new TableColumn();
-				c.column_name = "_complete";
-				c.displayName = localisation.getString("a_comp");
-				c.type = SmapQuestionTypes.BOOLEAN;
-				c.isMeta = true;
-				columnList.add(c);
-			}
+			c = new TableColumn();
+			c.column_name = SmapServerMeta.UPLOAD_TIME_NAME;
+			c.displayName = localisation.getString("a_ut");
+			c.type = SmapQuestionTypes.DATETIME;
+			c.isMeta = true;
+			c.question_name = c.column_name;
+			columnList.add(c);
 
-			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_survey_notes") != null) {
-				c = new TableColumn();
-				c.column_name = "_survey_notes";
-				c.displayName = localisation.getString("a_sn");
-				c.type = SmapQuestionTypes.STRING;
-				c.isMeta = true;
-				columnList.add(c);
-			}
-			
-			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_location_trigger") != null) {
-				c = new TableColumn();
-				c.column_name = "_location_trigger";
-				c.displayName = localisation.getString("a_lt");
-				c.type = SmapQuestionTypes.STRING;
-				c.isMeta = true;
-				columnList.add(c);
-			}
+			c = new TableColumn();
+			c.column_name = SmapServerMeta.SURVEY_ID_NAME;
+			c.displayName = localisation.getString("a_name");
+			c.type = "";
+			c.isMeta = true;
+			c.question_name = c.column_name;
+			columnList.add(c);
 
-			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "instancename") != null) {
-				c = new TableColumn();
-				c.column_name = "instancename";
-				c.displayName = localisation.getString("a_in");
-				c.type = SmapQuestionTypes.STRING;
-				c.isMeta = true;
-				columnList.add(c);
-			}
+			c = new TableColumn();
+			c.column_name = SmapServerMeta.SCHEDULED_START_NAME;
+			c.displayName = localisation.getString("a_ss");
+			c.type = SmapQuestionTypes.DATETIME;
+			c.isMeta = true;
+			columnList.add(c);
+
+			c = new TableColumn();
+			c.column_name = "_version";
+			c.displayName = localisation.getString("a_v");
+			c.type = SmapQuestionTypes.STRING;
+			c.isMeta = true;
+			columnList.add(c);
+
+			c = new TableColumn();
+			c.column_name = "_complete";
+			c.displayName = localisation.getString("a_comp");
+			c.type = SmapQuestionTypes.BOOLEAN;
+			c.isMeta = true;
+			columnList.add(c);
+
+			c = new TableColumn();
+			c.column_name = "_survey_notes";
+			c.displayName = localisation.getString("a_sn");
+			c.type = SmapQuestionTypes.STRING;
+			c.isMeta = true;
+			columnList.add(c);
+
+			c = new TableColumn();
+			c.column_name = "_location_trigger";
+			c.displayName = localisation.getString("a_lt");
+			c.type = SmapQuestionTypes.STRING;
+			c.isMeta = true;
+			columnList.add(c);
+
+			c = new TableColumn();
+			c.column_name = "instancename";
+			c.displayName = localisation.getString("a_in");
+			c.type = SmapQuestionTypes.STRING;
+			c.isMeta = true;
+			columnList.add(c);
 
 			// Add preloads that have been specified in the survey definition
 			if (includePreloads) {
@@ -3974,7 +3960,17 @@ public class GeneralUtilityMethods {
 						if(GeneralUtilityMethods.hasColumn(cResults, table_name, mi.columnName)) {
 							c = new TableColumn();
 							c.column_name = mi.columnName;
-							c.displayName = mi.name;
+							if(c.column_name.equals("_start")) {
+								c.displayName = localisation.getString("a_st");
+							} else if(c.column_name.equals("_end")) {
+								c.displayName = localisation.getString("a_et");
+							} else {
+								if(mi.display_name != null) {
+									c.displayName = mi.display_name;
+								} else {
+									c.displayName = mi.name;
+								}
+							}
 							c.question_name = mi.name;
 							c.type = mi.type;
 							if(c.type != null && c.type.equals("timestamp")) {
@@ -3988,20 +3984,19 @@ public class GeneralUtilityMethods {
 
 		}
 		
-		if (includeInstanceId && (mgmt || uptodateTable
-				|| GeneralUtilityMethods.columnType(cResults, table_name, "instanceid") != null)) {
+		if (includeInstanceId) {
 			c = new TableColumn();
 			c.column_name = "instanceid";
-			c.displayName = "instanceid";
+			c.displayName = localisation.getString("a_ii");
 			c.type = "";
 			c.isMeta = true;
 			columnList.add(c);
 		}
 
-		if (audit && GeneralUtilityMethods.columnType(cResults, table_name, "_audit") != null) {
+		if (audit) {
 			c = new TableColumn();
 			c.column_name = "_audit";
-			c.displayName = "Audit";
+			c.displayName = localisation.getString("audit");
 			c.type = SmapQuestionTypes.AUDIT;
 			c.question_name = c.column_name;
 			columnList.add(c);
@@ -4228,6 +4223,83 @@ public class GeneralUtilityMethods {
 		columnList.addAll(realQuestions); // Add the real questions after the property questions
 
 		return columnList;
+	}
+	
+	/*
+	 * Some columns in results tables have been added progressively over time
+	 * This function ensures that the table has all of these
+	 */
+	static public void ensureTableCurrent(Connection cResults, String table_name, boolean topLevel) throws SQLException {
+		
+		if(topLevel) {
+			
+			/*
+			 * Check for the last added column first
+			 * If this is present there is no need to check for the others
+			 */
+			if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_case_closed")) {
+				
+				GeneralUtilityMethods.addColumn(cResults, table_name, "_case_closed", "timestamp with time zone");
+			
+			
+				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
+				}
+				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_alert")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "text");
+				}
+				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_thread_created")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "timestamp with time zone");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME)) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME, "timestamp with time zone");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, SmapServerMeta.UPLOAD_TIME_NAME)) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, SmapServerMeta.UPLOAD_TIME_NAME, "timestamp with time zone");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, SmapServerMeta.SURVEY_ID_NAME)) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, SmapServerMeta.SURVEY_ID_NAME, "integer");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_version")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_version", "text");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_survey_notes")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_survey_notes", "text");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_location_trigger")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_location_trigger", "text");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_thread")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_thread", "text");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_complete")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_complete", "boolean");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "instancename")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "instancename", "text");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "instanceid")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "instanceid", "text");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_hrk")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_hrk", "text");
+				}
+			}		
+		}
+		
+		/*
+		 * Add columns required for all tables
+		 */
+		if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_audit")) {
+			GeneralUtilityMethods.addColumn(cResults, table_name, "_audit", "text");
+			
+			/*
+			 * Audit and audit raw should have been added together
+			 */
+			if(!GeneralUtilityMethods.hasColumn(cResults, table_name, AuditData.AUDIT_RAW_COLUMN_NAME)) {
+				GeneralUtilityMethods.addColumn(cResults, table_name, AuditData.AUDIT_RAW_COLUMN_NAME, "text");
+			}
+		}
 	}
 	
 	/*
@@ -8474,7 +8546,7 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Add the thread value that links replaced records
-	 * This function should be removed and initialisation happen on record creation
+	 * Initialisation now also happens on insert of records
 	 */
 	public static void initialiseThread(Connection cResults, String table) throws SQLException {
 		
@@ -8491,22 +8563,6 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmtInitThreadCol2 = null;
 			
 		try {
-			/*
-			 * New tables should have these columns added automatically
-			 * Remove by end 2022
-			 */
-			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_thread")) {
-				GeneralUtilityMethods.addColumn(cResults, table, "_thread", "text");		// Add the thread column
-			}
-			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_assigned")) {
-				GeneralUtilityMethods.addColumn(cResults, table, "_assigned", "text");
-			}
-			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_thread_created")) {
-				GeneralUtilityMethods.addColumn(cResults, table, "_thread_created", "timestamp with time zone");
-			}
-			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_alert")) {
-				GeneralUtilityMethods.addColumn(cResults, table, "_alert", "text");
-			}
 			
 			/*
 			 * TODO initialise these columns when the record is inserted
@@ -8751,6 +8807,20 @@ public class GeneralUtilityMethods {
 			 */
 			timeString = workAroundJava8bug00(timeString);
 			timeString = timeString.trim().replace(' ', 'T');
+			
+			// Ensure there is an offset in the string
+			if ( timeString.indexOf ( "+" ) != ( timeString.length () - 6 ) && timeString.indexOf ( "-" ) != ( timeString.length () - 6 )) {
+				TimeZone tz = TimeZone.getDefault();
+				long offset = tz.getOffset((new java.util.Date()).getTime());
+				String dirn = "+";
+				if(offset < 0) {
+					dirn = "-";
+					offset = -offset;
+				}
+				long hours = offset / 3600000;
+				long minutes = (offset - (hours * 3600000)) / 60000;
+				timeString += dirn + String.format("%02d:%02d", hours, minutes);
+			}
 			
 			log.info("timestring to test: " + timeString);
 

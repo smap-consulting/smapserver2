@@ -27,6 +27,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -44,6 +45,7 @@ import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
+import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
@@ -51,6 +53,8 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
+import org.smap.sdal.model.CMS;
+import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.ForeignKey;
@@ -618,6 +622,7 @@ public class SubRelationalDB extends Subscriber {
 				 */
 				keys.duplicateKeys = new ArrayList<Integer>();
 				TableManager tm = new TableManager(localisation, tz);
+				CMS cms = null;
 				if (parent_key == 0) { // top level survey has a parent key of 0
 					
 					// Create new tables
@@ -646,6 +651,13 @@ public class SubRelationalDB extends Subscriber {
 							tm.markPublished(sd, f.getId(), sId); // only mark published if there have been changes made
 						}
 					}
+					
+					/*
+					 * Get Case Management Settings
+					 */
+					CaseManager cm = new CaseManager(localisation);				
+					String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+					cms = cm.getCaseManagementSettings(sd, groupSurveyIdent);
 				}
 
 				boolean isBad = false;
@@ -661,135 +673,58 @@ public class SubRelationalDB extends Subscriber {
 				 * Write the record
 				 */
 				if (columns.size() > 0 || parent_key == 0) {
+					
+					// Every survey should have the above columns
+					GeneralUtilityMethods.ensureTableCurrent(cResults, tableName, parent_key == 0);
 
-					boolean hasScheduledStart = false;
-					boolean hasUploadTime = false;
-					boolean hasVersion = false;
-					boolean hasSurveyNotes  = false;	
-					if(parent_key == 0) {
-						hasScheduledStart = GeneralUtilityMethods.hasColumn(cResults, tableName, SmapServerMeta.SCHEDULED_START_NAME);
-						hasUploadTime = GeneralUtilityMethods.hasColumn(cResults, tableName, SmapServerMeta.UPLOAD_TIME_NAME);
-						hasVersion = GeneralUtilityMethods.hasColumn(cResults, tableName, "_version");
-						hasSurveyNotes = GeneralUtilityMethods.hasColumn(cResults, tableName, "_survey_notes");
-					}
-
-					boolean hasAudit = GeneralUtilityMethods.hasColumn(cResults, tableName, "_audit");
-					boolean hasAuditRaw = GeneralUtilityMethods.hasColumn(cResults, tableName, AuditData.AUDIT_RAW_COLUMN_NAME);
-
-					if(hasAudit && parent_key == 0 && gAuditFilePath != null) {
+					/*
+					 * Process audit data
+					 */
+					if(parent_key == 0 && gAuditFilePath != null) {
 						File auditFile = new File(gAuditFilePath);
 						auditData = GeneralUtilityMethods.getAuditHashMap(auditFile, auditPath, localisation);
+					}			
+					String auditString = null;
+					if (auditData != null) {
+						HashMap<String, AuditItem> auditValues = 
+								GeneralUtilityMethods.getAuditValues(auditData,
+								getColNames(columns), localisation);
+
+						auditString = gson.toJson(auditValues);
+					}
+					// Raw audit data
+					String rawAuditString = null;
+					if(auditData != null && auditData.rawAudit != null) {
+						rawAuditString = auditData.rawAudit.toString();
 					}
 					
-					sql = "INSERT INTO " + tableName + " (parkey";
-					if (parent_key == 0) {
-						sql += ",_user, _complete"; // Add remote user, _complete automatically (top level table only)
-						if (hasUploadTime) {
-							sql += "," + SmapServerMeta.UPLOAD_TIME_NAME + "," + SmapServerMeta.SURVEY_ID_NAME;
-						}
-						if (hasVersion) {
-							sql += ",_version";
-						}
-						if (hasSurveyNotes) {
-							sql += ",_survey_notes, _location_trigger";
-						}
-						if (hasScheduledStart) {
-							sql += "," + SmapServerMeta.SCHEDULED_START_NAME;
-						}
-						if (isBad) {
-							sql += ",_bad, _bad_reason";
-						}
-					}
-
-					if (hasAudit) {
-						sql += ", _audit";
-					}
-					if (hasAudit && hasAuditRaw && auditData != null && auditData.rawAudit != null) {
-						sql += ", _audit_raw";
-					}
-
-					sql += addSqlColumns(columns, cResults, tableName);
-
-					sql += ") VALUES (?"; // parent key
-					if (parent_key == 0) {
-						sql += ", ?, ?"; // remote user, complete
-						if (hasUploadTime) {
-							sql += ", ?, ?"; // upload time, survey id
-						}
-						if (hasVersion) {
-							sql += ", ?"; // Version
-						}
-						if (hasSurveyNotes) {
-							sql += ", ?, ?"; // Survey Notes and Location Trigger
-						}
-						if (hasScheduledStart) {
-							sql += ", ?";
-						}
-						if (isBad) {
-							sql += ", ?, ?"; // _bad, _bad_reason
-						}
-					}
-
-					if (hasAudit) {
-						sql += ", ?";
-					}
-					if(hasAudit && hasAuditRaw && auditData != null && auditData.rawAudit != null) {
-						sql += ", ?";
-					}
 					ArrayList<ForeignKey> thisTableKeys = new ArrayList<> ();
-					sql += addSqlValues(sd, columns, sIdent, device, server, false, thisTableKeys, cResults, tableName);
-					sql += ");";
-
-					pstmt = cResults.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-					int stmtIndex = 1;
-					pstmt.setInt(stmtIndex++, parent_key);
-					if (parent_key == 0) {
-						pstmt.setString(stmtIndex++, remoteUser);
-						pstmt.setBoolean(stmtIndex++, complete);
-						if (hasUploadTime) {
-							pstmt.setTimestamp(stmtIndex++, new Timestamp(uploadTime.getTime()));
-							pstmt.setInt(stmtIndex++, sId);
-						}
-						if (hasVersion) {
-							pstmt.setInt(stmtIndex++, version);
-						}
-						if (hasSurveyNotes) {
-							pstmt.setString(stmtIndex++, surveyNotes);
-							pstmt.setString(stmtIndex++, locationTrigger);
-						}
-						if (hasScheduledStart) {
-							log.info("### Table has scheduled start.  Assignment id is: " + assignmentId);
-							if(assignmentId == 0) {
-								pstmt.setTimestamp(stmtIndex++, null);
-							} else {
-								pstmt.setTimestamp(stmtIndex++, GeneralUtilityMethods.getScheduledStart(sd, assignmentId));
-							}
-						}
-						if (isBad) {
-							pstmt.setBoolean(stmtIndex++, true);
-							pstmt.setString(stmtIndex++, bad_reason);
-						}
-					}
-
-					if (hasAudit) {
-						String auditString = null;
-						if (auditData != null) {
-							HashMap<String, AuditItem> auditValues = 
-									GeneralUtilityMethods.getAuditValues(auditData,
-									getColNames(columns), localisation);
-
-							auditString = gson.toJson(auditValues);
-						}	
-						pstmt.setString(stmtIndex++, auditString);
-						if(hasAuditRaw && auditData != null && auditData.rawAudit != null) {
-							pstmt.setString(stmtIndex++, auditData.rawAudit.toString());
-						} 
-					}	
-
-					log.info("        SQL statement: " + pstmt.toString());
+					pstmt = getSubmissionStatement(sd, cResults, 
+							sIdent,
+							device,
+							server,
+							tableName, 
+							columns, 
+							thisTableKeys,
+							parent_key,
+							remoteUser,
+							cms,
+							complete,
+							uploadTime,
+							sId,
+							version,
+							surveyNotes,
+							locationTrigger,
+							assignmentId,
+							isBad, 
+							bad_reason,
+							auditString,
+							rawAuditString);
+					
+					log.info("1111111111: " + pstmt.toString());
 					pstmt.executeUpdate();
-
 					ResultSet rs = pstmt.getGeneratedKeys();
+					
 					if (rs.next()) {
 						parent_key = rs.getInt(1);
 						keys.newKey = parent_key;
@@ -801,6 +736,75 @@ public class SubRelationalDB extends Subscriber {
 						fk.instanceIdLaunchingForm  = uuid;
 					}
 					foreignKeys.addAll(thisTableKeys);
+					
+					//####################################################### START for DELETION
+					pstmt.close();
+					
+					sql = "INSERT INTO " + tableName + " (parkey";
+					if (parent_key == 0) {
+						sql += ",_user, _complete"; // Add remote user, _complete automatically (top level table only)
+						sql += "," + SmapServerMeta.UPLOAD_TIME_NAME + "," + SmapServerMeta.SURVEY_ID_NAME;
+						sql += ",_version";
+						sql += ",_survey_notes, _location_trigger";
+						sql += "," + SmapServerMeta.SCHEDULED_START_NAME;
+						sql += ",_bad, _bad_reason";
+						sql += ",_case_closed";
+					}
+
+					sql += ", _audit";
+					sql += ", _audit_raw";
+
+					sql += addSqlColumns(columns, cResults, tableName);
+
+					sql += ") VALUES (?"; // parent key
+					if (parent_key == 0) {
+						sql += ", ?, ?"; // remote user, complete
+						sql += ", ?, ?"; // upload time, survey id
+						sql += ", ?"; // Version
+						sql += ", ?, ?"; // Survey Notes and Location Trigger
+						sql += ", ?";
+						sql += ", ?, ?"; // _bad, _bad_reason
+						sql += ", ?";	//_case closed
+					}
+
+					sql += ", ?";		// audit
+					sql += ", ?";		// audit_raw
+					
+					sql += addSqlValues(sd, columns, sIdent, device, server, false, thisTableKeys, cResults, tableName);
+					sql += ");";
+
+					pstmt = cResults.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+					int stmtIndex = 1;
+					pstmt.setInt(stmtIndex++, parent_key);
+					if (parent_key == 0) {
+						pstmt.setString(stmtIndex++, remoteUser);
+						pstmt.setBoolean(stmtIndex++, complete);
+						pstmt.setTimestamp(stmtIndex++, new Timestamp(uploadTime.getTime()));
+						pstmt.setInt(stmtIndex++, sId);
+						pstmt.setInt(stmtIndex++, version);
+						pstmt.setString(stmtIndex++, surveyNotes);
+						pstmt.setString(stmtIndex++, locationTrigger);
+
+						if(assignmentId == 0) {
+							pstmt.setTimestamp(stmtIndex++, null);
+						} else {
+							pstmt.setTimestamp(stmtIndex++, GeneralUtilityMethods.getScheduledStart(sd, assignmentId));
+						}
+
+						pstmt.setBoolean(stmtIndex++, isBad);
+						pstmt.setString(stmtIndex++, bad_reason);
+
+						pstmt.setTimestamp(stmtIndex++, null);		// TODO check to see if the case is closed
+					}
+
+					pstmt.setString(stmtIndex++, auditString);		
+					pstmt.setString(stmtIndex++, rawAuditString);
+						
+
+					//################################################################ END
+					log.info("        SQL statement: " + pstmt.toString());
+					//pstmt.executeUpdate();  
+
 				}
 				/*
 				 * Write into the points table of geocompound types
@@ -883,7 +887,285 @@ public class SubRelationalDB extends Subscriber {
 		return keys;
 
 	}
+	
+	private class TableColumn {
+		String colName;
+		String value;
+		String type;
+		public TableColumn(String colName, String value, String type) {
+			this.colName = colName;
+			this.value = value;
+			this.type = type;
+		}
+	}
+	
+	private class DynamicMetaValues {
+		public Timestamp case_closed;
+	}
+	
+	/*
+	 * Get a prepared statement to insert the submission into the database
+	 */
+	private PreparedStatement getSubmissionStatement(
+			Connection sd, 
+			Connection cResults, 
+			String sIdent,
+			String device,
+			String server,
+			String tableName,
+			List<IE> columns,
+			ArrayList<ForeignKey> foreignKeys,
+			int parentKey,
+			String remoteUser,
+			CMS cms,
+			boolean complete,
+			Date uploadTime,
+			int sId,
+			int version,
+			String surveyNotes,
+			String locationTrigger,
+			int assignmentId,
+			boolean isBad,
+			String badReason,
+			String audit,
+			String auditRaw) throws SQLException {
+		
+		PreparedStatement pstmt = null;
+		
+		StringBuilder sql = new StringBuilder("");
+		StringBuilder cols = new StringBuilder("");
+		StringBuilder vals = new StringBuilder("");
+		
+		/*
+		 * Convert the submission column names into 
+		 * actual column names
+		 */
+		ArrayList<TableColumn> tableCols = new ArrayList<>();
+		
+		// Meta columns
+		addTableCol(cols, vals, tableCols, "parkey", String.valueOf(parentKey), "int");
+		if(parentKey == 0) {
+			addTableCol(cols, vals, tableCols, "_user", String.valueOf(remoteUser), "string");
+			addTableCol(cols, vals, tableCols, "_complete", String.valueOf(complete), "boolean");
+			addTableCol(cols, vals, tableCols, SmapServerMeta.UPLOAD_TIME_NAME, String.valueOf(new Timestamp(uploadTime.getTime())), "timestamp");
+			addTableCol(cols, vals, tableCols, SmapServerMeta.SURVEY_ID_NAME, String.valueOf(sId), "int");
+			addTableCol(cols, vals, tableCols, "_version", String.valueOf(version), "int");
+			addTableCol(cols, vals, tableCols, "_survey_notes", surveyNotes, "string");
+			addTableCol(cols, vals, tableCols, "_location_trigger", locationTrigger, "string");
+			if(assignmentId == 0) {
+				addTableCol(cols, vals, tableCols, SmapServerMeta.SCHEDULED_START_NAME, null, "timestamp");
+			} else {
+				addTableCol(cols, vals, tableCols, SmapServerMeta.SCHEDULED_START_NAME, String.valueOf(GeneralUtilityMethods.getScheduledStart(sd, assignmentId)), "timestamp");
+			}
+			addTableCol(cols, vals, tableCols, "_bad", String.valueOf(isBad), "boolean");
+			addTableCol(cols, vals, tableCols, "_bad_reason", badReason, "string");
+			// TODO case closed
+		}
+		addTableCol(cols, vals, tableCols, "_audit", audit, "string");
+		addTableCol(cols, vals, tableCols, "_audit_raw", auditRaw, "string");
+		
+		DynamicMetaValues dmv = addSurveyColumns(sd, cResults, sIdent, cms, device, server, tableName, columns, cols, vals, tableCols, foreignKeys, false);		
+		
+		/*
+		 * Add dynamic meta value columns
+		 */
+		if(dmv.case_closed != null) {
+			addTableCol(cols, vals, tableCols, "_case_closed", String.valueOf(dmv.case_closed), "timestamp");
+		} else {
+			addTableCol(cols, vals, tableCols, "_case_closed", null, "timestamp");
+		}
+		
+		/*
+		 * Construct sql
+		 */
+		sql.append("insert into ")
+			.append(tableName)
+			.append(" (")
+			.append(cols)
+			.append(") values (")
+			.append(vals)
+			.append(")");
+		
+		/*
+		 * Prepare the statement
+		 */
+		pstmt = cResults.prepareStatement(sql.toString(), Statement.RETURN_GENERATED_KEYS);
+		
+		int idx = 1;
+		for(TableColumn c : tableCols) {
+			
+			if(c.type.equals("string") 
+					|| c.type.equals("geopoint")
+					|| c.type.equals("geoshape")
+					|| c.type.equals("geotrace")
+					|| c.type.equals("geocompound")
+					|| c.type.equals("geopolygon")
+					|| c.type.equals("geolinestring")
+					) {		// string
+				
+				pstmt.setString(idx++, c.value);
+			
+			} else if(c.type.equals("int")) {	// int
+				if(c.value == null) {
+					pstmt.setNull(idx++, java.sql.Types.INTEGER);
+				} else {
+					pstmt.setInt(idx++, Integer.valueOf(c.value));
+				}
+				
+			} else if(c.type.equals("double")) {	// int
+				if(c.value == null) {
+					pstmt.setNull(idx++, java.sql.Types.DOUBLE);
+				} else {
+					pstmt.setDouble(idx++, Double.valueOf(c.value));
+				}
+				
+			} else if(c.type.equals("boolean")) {	// boolean
+				if(c.value == null) {
+					pstmt.setBoolean(idx++, false);
+				} else {
+					pstmt.setBoolean(idx++, Boolean.valueOf(c.value));
+				}
+				
+			} else if(c.type.equals("timestamp") || c.type.equals("dateTime")) {	// Timestamp
+				if(c.value == null) {
+					pstmt.setTimestamp(idx++, null);
+				} else {
+					pstmt.setTimestamp(idx++, GeneralUtilityMethods.getTimestamp(c.value));
+				}
+			} else if(c.type.equals("date")) {	// Date
+				if(c.value == null) {
+					pstmt.setDate(idx++, null);
+				} else {
+					pstmt.setDate(idx++, java.sql.Date.valueOf(LocalDate.parse(c.value)));
+				}
+			} else {
+				log.info("Error:  unknown column type: " + c.type + " : " + c.value);
+			}
 
+		} 
+		
+		return pstmt;
+	}
+	
+	/*
+	 * Add the survey columns to be used in a submission insert
+	 */
+	private DynamicMetaValues addSurveyColumns(
+			Connection sd,
+			Connection cResults,
+			String sIdent,
+			CMS cms,
+			String device,
+			String server,
+			String tableName,
+			List<IE> columns, 
+			StringBuilder cols, 
+			StringBuilder vals, 
+			ArrayList<TableColumn> tableCols,
+			ArrayList<ForeignKey> foreignKeys,
+			boolean phoneOnly) {	
+		
+		DynamicMetaValues dmv = new DynamicMetaValues();
+		
+		/*
+		 * Prepare for checking for case closed
+		 */
+		String statusQuestion = null;
+		String finalStatus = null;
+		if(cms != null && cms.settings != null && cms.settings.statusQuestion != null && cms.settings.finalStatus != null) {
+			statusQuestion = cms.settings.statusQuestion;
+			finalStatus = cms.settings.finalStatus;
+		}
+		
+		for(IE col : columns) {
+			String colType = col.getQType();
+			String colName = col.getColumnName();
+			boolean colPhoneOnly = phoneOnly || col.isPhoneOnly();	// Set phone only if the group is phone only or just this column
+			
+			// TODO Deprecate this all select questions are now stored compressed
+			if(colType.equals("select") && !col.isCompressed()) {
+				List<IE> options = col.getChildren();
+				UtilityMethods.sortElements(options);
+				HashMap<String, String> uniqueColumns = new HashMap<String, String> (); 
+				for(IE option : options) {
+					if(uniqueColumns.get(option.getColumnName()) == null) {
+						uniqueColumns.put(option.getColumnName(), option.getColumnName());
+						addTableCol(cols, vals, tableCols, option.getColumnName(), colPhoneOnly ? "" : option.getValue(), "string");
+					}		
+				}
+			} else if(colType.equals("geopoint")) {
+				
+				GeopointComponents components = getGeopointComponents(col.getValue());
+				addTableCol(cols, vals, tableCols, col.getColumnName(), components.value, "geopoint");
+
+				if(GeneralUtilityMethods.hasColumn(cResults, tableName, col.getColumnName() + "_alt")) {
+					// Geopoint also has altitude and accuracy
+					addTableCol(cols, vals, tableCols, col.getColumnName() + "_alt", components.alt, "double");
+					addTableCol(cols, vals, tableCols, col.getColumnName() + "_acc", components.acc, "double");
+				}
+			} else if(colType.equals("geopolygon") || colType.equals("geolinestring")
+					|| colType.equals("geoshape") || colType.equals("geotrace") || colType.equals("geocompound")) {
+				
+				addTableCol(cols, vals, tableCols, col.getColumnName(), 
+						getDbValue(sd, col, sIdent, device, server, colPhoneOnly, cResults, tableName), colType);
+
+			} else if(colType.equals("begin group")) {
+				// Non repeating group, process these child columns at the same level as the parent
+				addSurveyColumns(sd, cResults, sIdent, cms, device, server, tableName, col.getQuestions(), cols, vals, tableCols, foreignKeys, phoneOnly);	
+			} else {
+				String value = getDbValue(sd, col, sIdent, device, server, colPhoneOnly, cResults, tableName);
+				addTableCol(cols, vals, tableCols, colName, value, colType);
+				
+				// Check for a foreign key, the value will start with :::::
+				if(col.getValue() != null && col.getValue().startsWith(":::::") && col.getValue().length() > 5) {
+					ForeignKey fl = new ForeignKey();
+					fl.instanceId = col.getValue().substring(5);
+					fl.qName = col.getName();
+					foreignKeys.add(fl);
+				}
+				
+				// Check for case closed
+				if(statusQuestion != null && colName.equals(statusQuestion) && value.equals(finalStatus)) {
+					dmv.case_closed = new Timestamp(new java.util.Date().getTime());
+				}
+			}
+		}
+		
+		return dmv;
+	}
+	
+	/*
+	 * Create a table column
+	 */
+	private void addTableCol(StringBuilder cols, 
+			StringBuilder vals, 
+			ArrayList<TableColumn> tableCols, 
+			String colName, String value, String type) {
+		
+		// Add column name sql
+		if(cols.length() > 0) {
+			cols.append(",");
+		}
+		cols.append(colName);
+		
+		// Add value sql
+		if(vals.length() > 0) {
+			vals.append(",");
+		}
+		if(type.equals("geopoint")) {
+			vals.append("ST_GeomFromText('POINT(' || ? || ')', 4326)");
+		} else if(type.equals("geoshape")) {
+			vals.append("ST_GeomFromText('POLYGON((' || ? || '))', 4326)");
+		} else if(type.equals("geotrace") || type.equals("geocompound")) {
+			vals.append("ST_GeomFromText('LINESTRING(' || ? || ')', 4326)");
+		} else {
+			vals.append("?");
+		}
+		
+		// Add a table entry to allow insertion of value into value string
+		tableCols.add(new TableColumn(colName, value, type));
+		
+	}
 	/*
 	 * Method to merge a previous records content into this new record
 	 * Source = the old records
@@ -1557,6 +1839,7 @@ public class SubRelationalDB extends Subscriber {
 
 	/*
 	 * Generate the sql for the column names
+	 * delete
 	 */
 	String addSqlColumns(List<IE> columns, Connection cResults, String tableName) {
 		StringBuffer sql = new StringBuffer("");
@@ -1635,6 +1918,201 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Format the value into a string appropriate to its type
 	 */
+	String getDbValue(Connection sd, IE col, String surveyName, String device, String server, boolean phoneOnly, Connection cResults, String tableName) {
+
+		String qType = col.getQType();
+		String value = col.getValue();	
+		String colName = col.getColumnName();
+
+		// If the deviceId is not in the form results add it from the form meta data
+		if(colName != null && colName.equals("_device")) {
+			if(value == null || value.trim().length() == 0) {
+				value = device;
+			}
+		}
+
+		if(phoneOnly) {
+			if(qType.equals("string")) {
+				value = "'xxxx'";			// Provide feedback to user that this value was withheld
+			} else {
+				value = null;				// For non string types will just set to null
+			}
+		} else {
+
+			if(value != null) {			
+
+				if(qType.equals("string") || qType.equals("calculate") || qType.equals("select1") || qType.equals("barcode") 
+						|| qType.equals("acknowledge")
+						|| qType.equals("note")
+						|| qType.equals("select")
+						|| qType.equals("rank")) {		// Compressed select
+					// No change to value
+
+				} else if(qType.equals("int") || qType.equals("decimal")) {
+					if(value.length() == 0) {
+						value = null;
+					}
+
+				} else if(qType.equals("date") || qType.equals("dateTime") || qType.equals("time") ) {
+					
+					// Hack to fix badly formatted types
+					if(qType.equals("time")) {
+						if(value.contains("T")) {
+							String v[] = value.split("T");
+							if(v.length > 1) {
+								value = v[1];
+							} else {
+								value = "";
+							}
+						}
+					}
+					if(value.length() == 0) {
+						value = null;
+					}
+
+				} else if(qType.equals("range") ) {
+					if(value.length() == 0) {
+						value = null;
+					}
+
+				} else if(GeneralUtilityMethods.isAttachmentType(qType)) {
+
+					log.info("Processing media. Value: " + value);
+					if(value.length() == 0) {
+						value = null;
+					
+					} else {
+						/*
+						 * If this is a new file then rename the attachment to use a UUID
+						 * Where this is an update to an existing survey and the file has not been re-submitted then 
+						 * leave its value unchanged
+						 */
+						String srcName = value;
+
+						log.info("Creating file: " + srcName);				
+
+						File srcXmlFile = new File(gFilePath);
+						File srcXmlDirFile = srcXmlFile.getParentFile();
+						File srcPathFile = new File(srcXmlDirFile.getAbsolutePath() + "/" + srcName);
+
+						value = GeneralUtilityMethods.createAttachments(
+								sd,
+								srcName, 
+								srcPathFile, 
+								gBasePath, 
+								surveyName,
+								null,
+								mediaChanges);		
+
+					}
+				} else if(qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("geocompound")) { // TODO
+					/*
+					 * Extract the linestring from geocompound types
+					 */
+					if(qType.equals("geocompound")) {
+						String components[] = value.split("#");
+						for(int i = 0; i < components.length; i++) {
+							if(components[i].startsWith("line:")) {
+								String lineComponents [] = components[i].split(":");
+								if(lineComponents.length > 1) {
+									value = lineComponents[1];
+									break;
+								}
+								
+							}
+						}
+					}
+					
+					/*
+					 * ODK polygon / linestring
+					 * The coordinates are in a String separated by ;
+					 * Each coordinate consists of space separated lat lon height accuracy
+					 *   Actually I'm not sure about the last two but they will be ignored anyway
+					 *   To store as a Point in the db this order needs to be reversed to (lon lat)
+					 */
+					int min_points = 3;
+					StringBuilder ptString = new StringBuilder("");
+					if(qType.equals("geotrace") || qType.equals("geocompound")) {
+						min_points = 2;
+					}
+
+					String coords[] = value.split(";");
+					if(coords.length >= min_points) {
+						
+						for(int i = 0; i < coords.length; i++) {
+							String [] points = coords[i].trim().split(" ");
+							if(points.length > 1) {
+								if(i > 0) {
+									ptString.append(",");
+								}
+								ptString.append(points[1]);
+								ptString.append(" ");
+								ptString.append(points[0]);
+							} else {
+								log.info("Error: " + qType + " Badly formed point." + coords[i]);
+							}
+						}
+						
+						value = ptString.toString();
+
+					} else {
+						value = null;
+						log.info("Error: " + qType + " Insufficient points for " + qType + ": " + coords.length);
+					}
+
+				} else if(qType.equals("geopolygon") || qType.equals("geolinestring")) {
+					// Complex types
+					IE firstPoint = null;
+					String ptString = "";
+					List<IE> points = col.getChildren();
+					int number_points = points.size();
+					if(number_points < 3 && qType.equals("geopolygon")) {
+						value = null;
+						log.info("Error: Insufficient points for polygon." + number_points);
+					} else if(number_points < 2 && qType.equals("geolinestring")) {
+						value = null;
+						log.info("Error: Insufficient points for line." + number_points);
+					} else {
+						for(IE point : points) {
+
+							String params[] = point.getValue().split(" ");
+							if(params.length > 1) {
+								if(firstPoint == null) {
+									firstPoint = point;		// Used to loop back for a polygon
+								} else {
+									ptString += ",";
+								}
+								ptString += params[1] + " " + params[0];
+							}
+						}
+						if(ptString.length() > 0) {
+							if(qType.equals("geopolygon")) {
+								if(firstPoint != null) {
+									String params[] = firstPoint.getValue().split(" ");
+									if(params.length > 1) {
+										ptString += "," + params[1] + " " + params[0];
+									}
+								}
+								value = "ST_GeomFromText('POLYGON((" + ptString + "))', 4326)";
+							} else if(qType.equals("geolinestring")) {
+								value = "ST_GeomFromText('LINESTRING(" + ptString + ")', 4326)";
+							}
+						} else {
+							value = null;
+						}
+					}
+
+				}
+			} 
+		}
+
+		return value;
+	}
+	
+	/*
+	 * Format the value into a string appropriate to its type
+	 * TODO Deprecate and delete
+	 */
 	String getDbString(Connection sd, IE col, String surveyName, String device, String server, boolean phoneOnly, Connection cResults, String tableName) {
 
 		String qType = col.getQType();
@@ -1656,7 +2134,7 @@ public class SubRelationalDB extends Subscriber {
 			}
 		} else {
 
-			if(value != null) {				
+			if(value != null) {			
 
 				value = value.replace("'", "''").trim();
 
@@ -1845,6 +2323,44 @@ public class SubRelationalDB extends Subscriber {
 		return value;
 	}
 
+	private class GeopointComponents {
+		String value = null;
+		String alt = null;
+		String acc = null;
+	}
+	private GeopointComponents getGeopointComponents(String in) {
+		
+		GeopointComponents components = new GeopointComponents();
+		
+		if(in != null) {
+			String params[] = in.split(" ");
+			
+			if(params.length > 1) {
+				try {
+					components.value = String.valueOf(Double.parseDouble(params[1])) + " "
+							+ String.valueOf(Double.parseDouble(params[0]));
+	
+					// Add altitude and accuracy
+					if(params.length > 3) {
+						components.alt = String.valueOf(Double.parseDouble(params[2]));
+						components.acc = String.valueOf(Double.parseDouble(params[3]));
+						
+					}
+	
+				} catch (Exception e) {
+					log.info("Error: Invalid geometry point detected: "  + in);
+				}
+	
+			} else {
+				log.info("Info: Empty geometry point detected: " + in);
+			}
+		}
+		return components;
+	}
+	
+	/*
+	 * TODO delete
+	 */
 	private String getGeopointValue(String in, boolean hasAltitude, String tableName, String colName) {
 		String value;
 		String params[] = in.split(" ");

@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.Case;
+import org.smap.sdal.model.CaseCount;
 import org.smap.sdal.model.CaseManagementAlert;
 import org.smap.sdal.model.CaseManagementSettings;
 
@@ -59,7 +60,7 @@ public class CaseManager {
 	public CMS getCaseManagementSettings(Connection sd, String groupSurveyIdent) throws SQLException {
 		
 		PreparedStatement pstmt = null;
-		CMS cms;
+		CMS cms = null;
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		try {
@@ -92,28 +93,30 @@ public class CaseManager {
 				} 
 			}
 			
-			/*
-			 * Get the alerts for this survey group
-			 * Note the alerts are stored in separate records in the database so
-			 * they can be used in queries to find active notification alerts
-			 */
-			sql = "select id, name, period "
-					+ "from cms_alert "
-					+ "where group_survey_ident = ? "
-					+ "order by name asc";
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1,  groupSurveyIdent);
-			
-			rs = pstmt.executeQuery();
-			while(rs.next()) {
-				alerts.add(new CaseManagementAlert(rs.getInt("id"), 
-						groupSurveyIdent, rs.getString("name"), 
-						rs.getString("period")));
+			if(settings != null) {
+				/*
+				 * Get the alerts for this survey group
+				 * Note the alerts are stored in separate records in the database so
+				 * they can be used in queries to find active notification alerts
+				 */
+				sql = "select id, name, period "
+						+ "from cms_alert "
+						+ "where group_survey_ident = ? "
+						+ "order by name asc";
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1,  groupSurveyIdent);
+				
+				rs = pstmt.executeQuery();
+				while(rs.next()) {
+					alerts.add(new CaseManagementAlert(rs.getInt("id"), 
+							groupSurveyIdent, rs.getString("name"), 
+							rs.getString("period")));
+				}
+				
+				// Create the combined settings object
+				cms = new CMS(settings, alerts, groupSurveyIdent);
 			}
-			
-			// Create the combined settings object
-			cms = new CMS(settings, alerts, groupSurveyIdent);
 					    
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -336,5 +339,56 @@ public class CaseManager {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
 		return cases;
+	}
+	
+	public ArrayList<CaseCount> getOpenClosed(Connection sd, Connection cResults,
+			String sIdent, String interval, int intervalCount, String aggregationInterval) throws SQLException {
+		
+		String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
+		
+		StringBuilder cte = new StringBuilder("with days as (select generate_series(")
+				.append("date_trunc('day', now()) - '").append(intervalCount).append(" day'::interval,")
+				.append("date_trunc('day', now()),")
+				.append("'1 day'::interval")
+				.append(") as day) ");
+		
+		StringBuilder sqlOpened = new StringBuilder("select days.day, count(")
+				.append(table).append(".prikey) as opened from days left join ")
+				.append(table)
+				.append(" on date_trunc('day', _thread_created) = days.day ")
+				.append("group by 1 order by 1 asc");
+		
+		StringBuilder sqlClosed = new StringBuilder("select days.day, count(")
+				.append(table).append(".prikey) as closed from days left join ")
+				.append(table)
+				.append(" on date_trunc('day', _case_closed) = days.day ")
+				.append("group by 1 order by 1 asc");
+		
+		ArrayList<CaseCount> cc = new ArrayList<>();
+		
+		if(table != null) {
+			PreparedStatement pstmtOpened = null;
+			PreparedStatement pstmtClosed = null;
+			
+			try {
+			
+				pstmtOpened = cResults.prepareStatement(cte.toString() + sqlOpened.toString());
+				pstmtClosed = cResults.prepareStatement(cte.toString() + sqlClosed.toString());
+				log.info("Open: " + pstmtOpened.toString());
+				log.info("Closed: " + pstmtClosed.toString());
+				ResultSet rs = pstmtOpened.executeQuery();
+				ResultSet rsc = pstmtClosed.executeQuery();
+				while(rs.next()) {
+					rsc.next();
+					String day = rs.getString(1);
+					String [] dayComp = day.split(" ");
+					cc.add(new CaseCount(dayComp[0], rs.getInt(2), rsc.getInt(2)));
+				}
+			} finally {
+				if(pstmtOpened != null) {try {pstmtOpened.close();} catch(Exception e) {}}
+				if(pstmtClosed != null) {try {pstmtClosed.close();} catch(Exception e) {}}
+			}
+		}
+		return cc;
 	}
 }

@@ -182,7 +182,7 @@ public class Data extends Application {
 			@QueryParam("key") String key,				// Unique key (optional, use to restrict records to a specific key - same as hrk)
 			@QueryParam("format") String format,			// dt for datatables otherwise assume kobo
 			@QueryParam("bad") String include_bad,		// yes | only | none Include records marked as bad
-			@QueryParam("completed") String include_completed,		// Uf yes return unassigned records that have the final status
+			@QueryParam("completed") String include_completed,		// If yes return unassigned records that have the final status
 			@QueryParam("audit") String audit_set,		// if yes return audit data
 			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
 			@QueryParam("tz") String tz,					// Timezone
@@ -918,17 +918,14 @@ public class Data extends Application {
 					outWriter.print(gson.toJson(sv));		// Add the survey view
 					
 					// 3. Add the survey settings to the results
-					if(getSettings) {
-						outWriter.print(",\"settings\":");
-						/*
-						 * Setting values get applied to the schema with the exception of a few parameters
-						 * Remove the settings not used by the client
-						 */
-						ssd.columnSettings = null;
-						ssd.charts = null;
-						ssd.layers = null;
-						outWriter.print(gson.toJson(ssd));
-					}
+					outWriter.print(",\"settings\":");
+					/*
+					 * Setting values get applied to the schema with the exception of a few parameters
+					 * Remove the settings not used by the client
+					 */
+					ssd.columnSettings = null;
+					ssd.layers = null;
+					outWriter.print(gson.toJson(ssd));
 					
 					// 4. Add totals to the results
 					outWriter.print(",\"totals\":");

@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Action;
+import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Project;
@@ -641,6 +643,20 @@ public class ActionManager {
 			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
 			/*
+			 * Prepare for checking for case closed
+			 */
+			CaseManager cm = new CaseManager(localisation);				
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			CMS cms = cm.getCaseManagementSettings(sd, groupSurveyIdent);
+
+			String statusQuestion = null;
+			String finalStatus = null;
+			if(cms != null && cms.settings != null && cms.settings.statusQuestion != null && cms.settings.finalStatus != null) {
+				statusQuestion = cms.settings.statusQuestion;
+				finalStatus = cms.settings.finalStatus;
+			}
+			
+			/*
 			 * Process each column
 			 */
 			ArrayList<DataItemChange> changes = new ArrayList<DataItemChange> ();
@@ -689,7 +705,7 @@ public class ActionManager {
 						String v = rs.getString(1);
 						u.currentValue = v;
 						/*
-						 * If this is a bulk change to a select question then he value is either set or cleared
+						 * If this is a bulk change to a select question then the value is either set or cleared
 						 */
 						if(tc.type.equals("select")) {
 							u.value = mergeSelMultValue(v, u.value, u.clear);
@@ -716,6 +732,14 @@ public class ActionManager {
 							.append(" = ? ");
 					}
 				}
+				
+				// Set closed date
+				if(statusQuestion != null && u.name.equals(statusQuestion)) {							
+					sqlUpdate.append(" ,")
+					.append("_case_closed")
+					.append(" = ? ");
+				}
+				
 				if(isSubForm) {
 					sqlUpdate.append("where prikey = ? ");
 				} else {
@@ -750,8 +774,19 @@ public class ActionManager {
 					} else {
 						log.info("Warning: unknown type: " + tc.type + " value: " + u.value);
 						pstmtUpdate.setString(paramCount++, u.value);
+					}			
+				}
+				
+				// Set closed date value
+				if(statusQuestion != null && u.name.equals(statusQuestion)) {							
+					// Set case to closed if this is the final status
+					if(u.value == null || !u.value.equals(finalStatus)) {
+						pstmtUpdate.setTimestamp(paramCount++, null);
+					} else {
+						pstmtUpdate.setTimestamp(paramCount++, new Timestamp(new java.util.Date().getTime()));
 					}
 				}
+				
 				if(isSubForm) {
 					pstmtUpdate.setInt(paramCount++, subFormPrimaryKey);
 				} else {

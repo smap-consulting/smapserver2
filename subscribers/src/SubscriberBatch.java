@@ -1252,6 +1252,9 @@ public class SubscriberBatch {
 	private void applyCaseManagementReminders(Connection sd, Connection cResults, String basePath, String serverName) {
 
 		/*
+		 * SQL to set case closed date
+		 */
+		/*
 		 * SQL to get the alerts
 		 */
 		String sql = "select a.id as a_id, a.group_survey_ident, a.name, a.period,"
@@ -1422,7 +1425,7 @@ public class SubscriberBatch {
 							 * Process notifications associated with this alert
 							 */
 							pstmtNotifications.setInt(1, aId);
-							System.out.println("Notifications to be triggered: " + pstmtNotifications.toString());
+							log.info("Notifications to be triggered: " + pstmtNotifications.toString());
 							
 							ResultSet notrs = pstmtNotifications.executeQuery();
 							

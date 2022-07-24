@@ -460,6 +460,7 @@ public class TableManager {
 						.append("instancename text,")
 						.append("_thread text, ")
 						.append("_thread_created timestamp with time zone,")
+						.append("_case_closed timestamp with time zone,")
 						.append("_alert text,")
 						.append(SmapServerMeta.SCHEDULED_START_NAME).append(" timestamp with time zone");
 				sql.append(", _hrk text ");
