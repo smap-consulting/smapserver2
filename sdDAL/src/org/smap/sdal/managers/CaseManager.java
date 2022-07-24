@@ -345,6 +345,7 @@ public class CaseManager {
 			String sIdent, String interval, int intervalCount, String aggregationInterval) throws SQLException {
 		
 		String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
+		GeneralUtilityMethods.ensureTableCurrent(cResults, table, true);
 		
 		StringBuilder cte = new StringBuilder("with days as (select generate_series(")
 				.append("date_trunc('day', now()) - '").append(intervalCount).append(" day'::interval,")

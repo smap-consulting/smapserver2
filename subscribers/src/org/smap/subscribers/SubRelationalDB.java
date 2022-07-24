@@ -54,7 +54,6 @@ import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.CMS;
-import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.ForeignKey;
@@ -964,6 +963,9 @@ public class SubRelationalDB extends Subscriber {
 		addTableCol(cols, vals, tableCols, "_audit", audit, "string");
 		addTableCol(cols, vals, tableCols, "_audit_raw", auditRaw, "string");
 		
+		/*
+		 * Add the survey columns
+		 */
 		DynamicMetaValues dmv = addSurveyColumns(sd, cResults, sIdent, cms, device, server, tableName, columns, cols, vals, tableCols, foreignKeys, false);		
 		
 		/*
@@ -994,18 +996,7 @@ public class SubRelationalDB extends Subscriber {
 		int idx = 1;
 		for(TableColumn c : tableCols) {
 			
-			if(c.type.equals("string") 
-					|| c.type.equals("geopoint")
-					|| c.type.equals("geoshape")
-					|| c.type.equals("geotrace")
-					|| c.type.equals("geocompound")
-					|| c.type.equals("geopolygon")
-					|| c.type.equals("geolinestring")
-					) {		// string
-				
-				pstmt.setString(idx++, c.value);
-			
-			} else if(c.type.equals("int")) {	// int
+			if(c.type.equals("int")) {	// int
 				if(c.value == null) {
 					pstmt.setNull(idx++, java.sql.Types.INTEGER);
 				} else {
@@ -1039,7 +1030,7 @@ public class SubRelationalDB extends Subscriber {
 					pstmt.setDate(idx++, java.sql.Date.valueOf(LocalDate.parse(c.value)));
 				}
 			} else {
-				log.info("Error:  unknown column type: " + c.type + " : " + c.value);
+				pstmt.setString(idx++, c.value);	// Default is String
 			}
 
 		} 
