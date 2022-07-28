@@ -23,6 +23,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -228,9 +229,9 @@ public class SurveyResults extends Application {
 			@PathParam("sId") int sId) { 
 		
 		Response response = null;
-		
+		String connectionString = "surveyKPI-SurveyResults-restore";
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-SurveyResults");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
@@ -253,7 +254,7 @@ public class SurveyResults extends Application {
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-				connectionRel = ResultsDataSource.getConnection("surveyKPI-SurveyResults");
+				connectionRel = ResultsDataSource.getConnection(connectionString);
 				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 				
 				// Mark columns as unpublished		
@@ -349,8 +350,108 @@ public class SurveyResults extends Application {
 
 				try {connectionRel.setAutoCommit(true);} catch (Exception e) {}
 				
-				SDDataSource.closeConnection("surveyKPI-SurveyResults", sd);
-				ResultsDataSource.closeConnection("surveyKPI-SurveyResults", connectionRel);
+				SDDataSource.closeConnection(connectionString, sd);
+				ResultsDataSource.closeConnection(connectionString, connectionRel);
+			}
+		}
+
+		return response; 
+	}
+	
+	/*
+	 * Archive results for a survey
+	 * All submissions received on or before the specified date will be moved into another survey
+	 */
+	@GET
+	@Path("/archive")
+	public Response archiveSurveyResults(@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@QueryParam("startDate") String startDate) {
+		
+		Response response = null;
+		String connectionString = "surveyKPI-SurveyResults-archive";
+		String archiveName = "xxx";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		lm.writeLog(sd, sId, request.getRemoteUser(), "restore", "Restore results", 0, request.getServerName());
+		
+		// Escape any quotes
+		if(sId > 0) {
+			
+			Connection connectionRel = null; 
+			PreparedStatement pstmt = null;
+			PreparedStatement pstmtCount = null;
+		
+			try {
+				// Get the users locale
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				connectionRel = ResultsDataSource.getConnection(connectionString);
+				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				
+				/*
+				 * Get the surveys and tables that are part of the group that this survey belongs to
+				 */
+				SurveyManager sm = new SurveyManager(localisation, "UTC");
+				String mainTableName = GeneralUtilityMethods.getMainResultsTable(sd, connectionRel, sId);
+				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
+				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyIdent, oId, request.getRemoteUser(), sId);
+				
+				/*
+				 * Check to see that there is data to be archived
+				 */
+				int count = 0;
+				if(GeneralUtilityMethods.tableExists(connectionRel, mainTableName)) {
+					StringBuilder sql = new StringBuilder("select count(*) from ");
+					sql.append(mainTableName);
+				
+				
+					/*
+					 * 
+					 */
+					for(String tableName : tableList) {				
+	
+					}
+						
+					/*
+					 * Mark questions as unpublished
+					 */
+					connectionRel.setAutoCommit(false);
+					for(GroupDetails gd : surveys) {
+					
+					}
+					
+				
+					connectionRel.commit();
+				}
+				
+				response = Response.ok("{\"count\": " + count + ", \"archiveName\": \"" + archiveName + "\" }").build();
+				
+			} catch (Exception e) {
+				String msg = e.getMessage();
+				if(msg != null && msg.contains("does not exist")) {
+					response = Response.ok("").build();
+				} else {
+					log.log(Level.SEVERE, "Survey: Restore Results");
+					e.printStackTrace();
+					response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+				}
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				try {if (pstmtCount != null) {pstmtCount.close();}} catch (SQLException e) {}
+			
+
+				try {connectionRel.setAutoCommit(true);} catch (Exception e) {}
+				
+				SDDataSource.closeConnection(connectionString, sd);
+				ResultsDataSource.closeConnection(connectionString, connectionRel);
 			}
 		}
 
@@ -419,6 +520,3 @@ public class SurveyResults extends Application {
 		return response; 
 	}
 }
-
-
-
