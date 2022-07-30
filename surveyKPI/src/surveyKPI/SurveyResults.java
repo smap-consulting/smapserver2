@@ -362,6 +362,13 @@ public class SurveyResults extends Application {
 	 * Archive results for a survey
 	 * All submissions received on or before the specified date will be moved into another survey
 	 */
+	
+	private class ArchiveResponse {
+		int count;
+		ArrayList<String> archives;
+		ArrayList<String> surveys;
+	}
+	
 	@GET
 	@Path("/archive")
 	public Response archiveSurveyResults(@Context HttpServletRequest request,
@@ -370,16 +377,17 @@ public class SurveyResults extends Application {
 		
 		Response response = null;
 		String connectionString = "surveyKPI-SurveyResults-archive";
-		String archiveName = "xxx";
+		ArchiveResponse resp = new ArchiveResponse();
+		resp.count = 0;
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
-		lm.writeLog(sd, sId, request.getRemoteUser(), "restore", "Restore results", 0, request.getServerName());
+		lm.writeLog(sd, sId, request.getRemoteUser(), "archive", "Archive results", 0, request.getServerName());
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
-		// Escape any quotes
 		if(sId > 0) {
 			
 			Connection connectionRel = null; 
@@ -407,7 +415,6 @@ public class SurveyResults extends Application {
 				/*
 				 * Check to see that there is data to be archived
 				 */
-				int count = 0;
 				if(GeneralUtilityMethods.tableExists(connectionRel, mainTableName)) {
 					StringBuilder sql = new StringBuilder("select count(*) from ");
 					sql.append(mainTableName);
@@ -432,7 +439,7 @@ public class SurveyResults extends Application {
 					connectionRel.commit();
 				}
 				
-				response = Response.ok("{\"count\": " + count + ", \"archiveName\": \"" + archiveName + "\" }").build();
+				response = Response.ok(gson.toJson(resp)).build();
 				
 			} catch (Exception e) {
 				String msg = e.getMessage();
@@ -457,6 +464,97 @@ public class SurveyResults extends Application {
 
 		return response; 
 	}
+	
+	/*
+	 * Archive results for a survey
+	 * All submissions received on or before the specified date will be moved into another survey
+	 */
+	@GET
+	@Path("/archivecount")
+	public Response archiveSurveyCount(@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@QueryParam("startDate") String startDate) {
+		
+		Response response = null;
+		String connectionString = "surveyKPI-SurveyResults-archivecount";
+		ArchiveResponse resp = new ArchiveResponse();
+		resp.count = 0;
+		
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		
+		// Escape any quotes
+		if(sId > 0) {
+			
+			Connection cResults = null; 
+			PreparedStatement pstmt = null;
+			PreparedStatement pstmtCount = null;
+		
+			try {
+				// Get the users locale
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				cResults = ResultsDataSource.getConnection(connectionString);
+				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				
+				/*
+				 * Get the surveys and tables that are part of the group that this survey belongs to
+				 */
+				SurveyManager sm = new SurveyManager(localisation, "UTC");
+				String mainTableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
+				
+				/*
+				 * Check to see that there is data to be archived
+				 */
+				int count = 0;
+				if(GeneralUtilityMethods.tableExists(cResults, mainTableName)) {
+					StringBuilder sql = new StringBuilder("select count(*) from ");
+					sql.append(mainTableName);
+	
+				
+				}
+				
+				for(GroupDetails gd : surveys) {
+					resp.surveys.add(gd.surveyName);
+					resp.archives.add(gd.surveyName + " : " + startDate);
+				}
+				
+				response = Response.ok(gson.toJson(resp)).build();
+				
+			} catch (Exception e) {
+				String msg = e.getMessage();
+				if(msg != null && msg.contains("does not exist")) {
+					response = Response.ok("").build();
+				} else {
+					log.log(Level.SEVERE, "Survey: Restore Results");
+					e.printStackTrace();
+					response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+				}
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				try {if (pstmtCount != null) {pstmtCount.close();}} catch (SQLException e) {}
+			
+
+				try {cResults.setAutoCommit(true);} catch (Exception e) {}
+				
+				SDDataSource.closeConnection(connectionString, sd);
+				ResultsDataSource.closeConnection(connectionString, cResults);
+			}
+		}
+
+		return response; 
+	}
+	
 	
 	/*
 	 * Get surveys belonging to a group
