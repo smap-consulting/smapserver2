@@ -3815,16 +3815,6 @@ public class GeneralUtilityMethods {
 
 		}
 
-		// Add HRK if it has been specified
-		if (includeOtherMeta) {
-			c = new TableColumn();
-			c.column_name = "_hrk";
-			c.displayName = localisation.getString("cr_key");
-			c.type = SmapQuestionTypes.STRING;
-			c.question_name = c.column_name;
-			columnList.add(c);
-		}
-
 		if (includeParentKey) {
 			c = new TableColumn();
 			c.column_name = "parkey";
@@ -3865,6 +3855,13 @@ public class GeneralUtilityMethods {
 		// For the top level form add default columns that are not in the question list
 		if (includeOtherMeta && formParent == 0) {
 
+			c = new TableColumn();
+			c.column_name = "_hrk";
+			c.displayName = localisation.getString("cr_key");
+			c.type = SmapQuestionTypes.STRING;
+			c.question_name = c.column_name;
+			columnList.add(c);
+			
 			c = new TableColumn();
 			c.column_name = "_user";
 			c.displayName = localisation.getString("a_user");
@@ -3984,7 +3981,7 @@ public class GeneralUtilityMethods {
 
 		}
 		
-		if (includeInstanceId) {
+		if (includeInstanceId && formParent == 0) {
 			c = new TableColumn();
 			c.column_name = "instanceid";
 			c.displayName = localisation.getString("a_ii");

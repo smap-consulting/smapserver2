@@ -359,7 +359,7 @@ fi
 
 echo '##### 19. Update miscelaneous file configurations'
 
-sudo apt-get install mlocate
+sudo apt-get install mlocate -y
 
 echo '##### Add file location to tomcat configuration'
 
