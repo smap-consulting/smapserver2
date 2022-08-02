@@ -365,15 +365,15 @@ public class SurveyResults extends Application {
 	
 	private class ArchiveResponse {
 		int count;
-		ArrayList<String> archives;
-		ArrayList<String> surveys;
+		ArrayList<String> archives = new ArrayList<>();
+		ArrayList<String> surveys = new ArrayList<>();
 	}
 	
 	@GET
 	@Path("/archive")
 	public Response archiveSurveyResults(@Context HttpServletRequest request,
 			@PathParam("sId") int sId,
-			@QueryParam("startDate") String startDate) {
+			@QueryParam("startDate") Date startDate) {
 		
 		Response response = null;
 		String connectionString = "surveyKPI-SurveyResults-archive";
@@ -473,7 +473,8 @@ public class SurveyResults extends Application {
 	@Path("/archivecount")
 	public Response archiveSurveyCount(@Context HttpServletRequest request,
 			@PathParam("sId") int sId,
-			@QueryParam("startDate") String startDate) {
+			@QueryParam("startDate") Date startDate,
+			@QueryParam("tz") String tz) {
 		
 		Response response = null;
 		String connectionString = "surveyKPI-SurveyResults-archivecount";
@@ -481,7 +482,8 @@ public class SurveyResults extends Application {
 		resp.count = 0;
 		
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-
+		
+		tz = (tz == null) ? "UTC" : tz;
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -494,7 +496,6 @@ public class SurveyResults extends Application {
 			
 			Connection cResults = null; 
 			PreparedStatement pstmt = null;
-			PreparedStatement pstmtCount = null;
 		
 			try {
 				// Get the users locale
@@ -518,10 +519,17 @@ public class SurveyResults extends Application {
 				 */
 				int count = 0;
 				if(GeneralUtilityMethods.tableExists(cResults, mainTableName)) {
-					StringBuilder sql = new StringBuilder("select count(*) from ");
-					sql.append(mainTableName);
+					StringBuilder sql = new StringBuilder("select count(*) from ")
+						.append(mainTableName)
+						.append(" where _upload_time < ?");
 	
-				
+					pstmt = cResults.prepareStatement(sql.toString());
+					pstmt.setTimestamp(1, GeneralUtilityMethods.endOfDay(startDate, tz));
+					log.info("Get archive count: " + pstmt.toString());
+					ResultSet rs = pstmt.executeQuery();
+					if(rs.next()) {
+						resp.count = rs.getInt(1);
+					}
 				}
 				
 				for(GroupDetails gd : surveys) {
@@ -542,7 +550,6 @@ public class SurveyResults extends Application {
 				}
 			} finally {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				try {if (pstmtCount != null) {pstmtCount.close();}} catch (SQLException e) {}
 			
 
 				try {cResults.setAutoCommit(true);} catch (Exception e) {}
