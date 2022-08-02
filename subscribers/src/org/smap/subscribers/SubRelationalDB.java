@@ -971,10 +971,12 @@ public class SubRelationalDB extends Subscriber {
 		/*
 		 * Add dynamic meta value columns
 		 */
-		if(dmv.case_closed != null) {
-			addTableCol(cols, vals, tableCols, "_case_closed", String.valueOf(dmv.case_closed), "timestamp");
-		} else {
-			addTableCol(cols, vals, tableCols, "_case_closed", null, "timestamp");
+		if(parentKey == 0) {
+			if(dmv.case_closed != null) {
+				addTableCol(cols, vals, tableCols, "_case_closed", String.valueOf(dmv.case_closed), "timestamp");
+			} else {
+				addTableCol(cols, vals, tableCols, "_case_closed", null, "timestamp");
+			}
 		}
 		
 		/*
