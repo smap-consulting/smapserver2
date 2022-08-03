@@ -3355,7 +3355,7 @@ public class SurveyManager {
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
 		
 		StringBuffer sql = new StringBuffer("select distinct s.s_id, s.display_name, s.ident,"
-				+ "s.data_survey, s.oversight_survey "
+				+ "s.data_survey, s.oversight_survey, s.p_id "
 				+ "from survey s, users u, user_project up "
 				+ "where s.p_id = up.p_id "
 				+ "and up.u_id = u.id "
@@ -3384,7 +3384,8 @@ public class SurveyManager {
 						rs.getString(3),
 						rs.getBoolean(4),
 						rs.getBoolean(5),
-						groupSurveyIdent));
+						groupSurveyIdent,
+						rs.getInt(6)));
 			}
 		} finally {
 			try {
@@ -3575,7 +3576,7 @@ public class SurveyManager {
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
 		
 		StringBuffer sql = new StringBuffer("select distinct s.s_id, s.display_name, s.ident,"
-				+ "s.data_survey, s.oversight_survey "
+				+ "s.data_survey, s.oversight_survey, s.p_id "
 				+ "from survey s "
 				+ "where not s.deleted "
 				+ "and s.group_survey_ident = ?");
@@ -3594,7 +3595,8 @@ public class SurveyManager {
 						rs.getString(3),
 						rs.getBoolean(4),
 						rs.getBoolean(5),
-						groupSurveyIdent));
+						groupSurveyIdent,
+						rs.getInt(6)));
 			}
 		} finally {
 			try {
