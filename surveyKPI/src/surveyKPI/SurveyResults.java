@@ -36,10 +36,12 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.QueryManager;
 import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.model.GroupDetails;
+import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.Question;
 
 import com.google.gson.Gson;
@@ -402,26 +404,29 @@ public class SurveyResults extends Application {
 		lm.writeLog(sd, sId, request.getRemoteUser(), "archive", "Archive results", 0, request.getServerName());
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
+		String sqlNewTable = "select table_name from form where name = ? and s_id = any (?)";
+		
 		if(sId > 0) {
 			
-			Connection connectionRel = null; 
+			Connection cResults = null; 
 			PreparedStatement pstmt = null;
 			PreparedStatement pstmtCount = null;
+			PreparedStatement pstmtCopy = null;
+			PreparedStatement pstmtNewTable = null;
 		
 			try {
 				// Get the users locale
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-				connectionRel = ResultsDataSource.getConnection(connectionString);
+				cResults = ResultsDataSource.getConnection(connectionString);
 				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 				
 				/*
 				 * Get the surveys and tables that are part of the group that this survey belongs to
 				 */
 				SurveyManager sm = new SurveyManager(localisation, tz);
-				String mainTableName = GeneralUtilityMethods.getMainResultsTable(sd, connectionRel, sId);
+				String mainTableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
 				//ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyIdent, oId, request.getRemoteUser(), sId);
@@ -429,13 +434,13 @@ public class SurveyResults extends Application {
 				/*
 				 * Check to see that there is data to be archived
 				 */
-				if(GeneralUtilityMethods.tableExists(connectionRel, mainTableName)) {
+				if(GeneralUtilityMethods.tableExists(cResults, mainTableName)) {
 				
 					/*
 					 * Create archive Surveys
 					 */
 					sd.setAutoCommit(false);
-					connectionRel.setAutoCommit(false);
+					cResults.setAutoCommit(false);
 					
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd");  
 					String beforeString = df.format(beforeDate);
@@ -461,13 +466,32 @@ public class SurveyResults extends Application {
 					}
 				
 					/*
-					 * Block all new Surveys
-					 * TODO Put all new surveys in the same group
+					 * Get the new and old survey ids into an integer array so they can be used with "any" in an sql statement
 					 */
-					blockAndGroupNewSurveys(sd, surveyMaps, newGroupSurveyIdent);
+					Integer[] oldSurveys = new Integer[surveyMaps.size()];
+					Integer[] newSurveys = new Integer[surveyMaps.size()];
+					for(int i = 0; i < surveyMaps.size(); i++) {
+						oldSurveys[i] = surveyMaps.get(i).oldSurveyId;
+						newSurveys[i] = surveyMaps.get(i).newSurveyId;
+					}
 					
+					/*
+					 * Block all new Surveys
+					 * Put all new surveys in the same group
+					 */
+					blockAndGroupNewSurveys(sd, newSurveys, newGroupSurveyIdent);
+					
+					/*
+					 * Copy data to the archive tables
+					 */
+					HashMap<String, String> tablesDone = new HashMap<>();
+					pstmtNewTable = sd.prepareStatement(sqlNewTable);
+					pstmtNewTable.setArray(2, sd.createArrayOf("int", newSurveys));
+					
+					copyData(sd, cResults, pstmtNewTable, oldSurveys, newSurveys, 0, null, tablesDone, beforeDate, tz);
 
-					connectionRel.commit();
+
+					cResults.commit();
 					sd.commit();
 				}
 				
@@ -475,29 +499,25 @@ public class SurveyResults extends Application {
 				
 			} catch (Exception e) {
 				
-				try {connectionRel.rollback();} catch (Exception er) {}
+				try {cResults.rollback();} catch (Exception er) {}
 				try {sd.rollback();} catch (Exception er) {}
 				
-				String msg = e.getMessage();
-				if(msg != null && msg.contains("does not exist")) {
-					response = Response.ok("").build();
-				} else {
-					log.log(Level.SEVERE, "Survey: Restore Results");
-					e.printStackTrace();
-					response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-				}
-				
+				log.log(Level.SEVERE, "Survey: Restore Results");
+				e.printStackTrace();
+				response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+
 				
 			} finally {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				try {if (pstmtCount != null) {pstmtCount.close();}} catch (SQLException e) {}
+				try {if (pstmtCopy != null) {pstmtCopy.close();}} catch (SQLException e) {}
+				try {if (pstmtNewTable != null) {pstmtNewTable.close();}} catch (SQLException e) {}
 			
-
-				try {connectionRel.setAutoCommit(true);} catch (Exception e) {}
+				try {cResults.setAutoCommit(true);} catch (Exception e) {}
 				try {sd.setAutoCommit(true);} catch (Exception e) {}
 				
 				SDDataSource.closeConnection(connectionString, sd);
-				ResultsDataSource.closeConnection(connectionString, connectionRel);
+				ResultsDataSource.closeConnection(connectionString, cResults);
 			}
 		}
 
@@ -541,7 +561,6 @@ public class SurveyResults extends Application {
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				cResults = ResultsDataSource.getConnection(connectionString);
 				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 				
@@ -670,18 +689,13 @@ public class SurveyResults extends Application {
 	/*
 	 * Block the new surveys that have been created for archiving
 	 */
-	private void blockAndGroupNewSurveys(Connection sd, ArrayList<SurveyMap> surveyMaps, String groupSurveyIdent) throws SQLException {
+	private void blockAndGroupNewSurveys(Connection sd, Integer[] surveys, String groupSurveyIdent) throws SQLException {
 		
 		String sql = "update survey set blocked = true, group_survey_ident = ? where s_id = any (?)";		
 		String sqlForms = "select name, table_name from form where s_id = any (?)";
 		String sqlTables = "update form set table_name = ? where name = ? and s_id = any (?)";
 		
-		PreparedStatement pstmt = null;
-		
-		Integer[] surveys = new Integer[surveyMaps.size()];
-		for(int i = 0; i < surveyMaps.size(); i++) {
-			surveys[i] = surveyMaps.get(i).newSurveyId;
-		}
+		PreparedStatement pstmt = null;	
 		
 		try {
 			// Set group ident and block
@@ -723,5 +737,73 @@ public class SurveyResults extends Application {
 		}
 	}
 	
+	private void copyData(Connection sd, Connection cResults, 
+			PreparedStatement pstmtNewTable,
+			Integer[] oldSurveys, 
+			Integer[] newSurveys, 
+			int parent, 
+			String newParentTable,
+			HashMap<String, String> tablesDone,
+			Date beforeDate,
+			String tz
+			) throws SQLException {
+			
+		String sqlForms = "select name, table_name, f_id from form where s_id = any (?) and parentform = ?";
+		PreparedStatement pstmtForms = null;
+		PreparedStatement pstmtCopy = null;
+		
+		try {
+
+			pstmtForms = sd.prepareStatement(sqlForms);
+			pstmtForms.setArray(1, sd.createArrayOf("int", oldSurveys));
+			
+			pstmtForms.setInt(2,  parent);
+			ResultSet rs = pstmtForms.executeQuery();
+			while(rs.next()) {
+				String oldTableName = rs.getString("table_name");
+				String oldFormName = rs.getString("name");
+				int oldFormId = rs.getInt("f_id");
+				if(tablesDone.get(oldTableName) == null) {
+					tablesDone.put(oldTableName, oldTableName);
+					
+					pstmtNewTable.setString(1, oldFormName);
+					ResultSet rsTables = pstmtNewTable.executeQuery();
+					if(rsTables.next()) {
+						String newTableName = rsTables.getString("table_name");
+						
+						log.info("Copy from: " + oldTableName + " to " + newTableName);
+						
+						StringBuilder sqlCopy = new StringBuilder("create table ")
+								.append(newTableName)
+								.append(" as select * from ")
+								.append(oldTableName);
+						if(parent == 0) {
+							sqlCopy.append(" where _upload_time < ?");
+						} else {
+							sqlCopy.append(" where parkey in (select prikey from ")
+								.append(newParentTable)
+								.append(")");		// Copy records whos parent has already been copied
+							
+						}
+						
+						try {if (pstmtCopy != null) {pstmtCopy.close();}} catch (SQLException e) {}
+						pstmtCopy = cResults.prepareStatement(sqlCopy.toString());
+						if(parent == 0) {
+							pstmtCopy.setTimestamp(1, GeneralUtilityMethods.endOfDay(beforeDate, tz));
+						}
+						log.info("Copy for archive: " + pstmtCopy.toString());
+						pstmtCopy.executeUpdate();
+						
+						copyData(sd, cResults, pstmtNewTable, oldSurveys, newSurveys, oldFormId, newTableName, tablesDone, beforeDate, tz);	// Check out children
+					}
+					
+				}
+			}
+		} finally {
+			try {if (pstmtForms != null) {pstmtForms.close();}} catch (SQLException e) {}
+			try {if (pstmtCopy != null) {pstmtCopy.close();}} catch (SQLException e) {}
+		}
+		
+	}
 	
 }
