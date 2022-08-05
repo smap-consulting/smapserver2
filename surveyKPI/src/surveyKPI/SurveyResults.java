@@ -150,7 +150,7 @@ public class SurveyResults extends Application {
 						log.info("Error deleting table: " + e.getMessage());
 					}
 					log.info("userevent: " + request.getRemoteUser() + " : delete results : " + tableName + " in survey : "+ sId); 
-					lm.writeLog(sd, sId, request.getRemoteUser(), "delete", "Delete results: " + tableName  + " in survey : "+ sId, 0, request.getServerName());
+					lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.DELETE, "Delete results: " + tableName  + " in survey : "+ sId, 0, request.getServerName());
 				}
 				
 				/*
@@ -373,6 +373,7 @@ public class SurveyResults extends Application {
 		int count;
 		ArrayList<String> archives = new ArrayList<>();
 		ArrayList<String> surveys = new ArrayList<>();
+		String msg;
 	}
 	
 	private class SurveyMap {
@@ -429,7 +430,6 @@ public class SurveyResults extends Application {
 				String mainTableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
-				//ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyIdent, oId, request.getRemoteUser(), sId);
 				
 				/*
 				 * Check to see that there is data to be archived
@@ -463,6 +463,7 @@ public class SurveyResults extends Application {
 							newGroupSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, newSurveyId);
 						}
 						
+						resp.surveys.add(gd.surveyName);	// Return list of surveys archived
 					}
 				
 					/*
@@ -488,12 +489,25 @@ public class SurveyResults extends Application {
 					pstmtNewTable = sd.prepareStatement(sqlNewTable);
 					pstmtNewTable.setArray(2, sd.createArrayOf("int", newSurveys));
 					
-					copyAndPurgeData(sd, cResults, pstmtNewTable, oldSurveys, newSurveys, 0, null, tablesDone, beforeDate, tz);
-
+					resp.count = copyAndPurgeData(sd, cResults, pstmtNewTable, oldSurveys, newSurveys, 0, null, tablesDone, beforeDate, tz);
 
 					cResults.commit();
 					sd.commit();
 				}
+				
+				resp.msg = localisation.getString("arch_done");
+				resp.msg = resp.msg.replace("%s1", String.valueOf(resp.count));
+				StringBuilder surveyList = new StringBuilder("");
+				for(String s : resp.surveys) {
+					if(surveyList.length() > 0) {
+						surveyList.append(", ");
+					}
+					surveyList.append(s);
+				}
+				resp.msg = resp.msg.replace("%s2", surveyList.toString());
+				DateFormat df = new SimpleDateFormat("yyyy-MM-dd");  
+				resp.msg.replace("%s3",df.format(beforeDate));
+				lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.ARCHIVE, resp.msg, 0, request.getServerName());
 				
 				response = Response.ok(gson.toJson(resp)).build();
 				
@@ -741,7 +755,7 @@ public class SurveyResults extends Application {
 	 * Copy data to the archive tables 
 	 * Remove copied data from the original tables
 	 */
-	private void copyAndPurgeData(Connection sd, Connection cResults, 
+	private int copyAndPurgeData(Connection sd, Connection cResults, 
 			PreparedStatement pstmtNewTable,
 			Integer[] oldSurveys, 
 			Integer[] newSurveys, 
@@ -751,7 +765,9 @@ public class SurveyResults extends Application {
 			Date beforeDate,
 			String tz
 			) throws SQLException {
-			
+		
+		int count = 0;
+		
 		String sqlForms = "select name, table_name, f_id from form where s_id = any (?) and parentform = ?";
 		PreparedStatement pstmtForms = null;
 		PreparedStatement pstmtCopy = null;
@@ -810,7 +826,7 @@ public class SurveyResults extends Application {
 						try {if (pstmtPurge != null) {pstmtPurge.close();}} catch (SQLException e) {}
 						pstmtPurge = cResults.prepareStatement(sqlPurge.toString());
 						log.info("Purge for archive: " + pstmtCopy.toString());
-						pstmtPurge.executeUpdate();
+						count = pstmtPurge.executeUpdate();
 						
 						copyAndPurgeData(sd, cResults, pstmtNewTable, oldSurveys, newSurveys, oldFormId, newTableName, tablesDone, beforeDate, tz);	// Check out children
 					}
@@ -822,6 +838,8 @@ public class SurveyResults extends Application {
 			try {if (pstmtCopy != null) {pstmtCopy.close();}} catch (SQLException e) {}
 			try {if (pstmtPurge != null) {pstmtPurge.close();}} catch (SQLException e) {}
 		}
+		
+		return count;
 		
 	}
 	
