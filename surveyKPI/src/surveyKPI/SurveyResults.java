@@ -506,7 +506,7 @@ public class SurveyResults extends Application {
 				}
 				resp.msg = resp.msg.replace("%s2", surveyList.toString());
 				DateFormat df = new SimpleDateFormat("yyyy-MM-dd");  
-				resp.msg.replace("%s3",df.format(beforeDate));
+				resp.msg = resp.msg.replace("%s3",df.format(beforeDate));
 				lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.ARCHIVE, resp.msg, 0, request.getServerName());
 				
 				response = Response.ok(gson.toJson(resp)).build();

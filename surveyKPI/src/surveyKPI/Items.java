@@ -200,12 +200,14 @@ public class Items extends Application {
 				
 				// Prepare the statement to get the form details
 				String sqlFDetails = "select table_name, parentform, name from form " +
-					" where f_id = ?";
+					" where f_id = ?"
+					+ "and s_id = ?";	// Authorisation check
 				pstmtFDetails = sd.prepareStatement(sqlFDetails);
 				
 				// Get the table details
 				// Get the question type
 				pstmtFDetails.setInt(1, fId);
+				pstmtFDetails.setInt(2, sId);
 				ResultSet rsDetails = pstmtFDetails.executeQuery();
 				if(rsDetails.next()) {
 					
@@ -214,7 +216,11 @@ public class Items extends Application {
 					formName = rsDetails.getString(3);
 					
 					tables.add(tName, fId, parent);
+				} else { 
+					throw new Exception("Form " + fId + " not found");
 				}
+				
+				GeneralUtilityMethods.ensureTableCurrent(cResults, tName, parent == 0);
 				
 				int geomIdx = -1;
 				
