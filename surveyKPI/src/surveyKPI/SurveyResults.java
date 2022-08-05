@@ -488,7 +488,7 @@ public class SurveyResults extends Application {
 					pstmtNewTable = sd.prepareStatement(sqlNewTable);
 					pstmtNewTable.setArray(2, sd.createArrayOf("int", newSurveys));
 					
-					copyData(sd, cResults, pstmtNewTable, oldSurveys, newSurveys, 0, null, tablesDone, beforeDate, tz);
+					copyAndPurgeData(sd, cResults, pstmtNewTable, oldSurveys, newSurveys, 0, null, tablesDone, beforeDate, tz);
 
 
 					cResults.commit();
@@ -737,7 +737,11 @@ public class SurveyResults extends Application {
 		}
 	}
 	
-	private void copyData(Connection sd, Connection cResults, 
+	/*
+	 * Copy data to the archive tables 
+	 * Remove copied data from the original tables
+	 */
+	private void copyAndPurgeData(Connection sd, Connection cResults, 
 			PreparedStatement pstmtNewTable,
 			Integer[] oldSurveys, 
 			Integer[] newSurveys, 
@@ -751,6 +755,7 @@ public class SurveyResults extends Application {
 		String sqlForms = "select name, table_name, f_id from form where s_id = any (?) and parentform = ?";
 		PreparedStatement pstmtForms = null;
 		PreparedStatement pstmtCopy = null;
+		PreparedStatement pstmtPurge = null;
 		
 		try {
 
@@ -794,7 +799,20 @@ public class SurveyResults extends Application {
 						log.info("Copy for archive: " + pstmtCopy.toString());
 						pstmtCopy.executeUpdate();
 						
-						copyData(sd, cResults, pstmtNewTable, oldSurveys, newSurveys, oldFormId, newTableName, tablesDone, beforeDate, tz);	// Check out children
+						/*
+						 * Purge original data
+						 */
+						StringBuilder sqlPurge = new StringBuilder("delete from ")
+								.append(oldTableName)
+								.append(" where prikey in (select prikey from  ")
+								.append(newTableName)
+								.append(")");
+						try {if (pstmtPurge != null) {pstmtPurge.close();}} catch (SQLException e) {}
+						pstmtPurge = cResults.prepareStatement(sqlPurge.toString());
+						log.info("Purge for archive: " + pstmtCopy.toString());
+						pstmtPurge.executeUpdate();
+						
+						copyAndPurgeData(sd, cResults, pstmtNewTable, oldSurveys, newSurveys, oldFormId, newTableName, tablesDone, beforeDate, tz);	// Check out children
 					}
 					
 				}
@@ -802,6 +820,7 @@ public class SurveyResults extends Application {
 		} finally {
 			try {if (pstmtForms != null) {pstmtForms.close();}} catch (SQLException e) {}
 			try {if (pstmtCopy != null) {pstmtCopy.close();}} catch (SQLException e) {}
+			try {if (pstmtPurge != null) {pstmtPurge.close();}} catch (SQLException e) {}
 		}
 		
 	}
