@@ -4228,13 +4228,16 @@ public class GeneralUtilityMethods {
 	 */
 	static public void ensureTableCurrent(Connection cResults, String table_name, boolean topLevel) throws SQLException {
 		
+		log.info("Check columns: " + table_name + " : " + topLevel);
+		
 		if(topLevel) {
 			
 			/*
 			 * Check for the last added column first
 			 * If this is present there is no need to check for the others
+			 * Also check for _thread_created existing due to a bug in a previous release which did not create this column (TODO remove October 2022)
 			 */
-			if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_case_closed")) {
+			if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_case_closed") || !GeneralUtilityMethods.hasColumn(cResults, table_name, "_thread_created")) {
 				
 				GeneralUtilityMethods.addColumn(cResults, table_name, "_case_closed", "timestamp with time zone");
 			
@@ -4246,7 +4249,7 @@ public class GeneralUtilityMethods {
 					GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "text");
 				}
 				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_thread_created")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "timestamp with time zone");
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_thread_created", "timestamp with time zone");
 				}
 				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME)) {
 					GeneralUtilityMethods.addColumn(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME, "timestamp with time zone");
