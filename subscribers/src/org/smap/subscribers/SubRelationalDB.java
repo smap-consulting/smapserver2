@@ -1005,7 +1005,7 @@ public class SubRelationalDB extends Subscriber {
 					pstmt.setInt(idx++, Integer.valueOf(c.value));
 				}
 				
-			} else if(c.type.equals("double")) {	// int
+			} else if(c.type.equals("double") || c.type.equals("decimal")) {	// decimal
 				if(c.value == null) {
 					pstmt.setNull(idx++, java.sql.Types.DOUBLE);
 				} else {
@@ -1030,6 +1030,17 @@ public class SubRelationalDB extends Subscriber {
 					pstmt.setDate(idx++, null);
 				} else {
 					pstmt.setDate(idx++, java.sql.Date.valueOf(LocalDate.parse(c.value)));
+				}
+			} else if(c.type.equals("time")) {	// Time
+				if(c.value == null) {
+					pstmt.setDate(idx++, null);
+				} else {
+					String t = c.value;
+					if(c.value.indexOf(".") > 0) {
+						t = c.value.substring(0, c.value.indexOf("."));
+					}
+					
+					pstmt.setTime(idx++, java.sql.Time.valueOf(t));
 				}
 			} else {
 				pstmt.setString(idx++, c.value);	// Default is String
