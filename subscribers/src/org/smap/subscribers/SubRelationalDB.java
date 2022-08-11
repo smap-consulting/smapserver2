@@ -1033,7 +1033,7 @@ public class SubRelationalDB extends Subscriber {
 				}
 			} else if(c.type.equals("time")) {	// Time
 				if(c.value == null) {
-					pstmt.setDate(idx++, null);
+					pstmt.setTime(idx++, null);
 				} else {
 					String t = c.value;
 					if(c.value.indexOf(".") > 0) {
