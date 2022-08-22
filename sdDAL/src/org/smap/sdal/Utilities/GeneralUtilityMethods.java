@@ -3839,7 +3839,7 @@ public class GeneralUtilityMethods {
 		if (includeBad) {
 			c = new TableColumn();
 			c.column_name = "_bad";
-			c.displayName = localisation.getString("c_del");
+			c.displayName = "_bad";
 			c.type = SmapQuestionTypes.BOOLEAN;
 			c.question_name = c.column_name;
 			columnList.add(c);
@@ -9326,7 +9326,7 @@ public class GeneralUtilityMethods {
 		} else if(colType.equals("dateTime")) {
 			colType = "timestamp with time zone";					
 		} else if(colType.equals("time")) {
-			colType = "time with time zone";					
+			colType = "time";					
 		} else if(GeneralUtilityMethods.isAttachmentType(colType)) {
 			colType = "text";					
 		} else if(colType.equals("select") && compressed) {

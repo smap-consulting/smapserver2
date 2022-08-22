@@ -428,8 +428,8 @@ public class Data extends Application {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			String thread = GeneralUtilityMethods.getThread(cResults, tableName, key);
