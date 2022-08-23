@@ -3808,7 +3808,8 @@ public class GeneralUtilityMethods {
 
 			c = new TableColumn();
 			c.column_name = "_assigned";
-			c.displayName = localisation.getString("assignee_ident");
+			c.displayName = c.column_name;
+			c.humanName = localisation.getString("assignee_ident");
 			c.type = SmapQuestionTypes.STRING;
 			c.question_name = c.column_name;
 			columnList.add(c);
@@ -3846,7 +3847,8 @@ public class GeneralUtilityMethods {
 
 			c = new TableColumn();
 			c.column_name = "_bad_reason";
-			c.displayName = localisation.getString("c_del_reason");
+			c.displayName = c.column_name;
+			c.humanName = localisation.getString("c_del_reason");
 			c.type = SmapQuestionTypes.STRING;
 			c.question_name = c.column_name;
 			columnList.add(c);
@@ -3857,14 +3859,16 @@ public class GeneralUtilityMethods {
 
 			c = new TableColumn();
 			c.column_name = "_hrk";
-			c.displayName = localisation.getString("cr_key");
+			c.displayName = c.column_name;
+			c.humanName = localisation.getString("cr_key");
 			c.type = SmapQuestionTypes.STRING;
 			c.question_name = c.column_name;
 			columnList.add(c);
 			
 			c = new TableColumn();
 			c.column_name = "_user";
-			c.displayName = localisation.getString("a_user");
+			c.displayName = c.column_name;
+			c.humanName = localisation.getString("a_user");
 			c.type = SmapQuestionTypes.STRING;
 			c.isMeta = true;
 			c.question_name = c.column_name;
@@ -3872,14 +3876,16 @@ public class GeneralUtilityMethods {
 
 			c = new TableColumn();
 			c.column_name = "_alert";
-			c.displayName = localisation.getString("a_alert");
+			c.displayName = c.column_name;
+			c.humanName = localisation.getString("a_alert");
 			c.type = SmapQuestionTypes.STRING;
 			c.question_name = c.column_name;
 			columnList.add(c);
 
 			c = new TableColumn();
 			c.column_name = "_thread_created";
-			c.displayName = localisation.getString("a_c_created");
+			c.displayName = c.column_name;
+			c.humanName = localisation.getString("a_c_created");
 			c.type = SmapQuestionTypes.DATETIME;
 			c.question_name = c.column_name;
 			columnList.add(c);
@@ -3910,7 +3916,8 @@ public class GeneralUtilityMethods {
 
 			c = new TableColumn();
 			c.column_name = SmapServerMeta.SCHEDULED_START_NAME;
-			c.displayName = localisation.getString("a_ss");
+			c.displayName = c.column_name;
+			c.humanName = localisation.getString("a_ss");
 			c.type = SmapQuestionTypes.DATETIME;
 			c.isMeta = true;
 			columnList.add(c);
@@ -3956,17 +3963,11 @@ public class GeneralUtilityMethods {
 					if(mi.isPreload) {
 						if(GeneralUtilityMethods.hasColumn(cResults, table_name, mi.columnName)) {
 							c = new TableColumn();
-							c.column_name = mi.columnName;
-							if(c.column_name.equals("_start")) {
-								c.displayName = localisation.getString("a_st");
-							} else if(c.column_name.equals("_end")) {
-								c.displayName = localisation.getString("a_et");
+							c.column_name = mi.columnName;						
+							if(mi.display_name != null) {
+								c.displayName = mi.display_name;
 							} else {
-								if(mi.display_name != null) {
-									c.displayName = mi.display_name;
-								} else {
-									c.displayName = mi.name;
-								}
+								c.displayName = mi.name;
 							}
 							c.question_name = mi.name;
 							c.type = mi.type;
@@ -3984,8 +3985,10 @@ public class GeneralUtilityMethods {
 		if (includeInstanceId && formParent == 0) {
 			c = new TableColumn();
 			c.column_name = "instanceid";
-			c.displayName = localisation.getString("a_ii");
+			c.displayName = c.column_name;
+			c.humanName = localisation.getString("a_ii");
 			c.type = "";
+			c.question_name = c.column_name;
 			c.isMeta = true;
 			columnList.add(c);
 		}
