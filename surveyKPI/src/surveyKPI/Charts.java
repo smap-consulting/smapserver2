@@ -97,6 +97,7 @@ public class Charts extends Application {
 			pstmt.setString(1, gson.toJson(chartDefns));
 			pstmt.setString(2, sIdent);
 			pstmt.setInt(3, uId);
+			log.info("save chart: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			response = Response.ok("").build();
