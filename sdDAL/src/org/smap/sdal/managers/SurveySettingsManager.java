@@ -136,7 +136,7 @@ public class SurveySettingsManager {
 						ssd.columnSettings = new HashMap<String, ConsoleColumn> ();		
 					}
 				} else {
-					ssd.charts = new ArrayList<ChartDefn> ();
+					ssd.columnSettings = new HashMap<String, ConsoleColumn> ();	
 				}
 				
 			}
