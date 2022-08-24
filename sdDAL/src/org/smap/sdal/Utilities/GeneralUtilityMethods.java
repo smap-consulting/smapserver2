@@ -3859,7 +3859,7 @@ public class GeneralUtilityMethods {
 
 			c = new TableColumn();
 			c.column_name = "_hrk";
-			c.displayName = c.column_name;
+			c.displayName = "Key";
 			c.humanName = localisation.getString("cr_key");
 			c.type = SmapQuestionTypes.STRING;
 			c.question_name = c.column_name;
