@@ -3867,7 +3867,7 @@ public class GeneralUtilityMethods {
 			
 			c = new TableColumn();
 			c.column_name = "_user";
-			c.displayName = c.column_name;
+			c.displayName = "User";
 			c.humanName = localisation.getString("a_user");
 			c.type = SmapQuestionTypes.STRING;
 			c.isMeta = true;
