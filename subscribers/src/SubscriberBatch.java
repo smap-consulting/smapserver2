@@ -206,7 +206,7 @@ public class SubscriberBatch {
 
 						if(uel.isEmpty()) {
 
-							System.out.print(".");		// Log the runnig of the upload processor
+							System.out.print(".");		// Log the running of the upload processor
 
 						} else {
 							log.info("\nUploading subscriber: " + s.getSubscriberName() + " : " + timeNow.toString());
@@ -1362,9 +1362,12 @@ public class SubscriberBatch {
 						 */
 						StringBuilder sqlMatch = new StringBuilder("select prikey, instanceid, _thread from "); 
 						sqlMatch.append(table); 
-						sqlMatch.append(" where not _bad and (").append(settings.statusQuestion).append(" is null or ").append(settings.statusQuestion).append(" != ? ) ");
-						sqlMatch.append("and  _thread not in (select thread from case_alert_triggered where table_name = ? and a_id = ?) ");
-						sqlMatch.append("and _thread_created < now() - ?::interval ");	
+						sqlMatch.append(" where not _bad and (")
+							.append(settings.statusQuestion)
+							.append(" is null or ")
+							.append("cast (").append(settings.statusQuestion).append(" as text)").append(" != ? ) ")
+							.append("and  _thread not in (select thread from case_alert_triggered where table_name = ? and a_id = ?) ")
+							.append("and _thread_created < now() - ?::interval ");	
 						
 						pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
 						int idx = 1;
@@ -1372,6 +1375,7 @@ public class SubscriberBatch {
 						pstmtMatches.setString(idx++, table);
 						pstmtMatches.setInt(idx++, aId);
 						pstmtMatches.setString(idx++, period);
+						
 						ResultSet mrs = pstmtMatches.executeQuery();
 						
 						while(mrs.next()) {
@@ -1438,8 +1442,6 @@ public class SubscriberBatch {
 								String target = notrs.getString("target");
 								String user = notrs.getString("remote_user");
 								
-								System.out.println("     Notification: " + notificationName);
-								
 								SubmissionMessage subMgr = new SubmissionMessage(
 										0,
 										groupSurveyIdent,
@@ -1480,12 +1482,9 @@ public class SubscriberBatch {
 							}
 
 						}
-					
-						// 3. Process each matching record within a single transaction
-						//    3a. Send notification
-						//    3b. 
+					 
 					} else {
-						log.info("cm: no status settings");
+						//log.info("cm: no status settings");
 					}
 				}
 			}

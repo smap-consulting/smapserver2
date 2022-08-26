@@ -97,6 +97,7 @@ public class MessagingManagerApply {
 
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
+			//log.info("Get messages: " + pstmtGetMessages.toString());
 			rs = pstmtGetMessages.executeQuery();
 			while (rs.next()) {
 
@@ -355,7 +356,7 @@ public class MessagingManagerApply {
 			}
 			
 			// For each user send a notification to each of their devices
-			if(awsProperties != null) {
+			if(awsProperties != null && usersImpacted.size() > 0) {
 				EmitDeviceNotification emitDevice = new EmitDeviceNotification(awsProperties);
 				for(String user : usersImpacted.keySet()) {
 					emitDevice.notify(serverName, user);

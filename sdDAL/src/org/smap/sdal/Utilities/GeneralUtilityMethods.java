@@ -8824,8 +8824,6 @@ public class GeneralUtilityMethods {
 				long minutes = (offset - (hours * 3600000)) / 60000;
 				timeString += dirn + String.format("%02d:%02d", hours, minutes);
 			}
-			
-			log.info("timestring to test: " + timeString);
 
 			try {
 				OffsetDateTime odt = OffsetDateTime.parse( timeString );
