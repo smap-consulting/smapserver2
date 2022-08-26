@@ -81,13 +81,16 @@ public class Charts extends Application {
 		
 		Type type = new TypeToken<ArrayList<ChartDefn>>(){}.getType();
 		Gson gson =  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-		ArrayList chartDefns = gson.fromJson(chartArray, type);
+		ArrayList<ChartDefn> chartDefns = gson.fromJson(chartArray, type);
 
 		String sql = "update survey_settings set chart_view = ? "
 				+ "where s_ident = ? "
 				+ "and u_id = ?";
-
 		PreparedStatement pstmt = null;
+		
+		String sqlInsert = "insert into survey_settings (u_id, s_ident, chart_view) "
+				+ "values (?, ?, ?) ";
+		PreparedStatement pstmtInsert = null;
 		
 		try {
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
@@ -98,7 +101,16 @@ public class Charts extends Application {
 			pstmt.setString(2, sIdent);
 			pstmt.setInt(3, uId);
 			log.info("save chart: " + pstmt.toString());
-			pstmt.executeUpdate();
+			int count = pstmt.executeUpdate();
+			
+			if(count == 0) {
+				// Insert a record
+				pstmtInsert = sd.prepareStatement(sqlInsert);
+				pstmtInsert.setInt(1, uId);
+				pstmtInsert.setString(2, sIdent);
+				pstmtInsert.setString(3, gson.toJson(chartDefns));
+				pstmtInsert.executeUpdate();	
+			}
 			
 			response = Response.ok("").build();
 			
@@ -107,6 +119,7 @@ public class Charts extends Application {
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			if(pstmt != null) {try {pstmt.close();}catch(Exception e) {}}
+			if(pstmtInsert != null) {try {pstmtInsert.close();}catch(Exception e) {}}
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
