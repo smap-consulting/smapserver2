@@ -237,6 +237,8 @@ public void populateSvd(
 			}
 			
 			tc.calculation = c.calculation;
+			tc.startName = c.startName;
+			tc.endName = c.endName;
 
 			// Add markup for assigned column
 			if(tc.column_name.equals(ASSIGNED_COLUMN)) {

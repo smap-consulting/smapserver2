@@ -304,9 +304,9 @@ public class CaseManager {
 					// Ignore cases that are bad or where the status value is null or if the case has been completed
 					StringBuilder sql = new StringBuilder("select instanceid, _thread, prikey, instancename, _hrk from ")
 							.append(tableName)
-							.append(" where not _bad and _assigned = ? and ")
+							.append(" where not _bad and _assigned = ? and cast (")
 							.append(cms.settings.statusQuestion)
-							.append(" != ?");
+							.append(" as text) != ?");
 					pstmt = cResults.prepareStatement(sql.toString());
 					pstmt.setString(1, user);
 					pstmt.setString(2,  cms.settings.finalStatus);
