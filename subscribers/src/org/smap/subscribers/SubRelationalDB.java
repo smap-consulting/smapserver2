@@ -1005,7 +1005,7 @@ public class SubRelationalDB extends Subscriber {
 					pstmt.setInt(idx++, Integer.valueOf(c.value));
 				}
 				
-			} else if(c.type.equals("double") || c.type.equals("decimal")) {	// decimal
+			} else if(c.type.equals("double") || c.type.equals("decimal") || c.type.equals("range")) {	// decimal
 				if(c.value == null) {
 					pstmt.setNull(idx++, java.sql.Types.DOUBLE);
 				} else {
