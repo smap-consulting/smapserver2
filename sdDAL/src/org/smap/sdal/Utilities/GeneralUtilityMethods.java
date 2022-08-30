@@ -3996,7 +3996,7 @@ public class GeneralUtilityMethods {
 		if (audit) {
 			c = new TableColumn();
 			c.column_name = "_audit";
-			c.displayName = localisation.getString("audit");
+			c.displayName = "Audit";
 			c.type = SmapQuestionTypes.AUDIT;
 			c.question_name = c.column_name;
 			columnList.add(c);
