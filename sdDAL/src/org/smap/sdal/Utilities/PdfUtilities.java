@@ -923,63 +923,65 @@ public class PdfUtilities {
 		DateFormat dfDateOnly = new SimpleDateFormat("yyyy-MM-dd");
 		
 		String value = "";
-		Date date;
-		String utcValue = inValue;
-		if(type.equals("dateTime") || type.equals("timestamp")) {
-			df.setTimeZone(TimeZone.getTimeZone("UTC"));
-			date = df.parse(inValue);
-			df.setTimeZone(TimeZone.getTimeZone(tz));
-			value = df.format(date);
-		} else {
-			dfDateOnly.setTimeZone(TimeZone.getTimeZone("UTC"));
-			date = dfDateOnly.parse(inValue);
-			dfDateOnly.setTimeZone(TimeZone.getTimeZone(tz));
-			value = dfDateOnly.format(date);
-		}
-		
-		// If Bikram Sambat date output is required convert  
-		if(di.bs) {
-
-			Date nepalDate;
-			
-			log.info("utc value: " + utcValue);
-			
-			
+		if(inValue != null) {
+			Date date;
+			String utcValue = inValue;
 			if(type.equals("dateTime") || type.equals("timestamp")) {
 				df.setTimeZone(TimeZone.getTimeZone("UTC"));
-				date = df.parse(utcValue);
+				date = df.parse(inValue);
 				df.setTimeZone(TimeZone.getTimeZone(tz));
 				value = df.format(date);
-				log.info("xxxxxxxxx: " + value);
-				df.setTimeZone(TimeZone.getTimeZone("UTC"));
-				nepalDate = df.parse(value);
-			} else {	
+			} else {
 				dfDateOnly.setTimeZone(TimeZone.getTimeZone("UTC"));
-				date = dfDateOnly.parse(utcValue);
-				date.setHours(12);
-				nepalDate = date;
-			} 		
+				date = dfDateOnly.parse(inValue);
+				dfDateOnly.setTimeZone(TimeZone.getTimeZone(tz));
+				value = dfDateOnly.format(date);
+			}
+			
+			// If Bikram Sambat date output is required convert  
+			if(di.bs) {
+	
+				Date nepalDate;
 				
-			log.info("Value: " + value);
-			
-			StringBuilder bsValue = new StringBuilder("");
-			DateBS dateBS = DateConverter.convertADToBS(nepalDate);  //returns corresponding DateBS
-			
-			bsValue.append(dateBS.getYear())
-			.append("/")
-			.append(dateBS.getMonth() + 1)
-			.append("/")
-			.append(dateBS.getDay());
-			
-			if(type.equals("dateTime") || type.equals("timestamp")) {
-				String [] components = value.split(" ");
-				if(components.length > 1) {
-					bsValue.append(" ")
-					.append(components[1]);
-				}				
-			} 
-
-			value = bsValue.toString();
+				log.info("utc value: " + utcValue);
+				
+				
+				if(type.equals("dateTime") || type.equals("timestamp")) {
+					df.setTimeZone(TimeZone.getTimeZone("UTC"));
+					date = df.parse(utcValue);
+					df.setTimeZone(TimeZone.getTimeZone(tz));
+					value = df.format(date);
+					log.info("xxxxxxxxx: " + value);
+					df.setTimeZone(TimeZone.getTimeZone("UTC"));
+					nepalDate = df.parse(value);
+				} else {	
+					dfDateOnly.setTimeZone(TimeZone.getTimeZone("UTC"));
+					date = dfDateOnly.parse(utcValue);
+					date.setHours(12);
+					nepalDate = date;
+				} 		
+					
+				log.info("Value: " + value);
+				
+				StringBuilder bsValue = new StringBuilder("");
+				DateBS dateBS = DateConverter.convertADToBS(nepalDate);  //returns corresponding DateBS
+				
+				bsValue.append(dateBS.getYear())
+				.append("/")
+				.append(dateBS.getMonth() + 1)
+				.append("/")
+				.append(dateBS.getDay());
+				
+				if(type.equals("dateTime") || type.equals("timestamp")) {
+					String [] components = value.split(" ");
+					if(components.length > 1) {
+						bsValue.append(" ")
+						.append(components[1]);
+					}				
+				} 
+	
+				value = bsValue.toString();
+			}
 		}
 		return value;
 	}
