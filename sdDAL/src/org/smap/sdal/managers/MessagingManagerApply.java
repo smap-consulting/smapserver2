@@ -559,7 +559,7 @@ public class MessagingManagerApply {
 	/*
 	 * Upload files to s3
 	 */
-	public void uploadToS3(Connection sd, String basePath) throws SQLException {
+	public void uploadToS3(Connection sd, String basePath, int s3count) throws SQLException {
 		
 		String sql = "select id, filepath "
 				+ "from s3upload "
@@ -605,8 +605,10 @@ public class MessagingManagerApply {
 			/*
 			 * Clean up old data
 			 */
-			pstmtClean = sd.prepareStatement(sqlClean);
-			pstmtClean.executeUpdate();
+			if(s3count == 0) {
+				pstmtClean = sd.prepareStatement(sqlClean);
+				pstmtClean.executeUpdate();
+			}
 			
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
