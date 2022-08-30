@@ -4749,7 +4749,7 @@ public class GeneralUtilityMethods {
 				columnName = qname;
 			}
 			if(columnName == null) {
-				throw new ApplicationException("Column does not exist");
+				throw new ApplicationException("Column does not exist: " + qname + " in " + input);
 			}
 			output.append(columnName);
 
