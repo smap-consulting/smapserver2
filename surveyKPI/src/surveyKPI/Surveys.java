@@ -965,13 +965,15 @@ public class Surveys extends Application {
 				}
 			}
 			
+			boolean updatePDFName = false;
+			String archivedTemplateName = null;
 			/*
 			 * PDF Template
 			 * No longer updated through settings
-			 */
+			 *
 
-			String archivedTemplateName = null;
-			boolean updatePDFName = true;
+			
+			
 			if(fileName != null) {  // Save the file
 				
 				// Temporary save the old file.  This will no longer be necessary once all clients have uploaded their PDFs with the filename saved to the change log
@@ -995,6 +997,7 @@ public class Surveys extends Application {
 
 				updatePDFName = false;	// PDF was not changed
 			}
+			*/
 			
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, updated_time) " +
