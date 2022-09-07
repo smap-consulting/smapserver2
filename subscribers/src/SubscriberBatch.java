@@ -1290,7 +1290,7 @@ public class SubscriberBatch {
 
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		HashMap<String, CaseManagementSettings> settingsCache = new HashMap<>();
-		HashMap<String, String> initialisedCache = new HashMap<>();
+		//HashMap<String, String> initialisedCache = new HashMap<>();
 		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
 		
 		// SQL to record an alert being triggered
@@ -1316,23 +1316,21 @@ public class SubscriberBatch {
 				String table = rs.getString("table_name");
 				int pId = rs.getInt("p_id");
 				String period = rs.getString("period");	
-				int oId = GeneralUtilityMethods.getOrganisationIdForSurveyIdent(sd, groupSurveyIdent);
+				int oId = GeneralUtilityMethods.getOrganisationIdForGroupSurveyIdent(sd, groupSurveyIdent);
 				
-				ResourceBundle localisation = locMap.get(oId);
-				if(localisation == null) {
-					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
-					Locale orgLocale = new Locale(organisation.locale);
-					try {
-						localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
-					} catch(Exception e) {
-						localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
-					}
-					locMap.put(oId, localisation);
-				}
-
-				
-				if(GeneralUtilityMethods.tableExists(cResults, table)) {
+				if(GeneralUtilityMethods.tableExists(cResults, table)) {	
 					
+					ResourceBundle localisation = locMap.get(oId);
+					if(localisation == null) {
+						Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+						Locale orgLocale = new Locale(organisation.locale);
+						try {
+							localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+						} catch(Exception e) {
+							localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+						}
+						locMap.put(oId, localisation);
+					}
 					
 					/*
 					 * Get the case management settings for this case (group survey)
@@ -1490,11 +1488,6 @@ public class SubscriberBatch {
 				}
 			}
 			
-			
-			// 4. Delete from case notification triggered where final status has been reached
-
-			pstmtTriggered = sd.prepareStatement(sqlTriggered);	
-		
 
 		} catch (Exception e) {
 			e.printStackTrace();
