@@ -1350,11 +1350,12 @@ public class SubscriberBatch {
 							GeneralUtilityMethods.hasColumn(cResults, table, settings.statusQuestion)) {
 					
 						// reduce the number of times initialise is called
-						String initialised = initialisedCache.get(table);
-						if(initialised == null) {
-							GeneralUtilityMethods.initialiseThread(cResults, table);
-							initialisedCache.put(table, table);
-						}
+						//Threads should have been initialised on submit
+						//String initialised = initialisedCache.get(table);
+						//if(initialised == null) {
+							//GeneralUtilityMethods.initialiseThread(cResults, table);
+						//	initialisedCache.put(table, table);
+						//}
 						
 						
 						/*

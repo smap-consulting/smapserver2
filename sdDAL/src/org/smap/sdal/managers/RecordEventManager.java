@@ -109,7 +109,7 @@ public class RecordEventManager {
 		PreparedStatement pstmtSurvey = null;
 		
 		// Don't use the actual instance id as it will change with every update
-		String key = GeneralUtilityMethods.getThread(cResults, tableName, newInstance);
+		String key = GeneralUtilityMethods.getThread(cResults, tableName, newInstance, true);
 		
 		// Set user id
 		int uId = GeneralUtilityMethods.getUserId(sd, user);
@@ -254,7 +254,7 @@ public class RecordEventManager {
 				
 				if(updateId != null) {
 					// Get the current Task Item Change and update it
-					String key = GeneralUtilityMethods.getThread(cResults, tableName, updateId);
+					String key = GeneralUtilityMethods.getThread(cResults, tableName, updateId, false);
 					if(key != null) {
 						if(assignmentId > 0) {
 							pstmtGet = sd.prepareStatement(sqlGetUsingAssignment);

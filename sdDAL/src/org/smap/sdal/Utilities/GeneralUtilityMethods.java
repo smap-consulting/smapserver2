@@ -8592,7 +8592,7 @@ public class GeneralUtilityMethods {
 	 * This is a UUID which identifies a series of changes to a record.
 	 * Ie if you start with Record A and then Update it then the two records will have the same thread id.
 	 */
-	public static String getThread(Connection cResults, String table, String instanceId) throws SQLException {
+	public static String getThread(Connection cResults, String table, String instanceId, boolean initialise) throws SQLException {
 		
 		if(!GeneralUtilityMethods.tableExists(cResults, table)) {
 			return null;
@@ -8606,7 +8606,9 @@ public class GeneralUtilityMethods {
 			
 		try {
 			
-			initialiseThread(cResults, table);
+			if(initialise) {
+				initialiseThread(cResults, table);
+			}
 			
 			pstmt = cResults.prepareStatement(sql);
 			pstmt.setString(1, instanceId);

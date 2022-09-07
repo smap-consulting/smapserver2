@@ -432,7 +432,7 @@ public class Data extends Application {
 			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
-			String thread = GeneralUtilityMethods.getThread(cResults, tableName, key);
+			String thread = GeneralUtilityMethods.getThread(cResults, tableName, key, false);
 			RecordEventManager rem = new RecordEventManager();
 			ArrayList<DataItemChangeEvent> changeEvents = rem.getChangeEvents(sd, tz, tableName, thread);
 			
