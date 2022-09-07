@@ -664,6 +664,7 @@ CREATE TABLE record_event (
 	event_time TIMESTAMP WITH TIME ZONE			-- Time and date of event
 	);
 CREATE INDEX record_event_key ON record_event(key);
+create index idx_record_event_table_name on record_event (table_name);
 ALTER TABLE record_event OWNER TO ws;
 
 

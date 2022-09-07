@@ -401,5 +401,22 @@ public class RecordEventManager {
 		
 		return events;
 	}
+	
+	public void deleteTableEvents(Connection sd, String tableName) throws SQLException {
+		
+		String sql = "delete from record_event where table_name = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, tableName);
+			log.info("Delete record events for a table: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+		} finally {
+			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
+		}
+		
+	}
 
 }

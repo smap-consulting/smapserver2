@@ -180,6 +180,12 @@ public class ServerManager {
 								}
 								
 								/*
+								 * Delete record event entries for this table
+								 */
+								RecordEventManager rem = new RecordEventManager();
+								rem.deleteTableEvents(sd, tableName);
+								
+								/*
 								 * Drop any tables for compound data
 								 */
 								if(tableName.length() > 3) {
