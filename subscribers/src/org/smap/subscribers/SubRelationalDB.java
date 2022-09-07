@@ -736,7 +736,8 @@ public class SubRelationalDB extends Subscriber {
 					}
 					foreignKeys.addAll(thisTableKeys);
 					
-					//####################################################### START for DELETION
+					/*
+					 * ####################################################### Old statement preparation
 					pstmt.close();
 					
 					sql = "INSERT INTO " + tableName + " (parkey";
@@ -803,6 +804,8 @@ public class SubRelationalDB extends Subscriber {
 					//################################################################ END
 					log.info("        SQL statement: " + pstmt.toString());
 					//pstmt.executeUpdate();  
+					 * 
+					 */
 
 				}
 				/*
