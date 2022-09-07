@@ -112,7 +112,8 @@ public class JdbcUploadEventManager {
 	
 	String sqlOrder = " order by ue.ue_id asc";
 	
-	String sqlLimit = " limit 100";
+	//String sqlLimit = " limit 100";
+	String sqlLimit = "";		// Remove the limit as it is slowing down queries
 	
 	/*
 	 * Constructor
