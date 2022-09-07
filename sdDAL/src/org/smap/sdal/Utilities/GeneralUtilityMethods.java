@@ -8812,7 +8812,7 @@ public class GeneralUtilityMethods {
 			timeString = timeString.trim().replace(' ', 'T');
 			
 			// Ensure there is an offset in the string
-			if ( timeString.indexOf ( "+" ) != ( timeString.length () - 6 ) && timeString.indexOf ( "-" ) != ( timeString.length () - 6 )) {
+			if ( timeString.lastIndexOf ( "+" ) != ( timeString.length () - 6 ) && timeString.lastIndexOf ( "-" ) != ( timeString.length () - 6 )) {
 				TimeZone tz = TimeZone.getDefault();
 				long offset = tz.getOffset((new java.util.Date()).getTime());
 				String dirn = "+";
