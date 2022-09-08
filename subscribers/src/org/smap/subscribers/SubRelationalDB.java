@@ -950,6 +950,7 @@ public class SubRelationalDB extends Subscriber {
 			addTableCol(cols, vals, tableCols, "_user", String.valueOf(remoteUser), "string");
 			addTableCol(cols, vals, tableCols, "_complete", String.valueOf(complete), "boolean");
 			addTableCol(cols, vals, tableCols, SmapServerMeta.UPLOAD_TIME_NAME, String.valueOf(new Timestamp(uploadTime.getTime())), "timestamp");
+			addTableCol(cols, vals, tableCols, SmapServerMeta.THREAD_CREATED, String.valueOf(new Timestamp(uploadTime.getTime())), "timestamp");
 			addTableCol(cols, vals, tableCols, SmapServerMeta.SURVEY_ID_NAME, String.valueOf(sId), "int");
 			addTableCol(cols, vals, tableCols, "_version", String.valueOf(version), "int");
 			addTableCol(cols, vals, tableCols, "_survey_notes", surveyNotes, "string");
@@ -1122,6 +1123,9 @@ public class SubRelationalDB extends Subscriber {
 			} else {
 				String value = getDbValue(sd, col, sIdent, device, server, colPhoneOnly, cResults, tableName);
 				addTableCol(cols, vals, tableCols, colName, value, colType);
+				if(colName.equals("instanceid")) {
+					addTableCol(cols, vals, tableCols, "_thread", value, colType);		// Initialise the _thread value
+				}
 				
 				// Check for a foreign key, the value will start with :::::
 				if(col.getValue() != null && col.getValue().startsWith(":::::") && col.getValue().length() > 5) {

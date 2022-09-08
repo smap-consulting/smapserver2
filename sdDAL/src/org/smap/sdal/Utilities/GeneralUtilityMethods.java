@@ -8559,7 +8559,6 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmtCopyThreadCol = null;
 			
 		try {
-			initialiseThread(cResults, table);
 			
 			// At this point the thread col must exist and the _thread value for the source must exist
 			pstmtCopyThreadCol = cResults.prepareStatement(sqlCopyThreadCol);
@@ -8579,51 +8578,11 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Add the thread value that links replaced records
-	 * Initialisation now also happens on insert of records
-	 */
-	public static void initialiseThread(Connection cResults, String table) throws SQLException {
-		
-		String sqlInitThreadCol = "update " 
-				+ table 
-				+ " set _thread = instanceid "
-				+ "where _thread is null";
-		PreparedStatement pstmtInitThreadCol = null;
-		
-		String sqlInitThreadCol2 = "update " 
-				+ table 
-				+ " set _thread_created = _upload_time "
-				+ "where _thread_created is null";
-		PreparedStatement pstmtInitThreadCol2 = null;
-			
-		try {
-			
-			/*
-			 * TODO initialise these columns when the record is inserted
-			 */
-			// Initialise the thread column
-			pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
-			//log.info("Initialise Thread: " + pstmtInitThreadCol.toString());
-			pstmtInitThreadCol.executeUpdate();
-			
-			// Initialise the _thread_created columns
-			pstmtInitThreadCol2 = cResults.prepareStatement(sqlInitThreadCol2);
-			//log.info("Initialise Thread: " + pstmtInitThreadCol2.toString());
-			pstmtInitThreadCol2.executeUpdate();
-			
-		} finally {
-			if(pstmtInitThreadCol != null) try{pstmtInitThreadCol.close();}catch(Exception e) {}
-			if(pstmtInitThreadCol2 != null) try{pstmtInitThreadCol2.close();}catch(Exception e) {}
-		}
-
-	}
-	
-	/*
 	 * Get the thread for a record
 	 * This is a UUID which identifies a series of changes to a record.
 	 * Ie if you start with Record A and then Update it then the two records will have the same thread id.
 	 */
-	public static String getThread(Connection cResults, String table, String instanceId, boolean initialise) throws SQLException {
+	public static String getThread(Connection cResults, String table, String instanceId) throws SQLException {
 		
 		if(!GeneralUtilityMethods.tableExists(cResults, table)) {
 			return null;
@@ -8636,10 +8595,6 @@ public class GeneralUtilityMethods {
 		String sqlUpdate = "update table " + table + " set_thread = ? where instanceid = ?";
 			
 		try {
-			
-			if(initialise) {
-				initialiseThread(cResults, table);
-			}
 			
 			pstmt = cResults.prepareStatement(sql);
 			pstmt.setString(1, instanceId);
