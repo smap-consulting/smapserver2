@@ -47,6 +47,7 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
+import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CustomReportsManager;
@@ -239,7 +240,14 @@ public class SubscriberBatch {
 									}
 
 									// Get the submitted results as an XML document
-									is = new FileInputStream(uploadFile);
+									try {
+										is = new FileInputStream(uploadFile);
+									} catch (FileNotFoundException e) {
+										// Possibly we are re-trying an upload and the XML file has been archived to S3
+										// Retrieve the file and try again
+										S3AttachmentUpload.get(basePath, uploadFile);
+										is = new FileInputStream(uploadFile);
+									}
 
 									// Remove malformed characters
 									String xml = GeneralUtilityMethods.convertStreamToString(is);
