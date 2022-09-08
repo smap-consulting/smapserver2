@@ -245,6 +245,8 @@ public class SubscriberBatch {
 									} catch (FileNotFoundException e) {
 										// Possibly we are re-trying an upload and the XML file has been archived to S3
 										// Retrieve the file and try again
+										File f = new File(uploadFile);
+										FileUtils.forceMkdir(f.getParentFile());
 										S3AttachmentUpload.get(basePath, uploadFile);
 										is = new FileInputStream(uploadFile);
 									}
