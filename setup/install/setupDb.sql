@@ -1075,6 +1075,7 @@ CREATE TABLE public.assignments (
 );
 CREATE INDEX assignments_status ON assignments(status);
 create index idx_assignments_task_id on assignments (task_id);
+create index assignments_assignee on assignments(assignee);
 ALTER TABLE public.assignments OWNER TO ws;
 
 -- Table to manage state of user downloads of forms

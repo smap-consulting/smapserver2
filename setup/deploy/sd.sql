@@ -531,4 +531,5 @@ create index idx_assignments_task_id on assignments (task_id);
 create index idx_tasks_del_auto on tasks (deleted, assign_auto);
 
 create index idx_record_event_table_name on record_event (table_name);
+create index assignments_assignee on assignments(assignee);
 
