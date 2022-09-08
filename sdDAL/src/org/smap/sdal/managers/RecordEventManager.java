@@ -184,6 +184,11 @@ public class RecordEventManager {
 			boolean assign_auto
 			) throws SQLException {
 		
+		log.info("####################### TASK STATUS EVENT DISABLED FOR PERFORMANCE REASONS ##########################");
+		if(true) {
+			return;
+		}
+		
 		String sqlUsingAssignment = "select t.update_id, f.table_name, t.id, t.schedule_at, t.schedule_finish "
 				+ "from assignments a, tasks t, form f, survey s "
 				+ "where t.survey_ident = s.ident "
