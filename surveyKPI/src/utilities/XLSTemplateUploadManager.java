@@ -97,7 +97,7 @@ public class XLSTemplateUploadManager {
 	HashMap<String, Integer> qNameMapCaseInsensitive = new HashMap<> ();			// Use in question name uniqueness
 	HashMap<String, HashMap<String, Integer>> oNameMap = new HashMap<> ();		// Use in option name validation
 	Pattern validQname = Pattern.compile("^[A-Za-z_][A-Za-z0-9_\\-\\.]*$");
-	Pattern validChoiceName = Pattern.compile("^[A-Za-z0-9_@\\-\\.\\+%,():/]*$");
+	Pattern validChoiceName = Pattern.compile("^[A-Za-z0-9_@&\\-\\.\\+%,():/]*$");
 
 	HashMap<Integer, Stack<Question>> groupStackMap = new HashMap<>();			// Keep track of groups in forms
 	boolean inFieldList = false;												// Only some questions are allowed inside a field list
