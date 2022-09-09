@@ -616,6 +616,7 @@ CREATE TABLE survey_change (
 	visible boolean default true,				-- set false if the change should not be displayed 				
 	updated_time TIMESTAMP WITH TIME ZONE		-- Time and date of change
 	);
+create index survey_change_s_id on survey_change(s_id);
 ALTER TABLE survey_change OWNER TO ws;
 
 DROP TABLE IF EXISTS survey_template CASCADE;
@@ -1092,6 +1093,7 @@ CREATE TABLE public.form_downloads (
 	device_id text,
 	updated_time TIMESTAMP WITH TIME ZONE
 );
+create index form_downloads_form on form_downloads(form_ident);
 ALTER TABLE public.form_downloads OWNER TO ws;
 
 -- Tables to manage task completion and user location

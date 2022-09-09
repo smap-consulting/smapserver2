@@ -532,4 +532,6 @@ create index idx_tasks_del_auto on tasks (deleted, assign_auto);
 
 create index idx_record_event_table_name on record_event (table_name);
 create index assignments_assignee on assignments(assignee);
+create index survey_change_s_id on survey_change(s_id);
+create index form_downloads_form on form_downloads(form_ident);
 
