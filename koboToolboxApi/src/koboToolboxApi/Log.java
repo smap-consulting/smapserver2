@@ -266,6 +266,7 @@ public class Log extends Application {
 	
 	/*
 	 * Organisation summary log
+	 * Get event counts for all organisations
 	 */
 	@GET
 	@Path("/organisation/{year}/{month}/{day}")
