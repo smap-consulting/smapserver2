@@ -535,3 +535,11 @@ create index assignments_assignee on assignments(assignee);
 create index survey_change_s_id on survey_change(s_id);
 create index form_downloads_form on form_downloads(form_ident);
 
+-- manage automatic geopoint recording
+alter table organisation add column ft_input_method text;
+alter table organisation add column ft_im_ri integer;
+alter table organisation add column ft_im_acc integer;
+update organisation set ft_input_method = 'not set' where ft_input_method is null;
+update organisation set ft_im_ri = 3 where ft_im_ri is null;	// 20 seconds
+update organisation set ft_im_acc = 3 where ft_im_acc is null;	// 10 meters
+

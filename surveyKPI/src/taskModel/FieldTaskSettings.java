@@ -26,6 +26,9 @@ public class FieldTaskSettings {
 	public String ft_high_res_video;
 	public String ft_navigation;
 	public String ft_guidance;
+	public String ft_input_method;
+	public int ft_im_ri;
+	public int ft_im_acc;
 	
 	public void setFtEnableGeofence(boolean v) {
 		if(v) {

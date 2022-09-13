@@ -754,7 +754,10 @@ public class MyAssignments extends Application {
 					+ "o.ft_navigation,"
 					+ "o.ft_pw_policy,"
 					+ "o.ft_high_res_video,"
-					+ "o.ft_guidance "
+					+ "o.ft_guidance,"
+					+ "o.ft_input_method,"
+					+ "o.ft_im_ri,"
+					+ "o.ft_im_acc "
 					+ "from organisation o, users u "
 					+ "where u.o_id = o.id "
 					+ "and u.ident = ?");
@@ -792,6 +795,10 @@ public class MyAssignments extends Application {
 				tr.settings.ft_pw_policy = resultSet.getInt("ft_pw_policy");
 				tr.settings.ft_high_res_video = resultSet.getString("ft_high_res_video");
 				tr.settings.ft_guidance = resultSet.getString("ft_guidance");
+				tr.settings.ft_location_trigger = true;
+				tr.settings.ft_input_method = resultSet.getString("ft_input_method");
+				tr.settings.ft_im_ri = resultSet.getInt("ft_im_ri");
+				tr.settings.ft_im_acc = resultSet.getInt("ft_im_acc");
 				tr.settings.ft_location_trigger = true;
 			}
 

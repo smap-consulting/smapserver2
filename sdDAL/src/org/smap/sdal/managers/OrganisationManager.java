@@ -300,12 +300,12 @@ public class OrganisationManager {
 				+ "can_notify, can_use_api, can_submit, set_as_theme, e_id, ft_backward_navigation, ft_navigation, "
 				+ "ft_guidance, ft_image_size, ft_send, ft_delete, "
 				+ "ft_send_location, ft_pw_policy, navbar_color, can_sms, send_optin, limits, "
-				+ "ft_high_res_video, refresh_rate, api_rate_limit, password_strength, changed_ts, owner) "
+				+ "ft_high_res_video, refresh_rate, api_rate_limit, password_strength, ft_input_method, ft_im_ri, ft_im_acc, changed_ts, owner) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?);";
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?);";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -383,6 +383,9 @@ public class OrganisationManager {
 			pstmt.setInt(40, o.refresh_rate);
 			pstmt.setInt(41, o.api_rate_limit);
 			pstmt.setDouble(42, o.password_strength);
+			pstmt.setString(43, "not set");		// send automatically
+			pstmt.setInt(44, 20);		// FT Geo Recording interval
+			pstmt.setInt(45, 10);		// FT Geo Accuracy distance
 			
 			/*
 			 * Set the owner only if this is a personal organisation.

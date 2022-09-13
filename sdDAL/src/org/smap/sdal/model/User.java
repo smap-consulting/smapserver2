@@ -69,4 +69,7 @@ public class User {
 	public String navbar_text_color;
 	public String training;
 	public int refresh_rate;
+	public String ft_input_method;
+	public int ft_im_ri;
+	public int ft_im_acc;
 }
