@@ -1744,7 +1744,7 @@ public class SubRelationalDB extends Subscriber {
 		String sqlSource = "select prikey from " + table + " where _hrk = ? "
 				+ "and prikey != ? "
 				+ "and _bad = 'false' "
-				+ "order by prikey desc limit 1";
+				+ "order by prikey desc";
 		PreparedStatement pstmtSource = null;
 
 		String sqlCloseNew = "update " + table + " set _bad = 'true', _bad_reason = ? "
