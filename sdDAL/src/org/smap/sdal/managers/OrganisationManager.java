@@ -394,7 +394,7 @@ public class OrganisationManager {
 			 * the owner would be set to zero.  In other words they are creating community organisations that
 			 * will need to be maintained by whichever user has organisational admin privilege
 			 */
-			pstmt.setInt(43, GeneralUtilityMethods.isOrgUser(sd, userIdent) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
+			pstmt.setInt(46, GeneralUtilityMethods.isOrgUser(sd, userIdent) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
