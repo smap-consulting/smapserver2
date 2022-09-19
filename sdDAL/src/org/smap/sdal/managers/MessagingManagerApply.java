@@ -564,7 +564,8 @@ public class MessagingManagerApply {
 		String sql = "select id, filepath "
 				+ "from s3upload "
 				+ "where status = 'new' "
-				+ "limit 100"; 	
+				+ "order by id asc "
+				+ "limit 1000";	
 		PreparedStatement pstmt = null;
 		
 		String sqlClean = "delete from s3upload "
@@ -583,6 +584,7 @@ public class MessagingManagerApply {
 			pstmtDone = sd.prepareStatement(sqlDone);
 			
 			pstmt = sd.prepareStatement(sql);
+			log.info("Get media uploads: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				
