@@ -1160,7 +1160,10 @@ public class NotificationManager {
 
 					try {
 						String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
-						int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, msg.remoteUser, "assign");
+						String assignTo = msg.remoteUser;
+						if(msg.remoteUser.equals("_submitter")) 
+							assignTo = msg.user;
+						int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign");
 						if(count == 0) {
 							status = "error";
 							error_details = "case not found, attempting: " + notify_details;

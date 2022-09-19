@@ -6375,30 +6375,6 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Method to lock a record out to a user
-	 *
-	public static int lockRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
-
-		int count = 0;
-		
-		String sql = "update " + tablename + " set _assigned = ? "
-				+ "where instanceid = ? "
-				+ "and _assigned is null";
-
-		PreparedStatement pstmt = conn.prepareStatement(sql);
-		pstmt.setString(1, user);
-		pstmt.setString(2,instanceId);
-		log.info("locking record: " + pstmt.toString());
-		try {
-			count = pstmt.executeUpdate();
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
-		}
-		
-		return count;
-	}*/
-	
-	/*
 	 * Method to assign a record to a user
 	 */
 	public static int assignRecord(Connection sd, Connection cResults, ResourceBundle localisation, String tablename, String instanceId, String user, 
