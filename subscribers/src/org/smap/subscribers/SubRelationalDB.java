@@ -1098,7 +1098,7 @@ public class SubRelationalDB extends Subscriber {
 				for(IE option : options) {
 					if(uniqueColumns.get(option.getColumnName()) == null) {
 						uniqueColumns.put(option.getColumnName(), option.getColumnName());
-						addTableCol(cols, vals, tableCols, option.getColumnName(), colPhoneOnly ? "" : option.getValue(), "string");
+						addTableCol(cols, vals, tableCols, option.getColumnName(), colPhoneOnly ? "" : option.getValue(), "int");
 					}		
 				}
 			} else if(colType.equals("geopoint")) {
