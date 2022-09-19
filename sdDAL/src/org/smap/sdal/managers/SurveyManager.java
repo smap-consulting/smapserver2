@@ -162,7 +162,7 @@ public class SurveyManager {
 		
 		ResultSet resultSet = null;
 		StringBuffer sql = new StringBuffer("");
-		sql.append("select distinct s.s_id, s.display_name, s.deleted, s.blocked, "
+		sql.append("select s.s_id, s.display_name, s.deleted, s.blocked, "
 				+ "s.ident, s.version, s.loaded_from_xls, p.name as project_name, p.id as project_id, "
 				+ "p.tasks_only,"
 				+ "s.group_survey_ident, s.public_link, o.can_submit, s.hide_on_device, s.search_local_data,"
@@ -799,7 +799,7 @@ public class SurveyManager {
 		csvRoot = csvRoot.replace("\'", "\'\'");
 
 		ResultSet resultSet = null;
-		String sql = "select distinct s.s_id, s.name, s.display_name, s.deleted, s.blocked, s.ident "
+		String sql = "select s.s_id, s.name, s.display_name, s.deleted, s.blocked, s.ident "
 				+ "from survey s, users u, project p, question q, form f "
 				+ "where s.s_id = f.s_id "
 				+ "and f.f_id = q.f_id "
@@ -3354,7 +3354,7 @@ public class SurveyManager {
 		
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
 		
-		StringBuffer sql = new StringBuffer("select distinct s.s_id, s.display_name, s.ident,"
+		StringBuffer sql = new StringBuffer("select s.s_id, s.display_name, s.ident,"
 				+ "s.data_survey, s.oversight_survey, s.p_id "
 				+ "from survey s, users u, user_project up "
 				+ "where s.p_id = up.p_id "
@@ -3575,7 +3575,7 @@ public class SurveyManager {
 		
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
 		
-		StringBuffer sql = new StringBuffer("select distinct s.s_id, s.display_name, s.ident,"
+		StringBuffer sql = new StringBuffer("select s.s_id, s.display_name, s.ident,"
 				+ "s.data_survey, s.oversight_survey, s.p_id "
 				+ "from survey s "
 				+ "where not s.deleted "
