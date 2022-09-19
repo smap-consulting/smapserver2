@@ -321,7 +321,7 @@ public class DataManager {
 							Point point = gson.fromJson(rs.getString(i + 1), Point.class);
 							Double lon = 0.0;
 							Double lat = 0.0;
-							if(point.coordinates != null && point.coordinates.size() > 0) {
+							if(point != null && point.coordinates != null && point.coordinates.size() > 0) {
 								lon = point.coordinates.get(0);
 								lat = point.coordinates.get(1);
 							}
