@@ -584,7 +584,6 @@ public class MessagingManagerApply {
 			pstmtDone = sd.prepareStatement(sqlDone);
 			
 			pstmt = sd.prepareStatement(sql);
-			log.info("Get media uploads: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				
