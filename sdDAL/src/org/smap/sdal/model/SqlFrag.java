@@ -62,7 +62,7 @@ public class SqlFrag {
 			}
 			conditions.add(in);
 		}
-		String charTokens = "=+-><*/()";
+		String charTokens = "=+-><*/(),";
 		in = GeneralUtilityMethods.addSurroundingWhiteSpace(in, charTokens.toCharArray());
 		in = GeneralUtilityMethods.addSurroundingWhiteSpace(in, new String[] {"<=", ">=", "!="});
 		
@@ -224,6 +224,7 @@ public class SqlFrag {
 				token.equals("(") ||
 				token.equals("||") ||
 				token.equals("or") ||
+				token.equals(",") ||
 				token.equals(SmapServerMeta.UPLOAD_TIME_NAME) ||
 				token.equals(SmapServerMeta.SCHEDULED_START_NAME) ||
 				token.equals("and") || 
@@ -233,7 +234,10 @@ public class SqlFrag {
 				token.equals("to_timestamp") || 
 				token.equals("::timestamptz") || 
 				token.equals("::timestamp") || 
+				token.equals("::numeric") || 
+				token.equals("numeric") || 
 				token.equals("to_date") || 
+				token.equals("round") ||
 				token.equals("::date") || 
 				token.equals("::integer") || 
 				token.equals("like") || 
