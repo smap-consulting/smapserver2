@@ -2574,12 +2574,12 @@ public class GeneralUtilityMethods {
 		try {
 			
 			if(qName != null) {
-				if(qName.equals("_hrk")) {
-					column_name = "_hrk";
-				} else if(qName.equals("prikey")) {
-					column_name = "prikey";
-				} else if(qName.equals("_user")) {
-					column_name = "_user";
+				if(qName.equals("_hrk") || qName.equals("prikey") 
+						|| qName.equals("prikey") 
+						|| qName.equals("_user") 
+						|| qName.equals("_bad")
+						|| qName.equals("_bad_reason")) {
+					column_name = qName;
 				} else {
 					pstmt = sd.prepareStatement(sql);
 					pstmt.setInt(1, sId);
