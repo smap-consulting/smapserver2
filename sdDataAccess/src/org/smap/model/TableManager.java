@@ -961,8 +961,8 @@ public class TableManager {
 
 				columns.clear();
 
-				if(qType.equals("begin group") || qType.equals("end group")) {
-					// Ignore group changes
+				if(qType.equals("begin group") || qType.equals("end group") || qType.equals("server_calculate")) {
+					// Ignore group changes or server calculations which have no table columns
 				} else if(qType.equals("begin repeat")) {
 
 				} else if (qType.equals("select") && !compressed) {
