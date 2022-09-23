@@ -31,6 +31,7 @@ import org.smap.sdal.model.SqlFrag;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.opencsv.CSVReader;
 
 /*****************************************************************************
  * 
@@ -67,6 +68,7 @@ public class CsvTableManager {
 	private String fullTableName = null;
 	private ArrayList<CsvHeader> headers = null;
 	CSVParser parser = null;
+	CSVReader csvReader = null;
 	
 	private final String PKCOL = "_id";
 	private final String ACOL = "_action";
@@ -186,10 +188,6 @@ public class CsvTableManager {
 	 * Update the table with data from the file
 	 */
 	public void updateTable(File newFile, File oldFile) throws IOException, SQLException {
-		
-		BufferedReader brNew = null;
-		BufferedReader brOld = null;
-		boolean delta = true;			// If set true then apply a delta between the new and old file
 
 		PreparedStatement pstmtCreateSeq = null;
 		PreparedStatement pstmtCreateTable = null;
@@ -198,19 +196,10 @@ public class CsvTableManager {
 		try {
 			// Open the files
 			FileReader readerNew = new FileReader(newFile);
-			brNew = new BufferedReader(readerNew);
+			csvReader = new CSVReader(readerNew);
 	
-			FileReader readerOld = null;
-			if (oldFile != null && oldFile.exists()) {
-				readerOld = new FileReader(oldFile);
-				brOld = new BufferedReader(readerOld);
-			} else {
-				delta = false;
-			}
-				
 			// Get the column headings from the new file
-			String newLine = GeneralUtilityMethods.removeBOM(brNew.readLine());
-			String cols[] = parser.parseLine(newLine, 1, newFile.getName());
+			String cols[] = csvReader.readNext();
 			headers = new ArrayList<CsvHeader> ();
 			for(String n : cols) {
 				if(n != null && !n.isEmpty()) {
@@ -223,7 +212,6 @@ public class CsvTableManager {
 			 */
 			boolean tableExists = GeneralUtilityMethods.tableExistsInSchema(sd, tableName, schema);
 			if(!tableExists) {
-				delta = false;
 				// Create the key sequence
 				String sequenceName = fullTableName + "_seq";
 				StringBuffer sqlCreate = new StringBuffer("create sequence ").append(sequenceName).append(" start 1");
@@ -268,62 +256,20 @@ public class CsvTableManager {
 			 * Get the differences between this load and the previous load
 			 * For performance check to see if there are more than 100 deletes in a delta if so replace the entire file
 			 */
-			ArrayList<String> listNew = new ArrayList<String> ();
-			ArrayList<String> listOld = new ArrayList<String> ();
-			ArrayList<String> listAdd = null;
-			ArrayList<String> listDel = null;
-			int recordCount = recordCount();
+			ArrayList<String[]> listNew = new ArrayList<> ();
 		
+			String[] newLine = csvReader.readNext();
 			while (newLine != null) {
-				newLine = brNew.readLine();
-				if(newLine != null) {
-					listNew.add(newLine);
-				}
-			}
-			
-			if(delta) {			
-			
-				newLine = brOld.readLine();	// Skip over header
-				while (newLine != null) {
-					newLine = brOld.readLine();
-					if(newLine != null) {
-						listOld.add(newLine);
-					}
-				}
-				
-				listAdd = new ArrayList<String>(listNew);
-				listDel = new ArrayList<String>(listOld);
-				
-				if(recordCount != listOld.size()) {
-					// mismatch between the current size of the table and the old csv file - just reload the whole thing
-					delta = false;
-					listOld = null;
-				} else {
-					listAdd.removeAll(listOld);
-					listDel.removeAll(listNew);
-					
-					if(listDel.size() > 100 || listDel.size() == recordCount) {
-						// Too many records to delete or all of the records need to be deleted just load the new data into an empty table
-						delta = false;
-						listOld = null;
-						listAdd = null;
-						listDel = null;
-					}
-				}
+				listNew.add(newLine);
+				newLine = csvReader.readNext();
 			}
 			
 			/*
 			 * 3. Upload the data
 			 */
-			delta = false;			// XXXX temporarily disable delta's they are not used yet and there is a risk that they could go wrong
-			if(delta) {
-				remove(listDel, newFile.getName());
-				insert(listAdd, headers.size(), newFile.getName());
-			} else {
-				truncate();
-				insert(listNew, headers.size(), newFile.getName());
-				updateInitialisationTimetamp();
-			}		
+			truncate();
+			insert(listNew, headers.size(), newFile.getName());
+			updateInitialisationTimetamp();	
 			
 			/*
 			 * 4. Delete any columns that are no longer used
@@ -355,8 +301,7 @@ public class CsvTableManager {
 			if(pstmtCreateSeq != null) {try{pstmtCreateSeq.close();} catch(Exception e) {}}
 			if(pstmtCreateTable != null) {try{pstmtCreateTable.close();} catch(Exception e) {}}
 			if(pstmtAlterColumn != null) {try{pstmtAlterColumn.close();} catch(Exception e) {}}
-			if(brNew != null) {try{brNew.close();}catch(Exception e) {}}
-			if(brOld != null) {try{brOld.close();}catch(Exception e) {}}
+			if(csvReader != null) {try{csvReader.close();}catch(Exception e) {}}
 		}
 		
 	}
@@ -1099,7 +1044,7 @@ public class CsvTableManager {
 	/*
 	 * Insert a csv record into the table
 	 */
-	private void insert(ArrayList<String> records, int headerSize, String filename) throws SQLException, IOException {
+	private void insert(ArrayList<String[]> records, int headerSize, String filename) throws SQLException, IOException {
 		
 		if(records.size() == 0) {
 			return;
@@ -1129,20 +1074,21 @@ public class CsvTableManager {
 		try {
 			pstmt = sd.prepareStatement(sql.toString());
 			int idx = 0;
-			for(String r : records) {
-				String[] data = parser.parseLine(r, idx + 1, filename);
-				for(int i = 0; i < data.length && i < headerSize; i++) {
-					String v = "";	// fill empty cells with zero length string
-					if(i < data.length) {
-						v = data[i];
+			for(String[] data : records) {
+				if(data.length > 0) {
+					for(int i = 0; i < data.length && i < headerSize; i++) {
+						String v = "";	// fill empty cells with zero length string
+						if(i < data.length) {
+							v = data[i];
+						}
+						v = v.trim();
+						pstmt.setString(i + 1, v);
 					}
-					v = v.trim();
-					pstmt.setString(i + 1, v);
-				}
-				pstmt.executeUpdate();
-				if(idx++ == 0) {
-					log.info("Insert first record of csv values: " + pstmt.toString());
-					log.info("Number of records: " + records.size());
+					pstmt.executeUpdate();
+					if(idx++ == 0) {
+						log.info("Insert first record of csv values: " + pstmt.toString());
+						log.info("Number of records: " + records.size());
+					}
 				}
 			}
 			
