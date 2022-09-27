@@ -1100,8 +1100,8 @@ public class SurveyTemplate {
 				readDatabase(survey, sd, cResults, embedExternalSearch);	// Get the rest of the survey
 				newSurveyIdent = survey.getIdent();
 			} else {
-				log.info("Error: Survey Template not found: " + surveyId);
-				throw new MissingTemplateException("Error: Survey Template not found: " + surveyId);
+				log.info("Error: Survey Template not found: " + surveyIdent);
+				throw new MissingTemplateException("Error: Survey Template not found: " + surveyIdent);
 			}
 		} finally {
 			if(sm != null) {sm.close();}
