@@ -21,6 +21,7 @@ import org.smap.sdal.model.DashboardDetails;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.MySensitiveData;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.OtherOrgData;
 import org.smap.sdal.model.SensitiveData;
 import org.smap.sdal.model.SubscriptionStatus;
 import org.smap.sdal.model.WebformOptions;
@@ -526,6 +527,27 @@ public class OrganisationManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, data);
+			pstmt.setInt(2, oId);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+		}
+	}
+	
+	public void updateOtherOrgData( 
+			Connection sd, 
+			int oId,
+			OtherOrgData otherData) throws SQLException {
+		
+		String sql = "update organisation set "
+				+ "password_strength = ? "
+				+ "where id = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, otherData.password_strength);
 			pstmt.setInt(2, oId);
 			pstmt.executeUpdate();
 		} finally {
