@@ -1407,26 +1407,6 @@ public class XLSTemplateUploadManager {
 			testXExprFunctions(q.appearance, localisation, true, rowNumber, "appearance");		
 		}
 		
-		// check default
-		if(q.setValues != null) {
-			for(SetValue sv : q.setValues) {
-				if(sv.value != null) {
-					if(sv.value.contains("last-saved#")) {
-						int idx1 = sv.value.indexOf('#');
-						int idx2 = sv.value.indexOf('}', idx1);
-						if(idx2 > 0) {
-							String sourceQuestion = sv.value.substring(idx1 + 1, idx2);
-							if(sourceQuestion != null) {
-								ArrayList<String> refs = new ArrayList<String> ();
-								refs.add(sourceQuestion);
-								questionInSurvey(refs, "default", q);
-							}
-						}
-					}
-				}
-			}
-		}
-		
 		// Check choice filter
 		if(q.choice_filter != null) {
 			checkParentheses(localisation, q.choice_filter, rowNumber, "survey", "choice_filter", q.name);
@@ -1647,6 +1627,25 @@ public class XLSTemplateUploadManager {
 					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.appearance);
 					if(refs.size() > 0) {
 						questionInSurvey(refs, "appearance", q);
+					}
+				}
+				// check default
+				if(q.setValues != null) {
+					for(SetValue sv : q.setValues) {
+						if(sv.value != null) {
+							if(sv.value.contains("last-saved#")) {
+								int idx1 = sv.value.indexOf('#');
+								int idx2 = sv.value.indexOf('}', idx1);
+								if(idx2 > 0) {
+									String sourceQuestion = sv.value.substring(idx1 + 1, idx2);
+									if(sourceQuestion != null) {
+										ArrayList<String> refs = new ArrayList<String> ();
+										refs.add(sourceQuestion);
+										questionInSurvey(refs, "default", q);
+									}
+								}
+							}
+						}
 					}
 				}
 			}
