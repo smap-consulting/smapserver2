@@ -440,6 +440,9 @@ public class UserManager {
 		PreparedStatement pstmt = null;
 
 		try {
+			PasswordManager pwm = new PasswordManager(sd, localisation.getLocale(), localisation, userIdent, serverName);	// For new users use the ident of the user creating this user
+			pwm.checkStrength(u.password);
+			
 			String pwdString = u.ident + ":smap:" + u.password;
 			String language = u.language;
 			if(language == null || language.trim().length() == 0) {
