@@ -682,12 +682,22 @@ public class SurveyTableManager {
 								sqlDef.calcArray = new ArrayList<>();
 							}
 							sqlDef.calcArray.add(calculation);
-						} 
+						} else if(colType.equals("geopoint") || colType.equals("geoshape") || colType.equals("geotrace")) {
+							colName = "ST_Y(" + tableName + "." + colName + ") || ' ' || ST_X(" + tableName + "." + colName + ")";
+						}
 						
 					} else if (SmapServerMeta.isServerReferenceMeta(n)) {
 						colName = n; // For columns that are not questions such as _hrk, _device
 						tableName = topForm.tableName;
+					} else if(GeneralUtilityMethods.hasColumn(cResults, topForm.tableName, n)) {
+						// This is not group friendly but will pick up meta items that have been referenced in the top form
+						colName = n; // For columns that are not questions such as _hrk, _device
+						tableName = topForm.tableName;
 					} else {
+						if(GeneralUtilityMethods.tableExists(cResults, topForm.tableName)) {
+							// Only report the error if the top level table has been created otherwise probably no data has been submitted and all columns would be unpublished and missing
+							lm.writeLog(sd, sId, null, LogManager.ERROR, n + " " + localisation.getString("imp_nfi"), 0, null);
+						}
 						continue; // Name not found
 					}
 					colNames.add(n);
@@ -695,14 +705,12 @@ public class SurveyTableManager {
 	
 					if (!first) {
 						sql.append(",");
-						//order_cols.append(",");
 					}
 					sql.append(colName);
 					sql.append(" as ");
 					sql.append("\\\"" + n + "\\\"");
 					first = false;
 	
-					//order_cols.append("\"" + n + "\"" );
 				}
 			}
 

@@ -176,7 +176,7 @@ public void populateSvd(
 			f.parentform,
 			f.id,
 			f.tableName,
-			false,	// Don't include Read only
+			true,			// Include Read only
 			includeMeta,	// Include parent key
 			includeMeta,	// Include "bad"
 			isMain,		// Include instanceId
@@ -210,7 +210,7 @@ public void populateSvd(
 			}
 			
 			if(cc == null) {	
-				tc.hide = hideDefault(c.column_name);
+				tc.hide = hideDefault(c.column_name, c.readonly);
 			} else {
 				tc.hide = cc.hide;
 				tc.barcode = cc.barcode;
@@ -579,10 +579,12 @@ private boolean keepThis(String name, boolean isMain, boolean includeBad) {
 /*
  * Set a default hide value
  */
-private boolean hideDefault(String name) {
+private boolean hideDefault(String name, boolean isReadOnly) {
 	boolean hide = false;
 
-	if(name.equals(SmapServerMeta.SURVEY_ID_NAME) ||
+	if(isReadOnly) {
+		hide = true;
+	} else if(name.equals(SmapServerMeta.SURVEY_ID_NAME) ||
 			name.equals("_user") ||
 			name.equals("_scheduled_start") ||
 			name.equals("_survey_notes") ||
