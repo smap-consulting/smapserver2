@@ -922,7 +922,7 @@ CREATE TABLE dashboard_settings (
 	ds_lang text,
 	ds_qname text,      -- replaces ds_q_id
 	ds_q_is_calc boolean default false,
-	ds_date_question_id INTEGER,
+	ds_date_question_name text,   -- replaces ds_date_question_id
 	ds_question text,
 	ds_fn text,
 	ds_table text,

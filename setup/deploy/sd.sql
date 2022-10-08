@@ -535,9 +535,6 @@ create index assignments_assignee on assignments(assignee);
 create index survey_change_s_id on survey_change(s_id);
 create index form_downloads_form on form_downloads(form_ident);
 
-alter table dashboard_settings add column ds_qname text;
-update dashboard_settings ds set ds_qname = (select q.qname from question q where q.q_id = ds.ds_q_id);
-
 -- manage automatic geopoint recording
 alter table organisation add column ft_input_method text;
 alter table organisation add column ft_im_ri integer;
@@ -545,4 +542,10 @@ alter table organisation add column ft_im_acc integer;
 update organisation set ft_input_method = 'not set' where ft_input_method is null;
 update organisation set ft_im_ri = 3 where ft_im_ri is null;
 update organisation set ft_im_acc = 3 where ft_im_acc is null;
+
+alter table dashboard_settings add column ds_qname text;
+update dashboard_settings ds set ds_qname = (select q.qname from question q where q.q_id = ds.ds_q_id) where ds.ds_qname is null and ds.ds_q_id > 0;
+
+alter table dashboard_settings add column ds_date_question_name text;
+update dashboard_settings ds set ds_date_question_name = (select q.qname from question q where q.q_id = ds.ds_date_question_id) where ds.ds_date_question_name is null and ds.ds_date_question_id > 0;
 
