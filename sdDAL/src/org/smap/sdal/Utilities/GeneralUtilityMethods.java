@@ -7248,7 +7248,7 @@ public class GeneralUtilityMethods {
 
 			if (idx1 > 0 && idx2 > idx1) {
 				String criteriaString = appearance.substring(idx1 + 1, idx2);
-				log.info("#### criteria for csv filter: " + criteriaString);
+				log.info("#### criteria for csv filter1: " + criteriaString);
 				String criteria[] = criteriaString.split(",");
 				if (criteria.length >= 2) {
 					search.fn = criteria[1].trim().replace("\'", "");

@@ -312,6 +312,52 @@ public class Log extends Application {
 	}
 	
 	/*
+	 * Organisation summary log
+	 * Get event counts for all organisations
+	 */
+	@GET
+	@Path("/organisation/{year}/{month}")
+	@Produces("application/json")
+	public Response getMonthlyOrgLogs(@Context HttpServletRequest request,
+			@PathParam("year") int year,
+			@PathParam("month") int month,
+			@QueryParam("tz") String tz
+			) { 
+		
+		String connectionString = "API - get monthly summary org logs";
+		Response response = null;
+		
+		// Authorisation
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aOrg.isAuthorised(sd, request.getRemoteUser());
+		
+		PreparedStatement pstmt = null;
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
+		try {
+			
+			LogManager lm = new LogManager();
+			ArrayList<OrgLogSummaryItem> logs = lm.getOrgSummaryLogEntriesForDay(sd, year, month, -1, tz);
+			
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			response = Response.ok(gson.toJson(logs)).build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.ok(e.getMessage()).build();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
 	 * Get the data
 	 */
 	private ArrayList<LogItemDt> getLogEntries(

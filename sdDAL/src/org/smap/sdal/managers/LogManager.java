@@ -261,7 +261,12 @@ public class LogManager {
 		ArrayList<OrgLogSummaryItem> items = new ArrayList<> ();
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
+		boolean monthly = false;
 		
+		if(day < 1) {
+			monthly = true;
+			day = 1;
+		}
 		try {
 
 			String sql = "select  count(*) as count, "
@@ -274,7 +279,13 @@ public class LogManager {
 					+ "order by name asc";
 			
 			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, day);
-			Timestamp t2 = GeneralUtilityMethods.getTimestampNextDay(t1);
+			Timestamp t2;
+			if(monthly) {
+				t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			} else {
+				t2 = GeneralUtilityMethods.getTimestampNextDay(t1);
+			}
+			
 		
 			pstmt = sd.prepareStatement(sql);
 			int paramCount = 1;
