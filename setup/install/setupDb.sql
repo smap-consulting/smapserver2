@@ -920,7 +920,7 @@ CREATE TABLE dashboard_settings (
 	ds_type text,
 	ds_region text,
 	ds_lang text,
-	ds_q_id INTEGER,
+	ds_qname text,      -- replaces ds_q_id
 	ds_q_is_calc boolean default false,
 	ds_date_question_id INTEGER,
 	ds_question text,

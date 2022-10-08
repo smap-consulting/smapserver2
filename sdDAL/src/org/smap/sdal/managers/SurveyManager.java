@@ -3917,16 +3917,17 @@ public class SurveyManager {
 	
 			/*
 			 * Delete or update any panels that reference this survey
+			 * Should store the survey ident and the question name
 			 */
 			if(newSurveyId == 0) {
-				sql = "delete from dashboard_settings where ds_s_id = ?;";	
+				sql = "delete from dashboard_settings where ds_s_id = ?";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, sId);
 				log.info("Delete dashboard panels: " + pstmt.toString());
 				pstmt.executeUpdate();
 			} else {
-				sql = "update dashboard_settings set ds_s_id = ? where ds_s_id = ?;";	
+				sql = "update dashboard_settings set ds_s_id = ? where ds_s_id = ?";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, newSurveyId);

@@ -5036,17 +5036,19 @@ public class GeneralUtilityMethods {
 		int qId = 0;
 		PreparedStatement pstmt = null;
 
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, name);
-			pstmt.setInt(2, sId);
-			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
-				qId = rs.getInt(1);
+		if(name != null) {
+			try {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, name);
+				pstmt.setInt(2, sId);
+				ResultSet rs = pstmt.executeQuery();
+				if (rs.next()) {
+					qId = rs.getInt(1);
+				}
+	
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			}
-
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return qId;

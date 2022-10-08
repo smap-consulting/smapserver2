@@ -100,7 +100,7 @@ public class Dashboard extends Application {
 					+ "d.ds_layer_id as layerId,"
 					+ "d.ds_region as region,"
 					+ "d.ds_lang as lang,"
-					+ "d.ds_q_id as qId,"
+					+ "d.ds_qname as qname,"
 					+ "d.ds_date_question_id as dateQuestionId,"
 					+ "d.ds_question as question,"
 					+ "d.ds_fn as fn,"
@@ -142,7 +142,7 @@ public class Dashboard extends Application {
 					+ "d.ds_layer_id as layerId,"
 					+ "d.ds_region as region,"
 					+ "d.ds_lang as lang,"
-					+ "d.ds_q_id as qId,"
+					+ "d.ds_qname as qname,"
 					+ "d.ds_date_question_id as dateQuestionId,"
 					+ "d.ds_question as question,"
 					+ "d.ds_fn as fn,"
@@ -180,7 +180,7 @@ public class Dashboard extends Application {
 					+ "d.ds_layer_id as layerId,"
 					+ "d.ds_region as region,"
 					+ "d.ds_lang as lang,"
-					+ "d.ds_q_id as qId,"
+					+ "d.ds_qname as qname,"
 					+ "d.ds_date_question_id as dateQuestionId,"
 					+ "d.ds_question as question,"
 					+ "d.ds_fn as fn,"
@@ -215,7 +215,7 @@ public class Dashboard extends Application {
 			log.info("Get survey panels: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			while (resultSet.next()) {				
-				Settings s = getSettings(resultSet, idx++);
+				Settings s = getSettings(sd, resultSet, idx++);
 				sArray.add(s);	
 			}
 			resultSet.close();
@@ -229,7 +229,7 @@ public class Dashboard extends Application {
 			log.info("Get user panels: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			while (resultSet.next()) {				
-				Settings s = getSettings(resultSet, idx++);
+				Settings s = getSettings(sd,resultSet, idx++);
 				sArray.add(s);	
 			}
 			resultSet.close();
@@ -242,7 +242,7 @@ public class Dashboard extends Application {
 			log.info("Get user location panels: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			while (resultSet.next()) {				
-				Settings s = getSettings(resultSet, idx++);
+				Settings s = getSettings(sd, resultSet, idx++);
 				sArray.add(s);	
 			}
 			resultSet.close();
@@ -306,7 +306,7 @@ public class Dashboard extends Application {
 			
 			String sqlAddView = "insert into dashboard_settings("
 					+ "ds_state, ds_seq, ds_title, ds_s_id, ds_s_name, ds_type, ds_layer_id, ds_region,"
-					+ "ds_lang, ds_q_id, ds_date_question_id, ds_question, ds_fn, ds_table, ds_key_words, ds_q1_function, "
+					+ "ds_lang, ds_qname, ds_date_question_id, ds_question, ds_fn, ds_table, ds_key_words, ds_q1_function, "
 					+ "ds_group_question_id, ds_group_question_text, ds_group_type, ds_user_ident, ds_time_group,"
 					+ "ds_from_date, ds_to_date, ds_q_is_calc, ds_filter, ds_advanced_filter, ds_subject_type, ds_u_id,"
 					+ "ds_inc_ro, ds_geom_questions, ds_selected_geom_question) values ("
@@ -323,7 +323,7 @@ public class Dashboard extends Application {
 					" ds_layer_id = ?," +
 					" ds_region = ?," +
 					" ds_lang = ?," +
-					" ds_q_id = ?," +
+					" ds_qname = ?," +
 					" ds_date_question_id = ?," +
 					" ds_question = ?," +
 					" ds_fn = ?," +
@@ -374,7 +374,7 @@ public class Dashboard extends Application {
 						pstmtAddView.setInt(7, s.layerId);
 						pstmtAddView.setString(8, s.region);
 						pstmtAddView.setString(9, s.lang);
-						pstmtAddView.setInt(10, s.qId);
+						pstmtAddView.setString(10, GeneralUtilityMethods.getQuestionNameFromId(connectionSD, s.sId, s.qId));
 						pstmtAddView.setInt(11, s.dateQuestionId);
 						pstmtAddView.setString(12, s.question);
 						pstmtAddView.setString(13, s.fn);
@@ -417,7 +417,7 @@ public class Dashboard extends Application {
 						pstmtReplaceView.setInt(7, s.layerId);
 						pstmtReplaceView.setString(8, s.region);
 						pstmtReplaceView.setString(9, s.lang);
-						pstmtReplaceView.setInt(10, s.qId);
+						pstmtAddView.setString(10, GeneralUtilityMethods.getQuestionNameFromId(connectionSD, s.sId, s.qId));
 						pstmtReplaceView.setInt(11, s.dateQuestionId);
 						pstmtReplaceView.setString(12, s.question);
 						pstmtReplaceView.setString(13, s.fn);
@@ -541,7 +541,7 @@ public class Dashboard extends Application {
 		return response;
 	}
 
-	private Settings getSettings(ResultSet resultSet, int idx) throws SQLException {
+	private Settings getSettings(Connection sd, ResultSet resultSet, int idx) throws SQLException {
 		
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
@@ -561,7 +561,7 @@ public class Dashboard extends Application {
 		s.layerId = resultSet.getInt("layerId");
 		s.region = resultSet.getString("region");
 		s.lang = resultSet.getString("lang");
-		s.qId = resultSet.getInt("qId");
+		s.qId = GeneralUtilityMethods.getQuestionIdFromName(sd, s.sId, resultSet.getString("qname"));
 		s.dateQuestionId = resultSet.getInt("dateQuestionId");
 		s.question = resultSet.getString("question");
 		s.fn = resultSet.getString("fn");
