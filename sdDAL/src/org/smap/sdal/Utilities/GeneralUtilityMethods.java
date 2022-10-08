@@ -5033,7 +5033,7 @@ public class GeneralUtilityMethods {
 				+ "where q.qname = ? "
 				+ "and q.f_id in (select f_id from form where s_id = ?)";
 
-		int qId = 0;
+		int qId = -1;
 		PreparedStatement pstmt = null;
 
 		if(name != null) {

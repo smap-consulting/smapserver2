@@ -417,9 +417,8 @@ public class Dashboard extends Application {
 						pstmtReplaceView.setInt(7, s.layerId);
 						pstmtReplaceView.setString(8, s.region);
 						pstmtReplaceView.setString(9, s.lang);
-						pstmtAddView.setString(10, GeneralUtilityMethods.getQuestionNameFromId(connectionSD, s.sId, s.qId));
-						pstmtAddView.setString(11, GeneralUtilityMethods.getQuestionNameFromId(connectionSD, s.sId, s.dateQuestionId));
-						pstmtReplaceView.setInt(11, s.dateQuestionId);
+						pstmtReplaceView.setString(10, GeneralUtilityMethods.getQuestionNameFromId(connectionSD, s.sId, s.qId));
+						pstmtReplaceView.setString(11, GeneralUtilityMethods.getQuestionNameFromId(connectionSD, s.sId, s.dateQuestionId));
 						pstmtReplaceView.setString(12, s.question);
 						pstmtReplaceView.setString(13, s.fn);
 						pstmtReplaceView.setString(14, s.table);
