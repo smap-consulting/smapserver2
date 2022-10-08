@@ -1618,11 +1618,13 @@ public class GetXForm {
 					Element elem = null;
 					for (int i = 0; i < cols.length && i < values.length; i++) {
 						try {
-							elem = outputXML.createElement(cols[i]);
-							String v = values[i];
-							v = v.replaceAll("'", "");
-							elem.setTextContent(v);
-							item.appendChild(elem);
+							if(!cols[i].equals("")) {  // Handle CSV files with trailing comma
+								elem = outputXML.createElement(cols[i]);
+								String v = values[i];
+								v = v.replaceAll("'", "");
+								elem.setTextContent(v);
+								item.appendChild(elem);
+							}
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 							String msg = localisation.getString("msg_inv_col");
