@@ -549,3 +549,6 @@ update dashboard_settings ds set ds_qname = (select q.qname from question q wher
 alter table dashboard_settings add column ds_date_question_name text;
 update dashboard_settings ds set ds_date_question_name = (select q.qname from question q where q.q_id = ds.ds_date_question_id) where ds.ds_date_question_name is null and ds.ds_date_question_id > 0;
 
+alter table dashboard_settings add column ds_group_question_name text;
+update dashboard_settings ds set ds_group_question_name = (select q.qname from question q where q.q_id = ds.ds_group_question_id) where ds.ds_group_question_name is null and ds.ds_group_question_id > 0;
+

@@ -107,7 +107,7 @@ public class Dashboard extends Application {
 					+ "d.ds_table as table, "
 					+ "d.ds_key_words as key_words, "
 					+ "d.ds_q1_function as q1_function, "
-					+ "d.ds_group_question_id as groupQuestionId, "
+					+ "d.ds_group_question_name as groupQuestionName, "
 					+ "d.ds_group_question_text as groupQuestionText, "
 					+ "d.ds_group_type as groupType, "
 					+ "d.ds_time_group as timeGroup, "
@@ -149,7 +149,7 @@ public class Dashboard extends Application {
 					+ "d.ds_table as table, "
 					+ "d.ds_key_words as key_words, "
 					+ "d.ds_q1_function as q1_function, "
-					+ "d.ds_group_question_id as groupQuestionId, "
+					+ "d.ds_group_question_name as groupQuestionName, "
 					+ "d.ds_group_question_text as groupQuestionText, "
 					+ "d.ds_group_type as groupType, "
 					+ "d.ds_time_group as timeGroup, "
@@ -187,7 +187,7 @@ public class Dashboard extends Application {
 					+ "d.ds_table as table, "
 					+ "d.ds_key_words as key_words, "
 					+ "d.ds_q1_function as q1_function, "
-					+ "d.ds_group_question_id as groupQuestionId, "
+					+ "d.ds_group_question_name as groupQuestionName, "
 					+ "d.ds_group_question_text as groupQuestionText, "
 					+ "d.ds_group_type as groupType, "
 					+ "d.ds_time_group as timeGroup, "
@@ -307,7 +307,7 @@ public class Dashboard extends Application {
 			String sqlAddView = "insert into dashboard_settings("
 					+ "ds_state, ds_seq, ds_title, ds_s_id, ds_s_name, ds_type, ds_layer_id, ds_region,"
 					+ "ds_lang, ds_qname, ds_date_question_name, ds_question, ds_fn, ds_table, ds_key_words, ds_q1_function, "
-					+ "ds_group_question_id, ds_group_question_text, ds_group_type, ds_user_ident, ds_time_group,"
+					+ "ds_group_question_name, ds_group_question_text, ds_group_type, ds_user_ident, ds_time_group,"
 					+ "ds_from_date, ds_to_date, ds_q_is_calc, ds_filter, ds_advanced_filter, ds_subject_type, ds_u_id,"
 					+ "ds_inc_ro, ds_geom_questions, ds_selected_geom_question) values ("
 					+ "?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
@@ -330,7 +330,7 @@ public class Dashboard extends Application {
 					" ds_table = ?," +
 					" ds_key_words = ?," +
 					" ds_q1_function = ?," +
-					" ds_group_question_id = ?," +
+					" ds_group_question_name = ?," +
 					" ds_group_question_text = ?," +
 					" ds_group_type = ?," +  
 					" ds_time_group = ?," +
@@ -381,7 +381,7 @@ public class Dashboard extends Application {
 						pstmtAddView.setString(14, s.table);
 						pstmtAddView.setString(15, s.key_words);
 						pstmtAddView.setString(16, s.q1_function);
-						pstmtAddView.setInt(17, s.groupQuestionId);
+						pstmtAddView.setString(17, GeneralUtilityMethods.getQuestionNameFromId(connectionSD, s.sId, s.groupQuestionId));
 						pstmtAddView.setString(18, s.groupQuestionText);
 						pstmtAddView.setString(19, s.groupType);
 						pstmtAddView.setString(20, user);
@@ -424,7 +424,7 @@ public class Dashboard extends Application {
 						pstmtReplaceView.setString(14, s.table);
 						pstmtReplaceView.setString(15, s.key_words);
 						pstmtReplaceView.setString(16, s.q1_function);
-						pstmtReplaceView.setInt(17, s.groupQuestionId);
+						pstmtReplaceView.setString(17, GeneralUtilityMethods.getQuestionNameFromId(connectionSD, s.sId, s.groupQuestionId));
 						pstmtReplaceView.setString(18, s.groupQuestionText);
 						pstmtReplaceView.setString(19, s.groupType);
 						pstmtReplaceView.setString(20, s.timeGroup);
@@ -568,7 +568,7 @@ public class Dashboard extends Application {
 		s.table = resultSet.getString("table");
 		s.key_words = resultSet.getString("key_words");
 		s.q1_function = resultSet.getString("q1_function");
-		s.groupQuestionId = resultSet.getInt("groupQuestionId");
+		s.groupQuestionId = GeneralUtilityMethods.getQuestionIdFromName(sd, s.sId, resultSet.getString("groupQuestionName"));
 		s.groupQuestionText = resultSet.getString("groupQuestionText");
 		s.groupType = resultSet.getString("groupType");
 		s.timeGroup = resultSet.getString("timeGroup");

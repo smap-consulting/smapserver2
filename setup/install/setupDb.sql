@@ -928,7 +928,7 @@ CREATE TABLE dashboard_settings (
 	ds_table text,
 	ds_key_words text,
 	ds_q1_function text,
-	ds_group_question_id INTEGER,
+	ds_group_question_name text,   -- replaces ds_group_question_id
 	ds_group_question_text text,
 	ds_group_type text,
 	ds_layer_id integer,
