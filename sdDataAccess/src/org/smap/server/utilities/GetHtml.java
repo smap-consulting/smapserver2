@@ -714,6 +714,19 @@ public class GetHtml {
 					calculationInput.setAttribute("name", paths.get(getRefName(q.name, form)));
 				}
 
+				if(calculation.toLowerCase().contains("pulldata(")) {
+					// Add a suffix to pulldata sources to differentiate them from search
+					StringBuilder sb = new StringBuilder("");
+					int idx1;
+					while ((idx1 = calculation.indexOf("pulldata")) >= 0) {
+						idx1 = calculation.indexOf('\'', idx1);
+						int idx2 = calculation.indexOf('\'', idx1 + 1 );
+						sb.append(calculation.substring(0, idx2) + "__pull");
+						calculation = calculation.substring(idx2);
+					}
+					sb.append(calculation);
+					calculation = sb.toString();
+				}
 				calculationInput.setAttribute("data-calculate",
 						" " + UtilityMethods.convertAllxlsNames(calculation, false, paths, form.id, true, q.name, false) + " ");
 

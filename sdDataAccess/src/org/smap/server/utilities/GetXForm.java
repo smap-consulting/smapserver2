@@ -269,7 +269,7 @@ public class GetXForm {
 				ManifestValue mv = manifests.get(i);
 				if (mv.filePath != null || (mv.type != null && mv.type.equals("linked"))) {
 					Element pulldataElement = outputDoc.createElement("instance");
-					pulldataElement.setAttribute("id", mv.baseName);
+					pulldataElement.setAttribute("id", mv.baseName + "__pull");
 					pulldataElement.setAttribute("src", "jr://csv/" + mv.baseName + ".csv");
 					parent.appendChild(pulldataElement);
 					Element rootElement = outputDoc.createElement("root");
