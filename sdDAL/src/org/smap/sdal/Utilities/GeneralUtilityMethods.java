@@ -5045,6 +5045,23 @@ public class GeneralUtilityMethods {
 				if (rs.next()) {
 					qId = rs.getInt(1);
 				}
+				
+				if(qId == -1) {
+					if(name.equals(SmapServerMeta.UPLOAD_TIME_NAME)) {
+						qId = SmapServerMeta.UPLOAD_TIME_ID;
+					} else if(name.equals(SmapServerMeta.SCHEDULED_START_NAME)) {						
+						qId = SmapServerMeta.SCHEDULED_START_ID;
+					} else {
+						// Check the preloads
+						ArrayList<MetaItem> preloads = getPreloads(sd, sId);
+						for(MetaItem mi : preloads) {
+							if(name.equals(mi.name)) {
+								qId = mi.id;
+								break;
+							}
+						}
+					}
+				}
 	
 			} finally {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -5122,7 +5139,6 @@ public class GeneralUtilityMethods {
 							break;
 						}
 					}
-					
 				}
 			}
 
@@ -5233,7 +5249,7 @@ public class GeneralUtilityMethods {
 			String filename) throws Exception {
 
 		ArrayList<Option> choices = null;		
-		String sql = "select q.external_table, q.l_id from question q where q.q_id = ?";
+		String sql = "select q.external_table, q.l_id, q.appearance from question q where q.q_id = ?";
 		PreparedStatement pstmt = null;
 		
 		String sqlChoices = "select ovalue, label_id "
@@ -5261,6 +5277,14 @@ public class GeneralUtilityMethods {
 				
 				if(filename == null) {
 					filename = rs.getString(1);	// Get the filename from the database only if it was not provided in the calling function.  The database can be null at this point
+				}
+				if(filename == null) {
+					// Still null then get the external filename direct from appearance
+					String appearance = rs.getString(3);
+					if(isAppearanceExternalFile(appearance)) {
+						ManifestInfo mi = addManifestFromAppearance(appearance, null);
+						filename = mi.filename;
+					}
 				}
 				int l_id = rs.getInt(2);
 				
