@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 public class SubmissionMessage {
-	public int sId;					// Legacy reference to survey - now use survey_ident
 	public int taskId;
 	public String survey_ident;
 	public String update_ident;
@@ -87,7 +86,6 @@ public class SubmissionMessage {
 	
 	// copy constructor
 	public SubmissionMessage(SubmissionMessage orig) {
-		this.sId = orig.sId;
 		this.taskId = orig.taskId;
 		this.survey_ident = orig.survey_ident;
 		this.update_ident = orig.update_ident;

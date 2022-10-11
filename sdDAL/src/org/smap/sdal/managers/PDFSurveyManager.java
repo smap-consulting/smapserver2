@@ -9,16 +9,10 @@ import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.text.DateFormat;
 import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -32,8 +26,6 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
-import org.smap.sdal.model.LineMap;
-import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.PdfMapValues;
@@ -43,12 +35,9 @@ import org.smap.sdal.model.Row;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TrafficLightBulb;
-import org.smap.sdal.model.TrafficLightQuestions;
 import org.smap.sdal.model.TrafficLightValues;
 import org.smap.sdal.model.User;
 
-import com.github.binodnme.dateconverter.converter.DateConverter;
-import com.github.binodnme.dateconverter.utils.DateBS;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -534,23 +523,6 @@ public class PDFSurveyManager {
 			} catch (Exception e) {
 				// If we can't get the question details for this data then that is ok
 			}
-			
-			/*
-			 * Round decimals if required
-			 */
-			if(r.type.equals("decimal") && di.round >= 0  && r.value != null && r.value.trim().length() > 0) {
-				try {
-					StringBuilder f = new StringBuilder("0.");
-					for(int i = 0; i < di.round; i++) {
-						f.append("0");
-					}
-					DecimalFormat decimalFormat = new DecimalFormat(f.toString());
-					double dv = Double.parseDouble(r.value);
-					r.value = decimalFormat.format(dv);
-				} catch (Exception e) {
-					log.log(Level.SEVERE, e.getMessage(), e);
-				}
-			}
 
 			/*
 			 * Set the value based on the result
@@ -598,33 +570,10 @@ public class PDFSurveyManager {
 							survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident, false);
 				}
 
-			} else if(r.type.equals("dateTime") || r.type.equals("timestamp")) {
+			} else if(r.type.equals("dateTime") || r.type.equals("timestamp") || r.type.equals("date")) {
 
-				value = null;
-				if(r.value != null) {
-					// Convert date to local time
-					try {
-						DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-						df.setTimeZone(TimeZone.getTimeZone("UTC"));
-						Date date = df.parse(r.value);					
-						df.setTimeZone(TimeZone.getTimeZone(tz));
-						value = df.format(date);
-					} catch (Exception e) {
-						// Try alternate date format
-						try {
-							DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-							df.setTimeZone(TimeZone.getTimeZone("UTC"));
-							Date date = df.parse(r.value);					
-							df.setTimeZone(TimeZone.getTimeZone(tz));
-							value = df.format(date);
-						} catch (Exception ex) {
-							log.log(Level.SEVERE, e.getMessage(), e);
-						}				
-
-					}
-					log.info("Convert date to local time (template): " + r.name + " : " + r.value + " : " + " : " + value + " : " + r.type + " : " + tz);
-				}
-
+				value = PdfUtilities.getDateValue(di, tz, r.value, r.type);
+				
 
 			} else if(di.tsep && (r.type.equals("int") || (r.type.equals("string") && r.value != null && !r.value.contains(".")))) {
 				long iValue = 0;
@@ -634,15 +583,24 @@ public class PDFSurveyManager {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
 				value = String.format("%,d", iValue);
+				
 			} else if(di.tsep && (r.type.equals("decimal") || (r.type.equals("string") && r.value != null && r.value.contains(".")))) {
 				Double dValue = 0.0;
 				try {
-					dValue = Double.parseDouble(r.value.replace(",", ""));
+					r.value = r.value.replace(",", "");
+					if(di.round >= 0) {
+						r.value = GeneralUtilityMethods.round(r.value, di.round);	
+					}
+					dValue = Double.parseDouble(r.value);
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
-				value = String.format("%,f", dValue);
+				DecimalFormat formatter = (DecimalFormat) DecimalFormat.getInstance(localisation.getLocale());
+				value = formatter.format(dValue);
 
+			} else if(r.type.equals("decimal") && di.round >= 0 && r.value != null && r.value.trim().length() > 0) {
+				value = GeneralUtilityMethods.round(r.value, di.round);	
+				
 			} else {
 				value = r.value;
 			}
@@ -1756,29 +1714,11 @@ public class PDFSurveyManager {
 			String startGeopointValue
 			) throws Exception {
 
-		DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		DateFormat dfDateOnly = new SimpleDateFormat("yyyy-MM-dd");
 
 		// Questions that append their values to this question
 		ArrayList<String> deps = gv.addToList.get(di.fIdx + "_" + di.rec_number + "_" + di.name);
 
-		/*
-		 * Round decimals if required
-		 */
-		if(di.type.equals("decimal") && di.round >= 0 && di.value != null && di.value.trim().length() > 0) {
-			try {
-				StringBuilder f = new StringBuilder("0.");
-				for(int i = 0; i < di.round; i++) {
-					f.append("0");
-				}
-				DecimalFormat decimalFormat = new DecimalFormat(f.toString());
-				double dv = Double.parseDouble(di.value);
-				di.value = decimalFormat.format(dv);
-			} catch (Exception e) {
-				log.log(Level.SEVERE, e.getMessage(), e);
-			}
-		}
-		
+
 		if(di.type.startsWith("select")) {
 			processSelect(parser, remoteUser, valueCell, di, generateBlank, gv, oId);
 		} else if (di.type.equals("image")) {
@@ -1913,16 +1853,29 @@ public class PDFSurveyManager {
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
-			String value = String.format("%,d", iValue);
+			DecimalFormat formatter = (DecimalFormat) DecimalFormat.getInstance(localisation.getLocale());
+			String value = formatter.format(iValue);
 			valueCell.addElement(getPara(value, di, gv, deps, null));
 		} else if(di.tsep && (di.type.equals("decimal") || (di.type.equals("string") && di.value != null && di.value.contains(".")))) {
 			Double dValue = 0.0;
 			try {
-				dValue = Double.parseDouble(di.value.replace(",", ""));
+				di.value = di.value.replace(",", "");
+				if(di.round >= 0) {
+					di.value = GeneralUtilityMethods.round(di.value, di.round);	
+				}
+				dValue = Double.parseDouble(di.value);
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
-			String value = String.format("%,f", dValue);
+			
+			DecimalFormat formatter = (DecimalFormat) DecimalFormat.getInstance(localisation.getLocale());
+			String value = formatter.format(dValue);
+			
+
+			
+			valueCell.addElement(getPara(value, di, gv, deps, null));
+		} else if(di.type.equals("decimal") && di.round >= 0 && di.value != null && di.value.trim().length() > 0) {
+			String value = GeneralUtilityMethods.round(di.value, di.round);	
 			valueCell.addElement(getPara(value, di, gv, deps, null));
 		} else {
 			String value = null;
@@ -1937,66 +1890,9 @@ public class PDFSurveyManager {
 				}
 
 				if(di.type.equals("dateTime") || di.type.equals("timestamp") || di.type.equals("date")) {		// Set date time to local time				
-					Date date;
-					String utcValue = di.value;
-					if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
-						df.setTimeZone(TimeZone.getTimeZone("UTC"));
-						date = df.parse(di.value);
-						df.setTimeZone(TimeZone.getTimeZone(tz));
-						value = df.format(date);
-					} else {
-						dfDateOnly.setTimeZone(TimeZone.getTimeZone("UTC"));
-						date = dfDateOnly.parse(di.value);
-						dfDateOnly.setTimeZone(TimeZone.getTimeZone(tz));
-						value = dfDateOnly.format(date);
-					}
 					
-					log.info("Convert date to local time: " + di.name + " : " + di.value + " : " + " : " + value + " : " + di.type + " : " + tz);
+					value = PdfUtilities.getDateValue(di, tz, di.value, di.type);
 					
-					// If Bikram Sambat date output is required convert  
-					if(di.bs) {
-
-						Date nepalDate;
-						
-						log.info("utc value: " + utcValue);
-						
-						
-						if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
-							df.setTimeZone(TimeZone.getTimeZone("UTC"));
-							date = df.parse(utcValue);
-							df.setTimeZone(TimeZone.getTimeZone(tz));
-							value = df.format(date);
-							log.info("xxxxxxxxx: " + value);
-							df.setTimeZone(TimeZone.getTimeZone("UTC"));
-							nepalDate = df.parse(value);
-						} else {	
-							dfDateOnly.setTimeZone(TimeZone.getTimeZone("UTC"));
-							date = dfDateOnly.parse(utcValue);
-							date.setHours(12);
-							nepalDate = date;
-						} 		
-							
-						log.info("Value: " + value);
-						
-						StringBuilder bsValue = new StringBuilder("");
-						DateBS dateBS = DateConverter.convertADToBS(nepalDate);  //returns corresponding DateBS
-						
-						bsValue.append(dateBS.getYear())
-						.append("/")
-						.append(dateBS.getMonth() + 1)
-						.append("/")
-						.append(dateBS.getDay());
-						
-						if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
-							String [] components = value.split(" ");
-							if(components.length > 1) {
-								bsValue.append(" ")
-								.append(components[1]);
-							}				
-						} 
-
-						value = bsValue.toString();
-					}
 
 				} else {
 					value = di.value;
@@ -2197,6 +2093,7 @@ public class PDFSurveyManager {
 			if(deps == null || (di.value != null && !di.value.trim().toLowerCase().equals("other"))) {
 
 				String value = di.value;
+				
 				if(di.type.equals("select1")) {
 
 					Form form = survey.forms.get(di.fIdx);

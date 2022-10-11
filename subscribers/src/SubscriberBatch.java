@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -50,33 +49,29 @@ import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
 import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
+import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
+import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.DatabaseConnections;
-import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
-import org.smap.sdal.model.LineMap;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.PdfMapValues;
-import org.smap.sdal.model.Question;
 import org.smap.sdal.model.ReportConfig;
-import org.smap.sdal.model.Result;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
@@ -212,7 +207,7 @@ public class SubscriberBatch {
 
 						if(uel.isEmpty()) {
 
-							log.info("................... " + subscriberType + " Submission Processor");
+							System.out.print(".");		// Log the running of the upload processor
 
 						} else {
 							log.info("\nUploading subscriber: " + s.getSubscriberName() + " : " + timeNow.toString());
@@ -245,7 +240,16 @@ public class SubscriberBatch {
 									}
 
 									// Get the submitted results as an XML document
-									is = new FileInputStream(uploadFile);
+									try {
+										is = new FileInputStream(uploadFile);
+									} catch (FileNotFoundException e) {
+										// Possibly we are re-trying an upload and the XML file has been archived to S3
+										// Retrieve the file and try again
+										File f = new File(uploadFile);
+										FileUtils.forceMkdir(f.getParentFile());
+										S3AttachmentUpload.get(basePath, uploadFile);
+										is = new FileInputStream(uploadFile);
+									}
 
 									// Remove malformed characters
 									String xml = GeneralUtilityMethods.convertStreamToString(is);
@@ -412,16 +416,6 @@ public class SubscriberBatch {
 								}
 								
 								/*
-								 * Process compound widgets
-								 *
-								ArrayList<String> compoundQuestions = GeneralUtilityMethods.getCompoundQuestions(dbc.sd, sdalSurvey.id);
-								if(compoundQuestions.size() > 0) {
-									SurveyManager sm = new SurveyManager(localisation, "UTC");
-									processCompoundWidgets(dbc.sd, dbc.results, sm, sdalSurvey.id, basePath, ue.getInstanceId());
-								}
-								*/
-								
-								/*
 								 * Write log entry
 								 */
 								String status = se.getStatus();
@@ -448,7 +442,7 @@ public class SubscriberBatch {
 					} 
 				}
 			} else {
-				log.info("###########################################################################");
+				// log.info("###########################################################################");  // debug only
 			}
 
 			/*
@@ -457,6 +451,7 @@ public class SubscriberBatch {
 			if(subscriberType.equals("upload")) {
 				
 				applyReminderNotifications(dbc.sd, dbc.results, basePath, serverName);
+				applyCaseManagementReminders(dbc.sd, dbc.results, basePath, serverName);
 				sendMailouts(dbc.sd, basePath, serverName);
 				expireTemporaryUsers(localisation, dbc.sd);
 				
@@ -466,9 +461,6 @@ public class SubscriberBatch {
 
 				// Delete linked csv files logically deleted more than 10 minutes age
 				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
-				
-				// Generate reports
-				log.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%% Generate reports");
 				
 				// Apply synchronisation
 				// 1. Get all synchronisation notifications
@@ -593,6 +585,8 @@ public class SubscriberBatch {
 											true,			// Super User
 											false,			// Return records greater than or equal to primary key
 											"none",			// Do not return bad records
+											"yes",			// return completed
+											null,			// case management settings can be null
 											prikeyFilter,
 											null	,			// key filter
 											tz,
@@ -702,140 +696,6 @@ public class SubscriberBatch {
 		}
 
 	}
-
-	/*
-	private void processCompoundWidgets(Connection sd, Connection results, SurveyManager sm, int sId, 
-			String basePath, String instanceId) throws SQLException, Exception {
-		
-		Survey survey = sm.getById(
-				sd, 
-				results, 
-				null,	// Anonymous user 
-				false,	// Not necessarily temporary user
-				sId, 
-				true, 
-				basePath, 
-				instanceId, 
-				true, 			// get results
-				false, 			// Don't generate a blank
-				true, 
-				false, 
-				true, 
-				"real", 
-				false, 
-				false, 
-				false,		// not super user 
-				"geojson",
-				false,
-				false,
-				false);	       // Don't merge set values into default value	
-		
-		for(int i = 0; i < survey.instance.results.size(); i++) {
-			setCompoundWidgetValues(sd, results, survey.instance.results.get(i), survey);
-		}
-	}
-	*/
-	
-	/*
-	private void setCompoundWidgetValues(Connection sd, Connection results, ArrayList<Result> record, Survey survey) throws Exception {
-		int prikey = 0;
-		for(Result r : record) {
-			if(r.name.equals("prikey")) {
-				prikey = Integer.valueOf(r.value);
-			} else if(r.type.equals("form")) {
-				for(int k = 0; k < r.subForm.size(); k++) {
-					setCompoundWidgetValues(sd, results, r.subForm.get(k), survey);
-				} 
-			} else if(r.type.equals("pdf_field")) {
-				DisplayItem di = new DisplayItem();
-				
-				Form form = survey.forms.get(r.fIdx);
-				Question question = PdfUtilities.getQuestionFromResult(sd, survey, r, form);
-				PdfUtilities.setQuestionFormats(question.appearance, di);
-				
-				if(r.type.equals("pdf_field") && di.linemap != null) {
-					PdfMapValues mapValues = PdfUtilities.getMapValues(survey, di);
-					PreparedStatement pstmt = null;
-					try {
-						pstmt = mapValues.getDistancePreparedStatement(sd);	// Prepared statement to get distances
-						PdfUtilities.sequenceMarkers(pstmt, mapValues);		// Put markers in sequence increasing from start
-					} finally {
-						 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
-					}
-					if((mapValues.hasLine())) {
-						/*
-						 * The column name for compound data is based on the questions that make up that data
-						 *
-						String columnName = di.linemap.getCompoundColumnName();
-						createLinestringColumn(sd, results, form.tableName, question.name, columnName, form.id);
-						writeLinestringColumn(results, form.tableName, columnName, mapValues.getLineGeometryWithMarkers(-1), prikey);
-					}
-				}
-			}
-		}
-	}
-	*/
-	
-	/*
-	 * Create a linestring column for the path in a pdf_field
-	 *
-	private void createLinestringColumn(Connection sd, Connection results, String tableName, String qName, String columnName, int fId) throws SQLException {
-		
-		String sql = "select AddGeometryColumn('" + tableName + 
-				"', '" + columnName + "', 4326, 'LINESTRING', 2)";
-		
-		PreparedStatement pstmtReady = null;
-		PreparedStatement pstmt = null;
-		
-
-			try {
-				if(!GeneralUtilityMethods.hasColumn(results, tableName, columnName)) {
-					pstmt = results.prepareStatement(sql);
-					log.info(pstmt.toString());
-					pstmt.executeQuery();
-				}
-				
-				// Always update the question as this question may share the created column with another question
-				String sqlReady = "update question "
-						+ "set column_name = ? "
-						+ "where qname = ? "
-						+ "and f_id = ?";
-				
-				pstmtReady = sd.prepareStatement(sqlReady);
-				pstmtReady.setString(1, columnName);
-				pstmtReady.setString(2, qName);
-				pstmtReady.setInt(3, fId);
-				pstmtReady.executeUpdate();
-						
-			} finally {
-				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
-				try {if (pstmtReady != null) {pstmtReady.close();}} catch (SQLException e) {}	
-			}
-
-	}
-	*/
-	
-	/*
-	 * Write the path to a geometry column
-	 *
-	private void writeLinestringColumn(Connection results, String tableName, String columnName, String value, int prikey) throws SQLException {
-		String sql = "update " + tableName + 
-						" set " + columnName + " = ST_GeomFromGeoJSON(?) "
-						+ "where prikey = ? "
-						+ "and " + columnName + " is null";
-		
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = results.prepareStatement(sql);
-			pstmt.setString(1, value);
-			pstmt.setInt(2,  prikey);
-			log.info(pstmt.toString());
-			pstmt.executeUpdate();
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
-		}
-	}
-	*/
 	
 	/*
 	 * Erase deleted templates more than a specified number of days old
@@ -944,8 +804,8 @@ public class SubscriberBatch {
 			/*
 			 * Process surveys to be deleted for real now
 			 */
-			log.info("Erase interval set to: " + interval);
-			log.info("Check for templates to erase: " + pstmt.toString());
+			// log.info("Erase interval set to: " + interval);	// debug only
+			// log.info("Check for templates to erase: " + pstmt.toString());  // debug only
 			rs = pstmt.executeQuery();	
 			while(rs.next()) {
 				int sId = rs.getInt("s_id");
@@ -976,6 +836,7 @@ public class SubscriberBatch {
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtFix = null;
+		PreparedStatement pstmtDel = null;
 
 		try {
 
@@ -989,7 +850,7 @@ public class SubscriberBatch {
 			pstmtFix = sd.prepareStatement(sqlFix);
 
 			/*
-			 * Temporary fix for lack of accurate date when a survey was deleted
+			 * Delete the files that have expired
 			 */
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
@@ -1005,12 +866,21 @@ public class SubscriberBatch {
 				pstmtFix.setInt(1,  id);
 				pstmtFix.executeUpdate();
 			}
+			
+			/*
+			 * Erase record of files older than 7 days
+			 * The last 7 days can be kept for performance analysis
+			 */
+			String sqlDel = "delete from linked_files_old where erase_time < (now() - interval '7 days')";
+			pstmtDel = sd.prepareStatement(sqlDel);
+			pstmtDel.executeUpdate();
 
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
 			try {if (pstmtFix != null) {pstmtFix.close();}} catch (SQLException e) {}
+			try {if (pstmtDel != null) {pstmtDel.close();}} catch (SQLException e) {}
 		}
 	}
 	
@@ -1345,7 +1215,7 @@ public class SubscriberBatch {
 						remotePassword,
 						0);
 				
-				ResourceBundle localisation = locMap.get(nId);
+				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
 					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
 					Locale orgLocale = new Locale(organisation.locale);
@@ -1354,7 +1224,7 @@ public class SubscriberBatch {
 					} catch(Exception e) {
 						localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
 					}
-					locMap.put(nId, localisation);
+					locMap.put(oId, localisation);
 				}
 				MessagingManager mm = new MessagingManager(localisation);
 				mm.createMessage(sd, oId, "reminder", "", gson.toJson(subMgr));
@@ -1371,8 +1241,7 @@ public class SubscriberBatch {
 					logMessage = logMessage.replaceAll("%s1", GeneralUtilityMethods.getNotificationName(sd, nId));
 				}
 				lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
-				
-				
+							
 			}
 			
 
@@ -1383,6 +1252,263 @@ public class SubscriberBatch {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtSent != null) {pstmtSent.close();}} catch (SQLException e) {}
 			
+		}
+	}
+	
+	/*
+	 * Apply Reminder notifications
+	 * Set up on cases
+	 */
+	private void applyCaseManagementReminders(Connection sd, Connection cResults, String basePath, String serverName) {
+
+		/*
+		 * SQL to set case closed date
+		 */
+		/*
+		 * SQL to get the alerts
+		 */
+		String sql = "select a.id as a_id, a.group_survey_ident, a.name, a.period,"
+				+ "s.p_id,"
+				+ "f.table_name "
+				+ "from cms_alert a, survey s, form f "
+				+ "where f.s_id = s.s_id "
+				+ "and f.parentform = 0 "
+				+ "and s.group_survey_ident = a.group_survey_ident ";	
+		
+		PreparedStatement pstmt = null;	
+		
+		/*
+		 * Get the notifications associated with an alert
+		 */
+		String sqlNotifications = "select name as notification_name,"
+				+ "id,"
+				+ "target,"
+				+ "remote_user,"
+				+ "notify_details "
+				+ "from forward "
+				+ "where trigger = 'cm_alert' "
+				+ "and alert_id = ? ";
+		PreparedStatement pstmtNotifications = null;
+		
+		String sqlSettings = "select settings from cms_setting "
+				+ "where group_survey_ident = ? "
+				+ "and settings is not null";
+		PreparedStatement pstmtSettings = null;
+		
+		PreparedStatement pstmtMatches = null;
+		PreparedStatement pstmtCaseUpdated = null;
+
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		HashMap<String, CaseManagementSettings> settingsCache = new HashMap<>();
+		//HashMap<String, String> initialisedCache = new HashMap<>();
+		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
+		
+		// SQL to record an alert being triggered
+		String sqlTriggered = "insert into case_alert_triggered (a_id, table_name, thread, final_status, alert_sent) values (?, ?,  ?, ?, now())";
+		PreparedStatement pstmtTriggered = null;
+		
+		try {
+			
+			pstmtSettings = sd.prepareStatement(sqlSettings);
+			pstmtTriggered = cResults.prepareStatement(sqlTriggered);
+			pstmtNotifications = sd.prepareStatement(sqlNotifications);
+			
+			// 1. Get case management alerts 
+			pstmt = sd.prepareStatement(sql);
+
+			ResultSet rs = pstmt.executeQuery();
+			
+			while(rs.next()) {
+				
+				int aId = rs.getInt("a_id");
+				String alertName = rs.getString("name");
+				String groupSurveyIdent = rs.getString("group_survey_ident");
+				String table = rs.getString("table_name");
+				int pId = rs.getInt("p_id");
+				String period = rs.getString("period");	
+				int oId = GeneralUtilityMethods.getOrganisationIdForGroupSurveyIdent(sd, groupSurveyIdent);
+				
+				if(GeneralUtilityMethods.tableExists(cResults, table)) {	
+					
+					ResourceBundle localisation = locMap.get(oId);
+					if(localisation == null) {
+						Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+						Locale orgLocale = new Locale(organisation.locale);
+						try {
+							localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+						} catch(Exception e) {
+							localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+						}
+						locMap.put(oId, localisation);
+					}
+					
+					/*
+					 * Get the case management settings for this case (group survey)
+					 */
+					CaseManagementSettings settings = settingsCache.get(groupSurveyIdent);
+					if(settings == null) {
+						pstmtSettings.setString(1,groupSurveyIdent);
+						ResultSet srs = pstmtSettings.executeQuery();
+						if(srs.next()) {
+							settings = gson.fromJson(srs.getString("settings"), CaseManagementSettings.class);
+							settingsCache.put(groupSurveyIdent, settings);
+						}						
+					}
+					if(settings != null && settings.finalStatus != null && settings.statusQuestion != null &&
+							GeneralUtilityMethods.hasColumn(cResults, table, settings.statusQuestion)) {
+					
+						// reduce the number of times initialise is called
+						//Threads should have been initialised on submit
+						//String initialised = initialisedCache.get(table);
+						//if(initialised == null) {
+							//GeneralUtilityMethods.initialiseThread(cResults, table);
+						//	initialisedCache.put(table, table);
+						//}
+						
+						
+						/*
+						 * Find records in the case that match this alert
+						 */
+						StringBuilder sqlMatch = new StringBuilder("select prikey, instanceid, _thread from "); 
+						sqlMatch.append(table); 
+						sqlMatch.append(" where not _bad and (")
+							.append(settings.statusQuestion)
+							.append(" is null or ")
+							.append("cast (").append(settings.statusQuestion).append(" as text)").append(" != ? ) ")
+							.append("and  _thread not in (select thread from case_alert_triggered where table_name = ? and a_id = ?) ")
+							.append("and _thread_created < now() - ?::interval ");	
+						
+						pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
+						int idx = 1;
+						pstmtMatches.setString(idx++, settings.finalStatus);
+						pstmtMatches.setString(idx++, table);
+						pstmtMatches.setInt(idx++, aId);
+						pstmtMatches.setString(idx++, period);
+						
+						ResultSet mrs = pstmtMatches.executeQuery();
+						
+						while(mrs.next()) {
+							
+							int prikey = mrs.getInt("prikey");						String instanceid = mrs.getString("instanceid");
+							String thread = mrs.getString("_thread");
+							
+							/*
+							 * Record the triggering of the alert
+							 */
+							String details = localisation.getString("cm_alert");
+							details = details.replace("%s1", alertName);
+							RecordEventManager rem = new RecordEventManager();
+							rem.writeEvent(
+									sd, 
+									cResults, 
+									RecordEventManager.ALERT, 
+									"success",
+									null, 
+									table, 
+									instanceid, 
+									null,				// Change object
+									null,				// Task Object
+									null,				// Notification object
+									details, 
+									0,					// sId (don't care legacy)
+									groupSurveyIdent,
+									0,					// Don't need task id if we have an assignment id
+									0					// Assignment id
+									);
+							
+							// update case_alert_triggered to record the raising of this alert	
+							pstmtTriggered.setInt(1, aId);	
+							pstmtTriggered.setString(2, table);
+							pstmtTriggered.setString(3, thread);
+							pstmtTriggered.setString(4, settings.finalStatus);
+							
+							pstmtTriggered.executeUpdate();
+							
+							// Update the case so that the alert status can be charted
+							StringBuilder sqlUpdate = new StringBuilder("update ") 
+									.append(table)
+									.append(" set _alert = ? where prikey = ?");	
+							
+							pstmtCaseUpdated = cResults.prepareStatement(sqlUpdate.toString());
+							pstmtCaseUpdated.setString(1, alertName);
+							pstmtCaseUpdated.setInt(2, prikey);	
+							pstmtCaseUpdated.executeUpdate();
+							
+							/*
+							 * Process notifications associated with this alert
+							 */
+							pstmtNotifications.setInt(1, aId);
+							log.info("Notifications to be triggered: " + pstmtNotifications.toString());
+							
+							ResultSet notrs = pstmtNotifications.executeQuery();
+							
+							while(notrs.next()) {
+							
+								int nId = notrs.getInt("id");
+								String notificationName = notrs.getString("notification_name");
+								String notifyDetailsString = notrs.getString("notify_details");
+								NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
+								String target = notrs.getString("target");
+								String user = notrs.getString("remote_user");
+								
+								SubmissionMessage subMgr = new SubmissionMessage(
+										0,
+										groupSurveyIdent,
+										null,
+										pId,
+										instanceid, 
+										nd.from,
+										nd.subject, 
+										nd.content,
+										nd.attach,
+										nd.include_references,
+										nd.launched_only,
+										nd.emailQuestion,
+										nd.emailQuestionName,
+										nd.emailMeta,
+										nd.emails,
+										target,
+										user,
+										"https",
+										serverName,
+										basePath,
+										nd.callback_url,
+										user,
+										null,
+										0);
+													
+								MessagingManager mm = new MessagingManager(localisation);
+								mm.createMessage(sd, oId, "cm_alert", "", gson.toJson(subMgr));						
+							
+								// Write to the log
+								String logMessage = "Notification triggered by alert id " + aId + " for notification: " + nId;
+								if(localisation != null) {
+									logMessage = localisation.getString("cm_alert");
+									logMessage = logMessage.replaceAll("%s1", alertName);
+									logMessage = logMessage.replaceAll("%s2", notificationName);
+								}
+								lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
+							}
+
+						}
+					 
+					} else {
+						//log.info("cm: no status settings");
+					}
+				}
+			}
+			
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtTriggered != null) {pstmtTriggered.close();}} catch (SQLException e) {}
+			try {if (pstmtSettings != null) {pstmtSettings.close();}} catch (SQLException e) {}
+			try {if (pstmtMatches != null) {pstmtMatches.close();}} catch (SQLException e) {}
+			try {if (pstmtNotifications != null) {pstmtNotifications.close();}} catch (SQLException e) {}
+			try {if (pstmtCaseUpdated != null) {pstmtCaseUpdated.close();}} catch (SQLException e) {}
 		}
 	}
 	
@@ -1463,19 +1589,18 @@ public class SubscriberBatch {
 				
 				// Add user name to content
 				log.info("Add username to content: " + name);
+				String messageLink = link;
 				if(content == null) {
 					content = "Mailout";
 				} else {
 					if(name != null) {
 						content = content.replaceAll("\\$\\{name\\}", name);
 					}
-					if(content.contains("${url}")) {
-						String url = "https://" + serverName + "/webForm" + link;
+					String url = "https://" + serverName + "/webForm" + link;
+					if(content.contains("${url}")) {					
 						content = content.replaceAll("\\$\\{url\\}", url);
-						link = null;	// Default link replaced
-					} else {
-						link = "https://" + serverName + "/webForm" + link;
-					}
+						messageLink = null;	// Default link replaced
+					} 
 				}
 				
 				// Send the Mailout Message
@@ -1493,7 +1618,7 @@ public class SubscriberBatch {
 						"https",
 						serverName,
 						basePath,
-						link);
+						messageLink);
 				
 				if(localisation == null) {
 					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);

@@ -15,7 +15,6 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapServerMeta;
-import org.smap.sdal.model.ChartDefn;
 import org.smap.sdal.model.ConsoleColumn;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValue;
@@ -174,10 +173,10 @@ public void populateSvd(
 			surveyIdent,
 			uIdent,
 			null,	// roles to apply
-			0,
+			f.parentform,
 			f.id,
 			f.tableName,
-			false,	// Don't include Read only
+			true,			// Include Read only
 			includeMeta,	// Include parent key
 			includeMeta,	// Include "bad"
 			isMain,		// Include instanceId
@@ -211,7 +210,7 @@ public void populateSvd(
 			}
 			
 			if(cc == null) {	
-				tc.hide = hideDefault(c.displayName);
+				tc.hide = hideDefault(c.column_name, c.readonly);
 			} else {
 				tc.hide = cc.hide;
 				tc.barcode = cc.barcode;
@@ -238,6 +237,8 @@ public void populateSvd(
 			}
 			
 			tc.calculation = c.calculation;
+			tc.startName = c.startName;
+			tc.endName = c.endName;
 
 			// Add markup for assigned column
 			if(tc.column_name.equals(ASSIGNED_COLUMN)) {
@@ -578,20 +579,25 @@ private boolean keepThis(String name, boolean isMain, boolean includeBad) {
 /*
  * Set a default hide value
  */
-private boolean hideDefault(String name) {
+private boolean hideDefault(String name, boolean isReadOnly) {
 	boolean hide = false;
 
-	if(name.equals(SmapServerMeta.SURVEY_ID_NAME) ||
-			name.equals("User") ||
+	if(isReadOnly) {
+		hide = true;
+	} else if(name.equals(SmapServerMeta.SURVEY_ID_NAME) ||
+			name.equals("_user") ||
 			name.equals("_scheduled_start") ||
-			name.equals("Survey Notes") ||
-			name.equals("Survey Duration") ||
+			name.equals("_survey_notes") ||
+			name.equals("_duration") ||
 			name.equals("_start") ||
 			name.equals("decision_date") ||
 			name.equals("programme") ||
 			name.equals("project") ||
-			name.equals("Instance Name") ||
+			name.equals("instancename") ||
 			name.equals("instanceid") ||
+			name.equals("_case_closed") ||
+			name.equals("_upload_time") ||
+			name.equals("_hrk") ||
 			name.equals("_end") 
 			) {
 		hide = true;

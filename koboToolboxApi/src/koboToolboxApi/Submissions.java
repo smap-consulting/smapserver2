@@ -49,7 +49,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SubmissionsManager;
 
 /*
- * Provides access to collected data
+ * Provides access to collected data 
  */
 @Path("/v1/submissions")
 public class Submissions extends Application {

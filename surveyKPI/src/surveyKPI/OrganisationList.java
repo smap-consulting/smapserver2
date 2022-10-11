@@ -52,6 +52,7 @@ import org.smap.sdal.model.AppearanceOptions;
 import org.smap.sdal.model.DeviceSettings;
 import org.smap.sdal.model.EmailSettings;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.OtherOrgData;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.SensitiveData;
 import org.smap.sdal.model.User;
@@ -399,6 +400,43 @@ public class OrganisationList extends Application {
 		return response;
 	}
 	
+	/*
+	 * Update miscellaneous data for an organisation
+	 */
+	@POST
+	@Path("/other")
+	public Response updateOtherSensitiveData(@Context HttpServletRequest request, @FormParam("other") String other) { 
+			
+		Response response = null;	
+		
+		String connectionString = "surveyKPI-updateOtherData";
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aSecurity.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			OtherOrgData otherData = new Gson().fromJson(other, OtherOrgData.class);	
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());		
+			OrganisationManager om = new OrganisationManager(localisation);
+			om.updateOtherOrgData(sd, oId, otherData);		
+			
+			response = Response.ok().build();
+				
+		} catch (SQLException e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
 	@GET
 	@Path("/device")
 	public Response getDeviceSettings(@Context HttpServletRequest request) {
@@ -422,7 +460,10 @@ public class OrganisationList extends Application {
 				+ "ft_high_res_video,"
 				+ "ft_guidance,"
 				+ "ft_server_menu,"
-				+ "ft_meta_menu "
+				+ "ft_meta_menu,"
+				+ "ft_input_method,"
+				+ "ft_im_ri,"
+				+ "ft_im_acc "
 				+ "from organisation "
 				+ "where "
 				+ "id = (select o_id from users where ident = ?)";
@@ -459,6 +500,9 @@ public class OrganisationList extends Application {
 				d.ft_guidance = rs.getString("ft_guidance");
 				d.ft_server_menu = rs.getBoolean("ft_server_menu");
 				d.ft_meta_menu = rs.getBoolean("ft_meta_menu");
+				d.ft_input_method = rs.getString("ft_input_method");
+				d.ft_im_ri = rs.getInt("ft_im_ri");
+				d.ft_im_acc = rs.getInt("ft_im_acc");
 				
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				String resp = gson.toJson(d);
@@ -651,6 +695,52 @@ public class OrganisationList extends Application {
 		return response;
 	}
 
+	@GET
+	@Path("/other")
+	public Response getOtherSettings(@Context HttpServletRequest request) {
+		Response response = null;
+		
+		String connectionString = "surveyKPI-OrganisationList-getOtherSettings";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		String sql = "select password_strength "
+				+ "from organisation "
+				+ "where "
+				+ "id = (select o_id from users where ident = ?)";	
+		PreparedStatement pstmt = null;
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		
+		try {
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setString(1, request.getRemoteUser());
+			ResultSet rs = pstmt.executeQuery();
+			
+			if(rs.next()) {
+				OtherOrgData data = new OtherOrgData();
+				data.password_strength = rs.getInt(1);
+				
+				response = Response.ok(gson.toJson(data)).build();
+			} else {
+				response = Response.serverError().entity("{}").build();
+			}
+			
+	
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}	
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+
 	
 	@POST
 	@Path("/device")
@@ -688,6 +778,9 @@ public class OrganisationList extends Application {
 				+ "ft_guidance = ?, "
 				+ "ft_server_menu = ?, "
 				+ "ft_meta_menu = ?, "
+				+ "ft_input_method = ?,"
+				+ "ft_im_ri = ?,"
+				+ "ft_im_acc = ?,"
 				+ "changed_by = ?, "
 				+ "changed_ts = now() "
 				+ "where "
@@ -728,8 +821,11 @@ public class OrganisationList extends Application {
 			pstmt.setString(19, d.ft_guidance);
 			pstmt.setBoolean(20, d.ft_server_menu);
 			pstmt.setBoolean(21, d.ft_meta_menu);
-			pstmt.setString(22, request.getRemoteUser());
-			pstmt.setInt(23, oId);
+			pstmt.setString(22, d.ft_input_method);
+			pstmt.setInt(23, d.ft_im_ri);
+			pstmt.setInt(24, d.ft_im_acc);
+			pstmt.setString(25, request.getRemoteUser());
+			pstmt.setInt(26, oId);
 					
 			log.info("Update organisation with device details: " + pstmt.toString());
 			pstmt.executeUpdate();

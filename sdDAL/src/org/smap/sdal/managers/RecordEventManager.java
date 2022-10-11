@@ -7,7 +7,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -47,23 +46,19 @@ public class RecordEventManager {
 	
 	private static Logger log =
 			 Logger.getLogger(RecordEventManager.class.getName());
-	private static ResourceBundle localisation;
-	private String tz;
 	
 	public static String CREATED = "created";
 	public static String CHANGES = "changes";
 	public static String TASK = "task";
+	public static String ALERT = "alert";
+	public static String ASSIGNED = "assigned";
 	public static String NOTIFICATION = "notification";
 	
 	public static String STATUS_SUCCESS = "success";
 	public static String STATUS_NEW = "new";
 	
-	public RecordEventManager(ResourceBundle l, String tz) {
-		localisation = l;
-		if(tz == null) {
-			tz = "UTC";
-		}
-		this.tz = tz;
+	public RecordEventManager() {
+		
 	}
 	
 	/*
@@ -151,6 +146,24 @@ public class RecordEventManager {
 			pstmt.setInt(15,  taskId);
 			pstmt.setInt(16,  assignmentId);
 			pstmt.executeUpdate();
+			
+			/*
+			 * Alert the user previously assigned to this record and the new user
+			 */
+			if(!event.equals(RecordEventManager.NOTIFICATION)) {
+				MessagingManager mm = new MessagingManager(null);	// Assume no messages will require localisation!
+				String assignedUser = GeneralUtilityMethods.getAssignedUser(cResults, tableName, key);
+				
+				// Notify the currently assigned user
+				if(assignedUser != null) {
+					mm.userChange(sd, assignedUser);
+				}
+				// An assigned event - notify the newly assigned user
+				if(event.equals(RecordEventManager.ASSIGNED) && user != null && (assignedUser == null || !assignedUser.equals(user))) {
+					mm.userChange(sd, user);
+				}
+			}
+			
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
 			if(pstmtSurvey != null) try{pstmtSurvey.close();}catch(Exception e) {};
@@ -170,6 +183,11 @@ public class RecordEventManager {
 			String taskName,
 			boolean assign_auto
 			) throws SQLException {
+		
+		log.info("####################### TASK STATUS EVENT DISABLED FOR PERFORMANCE REASONS ##########################");
+		if(true) {
+			return;
+		}
 		
 		String sqlUsingAssignment = "select t.update_id, f.table_name, t.id, t.schedule_at, t.schedule_finish "
 				+ "from assignments a, tasks t, form f, survey s "
@@ -306,7 +324,7 @@ public class RecordEventManager {
 	/*
 	 * Get a list of event changes for a thread
 	 */
-	public ArrayList<DataItemChangeEvent> getChangeEvents(Connection sd, String tableName, String key) throws SQLException {
+	public ArrayList<DataItemChangeEvent> getChangeEvents(Connection sd, String tz, String tableName, String key) throws SQLException {
 		
 		ArrayList<DataItemChangeEvent> events = new ArrayList<DataItemChangeEvent> ();
 		
@@ -387,6 +405,23 @@ public class RecordEventManager {
 		}
 		
 		return events;
+	}
+	
+	public void deleteTableEvents(Connection sd, String tableName) throws SQLException {
+		
+		String sql = "delete from record_event where table_name = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, tableName);
+			log.info("Delete record events for a table: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+		} finally {
+			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
+		}
+		
 	}
 
 }

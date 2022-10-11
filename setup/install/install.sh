@@ -20,26 +20,26 @@ if [ $dbhost_set -eq 0 ]; then
 fi
 
 # Set flag for ubuntu version
-u1404=`lsb_release -r | grep -c "14\.04"`
-u1604=`lsb_release -r | grep -c "16\.04"`
 u1804=`lsb_release -r | grep -c "18\.04"`
 u2004=`lsb_release -r | grep -c "20\.04"`
+u2204=`lsb_release -r | grep -c "22\.04"`
 
 # Check that this version of ubuntu is supported
-if [ $u2004 -eq 1 ]; then
+if [ $u2204 -eq 1 ]; then
+    echo "Installing on Ubuntu 22.04"
+elif [ $u2004 -eq 1 ]; then
     echo "Installing on Ubuntu 20.04"
 elif [ $u1804 -eq 1 ]; then
     echo "Installing on Ubuntu 18.04"
-elif [ $u1604 -eq 1 ]; then
-    echo "Installing on Ubuntu 16.04"
-elif [ $u1404 -eq 1 ]; then
-    echo "Installing on Ubuntu 14.04"
 else
-    echo "Unsupported version of Ubuntu, you need 20.04, 18.04 or 16.04"
+    echo "Unsupported version of Ubuntu, you need 22.04, 20.04, or 18.04"
     exit 1;
 fi
 
-if [ $u2004 -eq 1 ]; then
+if [ $u2204 -eq 1 ]; then
+    TOMCAT_VERSION=tomcat9
+    TOMCAT_USER=tomcat
+elif [ $u2004 -eq 1 ]; then
     TOMCAT_VERSION=tomcat9
     TOMCAT_USER=tomcat
 elif [ $u1804 -eq 1 ]; then
@@ -102,38 +102,28 @@ echo '##### 5. Install Postgres / Postgis'
 # Skip this section if the database is remote
 if [ "$DBHOST" = "127.0.0.1" ]; then
 
-# Install Postgres for Ubuntu 20.04
-if [ $u2004 -eq 1 ]; then
-    echo 'installing postgres'
-    PGV=12
-    sudo apt-get install postgresql postgresql-contrib postgis -y
-fi
+    # Install Postgres for Ubuntu 20.04
+    if [ $u2204 -eq 1 ]; then
+        echo 'installing postgres'
+        PGV=14
+        sudo apt-get install postgresql postgresql-contrib postgis -y
+    fi
 
-# Install Postgres for Ubuntu 18.04
-if [ $u1804 -eq 1 ]; then
-    echo 'installing postgres'
-    PGV=10
-    sudo apt-get install postgresql postgresql-contrib postgis -y
-fi
+    # Install Postgres for Ubuntu 20.04
+    if [ $u2004 -eq 1 ]; then
+        echo 'installing postgres'
+        PGV=12
+        sudo apt-get install postgresql postgresql-contrib postgis -y
+    fi
 
-# Install Postgres for Ubuntu 16.04
-if [ $u1604 -eq 1 ]; then
-    echo 'installing postgres'
-    PGV=9.5
-    sudo apt-get install postgresql postgresql-contrib postgis postgresql-$PGV-postgis-2.2 -y
-fi
+    # Install Postgres for Ubuntu 18.04
+    if [ $u1804 -eq 1 ]; then
+        echo 'installing postgres'
+        PGV=10
+        sudo apt-get install postgresql postgresql-contrib postgis -y
+    fi
 
-# Install Postgres for Ubuntu 14.04
-if [ $u1404 -eq 1 ]; then
-    echo 'installing postgres'
-    PGV=9.3
-    sudo apt-get install postgresql postgresql-contrib postgis postgresql-$PGV-postgis-2.1 -y
-    sudo apt-get install postgresql-server-dev-9.3 -y
-    sudo apt-get install build-essential libxml2-dev -y
-    sudo apt-get install libgeos-dev libpq-dev libbz2-dev -y
-fi
-
-pg_conf="/etc/postgresql/$PGV/main/postgresql.conf"
+    pg_conf="/etc/postgresql/$PGV/main/postgresql.conf"
 
 else
     # Just install the psql client and create a postgres user
@@ -155,6 +145,12 @@ sudo mkdir $filelocn/uploadedSurveys
 sudo mkdir $filelocn/misc
 sudo mkdir $filelocn/temp
 sudo mkdir $filelocn/settings
+
+# For ubuntu 2204 allow tomcat9 to write to /smap
+if [ $u2204 -eq 1 ]; then
+mkdir /etc/systemd/system/tomcat9.service.d
+cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
+fi
 
 # For ubuntu 2004 allow tomcat9 to write to /smap
 if [ $u2004 -eq 1 ]; then
@@ -229,6 +225,16 @@ then
 	sudo ./apacheConfig.sh
 
 	echo '# copy subscriber upstart files'
+	if [ $u2204 -eq 1 ]; then
+		sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
+		sudo chmod 664 $service_dir/subscribers.service
+		sudo cp config_files/subscribers_fwd.service.u2004 $service_dir/subscribers_fwd.service
+		sudo chmod 664 $service_dir/subscribers_fwd.service
+		
+		sudo systemctl enable subscribers.service
+		sudo systemctl enable subscribers_fwd.service
+	fi
+
 	if [ $u2004 -eq 1 ]; then
 		sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
 		sudo chmod 664 $service_dir/subscribers.service
@@ -249,21 +255,6 @@ then
 		sudo systemctl enable subscribers_fwd.service
 	fi
 	
-	if [ $u1604 -eq 1 ]; then
-		sudo cp config_files/subscribers.service $service_dir
-		sudo chmod 664 $service_dir/subscribers.service
-		sudo cp config_files/subscribers_fwd.service $service_dir
-		sudo chmod 664 $service_dir/subscribers_fwd.service
-		
-		sudo systemctl enable subscribers.service
-		sudo systemctl enable subscribers_fwd.service
-	fi
-	
-	if [ $u1404 -eq 1 ]; then
-		sudo cp config_files/subscribers.conf $upstart_dir
-		sudo cp config_files/subscribers_fwd.conf $upstart_dir
-	fi
-
         if [ "$DBHOST" = "127.0.0.1" ]; then
 	    echo '# update bu.sh file'
 	    sudo cp bu.sh ~postgres/bu.sh
@@ -280,27 +271,28 @@ else
 fi
 
 if [ "$DBHOST" = "127.0.0.1" ]; then
+
     echo '##### 9. Create user and databases'
     sudo service postgresql start
-    sudo -u postgres createuser -S -D -R ws
-    echo "alter user ws with password 'ws1234'" | sudo -u postgres psql
+    sudo -i -u postgres createuser -S -D -R ws
+    echo "alter user ws with password 'ws1234'" | sudo -i -u postgres psql
 
     echo '##### 10. Create $sd database'
 
     if [ "$force" = "force" ]
     then
-	echo "drop database $sd;" | sudo -u postgres psql
+	echo "drop database $sd;" | sudo -i -u postgres psql
     fi
 
-    sd_exists=`sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -w $sd | wc -l`
+    sd_exists=`sudo -i -u postgres psql -lqt | cut -d \| -f 1 | grep -w $sd | wc -l`
     if [ "$sd_exists"  = "0" ]
     then
         echo 'survey_definitions database does not exist'
-        sudo -u postgres createdb -E UTF8 -O ws $sd
-        echo "CREATE EXTENSION postgis;" | sudo -u postgres psql -d $sd 
-        echo "ALTER TABLE geometry_columns OWNER TO ws; ALTER TABLE spatial_ref_sys OWNER TO ws; ALTER TABLE geography_columns OWNER TO ws;" | sudo -u postgres psql -d $sd
-        sudo -u postgres psql -f setupDb.sql -d $sd | grep -v "does not exist, skipping"
-        else
+        sudo -i -u postgres createdb -E UTF8 -O ws $sd
+        echo "CREATE EXTENSION postgis;" | sudo -i -u postgres psql -d $sd 
+        echo "ALTER TABLE geometry_columns OWNER TO ws; ALTER TABLE spatial_ref_sys OWNER TO ws; ALTER TABLE geography_columns OWNER TO ws;" | sudo -i -u postgres psql -d $sd
+        cat setupDb.sql | sudo -i -u postgres psql -d $sd | grep -v "does not exist, skipping"
+    else
         echo "==================> $sd database already exists.  Apply patches if necessary, to upgrade it."
     fi
 
@@ -308,23 +300,24 @@ if [ "$DBHOST" = "127.0.0.1" ]; then
 
     if [ "$force" = "force" ]
     then
-	echo "drop database $results;" | sudo -u postgres psql
+	echo "drop database $results;" | sudo -i -u postgres psql
     fi
 
-    results_exists=`sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -w $results | wc -l`
+    results_exists=`sudo -i -u postgres psql -lqt | cut -d \| -f 1 | grep -w $results | wc -l`
     if [ "$results_exists"  = "0" ]
     then
         echo 'results database does not exist'
-        sudo -u postgres createdb -E UTF8 -O ws $results
+        sudo -i -u postgres createdb -E UTF8 -O ws $results
         echo "CREATE EXTENSION postgis;" | sudo -u postgres psql -d $results
-        sudo -u postgres echo "ALTER TABLE geometry_columns OWNER TO ws; ALTER TABLE spatial_ref_sys OWNER TO ws; ALTER TABLE geography_columns OWNER TO ws;" | sudo -u postgres psql -d $results
-        sudo -u postgres psql -f resultsDb.sql -d $results
+        sudo -i -u postgres echo "ALTER TABLE geometry_columns OWNER TO ws; ALTER TABLE spatial_ref_sys OWNER TO ws; ALTER TABLE geography_columns OWNER TO ws;" | sudo -i -u postgres psql -d $results
+        cat resultsDb.sql | sudo -i -u postgres psql -d $results
 
-        cd ../geospatial
-        echo '# adding countries shape files'
-        sudo -u postgres shp2pgsql -s 4326 -I world_countries_boundary_file_world_2002.shp | sudo -u postgres psql -d $results
-        sudo -u postgres echo "alter table world_countries_boundary_file_world_2002 owner to ws;" | sudo -u postgres psql -d $results
-        cd ../install
+# Boundary files can be created manually - remove from install
+#        cd ../geospatial
+#        echo '# adding countries shape files'
+#        sudo -i -u postgres shp2pgsql -s 4326 -I world_countries_boundary_file_world_2002.shp | sudo -u postgres psql -d $results
+#        sudo -i -u postgres echo "alter table world_countries_boundary_file_world_2002 owner to ws;" | sudo -u postgres psql -d $results
+#        cd ../install
 
     else
         echo "==================> $results database already exists.  Apply patches if necessary, to upgrade it."
@@ -366,7 +359,7 @@ fi
 
 echo '##### 19. Update miscelaneous file configurations'
 
-sudo apt-get install mlocate
+sudo apt-get install mlocate -y
 
 echo '##### Add file location to tomcat configuration'
 
@@ -409,7 +402,7 @@ sudo apt-get install gdal-bin -y
 sudo apt-get install ttf-dejavu -y
 
 # Add a file containing the version number
-echo "2111" > ~/smap_version
+echo "2206" > ~/smap_version
 
 echo '##### 21. Add postgres and apache to tomcat group'
 if [ "$DBHOST" = "127.0.0.1" ]; then

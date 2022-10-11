@@ -3,6 +3,7 @@ package surveyKPI;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.sql.Connection;
@@ -310,11 +311,20 @@ public class ExportSurveyMedia extends Application {
 						 */
 						String mf = basePath + "/" + source_file;
 						File source = new File(mf);
-						if (source.exists()) {
-							File dest = new File(filePath + "/" + mediafilename);
+						File dest = new File(filePath + "/" + mediafilename);
+						if (source.exists()) {							
 							FileUtils.copyFile(source, dest);				
 						} else {
-							log.info("Error: media file does not exist: " + mf);
+							// File may have been moved to S3
+							try {
+								String url = urlprefix + source_file;
+								log.info("Getting remote medi: " + url);
+								FileUtils.copyURLToFile(new URL(url), dest);
+							} catch (Exception e) {
+								log.info("Error: media file does not exist: " + mf);
+								log.log(Level.SEVERE, e.getMessage(), e);
+							}
+					
 						}
 					}
 					

@@ -30,6 +30,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -109,9 +111,13 @@ public class Log extends Application {
 		PreparedStatement pstmt = null;
 		
 		try {
+
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 		
-			ArrayList<LogItemDt> logs = getLogEntries(sd, oId, dirn, start, sort, length);
+			ArrayList<LogItemDt> logs = getLogEntries(sd, localisation, oId, dirn, start, sort, length, false);
 			
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			response = Response.ok(gson.toJson(logs)).build();
@@ -173,6 +179,9 @@ public class Log extends Application {
 		
 		try {
 	
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 			
 			/*
@@ -187,7 +196,7 @@ public class Log extends Application {
 			}
 			rs.close();
 			
-			logs.data = getLogEntries(sd, oId, dirn, start, sort, length);
+			logs.data = getLogEntries(sd,localisation, oId, dirn, start, sort, length, true);
 						
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			response = Response.ok(gson.toJson(logs)).build();
@@ -257,6 +266,7 @@ public class Log extends Application {
 	
 	/*
 	 * Organisation summary log
+	 * Get event counts for all organisations
 	 */
 	@GET
 	@Path("/organisation/{year}/{month}/{day}")
@@ -302,15 +312,63 @@ public class Log extends Application {
 	}
 	
 	/*
+	 * Organisation summary log
+	 * Get event counts for all organisations
+	 */
+	@GET
+	@Path("/organisation/{year}/{month}")
+	@Produces("application/json")
+	public Response getMonthlyOrgLogs(@Context HttpServletRequest request,
+			@PathParam("year") int year,
+			@PathParam("month") int month,
+			@QueryParam("tz") String tz
+			) { 
+		
+		String connectionString = "API - get monthly summary org logs";
+		Response response = null;
+		
+		// Authorisation
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aOrg.isAuthorised(sd, request.getRemoteUser());
+		
+		PreparedStatement pstmt = null;
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
+		try {
+			
+			LogManager lm = new LogManager();
+			ArrayList<OrgLogSummaryItem> logs = lm.getOrgSummaryLogEntriesForDay(sd, year, month, -1, tz);
+			
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			response = Response.ok(gson.toJson(logs)).build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.ok(e.getMessage()).build();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
 	 * Get the data
 	 */
 	private ArrayList<LogItemDt> getLogEntries(
 			Connection sd, 
+			ResourceBundle localisation,
 			int oId,
 			String dirn,
 			int start,
 			String sort,
-			int length) throws SQLException {
+			int length,
+			boolean forHtml) throws SQLException {
 		
 		ArrayList<LogItemDt> items = new ArrayList<> ();
 		PreparedStatement pstmt = null;
@@ -357,10 +415,10 @@ public class Log extends Application {
 				li.sId = rs.getInt("s_id");
 				String displayName = rs.getString("display_name");
 				if(displayName != null) {
-					li.sName = displayName;
+					li.sName = GeneralUtilityMethods.getSafeText(displayName, forHtml);
 				} else {
 					if(li.sId > 0) {
-						li.sName = li.sId + " (erased)";
+						li.sName = li.sId + " (" + localisation.getString("c_erased") + ")";
 					} else {
 						li.sName = "";
 					}
@@ -373,7 +431,7 @@ public class Log extends Application {
 				if(li.event == null) {
 					li.event = "";
 				}
-				li.note = GeneralUtilityMethods.getSafeText(rs.getString("note"), true);
+				li.note = GeneralUtilityMethods.getSafeText(rs.getString("note"), forHtml);
 				
 				li.server = rs.getString("server");
 				if(li.server == null) {

@@ -112,7 +112,8 @@ public class JdbcUploadEventManager {
 	
 	String sqlOrder = " order by ue.ue_id asc";
 	
-	String sqlLimit = " limit 100";
+	//String sqlLimit = " limit 100";
+	String sqlLimit = "";		// Remove the limit as it is slowing down queries
 	
 	/*
 	 * Constructor
@@ -193,7 +194,7 @@ public class JdbcUploadEventManager {
 	private List <UploadEvent> getUploadEventList(PreparedStatement pstmt) throws SQLException {
 		ArrayList <UploadEvent> ueList = new ArrayList<UploadEvent> ();
 		
-		log.info("Get upload event list: " + pstmt.toString());
+		// log.info("Get upload event list: " + pstmt.toString());  // debug only
 		ResultSet rs = pstmt.executeQuery();
 		while(rs.next()) {
 			UploadEvent ue = new UploadEvent();

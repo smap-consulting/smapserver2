@@ -437,6 +437,8 @@ public class Data_CSV extends Application {
 						superUser, 
 						false, 		// Return records greater than or equal to primary key
 						include_bad,
+						"yes",			// return completed
+						null,			// case management settings can be null
 						null,
 						null	,	// key filter
 						tz,

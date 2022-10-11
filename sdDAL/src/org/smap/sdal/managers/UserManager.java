@@ -119,7 +119,10 @@ public class UserManager {
 					+ "u.timezone as timezone,"
 					+ "o.timezone as org_timezone,"
 					+ "o.refresh_rate,"
-					+ "e.name as enterprise_name "
+					+ "e.name as enterprise_name,"
+					+ "o.ft_input_method, "
+					+ "o.ft_im_ri, "
+					+ "o.ft_im_acc "
 					+ "from users u, organisation o, enterprise e "
 					+ "where u.ident = ? "
 					+ "and u.o_id = o.id "
@@ -177,6 +180,9 @@ public class UserManager {
 				user.navbar_text_color = resultSet.getString("navbar_text_color");
 				user.training = resultSet.getString("training");
 				user.refresh_rate = resultSet.getInt("refresh_rate");
+				user.ft_input_method = resultSet.getString("ft_input_method");
+				user.ft_im_ri = resultSet.getInt("ft_im_ri");
+				user.ft_im_acc = resultSet.getInt("ft_im_acc");
 			}
 
 			/*
@@ -434,6 +440,9 @@ public class UserManager {
 		PreparedStatement pstmt = null;
 
 		try {
+			PasswordManager pwm = new PasswordManager(sd, localisation.getLocale(), localisation, userIdent, serverName);	// For new users use the ident of the user creating this user
+			pwm.checkStrength(u.password);
+			
 			String pwdString = u.ident + ":smap:" + u.password;
 			String language = u.language;
 			if(language == null || language.trim().length() == 0) {

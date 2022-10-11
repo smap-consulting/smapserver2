@@ -51,6 +51,7 @@ public class MessageProcessor {
 
 			int delaySecs = 5;
 			int count = 0;
+			int s3count = 0;
 		
 			boolean loop = true;
 			while(loop) {
@@ -61,7 +62,7 @@ public class MessageProcessor {
 					loop = false;
 				} else {
 					
-					log.info("mmmmmmmmmmmmmmmmmmm Message Processor");
+					System.out.print("(m)");		// Record the running of the message processor
 					
 					try {
 						// Make sure we have a connection to the database
@@ -72,8 +73,11 @@ public class MessageProcessor {
 						MessagingManagerApply mma = new MessagingManagerApply();
 						mma.applyOutbound(dbc.sd, dbc.results, serverName, basePath, count++, awsPropertiesFile);
 						mma.applyPendingEmailMessages(dbc.sd, dbc.results, serverName, basePath);
-						mma.uploadToS3(dbc.sd, basePath);
+						mma.uploadToS3(dbc.sd, basePath, s3count++);
 						
+						if(s3count > 100) {
+							s3count = 0;		// Only check to truncate s3 table after every 100 uploads
+						}
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
 					}

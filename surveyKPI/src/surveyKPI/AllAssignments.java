@@ -35,6 +35,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.openxml4j.opc.PackageAccess;
 import org.smap.model.FormDesc;
+import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -912,8 +913,8 @@ public class AllAssignments extends Application {
 			/*
 			 * Get the forms for this survey 
 			 */
-			ExchangeManager xm = new ExchangeManager(localisation, tz);
-			ArrayList <FormDesc> formList = xm.getFormList(sd, sId);		
+			TableManager tm = new TableManager(localisation, tz);
+			ArrayList <FormDesc> formList = tm.getFormList(sd, sId);		
 
 			pstmtGetCol = sd.prepareStatement(sqlGetCol);  			// Prepare the statement to get the column names in the survey that are to be updated
 			pstmtGetColGS = sd.prepareStatement(sqlGetColGS); 
@@ -977,6 +978,7 @@ public class AllAssignments extends Application {
 			 * We need this as the data will need to be applied from parent form to child form in order rather than
 			 *  in file order
 			 */
+			ExchangeManager xm = new ExchangeManager(localisation, tz);
 			formFileMap = getFormFileMap(xm, dataFiles, formList);
 
 			/*

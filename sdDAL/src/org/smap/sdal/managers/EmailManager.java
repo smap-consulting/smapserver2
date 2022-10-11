@@ -130,7 +130,7 @@ public class EmailManager {
 
 			sender = sender + "@" + emailServer.emailDomain;
 
-			log.info("Sending email from: " + sender);
+			log.info("Sending email from (sendEmail1): " + sender);
 			msg.setFrom(InternetAddress.parse(sender, false)[0]);
 
 			StringBuffer identString = new StringBuffer();
@@ -265,7 +265,7 @@ public class EmailManager {
 			msg.setContent(multipart);
 
 			msg.setHeader("X-Mailer", "msgsend");
-			log.info("Sending email from: " + sender);
+			log.info("Sending email from (sendEmail2): " + sender);
 			Transport.send(msg);
 
 		} catch(AuthenticationFailedException ae) { 
@@ -387,7 +387,7 @@ public class EmailManager {
 
 			sender = sender + "@" + emailServer.emailDomain;
 
-			log.info("Sending email from: " + sender);
+			log.info("Sending email from: (sendEmailHtml1) " + sender);
 			msg.setFrom(InternetAddress.parse(sender, false)[0]);
 			
 			if(adminEmail != null) {
@@ -450,7 +450,7 @@ public class EmailManager {
 			msg.setContent(multipart);
 
 			msg.setHeader("X-Mailer", "msgsend");
-			log.info("Sending email from: " + sender);
+			log.info("Sending email from: (sendEmailHtml2) " + sender);
 		
 			Transport.send(msg);
 
@@ -460,6 +460,10 @@ public class EmailManager {
 		} catch(MessagingException me) {
 			log.log(Level.SEVERE, "Messaging Exception", me);
 			String msg = me.getMessage();
+			throw new Exception(localisation.getString("email_cs") + ":  " + msg);
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			String msg = e.getMessage();
 			throw new Exception(localisation.getString("email_cs") + ":  " + msg);
 		}
 	}

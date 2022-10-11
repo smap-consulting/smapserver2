@@ -386,6 +386,7 @@ public class QuestionInfo {
 							" AND o.l_id = q.l_id" +
 							" ORDER BY o.seq";
 					
+					if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 					pstmt = connection.prepareStatement(sql);
 					pstmt.setInt(1,  qId);
 					pstmt.setString(2, lang);

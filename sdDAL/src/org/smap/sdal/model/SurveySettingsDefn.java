@@ -16,6 +16,7 @@ public class SurveySettingsDefn {
 	public Date toDate;
 	public String overridenDefaultLimit;
 	public String include_bad;
+	public String include_completed;
 	
 	public ArrayList<MapLayer> layers = new ArrayList<MapLayer> ();             // Map
 	public ArrayList<ChartDefn> charts = new ArrayList<ChartDefn> ();           // Charts

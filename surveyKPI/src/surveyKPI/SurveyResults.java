@@ -23,28 +23,35 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.QueryManager;
 import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.model.GroupDetails;
+import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.Question;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.sql.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -143,7 +150,7 @@ public class SurveyResults extends Application {
 						log.info("Error deleting table: " + e.getMessage());
 					}
 					log.info("userevent: " + request.getRemoteUser() + " : delete results : " + tableName + " in survey : "+ sId); 
-					lm.writeLog(sd, sId, request.getRemoteUser(), "delete", "Delete results: " + tableName  + " in survey : "+ sId, 0, request.getServerName());
+					lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.DELETE, "Delete results: " + tableName  + " in survey : "+ sId, 0, request.getServerName());
 				}
 				
 				/*
@@ -228,9 +235,9 @@ public class SurveyResults extends Application {
 			@PathParam("sId") int sId) { 
 		
 		Response response = null;
-		
+		String connectionString = "surveyKPI-SurveyResults-restore";
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-SurveyResults");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
@@ -253,7 +260,7 @@ public class SurveyResults extends Application {
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-				connectionRel = ResultsDataSource.getConnection("surveyKPI-SurveyResults");
+				connectionRel = ResultsDataSource.getConnection(connectionString);
 				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 				
 				// Mark columns as unpublished		
@@ -349,13 +356,286 @@ public class SurveyResults extends Application {
 
 				try {connectionRel.setAutoCommit(true);} catch (Exception e) {}
 				
-				SDDataSource.closeConnection("surveyKPI-SurveyResults", sd);
-				ResultsDataSource.closeConnection("surveyKPI-SurveyResults", connectionRel);
+				SDDataSource.closeConnection(connectionString, sd);
+				ResultsDataSource.closeConnection(connectionString, connectionRel);
 			}
 		}
 
 		return response; 
 	}
+	
+	/*
+	 * Archive results for a survey
+	 * All submissions received on or before the specified date will be moved into another survey
+	 */
+	
+	private class ArchiveResponse {
+		int count;
+		ArrayList<String> archives = new ArrayList<>();
+		ArrayList<String> surveys = new ArrayList<>();
+		String msg;
+	}
+	
+	private class SurveyMap {
+		int oldSurveyId;
+		int newSurveyId;
+		public SurveyMap(int oldSurveyId, int newSurveyId) {
+			this.oldSurveyId = oldSurveyId;
+			this.newSurveyId = newSurveyId;
+		}
+	}
+	
+	@GET
+	@Path("/archive")
+	public Response archiveSurveyResults(@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@QueryParam("beforeDate") Date beforeDate,
+			@QueryParam("tz") String tz) {
+		
+		Response response = null;
+		String connectionString = "surveyKPI-SurveyResults-archive";
+		ArchiveResponse resp = new ArchiveResponse();
+		resp.count = 0;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		lm.writeLog(sd, sId, request.getRemoteUser(), "archive", "Archive results", 0, request.getServerName());
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
+		String sqlNewTable = "select table_name from form where name = ? and s_id = any (?)";
+		
+		if(sId > 0) {
+			
+			Connection cResults = null; 
+			PreparedStatement pstmt = null;
+			PreparedStatement pstmtCount = null;
+			PreparedStatement pstmtCopy = null;
+			PreparedStatement pstmtNewTable = null;
+		
+			try {
+				// Get the users locale
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				
+				cResults = ResultsDataSource.getConnection(connectionString);
+				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				
+				/*
+				 * Get the surveys and tables that are part of the group that this survey belongs to
+				 */
+				SurveyManager sm = new SurveyManager(localisation, tz);
+				String mainTableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
+				
+				/*
+				 * Check to see that there is data to be archived
+				 */
+				if(GeneralUtilityMethods.tableExists(cResults, mainTableName)) {
+				
+					/*
+					 * Create archive Surveys
+					 */
+					sd.setAutoCommit(false);
+					cResults.setAutoCommit(false);
+					
+					DateFormat df = new SimpleDateFormat("yyyy-MM-dd");  
+					String beforeString = df.format(beforeDate);
+					ArrayList<SurveyMap> surveyMaps = new ArrayList<>();
+					String newGroupSurveyIdent = null;
+					
+					for(GroupDetails gd : surveys) {
+						
+						String newName = gd.surveyName + "[" + beforeString + "]";
+
+						if(sm.surveyExists(sd, newName, gd.pId)) {
+							String msg = localisation.getString("tu_ae");
+							msg = msg.replaceAll("%s1", newName);
+							throw new ApplicationException(msg);
+						}
+						
+						int newSurveyId = sm.createNewSurvey(sd, newName, gd.pId, true, gd.sId, false, request.getRemoteUser());	
+						surveyMaps.add(new SurveyMap(gd.sId, newSurveyId));
+						if(newGroupSurveyIdent == null) {
+							newGroupSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, newSurveyId);
+						}
+						
+						resp.surveys.add(gd.surveyName);	// Return list of surveys archived
+					}
+				
+					/*
+					 * Get the new and old survey ids into an integer array so they can be used with "any" in an sql statement
+					 */
+					Integer[] oldSurveys = new Integer[surveyMaps.size()];
+					Integer[] newSurveys = new Integer[surveyMaps.size()];
+					for(int i = 0; i < surveyMaps.size(); i++) {
+						oldSurveys[i] = surveyMaps.get(i).oldSurveyId;
+						newSurveys[i] = surveyMaps.get(i).newSurveyId;
+					}
+					
+					/*
+					 * Block all new Surveys
+					 * Put all new surveys in the same group
+					 */
+					blockAndGroupNewSurveys(sd, newSurveys, newGroupSurveyIdent);
+					
+					/*
+					 * Copy data to the archive tables
+					 */
+					HashMap<String, String> tablesDone = new HashMap<>();
+					pstmtNewTable = sd.prepareStatement(sqlNewTable);
+					pstmtNewTable.setArray(2, sd.createArrayOf("int", newSurveys));
+					
+					resp.count = copyAndPurgeData(sd, cResults, pstmtNewTable, oldSurveys, newSurveys, 0, null, tablesDone, beforeDate, tz);
+
+					cResults.commit();
+					sd.commit();
+				}
+				
+				resp.msg = localisation.getString("arch_done");
+				resp.msg = resp.msg.replace("%s1", String.valueOf(resp.count));
+				StringBuilder surveyList = new StringBuilder("");
+				for(String s : resp.surveys) {
+					if(surveyList.length() > 0) {
+						surveyList.append(", ");
+					}
+					surveyList.append(s);
+				}
+				resp.msg = resp.msg.replace("%s2", surveyList.toString());
+				DateFormat df = new SimpleDateFormat("yyyy-MM-dd");  
+				resp.msg = resp.msg.replace("%s3",df.format(beforeDate));
+				lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.ARCHIVE, resp.msg, 0, request.getServerName());
+				
+				response = Response.ok(gson.toJson(resp)).build();
+				
+			} catch (Exception e) {
+				
+				try {cResults.rollback();} catch (Exception er) {}
+				try {sd.rollback();} catch (Exception er) {}
+				
+				log.log(Level.SEVERE, "Survey: Restore Results");
+				e.printStackTrace();
+				response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+
+				
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				try {if (pstmtCount != null) {pstmtCount.close();}} catch (SQLException e) {}
+				try {if (pstmtCopy != null) {pstmtCopy.close();}} catch (SQLException e) {}
+				try {if (pstmtNewTable != null) {pstmtNewTable.close();}} catch (SQLException e) {}
+			
+				try {cResults.setAutoCommit(true);} catch (Exception e) {}
+				try {sd.setAutoCommit(true);} catch (Exception e) {}
+				
+				SDDataSource.closeConnection(connectionString, sd);
+				ResultsDataSource.closeConnection(connectionString, cResults);
+			}
+		}
+
+		return response; 
+	}
+	
+	/*
+	 * Archive results for a survey
+	 * All submissions received on or before the specified date will be moved into another survey
+	 */
+	@GET
+	@Path("/archivecount")
+	public Response archiveSurveyCount(@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@QueryParam("beforeDate") Date beforeDate,
+			@QueryParam("tz") String tz) {
+		
+		Response response = null;
+		String connectionString = "surveyKPI-SurveyResults-archivecount";
+		ArchiveResponse resp = new ArchiveResponse();
+		resp.count = 0;
+		
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
+		tz = (tz == null) ? "UTC" : tz;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		
+		// Escape any quotes
+		if(sId > 0) {
+			
+			Connection cResults = null; 
+			PreparedStatement pstmt = null;
+		
+			try {
+				// Get the users locale
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				
+				cResults = ResultsDataSource.getConnection(connectionString);
+				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				
+				if(beforeDate == null) {
+					throw new ApplicationException(localisation.getString("arch_nd"));
+				}
+				
+				/*
+				 * Get the surveys and tables that are part of the group that this survey belongs to
+				 */
+				SurveyManager sm = new SurveyManager(localisation, "UTC");
+				String mainTableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
+				
+				/*
+				 * Check to see that there is data to be archived
+				 */
+				if(GeneralUtilityMethods.tableExists(cResults, mainTableName)) {
+					StringBuilder sql = new StringBuilder("select count(*) from ")
+						.append(mainTableName)
+						.append(" where _upload_time < ?");
+	
+					pstmt = cResults.prepareStatement(sql.toString());
+					pstmt.setTimestamp(1, GeneralUtilityMethods.endOfDay(beforeDate, tz));
+					log.info("Get archive count: " + pstmt.toString());
+					ResultSet rs = pstmt.executeQuery();
+					if(rs.next()) {
+						resp.count = rs.getInt(1);
+					}
+				}
+				
+				for(GroupDetails gd : surveys) {
+					resp.surveys.add(gd.surveyName);
+					resp.archives.add(gd.surveyName + " : " + beforeDate);
+				}
+				
+				response = Response.ok(gson.toJson(resp)).build();
+				
+			} catch (ApplicationException e) {
+				response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			} catch (Exception e) {
+				String msg = e.getMessage();
+				if(msg != null && msg.contains("does not exist")) {
+					response = Response.ok("").build();
+				} else {
+					log.log(Level.SEVERE, "Survey: Restore Results");
+					e.printStackTrace();
+					response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+				}
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				
+				SDDataSource.closeConnection(connectionString, sd);
+				ResultsDataSource.closeConnection(connectionString, cResults);
+			}
+		}
+
+		return response; 
+	}
+	
 	
 	/*
 	 * Get surveys belonging to a group
@@ -418,7 +698,149 @@ public class SurveyResults extends Application {
 
 		return response; 
 	}
+	
+	
+	/*
+	 * Block the new surveys that have been created for archiving
+	 */
+	private void blockAndGroupNewSurveys(Connection sd, Integer[] surveys, String groupSurveyIdent) throws SQLException {
+		
+		String sql = "update survey set blocked = true, group_survey_ident = ? where s_id = any (?)";		
+		String sqlForms = "select name, table_name from form where s_id = any (?)";
+		String sqlTables = "update form set table_name = ? where name = ? and s_id = any (?)";
+		
+		PreparedStatement pstmt = null;	
+		
+		try {
+			// Set group ident and block
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, groupSurveyIdent);
+			pstmt.setArray(2, sd.createArrayOf("int", surveys));
+			log.info("Block surveys: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+			// Get a mapping between table names and form names
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+			
+			HashMap<String, String> forms = new HashMap<>();
+			pstmt = sd.prepareStatement(sqlForms);
+			pstmt.setArray(1, sd.createArrayOf("int", surveys));
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String t = forms.get(rs.getString(1));
+				if(t == null) {
+					forms.put(rs.getString(1), rs.getString(2));
+				}
+			}
+			
+			// Rationalise the table names
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+			
+			pstmt = sd.prepareStatement(sqlTables);
+			pstmt.setArray(3, sd.createArrayOf("int", surveys));
+			for(String f : forms.keySet()) {
+				String t = forms.get(f);
+				pstmt.setString(1,  t);
+				pstmt.setString(2,  f);
+				log.info("GroupTables: " + pstmt.toString());
+				pstmt.executeUpdate();
+			}
+						
+		} finally {
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+		}
+	}
+	
+	/*
+	 * Copy data to the archive tables 
+	 * Remove copied data from the original tables
+	 */
+	private int copyAndPurgeData(Connection sd, Connection cResults, 
+			PreparedStatement pstmtNewTable,
+			Integer[] oldSurveys, 
+			Integer[] newSurveys, 
+			int parent, 
+			String newParentTable,
+			HashMap<String, String> tablesDone,
+			Date beforeDate,
+			String tz
+			) throws SQLException {
+		
+		int count = 0;
+		
+		String sqlForms = "select name, table_name, f_id from form where s_id = any (?) and parentform = ?";
+		PreparedStatement pstmtForms = null;
+		PreparedStatement pstmtCopy = null;
+		PreparedStatement pstmtPurge = null;
+		
+		try {
+
+			pstmtForms = sd.prepareStatement(sqlForms);
+			pstmtForms.setArray(1, sd.createArrayOf("int", oldSurveys));
+			
+			pstmtForms.setInt(2,  parent);
+			ResultSet rs = pstmtForms.executeQuery();
+			while(rs.next()) {
+				String oldTableName = rs.getString("table_name");
+				String oldFormName = rs.getString("name");
+				int oldFormId = rs.getInt("f_id");
+				if(tablesDone.get(oldTableName) == null) {
+					tablesDone.put(oldTableName, oldTableName);
+					
+					pstmtNewTable.setString(1, oldFormName);
+					ResultSet rsTables = pstmtNewTable.executeQuery();
+					if(rsTables.next()) {
+						String newTableName = rsTables.getString("table_name");
+						
+						log.info("Copy from: " + oldTableName + " to " + newTableName);
+						
+						StringBuilder sqlCopy = new StringBuilder("create table ")
+								.append(newTableName)
+								.append(" as select * from ")
+								.append(oldTableName);
+						if(parent == 0) {
+							sqlCopy.append(" where _upload_time < ?");
+						} else {
+							sqlCopy.append(" where parkey in (select prikey from ")
+								.append(newParentTable)
+								.append(")");		// Copy records whos parent has already been copied
+							
+						}
+						
+						try {if (pstmtCopy != null) {pstmtCopy.close();}} catch (SQLException e) {}
+						pstmtCopy = cResults.prepareStatement(sqlCopy.toString());
+						if(parent == 0) {
+							pstmtCopy.setTimestamp(1, GeneralUtilityMethods.endOfDay(beforeDate, tz));
+						}
+						log.info("Copy for archive: " + pstmtCopy.toString());
+						pstmtCopy.executeUpdate();
+						
+						/*
+						 * Purge original data
+						 */
+						StringBuilder sqlPurge = new StringBuilder("delete from ")
+								.append(oldTableName)
+								.append(" where prikey in (select prikey from  ")
+								.append(newTableName)
+								.append(")");
+						try {if (pstmtPurge != null) {pstmtPurge.close();}} catch (SQLException e) {}
+						pstmtPurge = cResults.prepareStatement(sqlPurge.toString());
+						log.info("Purge for archive: " + pstmtCopy.toString());
+						count = pstmtPurge.executeUpdate();
+						
+						copyAndPurgeData(sd, cResults, pstmtNewTable, oldSurveys, newSurveys, oldFormId, newTableName, tablesDone, beforeDate, tz);	// Check out children
+					}
+					
+				}
+			}
+		} finally {
+			try {if (pstmtForms != null) {pstmtForms.close();}} catch (SQLException e) {}
+			try {if (pstmtCopy != null) {pstmtCopy.close();}} catch (SQLException e) {}
+			try {if (pstmtPurge != null) {pstmtPurge.close();}} catch (SQLException e) {}
+		}
+		
+		return count;
+		
+	}
+	
 }
-
-
-

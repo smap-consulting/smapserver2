@@ -3,8 +3,6 @@ package org.smap.sdal.managers;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
-import java.util.logging.Logger;
-
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Option;
@@ -122,10 +120,12 @@ public class ChoiceManager {
 			// No label found, return the original value as the label
 			int idx = 0;
 			for(String match : matches) {
-				if(idx++ > 0) {
-					labels.append(", ");
+				if(match != null) {
+					if(idx++ > 0) {
+						labels.append(", ");
+					}
+					labels.append(match);
 				}
-				labels.append(match);
 			}
 		}
 		

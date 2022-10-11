@@ -190,7 +190,7 @@ public class ManagedForms extends Application {
 				}
 			}
 			if(instances == null || instances.size() == 0) {
-				throw(new ApplicationException("No instances to vulk update"));
+				throw(new ApplicationException("No instances to bulk update"));
 			}
 			for(String instance : instances) {
 				response = am.processUpdateGroupSurvey(request, sd, cResults, 
@@ -246,8 +246,6 @@ public class ManagedForms extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			String tz = "UTC";
-			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
 				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, SurveyViewManager.ASSIGNED_COLUMN)) {
@@ -255,7 +253,7 @@ public class ManagedForms extends Application {
 				}
 				
 				if(instanceId != null) {
-					int count = GeneralUtilityMethods.lockRecord(cResults, tableName, instanceId, request.getRemoteUser());
+					int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "lock");
 					if(count == 0) {
 						response = Response.serverError().entity(localisation.getString("mf_aa")).build();
 					} else {
@@ -320,14 +318,10 @@ public class ManagedForms extends Application {
 				a.isValidUser(sd, request.getRemoteUser(), GeneralUtilityMethods.getUserId(sd, uIdent));
 			}
 			
-			String tz = "UTC";
-			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, SurveyViewManager.ASSIGNED_COLUMN)) {
-					GeneralUtilityMethods.addColumn(cResults, tableName, SurveyViewManager.ASSIGNED_COLUMN, "text");
-				}
-				int count = GeneralUtilityMethods.assignRecord(cResults, tableName, instanceId, uIdent);
+				
+				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, uIdent, "assign");
 				if(count == 0) {
 					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 				} else {
@@ -383,11 +377,9 @@ public class ManagedForms extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			String tz = "UTC";
-			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
-				int count = GeneralUtilityMethods.releaseRecord(cResults, tableName, instanceId, request.getRemoteUser());
+				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "release");
 				if(count == 0) {
 					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 				} else {

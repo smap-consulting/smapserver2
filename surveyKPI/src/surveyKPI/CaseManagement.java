@@ -20,10 +20,12 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
@@ -35,6 +37,9 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.CMS;
+import org.smap.sdal.model.CaseManagementAlert;
+import org.smap.sdal.model.CaseManagementSettings;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.sql.*;
@@ -72,13 +77,14 @@ public class CaseManagement extends Application {
 	}
 	
 	/*
-	 * Get the case management settings for the organisation
+	 * Get the case management settings for passed in survey
 	 */
 	@GET
-	@Path("/settings")
+	@Path("/settings/{survey_id}")
 	@Produces("application/json")
 	public Response getCaseManagementSettings(
-			@Context HttpServletRequest request
+			@Context HttpServletRequest request,
+			@PathParam("survey_id") int sId
 			) { 
 
 		Response response = null;
@@ -86,9 +92,14 @@ public class CaseManagement extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());		
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());	
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
-		
 		
 		try {
 			// Get the users locale
@@ -97,11 +108,10 @@ public class CaseManagement extends Application {
 			
 			CaseManager cm = new CaseManager(localisation);
 			
-			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			
-			ArrayList<CMS> settings = cm.getCases(sd, o_id);
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			CMS cms = cm.getCaseManagementSettings(sd, groupSurveyIdent);
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-			String resp = gson.toJson(settings);
+			String resp = gson.toJson(cms);
 			response = Response.ok(resp).build();
 		} catch (Exception e) {
 			
@@ -119,42 +129,37 @@ public class CaseManagement extends Application {
 	/*
 	 * Update the case management settings
 	 */
-	@Path("/settings")
+	@Path("/settings/{group_survey_ident}")
 	@POST
 	@Consumes("application/json")
-	public Response updateRoles(@Context HttpServletRequest request, @FormParam("settings") String settings) { 
+	public Response updateCaseManagementSettings(@Context HttpServletRequest request, 
+			@PathParam("group_survey_ident") String groupSurveyIdent,
+			@FormParam("settings") String settingsString) { 
 		
 		Response response = null;
-		String connectionString = "surveyKPI-updateRoles";
+		String connectionString = "surveyKPI-updateCaseManagementSettings";
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 			
-		CMS cms = new Gson().fromJson(settings, CMS.class);
-		
 		try {	
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
+			// Validate setting structure
+			CaseManagementSettings settings = new Gson().fromJson(settingsString, CaseManagementSettings.class);
+			
 			CaseManager cm = new CaseManager(localisation);
 
 			String msg = null;
-			if(cms.id == -1) {
-					
-				// New settings
-				cm.createCMS(sd, cms, o_id, request.getRemoteUser());
-				msg = localisation.getString("cm_s_created");
-					
-			} else {
-				// Existing setting
-				cm.updateCMS(sd, cms, o_id, request.getRemoteUser());
-				msg = localisation.getString("r_modified");	
-			}
-			msg = msg.replace("%s1",  cms.name);
+			cm.updateSettings(sd, request.getRemoteUser(), groupSurveyIdent, settings, o_id);
+			msg = localisation.getString("cm_s_updated");	
+			msg = msg.replace("%s1", groupSurveyIdent);
+			msg = msg.replace("%s2", new Gson().toJson(settings));
 			lm.writeLogOrganisation(sd, o_id, request.getRemoteUser(), LogManager.CASE_MANAGEMENT, msg, 0);
 				
 			response = Response.ok().build();
@@ -171,6 +176,102 @@ public class CaseManagement extends Application {
 		return response;
 	}
 	
+	/*
+	 * Update the case management alerts
+	 */
+	@Path("/settings/alert")
+	@POST
+	@Consumes("application/json")
+	public Response updateCaseManagementAlert(@Context HttpServletRequest request, @FormParam("alert") String alertString) { 
+		
+		Response response = null;
+		String connectionString = "surveyKPI-updateCaseManagementAlert";
+		CaseManagementAlert alert = new Gson().fromJson(alertString, CaseManagementAlert.class);
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		if(alert.id > 0) {
+			a.isValidCaseManagementAlert(sd, request.getRemoteUser(), alert.id);
+		}
+		// End Authorisation
+			
+		try {	
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			
+			CaseManager cm = new CaseManager(localisation);
 
+			String msg = null;
+			if(alert.id == -1) {
+					
+				// New settings
+				cm.createAlert(sd, request.getRemoteUser(), alert, o_id);
+				msg = localisation.getString("cm_a_created");
+					
+			} else {
+				// Existing setting
+				cm.updateAlert(sd, request.getRemoteUser(), alert, o_id);
+				msg = localisation.getString("cm_a_modified");	
+			}
+			msg = msg.replace("%s1", alert.name);
+			msg = msg.replace("%s2",  alert.group_survey_ident);
+			lm.writeLogOrganisation(sd, o_id, request.getRemoteUser(), LogManager.CASE_MANAGEMENT, msg, 0);
+				
+			response = Response.ok().build();
+				
+		} catch (Exception e) {
+			
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Delete case management alert
+	 */
+	@Path("/settings/alert")
+	@DELETE
+	@Consumes("application/json")
+	public Response delCaseManagementSetting(@Context HttpServletRequest request, @FormParam("alert") String alertString) { 
+		
+		Response response = null;
+		String requestName = "surveyKPI- delete case management alert";
+		CaseManagementAlert alert = new Gson().fromJson(alertString, CaseManagementAlert.class);
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(requestName);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidCaseManagementAlert(sd, request.getRemoteUser(), alert.id);
+		// End Authorisation			
+		
+		try {	
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			CaseManager cm = new CaseManager(localisation);
+			
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			cm.deleteAlert(sd, alert.id, o_id);
+			
+			response = Response.ok().build();			
+		}  catch (Exception ex) {
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			response = Response.serverError().entity(ex.getMessage()).build();
+			
+		} finally {			
+			SDDataSource.closeConnection(requestName, sd);
+		}
+		
+		return response;
+	}
+	
 }
 

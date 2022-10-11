@@ -84,7 +84,7 @@ public class Manager {
 				log.info("######## Stopped");		
 				loop = false;
 			} else {
-				log.info("SSSSSSSSSSSSSSSSSSSSSSSSS run batch job");
+				System.out.print("-");	// Log running of batch job
 				SubscriberBatch batchJob = new SubscriberBatch();
 				batchJob.go(smapId, fileLocn, subscriberType);	// Run the batch job for the specified server
 

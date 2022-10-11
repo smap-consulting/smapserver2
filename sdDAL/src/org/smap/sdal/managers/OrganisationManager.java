@@ -21,6 +21,7 @@ import org.smap.sdal.model.DashboardDetails;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.MySensitiveData;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.OtherOrgData;
 import org.smap.sdal.model.SensitiveData;
 import org.smap.sdal.model.SubscriptionStatus;
 import org.smap.sdal.model.WebformOptions;
@@ -300,12 +301,12 @@ public class OrganisationManager {
 				+ "can_notify, can_use_api, can_submit, set_as_theme, e_id, ft_backward_navigation, ft_navigation, "
 				+ "ft_guidance, ft_image_size, ft_send, ft_delete, "
 				+ "ft_send_location, ft_pw_policy, navbar_color, can_sms, send_optin, limits, "
-				+ "ft_high_res_video, refresh_rate, api_rate_limit, password_strength, changed_ts, owner) "
+				+ "ft_high_res_video, refresh_rate, api_rate_limit, password_strength, ft_input_method, ft_im_ri, ft_im_acc, changed_ts, owner) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?);";
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?);";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -383,6 +384,9 @@ public class OrganisationManager {
 			pstmt.setInt(40, o.refresh_rate);
 			pstmt.setInt(41, o.api_rate_limit);
 			pstmt.setDouble(42, o.password_strength);
+			pstmt.setString(43, "not set");		// send automatically
+			pstmt.setInt(44, 20);		// FT Geo Recording interval
+			pstmt.setInt(45, 10);		// FT Geo Accuracy distance
 			
 			/*
 			 * Set the owner only if this is a personal organisation.
@@ -391,7 +395,7 @@ public class OrganisationManager {
 			 * the owner would be set to zero.  In other words they are creating community organisations that
 			 * will need to be maintained by whichever user has organisational admin privilege
 			 */
-			pstmt.setInt(43, GeneralUtilityMethods.isOrgUser(sd, userIdent) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
+			pstmt.setInt(46, GeneralUtilityMethods.isOrgUser(sd, userIdent) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
@@ -523,6 +527,27 @@ public class OrganisationManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, data);
+			pstmt.setInt(2, oId);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+		}
+	}
+	
+	public void updateOtherOrgData( 
+			Connection sd, 
+			int oId,
+			OtherOrgData otherData) throws SQLException {
+		
+		String sql = "update organisation set "
+				+ "password_strength = ? "
+				+ "where id = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, otherData.password_strength);
 			pstmt.setInt(2, oId);
 			pstmt.executeUpdate();
 		} finally {

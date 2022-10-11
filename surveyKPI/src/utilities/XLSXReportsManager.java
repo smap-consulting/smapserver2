@@ -143,9 +143,8 @@ public class XLSXReportsManager {
 				/*
 				 * Get the list of forms and surveys to be exported
 				 */
-				ArrayList<QueryForm> queryList = null;
 				QueryManager qm = new QueryManager();				
-				queryList = qm.getFormList(sd, sId, fId);		// Get a form list for this survey / form combo
+				ArrayList<QueryForm> queryList = qm.getFormList(sd, sId, fId);		// Get a form list for this survey / form combo
 
 				QueryForm startingForm = qm.getQueryTree(sd, queryList);	// Convert the query list into a tree
 

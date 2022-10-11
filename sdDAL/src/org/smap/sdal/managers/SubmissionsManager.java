@@ -1,35 +1,17 @@
 package org.smap.sdal.managers;
 
-import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
-import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.constants.SmapQuestionTypes;
-import org.smap.sdal.model.AuditItem;
-import org.smap.sdal.model.GeoPoint;
-import org.smap.sdal.model.KeyFilter;
-import org.smap.sdal.model.KeyValue;
-import org.smap.sdal.model.Role;
-import org.smap.sdal.model.RoleColumnFilter;
-import org.smap.sdal.model.SqlFrag;
-import org.smap.sdal.model.SqlParam;
-import org.smap.sdal.model.TableColumn;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 
 /*****************************************************************************
  * 

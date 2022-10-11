@@ -97,6 +97,7 @@ public class MessagingManagerApply {
 
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
+			//log.info("Get messages: " + pstmtGetMessages.toString());
 			rs = pstmtGetMessages.executeQuery();
 			while (rs.next()) {
 
@@ -151,7 +152,6 @@ public class MessagingManagerApply {
 					UserMessage um = gson.fromJson(data, UserMessage.class);
 					
 					usersImpacted.put(um.ident, um.ident);
-					log.info("zzzzzzzzzzzzzzz: user change users: " + um.ident);
 					
 				} else if(topic.equals("project")) {
 					ProjectMessage pm = gson.fromJson(data, ProjectMessage.class);
@@ -163,7 +163,10 @@ public class MessagingManagerApply {
 					
 					changedResources.put(orm.resourceName, orm);
 					
-				} else if(topic.equals("submission")) {
+				} else if(topic.equals("submission") || topic.equals("cm_alert")) {
+					/*
+					 * A submission notification is a notification associated with a record of data
+					 */
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
 			
 					NotificationManager nm = new NotificationManager(localisation);
@@ -180,7 +183,9 @@ public class MessagingManagerApply {
 								); 
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
-						nm.writeToLog(sd, organisation.id, msg.pId, msg.sId, organisation.name, status, 
+						nm.writeToLog(sd, organisation.id, msg.pId, 
+								GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident), 
+								organisation.name, status, 
 								e.getMessage(), id);
 					}
 					
@@ -351,7 +356,7 @@ public class MessagingManagerApply {
 			}
 			
 			// For each user send a notification to each of their devices
-			if(awsProperties != null) {
+			if(awsProperties != null && usersImpacted.size() > 0) {
 				EmitDeviceNotification emitDevice = new EmitDeviceNotification(awsProperties);
 				for(String user : usersImpacted.keySet()) {
 					emitDevice.notify(serverName, user);
@@ -554,17 +559,18 @@ public class MessagingManagerApply {
 	/*
 	 * Upload files to s3
 	 */
-	public void uploadToS3(Connection sd, String basePath) throws SQLException {
+	public void uploadToS3(Connection sd, String basePath, int s3count) throws SQLException {
 		
 		String sql = "select id, filepath "
 				+ "from s3upload "
 				+ "where status = 'new' "
-				+ "limit 100"; 	
+				+ "order by id asc "
+				+ "limit 1000";	
 		PreparedStatement pstmt = null;
 		
 		String sqlClean = "delete from s3upload "
 				+ "where status = 'success' "
-				+ "and processed_time < now() - interval '1 day'";
+				+ "and processed_time < now() - interval '3 day'";
 		PreparedStatement pstmtClean = null;
 		
 		String sqlDone = "update s3upload "
@@ -600,8 +606,10 @@ public class MessagingManagerApply {
 			/*
 			 * Clean up old data
 			 */
-			pstmtClean = sd.prepareStatement(sqlClean);
-			pstmtClean.executeUpdate();
+			if(s3count == 0) {
+				pstmtClean = sd.prepareStatement(sqlClean);
+				pstmtClean.executeUpdate();
+			}
 			
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}

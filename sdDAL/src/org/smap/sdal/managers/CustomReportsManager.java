@@ -10,17 +10,9 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.ws.rs.core.Response;
-
-import org.smap.sdal.model.NameId;
 import org.smap.sdal.model.ReportConfig;
-import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.AuthorisationException;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.model.CustomReportItem;
 import org.smap.sdal.model.CustomReportType;
-import org.smap.sdal.model.LQAS;
 import org.smap.sdal.model.TableColumn;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

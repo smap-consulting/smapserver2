@@ -233,7 +233,7 @@ public class QuestionListByIdent extends Application {
 	public Response getGroupQuestions(@Context HttpServletRequest request,
 			@PathParam("sIdent") String sIdent) { 
 
-		String connectionString = "surveyKPI-getQuestionsNewIdent";
+		String connectionString = "surveyKPI-getGroupQuestionsNewIdent";
 		Response response = null;
 		
 		// Authorisation - Access
@@ -259,7 +259,7 @@ public class QuestionListByIdent extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			SurveyManager sm = new SurveyManager(localisation, null);	
-			questions = sm.getGroupQuestionsArray(sd, GeneralUtilityMethods.getGroupSurveyIdent(sd, sId), null);
+			questions = sm.getGroupQuestionsArray(sd, GeneralUtilityMethods.getGroupSurveyIdent(sd, sId), null, false);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			response = Response.ok(gson.toJson(questions)).build();

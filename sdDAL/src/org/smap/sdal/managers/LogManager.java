@@ -45,6 +45,7 @@ public class LogManager {
 	public static String API_VIEW = "API view";
 	public static String API_AUDIT_VIEW = "API audit view";
 	public static String API_SINGLE_VIEW = "API single record view";
+	public static String ARCHIVE = "archive";
 	public static String CREATE = "create";
 	public static String CASE_MANAGEMENT = "case management";
 	public static String CREATE_PDF = "create pdf";
@@ -119,66 +120,21 @@ public class LogManager {
 			if(oId <= 0) {
 				 oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 			}
-			pstmt = sd.prepareStatement(sql);	
-			pstmt.setInt(1, sId);
-			pstmt.setInt(2, oId);
-			pstmt.setInt(3, oId);
-			pstmt.setString(4, uIdent);
-			pstmt.setString(5,  event);
-			pstmt.setString(6,  note);
-			pstmt.setInt(7, measure);
-			pstmt.setString(8,  server);
-			
-			pstmt.executeUpdate();
-
-
-		} catch(Exception e) {
-			log.log(Level.SEVERE, "SQL Error", e);
-		} finally {
-			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
-		}
-	}
-	
-	/*
-	 * write log without server
-	 * Deprecate
-	 *
-	public void writeLog(
-			Connection sd, 
-			int sId,
-			String uIdent,
-			String event,
-			String note,
-			int measure)  {
-		
-		String sql = "insert into log ("
-				+ "log_time,"
-				+ "s_id,"
-				+ "o_id,"
-				+ "e_id,"
-				+ "user_ident,"
-				+ "event,"
-				+ "note,"
-				+ "measure) values (now(), ?, ?, (select e_id from organisation where id = ?), ?, ?, ?, ?);";
-
-		PreparedStatement pstmt = null;
-		
-		try {
-			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, uIdent);
-			if(oId <= 0) {
-				 oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
+			if(oId > 0) {
+				pstmt = sd.prepareStatement(sql);	
+				pstmt.setInt(1, sId);
+				pstmt.setInt(2, oId);
+				pstmt.setInt(3, oId);
+				pstmt.setString(4, uIdent);
+				pstmt.setString(5,  event);
+				pstmt.setString(6,  note);
+				pstmt.setInt(7, measure);
+				pstmt.setString(8,  server);
+				
+				pstmt.executeUpdate();
+			} else {
+				log.info("Error: Attempting to write log entry without a valid organisation");
 			}
-			pstmt = sd.prepareStatement(sql);	
-			pstmt.setInt(1, sId);
-			pstmt.setInt(2, oId);
-			pstmt.setInt(3, oId);
-			pstmt.setString(4, uIdent);
-			pstmt.setString(5,  event);
-			pstmt.setString(6,  note);
-			pstmt.setInt(7, measure);
-			
-			pstmt.executeUpdate();
 
 
 		} catch(Exception e) {
@@ -187,7 +143,6 @@ public class LogManager {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
 	}
-	*/
 	
 	/*
 	 * Write a log entry at the organisation level
@@ -306,7 +261,12 @@ public class LogManager {
 		ArrayList<OrgLogSummaryItem> items = new ArrayList<> ();
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
+		boolean monthly = false;
 		
+		if(day < 1) {
+			monthly = true;
+			day = 1;
+		}
 		try {
 
 			String sql = "select  count(*) as count, "
@@ -319,7 +279,13 @@ public class LogManager {
 					+ "order by name asc";
 			
 			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, day);
-			Timestamp t2 = GeneralUtilityMethods.getTimestampNextDay(t1);
+			Timestamp t2;
+			if(monthly) {
+				t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			} else {
+				t2 = GeneralUtilityMethods.getTimestampNextDay(t1);
+			}
+			
 		
 			pstmt = sd.prepareStatement(sql);
 			int paramCount = 1;

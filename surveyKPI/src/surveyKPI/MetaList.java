@@ -68,9 +68,10 @@ public class MetaList extends Application {
 			@PathParam("sId") int sId) { 
 		
 		Response response = null;
+		String connectionString = "surveyKPI-MetaList";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-MetaList");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -90,7 +91,7 @@ public class MetaList extends Application {
 		    log.log(Level.SEVERE, "SQL Error", e);	    
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {			
-			SDDataSource.closeConnection("surveyKPI-MetaList", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 

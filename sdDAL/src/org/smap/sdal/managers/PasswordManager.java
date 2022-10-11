@@ -70,7 +70,8 @@ public class PasswordManager {
 		
 		minStrength = getMinStrength();
 		if(minStrength > 0.0) {
-			checkStrength = validUser();
+			checkStrength = true;		// Always check password strength irrespective of user privileges
+			//checkStrength = validUser();
 		}
 
 	}

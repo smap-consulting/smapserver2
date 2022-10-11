@@ -309,7 +309,6 @@ alter table organisation add column refresh_rate integer default 0;
 update organisation set refresh_rate = 0 where refresh_rate is null;
 
 CREATE INDEX record_event_key ON record_event(key);
-CREATE INDEX survey_group_survey_key ON survey(group_survey_id);
 CREATE INDEX question_column_name_key ON question(column_name);
 
 create index idx_ue_upload_time on upload_event (upload_time);
@@ -496,18 +495,62 @@ CREATE TABLE s3upload (
 	);
 ALTER TABLE s3upload OWNER TO ws;
 
-CREATE SEQUENCE case_management_setting_seq START 1;
-ALTER SEQUENCE case_management_setting_seq OWNER TO ws;
+CREATE SEQUENCE cms_alert_seq START 1;
+ALTER SEQUENCE cms_alert_seq OWNER TO ws;
 
-CREATE TABLE case_management_setting (
-	id integer DEFAULT NEXTVAL('case_management_setting_seq') CONSTRAINT pk_case_management_setting PRIMARY KEY,
+CREATE TABLE cms_alert (
+	id integer DEFAULT NEXTVAL('cms_alert_seq') CONSTRAINT pk_cms_alert PRIMARY KEY,
 	o_id integer,
+	group_survey_ident text,
 	name text,
-	type text,   
-	p_id integer,	
+	period text,
 	changed_by text,
 	changed_ts TIMESTAMP WITH TIME ZONE	
 	);
-CREATE UNIQUE INDEX cms_unique_name ON case_management_setting(o_id, name);
-ALTER TABLE case_management_setting OWNER TO ws;
+CREATE UNIQUE INDEX cms_unique_alert ON cms_alert(group_survey_ident, name);
+ALTER TABLE cms_alert OWNER TO ws;
+
+CREATE SEQUENCE cms_setting_seq START 1;
+ALTER SEQUENCE cms_setting_seq OWNER TO ws;
+
+CREATE TABLE cms_setting (
+	id integer DEFAULT NEXTVAL('cms_setting_seq') CONSTRAINT pk_setting_alert PRIMARY KEY,
+	o_id integer,
+	group_survey_ident text,
+	settings text,
+	changed_by text,
+	changed_ts TIMESTAMP WITH TIME ZONE	
+	);
+CREATE UNIQUE INDEX cms_unique_setting ON cms_setting(group_survey_ident);
+ALTER TABLE cms_setting OWNER TO ws;
+
+alter table forward add column alert_id integer;
+
+
+-- improve performance of scanning linked_files_old for files ready to be deleted
+create index idx_lfo_erase on linked_files_old (erase_time);
+create index idx_assignments_task_id on assignments (task_id);
+create index idx_tasks_del_auto on tasks (deleted, assign_auto);
+
+create index idx_record_event_table_name on record_event (table_name);
+create index assignments_assignee on assignments(assignee);
+create index survey_change_s_id on survey_change(s_id);
+create index form_downloads_form on form_downloads(form_ident);
+
+-- manage automatic geopoint recording
+alter table organisation add column ft_input_method text;
+alter table organisation add column ft_im_ri integer;
+alter table organisation add column ft_im_acc integer;
+update organisation set ft_input_method = 'not set' where ft_input_method is null;
+update organisation set ft_im_ri = 3 where ft_im_ri is null;
+update organisation set ft_im_acc = 3 where ft_im_acc is null;
+
+alter table dashboard_settings add column ds_qname text;
+update dashboard_settings ds set ds_qname = (select q.qname from question q where q.q_id = ds.ds_q_id) where ds.ds_qname is null and ds.ds_q_id > 0;
+
+alter table dashboard_settings add column ds_date_question_name text;
+update dashboard_settings ds set ds_date_question_name = (select q.qname from question q where q.q_id = ds.ds_date_question_id) where ds.ds_date_question_name is null and ds.ds_date_question_id > 0;
+
+alter table dashboard_settings add column ds_group_question_name text;
+update dashboard_settings ds set ds_group_question_name = (select q.qname from question q where q.q_id = ds.ds_group_question_id) where ds.ds_group_question_name is null and ds.ds_group_question_id > 0;
 

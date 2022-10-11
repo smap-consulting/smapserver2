@@ -166,6 +166,9 @@ create TABLE organisation (
 	ft_guidance text,
 	ft_image_size text,
 	ft_send_location text,
+	ft_input_method text,
+	ft_im_ri integer,
+	ft_im_acc integer,
 	ft_sync_incomplete boolean,
 	ft_odk_style_menus boolean default true,
 	ft_specify_instancename boolean default false,
@@ -617,6 +620,7 @@ CREATE TABLE survey_change (
 	visible boolean default true,				-- set false if the change should not be displayed 				
 	updated_time TIMESTAMP WITH TIME ZONE		-- Time and date of change
 	);
+create index survey_change_s_id on survey_change(s_id);
 ALTER TABLE survey_change OWNER TO ws;
 
 DROP TABLE IF EXISTS survey_template CASCADE;
@@ -665,6 +669,7 @@ CREATE TABLE record_event (
 	event_time TIMESTAMP WITH TIME ZONE			-- Time and date of event
 	);
 CREATE INDEX record_event_key ON record_event(key);
+create index idx_record_event_table_name on record_event (table_name);
 ALTER TABLE record_event OWNER TO ws;
 
 
@@ -836,7 +841,8 @@ CREATE TABLE forward (
 	period text,						-- Reminder notifications
 	update_survey text references survey(ident) on delete cascade,
 	update_question text,				-- Update notifications
-	update_value text
+	update_value text,
+	alert_id integer					-- Set where the source is a case management reminder
 	);
 ALTER TABLE forward OWNER TO ws;
 CREATE UNIQUE INDEX ForwardDest ON forward(s_id, remote_s_id, remote_host);
@@ -915,15 +921,15 @@ CREATE TABLE dashboard_settings (
 	ds_type text,
 	ds_region text,
 	ds_lang text,
-	ds_q_id INTEGER,
+	ds_qname text,      -- replaces ds_q_id
 	ds_q_is_calc boolean default false,
-	ds_date_question_id INTEGER,
+	ds_date_question_name text,   -- replaces ds_date_question_id
 	ds_question text,
 	ds_fn text,
 	ds_table text,
 	ds_key_words text,
 	ds_q1_function text,
-	ds_group_question_id INTEGER,
+	ds_group_question_name text,   -- replaces ds_group_question_id
 	ds_group_question_text text,
 	ds_group_type text,
 	ds_layer_id integer,
@@ -1034,6 +1040,7 @@ CREATE TABLE public.tasks (
 SELECT AddGeometryColumn('tasks', 'geo_point', 4326, 'POINT', 2);
 SELECT AddGeometryColumn('tasks', 'geo_point_actual', 4326, 'POINT', 2);
 CREATE INDEX task_task_group ON tasks(tg_id);
+create index idx_tasks_del_auto on tasks (deleted, assign_auto);
 ALTER TABLE public.tasks OWNER TO ws;
 
 CREATE TABLE public.task_rejected (
@@ -1072,6 +1079,8 @@ CREATE TABLE public.assignments (
 	deleted_date timestamp with time zone
 );
 CREATE INDEX assignments_status ON assignments(status);
+create index idx_assignments_task_id on assignments (task_id);
+create index assignments_assignee on assignments(assignee);
 ALTER TABLE public.assignments OWNER TO ws;
 
 -- Table to manage state of user downloads of forms
@@ -1088,6 +1097,7 @@ CREATE TABLE public.form_downloads (
 	device_id text,
 	updated_time TIMESTAMP WITH TIME ZONE
 );
+create index form_downloads_form on form_downloads(form_ident);
 ALTER TABLE public.form_downloads OWNER TO ws;
 
 -- Tables to manage task completion and user location
@@ -1634,6 +1644,7 @@ create TABLE linked_files_old (
 	erase_time TIMESTAMP WITH TIME ZONE
 );
 ALTER TABLE linked_files_old OWNER TO ws;
+create index idx_lfo_erase on linked_files_old (erase_time);
 
 DROP SEQUENCE IF EXISTS background_report_seq CASCADE;
 CREATE SEQUENCE background_report_seq START 1;
@@ -1673,19 +1684,36 @@ CREATE TABLE s3upload (
 	);
 ALTER TABLE s3upload OWNER TO ws;
 
-DROP SEQUENCE IF EXISTS case_management_setting_seq CASCADE;
-CREATE SEQUENCE case_management_setting_seq START 1;
-ALTER SEQUENCE case_management_setting_seq OWNER TO ws;
+DROP SEQUENCE IF EXISTS cms_alert_seq CASCADE;
+CREATE SEQUENCE cms_alert_seq START 1;
+ALTER SEQUENCE cms_alert_seq OWNER TO ws;
 
-DROP TABLE IF EXISTS case_management_setting;
-CREATE TABLE case_management_setting (
-	id integer DEFAULT NEXTVAL('case_management_setting_seq') CONSTRAINT pk_case_management_setting PRIMARY KEY,
+DROP TABLE IF EXISTS cms_alert;
+CREATE TABLE cms_alert (
+	id integer DEFAULT NEXTVAL('cms_alert_seq') CONSTRAINT pk_cms_alert PRIMARY KEY,
 	o_id integer,
+	group_survey_ident text,
 	name text,
-	type text,   
-	p_id integer,	
+	period text,
 	changed_by text,
 	changed_ts TIMESTAMP WITH TIME ZONE	
 	);
-CREATE UNIQUE INDEX cms_unique_name ON case_management_setting(o_id, name);
-ALTER TABLE case_management_setting OWNER TO ws;
+CREATE UNIQUE INDEX cms_unique_alert ON cms_alert(group_survey_ident, name);
+ALTER TABLE cms_alert OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS cms_setting_seq CASCADE;
+CREATE SEQUENCE cms_setting_seq START 1;
+ALTER SEQUENCE cms_setting_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS cms_setting;
+CREATE TABLE cms_setting (
+	id integer DEFAULT NEXTVAL('cms_setting_seq') CONSTRAINT pk_setting_alert PRIMARY KEY,
+	o_id integer,
+	group_survey_ident text,
+	settings text,
+	changed_by text,
+	changed_ts TIMESTAMP WITH TIME ZONE	
+	);
+CREATE UNIQUE INDEX cms_unique_setting ON cms_setting(group_survey_ident);
+ALTER TABLE cms_setting OWNER TO ws;
+

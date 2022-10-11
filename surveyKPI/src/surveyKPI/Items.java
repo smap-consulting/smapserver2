@@ -200,12 +200,14 @@ public class Items extends Application {
 				
 				// Prepare the statement to get the form details
 				String sqlFDetails = "select table_name, parentform, name from form " +
-					" where f_id = ?";
+					" where f_id = ?"
+					+ "and s_id = ?";	// Authorisation check
 				pstmtFDetails = sd.prepareStatement(sqlFDetails);
 				
 				// Get the table details
 				// Get the question type
 				pstmtFDetails.setInt(1, fId);
+				pstmtFDetails.setInt(2, sId);
 				ResultSet rsDetails = pstmtFDetails.executeQuery();
 				if(rsDetails.next()) {
 					
@@ -214,7 +216,11 @@ public class Items extends Application {
 					formName = rsDetails.getString(3);
 					
 					tables.add(tName, fId, parent);
+				} else { 
+					throw new Exception("Form " + fId + " not found");
 				}
+				
+				GeneralUtilityMethods.ensureTableCurrent(cResults, tName, parent == 0);
 				
 				int geomIdx = -1;
 				
@@ -801,7 +807,7 @@ public class Items extends Application {
 			} catch (SQLException e) {
 			    
 				String msg = e.getMessage();
-				if(msg.contains("does not exist") && !msg.contains("column")) {	// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
+				if(msg.contains("does not exist") && !msg.contains("column") && !msg.contains("operator")) {	// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
 					// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
 				} else {
 					message.append(msg);

@@ -187,9 +187,9 @@ public class EventList extends Application {
 	 * Retry a submission
 	 */
 	@GET
-	@Path("/submission_retry/{sName}")
+	@Path("/submission_retry/{surveyId}")
 	public Response submissionRetry(@Context HttpServletRequest request,
-			@PathParam("sName") String sName
+			@PathParam("surveyId") String surveyId
 			) throws SQLException {
 		
 		Response response = null;
@@ -201,11 +201,11 @@ public class EventList extends Application {
 		// Get the survey ident
 		String surveyIdent = null;
 		try {
-			int sId = Integer.parseInt(sName);
+			int sId = Integer.parseInt(surveyId);
 			surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 		} catch(Exception e) {
 			// Assume we were passed an ident
-			surveyIdent = sName;
+			surveyIdent = surveyId;
 		}
 					
 		a.isValidSurveyIdent(sd, request.getRemoteUser(), surveyIdent, false, false);
@@ -215,11 +215,13 @@ public class EventList extends Application {
 				+ "where ue_id in (select ue.ue_id from upload_event ue, subscriber_event se "
 				+ "where ue.ue_id = se.ue_id "
 				+ "and se.status = 'error' "
+				+ "and se.reason not like 'Duplicate survey:%' "
 				+ "and ue.ident = ?) ";
 		PreparedStatement pstmt1 = null;
 		
 		String sql2 = "delete from subscriber_event where "
 				+ "status = 'error' "
+				+ "and reason not like 'Duplicate survey:%' "
 				+ "and ue_id in (select ue.ue_id from upload_event ue "
 				+ "where ue.ident = ?) ";
 		PreparedStatement pstmt2 = null;

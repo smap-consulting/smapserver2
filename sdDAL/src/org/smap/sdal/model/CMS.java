@@ -1,5 +1,7 @@
 package org.smap.sdal.model;
 
+import java.util.ArrayList;
+
 /*
 This file is part of SMAP.
 
@@ -19,19 +21,18 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 public class CMS {
-	public int id;
-	public String name;
-	public String type;
-	public int pId;
+	
+	public CaseManagementSettings settings;
+	public ArrayList<CaseManagementAlert> alerts;	
+	public String group_survey_ident;
 	
 	public CMS() {
 	}
 	
-	public CMS(int id, String name, String type, int pId) {
-		this.id = id;
-		this.name = name;
-		this.type = type;
-		this.pId = pId;
+	public CMS(CaseManagementSettings settings, ArrayList<CaseManagementAlert> alerts, String group_survey_ident) {
+		this.settings = settings;
+		this.alerts = alerts;
+		this.group_survey_ident = group_survey_ident;
 	}
 	
 }

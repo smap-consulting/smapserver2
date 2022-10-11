@@ -75,9 +75,10 @@ public class Regions extends Application {
 	@Produces("application/json")
 	public String getEvents(@Context HttpServletRequest request) { 
 		
+		String connectionString = "surveyKPI-Regions";
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Regions");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		JSONArray ja = new JSONArray();	
@@ -91,7 +92,7 @@ public class Regions extends Application {
 					" AND u.o_id = r.o_id " +
 					"ORDER BY region_name;";
 		
-			pstmt = connectionSD.prepareStatement(sql);	
+			pstmt = sd.prepareStatement(sql);	
 			pstmt.setString(1, request.getRemoteUser());
 			resultSet = pstmt.executeQuery();
 
@@ -115,7 +116,7 @@ public class Regions extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Regions", connectionSD);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return ja.toString();

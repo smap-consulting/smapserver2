@@ -157,7 +157,7 @@ public class BackgroundReportsManager {
 					+ "where end_time < now() - interval '14 days'";
 			
 			pstmt = sd.prepareStatement(sql);
-			log.info("Delete old reports: " + pstmt.toString());
+			// log.info("Delete old reports: " + pstmt.toString());   debug only
 			pstmt.executeUpdate();
 			
 		} finally {

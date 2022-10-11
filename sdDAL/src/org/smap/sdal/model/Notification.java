@@ -20,6 +20,8 @@ public class Notification {
 	public String remote_host;
 	public boolean update_password;
 	public String instanceId;
+	public int alert_id;
+	public String alert_name;
 	public NotifyDetails notifyDetails;
 	
 	public int tgId;					// reminder only

@@ -28,6 +28,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -66,8 +67,10 @@ import org.smap.sdal.managers.LanguageCodeManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.OrganisationManager;
+import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyTableManager;
+import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AssignmentDetails;
 import org.smap.sdal.model.AuditData;
@@ -1438,6 +1441,37 @@ public class GeneralUtilityMethods {
 
 		return o_id;
 	}
+	
+	/*
+	 * Get the organisation id for the group survey ident
+	 */
+	static public int getOrganisationIdForGroupSurveyIdent(Connection sd, String ident) throws SQLException {
+
+		int o_id = -1;
+
+		String sql = "select p.o_id " + 
+				" from survey s, project p " + 
+				"where s.p_id = p.id " + 
+				"and s.group_survey_ident = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, ident);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				o_id = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return o_id;
+	}
+
 
 	/*
 	 * Get the organisation id for the project
@@ -2540,12 +2574,12 @@ public class GeneralUtilityMethods {
 		try {
 			
 			if(qName != null) {
-				if(qName.equals("_hrk")) {
-					column_name = "_hrk";
-				} else if(qName.equals("prikey")) {
-					column_name = "prikey";
-				} else if(qName.equals("_user")) {
-					column_name = "_user";
+				if(qName.equals("_hrk") || qName.equals("prikey") 
+						|| qName.equals("prikey") 
+						|| qName.equals("_user") 
+						|| qName.equals("_bad")
+						|| qName.equals("_bad_reason")) {
+					column_name = qName;
 				} else {
 					pstmt = sd.prepareStatement(sql);
 					pstmt.setInt(1, sId);
@@ -3712,9 +3746,8 @@ public class GeneralUtilityMethods {
 
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 		ArrayList<TableColumn> columnList = new ArrayList<TableColumn>();
-		ArrayList<TableColumn> realQuestions = new ArrayList<TableColumn>(); // Temporary array so that all property
-		// questions can be added first
-		boolean uptodateTable = false; // Set true if the results table has the latest meta data columns
+		ArrayList<TableColumn> realQuestions = new ArrayList<TableColumn>(); // Temporary array so that all property questions can be added first
+
 		TableColumn durationColumn = null;
 
 		// Get sensitive data restrictions
@@ -3790,6 +3823,7 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmtSelectChoices = sd.prepareStatement(sqlSelectMultiple);
 
 		updateUnPublished(sd, cResults, table_name, f_id, true);		// Ensure that all columns marked not published really are
+		ensureTableCurrent(cResults, table_name, formParent == 0);		// Ensure all meta columns are present
 		
 		TableColumn c = new TableColumn();
 		c.column_name = "prikey";
@@ -3798,35 +3832,19 @@ public class GeneralUtilityMethods {
 		c.question_name = "prikey";
 		if (includePrikey) {
 			columnList.add(c);
-		}
+		}	
 		
 		// Add assigned if this is a management request
-		if(mgmt) {
-			// Make sure there is an _assigned column at the top level of the survey
-			// Don't add one if we are getting columns for a subform
-			if(formParent == 0) {
-				
-				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
-				}
-			
-				c = new TableColumn();
-				c.column_name = "_assigned";
-				c.displayName = "_assigned";
-				c.type = SmapQuestionTypes.STRING;
-				c.question_name = c.column_name;
-				columnList.add(c);
-			}
-		}
+		if(mgmt && formParent == 0) {
 
-		// Add HRK if it has been specified
-		if (includeOtherMeta && GeneralUtilityMethods.columnType(cResults, table_name, "_hrk") != null) {
 			c = new TableColumn();
-			c.column_name = "_hrk";
-			c.displayName = "Key";
+			c.column_name = "_assigned";
+			c.displayName = c.column_name;
+			c.humanName = localisation.getString("assignee_ident");
 			c.type = SmapQuestionTypes.STRING;
 			c.question_name = c.column_name;
 			columnList.add(c);
+
 		}
 
 		if (includeParentKey) {
@@ -3860,7 +3878,8 @@ public class GeneralUtilityMethods {
 
 			c = new TableColumn();
 			c.column_name = "_bad_reason";
-			c.displayName = "_bad_reason";
+			c.displayName = c.column_name;
+			c.humanName = localisation.getString("c_del_reason");
 			c.type = SmapQuestionTypes.STRING;
 			c.question_name = c.column_name;
 			columnList.add(c);
@@ -3870,89 +3889,104 @@ public class GeneralUtilityMethods {
 		if (includeOtherMeta && formParent == 0) {
 
 			c = new TableColumn();
+			c.column_name = "_hrk";
+			c.displayName = "Key";
+			c.humanName = localisation.getString("cr_key");
+			c.type = SmapQuestionTypes.STRING;
+			c.question_name = c.column_name;
+			columnList.add(c);
+			
+			c = new TableColumn();
 			c.column_name = "_user";
-			c.displayName = localisation.getString("a_user");
+			c.displayName = "User";
+			c.humanName = localisation.getString("a_user");
 			c.type = SmapQuestionTypes.STRING;
 			c.isMeta = true;
 			c.question_name = c.column_name;
 			columnList.add(c);
 
-			if (GeneralUtilityMethods.columnType(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME) != null) {
-				uptodateTable = true; // This is the latest meta column that was added
-			}
+			c = new TableColumn();
+			c.column_name = "_alert";
+			c.displayName = c.column_name;
+			c.humanName = localisation.getString("a_alert");
+			c.type = SmapQuestionTypes.STRING;
+			c.question_name = c.column_name;
+			columnList.add(c);
 
-			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, SmapServerMeta.UPLOAD_TIME_NAME) != null) {
+			c = new TableColumn();
+			c.column_name = "_thread_created";
+			c.displayName = c.column_name;
+			c.humanName = localisation.getString("a_c_created");
+			c.type = SmapQuestionTypes.DATETIME;
+			c.question_name = c.column_name;
+			columnList.add(c);
 
-				c = new TableColumn();
-				c.column_name = SmapServerMeta.UPLOAD_TIME_NAME;
-				c.displayName = localisation.getString("a_ut");
-				c.type = SmapQuestionTypes.DATETIME;
-				c.isMeta = true;
-				c.question_name = c.column_name;
-				columnList.add(c);
-
-				c = new TableColumn();
-				c.column_name = SmapServerMeta.SURVEY_ID_NAME;
-				c.displayName = localisation.getString("a_name");
-				c.type = "";
-				c.isMeta = true;
-				c.question_name = c.column_name;
-				columnList.add(c);
-			}
-
-			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME) != null) {
-				c = new TableColumn();
-				c.column_name = SmapServerMeta.SCHEDULED_START_NAME;
-				c.displayName = SmapServerMeta.SCHEDULED_START_NAME;
-				c.type = SmapQuestionTypes.DATETIME;
-				c.isMeta = true;
-				columnList.add(c);
-			}
+			c = new TableColumn();
+			c.column_name = "_case_closed";
+			c.displayName = localisation.getString("a_cc");
+			c.type = SmapQuestionTypes.DATETIME;
+			c.question_name = c.column_name;
+			columnList.add(c);
 			
-			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_version") != null) {
-				c = new TableColumn();
-				c.column_name = "_version";
-				c.displayName = localisation.getString("a_v");
-				c.type = SmapQuestionTypes.STRING;
-				c.isMeta = true;
-				columnList.add(c);
-			}
 
-			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_complete") != null) {
-				c = new TableColumn();
-				c.column_name = "_complete";
-				c.displayName = localisation.getString("a_comp");
-				c.type = SmapQuestionTypes.BOOLEAN;
-				c.isMeta = true;
-				columnList.add(c);
-			}
+			c = new TableColumn();
+			c.column_name = SmapServerMeta.UPLOAD_TIME_NAME;
+			c.displayName = localisation.getString("a_ut");
+			c.type = SmapQuestionTypes.DATETIME;
+			c.isMeta = true;
+			c.question_name = c.column_name;
+			columnList.add(c);
 
-			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_survey_notes") != null) {
-				c = new TableColumn();
-				c.column_name = "_survey_notes";
-				c.displayName = localisation.getString("a_sn");
-				c.type = SmapQuestionTypes.STRING;
-				c.isMeta = true;
-				columnList.add(c);
-			}
-			
-			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_location_trigger") != null) {
-				c = new TableColumn();
-				c.column_name = "_location_trigger";
-				c.displayName = localisation.getString("a_lt");
-				c.type = SmapQuestionTypes.STRING;
-				c.isMeta = true;
-				columnList.add(c);
-			}
+			c = new TableColumn();
+			c.column_name = SmapServerMeta.SURVEY_ID_NAME;
+			c.displayName = localisation.getString("a_name");
+			c.type = "";
+			c.isMeta = true;
+			c.question_name = c.column_name;
+			columnList.add(c);
 
-			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "instancename") != null) {
-				c = new TableColumn();
-				c.column_name = "instancename";
-				c.displayName = localisation.getString("a_in");
-				c.type = SmapQuestionTypes.STRING;
-				c.isMeta = true;
-				columnList.add(c);
-			}
+			c = new TableColumn();
+			c.column_name = SmapServerMeta.SCHEDULED_START_NAME;
+			c.displayName = c.column_name;
+			c.humanName = localisation.getString("a_ss");
+			c.type = SmapQuestionTypes.DATETIME;
+			c.isMeta = true;
+			columnList.add(c);
+
+			c = new TableColumn();
+			c.column_name = "_version";
+			c.displayName = localisation.getString("a_v");
+			c.type = SmapQuestionTypes.STRING;
+			c.isMeta = true;
+			columnList.add(c);
+
+			c = new TableColumn();
+			c.column_name = "_complete";
+			c.displayName = localisation.getString("a_comp");
+			c.type = SmapQuestionTypes.BOOLEAN;
+			c.isMeta = true;
+			columnList.add(c);
+
+			c = new TableColumn();
+			c.column_name = "_survey_notes";
+			c.displayName = localisation.getString("a_sn");
+			c.type = SmapQuestionTypes.STRING;
+			c.isMeta = true;
+			columnList.add(c);
+
+			c = new TableColumn();
+			c.column_name = "_location_trigger";
+			c.displayName = localisation.getString("a_lt");
+			c.type = SmapQuestionTypes.STRING;
+			c.isMeta = true;
+			columnList.add(c);
+
+			c = new TableColumn();
+			c.column_name = "instancename";
+			c.displayName = localisation.getString("a_in");
+			c.type = SmapQuestionTypes.STRING;
+			c.isMeta = true;
+			columnList.add(c);
 
 			// Add preloads that have been specified in the survey definition
 			if (includePreloads) {
@@ -3960,8 +3994,12 @@ public class GeneralUtilityMethods {
 					if(mi.isPreload) {
 						if(GeneralUtilityMethods.hasColumn(cResults, table_name, mi.columnName)) {
 							c = new TableColumn();
-							c.column_name = mi.columnName;
-							c.displayName = mi.name;
+							c.column_name = mi.columnName;						
+							if(mi.display_name != null) {
+								c.displayName = mi.display_name;
+							} else {
+								c.displayName = mi.name;
+							}
 							c.question_name = mi.name;
 							c.type = mi.type;
 							if(c.type != null && c.type.equals("timestamp")) {
@@ -3975,17 +4013,18 @@ public class GeneralUtilityMethods {
 
 		}
 		
-		if (includeInstanceId && (mgmt || uptodateTable
-				|| GeneralUtilityMethods.columnType(cResults, table_name, "instanceid") != null)) {
+		if (includeInstanceId && formParent == 0) {
 			c = new TableColumn();
 			c.column_name = "instanceid";
-			c.displayName = "instanceid";
+			c.displayName = c.column_name;
+			c.humanName = localisation.getString("a_ii");
 			c.type = "";
+			c.question_name = c.column_name;
 			c.isMeta = true;
 			columnList.add(c);
 		}
 
-		if (audit && GeneralUtilityMethods.columnType(cResults, table_name, "_audit") != null) {
+		if (audit) {
 			c = new TableColumn();
 			c.column_name = "_audit";
 			c.displayName = "Audit";
@@ -4215,6 +4254,86 @@ public class GeneralUtilityMethods {
 		columnList.addAll(realQuestions); // Add the real questions after the property questions
 
 		return columnList;
+	}
+	
+	/*
+	 * Some columns in results tables have been added progressively over time
+	 * This function ensures that the table has all of these
+	 */
+	static public void ensureTableCurrent(Connection cResults, String table_name, boolean topLevel) throws SQLException {
+		
+		log.info("Check columns: " + table_name + " : " + topLevel);
+		
+		if(topLevel) {
+			
+			/*
+			 * Check for the last added column first
+			 * If this is present there is no need to check for the others
+			 * Also check for _thread_created existing due to a bug in a previous release which did not create this column (TODO remove October 2022)
+			 */
+			if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_case_closed") || !GeneralUtilityMethods.hasColumn(cResults, table_name, "_thread_created")) {
+				
+				GeneralUtilityMethods.addColumn(cResults, table_name, "_case_closed", "timestamp with time zone");
+			
+			
+				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
+				}
+				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_alert")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "text");
+				}
+				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_thread_created")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_thread_created", "timestamp with time zone");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME)) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME, "timestamp with time zone");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, SmapServerMeta.UPLOAD_TIME_NAME)) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, SmapServerMeta.UPLOAD_TIME_NAME, "timestamp with time zone");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, SmapServerMeta.SURVEY_ID_NAME)) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, SmapServerMeta.SURVEY_ID_NAME, "integer");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_version")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_version", "text");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_survey_notes")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_survey_notes", "text");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_location_trigger")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_location_trigger", "text");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_thread")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_thread", "text");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_complete")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_complete", "boolean");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "instancename")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "instancename", "text");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "instanceid")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "instanceid", "text");
+				}
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_hrk")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_hrk", "text");
+				}
+			}		
+		}
+		
+		/*
+		 * Add columns required for all tables
+		 */
+		if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_audit")) {
+			GeneralUtilityMethods.addColumn(cResults, table_name, "_audit", "text");
+			
+			/*
+			 * Audit and audit raw should have been added together
+			 */
+			if(!GeneralUtilityMethods.hasColumn(cResults, table_name, AuditData.AUDIT_RAW_COLUMN_NAME)) {
+				GeneralUtilityMethods.addColumn(cResults, table_name, AuditData.AUDIT_RAW_COLUMN_NAME, "text");
+			}
+		}
 	}
 	
 	/*
@@ -4661,7 +4780,7 @@ public class GeneralUtilityMethods {
 				columnName = qname;
 			}
 			if(columnName == null) {
-				throw new ApplicationException("Column does not exist");
+				throw new ApplicationException("Column does not exist: " + qname + " in " + input);
 			}
 			output.append(columnName);
 
@@ -4914,20 +5033,39 @@ public class GeneralUtilityMethods {
 				+ "where q.qname = ? "
 				+ "and q.f_id in (select f_id from form where s_id = ?)";
 
-		int qId = 0;
+		int qId = -1;
 		PreparedStatement pstmt = null;
 
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, name);
-			pstmt.setInt(2, sId);
-			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
-				qId = rs.getInt(1);
+		if(name != null) {
+			try {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, name);
+				pstmt.setInt(2, sId);
+				ResultSet rs = pstmt.executeQuery();
+				if (rs.next()) {
+					qId = rs.getInt(1);
+				}
+				
+				if(qId == -1) {
+					if(name.equals(SmapServerMeta.UPLOAD_TIME_NAME)) {
+						qId = SmapServerMeta.UPLOAD_TIME_ID;
+					} else if(name.equals(SmapServerMeta.SCHEDULED_START_NAME)) {						
+						qId = SmapServerMeta.SCHEDULED_START_ID;
+					} else {
+						// Check the preloads
+						ArrayList<MetaItem> preloads = getPreloads(sd, sId);
+						for(MetaItem mi : preloads) {
+							if(name.equals(mi.name)) {
+								qId = mi.id;
+								break;
+							}
+						}
+					}
+				}
+	
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			}
-
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return qId;
@@ -5001,7 +5139,6 @@ public class GeneralUtilityMethods {
 							break;
 						}
 					}
-					
 				}
 			}
 
@@ -5112,7 +5249,7 @@ public class GeneralUtilityMethods {
 			String filename) throws Exception {
 
 		ArrayList<Option> choices = null;		
-		String sql = "select q.external_table, q.l_id from question q where q.q_id = ?";
+		String sql = "select q.external_table, q.l_id, q.appearance from question q where q.q_id = ?";
 		PreparedStatement pstmt = null;
 		
 		String sqlChoices = "select ovalue, label_id "
@@ -5140,6 +5277,14 @@ public class GeneralUtilityMethods {
 				
 				if(filename == null) {
 					filename = rs.getString(1);	// Get the filename from the database only if it was not provided in the calling function.  The database can be null at this point
+				}
+				if(filename == null) {
+					// Still null then get the external filename direct from appearance
+					String appearance = rs.getString(3);
+					if(isAppearanceExternalFile(appearance)) {
+						ManifestInfo mi = addManifestFromAppearance(appearance, null);
+						filename = mi.filename;
+					}
 				}
 				int l_id = rs.getInt(2);
 				
@@ -5776,7 +5921,7 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Get the group surveys
-	 * Always add the survey corresponding to sId to the group
+	 * Always add the survey corresponding to groupSurveyIdent to the group
 	 */
 	public static HashMap<Integer, Integer> getGroupSurveys(Connection sd, 
 			String groupSurveyIdent) throws SQLException {
@@ -5820,17 +5965,25 @@ public class GeneralUtilityMethods {
 		 * param[2] params[4] is the filter column name (Get this one) params[5] is the
 		 * filter value
 		 * 
-		 */
+		 * If the function is eval then the expression is in params[2]
+		 * 
+		 */	
+		
 		if (params.length > 2) {
-			param = params[2].trim();
-			param = param.substring(1, param.length() - 1); // Remove quotes
-			refQuestions.add(param);
+			if(params[1].trim().equals("'eval'")) {
+				refQuestions.addAll(getCsvNames(params[2]));
+			} else {				
+				param = params[2].trim();
+				param = param.substring(1, param.length() - 1); // Remove quotes
+				refQuestions.add(param);
+			}
 		}
 		if (params.length > 4) {
 			param = params[4].trim();
 			param = param.substring(1, param.length() - 1); // Remove quotes
 			refQuestions.add(param);
 		}
+				
 		return refQuestions;
 	}
 	
@@ -6043,7 +6196,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the main results table for a survey if it exists
 	 */
-	public static String getMainResultsTable(Connection sd, Connection conn, int sId) {
+	public static String getMainResultsTable(Connection sd, Connection cResults, int sId) {
 		String table = null;
 
 		String sql = "select table_name from form where s_id = ? and parentform = 0";
@@ -6058,7 +6211,7 @@ public class GeneralUtilityMethods {
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				String table_name = rs.getString(1);
-				if (tableExists(conn, table_name)) {
+				if (tableExists(cResults, table_name)) {
 					table = table_name;
 				}
 			}
@@ -6248,48 +6401,74 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Method to lock a record out to a user
-	 */
-	public static int lockRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
-
-		int count = 0;
-		
-		String sql = "update " + tablename + " set _assigned = ? "
-				+ "where instanceid = ? "
-				+ "and _assigned is null";
-
-		PreparedStatement pstmt = conn.prepareStatement(sql);
-		pstmt.setString(1, user);
-		pstmt.setString(2,instanceId);
-		log.info("locking record: " + pstmt.toString());
-		try {
-			count = pstmt.executeUpdate();
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
-		}
-		
-		return count;
-	}
-	
-	/*
 	 * Method to assign a record to a user
 	 */
-	public static int assignRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
+	public static int assignRecord(Connection sd, Connection cResults, ResourceBundle localisation, String tablename, String instanceId, String user, 
+			String type					// lock || release || assign
+			) throws SQLException {
 
 		int count = 0;
 		
-		String sql = "update " 
-				+ tablename 
-				+ " set _assigned = ? "
-				+ "where instanceid = ? ";
+		StringBuilder sql = new StringBuilder("update ") 
+				.append(tablename) 
+				.append(" set _assigned = ? ")
+				.append("where instanceid = ? ");
 
 		if(user != null && user.equals("_none")) {
 			user = null;
 		}
-		PreparedStatement pstmt = conn.prepareStatement(sql);
-		pstmt.setString(1, user);
+		
+		String assignTo = user;
+		String details = null;
+		if(type.equals("lock")) {
+			sql.append("and _assigned is null");		// User can only self assign if no one else is assigned
+			details = localisation.getString("cm_lock");
+		} else if(type.equals("release")) {
+			assignTo = null;
+			sql.append("and _assigned = ?");			// User can only release records that they are assigned to
+			details = localisation.getString("cm_release");
+		} else {
+			if(user != null) {
+				details = localisation.getString("assignee_ident");
+			} else {
+				details = localisation.getString("cm_ua");
+			}
+		}
+		
+		if(!hasColumn(cResults, tablename, SurveyViewManager.ASSIGNED_COLUMN)) {
+			addColumn(cResults, tablename, SurveyViewManager.ASSIGNED_COLUMN, "text");
+		}
+		
+		PreparedStatement pstmt = cResults.prepareStatement(sql.toString());
+		pstmt.setString(1, assignTo);
 		pstmt.setString(2,instanceId);
-		log.info("locking record: " + pstmt.toString());
+		if(type.equals("release")) {
+			pstmt.setString(3,user);
+		}
+		log.info("Assign record: " + pstmt.toString());
+		
+		/*
+		 * Write the event before applying the update so that an alert can be sent to the previously assigned user
+		 */
+		RecordEventManager rem = new RecordEventManager();
+		rem.writeEvent(
+				sd, 
+				cResults, 
+				RecordEventManager.ASSIGNED, 
+				"success",
+				user, 
+				tablename, 
+				instanceId, 
+				null,				// Change object
+				null,	// Task Object
+				null,				// Notification object
+				details, 
+				0,				// sId (don't care legacy)
+				null,
+				0,				// Don't need task id if we have an assignment id
+				0				// Assignment id
+				);
+		
 		try {
 			count = pstmt.executeUpdate();
 		} finally {
@@ -6301,7 +6480,7 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Method to release a record 
-	 */
+	 *
 	public static int releaseRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
 
 		int count = 0;
@@ -6321,7 +6500,7 @@ public class GeneralUtilityMethods {
 		
 		return count;
 		
-	}
+	}*/
 	
 	/*
 	 * Method to check for presence of the specified column in a specific schema
@@ -7095,7 +7274,7 @@ public class GeneralUtilityMethods {
 
 			if (idx1 > 0 && idx2 > idx1) {
 				String criteriaString = appearance.substring(idx1 + 1, idx2);
-				log.info("#### criteria for csv filter: " + criteriaString);
+				log.info("#### criteria for csv filter1: " + criteriaString);
 				String criteria[] = criteriaString.split(",");
 				if (criteria.length >= 2) {
 					search.fn = criteria[1].trim().replace("\'", "");
@@ -8375,64 +8554,27 @@ public class GeneralUtilityMethods {
 		
 		String sqlCopyThreadCol = "update " + table 
 						+ " set _thread = (select _thread from " + table + " where prikey = ?),"
-						+ " _assigned = (select _assigned from " + table + " where prikey = ?) "
+						+ " _assigned = (select _assigned from " + table + " where prikey = ?), "
+						+ " _thread_created = (select _thread_created from " + table + " where prikey = ?), "
+						+ " _alert = (select _alert from " + table + " where prikey = ?) "
 						+ "where prikey = ?";
 		PreparedStatement pstmtCopyThreadCol = null;
 			
 		try {
-			initialiseThread(cResults, table, sourceKey, null);
 			
 			// At this point the thread col must exist and the _thread value for the source must exist
 			pstmtCopyThreadCol = cResults.prepareStatement(sqlCopyThreadCol);
 			pstmtCopyThreadCol.setInt(1, sourceKey);
 			pstmtCopyThreadCol.setInt(2, sourceKey);
-			pstmtCopyThreadCol.setInt(3, prikey);
+			pstmtCopyThreadCol.setInt(3, sourceKey);
+			pstmtCopyThreadCol.setInt(4, sourceKey);
+			pstmtCopyThreadCol.setInt(5, prikey);
 			log.info("continue thread: " + pstmtCopyThreadCol.toString());
 			pstmtCopyThreadCol.executeUpdate();
 			
 			
 		} finally {
 			if(pstmtCopyThreadCol != null) try{pstmtCopyThreadCol.close();}catch(Exception e) {}
-		}
-
-	}
-	
-	/*
-	 * Add the thread value that links replaced records
-	 * Either get the thread key using the sourceKey or if that is not set use the passed in instanceId directly
-	 */
-	public static void initialiseThread(Connection cResults, String table, int sourceKey, String instanceId) throws SQLException {
-		
-		String sqlInitThreadCol = "update " + table + " set _thread = instanceid where prikey = ? and _thread is null";
-		PreparedStatement pstmtInitThreadCol = null;
-		
-		String sqlInitThreadCol2 = "update " + table + " set _thread = instanceid where instanceid = ? and _thread is null";
-		PreparedStatement pstmtInitThreadCol2 = null;
-			
-		try {
-			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_thread")) {
-				GeneralUtilityMethods.addColumn(cResults, table, "_thread", "text");		// Add the thread column
-			}
-			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_assigned")) {
-				GeneralUtilityMethods.addColumn(cResults, table, "_assigned", "text");
-			}
-			
-			// Initialise the thread column
-			if(sourceKey > 0) {
-				pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
-				pstmtInitThreadCol.setInt(1, sourceKey);
-				log.info("Initialise Thread: " + pstmtInitThreadCol.toString());
-				pstmtInitThreadCol.executeUpdate();
-			} else {
-				pstmtInitThreadCol2 = cResults.prepareStatement(sqlInitThreadCol2);
-				pstmtInitThreadCol2.setString(1, instanceId);
-				log.info("Initialise Thread: " + pstmtInitThreadCol2.toString());
-				pstmtInitThreadCol2.executeUpdate();
-			}
-			
-		} finally {
-			if(pstmtInitThreadCol != null) try{pstmtInitThreadCol.close();}catch(Exception e) {}
-			if(pstmtInitThreadCol2 != null) try{pstmtInitThreadCol2.close();}catch(Exception e) {}
 		}
 
 	}
@@ -8455,8 +8597,6 @@ public class GeneralUtilityMethods {
 		String sqlUpdate = "update table " + table + " set_thread = ? where instanceid = ?";
 			
 		try {
-			
-			initialiseThread(cResults, table, 0, instanceId);
 			
 			pstmt = cResults.prepareStatement(sql);
 			pstmt.setString(1, instanceId);
@@ -8661,7 +8801,19 @@ public class GeneralUtilityMethods {
 			timeString = workAroundJava8bug00(timeString);
 			timeString = timeString.trim().replace(' ', 'T');
 			
-			log.info("timestring to test: " + timeString);
+			// Ensure there is an offset in the string
+			if ( timeString.lastIndexOf ( "+" ) != ( timeString.length () - 6 ) && timeString.lastIndexOf ( "-" ) != ( timeString.length () - 6 )) {
+				TimeZone tz = TimeZone.getDefault();
+				long offset = tz.getOffset((new java.util.Date()).getTime());
+				String dirn = "+";
+				if(offset < 0) {
+					dirn = "-";
+					offset = -offset;
+				}
+				long hours = offset / 3600000;
+				long minutes = (offset - (hours * 3600000)) / 60000;
+				timeString += dirn + String.format("%02d:%02d", hours, minutes);
+			}
 
 			try {
 				OffsetDateTime odt = OffsetDateTime.parse( timeString );
@@ -9014,7 +9166,7 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmt = null;
 		String sql = "select instanceid "
 				+ "from " + tableName + " "
-				+ "where _thread = (select distinct _thread from " + tableName + " where instanceid = ?) "
+				+ "where _thread = (select _thread from " + tableName + " where instanceid = ?) "
 				+ "order by prikey desc limit 1";
 
 		if(GeneralUtilityMethods.hasColumn(cResults, tableName, "_thread")) {
@@ -9165,7 +9317,7 @@ public class GeneralUtilityMethods {
 		} else if(colType.equals("dateTime")) {
 			colType = "timestamp with time zone";					
 		} else if(colType.equals("time")) {
-			colType = "time with time zone";					
+			colType = "time";					
 		} else if(GeneralUtilityMethods.isAttachmentType(colType)) {
 			colType = "text";					
 		} else if(colType.equals("select") && compressed) {
@@ -10301,13 +10453,13 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get a safe text value, escape html if this is destined for data tables
+	 * Get a safe text value, escape html if this is destined for an html page
 	 */
-	public static String getSafeText(String input, boolean isDt) {
+	public static String getSafeText(String input, boolean isForHtml) {
 		if(input == null) {
 			input = "";
 		}
-		if(isDt) {
+		if(isForHtml) {
 			return StringEscapeUtils.escapeHtml4(input);
 		} else {
 			return input;
@@ -10471,6 +10623,46 @@ public class GeneralUtilityMethods {
 		return url;
 	}
 	
+	/*
+	 * Get the user currently assigned to a record
+	 */
+	public static String getAssignedUser(Connection cResults, String tableName, String key) throws SQLException {
+		String userIdent = null;
+		
+		StringBuilder sql = new StringBuilder("select _assigned from ")
+			.append(tableName)
+			.append(" where not _bad and _thread = ?");
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = cResults.prepareStatement(sql.toString());
+			pstmt.setString(1, key);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				userIdent = rs.getString(1);
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+		return userIdent;
+       }
+
+	public static String round(String in, int to) {
+		String out = in;
+		try {
+			StringBuilder f = new StringBuilder("0.");
+			for(int i = 0; i < to; i++) {
+				f.append("0");
+			}
+			DecimalFormat decimalFormat = new DecimalFormat(f.toString());
+			double dv = Double.parseDouble(in);
+			out = decimalFormat.format(dv);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+		}
+		return out;
+	}
+	
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");
@@ -10492,7 +10684,6 @@ public class GeneralUtilityMethods {
 		
 		return idx;
 	}
-	
 	
 	
 }

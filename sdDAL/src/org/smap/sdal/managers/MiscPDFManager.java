@@ -164,8 +164,6 @@ public class MiscPDFManager {
 						+ "where ue.ue_id = se.ue_id "
 						+ "and se.status = 'success' "
 						+ "and se.subscriber = 'results_db' "
-						//+ "and extract(month from upload_time) = ? " 	// current month
-						//+ "and extract(year from upload_time) = ? " 		// current year
 						+ "and upload_time >=  ? "		// current month
 						+ "and upload_time < ? "		// next month
 						+ "and ue.user_name = users.ident) as month, "
@@ -185,8 +183,6 @@ public class MiscPDFManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setTimestamp(1, t1);
 			pstmt.setTimestamp(2, t2);
-			//pstmt.setInt(1, month);
-			//pstmt.setInt(2, year);
 			pstmt.setInt(3, o_id);
 			log.info("Get Usage Data: " + pstmt.toString());
 

@@ -117,6 +117,8 @@ public class WebForm extends Application {
 	String debug = "no";
 	boolean isApp = false;
 	boolean myWork = false;			// When set use the myWork app to submit data rather than the form
+	boolean single = false;
+	boolean showDonePage = false;
 	String gFormIdent = null;
 
 	/*
@@ -257,7 +259,11 @@ public class WebForm extends Application {
 		mimeType = "json";
 		isTemporaryUser = false;
 		response = getWebform(request, "none", null, formIdent, datakey, datakeyvalue, 
-				assignmentId, taskKey, callback, false, false, false, null);
+				assignmentId, taskKey, callback, false, false, 
+				false, 
+				null,
+				false	// show done page
+				);
 		
 		return response;
 	}
@@ -325,7 +331,10 @@ public class WebForm extends Application {
 				response = getWebform(request, "none", null, 
 						formIdent, datakey, datakeyvalue, assignmentId, 
 						taskKey, callback,
-						false, true, false, null);
+						false, true, false, 
+						null,
+						false		// show done page
+						);
 			} catch (BlockedException e) {
 				response = getMessagePage(false, "mo_blocked", null);
 			}
@@ -366,7 +375,7 @@ public class WebForm extends Application {
 		isTemporaryUser = true;
 		return getWebform(request, "none", null, formIdent, datakey, datakeyvalue, assignmentId, 
 				taskKey, callback, false,
-				true, false, null);
+				true, false, null, true);
 	}
 
 	/*
@@ -434,7 +443,8 @@ public class WebForm extends Application {
 							false,
 							true, 
 							true,			// Close after saving
-							a.initialData
+							a.initialData,
+							false			// show done page
 							);
 					
 				} catch (BlockedException e) {
@@ -468,8 +478,9 @@ public class WebForm extends Application {
 			String callback, 
 			boolean simplifyMedia,
 			boolean isWebForm,
-			boolean single,
-			Instance initialData) {
+			boolean singleParam,
+			Instance initialData,
+			boolean showDonePageParam) {
 
 		Response response = null;
 
@@ -481,6 +492,8 @@ public class WebForm extends Application {
 		String accessKey = null;
 		String requester = "surveyMobileAPI-getWebForm";
 		boolean superUser = false;
+		this.single = singleParam;
+		this.showDonePage = showDonePageParam;
 		
 		gFormIdent = formIdent;
 		
@@ -636,7 +649,7 @@ public class WebForm extends Application {
 			} else {
 				// MAIN ENTRY POINT
 				outputString.append(addDocument(request, instanceXML, instanceStrToEditId, assignmentId,
-						survey.surveyClass, orgId, accessKey, superUser, single));
+						survey.surveyClass, orgId, accessKey, superUser));
 			}
 			
 			String respString = outputString.toString();
@@ -666,8 +679,7 @@ public class WebForm extends Application {
 	 */
 	private String addDocument(HttpServletRequest request, String instanceXML,
 			String dataToEditId, int assignmentId, String surveyClass, int orgId, String accessKey, 
-			boolean superUser,
-			boolean single)
+			boolean superUser)
 			throws TransformerFactoryConfigurationError, Exception {
 
 		StringBuilder output = new StringBuilder();
@@ -685,7 +697,7 @@ public class WebForm extends Application {
 
 		output.append(
 				addHead(request, instanceXML, dataToEditId, assignmentId, surveyClass, 
-						accessKey, single));
+						accessKey));
 		output.append(addBody(request, dataToEditId, orgId, surveyClass, superUser));
 
 		output.append("</html>\n");
@@ -735,7 +747,7 @@ public class WebForm extends Application {
 	 * Add the head section
 	 */
 	private StringBuffer addHead(HttpServletRequest request, String instanceXML, String dataToEditId,
-			int assignmentId, String surveyClass, String accessKey, boolean single)
+			int assignmentId, String surveyClass, String accessKey)
 			throws TransformerFactoryConfigurationError, Exception {
 
 		StringBuffer output = new StringBuffer();
@@ -826,7 +838,7 @@ public class WebForm extends Application {
 		output.append("<script src='/js/app/idbconfig.js'></script>");
 		output.append("<script src='/js/app/pwacommon.js'></script>");
 		//output.append("<script src='/js/libs/textile.js'></script>");		in browser markdown - don't currently use
-		output.append(addData(request, instanceXML, dataToEditId, assignmentId, accessKey, single));
+		output.append(addData(request, instanceXML, dataToEditId, assignmentId, accessKey));
 		// Add the google API key
 		output.append("<script>");
 		output.append("window.smapConfig = {};");
@@ -847,7 +859,7 @@ public class WebForm extends Application {
 	 * Add the data
 	 */
 	private StringBuffer addData(HttpServletRequest request, String instanceXML, String dataToEditId,
-			int assignmentId, String accessKey, boolean single)
+			int assignmentId, String accessKey)
 			throws TransformerFactoryConfigurationError, Exception {
 
 		StringBuffer output = new StringBuffer();
@@ -890,6 +902,10 @@ public class WebForm extends Application {
 		
 		if(single) {
 			output.append("surveyData.closeAfterSending = true;\n");
+		}
+		
+		if(showDonePage) {
+			output.append("surveyData.showDonePage = true;\n");
 		}
 
 		// Add access key for authentication

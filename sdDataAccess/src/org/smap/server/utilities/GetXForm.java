@@ -269,7 +269,7 @@ public class GetXForm {
 				ManifestValue mv = manifests.get(i);
 				if (mv.filePath != null || (mv.type != null && mv.type.equals("linked"))) {
 					Element pulldataElement = outputDoc.createElement("instance");
-					pulldataElement.setAttribute("id", mv.baseName);
+					pulldataElement.setAttribute("id", mv.baseName + "__pull");
 					pulldataElement.setAttribute("src", "jr://csv/" + mv.baseName + ".csv");
 					parent.appendChild(pulldataElement);
 					Element rootElement = outputDoc.createElement("root");
@@ -1618,11 +1618,13 @@ public class GetXForm {
 					Element elem = null;
 					for (int i = 0; i < cols.length && i < values.length; i++) {
 						try {
-							elem = outputXML.createElement(cols[i]);
-							String v = values[i];
-							v = v.replaceAll("'", "");
-							elem.setTextContent(v);
-							item.appendChild(elem);
+							if(!cols[i].equals("")) {  // Handle CSV files with trailing comma
+								elem = outputXML.createElement(cols[i]);
+								String v = values[i];
+								v = v.replaceAll("'", "");
+								elem.setTextContent(v);
+								item.appendChild(elem);
+							}
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 							String msg = localisation.getString("msg_inv_col");
