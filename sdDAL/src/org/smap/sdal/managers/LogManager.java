@@ -63,6 +63,7 @@ public class LogManager {
 	public static String LIMIT = "limit";
 	public static String MAILOUT = "mailout";
 	public static String MAPBOX_REQUEST = "Mapbox Request";
+	public static String GOOGLE_REQUEST = "Google Request";
 	public static String MOVE_ORGANISATION = "move organisation";
 	public static String MOVE_PROJECT = "move project";
 	public static String NOTIFICATION = "notification";

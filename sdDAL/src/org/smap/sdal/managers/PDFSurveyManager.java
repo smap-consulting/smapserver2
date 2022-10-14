@@ -159,6 +159,7 @@ public class PDFSurveyManager {
 		int [] cols = {NUMBER_QUESTION_COLS};	// Current Array of columns
 		boolean hasAppendix = false;
 		String mapbox_key;
+		String google_key;
 
 		// Map of questions that need to have the results of another question appended to their results in a pdf report
 		HashMap <String, ArrayList<String>> addToList = new HashMap <String, ArrayList<String>>();
@@ -316,6 +317,7 @@ public class PDFSurveyManager {
 				}
 			}
 			gv.mapbox_key = serverData.mapbox_default;
+			gv.google_key = serverData.google_key;
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
 
 			languageIdx = GeneralUtilityMethods.getLanguageIdx(survey, language);
@@ -630,8 +632,8 @@ public class PDFSurveyManager {
 					} 
 					mapValues.geometry = r.value;
 					
-					Image img = PdfUtilities.getMapImage(sd, di.map, di.account, mapValues, 
-							di.location, di.zoom,gv.mapbox_key,
+					Image img = PdfUtilities.getMapImage(sd, di.mapSource, di.map, di.account, mapValues, 
+							di.location, di.zoom,gv.mapbox_key, gv.google_key,
 							survey.id,
 							user,
 							di.markerColor,
@@ -672,10 +674,10 @@ public class PDFSurveyManager {
 					}
 					Image img = null;
 					if(di.linemap.type.equals("map")) {
-						img = PdfUtilities.getMapImage(sd, di.map, 
+						img = PdfUtilities.getMapImage(sd, di.mapSource, di.map, 
 								di.account, 
 								mapValues,
-								di.location, di.zoom, gv.mapbox_key,
+								di.location, di.zoom, gv.mapbox_key,gv.google_key,
 								survey.id,
 								user,
 								di.markerColor,
@@ -1772,10 +1774,12 @@ public class PDFSurveyManager {
 			mapValues.geometry = di.value;
 			mapValues.startGeometry = startGeopointValue;
 			
-			Image img = PdfUtilities.getMapImage(sd, di.map, 
+			Image img = PdfUtilities.getMapImage(sd, di.mapSource, di.map, 
 					di.account, 
 					mapValues,
-					di.location, di.zoom, gv.mapbox_key,
+					di.location, di.zoom, 
+					gv.mapbox_key,
+					gv.google_key,
 					survey.id,
 					user,
 					di.markerColor,
@@ -1811,10 +1815,10 @@ public class PDFSurveyManager {
 				Float width = (float) 200.0;
 				Float height = (float) 100.0;
 				if(di.linemap.type.equals("map")) {
-					 img = PdfUtilities.getMapImage(sd, di.map, 
+					img = PdfUtilities.getMapImage(sd, di.mapSource, di.map, 
 							di.account, 
 							mapValues,
-							di.location, di.zoom, gv.mapbox_key,
+							di.location, di.zoom, gv.mapbox_key,gv.google_key,
 							survey.id,
 							user,
 							di.markerColor,

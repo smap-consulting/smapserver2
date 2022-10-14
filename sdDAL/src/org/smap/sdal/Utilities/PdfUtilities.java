@@ -148,10 +148,48 @@ public class PdfUtilities {
 		} 
 	}
 	
-	/*
-	 * Convert geospatial data into an map image
-	 */
 	public static Image getMapImage(Connection sd, 
+			String mapSource,
+			String map, 
+			String account,
+			PdfMapValues mapValues, 
+			String location, 
+			String zoom,
+			String mapbox_key,
+			String google_key,
+			int sId,
+			String user,
+			String markerColor,
+			String basePath) throws Exception {
+		
+		if(mapSource.equals("mapbox")) {
+			 return PdfUtilities.getMapImageMapbox(sd, map, 
+					account, 
+					mapValues,
+					location, zoom, mapbox_key,
+					sId,
+					user,
+					markerColor,
+					basePath);
+		} else if(mapSource.equals("google")) {
+			 return PdfUtilities.getMapImageGoogle(sd, map, 
+						account, 
+						mapValues,
+						location, zoom, 
+						google_key,
+						sId,
+						user,
+						markerColor,
+						basePath);
+		} else {
+			throw new Exception("Mapsource not specified");
+		}
+	}
+	
+	/*
+	 * Convert geospatial data into a mapbox map image
+	 */
+	private static Image getMapImageMapbox(Connection sd, 
 			String map, 
 			String account,
 			PdfMapValues mapValues, 
@@ -223,6 +261,73 @@ public class PdfUtilities {
 				 */
 				URL mapboxUrl = new URL(url.toString());
 				BufferedImage tempImg = ImageIO.read(mapboxUrl);
+				File file = new File(basePath + "/temp/pdfmap_" + UUID.randomUUID() + ".png");
+				ImageIO.write(tempImg, "png", file);			       
+				img = Image.getInstance(file.getAbsolutePath());
+			    
+				lm.writeLog(sd, sId, user, LogManager.MAPBOX_REQUEST, map, 0, null);
+			} catch (Exception e) {
+				log.log(Level.SEVERE, "Exception", e);
+			}
+		} 
+		
+		return img;
+	}
+	
+
+	/*
+	 * Convert geospatial data into a Google map image
+	 */
+	private static Image getMapImageGoogle(Connection sd, 
+			String map, 
+			String account,
+			PdfMapValues mapValues, 
+			String location, 
+			String zoom,
+			String google_key,
+			int sId,
+			String user,
+			String markerColor,
+			String basePath) throws BadElementException, MalformedURLException, IOException, SQLException {
+		
+		Image img = null;
+		
+		StringBuffer url = new StringBuffer();
+		boolean hasParam = false;
+		url.append("https://maps.googleapis.com/maps/api/staticmap");
+		
+		if((mapValues.hasGeometry())) {
+			
+			if(!hasParam) {
+				url.append("?");
+			} else {
+				url.append("&");
+			}
+			//url.append("center=59.914063,10.737874");
+			url.append(createMapValueGoogle(mapValues, markerColor));
+			
+			if(zoom != null && zoom.trim().length() > 0) {
+				url.append("&zoom=" + zoom);
+			} else {
+				url.append("&zoom=12");
+			}
+		} 
+		
+		if(google_key == null) {
+			log.info("Google key not specified.  PDF Map not created");
+		} else {;
+			url.append("&size=400x400&key=");
+			url.append(google_key);
+			try {
+				log.info("Google API call: " + url);
+				
+				/*
+				 * There is a problem with passing a URL to the IText getInstance function as
+				 * it will cause two mapbox requests to be recorded resulting in additional charges
+				 * Instead download the imag first then add it to the PDF as a file
+				 */
+				URL googleUrl = new URL(url.toString());
+				BufferedImage tempImg = ImageIO.read(googleUrl);
 				File file = new File(basePath + "/temp/pdfmap_" + UUID.randomUUID() + ".png");
 				ImageIO.write(tempImg, "png", file);			       
 				img = Image.getInstance(file.getAbsolutePath());
@@ -540,7 +645,41 @@ public class PdfUtilities {
 	 
 	    
 	}
-	
+
+	/*
+	 * Add markers to google static map
+	 */
+	private static String createMapValueGoogle(PdfMapValues mapValues, String markerColor) {
+		
+		// GeoJson data - add styling
+		StringBuffer out = new StringBuffer("");
+		
+		// Add the Geom if it is not null
+		boolean addedGeom = false;
+		if(mapValues.geometry != null && mapValues.geometry.trim().length() > 0) {
+			if(markerColor == null) {
+				markerColor = "f00";
+			}
+
+			if(addedGeom) {
+				out.append("&");
+			}
+			out.append("center=")
+			.append(GeneralUtilityMethods.getLatLngfromGeoJson(mapValues.geometry));
+			addedGeom=true;
+			
+			if(addedGeom) {
+				out.append("&");
+			}
+			out.append("markers=")
+					.append(GeneralUtilityMethods.getLatLngfromGeoJson(mapValues.geometry));		
+			
+		}
+
+		
+		return out.toString();
+	}
+
 	private static String createGeoJsonMapValue(PdfMapValues mapValues, String markerColor) {
 		
 		// GeoJson data - add styling
@@ -1013,7 +1152,10 @@ public class PdfUtilities {
 					di.bs = true;
 				} else if(app.equals("pdflabelbold")) {
 					di.labelbold = true;
-				} else if(app.startsWith("pdfmap")) {			// mapbox map id
+				} else if(app.startsWith("pdfmapsource_")) {			// map source
+					String mapSource = getAppValue(app);
+					di.mapSource = getAppValue(app);
+				} else if(app.startsWith("pdfmap_")) {			// mapbox style map id
 					String map = getAppValue(app);
 					if(!map.equals("custom")) {
 						di.map = map;

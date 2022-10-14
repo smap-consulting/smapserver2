@@ -8339,6 +8339,30 @@ public class GeneralUtilityMethods {
 		return wkt;
 	}
 	
+	/*
+	 * Convert a geojson string into lat lng coordinates
+	 * Assume Point
+	 */
+	public static String getLatLngfromGeoJson(String json) {
+		
+		String wkt = null;
+		if(json != null) {
+			int idx1 = json.indexOf("[");
+			int idx2 = json.indexOf("]");
+			
+			if(idx2 > idx1) {
+				String c = json.substring(idx1 + 1, idx2);
+				String [] coords = c.split(",");
+				if(coords.length >= 2) {
+					wkt = coords[1].trim() + "," + coords[0].trim();; 
+				}
+				
+			}
+		}
+			
+		return wkt;
+	}
+	
 	public static String getOdkPolygon(Polygon p) {
 		StringBuffer coordsString = new StringBuffer("");
 		ArrayList<ArrayList<Double>> coords = p.coordinates.get(0);
