@@ -1886,6 +1886,7 @@ public class SubRelationalDB extends Subscriber {
 		return sql.toString();
 	}
 
+	/*
 	String addSqlValues(Connection sd, List<IE> columns, String sName, String device, 
 			String server, 
 			boolean phoneOnly, 
@@ -1925,6 +1926,7 @@ public class SubRelationalDB extends Subscriber {
 		}
 		return sql.toString();
 	}
+	*/
 
 	/*
 	 * Format the value into a string appropriate to its type
@@ -2123,7 +2125,7 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Format the value into a string appropriate to its type
 	 * TODO Deprecate and delete
-	 */
+	 *
 	String getDbString(Connection sd, IE col, String surveyName, String device, String server, boolean phoneOnly, Connection cResults, String tableName) {
 
 		String qType = col.getQType();
@@ -2197,11 +2199,11 @@ public class SubRelationalDB extends Subscriber {
 					if(value == null || value.length() == 0) {
 						value = "null";
 					} else {
-						/*
+						 *
 						 * If this is a new file then rename the attachment to use a UUID
 						 * Where this is an update to an existing survey and the file has not been re-submitted then 
 						 * leave its value unchanged
-						 */
+						 *
 						String srcName = value;
 
 						log.info("Creating file: " + srcName);				
@@ -2221,9 +2223,9 @@ public class SubRelationalDB extends Subscriber {
 
 					}
 				} else if(qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("geocompound")) {
-					/*
+					 *
 					 * Extract the linestring from geocompound types
-					 */
+					 *
 					if(qType.equals("geocompound")) {
 						String components[] = value.split("#");
 						for(int i = 0; i < components.length; i++) {
@@ -2238,13 +2240,13 @@ public class SubRelationalDB extends Subscriber {
 						}
 					}
 					
-					/*
+					 *
 					 * ODK polygon / linestring
 					 * The coordinates are in a String separated by ;
 					 * Each coordinate consists of space separated lat lon height accuracy
 					 *   Actually I'm not sure about the last two but they will be ignored anyway
 					 *   To store as a Point in the db this order needs to be reversed to (lon lat)
-					 */
+					 *
 					int min_points = 3;
 					StringBuffer ptString = null;
 					if(qType.equals("geotrace") || qType.equals("geocompound")) {
@@ -2333,6 +2335,7 @@ public class SubRelationalDB extends Subscriber {
 
 		return value;
 	}
+	*/
 
 	private class GeopointComponents {
 		String value = null;
