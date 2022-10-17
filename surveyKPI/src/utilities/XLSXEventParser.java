@@ -72,6 +72,7 @@ public class XLSXEventParser {
 		String sIdent;
 		HashMap<String, File> mediaFiles;
 		SimpleDateFormat sdf;
+		int oId;
 
 		ProcessSheetHandler(
 				Connection sd,
@@ -89,7 +90,8 @@ public class XLSXEventParser {
 				String basePath,
 				String sIdent,
 				HashMap<String, File> mediaFiles,
-				SimpleDateFormat sdf) {
+				SimpleDateFormat sdf,
+				int oId) {
 
 			this.sd = sd;
 			this.results = results;
@@ -107,6 +109,7 @@ public class XLSXEventParser {
 			this.sIdent = sIdent;
 			this.mediaFiles = mediaFiles;
 			this.sdf = sdf;
+			this.oId = oId;
 		}
 
 		@Override
@@ -157,7 +160,8 @@ public class XLSXEventParser {
 								sIdent,
 								mediaFiles,
 								sdf,
-								recordsWritten);
+								recordsWritten,
+								oId);
 					} catch (SQLException e) {
 						responseMsg.add(e.getMessage());
 						hasError = true;
@@ -254,7 +258,8 @@ public class XLSXEventParser {
 			String basePath,
 			String sIdent,
 			HashMap<String, File> mediaFiles,
-			SimpleDateFormat sdf) throws IOException, OpenXML4JException, SAXException, SQLException {
+			SimpleDateFormat sdf,
+			int oId) throws IOException, OpenXML4JException, SAXException, SQLException {
 
 		ReadOnlySharedStringsTable strings = new ReadOnlySharedStringsTable(this.xlsxPackage);
 		XSSFReader xssfReader = new XSSFReader(this.xlsxPackage);
@@ -289,7 +294,8 @@ public class XLSXEventParser {
 										basePath,
 										sIdent,
 										mediaFiles,
-										sdf), 
+										sdf,
+										oId), 
 								formatter, 
 								false,
 								sdf);

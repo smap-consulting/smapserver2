@@ -617,7 +617,8 @@ public class GeneralUtilityMethods {
 	static public String createAttachments(Connection sd, String srcName, File srcPathFile, String basePath, 
 			String surveyName, 
 			String srcUrl,
-			ArrayList<MediaChange> mediaChanges) {
+			ArrayList<MediaChange> mediaChanges,
+			int oId) {
 
 		log.info("Create attachments");
 
@@ -677,7 +678,7 @@ public class GeneralUtilityMethods {
 				log.info("Processing attachment: " + srcUrl + " as " + dstPathFile);
 				FileUtils.copyURLToFile(new URL(srcUrl), dstPathFile);
 			}
-			processAttachment(sd, dstName, dstDir, contentType, srcExt, basePath);
+			processAttachment(sd, dstName, dstDir, contentType, srcExt, basePath, oId);
 
 		} catch (IOException e) {
 			log.log(Level.SEVERE, "Error", e);
@@ -693,7 +694,8 @@ public class GeneralUtilityMethods {
 	/*
 	 * Create thumbnails, reformat video files etc
 	 */
-	private static void processAttachment(Connection sd, String fileName, String destDir, String contentType, String ext, String basePath) {
+	private static void processAttachment(Connection sd, String fileName, String destDir, String contentType, 
+			String ext, String basePath, int oId) {
 
 		// note this function is called from subscriber hence can echo to the attachments log
 		String scriptPath = basePath + "_bin" + File.separator + "processAttachment.sh ";
@@ -710,12 +712,12 @@ public class GeneralUtilityMethods {
 			 */
 			File destFile = new File(destDir + "/" + fileName + "." + ext);
 			if(destFile.exists()) {
-				GeneralUtilityMethods.sendToS3(sd, basePath, destFile.getAbsolutePath());
+				GeneralUtilityMethods.sendToS3(sd, basePath, destFile.getAbsolutePath(), oId);
 			}
 
 			File destThumb = new File(destDir + "/thumbs/" + fileName + "." + ext + ".jpg");
 			if(destThumb.exists()) {
-				GeneralUtilityMethods.sendToS3(sd, basePath, destThumb.getAbsolutePath());
+				GeneralUtilityMethods.sendToS3(sd, basePath, destThumb.getAbsolutePath(), oId);
 			}
 			
 
@@ -729,13 +731,14 @@ public class GeneralUtilityMethods {
 	 * Send a file to S3
 	 * Write the file to a table to be processed separately
 	 */
-	public static void sendToS3(Connection sd, String basePath, String filePath) throws SQLException {
+	public static void sendToS3(Connection sd, String basePath, String filePath, int oId) throws SQLException {
 
-		String sql = "insert into s3upload (filepath, status) values(?, 'new')";
+		String sql = "insert into s3upload (filepath, o_id, status) values(?, ?, 'new')";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1,  filePath);
+			pstmt.setInt(2,  oId);
 			log.info("xx upload file to s3: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {

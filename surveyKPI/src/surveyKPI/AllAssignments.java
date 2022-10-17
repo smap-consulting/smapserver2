@@ -802,6 +802,8 @@ public class AllAssignments extends Application {
 			} catch (Exception e) {
 			}
 			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			
 			String tz = "UTC";	// get default timezone
 			// Get the base path
 			String basePath = GeneralUtilityMethods.getBasePath(request);
@@ -1061,7 +1063,8 @@ public class AllAssignments extends Application {
 								uploadedFileName,
 								importTime,
 								request.getServerName(),
-								sdf);
+								sdf,
+								oId);
 					} else {
 						 try (OPCPackage p = OPCPackage.open(f.getPath(), PackageAccess.READ)) {
 					            XLSXEventParser ep = new XLSXEventParser(p);
@@ -1081,7 +1084,8 @@ public class AllAssignments extends Application {
 					            		basePath,
 					            		sIdent,
 					            		mediaFiles,
-					            		sdf);				           
+					            		sdf,
+					            		oId);				           
 					        }
 					}
 

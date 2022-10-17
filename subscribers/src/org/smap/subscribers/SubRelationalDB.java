@@ -128,7 +128,7 @@ public class SubRelationalDB extends Subscriber {
 			
 			writeAllTableContent(dbc.sd, dbc.results, instance, submittingUser, server, device, 
 					formStatus, updateId, uploadTime, surveyNotes, 
-					locationTrigger, assignmentId);	
+					locationTrigger, assignmentId, survey.o_id);	
 
 			/*
 			 * Apply foreign keys
@@ -371,7 +371,7 @@ public class SubRelationalDB extends Subscriber {
 	private void writeAllTableContent(Connection sd, Connection cResults, SurveyInstance instance, String remoteUser, 
 			String server, String device, String formStatus, String updateId,
 			Date uploadTime, String surveyNotes, String locationTrigger,
-			int assignmentId) throws SQLInsertException {
+			int assignmentId, int oId) throws SQLInsertException {
 
 		int sId = survey.id;
 		
@@ -418,8 +418,8 @@ public class SubRelationalDB extends Subscriber {
 					assignmentId,
 					foreignKeys,
 					null,				// audit data
-					1		// record counter
-					);
+					1,		// record counter
+					oId);
 
 			// Commit so that we have the data
 			cResults.commit();
@@ -593,7 +593,8 @@ public class SubRelationalDB extends Subscriber {
 			int assignmentId,
 			ArrayList<ForeignKey> foreignKeys,
 			AuditData auditData,
-			int recCounter) throws SQLException, Exception {
+			int recCounter,
+			int oId) throws SQLException, Exception {
 
 		Keys keys = new Keys();
 		PreparedStatement pstmt = null;
@@ -718,7 +719,8 @@ public class SubRelationalDB extends Subscriber {
 							isBad, 
 							bad_reason,
 							auditString,
-							rawAuditString);
+							rawAuditString,
+							oId);
 					
 					log.info("1111111111: " + pstmt.toString());
 					pstmt.executeUpdate();
@@ -877,7 +879,7 @@ public class SubRelationalDB extends Subscriber {
 					writeTableContent(child, parent_key, sIdent, remoteUser, server, device, uuid, formStatus, version,
 							surveyNotes, locationTrigger, cResults, sd, sId, uploadTime,
 							auditPath + "/" + child.getName() + "[" + childRecCounter + "]", assignmentId,
-							foreignKeys, auditData, childRecCounter);
+							foreignKeys, auditData, childRecCounter, oId);
 					recCounter++;
 				}
 			}
@@ -930,7 +932,8 @@ public class SubRelationalDB extends Subscriber {
 			boolean isBad,
 			String badReason,
 			String audit,
-			String auditRaw) throws SQLException {
+			String auditRaw,
+			int oId) throws SQLException {
 		
 		PreparedStatement pstmt = null;
 		
@@ -970,7 +973,7 @@ public class SubRelationalDB extends Subscriber {
 		/*
 		 * Add the survey columns
 		 */
-		DynamicMetaValues dmv = addSurveyColumns(sd, cResults, sIdent, cms, device, server, tableName, columns, cols, vals, tableCols, foreignKeys, false);		
+		DynamicMetaValues dmv = addSurveyColumns(sd, cResults, sIdent, cms, device, server, tableName, columns, cols, vals, tableCols, foreignKeys, false, oId);		
 		
 		/*
 		 * Add dynamic meta value columns
@@ -1071,7 +1074,8 @@ public class SubRelationalDB extends Subscriber {
 			StringBuilder vals, 
 			ArrayList<TableColumn> tableCols,
 			ArrayList<ForeignKey> foreignKeys,
-			boolean phoneOnly) {	
+			boolean phoneOnly,
+			int oId) {	
 		
 		DynamicMetaValues dmv = new DynamicMetaValues();
 		
@@ -1115,13 +1119,13 @@ public class SubRelationalDB extends Subscriber {
 					|| colType.equals("geoshape") || colType.equals("geotrace") || colType.equals("geocompound")) {
 				
 				addTableCol(cols, vals, tableCols, col.getColumnName(), 
-						getDbValue(sd, col, sIdent, device, server, colPhoneOnly, cResults, tableName), colType);
+						getDbValue(sd, col, sIdent, device, server, colPhoneOnly, cResults, tableName, oId), colType);
 
 			} else if(colType.equals("begin group")) {
 				// Non repeating group, process these child columns at the same level as the parent
-				addSurveyColumns(sd, cResults, sIdent, cms, device, server, tableName, col.getQuestions(), cols, vals, tableCols, foreignKeys, phoneOnly);	
+				addSurveyColumns(sd, cResults, sIdent, cms, device, server, tableName, col.getQuestions(), cols, vals, tableCols, foreignKeys, phoneOnly, oId);	
 			} else {
-				String value = getDbValue(sd, col, sIdent, device, server, colPhoneOnly, cResults, tableName);
+				String value = getDbValue(sd, col, sIdent, device, server, colPhoneOnly, cResults, tableName, oId);
 				addTableCol(cols, vals, tableCols, colName, value, colType);
 				if(colName.equals("instanceid")) {
 					addTableCol(cols, vals, tableCols, "_thread", value, colType);		// Initialise the _thread value
@@ -1931,7 +1935,8 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Format the value into a string appropriate to its type
 	 */
-	String getDbValue(Connection sd, IE col, String surveyName, String device, String server, boolean phoneOnly, Connection cResults, String tableName) {
+	String getDbValue(Connection sd, IE col, String surveyName, String device, String server, 
+			boolean phoneOnly, Connection cResults, String tableName, int oId) {
 
 		String qType = col.getQType();
 		String value = col.getValue();	
@@ -2015,7 +2020,8 @@ public class SubRelationalDB extends Subscriber {
 								gBasePath, 
 								surveyName,
 								null,
-								mediaChanges);		
+								mediaChanges,
+								oId);		
 
 					}
 				} else if(qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("geocompound")) { // TODO

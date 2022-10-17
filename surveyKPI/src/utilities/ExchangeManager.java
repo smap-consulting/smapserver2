@@ -349,7 +349,8 @@ public class ExchangeManager {
 			String importSource,
 			Timestamp importTime,
 			String serverName,
-			SimpleDateFormat sdf
+			SimpleDateFormat sdf,
+			int oId
 			) throws Exception {
 		
 		CSVReader reader = null;
@@ -409,7 +410,8 @@ public class ExchangeManager {
 								sIdent,
 								mediaFiles,
 								sdf,
-								recordsWritten);
+								recordsWritten,
+								oId);
 
 												
 				    }
@@ -1143,7 +1145,8 @@ public class ExchangeManager {
 			String sIdent,
 			HashMap<String, File> mediaFiles,
 			SimpleDateFormat sdf,
-			int recordsWritten) throws SQLException {
+			int recordsWritten,
+			int oId) throws SQLException {
 		
 		int index = 1;
 		int count = 0;
@@ -1258,7 +1261,8 @@ public class ExchangeManager {
 							basePath, 
 							sIdent,
 							srcUrl,
-							null);
+							null,
+							oId);
 					}
 					if(value != null && value.trim().length() == 0) {
 						value = null;

@@ -1679,6 +1679,7 @@ CREATE TABLE s3upload (
 	filepath text,
 	status text,    -- new or failed
 	reason text,	-- failure reason
+	o_id integer default 0,
 	processed_time TIMESTAMP WITH TIME ZONE		-- Time of processing
 	);
 ALTER TABLE s3upload OWNER TO ws;
