@@ -631,6 +631,7 @@ public class ActionManager {
 					false,		// include preloads
 					false,		// include instancename
 					false,		// Survey duration
+					false,		// Case management
 					false,
 					false,		// HXL only include with XLS exports
 					false,		// Don't include audit data

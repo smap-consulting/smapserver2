@@ -231,6 +231,7 @@ public class DataManager {
 					includeMeta,	// include preloads
 					true,			// include instancename
 					includeMeta,	// include survey duration
+					includeMeta,	// include case management
 					false,
 					false,			// include HXL
 					false,

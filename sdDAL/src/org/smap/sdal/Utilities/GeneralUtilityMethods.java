@@ -3722,6 +3722,7 @@ public class GeneralUtilityMethods {
 			boolean includePreloads,
 			boolean includeInstanceName, 
 			boolean includeSurveyDuration, 
+			boolean includeCaseManagement,
 			boolean superUser,
 			boolean hxl,
 			boolean audit,
@@ -3836,6 +3837,18 @@ public class GeneralUtilityMethods {
 
 		}
 
+		// Include HRK here as this was the old order and TDH depend on this ordering
+		if (includeOtherMeta && formParent == 0) {
+
+			c = new TableColumn();
+			c.column_name = "_hrk";
+			c.displayName = "Key";
+			c.humanName = localisation.getString("cr_key");
+			c.type = SmapQuestionTypes.STRING;
+			c.question_name = c.column_name;
+			columnList.add(c);
+		}
+		
 		if (includeParentKey) {
 			c = new TableColumn();
 			c.column_name = "parkey";
@@ -3876,14 +3889,6 @@ public class GeneralUtilityMethods {
 
 		// For the top level form add default columns that are not in the question list
 		if (includeOtherMeta && formParent == 0) {
-
-			c = new TableColumn();
-			c.column_name = "_hrk";
-			c.displayName = "Key";
-			c.humanName = localisation.getString("cr_key");
-			c.type = SmapQuestionTypes.STRING;
-			c.question_name = c.column_name;
-			columnList.add(c);
 			
 			c = new TableColumn();
 			c.column_name = "_user";
@@ -3894,28 +3899,30 @@ public class GeneralUtilityMethods {
 			c.question_name = c.column_name;
 			columnList.add(c);
 
-			c = new TableColumn();
-			c.column_name = "_alert";
-			c.displayName = c.column_name;
-			c.humanName = localisation.getString("a_alert");
-			c.type = SmapQuestionTypes.STRING;
-			c.question_name = c.column_name;
-			columnList.add(c);
-
-			c = new TableColumn();
-			c.column_name = "_thread_created";
-			c.displayName = c.column_name;
-			c.humanName = localisation.getString("a_c_created");
-			c.type = SmapQuestionTypes.DATETIME;
-			c.question_name = c.column_name;
-			columnList.add(c);
-
-			c = new TableColumn();
-			c.column_name = "_case_closed";
-			c.displayName = localisation.getString("a_cc");
-			c.type = SmapQuestionTypes.DATETIME;
-			c.question_name = c.column_name;
-			columnList.add(c);
+			if(includeCaseManagement) {
+				c = new TableColumn();
+				c.column_name = "_alert";
+				c.displayName = c.column_name;
+				c.humanName = localisation.getString("a_alert");
+				c.type = SmapQuestionTypes.STRING;
+				c.question_name = c.column_name;
+				columnList.add(c);
+	
+				c = new TableColumn();
+				c.column_name = "_thread_created";
+				c.displayName = c.column_name;
+				c.humanName = localisation.getString("a_c_created");
+				c.type = SmapQuestionTypes.DATETIME;
+				c.question_name = c.column_name;
+				columnList.add(c);
+	
+				c = new TableColumn();
+				c.column_name = "_case_closed";
+				c.displayName = localisation.getString("a_cc");
+				c.type = SmapQuestionTypes.DATETIME;
+				c.question_name = c.column_name;
+				columnList.add(c);
+			}
 			
 
 			c = new TableColumn();

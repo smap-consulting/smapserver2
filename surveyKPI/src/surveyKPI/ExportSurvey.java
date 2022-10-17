@@ -418,6 +418,7 @@ public class ExportSurvey extends Application {
 							true,		// Incude preloads
 							true,		// instancename
 							false,		// survey duration
+							true,		// Case management
 							superUser,	// In this case we will export all data if super user
 							false,		// TODO add HXL export processing
 							false,		// Don't include audit data

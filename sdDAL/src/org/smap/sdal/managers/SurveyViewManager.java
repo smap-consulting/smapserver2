@@ -185,6 +185,7 @@ public void populateSvd(
 			includeMeta,		// include preloads
 			includeMeta,		// include instancename
 			includeMeta,		// Survey duration
+			includeMeta,		// Case Management
 			superUser,
 			false,		// HXL only include with XLS exports
 			false,		// Don't include audit data

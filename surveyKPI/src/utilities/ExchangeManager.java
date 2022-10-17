@@ -193,6 +193,7 @@ public class ExchangeManager {
 							true,		// Include preloads
 							true,		// instancename
 							false,		// Survey duration
+							false,		// Case Management
 							superUser,
 							false,
 							false,		// Don't include audit data

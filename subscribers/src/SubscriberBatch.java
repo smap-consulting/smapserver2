@@ -549,6 +549,7 @@ public class SubscriberBatch {
 											true,		// include preloads
 											true,		// include instancename
 											true,		// include survey duration
+											true,		// include case management
 											true,		// Super user
 											false,		// Don't include HXL
 											true,		// include audit data

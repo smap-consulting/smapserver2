@@ -346,6 +346,7 @@ public class Data_CSV extends Application {
 					true, 				// include preloads
 					true, 				// include instancename
 					true, 				// include survey duration
+					true,				// include case management
 					superUser, false, 	// TODO include HXL
 					audit,
 					tz,

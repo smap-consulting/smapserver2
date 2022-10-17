@@ -767,6 +767,7 @@ public class Data extends Application {
 						includeMeta,		// include preloads
 						true,				// include instancename
 						includeMeta,		// include survey duration
+						includeMeta,		// include case management
 						superUser,
 						false,				// TODO include HXL
 						audit,
@@ -1215,6 +1216,7 @@ public class Data extends Application {
 					true,		// Include preloads
 					true,		// Include instance name
 					false,		// Include survey duration
+					true,		// Include case management
 					superUser,
 					false,		// Only include HXL with CSV and Excel output
 					false,

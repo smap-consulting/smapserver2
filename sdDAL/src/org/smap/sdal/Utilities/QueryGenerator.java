@@ -466,6 +466,7 @@ public class QueryGenerator {
 				first && meta,		// Include preloads if meta set
 				first && meta,		// Include Instance Name in first form if meta set
 				false,				// Survey duration
+				first && meta,		// Include Case Management in first form if meta set
 				superUser,
 				false,				// HXL only include with XLS exports
 				false,				// Don't include audit data
