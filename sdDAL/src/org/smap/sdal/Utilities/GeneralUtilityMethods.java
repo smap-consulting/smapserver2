@@ -712,12 +712,12 @@ public class GeneralUtilityMethods {
 			 */
 			File destFile = new File(destDir + "/" + fileName + "." + ext);
 			if(destFile.exists()) {
-				GeneralUtilityMethods.sendToS3(sd, basePath, destFile.getAbsolutePath(), oId);
+				GeneralUtilityMethods.sendToS3(sd, basePath, destFile.getAbsolutePath(), oId, true);
 			}
 
 			File destThumb = new File(destDir + "/thumbs/" + fileName + "." + ext + ".jpg");
 			if(destThumb.exists()) {
-				GeneralUtilityMethods.sendToS3(sd, basePath, destThumb.getAbsolutePath(), oId);
+				GeneralUtilityMethods.sendToS3(sd, basePath, destThumb.getAbsolutePath(), oId, false);
 			}
 			
 
@@ -731,14 +731,15 @@ public class GeneralUtilityMethods {
 	 * Send a file to S3
 	 * Write the file to a table to be processed separately
 	 */
-	public static void sendToS3(Connection sd, String basePath, String filePath, int oId) throws SQLException {
+	public static void sendToS3(Connection sd, String basePath, String filePath, int oId, boolean isMedia) throws SQLException {
 
-		String sql = "insert into s3upload (filepath, o_id, status) values(?, ?, 'new')";
+		String sql = "insert into s3upload (filepath, o_id, status) values(?, ?, ?, 'new')";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1,  filePath);
 			pstmt.setInt(2,  oId);
+			pstmt.setBoolean(3,  isMedia);
 			log.info("xx upload file to s3: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {

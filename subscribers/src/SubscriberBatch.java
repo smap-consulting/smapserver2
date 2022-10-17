@@ -406,7 +406,7 @@ public class SubscriberBatch {
 									processMediaChanges(uploadFile, mediaChanges);
 								}
 								try {
-									GeneralUtilityMethods.sendToS3(dbc.sd, basePath, uploadFile, oId);
+									GeneralUtilityMethods.sendToS3(dbc.sd, basePath, uploadFile, oId, false);
 								} catch (Exception e) {
 									log.log(Level.SEVERE, e.getMessage(), e);
 								}
