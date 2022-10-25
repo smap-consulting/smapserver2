@@ -269,6 +269,7 @@ public class ExportSurveyOSM extends Application {
 							true,		// Include preloads
 							true,		// Include instancename
 							false,		// Survey duration
+							true,		// Case management
 							false,		// superUser - Always apply filters
 							false,		// HXL only include with XLS exports
 							false,		// Don't include audit data

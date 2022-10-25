@@ -554,3 +554,5 @@ update dashboard_settings ds set ds_date_question_name = (select q.qname from qu
 alter table dashboard_settings add column ds_group_question_name text;
 update dashboard_settings ds set ds_group_question_name = (select q.qname from question q where q.q_id = ds.ds_group_question_id) where ds.ds_group_question_name is null and ds.ds_group_question_id > 0;
 
+alter table s3upload add column o_id integer default 0;
+alter table s3upload add column is_media boolean default false;

@@ -1901,7 +1901,7 @@ public class Surveys extends Application {
 						+ "and qtype != 'geopolygon' "
 						+ "and qtype != 'geolinestring' "
 						+ "and qtype != 'note' "
-						+ "and (appearance is null or appearance not like '%label%' or appearance like '%nolabel') "
+						+ "and (appearance is null or ((appearance not like '%label%' or appearance like '%nolabel%') and appearance not like '%hidden%')) "
 						+ "and f_id in (select f_id from form where s_id = ?);"; 
 			
 				pstmtRequired = sd.prepareStatement(sqlRequired);	

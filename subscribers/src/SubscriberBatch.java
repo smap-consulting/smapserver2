@@ -226,10 +226,12 @@ public class SubscriberBatch {
 								InputStream is2 = null;
 								InputStream is3 = null;
 								
+								int oId = 0;
+								
 								ArrayList<MediaChange> mediaChanges = null;
 
 								try {
-									int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
+									oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
 									Organisation organisation = GeneralUtilityMethods.getOrganisation(dbc.sd, oId);
 									Locale orgLocale = new Locale(organisation.locale);
 									ResourceBundle orgLocalisation;
@@ -404,7 +406,7 @@ public class SubscriberBatch {
 									processMediaChanges(uploadFile, mediaChanges);
 								}
 								try {
-									GeneralUtilityMethods.sendToS3(dbc.sd, basePath, uploadFile);
+									GeneralUtilityMethods.sendToS3(dbc.sd, basePath, uploadFile, oId, false);
 								} catch (Exception e) {
 									log.log(Level.SEVERE, e.getMessage(), e);
 								}
@@ -547,6 +549,7 @@ public class SubscriberBatch {
 											true,		// include preloads
 											true,		// include instancename
 											true,		// include survey duration
+											true,		// include case management
 											true,		// Super user
 											false,		// Don't include HXL
 											true,		// include audit data

@@ -271,6 +271,7 @@ public class Items extends Application {
 						true,	// Include preloads
 						true,	// Include instance names
 						false,	// Include survey duration
+						true,	// Include case management
 						superUser,
 						false,		// HXL only include with XLS exports
 						false,		// Don't include audit data

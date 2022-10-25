@@ -372,21 +372,7 @@ public class GeneralUtilityMethods {
 		if (files != null) {
 			if (files.length > 0) {
 				moveFiles(files, toDirectory, newFileName);
-			} else {
-
-				// Try the old /templates/xls location for files
-				fromDirectory = basePath + "/templates/XLS";
-				dir = new File(fromDirectory);
-				files = dir.listFiles(fileFilter);
-				moveFiles(files, toDirectory, newFileName);
-
-				// try the /templates location
-				fromDirectory = basePath + "/templates";
-				dir = new File(fromDirectory);
-				files = dir.listFiles(fileFilter);
-				moveFiles(files, toDirectory, newFileName);
-
-			}
+			} 
 		}
 
 	}
@@ -631,7 +617,8 @@ public class GeneralUtilityMethods {
 	static public String createAttachments(Connection sd, String srcName, File srcPathFile, String basePath, 
 			String surveyName, 
 			String srcUrl,
-			ArrayList<MediaChange> mediaChanges) {
+			ArrayList<MediaChange> mediaChanges,
+			int oId) {
 
 		log.info("Create attachments");
 
@@ -691,7 +678,7 @@ public class GeneralUtilityMethods {
 				log.info("Processing attachment: " + srcUrl + " as " + dstPathFile);
 				FileUtils.copyURLToFile(new URL(srcUrl), dstPathFile);
 			}
-			processAttachment(sd, dstName, dstDir, contentType, srcExt, basePath);
+			processAttachment(sd, dstName, dstDir, contentType, srcExt, basePath, oId);
 
 		} catch (IOException e) {
 			log.log(Level.SEVERE, "Error", e);
@@ -707,7 +694,8 @@ public class GeneralUtilityMethods {
 	/*
 	 * Create thumbnails, reformat video files etc
 	 */
-	private static void processAttachment(Connection sd, String fileName, String destDir, String contentType, String ext, String basePath) {
+	private static void processAttachment(Connection sd, String fileName, String destDir, String contentType, 
+			String ext, String basePath, int oId) {
 
 		// note this function is called from subscriber hence can echo to the attachments log
 		String scriptPath = basePath + "_bin" + File.separator + "processAttachment.sh ";
@@ -724,12 +712,12 @@ public class GeneralUtilityMethods {
 			 */
 			File destFile = new File(destDir + "/" + fileName + "." + ext);
 			if(destFile.exists()) {
-				GeneralUtilityMethods.sendToS3(sd, basePath, destFile.getAbsolutePath());
+				GeneralUtilityMethods.sendToS3(sd, basePath, destFile.getAbsolutePath(), oId, true);
 			}
 
 			File destThumb = new File(destDir + "/thumbs/" + fileName + "." + ext + ".jpg");
 			if(destThumb.exists()) {
-				GeneralUtilityMethods.sendToS3(sd, basePath, destThumb.getAbsolutePath());
+				GeneralUtilityMethods.sendToS3(sd, basePath, destThumb.getAbsolutePath(), oId, false);
 			}
 			
 
@@ -743,13 +731,15 @@ public class GeneralUtilityMethods {
 	 * Send a file to S3
 	 * Write the file to a table to be processed separately
 	 */
-	public static void sendToS3(Connection sd, String basePath, String filePath) throws SQLException {
+	public static void sendToS3(Connection sd, String basePath, String filePath, int oId, boolean isMedia) throws SQLException {
 
-		String sql = "insert into s3upload (filepath, status) values(?, 'new')";
+		String sql = "insert into s3upload (filepath, o_id, is_media, status ) values(?, ?, ?, 'new')";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1,  filePath);
+			pstmt.setInt(2,  oId);
+			pstmt.setBoolean(3,  isMedia);
 			log.info("xx upload file to s3: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
@@ -2574,7 +2564,7 @@ public class GeneralUtilityMethods {
 		try {
 			
 			if(qName != null) {
-				if(qName.equals("_hrk") || qName.equals("prikey") 
+				if(qName.equals("_hrk")
 						|| qName.equals("prikey") 
 						|| qName.equals("_user") 
 						|| qName.equals("_bad")
@@ -3733,6 +3723,7 @@ public class GeneralUtilityMethods {
 			boolean includePreloads,
 			boolean includeInstanceName, 
 			boolean includeSurveyDuration, 
+			boolean includeCaseManagement,
 			boolean superUser,
 			boolean hxl,
 			boolean audit,
@@ -3847,6 +3838,18 @@ public class GeneralUtilityMethods {
 
 		}
 
+		// Include HRK here as this was the old order and TDH depend on this ordering
+		if (includeOtherMeta && formParent == 0) {
+
+			c = new TableColumn();
+			c.column_name = "_hrk";
+			c.displayName = "Key";
+			c.humanName = localisation.getString("cr_key");
+			c.type = SmapQuestionTypes.STRING;
+			c.question_name = c.column_name;
+			columnList.add(c);
+		}
+		
 		if (includeParentKey) {
 			c = new TableColumn();
 			c.column_name = "parkey";
@@ -3887,14 +3890,6 @@ public class GeneralUtilityMethods {
 
 		// For the top level form add default columns that are not in the question list
 		if (includeOtherMeta && formParent == 0) {
-
-			c = new TableColumn();
-			c.column_name = "_hrk";
-			c.displayName = "Key";
-			c.humanName = localisation.getString("cr_key");
-			c.type = SmapQuestionTypes.STRING;
-			c.question_name = c.column_name;
-			columnList.add(c);
 			
 			c = new TableColumn();
 			c.column_name = "_user";
@@ -3905,28 +3900,30 @@ public class GeneralUtilityMethods {
 			c.question_name = c.column_name;
 			columnList.add(c);
 
-			c = new TableColumn();
-			c.column_name = "_alert";
-			c.displayName = c.column_name;
-			c.humanName = localisation.getString("a_alert");
-			c.type = SmapQuestionTypes.STRING;
-			c.question_name = c.column_name;
-			columnList.add(c);
-
-			c = new TableColumn();
-			c.column_name = "_thread_created";
-			c.displayName = c.column_name;
-			c.humanName = localisation.getString("a_c_created");
-			c.type = SmapQuestionTypes.DATETIME;
-			c.question_name = c.column_name;
-			columnList.add(c);
-
-			c = new TableColumn();
-			c.column_name = "_case_closed";
-			c.displayName = localisation.getString("a_cc");
-			c.type = SmapQuestionTypes.DATETIME;
-			c.question_name = c.column_name;
-			columnList.add(c);
+			if(includeCaseManagement) {
+				c = new TableColumn();
+				c.column_name = "_alert";
+				c.displayName = c.column_name;
+				c.humanName = localisation.getString("a_alert");
+				c.type = SmapQuestionTypes.STRING;
+				c.question_name = c.column_name;
+				columnList.add(c);
+	
+				c = new TableColumn();
+				c.column_name = "_thread_created";
+				c.displayName = c.column_name;
+				c.humanName = localisation.getString("a_c_created");
+				c.type = SmapQuestionTypes.DATETIME;
+				c.question_name = c.column_name;
+				columnList.add(c);
+	
+				c = new TableColumn();
+				c.column_name = "_case_closed";
+				c.displayName = localisation.getString("a_cc");
+				c.type = SmapQuestionTypes.DATETIME;
+				c.question_name = c.column_name;
+				columnList.add(c);
+			}
 			
 
 			c = new TableColumn();
@@ -8331,6 +8328,30 @@ public class GeneralUtilityMethods {
 				String [] coords = c.split(",");
 				if(coords.length >= 2) {
 					wkt = "POINT(" + coords[0].trim() + " " + coords[1].trim() + ")"; 
+				}
+				
+			}
+		}
+			
+		return wkt;
+	}
+	
+	/*
+	 * Convert a geojson string into lat lng coordinates
+	 * Assume Point
+	 */
+	public static String getLatLngfromGeoJson(String json) {
+		
+		String wkt = null;
+		if(json != null) {
+			int idx1 = json.indexOf("[");
+			int idx2 = json.indexOf("]");
+			
+			if(idx2 > idx1) {
+				String c = json.substring(idx1 + 1, idx2);
+				String [] coords = c.split(",");
+				if(coords.length >= 2) {
+					wkt = coords[1].trim() + "," + coords[0].trim();; 
 				}
 				
 			}
