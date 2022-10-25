@@ -733,7 +733,7 @@ public class GeneralUtilityMethods {
 	 */
 	public static void sendToS3(Connection sd, String basePath, String filePath, int oId, boolean isMedia) throws SQLException {
 
-		String sql = "insert into s3upload (filepath, o_id, status) values(?, ?, ?, 'new')";
+		String sql = "insert into s3upload (filepath, o_id, is_media, status ) values(?, ?, ?, 'new')";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
@@ -2564,7 +2564,7 @@ public class GeneralUtilityMethods {
 		try {
 			
 			if(qName != null) {
-				if(qName.equals("_hrk") || qName.equals("prikey") 
+				if(qName.equals("_hrk")
 						|| qName.equals("prikey") 
 						|| qName.equals("_user") 
 						|| qName.equals("_bad")
