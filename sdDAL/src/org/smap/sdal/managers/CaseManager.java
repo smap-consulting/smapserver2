@@ -293,23 +293,26 @@ public class CaseManager {
 		
 		try {
 			/*
-			 * Only return cases which can have a final status
+			 * Only return cases which can have a final status (commented out) all cases assigned are now returned
+			 * Return all cases assigned to a user
 			 */
 			CMS cms = getCaseManagementSettings(sd, groupSurveyIdent);
-			if(cms != null && cms.settings != null && cms.settings.statusQuestion != null) {
+			//if(cms != null && cms.settings != null && cms.settings.statusQuestion != null) {
 	
 				String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
-				if(GeneralUtilityMethods.hasColumn(cResults, tableName, cms.settings.statusQuestion)) {
+				//if(GeneralUtilityMethods.hasColumn(cResults, tableName, cms.settings.statusQuestion)) {
+				if(tableName != null) {
 					
 					// Ignore cases that are bad or where the status value is null or if the case has been completed
 					StringBuilder sql = new StringBuilder("select instanceid, _thread, prikey, instancename, _hrk from ")
 							.append(tableName)
-							.append(" where not _bad and _assigned = ? and cast (")
-							.append(cms.settings.statusQuestion)
-							.append(" as text) != ?");
+							.append(" where not _bad and _assigned = ?");
+							//.append(" where not _bad and _assigned = ? and cast (")
+							//.append(cms.settings.statusQuestion)
+							//.append(" as text) != ?");
 					pstmt = cResults.prepareStatement(sql.toString());
 					pstmt.setString(1, user);
-					pstmt.setString(2,  cms.settings.finalStatus);
+					//pstmt.setString(2,  cms.settings.finalStatus);
 					log.info("Get cases: " + pstmt.toString());
 					ResultSet rs = pstmt.executeQuery();
 					
@@ -333,7 +336,7 @@ public class CaseManager {
 						cases.add(new Case(prikey, title, thread));
 					}
 				}
-			}
+			//}
 				
 		}  finally {		
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
