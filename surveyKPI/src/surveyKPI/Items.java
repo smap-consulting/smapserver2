@@ -363,7 +363,7 @@ public class Items extends Application {
 				/*
 				 * Add the old style server side calculations
 				 * Deprecate this by 19.12
-				 */
+				 *
 				String sqlSSC = "select ssc.name, ssc.function, ssc.units from ssc ssc, form f " +
 						" where f.f_id = ssc.f_id " +
 						" and f.table_name = ? " +
@@ -418,6 +418,7 @@ public class Items extends Application {
 					}
 
 				}
+				*/
 				
 				String sqlFilter = "";
 				if(start_key > 0) {
