@@ -284,7 +284,7 @@ public class Review extends Application {
 				if(hasTarget) {
 					targetN = "," + targetName;
 				}
-				sql = "select distinct " + name + targetN + ",count(*) from " + table +		
+				sql = "select " + name + targetN + ",count(*) from " + table +		
 						" where _bad = 'false' " +
 						" and " + name + " is not null " +
 						" group by " + name + targetN +
