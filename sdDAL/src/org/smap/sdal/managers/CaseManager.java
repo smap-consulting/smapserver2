@@ -296,12 +296,14 @@ public class CaseManager {
 			 * Only return cases which can have a final status (commented out) all cases assigned are now returned
 			 * Return all cases assigned to a user
 			 */
-			CMS cms = getCaseManagementSettings(sd, groupSurveyIdent);
+			//CMS cms = getCaseManagementSettings(sd, groupSurveyIdent);
 			//if(cms != null && cms.settings != null && cms.settings.statusQuestion != null) {
 	
 				String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 				//if(GeneralUtilityMethods.hasColumn(cResults, tableName, cms.settings.statusQuestion)) {
 				if(tableName != null) {
+					
+					GeneralUtilityMethods.ensureTableCurrent(cResults, tableName, true);		// Temporary - remove 2023
 					
 					// Ignore cases that are bad or where the status value is null or if the case has been completed
 					StringBuilder sql = new StringBuilder("select instanceid, _thread, prikey, instancename, _hrk from ")
