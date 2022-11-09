@@ -224,7 +224,8 @@ public class GeneralUtilityMethods {
 
 		if (in != null) {
 			out = in.trim().toLowerCase();
-
+			out = removeBOM(out);
+			
 			out = out.replace(" ", ""); // Remove spaces
 			out = out.replaceAll("[\\.\\[\\\\^\\$\\|\\?\\*\\+\\(\\)\\]\"\';,:!@#&%/{}<>-]", "x"); // Remove special
 			// characters ;
