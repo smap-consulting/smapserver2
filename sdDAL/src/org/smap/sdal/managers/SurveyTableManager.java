@@ -682,8 +682,10 @@ public class SurveyTableManager {
 								sqlDef.calcArray = new ArrayList<>();
 							}
 							sqlDef.calcArray.add(calculation);
-						} else if(colType.equals("geopoint") || colType.equals("geoshape") || colType.equals("geotrace")) {
+						} else if(colType.equals("geopoint")) {
 							colName = "ST_Y(" + tableName + "." + colName + ") || ' ' || ST_X(" + tableName + "." + colName + ")";
+						} else if(colType.equals("geoshape") || colType.equals("geotrace")) {
+							colName = "ST_AsText(" + tableName + "." + colName + ")";
 						}
 						
 					} else if (SmapServerMeta.isServerReferenceMeta(n)) {
