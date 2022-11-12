@@ -6384,7 +6384,7 @@ public class GeneralUtilityMethods {
 	public static void addColumn(Connection conn, String tablename, String columnName, String type) throws SQLException {
 
 		if(GeneralUtilityMethods.tableExists(conn, tablename) && !GeneralUtilityMethods.hasColumn(conn, tablename, columnName)) {
-			String sql = "alter table " + tablename + " add column " + columnName + " " + type;
+			String sql = "alter table " + tablename + " add column if not exists " + columnName + " " + type;
 	
 			PreparedStatement pstmt = conn.prepareStatement(sql);
 			log.info("Adding column: " + pstmt.toString());
