@@ -1110,6 +1110,7 @@ public class SurveyTableManager {
 						}
 						
 					}
+					bw.newLine();
 				}
 
 				bw.flush();
