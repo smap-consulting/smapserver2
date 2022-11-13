@@ -92,6 +92,7 @@ import org.smap.sdal.model.Language;
 import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Line;
 import org.smap.sdal.model.LinkedTarget;
+import org.smap.sdal.model.LonLat;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.MetaItem;
@@ -10683,6 +10684,51 @@ public class GeneralUtilityMethods {
 			log.log(Level.SEVERE, e.getMessage(), e);
 		}
 		return out;
+	}
+	
+	/*
+	 * Get the points from a WKT POINT, LINESTRING or POLYGON
+	 */
+	public static ArrayList<LonLat> getPointsFromWKT(String value, int idcounter) {
+		String [] coords = null;
+		String [] pointArray = null;
+		ArrayList<LonLat> points = new ArrayList<LonLat> ();
+		
+		int idx1 = value.lastIndexOf("(");	// Polygons with two brackets supported (Multi Polygons TODO)
+		int idx2 = value.indexOf(")");
+		if(idx2 > idx1) {
+			String coordString = value.substring(idx1 + 1, idx2);
+			if(value.startsWith("POINT")) {
+				coords = coordString.split(" ");
+				points.add(new LonLat(coords[0], coords[1], idcounter--));
+			} else if(value.startsWith("POLYGON") || value.startsWith("LINESTRING")) {			
+				pointArray = coordString.split(",");
+				for(int i = 0; i < pointArray.length; i++) {
+					coords = pointArray[i].split(" ");
+					points.add(new LonLat(coords[0], coords[1], idcounter--));
+				}
+			}
+		}
+		return points;
+	}
+	
+	/*
+	 * Convert a WKT geometry to the format used by fieldTask
+	 */
+	public static String convertGeomToFieldTaskFormat(String value) {
+
+		ArrayList<LonLat> points = getPointsFromWKT(value, 0);
+		StringBuilder sb = new StringBuilder("");
+		for(LonLat point : points) {
+			if(sb.length() > 0) {
+				sb.append(";");
+			}
+			sb.append(point.lat);
+			sb.append(" ");
+			sb.append(point.lon);
+		}
+		return sb.toString();
+		
 	}
 	
 	private static int getManifestParamStart(String property) {
