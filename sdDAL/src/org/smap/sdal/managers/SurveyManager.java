@@ -623,7 +623,7 @@ public class SurveyManager {
 		String existingKeyPolicy = null;
 		boolean existingDataSurvey = true;
 		boolean existingOversightSurvey = true;
-		boolean existingReadOnlySurvey = true;
+		boolean existingReadOnlySurvey = false;
 		String existingInstanceName = null;
 		String existingSurveyIdent = null;
 		

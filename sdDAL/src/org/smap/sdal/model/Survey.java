@@ -338,12 +338,13 @@ public class Survey {
 			pstmt.setBoolean(18, searchLocalData);
 			pstmt.setBoolean(19, dataSurvey);
 			pstmt.setBoolean(20, oversightSurvey);
-			pstmt.setBoolean(21, timing_data);
-			pstmt.setBoolean(22, audit_location_data);
-			pstmt.setBoolean(23, track_changes);
-			pstmt.setBoolean(24, autoTranslate);
-			pstmt.setString(25, default_logo);
-			pstmt.setBoolean(26, compress_pdf);
+			pstmt.setBoolean(21, readOnlySurvey);
+			pstmt.setBoolean(22, timing_data);
+			pstmt.setBoolean(23, audit_location_data);
+			pstmt.setBoolean(24, track_changes);
+			pstmt.setBoolean(25, autoTranslate);
+			pstmt.setString(26, default_logo);
+			pstmt.setBoolean(27, compress_pdf);
 			pstmt.executeUpdate();
 			
 			// If an ident was not provided then assign a new ident based on the survey id
