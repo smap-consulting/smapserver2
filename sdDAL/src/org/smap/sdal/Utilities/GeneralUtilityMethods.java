@@ -3422,16 +3422,13 @@ public class GeneralUtilityMethods {
 			String instanceId) throws SQLException {
 
 		PreparedStatement pstmtQuestion = null;
-		PreparedStatement pstmtOption = null;
 		PreparedStatement pstmtResults = null;
 
-		String sqlQuestion = "select qType, q_id, f_id, column_name from question where qname = ? and f_id in "
+		String sqlQuestion = "select qType, f_id, column_name from question where qname = ? and f_id in "
 				+ "(select f_id from form where s_id = ?)";
-		String sqlOption = "select o.ovalue, o.column_name from option o, question q where q.q_id = ? and q.l_id = o.l_id";
 
-		String qType = null;
 		int fId = 0;
-		int qId = 0;
+		String qType;
 		String columnName = null;
 
 		ArrayList<String> responses = new ArrayList<String>();
@@ -3442,46 +3439,15 @@ public class GeneralUtilityMethods {
 			log.info("GetResponseForQuestion: " + pstmtQuestion.toString());
 			ResultSet rs = pstmtQuestion.executeQuery();
 			if (rs.next()) {
-				qType = rs.getString(1);
-				qId = rs.getInt(2);
-				fId = rs.getInt(3);
-				columnName = rs.getString(4);
+				qType = rs.getString("qType");
+				fId = rs.getInt("f_id");
+				columnName = rs.getString("column_name");
 				ArrayList<String> tableStack = getTableStack(sd, fId);
-				ArrayList<String> options = new ArrayList<String>();
 
 				// First table is for the question, last is for the instance id
 				StringBuffer query = new StringBuffer();
-
-				// Add the select
-				if (qType.equals("select")) {
-					pstmtOption = sd.prepareStatement(sqlOption);
-					pstmtOption.setInt(1, qId);
-
-					log.info("Get Options: " + pstmtOption.toString());
-					ResultSet rsOptions = pstmtOption.executeQuery();
-
-					query.append("select ");
-					int count = 0;
-					while (rsOptions.next()) {
-						String oValue = rsOptions.getString(1);
-						String oColumnName = rsOptions.getString(2);
-						options.add(oValue);
-
-						if (count > 0) {
-							query.append(",");
-						}
-						query.append(" t0.");
-						query.append(columnName);
-						query.append("__");
-						query.append(oColumnName);
-						query.append(" as ");
-						query.append(oValue);
-						count++;
-					}
-					query.append(" from ");
-				} else {
-					query.append("select t0." + columnName + " from ");
-				}
+				
+				query.append("select t0." + columnName + " from ");
 
 				// Add the tables
 				for (int i = 0; i < tableStack.size(); i++) {
@@ -3522,30 +3488,19 @@ public class GeneralUtilityMethods {
 
 				rs = pstmtResults.executeQuery();
 				while (rs.next()) {
-					if (qType.equals("select")) {
-						for (String option : options) {
-							int isSelected = rs.getInt(option);
-
-							if (isSelected > 0) {
-								String email = option.replaceFirst("_amp_", "@");
-								email = email.replaceAll("_dot_", ".");
-								log.info("******** " + email);
-								String emails[] = email.split(",");
-								for (int i = 0; i < emails.length; i++) {
-									responses.add(emails[i]);
-								}
-							}
+						
+					String email = rs.getString(1);
+					if (email != null) {
+						String[] emails = null;
+						if (qType.equals("select")) {
+							emails = email.split(" ");
+						} else {
+							emails = email.split(",");
 						}
-					} else {
-						log.info("******** " + rs.getString(1));
-						String email = rs.getString(1);
-						if (email != null) {
-							String[] emails = email.split(",");
-							for (int i = 0; i < emails.length; i++) {
-								responses.add(emails[i]);
-							}
+							
+						for (int i = 0; i < emails.length; i++) {
+							responses.add(emails[i]);
 						}
-
 					}
 				}
 			}
@@ -3560,12 +3515,7 @@ public class GeneralUtilityMethods {
 				}
 			} catch (SQLException e) {
 			}
-			try {
-				if (pstmtOption != null) {
-					pstmtOption.close();
-				}
-			} catch (SQLException e) {
-			}
+			
 			try {
 				if (pstmtResults != null) {
 					pstmtResults.close();
