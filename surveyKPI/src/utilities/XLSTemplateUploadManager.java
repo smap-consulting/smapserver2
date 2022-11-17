@@ -429,7 +429,7 @@ public class XLSTemplateUploadManager {
 				survey.setSearchLocalData(getBooleanColumn(row, "search_local_data", settingsHeader, lastCellNum, false));
 				survey.dataSurvey = getBooleanColumn(row, "data_survey", settingsHeader, lastCellNum, true);
 				survey.oversightSurvey = getBooleanColumn(row, "oversight_survey", settingsHeader, lastCellNum, true);
-				survey.readOnlySurvey = getBooleanColumn(row, "read_only_survey", settingsHeader, lastCellNum, true);
+				survey.readOnlySurvey = getBooleanColumn(row, "read_only_survey", settingsHeader, lastCellNum, false);
 				
 				survey.timing_data = getBooleanColumn(row, "timing_data", settingsHeader, lastCellNum, false);
 				survey.audit_location_data = getBooleanColumn(row, "audit_location_data", settingsHeader, lastCellNum, false);
