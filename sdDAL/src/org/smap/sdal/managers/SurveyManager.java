@@ -623,6 +623,7 @@ public class SurveyManager {
 		String existingKeyPolicy = null;
 		boolean existingDataSurvey = true;
 		boolean existingOversightSurvey = true;
+		boolean existingReadOnlySurvey = true;
 		String existingInstanceName = null;
 		String existingSurveyIdent = null;
 		
@@ -666,8 +667,9 @@ public class SurveyManager {
 					existingKeyPolicy = rsGetSource.getString(5);
 					existingDataSurvey = rsGetSource.getBoolean(6);
 					existingOversightSurvey = rsGetSource.getBoolean(7);
-					existingInstanceName = rsGetSource.getString(8);
-					existingSurveyIdent = rsGetSource.getString(9);
+					existingReadOnlySurvey = rsGetSource.getBoolean(8);
+					existingInstanceName = rsGetSource.getString(9);
+					existingSurveyIdent = rsGetSource.getString(10);
 				}
 			}
 			if(sd.getAutoCommit()) {
@@ -701,7 +703,8 @@ public class SurveyManager {
 			pstmtCreateSurvey.setString(6, existingKeyPolicy);
 			pstmtCreateSurvey.setBoolean(7, existingDataSurvey);
 			pstmtCreateSurvey.setBoolean(8, existingOversightSurvey);
-			pstmtCreateSurvey.setString(9, existingInstanceName);
+			pstmtCreateSurvey.setBoolean(9, existingReadOnlySurvey);
+			pstmtCreateSurvey.setString(10, existingInstanceName);
 			
 			log.info("Create new survey: " + pstmtCreateSurvey.toString());
 			pstmtCreateSurvey.execute();
