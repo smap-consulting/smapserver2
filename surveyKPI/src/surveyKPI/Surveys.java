@@ -967,37 +967,7 @@ public class Surveys extends Application {
 			
 			boolean updatePDFName = false;
 			String archivedTemplateName = null;
-			/*
-			 * PDF Template
-			 * No longer updated through settings
-			 *
-
 			
-			
-			if(fileName != null) {  // Save the file
-				
-				// Temporary save the old file.  This will no longer be necessary once all clients have uploaded their PDFs with the filename saved to the change log
-				renamePdf(request, survey.displayName, survey.displayName + "__prev__", survey.p_id, true);
-				
-				archivedTemplateName = writePdfLegacy(request, survey.displayName, pdfItem, true, survey.p_id);		
-				writePdfLegacy(request, survey.displayName, pdfItem, false, survey.p_id);				// Save the "current" version of the file			
-			
-			} else if(pdfSet.equals("no")) {
-				
-				// Temporary save the old file.  This will no longer be necessary once all clients have uploaded their PDFs with the filename saved to the change log
-				renamePdf(request, survey.displayName, survey.displayName + "_previous", survey.p_id, true);
-				
-				// Try to delete the template file if it exists
-				delPdf(request, survey.displayName, survey.p_id);
-			} else {
-				  // If the survey name has been changed then change the name of the template on disk
-				if(originalDisplayName != null && !originalDisplayName.equals(survey.displayName)) {
-					renamePdf(request, originalDisplayName, survey.displayName, survey.p_id, false);
-				}
-
-				updatePDFName = false;	// PDF was not changed
-			}
-			*/
 			
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, updated_time) " +
@@ -1018,6 +988,7 @@ public class Surveys extends Application {
 					+ "search_local_data = ?, "
 					+ "data_survey = ?, "
 					+ "oversight_survey = ?, "
+					+ "read_only_survey = ?, "
 					+ "audit_location_data = ?, "
 					+ "track_changes = ?,"
 					+ "default_logo = ? ";
@@ -1046,14 +1017,15 @@ public class Surveys extends Application {
 			pstmt.setBoolean(15, survey.getSearchLocalData());
 			pstmt.setBoolean(16, survey.dataSurvey);
 			pstmt.setBoolean(17, survey.oversightSurvey);
-			pstmt.setBoolean(18, survey.audit_location_data);
-			pstmt.setBoolean(19, survey.track_changes);
-			pstmt.setString(20, survey.default_logo);
+			pstmt.setBoolean(18, survey.readOnlySurvey);
+			pstmt.setBoolean(19, survey.audit_location_data);
+			pstmt.setBoolean(20, survey.track_changes);
+			pstmt.setString(21, survey.default_logo);
 			if(updatePDFName) {
-				pstmt.setString(21, fileName);
-				pstmt.setInt(22, sId);
+				pstmt.setString(22, fileName);
+				pstmt.setInt(23, sId);
 			} else {
-				pstmt.setInt(21, sId);
+				pstmt.setInt(22, sId);
 			}
 			
 			log.info("Saving survey: " + pstmt.toString());

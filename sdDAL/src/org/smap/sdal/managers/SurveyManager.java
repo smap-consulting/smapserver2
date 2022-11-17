@@ -166,7 +166,7 @@ public class SurveyManager {
 				+ "s.ident, s.version, s.loaded_from_xls, p.name as project_name, p.id as project_id, "
 				+ "p.tasks_only,"
 				+ "s.group_survey_ident, s.public_link, o.can_submit, s.hide_on_device, s.search_local_data,"
-				+ "s.data_survey, s.oversight_survey "
+				+ "s.data_survey, s.oversight_survey, s.read_only_survey "
 				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -241,6 +241,7 @@ public class SurveyManager {
 				s.setSearchLocalData(resultSet.getBoolean("search_local_data"));
 				s.dataSurvey = resultSet.getBoolean("data_survey");
 				s.oversightSurvey = resultSet.getBoolean("oversight_survey");
+				s.readOnlySurvey = resultSet.getBoolean("read_only_survey");
 				
 				if(getGroupDetails) {
 					pstmtGetGroupDetails.setString(1, s.groupSurveyIdent);
@@ -429,6 +430,7 @@ public class SurveyManager {
 				+ "s.search_local_data, "
 				+ "s.data_survey, "
 				+ "s.oversight_survey, "
+				+ "s.read_only_survey, "
 				+ "s.audit_location_data, "
 				+ "s.track_changes,"
 				+ "s.auto_translate,"
@@ -516,6 +518,7 @@ public class SurveyManager {
 				s.setSearchLocalData(resultSet.getBoolean("search_local_data"));
 				s.dataSurvey = resultSet.getBoolean("data_survey");
 				s.oversightSurvey = resultSet.getBoolean("oversight_survey");
+				s.readOnlySurvey = resultSet.getBoolean("read_only_survey");
 				s.audit_location_data = resultSet.getBoolean("audit_location_data");
 				s.track_changes = resultSet.getBoolean("track_changes");
 				s.autoTranslate = resultSet.getBoolean("auto_translate");
@@ -629,9 +632,9 @@ public class SurveyManager {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 		String sqlCreateSurvey = "insert into survey ( s_id, display_name, deleted, p_id, version, last_updated_time, "
-				+ "based_on, meta, created, class, key_policy, data_survey, oversight_survey, instance_name) "
+				+ "based_on, meta, created, class, key_policy, data_survey, oversight_survey, read_only_survey, instance_name) "
 				+ "values (nextval('s_seq'), ?, 'false', ?, 1, now(), ?, ?, now(), "
-				+ "?, ?, ?, ?, ?)";
+				+ "?, ?, ?, ?, ?, ?)";
 		PreparedStatement pstmtCreateSurvey = null;
 
 		String sqlUpdateSurvey = "update survey set name = ?, ident = ?, group_survey_ident = ? where s_id = ?";
@@ -642,7 +645,7 @@ public class SurveyManager {
 		PreparedStatement pstmtCreateForm = null;
 
 		String sqlGetSource = "select s.display_name, f.f_id, s.meta, s.class, s.key_policy,"
-				+ "s.data_survey, s.oversight_survey, s.instance_name, s.ident "
+				+ "s.data_survey, s.oversight_survey, s.read_only_survey, s.instance_name, s.ident "
 				+ "from survey s, form f "
 				+ "where s.s_id = f.s_id "
 				+ "and s.s_id = ? "
@@ -3355,7 +3358,7 @@ public class SurveyManager {
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
 		
 		StringBuffer sql = new StringBuffer("select s.s_id, s.display_name, s.ident,"
-				+ "s.data_survey, s.oversight_survey, s.p_id "
+				+ "s.data_survey, s.oversight_survey, s.read_only_survey, s.p_id "
 				+ "from survey s, users u, user_project up "
 				+ "where s.p_id = up.p_id "
 				+ "and up.u_id = u.id "
@@ -3576,7 +3579,7 @@ public class SurveyManager {
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
 		
 		StringBuffer sql = new StringBuffer("select s.s_id, s.display_name, s.ident,"
-				+ "s.data_survey, s.oversight_survey, s.p_id "
+				+ "s.data_survey, s.oversight_survey, s.read_only_survey, s.p_id "
 				+ "from survey s "
 				+ "where not s.deleted "
 				+ "and s.group_survey_ident = ?");

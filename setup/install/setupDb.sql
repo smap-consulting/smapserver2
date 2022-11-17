@@ -598,6 +598,7 @@ CREATE TABLE survey (
 	default_logo text,
 	data_survey boolean default true,
 	oversight_survey boolean default true,
+	read_only_survey boolean default false,
 	auto_translate boolean default false
 	);
 ALTER TABLE survey OWNER TO ws;

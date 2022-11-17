@@ -74,6 +74,7 @@ public class Survey {
 	private boolean searchLocalData;
 	public boolean dataSurvey = true;
 	public boolean oversightSurvey = true;
+	public boolean readOnlySurvey = false;
 	public String groupSurveyIdent;
 	public String groupSurveyDetails;
 	public String publicLink;
@@ -94,6 +95,9 @@ public class Survey {
 	};
 	public boolean getSearchLocalData() { 
 		return searchLocalData;
+	};
+	public boolean getReadOnlySurvey() { 
+		return readOnlySurvey;
 	};
 	
 	public Form getFirstForm() {
@@ -290,6 +294,7 @@ public class Survey {
 				+ "search_local_data,"
 				+ "data_survey,"
 				+ "oversight_survey,"
+				+ "read_only_survey,"
 				+ "timing_data,"
 				+ "audit_location_data,"
 				+ "track_changes,"
@@ -297,7 +302,7 @@ public class Survey {
 				+ "default_logo,"
 				+ "compress_pdf) "
 				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "

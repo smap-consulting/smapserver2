@@ -554,3 +554,5 @@ update dashboard_settings ds set ds_group_question_name = (select q.qname from q
 
 alter table s3upload add column o_id integer default 0;
 alter table s3upload add column is_media boolean default false;
+
+alter table survey add column read_only_survey boolean default false;

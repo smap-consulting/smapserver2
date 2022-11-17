@@ -691,6 +691,7 @@ public class MyAssignments extends Application {
 				fl.project = survey.projectName;
 				fl.pid = survey.p_id;
 				fl.tasks_only = survey.getHideOnDevice();
+				fl.read_only = survey.getReadOnlySurvey();
 				fl.search_local_data = survey.getSearchLocalData();
 				fl.hasManifest = hasManifest;
 				fl.dirty = hasManifest;			// obsolete but used by FT
