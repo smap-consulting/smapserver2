@@ -3582,7 +3582,7 @@ public class SurveyManager {
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
 		
 		StringBuffer sql = new StringBuffer("select s.s_id, s.display_name, s.ident,"
-				+ "s.data_survey, s.oversight_survey, s.read_only_survey, s.p_id "
+				+ "s.data_survey, s.oversight_survey, s.p_id "
 				+ "from survey s "
 				+ "where not s.deleted "
 				+ "and s.group_survey_ident = ?");
