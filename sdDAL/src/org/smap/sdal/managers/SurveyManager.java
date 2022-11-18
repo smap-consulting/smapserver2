@@ -1201,7 +1201,8 @@ public class SurveyManager {
 				+ "p.o_id,"
 				+ "o.e_id,"
 				+ "o.can_submit,"
-				+ "s.group_survey_ident "
+				+ "s.group_survey_ident,"
+				+ "s.read_only_survey "
 				+ "from survey s,"
 				+ "project p,"
 				+ "organisation o "
@@ -1242,6 +1243,7 @@ public class SurveyManager {
 				s.o_id = resultSet.getInt("o_id");
 				s.e_id = resultSet.getInt("e_id");
 				s.groupSurveyIdent = resultSet.getString("group_survey_ident");
+				s.readOnlySurvey = resultSet.getBoolean("read_only_survey");
 				
 			}
 		} catch (SQLException e) {
