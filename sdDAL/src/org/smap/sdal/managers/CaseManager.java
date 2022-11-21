@@ -293,53 +293,43 @@ public class CaseManager {
 		
 		try {
 			/*
-			 * Only return cases which can have a final status (commented out) all cases assigned are now returned
-			 * Return all cases assigned to a user
+			 * Return all cases assigned to a user that were updated by the provided survey id
 			 */
-			//CMS cms = getCaseManagementSettings(sd, groupSurveyIdent);
-			//if(cms != null && cms.settings != null && cms.settings.statusQuestion != null) {
-	
-				String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
-				//if(GeneralUtilityMethods.hasColumn(cResults, tableName, cms.settings.statusQuestion)) {
-				if(tableName != null) {
-					
-					GeneralUtilityMethods.ensureTableCurrent(cResults, tableName, true);		// Temporary - remove 2023
-					
-					// Ignore cases that are bad or where the status value is null or if the case has been completed
-					StringBuilder sql = new StringBuilder("select instanceid, _thread, prikey, instancename, _hrk from ")
-							.append(tableName)
-							.append(" where not _bad and _assigned = ?");
-							//.append(" where not _bad and _assigned = ? and cast (")
-							//.append(cms.settings.statusQuestion)
-							//.append(" as text) != ?");
-					pstmt = cResults.prepareStatement(sql.toString());
-					pstmt.setString(1, user);
-					//pstmt.setString(2,  cms.settings.finalStatus);
-					log.info("Get cases: " + pstmt.toString());
-					ResultSet rs = pstmt.executeQuery();
-					
-					while(rs.next()) {
-						String title = null;
-						int prikey = rs.getInt("prikey");
-						String instanceName = rs.getString("instancename");
-						String thread = rs.getString("_thread");
-						if(thread == null) {
-							thread = rs.getString("instanceid");
-						}
-						String hrk = rs.getString("_hrk");
-						if(instanceName != null && instanceName.trim().length() > 0) {
-							title = instanceName;
-						} else if(hrk != null && hrk.trim().length() > 0) {
-							title = hrk;
-						} else {
-							title = String.valueOf(prikey);
-						}
-						
-						cases.add(new Case(prikey, title, thread));
+			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			if(tableName != null) {
+
+				GeneralUtilityMethods.ensureTableCurrent(cResults, tableName, true);		// Temporary - remove 2023
+
+				StringBuilder sql = new StringBuilder("select instanceid, _thread, prikey, instancename, _hrk from ")
+						.append(tableName)
+						.append(" where not _bad and _assigned = ? and _s_id = ?");
+				pstmt = cResults.prepareStatement(sql.toString());
+				pstmt.setString(1, user);
+				pstmt.setInt(2,  sId);
+				log.info("Get cases: " + pstmt.toString());
+				ResultSet rs = pstmt.executeQuery();
+
+				while(rs.next()) {
+					String title = null;
+					int prikey = rs.getInt("prikey");
+					String instanceName = rs.getString("instancename");
+					String thread = rs.getString("_thread");
+					if(thread == null) {
+						thread = rs.getString("instanceid");
 					}
+					String hrk = rs.getString("_hrk");
+					if(instanceName != null && instanceName.trim().length() > 0) {
+						title = instanceName;
+					} else if(hrk != null && hrk.trim().length() > 0) {
+						title = hrk;
+					} else {
+						title = String.valueOf(prikey);
+					}
+
+					cases.add(new Case(prikey, title, thread));
 				}
-			//}
-				
+			}
+
 		}  finally {		
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
