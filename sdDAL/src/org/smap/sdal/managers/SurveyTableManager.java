@@ -1103,10 +1103,13 @@ public class SurveyTableManager {
 							bw.write("");
 						} else if(val.startsWith("LINESTRING") || val.startsWith("POLYGON")) {
 							String ftVal = GeneralUtilityMethods.convertGeomToFieldTaskFormat(val);
-							System.out.println(ftVal);
+							bw.write("\"");
 							bw.write(ftVal);
+							bw.write("\"");
 						} else {
+							bw.write("\"");
 							bw.write(val);
+							bw.write("\"");
 						}
 						
 					}
