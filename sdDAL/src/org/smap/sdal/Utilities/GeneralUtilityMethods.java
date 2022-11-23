@@ -3778,7 +3778,7 @@ public class GeneralUtilityMethods {
 		}	
 		
 		// Add assigned if this is a management request
-		if(mgmt && formParent == 0) {
+		if(formParent == 0) {
 
 			c = new TableColumn();
 			c.column_name = "_assigned";
