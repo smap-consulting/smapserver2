@@ -960,6 +960,11 @@ public class ExchangeManager {
 			col.name = qName;
 			col.columnName = "_case_closed";
 			col.type = "dateTime";
+		} else if(qName.equals("_case_survey")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = qName;
+			col.type = "string";
 		} else {
 			pstmtGetCol.setString(2, qName.toLowerCase());		// Search for a question
 			ResultSet rs = pstmtGetCol.executeQuery();

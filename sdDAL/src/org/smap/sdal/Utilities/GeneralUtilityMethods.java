@@ -3875,6 +3875,13 @@ public class GeneralUtilityMethods {
 				c.type = SmapQuestionTypes.DATETIME;
 				c.question_name = c.column_name;
 				columnList.add(c);
+				
+				c = new TableColumn();
+				c.column_name = "_case_survey";
+				c.displayName = localisation.getString("a_cs");
+				c.type = SmapQuestionTypes.STRING;
+				c.question_name = c.column_name;
+				columnList.add(c);
 			}
 			
 
@@ -4220,11 +4227,12 @@ public class GeneralUtilityMethods {
 			 * If this is present there is no need to check for the others
 			 * Also check for _thread_created existing due to a bug in a previous release which did not create this column (TODO remove October 2022)
 			 */
-			if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_case_closed") || !GeneralUtilityMethods.hasColumn(cResults, table_name, "_thread_created")) {
+			if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_case_survey")) {				
+				GeneralUtilityMethods.addColumn(cResults, table_name, "_case_survey", "text");
 				
-				GeneralUtilityMethods.addColumn(cResults, table_name, "_case_closed", "timestamp with time zone");
-			
-			
+				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_case_closed")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_case_closed", "timestamp with time zone");
+				}
 				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
 					GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
 				}
