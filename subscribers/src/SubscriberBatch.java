@@ -1216,7 +1216,8 @@ public class SubscriberBatch {
 						nd.callback_url,
 						remoteUser,
 						remotePassword,
-						0);
+						0,
+						null);
 				
 				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
@@ -1359,15 +1360,6 @@ public class SubscriberBatch {
 					}
 					if(settings != null && settings.finalStatus != null && settings.statusQuestion != null &&
 							GeneralUtilityMethods.hasColumn(cResults, table, settings.statusQuestion)) {
-					
-						// reduce the number of times initialise is called
-						//Threads should have been initialised on submit
-						//String initialised = initialisedCache.get(table);
-						//if(initialised == null) {
-							//GeneralUtilityMethods.initialiseThread(cResults, table);
-						//	initialisedCache.put(table, table);
-						//}
-						
 						
 						/*
 						 * Find records in the case that match this alert
@@ -1478,7 +1470,8 @@ public class SubscriberBatch {
 										nd.callback_url,
 										user,
 										null,
-										0);
+										0,
+										nd.survey_case);
 													
 								MessagingManager mm = new MessagingManager(localisation);
 								mm.createMessage(sd, oId, "cm_alert", "", gson.toJson(subMgr));						

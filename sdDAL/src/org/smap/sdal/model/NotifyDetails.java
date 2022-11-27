@@ -17,5 +17,5 @@ public class NotifyDetails {
 	public boolean launched_only;
 	public String callback_url;
 	public int pdfTemplateId;
-
+	public String survey_case;
 }

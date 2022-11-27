@@ -4236,6 +4236,7 @@ public class GeneralUtilityMethods {
 				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
 					GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
 				}
+				
 				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_alert")) {
 					GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "text");
 				}
@@ -6361,27 +6362,31 @@ public class GeneralUtilityMethods {
 	 * Method to assign a record to a user
 	 */
 	public static int assignRecord(Connection sd, Connection cResults, ResourceBundle localisation, String tablename, String instanceId, String user, 
-			String type					// lock || release || assign
+			String type,					// lock || release || assign
+			String surveyIdent
 			) throws SQLException {
 
 		int count = 0;
 		
 		StringBuilder sql = new StringBuilder("update ") 
 				.append(tablename) 
-				.append(" set _assigned = ? ")
+				.append(" set _assigned = ?, _case_survey = ? ")
 				.append("where instanceid = ? ");
 
-		if(user != null && user.equals("_none")) {
+		if(user != null && user.equals("_none")) {		// Assigning to no one
 			user = null;
+			surveyIdent = null;
 		}
 		
 		String assignTo = user;
+		String caseSurvey = surveyIdent;
 		String details = null;
 		if(type.equals("lock")) {
 			sql.append("and _assigned is null");		// User can only self assign if no one else is assigned
 			details = localisation.getString("cm_lock");
 		} else if(type.equals("release")) {
 			assignTo = null;
+			caseSurvey = null;
 			sql.append("and _assigned = ?");			// User can only release records that they are assigned to
 			details = localisation.getString("cm_release");
 		} else {
@@ -6392,13 +6397,10 @@ public class GeneralUtilityMethods {
 			}
 		}
 		
-		if(!hasColumn(cResults, tablename, SurveyViewManager.ASSIGNED_COLUMN)) {
-			addColumn(cResults, tablename, SurveyViewManager.ASSIGNED_COLUMN, "text");
-		}
-		
 		PreparedStatement pstmt = cResults.prepareStatement(sql.toString());
 		pstmt.setString(1, assignTo);
-		pstmt.setString(2,instanceId);
+		pstmt.setString(2, caseSurvey);
+		pstmt.setString(3,instanceId);
 		if(type.equals("release")) {
 			pstmt.setString(3,user);
 		}

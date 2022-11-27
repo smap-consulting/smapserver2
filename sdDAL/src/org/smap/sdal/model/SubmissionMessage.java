@@ -9,6 +9,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 public class SubmissionMessage {
 	public int taskId;
 	public String survey_ident;
+	public String survey_case;
 	public String update_ident;
 	public int pId;
 	public String instanceId;
@@ -56,7 +57,8 @@ public class SubmissionMessage {
 			String callout_url,
 			String remoteUser,
 			String remoTePassword,
-			int pdfTemplateId) {
+			int pdfTemplateId,
+			String survey_case) {
 		
 		this.taskId = taskId;
 		this.survey_ident = survey_ident;
@@ -82,6 +84,7 @@ public class SubmissionMessage {
 		this.remoteUser = remoteUser;
 		this.remotePassword = remoTePassword;
 		this.pdfTemplateId = pdfTemplateId;
+		this.survey_case = survey_case;
 	}
 	
 	// copy constructor
@@ -114,6 +117,7 @@ public class SubmissionMessage {
 		this.remoteUser = orig.remoteUser;
 		this.remotePassword = orig.remotePassword;
 		this.pdfTemplateId = orig.pdfTemplateId;
+		this.survey_case = orig.survey_case;
 	}
 	
 	public boolean emailQuestionSet() {

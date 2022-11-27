@@ -248,12 +248,11 @@ public class ManagedForms extends Application {
 			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, SurveyViewManager.ASSIGNED_COLUMN)) {
-					GeneralUtilityMethods.addColumn(cResults, tableName, SurveyViewManager.ASSIGNED_COLUMN, "text");
-				}
+				
+				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				
 				if(instanceId != null) {
-					int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "lock");
+					int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "lock", surveyIdent);
 					if(count == 0) {
 						response = Response.serverError().entity(localisation.getString("mf_aa")).build();
 					} else {
@@ -317,11 +316,11 @@ public class ManagedForms extends Application {
 			if(!uIdent.equals("_none")) {
 				a.isValidUser(sd, request.getRemoteUser(), GeneralUtilityMethods.getUserId(sd, uIdent));
 			}
-			
+			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
 				
-				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, uIdent, "assign");
+				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, uIdent, "assign", surveyIdent);
 				if(count == 0) {
 					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 				} else {
@@ -379,7 +378,7 @@ public class ManagedForms extends Application {
 			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
-				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "release");
+				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "release", null);
 				if(count == 0) {
 					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 				} else {

@@ -684,7 +684,8 @@ public class NotificationManager {
 							nd.callback_url,
 							remoteUser,
 							remotePassword,
-							nd.pdfTemplateId);
+							nd.pdfTemplateId,
+							nd.survey_case);
 					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
 
 					lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
@@ -1160,10 +1161,15 @@ public class NotificationManager {
 
 					try {
 						String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
+						String surveyCase = msg.survey_case;
+						if(surveyCase == null) {	// if no survey to complete has been specified then complete with the submitting survey
+							surveyCase = msg.survey_ident;
+						}
 						String assignTo = msg.remoteUser;
-						if(msg.remoteUser.equals("_submitter")) 
+						if(msg.remoteUser.equals("_submitter")) {
 							assignTo = msg.user;
-						int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign");
+						}
+						int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase);
 						if(count == 0) {
 							status = "error";
 							error_details = "case not found, attempting: " + notify_details;
