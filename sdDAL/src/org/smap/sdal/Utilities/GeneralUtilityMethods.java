@@ -10681,6 +10681,25 @@ public class GeneralUtilityMethods {
 		
 	}
 	
+	public static int indexOfQuote(String in, int start) {
+		int idx = -1;
+		
+		if(in != null) {
+			// Try ' first then "
+			int idx1 = in.indexOf('\'', start);
+			int idx2 = in.indexOf('\"', start);
+			if(idx1 == -1) {
+				idx = idx2;
+			} else if(idx2 == -1) {
+				idx = idx1;
+			} else {
+				idx = Math.min(idx1, idx2);	// Get the first occurence
+			}
+		}
+		
+		return idx;
+	}
+
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");
@@ -10702,6 +10721,7 @@ public class GeneralUtilityMethods {
 		
 		return idx;
 	}
+	
 	
 	
 }
