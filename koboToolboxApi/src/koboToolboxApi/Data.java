@@ -745,7 +745,7 @@ public class Data extends Application {
 					}
 					if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
 				}
-	
+				
 				columns = GeneralUtilityMethods.getColumnsInForm(
 						sd,
 						cResults,
@@ -785,7 +785,13 @@ public class Data extends Application {
 			CaseManager cm = new CaseManager(localisation);				
 			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 			CMS cms = cm.getCaseManagementSettings(sd, groupSurveyIdent);
-						
+					
+			// Only set the filter if parkey is not set. Otherwise, if set, it is a drill down and the filter does not apply
+			String filter = null;
+			if(parkey == 0) {
+				filter = ssd.filter;
+			}
+			
 			/*
 			 * Get the prepared statement
 			 */
@@ -819,7 +825,7 @@ public class Data extends Application {
 					null,			// key filter
 					tz,
 					instanceId,			// instanceId
-					ssd.filter,
+					filter,
 					ssd.dateName,
 					ssd.fromDate,
 					ssd.toDate
