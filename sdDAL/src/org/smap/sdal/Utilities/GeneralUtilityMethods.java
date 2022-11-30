@@ -8892,7 +8892,7 @@ public class GeneralUtilityMethods {
 			if ((len = proc.getInputStream().available()) > 0) {
 				byte[] buf = new byte[len];
 				proc.getInputStream().read(buf);
-				log.info("Completed 54tore media process:\t\"" + new String(buf) + "\"");
+				log.info("Completed restore media process:\t\"" + new String(buf) + "\"");
 			}
 		}
 		

@@ -203,25 +203,6 @@ public class SurveyTableManager {
 		if(sqlDef != null && sqlDef.colNames != null && sqlDef.colNames.size() > 0) {
 			StringBuilder sql = new StringBuilder(sqlDef.sql);
 			
-			// Check the where questions
-			/*
-			if(whereColumns != null) {
-				for(String col : whereColumns) {
-					boolean foundCol = false;
-					for(String h : sqlDef.colNames) {
-						if(h.equals(col)) {
-							foundCol = true;
-							break;
-						}
-					}
-					if(!foundCol) {
-						String msg = localisation.getString("qlu");
-						msg = msg.replace("%s1", col);
-						throw new ApplicationException(msg);
-					}
-				}
-			}
-			*/
 			if(expressionFrag != null || selection != null) { 
 				if(sqlDef.hasWhere) {
 					sql.append(" and ");

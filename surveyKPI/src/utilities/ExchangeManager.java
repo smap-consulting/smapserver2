@@ -23,6 +23,10 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URL;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -38,6 +42,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -129,6 +134,7 @@ public class ExchangeManager {
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 		surveyNames = new HashMap<String, String> ();
 		String basePath = null;
+		String urlPrefix = null;
 		String language = "none";
 		
 		String dateName = null;
@@ -143,6 +149,7 @@ public class ExchangeManager {
 			try {
 				
 				basePath = GeneralUtilityMethods.getBasePath(request);
+				urlPrefix = request.getScheme() + "://" + request.getServerName() + "/";
 				
 				// Prepare the statement to get the question type and read only attribute
 				String sqlQType = "select q.qtype, q.readonly from question q, form f " +
@@ -264,11 +271,13 @@ public class ExchangeManager {
 								sheet,
 								styles,
 								sId,
+								surveyIdent,
 								null, 
 								null, 
 								dateName,
 								dateForm,
 								basePath,
+								urlPrefix,
 								dirPath,
 								files,
 								incMedia,
@@ -523,11 +532,13 @@ public class ExchangeManager {
 			Sheet sheet, 
 			Map<String, CellStyle> styles,
 			int sId,
+			String surveyIdent,
 			Date startDate,
 			Date endDate,
 			String dateName,
 			int dateForm,
 			String basePath,
+			String urlPrefix,
 			String dirPath,
 			ArrayList<FileDescription> files,
 			boolean incMedia,
@@ -659,17 +670,35 @@ public class ExchangeManager {
 							// Copy file to temporary zip folder
 
 							File source = new File(attachmentPath);
+							String newPath = dirPath + "/" + value;
+							File dest = new File(newPath);
 							if (source.exists()) {
-								String newPath = dirPath + "/" + value;
-								File dest = new File(newPath);
 								try {
+									log.info("Getting local media file: " + newPath);
 									FileUtils.copyFile(source, dest);				
 									files.add(new FileDescription(value, newPath));
 								} catch (Exception e) {
-									log.info("Error: Failed to add file " + source + " to exchange export. " + e.getMessage());
+									log.info("Error: Failed to add file " + attachmentPath + " to exchange export. " + e.getMessage());
 								}
 							} else {
-								log.info("Error: media file does not exist: " + attachmentPath);
+								/*
+								 * The file has probably been moved to long term storage, get it by making a webservice call
+								 * From: https://www.baeldung.com/java-download-file
+								 */
+								FileOutputStream fileOutputStream = null;
+								try {
+									String urlPath = urlPrefix + "attachments/" + surveyIdent + "/" + value;
+									log.info("Getting remote media file: " + urlPath);
+									URL url = new URL(urlPath);
+									ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
+									fileOutputStream = new FileOutputStream(newPath);
+									fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+									files.add(new FileDescription(value, newPath));
+								} catch(Exception e) {
+									log.info("Error: Failed to add remote file " + attachmentPath + " to exchange export. " + e.getMessage());
+								} finally {
+									try {fileOutputStream.close();} catch (Exception e) {}
+								}
 							}
 						} 
 						
