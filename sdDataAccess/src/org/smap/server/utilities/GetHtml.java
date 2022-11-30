@@ -1993,13 +1993,12 @@ public class GetHtml {
 		StringBuilder sb = new StringBuilder("");
 		int idx1;
 		while ((idx1 = calculation.indexOf("pulldata")) >= 0) {
-			idx1 = calculation.indexOf('\'', idx1);
-			int idx2 = calculation.indexOf('\'', idx1 + 1 );
+			idx1 = GeneralUtilityMethods.indexOfQuote(calculation, idx1);
+			int idx2 = GeneralUtilityMethods.indexOfQuote(calculation, idx1 + 1);
 			sb.append(calculation.substring(0, idx2) + "__pull");
 			calculation = calculation.substring(idx2);
 		}
 		sb.append(calculation);
-		System.out.println(sb.toString());
 		return sb.toString();
 	}
 }
