@@ -3355,7 +3355,7 @@ public class SurveyManager {
 	 * Get the group surveys
 	 * Always add the survey corresponding to sId to the group
 	 */
-	public ArrayList<GroupDetails> getGroupDetails(Connection sd, 
+	public ArrayList<GroupDetails> getAccessibleGroupSurveys(Connection sd, 
 			String groupSurveyIdent, 
 			String user, 
 			boolean superUser) throws SQLException {
@@ -3578,7 +3578,7 @@ public class SurveyManager {
 	 * Get the group surveys
 	 * Do not check that the user has access
 	 */
-	public ArrayList<GroupDetails> getGroupSurveysAnonymous(Connection sd, 
+	public ArrayList<GroupDetails> getSurveysInGroup(Connection sd, 
 			String groupSurveyIdent) throws SQLException {
 		
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
@@ -3628,7 +3628,7 @@ public class SurveyManager {
 		
 		HashMap<String, QuestionForm> groupQuestions = new HashMap<> ();
 		
-		ArrayList<GroupDetails> surveys = getGroupSurveysAnonymous(sd, groupSurveyIdent);
+		ArrayList<GroupDetails> surveys = getSurveysInGroup(sd, groupSurveyIdent);
 		for(GroupDetails s : surveys) {
 			Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, s.sId);
 			ArrayList<MetaItem> items = GeneralUtilityMethods.getPreloads(sd, s.sId);

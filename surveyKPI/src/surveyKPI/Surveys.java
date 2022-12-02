@@ -376,7 +376,7 @@ public class Surveys extends Application {
 			
 			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			ArrayList<GroupDetails> groupSurveys = sm.getGroupSurveysAnonymous(sd, groupSurveyIdent);
+			ArrayList<GroupDetails> groupSurveys = sm.getSurveysInGroup(sd, groupSurveyIdent);
 			
 			response = Response.ok(gson.toJson(groupSurveys)).build();
 			
