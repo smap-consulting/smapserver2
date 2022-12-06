@@ -18,4 +18,5 @@ public class NotifyDetails {
 	public String callback_url;
 	public int pdfTemplateId;
 	public String survey_case;
+	public String assign_question;
 }

@@ -21,6 +21,7 @@ public class SubmissionMessage {
 	public boolean launchedOnly;
 	private int emailQuestion;			// Legacy question identifier
 	private String emailQuestionName;	// New question identifier
+	public String assignQuestion;
 	public String emailMeta;
 	public ArrayList<String> emails;
 	public String target;
@@ -58,7 +59,8 @@ public class SubmissionMessage {
 			String remoteUser,
 			String remoTePassword,
 			int pdfTemplateId,
-			String survey_case) {
+			String survey_case,
+			String assignQuestion) {
 		
 		this.taskId = taskId;
 		this.survey_ident = survey_ident;
@@ -85,6 +87,7 @@ public class SubmissionMessage {
 		this.remotePassword = remoTePassword;
 		this.pdfTemplateId = pdfTemplateId;
 		this.survey_case = survey_case;
+		this.assignQuestion = assignQuestion;
 	}
 	
 	// copy constructor
@@ -118,6 +121,7 @@ public class SubmissionMessage {
 		this.remotePassword = orig.remotePassword;
 		this.pdfTemplateId = orig.pdfTemplateId;
 		this.survey_case = orig.survey_case;
+		this.assignQuestion = orig.assignQuestion;
 	}
 	
 	public boolean emailQuestionSet() {

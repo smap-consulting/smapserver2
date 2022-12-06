@@ -1217,7 +1217,8 @@ public class SubscriberBatch {
 						remoteUser,
 						remotePassword,
 						0,
-						null);
+						null,
+						nd.assign_question);
 				
 				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
@@ -1471,7 +1472,8 @@ public class SubscriberBatch {
 										user,
 										null,
 										0,
-										nd.survey_case);
+										nd.survey_case,
+										nd.assign_question);
 													
 								MessagingManager mm = new MessagingManager(localisation);
 								mm.createMessage(sd, oId, "cm_alert", "", gson.toJson(subMgr));						

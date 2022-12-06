@@ -386,7 +386,6 @@ public class NotificationManager {
 
 		types.add("email");
 		types.add("webhook");
-		//types.add("forward");
 		types.add("escalate");
 
 		boolean awsSMS = false;
@@ -685,7 +684,8 @@ public class NotificationManager {
 							remoteUser,
 							remotePassword,
 							nd.pdfTemplateId,
-							nd.survey_case);
+							nd.survey_case,
+							nd.assign_question);
 					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
 
 					lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
@@ -877,7 +877,7 @@ public class NotificationManager {
 						if(msg.emailQuestionSet()) {
 							String emailQuestionName = msg.getEmailQuestionName(sd);
 							log.info("Email question: " + emailQuestionName);
-							emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, surveyId, emailQuestionName, msg.instanceId);
+							emailList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, emailQuestionName, msg.instanceId);
 						} else {
 							emailList = new ArrayList<String> ();
 						}
@@ -1055,7 +1055,7 @@ public class NotificationManager {
 						ArrayList<String> responseList = new ArrayList<> ();
 						log.info("SMS question: " + msg.getEmailQuestionName(sd));
 						if(msg.emailQuestionSet()) {
-							smsList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
+							smsList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
 						} else {
 							smsList = new ArrayList<String> ();
 						}
@@ -1152,12 +1152,22 @@ public class NotificationManager {
 					
 				} else if(msg.target.equals("escalate")) {   // Assign a user to a case
 
+					String assignTo = msg.remoteUser;
+					if(msg.remoteUser.equals("_submitter")) {
+						assignTo = msg.user;
+					} else if(msg.remoteUser.equals("_data")) {
+						ArrayList<String> userList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, msg.assignQuestion, msg.instanceId);
+						if(userList.size() > 0) {
+							assignTo = userList.get(0);	// Only one user can be assigned
+						}
+					}
+					
 					log.info("+++++ escalate notification");
 					notify_details = localisation.getString("esc_nd");
 					notify_details = notify_details.replaceAll("%s1", msg.instanceId);
 					notify_details = notify_details.replaceAll("%s2", survey.displayName);
 					notify_details = notify_details.replaceAll("%s3", survey.projectName);
-					notify_details = notify_details.replaceAll("%s4", msg.remoteUser);
+					notify_details = notify_details.replaceAll("%s4", assignTo);
 
 					try {
 						String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
@@ -1165,10 +1175,8 @@ public class NotificationManager {
 						if(surveyCase == null) {	// if no survey to complete has been specified then complete with the submitting survey
 							surveyCase = msg.survey_ident;
 						}
-						String assignTo = msg.remoteUser;
-						if(msg.remoteUser.equals("_submitter")) {
-							assignTo = msg.user;
-						}
+						
+						
 						int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase);
 						if(count == 0) {
 							status = "error";
@@ -1335,7 +1343,7 @@ public class NotificationManager {
 						ArrayList<String> emailList = null;
 						log.info("Email question: " + msg.getEmailQuestionName(sd));
 						if(msg.emailQuestionSet()) {
-							emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
+							emailList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
 						} else {
 							emailList = new ArrayList<String> ();
 						}
@@ -1495,7 +1503,7 @@ public class NotificationManager {
 						ArrayList<String> responseList = new ArrayList<> ();
 						log.info("SMS question: " + msg.getEmailQuestionName(sd));
 						if(msg.emailQuestionSet()) {
-							smsList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
+							smsList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
 						} else {
 							smsList = new ArrayList<String> ();
 						}

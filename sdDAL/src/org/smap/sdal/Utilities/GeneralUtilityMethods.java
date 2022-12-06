@@ -3418,7 +3418,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the answer for a specific question and a specific instance
 	 */
-	public static ArrayList<String> getResponseForEmailQuestion(Connection sd, Connection results, int sId, String qName,
+	public static ArrayList<String> getResponseForQuestion(Connection sd, Connection results, int sId, String qName,
 			String instanceId) throws SQLException {
 
 		PreparedStatement pstmtQuestion = null;
@@ -3489,17 +3489,17 @@ public class GeneralUtilityMethods {
 				rs = pstmtResults.executeQuery();
 				while (rs.next()) {
 						
-					String email = rs.getString(1);
-					if (email != null) {
-						String[] emails = null;
+					String value = rs.getString(1);
+					if (value != null) {
+						String[] valueArray = null;
 						if (qType.equals("select")) {
-							emails = email.split(" ");
+							valueArray = value.split(" ");
 						} else {
-							emails = email.split(",");
+							valueArray = value.split(",");
 						}
 							
-						for (int i = 0; i < emails.length; i++) {
-							responses.add(emails[i]);
+						for (int i = 0; i < valueArray.length; i++) {
+							responses.add(valueArray[i]);
 						}
 					}
 				}
