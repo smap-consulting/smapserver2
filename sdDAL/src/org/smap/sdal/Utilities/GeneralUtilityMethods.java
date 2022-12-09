@@ -3778,7 +3778,7 @@ public class GeneralUtilityMethods {
 		}	
 		
 		// Add assigned if this is a management request
-		if(formParent == 0) {
+		if(includeOtherMeta && formParent == 0) {
 
 			c = new TableColumn();
 			c.column_name = "_assigned";
@@ -4282,15 +4282,11 @@ public class GeneralUtilityMethods {
 		/*
 		 * Add columns required for all tables
 		 */
-		if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_audit")) {
-			GeneralUtilityMethods.addColumn(cResults, table_name, "_audit", "text");
+		if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_audit") || !GeneralUtilityMethods.hasColumn(cResults, table_name, AuditData.AUDIT_RAW_COLUMN_NAME)) {
 			
-			/*
-			 * Audit and audit raw should have been added together
-			 */
-			if(!GeneralUtilityMethods.hasColumn(cResults, table_name, AuditData.AUDIT_RAW_COLUMN_NAME)) {
-				GeneralUtilityMethods.addColumn(cResults, table_name, AuditData.AUDIT_RAW_COLUMN_NAME, "text");
-			}
+			GeneralUtilityMethods.addColumn(cResults, table_name, "_audit", "text");
+			GeneralUtilityMethods.addColumn(cResults, table_name, AuditData.AUDIT_RAW_COLUMN_NAME, "text");
+			
 		}
 	}
 	
