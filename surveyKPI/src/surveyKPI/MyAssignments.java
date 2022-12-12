@@ -720,8 +720,10 @@ public class MyAssignments extends Application {
 						ta.assignment = new TrAssignment();
 
 						ta.task.form_id = survey.ident;
+						ta.task.pid = String.valueOf(survey.p_id);
 						ta.task.update_id = c.instanceid;
 						ta.task.type = "case";
+						ta.task.initial_data_source = "survey";
 						ta.task.title = c.title;
 						ta.assignment.assignment_status = TaskManager.STATUS_T_ACCEPTED;
 						ta.assignment.assignment_id = 0;
