@@ -283,7 +283,7 @@ public class CaseManager {
 	public ArrayList<Case> getCases(
 			Connection sd, 
 			Connection cResults,
-			int sId,
+			String sIdent,
 			String groupSurveyIdent,
 			String user) throws Exception {
 		
@@ -293,19 +293,19 @@ public class CaseManager {
 		
 		try {
 			/*
-			 * Return all cases assigned to a user that were updated by the provided survey id
+			 * Return all cases assigned to a user that are to be completed by the provided survey ident
 			 */
-			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
 			if(tableName != null) {
 
 				GeneralUtilityMethods.ensureTableCurrent(cResults, tableName, true);		// Temporary - remove 2023
 
 				StringBuilder sql = new StringBuilder("select instanceid, _thread, prikey, instancename, _hrk from ")
 						.append(tableName)
-						.append(" where not _bad and _assigned = ? and _s_id = ?");
+						.append(" where not _bad and _assigned = ? and _case_survey = ?");
 				pstmt = cResults.prepareStatement(sql.toString());
 				pstmt.setString(1, user);
-				pstmt.setInt(2,  sId);
+				pstmt.setString(2,  sIdent);
 				log.info("Get cases: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 
