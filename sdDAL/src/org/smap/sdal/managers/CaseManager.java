@@ -38,7 +38,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
 /*
- * This class supports access to User and Organisation information in the database
+ * This class supports access to Case Management information in the database
+ * All surveys in a bundle share the same case management set up
  */
 public class CaseManager {
 	

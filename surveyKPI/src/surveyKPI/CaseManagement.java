@@ -35,10 +35,12 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CaseManager;
+import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.CaseManagementAlert;
 import org.smap.sdal.model.CaseManagementSettings;
+import org.smap.sdal.model.UniqueKey;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -125,6 +127,59 @@ public class CaseManagement extends Application {
 
 		return response;
 	}
+	
+	/*
+	 * Get the key settings for the passed in survey
+	 */
+	@GET
+	@Path("/keys/{survey_id}")
+	@Produces("application/json")
+	public Response getKeySettings(
+			@Context HttpServletRequest request,
+			@PathParam("survey_id") int sId
+			) { 
+
+		Response response = null;
+		String connectionString = "surveyKPI-getCaseManagementSettings";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());	
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+		
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			KeyManager km = new KeyManager(localisation);
+			
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			UniqueKey uk = km.get(sd, groupSurveyIdent);
+			
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+			String resp = gson.toJson(uk);
+			response = Response.ok(resp).build();
+			
+		} catch (Exception e) {
+			
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+	
 	
 	/*
 	 * Update the case management settings

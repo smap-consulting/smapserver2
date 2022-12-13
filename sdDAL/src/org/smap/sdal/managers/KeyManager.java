@@ -73,8 +73,7 @@ public class KeyManager {
 
 			
 			String sql = "select key, "
-					+ "key_policy, "
-					+ "ident "
+					+ "key_policy "
 					+ "from cms_setting "
 					+ "where group_survey_ident = ? ";
 			
@@ -93,7 +92,7 @@ public class KeyManager {
 			if(uk == null || uk.key == null) {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				
-				sql = "select ident, hrk, key_policy from survev where ident = ?";
+				sql = "select ident, hrk, key_policy from survey where group_survey_ident = ?";
 				pstmt = sd.prepareStatement(sql);		
 				pstmt.setString(1,  groupSurveyIdent);
 				
@@ -105,10 +104,10 @@ public class KeyManager {
 				String keyFound = null;
 				String policyFound = null;
 				
-				while(rs.next()) {
+				while(rsLegacy.next()) {
 					
 					String ident = rsLegacy.getString("ident");
-					String key = rsLegacy.getString("key");
+					String key = rsLegacy.getString("hrk");
 					String policy = rsLegacy.getString("key_policy");
 					
 					if(keyFound == null) {
@@ -162,7 +161,7 @@ public class KeyManager {
 		String sql = "update cms_setting "
 				+ "set key = ?,"
 				+ "key_policy = ?, "
-				+ "changed_ts = now() "
+				+ "changed_ts = now(), "
 				+ "changed_by = ? "
 				+ "where o_id = ? "
 				+ "and group_survey_ident = ?"; 

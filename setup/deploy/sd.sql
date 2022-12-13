@@ -556,3 +556,8 @@ alter table s3upload add column o_id integer default 0;
 alter table s3upload add column is_media boolean default false;
 
 alter table survey add column read_only_survey boolean default false;
+
+-- Version 22.12
+alter table cms_setting add column key text;
+alter table cms_setting add column key_policy text;
+

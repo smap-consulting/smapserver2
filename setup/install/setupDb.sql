@@ -1713,6 +1713,8 @@ CREATE TABLE cms_setting (
 	o_id integer,
 	group_survey_ident text,
 	settings text,
+	key text,
+	key_policy text,
 	changed_by text,
 	changed_ts TIMESTAMP WITH TIME ZONE	
 	);
