@@ -221,7 +221,7 @@ public class SurveyManager {
 			
 			while (resultSet.next()) {						
 	
-				Survey s = new Survey(localisation);
+				Survey s = new Survey();
 				s.setId(resultSet.getInt("s_id"));
 				s.setDisplayName(resultSet.getString("display_name"));
 				s.setDeleted(resultSet.getBoolean("deleted"));
@@ -314,7 +314,7 @@ public class SurveyManager {
 
 			while (resultSet.next()) {						
 
-				Survey s = new Survey(localisation);
+				Survey s = new Survey();
 				s.setId(resultSet.getInt("s_id"));
 				s.setDisplayName(resultSet.getString("display_name"));
 				s.setDeleted(resultSet.getBoolean("deleted"));
@@ -476,7 +476,7 @@ public class SurveyManager {
 			resultSet = pstmt.executeQuery();	
 			if (resultSet.next()) {						
 
-				s = new Survey(localisation);
+				s = new Survey();
 				s.setId(resultSet.getInt("s_id"));
 				s.setIdent(resultSet.getString("ident"));
 				s.setDisplayName(resultSet.getString("display_name"));
@@ -814,7 +814,7 @@ public class SurveyManager {
 
 			while (resultSet.next()) {								
 
-				Survey s = new Survey(localisation);
+				Survey s = new Survey();
 				s.setId(resultSet.getInt(1));
 				//s.setName(resultSet.getString(2));
 				s.setDisplayName(resultSet.getString(3));
@@ -1203,7 +1203,7 @@ public class SurveyManager {
 			resultSet = pstmt.executeQuery();
 
 			if (resultSet.next()) {						
-				s = new Survey(localisation);
+				s = new Survey();
 				s.setProjectId(resultSet.getInt("p_id"));
 				s.setId(resultSet.getInt("s_id"));
 				

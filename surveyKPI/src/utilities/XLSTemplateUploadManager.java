@@ -265,7 +265,7 @@ public class XLSTemplateUploadManager {
 		wb = WorkbookFactory.create(inputStream);
 
 		// Create survey and set defaults
-		survey = new Survey(localisation);
+		survey = new Survey();
 		survey.displayName = displayName;
 		survey.o_id = oId;
 		survey.p_id = p_id;

@@ -81,13 +81,6 @@ public class Survey {
 	
 	public SurveyLinks links;
 	
-	private ResourceBundle localisation;
-	
-	public Survey(ResourceBundle localisation) {
-		this.localisation = localisation;
-		this.uk = new UniqueKey();
-	}
-	
 	// Getters
 	public int getId() {return id;}; 
 	public int getPId() {return p_id;};
@@ -241,7 +234,7 @@ public class Survey {
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			
-			writeSurvey(sd, gson, userIdent, oId);
+			writeSurvey(sd, localisation, gson, userIdent, oId);
 			GeneralUtilityMethods.setLanguages(sd, id, languages);
 			writeLists(sd, gson);
 			writeStyles(sd, gson);
@@ -275,7 +268,7 @@ public class Survey {
 	 * Private methods that support writing to the survey to the database
 	 * 1. Write the survey definition
 	 */
-	private void writeSurvey(Connection sd, Gson gson, String userIdent, int oId) throws Exception {
+	private void writeSurvey(Connection sd, ResourceBundle localisation, Gson gson, String userIdent, int oId) throws Exception {
 		
 		String sql = "insert into survey ("
 				+ "s_id, "

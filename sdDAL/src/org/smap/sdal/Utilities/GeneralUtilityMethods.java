@@ -9512,7 +9512,7 @@ public class GeneralUtilityMethods {
 			log.info("Get question level resource users: " + pstmtQuestionResouces.toString());
 			ResultSet rs = pstmtQuestionResouces.executeQuery();
 			while(rs.next()) {
-				Survey s = new Survey(localisation);
+				Survey s = new Survey();
 				s.displayName = rs.getString(1);
 				s.blocked = rs.getBoolean(2);
 				s.projectName = rs.getString(3);
@@ -9527,7 +9527,7 @@ public class GeneralUtilityMethods {
 			log.info("Get survey level resource users: " + pstmtSurveyResouces.toString());
 			rs = pstmtSurveyResouces.executeQuery();
 			while(rs.next()) {
-				Survey s = new Survey(localisation);
+				Survey s = new Survey();
 				s.displayName = rs.getString(1);
 				s.blocked = rs.getBoolean(2);
 				s.projectName = rs.getString(3);
