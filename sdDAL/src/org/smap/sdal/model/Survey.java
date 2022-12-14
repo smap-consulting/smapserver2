@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.RoleManager;
 
@@ -63,8 +64,7 @@ public class Survey {
 	public int version;			// Default to 1
 	public boolean loadedFromXLS;
 	public ArrayList<Pulldata> pulldata;
-	public String hrk;
-	public String key_policy;
+	public UniqueKey uk;		 // Key details here
 	public String basedOn;
 	public Timestamp created;
 	public boolean exclude_empty;
@@ -80,6 +80,13 @@ public class Survey {
 	public String publicLink;
 	
 	public SurveyLinks links;
+	
+	private ResourceBundle localisation;
+	
+	public Survey(ResourceBundle localisation) {
+		this.localisation = localisation;
+		this.uk = new UniqueKey();
+	}
 	
 	// Getters
 	public int getId() {return id;}; 
@@ -226,7 +233,7 @@ public class Survey {
 	 *   2. questions and choices will only be created if they do not already exist in the form
 	 */
 	public void write(Connection sd, Connection cRel, ResourceBundle localisation, 
-			String userIdent, HashMap<String, String> groupForms, int existingSurveyId) throws Exception {
+			String userIdent, HashMap<String, String> groupForms, int existingSurveyId, int oId) throws Exception {
 		
 		try {
 			log.info("Set autocommit false");
@@ -234,7 +241,7 @@ public class Survey {
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			
-			writeSurvey(sd, gson);
+			writeSurvey(sd, gson, userIdent, oId);
 			GeneralUtilityMethods.setLanguages(sd, id, languages);
 			writeLists(sd, gson);
 			writeStyles(sd, gson);
@@ -268,7 +275,7 @@ public class Survey {
 	 * Private methods that support writing to the survey to the database
 	 * 1. Write the survey definition
 	 */
-	private void writeSurvey(Connection sd, Gson gson) throws SQLException {
+	private void writeSurvey(Connection sd, Gson gson, String userIdent, int oId) throws Exception {
 		
 		String sql = "insert into survey ("
 				+ "s_id, "
@@ -326,8 +333,8 @@ public class Survey {
 			pstmt.setString(10, gson.toJson(meta));
 			pstmt.setBoolean(11, task_file);
 			pstmt.setString(12, groupSurveyIdent);
-			pstmt.setString(13, hrk);	// Key
-			pstmt.setString(14, key_policy);
+			pstmt.setString(13, uk.key);			// Obsolete - Keys no longer required per survey
+			pstmt.setString(14, uk.key_policy);		// Obsolete - Keys no longer required per survey
 			pstmt.setString(15, publicLink);
 			String pd = null;
 			if(pulldata != null) {
@@ -365,6 +372,10 @@ public class Survey {
 					pstmtUpdate.executeUpdate();
 				}
 			}
+			
+			// Write the key details
+			KeyManager km = new KeyManager(localisation);
+			km.update(sd, groupSurveyIdent, uk.key, uk.key_policy, userIdent, oId, false);	// Do not override existing key when called from XLS upload
 			
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}

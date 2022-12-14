@@ -463,8 +463,8 @@ public class TableManager {
 						.append("_case_closed timestamp with time zone,")
 						.append("_case_survey text,")
 						.append("_alert text,")
-						.append(SmapServerMeta.SCHEDULED_START_NAME).append(" timestamp with time zone");
-				sql.append(", _hrk text ");
+						.append(SmapServerMeta.SCHEDULED_START_NAME).append(" timestamp with time zone")
+						.append(", _hrk text ");
 				
 				// Add preloads
 				ArrayList<MetaItem> meta = template.getSurvey().getMeta();

@@ -47,6 +47,7 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.ForeignKeyManager;
+import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -59,6 +60,7 @@ import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.ForeignKey;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.UniqueKey;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.SubscriberEvent;
 import org.smap.server.exceptions.SQLInsertException;
@@ -396,8 +398,9 @@ public class SubRelationalDB extends Subscriber {
 				throw new Exception(msg);
 			}
 			
-			String hrk = GeneralUtilityMethods.getHrk(sd, sId);
-			boolean hasHrk = (hrk != null);
+			KeyManager km = new KeyManager(localisation);
+			UniqueKey uk = km.get(sd, survey.groupSurveyIdent);
+			boolean hasHrk = (uk.key.trim().length() > 0);
 			Keys keys = writeTableContent(
 					topElement, 
 					0, 
@@ -453,7 +456,7 @@ public class SubRelationalDB extends Subscriber {
 				pstmt = cResults.prepareStatement(sql);
 				
 				String sqlHrk = "update " + topLevelForm.tableName + " m set _hrk = "
-						+ GeneralUtilityMethods.convertAllxlsNamesToQuery(hrk, sId, sd, topLevelForm.tableName)
+						+ GeneralUtilityMethods.convertAllxlsNamesToQuery(uk.key, sId, sd, topLevelForm.tableName)
 						+ " where prikey = ?;";
 				pstmtHrk = cResults.prepareStatement(sqlHrk);
 				ResultSet rs = pstmt.executeQuery();
@@ -467,7 +470,7 @@ public class SubRelationalDB extends Subscriber {
 			/*
 			 * Key policy is applied if the table has an HRK
 			 */
-			String keyPolicy = survey.key_policy;
+			String keyPolicy = uk.key_policy;
 			
 			// Make sure the key policy is valid
 			if(!SurveyManager.isValidSurveyKeyPolicy(keyPolicy)) {

@@ -265,7 +265,7 @@ public class XLSTemplateUploadManager {
 		wb = WorkbookFactory.create(inputStream);
 
 		// Create survey and set defaults
-		survey = new Survey();
+		survey = new Survey(localisation);
 		survey.displayName = displayName;
 		survey.o_id = oId;
 		survey.p_id = p_id;
@@ -436,15 +436,15 @@ public class XLSTemplateUploadManager {
 				survey.track_changes = getBooleanColumn(row, "track_changes", settingsHeader, lastCellNum, false);
 				survey.compress_pdf = getBooleanColumn(row, "compress_pdf", settingsHeader, lastCellNum, false);
 
-				survey.hrk = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum, null);
+				survey.uk.key = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum, null);
 				
-				survey.key_policy = XLSUtilities.getTextColumn(row, "key_policy", settingsHeader, lastCellNum, null);
-				if(survey.key_policy == null) {
-					survey.key_policy = SurveyManager.KP_NONE;
+				survey.uk.key_policy = XLSUtilities.getTextColumn(row, "key_policy", settingsHeader, lastCellNum, null);
+				if(survey.uk.key_policy == null) {
+					survey.uk.key_policy = SurveyManager.KP_NONE;
 				}
-				if(!SurveyManager.isValidSurveyKeyPolicy(survey.key_policy)) {
+				if(!SurveyManager.isValidSurveyKeyPolicy(survey.uk.key_policy)) {
 					String msg = localisation.getString("tu_inv_kp");
-					msg = msg.replace("%s1", survey.key_policy);
+					msg = msg.replace("%s1", survey.uk.key_policy);
 					throw new ApplicationException(msg);
 				}
 				survey.autoTranslate = getBooleanColumn(row, "auto_translate", settingsHeader, lastCellNum, false);

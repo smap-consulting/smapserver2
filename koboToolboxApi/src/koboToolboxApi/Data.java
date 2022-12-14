@@ -58,6 +58,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.DataManager;
+import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -521,6 +522,9 @@ public class Data extends Application {
 		} catch (SQLException e1) {
 			e1.printStackTrace();
 		}
+		
+		String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+		
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		if(viewId > 0) {
@@ -670,8 +674,9 @@ public class Data extends Application {
 				if(dd_hrk != null) {
 					
 					StringBuffer parentFilter = new StringBuffer("");
-						
-					String hrkExpression = GeneralUtilityMethods.getHrk(sd, sId);
+
+					KeyManager km = new KeyManager(localisation);
+					String hrkExpression = km.get(sd, groupSurveyIdent).key;
 
 					if(hrkExpression != null) {
 						parentFilter.append("(${_hrk} = '").append(dd_hrk).append("')");
@@ -783,7 +788,6 @@ public class Data extends Application {
 			 * Get Case Management Settings
 			 */
 			CaseManager cm = new CaseManager(localisation);				
-			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 			CMS cms = cm.getCaseManagementSettings(sd, groupSurveyIdent);
 					
 			// Only set the filter if parkey is not set. Otherwise, if set, it is a drill down and the filter does not apply

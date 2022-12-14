@@ -136,7 +136,7 @@ public class KeyManager {
 				 * Save the legacy data so that in future if is available in the cms_settings table
 				 */
 				update(sd, groupSurveyIdent, uk.key, uk.key_policy, 
-						null, GeneralUtilityMethods.getOrganisationIdForSurveyIdent(sd, groupSurveyIdent));
+						null, GeneralUtilityMethods.getOrganisationIdForSurveyIdent(sd, groupSurveyIdent), true);
 				
 			}
 			
@@ -150,13 +150,17 @@ public class KeyManager {
 	
 	/*
 	 * Update a Key Setting
+	 * The overrideWithNone flag is set to false when a survey without key settings should take the settings of the bundle
+	 *  When set to true it can be used to clear a key value, the key editor will set it to true
+	 *  Uploading a survey from an XLSForm will set it to false
 	 */
 	public void update(Connection sd, 
 			String groupSurveyIdent,
 			String key,
 			String key_policy, 
 			String user,
-			int o_id) throws Exception {
+			int o_id,
+			boolean overrideWithNone) throws Exception {
 		
 		String sql = "update cms_setting "
 				+ "set key = ?,"
@@ -168,37 +172,50 @@ public class KeyManager {
 		
 		PreparedStatement pstmt = null;
 		
-		try {
+		// Initialise
+		if(key == null) {
+			key = "";
+		}
+		if(key_policy == null) {
+			key_policy = SurveyManager.KP_NONE;
+		}
+		key = key.trim();
+		
+		// Confirm that an empty key can override the existing setting
+		if(overrideWithNone || !key.equals("")) {
 			
-			pstmt = sd.prepareStatement(sql);
-
-			pstmt.setString(1, key);
-			pstmt.setString(2, key_policy);
-			pstmt.setString(3, user);
-			pstmt.setInt(4, o_id);
-			pstmt.setString(5, groupSurveyIdent);
-
-			log.info("SQL: " + pstmt.toString());
-			int count = pstmt.executeUpdate();
-			if(count < 1) {
-				try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+			try {
 				
-				sql = "insert into cms_setting "
-						+ "(key, key_policy, changed_by, o_id, group_survey_ident, changed_ts) "
-						+ "values(?, ?, ?, ?, ?, now())"; 
 				pstmt = sd.prepareStatement(sql);
+	
 				pstmt.setString(1, key);
 				pstmt.setString(2, key_policy);
-				pstmt.setString(3,  user);
+				pstmt.setString(3, user);
 				pstmt.setInt(4, o_id);
 				pstmt.setString(5, groupSurveyIdent);
-				log.info("Update Key Settings: " + pstmt.toString());
-				pstmt.executeUpdate();
+	
+				log.info("SQL: " + pstmt.toString());
+				int count = pstmt.executeUpdate();
+				if(count < 1) {
+					try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+					
+					sql = "insert into cms_setting "
+							+ "(key, key_policy, changed_by, o_id, group_survey_ident, changed_ts) "
+							+ "values(?, ?, ?, ?, ?, now())"; 
+					pstmt = sd.prepareStatement(sql);
+					pstmt.setString(1, key);
+					pstmt.setString(2, key_policy);
+					pstmt.setString(3,  user);
+					pstmt.setInt(4, o_id);
+					pstmt.setString(5, groupSurveyIdent);
+					log.info("Update Key Settings: " + pstmt.toString());
+					pstmt.executeUpdate();
+				}
+				
+			}  finally {		
+				try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+				
 			}
-			
-		}  finally {		
-			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
-			
 		}
 
 	}

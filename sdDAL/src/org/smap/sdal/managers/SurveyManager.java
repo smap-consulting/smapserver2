@@ -221,7 +221,7 @@ public class SurveyManager {
 			
 			while (resultSet.next()) {						
 	
-				Survey s = new Survey();
+				Survey s = new Survey(localisation);
 				s.setId(resultSet.getInt("s_id"));
 				s.setDisplayName(resultSet.getString("display_name"));
 				s.setDeleted(resultSet.getBoolean("deleted"));
@@ -314,7 +314,7 @@ public class SurveyManager {
 
 			while (resultSet.next()) {						
 
-				Survey s = new Survey();
+				Survey s = new Survey(localisation);
 				s.setId(resultSet.getInt("s_id"));
 				s.setDisplayName(resultSet.getString("display_name"));
 				s.setDeleted(resultSet.getBoolean("deleted"));
@@ -414,12 +414,11 @@ public class SurveyManager {
 		Survey s = null;	// Survey to return
 		ResultSet resultSet = null;
 		StringBuffer sql = new StringBuffer();
-		sql.append("select s.s_id, s.name, s.ident, s.display_name, s.deleted, s.blocked, p.name, p.id,"
-				+ "s.def_lang, s.task_file, s.timing_data, o.id, s.class,"
-				+ "s.instance_name, s.hrk, s.based_on, s.created, s.loaded_from_xls,"
+		sql.append("select s.s_id, s.ident, s.display_name, s.deleted, s.blocked, p.name as pname, p.id as p_id,"
+				+ "s.def_lang, s.task_file, s.timing_data, o.id as o_id, s.class,"
+				+ "s.instance_name, s.based_on, s.created, s.loaded_from_xls,"
 				+ "s.pulldata, "
 				+ "s.version, "
-				+ "s.key_policy, "
 				+ "s.exclude_empty,"
 				+ "s.compress_pdf,"
 				+ "s.meta,"
@@ -475,33 +474,30 @@ public class SurveyManager {
 			log.info("Get Survey info: " + pstmt.toString());
 
 			resultSet = pstmt.executeQuery();	
-			if (resultSet.next()) {							
+			if (resultSet.next()) {						
 
-				s = new Survey();
-				s.setId(resultSet.getInt(1));
-				//s.setName(resultSet.getString(2));
-				s.setIdent(resultSet.getString(3));
-				s.setDisplayName(resultSet.getString(4));
-				s.setDeleted(resultSet.getBoolean(5));
-				s.blocked = resultSet.getBoolean(6);
-				s.setProjectName(resultSet.getString(7));
-				s.setProjectId(resultSet.getInt(8));
-				s.def_lang = resultSet.getString(9);
-				s.task_file = resultSet.getBoolean(10);
-				s.timing_data = resultSet.getBoolean(11);
-				s.o_id = resultSet.getInt(12);
-				s.surveyClass = resultSet.getString(13);
-				s.instanceNameDefn = GeneralUtilityMethods.convertAllXpathNames(resultSet.getString(14), true);
-				s.hrk = resultSet.getString(15);
-				s.basedOn = resultSet.getString(16);
-				s.created = resultSet.getTimestamp(17);
-				s.loadedFromXLS = resultSet.getBoolean(18);
+				s = new Survey(localisation);
+				s.setId(resultSet.getInt("s_id"));
+				s.setIdent(resultSet.getString("ident"));
+				s.setDisplayName(resultSet.getString("display_name"));
+				s.setDeleted(resultSet.getBoolean("deleted"));
+				s.blocked = resultSet.getBoolean("blocked");
+				s.setProjectName(resultSet.getString("pname"));
+				s.setProjectId(resultSet.getInt("p_id"));
+				s.def_lang = resultSet.getString("def_lang");
+				s.task_file = resultSet.getBoolean("task_file");
+				s.timing_data = resultSet.getBoolean("timing_data");
+				s.o_id = resultSet.getInt("o_id");
+				s.surveyClass = resultSet.getString("class");
+				s.instanceNameDefn = GeneralUtilityMethods.convertAllXpathNames(resultSet.getString("instance_name"), true);
+				s.basedOn = resultSet.getString("based_on");
+				s.created = resultSet.getTimestamp("created");
+				s.loadedFromXLS = resultSet.getBoolean("loaded_from_xls");
 
 				Type type = new TypeToken<ArrayList<Pulldata>>(){}.getType();
-				s.pulldata = new Gson().fromJson(resultSet.getString(19), type); 
+				s.pulldata = new Gson().fromJson(resultSet.getString("pulldata"), type); 
 
-				s.version = resultSet.getInt(20);
-				s.key_policy = resultSet.getString(21);
+				s.version = resultSet.getInt("version");
 				s.exclude_empty = resultSet.getBoolean("exclude_empty");
 				s.compress_pdf = resultSet.getBoolean("compress_pdf");
 				String meta = resultSet.getString("meta");
@@ -522,21 +518,10 @@ public class SurveyManager {
 				s.audit_location_data = resultSet.getBoolean("audit_location_data");
 				s.track_changes = resultSet.getBoolean("track_changes");
 				s.autoTranslate = resultSet.getBoolean("auto_translate");
-				
-				
-				// Get the pdf template  - deprecate
-				/*
-				File templateFile = GeneralUtilityMethods.getPdfTemplate(sd, basePath, s.displayName, s.p_id, 0, s.ident);
-				if(templateFile.exists()) {
-					String newName = resultSet.getString("pdf_template");
-					if(newName != null) {
-						s.pdfTemplateName = newName;
-					} else {
-						s.pdfTemplateName = templateFile.getName();
-					}
-				}
-				*/
 				s.default_logo = resultSet.getString("default_logo");
+				
+				KeyManager km = new KeyManager(localisation);
+				s.uk = km.get(sd, s.groupSurveyIdent);
 				
 			} else {
 				log.info("Error: survey not found");
@@ -829,7 +814,7 @@ public class SurveyManager {
 
 			while (resultSet.next()) {								
 
-				Survey s = new Survey();
+				Survey s = new Survey(localisation);
 				s.setId(resultSet.getInt(1));
 				//s.setName(resultSet.getString(2));
 				s.setDisplayName(resultSet.getString(3));
@@ -968,7 +953,7 @@ public class SurveyManager {
 					getSoftDeleted, 
 					getPropertyTypeQuestions, getHrk, 
 					f.parentform,
-					s.hrk,
+					s.uk.key,
 					s.languages.size(),
 					f.tableName,
 					basePath,
@@ -1182,7 +1167,6 @@ public class SurveyManager {
 		try { if (pstmtGetChanges != null) {pstmtGetChanges.close();}} catch (SQLException e) {}
 		try { if (pstmtGetLists != null) {pstmtGetLists.close();}} catch (SQLException e) {}
 		try { if (pstmtGetStyles != null) {pstmtGetStyles.close();}} catch (SQLException e) {}
-		//try { if (pstmtGetLinkable != null) {pstmtGetLinkable.close();}} catch (SQLException e) {}
 	}
 
 
@@ -1219,7 +1203,7 @@ public class SurveyManager {
 			resultSet = pstmt.executeQuery();
 
 			if (resultSet.next()) {						
-				s = new Survey();
+				s = new Survey(localisation);
 				s.setProjectId(resultSet.getInt("p_id"));
 				s.setId(resultSet.getInt("s_id"));
 				
@@ -1230,7 +1214,6 @@ public class SurveyManager {
 				s.surveyClass = resultSet.getString("class");
 				s.deleted = resultSet.getBoolean("deleted");
 				s.displayName = resultSet.getString("display_name");
-				s.key_policy = resultSet.getString("key_policy");
 				s.ident = resultSet.getString("ident");
 				s.version = resultSet.getInt("version");
 				String meta = resultSet.getString("meta");
@@ -1245,8 +1228,11 @@ public class SurveyManager {
 				s.groupSurveyIdent = resultSet.getString("group_survey_ident");
 				s.readOnlySurvey = resultSet.getBoolean("read_only_survey");
 				
+				KeyManager km = new KeyManager(localisation);
+				s.uk = km.get(sd, s.groupSurveyIdent);
+				
 			}
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}};

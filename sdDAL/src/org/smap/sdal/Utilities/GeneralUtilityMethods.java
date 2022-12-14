@@ -2457,38 +2457,6 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Get the survey human readable key using the survey id
-	 */
-	static public String getHrk(Connection sd, int surveyId) throws SQLException {
-
-		String hrk = null;
-
-		String sql = "select hrk " 
-				+ " from survey " 
-				+ " where s_id = ?";
-
-		PreparedStatement pstmt = null;
-
-		try {
-
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, surveyId);
-			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
-				hrk = rs.getString(1);
-			}
-
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-		}
-
-		if(hrk != null && hrk.trim().length() == 0) {
-			hrk = null;
-		}
-		return hrk;
-	}
-
-	/*
 	 * Get the question id using the form id and question name Used by the editor to
 	 * get the question id of a newly created question
 	 */
@@ -9514,7 +9482,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get Surveys linked to an organisational resource
 	 */
-	public static ArrayList<Survey> getResourceSurveys(Connection sd, String fileName, int oId) throws SQLException {
+	public static ArrayList<Survey> getResourceSurveys(Connection sd, String fileName, int oId, ResourceBundle localisation) throws SQLException {
 		
 		ArrayList<Survey> surveys = new ArrayList<> ();
 		
@@ -9544,7 +9512,7 @@ public class GeneralUtilityMethods {
 			log.info("Get question level resource users: " + pstmtQuestionResouces.toString());
 			ResultSet rs = pstmtQuestionResouces.executeQuery();
 			while(rs.next()) {
-				Survey s = new Survey();
+				Survey s = new Survey(localisation);
 				s.displayName = rs.getString(1);
 				s.blocked = rs.getBoolean(2);
 				s.projectName = rs.getString(3);
@@ -9559,7 +9527,7 @@ public class GeneralUtilityMethods {
 			log.info("Get survey level resource users: " + pstmtSurveyResouces.toString());
 			rs = pstmtSurveyResouces.executeQuery();
 			while(rs.next()) {
-				Survey s = new Survey();
+				Survey s = new Survey(localisation);
 				s.displayName = rs.getString(1);
 				s.blocked = rs.getBoolean(2);
 				s.projectName = rs.getString(3);

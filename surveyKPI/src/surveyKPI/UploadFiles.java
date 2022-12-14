@@ -714,7 +714,7 @@ public class UploadFiles extends Application {
 			 * Save the survey to the database
 			 */
 			if(isExcel) {
-				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms, existingSurveyId);
+				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms, existingSurveyId, oId);
 				String msg = null;
 				String title = null;
 				if(action.equals("replace")) {

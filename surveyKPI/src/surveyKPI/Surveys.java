@@ -1009,23 +1009,21 @@ public class Surveys extends Application {
 			pstmt.setString(7, survey.instanceNameDefn);
 			pstmt.setInt(8, version);
 			pstmt.setString(9, survey.surveyClass);
-			pstmt.setString(10, survey.hrk);
-			pstmt.setString(11, survey.key_policy);
-			pstmt.setBoolean(12, survey.exclude_empty);
-			pstmt.setBoolean(13, survey.compress_pdf);
-			pstmt.setBoolean(14, survey.getHideOnDevice());
-			pstmt.setBoolean(15, survey.getSearchLocalData());
-			pstmt.setBoolean(16, survey.dataSurvey);
-			pstmt.setBoolean(17, survey.oversightSurvey);
-			pstmt.setBoolean(18, survey.readOnlySurvey);
-			pstmt.setBoolean(19, survey.audit_location_data);
-			pstmt.setBoolean(20, survey.track_changes);
-			pstmt.setString(21, survey.default_logo);
+			pstmt.setBoolean(10, survey.exclude_empty);
+			pstmt.setBoolean(11, survey.compress_pdf);
+			pstmt.setBoolean(12, survey.getHideOnDevice());
+			pstmt.setBoolean(13, survey.getSearchLocalData());
+			pstmt.setBoolean(14, survey.dataSurvey);
+			pstmt.setBoolean(15, survey.oversightSurvey);
+			pstmt.setBoolean(16, survey.readOnlySurvey);
+			pstmt.setBoolean(17, survey.audit_location_data);
+			pstmt.setBoolean(18, survey.track_changes);
+			pstmt.setString(19, survey.default_logo);
 			if(updatePDFName) {
-				pstmt.setString(22, fileName);
-				pstmt.setInt(23, sId);
+				pstmt.setString(20, fileName);
+				pstmt.setInt(21, sId);
 			} else {
-				pstmt.setInt(22, sId);
+				pstmt.setInt(20, sId);
 			}
 			
 			log.info("Saving survey: " + pstmt.toString());
@@ -1047,8 +1045,6 @@ public class Surveys extends Application {
 						+ ", " + localisation.getString("a_in") + ": " + survey.instanceNameDefn
 						+ ", " + localisation.getString("ar_project") + ": " 
 								+ GeneralUtilityMethods.getProjectName(sd, survey.p_id) 
-						+ ", " + localisation.getString("cr_key") + ": " + survey.hrk 
-						+ ", " + localisation.getString("cr_kp") + ": " + survey.key_policy
 						+ ", " + localisation.getString("cr_default_logo") + ": " + survey.default_logo;
 				
 				// Write to the change log
@@ -1059,20 +1055,6 @@ public class Surveys extends Application {
 				pstmtChangeLog.setInt(4, userId);
 				pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
 				pstmtChangeLog.execute();
-			}
-			
-			// If the human readable key (HRK) is not null then make sure the HRK column exists in the results file
-			if(survey.hrk != null) {
-				cResults = ResultsDataSource.getConnection(connectionString);
-				String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
-				if(tableName != null){
-					boolean hasHrk = GeneralUtilityMethods.hasColumn(cResults, tableName, "_hrk");
-					if(!hasHrk) {
-						String sqlAddHrk = "alter table " + tableName + " add column _hrk text;";
-						pstmtAddHrk = cResults.prepareStatement(sqlAddHrk);
-						pstmtAddHrk.executeUpdate();
-					}
-				}
 			}
 			
 			sd.commit();

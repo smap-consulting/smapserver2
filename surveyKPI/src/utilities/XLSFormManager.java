@@ -446,10 +446,10 @@ public class XLSFormManager {
 				value = survey.instanceNameDefn;
 
 			} else if(type == COL_KEY) {			
-				value = survey.hrk;
+				value = survey.uk.key;
 
 			} else if(type == COL_KEY_POLICY) {			
-				value = survey.key_policy;
+				value = survey.uk.key_policy;
 
 			} else if(type == COL_ROLE_ROW) {				
 				Role r = survey.roles.get(typeString);
