@@ -180,6 +180,57 @@ public class CaseManagement extends Application {
 		return response;
 	}
 	
+	/*
+	 * Update the case management keys
+	 */
+	@Path("/keys/{group_survey_ident}")
+	@POST
+	@Consumes("application/json")
+	public Response updateCaseManagementKeys(@Context HttpServletRequest request, 
+			@PathParam("group_survey_ident") String groupSurveyIdent,
+			@FormParam("keys") String keyString) { 
+		
+		Response response = null;
+		String connectionString = "surveyKPI-updateCaseManagementKeys";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), groupSurveyIdent, false, false);
+		// End Authorisation
+			
+		try {	
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			
+			// Validate setting structure
+			UniqueKey keys = new Gson().fromJson(keyString, UniqueKey.class);
+			
+			KeyManager km = new KeyManager(localisation);
+
+			String msg = null;
+			km.update(sd, groupSurveyIdent, keys.key, keys.key_policy, request.getRemoteUser(), oId, true);
+			msg = localisation.getString("cm_k_updated");	
+			msg = msg.replace("%s1", groupSurveyIdent);
+			msg = msg.replace("%s2", keys.key);
+			msg = msg.replace("%s3", keys.key_policy);
+			lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), LogManager.CASE_MANAGEMENT, msg, 0);
+				
+			response = Response.ok().build();
+				
+		} catch (Exception e) {
+			
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
 	
 	/*
 	 * Update the case management settings
@@ -197,6 +248,7 @@ public class CaseManagement extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), groupSurveyIdent, false, false);
 		// End Authorisation
 			
 		try {	
