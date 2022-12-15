@@ -850,14 +850,11 @@ public class Surveys extends Application {
 	@Path("/save_settings/{sId}")
 	@POST
 	public Response saveSettings(@Context HttpServletRequest request,
-			@PathParam("sId") int sId) { 
+			@PathParam("sId") int sId,
+			@FormParam("settings") String settings) { 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-Save Settings";
-		
-		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();	
-		fileItemFactory.setSizeThreshold(20*1024*1024);
-		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -870,11 +867,8 @@ public class Surveys extends Application {
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
-		FileItem pdfItem = null;
 		String fileName = null;
 		String newSurveyName = null;
-		String settings = null;
-		String pdfSet = "no";
 		int version = 0;
 				
 		PreparedStatement pstmt = null;
@@ -888,50 +882,6 @@ public class Surveys extends Application {
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-			/*
-			 * Parse the request
-			 */
-			List<?> items = uploadHandler.parseRequest(request);
-			Iterator<?> itr = items.iterator();
-
-			while(itr.hasNext()) {
-				FileItem item = (FileItem) itr.next();
-				
-				if(item.isFormField()) {
-					log.info("Form field:" + item.getFieldName() + " - " + item.getString());
-				
-					
-					if(item.getFieldName().equals("settings")) {
-						try {
-							settings = item.getString("UTF-8");  // Set encoding type to UTF-8 as per http://stackoverflow.com/questions/22025999/sending-files-and-text-with-ajax-multipart-form-data-utf-8-encoding
-						} catch (Exception e) {
-							
-						}
-					} else if(item.getFieldName().equals("pdfSet")) {
-						try {
-							pdfSet = item.getString("UTF-8");  // Set encoding type to UTF-8 as per http://stackoverflow.com/questions/22025999/sending-files-and-text-with-ajax-multipart-form-data-utf-8-encoding
-						} catch (Exception e) {
-							
-						}
-					}
-					
-					
-				} else if(!item.isFormField()) {
-					// Handle Uploaded files.
-					log.info("Field Name = "+item.getFieldName()+
-						", File Name = "+item.getName()+
-						", Content type = "+item.getContentType()+
-						", File Size = "+item.getSize());
-					
-					if(item.getSize() > 0) {
-						pdfItem = item;
-						fileName = item.getName();
-						fileName = fileName.replaceAll(" ", "_"); // Remove spaces from file name
-					}				
-				}
-
-			}
 			
 			Type type = new TypeToken<org.smap.sdal.model.Survey>(){}.getType();
 			Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
@@ -965,23 +915,18 @@ public class Surveys extends Application {
 				}
 			}
 			
-			boolean updatePDFName = false;
-			String archivedTemplateName = null;
-			
 			
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, updated_time) " +
 					"values(?, ?, ?, ?, 'true', ?)";
 			
 			// Update the settings
-			String sql1 = "update survey set display_name = ?, name = ?, def_lang = ?, task_file = ?, "
+			String sql = "update survey set display_name = ?, name = ?, def_lang = ?, task_file = ?, "
 					+ "timing_data = ?, "
 					+ "p_id = ?, "
 					+ "instance_name = ?, "
 					+ "version = ?, "
 					+ "class = ?,"
-					+ "hrk = ?,"
-					+ "key_policy = ?, "
 					+ "exclude_empty = ?, "
 					+ "compress_pdf = ?, "
 					+ "hide_on_device = ?, "
@@ -991,10 +936,8 @@ public class Surveys extends Application {
 					+ "read_only_survey = ?, "
 					+ "audit_location_data = ?, "
 					+ "track_changes = ?,"
-					+ "default_logo = ? ";
-			String sql2 = ",pdf_template = ? ";
-			String sql3 = "where s_id = ?";
-			String sql = sql1 + (updatePDFName ? sql2 : "") + sql3;
+					+ "default_logo = ? "
+					+ "where s_id = ?";
 		
 			if(survey.surveyClass != null && survey.surveyClass.equals("none")) {
 				survey.surveyClass = null;
@@ -1019,12 +962,7 @@ public class Surveys extends Application {
 			pstmt.setBoolean(17, survey.audit_location_data);
 			pstmt.setBoolean(18, survey.track_changes);
 			pstmt.setString(19, survey.default_logo);
-			if(updatePDFName) {
-				pstmt.setString(20, fileName);
-				pstmt.setInt(21, sId);
-			} else {
-				pstmt.setInt(20, sId);
-			}
+			pstmt.setInt(20, sId);
 			
 			log.info("Saving survey: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
@@ -1038,7 +976,6 @@ public class Surveys extends Application {
 				
 				ChangeElement change = new ChangeElement();
 				change.action = "settings_update";
-				change.fileName = archivedTemplateName;
 				change.origSId = sId;
 				change.msg = localisation.getString("name") + ": " + survey.displayName 
 						+ ", " + localisation.getString("cr_lang") + ": " + survey.def_lang 
