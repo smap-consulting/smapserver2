@@ -705,7 +705,7 @@ public class MyAssignments extends Application {
 				 * Add any cases assigned to this user
 				 */
 				CaseManager cm = new CaseManager(localisation);
-				ArrayList<Case> cases = cm.getCases(sd, cResults, survey.ident, survey.groupSurveyIdent, userName);
+				ArrayList<Case> cases = cm.getCases(sd, cResults, survey.ident, survey.displayName, survey.groupSurveyIdent, userName);
 				if(cases.size() > 0) {
 					if(tr.taskAssignments == null) {
 						tr.taskAssignments = new ArrayList<TaskResponseAssignment>();

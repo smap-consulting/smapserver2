@@ -285,6 +285,7 @@ public class CaseManager {
 			Connection sd, 
 			Connection cResults,
 			String sIdent,
+			String sName,
 			String groupSurveyIdent,
 			String user) throws Exception {
 		
@@ -319,12 +320,13 @@ public class CaseManager {
 						thread = rs.getString("instanceid");
 					}
 					String hrk = rs.getString("_hrk");
+					title = sName + " - ";
 					if(instanceName != null && instanceName.trim().length() > 0) {
-						title = instanceName;
+						title = title + instanceName;
 					} else if(hrk != null && hrk.trim().length() > 0) {
-						title = hrk;
+						title = title + hrk;
 					} else {
-						title = String.valueOf(prikey);
+						title = title + String.valueOf(prikey);
 					}
 
 					cases.add(new Case(prikey, title, thread));
