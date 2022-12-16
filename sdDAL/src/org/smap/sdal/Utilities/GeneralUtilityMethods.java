@@ -6327,7 +6327,8 @@ public class GeneralUtilityMethods {
 	 */
 	public static int assignRecord(Connection sd, Connection cResults, ResourceBundle localisation, String tablename, String instanceId, String user, 
 			String type,					// lock || release || assign
-			String surveyIdent
+			String surveyIdent,
+			String note
 			) throws SQLException {
 
 		int count = 0;
@@ -6352,7 +6353,7 @@ public class GeneralUtilityMethods {
 			assignTo = null;
 			caseSurvey = null;
 			sql.append("and _assigned = ?");			// User can only release records that they are assigned to
-			details = localisation.getString("cm_release");
+			details = localisation.getString("cm_release") + ": " + (note == null ? "" : note);
 		} else {
 			if(user != null) {
 				details = localisation.getString("assignee_ident");
@@ -6366,7 +6367,7 @@ public class GeneralUtilityMethods {
 		pstmt.setString(2, caseSurvey);
 		pstmt.setString(3,instanceId);
 		if(type.equals("release")) {
-			pstmt.setString(3,user);
+			pstmt.setString(4,user);
 		}
 		log.info("Assign record: " + pstmt.toString());
 		
@@ -6400,30 +6401,6 @@ public class GeneralUtilityMethods {
 		
 		return count;
 	}
-	
-	/*
-	 * Method to release a record 
-	 *
-	public static int releaseRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
-
-		int count = 0;
-		String sql = "update " + tablename + " set _assigned = null "
-				+ "where instanceid = ? "
-				+ "and _assigned = ?";
-
-		PreparedStatement pstmt = conn.prepareStatement(sql);
-		pstmt.setString(1, instanceId);
-		pstmt.setString(2,user);
-		log.info("locking record: " + pstmt.toString());
-		try {
-			count = pstmt.executeUpdate();
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
-		}
-		
-		return count;
-		
-	}*/
 	
 	/*
 	 * Method to check for presence of the specified column in a specific schema

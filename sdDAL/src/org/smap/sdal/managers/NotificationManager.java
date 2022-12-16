@@ -1177,7 +1177,7 @@ public class NotificationManager {
 						}
 						
 						
-						int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase);
+						int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase, notify_details);
 						if(count == 0) {
 							status = "error";
 							error_details = "case not found, attempting: " + notify_details;

@@ -252,7 +252,7 @@ public class ManagedForms extends Application {
 				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				
 				if(instanceId != null) {
-					int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "lock", surveyIdent);
+					int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "lock", surveyIdent, null);
 					if(count == 0) {
 						response = Response.serverError().entity(localisation.getString("mf_aa")).build();
 					} else {
@@ -320,7 +320,7 @@ public class ManagedForms extends Application {
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
 				
-				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, uIdent, "assign", surveyIdent);
+				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, uIdent, "assign", surveyIdent, null);
 				if(count == 0) {
 					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 				} else {
@@ -378,7 +378,7 @@ public class ManagedForms extends Application {
 			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
-				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "release", null);
+				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "release", null, null);
 				if(count == 0) {
 					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 				} else {

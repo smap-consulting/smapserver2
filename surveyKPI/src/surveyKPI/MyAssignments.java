@@ -57,6 +57,7 @@ import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskLocation;
+import org.smap.sdal.model.TaskUpdate;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -205,8 +206,8 @@ public class MyAssignments extends Application {
 		Response response = null;
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
-		Assignment as = gson.fromJson(assignment, Assignment.class);
-		log.info("webserviceevent : update assignment status: " + as.assignment_id);
+		TaskUpdate tu = gson.fromJson(assignment, TaskUpdate.class);
+		log.info("webserviceevent : update assignment status: " + tu.assignment_id);
 		
 		String connectionString = "surveyKPI-MyAssignments-reject";
 		// Authorisation - Access
@@ -224,27 +225,34 @@ public class MyAssignments extends Application {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-			pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
-			pstmtSetUpdatedRejected = getPreparedStatementSetUpdatedRejected(sd);
-			pstmtSetUpdatedNotRejected = getPreparedStatementSetUpdatedNotRejected(sd);
-			pstmtEvents = getPreparedStatementEvents(sd);
+		
+			if(tu.type.equals("case")) {
+				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, tu.sIdent);
+				GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, tu.uuid, request.getRemoteUser(), "release", null, tu.task_comment);
+			} else {
+				
+				pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
+				pstmtSetUpdatedRejected = getPreparedStatementSetUpdatedRejected(sd);
+				pstmtSetUpdatedNotRejected = getPreparedStatementSetUpdatedNotRejected(sd);
+				pstmtEvents = getPreparedStatementEvents(sd);
+				
+				int taskId = GeneralUtilityMethods.getTaskId(sd, tu.assignment_id);
+				updateAssignment(
+						sd,
+						cResults,
+						localisation, 
+						pstmtSetDeleted, 
+						pstmtSetUpdatedRejected,
+						pstmtSetUpdatedNotRejected,
+						pstmtEvents,
+						gson,
+						request.getRemoteUser(),
+						taskId,
+						tu.assignment_id,
+						tu.assignment_status,
+						tu.task_comment);
+			}
 			
-			int taskId = GeneralUtilityMethods.getTaskId(sd, as.assignment_id);
-			updateAssignment(
-					sd,
-					cResults,
-					localisation, 
-					pstmtSetDeleted, 
-					pstmtSetUpdatedRejected,
-					pstmtSetUpdatedNotRejected,
-					pstmtEvents,
-					gson,
-					request.getRemoteUser(),
-					taskId,
-					as.assignment_id,
-					as.assignment_status,
-					as.task_comment);
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			response = Response.serverError().build();
