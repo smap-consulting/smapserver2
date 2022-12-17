@@ -936,8 +936,6 @@ public class MyAssignments extends Application {
 	public Response updateTasks(@Context HttpServletRequest request, 
 			String assignInput,
 			String userName) { 
-
-		System.out.println("###########  updateTasks");
 		
 		Response response = null;
 		String connectionString = "surveyKPI-MyAssignments - updateTasks";
