@@ -226,7 +226,7 @@ public class MyAssignments extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 		
-			if(tu.type.equals("case")) {
+			if(tu.type != null && tu.type.equals("case")) {
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, tu.sIdent);
 				GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, tu.uuid, request.getRemoteUser(), "release", null, tu.task_comment);
 			} else {
@@ -937,6 +937,8 @@ public class MyAssignments extends Application {
 			String assignInput,
 			String userName) { 
 
+		System.out.println("###########  updateTasks");
+		
 		Response response = null;
 		String connectionString = "surveyKPI-MyAssignments - updateTasks";
 
@@ -977,7 +979,13 @@ public class MyAssignments extends Application {
 			
 			sd.setAutoCommit(false);
 			for(TaskResponseAssignment ta : tr.taskAssignments) {
-				if(ta.assignment.assignment_id > 0) {
+				
+				if(ta.task != null && ta.task.type != null && ta.task.type.equals("case")) {
+					if(ta.assignment.assignment_status != null && ta.assignment.assignment_status.equals("rejected")) {
+						String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, ta.task.form_id);
+						GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, ta.task.update_id, request.getRemoteUser(), "release", null, ta.assignment.task_comment);
+					}	
+				} else if(ta.assignment.assignment_id > 0) {
 					log.info("Task Assignment: " + ta.assignment.assignment_status);
 
 					if(ta.task == null) {
