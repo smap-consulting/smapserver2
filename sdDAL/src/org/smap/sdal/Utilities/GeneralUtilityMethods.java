@@ -3749,7 +3749,7 @@ public class GeneralUtilityMethods {
 		if(includeOtherMeta && formParent == 0) {
 
 			c = new TableColumn();
-			c.column_name = "_assigned";
+			c.column_name = SurveyViewManager.ASSIGNED_COLUMN;
 			c.displayName = c.column_name;
 			c.humanName = localisation.getString("assignee_ident");
 			c.type = SmapQuestionTypes.STRING;
@@ -4201,8 +4201,8 @@ public class GeneralUtilityMethods {
 				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_case_closed")) {
 					GeneralUtilityMethods.addColumn(cResults, table_name, "_case_closed", "timestamp with time zone");
 				}
-				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
+				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, SurveyViewManager.ASSIGNED_COLUMN)) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, SurveyViewManager.ASSIGNED_COLUMN, "text");
 				}
 				
 				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_alert")) {
@@ -6336,12 +6336,14 @@ public class GeneralUtilityMethods {
 		StringBuilder sql = new StringBuilder("update ") 
 				.append(tablename) 
 				.append(" set _assigned = ?, _case_survey = ? ")
-				.append("where instanceid = ? ");
+				.append("where _thread = ? ");
 
 		if(user != null && user.equals("_none")) {		// Assigning to no one
 			user = null;
 			surveyIdent = null;
 		}
+		
+		String thread = GeneralUtilityMethods.getThread(cResults, tablename, instanceId);
 		
 		String assignTo = user;
 		String caseSurvey = surveyIdent;
@@ -6362,10 +6364,14 @@ public class GeneralUtilityMethods {
 			}
 		}
 		
+		if(assignTo != null) {
+			assignTo = assignTo.toLowerCase().trim();
+		}
+		
 		PreparedStatement pstmt = cResults.prepareStatement(sql.toString());
 		pstmt.setString(1, assignTo);
 		pstmt.setString(2, caseSurvey);
-		pstmt.setString(3,instanceId);
+		pstmt.setString(3,thread);
 		if(type.equals("release")) {
 			pstmt.setString(4,user);
 		}
@@ -8480,7 +8486,8 @@ public class GeneralUtilityMethods {
 						+ " set _thread = (select _thread from " + table + " where prikey = ?),"
 						+ " _assigned = (select _assigned from " + table + " where prikey = ?), "
 						+ " _thread_created = (select _thread_created from " + table + " where prikey = ?), "
-						+ " _alert = (select _alert from " + table + " where prikey = ?) "
+						+ " _alert = (select _alert from " + table + " where prikey = ?), "
+						+ " _case_survey = (select _case_survey from " + table + " where prikey = ?) "
 						+ "where prikey = ?";
 		PreparedStatement pstmtCopyThreadCol = null;
 			
@@ -8492,7 +8499,8 @@ public class GeneralUtilityMethods {
 			pstmtCopyThreadCol.setInt(2, sourceKey);
 			pstmtCopyThreadCol.setInt(3, sourceKey);
 			pstmtCopyThreadCol.setInt(4, sourceKey);
-			pstmtCopyThreadCol.setInt(5, prikey);
+			pstmtCopyThreadCol.setInt(5, sourceKey);
+			pstmtCopyThreadCol.setInt(6, prikey);
 			log.info("continue thread: " + pstmtCopyThreadCol.toString());
 			pstmtCopyThreadCol.executeUpdate();
 			

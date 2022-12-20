@@ -4,20 +4,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.model.CMS;
-import org.smap.sdal.model.Case;
-import org.smap.sdal.model.CaseCount;
-import org.smap.sdal.model.CaseManagementAlert;
-import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.UniqueKey;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 /*****************************************************************************
 
@@ -49,11 +40,9 @@ public class KeyManager {
 
 	LogManager lm = new LogManager(); // Application log
 	ResourceBundle localisation = null;
-	Gson gson;
 	
 	public KeyManager(ResourceBundle l) {
 		localisation = l;
-		gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 	}
 
 	/*
@@ -63,15 +52,12 @@ public class KeyManager {
 		
 		PreparedStatement pstmt = null;
 		UniqueKey uk = null;
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		try {
 			
 			/*
 			 * Get the key settings for this survey group
-			 */
-
-			
+			 */	
 			String sql = "select key, "
 					+ "key_policy "
 					+ "from cms_setting "

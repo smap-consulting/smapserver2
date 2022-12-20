@@ -287,7 +287,8 @@ public class CaseManager {
 			String sIdent,
 			String sName,
 			String groupSurveyIdent,
-			String user) throws Exception {
+			String user,
+			int sId) throws Exception {
 		
 		PreparedStatement pstmt = null;
 			
@@ -296,6 +297,7 @@ public class CaseManager {
 		try {
 			/*
 			 * Return all cases assigned to a user that are to be completed by the provided survey ident
+			 * For transition match against the last submitting survey id if _case_survey is null)
 			 */
 			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
 			if(tableName != null) {
@@ -304,10 +306,11 @@ public class CaseManager {
 
 				StringBuilder sql = new StringBuilder("select instanceid, _thread, prikey, instancename, _hrk from ")
 						.append(tableName)
-						.append(" where not _bad and _assigned = ? and _case_survey = ?");
+						.append(" where not _bad and _assigned = ? and (_case_survey = ? or (_case_survey is null and _s_id = ?)) ");
 				pstmt = cResults.prepareStatement(sql.toString());
 				pstmt.setString(1, user);
 				pstmt.setString(2,  sIdent);
+				pstmt.setInt(3, sId);
 				log.info("Get cases: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 
@@ -315,10 +318,7 @@ public class CaseManager {
 					String title = null;
 					int prikey = rs.getInt("prikey");
 					String instanceName = rs.getString("instancename");
-					String thread = rs.getString("_thread");
-					if(thread == null) {
-						thread = rs.getString("instanceid");
-					}
+					String instanceId = rs.getString("instanceid");
 					String hrk = rs.getString("_hrk");
 					title = sName + " - ";
 					if(instanceName != null && instanceName.trim().length() > 0) {
@@ -329,7 +329,7 @@ public class CaseManager {
 						title = title + String.valueOf(prikey);
 					}
 
-					cases.add(new Case(prikey, title, thread));
+					cases.add(new Case(prikey, title, instanceId));
 				}
 			}
 
