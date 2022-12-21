@@ -298,6 +298,8 @@ public class CaseManager {
 			/*
 			 * Return all cases assigned to a user that are to be completed by the provided survey ident
 			 * For transition match against the last submitting survey id if _case_survey is null)
+			 * Cases should always use the same updateid hence set it to the thread value.  By doing this downloading the latest
+			 *  instance of a case to fieldTask will not look like a new case has been created
 			 */
 			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
 			if(tableName != null) {
@@ -318,7 +320,10 @@ public class CaseManager {
 					String title = null;
 					int prikey = rs.getInt("prikey");
 					String instanceName = rs.getString("instancename");
-					String instanceId = rs.getString("instanceid");
+					String thread = rs.getString("_thread");
+					if(thread == null) {
+						thread = rs.getString("instanceid");
+					}
 					String hrk = rs.getString("_hrk");
 					title = sName + " - ";
 					if(instanceName != null && instanceName.trim().length() > 0) {
@@ -329,7 +334,7 @@ public class CaseManager {
 						title = title + String.valueOf(prikey);
 					}
 
-					cases.add(new Case(prikey, title, instanceId));
+					cases.add(new Case(prikey, title, thread));
 				}
 			}
 
