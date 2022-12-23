@@ -461,7 +461,7 @@ public class TaskManager {
 			// Get the data
 			log.info("Get tasks: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
-			JsonParser parser = new JsonParser();
+
 			int index = 0;
 			long now = Calendar.getInstance().getTime().getTime();
 			while (rs.next()) {
@@ -548,7 +548,7 @@ public class TaskManager {
 				}
 				tf.properties.repeat = rs.getBoolean("repeat");
 				tf.properties.repeat_count = rs.getInt("repeat_count");
-				tf.geometry = parser.parse(rs.getString("geom")).getAsJsonObject();
+				tf.geometry = JsonParser.parseString(rs.getString("geom")).getAsJsonObject();
 				tf.properties.complete_all = rs.getBoolean("complete_all");
 				tf.properties.assign_auto = rs.getBoolean("assign_auto");
 				tf.properties.tg_id = rs.getInt("tg_id");
