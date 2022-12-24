@@ -64,7 +64,7 @@ public class Survey {
 	public int version;			// Default to 1
 	public boolean loadedFromXLS;
 	public ArrayList<Pulldata> pulldata;
-	public UniqueKey uk;		 // Key details here
+	public UniqueKey uk = new UniqueKey();		 // Key details here
 	public String basedOn;
 	public Timestamp created;
 	public boolean exclude_empty;

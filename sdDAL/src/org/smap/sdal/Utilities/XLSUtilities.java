@@ -1,6 +1,5 @@
 package org.smap.sdal.Utilities;
 
-import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.URL;
@@ -13,8 +12,6 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.imageio.ImageIO;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.poi.common.usermodel.HyperlinkType;
@@ -30,6 +27,7 @@ import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.Drawing;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.Hyperlink;
 import org.apache.poi.ss.usermodel.IndexedColors;
@@ -311,7 +309,7 @@ public class XLSUtilities {
 	/*
 	 * Get the text value of a cell and return null if the cell is empty
 	 */
-	public static String getTextColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum, String default_value) throws ApplicationException {
+	public static String getTextColumn(Workbook wb, Row row, String name, HashMap<String, Integer> header, int lastCellNum, String default_value) throws ApplicationException {
 
 		String value = null;
 		Integer cellIndex;
@@ -322,7 +320,7 @@ public class XLSUtilities {
 			idx = cellIndex;
 			Cell c = row.getCell(idx);
 			if(c != null) {
-				value = getCellValue(c);
+				value = getCellValue(wb, c);
 				if(value != null) {
 					value = value.replaceAll("\u00A0", " ");		// Replace non breaking space with space
 					value = value.trim();  	// Remove trailing whitespace, its not visible to users
@@ -342,37 +340,48 @@ public class XLSUtilities {
 
 	/*
 	 * Get a cell value as String from XLS
+	 * Reference https://stackoverflow.com/questions/31577678/how-to-read-the-data-where-the-celltype-is-the-formula-in-excel
 	 */
-	private static String getCellValue(Cell c) throws ApplicationException {
+	private static String getCellValue(Workbook wb, Cell c) throws ApplicationException {
 		String value = null;
 		double dValue = 0.0;
 		Date dateValue = null;
 		boolean bValue = false;
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm");
-
-		if(c.getCellType() == CellType.NUMERIC) {
-			if (DateUtil.isCellDateFormatted(c)) {
-				dateValue = c.getDateCellValue();
-				value = dateFormat.format(dateValue);
-			} else {
-				dValue = c.getNumericCellValue();
-				value = String.valueOf(dValue);
-				if(value != null && value.endsWith(".0")) {
-					value = value.substring(0, value.lastIndexOf('.'));
+		
+		// Evaluate formulas
+		if(c.getCellType().equals(CellType.FORMULA)) {
+			FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
+			evaluator.evaluateInCell(c);
+		}
+		
+		switch (c.getCellType()) {
+			case NUMERIC:
+				if (DateUtil.isCellDateFormatted(c)) {
+					dateValue = c.getDateCellValue();
+					value = dateFormat.format(dateValue);
+				} else {
+					dValue = c.getNumericCellValue();
+					value = String.valueOf(dValue);
+					if(value != null && value.endsWith(".0")) {
+						value = value.substring(0, value.lastIndexOf('.'));
+					}
 				}
-			}
-		} else if(c.getCellType() == CellType.STRING) {
-			value = c.getStringCellValue();
-		} else if(c.getCellType() == CellType.BOOLEAN) {
-			bValue = c.getBooleanCellValue();
-			value = String.valueOf(bValue);
-		} else if(c.getCellType() == CellType.BLANK) {
-			value = c.getStringCellValue();	// !! Not sure what this is about
-		} else {
+				break;
+			case STRING:
+			case BLANK:
+				value = c.getStringCellValue();
+				break;
+			case BOOLEAN:
+				bValue = c.getBooleanCellValue();
+				value = String.valueOf(bValue);
+				break;
+		default:
 			throw(new ApplicationException("Error: Unknown cell type: " + c.getCellType() + 
 					" in sheet "  + c.getSheet().getSheetName() +
 					" in row " + (c.getRowIndex() + 1) + 
 					", column " + (c.getColumnIndex() + 1)));
+		
 		}
 
 		return value;
