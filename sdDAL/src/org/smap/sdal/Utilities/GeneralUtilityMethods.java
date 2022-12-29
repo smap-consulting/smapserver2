@@ -64,6 +64,7 @@ import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LanguageCodeManager;
+import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.OrganisationManager;
@@ -91,6 +92,7 @@ import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Line;
+import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.LinkedTarget;
 import org.smap.sdal.model.LonLat;
 import org.smap.sdal.model.ManifestInfo;
@@ -617,10 +619,14 @@ public class GeneralUtilityMethods {
 	 * Add an attachment to a survey
 	 */
 	static public String createAttachments(Connection sd, String srcName, File srcPathFile, String basePath, 
-			String surveyName, 
+			String sIdent, 
+			String colName,
 			String srcUrl,
 			ArrayList<MediaChange> mediaChanges,
-			int oId) {
+			ArrayList<LinkageItem> linkageItems,
+			int oId,
+			String appearance,
+			ArrayList<KeyValueSimp> params) {
 
 		log.info("Create attachments");
 
@@ -641,8 +647,8 @@ public class GeneralUtilityMethods {
 		}
 		
 		String dstName = null;
-		String dstDir = basePath + "/attachments/" + surveyName;
-		String dstThumbsPath = basePath + "/attachments/" + surveyName + "/thumbs";
+		String dstDir = basePath + "/attachments/" + sIdent;
+		String dstThumbsPath = basePath + "/attachments/" + sIdent + "/thumbs";
 		File dstDirFile = new File(dstDir);
 		File dstThumbsFile = new File(dstThumbsPath);
 		
@@ -687,9 +693,13 @@ public class GeneralUtilityMethods {
 		}
 		// Create a URL that references the attachment (but without the hostname or
 		// scheme)
-		value = "attachments/" + surveyName + "/" + dstName + "." + srcExt;
+		value = "attachments/" + sIdent + "/" + dstName + "." + srcExt;
 
+		LinkageManager lm = new LinkageManager();
+		lm.addDataitemToList(linkageItems, value, appearance, params, sIdent, colName);
+		
 		log.info("Media value: " + value);
+		
 		return value;
 	}
 	

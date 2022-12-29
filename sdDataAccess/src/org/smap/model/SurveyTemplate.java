@@ -1454,7 +1454,7 @@ public class SurveyTemplate {
 	 *  useExternalChoices is set false when getting an XForm
 	 *      Return the dummy choice that points to the external file columns
 	 */
-	public void extendInstance(Connection sd, SurveyInstance instance, boolean useExternalChoices, org.smap.sdal.model.Survey sdalSurvey) throws SQLException {
+	public void extendInstance(Connection sd, SurveyInstance instance, boolean useExternalChoices, org.smap.sdal.model.Survey sdalSurvey) throws Exception {
 		List<Form> formList  = getAllForms(); 
 		
 		// Set the display name
@@ -1474,7 +1474,7 @@ public class SurveyTemplate {
 	
 	private void extendMeta(ArrayList<MetaItem> meta, SurveyInstance instance) {
 		
-		instance.setQuestion("/main/meta", "begin group", "meta", false, null, null, false);
+		instance.setQuestion("/main/meta", "begin group", "meta", false, null, null, false, null, null);
 		for(MetaItem mq : meta) {
 			String questionPath = null;
 			if(mq.name.contains("instanceID") || mq.name.contains("instanceName") || mq.name.contains("audit")) {
@@ -1482,7 +1482,7 @@ public class SurveyTemplate {
 			} else {
 				questionPath = "/main/" + mq.name;
 			}
-			instance.setQuestion(questionPath, mq.type, mq.name, false, mq.columnName, mq.dataType, false);
+			instance.setQuestion(questionPath, mq.type, mq.name, false, mq.columnName, mq.dataType, false, null, null);
 			
 			// Use geopoint meta questions to set survey location if it has not already been set
 			if(mq.type.equals("geopoint") && (instance.getSurveyGeopoint() == null || instance.getSurveyGeopoint().trim().equals(""))) {
@@ -1498,7 +1498,7 @@ public class SurveyTemplate {
 			SurveyInstance instance, 
 			List <Question> questionList, 
 			String formPath,
-			boolean useExternalChoices) throws SQLException {
+			boolean useExternalChoices) throws Exception {
 		
 		for(Question q : questionList) {
 			
@@ -1513,7 +1513,8 @@ public class SurveyTemplate {
 			if(q.getType() != null && q.getType().equals("begin group")) {
 				
 				instance.setQuestion(questionPath, q.getType(), q.getName(), q.getPhoneOnly(), q.getColumnName(false), 
-						q.getDataType(), q.isCompressed());
+						q.getDataType(), q.isCompressed(), q.getAppearance(false, null),
+						q.getParameters());
 				
 			}
 			
@@ -1523,7 +1524,9 @@ public class SurveyTemplate {
 				instance.setQuestion(questionPath, q.getType(), q.getName(), 
 						q.getPhoneOnly(), q.getColumnName(false), 
 						q.getDataType(),
-						q.isCompressed());
+						q.isCompressed(),
+						q.getAppearance(false, null),
+						q.getParameters());
 				
 				// Set the overall survey location to the last geopoint type found in the survey				
 				if(q.getType().equals("geopoint") || q.getType().equals("geoshape") || q.getType().equals("geotrace") || q.getType().equals("geocompound")) {

@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -1704,7 +1705,7 @@ public class SubscriberBatch {
 				for(MediaChange mc : mediaChanges) {
 					contents = contents.replace(">" + mc.srcName + "<", ">" + mc.dstName + "<");
 				}
-				FileUtils.writeStringToFile(xmlFile, contents);
+				FileUtils.writeStringToFile(xmlFile, contents, StandardCharsets.UTF_8);
 				// Repeat the loop because we want to ensure the xml file is saved before deleting anything
 				for(MediaChange mc : mediaChanges) {
 					File srcFile = new File(mc.srcPath);

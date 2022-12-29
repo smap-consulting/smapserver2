@@ -28,7 +28,9 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Link;
+import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.LinkedTarget;
 
 public class LinkageManager {
@@ -36,6 +38,9 @@ public class LinkageManager {
 	private static Logger log =
 			 Logger.getLogger(LinkageManager.class.getName());
 
+	private final String REQUEST_FP_IMAGE = "ex:uk.ac.lshtm.keppel.android.SCAN(type='image')";
+	private final String REQUEST_FP_ISO_TEMPLATE = "ex:uk.ac.lshtm.keppel.android.SCAN(type='iso')";
+	
 	public ArrayList<Link> getSurveyLinks(Connection sd, Connection cRel, int sId, int fId, int prikey) throws SQLException {
 		ArrayList<Link> links = new ArrayList<Link> ();
 		
@@ -123,5 +128,83 @@ public class LinkageManager {
 		}
 
 		return links;
+	}
+	
+	/*
+	 * Add a data item to a linkage list, these can be
+	 *  Fingerprints
+	 *  ....
+	 */
+	public void addDataitemToList(ArrayList<LinkageItem> links, String value, String appearance, ArrayList<KeyValueSimp> params, String sIdent, String colName) {
+		
+		LinkageItem item = null;
+		
+		if(links != null && value != null && value.trim().length() > 0  && appearance != null) {
+			if(appearance.contains(REQUEST_FP_IMAGE) || appearance.contains(REQUEST_FP_ISO_TEMPLATE)) {
+				// Fingerprint
+				item = new LinkageItem();
+				
+				// Set the value
+				if(appearance.contains(REQUEST_FP_IMAGE)) {
+					item.fp_image = value;
+				} else {
+					item.fp_iso_template = value;
+				}
+				
+				if(params != null) {
+					for(KeyValueSimp p : params) {
+						if(p.k.equals("fp_location")) {
+							item.fp_location  = p.v;
+						} else if(p.k.equals("fp_side")) {
+							item.fp_side = p.v;
+						} else if(p.k.equals("fp_digit")) {
+							try {
+								item.fp_digit = Integer.parseInt(p.v);
+							} catch (Exception e) {
+								
+							}
+						}
+					}
+				}
+				item.validateFingerprint();
+			} 
+		}
+		
+		if(item != null) {
+			item.sIdent = sIdent;
+			item.colName = colName;
+			links.add(item);
+		}
+	}
+	
+	/*
+	 * Write the items to the table
+	 */
+	public void writeItems(Connection sd, int oId, String changedBy, String instanceId, ArrayList<LinkageItem> items) throws SQLException {
+		
+		String sql = "insert into linkage (o_id, instance_id, survey_ident, col_name, fp_location, fp_side, fp_digit, fp_image, fp_iso_template, changed_by, changed_ts) "
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, instanceId);
+			pstmt.setString(10, changedBy);
+			for(LinkageItem item : items) {
+				pstmt.setString(3, item.sIdent);
+				pstmt.setString(4, item.colName);
+				pstmt.setString(5,  item.fp_location);
+				pstmt.setString(6,  item.fp_side);
+				pstmt.setInt(7,  item.fp_digit);
+				pstmt.setString(8,  item.fp_image);
+				pstmt.setString(9,  item.fp_iso_template);
+				
+				log.info("Add linkage: " + pstmt.toString());
+				pstmt.executeUpdate();
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
 	}
 }

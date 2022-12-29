@@ -1295,9 +1295,13 @@ public class ExchangeManager {
 							srcPathFile, 
 							basePath, 
 							sIdent,
+							null,		// TODO?
 							srcUrl,
-							null,
-							oId);
+							null,		// TODO?
+							null,		// TODO?
+							oId,
+							null,		// TODO?
+							null);		// TODO?
 					}
 					if(value != null && value.trim().length() == 0) {
 						value = null;

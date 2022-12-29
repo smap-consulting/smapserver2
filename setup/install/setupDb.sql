@@ -1721,3 +1721,28 @@ CREATE TABLE cms_setting (
 CREATE UNIQUE INDEX cms_unique_setting ON cms_setting(group_survey_ident);
 ALTER TABLE cms_setting OWNER TO ws;
 
+-- Create a table to hold biometric, including fingerprint record linkage data
+DROP SEQUENCE IF EXISTS linkage_seq CASCADE;
+CREATE SEQUENCE linkage_seq START 1;
+ALTER SEQUENCE linkage_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS linkage;
+CREATE TABLE linkage (
+	id integer DEFAULT NEXTVAL('linkage_seq') CONSTRAINT pk_linkage PRIMARY KEY,
+	o_id integer,
+	survey_ident text,				-- Source
+	instance_id text,
+	col_name text,
+									-- Image Fingerprint data
+	fp_location text,				-- Location on the body: hand or foot or unknown
+	fp_side text,					-- left or right
+	fp_digit integer,				-- 0-5, 0 = thumb, 5 = palm
+	fp_image text,					-- URL of image
+	fp_native_template text,		-- Generated from the raw image using FP tools
+	
+	fp_iso_template text,			-- Fingerprint ISO data
+	
+	changed_by text,
+	changed_ts TIMESTAMP WITH TIME ZONE	
+	);
+ALTER TABLE linkage OWNER TO ws;
