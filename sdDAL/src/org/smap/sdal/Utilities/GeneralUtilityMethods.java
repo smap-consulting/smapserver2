@@ -620,13 +620,9 @@ public class GeneralUtilityMethods {
 	 */
 	static public String createAttachments(Connection sd, String srcName, File srcPathFile, String basePath, 
 			String sIdent, 
-			String colName,
 			String srcUrl,
 			ArrayList<MediaChange> mediaChanges,
-			ArrayList<LinkageItem> linkageItems,
-			int oId,
-			String appearance,
-			ArrayList<KeyValueSimp> params) {
+			int oId) {
 
 		log.info("Create attachments");
 
@@ -694,9 +690,6 @@ public class GeneralUtilityMethods {
 		// Create a URL that references the attachment (but without the hostname or
 		// scheme)
 		value = "attachments/" + sIdent + "/" + dstName + "." + srcExt;
-
-		LinkageManager lm = new LinkageManager();
-		lm.addDataitemToList(linkageItems, value, appearance, params, sIdent, colName);
 		
 		log.info("Media value: " + value);
 		

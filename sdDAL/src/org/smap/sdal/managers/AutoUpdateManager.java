@@ -574,7 +574,7 @@ public class AutoUpdateManager {
 		try {
 			
 			pstmt = sd.prepareStatement(sql);
-			log.info("Get update questions: " + pstmt.toString());
+			//log.info("Get update questions: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {

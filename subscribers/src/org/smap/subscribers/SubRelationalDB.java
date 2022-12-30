@@ -365,8 +365,11 @@ public class SubRelationalDB extends Subscriber {
 				 * Apply any Linkage items
 				 */
 				if(linkageItems.size() > 0) {
+					log.info("----- Applying " + linkageItems.size() + " linkage items");
 					LinkageManager lm = new LinkageManager();
 					lm.writeItems(sd, oId, submittingUser, instanceId, linkageItems);
+				} else {
+					log.info("----- No linkage items to apply");
 				}
 				
 			}
@@ -1027,6 +1030,7 @@ public class SubRelationalDB extends Subscriber {
 			int oId) {	
 		
 		DynamicMetaValues dmv = new DynamicMetaValues();
+		LinkageManager lm = new LinkageManager();
 		
 		/*
 		 * Prepare for checking for case closed
@@ -1092,7 +1096,11 @@ public class SubRelationalDB extends Subscriber {
 				if(statusQuestion != null && colName.equals(statusQuestion) && value.equals(finalStatus)) {
 					dmv.case_closed = new Timestamp(new java.util.Date().getTime());
 				}
+				
+				// Add to linkage items
+				lm.addDataitemToList(linkageItems, value, col.getAppearance(), col.getParameters(), sIdent, colName);
 			}
+
 		}
 		
 		return dmv;
@@ -1968,13 +1976,10 @@ public class SubRelationalDB extends Subscriber {
 								srcPathFile, 
 								gBasePath, 
 								sIdent,
-								colName,
 								null,
 								mediaChanges,
-								linkageItems,
-								oId,
-								col.getAppearance(),
-								col.getParameters());		
+
+								oId);		
 
 					}
 				} else if(qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("geocompound")) { // TODO
