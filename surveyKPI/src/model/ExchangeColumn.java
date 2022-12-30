@@ -3,6 +3,7 @@ package model;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Option;
 
 /*
@@ -35,6 +36,8 @@ public class ExchangeColumn {
 	public String geomCol;
 	public ArrayList<Option> choices = null;
 	public boolean write = true;
+	public String appearance;
+	public ArrayList<KeyValueSimp> parameters;
 	
 	public ExchangeColumn(String h) {
 		humanName = h;

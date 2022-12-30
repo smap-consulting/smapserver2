@@ -366,8 +366,8 @@ public class SubRelationalDB extends Subscriber {
 				 */
 				if(linkageItems.size() > 0) {
 					log.info("----- Applying " + linkageItems.size() + " linkage items");
-					LinkageManager lm = new LinkageManager();
-					lm.writeItems(sd, oId, submittingUser, instanceId, linkageItems);
+					LinkageManager linkMgr = new LinkageManager();
+					linkMgr.writeItems(sd, oId, submittingUser, instanceId, linkageItems);
 				} else {
 					log.info("----- No linkage items to apply");
 				}
@@ -1030,7 +1030,7 @@ public class SubRelationalDB extends Subscriber {
 			int oId) {	
 		
 		DynamicMetaValues dmv = new DynamicMetaValues();
-		LinkageManager lm = new LinkageManager();
+		LinkageManager linkMgr = new LinkageManager();
 		
 		/*
 		 * Prepare for checking for case closed
@@ -1098,7 +1098,7 @@ public class SubRelationalDB extends Subscriber {
 				}
 				
 				// Add to linkage items
-				lm.addDataitemToList(linkageItems, value, col.getAppearance(), col.getParameters(), sIdent, colName);
+				linkMgr.addDataitemToList(linkageItems, value, col.getAppearance(), col.getParameters(), sIdent, colName);
 			}
 
 		}
@@ -1978,7 +1978,6 @@ public class SubRelationalDB extends Subscriber {
 								sIdent,
 								null,
 								mediaChanges,
-
 								oId);		
 
 					}

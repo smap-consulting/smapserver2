@@ -73,6 +73,7 @@ public class XLSXEventParser {
 		HashMap<String, File> mediaFiles;
 		SimpleDateFormat sdf;
 		int oId;
+		String user;
 
 		ProcessSheetHandler(
 				Connection sd,
@@ -91,7 +92,8 @@ public class XLSXEventParser {
 				String sIdent,
 				HashMap<String, File> mediaFiles,
 				SimpleDateFormat sdf,
-				int oId) {
+				int oId,
+				String user) {
 
 			this.sd = sd;
 			this.results = results;
@@ -110,6 +112,7 @@ public class XLSXEventParser {
 			this.mediaFiles = mediaFiles;
 			this.sdf = sdf;
 			this.oId = oId;
+			this.user = user;
 		}
 
 		@Override
@@ -161,7 +164,8 @@ public class XLSXEventParser {
 								mediaFiles,
 								sdf,
 								recordsWritten,
-								oId);
+								oId,
+								user);
 					} catch (SQLException e) {
 						responseMsg.add(e.getMessage());
 						hasError = true;
@@ -259,7 +263,8 @@ public class XLSXEventParser {
 			String sIdent,
 			HashMap<String, File> mediaFiles,
 			SimpleDateFormat sdf,
-			int oId) throws IOException, OpenXML4JException, SAXException, SQLException {
+			int oId,
+			String user) throws IOException, OpenXML4JException, SAXException, SQLException {
 
 		ReadOnlySharedStringsTable strings = new ReadOnlySharedStringsTable(this.xlsxPackage);
 		XSSFReader xssfReader = new XSSFReader(this.xlsxPackage);
@@ -268,7 +273,6 @@ public class XLSXEventParser {
 
 		recordsWritten = 0;
 
-		form.keyMap = new HashMap<String, String> ();
 		pstmtGetCol.setInt(1, form.f_id);		// Prepare the statement to get column names for the form
 		pstmtGetColGS.setInt(1, form.f_id);		// Prepare the statement to get column names for the form
 
@@ -295,7 +299,8 @@ public class XLSXEventParser {
 										sIdent,
 										mediaFiles,
 										sdf,
-										oId), 
+										oId,
+										user), 
 								formatter, 
 								false,
 								sdf);

@@ -849,8 +849,8 @@ public class ManagedForms extends Application {
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		try {
 			
-			LinkageManager lm = new LinkageManager();
-			ArrayList<Link> links = lm.getSurveyLinks(sd, cResults, sId, fId, prikey);
+			LinkageManager linkMgr = new LinkageManager();
+			ArrayList<Link> links = linkMgr.getSurveyLinks(sd, cResults, sId, fId, prikey);
 			response = Response.ok(gson.toJson(links)).build();
 		
 				

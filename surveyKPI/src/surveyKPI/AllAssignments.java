@@ -737,7 +737,7 @@ public class AllAssignments extends Application {
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 
 		// SQL to get a column name from the survey
-		String sqlGetCol = "select q_id, qname, column_name, qtype "
+		String sqlGetCol = "select q_id, qname, column_name, qtype, appearance, parameters "
 				+ "from question "
 				+ "where f_id = ? "
 				+ "and lower(qname) = ? "
@@ -1064,7 +1064,8 @@ public class AllAssignments extends Application {
 								importTime,
 								request.getServerName(),
 								sdf,
-								oId);
+								oId,
+								request.getRemoteUser());
 					} else {
 						 try (OPCPackage p = OPCPackage.open(f.getPath(), PackageAccess.READ)) {
 					            XLSXEventParser ep = new XLSXEventParser(p);
@@ -1085,7 +1086,8 @@ public class AllAssignments extends Application {
 					            		sIdent,
 					            		mediaFiles,
 					            		sdf,
-					            		oId);				           
+					            		oId,
+					            		request.getRemoteUser());				           
 					        }
 					}
 
