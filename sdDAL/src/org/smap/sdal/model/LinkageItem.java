@@ -27,8 +27,10 @@ public class LinkageItem {
 				!fp_location.equals("hand") &&
 				!fp_location.equals("foot")) {
 			fp_location = "unknown";
-		} else if(fp_location == null) {
-			fp_location = "unknown";
+		} 
+		
+		if(fp_location == null) {
+			fp_location = "hand";	// Default to hand
 		}
 	}
 }
