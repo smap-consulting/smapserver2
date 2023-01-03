@@ -6,8 +6,9 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -90,6 +91,10 @@ import org.xml.sax.SAXException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.machinezoo.sourceafis.FingerprintImage;
+import com.machinezoo.sourceafis.FingerprintImageOptions;
+import com.machinezoo.sourceafis.FingerprintTemplate;
+
 import JdbcManagers.JdbcUploadEventManager;
 
 /*****************************************************************************
@@ -465,6 +470,9 @@ public class SubscriberBatch {
 				// Delete linked csv files logically deleted more than 10 minutes age
 				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
 				
+				// Set fingerprint templates for new fingerprint images
+				setFingerprintTemplates(dbc.sd, basePath, serverName, localisation);
+				
 				// Apply synchronisation
 				// 1. Get all synchronisation notifications
 				// 2. Loop through each prikey not in sync table 
@@ -699,6 +707,61 @@ public class SubscriberBatch {
 			}
 		}
 
+	}
+	
+	/*
+	 * Set fingerprint templates from images
+	 */
+	private void setFingerprintTemplates(Connection sd, String basePath, String serverName, ResourceBundle localisation) throws SQLException, IOException {
+		
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtUpdate = null;
+		
+		try {
+			
+			String sql = "select id, fp_image "
+					+ "from linkage "
+					+ "where fp_native_template is null "
+					+ "and fp_image is not null";
+			
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				int id = rs.getInt("id");
+				String value = rs.getString("fp_image");
+				
+				File f = new File(basePath + "/" + value);
+				URI uri = null;
+				
+				if(f.exists()) {
+					uri = f.toURI();
+				} else {
+					// must be on s3
+					uri = URI.create("https://" + serverName + "/" + value);
+				}
+				
+				FingerprintTemplate template = new FingerprintTemplate(
+					    new FingerprintImage(
+					        Files.readAllBytes(Paths.get(uri)),
+					        new FingerprintImageOptions()
+					            .dpi(500)));
+				String serialized = template.serialize();
+				
+				String sqlUpdate = "update linkage "
+						+ "set fp_native_template = ? "
+						+ "where id = ?";
+				pstmtUpdate = sd.prepareStatement(sqlUpdate);
+				pstmtUpdate.setString(1, serialized);
+				pstmtUpdate.setInt(2,  id);
+				pstmtUpdate.executeUpdate();
+				
+			}
+			
+			
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
+			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}	
+		}
 	}
 	
 	/*
