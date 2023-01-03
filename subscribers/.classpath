@@ -18,8 +18,5 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry combineaccessrules="false" kind="src" path="/amazon"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
