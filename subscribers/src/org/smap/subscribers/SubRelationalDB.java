@@ -366,7 +366,7 @@ public class SubRelationalDB extends Subscriber {
 				 */
 				if(linkageItems.size() > 0) {
 					log.info("----- Applying " + linkageItems.size() + " linkage items");
-					LinkageManager linkMgr = new LinkageManager();
+					LinkageManager linkMgr = new LinkageManager(localisation);
 					linkMgr.writeItems(sd, oId, submittingUser, instanceId, linkageItems);
 				} else {
 					log.info("----- No linkage items to apply");
@@ -1030,7 +1030,7 @@ public class SubRelationalDB extends Subscriber {
 			int oId) {	
 		
 		DynamicMetaValues dmv = new DynamicMetaValues();
-		LinkageManager linkMgr = new LinkageManager();
+		LinkageManager linkMgr = new LinkageManager(localisation);
 		
 		/*
 		 * Prepare for checking for case closed

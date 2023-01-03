@@ -576,7 +576,7 @@ CREATE TABLE linkage (
 	fp_side text,					-- left or right
 	fp_digit integer,				-- 0-5, 0 = thumb, 5 = palm
 	fp_image text,					-- URL of image
-	fp_native_template text,		-- Generated from the raw image using FP tools
+	fp_native_template bytea,		-- Generated from the raw image using FP tools
 	
 	fp_iso_template text,			-- Fingerprint ISO data
 	

@@ -1198,7 +1198,7 @@ public class ExchangeManager {
 		String instanceId = null;
 		boolean writeRecord = true;
 		
-		LinkageManager linkMgr = new LinkageManager();
+		LinkageManager linkMgr = new LinkageManager(localisation);
 		ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
 		
 		eh.pstmtInsert.setString(index++, importSource);

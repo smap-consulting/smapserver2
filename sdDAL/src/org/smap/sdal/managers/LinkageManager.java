@@ -19,11 +19,17 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.smap.sdal.managers;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -33,6 +39,10 @@ import org.smap.sdal.model.Link;
 import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.LinkedTarget;
 
+import com.machinezoo.sourceafis.FingerprintImage;
+import com.machinezoo.sourceafis.FingerprintImageOptions;
+import com.machinezoo.sourceafis.FingerprintTemplate;
+
 public class LinkageManager {
 	
 	private static Logger log =
@@ -40,6 +50,12 @@ public class LinkageManager {
 
 	private final String REQUEST_FP_IMAGE = "ex:uk.ac.lshtm.keppel.android.SCAN(type='image')";
 	private final String REQUEST_FP_ISO_TEMPLATE = "ex:uk.ac.lshtm.keppel.android.SCAN(type='iso')";
+	
+	private ResourceBundle localisation;
+	
+	public LinkageManager(ResourceBundle localisation) {
+		localisation = this.localisation;
+	}
 	
 	public ArrayList<Link> getSurveyLinks(Connection sd, Connection cRel, int sId, int fId, int prikey) throws SQLException {
 		ArrayList<Link> links = new ArrayList<Link> ();
@@ -178,7 +194,7 @@ public class LinkageManager {
 	}
 	
 	/*
-	 * Write the items to the table
+	 * Write the linkage items to the table
 	 */
 	public void writeItems(Connection sd, int oId, String changedBy, String instanceId, ArrayList<LinkageItem> items) throws SQLException {
 		
@@ -206,5 +222,98 @@ public class LinkageManager {
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
 		}
+	}
+	
+	/*
+	 * Write the linkage items to the table
+	 */
+	public void getMatches(Connection sd, int oId, String changedBy, String instanceId, ArrayList<LinkageItem> items) throws SQLException {
+		
+		String sql = "insert into linkage (o_id, instance_id, survey_ident, col_name, fp_location, fp_side, fp_digit, fp_image, fp_iso_template, changed_by, changed_ts) "
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, instanceId);
+			pstmt.setString(10, changedBy);
+			for(LinkageItem item : items) {
+				pstmt.setString(3, item.sIdent);
+				pstmt.setString(4, item.colName);
+				pstmt.setString(5,  item.fp_location);
+				pstmt.setString(6,  item.fp_side);
+				pstmt.setInt(7,  item.fp_digit);
+				pstmt.setString(8,  item.fp_image);
+				pstmt.setString(9,  item.fp_iso_template);
+				
+				log.info("Add linkage: " + pstmt.toString());
+				pstmt.executeUpdate();
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+	}
+	
+	/*
+	 * Set fingerprint templates from images
+	 */
+	public void setFingerprintTemplates(Connection sd, String basePath, String serverName) throws SQLException, IOException {
+		
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtUpdate = null;
+		
+		try {
+			
+			String sql = "select id, fp_image "
+					+ "from linkage "
+					+ "where fp_native_template is null "
+					+ "and fp_image is not null";
+			
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				int id = rs.getInt("id");
+				String value = rs.getString("fp_image");
+				
+				File f = new File(basePath + "/" + value);
+				URI uri = null;
+				
+				if(f.exists()) {
+					uri = f.toURI();
+				} else {
+					// must be on s3
+					uri = URI.create("https://" + serverName + "/" + value);
+				}
+				
+				FingerprintTemplate template = new FingerprintTemplate(
+					    new FingerprintImage(
+					        Files.readAllBytes(Paths.get(uri)),
+					        new FingerprintImageOptions()
+					            .dpi(500)));
+				byte[] serialized = template.toByteArray();
+				
+				String sqlUpdate = "update linkage "
+						+ "set fp_native_template = ? "
+						+ "where id = ?";
+				pstmtUpdate = sd.prepareStatement(sqlUpdate);
+				pstmtUpdate.setBytes(1, serialized);
+				pstmtUpdate.setInt(2,  id);
+				pstmtUpdate.executeUpdate();
+				
+			}
+			
+			
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
+			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}	
+		}
+	}
+	
+	/*
+	 * match a fingerprint
+	 */
+	public void match(Connection sd) {
+		
 	}
 }

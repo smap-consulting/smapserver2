@@ -848,8 +848,10 @@ public class ManagedForms extends Application {
 		Connection cResults = ResultsDataSource.getConnection("surveyKPI-ManagedForms-getLinks");
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			LinkageManager linkMgr = new LinkageManager();
+			LinkageManager linkMgr = new LinkageManager(localisation);
 			ArrayList<Link> links = linkMgr.getSurveyLinks(sd, cResults, sId, fId, prikey);
 			response = Response.ok(gson.toJson(links)).build();
 		

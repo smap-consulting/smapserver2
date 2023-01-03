@@ -96,11 +96,6 @@
 			<version>2.9.0</version>
 		</dependency>
 		<dependency>
-			<groupId>org.codehaus.jettison</groupId>
-			<artifactId>jettison</artifactId>
-			<version>1.4.0</version>
-		</dependency>
-		<dependency>
             <groupId>com.sun.mail</groupId>
             <artifactId>javax.mail</artifactId>
             <version>1.6.2</version>
@@ -173,11 +168,6 @@
 		</dependency>
 		-->
 		<!-- Non SDAL -->
-		<dependency>
-            <groupId>asm</groupId>
-            <artifactId>asm</artifactId>
-            <version>3.3.1</version>
-        </dependency>
         <dependency>
       		<groupId>org.slf4j</groupId>
       		<artifactId>slf4j-api</artifactId>

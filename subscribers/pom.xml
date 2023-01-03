@@ -75,26 +75,13 @@
 		</dependency>
 	
 	<!--
-		<dependency>
-    		<groupId>org.codehaus.jettison</groupId>
-    		<artifactId>jettison</artifactId>
-    		<version>1.5.3</version>
-		</dependency>
 	
 		<dependency>
     		<groupId>com.google.code.gson</groupId>
     		<artifactId>gson</artifactId>
     		<version>2.10</version>
 		</dependency>
-	-->
-		
-		<dependency>
-        	<groupId>com.machinezoo.sourceafis</groupId>
-        	<artifactId>sourceafis</artifactId>
-        	<version>3.17.1</version>
-      	</dependency>
-      
-      <!--
+
       	<dependency>
     		<groupId>org.apache.httpcomponents</groupId>
     		<artifactId>httpmime</artifactId>
