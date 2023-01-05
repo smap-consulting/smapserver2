@@ -1742,6 +1742,7 @@ CREATE TABLE linkage (
 	
 	fp_iso_template text,			-- Fingerprint ISO data
 	
+	bad boolean default false, 		-- Set true if the instance id has been soft deleted
 	changed_by text,
 	changed_ts TIMESTAMP WITH TIME ZONE	
 	);

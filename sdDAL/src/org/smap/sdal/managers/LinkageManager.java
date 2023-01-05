@@ -38,9 +38,11 @@ import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Link;
 import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.LinkedTarget;
+import org.smap.sdal.model.Match;
 
 import com.machinezoo.sourceafis.FingerprintImage;
 import com.machinezoo.sourceafis.FingerprintImageOptions;
+import com.machinezoo.sourceafis.FingerprintMatcher;
 import com.machinezoo.sourceafis.FingerprintTemplate;
 
 public class LinkageManager {
@@ -225,37 +227,6 @@ public class LinkageManager {
 	}
 	
 	/*
-	 * Write the linkage items to the table
-	 */
-	public void getMatches(Connection sd, int oId, String changedBy, String instanceId, ArrayList<LinkageItem> items) throws SQLException {
-		
-		String sql = "insert into linkage (o_id, instance_id, survey_ident, col_name, fp_location, fp_side, fp_digit, fp_image, fp_iso_template, changed_by, changed_ts) "
-				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
-		PreparedStatement pstmt = null;
-		
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, oId);
-			pstmt.setString(2, instanceId);
-			pstmt.setString(10, changedBy);
-			for(LinkageItem item : items) {
-				pstmt.setString(3, item.sIdent);
-				pstmt.setString(4, item.colName);
-				pstmt.setString(5,  item.fp_location);
-				pstmt.setString(6,  item.fp_side);
-				pstmt.setInt(7,  item.fp_digit);
-				pstmt.setString(8,  item.fp_image);
-				pstmt.setString(9,  item.fp_iso_template);
-				
-				log.info("Add linkage: " + pstmt.toString());
-				pstmt.executeUpdate();
-			}
-		} finally {
-			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
-		}
-	}
-	
-	/*
 	 * Set fingerprint templates from images
 	 */
 	public void setFingerprintTemplates(Connection sd, String basePath, String serverName) throws SQLException, IOException {
@@ -311,9 +282,47 @@ public class LinkageManager {
 	}
 	
 	/*
-	 * match a fingerprint
+	 * match a fingerprint template
 	 */
-	public void match(Connection sd) {
+	public ArrayList<Match> matchSingleTemplate(Connection sd, int oId, FingerprintTemplate probe, double threshold) throws SQLException {
 		
+		String sql = "select id, fp_native_template, fp_image "
+				+ "from linkage "
+				+ "where not bad "
+				+ "and fp_native_template is not null "
+				+ "and fp_image is not null "
+				+ "and o_id  = ? "
+				+ "order by id desc";
+		
+		PreparedStatement pstmt = null;
+		
+		ArrayList<Match> matches = new ArrayList<> ();
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			
+			sd.setAutoCommit(false);	// page the results to reduce memory usage	
+			pstmt.setFetchSize(100);
+			
+			log.info("Match fingerprint: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+
+				FingerprintTemplate candidate = new FingerprintTemplate(rs.getBytes("fp_native_template")); 
+				double score = new FingerprintMatcher(probe).match(candidate);
+				if(score > threshold) {
+					Match match = new Match();
+					match.score = score;
+					match.linkageItem = new LinkageItem();
+					
+				}
+			}
+					
+		} finally {
+			try {sd.setAutoCommit(true);} catch (Exception ex) {}
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+		
+		return matches;
 	}
 }
