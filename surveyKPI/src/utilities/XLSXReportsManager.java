@@ -455,8 +455,13 @@ public class XLSXReportsManager {
 						String recordSId = rs.getString("_s_id");
 						surveyName = surveyNames.get(recordSId);
 						if(surveyName == null) {
-							surveyName = GeneralUtilityMethods.getSurveyName(sd, Integer.parseInt(recordSId));
-							surveyNames.put(recordSId, surveyName);
+							if(recordSId != null && recordSId.trim().length() > 0) {
+								surveyName = GeneralUtilityMethods.getSurveyName(sd, Integer.parseInt(recordSId));
+								surveyNames.put(recordSId, surveyName);
+							} else {
+								surveyName = "";
+							}
+							
 						}
 					}
 					
