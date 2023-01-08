@@ -45,8 +45,10 @@ public class Version extends Application {
 	public Response getVersion() { 
 
 		Response response = null;
-		Connection sd = SDDataSource.getConnection("SurveyKPI - version");
-		String sql = "select version from server;";
+		String connectionString = "SurveyKPI - version";
+		
+		Connection sd = SDDataSource.getConnection(connectionString);
+		String sql = "select version from server";
 		PreparedStatement pstmt = null;
 		VersionData vd = new VersionData();
 
@@ -68,7 +70,7 @@ public class Version extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("SurveyKPI - version", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 			
 		}
 

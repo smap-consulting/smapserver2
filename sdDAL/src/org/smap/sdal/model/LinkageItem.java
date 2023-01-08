@@ -13,7 +13,22 @@ public class LinkageItem {
 	public String fp_image;					// URL of image
 	public String fp_iso_template;			// Fingerprint ISO data
 	
-	public void validateFingerprint() {
+	/*
+	 * Create a Linkage item using an image
+	 */
+	public LinkageItem(String sIdent, String colName, String fp_location, String fp_side, int fp_digit, String fp_image, String fp_iso_template) {
+		this.sIdent = sIdent;
+		this.colName = colName;
+		this.fp_location = fp_location;
+		this.fp_side = fp_side;
+		this.fp_digit = fp_digit;
+		this.fp_image = fp_image;
+		this.fp_iso_template = fp_iso_template;
+		
+		validateFingerprint();
+	}
+	
+	private void validateFingerprint() {
 
 		if(fp_digit < 0 || fp_digit > 5) {
 			fp_location = "unknown";

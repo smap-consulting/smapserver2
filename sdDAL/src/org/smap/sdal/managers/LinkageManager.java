@@ -19,9 +19,11 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.smap.sdal.managers;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -30,7 +32,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
+import java.util.UUID;
 import java.util.logging.Logger;
+
+import javax.imageio.ImageIO;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Form;
@@ -155,44 +160,43 @@ public class LinkageManager {
 	 */
 	public void addDataitemToList(ArrayList<LinkageItem> links, String value, String appearance, ArrayList<KeyValueSimp> params, String sIdent, String colName) {
 		
-		LinkageItem item = null;
-		
 		if(links != null && value != null && value.trim().length() > 0  && appearance != null) {
 			if(appearance.contains(REQUEST_FP_IMAGE) || appearance.contains(REQUEST_FP_ISO_TEMPLATE)) {
 				// Fingerprint
-				item = new LinkageItem();
+				String image = null;
+				String isoTemplate = null;
+				String fpLocation = null;
+				String fpSide = null;
+				int fpDigit = 0;
 				
 				// Set the value
 				if(appearance.contains(REQUEST_FP_IMAGE)) {
-					item.fp_image = value;
+					image = value;
 				} else {
-					item.fp_iso_template = value;
+					isoTemplate = value;
 				}
 				
 				if(params != null) {
 					for(KeyValueSimp p : params) {
 						if(p.k.equals("fp_location")) {
-							item.fp_location  = p.v;
+							fpLocation  = p.v;
 						} else if(p.k.equals("fp_side")) {
-							item.fp_side = p.v;
+							fpSide = p.v;
 						} else if(p.k.equals("fp_digit")) {
 							try {
-								item.fp_digit = Integer.parseInt(p.v);
+								fpDigit = Integer.parseInt(p.v);
 							} catch (Exception e) {
 								
 							}
 						}
 					}
 				}
-				item.validateFingerprint();
+				
+				links.add(new LinkageItem(sIdent, colName, fpLocation, fpSide, fpDigit, image, isoTemplate));				
+
 			} 
 		}
-		
-		if(item != null) {
-			item.sIdent = sIdent;
-			item.colName = colName;
-			links.add(item);
-		}
+
 	}
 	
 	/*
@@ -227,7 +231,7 @@ public class LinkageManager {
 	}
 	
 	/*
-	 * Set fingerprint templates from images
+	 * Set fingerprint templates in the linkage table using the image in the same table
 	 */
 	public void setFingerprintTemplates(Connection sd, String basePath, String serverName) throws SQLException, IOException {
 		
@@ -254,7 +258,12 @@ public class LinkageManager {
 					uri = f.toURI();
 				} else {
 					// must be on s3
-					uri = URI.create("https://" + serverName + "/" + value);
+					String extension = value.substring(value.lastIndexOf('.') + 1);
+					URL url = new URL("https://" + serverName + "/" + value);
+					BufferedImage tempImg = ImageIO.read(url);
+					File file = new File(basePath + "/temp/fp_" + UUID.randomUUID() + "." + extension);
+					ImageIO.write(tempImg, extension, file);
+					uri = file.toURI();
 				}
 				
 				FingerprintTemplate template = new FingerprintTemplate(
@@ -286,7 +295,8 @@ public class LinkageManager {
 	 */
 	public ArrayList<Match> matchSingleTemplate(Connection sd, int oId, FingerprintTemplate probe, double threshold) throws SQLException {
 		
-		String sql = "select id, fp_native_template, fp_image "
+		String sql = "select id, fp_native_template, fp_image, survey_ident, col_name,"
+				+ "fp_location, fp_side, fp_digit "
 				+ "from linkage "
 				+ "where not bad "
 				+ "and fp_native_template is not null "
@@ -303,18 +313,36 @@ public class LinkageManager {
 			
 			sd.setAutoCommit(false);	// page the results to reduce memory usage	
 			pstmt.setFetchSize(100);
+			pstmt.setInt(1,  oId);
 			
 			log.info("Match fingerprint: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 
-				FingerprintTemplate candidate = new FingerprintTemplate(rs.getBytes("fp_native_template")); 
-				double score = new FingerprintMatcher(probe).match(candidate);
-				if(score > threshold) {
-					Match match = new Match();
-					match.score = score;
-					match.linkageItem = new LinkageItem();
+				int id = rs.getInt("id");
+				FingerprintTemplate candidate = new FingerprintTemplate(rs.getBytes("fp_native_template"));
+				String fpImage = rs.getString("fp_image");
+				String sIdent = rs.getString("survey_ident");
+				String colName = rs.getString("col_name");
+				String fpLocation = rs.getString("fp_location");
+				String fpSide = rs.getString("fp_side");
+				int fpDigit = rs.getInt("fp_digit");
 					
+				double score = new FingerprintMatcher(probe).match(candidate);
+				log.info("Score: " + score + " Threshold: " + threshold);
+				
+				if(score > threshold) {
+					Match match = new Match(id, score, new LinkageItem(sIdent, colName, fpLocation, fpSide, fpDigit, fpImage, null));
+					
+					/*
+					 * Get the details of where this match is stored
+					 * If the match is not found, presumably because it has been deleted since the linkage cache was created then expire the link
+					 */
+					if(!getStorageDetails(sd, match)) {
+						markExpired();
+					} else {	
+						matches.add(match);
+					}
 				}
 			}
 					
@@ -325,4 +353,14 @@ public class LinkageManager {
 		
 		return matches;
 	}
+	
+	private boolean getStorageDetails(Connection sd, Match match) {
+		return true;
+	}
+	
+	private void markExpired() {
+		
+	}
+	
+	
 }
