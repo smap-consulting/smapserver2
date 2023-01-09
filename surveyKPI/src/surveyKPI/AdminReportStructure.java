@@ -69,8 +69,8 @@ public class AdminReportStructure extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			boolean enterpriseLevel = GeneralUtilityMethods.isEntUser(sd, request.getRemoteUser());
-			boolean organisationLevel = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
+			boolean enterpriseLevel = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ENTERPRISE_ID);
+			boolean organisationLevel = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ORG_ID);
 			
 			int eId = 0;
 			int oId = 0;

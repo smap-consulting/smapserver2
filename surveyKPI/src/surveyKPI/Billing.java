@@ -129,14 +129,14 @@ public class Billing extends Application {
 		if(oId > 0) {
 			aOrg.isAuthorised(sd, request.getRemoteUser());
 			
-			boolean 	orgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());			
+			boolean 	orgUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ORG_ID);			
 			if(!orgUser) {
 				aOrg.isValidBillingOrganisation(sd, oId);
 			}
 		} else if(eId > 0) { 
 			aEnterprise.isAuthorised(sd, request.getRemoteUser());
 			
-			boolean entUser = GeneralUtilityMethods.isEntUser(sd, request.getRemoteUser());			
+			boolean entUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ENTERPRISE_ID);			
 			if(!entUser) {
 				aOrg.isValidBillingEnterprise(sd, eId);
 			}

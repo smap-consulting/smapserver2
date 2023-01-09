@@ -870,6 +870,7 @@ public class Data extends Application {
 				JSONObject jo = new JSONObject();
 				int index = 0;
 				boolean viewOwnDataOnly = GeneralUtilityMethods.isOnlyViewOwnData(sd, request.getRemoteUser());
+				boolean viewLinks = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.LINKS_ID);
 				while(jo != null) {
 					
 					jo =  tdm.getNextRecord(
@@ -885,7 +886,8 @@ public class Data extends Application {
 							geomQuestion,
 							incLinks,
 							sIdent,
-							viewOwnDataOnly
+							viewOwnDataOnly,
+							viewLinks
 							);
 					
 					if(jo != null) {

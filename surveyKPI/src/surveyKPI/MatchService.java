@@ -23,6 +23,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -33,6 +34,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LinkageManager;
+import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.Match;
 
 import com.google.gson.Gson;
@@ -69,12 +71,15 @@ public class MatchService extends Application {
 		a = new Authorise(authorisations, null);	
 	}
 	
+	/*
+	 * Get the fingerprints that match the passed in fingerprint
+	 */
 	@GET
 	@Path("/fingerprint/image")
 	@Produces("application/json")
 	public Response matchFingerprintImage(@Context HttpServletRequest request,
-			@QueryParam("image") String image,
-			@QueryParam("threshold") double threshold) { 	// URL of an image
+			@QueryParam("image") String image,			// URL of an image
+			@QueryParam("threshold") double threshold) { 	
 
 		Response response = null;
 		String connectionString = "SurveyKPI - match a fingerprint";
@@ -131,6 +136,51 @@ public class MatchService extends Application {
 		return response;
 	}
 	
+	/*
+	 * Get the linkage items in a record
+	 */
+	@GET
+	@Path("/record/{survey_ident}/{instanceid}")
+	@Produces("application/json")
+	public Response linkageItemsInRecord(@Context HttpServletRequest request,
+			@PathParam("survey_ident") String sIdent,
+			@PathParam("instanceid") String instanceId) {
 
+		Response response = null;
+		String connectionString = "SurveyKPI - linkage itemst";
+		
+
+		// Authorisation
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());		
+	
+		log.info("Get linkage items for survey: " + sIdent + " InstanceId: " + instanceId);
+		
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			String basePath = GeneralUtilityMethods.getBasePath(request);
+			
+			LinkageManager linkMgr = new LinkageManager(localisation);
+			ArrayList<LinkageItem> items = linkMgr.getRecordLinkages(sd, sIdent, instanceId);
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			response = Response.ok(gson.toJson(items)).build();
+			
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {
+			
+			
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+
+		return response;
+	}
 }
 

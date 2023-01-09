@@ -354,6 +354,53 @@ public class LinkageManager {
 		return matches;
 	}
 	
+	
+	/*
+	 * Get linkages in a single record of a survey
+	 */
+	public ArrayList<LinkageItem> getRecordLinkages(Connection sd, String sIdent, String instanceId) throws SQLException {
+		
+		String sql = "select id, fp_image, col_name,"
+				+ "fp_location, fp_side, fp_digit "
+				+ "from linkage "
+				+ "where not bad "
+				+ "and survey_ident = ? "
+				+ "and instance_id = ? "
+				+ "order by id desc";
+		
+		PreparedStatement pstmt = null;
+		
+		ArrayList<LinkageItem> items = new ArrayList<> ();
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			
+			pstmt.setString(1, sIdent);
+			pstmt.setString(2, instanceId);
+			
+			log.info("Get linkage items for a record: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+
+				int id = rs.getInt("id");
+				String fpImage = rs.getString("fp_image");
+				String colName = rs.getString("col_name");
+				String fpLocation = rs.getString("fp_location");
+				String fpSide = rs.getString("fp_side");
+				int fpDigit = rs.getInt("fp_digit");
+
+				items.add(new LinkageItem(sIdent, colName, fpLocation, fpSide, fpDigit, fpImage, null));
+				
+			}
+					
+		} finally {
+			try {sd.setAutoCommit(true);} catch (Exception ex) {}
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+		
+		return items;
+	}
+	
 	private boolean getStorageDetails(Connection sd, Match match) {
 		return true;
 	}
@@ -361,6 +408,5 @@ public class LinkageManager {
 	private void markExpired() {
 		
 	}
-	
 	
 }

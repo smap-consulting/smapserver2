@@ -137,9 +137,9 @@ public class UserList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);	
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
-			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser());
-			boolean isAdminUser = GeneralUtilityMethods.isAdminUser(sd, request.getRemoteUser());
+			boolean isOrgUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ORG_ID);
+			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.SECURITY_ID);
+			boolean isAdminUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ADMIN_ID);
 			
 			UserManager um = new UserManager(localisation);
 			ArrayList<User> users = um.getUserList(sd, oId, isOrgUser, isSecurityManager, isAdminUser, request.getRemoteUser());
@@ -439,10 +439,10 @@ public class UserList extends Application {
 			String adminName = null;
 			String adminEmail = null;
 			ResultSet resultSet = null;
-			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
-			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser());
-			boolean isEnterpriseManager = GeneralUtilityMethods.isEntUser(sd, request.getRemoteUser());
-			boolean isServerOwner = GeneralUtilityMethods.isServerOwner(sd, request.getRemoteUser());
+			boolean isOrgUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ORG_ID);
+			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.SECURITY_ID);
+			boolean isEnterpriseManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ENTERPRISE_ID);
+			boolean isServerOwner = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.OWNER_ID);
 			
 			/*
 			 * Get the organisation and name of the user making the request
@@ -644,9 +644,9 @@ public class UserList extends Application {
 			
 			UserManager um = new UserManager(localisation);
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
-			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser());
-			boolean isAdminUser = GeneralUtilityMethods.isAdminUser(sd, request.getRemoteUser());
+			boolean isOrgUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ORG_ID);
+			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.SECURITY_ID);
+			boolean isAdminUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ADMIN_ID);
 
 			ArrayList<User> users = um.getUserList(sd, oId, isOrgUser, isSecurityManager,isAdminUser, request.getRemoteUser());
 			
@@ -704,8 +704,8 @@ public class UserList extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
-			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser());
+			boolean isOrgUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ORG_ID);
+			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.SECURITY_ID);
 			String tz = "UTC";	// Set default for timezone
 			
 			/*

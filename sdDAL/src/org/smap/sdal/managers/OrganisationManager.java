@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 
 import org.apache.commons.fileupload.FileItem;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -395,7 +396,7 @@ public class OrganisationManager {
 			 * the owner would be set to zero.  In other words they are creating community organisations that
 			 * will need to be maintained by whichever user has organisational admin privilege
 			 */
-			pstmt.setInt(46, GeneralUtilityMethods.isOrgUser(sd, userIdent) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
+			pstmt.setInt(46, GeneralUtilityMethods.hasSecurityGroup(sd, userIdent, Authorise.ORG_ID) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
@@ -578,7 +579,7 @@ public class OrganisationManager {
 				SensitiveData sensData = gson.fromJson(rs.getString(1), SensitiveData.class);
 				if(sensData != null && sensData.signature != null && !sensData.signature.equals("none")) {
 					if(sensData.signature.equals("admin_only")) {
-						boolean isAdmin = GeneralUtilityMethods.isAdminUser(sd, user);
+						boolean isAdmin = GeneralUtilityMethods.hasSecurityGroup(sd, user, Authorise.ADMIN_ID);
 						if(!isAdmin) {
 							msd.signature = true;
 						}

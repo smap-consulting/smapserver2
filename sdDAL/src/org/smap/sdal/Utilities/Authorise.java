@@ -1762,7 +1762,7 @@ public class Authorise {
 		
 		try {
 			// If user is an org administrator then all is good
-			if(GeneralUtilityMethods.isOrgUser(conn, user)) {
+			if(GeneralUtilityMethods.hasSecurityGroup(conn, user, Authorise.ORG_ID)) {
 				return true;
 			}
 			

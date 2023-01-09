@@ -448,7 +448,7 @@ public class Tasks extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		
-		boolean isAdminUser = GeneralUtilityMethods.isAdminUser(sd, request.getRemoteUser());
+		boolean isAdminUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ADMIN_ID);
 		if(isAdminUser) {
 			// Check that the project is in the users organisation
 			a.projectInUsersOrganisation(sd, request.getRemoteUser(), pId);
