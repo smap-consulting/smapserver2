@@ -67,6 +67,8 @@ import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
+import org.smap.sdal.model.KeyValueSimp;
+import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Notification;
@@ -465,6 +467,78 @@ public class SubscriberBatch {
 
 				// Delete linked csv files logically deleted more than 10 minutes age
 				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
+				
+				// Initialise the linkage table if that has been requested
+				if(rebuildLinkageTable(dbc.sd)) {
+					log.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Rebuild Linkage ");
+					
+					String sql = "select q.q_id, q.column_name, q.appearance, q.parameters, s.ident, f.table_name, p.o_id "
+							+ "from question q, form f, survey s, project p "
+							+ "where q.f_id = f.f_id "
+							+ "and f.s_id = s.s_id "
+							+ "and p.id = s.p_id "
+							+ "and not q.soft_deleted "
+							+ "and not s.deleted "
+							+ "and q.appearance like '%keppel%'";
+					
+					PreparedStatement pstmtRebuild = null;
+					PreparedStatement pstmtData = null;
+					ResultSet rsData = null;
+					
+					try {
+						pstmtRebuild = dbc.sd.prepareStatement(sql);
+						ResultSet rs = pstmtRebuild.executeQuery();
+						while(rs.next()) {
+							
+							String appearance = rs.getString("appearance");
+							if(appearance.contains(linkMgr.REQUEST_FP_IMAGE) || appearance.contains(linkMgr.REQUEST_FP_ISO_TEMPLATE)) {
+								
+								ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
+								
+								String sIdent = rs.getString("ident");
+								String colName = rs.getString("column_name");
+								String tableName = rs.getString("table_name");
+								int oId = rs.getInt("o_id");
+								ArrayList<KeyValueSimp> params = GeneralUtilityMethods.convertParametersToArray(rs.getString("parameters"));
+								log.info("------ " + sIdent + " : " + colName + " : " + tableName);
+								
+								// Get the data for each column
+								StringBuilder sqlData = new StringBuilder("select ")
+										.append(colName)
+										.append(" from ")
+										.append(tableName)
+										.append(" where _bad = false ")
+										.append("and ")
+										.append(colName)
+										.append(" is not null ")
+										.append("and ")
+										.append(colName)
+										.append(" != '' ");
+								
+								 
+								if(pstmtData != null) try {pstmtData.close();} catch (Exception e) {}
+								if(rsData != null) try {rsData.close();} catch (Exception e) {}
+								pstmtData = dbc.results.prepareStatement(sqlData.toString());
+								
+								rsData = pstmtData.executeQuery();
+								while(rsData.next()) {
+									log.info("  Value: " + rsData.getString(1));
+									linkMgr.addDataitemToList(linkageItems, rsData.getString(1), appearance, params, sIdent, colName);
+								}
+								
+								linkMgr.writeItems(dbc.sd, oId, "rebuild", tableName, linkageItems);
+								
+								
+							}
+							
+						}
+					} finally {
+						if(pstmtRebuild != null) try {pstmtRebuild.close();} catch(Exception e) {}
+						if(pstmtData != null) try {pstmtData.close();} catch (Exception e) {}
+					}
+					
+					rebuildLinkageTableComplete(dbc.sd);
+				}
 				
 				// Set fingerprint templates for new fingerprint images
 				linkMgr.setFingerprintTemplates(dbc.sd, basePath, serverName);
@@ -1722,6 +1796,37 @@ public class SubscriberBatch {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 		}
+	}
+	
+	private boolean rebuildLinkageTable(Connection sd) throws SQLException {
+		boolean reload = false;
+		
+		String sql = "select rebuild_link_cache from server";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				reload = rs.getBoolean(1);
+			}
+		} finally {
+			if(pstmt != null) try{pstmt.close();} catch(Exception e){}
+		}
+		return reload;
+	}
+
+	private boolean rebuildLinkageTableComplete(Connection sd) throws SQLException {
+		boolean reload = false;
+		
+		String sql = "update server set rebuild_link_cache = false";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) try{pstmt.close();} catch(Exception e){}
+		}
+		return reload;
 	}
 
 }

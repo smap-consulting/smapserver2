@@ -55,8 +55,8 @@ public class LinkageManager {
 	private static Logger log =
 			 Logger.getLogger(LinkageManager.class.getName());
 
-	private final String REQUEST_FP_IMAGE = "ex:uk.ac.lshtm.keppel.android.SCAN(type='image')";
-	private final String REQUEST_FP_ISO_TEMPLATE = "ex:uk.ac.lshtm.keppel.android.SCAN(type='iso')";
+	public final String REQUEST_FP_IMAGE = "ex:uk.ac.lshtm.keppel.android.SCAN(type='image')";
+	public final String REQUEST_FP_ISO_TEMPLATE = "ex:uk.ac.lshtm.keppel.android.SCAN(type='iso')";
 	
 	private ResourceBundle localisation;
 	

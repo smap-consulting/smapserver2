@@ -116,7 +116,8 @@ create TABLE server (
 	keep_erased_days integer default 0,
 	billing_enabled boolean default false,
 	css text,
-	password_strength decimal default 0.0
+	password_strength decimal default 0.0,
+	rebuild_link_cache boolean default false
 	);
 ALTER TABLE server OWNER TO ws;
 

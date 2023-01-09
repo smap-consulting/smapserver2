@@ -587,3 +587,4 @@ CREATE TABLE linkage (
 ALTER TABLE linkage OWNER TO ws;
 
 insert into groups(id,name) values(13,'links');
+alter table server add column rebuild_link_cache boolean default false;
