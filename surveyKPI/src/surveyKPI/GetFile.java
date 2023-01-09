@@ -165,12 +165,13 @@ public class GetFile extends Application {
 		
 		int uId = 0;
 		Response r = null;
+		String connectionString = "Get Users File";
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("Get Users File");	
-		a.isAuthorised(connectionSD, request.getRemoteUser());		
+		Connection sd = SDDataSource.getConnection(connectionString);	
+		a.isAuthorised(sd, request.getRemoteUser());		
 		try {		
-			uId = GeneralUtilityMethods.getUserId(connectionSD, request.getRemoteUser());
+			uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 		} catch(Exception e) {
 			// ignore error
 		}
@@ -197,7 +198,7 @@ public class GetFile extends Application {
 			log.info("Error getting file:" + e.getMessage());
 			r = Response.serverError().build();
 		} finally {	
-			SDDataSource.closeConnection("Get Users File", connectionSD);	
+			SDDataSource.closeConnection(connectionString, sd);	
 		}
 		
 		return r;

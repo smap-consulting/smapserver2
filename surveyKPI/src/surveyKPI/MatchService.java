@@ -29,6 +29,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LinkageManager;
@@ -60,6 +61,13 @@ public class MatchService extends Application {
 	private static Logger log =
 			 Logger.getLogger(MatchService.class.getName());
 	
+	Authorise a = null;
+	
+	public MatchService() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.LINKS);
+		a = new Authorise(authorisations, null);	
+	}
 	
 	@GET
 	@Path("/fingerprint/image")
@@ -70,10 +78,12 @@ public class MatchService extends Application {
 
 		Response response = null;
 		String connectionString = "SurveyKPI - match a fingerprint";
+		
+
+		// Authorisation
 		Connection sd = SDDataSource.getConnection(connectionString);
-
-		 // AUTHORISATION TODO
-
+		a.isAuthorised(sd, request.getRemoteUser());		
+		
 		if(threshold == 0.0) {
 			threshold = 30.0;
 		}

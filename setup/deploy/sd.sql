@@ -585,3 +585,5 @@ CREATE TABLE linkage (
 	changed_ts TIMESTAMP WITH TIME ZONE	
 	);
 ALTER TABLE linkage OWNER TO ws;
+
+insert into groups(id,name) values(13,'links');
