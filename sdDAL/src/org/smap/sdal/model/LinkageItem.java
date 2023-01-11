@@ -3,6 +3,7 @@ package org.smap.sdal.model;
 
 public class LinkageItem {
 	
+	public int id;
 	public String sIdent;					// Keys
 	public String colName;
 	
@@ -16,7 +17,8 @@ public class LinkageItem {
 	/*
 	 * Create a Linkage item using an image
 	 */
-	public LinkageItem(String sIdent, String colName, String fp_location, String fp_side, int fp_digit, String fp_image, String fp_iso_template) {
+	public LinkageItem(int id, String sIdent, String colName, String fp_location, String fp_side, int fp_digit, String fp_image, String fp_iso_template) {
+		this.id = id;
 		this.sIdent = sIdent;
 		this.colName = colName;
 		this.fp_location = fp_location;

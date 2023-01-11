@@ -33,6 +33,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
@@ -192,7 +193,7 @@ public class LinkageManager {
 					}
 				}
 				
-				links.add(new LinkageItem(sIdent, colName, fpLocation, fpSide, fpDigit, image, isoTemplate));				
+				links.add(new LinkageItem(0, sIdent, colName, fpLocation, fpSide, fpDigit, image, isoTemplate));				
 
 			} 
 		}
@@ -246,6 +247,7 @@ public class LinkageManager {
 					+ "and fp_image is not null";
 			
 			pstmt = sd.prepareStatement(sql);
+			log.info("Get linkages to update: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				int id = rs.getInt("id");
@@ -271,16 +273,24 @@ public class LinkageManager {
 					        Files.readAllBytes(Paths.get(uri)),
 					        new FingerprintImageOptions()
 					            .dpi(500)));
-				byte[] serialized = template.toByteArray();
-				
-				String sqlUpdate = "update linkage "
-						+ "set fp_native_template = ? "
-						+ "where id = ?";
-				pstmtUpdate = sd.prepareStatement(sqlUpdate);
-				pstmtUpdate.setBytes(1, serialized);
-				pstmtUpdate.setInt(2,  id);
-				pstmtUpdate.executeUpdate();
-				
+
+				byte[] serialized = null;
+				try {
+					serialized = template.toByteArray();
+				} catch (Exception e) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
+					
+				if(serialized != null) {
+					String sqlUpdate = "update linkage "
+							+ "set fp_native_template = ? "
+							+ "where id = ?";
+					pstmtUpdate = sd.prepareStatement(sqlUpdate);
+					pstmtUpdate.setBytes(1, serialized);
+					pstmtUpdate.setInt(2,  id);
+					log.info("update linkage: " + pstmtUpdate.toString());
+					pstmtUpdate.executeUpdate();
+				}
 			}
 			
 			
@@ -291,15 +301,14 @@ public class LinkageManager {
 	}
 	
 	/*
-	 * match a fingerprint template
+	 * Get a list of matches to a fingerprint template
 	 */
-	public ArrayList<Match> matchSingleTemplate(Connection sd, int oId, FingerprintTemplate probe, double threshold) throws SQLException {
+	public ArrayList<Match> matchSingleTemplate(Connection sd, String server, int oId, FingerprintTemplate probe, double threshold, String image) throws SQLException {
 		
 		String sql = "select id, fp_native_template, fp_image, survey_ident, col_name,"
 				+ "fp_location, fp_side, fp_digit "
 				+ "from linkage "
-				+ "where not bad "
-				+ "and fp_native_template is not null "
+				+ "where fp_native_template is not null "
 				+ "and fp_image is not null "
 				+ "and o_id  = ? "
 				+ "order by id desc";
@@ -322,26 +331,32 @@ public class LinkageManager {
 				int id = rs.getInt("id");
 				FingerprintTemplate candidate = new FingerprintTemplate(rs.getBytes("fp_native_template"));
 				String fpImage = rs.getString("fp_image");
-				String sIdent = rs.getString("survey_ident");
-				String colName = rs.getString("col_name");
-				String fpLocation = rs.getString("fp_location");
-				String fpSide = rs.getString("fp_side");
-				int fpDigit = rs.getInt("fp_digit");
-					
-				double score = new FingerprintMatcher(probe).match(candidate);
-				log.info("Score: " + score + " Threshold: " + threshold);
+				if(fpImage != null) {
+					fpImage = "https://" + server + "/" + fpImage;
+				}
 				
-				if(score > threshold) {
-					Match match = new Match(id, score, new LinkageItem(sIdent, colName, fpLocation, fpSide, fpDigit, fpImage, null));
+				if(image != null && fpImage != null && !image.equals(fpImage)) {  // Don't match against identical image
+					String sIdent = rs.getString("survey_ident");
+					String colName = rs.getString("col_name");
+					String fpLocation = rs.getString("fp_location");
+					String fpSide = rs.getString("fp_side");
+					int fpDigit = rs.getInt("fp_digit");
+						
+					double score = new FingerprintMatcher(probe).match(candidate);
+					log.info("Score: " + score + " Threshold: " + threshold);
 					
-					/*
-					 * Get the details of where this match is stored
-					 * If the match is not found, presumably because it has been deleted since the linkage cache was created then expire the link
-					 */
-					if(!getStorageDetails(sd, match)) {
-						markExpired();
-					} else {	
-						matches.add(match);
+					if(score > threshold) {
+						Match match = new Match(id, score, new LinkageItem(id, sIdent, colName, fpLocation, fpSide, fpDigit, fpImage, null));
+						
+						/*
+						 * Get the details of where this match is stored
+						 * If the match is not found, presumably because it has been deleted since the linkage cache was created then expire the link
+						 */
+						if(!getStorageDetails(sd, match)) {
+							markExpired();
+						} else {	
+							matches.add(match);
+						}
 					}
 				}
 			}
@@ -358,13 +373,12 @@ public class LinkageManager {
 	/*
 	 * Get linkages in a single record of a survey
 	 */
-	public ArrayList<LinkageItem> getRecordLinkages(Connection sd, String sIdent, String instanceId) throws SQLException {
+	public ArrayList<LinkageItem> getRecordLinkages(Connection sd, String server, String sIdent, String instanceId) throws SQLException {
 		
 		String sql = "select id, fp_image, col_name,"
 				+ "fp_location, fp_side, fp_digit "
 				+ "from linkage "
-				+ "where not bad "
-				+ "and survey_ident = ? "
+				+ "where survey_ident = ? "
 				+ "and instance_id = ? "
 				+ "order by id desc";
 		
@@ -389,8 +403,10 @@ public class LinkageManager {
 				String fpSide = rs.getString("fp_side");
 				int fpDigit = rs.getInt("fp_digit");
 
-				items.add(new LinkageItem(sIdent, colName, fpLocation, fpSide, fpDigit, fpImage, null));
-				
+				if(fpImage != null) {
+					fpImage = "https://" + server + "/" + fpImage;
+					items.add(new LinkageItem(id, sIdent, colName, fpLocation, fpSide, fpDigit, fpImage, null));	// Only add matches for images TODO iso template
+				}
 			}
 					
 		} finally {

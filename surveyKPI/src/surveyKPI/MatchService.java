@@ -92,6 +92,10 @@ public class MatchService extends Application {
 		if(threshold == 0.0) {
 			threshold = 30.0;
 		}
+		String originalImage = image;
+		if(image != null && request.getServerName().equals("localhost")) {
+			image = image.replaceFirst("https", "http");
+		}
 			
 		log.info("Get fingerprint for image: " + image + " Threshold: " + threshold);
 		
@@ -117,7 +121,7 @@ public class MatchService extends Application {
 				            .dpi(500)));
 			
 			LinkageManager linkMgr = new LinkageManager(localisation);
-			ArrayList<Match> matches = linkMgr.matchSingleTemplate(sd, oId, probe, threshold);
+			ArrayList<Match> matches = linkMgr.matchSingleTemplate(sd, request.getServerName(), oId, probe, threshold, originalImage);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(matches);
 			response = Response.ok(resp).build();
@@ -147,8 +151,7 @@ public class MatchService extends Application {
 			@PathParam("instanceid") String instanceId) {
 
 		Response response = null;
-		String connectionString = "SurveyKPI - linkage itemst";
-		
+		String connectionString = "SurveyKPI - linkage items in record";		
 
 		// Authorisation
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -161,11 +164,8 @@ public class MatchService extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			String basePath = GeneralUtilityMethods.getBasePath(request);
-			
 			LinkageManager linkMgr = new LinkageManager(localisation);
-			ArrayList<LinkageItem> items = linkMgr.getRecordLinkages(sd, sIdent, instanceId);
+			ArrayList<LinkageItem> items = linkMgr.getRecordLinkages(sd, request.getServerName(), sIdent, instanceId);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			response = Response.ok(gson.toJson(items)).build();
 			

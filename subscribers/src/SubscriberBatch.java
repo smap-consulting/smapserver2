@@ -49,6 +49,7 @@ import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
 import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.Tables;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LinkageManager;
@@ -472,7 +473,11 @@ public class SubscriberBatch {
 				if(rebuildLinkageTable(dbc.sd)) {
 					log.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Rebuild Linkage ");
 					
-					String sql = "select q.q_id, q.column_name, q.appearance, q.parameters, s.ident, f.table_name, p.o_id "
+					String sqlInst = "select table_name, f_id from form where s_id = ? and parentform = 0";
+					
+					String sqlClear = "truncate linkage";
+					
+					String sql = "select q.q_id, q.column_name, q.appearance, q.parameters, s.ident, s.s_id, f.table_name, f.f_id, f.parentform, p.o_id "
 							+ "from question q, form f, survey s, project p "
 							+ "where q.f_id = f.f_id "
 							+ "and f.s_id = s.s_id "
@@ -481,20 +486,31 @@ public class SubscriberBatch {
 							+ "and not s.deleted "
 							+ "and q.appearance like '%keppel%'";
 					
+					PreparedStatement pstmtClear = null;
 					PreparedStatement pstmtRebuild = null;
 					PreparedStatement pstmtData = null;
+					PreparedStatement pstmtInst = null;
+
 					ResultSet rsData = null;
 					
 					try {
+						pstmtInst = dbc.sd.prepareStatement(sqlInst);
+						
+						pstmtClear = dbc.sd.prepareStatement(sqlClear);
+						pstmtClear.executeUpdate();
+						
 						pstmtRebuild = dbc.sd.prepareStatement(sql);
 						ResultSet rs = pstmtRebuild.executeQuery();
+							
 						while(rs.next()) {
 							
 							String appearance = rs.getString("appearance");
 							if(appearance.contains(linkMgr.REQUEST_FP_IMAGE) || appearance.contains(linkMgr.REQUEST_FP_ISO_TEMPLATE)) {
+							
 								
-								ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
-								
+								int sId = rs.getInt("s_id");
+								int fId = rs.getInt("f_id");
+								int parentForm = rs.getInt("parentform");
 								String sIdent = rs.getString("ident");
 								String colName = rs.getString("column_name");
 								String tableName = rs.getString("table_name");
@@ -502,39 +518,70 @@ public class SubscriberBatch {
 								ArrayList<KeyValueSimp> params = GeneralUtilityMethods.convertParametersToArray(rs.getString("parameters"));
 								log.info("------ " + sIdent + " : " + colName + " : " + tableName);
 								
+								Tables tables = new Tables(sId);
+								tables.add(tableName, fId, parentForm);
+								
+								// Add instance id table if it is not this one
+								if(parentForm != 0) {
+									try {
+										pstmtInst.setInt(1, sId);
+
+										log.info("Getting main form: " + pstmt.toString());
+										ResultSet rsInst = pstmtInst.executeQuery();
+										if (rsInst.next()) {
+											String mainTable = rs.getString(1);
+											int mainForm = rs.getInt(2);
+											tables.add(mainTable, mainForm, 0);
+										}
+
+									} catch (Exception e) {
+										log.log(Level.SEVERE, "Exception", e);
+									}
+								}
+								
+								tables.addIntermediateTables(dbc.sd);
+								
+								String sqlTables = tables.getTablesSQL();
+								String sqlTableJoin = tables.getTableJoinSQL();
+								String sqlNoBad = tables.getNoBadClause();
+								
 								// Get the data for each column
-								StringBuilder sqlData = new StringBuilder("select ")
+								StringBuilder sqlData = new StringBuilder("select instanceid, ")
 										.append(colName)
 										.append(" from ")
-										.append(tableName)
-										.append(" where _bad = false ")
-										.append("and ")
+										.append(sqlTables)
+										.append(" where ").append(sqlNoBad)
+										.append(" and ")
 										.append(colName)
 										.append(" is not null ")
-										.append("and ")
+										.append(" and ")
 										.append(colName)
 										.append(" != '' ");
-								
+								if(sqlTableJoin.trim().length() > 0) {
+									sqlData.append("and ").append(sqlTableJoin);
+								}
 								 
 								if(pstmtData != null) try {pstmtData.close();} catch (Exception e) {}
 								if(rsData != null) try {rsData.close();} catch (Exception e) {}
 								pstmtData = dbc.results.prepareStatement(sqlData.toString());
 								
+								log.info("Get values: " + pstmtData.toString());
 								rsData = pstmtData.executeQuery();
 								while(rsData.next()) {
+									ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
 									log.info("  Value: " + rsData.getString(1));
-									linkMgr.addDataitemToList(linkageItems, rsData.getString(1), appearance, params, sIdent, colName);
+									linkMgr.addDataitemToList(linkageItems, rsData.getString(colName), appearance, params, sIdent, colName);
+									linkMgr.writeItems(dbc.sd, oId, "rebuild", rsData.getString("instanceid"), linkageItems);
 								}
-								
-								linkMgr.writeItems(dbc.sd, oId, "rebuild", tableName, linkageItems);
-								
 								
 							}
 							
 						}
 					} finally {
+						if(pstmtClear != null) try {pstmtClear.close();} catch(Exception e) {}
 						if(pstmtRebuild != null) try {pstmtRebuild.close();} catch(Exception e) {}
 						if(pstmtData != null) try {pstmtData.close();} catch (Exception e) {}
+						if(pstmtInst != null) try {pstmtInst.close();} catch (Exception e) {}
 					}
 					
 					rebuildLinkageTableComplete(dbc.sd);
