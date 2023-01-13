@@ -306,7 +306,7 @@ public class LinkageManager {
 	public ArrayList<Match> matchSingleTemplate(Connection sd, String server, int oId, FingerprintTemplate probe, double threshold, String image) throws SQLException {
 		
 		String sql = "select id, fp_native_template, fp_image, survey_ident, col_name,"
-				+ "fp_location, fp_side, fp_digit "
+				+ "fp_location, fp_side, fp_digit, instance_id "
 				+ "from linkage "
 				+ "where fp_native_template is not null "
 				+ "and fp_image is not null "
@@ -341,12 +341,14 @@ public class LinkageManager {
 					String fpLocation = rs.getString("fp_location");
 					String fpSide = rs.getString("fp_side");
 					int fpDigit = rs.getInt("fp_digit");
+					String instanceId = rs.getString("instance_id");
 						
 					double score = new FingerprintMatcher(probe).match(candidate);
 					log.info("Score: " + score + " Threshold: " + threshold);
 					
+					String url = "https://" + server + "/app/myWork/webForm/" + sIdent + "?datakey=instanceid&datakeyvalue=" + instanceId + "&readonly=true";
 					if(score > threshold) {
-						Match match = new Match(id, score, new LinkageItem(id, sIdent, colName, fpLocation, fpSide, fpDigit, fpImage, null));
+						Match match = new Match(id, score, url, new LinkageItem(id, sIdent, colName, fpLocation, fpSide, fpDigit, fpImage, null));
 						
 						/*
 						 * Get the details of where this match is stored

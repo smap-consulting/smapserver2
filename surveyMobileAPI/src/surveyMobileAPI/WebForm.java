@@ -234,7 +234,8 @@ public class WebForm extends Application {
 			@QueryParam("datakeyvalue") String datakeyvalue, 
 			@QueryParam("assignment_id") int assignmentId,
 			@QueryParam("taskkey") int taskKey,	// Task id, if set initial data is from task
-			@QueryParam("callback") String callback) throws IOException {
+			@QueryParam("callback") String callback,
+			@QueryParam("readonly") boolean readOnly) throws IOException {
 
 		Response response;
 		
@@ -262,14 +263,14 @@ public class WebForm extends Application {
 				assignmentId, taskKey, callback, false, false, 
 				false, 
 				null,
-				false	// show done page
-				);
+				false,	// show done page
+				readOnly);
 		
 		return response;
 	}
 
 	/*
-	 * 
+	 * Fet webform identified by logon credentials
 	 */
 	@GET
 	@Path("/{ident}")
@@ -282,7 +283,8 @@ public class WebForm extends Application {
 			@QueryParam("viewOnly") boolean vo,
 			@QueryParam("debug") String d,
 			@QueryParam("app") boolean app,
-			@QueryParam("callback") String callback) throws IOException {
+			@QueryParam("callback") String callback,
+			@QueryParam("readonly") boolean readOnly) throws IOException {
 
 		Response response = null;
 		
@@ -333,7 +335,8 @@ public class WebForm extends Application {
 						taskKey, callback,
 						false, true, false, 
 						null,
-						false		// show done page
+						false,		// show done page
+						readOnly
 						);
 			} catch (BlockedException e) {
 				response = getMessagePage(false, "mo_blocked", null);
@@ -375,7 +378,7 @@ public class WebForm extends Application {
 		isTemporaryUser = true;
 		return getWebform(request, "none", null, formIdent, datakey, datakeyvalue, assignmentId, 
 				taskKey, callback, false,
-				true, false, null, true);
+				true, false, null, true, false);
 	}
 
 	/*
@@ -444,8 +447,8 @@ public class WebForm extends Application {
 							true, 
 							true,			// Close after saving
 							a.initialData,
-							false			// show done page
-							);
+							false,			// show done page
+							false);
 					
 				} catch (BlockedException e) {
 					response = getMessagePage(false, "mo_blocked", null);
@@ -480,7 +483,8 @@ public class WebForm extends Application {
 			boolean isWebForm,
 			boolean singleParam,
 			Instance initialData,
-			boolean showDonePageParam) {
+			boolean showDonePageParam,
+			boolean readonly) {
 
 		Response response = null;
 
@@ -636,7 +640,7 @@ public class WebForm extends Application {
 				jr.surveyData.surveyClass = survey.surveyClass;
 				//jr.surveyData.surveyClass = xForm.getSurveyClass();
 
-				jr.main = addMain(request, instanceStrToEditId, orgId, true, surveyClass, superUser, survey.readOnlySurvey).toString();
+				jr.main = addMain(request, instanceStrToEditId, orgId, true, surveyClass, superUser, survey.readOnlySurvey || readonly).toString();
 
 				if (callback != null) {
 					outputString.append(callback + " (");
@@ -649,7 +653,7 @@ public class WebForm extends Application {
 			} else {
 				// MAIN ENTRY POINT
 				outputString.append(addDocument(request, instanceXML, instanceStrToEditId, assignmentId,
-						survey.surveyClass, orgId, accessKey, superUser, survey.readOnlySurvey));
+						survey.surveyClass, orgId, accessKey, superUser, survey.readOnlySurvey || readonly));
 			}
 			
 			String respString = outputString.toString();
