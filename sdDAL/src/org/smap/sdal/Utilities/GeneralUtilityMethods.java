@@ -3837,6 +3837,14 @@ public class GeneralUtilityMethods {
 				columnList.add(c);
 	
 				c = new TableColumn();
+				c.column_name = "_thread";
+				c.displayName = c.column_name;
+				c.humanName = c.column_name;
+				c.type = SmapQuestionTypes.STRING;
+				c.question_name = c.column_name;
+				columnList.add(c);
+				
+				c = new TableColumn();
 				c.column_name = "_thread_created";
 				c.displayName = c.column_name;
 				c.humanName = localisation.getString("a_c_created");
