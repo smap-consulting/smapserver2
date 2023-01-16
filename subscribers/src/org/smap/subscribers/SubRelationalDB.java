@@ -636,9 +636,7 @@ public class SubRelationalDB extends Subscriber {
 				// Write form
 				String tableName = element.getTableName();
 				List<IE> columns = element.getQuestions();
-				
-				String sql = null;
-
+			
 				/*
 				 * If this is the top level form then 1) create all the tables for this survey
 				 * if they do not already exist 2) Check if this survey is a duplicate
