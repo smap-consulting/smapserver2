@@ -617,7 +617,7 @@ public class GeneralUtilityMethods {
 	 * Add an attachment to a survey
 	 */
 	static public String createAttachments(Connection sd, String srcName, File srcPathFile, String basePath, 
-			String surveyName, 
+			String sIdent, 
 			String srcUrl,
 			ArrayList<MediaChange> mediaChanges,
 			int oId) {
@@ -641,8 +641,8 @@ public class GeneralUtilityMethods {
 		}
 		
 		String dstName = null;
-		String dstDir = basePath + "/attachments/" + surveyName;
-		String dstThumbsPath = basePath + "/attachments/" + surveyName + "/thumbs";
+		String dstDir = basePath + "/attachments/" + sIdent;
+		String dstThumbsPath = basePath + "/attachments/" + sIdent + "/thumbs";
 		File dstDirFile = new File(dstDir);
 		File dstThumbsFile = new File(dstThumbsPath);
 		
@@ -687,9 +687,10 @@ public class GeneralUtilityMethods {
 		}
 		// Create a URL that references the attachment (but without the hostname or
 		// scheme)
-		value = "attachments/" + surveyName + "/" + dstName + "." + srcExt;
-
+		value = "attachments/" + sIdent + "/" + dstName + "." + srcExt;
+		
 		log.info("Media value: " + value);
+		
 		return value;
 	}
 	
@@ -824,14 +825,15 @@ public class GeneralUtilityMethods {
 	/*
 	 * Return true if the user has the security group
 	 */
-	static public boolean hasSecurityGroup(Connection sd, String user) throws SQLException {
-		boolean securityGroup = false;
+	static public boolean hasSecurityGroup(Connection sd, String user, int securityGroup) throws SQLException {
+		
+		boolean hasSecurityGroup = false;
 
 		String sql = "select count(*) " 
 				+ "from users u, user_group ug " 
 				+ "where u.ident = ? "
 				+ "and u.id = ug.u_id " 
-				+ "and ug.g_id = 6";
+				+ "and ug.g_id = ?";
 
 		PreparedStatement pstmt = null;
 
@@ -839,21 +841,22 @@ public class GeneralUtilityMethods {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, user);
+			pstmt.setInt(2, securityGroup);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
-				securityGroup = (rs.getInt(1) > 0);
+				hasSecurityGroup = (rs.getInt(1) > 0);
 			}
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
-		return securityGroup;
+		return hasSecurityGroup;
 	}
 
 	/*
 	 * Return true if the user has the enterprise administrator group
-	 */
+	 *
 	static public boolean isEntUser(Connection con, String ident) throws SQLException {
 
 		String sql = "select count(*) " 
@@ -878,10 +881,11 @@ public class GeneralUtilityMethods {
 
 		return isEnt;
 	}
+	*/
 	
 	/*
 	 * Return true if the user is the server owner
-	 */
+	 *
 	static public boolean isServerOwner(Connection con, String ident) throws SQLException {
 
 		String sql = "select count(*) " 
@@ -906,10 +910,11 @@ public class GeneralUtilityMethods {
 
 		return isServer;
 	}
+	*/
 	
 	/*
 	 * Return true if the user has the organisational administrator role
-	 */
+	 *
 	static public boolean isOrgUser(Connection sd, String ident) throws SQLException {
 
 		String sql = "select count(*) " 
@@ -934,6 +939,7 @@ public class GeneralUtilityMethods {
 
 		return isOrg;
 	}
+	*/
 	
 	/*
 	 * Return true if the user identified by their id has the organisational administrator role
@@ -977,7 +983,7 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Return true if the user is an administrator
-	 */
+	 *
 	static public boolean isAdminUser(Connection con, String ident) {
 
 		String sql = "select count(*) " 
@@ -1003,7 +1009,8 @@ public class GeneralUtilityMethods {
 		}
 		return isAdmin;
 	}
-
+	*/
+	
 	/*
 	 * Return true if the user is a super user
 	 */
@@ -8979,6 +8986,16 @@ public class GeneralUtilityMethods {
 		
 		StringBuffer url = new StringBuffer(urlprefix);		
 		url.append("api/v1/audit/log/").append(surveyIdent).append("/").append(updateId);
+			
+		return url.toString();
+	}
+	
+	public static String getLinksLink(String urlprefix, 
+			String surveyIdent, 
+			String updateId) {
+		
+		StringBuffer url = new StringBuffer(urlprefix);		
+		url.append("surveyKPI/match/record/").append(surveyIdent).append("/").append(updateId);
 			
 		return url.toString();
 	}

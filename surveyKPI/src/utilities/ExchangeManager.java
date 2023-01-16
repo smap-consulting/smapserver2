@@ -55,8 +55,10 @@ import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.constants.SmapServerMeta;
+import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.FileDescription;
+import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.TableColumn;
@@ -360,7 +362,8 @@ public class ExchangeManager {
 			Timestamp importTime,
 			String serverName,
 			SimpleDateFormat sdf,
-			int oId
+			int oId,
+			String user
 			) throws Exception {
 		
 		CSVReader reader = null;
@@ -373,7 +376,6 @@ public class ExchangeManager {
 		
 		try {
 			
-			form.keyMap = new HashMap<String, String> ();
 			pstmtGetCol.setInt(1, form.f_id);
 			pstmtGetColGS.setInt(1, form.f_id);		// Prepare the statement to get column names for the form
 			
@@ -421,7 +423,8 @@ public class ExchangeManager {
 								mediaFiles,
 								sdf,
 								recordsWritten,
-								oId);
+								oId,
+								user);
 
 												
 				    }
@@ -1029,6 +1032,10 @@ public class ExchangeManager {
 						col.choices.add(o);
 					}
 				}
+				
+				col.appearance = rs.getString("appearance");
+				col.parameters = GeneralUtilityMethods.convertParametersToArray(rs.getString("parameters"));
+				
 			} else {
 				// Check to see if it is a preload
 
@@ -1181,16 +1188,22 @@ public class ExchangeManager {
 			HashMap<String, File> mediaFiles,
 			SimpleDateFormat sdf,
 			int recordsWritten,
-			int oId) throws SQLException {
+			int oId,
+			String user) throws SQLException {
 		
 		int index = 1;
 		int count = 0;
 		String prikey = null;
+		String parkey = null;
+		String instanceId = null;
 		boolean writeRecord = true;
+		
+		LinkageManager linkMgr = new LinkageManager(localisation);
+		ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
+		
 		eh.pstmtInsert.setString(index++, importSource);
 		eh.pstmtInsert.setTimestamp(index++, importTime);
-		if(form.parent == 0) {
-			String instanceId = null;
+		if(form.parent == 0) {			
 			if(eh.instanceIdColumn >= 0) {
 				instanceId = line[eh.instanceIdColumn].trim();
 			}
@@ -1247,8 +1260,10 @@ public class ExchangeManager {
 				} else if(col.name.equals("parkey") || col.name.equals("parentuid")) {
 					if(form.parent == 0) {
 						eh.pstmtInsert.setInt(index++, 0);
+						form.instanceMap.put(prikey, instanceId);	// For Fingerprints in linkage table - mapping between the in-sheet prikey and the instanceId used to create the record
 					} else {
-						String parkey = value;
+						
+						parkey = value;
 						String newParKey = form.parentForm.keyMap.get(parkey);
 						int iParKey = -1;
 						try {iParKey = Integer.parseInt(newParKey); } catch (Exception e) {}
@@ -1262,6 +1277,12 @@ public class ExchangeManager {
 						} else {
 							eh.pstmtInsert.setInt(index++, iParKey);
 						}
+						
+						/*
+						 * Store mapping to parent key for use in creating linkage entries for fingerprints
+						 * For this to work the parkey will need to come after the primary key in the worksheet and bfore any columns with fingerprint data
+						 */
+						form.parentKeyMap.put(prikey, parkey);		// mapping between the in-sheet prikey and the in-sheet parkey
 					}
 				} else if(GeneralUtilityMethods.isAttachmentType(col.type)) {
 					
@@ -1296,13 +1317,16 @@ public class ExchangeManager {
 							basePath, 
 							sIdent,
 							srcUrl,
-							null,
+							null,		// Not required as no XML file needs to be modified
 							oId);
 					}
 					if(value != null && value.trim().length() == 0) {
 						value = null;
 					}
 					eh.pstmtInsert.setString(index++, value);
+					
+					linkMgr.addDataitemToList(linkageItems, value, col.appearance, col.parameters, sIdent, col.name);
+					
 				} else if(col.type.equals("int")) {
 					int iVal = 0;
 					if(notEmpty(value)) {
@@ -1387,6 +1411,8 @@ public class ExchangeManager {
 					eh.pstmtInsert.setString(index++, value);
 				} else {
 					eh.pstmtInsert.setString(index++, value);
+					
+					linkMgr.addDataitemToList(linkageItems, value, col.appearance, col.parameters, sIdent, col.name);
 				}
 				
 			}
@@ -1400,7 +1426,15 @@ public class ExchangeManager {
 		
 			ResultSet rs = eh.pstmtInsert.getGeneratedKeys();
 			if(rs.next()) {
-				form.keyMap.put(prikey, rs.getString(1));
+				form.keyMap.put(prikey, rs.getString(1));		// mapping between the in-sheet prikey and the value added to the database
+			}
+			
+			/*
+			 * Write linkage items, fingerprints etc
+			 */
+			if(linkageItems.size() > 0) {
+				log.info("----- Applying " + linkageItems.size() + " linkage items");
+				linkMgr.writeItems(sd, oId, user, instanceId, linkageItems);
 			}
 			count++;
 		}

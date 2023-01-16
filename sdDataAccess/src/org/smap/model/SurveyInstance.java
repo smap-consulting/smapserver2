@@ -10,6 +10,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.server.entities.MissingSurveyException;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
@@ -146,7 +147,9 @@ public class SurveyInstance {
 	}
 	
 	public void setQuestion(String ref, String qType, String qname, boolean phoneOnly, 
-			String columnName, String dataType, boolean compressed) {
+			String columnName, String dataType, boolean compressed, String appearance,
+			ArrayList<KeyValueSimp> params) {
+		
 		List<IE> matches = topInstanceElement.getMatchingElements(ref);
 		if(matches.size() == 0 && ref.endsWith("meta/instanceID")) {
 			// Also check for _instanceid
@@ -169,6 +172,8 @@ public class SurveyInstance {
 					match.setDataType(dataType);
 					match.setPhoneOnly(phoneOnly);
 					match.setCompressed(compressed);
+					match.setAppearance(appearance);
+					match.setParameters(params);
 				}
 			}
 		}

@@ -116,7 +116,8 @@ create TABLE server (
 	keep_erased_days integer default 0,
 	billing_enabled boolean default false,
 	css text,
-	password_strength decimal default 0.0
+	password_strength decimal default 0.0,
+	rebuild_link_cache boolean default false
 	);
 ALTER TABLE server OWNER TO ws;
 
@@ -476,6 +477,7 @@ insert into groups(id,name) values(9,'server owner');
 insert into groups(id,name) values(10,'view own data');
 insert into groups(id,name) values(11,'manage tasks');
 insert into groups(id,name) values(12,'dashboard');
+insert into groups(id,name) values(13,'links');
 
 insert into user_group (u_id, g_id) values (1, 1);
 insert into user_group (u_id, g_id) values (1, 2);
@@ -489,6 +491,7 @@ insert into user_group (u_id, g_id) values (1, 9);
 insert into user_group (u_id, g_id) values (1, 10);
 insert into user_group (u_id, g_id) values (1, 11);
 insert into user_group (u_id, g_id) values (1, 12);
+insert into user_group (u_id, g_id) values (1, 13);
 
 insert into project (id, o_id, name) values (1, 1, 'A project');
 
@@ -1721,3 +1724,28 @@ CREATE TABLE cms_setting (
 CREATE UNIQUE INDEX cms_unique_setting ON cms_setting(group_survey_ident);
 ALTER TABLE cms_setting OWNER TO ws;
 
+-- Create a table to hold biometric, including fingerprint record linkage data
+DROP SEQUENCE IF EXISTS linkage_seq CASCADE;
+CREATE SEQUENCE linkage_seq START 1;
+ALTER SEQUENCE linkage_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS linkage;
+CREATE TABLE linkage (
+	id integer DEFAULT NEXTVAL('linkage_seq') CONSTRAINT pk_linkage PRIMARY KEY,
+	o_id integer,
+	survey_ident text,				-- Source
+	instance_id text,
+	col_name text,
+									-- Image Fingerprint data
+	fp_location text,				-- Location on the body: hand or foot or unknown
+	fp_side text,					-- left or right
+	fp_digit integer,				-- 0-5, 0 = thumb, 5 = palm
+	fp_image text,					-- URL of image
+	fp_native_template bytea,		-- Generated from the raw image using FP tools
+	
+	fp_iso_template text,			-- Fingerprint ISO data
+	
+	changed_by text,
+	changed_ts TIMESTAMP WITH TIME ZONE	
+	);
+ALTER TABLE linkage OWNER TO ws;

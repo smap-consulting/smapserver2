@@ -49,8 +49,10 @@ import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
 import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.Tables;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CustomReportsManager;
+import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.MessagingManager;
@@ -66,6 +68,8 @@ import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
+import org.smap.sdal.model.KeyValueSimp;
+import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Notification;
@@ -184,6 +188,7 @@ public class SubscriberBatch {
 				log.info("Unknown subscriber type: " + subscriberType + " known values are upload, forward");
 			}
 
+			LinkageManager linkMgr = new LinkageManager(localisation);
 			Date timeNow = new Date();
 			String tz = "UTC";
 			if(subscribers != null && !subscribers.isEmpty()) {
@@ -463,6 +468,127 @@ public class SubscriberBatch {
 
 				// Delete linked csv files logically deleted more than 10 minutes age
 				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
+				
+				// Initialise the linkage table if that has been requested
+				if(rebuildLinkageTable(dbc.sd)) {
+					log.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Rebuild Linkage ");
+					
+					String sqlInst = "select table_name, f_id from form where s_id = ? and parentform = 0";
+					
+					String sqlClear = "truncate linkage";
+					
+					String sql = "select q.q_id, q.column_name, q.appearance, q.parameters, s.ident, s.s_id, f.table_name, f.f_id, f.parentform, p.o_id "
+							+ "from question q, form f, survey s, project p "
+							+ "where q.f_id = f.f_id "
+							+ "and f.s_id = s.s_id "
+							+ "and p.id = s.p_id "
+							+ "and not q.soft_deleted "
+							+ "and not s.deleted "
+							+ "and q.appearance like '%keppel%'";
+					
+					PreparedStatement pstmtClear = null;
+					PreparedStatement pstmtRebuild = null;
+					PreparedStatement pstmtData = null;
+					PreparedStatement pstmtInst = null;
+
+					ResultSet rsData = null;
+					
+					try {
+						pstmtInst = dbc.sd.prepareStatement(sqlInst);
+						
+						pstmtClear = dbc.sd.prepareStatement(sqlClear);
+						pstmtClear.executeUpdate();
+						
+						pstmtRebuild = dbc.sd.prepareStatement(sql);
+						ResultSet rs = pstmtRebuild.executeQuery();
+							
+						while(rs.next()) {
+							
+							String appearance = rs.getString("appearance");
+							if(appearance.contains(linkMgr.REQUEST_FP_IMAGE) || appearance.contains(linkMgr.REQUEST_FP_ISO_TEMPLATE)) {
+							
+								
+								int sId = rs.getInt("s_id");
+								int fId = rs.getInt("f_id");
+								int parentForm = rs.getInt("parentform");
+								String sIdent = rs.getString("ident");
+								String colName = rs.getString("column_name");
+								String tableName = rs.getString("table_name");
+								int oId = rs.getInt("o_id");
+								ArrayList<KeyValueSimp> params = GeneralUtilityMethods.convertParametersToArray(rs.getString("parameters"));
+								log.info("------ " + sIdent + " : " + colName + " : " + tableName);
+								
+								Tables tables = new Tables(sId);
+								tables.add(tableName, fId, parentForm);
+								
+								// Add instance id table if it is not this one
+								if(parentForm != 0) {
+									try {
+										pstmtInst.setInt(1, sId);
+
+										log.info("Getting main form: " + pstmt.toString());
+										ResultSet rsInst = pstmtInst.executeQuery();
+										if (rsInst.next()) {
+											String mainTable = rs.getString(1);
+											int mainForm = rs.getInt(2);
+											tables.add(mainTable, mainForm, 0);
+										}
+
+									} catch (Exception e) {
+										log.log(Level.SEVERE, "Exception", e);
+									}
+								}
+								
+								tables.addIntermediateTables(dbc.sd);
+								
+								String sqlTables = tables.getTablesSQL();
+								String sqlTableJoin = tables.getTableJoinSQL();
+								String sqlNoBad = tables.getNoBadClause();
+								
+								// Get the data for each column
+								StringBuilder sqlData = new StringBuilder("select instanceid, ")
+										.append(colName)
+										.append(" from ")
+										.append(sqlTables)
+										.append(" where ").append(sqlNoBad)
+										.append(" and ")
+										.append(colName)
+										.append(" is not null ")
+										.append(" and ")
+										.append(colName)
+										.append(" != '' ");
+								if(sqlTableJoin.trim().length() > 0) {
+									sqlData.append("and ").append(sqlTableJoin);
+								}
+								 
+								if(pstmtData != null) try {pstmtData.close();} catch (Exception e) {}
+								if(rsData != null) try {rsData.close();} catch (Exception e) {}
+								pstmtData = dbc.results.prepareStatement(sqlData.toString());
+								
+								log.info("Get values: " + pstmtData.toString());
+								rsData = pstmtData.executeQuery();
+								while(rsData.next()) {
+									ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
+									log.info("  Value: " + rsData.getString(1));
+									linkMgr.addDataitemToList(linkageItems, rsData.getString(colName), appearance, params, sIdent, colName);
+									linkMgr.writeItems(dbc.sd, oId, "rebuild", rsData.getString("instanceid"), linkageItems);
+								}
+								
+							}
+							
+						}
+					} finally {
+						if(pstmtClear != null) try {pstmtClear.close();} catch(Exception e) {}
+						if(pstmtRebuild != null) try {pstmtRebuild.close();} catch(Exception e) {}
+						if(pstmtData != null) try {pstmtData.close();} catch (Exception e) {}
+						if(pstmtInst != null) try {pstmtInst.close();} catch (Exception e) {}
+					}
+					
+					rebuildLinkageTableComplete(dbc.sd);
+				}
+				
+				// Set fingerprint templates for new fingerprint images
+				linkMgr.setFingerprintTemplates(dbc.sd, basePath, serverName);
 				
 				// Apply synchronisation
 				// 1. Get all synchronisation notifications
@@ -1704,7 +1830,7 @@ public class SubscriberBatch {
 				for(MediaChange mc : mediaChanges) {
 					contents = contents.replace(">" + mc.srcName + "<", ">" + mc.dstName + "<");
 				}
-				FileUtils.writeStringToFile(xmlFile, contents);
+				FileUtils.writeStringToFile(xmlFile, contents, StandardCharsets.UTF_8);
 				// Repeat the loop because we want to ensure the xml file is saved before deleting anything
 				for(MediaChange mc : mediaChanges) {
 					File srcFile = new File(mc.srcPath);
@@ -1717,6 +1843,37 @@ public class SubscriberBatch {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 		}
+	}
+	
+	private boolean rebuildLinkageTable(Connection sd) throws SQLException {
+		boolean reload = false;
+		
+		String sql = "select rebuild_link_cache from server";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				reload = rs.getBoolean(1);
+			}
+		} finally {
+			if(pstmt != null) try{pstmt.close();} catch(Exception e){}
+		}
+		return reload;
+	}
+
+	private boolean rebuildLinkageTableComplete(Connection sd) throws SQLException {
+		boolean reload = false;
+		
+		String sql = "update server set rebuild_link_cache = false";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) try{pstmt.close();} catch(Exception e){}
+		}
+		return reload;
 	}
 
 }

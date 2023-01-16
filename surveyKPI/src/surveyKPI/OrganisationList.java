@@ -130,7 +130,7 @@ public class OrganisationList extends Application {
 			
 			if(e_id > 0) {
 				// Check that the user is an enterprise administrator
-				if(!GeneralUtilityMethods.isEntUser(sd, request.getRemoteUser())) {
+				if(!GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ENTERPRISE_ID)) {
 					e_id = 0;
 				}
 			}
@@ -141,7 +141,7 @@ public class OrganisationList extends Application {
 			}
 			
 			// Add a restriction to personal organsiations if the user is not an org administrator
-			int personalUserId = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser()) ? 0 : GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			int personalUserId = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ORG_ID) ? 0 : GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 
 			ResultSet resultSet = null;
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();

@@ -85,12 +85,6 @@ public class MiscPDFManager {
 		}
 		public void onEndPage(PdfWriter writer, Document document) {
 			
-			//Rectangle rect = writer.getBoxSize("crop");
-			//System.out.println(rect == null ? "null" : rect.toString());
-			//ColumnText.showTextAligned(writer.getDirectContent(), 
-			//		Element.ALIGN_CENTER, new Phrase(String.format("page %d", pagenumber)), 
-			//		(rect.getLeft() +rect.getRight()) / 2, rect.getBottom() - 18, 0);
-			//		//100, 100, 0);
 		}
 	}
 	public static Font Symbols = null;
@@ -432,7 +426,6 @@ public class MiscPDFManager {
 			log.log(Level.SEVERE, "Exception", e);
 			
 		}  
-
 	
 	}
 	

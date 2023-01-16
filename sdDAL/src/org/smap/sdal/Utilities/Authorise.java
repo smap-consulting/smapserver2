@@ -48,6 +48,7 @@ public class Authorise {
 	public static String VIEW_OWN_DATA = "view own data";
 	public static String MANAGE_TASKS = "manage tasks";
 	public static String DASHBOARD = "dashboard";
+	public static String LINKS = "links";
 	
 	public static int ADMIN_ID = 1;
 	public static int ANALYST_ID = 2;
@@ -61,6 +62,7 @@ public class Authorise {
 	public static final int VIEW_OWN_DATA_ID = 10;
 	public static final int MANAGE_TASKS_ID = 11;
 	public static final int DASHBOARD_ID = 12;
+	public static final int LINKS_ID = 13;
 	
 	//private String requiredGroup;
 	ArrayList<String> permittedGroups; 
@@ -1760,7 +1762,7 @@ public class Authorise {
 		
 		try {
 			// If user is an org administrator then all is good
-			if(GeneralUtilityMethods.isOrgUser(conn, user)) {
+			if(GeneralUtilityMethods.hasSecurityGroup(conn, user, Authorise.ORG_ID)) {
 				return true;
 			}
 			

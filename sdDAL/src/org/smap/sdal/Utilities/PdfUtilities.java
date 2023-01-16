@@ -257,7 +257,7 @@ public class PdfUtilities {
 				/*
 				 * There is a problem with passing a URL to the IText getInstance function as
 				 * it will cause two mapbox requests to be recorded resulting in additional charges
-				 * Instead download the imag first then add it to the PDF as a file
+				 * Instead download the image first then add it to the PDF as a file
 				 */
 				URL mapboxUrl = new URL(url.toString());
 				BufferedImage tempImg = ImageIO.read(mapboxUrl);

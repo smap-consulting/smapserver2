@@ -1,4 +1,4 @@
-package utilities;
+package org.smap.sdal.Utilities;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.logging.Logger;
 
-import surveyKPI.Results;
 
 /*
 This file is part of SMAP.
@@ -33,7 +32,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 public class Tables {
 	
 	private static Logger log =
-			 Logger.getLogger(Results.class.getName());
+			 Logger.getLogger(Tables.class.getName());
 	
 	private class TableInfo {
 		private int fId;
