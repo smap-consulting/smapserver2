@@ -1,10 +1,4 @@
-package model;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-
-import org.smap.sdal.model.KeyValueSimp;
-import org.smap.sdal.model.Option;
+package org.smap.sdal.model;
 
 /*
 This file is part of SMAP.
@@ -24,26 +18,19 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-public class ExchangeColumn {
-	public String humanName;
+public class UniqueKey {
 	
-	public int index;
-	public int lonIndex;
-	public int latIndex;
-	public String name;
-	public String columnName;
-	public String type;
-	public String geomCol;
-	public ArrayList<Option> choices = null;
-	public boolean write = true;
-	public String appearance;
-	public ArrayList<KeyValueSimp> parameters;
+	public String key;
+	public String key_policy;	
+	public String group_survey_ident;
 	
-	public ExchangeColumn(String h) {
-		humanName = h;
+	public UniqueKey() {
 	}
 	
-	public ExchangeColumn() {
-
+	public UniqueKey(String key, String key_policy, String group_survey_ident) {
+		this.key = key;
+		this.key_policy = key_policy;
+		this.group_survey_ident = group_survey_ident;
 	}
+	
 }

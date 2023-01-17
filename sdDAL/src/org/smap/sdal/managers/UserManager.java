@@ -1743,7 +1743,7 @@ public class UserManager {
 						false,
 						null,
 						requestingUser);
-			} if(deleteAll && GeneralUtilityMethods.isOrgUser(sd, requestingUser)) {
+			} if(deleteAll && GeneralUtilityMethods.hasSecurityGroup(sd, requestingUser, Authorise.ORG_ID)) {
 				// Multiple organisations but delete all has been requested
 				hardDelete(sd, 
 						pstmtHardDeleteAll, 

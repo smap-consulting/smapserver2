@@ -248,12 +248,11 @@ public class ManagedForms extends Application {
 			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, SurveyViewManager.ASSIGNED_COLUMN)) {
-					GeneralUtilityMethods.addColumn(cResults, tableName, SurveyViewManager.ASSIGNED_COLUMN, "text");
-				}
+				
+				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				
 				if(instanceId != null) {
-					int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "lock");
+					int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "lock", surveyIdent, null);
 					if(count == 0) {
 						response = Response.serverError().entity(localisation.getString("mf_aa")).build();
 					} else {
@@ -317,11 +316,11 @@ public class ManagedForms extends Application {
 			if(!uIdent.equals("_none")) {
 				a.isValidUser(sd, request.getRemoteUser(), GeneralUtilityMethods.getUserId(sd, uIdent));
 			}
-			
+			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
 				
-				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, uIdent, "assign");
+				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, uIdent, "assign", surveyIdent, null);
 				if(count == 0) {
 					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 				} else {
@@ -379,7 +378,7 @@ public class ManagedForms extends Application {
 			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
-				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "release");
+				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "release", null, null);
 				if(count == 0) {
 					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 				} else {
@@ -849,9 +848,11 @@ public class ManagedForms extends Application {
 		Connection cResults = ResultsDataSource.getConnection("surveyKPI-ManagedForms-getLinks");
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			LinkageManager lm = new LinkageManager();
-			ArrayList<Link> links = lm.getSurveyLinks(sd, cResults, sId, fId, prikey);
+			LinkageManager linkMgr = new LinkageManager(localisation);
+			ArrayList<Link> links = linkMgr.getSurveyLinks(sd, cResults, sId, fId, prikey);
 			response = Response.ok(gson.toJson(links)).build();
 		
 				

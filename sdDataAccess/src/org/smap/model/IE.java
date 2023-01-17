@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Logger;
 
+import org.smap.sdal.model.KeyValueSimp;
+
 public class IE {
 	
 	private static Logger log =
@@ -21,7 +23,9 @@ public class IE {
 	private int seq = 0;
 	private String path = null;	// The path by which this element is known in the XML template
 	private ArrayList <IE> children = new ArrayList <IE> ();
-	private boolean compressed = false;		// Set true for select multiples to stores data in a single column
+	private boolean compressed = false;		// Set true for select multiples to stores data in a single column - should always be true for new surveys
+	private ArrayList<KeyValueSimp> parameters;
+	private String appearance;
 	
 	public IE(String name, String value) {
 		this.name = name;
@@ -73,6 +77,14 @@ public class IE {
 		return compressed;
 	}
 	
+	public String getAppearance() {
+		return appearance;
+	}
+	
+	public ArrayList<KeyValueSimp> getParameters() {
+		return parameters;
+	}
+	
 	public int getSeq() {
 		return seq;
 	}
@@ -115,6 +127,14 @@ public class IE {
 	
 	public void setCompressed(boolean v) {
 		this.compressed = v;
+	}
+	
+	public void setAppearance(String v) {
+		this.appearance = v;
+	}
+	
+	public void setParameters(ArrayList<KeyValueSimp> v) {
+		this.parameters = v;
 	}
 	
 	public void setSeq(int v) {
@@ -265,7 +285,7 @@ public class IE {
 
 
 	/*
-	 * Get all questions in the survey including from child forms
+	 * Get media of the specified type, including from child forms
 	 */
 	public List<String> getMedia(String type) {
 		List<String> media = new ArrayList<String>();

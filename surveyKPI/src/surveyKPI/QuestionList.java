@@ -591,7 +591,7 @@ public class QuestionList extends Application {
 			@PathParam("language") String language,
 			@QueryParam("status") boolean statusOnly) { 
 
-		String connectionString = "surveyKPI-getQuestionsNewIdent";
+		String connectionString = "surveyKPI-getGroupQuestions";
 		Response response = null;
 		String sIdent = null;
 		

@@ -71,6 +71,7 @@ public class SurveyTableManager {
 		private boolean hasRbacFilter = false;
 		private ArrayList<SqlFrag> rfArray = null;
 		private ArrayList<SqlFrag> calcArray = null;
+		private boolean hasGeom = false;
 	}
 	
 	LogManager lm = new LogManager(); // Application log
@@ -202,25 +203,6 @@ public class SurveyTableManager {
 		if(sqlDef != null && sqlDef.colNames != null && sqlDef.colNames.size() > 0) {
 			StringBuilder sql = new StringBuilder(sqlDef.sql);
 			
-			// Check the where questions
-			/*
-			if(whereColumns != null) {
-				for(String col : whereColumns) {
-					boolean foundCol = false;
-					for(String h : sqlDef.colNames) {
-						if(h.equals(col)) {
-							foundCol = true;
-							break;
-						}
-					}
-					if(!foundCol) {
-						String msg = localisation.getString("qlu");
-						msg = msg.replace("%s1", col);
-						throw new ApplicationException(msg);
-					}
-				}
-			}
-			*/
 			if(expressionFrag != null || selection != null) { 
 				if(sqlDef.hasWhere) {
 					sql.append(" and ");
@@ -620,7 +602,7 @@ public class SurveyTableManager {
 		StringBuffer tabs = new StringBuffer("");
 		StringBuffer order_cols = new StringBuffer("");
 		String linked_s_pd_sel = null;
-		SqlDef sqlDef = new SqlDef();		// TODO why does this override a global sqlDef?
+		SqlDef newSqlDef = new SqlDef();
 		ArrayList<String> colNames = new ArrayList<>();
 		ArrayList<String> subTables = new ArrayList<>();
 		HashMap<String, String> tables = new HashMap<>();
@@ -678,12 +660,15 @@ public class SurveyTableManager {
 							calculation = new SqlFrag();
 							sc.populateSql(calculation, localisation);
 							colName = calculation.sql.toString();
-							if(sqlDef.calcArray == null) {
-								sqlDef.calcArray = new ArrayList<>();
+							if(newSqlDef.calcArray == null) {
+								newSqlDef.calcArray = new ArrayList<>();
 							}
-							sqlDef.calcArray.add(calculation);
-						} else if(colType.equals("geopoint") || colType.equals("geoshape") || colType.equals("geotrace")) {
+							newSqlDef.calcArray.add(calculation);
+						} else if(colType.equals("geopoint")) {
 							colName = "ST_Y(" + tableName + "." + colName + ") || ' ' || ST_X(" + tableName + "." + colName + ")";
+						} else if(colType.equals("geoshape") || colType.equals("geotrace")) {
+							colName = "ST_AsText(" + tableName + "." + colName + ")";
+							newSqlDef.hasGeom = true;
 						}
 						
 					} else if (SmapServerMeta.isServerReferenceMeta(n)) {
@@ -741,14 +726,14 @@ public class SurveyTableManager {
 			// 3. Add the where clause
 			if (where.length() > 0) {
 				sql.append(" where ");
-				sqlDef.hasWhere = true;
+				newSqlDef.hasWhere = true;
 				sql.append(where);
 			}
 
 			// 4. Add the RBAC/Row filter
 			// Add RBAC/Role Row Filter
-			sqlDef.rfArray = null;
-			sqlDef.hasRbacFilter = false;
+			newSqlDef.rfArray = null;
+			newSqlDef.hasRbacFilter = false;
 
 			// If this is a pulldata linked file then order the data by _data_key and then
 			// the primary keys of sub forms
@@ -773,16 +758,16 @@ public class SurveyTableManager {
 				orderBy.append(" order by ");
 				orderBy.append(order_cols);
 			}
-			sqlDef.order_by = orderBy.toString();
+			newSqlDef.order_by = orderBy.toString();
 
 		} finally {
 			
 			if (pstmtGetTable != null) try {pstmtGetTable.close();} catch (Exception e) {}
 		}
 
-		sqlDef.sql = sql.toString();
-		sqlDef.colNames = colNames;
-		return sqlDef;
+		newSqlDef.sql = sql.toString();
+		newSqlDef.colNames = colNames;
+		return newSqlDef;
 	}
 	
 	/*
@@ -1062,6 +1047,59 @@ public class SurveyTableManager {
 
 				bw.flush();
 				bw.close();
+			} else if (sqlDef.hasGeom) { 	// CSV files with geotrace or geoshape elements have to be generated without using PSQL
+				
+			
+				pstmtData = cResults.prepareStatement(sqlNoEscapes);
+				
+				if(rs != null) {
+					rs.close();
+				}
+				log.info("####### Progressively getting data with geometry: " + pstmtData.toString());
+				rs = pstmtData.executeQuery();
+
+				BufferedWriter bw = new BufferedWriter(
+						new OutputStreamWriter(new FileOutputStream(f.getAbsoluteFile()), "UTF8"));
+
+				// Write header		
+				for (int i = 0; i < sqlDef.colNames.size(); i++) {
+					String col = sqlDef.colNames.get(i);
+					if(i > 0) {
+						bw.write(",");
+					}
+					bw.write(col);
+				}
+				bw.newLine();
+
+				// Write data
+				while (rs.next()) {
+
+					for (int i = 0; i < sqlDef.colNames.size(); i++) {
+						String col = sqlDef.colNames.get(i);
+						if(i > 0) {
+							bw.write(",");
+						}
+						String val = rs.getString(col);
+						if(val == null) {
+							bw.write("");
+						} else if(val.startsWith("LINESTRING") || val.startsWith("POLYGON")) {
+							String ftVal = GeneralUtilityMethods.convertGeomToFieldTaskFormat(val);
+							bw.write("\"");
+							bw.write(ftVal);
+							bw.write("\"");
+						} else {
+							bw.write("\"");
+							bw.write(val);
+							bw.write("\"");
+						}
+						
+					}
+					bw.newLine();
+				}
+
+				bw.flush();
+				bw.close();
+				
 			} else {
 				// Use PSQL to generate the file as it is faster
 				int code = 0;

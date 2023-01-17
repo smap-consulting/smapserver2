@@ -234,7 +234,8 @@ public class WebForm extends Application {
 			@QueryParam("datakeyvalue") String datakeyvalue, 
 			@QueryParam("assignment_id") int assignmentId,
 			@QueryParam("taskkey") int taskKey,	// Task id, if set initial data is from task
-			@QueryParam("callback") String callback) throws IOException {
+			@QueryParam("callback") String callback,
+			@QueryParam("readonly") boolean readOnly) throws IOException {
 
 		Response response;
 		
@@ -262,14 +263,14 @@ public class WebForm extends Application {
 				assignmentId, taskKey, callback, false, false, 
 				false, 
 				null,
-				false	// show done page
-				);
+				false,	// show done page
+				readOnly);
 		
 		return response;
 	}
 
 	/*
-	 * 
+	 * Fet webform identified by logon credentials
 	 */
 	@GET
 	@Path("/{ident}")
@@ -282,7 +283,8 @@ public class WebForm extends Application {
 			@QueryParam("viewOnly") boolean vo,
 			@QueryParam("debug") String d,
 			@QueryParam("app") boolean app,
-			@QueryParam("callback") String callback) throws IOException {
+			@QueryParam("callback") String callback,
+			@QueryParam("readonly") boolean readOnly) throws IOException {
 
 		Response response = null;
 		
@@ -333,7 +335,8 @@ public class WebForm extends Application {
 						taskKey, callback,
 						false, true, false, 
 						null,
-						false		// show done page
+						false,		// show done page
+						readOnly
 						);
 			} catch (BlockedException e) {
 				response = getMessagePage(false, "mo_blocked", null);
@@ -375,7 +378,7 @@ public class WebForm extends Application {
 		isTemporaryUser = true;
 		return getWebform(request, "none", null, formIdent, datakey, datakeyvalue, assignmentId, 
 				taskKey, callback, false,
-				true, false, null, true);
+				true, false, null, true, false);
 	}
 
 	/*
@@ -444,8 +447,8 @@ public class WebForm extends Application {
 							true, 
 							true,			// Close after saving
 							a.initialData,
-							false			// show done page
-							);
+							false,			// show done page
+							false);
 					
 				} catch (BlockedException e) {
 					response = getMessagePage(false, "mo_blocked", null);
@@ -480,7 +483,8 @@ public class WebForm extends Application {
 			boolean isWebForm,
 			boolean singleParam,
 			Instance initialData,
-			boolean showDonePageParam) {
+			boolean showDonePageParam,
+			boolean readonly) {
 
 		Response response = null;
 
@@ -636,7 +640,7 @@ public class WebForm extends Application {
 				jr.surveyData.surveyClass = survey.surveyClass;
 				//jr.surveyData.surveyClass = xForm.getSurveyClass();
 
-				jr.main = addMain(request, instanceStrToEditId, orgId, true, surveyClass, superUser).toString();
+				jr.main = addMain(request, instanceStrToEditId, orgId, true, surveyClass, superUser, survey.readOnlySurvey || readonly).toString();
 
 				if (callback != null) {
 					outputString.append(callback + " (");
@@ -649,7 +653,7 @@ public class WebForm extends Application {
 			} else {
 				// MAIN ENTRY POINT
 				outputString.append(addDocument(request, instanceXML, instanceStrToEditId, assignmentId,
-						survey.surveyClass, orgId, accessKey, superUser));
+						survey.surveyClass, orgId, accessKey, superUser, survey.readOnlySurvey || readonly));
 			}
 			
 			String respString = outputString.toString();
@@ -679,7 +683,8 @@ public class WebForm extends Application {
 	 */
 	private String addDocument(HttpServletRequest request, String instanceXML,
 			String dataToEditId, int assignmentId, String surveyClass, int orgId, String accessKey, 
-			boolean superUser)
+			boolean superUser,
+			boolean readOnly)
 			throws TransformerFactoryConfigurationError, Exception {
 
 		StringBuilder output = new StringBuilder();
@@ -698,7 +703,7 @@ public class WebForm extends Application {
 		output.append(
 				addHead(request, instanceXML, dataToEditId, assignmentId, surveyClass, 
 						accessKey));
-		output.append(addBody(request, dataToEditId, orgId, surveyClass, superUser));
+		output.append(addBody(request, dataToEditId, orgId, surveyClass, superUser, readOnly));
 
 		output.append("</html>\n");
 		String html = postProcessHtml(output);		// Set URL links and replace escaped XML
@@ -956,13 +961,13 @@ public class WebForm extends Application {
 	 * Add the body
 	 */
 	private String addBody(HttpServletRequest request, String dataToEditId, int orgId,
-			String surveyClass, boolean superUser)
+			String surveyClass, boolean superUser, boolean readOnly)
 			throws TransformerFactoryConfigurationError, SQLException, Exception {
 		StringBuilder output = new StringBuilder();
 
 		output.append("<body class='clearfix edit'>");
 		output.append(getAside());
-		output.append(addMain(request, dataToEditId, orgId, false, surveyClass, superUser));
+		output.append(addMain(request, dataToEditId, orgId, false, surveyClass, superUser, readOnly));
 		output.append(getDialogs());
 
 		// Webforms script
@@ -990,7 +995,7 @@ public class WebForm extends Application {
 	 * Get the "Main" element of an web form
 	 */
 	private StringBuffer addMain(HttpServletRequest request, String dataToEditId, int orgId,
-			boolean minimal, String surveyClass, boolean superUser)
+			boolean minimal, String surveyClass, boolean superUser, boolean readOnly)
 			throws TransformerFactoryConfigurationError, SQLException, Exception {
 
 		StringBuffer output = new StringBuffer();
@@ -1003,7 +1008,7 @@ public class WebForm extends Application {
 		output.append(html);
 
 		if (!minimal) {
-			output.append(closeMain(dataToEditId, surveyClass));
+			output.append(closeMain(dataToEditId, surveyClass, readOnly));
 		}
 
 		return output;
@@ -1206,7 +1211,7 @@ public class WebForm extends Application {
 		return output;
 	}
 
-	private StringBuffer closeMain(String dataToEditId, String surveyClass) {
+	private StringBuffer closeMain(String dataToEditId, String surveyClass, boolean readOnly) {
 		StringBuffer output = new StringBuffer();
 
 		output.append("<section class='form-footer'>\n");
@@ -1216,7 +1221,10 @@ public class WebForm extends Application {
 				"<fieldset class='draft question'><div class='option-wrapper'><label class='select'><input class='ignore' type='checkbox' name='draft'/><span class='option-label lang' data-lang='formfooter.savedraft.label'>Save as Draft</span></label></div></fieldset>\n");
 		}
 		output.append("<div class='main-controls'>\n");
-		if (dataToEditId == null) {
+		
+		if (readOnly) {
+			output.append("<button id='exit-form' class='btn btn-primary btn-large lang' data-lang='alert.default.button'>Close</button>\n");
+		} else if (dataToEditId == null) {
 			output.append("<button id='submit-form' class='btn btn-primary btn-large lang' data-lang='formfooter.submit.btn'>Submit</button>\n");
 		} else {
 			output.append("<button id='submit-form-single' class='btn btn-primary btn-large lang' data-lang='formfooter.submit.btn'>Submit</button>\n");

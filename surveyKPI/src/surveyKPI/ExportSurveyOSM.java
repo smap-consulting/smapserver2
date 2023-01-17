@@ -42,6 +42,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.model.LonLat;
 import org.smap.sdal.model.TableColumn;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -74,18 +75,6 @@ public class ExportSurveyOSM extends Application {
 		Tag(String k, String v) {
 			key = k;
 			value = v;
-		}
-	}
-	
-	private class LonLat {
-		public String lon;
-		public String lat;
-		public int id;
-		
-		LonLat(String lon, String lat, int id) {
-			this.lon = lon;
-			this.lat = lat;
-			this.id = id;
 		}
 	}
 	
@@ -372,33 +361,6 @@ public class ExportSurveyOSM extends Application {
     	return rootElement;
     }
 
-	
-	/*
-	 * Get the latitude, longitude from a WKT POINT
-	 */
-	private ArrayList<LonLat> getLonLat(String value) {
-		String [] coords = null;
-		String [] pointArray = null;
-		ArrayList<LonLat> points = new ArrayList<LonLat> ();
-		
-		int idx1 = value.lastIndexOf("(");	// Polygons with two brackets supported (Multi Polygons TODO)
-		int idx2 = value.indexOf(")");
-		if(idx2 > idx1) {
-			String coordString = value.substring(idx1 + 1, idx2);
-			if(value.startsWith("POINT")) {
-				coords = coordString.split(" ");
-				points.add(new LonLat(coords[0], coords[1], idcounter--));
-			} else if(value.startsWith("POLYGON") || value.startsWith("LINESTRING")) {			
-				pointArray = coordString.split(",");
-				for(int i = 0; i < pointArray.length; i++) {
-					coords = pointArray[i].split(" ");
-					points.add(new LonLat(coords[0], coords[1], idcounter--));
-				}
-			}
-		}
-		return points;
-	}
-
 	/*
 	 * For each way add the osm xml
 	 */
@@ -489,7 +451,8 @@ public class ExportSurveyOSM extends Application {
 					
 					if(value != null) { 
 						if(geomColumn != null && key.equals(geomColumn)) {  // Get the location
-							points = getLonLat(value);
+							points = GeneralUtilityMethods.getPointsFromWKT(value, idcounter);
+							idcounter -= points.size();
 						} else if(!key.startsWith("_")) {	
 							tags.add(new Tag(key, value));
 						}

@@ -3,6 +3,7 @@
 	<name>subscribers</name>
 	<comment></comment>
 	<projects>
+		<project>amazon</project>
 		<project>sdDAL</project>
 		<project>sdDataAccess</project>
 	</projects>

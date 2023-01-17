@@ -285,6 +285,9 @@ public class GetHtml {
 
 		for (Question q : form.questions) {
 
+			// Append _pull to pulldata sources in calculations
+			q.calculation = processPulldataSuffix(q.calculation);
+			
 			// Add a marker if this is a table list group
 			if (q.type.equals("begin group")) {
 				if (q.isTableList) {
@@ -302,7 +305,7 @@ public class GetHtml {
 			}
 
 			if (!q.inMeta && !q.name.equals("meta_groupEnd") && !q.isPreload() 
-					&& !q.type.equals("calculate")		// Calculates are pricessed seperate from questions for webforms
+					&& !q.type.equals("calculate")		// Calculates are processed separately from questions for webforms
 					&& !q.type.equals("server_calculate")
 					&& !q.type.equals("chart")) {	// Charts not supported in webforms
 				
@@ -477,11 +480,12 @@ public class GetHtml {
 				input.setAttribute("data-constraint",
 						UtilityMethods.convertAllxlsNames(q.constraint, false, paths, form.id, true, q.name, false));
 			}
+	
 			// Dynamic Default
 			if (q.calculation != null && q.calculation.trim().length() > 0) {
 				bodyElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name, false));
 			}
-	
+			
 			// option label
 			Element option_label = outputDoc.createElement("span");
 			controlLabel.appendChild(option_label);
@@ -498,6 +502,7 @@ public class GetHtml {
 			currentParent.appendChild(bodyElement);
 
 		}
+
 	}
 
 	/*
@@ -671,7 +676,7 @@ public class GetHtml {
 		Element calculationInput = null;
 		
 		for (Question q : form.questions) {
-
+			
 			String calculation = null;
 			if (q.name.equals("instanceName")) {
 				continue;		// Legacy instance name included as a question
@@ -714,25 +719,11 @@ public class GetHtml {
 					calculationInput.setAttribute("name", paths.get(getRefName(q.name, form)));
 				}
 
-				if(calculation.toLowerCase().contains("pulldata(")) {
-					// Add a suffix to pulldata sources to differentiate them from search
-					StringBuilder sb = new StringBuilder("");
-					int idx1;
-					while ((idx1 = calculation.indexOf("pulldata")) >= 0) {
-						idx1 = calculation.indexOf('\'', idx1);
-						int idx2 = calculation.indexOf('\'', idx1 + 1 );
-						sb.append(calculation.substring(0, idx2) + "__pull");
-						calculation = calculation.substring(idx2);
-					}
-					sb.append(calculation);
-					calculation = sb.toString();
-				}
 				calculationInput.setAttribute("data-calculate",
 						" " + UtilityMethods.convertAllxlsNames(calculation, false, paths, form.id, true, q.name, false) + " ");
 
 				calculationInput.setAttribute("data-type-xml", "string"); // Always use string for calculate
 				calculationLabel.appendChild(calculationInput);
-
 			}
 			
 			/*
@@ -1994,6 +1985,20 @@ public class GetHtml {
 				}
 			}
 		}
+		return sb.toString();
+	}
+	
+	String processPulldataSuffix(String calculation) {
+		// Add a suffix to pulldata sources to differentiate them from search
+		StringBuilder sb = new StringBuilder("");
+		int idx1;
+		while ((idx1 = calculation.indexOf("pulldata")) >= 0) {
+			idx1 = GeneralUtilityMethods.indexOfQuote(calculation, idx1);
+			int idx2 = GeneralUtilityMethods.indexOfQuote(calculation, idx1 + 1);
+			sb.append(calculation.substring(0, idx2) + "__pull");
+			calculation = calculation.substring(idx2);
+		}
+		sb.append(calculation);
 		return sb.toString();
 	}
 }

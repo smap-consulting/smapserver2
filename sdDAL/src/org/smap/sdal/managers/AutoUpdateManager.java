@@ -155,6 +155,7 @@ public class AutoUpdateManager {
 									if(updateType == null) {
 										log.info("------------------ AutoUpdate: Error: invalid reference question type" + refQf.qType);
 									} else {
+										log.info("     @@@@@@ Adding auto update: " + updateType + " : " + oId + " : " + refColumn + " to " + qf.columnName);
 										AutoUpdate au = new AutoUpdate(updateType);
 										au.oId = oId;
 										au.locale = itemLocaleString;
@@ -292,7 +293,7 @@ public class AutoUpdateManager {
 						}
 						// Write result to database and update the job status
 						success = true;
-						writeResult(cResults, tableName, colName, instanceId, output);
+						writeResult(cResults, tableName, colName, instanceId, output, localisation);
 						updateSyncStatus(sd, id, status, urlString, durn);
 						
 						if(durn > 0) {
@@ -318,7 +319,7 @@ public class AutoUpdateManager {
 				
 				if(!success && timedOut) {
 					writeResult(cResults, tableName, colName, instanceId, 
-							"[" + localisation.getString("aws_t_timeout") + "]");
+							"[" + localisation.getString("aws_t_timeout") + "]", localisation);
 					updateSyncStatus(sd, id, AU_STATUS_TIMEOUT, null, 0);
 				}
 			}
@@ -383,6 +384,7 @@ public class AutoUpdateManager {
 								+ "and not _bad";
 						if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 						pstmt = cResults.prepareStatement(sql);
+						log.info("   @@@@@ Get instances to update: " + pstmt.toString());
 												
 						ResultSet rs = pstmt.executeQuery();
 						while (rs.next()) {
@@ -531,7 +533,7 @@ public class AutoUpdateManager {
 							}
 								
 							// Write result to database
-							writeResult(cResults, item.tableName, item.targetColName, instanceId, output);					
+							writeResult(cResults, item.tableName, item.targetColName, instanceId, output, localisation);					
 								
 							
 						} 
@@ -572,6 +574,7 @@ public class AutoUpdateManager {
 		try {
 			
 			pstmt = sd.prepareStatement(sql);
+			//log.info("Get update questions: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
@@ -606,7 +609,8 @@ public class AutoUpdateManager {
 			String tableName,
 			String colName,
 			String instanceId, 
-			String output) throws SQLException {
+			String output,
+			ResourceBundle localisation) throws SQLException {
 		
 		PreparedStatement pstmt = null;
 		
@@ -615,6 +619,13 @@ public class AutoUpdateManager {
 				+ " set " + colName + " = ? "
 				+ "where instanceid = ?";
 		
+		/*
+		 * Make sure output has a value otherwise service can loop for ever using AWS resources
+		 */
+		if(output == null || output.trim().length() == 0) {
+			output = "[" + localisation.getString("zero_length") + "]";
+		}
+		
 		if(colName != null && tableName != null && instanceId != null) {
 			try {			
 				pstmt = cResults.prepareStatement(sql);
@@ -622,6 +633,7 @@ public class AutoUpdateManager {
 				instanceId = GeneralUtilityMethods.getLatestInstanceId(cResults, tableName, instanceId);
 				pstmt.setString(1, output);
 				pstmt.setString(2, instanceId);
+				log.info("    @@@@@@ Write result to results table: " + pstmt.toString());
 				pstmt.executeUpdate();
 			
 			} finally {

@@ -38,7 +38,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
 /*
- * This class supports access to User and Organisation information in the database
+ * This class supports access to Case Management information in the database
+ * All surveys in a bundle share the same case management set up
  */
 public class CaseManager {
 	
@@ -283,9 +284,11 @@ public class CaseManager {
 	public ArrayList<Case> getCases(
 			Connection sd, 
 			Connection cResults,
-			int sId,
+			String sIdent,
+			String sName,
 			String groupSurveyIdent,
-			String user) throws Exception {
+			String user,
+			int sId) throws Exception {
 		
 		PreparedStatement pstmt = null;
 			
@@ -293,48 +296,48 @@ public class CaseManager {
 		
 		try {
 			/*
-			 * Only return cases which can have a final status
+			 * Return all cases assigned to a user that are to be completed by the provided survey ident
+			 * For transition match against the last submitting survey id if _case_survey is null)
+			 * Cases should always use the same updateid hence set it to the thread value.  By doing this downloading the latest
+			 *  instance of a case to fieldTask will not look like a new case has been created
 			 */
-			CMS cms = getCaseManagementSettings(sd, groupSurveyIdent);
-			if(cms != null && cms.settings != null && cms.settings.statusQuestion != null) {
-	
-				String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
-				if(GeneralUtilityMethods.hasColumn(cResults, tableName, cms.settings.statusQuestion)) {
-					
-					// Ignore cases that are bad or where the status value is null or if the case has been completed
-					StringBuilder sql = new StringBuilder("select instanceid, _thread, prikey, instancename, _hrk from ")
-							.append(tableName)
-							.append(" where not _bad and _assigned = ? and cast (")
-							.append(cms.settings.statusQuestion)
-							.append(" as text) != ?");
-					pstmt = cResults.prepareStatement(sql.toString());
-					pstmt.setString(1, user);
-					pstmt.setString(2,  cms.settings.finalStatus);
-					log.info("Get cases: " + pstmt.toString());
-					ResultSet rs = pstmt.executeQuery();
-					
-					while(rs.next()) {
-						String title = null;
-						int prikey = rs.getInt("prikey");
-						String instanceName = rs.getString("instancename");
-						String thread = rs.getString("_thread");
-						if(thread == null) {
-							thread = rs.getString("instanceid");
-						}
-						String hrk = rs.getString("_hrk");
-						if(instanceName != null && instanceName.trim().length() > 0) {
-							title = instanceName;
-						} else if(hrk != null && hrk.trim().length() > 0) {
-							title = hrk;
-						} else {
-							title = String.valueOf(prikey);
-						}
-						
-						cases.add(new Case(prikey, title, thread));
+			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
+			if(tableName != null) {
+
+				GeneralUtilityMethods.ensureTableCurrent(cResults, tableName, true);		// Temporary - remove 2023
+
+				StringBuilder sql = new StringBuilder("select instanceid, _thread, prikey, instancename, _hrk from ")
+						.append(tableName)
+						.append(" where not _bad and _assigned = ? and (_case_survey = ? or (_case_survey is null and _s_id = ?)) ");
+				pstmt = cResults.prepareStatement(sql.toString());
+				pstmt.setString(1, user);
+				pstmt.setString(2,  sIdent);
+				pstmt.setInt(3, sId);
+				log.info("Get cases: " + pstmt.toString());
+				ResultSet rs = pstmt.executeQuery();
+
+				while(rs.next()) {
+					String title = null;
+					int prikey = rs.getInt("prikey");
+					String instanceName = rs.getString("instancename");
+					String thread = rs.getString("_thread");
+					if(thread == null) {
+						thread = rs.getString("instanceid");
 					}
+					String hrk = rs.getString("_hrk");
+					title = sName + " - ";
+					if(instanceName != null && instanceName.trim().length() > 0) {
+						title = title + instanceName;
+					} else if(hrk != null && hrk.trim().length() > 0) {
+						title = title + hrk;
+					} else {
+						title = title + String.valueOf(prikey);
+					}
+
+					cases.add(new Case(prikey, title, thread));
 				}
 			}
-				
+
 		}  finally {		
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}

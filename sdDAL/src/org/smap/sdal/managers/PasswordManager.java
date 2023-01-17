@@ -78,7 +78,7 @@ public class PasswordManager {
 	
 	public void checkStrength(String password) throws ApplicationException {
 
-		if(checkStrength) {
+		if(checkStrength && password != null) {
 			// Check for blocked password
 			if(password.equals("password") 
 					|| password.equals("Passw0rd")

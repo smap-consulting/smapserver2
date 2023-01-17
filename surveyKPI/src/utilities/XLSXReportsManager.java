@@ -455,8 +455,13 @@ public class XLSXReportsManager {
 						String recordSId = rs.getString("_s_id");
 						surveyName = surveyNames.get(recordSId);
 						if(surveyName == null) {
-							surveyName = GeneralUtilityMethods.getSurveyName(sd, Integer.parseInt(recordSId));
-							surveyNames.put(recordSId, surveyName);
+							if(recordSId != null && recordSId.trim().length() > 0) {
+								surveyName = GeneralUtilityMethods.getSurveyName(sd, Integer.parseInt(recordSId));
+								surveyNames.put(recordSId, surveyName);
+							} else {
+								surveyName = "";
+							}
+							
 						}
 					}
 					
@@ -550,7 +555,7 @@ public class XLSXReportsManager {
 							rd.values.add(values.value);
 
 
-						} else if(split_locn && values.type != null && values.type.equals("geopoint") ) {
+						} else if(split_locn && item.rawQuestionType.equals("geopoint") ) {
 							// Geopoint that needs to be split but there is no data
 							ReadData rd = new ReadData(values.name, false, "string");
 							dataItems.add(rd);

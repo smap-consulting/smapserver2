@@ -58,6 +58,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.DataManager;
+import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -521,6 +522,9 @@ public class Data extends Application {
 		} catch (SQLException e1) {
 			e1.printStackTrace();
 		}
+		
+		String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+		
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		if(viewId > 0) {
@@ -670,8 +674,9 @@ public class Data extends Application {
 				if(dd_hrk != null) {
 					
 					StringBuffer parentFilter = new StringBuffer("");
-						
-					String hrkExpression = GeneralUtilityMethods.getHrk(sd, sId);
+
+					KeyManager km = new KeyManager(localisation);
+					String hrkExpression = km.get(sd, groupSurveyIdent).key;
 
 					if(hrkExpression != null) {
 						parentFilter.append("(${_hrk} = '").append(dd_hrk).append("')");
@@ -745,7 +750,7 @@ public class Data extends Application {
 					}
 					if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
 				}
-	
+				
 				columns = GeneralUtilityMethods.getColumnsInForm(
 						sd,
 						cResults,
@@ -783,9 +788,14 @@ public class Data extends Application {
 			 * Get Case Management Settings
 			 */
 			CaseManager cm = new CaseManager(localisation);				
-			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 			CMS cms = cm.getCaseManagementSettings(sd, groupSurveyIdent);
-						
+					
+			// Only set the filter if parkey is not set. Otherwise, if set, it is a drill down and the filter does not apply
+			String filter = null;
+			if(parkey == 0) {
+				filter = ssd.filter;
+			}
+			
 			/*
 			 * Get the prepared statement
 			 */
@@ -819,7 +829,7 @@ public class Data extends Application {
 					null,			// key filter
 					tz,
 					instanceId,			// instanceId
-					ssd.filter,
+					filter,
 					ssd.dateName,
 					ssd.fromDate,
 					ssd.toDate
@@ -860,6 +870,7 @@ public class Data extends Application {
 				JSONObject jo = new JSONObject();
 				int index = 0;
 				boolean viewOwnDataOnly = GeneralUtilityMethods.isOnlyViewOwnData(sd, request.getRemoteUser());
+				boolean viewLinks = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.LINKS_ID);
 				while(jo != null) {
 					
 					jo =  tdm.getNextRecord(
@@ -875,7 +886,8 @@ public class Data extends Application {
 							geomQuestion,
 							incLinks,
 							sIdent,
-							viewOwnDataOnly
+							viewOwnDataOnly,
+							viewLinks
 							);
 					
 					if(jo != null) {

@@ -41,6 +41,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.Tables;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.LogManager;
@@ -53,7 +54,6 @@ import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
 
 import utilities.QuestionInfo;
-import utilities.Tables;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -363,7 +363,7 @@ public class Items extends Application {
 				/*
 				 * Add the old style server side calculations
 				 * Deprecate this by 19.12
-				 */
+				 *
 				String sqlSSC = "select ssc.name, ssc.function, ssc.units from ssc ssc, form f " +
 						" where f.f_id = ssc.f_id " +
 						" and f.table_name = ? " +
@@ -418,6 +418,7 @@ public class Items extends Application {
 					}
 
 				}
+				*/
 				
 				String sqlFilter = "";
 				if(start_key > 0) {

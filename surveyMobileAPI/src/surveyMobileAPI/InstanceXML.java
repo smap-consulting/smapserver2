@@ -81,7 +81,7 @@ public class InstanceXML extends Application{
 			@QueryParam("taskkey") int taskKey,	// Task id, if set initial data is from task
 			@QueryParam("key") String key,		// Optional
 			@QueryParam("keyval") String keyval	// Optional
-			) throws IOException {
+			) throws Exception {
 
 		Response response = null;
 		String connectionString = "surveyMobileAPI-InstanceXML";

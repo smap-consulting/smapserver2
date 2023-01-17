@@ -179,7 +179,7 @@ public class XLSXAdminReportsResourceUsage {
 				/*
 				 * Get the surveys that use this resource
 				 */
-				ArrayList<Survey> surveys = GeneralUtilityMethods.getResourceSurveys(sd, mi.name, oId);
+				ArrayList<Survey> surveys = GeneralUtilityMethods.getResourceSurveys(sd, mi.name, oId, localisation);
 				int sIndex = 0;
 				for(Survey s : surveys) {
 					

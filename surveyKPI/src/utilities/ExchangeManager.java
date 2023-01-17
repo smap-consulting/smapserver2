@@ -23,6 +23,10 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URL;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -38,6 +42,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -50,8 +55,10 @@ import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.constants.SmapServerMeta;
+import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.FileDescription;
+import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.TableColumn;
@@ -129,6 +136,7 @@ public class ExchangeManager {
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 		surveyNames = new HashMap<String, String> ();
 		String basePath = null;
+		String urlPrefix = null;
 		String language = "none";
 		
 		String dateName = null;
@@ -143,6 +151,7 @@ public class ExchangeManager {
 			try {
 				
 				basePath = GeneralUtilityMethods.getBasePath(request);
+				urlPrefix = request.getScheme() + "://" + request.getServerName() + "/";
 				
 				// Prepare the statement to get the question type and read only attribute
 				String sqlQType = "select q.qtype, q.readonly from question q, form f " +
@@ -264,11 +273,13 @@ public class ExchangeManager {
 								sheet,
 								styles,
 								sId,
+								surveyIdent,
 								null, 
 								null, 
 								dateName,
 								dateForm,
 								basePath,
+								urlPrefix,
 								dirPath,
 								files,
 								incMedia,
@@ -351,7 +362,8 @@ public class ExchangeManager {
 			Timestamp importTime,
 			String serverName,
 			SimpleDateFormat sdf,
-			int oId
+			int oId,
+			String user
 			) throws Exception {
 		
 		CSVReader reader = null;
@@ -364,7 +376,6 @@ public class ExchangeManager {
 		
 		try {
 			
-			form.keyMap = new HashMap<String, String> ();
 			pstmtGetCol.setInt(1, form.f_id);
 			pstmtGetColGS.setInt(1, form.f_id);		// Prepare the statement to get column names for the form
 			
@@ -412,7 +423,8 @@ public class ExchangeManager {
 								mediaFiles,
 								sdf,
 								recordsWritten,
-								oId);
+								oId,
+								user);
 
 												
 				    }
@@ -523,11 +535,13 @@ public class ExchangeManager {
 			Sheet sheet, 
 			Map<String, CellStyle> styles,
 			int sId,
+			String surveyIdent,
 			Date startDate,
 			Date endDate,
 			String dateName,
 			int dateForm,
 			String basePath,
+			String urlPrefix,
 			String dirPath,
 			ArrayList<FileDescription> files,
 			boolean incMedia,
@@ -659,17 +673,35 @@ public class ExchangeManager {
 							// Copy file to temporary zip folder
 
 							File source = new File(attachmentPath);
+							String newPath = dirPath + "/" + value;
+							File dest = new File(newPath);
 							if (source.exists()) {
-								String newPath = dirPath + "/" + value;
-								File dest = new File(newPath);
 								try {
+									log.info("Getting local media file: " + newPath);
 									FileUtils.copyFile(source, dest);				
 									files.add(new FileDescription(value, newPath));
 								} catch (Exception e) {
-									log.info("Error: Failed to add file " + source + " to exchange export. " + e.getMessage());
+									log.info("Error: Failed to add file " + attachmentPath + " to exchange export. " + e.getMessage());
 								}
 							} else {
-								log.info("Error: media file does not exist: " + attachmentPath);
+								/*
+								 * The file has probably been moved to long term storage, get it by making a webservice call
+								 * From: https://www.baeldung.com/java-download-file
+								 */
+								FileOutputStream fileOutputStream = null;
+								try {
+									String urlPath = urlPrefix + "attachments/" + surveyIdent + "/" + value;
+									log.info("Getting remote media file: " + urlPath);
+									URL url = new URL(urlPath);
+									ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
+									fileOutputStream = new FileOutputStream(newPath);
+									fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+									files.add(new FileDescription(value, newPath));
+								} catch(Exception e) {
+									log.info("Error: Failed to add remote file " + attachmentPath + " to exchange export. " + e.getMessage());
+								} finally {
+									try {fileOutputStream.close();} catch (Exception e) {}
+								}
 							}
 						} 
 						
@@ -960,6 +992,11 @@ public class ExchangeManager {
 			col.name = qName;
 			col.columnName = "_case_closed";
 			col.type = "dateTime";
+		} else if(qName.equals("_case_survey")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = qName;
+			col.type = "string";
 		} else {
 			pstmtGetCol.setString(2, qName.toLowerCase());		// Search for a question
 			ResultSet rs = pstmtGetCol.executeQuery();
@@ -995,6 +1032,10 @@ public class ExchangeManager {
 						col.choices.add(o);
 					}
 				}
+				
+				col.appearance = rs.getString("appearance");
+				col.parameters = GeneralUtilityMethods.convertParametersToArray(rs.getString("parameters"));
+				
 			} else {
 				// Check to see if it is a preload
 
@@ -1147,16 +1188,22 @@ public class ExchangeManager {
 			HashMap<String, File> mediaFiles,
 			SimpleDateFormat sdf,
 			int recordsWritten,
-			int oId) throws SQLException {
+			int oId,
+			String user) throws SQLException {
 		
 		int index = 1;
 		int count = 0;
 		String prikey = null;
+		String parkey = null;
+		String instanceId = null;
 		boolean writeRecord = true;
+		
+		LinkageManager linkMgr = new LinkageManager(localisation);
+		ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
+		
 		eh.pstmtInsert.setString(index++, importSource);
 		eh.pstmtInsert.setTimestamp(index++, importTime);
-		if(form.parent == 0) {
-			String instanceId = null;
+		if(form.parent == 0) {			
 			if(eh.instanceIdColumn >= 0) {
 				instanceId = line[eh.instanceIdColumn].trim();
 			}
@@ -1213,8 +1260,10 @@ public class ExchangeManager {
 				} else if(col.name.equals("parkey") || col.name.equals("parentuid")) {
 					if(form.parent == 0) {
 						eh.pstmtInsert.setInt(index++, 0);
+						form.instanceMap.put(prikey, instanceId);	// For Fingerprints in linkage table - mapping between the in-sheet prikey and the instanceId used to create the record
 					} else {
-						String parkey = value;
+						
+						parkey = value;
 						String newParKey = form.parentForm.keyMap.get(parkey);
 						int iParKey = -1;
 						try {iParKey = Integer.parseInt(newParKey); } catch (Exception e) {}
@@ -1228,6 +1277,12 @@ public class ExchangeManager {
 						} else {
 							eh.pstmtInsert.setInt(index++, iParKey);
 						}
+						
+						/*
+						 * Store mapping to parent key for use in creating linkage entries for fingerprints
+						 * For this to work the parkey will need to come after the primary key in the worksheet and bfore any columns with fingerprint data
+						 */
+						form.parentKeyMap.put(prikey, parkey);		// mapping between the in-sheet prikey and the in-sheet parkey
 					}
 				} else if(GeneralUtilityMethods.isAttachmentType(col.type)) {
 					
@@ -1262,13 +1317,16 @@ public class ExchangeManager {
 							basePath, 
 							sIdent,
 							srcUrl,
-							null,
+							null,		// Not required as no XML file needs to be modified
 							oId);
 					}
 					if(value != null && value.trim().length() == 0) {
 						value = null;
 					}
 					eh.pstmtInsert.setString(index++, value);
+					
+					linkMgr.addDataitemToList(linkageItems, value, col.appearance, col.parameters, sIdent, col.name);
+					
 				} else if(col.type.equals("int")) {
 					int iVal = 0;
 					if(notEmpty(value)) {
@@ -1353,6 +1411,8 @@ public class ExchangeManager {
 					eh.pstmtInsert.setString(index++, value);
 				} else {
 					eh.pstmtInsert.setString(index++, value);
+					
+					linkMgr.addDataitemToList(linkageItems, value, col.appearance, col.parameters, sIdent, col.name);
 				}
 				
 			}
@@ -1366,7 +1426,15 @@ public class ExchangeManager {
 		
 			ResultSet rs = eh.pstmtInsert.getGeneratedKeys();
 			if(rs.next()) {
-				form.keyMap.put(prikey, rs.getString(1));
+				form.keyMap.put(prikey, rs.getString(1));		// mapping between the in-sheet prikey and the value added to the database
+			}
+			
+			/*
+			 * Write linkage items, fingerprints etc
+			 */
+			if(linkageItems.size() > 0) {
+				log.info("----- Applying " + linkageItems.size() + " linkage items");
+				linkMgr.writeItems(sd, oId, user, instanceId, linkageItems);
 			}
 			count++;
 		}

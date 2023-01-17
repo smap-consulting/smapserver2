@@ -39,6 +39,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.Tables;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.model.Form;
@@ -52,7 +53,6 @@ import utilities.FeatureInfo;
 import utilities.OptionInfo;
 import utilities.QuestionInfo;
 import utilities.SurveyInfo;
-import utilities.Tables;
 
 import java.lang.reflect.Type;
 import java.sql.*;

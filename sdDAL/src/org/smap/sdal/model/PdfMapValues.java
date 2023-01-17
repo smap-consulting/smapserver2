@@ -58,10 +58,12 @@ public class PdfMapValues {
 		StringBuilder sb = new StringBuilder("{\"type\":\"LineString\",\"coordinates\":[");		
 		
 		sb.append(getCoordinates(startLine, false));
-		for(int i = 0; i < orderedMarkers.size(); i++) {
-			DistanceMarker marker = orderedMarkers.get(i);
-			if(idx == -1 || i <= idx) {
-				sb.append(",").append(getCoordinates(marker.markerLocation, false));
+		if(orderedMarkers != null) {
+			for(int i = 0; i < orderedMarkers.size(); i++) {
+				DistanceMarker marker = orderedMarkers.get(i);
+				if(idx == -1 || i <= idx) {
+					sb.append(",").append(getCoordinates(marker.markerLocation, false));
+				}
 			}
 		}
 		if(idx == -1) {
@@ -124,10 +126,11 @@ public class PdfMapValues {
 		if(geometry != null) {
 			int idx = geometry.indexOf("[");
 			int idx2 = geometry.lastIndexOf("]");
-			
-			coords = geometry.substring(idx, idx2 + 1);
-			if(removeBrackets) {
-				coords = coords.substring(1, coords.length() - 1);
+			if(idx >= 0 && idx2 > idx) {
+				coords = geometry.substring(idx, idx2 + 1);
+				if(removeBrackets) {
+					coords = coords.substring(1, coords.length() - 1);
+				}
 			}
 		}
 		return(coords);

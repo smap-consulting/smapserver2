@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.ResourceBundle;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.QueryGenerator;
 import org.smap.sdal.constants.SmapQuestionTypes;
@@ -112,6 +113,7 @@ public class TableDataManager {
 		PreparedStatement pstmt = null;
 
 		boolean viewOwnDataOnly = GeneralUtilityMethods.isOnlyViewOwnData(sd, uIdent);
+		boolean viewLinks = GeneralUtilityMethods.hasSecurityGroup(sd, uIdent, Authorise.LINKS_ID);
 		/*
 		 * If the request is for a subform get the join hierarchy up to the top level form
 		 */
@@ -137,7 +139,7 @@ public class TableDataManager {
 			}
 			
 			// _assigned should only be created in the top level table however this may not always have happened in the past
-			if(c.column_name.equals("_assigned") && topLevelTable != null) {
+			if(c.column_name.equals(SurveyViewManager.ASSIGNED_COLUMN) && topLevelTable != null) {
 				columnSelect.append(topLevelTable).append(".");
 			}
 			
@@ -504,7 +506,8 @@ public class TableDataManager {
 			String geomQuestion,
 			boolean links,
 			String sIdent,
-			boolean viewOwnDataOnly)
+			boolean viewOwnDataOnly,
+			boolean viewLinks)
 			throws SQLException, Exception {
 
 		JSONObject jr = null;
@@ -697,6 +700,14 @@ public class TableDataManager {
 				// Link to audit form
 				if(!viewOwnDataOnly) {
 					jl.put("audit_log", GeneralUtilityMethods.getAuditLogLink(
+							urlprefix, 
+							sIdent, 
+							uuid));
+				}
+				
+				// Link to linkages
+				if(viewLinks) {
+					jl.put("links", GeneralUtilityMethods.getLinksLink(
 							urlprefix, 
 							sIdent, 
 							uuid));

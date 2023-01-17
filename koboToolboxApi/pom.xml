@@ -6,6 +6,9 @@
 	<artifactId>koboToolboxApi</artifactId>
 	<version>1.0.0</version>
 	<packaging>war</packaging>
+	<properties>
+    	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  	</properties>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
 		<resources>
@@ -19,10 +22,9 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.6.1</version>
+				<version>3.8.0</version>
 				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
+					<release>11</release>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -30,10 +32,25 @@
       			<artifactId>maven-war-plugin</artifactId>
       			<version>3.3.1</version>
       		</plugin>
+      			<plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>1.4.1</version>
+                <configuration>
+                    <rules><dependencyConvergence/></rules>
+                </configuration>
+            </plugin>
 		</plugins>
 	</build>
 	<dependencies>
 
+      	<dependency>
+	      	<groupId>smapserver</groupId>
+	      	<artifactId>sdDAL</artifactId>
+	      	<version>1.0.0</version>
+      	</dependency>
+       
+       <!--
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
@@ -57,12 +74,6 @@
 			<artifactId>javax.servlet-api</artifactId>
 			<version>3.0.1</version>
 			<scope>provided</scope>
-		</dependency>
-		
-		<dependency>
-			<groupId>org.codehaus.jettison</groupId>
-			<artifactId>jettison</artifactId>
-			<version>1.5.1</version>
 		</dependency>
 		
 		<dependency>
@@ -117,5 +128,6 @@
 			<artifactId>httpmime</artifactId>
 			<version>4.5.13</version>
 		</dependency>
+		-->
 	</dependencies>
 </project>

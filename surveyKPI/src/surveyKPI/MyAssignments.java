@@ -57,6 +57,7 @@ import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskLocation;
+import org.smap.sdal.model.TaskUpdate;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -205,8 +206,8 @@ public class MyAssignments extends Application {
 		Response response = null;
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
-		Assignment as = gson.fromJson(assignment, Assignment.class);
-		log.info("webserviceevent : update assignment status: " + as.assignment_id);
+		TaskUpdate tu = gson.fromJson(assignment, TaskUpdate.class);
+		log.info("webserviceevent : update assignment status: " + tu.assignment_id);
 		
 		String connectionString = "surveyKPI-MyAssignments-reject";
 		// Authorisation - Access
@@ -224,27 +225,34 @@ public class MyAssignments extends Application {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-			pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
-			pstmtSetUpdatedRejected = getPreparedStatementSetUpdatedRejected(sd);
-			pstmtSetUpdatedNotRejected = getPreparedStatementSetUpdatedNotRejected(sd);
-			pstmtEvents = getPreparedStatementEvents(sd);
+		
+			if(tu.type != null && tu.type.equals("case")) {
+				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, tu.sIdent);
+				GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, tu.uuid, request.getRemoteUser(), "release", null, tu.task_comment);
+			} else {
+				
+				pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
+				pstmtSetUpdatedRejected = getPreparedStatementSetUpdatedRejected(sd);
+				pstmtSetUpdatedNotRejected = getPreparedStatementSetUpdatedNotRejected(sd);
+				pstmtEvents = getPreparedStatementEvents(sd);
+				
+				int taskId = GeneralUtilityMethods.getTaskId(sd, tu.assignment_id);
+				updateAssignment(
+						sd,
+						cResults,
+						localisation, 
+						pstmtSetDeleted, 
+						pstmtSetUpdatedRejected,
+						pstmtSetUpdatedNotRejected,
+						pstmtEvents,
+						gson,
+						request.getRemoteUser(),
+						taskId,
+						tu.assignment_id,
+						tu.assignment_status,
+						tu.task_comment);
+			}
 			
-			int taskId = GeneralUtilityMethods.getTaskId(sd, as.assignment_id);
-			updateAssignment(
-					sd,
-					cResults,
-					localisation, 
-					pstmtSetDeleted, 
-					pstmtSetUpdatedRejected,
-					pstmtSetUpdatedNotRejected,
-					pstmtEvents,
-					gson,
-					request.getRemoteUser(),
-					taskId,
-					as.assignment_id,
-					as.assignment_status,
-					as.task_comment);
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			response = Response.serverError().build();
@@ -691,6 +699,7 @@ public class MyAssignments extends Application {
 				fl.project = survey.projectName;
 				fl.pid = survey.p_id;
 				fl.tasks_only = survey.getHideOnDevice();
+				fl.read_only = survey.getReadOnlySurvey();
 				fl.search_local_data = survey.getSearchLocalData();
 				fl.hasManifest = hasManifest;
 				fl.dirty = hasManifest;			// obsolete but used by FT
@@ -704,7 +713,7 @@ public class MyAssignments extends Application {
 				 * Add any cases assigned to this user
 				 */
 				CaseManager cm = new CaseManager(localisation);
-				ArrayList<Case> cases = cm.getCases(sd, cResults, survey.id, survey.groupSurveyIdent, userName);
+				ArrayList<Case> cases = cm.getCases(sd, cResults, survey.ident, survey.displayName, survey.groupSurveyIdent, userName, survey.id);
 				if(cases.size() > 0) {
 					if(tr.taskAssignments == null) {
 						tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
@@ -719,8 +728,10 @@ public class MyAssignments extends Application {
 						ta.assignment = new TrAssignment();
 
 						ta.task.form_id = survey.ident;
+						ta.task.pid = String.valueOf(survey.p_id);
 						ta.task.update_id = c.instanceid;
 						ta.task.type = "case";
+						ta.task.initial_data_source = "survey";
 						ta.task.title = c.title;
 						ta.assignment.assignment_status = TaskManager.STATUS_T_ACCEPTED;
 						ta.assignment.assignment_id = 0;
@@ -925,7 +936,7 @@ public class MyAssignments extends Application {
 	public Response updateTasks(@Context HttpServletRequest request, 
 			String assignInput,
 			String userName) { 
-
+		
 		Response response = null;
 		String connectionString = "surveyKPI-MyAssignments - updateTasks";
 
@@ -966,7 +977,13 @@ public class MyAssignments extends Application {
 			
 			sd.setAutoCommit(false);
 			for(TaskResponseAssignment ta : tr.taskAssignments) {
-				if(ta.assignment.assignment_id > 0) {
+				
+				if(ta.task != null && ta.task.type != null && ta.task.type.equals("case")) {
+					if(ta.assignment.assignment_status != null && ta.assignment.assignment_status.equals("rejected")) {
+						String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, ta.task.form_id);
+						GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, ta.task.update_id, request.getRemoteUser(), "release", null, ta.assignment.task_comment);
+					}	
+				} else if(ta.assignment.assignment_id > 0) {
 					log.info("Task Assignment: " + ta.assignment.assignment_status);
 
 					if(ta.task == null) {

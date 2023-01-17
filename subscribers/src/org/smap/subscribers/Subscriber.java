@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.ResourceBundle;
 
 import org.smap.model.SurveyInstance;
+import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.HostUnreachableException;
@@ -53,6 +54,7 @@ public abstract class Subscriber {
 	private int duplicatePolicy = DUPLICATE_DROP;
 	
 	protected ArrayList<MediaChange> mediaChanges = new ArrayList<> ();
+	protected ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
 	
 	Subscriber() {
 		

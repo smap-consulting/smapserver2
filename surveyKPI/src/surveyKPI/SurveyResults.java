@@ -130,7 +130,7 @@ public class SurveyResults extends Application {
 				 */
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
-				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
+				ArrayList<GroupDetails> surveys = sm.getAccessibleGroupSurveys(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
 				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyIdent, oId, request.getRemoteUser(), sId);
 				
 				/*
@@ -283,7 +283,7 @@ public class SurveyResults extends Application {
 				 */
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
-				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
+				ArrayList<GroupDetails> surveys = sm.getAccessibleGroupSurveys(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
 				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyIdent, oId, request.getRemoteUser(), sId);
 				
 				/*
@@ -429,7 +429,7 @@ public class SurveyResults extends Application {
 				SurveyManager sm = new SurveyManager(localisation, tz);
 				String mainTableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
-				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
+				ArrayList<GroupDetails> surveys = sm.getAccessibleGroupSurveys(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
 				
 				/*
 				 * Check to see that there is data to be archived
@@ -588,7 +588,7 @@ public class SurveyResults extends Application {
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				String mainTableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
-				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
+				ArrayList<GroupDetails> surveys = sm.getAccessibleGroupSurveys(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
 				
 				/*
 				 * Check to see that there is data to be archived
@@ -670,7 +670,7 @@ public class SurveyResults extends Application {
 				 */
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
-				ArrayList<GroupDetails> groups = sm.getGroupDetails(sd, groupSurveyIdent, 
+				ArrayList<GroupDetails> groups = sm.getAccessibleGroupSurveys(sd, groupSurveyIdent, 
 						request.getRemoteUser(),superUser);
 				
 				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();

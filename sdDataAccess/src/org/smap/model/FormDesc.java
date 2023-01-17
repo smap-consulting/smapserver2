@@ -16,6 +16,19 @@ public class FormDesc {
 	public String columns = null;
 	public ArrayList<FormDesc> children = null;
 	public ArrayList<TableColumn> columnList = null;
-	public HashMap<String, String> keyMap = null;
+	public HashMap<String, String> keyMap = new HashMap<>();
+	public HashMap<String, String> instanceMap = new HashMap<>();
+	public HashMap<String, String> parentKeyMap = new HashMap<>();
 	public FormDesc parentForm = null;
+	
+	public String getInstanceId(String prikey) {
+		String instanceId = null;
+		
+		if(parentForm == null) {
+			instanceId = instanceMap.get(prikey);
+		} else {
+			instanceId = parentForm.getInstanceId(parentKeyMap.get(prikey));
+		}
+		return instanceId;
+	}
 }

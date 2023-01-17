@@ -556,3 +556,36 @@ update dashboard_settings ds set ds_group_question_name = (select q.qname from q
 
 alter table s3upload add column o_id integer default 0;
 alter table s3upload add column is_media boolean default false;
+
+alter table survey add column read_only_survey boolean default false;
+
+-- Version 22.12
+alter table cms_setting add column key text;
+alter table cms_setting add column key_policy text;
+
+-- Create a table to hold biometric, including fingerprint record linkage data
+CREATE SEQUENCE linkage_seq START 1;
+ALTER SEQUENCE linkage_seq OWNER TO ws;
+
+CREATE TABLE linkage (
+	id integer DEFAULT NEXTVAL('linkage_seq') CONSTRAINT pk_linkage PRIMARY KEY,
+	o_id integer,
+	survey_ident text,				-- Source
+	instance_id text,
+	col_name text,
+									-- Image Fingerprint data
+	fp_location text,				-- Location on the body: hand or foot or unknown
+	fp_side text,					-- left or right
+	fp_digit integer,				-- 0-5, 0 = thumb, 5 = palm
+	fp_image text,					-- URL of image
+	fp_native_template bytea,		-- Generated from the raw image using FP tools
+	
+	fp_iso_template text,			-- Fingerprint ISO data
+	
+	changed_by text,
+	changed_ts TIMESTAMP WITH TIME ZONE	
+	);
+ALTER TABLE linkage OWNER TO ws;
+
+insert into groups(id,name) values(13,'links');
+alter table server add column rebuild_link_cache boolean default false;

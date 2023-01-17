@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.RoleManager;
 
@@ -63,8 +64,7 @@ public class Survey {
 	public int version;			// Default to 1
 	public boolean loadedFromXLS;
 	public ArrayList<Pulldata> pulldata;
-	public String hrk;
-	public String key_policy;
+	public UniqueKey uk = new UniqueKey();		 // Key details here
 	public String basedOn;
 	public Timestamp created;
 	public boolean exclude_empty;
@@ -74,6 +74,7 @@ public class Survey {
 	private boolean searchLocalData;
 	public boolean dataSurvey = true;
 	public boolean oversightSurvey = true;
+	public boolean readOnlySurvey = false;
 	public String groupSurveyIdent;
 	public String groupSurveyDetails;
 	public String publicLink;
@@ -94,6 +95,9 @@ public class Survey {
 	};
 	public boolean getSearchLocalData() { 
 		return searchLocalData;
+	};
+	public boolean getReadOnlySurvey() { 
+		return readOnlySurvey;
 	};
 	
 	public Form getFirstForm() {
@@ -222,7 +226,7 @@ public class Survey {
 	 *   2. questions and choices will only be created if they do not already exist in the form
 	 */
 	public void write(Connection sd, Connection cRel, ResourceBundle localisation, 
-			String userIdent, HashMap<String, String> groupForms, int existingSurveyId) throws Exception {
+			String userIdent, HashMap<String, String> groupForms, int existingSurveyId, int oId) throws Exception {
 		
 		try {
 			log.info("Set autocommit false");
@@ -230,7 +234,7 @@ public class Survey {
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			
-			writeSurvey(sd, gson);
+			writeSurvey(sd, localisation, gson, userIdent, oId);
 			GeneralUtilityMethods.setLanguages(sd, id, languages);
 			writeLists(sd, gson);
 			writeStyles(sd, gson);
@@ -264,7 +268,7 @@ public class Survey {
 	 * Private methods that support writing to the survey to the database
 	 * 1. Write the survey definition
 	 */
-	private void writeSurvey(Connection sd, Gson gson) throws SQLException {
+	private void writeSurvey(Connection sd, ResourceBundle localisation, Gson gson, String userIdent, int oId) throws Exception {
 		
 		String sql = "insert into survey ("
 				+ "s_id, "
@@ -290,6 +294,7 @@ public class Survey {
 				+ "search_local_data,"
 				+ "data_survey,"
 				+ "oversight_survey,"
+				+ "read_only_survey,"
 				+ "timing_data,"
 				+ "audit_location_data,"
 				+ "track_changes,"
@@ -297,7 +302,7 @@ public class Survey {
 				+ "default_logo,"
 				+ "compress_pdf) "
 				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
@@ -321,8 +326,8 @@ public class Survey {
 			pstmt.setString(10, gson.toJson(meta));
 			pstmt.setBoolean(11, task_file);
 			pstmt.setString(12, groupSurveyIdent);
-			pstmt.setString(13, hrk);	// Key
-			pstmt.setString(14, key_policy);
+			pstmt.setString(13, uk.key);			// Obsolete - Keys no longer required per survey
+			pstmt.setString(14, uk.key_policy);		// Obsolete - Keys no longer required per survey
 			pstmt.setString(15, publicLink);
 			String pd = null;
 			if(pulldata != null) {
@@ -333,12 +338,13 @@ public class Survey {
 			pstmt.setBoolean(18, searchLocalData);
 			pstmt.setBoolean(19, dataSurvey);
 			pstmt.setBoolean(20, oversightSurvey);
-			pstmt.setBoolean(21, timing_data);
-			pstmt.setBoolean(22, audit_location_data);
-			pstmt.setBoolean(23, track_changes);
-			pstmt.setBoolean(24, autoTranslate);
-			pstmt.setString(25, default_logo);
-			pstmt.setBoolean(26, compress_pdf);
+			pstmt.setBoolean(21, readOnlySurvey);
+			pstmt.setBoolean(22, timing_data);
+			pstmt.setBoolean(23, audit_location_data);
+			pstmt.setBoolean(24, track_changes);
+			pstmt.setBoolean(25, autoTranslate);
+			pstmt.setString(26, default_logo);
+			pstmt.setBoolean(27, compress_pdf);
 			pstmt.executeUpdate();
 			
 			// If an ident was not provided then assign a new ident based on the survey id
@@ -359,6 +365,10 @@ public class Survey {
 					pstmtUpdate.executeUpdate();
 				}
 			}
+			
+			// Write the key details
+			KeyManager km = new KeyManager(localisation);
+			km.update(sd, groupSurveyIdent, uk.key, uk.key_policy, userIdent, oId, false);	// Do not override existing key when called from XLS upload
 			
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}

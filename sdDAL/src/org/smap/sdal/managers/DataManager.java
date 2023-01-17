@@ -371,9 +371,7 @@ public class DataManager {
 	
 						} else {
 							data.put(name, rs.getString(i + 1));
-						}
-							
-	
+						}	
 					}
 				
 					// Get the data for sub forms

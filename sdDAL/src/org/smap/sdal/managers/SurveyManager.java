@@ -166,7 +166,7 @@ public class SurveyManager {
 				+ "s.ident, s.version, s.loaded_from_xls, p.name as project_name, p.id as project_id, "
 				+ "p.tasks_only,"
 				+ "s.group_survey_ident, s.public_link, o.can_submit, s.hide_on_device, s.search_local_data,"
-				+ "s.data_survey, s.oversight_survey "
+				+ "s.data_survey, s.oversight_survey, s.read_only_survey "
 				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -241,6 +241,7 @@ public class SurveyManager {
 				s.setSearchLocalData(resultSet.getBoolean("search_local_data"));
 				s.dataSurvey = resultSet.getBoolean("data_survey");
 				s.oversightSurvey = resultSet.getBoolean("oversight_survey");
+				s.readOnlySurvey = resultSet.getBoolean("read_only_survey");
 				
 				if(getGroupDetails) {
 					pstmtGetGroupDetails.setString(1, s.groupSurveyIdent);
@@ -413,12 +414,11 @@ public class SurveyManager {
 		Survey s = null;	// Survey to return
 		ResultSet resultSet = null;
 		StringBuffer sql = new StringBuffer();
-		sql.append("select s.s_id, s.name, s.ident, s.display_name, s.deleted, s.blocked, p.name, p.id,"
-				+ "s.def_lang, s.task_file, s.timing_data, o.id, s.class,"
-				+ "s.instance_name, s.hrk, s.based_on, s.created, s.loaded_from_xls,"
+		sql.append("select s.s_id, s.ident, s.display_name, s.deleted, s.blocked, p.name as pname, p.id as p_id,"
+				+ "s.def_lang, s.task_file, s.timing_data, o.id as o_id, s.class,"
+				+ "s.instance_name, s.based_on, s.created, s.loaded_from_xls,"
 				+ "s.pulldata, "
 				+ "s.version, "
-				+ "s.key_policy, "
 				+ "s.exclude_empty,"
 				+ "s.compress_pdf,"
 				+ "s.meta,"
@@ -429,6 +429,7 @@ public class SurveyManager {
 				+ "s.search_local_data, "
 				+ "s.data_survey, "
 				+ "s.oversight_survey, "
+				+ "s.read_only_survey, "
 				+ "s.audit_location_data, "
 				+ "s.track_changes,"
 				+ "s.auto_translate,"
@@ -473,33 +474,30 @@ public class SurveyManager {
 			log.info("Get Survey info: " + pstmt.toString());
 
 			resultSet = pstmt.executeQuery();	
-			if (resultSet.next()) {							
+			if (resultSet.next()) {						
 
 				s = new Survey();
-				s.setId(resultSet.getInt(1));
-				//s.setName(resultSet.getString(2));
-				s.setIdent(resultSet.getString(3));
-				s.setDisplayName(resultSet.getString(4));
-				s.setDeleted(resultSet.getBoolean(5));
-				s.blocked = resultSet.getBoolean(6);
-				s.setProjectName(resultSet.getString(7));
-				s.setProjectId(resultSet.getInt(8));
-				s.def_lang = resultSet.getString(9);
-				s.task_file = resultSet.getBoolean(10);
-				s.timing_data = resultSet.getBoolean(11);
-				s.o_id = resultSet.getInt(12);
-				s.surveyClass = resultSet.getString(13);
-				s.instanceNameDefn = GeneralUtilityMethods.convertAllXpathNames(resultSet.getString(14), true);
-				s.hrk = resultSet.getString(15);
-				s.basedOn = resultSet.getString(16);
-				s.created = resultSet.getTimestamp(17);
-				s.loadedFromXLS = resultSet.getBoolean(18);
+				s.setId(resultSet.getInt("s_id"));
+				s.setIdent(resultSet.getString("ident"));
+				s.setDisplayName(resultSet.getString("display_name"));
+				s.setDeleted(resultSet.getBoolean("deleted"));
+				s.blocked = resultSet.getBoolean("blocked");
+				s.setProjectName(resultSet.getString("pname"));
+				s.setProjectId(resultSet.getInt("p_id"));
+				s.def_lang = resultSet.getString("def_lang");
+				s.task_file = resultSet.getBoolean("task_file");
+				s.timing_data = resultSet.getBoolean("timing_data");
+				s.o_id = resultSet.getInt("o_id");
+				s.surveyClass = resultSet.getString("class");
+				s.instanceNameDefn = GeneralUtilityMethods.convertAllXpathNames(resultSet.getString("instance_name"), true);
+				s.basedOn = resultSet.getString("based_on");
+				s.created = resultSet.getTimestamp("created");
+				s.loadedFromXLS = resultSet.getBoolean("loaded_from_xls");
 
 				Type type = new TypeToken<ArrayList<Pulldata>>(){}.getType();
-				s.pulldata = new Gson().fromJson(resultSet.getString(19), type); 
+				s.pulldata = new Gson().fromJson(resultSet.getString("pulldata"), type); 
 
-				s.version = resultSet.getInt(20);
-				s.key_policy = resultSet.getString(21);
+				s.version = resultSet.getInt("version");
 				s.exclude_empty = resultSet.getBoolean("exclude_empty");
 				s.compress_pdf = resultSet.getBoolean("compress_pdf");
 				String meta = resultSet.getString("meta");
@@ -516,24 +514,14 @@ public class SurveyManager {
 				s.setSearchLocalData(resultSet.getBoolean("search_local_data"));
 				s.dataSurvey = resultSet.getBoolean("data_survey");
 				s.oversightSurvey = resultSet.getBoolean("oversight_survey");
+				s.readOnlySurvey = resultSet.getBoolean("read_only_survey");
 				s.audit_location_data = resultSet.getBoolean("audit_location_data");
 				s.track_changes = resultSet.getBoolean("track_changes");
 				s.autoTranslate = resultSet.getBoolean("auto_translate");
-				
-				
-				// Get the pdf template  - deprecate
-				/*
-				File templateFile = GeneralUtilityMethods.getPdfTemplate(sd, basePath, s.displayName, s.p_id, 0, s.ident);
-				if(templateFile.exists()) {
-					String newName = resultSet.getString("pdf_template");
-					if(newName != null) {
-						s.pdfTemplateName = newName;
-					} else {
-						s.pdfTemplateName = templateFile.getName();
-					}
-				}
-				*/
 				s.default_logo = resultSet.getString("default_logo");
+				
+				KeyManager km = new KeyManager(localisation);
+				s.uk = km.get(sd, s.groupSurveyIdent);
 				
 			} else {
 				log.info("Error: survey not found");
@@ -620,6 +608,7 @@ public class SurveyManager {
 		String existingKeyPolicy = null;
 		boolean existingDataSurvey = true;
 		boolean existingOversightSurvey = true;
+		boolean existingReadOnlySurvey = false;
 		String existingInstanceName = null;
 		String existingSurveyIdent = null;
 		
@@ -629,9 +618,9 @@ public class SurveyManager {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 		String sqlCreateSurvey = "insert into survey ( s_id, display_name, deleted, p_id, version, last_updated_time, "
-				+ "based_on, meta, created, class, key_policy, data_survey, oversight_survey, instance_name) "
+				+ "based_on, meta, created, class, key_policy, data_survey, oversight_survey, read_only_survey, instance_name) "
 				+ "values (nextval('s_seq'), ?, 'false', ?, 1, now(), ?, ?, now(), "
-				+ "?, ?, ?, ?, ?)";
+				+ "?, ?, ?, ?, ?, ?)";
 		PreparedStatement pstmtCreateSurvey = null;
 
 		String sqlUpdateSurvey = "update survey set name = ?, ident = ?, group_survey_ident = ? where s_id = ?";
@@ -642,7 +631,7 @@ public class SurveyManager {
 		PreparedStatement pstmtCreateForm = null;
 
 		String sqlGetSource = "select s.display_name, f.f_id, s.meta, s.class, s.key_policy,"
-				+ "s.data_survey, s.oversight_survey, s.instance_name, s.ident "
+				+ "s.data_survey, s.oversight_survey, s.read_only_survey, s.instance_name, s.ident "
 				+ "from survey s, form f "
 				+ "where s.s_id = f.s_id "
 				+ "and s.s_id = ? "
@@ -663,8 +652,9 @@ public class SurveyManager {
 					existingKeyPolicy = rsGetSource.getString(5);
 					existingDataSurvey = rsGetSource.getBoolean(6);
 					existingOversightSurvey = rsGetSource.getBoolean(7);
-					existingInstanceName = rsGetSource.getString(8);
-					existingSurveyIdent = rsGetSource.getString(9);
+					existingReadOnlySurvey = rsGetSource.getBoolean(8);
+					existingInstanceName = rsGetSource.getString(9);
+					existingSurveyIdent = rsGetSource.getString(10);
 				}
 			}
 			if(sd.getAutoCommit()) {
@@ -698,7 +688,8 @@ public class SurveyManager {
 			pstmtCreateSurvey.setString(6, existingKeyPolicy);
 			pstmtCreateSurvey.setBoolean(7, existingDataSurvey);
 			pstmtCreateSurvey.setBoolean(8, existingOversightSurvey);
-			pstmtCreateSurvey.setString(9, existingInstanceName);
+			pstmtCreateSurvey.setBoolean(9, existingReadOnlySurvey);
+			pstmtCreateSurvey.setString(10, existingInstanceName);
 			
 			log.info("Create new survey: " + pstmtCreateSurvey.toString());
 			pstmtCreateSurvey.execute();
@@ -962,7 +953,7 @@ public class SurveyManager {
 					getSoftDeleted, 
 					getPropertyTypeQuestions, getHrk, 
 					f.parentform,
-					s.hrk,
+					s.uk.key,
 					s.languages.size(),
 					f.tableName,
 					basePath,
@@ -1176,7 +1167,6 @@ public class SurveyManager {
 		try { if (pstmtGetChanges != null) {pstmtGetChanges.close();}} catch (SQLException e) {}
 		try { if (pstmtGetLists != null) {pstmtGetLists.close();}} catch (SQLException e) {}
 		try { if (pstmtGetStyles != null) {pstmtGetStyles.close();}} catch (SQLException e) {}
-		//try { if (pstmtGetLinkable != null) {pstmtGetLinkable.close();}} catch (SQLException e) {}
 	}
 
 
@@ -1195,7 +1185,8 @@ public class SurveyManager {
 				+ "p.o_id,"
 				+ "o.e_id,"
 				+ "o.can_submit,"
-				+ "s.group_survey_ident "
+				+ "s.group_survey_ident,"
+				+ "s.read_only_survey "
 				+ "from survey s,"
 				+ "project p,"
 				+ "organisation o "
@@ -1223,7 +1214,6 @@ public class SurveyManager {
 				s.surveyClass = resultSet.getString("class");
 				s.deleted = resultSet.getBoolean("deleted");
 				s.displayName = resultSet.getString("display_name");
-				s.key_policy = resultSet.getString("key_policy");
 				s.ident = resultSet.getString("ident");
 				s.version = resultSet.getInt("version");
 				String meta = resultSet.getString("meta");
@@ -1236,9 +1226,13 @@ public class SurveyManager {
 				s.o_id = resultSet.getInt("o_id");
 				s.e_id = resultSet.getInt("e_id");
 				s.groupSurveyIdent = resultSet.getString("group_survey_ident");
+				s.readOnlySurvey = resultSet.getBoolean("read_only_survey");
+				
+				KeyManager km = new KeyManager(localisation);
+				s.uk = km.get(sd, s.groupSurveyIdent);
 				
 			}
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}};
@@ -3347,7 +3341,7 @@ public class SurveyManager {
 	 * Get the group surveys
 	 * Always add the survey corresponding to sId to the group
 	 */
-	public ArrayList<GroupDetails> getGroupDetails(Connection sd, 
+	public ArrayList<GroupDetails> getAccessibleGroupSurveys(Connection sd, 
 			String groupSurveyIdent, 
 			String user, 
 			boolean superUser) throws SQLException {
@@ -3355,7 +3349,7 @@ public class SurveyManager {
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
 		
 		StringBuffer sql = new StringBuffer("select s.s_id, s.display_name, s.ident,"
-				+ "s.data_survey, s.oversight_survey, s.p_id "
+				+ "s.data_survey, s.oversight_survey,  s.p_id "
 				+ "from survey s, users u, user_project up "
 				+ "where s.p_id = up.p_id "
 				+ "and up.u_id = u.id "
@@ -3380,12 +3374,12 @@ public class SurveyManager {
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
-				groupSurveys.add(new GroupDetails(rs.getInt(1), rs.getString(2), 
-						rs.getString(3),
-						rs.getBoolean(4),
-						rs.getBoolean(5),
+				groupSurveys.add(new GroupDetails(rs.getInt("s_id"), rs.getString("display_name"), 
+						rs.getString("ident"),
+						rs.getBoolean("data_survey"),
+						rs.getBoolean("oversight_survey"),
 						groupSurveyIdent,
-						rs.getInt(6)));
+						rs.getInt("p_id")));
 			}
 		} finally {
 			try {
@@ -3570,7 +3564,7 @@ public class SurveyManager {
 	 * Get the group surveys
 	 * Do not check that the user has access
 	 */
-	public ArrayList<GroupDetails> getGroupSurveysAnonymous(Connection sd, 
+	public ArrayList<GroupDetails> getSurveysInGroup(Connection sd, 
 			String groupSurveyIdent) throws SQLException {
 		
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
@@ -3620,7 +3614,7 @@ public class SurveyManager {
 		
 		HashMap<String, QuestionForm> groupQuestions = new HashMap<> ();
 		
-		ArrayList<GroupDetails> surveys = getGroupSurveysAnonymous(sd, groupSurveyIdent);
+		ArrayList<GroupDetails> surveys = getSurveysInGroup(sd, groupSurveyIdent);
 		for(GroupDetails s : surveys) {
 			Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, s.sId);
 			ArrayList<MetaItem> items = GeneralUtilityMethods.getPreloads(sd, s.sId);
