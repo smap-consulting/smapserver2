@@ -321,18 +321,13 @@ public class PdfUtilities {
 			try {
 				log.info("Google API call: " + url);
 				
-				/*
-				 * There is a problem with passing a URL to the IText getInstance function as
-				 * it will cause two mapbox requests to be recorded resulting in additional charges
-				 * Instead download the imag first then add it to the PDF as a file
-				 */
 				URL googleUrl = new URL(url.toString());
 				BufferedImage tempImg = ImageIO.read(googleUrl);
 				File file = new File(basePath + "/temp/pdfmap_" + UUID.randomUUID() + ".png");
 				ImageIO.write(tempImg, "png", file);			       
 				img = Image.getInstance(file.getAbsolutePath());
 			    
-				lm.writeLog(sd, sId, user, LogManager.MAPBOX_REQUEST, map, 0, null);
+				lm.writeLog(sd, sId, user, LogManager.GOOGLE_REQUEST, map, 0, null);
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Exception", e);
 			}
