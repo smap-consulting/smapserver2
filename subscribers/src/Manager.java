@@ -46,12 +46,9 @@ public class Manager {
 		}
 		
 		/*
-		 * Start asynchronous worker threads in upload processor
-		 * 1. Message processor
+		 * Start asynchronous worker threads
 		 */
 		if(subscriberType.equals("upload")) {
-			MessageProcessor mp = new MessageProcessor();
-			mp.go(smapId, fileLocn);
 
 			// Start the AWS service processor
 			String mediaBucket = GeneralUtilityMethods.getSettingFromFile(fileLocn + "/settings/bucket");
@@ -63,6 +60,18 @@ public class Manager {
 		} else if(subscriberType.equals("forward")) {
 			
 			/*
+			 * Start the message processor
+			 */
+			MessageProcessor mp = new MessageProcessor();
+			mp.go(smapId, fileLocn);
+			
+			/*
+			 * Start the storage processor - required if images are stored on s3
+			 */
+			StorageProcessor sp = new StorageProcessor();
+			sp.go(smapId, fileLocn);
+			
+			/*
 			 * Start the report processor
 			 */
 			ReportProcessor rp = new ReportProcessor();
@@ -72,7 +81,7 @@ public class Manager {
 		log.info("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);
 		int delaySecs = 2;
 		
-		// Forwarding can happen less frequently, this reduce the load due to searching for items to forward
+		// The forwarding server does useful processing - set its delay also to 2 seconds
 		if(subscriberType.equals("forward")) {
 			delaySecs = 30;					
 		}
