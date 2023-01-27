@@ -482,7 +482,7 @@ public class XFormData {
 			}
 		}
 
-		lm.writeLog(sd, survey.id, user, "error", reason, 0, null); // Write the application log
+		lm.writeLog(sd, survey.id, user, LogManager.ERROR, reason, 0, null); // Write the application log
 
 	}
 

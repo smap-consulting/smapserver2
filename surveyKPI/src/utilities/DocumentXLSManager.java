@@ -70,7 +70,7 @@ public class DocumentXLSManager {
 		String templateName = "ewarn_report_template.xlsx";
 		File templateFile = GeneralUtilityMethods.getDocumentTemplate(basePath, "ewarn_report_template.xlsx", oId);
 		try {
-			lm.writeLog(sd, 0, remoteUser, "error", "Failed to open template: " + templateName, 0, null);
+			lm.writeLog(sd, 0, remoteUser, LogManager.ERROR, "Failed to open template: " + templateName, 0, null);
 			templateIS = new FileInputStream(templateFile);
 		} catch (Exception e) {
 			throw e;

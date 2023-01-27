@@ -87,6 +87,7 @@ public class LogManager {
 	public static String TRANSCRIBE_MEDICAL = "transcribe_medical";
 	public static String TRANSLATE = "translate";
 	public static String USER = "user";
+	public static String USER_DETAILS = "user details";
 	public static String USER_ACTIVITY_VIEW = "user activity view";
 	public static String USER_LOCATION_VIEW = "user location view";
 	public static String VIEW = "view";

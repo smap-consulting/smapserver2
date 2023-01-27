@@ -1325,7 +1325,7 @@ public class WebForm extends Application {
 
 		} catch (Exception e) {
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-			lm.writeLog(sd, survey.id, userIdent, "Error", "Failed to get instance data: " + e.getMessage(), 0, request.getServerName());
+			lm.writeLog(sd, survey.id, userIdent, LogManager.ERROR, "Failed to get instance data: " + e.getMessage(), 0, request.getServerName());
 			log.log(Level.SEVERE, e.getMessage(), e);
 		}
 

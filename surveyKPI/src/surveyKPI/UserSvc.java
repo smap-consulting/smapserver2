@@ -308,7 +308,7 @@ public class UserSvc extends Application {
 			if(pwm != null) {
 				pwm.logReset();
 			} else {
-				lm.writeLog(sd, -1, request.getRemoteUser(), "user details", "updated user details", 0, request.getServerName());
+				lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.USER_DETAILS, "updated user details", 0, request.getServerName());
 			}			
 			
 			UserManager um = new UserManager(localisation);

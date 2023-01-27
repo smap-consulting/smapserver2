@@ -241,7 +241,7 @@ public class SurveyResults extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
-		lm.writeLog(sd, sId, request.getRemoteUser(), "restore", "Restore results", 0, request.getServerName());
+		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.RESTORE, "Restore results", 0, request.getServerName());
 		
 		// Escape any quotes
 		if(sId > 0) {
@@ -402,7 +402,7 @@ public class SurveyResults extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
-		lm.writeLog(sd, sId, request.getRemoteUser(), "archive", "Archive results", 0, request.getServerName());
+		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.ARCHIVE, "Archive results", 0, request.getServerName());
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		String sqlNewTable = "select table_name from form where name = ? and s_id = any (?)";
