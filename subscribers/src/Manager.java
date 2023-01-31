@@ -46,12 +46,9 @@ public class Manager {
 		}
 		
 		/*
-		 * Start asynchronous worker threads in upload processor
-		 * 1. Message processor
+		 * Start asynchronous worker threads
 		 */
 		if(subscriberType.equals("upload")) {
-			MessageProcessor mp = new MessageProcessor();
-			mp.go(smapId, fileLocn);
 
 			// Start the AWS service processor
 			String mediaBucket = GeneralUtilityMethods.getSettingFromFile(fileLocn + "/settings/bucket");
@@ -61,6 +58,18 @@ public class Manager {
 			AutoUpdateProcessor au = new AutoUpdateProcessor();
 			au.go(smapId, fileLocn, mediaBucket, region);
 		} else if(subscriberType.equals("forward")) {
+			
+			/*
+			 * Start the message processor
+			 */
+			MessageProcessor mp = new MessageProcessor();
+			mp.go(smapId, fileLocn);
+			
+			/*
+			 * Start the storage processor - required if images are stored on s3
+			 */
+			StorageProcessor sp = new StorageProcessor();
+			sp.go(smapId, fileLocn);
 			
 			/*
 			 * Start the report processor
