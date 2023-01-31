@@ -81,7 +81,7 @@ public class Manager {
 		log.info("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);
 		int delaySecs = 2;
 		
-		// The forwarding server does useful processing - set its delay also to 2 seconds
+		// Forwarding can happen less frequently, this reduce the load due to searching for items to forward
 		if(subscriberType.equals("forward")) {
 			delaySecs = 30;					
 		}
