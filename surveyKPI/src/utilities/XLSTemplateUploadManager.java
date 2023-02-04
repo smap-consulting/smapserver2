@@ -97,7 +97,8 @@ public class XLSTemplateUploadManager {
 	HashMap<String, Integer> qNameMapCaseInsensitive = new HashMap<> ();			// Use in question name uniqueness
 	HashMap<String, HashMap<String, Integer>> oNameMap = new HashMap<> ();		// Use in option name validation
 	Pattern validQname = Pattern.compile("^[A-Za-z_][A-Za-z0-9_\\-\\.]*$");
-	Pattern validChoiceName = Pattern.compile("^[A-Za-z0-9_@&\\-\\.\\+%,():/]*$");
+	Pattern validChoiceName = Pattern.compile("^[A-Za-z0-9_@&\\-\\.\\+%,():/ ]*$");
+	Pattern validListName = Pattern.compile("^[A-Za-z0-9_@&\\-\\.\\+%,():/]*$");	// Like choices but spaces are not valid
 
 	HashMap<Integer, Stack<Question>> groupStackMap = new HashMap<>();			// Keep track of groups in forms
 	boolean inFieldList = false;												// Only some questions are allowed inside a field list
@@ -1689,7 +1690,7 @@ public class XLSTemplateUploadManager {
 			// Check for a valid value
 			throw XLSUtilities.getApplicationException(localisation, "tu_cn",rowNumber, "choices", o.value, null, null);
 
-		} else if(!validChoiceName.matcher(o.optionList).matches()) {
+		} else if(!validListName.matcher(o.optionList).matches()) {
 			// Check for a valid value
 			throw XLSUtilities.getApplicationException(localisation, "tu_ln",rowNumber, "choices", o.optionList, null, null);
 
