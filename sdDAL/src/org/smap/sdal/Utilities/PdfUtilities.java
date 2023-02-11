@@ -1068,7 +1068,7 @@ public class PdfUtilities {
 			} else {
 				dfDateOnly.setTimeZone(TimeZone.getTimeZone("UTC"));
 				date = dfDateOnly.parse(inValue);
-				dfDateOnly.setTimeZone(TimeZone.getTimeZone(tz));
+				dfDateOnly.setTimeZone(TimeZone.getTimeZone("UTC"));	// Dates are always in UTC
 				value = dfDateOnly.format(date);
 			}
 			
