@@ -42,6 +42,7 @@ import org.apache.commons.io.FileUtils;
 import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.ApplicationWarning;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
@@ -698,7 +699,7 @@ public class UploadFiles extends Application {
 					for(Question q : f.questions) {
 						QuestionForm qt = questionNames.get(q.name);
 						if(qt != null) {
-							if(!qt.reference && !qt.formName.equals(f.name)) {
+							if(!qt.reference && !qt.formName.equals(f.name) && GeneralUtilityMethods.isDatabaseQuestion(qt.qType)) {
 								String msg = localisation.getString("tu_gq");
 								msg = msg.replace("%s1", q.name);
 								msg = msg.replace("%s2", f.name);
@@ -952,7 +953,10 @@ public class UploadFiles extends Application {
 			
 			response = Response.ok(gson.toJson(new Message(responseCode, responseMsg.toString(), displayName))).build();
 			
-		} catch(ApplicationException ex) {		
+		} catch(AuthorisationException ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			throw ex;
+		}catch(ApplicationException ex) {		
 			response = Response.ok(gson.toJson(new Message("error", ex.getMessage(), displayName))).build();
 		} catch(FileUploadException ex) {
 			log.log(Level.SEVERE,ex.getMessage(), ex);
