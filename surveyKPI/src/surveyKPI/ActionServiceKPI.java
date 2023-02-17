@@ -152,7 +152,7 @@ public class ActionServiceKPI extends Application {
 					startDate = Date.valueOf(p.v);
 				} else if(p.k.equals("endDate")) {
 					endDate = Date.valueOf(p.v);
-				} else if(p.k.equals("dateId")) {
+				} else if(p.k.equals("dateId") && p.v != null) {
 					dateId = Integer.parseInt(p.v);
 				} else if(p.k.equals("filter")) {
 					filter = p.v;
