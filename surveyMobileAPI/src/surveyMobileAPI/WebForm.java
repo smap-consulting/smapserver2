@@ -702,7 +702,7 @@ public class WebForm extends Application {
 
 		output.append(
 				addHead(request, instanceXML, dataToEditId, assignmentId, surveyClass, 
-						accessKey));
+						accessKey, request.getRemoteUser()));
 		output.append(addBody(request, dataToEditId, orgId, surveyClass, superUser, readOnly));
 
 		output.append("</html>\n");
@@ -752,7 +752,7 @@ public class WebForm extends Application {
 	 * Add the head section
 	 */
 	private StringBuffer addHead(HttpServletRequest request, String instanceXML, String dataToEditId,
-			int assignmentId, String surveyClass, String accessKey)
+			int assignmentId, String surveyClass, String accessKey, String user)
 			throws TransformerFactoryConfigurationError, Exception {
 
 		StringBuffer output = new StringBuffer();
@@ -852,6 +852,9 @@ public class WebForm extends Application {
 			output.append(serverData.google_key);
 			output.append("\";");
 		}
+		// add user ID
+		output.append("window.smapConfig.username=\"").append(user).append("\";");
+		
 		output.append("window.smapConfig.myWork=" + (myWork ? "true" : "false") + ";");
 		output.append("registerForServiceWorkerMessages();");
 		output.append("</script>");
