@@ -41,6 +41,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.transform.TransformerFactoryConfigurationError;
+
 import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
@@ -656,8 +657,7 @@ public class WebForm extends Application {
 						survey.surveyClass, orgId, accessKey, superUser, survey.readOnlySurvey || readonly));
 			}
 			
-			String respString = outputString.toString();
-			response = Response.status(Status.OK).entity(respString).build();
+			response = Response.status(Status.OK).entity(outputString.toString()).build();
 
 			log.info("userevent: " + userIdent + " : webForm : " + formIdent);
 

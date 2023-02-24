@@ -329,6 +329,7 @@ public class PdfUtilities {
 			    
 				lm.writeLog(sd, sId, user, LogManager.GOOGLE_REQUEST, map, 0, null);
 			} catch (Exception e) {
+				lm.writeLog(sd, sId, user, LogManager.ERROR, "Could not get google map image. You may need to enable billing on your google maps API at https://console.cloud.google.com/project/_/billing/enable", 0, null);
 				log.log(Level.SEVERE, "Exception", e);
 			}
 		} 
