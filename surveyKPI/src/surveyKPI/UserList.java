@@ -369,8 +369,13 @@ public class UserList extends Application {
 					+ "and s.p_id = up.p_id "
 					+ "and s.s_id = ? "
 					+ "and not temporary");
-			String sqlRBAC = " and ((s.s_id not in (select s_id from survey_role where enabled = true)) or " // No roles on survey
-					+ "(s.s_id in (select s_id from users u2, user_role ur, survey_role sr where u2.ident = u.ident and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
+			
+			String sqlRBAC = " and ((s.s_id not in (select s_id from survey_role where enabled = true)) " // No roles on survey
+					+ "or (s.s_id in (select s_id from users u2, user_role ur, survey_role sr where u2.ident = u.ident and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
+					+ "or (select count(*) from users u3, user_group ug "		// Include super users
+					+ "where u.ident = u3.ident "
+					+ "and u3.id = ug.u_id "
+					+ "and (ug.g_id = 6 or ug.g_id = 4)) > 0 "
 					+ ") ";
 			
 			sql.append(sqlRBAC);
