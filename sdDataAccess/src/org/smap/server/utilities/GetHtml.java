@@ -70,7 +70,14 @@ public class GetHtml {
             .allowAttributes("face").onElements("font")
             .allowAttributes("style").onElements("span")
             .allowAttributes("style").onElements("div")
+            .allowAttributes("class").onElements("span")
+            .allowAttributes("class").onElements("div")
+            .allowAttributes("data-value").onElements("span")
+            .allowAttributes("data-value").onElements("div")
             .allowStandardUrlProtocols()
+            .allowCommonBlockElements()
+            .allowCommonInlineFormattingElements()
+            .allowStyling()
             .allowElements(
             "a", "img", 
             "big", "small", "b", "i", "u", "br", "em",
@@ -187,7 +194,7 @@ public class GetHtml {
 		bodyElement = outputDoc.createElement("h3");
 		bodyElement.setAttribute("id", "form-title");
 		bodyElement.setAttribute("dir", "auto");
-		bodyElement.setTextContent(policy.sanitize(survey.getDisplayName()));
+		bodyElement.setTextContent(sanitise(survey.getDisplayName()));
 		parent.appendChild(bodyElement);
 
 		// Languages
@@ -239,7 +246,7 @@ public class GetHtml {
 			if(rtl) {
 				bodyElement.setAttribute("data-dir", "rtl");
 			}
-			bodyElement.setTextContent(policy.sanitize(lang.name));
+			bodyElement.setTextContent(sanitise(lang.name));
 			parent.appendChild(bodyElement);
 
 			// Save the index of the default language
@@ -1254,7 +1261,7 @@ public class GetHtml {
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
 					}
-					bodyElement.setTextContent(policy.sanitize(label));
+					bodyElement.setTextContent(sanitise(label));
 					
 					if(labelElement != null) {
 						addMedia(labelElement, o.labels.get(idx), lang, o.text_id);
@@ -1273,7 +1280,6 @@ public class GetHtml {
 				
 				if(nFillers < 3 && nFillers > 0) {
 					for(int i = 0;  i < nFillers; i++) {
-						System.out.println(q.name);
 						labelElement = outputDoc.createElement("label");
 						parent.appendChild(labelElement);
 						labelElement.setAttribute("class", "filler");
@@ -1282,7 +1288,6 @@ public class GetHtml {
 			}
 		} else {
 			// Presumably options are sourced from a repeat
-			System.out.println("sourced repeat");
 		}
 		
 
@@ -1328,7 +1333,7 @@ public class GetHtml {
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
 					}
-					optionElement.setTextContent(policy.sanitize(label));
+					optionElement.setTextContent(sanitise(label));
 					idx++;
 				}
 			}
@@ -1412,7 +1417,7 @@ public class GetHtml {
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
-			bodyElement.setTextContent(policy.sanitize(label));
+			bodyElement.setTextContent(sanitise(label));
 			parent.appendChild(bodyElement);
 
 			addMedia(parent, q.labels.get(idx), lang, q.text_id);
@@ -1432,7 +1437,7 @@ public class GetHtml {
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
-				bodyElement.setTextContent(policy.sanitize(hint));
+				bodyElement.setTextContent(sanitise(hint));
 				parent.appendChild(bodyElement);
 			}
 			
@@ -1453,7 +1458,7 @@ public class GetHtml {
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
-				bodyElement.setTextContent(policy.sanitize(guidance));
+				bodyElement.setTextContent(sanitise(guidance));
 				summaryElement.setTextContent(localisation.getString("wf_md"));
 				bodyElement.appendChild(summaryElement);
 				parent.appendChild(bodyElement);
@@ -1522,7 +1527,7 @@ public class GetHtml {
 				theClass += " active";
 			}
 			bodyElement.setAttribute("class", theClass);
-			bodyElement.setTextContent(policy.sanitize(msg));
+			bodyElement.setTextContent(sanitise(msg));
 			parent.appendChild(bodyElement);
 			added = true;
 		}
@@ -1549,7 +1554,7 @@ public class GetHtml {
 		bodyElement.setAttribute("lang", lang);
 		bodyElement.setAttribute("data-i18n", "constraint.required");
 		if (msg != null && msg.trim().length() > 0) {
-			bodyElement.setTextContent(policy.sanitize(msg));
+			bodyElement.setTextContent(sanitise(msg));
 		} else {
 			bodyElement.setTextContent(localisation.getString("wf_reqd"));
 		}
@@ -1902,7 +1907,7 @@ public class GetHtml {
 				bodyElement.setAttribute("value", o.value);
 				String label = UtilityMethods.convertAllxlsNames(o.labels.get(languageIndex).text, true, paths, form.id,
 						true, o.value, false);
-				bodyElement.setTextContent(policy.sanitize(label));
+				bodyElement.setTextContent(sanitise(label));
 			}
 		}
 
@@ -1921,7 +1926,7 @@ public class GetHtml {
 					bodyElement.setAttribute("lang", lang.name);
 					bodyElement.setAttribute("data-option-value", o.value);
 					String label = UtilityMethods.convertAllxlsNames(o.labels.get(idx).text, true, paths, form.id, true, o.value, false);
-					bodyElement.setTextContent(policy.sanitize(label));
+					bodyElement.setTextContent(sanitise(label));
 	
 					idx++;
 				}
@@ -2016,4 +2021,11 @@ public class GetHtml {
 		return sb.toString();
 	}
 	
+	String sanitise(String in) {
+		String sanitised = policy.sanitize(in);
+		sanitised = sanitised.replace("&amp;", "&");
+		//System.out.println(in);
+		//System.out.println(sanitised);
+		return sanitised;
+	}
 }
