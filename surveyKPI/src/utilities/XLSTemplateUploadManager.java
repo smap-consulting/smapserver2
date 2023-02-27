@@ -1325,14 +1325,14 @@ public class XLSTemplateUploadManager {
 				validateGroup(questions, q, i);	// recursive validation
 			} else if(q.type.equals("end group")) {
 				break;
-			} else if(!q.type.equals("calculate")) {
+			} else {
 				hasVisibleQuestion = true;
 			}
 		}
 		
 		if(!hasVisibleQuestion) {
 			Integer rowNumber = qNameMap.get(name);
-			ApplicationException e = XLSUtilities.getApplicationException(localisation, "tu_er", rowNumber, "survey", null, null, null);
+			ApplicationException e = XLSUtilities.getApplicationException(localisation, "tu_er_g", rowNumber, "survey", null, null, null);
 			warnings.add(new ApplicationWarning(e.getMessage()));
 		}
 		return i + 1;
