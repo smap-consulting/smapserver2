@@ -2024,6 +2024,9 @@ public class GetHtml {
 	String sanitise(String in) {
 		String sanitised = policy.sanitize(in);
 		sanitised = sanitised.replace("&amp;", "&");
+		sanitised = sanitised.replace("&#39;", "'");
+		sanitised = sanitised.replace("&#61;", "=");
+		sanitised = sanitised.replace("&#64;", "@");
 		//System.out.println(in);
 		//System.out.println(sanitised);
 		return sanitised;
