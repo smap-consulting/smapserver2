@@ -27,7 +27,7 @@ import org.smap.subscribers.Subscriber;
  * 
  ******************************************************************************/
 
-public class MessageProcessor {
+public class StorageProcessor {
 
 	String confFilePath;
 
@@ -38,19 +38,15 @@ public class MessageProcessor {
 
 	private class MessageLoop implements Runnable {
 		DatabaseConnections dbc = new DatabaseConnections();
-		String serverName;
 		String basePath;
-		String awsPropertiesFile;
-
 		public MessageLoop(String basePath, String awsPropertiesFile) {
 			this.basePath = basePath;
-			this.awsPropertiesFile = awsPropertiesFile;
 		}
 
 		public void run() {
 
 			int delaySecs = 2;
-			int count = 0;
+			int s3count = 0;
 		
 			boolean loop = true;
 			while(loop) {
@@ -61,27 +57,25 @@ public class MessageProcessor {
 					loop = false;
 				} else {
 					
-					System.out.print("(m)");		// Record the running of the message processor
+					System.out.print("(a)");		// Record the running of the storage processor
 					
 					try {
 						// Make sure we have a connection to the database
 						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
-						serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
+						GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 						
 						// Apply messages
 						MessagingManagerApply mma = new MessagingManagerApply();
-						try { 
-							mma.applyOutbound(dbc.sd, dbc.results, serverName, basePath, count++, awsPropertiesFile);
-						} catch (Exception e) {
-							log.log(Level.SEVERE, e.getMessage(), e);
-						}
-						
+					
 						try {
-							mma.applyPendingEmailMessages(dbc.sd, dbc.results, serverName, basePath);
+							mma.uploadToS3(dbc.sd, basePath, s3count++);
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}
 						
+						if(s3count > 100) {
+							s3count = 0;		// Only check to truncate s3 table after every 100 uploads
+						}
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
 					}
@@ -108,7 +102,7 @@ public class MessageProcessor {
 
 		try {
 			
-			// Send any pending messages
+			// Upload any images or other files waiting to be sent to permanent storage
 			String awsPropertiesFile = null;
 			File pFile = new File(basePath + "_bin/resources/properties/aws.properties");
 			if (pFile.exists()) {

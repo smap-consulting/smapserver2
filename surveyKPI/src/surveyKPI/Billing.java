@@ -256,14 +256,22 @@ public class Billing extends Application {
 		for(BillLineItem item : items) {
 			if(item.item == BillingDetail.SUBMISSIONS) {
 				addUsage(sd, item, eId, oId, year, month);
+				
 			} else if(item.item == BillingDetail.DISK) {
 				addDisk(sd, item, eId, oId, year, month);
+				
 			} else if(item.item == BillingDetail.STATIC_MAP) {
-				addStaticMap(sd, item, eId, oId, year, month);
+				addUsageLine(sd, item, LogManager.MAPBOX_REQUEST, eId, oId, year, month);
+				
+			} else if(item.item == BillingDetail.GOOGLE_STATIC_MAP) {
+				addUsageLine(sd, item, LogManager.GOOGLE_REQUEST, eId, oId, year, month);
+				
 			} else if(item.item == BillingDetail.REKOGNITION) {
-				addRekognition(sd, item, eId, oId, year, month);
+				addUsageLine(sd, item, LogManager.REKOGNITION, eId, oId, year, month);
+				
 			} else if(item.item == BillingDetail.TRANSLATE) {
 				addTranslate(sd, item, eId, oId, year, month);
+				
 			} else if(item.item == BillingDetail.TRANSCRIBE) {
 				addTranscribe(sd, item, eId, oId, year, month);
 			} else if(item.item == BillingDetail.TRANSCRIBE_MEDICAL) {
@@ -446,49 +454,11 @@ public class Billing extends Application {
 	}
 	
 	/*
-	 * Get Static Map Usage
+	 * Get usage for a specific line item
 	 */
-	private void addStaticMap(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException {
-		String sqlStaticMap = "select  count(*) as total "
-				+ "from log "
-				+ "where event = 'Mapbox Request' "
-				//+ "and extract(month from log_time) = ? "
-				//+ "and extract(year from log_time) = ?";
-				+ "and log_time >=  ? "		// current month
-				+ "and log_time < ? ";		// next month
-		PreparedStatement pstmt = null;
+	private void addUsageLine(Connection sd, BillLineItem item, String usageType, int eId, int oId, int year, int month) throws SQLException {
 		
-		try {
-			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
-			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
-			
-			pstmt = sd.prepareStatement(sqlStaticMap);
-			//pstmt.setInt(1, month);
-			//pstmt.setInt(2, year);
-			pstmt.setTimestamp(1, t1);
-			pstmt.setTimestamp(2, t2);
-			
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				item.quantity = rs.getInt("total");
-				
-				item.amount = (item.quantity - item.free) * item.unitCost;
-				if(item.amount < 0) {
-					item.amount = 0.0;
-				}
-			}
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-		}
-		
-	}
-	
-	/*
-	 * Get Rekognition usage
-	 */
-	private void addRekognition(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException {
-		
-		String sqlRekognition = "select  count(*) as total "
+		String sql = "select  count(*) as total "
 				+ "from log "
 				+ "where event = ? "
 				+ "and log_time >=  ? "		// current month
@@ -499,8 +469,8 @@ public class Billing extends Application {
 			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
 			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
 			
-			pstmt = sd.prepareStatement(sqlRekognition);
-			pstmt.setString(1, LogManager.REKOGNITION);
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, usageType);
 			pstmt.setTimestamp(2, t1);
 			pstmt.setTimestamp(3, t2);
 			

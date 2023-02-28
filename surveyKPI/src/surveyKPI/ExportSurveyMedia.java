@@ -43,6 +43,8 @@ import org.smap.sdal.managers.QueryManager;
 import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.SqlDesc;
+import org.smap.sdal.model.SqlFrag;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -197,6 +199,19 @@ public class ExportSurveyMedia extends Application {
 								requiredColumns.add(qi.getColumnName());
 							}
 						}
+					}
+				}
+				
+				// Add columns in the advanced filter to the required columns
+				SqlFrag filterFrag = null;
+				if(filter != null && filter.length() > 0) {
+		
+					filterFrag = new SqlFrag();
+					filterFrag.addSqlFragment(filter, false, localisation, 0);	
+		
+					for(String filterCol : filterFrag.columns) {
+						namedQuestions.add(filterCol);
+						requiredColumns.add(filterCol);
 					}
 				}
 			

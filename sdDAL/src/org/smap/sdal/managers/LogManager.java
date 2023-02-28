@@ -46,6 +46,7 @@ public class LogManager {
 	public static String API_AUDIT_VIEW = "API audit view";
 	public static String API_SINGLE_VIEW = "API single record view";
 	public static String ARCHIVE = "archive";
+	public static String BLOCK = "block";
 	public static String CREATE = "create";
 	public static String CASE_MANAGEMENT = "case management";
 	public static String CREATE_PDF = "create pdf";
@@ -86,6 +87,7 @@ public class LogManager {
 	public static String TRANSCRIBE_MEDICAL = "transcribe_medical";
 	public static String TRANSLATE = "translate";
 	public static String USER = "user";
+	public static String USER_DETAILS = "user details";
 	public static String USER_ACTIVITY_VIEW = "user activity view";
 	public static String USER_LOCATION_VIEW = "user location view";
 	public static String VIEW = "view";

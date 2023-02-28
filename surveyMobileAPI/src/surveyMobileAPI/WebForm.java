@@ -41,6 +41,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.transform.TransformerFactoryConfigurationError;
+
 import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
@@ -656,8 +657,7 @@ public class WebForm extends Application {
 						survey.surveyClass, orgId, accessKey, superUser, survey.readOnlySurvey || readonly));
 			}
 			
-			String respString = outputString.toString();
-			response = Response.status(Status.OK).entity(respString).build();
+			response = Response.status(Status.OK).entity(outputString.toString()).build();
 
 			log.info("userevent: " + userIdent + " : webForm : " + formIdent);
 
@@ -702,7 +702,7 @@ public class WebForm extends Application {
 
 		output.append(
 				addHead(request, instanceXML, dataToEditId, assignmentId, surveyClass, 
-						accessKey));
+						accessKey, request.getRemoteUser()));
 		output.append(addBody(request, dataToEditId, orgId, surveyClass, superUser, readOnly));
 
 		output.append("</html>\n");
@@ -752,7 +752,7 @@ public class WebForm extends Application {
 	 * Add the head section
 	 */
 	private StringBuffer addHead(HttpServletRequest request, String instanceXML, String dataToEditId,
-			int assignmentId, String surveyClass, String accessKey)
+			int assignmentId, String surveyClass, String accessKey, String user)
 			throws TransformerFactoryConfigurationError, Exception {
 
 		StringBuffer output = new StringBuffer();
@@ -852,6 +852,9 @@ public class WebForm extends Application {
 			output.append(serverData.google_key);
 			output.append("\";");
 		}
+		// add user ID
+		output.append("window.smapConfig.username=\"").append(user).append("\";");
+		
 		output.append("window.smapConfig.myWork=" + (myWork ? "true" : "false") + ";");
 		output.append("registerForServiceWorkerMessages();");
 		output.append("</script>");
@@ -1325,7 +1328,7 @@ public class WebForm extends Application {
 
 		} catch (Exception e) {
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-			lm.writeLog(sd, survey.id, userIdent, "Error", "Failed to get instance data: " + e.getMessage(), 0, request.getServerName());
+			lm.writeLog(sd, survey.id, userIdent, LogManager.ERROR, "Failed to get instance data: " + e.getMessage(), 0, request.getServerName());
 			log.log(Level.SEVERE, e.getMessage(), e);
 		}
 

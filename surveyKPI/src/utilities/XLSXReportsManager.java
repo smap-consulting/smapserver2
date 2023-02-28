@@ -688,7 +688,7 @@ public class XLSXReportsManager {
 				try {cResults.setAutoCommit(true);} catch (Exception ex) {}
 				log.log(Level.SEVERE, "Error", e);
 				response.setHeader("Content-type",  "text/html; charset=UTF-8");
-				lm.writeLog(sd, sId, username, "error", e.getMessage(), 0, request.getServerName());
+				lm.writeLog(sd, sId, username, LogManager.ERROR, e.getMessage(), 0, request.getServerName());
 				
 				String msg = e.getMessage();
 				if(msg != null && msg.contains("does not exist")) {

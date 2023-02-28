@@ -643,7 +643,7 @@ public class NotificationManager {
 							msg = "";
 						}
 						log.log(Level.SEVERE, e.getMessage(), e);
-						lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
+						lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION_ERROR, 
 								localisation.getString("filter_error")
 								.replace("%s1", filter)
 								.replace("%s2", msg), 0, null);

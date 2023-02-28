@@ -203,7 +203,7 @@ public class CsvTableManager {
 			headers = new ArrayList<CsvHeader> ();
 			for(String n : cols) {
 				if(n != null && !n.isEmpty()) {
-					headers.add(new CsvHeader(n, GeneralUtilityMethods.cleanNameNoRand(n)));
+					headers.add(new CsvHeader(GeneralUtilityMethods.removeBOM(n), GeneralUtilityMethods.cleanNameNoRand(n)));
 				}
 			}
 			

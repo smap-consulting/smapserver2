@@ -896,7 +896,7 @@ public class Survey extends Application {
 			if(count == 0) {
 				log.info("Error: Failed to update blocked status");
 			} else {
-				lm.writeLog(sd, sId, request.getRemoteUser(), "block", set ? " : block survey : " : " : unblock survey : ", 0, request.getServerName());
+				lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.BLOCK, set ? " : block survey : " : " : unblock survey : ", 0, request.getServerName());
 				log.info("userevent: " + request.getRemoteUser() + (set ? " : block survey : " : " : unblock survey : ") + sId);
 			}
 

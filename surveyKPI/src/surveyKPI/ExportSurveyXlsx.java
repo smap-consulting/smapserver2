@@ -124,7 +124,7 @@ public class ExportSurveyXlsx extends Application {
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "Error", e);
 			response.setHeader("Content-type",  "text/html; charset=UTF-8");
-			lm.writeLog(sd, sId, request.getRemoteUser(), "error", e.getMessage(), 0, request.getServerName());
+			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.ERROR, e.getMessage(), 0, request.getServerName());
 			responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);

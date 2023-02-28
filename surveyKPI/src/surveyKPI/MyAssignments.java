@@ -45,7 +45,6 @@ import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.managers.UserLocationManager;
 import org.smap.sdal.managers.UserManager;
-import org.smap.sdal.model.Assignment;
 import org.smap.sdal.model.Case;
 import org.smap.sdal.model.GeometryString;
 import org.smap.sdal.model.KeyValueTask;

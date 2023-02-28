@@ -10665,6 +10665,16 @@ public class GeneralUtilityMethods {
 		
 	}
 	
+	public static boolean isDatabaseQuestion(String qType) {
+		boolean isDb = false;
+		if(qType != null) {
+			if(!qType.equals("begin group") && !qType.equals("end group")) {
+				isDb = true;
+			}
+		}
+		return isDb;
+	}
+	
 	public static int indexOfQuote(String in, int start) {
 		int idx = -1;
 		
