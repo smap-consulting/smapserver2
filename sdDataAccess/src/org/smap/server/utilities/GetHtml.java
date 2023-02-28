@@ -2025,8 +2025,13 @@ public class GetHtml {
 		String sanitised = policy.sanitize(in);
 		sanitised = sanitised.replace("&amp;", "&");
 		sanitised = sanitised.replace("&#39;", "'");
+		sanitised = sanitised.replace("&#34;", "\"");
+		sanitised = sanitised.replace("&#96;", "`");
 		sanitised = sanitised.replace("&#61;", "=");
 		sanitised = sanitised.replace("&#64;", "@");
+		sanitised = sanitised.replace("&#43;", "+");
+		sanitised = sanitised.replace("&lt;", "<");
+		sanitised = sanitised.replace("&gt;", ">");
 		//System.out.println(in);
 		//System.out.println(sanitised);
 		return sanitised;
