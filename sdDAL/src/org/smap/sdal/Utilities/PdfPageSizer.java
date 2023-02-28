@@ -189,10 +189,10 @@ public class PdfPageSizer extends PdfPageEventHelper {
 					(pageRect.getLeft() + pageRect.getRight()) /2, pageRect.getBottom() + 65, 0);
 			ColumnText.showTextAligned(writer.getDirectContent(), 
 					Element.ALIGN_CENTER, new Phrase(user.company_phone), 
-					(pageRect.getLeft() + pageRect.getRight()) /4, pageRect.getBottom() + 50, 0);
+					(pageRect.getLeft() + pageRect.getRight()) /2, pageRect.getBottom() + 50, 0);
 			ColumnText.showTextAligned(writer.getDirectContent(), 
 					Element.ALIGN_CENTER, new Phrase(user.company_email), 
-					(pageRect.getLeft() + pageRect.getRight()) * 3 / 4, pageRect.getBottom() + 50, 0);
+					(pageRect.getLeft() + pageRect.getRight()) /2, pageRect.getBottom() + 35, 0);
 		}
 		
 		// Add page number
