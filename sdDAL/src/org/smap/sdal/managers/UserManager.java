@@ -758,7 +758,7 @@ public class UserManager {
 					}
 					
 					if(pwm != null) {
-						pwm.logReset();		// Record the sucessful password reset
+						pwm.logReset();		// Record the successful password reset
 					}
 					
 				} else {

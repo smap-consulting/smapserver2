@@ -207,9 +207,10 @@ public class UserSvc extends Application {
 			@FormParam("user") String user) { 
 		
 		Response response = null;
+		String authString = "SurveyKpi - Change Settings";
 
 		// Authorisation - Not Required - the user is updating their own settings
-		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
+		Connection sd = SDDataSource.getConnection(authString);
 		
 		Type type = new TypeToken<User>(){}.getType();		
 		User u = new Gson().fromJson(user, type);		// The user settings
@@ -284,8 +285,7 @@ public class UserSvc extends Application {
 				pwdString = ident + ":smap:" + u.password;
 				
 				// Delete any session keys for this user
-				GeneralUtilityMethods.deleteAccessKeys(sd, u.ident);
-
+				GeneralUtilityMethods.deleteAccessKeys(sd, ident);
 			}
 			
 			pstmt = sd.prepareStatement(sql);
@@ -307,9 +307,11 @@ public class UserSvc extends Application {
 			log.info("userevent: " + request.getRemoteUser() + (u.password == null ? " : updated user details : " : " : updated password : ") + u.name);
 			if(pwm != null) {
 				pwm.logReset();
+			} else if(u.password == null) {
+				lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.USER_DETAILS, localisation.getString("msg_ud_changed"), 0, request.getServerName());
 			} else {
-				lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.USER_DETAILS, "updated user details", 0, request.getServerName());
-			}			
+				lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.USER_DETAILS, localisation.getString("msg_pwd_changed"), 0, request.getServerName());
+			}
 			
 			UserManager um = new UserManager(localisation);
 			User userResp = um.getByIdent(sd, request.getRemoteUser());
@@ -332,7 +334,93 @@ public class UserSvc extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-UserSvc", sd);
+			SDDataSource.closeConnection(authString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Update the user's password
+	 */
+	class PasswordDetails {
+		String password;
+	}
+	
+	/*
+	 * Update the user password
+	 */
+	@POST
+	@Consumes("application/json")
+	@Path("/password")
+	public Response updateUserPassword(@Context HttpServletRequest request,
+			@FormParam("passwordDetails") String passwordDetails) { 
+		
+		Response response = null;
+		String authString = "surveyKPI - change password";
+
+		// Authorisation - Not Required - the user is updating their own settings
+		Connection sd = SDDataSource.getConnection(authString);
+		
+		Type type = new TypeToken<PasswordDetails>(){}.getType();		
+		PasswordDetails pwd = new Gson().fromJson(passwordDetails, type);		// The user settings
+		
+		PreparedStatement pstmt = null;
+		try {	
+			
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
+
+			/*
+			 * Update what can be updated by the user, excluding the current project id, survey id, form id and task group
+			 */
+			String pwdString = null;
+			String sql = null;
+			String ident = request.getRemoteUser();
+			PasswordManager pwm  = null;
+			
+			/*
+			 * Verify that the password is strong enough
+			 */
+			pwm = new PasswordManager(sd, locale, localisation, request.getRemoteUser(), request.getServerName());
+			pwm.checkStrength(pwd.password);
+				
+			sql = "update users set "
+					+ "password = md5(?) "
+					+ "where "
+					+ "ident = ?";
+				
+			pwdString = ident + ":smap:" + pwd.password;
+				
+			// Delete any session keys for this user
+			GeneralUtilityMethods.deleteAccessKeys(sd, ident);
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, pwdString);
+			pstmt.setString(2, ident);
+		
+			log.info("Update password: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+			// Write logs
+			log.info("userevent: " + request.getRemoteUser() + " updated password : " + ident);
+			pwm.logReset();
+			lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.USER_DETAILS, localisation.getString("msg_pwd_changed"), 0, request.getServerName());
+		
+			response = Response.ok().build();
+			
+			
+		} catch (Exception e) {
+
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+			
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			
+			SDDataSource.closeConnection(authString, sd);
 		}
 		
 		return response;
