@@ -79,6 +79,10 @@ public class UserManager {
 		PreparedStatement pstmt = null;
 
 		User user = new User ();
+		int passwordAge = 0;
+		int orgPasswordExpiry = 0;
+		int serverPasswordExpiry = 0;
+		int passwordExpiry = 0;
 
 		try {
 			String sql = null;
@@ -98,6 +102,7 @@ public class UserManager {
 					+ "u.current_task_group_id as current_task_group_id, "
 					+ "u.lastalert, "
 					+ "u.seen,"
+					+ "extract(year from age(now(), u.password_set)) * 12 + extract(month from age(now(), u.password_set)) as password_age,"
 					+ "o.id as o_id, "
 					+ "o.name as organisation_name, "
 					+ "o.company_name as company_name, "
@@ -122,7 +127,8 @@ public class UserManager {
 					+ "e.name as enterprise_name,"
 					+ "o.ft_input_method, "
 					+ "o.ft_im_ri, "
-					+ "o.ft_im_acc "
+					+ "o.ft_im_acc, "
+					+ "o.password_expiry "
 					+ "from users u, organisation o, enterprise e "
 					+ "where u.ident = ? "
 					+ "and u.o_id = o.id "
@@ -182,7 +188,10 @@ public class UserManager {
 				user.refresh_rate = resultSet.getInt("refresh_rate");
 				user.ft_input_method = resultSet.getString("ft_input_method");
 				user.ft_im_ri = resultSet.getInt("ft_im_ri");
-				user.ft_im_acc = resultSet.getInt("ft_im_acc");
+				user.ft_im_acc = resultSet.getInt("ft_im_acc");		
+				
+				passwordAge = resultSet.getInt("password_age");
+				orgPasswordExpiry = resultSet.getInt("password_expiry");
 			}
 
 			/*
@@ -274,6 +283,35 @@ public class UserManager {
 			}
 			getUserOrganisations(sd, user.orgs, user, user.id);
 
+			/*
+			 * Check for password expiry
+			 */
+			user.passwordExpired = false;
+			if(orgPasswordExpiry > 0 && passwordAge >= orgPasswordExpiry) {
+				user.passwordExpired = true;
+				passwordExpiry = orgPasswordExpiry;
+			} else {
+				sql = "select password_expiry from server";
+				if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+				pstmt = sd.prepareStatement(sql);
+				resultSet = pstmt.executeQuery();
+				if(resultSet.next()) {
+					serverPasswordExpiry = resultSet.getInt("password_expiry");
+					if(serverPasswordExpiry > 0 && passwordAge >= serverPasswordExpiry) {
+						user.passwordExpired = true;
+						passwordExpiry = serverPasswordExpiry;
+					}
+				}
+			}
+			if(user.passwordExpired) {
+				String msg = localisation.getString("ar_pwd_expiry");
+				msg = msg.replace("%s1", user.name);
+				msg = msg.replace("%s2", String.valueOf(passwordAge));
+				msg = msg.replace("%s3", String.valueOf(passwordExpiry));
+				lm.writeLogOrganisation(sd, user.o_id, ident, LogManager.USER, msg, 0);
+				log.info(msg);
+			}
+			
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}

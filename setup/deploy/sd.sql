@@ -587,3 +587,11 @@ ALTER TABLE linkage OWNER TO ws;
 
 insert into groups(id,name) values(13,'links');
 alter table server add column rebuild_link_cache boolean default false;
+
+-- Version 23.03
+alter table users add column password_set timestamp with time zone;				-- Date and time password was set
+update users set password_set = now() - interval '1 year' where password_set is null and password is not null;	-- Default to 1 year old
+alter table server add column password_expiry integer default 0;
+update server set password_expiry = 0 where password_expiry is null;
+alter table organisation add column password_expiry integer default 0;
+update organisation set password_expiry = 0 where password_expiry is null;
