@@ -762,7 +762,8 @@ public class UserManager {
 								+ "name = ?, " 
 								+ "email = ?, "
 								+ "o_id = ?, "
-								+ "password = md5(?) "
+								+ "password = md5(?), "
+								+ "password_set = now() "
 								+ "where "
 								+ "id = ?";
 	

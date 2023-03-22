@@ -299,7 +299,9 @@ public class PasswordReset extends Application {
 					pwm.checkStrength(pd.password);
 				}
 				
-				sql = "update users set password = md5(?), password_reset = 'true' where one_time_password = ? and ident = ?;";
+				sql = "update users "
+						+ "set password = md5(?), password_reset = 'true', password_set = now() "
+						+ "where one_time_password = ? and ident = ?";
 				pstmtUpdate = sd.prepareStatement(sql);
 				String pwdString = ident + ":smap:" + pd.password;
 				pstmtUpdate.setString(1, pwdString);

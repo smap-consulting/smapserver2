@@ -278,7 +278,8 @@ public class UserSvc extends Application {
 						+ "language = ?, "
 						+ "email = ?, "
 						+ "timezone = ?, "
-						+ "password = md5(?) "
+						+ "password = md5(?), "
+						+ "password_set = now() "
 						+ "where "
 						+ "ident = ?";
 				
@@ -387,7 +388,8 @@ public class UserSvc extends Application {
 			pwm.checkStrength(pwd.password);
 				
 			sql = "update users set "
-					+ "password = md5(?) "
+					+ "password = md5(?), "
+					+ "password_set = now() "
 					+ "where "
 					+ "ident = ?";
 				
