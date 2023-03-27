@@ -3761,6 +3761,7 @@ public class GeneralUtilityMethods {
 			c.humanName = localisation.getString("assignee_ident");
 			c.type = SmapQuestionTypes.STRING;
 			c.question_name = c.column_name;
+			c.filter = true;
 			columnList.add(c);
 
 		}
@@ -3822,6 +3823,7 @@ public class GeneralUtilityMethods {
 			c.column_name = "_user";
 			c.displayName = "User";
 			c.humanName = localisation.getString("a_user");
+			c.filter = true;	// Allow filtering in the console
 			c.type = SmapQuestionTypes.STRING;
 			c.isMeta = true;
 			c.question_name = c.column_name;
