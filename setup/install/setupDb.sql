@@ -117,7 +117,8 @@ create TABLE server (
 	billing_enabled boolean default false,
 	css text,
 	password_strength decimal default 0.0,
-	rebuild_link_cache boolean default false
+	rebuild_link_cache boolean default false,
+	password_expiry integer default 0			-- password expiry in months
 	);
 ALTER TABLE server OWNER TO ws;
 
@@ -212,6 +213,7 @@ create TABLE organisation (
 	dashboard_arn text,
 	dashboard_session_name text,
 	password_strength decimal default 0.0,
+	password_expiry integer default 0,			-- password expiry in months
 	changed_ts TIMESTAMP WITH TIME ZONE
 	);
 CREATE UNIQUE INDEX idx_organisation ON organisation(name);
@@ -317,6 +319,7 @@ CREATE TABLE users (
 	temporary boolean default false,			-- If true will not show in user management page
 	imported boolean default false,				-- user was added using a bult import from a spreadsheet
 	password text,
+	password_set timestamp with time zone,		-- Date and time password was set
 	realm text,
 	name text,
 	settings text,				-- User configurable settings

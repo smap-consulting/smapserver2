@@ -72,4 +72,5 @@ public class User {
 	public String ft_input_method;
 	public int ft_im_ri;
 	public int ft_im_acc;
+	public boolean passwordExpired;
 }
