@@ -96,7 +96,12 @@ public class MailoutApi extends Application {
 		if(mailout.id > 0) {
 			a.isValidMailout(sd, request.getRemoteUser(), mailout.id);
 		}
-		a.isValidSurveyIdent(sd, request.getRemoteUser(), mailout.survey_ident, false, false);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), mailout.survey_ident, false, superUser);
 		// End Authorisation
 		
 		try {	

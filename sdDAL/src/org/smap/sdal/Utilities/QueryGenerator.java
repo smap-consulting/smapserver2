@@ -643,7 +643,7 @@ public class QueryGenerator {
 				 * Specify SQL functions
 				 */
 				if(sqlDesc.geometry_type != null && type.equals("geometry") && (format.equals("vrt") || format.equals("csv") || format.equals("stata") 
-						|| format.equals("thingsat") || format.equals("xlsx"))) {
+						 || format.equals("xlsx"))) {
 					if(sqlDesc.geometry_type.equals("wkbPoint") && (format.equals("csv") || format.equals("stata") || format.equals("spss")) ) {		// Split location into Lon, Lat
 						colBuf.append("ST_Y(" + form.table + "." + column_name + ") as lat, ST_X(" + form.table + "." + column_name + ") as lon");
 						sqlDesc.column_details.add(new ColDesc("lat", type, type, label, null, false, col.question_name, null, false, 

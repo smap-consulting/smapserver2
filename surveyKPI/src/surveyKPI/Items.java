@@ -1132,7 +1132,7 @@ public class Items extends Application {
 	}
 	
 	/*
-	 * Update the bad record status
+	 * Update the bad record status in a form
 	 */
 	@POST
 	@Path("/{form}/bad/{key}")
@@ -1187,6 +1187,13 @@ public class Items extends Application {
 				boolean isChild = pId > 0;
 				UtilityMethodsEmail.markRecord(cRel, sd, localisation, tName, value, 
 						reason, key, sId, fId, false, isChild, request.getRemoteUser(), true, tz, true);
+				
+				String msg = localisation.getString("msg_del_rec_form");
+				msg = msg.replace("%s1", String.valueOf(fId));
+				msg = msg.replace("%s2", String.valueOf(key));
+				msg = msg.replace("%s3", reason == null ? "" : reason);
+				lm.writeLog(sd, sId, request.getRemoteUser(), value ? LogManager.DELETE : LogManager.RESTORE, msg, 0, request.getServerName());
+
 			} else {
 				throw new Exception("Could not get form id");
 			}
@@ -1212,7 +1219,7 @@ public class Items extends Application {
 	}
 	
 	/*
-	 * Update the bad record status
+	 * Update the bad record status in a survey
 	 */
 	@POST
 	@Path("/{survey}/survey/bad/{instanceId}")
@@ -1255,6 +1262,10 @@ public class Items extends Application {
 			UtilityMethodsEmail.markRecord(cRel, sd, localisation, form.tableName, value, 
 						reason, key, sId, form.id, false, isChild, 
 						request.getRemoteUser(), true, tz, true);
+			String msg = localisation.getString("msg_del_rec");
+			msg = msg.replace("%s1", String.valueOf(key));
+			msg = msg.replace("%s2", reason == null ? "" : reason);
+			lm.writeLog(sd, sId, request.getRemoteUser(), value ? LogManager.DELETE : LogManager.RESTORE, msg, 0, request.getServerName());
 
 			response = Response.ok().build();
 				
