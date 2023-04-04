@@ -592,6 +592,9 @@ public class Data extends Application {
 
 		PrintWriter outWriter = null;
 		ResourceBundle localisation = null;
+		SurveySettingsManager ssm = null;
+		SurveySettingsDefn ssd = null;
+		int uId = 0;
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
@@ -627,11 +630,10 @@ public class Data extends Application {
 			 * Get the survey view
 			 */
 			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
-			SurveySettingsManager ssm = new SurveySettingsManager(localisation, tz);
-			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			ssm = new SurveySettingsManager(localisation, tz);
+			uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			
-			SurveySettingsDefn ssd = null;
 			SurveyViewDefn sv = null;
 			ArrayList<TableColumn> columns = null;
 			
@@ -997,6 +999,13 @@ public class Data extends Application {
 					outWriter.print("}");
 				}
 			}
+			
+			/*
+			 * Clear stored values for advanced filter as this is a common source of error
+			 */
+			ssd.filter = null;
+			ssm.setSurveySettings(sd, uId, sIdent, ssd);
+			
 		} finally {
 
 			outWriter.flush(); 
