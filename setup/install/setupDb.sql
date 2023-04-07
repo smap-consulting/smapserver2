@@ -68,9 +68,9 @@ DROP SEQUENCE IF EXISTS ue_seq CASCADE;
 CREATE SEQUENCE ue_seq START 1;
 ALTER SEQUENCE ue_seq OWNER TO ws;
 
-DROP SEQUENCE IF EXISTS se_seq CASCADE;
-CREATE SEQUENCE se_seq START 1;
-ALTER SEQUENCE se_seq OWNER TO ws;
+--DROP SEQUENCE IF EXISTS se_seq CASCADE;
+--CREATE SEQUENCE se_seq START 1;
+--ALTER SEQUENCE se_seq OWNER TO ws;
 
 DROP SEQUENCE IF EXISTS dp_seq CASCADE;
 CREATE SEQUENCE dp_seq START 1;
@@ -523,6 +523,8 @@ CREATE TABLE upload_event (
 	instanceid varchar(41),
 	status varchar(10),
 	reason text,
+	db_status text,						-- status of application to database
+	db_reason text,
 	location text,
 	form_status text,
 	notifications_applied boolean,		-- Set after notifications are sent
@@ -543,17 +545,17 @@ CREATE index ue_survey_ident ON upload_event(ident);
 CREATE INDEX idx_ue_p_id ON upload_event(p_id);
 ALTER TABLE upload_event OWNER TO ws;
 
-DROP TABLE IF EXISTS subscriber_event CASCADE;
-CREATE TABLE subscriber_event (
-	se_id INTEGER DEFAULT NEXTVAL('se_seq') CONSTRAINT pk_subscriber_event PRIMARY KEY,
-	ue_id INTEGER REFERENCES upload_event ON DELETE CASCADE,
-	subscriber text,
-	dest text,
-	status varchar(10),
-	reason text
-	);
-CREATE INDEX se_ue_id_sequence ON subscriber_event(ue_id);
-ALTER TABLE subscriber_event OWNER TO ws;
+--DROP TABLE IF EXISTS subscriber_event CASCADE;
+--CREATE TABLE subscriber_event (
+--	se_id INTEGER DEFAULT NEXTVAL('se_seq') CONSTRAINT pk_subscriber_event PRIMARY KEY,
+--	ue_id INTEGER REFERENCES upload_event ON DELETE CASCADE,
+--	subscriber text,
+--	dest text,
+--	status varchar(10),
+--	reason text
+--	);
+--CREATE INDEX se_ue_id_sequence ON subscriber_event(ue_id);
+--ALTER TABLE subscriber_event OWNER TO ws;
 
 DROP TABLE IF EXISTS option CASCADE;
 DROP TABLE IF EXISTS question CASCADE;

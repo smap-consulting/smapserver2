@@ -161,7 +161,6 @@ public class SubmissionsManager {
 				+ "to_char(timezone(?, ue.scheduled_start), 'YYYY-MM-DD HH24:MI:SS') as scheduled_start"
 				+ " ");
 		sql2.append("from upload_event ue ");
-		sql2.append("left outer join subscriber_event se on ue.ue_id = se.ue_id ");
 		sql2.append("left outer join survey s on ue.s_id = s.s_id ");
 		sql2.append("left outer join project p on ue.p_id = p.id ");
 		

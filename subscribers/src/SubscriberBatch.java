@@ -138,18 +138,12 @@ public class SubscriberBatch {
 		JdbcUploadEventManager uem = null;
 		
 		Survey sdalSurvey = null;
-
-		String sqlUpdateStatus = "insert into subscriber_event ("
-				+ "se_id,"
-				+ "ue_id,"
-				+ "subscriber,"
-				+ "status,"
-				+ "reason,"
-				+ "dest) "
-				+ "values (nextval('se_seq'), ?, ?, ?, ?, ?)";
-		PreparedStatement pstmt = null;
 		
-		String sqlResultsDB = "update upload_event set results_db_applied = 'true' where ue_id = ?";
+		String sqlResultsDB = "update upload_event "
+				+ "set results_db_applied = 'true',"
+				+ "db_status = ?,"
+				+ "db_reason = ? "
+				+ "where ue_id = ?";
 		PreparedStatement pstmtResultsDB = null;
 		String serverName = null;
 
@@ -159,7 +153,6 @@ public class SubscriberBatch {
 			serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 
 			uem = new JdbcUploadEventManager(dbc.sd);
-			pstmt = dbc.sd.prepareStatement(sqlUpdateStatus);
 			pstmtResultsDB = dbc.sd.prepareStatement(sqlResultsDB);
 
 			// Default to English though we could get the locales from a server level setting
@@ -372,16 +365,12 @@ public class SubscriberBatch {
 									//  unreachable events are logged but not otherwise recorded
 									if(se.getStatus() != null && !se.getStatus().equals("host_unreachable")) {
 
-										pstmt.setInt(1, ue.getId());
-										pstmt.setString(2, se.getSubscriber());
-										pstmt.setString(3, se.getStatus());
-										pstmt.setString(4, se.getReason());
-										pstmt.setString(5, se.getDest());
-										pstmt.executeUpdate();
 										
 										// Add a flag in the for results db updates in the upload_event table to improve performance
 										if(s.getSubscriberName().equals("results_db")) {
-											pstmtResultsDB.setInt(1, ue.getId());
+											pstmtResultsDB.setString(1, se.getStatus());
+											pstmtResultsDB.setString(2, se.getReason());
+											pstmtResultsDB.setInt(3, ue.getId());
 											pstmtResultsDB.executeUpdate();
 										}
 													
@@ -486,6 +475,7 @@ public class SubscriberBatch {
 							+ "and not s.deleted "
 							+ "and q.appearance like '%keppel%'";
 					
+					PreparedStatement pstmt = null;
 					PreparedStatement pstmtClear = null;
 					PreparedStatement pstmtRebuild = null;
 					PreparedStatement pstmtData = null;
@@ -578,6 +568,7 @@ public class SubscriberBatch {
 							
 						}
 					} finally {
+						if (pstmt != null) { try {pstmt.close();} catch (SQLException e) {}}
 						if(pstmtClear != null) try {pstmtClear.close();} catch(Exception e) {}
 						if(pstmtRebuild != null) try {pstmtRebuild.close();} catch(Exception e) {}
 						if(pstmtData != null) try {pstmtData.close();} catch (Exception e) {}
@@ -607,6 +598,7 @@ public class SubscriberBatch {
 					String sqlMarkDone = "insert into sync (s_id, n_id, prikey) values(?, ?, ?)";
 					PreparedStatement pstmtMarkDone = dbc.results.prepareStatement(sqlMarkDone);
 					
+					PreparedStatement pstmt = null;
 					PreparedStatement pstmtRecord = null;
 					PreparedStatement pstmtCheckNeed = null;
 
@@ -781,6 +773,7 @@ public class SubscriberBatch {
 							log.info("=== No enabled synchronisation notifications");
 						}
 				} finally {
+						if (pstmt != null) { try {pstmt.close();} catch (SQLException e) {}}
 						if(pstmtNot != null) {try {pstmtNot.close();} catch(Exception e) {}}
 						if(pstmtRecord != null) {try {pstmtRecord.close();} catch(Exception e) {}}
 						if(pstmtMarkDone != null) {try {pstmtMarkDone.close();} catch(Exception e) {}}
@@ -798,7 +791,6 @@ public class SubscriberBatch {
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtResultsDB != null) { pstmtResultsDB.close();}} catch (SQLException e) {}
 
 			if(uem != null) {uem.close();}
@@ -1134,8 +1126,11 @@ public class SubscriberBatch {
 				+ "and ue.instanceid = ? "
 				+ "and not ue.results_db_applied ";
 
-		String sqlUpdate = "insert into subscriber_event (se_id, ue_id, subscriber, status, reason) values (nextval('se_seq'), ?, ?, ?, ?);";
-
+		String sqlUpdate = "update upload_event "
+				+ "set db_status = ?,"
+				+ "db_reason = ? "
+				+ "where ue_id = ?";
+		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtUpdate = null;
 		try {
@@ -1168,10 +1163,9 @@ public class SubscriberBatch {
 						files[i].renameTo(new File(finalDir + "/" + fileName));
 					}
 				}
-				pstmtUpdate.setInt(1, ue_id);
-				pstmtUpdate.setString(2,subscriberName);
-				pstmtUpdate.setString(3,"merged");
-				pstmtUpdate.setString(4,"Files moved to " + finalDir);
+				pstmtUpdate.setString(1,"merged");
+				pstmtUpdate.setString(2,"Files moved to " + finalDir);
+				pstmtUpdate.setInt(3, ue_id);
 				pstmtUpdate.executeUpdate();
 
 			}

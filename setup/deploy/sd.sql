@@ -595,3 +595,10 @@ alter table server add column password_expiry integer default 0;
 update server set password_expiry = 0 where password_expiry is null;
 alter table organisation add column password_expiry integer default 0;
 update organisation set password_expiry = 0 where password_expiry is null;
+
+-- Version 23.04
+alter table upload_event add column db_status text;
+alter table upload_event add column db_reason text;
+update upload_event ue set db_status = (select se.status from subscriber_event se where se.ue_id = ue.ue_id order by se.ue_id desc limit 1) where ue.db_status is null;
+update upload_event ue set db_reason = (select se.reason from subscriber_event se where se.ue_id = ue.ue_id order by se.ue_id desc limit 1) where ue.db_reason is null;
+
