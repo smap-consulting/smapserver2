@@ -25,16 +25,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
-
 import org.smap.server.entities.UploadEvent;
 
 public class JdbcUploadEventManager {
-
-	private static Logger log =
-			 Logger.getLogger(JdbcUploadEventManager.class.getName());
 	
-	PreparedStatement pstmt = null;
+	PreparedStatement pstmtInsert = null;
 	String sql = "insert into upload_event ("
 			+ "ue_id, "
 			+ "upload_time, "
@@ -71,7 +66,6 @@ public class JdbcUploadEventManager {
 			+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 			+ ", ?, ?, ?, ?, ?, ?, ?, ?);";
 	
-	PreparedStatement pstmtUnprocessed = null;
 	String sqlGet = "select "
 			+ "ue.ue_id, "
 			+ "ue.upload_time, "
@@ -100,101 +94,76 @@ public class JdbcUploadEventManager {
 			+ "from upload_event ue "
 				+ "where ue.status = 'success' "
 				+ "and ue.s_id is not null "
-				+ "and ue.incomplete = 'false' ";
-	String sqlNotResultsDB = " and not exists (select se.se_id from subscriber_event se "
-				+ "where se.subscriber = ? and se.ue_id = ue.ue_id) ";
+				+ "and ue.incomplete = 'false' "
+				+ "and not ue.results_db_applied "
+				+ "order by ue.ue_id asc";
 	
-	PreparedStatement pstmtUnprocessedResultsDB = null;
-	String sqlProcessedFilter = " and not ue.results_db_applied";
-	
-	PreparedStatement pstmtFailedForward = null;
-	String sqlForwardFilter = " and ue.s_id = ?";
-	
-	String sqlOrder = " order by ue.ue_id asc";
-	
-	//String sqlLimit = " limit 100";
-	String sqlLimit = "";		// Remove the limit as it is slowing down queries
+	PreparedStatement pstmtGetPending = null;
 	
 	/*
 	 * Constructor
 	 */
 	public JdbcUploadEventManager(Connection sd) throws SQLException {
-		pstmt = sd.prepareStatement(sql);
-		pstmtUnprocessed = sd.prepareStatement(sqlGet + sqlNotResultsDB + sqlOrder);
-		pstmtUnprocessedResultsDB = sd.prepareStatement(sqlGet + sqlProcessedFilter + sqlOrder + sqlLimit);
-		pstmtFailedForward = sd.prepareStatement(sqlGet + sqlNotResultsDB + sqlForwardFilter + sqlOrder);
+		pstmtInsert = sd.prepareStatement(sql);
+		pstmtGetPending = sd.prepareStatement(sqlGet);
 	}
 	
 	/*
 	 * Write the upload event to the database
 	 */
 	public void write(UploadEvent ue, boolean results_db_applied) throws SQLException {
-		pstmt.setString(1, ue.getUserName());
-		pstmt.setString(2, ue.getFileName());
-		pstmt.setString(3,  ue.getSurveyName());
-		pstmt.setString(4, ue.getImei());
-		pstmt.setString(5, ue.getStatus());
-		pstmt.setString(6, ue.getReason());
-		pstmt.setString(7, ue.getLocation());
-		pstmt.setString(8, ue.getServerName());
-		pstmt.setInt(9, ue.getSurveyId());
-		pstmt.setInt(10,  ue.getProjectId());
-		pstmt.setInt(11,  ue.getOrganisationId());
-		pstmt.setInt(12,  ue.getEnterpriseId());
-		pstmt.setString(13, ue.getFormStatus());
-		pstmt.setString(14, ue.getFilePath());
-		pstmt.setString(15, ue.getOrigSurveyIdent());
-		pstmt.setString(16,  ue.getUpdateId());
-		pstmt.setString(17,  ue.getIdent());
-		pstmt.setBoolean(18, ue.getIncomplete());
-		pstmt.setString(19, ue.getInstanceId());
-		pstmt.setInt(20, ue.getAssignmentId());
-		pstmt.setString(21, ue.getSurveyNotes());
-		pstmt.setString(22, ue.getLocationTrigger());
-		pstmt.setString(23, ue.getAuditFilePath());
-		pstmt.setTimestamp(24, ue.getStart());
-		pstmt.setTimestamp(25, ue.getEnd());
-		pstmt.setString(26, ue.getInstanceName());
-		pstmt.setTimestamp(27, ue.getScheduledStart());
-		pstmt.setBoolean(28, ue.getTemporaryUser());
-		pstmt.setBoolean(29, results_db_applied);
+		pstmtInsert.setString(1, ue.getUserName());
+		pstmtInsert.setString(2, ue.getFileName());
+		pstmtInsert.setString(3,  ue.getSurveyName());
+		pstmtInsert.setString(4, ue.getImei());
+		pstmtInsert.setString(5, ue.getStatus());
+		pstmtInsert.setString(6, ue.getReason());
+		pstmtInsert.setString(7, ue.getLocation());
+		pstmtInsert.setString(8, ue.getServerName());
+		pstmtInsert.setInt(9, ue.getSurveyId());
+		pstmtInsert.setInt(10,  ue.getProjectId());
+		pstmtInsert.setInt(11,  ue.getOrganisationId());
+		pstmtInsert.setInt(12,  ue.getEnterpriseId());
+		pstmtInsert.setString(13, ue.getFormStatus());
+		pstmtInsert.setString(14, ue.getFilePath());
+		pstmtInsert.setString(15, ue.getOrigSurveyIdent());
+		pstmtInsert.setString(16,  ue.getUpdateId());
+		pstmtInsert.setString(17,  ue.getIdent());
+		pstmtInsert.setBoolean(18, ue.getIncomplete());
+		pstmtInsert.setString(19, ue.getInstanceId());
+		pstmtInsert.setInt(20, ue.getAssignmentId());
+		pstmtInsert.setString(21, ue.getSurveyNotes());
+		pstmtInsert.setString(22, ue.getLocationTrigger());
+		pstmtInsert.setString(23, ue.getAuditFilePath());
+		pstmtInsert.setTimestamp(24, ue.getStart());
+		pstmtInsert.setTimestamp(25, ue.getEnd());
+		pstmtInsert.setString(26, ue.getInstanceName());
+		pstmtInsert.setTimestamp(27, ue.getScheduledStart());
+		pstmtInsert.setBoolean(28, ue.getTemporaryUser());
+		pstmtInsert.setBoolean(29, results_db_applied);
 	
-		pstmt.executeUpdate();
+		pstmtInsert.executeUpdate();
 	}
 	
 
 	/*
-	 * Get Uploads that have not been processed by the subscriber
+	 * Get Uploads that have not been processed
 	 */
-	public List<UploadEvent> getPending(String subscriber) throws SQLException {
-		if(subscriber.equals("results_db")) {
-			return getUploadEventList(pstmtUnprocessedResultsDB);
-		} else {
-			pstmtUnprocessed.setString(1, subscriber);
-			return getUploadEventList(pstmtUnprocessed);
-		}
-	}
-	
-	public List<UploadEvent> getForwardPending(String subscriber, int sId) throws SQLException {
-		pstmtFailedForward.setString(1, subscriber);
-		pstmtFailedForward.setInt(2, sId);
-		return getUploadEventList(pstmtFailedForward);
+	public List<UploadEvent> getPending() throws SQLException {
+		return getUploadEventList(pstmtGetPending);
 	}
 	
 	/*
 	 * Close prepared statements
 	 */
 	public void close() {
-		try {if(pstmt != null) {pstmt.close();}} catch(Exception e) {};
-		try {if(pstmtUnprocessed != null) {pstmtUnprocessed.close();}} catch(Exception e) {};
-		try {if(pstmtUnprocessedResultsDB != null) {pstmtUnprocessedResultsDB.close();}} catch(Exception e) {};
-		try {if(pstmtFailedForward != null) {pstmtFailedForward.close();}} catch(Exception e) {};
+		try {if(pstmtInsert != null) {pstmtInsert.close();}} catch(Exception e) {};
+		try {if(pstmtGetPending != null) {pstmtGetPending.close();}} catch(Exception e) {};
 	}
 	
 	private List <UploadEvent> getUploadEventList(PreparedStatement pstmt) throws SQLException {
 		ArrayList <UploadEvent> ueList = new ArrayList<UploadEvent> ();
 		
-		// log.info("Get upload event list: " + pstmt.toString());  // debug only
 		ResultSet rs = pstmt.executeQuery();
 		while(rs.next()) {
 			UploadEvent ue = new UploadEvent();

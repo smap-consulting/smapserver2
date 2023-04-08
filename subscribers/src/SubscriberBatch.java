@@ -3,7 +3,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -11,7 +10,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -21,14 +19,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpression;
-import javax.xml.xpath.XPathFactory;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -56,7 +47,6 @@ import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.MessagingManager;
-import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -72,7 +62,6 @@ import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MediaChange;
-import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.ReportConfig;
@@ -80,17 +69,12 @@ import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumn;
-import org.smap.server.entities.HostUnreachableException;
 import org.smap.server.entities.MissingSurveyException;
 import org.smap.server.entities.MissingTemplateException;
 import org.smap.server.entities.SubscriberEvent;
 import org.smap.server.entities.UploadEvent;
-import org.smap.subscribers.SmapForward;
+import org.smap.subscribers.SubRelationalDB;
 import org.smap.subscribers.Subscriber;
-import org.w3c.dom.Document;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import JdbcManagers.JdbcUploadEventManager;
@@ -165,139 +149,88 @@ public class SubscriberBatch {
 			}
 			serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 
-			/*
-			 * Get subscribers and their configuration
-			 * This is re-evaluated every time the batch job is run to allow
-			 * configurations to be updated and applied immediately
-			 * However it may be better to add an external trigger that forces the
-			 * configuration files to be re-read when directed by the administrator
-			 */
-			List<Subscriber> subscribers = null;
-			if(subscriberType.equals("upload")) {
-				subscribers = init(dbc.sd);		// Get subscribers 
-			} else if(subscriberType.equals("forward")) {
-				subscribers = initForward(dbc.sd, localisation);		// Get subscribers 
-			} else {
-				log.info("Unknown subscriber type: " + subscriberType + " known values are upload, forward");
-			}
-
 			LinkageManager linkMgr = new LinkageManager(localisation);
 			Date timeNow = new Date();
 			String tz = "UTC";
-			if(subscribers != null && !subscribers.isEmpty()) {
+			
+			Subscriber subscriber = new SubRelationalDB();
+			/*
+			 * Process all pending uploads
+			 */
+			List<UploadEvent> uel = null;
 
-				/*
-				 * Loop through each subscriber and then 
-				 *  for enabled subscribers
-				 *  process all results that match the subscriber filter
-				 */
-				for(Subscriber s : subscribers) {
+			if(subscriberType.equals("upload")) {
+				uel = uem.getPending();		// Get pending jobs
+			
 
-					if(s.isEnabled()) {
+				if(uel.isEmpty()) {
 
-						List<UploadEvent> uel = null;
+					System.out.print(".");		// Log the running of the upload processor
 
-						if(subscriberType.equals("upload")) {
-							uel = uem.getPending(s.getSubscriberName());		// Get pending jobs
-						} else if(subscriberType.equals("forward")) {
-							uel = uem.getForwardPending(s.getSubscriberName(), s.getSurveyId());		// Get pending jobs 
-						} 
+				} else {
+					log.info("\nUploading: "  + timeNow.toString());
 
-						if(uel.isEmpty()) {
+					for(UploadEvent ue : uel) {
+						log.info("        Survey:" + ue.getSurveyName() + ":" + ue.getId());
 
-							System.out.print(".");		// Log the running of the upload processor
+						SurveyInstance instance = null;
+						SubscriberEvent se = new SubscriberEvent();
+						String uploadFile = ue.getFilePath();
 
-						} else {
-							log.info("\nUploading subscriber: " + s.getSubscriberName() + " : " + timeNow.toString());
-
-							for(UploadEvent ue : uel) {
-								log.info("        Survey:" + ue.getSurveyName() + ":" + ue.getId());
-
-								SurveyInstance instance = null;
-								SubscriberEvent se = new SubscriberEvent();
-								se.setSubscriber(s.getSubscriberName());
-								se.setDest(s.getDest());
-								String uploadFile = ue.getFilePath();
-
-								log.info("Upload file: " + uploadFile);
-								InputStream is = null;
-								InputStream is2 = null;
-								InputStream is3 = null;
+						log.info("Upload file: " + uploadFile);
+						InputStream is = null;
+						InputStream is3 = null;
 								
-								int oId = 0;
+						int oId = 0;
 								
-								ArrayList<MediaChange> mediaChanges = null;
+						ArrayList<MediaChange> mediaChanges = null;
 
-								try {
-									oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
-									Organisation organisation = GeneralUtilityMethods.getOrganisation(dbc.sd, oId);
-									Locale orgLocale = new Locale(organisation.locale);
-									ResourceBundle orgLocalisation;
-									try {
-										orgLocalisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
-									} catch(Exception e) {
-										orgLocalisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
-									}
+						try {
+							oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
+							Organisation organisation = GeneralUtilityMethods.getOrganisation(dbc.sd, oId);
+							Locale orgLocale = new Locale(organisation.locale);
+							ResourceBundle orgLocalisation;
+							try {
+								orgLocalisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+							} catch(Exception e) {
+								orgLocalisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+							}
 
-									// Get the submitted results as an XML document
-									try {
-										is = new FileInputStream(uploadFile);
-									} catch (FileNotFoundException e) {
-										// Possibly we are re-trying an upload and the XML file has been archived to S3
-										// Retrieve the file and try again
-										File f = new File(uploadFile);
-										FileUtils.forceMkdir(f.getParentFile());
-										S3AttachmentUpload.get(basePath, uploadFile);
-										is = new FileInputStream(uploadFile);
-									}
+							// Get the submitted results as an XML document
+							try {
+								is = new FileInputStream(uploadFile);
+							} catch (FileNotFoundException e) {
+								// Possibly we are re-trying an upload and the XML file has been archived to S3
+								// Retrieve the file and try again
+								File f = new File(uploadFile);
+								FileUtils.forceMkdir(f.getParentFile());
+								S3AttachmentUpload.get(basePath, uploadFile);
+								is = new FileInputStream(uploadFile);
+							}
 
-									// Remove malformed characters
-									String xml = GeneralUtilityMethods.convertStreamToString(is);
-									
-									DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-									dbf.setNamespaceAware(true);
-									DocumentBuilder b = dbf.newDocumentBuilder();							
-									Document surveyDocument = b.parse(new InputSource(new StringReader(xml)));
+							// Convert the file into a survey instance object
+							instance = new SurveyInstance(is);
+							log.info("UUID:" + instance.getUuid());
 
-									// Get an XPath object to parse the results
-									XPathFactory factory = XPathFactory.newInstance();
-									XPath xpath = factory.newXPath();
+							//instance.getTopElement().printIEModel("   ");	// Debug 
 
-									// Process the results if the filter xpath expression returns true
-									boolean process = true;
-									if(s.getSubscriberFilter() != null) {
-										XPathExpression expr = xpath.compile(s.getSubscriberFilter());
-										Boolean result = (Boolean) expr.evaluate(surveyDocument, XPathConstants.BOOLEAN);
-										process=result.booleanValue();
-									}
+							// Get the template for this survey
+							String templateName = instance.getTemplateName();
+							SurveyTemplate template = new SurveyTemplate(orgLocalisation);
 
-									if(process) {
-
-										is2 = new FileInputStream(uploadFile);
-
-										// Convert the file into a survey instance object
-										instance = new SurveyInstance(is2);
-										log.info("UUID:" + instance.getUuid());
-
-										//instance.getTopElement().printIEModel("   ");	// Debug 
-
-										// Get the template for this survey
-										String templateName = instance.getTemplateName();
-										SurveyTemplate template = new SurveyTemplate(orgLocalisation);
-
-										SurveyManager sm = new SurveyManager(localisation, "UTC");
-										sdalSurvey = sm.getSurveyId(dbc.sd, templateName);	// Get the survey from the templateName / ident
+							SurveyManager sm = new SurveyManager(localisation, "UTC");
+							sdalSurvey = sm.getSurveyId(dbc.sd, templateName);	// Get the survey from the templateName / ident
 										
-										template.readDatabase(dbc.sd, dbc.results, templateName, false);					
-										template.extendInstance(dbc.sd, instance, true, sdalSurvey);	// Extend the instance with information from the template
-										// instance.getTopElement().printIEModel("   ");	// Debug
+							template.readDatabase(dbc.sd, dbc.results, templateName, false);					
+							template.extendInstance(dbc.sd, instance, true, sdalSurvey);	// Extend the instance with information from the template
+							// instance.getTopElement().printIEModel("   ");	// Debug
 
-										// Get attachments from incomplete submissions
-										getAttachmentsFromIncompleteSurveys(dbc.sd, s.getSubscriberName(), ue.getFilePath(), ue.getOrigSurveyIdent(), ue.getIdent(), 
-												ue.getInstanceId());
+							// Get attachments from incomplete submissions
+							getAttachmentsFromIncompleteSurveys(dbc.sd, ue.getFilePath(), ue.getOrigSurveyIdent(), ue.getIdent(), 
+									ue.getInstanceId());
 
-										is3 = new FileInputStream(uploadFile);	// Get an input stream for the file in case the subscriber uses that rather than an Instance object
-										mediaChanges = s.upload(instance, 
+							is3 = new FileInputStream(uploadFile);	// Get an input stream for the file in case the subscriber uses that rather than an Instance object
+							mediaChanges = subscriber.upload(instance, 
 												is3, 
 												ue.getUserName(), 
 												ue.getTemporaryUser(),
@@ -317,129 +250,88 @@ public class SubscriberBatch {
 												orgLocalisation, 
 												sdalSurvey);	// Call the subscriber	
 
-									} else {
+						} catch (FileNotFoundException e) {
 
-										log.info("        filtered");
-										se.setStatus("filtered");
-										se.setReason(s.getSubscriberFilter());
+							se.setStatus("error");
+							se.setReason("Submission File Not Found:" + uploadFile);
 
-									}
+						} catch (MissingSurveyException e) {
 
-								} catch (FileNotFoundException e) {
+							se.setStatus("error");
+							se.setReason("Results file did not specify a survey template:" + uploadFile);
 
-									se.setStatus("error");
-									se.setReason("Submission File Not Found:" + uploadFile);
+						} catch (MissingTemplateException e) {
 
-								} catch (MissingSurveyException e) {
+							se.setStatus("error");
+							se.setReason("No template named: " + e.getMessage() + " in database");
 
-									se.setStatus("error");
-									se.setReason("Results file did not specify a survey template:" + uploadFile);
+						} catch (Exception e) {
 
-								} catch (MissingTemplateException e) {
+							e.printStackTrace();
+							se.setStatus("error");
+							se.setReason(e.getMessage());
 
-									se.setStatus("error");
-									se.setReason("No template named: " + e.getMessage() + " in database");
+						} finally {
 
-								} catch (HostUnreachableException e) {
-
-									se.setStatus("host_unreachable");
-									se.setReason(e.getMessage());
-
-								} catch (Exception e) {
-
-									e.printStackTrace();
-									se.setStatus("error");
-									se.setReason(e.getMessage());
-
-								} finally {
-
-									try {
-										if(is != null) {is.close();}			
-										if(is2 != null) {is2.close();}				
-										if(is3 != null) {is3.close();}
-									} catch (Exception e) {
-
-									}
-
-									// Save the status unless the host was unreachable
-									//  unreachable events are logged but not otherwise recorded
-									if(se.getStatus() != null && !se.getStatus().equals("host_unreachable")) {
-
-										
-										// Add a flag in the for results db updates in the upload_event table to improve performance
-										if(s.getSubscriberName().equals("results_db")) {
-											pstmtResultsDB.setString(1, se.getStatus());
-											pstmtResultsDB.setString(2, se.getReason());
-											pstmtResultsDB.setInt(3, ue.getId());
-											pstmtResultsDB.executeUpdate();
-										}
-													
-
-									} else if(se.getStatus() != null && se.getStatus().equals("host_unreachable")) {
-										// If the host is unreachable then stop forwarding for 10 seconds
-										// Also stop processing this subscriber, it may be that it has been taken off line
-
-										int forwardSleep = 60;
-										Date now = new Date();
-										String dt = DateFormat.getDateTimeInstance().format(now);
-										log.info("No connectivity: " + dt);
-										try {
-											Thread.sleep(forwardSleep * 1000);
-										} catch (Exception e) {
-											// ignore
-										}
-									}
+							try {
+								if(is != null) {is.close();}						
+								if(is3 != null) {is3.close();}
+								
+								// Save the status
+								if(se.getStatus() != null) {
+					
+									pstmtResultsDB.setString(1, se.getStatus());
+									pstmtResultsDB.setString(2, se.getReason());
+									pstmtResultsDB.setInt(3, ue.getId());
+									pstmtResultsDB.executeUpdate();
+											
 								}	
+								
+							} catch (Exception e) {
 
-								/*
-								 * Perform post processing of the XML file
-								 * Send it to S3 if that is enabled
-								 * Update any media names with the final media names
-								 */
-								if(mediaChanges != null && mediaChanges.size() > 0) {
-									processMediaChanges(uploadFile, mediaChanges);
-								}
-								try {
-									GeneralUtilityMethods.sendToS3(dbc.sd, basePath, uploadFile, oId, false);
-								} catch (Exception e) {
-									log.log(Level.SEVERE, e.getMessage(), e);
-								}
-								
-								// If the host is unreachable stop processing this subscriber, it may be that it has been taken off line
-								if(se.getStatus() != null && se.getStatus().equals("host_unreachable")) {
-									log.info("Stopping processing of subscriber: " + s.getSubscriberName());
-									break;
-								}
-								
-								/*
-								 * Write log entry
-								 */
-								String status = se.getStatus();
-								String reason = se.getReason();
-								String topic;
-								if(status.equals("error")) {
-									if(reason != null && reason .startsWith("Duplicate")) {
-										topic = LogManager.DUPLICATE;
-									} else {
-										topic = LogManager.SUBMISSION_ERROR;
-									}
-								} else if(ue.getAssignmentId() > 0) {
-									topic =  LogManager.SUBMISSION_TASK;
-								} else if(ue.getTemporaryUser() || GeneralUtilityMethods.isTemporaryUser(dbc.sd, ue.getUserName())) {	// Note the temporaryUser flag in ue is only set for submissions with an action
-									topic = LogManager.SUBMISSION_ANON;
-								} else {
-									topic = LogManager.SUBMISSION;
-								}
-								
-								lm.writeLog(dbc.sd, ue.getSurveyId(), ue.getUserName(), topic, se.getStatus() + " : " 
-										+ (se.getReason() == null ? "" : se.getReason()) + " : " + ue.getImei(), 0, null);
 							}
 						}
+
+						/*
+						 * Perform post processing of the XML file
+						 * Send it to S3 if that is enabled
+						 * Update any media names with the final media names
+						 */
+						if(mediaChanges != null && mediaChanges.size() > 0) {
+							processMediaChanges(uploadFile, mediaChanges);
+						}
+						try {
+							GeneralUtilityMethods.sendToS3(dbc.sd, basePath, uploadFile, oId, false);
+						} catch (Exception e) {
+							log.log(Level.SEVERE, e.getMessage(), e);
+						}
+								
+						/*
+						 * Write log entry
+						 */
+						String status = se.getStatus();
+						String reason = se.getReason();
+						String topic;
+						if(status.equals("error")) {
+							if(reason != null && reason .startsWith("Duplicate")) {
+								topic = LogManager.DUPLICATE;
+							} else {
+								topic = LogManager.SUBMISSION_ERROR;
+							}
+						} else if(ue.getAssignmentId() > 0) {
+							topic =  LogManager.SUBMISSION_TASK;
+						} else if(ue.getTemporaryUser() || GeneralUtilityMethods.isTemporaryUser(dbc.sd, ue.getUserName())) {	// Note the temporaryUser flag in ue is only set for submissions with an action
+							topic = LogManager.SUBMISSION_ANON;
+						} else {
+							topic = LogManager.SUBMISSION;
+						}
+						
+						lm.writeLog(dbc.sd, ue.getSurveyId(), ue.getUserName(), topic, se.getStatus() + " : " 
+									+ (se.getReason() == null ? "" : se.getReason()) + " : " + ue.getImei(), 0, null);
+		
 					} 
 				}
-			} else {
-				// log.info("###########################################################################");  // debug only
-			}
+			} 
 
 			/*
 			 * Apply any other subscriber type dependent processing
@@ -786,7 +678,6 @@ public class SubscriberBatch {
 
 			}
 
-			subscribers = null;
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1004,104 +895,6 @@ public class SubscriberBatch {
 			try {if (pstmtDel != null) {pstmtDel.close();}} catch (SQLException e) {}
 		}
 	}
-	
-	/*
-	 * Create a Subscriber object for each subscriber
-	 */
-	public List<Subscriber> init(Connection connection) throws SQLException {
-		File confDir = new File(confFilePath);
-		List<Subscriber> subscribers = new ArrayList<Subscriber> ();
-
-		String confPaths[]  = confDir.list();
-		if(confPaths != null) {
-			for(String confFile : confPaths) {
-				if ((confFile.lastIndexOf("xml") == confFile.length() - 3) &&
-						!confFile.equals("metaDataModel.xml")) {	// Ignore non XML files and the meta database config file
-					DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-					DocumentBuilder db = null;
-					try {
-						db = dbf.newDocumentBuilder();
-					} catch (ParserConfigurationException e) {
-						e.printStackTrace();
-						return null;
-					}
-					Document xmlConf = null;
-
-					String subscriberType = null;
-					try {
-
-						xmlConf = db.parse(new File(confFilePath + "/" + confFile));
-						subscriberType = xmlConf.getElementsByTagName("type").item(0).getTextContent();
-						Class subClass = Class.forName(subscriberType);
-
-						// The name of the subscriber is the name of the configuration file without the .xml extension
-						String subscriberName = confFile.substring(0, confFile.lastIndexOf("xml") - 1);
-
-						Subscriber sub = (Subscriber) subClass.newInstance();		
-						// Save the configuration document in the Subscriber
-						sub.setConfigurationDocument(xmlConf);
-						sub.setSubscriberName(subscriberName);
-						subscribers.add(sub);	// Add the new subscriber to the list of subscribers
-
-
-					} catch (SAXException e) {
-						log.log(Level.SEVERE, "SAXException on configuration file: " + confFile);
-					} catch (IOException e) {
-						log.log(Level.SEVERE, "IOException on configuration file: " + confFile);
-					} catch(ClassNotFoundException e) {
-						log.log(Level.SEVERE, "ClassNotFoundException on configuration file: " + confFile + " with class: " + subscriberType);
-					} catch (IllegalAccessException e) {
-						log.log(Level.SEVERE, "IllegalAccessException on configuration file: " + confFile + " with class: " + subscriberType);
-					} catch (InstantiationException e) {
-						log.log(Level.SEVERE, "InstantiationException on configuration file: " + confFile + " with class: " + subscriberType);
-						e.printStackTrace();
-					}
-				}
-			}
-		}
-		return subscribers;
-	}
-
-	/*
-	 * Create a Subscriber object for each forwarding subscriber
-	 */
-	public List<Subscriber> initForward(Connection connection, ResourceBundle localisation) throws SQLException {
-
-		List<Subscriber> subscribers = new ArrayList<Subscriber> ();
-
-		/*
-		 * This type of subscriber is per link, that is 
-		 * survey -> remote survey so create a subscriber object for each
-		 */
-		NotificationManager fm = new NotificationManager(localisation);
-		ArrayList<Notification> forwards = fm.getEnabledNotifications(connection, "forward", "submission");
-		for(int i = 0; i < forwards.size(); i++) {
-			Notification f = forwards.get(i);
-			Subscriber sub = (Subscriber) new SmapForward();		
-			// Save the configuration document in the Subscriber
-			int sId = f.s_id;
-			String remote_sId = f.remote_s_ident;
-			String remoteUrl = f.remote_host;
-			int idx = remoteUrl.lastIndexOf("//");
-			if(idx >= 0) {
-				String host = remoteUrl.substring(idx + 2);
-
-				sub.setEnabled(true);
-				sub.setSubscriberName("fwd_" + sId + "_" + host + remote_sId + "_" + f.id);
-				sub.setSurveyId(sId);	
-				sub.setSurveyIdRemote(remote_sId);
-				sub.setUser(f.remote_user);
-				sub.setPassword(f.remote_password);
-				sub.setSurveyNameRemote(f.remote_s_name);
-				sub.setHostname(remoteUrl);
-				subscribers.add(sub);	// Add the new subscriber to the list of subscribers
-			} else {
-				log.log(Level.SEVERE, "Error: Invalid host (" + remoteUrl + ") for survey " + sId);
-			}
-
-		}
-		return subscribers;
-	}
 
 	/*
 	 * ODK sends large attachments in separate "incomplete" posts
@@ -1111,7 +904,6 @@ public class SubscriberBatch {
 	 *  attachments.  All other subscribers will then ignore incomplete attachments
 	 */
 	private void getAttachmentsFromIncompleteSurveys(Connection connectionSD, 
-			String subscriberName, 
 			String finalPath, 
 			String origIdent, 
 			String ident,

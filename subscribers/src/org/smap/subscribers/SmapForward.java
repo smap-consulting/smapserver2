@@ -17,6 +17,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  ******************************************************************************/
 
+/*
+ * Obsolete.  Remove, however first check to see if it can be reused with ploading of surveys from disk
+ */
 package org.smap.subscribers;
 
 import java.io.ByteArrayInputStream;
