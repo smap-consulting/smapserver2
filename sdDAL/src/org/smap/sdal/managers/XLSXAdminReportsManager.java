@@ -216,11 +216,9 @@ public class XLSXAdminReportsManager {
 				+ "ue.p_id as p_id, "
 				+ "project.name as project_name, "
 				+ "users.created as created "
-				+ "from users, subscriber_event se, upload_event ue "
+				+ "from users, upload_event ue "
 				+ "left outer join project on project.id = ue.p_id "
-				+ "where ue.ue_id = se.ue_id "
-				+ "and se.status = 'success' "
-				+ "and se.subscriber = 'results_db' "
+				+ "where ue.db_status = 'success' "
 				+ "and upload_time >=  ? "		// current month
 				+ "and upload_time < ? "		// next month
 				+ "and users.o_id = ? "
@@ -242,11 +240,9 @@ public class XLSXAdminReportsManager {
 				+ "ue.p_id as p_id, "
 				+ "project.name as project_name, "
 				+ "users.created as created "
-				+ "from users, subscriber_event se, upload_event ue "
+				+ "from users, upload_event ue "
 				+ "left outer join project on project.id = ue.p_id "
-				+ "where ue.ue_id = se.ue_id "
-				+ "and se.status = 'success' "
-				+ "and se.subscriber = 'results_db' "
+				+ "where ue.db_status = 'success' "
 				+ "and users.o_id = ? "
 				+ "and users.ident = ue.user_name ");
 		if(!includeTemporaryUsers) {
@@ -336,12 +332,10 @@ public class XLSXAdminReportsManager {
 				+ "project.name as project_name, "
 				+ "survey.display_name as survey_name, "
 				+ "users.created as created "
-				+ "from users, subscriber_event se, upload_event ue "
+				+ "from users, upload_event ue "
 				+ "left outer join project on project.id = ue.p_id "
 				+ "left outer join survey on survey.s_id = ue.s_id "
-				+ "where ue.ue_id = se.ue_id "
-				+ "and se.status = 'success' "
-				+ "and se.subscriber = 'results_db' "
+				+ "where ue.db_status = 'success' "
 				+ "and upload_time >=  ? "		// current month
 				+ "and upload_time < ? "		// next month
 				+ "and users.o_id = ? "
@@ -364,12 +358,10 @@ public class XLSXAdminReportsManager {
 				+ "project.name as project_name, "
 				+ "survey.display_name as survey_name, "
 				+ "users.created as created "
-				+ "from users, subscriber_event se, upload_event ue "
+				+ "from users, upload_event ue "
 				+ "left outer join project on project.id = ue.p_id "
 				+ "left outer join survey on survey.s_id = ue.s_id "
-				+ "where ue.ue_id = se.ue_id "
-				+ "and se.status = 'success' "
-				+ "and se.subscriber = 'results_db' "
+				+ "where ue.db_status = 'success' "
 				+ "and users.o_id = ? "
 				+ "and users.ident = ue.user_name ");
 		if(!includeTemporaryUsers) {
@@ -461,10 +453,8 @@ public class XLSXAdminReportsManager {
 				+ "users.name as name, "
 				+ "ue.imei as imei, "
 				+ "users.created as created "
-				+ "from users, subscriber_event se, upload_event ue "
-				+ "where ue.ue_id = se.ue_id "
-				+ "and se.status = 'success' "
-				+ "and se.subscriber = 'results_db' "
+				+ "from users, upload_event ue "
+				+ "where ue.db_status = 'success' "
 				+ "and upload_time >=  ? "		// current month
 				+ "and upload_time < ? "		// next month
 				+ "and users.o_id = ? "
@@ -484,12 +474,10 @@ public class XLSXAdminReportsManager {
 				+ "users.name as name, "
 				+ "ue.imei as imei, "
 				+ "users.created as created "
-				+ "from users, subscriber_event se, upload_event ue "
+				+ "from users, upload_event ue "
 				+ "left outer join project on project.id = ue.p_id "
 				+ "left outer join survey on survey.s_id = ue.s_id "
-				+ "where ue.ue_id = se.ue_id "
-				+ "and se.status = 'success' "
-				+ "and se.subscriber = 'results_db' "
+				+ "where ue.db_status = 'success' "
 				+ "and users.o_id = ? "
 				+ "and users.ident = ue.user_name ");
 		if(!includeTemporaryUsers) {
