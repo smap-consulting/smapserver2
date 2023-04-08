@@ -152,16 +152,13 @@ public class XLSXAdminReportsManager {
 	public ArrayList<AR> getAdminReport(Connection sd, int oId, int month, int year, String userIdent) throws SQLException {
 		ArrayList<AR> rows = new ArrayList<AR> ();
 		StringBuilder sql = new StringBuilder("select users.id as id,users.ident as ident, users.name as name, users.created as created, "
-				+ "(select count (*) from upload_event ue, subscriber_event se "
-					+ "where ue.ue_id = se.ue_id "
-					+ "and se.status = 'success' "
-					+ "and se.subscriber = 'results_db' "
+				+ "(select count (*) from upload_event ue "
+					+ "where ue.db_status = 'success' "
 					+ "and upload_time >=  ? "		// current month
 					+ "and upload_time < ? "		// next month
 					+ "and ue.user_name = users.ident) as month,"
-				+ "(select count (*) from upload_event ue, subscriber_event se "
-					+ "where ue.ue_id = se.ue_id and se.status = 'success' "
-					+ "and se.subscriber = 'results_db' "
+				+ "(select count (*) from upload_event ue "
+					+ "where ue.db_status = 'success' "
 					+ "and ue.user_name = users.ident) as all_time "
 				+ "from users "
 				+ "where users.o_id = ? ");
