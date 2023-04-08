@@ -249,7 +249,6 @@ public class SurveyResults extends Application {
 			String sql = null;				
 			Connection connectionRel = null; 
 			PreparedStatement pstmt = null;
-			PreparedStatement pstmtRestore = null;
 			PreparedStatement pstmtReset = null;
 			PreparedStatement pstmtUnpublish = null;
 			
@@ -265,16 +264,12 @@ public class SurveyResults extends Application {
 				
 				// Mark columns as unpublished		
 				String sqlUnpublish = "update question set published = 'false' where f_id in (select f_id from form where s_id = ?)";
-				pstmtUnpublish = sd.prepareStatement(sqlUnpublish);	
+				pstmtUnpublish = sd.prepareStatement(sqlUnpublish);		
 				
-				// Delete subscriber entries associated with this survey				
-				String sqlRestore = "delete from subscriber_event "
-						+ "where subscriber = 'results_db' "
-						+ "and se_id in "
-						+ "(select se.se_id from upload_event ue, subscriber_event se where ue.ue_id = se.ue_id and ue.ident = ?);";
-				pstmtRestore = sd.prepareStatement(sqlRestore);			
-				
-				String sqlResetLoadFlag = "update upload_event set results_db_applied = 'false' "
+				String sqlResetLoadFlag = "update upload_event "
+						+ "set results_db_applied = 'false',"
+						+ "db_status = null, "
+						+ "db_reason = null "
 						+ "where ident = ?";
 				pstmtReset = sd.prepareStatement(sqlResetLoadFlag);
 				
@@ -321,11 +316,7 @@ public class SurveyResults extends Application {
 				connectionRel.setAutoCommit(false);
 				for(GroupDetails gd : surveys) {
 					// restore backed up files from s3 of raw data
-					GeneralUtilityMethods.restoreUploadedFiles(gd.surveyIdent, "uploadedSurveys");
-					pstmtRestore.setString(1, gd.surveyIdent);			// Initiate restore
-					log.info("Restoring survey " + gd.surveyIdent + ": " + pstmtRestore.toString());
-					pstmtRestore.executeUpdate();
-							
+					GeneralUtilityMethods.restoreUploadedFiles(gd.surveyIdent, "uploadedSurveys");			
 					pstmtReset.setString(1, gd.surveyIdent);			// Initiate reset of go faster flag
 					log.info("Restoring survey2 " + pstmtReset.toString());
 					pstmtReset.executeUpdate();
@@ -348,7 +339,6 @@ public class SurveyResults extends Application {
 				}
 			} finally {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				try {if (pstmtRestore != null) {pstmtRestore.close();}} catch (SQLException e) {}
 				try {if (pstmtReset != null) {pstmtReset.close();}} catch (SQLException e) {}
 				try {if (pstmtUnpublish != null) {pstmtUnpublish.close();}} catch (SQLException e) {}
 				try {if (stmtRel != null) {stmtRel.close();}} catch (SQLException e) {}
