@@ -545,18 +545,6 @@ CREATE index ue_survey_ident ON upload_event(ident);
 CREATE INDEX idx_ue_p_id ON upload_event(p_id);
 ALTER TABLE upload_event OWNER TO ws;
 
---DROP TABLE IF EXISTS subscriber_event CASCADE;
---CREATE TABLE subscriber_event (
---	se_id INTEGER DEFAULT NEXTVAL('se_seq') CONSTRAINT pk_subscriber_event PRIMARY KEY,
---	ue_id INTEGER REFERENCES upload_event ON DELETE CASCADE,
---	subscriber text,
---	dest text,
---	status varchar(10),
---	reason text
---	);
---CREATE INDEX se_ue_id_sequence ON subscriber_event(ue_id);
---ALTER TABLE subscriber_event OWNER TO ws;
-
 DROP TABLE IF EXISTS option CASCADE;
 DROP TABLE IF EXISTS question CASCADE;
 DROP TABLE IF EXISTS ssc CASCADE;

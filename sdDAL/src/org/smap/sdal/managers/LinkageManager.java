@@ -247,7 +247,7 @@ public class LinkageManager {
 					+ "and fp_image is not null";
 			
 			pstmt = sd.prepareStatement(sql);
-			log.info("Get linkages to update: " + pstmt.toString());
+			//log.info("Get linkages to update: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				int id = rs.getInt("id");

@@ -133,10 +133,8 @@ public class XLSXAttendanceReportsManager {
 	public ArrayList<AR> getAttendanceReport(Connection sd, int oId, int month, int year, int day) throws SQLException {
 		ArrayList<AR> rows = new ArrayList<AR> ();
 		StringBuilder sql = new StringBuilder("select users.id as id,users.ident as ident, users.name as name, users.created as created, "
-				+ "(select count (*) from upload_event ue, subscriber_event se "
-					+ "where ue.ue_id = se.ue_id "
-					+ "and se.status = 'success' "
-					+ "and se.subscriber = 'results_db' "
+				+ "(select count (*) from upload_event ue "
+					+ "where ue.db_status = 'success' "
 					+ "and upload_time >=  ? "		// current day
 					+ "and upload_time < ? "		// next day
 					+ "and ue.user_name = users.ident) as month "
