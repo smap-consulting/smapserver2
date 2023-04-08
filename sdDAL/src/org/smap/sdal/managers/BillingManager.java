@@ -65,10 +65,8 @@ public class BillingManager {
 		
 		// SQL to get submissions for all organisations
 		
-		String sqlSubmissions = "select  count(*), o_id from upload_event ue, subscriber_event se "
-				+ "where ue.ue_id = se.ue_id "
-				+ "and se.status = 'success' "
-				+ "and subscriber = 'results_db' "
+		String sqlSubmissions = "select  count(*), o_id from upload_event ue "
+				+ "where ue.db_status = 'success' "
 				+ "and extract(month from upload_time) = ? "
 				+ "and extract(year from upload_time) = ? "
 				+ "group by o_id "
