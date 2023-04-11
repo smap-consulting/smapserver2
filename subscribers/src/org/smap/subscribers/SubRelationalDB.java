@@ -454,42 +454,12 @@ public class SubRelationalDB extends Subscriber {
 			if(keys.duplicateKeys.size() > 0) {
 				log.info("Dropping duplicate");
 			} 
-			
-			/*
-			 * Update any Human readable keys if this survey has them
-			 */
-			org.smap.sdal.model.Form topLevelForm = null;
-			topLevelForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
-			if(hasHrk) {
-					
-				if(!GeneralUtilityMethods.hasColumn(cResults, topLevelForm.tableName, "_hrk")) {
-					// This should not be needed as the _hrk column should be in the table if an hrk has been specified for the survey
-					log.info("Error:  _hrk being created for table " + topLevelForm.tableName + " this column should already be there");
-					String sqlAddHrk = "alter table " + topLevelForm.tableName + " add column _hrk text;";
-					pstmtAddHrk = cResults.prepareStatement(sqlAddHrk);
-					pstmtAddHrk.executeUpdate();
-				}
-
-				String sql = "select prikey from " + topLevelForm.tableName 
-						+ " where _hrk is null "
-						+ "order by prikey asc";
-				pstmt = cResults.prepareStatement(sql);
-				
-				String sqlHrk = "update " + topLevelForm.tableName + " m set _hrk = "
-						+ GeneralUtilityMethods.convertAllxlsNamesToQuery(uk.key, sId, sd, topLevelForm.tableName)
-						+ " where prikey = ?;";
-				pstmtHrk = cResults.prepareStatement(sqlHrk);
-				ResultSet rs = pstmt.executeQuery();
-				while(rs.next()) {
-					pstmtHrk.setInt(1, rs.getInt(1));
-					log.info("Applying HRK: " + pstmtHrk.toString());
-					pstmtHrk.executeUpdate();
-				}	
-			}
 
 			/*
 			 * Key policy is applied if the table has an HRK
 			 */
+			org.smap.sdal.model.Form topLevelForm = null;
+			topLevelForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 			String keyPolicy = uk.key_policy;
 			
 			// Make sure the key policy is valid
@@ -523,6 +493,37 @@ public class SubRelationalDB extends Subscriber {
 				
 			}  
 
+			/*
+			 * Update any Human readable keys if this survey has them
+			 * This has to happen after merge so that previous HRK's are preserved
+			 */
+			if(hasHrk) {
+				
+				if(!GeneralUtilityMethods.hasColumn(cResults, topLevelForm.tableName, "_hrk")) {
+					// This should not be needed as the _hrk column should be in the table if an hrk has been specified for the survey
+					log.info("Error:  _hrk being created for table " + topLevelForm.tableName + " this column should already be there");
+					String sqlAddHrk = "alter table " + topLevelForm.tableName + " add column _hrk text;";
+					pstmtAddHrk = cResults.prepareStatement(sqlAddHrk);
+					pstmtAddHrk.executeUpdate();
+				}
+
+				String sql = "select prikey from " + topLevelForm.tableName 
+						+ " where _hrk is null "
+						+ "order by prikey asc";
+				pstmt = cResults.prepareStatement(sql);
+				
+				String sqlHrk = "update " + topLevelForm.tableName + " m set _hrk = "
+						+ GeneralUtilityMethods.convertAllxlsNamesToQuery(uk.key, sId, sd, topLevelForm.tableName)
+						+ " where prikey = ?;";
+				pstmtHrk = cResults.prepareStatement(sqlHrk);
+				ResultSet rs = pstmt.executeQuery();
+				while(rs.next()) {
+					pstmtHrk.setInt(1, rs.getInt(1));
+					log.info("Applying HRK: " + pstmtHrk.toString());
+					pstmtHrk.executeUpdate();
+				}	
+			}
+			
 			/*
 			 * Record any foreign keys that need to be set between forms
 			 */
@@ -1525,8 +1526,9 @@ public class SubRelationalDB extends Subscriber {
 		
 		ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
 		
+		// Merge the non meta data and the human readable key (HRK)
 		StringBuffer sqlCols = new StringBuffer("select column_name from information_schema.columns where table_name = ? "
-				+ "and column_name not like '\\_%' "
+				+ "and (column_name not like '\\_%' or column_name = '_hrk') "
 				+ "and column_name != 'prikey' "
 				+ "and column_name != 'parkey' "
 				+ "and column_name != 'instanceid'");
