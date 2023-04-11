@@ -350,7 +350,11 @@ public class SubscriberBatch {
 				// Delete linked csv files logically deleted more than 10 minutes age
 				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
 				
-				// Initialise the linkage table if that has been requested
+				/*
+				 * Initialise the linkage table if that has been requested
+				 * Linkage is any arbitrary connection between survey instances 
+				 * Currently it is only used with fingerprints
+				 */
 				if(rebuildLinkageTable(dbc.sd)) {
 					log.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Rebuild Linkage ");
 					

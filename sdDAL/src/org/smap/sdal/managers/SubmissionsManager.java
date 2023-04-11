@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.codehaus.jettison.json.JSONArray;
@@ -259,25 +260,29 @@ public class SubmissionsManager {
 		String location = resultSet.getString("location");
 		if(location != null) {							// For map
 			
-			String[] coords = location.split(" ");
-			if(coords.length == 2) {
-				Double lon = Double.parseDouble(coords[0]);
-				Double lat = Double.parseDouble(coords[1]);
-				
-				if(isGeoJson) {
-					JSONObject jg = null;
-					JSONArray jCoords = new JSONArray();
-				
-					jCoords.put(lon);
-					jCoords.put(lat);
-					jg = new JSONObject();
-					jg.put("type", "Point");
-					jg.put("coordinates", jCoords);
-					jr.put("geometry", jg);
-				} else {
-					jp.put("lon", lon);
-					jp.put("lat", lat);
+			try {
+				String[] coords = location.split(" ");
+				if(coords.length == 2) {
+					Double lon = Double.parseDouble(coords[0]);
+					Double lat = Double.parseDouble(coords[1]);
+					
+					if(isGeoJson) {
+						JSONObject jg = null;
+						JSONArray jCoords = new JSONArray();
+					
+						jCoords.put(lon);
+						jCoords.put(lat);
+						jg = new JSONObject();
+						jg.put("type", "Point");
+						jg.put("coordinates", jCoords);
+						jr.put("geometry", jg);
+					} else {
+						jp.put("lon", lon);
+						jp.put("lat", lat);
+					}
 				}
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 		}
 		if(incMergedLocation) {
