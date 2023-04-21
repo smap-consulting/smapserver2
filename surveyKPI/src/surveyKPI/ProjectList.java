@@ -173,7 +173,7 @@ public class ProjectList extends Application {
 					if(p.id == -1) {
 						
 						// New project
-						p.id = pm.createProject(sd, p, o_id, u_id, request.getRemoteUser());
+						p.id = pm.createProject(sd, user, p, o_id, u_id, request.getRemoteUser());
 						
 					} else {
 						// Existing project
