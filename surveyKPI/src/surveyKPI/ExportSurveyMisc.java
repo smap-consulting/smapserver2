@@ -252,7 +252,6 @@ public class ExportSurveyMisc extends Application {
 						false,			// superUser - Always apply filters
 						startingForm,
 						filter,
-						null,			// transform
 						true,
 						false,
 						tz,

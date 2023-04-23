@@ -25,6 +25,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.poi.xssf.usermodel.*;
@@ -310,6 +311,7 @@ public class XLSReportsManager {
 						cellWritten = true;
 					} catch (Exception e) {
 						// Ignore
+						log.log(Level.SEVERE, e.getMessage(), e);
 					}
 				} else if(col.type.equals("date")) {
 					DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -320,6 +322,7 @@ public class XLSReportsManager {
 						cellWritten = true;
 					} catch (Exception e) {
 						// Ignore
+						log.log(Level.SEVERE, e.getMessage(), e);
 					}
 				} 
 
@@ -334,6 +337,7 @@ public class XLSReportsManager {
 						cellWritten = true;
 					} catch (Exception e) {
 						// Ignore
+						log.log(Level.SEVERE, e.getMessage(), e);
 					}
 
 				}
