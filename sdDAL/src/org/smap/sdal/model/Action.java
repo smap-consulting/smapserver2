@@ -38,7 +38,6 @@ public class Action {
 	// Attributes for reports
 	public String reportType;
 	public String filename;
-	public Transform transform;
 	
 	// Attibuts for mailouts
 	public int mailoutPersonId;

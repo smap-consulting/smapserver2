@@ -193,7 +193,6 @@ public class ActionServiceKPI extends Application {
 						endDate,
 						dateId,
 						filter,
-						a.transform,
 						meta,
 						tz);
 			} else if(a.reportType.equals("pdf")) {
