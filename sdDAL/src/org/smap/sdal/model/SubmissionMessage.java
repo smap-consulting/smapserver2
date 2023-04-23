@@ -23,6 +23,7 @@ public class SubmissionMessage {
 	private String emailQuestionName;	// New question identifier
 	public String assignQuestion;
 	public String emailMeta;
+	public boolean emailAssigned;
 	public ArrayList<String> emails;
 	public String target;
 	public String user;
@@ -49,6 +50,7 @@ public class SubmissionMessage {
 			int emailQuestion,
 			String emailQuestionName,
 			String emailMeta,
+			boolean emailAssigned,
 			ArrayList<String> emails,
 			String target,
 			String user,
@@ -76,6 +78,7 @@ public class SubmissionMessage {
 		this.emailQuestion = emailQuestion;
 		this.emailQuestionName = emailQuestionName;
 		this.emailMeta = emailMeta;
+		this.emailAssigned = emailAssigned;
 		this.emails = emails;
 		this.target = target;
 		this.user = user;
@@ -106,6 +109,7 @@ public class SubmissionMessage {
 		this.emailQuestion = orig.emailQuestion;
 		this.emailQuestionName = orig.emailQuestionName;
 		this.emailMeta = orig.emailMeta;
+		this.emailAssigned = orig.emailAssigned;
 		
 		if(emails != null) {
 			this.emails = new ArrayList<>(orig.emails);

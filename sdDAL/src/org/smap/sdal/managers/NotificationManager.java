@@ -674,6 +674,7 @@ public class NotificationManager {
 							nd.emailQuestion,
 							nd.emailQuestionName,
 							nd.emailMeta,
+							nd.emailAssigned,
 							nd.emails,
 							target,
 							submittingUser,
@@ -1364,6 +1365,17 @@ public class NotificationManager {
 							}
 						}
 
+						// Add the assigned user email
+						if(msg.emailAssigned) {
+							ArrayList<String> assignedUserEmail = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, "_assigned", msg.instanceId);
+							if(assignedUserEmail != null) {
+								for(String email : assignedUserEmail) {
+									// TODO this just get the assigned user's name not their email
+									emailList.add(email);
+								}
+							}
+						}
+						
 						// Convert emails into a comma separated string
 						String emails = "";
 						for(String email : emailList) {	

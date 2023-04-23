@@ -14,6 +14,7 @@ public class NotifyDetails {
 	public String content = null;
 	public String attach = null;
 	public boolean include_references;
+	public boolean emailAssigned;
 	public boolean launched_only;
 	public String callback_url;
 	public int pdfTemplateId;

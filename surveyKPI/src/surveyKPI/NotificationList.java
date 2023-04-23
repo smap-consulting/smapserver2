@@ -573,6 +573,7 @@ public class NotificationList extends Application {
 					nd.emailQuestion,
 					nd.emailQuestionName,
 					nd.emailMeta,
+					nd.emailAssigned,
 					nd.emails,
 					n.target,
 					request.getRemoteUser(),
