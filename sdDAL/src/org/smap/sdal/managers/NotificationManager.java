@@ -735,7 +735,7 @@ public class NotificationManager {
 		boolean writeToMonitor = true;
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 
-		HashMap<String, String> sentEndPoints = new HashMap<> ();
+
 		boolean generateBlank =  (msg.instanceId == null) ? true : false;	// If false only show selected options
 
 		PreparedStatement pstmtGetSMSUrl = null;
@@ -874,48 +874,8 @@ public class NotificationManager {
 				if(msg.target.equals("email")) {
 					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user, organisation.id);
 					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
-						ArrayList<String> emailList = null;
-						if(msg.emailQuestionSet()) {
-							String emailQuestionName = msg.getEmailQuestionName(sd);
-							log.info("Email question: " + emailQuestionName);
-							emailList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, emailQuestionName, msg.instanceId);
-						} else {
-							emailList = new ArrayList<String> ();
-						}
-
-						// Add any meta email addresses to the per question emails
-						String metaEmail = GeneralUtilityMethods.getResponseMetaValue(sd, cResults, surveyId, msg.emailMeta, msg.instanceId);
-						if(metaEmail != null) {
-							emailList.add(metaEmail);
-						}
-
-						// Add the static emails to the per question emails
-						if(msg.emails != null) {
-							for(String email : msg.emails) {
-								if(email.length() > 0) {
-									log.info("Adding static email: " + email); 
-									emailList.add(email);
-								}
-							}
-						}
-
-						// Convert emails into a comma separated string
-						String emails = "";
-						for(String email : emailList) {	
-							if(sentEndPoints.get(email) == null) {
-								if(UtilityMethodsEmail.isValidEmail(email)) {
-									if(emails.length() > 0) {
-										emails += ",";
-									}
-									emails += email;
-								} else {
-									log.info("Email Notifications: Discarding invalid email: " + email);
-								}
-								sentEndPoints.put(email, email);
-							} else {
-								log.info("Duplicate email: " + email);
-							}
-						}
+						String emails = getEmails(sd, cResults, surveyId, msg);
+						
 
 						if(emails.trim().length() > 0) {
 							log.info("userevent: " + msg.user + " sending email of '" + logContent + "' to " + emails);
@@ -1041,6 +1001,8 @@ public class NotificationManager {
 				} else if(msg.target.equals("sms")) {   // SMS URL notification - SMS message is posted to an arbitrary URL 
 
 					// Get the URL to use in sending the SMS
+					HashMap<String, String> sentEndPoints = new HashMap<> ();
+					
 					String sql = "select s.sms_url "
 							+ "from server s";
 
@@ -1274,9 +1236,10 @@ public class NotificationManager {
 
 		String logContent = null;
 
+		log.info("----------- Process Reminder Notification");
+		
 		boolean writeToMonitor = true;
 
-		HashMap<String, String> sentEndPoints = new HashMap<> ();
 		MessagingManager mm = new MessagingManager(localisation);
 		PreparedStatement pstmtGetSMSUrl = null;
 
@@ -1339,60 +1302,7 @@ public class NotificationManager {
 					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user, o_id);
 					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 
-
-
-						ArrayList<String> emailList = null;
-						log.info("Email question: " + msg.getEmailQuestionName(sd));
-						if(msg.emailQuestionSet()) {
-							emailList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
-						} else {
-							emailList = new ArrayList<String> ();
-						}
-
-						// Add any meta email addresses to the per question emails
-						String metaEmail = GeneralUtilityMethods.getResponseMetaValue(sd, cResults, surveyId, msg.emailMeta, msg.instanceId);
-						if(metaEmail != null) {
-							emailList.add(metaEmail);
-						}
-
-						// Add the static emails to the per question emails
-						if(msg.emails != null) {
-							for(String email : msg.emails) {
-								if(email.length() > 0) {
-									log.info("Adding static email: " + email); 
-									emailList.add(email);
-								}
-							}
-						}
-
-						// Add the assigned user email
-						if(msg.emailAssigned) {
-							ArrayList<String> assignedUserEmail = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, "_assigned", msg.instanceId);
-							if(assignedUserEmail != null) {
-								for(String email : assignedUserEmail) {
-									// TODO this just get the assigned user's name not their email
-									emailList.add(email);
-								}
-							}
-						}
-						
-						// Convert emails into a comma separated string
-						String emails = "";
-						for(String email : emailList) {	
-							if(sentEndPoints.get(email) == null) {
-								if(UtilityMethodsEmail.isValidEmail(email)) {
-									if(emails.length() > 0) {
-										emails += ",";
-									}
-									emails += email;
-								} else {
-									log.info("Email Notifications: Discarding invalid email: " + email);
-								}
-								sentEndPoints.put(email, email);
-							} else {
-								log.info("Duplicate email: " + email);
-							}
-						}
+						String emails = getEmails(sd, cResults, surveyId, msg);   // Get the email addresses from the message
 
 						if(emails.trim().length() > 0) {
 							log.info("userevent: " + msg.user + " sending email of '" + logContent + "' to " + emails);
@@ -1499,6 +1409,8 @@ public class NotificationManager {
 
 				} else if(msg.target.equals("sms")) {   // SMS URL notification - SMS message is posted to an arbitrary URL 
 
+					HashMap<String, String> sentEndPoints = new HashMap<> ();
+					
 					// Get the URL to use in sending the SMS
 					String sql = "select s.sms_url "
 							+ "from server s";
@@ -1620,4 +1532,74 @@ public class NotificationManager {
 		}
 	}
 
+	/*
+	 * Get the email addresses from the message settings
+	 */
+	private String getEmails(Connection sd, Connection cResults, int surveyId, SubmissionMessage msg) throws Exception {
+		
+		String emails = "";
+		HashMap<String, String> sentEndPoints = new HashMap<> ();
+		
+		ArrayList<String> emailList = null;
+		if(msg.emailQuestionSet()) {
+			String emailQuestionName = msg.getEmailQuestionName(sd);
+			log.info("Email question: " + emailQuestionName);
+			emailList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, emailQuestionName, msg.instanceId);
+		} else {
+			emailList = new ArrayList<String> ();
+		}
+
+		// Add any meta email addresses to the per question emails
+		String metaEmail = GeneralUtilityMethods.getResponseMetaValue(sd, cResults, surveyId, msg.emailMeta, msg.instanceId);
+		if(metaEmail != null) {
+			emailList.add(metaEmail);
+		}
+		
+		// Add the static emails to the per question emails
+		if(msg.emails != null) {
+			for(String email : msg.emails) {
+				if(email.length() > 0) {
+					log.info("Adding static email: " + email); 
+					emailList.add(email);
+				}
+			}
+		}
+
+		// Add the assigned user email
+		UserManager um = new UserManager(localisation);
+		if(msg.emailAssigned) {
+			log.info("--------------------------------------- Adding Assigned User Email Address -----------------");
+			ArrayList<String> assignedUser = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, "_assigned", msg.instanceId);
+			if(assignedUser != null) {
+				for(String user : assignedUser) {	// Should only be one assigned user but in future could be more
+					log.info("----- User: " + user);
+					String email = um.getUserEmailByIdent(sd, user);
+					log.info("----- Email: " + user);
+					if(email != null) {
+						emailList.add(email);
+					}
+				}
+			}
+		}
+		
+		// Convert emails into a comma separated string		
+		for(String email : emailList) {	
+			if(sentEndPoints.get(email) == null) {
+				if(UtilityMethodsEmail.isValidEmail(email)) {
+					if(emails.length() > 0) {
+						emails += ",";
+					}
+					emails += email;
+				} else {
+					log.info("Email Notifications: Discarding invalid email: " + email);
+				}
+				sentEndPoints.put(email, email);
+			} else {
+				log.info("Duplicate email: " + email);
+			}
+		}
+		
+		return emails;
+		
+	}
 }

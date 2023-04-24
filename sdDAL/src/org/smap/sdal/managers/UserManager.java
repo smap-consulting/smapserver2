@@ -430,6 +430,53 @@ public class UserManager {
 		return alerts;
 
 	}
+	
+	/*
+	 * Get alerts for a user
+	 */
+	public String getUserEmailByIdent(
+			Connection connectionSD,
+			String ident
+			) throws Exception {
+
+		PreparedStatement pstmt = null;
+
+		String email = null;
+
+		try {
+	
+			String sql = "select email from users where ident = ?";
+				
+			pstmt = connectionSD.prepareStatement(sql);
+			pstmt.setString(1, ident);
+
+			log.info("Get users email: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+
+			if(rs.next()) {
+				email = rs.getString(1);
+			}
+
+
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+			throw new Exception(e);
+
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (Exception e) {
+
+			}
+
+		}
+
+		return email;
+
+	}
 
 	/*
 	 * Create a new user Parameters:

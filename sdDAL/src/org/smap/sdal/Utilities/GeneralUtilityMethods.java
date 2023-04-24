@@ -3403,28 +3403,42 @@ public class GeneralUtilityMethods {
 				+ "(select f_id from form where s_id = ?)";
 
 		int fId = 0;
-		String qType;
+		String qType = null;
 		String columnName = null;
+		ArrayList<String> tableStack = null;
 
 		ArrayList<String> responses = new ArrayList<String>();
 		try {
-			pstmtQuestion = sd.prepareStatement(sqlQuestion);
-			pstmtQuestion.setString(1, qName);
-			pstmtQuestion.setInt(2, sId);
-			log.info("GetResponseForQuestion: " + pstmtQuestion.toString());
-			ResultSet rs = pstmtQuestion.executeQuery();
-			if (rs.next()) {
-				qType = rs.getString("qType");
-				fId = rs.getInt("f_id");
-				columnName = rs.getString("column_name");
-				ArrayList<String> tableStack = getTableStack(sd, fId);
+			
+			if(qName.equals("_assigned")) {		// Not in the question list
+				qType = "string";
+				columnName = qName;
+				fId = GeneralUtilityMethods.getMainResultsForm(sd, results, sId);
+			} else {
+				pstmtQuestion = sd.prepareStatement(sqlQuestion);
+				pstmtQuestion.setString(1, qName);
+				pstmtQuestion.setInt(2, sId);
+				log.info("GetResponseForQuestion: " + pstmtQuestion.toString());
+				ResultSet rs = pstmtQuestion.executeQuery();
+				if (rs.next()) {
+					qType = rs.getString("qType");
+					fId = rs.getInt("f_id");
+					columnName = rs.getString("column_name");
 
+				}
+			}
+			
+			if(qType != null && columnName != null) {
+
+				tableStack = getTableStack(sd, fId);
+				
 				// First table is for the question, last is for the instance id
 				StringBuffer query = new StringBuffer();
 				
 				query.append("select t0." + columnName + " from ");
 
 				// Add the tables
+				
 				for (int i = 0; i < tableStack.size(); i++) {
 					if (i > 0) {
 						query.append(",");
@@ -3461,7 +3475,7 @@ public class GeneralUtilityMethods {
 				pstmtResults.setString(1, instanceId);
 				log.info("Get results for a question: " + pstmtResults.toString());
 
-				rs = pstmtResults.executeQuery();
+				ResultSet rs = pstmtResults.executeQuery();
 				while (rs.next()) {
 						
 					String value = rs.getString(1);
@@ -3557,7 +3571,7 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Starting from the past in question get all the tables up to the highest
+	 * Starting from the passed in question get all the tables up to the highest
 	 * parent that are part of this survey
 	 */
 	public static ArrayList<String> getTableStack(Connection sd, int fId) throws SQLException {
@@ -6162,6 +6176,35 @@ public class GeneralUtilityMethods {
 		}
 
 		return table;
+	}
+	
+	/*
+	 * Get the main results form for a survey
+	 */
+	public static int getMainResultsForm(Connection sd, Connection cResults, int sId) {
+		int fId = 0;
+
+		String sql = "select f_id from form where s_id = ? and parentform = 0";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+
+			log.info("Getting main form: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				fId = rs.getInt(1);
+			}
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+		} finally {
+			try {	if (pstmt != null) {	pstmt.close();}} catch (Exception e) {}
+		}
+
+		return fId;
 	}
 	
 	/*
