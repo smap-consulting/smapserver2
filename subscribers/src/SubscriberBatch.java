@@ -1184,9 +1184,6 @@ public class SubscriberBatch {
 	private void applyCaseManagementReminders(Connection sd, Connection cResults, String basePath, String serverName) {
 
 		/*
-		 * SQL to set case closed date
-		 */
-		/*
 		 * SQL to get the alerts
 		 */
 		String sql = "select a.id as a_id, a.group_survey_ident, a.name, a.period,"
@@ -1220,9 +1217,8 @@ public class SubscriberBatch {
 		PreparedStatement pstmtMatches = null;
 		PreparedStatement pstmtCaseUpdated = null;
 
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		HashMap<String, CaseManagementSettings> settingsCache = new HashMap<>();
-		//HashMap<String, String> initialisedCache = new HashMap<>();
 		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
 		
 		// SQL to record an alert being triggered
