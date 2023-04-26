@@ -597,6 +597,7 @@ private boolean hideDefault(String name, boolean isReadOnly) {
 			name.equals("instancename") ||
 			name.equals("instanceid") ||
 			name.equals("_case_closed") ||
+			name.equals("_thread") ||
 			name.equals("_case_survey") ||
 			name.equals("_upload_time") ||
 			name.equals("_hrk") ||
