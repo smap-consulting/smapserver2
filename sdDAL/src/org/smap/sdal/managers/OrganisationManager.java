@@ -289,7 +289,7 @@ public class OrganisationManager {
 		PreparedStatement pstmtAddOrgList = null;
 		
 		String sqlCheckExists = "select id from organisation "
-				+ "where name = ? ";		
+				+ "where lower(name) = lower(?) ";		
 		PreparedStatement pstmtCheckExists = null;
 		
 		String sql = "insert into organisation (name, company_name, "
@@ -314,6 +314,7 @@ public class OrganisationManager {
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 
+			o.name = o.name.trim();
 			/*
 			 * Check to see if this organisation name is already taken
 			 */
