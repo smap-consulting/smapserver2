@@ -311,7 +311,6 @@ public class XLSReportsManager {
 						cellWritten = true;
 					} catch (Exception e) {
 						// Ignore
-						log.log(Level.SEVERE, e.getMessage(), e);
 					}
 				} else if(col.type.equals("date")) {
 					DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -322,7 +321,6 @@ public class XLSReportsManager {
 						cellWritten = true;
 					} catch (Exception e) {
 						// Ignore
-						log.log(Level.SEVERE, e.getMessage(), e);
 					}
 				} 
 
@@ -337,7 +335,6 @@ public class XLSReportsManager {
 						cellWritten = true;
 					} catch (Exception e) {
 						// Ignore
-						log.log(Level.SEVERE, e.getMessage(), e);
 					}
 
 				}
