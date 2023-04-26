@@ -153,8 +153,7 @@ public class KeyManager {
 				+ "key_policy = ?, "
 				+ "changed_ts = now(), "
 				+ "changed_by = ? "
-				+ "where o_id = ? "
-				+ "and group_survey_ident = ?"; 
+				+ "where group_survey_ident = ?"; 
 		
 		PreparedStatement pstmt = null;
 		
@@ -177,8 +176,7 @@ public class KeyManager {
 				pstmt.setString(1, key);
 				pstmt.setString(2, key_policy);
 				pstmt.setString(3, user);
-				pstmt.setInt(4, o_id);
-				pstmt.setString(5, groupSurveyIdent);
+				pstmt.setString(4, groupSurveyIdent);
 	
 				log.info("SQL: " + pstmt.toString());
 				int count = pstmt.executeUpdate();
