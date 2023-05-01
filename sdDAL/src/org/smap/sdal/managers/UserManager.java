@@ -519,8 +519,8 @@ public class UserManager {
 		}
 
 		int u_id = -1;
-		String sql = "insert into users (ident, realm, name, email, o_id, imported, language, password, created) " +
-				" values (?, ?, ?, ?, ?, ?, ?, md5(?), now());";
+		String sql = "insert into users (ident, realm, name, email, o_id, imported, language, password, created, password_set) " +
+				" values (?, ?, ?, ?, ?, ?, ?, md5(?), now(), now());";
 
 		PreparedStatement pstmt = null;
 
