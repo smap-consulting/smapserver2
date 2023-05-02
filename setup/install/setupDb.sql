@@ -1706,7 +1706,6 @@ ALTER SEQUENCE cms_setting_seq OWNER TO ws;
 DROP TABLE IF EXISTS cms_setting;
 CREATE TABLE cms_setting (
 	id integer DEFAULT NEXTVAL('cms_setting_seq') CONSTRAINT pk_setting_alert PRIMARY KEY,
-	o_id integer,
 	group_survey_ident text,
 	settings text,
 	key text,

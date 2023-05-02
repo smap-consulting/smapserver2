@@ -513,7 +513,6 @@ ALTER SEQUENCE cms_setting_seq OWNER TO ws;
 
 CREATE TABLE cms_setting (
 	id integer DEFAULT NEXTVAL('cms_setting_seq') CONSTRAINT pk_setting_alert PRIMARY KEY,
-	o_id integer,
 	group_survey_ident text,
 	settings text,
 	changed_by text,

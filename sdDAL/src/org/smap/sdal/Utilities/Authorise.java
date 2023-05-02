@@ -467,17 +467,17 @@ public class Authorise {
 		boolean sqlError = false;
 		
 		/*
-		 * 1) Make sure the survey has not been soft deleted and exists or alternately 
-		 *    that it has been soft deleted and exists
-		 * 2) Make sure survey is in a project that the user has access to
+		 * Make sure the alert is for a survey that the user has access to
 		 */
 
 		StringBuffer sql = new StringBuffer("select count(*) from cms_alert "
 				+ "where id = ? "
-				+ "and o_id in "
-				+ "( select o.id from organisation o, users u "
-				+ "where o.id = u.o_id "
-				+ "and u.ident = ?)");
+				+ "and group_survey_ident in "
+				+ "( select group_survey_ident from survey s, users u, user_project up, project p "
+				+ "	where u.id = up.u_id "
+				+ " and p.id = up.p_id "
+				+ "	and s.p_id = up.p_id "
+				+ "	and u.ident = ? )");
 		
 		try {		
 			
@@ -502,7 +502,7 @@ public class Authorise {
 			log.info("IsValidCaseManagementAlert: " + pstmt.toString());
  			log.info("Case management setting validation failed for: " + user + " case management alert id was: " + id);
  			
- 			SDDataSource.closeConnection("isValidSurvey", conn);
+ 			SDDataSource.closeConnection("isValidAlert", conn);
 			
 			if(sqlError) {
 				throw new ServerException();

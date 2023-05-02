@@ -1155,7 +1155,7 @@ public class Survey extends Application {
 	}
 
 	/*
-	 * Deletes a survey template
+	 * Deletes a survey
 	 *  @param tables if set to yes, data tables will also be deleted
 	 *  @param hard if set to true then data and tables will be physically deleted otherwise they will only
 	 *    be marked as deleted in the meta data tables but will remain in the database

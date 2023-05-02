@@ -184,14 +184,13 @@ public class KeyManager {
 					try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 					
 					sql = "insert into cms_setting "
-							+ "(key, key_policy, changed_by, o_id, group_survey_ident, changed_ts) "
-							+ "values(?, ?, ?, ?, ?, now())"; 
+							+ "(key, key_policy, changed_by, group_survey_ident, changed_ts) "
+							+ "values(?, ?, ?, ?, now())"; 
 					pstmt = sd.prepareStatement(sql);
 					pstmt.setString(1, key);
 					pstmt.setString(2, key_policy);
 					pstmt.setString(3,  user);
-					pstmt.setInt(4, o_id);
-					pstmt.setString(5, groupSurveyIdent);
+					pstmt.setString(4, groupSurveyIdent);
 					log.info("Update Key Settings: " + pstmt.toString());
 					pstmt.executeUpdate();
 				}
