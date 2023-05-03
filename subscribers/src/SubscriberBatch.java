@@ -339,11 +339,13 @@ public class SubscriberBatch {
 			if(subscriberType.equals("upload")) {
 				
 				applyReminderNotifications(dbc.sd, dbc.results, basePath, serverName);
-				applyCaseManagementReminders(dbc.sd, dbc.results, basePath, serverName);
 				sendMailouts(dbc.sd, basePath, serverName);
 				expireTemporaryUsers(localisation, dbc.sd);
 				
 			} else if(subscriberType.equals("forward")) {
+				
+				applyCaseManagementReminders(dbc.sd, dbc.results, basePath, serverName);
+				
 				// Erase any templates that were deleted more than a set time ago
 				eraseOldTemplates(dbc.sd, dbc.results, localisation, basePath);
 
@@ -1246,7 +1248,11 @@ public class SubscriberBatch {
 				String period = rs.getString("period");	
 				int oId = GeneralUtilityMethods.getOrganisationIdForGroupSurveyIdent(sd, groupSurveyIdent);
 				
-				if(GeneralUtilityMethods.tableExists(cResults, table)) {	
+				if(!isValidPeriod(period)) {
+					log.info("Error: ++++++ : Invalid Period: " + period);
+					continue;
+				}
+				if(GeneralUtilityMethods.tableExists(cResults, table)) {
 					
 					ResourceBundle localisation = locMap.get(oId);
 					if(localisation == null) {
@@ -1294,6 +1300,7 @@ public class SubscriberBatch {
 						pstmtMatches.setInt(idx++, aId);
 						pstmtMatches.setString(idx++, period);
 						
+						// log.info(pstmtMatches.toString());
 						ResultSet mrs = pstmtMatches.executeQuery();
 						
 						while(mrs.next()) {
@@ -1664,4 +1671,22 @@ public class SubscriberBatch {
 		return reload;
 	}
 
+	private boolean isValidPeriod(String period) {
+		boolean valid = false;
+		
+		if(period != null) {
+			String[] comp = period.split(" ");
+			if(comp.length > 1) {
+				try {
+					int iValue = Integer.valueOf(comp[0]);
+					if(iValue > 0) {
+						valid = true;
+					}
+				} catch(Exception e) {
+					
+				}
+			}
+		}
+		return valid;
+	}
 }
