@@ -1000,7 +1000,15 @@ public class SubRelationalDB extends Subscriber {
 					
 					pstmt.setTime(idx++, java.sql.Time.valueOf(t));
 				}
-			} else {
+			} else if(c.colName.equals("_hrk")) {	// Forcing an hrk value, ensure null if blank
+				String value = c.value;
+				if(value != null) {
+					if(value.trim().length() == 0) {
+						value = null;
+					}
+				} 
+				pstmt.setString(idx++, value);
+			}else {
 				pstmt.setString(idx++, c.value);	// Default is String
 			}
 
