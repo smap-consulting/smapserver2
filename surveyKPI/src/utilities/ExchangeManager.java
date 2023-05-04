@@ -1417,6 +1417,11 @@ public class ExchangeManager {
 					}
 					eh.pstmtInsert.setString(index++, value);
 				} else {
+					
+					// String set answer to null if it is empty
+					if(value != null && value.trim().length() == 0) {
+						value = null;
+					}
 					eh.pstmtInsert.setString(index++, value);
 					
 					linkMgr.addDataitemToList(linkageItems, value, col.appearance, col.parameters, sIdent, col.name);
