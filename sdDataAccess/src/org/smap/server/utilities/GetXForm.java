@@ -1658,7 +1658,7 @@ public class GetXForm {
 				for(KeyValueSimp kv : line) {
 					elem = outputXML.createElement(kv.k);
 					String v = kv.v.replaceAll("'", "");
-					if(v.startsWith("LINESTRING") || v.startsWith("POLyGON")) {
+					if(v.startsWith("LINESTRING") || v.startsWith("POLYGON")) {
 						v = GeneralUtilityMethods.convertGeomToFieldTaskFormat(v);
 					}
 					elem.setTextContent(v);
