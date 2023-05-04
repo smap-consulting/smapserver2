@@ -4739,7 +4739,7 @@ public class GeneralUtilityMethods {
 				columnName = qname;
 			}
 			if(columnName == null) {
-				output.append("'none'");	// Can't find the column just write none into the key - possibly the key is set directly through _hrk
+				output.append("prikey");	// Can't find the column just write the primary key into the key - possibly the key is set directly through _hrk
 			} else {
 				output.append(columnName);
 			}
@@ -4853,6 +4853,8 @@ public class GeneralUtilityMethods {
 											+ "where f1." + columnName 
 											+ " = m." + columnName
 											+ " and f1._hrk is not null) + 1");
+								} else {
+									output.append("prikey");
 								}
 							} catch (SQLException e) {
 								// TODO Auto-generated catch block
