@@ -514,7 +514,8 @@ public class TableManager {
 
 				// Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
 				// Also ignore meta - these are now added separately and not from the question list
-				if(source != null && !GeneralUtilityMethods.isMetaQuestion(q.getName())) {
+				// Ignore questions with column name _hrk, this is added as a meta item
+				if(source != null && !GeneralUtilityMethods.isMetaQuestion(q.getName()) && !q.getColumnName(false).equals("_hrk")) {
 					
 					if(colType.equals("geopoint")) {
 

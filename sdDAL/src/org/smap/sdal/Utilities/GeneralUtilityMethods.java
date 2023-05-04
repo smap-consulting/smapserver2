@@ -137,7 +137,7 @@ public class GeneralUtilityMethods {
 	private static int LENGTH_QUESTION_RAND = 5;
 
 
-	private static String[] smapMeta = new String[] { "_hrk", "instanceid", "_instanceid", "_start", "_end", "_device",
+	private static String[] smapMeta = new String[] { "instanceid", "_instanceid", "_start", "_end", "_device",
 			"prikey", "parkey", "_bad", "_bad_reason", "_user", "_survey_notes", 
 			SmapServerMeta.UPLOAD_TIME_NAME,
 			SmapServerMeta.SCHEDULED_START_NAME,
@@ -3679,6 +3679,7 @@ public class GeneralUtilityMethods {
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 		ArrayList<TableColumn> columnList = new ArrayList<TableColumn>();
 		ArrayList<TableColumn> realQuestions = new ArrayList<TableColumn>(); // Temporary array so that all property questions can be added first
+		boolean hasHRK = false;
 
 		TableColumn durationColumn = null;
 
@@ -3790,6 +3791,7 @@ public class GeneralUtilityMethods {
 			c.type = SmapQuestionTypes.STRING;
 			c.question_name = c.column_name;
 			columnList.add(c);
+			hasHRK = true;
 		}
 		
 		if (includeParentKey) {
@@ -4038,6 +4040,10 @@ public class GeneralUtilityMethods {
 
 				if (!includeRO && ro) {
 					continue; // Drop read only columns if they are not selected to be exported
+				}
+				
+				if(cName.equals("_hrk") && hasHRK) {		// Only include HRK once
+					continue;
 				}
 
 				if (qType.equals("select") && !compressed) {		// deprecated
@@ -4733,9 +4739,10 @@ public class GeneralUtilityMethods {
 				columnName = qname;
 			}
 			if(columnName == null) {
-				throw new ApplicationException("Column does not exist: " + qname + " in " + input);
+				output.append("'none'");	// Can't find the column just write none into the key - possibly the key is set directly through _hrk
+			} else {
+				output.append(columnName);
 			}
-			output.append(columnName);
 
 			// Reset the start
 			start = matcher.end();
