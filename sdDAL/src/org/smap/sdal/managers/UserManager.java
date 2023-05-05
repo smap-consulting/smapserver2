@@ -200,7 +200,7 @@ public class UserManager {
 			user.sendEmail = UtilityMethodsEmail.getSmtpHost(sd, null, ident, 0) != null;
 
 			/*
-			 * Get the groups that the user belongs to
+			 * Get the security groups that the user belongs to
 			 */
 			sql = "SELECT g.id as id, g.name as name " +
 					" from groups g, user_group ug " +
