@@ -93,7 +93,9 @@ public class XFormData {
 
 	}
 
-	public void loadMultiPartMime(HttpServletRequest request, String user, String updateInstanceId, String deviceId)
+	public void loadMultiPartMime(HttpServletRequest request, String user, String updateInstanceId, 
+			String deviceId,
+			boolean isDynamicUser)
 			throws ApplicationException, MissingSurveyException, IOException, FileUploadException,
 			MissingTemplateException, AuthorisationException, Exception {
 
@@ -339,8 +341,8 @@ public class XFormData {
 			}
 
 			log.info("###### submitted by: " + user);
-			if(assignmentId > 0) {
-				superUser = true;		// This was an assigned task do not apply role restrictions
+			if(assignmentId > 0 || isDynamicUser) {
+				superUser = true;		// This was an assigned task, or a dynamic user, do not apply role restrictions
 			} else {
 				try {
 					superUser = GeneralUtilityMethods.isSuperUser(sd, user);
