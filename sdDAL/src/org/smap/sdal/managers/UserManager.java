@@ -214,6 +214,7 @@ public class UserManager {
 			log.info("SQL: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 
+			boolean canResetPassword = false;	// Only reset passwords of users with specific groups
 			while(resultSet.next()) {
 				if(user.groups == null) {
 					user.groups = new ArrayList<UserGroup> ();
@@ -222,6 +223,12 @@ public class UserManager {
 				group.id = resultSet.getInt("id");
 				group.name = resultSet.getString("name");
 				user.groups.add(group);
+				if(group.name.equals(Authorise.ADMIN) 
+						|| group.name.equals(Authorise.ANALYST)
+						|| group.name.equals(Authorise.ORG)
+						|| group.name.equals(Authorise.SECURITY)) {
+					canResetPassword = true;
+				} 
 			}
 
 			/*
@@ -285,31 +292,34 @@ public class UserManager {
 
 			/*
 			 * Check for password expiry
+			 * Only expire admin and analyst passwords (revise this)
 			 */
-			user.passwordExpired = false;
-			if(orgPasswordExpiry > 0 && passwordAge >= orgPasswordExpiry) {
-				user.passwordExpired = true;
-				passwordExpiry = orgPasswordExpiry;
-			} else {
-				sql = "select password_expiry from server";
-				if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-				pstmt = sd.prepareStatement(sql);
-				resultSet = pstmt.executeQuery();
-				if(resultSet.next()) {
-					serverPasswordExpiry = resultSet.getInt("password_expiry");
-					if(serverPasswordExpiry > 0 && passwordAge >= serverPasswordExpiry) {
-						user.passwordExpired = true;
-						passwordExpiry = serverPasswordExpiry;
+			if(canResetPassword) {
+				user.passwordExpired = false;
+				if(orgPasswordExpiry > 0 && passwordAge >= orgPasswordExpiry) {
+					user.passwordExpired = true;
+					passwordExpiry = orgPasswordExpiry;
+				} else {
+					sql = "select password_expiry from server";
+					if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+					pstmt = sd.prepareStatement(sql);
+					resultSet = pstmt.executeQuery();
+					if(resultSet.next()) {
+						serverPasswordExpiry = resultSet.getInt("password_expiry");
+						if(serverPasswordExpiry > 0 && passwordAge >= serverPasswordExpiry) {
+							user.passwordExpired = true;
+							passwordExpiry = serverPasswordExpiry;
+						}
 					}
 				}
-			}
-			if(user.passwordExpired) {
-				String msg = localisation.getString("ar_pwd_expiry");
-				msg = msg.replace("%s1", user.name);
-				msg = msg.replace("%s2", String.valueOf(passwordAge));
-				msg = msg.replace("%s3", String.valueOf(passwordExpiry));
-				lm.writeLogOrganisation(sd, user.o_id, ident, LogManager.USER, msg, 0);
-				log.info(msg);
+				if(user.passwordExpired) {
+					String msg = localisation.getString("ar_pwd_expiry");
+					msg = msg.replace("%s1", user.name);
+					msg = msg.replace("%s2", String.valueOf(passwordAge));
+					msg = msg.replace("%s3", String.valueOf(passwordExpiry));
+					lm.writeLogOrganisation(sd, user.o_id, ident, LogManager.USER, msg, 0);
+					log.info(msg);
+				}
 			}
 			
 
