@@ -1166,7 +1166,7 @@ public class SubRelationalDB extends Subscriber {
 			String ident,
 			ResourceBundle localisation) throws SQLException, Exception {
 
-		String sql = "select " + hrkSql + " from " + table + " where prikey = ?";
+		String sql = "select " + hrkSql + " from " + table + " m where m.prikey = ?";
 		PreparedStatement pstmt = null;
 		
 		String sqlSource = "select prikey from " + table + " where _hrk = ? "
@@ -1209,6 +1209,7 @@ public class SubRelationalDB extends Subscriber {
 				// Get the HRK
 				pstmt = cResults.prepareStatement(sql);
 				pstmt.setInt(1, prikey);
+				log.info("Get HRK: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) {
 					hrk = rs.getString(1);
