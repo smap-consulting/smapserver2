@@ -601,3 +601,7 @@ alter table upload_event add column db_reason text;
 update upload_event ue set db_status = (select se.status from subscriber_event se where se.ue_id = ue.ue_id order by se.ue_id desc limit 1) where ue.db_status is null;
 update upload_event ue set db_reason = (select se.reason from subscriber_event se where se.ue_id = ue.ue_id order by se.ue_id desc limit 1) where ue.db_reason is null;
 
+-- Version 23.05
+alter table survey_role add column group_survey_ident text;
+update survey_role sr set group_survey_ident = (select group_survey_ident from survey s where s.s_id = sr.s_id) where sr.group_survey_ident is null;
+CREATE INDEX survey_role_group_index ON public.survey_role(group_survey_ident, r_id);
