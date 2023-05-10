@@ -468,6 +468,7 @@ public class SubRelationalDB extends Subscriber {
 			}
 			log.info("################### Processing key policy:" + keyPolicy + ": " + hasHrk + " : " + assignmentId );
 			
+			String hrkSql = GeneralUtilityMethods.convertAllxlsNamesToQuery(uk.key, sId, sd, topLevelForm.tableName);
 			if(updateId != null) {
 				// Direct update to a record
 				log.info("Direct update with Existing unique id:" + updateId);
@@ -476,7 +477,7 @@ public class SubRelationalDB extends Subscriber {
 				boolean replace = true;		// Always replace for direct updates
 				if(existingKey != 0) {
 					log.info("Existing key:" + existingKey);
-					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, 
+					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
 							existingKey, replace, remoteUser, updateId, survey.groupSurveyIdent, survey.ident, localisation);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
 				} 
@@ -484,7 +485,7 @@ public class SubRelationalDB extends Subscriber {
 				boolean replace = keyPolicy.equals(SurveyManager.KP_REPLACE);
 				if(keyPolicy.equals(SurveyManager.KP_MERGE) || keyPolicy.equals(SurveyManager.KP_REPLACE)) {					
 					log.info("Apply merge-replace policy");
-					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0, 
+					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0, 
 							replace, remoteUser, instance.getUuid(), survey.groupSurveyIdent, survey.ident, localisation);
 				} else if(keyPolicy.equals(SurveyManager.KP_DISCARD)) {
 					log.info("Apply discard policy");
@@ -513,7 +514,7 @@ public class SubRelationalDB extends Subscriber {
 				pstmt = cResults.prepareStatement(sql);
 				
 				String sqlHrk = "update " + topLevelForm.tableName + " m set _hrk = "
-						+ GeneralUtilityMethods.convertAllxlsNamesToQuery(uk.key, sId, sd, topLevelForm.tableName)
+						+ hrkSql
 						+ " where prikey = ?;";
 				pstmtHrk = cResults.prepareStatement(sqlHrk);
 				ResultSet rs = pstmt.executeQuery();
@@ -1153,6 +1154,7 @@ public class SubRelationalDB extends Subscriber {
 			Connection sd,
 			Connection cResults,
 			int sId,
+			String hrkSql,
 			String table,
 			int prikey,
 			int f_id,
@@ -1164,9 +1166,9 @@ public class SubRelationalDB extends Subscriber {
 			String ident,
 			ResourceBundle localisation) throws SQLException, Exception {
 
-		String sqlHrk = "select _hrk from " + table + " where prikey = ?";
-		PreparedStatement pstmtHrk = null;
-
+		String sql = "select " + hrkSql + " from " + table + " where prikey = ?";
+		PreparedStatement pstmt = null;
+		
 		String sqlSource = "select prikey from " + table + " where _hrk = ? "
 				+ "and prikey != ? "
 				+ "and _bad = 'false' "
@@ -1200,18 +1202,17 @@ public class SubRelationalDB extends Subscriber {
 		PreparedStatement pstmtCopyBack = null;
 		
 		ArrayList<DataItemChange> changes = null;
-		String hrk = null;
 		try {
 
+			String hrk = null;
 			if(sourceKey == 0) {
-				// Get the HRK that identifies duplicates
-				pstmtHrk = cResults.prepareStatement(sqlHrk);
-				pstmtHrk.setInt(1, prikey);
-				ResultSet rs = pstmtHrk.executeQuery();
+				// Get the HRK
+				pstmt = cResults.prepareStatement(sql);
+				pstmt.setInt(1, prikey);
+				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) {
 					hrk = rs.getString(1);
 				}
-	
 				// Get the prikey of the source record
 				pstmtSource = cResults.prepareStatement(sqlSource);
 				pstmtSource.setString(1, hrk);
@@ -1491,7 +1492,7 @@ public class SubRelationalDB extends Subscriber {
 			}
 
 		} finally {
-			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {}
+			if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
 			if(pstmtSource != null) try{pstmtSource.close();}catch(Exception e) {}
 			if(pstmtChildTables != null) try{pstmtChildTables.close();}catch(Exception e) {}
 			if(pstmtChildTablesInGroup != null) try{pstmtChildTablesInGroup.close();}catch(Exception e) {}
