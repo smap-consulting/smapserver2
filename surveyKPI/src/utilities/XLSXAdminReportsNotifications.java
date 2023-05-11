@@ -52,7 +52,7 @@ import org.smap.sdal.model.Notification;
 public class XLSXAdminReportsNotifications {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSXAdminReportsNotifications.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	ResourceBundle localisation = null;

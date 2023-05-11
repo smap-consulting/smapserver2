@@ -1226,35 +1226,7 @@ public class UserManager {
 		}
 	}
 	
-	public Action getActionDetails(Connection sd, String userIdent) throws SQLException {
-		
-		Action action = null;
-		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-		
-		String sql = "select action_details "
-				+ "from users "
-				+ "where ident = ? "
-				+ "and temporary ";
-		PreparedStatement pstmt = null;
-		
-		try {	
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1,  userIdent);	
-			
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				String actionString = rs.getString(1);
-				if(actionString != null) {
-					action = gson.fromJson(actionString, Action.class);
-				}
-			}
-			
-		} finally {	
-			try {pstmt.close();} catch(Exception e) {}
-		}
-		
-		return action;
-	}
+	
 
 	/*
 	 * Move a user from their current organisation to another one in the list

@@ -234,7 +234,7 @@ public class UserList extends Application {
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
-			ArrayList<User> users = am.getTemporaryUsers(sd, o_id, action, 0, pId);			
+			ArrayList<User> users = am.getTemporaryUsers(sd, o_id, action, null, pId);			
 			String resp = gson.toJson(users);
 			response = Response.ok(resp).build();			
 			
@@ -370,8 +370,8 @@ public class UserList extends Application {
 					+ "and s.s_id = ? "
 					+ "and not temporary");
 			
-			String sqlRBAC = " and ((s.s_id not in (select s_id from survey_role where enabled = true)) " // No roles on survey
-					+ "or (s.s_id in (select s_id from users u2, user_role ur, survey_role sr where u2.ident = u.ident and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
+			String sqlRBAC = " and ((s.ident not in (select survey_ident from survey_role where enabled = true)) " // No roles on survey
+					+ "or (s.ident in (select sr.survey_ident from users u2, user_role ur, survey_role sr where u2.ident = u.ident and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
 					+ "or (select count(*) from users u3, user_group ug "		// Include super users
 					+ "where u.ident = u3.ident "
 					+ "and u3.id = ug.u_id "

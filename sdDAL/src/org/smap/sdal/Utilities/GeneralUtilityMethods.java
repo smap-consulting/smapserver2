@@ -72,6 +72,7 @@ import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.UserManager;
+import org.smap.sdal.model.Action;
 import org.smap.sdal.model.AssignmentDetails;
 import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
@@ -3695,9 +3696,9 @@ public class GeneralUtilityMethods {
 				
 				ArrayList<RoleColumnFilter> rcfArray = new ArrayList<> ();
 				if(user != null) {
-					rcfArray = rm.getSurveyColumnFilter(sd, sId, user);
+					rcfArray = rm.getSurveyColumnFilter(sd, surveyIdent, user);
 				} else if(roles != null) {
-					rcfArray = rm.getSurveyColumnFilterRoleList(sd, sId, roles);
+					rcfArray = rm.getSurveyColumnFilterRoleList(sd, surveyIdent, roles);
 				}
 				
 				if (rcfArray.size() > 0) {
@@ -7014,8 +7015,8 @@ public class GeneralUtilityMethods {
 	 * Return the SQL that does survey level Role Based Access Control
 	 */
 	public static String getSurveyRBAC() {
-		return "and ((s.s_id not in (select s_id from survey_role where enabled = true)) or " // No roles on survey
-				+ "(s.s_id in (select s_id from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
+		return "and ((s.ident not in (select survey_ident from survey_role where enabled = true)) or " // No roles on survey
+				+ "(s.ident in (select sr.survey_ident from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
 				+ ") ";
 	}
 	
@@ -7023,8 +7024,8 @@ public class GeneralUtilityMethods {
 	 * Return the SQL that does survey level Role Based Access Control (modified for use with upload event)
 	 */
 	public static String getSurveyRBACUploadEvent() {
-		return "((ue.s_id not in (select s_id from survey_role where enabled = true)) or " // No roles on survey
-				+ "(ue.s_id in (select s_id from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
+		return "((ue.ident not in (select survey_ident from survey_role where enabled = true)) or " // No roles on survey
+				+ "(ue.ident in (select sr.survey_ident from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
 				+ ") ";
 	}
 
@@ -10777,6 +10778,25 @@ public class GeneralUtilityMethods {
 		}
 		
 		return count > 0;
+	}
+	
+	/*
+	 * Return an action class from the json string
+	 * This function is only here so that backward compatability checks can be applied for existing actions that use sId instead of survey ident
+	 */
+	public static Action getAction(Connection sd, Gson gson, String action_details) throws SQLException {
+		Action a = null;
+		
+		if(action_details != null) {
+			a = gson.fromJson(action_details, Action.class);
+			
+			// Check that this action does not reference a survey using survey ID
+			if(a.surveyIdent == null && a.sId > 0) {
+				a.surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, a.sId);
+			}
+		}
+		
+		return a;
 	}
 
 	private static int getManifestParamStart(String property) {

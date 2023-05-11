@@ -40,7 +40,7 @@ import org.smap.sdal.model.MailoutPerson;
 public class XLSMailoutManager {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSMailoutManager.class.getName());
 	
 	Workbook wb = null;
 	int rowNumber = 1;		// Heading row is 0

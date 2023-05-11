@@ -248,7 +248,7 @@ public class Items extends Application {
 					jTotals.put("bad_count", resultSet.getInt(1));
 				}
 				
-				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				ArrayList<SqlParam> params = new ArrayList<SqlParam>();
 				ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
 						sd,
@@ -256,7 +256,7 @@ public class Items extends Application {
 						localisation,
 						language,
 						sId,
-						surveyIdent,
+						sIdent,
 						request.getRemoteUser(),
 						null,	// Roles to apply
 						parent,
@@ -441,7 +441,7 @@ public class Items extends Application {
 				RoleManager rm = new RoleManager(localisation);
 				ArrayList<SqlFrag> rfArray = null;
 				if(!superUser) {
-					rfArray = rm.getSurveyRowFilter(sd, sId, request.getRemoteUser());
+					rfArray = rm.getSurveyRowFilter(sd, sIdent, request.getRemoteUser());
 					String rfString = "";
 					if(rfArray.size() > 0) {
 						for(SqlFrag rf : rfArray) {

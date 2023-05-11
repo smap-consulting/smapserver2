@@ -62,7 +62,7 @@ import org.smap.sdal.model.SqlDesc;
 public class XLSXReportsManager {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSXReportsManager.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	ResourceBundle localisation = null;
@@ -81,6 +81,7 @@ public class XLSXReportsManager {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			int sId, 
+			String sIdent,
 			String filename, 
 			boolean split_locn, 
 			boolean get_acc_alt,
@@ -201,6 +202,7 @@ public class XLSXReportsManager {
 						cResults,
 						localisation,
 						sId,
+						sIdent,
 						fId,
 						language, 
 						SmapExportTypes.XLSX, 

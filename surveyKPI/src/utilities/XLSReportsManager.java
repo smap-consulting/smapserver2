@@ -25,7 +25,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.poi.xssf.usermodel.*;
@@ -50,7 +49,7 @@ import org.smap.sdal.model.SurveyViewDefn;
 public class XLSReportsManager {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSReportsManager.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	

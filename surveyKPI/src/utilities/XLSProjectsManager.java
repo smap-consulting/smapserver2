@@ -35,11 +35,10 @@ import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.model.Project;
 
 
-
 public class XLSProjectsManager {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSProjectsManager.class.getName());
 	
 	Workbook wb = null;
 	int rowNumber = 1;		// Heading row is 0

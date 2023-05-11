@@ -587,6 +587,7 @@ public class SubscriberBatch {
 											columns,
 											urlprefix,
 											sId,
+											surveyIdent,
 											0,				// SubForm Id
 											topForm.tableName,
 											0,				// parkey ??
@@ -1592,7 +1593,7 @@ public class SubscriberBatch {
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				String userIdent = rs.getString("ident");
-				Action action = gson.fromJson(rs.getString("action_details"), Action.class);
+				Action action = GeneralUtilityMethods.getAction(sd, gson, rs.getString("action_details"));
 				int oId = rs.getInt("o_id");
 				
 				// Record the expiry of this action

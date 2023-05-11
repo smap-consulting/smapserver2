@@ -95,14 +95,14 @@ public class ActionManager {
 	 * Apply actions resulting from a change to managed forms
 	 */
 	public void applyManagedFormActions(@Context HttpServletRequest request, Connection sd, TableColumn tc, int oId,
-			int sId, int pId, String groupSurvey, int prikey, int priority, String value, ResourceBundle localisation)
+			String sIdent, int pId, String groupSurvey, int prikey, int priority, String value, ResourceBundle localisation)
 			throws Exception {
 
 		for (int i = 0; i < tc.actions.size(); i++) {
 			Action a = tc.actions.get(i);
 
 			// Add the action specific settings
-			a.sId = sId;
+			a.surveyIdent = sIdent;
 			a.pId = pId;
 			a.groupSurvey = groupSurvey;
 			a.prikey = prikey;
@@ -153,7 +153,8 @@ public class ActionManager {
 
 		Action a = null;
 
-		String sql = "select action_details from users " + "where " + "temporary = true " + "and ident = ?";
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		String sql = "select action_details from users where temporary = true and ident = ?";
 		PreparedStatement pstmt = null;
 
 		try {
@@ -163,7 +164,10 @@ public class ActionManager {
 			ResultSet rs = pstmt.executeQuery();
 
 			if (rs.next()) {
-				a = new Gson().fromJson(rs.getString(1), Action.class);
+				String actionString = rs.getString(1);
+				if(actionString != null) {
+					a = GeneralUtilityMethods.getAction(sd, gson, rs.getString(1));
+				}
 			}
 		} finally {
 			try {
@@ -367,7 +371,7 @@ public class ActionManager {
 	 */
 	public Response processUpdate(
 			HttpServletRequest request, Connection sd, Connection cResults, String userIdent,
-			int sId, String groupSurvey, String updatesString) {
+			int sId, String sIdent, String groupSurvey, String updatesString) {
 
 		Response response = null;
 
@@ -499,7 +503,7 @@ public class ActionManager {
 					if (priority < 0) {
 						priority = getPriority(cResults, f.tableName, u.prikey);
 					}
-					applyManagedFormActions(request, sd, tc, oId, sId, pId, groupSurvey, u.prikey, priority, u.value,
+					applyManagedFormActions(request, sd, tc, oId, sIdent, pId, groupSurvey, u.prikey, priority, u.value,
 							localisation);
 				}
 				
@@ -883,7 +887,7 @@ public class ActionManager {
 	/*
 	 * Get temporary users
 	 */
-	public ArrayList<User> getTemporaryUsers(Connection sd, int o_id, String action, int sId, int pId) throws SQLException {
+	public ArrayList<User> getTemporaryUsers(Connection sd, int o_id, String action, String sIdent, int pId) throws SQLException {
 		
 		String sql = "select id,"
 				+ "ident, "
@@ -912,7 +916,7 @@ public class ActionManager {
 				user.id = rs.getInt("id");
 				user.ident = rs.getString("ident");
 				user.name = rs.getString("name");				
-				Action a = gson.fromJson(rs.getString("action_details"), Action.class);
+				Action a = GeneralUtilityMethods.getAction(sd, gson, rs.getString("action_details"));
 				
 				// Filter out non matching actions
 				if(action != null && !action.equals("none") && (a == null || a.action == null)) {
@@ -925,8 +929,8 @@ public class ActionManager {
 					}			
 				}
 				
-				// Filter out non matching surveys when survey Id specified
-				if(sId > 0 && (a == null || a.sId != sId)) {
+				// Filter out non matching surveys when survey Ident specified
+				if(sIdent != null && (a == null || !sIdent.equals(a.surveyIdent))) {
 					continue;
 				}
 				

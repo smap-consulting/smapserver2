@@ -50,6 +50,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
@@ -126,6 +127,8 @@ public class XFormData {
 		
 		PreparedStatement pstmt = null;
 
+		String tz = "UTC";
+		
 		try {
 			sd = SDDataSource.getConnection("surveyMobileAPI-XFormData");
 			cResults = ResultsDataSource.getConnection("surveyMobileAPI-XFormData");
@@ -366,8 +369,8 @@ public class XFormData {
 			}
 			
 			// Get the action if it exists
-			UserManager um = new UserManager(localisation);
-			Action action = um.getActionDetails(sd, user);
+			ActionManager am = new ActionManager(localisation, tz);
+			Action action = am.getAction(sd, user);
 
 			// Write the upload event
 			UploadEvent ue = new UploadEvent();
@@ -424,6 +427,7 @@ public class XFormData {
 			 * Process temporary user uploads 
 			 * who can only submit one result then delete that temporary user
 			 */
+			UserManager um = new UserManager(localisation);
 			if(action != null) {
 				// If this is for a temporary user then process the Action Details
 				if(action.single) {

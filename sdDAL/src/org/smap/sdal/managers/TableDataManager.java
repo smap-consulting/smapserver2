@@ -76,6 +76,7 @@ public class TableDataManager {
 			ArrayList<TableColumn> columns,
 			String urlprefix, 
 			int sId, 
+			String sIdent,
 			int fId,
 			String table_name, 
 			int parkey, 
@@ -224,9 +225,9 @@ public class TableDataManager {
 			if (!superUser) {			
 				
 				if(uIdent != null) {
-					rfArray = rm.getSurveyRowFilter(sd, sId, uIdent);
+					rfArray = rm.getSurveyRowFilter(sd, sIdent, uIdent);
 				} else if(roles != null) {
-					rfArray = rm.getSurveyRowFilterRoleList(sd, sId, roles);
+					rfArray = rm.getSurveyRowFilterRoleList(sd, sIdent, roles);
 				}
 				
 				if (rfArray.size() > 0) {

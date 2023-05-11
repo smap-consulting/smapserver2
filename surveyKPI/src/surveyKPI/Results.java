@@ -52,7 +52,6 @@ import com.google.gson.reflect.TypeToken;
 import utilities.FeatureInfo;
 import utilities.OptionInfo;
 import utilities.QuestionInfo;
-import utilities.SurveyInfo;
 
 import java.lang.reflect.Type;
 import java.sql.*;
@@ -258,9 +257,10 @@ public class Results extends Application {
 			}
 	
 			/*
-			 * Get Survey meta data
+			 * Get information about the survey
 			 */
-			SurveyInfo survey = new SurveyInfo(sId, sd);
+			String displayName = GeneralUtilityMethods.getSurveyName(sd, sId);
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			
 			/*
 			 * Add the the main question to the array of questions
@@ -332,7 +332,7 @@ public class Results extends Application {
 			boolean hasRbacRowFilter = false;
 			ArrayList<SqlFrag> rfArray = null;
 			if(!superUser) {
-				rfArray = rm.getSurveyRowFilter(sd, sId, request.getRemoteUser());
+				rfArray = rm.getSurveyRowFilter(sd, sIdent, request.getRemoteUser());
 				StringBuffer rfString = new StringBuffer("");
 				if(rfArray.size() > 0) {
 					for(SqlFrag rf : rfArray) {
@@ -463,7 +463,7 @@ public class Results extends Application {
 				featureCollection.put("question", aQ.getLabel());
 			}
 			featureCollection.put("qtype", aQ.getType());
-			featureCollection.put("survey", survey.getDisplayName());
+			featureCollection.put("survey", displayName);
 			featureCollection.put("cols", columns);
 			featureCollection.put("types", types);
 			if(aQ.getUnits() != null) {
