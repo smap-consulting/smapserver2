@@ -645,7 +645,7 @@ public class MailoutManager {
 		
 		String docURL = null;
 		if(msg.actionLink != null) {
-			docURL = msg.actionLink;
+			docURL = "https://" + server + "/webForm" + msg.actionLink;
 		}
 		int surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
 		
