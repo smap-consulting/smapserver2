@@ -375,7 +375,7 @@ public class RoleManager {
 	}
 	
 	/*
-	 * Update a survey link
+	 * Update a survey role or the link between a survey and a role
 	 */
 	public int updateSurveyLink(Connection sd, int sId, int rId, int linkId, boolean enabled) throws SQLException {
 		

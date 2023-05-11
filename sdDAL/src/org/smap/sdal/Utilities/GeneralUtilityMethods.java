@@ -1021,7 +1021,7 @@ public class GeneralUtilityMethods {
 				+ "from users u, user_group ug " 
 				+ "where u.ident = ? "
 				+ "and u.id = ug.u_id " 
-				+ "and (ug.g_id = 6 or ug.g_id = 4)";
+				+ "and (ug.g_id = 6 or ug.g_id = 4)";  // Security user or org user
 
 		PreparedStatement pstmt = null;
 
@@ -10746,6 +10746,37 @@ public class GeneralUtilityMethods {
 		}
 		
 		return idx;
+	}
+	
+	/*
+	 * Return true if the survey bundle has roles
+	 */
+	public static boolean bundleHasRoles(Connection sd, String user, String bundleSurveyIdent)
+			throws ServerException, AuthorisationException, NotFoundException, SQLException {
+		
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		
+		StringBuffer sql = new StringBuffer("select count(*) from survey_role "
+				+ "where group_survey_ident = ? ");
+				
+		try {		
+			
+			pstmt = sd.prepareStatement(sql.toString());
+			pstmt.setString(1, bundleSurveyIdent);
+			
+			resultSet = pstmt.executeQuery();
+			if(resultSet.next()) {
+				count = resultSet.getInt(1);
+			}
+			
+		}  finally {
+			if(resultSet != null) {try{resultSet.close();}catch(Exception e) {}};
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}};
+		}
+		
+		return count > 0;
 	}
 
 	private static int getManifestParamStart(String property) {
