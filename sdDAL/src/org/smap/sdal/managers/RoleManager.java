@@ -383,7 +383,9 @@ public class RoleManager {
 		int newLinkId = linkId;
 		
 		try {
-			String sqlNew = "insert into survey_role (s_id, r_id, enabled) values (?, ?, ?)";
+			String sqlNew = "insert into survey_role (s_id, r_id, enabled,group_survey_ident) "
+					+ "values (?, ?, ?, (select group_survey_ident from survey s where ? = s.s_id))";
+			
 			String sqlExisting = "update survey_role "
 					+ "set enabled = ? "
 					+ "where id = ? "
@@ -399,6 +401,7 @@ public class RoleManager {
 				pstmt.setInt(1, sId);
 				pstmt.setInt(2, rId);
 				pstmt.setBoolean(3, enabled);	
+				pstmt.setInt(4, sId);
 			}
 			
 			log.info("Get update survey roles: " + pstmt.toString());
