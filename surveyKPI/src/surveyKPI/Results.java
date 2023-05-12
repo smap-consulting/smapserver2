@@ -608,7 +608,8 @@ public class Results extends Application {
 						if(groupValue != null && groupValue.trim().length() > 0) {
 							matchingGroups.add(timeValue + groupValue);
 						}					
-					} else if(group.getType().equals("string") || group.getType().equals("int") || group.getType().equals("calculate")) {
+					} else if(group.getType().equals("string") || group.getType().equals("int") || group.getType().equals("calculate")
+							|| group.getType().equals("note")) {
 						groupValue = resultSet.getString(group.getColumnName());
 						if(groupValue != null  && groupValue.trim().length() > 0) {
 							matchingGroups.add(timeValue + groupValue);
