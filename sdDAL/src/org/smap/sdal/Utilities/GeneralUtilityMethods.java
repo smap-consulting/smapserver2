@@ -10791,8 +10791,10 @@ public class GeneralUtilityMethods {
 			a = gson.fromJson(action_details, Action.class);
 			
 			// Check that this action does not reference a survey using survey ID
-			if(a.surveyIdent == null && a.sId > 0) {
-				a.surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, a.sId);
+			if(a != null) {
+				if(a.surveyIdent == null && a.sId > 0) {
+					a.surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, a.sId);
+				}
 			}
 		}
 		
