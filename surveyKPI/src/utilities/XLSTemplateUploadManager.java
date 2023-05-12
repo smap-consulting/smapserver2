@@ -636,15 +636,6 @@ public class XLSTemplateUploadManager {
 					// Get the headers for filters
 					for(String h : choicesHeader.keySet()) {
 						h = h.trim();
-						/*
-						 * Languages can contain spaces so this check is wrong
-						 *
-						if(h.contains(" ")) {
-							String msg = localisation.getString("tu_invf");
-							msg = msg.replace("%s1", h);
-							throw new ApplicationException(msg);
-						}
-						*/
 						if(h.equals("list_name")
 								|| h.equals("name")
 								|| h.equals("label")
@@ -662,6 +653,7 @@ public class XLSTemplateUploadManager {
 							continue;
 						}
 						// The rest must be filter columns
+						validateUserSpecifiedHeader("choices", h);
 						choiceFilterHeader.put(h, choicesHeader.get(h));
 					}
 				
@@ -1336,6 +1328,15 @@ public class XLSTemplateUploadManager {
 			warnings.add(new ApplicationWarning(e.getMessage()));
 		}
 		return i + 1;
+	}
+	
+	private void validateUserSpecifiedHeader(String worksheet, String h) throws ApplicationException {
+		if(h.contains(":")) {
+			String msg = localisation.getString("tu_ih");
+			msg = msg.replace("%s1", h);
+			msg = msg.replace("%s2", worksheet);
+			throw new ApplicationException(msg);
+		}
 	}
 	
 	private void validateQuestion(Question q, int rowNumber, int formIndex) throws Exception {
