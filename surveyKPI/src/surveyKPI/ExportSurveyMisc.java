@@ -179,6 +179,7 @@ public class ExportSurveyMisc extends Application {
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 				String surveyName = GeneralUtilityMethods.getSurveyName(sd, targetId);
+				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, targetId);
 				
 				/*
 				 * Get the name of the database
@@ -232,6 +233,7 @@ public class ExportSurveyMisc extends Application {
 						connectionResults,
 						localisation,
 						targetId,
+						sIdent,
 						fId,
 						language, 
 						format, 

@@ -55,7 +55,7 @@ import org.smap.sdal.model.QuestionLite;
 public class TDHReportsManager {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(TDHReportsManager.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	ResourceBundle localisation = null;

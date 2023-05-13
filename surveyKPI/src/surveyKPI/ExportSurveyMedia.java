@@ -164,6 +164,7 @@ public class ExportSurveyMedia extends Application {
 				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				
 				/*
 				 * Get the name of the database
@@ -231,6 +232,7 @@ public class ExportSurveyMedia extends Application {
 						cResults,
 						localisation,
 						sId,
+						sIdent,
 						mediaQInfo.getFId(),
 						language, 
 						"media", 

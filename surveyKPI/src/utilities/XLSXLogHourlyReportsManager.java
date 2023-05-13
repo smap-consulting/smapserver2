@@ -50,7 +50,7 @@ import org.smap.sdal.model.HourlyLogSummaryItem;
 public class XLSXLogHourlyReportsManager {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSXLogHourlyReportsManager.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	ResourceBundle localisation = null;

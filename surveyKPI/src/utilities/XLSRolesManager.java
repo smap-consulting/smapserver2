@@ -39,7 +39,7 @@ import org.smap.sdal.model.Role;
 public class XLSRolesManager {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSRolesManager.class.getName());
 	
 	Workbook wb = null;
 	int rowNumber = 1;		// Heading row is 0

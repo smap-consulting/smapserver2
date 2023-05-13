@@ -21,7 +21,7 @@ public class Action {
 	public Instance initialData;
 	
 	// Attributes specific to an action type
-	public int sId;
+	public int sId;				// deprecate this has been replaced by surveyIdent for newly created actions
 	public String surveyName;
 	public String surveyIdent;
 	public int pId;

@@ -68,7 +68,7 @@ import model.MediaResponse;
 public class XLSXAdminReportsResourceUsage {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSXAdminReportsResourceUsage.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	ResourceBundle localisation = null;

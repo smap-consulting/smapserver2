@@ -52,7 +52,8 @@ public class QueryGenerator {
 			Connection sd, 
 			Connection connectionResults, 
 			ResourceBundle localisation,
-			int sId, 
+			int sId,
+			String sIdent,
 			int fId, 
 			String language, 
 			String format,
@@ -262,7 +263,7 @@ public class QueryGenerator {
 			ArrayList<SqlFrag> rfArray = null;
 			RoleManager rm = new RoleManager(localisation);
 			if(!superUser) {
-				rfArray = rm.getSurveyRowFilter(sd, sId, user);
+				rfArray = rm.getSurveyRowFilter(sd, sIdent, user);
 				if(rfArray.size() > 0) {
 					String rFilter = rm.convertSqlFragsToSql(rfArray);
 					if(rFilter.length() > 0) {

@@ -713,10 +713,10 @@ public class ManagedForms extends Application {
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			int pId = GeneralUtilityMethods.getProjectId(sd, sId);
-			
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			ActionManager am = new ActionManager(localisation, tz);
 			Action action = new Action("respond");
-			action.sId = sId;
+			action.surveyIdent = sIdent;
 			action.groupSurvey = groupSurvey;
 			action.prikey = prikey;
 			action.pId = pId;

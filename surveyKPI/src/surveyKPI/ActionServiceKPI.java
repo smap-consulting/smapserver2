@@ -108,8 +108,7 @@ public class ActionServiceKPI extends Application {
 			}
 			
 			// Authorisation - Access Don't validate user rights as this is for an anonymous report
-			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, a.sId);
-			auth.surveyExists(sd, sIdent);
+			auth.surveyExists(sd, a.surveyIdent);
 			// End Authorisation
 
 			// 3. Get parameters
@@ -164,8 +163,9 @@ public class ActionServiceKPI extends Application {
 			}
 			
 			// Default to the top level form
+			int sId = GeneralUtilityMethods.getSurveyId(sd, a.surveyIdent);
 			if(fId == 0) {
-				Form f = GeneralUtilityMethods.getTopLevelForm(sd, a.sId);
+				Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 				fId = f.id;
 			}
 			
@@ -178,7 +178,8 @@ public class ActionServiceKPI extends Application {
 						userIdent,
 						request,
 						response,
-						a.sId,
+						sId,
+						a.surveyIdent,
 						a.name,		// File name
 						split_locn,
 						meta,		// Get altitude and location
@@ -203,7 +204,8 @@ public class ActionServiceKPI extends Application {
 						true,		// Temporary User
 						request, 
 						response, 
-						a.sId, 
+						sId, 
+						a.surveyIdent,
 						a.filename, 
 						landscape, 
 						language, 

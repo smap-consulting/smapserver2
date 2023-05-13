@@ -57,7 +57,7 @@ import org.smap.sdal.model.UserGroup;
 public class XLSXAdminReportsManagerFormAccess {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSXAdminReportsManagerFormAccess.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	ResourceBundle localisation = null;

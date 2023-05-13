@@ -40,13 +40,10 @@ import com.google.gson.GsonBuilder;
 
 import utilities.OptionInfo;
 import utilities.QuestionInfo;
-import utilities.SurveyInfo;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 

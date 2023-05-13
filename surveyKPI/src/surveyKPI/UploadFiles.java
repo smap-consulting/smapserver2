@@ -495,7 +495,7 @@ public class UploadFiles extends Application {
 		String user = request.getRemoteUser();
 		String action = null;
 		int existingSurveyId = 0;	// The ID of a survey that is being replaced
-		String groupSurveyIdent = null;
+		String bundleSurveyIdent = null;
 
 		fileItemFactory.setSizeThreshold(5*1024*1024); 
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
@@ -517,6 +517,16 @@ public class UploadFiles extends Application {
 			String tz = "UTC";
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
+			
+			
+			boolean superUser = false;
+			try {
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			} catch (Exception e) {
+			}
+			
+			// Authorise the user
+			auth.isAuthorised(sd, request.getRemoteUser());
 			
 			/*
 			 * Parse the request
@@ -540,22 +550,24 @@ public class UploadFiles extends Application {
 						projectId = Integer.parseInt(item.getString());
 						log.info("Project: " + projectId);
 						
-						// Authorisation - Access
 						if(projectId < 0) {
 							throw new Exception("No project selected");
 						} else {
-							auth.isAuthorised(sd, request.getRemoteUser());
+							// Authorise access to project
 							auth.isValidProject(sd, request.getRemoteUser(), projectId);
 						}
-						// End Authorisation
 						
 					} else if(item.getFieldName().equals("surveyId")) {
 						try {
+							// Authorise access to existing survey
 							surveyId = Integer.parseInt(item.getString());
+							if(surveyId > 0) {
+								auth.isValidSurvey(sd, request.getRemoteUser(), surveyId, false, superUser);	// Check the user has access to the survey
+							}
 						} catch (Exception e) {
 							
 						}
-						log.info("Add to survey group: " + surveyId);
+						log.info("Add to bundle: " + surveyId);
 						
 					} else if(item.getFieldName().equals("action")) {						
 						action = item.getString();
@@ -568,12 +580,6 @@ public class UploadFiles extends Application {
 					fileItem = (FileItem) item;
 				}
 			} 
-			
-			boolean superUser = false;
-			try {
-				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-			} catch (Exception e) {
-			}
 			
 			// Get the file type from its extension
 			fileName = fileItem.getName();
@@ -604,15 +610,27 @@ public class UploadFiles extends Application {
 			
 			if(surveyId > 0) {
 				
+				/*
+				 * Either a survey is being replaced, in which case the action is "replace"
+				 * or a survey is being added to a bundle in which case the action is "add"
+				 */
 				// Hack.  Because the client is sending surveyId's instead of idents we need to get the latest
 				// survey id or we risk updating an old version
 				surveyId = GeneralUtilityMethods.getLatestSurveyId(sd, surveyId);
 				
 				merge = true;
-				groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, surveyId);
-				groupForms = sm.getGroupForms(sd, groupSurveyIdent);
-				questionNames = sm.getGroupQuestionsMap(sd, groupSurveyIdent, null, false);	
-				optionNames = sm.getGroupOptions(sd, groupSurveyIdent);
+				bundleSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, surveyId);
+				groupForms = sm.getGroupForms(sd, bundleSurveyIdent);
+				questionNames = sm.getGroupQuestionsMap(sd, bundleSurveyIdent, null, false);	
+				optionNames = sm.getGroupOptions(sd, bundleSurveyIdent);
+				
+				/*
+				 * Check that the bundle of the new / replaced survey does not have roles
+				 * If it does only the super user can add a new or replace a survey
+				 */
+				if(!superUser && GeneralUtilityMethods.bundleHasRoles(sd, request.getRemoteUser(), bundleSurveyIdent)) {
+					throw new ApplicationException(localisation.getString("tu_roles"));
+				}
 			}
 			
 			if(action == null) {
@@ -683,7 +701,7 @@ public class UploadFiles extends Application {
 			 */
 			if(surveyId > 0) {
 				if(!action.equals("replace")) {
-					s.groupSurveyIdent = groupSurveyIdent;
+					s.groupSurveyIdent = bundleSurveyIdent;
 					
 				} else {
 					// Set the group survey ident to the same value as the original survey

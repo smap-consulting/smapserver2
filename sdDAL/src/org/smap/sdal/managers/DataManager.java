@@ -266,6 +266,7 @@ public class DataManager {
 					columns,
 					urlprefix,
 					s.id,
+					s.ident,
 					0,			// SubForm Id - Not required
 					form.tableName,
 					parkey,

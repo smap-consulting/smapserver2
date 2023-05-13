@@ -631,8 +631,8 @@ public class MessagingManagerApply {
 				+ "and ug.g_id = 3 "			// enum
 				+ "and s.p_id = up.p_id "
 				+ "and s.s_id = ? and not u.temporary "
-				+ "and ((s.s_id not in (select s_id from survey_role where enabled = true)) or "
-				+ " (s.s_id in (select s_id from users ux, user_role ur, survey_role sr "
+				+ "and ((s.ident not in (select survey_ident from survey_role where enabled = true)) or "
+				+ " (s.ident in (select sr.survey_ident from users ux, user_role ur, survey_role sr "
 				+ "where ux.ident = u.ident and sr.enabled = true and ux.id = ur.u_id and ur.r_id = sr.r_id)))";
 
 		PreparedStatement pstmt = null;

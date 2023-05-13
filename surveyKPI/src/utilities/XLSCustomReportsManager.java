@@ -45,7 +45,7 @@ import org.smap.sdal.model.Role;
 public class XLSCustomReportsManager {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSCustomReportsManager.class.getName());
 	
 	Workbook wb = null;
 	int rowNumber = 1;		// Heading row is 0
