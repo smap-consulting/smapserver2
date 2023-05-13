@@ -82,6 +82,7 @@ public class AdminReportUsage extends Application {
 			@QueryParam("survey") boolean bySurvey,
 			@QueryParam("device") boolean byDevice,
 			@QueryParam("inc_temp") boolean includeTemporaryUsers,
+			@QueryParam("inc_alltime") boolean includeAllTimeUsers,
 			@QueryParam("o_id") int oId,
 			@QueryParam("tz") String tz,
 			@Context HttpServletResponse response) {

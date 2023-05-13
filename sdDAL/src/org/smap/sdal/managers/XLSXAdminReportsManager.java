@@ -61,6 +61,7 @@ public class XLSXAdminReportsManager {
 	LogManager lm = new LogManager();		// Application log
 	ResourceBundle localisation = null;
 	boolean includeTemporaryUsers = false;
+	boolean includeAllTime = false;
 	String tz;
 	
 	public XLSXAdminReportsManager(ResourceBundle l, String tz) {
@@ -95,6 +96,7 @@ public class XLSXAdminReportsManager {
 		boolean byProject = GeneralUtilityMethods.getKeyValueBoolean(BackgroundReportsManager.PARAM_BY_PROJECT, params);
 		boolean byDevice = GeneralUtilityMethods.getKeyValueBoolean(BackgroundReportsManager.PARAM_BY_DEVICE, params);
 		includeTemporaryUsers = GeneralUtilityMethods.getKeyValueBoolean(BackgroundReportsManager.PARAM_INC_TEMP, params);
+		includeAllTime = GeneralUtilityMethods.getKeyValueBoolean(BackgroundReportsManager.PARAM_INC_ALLTIME, params);
 		
 		// start validation			
 		if(oId > 0) {
@@ -140,7 +142,9 @@ public class XLSXAdminReportsManager {
 			header.add(localisation.getString("a_device"));
 		}
 		header.add(localisation.getString("ar_usage_month"));
-		header.add(localisation.getString("ar_usage_at"));
+		if(includeAllTime) {
+			header.add(localisation.getString("ar_usage_at"));
+		}
 		
 		getNewReport(sd, tempFile, header, report, byProject, bySurvey, byDevice, year, month,
 				GeneralUtilityMethods.getOrganisationName(sd, oId));
@@ -284,32 +288,33 @@ public class XLSXAdminReportsManager {
 				monthMap.put(ar.userIdent + "::::" + ar.p_id, ar);	// Save map so we can add all time values
 			}
 			
-			// Get the all time
-			pstmtAllTime = sd.prepareStatement(sqlAllTime.toString());
-			pstmtAllTime.setInt(1, oId);
-			if(userIdent != null) {
-				pstmtAllTime.setString(2, userIdent);
-			}
-			log.info("All Time Admin report by project: " + pstmtAllTime.toString());
-			rs = pstmtAllTime.executeQuery();
-			while(rs.next()) {
-						
-				String user = rs.getString("ident");
-				int p_id = rs.getInt("p_id");
-				int allTime = rs.getInt("year");
-				AR ar = monthMap.get(user + "::::" + p_id);
-				if(ar == null) {
-					ar = new AR();
-					ar.userIdent = rs.getString("ident");
-					ar.userName = rs.getString("name");
-					ar.created = rs.getDate("created");
-					ar.p_id = rs.getInt("p_id");
-					ar.project = rs.getString("project_name");
-					ar.usageInPeriod = 0;
-					rows.add(ar);
+			if(includeAllTime) {
+				// Get the all time
+				pstmtAllTime = sd.prepareStatement(sqlAllTime.toString());
+				pstmtAllTime.setInt(1, oId);
+				if(userIdent != null) {
+					pstmtAllTime.setString(2, userIdent);
 				}
-				ar.allTimeUsage = allTime;
-				
+				log.info("All Time Admin report by project: " + pstmtAllTime.toString());
+				rs = pstmtAllTime.executeQuery();
+				while(rs.next()) {
+							
+					String user = rs.getString("ident");
+					int p_id = rs.getInt("p_id");
+					int allTime = rs.getInt("year");
+					AR ar = monthMap.get(user + "::::" + p_id);
+					if(ar == null) {
+						ar = new AR();
+						ar.userIdent = rs.getString("ident");
+						ar.userName = rs.getString("name");
+						ar.created = rs.getDate("created");
+						ar.p_id = rs.getInt("p_id");
+						ar.project = rs.getString("project_name");
+						ar.usageInPeriod = 0;
+						rows.add(ar);
+					}
+					ar.allTimeUsage = allTime;
+				}
 			}
 			
 		} finally {
@@ -328,17 +333,18 @@ public class XLSXAdminReportsManager {
 				+ "ue.user_name as ident, "
 				+ "users.name as name, "
 				+ "ue.p_id as p_id, "
-				+ "ue.s_id as s_id, "
+				+ "ue.ident as survey_ident, "
 				+ "project.name as project_name, "
 				+ "survey.display_name as survey_name, "
 				+ "users.created as created "
 				+ "from users, upload_event ue "
 				+ "left outer join project on project.id = ue.p_id "
-				+ "left outer join survey on survey.s_id = ue.s_id "
+				+ "left outer join survey on survey.ident = ue.ident "
 				+ "where ue.db_status = 'success' "
 				+ "and upload_time >=  ? "		// current month
 				+ "and upload_time < ? "		// next month
 				+ "and users.o_id = ? "
+				+ "and ue.o_id = users.o_id "
 				+ "and users.ident = ue.user_name ");
 		if(!includeTemporaryUsers) {
 			sqlMonth.append("and not users.temporary ");
@@ -346,23 +352,24 @@ public class XLSXAdminReportsManager {
 		if(userIdent != null) {
 			sqlMonth.append("and users.ident = ? ");
 		}
-		sqlMonth.append("group by ue.user_name, users.name, ue.p_id, project.name, ue.s_id, survey.display_name, users.created "
-				+ "order by ue.user_name, ue.p_id, ue.s_id");		
+		sqlMonth.append("group by ue.user_name, users.name, ue.p_id, project.name, ue.ident, survey.display_name, users.created "
+				+ "order by ue.user_name, ue.p_id, ue.ident");		
 		PreparedStatement pstmtMonth = null;
 		
 		StringBuilder sqlAllTime = new StringBuilder("select count(*) as year, "
 				+ "ue.user_name as ident, "
 				+ "users.name as name, "
 				+ "ue.p_id as p_id, "
-				+ "ue.s_id as s_id, "
+				+ "ue.ident as survey_ident, "
 				+ "project.name as project_name, "
 				+ "survey.display_name as survey_name, "
 				+ "users.created as created "
 				+ "from users, upload_event ue "
 				+ "left outer join project on project.id = ue.p_id "
-				+ "left outer join survey on survey.s_id = ue.s_id "
+				+ "left outer join survey on survey.ident = ue.ident "
 				+ "where ue.db_status = 'success' "
 				+ "and users.o_id = ? "
+				+ "and ue.o_id = users.o_id "
 				+ "and users.ident = ue.user_name ");
 		if(!includeTemporaryUsers) {
 			sqlAllTime.append("and not users.temporary ");
@@ -370,8 +377,8 @@ public class XLSXAdminReportsManager {
 		if(userIdent != null) {
 			sqlAllTime.append("and users.ident = ? ");
 		}
-		sqlAllTime.append("group by ue.user_name, users.name, ue.p_id, project.name, ue.s_id, survey.display_name, users.created "
-				+ "order by ue.user_name, ue.p_id, ue.s_id");
+		sqlAllTime.append("group by ue.user_name, users.name, ue.p_id, project.name, ue.ident, survey.display_name, users.created "
+				+ "order by ue.user_name, ue.p_id, ue.ident");
 		PreparedStatement pstmtAllTime = null;
 		
 		try {
@@ -398,42 +405,45 @@ public class XLSXAdminReportsManager {
 				ar.created = rs.getDate("created");
 				ar.p_id = rs.getInt("p_id");
 				ar.project = rs.getString("project_name");
-				ar.s_id = rs.getInt("s_id");
+				ar.sIdent = rs.getString("survey_ident");
 				ar.survey = rs.getString("survey_name");
 				ar.usageInPeriod = rs.getInt("month");
 				rows.add(ar);
-				monthMap.put(ar.userIdent + "::::" + ar.p_id + "::::" + ar.s_id, ar);	// Save map so we can add all time values
+				monthMap.put(ar.userIdent + "::::" + ar.p_id + "::::" + ar.sIdent, ar);	// Save map so we can add all time values
 			}
 			
 			// Get the all time
-			pstmtAllTime = sd.prepareStatement(sqlAllTime.toString());
-			pstmtAllTime.setInt(1, oId);
-			if(userIdent != null) {
-				pstmtAllTime.setString(2, userIdent);
-			}
-			log.info("All Time Admin report by survey: " + pstmtAllTime.toString());
-			rs = pstmtAllTime.executeQuery();
-			while(rs.next()) {
-						
-				String user = rs.getString("ident");
-				int p_id = rs.getInt("p_id");
-				int s_id = rs.getInt("s_id");
-				int allTime = rs.getInt("year");
-				AR ar = monthMap.get(user + "::::" + p_id + "::::" + s_id);
-				if(ar == null) {
-					ar = new AR();
-					ar.userIdent = rs.getString("ident");
-					ar.userName = rs.getString("name");
-					ar.created = rs.getDate("created");
-					ar.p_id = rs.getInt("p_id");
-					ar.project = rs.getString("project_name");
-					ar.s_id = rs.getInt("s_id");
-					ar.survey = rs.getString("survey_name");
-					ar.usageInPeriod = 0;
-					rows.add(ar);
+			
+			if(includeAllTime) {
+				pstmtAllTime = sd.prepareStatement(sqlAllTime.toString());
+				pstmtAllTime.setInt(1, oId);
+				if(userIdent != null) {
+					pstmtAllTime.setString(2, userIdent);
 				}
-				ar.allTimeUsage = allTime;
-				
+				log.info("All Time Admin report by survey: " + pstmtAllTime.toString());
+				rs = pstmtAllTime.executeQuery();
+				while(rs.next()) {
+							
+					String user = rs.getString("ident");
+					int p_id = rs.getInt("p_id");
+					String sIdent = rs.getString("survey_ident");
+					int allTime = rs.getInt("year");
+					AR ar = monthMap.get(user + "::::" + p_id + "::::" + sIdent);
+					if(ar == null) {
+						ar = new AR();
+						ar.userIdent = rs.getString("ident");
+						ar.userName = rs.getString("name");
+						ar.created = rs.getDate("created");
+						ar.p_id = rs.getInt("p_id");
+						ar.project = rs.getString("project_name");
+						ar.sIdent = rs.getString("survey_ident");
+						ar.survey = rs.getString("survey_name");
+						ar.usageInPeriod = 0;
+						rows.add(ar);
+					}
+					ar.allTimeUsage = allTime;
+					
+				}
 			}
 			
 		} finally {
@@ -518,31 +528,33 @@ public class XLSXAdminReportsManager {
 				monthMap.put(ar.userIdent + "::::" + ar.device, ar);	// Save map so we can add all time values
 			}
 			
-			// Get the all time
-			pstmtAllTime = sd.prepareStatement(sqlAllTime.toString());
-			pstmtAllTime.setInt(1, oId);
-			if(userIdent != null) {
-				pstmtAllTime.setString(2, userIdent);
-			}
-			log.info("All Time Admin report by device: " + pstmtAllTime.toString());
-			rs = pstmtAllTime.executeQuery();
-			while(rs.next()) {
-						
-				String user = rs.getString("ident");
-				String device = rs.getString("imei");
-				int allTime = rs.getInt("year");
-				AR ar = monthMap.get(user + "::::" + device);
-				if(ar == null) {
-					ar = new AR();
-					ar.userIdent = rs.getString("ident");
-					ar.userName = rs.getString("name");
-					ar.created = rs.getDate("created");
-					ar.device = rs.getString("imei");
-					ar.usageInPeriod = 0;
-					rows.add(ar);
+			if(includeAllTime) {
+				// Get the all time
+				pstmtAllTime = sd.prepareStatement(sqlAllTime.toString());
+				pstmtAllTime.setInt(1, oId);
+				if(userIdent != null) {
+					pstmtAllTime.setString(2, userIdent);
 				}
-				ar.allTimeUsage = allTime;
-				
+				log.info("All Time Admin report by device: " + pstmtAllTime.toString());
+				rs = pstmtAllTime.executeQuery();
+				while(rs.next()) {
+							
+					String user = rs.getString("ident");
+					String device = rs.getString("imei");
+					int allTime = rs.getInt("year");
+					AR ar = monthMap.get(user + "::::" + device);
+					if(ar == null) {
+						ar = new AR();
+						ar.userIdent = rs.getString("ident");
+						ar.userName = rs.getString("name");
+						ar.created = rs.getDate("created");
+						ar.device = rs.getString("imei");
+						ar.usageInPeriod = 0;
+						rows.add(ar);
+					}
+					ar.allTimeUsage = allTime;
+					
+				}
 			}
 			
 		} finally {
@@ -624,7 +636,7 @@ public class XLSXAdminReportsManager {
 				int allTimeCol = 0;
 				int firstDataRow = rowNumber + 1;
 				for(AR ar : report) {
-					if(ar.usageInPeriod > 0 || ar.allTimeUsage > 0) {
+					if(ar.usageInPeriod > 0 || (includeAllTime && ar.allTimeUsage > 0)) {
 						colNumber = 0;
 						Row row = dataSheet.createRow(rowNumber++);	
 						cell = row.createCell(colNumber++);	// ident
@@ -649,7 +661,7 @@ public class XLSXAdminReportsManager {
 						
 						if(bySurvey) {
 							cell = row.createCell(colNumber++);	// Survey
-							cell.setCellValue(ar.s_id);
+							cell.setCellValue(ar.sIdent);
 							
 							cell = row.createCell(colNumber++);	
 							cell.setCellValue(ar.survey);
@@ -665,9 +677,11 @@ public class XLSXAdminReportsManager {
 						cell = row.createCell(colNumber++);	// Monthly Usage
 						cell.setCellValue(ar.usageInPeriod);
 						
-						allTimeCol = colNumber;
-						cell = row.createCell(colNumber++);	// All time Usage
-						cell.setCellValue(ar.allTimeUsage);
+						if(includeAllTime) {
+							allTimeCol = colNumber;
+							cell = row.createCell(colNumber++);	// All time Usage
+							cell.setCellValue(ar.allTimeUsage);
+						}
 					}
 				}
 				
@@ -684,7 +698,7 @@ public class XLSXAdminReportsManager {
 				}
 				
 				// All time
-				if(allTimeCol > 0) {
+				if(includeAllTime && allTimeCol > 0) {
 					cell = row.createCell(allTimeCol);
 					String colAlpha = getColAlpha(allTimeCol);
 					String formula = "SUM(" + colAlpha + firstDataRow + ":" + colAlpha + (rowNumber - 1) + ")";

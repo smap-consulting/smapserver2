@@ -9,7 +9,7 @@ public class AR {
 	public int p_id;
 	public String project;
 	public String survey;
-	public int s_id;
+	public String sIdent;
 	public String device;
 	public Date created;
 	public int usageInPeriod;
