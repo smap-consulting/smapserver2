@@ -661,7 +661,7 @@ public class Survey {
 				+ "and name = ?";
 		PreparedStatement pstmtGetRole = null;
 		
-		String sqlAssociateSurvey = "insert into survey_role sr (survey_ident, r_id, column_filter, row_filter, "
+		String sqlAssociateSurvey = "insert into survey_role (survey_ident, r_id, column_filter, row_filter, "
 				+ "enabled, group_survey_ident) "
 				+ "values (?, ?, ?, ?, 'true', "
 				+ "(select group_survey_ident from survey s where ? = s.ident))";
@@ -713,6 +713,7 @@ public class Survey {
 				pstmtAssociateSurvey.setString(4, r.row_filter);
 				pstmtAssociateSurvey.setString(5, ident);
 				
+				log.info("Associate survey to roles: " + pstmtAssociateSurvey.toString());
 				pstmtAssociateSurvey.executeUpdate();
 			
 			}
