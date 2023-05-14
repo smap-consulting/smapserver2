@@ -719,7 +719,7 @@ public class SurveyManager {
 			pstmtUpdateSurvey.setString(1, ident);
 			pstmtUpdateSurvey.setString(2,  ident);
 			if(sharedResults) {
-				pstmtUpdateSurvey.setString(3, existingSurveyIdent);
+				pstmtUpdateSurvey.setString(3, bundleSurveyIdent);
 			} else {
 				pstmtUpdateSurvey.setString(3, ident);
 			}
