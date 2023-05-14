@@ -527,7 +527,7 @@ public class Surveys extends Application {
 				msg = msg.replaceAll("%s1", name);
 				throw new ApplicationException(msg);
 			}
-			int sId = sm.createNewSurvey(sd, name, projectId, existing, existingSurveyId, sharedResults, request.getRemoteUser());
+			int sId = sm.createNewSurvey(sd, name, projectId, existing, existingSurveyId, sharedResults, request.getRemoteUser(), superUser);
 			// Get the survey details.  superUser set to true as this user just created the survey so they are effectively a super user for this survey and we can save a database call
 			survey = sm.getById(sd, 
 					cResults,  request.getRemoteUser(), false, sId, true, 

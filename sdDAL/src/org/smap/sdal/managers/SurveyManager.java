@@ -595,7 +595,8 @@ public class SurveyManager {
 			boolean existing,
 			int existingSurveyId,
 			boolean sharedResults,
-			String user
+			String user,
+			boolean superUser
 
 			) throws SQLException, Exception {
 
@@ -611,6 +612,7 @@ public class SurveyManager {
 		boolean existingReadOnlySurvey = false;
 		String existingInstanceName = null;
 		String existingSurveyIdent = null;
+		String bundleSurveyIdent = null;
 		
 		int existingFormId = 0;
 		boolean sdAutoCommitSetFalse = false;
@@ -631,7 +633,8 @@ public class SurveyManager {
 		PreparedStatement pstmtCreateForm = null;
 
 		String sqlGetSource = "select s.display_name, f.f_id, s.meta, s.class, s.key_policy,"
-				+ "s.data_survey, s.oversight_survey, s.read_only_survey, s.instance_name, s.ident "
+				+ "s.data_survey, s.oversight_survey, s.read_only_survey, s.instance_name, s.ident,"
+				+ "s.group_survey_ident "
 				+ "from survey s, form f "
 				+ "where s.s_id = f.s_id "
 				+ "and s.s_id = ? "
@@ -655,8 +658,20 @@ public class SurveyManager {
 					existingReadOnlySurvey = rsGetSource.getBoolean(8);
 					existingInstanceName = rsGetSource.getString(9);
 					existingSurveyIdent = rsGetSource.getString(10);
+					bundleSurveyIdent = rsGetSource.getString(11);
 				}
 			}
+			/*
+			 * Authorisation
+			 * Check that the bundle of the new / replaced survey does not have roles
+			 * If it does only the super user can add a new or replace a survey
+			 */
+			if(sharedResults && !superUser) {							
+				if(GeneralUtilityMethods.bundleHasRoles(sd, user, bundleSurveyIdent)) {
+					throw new ApplicationException(localisation.getString("tu_roles"));
+				}
+			}
+			
 			if(sd.getAutoCommit()) {
 				sdAutoCommitSetFalse = true;
 				log.info("Set autocommit false");

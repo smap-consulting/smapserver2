@@ -447,7 +447,8 @@ public class SurveyResults extends Application {
 							throw new ApplicationException(msg);
 						}
 						
-						int newSurveyId = sm.createNewSurvey(sd, newName, gd.pId, true, gd.sId, false, request.getRemoteUser());	
+						int newSurveyId = sm.createNewSurvey(sd, newName, gd.pId, true, gd.sId, false, 
+								request.getRemoteUser(), superUser);	
 						surveyMaps.add(new SurveyMap(gd.sId, newSurveyId));
 						if(newGroupSurveyIdent == null) {
 							newGroupSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, newSurveyId);
