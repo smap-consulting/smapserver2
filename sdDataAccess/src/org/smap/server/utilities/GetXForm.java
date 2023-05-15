@@ -1648,7 +1648,9 @@ public class GetXForm {
 		try {
 			stm.initData(pstmt, "all", null, null,
 					null,	// expression fragment
-					tz, null, null);
+					tz, 
+					null, 
+					null);
 			line = stm.getLine();
 			while(line != null) {
 				// process line

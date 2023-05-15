@@ -20,7 +20,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 package surveyMobileAPI;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -50,7 +49,6 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.Survey;
-import org.apache.commons.codec.digest.*;
 
 
 

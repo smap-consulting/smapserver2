@@ -657,9 +657,7 @@ public class MyAssignments extends Application {
 									ref.columns = stm.getQuestionNames(survey.id, m.fileName);
 									tr.refSurveys.add(ref);
 								}
-							}
-							
-
+							}		
 						}
 						
 						/*

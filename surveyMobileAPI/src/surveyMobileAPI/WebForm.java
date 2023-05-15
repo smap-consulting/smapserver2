@@ -596,6 +596,7 @@ public class WebForm extends Application {
 
 			// Get the XML of the Form
 			template = new SurveyTemplate(localisation);
+			template.setUser(userIdent);
 			template.readDatabase(survey.id, true);
 			String surveyClass = template.getSurveyClass();
 

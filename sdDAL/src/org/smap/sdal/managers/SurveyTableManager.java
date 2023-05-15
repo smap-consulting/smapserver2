@@ -88,6 +88,7 @@ public class SurveyTableManager {
 	private boolean non_unique_key = false;
 	private boolean chart;
 	private String linked_sIdent;
+	private String requestingUser;
 	private String chart_key;
 	private boolean linked_s_pd = false;
 	
@@ -100,6 +101,7 @@ public class SurveyTableManager {
 		this.sd = sd;
 		this.cResults = cResults;
 		this.localisation = l;
+		this.requestingUser = user;
 		
 		if(oId <= 0) {
 			log.info("************************ Error: Create Survey Table Manager : Organisation id is less than or equal to 0");
@@ -194,11 +196,14 @@ public class SurveyTableManager {
 			String type, 
 			String selection, 
 			ArrayList<String> arguments, 
-			SqlFrag expressionFrag,		// A more general approach than using "whereColumns". The latter should probably be deprecated
+			SqlFrag expressionFrag,		// The expression in a lookup or search
 			String tz,
 			ArrayList<SqlFrag> qArray,
 			ArrayList<SqlFrag> fArray
 			) throws Exception {
+		
+		boolean hasRbacFilter = false;
+		boolean superUser = false;		// Always filter
 		
 		if(sqlDef != null && sqlDef.colNames != null && sqlDef.colNames.size() > 0) {
 			StringBuilder sql = new StringBuilder(sqlDef.sql);
@@ -215,6 +220,24 @@ public class SurveyTableManager {
 					sql.append(selection);
 				}
 			}
+			
+			// RBAC filter
+			ArrayList<SqlFrag> rfArray = null;
+			RoleManager rm = new RoleManager(localisation);
+			if (!superUser && requestingUser != null) {			
+				
+				rfArray = rm.getSurveyRowFilter(sd, linked_sIdent, requestingUser);
+				
+				if (rfArray.size() > 0) {
+					String rFilter = rm.convertSqlFragsToSql(rfArray);
+					if (rFilter.length() > 0) {
+						sql.append(" and ");
+						sql.append(rFilter);
+						hasRbacFilter = true;
+					}
+				}
+			}
+
 
 			sql.append(sqlDef.order_by);
 			String sqlString = sql.toString();
@@ -230,8 +253,8 @@ public class SurveyTableManager {
 			if (fArray != null) {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, fArray, paramCount, tz);
 			}
-			if (sqlDef.hasRbacFilter) {
-				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDef.rfArray, paramCount, tz);
+			if (hasRbacFilter) {
+				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount, tz);
 			}
 			
 			if(expressionFrag != null) {
@@ -729,11 +752,6 @@ public class SurveyTableManager {
 				newSqlDef.hasWhere = true;
 				sql.append(where);
 			}
-
-			// 4. Add the RBAC/Row filter
-			// Add RBAC/Role Row Filter
-			newSqlDef.rfArray = null;
-			newSqlDef.hasRbacFilter = false;
 
 			// If this is a pulldata linked file then order the data by _data_key and then
 			// the primary keys of sub forms

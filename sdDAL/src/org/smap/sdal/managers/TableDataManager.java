@@ -114,7 +114,7 @@ public class TableDataManager {
 		PreparedStatement pstmt = null;
 
 		boolean viewOwnDataOnly = GeneralUtilityMethods.isOnlyViewOwnData(sd, uIdent);
-		boolean viewLinks = GeneralUtilityMethods.hasSecurityGroup(sd, uIdent, Authorise.LINKS_ID);
+		
 		/*
 		 * If the request is for a subform get the join hierarchy up to the top level form
 		 */
