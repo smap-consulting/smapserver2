@@ -147,9 +147,10 @@ public class FormsManifest {
 
 				if(m.type.equals("linked")) {
 					ExternalFileManager efm = new ExternalFileManager(null);
-					filepath = efm.getLinkedPhysicalFilePath(sd, efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent), m.fileName)) + ".csv";
-					//filepath = basepath + "/media/" + sIdent+ "/" + m.fileName;
-					//filepath += ".csv";
+					boolean customUserFile = GeneralUtilityMethods.hasCustomUserReferenceData(sd, m.linkedSurveyIdent);
+					filepath = efm.getLinkedPhysicalFilePath(sd, 
+							efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent, request.getRemoteUser(), customUserFile), m.fileName)) 
+							+ ".csv";
 					m.fileName += ".csv";
 				} else {
 					filepath = m.filePath;

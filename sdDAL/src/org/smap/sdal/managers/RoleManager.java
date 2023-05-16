@@ -447,6 +447,11 @@ public class RoleManager {
 			throw new Exception(localisation.getString("r_mc") + " " + bad);
 		}
 		
+		// if the row filter is emty set it to null
+		if(role.row_filter != null && role.row_filter.trim().length() == 0) {
+			role.row_filter = null;
+		}
+		
 		try {
 			String sql = "update survey_role "
 					+ "set row_filter = ? "
@@ -479,6 +484,9 @@ public class RoleManager {
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		String configString = gson.toJson(role.column_filter);
 		
+		if(configString != null && (configString.trim().length() == 0 || configString.trim().equals("[]"))) {
+			configString = null;
+		}
 		try {
 			String sql = "update survey_role "
 					+ "set column_filter = ? "

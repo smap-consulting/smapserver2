@@ -194,6 +194,7 @@ public class TranslationManager {
 					ManifestValue m = new ManifestValue();
 					m.fileName = manifestList.get(i);
 					m.sId = surveyId;
+					m.linkedSurveyIdent = m.fileName.substring("linked_".length());
 					
 					if(m.fileName.equals("linked_self")) {
 						m.fileName = "linked_" + surveyIdent;

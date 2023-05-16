@@ -16,7 +16,8 @@ public class ManifestValue {
 	public String filePath;
 	public String type;
 	public String text_id;
-	public int sId;
+	public String linkedSurveyIdent;	// The ident of the survey being linked to
+	public int sId;						// The id of the survey doign the linking
 	public int qId;
 	public int oId;
 	public int linkedRecords;	// The number of records in a linked form

@@ -271,7 +271,7 @@ public class MyAssignments extends Application {
 	/*
 	 * Return the list of tasks allocated to the requesting user
 	 */
-	public Response getTasks(HttpServletRequest request, String userName, boolean noProjects, 
+	public Response getTasks(HttpServletRequest request, String userIdent, boolean noProjects, 
 			boolean getOrgs, boolean getLinkedRefDefns, boolean getManifests) throws SQLException {
 
 		Response response = null;
@@ -284,10 +284,10 @@ public class MyAssignments extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, userName);
+		a.isAuthorised(sd, userIdent);
 		// End Authorisation
 
-		int uId = GeneralUtilityMethods.getUserId(sd, userName);
+		int uId = GeneralUtilityMethods.getUserId(sd, userIdent);
 		
 		String host = request.getServerName();
 		String protocol = (request.getLocalPort() == 443) ?  "https://"  : "http://";
@@ -341,7 +341,7 @@ public class MyAssignments extends Application {
 
 		Connection cResults = null;
 
-		int oId = GeneralUtilityMethods.getOrganisationId(sd, userName);
+		int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
 
 		try {
 			// Get the users locale
@@ -412,7 +412,7 @@ public class MyAssignments extends Application {
 	
 			pstmt = sd.prepareStatement(sql.toString());	
 			int paramIndex = 1;
-			pstmt.setString(paramIndex++, userName);
+			pstmt.setString(paramIndex++, userIdent);
 			pstmt.setInt(paramIndex++, oId);
 			if(lat != 0.0 || lon != 0.0) {
 				pstmt.setDouble(paramIndex++, lon);
@@ -504,7 +504,7 @@ public class MyAssignments extends Application {
 						oId,			
 						uId,
 						ft_number_tasks,		// Maximum number of tasks to return
-						userName
+						userIdent
 						);
 				
 				for(TaskFeature task : unassigned.features) {
@@ -575,7 +575,7 @@ public class MyAssignments extends Application {
 			 */
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			ArrayList<org.smap.sdal.model.Survey> surveys = sm.getSurveys(sd,
-					userName,
+					userIdent,
 					false, 
 					false, 
 					0,
@@ -632,17 +632,18 @@ public class MyAssignments extends Application {
 							log.info("Linked file:" + m.fileName);
 		
 							/*
-							 * The file is unique per survey, user roles are ignored due to performance issues of roles to
-							 *  restrict columns and rows per user
+							 * The file is unique per survey unless there are roles on the survey or the reference data from the survey
+							 *  is restricted to the user who submitted the record. 
 							 */
-							dirPath = efm.getLinkedDirPath(basepath, survey.ident);
+							boolean customUserFile = GeneralUtilityMethods.hasCustomUserReferenceData(sd, m.linkedSurveyIdent);
+							dirPath = efm.getLinkedDirPath(basepath, survey.ident, userIdent, customUserFile);
 							logicalFilePath = efm.getLinkedLogicalFilePath(dirPath, m.fileName);
-		
+							
 							// Make sure the destination exists
 							File dir = new File(dirPath);
 							dir.mkdirs();
 		
-							efm.createLinkedFile(sd, cResults, oId, survey.id, m.fileName ,  logicalFilePath, userName, tz, basepath);
+							efm.createLinkedFile(sd, cResults, oId, survey.id, m.fileName ,  logicalFilePath, userIdent, tz, basepath);
 							
 							/*
 							 * Get pulldata definitions so that local data on the device can be searched
@@ -710,7 +711,7 @@ public class MyAssignments extends Application {
 				 * Add any cases assigned to this user
 				 */
 				CaseManager cm = new CaseManager(localisation);
-				ArrayList<Case> cases = cm.getCases(sd, cResults, survey.ident, survey.displayName, survey.groupSurveyIdent, userName, survey.id);
+				ArrayList<Case> cases = cm.getCases(sd, cResults, survey.ident, survey.displayName, survey.groupSurveyIdent, userIdent, survey.id);
 				if(cases.size() > 0) {
 					if(tr.taskAssignments == null) {
 						tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
@@ -771,7 +772,7 @@ public class MyAssignments extends Application {
 					+ "and u.ident = ?");
 
 			pstmtGetSettings = sd.prepareStatement(sql.toString());	
-			pstmtGetSettings.setString(1, userName);
+			pstmtGetSettings.setString(1, userIdent);
 			log.info("Getting settings: " + pstmtGetSettings.toString());
 			resultSet = pstmtGetSettings.executeQuery();
 
@@ -824,7 +825,7 @@ public class MyAssignments extends Application {
 						"order by name ASC;");	
 	
 				pstmtGetProjects = sd.prepareStatement(sql.toString());	
-				pstmtGetProjects.setString(1, userName);
+				pstmtGetProjects.setString(1, userIdent);
 				pstmtGetProjects.setInt(2, oId);
 	
 				log.info("Getting projects: " + pstmtGetProjects.toString());
@@ -858,7 +859,7 @@ public class MyAssignments extends Application {
 			 * Log the request
 			 */
 			UserLocationManager ulm = new UserLocationManager(localisation, tz);
-			ulm.recordRefresh(sd, oId, userName, 
+			ulm.recordRefresh(sd, oId, userIdent, 
 					lat, lon, deviceTime, request.getServerName(), deviceid, appVersion, true);
 			
 			/*

@@ -116,13 +116,19 @@ public class ExternalFileManager {
 	/*
 	 * Get the path  to the current linked file
 	 */
-	public String getLinkedDirPath(String basepath, String sIdent) {
-		return basepath
+	public String getLinkedDirPath(String basepath, String sIdent, String uIdent, boolean customUserFile) {
+		StringBuilder path = new StringBuilder(basepath
 				+ File.separator
 				+ "media" 
-				+ File.separator 
-				+ sIdent
-				+ File.separator;
+				+ File.separator);	
+		path.append(sIdent).append(File.separator);
+		
+		// Check to see if the path is specific to the calling user
+		if(customUserFile) {
+			path.append(uIdent).append(File.separator);
+		}
+		
+		return path.toString();
 	}
 	
 	/*

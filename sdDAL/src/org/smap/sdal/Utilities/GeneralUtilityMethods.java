@@ -10800,6 +10800,36 @@ public class GeneralUtilityMethods {
 		
 		return a;
 	}
+	
+	public static boolean hasCustomUserReferenceData(Connection sd, String sIdent) throws SQLException {
+		
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		
+		String sql = "select count(*) "
+				+ "from survey_role "
+				+ "where enabled "
+				+ "and survey_ident = ? "
+				+ "and (row_filter is not null or column_filter is not null) ";
+
+		try {		
+			
+			pstmt = sd.prepareStatement(sql.toString());
+			pstmt.setString(1, sIdent);
+			
+			log.info("Check for custom reference data: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
+			if(resultSet.next()) {
+				count = resultSet.getInt(1);
+			}
+			
+		}  finally {
+			if(resultSet != null) {try{resultSet.close();}catch(Exception e) {}};
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}};
+		}
+		return count > 0;
+	}
 
 	private static int getManifestParamStart(String property) {
 	
