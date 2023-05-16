@@ -643,7 +643,12 @@ public class MyAssignments extends Application {
 							File dir = new File(dirPath);
 							dir.mkdirs();
 		
-							efm.createLinkedFile(sd, cResults, oId, survey.id, m.fileName ,  logicalFilePath, userIdent, tz, basepath);
+							efm.createLinkedFile(sd, cResults, oId, survey.id, m.fileName ,  
+									logicalFilePath, 
+									userIdent, 
+									tz, 
+									basepath,
+									customUserFile);
 							
 							/*
 							 * Get pulldata definitions so that local data on the device can be searched

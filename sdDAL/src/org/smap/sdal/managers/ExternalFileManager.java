@@ -85,7 +85,8 @@ public class ExternalFileManager {
 	 * Create a linked file
 	 */
 	public boolean createLinkedFile(Connection sd, Connection cRel, int oId, int sId, // The survey that contains the manifest item
-			String filename, String logicalFilePath, String userName, String tz, String basePath) throws Exception {
+			String filename, String logicalFilePath, String userName, String tz, String basePath,
+			boolean customUserFile) throws Exception {
 
 		boolean regenerate = false;
 		
@@ -99,7 +100,7 @@ public class ExternalFileManager {
 			regenerate = stm.testForRegenerateFile(sd, cRel,  sId, logicalFilePath, currentPhysicalFile);
 			if(regenerate) {
 				String newFilePath = getLinkedNewFilePath(sd, logicalFilePath);
-				if(stm.generateCsvFile(cRel, new File(newFilePath + ".csv"), sId, userName, basePath)) {
+				if(stm.generateCsvFile(cRel, new File(newFilePath + ".csv"), sId, userName, basePath, customUserFile)) {
 					updateCurrentPhysicalFile(sd, newFilePath, currentPhysicalFile, sId);
 				}
 			}

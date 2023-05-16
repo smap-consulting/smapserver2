@@ -206,13 +206,15 @@ public class SurveyTableManager {
 		boolean superUser = false;		// Always filter
 		
 		if(sqlDef != null && sqlDef.colNames != null && sqlDef.colNames.size() > 0) {
+			boolean hasWhere = sqlDef.hasWhere;
 			StringBuilder sql = new StringBuilder(sqlDef.sql);
 			
 			if(expressionFrag != null || selection != null) { 
-				if(sqlDef.hasWhere) {
+				if(hasWhere) {
 					sql.append(" and ");
 				} else {
 					sql.append(" where ");
+					hasWhere = true;
 				}
 				if(expressionFrag != null) {
 					sql.append(" ( ").append(expressionFrag.sql).append(")");
@@ -231,7 +233,12 @@ public class SurveyTableManager {
 				if (rfArray.size() > 0) {
 					String rFilter = rm.convertSqlFragsToSql(rfArray);
 					if (rFilter.length() > 0) {
-						sql.append(" and ");
+						if(hasWhere) {
+							sql.append(" and ");
+						} else {
+							sql.append(" where ");
+							hasWhere = true;
+						}
 						sql.append(rFilter);
 						hasRbacFilter = true;
 					}
@@ -916,11 +923,43 @@ public class SurveyTableManager {
 	/*
 	 * Generate a CSV file from the survey reference data
 	 */
-	public boolean generateCsvFile(Connection cResults, File f, int sId, String userName, String basePath) {
+	public boolean generateCsvFile(Connection cResults, File f, int sId, String userIdent, String basePath,
+			boolean customUserFile) {
+		
 		PreparedStatement pstmtData = null;
 		boolean status = false;
+		String tz = "UTC";
+		
 		try {
-			String sql = sqlDef.sql + sqlDef.order_by;			// Escape quotes when passing sql to psql
+			boolean hasRbacFilter = false;
+			StringBuilder sqlBuild = new StringBuilder(sqlDef.sql);
+				
+			// Add RBAC if this CSV file requires it
+			// RBAC filter
+			ArrayList<SqlFrag> rfArray = null;
+			if(customUserFile) {		
+				RoleManager rm = new RoleManager(localisation);
+				if (userIdent != null) {			
+					
+					rfArray = rm.getSurveyRowFilter(sd, linked_sIdent, userIdent);
+					
+					if (rfArray.size() > 0) {
+						String rFilter = rm.convertSqlFragsToSql(rfArray);
+						if (rFilter.length() > 0) {
+							if(sqlDef.hasWhere) {
+								sqlBuild.append(" and ");
+							} else {
+								sqlBuild.append(" where ");
+							}
+							sqlBuild.append(rFilter);
+							hasRbacFilter = true;
+						}
+					}
+				}
+			}
+			
+			sqlBuild.append(sqlDef.order_by);
+			String sql = sqlBuild.toString();					// Escape quotes when passing sql to psql
 			String sqlNoEscapes = sql.replace("\\", "");		// Remove escaping of quotes when used in prepared statement
 			
 			if(sqlDef.colNames.size() == 0) {
@@ -941,6 +980,9 @@ public class SurveyTableManager {
 			} else if (linked_s_pd && non_unique_key) {
 				// 6. Create the file
 				pstmtData = cResults.prepareStatement(sqlNoEscapes);
+				if (hasRbacFilter) {
+					GeneralUtilityMethods.setArrayFragParams(pstmtData, rfArray, 1, tz);
+				}
 				
 				log.info("Get CSV data: " + pstmtData.toString());
 				rs = pstmtData.executeQuery();
@@ -1009,6 +1051,9 @@ public class SurveyTableManager {
 
 				HashMap<String, ArrayList<String>> chartData = new HashMap<> ();
 				pstmtData = cResults.prepareStatement(sqlNoEscapes);
+				if (hasRbacFilter) {
+					GeneralUtilityMethods.setArrayFragParams(pstmtData, rfArray, 1, tz);
+				}
 				
 				if(rs != null) {
 					rs.close();
@@ -1069,6 +1114,9 @@ public class SurveyTableManager {
 				
 			
 				pstmtData = cResults.prepareStatement(sqlNoEscapes);
+				if (hasRbacFilter) {
+					GeneralUtilityMethods.setArrayFragParams(pstmtData, rfArray, 1, tz);
+				}
 				
 				if(rs != null) {
 					rs.close();
@@ -1122,6 +1170,9 @@ public class SurveyTableManager {
 				// Use PSQL to generate the file as it is faster
 				int code = 0;
 				pstmtData = cResults.prepareStatement(sql);
+				if (hasRbacFilter) {
+					GeneralUtilityMethods.setArrayFragParams(pstmtData, rfArray, 1, tz);
+				}
 				
 				String filePath = f.getAbsolutePath();
 				int idx = filePath.indexOf(".csv");
@@ -1155,7 +1206,7 @@ public class SurveyTableManager {
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
-			lm.writeLog(sd, sId, userName, LogManager.ERROR, "Creating CSV file: " + e.getMessage(), 0, null);
+			lm.writeLog(sd, sId, userIdent, LogManager.ERROR, "Creating CSV file: " + e.getMessage(), 0, null);
 			status = false;
 		} finally {
 			if (pstmtData != null) {try {pstmtData.close();} catch (Exception e) {}}
