@@ -934,6 +934,7 @@ public class Surveys extends Application {
 					+ "data_survey = ?, "
 					+ "oversight_survey = ?, "
 					+ "read_only_survey = ?, "
+					+ "my_reference_data = ?, "
 					+ "audit_location_data = ?, "
 					+ "track_changes = ?,"
 					+ "default_logo = ? "
@@ -959,10 +960,11 @@ public class Surveys extends Application {
 			pstmt.setBoolean(14, survey.dataSurvey);
 			pstmt.setBoolean(15, survey.oversightSurvey);
 			pstmt.setBoolean(16, survey.readOnlySurvey);
-			pstmt.setBoolean(17, survey.audit_location_data);
-			pstmt.setBoolean(18, survey.track_changes);
-			pstmt.setString(19, survey.default_logo);
-			pstmt.setInt(20, sId);
+			pstmt.setBoolean(17, survey.myReferenceData);
+			pstmt.setBoolean(18, survey.audit_location_data);
+			pstmt.setBoolean(19, survey.track_changes);
+			pstmt.setString(20, survey.default_logo);
+			pstmt.setInt(21, sId);
 			
 			log.info("Saving survey: " + pstmt.toString());
 			int count = pstmt.executeUpdate();

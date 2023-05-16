@@ -40,6 +40,7 @@ public class Survey {
 	public boolean task_file;				// Set true if this data from a file can be pre-loaded into this survey
 	public boolean timing_data;				// Set true if timing data is to be collected for this survey
 	public boolean audit_location_data;		// Set true if location is to be recorded for each question
+	public boolean myReferenceData;			// Set true if an enumerator can only get reference data they submitted from this survey
 	public boolean track_changes;			// Set true if every change to a question is to be tracked
 	public String surveyClass;
 	public boolean deleted;
@@ -295,6 +296,7 @@ public class Survey {
 				+ "data_survey,"
 				+ "oversight_survey,"
 				+ "read_only_survey,"
+				+ "my_reference_data,"
 				+ "timing_data,"
 				+ "audit_location_data,"
 				+ "track_changes,"
@@ -302,7 +304,7 @@ public class Survey {
 				+ "default_logo,"
 				+ "compress_pdf) "
 				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
@@ -339,12 +341,13 @@ public class Survey {
 			pstmt.setBoolean(19, dataSurvey);
 			pstmt.setBoolean(20, oversightSurvey);
 			pstmt.setBoolean(21, readOnlySurvey);
-			pstmt.setBoolean(22, timing_data);
-			pstmt.setBoolean(23, audit_location_data);
-			pstmt.setBoolean(24, track_changes);
-			pstmt.setBoolean(25, autoTranslate);
-			pstmt.setString(26, default_logo);
-			pstmt.setBoolean(27, compress_pdf);
+			pstmt.setBoolean(22, myReferenceData);
+			pstmt.setBoolean(23, timing_data);
+			pstmt.setBoolean(24, audit_location_data);
+			pstmt.setBoolean(25, track_changes);
+			pstmt.setBoolean(26, autoTranslate);
+			pstmt.setString(27, default_logo);
+			pstmt.setBoolean(28, compress_pdf);
 			pstmt.executeUpdate();
 			
 			// If an ident was not provided then assign a new ident based on the survey id

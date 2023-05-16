@@ -610,3 +610,6 @@ alter table survey_role add column survey_ident text;
 update survey_role sr set survey_ident = (select ident from survey s where s.s_id = sr.s_id) where sr.survey_ident is null;
 CREATE UNIQUE INDEX survey_role_ident_index ON public.survey_role(survey_ident, r_id);
 
+-- Version 23.06
+alter table survey add column my_reference_data boolean default false;
+

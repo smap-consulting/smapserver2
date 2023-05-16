@@ -429,6 +429,7 @@ public class SurveyManager {
 				+ "s.search_local_data, "
 				+ "s.data_survey, "
 				+ "s.oversight_survey, "
+				+ "s.my_reference_data, "
 				+ "s.read_only_survey, "
 				+ "s.audit_location_data, "
 				+ "s.track_changes,"
@@ -516,6 +517,7 @@ public class SurveyManager {
 				s.oversightSurvey = resultSet.getBoolean("oversight_survey");
 				s.readOnlySurvey = resultSet.getBoolean("read_only_survey");
 				s.audit_location_data = resultSet.getBoolean("audit_location_data");
+				s.myReferenceData = resultSet.getBoolean("my_reference_data");
 				s.track_changes = resultSet.getBoolean("track_changes");
 				s.autoTranslate = resultSet.getBoolean("auto_translate");
 				s.default_logo = resultSet.getString("default_logo");
