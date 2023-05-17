@@ -47,6 +47,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
+import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.Survey;
 
@@ -147,9 +148,9 @@ public class FormsManifest {
 
 				if(m.type.equals("linked")) {
 					ExternalFileManager efm = new ExternalFileManager(null);
-					boolean customUserFile = GeneralUtilityMethods.hasCustomUserReferenceData(sd, m.linkedSurveyIdent);
+					CustomUserReference cur = GeneralUtilityMethods.hasCustomUserReferenceData(sd, m.linkedSurveyIdent);
 					filepath = efm.getLinkedPhysicalFilePath(sd, 
-							efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent, request.getRemoteUser(), customUserFile), m.fileName)) 
+							efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent, request.getRemoteUser(), cur.needCustomFile()), m.fileName)) 
 							+ ".csv";
 					m.fileName += ".csv";
 				} else {

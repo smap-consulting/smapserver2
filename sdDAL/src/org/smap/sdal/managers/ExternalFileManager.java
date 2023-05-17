@@ -10,6 +10,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.SqlFrag;
 
 /*****************************************************************************
@@ -86,7 +87,7 @@ public class ExternalFileManager {
 	 */
 	public boolean createLinkedFile(Connection sd, Connection cRel, int oId, int sId, // The survey that contains the manifest item
 			String filename, String logicalFilePath, String userName, String tz, String basePath,
-			boolean customUserFile) throws Exception {
+			CustomUserReference cur) throws Exception {
 
 		boolean regenerate = false;
 		
@@ -100,7 +101,7 @@ public class ExternalFileManager {
 			regenerate = stm.testForRegenerateFile(sd, cRel,  sId, logicalFilePath, currentPhysicalFile);
 			if(regenerate) {
 				String newFilePath = getLinkedNewFilePath(sd, logicalFilePath);
-				if(stm.generateCsvFile(cRel, new File(newFilePath + ".csv"), sId, userName, basePath, customUserFile)) {
+				if(stm.generateCsvFile(cRel, new File(newFilePath + ".csv"), sId, userName, basePath, cur)) {
 					updateCurrentPhysicalFile(sd, newFilePath, currentPhysicalFile, sId);
 				}
 			}

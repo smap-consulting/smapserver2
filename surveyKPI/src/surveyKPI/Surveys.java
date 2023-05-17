@@ -891,21 +891,20 @@ public class Surveys extends Application {
 			sd.setAutoCommit(false);
 			
 			// Get the existing survey display name, plain old name and project id
-			String sqlGet = "select name, display_name, p_id, version, default_logo from survey where s_id = ?";
+			String sqlGet = "select name, display_name, p_id, version from survey where s_id = ?";
 			pstmtGet = sd.prepareStatement(sqlGet);	
 			pstmtGet.setInt(1, sId);
 			
 			String originalDisplayName = null;
 			String originalName = null;
 			int originalProjectId = 0;
-			String originalDefaultLogo = null;
+
 			ResultSet rs = pstmtGet.executeQuery();
 			if(rs.next()) {
 				originalName = rs.getString(1);
 				originalDisplayName = rs.getString(2);
 				originalProjectId = rs.getInt(3);
 				version = rs.getInt(4) + 1;
-				originalDefaultLogo = rs.getString(5);
 			}
 			
 			if(originalName != null) {
@@ -986,6 +985,9 @@ public class Surveys extends Application {
 								+ GeneralUtilityMethods.getProjectName(sd, survey.p_id) 
 						+ ", " + localisation.getString("cr_default_logo") + ": " + survey.default_logo;
 				
+				// Clear any entries in linked_forms for this survey - this is in case the myReferenceData setting has changed
+				GeneralUtilityMethods.clearLinkedForms(sd, sId, localisation);  
+
 				// Write to the change log
 				pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
 				pstmtChangeLog.setInt(1, sId);

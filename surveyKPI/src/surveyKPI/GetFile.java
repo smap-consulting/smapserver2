@@ -45,6 +45,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.FileManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.Template;
 
 /*
@@ -364,9 +365,9 @@ public class GetFile extends Application {
 					baseFileName = filename.substring(0, idx);		// External file management routines assume no extension
 				}
 				String linkedSurveyIdent = baseFileName.substring("linked_".length());
-				boolean customUserFile = GeneralUtilityMethods.hasCustomUserReferenceData(sd, linkedSurveyIdent);
+				CustomUserReference cur = GeneralUtilityMethods.hasCustomUserReferenceData(sd, linkedSurveyIdent);
 				filepath = efm.getLinkedPhysicalFilePath(sd, 
-						efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent, request.getRemoteUser(), customUserFile), baseFileName)) 
+						efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent, request.getRemoteUser(), cur.needCustomFile()), baseFileName)) 
 						+ ".csv";
 				log.info("%%%%%: Referencing: " + filepath);
 			} else {

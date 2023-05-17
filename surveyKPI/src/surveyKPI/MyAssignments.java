@@ -46,6 +46,7 @@ import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.managers.UserLocationManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Case;
+import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.GeometryString;
 import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.MediaFile;
@@ -635,8 +636,8 @@ public class MyAssignments extends Application {
 							 * The file is unique per survey unless there are roles on the survey or the reference data from the survey
 							 *  is restricted to the user who submitted the record. 
 							 */
-							boolean customUserFile = GeneralUtilityMethods.hasCustomUserReferenceData(sd, m.linkedSurveyIdent);
-							dirPath = efm.getLinkedDirPath(basepath, survey.ident, userIdent, customUserFile);
+							CustomUserReference cur = GeneralUtilityMethods.hasCustomUserReferenceData(sd, m.linkedSurveyIdent);
+							dirPath = efm.getLinkedDirPath(basepath, survey.ident, userIdent, cur.needCustomFile());
 							logicalFilePath = efm.getLinkedLogicalFilePath(dirPath, m.fileName);
 							
 							// Make sure the destination exists
@@ -648,7 +649,7 @@ public class MyAssignments extends Application {
 									userIdent, 
 									tz, 
 									basepath,
-									customUserFile);
+									cur);
 							
 							/*
 							 * Get pulldata definitions so that local data on the device can be searched

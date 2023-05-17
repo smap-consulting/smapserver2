@@ -80,6 +80,7 @@ import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.ChoiceList;
 import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.ColValues;
+import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.DistanceMarker;
 import org.smap.sdal.model.FileDescription;
@@ -10801,34 +10802,55 @@ public class GeneralUtilityMethods {
 		return a;
 	}
 	
-	public static boolean hasCustomUserReferenceData(Connection sd, String sIdent) throws SQLException {
+	/*
+	 * Return information that identified whether or not reference data as used by search or pulldata functions) needs to be filtered
+	 */
+	public static CustomUserReference hasCustomUserReferenceData(Connection sd, String sIdent) throws SQLException {
 		
-		ResultSet resultSet = null;
-		PreparedStatement pstmt = null;
-		int count = 0;
+		ResultSet rsRoles = null;
+		ResultSet rsMyRef = null;
+		PreparedStatement pstmtRole = null;
+		PreparedStatement pstmtMyRef = null;
+
+		CustomUserReference cur = new CustomUserReference();
 		
-		String sql = "select count(*) "
+		String sqlRole = "select count(*) "
 				+ "from survey_role "
 				+ "where enabled "
 				+ "and survey_ident = ? "
 				+ "and (row_filter is not null or column_filter is not null) ";
 
+		String sqlMyRef = "select my_reference_data from survey where ident = ?";
+		
 		try {		
 			
-			pstmt = sd.prepareStatement(sql.toString());
-			pstmt.setString(1, sIdent);
+			// Check roles
+			pstmtRole = sd.prepareStatement(sqlRole);
+			pstmtRole.setString(1, sIdent);
 			
-			log.info("Check for custom reference data: " + pstmt.toString());
-			resultSet = pstmt.executeQuery();
-			if(resultSet.next()) {
-				count = resultSet.getInt(1);
+			log.info("Check for use of roles in reference data: " + pstmtRole.toString());
+			rsRoles = pstmtRole.executeQuery();
+			if(rsRoles.next()) {
+				cur.roles = rsRoles.getInt(1) > 0;
 			}
 			
+			// Check roles
+			pstmtMyRef = sd.prepareStatement(sqlMyRef);
+			pstmtMyRef.setString(1, sIdent);
+			
+			rsMyRef = pstmtMyRef.executeQuery();
+			if(rsMyRef.next()) {
+				cur.myReferenceData = rsMyRef.getBoolean(1);
+			}
+
+			
 		}  finally {
-			if(resultSet != null) {try{resultSet.close();}catch(Exception e) {}};
-			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}};
+			if(rsRoles != null) {try{rsRoles.close();}catch(Exception e) {}};
+			if(rsMyRef != null) {try{rsMyRef.close();}catch(Exception e) {}};
+			if(pstmtRole != null) {try{pstmtRole.close();} catch(Exception e) {}};
+			if(pstmtMyRef != null) {try{pstmtMyRef.close();} catch(Exception e) {}};
 		}
-		return count > 0;
+		return cur;
 	}
 
 	private static int getManifestParamStart(String property) {

@@ -20,6 +20,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapServerMeta;
+import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Label;
@@ -924,20 +925,18 @@ public class SurveyTableManager {
 	 * Generate a CSV file from the survey reference data
 	 */
 	public boolean generateCsvFile(Connection cResults, File f, int sId, String userIdent, String basePath,
-			boolean customUserFile) {
+			CustomUserReference cur) {
 		
 		PreparedStatement pstmtData = null;
 		boolean status = false;
 		String tz = "UTC";
 		
 		try {
-			boolean hasRbacFilter = false;
 			StringBuilder sqlBuild = new StringBuilder(sqlDef.sql);
 				
 			// Add RBAC if this CSV file requires it
-			// RBAC filter
 			ArrayList<SqlFrag> rfArray = null;
-			if(customUserFile) {		
+			if(cur.roles) {		
 				RoleManager rm = new RoleManager(localisation);
 				if (userIdent != null) {			
 					
@@ -952,10 +951,19 @@ public class SurveyTableManager {
 								sqlBuild.append(" where ");
 							}
 							sqlBuild.append(rFilter);
-							hasRbacFilter = true;
 						}
 					}
 				}
+			}
+			
+			// Add a filter to only select the users own reference data if this CSV field needs it
+			if(cur.myReferenceData) {
+				if(sqlDef.hasWhere) {
+					sqlBuild.append(" and ");
+				} else {
+					sqlBuild.append(" where ");
+				}
+				sqlBuild.append("_user = ?");
 			}
 			
 			sqlBuild.append(sqlDef.order_by);
@@ -980,9 +988,7 @@ public class SurveyTableManager {
 			} else if (linked_s_pd && non_unique_key) {
 				// 6. Create the file
 				pstmtData = cResults.prepareStatement(sqlNoEscapes);
-				if (hasRbacFilter) {
-					GeneralUtilityMethods.setArrayFragParams(pstmtData, rfArray, 1, tz);
-				}
+				cur.setFilterParams(pstmtData, rfArray, 1, tz, userIdent);
 				
 				log.info("Get CSV data: " + pstmtData.toString());
 				rs = pstmtData.executeQuery();
@@ -1051,9 +1057,7 @@ public class SurveyTableManager {
 
 				HashMap<String, ArrayList<String>> chartData = new HashMap<> ();
 				pstmtData = cResults.prepareStatement(sqlNoEscapes);
-				if (hasRbacFilter) {
-					GeneralUtilityMethods.setArrayFragParams(pstmtData, rfArray, 1, tz);
-				}
+				cur.setFilterParams(pstmtData, rfArray, 1, tz, userIdent);
 				
 				if(rs != null) {
 					rs.close();
@@ -1114,9 +1118,7 @@ public class SurveyTableManager {
 				
 			
 				pstmtData = cResults.prepareStatement(sqlNoEscapes);
-				if (hasRbacFilter) {
-					GeneralUtilityMethods.setArrayFragParams(pstmtData, rfArray, 1, tz);
-				}
+				cur.setFilterParams(pstmtData, rfArray, 1, tz, userIdent);
 				
 				if(rs != null) {
 					rs.close();
@@ -1170,9 +1172,7 @@ public class SurveyTableManager {
 				// Use PSQL to generate the file as it is faster
 				int code = 0;
 				pstmtData = cResults.prepareStatement(sql);
-				if (hasRbacFilter) {
-					GeneralUtilityMethods.setArrayFragParams(pstmtData, rfArray, 1, tz);
-				}
+				cur.setFilterParams(pstmtData, rfArray, 1, tz, userIdent);
 				
 				String filePath = f.getAbsolutePath();
 				int idx = filePath.indexOf(".csv");
