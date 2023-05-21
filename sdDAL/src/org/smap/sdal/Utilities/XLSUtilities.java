@@ -119,7 +119,7 @@ public class XLSUtilities {
 		styles.put("good", style);
 		
 		style = wb.createCellStyle();
-		style.setFillForegroundColor(IndexedColors.ROSE.getIndex());
+		style.setFillForegroundColor(IndexedColors.CORAL.getIndex());
 		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		styles.put("bad", style);
 		styles.put("totals", style);
