@@ -144,6 +144,7 @@ public class Log extends Application {
 	public Response getDataTableLogs(@Context HttpServletRequest request,
 			@QueryParam("draw") int draw,
 			@QueryParam("start") int start,
+			@QueryParam("limit") int limit,
 			@QueryParam("length") int length,
 			@QueryParam("sort") String sort,			// Column Name to sort on
 			@QueryParam("dirn") String dirn				// Sort direction, asc || desc
@@ -175,6 +176,15 @@ public class Log extends Application {
 		}
 		if(dirn.equals("desc") && start == 0) {
 			start = Integer.MAX_VALUE;
+		}
+		
+		// Limit overrides length which is retained for backwards compatability
+		if(limit > 0) {
+			length = limit;
+		}
+		// Set a default limit for the client app of 10,000 records
+		if(length == 0 || length > 10000) {
+			length = 10000;
 		}
 		
 		try {
@@ -390,7 +400,7 @@ public class Log extends Application {
 			
 			sqlSelect += "and l.o_id = ? ";
 			
-			String sqlOrder = "order by l." + sort + " " + dirn + " limit 10000";
+			String sqlOrder = "order by l." + sort + " " + dirn;
 			
 			pstmt = sd.prepareStatement(sql + sqlSelect + sqlOrder);
 			int paramCount = 1;
