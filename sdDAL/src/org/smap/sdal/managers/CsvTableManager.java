@@ -187,7 +187,7 @@ public class CsvTableManager {
 	/*
 	 * Update the table with data from the file
 	 */
-	public void updateTable(File newFile, File oldFile) throws IOException, SQLException {
+	public void updateTable(File newFile, File oldFile) throws Exception {
 
 		PreparedStatement pstmtCreateSeq = null;
 		PreparedStatement pstmtCreateTable = null;
@@ -199,7 +199,14 @@ public class CsvTableManager {
 			csvReader = new CSVReader(readerNew);
 	
 			// Get the column headings from the new file
+			int maxCols = 100;
 			String cols[] = csvReader.readNext();
+			if(cols.length > maxCols) {
+				String msg = localisation.getString("msg_too_many_cols");
+				msg = msg.replace("%s1", String.valueOf(cols.length));
+				msg = msg.replace("%s2", String.valueOf(maxCols));
+				throw new Exception(msg);
+			}
 			headers = new ArrayList<CsvHeader> ();
 			for(String n : cols) {
 				if(n != null && !n.isEmpty()) {
