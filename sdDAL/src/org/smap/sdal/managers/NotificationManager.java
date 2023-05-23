@@ -1075,7 +1075,7 @@ public class NotificationManager {
 				 * Write log entry
 				 */
 				String logTopic;
-				if(status.toLowerCase().equals("error")) {
+				if(status != null && status.toLowerCase().equals("error")) {
 					logTopic = LogManager.NOTIFICATION_ERROR;
 				} else {
 					logTopic = LogManager.NOTIFICATION;
