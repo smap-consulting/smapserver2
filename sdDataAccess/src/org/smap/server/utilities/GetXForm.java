@@ -164,7 +164,14 @@ public class GetXForm {
 			transformer.setOutputProperty(OutputKeys.METHOD, "xml");
 
 			DOMSource source = new DOMSource(outputXML);
-			transformer.transform(source, outStream);
+			log.info("Transform: user: " + user + " survey : " + template.getSurvey().getDisplayName());
+			try {
+				transformer.transform(source, outStream);
+			} catch(Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+				log.info("Transform Error: user: " + user + " survey : " + template.getSurvey().getDisplayName());
+				throw(e);
+			}
 
 			response = outWriter.toString();
 
