@@ -212,15 +212,16 @@ public class UploadFiles extends Application {
 							Files.copy(savedFile.toPath(), oldFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 						}
 
+						// Upload any CSV data into a table
+						// Also checks maximum number of columns
+						if(contentType.equals("text/csv") || fileName.endsWith(".csv")) {
+							putCsvIntoTable(sd, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
+						}
+						
 						item.write(savedFile);  // Save the new file
 
 						// Create thumbnails
 						UtilityMethodsEmail.createThumbnail(fileName, folderPath, savedFile);
-
-						// Upload any CSV data into a table
-						if(contentType.equals("text/csv") || fileName.endsWith(".csv")) {
-							putCsvIntoTable(sd, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
-						}
 
 						// Create a message so that devices are notified of the change
 						MessagingManager mm = new MessagingManager(localisation);
