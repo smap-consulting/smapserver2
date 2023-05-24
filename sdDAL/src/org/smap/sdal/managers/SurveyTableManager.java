@@ -701,7 +701,7 @@ public class SurveyTableManager {
 							colName = "ST_AsText(" + tableName + "." + colName + ")";
 							newSqlDef.hasGeom = true;
 						} else if(colType.equals("string")) {
-							colName = "replace(" + colName + ", '\"', '''')";	// Remove double quotes from text for csv export
+							colName = "replace(" + colName + ", '\\\"', '\'\'')";	// Remove double quotes from text for csv export
 						}
 						
 					} else if (SmapServerMeta.isServerReferenceMeta(n)) {
