@@ -463,7 +463,7 @@ public class SurveyTableManager {
 			/*
 			 * Get parameters There are three types of linked CSV files generated 
 			 * 1. Parent child records where there can be many records from a sub form that match the
-			 *  key. Filename starts with "linked_s_pd_" (PD_IDENT) 
+			 *  key. Filename starts with "linked_s_pd_" (PD_IDENT) - Deprecate
 			 * 2. Normal lookup where there is only one record that should match a key. Filename starts with
 			 *  "linked_"
 			 * 3. Time series data.  Filename starts with "chart_s"
@@ -700,6 +700,8 @@ public class SurveyTableManager {
 						} else if(colType.equals("geoshape") || colType.equals("geotrace")) {
 							colName = "ST_AsText(" + tableName + "." + colName + ")";
 							newSqlDef.hasGeom = true;
+						} else if(colType.equals("string")) {
+							colName = "replace(" + colName + ", '\"', '''')";	// Remove double quotes from text for csv export
 						}
 						
 					} else if (SmapServerMeta.isServerReferenceMeta(n)) {
