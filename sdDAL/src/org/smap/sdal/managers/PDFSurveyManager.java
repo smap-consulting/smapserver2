@@ -562,7 +562,9 @@ public class PDFSurveyManager {
 					ArrayList<String> matches = new ArrayList<String> ();
 					if(vArray != null) {
 						for(String v : vArray) {
-							matches.add(v);
+							if(v.trim().length() > 0) {
+								matches.add(v);
+							}
 						}
 					}
 					Form form = survey.forms.get(r.fIdx);
