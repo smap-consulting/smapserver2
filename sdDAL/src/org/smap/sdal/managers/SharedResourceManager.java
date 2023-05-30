@@ -66,12 +66,19 @@ public class SharedResourceManager {
 		MediaInfo mediaInfo = new MediaInfo();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
-		// Get the file type from its extension
-		String fileName = fileItem.getName();
-		if(fileName == null || fileName.trim().length() == 0) {
+		// Validate the resource name
+		if(resourceName == null || resourceName.trim().length() == 0) {
 			throw new ApplicationException(localisation.getString("tu_nfs"));
 		} 
-		String contentType = UtilityMethodsEmail.getContentType(fileName);
+		
+		// Get the file type from the extension of the uploaded file
+		String uploadedFileName = fileItem.getName();
+		String contentType = UtilityMethodsEmail.getContentType(uploadedFileName);
+		
+		String extension = "";
+		if(uploadedFileName.lastIndexOf('.') > 0) {
+			extension = uploadedFileName.substring(uploadedFileName.lastIndexOf('.'));
+		}
 		
 		if(sId > 0) {
 			mediaInfo.setFolder(basePath, sId, null, sd);
@@ -85,7 +92,8 @@ public class SharedResourceManager {
 
 		if(folderPath != null) {		
 			
-			String filePath = folderPath + "/" + fileName;
+			// Change the name of the resource to that specified by the user but keep the extension
+			String filePath = folderPath + "/" + resourceName + extension;
 			File savedFile = new File(filePath);
 			File oldFile = new File (filePath + ".old");
 			
@@ -93,24 +101,24 @@ public class SharedResourceManager {
 			
 			if(savedFile.exists()) {
 				// If this is a CSV file save the old version if it exists so that we can do a diff on it
-				if(contentType.equals("text/csv") || fileName.endsWith(".csv")) {
+				if(contentType.equals("text/csv") || uploadedFileName.endsWith(".csv")) {
 					Files.copy(savedFile.toPath(), oldFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
 					// Upload any CSV data into a table
 					// Also checks maximum number of columns
-					CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, fileName);
+					CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, resourceName);
 					csvMgr.updateTable(savedFile, oldFile);		
 				}
 
 				// Create thumbnails
-				UtilityMethodsEmail.createThumbnail(fileName, folderPath, savedFile);
+				UtilityMethodsEmail.createThumbnail(resourceName, folderPath, savedFile);
 
 				// Create a message so that devices are notified of the change
 				MessagingManager mm = new MessagingManager(localisation);
 				if(sId > 0) {
 					mm.surveyChange(sd, sId, 0);
 				} else {
-					mm.resourceChange(sd, oId, fileName);
+					mm.resourceChange(sd, oId, resourceName);
 				}
 			}
 

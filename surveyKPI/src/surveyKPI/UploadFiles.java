@@ -108,12 +108,12 @@ public class UploadFiles extends Application {
 	 */
 	@POST
 	@Produces("application/json")
-	@Path("/media/single")
+	@Path("/media")
 	public Response uploadSingleSharedResourceFile(
 			@Context HttpServletRequest request) {
 		
 		Response response = null;
-		String connectionString = "CreateXLSForm-uploadSharedResourceFile";
+		String connectionString = "SurveyKPI-uploadSharedResourceFile";
 		
 		log.info("upload shared resource file -----------------------");
 		
@@ -215,7 +215,7 @@ public class UploadFiles extends Application {
 	 */
 	@POST
 	@Produces("application/json")
-	@Path("/media")
+	@Path("/media/deprecate")
 	public Response sendMedia(
 			@QueryParam("getlist") boolean getlist,
 			@QueryParam("survey_id") int sId,
