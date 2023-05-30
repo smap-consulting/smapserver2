@@ -714,7 +714,13 @@ public class SurveyTableManager {
 					} else {
 						if(GeneralUtilityMethods.tableExists(cResults, topForm.tableName)) {
 							// Only report the error if the top level table has been created otherwise probably no data has been submitted and all columns would be unpublished and missing
-							lm.writeLog(sd, sId, null, LogManager.ERROR, n + " " + localisation.getString("imp_nfi"), 0, null);
+							String msg = null;
+							if(localisation != null) {
+								msg = localisation.getString("imp_nfi");
+							} else {
+								msg = "not found in form";
+							}
+							lm.writeLog(sd, sId, null, LogManager.ERROR, n + " " + msg, 0, null);
 						}
 						continue; // Name not found
 					}
