@@ -207,28 +207,21 @@ public class UploadFiles extends Application {
 						File savedFile = new File(filePath);
 						File oldFile = new File (filePath + ".old");
 						
+						item.write(savedFile);  // Save the new file
+						UtilityMethodsEmail.createThumbnail(fileName, folderPath, savedFile);	// Create thumbnails
+						
 						// If this is a CSV file save the old version if it exists so that we can do a diff on it
 						if(savedFile.exists() && (contentType.equals("text/csv") || fileName.endsWith(".csv"))) {
 							Files.copy(savedFile.toPath(), oldFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-						}
-
-						// Upload any CSV data into a table
-						// Also checks maximum number of columns
-						if(contentType.equals("text/csv") || fileName.endsWith(".csv")) {
-							putCsvIntoTable(sd, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
-						}
+							putCsvIntoTable(sd, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);	// Upload any CSV data into a table
 						
-						item.write(savedFile);  // Save the new file
-
-						// Create thumbnails
-						UtilityMethodsEmail.createThumbnail(fileName, folderPath, savedFile);
-
-						// Create a message so that devices are notified of the change
-						MessagingManager mm = new MessagingManager(localisation);
-						if(sId > 0) {
-							mm.surveyChange(sd, sId, 0);
-						} else {
-							mm.resourceChange(sd, oId, fileName);
+							// Create a message so that devices are notified of the change
+							MessagingManager mm = new MessagingManager(localisation);
+							if(sId > 0) {
+								mm.surveyChange(sd, sId, 0);
+							} else {
+								mm.resourceChange(sd, oId, fileName);
+							}
 						}
 
 					} else {
