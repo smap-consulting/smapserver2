@@ -119,6 +119,7 @@ public class UploadFiles extends Application {
 		
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();
 		String resourceName = null;
+		String action = "add";	// By default add
 		int surveyId = -1;
 		FileItem fileItem = null;
 		String user = request.getRemoteUser();
@@ -180,6 +181,10 @@ public class UploadFiles extends Application {
 						}
 						log.info("Upload to survey: " + surveyId);
 						
+					} else if(item.getFieldName().equals("action")) {						
+						action = item.getString();
+						log.info("Action: " + action);
+						
 					} else {
 						log.info("Unknown field name = "+item.getFieldName()+", Value = "+item.getString());
 					}
@@ -190,7 +195,7 @@ public class UploadFiles extends Application {
 					
 			SharedResourceManager srm = new SharedResourceManager(localisation);			
 			String basePath = GeneralUtilityMethods.getBasePath(request);			
-			response = srm.add(sd, surveyId, oId, basePath, user, resourceName, fileItem);
+			response = srm.add(sd, surveyId, oId, basePath, user, resourceName, fileItem, action);
 			
 		} catch(AuthorisationException ex) {
 			log.log(Level.SEVERE,ex.getMessage(), ex);
@@ -1108,7 +1113,7 @@ public class UploadFiles extends Application {
 		
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 		CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, csvFileName);
-		csvMgr.updateTable(csvFile, oldCsvFile);
+		csvMgr.updateTable(csvFile);
 		
 	}
 	

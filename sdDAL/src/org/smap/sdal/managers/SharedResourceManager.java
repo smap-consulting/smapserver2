@@ -50,6 +50,8 @@ public class SharedResourceManager {
 	
 	LogManager lm = new LogManager();		// Application log
 	
+	public static long MAX_FILE_SIZE = 5000000;	// 5 Million Bytes
+	
 	ResourceBundle localisation;
 	
 	public SharedResourceManager(ResourceBundle localisation) {
@@ -58,7 +60,14 @@ public class SharedResourceManager {
 	/*
 	 * Get the limit for a resource
 	 */
-	public Response add(Connection sd, int sId, int oId, String basePath, String user, String resourceName, FileItem fileItem) throws Exception {
+	public Response add(Connection sd, 
+			int sId, 
+			int oId, 
+			String basePath, 
+			String user, 
+			String resourceName, 
+			FileItem fileItem, 
+			String action) throws Exception {
 		
 		String responseCode = "success";
 		StringBuilder responseMsg = new StringBuilder("");
@@ -66,10 +75,7 @@ public class SharedResourceManager {
 		MediaInfo mediaInfo = new MediaInfo();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
-		// Validate the resource name
-		if(resourceName == null || resourceName.trim().length() == 0) {
-			throw new ApplicationException(localisation.getString("tu_nfs"));
-		} 
+
 		
 		// Get the file type from the extension of the uploaded file
 		String uploadedFileName = fileItem.getName();
@@ -94,31 +100,51 @@ public class SharedResourceManager {
 			
 			// Change the name of the resource to that specified by the user but keep the extension
 			String filePath = folderPath + "/" + resourceName + extension;
-			File savedFile = new File(filePath);
-			File oldFile = new File (filePath + ".old");
+			File savedFile = new File(filePath);		
 			
-			fileItem.write(savedFile);  // Save the new file
-			
-			if(savedFile.exists()) {
-				// If this is a CSV file save the old version if it exists so that we can do a diff on it
-				if(contentType.equals("text/csv") || uploadedFileName.endsWith(".csv")) {
-					Files.copy(savedFile.toPath(), oldFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-					// Upload any CSV data into a table
-					// Also checks maximum number of columns
-					CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, resourceName);
-					csvMgr.updateTable(savedFile, oldFile);		
-				}
-
-				// Create thumbnails
-				UtilityMethodsEmail.createThumbnail(resourceName, folderPath, savedFile);
-
-				// Create a message so that devices are notified of the change
-				MessagingManager mm = new MessagingManager(localisation);
-				if(sId > 0) {
-					mm.surveyChange(sd, sId, 0);
+			if(fileItem.getSize() > MAX_FILE_SIZE) {		// Check the size of the file
+				
+				responseCode = "error";
+				String msg = localisation.getString("sr_tl");
+				msg = msg.replace("%s1", String.format("%,d", fileItem.getSize()));
+				msg = msg.replace("%s2", String.format("%,d", MAX_FILE_SIZE));
+				responseMsg = new StringBuilder(msg);
+				
+			} else if(resourceName == null || resourceName.trim().length() == 0) {		// Validate the resource name
+				
+				responseCode = "error";
+				responseMsg = new StringBuilder(localisation.getString("tu_nfs"));
+				
+			} else if(action.equals("add") && savedFile.exists()) {				// Make sure file does not already exist if adding
+				
+				responseCode = "error";
+				String msg = localisation.getString("sr_ae");
+				msg = msg.replace("%s1", resourceName + extension);
+				responseMsg = new StringBuilder(msg);
+				
+			} else {	// Save the new file
+				
+				fileItem.write(savedFile);  			
+				if(savedFile.exists()) {
+					if(contentType.equals("text/csv") || uploadedFileName.endsWith(".csv")) {				
+						// Upload any CSV data into a table, also checks maximum number of columns
+						CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, resourceName);
+						csvMgr.updateTable(savedFile);		
+					} else {
+						// Create thumbnails
+						UtilityMethodsEmail.createThumbnail(resourceName, folderPath, savedFile);
+					}
+	
+					// Create a message so that devices are notified of the change
+					MessagingManager mm = new MessagingManager(localisation);
+					if(sId > 0) {
+						mm.surveyChange(sd, sId, 0);
+					} else {
+						mm.resourceChange(sd, oId, resourceName);
+					}
 				} else {
-					mm.resourceChange(sd, oId, resourceName);
+					responseCode = "error";
+					responseMsg = new StringBuilder("Failed to save shared resource file: " + resourceName);
 				}
 			}
 
