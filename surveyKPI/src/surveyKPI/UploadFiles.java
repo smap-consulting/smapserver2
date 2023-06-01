@@ -382,7 +382,7 @@ public class UploadFiles extends Application {
 
 	@DELETE
 	@Produces("application/json")
-	@Path("/media/organisation/{oId}/{filename}")
+	@Path("/media/organisation/{oId}/{filename}/deprecate")
 	public Response deleteMedia(
 			@PathParam("oId") int oId,
 			@PathParam("filename") String filename,
@@ -435,7 +435,7 @@ public class UploadFiles extends Application {
 
 	@DELETE
 	@Produces("application/json")
-	@Path("/media/{sIdent}/{filename}")
+	@Path("/media/{sIdent}/{filename}/deprecate")
 	public Response deleteMediaSurvey(
 			@PathParam("sIdent") String sIdent,
 			@PathParam("filename") String filename,

@@ -3,6 +3,7 @@ package org.smap.sdal.managers;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -18,7 +19,6 @@ import org.smap.sdal.model.Message;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-
 
 /*****************************************************************************
 
@@ -78,10 +78,8 @@ public class SharedResourceManager {
 		
 		if(sIdent != null) {
 			mediaInfo.setFolder(basePath, 0, sIdent, sd);
-		} else {	
-			// Upload to organisations folder
-			oId = GeneralUtilityMethods.getOrganisationId(sd, user);
-			mediaInfo.setFolder(basePath, user, oId, false);				 
+		} else {			
+			mediaInfo.setFolder(basePath, user, oId, false);  // Upload to organisations folder				 
 		}
 
 		String folderPath = mediaInfo.getPath();
@@ -191,6 +189,94 @@ public class SharedResourceManager {
 	
 		return Response.ok(gson.toJson(new Message(responseCode, responseMsg.toString(), resourceName))).build();
 	
+	}
+	
+	/*
+	 * Delete a shared resource file
+	 */
+	public void delete(Connection sd, 
+			String sIdent, 
+			int oId, 
+			String basePath, 
+			String user, 
+			String fileName) throws Exception {
+		
+
+		MediaInfo mediaInfo = new MediaInfo();		
+		if(sIdent != null) {
+			mediaInfo.setFolder(basePath, 0, sIdent, sd);
+		} else {			
+			mediaInfo.setFolder(basePath, user, oId, false);  // Upload to organisations folder				 
+		}
+		String folderPath = mediaInfo.getPath();
+		String filePath = folderPath + "/" + fileName;
+		File savedFile = new File(filePath);
+		
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtDel = null;
+		try {
+			if(folderPath != null) {
+				
+				// 1. Delete File
+				if(savedFile.exists()) {
+					savedFile.delete();
+				}
+				
+				// 2. Delete History
+				StringBuilder sql = new StringBuilder("select file_path from "
+						+ "sr_history "
+						+ "where o_id = ? "
+						+ "and file_name = ?");
+				
+				StringBuilder sqlDel = new StringBuilder("delete from sr_history "
+						+ "where o_id = ? "
+						+ "and file_name = ?");
+				
+				if(sIdent != null) {
+					sql.append(" and survey_ident = ?");
+					sqlDel.append(" and survey_ident = ?");
+				}
+				pstmt = sd.prepareStatement(sql.toString());
+				pstmt.setInt(1, oId);
+				pstmt.setString(2, fileName);
+				
+				pstmtDel = sd.prepareStatement(sqlDel.toString());
+				pstmtDel.setInt(1, oId);
+				pstmtDel.setString(2, fileName);
+				
+
+				if(sIdent != null) {
+					pstmt.setString(3,  sIdent);
+					pstmtDel.setString(3,  sIdent);
+				}
+				
+				// 2.1 Delete the stored history files
+				log.info(filePath);
+				ResultSet rs = pstmt.executeQuery();
+				while (rs.next()) {
+					File history_file = new File(rs.getString(1));
+					if(history_file.exists()) {
+						history_file.delete();
+					}
+				}
+				
+				//2.2 Delete the database table
+				pstmtDel.executeUpdate();
+				
+				// 3. Delete CSV table data	
+				//TODO
+			} else {
+				throw new ApplicationException("Media folder not found");
+			}
+		} finally {
+			try {if ( pstmt != null ) { pstmt.close(); }} catch (Exception e) {}
+			try {if ( pstmtDel != null ) { pstmtDel.close(); }} catch (Exception e) {}
+		}
+
+		
+		
+					
+
 	}
 	
 	/*

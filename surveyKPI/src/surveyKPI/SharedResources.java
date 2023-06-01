@@ -40,19 +40,15 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.managers.NotificationManager;
-import org.smap.sdal.model.Project;
+import org.smap.sdal.managers.SharedResourceManager;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -60,6 +56,7 @@ import java.util.logging.Logger;
 public class SharedResources extends Application {
 	
 	Authorise orgLevelAuth = null;
+	Authorise orgLevelDelete = null;
 	
 	public SharedResources() {
 		
@@ -67,7 +64,12 @@ public class SharedResources extends Application {
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.VIEW_DATA);
-		orgLevelAuth = new Authorise(authorisations, null);		
+		orgLevelAuth = new Authorise(authorisations, null);	
+		
+		ArrayList<String> authorisationsDelete = new ArrayList<String> ();	
+		authorisationsDelete.add(Authorise.ANALYST);
+		authorisationsDelete.add(Authorise.ADMIN);
+		orgLevelDelete = new Authorise(authorisationsDelete, null);	
 	}
 	
 	private static Logger log =
@@ -228,6 +230,9 @@ public class SharedResources extends Application {
 		return response;
 	}
 
+	/*
+	 * Delete a map
+	 */
 	@Path("/maps/{id}")
 	@DELETE
 	public Response deleteMap(@Context HttpServletRequest request,
@@ -272,6 +277,46 @@ public class SharedResources extends Application {
 			
 			SDDataSource.closeConnection("surveyKPI-DeleteMap", sd);
 			
+		}
+
+		return response;
+
+	}
+	
+	/*
+	 * Delete a file
+	 */
+	@Path("/file/{name}")
+	@DELETE
+	public Response deleteFile(@Context HttpServletRequest request,
+			@PathParam("name") String name) { 
+		
+		Response response = null;
+		String tz = "UTC";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("surveyKPI-DeleteMap");
+		orgLevelDelete.isAuthorised(sd, request.getRemoteUser());	
+		// End Authorisation		
+		
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+		
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			
+			SharedResourceManager srm = new SharedResourceManager(localisation, tz);			
+			String basePath = GeneralUtilityMethods.getBasePath(request);			
+			srm.delete(sd, null, oId, basePath, request.getRemoteUser(), name);
+		
+			response = Response.ok().build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
+		} finally {			
+			SDDataSource.closeConnection("surveyKPI-DeleteMap", sd);			
 		}
 
 		return response;
