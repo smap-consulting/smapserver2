@@ -4,6 +4,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -61,7 +62,7 @@ public class SharedResourceManager {
 	 * Get the limit for a resource
 	 */
 	public Response add(Connection sd, 
-			int sId, 
+			String sIdent, 
 			int oId, 
 			String basePath, 
 			String user, 
@@ -74,20 +75,9 @@ public class SharedResourceManager {
 		
 		MediaInfo mediaInfo = new MediaInfo();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-
-
 		
-		// Get the file type from the extension of the uploaded file
-		String uploadedFileName = fileItem.getName();
-		String contentType = UtilityMethodsEmail.getContentType(uploadedFileName);
-		
-		String extension = "";
-		if(uploadedFileName.lastIndexOf('.') > 0) {
-			extension = uploadedFileName.substring(uploadedFileName.lastIndexOf('.'));
-		}
-		
-		if(sId > 0) {
-			mediaInfo.setFolder(basePath, sId, null, sd);
+		if(sIdent != null) {
+			mediaInfo.setFolder(basePath, 0, sIdent, sd);
 		} else {	
 			// Upload to organisations folder
 			oId = GeneralUtilityMethods.getOrganisationId(sd, user);
@@ -98,10 +88,6 @@ public class SharedResourceManager {
 
 		if(folderPath != null) {		
 			
-			// Change the name of the resource to that specified by the user but keep the extension
-			String filePath = folderPath + "/" + resourceName + extension;
-			File savedFile = new File(filePath);		
-			
 			if(fileItem.getSize() > MAX_FILE_SIZE) {		// Check the size of the file
 				
 				responseCode = "error";
@@ -110,41 +96,66 @@ public class SharedResourceManager {
 				msg = msg.replace("%s2", String.format("%,d", MAX_FILE_SIZE));
 				responseMsg = new StringBuilder(msg);
 				
-			} else if(resourceName == null || resourceName.trim().length() == 0) {		// Validate the resource name
+			} else if(resourceName == null || resourceName.trim().length() == 0 
+					|| resourceName.contains(".")
+					|| resourceName.contains("/")) {		// Validate the resource name
 				
 				responseCode = "error";
-				responseMsg = new StringBuilder(localisation.getString("tu_nfs"));
-				
-			} else if(action.equals("add") && savedFile.exists()) {				// Make sure file does not already exist if adding
-				
-				responseCode = "error";
-				String msg = localisation.getString("sr_ae");
-				msg = msg.replace("%s1", resourceName + extension);
-				responseMsg = new StringBuilder(msg);
+				responseMsg = new StringBuilder(localisation.getString("mf_in") + " " + resourceName);
 				
 			} else {	// Save the new file
 				
-				fileItem.write(savedFile);  			
-				if(savedFile.exists()) {
-					if(contentType.equals("text/csv") || uploadedFileName.endsWith(".csv")) {				
-						// Upload any CSV data into a table, also checks maximum number of columns
-						CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, resourceName);
-						csvMgr.updateTable(savedFile);		
-					} else {
-						// Create thumbnails
-						UtilityMethodsEmail.createThumbnail(resourceName, folderPath, savedFile);
-					}
-	
-					// Create a message so that devices are notified of the change
-					MessagingManager mm = new MessagingManager(localisation);
-					if(sId > 0) {
-						mm.surveyChange(sd, sId, 0);
-					} else {
-						mm.resourceChange(sd, oId, resourceName);
-					}
-				} else {
+				// Get the file type from the extension of the uploaded file
+				String uploadedFileName = fileItem.getName();
+				String contentType = UtilityMethodsEmail.getContentType(uploadedFileName);
+				
+				String extension = "";
+				if(uploadedFileName.lastIndexOf('.') > 0) {
+					extension = uploadedFileName.substring(uploadedFileName.lastIndexOf('.'));
+				}
+				
+				// Change the name of the resource to that specified by the user but keep the extension
+				String resourceFileName = resourceName + extension;
+				String filePath = folderPath + "/" + resourceFileName;
+				File savedFile = new File(filePath);	
+				
+				if(action.equals("add") && savedFile.exists()) {				// Make sure file does not already exist if adding
+					
 					responseCode = "error";
-					responseMsg = new StringBuilder("Failed to save shared resource file: " + resourceName);
+					String msg = localisation.getString("sr_ae");
+					msg = msg.replace("%s1", resourceName + extension);
+					responseMsg = new StringBuilder(msg);
+					
+				} else {
+						
+					fileItem.write(savedFile);  			
+					if(savedFile.exists()) {
+						
+						int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+						
+						writeToHistory(sd, fileItem, folderPath, resourceFileName, uploadedFileName,
+								oId, sIdent, user);	// Record all changes to the shared resource
+						
+						if(contentType.equals("text/csv") || uploadedFileName.endsWith(".csv")) {				
+							// Upload any CSV data into a table, also checks maximum number of columns
+							CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, resourceName);
+							csvMgr.updateTable(savedFile);		
+						} else {
+							// Create thumbnails
+							UtilityMethodsEmail.createThumbnail(resourceName, folderPath, savedFile);
+						}
+		
+						// Create a message so that devices are notified of the change
+						MessagingManager mm = new MessagingManager(localisation);
+						if(sId > 0) {
+							mm.surveyChange(sd, sId, 0);
+						} else {
+							mm.resourceChange(sd, oId, resourceName);
+						}
+					} else {
+						responseCode = "error";
+						responseMsg = new StringBuilder("Failed to save shared resource file: " + resourceName);
+					}
 				}
 			}
 
@@ -157,6 +168,53 @@ public class SharedResourceManager {
 	
 		return Response.ok(gson.toJson(new Message(responseCode, responseMsg.toString(), resourceName))).build();
 	
+	}
+	
+	/*
+	 * Save a change history for the shared resource
+	 */
+	private void writeToHistory(Connection sd, 
+			FileItem fileItem, 
+			String folderPath, 
+			String resourceFileName, 
+			String uploadedFileName,
+			int oId,
+			String sIdent, 
+			String user) throws Exception {
+		
+		// Create directories
+		File archivePath = new File(folderPath + "/history/" + resourceFileName);
+		if(!archivePath.exists()) {
+			if(!archivePath.mkdirs()) {
+				throw new ApplicationException("Failed to create shared resource archive folder");
+			}
+		}
+		
+		// Write Archived file
+		File archiveFile = new File(archivePath.getAbsolutePath() + "/" + uploadedFileName + GeneralUtilityMethods.getUTCDateTimeSuffix());		
+		fileItem.write(archiveFile);
+		
+		/*
+		 * Record history in the database
+		 */
+		PreparedStatement pstmt = null;
+		try {
+			String sql = "insert into sr_history (o_id, survey_ident, resource_name, file_name, file_path, user_ident, uploaded_ts) "
+					+ "values(?, ?, ?, ?, ?, ?, now())";
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setString(2,  sIdent);
+			pstmt.setString(3,  resourceFileName);
+			pstmt.setString(4, uploadedFileName);
+			pstmt.setString(5,  archiveFile.getAbsolutePath());
+			pstmt.setString(6,  user);
+			log.info("Save shared resource archive record: " + pstmt.toString());
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch (Exception e) {}}
+		}
+		
 	}
 }
 

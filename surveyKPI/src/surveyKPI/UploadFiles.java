@@ -121,6 +121,7 @@ public class UploadFiles extends Application {
 		String resourceName = null;
 		String action = "add";	// By default add
 		int surveyId = -1;
+		String surveyIdent = null;
 		FileItem fileItem = null;
 		String user = request.getRemoteUser();
 
@@ -176,6 +177,7 @@ public class UploadFiles extends Application {
 							if(surveyId > 0) {
 								auth.isValidSurvey(sd, request.getRemoteUser(), surveyId, false, superUser);	// Check the user has access to the survey
 							}
+							surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, surveyId);
 						} catch (Exception e) {
 							
 						}
@@ -195,7 +197,7 @@ public class UploadFiles extends Application {
 					
 			SharedResourceManager srm = new SharedResourceManager(localisation);			
 			String basePath = GeneralUtilityMethods.getBasePath(request);			
-			response = srm.add(sd, surveyId, oId, basePath, user, resourceName, fileItem, action);
+			response = srm.add(sd, surveyIdent, oId, basePath, user, resourceName, fileItem, action);
 			
 		} catch(AuthorisationException ex) {
 			log.log(Level.SEVERE,ex.getMessage(), ex);

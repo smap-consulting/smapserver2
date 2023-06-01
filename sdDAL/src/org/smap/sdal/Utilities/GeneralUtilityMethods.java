@@ -10853,6 +10853,13 @@ public class GeneralUtilityMethods {
 		return cur;
 	}
 
+	public static String getUTCDateTimeSuffix() {
+		DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd HH:mm:ss");
+		dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));		// Store all dates in UTC
+		
+		return " (" + dateFormat.format(cal.getTime()) + ")";
+	}
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");
@@ -10874,8 +10881,6 @@ public class GeneralUtilityMethods {
 		
 		return idx;
 	}
-	
-	
 	
 }
 

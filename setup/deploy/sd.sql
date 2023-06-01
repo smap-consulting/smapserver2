@@ -625,6 +625,7 @@ CREATE TABLE sr_history (
 	survey_ident text,						-- null if this is an organisational level shared resource
 	resource_name text,						-- Name of the resource including extension
 	file_name text,							-- Original file name
+	file_path text,							-- The path to the stored file
 	user_ident text,						-- User who uploaded the file
 	uploaded_ts TIMESTAMP WITH TIME ZONE	-- When the file was uploaded	
 	);

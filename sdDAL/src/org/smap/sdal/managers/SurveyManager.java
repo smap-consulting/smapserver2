@@ -3887,10 +3887,7 @@ public class SurveyManager {
 			} else {
 	
 				// Add date and time to the display name
-				DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd HH:mm:ss");
-				dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-				Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));		// Store all dates in UTC
-				String newDisplayName = surveyDisplayName + " (" + dateFormat.format(cal.getTime()) + ")";
+				String newDisplayName = surveyDisplayName + GeneralUtilityMethods.getUTCDateTimeSuffix();
 	
 				// Update the "name"
 				String newName = null;
