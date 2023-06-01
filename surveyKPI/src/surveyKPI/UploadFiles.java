@@ -124,7 +124,7 @@ public class UploadFiles extends Application {
 		String surveyIdent = null;
 		FileItem fileItem = null;
 		String user = request.getRemoteUser();
-
+		String tz = "UTC";
 
 		fileItemFactory.setSizeThreshold(5*1024*1024); 
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
@@ -195,7 +195,7 @@ public class UploadFiles extends Application {
 				}
 			} 
 					
-			SharedResourceManager srm = new SharedResourceManager(localisation);			
+			SharedResourceManager srm = new SharedResourceManager(localisation, tz);			
 			String basePath = GeneralUtilityMethods.getBasePath(request);			
 			response = srm.add(sd, surveyIdent, oId, basePath, user, resourceName, fileItem, action);
 			

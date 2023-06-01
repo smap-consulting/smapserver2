@@ -1,8 +1,6 @@
 package org.smap.sdal.managers;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.ResourceBundle;
@@ -54,9 +52,11 @@ public class SharedResourceManager {
 	public static long MAX_FILE_SIZE = 5000000;	// 5 Million Bytes
 	
 	ResourceBundle localisation;
+	String tz;
 	
-	public SharedResourceManager(ResourceBundle localisation) {
+	public SharedResourceManager(ResourceBundle localisation, String tz) {
 		this.localisation = localisation;
+		this.tz = tz;
 	}
 	/*
 	 * Get the limit for a resource
@@ -109,9 +109,19 @@ public class SharedResourceManager {
 				String uploadedFileName = fileItem.getName();
 				String contentType = UtilityMethodsEmail.getContentType(uploadedFileName);
 				
+				// Set the extension of the output file
 				String extension = "";
+				String filetype = "";
 				if(uploadedFileName.lastIndexOf('.') > 0) {
 					extension = uploadedFileName.substring(uploadedFileName.lastIndexOf('.'));
+					
+					if(extension.equals(".xlsx")) {
+						filetype = "xlsx";
+						extension = ".csv";
+					} else if(extension.endsWith("xls")) {
+						filetype = "xls";
+						extension = ".csv";
+					}
 				}
 				
 				// Change the name of the resource to that specified by the user but keep the extension
@@ -127,8 +137,21 @@ public class SharedResourceManager {
 					responseMsg = new StringBuilder(msg);
 					
 				} else {
+					
+					/*
+					 * Save the file
+					 */
+					if(filetype.equals("xlsx") || filetype.equals("xls")) {
 						
-					fileItem.write(savedFile);  			
+						// Write to a CSV file
+						XLSXSharedResourceManager xlsx = new XLSXSharedResourceManager();
+						xlsx.writeToCSV(filetype, fileItem.getInputStream(), savedFile, localisation, tz);
+						
+					} else {
+						// no conversion required
+						fileItem.write(savedFile);  
+					}
+					
 					if(savedFile.exists()) {
 						
 						int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
