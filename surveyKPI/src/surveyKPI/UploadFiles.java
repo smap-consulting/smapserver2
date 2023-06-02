@@ -1121,6 +1121,7 @@ public class UploadFiles extends Application {
 	
 	/*
 	 * Delete the file
+	 * Deprecates
 	 */
 	private void deleteFile(
 			HttpServletRequest request, 

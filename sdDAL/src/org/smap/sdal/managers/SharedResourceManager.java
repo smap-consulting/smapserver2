@@ -108,22 +108,16 @@ public class SharedResourceManager {
 				String contentType = UtilityMethodsEmail.getContentType(uploadedFileName);
 				
 				// Set the extension of the output file
-				String extension = "";
+				String extension = UtilityMethodsEmail.getExtension(uploadedFileName);
 				String filetype = "";
-				if(uploadedFileName.lastIndexOf('.') > 0) {
-					extension = uploadedFileName.substring(uploadedFileName.lastIndexOf('.'));
 					
-					if(extension.equals(".xlsx")) {
-						filetype = "xlsx";
-						extension = ".csv";
-					} else if(extension.endsWith("xls")) {
-						filetype = "xls";
-						extension = ".csv";
-					}
-				}
+				if(extension.equals("xlsx") || extension.equals("xls")) {
+					filetype = extension;
+					extension = "csv";
+				} 
 				
 				// Change the name of the resource to that specified by the user but keep the extension
-				String resourceFileName = resourceName + extension;
+				String resourceFileName = resourceName + "." + extension;
 				String filePath = folderPath + "/" + resourceFileName;
 				File savedFile = new File(filePath);	
 				
@@ -131,7 +125,7 @@ public class SharedResourceManager {
 					
 					responseCode = "error";
 					String msg = localisation.getString("sr_ae");
-					msg = msg.replace("%s1", resourceName + extension);
+					msg = msg.replace("%s1", resourceName + "." + extension);
 					responseMsg = new StringBuilder(msg);
 					
 				} else {
@@ -209,8 +203,9 @@ public class SharedResourceManager {
 			mediaInfo.setFolder(basePath, user, oId, false);  // Upload to organisations folder				 
 		}
 		String folderPath = mediaInfo.getPath();
-		String filePath = folderPath + "/" + fileName;
+		String filePath = folderPath + File.separatorChar + fileName;
 		File savedFile = new File(filePath);
+		String extension = UtilityMethodsEmail.getExtension(fileName);
 		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtDel = null;
@@ -222,15 +217,47 @@ public class SharedResourceManager {
 					savedFile.delete();
 				}
 				
+				// 1.1 For CSV files delete .old copies (.old files are legacy and no longer created)
+				if(extension.equals("csv")) {
+					File oldFile = new File(filePath + "." + "old");
+					if(oldFile.exists()) {
+						oldFile.delete();
+					}
+					
+					// Delete the CSV table data
+					int sId = 0;
+					if(sIdent != null) {
+						sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+					}
+					CsvTableManager tm = new CsvTableManager(sd, localisation);
+				    tm.delete(oId, sId, fileName);		
+				}
+				
+				// 1.2 Delete thumbnails
+				String thumbsPath = folderPath + File.separatorChar + "thumbs";
+				String fileBase = null;
+				int idx = fileName.lastIndexOf('.');
+				if(idx >= 0) {
+					fileBase = fileName.substring(0, idx);
+					
+					// Delete matching thumbnails
+					File thumbs = new File(thumbsPath);
+					for(File thumb : thumbs.listFiles()) {
+						if(thumb.getName().startsWith(fileBase)) {
+							thumb.delete();
+						}
+					}
+				}
+				
 				// 2. Delete History
 				StringBuilder sql = new StringBuilder("select file_path from "
 						+ "sr_history "
 						+ "where o_id = ? "
-						+ "and file_name = ?");
+						+ "and resource_name = ?");
 				
 				StringBuilder sqlDel = new StringBuilder("delete from sr_history "
 						+ "where o_id = ? "
-						+ "and file_name = ?");
+						+ "and resource_name = ?");
 				
 				if(sIdent != null) {
 					sql.append(" and survey_ident = ?");
@@ -242,8 +269,7 @@ public class SharedResourceManager {
 				
 				pstmtDel = sd.prepareStatement(sqlDel.toString());
 				pstmtDel.setInt(1, oId);
-				pstmtDel.setString(2, fileName);
-				
+				pstmtDel.setString(2, fileName);			
 
 				if(sIdent != null) {
 					pstmt.setString(3,  sIdent);
@@ -251,20 +277,22 @@ public class SharedResourceManager {
 				}
 				
 				// 2.1 Delete the stored history files
-				log.info(filePath);
+
+				
 				ResultSet rs = pstmt.executeQuery();
 				while (rs.next()) {
-					File history_file = new File(rs.getString(1));
-					if(history_file.exists()) {
-						history_file.delete();
+					File history_dir = new File(rs.getString(1));
+					if(history_dir.exists()) {
+						for(File h : history_dir.listFiles()) {
+							h.delete();
+						}
+						history_dir.delete();
 					}
 				}
 				
 				//2.2 Delete the database table
 				pstmtDel.executeUpdate();
 				
-				// 3. Delete CSV table data	
-				//TODO
 			} else {
 				throw new ApplicationException("Media folder not found");
 			}
