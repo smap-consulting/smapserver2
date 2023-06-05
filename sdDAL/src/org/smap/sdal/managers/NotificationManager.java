@@ -1623,6 +1623,7 @@ public class NotificationManager {
 							}
 						}
 					}
+					resp.status = "success";
 				} catch(Exception e) {
 					resp.status = "error";
 					resp.error_details = e.getMessage();
