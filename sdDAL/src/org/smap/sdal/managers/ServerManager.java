@@ -60,6 +60,7 @@ public class ServerManager {
 				+ "version,"
 				+ "mapbox_default,"
 				+ "google_key,"
+				+ "maptiler_key,"
 				+ "sms_url,"
 				+ "password_strength,"
 				+ "keep_erased_days,"
@@ -80,6 +81,7 @@ public class ServerManager {
 				data.version = rs.getString("version");
 				data.mapbox_default = rs.getString("mapbox_default");
 				data.google_key = rs.getString("google_key");
+				data.maptiler_key = rs.getString("maptiler_key");
 				data.sms_url = rs.getString("sms_url");
 				data.password_strength = rs.getDouble("password_strength");
 				data.keep_erased_days = rs.getInt("keep_erased_days");

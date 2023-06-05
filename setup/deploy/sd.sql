@@ -613,3 +613,6 @@ CREATE UNIQUE INDEX survey_role_ident_index ON public.survey_role(survey_ident, 
 -- Version 23.06
 alter table survey add column my_reference_data boolean default false;
 CREATE INDEX idx_ue_db_status ON public.upload_event(db_status);
+
+alter table organisation add column map_source text;
+alter table server add column maptiler_key text;

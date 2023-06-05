@@ -148,7 +148,8 @@ public class PdfUtilities {
 		} 
 	}
 	
-	public static Image getMapImage(Connection sd, 
+	public static Image getMapImage(
+			Connection sd, 
 			String mapSource,
 			String map, 
 			String account,
@@ -157,10 +158,15 @@ public class PdfUtilities {
 			String zoom,
 			String mapbox_key,
 			String google_key,
+			String maptiler_key,
 			int sId,
 			String user,
 			String markerColor,
 			String basePath) throws Exception {
+		
+		if(mapSource == null || mapSource.equals("default")) {
+			mapSource = GeneralUtilityMethods.getDefaultMapSource(sd, sId);
+		}
 		
 		if(mapSource.equals("mapbox")) {
 			 return PdfUtilities.getMapImageMapbox(sd, map, 
@@ -177,6 +183,15 @@ public class PdfUtilities {
 						mapValues,
 						location, zoom, 
 						google_key,
+						sId,
+						user,
+						markerColor,
+						basePath);
+		} else if(mapSource.equals("maptiler")) {
+			 return PdfUtilities.getMapImageMapTiler(sd, map, 
+						mapValues,
+						location, zoom, 
+						maptiler_key,
 						sId,
 						user,
 						markerColor,
@@ -330,6 +345,87 @@ public class PdfUtilities {
 				lm.writeLog(sd, sId, user, LogManager.GOOGLE_REQUEST, map, 0, null);
 			} catch (Exception e) {
 				lm.writeLog(sd, sId, user, LogManager.ERROR, "Could not get google map image. You may need to enable billing on your google maps API at https://console.cloud.google.com/project/_/billing/enable", 0, null);
+				log.log(Level.SEVERE, "Exception", e);
+			}
+		} 
+		
+		return img;
+	}
+	
+	/*
+	 * Convert geospatial data into a mapbox map image
+	 */
+	private static Image getMapImageMapTiler(Connection sd, 
+			String map, 
+			PdfMapValues mapValues, 
+			String location, 
+			String zoom,
+			String maptiler_key,
+			int sId,
+			String user,
+			String markerColor,
+			String basePath) throws BadElementException, MalformedURLException, IOException, SQLException {
+		
+		Image img = null;
+		
+		StringBuffer url = new StringBuffer();
+		boolean getMap = false;
+		url.append(" https://api.maptiler.com/maps/");
+		
+		if(map != null && !map.equals("none")) {
+			url.append(map);
+		} else {
+			url.append("streets");	// default map
+		}
+		url.append("/static/");
+		
+		url.append("6.0288,44.3408,3/400x300.png");		// debug
+		getMap = true;									// debug
+		
+		/*
+		if((mapValues.hasGeometry() || mapValues.hasLine())) {
+			
+			if(zoom != null && zoom.trim().length() > 0) {
+				String centroidValue = mapValues.geometry;
+				if(centroidValue == null) {
+					centroidValue = mapValues.startGeometry;
+				}
+				url.append(GeneralUtilityMethods.getGeoJsonCentroid(centroidValue) + "," + zoom);
+			} else if(location != null) {
+				url.append(location);
+			} 
+			url.append("/");
+			getMap = true;
+		} else {
+			// Attempt to get default map boundary from appearance
+			if(location != null) {
+				url.append(location);
+				url.append("/");
+				getMap = true;
+			}					
+		}
+		*/
+		if(getMap && maptiler_key == null) {
+			log.info("Maptiler key not specified.  PDF Map not created");
+		} else if(getMap) {;
+			url.append("?key=");
+			url.append(maptiler_key);
+			try {
+				log.info("Maptiler API call: " + url);
+				
+				/*
+				 * There is a problem with passing a URL to the IText getInstance function as
+				 * it will cause two mapbox requests to be recorded resulting in additional charges
+				 * Instead download the image first then add it to the PDF as a file
+				 */
+				URL mapUrl = new URL(url.toString());
+				BufferedImage tempImg = ImageIO.read(mapUrl);
+				File file = new File(basePath + "/temp/pdfmap_" + UUID.randomUUID() + ".png");
+				ImageIO.write(tempImg, "png", file);			       
+				img = Image.getInstance(file.getAbsolutePath());
+			    
+				lm.writeLog(sd, sId, user, LogManager.MAPTILER_REQUEST, map, 0, null);
+			} catch (Exception e) {
 				log.log(Level.SEVERE, "Exception", e);
 			}
 		} 
@@ -771,7 +867,6 @@ public class PdfUtilities {
 			for(String marker : mapValues.markers) {
 				Float distance = getDistance(pstmt, mapValues, mapValues.startLine, marker);
 				mapValues.orderedMarkers.add(new DistanceMarker(distance, marker));
-				//System.out.println("Marker: " + marker + " Distance: " + distance);
 			}
 			
 			/*
@@ -782,10 +877,6 @@ public class PdfUtilities {
 			    	return Float.compare(a.distance, b.distance);
 			    }
 			});
-			
-			//for(DistanceMarker dMarker : mapValues.orderedMarkers) {
-			//	System.out.println("Distance Marker: " + dMarker.marker + " Distance: " + dMarker.distance);
-			//}
 			
 		}
 		
