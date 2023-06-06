@@ -227,7 +227,6 @@ public class MediaInfo {
 					} else {
 						mi.thumbnailUrl = mi.url + "?thumbs=true";
 					}
-					mi.deleteUrl = server + "surveyKPI/upload" + "/" + folderUrl + "/" + mi.name; 
 				} else {
 					log.log(Level.SEVERE, "Media Server is null");
 				}
