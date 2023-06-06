@@ -631,3 +631,5 @@ CREATE TABLE sr_history (
 	);
 ALTER TABLE sr_history OWNER TO ws;
 
+alter table organisation add column map_source text;
+alter table server add column maptiler_key text;

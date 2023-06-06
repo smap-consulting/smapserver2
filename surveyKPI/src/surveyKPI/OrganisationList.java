@@ -183,7 +183,8 @@ public class OrganisationList extends Application {
 					+ "limits,"
 					+ "refresh_rate, "
 					+ "api_rate_limit,"
-					+ "password_strength "
+					+ "password_strength,"
+					+ "map_source "
 					+ "from organisation "
 					+ "where organisation.e_id = ? ");			
 			
@@ -247,6 +248,7 @@ public class OrganisationList extends Application {
 				org.refresh_rate = resultSet.getInt("refresh_rate");
 				org.api_rate_limit = resultSet.getInt("api_rate_limit");
 				org.password_strength = resultSet.getInt("password_strength");
+				org.map_source = resultSet.getString("map_source");
 				organisations.add(org);
 			}
 	

@@ -116,6 +116,7 @@ public class OrganisationManager {
 				+ "refresh_rate = ?,"
 				+ "api_rate_limit = ?,"
 				+ "password_strength = ?,"
+				+ "map_source = ?,"
 				+ "changed_ts = now() " 
 				+ "where "
 				+ "id = ?";
@@ -163,7 +164,8 @@ public class OrganisationManager {
 			pstmt.setInt(31, o.refresh_rate);
 			pstmt.setInt(32, o.api_rate_limit);
 			pstmt.setDouble(33, o.password_strength);
-			pstmt.setInt(34, o.id);
+			pstmt.setString(34, o.map_source);
+			pstmt.setInt(35, o.id);
 					
 			log.info("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -302,12 +304,12 @@ public class OrganisationManager {
 				+ "can_notify, can_use_api, can_submit, set_as_theme, e_id, ft_backward_navigation, ft_navigation, "
 				+ "ft_guidance, ft_image_size, ft_send, ft_delete, "
 				+ "ft_send_location, ft_pw_policy, navbar_color, can_sms, send_optin, limits, "
-				+ "ft_high_res_video, refresh_rate, api_rate_limit, password_strength, ft_input_method, ft_im_ri, ft_im_acc, changed_ts, owner) "
+				+ "ft_high_res_video, refresh_rate, api_rate_limit, password_strength, map_source, ft_input_method, ft_im_ri, ft_im_acc, changed_ts, owner) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?);";
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?)";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -386,9 +388,10 @@ public class OrganisationManager {
 			pstmt.setInt(40, o.refresh_rate);
 			pstmt.setInt(41, o.api_rate_limit);
 			pstmt.setDouble(42, o.password_strength);
-			pstmt.setString(43, "not set");		// send automatically
-			pstmt.setInt(44, 20);		// FT Geo Recording interval
-			pstmt.setInt(45, 10);		// FT Geo Accuracy distance
+			pstmt.setString(43, o.map_source);
+			pstmt.setString(44, "not set");		// send automatically
+			pstmt.setInt(45, 20);		// FT Geo Recording interval
+			pstmt.setInt(46, 10);		// FT Geo Accuracy distance
 			
 			/*
 			 * Set the owner only if this is a personal organisation.
@@ -397,7 +400,7 @@ public class OrganisationManager {
 			 * the owner would be set to zero.  In other words they are creating community organisations that
 			 * will need to be maintained by whichever user has organisational admin privilege
 			 */
-			pstmt.setInt(46, GeneralUtilityMethods.hasSecurityGroup(sd, userIdent, Authorise.ORG_ID) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
+			pstmt.setInt(47, GeneralUtilityMethods.hasSecurityGroup(sd, userIdent, Authorise.ORG_ID) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			

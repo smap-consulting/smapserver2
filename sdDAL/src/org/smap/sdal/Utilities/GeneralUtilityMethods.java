@@ -1225,7 +1225,8 @@ public class GeneralUtilityMethods {
 				+ "limits,"
 				+ "refresh_rate,"
 				+ "api_rate_limit,"
-				+ "password_strength "
+				+ "password_strength,"
+				+ "map_source "
 				+ "from organisation "
 				+ "where organisation.id = ? "
 				+ "order by name asc;";			
@@ -1284,6 +1285,7 @@ public class GeneralUtilityMethods {
 				org.refresh_rate = resultSet.getInt("refresh_rate");
 				org.api_rate_limit = resultSet.getInt("api_rate_limit");
 				org.password_strength = resultSet.getDouble("password_strength");
+				org.map_source = resultSet.getString("map_source");
 			}
 
 	
@@ -10851,6 +10853,33 @@ public class GeneralUtilityMethods {
 			if(pstmtMyRef != null) {try{pstmtMyRef.close();} catch(Exception e) {}};
 		}
 		return cur;
+	}
+	
+	/*
+	 * Get the default map source for static map images for the organisation that owns the passed in survey
+	 */
+	public static String getDefaultMapSource(Connection sd, int sId) throws SQLException {
+		String mapSource = "google";
+		String sql = "select map_source from organisation "
+				+ "where id = (select p.o_id from project p, survey s where p.id = s.p_id and s.s_id = ?)";
+		
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			log.info("Get default map source: " + pstmt.toString());
+			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				String v = rs.getString(1);
+				if(v != null && v.trim().length() > 0) {
+					mapSource = rs.getString(1);
+				}
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+		}
+		return mapSource;
 	}
 
 	public static String getUTCDateTimeSuffix() {

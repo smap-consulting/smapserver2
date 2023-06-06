@@ -108,6 +108,7 @@ create TABLE server (
 	version text,
 	mapbox_default text,
 	google_key text,
+	maptiler_key text,
 	sms_url text,
 	document_sync boolean,
 	doc_server text,
@@ -213,6 +214,7 @@ create TABLE organisation (
 	dashboard_arn text,
 	dashboard_session_name text,
 	password_strength decimal default 0.0,
+	map_source text,							-- default map source for static maps
 	password_expiry integer default 0,			-- password expiry in months
 	changed_ts TIMESTAMP WITH TIME ZONE
 	);

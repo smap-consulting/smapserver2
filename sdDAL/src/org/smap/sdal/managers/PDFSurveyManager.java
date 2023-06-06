@@ -160,6 +160,7 @@ public class PDFSurveyManager {
 		boolean hasAppendix = false;
 		String mapbox_key;
 		String google_key;
+		String maptiler_key;
 
 		// Map of questions that need to have the results of another question appended to their results in a pdf report
 		HashMap <String, ArrayList<String>> addToList = new HashMap <String, ArrayList<String>>();
@@ -318,6 +319,8 @@ public class PDFSurveyManager {
 			}
 			gv.mapbox_key = serverData.mapbox_default;
 			gv.google_key = serverData.google_key;
+			gv.maptiler_key = serverData.maptiler_key;
+			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
 
 			languageIdx = GeneralUtilityMethods.getLanguageIdx(survey, language);
@@ -635,7 +638,7 @@ public class PDFSurveyManager {
 					mapValues.geometry = r.value;
 					
 					Image img = PdfUtilities.getMapImage(sd, di.mapSource, di.map, di.account, mapValues, 
-							di.location, di.zoom,gv.mapbox_key, gv.google_key,
+							di.location, di.zoom,gv.mapbox_key, gv.google_key, gv.maptiler_key,
 							survey.id,
 							user,
 							di.markerColor,
@@ -679,7 +682,7 @@ public class PDFSurveyManager {
 						img = PdfUtilities.getMapImage(sd, di.mapSource, di.map, 
 								di.account, 
 								mapValues,
-								di.location, di.zoom, gv.mapbox_key,gv.google_key,
+								di.location, di.zoom, gv.mapbox_key,gv.google_key, gv.maptiler_key,
 								survey.id,
 								user,
 								di.markerColor,
@@ -1782,6 +1785,7 @@ public class PDFSurveyManager {
 					di.location, di.zoom, 
 					gv.mapbox_key,
 					gv.google_key,
+					gv.maptiler_key,
 					survey.id,
 					user,
 					di.markerColor,
@@ -1820,7 +1824,7 @@ public class PDFSurveyManager {
 					img = PdfUtilities.getMapImage(sd, di.mapSource, di.map, 
 							di.account, 
 							mapValues,
-							di.location, di.zoom, gv.mapbox_key,gv.google_key,
+							di.location, di.zoom, gv.mapbox_key,gv.google_key,gv.maptiler_key,
 							survey.id,
 							user,
 							di.markerColor,
