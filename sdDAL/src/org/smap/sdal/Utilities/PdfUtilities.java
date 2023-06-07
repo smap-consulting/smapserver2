@@ -218,7 +218,7 @@ public class PdfUtilities {
 		
 		Image img = null;
 		
-		StringBuffer url = new StringBuffer();
+		StringBuilder url = new StringBuilder();
 		boolean getMap = false;
 		url.append("https://api.mapbox.com/styles/v1/");
 		if(account != null) {
@@ -307,7 +307,7 @@ public class PdfUtilities {
 		
 		Image img = null;
 		
-		StringBuffer url = new StringBuffer();
+		StringBuilder url = new StringBuilder();
 		boolean hasParam = false;
 		url.append("https://maps.googleapis.com/maps/api/staticmap");
 		
@@ -368,7 +368,7 @@ public class PdfUtilities {
 		
 		Image img = null;
 		
-		StringBuffer url = new StringBuffer();
+		StringBuilder url = new StringBuilder();
 		boolean getMap = false;
 		url.append(" https://api.maptiler.com/maps/");
 		
@@ -407,23 +407,18 @@ public class PdfUtilities {
 		*/
 		if(getMap && maptiler_key == null) {
 			log.info("Maptiler key not specified.  PDF Map not created");
-		} else if(getMap) {;
-			url.append("?key=");
-			url.append(maptiler_key);
+		} else if(getMap) {
+			url.append("?key=").append(maptiler_key);
 			try {
-				log.info("Maptiler API call: " + url);
+				log.info("Maptiler API call: " + url.toString());
 				
 				/*
 				 * There is a problem with passing a URL to the IText getInstance function as
 				 * it will cause two mapbox requests to be recorded resulting in additional charges
-				 * Instead download the image first then add it to the PDF as a file
+				 * However maptiler required it or the request will be rejected
 				 */
 				URL mapUrl = new URL(url.toString());
-				BufferedImage tempImg = ImageIO.read(mapUrl);
-				File file = new File(basePath + "/temp/pdfmap_" + UUID.randomUUID() + ".png");
-				ImageIO.write(tempImg, "png", file);			       
-				img = Image.getInstance(file.getAbsolutePath());
-			    
+				img = Image.getInstance(mapUrl);
 				lm.writeLog(sd, sId, user, LogManager.MAPTILER_REQUEST, map, 0, null);
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Exception", e);
@@ -432,7 +427,7 @@ public class PdfUtilities {
 		
 		return img;
 	}
-	
+
 	/*
 	 * Convert geospatial data into an abstract image
 	 */
