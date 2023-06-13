@@ -3700,7 +3700,7 @@ public class GeneralUtilityMethods {
 				ArrayList<RoleColumnFilter> rcfArray = new ArrayList<> ();
 				if(user != null) {
 					rcfArray = rm.getSurveyColumnFilter(sd, surveyIdent, user);
-				} else if(roles != null) {
+				} else if(roles != null) {	// Anonymous but request includes roles
 					rcfArray = rm.getSurveyColumnFilterRoleList(sd, surveyIdent, roles);
 				}
 				
@@ -8333,9 +8333,8 @@ public class GeneralUtilityMethods {
 				String c = json.substring(idx1 + 1, idx2);
 				String [] coords = c.split(",");
 				if(coords.length >= 2) {
-					wkt = coords[1].trim() + "," + coords[0].trim();; 
-				}
-				
+					wkt = coords[1].trim() + "," + coords[0].trim();
+				}	
 			}
 		}
 			

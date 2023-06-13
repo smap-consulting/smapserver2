@@ -632,7 +632,7 @@ public class RoleManager {
 	}
 	
 	/*
-	 * Get the sql for a survey role column filter for a specific user and survey
+	 * Get the columns for a survey role column filter for a specific user and survey
 	 * A user can have multiple roles as can a survey hence an array of roles is returned
 	 */
 	public ArrayList<RoleColumnFilter> getSurveyColumnFilter(Connection sd, String sIdent, String user) throws SQLException {
@@ -676,7 +676,7 @@ public class RoleManager {
 	}
 	
 	/*
-	 * Get the sql for a survey role column filter for an array of roles and a survey
+	 * Get the columns for a survey role column filter for an array of roles and a survey
 	 * This is used for immediate anonymous requests such as prepopulating a survey where there is no user
 	 *  but there is a set of roles
 	 */

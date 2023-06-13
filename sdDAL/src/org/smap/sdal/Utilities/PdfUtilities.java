@@ -318,7 +318,6 @@ public class PdfUtilities {
 			} else {
 				url.append("&");
 			}
-			//url.append("center=59.914063,10.737874");
 			url.append(createMapValueGoogle(mapValues, markerColor));
 			
 			if(zoom != null && zoom.trim().length() > 0) {
@@ -379,21 +378,17 @@ public class PdfUtilities {
 		}
 		url.append("/static/");
 		
-		url.append("6.0288,44.3408,3/400x300.png");		// debug
-		getMap = true;									// debug
-		
-		/*
+		if(zoom == null || zoom.trim().length() == 0) {
+			zoom = "3";
+		}
 		if((mapValues.hasGeometry() || mapValues.hasLine())) {
 			
-			if(zoom != null && zoom.trim().length() > 0) {
-				String centroidValue = mapValues.geometry;
-				if(centroidValue == null) {
-					centroidValue = mapValues.startGeometry;
-				}
-				url.append(GeneralUtilityMethods.getGeoJsonCentroid(centroidValue) + "," + zoom);
-			} else if(location != null) {
-				url.append(location);
-			} 
+			String centroidValue = mapValues.geometry;
+			if(centroidValue == null) {
+				centroidValue = mapValues.startGeometry;
+			}
+			url.append(GeneralUtilityMethods.getGeoJsonCentroid(centroidValue) + "," + zoom);
+			
 			url.append("/");
 			getMap = true;
 		} else {
@@ -404,7 +399,9 @@ public class PdfUtilities {
 				getMap = true;
 			}					
 		}
-		*/
+		
+		url.append("400x400.png");
+		
 		if(getMap && maptiler_key == null) {
 			log.info("Maptiler key not specified.  PDF Map not created");
 		} else if(getMap) {
@@ -523,10 +520,10 @@ public class PdfUtilities {
 			PNGTranscoder t = new PNGTranscoder();
 			
 			// set the transcoding hints
-			t.addTranscodingHint(PNGTranscoder.KEY_WIDTH, new Float(1000));
+			t.addTranscodingHint(PNGTranscoder.KEY_WIDTH, Float.valueOf(1000.0f));
 			t.addTranscodingHint(PNGTranscoder.KEY_ALLOWED_SCRIPT_TYPES, "*");
-			t.addTranscodingHint(PNGTranscoder.KEY_CONSTRAIN_SCRIPT_ORIGIN, new Boolean(true));
-			t.addTranscodingHint(PNGTranscoder.KEY_EXECUTE_ONLOAD, new Boolean(true));
+			t.addTranscodingHint(PNGTranscoder.KEY_CONSTRAIN_SCRIPT_ORIGIN, Boolean.valueOf(true));
+			t.addTranscodingHint(PNGTranscoder.KEY_EXECUTE_ONLOAD, Boolean.valueOf(true));
 			t.addTranscodingHint(PNGTranscoder.KEY_BACKGROUND_COLOR, Color.white);
 
 			// create the transcoder input
