@@ -191,7 +191,9 @@ public class UploadFiles extends Application {
 						log.info("Unknown field name = "+item.getFieldName()+", Value = "+item.getString());
 					}
 				} else {
-					fileItem = (FileItem) item;
+					if(item.getName().trim().length() > 0) {
+						fileItem = item;
+					}
 				}
 			} 
 					

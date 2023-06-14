@@ -4,6 +4,7 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -16,6 +17,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Message;
+import org.smap.sdal.model.SharedHistoryItem;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -58,6 +60,7 @@ public class SharedResourceManager {
 		this.localisation = localisation;
 		this.tz = tz;
 	}
+	
 	/*
 	 * Get the limit for a resource
 	 */
@@ -74,7 +77,7 @@ public class SharedResourceManager {
 		StringBuilder responseMsg = new StringBuilder("");
 		
 		MediaInfo mediaInfo = new MediaInfo();
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		if(sIdent != null) {
 			mediaInfo.setFolder(basePath, 0, sIdent, sd);
@@ -217,7 +220,7 @@ public class SharedResourceManager {
 					savedFile.delete();
 				}
 				
-				// 1.1 For CSV files delete .old copies (.old files are legacy and no longer created)
+				// 1.1 For CSV files delete table data also legacy .old copies (.old files are no longer created)
 				if(extension.equals("csv")) {
 					File oldFile = new File(filePath + "." + "old");
 					if(oldFile.exists()) {
@@ -276,12 +279,11 @@ public class SharedResourceManager {
 					pstmtDel.setString(3,  sIdent);
 				}
 				
-				// 2.1 Delete the stored history files
-
-				
+				// 2.1 Delete the stored history files	
 				ResultSet rs = pstmt.executeQuery();
-				while (rs.next()) {
-					File history_dir = new File(rs.getString(1));
+				if (rs.next()) {
+					File history_file = new File(rs.getString(1));
+					File history_dir = history_file.getParentFile();
 					if(history_dir.exists()) {
 						for(File h : history_dir.listFiles()) {
 							h.delete();
@@ -352,6 +354,53 @@ public class SharedResourceManager {
 			if(pstmt != null) {try{pstmt.close();} catch (Exception e) {}}
 		}
 		
+	}
+	
+	/*
+	 * Get the history for a shared resource
+	 */
+	public ArrayList<SharedHistoryItem> getHistory(Connection sd, 
+			String sIdent, 
+			int oId, 
+			String user, 
+			String resourceName) throws Exception {
+		
+		ArrayList<SharedHistoryItem> items = new ArrayList<>();
+		
+		
+		PreparedStatement pstmt = null;
+		StringBuilder sql = new StringBuilder("select "
+				+ "file_name, user_ident, uploaded_ts "
+				+ "from sr_history "
+				+ "where o_id = ? "
+				+ "and resource_name = ?");
+		if(sIdent != null) {
+			sql.append(" and survey_ident = ?");
+		}
+				
+		try {
+			pstmt = sd.prepareStatement(sql.toString());
+			pstmt.setInt(1,  oId);
+			pstmt.setString(2, resourceName);
+			if(sIdent != null) {
+				pstmt.setString(3,  sIdent);
+			}
+			log.info("Get shared history: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			
+			while(rs.next()) {
+				SharedHistoryItem item = new SharedHistoryItem();
+				item.file_name = rs.getString("file_name");
+				item.user_ident = rs.getString("user_ident");
+				item.uploaded = rs.getTimestamp("uploaded_ts");
+				items.add(item);
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+	
+		return items;
+	
 	}
 }
 

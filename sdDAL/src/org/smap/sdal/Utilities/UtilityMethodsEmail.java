@@ -578,7 +578,7 @@ public class UtilityMethodsEmail {
 	public static String getExtension(String filename) {
 		String extension = "";
 		int idx = filename.lastIndexOf('.');
-		if(idx > 0) {
+		if(idx >= 0) {
 			extension = filename.substring(idx+1).toLowerCase();
 		}
 		return extension;

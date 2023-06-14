@@ -27,10 +27,10 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
 import model.MapConfig;
@@ -41,6 +41,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.SharedResourceManager;
+import org.smap.sdal.model.SharedHistoryItem;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -86,10 +87,11 @@ public class SharedResources extends Application {
 			) throws IOException {
 		
 		Response response = null;
+		String connectionString = "surveyKPI-SharedResources-getMaps";
 		String user = request.getRemoteUser();
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-SharedResources");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());	
 		// End Authorisation		
 		
@@ -121,7 +123,7 @@ public class SharedResources extends Application {
 				
 				maps.add(m);
 			}
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(maps);
 			response = Response.ok(resp).build();		
 			
@@ -132,7 +134,7 @@ public class SharedResources extends Application {
 	
 			if (pstmt != null) { try {pstmt.close();} catch (SQLException e) {}}
 
-			SDDataSource.closeConnection("surveyKPI-SharedResources", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;		
@@ -147,9 +149,10 @@ public class SharedResources extends Application {
 	public Response updateMap(@Context HttpServletRequest request, @FormParam("map") String mapString) { 
 		
 		Response response = null;
+		String connectionString = "surveyKPI-SharedResources-UpdateMap";
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-SharedResources");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());	
 		// End Authorisation	
 		
@@ -157,7 +160,7 @@ public class SharedResources extends Application {
 		MapResource map = new Gson().fromJson(mapString, MapResource.class);
 		
 		// Store the config object as json
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		String configJson = gson.toJson(map.config);
 		
 		PreparedStatement pstmt = null;
@@ -224,7 +227,7 @@ public class SharedResources extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-SharedResources", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
@@ -238,11 +241,11 @@ public class SharedResources extends Application {
 	public Response deleteMap(@Context HttpServletRequest request,
 			@PathParam("id") int id) { 
 		
-		ResponseBuilder builder = Response.ok();
 		Response response = null;
+		String connectionString = "surveyKPI-DeleteMap";
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-DeleteMap");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());	
 		// End Authorisation
 		
@@ -275,7 +278,7 @@ public class SharedResources extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-DeleteMap", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 			
 		}
 
@@ -293,9 +296,10 @@ public class SharedResources extends Application {
 		
 		Response response = null;
 		String tz = "UTC";
+		String connectionString = "surveyKPI-DeleteFile";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-DeleteMap");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		orgLevelDelete.isAuthorised(sd, request.getRemoteUser());	
 		// End Authorisation		
 		
@@ -316,11 +320,56 @@ public class SharedResources extends Application {
 			log.log(Level.SEVERE,"Error", e);
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {			
-			SDDataSource.closeConnection("surveyKPI-DeleteMap", sd);			
+			SDDataSource.closeConnection(connectionString, sd);			
 		}
 
 		return response;
 
+	}
+	
+	/*
+	 * Return history of updates to shared resources
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/media/{name}/history")
+	public Response getMediaHistory(
+			@Context HttpServletRequest request,
+			@PathParam("name") String resource_name,
+			@QueryParam("survey") String sIdent
+			) throws IOException {
+		
+		Response response = null;
+		String connectionString = "surveyKPI - getMediaHistory";
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		String user = request.getRemoteUser();
+		String tz = "UTC";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		orgLevelAuth.isAuthorised(sd, user);	
+		// End Authorisation		
+		
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+		
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			
+			SharedResourceManager srm = new SharedResourceManager(localisation, tz);
+			ArrayList<SharedHistoryItem> items = srm.getHistory(sd, sIdent, oId, user, resource_name);
+			response = Response.ok(gson.toJson(items)).build();		
+			
+		}  catch(Exception ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().build();
+		} finally {
+
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;		
 	}
 
 }
