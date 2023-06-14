@@ -10808,12 +10808,16 @@ public class GeneralUtilityMethods {
 	 */
 	public static CustomUserReference hasCustomUserReferenceData(Connection sd, String sIdent) throws SQLException {
 		
+		ResultSet rs = null;
 		ResultSet rsRoles = null;
 		ResultSet rsMyRef = null;
+		PreparedStatement pstmt = null;
 		PreparedStatement pstmtRole = null;
 		PreparedStatement pstmtMyRef = null;
 
 		CustomUserReference cur = new CustomUserReference();
+		
+		String sql = "select disable_ref_role_filters from server";
 		
 		String sqlRole = "select count(*) "
 				+ "from survey_role "
@@ -10825,17 +10829,27 @@ public class GeneralUtilityMethods {
 		
 		try {		
 			
-			// Check roles
-			pstmtRole = sd.prepareStatement(sqlRole);
-			pstmtRole.setString(1, sIdent);
-			
-			log.info("Check for use of roles in reference data: " + pstmtRole.toString());
-			rsRoles = pstmtRole.executeQuery();
-			if(rsRoles.next()) {
-				cur.roles = rsRoles.getInt(1) > 0;
+			// Check to see if the use of role filters has been overridden
+			boolean disableRefRoles = false;
+			pstmt = sd.prepareStatement(sql);
+			rs = pstmt.executeQuery();
+			if(rs.next()) {
+				disableRefRoles = rs.getBoolean(1);
 			}
 			
-			// Check roles
+			if(!disableRefRoles) {
+				// Check roles
+				pstmtRole = sd.prepareStatement(sqlRole);
+				pstmtRole.setString(1, sIdent);
+				
+				log.info("Check for use of roles in reference data: " + pstmtRole.toString());
+				rsRoles = pstmtRole.executeQuery();
+				if(rsRoles.next()) {
+					cur.roles = rsRoles.getInt(1) > 0;
+				}
+			}
+			
+			// Check restriction to individuals own data
 			pstmtMyRef = sd.prepareStatement(sqlMyRef);
 			pstmtMyRef.setString(1, sIdent);
 			
@@ -10846,8 +10860,10 @@ public class GeneralUtilityMethods {
 
 			
 		}  finally {
+			if(rs != null) {try{rs.close();}catch(Exception e) {}};
 			if(rsRoles != null) {try{rsRoles.close();}catch(Exception e) {}};
 			if(rsMyRef != null) {try{rsMyRef.close();}catch(Exception e) {}};
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}};
 			if(pstmtRole != null) {try{pstmtRole.close();} catch(Exception e) {}};
 			if(pstmtMyRef != null) {try{pstmtMyRef.close();} catch(Exception e) {}};
 		}

@@ -616,3 +616,4 @@ CREATE INDEX idx_ue_db_status ON public.upload_event(db_status);
 
 alter table organisation add column map_source text;
 alter table server add column maptiler_key text;
+alter table server add column disable_ref_role_filters boolean default false;

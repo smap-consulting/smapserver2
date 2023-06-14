@@ -119,7 +119,8 @@ create TABLE server (
 	css text,
 	password_strength decimal default 0.0,
 	rebuild_link_cache boolean default false,
-	password_expiry integer default 0			-- password expiry in months
+	password_expiry integer default 0,				-- password expiry in months
+	disable_ref_role_filters boolean default false	-- If set true role filters will not be used for reference data
 	);
 ALTER TABLE server OWNER TO ws;
 
