@@ -368,7 +368,9 @@ public class PdfUtilities {
 		Image img = null;
 		
 		StringBuilder url = new StringBuilder();
+		String lonLat = null;
 		boolean getMap = false;
+		
 		url.append(" https://api.maptiler.com/maps/");
 		
 		if(map != null && !map.equals("none")) {
@@ -379,7 +381,7 @@ public class PdfUtilities {
 		url.append("/static/");
 		
 		if(zoom == null || zoom.trim().length() == 0) {
-			zoom = "3";
+			zoom = "16";
 		}
 		if((mapValues.hasGeometry() || mapValues.hasLine())) {
 			
@@ -387,7 +389,8 @@ public class PdfUtilities {
 			if(centroidValue == null) {
 				centroidValue = mapValues.startGeometry;
 			}
-			url.append(GeneralUtilityMethods.getGeoJsonCentroid(centroidValue) + "," + zoom);
+			lonLat = GeneralUtilityMethods.getGeoJsonCentroid(centroidValue);
+			url.append(lonLat + "," + zoom);
 			
 			url.append("/");
 			getMap = true;
@@ -400,12 +403,26 @@ public class PdfUtilities {
 			}					
 		}
 		
-		url.append("400x400.png");
+		url.append("500x300.png");
 		
 		if(getMap && maptiler_key == null) {
 			log.info("Maptiler key not specified.  PDF Map not created");
 		} else if(getMap) {
 			url.append("?key=").append(maptiler_key);
+			
+			/*
+			 * Add marker
+			 */
+			if(lonLat != null) {
+				if(markerColor == null) {
+					markerColor = "red";
+				} else {
+					markerColor = "%" + markerColor;
+				}
+				url.append("&markers=")
+					.append(lonLat + "," + markerColor);
+			}
+			
 			try {
 				log.info("Maptiler API call: " + url.toString());
 				
