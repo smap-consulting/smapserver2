@@ -1526,7 +1526,7 @@ public class GetXForm {
 	 * 
 	 * @param q
 	 */
-	public void populateCascadeOptions(Document outputXML, Element parent, CascadeInstance ci) {
+	public void populateCascadeOptions(Document outputXML, Element parent, CascadeInstance ci) throws ApplicationException {
 
 		List<Option> optionList = template.getCascadeOptionList(ci.name);
 
@@ -1584,7 +1584,16 @@ public class GetXForm {
 			List<String> keyList = new ArrayList<String>(cvs.keySet());
 			for (String k : keyList) {
 				String v = cvs.get(k);
-				Element keyElement = outputXML.createElement(k);
+				Element keyElement = null;
+				try {
+					keyElement = outputXML.createElement(k);
+				} catch (Exception e) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+					
+					String msg = localisation.getString("tu_icf");
+					msg = msg.replace("%s1", k);				
+					throw new ApplicationException(msg);
+				}
 				keyElement.setTextContent(v);
 				itemElement.appendChild(keyElement);
 			}
