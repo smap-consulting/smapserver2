@@ -336,7 +336,7 @@ public class SharedResources extends Application {
 	public Response getMediaHistory(
 			@Context HttpServletRequest request,
 			@PathParam("name") String resource_name,
-			@QueryParam("survey") String sIdent
+			@QueryParam("survey_id") int sId
 			) throws IOException {
 		
 		Response response = null;
@@ -347,7 +347,10 @@ public class SharedResources extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		orgLevelAuth.isAuthorised(sd, user);	
+		orgLevelAuth.isAuthorised(sd, user);
+		if(sId > 0) {
+			orgLevelAuth.isValidSurvey(sd, user, sId, false, false);
+		}
 		// End Authorisation		
 		
 		try {
@@ -356,6 +359,7 @@ public class SharedResources extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 		
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			
 			SharedResourceManager srm = new SharedResourceManager(localisation, tz);
 			ArrayList<SharedHistoryItem> items = srm.getHistory(sd, sIdent, oId, user, resource_name);
