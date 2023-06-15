@@ -363,14 +363,16 @@ public class SharedResourceManager {
 			String sIdent, 
 			int oId, 
 			String user, 
-			String resourceName) throws Exception {
+			String resourceName,
+			String tz) throws Exception {
 		
 		ArrayList<SharedHistoryItem> items = new ArrayList<>();
 		
 		
 		PreparedStatement pstmt = null;
 		StringBuilder sql = new StringBuilder("select "
-				+ "file_name, user_ident, uploaded_ts "
+				+ "file_name, user_ident, "
+				+ "to_char(timezone(?, uploaded_ts), 'YYYY-MM-DD HH24:MI:SS') as uploaded_ts "
 				+ "from sr_history "
 				+ "where o_id = ? "
 				+ "and resource_name = ?");
@@ -379,12 +381,15 @@ public class SharedResourceManager {
 		}
 				
 		try {
+			int idx = 1;
 			pstmt = sd.prepareStatement(sql.toString());
-			pstmt.setInt(1,  oId);
-			pstmt.setString(2, resourceName);
+			pstmt.setString(idx++,  tz);
+			pstmt.setInt(idx++,  oId);
+			pstmt.setString(idx++, resourceName);
 			if(sIdent != null) {
-				pstmt.setString(3,  sIdent);
+				pstmt.setString(idx++,  sIdent);
 			}
+			
 			log.info("Get shared history: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
@@ -392,7 +397,7 @@ public class SharedResourceManager {
 				SharedHistoryItem item = new SharedHistoryItem();
 				item.file_name = rs.getString("file_name");
 				item.user_ident = rs.getString("user_ident");
-				item.uploaded = rs.getTimestamp("uploaded_ts");
+				item.uploaded = rs.getString("uploaded_ts");
 				items.add(item);
 			}
 		} finally {

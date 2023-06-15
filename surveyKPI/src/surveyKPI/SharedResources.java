@@ -336,14 +336,18 @@ public class SharedResources extends Application {
 	public Response getMediaHistory(
 			@Context HttpServletRequest request,
 			@PathParam("name") String resource_name,
-			@QueryParam("survey_id") int sId
+			@QueryParam("survey_id") int sId,
+			@QueryParam("tz") String tz
 			) throws IOException {
 		
 		Response response = null;
 		String connectionString = "surveyKPI - getMediaHistory";
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		String user = request.getRemoteUser();
-		String tz = "UTC";
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -362,7 +366,7 @@ public class SharedResources extends Application {
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			
 			SharedResourceManager srm = new SharedResourceManager(localisation, tz);
-			ArrayList<SharedHistoryItem> items = srm.getHistory(sd, sIdent, oId, user, resource_name);
+			ArrayList<SharedHistoryItem> items = srm.getHistory(sd, sIdent, oId, user, resource_name, tz);
 			response = Response.ok(gson.toJson(items)).build();		
 			
 		}  catch(Exception ex) {
