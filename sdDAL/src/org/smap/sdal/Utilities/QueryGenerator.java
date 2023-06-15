@@ -187,9 +187,16 @@ public class QueryGenerator {
 						}
 					}
 					if(!valid) {
-						String msg = localisation.getString("inv_qn_misc");
-						msg = msg.replace("%s1", filterCol);
-						throw new Exception(msg);
+						/*
+						 * Allow filtering on meta data even if the meta items are not included in the export
+						 * Otherwise throw an error message
+						 */
+						if(!filterCol.startsWith("_") || !GeneralUtilityMethods.hasColumn(connectionResults, topLevelTable, filterCol)) {
+							
+							String msg = localisation.getString("inv_qn_misc");
+							msg = msg.replace("%s1", filterCol);
+							throw new Exception(msg);
+						}
 					}
 				}
 			}
