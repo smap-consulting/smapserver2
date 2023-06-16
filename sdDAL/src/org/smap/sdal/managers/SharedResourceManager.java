@@ -379,6 +379,7 @@ public class SharedResourceManager {
 		if(sIdent != null) {
 			sql.append(" and survey_ident = ?");
 		}
+		sql.append(" order by id desc");
 				
 		try {
 			int idx = 1;
