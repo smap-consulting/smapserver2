@@ -40,7 +40,9 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.SharedResourceManager;
+import org.smap.sdal.model.CsvTable;
 import org.smap.sdal.model.SharedHistoryItem;
 
 import com.google.gson.Gson;
@@ -378,6 +380,47 @@ public class SharedResources extends Application {
 		}
 		
 		return response;		
+	}
+	
+	/*
+	 * Get a list of the available CSV files
+	 */
+	@GET
+	@Path("/csv/files")
+	@Produces("application/json")
+	public String getServer(@Context HttpServletRequest request) throws Exception { 
+	
+		String connectionString = "surveyKPI-Csv - Files";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());	
+		// End Authorisation
+		
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		ArrayList<CsvTable> tables = null;
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+		
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			CsvTableManager tm = new CsvTableManager(sd, localisation);
+			tables = tm.getTables(oId, 0);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new Exception(e.getMessage());
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		if(tables == null) {
+			tables = new ArrayList<CsvTable> ();
+		}
+		return gson.toJson(tables);
 	}
 
 }
