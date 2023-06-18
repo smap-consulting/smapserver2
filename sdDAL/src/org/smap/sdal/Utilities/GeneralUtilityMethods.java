@@ -10889,6 +10889,20 @@ public class GeneralUtilityMethods {
 		
 		return " (" + dateFormat.format(cal.getTime()) + ")";
 	}
+	
+	public static String urlEncode(String in) {
+		String out = "";
+		try {
+			out = URLDecoder.decode(in, "UTF-8");
+			out = URLEncoder.encode(out, "UTF-8");
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Encoding Filename Error", e);
+		}
+		out = out.replace("+", " "); // Spaces ok for file name within quotes
+		out = out.replace("%2C", ","); // Commas ok for file name within quotes
+		
+		return out;
+	}
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");
