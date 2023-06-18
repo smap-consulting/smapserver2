@@ -294,7 +294,8 @@ public class SharedResources extends Application {
 	@Path("/file/{name}")
 	@DELETE
 	public Response deleteFile(@Context HttpServletRequest request,
-			@PathParam("name") String name) { 
+			@PathParam("name") String name,
+			@QueryParam("survey_id") int sId) { 
 		
 		Response response = null;
 		String tz = "UTC";
@@ -311,10 +312,14 @@ public class SharedResources extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 		
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			String sIdent = null;
+			if(sId > 0) {
+				sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			}
 			
 			SharedResourceManager srm = new SharedResourceManager(localisation, tz);			
 			String basePath = GeneralUtilityMethods.getBasePath(request);			
-			srm.delete(sd, null, oId, basePath, request.getRemoteUser(), name);
+			srm.delete(sd, sIdent, sId, oId, basePath, request.getRemoteUser(), name);
 		
 			response = Response.ok().build();
 			

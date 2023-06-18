@@ -199,7 +199,7 @@ public class UploadFiles extends Application {
 					
 			SharedResourceManager srm = new SharedResourceManager(localisation, tz);			
 			String basePath = GeneralUtilityMethods.getBasePath(request);			
-			response = srm.add(sd, surveyIdent, oId, basePath, user, resourceName, fileItem, action);
+			response = srm.add(sd, surveyIdent, surveyId, oId, basePath, user, resourceName, fileItem, action);
 			
 		} catch(AuthorisationException ex) {
 			log.log(Level.SEVERE,ex.getMessage(), ex);

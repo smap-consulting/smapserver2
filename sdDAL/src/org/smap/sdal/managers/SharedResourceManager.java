@@ -62,10 +62,11 @@ public class SharedResourceManager {
 	}
 	
 	/*
-	 * Get the limit for a resource
+	 * Add a resource file
 	 */
 	public Response add(Connection sd, 
-			String sIdent, 
+			String sIdent,
+			int sId,
 			int oId, 
 			String basePath, 
 			String user, 
@@ -149,8 +150,6 @@ public class SharedResourceManager {
 					
 					if(savedFile.exists()) {
 						
-						int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
-						
 						writeToHistory(sd, fileItem, folderPath, resourceFileName, uploadedFileName,
 								oId, sIdent, user);	// Record all changes to the shared resource
 						
@@ -182,8 +181,22 @@ public class SharedResourceManager {
 			responseCode = "error";
 			responseMsg = new StringBuilder("Media folder not found");
 		}
-	
-	
+		
+		/*
+		 * Log the add
+		 */
+		if(responseCode.equals("success")) {
+			if(sIdent == null) {
+				String msg = localisation.getString("sr_add");
+				msg = msg.replace("%s1", resourceName);
+				lm.writeLogOrganisation(sd, oId, user, action.equals("add") ? LogManager.CREATE : LogManager.REPLACE, msg, 0);
+			} else {
+				String msg = localisation.getString("sr_s_add");
+				msg = msg.replace("%s1", resourceName);
+				lm.writeLog(sd, sId, user, action.equals("add") ? LogManager.CREATE : LogManager.REPLACE, msg, 0, "");
+			}
+		}
+		
 		return Response.ok(gson.toJson(new Message(responseCode, responseMsg.toString(), resourceName))).build();
 	
 	}
@@ -193,6 +206,7 @@ public class SharedResourceManager {
 	 */
 	public void delete(Connection sd, 
 			String sIdent, 
+			int sId,
 			int oId, 
 			String basePath, 
 			String user, 
@@ -228,10 +242,6 @@ public class SharedResourceManager {
 					}
 					
 					// Delete the CSV table data
-					int sId = 0;
-					if(sIdent != null) {
-						sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
-					}
 					CsvTableManager tm = new CsvTableManager(sd, localisation);
 				    tm.delete(oId, sId, fileName);		
 				}
@@ -294,6 +304,19 @@ public class SharedResourceManager {
 				
 				//2.2 Delete the database table
 				pstmtDel.executeUpdate();
+				
+				/*
+				 * Log the delete
+				 */
+				if(sIdent == null) {
+					String msg = localisation.getString("sr_del");
+					msg = msg.replace("%s1", fileName);
+					lm.writeLogOrganisation(sd, oId, user, LogManager.DELETE, msg, 0);
+				} else {
+					String msg = localisation.getString("sr_s_del");
+					msg = msg.replace("%s1", fileName);
+					lm.writeLog(sd, sId, user, LogManager.DELETE, msg, 0, "");
+				}
 				
 			} else {
 				throw new ApplicationException("Media folder not found");
