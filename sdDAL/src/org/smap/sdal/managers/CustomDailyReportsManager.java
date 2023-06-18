@@ -1,9 +1,6 @@
 package org.smap.sdal.managers;
 
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -42,7 +39,6 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
-import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.CustomDailyReportsConfig;
 import org.smap.sdal.model.CustomReportColumn;
 import org.smap.sdal.model.CustomReportMultiColumn;
@@ -101,17 +97,7 @@ public class CustomDailyReportsManager {
 			Form tlf = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 			String surveyName = GeneralUtilityMethods.getSurveyName(sd, sId);
 	
-			String escapedFileName = null;
-			try {
-				escapedFileName = URLDecoder.decode(filename, "UTF-8");
-				escapedFileName = URLEncoder.encode(escapedFileName, "UTF-8");
-			} catch (UnsupportedEncodingException e1) {
-				e1.printStackTrace();
-			}
-
-			escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
-			escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
-			GeneralUtilityMethods.setFilenameInResponse(escapedFileName + "." + "xlsx", response); // Set file name
+			GeneralUtilityMethods.setFilenameInResponse(filename + "." + "xlsx", response); // Set file name
 			
 			/*
 			 * Validate report configuration

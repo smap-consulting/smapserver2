@@ -422,6 +422,12 @@ public class SharedResourceManager {
 				item.file_name = rs.getString("file_name");
 				item.user_ident = rs.getString("user_ident");
 				item.uploaded = rs.getString("uploaded_ts");
+				
+				String escapedFileName = GeneralUtilityMethods.urlEncode(item.file_name);
+				item.url = "/surveyKPI/file/" + escapedFileName + "/history";
+				if(sIdent != null) {
+					item.url += "?sIdent=" + sIdent;
+				}
 				items.add(item);
 			}
 		} finally {

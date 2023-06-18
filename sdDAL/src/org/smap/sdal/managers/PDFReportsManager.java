@@ -2,8 +2,6 @@ package org.smap.sdal.managers;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -12,7 +10,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.ZipOutputStream;
 
@@ -174,16 +171,7 @@ public class PDFReportsManager {
 				if(name == null || name.trim().length() == 0) {
 					name = "r";									// Then, if there is still no name, Use the primary key
 				}
-				String escapedName = null;
-				try {
-					escapedName = URLDecoder.decode(name, "UTF-8");
-					escapedName = URLEncoder.encode(escapedName, "UTF-8");
-				} catch (Exception e) {
-					log.log(Level.SEVERE, "Encoding pdf name Error", e);
-				}
-				escapedName = escapedName.replace("+", " "); // Spaces ok for file name within quotes
-				escapedName = escapedName.replace("%2C", ","); // Commas ok for file name within quotes
-				
+				String escapedName = GeneralUtilityMethods.urlEncode(name);
 				name = escapedName + rs.getString("prikey") + ".pdf";					// Add the primary key to guarantee uniqueness
 
 				// Write the pdf to a temporary file
