@@ -337,6 +337,7 @@ public class GetFile extends Application {
 			@Context HttpServletResponse response,
 			@PathParam("filename") String filename,
 			@PathParam("sId") int sId,
+			@QueryParam("thumbs") boolean thumbs,
 			@QueryParam("linked") boolean linked) throws Exception {
 		
 		log.info("Get File: " + filename + " for survey: " + sId);
@@ -375,7 +376,11 @@ public class GetFile extends Application {
 						+ ".csv";
 				log.info("%%%%%: Referencing: " + filepath);
 			} else {
-				filepath = basepath + "/media/" + sIdent+ "/" + filename;
+				if(thumbs) {
+					filepath = basepath + "/media/" + sIdent+ "/thumbs/" + filename;
+				} else {
+					filepath = basepath + "/media/" + sIdent+ "/" + filename;
+				}
 			}
 			
 			log.info("File path: " + filepath);
