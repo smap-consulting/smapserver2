@@ -3,9 +3,6 @@ package surveyKPI;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
@@ -153,17 +150,7 @@ public class ExportSurveyMisc extends Application {
 
 		lm.writeLog(sd, targetId, request.getRemoteUser(), LogManager.VIEW, "Export as: " + format, 0, request.getServerName());
 
-		String escapedFileName = null;
-		try {
-			escapedFileName = URLDecoder.decode(filename, "UTF-8");
-			escapedFileName = URLEncoder.encode(escapedFileName, "UTF-8");
-		} catch (UnsupportedEncodingException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-
-		escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
-		escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
+		String escapedFileName = GeneralUtilityMethods.urlEncode(filename);
 		
 		if(targetId != 0) {
 

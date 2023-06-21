@@ -317,8 +317,7 @@ public class ProjectManager {
 
 				String msg = localisation.getString("msg_del_proj");
 				msg = msg.replace("%s1", project_name);
-				lm.writeLogOrganisation(sd, o_id, remoteUser, LogManager.DELETE, 
-						msg, 0);
+				lm.writeLogOrganisation(sd, o_id, remoteUser, LogManager.DELETE, msg, 0);
 			}
 			
 			sd.commit();

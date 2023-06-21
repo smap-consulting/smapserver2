@@ -53,6 +53,7 @@ import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LanguageCodeManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.managers.SharedResourceManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
@@ -60,6 +61,7 @@ import org.smap.sdal.model.Form;
 import org.smap.sdal.model.FormLength;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.MediaItem;
+import org.smap.sdal.model.Message;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.Survey;
@@ -101,9 +103,128 @@ public class UploadFiles extends Application {
 	private static Logger log =
 			Logger.getLogger(UploadFiles.class.getName());
 	
+	/*
+	 * Upload a single shared resource file
+	 */
 	@POST
 	@Produces("application/json")
 	@Path("/media")
+	public Response uploadSingleSharedResourceFile(
+			@Context HttpServletRequest request) {
+		
+		Response response = null;
+		String connectionString = "SurveyKPI-uploadSharedResourceFile";
+		
+		log.info("upload shared resource file -----------------------");
+		
+		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();
+		String resourceName = null;
+		String action = "add";	// By default add
+		int surveyId = -1;
+		String surveyIdent = null;
+		FileItem fileItem = null;
+		String user = request.getRemoteUser();
+		String tz = "UTC";
+
+		fileItemFactory.setSizeThreshold(5*1024*1024); 
+		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+	
+		Connection sd = SDDataSource.getConnection(connectionString); 
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
+
+		PreparedStatement pstmtChangeLog = null;
+		PreparedStatement pstmtUpdateChangeLog = null;
+		
+		try {
+			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);	
+			
+			boolean superUser = false;
+			try {
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			} catch (Exception e) {
+			}
+			
+			// Authorise the user
+			auth.isAuthorised(sd, request.getRemoteUser());
+			
+			/*
+			 * Parse the request
+			 */
+			List<?> items = uploadHandler.parseRequest(request);
+			Iterator<?> itr = items.iterator();
+			while(itr.hasNext()) {
+				
+				FileItem item = (FileItem) itr.next();
+
+				if(item.isFormField()) {
+					if(item.getFieldName().equals("itemName")) {
+						resourceName = item.getString("utf-8");
+						if(resourceName != null) {
+							resourceName = resourceName.trim();
+						}
+						log.info("Resource Name: " + resourceName);
+						
+						
+					} else if(item.getFieldName().equals("surveyId")) {
+						try {
+							// Authorise access to existing survey
+							surveyId = Integer.parseInt(item.getString());
+							if(surveyId > 0) {
+								auth.isValidSurvey(sd, request.getRemoteUser(), surveyId, false, superUser);	// Check the user has access to the survey
+							}
+							surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, surveyId);
+						} catch (Exception e) {
+							
+						}
+						log.info("Upload to survey: " + surveyId);
+						
+					} else if(item.getFieldName().equals("action")) {						
+						action = item.getString();
+						log.info("Action: " + action);
+						
+					} else {
+						log.info("Unknown field name = "+item.getFieldName()+", Value = "+item.getString());
+					}
+				} else {
+					if(item.getName().trim().length() > 0) {
+						fileItem = item;
+					}
+				}
+			} 
+					
+			SharedResourceManager srm = new SharedResourceManager(localisation, tz);			
+			String basePath = GeneralUtilityMethods.getBasePath(request);			
+			response = srm.add(sd, surveyIdent, surveyId, oId, basePath, user, resourceName, fileItem, action);
+			
+		} catch(AuthorisationException ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			throw ex;
+		} catch(Exception ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().entity(ex.getMessage()).build();
+		} finally {
+			if(pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (Exception e) {}
+			if(pstmtUpdateChangeLog != null) try {pstmtUpdateChangeLog.close();} catch (Exception e) {}
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+			
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Upload multiple shared resources
+	 * Deprecate
+	 */
+	@POST
+	@Produces("application/json")
+	@Path("/media/deprecate")
 	public Response sendMedia(
 			@QueryParam("getlist") boolean getlist,
 			@QueryParam("survey_id") int sId,
@@ -256,7 +377,7 @@ public class UploadFiles extends Application {
 
 	@DELETE
 	@Produces("application/json")
-	@Path("/media/organisation/{oId}/{filename}")
+	@Path("/media/organisation/{oId}/{filename}/deprecate")
 	public Response deleteMedia(
 			@PathParam("oId") int oId,
 			@PathParam("filename") String filename,
@@ -309,7 +430,7 @@ public class UploadFiles extends Application {
 
 	@DELETE
 	@Produces("application/json")
-	@Path("/media/{sIdent}/{filename}")
+	@Path("/media/{sIdent}/{filename}/deprecate")
 	public Response deleteMediaSurvey(
 			@PathParam("sIdent") String sIdent,
 			@PathParam("filename") String filename,
@@ -446,21 +567,6 @@ public class UploadFiles extends Application {
 		}
 
 		return response;		
-	}
-
-	private class Message {
-		@SuppressWarnings("unused")
-		String status;
-		@SuppressWarnings("unused")
-		String message;
-		@SuppressWarnings("unused")
-		String name;
-		
-		public Message(String status, String message, String name) {
-			this.status = status;
-			this.message = message;
-			this.name = name;
-		}
 	}
 	
 	/*
@@ -989,6 +1095,7 @@ public class UploadFiles extends Application {
 	
 	/*
 	 * Put the CSV file into a database table
+	 * Deprecate
 	 */
 	private void putCsvIntoTable(
 		Connection sd, 
@@ -1003,12 +1110,13 @@ public class UploadFiles extends Application {
 		
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 		CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, csvFileName);
-		csvMgr.updateTable(csvFile, oldCsvFile);
+		csvMgr.updateTable(csvFile);
 		
 	}
 	
 	/*
 	 * Delete the file
+	 * Deprecates
 	 */
 	private void deleteFile(
 			HttpServletRequest request, 

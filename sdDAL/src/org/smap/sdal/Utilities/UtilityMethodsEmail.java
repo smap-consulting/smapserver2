@@ -573,16 +573,24 @@ public class UtilityMethodsEmail {
 	}
 
 	/*
+	 * Get a files extension or return an empty string
+	 */
+	public static String getExtension(String filename) {
+		String extension = "";
+		int idx = filename.lastIndexOf('.');
+		if(idx >= 0) {
+			extension = filename.substring(idx+1).toLowerCase();
+		}
+		return extension;
+	}
+	
+	/*
 	 * Get the content type from the filename
 	 */
 	public static String getContentType(String filename) {
 
 		String ct = null;
-		String extension = "";
-		int idx = filename.lastIndexOf('.');
-		if(idx > 0) {
-			extension = filename.substring(idx+1).toLowerCase();
-		}
+		String extension = getExtension(filename);
 
 		if (extension.equals("xml")) {
 			ct = "text/xml";

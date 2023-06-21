@@ -187,7 +187,7 @@ public class CsvTableManager {
 	/*
 	 * Update the table with data from the file
 	 */
-	public void updateTable(File newFile, File oldFile) throws Exception {
+	public void updateTable(File newFile) throws Exception {
 
 		PreparedStatement pstmtCreateSeq = null;
 		PreparedStatement pstmtCreateTable = null;

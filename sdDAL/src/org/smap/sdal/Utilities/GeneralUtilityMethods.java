@@ -4491,20 +4491,13 @@ public class GeneralUtilityMethods {
 	 */
 	public static void setFilenameInResponse(String filename, HttpServletResponse response) {
 
-		String escapedFileName = null;
+		
 
 		log.info("Setting filename in response: " + filename);
 		if (filename == null) {
 			filename = "survey";
 		}
-		try {
-			escapedFileName = URLDecoder.decode(filename, "UTF-8");
-			escapedFileName = URLEncoder.encode(escapedFileName, "UTF-8");
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Encoding Filename Error", e);
-		}
-		escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
-		escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
+		String escapedFileName = urlEncode(filename);
 
 		response.setHeader("Content-Disposition", "attachment; filename=\"" + escapedFileName + "\"");
 		response.setStatus(HttpServletResponse.SC_OK);
@@ -10897,6 +10890,27 @@ public class GeneralUtilityMethods {
 		return mapSource;
 	}
 
+	public static String getUTCDateTimeSuffix() {
+		DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd HH:mm:ss");
+		dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));		// Store all dates in UTC
+		
+		return " (" + dateFormat.format(cal.getTime()) + ")";
+	}
+	
+	public static String urlEncode(String in) {
+		String out = "";
+		try {
+			out = URLDecoder.decode(in, "UTF-8");
+			out = URLEncoder.encode(out, "UTF-8");
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Encoding Filename Error", e);
+		}
+		out = out.replace("+", " "); // Spaces ok for file name within quotes
+		out = out.replace("%2C", ","); // Commas ok for file name within quotes
+		
+		return out;
+	}
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");
@@ -10918,8 +10932,6 @@ public class GeneralUtilityMethods {
 		
 		return idx;
 	}
-	
-	
 	
 }
 

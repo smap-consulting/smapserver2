@@ -614,6 +614,23 @@ CREATE UNIQUE INDEX survey_role_ident_index ON public.survey_role(survey_ident, 
 alter table survey add column my_reference_data boolean default false;
 CREATE INDEX idx_ue_db_status ON public.upload_event(db_status);
 
+-- Version 23.06
+-- Create a table to hold a change history for shared resource files
+CREATE SEQUENCE sr_history_seq START 1;
+ALTER SEQUENCE sr_history_seq OWNER TO ws;
+
+CREATE TABLE sr_history (
+	id integer DEFAULT NEXTVAL('sr_history_seq') CONSTRAINT pk_sr_history PRIMARY KEY,
+	o_id integer,
+	survey_ident text,						-- null if this is an organisational level shared resource
+	resource_name text,						-- Name of the resource including extension
+	file_name text,							-- Original file name
+	file_path text,							-- The path to the stored file
+	user_ident text,						-- User who uploaded the file
+	uploaded_ts TIMESTAMP WITH TIME ZONE	-- When the file was uploaded	
+	);
+ALTER TABLE sr_history OWNER TO ws;
+
 alter table organisation add column map_source text;
 alter table server add column maptiler_key text;
 alter table server add column disable_ref_role_filters boolean default false;

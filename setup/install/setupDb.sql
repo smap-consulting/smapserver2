@@ -1747,3 +1747,21 @@ CREATE TABLE linkage (
 	changed_ts TIMESTAMP WITH TIME ZONE	
 	);
 ALTER TABLE linkage OWNER TO ws;
+
+-- Create a table to hold a change history for shared resource files
+DROP SEQUENCE IF EXISTS sr_history_seq CASCADE;
+CREATE SEQUENCE sr_history_seq START 1;
+ALTER SEQUENCE sr_history_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS sr_history;
+CREATE TABLE sr_history (
+	id integer DEFAULT NEXTVAL('sr_history_seq') CONSTRAINT pk_sr_history PRIMARY KEY,
+	o_id integer,
+	survey_ident text,						-- null if this is an organisational level shared resource
+	resource_name text,						-- Name of the resource including extension
+	file_name text,							-- Original file name
+	file_path text,							-- The path to the stored file
+	user_ident text,						-- User who uploaded the file
+	uploaded_ts TIMESTAMP WITH TIME ZONE	-- When the file was uploaded	
+	);
+ALTER TABLE sr_history OWNER TO ws;

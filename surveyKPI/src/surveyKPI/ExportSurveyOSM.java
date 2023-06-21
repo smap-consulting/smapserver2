@@ -1,10 +1,7 @@
 package surveyKPI;
 
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -152,18 +149,8 @@ public class ExportSurveyOSM extends Application {
 
 		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "Export as OSM", 0, request.getServerName());
 		
-		String escapedFileName = null;
-		try {
-			escapedFileName = URLDecoder.decode(filename, "UTF-8");
-			escapedFileName = URLEncoder.encode(escapedFileName, "UTF-8");
-		} catch (UnsupportedEncodingException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		String escapedFileName = GeneralUtilityMethods.urlEncode(filename);
 		
-		escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
-		escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
-
 		builder.header("Content-Disposition", "attachment; filename=\"" + escapedFileName + ".osm\"");
 		
 		if(language != null) {

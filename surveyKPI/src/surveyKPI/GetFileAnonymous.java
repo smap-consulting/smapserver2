@@ -97,8 +97,8 @@ public class GetFileAnonymous extends Application {
 		try {
 			
 			FileManager fm = new FileManager();
-			r = fm.getOrganisationFile(connectionSD, request, response, user, oId, 
-					filename, false, true, thumbs);
+			r = fm.getOrganisationFile(request, response, user, oId, 
+					filename, false, thumbs);
 			
 		}  catch (Exception e) {
 			log.info("Error getting file:" + e.getMessage());
