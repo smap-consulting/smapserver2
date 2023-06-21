@@ -183,7 +183,7 @@ public class TableDataManager {
 			// Add table joins if we are getting a child forms data and also need parent information
 			if(startingForm != null) {
 				if(startingForm.childForms != null && startingForm.childForms.size() > 0) {
-					sqlGetData.append(QueryGenerator.getJoins(sd, localisation, startingForm.childForms, startingForm));
+					sqlGetData.append(QueryGenerator.getJoins(sd, localisation, startingForm.childForms, startingForm, true));
 				}
 			}
 

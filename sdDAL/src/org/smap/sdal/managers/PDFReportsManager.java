@@ -147,6 +147,7 @@ public class PDFReportsManager {
 					true,
 					tz,
 					null,
+					true,		// Outer join of tables
 					false		// Accuracy and Altitude
 					);
 			

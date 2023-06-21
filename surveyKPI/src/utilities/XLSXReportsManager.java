@@ -56,7 +56,7 @@ import org.smap.sdal.model.SqlDesc;
 
 
 /*
- * Manage exporting of data posted from a data table
+ * Reports requested from a service
  */
 
 public class XLSXReportsManager {
@@ -227,6 +227,7 @@ public class XLSXReportsManager {
 						false,
 						tz,
 						null,			// geomQuestion
+						true,			// Outer join of tables
 						get_acc_alt);
 
 				String basePath = GeneralUtilityMethods.getBasePath(request);					

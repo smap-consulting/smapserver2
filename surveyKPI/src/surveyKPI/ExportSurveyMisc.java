@@ -258,6 +258,7 @@ public class ExportSurveyMisc extends Application {
 						false,
 						tz,
 						geomQuestion,
+						true,			// Outer join of tables
 						false			// Accuracy and ALtitude
 						);
 

@@ -257,6 +257,7 @@ public class ExportSurveyMedia extends Application {
 						false,
 						tz,
 						null,		// geomQuestion
+						true,		// Outer join of tables
 						false		// Accuracy and Altitude
 						);		
 				

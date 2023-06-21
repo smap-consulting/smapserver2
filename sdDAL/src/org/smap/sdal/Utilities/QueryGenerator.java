@@ -78,6 +78,7 @@ public class QueryGenerator {
 			boolean includeKeys,
 			String tz,
 			String geomQuestion,
+			boolean outerJoin,
 			boolean get_acc_alt) throws Exception {
 		
 		SqlDesc sqlDesc = new SqlDesc();
@@ -212,18 +213,34 @@ public class QueryGenerator {
 			shpSqlBuf.append(sqlDesc.cols);
 			shpSqlBuf.append(" from ");
 	
-			/*
-			 * Add the tables
-			 */
 			for(int i = 0; i < tables.size(); i++) {
 				
 				if(i > 0) {
-					shpSqlBuf.append(",");
+					if(outerJoin) {
+						shpSqlBuf.append(" left outer join ");
+					} else {
+						shpSqlBuf.append(",");
+					}
 				}
 				shpSqlBuf.append(tables.get(i));
 			}
-			
-			shpSqlBuf.append(" where ");
+
+			/*
+			 * Add the koins
+			 */
+			if(outerJoin) {
+				if(form.childForms != null && form.childForms.size() > 0) {
+					shpSqlBuf.append(" on ");
+					shpSqlBuf.append(getJoins(sd, localisation, form.childForms, form, false));
+				}
+				shpSqlBuf.append(" where ");
+			} else {	
+				shpSqlBuf.append(" where ");
+				if(form.childForms != null && form.childForms.size() > 0) {
+					shpSqlBuf.append(getJoins(sd, localisation, form.childForms, form, false));
+					shpSqlBuf.append(" and ");
+				}
+			}
 			
 			/*
 			 * Exclude "bad" records
@@ -232,8 +249,16 @@ public class QueryGenerator {
 				if(i > 0) {
 					shpSqlBuf.append(" and ");
 				}
+				if(outerJoin && i > 0) {
+					shpSqlBuf.append("(");
+				}
 				shpSqlBuf.append(tables.get(i));
 				shpSqlBuf.append("._bad='false'");
+				if(outerJoin && i > 0) {
+					shpSqlBuf.append(" or ");
+					shpSqlBuf.append(tables.get(i));
+					shpSqlBuf.append(" is null)");
+				}
 			}
 			
 			
@@ -241,12 +266,6 @@ public class QueryGenerator {
 				shpSqlBuf.append(" and " + sqlDesc.geometry_table + "." + sqlDesc.geometry_column + " is not null");
 			}
 			
-			/*
-			 * The form list is in order of Parent to child forms
-			 */
-			if(form.childForms != null && form.childForms.size() > 0) {
-				shpSqlBuf.append(getJoins(sd, localisation, form.childForms, form));
-			}
 			
 			String sqlRestrictToDateRange = null;
 			if(dateId != 0) {
@@ -330,13 +349,17 @@ public class QueryGenerator {
 		return sqlDesc;
 	}
 	
-	public static StringBuffer getJoins(Connection sd, ResourceBundle localisation, ArrayList<QueryForm> forms, QueryForm prevForm) throws SQLException {
+	public static StringBuffer getJoins(Connection sd, ResourceBundle localisation, ArrayList<QueryForm> forms, 
+			QueryForm prevForm,
+			boolean startWithAnd) throws SQLException {
 		StringBuffer join = new StringBuffer("");
 		
 		for(int i = 0; i < forms.size(); i++) {
 			
 			QueryForm form = forms.get(i);
-			join.append(" and ");
+			if(startWithAnd || i > 0) {
+				join.append(" and ");
+			}
 			
 			if(i > 0) {
 				prevForm = forms.get(i - 1);
@@ -367,7 +390,7 @@ public class QueryGenerator {
 		for(int i = 0; i < forms.size(); i++) {
 			QueryForm form = forms.get(i);
 			if(form.childForms != null && form.childForms.size() > 0) {
-				join.append(getJoins(sd, localisation, form.childForms, form));
+				join.append(getJoins(sd, localisation, form.childForms, form, true));
 			}
 		}
 		return join;
@@ -423,7 +446,7 @@ public class QueryGenerator {
 		tables.add(form.table);
 
 		String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-		 ArrayList<TableColumn> cols = GeneralUtilityMethods.getColumnsInForm(
+		ArrayList<TableColumn> cols = GeneralUtilityMethods.getColumnsInForm(
 				sd,
 				cResults,
 				localisation,
