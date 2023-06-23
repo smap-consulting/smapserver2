@@ -1059,8 +1059,8 @@ public class XLSTemplateUploadManager {
 			QuestionForm qt = questionNames.get(q.name);
 			if(qt != null) {
 				if(q.source != null && qt.published) {
-					String newColType = GeneralUtilityMethods.getPostgresColType(q.type, false);
-					String oldColType = GeneralUtilityMethods.getPostgresColType(qt.qType, false);
+					String newColType = GeneralUtilityMethods.getPostgresColType(q.type);
+					String oldColType = GeneralUtilityMethods.getPostgresColType(qt.qType);
 					if(!newColType.equals(oldColType) &&
 							!newColType.equals("end repeat") &&	// Not sure why these are needed as source type should be null
 							!oldColType.equals("end repeat")&& 

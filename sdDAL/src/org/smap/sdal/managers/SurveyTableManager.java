@@ -537,7 +537,7 @@ public class SurveyTableManager {
 			} else {
 				linked_sId = GeneralUtilityMethods.getSurveyId(sd, linked_sIdent);
 				if(!GeneralUtilityMethods.inSameOrganisation(sd, sId, linked_sId)) {
-					throw new ApplicationException("Cannot link to external survey: " + linked_sIdent + " as it is in a different organisation");
+					throw new ApplicationException("Cannot link to external survey: " + linked_sIdent + " as it is in a different organisation to the surveyId: " + sId);
 				}
 			}
 			if(linked_sId == 0) {

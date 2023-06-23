@@ -581,7 +581,7 @@ public class TableManager {
 							log.info("Warning: No Options for Select:" + q.getName());
 						}
 					} else {
-						colType = GeneralUtilityMethods.getPostgresColType(colType, q.isCompressed());
+						colType = GeneralUtilityMethods.getPostgresColType(colType);
 						sql.append(", ").append(q.getColumnName(false)).append(" ").append(colType);
 					}
 				} else {

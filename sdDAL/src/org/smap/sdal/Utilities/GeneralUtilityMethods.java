@@ -9267,7 +9267,7 @@ public class GeneralUtilityMethods {
 				try { cResults.commit();	} catch(Exception ex) {}
 			} else {
 
-				type = getPostgresColType(type, compressed);
+				type = getPostgresColType(type);
 				if(!GeneralUtilityMethods.hasColumn(cResults, table, column)) {
 					String sqlAlterTable = "alter table " + table + " add column " + column + " " + type + ";";
 					pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
@@ -9298,7 +9298,7 @@ public class GeneralUtilityMethods {
 		return status;
 	}
 
-	public static String getPostgresColType(String colType, boolean compressed) {
+	public static String getPostgresColType(String colType) {
 		if(colType.equals("string")) {
 			colType = "text";
 		} else if(colType.equals("decimal")) {
@@ -9327,7 +9327,7 @@ public class GeneralUtilityMethods {
 			colType = "time";					
 		} else if(GeneralUtilityMethods.isAttachmentType(colType)) {
 			colType = "text";					
-		} else if(colType.equals("select") && compressed) {
+		} else if(colType.equals("select")) {
 			colType = "text";					
 		} else if(colType.equals("rank")) {
 			colType = "text";					
