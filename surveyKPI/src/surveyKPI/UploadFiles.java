@@ -120,7 +120,7 @@ public class UploadFiles extends Application {
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();
 		String resourceName = null;
 		String action = "add";	// By default add
-		int surveyId = -1;
+		int surveyId = 0;
 		String surveyIdent = null;
 		FileItem fileItem = null;
 		String user = request.getRemoteUser();

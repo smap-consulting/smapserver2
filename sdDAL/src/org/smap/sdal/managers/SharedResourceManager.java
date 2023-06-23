@@ -150,12 +150,9 @@ public class SharedResourceManager {
 					
 					if(savedFile.exists()) {
 						
-						writeToHistory(sd, fileItem, folderPath, resourceFileName, uploadedFileName,
-								oId, sIdent, user);	// Record all changes to the shared resource
-						
 						if(contentType.equals("text/csv") || uploadedFileName.endsWith(".csv")) {				
 							// Upload any CSV data into a table, also checks maximum number of columns
-							CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, resourceName);
+							CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, resourceFileName);
 							csvMgr.updateTable(savedFile);		
 						} else {
 							// Create thumbnails
@@ -169,6 +166,10 @@ public class SharedResourceManager {
 						} else {
 							mm.resourceChange(sd, oId, resourceName);
 						}
+						
+						writeToHistory(sd, fileItem, folderPath, resourceFileName, uploadedFileName,
+								oId, sIdent, user);	// Record all changes to the shared resource
+						
 					} else {
 						responseCode = "error";
 						responseMsg = new StringBuilder("Failed to save shared resource file: " + resourceName);
