@@ -156,7 +156,7 @@ public class SharedResourceManager {
 							csvMgr.updateTable(savedFile);		
 						} else {
 							// Create thumbnails
-							UtilityMethodsEmail.createThumbnail(resourceName, folderPath, savedFile);
+							UtilityMethodsEmail.createThumbnail(resourceFileName, folderPath, savedFile);
 						}
 		
 						// Create a message so that devices are notified of the change
