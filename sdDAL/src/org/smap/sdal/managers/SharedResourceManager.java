@@ -395,7 +395,7 @@ public class SharedResourceManager {
 		
 		PreparedStatement pstmt = null;
 		StringBuilder sql = new StringBuilder("select "
-				+ "file_name, user_ident, "
+				+ "id, file_name, user_ident, "
 				+ "to_char(timezone(?, uploaded_ts), 'YYYY-MM-DD HH24:MI:SS') as uploaded_ts "
 				+ "from sr_history "
 				+ "where o_id = ? "
@@ -424,8 +424,9 @@ public class SharedResourceManager {
 				item.user_ident = rs.getString("user_ident");
 				item.uploaded = rs.getString("uploaded_ts");
 				
+				int id = rs.getInt("id");
 				String escapedFileName = GeneralUtilityMethods.urlEncode(item.file_name);
-				item.url = "/surveyKPI/file/" + escapedFileName + "/history";
+				item.url = "/surveyKPI/file/" + escapedFileName + "/history/" + id;
 				if(sIdent != null) {
 					item.url += "?sIdent=" + sIdent;
 				}

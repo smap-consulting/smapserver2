@@ -84,7 +84,8 @@ public class FileManager {
 			HttpServletResponse response, 
 			int requestedOrgId, 
 			String filename, 
-			String surveyIdent) throws IOException, ApplicationException, SQLException {
+			String surveyIdent,
+			int id) throws IOException, ApplicationException, SQLException {
 		
 		Response r = null;
 		
@@ -94,7 +95,8 @@ public class FileManager {
 		try {
 			StringBuilder sql = new StringBuilder("select file_path from sr_history "
 					+ "where o_id = ? "
-					+ "and file_name = ? ");
+					+ "and file_name = ? "
+					+ "and id = ? ");
 			if(surveyIdent != null) {
 				sql.append("and survey_ident = ?");
 			}
@@ -102,9 +104,10 @@ public class FileManager {
 			pstmt = sd.prepareStatement(sql.toString());
 			pstmt.setInt(1, requestedOrgId);
 			pstmt.setString(2, filename);
+			pstmt.setInt(3, id);
 			
 			if(surveyIdent != null) {
-				pstmt.setString(3, surveyIdent);
+				pstmt.setString(4, surveyIdent);
 			}
 			
 			ResultSet rs = pstmt.executeQuery();

@@ -403,12 +403,13 @@ public class GetFile extends Application {
 	 * Get shared history file
 	 */
 	@GET
-	@Path("/history")
+	@Path("/history/{id}")
 	@Produces("application/x-download")
 	public Response getSharedHistoryFile (
 			@Context HttpServletRequest request, 
 			@Context HttpServletResponse response,
 			@PathParam("filename") String filename,
+			@PathParam("id") int id,
 			@QueryParam("sIdent") String sIdent) throws Exception {
 		
 		Response r = null;
@@ -431,7 +432,7 @@ public class GetFile extends Application {
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			FileManager fm = new FileManager();
-			r = fm.getSharedHistoryFile(sd,  response, oId, filename, sIdent); 
+			r = fm.getSharedHistoryFile(sd,  response, oId, filename, sIdent, id); 
 			
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Error getting file", e);
