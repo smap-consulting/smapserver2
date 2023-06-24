@@ -103,7 +103,7 @@ public class XLSXSharedResourceManager {
 							}
 							needHeader = false;
 						} else {
-							fw.write("\n\r");	// New line
+							fw.write("\r");	// New line
 							boolean first = true;
 							for(String colname : headerList) {
 								String value = XLSUtilities.getColumn(row, colname, headerMap, lastCellNum, null);

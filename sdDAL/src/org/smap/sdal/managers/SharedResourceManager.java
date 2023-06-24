@@ -150,7 +150,7 @@ public class SharedResourceManager {
 					
 					if(savedFile.exists()) {
 						
-						if(contentType.equals("text/csv") || uploadedFileName.endsWith(".csv")) {				
+						if(contentType.equals("text/csv") || resourceFileName.endsWith(".csv")) {				
 							// Upload any CSV data into a table, also checks maximum number of columns
 							CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, resourceFileName);
 							csvMgr.updateTable(savedFile);		

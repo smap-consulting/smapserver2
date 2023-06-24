@@ -1083,7 +1083,7 @@ public class CsvTableManager {
 			int idx = 0;
 			for(String[] data : records) {
 				if(data.length > 0) {
-					for(int i = 0; i < data.length && i < headerSize; i++) {
+					for(int i = 0; i < headerSize; i++) {
 						String v = "";	// fill empty cells with zero length string
 						if(i < data.length) {
 							v = data[i];
@@ -1091,11 +1091,11 @@ public class CsvTableManager {
 						v = v.trim();
 						pstmt.setString(i + 1, v);
 					}
-					pstmt.executeUpdate();
 					if(idx++ == 0) {
 						log.info("Insert first record of csv values: " + pstmt.toString());
 						log.info("Number of records: " + records.size());
 					}
+					pstmt.executeUpdate();
 				}
 			}
 			
