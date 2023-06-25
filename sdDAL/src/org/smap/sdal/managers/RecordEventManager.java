@@ -1,17 +1,20 @@
 package org.smap.sdal.managers;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.DataItemChangeEvent;
+import org.smap.sdal.model.RecordUpdateEvent;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.TaskEventChange;
 import org.smap.sdal.model.TaskItemChange;
@@ -340,8 +343,8 @@ public class RecordEventManager {
 				+ "change_survey_version, "
 				+ "to_char(timezone(?, event_time), 'YYYY-MM-DD HH24:MI:SS') as event_time "
 				+ "from record_event "
-				+ "where table_name = ?"
-				+ "and key = ?"
+				+ "where table_name = ? "
+				+ "and key = ? "
 				+ "order by event_time desc";
 		PreparedStatement pstmt = null;
 		
@@ -398,6 +401,85 @@ public class RecordEventManager {
 				event.tz = tz;
 				
 				events.add(event);
+				
+			}
+		} finally {
+			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
+		}
+		
+		return events;
+	}
+	
+	/*
+	 * Get a list of changes to a survey's data made by a second survey
+	 * Initial event: created
+	 * Change event: changes
+	 */
+	public ArrayList<ArrayList<RecordUpdateEvent>> getDataChanges(
+			Connection sd, 
+			String tz, 
+			String tableName, 
+			String creatingSurveyIdent, 
+			String changingSurveyIdent,
+			Date startDate,
+			Date endDate) throws SQLException {
+		
+		ArrayList<ArrayList<RecordUpdateEvent>> events = new ArrayList<> ();
+		HashMap<String, ArrayList<RecordUpdateEvent>> eventMap = new HashMap<> ();
+		
+		StringBuilder sql = new StringBuilder("select "
+				+ "key, "				
+				+ "event, "
+				+ "status,"
+				+ "to_char(timezone(?, event_time), 'YYYY-MM-DD HH24:MI:SS') as event_time "
+				+ "from record_event "
+				+ "where table_name = ? "
+				+ "and ((event = 'created' and change_survey = ?) or (event = 'changes' and change_survey = ?)) ");
+		PreparedStatement pstmt = null;
+		
+		String sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, "event_time");
+		if(sqlRestrictToDateRange.trim().length() > 0) {
+			sql.append(" and " + sqlRestrictToDateRange);
+		}
+		
+		sql.append("order by event_time asc");
+		
+		try {
+			pstmt = sd.prepareStatement(sql.toString());
+			int idx = 1;
+			pstmt.setString(idx++, tz);
+			pstmt.setString(idx++, tableName);
+			pstmt.setString(idx++, creatingSurveyIdent);
+			pstmt.setString(idx++, changingSurveyIdent);
+			
+			// if date filter is set then add it
+			if(sqlRestrictToDateRange != null && sqlRestrictToDateRange.trim().length() > 0) {
+				if(startDate != null) {
+					pstmt.setTimestamp(idx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+				}
+				if(endDate != null) {
+					pstmt.setTimestamp(idx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+				}
+			}	
+			
+			log.info("Get data changes: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				
+				RecordUpdateEvent item = new RecordUpdateEvent();
+				
+				String key = rs.getString("key");
+				item.event = rs.getString("event");
+				item.status = rs.getString("status");
+				item.eventTime = rs.getString("event_time");
+ 				ArrayList<RecordUpdateEvent> record = eventMap.get(key);
+				if(record == null) {
+					record = new ArrayList<RecordUpdateEvent> ();
+					eventMap.put(key, record);
+					events.add(record);
+				}
+				record.add(item);
+				
 				
 			}
 		} finally {

@@ -72,6 +72,7 @@ import org.smap.sdal.model.DataItemChangeEvent;
 import org.smap.sdal.model.FormLink;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.RateLimitInfo;
+import org.smap.sdal.model.RecordUpdateEvent;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.Survey;
@@ -436,6 +437,66 @@ public class Data extends Application {
 			String thread = GeneralUtilityMethods.getThread(cResults, tableName, key);
 			RecordEventManager rem = new RecordEventManager();
 			ArrayList<DataItemChangeEvent> changeEvents = rem.getChangeEvents(sd, tz, tableName, thread);
+			
+			response = Response.ok(gson.toJson(changeEvents)).build();
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, "Exception", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
+		}
+		
+		return response;
+		
+	}
+	
+	/*
+	 * Get changes applied to a survey's data
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/changes/{creatingSurveyId}/{changingSurveyId}/survey")
+	public Response getSurveyDataChanges(@Context HttpServletRequest request,
+			@PathParam("creatingSurveyId") int creatingSurveyId,
+			@PathParam("changingSurveyId") int changingSurveyId,
+			@QueryParam("from") Date startDate,
+			@QueryParam("to") Date endDate,		
+			@QueryParam("tz") String tz					// Timezone
+			) throws ApplicationException, Exception { 
+		
+		Response response = null;
+		String connectionString = "koboToolboxApi - get changes applied to a survey";
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), creatingSurveyId, false, superUser);
+		a.isValidSurvey(sd, request.getRemoteUser(), changingSurveyId, false, superUser);
+		// End Authorisation
+			
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
+		try {
+			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String creatingSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, creatingSurveyId);
+			String changingSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, changingSurveyId);
+			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, creatingSurveyId);
+			
+			RecordEventManager rem = new RecordEventManager();
+			ArrayList<ArrayList<RecordUpdateEvent>> changeEvents = rem.getDataChanges(sd, tz, tableName, 
+					creatingSurveyIdent, changingSurveyIdent, startDate, endDate);
 			
 			response = Response.ok(gson.toJson(changeEvents)).build();
 		} catch (Exception e) {
