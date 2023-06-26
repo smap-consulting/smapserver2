@@ -342,7 +342,7 @@ public class SubscriberBatch {
 				sendMailouts(dbc.sd, basePath, serverName);
 				expireTemporaryUsers(localisation, dbc.sd);
 				
-			} else if(subscriberType.equals("forward")) {
+			} else if(subscriberType.equals("forward")) {		// Note forward is just another batch process, it no longer forwards surveys to other servers
 				
 				applyCaseManagementReminders(dbc.sd, dbc.results, basePath, serverName);
 				
@@ -1075,7 +1075,7 @@ public class SubscriberBatch {
 				+ "and a.id not in (select a_id from reminder where n_id = n.id)";
 		PreparedStatement pstmt = null;
 		
-		// Sql to record a reminder being sent
+		// SQL to record a reminder being sent
 		String sqlSent = "insert into reminder (n_id, a_id, reminder_date) values (?, ?, now())";
 		PreparedStatement pstmtSent = null;
 		
