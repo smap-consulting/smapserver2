@@ -167,8 +167,7 @@ public class UploadFiles extends Application {
 						if(resourceName != null) {
 							resourceName = resourceName.trim();
 						}
-						log.info("Resource Name: " + resourceName);
-						
+						log.info("Resource Name: " + resourceName);	
 						
 					} else if(item.getFieldName().equals("surveyId")) {
 						try {
@@ -193,10 +192,26 @@ public class UploadFiles extends Application {
 				} else {
 					if(item.getName().trim().length() > 0) {
 						fileItem = item;
+					} else {
+						log.info("No name specified for item in upload file");
 					}
 				}
 			} 
-					
+				
+			/*
+			 * Default the resource name to the item name if it was not specified
+			 */
+			if(resourceName == null) {
+				String fileName = fileItem.getName();
+				int idx = fileName.lastIndexOf('.');
+				if (idx > 0) {
+					resourceName = fileName.substring(0, idx);
+				}
+			}
+			
+			/*
+			 * Load the resource
+			 */
 			SharedResourceManager srm = new SharedResourceManager(localisation, tz);			
 			String basePath = GeneralUtilityMethods.getBasePath(request);			
 			response = srm.add(sd, surveyIdent, surveyId, oId, basePath, user, resourceName, fileItem, action);
