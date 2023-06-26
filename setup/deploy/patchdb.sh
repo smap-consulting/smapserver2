@@ -64,6 +64,12 @@ echo "applying pre 1909 patches to survey_definitions"
 cat ./sd_pre_1908.sql | sudo -i -u postgres $PSQL -q -d survey_definitions 2>&1 | grep -v "already exists" | grep -v "duplicate key" | grep -vi "addgeometrycolumn" | grep -v "implicit index" | grep -v "skipping" | grep -v "is duplicated" | grep -v "create unique index" | grep -v CONTEXT
 fi
 
+if [ $version -lt "2306" ]
+then
+echo "applying pre 2306 patches to survey_definitions"
+cat ./sd_pre_2306.sql | sudo -i -u postgres $PSQL -q -d survey_definitions 2>&1 | grep -v "already exists" | grep -v "duplicate key" | grep -vi "addgeometrycolumn" | grep -v "implicit index" | grep -v "skipping" | grep -v "is duplicated" | grep -v "create unique index" | grep -v CONTEXT
+fi
+
 echo "applying new patches to survey_definitions"
 cat ./sd.sql | sudo -i -u postgres $PSQL -q -d survey_definitions 2>&1 | grep -v "already exists" | grep -v "duplicate key" | grep -vi "addgeometrycolumn" | grep -v "implicit index" | grep -v "skipping" | grep -v "is duplicated" | grep -v "create unique index" | grep -v CONTEXT | grep -v "does not exist"
 
