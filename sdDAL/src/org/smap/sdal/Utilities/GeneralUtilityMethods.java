@@ -10867,7 +10867,7 @@ public class GeneralUtilityMethods {
 	 * Get the default map source for static map images for the organisation that owns the passed in survey
 	 */
 	public static String getDefaultMapSource(Connection sd, int sId) throws SQLException {
-		String mapSource = "google";
+		String mapSource = "mapbox";
 		String sql = "select map_source from organisation "
 				+ "where id = (select p.o_id from project p, survey s where p.id = s.p_id and s.s_id = ?)";
 		
