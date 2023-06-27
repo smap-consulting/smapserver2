@@ -357,8 +357,6 @@ alter table csvtable add column linked_sident text;
 alter table csvtable add column chart_key text;
 alter table csvtable add column linked_s_pd boolean;
 
-delete from csvtable where survey;
-
 alter table organisation add column ft_bg_stop_menu boolean default false;
 update organisation set ft_exit_track_menu = false where ft_bg_stop_menu is null;
 
