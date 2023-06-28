@@ -48,11 +48,6 @@ smapServer/WebContent/build/js/webform-bundle.js
 smapServer/node_modules
 aws/target
 
-smapServer/.idea/
-tasks/.idea/
-fieldManagerClient/.idea/
-fieldAnalysis/.idea/
-
 # External tool builders
 .externalToolBuilders/
 
