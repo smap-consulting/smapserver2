@@ -19,6 +19,7 @@ tdh/target/
 subscribers/.aws/
 koboToolboxApi/.aws/
 koboToolboxApi/target/
+surveyMobileApi/target/
 
 build/css.orig
 
@@ -36,8 +37,8 @@ tmp/
 local.properties
 .loadpath
 .component
-.classpath
 .settings
+#.classpath
 
 .idea/
 workspace.xml
