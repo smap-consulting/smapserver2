@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><project-modules id="moduleCoreId" project-version="1.5.0">
+        
+    <wb-module deploy-name="surveyKPI-1.0.1">
+        <wb-resource deploy-path="/" source-path="/target/m2e-wtp/web-resources"/>
+                
+        <wb-resource deploy-path="/" source-path="/src/main/webapp" tag="defaultRootSource"/>
+                
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src"/>
+                
+        <wb-resource deploy-path="/" source-path="/target/m2e-wtp"/>
+                
+        <dependent-module archiveName="amazon-1.0.0.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/amazon/amazon">
+                        
+            <dependency-type>uses</dependency-type>
+                    
+        </dependent-module>
+                
+        <dependent-module archiveName="sdDAL-1.0.0.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/sdDAL/sdDAL">
+                        
+            <dependency-type>uses</dependency-type>
+                    
+        </dependent-module>
+                
+        <dependent-module archiveName="sdDataAccess-1.0.0.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/sdDataAccess/sdDataAccess">
+                        
+            <dependency-type>uses</dependency-type>
+                    
+        </dependent-module>
+                
+        <property name="context-root" value="surveyKPI"/>
+                
+        <property name="java-output-path" value="/surveyKPI/target/classes"/>
+            
+    </wb-module>
+    
+</project-modules>
