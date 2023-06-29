@@ -67,33 +67,6 @@
 			<version>3.1.0</version>
 			<scope>provided</scope>
 		</dependency>
-
-       <!-- Jersey -->
-       <dependency>
-           <groupId>com.sun.jersey</groupId>
-           <artifactId>jersey-client</artifactId>
-           <version>1.17</version>
-       </dependency>
-       <dependency>
-           <groupId>com.sun.jersey</groupId>
-           <artifactId>jersey-server</artifactId>
-           <version>1.17</version>
-       </dependency>
-       <dependency>
-           <groupId>com.sun.jersey</groupId>
-           <artifactId>jersey-core</artifactId>
-           <version>1.17</version>
-       </dependency>
-       <dependency>
-           <groupId>com.sun.jersey</groupId>
-           <artifactId>jersey-json</artifactId>
-           <version>1.17</version>
-       </dependency>
-       <dependency>
-           <groupId>com.sun.jersey</groupId>
-           <artifactId>jersey-servlet</artifactId>
-           <version>1.17</version>
-       </dependency>
        
 	</dependencies>
 </project>
