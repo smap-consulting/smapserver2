@@ -32,8 +32,8 @@ tmp/
 *.swp
 *~.nib
 local.properties
-.loadpath
-.component
+#.loadpath
+#.component
 #.settings
 #.classpath
 
