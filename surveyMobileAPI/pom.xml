@@ -59,8 +59,7 @@
             <groupId>asm</groupId>
             <artifactId>asm</artifactId>
             <version>3.3.1</version>
-        </dependency>
-        
+        </dependency>       
   
 		<dependency>
 			<groupId>javax.servlet</groupId>
@@ -68,6 +67,6 @@
 			<version>3.1.0</version>
 			<scope>provided</scope>
 		</dependency>
-
+       
 	</dependencies>
 </project>
