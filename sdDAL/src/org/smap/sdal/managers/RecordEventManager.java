@@ -56,6 +56,8 @@ public class RecordEventManager {
 	public static String ALERT = "alert";
 	public static String ASSIGNED = "assigned";
 	public static String NOTIFICATION = "notification";
+	public static String DELETED = "deleted";
+	public static String RESTORED = "restored";
 	
 	public static String STATUS_SUCCESS = "success";
 	public static String STATUS_NEW = "new";

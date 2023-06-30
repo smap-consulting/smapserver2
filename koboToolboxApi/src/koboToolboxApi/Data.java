@@ -94,13 +94,6 @@ public class Data extends Application {
 
 	LogManager lm = new LogManager();		// Application log
 
-	// Tell class loader about the root classes.  (needed as tomcat6 does not support servlet 3)
-	public Set<Class<?>> getClasses() {
-		Set<Class<?>> s = new HashSet<Class<?>>();
-		s.add(Data.class);
-		return s;
-	}
-
 	public Data() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
@@ -165,7 +158,7 @@ public class Data extends Application {
 	@GET
 	@Produces("application/json")
 	@Path("/{sIdent}")
-	public void getDataRecordsService(@Context HttpServletRequest request,
+	public Response getDataRecordsService(@Context HttpServletRequest request,
 			@Context HttpServletResponse response,
 			@PathParam("sIdent") String sIdent,
 			@QueryParam("start") int start,				// Primary key to start from
@@ -227,6 +220,8 @@ public class Data extends Application {
 				tz, incLinks, 
 				filter, dd_filter, prikey, dd_hrk, dateName, startDate, endDate, getSettings, 
 				instanceId, includeMeta);
+		
+		return Response.status(Status.OK).build();
 	}
 	
 	/*
