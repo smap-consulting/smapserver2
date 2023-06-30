@@ -772,7 +772,6 @@ public class Tasks extends Application {
 		
 		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		TaskBulkAction bulkAction = gson.fromJson(tasks, TaskBulkAction.class);
-	
 		
 		log.info("userevent: " + request.getRemoteUser() + " : bulk action for : " + tgId + " " 
 					+ bulkAction.action + " : assign user: " + bulkAction.userId + " : " + bulkAction.tasks.toString());

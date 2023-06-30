@@ -193,7 +193,7 @@ public class TranslationManager {
 					
 					ManifestValue m = new ManifestValue();
 					m.fileName = manifestList.get(i);
-					m.sId = surveyId;
+					m.sId = surveyId;					
 					
 					if(m.fileName.equals("linked_self")) {
 						m.fileName = "linked_" + surveyIdent;
@@ -211,6 +211,7 @@ public class TranslationManager {
 						}
 					} else {
 						m.type = "linked";
+						m.linkedSurveyIdent = m.fileName.substring("linked_".length());
 						m.url = "/surveyKPI/file/" + m.fileName + ".csv/survey/" + surveyId + "?linked=true";
 						manifests.add(m);
 					}				

@@ -164,7 +164,14 @@ public class GetXForm {
 			transformer.setOutputProperty(OutputKeys.METHOD, "xml");
 
 			DOMSource source = new DOMSource(outputXML);
-			transformer.transform(source, outStream);
+			log.info("Transform: user: " + user + " survey : " + template.getSurvey().getDisplayName());
+			try {
+				transformer.transform(source, outStream);
+			} catch(Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+				log.info("Transform Error: user: " + user + " survey : " + template.getSurvey().getDisplayName());
+				throw(e);
+			}
 
 			response = outWriter.toString();
 
@@ -1519,7 +1526,7 @@ public class GetXForm {
 	 * 
 	 * @param q
 	 */
-	public void populateCascadeOptions(Document outputXML, Element parent, CascadeInstance ci) {
+	public void populateCascadeOptions(Document outputXML, Element parent, CascadeInstance ci) throws ApplicationException {
 
 		List<Option> optionList = template.getCascadeOptionList(ci.name);
 
@@ -1577,7 +1584,16 @@ public class GetXForm {
 			List<String> keyList = new ArrayList<String>(cvs.keySet());
 			for (String k : keyList) {
 				String v = cvs.get(k);
-				Element keyElement = outputXML.createElement(k);
+				Element keyElement = null;
+				try {
+					keyElement = outputXML.createElement(k);
+				} catch (Exception e) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+					
+					String msg = localisation.getString("tu_icf");
+					msg = msg.replace("%s1", k);				
+					throw new ApplicationException(msg);
+				}
 				keyElement.setTextContent(v);
 				itemElement.appendChild(keyElement);
 			}
@@ -1648,7 +1664,9 @@ public class GetXForm {
 		try {
 			stm.initData(pstmt, "all", null, null,
 					null,	// expression fragment
-					tz, null, null);
+					tz, 
+					null, 
+					null);
 			line = stm.getLine();
 			while(line != null) {
 				// process line
@@ -1658,7 +1676,7 @@ public class GetXForm {
 				for(KeyValueSimp kv : line) {
 					elem = outputXML.createElement(kv.k);
 					String v = kv.v.replaceAll("'", "");
-					if(v.startsWith("LINESTRING") || v.startsWith("POLyGON")) {
+					if(v.startsWith("LINESTRING") || v.startsWith("POLYGON")) {
 						v = GeneralUtilityMethods.convertGeomToFieldTaskFormat(v);
 					}
 					elem.setTextContent(v);

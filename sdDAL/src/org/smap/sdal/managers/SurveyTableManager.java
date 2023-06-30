@@ -20,6 +20,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapServerMeta;
+import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Label;
@@ -88,6 +89,7 @@ public class SurveyTableManager {
 	private boolean non_unique_key = false;
 	private boolean chart;
 	private String linked_sIdent;
+	private String requestingUser;
 	private String chart_key;
 	private boolean linked_s_pd = false;
 	
@@ -100,6 +102,7 @@ public class SurveyTableManager {
 		this.sd = sd;
 		this.cResults = cResults;
 		this.localisation = l;
+		this.requestingUser = user;
 		
 		if(oId <= 0) {
 			log.info("************************ Error: Create Survey Table Manager : Organisation id is less than or equal to 0");
@@ -194,20 +197,25 @@ public class SurveyTableManager {
 			String type, 
 			String selection, 
 			ArrayList<String> arguments, 
-			SqlFrag expressionFrag,		// A more general approach than using "whereColumns". The latter should probably be deprecated
+			SqlFrag expressionFrag,		// The expression in a lookup or search
 			String tz,
 			ArrayList<SqlFrag> qArray,
 			ArrayList<SqlFrag> fArray
 			) throws Exception {
 		
+		boolean hasRbacFilter = false;
+		boolean superUser = false;		// Always filter
+		
 		if(sqlDef != null && sqlDef.colNames != null && sqlDef.colNames.size() > 0) {
+			boolean hasWhere = sqlDef.hasWhere;
 			StringBuilder sql = new StringBuilder(sqlDef.sql);
 			
 			if(expressionFrag != null || selection != null) { 
-				if(sqlDef.hasWhere) {
+				if(hasWhere) {
 					sql.append(" and ");
 				} else {
 					sql.append(" where ");
+					hasWhere = true;
 				}
 				if(expressionFrag != null) {
 					sql.append(" ( ").append(expressionFrag.sql).append(")");
@@ -215,6 +223,29 @@ public class SurveyTableManager {
 					sql.append(selection);
 				}
 			}
+			
+			// RBAC filter
+			ArrayList<SqlFrag> rfArray = null;
+			RoleManager rm = new RoleManager(localisation);
+			if (!superUser && requestingUser != null) {			
+				
+				rfArray = rm.getSurveyRowFilter(sd, linked_sIdent, requestingUser);
+				
+				if (rfArray.size() > 0) {
+					String rFilter = rm.convertSqlFragsToSql(rfArray);
+					if (rFilter.length() > 0) {
+						if(hasWhere) {
+							sql.append(" and ");
+						} else {
+							sql.append(" where ");
+							hasWhere = true;
+						}
+						sql.append(rFilter);
+						hasRbacFilter = true;
+					}
+				}
+			}
+
 
 			sql.append(sqlDef.order_by);
 			String sqlString = sql.toString();
@@ -230,8 +261,8 @@ public class SurveyTableManager {
 			if (fArray != null) {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, fArray, paramCount, tz);
 			}
-			if (sqlDef.hasRbacFilter) {
-				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDef.rfArray, paramCount, tz);
+			if (hasRbacFilter) {
+				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount, tz);
 			}
 			
 			if(expressionFrag != null) {
@@ -432,7 +463,7 @@ public class SurveyTableManager {
 			/*
 			 * Get parameters There are three types of linked CSV files generated 
 			 * 1. Parent child records where there can be many records from a sub form that match the
-			 *  key. Filename starts with "linked_s_pd_" (PD_IDENT) 
+			 *  key. Filename starts with "linked_s_pd_" (PD_IDENT) - Deprecate
 			 * 2. Normal lookup where there is only one record that should match a key. Filename starts with
 			 *  "linked_"
 			 * 3. Time series data.  Filename starts with "chart_s"
@@ -506,7 +537,7 @@ public class SurveyTableManager {
 			} else {
 				linked_sId = GeneralUtilityMethods.getSurveyId(sd, linked_sIdent);
 				if(!GeneralUtilityMethods.inSameOrganisation(sd, sId, linked_sId)) {
-					throw new ApplicationException("Cannot link to external survey: " + linked_sIdent + " as it is in a different organisation");
+					throw new ApplicationException("Cannot link to external survey: " + linked_sIdent + " as it is in a different organisation to the surveyId: " + sId);
 				}
 			}
 			if(linked_sId == 0) {
@@ -669,6 +700,8 @@ public class SurveyTableManager {
 						} else if(colType.equals("geoshape") || colType.equals("geotrace")) {
 							colName = "ST_AsText(" + tableName + "." + colName + ")";
 							newSqlDef.hasGeom = true;
+						} else if(colType.equals("string")) {
+							colName = "replace(" + colName + ", '\\\"', '\'\'')";	// Remove double quotes from text for csv export
 						}
 						
 					} else if (SmapServerMeta.isServerReferenceMeta(n)) {
@@ -681,7 +714,13 @@ public class SurveyTableManager {
 					} else {
 						if(GeneralUtilityMethods.tableExists(cResults, topForm.tableName)) {
 							// Only report the error if the top level table has been created otherwise probably no data has been submitted and all columns would be unpublished and missing
-							lm.writeLog(sd, sId, null, LogManager.ERROR, n + " " + localisation.getString("imp_nfi"), 0, null);
+							String msg = null;
+							if(localisation != null) {
+								msg = localisation.getString("imp_nfi");
+							} else {
+								msg = "not found in form";
+							}
+							lm.writeLog(sd, sId, null, LogManager.ERROR, n + " " + msg, 0, null);
 						}
 						continue; // Name not found
 					}
@@ -729,11 +768,6 @@ public class SurveyTableManager {
 				newSqlDef.hasWhere = true;
 				sql.append(where);
 			}
-
-			// 4. Add the RBAC/Row filter
-			// Add RBAC/Role Row Filter
-			newSqlDef.rfArray = null;
-			newSqlDef.hasRbacFilter = false;
 
 			// If this is a pulldata linked file then order the data by _data_key and then
 			// the primary keys of sub forms
@@ -898,11 +932,50 @@ public class SurveyTableManager {
 	/*
 	 * Generate a CSV file from the survey reference data
 	 */
-	public boolean generateCsvFile(Connection cResults, File f, int sId, String userName, String basePath) {
+	public boolean generateCsvFile(Connection cResults, File f, int sId, String userIdent, String basePath,
+			CustomUserReference cur) {
+		
 		PreparedStatement pstmtData = null;
 		boolean status = false;
+		String tz = "UTC";
+		
 		try {
-			String sql = sqlDef.sql + sqlDef.order_by;			// Escape quotes when passing sql to psql
+			StringBuilder sqlBuild = new StringBuilder(sqlDef.sql);
+				
+			// Add RBAC if this CSV file requires it
+			ArrayList<SqlFrag> rfArray = null;
+			if(cur.roles) {		
+				RoleManager rm = new RoleManager(localisation);
+				if (userIdent != null) {			
+					
+					rfArray = rm.getSurveyRowFilter(sd, linked_sIdent, userIdent);
+					
+					if (rfArray.size() > 0) {
+						String rFilter = rm.convertSqlFragsToSql(rfArray);
+						if (rFilter.length() > 0) {
+							if(sqlDef.hasWhere) {
+								sqlBuild.append(" and ");
+							} else {
+								sqlBuild.append(" where ");
+							}
+							sqlBuild.append(rFilter);
+						}
+					}
+				}
+			}
+			
+			// Add a filter to only select the users own reference data if this CSV field needs it
+			if(cur.myReferenceData) {
+				if(sqlDef.hasWhere) {
+					sqlBuild.append(" and ");
+				} else {
+					sqlBuild.append(" where ");
+				}
+				sqlBuild.append("_user = ?");
+			}
+			
+			sqlBuild.append(sqlDef.order_by);
+			String sql = sqlBuild.toString();					// Escape quotes when passing sql to psql
 			String sqlNoEscapes = sql.replace("\\", "");		// Remove escaping of quotes when used in prepared statement
 			
 			if(sqlDef.colNames.size() == 0) {
@@ -923,6 +996,7 @@ public class SurveyTableManager {
 			} else if (linked_s_pd && non_unique_key) {
 				// 6. Create the file
 				pstmtData = cResults.prepareStatement(sqlNoEscapes);
+				cur.setFilterParams(pstmtData, rfArray, 1, tz, userIdent);
 				
 				log.info("Get CSV data: " + pstmtData.toString());
 				rs = pstmtData.executeQuery();
@@ -991,6 +1065,7 @@ public class SurveyTableManager {
 
 				HashMap<String, ArrayList<String>> chartData = new HashMap<> ();
 				pstmtData = cResults.prepareStatement(sqlNoEscapes);
+				cur.setFilterParams(pstmtData, rfArray, 1, tz, userIdent);
 				
 				if(rs != null) {
 					rs.close();
@@ -1051,6 +1126,7 @@ public class SurveyTableManager {
 				
 			
 				pstmtData = cResults.prepareStatement(sqlNoEscapes);
+				cur.setFilterParams(pstmtData, rfArray, 1, tz, userIdent);
 				
 				if(rs != null) {
 					rs.close();
@@ -1104,6 +1180,7 @@ public class SurveyTableManager {
 				// Use PSQL to generate the file as it is faster
 				int code = 0;
 				pstmtData = cResults.prepareStatement(sql);
+				cur.setFilterParams(pstmtData, rfArray, 1, tz, userIdent);
 				
 				String filePath = f.getAbsolutePath();
 				int idx = filePath.indexOf(".csv");
@@ -1137,7 +1214,7 @@ public class SurveyTableManager {
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
-			lm.writeLog(sd, sId, userName, LogManager.ERROR, "Creating CSV file: " + e.getMessage(), 0, null);
+			lm.writeLog(sd, sId, userIdent, LogManager.ERROR, "Creating CSV file: " + e.getMessage(), 0, null);
 			status = false;
 		} finally {
 			if (pstmtData != null) {try {pstmtData.close();} catch (Exception e) {}}

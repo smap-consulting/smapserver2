@@ -211,40 +211,25 @@ public class EventList extends Application {
 		a.isValidSurveyIdent(sd, request.getRemoteUser(), surveyIdent, false, false);
 	
 		String sql1 = "update upload_event "
-				+ "set results_db_applied = 'false' "
-				+ "where ue_id in (select ue.ue_id from upload_event ue, subscriber_event se "
-				+ "where ue.ue_id = se.ue_id "
-				+ "and se.status = 'error' "
-				+ "and se.reason not like 'Duplicate survey:%' "
-				+ "and ue.ident = ?) ";
-		PreparedStatement pstmt1 = null;
-		
-		String sql2 = "delete from subscriber_event where "
-				+ "status = 'error' "
-				+ "and reason not like 'Duplicate survey:%' "
-				+ "and ue_id in (select ue.ue_id from upload_event ue "
-				+ "where ue.ident = ?) ";
-		PreparedStatement pstmt2 = null;
+				+ "set results_db_applied = 'false',"
+				+ "db_status = null,"
+				+ "db_reason = null "
+				+ "where db_status = 'error' "
+				+ "and db_reason not like 'Duplicate survey:%' "
+				+ "and ident = ? ";
+		PreparedStatement pstmt = null;
 		
 		try {			
 
 			sd.setAutoCommit(false);
 			
 			// Update the flag that indicates if the record has been applied (performance related flag)
-			pstmt1 = sd.prepareStatement(sql1);
-			pstmt1.setString(1, surveyIdent);
-			int count1 = pstmt1.executeUpdate();
-			log.info("Restore a:  Number of records: " + count1 + " : " + pstmt1.toString());
+			pstmt = sd.prepareStatement(sql1);
+			pstmt.setString(1, surveyIdent);
+			log.info("Restore: " + pstmt.toString());
+			int count1 = pstmt.executeUpdate();
+			log.info("Number of records: " + count1);
 			
-			// Remove the subscriber records
-			pstmt2 = sd.prepareStatement(sql2);
-			pstmt2.setString(1, surveyIdent);
-			int count2 = pstmt2.executeUpdate();
-			log.info("Restore b:  Number of records: " + count2 + " : " + pstmt2.toString());
-			
-			if(count1 != count2) {
-				throw new Exception("Mismatched count");
-			}
 			sd.commit();
 			
 			response = Response.ok().build();
@@ -256,8 +241,7 @@ public class EventList extends Application {
 			 
 		} finally {
 			sd.setAutoCommit(true);
-			try {if (pstmt1 != null) {pstmt1.close();}} catch (SQLException e) {}
-			try {if (pstmt2 != null) {pstmt2.close();}} catch (SQLException e) {}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
@@ -304,14 +288,6 @@ public class EventList extends Application {
 		
 		JSONObject jo = new JSONObject();
 		
-		String subscriberSelect = "";
-		if(!is_forward) {
-			subscriberSelect = "AND (se.subscriber = 'results_db' or se.subscriber is null) ";
-		} else {
-			subscriberSelect = "AND se.subscriber != 'results_db' ";
-		}
-
-		
 		PreparedStatement pstmt = null;
 		ResultSet resultSet = null;
 		try {
@@ -330,13 +306,11 @@ public class EventList extends Application {
 				if(projectId != 0) {	// set to 0 to get all available projects
 					projSelect = "AND up.p_id = ? ";
 				}
-				sql = "SELECT se.se_id, ue.ue_id, ue.s_id, ue.upload_time, ue.user_name, ue.imei, ue.file_name, ue.survey_name, ue.location, "
-						+ "se.status as se_status, se.reason as se_reason, "
-						+ "se.dest as dest, ue.ident,"
+				sql = "SELECT ue.ue_id, ue.s_id, ue.upload_time, ue.user_name, ue.imei, ue.file_name, ue.survey_name, ue.location, "
+						+ "ue.db_status as db_status, ue.db_reason as db_reason, "
+						+ "ue.ident,"
 						+"ue.status as upload_status, ue.reason as upload_reason, ue.incomplete "
 						+ "from upload_event ue "
-						+ "left outer join subscriber_event se "
-						+ "on ue.ue_id = se.ue_id "
 						+ "inner join user_project up "
 						+ "on ue.p_id = up.p_id "
 						+ "inner join users u "
@@ -346,7 +320,6 @@ public class EventList extends Application {
 						+ "where u.ident = ? "
 						+ "and p.o_id = ? "
 						+ getObsoleteFilter(ignoreOld)
-						+ subscriberSelect
 						+ projSelect
 						+ filter
 						+ " order by ue.ue_id desc;";
@@ -371,13 +344,11 @@ public class EventList extends Application {
 					// Assume we were passed an ident
 					sIdent = sName;
 				}
-				sql = "SELECT se.se_id, ue.ue_id, ue.s_id, ue.upload_time, ue.user_name, ue.imei, ue.file_name, ue.survey_name, ue.location, " +
-						"se.status as se_status, se.reason as se_reason, " +
-						"se.dest as dest, ue.ident, " +
+				sql = "SELECT ue.ue_id, ue.s_id, ue.upload_time, ue.user_name, ue.imei, ue.file_name, ue.survey_name, ue.location, " +
+						"ue.db_status as db_status, ue.db_reason as db_reason, " +
+						"ue.ident, " +
 						"ue.status as upload_status, ue.reason as upload_reason, ue.incomplete " +
 						"FROM upload_event ue " +
-						"left outer join subscriber_event se " +
-						"on ue.ue_id = se.ue_id " +
 						"inner join user_project up " +
 						"on ue.p_id = up.p_id " +
 						"inner join users u " +
@@ -386,7 +357,6 @@ public class EventList extends Application {
 						"and ue.ident = ? " +
 						"and up.p_id = ? " +
 						getObsoleteFilter(ignoreOld) +
-						subscriberSelect +
 						filter +
 						" ORDER BY ue.ue_id desc;";
 				pstmt = sd.prepareStatement(sql);
@@ -405,16 +375,16 @@ public class EventList extends Application {
 			 int countRecords = 0;
 			 int maxRec = 0;
 			 while (resultSet.next()) {
-				 String status = resultSet.getString("se_status");
-				 String se_reason = resultSet.getString("se_reason");
+				 String status = resultSet.getString("db_status");
+				 String reason = resultSet.getString("db_reason");
 				 String upload_status = resultSet.getString("upload_status");
 				 String upload_reason = resultSet.getString("upload_reason");
 				 
 				 if(
 						 (status == null && !hideNotLoaded) ||
 						 (status != null && !hideSuccess && status.equals("success")) ||
-						 (status != null && !hideErrors && status.equals("error") && (se_reason == null || !se_reason.startsWith("Duplicate survey:"))) ||
-						 (status != null && !hideDuplicates && status.equals("error") && (se_reason != null && se_reason.startsWith("Duplicate survey:")) ||
+						 (status != null && !hideErrors && status.equals("error") && (reason == null || !reason.startsWith("Duplicate survey:"))) ||
+						 (status != null && !hideDuplicates && status.equals("error") && (reason != null && reason.startsWith("Duplicate survey:")) ||
 						 (status != null && !hideMerged && status.equals("merged")) ||
 						 (upload_status != null && upload_status.equals("error") && !hideUploadErrors)
 						 )) {
@@ -460,7 +430,6 @@ public class EventList extends Application {
 					
 					// Add the properties
 					JSONObject jp = new JSONObject();
-					jp.put("se_id", resultSet.getInt("se_id")); 
 					jp.put("ue_id", resultSet.getInt("ue_id"));
 					jp.put("upload_time", resultSet.getString("upload_time"));
 					jp.put("user_name", resultSet.getString("user_name"));
@@ -474,7 +443,6 @@ public class EventList extends Application {
 						}
 					}
 					jp.put("survey_name", nm);
-					jp.put("dest", resultSet.getString("dest"));
 					jp.put("imei", resultSet.getString("imei"));
 					jp.put("ident", resultSet.getString("ident"));
 					jp.put("complete", (resultSet.getBoolean("incomplete")) ? "c_no" : "c_yes");
@@ -484,10 +452,10 @@ public class EventList extends Application {
 					} else {
 						if(status == null) {					// Not loaded by subscriber
 								status = "not_loaded";
-								se_reason = "Not added to database";
+								reason = "Not added to database";
 						}
 						jp.put("status", status);
-						jp.put("reason", se_reason);
+						jp.put("reason", reason);
 					}
 					jr.put("properties", jp);
 					ja.put(jr);
@@ -1137,24 +1105,17 @@ public class EventList extends Application {
 			
 			String selectStatus = null;
 			if(status.equals("success")) {
-				selectStatus = "AND se.status = 'success' ";
+				selectStatus = "AND ue.db_status = 'success' ";
 			} else if(status.equals("errors")) {
-				selectStatus = "AND (coalesce(se.status,'') = 'error' AND coalesce(se.reason,'') not like 'Duplicate survey:%') ";
+				selectStatus = "AND (coalesce(ue.db_status,'') = 'error' AND coalesce(ue.db_reason,'') not like 'Duplicate survey:%') ";
 			} else if(status.equals("not_loaded")) {
-				selectStatus = "AND ue.status != 'error' and se.status is null ";
+				selectStatus = "AND ue.status != 'error' and ue.db_status is null ";
 			} else if(status.equals("duplicates")) {
-				selectStatus = "AND se.status = 'error' AND se.reason like 'Duplicate survey:%' ";
+				selectStatus = "AND ue.db_status = 'error' AND ue.db_reason like 'Duplicate survey:%' ";
 			} else if(status.equals("merged")) {
-				selectStatus = "AND se.status = 'merged' ";
+				selectStatus = "AND ue.db_status = 'merged' ";
 			} else if(status.equals("upload_errors")) {
 				selectStatus = "AND ue.status = 'error' ";
-			}
-			
-			String subscriberSelect = "";
-			if(!isForward) {
-				subscriberSelect = "AND (se.subscriber = 'results_db' or se.subscriber is null) ";
-			} else {
-				subscriberSelect = "AND se.subscriber != 'results_db' and se.subscriber is not null ";
 			}
 			
 			String sql = null;
@@ -1176,8 +1137,6 @@ public class EventList extends Application {
 				sql = "SELECT count(*), ue.ident "
 						+ getDest
 						+ "from upload_event ue "
-						+ "left outer join subscriber_event se "
-						+ "on ue.ue_id = se.ue_id "
 						+ "inner join user_project up "
 						+ "on ue.p_id = up.p_id "
 						+ "inner join users u "
@@ -1187,7 +1146,6 @@ public class EventList extends Application {
 						+ "where u.ident = ? "
 						+ "and p.o_id = ? "
 						+ getObsoleteFilter(ignoreOld)
-						+ subscriberSelect
 						+ selectStatus
 						+ projSelect
 						+ "GROUP BY " + aggregate
@@ -1214,8 +1172,6 @@ public class EventList extends Application {
 				sql = "SELECT count(*), ue.imei "
 						+ getDest
 						+ "from upload_event ue "
-						+ "left outer join subscriber_event se "
-						+ "on ue.ue_id = se.ue_id "
 						+ "inner join user_project up "
 						+ "on ue.p_id = up.p_id "
 						+ "inner join users u "
@@ -1227,7 +1183,6 @@ public class EventList extends Application {
 						+ "and up.p_id = ? "
 						+ "and p.o_id = ? "
 						+ getObsoleteFilter(ignoreOld)
-						+ subscriberSelect
 						+ selectStatus
 						+ " group by " + aggregate
 						+ " order by " + aggregate + " asc";
@@ -1250,8 +1205,6 @@ public class EventList extends Application {
 				sql = "SELECT count(*), " 
 						+ aggregate
 						+ " from upload_event ue "
-						+ "left outer join subscriber_event se "
-						+ "on ue.ue_id = se.ue_id "
 						+ "inner join user_project up "
 						+ "on ue.p_id = up.p_id "
 						+ "inner join users u "
@@ -1263,7 +1216,6 @@ public class EventList extends Application {
 						+ "and up.p_id = ? "
 						+ "and p.o_id = ? "
 						+ getObsoleteFilter(ignoreOld)
-						+ subscriberSelect
 						+ selectStatus
 						+ " group by " + aggregate
 						+ " order by " + aggregate + " desc";
@@ -1283,8 +1235,6 @@ public class EventList extends Application {
 				sql = "SELECT count(*), " 
 						+ aggregate
 						+ " from upload_event ue "
-						+ "left outer join subscriber_event se "
-						+ "on ue.ue_id = se.ue_id "
 						+ "inner join user_project up "
 						+ "on ue.p_id = up.p_id "
 						+ "inner join users u "
@@ -1296,7 +1246,6 @@ public class EventList extends Application {
 						+ "and up.p_id = ? "
 						+ "and p.o_id = ? "
 						+ getObsoleteFilter(ignoreOld)
-						+ subscriberSelect
 						+ selectStatus
 						+ " group by " + aggregate
 						+ " order by " + aggregate + " desc";
@@ -1319,8 +1268,6 @@ public class EventList extends Application {
 				sql = "SELECT count(*), " 
 						+ aggregate
 						+ " from upload_event ue "
-						+ "left outer join subscriber_event se "
-						+ "on ue.ue_id = se.ue_id "
 						+ "inner join user_project up "
 						+ "on ue.p_id = up.p_id "
 						+ "inner join users u "
@@ -1332,7 +1279,6 @@ public class EventList extends Application {
 						+ "and up.p_id = ? "
 						+ "and p.o_id = ? "
 						+ getObsoleteFilter(ignoreOld)
-						+ subscriberSelect
 						+ selectStatus
 						+ " group by " + aggregate
 						+ " order by " + aggregate + " desc";

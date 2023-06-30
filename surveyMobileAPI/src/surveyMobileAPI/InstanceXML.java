@@ -19,13 +19,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 package surveyMobileAPI;
 
-import java.io.IOException;
 import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 

@@ -1220,9 +1220,10 @@ public class ExchangeManager {
 			if(col.index >= line.length) {
 				
 				if(col.type.equals("int")) {
-					eh.pstmtInsert.setInt(index++, 0);
+					eh.pstmtInsert.setNull(index++, java.sql.Types.INTEGER);
 				} else if(col.type.equals("decimal")) {
 					eh.pstmtInsert.setDouble(index++, 0.0);
+					eh.pstmtInsert.setNull(index++, java.sql.Types.DOUBLE);
 				} else if(col.type.equals("date")) {
 					eh.pstmtInsert.setDate(index++, null);
 				} else if(col.type.equals("dateTime")) {
@@ -1244,10 +1245,10 @@ public class ExchangeManager {
 					lat = line[col.latIndex];
 				}
 				if(lon == null || lon.length() == 0) {
-					lon = "0.0";
+					lon = null;
 				}
 				if(lat == null || lat.length() == 0) {
-					lat = "0.0";
+					lat = null;
 				}
 				eh.pstmtInsert.setString(index++, lon);
 				eh.pstmtInsert.setString(index++, lat);
@@ -1331,14 +1332,20 @@ public class ExchangeManager {
 					int iVal = 0;
 					if(notEmpty(value)) {
 						try { iVal = Integer.parseInt(value);} catch (Exception e) {}
+						eh.pstmtInsert.setInt(index++, iVal);
+					} else {
+						eh.pstmtInsert.setNull(index++, java.sql.Types.INTEGER);
 					}
-					eh.pstmtInsert.setInt(index++, iVal);
+					
 				} else if(col.type.equals("decimal") || col.type.equals("range")) {
 					double dVal = 0.0;
 					if(notEmpty(value)) {
 						try { dVal = Double.parseDouble(value);} catch (Exception e) {}
+						eh.pstmtInsert.setDouble(index++, dVal);
+					} else {
+						eh.pstmtInsert.setNull(index++, java.sql.Types.DOUBLE);
 					}
-					eh.pstmtInsert.setDouble(index++, dVal);
+					
 				} else if(col.type.equals("boolean")) {
 					boolean bVal = false;
 					if(notEmpty(value)) {
@@ -1410,6 +1417,11 @@ public class ExchangeManager {
 					}
 					eh.pstmtInsert.setString(index++, value);
 				} else {
+					
+					// String set answer to null if it is empty
+					if(value != null && value.trim().length() == 0) {
+						value = null;
+					}
 					eh.pstmtInsert.setString(index++, value);
 					
 					linkMgr.addDataitemToList(linkageItems, value, col.appearance, col.parameters, sIdent, col.name);

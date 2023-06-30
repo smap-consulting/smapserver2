@@ -52,7 +52,7 @@ import org.smap.sdal.model.Notification;
 public class XLSXAdminReportsNotifications {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSXAdminReportsNotifications.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	ResourceBundle localisation = null;
@@ -208,6 +208,12 @@ public class XLSXAdminReportsNotifications {
 							details.append(", ");
 						}
 						details.append(localisation.getString("a_eq2"));
+					}
+					if(n.notifyDetails.emailAssigned) {
+						if(details.length() > 0) {
+							details.append(", ");
+						}
+						details.append(localisation.getString("a_eqa"));
 					}
 				} else if(n.target.equals("forward")) {
 					details.append(n.remote_host).append(" : ").append(n.remote_s_name);

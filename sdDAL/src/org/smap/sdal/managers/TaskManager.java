@@ -1754,7 +1754,7 @@ public class TaskManager {
 							oId,
 							pId,
 							targetSurveyIdent,
-							null,
+							null,				// Why is target instance id null and how is it different to update_id?
 							autosendEmails,
 							remoteUser,
 							temporaryUser,
@@ -3021,12 +3021,18 @@ public class TaskManager {
 					if(targetInstanceId != null && targetInstanceId.trim().length() > 0) {
 						action.datakey = "instanceid";
 						action.datakeyvalue = targetInstanceId;
+					} else if(update_id != null && update_id.trim().length() > 0) {
+						action.datakey = "instanceid";
+						action.datakeyvalue = update_id;
 					}
 				}
 			} else {
 				if(targetInstanceId != null && targetInstanceId.trim().length() > 0) {
 					action.datakey = "instanceid";
 					action.datakeyvalue = targetInstanceId;
+				} else if(update_id != null) {
+					action.datakey = "instanceid";
+					action.datakeyvalue = update_id;
 				}
 			}
 			

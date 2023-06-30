@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.logging.Logger;
 
 import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
@@ -35,12 +34,7 @@ import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.MailoutPerson;
 
-
-
 public class XLSMailoutManager {
-	
-	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
 	
 	Workbook wb = null;
 	int rowNumber = 1;		// Heading row is 0

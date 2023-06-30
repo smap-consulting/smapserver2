@@ -119,9 +119,8 @@ public class ResourceManager {
 	
 	public int getUsageSubmissionsMeasure(Connection sd, int oId, int month, int year) throws SQLException {
 		
-		String sql = "select  count(*) as total from upload_event ue, subscriber_event se "
-				+ "where ue.ue_id = se.ue_id "
-				+ "and se.status = 'success' "
+		String sql = "select  count(*) as total from upload_event ue "
+				+ "where ue.db_status = 'success' "
 				+ "and ue.o_id = ? "
 				+ "and extract(month from ue.upload_time) = ? "
 				+ "and extract(year from ue.upload_time) = ? ";

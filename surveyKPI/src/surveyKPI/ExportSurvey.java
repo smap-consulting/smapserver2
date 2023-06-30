@@ -1,8 +1,6 @@
 package surveyKPI;
 
 import java.io.PrintWriter;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -200,16 +198,7 @@ public class ExportSurvey extends Application {
 		
 		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "Export to XLS", 0, request.getServerName());
 
-		String escapedFileName = null;
-		try {
-			escapedFileName = URLDecoder.decode(filename, "UTF-8");
-			escapedFileName = URLEncoder.encode(escapedFileName, "UTF-8");
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Encoding Filename Error", e);
-		}
-		escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
-		escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
-
+		String escapedFileName = GeneralUtilityMethods.urlEncode(filename);
 		escapedFileName = escapedFileName + ".xls";
 		response.setHeader("Content-type",  "application/vnd.ms-excel; charset=UTF-8");
 
@@ -389,7 +378,7 @@ public class ExportSurvey extends Application {
 				 *  1) The maximum number of repeats (if the form is to be flattened)
 				 *  2) The columns that contain the data to be shown
 				 */
-				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				for(FormDesc f : formList) {
 					TableColumn c;
 					int parentId = 0;
@@ -403,7 +392,7 @@ public class ExportSurvey extends Application {
 							localisation,
 							language,
 							sId,
-							surveyIdent,
+							sIdent,
 							request.getRemoteUser(),
 							null,		// Roles to apply
 							parentId,
@@ -669,6 +658,7 @@ public class ExportSurvey extends Application {
 						connectionResults, 
 						localisation,
 						sId,
+						sIdent,
 						request.getRemoteUser(),
 						outWriter, 
 						formList, 
@@ -902,6 +892,7 @@ public class ExportSurvey extends Application {
 			Connection connectionResults, 
 			ResourceBundle localisation,
 			int sId,
+			String sIdent,
 			String user,
 			PrintWriter outWriter, 
 			ArrayList<FormDesc> formList, 
@@ -955,7 +946,7 @@ public class ExportSurvey extends Application {
 		} else {
 			// RBAC filter
 			if(!superUser) {
-				rfArray = rm.getSurveyRowFilter(sd, sId, user);
+				rfArray = rm.getSurveyRowFilter(sd, sIdent, user);
 				if(rfArray.size() > 0) {
 					String rFilter = rm.convertSqlFragsToSql(rfArray);
 					if(rFilter.length() > 0) {
@@ -1102,6 +1093,7 @@ public class ExportSurvey extends Application {
 								connectionResults, 
 								localisation,
 								sId,
+								sIdent,
 								user,
 								outWriter, 
 								formList, 

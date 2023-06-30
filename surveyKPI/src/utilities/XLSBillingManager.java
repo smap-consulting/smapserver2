@@ -42,7 +42,7 @@ import org.smap.sdal.model.BillingDetail;
 public class XLSBillingManager {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(TDHReportsManager.class.getName());
 	
 	Workbook wb = null;
 	int rowNumber = 0;		// Heading row is 0

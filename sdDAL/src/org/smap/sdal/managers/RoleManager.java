@@ -290,7 +290,7 @@ public class RoleManager {
 	/*
 	 * Get roles associated with a survey
 	 */
-	public ArrayList<Role> getSurveyRoles(Connection sd, int s_id, int o_id, boolean enabledOnly, 
+	public ArrayList<Role> getSurveyRoles(Connection sd, String sIdent, int o_id, boolean enabledOnly, 
 			String user, boolean isSuperUser) throws SQLException {
 		PreparedStatement pstmt = null;
 		ArrayList<Role> roles = new ArrayList<Role> ();
@@ -308,7 +308,7 @@ public class RoleManager {
 					+ "from role r "
 					+ "left outer join survey_role sr "
 					+ "on r.id = sr.r_id "
-					+ "and sr.s_id = ? "
+					+ "and sr.survey_ident = ? "
 					+ "where o_id = ? ";
 			
 			String sqlNormalUser = "SELECT r.id as id, "
@@ -320,7 +320,7 @@ public class RoleManager {
 					+ "from role r "
 					+ "left outer join survey_role sr "
 					+ "on r.id = sr.r_id "
-					+ "and sr.s_id = ? "
+					+ "and sr.survey_ident = ? "
 					+ "join user_role ur "
 					+ "on r.id = ur.r_id "
 					+ "join users u "
@@ -340,7 +340,7 @@ public class RoleManager {
 			sql += "order by r.name asc";
 			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, s_id);
+			pstmt.setString(1, sIdent);
 			pstmt.setInt(2, o_id);
 			if(!isSuperUser) {
 				pstmt.setString(3,  user);
@@ -375,30 +375,33 @@ public class RoleManager {
 	}
 	
 	/*
-	 * Update a survey link
+	 * Update a survey role or the link between a survey and a role
 	 */
-	public int updateSurveyLink(Connection sd, int sId, int rId, int linkId, boolean enabled) throws SQLException {
+	public int updateSurveyLink(Connection sd, String sIdent, int rId, int linkId, boolean enabled) throws SQLException {
 		
 		PreparedStatement pstmt = null;
 		int newLinkId = linkId;
 		
 		try {
-			String sqlNew = "insert into survey_role (s_id, r_id, enabled) values (?, ?, ?)";
+			String sqlNew = "insert into survey_role (survey_ident, r_id, enabled,group_survey_ident) "
+					+ "values (?, ?, ?, (select group_survey_ident from survey s where ? = s.ident))";
+			
 			String sqlExisting = "update survey_role "
 					+ "set enabled = ? "
 					+ "where id = ? "
-					+ "and s_id = ?";
+					+ "and survey_ident = ?";
 			
 			if(linkId > 0) {
 				pstmt = sd.prepareStatement(sqlExisting);
 				pstmt.setBoolean(1, enabled);
 				pstmt.setInt(2, linkId);
-				pstmt.setInt(3, sId);
+				pstmt.setString(3, sIdent);
 			} else {
 				pstmt = sd.prepareStatement(sqlNew, Statement.RETURN_GENERATED_KEYS);
-				pstmt.setInt(1, sId);
+				pstmt.setString(1, sIdent);
 				pstmt.setInt(2, rId);
 				pstmt.setBoolean(3, enabled);	
+				pstmt.setString(4, sIdent);
 			}
 			
 			log.info("Get update survey roles: " + pstmt.toString());
@@ -421,15 +424,18 @@ public class RoleManager {
 	/*
 	 * Update the row filter in a survey link
 	 */
-	public void updateSurveyRoleRowFilter(Connection sd, int sId, 
+	public void updateSurveyRoleRowFilter(Connection sd, String sIdent, 
 			Role role, ResourceBundle localisation) throws Exception {
 		
 		PreparedStatement pstmt = null;
 		
 		SqlFrag sq = new SqlFrag();
 		sq.addSqlFragment(role.row_filter, false, localisation, 0);
+		
+		// Compile a list of columns not in the survey and throw an error if there are any
 		StringBuilder bad = new StringBuilder();
-		for(int i = 0; i < sq.columns.size(); i++) {
+		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+		for(int i = 0; i < sq.columns.size(); i++) {		
 			if(GeneralUtilityMethods.getColumnName(sd, sId, sq.humanNames.get(i)) == null) {
 				if(bad.length() > 0) {
 					bad.append(", ");
@@ -441,16 +447,21 @@ public class RoleManager {
 			throw new Exception(localisation.getString("r_mc") + " " + bad);
 		}
 		
+		// if the row filter is emty set it to null
+		if(role.row_filter != null && role.row_filter.trim().length() == 0) {
+			role.row_filter = null;
+		}
+		
 		try {
 			String sql = "update survey_role "
 					+ "set row_filter = ? "
 					+ "where id = ? "
-					+ "and s_id = ?";
+					+ "and survey_ident = ?";
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, role.row_filter);
 			pstmt.setInt(2, role.linkid);
-			pstmt.setInt(3, sId);
+			pstmt.setString(3, sIdent);
 			
 			log.info("Update survey roles: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -465,7 +476,7 @@ public class RoleManager {
 	/*
 	 * Update the column filter in a survey link
 	 */
-	public void updateSurveyRoleColumnFilter(Connection sd, int sId, 
+	public void updateSurveyRoleColumnFilter(Connection sd, String sIdent, 
 			Role role, ResourceBundle localisation) throws Exception {
 		
 		PreparedStatement pstmt = null;
@@ -473,16 +484,19 @@ public class RoleManager {
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		String configString = gson.toJson(role.column_filter);
 		
+		if(configString != null && (configString.trim().length() == 0 || configString.trim().equals("[]"))) {
+			configString = null;
+		}
 		try {
 			String sql = "update survey_role "
 					+ "set column_filter = ? "
 					+ "where id = ? "
-					+ "and s_id = ?";
+					+ "and survey_ident = ?";
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, configString);
 			pstmt.setInt(2, role.linkid);
-			pstmt.setInt(3, sId);
+			pstmt.setString(3, sIdent);
 			
 			log.info("Update survey roles: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -498,7 +512,7 @@ public class RoleManager {
 	 * Get the sql for a survey role filter for a specific user and survey
 	 * A user can have multiple roles as can a survey hence an array of roles is returned
 	 */
-	public ArrayList<SqlFrag> getSurveyRowFilter(Connection sd, int sId, String user) throws Exception {
+	public ArrayList<SqlFrag> getSurveyRowFilter(Connection sd, String sIdent, String user) throws Exception {
 		
 		PreparedStatement pstmt = null;
 		ArrayList<SqlFrag> rfArray = new ArrayList<SqlFrag> ();
@@ -509,14 +523,14 @@ public class RoleManager {
 			
 			sql = "SELECT sr.row_filter "
 					+ "from survey_role sr, user_role ur, users u "
-					+ "where sr.s_id = ? "
+					+ "where sr.survey_ident = ? "
 					+ "and sr.r_id = ur.r_id "
 					+ "and sr.enabled = true "
 					+ "and ur.u_id = u.id "
 					+ "and u.ident = ?";
 							
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, sId);
+			pstmt.setString(1, sIdent);
 			pstmt.setString(2, user);
 			log.info("Get surveyRowFilter: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
@@ -545,7 +559,7 @@ public class RoleManager {
 	 * Get the sql for a survey role filter for a specific user and survey
 	 * A user can have multiple roles as can a survey hence an array of roles is returned
 	 */
-	public ArrayList<SqlFrag> getSurveyRowFilterRoleList(Connection sd, int sId, ArrayList<Role> roles) throws Exception {
+	public ArrayList<SqlFrag> getSurveyRowFilterRoleList(Connection sd, String sIdent, ArrayList<Role> roles) throws Exception {
 		
 		PreparedStatement pstmt = null;
 		ArrayList<SqlFrag> rfArray = new ArrayList<SqlFrag> ();
@@ -562,12 +576,12 @@ public class RoleManager {
 				
 				sql = "SELECT sr.row_filter "
 						+ "from survey_role sr, user_role ur, users u "
-						+ "where sr.s_id = ? "
+						+ "where sr.survey_ident = ? "
 						+ "and sr.enabled = true "
 						+ "and sr.r_id = any(?) ";
 								
 				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, sId);
+				pstmt.setString(1, sIdent);
 				pstmt.setArray(2, sd.createArrayOf("text", roleids.toArray(new Integer[roleids.size()])));
 				log.info("Get surveyRowFilter: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
@@ -618,10 +632,10 @@ public class RoleManager {
 	}
 	
 	/*
-	 * Get the sql for a survey role column filter for a specific user and survey
+	 * Get the columns for a survey role column filter for a specific user and survey
 	 * A user can have multiple roles as can a survey hence an array of roles is returned
 	 */
-	public ArrayList<RoleColumnFilter> getSurveyColumnFilter(Connection sd, int sId, String user) throws SQLException {
+	public ArrayList<RoleColumnFilter> getSurveyColumnFilter(Connection sd, String sIdent, String user) throws SQLException {
 		
 		PreparedStatement pstmt = null;
 		ArrayList<RoleColumnFilter> cfArray = new ArrayList<RoleColumnFilter> ();
@@ -632,14 +646,14 @@ public class RoleManager {
 			
 			sql = "SELECT sr.column_filter "
 					+ "from survey_role sr, user_role ur, users u "
-					+ "where sr.s_id = ? "
+					+ "where sr.survey_ident = ? "
 					+ "and sr.enabled = true "
 					+ "and sr.r_id = ur.r_id "
 					+ "and ur.u_id = u.id "
 					+ "and u.ident = ?";
 							
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, sId);
+			pstmt.setString(1, sIdent);
 			pstmt.setString(2, user);
 			log.info("Get surveyColumnFilter: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
@@ -662,11 +676,11 @@ public class RoleManager {
 	}
 	
 	/*
-	 * Get the sql for a survey role column filter for an array of roles and a survey
+	 * Get the columns for a survey role column filter for an array of roles and a survey
 	 * This is used for immediate anonymous requests such as prepopulating a survey where there is no user
 	 *  but there is a set of roles
 	 */
-	public ArrayList<RoleColumnFilter> getSurveyColumnFilterRoleList(Connection sd, int sId, ArrayList<Role> roles) throws SQLException {
+	public ArrayList<RoleColumnFilter> getSurveyColumnFilterRoleList(Connection sd, String sIdent, ArrayList<Role> roles) throws SQLException {
 		
 		ArrayList<RoleColumnFilter> cfArray = new ArrayList<RoleColumnFilter> ();
 		ArrayList<Integer> roleids = new ArrayList<> ();
@@ -684,12 +698,12 @@ public class RoleManager {
 				
 				sql = "SELECT sr.column_filter "
 						+ "from survey_role sr "
-						+ "where sr.s_id = ? "
+						+ "where sr.survey_ident = ? "
 						+ "and sr.enabled = true "
 						+ "and sr.r_id = any(?) ";
 								
 				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, sId);
+				pstmt.setString(1, sIdent);
 				pstmt.setArray(2, sd.createArrayOf("text", roleids.toArray(new Integer[roleids.size()])));
 				log.info("Get surveyColumnFilter From Role List: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();

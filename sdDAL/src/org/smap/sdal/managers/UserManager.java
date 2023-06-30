@@ -200,7 +200,7 @@ public class UserManager {
 			user.sendEmail = UtilityMethodsEmail.getSmtpHost(sd, null, ident, 0) != null;
 
 			/*
-			 * Get the groups that the user belongs to
+			 * Get the security groups that the user belongs to
 			 */
 			sql = "SELECT g.id as id, g.name as name " +
 					" from groups g, user_group ug " +
@@ -214,6 +214,7 @@ public class UserManager {
 			log.info("SQL: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 
+			boolean canResetPassword = false;	// Only reset passwords of users with specific groups
 			while(resultSet.next()) {
 				if(user.groups == null) {
 					user.groups = new ArrayList<UserGroup> ();
@@ -222,6 +223,12 @@ public class UserManager {
 				group.id = resultSet.getInt("id");
 				group.name = resultSet.getString("name");
 				user.groups.add(group);
+				if(group.name.equals(Authorise.ADMIN) 
+						|| group.name.equals(Authorise.ANALYST)
+						|| group.name.equals(Authorise.ORG)
+						|| group.name.equals(Authorise.SECURITY)) {
+					canResetPassword = true;
+				} 
 			}
 
 			/*
@@ -285,31 +292,34 @@ public class UserManager {
 
 			/*
 			 * Check for password expiry
+			 * Only expire admin and analyst passwords (revise this)
 			 */
-			user.passwordExpired = false;
-			if(orgPasswordExpiry > 0 && passwordAge >= orgPasswordExpiry) {
-				user.passwordExpired = true;
-				passwordExpiry = orgPasswordExpiry;
-			} else {
-				sql = "select password_expiry from server";
-				if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-				pstmt = sd.prepareStatement(sql);
-				resultSet = pstmt.executeQuery();
-				if(resultSet.next()) {
-					serverPasswordExpiry = resultSet.getInt("password_expiry");
-					if(serverPasswordExpiry > 0 && passwordAge >= serverPasswordExpiry) {
-						user.passwordExpired = true;
-						passwordExpiry = serverPasswordExpiry;
+			if(canResetPassword) {
+				user.passwordExpired = false;
+				if(orgPasswordExpiry > 0 && passwordAge >= orgPasswordExpiry) {
+					user.passwordExpired = true;
+					passwordExpiry = orgPasswordExpiry;
+				} else {
+					sql = "select password_expiry from server";
+					if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+					pstmt = sd.prepareStatement(sql);
+					resultSet = pstmt.executeQuery();
+					if(resultSet.next()) {
+						serverPasswordExpiry = resultSet.getInt("password_expiry");
+						if(serverPasswordExpiry > 0 && passwordAge >= serverPasswordExpiry) {
+							user.passwordExpired = true;
+							passwordExpiry = serverPasswordExpiry;
+						}
 					}
 				}
-			}
-			if(user.passwordExpired) {
-				String msg = localisation.getString("ar_pwd_expiry");
-				msg = msg.replace("%s1", user.name);
-				msg = msg.replace("%s2", String.valueOf(passwordAge));
-				msg = msg.replace("%s3", String.valueOf(passwordExpiry));
-				lm.writeLogOrganisation(sd, user.o_id, ident, LogManager.USER, msg, 0);
-				log.info(msg);
+				if(user.passwordExpired) {
+					String msg = localisation.getString("ar_pwd_expiry");
+					msg = msg.replace("%s1", user.name);
+					msg = msg.replace("%s2", String.valueOf(passwordAge));
+					msg = msg.replace("%s3", String.valueOf(passwordExpiry));
+					lm.writeLogOrganisation(sd, user.o_id, ident, LogManager.USER, msg, 0);
+					log.info(msg);
+				}
 			}
 			
 
@@ -430,6 +440,53 @@ public class UserManager {
 		return alerts;
 
 	}
+	
+	/*
+	 * Get alerts for a user
+	 */
+	public String getUserEmailByIdent(
+			Connection connectionSD,
+			String ident
+			) throws Exception {
+
+		PreparedStatement pstmt = null;
+
+		String email = null;
+
+		try {
+	
+			String sql = "select email from users where ident = ?";
+				
+			pstmt = connectionSD.prepareStatement(sql);
+			pstmt.setString(1, ident);
+
+			log.info("Get users email: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+
+			if(rs.next()) {
+				email = rs.getString(1);
+			}
+
+
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+			throw new Exception(e);
+
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (Exception e) {
+
+			}
+
+		}
+
+		return email;
+
+	}
 
 	/*
 	 * Create a new user Parameters:
@@ -472,8 +529,8 @@ public class UserManager {
 		}
 
 		int u_id = -1;
-		String sql = "insert into users (ident, realm, name, email, o_id, imported, language, password, created) " +
-				" values (?, ?, ?, ?, ?, ?, ?, md5(?), now());";
+		String sql = "insert into users (ident, realm, name, email, o_id, imported, language, password, created, password_set) " +
+				" values (?, ?, ?, ?, ?, ?, ?, md5(?), now(), now());";
 
 		PreparedStatement pstmt = null;
 
@@ -1169,35 +1226,7 @@ public class UserManager {
 		}
 	}
 	
-	public Action getActionDetails(Connection sd, String userIdent) throws SQLException {
-		
-		Action action = null;
-		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-		
-		String sql = "select action_details "
-				+ "from users "
-				+ "where ident = ? "
-				+ "and temporary ";
-		PreparedStatement pstmt = null;
-		
-		try {	
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1,  userIdent);	
-			
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				String actionString = rs.getString(1);
-				if(actionString != null) {
-					action = gson.fromJson(actionString, Action.class);
-				}
-			}
-			
-		} finally {	
-			try {pstmt.close();} catch(Exception e) {}
-		}
-		
-		return action;
-	}
+	
 
 	/*
 	 * Move a user from their current organisation to another one in the list

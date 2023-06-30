@@ -38,7 +38,6 @@ import org.smap.sdal.model.SqlDesc;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
-import org.smap.sdal.model.Transform;
 
 /*
  * Create a query to retrieve results data
@@ -53,7 +52,8 @@ public class QueryGenerator {
 			Connection sd, 
 			Connection connectionResults, 
 			ResourceBundle localisation,
-			int sId, 
+			int sId,
+			String sIdent,
 			int fId, 
 			String language, 
 			String format,
@@ -74,11 +74,11 @@ public class QueryGenerator {
 			boolean superUser,
 			QueryForm form,
 			String filter,
-			Transform transform,
 			boolean meta,
 			boolean includeKeys,
 			String tz,
 			String geomQuestion,
+			boolean outerJoin,
 			boolean get_acc_alt) throws Exception {
 		
 		SqlDesc sqlDesc = new SqlDesc();
@@ -188,9 +188,16 @@ public class QueryGenerator {
 						}
 					}
 					if(!valid) {
-						String msg = localisation.getString("inv_qn_misc");
-						msg = msg.replace("%s1", filterCol);
-						throw new Exception(msg);
+						/*
+						 * Allow filtering on meta data even if the meta items are not included in the export
+						 * Otherwise throw an error message
+						 */
+						if(!filterCol.startsWith("_") || !GeneralUtilityMethods.hasColumn(connectionResults, topLevelTable, filterCol)) {
+							
+							String msg = localisation.getString("inv_qn_misc");
+							msg = msg.replace("%s1", filterCol);
+							throw new Exception(msg);
+						}
 					}
 				}
 			}
@@ -206,18 +213,34 @@ public class QueryGenerator {
 			shpSqlBuf.append(sqlDesc.cols);
 			shpSqlBuf.append(" from ");
 	
-			/*
-			 * Add the tables
-			 */
 			for(int i = 0; i < tables.size(); i++) {
 				
 				if(i > 0) {
-					shpSqlBuf.append(",");
+					if(outerJoin) {
+						shpSqlBuf.append(" left outer join ");
+					} else {
+						shpSqlBuf.append(",");
+					}
 				}
 				shpSqlBuf.append(tables.get(i));
 			}
-			
-			shpSqlBuf.append(" where ");
+
+			/*
+			 * Add the koins
+			 */
+			if(outerJoin) {
+				if(form.childForms != null && form.childForms.size() > 0) {
+					shpSqlBuf.append(" on ");
+					shpSqlBuf.append(getJoins(sd, localisation, form.childForms, form, false));
+				}
+				shpSqlBuf.append(" where ");
+			} else {	
+				shpSqlBuf.append(" where ");
+				if(form.childForms != null && form.childForms.size() > 0) {
+					shpSqlBuf.append(getJoins(sd, localisation, form.childForms, form, false));
+					shpSqlBuf.append(" and ");
+				}
+			}
 			
 			/*
 			 * Exclude "bad" records
@@ -226,8 +249,16 @@ public class QueryGenerator {
 				if(i > 0) {
 					shpSqlBuf.append(" and ");
 				}
+				if(outerJoin && i > 0) {
+					shpSqlBuf.append("(");
+				}
 				shpSqlBuf.append(tables.get(i));
 				shpSqlBuf.append("._bad='false'");
+				if(outerJoin && i > 0) {
+					shpSqlBuf.append(" or ");
+					shpSqlBuf.append(tables.get(i));
+					shpSqlBuf.append(" is null)");
+				}
 			}
 			
 			
@@ -235,12 +266,6 @@ public class QueryGenerator {
 				shpSqlBuf.append(" and " + sqlDesc.geometry_table + "." + sqlDesc.geometry_column + " is not null");
 			}
 			
-			/*
-			 * The form list is in order of Parent to child forms
-			 */
-			if(form.childForms != null && form.childForms.size() > 0) {
-				shpSqlBuf.append(getJoins(sd, localisation, form.childForms, form));
-			}
 			
 			String sqlRestrictToDateRange = null;
 			if(dateId != 0) {
@@ -264,7 +289,7 @@ public class QueryGenerator {
 			ArrayList<SqlFrag> rfArray = null;
 			RoleManager rm = new RoleManager(localisation);
 			if(!superUser) {
-				rfArray = rm.getSurveyRowFilter(sd, sId, user);
+				rfArray = rm.getSurveyRowFilter(sd, sIdent, user);
 				if(rfArray.size() > 0) {
 					String rFilter = rm.convertSqlFragsToSql(rfArray);
 					if(rFilter.length() > 0) {
@@ -276,37 +301,9 @@ public class QueryGenerator {
 			}
 			
 			/*
-			 * If transform is enabled sort first by the keys then:
-			 * sort by primary key ascending
-			 * Assume question names are unique in the report / survey
+			 * Sort by primary key ascending
 			 */
-			int sortColumnCount = 0;
 			shpSqlBuf.append(" order by ");
-			if(transform != null && transform.key_questions.size() > 0) {
-				for(String key : transform.key_questions) {
-					// validate
-					boolean valid = false;
-					for(ColDesc cd : sqlDesc.column_details) {
-						if(key.equals(cd.question_name)) {
-							valid = true;
-							break;
-						}
-					}
-					if(!valid) {
-						String msg = localisation.getString("inv_qn_transform");
-						msg = msg.replace("%s1", key);
-						throw new Exception(msg);
-					}
-					if(sortColumnCount++ > 0) {
-						shpSqlBuf.append(",");
-					}
-					shpSqlBuf.append(key);
-				}
-			}
-			// Finally add prikey to the sort
-			if(sortColumnCount++ > 0) {
-				shpSqlBuf.append(",");
-			}
 			shpSqlBuf.append(form.table);
 			shpSqlBuf.append(".prikey asc");
 			
@@ -352,13 +349,17 @@ public class QueryGenerator {
 		return sqlDesc;
 	}
 	
-	public static StringBuffer getJoins(Connection sd, ResourceBundle localisation, ArrayList<QueryForm> forms, QueryForm prevForm) throws SQLException {
+	public static StringBuffer getJoins(Connection sd, ResourceBundle localisation, ArrayList<QueryForm> forms, 
+			QueryForm prevForm,
+			boolean startWithAnd) throws SQLException {
 		StringBuffer join = new StringBuffer("");
 		
 		for(int i = 0; i < forms.size(); i++) {
 			
 			QueryForm form = forms.get(i);
-			join.append(" and ");
+			if(startWithAnd || i > 0) {
+				join.append(" and ");
+			}
 			
 			if(i > 0) {
 				prevForm = forms.get(i - 1);
@@ -389,7 +390,7 @@ public class QueryGenerator {
 		for(int i = 0; i < forms.size(); i++) {
 			QueryForm form = forms.get(i);
 			if(form.childForms != null && form.childForms.size() > 0) {
-				join.append(getJoins(sd, localisation, form.childForms, form));
+				join.append(getJoins(sd, localisation, form.childForms, form, true));
 			}
 		}
 		return join;
@@ -445,7 +446,7 @@ public class QueryGenerator {
 		tables.add(form.table);
 
 		String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-		 ArrayList<TableColumn> cols = GeneralUtilityMethods.getColumnsInForm(
+		ArrayList<TableColumn> cols = GeneralUtilityMethods.getColumnsInForm(
 				sd,
 				cResults,
 				localisation,

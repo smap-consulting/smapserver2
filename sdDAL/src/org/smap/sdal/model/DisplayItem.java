@@ -30,7 +30,7 @@ public class DisplayItem {
 	public int fIdx = 0;
 	public int qIdx = 0;
 	public int rec_number = 0;
-	public String mapSource = "mapbox";
+	public String mapSource = "default";
 	public String map;
 	public String account;
 	public String location;

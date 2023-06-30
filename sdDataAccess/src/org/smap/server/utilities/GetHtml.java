@@ -417,11 +417,10 @@ public class GetHtml {
 				setQuestionClass(q, bodyElement);
 
 				if (hasNodeset(sd, q, form)) {
-					if(q.appearance.contains("minimal") || q.type.equals("select")) {
+					if(q.appearance.contains("minimal") && !q.appearance.contains("autocomplete") || q.type.equals("select")) {
 						addMinimalContents(sd, bodyElement, q, form, false, hideLabels);		// Not auto complete
 					} else {
 						addMinimalContents(sd, bodyElement, q, form, true, hideLabels);		// For autocomplete
-						//addAutoCompleteContentsItemset(sd, bodyElement, q, form);
 					}
 				} else {
 					addMinimalSelectContents(bodyElement, q, form, hideLabels);

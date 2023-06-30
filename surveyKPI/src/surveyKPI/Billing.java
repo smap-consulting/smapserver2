@@ -348,14 +348,10 @@ public class Billing extends Application {
 	private void addUsage(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException {
 
 		// SQL to get submissions for all organisations
-		String sql = "select  count(*) from upload_event ue, subscriber_event se "
-				+ "where ue.ue_id = se.ue_id "
-				+ "and se.status = 'success' "
-				+ "and subscriber = 'results_db' "
+		String sql = "select  count(*) from upload_event ue "
+				+ "where ue.db_status = 'success' "
 				+ "and upload_time >=  ? "		// current month
 				+ "and upload_time < ? ";		// next month
-				//+ "and extract(month from upload_time) = ? "
-				//+ "and extract(year from upload_time) = ? ";	
 		if(oId > 0) {
 			sql += "and o_id = ?";
 		} else if(eId > 0) {
@@ -368,8 +364,6 @@ public class Billing extends Application {
 			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
 			
 			pstmt = sd.prepareStatement(sql);
-			//pstmt.setInt(1, month);
-			//pstmt.setInt(2, year);
 			pstmt.setTimestamp(1, t1);
 			pstmt.setTimestamp(2, t2);
 			if(oId > 0) {

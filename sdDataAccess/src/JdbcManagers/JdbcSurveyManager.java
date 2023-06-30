@@ -74,7 +74,8 @@ public class JdbcSurveyManager {
 			+ "track_changes,"
 			+ "hide_on_device,"
 			+ "search_local_data,"
-			+ "meta "
+			+ "meta,"
+			+ "my_reference_data "
 			+ "from survey where ";
 	String sqlIdentWhere = "ident = ?";
 	String sqlIdWhere = "s_id = ?";
@@ -222,6 +223,7 @@ public class JdbcSurveyManager {
 			s.setHideOnDevice(rs.getBoolean(16));
 			s.setSearchLocalData(rs.getBoolean(17));
 			s.setMeta(rs.getString(18));
+			s.setMyReferenceData(rs.getBoolean(19));
 		
 		}
 		return s;

@@ -48,7 +48,7 @@ import org.xml.sax.helpers.DefaultHandler;
 public class SmapSheetXMLHandler extends DefaultHandler {
 
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(SmapSheetXMLHandler.class.getName());
 	
 	/**
 	 * These are the different kinds of cells we support.

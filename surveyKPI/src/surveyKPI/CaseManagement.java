@@ -255,19 +255,18 @@ public class CaseManagement extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			
 			// Validate setting structure
 			CaseManagementSettings settings = new Gson().fromJson(settingsString, CaseManagementSettings.class);
 			
 			CaseManager cm = new CaseManager(localisation);
 
+			int sId = GeneralUtilityMethods.getSurveyId(sd, groupSurveyIdent);
 			String msg = null;
-			cm.updateSettings(sd, request.getRemoteUser(), groupSurveyIdent, settings, o_id);
+			cm.updateSettings(sd, request.getRemoteUser(), groupSurveyIdent, settings);
 			msg = localisation.getString("cm_s_updated");	
 			msg = msg.replace("%s1", groupSurveyIdent);
 			msg = msg.replace("%s2", new Gson().toJson(settings));
-			lm.writeLogOrganisation(sd, o_id, request.getRemoteUser(), LogManager.CASE_MANAGEMENT, msg, 0);
+			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.CASE_MANAGEMENT, msg, 0, request.getServerName());
 				
 			response = Response.ok().build();
 				
@@ -315,12 +314,12 @@ public class CaseManagement extends Application {
 			if(alert.id == -1) {
 					
 				// New settings
-				cm.createAlert(sd, request.getRemoteUser(), alert, o_id);
+				cm.createAlert(sd, request.getRemoteUser(), alert);
 				msg = localisation.getString("cm_a_created");
 					
 			} else {
 				// Existing setting
-				cm.updateAlert(sd, request.getRemoteUser(), alert, o_id);
+				cm.updateAlert(sd, request.getRemoteUser(), alert);
 				msg = localisation.getString("cm_a_modified");	
 			}
 			msg = msg.replace("%s1", alert.name);
@@ -366,7 +365,10 @@ public class CaseManagement extends Application {
 			CaseManager cm = new CaseManager(localisation);
 			
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			cm.deleteAlert(sd, alert.id, o_id);
+			cm.deleteAlert(sd, alert.id);
+			String msg = localisation.getString("cm_a_deleted");
+			msg = msg.replaceAll("%s1", String.valueOf(alert.id));
+			lm.writeLogOrganisation(sd, o_id, request.getRemoteUser(), LogManager.CASE_MANAGEMENT, msg, 0);
 			
 			response = Response.ok().build();			
 		}  catch (Exception ex) {

@@ -63,6 +63,7 @@ public class BackgroundReportsManager {
 	public static String PARAM_BY_PROJECT = "byProject";
 	public static String PARAM_BY_DEVICE = "byDevice";
 	public static String PARAM_INC_TEMP = "incTemp";
+	public static String PARAM_INC_ALLTIME = "incAllTime";
 	
 	public BackgroundReportsManager(ResourceBundle l, String tz) {
 		localisation = l;

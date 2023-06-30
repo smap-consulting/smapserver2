@@ -45,6 +45,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.FileManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.Template;
 
 /*
@@ -117,16 +118,17 @@ public class GetFile extends Application {
 			@QueryParam("thumbs") boolean thumbs,
 			@QueryParam("org") int requestedOrgId) throws SQLException {
 		
-		String user = null;		
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Get File Key");
+		String user = null;	
+		String connectionString = "surveyKPI-Get File Key";
+		Connection sd = SDDataSource.getConnection(connectionString);
 		
 		log.info("Getting file authenticated with a key");
 		try {
-			user = GeneralUtilityMethods.getDynamicUser(connectionSD, key);
+			user = GeneralUtilityMethods.getDynamicUser(sd, key);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-Get File Key", connectionSD);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		if (user == null) {
@@ -222,9 +224,10 @@ public class GetFile extends Application {
 		log.info("Get PDF Template File:  for survey: " + sId);
 		
 		Response r = null;
+		String connectionString = "SurveyKPI - Deprecate - Get PDF template file";
 	
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("Get Survey File");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -261,14 +264,14 @@ public class GetFile extends Application {
 			log.log(Level.SEVERE, "Error getting file", e);
 			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
 		} finally {	
-			SDDataSource.closeConnection("Get Survey File", sd);	
+			SDDataSource.closeConnection(connectionString, sd);	
 		}
 		
 		return r;
 	}
 	
 	/*
-	 * Get template pdf file
+	 * Get new template pdf file
 	 */
 	@GET
 	@Path("/pdfTemplate/{sId}")
@@ -282,9 +285,10 @@ public class GetFile extends Application {
 		log.info("Get PDF Template File:  for survey: " + sId);
 		
 		Response r = null;
+		String connectionString = "Get Template PDF File";
 	
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("Get Survey File");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -316,7 +320,7 @@ public class GetFile extends Application {
 			log.log(Level.SEVERE, "Error getting file", e);
 			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
 		} finally {	
-			SDDataSource.closeConnection("Get Survey File", sd);	
+			SDDataSource.closeConnection(connectionString, sd);	
 		}
 		
 		return r;
@@ -333,14 +337,16 @@ public class GetFile extends Application {
 			@Context HttpServletResponse response,
 			@PathParam("filename") String filename,
 			@PathParam("sId") int sId,
+			@QueryParam("thumbs") boolean thumbs,
 			@QueryParam("linked") boolean linked) throws Exception {
 		
 		log.info("Get File: " + filename + " for survey: " + sId);
 		
 		Response r = null;
+		String connectionString = "Get Survey File";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("Get Survey File");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -363,10 +369,18 @@ public class GetFile extends Application {
 				if(idx >= 0) {
 					baseFileName = filename.substring(0, idx);		// External file management routines assume no extension
 				}
-				filepath = efm.getLinkedPhysicalFilePath(sd, efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent), baseFileName)) + ".csv";
+				String linkedSurveyIdent = baseFileName.substring("linked_".length());
+				CustomUserReference cur = GeneralUtilityMethods.hasCustomUserReferenceData(sd, linkedSurveyIdent);
+				filepath = efm.getLinkedPhysicalFilePath(sd, 
+						efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent, request.getRemoteUser(), cur.needCustomFile()), baseFileName)) 
+						+ ".csv";
 				log.info("%%%%%: Referencing: " + filepath);
 			} else {
-				filepath = basepath + "/media/" + sIdent+ "/" + filename;
+				if(thumbs) {
+					filepath = basepath + "/media/" + sIdent+ "/thumbs/" + filename;
+				} else {
+					filepath = basepath + "/media/" + sIdent+ "/" + filename;
+				}
 			}
 			
 			log.info("File path: " + filepath);
@@ -379,7 +393,52 @@ public class GetFile extends Application {
 			log.log(Level.SEVERE, "Error getting file", e);
 			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
 		} finally {	
-			SDDataSource.closeConnection("Get Survey File", sd);	
+			SDDataSource.closeConnection(connectionString, sd);	
+		}
+		
+		return r;
+	}
+	
+	/*
+	 * Get shared history file
+	 */
+	@GET
+	@Path("/history/{id}")
+	@Produces("application/x-download")
+	public Response getSharedHistoryFile (
+			@Context HttpServletRequest request, 
+			@Context HttpServletResponse response,
+			@PathParam("filename") String filename,
+			@PathParam("id") int id,
+			@QueryParam("sIdent") String sIdent) throws Exception {
+		
+		Response r = null;
+		String connectionString = "SurveyKPI - Get Shared History File";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		if(sIdent != null) {
+			a.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);
+		}
+		// End Authorisation 
+		
+		try {
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			FileManager fm = new FileManager();
+			r = fm.getSharedHistoryFile(sd,  response, oId, filename, sIdent, id); 
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Error getting file", e);
+			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
+		} finally {	
+			SDDataSource.closeConnection(connectionString, sd);	
 		}
 		
 		return r;
@@ -424,8 +483,8 @@ public class GetFile extends Application {
 		try {
 			
 			FileManager fm = new FileManager();
-			r = fm.getOrganisationFile(sd, request, response, user, oId, 
-					filename, settings, isTemporaryUser, thumbs);
+			r = fm.getOrganisationFile(request, response, user, oId, 
+					filename, settings, thumbs);
 			
 		}  catch (Exception e) {
 			log.info("Error: Failed to get file:" + e.getMessage());

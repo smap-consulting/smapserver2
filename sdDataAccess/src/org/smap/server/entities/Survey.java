@@ -70,6 +70,8 @@ public class Survey implements Serializable {
 	
 	private boolean hideOnDevice;
 	
+	private boolean myReferenceData;
+	
 	private boolean searchLocalData;
 	
 	private String surveyClass;
@@ -244,6 +246,10 @@ public class Survey implements Serializable {
 	
 	public void setSearchLocalData(boolean v) {
 		searchLocalData = v;
+	}
+	
+	public void setMyReferenceData(boolean v) {
+		myReferenceData = v;
 	}
 	
 	public void setHrk(String v) {

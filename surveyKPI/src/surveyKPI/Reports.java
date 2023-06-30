@@ -104,13 +104,14 @@ public class Reports extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 					
 			ActionManager am = new ActionManager(localisation, tz);
-			Action action = gson.fromJson(report, Action.class);
+			Action action = GeneralUtilityMethods.getAction(sd, gson, report);
 			
 			action.action = "report";
-			action.sId = sId;
-			action.pId = GeneralUtilityMethods.getProjectId(sd, action.sId);
+			action.surveyIdent = sIdent;
+			action.pId = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, action.surveyIdent);
 			action.surveyName = GeneralUtilityMethods.getSurveyName(sd, sId);
 			action.filename = (action.filename == null) ? "report" : action.filename;
 			

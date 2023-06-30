@@ -53,7 +53,7 @@ import org.smap.sdal.model.Location;
 public class XLSTaskManager {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSTaskManager.class.getName());
 	
 	Workbook wb = null;
 	int rowNumber = 1;		// Heading row is 0

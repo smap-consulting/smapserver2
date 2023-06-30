@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.codehaus.jettison.json.JSONArray;
@@ -161,7 +162,6 @@ public class SubmissionsManager {
 				+ "to_char(timezone(?, ue.scheduled_start), 'YYYY-MM-DD HH24:MI:SS') as scheduled_start"
 				+ " ");
 		sql2.append("from upload_event ue ");
-		sql2.append("left outer join subscriber_event se on ue.ue_id = se.ue_id ");
 		sql2.append("left outer join survey s on ue.s_id = s.s_id ");
 		sql2.append("left outer join project p on ue.p_id = p.id ");
 		
@@ -260,25 +260,29 @@ public class SubmissionsManager {
 		String location = resultSet.getString("location");
 		if(location != null) {							// For map
 			
-			String[] coords = location.split(" ");
-			if(coords.length == 2) {
-				Double lon = Double.parseDouble(coords[0]);
-				Double lat = Double.parseDouble(coords[1]);
-				
-				if(isGeoJson) {
-					JSONObject jg = null;
-					JSONArray jCoords = new JSONArray();
-				
-					jCoords.put(lon);
-					jCoords.put(lat);
-					jg = new JSONObject();
-					jg.put("type", "Point");
-					jg.put("coordinates", jCoords);
-					jr.put("geometry", jg);
-				} else {
-					jp.put("lon", lon);
-					jp.put("lat", lat);
+			try {
+				String[] coords = location.split(" ");
+				if(coords.length == 2) {
+					Double lon = Double.parseDouble(coords[0]);
+					Double lat = Double.parseDouble(coords[1]);
+					
+					if(isGeoJson) {
+						JSONObject jg = null;
+						JSONArray jCoords = new JSONArray();
+					
+						jCoords.put(lon);
+						jCoords.put(lat);
+						jg = new JSONObject();
+						jg.put("type", "Point");
+						jg.put("coordinates", jCoords);
+						jr.put("geometry", jg);
+					} else {
+						jp.put("lon", lon);
+						jp.put("lat", lat);
+					}
 				}
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 		}
 		if(incMergedLocation) {

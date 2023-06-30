@@ -192,9 +192,9 @@ public class MediaInfo {
 				mi.modified = df.format(new Date(f.lastModified()));
 				if(server != null) {
 					if(sId > 0) {
-						mi.url = "/surveyKPI/file/" + fileName + "/survey/" + sId;
+						mi.url = "/surveyKPI/file/" + GeneralUtilityMethods.urlEncode(fileName) + "/survey/" + sId;
 					} else {
-						mi.url = "/surveyKPI/file/" + fileName + "/organisation";
+						mi.url = "/surveyKPI/file/" + GeneralUtilityMethods.urlEncode(fileName) + "/organisation";
 					}
 					
 					String contentType = UtilityMethodsEmail.getContentType(mi.name);
@@ -227,7 +227,6 @@ public class MediaInfo {
 					} else {
 						mi.thumbnailUrl = mi.url + "?thumbs=true";
 					}
-					mi.deleteUrl = server + "surveyKPI/upload" + "/" + folderUrl + "/" + mi.name; 
 				} else {
 					log.log(Level.SEVERE, "Media Server is null");
 				}

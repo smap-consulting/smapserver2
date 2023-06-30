@@ -1,11 +1,8 @@
 package surveyKPI;
 
 import java.io.File;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 import java.net.URL;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
@@ -139,17 +136,7 @@ public class ExportSurveyMedia extends Application {
 
 		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "Export Media from a survey", 0, request.getServerName());
 		
-		String escapedFileName = null;
-		try {
-			escapedFileName = URLDecoder.decode(filename, "UTF-8");
-			escapedFileName = URLEncoder.encode(escapedFileName, "UTF-8");
-		} catch (UnsupportedEncodingException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		
-		escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
-		escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
+		String escapedFileName = GeneralUtilityMethods.urlEncode(filename);
 
 		if(sId != 0) {
 			
@@ -164,6 +151,7 @@ public class ExportSurveyMedia extends Application {
 				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				
 				/*
 				 * Get the name of the database
@@ -231,6 +219,7 @@ public class ExportSurveyMedia extends Application {
 						cResults,
 						localisation,
 						sId,
+						sIdent,
 						mediaQInfo.getFId(),
 						language, 
 						"media", 
@@ -251,11 +240,11 @@ public class ExportSurveyMedia extends Application {
 						false,		// superUser - Always apply filters
 						startingForm,
 						filter,
-						null,			// transform
 						true,
 						false,
 						tz,
 						null,		// geomQuestion
+						true,		// Outer join of tables
 						false		// Accuracy and Altitude
 						);		
 				

@@ -292,7 +292,8 @@ public class Roles extends Application {
 			RoleManager rm = new RoleManager(localisation);
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			ArrayList<Role> roles = rm.getSurveyRoles(sd, sId, oId, enabledOnly, request.getRemoteUser(), superUser);
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			ArrayList<Role> roles = rm.getSurveyRoles(sd, sIdent, oId, enabledOnly, request.getRemoteUser(), superUser);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(roles);
 			response = Response.ok(resp).build();
@@ -351,16 +352,17 @@ public class Roles extends Application {
 			
 			RoleManager rm = new RoleManager(localisation);
 			ChangeElement change = new ChangeElement();
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			
 			if(property.equals("enabled")) {
-				role.linkid = rm.updateSurveyLink(sd, sId, role.id, role.linkid, role.enabled);
+				role.linkid = rm.updateSurveyLink(sd, sIdent, role.id, role.linkid, role.enabled);
 				change.msg = localisation.getString(role.enabled ? "ed_c_re" : "ed_c_rne");
 			} else if(property.equals("row_filter")) {
-				rm.updateSurveyRoleRowFilter(sd, sId, role, localisation);
+				rm.updateSurveyRoleRowFilter(sd, sIdent, role, localisation);
 				change.msg = localisation.getString("ed_c_rrf");
 				change.msg = change.msg.replace("%s2", GeneralUtilityMethods.getSafeText(role.row_filter, true));
 			} else if(property.equals("column_filter")) {
-				rm.updateSurveyRoleColumnFilter(sd, sId, role, localisation);
+				rm.updateSurveyRoleColumnFilter(sd, sIdent, role, localisation);
 				change.msg = localisation.getString("ed_c_rcf");
 				StringBuilder colMsg = new StringBuilder("");
 				for(RoleColumnFilter c : role.column_filter) {

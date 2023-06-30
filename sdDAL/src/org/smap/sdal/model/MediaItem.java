@@ -21,8 +21,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 public class MediaItem {
 	public String name;	
 	public String url;	
-	public String thumbnailUrl;	
-	public String deleteUrl;		
+	public String thumbnailUrl;			
 	public String type;
 	public long size;
 	public String modified;

@@ -153,7 +153,9 @@ public class Upload extends Application {
 		 *  user id they provided on login
 		 */
 		String user = null;
+		boolean isDynamicUser = false;
 		if(key != null) {
+			isDynamicUser = true;  // Do not require roles for a dynamic user
 			try {
 				user = GeneralUtilityMethods.getDynamicUser(sd, key);
 			} catch (SQLException e) {
@@ -204,7 +206,7 @@ public class Upload extends Application {
 			log.info("Upload Started ================= " + instanceId + " ==============");
 			log.info("Url:" + request.getRequestURI());
 			XFormData xForm = new XFormData();
-			xForm.loadMultiPartMime(request, user, instanceId, deviceId);
+			xForm.loadMultiPartMime(request, user, instanceId, deviceId, isDynamicUser);
 			log.info("Server:" + request.getServerName());
 			log.info("Info: Upload finished ---------------- " + instanceId + " ------------");
 			

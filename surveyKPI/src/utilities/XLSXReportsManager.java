@@ -53,18 +53,16 @@ import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.ReadData;
 import org.smap.sdal.model.SqlDesc;
-import org.smap.sdal.model.Transform;
-import org.smap.sdal.model.TransformDetail;
 
 
 /*
- * Manage exporting of data posted from a data table
+ * Reports requested from a service
  */
 
 public class XLSXReportsManager {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSXReportsManager.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	ResourceBundle localisation = null;
@@ -83,6 +81,7 @@ public class XLSXReportsManager {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			int sId, 
+			String sIdent,
 			String filename, 
 			boolean split_locn, 
 			boolean get_acc_alt,
@@ -97,7 +96,6 @@ public class XLSXReportsManager {
 			Date endDate,
 			int dateId,
 			String filter,
-			Transform transform,
 			boolean meta,
 			String tz) {
 		
@@ -157,7 +155,6 @@ public class XLSXReportsManager {
 				wb = new SXSSFWorkbook(10);		// Serialised output
 				Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 				CellStyle headerStyle = styles.get("header");
-				CellStyle wideStyle = styles.get("wide");
 				errorStyle = styles.get("error");
 						
 				dataSheet = wb.createSheet(localisation.getString("rep_data"));
@@ -205,6 +202,7 @@ public class XLSXReportsManager {
 						cResults,
 						localisation,
 						sId,
+						sIdent,
 						fId,
 						language, 
 						SmapExportTypes.XLSX, 
@@ -225,11 +223,11 @@ public class XLSXReportsManager {
 						false,				// Super user - always apply filters
 						startingForm,
 						filter,
-						transform,
 						meta,
 						false,
 						tz,
 						null,			// geomQuestion
+						true,			// Outer join of tables
 						get_acc_alt);
 
 				String basePath = GeneralUtilityMethods.getBasePath(request);					
@@ -265,25 +263,7 @@ public class XLSXReportsManager {
 							}
 						}
 						
-						// Wide columns in a long to wide transformation are replaced by repeating versions of themselves so don't write the label here
-						if(isWideColumn(transform, values.name)) {
-							continue;
-						}
-						
-						int tdIndex = getTransformIndex(transform, values.name);
-						if(tdIndex >= 0 ) {
-							/*
-							 * Replace this question with the wide labels
-							 */
-							for(String tc : transform.transforms.get(tdIndex).wideColumns) {
-								for(String tv : transform.transforms.get(tdIndex).values) {
-									Cell cell = headerRow.createCell(colNumber++);
-									cell.setCellStyle(wideStyle);
-									cell.setCellValue(tc + " - " +tv);
-								}
-							}
-								
-						} else if(split_locn && item.qType != null && item.rawQuestionType.equals("geopoint")) {
+						if(split_locn && item.qType != null && item.rawQuestionType.equals("geopoint")) {
 							Cell cell = headerRow.createCell(colNumber++);
 							cell.setCellStyle(headerStyle);
 							cell.setCellValue(values.label);
@@ -368,26 +348,7 @@ public class XLSXReportsManager {
 						cell.setCellValue(values.name + " - Error Count");
 					}
 					
-					// Wide columns in a long to wide transformation are replaced by repeating versions of themselves so don't write the label here
-					if(isWideColumn(transform, values.name)) {
-						continue;
-					}
-					
-					int tdIndex = getTransformIndex(transform, values.name);					
-					if(tdIndex >= 0 ) {
-						/*
-						 * Replace this question with the wide question names
-						 */
-						for(String tc : transform.transforms.get(tdIndex).wideColumns) {
-							String displayName = GeneralUtilityMethods.getDisplayName(sd, sId, tc);
-							for(String tv : transform.transforms.get(tdIndex).values) {
-								Cell cell = headerRow.createCell(colNumber++);
-								cell.setCellStyle(wideStyle);
-								cell.setCellValue(displayName + " - " + tv);
-							}
-						}
-							
-					} else if(split_locn && item.qType != null && item.rawQuestionType.equals("geopoint")) {
+					else if(split_locn && item.qType != null && item.rawQuestionType.equals("geopoint")) {
 						Cell cell = headerRow.createCell(colNumber++);
 						cell.setCellStyle(headerStyle);
 						cell.setCellValue("Latitude");
@@ -418,15 +379,6 @@ public class XLSXReportsManager {
 						cell.setCellValue(values.name);
 					}
 				}
-				
-				/*
-				 * Accumulate data to be written into an array and write it out in a second pass
-				 * This supports functionality such as long to wide transforms where fewer records are written than read
-				 */
-				String key = "";															// transforms
-				String previousKey = null;													// transforms
-				HashMap<String, HashMap<String, String>> transformData = null;				// transforms
-				
 				
 				pstmt = cResults.prepareStatement(sqlDesc.sql);
 				
@@ -465,26 +417,13 @@ public class XLSXReportsManager {
 						}
 					}
 					
-					// If we are doing a transform then get the key of this record
-					if(transform != null && transform.enabled) {
-						key = getKeyValue(rs, transform);
-						if(previousKey == null) {
-							previousKey = key;
-						}
-					}
-					
 					/*
 					 * Write out the previous record if this report does not use transforms or the key has changed
 					 */
-					if(dataItems != null && 
-							(transform == null || 
-							!transform.enabled  || 
-							(transform.enabled && !key.equals(previousKey)))) {
-						previousKey = key;
+					if(dataItems != null ) {
 						dataRow = dataSheet.createRow(rowNumber++);	
-						writeOutData(dataItems, transform, transformData, dataRow, wb, dataSheet, styles, embedImages, 
+						writeOutData(dataItems, dataRow, wb, dataSheet, styles, embedImages, 
 								basePath, rowNumber);
-						transformData = null;
 					}
 					
 					dataItems = new ArrayList<> ();
@@ -502,37 +441,7 @@ public class XLSXReportsManager {
 								surveyName);						
 						
 						
-						// Wide columns in a long to wide transformation are replaced by repeating versions of themselves so don't add the data
-						if(isWideColumn(transform, values.name)) {
-							continue;
-						}
-						
-						int tdIndex = getTransformIndex(transform, values.name);					
-						if(tdIndex >= 0 ) {
-							
-							ReadData rd = new ReadData(values.name, true, "string");
-							dataItems.add(rd);
-							if(transformData == null) {
-								transformData = new HashMap<> ();
-							}
-							HashMap<String, String> itemTransform = transformData.get(values.name);
-							if(itemTransform == null) {
-								itemTransform = new HashMap<String, String> ();
-								transformData.put(values.name, itemTransform);
-							}
-							
-							for(String tv : transform.transforms.get(tdIndex).values) {
-								if(tv.equals(values.value)) {
-									// Valid value
-									for(String tc : transform.transforms.get(tdIndex).wideColumns) {
-										itemTransform.put(tc + " - " + values.value, rs.getString(sqlDesc.colNameLookup.get(tc)));
-									}
-									break;
-								}
-							}
-							
-								
-						} else if(split_locn && values.value != null && values.value.startsWith("POINT")) {
+						if(split_locn && values.value != null && values.value.startsWith("POINT")) {
 
 							String coords [] = GeneralUtilityMethods.getLonLat(values.value);
 
@@ -680,7 +589,7 @@ public class XLSXReportsManager {
 				
 				// Write the last row
 				dataRow = dataSheet.createRow(rowNumber++);	
-				writeOutData(dataItems, transform, transformData, dataRow, wb, dataSheet, styles, embedImages, 
+				writeOutData(dataItems, dataRow, wb, dataSheet, styles, embedImages, 
 						basePath, rowNumber);
 			
 
@@ -757,8 +666,7 @@ public class XLSXReportsManager {
 		}
 	}
 	
-	private void writeOutData(ArrayList<ReadData> dataItems, Transform transform, 
-			HashMap<String, HashMap<String, String>> transformData,
+	private void writeOutData(ArrayList<ReadData> dataItems,
 			Row dataRow,
 			SXSSFWorkbook wb,
 			Sheet dataSheet,
@@ -770,69 +678,13 @@ public class XLSXReportsManager {
 		int colNumber = 0;
 		if(dataItems != null) {
 			for(ReadData item : dataItems) {
-				if(item.isTransform) {
-					int tdIndex = getTransformIndex(transform, item.name);	
-					HashMap<String, String> itemTransform = transformData.get(item.name);
-					for(String tc : transform.transforms.get(tdIndex).wideColumns) {
-						for(String tv : transform.transforms.get(tdIndex).values) {
-							Cell cell = dataRow.createCell(colNumber++);
-							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, itemTransform.get(tc + " - " + tv), 
-									item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
-						}
-					}
-				} else {
-					for(String v : item.values) {
-						Cell cell = dataRow.createCell(colNumber++);
-						XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v, 
-								item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
-					}
+				for(String v : item.values) {
+					Cell cell = dataRow.createCell(colNumber++);
+					XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v, 
+							item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
 				}
 			}
 		}
-	}
-	
-	private boolean isWideColumn(Transform transform, String name) {
-		boolean val = false;
-		
-		if(transform != null && transform.enabled) {
-			for(TransformDetail td : transform.transforms) {
-				for(String col : td.wideColumns) {
-					if(col.equals(name)) {
-						val = true;
-						break;
-					}
-				}
-				if(val) {
-					break;
-				}
-
-			}
-		}
-		return val;
-	}
-	
-	private int getTransformIndex(Transform transform, String name) {
-		int idx = -1;
-		
-		if(transform != null) {
-			int count = 0;
-			for(TransformDetail td : transform.transforms) {
-				if(td.valuesQuestion.equals(name)) {
-					idx = count;
-					break;
-				}
-				count++;
-			}
-		}
-		return idx;
-	}
-	
-	private String getKeyValue(ResultSet rs, Transform transform) throws SQLException {
-		StringBuilder key = new StringBuilder("");
-		for(String c : transform.key_questions) {
-			key.append(rs.getString(c));
-		}
-		return key.toString();
 	}
 
 }

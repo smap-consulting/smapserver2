@@ -131,22 +131,20 @@ public class CaseManager {
 	 */
 	public void createAlert(Connection sd, 
 			String user,
-			CaseManagementAlert alert, 
-			int oId) throws Exception {
+			CaseManagementAlert alert) throws Exception {
 		
-		String sql = "insert into cms_alert (o_id, group_survey_ident, name, period, changed_by, changed_ts) " +
-				" values (?, ?, ?, ?, ?, now());";
+		String sql = "insert into cms_alert (group_survey_ident, name, period, changed_by, changed_ts) " +
+				" values (?, ?, ?, ?, now());";
 		
 		PreparedStatement pstmt = null;
 		
 		try {
 			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, oId);
-			pstmt.setString(2, alert.group_survey_ident);
-			pstmt.setString(3, alert.name);
-			pstmt.setString(4,  alert.period);
-			pstmt.setString(5,  user);
+			pstmt.setString(1, alert.group_survey_ident);
+			pstmt.setString(2, alert.name);
+			pstmt.setString(3,  alert.period);
+			pstmt.setString(4,  user);
 
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -165,8 +163,7 @@ public class CaseManager {
 	 */
 	public void updateAlert(Connection sd, 
 			String user,
-			CaseManagementAlert alert, 
-			int o_id) throws Exception {
+			CaseManagementAlert alert) throws Exception {
 		
 		String sql = "update cms_alert "
 				+ "set group_survey_ident = ?, "
@@ -174,8 +171,7 @@ public class CaseManager {
 				+ "period = ?,"
 				+ "changed_by = ?,"
 				+ "changed_ts = now() "
-				+ "where o_id = ? "
-				+ "and id = ?"; 
+				+ "where id = ?"; 
 		
 		PreparedStatement pstmt = null;
 		
@@ -187,8 +183,7 @@ public class CaseManager {
 			pstmt.setString(2, alert.name);
 			pstmt.setString(3, alert.period);
 			pstmt.setString(4, user);
-			pstmt.setInt(5, o_id);
-			pstmt.setInt(6, alert.id);
+			pstmt.setInt(5, alert.id);
 
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -206,15 +201,13 @@ public class CaseManager {
 	public void updateSettings(Connection sd, 
 			String user,
 			String group_survey_ident,
-			CaseManagementSettings settings, 
-			int o_id) throws Exception {
+			CaseManagementSettings settings) throws Exception {
 		
 		String sql = "update cms_setting "
 				+ "set settings = ?, "
 				+ "changed_by = ?,"
 				+ "changed_ts = now() "
-				+ "where o_id = ? "
-				+ "and group_survey_ident = ?"; 
+				+ "where group_survey_ident = ?"; 
 		
 		PreparedStatement pstmt = null;
 		
@@ -224,8 +217,7 @@ public class CaseManager {
 
 			pstmt.setString(1, gson.toJson(settings));
 			pstmt.setString(2, user);
-			pstmt.setInt(3, o_id);
-			pstmt.setString(4, group_survey_ident);
+			pstmt.setString(3, group_survey_ident);
 
 			log.info("SQL: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
@@ -233,13 +225,12 @@ public class CaseManager {
 				try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 				
 				sql = "insert into cms_setting "
-						+ "(settings, changed_by, o_id, group_survey_ident, changed_ts) "
-						+ "values(?,?, ?, ?, now())"; 
+						+ "(settings, changed_by, group_survey_ident, changed_ts) "
+						+ "values(?,?, ?, now())"; 
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, gson.toJson(settings));
 				pstmt.setString(2, user);
-				pstmt.setInt(3, o_id);
-				pstmt.setString(4, group_survey_ident);
+				pstmt.setString(3, group_survey_ident);
 				log.info("SQL: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
@@ -255,11 +246,9 @@ public class CaseManager {
 	 * Delete a case management alert
 	 */
 	public void deleteAlert(Connection sd, 
-			int id, 
-			int o_id) throws Exception {
+			int id) throws Exception {
 		
-		String sql = "delete from cms_alert where id = ? "
-				+ "and o_id = ?";
+		String sql = "delete from cms_alert where id = ? ";
 		
 		PreparedStatement pstmt = null;
 		
@@ -268,7 +257,6 @@ public class CaseManager {
 			pstmt = sd.prepareStatement(sql);
 
 			pstmt.setInt(1, id);
-			pstmt.setInt(2, o_id);
 
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();

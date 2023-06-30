@@ -3,13 +3,9 @@
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -77,34 +73,11 @@ public class ExportSurveyLocation extends Application {
 
 		lm.writeLog(connectionSD, sId, request.getRemoteUser(), LogManager.VIEW, "Export to " + format, 0, request.getServerName());
 		
-		String escapedFileName = null;
-		try {
-			escapedFileName = URLDecoder.decode(filename, "UTF-8");
-			escapedFileName = URLEncoder.encode(escapedFileName, "UTF-8");
-		} catch (UnsupportedEncodingException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		
-		escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
-		escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
-
 		PreparedStatement pstmtGetIdent = null;
 		
 		if(sId != 0) {
 			
 			try {
-		
-				String ident = null;
-				String sqlGetIdent = "select ident from survey where s_id = ?;"; 
-		    	pstmtGetIdent = connectionSD.prepareStatement(sqlGetIdent);
-		    	pstmtGetIdent.setInt(1, sId);
-		    	ResultSet rs = pstmtGetIdent.executeQuery();
-		    	if(rs.next()) {
-		    		ident = rs.getString(1);
-		    	} else {
-		    		log.info("Error: ident not found");
-		    	}
 		    	
 				/*
 				 * Get the name of the database

@@ -573,16 +573,24 @@ public class UtilityMethodsEmail {
 	}
 
 	/*
+	 * Get a files extension or return an empty string
+	 */
+	public static String getExtension(String filename) {
+		String extension = "";
+		int idx = filename.lastIndexOf('.');
+		if(idx >= 0) {
+			extension = filename.substring(idx+1).toLowerCase();
+		}
+		return extension;
+	}
+	
+	/*
 	 * Get the content type from the filename
 	 */
 	public static String getContentType(String filename) {
 
 		String ct = null;
-		String extension = "";
-		int idx = filename.lastIndexOf('.');
-		if(idx > 0) {
-			extension = filename.substring(idx+1).toLowerCase();
-		}
+		String extension = getExtension(filename);
 
 		if (extension.equals("xml")) {
 			ct = "text/xml";
@@ -642,7 +650,6 @@ public class UtilityMethodsEmail {
 	public static void createThumbnail(String name, String path, File file) {
 
 		String contentType = getContentType(name);
-		String source = path + "/" + name;
 		String dest = path + "/thumbs/" + name;
 
 		int idx = dest.lastIndexOf('.');
@@ -651,11 +658,16 @@ public class UtilityMethodsEmail {
 			destRoot = dest.substring(0, idx + 1);
 		}
 
+		String os = System.getProperty("os.name");
+		String binDir = "/usr/bin/";
+		if(os.startsWith("Mac")) {
+			binDir = "/usr/local/bin/";
+		} 
 		String cmd = null;
 		if(contentType.startsWith("image")) {
-			cmd = "/usr/bin/convert -thumbnail 100x100 \"" + source + "\" \"" + dest + "\"";
+			cmd = binDir + "convert -thumbnail 100x100 \"" + file.getAbsolutePath() + "\" \"" + dest + "\"";
 		} else if(contentType.startsWith("video")) {
-			cmd = "/usr/bin/ffmpeg -i \"" + source + "\" -vf scale=-1:100 -vframes 1 \"" + destRoot + "jpg\" -y";
+			cmd = binDir + "ffmpeg -i \"" + file.getAbsolutePath() + "\" -vf scale=-1:100 -vframes 1 \"" + destRoot + "jpg\" -y";
 		} 
 
 		log.info("Exec: " + cmd);

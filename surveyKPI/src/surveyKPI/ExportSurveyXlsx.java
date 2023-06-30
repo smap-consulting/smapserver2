@@ -96,6 +96,7 @@ public class ExportSurveyXlsx extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			XLSXReportsManager rm = new XLSXReportsManager(localisation);
 			responseVal = rm.getNewReport(
 					sd,
@@ -104,6 +105,7 @@ public class ExportSurveyXlsx extends Application {
 					request,
 					response,
 					sId,
+					sIdent,
 					filename,
 					split_locn,
 					meta,		// Get altitude and location
@@ -118,7 +120,6 @@ public class ExportSurveyXlsx extends Application {
 					endDate,
 					dateId,
 					filter,
-					null,
 					meta,
 					tz);
 		} catch(Exception e) {

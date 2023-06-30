@@ -29,11 +29,7 @@ public class SubscriberEvent implements Serializable{
 	
 	private UploadEvent ue;
 	
-	private String subscriber = null;
-	
 	private String status = null;
-	
-	private String dest = null;
 	
 	private String reason = null;
 
@@ -52,14 +48,6 @@ public class SubscriberEvent implements Serializable{
 		return se_id;
 	}
 	
-	public String getSubscriber() {
-		return subscriber;
-	}
-	
-	public String getDest() {
-		return dest;
-	}
-	
 	public String getStatus() {
 		return status;
 	}
@@ -74,17 +62,9 @@ public class SubscriberEvent implements Serializable{
 	public void setUploadEvent(UploadEvent value) {
 		ue = value;
 	}
-	   
-    public void setSubscriber(String value) {
-    	subscriber = value;
-    }
     
 	public void setStatus(String value) {
 		status = value;
-	}
-	
-	public void setDest(String value) {
-		dest  = value;
 	}
 	
 	public void setReason(String value) {

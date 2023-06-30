@@ -248,7 +248,7 @@ public class Items extends Application {
 					jTotals.put("bad_count", resultSet.getInt(1));
 				}
 				
-				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				ArrayList<SqlParam> params = new ArrayList<SqlParam>();
 				ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
 						sd,
@@ -256,7 +256,7 @@ public class Items extends Application {
 						localisation,
 						language,
 						sId,
-						surveyIdent,
+						sIdent,
 						request.getRemoteUser(),
 						null,	// Roles to apply
 						parent,
@@ -360,76 +360,16 @@ public class Items extends Application {
 					cols.append(tName + "._import_source as _import_source");
 				}
 				
-				/*
-				 * Add the old style server side calculations
-				 * Deprecate this by 19.12
-				 *
-				String sqlSSC = "select ssc.name, ssc.function, ssc.units from ssc ssc, form f " +
-						" where f.f_id = ssc.f_id " +
-						" and f.table_name = ? " +
-						" order by ssc.id;";
-				pstmtSSC = sd.prepareStatement(sqlSSC);	 
-				pstmtSSC.setString(1, tName);
-				resultSet = pstmtSSC.executeQuery();
-				while(resultSet.next()) {
-					String sscName = resultSet.getString(1);
-					String sscFn = resultSet.getString(2);
-					String sscUnits = resultSet.getString(3);
-
-					if(geomType != null) {
-						if(sscFn.equals("area")) {
-							geomColumn = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, fId, "geoshape");
-							if(geomColumn != null) {
-								String colName = sscName + " (" + sscUnits + ")";
-								if(newColIdx != 0 ) {
-									cols.append(",");
-								}
-								cols.append("ST_Area(geography(" + geomColumn + "), true)");
-								if(sscUnits.equals("hectares")) {
-									cols.append(" / 10000");
-								}
-								cols.append(" as \"" + colName + "\"");
-								columns.put(colName);
-								newColIdx++;
-								sscList.add(colName);
-							}
-						} else if (sscFn.equals("length")) {
-							geomColumn = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, fId, "geoshape");
-							if(geomColumn == null) {
-								geomColumn = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, fId, "geotrace");
-							}
-							if(geomColumn != null) {
-								String colName = sscName + " (" + sscUnits + ")";
-								if(newColIdx != 0 ) {
-									cols.append(",");
-								}
-								cols.append("ST_Length(geography(" + geomColumn + "), true)");
-								if(sscUnits.equals("km")) {
-									cols.append(" / 1000");
-								}
-								cols.append(" as \"" + colName + "\"");
-								columns.put(colName);
-								newColIdx++;
-								sscList.add(colName);
-							}
-						} else {
-							log.info("Invalid SSC function: " + sscFn);
-						}
-					}
-
-				}
-				*/
 				
+				String stepFilter = "";
 				String sqlFilter = "";
 				if(start_key > 0) {
-					sqlFilter = tName + ".prikey < " +  start_key;
-					if(!bBad) {
-						sqlFilter += " and " + tName + "._bad = 'false'";
-					}
-				} else {
-					if(!bBad) {
-						sqlFilter = tName + "._bad = 'false'";
-					}
+					stepFilter += tName + ".prikey < " +  start_key;			
+				} 
+				
+				// Add filter for deleted records
+				if(!bBad) {
+					sqlFilter += tName + "._bad = 'false'";
 				}
 				
 				 /*
@@ -501,7 +441,7 @@ public class Items extends Application {
 				RoleManager rm = new RoleManager(localisation);
 				ArrayList<SqlFrag> rfArray = null;
 				if(!superUser) {
-					rfArray = rm.getSurveyRowFilter(sd, sId, request.getRemoteUser());
+					rfArray = rm.getSurveyRowFilter(sd, sIdent, request.getRemoteUser());
 					String rfString = "";
 					if(rfArray.size() > 0) {
 						for(SqlFrag rf : rfArray) {
@@ -563,38 +503,51 @@ public class Items extends Application {
 				
 				String sqlTableJoin = tables.getTableJoinSQL();
 				boolean doneWhere = false;
+				
+				if(date != null) {
+					String sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, date.getColumnName());
+					if(sqlRestrictToDateRange.trim().length() > 0) {
+						if(sqlFilter.trim().length() > 0) {
+							sqlFilter += " and ";
+						} 
+						sqlFilter += sqlRestrictToDateRange;
+					}
+				}
 				String whereClause = "";
+				String countWhereClause = "";
 				if(sqlTableJoin.trim().length() > 0) {
 					whereClause += " where " + sqlTableJoin;
+					countWhereClause = " where " + sqlTableJoin;
 					doneWhere = true;
 				} 
-				
 				if(sqlFilter.trim().length() > 0) {
+					if(doneWhere) {
+						whereClause += " and ";
+						countWhereClause += " and ";
+					} else {
+						whereClause += " where ";
+						countWhereClause += " where ";
+						doneWhere = true;
+					}
+					whereClause += sqlFilter;
+					countWhereClause += sqlFilter;
+				}
+				
+				// Only apply the step filter to the sql that retrieves the data and not the sql that retrieves the count of data
+				if(stepFilter.trim().length() > 0) {
 					if(doneWhere) {
 						whereClause += " and ";
 					} else {
 						whereClause += " where ";
 						doneWhere = true;
 					}
-					whereClause += sqlFilter;
-				}
+					whereClause += stepFilter;						}
 				
-				if(date != null) {
-					String sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, date.getColumnName());
-					if(sqlRestrictToDateRange.trim().length() > 0) {
-						if(doneWhere) {
-							whereClause += " and ";
-						} else {
-							whereClause += " where ";
-							doneWhere = true;
-						}
-						whereClause += sqlRestrictToDateRange;
-					}
-				}
+				
 				sql2.append(whereClause);
-				sqlFC.append(whereClause);
+				sqlFC.append(countWhereClause);
 				
-				// Add oder by and limit
+				// Add order by and limit
 				sql2.append(" order by ");
 				if(parent > 0) {
 					sql2.append(tName).append(".parkey desc, ");

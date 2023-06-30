@@ -76,6 +76,7 @@ public class TableDataManager {
 			ArrayList<TableColumn> columns,
 			String urlprefix, 
 			int sId, 
+			String sIdent,
 			int fId,
 			String table_name, 
 			int parkey, 
@@ -113,7 +114,7 @@ public class TableDataManager {
 		PreparedStatement pstmt = null;
 
 		boolean viewOwnDataOnly = GeneralUtilityMethods.isOnlyViewOwnData(sd, uIdent);
-		boolean viewLinks = GeneralUtilityMethods.hasSecurityGroup(sd, uIdent, Authorise.LINKS_ID);
+		
 		/*
 		 * If the request is for a subform get the join hierarchy up to the top level form
 		 */
@@ -182,7 +183,7 @@ public class TableDataManager {
 			// Add table joins if we are getting a child forms data and also need parent information
 			if(startingForm != null) {
 				if(startingForm.childForms != null && startingForm.childForms.size() > 0) {
-					sqlGetData.append(QueryGenerator.getJoins(sd, localisation, startingForm.childForms, startingForm));
+					sqlGetData.append(QueryGenerator.getJoins(sd, localisation, startingForm.childForms, startingForm, true));
 				}
 			}
 
@@ -224,9 +225,9 @@ public class TableDataManager {
 			if (!superUser) {			
 				
 				if(uIdent != null) {
-					rfArray = rm.getSurveyRowFilter(sd, sId, uIdent);
+					rfArray = rm.getSurveyRowFilter(sd, sIdent, uIdent);
 				} else if(roles != null) {
-					rfArray = rm.getSurveyRowFilterRoleList(sd, sId, roles);
+					rfArray = rm.getSurveyRowFilterRoleList(sd, sIdent, roles);
 				}
 				
 				if (rfArray.size() > 0) {

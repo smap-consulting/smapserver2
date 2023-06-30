@@ -454,14 +454,52 @@ public class SubRelationalDB extends Subscriber {
 			if(keys.duplicateKeys.size() > 0) {
 				log.info("Dropping duplicate");
 			} 
-			
+
 			/*
-			 * Update any Human readable keys if this survey has them
+			 * Key policy is applied if the table has an HRK
 			 */
 			org.smap.sdal.model.Form topLevelForm = null;
 			topLevelForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
+			String keyPolicy = uk.key_policy;
+			
+			// Make sure the key policy is valid
+			if(!SurveyManager.isValidSurveyKeyPolicy(keyPolicy)) {
+				keyPolicy = SurveyManager.KP_NONE;
+			}
+			log.info("################### Processing key policy:" + keyPolicy + ": " + hasHrk + " : " + assignmentId );
+			
+			String hrkSql = GeneralUtilityMethods.convertAllxlsNamesToQuery(uk.key, sId, sd, topLevelForm.tableName);
+			if(updateId != null) {
+				// Direct update to a record
+				log.info("Direct update with Existing unique id:" + updateId);
+				existingKey = getKeyFromId(cResults, topElement, updateId);
+
+				boolean replace = true;		// Always replace for direct updates
+				if(existingKey != 0) {
+					log.info("Existing key:" + existingKey);
+					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, 
+							topLevelForm.id,
+							existingKey, replace, remoteUser, updateId, survey.groupSurveyIdent, survey.ident, localisation);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
+				} 
+			} else if(hasHrk && !keyPolicy.equals(SurveyManager.KP_NONE)) {
+				boolean replace = keyPolicy.equals(SurveyManager.KP_REPLACE);
+				if(keyPolicy.equals(SurveyManager.KP_MERGE) || keyPolicy.equals(SurveyManager.KP_REPLACE)) {					
+					log.info("Apply merge-replace policy");
+					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0, 
+							replace, remoteUser, instance.getUuid(), survey.groupSurveyIdent, survey.ident, localisation);
+				} else if(keyPolicy.equals(SurveyManager.KP_DISCARD)) {
+					log.info("Apply discard policy");
+					discardTableContent(cResults, topLevelForm.tableName, keys.newKey);
+				} 
+				
+			}  
+
+			/*
+			 * Update any Human readable keys if this survey has them
+			 * This has to happen after merge so that previous HRK's are preserved
+			 */
 			if(hasHrk) {
-					
+				
 				if(!GeneralUtilityMethods.hasColumn(cResults, topLevelForm.tableName, "_hrk")) {
 					// This should not be needed as the _hrk column should be in the table if an hrk has been specified for the survey
 					log.info("Error:  _hrk being created for table " + topLevelForm.tableName + " this column should already be there");
@@ -476,7 +514,7 @@ public class SubRelationalDB extends Subscriber {
 				pstmt = cResults.prepareStatement(sql);
 				
 				String sqlHrk = "update " + topLevelForm.tableName + " m set _hrk = "
-						+ GeneralUtilityMethods.convertAllxlsNamesToQuery(uk.key, sId, sd, topLevelForm.tableName)
+						+ hrkSql
 						+ " where prikey = ?;";
 				pstmtHrk = cResults.prepareStatement(sqlHrk);
 				ResultSet rs = pstmt.executeQuery();
@@ -486,43 +524,7 @@ public class SubRelationalDB extends Subscriber {
 					pstmtHrk.executeUpdate();
 				}	
 			}
-
-			/*
-			 * Key policy is applied if the table has an HRK
-			 */
-			String keyPolicy = uk.key_policy;
 			
-			// Make sure the key policy is valid
-			if(!SurveyManager.isValidSurveyKeyPolicy(keyPolicy)) {
-				keyPolicy = SurveyManager.KP_NONE;
-			}
-			log.info("################### Processing key policy:" + keyPolicy + ": " + hasHrk + " : " + assignmentId );
-			
-			if(updateId != null) {
-				// Direct update to a record
-				log.info("Direct update with Existing unique id:" + updateId);
-				existingKey = getKeyFromId(cResults, topElement, updateId);
-
-				boolean replace = true;		// Always replace for direct updates
-				if(existingKey != 0) {
-					log.info("Existing key:" + existingKey);
-					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, 
-							topLevelForm.id,
-							existingKey, replace, remoteUser, updateId, survey.groupSurveyIdent, survey.ident, localisation);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
-				} 
-			} else if(hasHrk && !keyPolicy.equals(SurveyManager.KP_NONE)) {
-				boolean replace = keyPolicy.equals(SurveyManager.KP_REPLACE);
-				if(keyPolicy.equals(SurveyManager.KP_MERGE) || keyPolicy.equals(SurveyManager.KP_REPLACE)) {					
-					log.info("Apply merge-replace policy");
-					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0, 
-							replace, remoteUser, instance.getUuid(), survey.groupSurveyIdent, survey.ident, localisation);
-				} else if(keyPolicy.equals(SurveyManager.KP_DISCARD)) {
-					log.info("Apply discard policy");
-					discardTableContent(cResults, topLevelForm.tableName, keys.newKey);
-				} 
-				
-			}  
-
 			/*
 			 * Record any foreign keys that need to be set between forms
 			 */
@@ -999,7 +1001,15 @@ public class SubRelationalDB extends Subscriber {
 					
 					pstmt.setTime(idx++, java.sql.Time.valueOf(t));
 				}
-			} else {
+			} else if(c.colName.equals("_hrk")) {	// Forcing an hrk value, ensure null if blank
+				String value = c.value;
+				if(value != null) {
+					if(value.trim().length() == 0) {
+						value = null;
+					}
+				} 
+				pstmt.setString(idx++, value);
+			}else {
 				pstmt.setString(idx++, c.value);	// Default is String
 			}
 
@@ -1144,6 +1154,7 @@ public class SubRelationalDB extends Subscriber {
 			Connection sd,
 			Connection cResults,
 			int sId,
+			String hrkSql,
 			String table,
 			int prikey,
 			int f_id,
@@ -1155,9 +1166,9 @@ public class SubRelationalDB extends Subscriber {
 			String ident,
 			ResourceBundle localisation) throws SQLException, Exception {
 
-		String sqlHrk = "select _hrk from " + table + " where prikey = ?";
-		PreparedStatement pstmtHrk = null;
-
+		String sql = "select " + hrkSql + " from " + table + " m where m.prikey = ?";
+		PreparedStatement pstmt = null;
+		
 		String sqlSource = "select prikey from " + table + " where _hrk = ? "
 				+ "and prikey != ? "
 				+ "and _bad = 'false' "
@@ -1191,18 +1202,18 @@ public class SubRelationalDB extends Subscriber {
 		PreparedStatement pstmtCopyBack = null;
 		
 		ArrayList<DataItemChange> changes = null;
-		String hrk = null;
 		try {
 
+			String hrk = null;
 			if(sourceKey == 0) {
-				// Get the HRK that identifies duplicates
-				pstmtHrk = cResults.prepareStatement(sqlHrk);
-				pstmtHrk.setInt(1, prikey);
-				ResultSet rs = pstmtHrk.executeQuery();
+				// Get the HRK
+				pstmt = cResults.prepareStatement(sql);
+				pstmt.setInt(1, prikey);
+				log.info("Get HRK: " + pstmt.toString());
+				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) {
 					hrk = rs.getString(1);
 				}
-	
 				// Get the prikey of the source record
 				pstmtSource = cResults.prepareStatement(sqlSource);
 				pstmtSource.setString(1, hrk);
@@ -1482,7 +1493,7 @@ public class SubRelationalDB extends Subscriber {
 			}
 
 		} finally {
-			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {}
+			if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
 			if(pstmtSource != null) try{pstmtSource.close();}catch(Exception e) {}
 			if(pstmtChildTables != null) try{pstmtChildTables.close();}catch(Exception e) {}
 			if(pstmtChildTablesInGroup != null) try{pstmtChildTablesInGroup.close();}catch(Exception e) {}
@@ -1525,8 +1536,9 @@ public class SubRelationalDB extends Subscriber {
 		
 		ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
 		
+		// Merge the non meta data and the human readable key (HRK)
 		StringBuffer sqlCols = new StringBuffer("select column_name from information_schema.columns where table_name = ? "
-				+ "and column_name not like '\\_%' "
+				+ "and (column_name not like '\\_%' or column_name = '_hrk') "
 				+ "and column_name != 'prikey' "
 				+ "and column_name != 'parkey' "
 				+ "and column_name != 'instanceid'");

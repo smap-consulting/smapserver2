@@ -148,7 +148,8 @@ public class PdfUtilities {
 		} 
 	}
 	
-	public static Image getMapImage(Connection sd, 
+	public static Image getMapImage(
+			Connection sd, 
 			String mapSource,
 			String map, 
 			String account,
@@ -157,10 +158,15 @@ public class PdfUtilities {
 			String zoom,
 			String mapbox_key,
 			String google_key,
+			String maptiler_key,
 			int sId,
 			String user,
 			String markerColor,
 			String basePath) throws Exception {
+		
+		if(mapSource == null || mapSource.equals("default")) {
+			mapSource = GeneralUtilityMethods.getDefaultMapSource(sd, sId);
+		}
 		
 		if(mapSource.equals("mapbox")) {
 			 return PdfUtilities.getMapImageMapbox(sd, map, 
@@ -177,6 +183,15 @@ public class PdfUtilities {
 						mapValues,
 						location, zoom, 
 						google_key,
+						sId,
+						user,
+						markerColor,
+						basePath);
+		} else if(mapSource.equals("maptiler")) {
+			 return PdfUtilities.getMapImageMapTiler(sd, map, 
+						mapValues,
+						location, zoom, 
+						maptiler_key,
 						sId,
 						user,
 						markerColor,
@@ -203,7 +218,7 @@ public class PdfUtilities {
 		
 		Image img = null;
 		
-		StringBuffer url = new StringBuffer();
+		StringBuilder url = new StringBuilder();
 		boolean getMap = false;
 		url.append("https://api.mapbox.com/styles/v1/");
 		if(account != null) {
@@ -292,7 +307,7 @@ public class PdfUtilities {
 		
 		Image img = null;
 		
-		StringBuffer url = new StringBuffer();
+		StringBuilder url = new StringBuilder();
 		boolean hasParam = false;
 		url.append("https://maps.googleapis.com/maps/api/staticmap");
 		
@@ -303,7 +318,6 @@ public class PdfUtilities {
 			} else {
 				url.append("&");
 			}
-			//url.append("center=59.914063,10.737874");
 			url.append(createMapValueGoogle(mapValues, markerColor));
 			
 			if(zoom != null && zoom.trim().length() > 0) {
@@ -337,6 +351,97 @@ public class PdfUtilities {
 		return img;
 	}
 	
+	/*
+	 * Convert geospatial data into a mapbox map image
+	 */
+	private static Image getMapImageMapTiler(Connection sd, 
+			String map, 
+			PdfMapValues mapValues, 
+			String location, 
+			String zoom,
+			String maptiler_key,
+			int sId,
+			String user,
+			String markerColor,
+			String basePath) throws BadElementException, MalformedURLException, IOException, SQLException {
+		
+		Image img = null;
+		
+		StringBuilder url = new StringBuilder();
+		String lonLat = null;
+		boolean getMap = false;
+		
+		url.append(" https://api.maptiler.com/maps/");
+		
+		if(map != null && !map.equals("none")) {
+			url.append(map);
+		} else {
+			url.append("streets");	// default map
+		}
+		url.append("/static/");
+		
+		if(zoom == null || zoom.trim().length() == 0) {
+			zoom = "16";
+		}
+		if((mapValues.hasGeometry() || mapValues.hasLine())) {
+			
+			String centroidValue = mapValues.geometry;
+			if(centroidValue == null) {
+				centroidValue = mapValues.startGeometry;
+			}
+			lonLat = GeneralUtilityMethods.getGeoJsonCentroid(centroidValue);
+			url.append(lonLat + "," + zoom);
+			
+			url.append("/");
+			getMap = true;
+		} else {
+			// Attempt to get default map boundary from appearance
+			if(location != null) {
+				url.append(location);
+				url.append("/");
+				getMap = true;
+			}					
+		}
+		
+		url.append("500x300.png");
+		
+		if(getMap && maptiler_key == null) {
+			log.info("Maptiler key not specified.  PDF Map not created");
+		} else if(getMap) {
+			url.append("?key=").append(maptiler_key);
+			
+			/*
+			 * Add marker
+			 */
+			if(lonLat != null) {
+				if(markerColor == null) {
+					markerColor = "red";
+				} else {
+					markerColor = "%" + markerColor;
+				}
+				url.append("&markers=")
+					.append(lonLat + "," + markerColor);
+			}
+			
+			try {
+				log.info("Maptiler API call: " + url.toString());
+				
+				/*
+				 * There is a problem with passing a URL to the IText getInstance function as
+				 * it will cause two mapbox requests to be recorded resulting in additional charges
+				 * However maptiler required it or the request will be rejected
+				 */
+				URL mapUrl = new URL(url.toString());
+				img = Image.getInstance(mapUrl);
+				lm.writeLog(sd, sId, user, LogManager.MAPTILER_REQUEST, map, 0, null);
+			} catch (Exception e) {
+				log.log(Level.SEVERE, "Exception", e);
+			}
+		} 
+		
+		return img;
+	}
+
 	/*
 	 * Convert geospatial data into an abstract image
 	 */
@@ -432,10 +537,10 @@ public class PdfUtilities {
 			PNGTranscoder t = new PNGTranscoder();
 			
 			// set the transcoding hints
-			t.addTranscodingHint(PNGTranscoder.KEY_WIDTH, new Float(1000));
+			t.addTranscodingHint(PNGTranscoder.KEY_WIDTH, Float.valueOf(1000.0f));
 			t.addTranscodingHint(PNGTranscoder.KEY_ALLOWED_SCRIPT_TYPES, "*");
-			t.addTranscodingHint(PNGTranscoder.KEY_CONSTRAIN_SCRIPT_ORIGIN, new Boolean(true));
-			t.addTranscodingHint(PNGTranscoder.KEY_EXECUTE_ONLOAD, new Boolean(true));
+			t.addTranscodingHint(PNGTranscoder.KEY_CONSTRAIN_SCRIPT_ORIGIN, Boolean.valueOf(true));
+			t.addTranscodingHint(PNGTranscoder.KEY_EXECUTE_ONLOAD, Boolean.valueOf(true));
 			t.addTranscodingHint(PNGTranscoder.KEY_BACKGROUND_COLOR, Color.white);
 
 			// create the transcoder input
@@ -771,7 +876,6 @@ public class PdfUtilities {
 			for(String marker : mapValues.markers) {
 				Float distance = getDistance(pstmt, mapValues, mapValues.startLine, marker);
 				mapValues.orderedMarkers.add(new DistanceMarker(distance, marker));
-				//System.out.println("Marker: " + marker + " Distance: " + distance);
 			}
 			
 			/*
@@ -782,10 +886,6 @@ public class PdfUtilities {
 			    	return Float.compare(a.distance, b.distance);
 			    }
 			});
-			
-			//for(DistanceMarker dMarker : mapValues.orderedMarkers) {
-			//	System.out.println("Distance Marker: " + dMarker.marker + " Distance: " + dMarker.distance);
-			//}
 			
 		}
 		

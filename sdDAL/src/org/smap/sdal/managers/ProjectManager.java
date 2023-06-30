@@ -134,6 +134,7 @@ public class ProjectManager {
 	 */
 	public int createProject(
 			Connection sd, 
+			String remoteUser,
 			Project p, 
 			int o_id, 
 			int u_id, 
@@ -168,7 +169,11 @@ public class ProjectManager {
 				pstmt.setInt(2, p_id);
 				log.info("Add the user to the project " + pstmt.toString());
 				pstmt.executeUpdate();
-				pstmt.close();
+				
+				String msg = localisation.getString("msg_add_proj");
+				msg = msg.replace("%s1", p.name);
+				lm.writeLogOrganisation(sd, o_id, remoteUser, LogManager.CREATE, 
+						msg, 0);
 			}
 		} finally {		
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -212,6 +217,7 @@ public class ProjectManager {
 				log.info("Add user: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
+
 			
 		} finally {		
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -311,8 +317,7 @@ public class ProjectManager {
 
 				String msg = localisation.getString("msg_del_proj");
 				msg = msg.replace("%s1", project_name);
-				lm.writeLogOrganisation(sd, o_id, remoteUser, LogManager.DELETE, 
-						msg, 0);
+				lm.writeLogOrganisation(sd, o_id, remoteUser, LogManager.DELETE, msg, 0);
 			}
 			
 			sd.commit();

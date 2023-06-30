@@ -429,6 +429,7 @@ public class SurveyManager {
 				+ "s.search_local_data, "
 				+ "s.data_survey, "
 				+ "s.oversight_survey, "
+				+ "s.my_reference_data, "
 				+ "s.read_only_survey, "
 				+ "s.audit_location_data, "
 				+ "s.track_changes,"
@@ -516,6 +517,7 @@ public class SurveyManager {
 				s.oversightSurvey = resultSet.getBoolean("oversight_survey");
 				s.readOnlySurvey = resultSet.getBoolean("read_only_survey");
 				s.audit_location_data = resultSet.getBoolean("audit_location_data");
+				s.myReferenceData = resultSet.getBoolean("my_reference_data");
 				s.track_changes = resultSet.getBoolean("track_changes");
 				s.autoTranslate = resultSet.getBoolean("auto_translate");
 				s.default_logo = resultSet.getString("default_logo");
@@ -595,7 +597,8 @@ public class SurveyManager {
 			boolean existing,
 			int existingSurveyId,
 			boolean sharedResults,
-			String user
+			String user,
+			boolean superUser
 
 			) throws SQLException, Exception {
 
@@ -611,6 +614,7 @@ public class SurveyManager {
 		boolean existingReadOnlySurvey = false;
 		String existingInstanceName = null;
 		String existingSurveyIdent = null;
+		String bundleSurveyIdent = null;
 		
 		int existingFormId = 0;
 		boolean sdAutoCommitSetFalse = false;
@@ -631,7 +635,8 @@ public class SurveyManager {
 		PreparedStatement pstmtCreateForm = null;
 
 		String sqlGetSource = "select s.display_name, f.f_id, s.meta, s.class, s.key_policy,"
-				+ "s.data_survey, s.oversight_survey, s.read_only_survey, s.instance_name, s.ident "
+				+ "s.data_survey, s.oversight_survey, s.read_only_survey, s.instance_name, s.ident,"
+				+ "s.group_survey_ident "
 				+ "from survey s, form f "
 				+ "where s.s_id = f.s_id "
 				+ "and s.s_id = ? "
@@ -655,8 +660,20 @@ public class SurveyManager {
 					existingReadOnlySurvey = rsGetSource.getBoolean(8);
 					existingInstanceName = rsGetSource.getString(9);
 					existingSurveyIdent = rsGetSource.getString(10);
+					bundleSurveyIdent = rsGetSource.getString(11);
 				}
 			}
+			/*
+			 * Authorisation
+			 * Check that the bundle of the new / replaced survey does not have roles
+			 * If it does only the super user can add a new or replace a survey
+			 */
+			if(sharedResults && !superUser) {							
+				if(GeneralUtilityMethods.bundleHasRoles(sd, user, bundleSurveyIdent)) {
+					throw new ApplicationException(localisation.getString("tu_roles"));
+				}
+			}
+			
 			if(sd.getAutoCommit()) {
 				sdAutoCommitSetFalse = true;
 				log.info("Set autocommit false");
@@ -704,7 +721,7 @@ public class SurveyManager {
 			pstmtUpdateSurvey.setString(1, ident);
 			pstmtUpdateSurvey.setString(2,  ident);
 			if(sharedResults) {
-				pstmtUpdateSurvey.setString(3, existingSurveyIdent);
+				pstmtUpdateSurvey.setString(3, bundleSurveyIdent);
 			} else {
 				pstmtUpdateSurvey.setString(3, ident);
 			}
@@ -1148,7 +1165,7 @@ public class SurveyManager {
 		// Get the roles
 		if(getRoles) {
 			RoleManager rm = new RoleManager(localisation);
-			ArrayList<Role> roles = rm.getSurveyRoles(sd, s.id, oId, true, user, superUser);	// Get enabled roles
+			ArrayList<Role> roles = rm.getSurveyRoles(sd, s.ident, oId, true, user, superUser);	// Get enabled roles
 			for(Role r : roles) {
 				s.roles.put(r.name, r);
 			}
@@ -3781,8 +3798,8 @@ public class SurveyManager {
 			) throws Exception {
 		
 		// Get the survey ident and name of the original survey
-		String surveyIdent = null;			// Original survey ident
-		String surveyName = null;			// Original survey name
+		String sIdent = null;			    // Survey ident
+		String surveyName = null;			// Survey name
 		String surveyDisplayName = null;
 		int projectId = 0;
 		boolean hidden = false;
@@ -3814,7 +3831,7 @@ public class SurveyManager {
 	
 			if (resultSet.next()) {		
 				surveyName = resultSet.getString("name");
-				surveyIdent = resultSet.getString("ident");
+				sIdent = resultSet.getString("ident");
 				surveyDisplayName = resultSet.getString("display_name");
 				projectId = resultSet.getInt("p_id");
 			}
@@ -3830,7 +3847,7 @@ public class SurveyManager {
 					
 					// Get the surveys that were replaced by this one
 					pstmtReplaced = sd.prepareStatement(sqlreplaced);
-					pstmtReplaced.setString(1, surveyIdent);
+					pstmtReplaced.setString(1, sIdent);
 					log.info("Get replaced surveys: " + pstmtReplaced);
 					ResultSet rs = pstmtReplaced.executeQuery();
 					while (rs.next()) {
@@ -3859,7 +3876,7 @@ public class SurveyManager {
 							user,
 							projectId,
 							sId,
-							surveyIdent,
+							sIdent,
 							surveyDisplayName,
 							basePath,
 							delData,
@@ -3870,10 +3887,7 @@ public class SurveyManager {
 			} else {
 	
 				// Add date and time to the display name
-				DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd HH:mm:ss");
-				dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-				Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));		// Store all dates in UTC
-				String newDisplayName = surveyDisplayName + " (" + dateFormat.format(cal.getTime()) + ")";
+				String newDisplayName = surveyDisplayName + GeneralUtilityMethods.getUTCDateTimeSuffix();
 	
 				// Update the "name"
 				String newName = null;
@@ -3937,7 +3951,7 @@ public class SurveyManager {
 				sql = "delete from survey_settings where s_ident = ?;";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, surveyIdent);
+				pstmt.setString(1, sIdent);
 				log.info("Delete survey views: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
@@ -3954,7 +3968,7 @@ public class SurveyManager {
 						+ "and deleted != true";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, surveyIdent);
+				pstmt.setString(1, sIdent);
 				ResultSet rs = pstmt.executeQuery();
 				while(rs.next()) {
 					tm.deleteTask(sd, cRel, rs.getInt(1));
@@ -4041,7 +4055,7 @@ public class SurveyManager {
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			ActionManager am = new ActionManager(localisation, tz);
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, user);
-			ArrayList<User> usersToDelete = am.getTemporaryUsers(sd, o_id, null, sId, 0);
+			ArrayList<User> usersToDelete = am.getTemporaryUsers(sd, o_id, null, sIdent, 0);
 			if(newSurveyId == 0) {
 				sql = "delete from users where temporary is true and ident = ?";	
 				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
@@ -4052,6 +4066,10 @@ public class SurveyManager {
 					pstmt.execute();
 				}
 			} else {
+				/*
+				 * This section is only required for legacy actions that are still refer to a survey by its id rather than its ident
+				 * It should be removed by end of 2023
+				 */
 				sql = "update users set action_details = ? where temporary is true and ident = ?";	
 				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 				pstmt = sd.prepareStatement(sql);
@@ -4080,19 +4098,19 @@ public class SurveyManager {
 				sql = "delete from group_survey where group_ident = ?";
 				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, surveyIdent);
+				pstmt.setString(1, sIdent);
 				pstmt.executeUpdate();
 				
 				// Modify the ident of the old survey
 				pstmtUpdateIdent = sd.prepareStatement(sqlUpdateIdent);
-				pstmtUpdateIdent.setString(1, surveyIdent + "_" + newSurveyId);
-				pstmtUpdateIdent.setString(2, surveyIdent);	// Original Ident
+				pstmtUpdateIdent.setString(1, sIdent + "_" + newSurveyId);
+				pstmtUpdateIdent.setString(2, sIdent);	// Original Ident
 				pstmtUpdateIdent.setBoolean(3, true);		// Set hidden
 				pstmtUpdateIdent.setInt(4, sId);
 				pstmtUpdateIdent.executeUpdate();
 				
 				// Set the ident of the new survey to be the same as the old
-				pstmtUpdateIdent.setString(1, surveyIdent);			
+				pstmtUpdateIdent.setString(1, sIdent);			
 				pstmtUpdateIdent.setString(2, null);			// Original Ident (set to null as the current ident is the original)
 				pstmtUpdateIdent.setBoolean(3, false);		// Visible
 				pstmtUpdateIdent.setInt(4, newSurveyId);
@@ -4114,14 +4132,14 @@ public class SurveyManager {
 			sql = "delete from form_downloads where form_ident = ?;";	
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, surveyIdent);
+			pstmt.setString(1, sIdent);
 			log.info("Delete form downloads: " + pstmt.toString());
 			pstmt.executeUpdate();
 		
 			sql = "delete from task_completion where form_ident = ?;";	
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, surveyIdent);
+			pstmt.setString(1, sIdent);
 			log.info("Delete task completion downloads: " + pstmt.toString());
 			pstmt.executeUpdate();
 				
@@ -4395,6 +4413,7 @@ public class SurveyManager {
 					columns,
 					urlprefix,
 					s.id,
+					s.ident,
 					0,			// SubForm Id - Not required
 					form.tableName,
 					parkey,

@@ -527,7 +527,7 @@ public class Surveys extends Application {
 				msg = msg.replaceAll("%s1", name);
 				throw new ApplicationException(msg);
 			}
-			int sId = sm.createNewSurvey(sd, name, projectId, existing, existingSurveyId, sharedResults, request.getRemoteUser());
+			int sId = sm.createNewSurvey(sd, name, projectId, existing, existingSurveyId, sharedResults, request.getRemoteUser(), superUser);
 			// Get the survey details.  superUser set to true as this user just created the survey so they are effectively a super user for this survey and we can save a database call
 			survey = sm.getById(sd, 
 					cResults,  request.getRemoteUser(), false, sId, true, 
@@ -891,21 +891,20 @@ public class Surveys extends Application {
 			sd.setAutoCommit(false);
 			
 			// Get the existing survey display name, plain old name and project id
-			String sqlGet = "select name, display_name, p_id, version, default_logo from survey where s_id = ?";
+			String sqlGet = "select name, display_name, p_id, version from survey where s_id = ?";
 			pstmtGet = sd.prepareStatement(sqlGet);	
 			pstmtGet.setInt(1, sId);
 			
 			String originalDisplayName = null;
 			String originalName = null;
 			int originalProjectId = 0;
-			String originalDefaultLogo = null;
+
 			ResultSet rs = pstmtGet.executeQuery();
 			if(rs.next()) {
 				originalName = rs.getString(1);
 				originalDisplayName = rs.getString(2);
 				originalProjectId = rs.getInt(3);
 				version = rs.getInt(4) + 1;
-				originalDefaultLogo = rs.getString(5);
 			}
 			
 			if(originalName != null) {
@@ -934,6 +933,7 @@ public class Surveys extends Application {
 					+ "data_survey = ?, "
 					+ "oversight_survey = ?, "
 					+ "read_only_survey = ?, "
+					+ "my_reference_data = ?, "
 					+ "audit_location_data = ?, "
 					+ "track_changes = ?,"
 					+ "default_logo = ? "
@@ -959,10 +959,11 @@ public class Surveys extends Application {
 			pstmt.setBoolean(14, survey.dataSurvey);
 			pstmt.setBoolean(15, survey.oversightSurvey);
 			pstmt.setBoolean(16, survey.readOnlySurvey);
-			pstmt.setBoolean(17, survey.audit_location_data);
-			pstmt.setBoolean(18, survey.track_changes);
-			pstmt.setString(19, survey.default_logo);
-			pstmt.setInt(20, sId);
+			pstmt.setBoolean(17, survey.myReferenceData);
+			pstmt.setBoolean(18, survey.audit_location_data);
+			pstmt.setBoolean(19, survey.track_changes);
+			pstmt.setString(20, survey.default_logo);
+			pstmt.setInt(21, sId);
 			
 			log.info("Saving survey: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
@@ -984,6 +985,9 @@ public class Surveys extends Application {
 								+ GeneralUtilityMethods.getProjectName(sd, survey.p_id) 
 						+ ", " + localisation.getString("cr_default_logo") + ": " + survey.default_logo;
 				
+				// Clear any entries in linked_forms for this survey - this is in case the myReferenceData setting has changed
+				GeneralUtilityMethods.clearLinkedForms(sd, sId, localisation);  
+
 				// Write to the change log
 				pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
 				pstmtChangeLog.setInt(1, sId);

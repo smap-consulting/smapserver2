@@ -10,6 +10,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.SqlFrag;
 
 /*****************************************************************************
@@ -85,7 +86,8 @@ public class ExternalFileManager {
 	 * Create a linked file
 	 */
 	public boolean createLinkedFile(Connection sd, Connection cRel, int oId, int sId, // The survey that contains the manifest item
-			String filename, String logicalFilePath, String userName, String tz, String basePath) throws Exception {
+			String filename, String logicalFilePath, String userName, String tz, String basePath,
+			CustomUserReference cur) throws Exception {
 
 		boolean regenerate = false;
 		
@@ -99,7 +101,7 @@ public class ExternalFileManager {
 			regenerate = stm.testForRegenerateFile(sd, cRel,  sId, logicalFilePath, currentPhysicalFile);
 			if(regenerate) {
 				String newFilePath = getLinkedNewFilePath(sd, logicalFilePath);
-				if(stm.generateCsvFile(cRel, new File(newFilePath + ".csv"), sId, userName, basePath)) {
+				if(stm.generateCsvFile(cRel, new File(newFilePath + ".csv"), sId, userName, basePath, cur)) {
 					updateCurrentPhysicalFile(sd, newFilePath, currentPhysicalFile, sId);
 				}
 			}
@@ -116,13 +118,19 @@ public class ExternalFileManager {
 	/*
 	 * Get the path  to the current linked file
 	 */
-	public String getLinkedDirPath(String basepath, String sIdent) {
-		return basepath
+	public String getLinkedDirPath(String basepath, String sIdent, String uIdent, boolean customUserFile) {
+		StringBuilder path = new StringBuilder(basepath
 				+ File.separator
 				+ "media" 
-				+ File.separator 
-				+ sIdent
-				+ File.separator;
+				+ File.separator);	
+		path.append(sIdent).append(File.separator);
+		
+		// Check to see if the path is specific to the calling user
+		if(customUserFile) {
+			path.append(uIdent).append(File.separator);
+		}
+		
+		return path.toString();
 	}
 	
 	/*

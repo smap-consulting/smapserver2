@@ -72,6 +72,7 @@ import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.UserManager;
+import org.smap.sdal.model.Action;
 import org.smap.sdal.model.AssignmentDetails;
 import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
@@ -79,6 +80,7 @@ import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.ChoiceList;
 import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.ColValues;
+import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.DistanceMarker;
 import org.smap.sdal.model.FileDescription;
@@ -137,7 +139,7 @@ public class GeneralUtilityMethods {
 	private static int LENGTH_QUESTION_RAND = 5;
 
 
-	private static String[] smapMeta = new String[] { "_hrk", "instanceid", "_instanceid", "_start", "_end", "_device",
+	private static String[] smapMeta = new String[] { "instanceid", "_instanceid", "_start", "_end", "_device",
 			"prikey", "parkey", "_bad", "_bad_reason", "_user", "_survey_notes", 
 			SmapServerMeta.UPLOAD_TIME_NAME,
 			SmapServerMeta.SCHEDULED_START_NAME,
@@ -1021,7 +1023,7 @@ public class GeneralUtilityMethods {
 				+ "from users u, user_group ug " 
 				+ "where u.ident = ? "
 				+ "and u.id = ug.u_id " 
-				+ "and (ug.g_id = 6 or ug.g_id = 4)";
+				+ "and (ug.g_id = 6 or ug.g_id = 4)";  // Security user or org user
 
 		PreparedStatement pstmt = null;
 
@@ -1223,7 +1225,8 @@ public class GeneralUtilityMethods {
 				+ "limits,"
 				+ "refresh_rate,"
 				+ "api_rate_limit,"
-				+ "password_strength "
+				+ "password_strength,"
+				+ "map_source "
 				+ "from organisation "
 				+ "where organisation.id = ? "
 				+ "order by name asc;";			
@@ -1282,6 +1285,7 @@ public class GeneralUtilityMethods {
 				org.refresh_rate = resultSet.getInt("refresh_rate");
 				org.api_rate_limit = resultSet.getInt("api_rate_limit");
 				org.password_strength = resultSet.getDouble("password_strength");
+				org.map_source = resultSet.getString("map_source");
 			}
 
 	
@@ -3403,28 +3407,42 @@ public class GeneralUtilityMethods {
 				+ "(select f_id from form where s_id = ?)";
 
 		int fId = 0;
-		String qType;
+		String qType = null;
 		String columnName = null;
+		ArrayList<String> tableStack = null;
 
 		ArrayList<String> responses = new ArrayList<String>();
 		try {
-			pstmtQuestion = sd.prepareStatement(sqlQuestion);
-			pstmtQuestion.setString(1, qName);
-			pstmtQuestion.setInt(2, sId);
-			log.info("GetResponseForQuestion: " + pstmtQuestion.toString());
-			ResultSet rs = pstmtQuestion.executeQuery();
-			if (rs.next()) {
-				qType = rs.getString("qType");
-				fId = rs.getInt("f_id");
-				columnName = rs.getString("column_name");
-				ArrayList<String> tableStack = getTableStack(sd, fId);
+			
+			if(qName.equals("_assigned")) {		// Not in the question list
+				qType = "string";
+				columnName = qName;
+				fId = GeneralUtilityMethods.getMainResultsForm(sd, results, sId);
+			} else {
+				pstmtQuestion = sd.prepareStatement(sqlQuestion);
+				pstmtQuestion.setString(1, qName);
+				pstmtQuestion.setInt(2, sId);
+				log.info("GetResponseForQuestion: " + pstmtQuestion.toString());
+				ResultSet rs = pstmtQuestion.executeQuery();
+				if (rs.next()) {
+					qType = rs.getString("qType");
+					fId = rs.getInt("f_id");
+					columnName = rs.getString("column_name");
 
+				}
+			}
+			
+			if(qType != null && columnName != null) {
+
+				tableStack = getTableStack(sd, fId);
+				
 				// First table is for the question, last is for the instance id
 				StringBuffer query = new StringBuffer();
 				
 				query.append("select t0." + columnName + " from ");
 
 				// Add the tables
+				
 				for (int i = 0; i < tableStack.size(); i++) {
 					if (i > 0) {
 						query.append(",");
@@ -3461,7 +3479,7 @@ public class GeneralUtilityMethods {
 				pstmtResults.setString(1, instanceId);
 				log.info("Get results for a question: " + pstmtResults.toString());
 
-				rs = pstmtResults.executeQuery();
+				ResultSet rs = pstmtResults.executeQuery();
 				while (rs.next()) {
 						
 					String value = rs.getString(1);
@@ -3557,7 +3575,7 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Starting from the past in question get all the tables up to the highest
+	 * Starting from the passed in question get all the tables up to the highest
 	 * parent that are part of this survey
 	 */
 	public static ArrayList<String> getTableStack(Connection sd, int fId) throws SQLException {
@@ -3665,6 +3683,7 @@ public class GeneralUtilityMethods {
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 		ArrayList<TableColumn> columnList = new ArrayList<TableColumn>();
 		ArrayList<TableColumn> realQuestions = new ArrayList<TableColumn>(); // Temporary array so that all property questions can be added first
+		boolean hasHRK = false;
 
 		TableColumn durationColumn = null;
 
@@ -3680,9 +3699,9 @@ public class GeneralUtilityMethods {
 				
 				ArrayList<RoleColumnFilter> rcfArray = new ArrayList<> ();
 				if(user != null) {
-					rcfArray = rm.getSurveyColumnFilter(sd, sId, user);
-				} else if(roles != null) {
-					rcfArray = rm.getSurveyColumnFilterRoleList(sd, sId, roles);
+					rcfArray = rm.getSurveyColumnFilter(sd, surveyIdent, user);
+				} else if(roles != null) {	// Anonymous but request includes roles
+					rcfArray = rm.getSurveyColumnFilterRoleList(sd, surveyIdent, roles);
 				}
 				
 				if (rcfArray.size() > 0) {
@@ -3776,6 +3795,7 @@ public class GeneralUtilityMethods {
 			c.type = SmapQuestionTypes.STRING;
 			c.question_name = c.column_name;
 			columnList.add(c);
+			hasHRK = true;
 		}
 		
 		if (includeParentKey) {
@@ -4024,6 +4044,10 @@ public class GeneralUtilityMethods {
 
 				if (!includeRO && ro) {
 					continue; // Drop read only columns if they are not selected to be exported
+				}
+				
+				if(cName.equals("_hrk") && hasHRK) {		// Only include HRK once
+					continue;
 				}
 
 				if (qType.equals("select") && !compressed) {		// deprecated
@@ -4467,20 +4491,13 @@ public class GeneralUtilityMethods {
 	 */
 	public static void setFilenameInResponse(String filename, HttpServletResponse response) {
 
-		String escapedFileName = null;
+		
 
 		log.info("Setting filename in response: " + filename);
 		if (filename == null) {
 			filename = "survey";
 		}
-		try {
-			escapedFileName = URLDecoder.decode(filename, "UTF-8");
-			escapedFileName = URLEncoder.encode(escapedFileName, "UTF-8");
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Encoding Filename Error", e);
-		}
-		escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
-		escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
+		String escapedFileName = urlEncode(filename);
 
 		response.setHeader("Content-Disposition", "attachment; filename=\"" + escapedFileName + "\"");
 		response.setStatus(HttpServletResponse.SC_OK);
@@ -4719,9 +4736,10 @@ public class GeneralUtilityMethods {
 				columnName = qname;
 			}
 			if(columnName == null) {
-				throw new ApplicationException("Column does not exist: " + qname + " in " + input);
+				output.append("prikey");	// Can't find the column just write the primary key into the key - possibly the key is set directly through _hrk
+			} else {
+				output.append(columnName);
 			}
-			output.append(columnName);
 
 			// Reset the start
 			start = matcher.end();
@@ -4832,6 +4850,8 @@ public class GeneralUtilityMethods {
 											+ "where f1." + columnName 
 											+ " = m." + columnName
 											+ " and f1._hrk is not null) + 1");
+								} else {
+									output.append("prikey");
 								}
 							} catch (SQLException e) {
 								// TODO Auto-generated catch block
@@ -6165,6 +6185,35 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
+	 * Get the main results form for a survey
+	 */
+	public static int getMainResultsForm(Connection sd, Connection cResults, int sId) {
+		int fId = 0;
+
+		String sql = "select f_id from form where s_id = ? and parentform = 0";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+
+			log.info("Getting main form: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				fId = rs.getInt(1);
+			}
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+		} finally {
+			try {	if (pstmt != null) {	pstmt.close();}} catch (Exception e) {}
+		}
+
+		return fId;
+	}
+	
+	/*
 	 * Get the main results table for a survey using the survey ident as a key if it exists
 	 */
 	public static String getMainResultsTableSurveyIdent(Connection sd, Connection conn, String sIdent) {
@@ -6962,8 +7011,8 @@ public class GeneralUtilityMethods {
 	 * Return the SQL that does survey level Role Based Access Control
 	 */
 	public static String getSurveyRBAC() {
-		return "and ((s.s_id not in (select s_id from survey_role where enabled = true)) or " // No roles on survey
-				+ "(s.s_id in (select s_id from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
+		return "and ((s.ident not in (select survey_ident from survey_role where enabled = true)) or " // No roles on survey
+				+ "(s.ident in (select sr.survey_ident from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
 				+ ") ";
 	}
 	
@@ -6971,8 +7020,8 @@ public class GeneralUtilityMethods {
 	 * Return the SQL that does survey level Role Based Access Control (modified for use with upload event)
 	 */
 	public static String getSurveyRBACUploadEvent() {
-		return "((ue.s_id not in (select s_id from survey_role where enabled = true)) or " // No roles on survey
-				+ "(ue.s_id in (select s_id from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
+		return "((ue.ident not in (select survey_ident from survey_role where enabled = true)) or " // No roles on survey
+				+ "(ue.ident in (select sr.survey_ident from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
 				+ ") ";
 	}
 
@@ -8277,9 +8326,8 @@ public class GeneralUtilityMethods {
 				String c = json.substring(idx1 + 1, idx2);
 				String [] coords = c.split(",");
 				if(coords.length >= 2) {
-					wkt = coords[1].trim() + "," + coords[0].trim();; 
-				}
-				
+					wkt = coords[1].trim() + "," + coords[0].trim();
+				}	
 			}
 		}
 			
@@ -9219,7 +9267,7 @@ public class GeneralUtilityMethods {
 				try { cResults.commit();	} catch(Exception ex) {}
 			} else {
 
-				type = getPostgresColType(type, compressed);
+				type = getPostgresColType(type);
 				if(!GeneralUtilityMethods.hasColumn(cResults, table, column)) {
 					String sqlAlterTable = "alter table " + table + " add column " + column + " " + type + ";";
 					pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
@@ -9250,7 +9298,7 @@ public class GeneralUtilityMethods {
 		return status;
 	}
 
-	public static String getPostgresColType(String colType, boolean compressed) {
+	public static String getPostgresColType(String colType) {
 		if(colType.equals("string")) {
 			colType = "text";
 		} else if(colType.equals("decimal")) {
@@ -9279,7 +9327,7 @@ public class GeneralUtilityMethods {
 			colType = "time";					
 		} else if(GeneralUtilityMethods.isAttachmentType(colType)) {
 			colType = "text";					
-		} else if(colType.equals("select") && compressed) {
+		} else if(colType.equals("select")) {
 			colType = "text";					
 		} else if(colType.equals("rank")) {
 			colType = "text";					
@@ -10695,7 +10743,174 @@ public class GeneralUtilityMethods {
 		
 		return idx;
 	}
+	
+	/*
+	 * Return true if the survey bundle has roles
+	 */
+	public static boolean bundleHasRoles(Connection sd, String user, String bundleSurveyIdent)
+			throws ServerException, AuthorisationException, NotFoundException, SQLException {
+		
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		
+		StringBuffer sql = new StringBuffer("select count(*) from survey_role "
+				+ "where group_survey_ident = ? ");
+				
+		try {		
+			
+			pstmt = sd.prepareStatement(sql.toString());
+			pstmt.setString(1, bundleSurveyIdent);
+			
+			resultSet = pstmt.executeQuery();
+			if(resultSet.next()) {
+				count = resultSet.getInt(1);
+			}
+			
+		}  finally {
+			if(resultSet != null) {try{resultSet.close();}catch(Exception e) {}};
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}};
+		}
+		
+		return count > 0;
+	}
+	
+	/*
+	 * Return an action class from the json string
+	 * This function is only here so that backward compatability checks can be applied for existing actions that use sId instead of survey ident
+	 */
+	public static Action getAction(Connection sd, Gson gson, String action_details) throws SQLException {
+		Action a = null;
+		
+		if(action_details != null) {
+			a = gson.fromJson(action_details, Action.class);
+			
+			// Check that this action does not reference a survey using survey ID
+			if(a != null) {
+				if(a.surveyIdent == null && a.sId > 0) {
+					a.surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, a.sId);
+				}
+			}
+		}
+		
+		return a;
+	}
+	
+	/*
+	 * Return information that identified whether or not reference data as used by search or pulldata functions) needs to be filtered
+	 */
+	public static CustomUserReference hasCustomUserReferenceData(Connection sd, String sIdent) throws SQLException {
+		
+		ResultSet rs = null;
+		ResultSet rsRoles = null;
+		ResultSet rsMyRef = null;
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtRole = null;
+		PreparedStatement pstmtMyRef = null;
 
+		CustomUserReference cur = new CustomUserReference();
+		
+		String sql = "select disable_ref_role_filters from server";
+		
+		String sqlRole = "select count(*) "
+				+ "from survey_role "
+				+ "where enabled "
+				+ "and survey_ident = ? "
+				+ "and (row_filter is not null or column_filter is not null) ";
+
+		String sqlMyRef = "select my_reference_data from survey where ident = ?";
+		
+		try {		
+			
+			// Check to see if the use of role filters has been overridden
+			boolean disableRefRoles = false;
+			pstmt = sd.prepareStatement(sql);
+			rs = pstmt.executeQuery();
+			if(rs.next()) {
+				disableRefRoles = rs.getBoolean(1);
+			}
+			
+			if(!disableRefRoles) {
+				// Check roles
+				pstmtRole = sd.prepareStatement(sqlRole);
+				pstmtRole.setString(1, sIdent);
+				
+				log.info("Check for use of roles in reference data: " + pstmtRole.toString());
+				rsRoles = pstmtRole.executeQuery();
+				if(rsRoles.next()) {
+					cur.roles = rsRoles.getInt(1) > 0;
+				}
+			}
+			
+			// Check restriction to individuals own data
+			pstmtMyRef = sd.prepareStatement(sqlMyRef);
+			pstmtMyRef.setString(1, sIdent);
+			
+			rsMyRef = pstmtMyRef.executeQuery();
+			if(rsMyRef.next()) {
+				cur.myReferenceData = rsMyRef.getBoolean(1);
+			}
+
+			
+		}  finally {
+			if(rs != null) {try{rs.close();}catch(Exception e) {}};
+			if(rsRoles != null) {try{rsRoles.close();}catch(Exception e) {}};
+			if(rsMyRef != null) {try{rsMyRef.close();}catch(Exception e) {}};
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}};
+			if(pstmtRole != null) {try{pstmtRole.close();} catch(Exception e) {}};
+			if(pstmtMyRef != null) {try{pstmtMyRef.close();} catch(Exception e) {}};
+		}
+		return cur;
+	}
+	
+	/*
+	 * Get the default map source for static map images for the organisation that owns the passed in survey
+	 */
+	public static String getDefaultMapSource(Connection sd, int sId) throws SQLException {
+		String mapSource = "mapbox";
+		String sql = "select map_source from organisation "
+				+ "where id = (select p.o_id from project p, survey s where p.id = s.p_id and s.s_id = ?)";
+		
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			log.info("Get default map source: " + pstmt.toString());
+			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				String v = rs.getString(1);
+				if(v != null && v.trim().length() > 0) {
+					mapSource = rs.getString(1);
+				}
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+		}
+		return mapSource;
+	}
+
+	public static String getUTCDateTimeSuffix() {
+		DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd HH:mm:ss");
+		dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));		// Store all dates in UTC
+		
+		return " (" + dateFormat.format(cal.getTime()) + ")";
+	}
+	
+	public static String urlEncode(String in) {
+		String out = "";
+		try {
+			out = URLDecoder.decode(in, "UTF-8");
+			out = URLEncoder.encode(out, "UTF-8");
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Encoding Filename Error", e);
+		}
+		out = out.replace("+", " "); // Spaces ok for file name within quotes
+		out = out.replace("%2C", ","); // Commas ok for file name within quotes
+		
+		return out;
+	}
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");
@@ -10717,8 +10932,6 @@ public class GeneralUtilityMethods {
 		
 		return idx;
 	}
-	
-	
 	
 }
 

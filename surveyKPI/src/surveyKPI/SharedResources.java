@@ -27,10 +27,10 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
 import model.MapConfig;
@@ -40,19 +40,18 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.managers.NotificationManager;
-import org.smap.sdal.model.Project;
+import org.smap.sdal.managers.CsvTableManager;
+import org.smap.sdal.managers.SharedResourceManager;
+import org.smap.sdal.model.CsvTable;
+import org.smap.sdal.model.SharedHistoryItem;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -60,6 +59,7 @@ import java.util.logging.Logger;
 public class SharedResources extends Application {
 	
 	Authorise orgLevelAuth = null;
+	Authorise orgLevelDelete = null;
 	
 	public SharedResources() {
 		
@@ -67,7 +67,12 @@ public class SharedResources extends Application {
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.VIEW_DATA);
-		orgLevelAuth = new Authorise(authorisations, null);		
+		orgLevelAuth = new Authorise(authorisations, null);	
+		
+		ArrayList<String> authorisationsDelete = new ArrayList<String> ();	
+		authorisationsDelete.add(Authorise.ANALYST);
+		authorisationsDelete.add(Authorise.ADMIN);
+		orgLevelDelete = new Authorise(authorisationsDelete, null);	
 	}
 	
 	private static Logger log =
@@ -84,10 +89,11 @@ public class SharedResources extends Application {
 			) throws IOException {
 		
 		Response response = null;
+		String connectionString = "surveyKPI-SharedResources-getMaps";
 		String user = request.getRemoteUser();
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-SharedResources");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());	
 		// End Authorisation		
 		
@@ -119,7 +125,7 @@ public class SharedResources extends Application {
 				
 				maps.add(m);
 			}
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(maps);
 			response = Response.ok(resp).build();		
 			
@@ -130,7 +136,7 @@ public class SharedResources extends Application {
 	
 			if (pstmt != null) { try {pstmt.close();} catch (SQLException e) {}}
 
-			SDDataSource.closeConnection("surveyKPI-SharedResources", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;		
@@ -145,9 +151,10 @@ public class SharedResources extends Application {
 	public Response updateMap(@Context HttpServletRequest request, @FormParam("map") String mapString) { 
 		
 		Response response = null;
+		String connectionString = "surveyKPI-SharedResources-UpdateMap";
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-SharedResources");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());	
 		// End Authorisation	
 		
@@ -155,7 +162,7 @@ public class SharedResources extends Application {
 		MapResource map = new Gson().fromJson(mapString, MapResource.class);
 		
 		// Store the config object as json
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		String configJson = gson.toJson(map.config);
 		
 		PreparedStatement pstmt = null;
@@ -222,22 +229,25 @@ public class SharedResources extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-SharedResources", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
 	}
 
+	/*
+	 * Delete a map
+	 */
 	@Path("/maps/{id}")
 	@DELETE
 	public Response deleteMap(@Context HttpServletRequest request,
 			@PathParam("id") int id) { 
 		
-		ResponseBuilder builder = Response.ok();
 		Response response = null;
+		String connectionString = "surveyKPI-DeleteMap";
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-DeleteMap");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());	
 		// End Authorisation
 		
@@ -270,12 +280,152 @@ public class SharedResources extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-DeleteMap", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 			
 		}
 
 		return response;
 
+	}
+	
+	/*
+	 * Delete a file
+	 */
+	@Path("/file/{name}")
+	@DELETE
+	public Response deleteFile(@Context HttpServletRequest request,
+			@PathParam("name") String name,
+			@QueryParam("survey_id") int sId) { 
+		
+		Response response = null;
+		String tz = "UTC";
+		String connectionString = "surveyKPI-DeleteFile";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		orgLevelDelete.isAuthorised(sd, request.getRemoteUser());	
+		// End Authorisation		
+		
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+		
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			String sIdent = null;
+			if(sId > 0) {
+				sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			}
+			
+			SharedResourceManager srm = new SharedResourceManager(localisation, tz);			
+			String basePath = GeneralUtilityMethods.getBasePath(request);			
+			srm.delete(sd, sIdent, sId, oId, basePath, request.getRemoteUser(), name);
+		
+			response = Response.ok().build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
+		} finally {			
+			SDDataSource.closeConnection(connectionString, sd);			
+		}
+
+		return response;
+
+	}
+	
+	/*
+	 * Return history of updates to shared resources
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/media/{name}/history")
+	public Response getMediaHistory(
+			@Context HttpServletRequest request,
+			@PathParam("name") String resource_name,
+			@QueryParam("survey_id") int sId,
+			@QueryParam("tz") String tz
+			) throws IOException {
+		
+		Response response = null;
+		String connectionString = "surveyKPI - getMediaHistory";
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		String user = request.getRemoteUser();
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		orgLevelAuth.isAuthorised(sd, user);
+		if(sId > 0) {
+			orgLevelAuth.isValidSurvey(sd, user, sId, false, false);
+		}
+		// End Authorisation		
+		
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+		
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			
+			SharedResourceManager srm = new SharedResourceManager(localisation, tz);
+			ArrayList<SharedHistoryItem> items = srm.getHistory(sd, sIdent, oId, user, resource_name, tz);
+			response = Response.ok(gson.toJson(items)).build();		
+			
+		}  catch(Exception ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().build();
+		} finally {
+
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;		
+	}
+	
+	/*
+	 * Get a list of the available CSV files
+	 */
+	@GET
+	@Path("/csv/files")
+	@Produces("application/json")
+	public String getServer(@Context HttpServletRequest request) throws Exception { 
+	
+		String connectionString = "surveyKPI-Csv - Files";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());	
+		// End Authorisation
+		
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		ArrayList<CsvTable> tables = null;
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+		
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			CsvTableManager tm = new CsvTableManager(sd, localisation);
+			tables = tm.getTables(oId, 0);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new Exception(e.getMessage());
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		if(tables == null) {
+			tables = new ArrayList<CsvTable> ();
+		}
+		return gson.toJson(tables);
 	}
 
 }

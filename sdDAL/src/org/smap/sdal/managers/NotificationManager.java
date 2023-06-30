@@ -674,6 +674,7 @@ public class NotificationManager {
 							nd.emailQuestion,
 							nd.emailQuestionName,
 							nd.emailMeta,
+							nd.emailAssigned,
 							nd.emails,
 							target,
 							submittingUser,
@@ -713,6 +714,13 @@ public class NotificationManager {
 
 	}
 
+	private class SendEmailResponse {
+		String notify_details = null;
+		String status = null;
+		String error_details = null;
+		boolean writeToMonitor = true;
+	}
+	
 	/*
 	 * Process a submission notification
 	 * Has access to the data from the submitted survey
@@ -734,12 +742,11 @@ public class NotificationManager {
 		boolean writeToMonitor = true;
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 
-		HashMap<String, String> sentEndPoints = new HashMap<> ();
+
 		boolean generateBlank =  (msg.instanceId == null) ? true : false;	// If false only show selected options
 
 		PreparedStatement pstmtGetSMSUrl = null;
 
-		MessagingManager mm = new MessagingManager(localisation);
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		DataManager dm = new DataManager(localisation, "UTC");
 		int surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
@@ -871,175 +878,20 @@ public class NotificationManager {
 				notify_details = null;				// Notification log
 				error_details = null;				// Notification log
 				if(msg.target.equals("email")) {
-					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user, organisation.id);
-					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
-						ArrayList<String> emailList = null;
-						if(msg.emailQuestionSet()) {
-							String emailQuestionName = msg.getEmailQuestionName(sd);
-							log.info("Email question: " + emailQuestionName);
-							emailList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, emailQuestionName, msg.instanceId);
-						} else {
-							emailList = new ArrayList<String> ();
-						}
-
-						// Add any meta email addresses to the per question emails
-						String metaEmail = GeneralUtilityMethods.getResponseMetaValue(sd, cResults, surveyId, msg.emailMeta, msg.instanceId);
-						if(metaEmail != null) {
-							emailList.add(metaEmail);
-						}
-
-						// Add the static emails to the per question emails
-						if(msg.emails != null) {
-							for(String email : msg.emails) {
-								if(email.length() > 0) {
-									log.info("Adding static email: " + email); 
-									emailList.add(email);
-								}
-							}
-						}
-
-						// Convert emails into a comma separated string
-						String emails = "";
-						for(String email : emailList) {	
-							if(sentEndPoints.get(email) == null) {
-								if(UtilityMethodsEmail.isValidEmail(email)) {
-									if(emails.length() > 0) {
-										emails += ",";
-									}
-									emails += email;
-								} else {
-									log.info("Email Notifications: Discarding invalid email: " + email);
-								}
-								sentEndPoints.put(email, email);
-							} else {
-								log.info("Duplicate email: " + email);
-							}
-						}
-
-						if(emails.trim().length() > 0) {
-							log.info("userevent: " + msg.user + " sending email of '" + logContent + "' to " + emails);
-
-							// Set the subject
-							String subject = "";
-							if(msg.subject != null && msg.subject.trim().length() > 0) {
-								subject = msg.subject;
-							} else {
-								if(msg.server != null && msg.server.contains("smap")) {
-									subject = "Smap ";
-								}
-								subject += localisation.getString("c_notify");
-							}
-
-							String from = "smap";
-							if(msg.from != null && msg.from.trim().length() > 0) {
-								from = msg.from;
-							}
-							StringBuilder content = null;
-							if(msg.content != null && msg.content.trim().length() > 0) {
-								content = new StringBuilder(msg.content);
-							} else if(organisation.default_email_content != null && organisation.default_email_content.trim().length() > 0){
-								content = new StringBuilder(organisation.default_email_content);
-							} else {
-								content = new StringBuilder(localisation.getString("email_ian"))
-										.append(" " + msg.scheme + "://")
-										.append(msg.server)
-										.append(". ");
-							}
-
-							if(docURL != null) {
-								content.append("<p style=\"color:blue;text-align:center;\">")
-								.append("<a href=\"")
-								.append(msg.scheme + "://")
-								.append(msg.server)
-								.append(docURL)
-								.append("\">")
-								.append(survey.displayName)
-								.append("</a>")
-								.append("</p>");
-							}
-
-							notify_details = localisation.getString("msg_en");
-							notify_details = notify_details.replaceAll("%s1", emails);
-							if(logContent != null) {
-								notify_details = notify_details.replaceAll("%s2", logContent);
-							} else {
-								notify_details = notify_details.replaceAll("%s2", "-");
-							}
-							notify_details = notify_details.replaceAll("%s3", survey.displayName);
-							notify_details = notify_details.replaceAll("%s4", survey.projectName);
-
-							log.info("+++ emailing to: " + emails + " docUrl: " + logContent + 
-									" from: " + from + 
-									" subject: " + subject +
-									" smtp_host: " + emailServer.smtpHost +
-									" email_domain: " + emailServer.emailDomain);
-							try {
-								EmailManager em = new EmailManager();
-								PeopleManager peopleMgr = new PeopleManager(localisation);
-								InternetAddress[] emailArray = InternetAddress.parse(emails);
-
-								for(InternetAddress ia : emailArray) {	
-									SubscriptionStatus subStatus = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());				
-									if(subStatus.unsubscribed) {
-										unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
-									} else {
-										if(subStatus.optedIn || !organisation.send_optin) {
-											em.sendEmailHtml(
-													ia.getAddress(),  
-													"bcc", 
-													subject, 
-													content, 
-													filePath,
-													filename,
-													emailServer,
-													msg.server,
-													subStatus.emailKey,
-													localisation,
-													null,
-													organisation.getAdminEmail(),
-													organisation.getEmailFooter());
-
-										} else {
-											/*
-											 * User needs to opt in before email can be sent
-											 * Move message to pending messages and send opt in message if needed
-											 */ 
-											mm.saveToPending(sd, organisation.id, ia.getAddress(), topic, msg, 
-													null,
-													null,
-													subStatus.optedInSent,
-													organisation.getAdminEmail(),
-													emailServer,
-													subStatus.emailKey,
-													createPending,
-													msg.scheme,
-													msg.server,
-													messageId);
-											log.info("#########: Email " + ia.getAddress() + " saved to pending while waiting for optin");
-
-											lm.writeLogOrganisation(sd, organisation.id, ia.getAddress(), LogManager.OPTIN, localisation.getString("mo_pending_saved2"), 0);
-										}
-									}
-								}
-							} catch(Exception e) {
-								status = "error";
-								error_details = e.getMessage();
-								log.log(Level.SEVERE, error_details, e);
-							}
-						} else {
-							log.log(Level.INFO, "Info: List of email recipients is empty");
-							lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"), 0, null);
-							writeToMonitor = false;
-						}
-					} else {
-						status = "error";
-						error_details = "smtp_host not set";
-						log.log(Level.SEVERE, "Error: Notification, Attempt to do email notification but email server not set");
-					}
-
+					
+					SendEmailResponse resp = sendEmails(sd, cResults, msg, organisation, surveyId, logContent, docURL, survey, unsubscribedList,
+							filePath, filename, messageId, createPending, topic);
+					
+					notify_details = resp.notify_details;
+					status = resp.status;
+					error_details = resp.error_details;
+					writeToMonitor = resp.writeToMonitor;
+					
 				} else if(msg.target.equals("sms")) {   // SMS URL notification - SMS message is posted to an arbitrary URL 
 
 					// Get the URL to use in sending the SMS
+					HashMap<String, String> sentEndPoints = new HashMap<> ();
+					
 					String sql = "select s.sms_url "
 							+ "from server s";
 
@@ -1188,6 +1040,13 @@ public class NotificationManager {
 						error_details = e.getMessage();
 						log.log(Level.SEVERE, e.getMessage(), e);
 					}
+					
+					/*
+					 * Send emails associated with this escalation
+					 */
+					sendEmails(sd, cResults, msg, organisation, surveyId, logContent, docURL, survey, unsubscribedList,
+							filePath, filename, messageId, createPending, topic);
+					
 				} else {
 					status = "error";
 					error_details = "Invalid target: " + msg.target;
@@ -1216,7 +1075,7 @@ public class NotificationManager {
 				 * Write log entry
 				 */
 				String logTopic;
-				if(status.toLowerCase().equals("error")) {
+				if(status != null && status.toLowerCase().equals("error")) {
 					logTopic = LogManager.NOTIFICATION_ERROR;
 				} else {
 					logTopic = LogManager.NOTIFICATION;
@@ -1273,9 +1132,10 @@ public class NotificationManager {
 
 		String logContent = null;
 
+		log.info("----------- Process Reminder Notification");
+		
 		boolean writeToMonitor = true;
 
-		HashMap<String, String> sentEndPoints = new HashMap<> ();
 		MessagingManager mm = new MessagingManager(localisation);
 		PreparedStatement pstmtGetSMSUrl = null;
 
@@ -1338,49 +1198,7 @@ public class NotificationManager {
 					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user, o_id);
 					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 
-
-
-						ArrayList<String> emailList = null;
-						log.info("Email question: " + msg.getEmailQuestionName(sd));
-						if(msg.emailQuestionSet()) {
-							emailList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
-						} else {
-							emailList = new ArrayList<String> ();
-						}
-
-						// Add any meta email addresses to the per question emails
-						String metaEmail = GeneralUtilityMethods.getResponseMetaValue(sd, cResults, surveyId, msg.emailMeta, msg.instanceId);
-						if(metaEmail != null) {
-							emailList.add(metaEmail);
-						}
-
-						// Add the static emails to the per question emails
-						if(msg.emails != null) {
-							for(String email : msg.emails) {
-								if(email.length() > 0) {
-									log.info("Adding static email: " + email); 
-									emailList.add(email);
-								}
-							}
-						}
-
-						// Convert emails into a comma separated string
-						String emails = "";
-						for(String email : emailList) {	
-							if(sentEndPoints.get(email) == null) {
-								if(UtilityMethodsEmail.isValidEmail(email)) {
-									if(emails.length() > 0) {
-										emails += ",";
-									}
-									emails += email;
-								} else {
-									log.info("Email Notifications: Discarding invalid email: " + email);
-								}
-								sentEndPoints.put(email, email);
-							} else {
-								log.info("Duplicate email: " + email);
-							}
-						}
+						String emails = getEmails(sd, cResults, surveyId, msg);   // Get the email addresses from the message
 
 						if(emails.trim().length() > 0) {
 							log.info("userevent: " + msg.user + " sending email of '" + logContent + "' to " + emails);
@@ -1487,6 +1305,8 @@ public class NotificationManager {
 
 				} else if(msg.target.equals("sms")) {   // SMS URL notification - SMS message is posted to an arbitrary URL 
 
+					HashMap<String, String> sentEndPoints = new HashMap<> ();
+					
 					// Get the URL to use in sending the SMS
 					String sql = "select s.sms_url "
 							+ "from server s";
@@ -1608,4 +1428,218 @@ public class NotificationManager {
 		}
 	}
 
+	/*
+	 * Get the email addresses from the message settings
+	 */
+	private String getEmails(Connection sd, Connection cResults, int surveyId, SubmissionMessage msg) throws Exception {
+		
+		String emails = "";
+		HashMap<String, String> sentEndPoints = new HashMap<> ();
+		
+		ArrayList<String> emailList = null;
+		if(msg.emailQuestionSet()) {
+			String emailQuestionName = msg.getEmailQuestionName(sd);
+			log.info("Email question: " + emailQuestionName);
+			emailList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, emailQuestionName, msg.instanceId);
+		} else {
+			emailList = new ArrayList<String> ();
+		}
+
+		// Add any meta email addresses to the per question emails
+		String metaEmail = GeneralUtilityMethods.getResponseMetaValue(sd, cResults, surveyId, msg.emailMeta, msg.instanceId);
+		if(metaEmail != null) {
+			emailList.add(metaEmail);
+		}
+		
+		// Add the static emails to the per question emails
+		if(msg.emails != null) {
+			for(String email : msg.emails) {
+				if(email.length() > 0) {
+					log.info("Adding static email: " + email); 
+					emailList.add(email);
+				}
+			}
+		}
+
+		// Add the assigned user email
+		UserManager um = new UserManager(localisation);
+		if(msg.emailAssigned) {
+			log.info("--------------------------------------- Adding Assigned User Email Address -----------------");
+			ArrayList<String> assignedUser = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, "_assigned", msg.instanceId);
+			if(assignedUser != null) {
+				for(String user : assignedUser) {	// Should only be one assigned user but in future could be more
+					log.info("----- User: " + user);
+					String email = um.getUserEmailByIdent(sd, user);
+					log.info("----- Email: " + user);
+					if(email != null) {
+						emailList.add(email);
+					}
+				}
+			}
+		}
+		
+		// Convert emails into a comma separated string		
+		for(String email : emailList) {	
+			if(sentEndPoints.get(email) == null) {
+				if(UtilityMethodsEmail.isValidEmail(email)) {
+					if(emails.length() > 0) {
+						emails += ",";
+					}
+					emails += email;
+				} else {
+					log.info("Email Notifications: Discarding invalid email: " + email);
+				}
+				sentEndPoints.put(email, email);
+			} else {
+				log.info("Duplicate email: " + email);
+			}
+		}
+		
+		return emails;
+		
+	}
+	
+	private SendEmailResponse sendEmails(Connection sd, Connection cResults, SubmissionMessage msg, Organisation organisation, int surveyId, 
+			String logContent,
+			String docURL,
+			Survey survey,
+			ArrayList<String> unsubscribedList,
+			String filePath,
+			String filename,
+			int messageId,
+			boolean createPending,
+			String topic) throws Exception {
+		
+		SendEmailResponse resp = new SendEmailResponse();;
+		
+		MessagingManager mm = new MessagingManager(localisation);
+		EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user, organisation.id);
+		if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
+			String emails = getEmails(sd, cResults, surveyId, msg);
+			
+
+			if(emails.trim().length() > 0) {
+				log.info("userevent: " + msg.user + " sending email of '" + logContent + "' to " + emails);
+
+				// Set the subject
+				String subject = "";
+				if(msg.subject != null && msg.subject.trim().length() > 0) {
+					subject = msg.subject;
+				} else {
+					if(msg.server != null && msg.server.contains("smap")) {
+						subject = "Smap ";
+					}
+					subject += localisation.getString("c_notify");
+				}
+
+				String from = "smap";
+				if(msg.from != null && msg.from.trim().length() > 0) {
+					from = msg.from;
+				}
+				StringBuilder content = null;
+				if(msg.content != null && msg.content.trim().length() > 0) {
+					content = new StringBuilder(msg.content);
+				} else if(organisation.default_email_content != null && organisation.default_email_content.trim().length() > 0){
+					content = new StringBuilder(organisation.default_email_content);
+				} else {
+					content = new StringBuilder(localisation.getString("email_ian"))
+							.append(" " + msg.scheme + "://")
+							.append(msg.server)
+							.append(". ");
+				}
+
+				if(docURL != null) {
+					content.append("<p style=\"color:blue;text-align:center;\">")
+					.append("<a href=\"")
+					.append(msg.scheme + "://")
+					.append(msg.server)
+					.append(docURL)
+					.append("\">")
+					.append(survey.displayName)
+					.append("</a>")
+					.append("</p>");
+				}
+
+				resp.notify_details = localisation.getString("msg_en");
+				resp.notify_details = resp.notify_details.replaceAll("%s1", emails);
+				if(logContent != null) {
+					resp.notify_details = resp.notify_details.replaceAll("%s2", logContent);
+				} else {
+					resp.notify_details = resp.notify_details.replaceAll("%s2", "-");
+				}
+				resp.notify_details = resp.notify_details.replaceAll("%s3", survey.displayName);
+				resp.notify_details = resp.notify_details.replaceAll("%s4", survey.projectName);
+
+				log.info("+++ emailing to: " + emails + " docUrl: " + logContent + 
+						" from: " + from + 
+						" subject: " + subject +
+						" smtp_host: " + emailServer.smtpHost +
+						" email_domain: " + emailServer.emailDomain);
+				try {
+					EmailManager em = new EmailManager();
+					PeopleManager peopleMgr = new PeopleManager(localisation);
+					InternetAddress[] emailArray = InternetAddress.parse(emails);
+
+					for(InternetAddress ia : emailArray) {	
+						SubscriptionStatus subStatus = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());				
+						if(subStatus.unsubscribed) {
+							unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
+						} else {
+							if(subStatus.optedIn || !organisation.send_optin) {
+								em.sendEmailHtml(
+										ia.getAddress(),  
+										"bcc", 
+										subject, 
+										content, 
+										filePath,
+										filename,
+										emailServer,
+										msg.server,
+										subStatus.emailKey,
+										localisation,
+										null,
+										organisation.getAdminEmail(),
+										organisation.getEmailFooter());
+
+							} else {
+								/*
+								 * User needs to opt in before email can be sent
+								 * Move message to pending messages and send opt in message if needed
+								 */ 
+								mm.saveToPending(sd, organisation.id, ia.getAddress(), topic, msg, 
+										null,
+										null,
+										subStatus.optedInSent,
+										organisation.getAdminEmail(),
+										emailServer,
+										subStatus.emailKey,
+										createPending,
+										msg.scheme,
+										msg.server,
+										messageId);
+								log.info("#########: Email " + ia.getAddress() + " saved to pending while waiting for optin");
+
+								lm.writeLogOrganisation(sd, organisation.id, ia.getAddress(), LogManager.OPTIN, localisation.getString("mo_pending_saved2"), 0);
+							}
+						}
+					}
+					resp.status = "success";
+				} catch(Exception e) {
+					resp.status = "error";
+					resp.error_details = e.getMessage();
+					log.log(Level.SEVERE, resp.error_details, e);
+				}
+			} else {
+				log.log(Level.INFO, "Info: List of email recipients is empty");
+				lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"), 0, null);
+				resp.writeToMonitor = false;
+			}
+		} else {
+			resp.status = "error";
+			resp.error_details = "smtp_host not set";
+			log.log(Level.SEVERE, "Error: Notification, Attempt to do email notification but email server not set");
+		}
+		
+		return resp;
+	}
 }

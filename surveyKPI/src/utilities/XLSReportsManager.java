@@ -49,7 +49,7 @@ import org.smap.sdal.model.SurveyViewDefn;
 public class XLSReportsManager {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSReportsManager.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	

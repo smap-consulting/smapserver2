@@ -76,6 +76,21 @@ public class XLSUtilities {
 		styles.put("header", style);
 		
 		style = wb.createCellStyle();
+		style.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+		styles.put("green", style);
+
+		style = wb.createCellStyle();
+		style.setFillForegroundColor(IndexedColors.CORNFLOWER_BLUE.getIndex());
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+		styles.put("blue", style);
+		
+		style = wb.createCellStyle();
+		style.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+		styles.put("yellow", style);
+		
+		style = wb.createCellStyle();
 		style.setFont(boldFont);
 		style.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
 		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
@@ -104,9 +119,10 @@ public class XLSUtilities {
 		styles.put("good", style);
 		
 		style = wb.createCellStyle();
-		style.setFillForegroundColor(IndexedColors.ROSE.getIndex());
+		style.setFillForegroundColor(IndexedColors.CORAL.getIndex());
 		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		styles.put("bad", style);
+		styles.put("totals", style);
 		
 		style = wb.createCellStyle();
 		style.setWrapText(true);

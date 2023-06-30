@@ -431,6 +431,7 @@ public class XLSTemplateUploadManager {
 				survey.dataSurvey = getBooleanColumn(row, "data_survey", settingsHeader, lastCellNum, true);
 				survey.oversightSurvey = getBooleanColumn(row, "oversight_survey", settingsHeader, lastCellNum, true);
 				survey.readOnlySurvey = getBooleanColumn(row, "read_only_survey", settingsHeader, lastCellNum, false);
+				survey.myReferenceData = getBooleanColumn(row, "my_reference_data", settingsHeader, lastCellNum, false);
 				
 				survey.timing_data = getBooleanColumn(row, "timing_data", settingsHeader, lastCellNum, false);
 				survey.audit_location_data = getBooleanColumn(row, "audit_location_data", settingsHeader, lastCellNum, false);
@@ -636,15 +637,6 @@ public class XLSTemplateUploadManager {
 					// Get the headers for filters
 					for(String h : choicesHeader.keySet()) {
 						h = h.trim();
-						/*
-						 * Languages can contain spaces so this check is wrong
-						 *
-						if(h.contains(" ")) {
-							String msg = localisation.getString("tu_invf");
-							msg = msg.replace("%s1", h);
-							throw new ApplicationException(msg);
-						}
-						*/
 						if(h.equals("list_name")
 								|| h.equals("name")
 								|| h.equals("label")
@@ -662,6 +654,7 @@ public class XLSTemplateUploadManager {
 							continue;
 						}
 						// The rest must be filter columns
+						validateUserSpecifiedHeader("choices", h);
 						choiceFilterHeader.put(h, choicesHeader.get(h));
 					}
 				
@@ -1066,8 +1059,8 @@ public class XLSTemplateUploadManager {
 			QuestionForm qt = questionNames.get(q.name);
 			if(qt != null) {
 				if(q.source != null && qt.published) {
-					String newColType = GeneralUtilityMethods.getPostgresColType(q.type, false);
-					String oldColType = GeneralUtilityMethods.getPostgresColType(qt.qType, false);
+					String newColType = GeneralUtilityMethods.getPostgresColType(q.type);
+					String oldColType = GeneralUtilityMethods.getPostgresColType(qt.qType);
 					if(!newColType.equals(oldColType) &&
 							!newColType.equals("end repeat") &&	// Not sure why these are needed as source type should be null
 							!oldColType.equals("end repeat")&& 
@@ -1336,6 +1329,15 @@ public class XLSTemplateUploadManager {
 			warnings.add(new ApplicationWarning(e.getMessage()));
 		}
 		return i + 1;
+	}
+	
+	private void validateUserSpecifiedHeader(String worksheet, String h) throws ApplicationException {
+		if(h.contains(":")) {
+			String msg = localisation.getString("tu_ih");
+			msg = msg.replace("%s1", h);
+			msg = msg.replace("%s2", worksheet);
+			throw new ApplicationException(msg);
+		}
 	}
 	
 	private void validateQuestion(Question q, int rowNumber, int formIndex) throws Exception {

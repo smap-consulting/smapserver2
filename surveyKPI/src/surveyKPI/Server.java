@@ -129,6 +129,7 @@ public class Server extends Application {
 				+ "email_port = ?,"
 				+ "mapbox_default = ?,"
 				+ "google_key = ?,"
+				+ "maptiler_key = ?,"
 				+ "sms_url = ?,"
 				+ "password_strength = ?,"
 				+ "css=?";
@@ -153,9 +154,10 @@ public class Server extends Application {
 			pstmt.setInt(5, data.email_port);
 			pstmt.setString(6, data.mapbox_default);
 			pstmt.setString(7, data.google_key);
-			pstmt.setString(8, data.sms_url);
-			pstmt.setDouble(9, data.password_strength);
-			pstmt.setString(10, data.css);
+			pstmt.setString(8, data.maptiler_key);
+			pstmt.setString(9, data.sms_url);
+			pstmt.setDouble(10, data.password_strength);
+			pstmt.setString(11, data.css);
 			int count = pstmt.executeUpdate();
 			
 			if(count == 0) {			

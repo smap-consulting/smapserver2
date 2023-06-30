@@ -47,7 +47,7 @@ import org.smap.sdal.model.UserGroup;
 public class XLSUsersManager {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSUsersManager.class.getName());
 	
 	Workbook wb = null;
 	int rowNumber = 1;		// Heading row is 0

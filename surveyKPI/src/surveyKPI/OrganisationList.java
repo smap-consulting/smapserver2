@@ -183,7 +183,8 @@ public class OrganisationList extends Application {
 					+ "limits,"
 					+ "refresh_rate, "
 					+ "api_rate_limit,"
-					+ "password_strength "
+					+ "password_strength,"
+					+ "map_source "
 					+ "from organisation "
 					+ "where organisation.e_id = ? ");			
 			
@@ -247,6 +248,7 @@ public class OrganisationList extends Application {
 				org.refresh_rate = resultSet.getInt("refresh_rate");
 				org.api_rate_limit = resultSet.getInt("api_rate_limit");
 				org.password_strength = resultSet.getInt("password_strength");
+				org.map_source = resultSet.getString("map_source");
 				organisations.add(org);
 			}
 	
@@ -1336,50 +1338,29 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
-		a.isOrganisationInEnterprise(sd, request.getRemoteUser(), orgId);
+		aAdminOrg.isAuthorised(sd, request.getRemoteUser());
+		aAdminOrg.isOrganisationInEnterprise(sd, request.getRemoteUser(), orgId);
+		aAdminOrg.canUserUpdateOrganisation(sd, request.getRemoteUser(), orgId);
 		// End Authorisation
 		
-		Type type = new TypeToken<ArrayList<User>>(){}.getType();		
-		ArrayList<User> uArray = new Gson().fromJson(users, type);
-		
-		type = new TypeToken<ArrayList<Project>>(){}.getType();		
+		Type type = new TypeToken<ArrayList<Project>>(){}.getType();		
 		ArrayList<Project> pArray = new Gson().fromJson(projects, type);
 		
-		PreparedStatement pstmt = null;
-		PreparedStatement pstmt2 = null;
+		//PreparedStatement pstmt2 = null;
 		PreparedStatement pstmt3 = null;
 		PreparedStatement pstmt4 = null;
 		try {	
 			sd.setAutoCommit(false);
-			
-			String sql = "update users set o_id =  ? " +  
-					" WHERE id = ?; ";			
-			String sql2 = "delete from user_project where u_id = ? and " +
-					"p_id not in (select id from project where o_id = ?);";	
+					
 			String sql3 = "update project set o_id =  ? " +  
 					" WHERE id = ?; ";			
 			String sql4 = "delete from user_project where p_id = ? and " +
 					"u_id not in (select id from users where o_id = ?); ";	
 			
 	
-			pstmt = sd.prepareStatement(sql);
-			pstmt2 = sd.prepareStatement(sql2);	
 			pstmt3 = sd.prepareStatement(sql3);	
 			pstmt4 = sd.prepareStatement(sql4);	
 
-			// Move Users = deprecate
-			if(uArray != null) {
-				for(int i = 0; i < uArray.size(); i++) {
-					pstmt.setInt(1, orgId);
-					pstmt.setInt(2, uArray.get(i).id);
-	
-					log.info("Move User: " + pstmt.toString());
-					pstmt.executeUpdate();
-					
-					log.info("userevent: " + request.getRemoteUser() + " : move user : " + uArray.get(i).id + " to: " + orgId);
-				}
-			}
 			
 			// Move Projects
 			if(pArray != null) {
@@ -1394,21 +1375,8 @@ public class OrganisationList extends Application {
 				}
 			}
 			
-			// Remove projects from users if they are in a different organisation
-			if(uArray != null) {
-				for(int i = 0; i < uArray.size(); i++) {
-					
-					if(!uArray.get(i).keepProjects) {	// Org admin users keep all of their projects
-					
-						pstmt2.setInt(1, uArray.get(i).id);
-						pstmt2.setInt(2, orgId);
-						log.info("Delete Links to projects: " + pstmt2.toString());
-						pstmt2.executeUpdate();
-					}
-				}
-			}
 			
-			// Move users from projects if they are in a different organisation
+			// Remove users from projects if they are in a different organisation
 			if(pArray != null) {
 				for(int i = 0; i < pArray.size(); i++) {
 					
@@ -1437,8 +1405,6 @@ public class OrganisationList extends Application {
 			
 		} finally {
 			
-			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
-			try {if (pstmt2 != null) {pstmt2.close();}	} catch (SQLException e) {}
 			try {if (pstmt3 != null) {pstmt3.close();}	} catch (SQLException e) {}
 			try {if (pstmt4 != null) {pstmt4.close();}	} catch (SQLException e) {}
 			

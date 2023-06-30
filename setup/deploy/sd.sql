@@ -2,8 +2,6 @@
 -- Apply upgrade patches to survey definitions database
 --
 
--- Upgrade to 19.09+
-alter table task_group add column complete_all boolean;
 
 CREATE SEQUENCE style_seq START 1;
 ALTER SEQUENCE style_seq OWNER TO ws;

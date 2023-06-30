@@ -3,9 +3,6 @@ package surveyKPI;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
@@ -153,17 +150,7 @@ public class ExportSurveyMisc extends Application {
 
 		lm.writeLog(sd, targetId, request.getRemoteUser(), LogManager.VIEW, "Export as: " + format, 0, request.getServerName());
 
-		String escapedFileName = null;
-		try {
-			escapedFileName = URLDecoder.decode(filename, "UTF-8");
-			escapedFileName = URLEncoder.encode(escapedFileName, "UTF-8");
-		} catch (UnsupportedEncodingException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-
-		escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
-		escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
+		String escapedFileName = GeneralUtilityMethods.urlEncode(filename);
 		
 		if(targetId != 0) {
 
@@ -179,6 +166,7 @@ public class ExportSurveyMisc extends Application {
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 				String surveyName = GeneralUtilityMethods.getSurveyName(sd, targetId);
+				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, targetId);
 				
 				/*
 				 * Get the name of the database
@@ -232,6 +220,7 @@ public class ExportSurveyMisc extends Application {
 						connectionResults,
 						localisation,
 						targetId,
+						sIdent,
 						fId,
 						language, 
 						format, 
@@ -252,11 +241,11 @@ public class ExportSurveyMisc extends Application {
 						false,			// superUser - Always apply filters
 						startingForm,
 						filter,
-						null,			// transform
 						true,
 						false,
 						tz,
 						geomQuestion,
+						true,			// Outer join of tables
 						false			// Accuracy and ALtitude
 						);
 

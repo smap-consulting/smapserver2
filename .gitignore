@@ -1,10 +1,7 @@
 *.tgz
-smapServer/smapServer
-fieldAnalysis/fieldAnalysis
 surveyKPI/build
-fieldManager/build
-surveyMobileAPI/build/classes/.gitignore
-koboToolboxApi/.gitignore
+surveyMobileAPI/build
+koboToolboxApi/build
 
 surveyKPI/WebContent/WEB-INF/lib/
 sdDAL/src/META-INF/
@@ -19,6 +16,7 @@ tdh/target/
 subscribers/.aws/
 koboToolboxApi/.aws/
 koboToolboxApi/target/
+surveyMobileApi/target/
 
 build/css.orig
 
@@ -34,10 +32,10 @@ tmp/
 *.swp
 *~.nib
 local.properties
-.loadpath
-.component
-.classpath
-.settings
+#.loadpath
+#.component
+#.settings
+#.classpath
 
 .idea/
 workspace.xml
@@ -49,11 +47,6 @@ enketo-core.min.js
 smapServer/WebContent/build/js/webform-bundle.js
 smapServer/node_modules
 aws/target
-
-smapServer/.idea/
-tasks/.idea/
-fieldManagerClient/.idea/
-fieldAnalysis/.idea/
 
 # External tool builders
 .externalToolBuilders/

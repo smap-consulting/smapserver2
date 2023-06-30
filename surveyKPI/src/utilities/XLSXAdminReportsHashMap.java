@@ -49,7 +49,7 @@ import org.smap.sdal.managers.LogManager;
 public class XLSXAdminReportsHashMap {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSXAdminReportsHashMap.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	ResourceBundle localisation = null;

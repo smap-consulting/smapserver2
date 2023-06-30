@@ -68,9 +68,9 @@ DROP SEQUENCE IF EXISTS ue_seq CASCADE;
 CREATE SEQUENCE ue_seq START 1;
 ALTER SEQUENCE ue_seq OWNER TO ws;
 
-DROP SEQUENCE IF EXISTS se_seq CASCADE;
-CREATE SEQUENCE se_seq START 1;
-ALTER SEQUENCE se_seq OWNER TO ws;
+--DROP SEQUENCE IF EXISTS se_seq CASCADE;
+--CREATE SEQUENCE se_seq START 1;
+--ALTER SEQUENCE se_seq OWNER TO ws;
 
 DROP SEQUENCE IF EXISTS dp_seq CASCADE;
 CREATE SEQUENCE dp_seq START 1;
@@ -108,6 +108,7 @@ create TABLE server (
 	version text,
 	mapbox_default text,
 	google_key text,
+	maptiler_key text,
 	sms_url text,
 	document_sync boolean,
 	doc_server text,
@@ -118,7 +119,8 @@ create TABLE server (
 	css text,
 	password_strength decimal default 0.0,
 	rebuild_link_cache boolean default false,
-	password_expiry integer default 0			-- password expiry in months
+	password_expiry integer default 0,				-- password expiry in months
+	disable_ref_role_filters boolean default false	-- If set true role filters will not be used for reference data
 	);
 ALTER TABLE server OWNER TO ws;
 
@@ -214,6 +216,7 @@ create TABLE organisation (
 	dashboard_arn text,
 	dashboard_session_name text,
 	password_strength decimal default 0.0,
+	map_source text,							-- default map source for static maps
 	password_expiry integer default 0,			-- password expiry in months
 	changed_ts TIMESTAMP WITH TIME ZONE
 	);
@@ -524,6 +527,8 @@ CREATE TABLE upload_event (
 	instanceid varchar(41),
 	status varchar(10),
 	reason text,
+	db_status text,						-- status of application to database
+	db_reason text,
 	location text,
 	form_status text,
 	notifications_applied boolean,		-- Set after notifications are sent
@@ -543,18 +548,6 @@ create index idx_ue_upload_time on upload_event (upload_time);
 CREATE index ue_survey_ident ON upload_event(ident);
 CREATE INDEX idx_ue_p_id ON upload_event(p_id);
 ALTER TABLE upload_event OWNER TO ws;
-
-DROP TABLE IF EXISTS subscriber_event CASCADE;
-CREATE TABLE subscriber_event (
-	se_id INTEGER DEFAULT NEXTVAL('se_seq') CONSTRAINT pk_subscriber_event PRIMARY KEY,
-	ue_id INTEGER REFERENCES upload_event ON DELETE CASCADE,
-	subscriber text,
-	dest text,
-	status varchar(10),
-	reason text
-	);
-CREATE INDEX se_ue_id_sequence ON subscriber_event(ue_id);
-ALTER TABLE subscriber_event OWNER TO ws;
 
 DROP TABLE IF EXISTS option CASCADE;
 DROP TABLE IF EXISTS question CASCADE;
@@ -606,6 +599,7 @@ CREATE TABLE survey (
 	data_survey boolean default true,
 	oversight_survey boolean default true,
 	read_only_survey boolean default false,
+	my_reference_data boolean default false,
 	auto_translate boolean default false
 	);
 ALTER TABLE survey OWNER TO ws;
@@ -1192,14 +1186,16 @@ ALTER SEQUENCE survey_role_seq OWNER TO ws;
 DROP TABLE IF EXISTS survey_role CASCADE;
 create TABLE survey_role (
 	id integer DEFAULT NEXTVAL('survey_role_seq') CONSTRAINT pk_survey_role PRIMARY KEY,
-	s_id integer REFERENCES survey(s_id) ON DELETE CASCADE,
+	survey_ident text REFERENCES survey(ident) ON DELETE CASCADE,
+	group_survey_ident text,
 	r_id integer REFERENCES role(id) ON DELETE CASCADE,
 	enabled boolean,
 	column_filter text,
 	row_filter text
 	);
 ALTER TABLE survey_role OWNER TO ws;
-CREATE UNIQUE INDEX survey_role_index ON public.survey_role(s_id, r_id);
+CREATE UNIQUE INDEX survey_role_ident_index ON public.survey_role(survey_ident, r_id);
+CREATE INDEX survey_role_group_index ON public.survey_role(group_survey_ident, r_id);
 
 DROP SEQUENCE IF EXISTS alert_seq CASCADE;
 CREATE SEQUENCE alert_seq START 1;
@@ -1717,7 +1713,6 @@ ALTER SEQUENCE cms_setting_seq OWNER TO ws;
 DROP TABLE IF EXISTS cms_setting;
 CREATE TABLE cms_setting (
 	id integer DEFAULT NEXTVAL('cms_setting_seq') CONSTRAINT pk_setting_alert PRIMARY KEY,
-	o_id integer,
 	group_survey_ident text,
 	settings text,
 	key text,
@@ -1753,3 +1748,21 @@ CREATE TABLE linkage (
 	changed_ts TIMESTAMP WITH TIME ZONE	
 	);
 ALTER TABLE linkage OWNER TO ws;
+
+-- Create a table to hold a change history for shared resource files
+DROP SEQUENCE IF EXISTS sr_history_seq CASCADE;
+CREATE SEQUENCE sr_history_seq START 1;
+ALTER SEQUENCE sr_history_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS sr_history;
+CREATE TABLE sr_history (
+	id integer DEFAULT NEXTVAL('sr_history_seq') CONSTRAINT pk_sr_history PRIMARY KEY,
+	o_id integer,
+	survey_ident text,						-- null if this is an organisational level shared resource
+	resource_name text,						-- Name of the resource including extension
+	file_name text,							-- Original file name
+	file_path text,							-- The path to the stored file
+	user_ident text,						-- User who uploaded the file
+	uploaded_ts TIMESTAMP WITH TIME ZONE	-- When the file was uploaded	
+	);
+ALTER TABLE sr_history OWNER TO ws;

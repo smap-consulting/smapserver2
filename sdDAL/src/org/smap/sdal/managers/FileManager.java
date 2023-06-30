@@ -5,6 +5,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -47,19 +50,15 @@ public class FileManager {
 	 * Get the file at the organisation level
 	 */
 	public Response getOrganisationFile(
-			Connection sd,
 			HttpServletRequest request, 
 			HttpServletResponse response, 
 			String user, 
 			int requestedOrgId, 
 			String filename, 
 			boolean	settings,
-			boolean isTemporaryUser,
 			boolean thumbs) throws IOException, ApplicationException {
 		
 		Response r = null;
-		
-		// Authorisation - Access
 		
 		log.info("Get File: " + filename + " for organisation: " + requestedOrgId);
 
@@ -70,6 +69,57 @@ public class FileManager {
 		} else {
 			filepath = basepath + "/media/organisation/" + requestedOrgId + (settings ? "/settings/" : "/") + filename;
 		}
+		getFile(response, filepath, filename);
+			
+		r = Response.ok("").build();
+		
+		return r;
+	}
+	
+	/*
+	 * Get a shared history file
+	 */
+	public Response getSharedHistoryFile(
+			Connection sd,
+			HttpServletResponse response, 
+			int requestedOrgId, 
+			String filename, 
+			String surveyIdent,
+			int id) throws IOException, ApplicationException, SQLException {
+		
+		Response r = null;
+		
+		String filepath = null;
+		PreparedStatement pstmt = null;
+		
+		try {
+			StringBuilder sql = new StringBuilder("select file_path from sr_history "
+					+ "where o_id = ? "
+					+ "and file_name = ? "
+					+ "and id = ? ");
+			if(surveyIdent != null) {
+				sql.append("and survey_ident = ?");
+			}
+			
+			pstmt = sd.prepareStatement(sql.toString());
+			pstmt.setInt(1, requestedOrgId);
+			pstmt.setString(2, filename);
+			pstmt.setInt(3, id);
+			
+			if(surveyIdent != null) {
+				pstmt.setString(4, surveyIdent);
+			}
+			
+			ResultSet rs = pstmt.executeQuery();
+			log.info("Get path of history file: " + pstmt.toString());
+			if(rs.next()) {
+				filepath = rs.getString(1);
+			}
+			
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+		
 		getFile(response, filepath, filename);
 			
 		r = Response.ok("").build();
@@ -90,8 +140,6 @@ public class FileManager {
 		) throws IOException, ApplicationException {
 		
 		Response r = null;
-		
-		// Authorisation - Access
 		
 		log.info("Get Report File: " + filename);
 

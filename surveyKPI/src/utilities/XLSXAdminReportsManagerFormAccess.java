@@ -57,7 +57,7 @@ import org.smap.sdal.model.UserGroup;
 public class XLSXAdminReportsManagerFormAccess {
 	
 	private static Logger log =
-			 Logger.getLogger(SurveyInfo.class.getName());
+			 Logger.getLogger(XLSXAdminReportsManagerFormAccess.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	ResourceBundle localisation = null;
@@ -275,12 +275,14 @@ public class XLSXAdminReportsManagerFormAccess {
 				if(isInOrg ? setCellGood(cell) : setCellBad(cell));
 				
 				cell = row.createCell(colNumber++);	// Has Project
-				for(Project p : u.projects) {
-					if(p.id == survey.p_id) {
-						hasProject = true;
-						break;
-					}
-				}				
+				if(u.projects != null) {
+					for(Project p : u.projects) {
+						if(p.id == survey.p_id) {
+							hasProject = true;
+							break;
+						}
+					}	
+				}
 				if(hasProject ? setCellGood(cell) : setCellBad(cell));
 				
 				/*

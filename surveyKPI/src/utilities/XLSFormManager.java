@@ -120,6 +120,7 @@ public class XLSFormManager {
 		public static final int COL_SEARCH_LOCAL_DATA = 216;
 		public static final int COL_COMPRESS_PDF = 217;
 		public static final int COL_READ_ONLY_SURVEY = 218;
+		public static final int COL_MY_REFERENCE_DATA = 219;
 
 		// Style sheet columns
 		public static final int COL_STYLE_LIST2 = 300;
@@ -483,6 +484,9 @@ public class XLSFormManager {
 
 			} else if(type == COL_AUDIT_LOCATION_DATA) {				
 					value = survey.audit_location_data ? "yes" : "no";
+
+			} else if(type == COL_MY_REFERENCE_DATA) {				
+				value = survey.myReferenceData ? "yes" : "no";
 
 			} else if(type == COL_DATA_SURVEY) {				
 				value = survey.dataSurvey ? "yes" : "no";
@@ -1138,6 +1142,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "report_logo", Column.COL_REPORT_LOGO, 0, "report_logo"));
 		cols.add(new Column(colNumber++, "compress_pdf", Column.COL_COMPRESS_PDF, 0, "compress_pdf"));
 		cols.add(new Column(colNumber++, "read_only_survey", Column.COL_READ_ONLY_SURVEY, 0, "read_only_survey"));
+		cols.add(new Column(colNumber++, "my_reference_data", Column.COL_MY_REFERENCE_DATA, 0, "my_reference_data"));
 
 		// Add role columns
 		for(String role : survey.roles.keySet()) {
