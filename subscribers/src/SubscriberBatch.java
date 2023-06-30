@@ -345,6 +345,7 @@ public class SubscriberBatch {
 			} else if(subscriberType.equals("forward")) {		// Note forward is just another batch process, it no longer forwards surveys to other servers
 				
 				applyCaseManagementReminders(dbc.sd, dbc.results, basePath, serverName);
+				applyPeriodicNotifications(dbc.sd, dbc.results, basePath, serverName);
 				
 				// Erase any templates that were deleted more than a set time ago
 				eraseOldTemplates(dbc.sd, dbc.results, localisation, basePath);
@@ -1233,6 +1234,226 @@ public class SubscriberBatch {
 			pstmtSettings = sd.prepareStatement(sqlSettings);
 			pstmtTriggered = cResults.prepareStatement(sqlTriggered);
 			pstmtNotifications = sd.prepareStatement(sqlNotifications);
+			
+			// 1. Get case management alerts 
+			pstmt = sd.prepareStatement(sql);
+
+			ResultSet rs = pstmt.executeQuery();
+			
+			while(rs.next()) {
+				
+				int aId = rs.getInt("a_id");
+				String alertName = rs.getString("name");
+				String groupSurveyIdent = rs.getString("group_survey_ident");
+				String table = rs.getString("table_name");
+				int pId = rs.getInt("p_id");
+				String period = rs.getString("period");	
+				int oId = GeneralUtilityMethods.getOrganisationIdForGroupSurveyIdent(sd, groupSurveyIdent);
+				
+				if(!isValidPeriod(period)) {
+					log.info("Error: ++++++ : Invalid Period: " + period);
+					continue;
+				}
+				if(GeneralUtilityMethods.tableExists(cResults, table)) {
+					
+					ResourceBundle localisation = locMap.get(oId);
+					if(localisation == null) {
+						Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+						Locale orgLocale = new Locale(organisation.locale);
+						try {
+							localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+						} catch(Exception e) {
+							localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+						}
+						locMap.put(oId, localisation);
+					}
+					
+					/*
+					 * Get the case management settings for this case (group survey)
+					 */
+					CaseManagementSettings settings = settingsCache.get(groupSurveyIdent);
+					if(settings == null) {
+						pstmtSettings.setString(1,groupSurveyIdent);
+						ResultSet srs = pstmtSettings.executeQuery();
+						if(srs.next()) {
+							settings = gson.fromJson(srs.getString("settings"), CaseManagementSettings.class);
+							settingsCache.put(groupSurveyIdent, settings);
+						}						
+					}
+					if(settings != null && settings.finalStatus != null && settings.statusQuestion != null &&
+							GeneralUtilityMethods.hasColumn(cResults, table, settings.statusQuestion)) {
+						
+						/*
+						 * Find records in the case that match this alert
+						 */
+						StringBuilder sqlMatch = new StringBuilder("select prikey, instanceid, _thread from "); 
+						sqlMatch.append(table); 
+						sqlMatch.append(" where not _bad and (")
+							.append(settings.statusQuestion)
+							.append(" is null or ")
+							.append("cast (").append(settings.statusQuestion).append(" as text)").append(" != ? ) ")
+							.append("and  _thread not in (select thread from case_alert_triggered where table_name = ? and a_id = ?) ")
+							.append("and _thread_created < now() - ?::interval ");	
+						
+						pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
+						int idx = 1;
+						pstmtMatches.setString(idx++, settings.finalStatus);
+						pstmtMatches.setString(idx++, table);
+						pstmtMatches.setInt(idx++, aId);
+						pstmtMatches.setString(idx++, period);
+						
+						// log.info(pstmtMatches.toString());
+						ResultSet mrs = pstmtMatches.executeQuery();
+						
+						while(mrs.next()) {
+							
+							int prikey = mrs.getInt("prikey");						String instanceid = mrs.getString("instanceid");
+							String thread = mrs.getString("_thread");
+							
+							/*
+							 * Record the triggering of the alert
+							 */
+							String details = localisation.getString("cm_alert");
+							details = details.replace("%s1", alertName);
+							RecordEventManager rem = new RecordEventManager();
+							rem.writeEvent(
+									sd, 
+									cResults, 
+									RecordEventManager.ALERT, 
+									"success",
+									null, 
+									table, 
+									instanceid, 
+									null,				// Change object
+									null,				// Task Object
+									null,				// Notification object
+									details, 
+									0,					// sId (don't care legacy)
+									groupSurveyIdent,
+									0,					// Don't need task id if we have an assignment id
+									0					// Assignment id
+									);
+							
+							// update case_alert_triggered to record the raising of this alert	
+							pstmtTriggered.setInt(1, aId);	
+							pstmtTriggered.setString(2, table);
+							pstmtTriggered.setString(3, thread);
+							pstmtTriggered.setString(4, settings.finalStatus);
+							
+							pstmtTriggered.executeUpdate();
+							
+							// Update the case so that the alert status can be charted
+							StringBuilder sqlUpdate = new StringBuilder("update ") 
+									.append(table)
+									.append(" set _alert = ? where prikey = ?");	
+							
+							pstmtCaseUpdated = cResults.prepareStatement(sqlUpdate.toString());
+							pstmtCaseUpdated.setString(1, alertName);
+							pstmtCaseUpdated.setInt(2, prikey);	
+							pstmtCaseUpdated.executeUpdate();
+							
+							/*
+							 * Process notifications associated with this alert
+							 */
+							pstmtNotifications.setInt(1, aId);
+							log.info("Notifications to be triggered: " + pstmtNotifications.toString());
+							
+							ResultSet notrs = pstmtNotifications.executeQuery();
+							
+							while(notrs.next()) {
+							
+								int nId = notrs.getInt("id");
+								String notificationName = notrs.getString("notification_name");
+								String notifyDetailsString = notrs.getString("notify_details");
+								NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
+								String target = notrs.getString("target");
+								String user = notrs.getString("remote_user");
+								
+								SubmissionMessage subMgr = new SubmissionMessage(
+										0,
+										groupSurveyIdent,
+										null,
+										pId,
+										instanceid, 
+										nd.from,
+										nd.subject, 
+										nd.content,
+										nd.attach,
+										nd.include_references,
+										nd.launched_only,
+										nd.emailQuestion,
+										nd.emailQuestionName,
+										nd.emailMeta,
+										nd.emailAssigned,
+										nd.emails,
+										target,
+										user,
+										"https",
+										serverName,
+										basePath,
+										nd.callback_url,
+										user,
+										null,
+										0,
+										nd.survey_case,
+										nd.assign_question);
+													
+								MessagingManager mm = new MessagingManager(localisation);
+								mm.createMessage(sd, oId, "cm_alert", "", gson.toJson(subMgr));						
+							
+								// Write to the log
+								String logMessage = "Notification triggered by alert id " + aId + " for notification: " + nId;
+								if(localisation != null) {
+									logMessage = localisation.getString("cm_alert");
+									logMessage = logMessage.replaceAll("%s1", alertName);
+									logMessage = logMessage.replaceAll("%s2", notificationName);
+								}
+								lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
+							}
+
+						}
+					 
+					} else {
+						//log.info("cm: no status settings");
+					}
+				}
+			}
+			
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtTriggered != null) {pstmtTriggered.close();}} catch (SQLException e) {}
+			try {if (pstmtSettings != null) {pstmtSettings.close();}} catch (SQLException e) {}
+			try {if (pstmtMatches != null) {pstmtMatches.close();}} catch (SQLException e) {}
+			try {if (pstmtNotifications != null) {pstmtNotifications.close();}} catch (SQLException e) {}
+			try {if (pstmtCaseUpdated != null) {pstmtCaseUpdated.close();}} catch (SQLException e) {}
+		}
+	}
+	
+	/*
+	 * Apply Periodic notifications
+	 */
+	private void applyPeriodicNotifications(Connection sd, Connection cResults, String basePath, String serverName) {
+		
+		/*
+		 * Get the notifications that send a response at fixed periods
+		 */
+		String sql = "select name,"
+				+ "id,"
+				+ "target,"
+				+ "remote_user,"
+				+ "notify_details "
+				+ "from forward "
+				+ "where trigger = 'periodic' ";
+		PreparedStatement pstmt = null;
+
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		try {
+
 			
 			// 1. Get case management alerts 
 			pstmt = sd.prepareStatement(sql);
