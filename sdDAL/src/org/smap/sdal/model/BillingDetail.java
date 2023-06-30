@@ -12,6 +12,7 @@ public class BillingDetail {
 	public static int TRANSCRIBE = 7;
 	public static int TRANSCRIBE_MEDICAL = 8;
 	public static int GOOGLE_STATIC_MAP = 9;
+	public static int MAPTILER_STATIC_MAP = 10;
 	
 	public int oId;
 	public int eId;

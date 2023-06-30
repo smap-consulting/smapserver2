@@ -266,6 +266,9 @@ public class Billing extends Application {
 			} else if(item.item == BillingDetail.GOOGLE_STATIC_MAP) {
 				addUsageLine(sd, item, LogManager.GOOGLE_REQUEST, eId, oId, year, month);
 				
+			} else if(item.item == BillingDetail.MAPTILER_STATIC_MAP) {
+				addUsageLine(sd, item, LogManager.MAPTILER_REQUEST, eId, oId, year, month);
+				
 			} else if(item.item == BillingDetail.REKOGNITION) {
 				addUsageLine(sd, item, LogManager.REKOGNITION, eId, oId, year, month);
 				
