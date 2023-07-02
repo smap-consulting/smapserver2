@@ -1,5 +1,7 @@
 package org.smap.sdal.model;
 
+import java.sql.Time;
+
 public class Notification {
 	public int id;
 	public String name;
@@ -24,10 +26,16 @@ public class Notification {
 	public String alert_name;
 	public NotifyDetails notifyDetails;
 	
-	public int tgId;					// reminder only
+	public int tgId;				// reminder only
 	public String period;			// reminder only
 	public String tg_name;			// reminder only
 	
-	public String project;		// Reports only
+	public String project;			// Reports only
+	
+	public String periodic_period;	// periodic
+	public String periodic_time;	// GSON does not seem to allow specification of a time format
+	public int periodic_week_day;
+	public int periodic_month_day;
+	public int periodic_month;
 	
 }

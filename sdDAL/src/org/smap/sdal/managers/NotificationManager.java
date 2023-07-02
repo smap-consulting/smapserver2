@@ -253,37 +253,6 @@ public class NotificationManager {
 	}
 
 	/*
-	 * Check that the server is not forwarding to the same survey on the same server
-	 */
-	public boolean isFeedbackLoop(Connection con, String server, Notification n) throws SQLException {
-		boolean loop = false;
-
-		String remote_host = null;;
-
-		String [] hostParts = n.remote_host.split("//");
-		remote_host = hostParts[1];
-
-		log.info("Checking for forwarding feedback loop. Current server is: " + server + " : " + remote_host);
-
-		// Get the ident of the local survey to compare with the remote ident
-		PreparedStatement pstmt;
-		String sql = "select ident from survey where s_id = ?;";
-		pstmt = con.prepareStatement(sql);
-		pstmt.setInt(1, n.s_id);
-		ResultSet rs = pstmt.executeQuery(); 
-		if(rs.next()) {
-			String local_ident = rs.getString(1);
-			log.info("Local ident is: " + local_ident + " : " + n.remote_s_ident);
-			if(local_ident != null && local_ident.equals(n.remote_s_ident) && remote_host.equals(server)) {
-				loop = true;
-			}
-		}
-		pstmt.close();
-
-		return loop;
-	}
-
-	/*
 	 * Get all Notifications that are accessible by the requesting user and in a specific project
 	 */
 	public ArrayList<Notification> getProjectNotifications(Connection sd, PreparedStatement pstmt,

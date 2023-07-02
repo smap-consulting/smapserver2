@@ -38,6 +38,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -294,7 +295,8 @@ public class NotificationList extends Application {
 	@Path("/add")
 	@POST
 	public Response addNotification(@Context HttpServletRequest request,
-			@FormParam("notification") String notificationString) { 
+			@FormParam("notification") String notificationString,
+			@QueryParam("tz") String tz) { 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-Survey - add notification";
@@ -317,17 +319,16 @@ public class NotificationList extends Application {
 		
 		PreparedStatement pstmt = null;
 		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
 		try {	
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			NotificationManager nm = new NotificationManager(localisation);
-			
-			// Validate
-			if(n.target.equals("forward") && nm.isFeedbackLoop(sd, request.getServerName(), n)) {
-				throw new Exception("Survey is being forwarded to itself");
-			}
  
 			nm.addNotification(sd, pstmt, request.getRemoteUser(), n);
 			
@@ -372,7 +373,8 @@ public class NotificationList extends Application {
 	@Path("/update")
 	@POST
 	public Response updateNotification(@Context HttpServletRequest request,
-			@FormParam("notification") String notificationString) { 
+			@FormParam("notification") String notificationString,
+			@QueryParam("tz") String tz) { 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-Survey-update notification";
@@ -397,15 +399,16 @@ public class NotificationList extends Application {
 		
 		PreparedStatement pstmt = null;
 		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
 		try {
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			NotificationManager nm = new NotificationManager(localisation);
-			if(n.target.equals("forward") && nm.isFeedbackLoop(sd, request.getServerName(), n)) {
-				throw new Exception("Survey is being forwarded to itself");
-			}
 			nm.updateNotification(sd, pstmt, request.getRemoteUser(), n);	
 			response = Response.ok().build();
 			
@@ -546,12 +549,7 @@ public class NotificationList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			NotificationManager nm = new NotificationManager(localisation);
-			
-			// Validate
-			if(n.target.equals("forward") && nm.isFeedbackLoop(sd, request.getServerName(), n)) {
-				throw new Exception("Survey is being forwarded to itself");
-			}
-			
+					
 			NotifyDetails nd = n.notifyDetails;
 			int pId = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, n.sIdent);
 			String basePath = GeneralUtilityMethods.getBasePath(request);
@@ -603,8 +601,6 @@ public class NotificationList extends Application {
 		} catch (AuthorisationException e) {
 			log.info("Authorisation Exception");
 		    response = Response.serverError().entity("Not authorised").build();
-		} catch (ApplicationException e) {
-		    response = Response.serverError().entity(e.getMessage()).build();
 		} catch (Exception e) {
 			String msg = e.getMessage();
 			log.info(msg);

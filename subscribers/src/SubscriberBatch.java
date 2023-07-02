@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -1441,7 +1442,13 @@ public class SubscriberBatch {
 		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
 		
 		/*
-		 * Get the notifications that send a response at fixed periods
+		 * Get current time
+		 */
+		String sqlCurrentTime = "select current_time";
+		PreparedStatement pstmtCurrentTime = null;
+		
+		/*
+		 * Get the notifications that send a response at fixed periods and where the time is due
 		 */
 		String sql = "select name,"
 				+ "id,"
@@ -1449,48 +1456,69 @@ public class SubscriberBatch {
 				+ "remote_user,"
 				+ "notify_details "
 				+ "from forward "
-				+ "where trigger = 'periodic' ";
+				+ "where trigger = 'periodic' "
+				+ "and periodic_time > (select last_checked_time from periodic) and periodic_time < ?";
 		PreparedStatement pstmt = null;
 
+		/*
+		 * Update last checked time
+		 */
+		String sqlUpdate = "update periodic set last_checked_time = ?";
+		PreparedStatement pstmtUpdate = null;
+		
+		String sqlInsert = "insert into periodic(last_checked_time) values(?)";
+		PreparedStatement pstmtInsert = null;
+		
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		try {
 
+			/*
+			 * Get the current time
+			 */
+			Time currentTime = null;
+			pstmtCurrentTime = sd.prepareStatement(sqlCurrentTime);
+			ResultSet rs = pstmtCurrentTime.executeQuery();
+			if(rs.next()) {
+				currentTime = rs.getTime("current_time");
+			}
 			
-			// 1. Get case management alerts 
 			pstmt = sd.prepareStatement(sql);
-
-			ResultSet rs = pstmt.executeQuery();
+			pstmt.setTime(1, currentTime);
+			log.info("Check for periodic events: " + pstmt.toString());
+			rs = pstmt.executeQuery();
 			
+			/*
+			 * Get periodic notifications that have a time between the last check and now
+			 */
 			while(rs.next()) {
 				
-				int aId = rs.getInt("a_id");
-				String alertName = rs.getString("name");
-				String groupSurveyIdent = rs.getString("group_survey_ident");
-				String table = rs.getString("table_name");
-				int pId = rs.getInt("p_id");
-				String period = rs.getString("period");	
-				int oId = GeneralUtilityMethods.getOrganisationIdForGroupSurveyIdent(sd, groupSurveyIdent);
-				
-				if(!isValidPeriod(period)) {
-					log.info("Error: ++++++ : Invalid Period: " + period);
-					continue;
-				}
-				if(GeneralUtilityMethods.tableExists(cResults, table)) {
+				String name = rs.getString("name");
+
+				int oId = 1;	// TODO
 					
-					ResourceBundle localisation = locMap.get(oId);
-					if(localisation == null) {
-						Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
-						Locale orgLocale = new Locale(organisation.locale);
-						try {
-							localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
-						} catch(Exception e) {
-							localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
-						}
+				ResourceBundle localisation = locMap.get(oId);
+				if(localisation == null) {
+					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+					Locale orgLocale = new Locale(organisation.locale);
+					try {
+						localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+					} catch(Exception e) {
+						localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
 					}
-					
-				
 				}
+			}
+			
+			/*
+			 * Store the current time as the last checked time
+			 */
+			pstmtUpdate = sd.prepareStatement(sqlUpdate);
+			pstmtUpdate.setTime(1, currentTime);
+			int count = pstmtUpdate.executeUpdate();
+			if(count < 1) {
+				pstmtInsert = sd.prepareStatement(sqlInsert);
+				pstmtInsert.setTime(1, currentTime);
+				pstmtInsert.executeUpdate();
 			}
 			
 
@@ -1499,6 +1527,9 @@ public class SubscriberBatch {
 		} finally {
 
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtCurrentTime != null) {pstmtCurrentTime.close();}} catch (SQLException e) {}
+			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}
+			try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (SQLException e) {}
 		}
 	}
 	
