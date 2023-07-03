@@ -314,7 +314,9 @@ public class NotificationList extends Application {
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), n.s_id, false, superUser);
+		if(n.s_id > 0) {
+			a.isValidSurvey(sd, request.getRemoteUser(), n.s_id, false, superUser);
+		}
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -330,7 +332,7 @@ public class NotificationList extends Application {
 			
 			NotificationManager nm = new NotificationManager(localisation);
  
-			nm.addNotification(sd, pstmt, request.getRemoteUser(), n);
+			nm.addNotification(sd, pstmt, request.getRemoteUser(), n, tz);
 			
 			response = Response.ok().build();
 			

@@ -26,6 +26,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
@@ -33,7 +34,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -7104,6 +7107,37 @@ public class GeneralUtilityMethods {
 		Date localDate = new Date(cal.getTime().getTime());
 
 		return localDate;
+	}
+	
+	/*
+	 * Convert a time to UTC time
+	 */
+	public static Time convertTimeUtc(String time, String tz) throws Exception {
+
+		Calendar utcCal = new GregorianCalendar();
+		TimeZone timeZone = TimeZone.getTimeZone(tz);
+		utcCal.setTimeZone(timeZone);
+		utcCal.setTime(new Timestamp(System.currentTimeMillis()));
+		String[] tComp = time.split(":");
+		int hour = 0;
+		int minute = 0;
+		if(tComp.length > 1) {
+			hour = Integer.valueOf(tComp[0]);
+			minute = Integer.valueOf(tComp[1]);
+		} else {
+			throw new Exception("Invalid time format: " + time);
+		}
+		utcCal.set(Calendar.HOUR, hour);
+		utcCal.set(Calendar.MINUTE, minute);
+		utcCal.set(Calendar.SECOND, 0);
+		
+		TimeZone utcTimeZone = TimeZone.getTimeZone("UTC");
+		ZoneId utcZoneId = utcTimeZone.toZoneId();	
+		
+		LocalTime localTime = LocalTime.ofInstant(utcCal.toInstant(), utcZoneId);		 
+		Time t = Time.valueOf(localTime);
+		
+		return t;
 	}
 
 	/*

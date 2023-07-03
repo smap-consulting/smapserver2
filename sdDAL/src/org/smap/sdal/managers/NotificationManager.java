@@ -5,6 +5,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
@@ -132,15 +138,17 @@ public class NotificationManager {
 	 * Add a record to the notification table
 	 */
 	public void addNotification(Connection sd, PreparedStatement pstmt, String user, 
-			Notification n) throws Exception {
+			Notification n, String tz) throws Exception {
 
 		String sql = "insert into forward(" +
 				" s_id, enabled, " +
 				" remote_s_id, remote_s_name, remote_host, remote_user, remote_password, notify_details, "
 				+ "trigger, target, filter, name, tg_id, period, update_survey, update_question, update_value,"
-				+ "alert_id) " +
+				+ "alert_id, "
+				+ "periodic_time, periodic_period, periodic_day_of_week, periodic_day_of_month, periodic_month) " +
 				" values (?, ?, ?, ?, ?, ?, ?, ?"
-				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?); ";
+				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
+				+ "?, ?, ?, ?, ?)";
 
 		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 
@@ -166,6 +174,16 @@ public class NotificationManager {
 		pstmt.setString(16, n.updateQuestion);
 		pstmt.setString(17, n.updateValue);
 		pstmt.setInt(18, n.alert_id);
+		
+		/*
+		 * Periodic Values
+		 */
+		pstmt.setTime(19, GeneralUtilityMethods.convertTimeUtc(n.periodic_time, tz));
+		pstmt.setString(20, n.periodic_period);
+		pstmt.setInt(21, n.periodic_week_day);
+		pstmt.setInt(22, n.periodic_month_day);
+		pstmt.setInt(23, n.periodic_month);
+		
 		pstmt.executeUpdate();
 	}
 

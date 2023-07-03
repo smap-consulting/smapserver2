@@ -14,3 +14,4 @@ create table periodic (
 );
 ALTER TABLE periodic OWNER TO ws;
 
+alter table forward drop constraint forward_s_id_fkey;

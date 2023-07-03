@@ -27,15 +27,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
-import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -3786,6 +3782,9 @@ public class SurveyManager {
 		}
 	}
 	
+	/*
+	 * Delete a survey
+	 */
 	public void delete(Connection sd, 
 			Connection cRel, 
 			int sId, 
@@ -3979,7 +3978,7 @@ public class SurveyManager {
 			 * Delete or update any notifications that are sent for this survey
 			 */
 			if(newSurveyId == 0) {
-				sql = "delete from forward where s_id = ?;";	
+				sql = "delete from forward where s_id = ?";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, sId);
