@@ -100,7 +100,8 @@ public class NotificationList extends Application {
 	@Path("/{projectId}")
 	@GET
 	public Response getNotifications(@Context HttpServletRequest request,
-			@PathParam("projectId") int projectId) { 
+			@PathParam("projectId") int projectId,
+			@QueryParam("tz") String tz) throws Exception { 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-Notifications";
@@ -108,7 +109,12 @@ public class NotificationList extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		// End Authorisation
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
 		
 		PreparedStatement pstmt = null;
 		
@@ -118,7 +124,7 @@ public class NotificationList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			NotificationManager nm = new NotificationManager(localisation);
-			ArrayList<Notification> nList = nm.getProjectNotifications(sd, pstmt, request.getRemoteUser(), projectId);
+			ArrayList<Notification> nList = nm.getProjectNotifications(sd, pstmt, request.getRemoteUser(), projectId, tz);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(nList);
@@ -317,6 +323,9 @@ public class NotificationList extends Application {
 		if(n.s_id > 0) {
 			a.isValidSurvey(sd, request.getRemoteUser(), n.s_id, false, superUser);
 		}
+		if(n.p_id > 0) {
+			a.isValidProject(sd, request.getRemoteUser(), n.p_id);
+		}
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -393,7 +402,12 @@ public class NotificationList extends Application {
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), n.s_id, false, superUser);
+		if(n.s_id > 0) {
+			a.isValidSurvey(sd, request.getRemoteUser(), n.s_id, false, superUser);
+		}
+		if(n.p_id > 0) {
+			a.isValidProject(sd, request.getRemoteUser(), n.p_id);
+		}
 		// End Authorisation
 		
 		log.info("Update notification for survey: " + request.getRemoteUser() + " : "+ n.s_id + " Remote s_id: " + 
@@ -411,7 +425,7 @@ public class NotificationList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			NotificationManager nm = new NotificationManager(localisation);
-			nm.updateNotification(sd, pstmt, request.getRemoteUser(), n);	
+			nm.updateNotification(sd, pstmt, request.getRemoteUser(), n, tz);	
 			response = Response.ok().build();
 			
 		} catch (SQLException e) {

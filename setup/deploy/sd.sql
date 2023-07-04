@@ -3,6 +3,7 @@
 --
 
 -- Version 23.07
+alter table forward add column p_id integer;
 alter table forward add column periodic_time time;
 alter table forward add column periodic_period text;
 alter table forward add column periodic_day_of_week integer;

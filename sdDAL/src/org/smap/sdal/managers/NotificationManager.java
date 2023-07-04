@@ -5,12 +5,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
@@ -81,7 +75,8 @@ public class NotificationManager {
 	public ArrayList<Notification> getEnabledNotifications(
 			Connection sd, 
 			String trigger,
-			String target) throws SQLException {
+			String target,
+			String tz) throws Exception {
 
 		ArrayList<Notification> forwards = new ArrayList<Notification>();	// Results of request
 
@@ -125,7 +120,7 @@ public class NotificationManager {
 			pstmt.setString(1, trigger);
 			resultSet = pstmt.executeQuery();
 
-			addToList(sd, resultSet, forwards, true, false);
+			addToList(sd, resultSet, forwards, true, false, tz);
 		} finally {
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 		}
@@ -145,10 +140,10 @@ public class NotificationManager {
 				" remote_s_id, remote_s_name, remote_host, remote_user, remote_password, notify_details, "
 				+ "trigger, target, filter, name, tg_id, period, update_survey, update_question, update_value,"
 				+ "alert_id, "
-				+ "periodic_time, periodic_period, periodic_day_of_week, periodic_day_of_month, periodic_month) " +
+				+ "p_id, periodic_time, periodic_period, periodic_day_of_week, periodic_day_of_month, periodic_month) " +
 				" values (?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
-				+ "?, ?, ?, ?, ?)";
+				+ "?, ?, ?, ?, ?, ?)";
 
 		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 
@@ -178,20 +173,22 @@ public class NotificationManager {
 		/*
 		 * Periodic Values
 		 */
-		pstmt.setTime(19, GeneralUtilityMethods.convertTimeUtc(n.periodic_time, tz));
-		pstmt.setString(20, n.periodic_period);
-		pstmt.setInt(21, n.periodic_week_day);
-		pstmt.setInt(22, n.periodic_month_day);
-		pstmt.setInt(23, n.periodic_month);
+		pstmt.setInt(19, n.p_id);
+		pstmt.setTime(20, GeneralUtilityMethods.convertTimeUtc(n.periodic_time, tz));
+		pstmt.setString(21, n.periodic_period);
+		pstmt.setInt(22, n.periodic_week_day);
+		pstmt.setInt(23, n.periodic_month_day);
+		pstmt.setInt(24, n.periodic_month);
 		
 		pstmt.executeUpdate();
 	}
 
 	/*
 	 * Update a record to the forwarding table
+	 * A password may need to be updated if the target is a webhook
 	 */
 	public void updateNotification(Connection sd, PreparedStatement pstmt, String user, 
-			Notification n) throws Exception {
+			Notification n, String tz) throws Exception {
 
 		String sql = null;
 		if(n.update_password) {
@@ -214,6 +211,12 @@ public class NotificationManager {
 					+ "update_value = ?,"
 					+ "alert_id = ?,"
 					+ "remote_password = ? "
+					+ "p_id = ?, "
+					+ "periodic_time = ?, "
+					+ "periodic_period = ?, "
+					+ "periodic_day_of_week = ?, "
+					+ "periodic_day_of_month = ?, "
+					+ "periodic_month = ? "
 					+ "where id = ?";
 		} else {
 			sql = "update forward set "
@@ -233,39 +236,53 @@ public class NotificationManager {
 					+ "update_survey = ?, "
 					+ "update_question = ?, "
 					+ "update_value = ?, "
-					+ "alert_id = ? "
+					+ "alert_id = ?, "
+					+ "p_id = ?, "
+					+ "periodic_time = ?, "
+					+ "periodic_period = ?, "
+					+ "periodic_day_of_week = ?, "
+					+ "periodic_day_of_month = ?, "
+					+ "periodic_month = ? "
 					+ "where id = ?";
 		}
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		String notifyDetails = gson.toJson(n.notifyDetails);
 
+		int idx = 1;
 		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 		pstmt = sd.prepareStatement(sql);	 			
-		pstmt.setInt(1, n.s_id);
-		pstmt.setBoolean(2, n.enabled);
-		pstmt.setString(3, n.remote_s_ident);
-		pstmt.setString(4, n.remote_s_name);
-		pstmt.setString(5, n.remote_host);
-		pstmt.setString(6, n.remote_user);
-		pstmt.setString(7, notifyDetails);
-		pstmt.setString(8, n.trigger);
-		pstmt.setString(9, n.target);
-		pstmt.setString(10, n.filter);
-		pstmt.setString(11, n.name);
-		pstmt.setInt(12, n.tgId);
-		pstmt.setString(13, n.period);
-		pstmt.setString(14, n.updateSurvey);
-		pstmt.setString(15, n.updateQuestion);
-		pstmt.setString(16, n.updateValue);
-		pstmt.setInt(17, n.alert_id);
+		pstmt.setInt(idx++, n.s_id);
+		pstmt.setBoolean(idx++, n.enabled);
+		pstmt.setString(idx++, n.remote_s_ident);
+		pstmt.setString(idx++, n.remote_s_name);
+		pstmt.setString(idx++, n.remote_host);
+		pstmt.setString(idx++, n.remote_user);
+		pstmt.setString(idx++, notifyDetails);
+		pstmt.setString(idx++, n.trigger);
+		pstmt.setString(idx++, n.target);
+		pstmt.setString(idx++, n.filter);
+		pstmt.setString(idx++, n.name);
+		pstmt.setInt(idx++, n.tgId);
+		pstmt.setString(idx++, n.period);
+		pstmt.setString(idx++, n.updateSurvey);
+		pstmt.setString(idx++, n.updateQuestion);
+		pstmt.setString(idx++, n.updateValue);
+		pstmt.setInt(idx++, n.alert_id);
 		if(n.update_password) {
-			pstmt.setString(18, n.remote_password);
-			pstmt.setInt(19, n.id);
-		} else {
-			pstmt.setInt(18, n.id);
-		}
-
+			pstmt.setString(idx++, n.remote_password);
+		} 
+		
+		/*
+		 * Periodic Values
+		 */
+		pstmt.setInt(idx++, n.p_id);
+		pstmt.setTime(idx++, GeneralUtilityMethods.convertTimeUtc(n.periodic_time, tz));
+		pstmt.setString(idx++, n.periodic_period);
+		pstmt.setInt(idx++, n.periodic_week_day);
+		pstmt.setInt(idx++, n.periodic_month_day);
+		pstmt.setInt(idx++, n.periodic_month);			pstmt.setInt(idx++, n.id);
+		
 		log.info("Update Forward: " + pstmt.toString());
 		pstmt.executeUpdate();
 	}
@@ -275,7 +292,8 @@ public class NotificationManager {
 	 */
 	public ArrayList<Notification> getProjectNotifications(Connection sd, PreparedStatement pstmt,
 			String user,
-			int projectId) throws SQLException {
+			int projectId,
+			String tz) throws Exception {
 
 		ArrayList<Notification> notifications = new ArrayList<Notification>();	// Results of request
 
@@ -284,32 +302,26 @@ public class NotificationManager {
 				+ "f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user,"
 				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
 				+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value, f.alert_id,"
+				+ "f.periodic_time, f.periodic_period, f.periodic_day_of_week, f.periodic_day_of_month, f.periodic_month,"
 				+ "a.name as alert_name "
 				+ "from forward f "
-				+ "inner join survey s "
+				+ "left outer join survey s "
 				+ "on s.s_id = f.s_id "
-				+ "inner join user_project up "
-				+ "on s.p_id = up.p_id "
-				+ "inner join users u "
-				+ "on u.id = up.u_id "
-				+ "inner join project p "
-				+ "on p.id = up.p_id "
 				+ "left outer join cms_alert a "
 				+ "on a.id = f.alert_id "
-				+ "where u.ident = ? "
-				+ "and s.p_id = ? "
-				+ "and s.deleted = 'false' "
+				+ "where (f.p_id = ? "
+				+ "or f.s_id in (select s_id from survey s where s.p_id = ? and not s.deleted)) "
 				+ "order by f.name, s.display_name asc";
 
 		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 		pstmt = sd.prepareStatement(sql);	 			
 
-		pstmt.setString(1, user);
+		pstmt.setInt(1, projectId);
 		pstmt.setInt(2, projectId);
 		log.info("Project Notifications: " + pstmt.toString());
 		resultSet = pstmt.executeQuery();
 
-		addToList(sd, resultSet, notifications, false, false);
+		addToList(sd, resultSet, notifications, false, false, tz);
 
 		return notifications;
 
@@ -321,7 +333,8 @@ public class NotificationManager {
 	public ArrayList<Notification> getOrganisationNotifications(
 			Connection sd, 
 			PreparedStatement pstmt,
-			int oId) throws SQLException {
+			int oId,
+			String tz) throws Exception {
 
 		ArrayList<Notification> notifications = new ArrayList<Notification>();	// Results of request
 
@@ -333,13 +346,13 @@ public class NotificationManager {
 				+ "f.update_question, f.update_value,"
 				+ "p.name as project_name, f.alert_id, a.name as alert_name "
 				+ "from forward f "
-				+ "inner join survey s "
+				+ "left outer join survey s "
 				+ "on s.s_id = f.s_id "
-				+ "inner join project p "
+				+ "left outer join project p "
 				+ "on s.p_id = p.id "
-				+ "left join cms_alert a "
+				+ "left outer join cms_alert a "
 				+ "on a.id = f.alert_id "
-				+ "where p.o_id = ? "
+				+ "where p.o_id = ? or f.p_id = ? "
 				+ "and s.deleted = 'false' "
 				+ "order by p.name, f.name, s.display_name asc";
 
@@ -350,7 +363,7 @@ public class NotificationManager {
 		log.info("All Notifications: " + pstmt.toString());
 		resultSet = pstmt.executeQuery();
 
-		addToList(sd, resultSet, notifications, false, true);
+		addToList(sd, resultSet, notifications, false, true, tz);
 
 		return notifications;
 
@@ -455,7 +468,8 @@ public class NotificationManager {
 			ResultSet resultSet, 
 			ArrayList<Notification> notifications, 
 			boolean getPassword,
-			boolean getProject) throws SQLException {
+			boolean getProject,
+			String tz) throws Exception {
 
 		while (resultSet.next()) {								
 
@@ -486,7 +500,11 @@ public class NotificationManager {
 			n.updateValue = resultSet.getString("update_value");
 			n.alert_id = resultSet.getInt("alert_id");
 			n.alert_name = resultSet.getString("alert_name");
-
+			n.periodic_time = GeneralUtilityMethods.convertTimeLocal(resultSet.getTime("periodic_time"), tz);
+			n.periodic_period = resultSet.getString("periodic_period");
+			n.periodic_week_day = resultSet.getInt("periodic_day_of_week");
+			n.periodic_month_day = resultSet.getInt("periodic_day_of_month");
+			n.periodic_month = resultSet.getInt("periodic_month");
 			if(getPassword) {
 				n.remote_password = resultSet.getString("remote_password");
 			}

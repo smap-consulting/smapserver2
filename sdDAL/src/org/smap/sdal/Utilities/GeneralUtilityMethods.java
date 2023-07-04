@@ -7114,28 +7114,54 @@ public class GeneralUtilityMethods {
 	 */
 	public static Time convertTimeUtc(String time, String tz) throws Exception {
 
-		Calendar utcCal = new GregorianCalendar();
-		TimeZone timeZone = TimeZone.getTimeZone(tz);
-		utcCal.setTimeZone(timeZone);
-		utcCal.setTime(new Timestamp(System.currentTimeMillis()));
-		String[] tComp = time.split(":");
-		int hour = 0;
-		int minute = 0;
-		if(tComp.length > 1) {
-			hour = Integer.valueOf(tComp[0]);
-			minute = Integer.valueOf(tComp[1]);
-		} else {
-			throw new Exception("Invalid time format: " + time);
+		Time t = null;
+		
+		if(time != null) {
+			Calendar utcCal = new GregorianCalendar();
+			TimeZone timeZone = TimeZone.getTimeZone(tz);
+			utcCal.setTimeZone(timeZone);
+			utcCal.setTime(new Timestamp(System.currentTimeMillis()));
+			String[] tComp = time.split(":");
+			int hour = 0;
+			int minute = 0;
+			if(tComp.length > 1) {
+				hour = Integer.valueOf(tComp[0]);
+				minute = Integer.valueOf(tComp[1]);
+			} else {
+				throw new Exception("Invalid time format: " + time);
+			}
+			utcCal.set(Calendar.HOUR, hour);
+			utcCal.set(Calendar.MINUTE, minute);
+			utcCal.set(Calendar.SECOND, 0);
+			
+			TimeZone utcTimeZone = TimeZone.getTimeZone("UTC");
+			ZoneId utcZoneId = utcTimeZone.toZoneId();	
+			
+			LocalTime localTime = LocalTime.ofInstant(utcCal.toInstant(), utcZoneId);		 
+			t = Time.valueOf(localTime);
 		}
-		utcCal.set(Calendar.HOUR, hour);
-		utcCal.set(Calendar.MINUTE, minute);
-		utcCal.set(Calendar.SECOND, 0);
 		
-		TimeZone utcTimeZone = TimeZone.getTimeZone("UTC");
-		ZoneId utcZoneId = utcTimeZone.toZoneId();	
+		return t;
+	}
+	
+	/*
+	 * Convert a time to UTC time
+	 */
+	public static String convertTimeLocal(Time time, String tz) throws Exception {
+
+		String t = null;
 		
-		LocalTime localTime = LocalTime.ofInstant(utcCal.toInstant(), utcZoneId);		 
-		Time t = Time.valueOf(localTime);
+		if(time != null) {
+			Calendar cal = new GregorianCalendar();
+			cal.setTimeZone(TimeZone.getTimeZone("UTC"));
+			cal.setTime(time);
+			
+			TimeZone timeZone = TimeZone.getTimeZone(tz);
+			ZoneId zoneId = timeZone.toZoneId();	
+			
+			LocalTime localTime = LocalTime.ofInstant(cal.toInstant(), zoneId);		
+			t = localTime.getHour() + ":" + localTime.getMinute();
+		}
 		
 		return t;
 	}
