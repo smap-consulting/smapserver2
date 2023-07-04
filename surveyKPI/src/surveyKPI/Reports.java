@@ -49,7 +49,6 @@ import java.util.logging.Logger;
 
 /*
  * Manage Access to reports
- * Should replace ReportListSvcDeprecate
  */
 @Path("/reporting")
 public class Reports extends Application {

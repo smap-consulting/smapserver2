@@ -516,7 +516,7 @@ public class NotificationManager {
 				n.project = resultSet.getString("project_name");
 				if(n.project == null & n.p_id > 0) {
 					/*
-					 * This is a hack because previously it was assumed that all notificatione entries and that is the path
+					 * This is a hack because previously it was assumed that all notification entries and that is the path
 					 * by which the project name is determined.  However not all do now. For example periodic notifications. 
 					 */
 					n.project = GeneralUtilityMethods.getProjectName(sd, n.p_id);
