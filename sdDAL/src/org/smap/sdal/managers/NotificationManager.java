@@ -302,7 +302,7 @@ public class NotificationManager {
 				+ "f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user,"
 				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
 				+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value, f.alert_id,"
-				+ "f.periodic_time, f.periodic_period, f.periodic_day_of_week, f.periodic_day_of_month, f.periodic_month,"
+				+ "f.p_id, f.periodic_time, f.periodic_period, f.periodic_day_of_week, f.periodic_day_of_month, f.periodic_month,"
 				+ "a.name as alert_name "
 				+ "from forward f "
 				+ "left outer join survey s "
@@ -344,7 +344,8 @@ public class NotificationManager {
 				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
 				+ "f.tg_id, f.period, f.update_survey,"
 				+ "f.update_question, f.update_value,"
-				+ "p.name as project_name, f.alert_id, a.name as alert_name "
+				+ "p.name as project_name, f.alert_id, a.name as alert_name, "
+				+ "f.p_id, f.periodic_time, f.periodic_period, f.periodic_day_of_week, f.periodic_day_of_month, f.periodic_month "
 				+ "from forward f "
 				+ "left outer join survey s "
 				+ "on s.s_id = f.s_id "
@@ -352,7 +353,8 @@ public class NotificationManager {
 				+ "on s.p_id = p.id "
 				+ "left outer join cms_alert a "
 				+ "on a.id = f.alert_id "
-				+ "where p.o_id = ? or f.p_id = ? "
+				+ "where f.p_id in (select id from project where o_id = ?) "
+					+ "or f.s_id in (select s.s_id from survey s, project p where s.p_id = p.id and p.o_id = ?) "
 				+ "and s.deleted = 'false' "
 				+ "order by p.name, f.name, s.display_name asc";
 
@@ -360,6 +362,7 @@ public class NotificationManager {
 		pstmt = sd.prepareStatement(sql);	 			
 
 		pstmt.setInt(1, oId);
+		pstmt.setInt(2, oId);
 		log.info("All Notifications: " + pstmt.toString());
 		resultSet = pstmt.executeQuery();
 
@@ -500,6 +503,7 @@ public class NotificationManager {
 			n.updateValue = resultSet.getString("update_value");
 			n.alert_id = resultSet.getInt("alert_id");
 			n.alert_name = resultSet.getString("alert_name");
+			n.p_id = resultSet.getInt("p_id");
 			n.periodic_time = GeneralUtilityMethods.convertTimeLocal(resultSet.getTime("periodic_time"), tz);
 			n.periodic_period = resultSet.getString("periodic_period");
 			n.periodic_week_day = resultSet.getInt("periodic_day_of_week");
@@ -510,6 +514,13 @@ public class NotificationManager {
 			}
 			if(getProject) {
 				n.project = resultSet.getString("project_name");
+				if(n.project == null & n.p_id > 0) {
+					/*
+					 * This is a hack because previously it was assumed that all notificatione entries and that is the path
+					 * by which the project name is determined.  However not all do now. For example periodic notifications. 
+					 */
+					n.project = GeneralUtilityMethods.getProjectName(sd, n.p_id);
+				}
 			}
 
 			if(n.trigger.equals("task_reminder")) {

@@ -7160,7 +7160,8 @@ public class GeneralUtilityMethods {
 			ZoneId zoneId = timeZone.toZoneId();	
 			
 			LocalTime localTime = LocalTime.ofInstant(cal.toInstant(), zoneId);		
-			t = localTime.getHour() + ":" + localTime.getMinute();
+			
+			t = String.format("%02d", localTime.getHour()) + ":" + String.format("%02d", localTime.getMinute());
 		}
 		
 		return t;
