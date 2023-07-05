@@ -21,6 +21,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -38,10 +39,13 @@ import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.ActionLink;
 import org.smap.sdal.model.Role;
+import org.smap.sdal.model.User;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -68,6 +72,61 @@ public class Reports extends Application {
 		a = new Authorise(authorisations, null);		
 	}
 
+	@GET
+	@Path("/reports")
+	@Produces("application/json")
+	public Response getReportList(
+			@Context HttpServletRequest request,
+			@QueryParam("pId") int pId
+			) { 
+
+		Response response = null;
+		String requestName = "surveyKPI - getReportList";
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(requestName);
+		a.isAuthorised(sd, request.getRemoteUser());
+		if(pId > 0) {
+			a.isValidProject(sd, request.getRemoteUser(), pId);
+		}
+		// End Authorisation			
+		
+		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String tz = "UTC";	// Set default for timezone
+			
+			ActionManager am = new ActionManager(localisation, tz);
+			
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			
+			ArrayList<User> users = am.getTemporaryUsers(sd, o_id, "report", null, pId);
+			ArrayList<HashMap<String, String>> reports = new ArrayList<>();
+			for(User user : users) {
+				HashMap<String, String> report = new HashMap<>();
+				reports.add(report);
+				report.put("id", String.valueOf(user.id));
+				report.put("name", user.action_details.name);
+			}
+			String resp = gson.toJson(reports);
+			response = Response.ok(resp).build();			
+			
+		} catch (Exception e) {
+			
+			log.log(Level.SEVERE,"Error: ", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		    
+		} finally {
+		
+			SDDataSource.closeConnection(requestName, sd);
+		}
+
+		return response;
+	}
+	
 	/*
 	 * Update a report and return a link
 	 */
@@ -83,9 +142,9 @@ public class Reports extends Application {
 			) { 
 		
 		Response response = null;
-		
+		String connectionString = "surveyKPI - Reports - GetLink";
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI - Reports - GetLink");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -146,7 +205,7 @@ public class Reports extends Application {
 			log.log(Level.SEVERE,"Error", e);
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI - Reports - GetLink", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;

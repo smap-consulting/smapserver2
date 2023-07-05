@@ -847,8 +847,9 @@ CREATE TABLE forward (
 	periodic_time time,					-- The time of day a periodic trigger is fired
 	periodic_period text				-- day || week || month || year
 	periodic_day_of_week integer,		-- 0 to 6, Sunday to Saturday for weekly reports
-	periodic_day_of_month integer,		-- Day of the month for monthly reports
-	periodic_month integer				-- Month used for yearly reports
+	periodic_day_of_month integer,		-- Day of the month for monthly and yearly reports
+	periodic_month integer,				-- Month used for yearly reports
+	r_id integer						-- report id
 	);
 ALTER TABLE forward OWNER TO ws;
 CREATE UNIQUE INDEX ForwardDest ON forward(s_id, remote_s_id, remote_host);
