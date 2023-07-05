@@ -883,7 +883,6 @@ public class ActionManager {
 		return response;
 	}
 
-
 	/*
 	 * Get temporary users
 	 */

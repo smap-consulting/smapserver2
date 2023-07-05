@@ -48,6 +48,7 @@ import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -1454,18 +1455,30 @@ public class SubscriberBatch {
 				+ "id,"
 				+ "target,"
 				+ "remote_user,"
-				+ "notify_details "
+				+ "notify_details, "
+				+ "periodic_time, "
+				+ "periodic_period, "
+				+ "periodic_day_of_week, "
+				+ "periodic_day_of_month, "
+				+ "periodic_month, "
+				+ "r_id, "
+				+ ""
 				+ "from forward "
 				+ "where trigger = 'periodic' "
-				+ "and periodic_time > (select last_checked_time from periodic) and periodic_time < ?";
+				+ "and periodic_time > (select last_checked_time from periodic) and periodic_time < ? "
+				+ "and ("
+				+ "(periodic_period = 'daily') "
+				+ "(or periodic_period = 'weekly' and periodic_day_of_week = extract('DOW' from current_date) "
+				+ "(or periodic_period = 'monthly' and periodic_day_of_month = extract('Day' from current_date) "
+				+ "(or periodic_period = 'yearly' and periodic_day_of_month = extract('Day' from current_date) and periodic_month = extract('Month' from current_date) "
+				+ ")";
 		PreparedStatement pstmt = null;
 
 		/*
 		 * Update last checked time
 		 */
 		String sqlUpdate = "update periodic set last_checked_time = ?";
-		PreparedStatement pstmtUpdate = null;
-		
+		PreparedStatement pstmtUpdate = null;		
 		String sqlInsert = "insert into periodic(last_checked_time) values(?)";
 		PreparedStatement pstmtInsert = null;
 		
@@ -1494,9 +1507,20 @@ public class SubscriberBatch {
 			while(rs.next()) {
 				
 				String name = rs.getString("name");
+				int nId = rs.getInt("id");
+				String target = rs.getString("target");
+				String user = rs.getString("remote_user");
+				String notifyDetailsString = rs.getString("notify_details");
+				String period = rs.getString("periodic_period");
+				int week_day = rs.getInt("periodic_day_of_week");
+				int month_day = rs.getInt("periodic_day_of_month");
+				int month = rs.getInt("periodic_month");
+				int r_id = rs.getInt("r_id");
 
-				int oId = 1;	// TODO
+				NotifyDetails nd = gson.fromJson(notifyDetailsString, NotifyDetails.class);
 					
+				int oId = GeneralUtilityMethods.getOrganisationIdForReport(sd, r_id);
+						
 				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
 					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);

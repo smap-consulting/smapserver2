@@ -1330,7 +1330,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the current organisation id for the user 
+	 * Get the organisation id from the organisation name 
 	 */
 	static public int getOrganisationIdfromName(Connection sd, String orgName) throws SQLException {
 
@@ -1359,7 +1359,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the current organisation id for the user 
+	 * Get the organisation name for the user 
 	 */
 	static public String getOrganisationName(Connection sd, String user) throws SQLException {
 
@@ -1406,6 +1406,35 @@ public class GeneralUtilityMethods {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				o_id = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return o_id;
+	}
+	
+	/*
+	 * Get the organisation id for a report
+	 */
+	static public int getOrganisationIdForReport(Connection sd, int rId) throws SQLException {
+
+		int o_id = -1;
+
+		String sql = "select o_id " + 
+				" from users " + 
+				"where id = ? ";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, rId);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				o_id = rs.getInt(1);

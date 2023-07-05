@@ -61,72 +61,11 @@ public class NotificationManager {
 			Logger.getLogger(NotificationManager.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
-
+	
 	private ResourceBundle localisation;
 
 	public NotificationManager(ResourceBundle l) {
 		localisation = l;
-	}
-
-	/*
-	 * Get all Enabled notifications
-	 * Used by Subscriber to do forwarding
-	 */
-	public ArrayList<Notification> getEnabledNotifications(
-			Connection sd, 
-			String trigger,
-			String target,
-			String tz) throws Exception {
-
-		ArrayList<Notification> forwards = new ArrayList<Notification>();	// Results of request
-
-		ResultSet resultSet = null;
-		String sql = "select f.id, "
-				+ "f.s_id, "
-				+ "f.enabled, " +
-				" f.remote_s_id, "
-				+ "f.remote_s_name, "
-				+ "f.remote_host, "
-				+ "f.remote_user, "
-				+ "f.trigger, "
-				+ "f.target, "
-				+ "s.display_name, "
-				+ "f.notify_details, "
-				+ "f.filter, "
-				+ "f.name, "
-				+ "f.tg_id,"
-				+ "f.period,"
-				+ "f.update_survey,"
-				+ "f.update_question,"
-				+ "f.update_value,"
-				+ "f.remote_password,"
-				+ "f.alert_id "
-				+ "from forward f, survey s "
-				+ "where f.s_id = s.s_id "
-				+ "and f.enabled = 'true' "
-				+ "and f.trigger = ? ";
-		PreparedStatement pstmt = null;
-
-		try {
-			if(target.equals("forward")) {
-				sql += " and f.target = 'forward' and f.remote_host is not null";
-			} else if(target.equals("message")) {
-				sql += " and (f.target = 'email' or f.target = 'sms')";
-			} else if(target.equals("document")) {
-				sql += " and f.target = 'document'";
-			}	
-
-			pstmt = sd.prepareStatement(sql);	
-			pstmt.setString(1, trigger);
-			resultSet = pstmt.executeQuery();
-
-			addToList(sd, resultSet, forwards, true, false, tz);
-		} finally {
-			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
-		}
-
-		return forwards;
-
 	}
 
 	/*
