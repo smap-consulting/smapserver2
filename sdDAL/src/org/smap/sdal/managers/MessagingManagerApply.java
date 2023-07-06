@@ -163,7 +163,7 @@ public class MessagingManagerApply {
 					
 					changedResources.put(orm.resourceName, orm);
 					
-				} else if(topic.equals("submission") || topic.equals("cm_alert")) {
+				} else if(topic.equals(NotificationManager.TOPIC_SUBMISSION) || topic.equals(NotificationManager.TOPIC_CM_ALERT)) {
 					/*
 					 * A submission notification is a notification associated with a record of data
 					 */

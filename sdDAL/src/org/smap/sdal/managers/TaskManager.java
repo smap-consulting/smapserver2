@@ -2132,7 +2132,7 @@ public class TaskManager {
 								request.getRemoteUser(),
 								false,		// Not a temporary user if request.getRemoteUser() works
 								actionLink);
-						mm.createMessage(sd, oId, "email_task", "", gson.toJson(taskMsg));					
+						mm.createMessage(sd, oId, NotificationManager.TOPIC_EMAIL_TASK, "", gson.toJson(taskMsg));					
 					}
 				} else {
 					throw new Exception(localisation.getString("email_b"));
@@ -3075,7 +3075,7 @@ public class TaskManager {
 								remoteUser,
 								temporaryUser,
 								link);
-						mm.createMessage(sd, oId, "email_task", "", gson.toJson(taskMsg));
+						mm.createMessage(sd, oId, NotificationManager.TOPIC_EMAIL_TASK, "", gson.toJson(taskMsg));
 					}
 				}
 			}

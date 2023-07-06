@@ -57,6 +57,18 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 public class NotificationManager {
 
+	public static String TOPIC_CM_ALERT = "cm_alert";			// Data: SubmissionMessage
+	public static String TOPIC_SUBMISSION = "submission";		// Data: SubmissionMessage
+	public static String TOPIC_PERIODIC = "periodic";			// Data: PeriodicMessage
+	public static String TOPIC_EMAIL_TASK = "email_task";		// Data: EmailTaskMessage
+	public static String TOPIC_TASK = "task";					// Data: TaskMessage
+	public static String TOPIC_PROJECT = "project";				// Data: ProjectMessage
+	public static String TOPIC_RESOURCE = "resource";			// Data: OrgResourceMessage
+	public static String TOPIC_SURVEY = "survey";				// Data: SurveyMessage
+	public static String TOPIC_USER = "user";					// Data: String: user ident
+	public static String TOPIC_REMINDER = "reminder";			// Data: SubmissionMessage
+	public static String TOPIC_MAILOUT = "mailout";				// Data: MailoutMessage
+	
 	private static Logger log =
 			Logger.getLogger(NotificationManager.class.getName());
 
@@ -647,8 +659,9 @@ public class NotificationManager {
 							remotePassword,
 							nd.pdfTemplateId,
 							nd.survey_case,
-							nd.assign_question);
-					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
+							nd.assign_question
+							);
+					mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 
 					lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
 							localisation.getString("filter_applied")

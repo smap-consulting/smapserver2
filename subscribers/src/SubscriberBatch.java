@@ -66,6 +66,7 @@ import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.PeriodicMessage;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SubmissionMessage;
@@ -1141,7 +1142,8 @@ public class SubscriberBatch {
 						remotePassword,
 						0,
 						null,
-						nd.assign_question);
+						nd.assign_question
+						);
 				
 				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
@@ -1315,7 +1317,7 @@ public class SubscriberBatch {
 							/*
 							 * Record the triggering of the alert
 							 */
-							String details = localisation.getString("cm_alert");
+							String details = localisation.getString(NotificationManager.TOPIC_CM_ALERT);
 							details = details.replace("%s1", alertName);
 							RecordEventManager rem = new RecordEventManager();
 							rem.writeEvent(
@@ -1398,15 +1400,16 @@ public class SubscriberBatch {
 										null,
 										0,
 										nd.survey_case,
-										nd.assign_question);
-													
+										nd.assign_question
+										);
+								
 								MessagingManager mm = new MessagingManager(localisation);
-								mm.createMessage(sd, oId, "cm_alert", "", gson.toJson(subMgr));						
+								mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));						
 							
 								// Write to the log
 								String logMessage = "Notification triggered by alert id " + aId + " for notification: " + nId;
 								if(localisation != null) {
-									logMessage = localisation.getString("cm_alert");
+									logMessage = localisation.getString(NotificationManager.TOPIC_CM_ALERT);
 									logMessage = logMessage.replaceAll("%s1", alertName);
 									logMessage = logMessage.replaceAll("%s2", notificationName);
 								}
@@ -1453,6 +1456,7 @@ public class SubscriberBatch {
 		 */
 		String sql = "select name,"
 				+ "id,"
+				+ "p_id,"
 				+ "target,"
 				+ "remote_user,"
 				+ "notify_details, "
@@ -1508,6 +1512,7 @@ public class SubscriberBatch {
 				
 				String name = rs.getString("name");
 				int nId = rs.getInt("id");
+				int pId = rs.getInt("p_id");
 				String target = rs.getString("target");
 				String user = rs.getString("remote_user");
 				String notifyDetailsString = rs.getString("notify_details");
@@ -1515,11 +1520,11 @@ public class SubscriberBatch {
 				int week_day = rs.getInt("periodic_day_of_week");
 				int month_day = rs.getInt("periodic_day_of_month");
 				int month = rs.getInt("periodic_month");
-				int r_id = rs.getInt("r_id");
+				int rId = rs.getInt("r_id");
 
 				NotifyDetails nd = gson.fromJson(notifyDetailsString, NotifyDetails.class);
 					
-				int oId = GeneralUtilityMethods.getOrganisationIdForReport(sd, r_id);
+				int oId = GeneralUtilityMethods.getOrganisationIdForReport(sd, rId);
 						
 				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
@@ -1531,6 +1536,21 @@ public class SubscriberBatch {
 						localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
 					}
 				}
+				
+				MessagingManager mm = new MessagingManager(localisation);
+				
+				PeriodicMessage msg = new PeriodicMessage(
+						pId,
+						nd.from,
+						nd.subject, 
+						nd.content,
+						nd.attach,
+						nd.emails,
+						target,
+						user,
+						rId);
+				
+				mm.createMessage(sd, oId, NotificationManager.TOPIC_PERIODIC, "", gson.toJson(msg));	
 			}
 			
 			/*
@@ -1676,7 +1696,7 @@ public class SubscriberBatch {
 					locMap.put(surveyIdent, localisation);
 				}
 				MessagingManager mm = new MessagingManager(localisation);
-				mm.createMessage(sd, oId, "mailout", "", gson.toJson(msg));
+				mm.createMessage(sd, oId, NotificationManager.TOPIC_MAILOUT, "", gson.toJson(msg));
 				
 				// record the sending of the notification
 				pstmtSent.setString(1, "https://" + serverName + "/webForm" + link);

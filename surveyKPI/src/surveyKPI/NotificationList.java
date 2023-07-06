@@ -602,7 +602,7 @@ public class NotificationList extends Application {
 					nd.assign_question
 					);
 			MessagingManager mm = new MessagingManager(localisation);
-			mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
+			mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 			
 			response = Response.ok().build();
 			
