@@ -269,7 +269,7 @@ public class MessagingManagerApply {
 								); 
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
-						lm.writeLogOrganisation(sd, o_id, localisation.getString("pn"), LogManager.ERROR, e.getMessage(), 0);
+						lm.writeLogOrganisation(sd, o_id, localisation.getString("pn"), LogManager.NOTIFICATION_ERROR, e.getMessage(), 0);
 					}
 					
 					

@@ -1116,10 +1116,6 @@ public class NotificationManager {
 		String logContent = null;
 
 		boolean writeToMonitor = true;
-		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-
-		SurveyManager sm = new SurveyManager(localisation, "UTC");
-		DataManager dm = new DataManager(localisation, "UTC");
 
 		String userIdent = GeneralUtilityMethods.getUserIdent(sd, msg.reportId);	// Temporary user ident
 		ActionManager am = new ActionManager(localisation, "UTC");		// Time zone should be ignored, real time zone will be retrieved from the action
@@ -1207,7 +1203,7 @@ public class NotificationManager {
 					}
 					error_details += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
 				}
-				writeToLog(sd, organisation.id, msg.pId, 0, notify_details, status, 
+				writeToLog(sd, organisation.id, msg.pId, sId, notify_details, status, 
 						error_details, messageId);
 
 				/*
