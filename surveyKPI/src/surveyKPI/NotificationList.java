@@ -359,16 +359,8 @@ public class NotificationList extends Application {
 		} catch (ApplicationException e) {
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} catch (Exception e) {
-			String msg = e.getMessage();
-			log.info(msg);
-			if(msg == null) {
-				msg = "System Error";
-			}
-			if(msg != null && !msg.contains("forwarded to itself")) {
-				msg = "System Error";
-				log.log(Level.SEVERE,"Error", e);
-			}
-		    response = Response.serverError().entity(msg).build();
+			log.log(Level.SEVERE,"Error", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -436,18 +428,9 @@ public class NotificationList extends Application {
 		    response = Response.serverError().entity("Not authorised").build();
 		} catch (ApplicationException e) {
 		    response = Response.serverError().entity(e.getMessage()).build();
-		} catch (Exception e) {
-			String msg = e.getMessage();
-			log.info(msg);
-			if(msg!= null && !msg.contains("forwarded to itself")) {
-				log.log(Level.SEVERE,"Error", e);
-			} else if(msg == null) {
-				log.log(Level.SEVERE,"Error", e);
-				msg = "System error";
-			} else {
-				msg = "System error";
-			}
-		    response = Response.serverError().entity(msg).build();
+		} catch (Exception e) {	
+			log.log(Level.SEVERE,"Error", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -563,16 +546,13 @@ public class NotificationList extends Application {
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			NotificationManager nm = new NotificationManager(localisation);
 					
 			NotifyDetails nd = n.notifyDetails;
 			int pId = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, n.sIdent);
-			String basePath = GeneralUtilityMethods.getBasePath(request);
-			String serverName = request.getServerName();
 			String scheme = request.getScheme();
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			SubmissionMessage subMsg = new SubmissionMessage(
+					"Immediate",		// Title
 					0,					// Task Id - ignore, only relevant for a reminder
 					n.sIdent,			// Survey Ident
 					null,				// Update Survey
@@ -592,14 +572,13 @@ public class NotificationList extends Application {
 					n.target,
 					request.getRemoteUser(),
 					scheme,
-					serverName,
-					basePath,
 					nd.callback_url,
 					n.remote_user,
 					n.remote_password,
 					0,			// Use default pdfTemplateId TODO make this selectable
 					nd.survey_case,
-					nd.assign_question
+					nd.assign_question,
+					0					// report id
 					);
 			MessagingManager mm = new MessagingManager(localisation);
 			mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
@@ -607,26 +586,14 @@ public class NotificationList extends Application {
 			response = Response.ok().build();
 			
 		} catch (SQLException e) {
-			String msg = e.getMessage();
-			if(msg.contains("forwarddest")) {	// Unique key
-				response = Response.serverError().entity("Duplicate forwarding address").build();
-			} else {
-				response = Response.serverError().entity("SQL Error").build();
-				log.log(Level.SEVERE,"SQL Exception", e);
-			}
+			response = Response.serverError().entity("SQL Error").build();
+			log.log(Level.SEVERE,"SQL Exception", e);
 		} catch (AuthorisationException e) {
 			log.info("Authorisation Exception");
 		    response = Response.serverError().entity("Not authorised").build();
 		} catch (Exception e) {
 			String msg = e.getMessage();
-			log.info(msg);
-			if(msg == null) {
-				msg = "System Error";
-			}
-			if(msg != null && !msg.contains("forwarded to itself")) {
-				msg = "System Error";
-				log.log(Level.SEVERE,"Error", e);
-			}
+			log.log(Level.SEVERE,"Error", e);
 		    response = Response.serverError().entity(msg).build();
 		} finally {
 			

@@ -1,4 +1,4 @@
-package utilities;
+package org.smap.sdal.managers;
 
 /*
 This file is part of SMAP.
@@ -19,9 +19,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -34,8 +31,6 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
@@ -45,8 +40,6 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.QueryGenerator;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.constants.SmapExportTypes;
-import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.QueryManager;
 import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.ColValues;
 import org.smap.sdal.model.OptionDesc;
@@ -78,11 +71,12 @@ public class XLSXReportsManager {
 			Connection sd,
 			Connection cResults,
 			String username,
-			HttpServletRequest request,
-			HttpServletResponse response,
+			String scheme,
+			String serverName,
+			String basePath,
+			OutputStream outputStream,
 			int sId, 
 			String sIdent,
-			String filename, 
 			boolean split_locn, 
 			boolean get_acc_alt,
 			boolean merge_select_multiple,
@@ -104,22 +98,9 @@ public class XLSXReportsManager {
 		HashMap<ArrayList<OptionDesc>, String> labelListMap = new  HashMap<ArrayList<OptionDesc>, String> ();
 		HashMap<String, String> surveyNames = new HashMap<String, String> ();
 
-		log.info("userevent: " + username + " Export " + sId + " as an xlsx file to " + filename + " starting from form " + fId);
+		String urlprefix = scheme + "://" + serverName + "/";		
 
-		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
-
-		lm.writeLog(sd, sId, username, LogManager.VIEW, "Export as: xlsx", 0, request.getServerName());
-
-		String escapedFileName = null;
-		try {
-			escapedFileName = URLDecoder.decode(filename, "UTF-8");
-			escapedFileName = URLEncoder.encode(escapedFileName, "UTF-8");
-		} catch (UnsupportedEncodingException e1) {
-			e1.printStackTrace();
-		}
-
-		escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
-		escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
+		lm.writeLog(sd, sId, username, LogManager.VIEW, "Export as: xlsx", 0, serverName);
 		
 		if(sId != 0) {
 
@@ -151,7 +132,6 @@ public class XLSXReportsManager {
 				 * Create XLSX File
 				 */
 				log.info("####################### Create XLSX file");
-				GeneralUtilityMethods.setFilenameInResponse(filename + "." + "xlsx", response); // Set file name
 				wb = new SXSSFWorkbook(10);		// Serialised output
 				Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 				CellStyle headerStyle = styles.get("header");
@@ -228,9 +208,7 @@ public class XLSXReportsManager {
 						tz,
 						null,			// geomQuestion
 						true,			// Outer join of tables
-						get_acc_alt);
-
-				String basePath = GeneralUtilityMethods.getBasePath(request);					
+						get_acc_alt);				
 				
 				// Populate data sheet
 				rowNumber = 0;		
@@ -528,8 +506,6 @@ public class XLSXReportsManager {
 									
 							}
 							
-							
-							
 							if(item.literacy) {
 								ReadData rd = new ReadData(values.name, false, "int");
 								dataItems.add(rd);
@@ -596,8 +572,8 @@ public class XLSXReportsManager {
 			}  catch (Exception e) {
 				try {cResults.setAutoCommit(true);} catch (Exception ex) {}
 				log.log(Level.SEVERE, "Error", e);
-				response.setHeader("Content-type",  "text/html; charset=UTF-8");
-				lm.writeLog(sd, sId, username, LogManager.ERROR, e.getMessage(), 0, request.getServerName());
+				//response.setHeader("Content-type",  "text/html; charset=UTF-8");
+				lm.writeLog(sd, sId, username, LogManager.ERROR, e.getMessage(), 0, serverName);
 				
 				String msg = e.getMessage();
 				if(msg != null && msg.contains("does not exist")) {
@@ -612,7 +588,6 @@ public class XLSXReportsManager {
 			} finally {	
 
 				try {
-					OutputStream outputStream = response.getOutputStream();
 					wb.write(outputStream);
 					wb.close();
 					outputStream.close();

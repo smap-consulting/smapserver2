@@ -3542,11 +3542,11 @@ public class TaskManager {
 		return instance;
 	}
 	
-	public String fillStringTaskTemplate(TaskProperties task, SubmissionMessage msg, String in) {
+	public String fillStringTaskTemplate(TaskProperties task, SubmissionMessage msg, String in, String serverName) {
 		String out = in;
 
 		StringBuffer taskUrl = new StringBuffer("");
-		taskUrl.append(msg.scheme).append("://").append(msg.server).append("/webForm");
+		taskUrl.append(msg.scheme).append("://").append(serverName).append("/webForm");
 		if(task.action_link != null) {
 			taskUrl.append(task.action_link);
 		} else {

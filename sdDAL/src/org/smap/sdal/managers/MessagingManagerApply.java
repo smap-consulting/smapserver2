@@ -178,7 +178,9 @@ public class MessagingManagerApply {
 								msg,
 								id,
 								topic,
-								true		// create pending if needed
+								true,		// create pending if needed
+								serverName,
+								basePath
 								); 
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
@@ -202,7 +204,9 @@ public class MessagingManagerApply {
 							msg,
 							id,
 							topic,
-							true		// create pending if needed
+							true,		// create pending if needed
+							serverName,
+							basePath
 							); 
 					
 				} else if(topic.equals(NotificationManager.TOPIC_EMAIL_TASK)) {
@@ -242,6 +246,31 @@ public class MessagingManagerApply {
 							serverName,
 							topic,
 							true);		// create pending if needed
+					
+					
+				} else if(topic.equals(NotificationManager.TOPIC_PERIODIC)) {
+					
+					NotificationManager nm = new NotificationManager(localisation);
+					
+					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);	
+						
+					try {
+						nm.processPeriodicNotification(
+								sd, 
+								cResults, 
+								organisation, 
+								tz,
+								msg,
+								id,
+								topic,
+								true,		// create pending if needed
+								serverName,
+								basePath
+								); 
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+						lm.writeLogOrganisation(sd, o_id, localisation.getString("pn"), LogManager.ERROR, e.getMessage(), 0);
+					}
 					
 					
 				} else {
@@ -455,7 +484,9 @@ public class MessagingManagerApply {
 							msg,
 							messageId,
 							topic,
-							false		// Do not create pending
+							false,		// Do not create pending
+							serverName,
+							basePath
 							); 
 					
 				} else if(topic.equals(NotificationManager.TOPIC_REMINDER)) {
@@ -472,7 +503,9 @@ public class MessagingManagerApply {
 							msg,
 							messageId,
 							topic,
-							false		// Do not create pending
+							false,		// Do not create pending
+							serverName,
+							basePath
 							); 
 					
 				} else if(topic.equals(NotificationManager.TOPIC_EMAIL_TASK)) {

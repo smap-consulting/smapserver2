@@ -1,6 +1,8 @@
 package org.smap.sdal.managers;
 
+import java.io.File;
 import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -20,10 +22,12 @@ import org.smap.notifications.interfaces.EmitSMS;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.Action;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.ReportParameters;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.SubscriptionStatus;
 import org.smap.sdal.model.Survey;
@@ -633,6 +637,7 @@ public class NotificationManager {
 								instanceId, tz);
 					}
 					SubmissionMessage subMsg = new SubmissionMessage(
+							"Submission",	// Title
 							0,				// Task Id - ignore, only relevant for a reminder
 							ident,			// Survey Ident
 							updateSurvey,
@@ -652,14 +657,13 @@ public class NotificationManager {
 							target,
 							submittingUser,
 							scheme,
-							serverName,
-							basePath,
 							nd.callback_url,
 							remoteUser,
 							remotePassword,
 							nd.pdfTemplateId,
 							nd.survey_case,
-							nd.assign_question
+							nd.assign_question,
+							0						// Report Id
 							);
 					mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 
@@ -706,7 +710,9 @@ public class NotificationManager {
 			SubmissionMessage msg,
 			int messageId,
 			String topic,
-			boolean createPending) throws Exception {
+			boolean createPending,
+			String serverName,
+			String basePath) throws Exception {
 
 		String docURL = null;
 		String filePath = null;
@@ -725,7 +731,7 @@ public class NotificationManager {
 		DataManager dm = new DataManager(localisation, "UTC");
 		int surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
 
-		Survey survey = sm.getById(sd, cResults, null, false, surveyId, true, msg.basePath, 
+		Survey survey = sm.getById(sd, cResults, null, false, surveyId, true, basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson",
 				msg.include_references,	// For PDFs follow links to referenced surveys
@@ -736,7 +742,7 @@ public class NotificationManager {
 		Survey updateSurvey = null;
 		if(msg.update_ident != null) {
 			int oversightId = GeneralUtilityMethods.getSurveyId(sd, msg.update_ident);
-			updateSurvey = sm.getById(sd, cResults, null, false, oversightId, true, msg.basePath, 
+			updateSurvey = sm.getById(sd, cResults, null, false, oversightId, true, basePath, 
 					msg.instanceId, true, generateBlank, true, false, true, "real", 
 					false, false, true, "geojson",
 					msg.include_references,		// For PDFs follow links to referenced surveys
@@ -769,7 +775,7 @@ public class NotificationManager {
 				tm.createTextOutput(sd,
 						cResults,
 						text,
-						msg.basePath, 
+						basePath, 
 						msg.user,
 						survey,
 						"none",
@@ -779,7 +785,7 @@ public class NotificationManager {
 					tm.createTextOutput(sd,
 							cResults,
 							text,
-							msg.basePath, 
+							basePath, 
 							msg.user,
 							updateSurvey,
 							"none",
@@ -794,7 +800,7 @@ public class NotificationManager {
 						docURL = null;
 
 						// Create temporary PDF and get file name
-						filePath = msg.basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";
+						filePath = basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";
 						FileOutputStream outputStream = null;
 						try {
 							outputStream = new FileOutputStream(filePath); 
@@ -809,11 +815,11 @@ public class NotificationManager {
 							msg.attach = "pdf";
 						}
 
-						String urlprefix = "https://" + msg.server + "/";
+						String urlprefix = "https://" + serverName + "/";
 
 						filename = pm.createPdf(
 								outputStream,
-								msg.basePath, 
+								basePath, 
 								urlprefix,
 								msg.user,
 								"none", 
@@ -826,7 +832,7 @@ public class NotificationManager {
 						outputStream.close();
 						if(survey.compress_pdf) {
 							// Compress the temporary file and write it toa new temporary file
-							String compressedPath = msg.basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";	// New temporary file
+							String compressedPath = basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";	// New temporary file
 							try {
 								outputStream = new FileOutputStream(compressedPath); 
 							} catch (Exception e) {
@@ -853,8 +859,8 @@ public class NotificationManager {
 				error_details = null;				// Notification log
 				if(msg.target.equals("email")) {
 					
-					SendEmailResponse resp = sendEmails(sd, cResults, msg, organisation, surveyId, logContent, docURL, survey, unsubscribedList,
-							filePath, filename, messageId, createPending, topic);
+					SendEmailResponse resp = sendEmails(sd, cResults, msg, organisation, surveyId, logContent, docURL, survey.displayName, unsubscribedList,
+							filePath, filename, messageId, createPending, topic, msg.user, serverName);
 					
 					notify_details = resp.notify_details;
 					status = resp.status;
@@ -1018,8 +1024,8 @@ public class NotificationManager {
 					/*
 					 * Send emails associated with this escalation
 					 */
-					sendEmails(sd, cResults, msg, organisation, surveyId, logContent, docURL, survey, unsubscribedList,
-							filePath, filename, messageId, createPending, topic);
+					sendEmails(sd, cResults, msg, organisation, surveyId, logContent, docURL, survey.displayName, unsubscribedList,
+							filePath, filename, messageId, createPending, topic, msg.user, serverName);
 					
 				} else {
 					status = "error";
@@ -1089,6 +1095,140 @@ public class NotificationManager {
 		}
 	}
 
+	/*
+	 * Process a notification that was triggered by a periodic timer
+	 * No survey data is available, these generate reports
+	 */
+	public void processPeriodicNotification(Connection sd, 
+			Connection cResults, 
+			Organisation organisation,
+			String tz,
+			SubmissionMessage msg,
+			int messageId,
+			String topic,
+			boolean createPending,
+			String serverName,
+			String basePath) throws Exception {
+
+		String docURL = null;
+		String filePath = null;
+		String filename = "instance";
+		String logContent = null;
+
+		boolean writeToMonitor = true;
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
+		SurveyManager sm = new SurveyManager(localisation, "UTC");
+		DataManager dm = new DataManager(localisation, "UTC");
+
+		String userIdent = GeneralUtilityMethods.getUserIdent(sd, msg.reportId);	// Temporary user ident
+		ActionManager am = new ActionManager(localisation, "UTC");		// Time zone should be ignored, real time zone will be retrieved from the action
+		Action a = am.getAction(sd, userIdent);
+		ReportParameters p = new ReportParameters();
+		p.setParameters(a.parameters);	
+		int sId = GeneralUtilityMethods.getSurveyId(sd, a.surveyIdent);
+		
+		File file = new File(basePath + "/temp/periodic_" + UUID.randomUUID() + ".xlsx");
+		filePath = file.getAbsolutePath();
+		OutputStream outputStream = new FileOutputStream(file);
+		
+		XLSXReportsManager rm = new XLSXReportsManager(localisation);
+		rm.getNewReport(
+				sd,
+				cResults,
+				userIdent,
+				"https:",
+				serverName,
+				basePath,
+				outputStream,
+				sId,
+				a.surveyIdent,
+				p.split_locn,
+				p.meta,		// Get altitude and location
+				p.merge_select_multiple,
+				p.language,
+				p.exp_ro,
+				p.embedImages,
+				p.excludeParents,
+				p.hxl,
+				p.fId,
+				p.startDate,
+				p.endDate,
+				p.dateId,
+				p.filter,
+				p.meta,
+				p.tz);		// Use the report time zone
+
+		try {
+
+			// Notification log
+			ArrayList<String> unsubscribedList  = new ArrayList<> ();
+			String error_details = null;
+			String notify_details = null;
+			String status = null;
+
+			if(organisation.can_notify) {
+
+
+				/*
+				 * Send document to target
+				 */
+				status = "success";					// Notification log
+				notify_details = null;				// Notification log
+				error_details = null;				// Notification log
+				if(msg.target.equals("email")) {
+					
+					SendEmailResponse resp = sendEmails(sd, cResults, msg, organisation, sId, logContent, docURL, msg.title, unsubscribedList,
+							filePath, filename, messageId, createPending, topic, msg.user, serverName);
+					
+					notify_details = resp.notify_details;
+					status = resp.status;
+					error_details = resp.error_details;
+					writeToMonitor = resp.writeToMonitor;
+					
+				} else {
+					status = "error";
+					error_details = "Invalid target: " + msg.target;
+					log.log(Level.SEVERE, "Error: Invalid target" + msg.target);
+				}
+
+			} else {
+				notify_details = organisation.name;
+				status = "error";
+				error_details = localisation.getString("susp_notify");
+				log.log(Level.SEVERE, "Error: notification services suspended");
+			}
+
+			// Write log message
+			if(writeToMonitor) {
+				if(!unsubscribedList.isEmpty()) {
+					if(error_details == null) {
+						error_details = "";
+					}
+					error_details += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
+				}
+				writeToLog(sd, organisation.id, msg.pId, 0, notify_details, status, 
+						error_details, messageId);
+
+				/*
+				 * Write log entry
+				 */
+				String logTopic;
+				if(status != null && status.toLowerCase().equals("error")) {
+					logTopic = LogManager.NOTIFICATION_ERROR;
+				} else {
+					logTopic = LogManager.NOTIFICATION;
+				}
+
+				lm.writeLog(sd, 0, "subscriber", logTopic, status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null);
+			}
+
+
+
+		} finally {
+
+		}
+	}
 
 	/*
 	 * Process a reminder
@@ -1102,7 +1242,9 @@ public class NotificationManager {
 			SubmissionMessage msg,
 			int messageId,
 			String topic,
-			boolean createPending) throws Exception {
+			boolean createPending,
+			String serverName,
+			String basePath) throws Exception {
 
 		String logContent = null;
 
@@ -1114,7 +1256,7 @@ public class NotificationManager {
 		PreparedStatement pstmtGetSMSUrl = null;
 
 
-		String urlprefix = msg.scheme + "://" + msg.server;
+		String urlprefix = msg.scheme + "://" + serverName;
 		TaskManager tm = new TaskManager(localisation, tz);
 		TaskListGeoJson t = tm.getTasks(
 				sd, 
@@ -1149,7 +1291,7 @@ public class NotificationManager {
 			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 
-			Survey survey = sm.getById(sd, cResults, null, false, surveyId, true, msg.basePath, 
+			Survey survey = sm.getById(sd, cResults, null, false, surveyId, true, basePath, 
 					msg.instanceId, true, false, true, false, true, "real", 
 					false, false, true, "geojson",
 					msg.include_references,	// For PDFs follow links to referenced surveys
@@ -1159,8 +1301,8 @@ public class NotificationManager {
 
 			if(organisation.can_notify) {
 
-				msg.subject = tm.fillStringTaskTemplate(task, msg, msg.subject);
-				msg.content = tm.fillStringTaskTemplate(task, msg, msg.content);
+				msg.subject = tm.fillStringTaskTemplate(task, msg, msg.subject, serverName);
+				msg.content = tm.fillStringTaskTemplate(task, msg, msg.content, serverName);
 
 				/*
 				 * Send document to target
@@ -1182,7 +1324,7 @@ public class NotificationManager {
 							if(msg.subject != null && msg.subject.trim().length() > 0) {
 								subject = msg.subject;
 							} else {
-								if(msg.server != null && msg.server.contains("smap")) {
+								if(serverName != null && serverName.contains("smap")) {
 									subject = "Smap ";
 								}
 								subject += localisation.getString("c_notify");
@@ -1238,7 +1380,7 @@ public class NotificationManager {
 													organisation.getAdminEmail(), 
 													emailServer,
 													msg.scheme,
-													msg.server,
+													serverName,
 													subStatus.emailKey,
 													localisation,
 													organisation.server_description,
@@ -1257,7 +1399,7 @@ public class NotificationManager {
 													subStatus.emailKey,
 													createPending,
 													msg.scheme,
-													msg.server,
+													serverName,
 													messageId);
 										}
 									}
@@ -1476,18 +1618,20 @@ public class NotificationManager {
 	private SendEmailResponse sendEmails(Connection sd, Connection cResults, SubmissionMessage msg, Organisation organisation, int surveyId, 
 			String logContent,
 			String docURL,
-			Survey survey,
+			String name,
 			ArrayList<String> unsubscribedList,
 			String filePath,
 			String filename,
 			int messageId,
 			boolean createPending,
-			String topic) throws Exception {
+			String topic,
+			String user,
+			String serverName) throws Exception {
 		
-		SendEmailResponse resp = new SendEmailResponse();;
+		SendEmailResponse resp = new SendEmailResponse();
 		
 		MessagingManager mm = new MessagingManager(localisation);
-		EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user, organisation.id);
+		EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, user, organisation.id);
 		if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 			String emails = getEmails(sd, cResults, surveyId, msg);
 			
@@ -1500,7 +1644,7 @@ public class NotificationManager {
 				if(msg.subject != null && msg.subject.trim().length() > 0) {
 					subject = msg.subject;
 				} else {
-					if(msg.server != null && msg.server.contains("smap")) {
+					if(serverName != null && serverName.contains("smap")) {
 						subject = "Smap ";
 					}
 					subject += localisation.getString("c_notify");
@@ -1518,7 +1662,7 @@ public class NotificationManager {
 				} else {
 					content = new StringBuilder(localisation.getString("email_ian"))
 							.append(" " + msg.scheme + "://")
-							.append(msg.server)
+							.append(serverName)
 							.append(". ");
 				}
 
@@ -1526,10 +1670,10 @@ public class NotificationManager {
 					content.append("<p style=\"color:blue;text-align:center;\">")
 					.append("<a href=\"")
 					.append(msg.scheme + "://")
-					.append(msg.server)
+					.append(serverName)
 					.append(docURL)
 					.append("\">")
-					.append(survey.displayName)
+					.append(name)
 					.append("</a>")
 					.append("</p>");
 				}
@@ -1541,8 +1685,8 @@ public class NotificationManager {
 				} else {
 					resp.notify_details = resp.notify_details.replaceAll("%s2", "-");
 				}
-				resp.notify_details = resp.notify_details.replaceAll("%s3", survey.displayName);
-				resp.notify_details = resp.notify_details.replaceAll("%s4", survey.projectName);
+				resp.notify_details = resp.notify_details.replaceAll("%s3", name);
+				resp.notify_details = resp.notify_details.replaceAll("%s4", name);
 
 				log.info("+++ emailing to: " + emails + " docUrl: " + logContent + 
 						" from: " + from + 
@@ -1568,7 +1712,7 @@ public class NotificationManager {
 										filePath,
 										filename,
 										emailServer,
-										msg.server,
+										serverName,
 										subStatus.emailKey,
 										localisation,
 										null,
@@ -1589,7 +1733,7 @@ public class NotificationManager {
 										subStatus.emailKey,
 										createPending,
 										msg.scheme,
-										msg.server,
+										serverName,
 										messageId);
 								log.info("#########: Email " + ia.getAddress() + " saved to pending while waiting for optin");
 

@@ -66,7 +66,6 @@ import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.PeriodicMessage;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SubmissionMessage;
@@ -1116,6 +1115,7 @@ public class SubscriberBatch {
 				
 				// Send the reminder
 				SubmissionMessage subMgr = new SubmissionMessage(
+						"reminder title",	// todo
 						tId,
 						sourceSurveyIdent,
 						null,
@@ -1135,14 +1135,13 @@ public class SubscriberBatch {
 						target,
 						remoteUser,
 						"https",
-						serverName,
-						basePath,
 						nd.callback_url,
 						remoteUser,
 						remotePassword,
 						0,
 						null,
-						nd.assign_question
+						nd.assign_question,
+						0						// report id
 						);
 				
 				ResourceBundle localisation = locMap.get(oId);
@@ -1374,6 +1373,7 @@ public class SubscriberBatch {
 								String user = notrs.getString("remote_user");
 								
 								SubmissionMessage subMgr = new SubmissionMessage(
+										"Case Management",		// TODO title
 										0,
 										groupSurveyIdent,
 										null,
@@ -1393,14 +1393,13 @@ public class SubscriberBatch {
 										target,
 										user,
 										"https",
-										serverName,
-										basePath,
 										nd.callback_url,
 										user,
 										null,
 										0,
 										nd.survey_case,
-										nd.assign_question
+										nd.assign_question,
+										0						// report id
 										);
 								
 								MessagingManager mm = new MessagingManager(localisation);
@@ -1458,7 +1457,6 @@ public class SubscriberBatch {
 				+ "id,"
 				+ "p_id,"
 				+ "target,"
-				+ "remote_user,"
 				+ "notify_details, "
 				+ "periodic_time, "
 				+ "periodic_period, "
@@ -1514,7 +1512,6 @@ public class SubscriberBatch {
 				int nId = rs.getInt("id");
 				int pId = rs.getInt("p_id");
 				String target = rs.getString("target");
-				String user = rs.getString("remote_user");
 				String notifyDetailsString = rs.getString("notify_details");
 				String period = rs.getString("periodic_period");
 				int week_day = rs.getInt("periodic_day_of_week");
@@ -1539,15 +1536,33 @@ public class SubscriberBatch {
 				
 				MessagingManager mm = new MessagingManager(localisation);
 				
-				PeriodicMessage msg = new PeriodicMessage(
+				SubmissionMessage msg = new SubmissionMessage(
+						name,			// title
+						0,				// task id
+						null,			// Survey ident
+						null,			// Update ident
 						pId,
+						null,			// instance id
 						nd.from,
 						nd.subject, 
 						nd.content,
 						nd.attach,
-						nd.emails,
+						false,			// include references (not used)
+						false,			// launched only (not used)
+						0,				// email question (deprecated)
+						null,			// email question name
+						null,			// email meta
+						false,			// email assigned (not used)
+						nd.emails,		// Email addresses
 						target,
-						user,
+						null,
+						"https",		// scheme
+						null,			// callback URL
+						null,			// remote user
+						null,			// remote password
+						0,				// PDF template ID
+						null,			// Survey case
+						null,			// Assign Question
 						rId);
 				
 				mm.createMessage(sd, oId, NotificationManager.TOPIC_PERIODIC, "", gson.toJson(msg));	
