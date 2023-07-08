@@ -464,10 +464,10 @@ public class NotificationList extends Application {
 		try {
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
 			
 			ResultSet resultSet = null;
-			String sql = "select s_id " +
+			String sql = "select s_id, p_id " +
 					" from forward " +
 					" where id = ?";
 			
@@ -478,8 +478,14 @@ public class NotificationList extends Application {
 			resultSet = pstmt.executeQuery();
 			if(resultSet.next()) {
 				int sId = resultSet.getInt(1);
-				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-				a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+				int pId = resultSet.getInt(2);
+				
+				if(sId > 0) {
+					superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+					a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+				} else {
+					a.isValidProject(sd, request.getRemoteUser(), pId);
+				}
 				NotificationManager fm = new NotificationManager(localisation);
 				fm.deleteNotification(sd, request.getRemoteUser(), id);
 			}

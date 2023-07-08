@@ -1463,16 +1463,15 @@ public class SubscriberBatch {
 				+ "periodic_day_of_week, "
 				+ "periodic_day_of_month, "
 				+ "periodic_month, "
-				+ "r_id, "
-				+ ""
+				+ "r_id "
 				+ "from forward "
 				+ "where trigger = 'periodic' "
 				+ "and periodic_time > (select last_checked_time from periodic) and periodic_time < ? "
 				+ "and ("
 				+ "(periodic_period = 'daily') "
-				+ "(or periodic_period = 'weekly' and periodic_day_of_week = extract('DOW' from current_date) "
-				+ "(or periodic_period = 'monthly' and periodic_day_of_month = extract('Day' from current_date) "
-				+ "(or periodic_period = 'yearly' and periodic_day_of_month = extract('Day' from current_date) and periodic_month = extract('Month' from current_date) "
+				+ "or (periodic_period = 'weekly' and periodic_day_of_week = extract('DOW' from current_date)) "
+				+ "or (periodic_period = 'monthly' and periodic_day_of_month = extract('Day' from current_date)) "
+				+ "or (periodic_period = 'yearly' and periodic_day_of_month = extract('Day' from current_date) and periodic_month = extract('Month' from current_date)) "
 				+ ")";
 		PreparedStatement pstmt = null;
 
