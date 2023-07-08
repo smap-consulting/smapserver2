@@ -7139,65 +7139,6 @@ public class GeneralUtilityMethods {
 
 		return localDate;
 	}
-	
-	/*
-	 * Convert a time to UTC time
-	 */
-	public static Time convertTimeUtc(String time, String tz) throws Exception {
-
-		Time t = null;
-
-		if(time != null) {
-			String[] tComp = time.split(":");
-			int hour = 0;
-			int minute = 0;
-			if(tComp.length > 1) {
-				hour = Integer.valueOf(tComp[0]);
-				minute = Integer.valueOf(tComp[1]);
-			} else {
-				throw new Exception("Invalid time format: " + time);
-			}
-			
-			// Get local zoned date time
-			LocalDate localDate = LocalDate.now();
-			LocalTime localTime = LocalTime.of(hour, minute);
-			ZoneId localZoneId = TimeZone.getTimeZone(tz).toZoneId();
-			ZonedDateTime lZdt = ZonedDateTime.of(localDate, localTime, localZoneId);
-			
-			// Convert to utc zoned date time
-			ZoneId utcZoneId = TimeZone.getTimeZone("UTC").toZoneId();
-			ZonedDateTime utcZdt = lZdt.withZoneSameInstant(utcZoneId);
-			
-			log.info("^^^^^^^^^^^^^^^^ Local: " + lZdt +  " UTC: " + utcZdt);
-			
-			t = Time.valueOf(utcZdt.toLocalTime());
-		}
-		
-		return t;
-	}
-	
-	/*
-	 * Convert a time to UTC time
-	 */
-	public static String convertTimeLocal(Time time, String tz) throws Exception {
-
-		String t = null;
-		
-		if(time != null) {
-			Calendar cal = new GregorianCalendar();
-			cal.setTimeZone(TimeZone.getTimeZone("UTC"));
-			cal.setTime(time);
-			
-			TimeZone timeZone = TimeZone.getTimeZone(tz);
-			ZoneId zoneId = timeZone.toZoneId();	
-			
-			LocalTime localTime = LocalTime.ofInstant(cal.toInstant(), zoneId);		
-			
-			t = String.format("%02d", localTime.getHour()) + ":" + String.format("%02d", localTime.getMinute());
-		}
-		
-		return t;
-	}
 
 	/*
 	 * Update the survey version

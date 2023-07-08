@@ -27,6 +27,7 @@ import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.PeriodicTime;
 import org.smap.sdal.model.ReportParameters;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.SubscriptionStatus;
@@ -128,8 +129,11 @@ public class NotificationManager {
 		/*
 		 * Periodic Values
 		 */
+		PeriodicTime pt = new PeriodicTime(tz);
+		pt.setLocalTime(n.periodic_time);
+		
 		pstmt.setInt(19, n.p_id);
-		pstmt.setTime(20, GeneralUtilityMethods.convertTimeUtc(n.periodic_time, tz));
+		pstmt.setTime(20, pt.getUtcTime());
 		pstmt.setString(21, n.periodic_period);
 		pstmt.setInt(22, n.periodic_week_day);
 		pstmt.setInt(23, n.periodic_month_day);
@@ -234,8 +238,14 @@ public class NotificationManager {
 		/*
 		 * Periodic Values
 		 */
+		/*
+		 * Periodic Values
+		 */
+		PeriodicTime pt = new PeriodicTime(tz);
+		pt.setLocalTime(n.periodic_time);
+		
 		pstmt.setInt(idx++, n.p_id);
-		pstmt.setTime(idx++, GeneralUtilityMethods.convertTimeUtc(n.periodic_time, tz));
+		pstmt.setTime(idx++, pt.getUtcTime());
 		pstmt.setString(idx++, n.periodic_period);
 		pstmt.setInt(idx++, n.periodic_week_day);
 		pstmt.setInt(idx++, n.periodic_month_day);
@@ -464,7 +474,11 @@ public class NotificationManager {
 			n.alert_id = resultSet.getInt("alert_id");
 			n.alert_name = resultSet.getString("alert_name");
 			n.p_id = resultSet.getInt("p_id");
-			n.periodic_time = GeneralUtilityMethods.convertTimeLocal(resultSet.getTime("periodic_time"), tz);
+			
+			PeriodicTime pt = new PeriodicTime(tz);
+			pt.setUtcTime(resultSet.getTime("periodic_time"));
+			
+			n.periodic_time = pt.getLocalTime();
 			n.periodic_period = resultSet.getString("periodic_period");
 			n.periodic_week_day = resultSet.getInt("periodic_day_of_week");
 			n.periodic_month_day = resultSet.getInt("periodic_day_of_month");
