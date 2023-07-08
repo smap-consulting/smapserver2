@@ -33,11 +33,13 @@ import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -7144,12 +7146,8 @@ public class GeneralUtilityMethods {
 	public static Time convertTimeUtc(String time, String tz) throws Exception {
 
 		Time t = null;
-		
+
 		if(time != null) {
-			Calendar utcCal = new GregorianCalendar();
-			TimeZone timeZone = TimeZone.getTimeZone(tz);
-			utcCal.setTimeZone(timeZone);
-			utcCal.setTime(new Timestamp(System.currentTimeMillis()));
 			String[] tComp = time.split(":");
 			int hour = 0;
 			int minute = 0;
@@ -7159,15 +7157,20 @@ public class GeneralUtilityMethods {
 			} else {
 				throw new Exception("Invalid time format: " + time);
 			}
-			utcCal.set(Calendar.HOUR, hour);
-			utcCal.set(Calendar.MINUTE, minute);
-			utcCal.set(Calendar.SECOND, 0);
 			
-			TimeZone utcTimeZone = TimeZone.getTimeZone("UTC");
-			ZoneId utcZoneId = utcTimeZone.toZoneId();	
+			// Get local zoned date time
+			LocalDate localDate = LocalDate.now();
+			LocalTime localTime = LocalTime.of(hour, minute);
+			ZoneId localZoneId = TimeZone.getTimeZone(tz).toZoneId();
+			ZonedDateTime lZdt = ZonedDateTime.of(localDate, localTime, localZoneId);
 			
-			LocalTime localTime = LocalTime.ofInstant(utcCal.toInstant(), utcZoneId);		 
-			t = Time.valueOf(localTime);
+			// Convert to utc zoned date time
+			ZoneId utcZoneId = TimeZone.getTimeZone("UTC").toZoneId();
+			ZonedDateTime utcZdt = lZdt.withZoneSameInstant(utcZoneId);
+			
+			log.info("^^^^^^^^^^^^^^^^ Local: " + lZdt +  " UTC: " + utcZdt);
+			
+			t = Time.valueOf(utcZdt.toLocalTime());
 		}
 		
 		return t;
