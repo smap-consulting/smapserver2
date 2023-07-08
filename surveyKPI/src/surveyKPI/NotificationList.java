@@ -181,120 +181,6 @@ public class NotificationList extends Application {
 
 	}
 	
-	
-	/*
-	 * Get remote surveys that can be used as the target of a forward
-	 */
-	@Path("/getRemoteSurveys")
-	@POST
-	public Response getRemoteSurveys(@Context HttpServletRequest request,
-			@FormParam("remote") String remoteString) { 
-		
-		Response response = null;
-		
-		Type type = new TypeToken<Remote>(){}.getType();
-		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-		Remote r = gson.fromJson(remoteString, type);
-
-		if(r == null) {
-			response = Response.serverError().entity("Details for remote server not provided").build();
-			return response;
-		}
-		
-		// Remove trailing slashes
-		if(r.address.endsWith("/")) {
-			r.address = r.address.substring(0, r.address.length() -1);
-		}
-		
-		String host = null;
-		String protocol = null;
-		int port;
-		if(r.address.startsWith("https://")) {
-			host = r.address.substring(8);
-			port = 443;
-			protocol = "https";
-		} else if(r.address.startsWith("http://")) {
-			host = r.address.substring(7);
-			port = 80;
-			protocol = "http";
-		} else {
-			response = Response.serverError().entity("Invalid server address: " + r.address).build();
-			return response;
-		}
-		
-		/*
-		 * Call formList on remote host
-		 */
-		try {
-		
-			HttpHost target = new HttpHost(host, port, protocol);
-		    CredentialsProvider credsProvider = new BasicCredentialsProvider();
-		    credsProvider.setCredentials(
-		                new AuthScope(target.getHostName(), target.getPort()),
-		                new UsernamePasswordCredentials(r.user, r.password));
-		    CloseableHttpClient httpclient = HttpClients.custom()
-		                .setDefaultCredentialsProvider(credsProvider)
-		                .build();
-
-            HttpClientContext localContext = HttpClientContext.create();
-		    
-			HttpGet httpget = new HttpGet(r.address + "/formList");
-			httpget.addHeader("accept", "text/xml");
-			httpget.addHeader("X-OpenRosa-Version", "1.1");
-			
-			log.info("Executing request " + httpget.getRequestLine() + " to target " + target);
-          
-			XformsJavaRosa fList = null;
-			String resp = null;
-            CloseableHttpResponse rem_response = httpclient.execute(target, httpget, localContext);
-            int status = rem_response.getStatusLine().getStatusCode();
-            if (status >= 200 && status < 300) {
-	            HttpEntity entity = rem_response.getEntity();
-	            if(entity != null) {
-	            	JAXBContext ctx = JAXBContext.newInstance(XformsJavaRosa.class);
-	            	
-	            	String rs = EntityUtils.toString(entity,"UTF8");
-	          
-	        		Unmarshaller um = ctx.createUnmarshaller();
-	        		um.setEventHandler(new javax.xml.bind.helpers.DefaultValidationEventHandler());
-	        		fList =  (XformsJavaRosa) um.unmarshal(new StringReader(rs));
-	        		
-	        		
-	            }
-            } else if (status == 401 ){
-            	throw new AuthorisationException();
-            } else {
-            	throw new ClientProtocolException("Failed : HTTP error code : "
-      				   + rem_response.getStatusLine().getStatusCode());
-            }
-                
-            if(fList != null) {
-            	log.info("Length: " + fList.xform.size());
-				Gson gsonResp = new GsonBuilder().disableHtmlEscaping().create();
-				resp = gsonResp.toJson(fList.xform);
-            }
-			
-			response = Response.ok(resp).build();
-			
-		} catch (ClientProtocolException e) {
-			log.log(Level.SEVERE,"Client Protocol Exception", e);
-			response = Response.serverError().entity(e.getMessage()).build();
-		} catch (IOException e) {
-			log.log(Level.SEVERE,"IO Exception", e);
-			response = Response.serverError().entity(e.getMessage()).build();
-		} catch (JAXBException e) {
-			log.log(Level.SEVERE,"JAXB Exception", e);
-			response = Response.serverError().entity(e.getMessage()).build();
-		} catch (AuthorisationException e) {
-			log.log(Level.SEVERE,"Authorisation Exception", e);
-			response = Response.status(500).entity("Unauthorised").build();	// Don't return a status of 401 as it will log the user out of their local server
-		} catch (Exception e) {
-			response = Response.serverError().entity(e.getMessage()).build();
-		}
-		
-		return response;
-	}
-	
 	/*
 	 * Add a notifications
 	 */
@@ -346,13 +232,8 @@ public class NotificationList extends Application {
 			response = Response.ok().build();
 			
 		} catch (SQLException e) {
-			String msg = e.getMessage();
-			if(msg.contains("forwarddest")) {	// Unique key
-				response = Response.serverError().entity("Duplicate forwarding address").build();
-			} else {
-				response = Response.serverError().entity("SQL Error").build();
-				log.log(Level.SEVERE,"SQL Exception", e);
-			}
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"SQL Exception", e);
 		} catch (AuthorisationException e) {
 			log.info("Authorisation Exception");
 		    response = Response.serverError().entity("Not authorised").build();
