@@ -1145,7 +1145,7 @@ public class NotificationManager {
 
 		String docURL = null;
 		String filePath = null;
-		String filename = "instance";
+		String filename = msg.title + ".xlsx";
 		String logContent = null;
 
 		boolean writeToMonitor = true;
@@ -1197,7 +1197,6 @@ public class NotificationManager {
 			String status = null;
 
 			if(organisation.can_notify) {
-
 
 				/*
 				 * Send document to target
