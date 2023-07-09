@@ -33,6 +33,7 @@ public class SubmissionMessage {
 	public String remoteUser;
 	public String remotePassword;
 	public int pdfTemplateId;
+	public String period;
 	public int reportId;
 	
 	public SubmissionMessage(
@@ -62,6 +63,7 @@ public class SubmissionMessage {
 			int pdfTemplateId,
 			String survey_case,
 			String assignQuestion,
+			String period,
 			int reportId) {
 		
 		this.title = title;
@@ -90,6 +92,7 @@ public class SubmissionMessage {
 		this.pdfTemplateId = pdfTemplateId;
 		this.survey_case = survey_case;
 		this.assignQuestion = assignQuestion;
+		this.period = period;
 		this.reportId = reportId;
 	}
 	
@@ -125,6 +128,7 @@ public class SubmissionMessage {
 		this.pdfTemplateId = orig.pdfTemplateId;
 		this.survey_case = orig.survey_case;
 		this.assignQuestion = orig.assignQuestion;
+		this.period = orig.period;
 		this.reportId = orig.reportId;
 	}
 	

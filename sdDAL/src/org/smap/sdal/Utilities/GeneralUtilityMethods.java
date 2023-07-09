@@ -2444,6 +2444,36 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
+	 * Get the survey project name from the survey id
+	 */
+	static public String getProjectNameFromSurvey(Connection sd, int surveyId) throws SQLException {
+
+		String name = null;
+
+		String sql = "select p. name "
+				+ "from project p, survey s "
+				+ "where s.s_id = ? "
+				+ "and s.p_id = p.id";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, surveyId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				name = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return name;
+	}
+	
+	/*
 	 * Get the survey project id from the survey ident
 	 */
 	static public int getProjectIdFromSurveyIdent(Connection sd, String sIdent) throws SQLException {

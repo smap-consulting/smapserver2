@@ -51,8 +51,7 @@ public class PeriodicTime {
 		// Get local zoned date time
 		LocalDate localDate = LocalDate.now();
 		LocalTime localTime = LocalTime.of(hour, minute);
-		ZoneId localZoneId = TimeZone.getTimeZone(tz).toZoneId();
-		lZdt = ZonedDateTime.of(localDate, localTime, localZoneId);
+		lZdt = ZonedDateTime.of(localDate, localTime, TimeZone.getTimeZone(tz).toZoneId());
 		
 		// weekday
 		this.localWeekday = weekday;

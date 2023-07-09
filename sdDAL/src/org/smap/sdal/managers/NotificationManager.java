@@ -4,13 +4,18 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,6 +27,7 @@ import org.smap.notifications.interfaces.EmitSMS;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Notification;
@@ -696,6 +702,7 @@ public class NotificationManager {
 							nd.pdfTemplateId,
 							nd.survey_case,
 							nd.assign_question,
+							null,					// Report Period
 							0						// Report Id
 							);
 					mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
@@ -893,7 +900,8 @@ public class NotificationManager {
 				if(msg.target.equals("email")) {
 					
 					SendEmailResponse resp = sendEmails(sd, cResults, msg, organisation, surveyId, logContent, docURL, survey.displayName, unsubscribedList,
-							filePath, filename, messageId, createPending, topic, msg.user, serverName);
+							filePath, filename, messageId, createPending, topic, msg.user, serverName, 
+							survey.displayName, survey.projectName);
 					
 					notify_details = resp.notify_details;
 					status = resp.status;
@@ -1058,7 +1066,8 @@ public class NotificationManager {
 					 * Send emails associated with this escalation
 					 */
 					sendEmails(sd, cResults, msg, organisation, surveyId, logContent, docURL, survey.displayName, unsubscribedList,
-							filePath, filename, messageId, createPending, topic, msg.user, serverName);
+							filePath, filename, messageId, createPending, topic, msg.user, serverName,
+							survey.displayName, survey.projectName);
 					
 				} else {
 					status = "error";
@@ -1156,11 +1165,27 @@ public class NotificationManager {
 		ReportParameters p = new ReportParameters();
 		p.setParameters(a.parameters);	
 		int sId = GeneralUtilityMethods.getSurveyId(sd, a.surveyIdent);
-		
+
 		File file = new File(basePath + "/temp/periodic_" + UUID.randomUUID() + ".xlsx");
 		filePath = file.getAbsolutePath();
 		OutputStream outputStream = new FileOutputStream(file);
-		
+
+		/*
+		 * Set start and end time of the report based on report period
+		 *  End date is the previous day
+		 * The date used is submission date
+		 */
+		int dateId = SmapServerMeta.UPLOAD_TIME_ID;
+		LocalDateTime utcDateTime = LocalDateTime.now();
+		ZonedDateTime utcZdt = ZonedDateTime.of(utcDateTime, TimeZone.getTimeZone("UTC").toZoneId());
+		ZonedDateTime lZdtEnd = utcZdt.withZoneSameInstant(TimeZone.getTimeZone(tz).toZoneId()).minusDays(1);	// Report up to yesterday in local time
+		ZonedDateTime lZdtStart = getStartZDT(lZdtEnd, msg.period);
+
+		Date endDate = Date.valueOf(lZdtEnd.toLocalDate());
+		Date startDate = Date.valueOf(lZdtStart.toLocalDate());
+
+		System.out.println("Start: " + startDate.toString() + " End Date: " + endDate.toString());
+
 		XLSXReportsManager rm = new XLSXReportsManager(localisation);
 		rm.getNewReport(
 				sd,
@@ -1181,81 +1206,77 @@ public class NotificationManager {
 				p.excludeParents,
 				p.hxl,
 				p.fId,
-				p.startDate,
-				p.endDate,
-				p.dateId,
+				startDate,		// Override start date question specified in report
+				endDate,		// Override end date question specified in report
+				dateId,			// Override date question specified in report
 				p.filter,
 				p.meta,
 				p.tz);		// Use the report time zone
 
-		try {
 
-			// Notification log
-			ArrayList<String> unsubscribedList  = new ArrayList<> ();
-			String error_details = null;
-			String notify_details = null;
-			String status = null;
+		// Notification log
+		ArrayList<String> unsubscribedList  = new ArrayList<> ();
+		String error_details = null;
+		String notify_details = null;
+		String status = null;
 
-			if(organisation.can_notify) {
+		if(organisation.can_notify) {
 
-				/*
-				 * Send document to target
-				 */
-				status = "success";					// Notification log
-				notify_details = null;				// Notification log
-				error_details = null;				// Notification log
-				if(msg.target.equals("email")) {
-					
-					SendEmailResponse resp = sendEmails(sd, cResults, msg, organisation, sId, logContent, docURL, msg.title, unsubscribedList,
-							filePath, filename, messageId, createPending, topic, msg.user, serverName);
-					
-					notify_details = resp.notify_details;
-					status = resp.status;
-					error_details = resp.error_details;
-					writeToMonitor = resp.writeToMonitor;
-					
-				} else {
-					status = "error";
-					error_details = "Invalid target: " + msg.target;
-					log.log(Level.SEVERE, "Error: Invalid target" + msg.target);
-				}
+			/*
+			 * Send document to target
+			 */
+			status = "success";					// Notification log
+			notify_details = null;				// Notification log
+			error_details = null;				// Notification log
+			String surveyName = GeneralUtilityMethods.getSurveyName(sd, sId);	// For Notification log
+			String projectName = GeneralUtilityMethods.getProjectNameFromSurvey(sd, sId);  // For Notification log
+
+			if(msg.target.equals("email")) {
+				SendEmailResponse resp = sendEmails(sd, cResults, msg, organisation, sId, logContent, docURL, msg.title, unsubscribedList,
+						filePath, filename, messageId, createPending, topic, msg.user, serverName, surveyName, projectName);
+
+				notify_details = resp.notify_details;
+				status = resp.status;
+				error_details = resp.error_details;
+				writeToMonitor = resp.writeToMonitor;
 
 			} else {
-				notify_details = organisation.name;
 				status = "error";
-				error_details = localisation.getString("susp_notify");
-				log.log(Level.SEVERE, "Error: notification services suspended");
+				error_details = "Invalid target: " + msg.target;
+				log.log(Level.SEVERE, "Error: Invalid target" + msg.target);
 			}
 
-			// Write log message
-			if(writeToMonitor) {
-				if(!unsubscribedList.isEmpty()) {
-					if(error_details == null) {
-						error_details = "";
-					}
-					error_details += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
-				}
-				writeToLog(sd, organisation.id, msg.pId, sId, notify_details, status, 
-						error_details, messageId);
-
-				/*
-				 * Write log entry
-				 */
-				String logTopic;
-				if(status != null && status.toLowerCase().equals("error")) {
-					logTopic = LogManager.NOTIFICATION_ERROR;
-				} else {
-					logTopic = LogManager.NOTIFICATION;
-				}
-
-				lm.writeLog(sd, 0, "subscriber", logTopic, status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null);
-			}
-
-
-
-		} finally {
-
+		} else {
+			notify_details = organisation.name;
+			status = "error";
+			error_details = localisation.getString("susp_notify");
+			log.log(Level.SEVERE, "Error: notification services suspended");
 		}
+
+		// Write log message
+		if(writeToMonitor) {
+			if(!unsubscribedList.isEmpty()) {
+				if(error_details == null) {
+					error_details = "";
+				}
+				error_details += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
+			}
+			writeToLog(sd, organisation.id, msg.pId, sId, notify_details, status, 
+					error_details, messageId);
+
+			/*
+			 * Write log entry
+			 */
+			String logTopic;
+			if(status != null && status.toLowerCase().equals("error")) {
+				logTopic = LogManager.NOTIFICATION_ERROR;
+			} else {
+				logTopic = LogManager.NOTIFICATION;
+			}
+
+			lm.writeLog(sd, 0, "subscriber", logTopic, status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null);
+		}
+
 	}
 
 	/*
@@ -1654,7 +1675,9 @@ public class NotificationManager {
 			boolean createPending,
 			String topic,
 			String user,
-			String serverName) throws Exception {
+			String serverName,
+			String surveyName,
+			String projectName) throws Exception {
 		
 		SendEmailResponse resp = new SendEmailResponse();
 		
@@ -1701,20 +1724,28 @@ public class NotificationManager {
 					.append(serverName)
 					.append(docURL)
 					.append("\">")
-					.append(name)
+					.append(surveyName)
 					.append("</a>")
 					.append("</p>");
 				}
 
-				resp.notify_details = localisation.getString("msg_en");
-				resp.notify_details = resp.notify_details.replaceAll("%s1", emails);
-				if(logContent != null) {
-					resp.notify_details = resp.notify_details.replaceAll("%s2", logContent);
+				/*
+				 * Create notification details for the monitor
+				 */
+				if(topic.equals(NotificationManager.TOPIC_PERIODIC)) {
+					resp.notify_details = localisation.getString("msg_en");
+					resp.notify_details = resp.notify_details.replaceAll("%s2", name);
 				} else {
-					resp.notify_details = resp.notify_details.replaceAll("%s2", "-");
+					resp.notify_details = localisation.getString("msg_en");
+					if(logContent != null) {
+						resp.notify_details = resp.notify_details.replaceAll("%s2", logContent);
+					} else {
+						resp.notify_details = resp.notify_details.replaceAll("%s2", "-");
+					}
 				}
-				resp.notify_details = resp.notify_details.replaceAll("%s3", name);
-				resp.notify_details = resp.notify_details.replaceAll("%s4", name);
+				resp.notify_details = resp.notify_details.replaceAll("%s1", emails);			
+				resp.notify_details = resp.notify_details.replaceAll("%s3", surveyName);
+				resp.notify_details = resp.notify_details.replaceAll("%s4", projectName);
 
 				log.info("+++ emailing to: " + emails + " docUrl: " + logContent + 
 						" from: " + from + 
@@ -1787,5 +1818,19 @@ public class NotificationManager {
 		}
 		
 		return resp;
+	}
+	
+	ZonedDateTime getStartZDT(ZonedDateTime endDate, String period) throws Exception {
+		if(period.equals(PeriodicTime.DAILY)) {
+			return endDate;								// Start and end date are the same - returns data from the beginning of start to the end of end
+		} else if(period.equals(PeriodicTime.WEEKLY)) {
+			return endDate.minusDays(7);
+		} else if(period.equals(PeriodicTime.MONTHLY)) {
+			return endDate.minusMonths(1);
+		} else if(period.equals(PeriodicTime.YEARLY)) {
+			return endDate.minusMonths(12);
+		} else {
+			throw new Exception("Invalid report period: " + period);
+		}
 	}
 }

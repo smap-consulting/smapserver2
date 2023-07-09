@@ -465,6 +465,7 @@ public class NotificationList extends Application {
 					0,			// Use default pdfTemplateId TODO make this selectable
 					nd.survey_case,
 					nd.assign_question,
+					null,				// Report Period
 					0					// report id
 					);
 			MessagingManager mm = new MessagingManager(localisation);

@@ -1141,6 +1141,7 @@ public class SubscriberBatch {
 						0,
 						null,
 						nd.assign_question,
+						null,					// Report Period
 						0						// report id
 						);
 				
@@ -1399,6 +1400,7 @@ public class SubscriberBatch {
 										0,
 										nd.survey_case,
 										nd.assign_question,
+										null,					// Report Period
 										0						// report id
 										);
 								
@@ -1562,6 +1564,7 @@ public class SubscriberBatch {
 						0,				// PDF template ID
 						null,			// Survey case
 						null,			// Assign Question
+						period,			// Report Period
 						rId);
 				
 				mm.createMessage(sd, oId, NotificationManager.TOPIC_PERIODIC, "", gson.toJson(msg));	
