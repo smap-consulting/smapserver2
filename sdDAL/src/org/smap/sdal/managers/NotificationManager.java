@@ -96,10 +96,13 @@ public class NotificationManager {
 				" remote_s_id, remote_s_name, remote_host, remote_user, remote_password, notify_details, "
 				+ "trigger, target, filter, name, tg_id, period, update_survey, update_question, update_value,"
 				+ "alert_id, "
-				+ "p_id, periodic_time, periodic_period, periodic_day_of_week, periodic_day_of_month, periodic_month, r_id) " +
+				+ "p_id, periodic_time, periodic_period, periodic_day_of_week, "
+				+ "periodic_day_of_month, periodic_local_day_of_month,"
+				+ "periodic_month, periodic_local_month,"
+				+ "r_id) " +
 				" values (?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
-				+ "?, ?, ?, ?, ?, ?, ?)";
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 
@@ -130,15 +133,17 @@ public class NotificationManager {
 		 * Periodic Values
 		 */
 		PeriodicTime pt = new PeriodicTime(n.periodic_period, tz);
-		pt.setLocalTime(n.periodic_time, n.periodic_week_day, n.periodic_month_day);
+		pt.setLocalTime(n.periodic_time, n.periodic_week_day, n.periodic_month_day, n.periodic_month);
 		
 		pstmt.setInt(19, n.p_id);
 		pstmt.setTime(20, pt.getUtcTime());
 		pstmt.setString(21, n.periodic_period);
 		pstmt.setInt(22, pt.getUtcWeekday());
 		pstmt.setInt(23, pt.getUtcMonthday());
-		pstmt.setInt(24, n.periodic_month);
-		pstmt.setInt(25, n.r_id);
+		pstmt.setInt(24, n.periodic_month_day);		// Save local month day
+		pstmt.setInt(25, pt.getUtcMonth());
+		pstmt.setInt(26, n.periodic_month);			// Save local month
+		pstmt.setInt(27, n.r_id);
 		
 		pstmt.executeUpdate();
 	}
@@ -176,7 +181,9 @@ public class NotificationManager {
 					+ "periodic_period = ?, "
 					+ "periodic_day_of_week = ?, "
 					+ "periodic_day_of_month = ?, "
+					+ "periodic_local_day_of_month = ?, "
 					+ "periodic_month = ?, "
+					+ "periodic_local_month = ?, "
 					+ "r_id = ? "
 					+ "where id = ?";
 		} else {
@@ -203,7 +210,9 @@ public class NotificationManager {
 					+ "periodic_period = ?, "
 					+ "periodic_day_of_week = ?, "
 					+ "periodic_day_of_month = ?, "
+					+ "periodic_local_day_of_month = ?, "
 					+ "periodic_month = ?, "
+					+ "periodic_local_month = ?, "
 					+ "r_id = ? "
 					+ "where id = ?";
 		}
@@ -239,14 +248,16 @@ public class NotificationManager {
 		 * Periodic Values
 		 */
 		PeriodicTime pt = new PeriodicTime(n.periodic_period, tz);
-		pt.setLocalTime(n.periodic_time, n.periodic_week_day, n.periodic_month_day);
+		pt.setLocalTime(n.periodic_time, n.periodic_week_day, n.periodic_month_day, n.periodic_month);
 		
 		pstmt.setInt(idx++, n.p_id);
 		pstmt.setTime(idx++, pt.getUtcTime());
 		pstmt.setString(idx++, n.periodic_period);
 		pstmt.setInt(idx++, pt.getUtcWeekday());
 		pstmt.setInt(idx++, pt.getUtcMonthday());
-		pstmt.setInt(idx++, n.periodic_month);	
+		pstmt.setInt(idx++, n.periodic_month_day);	// Original local value
+		pstmt.setInt(idx++, pt.getUtcMonth());	
+		pstmt.setInt(idx++, n.periodic_month);		// Original local value
 		pstmt.setInt(idx++, n.r_id);		
 		pstmt.setInt(idx++, n.id);
 		
@@ -269,7 +280,12 @@ public class NotificationManager {
 				+ "f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user,"
 				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
 				+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value, f.alert_id,"
-				+ "f.p_id, f.periodic_time, f.periodic_period, f.periodic_day_of_week, f.periodic_day_of_month, f.periodic_month, f.r_id,"
+				+ "f.p_id, f.periodic_time, f.periodic_period, f.periodic_day_of_week, "
+				+ "f.periodic_day_of_month, "
+				+ "f.periodic_local_day_of_month,"
+				+ "f.periodic_month, "
+				+ "f.periodic_local_month,"
+				+ "f.r_id,"
 				+ "a.name as alert_name "
 				+ "from forward f "
 				+ "left outer join survey s "
@@ -312,7 +328,12 @@ public class NotificationManager {
 				+ "f.tg_id, f.period, f.update_survey,"
 				+ "f.update_question, f.update_value,"
 				+ "p.name as project_name, f.alert_id, a.name as alert_name, "
-				+ "f.p_id, f.periodic_time, f.periodic_period, f.periodic_day_of_week, f.periodic_day_of_month, f.periodic_month, f.r_id "
+				+ "f.p_id, f.periodic_time, f.periodic_period, f.periodic_day_of_week, "
+				+ "f.periodic_day_of_month, "
+				+ "f.periodic_local_day_of_month,"
+				+ "f.periodic_month, "
+				+ "f.periodic_local_month, "
+				+ "f.r_id "
 				+ "from forward f "
 				+ "left outer join survey s "
 				+ "on s.s_id = f.s_id "
@@ -479,8 +500,8 @@ public class NotificationManager {
 			
 			n.periodic_time = pt.getLocalTime();			
 			n.periodic_week_day = pt.getLocalWeekday();
-			n.periodic_month_day = resultSet.getInt("periodic_day_of_month");
-			n.periodic_month = resultSet.getInt("periodic_month");
+			n.periodic_month_day = resultSet.getInt("periodic_local_day_of_month");
+			n.periodic_month = resultSet.getInt("periodic_local_month");
 			n.r_id = resultSet.getInt("r_id");
 			if(getPassword) {
 				n.remote_password = resultSet.getString("remote_password");

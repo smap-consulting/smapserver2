@@ -36,7 +36,7 @@ public class PeriodicTime {
 		return "Local: " + lZdt +  " UTC: " + utcZdt;
 	}
 	
-	public void setLocalTime(String time, int weekday, int monthday) throws Exception {
+	public void setLocalTime(String time, int weekday, int monthday, int month) throws Exception {
 
 		String[] tComp = time.split(":");
 		int hour = 0;
@@ -60,6 +60,11 @@ public class PeriodicTime {
 		// monthday
 		if(period.equals(MONTHLY) || period.equals(YEARLY)) {
 			lZdt = lZdt.withDayOfMonth(monthday);
+		}
+		
+		// month
+		if(period.equals(YEARLY)) {
+			lZdt = lZdt.withMonth(month);
 		}
 		
 		// Set utc zoned date time
@@ -99,6 +104,13 @@ public class PeriodicTime {
 	 */
 	public int getUtcMonthday() {
 		return utcZdt.getDayOfMonth();
+	}
+	
+	/*
+	 * Get the UTC month
+	 */
+	public int getUtcMonth() {
+		return utcZdt.getMonth().getValue();
 	}
 	
 	/*
