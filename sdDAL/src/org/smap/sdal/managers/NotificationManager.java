@@ -1820,15 +1820,21 @@ public class NotificationManager {
 		return resp;
 	}
 	
+	/*
+	 * Get the start date for a period that ends on the provided end date
+	 * Data is returned from the beginning of start to the end of end
+	 * Hence for a period of one day, start and end date are the same 
+	 * For a period of 1 week start date is 6 days before end date and so on
+	 */
 	ZonedDateTime getStartZDT(ZonedDateTime endDate, String period) throws Exception {
 		if(period.equals(PeriodicTime.DAILY)) {
-			return endDate;								// Start and end date are the same - returns data from the beginning of start to the end of end
+			return endDate;								
 		} else if(period.equals(PeriodicTime.WEEKLY)) {
-			return endDate.minusDays(7);
+			return endDate.minusDays(6);
 		} else if(period.equals(PeriodicTime.MONTHLY)) {
-			return endDate.minusMonths(1);
+			return endDate.minusMonths(1).plusDays(1);
 		} else if(period.equals(PeriodicTime.YEARLY)) {
-			return endDate.minusMonths(12);
+			return endDate.minusMonths(12).plusDays(1);
 		} else {
 			throw new Exception("Invalid report period: " + period);
 		}
