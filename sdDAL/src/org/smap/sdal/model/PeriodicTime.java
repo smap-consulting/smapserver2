@@ -12,11 +12,23 @@ import java.util.TimeZone;
  * This is imperfect as full dates are not used so changes in local time due to daylight saving are not well handled
  */
 public class PeriodicTime {
+	public static String DAILY = "daily";
+	public static String WEEKLY = "weekly";
+	public static String MONTHLY = "monthly";
+	public static String YEARLY = "yearly";
+	
 	private ZonedDateTime lZdt = null;			// Local date time with time zone
 	private ZonedDateTime utcZdt = null;		// UTC date time with time zone
+	
+	private String period;
 	private String tz;							// The local time zone
 	
-	public PeriodicTime(String tz) {
+	private int localWeekday;
+	
+	private int utcWeekday;
+	
+	public PeriodicTime(String period, String tz) {
+		this.period = period;
 		this.tz = tz;
 	}
 	
@@ -24,7 +36,7 @@ public class PeriodicTime {
 		return "Local: " + lZdt +  " UTC: " + utcZdt;
 	}
 	
-	public void setLocalTime(String time) throws Exception {
+	public void setLocalTime(String time, int weekday, int monthday) throws Exception {
 
 		String[] tComp = time.split(":");
 		int hour = 0;
@@ -41,17 +53,28 @@ public class PeriodicTime {
 		LocalTime localTime = LocalTime.of(hour, minute);
 		ZoneId localZoneId = TimeZone.getTimeZone(tz).toZoneId();
 		lZdt = ZonedDateTime.of(localDate, localTime, localZoneId);
-
-		// Convert to utc zoned date time
-		ZoneId utcZoneId = TimeZone.getTimeZone("UTC").toZoneId();
-		utcZdt = lZdt.withZoneSameInstant(utcZoneId);
+		
+		// weekday
+		this.localWeekday = weekday;
+		
+		// monthday
+		if(period.equals(MONTHLY) || period.equals(YEARLY)) {
+			lZdt = lZdt.withDayOfMonth(monthday);
+		}
+		
+		// Set utc zoned date time
+		utcZdt = lZdt.withZoneSameInstant(TimeZone.getTimeZone("UTC").toZoneId());
 	}
 	
-	public void setUtcTime(Time sqlTime) {
+	public void setUtcTime(Time sqlTime, int weekday) {
 		LocalDate utcDate = LocalDate.now();
 		LocalTime utcTime = sqlTime.toLocalTime();
 		utcZdt = ZonedDateTime.of(utcDate, utcTime, TimeZone.getTimeZone("UTC").toZoneId());
 		
+		// weekday
+		this.utcWeekday = weekday;
+		
+		// Set local zoned date time
 		lZdt = utcZdt.withZoneSameInstant(TimeZone.getTimeZone(tz).toZoneId());
 	}
 	
@@ -61,6 +84,39 @@ public class PeriodicTime {
 	
 	public String getLocalTime() {		
 		return String.format("%02d", lZdt.getHour()) + ":" + String.format("%02d", lZdt.getMinute());
+	}
+	
+	/*
+	 * Get the UTC day of the week
+	 */
+	public int getUtcWeekday() {
+		int utcWeekday = localWeekday - lZdt.getDayOfYear() + utcZdt.getDayOfYear();		
+		return adjustWeekday(utcWeekday);
+	}
+	
+	/*
+	 * Get the UTC day of the month
+	 */
+	public int getUtcMonthday() {
+		return utcZdt.getDayOfMonth();
+	}
+	
+	/*
+	 * Get the local day of the week
+	 */
+	public int getLocalWeekday() {
+		int localWeekday = utcWeekday + lZdt.getDayOfYear() - utcZdt.getDayOfYear();		
+		return adjustWeekday(localWeekday);
+	}
+	
+	/*
+	 * Adjust the week day to its range 
+	 * Day of week is stored as a number from 0 (sunday) to 6 (saturday)
+	 */
+	private int adjustWeekday(int weekday) {
+		weekday = (weekday < 0) ? 6 : weekday;
+		weekday = (weekday > 6) ? 0 : weekday;
+		return weekday;
 	}
 
 }

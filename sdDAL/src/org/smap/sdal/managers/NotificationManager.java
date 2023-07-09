@@ -129,14 +129,14 @@ public class NotificationManager {
 		/*
 		 * Periodic Values
 		 */
-		PeriodicTime pt = new PeriodicTime(tz);
-		pt.setLocalTime(n.periodic_time);
+		PeriodicTime pt = new PeriodicTime(n.periodic_period, tz);
+		pt.setLocalTime(n.periodic_time, n.periodic_week_day, n.periodic_month_day);
 		
 		pstmt.setInt(19, n.p_id);
 		pstmt.setTime(20, pt.getUtcTime());
 		pstmt.setString(21, n.periodic_period);
-		pstmt.setInt(22, n.periodic_week_day);
-		pstmt.setInt(23, n.periodic_month_day);
+		pstmt.setInt(22, pt.getUtcWeekday());
+		pstmt.setInt(23, pt.getUtcMonthday());
 		pstmt.setInt(24, n.periodic_month);
 		pstmt.setInt(25, n.r_id);
 		
@@ -238,17 +238,14 @@ public class NotificationManager {
 		/*
 		 * Periodic Values
 		 */
-		/*
-		 * Periodic Values
-		 */
-		PeriodicTime pt = new PeriodicTime(tz);
-		pt.setLocalTime(n.periodic_time);
+		PeriodicTime pt = new PeriodicTime(n.periodic_period, tz);
+		pt.setLocalTime(n.periodic_time, n.periodic_week_day, n.periodic_month_day);
 		
 		pstmt.setInt(idx++, n.p_id);
 		pstmt.setTime(idx++, pt.getUtcTime());
 		pstmt.setString(idx++, n.periodic_period);
-		pstmt.setInt(idx++, n.periodic_week_day);
-		pstmt.setInt(idx++, n.periodic_month_day);
+		pstmt.setInt(idx++, pt.getUtcWeekday());
+		pstmt.setInt(idx++, pt.getUtcMonthday());
 		pstmt.setInt(idx++, n.periodic_month);	
 		pstmt.setInt(idx++, n.r_id);		
 		pstmt.setInt(idx++, n.id);
@@ -475,12 +472,13 @@ public class NotificationManager {
 			n.alert_name = resultSet.getString("alert_name");
 			n.p_id = resultSet.getInt("p_id");
 			
-			PeriodicTime pt = new PeriodicTime(tz);
-			pt.setUtcTime(resultSet.getTime("periodic_time"));
-			
-			n.periodic_time = pt.getLocalTime();
 			n.periodic_period = resultSet.getString("periodic_period");
-			n.periodic_week_day = resultSet.getInt("periodic_day_of_week");
+			PeriodicTime pt = new PeriodicTime(n.periodic_period, tz);
+			pt.setUtcTime(resultSet.getTime("periodic_time"), 
+					resultSet.getInt("periodic_day_of_week"));
+			
+			n.periodic_time = pt.getLocalTime();			
+			n.periodic_week_day = pt.getLocalWeekday();
 			n.periodic_month_day = resultSet.getInt("periodic_day_of_month");
 			n.periodic_month = resultSet.getInt("periodic_month");
 			n.r_id = resultSet.getInt("r_id");
