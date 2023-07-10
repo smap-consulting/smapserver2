@@ -259,7 +259,6 @@ public class MessagingManagerApply {
 								sd, 
 								cResults, 
 								organisation, 
-								tz,
 								msg,
 								id,
 								topic,

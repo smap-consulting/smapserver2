@@ -1140,11 +1140,11 @@ public class NotificationManager {
 	/*
 	 * Process a notification that was triggered by a periodic timer
 	 * No survey data is available, these generate reports
+	 * Note time zone is not passed as the time zone of the report is used
 	 */
 	public void processPeriodicNotification(Connection sd, 
 			Connection cResults, 
 			Organisation organisation,
-			String tz,
 			SubmissionMessage msg,
 			int messageId,
 			String topic,
@@ -1178,9 +1178,14 @@ public class NotificationManager {
 		int dateId = SmapServerMeta.UPLOAD_TIME_ID;
 		LocalDateTime utcDateTime = LocalDateTime.now();
 		ZonedDateTime utcZdt = ZonedDateTime.of(utcDateTime, TimeZone.getTimeZone("UTC").toZoneId());
-		ZonedDateTime lZdtEnd = utcZdt.withZoneSameInstant(TimeZone.getTimeZone(tz).toZoneId()).minusDays(1);	// Report up to yesterday in local time
+		ZonedDateTime lZdtEnd = utcZdt.withZoneSameInstant(TimeZone.getTimeZone(p.tz).toZoneId()).minusDays(1);	// Report up to yesterday in local time
 		ZonedDateTime lZdtStart = getStartZDT(lZdtEnd, msg.period);
 
+		log.info("---------- Local UTC Date Time: " + utcDateTime);
+		log.info("---------- Zoned UTC Date Time: " + utcZdt);
+		log.info("---------- Zoned End Date Time: " + lZdtEnd);
+		log.info("---------- Local End Date Time: " + lZdtEnd.toLocalDate());
+		
 		Date endDate = Date.valueOf(lZdtEnd.toLocalDate());
 		Date startDate = Date.valueOf(lZdtStart.toLocalDate());
 
