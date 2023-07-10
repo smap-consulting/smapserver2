@@ -1184,8 +1184,6 @@ public class NotificationManager {
 		Date endDate = Date.valueOf(lZdtEnd.toLocalDate());
 		Date startDate = Date.valueOf(lZdtStart.toLocalDate());
 
-		System.out.println("Start: " + startDate.toString() + " End Date: " + endDate.toString());
-
 		XLSXReportsManager rm = new XLSXReportsManager(localisation);
 		rm.getNewReport(
 				sd,
@@ -1265,7 +1263,7 @@ public class NotificationManager {
 					error_details, messageId);
 
 			/*
-			 * Write log entry
+			 * Write application log entry
 			 */
 			String logTopic;
 			if(status != null && status.toLowerCase().equals("error")) {
@@ -1274,7 +1272,7 @@ public class NotificationManager {
 				logTopic = LogManager.NOTIFICATION;
 			}
 
-			lm.writeLog(sd, 0, "subscriber", logTopic, status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null);
+			lm.writeLogOrganisation(sd, organisation.id, "subscriber", logTopic, status + " : " + notify_details + (error_details == null ? "" : error_details), 0);
 		}
 
 	}
@@ -1390,10 +1388,8 @@ public class NotificationManager {
 								content = organisation.default_email_content;
 							}
 
-							notify_details = "Sending email to: " + emails + " containing link " + logContent;
 							notify_details = localisation.getString("msg_er");
 							notify_details = notify_details.replaceAll("%s1", emails);
-							notify_details = notify_details.replaceAll("%s2", "-");			// No attachments in reminder
 							notify_details = notify_details.replaceAll("%s3", survey.displayName);
 							notify_details = notify_details.replaceAll("%s4", survey.projectName);
 
@@ -1733,7 +1729,7 @@ public class NotificationManager {
 				 * Create notification details for the monitor
 				 */
 				if(topic.equals(NotificationManager.TOPIC_PERIODIC)) {
-					resp.notify_details = localisation.getString("msg_en");
+					resp.notify_details = localisation.getString("msg_pn");
 					resp.notify_details = resp.notify_details.replaceAll("%s2", name);
 				} else {
 					resp.notify_details = localisation.getString("msg_en");

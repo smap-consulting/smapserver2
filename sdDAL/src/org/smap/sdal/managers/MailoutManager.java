@@ -705,7 +705,9 @@ public class MailoutManager {
 									.append(localisation.getString("ar_survey")).append("</a>");
 							}
 							
-							notify_details = "Sending mailout email to: " + msg.email + " containing link " + docURL;
+							notify_details = localisation.getString("msg_mo");
+							notify_details = notify_details.replace("%s1", msg.email);
+							notify_details = notify_details.replace("%s2", docURL);
 							
 							log.info("+++ emailing mailout to: " + msg.email + " docUrl: " + docURL + 
 									" from: " + from + 

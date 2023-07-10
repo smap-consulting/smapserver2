@@ -100,7 +100,12 @@ public class XLSXReportsManager {
 
 		String urlprefix = scheme + "://" + serverName + "/";		
 
-		lm.writeLog(sd, sId, username, LogManager.VIEW, "Export as: xlsx", 0, serverName);
+		String msg = localisation.getString("msg_exp_xlsx");
+		String start = startDate == null ? "" : startDate.toString();
+		String end = endDate == null ? "" : endDate.toString();
+		msg = msg.replace("%s1", start);
+		msg = msg.replace("%s2", end);
+		lm.writeLog(sd, sId, username, LogManager.VIEW, msg, 0, serverName);
 		
 		if(sId != 0) {
 
@@ -575,7 +580,7 @@ public class XLSXReportsManager {
 				//response.setHeader("Content-type",  "text/html; charset=UTF-8");
 				lm.writeLog(sd, sId, username, LogManager.ERROR, e.getMessage(), 0, serverName);
 				
-				String msg = e.getMessage();
+				msg = e.getMessage();
 				if(msg != null && msg.contains("does not exist")) {
 					msg = localisation.getString("msg_no_data");
 				}
