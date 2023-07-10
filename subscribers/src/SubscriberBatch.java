@@ -1456,15 +1456,11 @@ public class SubscriberBatch {
 		 * Get the notifications that send a response at fixed periods and where the time is due
 		 */
 		String sql = "select name,"
-				+ "id,"
 				+ "p_id,"
 				+ "target,"
 				+ "notify_details, "
 				+ "periodic_time, "
 				+ "periodic_period, "
-				+ "periodic_day_of_week, "
-				+ "periodic_day_of_month, "
-				+ "periodic_month, "
 				+ "r_id "
 				+ "from forward "
 				+ "where trigger = 'periodic' "
@@ -1501,7 +1497,6 @@ public class SubscriberBatch {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setTime(1, currentTime);
-			log.info("Check for periodic events: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 			
 			/*
@@ -1510,14 +1505,10 @@ public class SubscriberBatch {
 			while(rs.next()) {
 				
 				String name = rs.getString("name");
-				int nId = rs.getInt("id");
 				int pId = rs.getInt("p_id");
 				String target = rs.getString("target");
 				String notifyDetailsString = rs.getString("notify_details");
 				String period = rs.getString("periodic_period");
-				int week_day = rs.getInt("periodic_day_of_week");
-				int month_day = rs.getInt("periodic_day_of_month");
-				int month = rs.getInt("periodic_month");
 				int rId = rs.getInt("r_id");
 
 				NotifyDetails nd = gson.fromJson(notifyDetailsString, NotifyDetails.class);
