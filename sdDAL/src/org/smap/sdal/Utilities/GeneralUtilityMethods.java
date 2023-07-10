@@ -26,15 +26,20 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -1327,7 +1332,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the current organisation id for the user 
+	 * Get the organisation id from the organisation name 
 	 */
 	static public int getOrganisationIdfromName(Connection sd, String orgName) throws SQLException {
 
@@ -1356,7 +1361,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the current organisation id for the user 
+	 * Get the organisation name for the user 
 	 */
 	static public String getOrganisationName(Connection sd, String user) throws SQLException {
 
@@ -1403,6 +1408,35 @@ public class GeneralUtilityMethods {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				o_id = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return o_id;
+	}
+	
+	/*
+	 * Get the organisation id for a report
+	 */
+	static public int getOrganisationIdForReport(Connection sd, int rId) throws SQLException {
+
+		int o_id = -1;
+
+		String sql = "select o_id " + 
+				" from users " + 
+				"where id = ? ";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, rId);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				o_id = rs.getInt(1);
@@ -2407,6 +2441,36 @@ public class GeneralUtilityMethods {
 		}
 
 		return p_id;
+	}
+	
+	/*
+	 * Get the survey project name from the survey id
+	 */
+	static public String getProjectNameFromSurvey(Connection sd, int surveyId) throws SQLException {
+
+		String name = null;
+
+		String sql = "select p. name "
+				+ "from project p, survey s "
+				+ "where s.s_id = ? "
+				+ "and s.p_id = p.id";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, surveyId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				name = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return name;
 	}
 	
 	/*

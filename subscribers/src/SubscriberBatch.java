@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -47,6 +48,7 @@ import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -342,9 +344,10 @@ public class SubscriberBatch {
 				sendMailouts(dbc.sd, basePath, serverName);
 				expireTemporaryUsers(localisation, dbc.sd);
 				
-			} else if(subscriberType.equals("forward")) {
+			} else if(subscriberType.equals("forward")) {		// Note forward is just another batch process, it no longer forwards surveys to other servers
 				
 				applyCaseManagementReminders(dbc.sd, dbc.results, basePath, serverName);
+				applyPeriodicNotifications(dbc.sd, dbc.results, basePath, serverName);
 				
 				// Erase any templates that were deleted more than a set time ago
 				eraseOldTemplates(dbc.sd, dbc.results, localisation, basePath);
@@ -1075,7 +1078,7 @@ public class SubscriberBatch {
 				+ "and a.id not in (select a_id from reminder where n_id = n.id)";
 		PreparedStatement pstmt = null;
 		
-		// Sql to record a reminder being sent
+		// SQL to record a reminder being sent
 		String sqlSent = "insert into reminder (n_id, a_id, reminder_date) values (?, ?, now())";
 		PreparedStatement pstmtSent = null;
 		
@@ -1112,6 +1115,7 @@ public class SubscriberBatch {
 				
 				// Send the reminder
 				SubmissionMessage subMgr = new SubmissionMessage(
+						"reminder title",	// todo
 						tId,
 						sourceSurveyIdent,
 						null,
@@ -1131,14 +1135,15 @@ public class SubscriberBatch {
 						target,
 						remoteUser,
 						"https",
-						serverName,
-						basePath,
 						nd.callback_url,
 						remoteUser,
 						remotePassword,
 						0,
 						null,
-						nd.assign_question);
+						nd.assign_question,
+						null,					// Report Period
+						0						// report id
+						);
 				
 				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
@@ -1312,7 +1317,7 @@ public class SubscriberBatch {
 							/*
 							 * Record the triggering of the alert
 							 */
-							String details = localisation.getString("cm_alert");
+							String details = localisation.getString(NotificationManager.TOPIC_CM_ALERT);
 							details = details.replace("%s1", alertName);
 							RecordEventManager rem = new RecordEventManager();
 							rem.writeEvent(
@@ -1369,6 +1374,7 @@ public class SubscriberBatch {
 								String user = notrs.getString("remote_user");
 								
 								SubmissionMessage subMgr = new SubmissionMessage(
+										"Case Management",		// TODO title
 										0,
 										groupSurveyIdent,
 										null,
@@ -1388,22 +1394,23 @@ public class SubscriberBatch {
 										target,
 										user,
 										"https",
-										serverName,
-										basePath,
 										nd.callback_url,
 										user,
 										null,
 										0,
 										nd.survey_case,
-										nd.assign_question);
-													
+										nd.assign_question,
+										null,					// Report Period
+										0						// report id
+										);
+								
 								MessagingManager mm = new MessagingManager(localisation);
-								mm.createMessage(sd, oId, "cm_alert", "", gson.toJson(subMgr));						
+								mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));						
 							
 								// Write to the log
 								String logMessage = "Notification triggered by alert id " + aId + " for notification: " + nId;
 								if(localisation != null) {
-									logMessage = localisation.getString("cm_alert");
+									logMessage = localisation.getString(NotificationManager.TOPIC_CM_ALERT);
 									logMessage = logMessage.replaceAll("%s1", alertName);
 									logMessage = logMessage.replaceAll("%s2", notificationName);
 								}
@@ -1429,6 +1436,161 @@ public class SubscriberBatch {
 			try {if (pstmtMatches != null) {pstmtMatches.close();}} catch (SQLException e) {}
 			try {if (pstmtNotifications != null) {pstmtNotifications.close();}} catch (SQLException e) {}
 			try {if (pstmtCaseUpdated != null) {pstmtCaseUpdated.close();}} catch (SQLException e) {}
+		}
+	}
+	
+	/*
+	 * Apply Periodic notifications
+	 */
+	private void applyPeriodicNotifications(Connection sd, Connection cResults, String basePath, String serverName) {
+		
+		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
+		
+		/*
+		 * Get current time
+		 */
+		String sqlCurrentTime = "select current_time";
+		PreparedStatement pstmtCurrentTime = null;
+		
+		/*
+		 * Get the notifications that send a response at fixed periods and where the time is due
+		 */
+		String sql = "select name,"
+				+ "id,"
+				+ "p_id,"
+				+ "target,"
+				+ "notify_details, "
+				+ "periodic_time, "
+				+ "periodic_period, "
+				+ "periodic_day_of_week, "
+				+ "periodic_day_of_month, "
+				+ "periodic_month, "
+				+ "r_id "
+				+ "from forward "
+				+ "where trigger = 'periodic' "
+				+ "and periodic_time > (select last_checked_time from periodic) and periodic_time < ? "
+				+ "and ("
+				+ "(periodic_period = 'daily') "
+				+ "or (periodic_period = 'weekly' and periodic_day_of_week = extract('DOW' from current_date)) "
+				+ "or (periodic_period = 'monthly' and periodic_day_of_month = extract('Day' from current_date)) "
+				+ "or (periodic_period = 'yearly' and periodic_day_of_month = extract('Day' from current_date) and periodic_month = extract('Month' from current_date)) "
+				+ ")";
+		PreparedStatement pstmt = null;
+
+		/*
+		 * Update last checked time
+		 */
+		String sqlUpdate = "update periodic set last_checked_time = ?";
+		PreparedStatement pstmtUpdate = null;		
+		String sqlInsert = "insert into periodic(last_checked_time) values(?)";
+		PreparedStatement pstmtInsert = null;
+		
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		try {
+
+			/*
+			 * Get the current time
+			 */
+			Time currentTime = null;
+			pstmtCurrentTime = sd.prepareStatement(sqlCurrentTime);
+			ResultSet rs = pstmtCurrentTime.executeQuery();
+			if(rs.next()) {
+				currentTime = rs.getTime("current_time");
+			}
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setTime(1, currentTime);
+			log.info("Check for periodic events: " + pstmt.toString());
+			rs = pstmt.executeQuery();
+			
+			/*
+			 * Get periodic notifications that have a time between the last check and now
+			 */
+			while(rs.next()) {
+				
+				String name = rs.getString("name");
+				int nId = rs.getInt("id");
+				int pId = rs.getInt("p_id");
+				String target = rs.getString("target");
+				String notifyDetailsString = rs.getString("notify_details");
+				String period = rs.getString("periodic_period");
+				int week_day = rs.getInt("periodic_day_of_week");
+				int month_day = rs.getInt("periodic_day_of_month");
+				int month = rs.getInt("periodic_month");
+				int rId = rs.getInt("r_id");
+
+				NotifyDetails nd = gson.fromJson(notifyDetailsString, NotifyDetails.class);
+					
+				int oId = GeneralUtilityMethods.getOrganisationIdForReport(sd, rId);
+						
+				ResourceBundle localisation = locMap.get(oId);
+				if(localisation == null) {
+					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+					Locale orgLocale = new Locale(organisation.locale);
+					try {
+						localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+					} catch(Exception e) {
+						localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+					}
+				}
+				
+				MessagingManager mm = new MessagingManager(localisation);
+				
+				SubmissionMessage msg = new SubmissionMessage(
+						name,			// title
+						0,				// task id
+						null,			// Survey ident
+						null,			// Update ident
+						pId,
+						null,			// instance id
+						nd.from,
+						nd.subject, 
+						nd.content,
+						nd.attach,
+						false,			// include references (not used)
+						false,			// launched only (not used)
+						0,				// email question (deprecated)
+						null,			// email question name
+						null,			// email meta
+						false,			// email assigned (not used)
+						nd.emails,		// Email addresses
+						target,
+						null,
+						"https",		// scheme
+						null,			// callback URL
+						null,			// remote user
+						null,			// remote password
+						0,				// PDF template ID
+						null,			// Survey case
+						null,			// Assign Question
+						period,			// Report Period
+						rId);
+				
+				mm.createMessage(sd, oId, NotificationManager.TOPIC_PERIODIC, "", gson.toJson(msg));	
+			}
+			
+			/*
+			 * Store the current time as the last checked time
+			 */
+			pstmtUpdate = sd.prepareStatement(sqlUpdate);
+			pstmtUpdate.setTime(1, currentTime);
+			int count = pstmtUpdate.executeUpdate();
+			if(count < 1) {
+				pstmtInsert = sd.prepareStatement(sqlInsert);
+				pstmtInsert.setTime(1, currentTime);
+				pstmtInsert.executeUpdate();
+			}
+			
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtCurrentTime != null) {pstmtCurrentTime.close();}} catch (SQLException e) {}
+			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}
+			try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (SQLException e) {}
 		}
 	}
 	
@@ -1551,7 +1713,7 @@ public class SubscriberBatch {
 					locMap.put(surveyIdent, localisation);
 				}
 				MessagingManager mm = new MessagingManager(localisation);
-				mm.createMessage(sd, oId, "mailout", "", gson.toJson(msg));
+				mm.createMessage(sd, oId, NotificationManager.TOPIC_MAILOUT, "", gson.toJson(msg));
 				
 				// record the sending of the notification
 				pstmtSent.setString(1, "https://" + serverName + "/webForm" + link);

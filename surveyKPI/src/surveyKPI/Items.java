@@ -156,9 +156,7 @@ public class Items extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
-		
-		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.DASHBOARD_VIEW, "View Results for form: " + fId, 0, request.getServerName());
-	
+			
 		tz = (tz == null) ? "UTC" : tz;
 		
 		HashMap<String, String> geomQuestionMap = null;
@@ -759,6 +757,14 @@ public class Items extends Application {
 				 jo.put("types", types);
 				 jo.put("formName", formName);
 				
+				 /*
+				  * Write to log
+				  */
+				 String msg = localisation.getString("rep_view_form");
+				 msg = msg.replace("%s1", GeneralUtilityMethods.getSurveyName(sd, sId));
+				 msg = msg.replace("%s2", formName);
+				 lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.DASHBOARD_VIEW, msg, 0, request.getServerName());
+
 			} catch (SQLException e) {
 			    
 				String msg = e.getMessage();

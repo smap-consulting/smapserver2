@@ -250,8 +250,6 @@ public class UserList extends Application {
 
 		return response;
 	}
-
-	
 	
 	/*
 	 * Get the users who have access to a specific project

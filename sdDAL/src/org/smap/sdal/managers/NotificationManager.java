@@ -1,14 +1,21 @@
 package org.smap.sdal.managers;
 
+import java.io.File;
 import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -20,10 +27,14 @@ import org.smap.notifications.interfaces.EmitSMS;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.constants.SmapServerMeta;
+import org.smap.sdal.model.Action;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.PeriodicTime;
+import org.smap.sdal.model.ReportParameters;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.SubscriptionStatus;
 import org.smap.sdal.model.Survey;
@@ -57,11 +68,23 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 public class NotificationManager {
 
+	public static String TOPIC_CM_ALERT = "cm_alert";			// Data: SubmissionMessage
+	public static String TOPIC_SUBMISSION = "submission";		// Data: SubmissionMessage
+	public static String TOPIC_PERIODIC = "periodic";			// Data: PeriodicMessage
+	public static String TOPIC_EMAIL_TASK = "email_task";		// Data: EmailTaskMessage
+	public static String TOPIC_TASK = "task";					// Data: TaskMessage
+	public static String TOPIC_PROJECT = "project";				// Data: ProjectMessage
+	public static String TOPIC_RESOURCE = "resource";			// Data: OrgResourceMessage
+	public static String TOPIC_SURVEY = "survey";				// Data: SurveyMessage
+	public static String TOPIC_USER = "user";					// Data: String: user ident
+	public static String TOPIC_REMINDER = "reminder";			// Data: SubmissionMessage
+	public static String TOPIC_MAILOUT = "mailout";				// Data: MailoutMessage
+	
 	private static Logger log =
 			Logger.getLogger(NotificationManager.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
-
+	
 	private ResourceBundle localisation;
 
 	public NotificationManager(ResourceBundle l) {
@@ -69,78 +92,23 @@ public class NotificationManager {
 	}
 
 	/*
-	 * Get all Enabled notifications
-	 * Used by Subscriber to do forwarding
-	 */
-	public ArrayList<Notification> getEnabledNotifications(
-			Connection sd, 
-			String trigger,
-			String target) throws SQLException {
-
-		ArrayList<Notification> forwards = new ArrayList<Notification>();	// Results of request
-
-		ResultSet resultSet = null;
-		String sql = "select f.id, "
-				+ "f.s_id, "
-				+ "f.enabled, " +
-				" f.remote_s_id, "
-				+ "f.remote_s_name, "
-				+ "f.remote_host, "
-				+ "f.remote_user, "
-				+ "f.trigger, "
-				+ "f.target, "
-				+ "s.display_name, "
-				+ "f.notify_details, "
-				+ "f.filter, "
-				+ "f.name, "
-				+ "f.tg_id,"
-				+ "f.period,"
-				+ "f.update_survey,"
-				+ "f.update_question,"
-				+ "f.update_value,"
-				+ "f.remote_password,"
-				+ "f.alert_id "
-				+ "from forward f, survey s "
-				+ "where f.s_id = s.s_id "
-				+ "and f.enabled = 'true' "
-				+ "and f.trigger = ? ";
-		PreparedStatement pstmt = null;
-
-		try {
-			if(target.equals("forward")) {
-				sql += " and f.target = 'forward' and f.remote_host is not null";
-			} else if(target.equals("message")) {
-				sql += " and (f.target = 'email' or f.target = 'sms')";
-			} else if(target.equals("document")) {
-				sql += " and f.target = 'document'";
-			}	
-
-			pstmt = sd.prepareStatement(sql);	
-			pstmt.setString(1, trigger);
-			resultSet = pstmt.executeQuery();
-
-			addToList(sd, resultSet, forwards, true, false);
-		} finally {
-			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
-		}
-
-		return forwards;
-
-	}
-
-	/*
 	 * Add a record to the notification table
 	 */
 	public void addNotification(Connection sd, PreparedStatement pstmt, String user, 
-			Notification n) throws Exception {
+			Notification n, String tz) throws Exception {
 
 		String sql = "insert into forward(" +
 				" s_id, enabled, " +
 				" remote_s_id, remote_s_name, remote_host, remote_user, remote_password, notify_details, "
 				+ "trigger, target, filter, name, tg_id, period, update_survey, update_question, update_value,"
-				+ "alert_id) " +
+				+ "alert_id, "
+				+ "p_id, periodic_time, periodic_period, periodic_day_of_week, "
+				+ "periodic_day_of_month, periodic_local_day_of_month,"
+				+ "periodic_month, periodic_local_month,"
+				+ "r_id) " +
 				" values (?, ?, ?, ?, ?, ?, ?, ?"
-				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?); ";
+				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 
@@ -166,14 +134,32 @@ public class NotificationManager {
 		pstmt.setString(16, n.updateQuestion);
 		pstmt.setString(17, n.updateValue);
 		pstmt.setInt(18, n.alert_id);
+		
+		/*
+		 * Periodic Values
+		 */
+		PeriodicTime pt = new PeriodicTime(n.periodic_period, tz);
+		pt.setLocalTime(n.periodic_time, n.periodic_week_day, n.periodic_month_day, n.periodic_month);
+		
+		pstmt.setInt(19, n.p_id);
+		pstmt.setTime(20, pt.getUtcTime());
+		pstmt.setString(21, n.periodic_period);
+		pstmt.setInt(22, pt.getUtcWeekday());
+		pstmt.setInt(23, pt.getUtcMonthday());
+		pstmt.setInt(24, n.periodic_month_day);		// Save local month day
+		pstmt.setInt(25, pt.getUtcMonth());
+		pstmt.setInt(26, n.periodic_month);			// Save local month
+		pstmt.setInt(27, n.r_id);
+		
 		pstmt.executeUpdate();
 	}
 
 	/*
 	 * Update a record to the forwarding table
+	 * A password may need to be updated if the target is a webhook
 	 */
 	public void updateNotification(Connection sd, PreparedStatement pstmt, String user, 
-			Notification n) throws Exception {
+			Notification n, String tz) throws Exception {
 
 		String sql = null;
 		if(n.update_password) {
@@ -196,6 +182,15 @@ public class NotificationManager {
 					+ "update_value = ?,"
 					+ "alert_id = ?,"
 					+ "remote_password = ? "
+					+ "p_id = ?, "
+					+ "periodic_time = ?, "
+					+ "periodic_period = ?, "
+					+ "periodic_day_of_week = ?, "
+					+ "periodic_day_of_month = ?, "
+					+ "periodic_local_day_of_month = ?, "
+					+ "periodic_month = ?, "
+					+ "periodic_local_month = ?, "
+					+ "r_id = ? "
 					+ "where id = ?";
 		} else {
 			sql = "update forward set "
@@ -215,72 +210,65 @@ public class NotificationManager {
 					+ "update_survey = ?, "
 					+ "update_question = ?, "
 					+ "update_value = ?, "
-					+ "alert_id = ? "
+					+ "alert_id = ?, "
+					+ "p_id = ?, "
+					+ "periodic_time = ?, "
+					+ "periodic_period = ?, "
+					+ "periodic_day_of_week = ?, "
+					+ "periodic_day_of_month = ?, "
+					+ "periodic_local_day_of_month = ?, "
+					+ "periodic_month = ?, "
+					+ "periodic_local_month = ?, "
+					+ "r_id = ? "
 					+ "where id = ?";
 		}
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		String notifyDetails = gson.toJson(n.notifyDetails);
 
+		int idx = 1;
 		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 		pstmt = sd.prepareStatement(sql);	 			
-		pstmt.setInt(1, n.s_id);
-		pstmt.setBoolean(2, n.enabled);
-		pstmt.setString(3, n.remote_s_ident);
-		pstmt.setString(4, n.remote_s_name);
-		pstmt.setString(5, n.remote_host);
-		pstmt.setString(6, n.remote_user);
-		pstmt.setString(7, notifyDetails);
-		pstmt.setString(8, n.trigger);
-		pstmt.setString(9, n.target);
-		pstmt.setString(10, n.filter);
-		pstmt.setString(11, n.name);
-		pstmt.setInt(12, n.tgId);
-		pstmt.setString(13, n.period);
-		pstmt.setString(14, n.updateSurvey);
-		pstmt.setString(15, n.updateQuestion);
-		pstmt.setString(16, n.updateValue);
-		pstmt.setInt(17, n.alert_id);
+		pstmt.setInt(idx++, n.s_id);
+		pstmt.setBoolean(idx++, n.enabled);
+		pstmt.setString(idx++, n.remote_s_ident);
+		pstmt.setString(idx++, n.remote_s_name);
+		pstmt.setString(idx++, n.remote_host);
+		pstmt.setString(idx++, n.remote_user);
+		pstmt.setString(idx++, notifyDetails);
+		pstmt.setString(idx++, n.trigger);
+		pstmt.setString(idx++, n.target);
+		pstmt.setString(idx++, n.filter);
+		pstmt.setString(idx++, n.name);
+		pstmt.setInt(idx++, n.tgId);
+		pstmt.setString(idx++, n.period);
+		pstmt.setString(idx++, n.updateSurvey);
+		pstmt.setString(idx++, n.updateQuestion);
+		pstmt.setString(idx++, n.updateValue);
+		pstmt.setInt(idx++, n.alert_id);
 		if(n.update_password) {
-			pstmt.setString(18, n.remote_password);
-			pstmt.setInt(19, n.id);
-		} else {
-			pstmt.setInt(18, n.id);
-		}
-
-		log.info("Update Forward: " + pstmt.toString());
+			pstmt.setString(idx++, n.remote_password);
+		} 
+		
+		/*
+		 * Periodic Values
+		 */
+		PeriodicTime pt = new PeriodicTime(n.periodic_period, tz);
+		pt.setLocalTime(n.periodic_time, n.periodic_week_day, n.periodic_month_day, n.periodic_month);
+		
+		pstmt.setInt(idx++, n.p_id);
+		pstmt.setTime(idx++, pt.getUtcTime());
+		pstmt.setString(idx++, n.periodic_period);
+		pstmt.setInt(idx++, pt.getUtcWeekday());
+		pstmt.setInt(idx++, pt.getUtcMonthday());
+		pstmt.setInt(idx++, n.periodic_month_day);	// Original local value
+		pstmt.setInt(idx++, pt.getUtcMonth());	
+		pstmt.setInt(idx++, n.periodic_month);		// Original local value
+		pstmt.setInt(idx++, n.r_id);		
+		pstmt.setInt(idx++, n.id);
+		
+		log.info("Update Notifications: " + pstmt.toString());
 		pstmt.executeUpdate();
-	}
-
-	/*
-	 * Check that the server is not forwarding to the same survey on the same server
-	 */
-	public boolean isFeedbackLoop(Connection con, String server, Notification n) throws SQLException {
-		boolean loop = false;
-
-		String remote_host = null;;
-
-		String [] hostParts = n.remote_host.split("//");
-		remote_host = hostParts[1];
-
-		log.info("Checking for forwarding feedback loop. Current server is: " + server + " : " + remote_host);
-
-		// Get the ident of the local survey to compare with the remote ident
-		PreparedStatement pstmt;
-		String sql = "select ident from survey where s_id = ?;";
-		pstmt = con.prepareStatement(sql);
-		pstmt.setInt(1, n.s_id);
-		ResultSet rs = pstmt.executeQuery(); 
-		if(rs.next()) {
-			String local_ident = rs.getString(1);
-			log.info("Local ident is: " + local_ident + " : " + n.remote_s_ident);
-			if(local_ident != null && local_ident.equals(n.remote_s_ident) && remote_host.equals(server)) {
-				loop = true;
-			}
-		}
-		pstmt.close();
-
-		return loop;
 	}
 
 	/*
@@ -288,7 +276,8 @@ public class NotificationManager {
 	 */
 	public ArrayList<Notification> getProjectNotifications(Connection sd, PreparedStatement pstmt,
 			String user,
-			int projectId) throws SQLException {
+			int projectId,
+			String tz) throws Exception {
 
 		ArrayList<Notification> notifications = new ArrayList<Notification>();	// Results of request
 
@@ -297,32 +286,31 @@ public class NotificationManager {
 				+ "f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user,"
 				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
 				+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value, f.alert_id,"
+				+ "f.p_id, f.periodic_time, f.periodic_period, f.periodic_day_of_week, "
+				+ "f.periodic_day_of_month, "
+				+ "f.periodic_local_day_of_month,"
+				+ "f.periodic_month, "
+				+ "f.periodic_local_month,"
+				+ "f.r_id,"
 				+ "a.name as alert_name "
 				+ "from forward f "
-				+ "inner join survey s "
+				+ "left outer join survey s "
 				+ "on s.s_id = f.s_id "
-				+ "inner join user_project up "
-				+ "on s.p_id = up.p_id "
-				+ "inner join users u "
-				+ "on u.id = up.u_id "
-				+ "inner join project p "
-				+ "on p.id = up.p_id "
 				+ "left outer join cms_alert a "
 				+ "on a.id = f.alert_id "
-				+ "where u.ident = ? "
-				+ "and s.p_id = ? "
-				+ "and s.deleted = 'false' "
+				+ "where (f.p_id = ? "
+				+ "or f.s_id in (select s_id from survey s where s.p_id = ? and not s.deleted)) "
 				+ "order by f.name, s.display_name asc";
 
 		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 		pstmt = sd.prepareStatement(sql);	 			
 
-		pstmt.setString(1, user);
+		pstmt.setInt(1, projectId);
 		pstmt.setInt(2, projectId);
 		log.info("Project Notifications: " + pstmt.toString());
 		resultSet = pstmt.executeQuery();
 
-		addToList(sd, resultSet, notifications, false, false);
+		addToList(sd, resultSet, notifications, false, false, tz);
 
 		return notifications;
 
@@ -334,7 +322,8 @@ public class NotificationManager {
 	public ArrayList<Notification> getOrganisationNotifications(
 			Connection sd, 
 			PreparedStatement pstmt,
-			int oId) throws SQLException {
+			int oId,
+			String tz) throws Exception {
 
 		ArrayList<Notification> notifications = new ArrayList<Notification>();	// Results of request
 
@@ -344,15 +333,22 @@ public class NotificationManager {
 				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
 				+ "f.tg_id, f.period, f.update_survey,"
 				+ "f.update_question, f.update_value,"
-				+ "p.name as project_name, f.alert_id, a.name as alert_name "
+				+ "p.name as project_name, f.alert_id, a.name as alert_name, "
+				+ "f.p_id, f.periodic_time, f.periodic_period, f.periodic_day_of_week, "
+				+ "f.periodic_day_of_month, "
+				+ "f.periodic_local_day_of_month,"
+				+ "f.periodic_month, "
+				+ "f.periodic_local_month, "
+				+ "f.r_id "
 				+ "from forward f "
-				+ "inner join survey s "
+				+ "left outer join survey s "
 				+ "on s.s_id = f.s_id "
-				+ "inner join project p "
+				+ "left outer join project p "
 				+ "on s.p_id = p.id "
-				+ "left join cms_alert a "
+				+ "left outer join cms_alert a "
 				+ "on a.id = f.alert_id "
-				+ "where p.o_id = ? "
+				+ "where f.p_id in (select id from project where o_id = ?) "
+					+ "or f.s_id in (select s.s_id from survey s, project p where s.p_id = p.id and p.o_id = ?) "
 				+ "and s.deleted = 'false' "
 				+ "order by p.name, f.name, s.display_name asc";
 
@@ -360,10 +356,11 @@ public class NotificationManager {
 		pstmt = sd.prepareStatement(sql);	 			
 
 		pstmt.setInt(1, oId);
+		pstmt.setInt(2, oId);
 		log.info("All Notifications: " + pstmt.toString());
 		resultSet = pstmt.executeQuery();
 
-		addToList(sd, resultSet, notifications, false, true);
+		addToList(sd, resultSet, notifications, false, true, tz);
 
 		return notifications;
 
@@ -468,7 +465,8 @@ public class NotificationManager {
 			ResultSet resultSet, 
 			ArrayList<Notification> notifications, 
 			boolean getPassword,
-			boolean getProject) throws SQLException {
+			boolean getProject,
+			String tz) throws Exception {
 
 		while (resultSet.next()) {								
 
@@ -499,12 +497,30 @@ public class NotificationManager {
 			n.updateValue = resultSet.getString("update_value");
 			n.alert_id = resultSet.getInt("alert_id");
 			n.alert_name = resultSet.getString("alert_name");
-
+			n.p_id = resultSet.getInt("p_id");
+			
+			n.periodic_period = resultSet.getString("periodic_period");
+			PeriodicTime pt = new PeriodicTime(n.periodic_period, tz);
+			pt.setUtcTime(resultSet.getTime("periodic_time"), 
+					resultSet.getInt("periodic_day_of_week"));
+			
+			n.periodic_time = pt.getLocalTime();			
+			n.periodic_week_day = pt.getLocalWeekday();
+			n.periodic_month_day = resultSet.getInt("periodic_local_day_of_month");
+			n.periodic_month = resultSet.getInt("periodic_local_month");
+			n.r_id = resultSet.getInt("r_id");
 			if(getPassword) {
 				n.remote_password = resultSet.getString("remote_password");
 			}
 			if(getProject) {
 				n.project = resultSet.getString("project_name");
+				if(n.project == null & n.p_id > 0) {
+					/*
+					 * This is a hack because previously it was assumed that all notification entries and that is the path
+					 * by which the project name is determined.  However not all do now. For example periodic notifications. 
+					 */
+					n.project = GeneralUtilityMethods.getProjectName(sd, n.p_id);
+				}
 			}
 
 			if(n.trigger.equals("task_reminder")) {
@@ -660,6 +676,7 @@ public class NotificationManager {
 								instanceId, tz);
 					}
 					SubmissionMessage subMsg = new SubmissionMessage(
+							"Submission",	// Title
 							0,				// Task Id - ignore, only relevant for a reminder
 							ident,			// Survey Ident
 							updateSurvey,
@@ -679,15 +696,16 @@ public class NotificationManager {
 							target,
 							submittingUser,
 							scheme,
-							serverName,
-							basePath,
 							nd.callback_url,
 							remoteUser,
 							remotePassword,
 							nd.pdfTemplateId,
 							nd.survey_case,
-							nd.assign_question);
-					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
+							nd.assign_question,
+							null,					// Report Period
+							0						// Report Id
+							);
+					mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 
 					lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
 							localisation.getString("filter_applied")
@@ -732,7 +750,9 @@ public class NotificationManager {
 			SubmissionMessage msg,
 			int messageId,
 			String topic,
-			boolean createPending) throws Exception {
+			boolean createPending,
+			String serverName,
+			String basePath) throws Exception {
 
 		String docURL = null;
 		String filePath = null;
@@ -751,7 +771,7 @@ public class NotificationManager {
 		DataManager dm = new DataManager(localisation, "UTC");
 		int surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
 
-		Survey survey = sm.getById(sd, cResults, null, false, surveyId, true, msg.basePath, 
+		Survey survey = sm.getById(sd, cResults, null, false, surveyId, true, basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson",
 				msg.include_references,	// For PDFs follow links to referenced surveys
@@ -762,7 +782,7 @@ public class NotificationManager {
 		Survey updateSurvey = null;
 		if(msg.update_ident != null) {
 			int oversightId = GeneralUtilityMethods.getSurveyId(sd, msg.update_ident);
-			updateSurvey = sm.getById(sd, cResults, null, false, oversightId, true, msg.basePath, 
+			updateSurvey = sm.getById(sd, cResults, null, false, oversightId, true, basePath, 
 					msg.instanceId, true, generateBlank, true, false, true, "real", 
 					false, false, true, "geojson",
 					msg.include_references,		// For PDFs follow links to referenced surveys
@@ -795,7 +815,7 @@ public class NotificationManager {
 				tm.createTextOutput(sd,
 						cResults,
 						text,
-						msg.basePath, 
+						basePath, 
 						msg.user,
 						survey,
 						"none",
@@ -805,7 +825,7 @@ public class NotificationManager {
 					tm.createTextOutput(sd,
 							cResults,
 							text,
-							msg.basePath, 
+							basePath, 
 							msg.user,
 							updateSurvey,
 							"none",
@@ -820,7 +840,7 @@ public class NotificationManager {
 						docURL = null;
 
 						// Create temporary PDF and get file name
-						filePath = msg.basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";
+						filePath = basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";
 						FileOutputStream outputStream = null;
 						try {
 							outputStream = new FileOutputStream(filePath); 
@@ -835,11 +855,11 @@ public class NotificationManager {
 							msg.attach = "pdf";
 						}
 
-						String urlprefix = "https://" + msg.server + "/";
+						String urlprefix = "https://" + serverName + "/";
 
 						filename = pm.createPdf(
 								outputStream,
-								msg.basePath, 
+								basePath, 
 								urlprefix,
 								msg.user,
 								"none", 
@@ -852,7 +872,7 @@ public class NotificationManager {
 						outputStream.close();
 						if(survey.compress_pdf) {
 							// Compress the temporary file and write it toa new temporary file
-							String compressedPath = msg.basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";	// New temporary file
+							String compressedPath = basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";	// New temporary file
 							try {
 								outputStream = new FileOutputStream(compressedPath); 
 							} catch (Exception e) {
@@ -879,8 +899,9 @@ public class NotificationManager {
 				error_details = null;				// Notification log
 				if(msg.target.equals("email")) {
 					
-					SendEmailResponse resp = sendEmails(sd, cResults, msg, organisation, surveyId, logContent, docURL, survey, unsubscribedList,
-							filePath, filename, messageId, createPending, topic);
+					SendEmailResponse resp = sendEmails(sd, cResults, msg, organisation, surveyId, logContent, docURL, survey.displayName, unsubscribedList,
+							filePath, filename, messageId, createPending, topic, msg.user, serverName, 
+							survey.displayName, survey.projectName);
 					
 					notify_details = resp.notify_details;
 					status = resp.status;
@@ -1044,8 +1065,9 @@ public class NotificationManager {
 					/*
 					 * Send emails associated with this escalation
 					 */
-					sendEmails(sd, cResults, msg, organisation, surveyId, logContent, docURL, survey, unsubscribedList,
-							filePath, filename, messageId, createPending, topic);
+					sendEmails(sd, cResults, msg, organisation, surveyId, logContent, docURL, survey.displayName, unsubscribedList,
+							filePath, filename, messageId, createPending, topic, msg.user, serverName,
+							survey.displayName, survey.projectName);
 					
 				} else {
 					status = "error";
@@ -1115,6 +1137,145 @@ public class NotificationManager {
 		}
 	}
 
+	/*
+	 * Process a notification that was triggered by a periodic timer
+	 * No survey data is available, these generate reports
+	 */
+	public void processPeriodicNotification(Connection sd, 
+			Connection cResults, 
+			Organisation organisation,
+			String tz,
+			SubmissionMessage msg,
+			int messageId,
+			String topic,
+			boolean createPending,
+			String serverName,
+			String basePath) throws Exception {
+
+		String docURL = null;
+		String filePath = null;
+		String filename = msg.title + ".xlsx";
+		String logContent = null;
+
+		boolean writeToMonitor = true;
+
+		String userIdent = GeneralUtilityMethods.getUserIdent(sd, msg.reportId);	// Temporary user ident
+		ActionManager am = new ActionManager(localisation, "UTC");		// Time zone should be ignored, real time zone will be retrieved from the action
+		Action a = am.getAction(sd, userIdent);
+		ReportParameters p = new ReportParameters();
+		p.setParameters(a.parameters);	
+		int sId = GeneralUtilityMethods.getSurveyId(sd, a.surveyIdent);
+
+		File file = new File(basePath + "/temp/periodic_" + UUID.randomUUID() + ".xlsx");
+		filePath = file.getAbsolutePath();
+		OutputStream outputStream = new FileOutputStream(file);
+
+		/*
+		 * Set start and end time of the report based on report period
+		 *  End date is the previous day
+		 * The date used is submission date
+		 */
+		int dateId = SmapServerMeta.UPLOAD_TIME_ID;
+		LocalDateTime utcDateTime = LocalDateTime.now();
+		ZonedDateTime utcZdt = ZonedDateTime.of(utcDateTime, TimeZone.getTimeZone("UTC").toZoneId());
+		ZonedDateTime lZdtEnd = utcZdt.withZoneSameInstant(TimeZone.getTimeZone(tz).toZoneId()).minusDays(1);	// Report up to yesterday in local time
+		ZonedDateTime lZdtStart = getStartZDT(lZdtEnd, msg.period);
+
+		Date endDate = Date.valueOf(lZdtEnd.toLocalDate());
+		Date startDate = Date.valueOf(lZdtStart.toLocalDate());
+
+		XLSXReportsManager rm = new XLSXReportsManager(localisation);
+		rm.getNewReport(
+				sd,
+				cResults,
+				userIdent,
+				"https:",
+				serverName,
+				basePath,
+				outputStream,
+				sId,
+				a.surveyIdent,
+				p.split_locn,
+				p.meta,		// Get altitude and location
+				p.merge_select_multiple,
+				p.language,
+				p.exp_ro,
+				p.embedImages,
+				p.excludeParents,
+				p.hxl,
+				p.fId,
+				startDate,		// Override start date question specified in report
+				endDate,		// Override end date question specified in report
+				dateId,			// Override date question specified in report
+				p.filter,
+				p.meta,
+				p.tz);		// Use the report time zone
+
+
+		// Notification log
+		ArrayList<String> unsubscribedList  = new ArrayList<> ();
+		String error_details = null;
+		String notify_details = null;
+		String status = null;
+
+		if(organisation.can_notify) {
+
+			/*
+			 * Send document to target
+			 */
+			status = "success";					// Notification log
+			notify_details = null;				// Notification log
+			error_details = null;				// Notification log
+			String surveyName = GeneralUtilityMethods.getSurveyName(sd, sId);	// For Notification log
+			String projectName = GeneralUtilityMethods.getProjectNameFromSurvey(sd, sId);  // For Notification log
+
+			if(msg.target.equals("email")) {
+				SendEmailResponse resp = sendEmails(sd, cResults, msg, organisation, sId, logContent, docURL, msg.title, unsubscribedList,
+						filePath, filename, messageId, createPending, topic, msg.user, serverName, surveyName, projectName);
+
+				notify_details = resp.notify_details;
+				status = resp.status;
+				error_details = resp.error_details;
+				writeToMonitor = resp.writeToMonitor;
+
+			} else {
+				status = "error";
+				error_details = "Invalid target: " + msg.target;
+				log.log(Level.SEVERE, "Error: Invalid target" + msg.target);
+			}
+
+		} else {
+			notify_details = organisation.name;
+			status = "error";
+			error_details = localisation.getString("susp_notify");
+			log.log(Level.SEVERE, "Error: notification services suspended");
+		}
+
+		// Write log message
+		if(writeToMonitor) {
+			if(!unsubscribedList.isEmpty()) {
+				if(error_details == null) {
+					error_details = "";
+				}
+				error_details += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
+			}
+			writeToLog(sd, organisation.id, msg.pId, sId, notify_details, status, 
+					error_details, messageId);
+
+			/*
+			 * Write application log entry
+			 */
+			String logTopic;
+			if(status != null && status.toLowerCase().equals("error")) {
+				logTopic = LogManager.NOTIFICATION_ERROR;
+			} else {
+				logTopic = LogManager.NOTIFICATION;
+			}
+
+			lm.writeLogOrganisation(sd, organisation.id, "subscriber", logTopic, status + " : " + notify_details + (error_details == null ? "" : error_details), 0);
+		}
+
+	}
 
 	/*
 	 * Process a reminder
@@ -1128,7 +1289,9 @@ public class NotificationManager {
 			SubmissionMessage msg,
 			int messageId,
 			String topic,
-			boolean createPending) throws Exception {
+			boolean createPending,
+			String serverName,
+			String basePath) throws Exception {
 
 		String logContent = null;
 
@@ -1140,7 +1303,7 @@ public class NotificationManager {
 		PreparedStatement pstmtGetSMSUrl = null;
 
 
-		String urlprefix = msg.scheme + "://" + msg.server;
+		String urlprefix = msg.scheme + "://" + serverName;
 		TaskManager tm = new TaskManager(localisation, tz);
 		TaskListGeoJson t = tm.getTasks(
 				sd, 
@@ -1175,7 +1338,7 @@ public class NotificationManager {
 			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 
-			Survey survey = sm.getById(sd, cResults, null, false, surveyId, true, msg.basePath, 
+			Survey survey = sm.getById(sd, cResults, null, false, surveyId, true, basePath, 
 					msg.instanceId, true, false, true, false, true, "real", 
 					false, false, true, "geojson",
 					msg.include_references,	// For PDFs follow links to referenced surveys
@@ -1185,8 +1348,8 @@ public class NotificationManager {
 
 			if(organisation.can_notify) {
 
-				msg.subject = tm.fillStringTaskTemplate(task, msg, msg.subject);
-				msg.content = tm.fillStringTaskTemplate(task, msg, msg.content);
+				msg.subject = tm.fillStringTaskTemplate(task, msg, msg.subject, serverName);
+				msg.content = tm.fillStringTaskTemplate(task, msg, msg.content, serverName);
 
 				/*
 				 * Send document to target
@@ -1208,7 +1371,7 @@ public class NotificationManager {
 							if(msg.subject != null && msg.subject.trim().length() > 0) {
 								subject = msg.subject;
 							} else {
-								if(msg.server != null && msg.server.contains("smap")) {
+								if(serverName != null && serverName.contains("smap")) {
 									subject = "Smap ";
 								}
 								subject += localisation.getString("c_notify");
@@ -1225,10 +1388,8 @@ public class NotificationManager {
 								content = organisation.default_email_content;
 							}
 
-							notify_details = "Sending email to: " + emails + " containing link " + logContent;
 							notify_details = localisation.getString("msg_er");
 							notify_details = notify_details.replaceAll("%s1", emails);
-							notify_details = notify_details.replaceAll("%s2", "-");			// No attachments in reminder
 							notify_details = notify_details.replaceAll("%s3", survey.displayName);
 							notify_details = notify_details.replaceAll("%s4", survey.projectName);
 
@@ -1264,7 +1425,7 @@ public class NotificationManager {
 													organisation.getAdminEmail(), 
 													emailServer,
 													msg.scheme,
-													msg.server,
+													serverName,
 													subStatus.emailKey,
 													localisation,
 													organisation.server_description,
@@ -1283,7 +1444,7 @@ public class NotificationManager {
 													subStatus.emailKey,
 													createPending,
 													msg.scheme,
-													msg.server,
+													serverName,
 													messageId);
 										}
 									}
@@ -1502,18 +1663,22 @@ public class NotificationManager {
 	private SendEmailResponse sendEmails(Connection sd, Connection cResults, SubmissionMessage msg, Organisation organisation, int surveyId, 
 			String logContent,
 			String docURL,
-			Survey survey,
+			String name,
 			ArrayList<String> unsubscribedList,
 			String filePath,
 			String filename,
 			int messageId,
 			boolean createPending,
-			String topic) throws Exception {
+			String topic,
+			String user,
+			String serverName,
+			String surveyName,
+			String projectName) throws Exception {
 		
-		SendEmailResponse resp = new SendEmailResponse();;
+		SendEmailResponse resp = new SendEmailResponse();
 		
 		MessagingManager mm = new MessagingManager(localisation);
-		EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user, organisation.id);
+		EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, user, organisation.id);
 		if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 			String emails = getEmails(sd, cResults, surveyId, msg);
 			
@@ -1526,7 +1691,7 @@ public class NotificationManager {
 				if(msg.subject != null && msg.subject.trim().length() > 0) {
 					subject = msg.subject;
 				} else {
-					if(msg.server != null && msg.server.contains("smap")) {
+					if(serverName != null && serverName.contains("smap")) {
 						subject = "Smap ";
 					}
 					subject += localisation.getString("c_notify");
@@ -1544,7 +1709,7 @@ public class NotificationManager {
 				} else {
 					content = new StringBuilder(localisation.getString("email_ian"))
 							.append(" " + msg.scheme + "://")
-							.append(msg.server)
+							.append(serverName)
 							.append(". ");
 				}
 
@@ -1552,23 +1717,31 @@ public class NotificationManager {
 					content.append("<p style=\"color:blue;text-align:center;\">")
 					.append("<a href=\"")
 					.append(msg.scheme + "://")
-					.append(msg.server)
+					.append(serverName)
 					.append(docURL)
 					.append("\">")
-					.append(survey.displayName)
+					.append(surveyName)
 					.append("</a>")
 					.append("</p>");
 				}
 
-				resp.notify_details = localisation.getString("msg_en");
-				resp.notify_details = resp.notify_details.replaceAll("%s1", emails);
-				if(logContent != null) {
-					resp.notify_details = resp.notify_details.replaceAll("%s2", logContent);
+				/*
+				 * Create notification details for the monitor
+				 */
+				if(topic.equals(NotificationManager.TOPIC_PERIODIC)) {
+					resp.notify_details = localisation.getString("msg_pn");
+					resp.notify_details = resp.notify_details.replaceAll("%s2", name);
 				} else {
-					resp.notify_details = resp.notify_details.replaceAll("%s2", "-");
+					resp.notify_details = localisation.getString("msg_en");
+					if(logContent != null) {
+						resp.notify_details = resp.notify_details.replaceAll("%s2", logContent);
+					} else {
+						resp.notify_details = resp.notify_details.replaceAll("%s2", "-");
+					}
 				}
-				resp.notify_details = resp.notify_details.replaceAll("%s3", survey.displayName);
-				resp.notify_details = resp.notify_details.replaceAll("%s4", survey.projectName);
+				resp.notify_details = resp.notify_details.replaceAll("%s1", emails);			
+				resp.notify_details = resp.notify_details.replaceAll("%s3", surveyName);
+				resp.notify_details = resp.notify_details.replaceAll("%s4", projectName);
 
 				log.info("+++ emailing to: " + emails + " docUrl: " + logContent + 
 						" from: " + from + 
@@ -1594,7 +1767,7 @@ public class NotificationManager {
 										filePath,
 										filename,
 										emailServer,
-										msg.server,
+										serverName,
 										subStatus.emailKey,
 										localisation,
 										null,
@@ -1615,7 +1788,7 @@ public class NotificationManager {
 										subStatus.emailKey,
 										createPending,
 										msg.scheme,
-										msg.server,
+										serverName,
 										messageId);
 								log.info("#########: Email " + ia.getAddress() + " saved to pending while waiting for optin");
 
@@ -1641,5 +1814,25 @@ public class NotificationManager {
 		}
 		
 		return resp;
+	}
+	
+	/*
+	 * Get the start date for a period that ends on the provided end date
+	 * Data is returned from the beginning of start to the end of end
+	 * Hence for a period of one day, start and end date are the same 
+	 * For a period of 1 week start date is 6 days before end date and so on
+	 */
+	ZonedDateTime getStartZDT(ZonedDateTime endDate, String period) throws Exception {
+		if(period.equals(PeriodicTime.DAILY)) {
+			return endDate;								
+		} else if(period.equals(PeriodicTime.WEEKLY)) {
+			return endDate.minusDays(6);
+		} else if(period.equals(PeriodicTime.MONTHLY)) {
+			return endDate.minusMonths(1).plusDays(1);
+		} else if(period.equals(PeriodicTime.YEARLY)) {
+			return endDate.minusMonths(12).plusDays(1);
+		} else {
+			throw new Exception("Invalid report period: " + period);
+		}
 	}
 }

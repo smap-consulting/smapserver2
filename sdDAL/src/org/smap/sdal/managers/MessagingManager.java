@@ -64,7 +64,7 @@ public class MessagingManager {
 		String data = gson.toJson(new TaskMessage(taskId));		
 		int oId = GeneralUtilityMethods.getOrganisationIdForTask(sd, taskId);	
 		if(oId >= 0) {
-			createMessage(sd, oId, "task", null, data);
+			createMessage(sd, oId, NotificationManager.TOPIC_TASK, null, data);
 		}
 	}
 	
@@ -76,7 +76,7 @@ public class MessagingManager {
 		String data = gson.toJson(new UserMessage(userIdent));		
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);	
 		if(oId >= 0) {
-			createMessage(sd, oId, "user", null, data);
+			createMessage(sd, oId, NotificationManager.TOPIC_USER, null, data);
 		}
 	}
 	
@@ -90,7 +90,7 @@ public class MessagingManager {
 		String data = gson.toJson(sm);
 		int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);	
 		if(oId >= 0) {
-			createMessage(sd, oId, "survey", null, data);
+			createMessage(sd, oId, NotificationManager.TOPIC_SURVEY, null, data);
 		}
 	}
 	

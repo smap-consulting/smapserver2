@@ -46,11 +46,12 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.PDFReportsManager;
+import org.smap.sdal.managers.XLSXReportsManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
+import org.smap.sdal.model.ReportParameters;
 import org.smap.sdal.model.SurveyViewDefn;
-import utilities.XLSXReportsManager;
 
 /*
  * Allow a temporary user to complete an action
@@ -112,90 +113,45 @@ public class ActionServiceKPI extends Application {
 			// End Authorisation
 
 			// 3. Get parameters
-			int fId = 0;
-			boolean split_locn = false;
-			boolean merge_select_multiple = false;
-			String language = "none";
-			boolean exp_ro = false;
-			boolean embedImages = false;
-			boolean landscape = false;
-			boolean excludeParents = false;
-			boolean hxl = false;	
-			Date startDate = null;
-			Date endDate = null;	
-			int dateId = 0;
-			String filter = null;
-			boolean meta = false;
-			String tz = "UTC";
-			
-			for(KeyValueSimp p : a.parameters) {
-				if(p.k.equals("form")) {
-					fId = Integer.parseInt(p.v);
-				} else if(p.k.equals("split_locn")) {
-					split_locn = Boolean.parseBoolean(p.v);
-				} else if(p.k.equals("merge_select_multiple")) {
-					merge_select_multiple = Boolean.parseBoolean(p.v);
-				} else if(p.k.equals("language")) {
-					language = p.v;
-				} else if(p.k.equals("tz")) {
-					tz = p.v;
-				} else if(p.k.equals("exp_ro")) {
-					exp_ro = Boolean.parseBoolean(p.v);
-				} else if(p.k.equals("embed_images")) {
-					embedImages = Boolean.parseBoolean(p.v);
-				} else if(p.k.equals("excludeParents")) {
-					excludeParents = Boolean.parseBoolean(p.v);
-				} else if(p.k.equals("hxl")) {
-					hxl = Boolean.parseBoolean(p.v);
-				} else if(p.k.equals("startDate")) {
-					startDate = Date.valueOf(p.v);
-				} else if(p.k.equals("endDate")) {
-					endDate = Date.valueOf(p.v);
-				} else if(p.k.equals("dateId") && p.v != null) {
-					dateId = Integer.parseInt(p.v);
-				} else if(p.k.equals("filter")) {
-					filter = p.v;
-				} else if(p.k.equals("meta")) {
-					meta = Boolean.parseBoolean(p.v);
-				} else if(p.k.equals("landscape")) {
-					landscape = Boolean.parseBoolean(p.v);
-				} 
-			}
+			ReportParameters p = new ReportParameters();
+			p.setParameters(a.parameters);	
 			
 			// Default to the top level form
 			int sId = GeneralUtilityMethods.getSurveyId(sd, a.surveyIdent);
-			if(fId == 0) {
+			if(p.fId == 0) {
 				Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId);
-				fId = f.id;
+				p.fId = f.id;
 			}
 			
 			// 4. Get report		
 			if(a.reportType == null || a.reportType.equals("xlsx")) {
+				GeneralUtilityMethods.setFilenameInResponse(a.name + "." + "xlsx", response); // Set file name
 				XLSXReportsManager rm = new XLSXReportsManager(localisation);
 				responseVal = rm.getNewReport(
 						sd,
 						cResults,
 						userIdent,
-						request,
-						response,
+						request.getScheme(),
+						request.getServerName(),
+						GeneralUtilityMethods.getBasePath(request),
+						response.getOutputStream(),
 						sId,
 						a.surveyIdent,
-						a.name,		// File name
-						split_locn,
-						meta,		// Get altitude and location
-						merge_select_multiple,
-						language,
-						exp_ro,
-						embedImages,
-						excludeParents,
-						hxl,
-						fId,
-						startDate,
-						endDate,
-						dateId,
-						filter,
-						meta,
-						tz);
+						p.split_locn,
+						p.meta,		// Get altitude and location
+						p.merge_select_multiple,
+						p.language,
+						p.exp_ro,
+						p.embedImages,
+						p.excludeParents,
+						p.hxl,
+						p.fId,
+						p.startDate,
+						p.endDate,
+						p.dateId,
+						p.filter,
+						p.meta,
+						p.tz);
 			} else if(a.reportType.equals("pdf")) {
 				PDFReportsManager prm = new PDFReportsManager(localisation);
 				prm.getReport(sd, 
@@ -207,12 +163,12 @@ public class ActionServiceKPI extends Application {
 						sId, 
 						a.surveyIdent,
 						a.filename, 
-						landscape, 
-						language, 
-						startDate, 
-						endDate, 
-						dateId, 
-						filter);
+						p.landscape, 
+						p.language, 
+						p.startDate, 
+						p.endDate, 
+						p.dateId, 
+						p.filter);
 			} else {
 				throw new Exception(localisation.getString("Unknown report type: " + a.reportType));
 			}

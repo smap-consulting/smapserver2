@@ -825,24 +825,33 @@ CREATE UNIQUE INDEX SscName ON ssc(s_id, name);
 DROP TABLE IF EXISTS forward;
 CREATE TABLE forward (
 	id INTEGER DEFAULT NEXTVAL('forward_seq') CONSTRAINT pk_forward PRIMARY KEY,
-	s_id INTEGER REFERENCES survey ON DELETE CASCADE,
+	s_id INTEGER,
+	p_id integer,
 	name text,
 	enabled boolean,
 	filter text,
-	trigger text,
+	trigger text,						-- cm_alert || task_reminder || console_update || submission || periodic
 	target text,
 	remote_s_id text,
 	remote_s_name text,
 	remote_user text,
 	remote_password text,
 	remote_host text,
-	notify_details text,			-- JSON string
+	notify_details text,				-- JSON string
 	tg_id integer default 0,			-- Reminder notifications
-	period text,						-- Reminder notifications
+	period text,						-- Task Reminder notifications
 	update_survey text references survey(ident) on delete cascade,
 	update_question text,				-- Update notifications
 	update_value text,
-	alert_id integer					-- Set where the source is a case management reminder
+	alert_id integer,					-- Set where the source is a case management reminder
+	periodic_time time,					-- The time of day a periodic trigger is fired
+	periodic_period text				-- day || week || month || year
+	periodic_day_of_week integer,		-- 0 to 6, Sunday to Saturday for weekly reports
+	periodic_day_of_month integer,		-- Day of the month for monthly and yearly reports
+	periodic_local_day_of_month integer,-- Original local day of the month as this cannot reliably be recreated from utc value
+	periodic_month integer,				-- Month used for yearly reports
+	periodic_local_month integer,		-- Original local month as this cannot reliably be recreated from utc value
+	r_id integer						-- report id
 	);
 ALTER TABLE forward OWNER TO ws;
 CREATE UNIQUE INDEX ForwardDest ON forward(s_id, remote_s_id, remote_host);

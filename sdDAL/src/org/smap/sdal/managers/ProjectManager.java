@@ -303,7 +303,9 @@ public class ProjectManager {
 							"yes");
 				}
 				
-				// Delete the project
+				/*
+				 * Delete the project
+				 */
 				sql = "delete from project p " 
 						+ "where p.id = ? "
 						+ "and p.o_id = ?";			// Ensure the project is in the same organisation as the administrator doing the editing
@@ -315,6 +317,21 @@ public class ProjectManager {
 				log.info("Delete project: " + pstmt.toString());
 				pstmt.executeUpdate();
 
+				/*
+				 * Delete any notifications attached to this project
+				 */
+				sql = "delete from forward " 
+						+ "where p_id = ? ";
+											
+				try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, p.id);
+				log.info("Delete notification: " + pstmt.toString());
+				pstmt.executeUpdate();
+				
+				/*
+				 * Write to the log
+				 */
 				String msg = localisation.getString("msg_del_proj");
 				msg = msg.replace("%s1", project_name);
 				lm.writeLogOrganisation(sd, o_id, remoteUser, LogManager.DELETE, msg, 0);

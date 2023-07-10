@@ -272,13 +272,18 @@ public class ProjectList extends Application {
 		String connectionString = "surveyKPI-ProjectList";
 		Connection cResults = null;
 		
+		Type type = new TypeToken<ArrayList<Project>>(){}.getType();		
+		ArrayList<Project> pArray = new Gson().fromJson(projects, type);
+		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
+		if(pArray != null && pArray.size() > 0) {
+			for(Project p : pArray) {
+				a.isValidProject(sd, request.getRemoteUser(), p.id);
+			}
+		}
 		// End Authorisation			
-					
-		Type type = new TypeToken<ArrayList<Project>>(){}.getType();		
-		ArrayList<Project> pArray = new Gson().fromJson(projects, type);
 		
 		try {	
 			cResults = ResultsDataSource.getConnection(connectionString);
