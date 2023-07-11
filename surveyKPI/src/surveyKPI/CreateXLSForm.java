@@ -54,6 +54,7 @@ public class CreateXLSForm extends Application {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.ADMIN);
 		a = new Authorise(authorisations, null);	
 	}
 	
