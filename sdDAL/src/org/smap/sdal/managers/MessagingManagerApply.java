@@ -545,6 +545,26 @@ public class MessagingManagerApply {
 							topic,
 							false);		// Do not create pending	
 					
+				} else if(topic.equals(NotificationManager.TOPIC_PERIODIC)) {
+					
+					NotificationManager nm = new NotificationManager(localisation);
+					
+					
+					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);	
+					email = msg.user;
+					
+					nm.processPeriodicNotification(
+							sd, 
+							cResults, 
+							organisation, 
+							msg,
+							id,
+							topic,
+							false,		// Do not create pending
+							serverName,
+							basePath
+							); 
+					
 				} else {
 
 					log.info("+++++++++ opt in send pending +++++++++ Unknown topic: " + topic);
