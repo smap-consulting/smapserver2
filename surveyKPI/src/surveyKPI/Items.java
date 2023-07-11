@@ -83,11 +83,13 @@ public class Items extends Application {
 	public Items() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.VIEW_DATA);
 		a = new Authorise(authorisations, null);
 		
 		authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);
 		aUpdate = new Authorise(authorisations, null);
 	}
 	

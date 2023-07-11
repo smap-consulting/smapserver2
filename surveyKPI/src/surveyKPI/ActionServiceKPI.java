@@ -70,6 +70,7 @@ public class ActionServiceKPI extends Application {
 
 		ArrayList<String> authorisations = new ArrayList<String>();
 		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.MANAGE); // Enumerators with MANAGE access can process managed forms
 		auth = new Authorise(authorisations, null);
 	}

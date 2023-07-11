@@ -69,6 +69,7 @@ public class Reports extends Application {
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.MANAGE);		// Enumerators with MANAGE access can process managed forms
 		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.ADMIN);
 		a = new Authorise(authorisations, null);		
 	}
 
