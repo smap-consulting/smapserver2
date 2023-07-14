@@ -30,11 +30,13 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.SystemException;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
@@ -951,8 +953,6 @@ public class MyAssignments extends Application {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
 		TaskResponse tr = gson.fromJson(assignInput, TaskResponse.class);
 
-		log.info("Device:" + tr.deviceId + " for user " + userName);
-
 		// TODO that the status is valid (A different range of status values depending on the role of the user)
 
 		PreparedStatement pstmtSetDeleted = null;
@@ -966,6 +966,11 @@ public class MyAssignments extends Application {
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		try {	
 
+			if(tr == null) {
+				throw new ApplicationException("Task information was not set");
+			}		
+			log.info("Device:" + tr.deviceId + " for user " + userName);
+			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
@@ -1067,6 +1072,8 @@ public class MyAssignments extends Application {
 			response = Response.ok().build();
 			log.info("Assignments updated");	
 
+		} catch (ApplicationException e) {		
+			throw new SystemException(e.getMessage());
 		} catch (Exception e) {		
 			response = Response.serverError().build();
 			log.log(Level.SEVERE,"Exception", e);
