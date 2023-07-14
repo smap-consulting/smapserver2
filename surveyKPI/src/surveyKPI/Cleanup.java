@@ -2,6 +2,7 @@ package surveyKPI;
 
 import java.io.File;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
@@ -112,6 +113,7 @@ public class Cleanup extends Application {
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
+		PreparedStatement pstmtAge = null;
 		HashMap<String, String> survey = new HashMap<> ();
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
@@ -125,6 +127,26 @@ public class Cleanup extends Application {
 				survey.put("name", rs.getString(1));
 			} else {
 				survey.put("exists", "no");
+				
+				/*
+				 * Get the date that this survey was erased
+				 * The survey ident contains the initial survey id, this survey id would have
+				 *  been marked as erased at the same time as any later versions of the survey. 
+				 *  Hence use that date.
+				 */
+				try {
+					int sId = Integer.valueOf(sIdent.substring(sIdent.indexOf('_') + 1));
+					sql = "select log_time from log where s_id = ? and event = 'erase'";
+					pstmtAge = sd.prepareStatement(sql);
+					pstmtAge.setInt(1, sId);
+					rs = pstmtAge.executeQuery();
+					if(rs.next()) {
+						survey.put("erased", rs.getDate(1).toString());
+					}
+					
+				} catch (Exception e) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
 			}
 			responseVal = Response.ok(gson.toJson(survey)).build();
 				
@@ -134,6 +156,7 @@ public class Cleanup extends Application {
 			responseVal = Response.status(Status.INTERNAL_SERVER_ERROR).entity("Error: " + e.getMessage()).build();
 		} finally {
 			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+			if(pstmtAge != null) try {pstmtAge.close();}catch(Exception e) {}
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
