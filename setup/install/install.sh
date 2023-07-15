@@ -402,7 +402,7 @@ sudo apt-get install gdal-bin -y
 sudo apt-get install ttf-dejavu -y
 
 # Add a file containing the version number
-echo "2306" > ~/smap_version
+echo "2307" > ~/smap_version
 
 echo '##### 21. Add postgres and apache to tomcat group'
 if [ "$DBHOST" = "127.0.0.1" ]; then
