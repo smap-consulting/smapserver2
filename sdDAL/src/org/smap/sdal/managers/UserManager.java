@@ -574,7 +574,7 @@ public class UserManager {
 
 				String subject = localisation.getString("email_ac") + " " + serverName;
 				String uuid = UtilityMethodsEmail.setOnetimePassword(sd, pstmt, u.email, "48 hours");
-				EmailManager em = new EmailManager();
+				EmailManager em = new EmailManager(localisation);
 				
 				HashMap<String, String> customTokens = new HashMap<> ();
 				StringBuilder template = new StringBuilder(localisation.getString("email_newuser"));

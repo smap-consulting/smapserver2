@@ -188,7 +188,7 @@ public class OrganisationManager {
 					|| originalOrg.email_task != o.email_task
 					|| originalOrg.can_sms != o.can_sms) {
 				
-				EmailManager em = new EmailManager();			
+				EmailManager em = new EmailManager(localisation);			
 				EmailServer emailServer = null;
 				SubscriptionStatus subStatus = null;
 				

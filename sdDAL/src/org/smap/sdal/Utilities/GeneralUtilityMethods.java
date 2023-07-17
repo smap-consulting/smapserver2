@@ -6520,13 +6520,13 @@ public class GeneralUtilityMethods {
 				tablename, 
 				instanceId, 
 				null,				// Change object
-				null,	// Task Object
+				null,	            // Task Object
 				null,				// Notification object
 				details, 
-				0,				// sId (don't care legacy)
+				0,				    // sId (don't care legacy)
 				null,
-				0,				// Don't need task id if we have an assignment id
-				0				// Assignment id
+				0,				    // Don't need task id if we have an assignment id
+				0				    // Assignment id
 				);
 		
 		try {
