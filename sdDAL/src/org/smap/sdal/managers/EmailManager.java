@@ -388,8 +388,6 @@ public class EmailManager {
 		EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, user, organisation.id);
 		if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 
-			
-
 			if(emails.trim().length() > 0) {
 				log.info("userevent: " + user + " sending email of '" + logContent + "' to " + emails);
 
@@ -443,9 +441,13 @@ public class EmailManager {
 						resp.notify_details = resp.notify_details.replaceAll("%s2", "-");
 					}
 				}
-				resp.notify_details = resp.notify_details.replaceAll("%s1", emails);			
-				resp.notify_details = resp.notify_details.replaceAll("%s3", surveyName);
-				resp.notify_details = resp.notify_details.replaceAll("%s4", projectName);
+				resp.notify_details = resp.notify_details.replaceAll("%s1", emails);	
+				if(surveyName != null) {
+					resp.notify_details = resp.notify_details.replaceAll("%s3", surveyName);
+				}
+				if(projectName != null) {
+					resp.notify_details = resp.notify_details.replaceAll("%s4", projectName);
+				}
 
 				log.info("+++ emailing to: " + emails + " docUrl: " + logContent + 
 						" from: " + from + 
@@ -458,7 +460,7 @@ public class EmailManager {
 
 					for(InternetAddress ia : emailArray) {	
 						SubscriptionStatus subStatus = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());				
-						if(subStatus.unsubscribed) {
+						if(subStatus.unsubscribed && unsubscribedList != null) {
 							unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
 						} else {
 							if(subStatus.optedIn || !organisation.send_optin) {
@@ -725,6 +727,122 @@ public class EmailManager {
 			if(pstmtAdd != null) {try {pstmtAdd.close();} catch(Exception e) {}}
 		}
 		return sent;
+	}
+	
+	/*
+	 * Get the email addresses from the message settings
+	 */
+	public String getEmails(Connection sd, Connection cResults, int surveyId, SubmissionMessage msg) throws Exception {
+		
+		String emails = "";
+		HashMap<String, String> sentEndPoints = new HashMap<> ();
+		
+		ArrayList<String> emailList = null;
+		if(msg.emailQuestionSet()) {
+			String emailQuestionName = msg.getEmailQuestionName(sd);
+			log.info("Email question: " + emailQuestionName);
+			emailList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, emailQuestionName, msg.instanceId);
+		} else {
+			emailList = new ArrayList<String> ();
+		}
+
+		// Add any meta email addresses to the per question emails
+		String metaEmail = GeneralUtilityMethods.getResponseMetaValue(sd, cResults, surveyId, msg.emailMeta, msg.instanceId);
+		if(metaEmail != null) {
+			emailList.add(metaEmail);
+		}
+		
+		// Add the static emails to the per question emails
+		if(msg.emails != null) {
+			for(String email : msg.emails) {
+				if(email.length() > 0) {
+					log.info("Adding static email: " + email); 
+					emailList.add(email);
+				}
+			}
+		}
+
+		// Add the assigned user email
+		UserManager um = new UserManager(localisation);
+		if(msg.emailAssigned) {
+			log.info("--------------------------------------- Adding Assigned User Email Address -----------------");
+			ArrayList<String> assignedUser = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, "_assigned", msg.instanceId);
+			if(assignedUser != null) {
+				for(String user : assignedUser) {	// Should only be one assigned user but in future could be more
+					log.info("----- User: " + user);
+					String email = um.getUserEmailByIdent(sd, user);
+					log.info("----- Email: " + user);
+					if(email != null) {
+						emailList.add(email);
+					}
+				}
+			}
+		}
+		
+		// Convert emails into a comma separated string		
+		for(String email : emailList) {	
+			if(sentEndPoints.get(email) == null) {
+				if(UtilityMethodsEmail.isValidEmail(email)) {
+					if(emails.length() > 0) {
+						emails += ",";
+					}
+					emails += email;
+				} else {
+					log.info("Email Notifications: Discarding invalid email: " + email);
+				}
+				sentEndPoints.put(email, email);
+			} else {
+				log.info("Duplicate email: " + email);
+			}
+		}
+		
+		return emails;
+		
+	}
+	
+	/*
+	 * Get the email addresses from the message settings
+	 */
+	public String getAssignedUserEmails(Connection sd, Connection cResults, int surveyId, String instanceId) throws Exception {
+		
+		String emails = "";
+		HashMap<String, String> sentEndPoints = new HashMap<> ();
+		ArrayList<String> emailList = new ArrayList<String> ();
+
+		// Add the assigned user email
+		UserManager um = new UserManager(localisation);
+		log.info("--------------------------------------- Adding Assigned User Email Address -----------------");
+		ArrayList<String> assignedUser = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, "_assigned", instanceId);
+		if(assignedUser != null) {
+			for(String user : assignedUser) {	// Should only be one assigned user but in future could be more
+				log.info("----- User: " + user);
+				String email = um.getUserEmailByIdent(sd, user);
+				log.info("----- Email: " + user);
+				if(email != null) {
+					emailList.add(email);
+				}
+			}
+		}
+		
+		// Convert emails into a comma separated string		
+		for(String email : emailList) {	
+			if(sentEndPoints.get(email) == null) {
+				if(UtilityMethodsEmail.isValidEmail(email)) {
+					if(emails.length() > 0) {
+						emails += ",";
+					}
+					emails += email;
+				} else {
+					log.info("Assigned User Email: Discarding invalid email: " + email);
+				}
+				sentEndPoints.put(email, email);
+			} else {
+				log.info("Duplicate email: " + email);
+			}
+		}
+		
+		return emails;
+		
 	}
 }
 

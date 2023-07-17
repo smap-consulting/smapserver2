@@ -40,6 +40,7 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CaseManager;
+import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.model.Action;
@@ -49,6 +50,7 @@ import org.smap.sdal.model.Filter;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Link;
 import org.smap.sdal.model.ManagedFormItem;
+import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableColumn;
@@ -292,7 +294,7 @@ public class ManagedForms extends Application {
 			@PathParam("sId") int sId,
 			@PathParam("user") String uIdent,
 			@FormParam("record") String instanceId
-			) { 
+			) throws SQLException { 
 		
 		Response response = null;
 		String requester = "surveyKPI - assignManagedRecord";
@@ -307,6 +309,9 @@ public class ManagedForms extends Application {
 		
 		aAdmin.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		if(!uIdent.equals("_none")) {
+			a.isValidUser(sd, request.getRemoteUser(), GeneralUtilityMethods.getUserId(sd, uIdent));
+		}
 		// End Authorisation
 		
 		Connection cResults = ResultsDataSource.getConnection(requester);
@@ -315,11 +320,11 @@ public class ManagedForms extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			if(!uIdent.equals("_none")) {
-				a.isValidUser(sd, request.getRemoteUser(), GeneralUtilityMethods.getUserId(sd, uIdent));
-			}
 			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			String surveyName = GeneralUtilityMethods.getSurveyName(sd, sId);
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);		
+			Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
 			if(tableName != null) {
 				
 				CaseManager cm = new CaseManager(localisation);
@@ -329,6 +334,39 @@ public class ManagedForms extends Application {
 				} else {
 					response = Response.ok().build();
 				}
+				
+				/*
+				 * Send an email to the assigned user
+				 */
+				if(organisation.can_notify) {
+					
+					String content = localisation.getString("mf_ca2");
+					content = content.replace("%s1", surveyName);
+					
+					EmailManager em = new EmailManager(localisation);
+					String emails = em.getAssignedUserEmails(sd, cResults, sId, instanceId);
+					em.sendEmails(sd, cResults, emails, organisation, sId, 
+							null, 			// log content
+							null, 			// doc URL
+							null,			// name of a notification
+							null,			// Unsubscribed list
+							null, 			// filepath
+							null, 			// filename
+							0,				// message Id
+							false, 			// Create Pending
+							"none",			// Topic
+							request.getRemoteUser(), 
+							request.getServerName(),
+							null,			// Survey Name 
+							null,			// Project Name
+							localisation.getString("mf_ca"),	// Subject
+							null, 								// from
+							content, 							// Message content
+							request.getScheme(), 
+							null								// Submission message
+							);
+				}
+				
 			} else {
 				response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 			}

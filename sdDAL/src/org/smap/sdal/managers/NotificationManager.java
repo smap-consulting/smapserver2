@@ -893,7 +893,7 @@ public class NotificationManager {
 				if(msg.target.equals("email")) {
 					
 					EmailManager em = new EmailManager(localisation);
-					String emails = getEmails(sd, cResults, surveyId, msg);
+					String emails = em.getEmails(sd, cResults, surveyId, msg);
 					SendEmailResponse resp = em.sendEmails(sd, cResults, emails, organisation, surveyId, logContent, docURL, survey.displayName, unsubscribedList,
 							filePath, filename, messageId, createPending, topic, msg.user, serverName, 
 							survey.displayName, survey.projectName, msg.subject, msg.from, msg.content, msg.scheme, msg);
@@ -1061,7 +1061,7 @@ public class NotificationManager {
 					 * Send emails associated with this escalation
 					 */
 					EmailManager em = new EmailManager(localisation);
-					String emails = getEmails(sd, cResults, surveyId, msg);
+					String emails = em.getEmails(sd, cResults, surveyId, msg);
 					em.sendEmails(sd, cResults, emails, organisation, surveyId, logContent, docURL, survey.displayName, unsubscribedList,
 							filePath, filename, messageId, createPending, topic, msg.user, serverName,
 							survey.displayName, survey.projectName,
@@ -1234,7 +1234,7 @@ public class NotificationManager {
 
 			if(msg.target.equals("email")) {
 				EmailManager em = new EmailManager(localisation);
-				String emails = getEmails(sd, cResults, sId, msg);
+				String emails = em.getEmails(sd, cResults, sId, msg);
 				SendEmailResponse resp = em.sendEmails(sd, cResults, emails, organisation, sId, logContent, docURL, msg.title, unsubscribedList,
 						filePath, filename, messageId, createPending, topic, msg.user, serverName, surveyName, projectName,
 						msg.subject, msg.from, msg.content, msg.scheme, msg);
@@ -1343,6 +1343,7 @@ public class NotificationManager {
 			int surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
 			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			EmailManager em = new EmailManager(localisation);
 
 			Survey survey = sm.getById(sd, cResults, null, false, surveyId, true, basePath, 
 					msg.instanceId, true, false, true, false, true, "real", 
@@ -1367,7 +1368,7 @@ public class NotificationManager {
 					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user, o_id);
 					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 
-						String emails = getEmails(sd, cResults, surveyId, msg);   // Get the email addresses from the message
+						String emails = em.getEmails(sd, cResults, surveyId, msg);   // Get the email addresses from the message
 
 						if(emails.trim().length() > 0) {
 							log.info("userevent: " + msg.user + " sending email of '" + logContent + "' to " + emails);
@@ -1405,7 +1406,6 @@ public class NotificationManager {
 									" smtp_host: " + emailServer.smtpHost +
 									" email_domain: " + emailServer.emailDomain);
 							try {
-								EmailManager em = new EmailManager(localisation);
 								PeopleManager peopleMgr = new PeopleManager(localisation);
 								InternetAddress[] emailArray = InternetAddress.parse(emails);
 
@@ -1593,77 +1593,6 @@ public class NotificationManager {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
-	}
-
-	/*
-	 * Get the email addresses from the message settings
-	 */
-	private String getEmails(Connection sd, Connection cResults, int surveyId, SubmissionMessage msg) throws Exception {
-		
-		String emails = "";
-		HashMap<String, String> sentEndPoints = new HashMap<> ();
-		
-		ArrayList<String> emailList = null;
-		if(msg.emailQuestionSet()) {
-			String emailQuestionName = msg.getEmailQuestionName(sd);
-			log.info("Email question: " + emailQuestionName);
-			emailList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, emailQuestionName, msg.instanceId);
-		} else {
-			emailList = new ArrayList<String> ();
-		}
-
-		// Add any meta email addresses to the per question emails
-		String metaEmail = GeneralUtilityMethods.getResponseMetaValue(sd, cResults, surveyId, msg.emailMeta, msg.instanceId);
-		if(metaEmail != null) {
-			emailList.add(metaEmail);
-		}
-		
-		// Add the static emails to the per question emails
-		if(msg.emails != null) {
-			for(String email : msg.emails) {
-				if(email.length() > 0) {
-					log.info("Adding static email: " + email); 
-					emailList.add(email);
-				}
-			}
-		}
-
-		// Add the assigned user email
-		UserManager um = new UserManager(localisation);
-		if(msg.emailAssigned) {
-			log.info("--------------------------------------- Adding Assigned User Email Address -----------------");
-			ArrayList<String> assignedUser = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, "_assigned", msg.instanceId);
-			if(assignedUser != null) {
-				for(String user : assignedUser) {	// Should only be one assigned user but in future could be more
-					log.info("----- User: " + user);
-					String email = um.getUserEmailByIdent(sd, user);
-					log.info("----- Email: " + user);
-					if(email != null) {
-						emailList.add(email);
-					}
-				}
-			}
-		}
-		
-		// Convert emails into a comma separated string		
-		for(String email : emailList) {	
-			if(sentEndPoints.get(email) == null) {
-				if(UtilityMethodsEmail.isValidEmail(email)) {
-					if(emails.length() > 0) {
-						emails += ",";
-					}
-					emails += email;
-				} else {
-					log.info("Email Notifications: Discarding invalid email: " + email);
-				}
-				sentEndPoints.put(email, email);
-			} else {
-				log.info("Duplicate email: " + email);
-			}
-		}
-		
-		return emails;
-		
 	}
 	
 	/*
