@@ -8,7 +8,6 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -1044,9 +1043,9 @@ public class NotificationManager {
 						if(surveyCase == null) {	// if no survey to complete has been specified then complete with the submitting survey
 							surveyCase = msg.survey_ident;
 						}
-						
-						
-						int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase, notify_details);
+					
+						CaseManager cm = new CaseManager(localisation);
+						int count = cm.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase, notify_details);
 						if(count == 0) {
 							status = "error";
 							error_details = "case not found, attempting: " + notify_details;

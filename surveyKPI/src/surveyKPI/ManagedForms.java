@@ -39,6 +39,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
+import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.model.Action;
@@ -252,7 +253,8 @@ public class ManagedForms extends Application {
 				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				
 				if(instanceId != null) {
-					int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "lock", surveyIdent, null);
+					CaseManager cm = new CaseManager(localisation);
+					int count = cm.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "lock", surveyIdent, null);
 					if(count == 0) {
 						response = Response.serverError().entity(localisation.getString("mf_aa")).build();
 					} else {
@@ -320,7 +322,8 @@ public class ManagedForms extends Application {
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
 				
-				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, uIdent, "assign", surveyIdent, null);
+				CaseManager cm = new CaseManager(localisation);
+				int count = cm.assignRecord(sd, cResults, localisation, tableName, instanceId, uIdent, "assign", surveyIdent, null);
 				if(count == 0) {
 					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 				} else {
@@ -378,7 +381,8 @@ public class ManagedForms extends Application {
 			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
-				int count = GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "release", null, null);
+				CaseManager cm = new CaseManager(localisation);
+				int count = cm.assignRecord(sd, cResults, localisation, tableName, instanceId, request.getRemoteUser(), "release", null, null);
 				if(count == 0) {
 					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 				} else {
@@ -1035,9 +1039,7 @@ public class ManagedForms extends Application {
 			ResultsDataSource.closeConnection("surveyKPI-QuestionsInForm", cResults);
 		}
 
-
 		return response;
 	}
-
 }
 
