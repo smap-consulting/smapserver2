@@ -1062,6 +1062,7 @@ public class NotificationManager {
 					 */
 					EmailManager em = new EmailManager(localisation);
 					String emails = em.getEmails(sd, cResults, surveyId, msg);
+					// To force the sending of an email to the assigned user enable the following lines of code
 					//String  emailsAssigned = em.getAssignedUserEmails(sd, cResults, surveyId, msg.instanceId);
 					//if(emailsAssigned != null) {
 					//	emails = em.mergeEmailLists(emails, emailsAssigned);
