@@ -10883,6 +10883,7 @@ public class GeneralUtilityMethods {
 		
 		return out;
 	}
+	
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");

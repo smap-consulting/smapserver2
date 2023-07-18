@@ -181,9 +181,6 @@ public class EmailManager {
 				txtMessage.append(interval);
 				txtMessage.append("\n ");
 				txtMessage.append(localisation.getString("email_dnr"));
-				txtMessage.append(" ");
-				txtMessage.append(adminEmail);
-				txtMessage.append(".");
 
 			} else if(type.equals("notify")) {
 				txtMessage.append(localisation.getString("email_ian"));
@@ -192,9 +189,6 @@ public class EmailManager {
 				txtMessage.append(". ");
 
 				txtMessage.append(localisation.getString("email_dnr"));
-				txtMessage.append(" ");
-				txtMessage.append(adminEmail);
-				txtMessage.append(".");	
 				txtMessage.append("\n\n");
 				if(docURL != null) {
 					txtMessage.append(scheme + "://");
@@ -212,9 +206,6 @@ public class EmailManager {
 				txtMessage.append(localisation.getString("email_s"));
 				txtMessage.append("\n\n");
 				txtMessage.append(localisation.getString("email_dnr"));
-				txtMessage.append(" ");
-				txtMessage.append(adminEmail);
-				txtMessage.append(".");
 
 			} else if(type.equals("optin")) {	
 				String m = localisation.getString("c_opt_in_content"); 
@@ -229,18 +220,12 @@ public class EmailManager {
 				txtMessage.append(localisation.getString("email_s"));
 				txtMessage.append("\n\n");
 				txtMessage.append(localisation.getString("email_dnr"));
-				txtMessage.append(" ");
-				txtMessage.append(adminEmail);
-				txtMessage.append(".");
 
 			} else if(type.equals("informational")) {
 				
 				txtMessage.append(content);
 				txtMessage.append("\n\n");
 				txtMessage.append(localisation.getString("email_dnr"));
-				txtMessage.append(" ");
-				txtMessage.append(adminEmail);
-				txtMessage.append(".");
 
 			}
 			// Add unsubscribe
@@ -393,14 +378,15 @@ public class EmailManager {
 
 				// Set the subject
 
-				if(subject == null || subject.trim().length() > 0) {
+				if(subject == null || subject.trim().length() == 0) {
+					subject = "";
 					if(serverName != null && serverName.contains("smap")) {
 						subject = "Smap ";
 					}
 					subject += localisation.getString("c_notify");
 				}
 
-				if(from == null || from.trim().length() > 0) {
+				if(from == null || from.trim().length() == 0) {
 					from = "smap";
 				}
 				StringBuilder content = null;
@@ -565,11 +551,10 @@ public class EmailManager {
 			msg.setFrom(InternetAddress.parse(sender, false)[0]);
 			
 			if(adminEmail != null) {
-				template.append("</p><p>")
+				template.append("</p>")
+					.append("<p>")
 					.append(localisation.getString("email_dnr"))
-					.append(" ")
-					.append(adminEmail)
-					.append(".</p>");
+					.append("</p>");
 			}
 			if(orgFooter != null) {
 				template.append(" ").append(orgFooter);
@@ -843,6 +828,42 @@ public class EmailManager {
 		
 		return emails;
 		
+	}
+	
+	/*
+	 * Combine two comma separated email lists into one unique list of valid emails
+	 */
+	public String mergeEmailLists(String e1, String e2 ) {
+		String emails = null;
+		if(e1 != null || e2 != null) {
+			HashMap<String, String> map = new HashMap<>();
+			addEmailsToMap(e1, map);
+			addEmailsToMap(e2, map);
+			
+			StringBuilder emailBuild = new StringBuilder("");
+			for(String email : map.keySet()) {	
+				if(emailBuild.length() > 0) {
+					emailBuild.append(",");
+				}
+				emailBuild.append(email);
+			}
+			if(emailBuild.length() > 0) {
+				emails = emailBuild.toString();
+			}
+		}
+		return emails;
+	}
+	
+	private void addEmailsToMap(String eList, HashMap<String, String> map) {
+		if(eList != null) {
+			String [] eArray = eList.split(",");
+			for(String e : eArray) {
+				e = e.trim();
+				if(UtilityMethodsEmail.isValidEmail(e)) {
+					map.put(e, e);
+				}
+			}
+		}
 	}
 }
 

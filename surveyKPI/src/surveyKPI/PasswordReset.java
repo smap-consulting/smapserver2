@@ -181,9 +181,7 @@ public class PasswordReset extends Application {
 				
 						content.append("<br/><br/><p>")
 							.append(localisation.getString("email_dnr"))
-							.append(" ")
-							.append(adminEmail)
-							.append(".</p>");
+							.append("</p>");
 						
 						em.sendEmailHtml(
 								email, 

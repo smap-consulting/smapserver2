@@ -1062,6 +1062,10 @@ public class NotificationManager {
 					 */
 					EmailManager em = new EmailManager(localisation);
 					String emails = em.getEmails(sd, cResults, surveyId, msg);
+					//String  emailsAssigned = em.getAssignedUserEmails(sd, cResults, surveyId, msg.instanceId);
+					//if(emailsAssigned != null) {
+					//	emails = em.mergeEmailLists(emails, emailsAssigned);
+					//}
 					em.sendEmails(sd, cResults, emails, organisation, surveyId, logContent, docURL, survey.displayName, unsubscribedList,
 							filePath, filename, messageId, createPending, topic, msg.user, serverName,
 							survey.displayName, survey.projectName,
