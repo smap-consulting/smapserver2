@@ -510,7 +510,7 @@ public class OrganisationList extends Application {
 				String resp = gson.toJson(d);
 				response = Response.ok(resp).build();
 			} else {
-				response = Response.serverError().entity("not found").build();
+				response = Response.serverError().entity("Organisation device details not found").build();
 			}
 			
 		} catch (SQLException e) {
@@ -569,7 +569,7 @@ public class OrganisationList extends Application {
 				String resp = gson.toJson(e);
 				response = Response.ok(resp).build();
 			} else {
-				response = Response.serverError().entity("not found").build();
+				response = Response.serverError().entity("Email settings not found").build();
 			}
 			
 		} catch (SQLException e) {

@@ -983,10 +983,9 @@ public class ExchangeManager {
 			col.columnName = "_alert";
 			col.type = "string";
 		} else if(qName.equals("_thread_created")) {
-			col = new ExchangeColumn();
-			col.name = qName;
-			col.columnName = "_thread_created";
-			col.type = "dateTime";
+			// Don't add a column, _thread_created is added by default, however record the column for this data
+		} else if(qName.equals("_thread")) {
+			// Don't add a column, _thread is added by default, however record the column for this data
 		} else if(qName.equals("_case_closed")) {
 			col = new ExchangeColumn();
 			col.name = qName;
@@ -1086,6 +1085,10 @@ public class ExchangeManager {
 			if(colName.trim().length() > 0) {
 				if(colName.toLowerCase().equals("instanceid")) {
 					eh.instanceIdColumn = i;
+				} else if(colName.toLowerCase().equals("_thread")) {
+					eh.threadIdColumn = i;
+				} else if(colName.toLowerCase().equals("_thread_created")) {
+					eh.threadCreatedColumn = i;
 				}
 				// If this column is in the survey then add it to the list of columns to be processed
 				// Do this test for a load from excel
@@ -1126,7 +1129,7 @@ public class ExchangeManager {
 			StringBuffer sqlInsert = new StringBuffer("insert into " + form.table_name + "(");
 			sqlInsert.append("_import_source, _import_time");
 			if(form.parent == 0) {
-				sqlInsert.append(",instanceid");
+				sqlInsert.append(",instanceid, _thread, _thread_created");
 			}
 			
 			for(int i = 0; i < eh.columns.size(); i++) {						
@@ -1142,7 +1145,7 @@ public class ExchangeManager {
 			sqlInsert.append(") values("); 
 			sqlInsert.append("?, ?");			// _import_source and _import_time
 			if(form.parent == 0) {
-				sqlInsert.append(",?");		// instanceid
+				sqlInsert.append(",?, ?, ?");		// instanceid, _thread, _thread_created
 			}
 			
 			
@@ -1196,6 +1199,8 @@ public class ExchangeManager {
 		String prikey = null;
 		String parkey = null;
 		String instanceId = null;
+		String threadId = null;
+		String threadCreated = null;
 		boolean writeRecord = true;
 		
 		LinkageManager linkMgr = new LinkageManager(localisation);
@@ -1203,7 +1208,8 @@ public class ExchangeManager {
 		
 		eh.pstmtInsert.setString(index++, importSource);
 		eh.pstmtInsert.setTimestamp(index++, importTime);
-		if(form.parent == 0) {			
+		if(form.parent == 0) {	
+			// Add instance id
 			if(eh.instanceIdColumn >= 0) {
 				instanceId = line[eh.instanceIdColumn].trim();
 			}
@@ -1211,6 +1217,33 @@ public class ExchangeManager {
 				instanceId = "uuid:" + String.valueOf(UUID.randomUUID());
 			}
 			eh.pstmtInsert.setString(index++, instanceId);
+			
+			// Add thread id
+			if(eh.threadIdColumn >= 0) {
+				threadId = line[eh.threadIdColumn].trim();
+			}
+			if(threadId == null || threadId.trim().length() == 0) {
+				threadId = instanceId;
+			}
+			eh.pstmtInsert.setString(index++, threadId);
+			
+			// Add thread created
+			if(eh.threadCreatedColumn >= 0) {
+				threadCreated = line[eh.threadCreatedColumn].trim();
+			}
+			if(threadCreated == null || threadCreated.trim().length() == 0) {
+				eh.pstmtInsert.setTimestamp(index++, new Timestamp(System.currentTimeMillis()));
+			} else {
+				Timestamp tsVal = null;
+				try {
+					java.util.Date uDate = sdf.parse(threadCreated);
+					tsVal = new Timestamp(uDate.getTime());
+				} catch (Exception e) {
+					log.info("Error parsing datetime: " + threadCreated + " : " + e.getMessage());
+				}
+				eh.pstmtInsert.setTimestamp(index++, tsVal);
+			}
+			
 		} 
 		
 		for(int i = 0; i < eh.columns.size(); i++) {
@@ -1375,12 +1408,7 @@ public class ExchangeManager {
 							java.util.Date uDate = sdf.parse(value);
 							tsVal = new Timestamp(uDate.getTime());
 						} catch (Exception e) {
-							try {
-								java.util.Date uDate = sdf.parse(value);		
-								tsVal = new Timestamp(uDate.getTime());
-							} catch (Exception ex) {
-								log.info("Error parsing datetime: " + value + " : " + e.getMessage());
-							}
+							log.info("Error parsing datetime: " + value + " : " + e.getMessage());
 						}
 					}
 					
