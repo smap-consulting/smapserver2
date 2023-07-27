@@ -19,3 +19,5 @@ create table periodic (
 ALTER TABLE periodic OWNER TO ws;
 
 alter table forward drop constraint forward_s_id_fkey;
+
+create index log_org_idx on log (o_id);
