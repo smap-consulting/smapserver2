@@ -206,7 +206,7 @@ public class MessagingManager {
 			/*
 			 * Write the modified message to pending
 			 */
-			if(createPending) {
+			if(createPending && msgString != null && messageId > 0) {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, oId);
 				pstmt.setString(2, email);
@@ -264,7 +264,7 @@ public class MessagingManager {
 			String server,
 			boolean sendEmail) throws Exception {
 		
-		EmailManager em = new EmailManager();
+		EmailManager em = new EmailManager(localisation);
 		
 		PreparedStatement pstmt = null;
 		try {

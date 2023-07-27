@@ -715,7 +715,7 @@ public class MailoutManager {
 									" smtp_host: " + emailServer.smtpHost +
 									" email_domain: " + emailServer.emailDomain);
 							try {
-								EmailManager em = new EmailManager();
+								EmailManager em = new EmailManager(localisation);
 								PeopleManager peopleMgr = new PeopleManager(localisation);
 								InternetAddress[] emailArray = InternetAddress.parse(msg.email);
 								

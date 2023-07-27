@@ -229,8 +229,9 @@ public class MyAssignments extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 		
 			if(tu.type != null && tu.type.equals("case")) {
+				CaseManager cm = new CaseManager(localisation);
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, tu.sIdent);
-				GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, tu.uuid, request.getRemoteUser(), "release", null, tu.task_comment);
+				cm.assignRecord(sd, cResults, localisation, tableName, tu.uuid, request.getRemoteUser(), "release", null, tu.task_comment);
 			} else {
 				
 				pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
@@ -954,7 +955,6 @@ public class MyAssignments extends Application {
 		TaskResponse tr = gson.fromJson(assignInput, TaskResponse.class);
 
 		// TODO that the status is valid (A different range of status values depending on the role of the user)
-
 		PreparedStatement pstmtSetDeleted = null;
 		PreparedStatement pstmtSetUpdatedRejected = null;	
 		PreparedStatement pstmtSetUpdatedNotRejected = null;
@@ -974,6 +974,8 @@ public class MyAssignments extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			CaseManager cm = new CaseManager(localisation);
+			
 			pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
 			pstmtSetUpdatedRejected = getPreparedStatementSetUpdatedRejected(sd);
 			pstmtSetUpdatedNotRejected = getPreparedStatementSetUpdatedNotRejected(sd);
@@ -990,7 +992,7 @@ public class MyAssignments extends Application {
 				if(ta.task != null && ta.task.type != null && ta.task.type.equals("case")) {
 					if(ta.assignment.assignment_status != null && ta.assignment.assignment_status.equals("rejected")) {
 						String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, ta.task.form_id);
-						GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, ta.task.update_id, request.getRemoteUser(), "release", null, ta.assignment.task_comment);
+						cm.assignRecord(sd, cResults, localisation, tableName, ta.task.update_id, request.getRemoteUser(), "release", null, ta.assignment.task_comment);
 					}	
 				} else if(ta.assignment.assignment_id > 0) {
 					log.info("Task Assignment: " + ta.assignment.assignment_status);

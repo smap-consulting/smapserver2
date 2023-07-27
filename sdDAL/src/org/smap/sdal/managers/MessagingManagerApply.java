@@ -287,7 +287,7 @@ public class MessagingManagerApply {
 						subject += localisation.getString("c_message");
 						try {
 							PeopleManager pm = new PeopleManager(localisation);
-							EmailManager em = new EmailManager();
+							EmailManager em = new EmailManager(localisation);
 							InternetAddress[] emailArray = InternetAddress.parse(topic);
 							SubscriptionStatus subStatus = null;
 							for(InternetAddress ia : emailArray) {

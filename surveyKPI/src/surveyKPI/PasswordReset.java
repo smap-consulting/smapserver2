@@ -140,7 +140,7 @@ public class PasswordReset extends Application {
 						ArrayList<String> idents = UtilityMethodsEmail.getIdentsFromEmail(sd, pstmt, email);
 					    
 					    String subject = localisation.getString("c_r_p");
-					    EmailManager em = new EmailManager();
+					    EmailManager em = new EmailManager(localisation);
 					    
 					    StringBuilder content = new StringBuilder(); 
 					    String info = localisation.getString("c_rp_info");
@@ -181,9 +181,7 @@ public class PasswordReset extends Application {
 				
 						content.append("<br/><br/><p>")
 							.append(localisation.getString("email_dnr"))
-							.append(" ")
-							.append(adminEmail)
-							.append(".</p>");
+							.append("</p>");
 						
 						em.sendEmailHtml(
 								email, 

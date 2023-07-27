@@ -383,4 +383,95 @@ public class CaseManager {
 		}
 		return cc;
 	}
+	
+	/*
+	 * Method to assign a record to a user
+	 */
+	public int assignRecord(Connection sd, 
+			Connection cResults, 
+			ResourceBundle localisation, 
+			String tablename, 
+			String instanceId, 
+			String user, 
+			String type,					// lock || release || assign
+			String surveyIdent,
+			String note
+			) throws SQLException {
+
+		int count = 0;
+		
+		StringBuilder sql = new StringBuilder("update ") 
+				.append(tablename) 
+				.append(" set _assigned = ?, _case_survey = ? ")
+				.append("where _thread = ? ");
+
+		if(user != null && user.equals("_none")) {		// Assigning to no one
+			user = null;
+			surveyIdent = null;
+		}
+		
+		String thread = GeneralUtilityMethods.getThread(cResults, tablename, instanceId);
+		
+		String assignTo = user;
+		String caseSurvey = surveyIdent;
+		String details = null;
+		if(type.equals("lock")) {
+			sql.append("and _assigned is null");		// User can only self assign if no one else is assigned
+			details = localisation.getString("cm_lock");
+		} else if(type.equals("release")) {
+			assignTo = null;
+			caseSurvey = null;
+			sql.append("and _assigned = ?");			// User can only release records that they are assigned to
+			details = localisation.getString("cm_release") + ": " + (note == null ? "" : note);
+		} else {
+			if(user != null) {
+				details = localisation.getString("assignee_ident");
+			} else {
+				details = localisation.getString("cm_ua");
+			}
+		}
+		
+		if(assignTo != null) {
+			assignTo = assignTo.toLowerCase().trim();
+		}
+		
+		PreparedStatement pstmt = cResults.prepareStatement(sql.toString());
+		pstmt.setString(1, assignTo);
+		pstmt.setString(2, caseSurvey);
+		pstmt.setString(3,thread);
+		if(type.equals("release")) {
+			pstmt.setString(4,user);
+		}
+		log.info("Assign record: " + pstmt.toString());
+		
+		/*
+		 * Write the event before applying the update so that an alert can be sent to the previously assigned user
+		 */
+		RecordEventManager rem = new RecordEventManager();
+		rem.writeEvent(
+				sd, 
+				cResults, 
+				RecordEventManager.ASSIGNED, 
+				"success",
+				user, 
+				tablename, 
+				instanceId, 
+				null,				// Change object
+				null,	            // Task Object
+				null,				// Notification object
+				details, 
+				0,				    // sId (don't care legacy)
+				null,
+				0,				    // Don't need task id if we have an assignment id
+				0				    // Assignment id
+				);
+		
+		try {
+			count = pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+		
+		return count;
+	}
 }

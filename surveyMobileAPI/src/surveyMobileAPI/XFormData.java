@@ -333,7 +333,7 @@ public class XFormData {
 				if (!GeneralUtilityMethods.hasUploadErrorBeenReported(sd, user, si.getImei(), templateName, reason)) {
 					writeUploadError(sd, user, survey, templateName, si, reason);
 				}
-				EmailManager em = new EmailManager();
+				EmailManager em = new EmailManager(localisation);
 				StringBuilder template = new StringBuilder(localisation.getString("submission_limit_email"));
 				em.alertAdministrator(sd, survey.o_id, user, localisation, serverName, reason,
 						template, LogManager.SUBMISSION);
