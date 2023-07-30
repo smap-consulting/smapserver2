@@ -29,6 +29,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -81,7 +82,10 @@ public class Log extends Application {
 			@QueryParam("length") int length,
 			@QueryParam("limit") int limit,
 			@QueryParam("sort") String sort,			// Column Name to sort on
-			@QueryParam("dirn") String dirn				// Sort direction, asc || desc
+			@QueryParam("dirn") String dirn,			// Sort direction, asc || desc
+			@QueryParam("month") int month,
+			@QueryParam("year") int year,
+			@QueryParam("tz") String tz
 			) { 
 		
 		String connectionString = "API - get logs";
@@ -102,6 +106,9 @@ public class Log extends Application {
 		if(dirn.equals("desc") && start == 0) {
 			start = Integer.MAX_VALUE;
 		}
+		if(tz == null || tz.equals("undefined")) {
+			tz = "UTC";
+		}
 		
 		// Limit overrides length which is retained for backwards compatability
 		if(limit > 0) {
@@ -117,7 +124,12 @@ public class Log extends Application {
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 		
-			ArrayList<LogItemDt> logs = getLogEntries(sd, localisation, oId, dirn, start, sort, length, false);
+			ArrayList<LogItemDt> logs = null;
+			if(year > 0 && month > 0) {
+				logs = getMonthLogEntries(sd, localisation, oId, year, month, tz, false);
+			} else {
+				logs = getLogEntries(sd, localisation, oId, dirn, start, sort, length, false);
+			}
 			
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			response = Response.ok(gson.toJson(logs)).build();
@@ -147,7 +159,10 @@ public class Log extends Application {
 			@QueryParam("limit") int limit,
 			@QueryParam("length") int length,
 			@QueryParam("sort") String sort,			// Column Name to sort on
-			@QueryParam("dirn") String dirn				// Sort direction, asc || desc
+			@QueryParam("dirn") String dirn,			// Sort direction, asc || desc
+			@QueryParam("month") int month,
+			@QueryParam("year") int year,
+			@QueryParam("tz") String tz
 			) { 
 		
 		String connectionString = "API - get logs - DataTable";
@@ -187,6 +202,10 @@ public class Log extends Application {
 			length = 10000;
 		}
 		
+		if(tz == null || tz.equals("undefined")) {
+			tz = "UTC";
+		}
+		
 		try {
 	
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
@@ -205,9 +224,13 @@ public class Log extends Application {
 				logs.recordsFiltered = rs.getInt(1);
 			}
 			rs.close();
+					
+			if(year > 0 && month > 0) {
+				logs.data = getMonthLogEntries(sd, localisation, oId, year, month, tz, true);
+			} else {
+				logs.data = getLogEntries(sd, localisation, oId, dirn, start, sort, length, true);
+			}
 			
-			logs.data = getLogEntries(sd,localisation, oId, dirn, start, sort, length, true);
-						
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			response = Response.ok(gson.toJson(logs)).build();
 			
@@ -419,36 +442,9 @@ public class Log extends Application {
 				index++;
 					
 				LogItemDt li = new LogItemDt();
-	
-				li.id = rs.getInt("id");
-				li.log_time = rs.getTimestamp("log_time");
-				li.sId = rs.getInt("s_id");
-				String displayName = rs.getString("display_name");
-				if(displayName != null) {
-					li.sName = GeneralUtilityMethods.getSafeText(displayName, forHtml);
-				} else {
-					if(li.sId > 0) {
-						li.sName = li.sId + " (" + localisation.getString("c_erased") + ")";
-					} else {
-						li.sName = "";
-					}
-				}
-				li.userIdent = rs.getString("user_ident");
-				if(li.userIdent == null) {
-					li.userIdent = "";
-				}
-				li.event = rs.getString("event");
-				if(li.event == null) {
-					li.event = "";
-				}
-				li.note = GeneralUtilityMethods.getSafeText(rs.getString("note"), forHtml);
-				
-				li.server = rs.getString("server");
-				if(li.server == null) {
-					li.server = "";
-				}
-						
+				populateLogItem(rs, li, localisation, forHtml);		
 				items.add(li);
+				
 			}
 		} finally {
 			try {if (rs != null) {rs.close();}} catch (SQLException e) {	}
@@ -459,5 +455,89 @@ public class Log extends Application {
 	}
 
 
+	/*
+	 * Get the data
+	 */
+	private ArrayList<LogItemDt> getMonthLogEntries(
+			Connection sd, 
+			ResourceBundle localisation,
+			int oId,
+			int year,
+			int month,
+			String tz,
+			boolean forHtml) throws SQLException {
+		
+		ArrayList<LogItemDt> items = new ArrayList<> ();
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		
+		try {
+
+			String sql = "select l.id, l.log_time, l.s_id, s.display_name, l.user_ident, l.event, l.note, l.server "
+					+ "from log l "
+					+ "left outer join survey s "
+					+ "on s.s_id = l.s_id "
+					+ "where l.o_id = ? "
+					+ "and timezone(?, l.log_time) >=  ? "
+					+ "and timezone(?, l.log_time) < ? "
+					+ "order by l.id desc";
+			
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			
+			pstmt = sd.prepareStatement(sql);
+			int paramCount = 1;
+			pstmt.setInt(paramCount++, oId);	
+			pstmt.setString(paramCount++, tz);
+			pstmt.setTimestamp(paramCount++, t1);
+			pstmt.setString(paramCount++, tz);
+			pstmt.setTimestamp(paramCount++, t2);
+			
+			log.info("Get data for month: " + pstmt.toString());
+			rs = pstmt.executeQuery();
+				
+			while (rs.next()) {
+					
+				LogItemDt li = new LogItemDt();
+				populateLogItem(rs, li, localisation, forHtml);		
+				items.add(li);
+			}
+		} finally {
+			try {if (rs != null) {rs.close();}} catch (SQLException e) {	}
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+		}
+		
+		return items;
+	}
+	
+	private void populateLogItem(ResultSet rs, LogItemDt li, ResourceBundle localisation, boolean forHtml) throws SQLException {
+		li.id = rs.getInt("id");
+		li.log_time = rs.getTimestamp("log_time");
+		li.sId = rs.getInt("s_id");
+		String displayName = rs.getString("display_name");
+		if(displayName != null) {
+			li.sName = GeneralUtilityMethods.getSafeText(displayName, forHtml);
+		} else {
+			if(li.sId > 0) {
+				li.sName = li.sId + " (" + localisation.getString("c_erased") + ")";
+			} else {
+				li.sName = "";
+			}
+		}
+		li.userIdent = rs.getString("user_ident");
+		if(li.userIdent == null) {
+			li.userIdent = "";
+		}
+		li.event = rs.getString("event");
+		if(li.event == null) {
+			li.event = "";
+		}
+		li.note = GeneralUtilityMethods.getSafeText(rs.getString("note"), forHtml);
+		
+		li.server = rs.getString("server");
+		if(li.server == null) {
+			li.server = "";
+		}
+	}
 }
 
