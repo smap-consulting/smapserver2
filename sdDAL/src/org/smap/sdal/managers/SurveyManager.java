@@ -2365,27 +2365,27 @@ public class SurveyManager {
 						if(ci.property.prop.equals("parameters")) {
 							GeneralUtilityMethods.writeAutoUpdateQuestion(sd, sId, ci.property.qId, ci.property.newVal, true);
 						}
-						
-						
-						
+								
 						log.info("userevent: " + userId + " : modify survey property : " + property + " to: " + ci.property.newVal + " survey: " + sId);
 
-						// Write the change log
-						Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-						pstmtChangeLog.setInt(1, sId);
-						pstmtChangeLog.setInt(2, version);
-						pstmtChangeLog.setString(3, gson.toJson(new ChangeElement(ci, "update")));
-						pstmtChangeLog.setInt(4, userId);	
-						pstmtChangeLog.setBoolean(5,logIndividualChangeSets);	
-						pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
-						pstmtChangeLog.execute();
 
 					} else {
 						throw new Exception("Unknown property: " + property);
 					}
 				}
+				
+				// Write the change log
+				Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+				pstmtChangeLog.setInt(1, sId);
+				pstmtChangeLog.setInt(2, version);
+				pstmtChangeLog.setString(3, gson.toJson(new ChangeElement(ci, "update")));
+				pstmtChangeLog.setInt(4, userId);	
+				pstmtChangeLog.setBoolean(5,logIndividualChangeSets);	
+				pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
+				pstmtChangeLog.execute();
 			}
 
+			
 		} catch (Exception e) {
 
 			String msg = e.getMessage();
