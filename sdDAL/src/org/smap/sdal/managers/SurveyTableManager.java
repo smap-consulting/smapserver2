@@ -69,8 +69,6 @@ public class SurveyTableManager {
 		private boolean hasWhere = false; 
 		private ArrayList<String> colNames;
 		private ArrayList<String> qnames;
-		private boolean hasRbacFilter = false;
-		private ArrayList<SqlFrag> rfArray = null;
 		private ArrayList<SqlFrag> calcArray = null;
 		private boolean hasGeom = false;
 	}
@@ -702,6 +700,9 @@ public class SurveyTableManager {
 							newSqlDef.hasGeom = true;
 						} else if(colType.equals("string")) {
 							colName = "replace(" + colName + ", '\\\"', '\'\'')";	// Remove double quotes from text for csv export
+						} else if(colType.equals("dateTime")) {
+							// Export date time in fieldTask compatible format (ISO 8601)
+							colName = "to_char (" + tableName + "." + colName  + ", 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')";
 						}
 						
 					} else if (SmapServerMeta.isServerReferenceMeta(n)) {
