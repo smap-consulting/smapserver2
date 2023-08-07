@@ -71,6 +71,7 @@ public class SurveyTableManager {
 		private ArrayList<String> qnames;
 		private ArrayList<SqlFrag> calcArray = null;
 		private boolean hasGeom = false;
+		private boolean hasDateTime = false;
 	}
 	
 	LogManager lm = new LogManager(); // Application log
@@ -703,6 +704,7 @@ public class SurveyTableManager {
 						} else if(colType.equals("dateTime")) {
 							// Export date time in fieldTask compatible format (ISO 8601)
 							colName = "to_char (" + tableName + "." + colName  + ", 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')";
+							newSqlDef.hasDateTime = true;
 						}
 						
 					} else if (SmapServerMeta.isServerReferenceMeta(n)) {
@@ -1123,7 +1125,7 @@ public class SurveyTableManager {
 
 				bw.flush();
 				bw.close();
-			} else if (sqlDef.hasGeom) { 	// CSV files with geotrace or geoshape elements have to be generated without using PSQL
+			} else if (sqlDef.hasGeom || sqlDef.hasDateTime) { 	// CSV files with geotrace or geoshape or dateTime elements have to be generated without using PSQL
 				
 			
 				pstmtData = cResults.prepareStatement(sqlNoEscapes);
@@ -1132,7 +1134,7 @@ public class SurveyTableManager {
 				if(rs != null) {
 					rs.close();
 				}
-				log.info("####### Progressively getting data with geometry: " + pstmtData.toString());
+				log.info("####### Progressively getting data with geometry or dateTime: " + pstmtData.toString());
 				rs = pstmtData.executeQuery();
 
 				BufferedWriter bw = new BufferedWriter(

@@ -176,7 +176,7 @@ public class FormsManifest {
 						log.info("Error: " + filepath + " not found");
 					}
 				} else {
-					log.info("Error: Manifest file path is null");
+					log.info("Error: Manifest file path is null: " + m.type + " : " + m.fileName + " : " + m.filePath);
 				}
 					
 			}
