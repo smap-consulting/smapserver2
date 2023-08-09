@@ -170,6 +170,7 @@ public class CsvTableManager {
 			Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 			
 			ResultSet rs = pstmt.executeQuery();
+			log.info("Get CSV Files: " + pstmt.toString());
 			while (rs.next()) {
 				CsvTable t = new CsvTable();
 				t.id = rs.getInt(1);
