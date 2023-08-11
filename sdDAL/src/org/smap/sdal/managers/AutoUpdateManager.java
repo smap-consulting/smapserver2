@@ -167,7 +167,7 @@ public class AutoUpdateManager {
 									if(updateType == null) {
 										log.info("------------------ AutoUpdate: Error: invalid reference question type" + refQf.qType);
 									} else {
-										log.info("     @@@@@@ Adding auto update: " + updateType + " : " + oId + " : " + refColumn + " to " + qf.columnName);
+										//log.info("     @@@@@@ Adding auto update: " + updateType + " : " + oId + " : " + refColumn + " to " + qf.columnName);
 										AutoUpdate au = new AutoUpdate(updateType);
 										au.oId = oId;
 										au.locale = itemLocaleString;
@@ -397,7 +397,7 @@ public class AutoUpdateManager {
 								+ "and not _bad";
 						if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 						pstmt = cResults.prepareStatement(sql);
-						log.info("   @@@@@ Get instances to update: " + pstmt.toString());
+						//log.info("   @@@@@ Get instances to update: " + pstmt.toString());
 												
 						ResultSet rs = pstmt.executeQuery();
 						while (rs.next()) {
