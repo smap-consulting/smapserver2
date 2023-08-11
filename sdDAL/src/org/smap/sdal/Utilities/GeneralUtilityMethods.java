@@ -9872,7 +9872,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Write the autoupdate questions to a table that acts as an index in order to make i easier for the autoupdate process
+	 * Write the autoupdate questions to a table that acts as an index in order to make it easier for the autoupdate process
 	 * to find the questions it needs to operate on
 	 */
 	public static void writeAutoUpdateQuestion(Connection sd, int sId, int qId, String parameters, boolean change) throws SQLException {
@@ -9886,11 +9886,13 @@ public class GeneralUtilityMethods {
 					&& parameters.contains("source=")
 					&& (parameters.contains("auto_annotate=yes") || parameters.contains("auto_annotate=true"))) {
 				
+				deleteAutoUpdateQuestion(sd, sId, qId);	// Remove duplicates
+				
 				try {
 					pstmt = sd.prepareStatement(sql);
 					pstmt.setInt(1, qId);
 					pstmt.setInt(2, sId);
-					pstmt.executeUpdate();		
+					pstmt.executeUpdate();	
 				} finally {
 					if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 				}

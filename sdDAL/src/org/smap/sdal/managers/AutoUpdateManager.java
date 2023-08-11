@@ -25,6 +25,8 @@ import org.smap.sdal.model.TranscribeResultSmap;
 
 import com.google.gson.Gson;
 
+import model.Sentiment;
+
 /*****************************************************************************
 
 This file is part of SMAP.
@@ -303,7 +305,7 @@ public class AutoUpdateManager {
 						}
 						// Write result to database and update the job status
 						success = true;
-						writeResult(cResults, tableName, colName, instanceId, output, localisation);
+						writeResult(cResults, tableName, colName, instanceId, output, localisation, null);
 						updateSyncStatus(sd, id, status, urlString, durn);
 						
 						if(durn > 0) {
@@ -329,7 +331,7 @@ public class AutoUpdateManager {
 				
 				if(!success && timedOut) {
 					writeResult(cResults, tableName, colName, instanceId, 
-							"[" + localisation.getString("aws_t_timeout") + "]", localisation);
+							"[" + localisation.getString("aws_t_timeout") + "]", localisation, null);
 					updateSyncStatus(sd, id, AU_STATUS_TIMEOUT, null, 0);
 				}
 			}
@@ -543,13 +545,26 @@ public class AutoUpdateManager {
 								
 									if(lcm.isSupported(sd, item.fromLang, LanguageCodeManager.LT_TRANSLATE)) {
 										try {
-											output = sm.getSentiment(source, item.fromLang);
+											Sentiment sentiment = sm.getSentiment(source, item.fromLang);
 											String msg = localisation.getString("aws_s_au")
 													.replace("%s1", item.fromLang)
 													.replace("%s3", item.tableName)
 													.replace("%s4", item.targetColName);
 											rm.recordUsage(sd, item.oId, 0, LogManager.SENTIMENT, msg, 
 													"auto_update", source.length());
+											
+											// Write the score and save the actual sentiment into the output
+											output = localisation.getString(sentiment.sentiment);
+											
+											try {
+												writeResult(cResults, item.tableName, item.targetColName, instanceId, 
+														String.valueOf(sentiment.score), 
+														localisation,
+														"_score");
+											} catch(Exception e) {
+												log.log(Level.SEVERE, e.getMessage(), e);
+											}
+												
 										} catch(Exception e) {
 											output = "[Error: " + e.getMessage() + "]";
 										}
@@ -574,7 +589,7 @@ public class AutoUpdateManager {
 							}
 								
 							// Write result to database
-							writeResult(cResults, item.tableName, item.targetColName, instanceId, output, localisation);					
+							writeResult(cResults, item.tableName, item.targetColName, instanceId, output, localisation, null);					
 								
 							
 						} 
@@ -651,9 +666,17 @@ public class AutoUpdateManager {
 			String colName,
 			String instanceId, 
 			String output,
-			ResourceBundle localisation) throws SQLException {
+			ResourceBundle localisation,
+			String secondaryColumn) throws SQLException {
 		
 		PreparedStatement pstmt = null;
+		
+		if(secondaryColumn != null) {
+			colName += secondaryColumn;
+			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, colName)) {
+				return;
+			}
+		}
 		
 		String sql = "update " 
 				+ tableName 
