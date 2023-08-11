@@ -275,6 +275,9 @@ public class Billing extends Application {
 			} else if(item.item == BillingDetail.TRANSLATE) {
 				addTranslate(sd, item, eId, oId, year, month);
 				
+			} else if(item.item == BillingDetail.SENTIMENT) {
+				addSentiment(sd, item, eId, oId, year, month);
+				
 			} else if(item.item == BillingDetail.TRANSCRIBE) {
 				addTranscribe(sd, item, eId, oId, year, month);
 			} else if(item.item == BillingDetail.TRANSCRIBE_MEDICAL) {
@@ -494,6 +497,19 @@ public class Billing extends Application {
 		
 		ResourceManager rm = new ResourceManager();
 		item.quantity = rm.getUsageMeasure(sd, oId, month, year, LogManager.TRANSLATE);				
+		item.amount = (item.quantity - item.free) * item.unitCost;
+		if(item.amount < 0) {
+			item.amount = 0.0;
+		}
+	}
+	
+	/*
+	 * Get Sentiment usage
+	 */
+	private void addSentiment(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException {
+		
+		ResourceManager rm = new ResourceManager();
+		item.quantity = rm.getUsageMeasure(sd, oId, month, year, LogManager.SENTIMENT);				
 		item.amount = (item.quantity - item.free) * item.unitCost;
 		if(item.amount < 0) {
 			item.amount = 0.0;

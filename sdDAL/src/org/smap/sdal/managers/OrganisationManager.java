@@ -334,6 +334,7 @@ public class OrganisationManager {
 				o.limits.put(LogManager.TRANSCRIBE, Organisation.DEFAULT_TRANSCRIBE_LIMIT);
 				o.limits.put(LogManager.TRANSLATE, Organisation.DEFAULT_TRANSLATE_LIMIT);
 				o.limits.put(LogManager.REKOGNITION, Organisation.DEFAULT_REKOGNITION_LIMIT);
+				o.limits.put(LogManager.SENTIMENT, Organisation.DEFAULT_SENTIMENT_LIMIT);
 			}
 			
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);

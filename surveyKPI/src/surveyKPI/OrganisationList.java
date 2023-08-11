@@ -1501,6 +1501,7 @@ public class OrganisationList extends Application {
 			usage.put(LogManager.REKOGNITION, rm.getUsage(sd, oId, LogManager.REKOGNITION, month, year));
 			usage.put(LogManager.TRANSLATE, rm.getUsage(sd, oId, LogManager.TRANSLATE, month, year));
 			usage.put(LogManager.TRANSCRIBE, rm.getUsage(sd, oId, LogManager.TRANSCRIBE, month, year));
+			usage.put(LogManager.SENTIMENT, rm.getUsage(sd, oId, LogManager.SENTIMENT, month, year));
 			
 		} catch (Exception e) {
 			e.printStackTrace();
