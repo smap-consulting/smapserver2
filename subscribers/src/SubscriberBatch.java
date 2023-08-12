@@ -1214,6 +1214,7 @@ public class SubscriberBatch {
 				+ "notify_details "
 				+ "from forward "
 				+ "where trigger = 'cm_alert' "
+				+ "and enabled "
 				+ "and alert_id = ? ";
 		PreparedStatement pstmtNotifications = null;
 		
@@ -1464,6 +1465,7 @@ public class SubscriberBatch {
 				+ "r_id "
 				+ "from forward "
 				+ "where trigger = 'periodic' "
+				+ "and enabled "
 				+ "and periodic_time > (select last_checked_time from periodic) and periodic_time < ? "
 				+ "and ("
 				+ "(periodic_period = 'daily') "
