@@ -766,6 +766,12 @@ public class ActionManager {
 							java.util.Date inputDate = dateFormat.parse(u.value);
 							pstmtUpdate.setDate(paramCount++, new java.sql.Date(inputDate.getTime()));
 						}
+					} else if (tc.type.equals("dateTime")) {
+						if (u.value == null || u.value.trim().length() == 0) {
+							pstmtUpdate.setTimestamp(paramCount++, null);
+						} else {
+							pstmtUpdate.setTimestamp(paramCount++, GeneralUtilityMethods.getTimestamp(u.value));
+						}
 					} else if (tc.type.equals("integer") || tc.type.equals("int")) {
 						int inputInt = Integer.parseInt(u.value);
 						pstmtUpdate.setInt(paramCount++, inputInt);
