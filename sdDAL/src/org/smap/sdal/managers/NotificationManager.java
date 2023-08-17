@@ -1175,7 +1175,7 @@ public class NotificationManager {
 
 		/*
 		 * Set start and end time of the report based on report period
-		 *  End date is the previous day
+		 * End date is the previous day
 		 * The date used is submission date
 		 */
 		int dateId = SmapServerMeta.UPLOAD_TIME_ID;
