@@ -44,6 +44,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.Tables;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CustomReportsManager;
+import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
@@ -338,13 +339,7 @@ public class SubscriberBatch {
 			/*
 			 * Apply any other subscriber type dependent processing
 			 */
-			if(subscriberType.equals("upload")) {
-				
-				applyReminderNotifications(dbc.sd, dbc.results, basePath, serverName);
-				sendMailouts(dbc.sd, basePath, serverName);
-				expireTemporaryUsers(localisation, dbc.sd);
-				
-			} else if(subscriberType.equals("forward")) {		// Note forward is just another batch process, it no longer forwards surveys to other servers
+			if(subscriberType.equals("forward")) {		// Note forward is just another batch process, it no longer forwards surveys to other servers
 				
 				applyCaseManagementReminders(dbc.sd, dbc.results, basePath, serverName);
 				applyPeriodicNotifications(dbc.sd, dbc.results, basePath, serverName);
@@ -354,6 +349,16 @@ public class SubscriberBatch {
 
 				// Delete linked csv files logically deleted more than 10 minutes age
 				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
+				
+				applyReminderNotifications(dbc.sd, dbc.results, basePath, serverName);
+				sendMailouts(dbc.sd, basePath, serverName);
+				expireTemporaryUsers(localisation, dbc.sd);
+				
+				/*
+				 * Apply foreign keys
+				 */
+				ForeignKeyManager fkm = new ForeignKeyManager();
+				fkm.apply(dbc.sd, dbc.results);
 				
 				/*
 				 * Initialise the linkage table if that has been requested
@@ -487,7 +492,7 @@ public class SubscriberBatch {
 				// 2. Loop through each prikey not in sync table 
 				// 2.a  Synchronise
 				// 2.b  Update sync table
-
+				/* deprecate
 				if(GeneralUtilityMethods.documentSyncEnabled(dbc.sd)) {
 					boolean haveSyncNotifications = false;
 					String urlprefix = "https://" + serverName + "/";	// Need to get server name for image processing
@@ -684,7 +689,7 @@ public class SubscriberBatch {
 				} else {
 					// log.info("=== sync not enabled");
 				}
-
+				*/
 
 			}
 
@@ -1772,7 +1777,9 @@ public class SubscriberBatch {
 		}
 	}
 	
-	
+	/*
+	 * Add the updated paths to media to the uploaded XML file
+	 */
 	private void processMediaChanges(String uploadFile, ArrayList<MediaChange> mediaChanges) {
 		File xmlFile = new File(uploadFile);
 		if(xmlFile.exists()) {
