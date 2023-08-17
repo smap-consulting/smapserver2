@@ -8,10 +8,13 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -770,7 +773,12 @@ public class ActionManager {
 						if (u.value == null || u.value.trim().length() == 0) {
 							pstmtUpdate.setTimestamp(paramCount++, null);
 						} else {
-							pstmtUpdate.setTimestamp(paramCount++, GeneralUtilityMethods.getTimestamp(u.value));
+							// Value is in local time hence we need to add the timezone of the client
+							LocalDateTime localDateTime = LocalDateTime.parse(u.value);
+							ZonedDateTime userZdt = ZonedDateTime.of(localDateTime, TimeZone.getTimeZone(tz).toZoneId());
+							ZonedDateTime utcZdt = userZdt.withZoneSameInstant(TimeZone.getTimeZone("UtC").toZoneId());
+							Timestamp ts = Timestamp.valueOf(utcZdt.toLocalDateTime());
+							pstmtUpdate.setTimestamp(paramCount++, ts);
 						}
 					} else if (tc.type.equals("integer") || tc.type.equals("int")) {
 						int inputInt = Integer.parseInt(u.value);

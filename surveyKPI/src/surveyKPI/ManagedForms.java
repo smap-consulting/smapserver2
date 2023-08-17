@@ -141,7 +141,8 @@ public class ManagedForms extends Application {
 			@FormParam("updates") String updatesString,
 			@FormParam("instanceid") String instanceid,
 			@FormParam("prikey") int prikey,	// Needed for sub forms
-			@FormParam("bulkInstances") String bulkInstanceString
+			@FormParam("bulkInstances") String bulkInstanceString,
+			@FormParam("tz") String tz
 			) { 
 		
 		Response response = null;
@@ -166,7 +167,9 @@ public class ManagedForms extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			String tz = "UTC";
+			if(tz == null) {
+				tz = "UTC";
+			}
 			
 			ActionManager am = new ActionManager(localisation, tz);
 			
