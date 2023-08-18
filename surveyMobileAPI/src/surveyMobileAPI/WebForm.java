@@ -1367,10 +1367,12 @@ public class WebForm extends Application {
 			output.append("<title class='lang' data-lang='c_msg'></title>");
 			output.append("<link rel='shortcut icon' href='/favicon.ico' />");
 			output.append("<link rel='stylesheet' href='/css/normalize.css' />");
-			output.append("<link href='/css/bootstrap.v4.min.css' rel='stylesheet'>");
-			output.append("<link href='/font-awesome/css/font-awesome.css' rel='stylesheet'>");
+			output.append("<link href='/css/bootstrap.v4.5.min.css' rel='stylesheet'>");
+			output.append("<link href='/css/dataTables.fontAwesome.css' rel='stylesheet'>");
 
 			output.append("<script src='/js/libs/modernizr.js'></script>");
+			output.append("<script src='/js/libs/jquery-3.5.1.min.js'></script>");
+			output.append("<script src='/js/libs/bootstrap.bundle.v4.5.min.js'></script>");
 			output.append("<script data-main='/js/msg' src='/js/libs/require.js'></script>");
 
 			output.append("<style>");
