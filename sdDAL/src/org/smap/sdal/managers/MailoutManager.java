@@ -673,48 +673,48 @@ public class MailoutManager {
 					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user, organisation.id);
 					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 						if(UtilityMethodsEmail.isValidEmail(msg.email)) {
+							try {	
+								log.info("userevent: " + msg.user + " sending email of '" + docURL + "' to " + msg.email);
 								
-							log.info("userevent: " + msg.user + " sending email of '" + docURL + "' to " + msg.email);
-							
-							// Set the subject
-							String subject = "";
-							if(msg.subject != null && msg.subject.trim().length() > 0) {
-								subject = msg.subject;
-							} else {
-								if(server != null && server.contains("smap")) {
-									subject = "Smap ";
+								// Set the subject
+								String subject = "";
+								if(msg.subject != null && msg.subject.trim().length() > 0) {
+									subject = msg.subject;
+								} else {
+									if(server != null && server.contains("smap")) {
+										subject = "Smap ";
+									}
+									subject += localisation.getString("ar_survey");
 								}
-								subject += localisation.getString("ar_survey");
-							}
-							
-							String from = "smap";
-							if(msg.from != null && msg.from.trim().length() > 0) {
-								from = msg.from;
-							}
-							StringBuilder content = null;
-							if(msg.content != null && msg.content.trim().length() > 0) {
-								content = new StringBuilder(msg.content);
-							} else {
-								content = new StringBuilder(organisation.default_email_content);
-							}
-							
-							// Add the survey link
-							if(docURL != null) {
-								content.append("<br />")
-									.append("<a href=\"").append(docURL).append("\">")
-									.append(localisation.getString("ar_survey")).append("</a>");
-							}
-							
-							notify_details = localisation.getString("msg_mo");
-							notify_details = notify_details.replace("%s1", msg.email);
-							notify_details = notify_details.replace("%s2", docURL);
-							
-							log.info("+++ emailing mailout to: " + msg.email + " docUrl: " + docURL + 
-									" from: " + from + 
-									" subject: " + subject +
-									" smtp_host: " + emailServer.smtpHost +
-									" email_domain: " + emailServer.emailDomain);
-							try {
+								
+								String from = "smap";
+								if(msg.from != null && msg.from.trim().length() > 0) {
+									from = msg.from;
+								}
+								StringBuilder content = null;
+								if(msg.content != null && msg.content.trim().length() > 0) {
+									content = new StringBuilder(msg.content);
+								} else {
+									content = new StringBuilder(organisation.default_email_content);
+								}
+								
+								// Add the survey link
+								if(docURL != null) {
+									content.append("<br />")
+										.append("<a href=\"").append(docURL).append("\">")
+										.append(localisation.getString("ar_survey")).append("</a>");
+								} 
+								
+								notify_details = localisation.getString("msg_mo");
+								notify_details = notify_details.replace("%s1", msg.email);
+								notify_details = notify_details.replace("%s2", docURL == null ? "" : docURL);
+								
+								log.info("+++ emailing mailout to: " + msg.email + " docUrl: " + docURL + 
+										" from: " + from + 
+										" subject: " + subject +
+										" smtp_host: " + emailServer.smtpHost +
+										" email_domain: " + emailServer.emailDomain);
+
 								EmailManager em = new EmailManager(localisation);
 								PeopleManager peopleMgr = new PeopleManager(localisation);
 								InternetAddress[] emailArray = InternetAddress.parse(msg.email);
