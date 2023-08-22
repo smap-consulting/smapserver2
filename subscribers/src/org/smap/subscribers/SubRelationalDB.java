@@ -902,7 +902,7 @@ public class SubRelationalDB extends Subscriber {
 		// Meta columns
 		addTableCol(cols, vals, tableCols, "parkey", String.valueOf(parentKey), "int");
 		if(parentKey == 0) {
-			addTableCol(cols, vals, tableCols, "_user", String.valueOf(remoteUser), "string");
+			addTableCol(cols, vals, tableCols, "_user", remoteUser, "string");
 			addTableCol(cols, vals, tableCols, "_complete", String.valueOf(complete), "boolean");
 			addTableCol(cols, vals, tableCols, SmapServerMeta.UPLOAD_TIME_NAME, String.valueOf(new Timestamp(uploadTime.getTime())), "timestamp");
 			addTableCol(cols, vals, tableCols, SmapServerMeta.THREAD_CREATED, String.valueOf(new Timestamp(uploadTime.getTime())), "timestamp");

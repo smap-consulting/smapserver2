@@ -8852,6 +8852,7 @@ public class GeneralUtilityMethods {
 		/*
 		 * If type is uploadedSurveys then also get attachments as raw media are no longer saved
 		 */
+		log.info("Restore files for survey: " + ident);
 		if(type.equals("uploadedSurveys")) {
 			Process proc2 = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/restoreFiles.sh " + 
 					ident + 	" attachments"});

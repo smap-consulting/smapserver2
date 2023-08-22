@@ -1390,6 +1390,7 @@ create TABLE mailout (
 	content text,
 	subject text,
 	multiple_submit boolean,
+	anonymous boolean,				-- Set true if submissions are anonymous
 	created TIMESTAMP WITH TIME ZONE,
 	modified TIMESTAMP WITH TIME ZONE
 	);

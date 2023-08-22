@@ -561,7 +561,9 @@ public class MailoutManager {
 				+ "m.multiple_submit,"
 				+ "p.id as p_id, "
 				+ "ppl.email, "
-				+ "mp.initial_data "
+				+ "mp.initial_data, "
+				+ "m.name as campaign_name, "
+				+ "m.anonymous "
 				+ "from mailout_people mp, mailout m, people ppl, survey s, project p "
 				+ "where mp.m_id = m.id "
 				+ "and mp.p_id = ppl.id "
@@ -592,6 +594,8 @@ public class MailoutManager {
 				String email = rs.getString("email");
 				String initialData = rs.getString("initial_data");
 				boolean single = !rs.getBoolean("multiple_submit");
+				String campaignName = rs.getString("campaign_name");
+				boolean anonymousCampaign = rs.getBoolean("anonymous");
 				
 				// Create the action 					
 				Action action = new Action("mailout");
@@ -600,6 +604,8 @@ public class MailoutManager {
 				action.single = single;
 				action.mailoutPersonId = id;
 				action.email = email;
+				action.campaignName = campaignName;
+				action.anonymousCampaign = anonymousCampaign;
 					
 				if(initialData != null) {
 					action.initialData = gson.fromJson(initialData, Instance.class);

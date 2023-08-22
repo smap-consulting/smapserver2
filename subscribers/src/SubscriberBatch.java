@@ -1605,7 +1605,9 @@ public class SubscriberBatch {
 				+ "m.content, "
 				+ "m.subject,"
 				+ "mp.initial_data, "
-				+ "mp.link "
+				+ "mp.link, "
+				+ "m.name as campaign_name, "
+				+ "m.anonymous "
 				+ "from mailout_people mp, mailout m, people ppl, survey s, project p "
 				+ "where mp.m_id = m.id "
 				+ "and mp.p_id = ppl.id "
@@ -1642,6 +1644,8 @@ public class SubscriberBatch {
 				String initialData = rs.getString("initial_data");
 				String link = rs.getString("link");
 				boolean single = !rs.getBoolean("multiple_submit");
+				String campaignName = rs.getString("campaign_name");
+				boolean anonymousCampaign = rs.getBoolean("anonymous");
 				
 				ResourceBundle localisation = locMap.get(surveyIdent);
 				
@@ -1654,6 +1658,8 @@ public class SubscriberBatch {
 					action.single = single;
 					action.mailoutPersonId = id;
 					action.email = email;
+					action.campaignName = campaignName;
+					action.anonymousCampaign = anonymousCampaign;
 					
 					if(initialData != null) {
 						action.initialData = gson.fromJson(initialData, Instance.class);

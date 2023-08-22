@@ -382,7 +382,11 @@ public class XFormData {
 			}
 			
 			if(action != null && action.email != null) {
-				ue.setUserName(action.email);
+				if(action.anonymousCampaign) {
+					ue.setUserName(action.campaignName);
+				} else {
+					ue.setUserName(action.email);
+				}
 			} else {
 				ue.setUserName(user);
 			}
