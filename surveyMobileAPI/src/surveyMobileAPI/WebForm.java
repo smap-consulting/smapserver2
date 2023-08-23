@@ -760,9 +760,9 @@ public class WebForm extends Application {
 
 		// head
 		output.append("<head>\n");
-		output.append("<link rel=\"preload\" as=\"font\" href=\"/fonts/OpenSans-Regular-webfont.woff\" type=\"font/woff\" crossorigin>");
-		output.append("<link rel=\"preload\"as=\"font\" href=\"/fonts/OpenSans-Bold-webfont.woff\" type=\"font/woff\" crossorigin>");
-		output.append("<link rel=\"preload\" as=\"font\" href=\"/fonts/fontawesome-webfont.woff\" type=\"font/woff\" crossorigin>");
+		output.append("<link rel='preload' as='font' href='/fonts/OpenSans-Regular-webfont.woff' type='font/woff' crossorigin>");
+		output.append("<link rel='preload'as='font' href='/fonts/OpenSans-Bold-webfont.woff' type='font/woff' crossorigin>");
+		output.append("<link rel='preload' as='font' href='/fonts/fontawesome-webfont.woff' type='font/woff' crossorigin>");
 		
 		if (surveyClass != null && surveyClass.trim().contains("theme-grid")) {		
 			output.append("<link type='text/css' href='/build/css/theme-grid.css' media='all' rel='stylesheet' />\n");
@@ -778,7 +778,7 @@ public class WebForm extends Application {
 		 * Add organisation specific css settings
 		 */
 		if(options != null) {
-			output.append("<style type=\"text/css\">");
+			output.append("<style type='text/css'>");
 			if(options.page_background_color != null && options.page_background_color.trim().length() > 0) {
 				output.append("body {background-color: " + options.page_background_color + "}");
 			}
@@ -849,12 +849,12 @@ public class WebForm extends Application {
 		output.append("<script>");
 		output.append("window.smapConfig = {};");
 		if (serverData.google_key != null) {
-			output.append("window.smapConfig.googleApiKey=\"");
+			output.append("window.smapConfig.googleApiKey='");
 			output.append(serverData.google_key);
-			output.append("\";");
+			output.append("';");
 		}
 		// add user ID
-		output.append("window.smapConfig.username=\"").append(user).append("\";");
+		output.append("window.smapConfig.username='").append(user).append("';");
 		
 		output.append("window.smapConfig.myWork=" + (myWork ? "true" : "false") + ";");
 		output.append("registerForServiceWorkerMessages();");
@@ -877,7 +877,7 @@ public class WebForm extends Application {
 		output.append("settings = {};\n");
 
 		output.append("surveyData = {};\n");
-		output.append("surveyData.surveyIdent=\"").append(gFormIdent).append("\";\n");
+		output.append("surveyData.surveyIdent='").append(gFormIdent).append("';\n");
 		// Data model
 		output.append("surveyData.modelStr=\"");
 		output.append(getModelStr(request));
@@ -1368,7 +1368,7 @@ public class WebForm extends Application {
 			output.append("<link rel='shortcut icon' href='/favicon.ico' />");
 			output.append("<link rel='stylesheet' href='/css/normalize.css' />");
 			output.append("<link href='/css/bootstrap.v4.5.min.css' rel='stylesheet'>");
-			output.append("<link href='/css/dataTables.fontAwesome.css' rel='stylesheet'>");
+			output.append("<link href='/css/fa.v5.15.1.all.min.css' rel='stylesheet'>");
 
 			output.append("<script src='/js/libs/modernizr.js'></script>");
 			output.append("<script src='/js/libs/jquery-3.5.1.min.js'></script>");

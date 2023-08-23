@@ -84,7 +84,7 @@ public class MailoutManager {
 		
 		ArrayList<Mailout> mailouts = new ArrayList<> ();
 		
-		String sql = "select id, survey_ident, name, subject, content, multiple_submit "
+		String sql = "select id, survey_ident, name, subject, content, multiple_submit, anonymous "
 				+ "from mailout "
 				+ "where survey_ident = ?";
 		
@@ -102,7 +102,8 @@ public class MailoutManager {
 						rs.getString("name"),
 						rs.getString("subject"),
 						rs.getString("content"),
-						rs.getBoolean("multiple_submit"));
+						rs.getBoolean("multiple_submit"),
+						rs.getBoolean("anonymous"));
 				
 				if(links) {
 					mo.links = new MailoutLinks();
@@ -126,8 +127,8 @@ public class MailoutManager {
 		int mailoutId = 0;
 		
 		String sql = "insert into mailout "
-				+ "(survey_ident, name, subject, content, multiple_submit, created, modified) "
-				+ "values(?, ?, ?, ?, ?, now(), now())";
+				+ "(survey_ident, name, subject, content, multiple_submit, anonymous,  created, modified) "
+				+ "values(?, ?, ?, ?, ?, ?, now(), now())";
 		
 		PreparedStatement pstmt = null;
 		
@@ -138,6 +139,7 @@ public class MailoutManager {
 			pstmt.setString(3, mailout.subject);
 			pstmt.setString(4, mailout.content);
 			pstmt.setBoolean(5, mailout.multiple_submit);
+			pstmt.setBoolean(6, mailout.anonymous);
 			log.info("Add mailout: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
@@ -171,6 +173,7 @@ public class MailoutManager {
 				+ "subject = ?, "
 				+ "content = ?,"
 				+ "multiple_submit = ?,"
+				+ "anonymous = ?,"
 				+ "modified = now() "
 				+ "where id = ?";
 		
@@ -183,7 +186,8 @@ public class MailoutManager {
 			pstmt.setString(3, mailout.subject);
 			pstmt.setString(4, mailout.content);
 			pstmt.setBoolean(5, mailout.multiple_submit);
-			pstmt.setInt(6, mailout.id);
+			pstmt.setBoolean(6, mailout.anonymous);
+			pstmt.setInt(7, mailout.id);
 			log.info("Update mailout: " + pstmt.toString());
 			pstmt.executeUpdate();
 		
@@ -207,7 +211,7 @@ public class MailoutManager {
 		
 		Mailout mailout = null;
 		
-		String sql = "select survey_ident, name, subject, content, multiple_submit "
+		String sql = "select survey_ident, name, subject, content, multiple_submit, anonymous "
 				+ "from mailout "
 				+ "where id = ?";
 		
@@ -225,7 +229,8 @@ public class MailoutManager {
 						rs.getString("name"),
 						rs.getString("subject"),
 						rs.getString("content"),
-						rs.getBoolean("multiple_submit"));
+						rs.getBoolean("multiple_submit"),
+						rs.getBoolean("anonymous"));
 				
 			}
 		
