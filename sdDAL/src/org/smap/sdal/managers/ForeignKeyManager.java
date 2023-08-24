@@ -95,14 +95,12 @@ public class ForeignKeyManager {
 		PreparedStatement pstmtGetHrk = null;
 		PreparedStatement pstmtInsertKey = null;
 		
-		log.info("============================== Apply foreign keys");
 		try {
 			pstmtGetFkTable = sd.prepareStatement(sqlGetFkTable);
 			pstmtResult = sd.prepareStatement(sqlResult);
 			pstmtForeign = sd.prepareStatement(sqlForeign);
 			
 			pstmt = sd.prepareStatement(sql);
-			log.info(pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				int id = rs.getInt(1);
@@ -275,7 +273,6 @@ public class ForeignKeyManager {
 					pstmtResult.executeUpdate();
 				}
 			}
-			log.info("------------------------------------ End Apply foreign keys");
 			
 		} catch (Exception e) {
 			e.printStackTrace();
