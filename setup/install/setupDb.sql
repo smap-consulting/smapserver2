@@ -1698,6 +1698,21 @@ CREATE TABLE s3upload (
 	);
 ALTER TABLE s3upload OWNER TO ws;
 
+DROP SEQUENCE IF EXISTS subevent_queue_seq CASCADE;
+CREATE SEQUENCE subevent_queue_seq START 1;
+ALTER SEQUENCE subevent_queue_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS subevent_queue;
+CREATE TABLE subevent_queue (
+	id integer DEFAULT NEXTVAL('subevent_queue_seq') CONSTRAINT pk_subevent_queue PRIMARY KEY,
+	ue_id integer,
+	linkage_items text,    -- JSON
+	status text,    -- new or failed
+	reason text,	-- failure reason
+	processed_time TIMESTAMP WITH TIME ZONE		-- Time of processing
+	);
+ALTER TABLE subevent_queue OWNER TO ws;
+
 DROP SEQUENCE IF EXISTS cms_alert_seq CASCADE;
 CREATE SEQUENCE cms_alert_seq START 1;
 ALTER SEQUENCE cms_alert_seq OWNER TO ws;

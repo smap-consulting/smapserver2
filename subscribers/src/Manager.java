@@ -76,6 +76,12 @@ public class Manager {
 			 */
 			ReportProcessor rp = new ReportProcessor();
 			rp.go(smapId, fileLocn);
+			
+			/*
+			 * Start the submission event processor
+			 */
+			SubEventProcessor sep = new SubEventProcessor();
+			sep.go(smapId, fileLocn);
 		}
 		
 		log.info("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);

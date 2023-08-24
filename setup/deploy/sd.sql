@@ -23,4 +23,18 @@ alter table forward drop constraint forward_s_id_fkey;
 create index log_org_idx on log (o_id);
 
 -- Version 23.09
+
 alter table mailout add column anonymous boolean;
+
+CREATE SEQUENCE subevent_queue_seq START 1;
+ALTER SEQUENCE subevent_queue_seq OWNER TO ws;
+
+CREATE TABLE subevent_queue (
+	id integer DEFAULT NEXTVAL('subevent_queue_seq') CONSTRAINT pk_subevent_queue PRIMARY KEY,
+	ue_id integer,
+	linkage_items text,    -- JSON
+	status text,    -- new or failed
+	reason text,	-- failure reason
+	processed_time TIMESTAMP WITH TIME ZONE		-- Time of processing
+	);
+ALTER TABLE subevent_queue OWNER TO ws;
