@@ -297,27 +297,31 @@ public class MessagingManagerApply {
 								if(subStatus.unsubscribed) {
 									unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
 								} else {
-									em.sendEmail(
-											ia.getAddress(), 
-											null, 
-											"notify", 
+									StringBuilder content = new StringBuilder("");
+									
+									content.append(localisation.getString("email_ian"));
+									content.append(" https://");
+									content.append(serverName);
+									content.append(". ");
+
+									content.append(localisation.getString("email_dnr"));
+									content.append("\n\n");
+									
+									em.sendEmailHtml(
+											ia.getAddress(), 	// email
+											"bcc",
 											subject, 
-											description, 
-											from, 
-											null, 
-											null, 
-											null, 
-											null, 
+											content, 
 											null,
-											null, 
-											organisation.getAdminEmail(), 
-											emailServer, 
-											"https", 
+											null,
+											emailServer,
 											serverName, 
 											subStatus.emailKey,
 											localisation,
-											organisation.server_description,
-											organisation.name);
+											null,
+											organisation.getAdminEmail(), 
+											null
+											);
 								}
 							}
 						} catch (Exception e) {

@@ -86,6 +86,9 @@ public class EmailManager {
 		localisation = l;
 	}
 	
+	/*
+	 * Deprecate - this is being replaced with HTML emails
+	 */
 	// Send an email
 	public void sendEmail( 
 			String email, 

@@ -300,6 +300,8 @@ public class MessagingManager {
 						adminEmail,
 						null);
 				
+			} else {
+				log.info("##### - Specific optin message does not need to be sent");
 			}
 			
 			// Record that the opt in message has been sent
