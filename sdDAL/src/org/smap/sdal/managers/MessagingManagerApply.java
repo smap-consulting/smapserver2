@@ -405,6 +405,7 @@ public class MessagingManagerApply {
 
 	/*
 	 * Send pending email messages
+	 * These are stored in the pending queue until the user opts in to receive them
 	 */
 	public void applyPendingEmailMessages(Connection sd, Connection cResults, String serverName, String basePath) {
 

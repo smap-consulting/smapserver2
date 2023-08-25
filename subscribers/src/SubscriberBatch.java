@@ -35,15 +35,12 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONObject;
 import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
 import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.Tables;
 import org.smap.sdal.managers.ActionManager;
-import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.LogManager;
@@ -53,13 +50,11 @@ import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.DatabaseConnections;
-import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.LinkageItem;
@@ -67,11 +62,9 @@ import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TableColumn;
 import org.smap.server.entities.MissingSurveyException;
 import org.smap.server.entities.MissingTemplateException;
 import org.smap.server.entities.SubscriberEvent;
@@ -128,13 +121,13 @@ public class SubscriberBatch {
 		
 		String sqlResultsDB = "update upload_event "
 				+ "set results_db_applied = 'true',"
+				+ "processed_time = now(),"
 				+ "db_status = ?,"
 				+ "db_reason = ? "
 				+ "where ue_id = ?";
 		PreparedStatement pstmtResultsDB = null;
 		String serverName = null;
 
-		String language = "none";
 		try {
 			GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 			serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
@@ -154,7 +147,6 @@ public class SubscriberBatch {
 
 			LinkageManager linkMgr = new LinkageManager(localisation);
 			Date timeNow = new Date();
-			String tz = "UTC";
 			
 			Subscriber subscriber = new SubRelationalDB();
 			/*

@@ -737,7 +737,7 @@ public class GeneralUtilityMethods {
 	 */
 	public static void sendToS3(Connection sd, String basePath, String filePath, int oId, boolean isMedia) throws SQLException {
 
-		String sql = "insert into s3upload (filepath, o_id, is_media, status ) values(?, ?, ?, 'new')";
+		String sql = "insert into s3upload (filepath, o_id, is_media, status, created_time ) values(?, ?, ?, 'new', now())";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
