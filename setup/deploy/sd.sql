@@ -38,3 +38,5 @@ ALTER TABLE subevent_queue OWNER TO ws;
 
 alter table upload_event add column processed_time timestamp with time zone;
 create index idx_ue_processed_time on upload_event (processed_time);
+
+alter table s3upload add column created_time timestamp with time zone;

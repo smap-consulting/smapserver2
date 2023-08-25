@@ -86,6 +86,8 @@ public class Queues extends Application {
 			
 			if(queueName.equals(qm.SUBMISSIONS)) {
 				q = qm.getSubmissionQueueData(sd);
+			} if(queueName.equals(qm.S3UPLOAD)) {
+				q = qm.getS3UploadQueueData(sd);
 			} else {
 				q = new Queue();
 				log.info("Unknown queue name: " + queueName);

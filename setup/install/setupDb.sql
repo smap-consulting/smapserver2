@@ -1695,6 +1695,7 @@ CREATE TABLE s3upload (
 	reason text,	-- failure reason
 	o_id integer default 0,
 	is_media boolean default false,
+	created_time timestamp with time zone,
 	processed_time TIMESTAMP WITH TIME ZONE		-- Time of processing
 	);
 ALTER TABLE s3upload OWNER TO ws;
