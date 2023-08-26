@@ -405,15 +405,18 @@ public class EmailManager {
 				}
 
 				if(docURL != null) {
-					content.append("<p style=\"color:blue;text-align:center;\">")
-					.append("<a href=\"")
-					.append(scheme + "://")
-					.append(serverName)
-					.append(docURL)
-					.append("\">")
-					.append(surveyName)
-					.append("</a>")
-					.append("</p>");
+					String url = scheme + "://" + serverName + docURL;
+					if(content.toString().contains("${url}")) {					
+						content = new StringBuilder(content.toString().replaceAll("\\$\\{url\\}", url));
+					} else {
+						content.append("<p style=\"color:blue;text-align:center;\">")
+						.append("<a href=\"")
+						.append(url)
+						.append("\">")
+						.append(surveyName)
+						.append("</a>")
+						.append("</p>");
+					}
 				}
 
 				/*
