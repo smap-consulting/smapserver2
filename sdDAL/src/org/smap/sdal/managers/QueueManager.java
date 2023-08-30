@@ -76,7 +76,6 @@ public class QueueManager {
 						queue.error_rpm = rs.getInt(2);
 					}
 				}
-				queue.processed_rpm = rs.getInt(1);
 			}
 
 			String sqlNewRate = "select count(*) "

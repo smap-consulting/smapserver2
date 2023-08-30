@@ -30,6 +30,7 @@ import javax.mail.internet.MimeMultipart;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.SendEmailResponse;
 import org.smap.sdal.model.EmailServer;
@@ -66,6 +67,8 @@ public class EmailManager {
 
 	private LogManager lm = new LogManager();		// Application log
 	private ResourceBundle localisation;
+	
+	private HtmlSanitise sanitise = new HtmlSanitise();
 	
 	/*
 	 * Add an authenticator class
@@ -595,6 +598,11 @@ public class EmailManager {
 					contentString = contentString.replace(token, val);
 				}
 			}
+			
+			/*
+			 * Sanitise the HTML
+			 */
+			sanitise.sanitiseHtml(contentString);
 			
 			Multipart multipart = new MimeMultipart();
 			
