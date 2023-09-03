@@ -375,10 +375,17 @@ public class Tasks extends Application {
 				
 				Survey s = sm.getById(sd, cResults, request.getRemoteUser(), false, tp.form_id, 
 						false, null, null, false, false, 
-						false, false, false, null, false, false, false, null, false, false,
+						false, false, false, null, false, false, 
+						superUser, 	// Super user
+						null, 		// Geom Format
+						false, 		// Referenced Surveys
+						false,		// Launched surveys
 						false		// Don't merge set value into default values
 					);
 				
+				if(s == null) {
+					throw new ApplicationException(localisation.getString("mf_snfpriv"));
+				}
 				// Create a task group based on the survey
 				tp.tg_id = tm.createTaskGroup(sd, s.displayName, 
 						s.p_id,
