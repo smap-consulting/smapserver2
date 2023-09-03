@@ -101,6 +101,7 @@ public class PeopleManager {
 					pstmtCreate.setInt(1,  oId);
 					pstmtCreate.setString(2, email);
 					pstmtCreate.setString(3, subStatus.emailKey);
+					log.info(pstmtCreate.toString());
 					pstmtCreate.executeUpdate();
 				}
 				
@@ -181,6 +182,7 @@ public class PeopleManager {
 					pstmtUpdate.setString(1, key);
 					pstmtUpdate.setString(2, email);
 					pstmtUpdate.setInt(3, oId);
+					log.info(pstmtUpdate.toString());
 					pstmtUpdate.executeUpdate();
 					
 				} else {
@@ -190,6 +192,7 @@ public class PeopleManager {
 					pstmtCreate.setInt(1, oId);
 					pstmtCreate.setString(2, email);
 					pstmtCreate.setString(3, key);
+					log.info(pstmtCreate.toString());
 					pstmtCreate.executeUpdate();
 				}
 			}
@@ -316,7 +319,9 @@ public class PeopleManager {
 		PreparedStatement pstmt = null;
 		
 		try {
-			
+			if(email != null) {
+				email = email.toLowerCase();
+			}
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setString(1, email);	
 			pstmt.setInt(2,  oId);
@@ -381,9 +386,13 @@ public class PeopleManager {
 		PreparedStatement pstmt = null;
 		
 		try {
+			String email = person.email;
+			if(email != null) {
+				email = email.toLowerCase();
+			}
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
-			pstmt.setString(2,  person.email);
+			pstmt.setString(2,  email);
 			pstmt.setString(3, person.name);
 			log.info("Add person: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -413,8 +422,12 @@ public class PeopleManager {
 		PreparedStatement pstmt = null;
 		
 		try {
+			String email = person.email;
+			if(email != null) {
+				email = email.toLowerCase();
+			}
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1,  person.email);
+			pstmt.setString(1,  email);
 			pstmt.setString(2, person.name);	
 			pstmt.setInt(3, person.id);
 			
@@ -439,6 +452,9 @@ public class PeopleManager {
 		
 		ArrayList<OrganisationLite> oList = new ArrayList<> ();
 		try {
+			if(email != null) {
+				email = email.toLowerCase();
+			}
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, email);
 			ResultSet rs = pstmt.executeQuery();
