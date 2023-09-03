@@ -313,7 +313,7 @@ public class MessagingManager {
 					+ "and email = ? ";
 			pstmt = sd.prepareStatement(sqlDone);
 			pstmt.setInt(1, oId);
-			pstmt.setString(2, email);
+			pstmt.setString(2, email.toLowerCase());
 			log.info("Record opt in sent: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
@@ -335,7 +335,7 @@ public class MessagingManager {
 			pstmt = sd.prepareStatement(sqlDone);
 			pstmt.setString(1, e.getMessage());
 			pstmt.setInt(2, oId);
-			pstmt.setString(3, email);
+			pstmt.setString(3, email.toLowerCase());
 			log.info("Record opt in send fail: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
