@@ -4,7 +4,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.logging.Logger;
+
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Queue;
+import org.smap.sdal.model.QueueItem;
 
 /*****************************************************************************
 
@@ -33,6 +39,8 @@ public class QueueManager {
 	public String SUBMISSIONS = "submissions";
 	public String S3UPLOAD = "s3upload";
 
+	private static Logger log =
+			Logger.getLogger(QueueManager.class.getName());
 	/*
 	 * Get status of submission queue
 	 */
@@ -161,5 +169,70 @@ public class QueueManager {
 		return queue;
 	}
 
+	/*
+	 * Get status of s3upload queue
+	 */
+	public void getS3UploadQueueEvents(Connection sd, 
+			ArrayList<QueueItem> items,
+			int month,
+			int year,
+			String status,
+			String tz) throws SQLException {
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			boolean hasStatus = false;
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			
+			String sql1 = "select id, filepath, status, o_id, "
+					+ "is_media, created_time, processed_time, status, reason "
+					+ "from s3upload ";		
+			String sql2 = "where timezone(?, created_time) >=  ? "
+					+ "and timezone(?, created_time) < ? ";
+			String sql3 = "";
+			if(status != null && !status.equals("any")) {
+				sql3 = "and status = ? "; 
+			}
+			String sql4 = "order by id desc;";
+			StringBuilder sql = new StringBuilder(sql1)
+					.append(sql2)
+					.append(sql3)
+					.append(sql4);
+
+			pstmt = sd.prepareStatement(sql.toString());
+			int paramCount = 1;
+			pstmt.setString(paramCount++, tz);
+			pstmt.setTimestamp(paramCount++, t1);
+			pstmt.setString(paramCount++, tz);
+			pstmt.setTimestamp(paramCount++, t2);
+			if(hasStatus) {
+				pstmt.setString(paramCount++, status);
+			}
+			
+			log.info("Queue: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				QueueItem item = new QueueItem();
+				items.add(item);
+				
+				item.id = rs.getInt("id");
+				item.filepath = rs.getString("filepath");
+				item.oId = rs.getInt("o_id");
+				item.media = rs.getBoolean("is_media");
+				item.created_time = rs.getTimestamp("created_time");
+				item.processed_time = rs.getTimestamp("processed_time");
+				item.status = rs.getString("status");
+				item.reason = rs.getString("reason");
+			}
+
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+	}
 
 }

@@ -27,6 +27,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -38,6 +39,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QueueManager;
 import org.smap.sdal.managers.UserLocationManager;
 import org.smap.sdal.model.Queue;
+import org.smap.sdal.model.QueueItem;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -95,6 +97,61 @@ public class Queues extends Application {
 			
 			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			response = Response.ok(gson.toJson(q)).build();
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			response = Response.serverError().build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Return errors for a queue
+	 * Set period to 1 week
+	 */
+	@GET
+	@Path("/{queue}/items")
+	@Produces("application/json")
+	public Response getItems(@Context HttpServletRequest request,
+			@PathParam("queue") String queueName,
+			@QueryParam("status") String status,
+			@QueryParam("month") int month,
+			@QueryParam("year") int year,
+			@QueryParam("tz") String tz
+			) { 
+
+		Response response = null;
+		String connectionString = "API - getQueueErrors";
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
+		Connection cResults = null;
+		try {			
+			cResults = ResultsDataSource.getConnection(connectionString);
+			
+			QueueManager qm = new QueueManager();
+			ArrayList<QueueItem> items = new ArrayList<>();
+			
+			if(queueName.equals(qm.SUBMISSIONS)) {
+				//qm.getSubmissionQueueEvents(sd, items);
+			} if(queueName.equals(qm.S3UPLOAD)) {
+				qm.getS3UploadQueueEvents(sd, items, month, year, status, tz);
+			} else {
+				log.info("Unknown queue name: " + queueName);
+			}
+			
+			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+			response = Response.ok(gson.toJson(items)).build();
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
