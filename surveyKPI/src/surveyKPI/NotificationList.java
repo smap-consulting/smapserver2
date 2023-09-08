@@ -443,7 +443,6 @@ public class NotificationList extends Application {
 					0,					// Task Id - ignore, only relevant for a reminder
 					n.sIdent,			// Survey Ident
 					null,				// Update Survey
-					pId,
 					n.instanceId, 
 					nd.from,
 					nd.subject, 

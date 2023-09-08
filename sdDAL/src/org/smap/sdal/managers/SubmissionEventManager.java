@@ -207,7 +207,6 @@ public class SubmissionEventManager {
 						urlprefix,
 						ident,
 						instanceId,
-						pId,
 						null,		// update survey ident
 						null,		// update question
 						null		// update value

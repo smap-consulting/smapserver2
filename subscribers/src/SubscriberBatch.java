@@ -1116,7 +1116,6 @@ public class SubscriberBatch {
 						tId,
 						sourceSurveyIdent,
 						null,
-						pId,
 						instanceId, 
 						nd.from,
 						nd.subject, 
@@ -1191,13 +1190,13 @@ public class SubscriberBatch {
 		/*
 		 * SQL to get the alerts
 		 */
-		String sql = "select a.id as a_id, a.group_survey_ident, a.name, a.period,"
-				+ "s.p_id,"
+		String sql = "select distinct a.id as a_id, a.group_survey_ident, a.name, a.period,"
 				+ "f.table_name "
 				+ "from cms_alert a, survey s, form f "
 				+ "where f.s_id = s.s_id "
 				+ "and f.parentform = 0 "
-				+ "and s.group_survey_ident = a.group_survey_ident ";	
+				+ "and s.group_survey_ident = a.group_survey_ident "
+				+ "and not s.deleted";	
 		
 		PreparedStatement pstmt = null;	
 		
@@ -1239,7 +1238,7 @@ public class SubscriberBatch {
 			
 			// 1. Get case management alerts 
 			pstmt = sd.prepareStatement(sql);
-
+			log.info("Cm alerts: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
@@ -1248,7 +1247,6 @@ public class SubscriberBatch {
 				String alertName = rs.getString("name");
 				String groupSurveyIdent = rs.getString("group_survey_ident");
 				String table = rs.getString("table_name");
-				int pId = rs.getInt("p_id");
 				String period = rs.getString("period");	
 				int oId = GeneralUtilityMethods.getOrganisationIdForGroupSurveyIdent(sd, groupSurveyIdent);
 				
@@ -1296,6 +1294,10 @@ public class SubscriberBatch {
 							.append("cast (").append(settings.statusQuestion).append(" as text)").append(" != ? ) ")
 							.append("and  _thread not in (select thread from case_alert_triggered where table_name = ? and a_id = ?) ")
 							.append("and _thread_created < now() - ?::interval ");	
+						
+						/*
+						 * Add context filter
+						 */
 						
 						pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
 						int idx = 1;
@@ -1376,7 +1378,6 @@ public class SubscriberBatch {
 										0,
 										groupSurveyIdent,
 										null,
-										pId,
 										instanceid, 
 										nd.from,
 										nd.subject, 
@@ -1454,7 +1455,6 @@ public class SubscriberBatch {
 		 * Get the notifications that send a response at fixed periods and where the time is due
 		 */
 		String sql = "select name,"
-				+ "p_id,"
 				+ "target,"
 				+ "notify_details, "
 				+ "periodic_time, "
@@ -1504,7 +1504,6 @@ public class SubscriberBatch {
 			while(rs.next()) {
 				
 				String name = rs.getString("name");
-				int pId = rs.getInt("p_id");
 				String target = rs.getString("target");
 				String notifyDetailsString = rs.getString("notify_details");
 				String period = rs.getString("periodic_period");
@@ -1532,7 +1531,6 @@ public class SubscriberBatch {
 						0,				// task id
 						null,			// Survey ident
 						null,			// Update ident
-						pId,
 						null,			// instance id
 						nd.from,
 						nd.subject, 

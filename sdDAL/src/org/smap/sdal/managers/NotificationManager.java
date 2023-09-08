@@ -548,7 +548,6 @@ public class NotificationManager {
 			String serverRoot,
 			String ident,			// Survey Ident
 			String instanceId,
-			int pId,
 			String updateSurvey,
 			String updateQuestion,
 			String updateValue) throws Exception {
@@ -680,7 +679,6 @@ public class NotificationManager {
 							0,				// Task Id - ignore, only relevant for a reminder
 							ident,			// Survey Ident
 							updateSurvey,
-							pId,
 							instanceId, 
 							nd.from,
 							nd.subject, 

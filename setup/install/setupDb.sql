@@ -1727,6 +1727,7 @@ CREATE TABLE cms_alert (
 	group_survey_ident text,
 	name text,
 	period text,
+	filter text,
 	changed_by text,
 	changed_ts TIMESTAMP WITH TIME ZONE	
 	);

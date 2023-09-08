@@ -852,7 +852,6 @@ public class ActionManager {
 						urlprefix,
 						surveyIdent,
 						instanceId,
-						pId,
 						groupSurvey,		// update survey ident
 						u.name,		// update question
 						u.value		// update value

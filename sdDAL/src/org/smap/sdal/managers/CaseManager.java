@@ -100,7 +100,7 @@ public class CaseManager {
 				 * Note the alerts are stored in separate records in the database so
 				 * they can be used in queries to find active notification alerts
 				 */
-				sql = "select id, name, period "
+				sql = "select id, name, period, filter "
 						+ "from cms_alert "
 						+ "where group_survey_ident = ? "
 						+ "order by name asc";
@@ -112,7 +112,8 @@ public class CaseManager {
 				while(rs.next()) {
 					alerts.add(new CaseManagementAlert(rs.getInt("id"), 
 							groupSurveyIdent, rs.getString("name"), 
-							rs.getString("period")));
+							rs.getString("period"),
+							rs.getString("filter")));
 				}
 				
 				// Create the combined settings object
@@ -133,8 +134,8 @@ public class CaseManager {
 			String user,
 			CaseManagementAlert alert) throws Exception {
 		
-		String sql = "insert into cms_alert (group_survey_ident, name, period, changed_by, changed_ts) " +
-				" values (?, ?, ?, ?, now());";
+		String sql = "insert into cms_alert (group_survey_ident, name, period, filter, changed_by, changed_ts) " +
+				" values (?, ?, ?, ?, ?, now());";
 		
 		PreparedStatement pstmt = null;
 		
@@ -144,7 +145,8 @@ public class CaseManager {
 			pstmt.setString(1, alert.group_survey_ident);
 			pstmt.setString(2, alert.name);
 			pstmt.setString(3,  alert.period);
-			pstmt.setString(4,  user);
+			pstmt.setString(4,  alert.filter);
+			pstmt.setString(5,  user);
 
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -169,6 +171,7 @@ public class CaseManager {
 				+ "set group_survey_ident = ?, "
 				+ "name = ?,"
 				+ "period = ?,"
+				+ "filter = ?,"
 				+ "changed_by = ?,"
 				+ "changed_ts = now() "
 				+ "where id = ?"; 
@@ -182,8 +185,9 @@ public class CaseManager {
 			pstmt.setString(1, alert.group_survey_ident);
 			pstmt.setString(2, alert.name);
 			pstmt.setString(3, alert.period);
-			pstmt.setString(4, user);
-			pstmt.setInt(5, alert.id);
+			pstmt.setString(4, alert.filter);
+			pstmt.setString(5, user);
+			pstmt.setInt(6, alert.id);
 
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
