@@ -92,6 +92,7 @@ public class Manager {
 			delaySecs = 30;					
 		}
 		
+		SubscriberBatch batchJob = new SubscriberBatch();
 		boolean loop = true;
 		while(loop) {
 			String subscriberControl = GeneralUtilityMethods.getSettingFromFile(fileLocn + "/settings/subscriber");
@@ -100,7 +101,6 @@ public class Manager {
 				loop = false;
 			} else {
 				System.out.print("-");	// Log running of batch job
-				SubscriberBatch batchJob = new SubscriberBatch();
 				batchJob.go(smapId, fileLocn, subscriberType);	// Run the batch job for the specified server
 
 				try {

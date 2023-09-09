@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -107,6 +108,8 @@ public class SubscriberBatch {
 			Logger.getLogger(Subscriber.class.getName());
 
 	private static LogManager lm = new LogManager();		// Application log
+	
+	HashMap<String, String> autoErrorCheck = new HashMap<> ();
 
 	/**
 	 * @param args
@@ -1266,7 +1269,13 @@ public class SubscriberBatch {
 							}
 						} catch (Exception e) {
 							int sId = GeneralUtilityMethods.getSurveyId(sd, groupSurveyIdent);
-							lm.writeLog(sd, sId, "alert", LogManager.CASE_MANAGEMENT, e.getMessage(), 0, serverName);
+							String msg = e.getMessage();
+							if(msg == null) {
+								msg = "";
+							}
+							if(!duplicateLogEntry(sId + "alert" + LogManager.CASE_MANAGEMENT + msg)) {
+								lm.writeLog(sd, sId, "alert", LogManager.CASE_MANAGEMENT, e.getMessage(), 0, serverName);
+							}
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}
 					 
@@ -1288,6 +1297,19 @@ public class SubscriberBatch {
 			try {if (pstmtNotifications != null) {pstmtNotifications.close();}} catch (SQLException e) {}
 			try {if (pstmtCaseUpdated != null) {pstmtCaseUpdated.close();}} catch (SQLException e) {}
 		}
+	}
+	
+	/*
+	 * Return true if this error has already been reported today
+	 */
+	private boolean duplicateLogEntry(String entry) {
+		entry = entry + Calendar.getInstance().get(Calendar.DAY_OF_YEAR);
+		boolean dup = true;
+		if(autoErrorCheck.get(entry) == null) {
+			autoErrorCheck.put(entry, entry);
+			dup = false;
+		} 
+		return dup;
 	}
 	
 	/*
