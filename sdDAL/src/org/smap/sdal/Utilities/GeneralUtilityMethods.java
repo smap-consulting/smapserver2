@@ -137,7 +137,6 @@ public class GeneralUtilityMethods {
 	private static int LENGTH_QUESTION_NAME = 57; // 63 max size of postgresql column names.
 	private static int LENGTH_QUESTION_RAND = 5;
 
-
 	private static String[] smapMeta = new String[] { "instanceid", "_instanceid", "_start", "_end", "_device",
 			"prikey", "parkey", "_bad", "_bad_reason", "_user", "_survey_notes", 
 			SmapServerMeta.UPLOAD_TIME_NAME,
@@ -7522,7 +7521,7 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Set the parameters for an array of sql fragments
+	 * Set the parameters for an sql fragment
 	 */
 	public static int setFragParams(PreparedStatement pstmt, SqlFrag frag, int index, String tz) throws Exception {
 		int attribIdx = index;

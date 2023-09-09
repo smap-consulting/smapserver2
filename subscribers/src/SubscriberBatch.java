@@ -63,8 +63,10 @@ import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.ServerData;
+import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.TableColumn;
 import org.smap.server.entities.MissingSurveyException;
 import org.smap.server.entities.MissingTemplateException;
 import org.smap.server.entities.SubscriberEvent;
@@ -617,6 +619,7 @@ public class SubscriberBatch {
 						log.log(Level.SEVERE, "Error: " + surveyDisplayName + " : " + e.getMessage());
 					}
 				}
+
 			}
 
 			/*
@@ -656,9 +659,14 @@ public class SubscriberBatch {
 
 		try {
 			
-			String sql = "delete from cms_alert where group_survey_ident not in (select group_survey_ident from survey) ";					
+			String sql = "delete from cms_alert where group_survey_ident not in (select group_survey_ident from survey)";					
 			pstmt = sd.prepareStatement(sql);		
 			pstmt.executeUpdate();	
+			
+			sql = "delete from cms_setting where group_survey_ident not in (select group_survey_ident from survey)";
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
+			pstmt = sd.prepareStatement(sql);		
+			pstmt.executeUpdate();
 			
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
@@ -1008,10 +1016,12 @@ public class SubscriberBatch {
 	 */
 	private void applyCaseManagementReminders(Connection sd, Connection cResults, String basePath, String serverName) {
 
+		String tz = null;
+		
 		/*
 		 * SQL to get the alerts
 		 */
-		String sql = "select distinct a.id as a_id, a.group_survey_ident, a.name, a.period,"
+		String sql = "select distinct a.id as a_id, a.group_survey_ident, a.name, a.period, a.filter,"
 				+ "f.table_name "
 				+ "from cms_alert a, survey s, form f "
 				+ "where f.s_id = s.s_id "
@@ -1069,6 +1079,7 @@ public class SubscriberBatch {
 				String groupSurveyIdent = rs.getString("group_survey_ident");
 				String table = rs.getString("table_name");
 				String period = rs.getString("period");	
+				String filter = rs.getString("filter");
 				int oId = GeneralUtilityMethods.getOrganisationIdForGroupSurveyIdent(sd, groupSurveyIdent);
 				
 				if(!isValidPeriod(period)) {
@@ -1095,6 +1106,7 @@ public class SubscriberBatch {
 					CaseManagementSettings settings = settingsCache.get(groupSurveyIdent);
 					if(settings == null) {
 						pstmtSettings.setString(1,groupSurveyIdent);
+						log.info("CMS Settings: " + pstmtSettings.toString());
 						ResultSet srs = pstmtSettings.executeQuery();
 						if(srs.next()) {
 							settings = gson.fromJson(srs.getString("settings"), CaseManagementSettings.class);
@@ -1119,124 +1131,143 @@ public class SubscriberBatch {
 						/*
 						 * Add context filter
 						 */
+						SqlFrag filterFrag = null;
+						if(filter != null && filter.length() > 0) {			
+							filterFrag = new SqlFrag();
+							filterFrag.addSqlFragment(filter, false, localisation, 0);
+						}
+						if(filterFrag != null) {
+							sqlMatch.append(" and (").append(filterFrag.sql).append(")");
+						}
 						
 						pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
 						int idx = 1;
 						pstmtMatches.setString(idx++, settings.finalStatus);
 						pstmtMatches.setString(idx++, table);
 						pstmtMatches.setInt(idx++, aId);
-						pstmtMatches.setString(idx++, period);
+						pstmtMatches.setString(idx++, period);						
+						
+						if(filterFrag != null) {
+							idx = GeneralUtilityMethods.setFragParams(pstmtMatches, filterFrag, idx, tz);
+						}
 						
 						log.info(pstmtMatches.toString());
-						ResultSet mrs = pstmtMatches.executeQuery();
-						
-						while(mrs.next()) {
+						try {
+							ResultSet mrs = pstmtMatches.executeQuery();
 							
-							int prikey = mrs.getInt("prikey");						String instanceid = mrs.getString("instanceid");
-							String thread = mrs.getString("_thread");
-							
-							/*
-							 * Record the triggering of the alert
-							 */
-							String details = localisation.getString(NotificationManager.TOPIC_CM_ALERT);
-							details = details.replace("%s1", alertName);
-							RecordEventManager rem = new RecordEventManager();
-							rem.writeEvent(
-									sd, 
-									cResults, 
-									RecordEventManager.ALERT, 
-									"success",
-									null, 
-									table, 
-									instanceid, 
-									null,				// Change object
-									null,				// Task Object
-									null,				// Notification object
-									details, 
-									0,					// sId (don't care legacy)
-									groupSurveyIdent,
-									0,					// Don't need task id if we have an assignment id
-									0					// Assignment id
-									);
-							
-							// update case_alert_triggered to record the raising of this alert	
-							pstmtTriggered.setInt(1, aId);	
-							pstmtTriggered.setString(2, table);
-							pstmtTriggered.setString(3, thread);
-							pstmtTriggered.setString(4, settings.finalStatus);
-							
-							pstmtTriggered.executeUpdate();
-							
-							// Update the case so that the alert status can be charted
-							StringBuilder sqlUpdate = new StringBuilder("update ") 
-									.append(table)
-									.append(" set _alert = ? where prikey = ?");	
-							
-							pstmtCaseUpdated = cResults.prepareStatement(sqlUpdate.toString());
-							pstmtCaseUpdated.setString(1, alertName);
-							pstmtCaseUpdated.setInt(2, prikey);	
-							pstmtCaseUpdated.executeUpdate();
-							
-							/*
-							 * Process notifications associated with this alert
-							 */
-							pstmtNotifications.setInt(1, aId);
-							log.info("Notifications to be triggered: " + pstmtNotifications.toString());
-							
-							ResultSet notrs = pstmtNotifications.executeQuery();
-							
-							while(notrs.next()) {
-							
-								int nId = notrs.getInt("id");
-								String notificationName = notrs.getString("notification_name");
-								String notifyDetailsString = notrs.getString("notify_details");
-								NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
-								String target = notrs.getString("target");
-								String user = notrs.getString("remote_user");
+							while(mrs.next()) {
 								
-								SubmissionMessage subMgr = new SubmissionMessage(
-										"Case Management",		// TODO title
-										0,
-										groupSurveyIdent,
-										null,
+								int prikey = mrs.getInt("prikey");						
+								String instanceid = mrs.getString("instanceid");
+								String thread = mrs.getString("_thread");
+								
+								/*
+								 * Record the triggering of the alert
+								 */
+								String details = localisation.getString(NotificationManager.TOPIC_CM_ALERT);
+								details = details.replace("%s1", alertName);
+								RecordEventManager rem = new RecordEventManager();
+								rem.writeEvent(
+										sd, 
+										cResults, 
+										RecordEventManager.ALERT, 
+										"success",
+										null, 
+										table, 
 										instanceid, 
-										nd.from,
-										nd.subject, 
-										nd.content,
-										nd.attach,
-										nd.include_references,
-										nd.launched_only,
-										nd.emailQuestion,
-										nd.emailQuestionName,
-										nd.emailMeta,
-										nd.emailAssigned,
-										nd.emails,
-										target,
-										user,
-										"https",
-										nd.callback_url,
-										user,
-										null,
-										0,
-										nd.survey_case,
-										nd.assign_question,
-										null,					// Report Period
-										0						// report id
+										null,				// Change object
+										null,				// Task Object
+										null,				// Notification object
+										details, 
+										0,					// sId (don't care legacy)
+										groupSurveyIdent,
+										0,					// Don't need task id if we have an assignment id
+										0					// Assignment id
 										);
 								
-								MessagingManager mm = new MessagingManager(localisation);
-								mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));						
-							
-								// Write to the log
-								String logMessage = "Notification triggered by alert id " + aId + " for notification: " + nId;
-								if(localisation != null) {
-									logMessage = localisation.getString(NotificationManager.TOPIC_CM_ALERT);
-									logMessage = logMessage.replaceAll("%s1", alertName);
-									logMessage = logMessage.replaceAll("%s2", notificationName);
+								// update case_alert_triggered to record the raising of this alert	
+								pstmtTriggered.setInt(1, aId);	
+								pstmtTriggered.setString(2, table);
+								pstmtTriggered.setString(3, thread);
+								pstmtTriggered.setString(4, settings.finalStatus);
+								
+								pstmtTriggered.executeUpdate();
+								
+								// Update the case so that the alert status can be charted
+								StringBuilder sqlUpdate = new StringBuilder("update ") 
+										.append(table)
+										.append(" set _alert = ? where prikey = ?");	
+								
+								pstmtCaseUpdated = cResults.prepareStatement(sqlUpdate.toString());
+								pstmtCaseUpdated.setString(1, alertName);
+								pstmtCaseUpdated.setInt(2, prikey);	
+								pstmtCaseUpdated.executeUpdate();
+								
+								/*
+								 * Process notifications associated with this alert
+								 */
+								pstmtNotifications.setInt(1, aId);
+								log.info("Notifications to be triggered: " + pstmtNotifications.toString());
+								
+								ResultSet notrs = pstmtNotifications.executeQuery();
+								
+								while(notrs.next()) {
+								
+									int nId = notrs.getInt("id");
+									String notificationName = notrs.getString("notification_name");
+									String notifyDetailsString = notrs.getString("notify_details");
+									NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
+									String target = notrs.getString("target");
+									String user = notrs.getString("remote_user");
+									
+									SubmissionMessage subMgr = new SubmissionMessage(
+											"Case Management",		// TODO title
+											0,
+											groupSurveyIdent,
+											null,
+											instanceid, 
+											nd.from,
+											nd.subject, 
+											nd.content,
+											nd.attach,
+											nd.include_references,
+											nd.launched_only,
+											nd.emailQuestion,
+											nd.emailQuestionName,
+											nd.emailMeta,
+											nd.emailAssigned,
+											nd.emails,
+											target,
+											user,
+											"https",
+											nd.callback_url,
+											user,
+											null,
+											0,
+											nd.survey_case,
+											nd.assign_question,
+											null,					// Report Period
+											0						// report id
+											);
+									
+									MessagingManager mm = new MessagingManager(localisation);
+									mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));						
+								
+									// Write to the log
+									String logMessage = "Notification triggered by alert id " + aId + " for notification: " + nId;
+									if(localisation != null) {
+										logMessage = localisation.getString(NotificationManager.TOPIC_CM_ALERT);
+										logMessage = logMessage.replaceAll("%s1", alertName);
+										logMessage = logMessage.replaceAll("%s2", notificationName);
+									}
+									lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
 								}
-								lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
+	
 							}
-
+						} catch (Exception e) {
+							int sId = GeneralUtilityMethods.getSurveyId(sd, groupSurveyIdent);
+							lm.writeLog(sd, sId, "alert", LogManager.CASE_MANAGEMENT, e.getMessage(), 0, serverName);
+							log.log(Level.SEVERE, e.getMessage(), e);
 						}
 					 
 					} else {
