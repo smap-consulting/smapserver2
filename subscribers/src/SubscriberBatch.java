@@ -337,8 +337,11 @@ public class SubscriberBatch {
 				applyPeriodicNotifications(dbc.sd, dbc.results, basePath, serverName);
 				
 				// Erase any templates that were deleted more than a set time ago
-				eraseOldTemplates(dbc.sd, dbc.results, localisation, basePath);
+				eraseOldSurveyTemplates(dbc.sd, dbc.results, localisation, basePath);
 
+				// Delete any case management alerts not linked to by a survey
+				deleteOldCaseManagementAlerts(dbc.sd,localisation);
+				
 				// Delete linked csv files logically deleted more than 10 minutes age
 				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
 				
@@ -479,209 +482,6 @@ public class SubscriberBatch {
 				// Set fingerprint templates for new fingerprint images
 				linkMgr.setFingerprintTemplates(dbc.sd, basePath, serverName);
 				
-				// Apply synchronisation
-				// 1. Get all synchronisation notifications
-				// 2. Loop through each prikey not in sync table 
-				// 2.a  Synchronise
-				// 2.b  Update sync table
-				/* deprecate
-				if(GeneralUtilityMethods.documentSyncEnabled(dbc.sd)) {
-					boolean haveSyncNotifications = false;
-					String urlprefix = "https://" + serverName + "/";	// Need to get server name for image processing
-					HashMap<String, String> docServerConfig = GeneralUtilityMethods.docServerConfig(dbc.sd);
-
-					String sqlNot = "select id, s_id, notify_details from forward where enabled = 'true' and target = 'document'";
-					PreparedStatement pstmtNot = dbc.sd.prepareStatement(sqlNot);
-
-					String sqlMarkDone = "insert into sync (s_id, n_id, prikey) values(?, ?, ?)";
-					PreparedStatement pstmtMarkDone = dbc.results.prepareStatement(sqlMarkDone);
-					
-					PreparedStatement pstmt = null;
-					PreparedStatement pstmtRecord = null;
-					PreparedStatement pstmtCheckNeed = null;
-
-					try {
-						ResultSet rs = pstmtNot.executeQuery();
-						TableDataManager tdm = new TableDataManager(localisation, tz);
-
-						while(rs.next()) {
-							haveSyncNotifications = true;
-							int nId = rs.getInt(1);
-							int sId = rs.getInt(2);
-
-							Form topForm = GeneralUtilityMethods.getTopLevelForm(dbc.sd, sId);
-
-							if(GeneralUtilityMethods.tableExists(dbc.results, topForm.tableName)) {
-
-								// Get the records that need synchronising
-								String prikeyFilter = "prikey not in (select prikey from sync where s_id = " + 
-										sId + " and n_id = " + nId + ")";	
-								
-								// Confirm we need to do this synchronisation
-								boolean syncRequired = false;
-								String sqlCheckNeed = "select count(*) from " + topForm.tableName + " where " + prikeyFilter;
-								pstmtCheckNeed = dbc.results.prepareStatement(sqlCheckNeed);
-								try {
-									ResultSet rsCN = pstmtCheckNeed.executeQuery();
-									if(rsCN.next()) {
-										if(rsCN.getInt(1) > 0) {
-											syncRequired = true;
-										}
-									}
-								} catch(Exception e) {
-									if(e.getMessage() != null && e.getMessage().contains("does not exist")) {
-										// Ignore missing table it will presumably be added when there is data
-									} else {
-										log.log(Level.SEVERE, e.getMessage(), e);
-									}
-								}
-								
-								if(syncRequired) {
-									log.info("Synchronising notification " +nId + " on " + topForm.tableName);
-									JSONArray ja = null;
-	
-									boolean getParkey = false;	// For top level form TODO loop through forms
-									boolean mgmt = false;		// TODO get from notification
-									int managedId = 0;			// TODO get from notification
-									String surveyIdent = GeneralUtilityMethods.getSurveyIdent(dbc.sd, sId);
-									ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
-											dbc.sd,
-											dbc.results,
-											localisation,
-											language,
-											sId,
-											surveyIdent,
-											null,		// No need for user - we are super user
-											null,		// Roles to apply
-											topForm.parentform,
-											topForm.id,
-											topForm.tableName,
-											false,		// Don't include read only
-											getParkey,	// Include parent key if the form is not the top level form (fId is 0)
-											false,		// Don't include bad columns
-											true,		// include instance id
-											true,		// Include prikey
-											true,		// include other meta data
-											true,		// include preloads
-											true,		// include instancename
-											true,		// include survey duration
-											true,		// include case management
-											true,		// Super user
-											false,		// Don't include HXL
-											true,		// include audit data
-											tz,
-											false,		// mgmt
-											false, 		// Altitude and Accuracy
-											true		// Server calculates
-											);
-	
-									if(mgmt) {
-										CustomReportsManager crm = new CustomReportsManager ();
-										ReportConfig config = crm.get(dbc.sd, managedId, -1);
-										columns.addAll(config.columns);
-									}
-	
-									pstmt = tdm.getPreparedStatement(
-											dbc.sd, 
-											dbc.results,
-											columns,
-											urlprefix,
-											sId,
-											surveyIdent,
-											0,				// SubForm Id
-											topForm.tableName,
-											0,				// parkey ??
-											null,			// Not searching on HRK
-											null,			// No user ident, we are super user
-											null,			// No list of roles
-											null,			// No specific sort column
-											null,			// No specific sort direction
-											mgmt,
-											false,			// No grouping
-											false,			// Not data tables
-											0,				// Start from zero
-											getParkey,
-											0,	// Start from the beginning of the parent key
-											true,			// Super User
-											false,			// Return records greater than or equal to primary key
-											"none",			// Do not return bad records
-											"yes",			// return completed
-											null,			// case management settings can be null
-											prikeyFilter,
-											null	,			// key filter
-											tz,
-											null	,			// instance id
-											null	,			// advanced filter
-											null,			// Date filter name
-											null,			// Start date
-											null				// End date
-											);
-	
-									// Set parameters for custom filter
-	
-									if(pstmt != null) {
-										log.info("Get sync records: " + pstmt.toString());
-										ja = tdm.getData(
-												pstmt,
-												columns,
-												urlprefix,
-												false,		// No grouping for duplicate queries
-												false,		// Boolean not data tables
-												0			// No limit
-												);
-									}
-	
-									if(ja == null) {
-										ja = new JSONArray();
-									}
-	
-									// Process each record
-									for(int i = 0; i < ja.length(); i++) {
-										JSONObject jo = (JSONObject) ja.get(i);
-										log.info("  Rec: " + ja.get(i));
-	
-										// 1. Add meta data to the record
-										// Organisation id
-	
-										// 2. Send to server
-										String key = serverName + "_" + sId + "_" + jo.getString("prikey");
-										boolean success = putDocument("banana", "form", key, jo.toString(), 
-												docServerConfig.get("server"),
-												docServerConfig.get("user"),
-												docServerConfig.get("password"));
-	
-										// 3. Mark as processed (if successful)
-										if(success) {
-											pstmtMarkDone.setInt(1,  sId);
-											pstmtMarkDone.setInt(2,  nId);
-											pstmtMarkDone.setInt(3, jo.getInt("prikey"));
-											pstmtMarkDone.executeUpdate();
-										} else {
-											break;  // Delay before continuing
-										}
-									}
-								}
-
-
-							} else {
-								log.info("=== No results in table: " + topForm.tableName);
-							}
-
-						}
-						if(!haveSyncNotifications) {
-							log.info("=== No enabled synchronisation notifications");
-						}
-				} finally {
-						if (pstmt != null) { try {pstmt.close();} catch (SQLException e) {}}
-						if(pstmtNot != null) {try {pstmtNot.close();} catch(Exception e) {}}
-						if(pstmtRecord != null) {try {pstmtRecord.close();} catch(Exception e) {}}
-						if(pstmtMarkDone != null) {try {pstmtMarkDone.close();} catch(Exception e) {}}
-						if(pstmtCheckNeed != null) {try {pstmtCheckNeed.close();} catch(Exception e) {}}
-					}
-				} else {
-					// log.info("=== sync not enabled");
-				}
-				*/
 
 			}
 
@@ -717,9 +517,9 @@ public class SubscriberBatch {
 	}
 	
 	/*
-	 * Erase deleted templates more than a specified number of days old
+	 * Erase deleted Survey templates more than a specified number of days old
 	 */
-	private void eraseOldTemplates(Connection sd, Connection cResults, ResourceBundle localisation, String basePath) {
+	private void eraseOldSurveyTemplates(Connection sd, Connection cResults, ResourceBundle localisation, String basePath) {
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtTemp = null;
@@ -817,14 +617,11 @@ public class SubscriberBatch {
 						log.log(Level.SEVERE, "Error: " + surveyDisplayName + " : " + e.getMessage());
 					}
 				}
-
 			}
 
 			/*
 			 * Process surveys to be deleted for real now
 			 */
-			// log.info("Erase interval set to: " + interval);	// debug only
-			// log.info("Check for templates to erase: " + pstmt.toString());  // debug only
 			rs = pstmt.executeQuery();	
 			while(rs.next()) {
 				int sId = rs.getInt("s_id");
@@ -839,11 +636,35 @@ public class SubscriberBatch {
 
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
 			try {if (pstmtTemp != null) {pstmtTemp.close();}} catch (SQLException e) {}
 			try {if (pstmtFix != null) {pstmtFix.close();}} catch (SQLException e) {}	
+		}
+	}
+	
+	/*
+	 * Delete old case management alerts
+	 * These are attached to a survey group so it is easier to delete them here
+	 *  when they are no longer referenced than to delete them when the last survey in the
+	 *  group is deleted
+	 */
+	private void deleteOldCaseManagementAlerts(Connection sd, ResourceBundle localisation) {
+
+		PreparedStatement pstmt = null;
+
+		try {
+			
+			String sql = "delete from cms_alert where group_survey_ident not in (select group_survey_ident from survey) ";					
+			pstmt = sd.prepareStatement(sql);		
+			pstmt.executeUpdate();	
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
+			
 		}
 	}
 	
@@ -1306,7 +1127,7 @@ public class SubscriberBatch {
 						pstmtMatches.setInt(idx++, aId);
 						pstmtMatches.setString(idx++, period);
 						
-						// log.info(pstmtMatches.toString());
+						log.info(pstmtMatches.toString());
 						ResultSet mrs = pstmtMatches.executeQuery();
 						
 						while(mrs.next()) {
