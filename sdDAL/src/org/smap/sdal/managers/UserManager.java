@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.EmailServer;
@@ -547,13 +548,13 @@ public class UserManager {
 				language = o.locale;
 			}
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-			pstmt.setString(1, u.ident);
+			pstmt.setString(1, HtmlSanitise.cleanName(u.ident));
 			pstmt.setString(2, "smap");
-			pstmt.setString(3, u.name);
-			pstmt.setString(4, u.email);
+			pstmt.setString(3, HtmlSanitise.cleanName(u.name));
+			pstmt.setString(4, HtmlSanitise.cleanName(u.email));
 			pstmt.setInt(5, o_id);
 			pstmt.setBoolean(6,u.imported);
-			pstmt.setString(7,  language);
+			pstmt.setString(7,  HtmlSanitise.cleanName(language));
 			pstmt.setString(8, pwdString);
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -656,10 +657,10 @@ public class UserManager {
 
 		try {
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-			pstmt.setString(1, u.ident);
+			pstmt.setString(1, HtmlSanitise.cleanName(u.ident));
 			pstmt.setInt(2, o_id);
-			pstmt.setString(3, u.email);
-			pstmt.setString(4, u.name);
+			pstmt.setString(3, HtmlSanitise.cleanName(u.email));
+			pstmt.setString(4, HtmlSanitise.cleanName(u.name));
 			pstmt.setString(5, gson.toJson(u.action_details));
 			pstmt.setBoolean(6, u.singleSubmission);
 			log.info("SQL: " + pstmt.toString());
@@ -831,10 +832,10 @@ public class UserManager {
 	
 					try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 					pstmt = sd.prepareStatement(sql);
-					pstmt.setString(1, u.ident);
+					pstmt.setString(1, HtmlSanitise.cleanName(u.ident));
 					pstmt.setString(2, "smap");
-					pstmt.setString(3, u.name);
-					pstmt.setString(4, u.email);
+					pstmt.setString(3, HtmlSanitise.cleanName(u.name));
+					pstmt.setString(4, HtmlSanitise.cleanName(u.email));
 					pstmt.setInt(5, u.o_id);
 					if(u.password == null) {
 						pstmt.setInt(6, u.id);

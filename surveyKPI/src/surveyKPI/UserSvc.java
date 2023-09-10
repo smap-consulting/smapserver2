@@ -35,6 +35,7 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
@@ -290,11 +291,11 @@ public class UserSvc extends Application {
 			}
 			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, u.name);
+			pstmt.setString(1, HtmlSanitise.cleanName(u.name));
 			pstmt.setString(2, u.settings);
-			pstmt.setString(3, u.language);
-			pstmt.setString(4, u.email);
-			pstmt.setString(5, u.timezone);
+			pstmt.setString(3, HtmlSanitise.cleanName(u.language));
+			pstmt.setString(4, HtmlSanitise.cleanName(u.email));
+			pstmt.setString(5, HtmlSanitise.cleanName(u.timezone));
 			if(u.password == null) {
 				pstmt.setString(6, ident);
 			} else {
@@ -736,12 +737,12 @@ public class UserSvc extends Application {
 			}
 			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, u.name);
+			pstmt.setString(1, HtmlSanitise.cleanName(u.name));
 			pstmt.setString(2, u.settings);
 			if(sigPath == null && !u.delSig) {
 				pstmt.setString(3, ident);
 			} else {
-				pstmt.setString(3, fileName);
+				pstmt.setString(3, HtmlSanitise.cleanName(fileName));
 				pstmt.setString(4, ident);
 			}
 			

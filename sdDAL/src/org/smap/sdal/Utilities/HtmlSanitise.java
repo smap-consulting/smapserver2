@@ -40,8 +40,16 @@ public class HtmlSanitise {
 		sanitised = sanitised.replace("&#43;", "+");
 		sanitised = sanitised.replace("&lt;", "<");
 		sanitised = sanitised.replace("&gt;", ">");
-		//System.out.println(in);
-		//System.out.println(sanitised);
+
 		return sanitised;
+	}
+	
+	/*
+	 * Lightweight function to remove invalid characters from a name
+	 */
+	public static String cleanName(String in) {
+		String out = in.replace("<", "");
+		out = out.replace(">", "");
+		return out;
 	}
 }
