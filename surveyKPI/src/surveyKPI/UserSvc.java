@@ -291,11 +291,11 @@ public class UserSvc extends Application {
 			}
 			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, HtmlSanitise.cleanName(u.name));
+			pstmt.setString(1, HtmlSanitise.checkCleanName(u.name, localisation));
 			pstmt.setString(2, u.settings);
-			pstmt.setString(3, HtmlSanitise.cleanName(u.language));
-			pstmt.setString(4, HtmlSanitise.cleanName(u.email));
-			pstmt.setString(5, HtmlSanitise.cleanName(u.timezone));
+			pstmt.setString(3, HtmlSanitise.checkCleanName(u.language, localisation));
+			pstmt.setString(4, HtmlSanitise.checkCleanName(u.email, localisation));
+			pstmt.setString(5, HtmlSanitise.checkCleanName(u.timezone, localisation));
 			if(u.password == null) {
 				pstmt.setString(6, ident);
 			} else {
@@ -624,6 +624,10 @@ public class UserSvc extends Application {
 		PreparedStatement pstmt = null;
 		try {	
 			
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
 			/*
 			 * Get the user
 			 */
@@ -737,12 +741,12 @@ public class UserSvc extends Application {
 			}
 			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, HtmlSanitise.cleanName(u.name));
+			pstmt.setString(1, HtmlSanitise.checkCleanName(u.name, localisation));
 			pstmt.setString(2, u.settings);
 			if(sigPath == null && !u.delSig) {
 				pstmt.setString(3, ident);
 			} else {
-				pstmt.setString(3, HtmlSanitise.cleanName(fileName));
+				pstmt.setString(3, HtmlSanitise.checkCleanName(fileName, localisation));
 				pstmt.setString(4, ident);
 			}
 			

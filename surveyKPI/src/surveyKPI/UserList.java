@@ -800,9 +800,7 @@ public class UserList extends Application {
 					boolean userError = false;
 					for(User u : users) {
 						try {
-							if(!u.name.equals(HtmlSanitise.cleanName(u.name))) {
-								throw new ApplicationException(localisation.getString("mf_in"));
-							}
+							HtmlSanitise.checkCleanName(u.name, localisation);
 							um.createUser(sd, u, oId, 
 									isOrgUser, isSecurityManager, false, false, 
 									request.getRemoteUser(), scheme, serverName, adminName, adminEmail, localisation);

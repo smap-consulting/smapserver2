@@ -1,5 +1,7 @@
 package org.smap.sdal.Utilities;
 
+import java.util.ResourceBundle;
+
 import org.owasp.html.HtmlPolicyBuilder;
 import org.owasp.html.PolicyFactory;
 
@@ -47,9 +49,16 @@ public class HtmlSanitise {
 	/*
 	 * Lightweight function to remove invalid characters from a name
 	 */
-	public static String cleanName(String in) {
-		String out = in.replace("<", "");
-		out = out.replace(">", "");
-		return out;
+	public static String checkCleanName(String in, ResourceBundle localisation) throws ApplicationException {
+		if(in != null) {
+			if(in.contains("<") || in.contains(">") 
+					|| in.contains("https:") || in.contains("http:")) {
+				String msg = localisation.getString("mf_in");
+				msg = msg.replace("%s1", in);
+				throw new ApplicationException(msg);
+			}
+		}
+		return in;
+		
 	}
 }
