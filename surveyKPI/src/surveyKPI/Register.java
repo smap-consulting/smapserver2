@@ -86,12 +86,6 @@ public class Register extends Application {
 			
 			sd.setAutoCommit(false);  // Transaction
 			
-			if(rd.admin_name.contains("https:") || rd.admin_name.contains("http:")
-					|| rd.org_name.contains("https:") || rd.org_name.contains("http:")) {
-				log.info("Attempted registration of organisation with user name: " + rd.admin_name + " organisation: " + rd.org_name);		// Attack?
-				throw new Exception("Disk space insufficient");
-			}
-			
 			// Localisation
 			String hostname = request.getServerName();
 			String loc_code = "en";

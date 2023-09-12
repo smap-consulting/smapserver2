@@ -15,6 +15,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.AppearanceOptions;
@@ -58,6 +59,8 @@ public class OrganisationManager {
 	
 	private static Logger log =
 			 Logger.getLogger(OrganisationManager.class.getName());
+	
+	private HtmlSanitise sanitise = new HtmlSanitise();
 	
 	private ResourceBundle localisation;
 	
@@ -315,7 +318,6 @@ public class OrganisationManager {
 		try {
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-
 			o.name = o.name.trim();
 			/*
 			 * Check to see if this organisation name is already taken
@@ -338,31 +340,31 @@ public class OrganisationManager {
 			}
 			
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-			pstmt.setString(1, o.name);
-			pstmt.setString(2, o.company_name);
-			pstmt.setString(3, o.company_address);
-			pstmt.setString(4, o.company_phone);
-			pstmt.setString(5, o.company_email);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(o.name, localisation));
+			pstmt.setString(2, HtmlSanitise.checkCleanName(o.company_name, localisation));
+			pstmt.setString(3, HtmlSanitise.checkCleanName(o.company_address, localisation));
+			pstmt.setString(4, HtmlSanitise.checkCleanName(o.company_phone, localisation));
+			pstmt.setString(5, HtmlSanitise.checkCleanName(o.company_email, localisation));
 			pstmt.setBoolean(6, o.allow_email);
 			pstmt.setBoolean(7, o.allow_facebook);
 			pstmt.setBoolean(8, o.allow_twitter);
 			pstmt.setBoolean(9, o.can_edit);
 			pstmt.setBoolean(10, o.email_task);
-			pstmt.setString(11, userIdent);
-			pstmt.setString(12, o.admin_email);
-			pstmt.setString(13, o.smtp_host);
-			pstmt.setString(14, o.email_domain);
-			pstmt.setString(15, o.email_user);
-			pstmt.setString(16, o.email_password);
+			pstmt.setString(11, HtmlSanitise.checkCleanName(userIdent, localisation));
+			pstmt.setString(12, HtmlSanitise.checkCleanName(o.admin_email, localisation));
+			pstmt.setString(13, HtmlSanitise.checkCleanName(o.smtp_host, localisation));
+			pstmt.setString(14, HtmlSanitise.checkCleanName(o.email_domain, localisation));
+			pstmt.setString(15, HtmlSanitise.checkCleanName(o.email_user, localisation));
+			pstmt.setString(16, HtmlSanitise.checkCleanName(o.email_password, localisation));
 			pstmt.setInt(17, o.email_port);
-			pstmt.setString(18, o.default_email_content);
-			pstmt.setString(19, o.website);
-			pstmt.setString(20, o.locale);
+			pstmt.setString(18, sanitise.sanitiseHtml(o.default_email_content));
+			pstmt.setString(19, o.website);			// Allowed to have https: - leave unchecked
+			pstmt.setString(20, HtmlSanitise.checkCleanName(o.locale, localisation));
 			
 			if(o.timeZone == null || o.timeZone.trim().length() == 0) {
 				o.timeZone = "UTC";			// Default time zone for organisation
 			}
-			pstmt.setString(21, o.timeZone);
+			pstmt.setString(21, HtmlSanitise.checkCleanName(o.timeZone, localisation));
 			
 			pstmt.setBoolean(22, o.can_notify);
 			pstmt.setBoolean(23, o.can_use_api);
@@ -389,7 +391,7 @@ public class OrganisationManager {
 			pstmt.setInt(40, o.refresh_rate);
 			pstmt.setInt(41, o.api_rate_limit);
 			pstmt.setDouble(42, o.password_strength);
-			pstmt.setString(43, o.map_source);
+			pstmt.setString(43, HtmlSanitise.checkCleanName(o.map_source, localisation));
 			pstmt.setString(44, "not set");		// send automatically
 			pstmt.setInt(45, 20);		// FT Geo Recording interval
 			pstmt.setInt(46, 10);		// FT Geo Accuracy distance
