@@ -41,6 +41,7 @@ import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CssManager;
 import org.smap.sdal.managers.CsvTableManager;
@@ -93,6 +94,8 @@ public class OrganisationList extends Application {
 			 Logger.getLogger(OrganisationList.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
+	
+	private HtmlSanitise sanitise = new HtmlSanitise();
 	
 	public OrganisationList() {
 		
@@ -748,7 +751,7 @@ public class OrganisationList extends Application {
 	@Path("/device")
 	public Response updateDeviceSettings(
 			@Context HttpServletRequest request, 
-			@FormParam("settings") String settings) {
+			@FormParam("settings") String settings) throws ApplicationException {
 		Response response = null;
 		
 		String connectionString = "surveyKPI-OrganisationList-updateDeviceSettings";
@@ -802,8 +805,8 @@ public class OrganisationList extends Application {
 				d.ft_enable_geofence = true;
 			}
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, d.ft_delete);
-			pstmt.setString(2, d.ft_send_location);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(d.ft_delete, localisation));
+			pstmt.setString(2, HtmlSanitise.checkCleanName(d.ft_send_location, localisation));
 			pstmt.setBoolean(3, d.ft_odk_style_menus);
 			pstmt.setBoolean(4, d.ft_specify_instancename);
 			pstmt.setBoolean(5, d.ft_mark_finalized);
@@ -813,17 +816,17 @@ public class OrganisationList extends Application {
 			pstmt.setBoolean(9, d.ft_exit_track_menu);
 			pstmt.setBoolean(10, d.ft_bg_stop_menu);
 			pstmt.setBoolean(11, d.ft_review_final);
-			pstmt.setString(12, d.ft_send);
+			pstmt.setString(12, HtmlSanitise.checkCleanName(d.ft_send, localisation));
 			pstmt.setInt(13, d.ft_number_tasks);
-			pstmt.setString(14, d.ft_image_size);
-			pstmt.setString(15, d.ft_backward_navigation);
-			pstmt.setString(16, d.ft_navigation);
+			pstmt.setString(14, HtmlSanitise.checkCleanName(d.ft_image_size, localisation));
+			pstmt.setString(15, HtmlSanitise.checkCleanName(d.ft_backward_navigation, localisation));
+			pstmt.setString(16, HtmlSanitise.checkCleanName(d.ft_navigation, localisation));
 			pstmt.setInt(17, d.ft_pw_policy);
-			pstmt.setString(18, d.ft_high_res_video);
-			pstmt.setString(19, d.ft_guidance);
+			pstmt.setString(18, HtmlSanitise.checkCleanName(d.ft_high_res_video, localisation));
+			pstmt.setString(19, HtmlSanitise.checkCleanName(d.ft_guidance, localisation));
 			pstmt.setBoolean(20, d.ft_server_menu);
 			pstmt.setBoolean(21, d.ft_meta_menu);
-			pstmt.setString(22, d.ft_input_method);
+			pstmt.setString(22, HtmlSanitise.checkCleanName(d.ft_input_method, localisation));
 			pstmt.setInt(23, d.ft_im_ri);
 			pstmt.setInt(24, d.ft_im_acc);
 			pstmt.setString(25, request.getRemoteUser());
@@ -854,7 +857,7 @@ public class OrganisationList extends Application {
 	@Path("/email")
 	public Response updateEmailSettings(
 			@Context HttpServletRequest request, 
-			@FormParam("settings") String settings) {
+			@FormParam("settings") String settings) throws ApplicationException {
 		Response response = null;
 		
 		String connectionString = "surveyKPI-OrganisationList-updateEmailSettings";
@@ -890,14 +893,14 @@ public class OrganisationList extends Application {
 			
 			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, e.admin_email);
-			pstmt.setString(2, e.smtp_host);
-			pstmt.setString(3, e.email_domain);
-			pstmt.setString(4, e.email_user);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(e.admin_email, localisation));
+			pstmt.setString(2, HtmlSanitise.checkCleanName(e.smtp_host, localisation));
+			pstmt.setString(3, HtmlSanitise.checkCleanName(e.email_domain, localisation));
+			pstmt.setString(4, HtmlSanitise.checkCleanName(e.email_user, localisation));
 			pstmt.setString(5, e.email_password);
 			pstmt.setInt(6, e.email_port);
-			pstmt.setString(7, e.default_email_content);
-			pstmt.setString(8, e.server_description);
+			pstmt.setString(7, sanitise.sanitiseHtml(e.default_email_content));
+			pstmt.setString(8, HtmlSanitise.checkCleanName(e.server_description, localisation));
 			pstmt.setString(9, request.getRemoteUser());
 			pstmt.setInt(10, oId);
 					
@@ -1182,7 +1185,7 @@ public class OrganisationList extends Application {
 			pstmt.setBoolean(1, ao.set_as_theme);
 			pstmt.setString(2, ao.navbar_color);
 			pstmt.setString(3, ao.navbar_text_color);
-			pstmt.setString(4,  ao.css);
+			pstmt.setString(4, HtmlSanitise.checkCleanName(ao.css, localisation));
 			pstmt.setInt(5, oId);
 					
 			log.info("Update organisation with appearance details: " + pstmt.toString());
