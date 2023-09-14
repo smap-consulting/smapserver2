@@ -170,7 +170,7 @@ public class UserList extends Application {
 			) { 
 
 		Response response = null;
-		String connectionString = "surveyKPI-getUsers";
+		String connectionString = "surveyKPI-getUsersSimple";
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);

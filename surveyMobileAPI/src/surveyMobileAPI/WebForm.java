@@ -1093,7 +1093,7 @@ public class WebForm extends Application {
 		output.append("</div>\n");
 		output.append("</div>\n");
 		output.append("</div>\n");
-		output.append("</div> <!-- end dialog-save -->\n");
+		output.append("</div>\n");  // end dialog-save 
 
 		// used for Grid theme only
 		output.append(
@@ -1202,14 +1202,17 @@ public class WebForm extends Application {
 			output.append("<span class='form-language-selector'><span class='lang' data-lang='form.chooseLanguage'>language</span></span>\n");
 			output.append("<div class='form-progress'></div>\n");
 
+			/*
+			 * Add the webform banner
+			 */
 			output.append("<span class='logo-wrapper'>\n");
 			output.append(addNoScriptWarning());
-			output.append("<img class='banner_logo' src='/media/organisation/");
-			output.append(orgId);
-			output.append(
-					"/settings/bannerLogo' onerror=\"if(this.src.indexOf('smap_logo.png') < 0) this.src='/images/smap_logo.png';\" alt='logo'>\n");
+			
+			output.append("<img class='banner_logo' src='/custom/banner/")
+				.append(orgId)
+				.append("' alt='logo'>\n");
 			output.append("</span>\n");
-
+			
 			output.append("</header>\n");
 		}
 		return output;
