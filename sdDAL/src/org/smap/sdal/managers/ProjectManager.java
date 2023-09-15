@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.ProjectLinks;
 
@@ -138,7 +139,7 @@ public class ProjectManager {
 			Project p, 
 			int o_id, 
 			int u_id, 
-			String userIdent) throws SQLException {
+			String userIdent) throws SQLException, ApplicationException {
 		
 		String sql = "insert into project (name, description, o_id, changed_by, changed_ts) " +
 				" values (?, ?, ?, ?, now());";
@@ -148,8 +149,8 @@ public class ProjectManager {
 		try {
 		
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-			pstmt.setString(1, p.name);
-			pstmt.setString(2, p.desc);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(p.name, localisation));
+			pstmt.setString(2, HtmlSanitise.checkCleanName(p.desc, localisation));
 			pstmt.setInt(3, o_id);
 			pstmt.setString(4, userIdent);
 			log.info("Insert project: " + pstmt.toString());
@@ -353,7 +354,7 @@ public class ProjectManager {
 			ArrayList<Project> projects, 
 			int o_id, 
 			String userIdent,
-			boolean imported) throws SQLException {
+			boolean imported) throws SQLException, ApplicationException {
 		
 		ArrayList<String> added = new ArrayList<String> ();
 		
@@ -385,8 +386,8 @@ public class ProjectManager {
 				}
 				rs = pstmtExists.executeQuery();
 				if(!rs.next() || rs.getInt(1) == 0) {
-					pstmt.setString(1, p.name);
-					pstmt.setString(2, p.desc);
+					pstmt.setString(1, HtmlSanitise.checkCleanName(p.name, localisation));
+					pstmt.setString(2, HtmlSanitise.checkCleanName(p.desc, localisation));
 					pstmt.executeUpdate();
 					
 					added.add(p.name);

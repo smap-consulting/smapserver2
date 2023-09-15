@@ -36,8 +36,10 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -128,7 +130,7 @@ public class ProjectList extends Application {
 	 */
 	@POST
 	@Consumes("application/json")
-	public Response updateProject(@Context HttpServletRequest request, @FormParam("projects") String projects) { 
+	public Response updateProject(@Context HttpServletRequest request, @FormParam("projects") String projects) throws ApplicationException { 
 		
 		Response response = null;
 		
@@ -202,9 +204,8 @@ public class ProjectList extends Application {
 						
 							try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
 							pstmt = sd.prepareStatement(sql);
-							pstmt.setString(1, p.name);
-							pstmt.setString(2, p.desc);
-							//pstmt.setBoolean(3,p.tasks_only);
+							pstmt.setString(1, HtmlSanitise.checkCleanName(p.name, localisation));
+							pstmt.setString(2, HtmlSanitise.checkCleanName(p.desc, localisation));
 							pstmt.setString(3, request.getRemoteUser());
 							pstmt.setInt(4, p.id);
 							

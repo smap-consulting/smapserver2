@@ -463,7 +463,7 @@ create TABLE user_role (
 	);
 ALTER TABLE user_role OWNER TO ws;
 
--- Create an administrator and set up defaul values
+-- Create an administrator and set up default values
 insert into enterprise(id, name, changed_by, changed_ts) values(1, 'Default', '', now());
 -- Create an organisation with communal ownership
 insert into organisation(id, name, e_id, can_edit, owner) values(1, 'Smap', 1, 'true', 0);
