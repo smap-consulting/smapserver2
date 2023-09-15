@@ -13,6 +13,7 @@ import org.smap.model.FormDesc;
 import org.smap.model.IE;
 import org.smap.model.SurveyTemplate;
 import org.smap.model.TableManager;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.NodesetFormDetails;
@@ -194,7 +195,7 @@ public class UtilityMethods {
 			}
 			 			
 			if(qPath == null) {
-				throw new Exception("Question path not found for question: " + qname + " in " + input + 
+				throw new ApplicationException("Question path not found for question: " + qname + " in " + input + 
 							" of " + calledForQuestion);
 
 			

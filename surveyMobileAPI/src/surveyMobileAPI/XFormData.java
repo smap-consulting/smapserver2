@@ -285,6 +285,7 @@ public class XFormData {
 					} else if (fieldName.equals("location_trigger")) {
 						locationTrigger = item.getString();
 					} else if (fieldName.equals("survey_notes")) {
+						log.info("Got surveyNotes ++++++++++++++++++" + item.getString());
 						surveyNotes = item.getString();
 					} else {
 						log.info("Warning FormField Ignored, Item:" + item.getFieldName() + ":" + item.getString());

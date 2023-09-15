@@ -36,10 +36,12 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.smap.model.SurveyTemplate;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Survey;
 import org.smap.server.utilities.GetXForm;
@@ -55,6 +57,8 @@ public class FormXML extends Application{
 
 	Authorise a = new Authorise(null, Authorise.ENUM);
 
+	LogManager lm = new LogManager();		// Application log
+	
 	private static Logger log =
 			Logger.getLogger(FormXML.class.getName());
 
@@ -102,12 +106,17 @@ public class FormXML extends Application{
 				template.readDatabase(survey.id, false);
 				GetXForm xForm = new GetXForm(localisation, user, tz);
 				response = xForm.get(template, false, true, false, user, request);
-				log.info("userevent: " + user + " : download survey : " + templateName);		
+				log.info("userevent: " + user + " : download survey : " + templateName + " : " + response);		
 
 				// Record that this form was downloaded by this user
 				GeneralUtilityMethods.recordFormDownload(connectionSD, user, survey.ident, survey.version, deviceId);
 			} catch (AuthorisationException ae) { 
 				throw ae;
+			} catch (ApplicationException e) {
+				response = e.getMessage();
+				String msg = localisation.getString("msg_err_template");
+				msg= msg.replace("%s1", response);
+				lm.writeLog(connectionSD, survey.id, user, LogManager.ERROR, msg, 0, null);
 			} catch (Exception e) {
 				response = e.getMessage();
 				log.log(Level.SEVERE, response, e);
