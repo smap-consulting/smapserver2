@@ -3798,17 +3798,16 @@ public class SurveyManager {
 		
 		// Get the survey ident and name of the original survey
 		String sIdent = null;			    // Survey ident
-		String surveyName = null;			// Survey name
 		String surveyDisplayName = null;
 		int projectId = 0;
 		boolean hidden = false;
 		
-		String sql = "select s.name, s.ident, s.display_name, s.p_id, s.hidden "
+		String sql = "select s.ident, s.display_name, s.p_id, s.hidden "
 				+ "from survey s "
 				+ "where s.s_id = ?";
 		PreparedStatement pstmtIdent = null;
 		
-		String sqlreplaced = "select s.s_id, s.name, s.ident, s.display_name, s.p_id "
+		String sqlreplaced = "select s.s_id, s.ident, s.display_name, s.p_id "
 				+ "from survey s "
 				+ "where s.original_ident = ? "
 				+ "and s.hidden = true";
@@ -3829,7 +3828,6 @@ public class SurveyManager {
 			ResultSet resultSet = pstmtIdent.executeQuery();
 	
 			if (resultSet.next()) {		
-				surveyName = resultSet.getString("name");
 				sIdent = resultSet.getString("ident");
 				surveyDisplayName = resultSet.getString("display_name");
 				projectId = resultSet.getInt("p_id");
@@ -3888,30 +3886,18 @@ public class SurveyManager {
 				// Add date and time to the display name
 				String newDisplayName = surveyDisplayName + GeneralUtilityMethods.getUTCDateTimeSuffix();
 	
-				// Update the "name"
-				String newName = null;
-				if(surveyName != null) {
-					int idx = surveyName.lastIndexOf('/');
-					newName = surveyName;
-					if(idx > 0) {
-						newName = surveyName.substring(0, idx + 1) + GeneralUtilityMethods.convertDisplayNameToFileName(newDisplayName, false) + ".xml";
-					}
-				}
-	
 				// Update the survey definition to indicate that the survey has been deleted
 				// Add the current date and time to the name and display name to ensure the deleted survey has a unique name 
 				sql = "update survey set " +
 						" deleted='true', " +
 						" last_updated_time = now(), " +
-						" name = ?, " +
 						" display_name = ? " +
 						"where s_id = ?;";	
 	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, newName);
-				pstmt.setString(2, newDisplayName);
-				pstmt.setInt(3, sId);
+				pstmt.setString(1, newDisplayName);
+				pstmt.setInt(2, sId);
 				log.info("Soft delete survey: " + pstmt.toString());
 				pstmt.executeUpdate();
 	

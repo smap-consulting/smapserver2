@@ -517,7 +517,7 @@ public class SurveyTemplate {
 		Iterator itr = null;
 
 		// Survey
-		System.out.println("Survey: " + survey.getName());
+		System.out.println("Survey: " + survey.getDisplayName());
 		System.out.println("     Id: " + survey.getId());
 
 		// Forms

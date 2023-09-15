@@ -33,7 +33,6 @@ public class JdbcSurveyManager {
 	PreparedStatement pstmt = null;
 	String sql = "insert into survey ("
 			+ "s_id, "
-			+ "name,"
 			+ "last_updated_time, "
 			+ "display_name, "
 			+ "p_id, "
@@ -58,7 +57,6 @@ public class JdbcSurveyManager {
 	PreparedStatement pstmtGetById = null;
 	String sqlGet = "select "
 			+ "s_id, "
-			+ "name,"
 			+ "display_name, "
 			+ "p_id, "
 			+ "def_lang, "
@@ -104,16 +102,15 @@ public class JdbcSurveyManager {
 	 * Store a new survey
 	 */
 	public void write(Survey s) throws SQLException {
-		pstmt.setString(1, s.getName());
-		pstmt.setString(2, s.getDisplayName());
-		pstmt.setInt(3, s.getProjectId());
-		pstmt.setString(4, s.getDefLang());
-		pstmt.setString(5, s.getSurveyClass());
-		pstmt.setString(6, s.getIdent());
-		pstmt.setInt(7, s.getVersion());
-		pstmt.setString(8, s.getManifest());
-		pstmt.setString(9, s.getInstanceName());
-		pstmt.setBoolean(10, s.getLoadedFromXls());
+		pstmt.setString(1, s.getDisplayName());
+		pstmt.setInt(2, s.getProjectId());
+		pstmt.setString(3, s.getDefLang());
+		pstmt.setString(4, s.getSurveyClass());
+		pstmt.setString(5, s.getIdent());
+		pstmt.setInt(6, s.getVersion());
+		pstmt.setString(7, s.getManifest());
+		pstmt.setString(8, s.getInstanceName());
+		pstmt.setBoolean(9, s.getLoadedFromXls());
 		pstmt.executeUpdate();
 					
 		ResultSet rs = pstmt.getGeneratedKeys();
@@ -206,24 +203,23 @@ public class JdbcSurveyManager {
 		if(rs.next()) {
 			s = new Survey();
 			s.setId(rs.getInt(1));
-			s.setName(rs.getString(2));
-			s.setDisplayName(rs.getString(3));
-			s.setProjectId(rs.getInt(4));
-			s.setDefLang(rs.getString(5));
-			s.setSurveyClass(rs.getString(6));
-			s.setIdent(rs.getString(7));
-			s.setVersion(rs.getInt(8));
-			s.setManifest(rs.getString(9));
-			s.setInstanceName(rs.getString(10));
-			s.setDeleted(rs.getBoolean(11));
-			s.setHrk(rs.getString(12));
-			s.setTimingData(rs.getBoolean(13));
-			s.setAuditLocationData(rs.getBoolean(14));
-			s.setTrackChanges(rs.getBoolean(15));
-			s.setHideOnDevice(rs.getBoolean(16));
-			s.setSearchLocalData(rs.getBoolean(17));
-			s.setMeta(rs.getString(18));
-			s.setMyReferenceData(rs.getBoolean(19));
+			s.setDisplayName(rs.getString(2));
+			s.setProjectId(rs.getInt(3));
+			s.setDefLang(rs.getString(4));
+			s.setSurveyClass(rs.getString(5));
+			s.setIdent(rs.getString(6));
+			s.setVersion(rs.getInt(7));
+			s.setManifest(rs.getString(8));
+			s.setInstanceName(rs.getString(9));
+			s.setDeleted(rs.getBoolean(10));
+			s.setHrk(rs.getString(11));
+			s.setTimingData(rs.getBoolean(12));
+			s.setAuditLocationData(rs.getBoolean(13));
+			s.setTrackChanges(rs.getBoolean(14));
+			s.setHideOnDevice(rs.getBoolean(15));
+			s.setSearchLocalData(rs.getBoolean(16));
+			s.setMeta(rs.getString(17));
+			s.setMyReferenceData(rs.getBoolean(18));
 		
 		}
 		return s;

@@ -560,13 +560,12 @@ DROP TABLE IF EXISTS survey_change CASCADE;
 DROP TABLE IF EXISTS survey CASCADE;
 CREATE TABLE survey (
 	s_id INTEGER DEFAULT NEXTVAL('s_seq') CONSTRAINT pk_survey PRIMARY KEY,
-	name text,
 	ident text,										-- identifier used by survey clients
 	version integer,								-- Version of the survey
 	p_id INTEGER REFERENCES project(id),			-- Project id
 	blocked boolean default false,					-- Blocked indicator, no uploads accepted if true
 	deleted boolean default false,					-- Soft delete indicator
-	display_name text not null,
+	display_name text not null,						-- This is the name. The old name column has beeen removed
 	def_lang text,
 	task_file boolean,								-- allow loading of tasks from a file
 	timing_data boolean,								-- collect timing data on the phone
