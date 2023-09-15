@@ -252,6 +252,8 @@ public class ProjectList extends Application {
 				response = Response.serverError().entity(e.getMessage()).build();
 				log.log(Level.SEVERE,"Error", e);
 			}
+		} catch (ApplicationException e) {
+				response = Response.status(Status.NOT_ACCEPTABLE).entity(e.getMessage()).build();			
 		} finally {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
