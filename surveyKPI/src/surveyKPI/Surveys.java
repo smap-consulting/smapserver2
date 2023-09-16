@@ -40,6 +40,7 @@ import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
@@ -932,14 +933,14 @@ public class Surveys extends Application {
 				survey.surveyClass = null;
 			}
 			pstmt = sd.prepareStatement(sql);	
-			pstmt.setString(1, survey.displayName);
-			pstmt.setString(2, survey.def_lang);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(survey.displayName, localisation));
+			pstmt.setString(2, HtmlSanitise.checkCleanName(survey.def_lang, localisation));
 			pstmt.setBoolean(3, survey.task_file);
 			pstmt.setBoolean(4, survey.timing_data);
 			pstmt.setInt(5, survey.p_id);
 			pstmt.setString(6, survey.instanceNameDefn);
 			pstmt.setInt(7, version);
-			pstmt.setString(8, survey.surveyClass);
+			pstmt.setString(8, HtmlSanitise.checkCleanName(survey.surveyClass, localisation));
 			pstmt.setBoolean(9, survey.exclude_empty);
 			pstmt.setBoolean(10, survey.compress_pdf);
 			pstmt.setBoolean(11, survey.getHideOnDevice());

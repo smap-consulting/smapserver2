@@ -24,11 +24,16 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ResourceBundle;
 
+import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.server.entities.Survey;
 
 public class JdbcSurveyManager {
 
+	ResourceBundle localisation = null;
+	
 	// Create new
 	PreparedStatement pstmt = null;
 	String sql = "insert into survey ("
@@ -89,7 +94,9 @@ public class JdbcSurveyManager {
 	/*
 	 * Constructor
 	 */
-	public JdbcSurveyManager(Connection sd) throws SQLException {
+	public JdbcSurveyManager(Connection sd, ResourceBundle localisation) throws SQLException {
+		this.localisation = localisation;
+		
 		pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 		pstmtUpdate = sd.prepareStatement(sqlUpdate);
 		pstmtGetByIdent = sd.prepareStatement(sqlGet + sqlIdentWhere);
@@ -101,11 +108,11 @@ public class JdbcSurveyManager {
 	/*
 	 * Store a new survey
 	 */
-	public void write(Survey s) throws SQLException {
-		pstmt.setString(1, s.getDisplayName());
+	public void write(Survey s) throws SQLException, ApplicationException {
+		pstmt.setString(1, HtmlSanitise.checkCleanName(s.getDisplayName(), localisation) );
 		pstmt.setInt(2, s.getProjectId());
-		pstmt.setString(3, s.getDefLang());
-		pstmt.setString(4, s.getSurveyClass());
+		pstmt.setString(3, HtmlSanitise.checkCleanName(s.getDefLang(), localisation));
+		pstmt.setString(4, HtmlSanitise.checkCleanName(s.getSurveyClass(), localisation));
 		pstmt.setString(5, s.getIdent());
 		pstmt.setInt(6, s.getVersion());
 		pstmt.setString(7, s.getManifest());

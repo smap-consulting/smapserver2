@@ -12,6 +12,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.MessagingManager;
@@ -316,7 +317,7 @@ public class Survey {
 		try {
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			
-			pstmt.setString(1, displayName);		
+			pstmt.setString(1, HtmlSanitise.checkCleanName(displayName, localisation));		
 			pstmt.setInt(2, p_id);				
 			pstmt.setString(3, def_lang);
 			pstmt.setString(4, surveyClass);	
