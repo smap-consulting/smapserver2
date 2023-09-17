@@ -995,10 +995,6 @@ DROP SEQUENCE IF EXISTS task_rejected_seq CASCADE;
 CREATE SEQUENCE task_rejected_seq START 1;
 ALTER TABLE task_rejected_seq OWNER TO ws;
 
-DROP SEQUENCE IF EXISTS task_history_seq CASCADE;
-CREATE SEQUENCE task_histoy_seq START 1;
-ALTER TABLE task_history_seq OWNER TO ws;
-
 DROP SEQUENCE IF EXISTS task_group_id_seq CASCADE;
 CREATE SEQUENCE task_group_id_seq START 1;
 ALTER TABLE task_group_id_seq OWNER TO ws;
@@ -1053,15 +1049,6 @@ CREATE INDEX task_task_group ON tasks(tg_id);
 create index idx_tasks_del_auto on tasks (deleted, assign_auto);
 ALTER TABLE public.tasks OWNER TO ws;
 
-CREATE TABLE public.task_rejected (
-	id integer DEFAULT nextval('task_rejected_seq') NOT NULL PRIMARY KEY,
-	a_id integer REFERENCES assignments(id) ON DELETE CASCADE,    -- assignment id
-	ident text,		 -- user identifier
-	rejected_at timestamp with time zone
-);
-CREATE UNIQUE INDEX taskRejected ON task_rejected(a_id, ident);
-ALTER TABLE public.task_rejected OWNER TO ws;
-
 CREATE TABLE public.locations (
 	id integer DEFAULT nextval('location_seq') NOT NULL PRIMARY KEY,
 	o_id integer REFERENCES organisation ON DELETE CASCADE,
@@ -1092,6 +1079,15 @@ CREATE INDEX assignments_status ON assignments(status);
 create index idx_assignments_task_id on assignments (task_id);
 create index assignments_assignee on assignments(assignee);
 ALTER TABLE public.assignments OWNER TO ws;
+
+CREATE TABLE public.task_rejected (
+	id integer DEFAULT nextval('task_rejected_seq') NOT NULL PRIMARY KEY,
+	a_id integer REFERENCES assignments(id) ON DELETE CASCADE,    -- assignment id
+	ident text,		 -- user identifier
+	rejected_at timestamp with time zone
+);
+CREATE UNIQUE INDEX taskRejected ON task_rejected(a_id, ident);
+ALTER TABLE public.task_rejected OWNER TO ws;
 
 -- Table to manage state of user downloads of forms
 DROP SEQUENCE IF EXISTS form_downloads_id_seq CASCADE;
