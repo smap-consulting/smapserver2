@@ -846,7 +846,7 @@ CREATE TABLE forward (
 	update_value text,
 	alert_id integer,					-- Set where the source is a case management reminder
 	periodic_time time,					-- The time of day a periodic trigger is fired
-	periodic_period text				-- day || week || month || year
+	periodic_period text,				-- day || week || month || year
 	periodic_day_of_week integer,		-- 0 to 6, Sunday to Saturday for weekly reports
 	periodic_day_of_month integer,		-- Day of the month for monthly and yearly reports
 	periodic_local_day_of_month integer,-- Original local day of the month as this cannot reliably be recreated from utc value
@@ -1518,19 +1518,6 @@ create TABLE style (
 	style text	-- json
 	);
 ALTER TABLE style OWNER TO ws;
-
-DROP SEQUENCE IF EXISTS reminder_seq CASCADE;
-CREATE SEQUENCE reminder_seq START 1;
-ALTER SEQUENCE reminder_seq OWNER TO ws;
-
-DROP TABLE IF EXISTS reminder;
-CREATE TABLE reminder (
-	id integer DEFAULT NEXTVAL('reminder_seq') CONSTRAINT pk_reminder PRIMARY KEY,
-	n_id integer references forward(id) ON DELETE CASCADE,
-	a_id integer references assignments(id) ON DELETE CASCADE,
-	reminder_date timestamp with time zone
-	);
-ALTER TABLE reminder OWNER TO ws;
 
 DROP SEQUENCE IF EXISTS survey_settings_seq CASCADE;
 CREATE SEQUENCE survey_settings_seq START 1;
