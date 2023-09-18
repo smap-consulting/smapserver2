@@ -857,16 +857,6 @@ CREATE TABLE forward (
 ALTER TABLE forward OWNER TO ws;
 CREATE UNIQUE INDEX ForwardDest ON forward(s_id, remote_s_id, remote_host);
 
--- Record sending of notification reminders
-DROP TABLE IF EXISTS reminder;
-CREATE TABLE reminder (
-	id integer DEFAULT NEXTVAL('reminder_seq') CONSTRAINT pk_reminder PRIMARY KEY,
-	n_id integer references forward(id) ON DELETE CASCADE,
-	a_id integer references assignments(id) ON DELETE CASCADE,
-	reminder_date timestamp with time zone
-	);
-ALTER TABLE reminder OWNER TO ws;
-
 -- Log of all sent notifications (except for forwards which are recorded by the forward subscriber)
 DROP TABLE IF EXISTS notification_log;
 CREATE TABLE public.notification_log (
@@ -1088,6 +1078,16 @@ CREATE TABLE public.task_rejected (
 );
 CREATE UNIQUE INDEX taskRejected ON task_rejected(a_id, ident);
 ALTER TABLE public.task_rejected OWNER TO ws;
+
+-- Record sending of notification reminders
+DROP TABLE IF EXISTS reminder;
+CREATE TABLE reminder (
+	id integer DEFAULT NEXTVAL('reminder_seq') CONSTRAINT pk_reminder PRIMARY KEY,
+	n_id integer references forward(id) ON DELETE CASCADE,
+	a_id integer references assignments(id) ON DELETE CASCADE,
+	reminder_date timestamp with time zone
+	);
+ALTER TABLE reminder OWNER TO ws;
 
 -- Table to manage state of user downloads of forms
 DROP SEQUENCE IF EXISTS form_downloads_id_seq CASCADE;
