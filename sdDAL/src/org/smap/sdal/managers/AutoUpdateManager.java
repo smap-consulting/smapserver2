@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 
 import org.smap.notifications.interfaces.AudioProcessing;
 import org.smap.notifications.interfaces.S3;
+import org.smap.notifications.interfaces.SentimentProcessing;
 import org.smap.notifications.interfaces.ImageProcessing;
 import org.smap.notifications.interfaces.TextProcessing;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -23,6 +24,8 @@ import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.TranscribeResultSmap;
 
 import com.google.gson.Gson;
+
+import model.Sentiment;
 
 /*****************************************************************************
 
@@ -57,6 +60,7 @@ public class AutoUpdateManager {
 	public static String AUTO_UPDATE_IMAGE = "imagelabel";
 	public static String AUTO_UPDATE_AUDIO = "audiotranscript";
 	public static String AUTO_UPDATE_TEXT = "texttranslate";
+	public static String AUTO_UPDATE_SENTIMENT = "sentimentdetection";
 	
 	public static String AU_STATUS_PENDING = "pending";
 	public static String AU_STATUS_COMPLETE = "complete";
@@ -139,23 +143,31 @@ public class AutoUpdateManager {
 									String updateType = null;
 									String fromLang = params.get("from_lang");
 									String toLang = params.get("to_lang");
+									
 									String medicalString = params.get("medical");
 									String medType = params.get("med_type");
 									boolean medical = (medicalString != null && (medicalString.equals("yes") || medicalString.equals("true")));
+									
+									String sentimentString = params.get("sentiment");
+									boolean sentiment = (sentimentString != null && (sentimentString.equals("yes") || sentimentString.equals("true")));
 									
 									if(refQf.qType.equals("image")) {
 										updateType = AUTO_UPDATE_IMAGE;
 									} else if(refQf.qType.equals("audio") || refQf.qType.equals("background-audio")) {
 										updateType = AUTO_UPDATE_AUDIO;
 									} else if(refQf.qType.equals("string")) {
-										updateType = AUTO_UPDATE_TEXT;
+										if(sentiment) {
+											updateType = AUTO_UPDATE_SENTIMENT;
+										} else {
+											updateType = AUTO_UPDATE_TEXT;
+										}
 									}
 									
 									// Validate
 									if(updateType == null) {
 										log.info("------------------ AutoUpdate: Error: invalid reference question type" + refQf.qType);
 									} else {
-										log.info("     @@@@@@ Adding auto update: " + updateType + " : " + oId + " : " + refColumn + " to " + qf.columnName);
+										//log.info("     @@@@@@ Adding auto update: " + updateType + " : " + oId + " : " + refColumn + " to " + qf.columnName);
 										AutoUpdate au = new AutoUpdate(updateType);
 										au.oId = oId;
 										au.locale = itemLocaleString;
@@ -293,7 +305,7 @@ public class AutoUpdateManager {
 						}
 						// Write result to database and update the job status
 						success = true;
-						writeResult(cResults, tableName, colName, instanceId, output, localisation);
+						writeResult(cResults, tableName, colName, instanceId, output, localisation, null);
 						updateSyncStatus(sd, id, status, urlString, durn);
 						
 						if(durn > 0) {
@@ -319,7 +331,7 @@ public class AutoUpdateManager {
 				
 				if(!success && timedOut) {
 					writeResult(cResults, tableName, colName, instanceId, 
-							"[" + localisation.getString("aws_t_timeout") + "]", localisation);
+							"[" + localisation.getString("aws_t_timeout") + "]", localisation, null);
 					updateSyncStatus(sd, id, AU_STATUS_TIMEOUT, null, 0);
 				}
 			}
@@ -360,6 +372,7 @@ public class AutoUpdateManager {
 			ImageProcessing ip = new ImageProcessing(region, basePath);
 			AudioProcessing ap = new AudioProcessing(region, basePath);	
 			TextProcessing tp = new TextProcessing(region, basePath);	
+			SentimentProcessing sm = new SentimentProcessing(region, basePath);
 			ResourceManager rm = new ResourceManager();
 			
 			// For each update item get the records that are null and need updating
@@ -384,7 +397,7 @@ public class AutoUpdateManager {
 								+ "and not _bad";
 						if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 						pstmt = cResults.prepareStatement(sql);
-						log.info("   @@@@@ Get instances to update: " + pstmt.toString());
+						//log.info("   @@@@@ Get instances to update: " + pstmt.toString());
 												
 						ResultSet rs = pstmt.executeQuery();
 						while (rs.next()) {
@@ -526,6 +539,49 @@ public class AutoUpdateManager {
 									output = "[" + msg + "]";
 									lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
 								}
+							} else if(item.type.equals(AUTO_UPDATE_SENTIMENT)) {
+								
+								if(rm.canUse(sd, item.oId, LogManager.SENTIMENT)) {
+								
+									if(lcm.isSupported(sd, item.fromLang, LanguageCodeManager.LT_TRANSLATE)) {
+										try {
+											Sentiment sentiment = sm.getSentiment(source, item.fromLang);
+											String msg = localisation.getString("aws_s_au")
+													.replace("%s1", item.fromLang)
+													.replace("%s3", item.tableName)
+													.replace("%s4", item.targetColName);
+											rm.recordUsage(sd, item.oId, 0, LogManager.SENTIMENT, msg, 
+													"auto_update", source.length());
+											
+											// Write the score and save the actual sentiment into the output
+											output = localisation.getString(sentiment.sentiment);
+											
+											try {
+												writeResult(cResults, item.tableName, item.targetColName, instanceId, 
+														String.valueOf(sentiment.score), 
+														localisation,
+														"_score");
+											} catch(Exception e) {
+												log.log(Level.SEVERE, e.getMessage(), e);
+											}
+												
+										} catch(Exception e) {
+											output = "[Error: " + e.getMessage() + "]";
+										}
+									} else {
+										if(item.fromLang == null) {
+											output = "[" + localisation.getString("aws_t_np").replace("%s1", "from_lang") + "]";
+										} else {
+											output = "[" + localisation.getString("aws_t_ilc").replace("%s1", item.fromLang) + "]";
+										}
+									}
+								
+								} else {
+									String msg = localisation.getString("re_error")
+										.replace("%s1", LogManager.SENTIMENT);
+									output = "[" + msg + "]";
+									lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
+								}
 							} else {
 								String msg = "cannot perform auto update for update type: \" + item.type";
 								log.info("Error: " + msg);
@@ -533,7 +589,7 @@ public class AutoUpdateManager {
 							}
 								
 							// Write result to database
-							writeResult(cResults, item.tableName, item.targetColName, instanceId, output, localisation);					
+							writeResult(cResults, item.tableName, item.targetColName, instanceId, output, localisation, null);					
 								
 							
 						} 
@@ -610,9 +666,17 @@ public class AutoUpdateManager {
 			String colName,
 			String instanceId, 
 			String output,
-			ResourceBundle localisation) throws SQLException {
+			ResourceBundle localisation,
+			String secondaryColumn) throws SQLException {
 		
 		PreparedStatement pstmt = null;
+		
+		if(secondaryColumn != null) {
+			colName += secondaryColumn;
+			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, colName)) {
+				return;
+			}
+		}
 		
 		String sql = "update " 
 				+ tableName 

@@ -369,6 +369,8 @@ public class MailoutApi extends Application {
 				a.single = !mo.multiple_submit;
 				a.mailoutPersonId = mailoutPersonId;
 				a.email = mailoutPerson.email;
+				a.name = mo.name;
+				a.anonymousCampaign = mo.anonymous;
 				
 				if(mailoutPerson.initialData != null) {
 					a.initialData = mailoutPerson.initialData;

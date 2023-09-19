@@ -24,7 +24,7 @@ Follow the latest news about Smap on our [blog](http://blog.smap.com.au)
 Development
 -----------
 
-*  Install Eclipse
+*  Install Eclipse IDE for Enterprise Java and Web
 *  Clone this project
 *  Import the modules you want to work in from the file system
 *  For each war file set the project facets as: Dynamic Web Module 3.0, Java 1.8, JAX-RS 1.1.

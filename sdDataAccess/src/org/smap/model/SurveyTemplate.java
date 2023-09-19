@@ -517,7 +517,7 @@ public class SurveyTemplate {
 		Iterator itr = null;
 
 		// Survey
-		System.out.println("Survey: " + survey.getName());
+		System.out.println("Survey: " + survey.getDisplayName());
 		System.out.println("     Id: " + survey.getId());
 
 		// Forms
@@ -744,7 +744,7 @@ public class SurveyTemplate {
 			if(forms.values().size() == 0) {
 				throw new Exception("No forms in this survey");
 			}
-			sm = new JdbcSurveyManager(sd);
+			sm = new JdbcSurveyManager(sd, localisation);
 			log.info("Persisting survey");
 			sm.write(survey);
 	
@@ -1091,7 +1091,7 @@ public class SurveyTemplate {
 			//SurveyManager surveys = new SurveyManager(pc);
 			//survey = surveys.getByIdent(surveyIdent);
 	
-			sm = new JdbcSurveyManager(sd);
+			sm = new JdbcSurveyManager(sd, localisation);
 			
 			survey = sm.getByIdent(surveyIdent);
 			
@@ -1123,7 +1123,7 @@ public class SurveyTemplate {
 		
 		try {
 			
-			sm = new JdbcSurveyManager(sd);
+			sm = new JdbcSurveyManager(sd, localisation);
 			
 			survey = sm.getById(surveyId);
 	

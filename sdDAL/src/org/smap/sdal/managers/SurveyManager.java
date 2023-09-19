@@ -27,21 +27,18 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
-import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.notifications.interfaces.TextProcessing;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.model.Action;
@@ -613,7 +610,6 @@ public class SurveyManager {
 		boolean existingOversightSurvey = true;
 		boolean existingReadOnlySurvey = false;
 		String existingInstanceName = null;
-		String existingSurveyIdent = null;
 		String bundleSurveyIdent = null;
 		
 		int existingFormId = 0;
@@ -627,7 +623,7 @@ public class SurveyManager {
 				+ "?, ?, ?, ?, ?, ?)";
 		PreparedStatement pstmtCreateSurvey = null;
 
-		String sqlUpdateSurvey = "update survey set name = ?, ident = ?, group_survey_ident = ? where s_id = ?";
+		String sqlUpdateSurvey = "update survey set ident = ?, group_survey_ident = ? where s_id = ?";
 		PreparedStatement pstmtUpdateSurvey = null;
 
 		String sqlCreateForm = "insert into form ( f_id, s_id, name, table_name, parentform, repeats, path) " +
@@ -635,7 +631,7 @@ public class SurveyManager {
 		PreparedStatement pstmtCreateForm = null;
 
 		String sqlGetSource = "select s.display_name, f.f_id, s.meta, s.class, s.key_policy,"
-				+ "s.data_survey, s.oversight_survey, s.read_only_survey, s.instance_name, s.ident,"
+				+ "s.data_survey, s.oversight_survey, s.read_only_survey, s.instance_name, "
 				+ "s.group_survey_ident "
 				+ "from survey s, form f "
 				+ "where s.s_id = f.s_id "
@@ -659,8 +655,7 @@ public class SurveyManager {
 					existingOversightSurvey = rsGetSource.getBoolean(7);
 					existingReadOnlySurvey = rsGetSource.getBoolean(8);
 					existingInstanceName = rsGetSource.getString(9);
-					existingSurveyIdent = rsGetSource.getString(10);
-					bundleSurveyIdent = rsGetSource.getString(11);
+					bundleSurveyIdent = rsGetSource.getString(10);
 				}
 			}
 			/*
@@ -682,10 +677,10 @@ public class SurveyManager {
 
 			// 1 Create basic survey
 			pstmtCreateSurvey = sd.prepareStatement(sqlCreateSurvey, Statement.RETURN_GENERATED_KEYS);		
-			pstmtCreateSurvey.setString(1, name);
+			pstmtCreateSurvey.setString(1, HtmlSanitise.checkCleanName(name, localisation));
 			pstmtCreateSurvey.setInt(2, projectId);
 			if(existing) {
-				pstmtCreateSurvey.setString(3, existingSurvey);
+				pstmtCreateSurvey.setString(3, existingSurvey);	// Existing survey should be validated when it is created
 			} else {
 				pstmtCreateSurvey.setString(3, null);
 			}
@@ -701,7 +696,7 @@ public class SurveyManager {
 				pstmtCreateSurvey.setString(4,  gson.toJson(meta));
 			}
 
-			pstmtCreateSurvey.setString(5, existingClass);
+			pstmtCreateSurvey.setString(5, existingClass);				// Not re validated
 			pstmtCreateSurvey.setString(6, existingKeyPolicy);
 			pstmtCreateSurvey.setBoolean(7, existingDataSurvey);
 			pstmtCreateSurvey.setBoolean(8, existingOversightSurvey);
@@ -719,13 +714,12 @@ public class SurveyManager {
 
 			pstmtUpdateSurvey = sd.prepareStatement(sqlUpdateSurvey);
 			pstmtUpdateSurvey.setString(1, ident);
-			pstmtUpdateSurvey.setString(2,  ident);
 			if(sharedResults) {
-				pstmtUpdateSurvey.setString(3, bundleSurveyIdent);
+				pstmtUpdateSurvey.setString(2, bundleSurveyIdent);
 			} else {
-				pstmtUpdateSurvey.setString(3, ident);
+				pstmtUpdateSurvey.setString(2, ident);
 			}
-			pstmtUpdateSurvey.setInt(4,  sId);
+			pstmtUpdateSurvey.setInt(3,  sId);
 
 			log.info("Create new survey part 2: " + pstmtUpdateSurvey.toString());
 			pstmtUpdateSurvey.execute();
@@ -2369,27 +2363,27 @@ public class SurveyManager {
 						if(ci.property.prop.equals("parameters")) {
 							GeneralUtilityMethods.writeAutoUpdateQuestion(sd, sId, ci.property.qId, ci.property.newVal, true);
 						}
-						
-						
-						
+								
 						log.info("userevent: " + userId + " : modify survey property : " + property + " to: " + ci.property.newVal + " survey: " + sId);
 
-						// Write the change log
-						Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-						pstmtChangeLog.setInt(1, sId);
-						pstmtChangeLog.setInt(2, version);
-						pstmtChangeLog.setString(3, gson.toJson(new ChangeElement(ci, "update")));
-						pstmtChangeLog.setInt(4, userId);	
-						pstmtChangeLog.setBoolean(5,logIndividualChangeSets);	
-						pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
-						pstmtChangeLog.execute();
 
 					} else {
 						throw new Exception("Unknown property: " + property);
 					}
 				}
+				
+				// Write the change log
+				Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+				pstmtChangeLog.setInt(1, sId);
+				pstmtChangeLog.setInt(2, version);
+				pstmtChangeLog.setString(3, gson.toJson(new ChangeElement(ci, "update")));
+				pstmtChangeLog.setInt(4, userId);	
+				pstmtChangeLog.setBoolean(5,logIndividualChangeSets);	
+				pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
+				pstmtChangeLog.execute();
 			}
 
+			
 		} catch (Exception e) {
 
 			String msg = e.getMessage();
@@ -3786,6 +3780,9 @@ public class SurveyManager {
 		}
 	}
 	
+	/*
+	 * Delete a survey
+	 */
 	public void delete(Connection sd, 
 			Connection cRel, 
 			int sId, 
@@ -3799,17 +3796,16 @@ public class SurveyManager {
 		
 		// Get the survey ident and name of the original survey
 		String sIdent = null;			    // Survey ident
-		String surveyName = null;			// Survey name
 		String surveyDisplayName = null;
 		int projectId = 0;
 		boolean hidden = false;
 		
-		String sql = "select s.name, s.ident, s.display_name, s.p_id, s.hidden "
+		String sql = "select s.ident, s.display_name, s.p_id, s.hidden "
 				+ "from survey s "
 				+ "where s.s_id = ?";
 		PreparedStatement pstmtIdent = null;
 		
-		String sqlreplaced = "select s.s_id, s.name, s.ident, s.display_name, s.p_id "
+		String sqlreplaced = "select s.s_id, s.ident, s.display_name, s.p_id "
 				+ "from survey s "
 				+ "where s.original_ident = ? "
 				+ "and s.hidden = true";
@@ -3830,7 +3826,6 @@ public class SurveyManager {
 			ResultSet resultSet = pstmtIdent.executeQuery();
 	
 			if (resultSet.next()) {		
-				surveyName = resultSet.getString("name");
 				sIdent = resultSet.getString("ident");
 				surveyDisplayName = resultSet.getString("display_name");
 				projectId = resultSet.getInt("p_id");
@@ -3889,30 +3884,17 @@ public class SurveyManager {
 				// Add date and time to the display name
 				String newDisplayName = surveyDisplayName + GeneralUtilityMethods.getUTCDateTimeSuffix();
 	
-				// Update the "name"
-				String newName = null;
-				if(surveyName != null) {
-					int idx = surveyName.lastIndexOf('/');
-					newName = surveyName;
-					if(idx > 0) {
-						newName = surveyName.substring(0, idx + 1) + GeneralUtilityMethods.convertDisplayNameToFileName(newDisplayName, false) + ".xml";
-					}
-				}
-	
 				// Update the survey definition to indicate that the survey has been deleted
 				// Add the current date and time to the name and display name to ensure the deleted survey has a unique name 
 				sql = "update survey set " +
 						" deleted='true', " +
 						" last_updated_time = now(), " +
-						" name = ?, " +
 						" display_name = ? " +
 						"where s_id = ?;";	
 	
-				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, newName);
-				pstmt.setString(2, newDisplayName);
-				pstmt.setInt(3, sId);
+				pstmt.setString(1, newDisplayName);	// This is an automatic update of an existing name - do not validate
+				pstmt.setInt(2, sId);
 				log.info("Soft delete survey: " + pstmt.toString());
 				pstmt.executeUpdate();
 	
@@ -3979,7 +3961,7 @@ public class SurveyManager {
 			 * Delete or update any notifications that are sent for this survey
 			 */
 			if(newSurveyId == 0) {
-				sql = "delete from forward where s_id = ?;";	
+				sql = "delete from forward where s_id = ?";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, sId);

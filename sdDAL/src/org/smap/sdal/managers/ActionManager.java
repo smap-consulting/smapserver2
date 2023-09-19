@@ -8,10 +8,13 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -766,6 +769,17 @@ public class ActionManager {
 							java.util.Date inputDate = dateFormat.parse(u.value);
 							pstmtUpdate.setDate(paramCount++, new java.sql.Date(inputDate.getTime()));
 						}
+					} else if (tc.type.equals("dateTime")) {
+						if (u.value == null || u.value.trim().length() == 0) {
+							pstmtUpdate.setTimestamp(paramCount++, null);
+						} else {
+							// Value is in local time hence we need to add the timezone of the client
+							LocalDateTime localDateTime = LocalDateTime.parse(u.value);
+							ZonedDateTime userZdt = ZonedDateTime.of(localDateTime, TimeZone.getTimeZone(tz).toZoneId());
+							ZonedDateTime utcZdt = userZdt.withZoneSameInstant(TimeZone.getTimeZone("UtC").toZoneId());
+							Timestamp ts = Timestamp.valueOf(utcZdt.toLocalDateTime());
+							pstmtUpdate.setTimestamp(paramCount++, ts);
+						}
 					} else if (tc.type.equals("integer") || tc.type.equals("int")) {
 						int inputInt = Integer.parseInt(u.value);
 						pstmtUpdate.setInt(paramCount++, inputInt);
@@ -838,7 +852,6 @@ public class ActionManager {
 						urlprefix,
 						surveyIdent,
 						instanceId,
-						pId,
 						groupSurvey,		// update survey ident
 						u.name,		// update question
 						u.value		// update value
@@ -882,7 +895,6 @@ public class ActionManager {
 
 		return response;
 	}
-
 
 	/*
 	 * Get temporary users

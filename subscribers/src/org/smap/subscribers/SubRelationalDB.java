@@ -51,6 +51,7 @@ import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
+import org.smap.sdal.managers.SubmissionEventManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.AuditData;
@@ -84,6 +85,7 @@ public class SubRelationalDB extends Subscriber {
 	String gAuditFilePath = null;
 	
 	private Survey survey = null;
+	private Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 	
 	/**
 	 * @param args
@@ -121,6 +123,8 @@ public class SubRelationalDB extends Subscriber {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DatabaseConnections dbc = new DatabaseConnections();
 	
+		SubmissionEventManager sem = new SubmissionEventManager();
+		
 		try {
 
 			GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);			
@@ -132,17 +136,12 @@ public class SubRelationalDB extends Subscriber {
 			writeAllTableContent(dbc.sd, dbc.results, instance, submittingUser, server, device, 
 					formStatus, updateId, uploadTime, surveyNotes, 
 					locationTrigger, assignmentId, survey.o_id);	
-
-			/*
-			 * Apply foreign keys
-			 */
-			ForeignKeyManager fkm = new ForeignKeyManager();
-			fkm.apply(dbc.sd, dbc.results);
 			
 			/*
-			 * Apply notifications, Tasks and Linkage events associated with this submissions
+			 * Create an item in the submission event queue for the processing of
+			 * notifications, Tasks and Linkage events associated with this submission
 			 */
-			applySubmissionEvents(dbc.sd, dbc.results, ue_id, submittingUser, server, survey.ident, survey.exclude_empty);
+			sem.writeToQueue(dbc.sd, ue_id, linkageItems, gson);
 			
 			/*
 			 * Update the assignment status
@@ -292,100 +291,6 @@ public class SubRelationalDB extends Subscriber {
 		}
 		return assignmentId;
 	}
-
-	/*
-	 * Apply notifications and tasks triggered by a submission
-	 */
-	private void applySubmissionEvents(Connection sd, Connection cResults, int ueId, String submittingUser, 
-			String server, String sIdent, boolean excludeEmpty) {
-
-		PreparedStatement pstmtGetUploadEvent = null;
-
-		String ident = null;		// The survey ident
-		String instanceId = null;	// The submitted instance identifier
-		int pId = 0;				// The project containing the survey
-		int oId;
-		boolean temporaryUser;
-
-		try {
-
-			/*
-			 * Get details from the upload event
-			 */
-			String sqlGetUploadEvent = "select ue.ident, ue.instanceid, ue.p_id, ue.temporary_user, ue.o_id " +
-					" from upload_event ue " +
-					" where ue.ue_id = ?;";
-			pstmtGetUploadEvent = sd.prepareStatement(sqlGetUploadEvent);
-			pstmtGetUploadEvent.setInt(1, ueId);
-			ResultSet rs = pstmtGetUploadEvent.executeQuery();
-			if(rs.next()) {
-				ident = rs.getString(1);
-				instanceId = rs.getString(2);
-				pId = rs.getInt(3);
-				oId = rs.getInt("o_id");
-				temporaryUser = rs.getBoolean(4);
-				String pName = GeneralUtilityMethods.getProjectName(sd, pId);
-				
-				// Apply notifications
-				String urlprefix = "https://" + server + "/";
-				NotificationManager nm = new NotificationManager(localisation);
-				nm.notifyForSubmission(
-						sd, 
-						cResults,
-						ueId, 
-						submittingUser,
-						temporaryUser,
-						"https",
-						server,
-						gBasePath,
-						urlprefix,
-						ident,
-						instanceId,
-						pId,
-						null,		// update survey ident
-						null,		// update question
-						null		// update value
-						);	
-
-				// Apply Tasks
-				TaskManager tm = new TaskManager(localisation, tz);
-				tm.updateTasksForSubmission(
-						sd,
-						cResults,
-						sIdent,
-						server,
-						instanceId,
-						pId,
-						pName,
-						submittingUser,
-						temporaryUser
-						);
-				
-				/*
-				 * Apply any Linkage items
-				 */
-				if(linkageItems.size() > 0) {
-					log.info("----- Applying " + linkageItems.size() + " linkage items");
-					LinkageManager linkMgr = new LinkageManager(localisation);
-					linkMgr.writeItems(sd, oId, submittingUser, instanceId, linkageItems);
-				} else {
-					log.info("----- No linkage items to apply");
-				}
-				
-			}
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-
-			try {if (pstmtGetUploadEvent != null) {pstmtGetUploadEvent.close();}} catch (SQLException e) {}
-			
-		}
-	}
-	
-	
 
 	/*
 	 * Write the submission to the database
@@ -623,7 +528,6 @@ public class SubRelationalDB extends Subscriber {
 
 		Keys keys = new Keys();
 		PreparedStatement pstmt = null;
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 
 		try {
 			/*
@@ -902,7 +806,7 @@ public class SubRelationalDB extends Subscriber {
 		// Meta columns
 		addTableCol(cols, vals, tableCols, "parkey", String.valueOf(parentKey), "int");
 		if(parentKey == 0) {
-			addTableCol(cols, vals, tableCols, "_user", String.valueOf(remoteUser), "string");
+			addTableCol(cols, vals, tableCols, "_user", remoteUser, "string");
 			addTableCol(cols, vals, tableCols, "_complete", String.valueOf(complete), "boolean");
 			addTableCol(cols, vals, tableCols, SmapServerMeta.UPLOAD_TIME_NAME, String.valueOf(new Timestamp(uploadTime.getTime())), "timestamp");
 			addTableCol(cols, vals, tableCols, SmapServerMeta.THREAD_CREATED, String.valueOf(new Timestamp(uploadTime.getTime())), "timestamp");
@@ -1856,48 +1760,6 @@ public class SubRelationalDB extends Subscriber {
 
 		return sql.toString();
 	}
-
-	/*
-	String addSqlValues(Connection sd, List<IE> columns, String sName, String device, 
-			String server, 
-			boolean phoneOnly, 
-			ArrayList<ForeignKey> foreignKeys,
-			Connection cResults,
-			String tableName) {
-		
-		StringBuffer sql = new StringBuffer("");
-		for(IE col : columns) {
-			boolean colPhoneOnly = phoneOnly || col.isPhoneOnly();	// Set phone only if the group is phone only or just this column
-			String colType = col.getQType();
-
-			if(colType.equals("select") && !col.isCompressed()) {
-				List<IE> options = col.getChildren();
-				UtilityMethods.sortElements(options);
-				HashMap<String, String> uniqueColumns = new HashMap<String, String> (); 
-				for(IE option : options) {
-					if(uniqueColumns.get(option.getColumnName()) == null) {
-						uniqueColumns.put(option.getColumnName(), option.getColumnName());
-						sql.append(",").append((colPhoneOnly ? "" : option.getValue()));
-					}			
-				}
-			} else if(colType.equals("begin group")) {
-				// Non repeating group, process these child columns at the same level as the parent
-				sql.append(addSqlValues(sd, col.getQuestions(), sName, device, server, colPhoneOnly, foreignKeys, cResults, tableName));
-			} else {
-				sql.append(",").append(getDbString(sd, col, sName, device, server, colPhoneOnly, cResults, tableName));
-				// Check for a foreign key, the value will start with :::::
-				if(col.getValue() != null && col.getValue().startsWith(":::::") && col.getValue().length() > 5) {
-					ForeignKey fl = new ForeignKey();
-					fl.instanceId = col.getValue().substring(5);
-					fl.qName = col.getName();
-					foreignKeys.add(fl);
-				}
-			}	
-			
-		}
-		return sql.toString();
-	}
-	*/
 
 	/*
 	 * Format the value into a string appropriate to its type

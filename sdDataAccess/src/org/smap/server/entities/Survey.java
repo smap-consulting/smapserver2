@@ -44,8 +44,6 @@ public class Survey implements Serializable {
 	// Database Attributes
 	private int id;
 	
-	private String name;
-	
 	private String ident;
 	
 	private String display_name;
@@ -97,10 +95,6 @@ public class Survey implements Serializable {
 	
 	public String getIdent() {
 		return ident;
-	}
-	
-	public String getName() {
-		return name;
 	}
 	
 	public String getDisplayName() {
@@ -180,20 +174,12 @@ public class Survey implements Serializable {
 		id = v;
 	}
 	
-	public void setName(String v) {
-		name = v;
-	}
-	
 	public void setDisplayName(String v) {
 		display_name = v;
 	}
 	
 	public void setIdent(String v) {
 		ident = v;
-	}
-	
-	public void setFileName(String v) {
-		name = v;
 	}
 	
 	public void setDefLang(String v) {

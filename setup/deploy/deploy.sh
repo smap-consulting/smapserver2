@@ -91,6 +91,7 @@ then
 	rm -rf /var/www/smap/*.js
         rm -rf /var/www/smap/*.json
 	tar -xzf $deploy_from/smapServer.tgz -C /var/www/smap
+	cp /var/www/smap/images/smap_logo.png /smap/misc
 fi
 
 if [ -e $deploy_from/fieldAnalysis.tgz ]

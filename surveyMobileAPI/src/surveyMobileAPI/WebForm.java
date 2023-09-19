@@ -760,9 +760,9 @@ public class WebForm extends Application {
 
 		// head
 		output.append("<head>\n");
-		output.append("<link rel=\"preload\" as=\"font\" href=\"/fonts/OpenSans-Regular-webfont.woff\" type=\"font/woff\" crossorigin>");
-		output.append("<link rel=\"preload\"as=\"font\" href=\"/fonts/OpenSans-Bold-webfont.woff\" type=\"font/woff\" crossorigin>");
-		output.append("<link rel=\"preload\" as=\"font\" href=\"/fonts/fontawesome-webfont.woff\" type=\"font/woff\" crossorigin>");
+		output.append("<link rel='preload' as='font' href='/fonts/OpenSans-Regular-webfont.woff' type='font/woff' crossorigin>");
+		output.append("<link rel='preload'as='font' href='/fonts/OpenSans-Bold-webfont.woff' type='font/woff' crossorigin>");
+		output.append("<link rel='preload' as='font' href='/fonts/fontawesome-webfont.woff' type='font/woff' crossorigin>");
 		
 		if (surveyClass != null && surveyClass.trim().contains("theme-grid")) {		
 			output.append("<link type='text/css' href='/build/css/theme-grid.css' media='all' rel='stylesheet' />\n");
@@ -778,7 +778,7 @@ public class WebForm extends Application {
 		 * Add organisation specific css settings
 		 */
 		if(options != null) {
-			output.append("<style type=\"text/css\">");
+			output.append("<style type='text/css'>");
 			if(options.page_background_color != null && options.page_background_color.trim().length() > 0) {
 				output.append("body {background-color: " + options.page_background_color + "}");
 			}
@@ -849,12 +849,12 @@ public class WebForm extends Application {
 		output.append("<script>");
 		output.append("window.smapConfig = {};");
 		if (serverData.google_key != null) {
-			output.append("window.smapConfig.googleApiKey=\"");
+			output.append("window.smapConfig.googleApiKey='");
 			output.append(serverData.google_key);
-			output.append("\";");
+			output.append("';");
 		}
 		// add user ID
-		output.append("window.smapConfig.username=\"").append(user).append("\";");
+		output.append("window.smapConfig.username='").append(user).append("';");
 		
 		output.append("window.smapConfig.myWork=" + (myWork ? "true" : "false") + ";");
 		output.append("registerForServiceWorkerMessages();");
@@ -877,7 +877,7 @@ public class WebForm extends Application {
 		output.append("settings = {};\n");
 
 		output.append("surveyData = {};\n");
-		output.append("surveyData.surveyIdent=\"").append(gFormIdent).append("\";\n");
+		output.append("surveyData.surveyIdent='").append(gFormIdent).append("';\n");
 		// Data model
 		output.append("surveyData.modelStr=\"");
 		output.append(getModelStr(request));
@@ -1093,7 +1093,7 @@ public class WebForm extends Application {
 		output.append("</div>\n");
 		output.append("</div>\n");
 		output.append("</div>\n");
-		output.append("</div> <!-- end dialog-save -->\n");
+		output.append("</div>\n");  // end dialog-save 
 
 		// used for Grid theme only
 		output.append(
@@ -1202,14 +1202,17 @@ public class WebForm extends Application {
 			output.append("<span class='form-language-selector'><span class='lang' data-lang='form.chooseLanguage'>language</span></span>\n");
 			output.append("<div class='form-progress'></div>\n");
 
+			/*
+			 * Add the webform banner
+			 */
 			output.append("<span class='logo-wrapper'>\n");
 			output.append(addNoScriptWarning());
-			output.append("<img class='banner_logo' src='/media/organisation/");
-			output.append(orgId);
-			output.append(
-					"/settings/bannerLogo' onerror=\"if(this.src.indexOf('smap_logo.png') < 0) this.src='/images/smap_logo.png';\" alt='logo'>\n");
+			
+			output.append("<img class='banner_logo' src='/custom/banner/")
+				.append(orgId)
+				.append("' alt='logo'>\n");
 			output.append("</span>\n");
-
+			
 			output.append("</header>\n");
 		}
 		return output;
@@ -1367,10 +1370,12 @@ public class WebForm extends Application {
 			output.append("<title class='lang' data-lang='c_msg'></title>");
 			output.append("<link rel='shortcut icon' href='/favicon.ico' />");
 			output.append("<link rel='stylesheet' href='/css/normalize.css' />");
-			output.append("<link href='/css/bootstrap.v4.min.css' rel='stylesheet'>");
-			output.append("<link href='/font-awesome/css/font-awesome.css' rel='stylesheet'>");
+			output.append("<link href='/css/bootstrap.v4.5.min.css' rel='stylesheet'>");
+			output.append("<link href='/css/fa.v5.15.1.all.min.css' rel='stylesheet'>");
 
 			output.append("<script src='/js/libs/modernizr.js'></script>");
+			output.append("<script src='/js/libs/jquery-3.5.1.min.js'></script>");
+			output.append("<script src='/js/libs/bootstrap.bundle.v4.5.min.js'></script>");
 			output.append("<script data-main='/js/msg' src='/js/libs/require.js'></script>");
 
 			output.append("<style>");

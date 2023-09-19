@@ -40,6 +40,7 @@ import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
@@ -868,7 +869,6 @@ public class Surveys extends Application {
 		// End Authorisation
 		
 		String fileName = null;
-		String newSurveyName = null;
 		int version = 0;
 				
 		PreparedStatement pstmt = null;
@@ -891,36 +891,26 @@ public class Surveys extends Application {
 			sd.setAutoCommit(false);
 			
 			// Get the existing survey display name, plain old name and project id
-			String sqlGet = "select name, display_name, p_id, version from survey where s_id = ?";
+			String sqlGet = "select display_name, p_id, version from survey where s_id = ?";
 			pstmtGet = sd.prepareStatement(sqlGet);	
 			pstmtGet.setInt(1, sId);
 			
 			String originalDisplayName = null;
-			String originalName = null;
 			int originalProjectId = 0;
 
 			ResultSet rs = pstmtGet.executeQuery();
 			if(rs.next()) {
-				originalName = rs.getString(1);
-				originalDisplayName = rs.getString(2);
-				originalProjectId = rs.getInt(3);
-				version = rs.getInt(4) + 1;
+				originalDisplayName = rs.getString("display_name");
+				originalProjectId = rs.getInt("p_id");
+				version = rs.getInt("version") + 1;
 			}
-			
-			if(originalName != null) {
-				int idx = originalName.lastIndexOf('/');
-				if(idx > 0) {
-					newSurveyName = originalName.substring(0, idx + 1) + GeneralUtilityMethods.convertDisplayNameToFileName(survey.displayName, false) + ".xml";
-				}
-			}
-			
 			
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, updated_time) " +
 					"values(?, ?, ?, ?, 'true', ?)";
 			
 			// Update the settings
-			String sql = "update survey set display_name = ?, name = ?, def_lang = ?, task_file = ?, "
+			String sql = "update survey set display_name = ?, def_lang = ?, task_file = ?, "
 					+ "timing_data = ?, "
 					+ "p_id = ?, "
 					+ "instance_name = ?, "
@@ -943,27 +933,26 @@ public class Surveys extends Application {
 				survey.surveyClass = null;
 			}
 			pstmt = sd.prepareStatement(sql);	
-			pstmt.setString(1, survey.displayName);
-			pstmt.setString(2, newSurveyName);
-			pstmt.setString(3, survey.def_lang);
-			pstmt.setBoolean(4, survey.task_file);
-			pstmt.setBoolean(5, survey.timing_data);
-			pstmt.setInt(6, survey.p_id);
-			pstmt.setString(7, survey.instanceNameDefn);
-			pstmt.setInt(8, version);
-			pstmt.setString(9, survey.surveyClass);
-			pstmt.setBoolean(10, survey.exclude_empty);
-			pstmt.setBoolean(11, survey.compress_pdf);
-			pstmt.setBoolean(12, survey.getHideOnDevice());
-			pstmt.setBoolean(13, survey.getSearchLocalData());
-			pstmt.setBoolean(14, survey.dataSurvey);
-			pstmt.setBoolean(15, survey.oversightSurvey);
-			pstmt.setBoolean(16, survey.readOnlySurvey);
-			pstmt.setBoolean(17, survey.myReferenceData);
-			pstmt.setBoolean(18, survey.audit_location_data);
-			pstmt.setBoolean(19, survey.track_changes);
-			pstmt.setString(20, survey.default_logo);
-			pstmt.setInt(21, sId);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(survey.displayName, localisation));
+			pstmt.setString(2, HtmlSanitise.checkCleanName(survey.def_lang, localisation));
+			pstmt.setBoolean(3, survey.task_file);
+			pstmt.setBoolean(4, survey.timing_data);
+			pstmt.setInt(5, survey.p_id);
+			pstmt.setString(6, survey.instanceNameDefn);
+			pstmt.setInt(7, version);
+			pstmt.setString(8, HtmlSanitise.checkCleanName(survey.surveyClass, localisation));
+			pstmt.setBoolean(9, survey.exclude_empty);
+			pstmt.setBoolean(10, survey.compress_pdf);
+			pstmt.setBoolean(11, survey.getHideOnDevice());
+			pstmt.setBoolean(12, survey.getSearchLocalData());
+			pstmt.setBoolean(13, survey.dataSurvey);
+			pstmt.setBoolean(14, survey.oversightSurvey);
+			pstmt.setBoolean(15, survey.readOnlySurvey);
+			pstmt.setBoolean(16, survey.myReferenceData);
+			pstmt.setBoolean(17, survey.audit_location_data);
+			pstmt.setBoolean(18, survey.track_changes);
+			pstmt.setString(19, survey.default_logo);
+			pstmt.setInt(20, sId);
 			
 			log.info("Saving survey: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
@@ -1919,43 +1908,6 @@ public class Surveys extends Application {
 
 		return response;
 	}
-	/*
-	 * Legacy method to Write the PDF to disk
-	 * Return the name
-	 */
-	private String writePdfLegacy(HttpServletRequest request, 
-			String fileName, 
-			FileItem pdfItem,
-			boolean archiveVersion,		// If set then add date time to file so it can be recovered
-			int pId) {
-	
-		String basePath = GeneralUtilityMethods.getBasePath(request);
-		
-		fileName = GeneralUtilityMethods.convertDisplayNameToFileName(fileName, false);
-		if(archiveVersion) {
-			// Add date and time to the display name
-			DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HHmmss");
-			dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));		// Store all dates in UTC
-			fileName += dateFormat.format(cal.getTime());
-		}
-		fileName += "_template.pdf";
-		
-		String folderPath = basePath + "/templates/" + pId ;						
-		String filePath = folderPath + "/" + fileName;
-	    File savedFile = new File(filePath);
-	    
-	    log.info("userevent: " + request.getRemoteUser() + " : saving pdf template : " + filePath);
-	    
-	    try {
-	    	FileUtils.forceMkdir(new File(folderPath));
-			pdfItem.write(savedFile);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	 
-	    return fileName;
-	}
 	
 	/*
 	 * Write the PDF to disk
@@ -1993,68 +1945,6 @@ public class Surveys extends Application {
 	 
 	    return filePath;
 	}
-	
-	/*
-	 * Delete the pdf template
-	 */
-	private void delPdf(HttpServletRequest request, 
-			String fileName, 
-			int pId) {
-	
-		String basePath = GeneralUtilityMethods.getBasePath(request);
-		
-		fileName = GeneralUtilityMethods.convertDisplayNameToFileName(fileName, false);
-		fileName = fileName + "_template.pdf";
-		
-		String folderPath = basePath + "/templates/" + pId ;						
-		String filePath = folderPath + "/" + fileName;
-	    File delFile = new File(filePath);
-	    
-	    log.info("userevent: " + request.getRemoteUser() + " : delete pdf template : " + filePath);
-
-	    try {
-			delFile.delete();
-		} catch (Exception e) {
-			e.printStackTrace();
-		} 
-	}
-	
-	/*
-	 * Rename the pdf template
-	 */
-	private String renamePdf(HttpServletRequest request, 
-			String originalName,
-			String newName, 
-			int pId,
-			boolean copy) {
-	
-		String basePath = GeneralUtilityMethods.getBasePath(request);
-		
-		newName = GeneralUtilityMethods.convertDisplayNameToFileName(newName, false) + "_template.pdf";
-		originalName = GeneralUtilityMethods.convertDisplayNameToFileName(originalName, false) + "_template.pdf";
-		
-		String folderPath = basePath + "/templates/" + pId ;						
-		String newFilePath = folderPath + "/" + newName;
-		String originalFilePath = folderPath + "/" + originalName;
-	    
-		File newFile = new File(newFilePath);
-		File renFile = new File(originalFilePath);
-	   
-	    try {
-	    	if(copy) {
-	    		FileUtils.copyFile(renFile, newFile);
-	    	} else {
-	    		renFile.renameTo(newFile);
-	    	}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	 
-	    return newName;
-	}
-	
-
-	
 	
 }
 

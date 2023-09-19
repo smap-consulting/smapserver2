@@ -27,10 +27,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -61,13 +59,6 @@ public class Submissions extends Application {
 			Logger.getLogger(Submissions.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
-
-	// Tell class loader about the root classes.  (needed as tomcat6 does not support servlet 3)
-	public Set<Class<?>> getClasses() {
-		Set<Class<?>> s = new HashSet<Class<?>>();
-		s.add(Submissions.class);
-		return s;
-	}
 
 	public Submissions() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	

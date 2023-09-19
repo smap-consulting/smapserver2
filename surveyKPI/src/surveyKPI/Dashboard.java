@@ -58,6 +58,7 @@ public class Dashboard extends Application {
 	public Dashboard() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.VIEW_DATA);
 		a = new Authorise(authorisations, null);
 	}

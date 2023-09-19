@@ -84,7 +84,7 @@ public class MailoutManager {
 		
 		ArrayList<Mailout> mailouts = new ArrayList<> ();
 		
-		String sql = "select id, survey_ident, name, subject, content, multiple_submit "
+		String sql = "select id, survey_ident, name, subject, content, multiple_submit, anonymous "
 				+ "from mailout "
 				+ "where survey_ident = ?";
 		
@@ -102,7 +102,8 @@ public class MailoutManager {
 						rs.getString("name"),
 						rs.getString("subject"),
 						rs.getString("content"),
-						rs.getBoolean("multiple_submit"));
+						rs.getBoolean("multiple_submit"),
+						rs.getBoolean("anonymous"));
 				
 				if(links) {
 					mo.links = new MailoutLinks();
@@ -126,8 +127,8 @@ public class MailoutManager {
 		int mailoutId = 0;
 		
 		String sql = "insert into mailout "
-				+ "(survey_ident, name, subject, content, multiple_submit, created, modified) "
-				+ "values(?, ?, ?, ?, ?, now(), now())";
+				+ "(survey_ident, name, subject, content, multiple_submit, anonymous,  created, modified) "
+				+ "values(?, ?, ?, ?, ?, ?, now(), now())";
 		
 		PreparedStatement pstmt = null;
 		
@@ -138,6 +139,7 @@ public class MailoutManager {
 			pstmt.setString(3, mailout.subject);
 			pstmt.setString(4, mailout.content);
 			pstmt.setBoolean(5, mailout.multiple_submit);
+			pstmt.setBoolean(6, mailout.anonymous);
 			log.info("Add mailout: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
@@ -171,6 +173,7 @@ public class MailoutManager {
 				+ "subject = ?, "
 				+ "content = ?,"
 				+ "multiple_submit = ?,"
+				+ "anonymous = ?,"
 				+ "modified = now() "
 				+ "where id = ?";
 		
@@ -183,7 +186,8 @@ public class MailoutManager {
 			pstmt.setString(3, mailout.subject);
 			pstmt.setString(4, mailout.content);
 			pstmt.setBoolean(5, mailout.multiple_submit);
-			pstmt.setInt(6, mailout.id);
+			pstmt.setBoolean(6, mailout.anonymous);
+			pstmt.setInt(7, mailout.id);
 			log.info("Update mailout: " + pstmt.toString());
 			pstmt.executeUpdate();
 		
@@ -207,7 +211,7 @@ public class MailoutManager {
 		
 		Mailout mailout = null;
 		
-		String sql = "select survey_ident, name, subject, content, multiple_submit "
+		String sql = "select survey_ident, name, subject, content, multiple_submit, anonymous "
 				+ "from mailout "
 				+ "where id = ?";
 		
@@ -225,7 +229,8 @@ public class MailoutManager {
 						rs.getString("name"),
 						rs.getString("subject"),
 						rs.getString("content"),
-						rs.getBoolean("multiple_submit"));
+						rs.getBoolean("multiple_submit"),
+						rs.getBoolean("anonymous"));
 				
 			}
 		
@@ -561,7 +566,9 @@ public class MailoutManager {
 				+ "m.multiple_submit,"
 				+ "p.id as p_id, "
 				+ "ppl.email, "
-				+ "mp.initial_data "
+				+ "mp.initial_data, "
+				+ "m.name as campaign_name, "
+				+ "m.anonymous "
 				+ "from mailout_people mp, mailout m, people ppl, survey s, project p "
 				+ "where mp.m_id = m.id "
 				+ "and mp.p_id = ppl.id "
@@ -592,6 +599,8 @@ public class MailoutManager {
 				String email = rs.getString("email");
 				String initialData = rs.getString("initial_data");
 				boolean single = !rs.getBoolean("multiple_submit");
+				String campaignName = rs.getString("campaign_name");
+				boolean anonymousCampaign = rs.getBoolean("anonymous");
 				
 				// Create the action 					
 				Action action = new Action("mailout");
@@ -600,6 +609,8 @@ public class MailoutManager {
 				action.single = single;
 				action.mailoutPersonId = id;
 				action.email = email;
+				action.campaignName = campaignName;
+				action.anonymousCampaign = anonymousCampaign;
 					
 				if(initialData != null) {
 					action.initialData = gson.fromJson(initialData, Instance.class);
@@ -673,47 +684,49 @@ public class MailoutManager {
 					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user, organisation.id);
 					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 						if(UtilityMethodsEmail.isValidEmail(msg.email)) {
+							try {	
+								log.info("userevent: " + msg.user + " sending email of '" + docURL + "' to " + msg.email);
 								
-							log.info("userevent: " + msg.user + " sending email of '" + docURL + "' to " + msg.email);
-							
-							// Set the subject
-							String subject = "";
-							if(msg.subject != null && msg.subject.trim().length() > 0) {
-								subject = msg.subject;
-							} else {
-								if(server != null && server.contains("smap")) {
-									subject = "Smap ";
+								// Set the subject
+								String subject = "";
+								if(msg.subject != null && msg.subject.trim().length() > 0) {
+									subject = msg.subject;
+								} else {
+									if(server != null && server.contains("smap")) {
+										subject = "Smap ";
+									}
+									subject += localisation.getString("ar_survey");
 								}
-								subject += localisation.getString("ar_survey");
-							}
-							
-							String from = "smap";
-							if(msg.from != null && msg.from.trim().length() > 0) {
-								from = msg.from;
-							}
-							StringBuilder content = null;
-							if(msg.content != null && msg.content.trim().length() > 0) {
-								content = new StringBuilder(msg.content);
-							} else {
-								content = new StringBuilder(organisation.default_email_content);
-							}
-							
-							// Add the survey link
-							if(docURL != null) {
-								content.append("<br />")
-									.append("<a href=\"").append(docURL).append("\">")
-									.append(localisation.getString("ar_survey")).append("</a>");
-							}
-							
-							notify_details = "Sending mailout email to: " + msg.email + " containing link " + docURL;
-							
-							log.info("+++ emailing mailout to: " + msg.email + " docUrl: " + docURL + 
-									" from: " + from + 
-									" subject: " + subject +
-									" smtp_host: " + emailServer.smtpHost +
-									" email_domain: " + emailServer.emailDomain);
-							try {
-								EmailManager em = new EmailManager();
+								
+								String from = "smap";
+								if(msg.from != null && msg.from.trim().length() > 0) {
+									from = msg.from;
+								}
+								StringBuilder content = null;
+								if(msg.content != null && msg.content.trim().length() > 0) {
+									content = new StringBuilder(msg.content);
+								} else {
+									content = new StringBuilder(organisation.default_email_content);
+								}
+								
+								// Add the survey link
+								if(docURL != null) {
+									content.append("<br />")
+										.append("<a href=\"").append(docURL).append("\">")
+										.append(localisation.getString("ar_survey")).append("</a>");
+								} 
+								
+								notify_details = localisation.getString("msg_mo");
+								notify_details = notify_details.replace("%s1", msg.email);
+								notify_details = notify_details.replace("%s2", docURL == null ? "" : docURL);
+								
+								log.info("+++ emailing mailout to: " + msg.email + " docUrl: " + docURL + 
+										" from: " + from + 
+										" subject: " + subject +
+										" smtp_host: " + emailServer.smtpHost +
+										" email_domain: " + emailServer.emailDomain);
+
+								EmailManager em = new EmailManager(localisation);
 								PeopleManager peopleMgr = new PeopleManager(localisation);
 								InternetAddress[] emailArray = InternetAddress.parse(msg.email);
 								

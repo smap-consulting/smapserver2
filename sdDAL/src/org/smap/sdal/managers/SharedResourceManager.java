@@ -147,6 +147,7 @@ public class SharedResourceManager {
 						// no conversion required
 						fileItem.write(savedFile);  
 					}
+					log.info("Uploaded file written to: " + savedFile.getAbsolutePath());
 					
 					if(savedFile.exists()) {
 						

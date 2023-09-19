@@ -159,11 +159,12 @@ public class ExportSurveyMisc extends Application {
 			PreparedStatement pstmtDefLang2 = null;
 			PreparedStatement pstmt = null;
 
+			ResourceBundle localisation = null;
 			try {
 
 				// Get the users locale
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 				String surveyName = GeneralUtilityMethods.getSurveyName(sd, targetId);
 				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, targetId);
@@ -625,6 +626,17 @@ public class ExportSurveyMisc extends Application {
 				// Return an OK status so the message gets added to the web page
 				// Prepend the message with "Error: ", this will be removed by the client
 				responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
+			} catch (SQLException e) {
+				String msg = e.getMessage();
+				if(msg != null && msg.startsWith("ERROR: relation") && msg.contains("does not exist") ) {
+					if(localisation != null) {
+						msg = localisation.getString("msg_no_data");
+					}
+				} else {
+					log.log(Level.SEVERE, "Error", e);
+				}
+				response.setHeader("Content-type",  "text/html; charset=UTF-8");
+				responseVal = Response.status(Status.OK).entity(msg).build();
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Error", e);
 				response.setHeader("Content-type",  "text/html; charset=UTF-8");

@@ -30,11 +30,13 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.SystemException;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
@@ -227,8 +229,9 @@ public class MyAssignments extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 		
 			if(tu.type != null && tu.type.equals("case")) {
+				CaseManager cm = new CaseManager(localisation);
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, tu.sIdent);
-				GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, tu.uuid, request.getRemoteUser(), "release", null, tu.task_comment);
+				cm.assignRecord(sd, cResults, localisation, tableName, tu.uuid, request.getRemoteUser(), "release", null, tu.task_comment);
 			} else {
 				
 				pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
@@ -951,10 +954,7 @@ public class MyAssignments extends Application {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
 		TaskResponse tr = gson.fromJson(assignInput, TaskResponse.class);
 
-		log.info("Device:" + tr.deviceId + " for user " + userName);
-
 		// TODO that the status is valid (A different range of status values depending on the role of the user)
-
 		PreparedStatement pstmtSetDeleted = null;
 		PreparedStatement pstmtSetUpdatedRejected = null;	
 		PreparedStatement pstmtSetUpdatedNotRejected = null;
@@ -966,8 +966,15 @@ public class MyAssignments extends Application {
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		try {	
 
+			if(tr == null) {
+				throw new ApplicationException("Task information was not set");
+			}		
+			log.info("Device:" + tr.deviceId + " for user " + userName);
+			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			CaseManager cm = new CaseManager(localisation);
 			
 			pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
 			pstmtSetUpdatedRejected = getPreparedStatementSetUpdatedRejected(sd);
@@ -985,7 +992,7 @@ public class MyAssignments extends Application {
 				if(ta.task != null && ta.task.type != null && ta.task.type.equals("case")) {
 					if(ta.assignment.assignment_status != null && ta.assignment.assignment_status.equals("rejected")) {
 						String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, ta.task.form_id);
-						GeneralUtilityMethods.assignRecord(sd, cResults, localisation, tableName, ta.task.update_id, request.getRemoteUser(), "release", null, ta.assignment.task_comment);
+						cm.assignRecord(sd, cResults, localisation, tableName, ta.task.update_id, request.getRemoteUser(), "release", null, ta.assignment.task_comment);
 					}	
 				} else if(ta.assignment.assignment_id > 0) {
 					log.info("Task Assignment: " + ta.assignment.assignment_status);
@@ -1067,6 +1074,8 @@ public class MyAssignments extends Application {
 			response = Response.ok().build();
 			log.info("Assignments updated");	
 
+		} catch (ApplicationException e) {		
+			throw new SystemException(e.getMessage());
 		} catch (Exception e) {		
 			response = Response.serverError().build();
 			log.log(Level.SEVERE,"Exception", e);

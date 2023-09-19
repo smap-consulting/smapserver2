@@ -24,7 +24,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
-import utilities.XLSXReportsManager;
+import org.smap.sdal.managers.XLSXReportsManager;
 
 /*
  * Export a survey in XLSX format
@@ -44,6 +44,7 @@ public class ExportSurveyXlsx extends Application {
 	public ExportSurveyXlsx() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.VIEW_DATA);
 		a = new Authorise(authorisations, null);
 	}
@@ -98,15 +99,17 @@ public class ExportSurveyXlsx extends Application {
 			
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			XLSXReportsManager rm = new XLSXReportsManager(localisation);
+			GeneralUtilityMethods.setFilenameInResponse(filename + "." + "xlsx", response); // Set file name
 			responseVal = rm.getNewReport(
 					sd,
 					cResults,
 					request.getRemoteUser(),
-					request,
-					response,
+					request.getScheme(),
+					request.getServerName(),
+					GeneralUtilityMethods.getBasePath(request),
+					response.getOutputStream(),
 					sId,
 					sIdent,
-					filename,
 					split_locn,
 					meta,		// Get altitude and location
 					merge_select_multiple,

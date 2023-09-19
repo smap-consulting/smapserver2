@@ -36,12 +36,10 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.QueryManager;
 import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.model.GroupDetails;
-import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.Question;
 
 import com.google.gson.Gson;
@@ -73,6 +71,7 @@ public class SurveyResults extends Application {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.MANAGE);
+		authorisations.add(Authorise.ADMIN);
 		aManage = new Authorise(authorisations, null);
 	}
 	

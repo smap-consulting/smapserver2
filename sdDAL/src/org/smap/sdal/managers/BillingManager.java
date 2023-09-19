@@ -67,8 +67,8 @@ public class BillingManager {
 		
 		String sqlSubmissions = "select  count(*), o_id from upload_event ue "
 				+ "where ue.db_status = 'success' "
-				+ "and extract(month from upload_time) = ? "
-				+ "and extract(year from upload_time) = ? "
+				+ "and upload_time >=  ? "		
+				+ "and upload_time < ? "	
 				+ "group by o_id "
 				+ "order by o_id";
 		
@@ -81,17 +81,19 @@ public class BillingManager {
 		PreparedStatement pstmtDisk = null;	
 		
 		try {
-			
 			pstmtDisk = sd.prepareStatement(sqlDisk);
 			pstmtDisk.setInt(2, month);
 			pstmtDisk.setInt(3, year);
-			
+					
 			/*
 			 * Get Submission data
 			 */
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			
 			pstmtSubmissions = sd.prepareStatement(sqlSubmissions);
-			pstmtSubmissions.setInt(1, month);
-			pstmtSubmissions.setInt(2, year);
+			pstmtSubmissions.setTimestamp(1, t1);
+			pstmtSubmissions.setTimestamp(2, t2);
 			
 			log.info("Get per organisation usage: " + pstmtSubmissions.toString());
 			ResultSet rs = pstmtSubmissions.executeQuery();
@@ -110,6 +112,7 @@ public class BillingManager {
 				
 				// Get disk usage
 				pstmtDisk.setInt(1, oId);
+				
 				ResultSet rsDisk = pstmtDisk.executeQuery();				
 				if(rsDisk.next()) {
 					log.info("Disk usage for organisation: " + oId + " = " + rsDisk.getDouble("organisation"));

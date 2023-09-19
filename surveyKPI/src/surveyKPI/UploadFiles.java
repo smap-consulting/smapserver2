@@ -48,11 +48,9 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LanguageCodeManager;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SharedResourceManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.ChangeElement;
@@ -72,8 +70,6 @@ import com.google.gson.GsonBuilder;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -233,162 +229,6 @@ public class UploadFiles extends Application {
 		return response;
 	}
 	
-	/*
-	 * Upload multiple shared resources
-	 * Deprecate
-	 */
-	@POST
-	@Produces("application/json")
-	@Path("/media/deprecate")
-	public Response sendMedia(
-			@QueryParam("getlist") boolean getlist,
-			@QueryParam("survey_id") int sId,
-			@Context HttpServletRequest request
-			) throws IOException {
-
-		Response response = null;
-
-		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();		
-		String user = request.getRemoteUser();
-
-		log.info("upload files - media -----------------------");
-
-		fileItemFactory.setSizeThreshold(5*1024*1024);
-		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
-
-		int oId = 0;
-		Connection sd = null; 
-		boolean superUser = false;
-		String connectionString = "surveyKPI - uploadFiles - sendMedia";
-		
-		try {
-			
-			sd = SDDataSource.getConnection(connectionString);
-			
-			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			// Authorisation - Access
-			auth.isAuthorised(sd, request.getRemoteUser());	
-			if(sId > 0) {
-				try {
-					superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-				} catch (Exception e) {
-				}
-				auth.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
-			} 
-			// End authorisation
-
-			
-			String basePath = GeneralUtilityMethods.getBasePath(request);
-			MediaInfo mediaInfo = new MediaInfo();
-			
-			/*
-			 * Parse the request
-			 */
-			List<?> items = uploadHandler.parseRequest(request);
-			Iterator<?> itr = items.iterator();
-
-			while(itr.hasNext()) {
-				FileItem item = (FileItem) itr.next();
-
-				// Get form parameters
-
-				if(item.isFormField()) {
-
-					if(item.getFieldName().equals("survey_id")) {
-						try {
-							sId = Integer.parseInt(item.getString());
-						} catch (Exception e) {
-
-						}
-					}
-					// Check authorisation for this survey id
-					if(sId > 0) {
-						try {
-							superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-						} catch (Exception e) {
-						}
-						auth.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
-					} 
-
-				} else if(!item.isFormField()) {
-					// Handle Uploaded files.
-					log.info("Field Name = "+item.getFieldName()+
-							", File Name = "+item.getName()+
-							", Content type = "+item.getContentType()+
-							", File Size = "+item.getSize());
-
-					String fileName = item.getName();
-					fileName = fileName.replaceAll(" ", "_"); // Remove spaces from file name
-
-					if(sId > 0) {
-						mediaInfo.setFolder(basePath, sId, null, sd);
-					} else {	
-						// Upload to organisations folder
-						oId = GeneralUtilityMethods.getOrganisationId(sd, user);
-						mediaInfo.setFolder(basePath, user, oId, false);				 
-					}
-					mediaInfo.setServer(request.getRequestURL().toString());
-
-					String folderPath = mediaInfo.getPath();
-					fileName = mediaInfo.getFileName(fileName);
-
-					if(folderPath != null) {		
-						
-						String contentType = UtilityMethodsEmail.getContentType(fileName);
-						
-						String filePath = folderPath + "/" + fileName;
-						File savedFile = new File(filePath);
-						File oldFile = new File (filePath + ".old");
-						
-						item.write(savedFile);  // Save the new file
-						UtilityMethodsEmail.createThumbnail(fileName, folderPath, savedFile);	// Create thumbnails
-						
-						// If this is a CSV file save the old version if it exists so that we can do a diff on it
-						if(savedFile.exists() && (contentType.equals("text/csv") || fileName.endsWith(".csv"))) {
-							Files.copy(savedFile.toPath(), oldFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-							putCsvIntoTable(sd, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);	// Upload any CSV data into a table
-						
-							// Create a message so that devices are notified of the change
-							MessagingManager mm = new MessagingManager(localisation);
-							if(sId > 0) {
-								mm.surveyChange(sd, sId, 0);
-							} else {
-								mm.resourceChange(sd, oId, fileName);
-							}
-						}
-
-					} else {
-						log.log(Level.SEVERE, "Media folder not found");
-						response = Response.serverError().entity("Media folder not found").build();
-					}
-				}
-			}
-			
-			if(getlist) {
-				MediaResponse mResponse = new MediaResponse ();
-				mResponse.files = mediaInfo.get(sId, null);			
-				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-				String resp = gson.toJson(mResponse);
-				log.info("Responding with " + mResponse.files.size() + " files");
-
-				response = Response.ok(resp).build();
-			} else {
-				response = Response.ok().build();
-			}
-
-		} catch(Exception ex) {
-			log.log(Level.SEVERE,ex.getMessage(), ex);
-			response = Response.serverError().entity(ex.getMessage()).build();
-		} finally {
-			SDDataSource.closeConnection(connectionString, sd);
-		}
-
-		return response;
-
-	}
 
 	@DELETE
 	@Produces("application/json")
@@ -1108,26 +948,6 @@ public class UploadFiles extends Application {
 		return response;
 	}
 	
-	/*
-	 * Put the CSV file into a database table
-	 * Deprecate
-	 */
-	private void putCsvIntoTable(
-		Connection sd, 
-		ResourceBundle localisation,
-		String user, 
-		int sId, 
-		String csvFileName, 
-		File csvFile,
-		File oldCsvFile,
-		String basePath,
-		MediaInfo mediaInfo) throws Exception {
-		
-		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
-		CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, csvFileName);
-		csvMgr.updateTable(csvFile);
-		
-	}
 	
 	/*
 	 * Delete the file

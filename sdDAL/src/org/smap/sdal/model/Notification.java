@@ -24,10 +24,18 @@ public class Notification {
 	public String alert_name;
 	public NotifyDetails notifyDetails;
 	
-	public int tgId;					// reminder only
+	public int tgId;				// reminder only
 	public String period;			// reminder only
 	public String tg_name;			// reminder only
 	
-	public String project;		// Reports only
+	public String project;			// Reports only
+	
+	public int p_id;				// Project
+	public String periodic_period;	// periodic
+	public String periodic_time;	// GSON does not seem to allow specification of a time format
+	public int periodic_week_day;	// Day of week for a weekly report
+	public int periodic_month_day;	// Day of month for a monthly or yearly report
+	public int periodic_month;		// Month for a yearly report
+	public int r_id;				// Report Id
 	
 }

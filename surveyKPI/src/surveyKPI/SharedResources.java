@@ -39,6 +39,7 @@ import model.MapResource;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.SharedResourceManager;
@@ -169,7 +170,11 @@ public class SharedResources extends Application {
 		String sql = null;
 		
 		try {	
-			
+		
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+		
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
 			if(map.id < 1) {
@@ -180,10 +185,10 @@ public class SharedResources extends Application {
 						
 				pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 				pstmt.setInt(1, o_id);
-				pstmt.setString(2, map.name);
-				pstmt.setString(3, map.type);
-				pstmt.setString(4, map.description);
-				pstmt.setString(5, configJson);
+				pstmt.setString(2, HtmlSanitise.checkCleanName(map.name, localisation) );
+				pstmt.setString(3, HtmlSanitise.checkCleanName(map.type,localisation));
+				pstmt.setString(4, HtmlSanitise.checkCleanName(map.description, localisation));
+				pstmt.setString(5, HtmlSanitise.checkCleanName(configJson, localisation));
 						
 				log.info("Insert map: " + pstmt.toString());
 				pstmt.executeUpdate();
@@ -202,10 +207,10 @@ public class SharedResources extends Application {
 						" and version = ?";		// Integrity check
 						
 				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, map.name);
-				pstmt.setString(2, map.type);
-				pstmt.setString(3, map.description);
-				pstmt.setString(4, configJson);
+				pstmt.setString(1, HtmlSanitise.checkCleanName(map.name, localisation));
+				pstmt.setString(2, HtmlSanitise.checkCleanName(map.type, localisation));
+				pstmt.setString(3, HtmlSanitise.checkCleanName(map.description, localisation));
+				pstmt.setString(4, HtmlSanitise.checkCleanName(configJson, localisation));
 				pstmt.setInt(5,  map.id);
 				pstmt.setInt(6,  o_id);
 				pstmt.setInt(7, map.version);
@@ -225,6 +230,9 @@ public class SharedResources extends Application {
 				response = Response.serverError().build();
 				log.log(Level.SEVERE,"Error", e);
 			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Exception adding map", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}

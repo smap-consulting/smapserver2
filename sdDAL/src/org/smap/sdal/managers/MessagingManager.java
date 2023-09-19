@@ -64,7 +64,7 @@ public class MessagingManager {
 		String data = gson.toJson(new TaskMessage(taskId));		
 		int oId = GeneralUtilityMethods.getOrganisationIdForTask(sd, taskId);	
 		if(oId >= 0) {
-			createMessage(sd, oId, "task", null, data);
+			createMessage(sd, oId, NotificationManager.TOPIC_TASK, null, data);
 		}
 	}
 	
@@ -76,7 +76,7 @@ public class MessagingManager {
 		String data = gson.toJson(new UserMessage(userIdent));		
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);	
 		if(oId >= 0) {
-			createMessage(sd, oId, "user", null, data);
+			createMessage(sd, oId, NotificationManager.TOPIC_USER, null, data);
 		}
 	}
 	
@@ -90,7 +90,7 @@ public class MessagingManager {
 		String data = gson.toJson(sm);
 		int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);	
 		if(oId >= 0) {
-			createMessage(sd, oId, "survey", null, data);
+			createMessage(sd, oId, NotificationManager.TOPIC_SURVEY, null, data);
 		}
 	}
 	
@@ -206,7 +206,7 @@ public class MessagingManager {
 			/*
 			 * Write the modified message to pending
 			 */
-			if(createPending) {
+			if(createPending && msgString != null && messageId > 0) {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, oId);
 				pstmt.setString(2, email);
@@ -264,7 +264,7 @@ public class MessagingManager {
 			String server,
 			boolean sendEmail) throws Exception {
 		
-		EmailManager em = new EmailManager();
+		EmailManager em = new EmailManager(localisation);
 		
 		PreparedStatement pstmt = null;
 		try {
@@ -300,6 +300,8 @@ public class MessagingManager {
 						adminEmail,
 						null);
 				
+			} else {
+				log.info("##### - Specific optin message does not need to be sent");
 			}
 			
 			// Record that the opt in message has been sent
@@ -311,7 +313,7 @@ public class MessagingManager {
 					+ "and email = ? ";
 			pstmt = sd.prepareStatement(sqlDone);
 			pstmt.setInt(1, oId);
-			pstmt.setString(2, email);
+			pstmt.setString(2, email.toLowerCase());
 			log.info("Record opt in sent: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
@@ -333,7 +335,7 @@ public class MessagingManager {
 			pstmt = sd.prepareStatement(sqlDone);
 			pstmt.setString(1, e.getMessage());
 			pstmt.setInt(2, oId);
-			pstmt.setString(3, email);
+			pstmt.setString(3, email.toLowerCase());
 			log.info("Record opt in send fail: " + pstmt.toString());
 			pstmt.executeUpdate();
 			

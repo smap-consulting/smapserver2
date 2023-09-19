@@ -26,6 +26,7 @@ public class Organisation {
 	public static int DEFAULT_TRANSCRIBE_LIMIT = 250;
 	public static int DEFAULT_TRANSLATE_LIMIT = 5000;
 	public static int DEFAULT_REKOGNITION_LIMIT = 100;
+	public static int DEFAULT_SENTIMENT_LIMIT = 100;
 	
 	public int id;
 	public String name;

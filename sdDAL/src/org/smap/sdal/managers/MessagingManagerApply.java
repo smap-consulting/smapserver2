@@ -97,7 +97,6 @@ public class MessagingManagerApply {
 
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
-			//log.info("Get messages: " + pstmtGetMessages.toString());
 			rs = pstmtGetMessages.executeQuery();
 			while (rs.next()) {
 
@@ -137,33 +136,33 @@ public class MessagingManagerApply {
 				pstmtConfirm.setInt(2, id);
 				pstmtConfirm.executeUpdate();
 				
-				if(topic.equals("task")) {
+				if(topic.equals(NotificationManager.TOPIC_TASK)) {
 					TaskMessage tm = gson.fromJson(data, TaskMessage.class);
 					
 					changedTasks.put(tm.id, tm);
 					
-				} else if(topic.equals("survey")) {
+				} else if(topic.equals(NotificationManager.TOPIC_SURVEY)) {
 					
 					SurveyMessage sm = gson.fromJson(data, SurveyMessage.class);
 					
 					changedSurveys.put(sm.id, sm);
 					
-				} else if(topic.equals("user")) {
+				} else if(topic.equals(NotificationManager.TOPIC_USER)) {
 					UserMessage um = gson.fromJson(data, UserMessage.class);
 					
 					usersImpacted.put(um.ident, um.ident);
 					
-				} else if(topic.equals("project")) {
+				} else if(topic.equals(NotificationManager.TOPIC_PROJECT)) {
 					ProjectMessage pm = gson.fromJson(data, ProjectMessage.class);
 					
 					changedProjects.put(pm.id, pm);
 					
-				} else if(topic.equals("resource")) {
+				} else if(topic.equals(NotificationManager.TOPIC_RESOURCE)) {
 					OrgResourceMessage orm = gson.fromJson(data, OrgResourceMessage.class);
 					
 					changedResources.put(orm.resourceName, orm);
 					
-				} else if(topic.equals("submission") || topic.equals("cm_alert")) {
+				} else if(topic.equals(NotificationManager.TOPIC_SUBMISSION) || topic.equals(NotificationManager.TOPIC_CM_ALERT)) {
 					/*
 					 * A submission notification is a notification associated with a record of data
 					 */
@@ -179,7 +178,9 @@ public class MessagingManagerApply {
 								msg,
 								id,
 								topic,
-								true		// create pending if needed
+								true,		// create pending if needed
+								serverName,
+								basePath
 								); 
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
@@ -189,7 +190,7 @@ public class MessagingManagerApply {
 								e.getMessage(), id);
 					}
 					
-				} else if(topic.equals("reminder")) {
+				} else if(topic.equals(NotificationManager.TOPIC_REMINDER)) {
 					// Use SubmissionMessage structure - this may change
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
 			
@@ -203,10 +204,12 @@ public class MessagingManagerApply {
 							msg,
 							id,
 							topic,
-							true		// create pending if needed
+							true,		// create pending if needed
+							serverName,
+							basePath
 							); 
 					
-				} else if(topic.equals("email_task")) {
+				} else if(topic.equals(NotificationManager.TOPIC_EMAIL_TASK)) {
 					TaskManager tm = new TaskManager(localisation, tz);
 
 					EmailTaskMessage msg = gson.fromJson(data, EmailTaskMessage.class);	
@@ -225,7 +228,7 @@ public class MessagingManagerApply {
 							true);		// create pending if needed
 					
 					
-				} else if(topic.equals("mailout")) {
+				} else if(topic.equals(NotificationManager.TOPIC_MAILOUT)) {
 					
 					MailoutManager mm = new MailoutManager(localisation);
 					
@@ -245,6 +248,30 @@ public class MessagingManagerApply {
 							true);		// create pending if needed
 					
 					
+				} else if(topic.equals(NotificationManager.TOPIC_PERIODIC)) {
+					
+					NotificationManager nm = new NotificationManager(localisation);
+					
+					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);	
+						
+					try {
+						nm.processPeriodicNotification(
+								sd, 
+								cResults, 
+								organisation, 
+								msg,
+								id,
+								topic,
+								true,		// create pending if needed
+								serverName,
+								basePath
+								); 
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+						lm.writeLogOrganisation(sd, o_id, localisation.getString("pn"), LogManager.NOTIFICATION_ERROR, e.getMessage(), 0);
+					}
+					
+					
 				} else {
 					// Assume a direct email to be processed immediately
 
@@ -260,7 +287,7 @@ public class MessagingManagerApply {
 						subject += localisation.getString("c_message");
 						try {
 							PeopleManager pm = new PeopleManager(localisation);
-							EmailManager em = new EmailManager();
+							EmailManager em = new EmailManager(localisation);
 							InternetAddress[] emailArray = InternetAddress.parse(topic);
 							SubscriptionStatus subStatus = null;
 							for(InternetAddress ia : emailArray) {
@@ -270,27 +297,31 @@ public class MessagingManagerApply {
 								if(subStatus.unsubscribed) {
 									unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
 								} else {
-									em.sendEmail(
-											ia.getAddress(), 
-											null, 
-											"notify", 
+									StringBuilder content = new StringBuilder("");
+									
+									content.append(localisation.getString("email_ian"));
+									content.append(" https://");
+									content.append(serverName);
+									content.append(". ");
+
+									content.append(localisation.getString("email_dnr"));
+									content.append("\n\n");
+									
+									em.sendEmailHtml(
+											ia.getAddress(), 	// email
+											"bcc",
 											subject, 
-											description, 
-											from, 
-											null, 
-											null, 
-											null, 
-											null, 
+											content, 
 											null,
-											null, 
-											organisation.getAdminEmail(), 
-											emailServer, 
-											"https", 
+											null,
+											emailServer,
 											serverName, 
 											subStatus.emailKey,
 											localisation,
-											organisation.server_description,
-											organisation.name);
+											null,
+											organisation.getAdminEmail(), 
+											null
+											);
 								}
 							}
 						} catch (Exception e) {
@@ -374,6 +405,7 @@ public class MessagingManagerApply {
 
 	/*
 	 * Send pending email messages
+	 * These are stored in the pending queue until the user opts in to receive them
 	 */
 	public void applyPendingEmailMessages(Connection sd, Connection cResults, String serverName, String basePath) {
 
@@ -443,7 +475,7 @@ public class MessagingManagerApply {
 				pstmtConfirm.executeUpdate();
 				
 				String email = null;
-				if(topic.equals("submission")) {
+				if(topic.equals(NotificationManager.TOPIC_SUBMISSION)) {
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
 					email = msg.user;
 					
@@ -456,11 +488,12 @@ public class MessagingManagerApply {
 							msg,
 							messageId,
 							topic,
-							false		// Do not create pending
+							false,		// Do not create pending
+							serverName,
+							basePath
 							); 
 					
-				} else if(topic.equals("reminder")) {
-					// Use SubmissionMessage structure - this may change
+				} else if(topic.equals(NotificationManager.TOPIC_REMINDER)) {
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
 					email = msg.user;
 					
@@ -474,10 +507,12 @@ public class MessagingManagerApply {
 							msg,
 							messageId,
 							topic,
-							false		// Do not create pending
+							false,		// Do not create pending
+							serverName,
+							basePath
 							); 
 					
-				} else if(topic.equals("email_task")) {
+				} else if(topic.equals(NotificationManager.TOPIC_EMAIL_TASK)) {
 					TaskManager tm = new TaskManager(localisation, tz);				
 					EmailTaskMessage msg = gson.fromJson(data, EmailTaskMessage.class);	
 					email = msg.user;
@@ -496,7 +531,7 @@ public class MessagingManagerApply {
 							false);		// Do not create pending
 					
 					
-				} else if(topic.equals("mailout")) {
+				} else if(topic.equals(NotificationManager.TOPIC_MAILOUT)) {
 					MailoutManager mm = new MailoutManager(localisation);
 
 					MailoutMessage msg = gson.fromJson(data, MailoutMessage.class);	
@@ -514,6 +549,26 @@ public class MessagingManagerApply {
 							serverName,
 							topic,
 							false);		// Do not create pending	
+					
+				} else if(topic.equals(NotificationManager.TOPIC_PERIODIC)) {
+					
+					NotificationManager nm = new NotificationManager(localisation);
+					
+					
+					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);	
+					email = msg.user;
+					
+					nm.processPeriodicNotification(
+							sd, 
+							cResults, 
+							organisation, 
+							msg,
+							id,
+							topic,
+							false,		// Do not create pending
+							serverName,
+							basePath
+							); 
 					
 				} else {
 

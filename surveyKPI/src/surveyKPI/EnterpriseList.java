@@ -32,8 +32,10 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.model.Enterprise;
 import com.google.gson.Gson;
@@ -156,13 +158,18 @@ public class EnterpriseList extends Application {
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		Enterprise enterprise = gson.fromJson(data, Enterprise.class);
 		try {
+			
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
 			if(enterprise.id == -1) {	// New enterprise		
 				pstmt = sd.prepareStatement(sqlCreate);
 			} else {						// Existing enterprise				
 				pstmt = sd.prepareStatement(sqlUpdate);
 			}
 
-			pstmt.setString(1, enterprise.name);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(enterprise.name, localisation));
 			pstmt.setString(2, request.getRemoteUser());
 			if(enterprise.id > -1) {
 				pstmt.setInt(3, enterprise.id);
@@ -181,6 +188,9 @@ public class EnterpriseList extends Application {
 				response = Response.serverError().entity(e.getMessage()).build();
 			}
 
+		} catch (ApplicationException ax) {
+			response = Response.serverError().entity(ax.getMessage()).build();
+			
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
 			SDDataSource.closeConnection("surveyKPI-OrganisationList-updateOrganisation", sd);

@@ -67,7 +67,6 @@ import org.smap.sdal.managers.LanguageCodeManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.OrganisationManager;
-import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.SurveyViewManager;
@@ -137,7 +136,6 @@ public class GeneralUtilityMethods {
 
 	private static int LENGTH_QUESTION_NAME = 57; // 63 max size of postgresql column names.
 	private static int LENGTH_QUESTION_RAND = 5;
-
 
 	private static String[] smapMeta = new String[] { "instanceid", "_instanceid", "_start", "_end", "_device",
 			"prikey", "parkey", "_bad", "_bad_reason", "_user", "_survey_notes", 
@@ -738,7 +736,7 @@ public class GeneralUtilityMethods {
 	 */
 	public static void sendToS3(Connection sd, String basePath, String filePath, int oId, boolean isMedia) throws SQLException {
 
-		String sql = "insert into s3upload (filepath, o_id, is_media, status ) values(?, ?, ?, 'new')";
+		String sql = "insert into s3upload (filepath, o_id, is_media, status, created_time ) values(?, ?, ?, 'new', now())";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
@@ -1327,7 +1325,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the current organisation id for the user 
+	 * Get the organisation id from the organisation name 
 	 */
 	static public int getOrganisationIdfromName(Connection sd, String orgName) throws SQLException {
 
@@ -1356,7 +1354,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the current organisation id for the user 
+	 * Get the organisation name for the user 
 	 */
 	static public String getOrganisationName(Connection sd, String user) throws SQLException {
 
@@ -1403,6 +1401,35 @@ public class GeneralUtilityMethods {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				o_id = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return o_id;
+	}
+	
+	/*
+	 * Get the organisation id for a report
+	 */
+	static public int getOrganisationIdForReport(Connection sd, int rId) throws SQLException {
+
+		int o_id = -1;
+
+		String sql = "select o_id " + 
+				" from users " + 
+				"where id = ? ";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, rId);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				o_id = rs.getInt(1);
@@ -2407,6 +2434,36 @@ public class GeneralUtilityMethods {
 		}
 
 		return p_id;
+	}
+	
+	/*
+	 * Get the survey project name from the survey id
+	 */
+	static public String getProjectNameFromSurvey(Connection sd, int surveyId) throws SQLException {
+
+		String name = null;
+
+		String sql = "select p. name "
+				+ "from project p, survey s "
+				+ "where s.s_id = ? "
+				+ "and s.p_id = p.id";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, surveyId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				name = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return name;
 	}
 	
 	/*
@@ -6389,92 +6446,6 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Method to assign a record to a user
-	 */
-	public static int assignRecord(Connection sd, Connection cResults, ResourceBundle localisation, String tablename, String instanceId, String user, 
-			String type,					// lock || release || assign
-			String surveyIdent,
-			String note
-			) throws SQLException {
-
-		int count = 0;
-		
-		StringBuilder sql = new StringBuilder("update ") 
-				.append(tablename) 
-				.append(" set _assigned = ?, _case_survey = ? ")
-				.append("where _thread = ? ");
-
-		if(user != null && user.equals("_none")) {		// Assigning to no one
-			user = null;
-			surveyIdent = null;
-		}
-		
-		String thread = GeneralUtilityMethods.getThread(cResults, tablename, instanceId);
-		
-		String assignTo = user;
-		String caseSurvey = surveyIdent;
-		String details = null;
-		if(type.equals("lock")) {
-			sql.append("and _assigned is null");		// User can only self assign if no one else is assigned
-			details = localisation.getString("cm_lock");
-		} else if(type.equals("release")) {
-			assignTo = null;
-			caseSurvey = null;
-			sql.append("and _assigned = ?");			// User can only release records that they are assigned to
-			details = localisation.getString("cm_release") + ": " + (note == null ? "" : note);
-		} else {
-			if(user != null) {
-				details = localisation.getString("assignee_ident");
-			} else {
-				details = localisation.getString("cm_ua");
-			}
-		}
-		
-		if(assignTo != null) {
-			assignTo = assignTo.toLowerCase().trim();
-		}
-		
-		PreparedStatement pstmt = cResults.prepareStatement(sql.toString());
-		pstmt.setString(1, assignTo);
-		pstmt.setString(2, caseSurvey);
-		pstmt.setString(3,thread);
-		if(type.equals("release")) {
-			pstmt.setString(4,user);
-		}
-		log.info("Assign record: " + pstmt.toString());
-		
-		/*
-		 * Write the event before applying the update so that an alert can be sent to the previously assigned user
-		 */
-		RecordEventManager rem = new RecordEventManager();
-		rem.writeEvent(
-				sd, 
-				cResults, 
-				RecordEventManager.ASSIGNED, 
-				"success",
-				user, 
-				tablename, 
-				instanceId, 
-				null,				// Change object
-				null,	// Task Object
-				null,				// Notification object
-				details, 
-				0,				// sId (don't care legacy)
-				null,
-				0,				// Don't need task id if we have an assignment id
-				0				// Assignment id
-				);
-		
-		try {
-			count = pstmt.executeUpdate();
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
-		}
-		
-		return count;
-	}
-	
-	/*
 	 * Method to check for presence of the specified column in a specific schema
 	 */
 	public static boolean hasColumnInSchema(Connection cRel, String tablename, String columnName, String schema) {
@@ -7550,7 +7521,7 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Set the parameters for an array of sql fragments
+	 * Set the parameters for an sql fragment
 	 */
 	public static int setFragParams(PreparedStatement pstmt, SqlFrag frag, int index, String tz) throws Exception {
 		int attribIdx = index;
@@ -8880,6 +8851,7 @@ public class GeneralUtilityMethods {
 		/*
 		 * If type is uploadedSurveys then also get attachments as raw media are no longer saved
 		 */
+		log.info("Restore files for survey: " + ident);
 		if(type.equals("uploadedSurveys")) {
 			Process proc2 = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/restoreFiles.sh " + 
 					ident + 	" attachments"});
@@ -9900,7 +9872,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Write the autoupdate questions to a table that acts as an index in order to make i easier for the autoupdate process
+	 * Write the autoupdate questions to a table that acts as an index in order to make it easier for the autoupdate process
 	 * to find the questions it needs to operate on
 	 */
 	public static void writeAutoUpdateQuestion(Connection sd, int sId, int qId, String parameters, boolean change) throws SQLException {
@@ -9914,11 +9886,13 @@ public class GeneralUtilityMethods {
 					&& parameters.contains("source=")
 					&& (parameters.contains("auto_annotate=yes") || parameters.contains("auto_annotate=true"))) {
 				
+				deleteAutoUpdateQuestion(sd, sId, qId);	// Remove duplicates
+				
 				try {
 					pstmt = sd.prepareStatement(sql);
 					pstmt.setInt(1, qId);
 					pstmt.setInt(2, sId);
-					pstmt.executeUpdate();		
+					pstmt.executeUpdate();	
 				} finally {
 					if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 				}
@@ -10785,10 +10759,15 @@ public class GeneralUtilityMethods {
 		if(action_details != null) {
 			a = gson.fromJson(action_details, Action.class);
 			
-			// Check that this action does not reference a survey using survey ID
+			
 			if(a != null) {
+				// Check that this action does not reference a survey using survey ID
 				if(a.surveyIdent == null && a.sId > 0) {
 					a.surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, a.sId);
+				}
+				// Some client code still needs surveyId!
+				if(a.surveyIdent != null && a.sId == 0) {
+					a.sId = GeneralUtilityMethods.getSurveyId(sd, a.surveyIdent);
 				}
 			}
 		}
@@ -10911,6 +10890,7 @@ public class GeneralUtilityMethods {
 		
 		return out;
 	}
+	
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");

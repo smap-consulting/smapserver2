@@ -20,6 +20,7 @@ import java.util.logging.Logger;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
+import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Label;
@@ -38,7 +39,7 @@ public class UtilityMethodsEmail {
 	 * Mark a record and all its children as either bad or good
 	 */
 	static public void markRecord(
-			Connection cRel, 
+			Connection cResults, 
 			Connection sd, 
 			ResourceBundle localisation,
 			String tName, 
@@ -73,9 +74,9 @@ public class UtilityMethodsEmail {
 		try {
 
 			if(isChild) {
-				pstmt = cRel.prepareStatement(sqlChild);
+				pstmt = cResults.prepareStatement(sqlChild);
 			} else {
-				pstmt = cRel.prepareStatement(sql);
+				pstmt = cResults.prepareStatement(sql);
 			}
 			pstmt.setBoolean(1, value);
 			pstmt.setString(2, reason);
@@ -115,17 +116,39 @@ public class UtilityMethodsEmail {
 							" where parkey = ?;";
 	
 					if (pstmt2 != null) try {pstmt2.close();} catch(Exception e) {};
-					pstmt2 = cRel.prepareStatement(sql);	
+					pstmt2 = cResults.prepareStatement(sql);	
 					pstmt2.setInt(1, key);
 					log.info(pstmt2.toString());
 	
 					ResultSet childRecs = pstmt2.executeQuery();
 					while(childRecs.next()) {
 						int childKey = childRecs.getInt(1);
-						markRecord(cRel, sd, localisation, childTable, value, reason, childKey, 
+						markRecord(cResults, sd, localisation, childTable, value, reason, childKey, 
 								sId, childFormId, modified, true, user, updateChildren, tz, overideModifiedFlag);
 					}
 				}
+			}
+			
+			/*
+			 * Write to event table if this is the top level table
+			 */
+			if(!isChild) {
+				String instanceId = GeneralUtilityMethods.getInstanceId(cResults, tName, key);
+				RecordEventManager rem = new RecordEventManager();
+				rem.writeEvent(sd, cResults, 
+						value ? RecordEventManager.DELETED : RecordEventManager.RESTORED, 
+						RecordEventManager.STATUS_SUCCESS,
+						user, 
+						tName, 
+						instanceId, 
+						null, 					// Change object
+						null, 					// Task object
+						null,					// Notification object
+						reason, 				// Description
+						sId, 
+						null,
+						0,
+						0);	
 			}
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"Error", e);

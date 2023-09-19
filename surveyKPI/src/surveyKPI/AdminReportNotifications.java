@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -49,7 +50,8 @@ public class AdminReportNotifications extends Application {
 	@GET
 	public Response exportNotifications (
 			@Context HttpServletRequest request, 
-			@Context HttpServletResponse response) {
+			@Context HttpServletResponse response,
+			@QueryParam("tz") String tz) {
 
 		Response responseVal;
 		
@@ -58,6 +60,10 @@ public class AdminReportNotifications extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
 		
 		try {
 			
@@ -69,7 +75,7 @@ public class AdminReportNotifications extends Application {
 			String filename = localisation.getString("ar_report_name");
 			
 			XLSXAdminReportsNotifications rn = new XLSXAdminReportsNotifications(localisation);
-			responseVal = rn.getNewReport(sd, request, response, filename, oId);
+			responseVal = rn.getNewReport(sd, request, response, filename, oId, tz);
 			
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "Error", e);

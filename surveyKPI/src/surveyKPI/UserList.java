@@ -37,8 +37,10 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -168,7 +170,7 @@ public class UserList extends Application {
 			) { 
 
 		Response response = null;
-		String connectionString = "surveyKPI-getUsers";
+		String connectionString = "surveyKPI-getUsersSimple";
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -250,8 +252,6 @@ public class UserList extends Application {
 
 		return response;
 	}
-
-	
 	
 	/*
 	 * Get the users who have access to a specific project
@@ -797,16 +797,23 @@ public class UserList extends Application {
 						}
 					}
 					
+					boolean userError = false;
 					for(User u : users) {
 						try {
-							
+							HtmlSanitise.checkCleanName(u.name, localisation);
 							um.createUser(sd, u, oId, 
 									isOrgUser, isSecurityManager, false, false, 
 									request.getRemoteUser(), scheme, serverName, adminName, adminEmail, localisation);
 							added.add(u.name);
 						} catch (Exception e) {
-							log.info("Falied to add user " + u.name + " : " + e.getMessage());
+							String msg = localisation.getString("ar_user_not_created") + " " + u.name + " " + e.getMessage();
+							log.info(msg);
+							lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), LogManager.USER, msg, 0);
+							userError = true;
 						}
+					}
+					if(userError) {
+						throw new ApplicationException(localisation.getString("u_import_err"));
 					}
 					
 					

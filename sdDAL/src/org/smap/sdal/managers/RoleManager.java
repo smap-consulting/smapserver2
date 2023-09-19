@@ -12,6 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.RoleName;
@@ -159,8 +160,8 @@ public class RoleManager {
 			if(GeneralUtilityMethods.getRoleId(sd, r.name, oId) <= 0) {	// Role name does not exist
 				pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 				pstmt.setInt(1, oId);
-				pstmt.setString(2, r.name);
-				pstmt.setString(3, r.desc);
+				pstmt.setString(2, HtmlSanitise.checkCleanName(r.name, localisation));
+				pstmt.setString(3, HtmlSanitise.checkCleanName(r.desc, localisation));
 				pstmt.setBoolean(4, imported);
 				pstmt.setString(5, ident);
 	
@@ -205,8 +206,8 @@ public class RoleManager {
 			
 			pstmt = sd.prepareStatement(sql);
 
-			pstmt.setString(1, r.name);
-			pstmt.setString(2, r.desc);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(r.name, localisation));
+			pstmt.setString(2, HtmlSanitise.checkCleanName(r.desc, localisation));
 			pstmt.setString(3, ident);
 			pstmt.setInt(4, o_id);
 			pstmt.setInt(5, r.id);

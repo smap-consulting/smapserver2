@@ -283,7 +283,6 @@ public class TableDataManager {
 				sqlSelect.append(" and (").append(filterFrag.sql).append(")");
 			}
 			
-			
 			// Add key filters
 			if(keyFilters != null) {
 				for(KeyFilter kf : keyFilters) {

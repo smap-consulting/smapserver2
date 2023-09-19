@@ -41,6 +41,8 @@ public class Action {
 	
 	// Attibuts for mailouts
 	public int mailoutPersonId;
+	public String campaignName;
+	public boolean anonymousCampaign;
 	
 	// General parameters
 	public ArrayList<KeyValueSimp> parameters = null;

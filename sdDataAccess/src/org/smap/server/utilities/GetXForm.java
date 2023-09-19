@@ -44,7 +44,6 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
-import org.smap.sdal.model.DistanceMarker;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Line;

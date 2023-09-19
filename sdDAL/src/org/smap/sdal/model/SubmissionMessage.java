@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 public class SubmissionMessage {
+	public String title;
 	public int taskId;
 	public String survey_ident;
 	public String survey_case;
@@ -28,18 +29,18 @@ public class SubmissionMessage {
 	public String target;
 	public String user;
 	public String scheme;
-	public String server;
-	public String basePath;
 	public String callback_url;
 	public String remoteUser;
 	public String remotePassword;
 	public int pdfTemplateId;
+	public String period;
+	public int reportId;
 	
 	public SubmissionMessage(
+			String title,
 			int taskId,
 			String survey_ident,
 			String update_ident,
-			int pId, 
 			String instanceId, 
 			String from, 
 			String subject, 
@@ -55,15 +56,16 @@ public class SubmissionMessage {
 			String target,
 			String user,
 			String scheme,
-			String server,
-			String basePath,
 			String callout_url,
 			String remoteUser,
-			String remoTePassword,
+			String remotePassword,
 			int pdfTemplateId,
 			String survey_case,
-			String assignQuestion) {
+			String assignQuestion,
+			String period,
+			int reportId) {
 		
+		this.title = title;
 		this.taskId = taskId;
 		this.survey_ident = survey_ident;
 		this.update_ident = update_ident;
@@ -83,18 +85,19 @@ public class SubmissionMessage {
 		this.target = target;
 		this.user = user;
 		this.scheme = scheme;
-		this.server = server;
-		this.basePath = basePath;
 		this.callback_url = callout_url;
 		this.remoteUser = remoteUser;
-		this.remotePassword = remoTePassword;
+		this.remotePassword = remotePassword;
 		this.pdfTemplateId = pdfTemplateId;
 		this.survey_case = survey_case;
 		this.assignQuestion = assignQuestion;
+		this.period = period;
+		this.reportId = reportId;
 	}
 	
 	// copy constructor
 	public SubmissionMessage(SubmissionMessage orig) {
+		this.title = orig.title;
 		this.taskId = orig.taskId;
 		this.survey_ident = orig.survey_ident;
 		this.update_ident = orig.update_ident;
@@ -118,14 +121,14 @@ public class SubmissionMessage {
 		this.target = orig.target;
 		this.user = orig.user;
 		this.scheme = orig.scheme;
-		this.server = orig.server;
-		this.basePath = orig.basePath;
 		this.callback_url = orig.callback_url;
 		this.remoteUser = orig.remoteUser;
 		this.remotePassword = orig.remotePassword;
 		this.pdfTemplateId = orig.pdfTemplateId;
 		this.survey_case = orig.survey_case;
 		this.assignQuestion = orig.assignQuestion;
+		this.period = orig.period;
+		this.reportId = orig.reportId;
 	}
 	
 	public boolean emailQuestionSet() {

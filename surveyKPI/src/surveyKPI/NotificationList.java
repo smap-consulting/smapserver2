@@ -38,6 +38,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -99,7 +100,8 @@ public class NotificationList extends Application {
 	@Path("/{projectId}")
 	@GET
 	public Response getNotifications(@Context HttpServletRequest request,
-			@PathParam("projectId") int projectId) { 
+			@PathParam("projectId") int projectId,
+			@QueryParam("tz") String tz) throws Exception { 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-Notifications";
@@ -107,7 +109,12 @@ public class NotificationList extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		// End Authorisation
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
 		
 		PreparedStatement pstmt = null;
 		
@@ -117,7 +124,7 @@ public class NotificationList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			NotificationManager nm = new NotificationManager(localisation);
-			ArrayList<Notification> nList = nm.getProjectNotifications(sd, pstmt, request.getRemoteUser(), projectId);
+			ArrayList<Notification> nList = nm.getProjectNotifications(sd, pstmt, request.getRemoteUser(), projectId, tz);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(nList);
@@ -174,127 +181,14 @@ public class NotificationList extends Application {
 
 	}
 	
-	
-	/*
-	 * Get remote surveys that can be used as the target of a forward
-	 */
-	@Path("/getRemoteSurveys")
-	@POST
-	public Response getRemoteSurveys(@Context HttpServletRequest request,
-			@FormParam("remote") String remoteString) { 
-		
-		Response response = null;
-		
-		Type type = new TypeToken<Remote>(){}.getType();
-		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-		Remote r = gson.fromJson(remoteString, type);
-
-		if(r == null) {
-			response = Response.serverError().entity("Details for remote server not provided").build();
-			return response;
-		}
-		
-		// Remove trailing slashes
-		if(r.address.endsWith("/")) {
-			r.address = r.address.substring(0, r.address.length() -1);
-		}
-		
-		String host = null;
-		String protocol = null;
-		int port;
-		if(r.address.startsWith("https://")) {
-			host = r.address.substring(8);
-			port = 443;
-			protocol = "https";
-		} else if(r.address.startsWith("http://")) {
-			host = r.address.substring(7);
-			port = 80;
-			protocol = "http";
-		} else {
-			response = Response.serverError().entity("Invalid server address: " + r.address).build();
-			return response;
-		}
-		
-		/*
-		 * Call formList on remote host
-		 */
-		try {
-		
-			HttpHost target = new HttpHost(host, port, protocol);
-		    CredentialsProvider credsProvider = new BasicCredentialsProvider();
-		    credsProvider.setCredentials(
-		                new AuthScope(target.getHostName(), target.getPort()),
-		                new UsernamePasswordCredentials(r.user, r.password));
-		    CloseableHttpClient httpclient = HttpClients.custom()
-		                .setDefaultCredentialsProvider(credsProvider)
-		                .build();
-
-            HttpClientContext localContext = HttpClientContext.create();
-		    
-			HttpGet httpget = new HttpGet(r.address + "/formList");
-			httpget.addHeader("accept", "text/xml");
-			httpget.addHeader("X-OpenRosa-Version", "1.1");
-			
-			log.info("Executing request " + httpget.getRequestLine() + " to target " + target);
-          
-			XformsJavaRosa fList = null;
-			String resp = null;
-            CloseableHttpResponse rem_response = httpclient.execute(target, httpget, localContext);
-            int status = rem_response.getStatusLine().getStatusCode();
-            if (status >= 200 && status < 300) {
-	            HttpEntity entity = rem_response.getEntity();
-	            if(entity != null) {
-	            	JAXBContext ctx = JAXBContext.newInstance(XformsJavaRosa.class);
-	            	
-	            	String rs = EntityUtils.toString(entity,"UTF8");
-	          
-	        		Unmarshaller um = ctx.createUnmarshaller();
-	        		um.setEventHandler(new javax.xml.bind.helpers.DefaultValidationEventHandler());
-	        		fList =  (XformsJavaRosa) um.unmarshal(new StringReader(rs));
-	        		
-	        		
-	            }
-            } else if (status == 401 ){
-            	throw new AuthorisationException();
-            } else {
-            	throw new ClientProtocolException("Failed : HTTP error code : "
-      				   + rem_response.getStatusLine().getStatusCode());
-            }
-                
-            if(fList != null) {
-            	log.info("Length: " + fList.xform.size());
-				Gson gsonResp = new GsonBuilder().disableHtmlEscaping().create();
-				resp = gsonResp.toJson(fList.xform);
-            }
-			
-			response = Response.ok(resp).build();
-			
-		} catch (ClientProtocolException e) {
-			log.log(Level.SEVERE,"Client Protocol Exception", e);
-			response = Response.serverError().entity(e.getMessage()).build();
-		} catch (IOException e) {
-			log.log(Level.SEVERE,"IO Exception", e);
-			response = Response.serverError().entity(e.getMessage()).build();
-		} catch (JAXBException e) {
-			log.log(Level.SEVERE,"JAXB Exception", e);
-			response = Response.serverError().entity(e.getMessage()).build();
-		} catch (AuthorisationException e) {
-			log.log(Level.SEVERE,"Authorisation Exception", e);
-			response = Response.status(500).entity("Unauthorised").build();	// Don't return a status of 401 as it will log the user out of their local server
-		} catch (Exception e) {
-			response = Response.serverError().entity(e.getMessage()).build();
-		}
-		
-		return response;
-	}
-	
 	/*
 	 * Add a notifications
 	 */
 	@Path("/add")
 	@POST
 	public Response addNotification(@Context HttpServletRequest request,
-			@FormParam("notification") String notificationString) { 
+			@FormParam("notification") String notificationString,
+			@QueryParam("tz") String tz) { 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-Survey - add notification";
@@ -312,10 +206,19 @@ public class NotificationList extends Application {
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), n.s_id, false, superUser);
+		if(n.s_id > 0) {
+			a.isValidSurvey(sd, request.getRemoteUser(), n.s_id, false, superUser);
+		}
+		if(n.p_id > 0) {
+			a.isValidProject(sd, request.getRemoteUser(), n.p_id);
+		}
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
 		
 		try {	
 			// Localisation			
@@ -323,40 +226,22 @@ public class NotificationList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			NotificationManager nm = new NotificationManager(localisation);
-			
-			// Validate
-			if(n.target.equals("forward") && nm.isFeedbackLoop(sd, request.getServerName(), n)) {
-				throw new Exception("Survey is being forwarded to itself");
-			}
  
-			nm.addNotification(sd, pstmt, request.getRemoteUser(), n);
+			nm.addNotification(sd, pstmt, request.getRemoteUser(), n, tz);
 			
 			response = Response.ok().build();
 			
 		} catch (SQLException e) {
-			String msg = e.getMessage();
-			if(msg.contains("forwarddest")) {	// Unique key
-				response = Response.serverError().entity("Duplicate forwarding address").build();
-			} else {
-				response = Response.serverError().entity("SQL Error").build();
-				log.log(Level.SEVERE,"SQL Exception", e);
-			}
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"SQL Exception", e);
 		} catch (AuthorisationException e) {
 			log.info("Authorisation Exception");
 		    response = Response.serverError().entity("Not authorised").build();
 		} catch (ApplicationException e) {
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} catch (Exception e) {
-			String msg = e.getMessage();
-			log.info(msg);
-			if(msg == null) {
-				msg = "System Error";
-			}
-			if(msg != null && !msg.contains("forwarded to itself")) {
-				msg = "System Error";
-				log.log(Level.SEVERE,"Error", e);
-			}
-		    response = Response.serverError().entity(msg).build();
+			log.log(Level.SEVERE,"Error", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -372,7 +257,8 @@ public class NotificationList extends Application {
 	@Path("/update")
 	@POST
 	public Response updateNotification(@Context HttpServletRequest request,
-			@FormParam("notification") String notificationString) { 
+			@FormParam("notification") String notificationString,
+			@QueryParam("tz") String tz) { 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-Survey-update notification";
@@ -389,7 +275,12 @@ public class NotificationList extends Application {
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), n.s_id, false, superUser);
+		if(n.s_id > 0) {
+			a.isValidSurvey(sd, request.getRemoteUser(), n.s_id, false, superUser);
+		}
+		if(n.p_id > 0) {
+			a.isValidProject(sd, request.getRemoteUser(), n.p_id);
+		}
 		// End Authorisation
 		
 		log.info("Update notification for survey: " + request.getRemoteUser() + " : "+ n.s_id + " Remote s_id: " + 
@@ -397,16 +288,17 @@ public class NotificationList extends Application {
 		
 		PreparedStatement pstmt = null;
 		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
 		try {
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			NotificationManager nm = new NotificationManager(localisation);
-			if(n.target.equals("forward") && nm.isFeedbackLoop(sd, request.getServerName(), n)) {
-				throw new Exception("Survey is being forwarded to itself");
-			}
-			nm.updateNotification(sd, pstmt, request.getRemoteUser(), n);	
+			nm.updateNotification(sd, pstmt, request.getRemoteUser(), n, tz);	
 			response = Response.ok().build();
 			
 		} catch (SQLException e) {
@@ -417,18 +309,9 @@ public class NotificationList extends Application {
 		    response = Response.serverError().entity("Not authorised").build();
 		} catch (ApplicationException e) {
 		    response = Response.serverError().entity(e.getMessage()).build();
-		} catch (Exception e) {
-			String msg = e.getMessage();
-			log.info(msg);
-			if(msg!= null && !msg.contains("forwarded to itself")) {
-				log.log(Level.SEVERE,"Error", e);
-			} else if(msg == null) {
-				log.log(Level.SEVERE,"Error", e);
-				msg = "System error";
-			} else {
-				msg = "System error";
-			}
-		    response = Response.serverError().entity(msg).build();
+		} catch (Exception e) {	
+			log.log(Level.SEVERE,"Error", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -462,10 +345,10 @@ public class NotificationList extends Application {
 		try {
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
 			
 			ResultSet resultSet = null;
-			String sql = "select s_id " +
+			String sql = "select s_id, p_id " +
 					" from forward " +
 					" where id = ?";
 			
@@ -476,8 +359,14 @@ public class NotificationList extends Application {
 			resultSet = pstmt.executeQuery();
 			if(resultSet.next()) {
 				int sId = resultSet.getInt(1);
-				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-				a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+				int pId = resultSet.getInt(2);
+				
+				if(sId > 0) {
+					superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+					a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+				} else {
+					a.isValidProject(sd, request.getRemoteUser(), pId);
+				}
 				NotificationManager fm = new NotificationManager(localisation);
 				fm.deleteNotification(sd, request.getRemoteUser(), id);
 			}
@@ -544,25 +433,16 @@ public class NotificationList extends Application {
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			NotificationManager nm = new NotificationManager(localisation);
-			
-			// Validate
-			if(n.target.equals("forward") && nm.isFeedbackLoop(sd, request.getServerName(), n)) {
-				throw new Exception("Survey is being forwarded to itself");
-			}
-			
+					
 			NotifyDetails nd = n.notifyDetails;
 			int pId = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, n.sIdent);
-			String basePath = GeneralUtilityMethods.getBasePath(request);
-			String serverName = request.getServerName();
 			String scheme = request.getScheme();
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			SubmissionMessage subMsg = new SubmissionMessage(
+					"Immediate",		// Title
 					0,					// Task Id - ignore, only relevant for a reminder
 					n.sIdent,			// Survey Ident
 					null,				// Update Survey
-					pId,
 					n.instanceId, 
 					nd.from,
 					nd.subject, 
@@ -578,43 +458,29 @@ public class NotificationList extends Application {
 					n.target,
 					request.getRemoteUser(),
 					scheme,
-					serverName,
-					basePath,
 					nd.callback_url,
 					n.remote_user,
 					n.remote_password,
 					0,			// Use default pdfTemplateId TODO make this selectable
 					nd.survey_case,
-					nd.assign_question
+					nd.assign_question,
+					null,				// Report Period
+					0					// report id
 					);
 			MessagingManager mm = new MessagingManager(localisation);
-			mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
+			mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 			
 			response = Response.ok().build();
 			
 		} catch (SQLException e) {
-			String msg = e.getMessage();
-			if(msg.contains("forwarddest")) {	// Unique key
-				response = Response.serverError().entity("Duplicate forwarding address").build();
-			} else {
-				response = Response.serverError().entity("SQL Error").build();
-				log.log(Level.SEVERE,"SQL Exception", e);
-			}
+			response = Response.serverError().entity("SQL Error").build();
+			log.log(Level.SEVERE,"SQL Exception", e);
 		} catch (AuthorisationException e) {
 			log.info("Authorisation Exception");
 		    response = Response.serverError().entity("Not authorised").build();
-		} catch (ApplicationException e) {
-		    response = Response.serverError().entity(e.getMessage()).build();
 		} catch (Exception e) {
 			String msg = e.getMessage();
-			log.info(msg);
-			if(msg == null) {
-				msg = "System Error";
-			}
-			if(msg != null && !msg.contains("forwarded to itself")) {
-				msg = "System Error";
-				log.log(Level.SEVERE,"Error", e);
-			}
+			log.log(Level.SEVERE,"Error", e);
 		    response = Response.serverError().entity(msg).build();
 		} finally {
 			

@@ -23,9 +23,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import java.util.ArrayList;
-import java.util.Locale;
-import java.util.ResourceBundle;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -34,8 +31,8 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 
 import org.smap.sdal.Utilities.Authorise;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.LogManager;
 
 /*
  * Login functions
@@ -44,6 +41,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 public class memTest extends Application {
 	
 	Authorise a = new Authorise(null, Authorise.OWNER);
+	LogManager lm = new LogManager();		// Application log
 	
 	/*
 	 * Login and get a key for future authentication
@@ -58,7 +56,6 @@ public class memTest extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);	
 		a.isAuthorised(sd, request.getRemoteUser());
 		sd.close();
-		
 		
 		ArrayList<String> data = new ArrayList<> ();
 		 		

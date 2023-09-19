@@ -464,7 +464,7 @@ create TABLE user_role (
 	);
 ALTER TABLE user_role OWNER TO ws;
 
--- Create an administrator and set up defaul values
+-- Create an administrator and set up default values
 insert into enterprise(id, name, changed_by, changed_ts) values(1, 'Default', '', now());
 -- Create an organisation with communal ownership
 insert into organisation(id, name, e_id, can_edit, owner) values(1, 'Smap', 1, 'true', 0);
@@ -539,12 +539,14 @@ CREATE TABLE upload_event (
 	start_time timestamp with time zone,
 	end_time timestamp with time zone,
 	scheduled_start timestamp with time zone,
+	processed_time timestamp with time zone,
 	instance_name text,
 	temporary_user boolean default false
 	);
 create index idx_ue_ident on upload_event(user_name);
 create index idx_ue_applied on upload_event (status, incomplete, results_db_applied);
 create index idx_ue_upload_time on upload_event (upload_time);
+create index idx_ue_processed_time on upload_event (processed_time);
 CREATE index ue_survey_ident ON upload_event(ident);
 CREATE INDEX idx_ue_p_id ON upload_event(p_id);
 ALTER TABLE upload_event OWNER TO ws;
@@ -559,13 +561,12 @@ DROP TABLE IF EXISTS survey_change CASCADE;
 DROP TABLE IF EXISTS survey CASCADE;
 CREATE TABLE survey (
 	s_id INTEGER DEFAULT NEXTVAL('s_seq') CONSTRAINT pk_survey PRIMARY KEY,
-	name text,
 	ident text,										-- identifier used by survey clients
 	version integer,								-- Version of the survey
 	p_id INTEGER REFERENCES project(id),			-- Project id
 	blocked boolean default false,					-- Blocked indicator, no uploads accepted if true
 	deleted boolean default false,					-- Soft delete indicator
-	display_name text not null,
+	display_name text not null,						-- This is the name. The old name column has beeen removed
 	def_lang text,
 	task_file boolean,								-- allow loading of tasks from a file
 	timing_data boolean,								-- collect timing data on the phone
@@ -826,37 +827,36 @@ CREATE UNIQUE INDEX SscName ON ssc(s_id, name);
 DROP TABLE IF EXISTS forward;
 CREATE TABLE forward (
 	id INTEGER DEFAULT NEXTVAL('forward_seq') CONSTRAINT pk_forward PRIMARY KEY,
-	s_id INTEGER REFERENCES survey ON DELETE CASCADE,
+	s_id INTEGER,
+	p_id integer,
 	name text,
 	enabled boolean,
 	filter text,
-	trigger text,
+	trigger text,						-- cm_alert || task_reminder || console_update || submission || periodic
 	target text,
 	remote_s_id text,
 	remote_s_name text,
 	remote_user text,
 	remote_password text,
 	remote_host text,
-	notify_details text,			-- JSON string
+	notify_details text,				-- JSON string
 	tg_id integer default 0,			-- Reminder notifications
-	period text,						-- Reminder notifications
+	period text,						-- Task Reminder notifications
 	update_survey text references survey(ident) on delete cascade,
 	update_question text,				-- Update notifications
 	update_value text,
-	alert_id integer					-- Set where the source is a case management reminder
+	alert_id integer,					-- Set where the source is a case management reminder
+	periodic_time time,					-- The time of day a periodic trigger is fired
+	periodic_period text,				-- day || week || month || year
+	periodic_day_of_week integer,		-- 0 to 6, Sunday to Saturday for weekly reports
+	periodic_day_of_month integer,		-- Day of the month for monthly and yearly reports
+	periodic_local_day_of_month integer,-- Original local day of the month as this cannot reliably be recreated from utc value
+	periodic_month integer,				-- Month used for yearly reports
+	periodic_local_month integer,		-- Original local month as this cannot reliably be recreated from utc value
+	r_id integer						-- report id
 	);
 ALTER TABLE forward OWNER TO ws;
 CREATE UNIQUE INDEX ForwardDest ON forward(s_id, remote_s_id, remote_host);
-
--- Record sending of notification reminders
-DROP TABLE IF EXISTS reminder;
-CREATE TABLE reminder (
-	id integer DEFAULT NEXTVAL('reminder_seq') CONSTRAINT pk_reminder PRIMARY KEY,
-	n_id integer references forward(id) ON DELETE CASCADE,
-	a_id integer references assignments(id) ON DELETE CASCADE,
-	reminder_date timestamp with time zone
-	);
-ALTER TABLE reminder OWNER TO ws;
 
 -- Log of all sent notifications (except for forwards which are recorded by the forward subscriber)
 DROP TABLE IF EXISTS notification_log;
@@ -986,10 +986,6 @@ DROP SEQUENCE IF EXISTS task_rejected_seq CASCADE;
 CREATE SEQUENCE task_rejected_seq START 1;
 ALTER TABLE task_rejected_seq OWNER TO ws;
 
-DROP SEQUENCE IF EXISTS task_history_seq CASCADE;
-CREATE SEQUENCE task_histoy_seq START 1;
-ALTER TABLE task_history_seq OWNER TO ws;
-
 DROP SEQUENCE IF EXISTS task_group_id_seq CASCADE;
 CREATE SEQUENCE task_group_id_seq START 1;
 ALTER TABLE task_group_id_seq OWNER TO ws;
@@ -1044,15 +1040,6 @@ CREATE INDEX task_task_group ON tasks(tg_id);
 create index idx_tasks_del_auto on tasks (deleted, assign_auto);
 ALTER TABLE public.tasks OWNER TO ws;
 
-CREATE TABLE public.task_rejected (
-	id integer DEFAULT nextval('task_rejected_seq') NOT NULL PRIMARY KEY,
-	a_id integer REFERENCES assignments(id) ON DELETE CASCADE,    -- assignment id
-	ident text,		 -- user identifier
-	rejected_at timestamp with time zone
-);
-CREATE UNIQUE INDEX taskRejected ON task_rejected(a_id, ident);
-ALTER TABLE public.task_rejected OWNER TO ws;
-
 CREATE TABLE public.locations (
 	id integer DEFAULT nextval('location_seq') NOT NULL PRIMARY KEY,
 	o_id integer REFERENCES organisation ON DELETE CASCADE,
@@ -1083,6 +1070,25 @@ CREATE INDEX assignments_status ON assignments(status);
 create index idx_assignments_task_id on assignments (task_id);
 create index assignments_assignee on assignments(assignee);
 ALTER TABLE public.assignments OWNER TO ws;
+
+CREATE TABLE public.task_rejected (
+	id integer DEFAULT nextval('task_rejected_seq') NOT NULL PRIMARY KEY,
+	a_id integer REFERENCES assignments(id) ON DELETE CASCADE,    -- assignment id
+	ident text,		 -- user identifier
+	rejected_at timestamp with time zone
+);
+CREATE UNIQUE INDEX taskRejected ON task_rejected(a_id, ident);
+ALTER TABLE public.task_rejected OWNER TO ws;
+
+-- Record sending of notification reminders
+DROP TABLE IF EXISTS reminder;
+CREATE TABLE reminder (
+	id integer DEFAULT NEXTVAL('reminder_seq') CONSTRAINT pk_reminder PRIMARY KEY,
+	n_id integer references forward(id) ON DELETE CASCADE,
+	a_id integer references assignments(id) ON DELETE CASCADE,
+	reminder_date timestamp with time zone
+	);
+ALTER TABLE reminder OWNER TO ws;
 
 -- Table to manage state of user downloads of forms
 DROP SEQUENCE IF EXISTS form_downloads_id_seq CASCADE;
@@ -1382,6 +1388,7 @@ create TABLE mailout (
 	content text,
 	subject text,
 	multiple_submit boolean,
+	anonymous boolean,				-- Set true if submissions are anonymous
 	created TIMESTAMP WITH TIME ZONE,
 	modified TIMESTAMP WITH TIME ZONE
 	);
@@ -1512,19 +1519,6 @@ create TABLE style (
 	style text	-- json
 	);
 ALTER TABLE style OWNER TO ws;
-
-DROP SEQUENCE IF EXISTS reminder_seq CASCADE;
-CREATE SEQUENCE reminder_seq START 1;
-ALTER SEQUENCE reminder_seq OWNER TO ws;
-
-DROP TABLE IF EXISTS reminder;
-CREATE TABLE reminder (
-	id integer DEFAULT NEXTVAL('reminder_seq') CONSTRAINT pk_reminder PRIMARY KEY,
-	n_id integer references forward(id) ON DELETE CASCADE,
-	a_id integer references assignments(id) ON DELETE CASCADE,
-	reminder_date timestamp with time zone
-	);
-ALTER TABLE reminder OWNER TO ws;
 
 DROP SEQUENCE IF EXISTS survey_settings_seq CASCADE;
 CREATE SEQUENCE survey_settings_seq START 1;
@@ -1685,9 +1679,25 @@ CREATE TABLE s3upload (
 	reason text,	-- failure reason
 	o_id integer default 0,
 	is_media boolean default false,
+	created_time timestamp with time zone,
 	processed_time TIMESTAMP WITH TIME ZONE		-- Time of processing
 	);
 ALTER TABLE s3upload OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS subevent_queue_seq CASCADE;
+CREATE SEQUENCE subevent_queue_seq START 1;
+ALTER SEQUENCE subevent_queue_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS subevent_queue;
+CREATE TABLE subevent_queue (
+	id integer DEFAULT NEXTVAL('subevent_queue_seq') CONSTRAINT pk_subevent_queue PRIMARY KEY,
+	ue_id integer,
+	linkage_items text,    -- JSON
+	status text,    -- new or failed
+	reason text,	-- failure reason
+	processed_time TIMESTAMP WITH TIME ZONE		-- Time of processing
+	);
+ALTER TABLE subevent_queue OWNER TO ws;
 
 DROP SEQUENCE IF EXISTS cms_alert_seq CASCADE;
 CREATE SEQUENCE cms_alert_seq START 1;
@@ -1700,6 +1710,7 @@ CREATE TABLE cms_alert (
 	group_survey_ident text,
 	name text,
 	period text,
+	filter text,
 	changed_by text,
 	changed_ts TIMESTAMP WITH TIME ZONE	
 	);

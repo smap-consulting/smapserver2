@@ -10,7 +10,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -34,29 +36,26 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONObject;
 import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
 import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.Tables;
 import org.smap.sdal.managers.ActionManager;
-import org.smap.sdal.managers.CustomReportsManager;
+import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.DatabaseConnections;
-import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.LinkageItem;
@@ -64,8 +63,8 @@ import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.ServerData;
+import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumn;
@@ -109,6 +108,8 @@ public class SubscriberBatch {
 			Logger.getLogger(Subscriber.class.getName());
 
 	private static LogManager lm = new LogManager();		// Application log
+	
+	HashMap<String, String> autoErrorCheck = new HashMap<> ();
 
 	/**
 	 * @param args
@@ -125,13 +126,13 @@ public class SubscriberBatch {
 		
 		String sqlResultsDB = "update upload_event "
 				+ "set results_db_applied = 'true',"
+				+ "processed_time = now(),"
 				+ "db_status = ?,"
 				+ "db_reason = ? "
 				+ "where ue_id = ?";
 		PreparedStatement pstmtResultsDB = null;
 		String serverName = null;
 
-		String language = "none";
 		try {
 			GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 			serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
@@ -151,7 +152,6 @@ public class SubscriberBatch {
 
 			LinkageManager linkMgr = new LinkageManager(localisation);
 			Date timeNow = new Date();
-			String tz = "UTC";
 			
 			Subscriber subscriber = new SubRelationalDB();
 			/*
@@ -336,21 +336,29 @@ public class SubscriberBatch {
 			/*
 			 * Apply any other subscriber type dependent processing
 			 */
-			if(subscriberType.equals("upload")) {
+			if(subscriberType.equals("forward")) {		// Note forward is just another batch process, it no longer forwards surveys to other servers
+				
+				applyCaseManagementReminders(dbc.sd, dbc.results, basePath, serverName);
+				applyPeriodicNotifications(dbc.sd, dbc.results, basePath, serverName);
+				
+				// Erase any templates that were deleted more than a set time ago
+				eraseOldSurveyTemplates(dbc.sd, dbc.results, localisation, basePath);
+
+				// Delete any case management alerts not linked to by a survey
+				deleteOldCaseManagementAlerts(dbc.sd,localisation);
+				
+				// Delete linked csv files logically deleted more than 10 minutes age
+				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
 				
 				applyReminderNotifications(dbc.sd, dbc.results, basePath, serverName);
 				sendMailouts(dbc.sd, basePath, serverName);
 				expireTemporaryUsers(localisation, dbc.sd);
 				
-			} else if(subscriberType.equals("forward")) {
-				
-				applyCaseManagementReminders(dbc.sd, dbc.results, basePath, serverName);
-				
-				// Erase any templates that were deleted more than a set time ago
-				eraseOldTemplates(dbc.sd, dbc.results, localisation, basePath);
-
-				// Delete linked csv files logically deleted more than 10 minutes age
-				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
+				/*
+				 * Apply foreign keys
+				 */
+				ForeignKeyManager fkm = new ForeignKeyManager();
+				fkm.apply(dbc.sd, dbc.results);
 				
 				/*
 				 * Initialise the linkage table if that has been requested
@@ -479,209 +487,6 @@ public class SubscriberBatch {
 				// Set fingerprint templates for new fingerprint images
 				linkMgr.setFingerprintTemplates(dbc.sd, basePath, serverName);
 				
-				// Apply synchronisation
-				// 1. Get all synchronisation notifications
-				// 2. Loop through each prikey not in sync table 
-				// 2.a  Synchronise
-				// 2.b  Update sync table
-
-				if(GeneralUtilityMethods.documentSyncEnabled(dbc.sd)) {
-					boolean haveSyncNotifications = false;
-					String urlprefix = "https://" + serverName + "/";	// Need to get server name for image processing
-					HashMap<String, String> docServerConfig = GeneralUtilityMethods.docServerConfig(dbc.sd);
-
-					String sqlNot = "select id, s_id, notify_details from forward where enabled = 'true' and target = 'document'";
-					PreparedStatement pstmtNot = dbc.sd.prepareStatement(sqlNot);
-
-					String sqlMarkDone = "insert into sync (s_id, n_id, prikey) values(?, ?, ?)";
-					PreparedStatement pstmtMarkDone = dbc.results.prepareStatement(sqlMarkDone);
-					
-					PreparedStatement pstmt = null;
-					PreparedStatement pstmtRecord = null;
-					PreparedStatement pstmtCheckNeed = null;
-
-					try {
-						ResultSet rs = pstmtNot.executeQuery();
-						TableDataManager tdm = new TableDataManager(localisation, tz);
-
-						while(rs.next()) {
-							haveSyncNotifications = true;
-							int nId = rs.getInt(1);
-							int sId = rs.getInt(2);
-
-							Form topForm = GeneralUtilityMethods.getTopLevelForm(dbc.sd, sId);
-
-							if(GeneralUtilityMethods.tableExists(dbc.results, topForm.tableName)) {
-
-								// Get the records that need synchronising
-								String prikeyFilter = "prikey not in (select prikey from sync where s_id = " + 
-										sId + " and n_id = " + nId + ")";	
-								
-								// Confirm we need to do this synchronisation
-								boolean syncRequired = false;
-								String sqlCheckNeed = "select count(*) from " + topForm.tableName + " where " + prikeyFilter;
-								pstmtCheckNeed = dbc.results.prepareStatement(sqlCheckNeed);
-								try {
-									ResultSet rsCN = pstmtCheckNeed.executeQuery();
-									if(rsCN.next()) {
-										if(rsCN.getInt(1) > 0) {
-											syncRequired = true;
-										}
-									}
-								} catch(Exception e) {
-									if(e.getMessage() != null && e.getMessage().contains("does not exist")) {
-										// Ignore missing table it will presumably be added when there is data
-									} else {
-										log.log(Level.SEVERE, e.getMessage(), e);
-									}
-								}
-								
-								if(syncRequired) {
-									log.info("Synchronising notification " +nId + " on " + topForm.tableName);
-									JSONArray ja = null;
-	
-									boolean getParkey = false;	// For top level form TODO loop through forms
-									boolean mgmt = false;		// TODO get from notification
-									int managedId = 0;			// TODO get from notification
-									String surveyIdent = GeneralUtilityMethods.getSurveyIdent(dbc.sd, sId);
-									ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
-											dbc.sd,
-											dbc.results,
-											localisation,
-											language,
-											sId,
-											surveyIdent,
-											null,		// No need for user - we are super user
-											null,		// Roles to apply
-											topForm.parentform,
-											topForm.id,
-											topForm.tableName,
-											false,		// Don't include read only
-											getParkey,	// Include parent key if the form is not the top level form (fId is 0)
-											false,		// Don't include bad columns
-											true,		// include instance id
-											true,		// Include prikey
-											true,		// include other meta data
-											true,		// include preloads
-											true,		// include instancename
-											true,		// include survey duration
-											true,		// include case management
-											true,		// Super user
-											false,		// Don't include HXL
-											true,		// include audit data
-											tz,
-											false,		// mgmt
-											false, 		// Altitude and Accuracy
-											true		// Server calculates
-											);
-	
-									if(mgmt) {
-										CustomReportsManager crm = new CustomReportsManager ();
-										ReportConfig config = crm.get(dbc.sd, managedId, -1);
-										columns.addAll(config.columns);
-									}
-	
-									pstmt = tdm.getPreparedStatement(
-											dbc.sd, 
-											dbc.results,
-											columns,
-											urlprefix,
-											sId,
-											surveyIdent,
-											0,				// SubForm Id
-											topForm.tableName,
-											0,				// parkey ??
-											null,			// Not searching on HRK
-											null,			// No user ident, we are super user
-											null,			// No list of roles
-											null,			// No specific sort column
-											null,			// No specific sort direction
-											mgmt,
-											false,			// No grouping
-											false,			// Not data tables
-											0,				// Start from zero
-											getParkey,
-											0,	// Start from the beginning of the parent key
-											true,			// Super User
-											false,			// Return records greater than or equal to primary key
-											"none",			// Do not return bad records
-											"yes",			// return completed
-											null,			// case management settings can be null
-											prikeyFilter,
-											null	,			// key filter
-											tz,
-											null	,			// instance id
-											null	,			// advanced filter
-											null,			// Date filter name
-											null,			// Start date
-											null				// End date
-											);
-	
-									// Set parameters for custom filter
-	
-									if(pstmt != null) {
-										log.info("Get sync records: " + pstmt.toString());
-										ja = tdm.getData(
-												pstmt,
-												columns,
-												urlprefix,
-												false,		// No grouping for duplicate queries
-												false,		// Boolean not data tables
-												0			// No limit
-												);
-									}
-	
-									if(ja == null) {
-										ja = new JSONArray();
-									}
-	
-									// Process each record
-									for(int i = 0; i < ja.length(); i++) {
-										JSONObject jo = (JSONObject) ja.get(i);
-										log.info("  Rec: " + ja.get(i));
-	
-										// 1. Add meta data to the record
-										// Organisation id
-	
-										// 2. Send to server
-										String key = serverName + "_" + sId + "_" + jo.getString("prikey");
-										boolean success = putDocument("banana", "form", key, jo.toString(), 
-												docServerConfig.get("server"),
-												docServerConfig.get("user"),
-												docServerConfig.get("password"));
-	
-										// 3. Mark as processed (if successful)
-										if(success) {
-											pstmtMarkDone.setInt(1,  sId);
-											pstmtMarkDone.setInt(2,  nId);
-											pstmtMarkDone.setInt(3, jo.getInt("prikey"));
-											pstmtMarkDone.executeUpdate();
-										} else {
-											break;  // Delay before continuing
-										}
-									}
-								}
-
-
-							} else {
-								log.info("=== No results in table: " + topForm.tableName);
-							}
-
-						}
-						if(!haveSyncNotifications) {
-							log.info("=== No enabled synchronisation notifications");
-						}
-				} finally {
-						if (pstmt != null) { try {pstmt.close();} catch (SQLException e) {}}
-						if(pstmtNot != null) {try {pstmtNot.close();} catch(Exception e) {}}
-						if(pstmtRecord != null) {try {pstmtRecord.close();} catch(Exception e) {}}
-						if(pstmtMarkDone != null) {try {pstmtMarkDone.close();} catch(Exception e) {}}
-						if(pstmtCheckNeed != null) {try {pstmtCheckNeed.close();} catch(Exception e) {}}
-					}
-				} else {
-					// log.info("=== sync not enabled");
-				}
-
 
 			}
 
@@ -717,9 +522,9 @@ public class SubscriberBatch {
 	}
 	
 	/*
-	 * Erase deleted templates more than a specified number of days old
+	 * Erase deleted Survey templates more than a specified number of days old
 	 */
-	private void eraseOldTemplates(Connection sd, Connection cResults, ResourceBundle localisation, String basePath) {
+	private void eraseOldSurveyTemplates(Connection sd, Connection cResults, ResourceBundle localisation, String basePath) {
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtTemp = null;
@@ -823,8 +628,6 @@ public class SubscriberBatch {
 			/*
 			 * Process surveys to be deleted for real now
 			 */
-			// log.info("Erase interval set to: " + interval);	// debug only
-			// log.info("Check for templates to erase: " + pstmt.toString());  // debug only
 			rs = pstmt.executeQuery();	
 			while(rs.next()) {
 				int sId = rs.getInt("s_id");
@@ -839,11 +642,40 @@ public class SubscriberBatch {
 
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
 			try {if (pstmtTemp != null) {pstmtTemp.close();}} catch (SQLException e) {}
 			try {if (pstmtFix != null) {pstmtFix.close();}} catch (SQLException e) {}	
+		}
+	}
+	
+	/*
+	 * Delete old case management alerts
+	 * These are attached to a survey group so it is easier to delete them here
+	 *  when they are no longer referenced than to delete them when the last survey in the
+	 *  group is deleted
+	 */
+	private void deleteOldCaseManagementAlerts(Connection sd, ResourceBundle localisation) {
+
+		PreparedStatement pstmt = null;
+
+		try {
+			
+			String sql = "delete from cms_alert where group_survey_ident not in (select group_survey_ident from survey)";					
+			pstmt = sd.prepareStatement(sql);		
+			pstmt.executeUpdate();	
+			
+			sql = "delete from cms_setting where group_survey_ident not in (select group_survey_ident from survey)";
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
+			pstmt = sd.prepareStatement(sql);		
+			pstmt.executeUpdate();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
+			
 		}
 	}
 	
@@ -1075,7 +907,7 @@ public class SubscriberBatch {
 				+ "and a.id not in (select a_id from reminder where n_id = n.id)";
 		PreparedStatement pstmt = null;
 		
-		// Sql to record a reminder being sent
+		// SQL to record a reminder being sent
 		String sqlSent = "insert into reminder (n_id, a_id, reminder_date) values (?, ?, now())";
 		PreparedStatement pstmtSent = null;
 		
@@ -1112,10 +944,10 @@ public class SubscriberBatch {
 				
 				// Send the reminder
 				SubmissionMessage subMgr = new SubmissionMessage(
+						"reminder title",	// todo
 						tId,
 						sourceSurveyIdent,
 						null,
-						pId,
 						instanceId, 
 						nd.from,
 						nd.subject, 
@@ -1131,14 +963,15 @@ public class SubscriberBatch {
 						target,
 						remoteUser,
 						"https",
-						serverName,
-						basePath,
 						nd.callback_url,
 						remoteUser,
 						remotePassword,
 						0,
 						null,
-						nd.assign_question);
+						nd.assign_question,
+						null,					// Report Period
+						0						// report id
+						);
 				
 				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
@@ -1186,16 +1019,18 @@ public class SubscriberBatch {
 	 */
 	private void applyCaseManagementReminders(Connection sd, Connection cResults, String basePath, String serverName) {
 
+		String tz = null;
+		
 		/*
 		 * SQL to get the alerts
 		 */
-		String sql = "select a.id as a_id, a.group_survey_ident, a.name, a.period,"
-				+ "s.p_id,"
+		String sql = "select distinct a.id as a_id, a.group_survey_ident, a.name, a.period, a.filter,"
 				+ "f.table_name "
 				+ "from cms_alert a, survey s, form f "
 				+ "where f.s_id = s.s_id "
 				+ "and f.parentform = 0 "
-				+ "and s.group_survey_ident = a.group_survey_ident ";	
+				+ "and s.group_survey_ident = a.group_survey_ident "
+				+ "and not s.deleted";	
 		
 		PreparedStatement pstmt = null;	
 		
@@ -1209,6 +1044,7 @@ public class SubscriberBatch {
 				+ "notify_details "
 				+ "from forward "
 				+ "where trigger = 'cm_alert' "
+				+ "and enabled "
 				+ "and alert_id = ? ";
 		PreparedStatement pstmtNotifications = null;
 		
@@ -1236,7 +1072,7 @@ public class SubscriberBatch {
 			
 			// 1. Get case management alerts 
 			pstmt = sd.prepareStatement(sql);
-
+			//log.info("Cm alerts: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
@@ -1245,8 +1081,8 @@ public class SubscriberBatch {
 				String alertName = rs.getString("name");
 				String groupSurveyIdent = rs.getString("group_survey_ident");
 				String table = rs.getString("table_name");
-				int pId = rs.getInt("p_id");
 				String period = rs.getString("period");	
+				String filter = rs.getString("filter");
 				int oId = GeneralUtilityMethods.getOrganisationIdForGroupSurveyIdent(sd, groupSurveyIdent);
 				
 				if(!isValidPeriod(period)) {
@@ -1273,6 +1109,7 @@ public class SubscriberBatch {
 					CaseManagementSettings settings = settingsCache.get(groupSurveyIdent);
 					if(settings == null) {
 						pstmtSettings.setString(1,groupSurveyIdent);
+						log.info("CMS Settings: " + pstmtSettings.toString());
 						ResultSet srs = pstmtSettings.executeQuery();
 						if(srs.next()) {
 							settings = gson.fromJson(srs.getString("settings"), CaseManagementSettings.class);
@@ -1294,122 +1131,152 @@ public class SubscriberBatch {
 							.append("and  _thread not in (select thread from case_alert_triggered where table_name = ? and a_id = ?) ")
 							.append("and _thread_created < now() - ?::interval ");	
 						
+						/*
+						 * Add context filter
+						 */
+						SqlFrag filterFrag = null;
+						if(filter != null && filter.length() > 0) {			
+							filterFrag = new SqlFrag();
+							filterFrag.addSqlFragment(filter, false, localisation, 0);
+						}
+						if(filterFrag != null) {
+							sqlMatch.append(" and (").append(filterFrag.sql).append(")");
+						}
+						
 						pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
 						int idx = 1;
 						pstmtMatches.setString(idx++, settings.finalStatus);
 						pstmtMatches.setString(idx++, table);
 						pstmtMatches.setInt(idx++, aId);
-						pstmtMatches.setString(idx++, period);
+						pstmtMatches.setString(idx++, period);						
 						
-						// log.info(pstmtMatches.toString());
-						ResultSet mrs = pstmtMatches.executeQuery();
+						if(filterFrag != null) {
+							idx = GeneralUtilityMethods.setFragParams(pstmtMatches, filterFrag, idx, tz);
+						}
 						
-						while(mrs.next()) {
+						log.info(pstmtMatches.toString());
+						try {
+							ResultSet mrs = pstmtMatches.executeQuery();
 							
-							int prikey = mrs.getInt("prikey");						String instanceid = mrs.getString("instanceid");
-							String thread = mrs.getString("_thread");
-							
-							/*
-							 * Record the triggering of the alert
-							 */
-							String details = localisation.getString("cm_alert");
-							details = details.replace("%s1", alertName);
-							RecordEventManager rem = new RecordEventManager();
-							rem.writeEvent(
-									sd, 
-									cResults, 
-									RecordEventManager.ALERT, 
-									"success",
-									null, 
-									table, 
-									instanceid, 
-									null,				// Change object
-									null,				// Task Object
-									null,				// Notification object
-									details, 
-									0,					// sId (don't care legacy)
-									groupSurveyIdent,
-									0,					// Don't need task id if we have an assignment id
-									0					// Assignment id
-									);
-							
-							// update case_alert_triggered to record the raising of this alert	
-							pstmtTriggered.setInt(1, aId);	
-							pstmtTriggered.setString(2, table);
-							pstmtTriggered.setString(3, thread);
-							pstmtTriggered.setString(4, settings.finalStatus);
-							
-							pstmtTriggered.executeUpdate();
-							
-							// Update the case so that the alert status can be charted
-							StringBuilder sqlUpdate = new StringBuilder("update ") 
-									.append(table)
-									.append(" set _alert = ? where prikey = ?");	
-							
-							pstmtCaseUpdated = cResults.prepareStatement(sqlUpdate.toString());
-							pstmtCaseUpdated.setString(1, alertName);
-							pstmtCaseUpdated.setInt(2, prikey);	
-							pstmtCaseUpdated.executeUpdate();
-							
-							/*
-							 * Process notifications associated with this alert
-							 */
-							pstmtNotifications.setInt(1, aId);
-							log.info("Notifications to be triggered: " + pstmtNotifications.toString());
-							
-							ResultSet notrs = pstmtNotifications.executeQuery();
-							
-							while(notrs.next()) {
-							
-								int nId = notrs.getInt("id");
-								String notificationName = notrs.getString("notification_name");
-								String notifyDetailsString = notrs.getString("notify_details");
-								NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
-								String target = notrs.getString("target");
-								String user = notrs.getString("remote_user");
+							while(mrs.next()) {
 								
-								SubmissionMessage subMgr = new SubmissionMessage(
-										0,
-										groupSurveyIdent,
-										null,
-										pId,
+								int prikey = mrs.getInt("prikey");						
+								String instanceid = mrs.getString("instanceid");
+								String thread = mrs.getString("_thread");
+								
+								/*
+								 * Record the triggering of the alert
+								 */
+								String details = localisation.getString(NotificationManager.TOPIC_CM_ALERT);
+								details = details.replace("%s1", alertName);
+								RecordEventManager rem = new RecordEventManager();
+								rem.writeEvent(
+										sd, 
+										cResults, 
+										RecordEventManager.ALERT, 
+										"success",
+										null, 
+										table, 
 										instanceid, 
-										nd.from,
-										nd.subject, 
-										nd.content,
-										nd.attach,
-										nd.include_references,
-										nd.launched_only,
-										nd.emailQuestion,
-										nd.emailQuestionName,
-										nd.emailMeta,
-										nd.emailAssigned,
-										nd.emails,
-										target,
-										user,
-										"https",
-										serverName,
-										basePath,
-										nd.callback_url,
-										user,
-										null,
-										0,
-										nd.survey_case,
-										nd.assign_question);
-													
-								MessagingManager mm = new MessagingManager(localisation);
-								mm.createMessage(sd, oId, "cm_alert", "", gson.toJson(subMgr));						
-							
-								// Write to the log
-								String logMessage = "Notification triggered by alert id " + aId + " for notification: " + nId;
-								if(localisation != null) {
-									logMessage = localisation.getString("cm_alert");
-									logMessage = logMessage.replaceAll("%s1", alertName);
-									logMessage = logMessage.replaceAll("%s2", notificationName);
+										null,				// Change object
+										null,				// Task Object
+										null,				// Notification object
+										details, 
+										0,					// sId (don't care legacy)
+										groupSurveyIdent,
+										0,					// Don't need task id if we have an assignment id
+										0					// Assignment id
+										);
+								
+								// update case_alert_triggered to record the raising of this alert	
+								pstmtTriggered.setInt(1, aId);	
+								pstmtTriggered.setString(2, table);
+								pstmtTriggered.setString(3, thread);
+								pstmtTriggered.setString(4, settings.finalStatus);
+								
+								pstmtTriggered.executeUpdate();
+								
+								// Update the case so that the alert status can be charted
+								StringBuilder sqlUpdate = new StringBuilder("update ") 
+										.append(table)
+										.append(" set _alert = ? where prikey = ?");	
+								
+								pstmtCaseUpdated = cResults.prepareStatement(sqlUpdate.toString());
+								pstmtCaseUpdated.setString(1, alertName);
+								pstmtCaseUpdated.setInt(2, prikey);	
+								pstmtCaseUpdated.executeUpdate();
+								
+								/*
+								 * Process notifications associated with this alert
+								 */
+								pstmtNotifications.setInt(1, aId);
+								log.info("Notifications to be triggered: " + pstmtNotifications.toString());
+								
+								ResultSet notrs = pstmtNotifications.executeQuery();
+								
+								while(notrs.next()) {
+								
+									int nId = notrs.getInt("id");
+									String notificationName = notrs.getString("notification_name");
+									String notifyDetailsString = notrs.getString("notify_details");
+									NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
+									String target = notrs.getString("target");
+									String user = notrs.getString("remote_user");
+									
+									SubmissionMessage subMgr = new SubmissionMessage(
+											"Case Management",		// TODO title
+											0,
+											groupSurveyIdent,
+											null,
+											instanceid, 
+											nd.from,
+											nd.subject, 
+											nd.content,
+											nd.attach,
+											nd.include_references,
+											nd.launched_only,
+											nd.emailQuestion,
+											nd.emailQuestionName,
+											nd.emailMeta,
+											nd.emailAssigned,
+											nd.emails,
+											target,
+											user,
+											"https",
+											nd.callback_url,
+											user,
+											null,
+											0,
+											nd.survey_case,
+											nd.assign_question,
+											null,					// Report Period
+											0						// report id
+											);
+									
+									MessagingManager mm = new MessagingManager(localisation);
+									mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));						
+								
+									// Write to the log
+									String logMessage = "Notification triggered by alert id " + aId + " for notification: " + nId;
+									if(localisation != null) {
+										logMessage = localisation.getString(NotificationManager.TOPIC_CM_ALERT);
+										logMessage = logMessage.replaceAll("%s1", alertName);
+										logMessage = logMessage.replaceAll("%s2", notificationName);
+									}
+									lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
 								}
-								lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
+	
 							}
-
+						} catch (Exception e) {
+							int sId = GeneralUtilityMethods.getSurveyId(sd, groupSurveyIdent);
+							String msg = e.getMessage();
+							if(msg == null) {
+								msg = "";
+							}
+							if(!duplicateLogEntry(sId + "alert" + LogManager.CASE_MANAGEMENT + msg)) {
+								lm.writeLog(sd, sId, "alert", LogManager.CASE_MANAGEMENT, e.getMessage(), 0, serverName);
+							}
+							log.log(Level.SEVERE, e.getMessage(), e);
 						}
 					 
 					} else {
@@ -1433,6 +1300,163 @@ public class SubscriberBatch {
 	}
 	
 	/*
+	 * Return true if this error has already been reported today
+	 */
+	private boolean duplicateLogEntry(String entry) {
+		entry = entry + Calendar.getInstance().get(Calendar.DAY_OF_YEAR);
+		boolean dup = true;
+		if(autoErrorCheck.get(entry) == null) {
+			autoErrorCheck.put(entry, entry);
+			dup = false;
+		} 
+		return dup;
+	}
+	
+	/*
+	 * Apply Periodic notifications
+	 */
+	private void applyPeriodicNotifications(Connection sd, Connection cResults, String basePath, String serverName) {
+		
+		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
+		
+		/*
+		 * Get current time
+		 */
+		String sqlCurrentTime = "select current_time";
+		PreparedStatement pstmtCurrentTime = null;
+		
+		/*
+		 * Get the notifications that send a response at fixed periods and where the time is due
+		 */
+		String sql = "select name,"
+				+ "target,"
+				+ "notify_details, "
+				+ "periodic_time, "
+				+ "periodic_period, "
+				+ "r_id "
+				+ "from forward "
+				+ "where trigger = 'periodic' "
+				+ "and enabled "
+				+ "and periodic_time > (select last_checked_time from periodic) and periodic_time < ? "
+				+ "and ("
+				+ "(periodic_period = 'daily') "
+				+ "or (periodic_period = 'weekly' and periodic_day_of_week = extract('DOW' from current_date)) "
+				+ "or (periodic_period = 'monthly' and periodic_day_of_month = extract('Day' from current_date)) "
+				+ "or (periodic_period = 'yearly' and periodic_day_of_month = extract('Day' from current_date) and periodic_month = extract('Month' from current_date)) "
+				+ ")";
+		PreparedStatement pstmt = null;
+
+		/*
+		 * Update last checked time
+		 */
+		String sqlUpdate = "update periodic set last_checked_time = ?";
+		PreparedStatement pstmtUpdate = null;		
+		String sqlInsert = "insert into periodic(last_checked_time) values(?)";
+		PreparedStatement pstmtInsert = null;
+		
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		try {
+
+			/*
+			 * Get the current time
+			 */
+			Time currentTime = null;
+			pstmtCurrentTime = sd.prepareStatement(sqlCurrentTime);
+			ResultSet rs = pstmtCurrentTime.executeQuery();
+			if(rs.next()) {
+				currentTime = rs.getTime("current_time");
+			}
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setTime(1, currentTime);
+			rs = pstmt.executeQuery();
+			
+			/*
+			 * Get periodic notifications that have a time between the last check and now
+			 */
+			while(rs.next()) {
+				
+				String name = rs.getString("name");
+				String target = rs.getString("target");
+				String notifyDetailsString = rs.getString("notify_details");
+				String period = rs.getString("periodic_period");
+				int rId = rs.getInt("r_id");
+
+				NotifyDetails nd = gson.fromJson(notifyDetailsString, NotifyDetails.class);
+					
+				int oId = GeneralUtilityMethods.getOrganisationIdForReport(sd, rId);
+						
+				ResourceBundle localisation = locMap.get(oId);
+				if(localisation == null) {
+					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+					Locale orgLocale = new Locale(organisation.locale);
+					try {
+						localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+					} catch(Exception e) {
+						localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+					}
+				}
+				
+				MessagingManager mm = new MessagingManager(localisation);
+				
+				SubmissionMessage msg = new SubmissionMessage(
+						name,			// title
+						0,				// task id
+						null,			// Survey ident
+						null,			// Update ident
+						null,			// instance id
+						nd.from,
+						nd.subject, 
+						nd.content,
+						nd.attach,
+						false,			// include references (not used)
+						false,			// launched only (not used)
+						0,				// email question (deprecated)
+						null,			// email question name
+						null,			// email meta
+						false,			// email assigned (not used)
+						nd.emails,		// Email addresses
+						target,
+						null,
+						"https",		// scheme
+						null,			// callback URL
+						null,			// remote user
+						null,			// remote password
+						0,				// PDF template ID
+						null,			// Survey case
+						null,			// Assign Question
+						period,			// Report Period
+						rId);
+				
+				mm.createMessage(sd, oId, NotificationManager.TOPIC_PERIODIC, "", gson.toJson(msg));	
+			}
+			
+			/*
+			 * Store the current time as the last checked time
+			 */
+			pstmtUpdate = sd.prepareStatement(sqlUpdate);
+			pstmtUpdate.setTime(1, currentTime);
+			int count = pstmtUpdate.executeUpdate();
+			if(count < 1) {
+				pstmtInsert = sd.prepareStatement(sqlInsert);
+				pstmtInsert.setTime(1, currentTime);
+				pstmtInsert.executeUpdate();
+			}
+			
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtCurrentTime != null) {pstmtCurrentTime.close();}} catch (SQLException e) {}
+			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}
+			try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (SQLException e) {}
+		}
+	}
+	
+	/*
 	 * Send Mailouts
 	 */
 	private void sendMailouts(Connection sd, String basePath, 
@@ -1450,7 +1474,9 @@ public class SubscriberBatch {
 				+ "m.content, "
 				+ "m.subject,"
 				+ "mp.initial_data, "
-				+ "mp.link "
+				+ "mp.link, "
+				+ "m.name as campaign_name, "
+				+ "m.anonymous "
 				+ "from mailout_people mp, mailout m, people ppl, survey s, project p "
 				+ "where mp.m_id = m.id "
 				+ "and mp.p_id = ppl.id "
@@ -1487,6 +1513,8 @@ public class SubscriberBatch {
 				String initialData = rs.getString("initial_data");
 				String link = rs.getString("link");
 				boolean single = !rs.getBoolean("multiple_submit");
+				String campaignName = rs.getString("campaign_name");
+				boolean anonymousCampaign = rs.getBoolean("anonymous");
 				
 				ResourceBundle localisation = locMap.get(surveyIdent);
 				
@@ -1499,6 +1527,8 @@ public class SubscriberBatch {
 					action.single = single;
 					action.mailoutPersonId = id;
 					action.email = email;
+					action.campaignName = campaignName;
+					action.anonymousCampaign = anonymousCampaign;
 					
 					if(initialData != null) {
 						action.initialData = gson.fromJson(initialData, Instance.class);
@@ -1551,7 +1581,7 @@ public class SubscriberBatch {
 					locMap.put(surveyIdent, localisation);
 				}
 				MessagingManager mm = new MessagingManager(localisation);
-				mm.createMessage(sd, oId, "mailout", "", gson.toJson(msg));
+				mm.createMessage(sd, oId, NotificationManager.TOPIC_MAILOUT, "", gson.toJson(msg));
 				
 				// record the sending of the notification
 				pstmtSent.setString(1, "https://" + serverName + "/webForm" + link);
@@ -1617,7 +1647,9 @@ public class SubscriberBatch {
 		}
 	}
 	
-	
+	/*
+	 * Add the updated paths to media to the uploaded XML file
+	 */
 	private void processMediaChanges(String uploadFile, ArrayList<MediaChange> mediaChanges) {
 		File xmlFile = new File(uploadFile);
 		if(xmlFile.exists()) {

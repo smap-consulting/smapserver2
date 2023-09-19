@@ -72,7 +72,8 @@ public class XLSXAdminReportsNotifications {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			String filename,
-			int oId) {
+			int oId,
+			String tz) {
 		
 		Response responseVal = null;
 
@@ -114,7 +115,7 @@ public class XLSXAdminReportsNotifications {
 			 * Get the data
 			 */
 			NotificationManager nm = new NotificationManager(localisation);
-			ArrayList<Notification> nList = nm.getOrganisationNotifications(sd, pstmt, oId);
+			ArrayList<Notification> nList = nm.getOrganisationNotifications(sd, pstmt, oId, tz);
 								
 			/*
 			 * Add the headings 

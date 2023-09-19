@@ -76,6 +76,12 @@ public class Manager {
 			 */
 			ReportProcessor rp = new ReportProcessor();
 			rp.go(smapId, fileLocn);
+			
+			/*
+			 * Start the submission event processor
+			 */
+			SubEventProcessor sep = new SubEventProcessor();
+			sep.go(smapId, fileLocn);
 		}
 		
 		log.info("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);
@@ -86,6 +92,7 @@ public class Manager {
 			delaySecs = 30;					
 		}
 		
+		SubscriberBatch batchJob = new SubscriberBatch();
 		boolean loop = true;
 		while(loop) {
 			String subscriberControl = GeneralUtilityMethods.getSettingFromFile(fileLocn + "/settings/subscriber");
@@ -94,7 +101,6 @@ public class Manager {
 				loop = false;
 			} else {
 				System.out.print("-");	// Log running of batch job
-				SubscriberBatch batchJob = new SubscriberBatch();
 				batchJob.go(smapId, fileLocn, subscriberType);	// Run the batch job for the specified server
 
 				try {

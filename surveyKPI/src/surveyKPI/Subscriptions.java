@@ -143,7 +143,7 @@ public class Subscriptions extends Application {
 					String adminEmail = o.getAdminEmail();
 					if(emailServer.smtpHost != null) {
 
-						EmailManager em = new EmailManager();
+						EmailManager em = new EmailManager(localisation);
 						
 						StringBuilder content = new StringBuilder();
 						content.append("<br/><p>").append(localisation.getString("c_goto"))

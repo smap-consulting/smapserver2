@@ -285,6 +285,7 @@ public class XFormData {
 					} else if (fieldName.equals("location_trigger")) {
 						locationTrigger = item.getString();
 					} else if (fieldName.equals("survey_notes")) {
+						log.info("Got surveyNotes ++++++++++++++++++" + item.getString());
 						surveyNotes = item.getString();
 					} else {
 						log.info("Warning FormField Ignored, Item:" + item.getFieldName() + ":" + item.getString());
@@ -333,7 +334,7 @@ public class XFormData {
 				if (!GeneralUtilityMethods.hasUploadErrorBeenReported(sd, user, si.getImei(), templateName, reason)) {
 					writeUploadError(sd, user, survey, templateName, si, reason);
 				}
-				EmailManager em = new EmailManager();
+				EmailManager em = new EmailManager(localisation);
 				StringBuilder template = new StringBuilder(localisation.getString("submission_limit_email"));
 				em.alertAdministrator(sd, survey.o_id, user, localisation, serverName, reason,
 						template, LogManager.SUBMISSION);
@@ -382,7 +383,11 @@ public class XFormData {
 			}
 			
 			if(action != null && action.email != null) {
-				ue.setUserName(action.email);
+				if(action.anonymousCampaign) {
+					ue.setUserName(action.campaignName);
+				} else {
+					ue.setUserName(action.email);
+				}
 			} else {
 				ue.setUserName(user);
 			}
