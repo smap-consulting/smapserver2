@@ -39,6 +39,7 @@ import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -1221,8 +1222,8 @@ public class AllAssignments extends Application {
 		log.info("Updating task properties");	
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection(dbConnectionTitle);
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection(dbConnectionTitle);
+		a.isAuthorised(sd, request.getRemoteUser());
 		// End role based authorisation - Check access to the requested survey once the survey id has been extracted
 
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();	
@@ -1240,6 +1241,11 @@ public class AllAssignments extends Application {
 
 		try {
 
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			
 			// Get the items from the multi part mime
 			List<?> items = uploadHandler.parseRequest(request);
 			Iterator<?> itr = items.iterator();
@@ -1278,11 +1284,11 @@ public class AllAssignments extends Application {
 					+ "schedule_at = ?, "
 					+ "location_trigger = ?,  "
 					+ "title = ? where id = ?;";
-			pstmtUpdate = connectionSD.prepareStatement(sqlUpdate);
+			pstmtUpdate = sd.prepareStatement(sqlUpdate);
 			pstmtUpdate.setBoolean(1, repeat);
 			pstmtUpdate.setTimestamp(2, scheduleAt);
 			pstmtUpdate.setString(3, locationTrigger);
-			pstmtUpdate.setString(4, taskTitle);
+			pstmtUpdate.setString(4, HtmlSanitise.checkCleanName(taskTitle, localisation));
 			pstmtUpdate.setInt(5, taskId);
 
 			log.info("SQL Update properties: " + pstmtUpdate.toString());
@@ -1303,7 +1309,7 @@ public class AllAssignments extends Application {
 
 		} finally {
 			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}
-			SDDataSource.closeConnection(dbConnectionTitle, connectionSD);
+			SDDataSource.closeConnection(dbConnectionTitle, sd);
 
 		}
 

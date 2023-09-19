@@ -19,7 +19,9 @@ import java.util.logging.Logger;
 import javax.mail.internet.InternetAddress;
 import javax.servlet.http.HttpServletRequest;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.AssignFromSurvey;
@@ -2576,7 +2578,7 @@ public class TaskManager {
 			String guidance,
 			String initial_data_source,
 			String initial_data,
-			int show_dist) throws SQLException {
+			int show_dist) throws SQLException, ApplicationException {
 		
 		// If the initial data source is not a survey then there is nothing to update
 		if(initial_data_source == null || !initial_data_source.equals("survey")) {
@@ -2584,15 +2586,15 @@ public class TaskManager {
 		}
 				
 		pstmt.setInt(1, pId);
-		pstmt.setString(2,  pName);
+		pstmt.setString(2,  HtmlSanitise.checkCleanName(pName, localisation));
 		pstmt.setInt(3,  tgId);
-		pstmt.setString(4,  tgName);
-		pstmt.setString(5,  title);
+		pstmt.setString(4,  HtmlSanitise.checkCleanName(tgName, localisation));
+		pstmt.setString(5,  HtmlSanitise.checkCleanName(title, localisation));
 		pstmt.setString(6, target_s_ident);	
 		pstmt.setString(7, target_s_ident);			// For survey name			
 		pstmt.setString(8, location);				// geopoint
 		pstmt.setString(9, targetInstanceId);		// update id
-		pstmt.setString(10, address);
+		pstmt.setString(10, HtmlSanitise.checkCleanName(address, localisation));
 		pstmt.setTimestamp(11, taskStart);
 		pstmt.setTimestamp(12, taskFinish);
 		pstmt.setString(13, locationTrigger);
@@ -2664,14 +2666,14 @@ public class TaskManager {
 			String initial_data_source,
 			String initial_data,
 			int show_dist,
-			boolean preserveInitialData) throws SQLException {
+			boolean preserveInitialData) throws SQLException, ApplicationException {
 		
 		int idx = 1;
-		pstmt.setString(idx++, title);
+		pstmt.setString(idx++, HtmlSanitise.checkCleanName(title, localisation));
 		pstmt.setString(idx++,  target_s_ident);
 		pstmt.setString(idx++,  target_s_ident);			// To set survey name				
 		pstmt.setString(idx++, location);			// geopoint
-		pstmt.setString(idx++, address);
+		pstmt.setString(idx++, HtmlSanitise.checkCleanName(address, localisation));
 		pstmt.setTimestamp(idx++, taskStart);
 		pstmt.setTimestamp(idx++, taskFinish);
 		pstmt.setString(idx++, locationTrigger);
@@ -2680,7 +2682,7 @@ public class TaskManager {
 		pstmt.setBoolean(idx++, repeat);	
 		pstmt.setBoolean(idx++, complete_all);	
 		pstmt.setBoolean(idx++, assign_auto);	
-		pstmt.setString(idx++, guidance);
+		pstmt.setString(idx++, HtmlSanitise.checkCleanName(guidance, localisation));
 		pstmt.setString(idx++, initial_data_source);
 		if(!preserveInitialData) {
 			pstmt.setString(idx++, initial_data);
