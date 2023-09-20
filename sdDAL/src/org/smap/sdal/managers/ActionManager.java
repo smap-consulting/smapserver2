@@ -313,6 +313,11 @@ public class ActionManager {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		try {
+			// Validate action name before saving action details
+			if(a != null) {
+				a.validateNames(localisation);
+			}
+						
 			// Store the action details
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, gson.toJson(a));
@@ -355,8 +360,6 @@ public class ActionManager {
 				}
 			}
 			
-		} catch (Exception e) {
-			throw e;
 		} finally {
 			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtDelRoles != null) {	pstmtDelRoles.close();}} catch (SQLException e) {}
