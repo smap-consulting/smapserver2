@@ -21,8 +21,4 @@ public class S3AttachmentUpload {
 		
 	}
 	
-	private static void initialise(String basePath) {
-
-	}
-	
 }

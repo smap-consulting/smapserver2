@@ -1584,7 +1584,7 @@ public class TaskManager {
 				Location locn = getLocation(sd, oId, tsd.location_group, tsd.location_name);
 				if(locn == null) {
 					// Create location
-					GeneralUtilityMethods.createLocation(sd, oId, tsd.location_group, tsd.location_trigger, tsd.location_name, tsd.lon, tsd.lat);
+					GeneralUtilityMethods.createLocation(sd, localisation, oId, tsd.location_group, tsd.location_trigger, tsd.location_name, tsd.lon, tsd.lat);
 				} else {
 					// Update Location
 					GeneralUtilityMethods.updateLocation(sd, oId, tsd.location_group, tsd.location_trigger, tsd.location_name, tsd.lon, tsd.lat);
@@ -1793,7 +1793,7 @@ public class TaskManager {
 					if(rs.next()) {
 						int count = rs.getInt(1);
 						if(count == 0) {
-							GeneralUtilityMethods.createLocation(sd, oId, "tg", 
+							GeneralUtilityMethods.createLocation(sd, localisation, oId, "tg", 
 									tsd.location_trigger, tsd.name, 0.0, 0.0);
 						}
 					}

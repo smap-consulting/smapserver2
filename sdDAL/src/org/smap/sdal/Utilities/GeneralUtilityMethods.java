@@ -9046,8 +9046,8 @@ public class GeneralUtilityMethods {
 	/*
 	 * Create a location record
 	 */
-	public static void createLocation(Connection sd, int oId, 
-			String group, String uid, String name, double lon, double lat) throws SQLException {
+	public static void createLocation(Connection sd, ResourceBundle localisation, int oId, 
+			String group, String uid, String name, double lon, double lat) throws SQLException, ApplicationException {
 
 		PreparedStatement pstmt = null;
 		String sql = "insert into locations (o_id, locn_group, locn_type, uid, name, the_geom) "	// keep this
@@ -9057,9 +9057,9 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 
 			pstmt.setInt(1, oId);
-			pstmt.setString(2,  group);
+			pstmt.setString(2,  HtmlSanitise.checkCleanName(group, localisation));
 			pstmt.setString(3,  uid);
-			pstmt.setString(4,  name);
+			pstmt.setString(4,  HtmlSanitise.checkCleanName(name, localisation));
 			
 			Point newPoint = new Point(lon, lat);
 			pstmt.setString(5, newPoint.getAsText());
