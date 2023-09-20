@@ -589,7 +589,7 @@ public class AllAssignments extends Application {
 						+ "where tg_id = ?";
 
 				pstmtTaskGroup = sd.prepareStatement(tgSql);
-				pstmtTaskGroup.setString(1, as.task_group_name);
+				pstmtTaskGroup.setString(1, HtmlSanitise.checkCleanName(as.task_group_name, localisation));
 				pstmtTaskGroup.setInt(2, projectId);
 				pstmtTaskGroup.setString(3, addressParams);
 				pstmtTaskGroup.setString(4, gson.toJson(as));

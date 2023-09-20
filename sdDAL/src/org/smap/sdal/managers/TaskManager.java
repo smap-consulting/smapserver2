@@ -3628,7 +3628,7 @@ public class TaskManager {
 						+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?);";
 		
 				pstmtTaskGroup = sd.prepareStatement(tgSql, Statement.RETURN_GENERATED_KEYS);
-				pstmtTaskGroup.setString(1, taskGroupName);
+				pstmtTaskGroup.setString(1, HtmlSanitise.checkCleanName(taskGroupName, localisation));
 				pstmtTaskGroup.setInt(2, projectId);
 				pstmtTaskGroup.setString(3, addressParams);
 				pstmtTaskGroup.setString(4, rule);
