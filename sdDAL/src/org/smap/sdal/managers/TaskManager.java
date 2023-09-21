@@ -936,7 +936,7 @@ public class TaskManager {
 	 */
 	public void saveLocations(Connection sd, 
 			ArrayList<Location> tags,
-			int oId) throws SQLException {
+			int oId) throws SQLException, ApplicationException {
 
 
 		String sqlDelete = "delete from locations "
@@ -964,10 +964,10 @@ public class TaskManager {
 
 				Location t = tags.get(i);
 
-				pstmt.setString(2, t.group);
+				pstmt.setString(2, HtmlSanitise.checkCleanName(t.group, localisation));
 				pstmt.setString(3, t.type);
 				pstmt.setString(4, t.uid);
-				pstmt.setString(5, t.name);
+				pstmt.setString(5, HtmlSanitise.checkCleanName(t.name, localisation));
 
 				Point newPoint = new Point(t.lon, t.lat);
 				pstmt.setString(6, newPoint.getAsText());
@@ -975,6 +975,9 @@ public class TaskManager {
 				pstmt.executeUpdate();
 			}
 			sd.commit();
+		} catch(ApplicationException e) {
+			sd.rollback();
+			throw(e);
 		} catch(Exception e) {
 			sd.rollback();
 			throw(e);
