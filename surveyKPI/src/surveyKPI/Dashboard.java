@@ -468,7 +468,7 @@ public class Dashboard extends Application {
 				
 		} catch (Exception e) {
 			try { sd.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
-			response = Response.serverError().build();
+			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE,"Error", e);
 		} finally {
 			
