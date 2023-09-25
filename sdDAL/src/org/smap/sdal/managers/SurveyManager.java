@@ -1599,7 +1599,7 @@ public class SurveyManager {
 
 		String transType = null;
 
-		pstmtLangOldVal.setString(1, ci.property.newVal);	// rmpath
+		pstmtLangOldVal.setString(1, sanitise.sanitiseHtml(ci.property.newVal));	// rmpath
 		pstmtLangOldVal.setInt(2, sId);
 		pstmtLangOldVal.setString(3, language);
 		pstmtLangOldVal.setString(4, text_id);
