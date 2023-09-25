@@ -96,6 +96,7 @@ public class SurveyManager {
 	LogManager lm = new LogManager();		// Application log
 	String tz;
 
+	private HtmlSanitise sanitise = new HtmlSanitise();
 	private ResourceBundle localisation;
 	private String gPrimaryKey;			// Set to primary key of top form in top level survey when getting results
 	private String gHRK;					// Set to the HRK of the top level survey when getting results
@@ -1629,7 +1630,7 @@ public class SurveyManager {
 
 		if(ci.property.newVal != null) {
 
-			pstmtLangNew.setString(1, ci.property.newVal);
+			pstmtLangNew.setString(1, sanitise.sanitiseHtml(ci.property.newVal));
 			pstmtLangNew.setInt(2, sId);
 			pstmtLangNew.setString(3, language);
 			pstmtLangNew.setString(4, text_id);

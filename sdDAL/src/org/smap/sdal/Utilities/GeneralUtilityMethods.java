@@ -3270,7 +3270,8 @@ public class GeneralUtilityMethods {
 	 * Make sure media is consistent across all languages A future change may have
 	 * media per language enabled
 	 */
-	public static void setMediaForLanguages(Connection sd, int sId, ArrayList<Language> languages) throws SQLException {
+	public static void setMediaForLanguages(Connection sd, int sId, ArrayList<Language> languages,
+			HtmlSanitise sanitise) throws SQLException {
 
 		// ArrayList<String> languages = new ArrayList<String> ();
 
@@ -3348,7 +3349,7 @@ public class GeneralUtilityMethods {
 						// 4. Insert this translation value
 						pstmtInsertMedia.setString(2, type);
 						pstmtInsertMedia.setString(3, text_id);
-						pstmtInsertMedia.setString(4, value);
+						pstmtInsertMedia.setString(4, sanitise.sanitiseHtml(value));
 						pstmtInsertMedia.setString(5, languageName);
 
 						log.info("SQL insert media: " + pstmtInsertMedia.toString());

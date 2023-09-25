@@ -15,6 +15,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
@@ -55,6 +56,8 @@ public class QuestionManager {
 
 	private ResourceBundle localisation;
 
+	private HtmlSanitise sanitise = new HtmlSanitise();
+	
 	public QuestionManager(ResourceBundle l) {
 		localisation = l;
 	}
@@ -292,7 +295,7 @@ public class QuestionManager {
 
 				// Set the labels
 				if(q.name != null && q.name.trim().length() > 0 && !q.type.equals("end group")) {
-					UtilityMethodsEmail.setLabels(sd, sId, q.fId + "_question_" + columnName, q.labels, pstmtSetLabels, false);
+					UtilityMethodsEmail.setLabels(sd, sId, q.fId + "_question_" + columnName, q.labels, pstmtSetLabels, false, sanitise);
 				}
 
 				// Update the survey manifest if this question references CSV files
@@ -971,7 +974,7 @@ public class QuestionManager {
 
 				// Set the labels 
 				if (updateLabels && transId != null && transId.trim().length() > 0) {
-					UtilityMethodsEmail.setLabels(sd, sId, transId, o.labels, pstmtSetLabels, false);
+					UtilityMethodsEmail.setLabels(sd, sId, transId, o.labels, pstmtSetLabels, false, sanitise);
 				}
 			}
 

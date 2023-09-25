@@ -30,6 +30,8 @@ public class Survey {
 	
 	private static Logger log = Logger.getLogger(Survey.class.getName());
 	
+	private HtmlSanitise sanitise = new HtmlSanitise();
+	
 	public int id;
 	public int e_id;
 	public int o_id;
@@ -461,7 +463,7 @@ public class Survey {
 						pstmtUpdateOption.executeUpdate();
 						
 						// Write the labels
-						UtilityMethodsEmail.setLabels(sd, id, transId, o.labels, pstmtSetLabels, o.externalFile);
+						UtilityMethodsEmail.setLabels(sd, id, transId, o.labels, pstmtSetLabels, o.externalFile, sanitise);
 					}
 					
 				}
@@ -911,7 +913,7 @@ public class Survey {
 			
 			// Write the labels
 			if(transId != null) {
-				UtilityMethodsEmail.setLabels(sd, id, transId, q.labels, pstmtSetLabels, false);
+				UtilityMethodsEmail.setLabels(sd, id, transId, q.labels, pstmtSetLabels, false, sanitise);
 			}
 			
 		} finally {
