@@ -4791,7 +4791,7 @@ public class GeneralUtilityMethods {
 					|| qname.equals(SmapServerMeta.UPLOAD_TIME_NAME)
 					|| qname.equals(SmapServerMeta.SCHEDULED_START_NAME)
 					|| qname.equals("_end") || qname.equals("device") || qname.equals("instancename"))) {
-				columnName = qname;
+				columnName = qname;log.info("Could not find column for question: " + qname);
 			}
 			if(columnName == null) {
 				output.append("prikey");	// Can't find the column just write the primary key into the key - possibly the key is set directly through _hrk
