@@ -2636,6 +2636,60 @@ public class GeneralUtilityMethods {
 
 		return column_name;
 	}
+	
+	/*
+	 * Get the column name from the question name This assumes that all names in the
+	 * survey group are unique
+	 */
+	static public String getGroupColumnName(Connection sd, int sId, String groupSurveyIdent, String qName) throws SQLException {
+
+		String column_name = null;
+
+		String sql = "select q.column_name " 
+				+ " from question q, form f" 
+				+ " where q.f_id = f.f_id "
+				+ " and f.s_id in (select s_id from survey where group_survey_ident = ? ) " 
+				+ " and q.qname = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+			
+			if(qName != null) {
+				if(qName.equals("_hrk")
+						|| qName.equals("prikey") 
+						|| qName.equals("_user") 
+						|| qName.equals("_bad")
+						|| qName.equals("_bad_reason")) {
+					column_name = qName;
+				} else {
+					pstmt = sd.prepareStatement(sql);
+					pstmt.setString(1, groupSurveyIdent);
+					pstmt.setString(2, qName);
+					ResultSet rs = pstmt.executeQuery();
+					if (rs.next()) {
+						column_name = rs.getString(1);
+					}
+				}
+				
+				if(column_name == null) {
+					// Try preloads
+					ArrayList<MetaItem> preloads = getPreloads(sd, sId);
+					for(MetaItem item : preloads) {
+						if(item.name.equals(qName)) {							
+							column_name = item.columnName;
+							break;
+						}
+					}
+				}
+			}
+
+		} finally {
+			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return column_name;
+	}
 
 	/*
 	 * Get the column name from the question id This assumes that all names in the
@@ -4757,14 +4811,12 @@ public class GeneralUtilityMethods {
 	/*
 	 * Convert names in xls format ${ } to an SQL query
 	 */
-	public static String convertAllxlsNamesToQuery(String input, int sId, 
+	public static String convertAllxlsNamesToQuery(String input, String groupSurveyIdent, int sId, 
 			Connection sd, String tableName) throws SQLException, ApplicationException {
 
-		if (input == null) {
+		if (input == null || input.trim().length() == 0) {
 			return null;
-		} else if (input.trim().length() == 0) {
-			return null;
-		}
+		} 
 
 		StringBuffer output = new StringBuffer("");
 		String item;
@@ -4786,7 +4838,7 @@ public class GeneralUtilityMethods {
 			if (output.length() > 0) {
 				output.append(" || ");
 			}
-			String columnName = getColumnName(sd, sId, qname);
+			String columnName = getColumnName(sd, sId, qname);	// Just search in submitting survey not group as other group questions will have null value
 			if (columnName == null && (qname.equals("prikey") || qname.equals("_start")
 					|| qname.equals(SmapServerMeta.UPLOAD_TIME_NAME)
 					|| qname.equals(SmapServerMeta.SCHEDULED_START_NAME)
