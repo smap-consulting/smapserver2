@@ -373,7 +373,7 @@ public class SubRelationalDB extends Subscriber {
 			}
 			log.info("################### Processing key policy:" + keyPolicy + ": " + hasHrk + " : " + assignmentId );
 			
-			String hrkSql = GeneralUtilityMethods.convertAllxlsNamesToQuery(uk.key, sId, sd, topLevelForm.tableName);
+			String hrkSql = GeneralUtilityMethods.convertAllxlsNamesToQuery(uk.key, survey.groupSurveyIdent, sId, sd, topLevelForm.tableName);
 			if(updateId != null) {
 				// Direct update to a record
 				log.info("Direct update with Existing unique id:" + updateId);
@@ -387,11 +387,10 @@ public class SubRelationalDB extends Subscriber {
 							existingKey, replace, remoteUser, updateId, survey.groupSurveyIdent, survey.ident, localisation);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
 				} 
 			} else if(hasHrk && !keyPolicy.equals(SurveyManager.KP_NONE)) {
-				boolean replace = keyPolicy.equals(SurveyManager.KP_REPLACE);
 				if(keyPolicy.equals(SurveyManager.KP_MERGE) || keyPolicy.equals(SurveyManager.KP_REPLACE)) {					
 					log.info("Apply merge-replace policy");
 					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0, 
-							replace, remoteUser, instance.getUuid(), survey.groupSurveyIdent, survey.ident, localisation);
+							keyPolicy.equals(SurveyManager.KP_REPLACE), remoteUser, instance.getUuid(), survey.groupSurveyIdent, survey.ident, localisation);
 				} else if(keyPolicy.equals(SurveyManager.KP_DISCARD)) {
 					log.info("Apply discard policy");
 					discardTableContent(cResults, topLevelForm.tableName, keys.newKey);
@@ -1070,6 +1069,9 @@ public class SubRelationalDB extends Subscriber {
 			String ident,
 			ResourceBundle localisation) throws SQLException, Exception {
 
+		String sqlHrk = "select _hrk from " + table + " m where m.prikey = ?";
+		PreparedStatement pstmtHrk = null;
+		
 		String sql = "select " + hrkSql + " from " + table + " m where m.prikey = ?";
 		PreparedStatement pstmt = null;
 		
@@ -1110,14 +1112,28 @@ public class SubRelationalDB extends Subscriber {
 
 			String hrk = null;
 			if(sourceKey == 0) {
-				// Get the HRK
-				pstmt = cResults.prepareStatement(sql);
-				pstmt.setInt(1, prikey);
-				log.info("Get HRK: " + pstmt.toString());
-				ResultSet rs = pstmt.executeQuery();
+				/*
+				 * Get the HRK - this is the key for the record
+				 * First try to get the _hrk value as it may have been set directly, otherwise try and get the hrk
+				 * value from the hrk expression
+				 */
+				pstmtHrk = cResults.prepareStatement(sqlHrk);
+				pstmtHrk.setInt(1, prikey);
+				log.info("Get HRK1: " + pstmtHrk.toString());
+				ResultSet rs = pstmtHrk.executeQuery();
 				if(rs.next()) {
 					hrk = rs.getString(1);
 				}
+				if(hrk == null) {	// Try getting the hrk from the data
+					pstmt = cResults.prepareStatement(sql);
+					pstmt.setInt(1, prikey);
+					log.info("Get HRK: " + pstmt.toString());
+					rs = pstmt.executeQuery();
+					if(rs.next()) {
+						hrk = rs.getString(1);
+					}
+				}
+				
 				// Get the prikey of the source record
 				pstmtSource = cResults.prepareStatement(sqlSource);
 				pstmtSource.setString(1, hrk);
@@ -1398,6 +1414,7 @@ public class SubRelationalDB extends Subscriber {
 
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
+			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {}
 			if(pstmtSource != null) try{pstmtSource.close();}catch(Exception e) {}
 			if(pstmtChildTables != null) try{pstmtChildTables.close();}catch(Exception e) {}
 			if(pstmtChildTablesInGroup != null) try{pstmtChildTablesInGroup.close();}catch(Exception e) {}

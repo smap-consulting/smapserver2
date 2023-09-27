@@ -86,6 +86,74 @@ public class Custom extends Application {
 		return r;
 	}
 	
+	/*
+	 * Get the server custom CSS
+	 */
+	@GET
+	@Produces("application/x-download")
+	@Path("/css/custom.css")
+	public Response serverCss(@Context HttpServletRequest request, 
+			@Context HttpServletResponse response) {
+		
+		Response r = null;
+		
+		/*
+		 * No Authorisation
+		 */
+		String connectionString = "surveyMobileAPI-serverCustom";
+		Connection sd = SDDataSource.getConnection(connectionString);
+	    
+	    try {
+	    	FileManager fm = new FileManager();
+	    	String basePath = GeneralUtilityMethods.getBasePath(request);
 
+	 		fm.getFile(response, basePath + "/css/custom.css", "custom.css");
+	    	
+	    } catch (Exception e) {
+			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
+	    } finally {
+	    	SDDataSource.closeConnection(connectionString, sd);
+	    }
+	   		
+		r = Response.ok("").build();
+		
+		return r;
+	}
+
+	/*
+	 * Get the organisation level custom css
+	 */
+	@GET
+	@Produces("application/x-download")
+	@Path("/css/org/custom.css")
+	public Response customOrgCss(@Context HttpServletRequest request, 
+			@Context HttpServletResponse response) {
+		
+		Response r = null;
+		
+		/*
+		 * No Authorisation
+		 */
+		String connectionString = "surveyMobileAPI-banner";
+		Connection sd = SDDataSource.getConnection(connectionString);
+	   
+	    try {
+	    	int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+	    	FileManager fm = new FileManager();
+	    	String basePath = GeneralUtilityMethods.getBasePath(request);
+
+		 	fm.getFile(response, basePath + "/css/" + oId + "/custom.css", "custom.css");
+	    	
+	    } catch (Exception e) {
+			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
+	    } finally {
+	    	SDDataSource.closeConnection(connectionString, sd);
+	    }
+	   		
+		r = Response.ok("").build();
+		
+		return r;
+	}
+	
 }
 

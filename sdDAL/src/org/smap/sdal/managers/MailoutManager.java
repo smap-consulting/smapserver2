@@ -14,6 +14,7 @@ import javax.mail.internet.InternetAddress;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.EmailServer;
@@ -58,6 +59,8 @@ public class MailoutManager {
 			 Logger.getLogger(MailoutManager.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
+	
+	private HtmlSanitise sanitise = new HtmlSanitise();
 	
 	ResourceBundle localisation = null;
 	
@@ -135,9 +138,9 @@ public class MailoutManager {
 		try {
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setString(1,  mailout.survey_ident);
-			pstmt.setString(2, mailout.name);
-			pstmt.setString(3, mailout.subject);
-			pstmt.setString(4, mailout.content);
+			pstmt.setString(2, HtmlSanitise.checkCleanName(mailout.name, localisation));
+			pstmt.setString(3, sanitise.sanitiseHtml(mailout.subject));
+			pstmt.setString(4, sanitise.sanitiseHtml(mailout.content));
 			pstmt.setBoolean(5, mailout.multiple_submit);
 			pstmt.setBoolean(6, mailout.anonymous);
 			log.info("Add mailout: " + pstmt.toString());
@@ -182,9 +185,9 @@ public class MailoutManager {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1,  mailout.survey_ident);
-			pstmt.setString(2, mailout.name);
-			pstmt.setString(3, mailout.subject);
-			pstmt.setString(4, mailout.content);
+			pstmt.setString(2, HtmlSanitise.checkCleanName(mailout.name, localisation));
+			pstmt.setString(3, sanitise.sanitiseHtml(mailout.subject));
+			pstmt.setString(4, sanitise.sanitiseHtml(mailout.content));
 			pstmt.setBoolean(5, mailout.multiple_submit);
 			pstmt.setBoolean(6, mailout.anonymous);
 			pstmt.setInt(7, mailout.id);

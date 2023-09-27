@@ -52,12 +52,10 @@ public class CssManager {
 	}
 	
 	public void setCurrentCssFile(String name, int orgId) throws IOException {
-		if(name != null) {
-			if(name.equals("_none")) {
-				removeCurrentCustomCssFile(orgId);
-			} else {
-				replaceCustomCssFile(name, orgId);
-			}
+		if(name == null || name.equals("_none")) {
+			removeCurrentCustomCssFile(orgId);
+		} else {
+			replaceCustomCssFile(name, orgId);
 		}
 	}
 	

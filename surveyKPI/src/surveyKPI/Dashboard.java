@@ -32,6 +32,7 @@ import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.SDDataSource;
 
 import model.GeomQuestions;
@@ -44,6 +45,8 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -78,7 +81,8 @@ public class Dashboard extends Application {
 		Response response = null;
 		 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Dashboard");
+		String connectionString = "surveyKPI-Dashboard-get";
+		Connection sd = SDDataSource.getConnection(connectionString);
 		// No check for valid user as only panels owned by a user are returned
 		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		// End Authorisation
@@ -262,7 +266,7 @@ public class Dashboard extends Application {
 			
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Dashboard", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 			
 		}
 
@@ -294,16 +298,20 @@ public class Dashboard extends Application {
 		PreparedStatement pstmtReplaceView = null;
 		
 		// Authorisation not required as dashboard settings are specific to each authenticated user
-		
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Dashboard");
+		String connectionString = "surveyKPI-Dashboard-updateSettings";
+		Connection sd = SDDataSource.getConnection(connectionString);
 
 		try {
-			connectionSD.setAutoCommit(false);
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+	
+			sd.setAutoCommit(false);
 			
 			String sqlDelView = "delete from dashboard_settings " +
 					"where (ds_id = ? or ds_layer_id = ?) " +
 					"and ds_user_ident = ?;";	
-			pstmtDelView = connectionSD.prepareStatement(sqlDelView);	
+			pstmtDelView = sd.prepareStatement(sqlDelView);	
 			
 			String sqlAddView = "insert into dashboard_settings("
 					+ "ds_state, ds_seq, ds_title, ds_s_id, ds_s_name, ds_type, ds_layer_id, ds_region,"
@@ -312,7 +320,7 @@ public class Dashboard extends Application {
 					+ "ds_from_date, ds_to_date, ds_q_is_calc, ds_filter, ds_advanced_filter, ds_subject_type, ds_u_id,"
 					+ "ds_inc_ro, ds_geom_questions, ds_selected_geom_question) values ("
 					+ "?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
-			pstmtAddView = connectionSD.prepareStatement(sqlAddView);	 			
+			pstmtAddView = sd.prepareStatement(sqlAddView);	 			
 			
 			String sqlReplaceView = "update dashboard_settings set " +
 					" ds_state = ?," +
@@ -347,7 +355,7 @@ public class Dashboard extends Application {
 					" ds_selected_geom_question = ? " +
 					" where ds_id = ? " +
 					" and ds_user_ident = ?;";						
-			pstmtReplaceView = connectionSD.prepareStatement(sqlReplaceView);
+			pstmtReplaceView = sd.prepareStatement(sqlReplaceView);
 			
 			for(Settings s : sArray) {
 				
@@ -368,21 +376,21 @@ public class Dashboard extends Application {
 						//==========================  Insert the new view 
 						pstmtAddView.setString(1, s.state);
 						pstmtAddView.setInt(2, s.seq);
-						pstmtAddView.setString(3, s.title);
+						pstmtAddView.setString(3, HtmlSanitise.checkCleanName(s.title, localisation));
 						pstmtAddView.setInt(4, s.sId);
 						pstmtAddView.setString(5, s.sName);
 						pstmtAddView.setString(6, s.type);
 						pstmtAddView.setInt(7, s.layerId);
 						pstmtAddView.setString(8, s.region);
 						pstmtAddView.setString(9, s.lang);
-						pstmtAddView.setString(10, GeneralUtilityMethods.getQuestionNameFromId(connectionSD, s.sId, s.qId));
-						pstmtAddView.setString(11, GeneralUtilityMethods.getQuestionNameFromId(connectionSD, s.sId, s.dateQuestionId));
+						pstmtAddView.setString(10, GeneralUtilityMethods.getQuestionNameFromId(sd, s.sId, s.qId));
+						pstmtAddView.setString(11, GeneralUtilityMethods.getQuestionNameFromId(sd, s.sId, s.dateQuestionId));
 						pstmtAddView.setString(12, s.question);
 						pstmtAddView.setString(13, s.fn);
 						pstmtAddView.setString(14, s.table);
 						pstmtAddView.setString(15, s.key_words);
 						pstmtAddView.setString(16, s.q1_function);
-						pstmtAddView.setString(17, GeneralUtilityMethods.getQuestionNameFromId(connectionSD, s.sId, s.groupQuestionId));
+						pstmtAddView.setString(17, GeneralUtilityMethods.getQuestionNameFromId(sd, s.sId, s.groupQuestionId));
 						pstmtAddView.setString(18, s.groupQuestionText);
 						pstmtAddView.setString(19, s.groupType);
 						pstmtAddView.setString(20, user);
@@ -411,21 +419,21 @@ public class Dashboard extends Application {
 						//==========================  Update the existing view
 						pstmtReplaceView.setString(1, s.state);
 						pstmtReplaceView.setInt(2, s.seq);
-						pstmtReplaceView.setString(3, s.title);
+						pstmtReplaceView.setString(3, HtmlSanitise.checkCleanName(s.title, localisation));
 						pstmtReplaceView.setInt(4, s.sId);
 						pstmtReplaceView.setString(5, s.sName);
 						pstmtReplaceView.setString(6, s.type);
 						pstmtReplaceView.setInt(7, s.layerId);
 						pstmtReplaceView.setString(8, s.region);
 						pstmtReplaceView.setString(9, s.lang);
-						pstmtReplaceView.setString(10, GeneralUtilityMethods.getQuestionNameFromId(connectionSD, s.sId, s.qId));
-						pstmtReplaceView.setString(11, GeneralUtilityMethods.getQuestionNameFromId(connectionSD, s.sId, s.dateQuestionId));
+						pstmtReplaceView.setString(10, GeneralUtilityMethods.getQuestionNameFromId(sd, s.sId, s.qId));
+						pstmtReplaceView.setString(11, GeneralUtilityMethods.getQuestionNameFromId(sd, s.sId, s.dateQuestionId));
 						pstmtReplaceView.setString(12, s.question);
 						pstmtReplaceView.setString(13, s.fn);
 						pstmtReplaceView.setString(14, s.table);
 						pstmtReplaceView.setString(15, s.key_words);
 						pstmtReplaceView.setString(16, s.q1_function);
-						pstmtReplaceView.setString(17, GeneralUtilityMethods.getQuestionNameFromId(connectionSD, s.sId, s.groupQuestionId));
+						pstmtReplaceView.setString(17, GeneralUtilityMethods.getQuestionNameFromId(sd, s.sId, s.groupQuestionId));
 						pstmtReplaceView.setString(18, s.groupQuestionText);
 						pstmtReplaceView.setString(19, s.groupType);
 						pstmtReplaceView.setString(20, s.timeGroup);
@@ -455,12 +463,12 @@ public class Dashboard extends Application {
 				}
 				
 			}
-			connectionSD.commit();
+			sd.commit();
 			response = Response.ok().build();
 				
 		} catch (Exception e) {
-			try { connectionSD.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
-			response = Response.serverError().build();
+			try { sd.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
+			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE,"Error", e);
 		} finally {
 			
@@ -469,7 +477,7 @@ public class Dashboard extends Application {
 			try {if (pstmtReplaceView != null) {pstmtReplaceView.close();}} catch (SQLException e) {}
 			try {if (pstmtDel != null) {pstmtDel.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Dashboard", connectionSD);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
@@ -487,12 +495,12 @@ public class Dashboard extends Application {
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Dashboard");
+		String connectionString = "surveyKPI-Dashboard-updateState";
+		Connection sd = SDDataSource.getConnection(connectionString);
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
 
-		
 		try {
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			Settings s = gson.fromJson(stateString, Settings.class);
@@ -502,7 +510,7 @@ public class Dashboard extends Application {
 
 			if(s.state != null && !s.state.equals("deleted")) {
 				
-				sql = "update dashboard_settings set ds_state=? " +
+				sql = "update dashboard_settings set ds_state = ? " +
 						"where ds_id = ? " +
 						"and ds_user_ident = ?;";
 				log.info(sql + " : " + s.state + " : " + s.id + " : " + user);
@@ -536,7 +544,7 @@ public class Dashboard extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Dashboard", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;

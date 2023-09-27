@@ -86,6 +86,8 @@ public class Surveys extends Application {
 	
 	private static Logger log =
 			 Logger.getLogger(Surveys.class.getName());
+	
+	private HtmlSanitise sanitise = new HtmlSanitise();
 
 	LogManager lm = new LogManager();		// Application log
 	
@@ -633,7 +635,7 @@ public class Surveys extends Application {
 			
 			// Update the languages
 			GeneralUtilityMethods.setLanguages(sd, sId, languageList);
-			GeneralUtilityMethods.setMediaForLanguages(sd, sId, languageList);	// Cope with media being duplicated across all languages
+			GeneralUtilityMethods.setMediaForLanguages(sd, sId, languageList, sanitise);	// Cope with media being duplicated across all languages
 			// Get the survey details.  superUser set to true as this user just edited the survey so they are effectively a super user for this survey and we can save a databse call
 			org.smap.sdal.model.Survey  survey = sm.getById(sd, 
 					null,  request.getRemoteUser(), false, sId, true, 
