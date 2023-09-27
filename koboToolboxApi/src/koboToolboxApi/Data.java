@@ -669,16 +669,7 @@ public class Data extends Application {
 			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}	
-			if(!isDt) {
-				RateLimitInfo info = RateLimiter.isPermitted(sd, oId, "API_DATA");
-				if(!info.permitted) {
-					String msg = localisation.getString("rl_api");
-					msg = msg.replace("%s1", String.valueOf(info.gap / 1000));
-					msg = msg.replace("%s2", String.valueOf(info.milliSecsElapsed / 1000));
-					throw new ApplicationException(msg);
-				}
-			}
-
+			RateLimiter.isPermitted(sd, oId, response, localisation);
 
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 
@@ -1022,6 +1013,11 @@ public class Data extends Application {
 				errorMsgAddClosingBracket--;
 			}
 
+		} catch(ApplicationException ae) {
+			response.setContentType("text/plain");
+			response.setStatus(429);
+			response.getWriter().append(ae.getMessage());
+			log.info(ae.getMessage());
 		} catch (Exception e) {
 			try {cResults.setAutoCommit(true);} catch(Exception ex) {};
 			
@@ -1071,13 +1067,11 @@ public class Data extends Application {
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 			try {if (pstmtGetMainForm != null) {pstmtGetMainForm.close();	}} catch (SQLException e) {	}
 			try {if (pstmtGetForm != null) {pstmtGetForm.close();	}} catch (SQLException e) {	}
-			//try {if (pstmtGetManagedId != null) {pstmtGetManagedId.close();	}} catch (SQLException e) {	}
 
 			ResultsDataSource.closeConnection(connectionString, cResults);			
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 
-		//return response;
 
 	}
 	
