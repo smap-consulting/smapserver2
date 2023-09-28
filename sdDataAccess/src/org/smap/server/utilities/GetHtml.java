@@ -349,8 +349,10 @@ public class GetHtml {
 					repeatInfo.setAttribute("data-name", paths.get(getRefName(q.name, form)));
 					if (q.calculation != null && q.calculation.trim().length() > 0) {
 						repeatInfo.setAttribute("data-repeat-count", paths.get(getRefName(q.name, form)) + "_count");
-
-					}
+						if(q.appearance == null || !q.appearance.contains("extendable")) {
+							repeatInfo.setAttribute("data-repeat-fixed", "true()");		// Do not add if initial extend set by repeat count but can be extended
+						}
+					} 
 					currentParent.appendChild(repeatInfo);
 
 					// Exit the group
