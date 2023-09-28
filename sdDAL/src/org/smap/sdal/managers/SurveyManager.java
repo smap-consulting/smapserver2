@@ -275,7 +275,7 @@ public class SurveyManager {
 		ResultSet resultSet = null;
 		PreparedStatement pstmt = null;
 		StringBuffer sql = new StringBuffer("");
-		sql.append("select s.s_id, s.name, s.display_name, s.deleted, s.blocked, "		// Remove distinct for performance reasons
+		sql.append("select s.s_id, s.display_name, s.deleted, s.blocked, "		// Remove distinct for performance reasons
 				+ "s.ident, s.version, s.loaded_from_xls, o.can_submit "
 				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
@@ -322,7 +322,6 @@ public class SurveyManager {
 				s.setBlocked(surveyBlocked || !orgCanSubmit);
 				
 				s.setIdent(resultSet.getString("ident"));
-				//s.setManagedId(resultSet.getInt(7));
 				s.setVersion(resultSet.getInt("version"));
 				s.setLoadedFromXLS(resultSet.getBoolean("loaded_from_xls"));
 
@@ -778,71 +777,6 @@ public class SurveyManager {
 		}
 
 		return sId;
-
-	}
-
-	/*
-	 * Get all the surveys in the user's organisation that reference the passed in CSV file
-	 *  Note even surveys that are in projects not enabled for the user should be returned
-	 */
-	public ArrayList<Survey> getByOrganisationAndExternalCSV(Connection sd, 
-			String user, 
-			String csvFileName			
-			)  {
-
-		ArrayList<Survey> surveys = new ArrayList<Survey>();	// Results of request
-
-		int idx = csvFileName.lastIndexOf('.');
-		String csvRoot = csvFileName;
-		if(idx > 0) {
-			csvRoot = csvFileName.substring(0, idx);
-		}
-
-		// Escape csvRoot
-		csvRoot = csvRoot.replace("\'", "\'\'");
-
-		ResultSet resultSet = null;
-		String sql = "select s.s_id, s.name, s.display_name, s.deleted, s.blocked, s.ident "
-				+ "from survey s, users u, project p, question q, form f "
-				+ "where s.s_id = f.s_id "
-				+ "and f.f_id = q.f_id "
-				+ "and (q.appearance like '%search(''" + csvRoot + "''%' or "
-				+ "q.calculate like '%pulldata(''" + csvRoot + "''%' ) "
-				+ "and s.p_id = p.id "
-				+ "and s.deleted = 'false' "
-				+ "and s.blocked = 'false' "
-				+ "and p.o_id = u.o_id "
-				+ "and u.ident = ? "
-				+ "order BY s.display_name;";
-
-
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, user);
-
-			log.info("Get surveys that use the uploaded CSV: " + pstmt.toString());
-			resultSet = pstmt.executeQuery();
-
-			while (resultSet.next()) {								
-
-				Survey s = new Survey();
-				s.setId(resultSet.getInt(1));
-				//s.setName(resultSet.getString(2));
-				s.setDisplayName(resultSet.getString(3));
-				s.setDeleted(resultSet.getBoolean(4));
-				s.setBlocked(resultSet.getBoolean(5));
-				s.setIdent(resultSet.getString(6));
-
-				surveys.add(s);
-			} 
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if(pstmt != null) try{pstmt.close();}catch(Exception e){}
-		}
-
-		return surveys;
 
 	}
 

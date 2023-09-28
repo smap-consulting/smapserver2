@@ -62,6 +62,7 @@ public class ServerManager {
 				+ "google_key,"
 				+ "maptiler_key,"
 				+ "sms_url,"
+				+ "max_rate,"
 				+ "password_strength,"
 				+ "keep_erased_days,"
 				+ "css "
@@ -83,6 +84,7 @@ public class ServerManager {
 				data.google_key = rs.getString("google_key");
 				data.maptiler_key = rs.getString("maptiler_key");
 				data.sms_url = rs.getString("sms_url");
+				data.ratelimit = rs.getInt("max_rate");
 				data.password_strength = rs.getDouble("password_strength");
 				data.keep_erased_days = rs.getInt("keep_erased_days");
 				data.css = rs.getString("css");

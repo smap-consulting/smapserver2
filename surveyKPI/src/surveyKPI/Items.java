@@ -19,6 +19,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -39,6 +40,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RateLimiter;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.Tables;
@@ -108,6 +110,7 @@ public class Items extends Application {
 	@Path("/{form}")
 	@Produces("application/json")
 	public String getTable(@Context HttpServletRequest request,
+			@Context HttpServletResponse response,
 			@PathParam("form") int fId, 
 			@QueryParam("geom") String geom,			
 			@QueryParam("mustHaveGeom") String mustHaveGeom,
@@ -195,6 +198,12 @@ public class Items extends Application {
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				
+				/*
+				 * Check the rate limiter
+				 */
+				RateLimiter.isPermitted(sd, oId, response, localisation);				
+				
 				// Connect to the results database
 				cResults = ResultsDataSource.getConnection(connectionString);	
 				
@@ -777,6 +786,11 @@ public class Items extends Application {
 					log.log(Level.SEVERE, message.toString(), e);
 				}
 				
+			} catch(ApplicationException ae) {
+				
+				message.append(ae.getMessage());
+				log.info(ae.getMessage());
+				
 			} catch (Exception e) {
 				log.log(Level.SEVERE, message.toString(), e);
 				message.append(e.getMessage());
@@ -792,7 +806,7 @@ public class Items extends Application {
 		}
 
 		try {
-			jo.put("message", message);
+			jo.put("message", message.toString());
 		} catch (Exception e) {
 		}
 		return jo.toString();
