@@ -830,7 +830,9 @@ public class GetXForm {
 					if (repeats != null && repeats.trim().length() > 0) { // Add the path to the repeat count question
 						String repeatCountPath = template.getQuestionPaths().get(q.getName()) + "_count";
 						repeatElement.setAttribute("jr:count", repeatCountPath);
-						repeatElement.setAttribute("jr:noAddRemove", "true()");
+						if(appearance == null || !appearance.contains("extendable")) {
+							repeatElement.setAttribute("jr:noAddRemove", "true()");		// Do not add if initial extend set by repeat count but can be extended
+						}					
 					} else if(q.isReference()) {
 						repeatElement.setAttribute("jr:noAddRemove", "true()");
 					}

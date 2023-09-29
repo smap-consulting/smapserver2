@@ -661,6 +661,11 @@ public class UserManager {
 			pstmt.setInt(2, o_id);
 			pstmt.setString(3, HtmlSanitise.checkCleanName(u.email, localisation));
 			pstmt.setString(4, HtmlSanitise.checkCleanName(u.name, localisation));
+			
+			// Validate action name before saving action details
+			if(u.action_details != null) {
+				u.action_details.validateNames(localisation);
+			}
 			pstmt.setString(5, gson.toJson(u.action_details));
 			pstmt.setBoolean(6, u.singleSubmission);
 			log.info("SQL: " + pstmt.toString());

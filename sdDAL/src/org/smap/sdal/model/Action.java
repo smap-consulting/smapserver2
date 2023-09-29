@@ -1,9 +1,12 @@
 package org.smap.sdal.model;
 
 import java.util.ArrayList;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.managers.EmailManager;
 
 public class Action {
@@ -63,5 +66,10 @@ public class Action {
 			}
 		}
 		return fId;
+	}
+	
+	public void validateNames(ResourceBundle localisation) throws ApplicationException {
+		HtmlSanitise.checkCleanName(name, localisation);
+		HtmlSanitise.checkCleanName(action, localisation);
 	}
 }

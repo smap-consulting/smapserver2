@@ -4,11 +4,16 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.HashMap;
-import java.util.logging.Level;
+import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
-import org.smap.sdal.model.RateLimitInfo;
+import javax.servlet.http.HttpServletResponse;
+
+import io.github.bucket4j.Bandwidth;
+import io.github.bucket4j.Bucket;
+import io.github.bucket4j.Refill;
 
 public class RateLimiter {
 	
@@ -18,70 +23,63 @@ public class RateLimiter {
 	private RateLimiter() {
 	}
 	
-	private static HashMap<Integer, HashMap<String, Long>> store  = new HashMap<> ();
+	/*
+	 * Create one bucket per organisation
+	 * Hence all the rate limited services will for an organisaiton will get a 
+	 * single total limit
+	 */
+	private static HashMap<Integer, Bucket> store  = new HashMap<> ();
 	
-	public static RateLimitInfo isPermitted(Connection sd, int oId, String action) {
-
-		RateLimitInfo info =  new RateLimitInfo();
-		info.permitted = true;
-		
-		try {
-			info.gap = getGapRequired(sd, oId);
-
-			if(info.gap > 0) {
-				// Get store of requests for this organisation
-				HashMap<String, Long> oStore = store.get(oId);
-				if(oStore == null) {
-					oStore = new HashMap<>();
-					store.put(oId, oStore);
-				}
-				
-				// Get the last timestamp for this action
-				Long ts = oStore.get(action);
-				if(ts == null) {
-					ts = new Long(0);
-					oStore.put(action, ts);
-				}
-				
-				// Check to see if the last timestamp is less than (the gap) milli seconds away
-				Long now = new Long(System.currentTimeMillis());
-				try {
-					info.milliSecsElapsed = now - ts;
-				} catch (Exception e) {
-					info.milliSecsElapsed = Integer.MAX_VALUE;	// Some large number so that the request will be accepted				
-				}
-				if(info.milliSecsElapsed < info.gap) {
-					info.permitted = false;
-					log.info("Rate limit exceeded: " + oId + " " + action);
-				} else {
-					oStore.put(action, now);  // update the time of the last successful usage
-				}
-				
-			}
-		
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Error checking limit", e);
-		}
-		return info;
-	}
+	private static int rate = -1;
 	
-	private static int getGapRequired(Connection sd, int o_id) throws SQLException {
-		int gap = 0;
-		String sql = "select api_rate_limit from organisation where id = ?";
+	public static void isPermitted(Connection sd, int oId, 
+			HttpServletResponse response,
+			ResourceBundle localisation) throws ApplicationException {
+		
 		PreparedStatement pstmt = null;
 		
 		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, o_id);
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				gap = rs.getInt(1);
+			/*
+			 * Get the rate from the database if we don't already have it
+			 */
+			if(rate == -1) {
+				pstmt = sd.prepareStatement("select max_rate from server");
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					rate = rs.getInt("max_rate");
+				}
 			}
+			
+			if(rate > 0) {
+				Bucket bucket = store.get(oId);
+				if(bucket == null) {
+					bucket = Bucket.builder()
+					    .addLimit(Bandwidth.classic(rate, Refill.greedy(rate, Duration.ofMinutes(1))))
+					    .build();	// TODO add a burst limit for 1 second
+					store.put(oId,  bucket);
+				}
+				
+				if (!bucket.tryConsume(1)) {
+			        // limit is exceeded
+					String msg = localisation.getString("rl_api");
+					msg = msg.replace("%s1", String.valueOf(rate));
+					throw new ApplicationException(msg);
+				}
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		} finally {
-			if (pstmt != null) {try {pstmt.close();} catch (Exception e) {}}
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 		}
 		
-		return gap;
+		return;
+	
+	}
+	
+	public static void setRates(int r) {
+		rate = r;
+		store = new HashMap<> ();	// reset the cache
 	}
 
 }

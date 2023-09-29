@@ -46,6 +46,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -395,6 +396,8 @@ public class Tasks extends Application {
 			
 		} catch(FileUploadException ex) {
 			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().entity(ex.getMessage()).build();
+		} catch(ApplicationException ex) {
 			response = Response.serverError().entity(ex.getMessage()).build();
 		} catch(Exception ex) {
 			log.log(Level.SEVERE,ex.getMessage(), ex);

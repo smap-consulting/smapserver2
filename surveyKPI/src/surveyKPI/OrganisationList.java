@@ -917,6 +917,8 @@ public class OrganisationList extends Application {
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "Exception", e);
 			response = Response.serverError().entity(e.getMessage()).build();
+		} catch (ApplicationException e) {
+			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {			
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}		
 			SDDataSource.closeConnection(connectionString, sd);

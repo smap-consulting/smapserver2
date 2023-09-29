@@ -19,7 +19,9 @@ import java.util.logging.Logger;
 import javax.mail.internet.InternetAddress;
 import javax.servlet.http.HttpServletRequest;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.AssignFromSurvey;
@@ -934,7 +936,7 @@ public class TaskManager {
 	 */
 	public void saveLocations(Connection sd, 
 			ArrayList<Location> tags,
-			int oId) throws SQLException {
+			int oId) throws SQLException, ApplicationException {
 
 
 		String sqlDelete = "delete from locations "
@@ -962,10 +964,10 @@ public class TaskManager {
 
 				Location t = tags.get(i);
 
-				pstmt.setString(2, t.group);
+				pstmt.setString(2, HtmlSanitise.checkCleanName(t.group, localisation));
 				pstmt.setString(3, t.type);
 				pstmt.setString(4, t.uid);
-				pstmt.setString(5, t.name);
+				pstmt.setString(5, HtmlSanitise.checkCleanName(t.name, localisation));
 
 				Point newPoint = new Point(t.lon, t.lat);
 				pstmt.setString(6, newPoint.getAsText());
@@ -973,6 +975,9 @@ public class TaskManager {
 				pstmt.executeUpdate();
 			}
 			sd.commit();
+		} catch(ApplicationException e) {
+			sd.rollback();
+			throw(e);
 		} catch(Exception e) {
 			sd.rollback();
 			throw(e);
@@ -1582,7 +1587,7 @@ public class TaskManager {
 				Location locn = getLocation(sd, oId, tsd.location_group, tsd.location_name);
 				if(locn == null) {
 					// Create location
-					GeneralUtilityMethods.createLocation(sd, oId, tsd.location_group, tsd.location_trigger, tsd.location_name, tsd.lon, tsd.lat);
+					GeneralUtilityMethods.createLocation(sd, localisation, oId, tsd.location_group, tsd.location_trigger, tsd.location_name, tsd.lon, tsd.lat);
 				} else {
 					// Update Location
 					GeneralUtilityMethods.updateLocation(sd, oId, tsd.location_group, tsd.location_trigger, tsd.location_name, tsd.lon, tsd.lat);
@@ -1791,7 +1796,7 @@ public class TaskManager {
 					if(rs.next()) {
 						int count = rs.getInt(1);
 						if(count == 0) {
-							GeneralUtilityMethods.createLocation(sd, oId, "tg", 
+							GeneralUtilityMethods.createLocation(sd, localisation, oId, "tg", 
 									tsd.location_trigger, tsd.name, 0.0, 0.0);
 						}
 					}
@@ -2576,7 +2581,7 @@ public class TaskManager {
 			String guidance,
 			String initial_data_source,
 			String initial_data,
-			int show_dist) throws SQLException {
+			int show_dist) throws SQLException, ApplicationException {
 		
 		// If the initial data source is not a survey then there is nothing to update
 		if(initial_data_source == null || !initial_data_source.equals("survey")) {
@@ -2584,15 +2589,15 @@ public class TaskManager {
 		}
 				
 		pstmt.setInt(1, pId);
-		pstmt.setString(2,  pName);
+		pstmt.setString(2,  HtmlSanitise.checkCleanName(pName, localisation));
 		pstmt.setInt(3,  tgId);
-		pstmt.setString(4,  tgName);
-		pstmt.setString(5,  title);
+		pstmt.setString(4,  HtmlSanitise.checkCleanName(tgName, localisation));
+		pstmt.setString(5,  HtmlSanitise.checkCleanName(title, localisation));
 		pstmt.setString(6, target_s_ident);	
 		pstmt.setString(7, target_s_ident);			// For survey name			
 		pstmt.setString(8, location);				// geopoint
 		pstmt.setString(9, targetInstanceId);		// update id
-		pstmt.setString(10, address);
+		pstmt.setString(10, HtmlSanitise.checkCleanName(address, localisation));
 		pstmt.setTimestamp(11, taskStart);
 		pstmt.setTimestamp(12, taskFinish);
 		pstmt.setString(13, locationTrigger);
@@ -2664,14 +2669,14 @@ public class TaskManager {
 			String initial_data_source,
 			String initial_data,
 			int show_dist,
-			boolean preserveInitialData) throws SQLException {
+			boolean preserveInitialData) throws SQLException, ApplicationException {
 		
 		int idx = 1;
-		pstmt.setString(idx++, title);
+		pstmt.setString(idx++, HtmlSanitise.checkCleanName(title, localisation));
 		pstmt.setString(idx++,  target_s_ident);
 		pstmt.setString(idx++,  target_s_ident);			// To set survey name				
 		pstmt.setString(idx++, location);			// geopoint
-		pstmt.setString(idx++, address);
+		pstmt.setString(idx++, HtmlSanitise.checkCleanName(address, localisation));
 		pstmt.setTimestamp(idx++, taskStart);
 		pstmt.setTimestamp(idx++, taskFinish);
 		pstmt.setString(idx++, locationTrigger);
@@ -2680,7 +2685,7 @@ public class TaskManager {
 		pstmt.setBoolean(idx++, repeat);	
 		pstmt.setBoolean(idx++, complete_all);	
 		pstmt.setBoolean(idx++, assign_auto);	
-		pstmt.setString(idx++, guidance);
+		pstmt.setString(idx++, HtmlSanitise.checkCleanName(guidance, localisation));
 		pstmt.setString(idx++, initial_data_source);
 		if(!preserveInitialData) {
 			pstmt.setString(idx++, initial_data);
@@ -3626,7 +3631,7 @@ public class TaskManager {
 						+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?);";
 		
 				pstmtTaskGroup = sd.prepareStatement(tgSql, Statement.RETURN_GENERATED_KEYS);
-				pstmtTaskGroup.setString(1, taskGroupName);
+				pstmtTaskGroup.setString(1, HtmlSanitise.checkCleanName(taskGroupName, localisation));
 				pstmtTaskGroup.setInt(2, projectId);
 				pstmtTaskGroup.setString(3, addressParams);
 				pstmtTaskGroup.setString(4, rule);

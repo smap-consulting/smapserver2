@@ -45,3 +45,5 @@ create index idx_ue_processed_time on upload_event (processed_time);
 alter table s3upload add column created_time timestamp with time zone;
 
 alter table cms_alert add column filter text;
+
+alter table server add column max_rate integer default 0;
