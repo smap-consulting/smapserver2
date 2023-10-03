@@ -26,7 +26,7 @@ Development
 
 *  Install Eclipse IDE for Enterprise Java and Web
 *  Clone this project
-*  Import the modules you want to work in from the file system
+*  Import the project into Eclipse as an "Existing Maven Project"
 *  For each war file set the project facets as: Dynamic Web Module 3.0, Java 1.8, JAX-RS 1.1.
 *  koboToolboxApi
     *  Add sdDAL to projects on build path and to deployment assembly
