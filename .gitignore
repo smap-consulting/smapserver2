@@ -32,10 +32,10 @@ tmp/
 *.swp
 *~.nib
 local.properties
-#.loadpath
-#.component
-#.settings
-#.classpath
+.loadpath
+.component
+.settings
+.classpath
 
 .idea/
 workspace.xml
