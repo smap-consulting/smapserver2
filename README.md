@@ -27,7 +27,7 @@ Development
 *  Install Eclipse IDE for Enterprise Java and Web
 *  Clone this project
 *  Import the project into Eclipse as an "Existing Maven Project"
-*  For each war file set the project facets as: Dynamic Web Module 3.0, Java 1.8, JAX-RS 1.1.
+*  For each war file set the project facets as: Dynamic Web Module 4.0, Java 11, JAX-RS 1.1, JavaScript 1.0
 *  koboToolboxApi
     *  Add sdDAL to projects on build path and to deployment assembly
 *  surveyMobileApi
