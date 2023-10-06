@@ -241,8 +241,9 @@ public class UploadFiles extends Application {
 
 		Response response = null;
 
+		String connectionString = "surveyKPI-UploadFiles-deleteFiles";
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-UploadFiles");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		auth.isAuthorised(sd, request.getRemoteUser());
 		auth.isValidOrganisation(sd, request.getRemoteUser(), oId);
 		// End Authorisation		
@@ -276,7 +277,7 @@ public class UploadFiles extends Application {
 			log.log(Level.SEVERE,e.getMessage(), e);
 			response = Response.serverError().build();
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-UploadFiles", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;
@@ -294,8 +295,9 @@ public class UploadFiles extends Application {
 
 		Response response = null;
 
+		String connectionString = "surveyKPI-UploadFiles-deleteMediaSurvey";
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-UploadFiles");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		auth.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation		
 
@@ -330,7 +332,7 @@ public class UploadFiles extends Application {
 			log.log(Level.SEVERE,e.getMessage(), e);
 			response = Response.serverError().build();
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-UploadFiles", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;
@@ -353,13 +355,14 @@ public class UploadFiles extends Application {
 		String user = request.getRemoteUser();
 		boolean superUser = false;
 
+		String connectionString = "surveyKPI-UploadFiles-getMedia";
 		/*
 		 * Authorise
 		 *  If survey ident is passed then check user access to survey
 		 *  Else provide access to the media for the organisation
 		 */
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-UploadFiles");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		if(sId > 0) {
 			try {
 				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -397,6 +400,7 @@ public class UploadFiles extends Application {
 			mResponse.files = mediaInfo.get(sId, null);	
 			
 			if(sId > 0 && getall) {
+				log.info("Media getting files for survey: " + sId);
 				// Get a hashmap of the names to exclude
 				HashMap<String, String> exclude = new HashMap<> ();
 				for(MediaItem mi : mResponse.files) {
@@ -418,7 +422,7 @@ public class UploadFiles extends Application {
 
 			if (pstmt != null) { try {pstmt.close();} catch (SQLException e) {}}
 
-			SDDataSource.closeConnection("surveyKPI-UploadFiles", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;		

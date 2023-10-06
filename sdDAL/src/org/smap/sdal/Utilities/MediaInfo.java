@@ -177,6 +177,8 @@ public class MediaInfo {
 				
 				File f = files.get(i);
 				
+				log.info("Media xxxx file: " + f.getAbsolutePath());
+				
 				// Ignore file names ending in .old as these are previous versions of csv files
 				String fileName = f.getName();
 				if(fileName.endsWith(".old")) {
