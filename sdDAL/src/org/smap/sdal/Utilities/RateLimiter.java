@@ -25,7 +25,8 @@ public class RateLimiter {
 	
 	/*
 	 * Create one bucket per organisation
-	 * Hence all the rate limited services will for an organisaiton will get a 
+	 * A shared bucket will also be created per module
+	 * Hence all the rate limited services in a module for an organisation will get a 
 	 * single total limit
 	 */
 	private static HashMap<Integer, Bucket> store  = new HashMap<> ();

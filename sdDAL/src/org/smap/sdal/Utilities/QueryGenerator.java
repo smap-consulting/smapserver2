@@ -226,7 +226,7 @@ public class QueryGenerator {
 			}
 
 			/*
-			 * Add the koins
+			 * Add the joins
 			 */
 			if(outerJoin) {
 				if(form.childForms != null && form.childForms.size() > 0) {
