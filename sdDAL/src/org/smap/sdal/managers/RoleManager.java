@@ -384,8 +384,8 @@ public class RoleManager {
 		int newLinkId = linkId;
 		
 		try {
-			String sqlNew = "insert into survey_role (survey_ident, r_id, enabled,group_survey_ident) "
-					+ "values (?, ?, ?, (select group_survey_ident from survey s where ? = s.ident))";
+			String sqlNew = "insert into survey_role (survey_ident, r_id, enabled) "
+					+ "values (?, ?, ?)";
 			
 			String sqlExisting = "update survey_role "
 					+ "set enabled = ? "
@@ -402,7 +402,6 @@ public class RoleManager {
 				pstmt.setString(1, sIdent);
 				pstmt.setInt(2, rId);
 				pstmt.setBoolean(3, enabled);	
-				pstmt.setString(4, sIdent);
 			}
 			
 			log.info("Get update survey roles: " + pstmt.toString());
@@ -509,6 +508,12 @@ public class RoleManager {
 		
 	}
 	
+	/*
+	 * Throw an exception if the survey has roles but the user has none 
+	 */
+	public void validateReportRoles(Connection sd, String sIdent, String user) throws Exception {
+		
+	}
 	/*
 	 * Get the sql for a survey role filter for a specific user and survey
 	 * A user can have multiple roles as can a survey hence an array of roles is returned
