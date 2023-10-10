@@ -65,7 +65,7 @@ public class XLSXReportsManager {
 	}
 
 	/*
-	 * Create the new style XLSX report
+	 * Create the XLSX report
 	 */
 	public Response getNewReport(
 			Connection sd,
@@ -117,7 +117,7 @@ public class XLSXReportsManager {
 			CellStyle errorStyle = null;
 
 			try {	
-
+				
 				if(language == null) {	// ensure a language is set
 					language = "none";
 				}
@@ -144,6 +144,13 @@ public class XLSXReportsManager {
 						
 				dataSheet = wb.createSheet(localisation.getString("rep_data"));
 				settingsSheet = wb.createSheet(localisation.getString("rep_settings"));
+				
+				/*
+				 * Check that roles are specified for this user if the survey 
+				 * referenced by the report requires roles
+				 */
+				RoleManager rm = new RoleManager(localisation);
+				rm.validateReportRoles(sd, sIdent, username);
 				
 				/*
 				 * Populate settings sheet
@@ -577,7 +584,7 @@ public class XLSXReportsManager {
 			}  catch (Exception e) {
 				try {cResults.setAutoCommit(true);} catch (Exception ex) {}
 				log.log(Level.SEVERE, "Error", e);
-				//response.setHeader("Content-type",  "text/html; charset=UTF-8");
+
 				lm.writeLog(sd, sId, username, LogManager.ERROR, e.getMessage(), 0, serverName);
 				
 				msg = e.getMessage();

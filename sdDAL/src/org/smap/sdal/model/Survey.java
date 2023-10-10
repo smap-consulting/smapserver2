@@ -668,9 +668,8 @@ public class Survey {
 		PreparedStatement pstmtGetRole = null;
 		
 		String sqlAssociateSurvey = "insert into survey_role (survey_ident, r_id, column_filter, row_filter, "
-				+ "enabled, group_survey_ident) "
-				+ "values (?, ?, ?, ?, 'true', "
-				+ "(select group_survey_ident from survey s where ? = s.ident))";
+				+ "enabled) "
+				+ "values (?, ?, ?, ?, 'true')";
 		PreparedStatement pstmtAssociateSurvey = null;
 		
 		try {
@@ -717,7 +716,6 @@ public class Survey {
 				pstmtAssociateSurvey.setInt(2, rId);
 				pstmtAssociateSurvey.setString(3, gson.toJson(r.column_filter));
 				pstmtAssociateSurvey.setString(4, r.row_filter);
-				pstmtAssociateSurvey.setString(5, ident);
 				
 				log.info("Associate survey to roles: " + pstmtAssociateSurvey.toString());
 				pstmtAssociateSurvey.executeUpdate();
