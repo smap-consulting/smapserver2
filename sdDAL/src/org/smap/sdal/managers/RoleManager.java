@@ -11,6 +11,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.model.Role;
@@ -509,11 +510,43 @@ public class RoleManager {
 	}
 	
 	/*
-	 * Throw an exception if the survey has roles but the user has none 
+	 * Throw an exception if the survey has enabled roles but the user has none of these roles 
 	 */
 	public void validateReportRoles(Connection sd, String sIdent, String user) throws Exception {
 		
+		PreparedStatement pstmt = null;
+		
+		String sqlSurveyRoles = "select count(*) from survey_role where survey_ident = ? and enabled";
+		
+		String sqlSurveyUserRoles = "SELECT count(*) "
+				+ "from survey_role sr, user_role ur, users u "
+				+ "where sr.survey_ident = ? "
+				+ "and sr.r_id = ur.r_id "
+				+ "and sr.enabled = true "
+				+ "and ur.u_id = u.id "
+				+ "and u.ident = ?";
+		
+		try {
+			pstmt = sd.prepareStatement(sqlSurveyRoles);
+			pstmt.setString(1, sIdent);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next() && rs.getInt(1) > 0) {
+				// Survey has roles
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sqlSurveyUserRoles);
+				pstmt.setString(1, sIdent);
+				pstmt.setString(2, user);
+				rs = pstmt.executeQuery();
+				if(!rs.next() || rs.getInt(1) == 0) {
+					// There are no roles common to the survey and the user
+					throw new ApplicationException(localisation.getString("rep_report_role"));
+				}
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
 	}
+	
 	/*
 	 * Get the sql for a survey role filter for a specific user and survey
 	 * A user can have multiple roles as can a survey hence an array of roles is returned
@@ -524,10 +557,9 @@ public class RoleManager {
 		ArrayList<SqlFrag> rfArray = new ArrayList<SqlFrag> ();
 		
 		try {
-			String sql = null;
 			ResultSet resultSet = null;
 			
-			sql = "SELECT sr.row_filter "
+			String sql = "SELECT sr.row_filter "
 					+ "from survey_role sr, user_role ur, users u "
 					+ "where sr.survey_ident = ? "
 					+ "and sr.r_id = ur.r_id "
