@@ -10286,8 +10286,12 @@ public class GeneralUtilityMethods {
     
     public static String getNameFromXlsName(String in) {
     	if(in != null) {
-    		in = in.trim().replace("${", "");
-    		in = in.substring(0, in.lastIndexOf('}'));
+    		in = in.trim();
+    		System.out.println("In: " + in);
+    		if(in.startsWith("${") && in.lastIndexOf('}') >= 0) {
+    			in = in.replace("${", "");
+        		in = in.substring(0, in.lastIndexOf('}'));
+    		}		
     	}
     	return in;
     }
