@@ -176,13 +176,10 @@ public class Reports extends Application {
 			
 			/*
 			 * Validate roles
+			 * Only a super user can update roles
 			 */
-			if(!superUser) {
-				for(Role role : action.roles) {
-					if(!GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser(), role.id)) {
-						throw new ApplicationException("User does not have role: " + role.id);
-					}
-				}
+			if(!superUser && action.roles.size() > 0) {
+				throw new ApplicationException(localisation.getString("tu_rep_roles"));
 			}
 			
 			log.info("Creating action for report: " + "");	
