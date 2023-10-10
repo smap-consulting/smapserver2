@@ -273,6 +273,11 @@ then
 
 fi
 
+# Version 23.11
+if [ $version -lt "2311" ]
+	sudo a2enmod auth_form
+fi
+
 if [ ! -d "/smap/settings" ]
 then
     mkdir /smap/settings
