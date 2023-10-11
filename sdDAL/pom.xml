@@ -37,6 +37,12 @@
 	<dependencies>
 		
 		<dependency>
+	      	<groupId>smapserver</groupId>
+	      	<artifactId>amazon</artifactId>
+	      	<version>1.0.0</version>
+      	</dependency>
+      	
+		<dependency>
     		<groupId>org.apache.tomcat</groupId>
     		<artifactId>tomcat-catalina</artifactId>
     		<version>9.0.46</version>

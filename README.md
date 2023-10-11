@@ -16,7 +16,7 @@ Components
 * sdDAL.  A library of shared code.
 * sdDataAccess.  A legacy library of shared code.
 * setup.  Scripts.
-* cloudInterface.  Dummy end points for access to cloud services.  (In particular AWS),
+* cloudInterface.  Dummy end points for access to cloud services.  (Deprecated - use the AWS module and modify),
 * codebook.  A fork of the odk codebook for generating codebooks from survey templates.
 
 Follow the latest news about Smap on our [blog](http://blog.smap.com.au)
@@ -26,16 +26,17 @@ Development
 
 *  Install Eclipse IDE for Enterprise Java and Web
 *  Clone this project
-*  Import the modules you want to work in from the file system
-*  For each war file set the project facets as: Dynamic Web Module 3.0, Java 1.8, JAX-RS 1.1.
+*  Clone the smap2 project which contains the amazon module: git clone https://github.com/nap2000/smap2.git
+*  Import the modules you want to work with from the file system, you will need amazon, sdDAL and sdDataAccess as they are dependencies for the main modules
+*  For each module set the project facets as: Dynamic Web Module 3.0, Java 1.8, JAX-RS 1.1.
 *  koboToolboxApi
     *  Add sdDAL to projects on build path and to deployment assembly
 *  surveyMobileApi
-    *  Add sdDAL, sdDataAccess, cloudInterface to projects to build path and to deployment assembly
+    *  Add sdDAL, sdDataAccess, amazon to projects to build path and to deployment assembly
 *  surveyKPI
-    *  Add sdDAL, sdDataAccess, cloudInterface to projects to build path and to deployment assembly
+    *  Add sdDAL, sdDataAccess, amazon to projects to build path and to deployment assembly
 *  subscribers
-    *  Add sdDAL, sdDataAccess, cloudInterface to projects to build path
+    *  Add sdDAL, sdDataAccess, amazon to projects to build path
 
 
 How to Install
