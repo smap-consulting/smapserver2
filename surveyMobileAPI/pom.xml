@@ -55,13 +55,6 @@
 	      	<artifactId>sdDataAccess</artifactId>
 	      	<version>1.0.0</version>
       	</dependency>
-        
-        <!-- Non SDAL -->
-		<dependency>
-            <groupId>asm</groupId>
-            <artifactId>asm</artifactId>
-            <version>3.3.1</version>
-        </dependency>       
   
 		<dependency>
 			<groupId>javax.servlet</groupId>
