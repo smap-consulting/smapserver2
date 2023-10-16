@@ -27,7 +27,8 @@ Development
 *  Install Eclipse IDE for Enterprise Java and Web
 *  Clone this project
 *  Clone the smap2 project which contains the amazon module: git clone https://github.com/nap2000/smap2.git
-*  Import the modules you want to work with from the file system, you will need amazon, sdDAL and sdDataAccess as they are dependencies for the main modules
+*  Import the modules as existing maven projects
+*  run maven install for amazon, sdDAL and sdDataAccess as these are referenced by the main modules
 *  For each module set the project facets as: Dynamic Web Module 3.0, Java 1.8, JAX-RS 1.1.
 *  koboToolboxApi
     *  Add sdDAL to projects on build path and to deployment assembly
