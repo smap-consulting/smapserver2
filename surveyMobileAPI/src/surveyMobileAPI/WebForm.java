@@ -990,6 +990,7 @@ public class WebForm extends Application {
 		String html = output.toString();
 		html = html.replaceAll("&gt;", ">");
 		html = html.replaceAll("&lt;", "<");
+		html = html.replaceAll("&amp;", "&");
 		html = html.replaceAll("\\\\\\\\", "\\\\");
 		
 		return html;

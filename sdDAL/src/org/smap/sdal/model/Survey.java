@@ -155,11 +155,6 @@ public class Survey {
 		return idx;
 	}
 	
-	// Get the display name with any HTML reserved characters escaped
-	public String getDisplayNameForHTML() {
-		return GeneralUtilityMethods.esc(displayName);
-	}
-	
 	// Get a name for the survey instance
 	public String getInstanceName() {
 		String instanceName = "survey";
