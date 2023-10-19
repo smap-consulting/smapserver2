@@ -106,27 +106,32 @@ public class MediaInfo {
 			}
 			folderPath = basePath + "/" + folderUrl;
 			folder = new File(folderPath);
-				
-			createFolders(folderPath);
 			
-			// Set access writes to the top level organisation folder down
-			Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "chmod -R 777 " + 
-					basePath + "/" + "media/organisation/" + organisationId});
-			int code = proc.waitFor();				
-        	
-			if(code > 0) {
-				int len;
-				if ((len = proc.getErrorStream().available()) > 0) {
-					byte[] buf = new byte[len];
-					proc.getErrorStream().read(buf);
-					log.info("Command error:\t\"" + new String(buf) + "\"");
-				}
-			} else {
-				int len;
-				if ((len = proc.getInputStream().available()) > 0) {
-					byte[] buf = new byte[len];
-					proc.getInputStream().read(buf);
-					log.info("Completed setting organisation folder process:\t\"" + new String(buf) + "\"");
+			/*
+			 * Create the media folders if they do not exist
+			 */
+			if(!folder.exists()) {
+				createFolders(folderPath);
+				
+				// Set access writes to the top level organisation folder down
+				Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "chmod -R 777 " + 
+						basePath + "/" + "media/organisation/" + organisationId});
+				int code = proc.waitFor();				
+	        	
+				if(code > 0) {
+					int len;
+					if ((len = proc.getErrorStream().available()) > 0) {
+						byte[] buf = new byte[len];
+						proc.getErrorStream().read(buf);
+						log.info("Command error:\t\"" + new String(buf) + "\"");
+					}
+				} else {
+					int len;
+					if ((len = proc.getInputStream().available()) > 0) {
+						byte[] buf = new byte[len];
+						proc.getInputStream().read(buf);
+						log.info("Completed setting organisation folder process:\t\"" + new String(buf) + "\"");
+					}
 				}
 			}
 				
@@ -160,7 +165,7 @@ public class MediaInfo {
 		ArrayList<MediaItem> media = new ArrayList<MediaItem> ();
 		
 		if(folder != null) {
-			log.info("MediaInfo: Getting files from folder: " + folder);
+			//log.info("MediaInfo: Getting files from folder: " + folder);
 			ArrayList <File> files = new ArrayList<File> (FileUtils.listFiles(folder, FileFilterUtils.fileFileFilter(), null));
 			
 			// Sort the files alphabetically
@@ -170,12 +175,13 @@ public class MediaInfo {
 			    }
 			} );
 			
-			//DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 			DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");	// As per timestamp
 			
 			for(int i = 0; i < files.size(); i++) {
 				
 				File f = files.get(i);
+				
+				log.info("Media xxxx file: " + f.getAbsolutePath());
 				
 				// Ignore file names ending in .old as these are previous versions of csv files
 				String fileName = f.getName();

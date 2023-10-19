@@ -267,7 +267,8 @@ public class Roles extends Application {
 	public Response getSurveyRoles(
 			@Context HttpServletRequest request,
 			@PathParam("sId") int sId,
-			@QueryParam("enabled") boolean enabledOnly
+			@QueryParam("enabled") boolean enabledOnly,
+			@QueryParam("onlypriv") boolean superUserOnly
 			) { 
 
 		Response response = null;
@@ -289,11 +290,16 @@ public class Roles extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 	
-			RoleManager rm = new RoleManager(localisation);
-			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-			ArrayList<Role> roles = rm.getSurveyRoles(sd, sIdent, oId, enabledOnly, request.getRemoteUser(), superUser);
+			ArrayList<Role> roles = null;
+			if(superUser || !superUserOnly) {
+				RoleManager rm = new RoleManager(localisation);
+				
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+				roles = rm.getSurveyRoles(sd, sIdent, oId, enabledOnly, request.getRemoteUser(), superUser);
+			} else {
+				roles = new ArrayList<>();
+			}
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(roles);
 			response = Response.ok(resp).build();

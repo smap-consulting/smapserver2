@@ -304,12 +304,9 @@ public class ActionManager {
 		String sqlInsertRole = "insert into user_role (u_id, r_id) values ((select id from users where temporary = true and ident = ?), ?);";		
 		PreparedStatement pstmtInsertRole = null;
 		
-		String sqlUserHasRole = "select count(*) from users u, user_role ur "
-				+ "where u.id = ur.u_id "
-				+ "and u.ident = ? "
-				+ "and ur.r_id = ?";
-		PreparedStatement pstmtUserHasRole = null;
-		
+		String sqlGetUserRoles = "select r_id from user_role "
+				+ "where u_id = (select id from users where temporary = true and ident = ?) ";
+		PreparedStatement pstmtGetuserRoles = null;
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		try {
@@ -318,6 +315,37 @@ public class ActionManager {
 				a.validateNames(localisation);
 			}
 						
+			if(superUser) {
+				// delete roles no longer referenced
+				pstmtDelRoles = sd.prepareStatement(sqlDelRoles);
+				pstmtDelRoles.setString(1, userIdent);
+				pstmtDelRoles.executeUpdate();
+			
+				// Add roles
+				if(a.roles != null && a.roles.size() > 0) {
+
+					pstmtInsertRole = sd.prepareStatement(sqlInsertRole);
+					pstmtInsertRole.setString(1, userIdent);
+					
+					for( Role r : a.roles) {
+						pstmtInsertRole.setInt(2, r.id);
+						log.info("Insert role: " + pstmtInsertRole.toString());
+						pstmtInsertRole.executeUpdate();
+					}
+				}
+			} else {
+				// Preserve the selected roles in the action
+				a.roles = new ArrayList<>();
+				pstmtGetuserRoles = sd.prepareStatement(sqlGetUserRoles);
+				pstmtGetuserRoles.setString(1, userIdent);
+				ResultSet rs = pstmtGetuserRoles.executeQuery();
+				while(rs.next()) {
+					Role r = new Role();
+					r.id = rs.getInt(1);
+					a.roles.add(r);
+				}
+			}
+			
 			// Store the action details
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, gson.toJson(a));
@@ -325,46 +353,11 @@ public class ActionManager {
 			log.info("Update action details: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
-			// delete roles no longer referenced
-			pstmtDelRoles = sd.prepareStatement(sqlDelRoles);
-			pstmtDelRoles.setString(1, userIdent);
-			pstmtDelRoles.executeUpdate();
-			
-			// Add roles
-			if(a.roles != null && a.roles.size() > 0) {
-				
-				pstmtUserHasRole = sd.prepareStatement(sqlUserHasRole);
-				pstmtUserHasRole.setString(1, userIdent);
-				
-				pstmtInsertRole = sd.prepareStatement(sqlInsertRole);
-				pstmtInsertRole.setString(1, userIdent);
-				
-				for( Role r : a.roles) {
-					boolean canInsert = superUser;
-					if(!canInsert) {
-						// Check to see if the remote user has this role
-						pstmtUserHasRole.setInt(2, r.id);
-						log.info("User has role: " + pstmtUserHasRole.toString());
-						ResultSet rs = pstmtUserHasRole.executeQuery();
-						if(rs.next()) {
-							if(rs.getInt(1) > 0) {
-								canInsert = true;
-							}
-						}
-					}
-					if(canInsert) {
-						pstmtInsertRole.setInt(2, r.id);
-						log.info("Insert role: " + pstmtInsertRole.toString());
-						pstmtInsertRole.executeUpdate();
-					}
-				}
-			}
-			
 		} finally {
 			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtDelRoles != null) {	pstmtDelRoles.close();}} catch (SQLException e) {}
 			try {if (pstmtInsertRole != null) {	pstmtInsertRole.close();}} catch (SQLException e) {}
-			try {if (pstmtUserHasRole != null) {	pstmtUserHasRole.close();}} catch (SQLException e) {}
+			try {if (pstmtGetuserRoles != null) {	pstmtGetuserRoles.close();}} catch (SQLException e) {}
 		}	
 
 		return "/action/" + userIdent;

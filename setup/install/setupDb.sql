@@ -1194,7 +1194,6 @@ DROP TABLE IF EXISTS survey_role CASCADE;
 create TABLE survey_role (
 	id integer DEFAULT NEXTVAL('survey_role_seq') CONSTRAINT pk_survey_role PRIMARY KEY,
 	survey_ident text REFERENCES survey(ident) ON DELETE CASCADE,
-	group_survey_ident text,
 	r_id integer REFERENCES role(id) ON DELETE CASCADE,
 	enabled boolean,
 	column_filter text,
@@ -1202,7 +1201,6 @@ create TABLE survey_role (
 	);
 ALTER TABLE survey_role OWNER TO ws;
 CREATE UNIQUE INDEX survey_role_ident_index ON public.survey_role(survey_ident, r_id);
-CREATE INDEX survey_role_group_index ON public.survey_role(group_survey_ident, r_id);
 
 DROP SEQUENCE IF EXISTS alert_seq CASCADE;
 CREATE SEQUENCE alert_seq START 1;
