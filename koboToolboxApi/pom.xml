@@ -8,6 +8,8 @@
 	<packaging>war</packaging>
 	<properties>
     	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    	<maven.compiler.source>11</maven.compiler.source>
+    	<maven.compiler.target>11</maven.compiler.target>
   	</properties>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
@@ -32,7 +34,7 @@
       			<artifactId>maven-war-plugin</artifactId>
       			<version>3.3.1</version>
       		</plugin>
-      			<plugin>
+      		<plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
                 <version>1.4.1</version>
@@ -44,11 +46,6 @@
 	</build>
 	<dependencies>
 		
-		<dependency>
-	      	<groupId>smapserver</groupId>
-	      	<artifactId>amazon</artifactId>
-	      	<version>1.0.0</version>
-      	</dependency>
       	<dependency>
 	      	<groupId>smapserver</groupId>
 	      	<artifactId>sdDAL</artifactId>

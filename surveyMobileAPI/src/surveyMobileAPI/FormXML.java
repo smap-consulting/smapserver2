@@ -106,7 +106,7 @@ public class FormXML extends Application{
 				template.readDatabase(survey.id, false);
 				GetXForm xForm = new GetXForm(localisation, user, tz);
 				response = xForm.get(template, false, true, false, user, request);
-				log.info("userevent: " + user + " : download survey : " + templateName + " : " + response);		
+				log.info("userevent: " + user + " : download survey : " + templateName);		
 
 				// Record that this form was downloaded by this user
 				GeneralUtilityMethods.recordFormDownload(connectionSD, user, survey.ident, survey.version, deviceId);

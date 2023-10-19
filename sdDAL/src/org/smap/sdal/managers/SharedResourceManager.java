@@ -379,6 +379,61 @@ public class SharedResourceManager {
 			if(pstmt != null) {try{pstmt.close();} catch (Exception e) {}}
 		}
 		
+		/*
+		 * Only retain the last 10 shared resource files
+		 */
+		PreparedStatement pstmtList = null;
+		PreparedStatement pstmtDel = null;
+		try {
+			String sql = "select count(*) from sr_history "
+					+ "where o_id = ? and resource_name = ? "
+					+ "and file_path is not null";
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, resourceFileName);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				int count = rs.getInt(1);
+				if(count > 10) {
+					
+					String sqlDel = "update sr_history "
+							+ "set file_path = null "
+							+ "where id = ?";
+					pstmtDel = sd.prepareStatement(sqlDel);
+					
+					sql = "select id, file_path from sr_history "
+							+ "where o_id = ? "
+							+ "and resource_name = ? "
+							+ "and file_path is not null "
+							+ "order by id asc limit ?";
+					pstmtList = sd.prepareStatement(sql);
+					pstmtList.setInt(1, oId);
+					pstmtList.setString(2, resourceFileName);
+					pstmtList.setInt(3, count - 10);
+					log.info("Get excess files: " + pstmtList.toString());
+					rs = pstmtList.executeQuery();
+					while(rs.next()) {
+						int id = rs.getInt(1);
+						String filePath = rs.getString(2);
+						
+						File f = new File(filePath);
+						if(f.exists()) {
+							log.info("Deleting resource history file: " + f.getName());
+							f.delete();
+						}
+						
+						pstmtDel.setInt(1, id);
+						pstmtDel.executeUpdate();
+					}
+				}
+			}
+			
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch (Exception e) {}}
+			if(pstmtList != null) {try{pstmtList.close();} catch (Exception e) {}}
+			if(pstmtDel != null) {try{pstmtDel.close();} catch (Exception e) {}}
+		}
+		
 	}
 	
 	/*
@@ -396,7 +451,7 @@ public class SharedResourceManager {
 		
 		PreparedStatement pstmt = null;
 		StringBuilder sql = new StringBuilder("select "
-				+ "id, file_name, user_ident, "
+				+ "id, file_name, user_ident, file_path, "
 				+ "to_char(timezone(?, uploaded_ts), 'YYYY-MM-DD HH24:MI:SS') as uploaded_ts "
 				+ "from sr_history "
 				+ "where o_id = ? "
@@ -426,10 +481,15 @@ public class SharedResourceManager {
 				item.uploaded = rs.getString("uploaded_ts");
 				
 				int id = rs.getInt("id");
-				String escapedFileName = GeneralUtilityMethods.urlEncode(item.file_name);
-				item.url = "/surveyKPI/file/" + escapedFileName + "/history/" + id;
-				if(sIdent != null) {
-					item.url += "?sIdent=" + sIdent;
+				String filePath = rs.getString("file_path");
+				if(filePath == null) {
+					item.url = null;
+				} else {
+					String escapedFileName = GeneralUtilityMethods.urlEncode(item.file_name);
+					item.url = "/surveyKPI/file/" + escapedFileName + "/history/" + id;
+					if(sIdent != null) {
+						item.url += "?sIdent=" + sIdent;
+					}
 				}
 				items.add(item);
 			}

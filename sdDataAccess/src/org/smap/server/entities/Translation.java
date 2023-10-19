@@ -23,6 +23,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.server.utilities.UtilityMethods;
 
 public class Translation implements Serializable{
@@ -94,12 +95,11 @@ public class Translation implements Serializable{
 		 * styling elements need to be escaped for use in odk.  Hence we escape before converting the xls name to an 
 		 * output element.
 		 */
-		String frag = value;
-		frag = frag.replaceAll("&", "&amp;");	// Escape angled brackets
-		frag = frag.replaceAll("<", "&lt;");	// Escape angled brackets
-		frag = frag.replaceAll(">", "&gt;");	// Escape angled brackets
+		String frag = GeneralUtilityMethods.esc(value);
 
-		return "<t>" + UtilityMethods.convertAllxlsNames(frag, true, questionPaths, f_id, false, "an sql fragment", false) + "</t>";
+		return "<t>" 
+			+ UtilityMethods.convertAllxlsNames(frag, true, questionPaths, f_id, false, "an sql fragment", false) 
+			+ "</t>";
 	
 	}
 	 

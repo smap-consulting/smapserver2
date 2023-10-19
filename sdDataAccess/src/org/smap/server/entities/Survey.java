@@ -153,11 +153,6 @@ public class Survey implements Serializable {
 		return searchLocalData;
 	}
 	
-	// Get the display name with any HTML reserved characters escaped
-	public String getDisplayNameForHTML() {
-		return GeneralUtilityMethods.esc(display_name);
-	}
-	
 	public String getHrk() {
 		return hrk;
 	}
