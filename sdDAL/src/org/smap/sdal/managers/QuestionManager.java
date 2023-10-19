@@ -285,7 +285,7 @@ public class QuestionManager {
 				pstmtInsertQuestion.setString(24, nodeset);
 				pstmtInsertQuestion.setString(25, nodeset_value);
 				pstmtInsertQuestion.setString(26, nodeset_label);
-				pstmtInsertQuestion.setString(27, q.display_name);
+				pstmtInsertQuestion.setString(27, sanitise.sanitiseHtml(q.display_name));
 				pstmtInsertQuestion.setBoolean(28, true);		// All select questions now default to compressed
 				pstmtInsertQuestion.setString(29, q.intent);
 				pstmtInsertQuestion.setString(30, q.getSetValueArrayAsString(gson));
