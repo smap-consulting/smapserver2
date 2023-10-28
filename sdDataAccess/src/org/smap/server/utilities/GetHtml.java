@@ -879,6 +879,9 @@ public class GetHtml {
 		if (q.calculation != null && q.calculation.trim().length() > 0) {
 			selectElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name, false));
 		}
+		if(q.readonly) {
+			selectElement.setAttribute("readonly", "readonly");
+		}
 		
 		// Itemset template option
 		if(!autoComplete) {
@@ -1480,8 +1483,7 @@ public class GetHtml {
 		
 		if (q.readonly && !(parent.getNodeName() == null || parent.getNodeName().equals("label") || parent.getNodeName().equals("h4"))) {
 			parent.setAttribute("readonly", "readonly");
-		}
-		
+		}	
 		
 	}
 
