@@ -9347,7 +9347,7 @@ public class GeneralUtilityMethods {
 			colType = "text";
 		} else if(colType.equals("range")) {
 			colType = "double precision";
-		} else if(colType.equals("dateTime")) {
+		} else if(colType.equals("dateTime") || colType.equals("start") || colType.equals("end")) {
 			colType = "timestamp with time zone";					
 		} else if(colType.equals("time")) {
 			colType = "time";					
@@ -9356,6 +9356,10 @@ public class GeneralUtilityMethods {
 		} else if(colType.equals("select")) {
 			colType = "text";					
 		} else if(colType.equals("rank")) {
+			colType = "text";					
+		} else if(colType.equals("username")) {
+			colType = "text";					
+		} else if(colType.equals("deviceid")) {
 			colType = "text";					
 		}
 		return colType;

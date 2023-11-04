@@ -31,6 +31,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
@@ -416,8 +417,8 @@ public class UserList extends Application {
 	 * Update the settings or create new user
 	 */
 	@POST
-	@Consumes("application/json")
-	public Response updateUser(@Context HttpServletRequest request, @FormParam("users") String users) { 
+	@Consumes(MediaType.TEXT_HTML)
+	public Response updateUser(@Context HttpServletRequest request, String users) { 
 		
 		Response response = null;
 		String requestName = "surveyKPI - updateUser";

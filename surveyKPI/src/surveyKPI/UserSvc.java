@@ -433,17 +433,15 @@ public class UserSvc extends Application {
 	 * Update the current survey, project and task group
 	 */
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/currentproject")
-	public Response updateCurrentProject(@Context HttpServletRequest request, @FormParam("user") String user) { 
+	public Response updateCurrentProject(@Context HttpServletRequest request, User u) { 
 		
 		Response response = null;
 
 		// Authorisation - Not Required
 		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
 			
-		User u = new Gson().fromJson(user, User.class);		// The user settings
-		
 		PreparedStatement pstmt = null;
 		try {	
 			
@@ -451,6 +449,8 @@ public class UserSvc extends Application {
 			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 		
+			//User u = new Gson().fromJson(user, User.class);		// The user settings
+			
 			String sql = null;
 			if(u.current_project_id > 0) {
 				sql = "update users set current_project_id = ?, "
@@ -503,12 +503,12 @@ public class UserSvc extends Application {
 	}
 	
 	/*
-	 * Update the current survey, project and task group
+	 * Update the current group survey
 	 */
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.TEXT_HTML)
 	@Path("/groupsurvey")
-	public Response updateGroupSurvey(@Context HttpServletRequest request, @FormParam("groupSurvey") String group) { 
+	public Response updateGroupSurvey(@Context HttpServletRequest request, String group) { 
 		
 		Response response = null;
 		String connectionString = "SurveyKPI - save groupsurvey";

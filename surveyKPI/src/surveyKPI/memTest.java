@@ -29,6 +29,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -47,7 +48,7 @@ public class memTest extends Application {
 	 * Login and get a key for future authentication
 	 */
 	@GET
-	public void memtest(@Context HttpServletRequest request,
+	public Response memtest(@Context HttpServletRequest request,
 			@QueryParam("form") String formIdent) throws SQLException {
 		
 		String connectionString = "memtest";
@@ -60,9 +61,11 @@ public class memTest extends Application {
 		ArrayList<String> data = new ArrayList<> ();
 		 		
 		
-		while(true) {
+		while(true && request != null) {
 			data.add("hello there here is some more memory");
 		}
+		
+		return Response.ok().build();
 
 	}
 

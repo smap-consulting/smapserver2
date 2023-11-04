@@ -19,20 +19,15 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.logging.Logger;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.AuthorisationException;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.SDDataSource;
 
 /*
  * Login functions
@@ -42,7 +37,7 @@ public class Logout extends Application {
 	
 	@GET
 	@Produces("application/json")
-	public void logout(@Context HttpServletRequest request) {
+	public Response logout(@Context HttpServletRequest request) {
 		
 		/*
 		 * Delete any session keys for this user
@@ -60,9 +55,11 @@ public class Logout extends Application {
 		*/
 		
 		// Throw an authorisation exception to close browser session (chrome works with this at least)
-		throw new AuthorisationException();
+		if(request != null) {	// Hack to allow us to always throw an exception while satisfying jersey and eclipse validation
+			throw new AuthorisationException();
+		}
 		
-
+		return Response.ok().build();
 	}
 
 	
