@@ -28,6 +28,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.Authorise;
@@ -277,7 +278,7 @@ public class Dashboard extends Application {
 	 * Update the settings
 	 */
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateSettings(
 			@Context HttpServletRequest request, 
 			@FormParam("settings") String settings
@@ -488,7 +489,7 @@ public class Dashboard extends Application {
 	 */
 	@POST
 	@Path("/state")
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateState(@Context HttpServletRequest request, 
 			@FormParam("state") String stateString) { 
 		
