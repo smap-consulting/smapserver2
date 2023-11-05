@@ -547,8 +547,8 @@ public class UserList extends Application {
 	 * Delete users
 	 */
 	@DELETE
-	@Consumes("application/json")
-	public Response delUser(@Context HttpServletRequest request, @FormParam("users") String users) {
+	@Consumes(MediaType.TEXT_HTML)
+	public Response delUser(@Context HttpServletRequest request, String users) {
 		
 		Response response = null;
 		String requestName = "surveyKPI - delUser";
