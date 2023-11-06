@@ -1199,7 +1199,7 @@ public class Items extends Application {
 	 */
 	@POST
 	@Path("/{survey}/survey/bad/{instanceId}")
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response toggleBadSurvey(@Context HttpServletRequest request,
 			@PathParam("survey") int sId,
 			@PathParam("instanceId") String instanceId,

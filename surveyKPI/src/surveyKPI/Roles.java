@@ -322,7 +322,7 @@ public class Roles extends Application {
 	 */
 	@Path("/survey/{sId}/{property}")
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Produces("application/json")
 	public Response updateSurveyRoles(
 			@Context HttpServletRequest request,
