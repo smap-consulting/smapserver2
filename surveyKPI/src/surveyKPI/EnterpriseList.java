@@ -29,6 +29,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
@@ -203,7 +204,7 @@ public class EnterpriseList extends Application {
 	 * Delete an enterprise
 	 */
 	@DELETE
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response delEnterprise(@Context HttpServletRequest request, 
 			@FormParam("data") String data) { 
 

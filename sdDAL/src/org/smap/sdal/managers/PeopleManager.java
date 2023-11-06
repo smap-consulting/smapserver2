@@ -11,6 +11,7 @@ import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.model.OrganisationLite;
 import org.smap.sdal.model.People;
 import org.smap.sdal.model.SubscriptionStatus;
@@ -392,8 +393,8 @@ public class PeopleManager {
 			}
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
-			pstmt.setString(2,  email);
-			pstmt.setString(3, person.name);
+			pstmt.setString(2,  HtmlSanitise.checkCleanName(email, localisation));
+			pstmt.setString(3, HtmlSanitise.checkCleanName(person.name, localisation));
 			log.info("Add person: " + pstmt.toString());
 			pstmt.executeUpdate();
 		
@@ -412,7 +413,7 @@ public class PeopleManager {
 	/*
 	 * Update a person details
 	 */
-	public void updatePerson(Connection sd, People person) throws SQLException {
+	public void updatePerson(Connection sd, People person) throws SQLException, ApplicationException {
 		
 		String sql = "update people "
 				+ "set email = ?,"
@@ -427,8 +428,8 @@ public class PeopleManager {
 				email = email.toLowerCase();
 			}
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1,  email);
-			pstmt.setString(2, person.name);	
+			pstmt.setString(1,  HtmlSanitise.checkCleanName(email, localisation));
+			pstmt.setString(2, HtmlSanitise.checkCleanName(person.name, localisation));	
 			pstmt.setInt(3, person.id);
 			
 			log.info("Update person: " + pstmt.toString());

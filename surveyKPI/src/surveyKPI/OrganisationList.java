@@ -30,6 +30,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
@@ -1223,7 +1224,7 @@ public class OrganisationList extends Application {
 	 * Delete an organisation
 	 */
 	@DELETE
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response delOrganisation(@Context HttpServletRequest request, @FormParam("organisations") String organisations) { 
 		
 		Response response = null;
@@ -1332,7 +1333,7 @@ public class OrganisationList extends Application {
 	 */
 	@POST
 	@Path("/setOrganisation")
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response changeOrganisation(@Context HttpServletRequest request,
 			@FormParam("orgId") int orgId,
 			@FormParam("users") String users,
@@ -1424,7 +1425,7 @@ public class OrganisationList extends Application {
 	 */
 	@POST
 	@Path("/setEnterprise")
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response changeEnterprise(@Context HttpServletRequest request,
 			@FormParam("orgId") int orgId,
 			@FormParam("entId") int entId) throws SQLException { 

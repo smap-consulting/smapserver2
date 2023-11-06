@@ -222,7 +222,7 @@ public class Roles extends Application {
 	 */
 	@Path("/roles")
 	@DELETE
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response delRole(@Context HttpServletRequest request, @FormParam("roles") String roles) { 
 		
 		Response response = null;
