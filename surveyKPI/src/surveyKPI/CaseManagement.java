@@ -29,6 +29,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.Authorise;
@@ -185,7 +186,7 @@ public class CaseManagement extends Application {
 	 */
 	@Path("/keys/{group_survey_ident}")
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateCaseManagementKeys(@Context HttpServletRequest request, 
 			@PathParam("group_survey_ident") String groupSurveyIdent,
 			@FormParam("keys") String keyString) { 
@@ -237,7 +238,7 @@ public class CaseManagement extends Application {
 	 */
 	@Path("/settings/{group_survey_ident}")
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateCaseManagementSettings(@Context HttpServletRequest request, 
 			@PathParam("group_survey_ident") String groupSurveyIdent,
 			@FormParam("settings") String settingsString) { 
@@ -292,7 +293,7 @@ public class CaseManagement extends Application {
 	 */
 	@Path("/settings/alert")
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateCaseManagementAlert(@Context HttpServletRequest request, @FormParam("alert") String alertString) { 
 		
 		Response response = null;
@@ -350,7 +351,7 @@ public class CaseManagement extends Application {
 	 */
 	@Path("/settings/alert")
 	@DELETE
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response delCaseManagementSetting(@Context HttpServletRequest request, @FormParam("alert") String alertString) { 
 		
 		Response response = null;

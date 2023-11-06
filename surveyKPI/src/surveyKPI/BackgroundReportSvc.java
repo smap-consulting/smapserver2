@@ -29,6 +29,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.ApplicationException;
@@ -148,7 +149,7 @@ public class BackgroundReportSvc extends Application {
 	 * Create a new background report
 	 */
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response createBackgroundReport(
 			@Context HttpServletRequest request, 
 			@FormParam("report") String sReport,

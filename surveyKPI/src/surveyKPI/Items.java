@@ -30,6 +30,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
@@ -1111,7 +1112,7 @@ public class Items extends Application {
 	 */
 	@POST
 	@Path("/{form}/bad/{key}")
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response toggleBad(@Context HttpServletRequest request,
 			@PathParam("form") int fId,
 			@PathParam("key") int key,
