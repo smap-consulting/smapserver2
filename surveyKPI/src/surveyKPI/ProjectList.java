@@ -283,7 +283,7 @@ public class ProjectList extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		if(pArray != null && pArray.size() > 0) {
 			for(Project p : pArray) {
-				a.isValidProject(sd, request.getRemoteUser(), p.id);
+				a.projectInUsersOrganisation(sd, request.getRemoteUser(), p.id);
 			}
 		}
 		// End Authorisation			
