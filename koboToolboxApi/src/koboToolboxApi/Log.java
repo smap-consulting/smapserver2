@@ -473,7 +473,8 @@ public class Log extends Application {
 		
 		try {
 
-			String sql = "select l.id, l.log_time, l.s_id, s.display_name, l.user_ident, l.event, l.note, l.server "
+			String sql = "select l.id, l.log_time, l.s_id, l.user_ident, l.event, l.note, l.server,"
+					+ "(select display_name from survey where ident = s.group_survey_ident) as display_name "
 					+ "from log l "
 					+ "left outer join survey s "
 					+ "on s.s_id = l.s_id "
