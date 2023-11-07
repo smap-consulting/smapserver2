@@ -132,7 +132,7 @@ public class ManagedForms extends Application {
 	 */
 	@POST
 	@Produces("text/html")
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/update_gs/{sId}/{groupSurvey}")
 	public Response updateManagedRecordGroupSurvey(
 			@Context HttpServletRequest request, 
@@ -393,7 +393,7 @@ public class ManagedForms extends Application {
 	 */
 	@POST
 	@Produces("text/html")
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/release/{sId}")
 	public Response releaseManagedRecord(
 			@Context HttpServletRequest request, 
