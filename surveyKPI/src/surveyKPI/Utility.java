@@ -19,34 +19,18 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.Authorise;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.managers.RoleManager;
-import org.smap.sdal.model.Role;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
-import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.ResourceBundle;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -92,7 +76,6 @@ public class Utility extends Application {
 	 */
 	@Path("/timezones")
 	@GET
-	@Produces("application/json")
 	public Response getTimezones(
 			@Context HttpServletRequest request
 			) { 

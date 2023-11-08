@@ -30,6 +30,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 
@@ -1083,7 +1084,7 @@ public class Survey extends Application {
 	 */
 	@Path("/console_settings/columns")
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response save_console_columns(@Context HttpServletRequest request,
 			@PathParam("sId") int sId,
 			@FormParam("columns") String sColumns) { 

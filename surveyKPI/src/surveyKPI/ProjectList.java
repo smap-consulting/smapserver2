@@ -30,6 +30,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
@@ -129,7 +130,7 @@ public class ProjectList extends Application {
 	 * Update the project details
 	 */
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateProject(@Context HttpServletRequest request, @FormParam("projects") String projects) throws ApplicationException { 
 		
 		Response response = null;
@@ -268,7 +269,7 @@ public class ProjectList extends Application {
 	 * Delete project
 	 */
 	@DELETE
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response delProject(@Context HttpServletRequest request, @FormParam("projects") String projects) { 
 		
 		Response response = null;

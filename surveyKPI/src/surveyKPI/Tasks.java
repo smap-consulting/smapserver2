@@ -40,6 +40,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.fileupload.FileItem;
@@ -705,7 +706,7 @@ public class Tasks extends Application {
 	 */
 	@POST
 	@Path("/when/{pId}/{tgId}")
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateTaskFromDate(
 			@Context HttpServletRequest request,
 			@PathParam("pId") int pId,
@@ -755,7 +756,7 @@ public class Tasks extends Application {
 	 */
 	@POST
 	@Path("/bulk/{pId}/{tgId}")
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response bulkAction(
 			@Context HttpServletRequest request,
 			@PathParam("pId") int pId,

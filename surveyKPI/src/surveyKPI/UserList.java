@@ -22,7 +22,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -547,8 +546,8 @@ public class UserList extends Application {
 	 * Delete users
 	 */
 	@DELETE
-	@Consumes("application/json")
-	public Response delUser(@Context HttpServletRequest request, @FormParam("users") String users) {
+	@Consumes(MediaType.TEXT_HTML)
+	public Response delUser(@Context HttpServletRequest request, String users) {
 		
 		Response response = null;
 		String requestName = "surveyKPI - delUser";

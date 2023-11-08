@@ -19,6 +19,5 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/cloudinterface"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

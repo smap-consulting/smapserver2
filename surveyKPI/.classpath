@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry including="**/*.java" kind="src" output="target/classes" path="src">
+	<classpathentry kind="src" output="target/classes" path="src">
 		<attributes>
 			<attribute name="optional" value="true"/>
 			<attribute name="maven.pomderived" value="true"/>
@@ -18,8 +18,8 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/javarosa-3.1.0.jar" sourcepath="/javarosa"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/cloudinterface"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/amazon"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

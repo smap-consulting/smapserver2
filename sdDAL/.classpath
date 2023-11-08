@@ -17,6 +17,6 @@
 			<attribute name="org.eclipse.jst.component.nondependency" value=""/>
 		</attributes>
 	</classpathentry>
-	<classpathentry combineaccessrules="false" kind="src" path="/cloudinterface"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/amazon"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
