@@ -4983,6 +4983,8 @@ public class GeneralUtilityMethods {
 					output.append('\'');
 
 				}
+			} else if(item.equals("year")) {
+				output.append("extract('Year' from now())");
 			} else {
 				output.append('\'');
 				item = item.replaceAll("'", "''"); // escape quotes

@@ -242,6 +242,8 @@ public class SqlFrag {
 				token.equals("::integer") || 
 				token.equals("like") || 
 				token.equals("cast") || 
+				token.equals("extract") || 
+				token.equals("from") || 
 				token.equals("as") || 
 				token.equals("integer") || 
 				token.equals("current_date") ||
