@@ -981,11 +981,6 @@ public class MyAssignments extends Application {
 			pstmtSetUpdatedNotRejected = getPreparedStatementSetUpdatedNotRejected(sd);
 			pstmtEvents = getPreparedStatementEvents(sd);
 			
-			String sqlUpdateId = "update tasks set update_id = ? "
-					+ "where id = ? "
-					+ "and update_id is null";
-			pstmtUpdateId = sd.prepareStatement(sqlUpdateId);
-			
 			sd.setAutoCommit(false);
 			for(TaskResponseAssignment ta : tr.taskAssignments) {
 				
@@ -1016,10 +1011,23 @@ public class MyAssignments extends Application {
 							ta.assignment.assignment_status,
 							ta.assignment.task_comment);
 					
-					pstmtUpdateId.setString(1, ta.assignment.uuid);
-					pstmtUpdateId.setInt(2, ta.task.id);
-					log.info("+++++++++++++++ Updating task updateId: " + pstmtUpdateId.toString());
-					pstmtUpdateId.executeUpdate();	
+					/*
+					 * Set the update id if it is not already set and this is a completed task
+					 */
+					if(ta.assignment.uuid != null
+							&& ta.assignment.assignment_status != null 
+							&& ta.assignment.assignment_status.equals("submitted")) {
+						
+						String sqlUpdateId = "update tasks set update_id = ? "
+								+ "where id = ? "
+								+ "and update_id is null";
+						pstmtUpdateId = sd.prepareStatement(sqlUpdateId);
+						
+						pstmtUpdateId.setString(1, ta.assignment.uuid);
+						pstmtUpdateId.setInt(2, ta.task.id);
+						log.info("+++++++++++++++ Updating task updateId: " + pstmtUpdateId.toString());
+						pstmtUpdateId.executeUpdate();	
+					}
 
 				} else {
 					log.info("Error: assignment id is zero");
