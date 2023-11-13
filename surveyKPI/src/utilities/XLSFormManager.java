@@ -280,7 +280,7 @@ public class XLSFormManager {
 					// set value
 					if(q.setValues != null) {
 						for(SetValue sv : q.setValues) {
-							if(sv.event.equals(SetValue.START)) {
+							if(sv.event.contains(SetValue.START)) {
 								value = sv.value;
 								break;
 							}

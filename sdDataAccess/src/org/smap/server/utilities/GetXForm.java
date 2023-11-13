@@ -579,7 +579,7 @@ public class GetXForm {
 								currentParent.appendChild(preload);
 								
 								Element event = outputDoc.createElement("odk:setgeopoint");
-								event.setAttribute("event", "odk-instance-first-load");
+								event.setAttribute("event", SetValue.START);
 								event.setAttribute("ref", "/main/" + mi.name);
 								currentParent.appendChild(event);
 								
