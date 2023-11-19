@@ -1116,7 +1116,7 @@ public class GetHtml {
 			SetValue sv = q.setValues.get(0);		// Can only handle one?
 		
 			bodyElement.setAttribute("data-event", sv.event);
-			bodyElement.setAttribute("data-setvalue", sv.value);
+			bodyElement.setAttribute("data-setvalue", UtilityMethods.convertAllxlsNames(sv.value, false, paths, form.id, true, q.name, false));
 			bodyElement.setAttribute("class", "action setvalue form-control-action " + sv.event);
 		}
 		

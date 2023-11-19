@@ -169,6 +169,14 @@ public class UtilityMethods {
 			String matched = matcher.group();
 			String qname = matched.substring(2, matched.length() - 1);
 			
+			// Remove last saved directive if it has been included
+			int idx1 = qname.indexOf('#');
+			String lastSaved = "";
+			if(idx1 > 0) {
+				qname = qname.substring(idx1 + 1);
+				lastSaved = "instance('__last-saved')";
+			}
+			
 			// Add any text before the match
 			int startOfGroup = matcher.start();
 			output.append(input.substring(start, startOfGroup));
@@ -260,6 +268,7 @@ public class UtilityMethods {
 				log.info("------------- Relative Path: " + qPath);
 			}
 			
+			output.append(lastSaved);
 			output.append(qPath);
 
 			
