@@ -317,7 +317,7 @@ public class Tasks extends Application {
 	@Produces("application/json")
 	public Response createTask(@Context HttpServletRequest request,
 			@QueryParam("tz") String tz,					// Timezone
-			@QueryParam("preserveInitialData") boolean preserveInitialData,		// Set true when the initial data for a tasks should not be updated
+			@QueryParam("preserveInitialData") boolean preserveInitialData,		// Set true when the initial data for a task should not be updated
 			@FormParam("task") String task
 			) throws ApplicationException, Exception { 
 		

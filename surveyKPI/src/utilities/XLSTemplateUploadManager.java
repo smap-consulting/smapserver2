@@ -886,7 +886,12 @@ public class XLSTemplateUploadManager {
 		if(GeneralUtilityMethods.isSetValue(def)) {
 			// Set Value
 			q.defaultanswer = null;
-			q.addSetValue(SetValue.START, def, null);
+			String event = SetValue.START;
+			if(def != null && def.contains("position("))  {
+				// Assume inside a repeat - this is a hack we should know if we are inside a repeat
+				event += " " + SetValue.REPEAT;
+			}
+			q.addSetValue(event, def, null);
 		} else {
 			q.defaultanswer = def;
 		}

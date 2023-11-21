@@ -579,7 +579,7 @@ public class GetXForm {
 								currentParent.appendChild(preload);
 								
 								Element event = outputDoc.createElement("odk:setgeopoint");
-								event.setAttribute("event", "odk-instance-first-load");
+								event.setAttribute("event", SetValue.START);
 								event.setAttribute("ref", "/main/" + mi.name);
 								currentParent.appendChild(event);
 								
@@ -1078,29 +1078,12 @@ public class GetXForm {
 				
 				// Add Value
 				if(sv.value != null) {
-					String value = null;
-					if(sv.value.contains("last-saved#")) {
-						int idx1 = sv.value.indexOf('#');
-						int idx2 = sv.value.indexOf('}', idx1);
-						if(idx2 > 0) {
-							HashMap<String, String> questionPaths = template.getQuestionPaths();
-							String sourceQuestion = sv.value.substring(idx1 + 1, idx2);
-							String sourcePath = questionPaths.get(sourceQuestion);
-							if(sourcePath != null) {
-								value = "instance('__last-saved')" + sourcePath;
-							} else {
-								log.info("Error: Source question in " + sv.value + " not found");
-								// Ignore error as throwing an exception may stop previously functioning surveys from working
-							}
-						}
-					} else {
-						value = UtilityMethods.convertAllxlsNames(sv.value, false, template.getQuestionPaths(), q.getFormId(), false, q.getName(), false);
-						if (value != null && value.trim().length() > 0) {
-							Survey s = template.getSurvey();
-							value = GeneralUtilityMethods.removeSelfReferences(value, s.getIdent());
-							
-						}
+					String value = UtilityMethods.convertAllxlsNames(sv.value, false, template.getQuestionPaths(), q.getFormId(), false, q.getName(), false);
+					if (value != null && value.trim().length() > 0) {
+						Survey s = template.getSurvey();
+						value = GeneralUtilityMethods.removeSelfReferences(value, s.getIdent());					
 					}
+
 					questionElement.setAttribute("value", value);				
 					currentParent.appendChild(questionElement);
 				}

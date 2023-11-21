@@ -4,6 +4,7 @@ public class SetValue {
 	
 	public static String START = "odk-instance-first-load";
 	public static String TRIGGER = "xforms-value-changed";
+	public static String REPEAT = "odk-new-repeat";
 	
 	public String event;
 	public String value;
