@@ -42,7 +42,7 @@
 		
 		<dependency>
 	      	<groupId>smapserver</groupId>
-	      	<artifactId>amazon</artifactId>
+	      	<artifactId>cloudinterface</artifactId>
 	      	<version>1.0.0</version>
       	</dependency>
       	<dependency>

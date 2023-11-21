@@ -31,6 +31,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.fileupload.FileItem;
@@ -150,7 +151,7 @@ public class Roles extends Application {
 	 */
 	@Path("/roles")
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateRoles(@Context HttpServletRequest request, @FormParam("roles") String roles) { 
 		
 		Response response = null;
@@ -221,7 +222,7 @@ public class Roles extends Application {
 	 */
 	@Path("/roles")
 	@DELETE
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response delRole(@Context HttpServletRequest request, @FormParam("roles") String roles) { 
 		
 		Response response = null;
@@ -321,7 +322,7 @@ public class Roles extends Application {
 	 */
 	@Path("/survey/{sId}/{property}")
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Produces("application/json")
 	public Response updateSurveyRoles(
 			@Context HttpServletRequest request,

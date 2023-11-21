@@ -137,7 +137,7 @@ public class Audit extends Application {
 	@GET
 	@Produces("application/json")
 	@Path("/{sIdent}")
-	public void getDataRecordsNew(@Context HttpServletRequest request,
+	public Response getDataRecordsNew(@Context HttpServletRequest request,
 			@Context HttpServletResponse response,
 			@PathParam("sIdent") String sIdent,
 			@QueryParam("start") int start,				// Primary key to start from
@@ -152,10 +152,15 @@ public class Audit extends Application {
 			@QueryParam("bad") String include_bad,		// yes | only | none Include records marked as bad
 			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
 			@QueryParam("tz") String tz					// Timezone
-			) throws ApplicationException, Exception { 
+			) { 
 		
-		getDataRecords(request, response, sIdent, start, limit, mgmt, sort, dirn, formName, start_parkey,
-				parkey, hrk, include_bad, merge, tz);
+		try {
+			getDataRecords(request, response, sIdent, start, limit, mgmt, sort, dirn, formName, start_parkey,
+					parkey, hrk, include_bad, merge, tz);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+		}
+		return Response.ok().build();
 	}
 	
 	private void getDataRecords(HttpServletRequest request,

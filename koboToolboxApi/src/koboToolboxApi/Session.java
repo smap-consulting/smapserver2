@@ -58,8 +58,8 @@ import org.smap.sdal.model.TaskServerDefn;
 
 /*
  * Provides API access managed using a session key
- * 
- */
+ * Does not seem to be used
+ *
 @Path("/v1/session")
 public class Session extends Application {
 	
@@ -86,7 +86,7 @@ public class Session extends Application {
 	
 	/*
 	 * Get a token
-	 */
+	 *
 	@POST
 	@Produces("application/json")
 	@Path("/login")
@@ -123,7 +123,7 @@ public class Session extends Application {
 
 	/*
 	 * Get available surveys
-	 */
+	 *
 	@GET
 	@Produces("application/json")
 	@Path("/surveys")
@@ -234,7 +234,7 @@ public class Session extends Application {
 	
 	/*
 	 * Creates a new task
-	 */
+	 *
 	@POST
 	@Produces("application/json")
 	public Response createTask(@Context HttpServletRequest request,
@@ -366,7 +366,7 @@ public class Session extends Application {
 	
 	/*
 	 * Private functions
-	 */
+	 *
 	
 	private String authoriseSessionKey(Connection sd, String sessionKey) throws AuthenticationException {
 		
@@ -384,4 +384,5 @@ public class Session extends Application {
 	}
 
 }
+*/
 

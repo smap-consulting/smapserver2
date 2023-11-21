@@ -1540,7 +1540,7 @@ public class Authorise {
 	}
 	
 	/*
-	 * Verify that the user is entitled to access this project
+	 * Verify that the user is in the same organisation as the project
 	 */
 	public boolean projectInUsersOrganisation(Connection conn, String user, int pId) {
 		ResultSet resultSet = null;

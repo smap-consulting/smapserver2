@@ -6,9 +6,6 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/amazon"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-11">
 		<attributes>
 			<attribute name="maven.pomderived" value="true"/>
@@ -21,5 +18,8 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/javarosa-3.1.0.jar" sourcepath="/javarosa"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/amazon"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

@@ -122,7 +122,7 @@ public class UploadFiles extends Application {
 		String user = request.getRemoteUser();
 		String tz = "UTC";
 
-		fileItemFactory.setSizeThreshold(5*1024*1024); 
+		fileItemFactory.setSizeThreshold((int) SharedResourceManager.MAX_FILE_SIZE); 
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 	
 		Connection sd = SDDataSource.getConnection(connectionString); 

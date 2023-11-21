@@ -4983,6 +4983,8 @@ public class GeneralUtilityMethods {
 					output.append('\'');
 
 				}
+			} else if(item.equals("year")) {
+				output.append("extract('Year' from now())");
 			} else {
 				output.append('\'');
 				item = item.replaceAll("'", "''"); // escape quotes
@@ -9347,7 +9349,7 @@ public class GeneralUtilityMethods {
 			colType = "text";
 		} else if(colType.equals("range")) {
 			colType = "double precision";
-		} else if(colType.equals("dateTime")) {
+		} else if(colType.equals("dateTime") || colType.equals("start") || colType.equals("end")) {
 			colType = "timestamp with time zone";					
 		} else if(colType.equals("time")) {
 			colType = "time";					
@@ -9356,6 +9358,10 @@ public class GeneralUtilityMethods {
 		} else if(colType.equals("select")) {
 			colType = "text";					
 		} else if(colType.equals("rank")) {
+			colType = "text";					
+		} else if(colType.equals("username")) {
+			colType = "text";					
+		} else if(colType.equals("deviceid")) {
 			colType = "text";					
 		}
 		return colType;

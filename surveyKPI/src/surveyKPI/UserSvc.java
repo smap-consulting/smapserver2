@@ -149,61 +149,11 @@ public class UserSvc extends Application {
 		return response;
 	}
 	
-	
-	/*
-	 * Update the alert status for a user
-	 * This includes the last time they were sent an alert
-	 * If they have acknowledged the alert
-	 */
-	@POST
-	@Path("/alertstatus")
-	@Consumes("application/json")
-	public Response alertStatus(@Context HttpServletRequest request, @FormParam("alertstatus") String alertStatus) { 
-		
-		Response response = null;
-
-		// Authorisation - Not Required
-		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
-			
-		AlertStatus as = new Gson().fromJson(alertStatus, AlertStatus.class);
-		
-		String sql = "update users set lastalert = ?, "
-				+ "seen = ?"
-				+ "where ident = ?;";
-		PreparedStatement pstmt = null;
-		try {	
-			
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, as.lastalert);
-			pstmt.setBoolean(2, as.seen);
-			pstmt.setString(3, request.getRemoteUser());
-			
-			log.info("Update alert status: " + pstmt.toString());
-			pstmt.executeUpdate();
-			
-			response = Response.ok().build();
-			
-			
-		} catch (SQLException e) {
-
-			response = Response.serverError().build();
-			log.log(Level.SEVERE,"Error", e);
-			
-		} finally {
-			
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			
-			SDDataSource.closeConnection("surveyKPI-UserSvc", sd);
-		}
-		
-		return response;
-	}
-	
 	/*
 	 * Update the user settings
 	 */
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateUser(@Context HttpServletRequest request,
 			@FormParam("user") String user) { 
 		
@@ -353,7 +303,7 @@ public class UserSvc extends Application {
 	 * Update the user password
 	 */
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/password")
 	public Response updateUserPassword(@Context HttpServletRequest request,
 			@FormParam("passwordDetails") String passwordDetails) { 
@@ -433,17 +383,15 @@ public class UserSvc extends Application {
 	 * Update the current survey, project and task group
 	 */
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/currentproject")
-	public Response updateCurrentProject(@Context HttpServletRequest request, @FormParam("user") String user) { 
+	public Response updateCurrentProject(@Context HttpServletRequest request, User u) { 
 		
 		Response response = null;
 
 		// Authorisation - Not Required
 		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
 			
-		User u = new Gson().fromJson(user, User.class);		// The user settings
-		
 		PreparedStatement pstmt = null;
 		try {	
 			
@@ -451,6 +399,8 @@ public class UserSvc extends Application {
 			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 		
+			//User u = new Gson().fromJson(user, User.class);		// The user settings
+			
 			String sql = null;
 			if(u.current_project_id > 0) {
 				sql = "update users set current_project_id = ?, "
@@ -503,12 +453,12 @@ public class UserSvc extends Application {
 	}
 	
 	/*
-	 * Update the current survey, project and task group
+	 * Update the current group survey
 	 */
 	@POST
-	@Consumes("application/json")
+	@Consumes(MediaType.TEXT_HTML)
 	@Path("/groupsurvey")
-	public Response updateGroupSurvey(@Context HttpServletRequest request, @FormParam("groupSurvey") String group) { 
+	public Response updateGroupSurvey(@Context HttpServletRequest request, String group) { 
 		
 		Response response = null;
 		String connectionString = "SurveyKPI - save groupsurvey";

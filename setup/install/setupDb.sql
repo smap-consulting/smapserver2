@@ -208,6 +208,7 @@ create TABLE organisation (
 	navbar_text_color text,
 	training text,
 	limits text,				-- JSON object with resource limits
+	limit_type text,			-- alltime or monthly
 	refresh_rate integer,
 	api_rate_limit integer,
 	css text,

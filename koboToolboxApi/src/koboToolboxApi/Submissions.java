@@ -38,6 +38,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
+
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
@@ -72,7 +74,7 @@ public class Submissions extends Application {
 	 */
 	@GET
 	@Produces("application/json")
-	public void getDataRecordsService(@Context HttpServletRequest request,
+	public Response getDataRecordsService(@Context HttpServletRequest request,
 			@Context HttpServletResponse response,
 			@QueryParam("survey_ident") String survey_ident,				// Filter by survey
 			@QueryParam("start") int start,				// Primary key to start from
@@ -86,7 +88,6 @@ public class Submissions extends Application {
 			@QueryParam("links") String links
 			) throws ApplicationException, Exception { 
 		
-		
 		getSubmissions(request, response, start, limit,  tz, geojson, 
 				startDate,
 				endDate,
@@ -94,6 +95,8 @@ public class Submissions extends Application {
 				links,
 				stopat,
 				survey_ident);
+		
+		return Response.ok().build();
 	}
 	
 

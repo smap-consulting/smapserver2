@@ -35,6 +35,7 @@ import org.smap.sdal.model.NodesetFormDetails;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Question;
+import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.Survey;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
@@ -879,6 +880,9 @@ public class GetHtml {
 		if (q.calculation != null && q.calculation.trim().length() > 0) {
 			selectElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name, false));
 		}
+		if(q.readonly) {
+			selectElement.setAttribute("readonly", "readonly");
+		}
 		
 		// Itemset template option
 		if(!autoComplete) {
@@ -1104,6 +1108,18 @@ public class GetHtml {
 		if(q.calculation != null && q.calculation.length() > 0) {
 			bodyElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name, false));
 		}
+		
+		/*
+		 * Add setvalue
+		 */
+		if(q.setValues != null && q.setValues.size() > 0) {
+			SetValue sv = q.setValues.get(0);		// Can only handle one?
+		
+			bodyElement.setAttribute("data-event", sv.event);
+			bodyElement.setAttribute("data-setvalue", UtilityMethods.convertAllxlsNames(sv.value, false, paths, form.id, true, q.name, false));
+			bodyElement.setAttribute("class", "action setvalue form-control-action " + sv.event);
+		}
+		
 
 		parent.appendChild(bodyElement);
 		if (q.type.equals("image")) {
@@ -1480,8 +1496,7 @@ public class GetHtml {
 		
 		if (q.readonly && !(parent.getNodeName() == null || parent.getNodeName().equals("label") || parent.getNodeName().equals("h4"))) {
 			parent.setAttribute("readonly", "readonly");
-		}
-		
+		}	
 		
 	}
 

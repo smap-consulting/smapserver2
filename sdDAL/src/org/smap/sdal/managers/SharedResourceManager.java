@@ -51,7 +51,7 @@ public class SharedResourceManager {
 	
 	LogManager lm = new LogManager();		// Application log
 	
-	public static long MAX_FILE_SIZE = 5000000;	// 5 Million Bytes
+	public static long MAX_FILE_SIZE = 25000000;	// 25 Million Bytes
 	
 	ResourceBundle localisation;
 	String tz;
@@ -327,11 +327,6 @@ public class SharedResourceManager {
 			try {if ( pstmt != null ) { pstmt.close(); }} catch (Exception e) {}
 			try {if ( pstmtDel != null ) { pstmtDel.close(); }} catch (Exception e) {}
 		}
-
-		
-		
-					
-
 	}
 	
 	/*

@@ -11,4 +11,8 @@ public class GroupSurvey {
 		groupIdent = ident;
 		this.fName = fName;
 	}
+	
+	public GroupSurvey(int id) {
+		sId = id;
+	}
 }

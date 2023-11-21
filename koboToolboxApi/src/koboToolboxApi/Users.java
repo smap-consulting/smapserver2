@@ -37,6 +37,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -114,8 +115,8 @@ public class Users extends Application {
 	@Path("/location")
 	@Produces("application/json")
 	public Response updateUserLocation(@Context HttpServletRequest request,
-			@FormParam("lat") String latString,
-			@FormParam("lon") String lonString) { 
+			@FormDataParam("lat") String latString,
+			@FormDataParam("lon") String lonString) { 
 
 		Response response = null;
 		String connectionString = "API - updateUserLocation";
@@ -146,9 +147,10 @@ public class Users extends Application {
 				log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ User Location 0.0 0.0: ");
 			}
 			
+			response = Response.ok().build();
 			
-		} catch (SQLException e) {
-			e.printStackTrace();
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
 			response = Response.serverError().build();
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
