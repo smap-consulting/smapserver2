@@ -34,7 +34,7 @@ tmp/
 local.properties
 .loadpath
 .component
-.settings
+#.settings
 .classpath
 
 .idea/
