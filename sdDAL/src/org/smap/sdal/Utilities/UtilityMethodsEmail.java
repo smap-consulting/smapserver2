@@ -2,6 +2,7 @@ package org.smap.sdal.Utilities;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.Connection;
@@ -28,6 +29,8 @@ import org.smap.sdal.model.Language;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Survey;
+
+import com.google.common.io.Files;
 
 
 public class UtilityMethodsEmail {
@@ -675,6 +678,15 @@ public class UtilityMethodsEmail {
 		String contentType = getContentType(name);
 		String dest = path + "/thumbs/" + name;
 
+		/*
+		 * Ensure that the thumbs directory exists
+		 */
+		try {
+			Files.createParentDirs(new File(dest));
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
 		int idx = dest.lastIndexOf('.');
 		String destRoot = dest;
 		if(idx > 0) {
