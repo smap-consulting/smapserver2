@@ -939,15 +939,21 @@ public class GetXForm {
 			}
 
 			// Add mandatory
-			if (q.isMandatory()) {
-				questionElement.setAttribute("required", "true()");
+			if (q.isMandatory() || q.getRequiredExpression() != null) {
+				if(q.isMandatory()) {
+					questionElement.setAttribute("required", "true()");
+				} else {
+					// Check for a mandatory expression
+					String expr = q.getExpression(q.getRequiredExpression(), template.getQuestionPaths(), template.getXFormFormName());
+					questionElement.setAttribute("required", expr);
+				}
 
 				// Add required message
 				String requiredMsg = q.getRequiredMsg();
 				if (requiredMsg != null && requiredMsg.trim().length() > 0) {
 					questionElement.setAttribute("jr:requiredMsg", requiredMsg);
 				}
-			}
+			} 
 
 			// Add relevant
 			String relevant = q.getRelevant(true, template.getQuestionPaths(), template.getXFormFormName());

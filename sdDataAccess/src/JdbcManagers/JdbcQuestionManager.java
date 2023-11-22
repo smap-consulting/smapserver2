@@ -64,6 +64,7 @@ public class JdbcQuestionManager {
 			+ "qconstraint,"
 			+ "constraint_msg,"
 			+ "required_msg,"
+			+ "required_expression,"
 			+ "appearance,"
 			+ "parameters,"
 			+ "nodeset,"
@@ -79,7 +80,7 @@ public class JdbcQuestionManager {
 			+ "intent,"
 			+ "set_value"
 			+ ") "
-			+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+			+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 	
@@ -106,6 +107,7 @@ public class JdbcQuestionManager {
 			+ "qconstraint,"
 			+ "constraint_msg,"
 			+ "required_msg,"
+			+ "required_expression,"
 			+ "appearance,"
 			+ "parameters,"
 			+ "nodeset,"
@@ -165,8 +167,9 @@ public class JdbcQuestionManager {
 		pstmt.setString(17, q.getConstraint(false, null, xFormRoot));
 		pstmt.setString(18, q.getConstraintMsg()); // ok
 		pstmt.setString(19, q.getRequiredMsg());
-		pstmt.setString(20, q.getAppearance(false, null));
-		pstmt.setString(21, GeneralUtilityMethods.convertParametersToString(q.getParameters()));
+		pstmt.setString(20, q.getRequiredExpression());
+		pstmt.setString(21, q.getAppearance(false, null));
+		pstmt.setString(22, GeneralUtilityMethods.convertParametersToString(q.getParameters()));
 		
 		String nodeset = null;
 		String nodeset_value = null;
@@ -193,23 +196,23 @@ public class JdbcQuestionManager {
 			}
 			
 		}	
-		pstmt.setString(22, nodeset);
-		pstmt.setString(23, nodeset_value);
-		pstmt.setString(24, nodeset_label);
+		pstmt.setString(23, nodeset);
+		pstmt.setString(24, nodeset_value);
+		pstmt.setString(25, nodeset_label);
 		
-		pstmt.setString(25, q.getColumnName(false)); 
-		pstmt.setBoolean(26, q.isPublished());
-		pstmt.setInt(27, q.getListId());  
-		pstmt.setString(28, q.getAutoPlay());
-		pstmt.setString(29, q.getAccuracy());
-		pstmt.setString(30, q.getDataType());
+		pstmt.setString(26, q.getColumnName(false)); 
+		pstmt.setBoolean(27, q.isPublished());
+		pstmt.setInt(28, q.getListId());  
+		pstmt.setString(29, q.getAutoPlay());
+		pstmt.setString(30, q.getAccuracy());
+		pstmt.setString(31, q.getDataType());
 		if(q.getType().equals("select")) {
-			pstmt.setBoolean(31, true);			// Set all select multiple to compressed
+			pstmt.setBoolean(32, true);			// Set all select multiple to compressed
 		} else {
-			pstmt.setBoolean(31, false);
+			pstmt.setBoolean(32, false);
 		}
-		pstmt.setString(32, q.getIntent());
-		pstmt.setString(33, q.getSetValueArrayAsString(gson));
+		pstmt.setString(33, q.getIntent());
+		pstmt.setString(34, q.getSetValueArrayAsString(gson));
 		
 		pstmt.executeUpdate();
 		
@@ -276,22 +279,23 @@ public class JdbcQuestionManager {
 			q.setCalculate(rs.getString(17));
 			q.setConstraint(rs.getString(18));
 			q.setConstraintMsg(rs.getString(19));
-			q.setRequiredMsg(rs.getString(20));
-			q.setAppearance(rs.getString(21));
-			q.setParameters(rs.getString(22));
-			q.setNodeset(rs.getString(23));
-			q.setNodesetValue(rs.getString(24));
-			q.setNodesetLabel(rs.getString(25));
-			q.setColumnName(rs.getString(26));
-			q.setPublished(rs.getBoolean(27));
-			q.setListId(rs.getInt(28));
-			q.setAutoPlay(rs.getString(29));
-			q.setAccuracy(rs.getString(30));
-			q.setDataType(rs.getString(31));
-			q.setCompressed(rs.getBoolean(32));
-			q.setIntent(rs.getString(33));
-			q.setSetValue(gson, rs.getString(34));
-			q.setTrigger(rs.getString(35));
+			q.setRequiredMsg(rs.getString("required_msg"));
+			q.setRequiredExpression(rs.getString("required_expression"));
+			q.setAppearance(rs.getString("appearance"));
+			q.setParameters(rs.getString("parameters"));
+			q.setNodeset(rs.getString("nodeset"));
+			q.setNodesetValue(rs.getString("nodeset_value"));
+			q.setNodesetLabel(rs.getString("nodeset_label"));
+			q.setColumnName(rs.getString("column_name"));
+			q.setPublished(rs.getBoolean("published"));
+			q.setListId(rs.getInt("l_id"));
+			q.setAutoPlay(rs.getString("autoplay"));
+			q.setAccuracy(rs.getString("accuracy"));
+			q.setDataType(rs.getString("dataType"));
+			q.setCompressed(rs.getBoolean("compressed"));
+			q.setIntent(rs.getString("intent"));
+			q.setSetValue(gson, rs.getString("set_value"));
+			q.setTrigger(rs.getString("trigger"));
 		
 			/*
 			 * If the list id exists then set the list name

@@ -49,7 +49,8 @@ public class Question {
 	public String relevant;
 	public boolean visible;
 	public boolean readonly;
-	public boolean required;
+	public boolean required;				// Legacy
+	public String required_expression;		// Probably this should contain true or false if the value is boolean
 	public boolean compressed;
 	public boolean propertyType = false;	// If set these questions will not be shown in the editor
 	public boolean published;				// Set true if the question has been added to a results table
@@ -102,6 +103,7 @@ public class Question {
 		this.calculation = q.calculation;
 		this.required = q.required;
 		this.required_msg = q.required_msg;
+		this.required_expression = q.required_expression;
 		this.relevant = q.relevant;
 		this.constraint = q.constraint;
 		this.constraint_msg = q.constraint_msg;

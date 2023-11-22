@@ -94,6 +94,7 @@ public class QuestionManager {
 				+ "constraint_msg, "
 				+ "mandatory, "
 				+ "required_msg, "
+				+ "required_expression, "
 				+ "autoplay, "
 				+ "accuracy,"
 				+ "nodeset,"
@@ -265,8 +266,9 @@ public class QuestionManager {
 				pstmtInsertQuestion.setString(19, q.constraint_msg);
 				pstmtInsertQuestion.setBoolean(20, q.required);
 				pstmtInsertQuestion.setString(21, q.required_msg);
-				pstmtInsertQuestion.setString(22, q.autoplay);
-				pstmtInsertQuestion.setString(23, q.accuracy);
+				pstmtInsertQuestion.setString(22, q.required_expression);
+				pstmtInsertQuestion.setString(23, q.autoplay);
+				pstmtInsertQuestion.setString(24, q.accuracy);
 
 				String nodeset = null;
 				String nodeset_value = null;
@@ -287,13 +289,13 @@ public class QuestionManager {
 						nodeset_label = "jr:itext(itextId)";
 					}
 				}
-				pstmtInsertQuestion.setString(24, nodeset);
-				pstmtInsertQuestion.setString(25, nodeset_value);
-				pstmtInsertQuestion.setString(26, nodeset_label);
-				pstmtInsertQuestion.setString(27, sanitise.sanitiseHtml(q.display_name));
-				pstmtInsertQuestion.setBoolean(28, true);		// All select questions now default to compressed
-				pstmtInsertQuestion.setString(29, q.intent);
-				pstmtInsertQuestion.setString(30, q.getSetValueArrayAsString(gson));
+				pstmtInsertQuestion.setString(25, nodeset);
+				pstmtInsertQuestion.setString(26, nodeset_value);
+				pstmtInsertQuestion.setString(27, nodeset_label);
+				pstmtInsertQuestion.setString(28, sanitise.sanitiseHtml(q.display_name));
+				pstmtInsertQuestion.setBoolean(29, true);		// All select questions now default to compressed
+				pstmtInsertQuestion.setString(30, q.intent);
+				pstmtInsertQuestion.setString(31, q.getSetValueArrayAsString(gson));
 				
 				log.info("Insert question: " + pstmtInsertQuestion.toString());
 				pstmtInsertQuestion.executeUpdate();
@@ -1545,6 +1547,7 @@ public class QuestionManager {
 				+ "qconstraint, "
 				+ "constraint_msg,"
 				+ "required_msg,"
+				+ "required_expression,"
 				+ "appearance,"
 				+ "parameters,"
 				+ "enabled,"
@@ -1581,6 +1584,7 @@ public class QuestionManager {
 				 + "qconstraint, "
 				 + "constraint_msg, "
 				 + "required_msg, "
+				 + "required_expression, "
 				 + "appearance, "
 				 + "parameters, "
 				 + "enabled, "
@@ -1812,6 +1816,7 @@ public class QuestionManager {
 				+ "q.qconstraint, "
 				+ "q.constraint_msg, "
 				+ "q.required_msg, "
+				+ "q.required_expression, "
 				+ "q.nodeset, "
 				+ "q.relevant, "
 				+ "q.visible, "
@@ -1827,8 +1832,6 @@ public class QuestionManager {
 				+ "q.display_name,"
 				+ "q.f_id,"
 				+ "q.compressed,"
-				+ "q.external_choices,"
-				+ "q.external_table,"
 				+ "q.l_id,"
 				+ "q.intent, "
 				+ "st.name as style_name, "
@@ -1903,41 +1906,42 @@ public class QuestionManager {
 				q.constraint = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(13), true);
 				q.constraint_msg = rsGetQuestions.getString(14);
 				q.required_msg = rsGetQuestions.getString(15);
-				q.nodeset = rsGetQuestions.getString(16);	// Used when writing to HTML
+				q.required_expression = rsGetQuestions.getString(16);
+				q.nodeset = rsGetQuestions.getString(17);	// Used when writing to HTML
 				q.choice_filter = GeneralUtilityMethods.getChoiceFilterFromNodeset(q.nodeset, true);
 
-				q.relevant = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(17), true);
-				q.visible = rsGetQuestions.getBoolean(18);
-				q.readonly = rsGetQuestions.getBoolean(19);
-				q.required = rsGetQuestions.getBoolean(20);
-				q.published = rsGetQuestions.getBoolean(21);
-				q.columnName = rsGetQuestions.getString(22);
-				q.source_param = rsGetQuestions.getString(23);
-				q.soft_deleted = rsGetQuestions.getBoolean(24);
-				q.autoplay = rsGetQuestions.getString(25);
-				q.accuracy = rsGetQuestions.getString(26);
-				q.linked_target = rsGetQuestions.getString(27);
-				q.display_name = rsGetQuestions.getString(28);
-				q.fId = rsGetQuestions.getInt(29);
-				q.compressed = rsGetQuestions.getBoolean(30);				
-				q.l_id = rsGetQuestions.getInt(33);
-				q.intent = rsGetQuestions.getString(34);
-				q.style_list = rsGetQuestions.getString(35);
+				q.relevant = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(18), true);
+				q.visible = rsGetQuestions.getBoolean(19);
+				q.readonly = rsGetQuestions.getBoolean(20);
+				q.required = rsGetQuestions.getBoolean(21);
+				q.published = rsGetQuestions.getBoolean(22);
+				q.columnName = rsGetQuestions.getString(23);
+				q.source_param = rsGetQuestions.getString(24);
+				q.soft_deleted = rsGetQuestions.getBoolean(25);
+				q.autoplay = rsGetQuestions.getString(26);
+				q.accuracy = rsGetQuestions.getString(27);
+				q.linked_target = rsGetQuestions.getString(28);
+				q.display_name = rsGetQuestions.getString(29);
+				q.fId = rsGetQuestions.getInt(30);
+				q.compressed = rsGetQuestions.getBoolean(31);				
+				q.l_id = rsGetQuestions.getInt("l_id");
+				q.intent = rsGetQuestions.getString("intent");
+				q.style_list = rsGetQuestions.getString("style_name");
 				
-				String serverCalculation = rsGetQuestions.getString(36);
+				String serverCalculation = rsGetQuestions.getString("server_calculate");
 				if(serverCalculation != null) {
 					q.server_calculation = gson.fromJson(serverCalculation, ServerCalculation.class);
 				}
 				
-				q.setSetValue(gson, rsGetQuestions.getString(37));
+				q.setSetValue(gson, rsGetQuestions.getString("set_value"));
 				if(mergeDefaultSetValue) {
 					// Add any set values that set the default value into the default field
 					if(q.defaultanswer == null || q.defaultanswer.trim().length() == 0) {
 						q.defaultanswer = q.getDefaultSetValue();
 					}
 				}
-				q.flash = rsGetQuestions.getInt(38);
-				q.trigger = rsGetQuestions.getString(39);
+				q.flash = rsGetQuestions.getInt("flash");
+				q.trigger = rsGetQuestions.getString("trigger");
 				
 				if(q.type.startsWith("select") || q.type.equals("rank")) {
 					GeneralUtilityMethods.setExternalFileValues(sd, q);

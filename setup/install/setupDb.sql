@@ -757,6 +757,7 @@ CREATE TABLE question (
 	qConstraint text,
 	constraint_msg text,
 	required_msg text,
+	required_expression text,
 	appearance text,
 	parameters text,
 	enabled BOOLEAN default true,

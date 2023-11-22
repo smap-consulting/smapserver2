@@ -913,8 +913,12 @@ public class XLSTemplateUploadManager {
 		// 13. body::accuracyThreshold
 		q.accuracy = XLSUtilities.getTextColumn(wb, row, "body::accuracyThreshold", surveyHeader, lastCellNum, null);
 		
-		// 14. Required
-		q.required = getBooleanColumn(row, "required", surveyHeader, lastCellNum, false);		
+		// 14. Required 
+		q.required = getBooleanColumn(row, "required", surveyHeader, lastCellNum, false);	// True if yes, y, true	
+		if(!q.required) {
+			// Actually required can hold an expression - this is tacked on functionality
+			q.required_expression =  XLSUtilities.getTextColumn(wb, row, "required", surveyHeader, lastCellNum, null);
+		}
 		
 		// 15. Required Message
 		q.required_msg = XLSUtilities.getTextColumn(wb, row, XLSFormColumns.REQUIRED_MESSAGE, surveyHeader, lastCellNum, null); 

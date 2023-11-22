@@ -749,6 +749,7 @@ public class Survey {
 				+ "qconstraint,"
 				+ "constraint_msg,"
 				+ "required_msg,"
+				+ "required_expression,"
 				+ "appearance,"
 				+ "parameters,"
 				+ "nodeset,"
@@ -770,7 +771,7 @@ public class Survey {
 				+ "trigger"
 				+ ") "
 				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?"
-					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		
 		try {
@@ -846,8 +847,9 @@ public class Survey {
 			pstmt.setString(15, q.constraint);
 			pstmt.setString(16, q.constraint_msg);
 			pstmt.setString(17, q.required_msg);
-			pstmt.setString(18, q.appearance);
-			pstmt.setString(19, GeneralUtilityMethods.convertParametersToString(q.paramArray));
+			pstmt.setString(18, q.required_expression);
+			pstmt.setString(19, q.appearance);
+			pstmt.setString(20, GeneralUtilityMethods.convertParametersToString(q.paramArray));
 			
 			String nodeset = null;
 			String nodeset_value = null;
@@ -868,34 +870,34 @@ public class Survey {
 				}
 			}
 			
-			pstmt.setString(20, nodeset);		
-			pstmt.setString(21, nodeset_value);
-			pstmt.setString(22, nodeset_label);
+			pstmt.setString(21, nodeset);		
+			pstmt.setString(22, nodeset_value);
+			pstmt.setString(23, nodeset_label);
 			
-			pstmt.setString(23,  q.columnName);
-			pstmt.setBoolean(24,  false);   				// published		
-			pstmt.setInt(25, q.l_id);
-			pstmt.setString(26, q.autoplay); 
-			pstmt.setString(27, q.accuracy);
-			pstmt.setString(28, q.dataType);
+			pstmt.setString(24,  q.columnName);
+			pstmt.setBoolean(25,  false);   				// published		
+			pstmt.setInt(26, q.l_id);
+			pstmt.setString(27, q.autoplay); 
+			pstmt.setString(28, q.accuracy);
+			pstmt.setString(29, q.dataType);
 			
 			if(q.type.equals("select")) {
-				pstmt.setBoolean(29, q.compressed);
+				pstmt.setBoolean(30, q.compressed);
 			} else {
-				pstmt.setBoolean(29, true);
+				pstmt.setBoolean(30, true);
 			}
-			pstmt.setString(30,  sanitise.sanitiseHtml(q.display_name));
-			pstmt.setString(31,  q.intent);
-			pstmt.setInt(32,  q.style_id);
+			pstmt.setString(31,  sanitise.sanitiseHtml(q.display_name));
+			pstmt.setString(32,  q.intent);
+			pstmt.setInt(33,  q.style_id);
 			
 			String serverCalculation = null;
 			if(q.server_calculation != null) {
 				serverCalculation = gson.toJson(q.server_calculation);
 			}
-			pstmt.setString(33,  serverCalculation);
-			pstmt.setString(34, q.getSetValueArrayAsString(gson));
-			pstmt.setInt(35, q.flash);
-			pstmt.setString(36, q.trigger);
+			pstmt.setString(34,  serverCalculation);
+			pstmt.setString(35, q.getSetValueArrayAsString(gson));
+			pstmt.setInt(36, q.flash);
+			pstmt.setString(37, q.trigger);
 				
 			pstmt.executeUpdate();
 			
