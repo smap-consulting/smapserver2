@@ -28,8 +28,7 @@ Development
 *  Clone this project
 *  Clone the smap2 project which contains the amazon module: git clone https://github.com/nap2000/smap2.git
 *  Import the modules as existing maven projects
-*  run maven install for amazon, sdDAL and sdDataAccess as these are referenced by the main modules
-*  For each module set the project facets as: Dynamic Web Module 3.0, Java 1.8, JAX-RS 1.1.
+*  For each module set the project facets as: Dynamic Web Module 4.0, Java 11, JAX-RS 2.1.
 *  koboToolboxApi
     *  Add sdDAL to projects on build path and to deployment assembly
 *  surveyMobileApi
@@ -48,7 +47,6 @@ The installation scripts currently are tested only on supported Ubuntu LTS versi
 *  Copy the setup folder to the location on the linux server that you want to install the Smap server
 *  Build the war files for surveyMobileAPI, surveyKPI, koboToolbox API and copy them the setup/deploy/version1 folder 
 *  Create a runnable jar file for subscribers and copy it to the setup/deploy/version1 folder
-*  Create a folder subscribers in setup/deploy/version1 and export the default and forward folders in the subscribers project into there
 *  run the install script in the install folder as: sudo su install.sh
 
 Upgrades
