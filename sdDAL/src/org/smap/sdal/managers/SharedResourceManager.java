@@ -257,9 +257,11 @@ public class SharedResourceManager {
 					
 					// Delete matching thumbnails
 					File thumbs = new File(thumbsPath);
-					for(File thumb : thumbs.listFiles()) {
-						if(thumb.getName().startsWith(fileBase)) {
-							thumb.delete();
+					if(thumbs != null) {
+						for(File thumb : thumbs.listFiles()) {
+							if(thumb.getName().startsWith(fileBase)) {
+								thumb.delete();
+							}
 						}
 					}
 				}
