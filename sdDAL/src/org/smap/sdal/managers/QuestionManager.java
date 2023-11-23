@@ -2010,7 +2010,7 @@ public class QuestionManager {
 				if(s != null) {
 					PreparedStatement pstmtLabels = null;
 					try {
-						pstmtLabels = UtilityMethodsEmail.getLabelsStatement(sd, s.id);
+						pstmtLabels = UtilityMethodsEmail.getLabelsStatement(sd, s.surveyData.id);
 						UtilityMethodsEmail.getLabels(pstmtLabels, s, q.text_id, q.labels, basePath, oId);
 					} finally {
 						if(pstmtLabels != null) {try{pstmtLabels.close();}catch(Exception e) {}}

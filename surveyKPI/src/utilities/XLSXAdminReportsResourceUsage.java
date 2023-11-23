@@ -195,13 +195,13 @@ public class XLSXAdminReportsResourceUsage {
 					}
 					
 					cell = row.createCell(colNumber++);	// Project
-					cell.setCellValue(s.projectName);
+					cell.setCellValue(s.surveyData.projectName);
 					
 					cell = row.createCell(colNumber++);	// Survey
-					cell.setCellValue(s.displayName);
+					cell.setCellValue(s.surveyData.displayName);
 					
 					cell = row.createCell(colNumber++);	// Blocked
-					cell.setCellValue(s.blocked);
+					cell.setCellValue(s.surveyData.blocked);
 				}
 				
 									

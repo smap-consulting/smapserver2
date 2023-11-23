@@ -108,10 +108,10 @@ public class InstanceXML extends Application{
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isValidSurvey(sd, user, survey.id, false, superUser);	// Validate that the user can access this survey
-		a.isBlocked(sd, survey.id, false);			// Validate that the survey is not blocked
+		a.isValidSurvey(sd, user, survey.surveyData.id, false, superUser);	// Validate that the user can access this survey
+		a.isBlocked(sd, survey.surveyData.id, false);			// Validate that the survey is not blocked
 		
-		lm.writeLog(sd, survey.id, request.getRemoteUser(), LogManager.INSTANCE_VIEW, "Get results instance: priKey=" + priKey + " key=" + key + " keyval=" + keyval, 0, request.getServerName());
+		lm.writeLog(sd, survey.surveyData.id, request.getRemoteUser(), LogManager.INSTANCE_VIEW, "Get results instance: priKey=" + priKey + " key=" + key + " keyval=" + keyval, 0, request.getServerName());
 		
 		SDDataSource.closeConnection(connectionString, sd);
 		// End Authorisation
@@ -120,11 +120,11 @@ public class InstanceXML extends Application{
 		try {
 			
            	SurveyTemplate template = new SurveyTemplate(localisation);
-			template.readDatabase(survey.id, false);
+			template.readDatabase(survey.surveyData.id, false);
 			
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 			GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
-			String instanceXML = xForm.getInstanceXml(survey.id, 
+			String instanceXML = xForm.getInstanceXml(survey.surveyData.id, 
 					templateName, 
 					template, 
 					key, 
@@ -136,11 +136,11 @@ public class InstanceXML extends Application{
 		} catch (ApplicationException e) {
 		    String msg = e.getMessage();	
 			log.info(msg);	
-			lm.writeLog(sd, survey.id, request.getRemoteUser(), LogManager.ERROR, "Failed to get instance data: " + msg, 0, request.getServerName());
+			lm.writeLog(sd, survey.surveyData.id, request.getRemoteUser(), LogManager.ERROR, "Failed to get instance data: " + msg, 0, request.getServerName());
 			response = Response.status(Status.NOT_FOUND).entity(msg).build();
 		}  catch (Exception e) {
 			log.log(Level.SEVERE,"Exception", e);
-			lm.writeLog(sd, survey.id, request.getRemoteUser(), LogManager.ERROR, "Failed to get instance data: " + e.getMessage(), 0, request.getServerName());
+			lm.writeLog(sd, survey.surveyData.id, request.getRemoteUser(), LogManager.ERROR, "Failed to get instance data: " + e.getMessage(), 0, request.getServerName());
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		} 
 				

@@ -387,8 +387,8 @@ public class Tasks extends Application {
 					throw new ApplicationException(localisation.getString("mf_snfpriv"));
 				}
 				// Create a task group based on the survey
-				tp.tg_id = tm.createTaskGroup(sd, s.displayName, 
-						s.p_id,
+				tp.tg_id = tm.createTaskGroup(sd, s.surveyData.displayName, 
+						s.surveyData.p_id,
 						null,	// address columns
 						null,	// setting
 						0,	// source survey id

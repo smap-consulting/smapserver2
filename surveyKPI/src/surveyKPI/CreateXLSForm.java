@@ -115,7 +115,7 @@ public class CreateXLSForm extends Application {
 					);
 			
 			// Set file name
-			GeneralUtilityMethods.setFilenameInResponse(survey.displayName + "." + filetype, response);
+			GeneralUtilityMethods.setFilenameInResponse(survey.surveyData.displayName + "." + filetype, response);
 			
 			// Create XLSForm
 			XLSFormManager xf = new XLSFormManager(filetype);

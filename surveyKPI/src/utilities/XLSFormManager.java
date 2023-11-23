@@ -344,7 +344,7 @@ public class XLSFormManager {
 				value = q.labels.get(labelIndex).audio;
 
 			} else if(type == COL_ROLE) {			
-				Role r = survey.roles.get(typeString);
+				Role r = survey.surveyData.roles.get(typeString);
 				if(r != null) {
 					ArrayList<RoleColumnFilter> colFilters = r.column_filter;
 					if(colFilters != null) {
@@ -446,31 +446,31 @@ public class XLSFormManager {
 			String value = "";
 
 			if(type == COL_DEFAULT_LANGUAGE) {			
-				value = survey.def_lang;
+				value = survey.surveyData.def_lang;
 
 			} else if(type == COL_STYLE) {			
-				value = survey.surveyClass;
+				value = survey.surveyData.surveyClass;
 
 			} else if(type == COL_INSTANCE_NAME) {			
-				value = survey.instanceNameDefn;
+				value = survey.surveyData.instanceNameDefn;
 
 			} else if(type == COL_KEY) {			
-				value = survey.uk.key;
+				value = survey.surveyData.uk.key;
 
 			} else if(type == COL_KEY_POLICY) {			
-				value = survey.uk.key_policy;
+				value = survey.surveyData.uk.key_policy;
 
 			} else if(type == COL_ROLE_ROW) {				
-				Role r = survey.roles.get(typeString);
+				Role r = survey.surveyData.roles.get(typeString);
 				if(r != null) {
 					value = r.row_filter;
 				}
 
 			} else if(type == COL_ALLOW_IMPORT) {				
-				value = survey.task_file ? "yes" : "no";
+				value = survey.surveyData.task_file ? "yes" : "no";
 
 			} else if(type == COL_PULLDATA_REPEAT) {	
-				ArrayList<Pulldata> pd = survey.pulldata;
+				ArrayList<Pulldata> pd = survey.surveyData.pulldata;
 				if(pd == null || pd.size() == 0) {
 					value = "";
 				} else {
@@ -488,37 +488,37 @@ public class XLSFormManager {
 				value = survey.getHideOnDevice() ? "yes" : "no";
 
 			} else if(type == COL_TIMING_DATA) {				
-				value = survey.timing_data ? "yes" : "no";
+				value = survey.surveyData.timing_data ? "yes" : "no";
 
 			} else if(type == COL_AUDIT_LOCATION_DATA) {				
-					value = survey.audit_location_data ? "yes" : "no";
+					value = survey.surveyData.audit_location_data ? "yes" : "no";
 
 			} else if(type == COL_MY_REFERENCE_DATA) {				
-				value = survey.myReferenceData ? "yes" : "no";
+				value = survey.surveyData.myReferenceData ? "yes" : "no";
 
 			} else if(type == COL_DATA_SURVEY) {				
-				value = survey.dataSurvey ? "yes" : "no";
+				value = survey.surveyData.dataSurvey ? "yes" : "no";
 
 			} else if(type == COL_OVERSIGHT_SURVEY) {				
-				value = survey.oversightSurvey ? "yes" : "no";
+				value = survey.surveyData.oversightSurvey ? "yes" : "no";
 
 			} else if(type == COL_AUTO_TRANSLATE) {				
-				value = survey.autoTranslate ? "yes" : "no";
+				value = survey.surveyData.autoTranslate ? "yes" : "no";
 
 			} else if(type == COL_REPORT_LOGO) {				
-				value = survey.default_logo;
+				value = survey.surveyData.default_logo;
 
 			} else if(type == COL_SEARCH_LOCAL_DATA) {				
 				value = survey.getSearchLocalData() ? "yes" : "no";
 
 			} else if(type == COL_TRACK_CHANGES) {				
-				value = survey.track_changes ? "yes" : "no";
+				value = survey.surveyData.track_changes ? "yes" : "no";
 
 			} else if(type == COL_COMPRESS_PDF) {				
-				value = survey.compress_pdf ? "yes" : "no";
+				value = survey.surveyData.compress_pdf ? "yes" : "no";
 
 			} else if(type == COL_READ_ONLY_SURVEY) {				
-				value = survey.readOnlySurvey ? "yes" : "no";
+				value = survey.surveyData.readOnlySurvey ? "yes" : "no";
 
 			} else {
 				log.info("Unknown settings type: " + type);
@@ -668,14 +668,14 @@ public class XLSFormManager {
 		/*
 		 * Add preload questions
 		 */
-		if(form.parentform == 0 && survey.meta != null) {
+		if(form.parentform == 0 && survey.surveyData.meta != null) {
 			Column typeCol = colsSurvey.get(namedColumnIndexes.get("type"));
 			Column nameCol = colsSurvey.get(namedColumnIndexes.get("name"));
 			Column appearanceCol = colsSurvey.get(namedColumnIndexes.get("appearance"));
 			Column parametersCol = colsSurvey.get(namedColumnIndexes.get("parameters"));
 			
 			Row row = surveySheet.createRow(rowNumberSurvey++);		// blank row
-			for(MetaItem mi : survey.meta) {
+			for(MetaItem mi : survey.surveyData.meta) {
 				if(mi.isPreload) {
 					row = surveySheet.createRow(rowNumberSurvey++);
 							
@@ -759,7 +759,7 @@ public class XLSFormManager {
 					// If this question has a list of choices then add these to the choices sheet but only if they have not already been added
 					if(q.list_name != null) {
 						if(addedOptionLists.get(q.list_name) == null) {
-							OptionList ol = survey.optionLists.get(q.list_name);
+							OptionList ol = survey.surveyData.optionLists.get(q.list_name);
 							if(ol != null) {		// option list is populated for questions that are not select
 								addChoiceList(choicesSheet, ol, colsChoices, filterIndexes, styles, q.list_name);
 							}
@@ -770,7 +770,7 @@ public class XLSFormManager {
 					// If this question has styles then add these to the style sheet but only if they have not already been added
 					if(q.style_list != null) {
 						if(addedStyleLists.get(q.style_list) == null) {
-							StyleList sl = survey.styleLists.get(q.style_list);
+							StyleList sl = survey.surveyData.styleLists.get(q.style_list);
 							if(sl != null) {	
 								addStyleList(stylesSheet, sl, colsStyles, styles, q.style_list);
 							}
@@ -962,7 +962,7 @@ public class XLSFormManager {
 
 		// Add label columns which vary according to the number of languages
 		int labelIndex = 0;
-		for(Language language : survey.languages) {
+		for(Language language : survey.surveyData.languages) {
 			cols.add(new Column(colNumber++,"label::" + language.name, Column.COL_LABEL, labelIndex, "label"));
 			cols.add(new Column(colNumber++,"hint::" + language.name, Column.COL_HINT, labelIndex, "label"));
 			cols.add(new Column(colNumber++,"guidance_hint::" + language.name, Column.COL_GUIDANCE_HINT, labelIndex, "label"));	
@@ -976,7 +976,7 @@ public class XLSFormManager {
 		// Constraint message potentially multi-language
 		labelIndex = 0;
 		if(hasMultiConstraintLanguages) {
-			for(Language language : survey.languages) {
+			for(Language language : survey.surveyData.languages) {
 				cols.add(new Column(colNumber++, 
 						XLSFormColumns.CONSTRAINT_MESSAGE + "::" + language.name, Column.COL_CONSTRAINT_MSG, labelIndex++, "label"));
 			}
@@ -1006,7 +1006,7 @@ public class XLSFormManager {
 		// Required message potentially multi-language
 		labelIndex = 0;
 		if(hasMultiRequiredLanguages) {
-			for(Language language : survey.languages) {
+			for(Language language : survey.surveyData.languages) {
 				cols.add(new Column(colNumber++, 
 						XLSFormColumns.REQUIRED_MESSAGE + "::" + language.name, Column.COL_REQUIRED_MSG, labelIndex++, "label"));
 			}
@@ -1024,13 +1024,13 @@ public class XLSFormManager {
 
 		
 		// Add role columns
-		for(String role : survey.roles.keySet()) {
+		for(String role : survey.surveyData.roles.keySet()) {
 			cols.add(new Column(colNumber++,"role::" + role, Column.COL_ROLE, 0, role));
 		}
 		
 		// Add media columns (Do this as the last columns since these columns are less used
 		labelIndex = 0;
-		for(Language language : survey.languages) {
+		for(Language language : survey.surveyData.languages) {
 			if(hasMultiImageLanguages || labelIndex == 0) {
 				cols.add(new Column(colNumber++, "media::image" + (hasMultiImageLanguages ? "::" + language.name : ""), 
 						Column.COL_IMAGE, labelIndex, "image"));
@@ -1064,13 +1064,13 @@ public class XLSFormManager {
 
 		// Add label columns
 		int labelIndex = 0;
-		for(Language language : survey.languages) {
+		for(Language language : survey.surveyData.languages) {
 			cols.add(new Column(colNumber++, "label::" + language.name, Column.COL_CHOICE_LABEL, labelIndex++, "choice_label"));
 		}
 
 		// Add media
 		labelIndex = 0;
-		for(Language language : survey.languages) {
+		for(Language language : survey.surveyData.languages) {
 			if(hasMultiImageLanguages || labelIndex == 0) {
 				cols.add(new Column(colNumber++, "media::image" + (hasMultiImageLanguages ? "::" + language.name : ""), 
 						Column.COL_IMAGE, labelIndex, "image"));
@@ -1153,7 +1153,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "my_reference_data", Column.COL_MY_REFERENCE_DATA, 0, "my_reference_data"));
 
 		// Add role columns
-		for(String role : survey.roles.keySet()) {
+		for(String role : survey.surveyData.roles.keySet()) {
 			cols.add(new Column(colNumber++,"role::" + role, Column.COL_ROLE_ROW, 0, role));
 		}
 		

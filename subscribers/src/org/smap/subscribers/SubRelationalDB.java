@@ -135,7 +135,7 @@ public class SubRelationalDB extends Subscriber {
 			
 			writeAllTableContent(dbc.sd, dbc.results, instance, submittingUser, server, device, 
 					formStatus, updateId, uploadTime, surveyNotes, 
-					locationTrigger, assignmentId, survey.o_id);	
+					locationTrigger, assignmentId, survey.surveyData.o_id);	
 			
 			/*
 			 * Create an item in the submission event queue for the processing of
@@ -300,7 +300,7 @@ public class SubRelationalDB extends Subscriber {
 			Date uploadTime, String surveyNotes, String locationTrigger,
 			int assignmentId, int oId) throws SQLInsertException {
 
-		int sId = survey.id;
+		int sId = survey.surveyData.id;
 		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtHrk = null;
@@ -324,7 +324,7 @@ public class SubRelationalDB extends Subscriber {
 			}
 			
 			KeyManager km = new KeyManager(localisation);
-			UniqueKey uk = km.get(sd, survey.groupSurveyIdent);
+			UniqueKey uk = km.get(sd, survey.surveyData.groupSurveyIdent);
 			boolean hasHrk = (uk.key.trim().length() > 0);
 			Keys keys = writeTableContent(
 					topElement, 
@@ -373,7 +373,7 @@ public class SubRelationalDB extends Subscriber {
 			}
 			log.info("################### Processing key policy:" + keyPolicy + ": " + hasHrk + " : " + assignmentId );
 			
-			String hrkSql = GeneralUtilityMethods.convertAllxlsNamesToQuery(uk.key, survey.groupSurveyIdent, sId, sd, topLevelForm.tableName);
+			String hrkSql = GeneralUtilityMethods.convertAllxlsNamesToQuery(uk.key, survey.surveyData.groupSurveyIdent, sId, sd, topLevelForm.tableName);
 			if(updateId != null) {
 				// Direct update to a record
 				log.info("Direct update with Existing unique id:" + updateId);
@@ -384,13 +384,13 @@ public class SubRelationalDB extends Subscriber {
 					log.info("Existing key:" + existingKey);
 					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
-							existingKey, replace, remoteUser, updateId, survey.groupSurveyIdent, survey.ident, localisation);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
+							existingKey, replace, remoteUser, updateId, survey.surveyData.groupSurveyIdent, survey.surveyData.ident, localisation);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
 				} 
 			} else if(hasHrk && !keyPolicy.equals(SurveyManager.KP_NONE)) {
 				if(keyPolicy.equals(SurveyManager.KP_MERGE) || keyPolicy.equals(SurveyManager.KP_REPLACE)) {					
 					log.info("Apply merge-replace policy");
 					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0, 
-							keyPolicy.equals(SurveyManager.KP_REPLACE), remoteUser, instance.getUuid(), survey.groupSurveyIdent, survey.ident, localisation);
+							keyPolicy.equals(SurveyManager.KP_REPLACE), remoteUser, instance.getUuid(), survey.surveyData.groupSurveyIdent, survey.surveyData.ident, localisation);
 				} else if(keyPolicy.equals(SurveyManager.KP_DISCARD)) {
 					log.info("Apply discard policy");
 					discardTableContent(cResults, topLevelForm.tableName, keys.newKey);

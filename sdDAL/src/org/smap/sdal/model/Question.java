@@ -133,7 +133,7 @@ public class Question {
 	public Collection<Option> getValidChoices(Survey s) {
 		
 		ArrayList<Option> externalChoices = new ArrayList<Option> ();
-		OptionList ol = s.optionLists.get(list_name);
+		OptionList ol = s.surveyData.optionLists.get(list_name);
 		ArrayList<Option> choiceArray = ol.options;
 		if(choiceArray == null) {
 			choiceArray = new ArrayList<Option> ();

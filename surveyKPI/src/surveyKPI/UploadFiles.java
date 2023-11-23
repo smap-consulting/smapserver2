@@ -603,9 +603,9 @@ public class UploadFiles extends Application {
 						false,		// launched only
 						false		// Don't merge set values into default value
 						);
-				displayName = existingSurvey.displayName;
-				existingVersion = existingSurvey.version;
-				existingSurveyId = existingSurvey.id;
+				displayName = existingSurvey.surveyData.displayName;
+				existingVersion = existingSurvey.surveyData.version;
+				existingSurveyId = existingSurvey.surveyData.id;
 			}
 
 			// If the survey display name already exists on this server, for this project, then throw an error		
@@ -660,19 +660,19 @@ public class UploadFiles extends Application {
 			 */
 			if(surveyId > 0) {
 				if(!action.equals("replace")) {
-					s.groupSurveyIdent = bundleSurveyIdent;
+					s.surveyData.groupSurveyIdent = bundleSurveyIdent;
 					
 				} else {
 					// Set the group survey ident to the same value as the original survey
-					s.groupSurveyIdent = existingSurvey.groupSurveyIdent;
-					s.publicLink = existingSurvey.publicLink;
+					s.surveyData.groupSurveyIdent = existingSurvey.surveyData.groupSurveyIdent;
+					s.surveyData.publicLink = existingSurvey.surveyData.publicLink;
 				}
 
 				/*
 				 * Validate that the survey is compatible with any groups that it
 				 * has been added to
 				 */
-				for(Form f : s.forms) {
+				for(Form f : s.surveyData.forms) {
 					for(Question q : f.questions) {
 						QuestionForm qt = questionNames.get(q.name);
 						if(qt != null) {
@@ -712,7 +712,7 @@ public class UploadFiles extends Application {
 				 * This warning can be removed in version 21.06
 				 */
 				if(action.equals("replace")) {
-					for(Form f : s.forms) {
+					for(Form f : s.surveyData.forms) {
 						
 						boolean newTheGeom = false;
 						boolean newNonTheGeom = false;
@@ -767,7 +767,7 @@ public class UploadFiles extends Application {
 			boolean valid = true;
 			String errMsg = null;
 			try {
-				JavaRosaUtilities.javaRosaSurveyValidation(localisation, s.id, request.getRemoteUser(), tz, request);
+				JavaRosaUtilities.javaRosaSurveyValidation(localisation, s.surveyData.id, request.getRemoteUser(), tz, request);
 			} catch (Exception e) {
 								
 				// Error! Delete the survey we just created
@@ -781,7 +781,7 @@ public class UploadFiles extends Application {
 				
 			}
 			if(valid) {
-				ArrayList<FormLength> formLength = GeneralUtilityMethods.getFormLengths(sd, s.id);
+				ArrayList<FormLength> formLength = GeneralUtilityMethods.getFormLengths(sd, s.surveyData.id);
 				for(FormLength fl : formLength) {
 					if(fl.isTooLong()) {
 						valid = false;
@@ -798,7 +798,7 @@ public class UploadFiles extends Application {
 			if(!valid) {
 				sm.delete(sd, 
 						cResults, 
-						s.id, 
+						s.surveyData.id, 
 						true,		// hard
 						false,		// Do not delete the data 
 						user, 
@@ -821,7 +821,7 @@ public class UploadFiles extends Application {
 						user, 
 						basePath,
 						"no",		// Do not delete the tables
-						s.id		   // New Survey Id for replacement 
+						s.surveyData.id		   // New Survey Id for replacement 
 					);		
 			}
 			
@@ -849,7 +849,7 @@ public class UploadFiles extends Application {
 				String sqlUpdateChangeLog = "insert into survey_change "
 						+ "(s_id, version, changes, user_id, apply_results, visible, updated_time) "
 						+ "select "
-						+ s.id
+						+ s.surveyData.id
 						+ ",version, changes, user_id, apply_results, visible, updated_time "
 						+ "from survey_change where s_id = ? "
 						+ "order by version asc";
@@ -866,8 +866,8 @@ public class UploadFiles extends Application {
 			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
 			ChangeItem ci = new ChangeItem();
 			ci.fileName = fileItem.getName();
-			ci.origSId = s.id;
-			pstmtChangeLog.setInt(1, s.id);
+			ci.origSId = s.surveyData.id;
+			pstmtChangeLog.setInt(1, s.surveyData.id);
 			pstmtChangeLog.setInt(2, newVersion);
 			pstmtChangeLog.setString(3, gson.toJson(new ChangeElement(ci, "upload_template")));
 			pstmtChangeLog.setInt(4, GeneralUtilityMethods.getUserId(sd, user));	
@@ -887,16 +887,16 @@ public class UploadFiles extends Application {
 			/*
 			 * Apply auto translations
 			 */
-			if(s.autoTranslate && s.languages.size() > 1) {
+			if(s.surveyData.autoTranslate && s.surveyData.languages.size() > 1) {
 				
 				LanguageCodeManager lcm = new LanguageCodeManager();
-				Language fromLanguage = s.languages.get(0);
+				Language fromLanguage = s.surveyData.languages.get(0);
 				if(fromLanguage.code != null && lcm.isSupported(sd, fromLanguage.code, LanguageCodeManager.LT_TRANSLATE)) {
-					for(int i = 1; i < s.languages.size(); i++) {
-						Language toLanguage = s.languages.get(i);
+					for(int i = 1; i < s.surveyData.languages.size(); i++) {
+						Language toLanguage = s.surveyData.languages.get(i);
 						if(toLanguage.code != null && lcm.isSupported(sd, toLanguage.code, LanguageCodeManager.LT_TRANSLATE)) {
 							
-							String result = sm.translate(sd, request.getRemoteUser(), s.id,
+							String result = sm.translate(sd, request.getRemoteUser(), s.surveyData.id,
 									0,	// from language index
 									i,	// to language index
 									fromLanguage.code,

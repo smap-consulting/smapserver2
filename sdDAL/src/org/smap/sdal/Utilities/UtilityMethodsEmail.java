@@ -743,7 +743,7 @@ public class UtilityMethodsEmail {
 
 		try {
 
-			for(int i = 0; i < s.languages.size(); i++) {
+			for(int i = 0; i < s.surveyData.languages.size(); i++) {
 
 				Label l = new Label();
 				ResultSet resultSet;
@@ -755,7 +755,7 @@ public class UtilityMethodsEmail {
 					if(idx > 0) {
 						String root = text_id.substring(0, idx + 1) + "%";
 						
-						pstmt.setString(2, s.languages.get(i).name);
+						pstmt.setString(2, s.surveyData.languages.get(i).name);
 						pstmt.setString(3, root);
 						//log.info("Get labels: " + pstmt.toString());
 	
@@ -771,7 +771,7 @@ public class UtilityMethodsEmail {
 							} else if(t.equals("image") || t.equals("audio") || t.equals("video")) {							
 								if(basePath != null && oId > 0) {							
 									ManifestValue manifest = new ManifestValue();
-									getFileUrl(manifest, s.ident, v, basePath, oId, s.id);
+									getFileUrl(manifest, s.surveyData.ident, v, basePath, oId, s.surveyData.id);
 									if(t.equals("image")) {
 										l.image = v;
 										l.imageUrl = manifest.url;

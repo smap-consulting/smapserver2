@@ -185,7 +185,7 @@ public class CreatePDF extends Application {
 			OutputStream os = null;
 			String filePath = null;
 			
-			if(survey.compress_pdf) {		// Write the PDF to a temporary file			
+			if(survey.surveyData.compress_pdf) {		// Write the PDF to a temporary file			
 				filePath = basePath + "/temp/" + String.valueOf(UUID.randomUUID() + ".pdf");
 				File tempFile = new File(filePath);
 				os = new FileOutputStream(tempFile);
@@ -208,7 +208,7 @@ public class CreatePDF extends Application {
 					landscape,
 					resp);
 			
-			if(survey.compress_pdf) {
+			if(survey.surveyData.compress_pdf) {
 				// Remove blank pages from the temporary file and write it to a new temporary file
 				String newFilePath = basePath + "/temp/" + String.valueOf(UUID.randomUUID() + ".pdf");
 				PdfUtilities.removeBlankPages(filePath, newFilePath);

@@ -152,7 +152,7 @@ public class GetHtml {
 		bodyElement.setAttribute("novalidate", "novalidate");
 		bodyElement.setAttribute("autocomplete", "off");
 		bodyElement.setAttribute("class",
-				"or clearfix" + (survey.surveyClass != null ? (" " + survey.surveyClass) : ""));
+				"or clearfix" + (survey.surveyData.surveyClass != null ? (" " + survey.surveyData.surveyClass) : ""));
 		bodyElement.setAttribute("dir", "ltr");
 		bodyElement.setAttribute("id", survey.getIdent());
 
@@ -178,17 +178,17 @@ public class GetHtml {
 		// Languages
 		bodyElement = outputDoc.createElement("select");
 		bodyElement.setAttribute("id", "form-languages");
-		if (survey.languages == null || survey.languages.size() <= 1) {
+		if (survey.surveyData.languages == null || survey.surveyData.languages.size() <= 1) {
 			bodyElement.setAttribute("style", "display:none;");
 		}
-		bodyElement.setAttribute("data-default-lang", survey.def_lang);
+		bodyElement.setAttribute("data-default-lang", survey.surveyData.def_lang);
 		populateLanguageChoices(bodyElement);
 		parent.appendChild(bodyElement);
 
 		/*
 		 * Add preloads to the questionPaths hashmap so they can be referenced
 		 */
-		ArrayList<MetaItem> preloads = survey.meta;
+		ArrayList<MetaItem> preloads = survey.surveyData.meta;
 		for(MetaItem mi : preloads) {
 			if(mi.isPreload) {
 				paths.put(mi.name, "/main/" + mi.name);
@@ -196,7 +196,7 @@ public class GetHtml {
 		}
 		
 		// Questions
-		for (Form form : survey.forms) {
+		for (Form form : survey.surveyData.forms) {
 			if (form.parentform == 0) { // Start with top level form
 				log.info("Adding questions from: " + form.name);
 				addPaths(form, "/");
@@ -212,7 +212,7 @@ public class GetHtml {
 	private void populateLanguageChoices(Element parent) {
 		Element bodyElement = null;
 		int idx = 0;
-		for (Language lang : survey.languages) {
+		for (Language lang : survey.surveyData.languages) {
 			bodyElement = outputDoc.createElement("option");
 			bodyElement.setAttribute("value", lang.name);
 			
@@ -228,7 +228,7 @@ public class GetHtml {
 			parent.appendChild(bodyElement);
 
 			// Save the index of the default language
-			if (lang.name.equals(survey.def_lang)) {
+			if (lang.name.equals(survey.surveyData.def_lang)) {
 				languageIndex = idx;
 			}
 			idx++;
@@ -261,7 +261,7 @@ public class GetHtml {
 
 			} else if (q.type.equals("begin repeat")) {
 
-				for (Form subForm : survey.forms) {
+				for (Form subForm : survey.surveyData.forms) {
 					if (subForm.parentQuestion == q.id) { // continue with next form
 						addPaths(subForm, pathStem);
 						break;
@@ -590,8 +590,8 @@ public class GetHtml {
 		bodyElement.setAttribute("style", "display:none;");
 		bodyElement.setAttribute("id", "or-preload-items");
 		
-		if(survey.meta != null) {
-			for(MetaItem mi : survey.meta) {
+		if(survey.surveyData.meta != null) {
+			for(MetaItem mi : survey.surveyData.meta) {
 				if(mi.isPreload) {
 					preloadLabel = outputDoc.createElement("label");
 					preloadLabel.setAttribute("class", "calculation non-select");
@@ -649,7 +649,7 @@ public class GetHtml {
 			calculationLabel.appendChild(calculationInput);
 			
 			// instanceName
-			if(survey.instanceNameDefn != null && survey.instanceNameDefn.trim().length() > 0) { 
+			if(survey.surveyData.instanceNameDefn != null && survey.surveyData.instanceNameDefn.trim().length() > 0) { 
 				calculationLabel = outputDoc.createElement("label");
 				calculationLabel.setAttribute("class", "calculation non-select");
 				bodyElement.appendChild(calculationLabel);
@@ -658,7 +658,7 @@ public class GetHtml {
 				calculationInput.setAttribute("name", "/main/meta/instanceName");			
 				calculationInput.setAttribute("data-type-xml", "string");
 				calculationInput.setAttribute("data-calculate",
-						" " + UtilityMethods.convertAllxlsNames(survey.instanceNameDefn, false, paths, form.id, true, "instanceName", false) + " ");
+						" " + UtilityMethods.convertAllxlsNames(survey.surveyData.instanceNameDefn, false, paths, form.id, true, "instanceName", false) + " ");
 				calculationLabel.appendChild(calculationInput);
 			}
 		}
@@ -686,7 +686,7 @@ public class GetHtml {
 			} 
 			
 			if (q.type.equals("begin repeat")) {
-				for (Form subForm : survey.forms) {
+				for (Form subForm : survey.surveyData.forms) {
 					if (subForm.parentQuestion == q.id) { // continue with next form
 						if(subForm.reference) {
 							calculation = "0";
@@ -760,7 +760,7 @@ public class GetHtml {
 			// Process calculations in repeats
 			if (q.type.equals("begin repeat")) {
 				// Process sub form
-				for (Form subForm : survey.forms) {
+				for (Form subForm : survey.surveyData.forms) {
 					if (subForm.parentQuestion == q.id) { // continue with next form
 						processCalculationQuestions(bodyElement, subForm);
 						break;
@@ -1221,7 +1221,7 @@ public class GetHtml {
 		boolean hasNodeset = hasNodeset(sd, q, form);
 		Element labelElement = null;
 
-		OptionList optionList = survey.optionLists.get(q.list_name);
+		OptionList optionList = survey.surveyData.optionLists.get(q.list_name);
 		if(optionList != null) {
 			ArrayList<Option> options = optionList.options;
 			for (Option o : options) {
@@ -1249,7 +1249,7 @@ public class GetHtml {
 				}
 				int idx = 0;
 				Element bodyElement = null;
-				for (Language lang : survey.languages) {
+				for (Language lang : survey.surveyData.languages) {
 					bodyElement = outputDoc.createElement("span");
 					if (hasNodeset) {
 						parent.appendChild(bodyElement);
@@ -1258,7 +1258,7 @@ public class GetHtml {
 					}
 					bodyElement.setAttribute("lang", lang.name);
 					bodyElement.setAttribute("class",
-							"option-label" + (lang.name.equals(survey.def_lang) ? " active" : ""));
+							"option-label" + (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 					bodyElement.setAttribute("data-itext-id", o.text_id);
 	
 					String label = o.labels.get(idx).text;
@@ -1315,7 +1315,7 @@ public class GetHtml {
 	
 	private void addMinimalOptionLabels(Connection sd, Element parent, Question q, Form form) throws Exception {
 
-		OptionList ol = survey.optionLists.get(q.list_name);
+		OptionList ol = survey.surveyData.optionLists.get(q.list_name);
 		if(ol != null) {
 			ArrayList<Option> options = ol.options;
 			
@@ -1324,11 +1324,11 @@ public class GetHtml {
 				//Element inputElement = outputDoc.createElement("span");
 				//parent.appendChild(inputElement);
 				int idx = 0;
-				for (Language lang : survey.languages) {
+				for (Language lang : survey.surveyData.languages) {
 					Element optionElement = outputDoc.createElement("span");
 					parent.appendChild(optionElement);
 					optionElement.setAttribute("lang", lang.name);
-					optionElement.setAttribute("class", "option-label" + (lang.name.equals(survey.def_lang) ? " active" : ""));
+					optionElement.setAttribute("class", "option-label" + (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 					optionElement.setAttribute("data-itext-id", o.text_id);
 					
 					String label = o.labels.get(idx).text;
@@ -1381,7 +1381,7 @@ public class GetHtml {
 		bodyElement.setAttribute("name", paths.get(getRefName(q.name, form)));
 
 		// Process sub form
-		for (Form subForm : survey.forms) {
+		for (Form subForm : survey.surveyData.forms) {
 			if (subForm.parentQuestion == q.id) { // continue with next form
 				processQuestions(sd, bodyElement, subForm);
 				newForm = subForm;
@@ -1407,12 +1407,12 @@ public class GetHtml {
 		boolean requiredMessageAdded = false;
 		boolean constraintMessageAdded = false;
 		boolean requiredIndicatorAdded = false;
-		for (Language lang : survey.languages) {
+		for (Language lang : survey.surveyData.languages) {
 
 			// Label
 			bodyElement = outputDoc.createElement("span");
 			bodyElement.setAttribute("lang", lang.name);
-			bodyElement.setAttribute("class", "question-label" + (lang.name.equals(survey.def_lang) ? " active" : ""));
+			bodyElement.setAttribute("class", "question-label" + (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("data-itext-id", q.text_id);
 
 			String label = q.labels.get(idx).text;
@@ -1434,7 +1434,7 @@ public class GetHtml {
 			if (hint != null && hint.trim().length() > 0) {
 				bodyElement = outputDoc.createElement("span");
 				bodyElement.setAttribute("lang", lang.name);
-				bodyElement.setAttribute("class", "or-hint" + (lang.name.equals(survey.def_lang) ? " active" : ""));
+				bodyElement.setAttribute("class", "or-hint" + (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 				bodyElement.setAttribute("data-itext-id", q.hint_id);
 
 				try {
@@ -1453,7 +1453,7 @@ public class GetHtml {
 			if (guidance != null && guidance.trim().length() > 0) {
 				bodyElement = outputDoc.createElement("details");
 				bodyElement.setAttribute("lang", lang.name);
-				bodyElement.setAttribute("class", "or-form-guidance" + (lang.name.equals(survey.def_lang) ? " active" : ""));
+				bodyElement.setAttribute("class", "or-form-guidance" + (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 
 				Element summaryElement = outputDoc.createElement("summary");
 				summaryElement.setAttribute("data-i18n", "hint.guidance.details");
@@ -1577,7 +1577,7 @@ public class GetHtml {
 		if (image != null && image.trim().length() > 0) {
 			bodyElement = outputDoc.createElement("img");
 			bodyElement.setAttribute("lang", lang.name);
-			bodyElement.setAttribute("class", (lang.name.equals(survey.def_lang) ? " active" : ""));
+			bodyElement.setAttribute("class", (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("src", "jr://images/" + image);
 			bodyElement.setAttribute("alt", "image");
 			bodyElement.setAttribute("data-itext-id", textId);
@@ -1590,7 +1590,7 @@ public class GetHtml {
 		if (audio != null && audio.trim().length() > 0) {
 			bodyElement = outputDoc.createElement("audio");
 			bodyElement.setAttribute("lang", lang.name);
-			bodyElement.setAttribute("class", (lang.name.equals(survey.def_lang) ? " active" : ""));
+			bodyElement.setAttribute("class", (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("src", "jr://audio/" + audio);
 			bodyElement.setAttribute("alt", "audio");
 			bodyElement.setAttribute("controls", "controls");
@@ -1605,7 +1605,7 @@ public class GetHtml {
 		if (video != null && video.trim().length() > 0) {
 			bodyElement = outputDoc.createElement("video");
 			bodyElement.setAttribute("lang", lang.name);
-			bodyElement.setAttribute("class", (lang.name.equals(survey.def_lang) ? " active" : ""));
+			bodyElement.setAttribute("class", (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("src", "jr://video/" + video);
 			bodyElement.setAttribute("alt", "video");
 			bodyElement.setAttribute("data-itext-id", textId);
@@ -1706,7 +1706,7 @@ public class GetHtml {
 	private boolean hasLabel(Question q) {
 		boolean hasLabel = false;
 
-		for (int i = 0; i < survey.languages.size(); i++) {
+		for (int i = 0; i < survey.surveyData.languages.size(); i++) {
 			if (q.labels.get(i) != null) {
 				Label l = q.labels.get(i);
 				if ((l.text != null && l.text.trim().length() > 0) || l.image != null || l.video != null
@@ -1898,7 +1898,7 @@ public class GetHtml {
 
 	private void addDataList(Element parent, Question q, Form form) throws Exception {
 
-		ArrayList<Option> options = survey.optionLists.get(q.list_name).options;
+		ArrayList<Option> options = survey.surveyData.optionLists.get(q.list_name).options;
 
 		Element bodyElement = outputDoc.createElement("option"); // No selection value
 		parent.appendChild(bodyElement);
@@ -1920,12 +1920,12 @@ public class GetHtml {
 
 	private void addOptionTranslations(Element parent, Question q, Form form) throws Exception {
 
-		ArrayList<Option> options = survey.optionLists.get(q.list_name).options;
+		ArrayList<Option> options = survey.surveyData.optionLists.get(q.list_name).options;
 		if(options != null) {
 			for (Option o : options) {
 				int idx = 0;
 				Element bodyElement = null;
-				for (Language lang : survey.languages) {
+				for (Language lang : survey.surveyData.languages) {
 					bodyElement = outputDoc.createElement("span");
 					parent.appendChild(bodyElement);
 					bodyElement.setAttribute("lang", lang.name);

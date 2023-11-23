@@ -5,7 +5,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.ResourceBundle;
@@ -28,87 +27,35 @@ import com.google.gson.GsonBuilder;
  */
 public class Survey {
 	
-	private static Logger log = Logger.getLogger(Survey.class.getName());
+	public SurveyDAO surveyData = new SurveyDAO();	// Store data in a DAO for conversion to JSON
 	
+	private static Logger log = Logger.getLogger(Survey.class.getName());
 	private HtmlSanitise sanitise = new HtmlSanitise();
 	
-	public int id;
-	public int e_id;
-	public int o_id;
-	public int p_id;
-	public String ident;
-	public String displayName;
-	public String instanceNameDefn;
-	public String def_lang;
-	public boolean task_file;				// Set true if this data from a file can be pre-loaded into this survey
-	public boolean timing_data;				// Set true if timing data is to be collected for this survey
-	public boolean audit_location_data;		// Set true if location is to be recorded for each question
-	public boolean myReferenceData;			// Set true if an enumerator can only get reference data they submitted from this survey
-	public boolean track_changes;			// Set true if every change to a question is to be tracked
-	public String surveyClass;
-	public boolean deleted;
-	public boolean blocked;
-	public String manifest;
-	public boolean hasManifest;
-	public boolean autoTranslate;			// Only used on upload from XLS to do auto translation
-	public ArrayList<Form> forms = new ArrayList<Form> ();
-	public HashMap<String, OptionList> optionLists = new HashMap<> ();
-	public HashMap<String, StyleList> styleLists = new HashMap<> ();
-	public HashMap<String, ServerCalculation> serverCalculations  = new HashMap<> ();
-	public ArrayList<ServerSideCalculate> sscList  = new ArrayList<ServerSideCalculate> ();	// legacy
-	public ArrayList<Language> languages = new ArrayList<Language> (); 
-	public ArrayList<ManifestValue> surveyManifest  = new ArrayList<> ();
-	public HashMap<String, Boolean> filters = new HashMap<> ();
-	public ArrayList<ChangeLog> changes  = new ArrayList<> ();
-	public ArrayList<MetaItem> meta = new ArrayList<> ();
-	public HashMap<String, Role> roles = new HashMap<> ();
-	public InstanceResults instance = new InstanceResults();	// Data from an instance (a submitted survey)
-	public String pdfTemplateName;
-	public String default_logo;
-	public int version;			// Default to 1
-	public boolean loadedFromXLS;
-	public ArrayList<Pulldata> pulldata;
-	public UniqueKey uk = new UniqueKey();		 // Key details here
-	public String basedOn;
-	public Timestamp created;
-	public boolean exclude_empty;
-	public boolean compress_pdf;
-	public String projectName;
-	private boolean hideOnDevice;		// Replaces projectTasksOnly
-	private boolean searchLocalData;
-	public boolean dataSurvey = true;
-	public boolean oversightSurvey = true;
-	public boolean readOnlySurvey = false;
-	public String groupSurveyIdent;
-	public String groupSurveyDetails;
-	public String publicLink;
-	
-	public SurveyLinks links;
-	
 	// Getters
-	public int getId() {return id;}; 
-	public int getPId() {return p_id;};
-	public String getProjectName() {return projectName;}; 
-	public String getIdent() {return ident;};
-	public String getDisplayName() {return displayName;}; 
-	public boolean getDeleted() { return deleted;};
-	public boolean getBlocked() { return blocked;};
-	public boolean hasManifest() { return hasManifest;};
+	public int getId() {return surveyData.id;}; 
+	public int getPId() {return surveyData.p_id;};
+	public String getProjectName() {return surveyData.projectName;}; 
+	public String getIdent() {return surveyData.ident;};
+	public String getDisplayName() {return surveyData.displayName;}; 
+	public boolean getDeleted() { return surveyData.deleted;};
+	public boolean getBlocked() { return surveyData.blocked;};
+	public boolean hasManifest() { return surveyData.hasManifest;};
 	public boolean getHideOnDevice() { 
-		return hideOnDevice;
+		return surveyData.hideOnDevice;
 	};
 	public boolean getSearchLocalData() { 
-		return searchLocalData;
+		return surveyData.searchLocalData;
 	};
 	public boolean getReadOnlySurvey() { 
-		return readOnlySurvey;
+		return surveyData.readOnlySurvey;
 	};
 	
 	public Form getFirstForm() {
 		Form form = null;
 		
-		for(int i = 0; i < forms.size(); i++) {
-			Form f = forms.get(i);
+		for(int i = 0; i < surveyData.forms.size(); i++) {
+			Form f = surveyData.forms.get(i);
 			if(f.parentform == 0) {
 				form = f;
 				break;
@@ -120,8 +67,8 @@ public class Survey {
 	public Form getSubForm(Form form, Question q) {
 		Form subForm = null;
 
-		for(int i = 0; i < forms.size(); i++) {
-			Form f = forms.get(i);
+		for(int i = 0; i < surveyData.forms.size(); i++) {
+			Form f = surveyData.forms.get(i);
 			if(f.parentform == form.id && f.parentQuestion == q.id) {
 				subForm = f;
 				break;
@@ -133,8 +80,8 @@ public class Survey {
 	public Form getSubFormQId(Form form, int qId) {
 		Form subForm = null;
 
-		for(int i = 0; i < forms.size(); i++) {
-			Form f = forms.get(i);
+		for(int i = 0; i < surveyData.forms.size(); i++) {
+			Form f = surveyData.forms.get(i);
 			if(f.parentform == form.id && f.parentQuestion == qId) {
 				subForm = f;
 				break;
@@ -145,8 +92,8 @@ public class Survey {
 	
 	public int getFormIdx(int formId) {
 		int idx = -1;
-		for(int i = 0; i < forms.size(); i++) {
-			Form f = forms.get(i);
+		for(int i = 0; i < surveyData.forms.size(); i++) {
+			Form f = surveyData.forms.get(i);
 			if(f.id == formId) {
 				idx = i;
 				break;
@@ -159,7 +106,7 @@ public class Survey {
 	public String getInstanceName() {
 		String instanceName = "survey";
 		
-		ArrayList<Result> results = instance.results.get(0);
+		ArrayList<Result> results = surveyData.instance.results.get(0);
 		
 		for(Result r : results) {
 			if(r.name.toLowerCase().equals("instancename")) {	
@@ -175,10 +122,10 @@ public class Survey {
 	// Get a name for the survey hrk
 	public InstanceMeta getInstanceMeta() {
 		InstanceMeta im = new InstanceMeta();
-		im.surveyname = displayName;
+		im.surveyname = surveyData.displayName;
 
-		if(instance.results.size() > 0) {
-			ArrayList<Result> results = instance.results.get(0);
+		if(surveyData.instance.results.size() > 0) {
+			ArrayList<Result> results = surveyData.instance.results.get(0);
 			for(Result r : results) {
 				if(r.name.toLowerCase().equals("_hrk")) {	
 					if(r.value != null && r.value.trim().length() != 0) {
@@ -203,19 +150,18 @@ public class Survey {
 	}
 	
 	// Setters
-	public void setId(int v) { id = v;};
-	public void setIdent(String v) { ident = v;};
-	public void setDisplayName(String v) { displayName = v;};
-	public void setDeleted(boolean v) { deleted = v;};
-	public void setBlocked(boolean v) { blocked = v;};
-	public void setHasManifest(boolean v) { hasManifest = v;};
-	//public void setManagedId(int v) { managed_id = v;};
-	public void setVersion(int v) { version = v;};
-	public void setLoadedFromXLS(boolean v) { loadedFromXLS = v;};
-	public void setProjectName(String v) { projectName = v;};
-	public void setProjectId(int v) { p_id = v;};
-	public void setHideOnDevice(boolean v) { hideOnDevice = v;};
-	public void setSearchLocalData(boolean v) { searchLocalData = v;};
+	public void setId(int v) { surveyData.id = v;};
+	public void setIdent(String v) { surveyData.ident = v;};
+	public void setDisplayName(String v) { surveyData.displayName = v;};
+	public void setDeleted(boolean v) { surveyData.deleted = v;};
+	public void setBlocked(boolean v) { surveyData.blocked = v;};
+	public void setHasManifest(boolean v) { surveyData.hasManifest = v;};
+	public void setVersion(int v) { surveyData.version = v;};
+	public void setLoadedFromXLS(boolean v) { surveyData.loadedFromXLS = v;};
+	public void setProjectName(String v) { surveyData.projectName = v;};
+	public void setProjectId(int v) { surveyData.p_id = v;};
+	public void setHideOnDevice(boolean v) { surveyData.hideOnDevice = v;};
+	public void setSearchLocalData(boolean v) { surveyData.searchLocalData = v;};
 	
 	/*
 	 * Write a survey to the database
@@ -234,7 +180,7 @@ public class Survey {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			
 			writeSurvey(sd, localisation, gson, userIdent, oId);
-			GeneralUtilityMethods.setLanguages(sd, id, languages);
+			GeneralUtilityMethods.setLanguages(sd, surveyData.id, surveyData.languages);
 			writeLists(sd, gson);
 			writeStyles(sd, gson);
 			writeForms(sd, localisation, groupForms, existingSurveyId);	
@@ -242,13 +188,13 @@ public class Survey {
 			writeRoles(sd, localisation, gson, userIdent);
 			
 			// If this survey has been added on top of existing tables then mark columns published if they already exist
-			GeneralUtilityMethods.setPublished(sd, cRel, id);
+			GeneralUtilityMethods.setPublished(sd, cRel, surveyData.id);
 			
 			// Notify devices
 			MessagingManager mm = new MessagingManager(localisation);
-			mm.surveyChange(sd, id, 0);
+			mm.surveyChange(sd, surveyData.id, 0);
 			// Update the form dependencies so that when new results are received it is simple to identify the impacted forms			
-			GeneralUtilityMethods.updateFormDependencies(sd, id);
+			GeneralUtilityMethods.updateFormDependencies(sd, surveyData.id);
 			
 			if(!sd.getAutoCommit()) {	// auto commit may have been reenabled when updating roles
 				sd.commit();
@@ -314,62 +260,62 @@ public class Survey {
 		try {
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			
-			pstmt.setString(1, HtmlSanitise.checkCleanName(displayName, localisation));		
-			pstmt.setInt(2, p_id);				
-			pstmt.setString(3, def_lang);
-			pstmt.setString(4, surveyClass);	
-			pstmt.setString(5, ident);
-			pstmt.setInt(6, version);			
-			pstmt.setString(7, manifest);
-			pstmt.setString(8, instanceNameDefn);
-			pstmt.setBoolean(9, loadedFromXLS);
-			pstmt.setString(10, gson.toJson(meta));
-			pstmt.setBoolean(11, task_file);
-			pstmt.setString(12, groupSurveyIdent);
-			pstmt.setString(13, uk.key);			// Obsolete - Keys no longer required per survey
-			pstmt.setString(14, uk.key_policy);		// Obsolete - Keys no longer required per survey
-			pstmt.setString(15, publicLink);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(surveyData.displayName, localisation));		
+			pstmt.setInt(2, surveyData.p_id);				
+			pstmt.setString(3, surveyData.def_lang);
+			pstmt.setString(4, surveyData.surveyClass);	
+			pstmt.setString(5, surveyData.ident);
+			pstmt.setInt(6, surveyData.version);			
+			pstmt.setString(7, surveyData.manifest);
+			pstmt.setString(8, surveyData.instanceNameDefn);
+			pstmt.setBoolean(9, surveyData.loadedFromXLS);
+			pstmt.setString(10, gson.toJson(surveyData.meta));
+			pstmt.setBoolean(11, surveyData.task_file);
+			pstmt.setString(12, surveyData.groupSurveyIdent);
+			pstmt.setString(13, surveyData.uk.key);			// Obsolete - Keys no longer required per survey
+			pstmt.setString(14, surveyData.uk.key_policy);		// Obsolete - Keys no longer required per survey
+			pstmt.setString(15, surveyData.publicLink);
 			String pd = null;
-			if(pulldata != null) {
-				pd = gson.toJson(pulldata);
+			if(surveyData.pulldata != null) {
+				pd = gson.toJson(surveyData.pulldata);
 			}
 			pstmt.setString(16, pd);
-			pstmt.setBoolean(17, hideOnDevice);
-			pstmt.setBoolean(18, searchLocalData);
-			pstmt.setBoolean(19, dataSurvey);
-			pstmt.setBoolean(20, oversightSurvey);
-			pstmt.setBoolean(21, readOnlySurvey);
-			pstmt.setBoolean(22, myReferenceData);
-			pstmt.setBoolean(23, timing_data);
-			pstmt.setBoolean(24, audit_location_data);
-			pstmt.setBoolean(25, track_changes);
-			pstmt.setBoolean(26, autoTranslate);
-			pstmt.setString(27, default_logo);
-			pstmt.setBoolean(28, compress_pdf);
+			pstmt.setBoolean(17, surveyData.hideOnDevice);
+			pstmt.setBoolean(18, surveyData.searchLocalData);
+			pstmt.setBoolean(19, surveyData.dataSurvey);
+			pstmt.setBoolean(20, surveyData.oversightSurvey);
+			pstmt.setBoolean(21, surveyData.readOnlySurvey);
+			pstmt.setBoolean(22, surveyData.myReferenceData);
+			pstmt.setBoolean(23, surveyData.timing_data);
+			pstmt.setBoolean(24, surveyData.audit_location_data);
+			pstmt.setBoolean(25, surveyData.track_changes);
+			pstmt.setBoolean(26, surveyData.autoTranslate);
+			pstmt.setString(27, surveyData.default_logo);
+			pstmt.setBoolean(28, surveyData.compress_pdf);
 			pstmt.executeUpdate();
 			
 			// If an ident was not provided then assign a new ident based on the survey id
-			if(ident == null || ident.trim().length() == 0) {
+			if(surveyData.ident == null || surveyData.ident.trim().length() == 0) {
 				ResultSet rs = pstmt.getGeneratedKeys();
 				if(rs.next()) {
-					id = rs.getInt(1);
+					surveyData.id = rs.getInt(1);
 				
-					ident = "s" + p_id + "_" + id;
-					if(groupSurveyIdent == null) {
-						groupSurveyIdent = ident;
+					surveyData.ident = "s" + surveyData.p_id + "_" + surveyData.id;
+					if(surveyData.groupSurveyIdent == null) {
+						surveyData.groupSurveyIdent = surveyData.ident;
 					}
 					
 					pstmtUpdate = sd.prepareStatement(sqlUpdate);
-					pstmtUpdate.setString(1, ident);
-					pstmtUpdate.setString(2, groupSurveyIdent);
-					pstmtUpdate.setInt(3, id);
+					pstmtUpdate.setString(1, surveyData.ident);
+					pstmtUpdate.setString(2, surveyData.groupSurveyIdent);
+					pstmtUpdate.setInt(3, surveyData.id);
 					pstmtUpdate.executeUpdate();
 				}
 			}
 			
 			// Write the key details
 			KeyManager km = new KeyManager(localisation);
-			km.update(sd, groupSurveyIdent, uk.key, uk.key_policy, userIdent, oId, false);	// Do not override existing key when called from XLS upload
+			km.update(sd, surveyData.groupSurveyIdent, surveyData.uk.key, surveyData.uk.key_policy, userIdent, oId, false);	// Do not override existing key when called from XLS upload
 			
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
@@ -409,7 +355,7 @@ public class Survey {
 		try {
 			// Creating the option list
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-			pstmt.setInt(1, id);
+			pstmt.setInt(1, surveyData.id);
 			
 			// Inserting an option
 			pstmtOption = sd.prepareStatement(sqlOption, Statement.RETURN_GENERATED_KEYS);
@@ -419,11 +365,11 @@ public class Survey {
 			
 			// Setting the labels
 			pstmtSetLabels = sd.prepareStatement(sqlSetLabels);
-			pstmtSetLabels.setInt(1, id);
+			pstmtSetLabels.setInt(1, surveyData.id);
 			
-			for(String listname : optionLists.keySet()) {
+			for(String listname : surveyData.optionLists.keySet()) {
 				
-				OptionList ol = optionLists.get(listname);
+				OptionList ol = surveyData.optionLists.get(listname);
 				
 				// 1. Create the list and get the list id
 				pstmt.setString(2, listname);
@@ -458,7 +404,7 @@ public class Survey {
 						pstmtUpdateOption.executeUpdate();
 						
 						// Write the labels
-						UtilityMethodsEmail.setLabels(sd, id, transId, o.labels, pstmtSetLabels, o.externalFile, sanitise);
+						UtilityMethodsEmail.setLabels(sd, surveyData.id, transId, o.labels, pstmtSetLabels, o.externalFile, sanitise);
 					}
 					
 				}
@@ -485,11 +431,11 @@ public class Survey {
 		try {
 			// Creating the option list
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-			pstmt.setInt(1, id);
+			pstmt.setInt(1, surveyData.id);
 			
-			for(String stylename : styleLists.keySet()) {
+			for(String stylename : surveyData.styleLists.keySet()) {
 				
-				StyleList sl = styleLists.get(stylename);
+				StyleList sl = surveyData.styleLists.get(stylename);
 				
 				// 1. Create the style and get the style id
 				pstmt.setString(2, stylename);
@@ -532,12 +478,12 @@ public class Survey {
 		try {
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 		
-			pstmt.setInt(1, id);		// Survey Id
+			pstmt.setInt(1, surveyData.id);		// Survey Id
 		
 			pstmtSetLabels = sd.prepareStatement(sqlSetLabels);
-			pstmtSetLabels.setInt(1, id);
+			pstmtSetLabels.setInt(1, surveyData.id);
 			
-			for(Form f : forms) {
+			for(Form f : surveyData.forms) {
 				
 				String formName = null;
 				String cleanName = null;
@@ -554,7 +500,7 @@ public class Survey {
 				}
 				
 				if(tableName == null) {
-					tableName = "s" + id + "_" + cleanName;		
+					tableName = "s" + surveyData.id + "_" + cleanName;		
 				}
 				
 				pstmt.setString(2, f.name);
@@ -578,7 +524,7 @@ public class Survey {
 						q.compressed = getExistingCompressedFlag(sd, tableName,existingSurveyId, q.name);
 					}
 					writeQuestion(sd, localisation, q, f.id, idx++, pstmtSetLabels);
-					GeneralUtilityMethods.writeAutoUpdateQuestion(sd, id, q.id, GeneralUtilityMethods.convertParametersToString(q.paramArray), false);
+					GeneralUtilityMethods.writeAutoUpdateQuestion(sd, surveyData.id, q.id, GeneralUtilityMethods.convertParametersToString(q.paramArray), false);
 				}
 				
 			}
@@ -634,9 +580,9 @@ public class Survey {
 		try {
 			pstmt = sd.prepareStatement(sql);
 		
-			for(Form f : forms) {
+			for(Form f : surveyData.forms) {
 				if(f.parentFormIndex >= 0) {
-					Form parentForm = forms.get(f.parentFormIndex);	
+					Form parentForm = surveyData.forms.get(f.parentFormIndex);	
 					Question parentQuestion = parentForm.questions.get(f.parentQuestionIndex);
 					pstmt.setInt(1, parentForm.id);
 					pstmt.setInt(2,  parentQuestion.id);
@@ -671,10 +617,10 @@ public class Survey {
 			RoleManager rm = new RoleManager(localisation);
 			
 			pstmtGetRole = sd.prepareStatement(sqlGetRole);		
-			pstmtGetRole.setInt(1, o_id);
+			pstmtGetRole.setInt(1, surveyData.o_id);
 			
-			for(String h : roles.keySet()) {
-				Role r = roles.get(h);
+			for(String h : surveyData.roles.keySet()) {
+				Role r = surveyData.roles.get(h);
 				int rId;
 			
 				pstmtGetRole.setString(2, r.name);
@@ -685,14 +631,14 @@ public class Survey {
 				} else {
 					// Create a new role
 					r.desc = localisation.getString("tu_cb");
-					r.desc = r.desc.replace("%s1", displayName);
-					rId = rm.createRole(sd, r, o_id, userIdent, false);
+					r.desc = r.desc.replace("%s1", surveyData.displayName);
+					rId = rm.createRole(sd, r, surveyData.o_id, userIdent, false);
 				}
 				
 				// Add the column filter
 				if(r.column_filter_ref != null) {
 					for(RoleColumnFilterRef ref : r.column_filter_ref) {
-						Question q = forms.get(ref.formIndex).questions.get(ref.questionIndex);
+						Question q = surveyData.forms.get(ref.formIndex).questions.get(ref.questionIndex);
 						if(q != null) {
 							RoleColumnFilter rcf = new RoleColumnFilter(q.id);
 							r.column_filter.add(rcf);
@@ -707,7 +653,7 @@ public class Survey {
 				
 				// Associate the survey to the roles
 				pstmtAssociateSurvey = sd.prepareStatement(sqlAssociateSurvey);
-				pstmtAssociateSurvey.setString(1, ident);
+				pstmtAssociateSurvey.setString(1, surveyData.ident);
 				pstmtAssociateSurvey.setInt(2, rId);
 				pstmtAssociateSurvey.setString(3, gson.toJson(r.column_filter));
 				pstmtAssociateSurvey.setString(4, r.row_filter);
@@ -800,7 +746,7 @@ public class Survey {
 			// Set list id
 			q.l_id = 0;	
 			if(q.list_name != null && !q.list_name.startsWith("${")) {
-				OptionList ol = optionLists.get(q.list_name);
+				OptionList ol = surveyData.optionLists.get(q.list_name);
 				if(ol == null) {
 					throw new Exception("List name " + q.list_name + " not found");
 				}
@@ -810,7 +756,7 @@ public class Survey {
 			// Set style id
 			q.style_id = 0;	
 			if(q.style_list != null) {
-				StyleList sl = styleLists.get(q.style_list);
+				StyleList sl = surveyData.styleLists.get(q.style_list);
 				if(sl == null) {
 					String msg = localisation.getString("msg_style_nf");
 					msg = msg.replace("%s1", q.style_list);
@@ -910,7 +856,7 @@ public class Survey {
 			
 			// Write the labels
 			if(transId != null) {
-				UtilityMethodsEmail.setLabels(sd, id, transId, q.labels, pstmtSetLabels, false, sanitise);
+				UtilityMethodsEmail.setLabels(sd, surveyData.id, transId, q.labels, pstmtSetLabels, false, sanitise);
 			}
 			
 		} finally {

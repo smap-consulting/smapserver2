@@ -110,7 +110,7 @@ public class FormsManifest {
 			survey = sm.getSurveyId(sd, key);	// Get the survey id from the templateName / key
 		} catch (Exception e) {
 		}
-		a.isValidSurvey(sd, request.getRemoteUser(), survey.id, false, superUser);	// Validate that the user can access this survey
+		a.isValidSurvey(sd, request.getRemoteUser(), survey.surveyData.id, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
 		if(portNumber == 443) {
@@ -139,9 +139,9 @@ public class FormsManifest {
 			TranslationManager translationMgr = new TranslationManager();
 			
 			List<ManifestValue> manifestList = translationMgr.
-					getManifestBySurvey(sd, request.getRemoteUser(), survey.id, basepath, key);
+					getManifestBySurvey(sd, request.getRemoteUser(), survey.surveyData.id, basepath, key);
 
-			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, survey.id);
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, survey.surveyData.id);
 			for( ManifestValue m : manifestList) {
 
 				String filepath = null;

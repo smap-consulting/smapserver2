@@ -71,15 +71,15 @@ public class DataManager {
 		
 		for(Survey s: surveys) {
 			DataEndPoint dep = new DataEndPoint();
-			dep.id = s.id;
-			dep.id_string = s.ident;
-			dep.title = s.displayName;
-			dep.description = s.displayName;
+			dep.id = s.surveyData.id;
+			dep.id_string = s.surveyData.ident;
+			dep.title = s.surveyData.displayName;
+			dep.description = s.surveyData.displayName;
 			dep.url = urlprefix + dep.id_string + "?links=true";
 			
-			if(s.forms != null && s.forms.size() > 0) {
+			if(s.surveyData.forms != null && s.surveyData.forms.size() > 0) {
 				dep.subforms = new HashMap<String, String> ();
-				for(Form f : s.forms) {
+				for(Form f : s.surveyData.forms) {
 					dep.subforms.put(f.name, urlprefix + dep.id_string + "?form=" + f.name);
 				}
 			}
@@ -215,8 +215,8 @@ public class DataManager {
 					cResults,
 					localisation,
 					"none",
-					s.id,
-					s.ident,
+					s.surveyData.id,
+					s.surveyData.ident,
 					null,
 					null,		// roles for column filtering
 					0,			// parent form id
@@ -265,8 +265,8 @@ public class DataManager {
 					cResults,
 					columns,
 					urlprefix,
-					s.id,
-					s.ident,
+					s.surveyData.id,
+					s.surveyData.ident,
 					0,			// SubForm Id - Not required
 					form.tableName,
 					parkey,
@@ -376,7 +376,7 @@ public class DataManager {
 					}
 				
 					// Get the data for sub forms
-					for(Form f : s.forms) {
+					for(Form f : s.surveyData.forms) {
 						if(f.parentform == form.id) {
 							int parentQuestion = f.parentQuestionIndex;
 							Question q = form.questions.get(parentQuestion);

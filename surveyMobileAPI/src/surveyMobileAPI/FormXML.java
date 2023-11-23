@@ -99,24 +99,24 @@ public class FormXML extends Application{
 				a.isAuthorised(connectionSD, user);
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				survey = sm.getSurveyId(connectionSD, templateName);	// Get the survey id from the templateName / key
-				a.isValidSurvey(connectionSD, user, survey.id, false, superUser);	// Validate that the user can access this survey
+				a.isValidSurvey(connectionSD, user, survey.surveyData.id, false, superUser);	// Validate that the user can access this survey
 
 				// Extract the data
 				SurveyTemplate template = new SurveyTemplate(localisation);
-				template.readDatabase(survey.id, false);
+				template.readDatabase(survey.surveyData.id, false);
 				GetXForm xForm = new GetXForm(localisation, user, tz);
 				response = xForm.get(template, false, true, false, user, request);
 				log.info("userevent: " + user + " : download survey : " + templateName);		
 
 				// Record that this form was downloaded by this user
-				GeneralUtilityMethods.recordFormDownload(connectionSD, user, survey.ident, survey.version, deviceId);
+				GeneralUtilityMethods.recordFormDownload(connectionSD, user, survey.surveyData.ident, survey.surveyData.version, deviceId);
 			} catch (AuthorisationException ae) { 
 				throw ae;
 			} catch (ApplicationException e) {
 				response = e.getMessage();
 				String msg = localisation.getString("msg_err_template");
 				msg= msg.replace("%s1", response);
-				lm.writeLog(connectionSD, survey.id, user, LogManager.ERROR, msg, 0, null);
+				lm.writeLog(connectionSD, survey.surveyData.id, user, LogManager.ERROR, msg, 0, null);
 			} catch (Exception e) {
 				response = e.getMessage();
 				log.log(Level.SEVERE, response, e);
@@ -165,7 +165,7 @@ public class FormXML extends Application{
 		
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		survey = sm.getSurveyId(connectionSD, templateName);	// Get the survey id from the templateName / key
-		a.isValidSurvey(connectionSD, tempUser, survey.id, false, superUser);	// Validate that the user can access this survey
+		a.isValidSurvey(connectionSD, tempUser, survey.surveyData.id, false, superUser);	// Validate that the user can access this survey
 		SDDataSource.closeConnection("surveyMobileAPI-FormXML", connectionSD);
 
 		// End Authorisation
@@ -175,7 +175,7 @@ public class FormXML extends Application{
 		try {	    
 
 			SurveyTemplate template = new SurveyTemplate(localisation);
-			template.readDatabase(survey.id, false);
+			template.readDatabase(survey.surveyData.id, false);
 			//template.printModel();	// debug
 			GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
 			response = xForm.get(template, false, true, false, request.getRemoteUser(), request);

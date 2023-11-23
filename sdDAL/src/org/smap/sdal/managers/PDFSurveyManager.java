@@ -201,7 +201,7 @@ public class PDFSurveyManager {
 			language = "none";
 		}
 
-		mExcludeEmpty = survey.exclude_empty;
+		mExcludeEmpty = survey.surveyData.exclude_empty;
 		mBasePath = basePath;
 		mServerRoot = serverRoot;
 
@@ -271,8 +271,8 @@ public class PDFSurveyManager {
 			 * Get the results and details of the user that submitted the survey
 			 */
 
-			log.info("User Ident who submitted the survey: " + survey.instance.user);
-			String userName = survey.instance.user;
+			log.info("User Ident who submitted the survey: " + survey.surveyData.instance.user);
+			String userName = survey.surveyData.instance.user;
 			if(userName == null) {
 				userName = remoteUser;
 			}
@@ -305,7 +305,7 @@ public class PDFSurveyManager {
 			 * Get a template for the PDF report if it exists
 			 * The template name will be the same as the XLS form name but with an extension of pdf
 			 */
-			File templateFile = GeneralUtilityMethods.getPdfTemplate(sd, mBasePath, survey.displayName, survey.p_id, pdfTemplateId, survey.ident);
+			File templateFile = GeneralUtilityMethods.getPdfTemplate(sd, mBasePath, survey.surveyData.displayName, survey.surveyData.p_id, pdfTemplateId, survey.surveyData.ident);
 
 			/*
 			 * Get dependencies between Display Items, for example if a question result should be added to another
@@ -313,8 +313,8 @@ public class PDFSurveyManager {
 			 */
 			GlobalVariables gv = new GlobalVariables();
 			if(!generateBlank) {
-				for(int i = 0; i < survey.instance.results.size(); i++) {
-					getDependencies(gv, survey.instance.results.get(i), survey, i);	
+				for(int i = 0; i < survey.surveyData.instance.results.size(); i++) {
+					getDependencies(gv, survey.surveyData.instance.results.get(i), survey, i);	
 				}
 			}
 			gv.mapbox_key = serverData.mapbox_default;
@@ -332,8 +332,8 @@ public class PDFSurveyManager {
 				reader = new PdfReader(templateName);
 				stamper = new PdfStamper(reader, outputStream);
 
-				for(int i = 0; i < survey.instance.results.size(); i++) {
-					fillTemplate(gv, stamper.getAcroFields(), survey.instance.results.get(i), 
+				for(int i = 0; i < survey.surveyData.instance.results.size(); i++) {
+					fillTemplate(gv, stamper.getAcroFields(), survey.surveyData.instance.results.get(i), 
 							null, i, serverRoot, stamper, oId);
 				}
 				if(user != null) {
@@ -364,7 +364,7 @@ public class PDFSurveyManager {
 				// Get the title
 				String title = survey.getInstanceName();
 				if(title.equals("survey")) {
-					title = survey.displayName;
+					title = survey.surveyData.displayName;
 				}
 
 				// Determine the number of rows in the title and adjust the document margins accordingly
@@ -383,7 +383,7 @@ public class PDFSurveyManager {
 				writer.setPageEvent(new PdfPageSizer(title, 
 						user, mBasePath, null,
 						marginLeft, marginRight, marginTop_2, marginBottom_2,
-						survey.ident, survey.default_logo)); 
+						survey.surveyData.ident, survey.surveyData.default_logo)); 
 				document.open();
 
 				// If this form has data maintain a list of parent records to lookup ${values}
@@ -392,11 +392,11 @@ public class PDFSurveyManager {
 					parentRecords = new ArrayList<ArrayList<Result>> ();
 				}
 
-				for(int i = 0; i < survey.instance.results.size(); i++) {
+				for(int i = 0; i < survey.surveyData.instance.results.size(); i++) {
 					processForm(
 							parser, 
 							document, 
-							survey.instance.results.get(i), 
+							survey.surveyData.instance.results.get(i), 
 							generateBlank,
 							0,
 							i,
@@ -417,11 +417,11 @@ public class PDFSurveyManager {
 					document.newPage();
 					document.add(new Paragraph("Appendix", defaultFontBold));
 
-					for(int i = 0; i < survey.instance.results.size(); i++) {
+					for(int i = 0; i < survey.surveyData.instance.results.size(); i++) {
 						processForm(
 								parser, 
 								document, 
-								survey.instance.results.get(i), 
+								survey.surveyData.instance.results.get(i), 
 								generateBlank,
 								0,
 								i,
@@ -522,7 +522,7 @@ public class PDFSurveyManager {
 
 			DisplayItem di = new DisplayItem();
 			try {
-				Form form = survey.forms.get(r.fIdx);
+				Form form = survey.surveyData.forms.get(r.fIdx);
 				Question question = PdfUtilities.getQuestionFromResult(sd, survey, r, form);
 				PdfUtilities.setQuestionFormats(question.appearance, di);
 			} catch (Exception e) {
@@ -548,14 +548,14 @@ public class PDFSurveyManager {
 				
 			} else if(r.type.equals("select1")) {
 
-				Form form = survey.forms.get(r.fIdx);
+				Form form = survey.surveyData.forms.get(r.fIdx);
 				Question question = form.questions.get(r.qIdx);
 
 				ArrayList<String> matches = new ArrayList<String> ();
 				matches.add(r.value);
-				value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id, 
+				value = choiceManager.getLabel(sd, cResults, user, oId, survey.surveyData.id, question.id, question.l_id, 
 						question.external_choices, question.external_table, 
-						survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident, di.showImage);
+						survey.surveyData.languages.get(languageIdx).name, languageIdx, matches, survey.surveyData.ident, di.showImage);
 
 			} else if(r.type.equals("select")) {
 
@@ -570,11 +570,11 @@ public class PDFSurveyManager {
 							}
 						}
 					}
-					Form form = survey.forms.get(r.fIdx);
+					Form form = survey.surveyData.forms.get(r.fIdx);
 					Question question = form.questions.get(r.qIdx);
-					value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id,  question.external_choices, 
+					value = choiceManager.getLabel(sd, cResults, user, oId, survey.surveyData.id, question.id, question.l_id,  question.external_choices, 
 							question.external_table, 
-							survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident, false);
+							survey.surveyData.languages.get(languageIdx).name, languageIdx, matches, survey.surveyData.ident, false);
 				}
 
 			} else if(r.type.equals("dateTime") || r.type.equals("timestamp") || r.type.equals("date")) {
@@ -639,7 +639,7 @@ public class PDFSurveyManager {
 					
 					Image img = PdfUtilities.getMapImage(sd, di.mapSource, di.map, di.account, mapValues, 
 							di.location, di.zoom,gv.mapbox_key, gv.google_key, gv.maptiler_key,
-							survey.id,
+							survey.surveyData.id,
 							user,
 							di.markerColor,
 							mBasePath);
@@ -683,7 +683,7 @@ public class PDFSurveyManager {
 								di.account, 
 								mapValues,
 								di.location, di.zoom, gv.mapbox_key,gv.google_key, gv.maptiler_key,
-								survey.id,
+								survey.surveyData.id,
 								user,
 								di.markerColor,
 								mBasePath);
@@ -691,7 +691,7 @@ public class PDFSurveyManager {
 						img = PdfUtilities.getLineImage(sd, 
 								mapValues,
 								tlValues,
-								survey.id,
+								survey.surveyData.id,
 								user,
 								di,
 								mBasePath,
@@ -707,7 +707,7 @@ public class PDFSurveyManager {
 				PdfUtilities.addImageTemplate(pdfForm, fieldName, mBasePath, value, serverRoot, stamper, defaultFontLink, di.stretch);
 
 			} else if(r.type.equals("select1") && di.showImage) {
-				String filePath = UtilityMethodsEmail.getMediaPath(survey.ident, value, mBasePath, oId, survey.id);
+				String filePath = UtilityMethodsEmail.getMediaPath(survey.surveyData.ident, value, mBasePath, oId, survey.surveyData.id);
 				if(filePath != null) {
 					// remove base path from file path as it will be added in again
 					String remnantPath = filePath.substring(mBasePath.length());
@@ -954,7 +954,7 @@ public class PDFSurveyManager {
 			Result r = record.get(j);
 
 			if(r.type.equals("geopoint")) {
-				Form form = survey.forms.get(r.fIdx);
+				Form form = survey.surveyData.forms.get(r.fIdx);
 				Question question = PdfUtilities.getQuestionFromResult(sd, survey, r, form);
 				if(!question.visible) {
 					startGeopointValue = r.value;
@@ -1018,7 +1018,7 @@ public class PDFSurveyManager {
 			} else {
 				// Process the question
 
-				Form form = survey.forms.get(r.fIdx);
+				Form form = survey.surveyData.forms.get(r.fIdx);
 				Question question = PdfUtilities.getQuestionFromResult(sd, survey, r, form);
 
 				if(question != null) {
@@ -1246,7 +1246,7 @@ public class PDFSurveyManager {
 		for(int i = offset; i < record.size(); i++) {
 			Result r = record.get(i);
 
-			Form form = survey.forms.get(r.fIdx);
+			Form form = survey.surveyData.forms.get(r.fIdx);
 			Question question = PdfUtilities.getQuestionFromResult(sd, survey, r, form);
 
 			Label label = null;
@@ -1786,7 +1786,7 @@ public class PDFSurveyManager {
 					gv.mapbox_key,
 					gv.google_key,
 					gv.maptiler_key,
-					survey.id,
+					survey.surveyData.id,
 					user,
 					di.markerColor,
 					basePath);
@@ -1825,7 +1825,7 @@ public class PDFSurveyManager {
 							di.account, 
 							mapValues,
 							di.location, di.zoom, gv.mapbox_key,gv.google_key,gv.maptiler_key,
-							survey.id,
+							survey.surveyData.id,
 							user,
 							di.markerColor,
 							basePath);
@@ -1833,7 +1833,7 @@ public class PDFSurveyManager {
 					img = PdfUtilities.getLineImage(sd, 
 							mapValues,
 							tlValues,
-							survey.id,
+							survey.surveyData.id,
 							user,
 							di,
 							basePath,
@@ -1927,7 +1927,7 @@ public class PDFSurveyManager {
 			for(ArrayList<TrafficLightBulb> singleLight : di.trafficLight.lights) {	
 				ArrayList<TrafficLightBulb> values = new ArrayList<> ();
 				for(TrafficLightBulb bulb : singleLight) {
-					values.addAll(lookupGroupInSurvey(bulb, survey.instance.results));
+					values.addAll(lookupGroupInSurvey(bulb, survey.surveyData.instance.results));
 				}
 				tlValues.lights.add(values);
 			}	
@@ -2068,9 +2068,9 @@ public class PDFSurveyManager {
 
 		if(generateBlank) {
 			// TODO get real choices using choice manager
-			Form form = survey.forms.get(di.fIdx);
+			Form form = survey.surveyData.forms.get(di.fIdx);
 			Question question = form.questions.get(di.qIdx);
-			OptionList ol = survey.optionLists.get(question.list_name);
+			OptionList ol = survey.surveyData.optionLists.get(question.list_name);
 			for(Option o : ol.options) {
 
 				String text = null;
@@ -2106,14 +2106,14 @@ public class PDFSurveyManager {
 				
 				if(di.type.equals("select1")) {
 
-					Form form = survey.forms.get(di.fIdx);
+					Form form = survey.surveyData.forms.get(di.fIdx);
 					Question question = form.questions.get(di.qIdx);
 
 					ArrayList<String> matches = new ArrayList<String> ();
 					matches.add(di.value);
-					value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id, 
+					value = choiceManager.getLabel(sd, cResults, user, oId, survey.surveyData.id, question.id, question.l_id, 
 							question.external_choices, question.external_table, 
-							survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident, di.showImage);
+							survey.surveyData.languages.get(languageIdx).name, languageIdx, matches, survey.surveyData.ident, di.showImage);
 				} else if(di.type.equals("select")) {
 					String nameValue = value;
 					if(nameValue != null) {
@@ -2124,11 +2124,11 @@ public class PDFSurveyManager {
 								matches.add(v);
 							}
 						}
-						Form form = survey.forms.get(di.fIdx);
+						Form form = survey.surveyData.forms.get(di.fIdx);
 						Question question = form.questions.get(di.qIdx);
-						value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, 
+						value = choiceManager.getLabel(sd, cResults, user, oId, survey.surveyData.id, question.id, 
 								question.l_id, question.external_choices, question.external_table, 
-								survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident, false);		// Do not get images for multi select
+								survey.surveyData.languages.get(languageIdx).name, languageIdx, matches, survey.surveyData.ident, false);		// Do not get images for multi select
 					}
 				}
 
@@ -2137,7 +2137,7 @@ public class PDFSurveyManager {
 				}
 				
 				if(di.showImage) {
-					String filePath = UtilityMethodsEmail.getMediaPath(survey.ident, value, mBasePath, oId, survey.id);
+					String filePath = UtilityMethodsEmail.getMediaPath(survey.surveyData.ident, value, mBasePath, oId, survey.surveyData.id);
 					if(filePath != null) {
 						File imageFile = new File(filePath);
 						Image img = null;

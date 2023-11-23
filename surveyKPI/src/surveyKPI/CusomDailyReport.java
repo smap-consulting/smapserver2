@@ -162,7 +162,7 @@ public class CusomDailyReport extends Application {
 			}
 		}
 		if(base != null) {
-			for(Form f : s.forms) {
+			for(Form f : s.surveyData.forms) {
 				for(Question q : f.questions) {
 					if(q.published && (q.type.equals("int") || q.type.equals("decimal"))) {
 						if(q.name.startsWith(base)) {

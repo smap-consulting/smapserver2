@@ -549,10 +549,10 @@ public class WebForm extends Application {
 			} catch (Exception e) {
 			}
 			if(!isTemporaryUser) {
-				a.isValidSurvey(sd, userIdent, survey.id, false, superUser); // Validate that the user has access	
+				a.isValidSurvey(sd, userIdent, survey.surveyData.id, false, superUser); // Validate that the user has access	
 			}
 																					
-			a.isBlocked(sd, survey.id, false); // Validate that the survey is not blocked
+			a.isBlocked(sd, survey.surveyData.id, false); // Validate that the survey is not blocked
 			if(!isTemporaryUser && taskKey > 0) {
 				a.isValidTask(sd, userIdent, taskKey);
 			}
@@ -565,7 +565,7 @@ public class WebForm extends Application {
 				orgId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
 				accessKey = GeneralUtilityMethods.getNewAccessKey(sd, userIdent, isTemporaryUser);
 				
-				manifestList = translationMgr.getManifestBySurvey(sd, userIdent, survey.id, basePath, formIdent);
+				manifestList = translationMgr.getManifestBySurvey(sd, userIdent, survey.surveyData.id, basePath, formIdent);
 				serverData = sm.getServer(sd, localisation);
 				
 				// Get the organisation specific options
@@ -577,9 +577,9 @@ public class WebForm extends Application {
 				if(action.equals("mailout")) {
 					PeopleManager pm = new PeopleManager(localisation);
 					pm.subscribeEmail(sd, email, orgId);
-					lm.writeLog(sd, survey.id, email, LogManager.MAILOUT, localisation.getString("mo_submitted"), 0, request.getServerName());
+					lm.writeLog(sd, survey.surveyData.id, email, LogManager.MAILOUT, localisation.getString("mo_submitted"), 0, request.getServerName());
 				} else 	if(action.equals("task")) {
-					lm.writeLog(sd, survey.id, email, LogManager.EMAIL_TASK, localisation.getString("mo_submitted"), 0, request.getServerName());
+					lm.writeLog(sd, survey.surveyData.id, email, LogManager.EMAIL_TASK, localisation.getString("mo_submitted"), 0, request.getServerName());
 				}
 				
 			} catch (Exception e) {
@@ -597,7 +597,7 @@ public class WebForm extends Application {
 			// Get the XML of the Form
 			template = new SurveyTemplate(localisation);
 			template.setUser(userIdent);
-			template.readDatabase(survey.id, true);
+			template.readDatabase(survey.surveyData.id, true);
 			String surveyClass = template.getSurveyClass();
 
 			// If required get the instance data
@@ -608,7 +608,7 @@ public class WebForm extends Application {
 				log.info("Adding initial data");
 				String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 				GetXForm xForm = new GetXForm(localisation, userIdent, tz);
-				instanceXML = xForm.getInstanceXml(survey.id, formIdent, template, datakey, datakeyvalue, 0, simplifyMedia,
+				instanceXML = xForm.getInstanceXml(survey.surveyData.id, formIdent, template, datakey, datakeyvalue, 0, simplifyMedia,
 						isWebForm, taskKey, urlprefix, initialData, false);
 				instanceStrToEditId = xForm.getInstanceId();
 				gRecordCounts = xForm.getRecordCounts();
@@ -639,10 +639,10 @@ public class WebForm extends Application {
 				}
 
 				// Add survey class's - used for paging
-				jr.surveyData.surveyClass = survey.surveyClass;
+				jr.surveyData.surveyClass = survey.surveyData.surveyClass;
 				//jr.surveyData.surveyClass = xForm.getSurveyClass();
 
-				jr.main = addMain(request, instanceStrToEditId, orgId, true, surveyClass, superUser, survey.readOnlySurvey || readonly).toString();
+				jr.main = addMain(request, instanceStrToEditId, orgId, true, surveyClass, superUser, survey.surveyData.readOnlySurvey || readonly).toString();
 
 				if (callback != null) {
 					outputString.append(callback + " (");
@@ -655,7 +655,7 @@ public class WebForm extends Application {
 			} else {
 				// MAIN ENTRY POINT
 				outputString.append(addDocument(request, instanceXML, instanceStrToEditId, assignmentId,
-						survey.surveyClass, orgId, accessKey, superUser, survey.readOnlySurvey || readonly));
+						survey.surveyData.surveyClass, orgId, accessKey, superUser, survey.surveyData.readOnlySurvey || readonly));
 			}
 			
 			response = Response.status(Status.OK).entity(outputString.toString()).build();
@@ -1291,9 +1291,9 @@ public class WebForm extends Application {
 				superUser = GeneralUtilityMethods.isSuperUser(sd, userIdent);
 			} catch (Exception e) {
 			}
-			a.isValidSurvey(sd, user, survey.id, false, superUser); // Validate that the user can access this
+			a.isValidSurvey(sd, user, survey.surveyData.id, false, superUser); // Validate that the user can access this
 																				// survey
-			a.isBlocked(sd, survey.id, false); // Validate that the survey is not blocked
+			a.isBlocked(sd, survey.surveyData.id, false); // Validate that the survey is not blocked
 
 			if(taskKey > 0) {
 				a.isValidTask(sd, request.getRemoteUser(), taskKey);
@@ -1308,14 +1308,14 @@ public class WebForm extends Application {
 
 			// Get the XML of the Form
 			SurveyTemplate template = new SurveyTemplate(localisation);
-			template.readDatabase(survey.id, false);
+			template.readDatabase(survey.surveyData.id, false);
 
 			String instanceXML = null;
 			String dataKey = "instanceid";
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 
 			GetXForm xForm = new GetXForm(localisation, userIdent, tz);
-			instanceXML = xForm.getInstanceXml(survey.id, formIdent, template, dataKey, updateid, 0, simplifyMedia, 
+			instanceXML = xForm.getInstanceXml(survey.surveyData.id, formIdent, template, dataKey, updateid, 0, simplifyMedia, 
 					false, taskKey, urlprefix, null, false);
 
 			SurveyData surveyData = new SurveyData();
@@ -1333,7 +1333,7 @@ public class WebForm extends Application {
 
 		} catch (Exception e) {
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-			lm.writeLog(sd, survey.id, userIdent, LogManager.ERROR, "Failed to get instance data: " + e.getMessage(), 0, request.getServerName());
+			lm.writeLog(sd, survey.surveyData.id, userIdent, LogManager.ERROR, "Failed to get instance data: " + e.getMessage(), 0, request.getServerName());
 			log.log(Level.SEVERE, e.getMessage(), e);
 		}
 

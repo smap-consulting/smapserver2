@@ -1466,7 +1466,7 @@ public class SurveyTemplate {
 			List <Question> questionList = f.getQuestions(sd, f.getPath(formList));
 			extendQuestions(sd, instance, questionList, f.getPath(formList), useExternalChoices);
 			if(!f.hasParent()) {
-				extendMeta(sdalSurvey.meta, instance);
+				extendMeta(sdalSurvey.surveyData.meta, instance);
 			}
 		}
 	}
