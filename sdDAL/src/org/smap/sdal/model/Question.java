@@ -117,10 +117,10 @@ public class Question {
 	}
 	
 	/*
-	 * Return true if this question either is required or could be required
+	 * Return the required value
 	 */
 	public boolean isRequired() {
-		return required || required_expression != null;
+		return required;
 	}
 	
 	/*
