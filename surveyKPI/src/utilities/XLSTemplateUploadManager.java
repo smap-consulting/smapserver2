@@ -935,7 +935,6 @@ public class XLSTemplateUploadManager {
 		}
 		
 		// 15. Required Message - This is stored as a label
-		//q.required_msg = XLSUtilities.getTextColumn(wb, row, XLSFormColumns.REQUIRED_MESSAGE, surveyHeader, lastCellNum, null); 
 		
 		// 16. Calculation
 		if(q.type.equals("server_calculate")) {

@@ -695,7 +695,6 @@ public class Survey {
 				+ "calculate,"
 				+ "qconstraint,"
 				+ "constraint_msg,"
-				+ "required_msg,"
 				+ "required_expression,"
 				+ "appearance,"
 				+ "parameters,"
@@ -794,10 +793,9 @@ public class Survey {
 			pstmt.setString(15, q.calculation);
 			pstmt.setString(16, q.constraint);
 			pstmt.setString(17, q.constraint_msg);
-			pstmt.setString(18, q.required_msg);
-			pstmt.setString(19, q.required_expression);
-			pstmt.setString(20, q.appearance);
-			pstmt.setString(21, GeneralUtilityMethods.convertParametersToString(q.paramArray));
+			pstmt.setString(18, q.required_expression);
+			pstmt.setString(19, q.appearance);
+			pstmt.setString(20, GeneralUtilityMethods.convertParametersToString(q.paramArray));
 			
 			String nodeset = null;
 			String nodeset_value = null;
@@ -818,34 +816,34 @@ public class Survey {
 				}
 			}
 			
-			pstmt.setString(22, nodeset);		
-			pstmt.setString(23, nodeset_value);
-			pstmt.setString(24, nodeset_label);
+			pstmt.setString(21, nodeset);		
+			pstmt.setString(22, nodeset_value);
+			pstmt.setString(23, nodeset_label);
 			
-			pstmt.setString(25,  q.columnName);
-			pstmt.setBoolean(26,  false);   				// published		
-			pstmt.setInt(27, q.l_id);
-			pstmt.setString(28, q.autoplay); 
-			pstmt.setString(29, q.accuracy);
-			pstmt.setString(30, q.dataType);
+			pstmt.setString(24,  q.columnName);
+			pstmt.setBoolean(25,  false);   				// published		
+			pstmt.setInt(26, q.l_id);
+			pstmt.setString(27, q.autoplay); 
+			pstmt.setString(28, q.accuracy);
+			pstmt.setString(29, q.dataType);
 			
 			if(q.type.equals("select")) {
-				pstmt.setBoolean(31, q.compressed);
+				pstmt.setBoolean(30, q.compressed);
 			} else {
-				pstmt.setBoolean(31, true);
+				pstmt.setBoolean(30, true);
 			}
-			pstmt.setString(32,  sanitise.sanitiseHtml(q.display_name));
-			pstmt.setString(33,  q.intent);
-			pstmt.setInt(34,  q.style_id);
+			pstmt.setString(31,  sanitise.sanitiseHtml(q.display_name));
+			pstmt.setString(32,  q.intent);
+			pstmt.setInt(33,  q.style_id);
 			
 			String serverCalculation = null;
 			if(q.server_calculation != null) {
 				serverCalculation = gson.toJson(q.server_calculation);
 			}
-			pstmt.setString(35,  serverCalculation);
-			pstmt.setString(36, q.getSetValueArrayAsString(gson));
-			pstmt.setInt(37, q.flash);
-			pstmt.setString(38, q.trigger);
+			pstmt.setString(34,  serverCalculation);
+			pstmt.setString(35, q.getSetValueArrayAsString(gson));
+			pstmt.setInt(36, q.flash);
+			pstmt.setString(37, q.trigger);
 				
 			pstmt.executeUpdate();
 			

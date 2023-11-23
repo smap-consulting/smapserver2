@@ -1061,7 +1061,7 @@ public class PutXForm {
 	   				q.setConstraintMsg(attribute.getNodeValue());   			
 	    			
 	    		} else if (name.equals("jr:requiredMsg")) {
-	   				q.setRequiredMsg(attribute.getNodeValue());   			
+	   				//q.setRequiredMsg(attribute.getNodeValue());   // TODO hand required message for multi language 			
 	    			
 	    		} else if (name.equals("orx:max-pixels")) {
 	   				q.addParameter(attribute.getNodeValue());   			

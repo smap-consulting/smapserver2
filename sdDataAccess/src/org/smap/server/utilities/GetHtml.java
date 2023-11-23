@@ -1501,9 +1501,6 @@ public class GetHtml {
 			bodyElement.setAttribute("class", "required");
 			bodyElement.setTextContent("*");
 			parent.appendChild(bodyElement);
-
-			// Message
-			parent.appendChild(getRequiredMsg(q.required_msg, null, true));
 		}
 		
 		if (q.readonly && !(parent.getNodeName() == null || parent.getNodeName().equals("label") || parent.getNodeName().equals("h4"))) {

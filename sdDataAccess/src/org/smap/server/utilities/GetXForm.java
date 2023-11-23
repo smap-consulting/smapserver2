@@ -954,10 +954,15 @@ public class GetXForm {
 					questionElement.setAttribute("required", expr);
 				}
 
-				// Add required message
-				String requiredMsg = q.getRequiredMsg();
-				if (requiredMsg != null && requiredMsg.trim().length() > 0) {
-					questionElement.setAttribute("jr:requiredMsg", requiredMsg);
+				// Add multi language required
+				String textId = q.getQTextId();
+				if(textId != null) {
+					String requiredId = textId.replace(":label", ":required");
+					String exists = multiLanguageRequireds.get(requiredId);
+					if(exists != null) {						
+						questionElement.setAttribute("jr:requiredMsg", 
+								"jr:itext('" + requiredId + "')");
+					}
 				}
 			} 
 
@@ -990,23 +995,6 @@ public class GetXForm {
 				}
 			}
 			
-			// Add required message
-			String requiredMsg = q.getRequiredMsg();
-			if (requiredMsg != null && requiredMsg.trim().length() > 0) {
-				questionElement.setAttribute("jr:requiredMsg", requiredMsg);
-			} else {
-				// Add multi language required
-				String textId = q.getQTextId();
-				if(textId != null) {
-					String requiredId = textId.replace(":label", ":required");
-					String exists = multiLanguageRequireds.get(requiredId);
-					if(exists != null) {						
-						questionElement.setAttribute("jr:requiredMsg", 
-								"jr:itext('" + requiredId + "')");
-					}
-				}
-			}
-
 			// Add bind parameters
 			String pixelParam = GeneralUtilityMethods.getSurveyParameter("max-pixels", q.getParameters());
 			if(pixelParam != null) {

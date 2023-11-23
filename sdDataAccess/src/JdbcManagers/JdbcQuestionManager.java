@@ -38,9 +38,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public class JdbcQuestionManager {
-
-	private static Logger log =
-			 Logger.getLogger(GetXForm.class.getName());
 	
 	PreparedStatement pstmt = null;
 	String sql = "insert into question ("
@@ -64,7 +61,6 @@ public class JdbcQuestionManager {
 			+ "calculate,"
 			+ "qconstraint,"
 			+ "constraint_msg,"
-			+ "required_msg,"
 			+ "required_expression,"
 			+ "appearance,"
 			+ "parameters,"
@@ -81,7 +77,7 @@ public class JdbcQuestionManager {
 			+ "intent,"
 			+ "set_value"
 			+ ") "
-			+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+			+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 	
@@ -108,7 +104,6 @@ public class JdbcQuestionManager {
 			+ "calculate,"
 			+ "qconstraint,"
 			+ "constraint_msg,"
-			+ "required_msg,"
 			+ "required_expression,"
 			+ "appearance,"
 			+ "parameters,"
@@ -168,10 +163,9 @@ public class JdbcQuestionManager {
 		pstmt.setString(16, q.getCalculate(false, null, xFormRoot));
 		pstmt.setString(17, q.getConstraint(false, null, xFormRoot));
 		pstmt.setString(18, q.getConstraintMsg()); // ok
-		pstmt.setString(19, q.getRequiredMsg());
-		pstmt.setString(20, q.getRequiredExpression());
-		pstmt.setString(21, q.getAppearance(false, null));
-		pstmt.setString(22, GeneralUtilityMethods.convertParametersToString(q.getParameters()));
+		pstmt.setString(19, q.getRequiredExpression());
+		pstmt.setString(20, q.getAppearance(false, null));
+		pstmt.setString(21, GeneralUtilityMethods.convertParametersToString(q.getParameters()));
 		
 		String nodeset = null;
 		String nodeset_value = null;
@@ -198,23 +192,23 @@ public class JdbcQuestionManager {
 			}
 			
 		}	
-		pstmt.setString(23, nodeset);
-		pstmt.setString(24, nodeset_value);
-		pstmt.setString(25, nodeset_label);
+		pstmt.setString(22, nodeset);
+		pstmt.setString(23, nodeset_value);
+		pstmt.setString(24, nodeset_label);
 		
-		pstmt.setString(26, q.getColumnName(false)); 
-		pstmt.setBoolean(27, q.isPublished());
-		pstmt.setInt(28, q.getListId());  
-		pstmt.setString(29, q.getAutoPlay());
-		pstmt.setString(30, q.getAccuracy());
-		pstmt.setString(31, q.getDataType());
+		pstmt.setString(25, q.getColumnName(false)); 
+		pstmt.setBoolean(26, q.isPublished());
+		pstmt.setInt(27, q.getListId());  
+		pstmt.setString(28, q.getAutoPlay());
+		pstmt.setString(29, q.getAccuracy());
+		pstmt.setString(30, q.getDataType());
 		if(q.getType().equals("select")) {
-			pstmt.setBoolean(32, true);			// Set all select multiple to compressed
+			pstmt.setBoolean(31, true);			// Set all select multiple to compressed
 		} else {
-			pstmt.setBoolean(32, false);
+			pstmt.setBoolean(31, false);
 		}
-		pstmt.setString(33, q.getIntent());
-		pstmt.setString(34, q.getSetValueArrayAsString(gson));
+		pstmt.setString(32, q.getIntent());
+		pstmt.setString(33, q.getSetValueArrayAsString(gson));
 		
 		pstmt.executeUpdate();
 		
@@ -262,27 +256,26 @@ public class JdbcQuestionManager {
 		ResultSet rs = pstmtGet.executeQuery();
 		while(rs.next()) {
 			Question q = new Question();
-			q.setId(rs.getInt(1));
-			q.setFormId(rs.getInt(2));
-			q.setSeq(rs.getInt(3));
-			q.setName(rs.getString(4));
-			q.setType(rs.getString(5));
-			q.setQuestion(rs.getString(6));
-			q.setQTextId(rs.getString(7));
-			q.setDefaultAnswer(rs.getString(8));
-			q.setInfo(rs.getString(9));
-			q.setInfoTextId(rs.getString(10));
-			q.setVisible(rs.getBoolean(11));
-			q.setSource(rs.getString(12));
-			q.setSourceParam(rs.getString(13));
-			q.setReadOnly(rs.getBoolean(14));
+			q.setId(rs.getInt("q_id"));
+			q.setFormId(rs.getInt("f_id"));
+			q.setSeq(rs.getInt("seq"));
+			q.setName(rs.getString("qname"));
+			q.setType(rs.getString("qtype"));
+			q.setQuestion(rs.getString("question"));
+			q.setQTextId(rs.getString("qtext_id"));
+			q.setDefaultAnswer(rs.getString("defaultanswer"));
+			q.setInfo(rs.getString("info"));
+			q.setInfoTextId(rs.getString("infotext_id"));
+			q.setVisible(rs.getBoolean("visible"));
+			q.setSource(rs.getString("source"));
+			q.setSourceParam(rs.getString("source_param"));
+			q.setReadOnly(rs.getBoolean("readonly"));
 			q.setReadOnlyExpression(rs.getString("readonly_expression"));
 			q.setMandatory(rs.getBoolean("mandatory"));
 			q.setRelevant(rs.getString("relevant"));
 			q.setCalculate(rs.getString("calculate"));
 			q.setConstraint(rs.getString("qconstraint"));
 			q.setConstraintMsg(rs.getString("constraint_msg"));
-			q.setRequiredMsg(rs.getString("required_msg"));
 			q.setRequiredExpression(rs.getString("required_expression"));
 			q.setAppearance(rs.getString("appearance"));
 			q.setParameters(rs.getString("parameters"));

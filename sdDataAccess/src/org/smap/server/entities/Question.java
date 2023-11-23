@@ -108,8 +108,6 @@ public class Question {
 	
 	private String constraint_msg;
 	
-	private String required_msg;
-	
 	private String required_expression;
 	
 	private String appearance;
@@ -367,10 +365,6 @@ public class Question {
 	
 	public String getConstraintMsg() {
 		return constraint_msg;
-	}
-	
-	public String getRequiredMsg() {
-		return required_msg;
 	}
 	
 	public String getRequiredExpression() {
@@ -640,10 +634,6 @@ public class Question {
 	
 	public void setConstraintMsg(String v) {
 		constraint_msg = v;
-	}
-	
-	public void setRequiredMsg(String v) {
-		required_msg = v;
 	}
 	
 	public void setRequiredExpression(String v) {

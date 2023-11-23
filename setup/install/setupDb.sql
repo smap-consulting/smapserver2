@@ -757,7 +757,6 @@ CREATE TABLE question (
 	server_calculate text,				-- JSON
 	qConstraint text,
 	constraint_msg text,
-	required_msg text,
 	required_expression text,
 	appearance text,
 	parameters text,

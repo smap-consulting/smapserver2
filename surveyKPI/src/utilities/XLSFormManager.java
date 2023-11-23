@@ -329,10 +329,6 @@ public class XLSFormManager {
 				} else {
 					value = q.labels.get(labelIndex).required_msg;
 				}
-				// If the multi language constraint is not set then use the single language one
-				if(value == null) {
-					value = q.required_msg;
-				}	
 
 			} else if(type == COL_IMAGE) {				
 				value = q.labels.get(labelIndex).image;

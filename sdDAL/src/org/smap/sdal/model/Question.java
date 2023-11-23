@@ -45,7 +45,6 @@ public class Question {
 	public ServerCalculation server_calculation;
 	public String constraint;
 	public String constraint_msg;
-	public String required_msg;
 	public String relevant;
 	public boolean visible;
 	public boolean readonly;
@@ -103,7 +102,6 @@ public class Question {
 		this.source_param = q.source_param;
 		this.calculation = q.calculation;
 		this.required = q.required;
-		this.required_msg = q.required_msg;
 		this.required_expression = q.required_expression;
 		this.relevant = q.relevant;
 		this.constraint = q.constraint;
