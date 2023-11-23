@@ -1930,7 +1930,7 @@ public class QuestionManager {
 				q.linked_target = rsGetQuestions.getString("linked_target");
 				q.display_name = rsGetQuestions.getString("display_name");
 				q.fId = rsGetQuestions.getInt("f_id");
-				q.compressed = rsGetQuestions.getBoolean("complressed");				
+				q.compressed = rsGetQuestions.getBoolean("compressed");				
 				q.l_id = rsGetQuestions.getInt("l_id");
 				q.intent = rsGetQuestions.getString("intent");
 				q.style_list = rsGetQuestions.getString("style_name");

@@ -818,7 +818,7 @@ public class XLSFormManager {
 					
 					Integer colIndex = filterIndexes.get(k);
 					if(colIndex == null) {
-						colIndex = new Integer(cols.size() + filterIndexes.size());
+						colIndex = Integer.valueOf(cols.size() + filterIndexes.size());
 						filterIndexes.put(k, colIndex);
 						Cell headerCell = sheet.getRow(0).createCell(colIndex.intValue());
 						headerCell.setCellValue(k);
@@ -947,10 +947,10 @@ public class XLSFormManager {
 		int colNumber = 0;
 		// Add type and name columns
 		cols.add(new Column(colNumber++, "type", Column.COL_TYPE, 0, "type"));
-		namedColumnIndexes.put("type", new Integer(colNumber -1));
+		namedColumnIndexes.put("type", Integer.valueOf(colNumber -1));
 		
 		cols.add(new Column(colNumber++, "name", Column.COL_NAME, 0, "name"));
-		namedColumnIndexes.put("name", new Integer(colNumber -1));
+		namedColumnIndexes.put("name", Integer.valueOf(colNumber -1));
 
 		// Add label columns which vary according to the number of languages
 		int labelIndex = 0;
@@ -979,17 +979,17 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++,"relevant", Column.COL_RELEVANT, 0, "relevant"));
 		cols.add(new Column(colNumber++, "repeat_count", Column.COL_REPEAT_COUNT, 0, "repeat_count"));
 
-		namedColumnIndexes.put("repeat_count", new Integer(colNumber -1));
+		namedColumnIndexes.put("repeat_count", Integer.valueOf(colNumber -1));
 
 		cols.add(new Column(colNumber++, "default", Column.COL_DEFAULT, 0, "default"));
 		cols.add(new Column(colNumber++, "readonly", Column.COL_READONLY, 0, "readonly"));
 		cols.add(new Column(colNumber++, "appearance", Column.COL_APPEARANCE, 0, "appearance"));
 		
-		namedColumnIndexes.put("appearance", new Integer(colNumber -1));
+		namedColumnIndexes.put("appearance", Integer.valueOf(colNumber -1));
 		
 		cols.add(new Column(colNumber++, "parameters", Column.COL_PARAMETERS, 0, "parameters"));
 		
-		namedColumnIndexes.put("parameters", new Integer(colNumber -1));
+		namedColumnIndexes.put("parameters", Integer.valueOf(colNumber -1));
 		
 		cols.add(new Column(colNumber++, "autoplay", Column.COL_AUTOPLAY, 0, "autoplay"));
 		cols.add(new Column(colNumber++, "body::accuracyThreshold", Column.COL_ACCURACY, 0, "accuracy"));
