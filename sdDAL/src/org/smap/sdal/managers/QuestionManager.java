@@ -94,7 +94,6 @@ public class QuestionManager {
 				+ "qconstraint, "
 				+ "constraint_msg, "
 				+ "mandatory, "
-				+ "required_msg, "
 				+ "required_expression, "
 				+ "autoplay, "
 				+ "accuracy,"
@@ -106,7 +105,8 @@ public class QuestionManager {
 				+ "intent,"
 				+ "set_value"
 				+ ") " 
-				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, "
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
 		PreparedStatement pstmtUpdateSeq = null;
 		String sqlUpdateSeq = "update question set seq = seq + 1 where f_id = ? and seq >= ?;";
@@ -268,10 +268,9 @@ public class QuestionManager {
 				pstmtInsertQuestion.setString(19, q.constraint);
 				pstmtInsertQuestion.setString(20, q.constraint_msg);
 				pstmtInsertQuestion.setBoolean(21, q.required);
-				pstmtInsertQuestion.setString(22, q.required_msg);
-				pstmtInsertQuestion.setString(23, q.required_expression);
-				pstmtInsertQuestion.setString(24, q.autoplay);
-				pstmtInsertQuestion.setString(25, q.accuracy);
+				pstmtInsertQuestion.setString(22, q.required_expression);
+				pstmtInsertQuestion.setString(23, q.autoplay);
+				pstmtInsertQuestion.setString(24, q.accuracy);
 
 				String nodeset = null;
 				String nodeset_value = null;
@@ -292,13 +291,13 @@ public class QuestionManager {
 						nodeset_label = "jr:itext(itextId)";
 					}
 				}
-				pstmtInsertQuestion.setString(26, nodeset);
-				pstmtInsertQuestion.setString(27, nodeset_value);
-				pstmtInsertQuestion.setString(28, nodeset_label);
-				pstmtInsertQuestion.setString(29, sanitise.sanitiseHtml(q.display_name));
-				pstmtInsertQuestion.setBoolean(30, true);		// All select questions now default to compressed
-				pstmtInsertQuestion.setString(31, q.intent);
-				pstmtInsertQuestion.setString(32, q.getSetValueArrayAsString(gson));
+				pstmtInsertQuestion.setString(25, nodeset);
+				pstmtInsertQuestion.setString(26, nodeset_value);
+				pstmtInsertQuestion.setString(27, nodeset_label);
+				pstmtInsertQuestion.setString(28, sanitise.sanitiseHtml(q.display_name));
+				pstmtInsertQuestion.setBoolean(29, true);		// All select questions now default to compressed
+				pstmtInsertQuestion.setString(30, q.intent);
+				pstmtInsertQuestion.setString(31, q.getSetValueArrayAsString(gson));
 				
 				log.info("Insert question: " + pstmtInsertQuestion.toString());
 				pstmtInsertQuestion.executeUpdate();
@@ -1352,7 +1351,7 @@ public class QuestionManager {
 			fId = rs.getInt(1);
 
 			duplicateQuestions(sd, originalFormId, sId, fId, sharedResults);
-			duplicateQuestionLabels(sd, sId, existingSurveyId, originalFormId);
+			duplicateQuestionLabels(sd, sId, existingSurveyId);
 			duplicateOptionsInForm(sd, sId, fId, existingSurveyId);
 
 			// Duplicate sub forms
@@ -1433,8 +1432,8 @@ public class QuestionManager {
 	 */
 	public void duplicateQuestionLabels(Connection sd, 
 			int sId,					// The new survey
-			int existingSurveyId,       // The existing survey
-			int existingFormId) throws Exception {
+			int existingSurveyId)       // The existing survey
+			throws Exception {
 
 		String sql = "insert into translation("
 				+ "s_id,"
@@ -1449,18 +1448,13 @@ public class QuestionManager {
 				+ "type,"
 				+ "value "
 				+ "from translation "
-				+ "where s_id = ? "
-				+ "and "
-				+ "(text_id in (select qtext_id from question where f_id = ?) "
-				+ "or text_id in (select infotext_id from question where f_id = ?));";
+				+ "where s_id = ? ";
 		PreparedStatement pstmt = null;
 
 		try {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, existingSurveyId);
-			pstmt.setInt(2, existingFormId);
-			pstmt.setInt(3, existingFormId);
 
 			log.info("Duplicating question labels: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -1550,7 +1544,6 @@ public class QuestionManager {
 				+ "calculate, "
 				+ "qconstraint, "
 				+ "constraint_msg,"
-				+ "required_msg,"
 				+ "required_expression,"
 				+ "appearance,"
 				+ "parameters,"
@@ -1588,7 +1581,6 @@ public class QuestionManager {
 				 + "calculate, "
 				 + "qconstraint, "
 				 + "constraint_msg, "
-				 + "required_msg, "
 				 + "required_expression, "
 				 + "appearance, "
 				 + "parameters, "
@@ -1685,7 +1677,7 @@ public class QuestionManager {
 			ResultSet rs = pstmtGetLists.executeQuery();
 			while(rs.next()) {
 				int l_id = rs.getInt(1);
-				listIdHash.put(new Integer(l_id), new Integer(l_id));
+				listIdHash.put(Integer.valueOf(l_id), Integer.valueOf(l_id));
 			}
 
 			List<Integer> listIds = new ArrayList<Integer>(listIdHash.keySet());
@@ -1820,7 +1812,6 @@ public class QuestionManager {
 				+ "q.parameters, "
 				+ "q.qconstraint, "
 				+ "q.constraint_msg, "
-				+ "q.required_msg, "
 				+ "q.required_expression, "
 				+ "q.nodeset, "
 				+ "q.relevant, "
@@ -1908,16 +1899,15 @@ public class QuestionManager {
 				q.defaultanswer = rsGetQuestions.getString(10);
 				q.appearance = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(11), true);
 				q.paramArray = GeneralUtilityMethods.convertParametersToArray(rsGetQuestions.getString(12));
-				q.parameters = rsGetQuestions.getString(12);		// For online editor - deprecate
-				q.constraint = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(13), true);
-				q.constraint_msg = rsGetQuestions.getString(14);
-				q.required_msg = rsGetQuestions.getString(15);
-				q.required_expression = rsGetQuestions.getString(16);
-				q.nodeset = rsGetQuestions.getString(17);	// Used when writing to HTML
+				q.parameters = rsGetQuestions.getString("parameters");		// For online editor - deprecate
+				q.constraint = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString("qconstraint"), true);
+				q.constraint_msg = rsGetQuestions.getString("constraint_msg");
+				q.required_expression = rsGetQuestions.getString("required_expression");
+				q.nodeset = rsGetQuestions.getString("nodeset");	// Used when writing to HTML
 				q.choice_filter = GeneralUtilityMethods.getChoiceFilterFromNodeset(q.nodeset, true);
 
-				q.relevant = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(18), true);
-				q.visible = rsGetQuestions.getBoolean(19);
+				q.relevant = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString("relevant"), true);
+				q.visible = rsGetQuestions.getBoolean("visible");
 				q.readonly = rsGetQuestions.getBoolean("readonly");
 				q.readonly_expression = rsGetQuestions.getString("readonly_expression");
 				q.required = rsGetQuestions.getBoolean("mandatory");
