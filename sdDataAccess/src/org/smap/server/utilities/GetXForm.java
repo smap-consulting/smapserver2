@@ -939,8 +939,8 @@ public class GetXForm {
 			}
 
 			// Add mandatory
-			if (q.isMandatory() || q.getRequiredExpression() != null) {
-				if(q.isMandatory()) {
+			if (q.isMandatory()) {
+				if(q.getRequiredExpression() == null) {
 					questionElement.setAttribute("required", "true()");
 				} else {
 					// Check for a mandatory expression
