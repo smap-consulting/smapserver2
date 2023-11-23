@@ -290,8 +290,12 @@ public class XLSFormManager {
 					value = q.defaultanswer;
 				}
 
-			} else if(type == COL_READONLY) {				
-				value = q.readonly ? "yes" : "no";		
+			} else if(type == COL_READONLY) {
+				if(q.readonly && q.readonly_expression != null) {
+					value = q.readonly_expression;
+				} else {
+					value = q.readonly ? "yes" : "no";	
+				}
 
 			} else if(type == COL_APPEARANCE) {				
 				value = q.appearance;		
@@ -312,8 +316,12 @@ public class XLSFormManager {
 			} else if(type == COL_INTENT) {				
 				value = q.intent;		
 
-			} else if(type == COL_REQUIRED) {				
-				value = q.required ? "yes" : "";		
+			} else if(type == COL_REQUIRED) {	
+				if(q.required && q.required_expression != null) {
+					value = q.required_expression;
+				} else {
+					value = q.required ? "yes" : "";	
+				}		
 
 			} else if(type == COL_REQUIRED_MSG) {	
 				if(q.type.equals("calculate")) {	

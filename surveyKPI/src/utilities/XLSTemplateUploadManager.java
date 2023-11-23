@@ -901,7 +901,9 @@ public class XLSTemplateUploadManager {
 		if(!q.readonly) {
 			// Actually readonly can hold an expression - this is tacked on functionality
 			q.readonly_expression =  XLSUtilities.getTextColumn(wb, row, "readonly", surveyHeader, lastCellNum, null);
-			if(q.readonly_expression != null) {
+			if(q.readonly_expression != null && q.readonly_expression.trim().length() > 0 
+					&& !q.readonly_expression.equals("no")
+					&& !q.readonly_expression.equals("false")) {
 				q.readonly = true;	// conditionally readonly
 			}
 		}
@@ -925,13 +927,15 @@ public class XLSTemplateUploadManager {
 		if(!q.required) {
 			// Actually required can hold an expression - this is tacked on functionality
 			q.required_expression =  XLSUtilities.getTextColumn(wb, row, "required", surveyHeader, lastCellNum, null);
-			if(q.required_expression != null) {
+			if(q.required_expression != null && q.required_expression.trim().length() > 0 
+					&& !q.required_expression.equals("no")
+					&& !q.required_expression.equals("false")) {
 				q.required = true;	// conditionally required
 			}
 		}
 		
-		// 15. Required Message
-		q.required_msg = XLSUtilities.getTextColumn(wb, row, XLSFormColumns.REQUIRED_MESSAGE, surveyHeader, lastCellNum, null); 
+		// 15. Required Message - This is stored as a label
+		//q.required_msg = XLSUtilities.getTextColumn(wb, row, XLSFormColumns.REQUIRED_MESSAGE, surveyHeader, lastCellNum, null); 
 		
 		// 16. Calculation
 		if(q.type.equals("server_calculate")) {
