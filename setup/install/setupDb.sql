@@ -750,6 +750,7 @@ CREATE TABLE question (
 	source text,
 	source_param text,
 	readonly BOOLEAN default false,
+	readonly_expression text,
 	mandatory BOOLEAN default false,
 	relevant text,
 	calculate text,

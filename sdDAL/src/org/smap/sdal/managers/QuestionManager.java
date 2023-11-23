@@ -89,6 +89,7 @@ public class QuestionManager {
 				+ "parameters, "
 				+ "visible, "
 				+ "readonly, "
+				+ "readonly_expression, "
 				+ "relevant, "
 				+ "qconstraint, "
 				+ "constraint_msg, "
@@ -261,14 +262,16 @@ public class QuestionManager {
 				pstmtInsertQuestion.setString(14, params);
 				pstmtInsertQuestion.setBoolean(15, q.visible);
 				pstmtInsertQuestion.setBoolean(16, readonly);
-				pstmtInsertQuestion.setString(17, q.relevant);
-				pstmtInsertQuestion.setString(18, q.constraint);
-				pstmtInsertQuestion.setString(19, q.constraint_msg);
-				pstmtInsertQuestion.setBoolean(20, q.required);
-				pstmtInsertQuestion.setString(21, q.required_msg);
-				pstmtInsertQuestion.setString(22, q.required_expression);
-				pstmtInsertQuestion.setString(23, q.autoplay);
-				pstmtInsertQuestion.setString(24, q.accuracy);
+				pstmtInsertQuestion.setBoolean(16, readonly);
+				pstmtInsertQuestion.setString(17, q.readonly_expression);
+				pstmtInsertQuestion.setString(18, q.relevant);
+				pstmtInsertQuestion.setString(19, q.constraint);
+				pstmtInsertQuestion.setString(20, q.constraint_msg);
+				pstmtInsertQuestion.setBoolean(21, q.required);
+				pstmtInsertQuestion.setString(22, q.required_msg);
+				pstmtInsertQuestion.setString(23, q.required_expression);
+				pstmtInsertQuestion.setString(24, q.autoplay);
+				pstmtInsertQuestion.setString(25, q.accuracy);
 
 				String nodeset = null;
 				String nodeset_value = null;
@@ -289,13 +292,13 @@ public class QuestionManager {
 						nodeset_label = "jr:itext(itextId)";
 					}
 				}
-				pstmtInsertQuestion.setString(25, nodeset);
-				pstmtInsertQuestion.setString(26, nodeset_value);
-				pstmtInsertQuestion.setString(27, nodeset_label);
-				pstmtInsertQuestion.setString(28, sanitise.sanitiseHtml(q.display_name));
-				pstmtInsertQuestion.setBoolean(29, true);		// All select questions now default to compressed
-				pstmtInsertQuestion.setString(30, q.intent);
-				pstmtInsertQuestion.setString(31, q.getSetValueArrayAsString(gson));
+				pstmtInsertQuestion.setString(26, nodeset);
+				pstmtInsertQuestion.setString(27, nodeset_value);
+				pstmtInsertQuestion.setString(28, nodeset_label);
+				pstmtInsertQuestion.setString(29, sanitise.sanitiseHtml(q.display_name));
+				pstmtInsertQuestion.setBoolean(30, true);		// All select questions now default to compressed
+				pstmtInsertQuestion.setString(31, q.intent);
+				pstmtInsertQuestion.setString(32, q.getSetValueArrayAsString(gson));
 				
 				log.info("Insert question: " + pstmtInsertQuestion.toString());
 				pstmtInsertQuestion.executeUpdate();
@@ -1541,6 +1544,7 @@ public class QuestionManager {
 				+ "source, "
 				+ "source_param, "
 				+ "readonly, "
+				+ "readonly_expression, "
 				+ "mandatory, "
 				+ "relevant, "
 				+ "calculate, "
@@ -1578,6 +1582,7 @@ public class QuestionManager {
 				 + "source, "
 				 + "source_param, "
 				 + "readonly, "
+				 + "readonly_expression, "
 				 + "mandatory, "
 				 + "relevant, "
 				 + "calculate, "
@@ -1821,6 +1826,7 @@ public class QuestionManager {
 				+ "q.relevant, "
 				+ "q.visible, "
 				+ "q.readonly, "
+				+ "q.readonly_expression, "
 				+ "q.mandatory, "
 				+ "q.published, "
 				+ "q.column_name, "
@@ -1912,18 +1918,19 @@ public class QuestionManager {
 
 				q.relevant = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(18), true);
 				q.visible = rsGetQuestions.getBoolean(19);
-				q.readonly = rsGetQuestions.getBoolean(20);
-				q.required = rsGetQuestions.getBoolean(21);
-				q.published = rsGetQuestions.getBoolean(22);
-				q.columnName = rsGetQuestions.getString(23);
-				q.source_param = rsGetQuestions.getString(24);
-				q.soft_deleted = rsGetQuestions.getBoolean(25);
-				q.autoplay = rsGetQuestions.getString(26);
-				q.accuracy = rsGetQuestions.getString(27);
-				q.linked_target = rsGetQuestions.getString(28);
-				q.display_name = rsGetQuestions.getString(29);
-				q.fId = rsGetQuestions.getInt(30);
-				q.compressed = rsGetQuestions.getBoolean(31);				
+				q.readonly = rsGetQuestions.getBoolean("readonly");
+				q.readonly_expression = rsGetQuestions.getString("readonly_expression");
+				q.required = rsGetQuestions.getBoolean("mandatory");
+				q.published = rsGetQuestions.getBoolean("published");
+				q.columnName = rsGetQuestions.getString("column_name");
+				q.source_param = rsGetQuestions.getString("source_param");
+				q.soft_deleted = rsGetQuestions.getBoolean("soft_deleted");
+				q.autoplay = rsGetQuestions.getString("autoplay");
+				q.accuracy = rsGetQuestions.getString("accuracy");
+				q.linked_target = rsGetQuestions.getString("linked_target");
+				q.display_name = rsGetQuestions.getString("display_name");
+				q.fId = rsGetQuestions.getInt("f_id");
+				q.compressed = rsGetQuestions.getBoolean("complressed");				
 				q.l_id = rsGetQuestions.getInt("l_id");
 				q.intent = rsGetQuestions.getString("intent");
 				q.style_list = rsGetQuestions.getString("style_name");

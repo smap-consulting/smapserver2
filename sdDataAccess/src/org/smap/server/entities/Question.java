@@ -94,6 +94,8 @@ public class Question {
 	
 	private boolean readOnly = false;
 	
+	private String readOnlyExpression;
+	
 	private boolean mandatory = false;
 	
 	private boolean compressed = false;
@@ -253,6 +255,10 @@ public class Question {
 		} else {
 			return readOnly;
 		}
+	}
+	
+	public String getReadOnlyExpression() {
+		return readOnlyExpression;
 	}
 	
 	public boolean isRepeatCount() {
@@ -602,6 +608,10 @@ public class Question {
 	
 	public void setReadOnly(boolean v) {
 		readOnly = v;
+	}
+	
+	public void setReadOnlyExpression(String v) {
+		readOnlyExpression = v;
 	}
 	
 	public void setRepeatCount(boolean v) {

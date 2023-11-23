@@ -50,3 +50,4 @@ alter table server add column max_rate integer default 0;
 
 -- Version 23.11
 alter table question add column required_expression text;
+alter table question add column readonly_expression text;

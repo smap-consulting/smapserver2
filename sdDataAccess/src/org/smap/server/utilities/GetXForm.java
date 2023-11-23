@@ -935,7 +935,13 @@ public class GetXForm {
 		if (!count) {
 			// Add read only
 			if (q.isReadOnly() || q.getType().equals("note")) {	
-				questionElement.setAttribute("readonly", "true()");
+				if(q.getReadOnlyExpression() == null) {
+					questionElement.setAttribute("readonly", "true()");
+				} else {
+					// ReadOnly expression
+					String expr = q.getExpression(q.getReadOnlyExpression(), template.getQuestionPaths(), template.getXFormFormName());
+					questionElement.setAttribute("readonly", expr);
+				}
 			}
 
 			// Add mandatory

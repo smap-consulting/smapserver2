@@ -58,6 +58,7 @@ public class JdbcQuestionManager {
 			+ "source,"
 			+ "source_param,"
 			+ "readonly,"
+			+ "readonly_expression,"
 			+ "mandatory,"
 			+ "relevant,"
 			+ "calculate,"
@@ -80,7 +81,7 @@ public class JdbcQuestionManager {
 			+ "intent,"
 			+ "set_value"
 			+ ") "
-			+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+			+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 	
@@ -101,6 +102,7 @@ public class JdbcQuestionManager {
 			+ "source,"
 			+ "source_param,"
 			+ "readonly,"
+			+ "readonly_expression,"
 			+ "mandatory,"
 			+ "relevant,"
 			+ "calculate,"
@@ -274,11 +276,12 @@ public class JdbcQuestionManager {
 			q.setSource(rs.getString(12));
 			q.setSourceParam(rs.getString(13));
 			q.setReadOnly(rs.getBoolean(14));
-			q.setMandatory(rs.getBoolean(15));
-			q.setRelevant(rs.getString(16));
-			q.setCalculate(rs.getString(17));
-			q.setConstraint(rs.getString(18));
-			q.setConstraintMsg(rs.getString(19));
+			q.setReadOnlyExpression(rs.getString("readonly_expression"));
+			q.setMandatory(rs.getBoolean("mandatory"));
+			q.setRelevant(rs.getString("relevant"));
+			q.setCalculate(rs.getString("calculate"));
+			q.setConstraint(rs.getString("qconstraint"));
+			q.setConstraintMsg(rs.getString("constraint_msg"));
 			q.setRequiredMsg(rs.getString("required_msg"));
 			q.setRequiredExpression(rs.getString("required_expression"));
 			q.setAppearance(rs.getString("appearance"));

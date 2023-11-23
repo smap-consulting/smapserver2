@@ -898,6 +898,13 @@ public class XLSTemplateUploadManager {
 		
 		// 9. Readonly
 		q.readonly = getBooleanColumn(row, "readonly", surveyHeader, lastCellNum, false);
+		if(!q.readonly) {
+			// Actually readonly can hold an expression - this is tacked on functionality
+			q.readonly_expression =  XLSUtilities.getTextColumn(wb, row, "readonly", surveyHeader, lastCellNum, null);
+			if(q.readonly_expression != null) {
+				q.readonly = true;	// conditionally readonly
+			}
+		}
 		
 		// 10. Appearance
 		q.appearance = XLSUtilities.getTextColumn(wb, row, "appearance", surveyHeader, lastCellNum, null); 
@@ -918,6 +925,9 @@ public class XLSTemplateUploadManager {
 		if(!q.required) {
 			// Actually required can hold an expression - this is tacked on functionality
 			q.required_expression =  XLSUtilities.getTextColumn(wb, row, "required", surveyHeader, lastCellNum, null);
+			if(q.required_expression != null) {
+				q.required = true;	// conditionally required
+			}
 		}
 		
 		// 15. Required Message

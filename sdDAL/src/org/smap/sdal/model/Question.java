@@ -49,6 +49,7 @@ public class Question {
 	public String relevant;
 	public boolean visible;
 	public boolean readonly;
+	public String readonly_expression;
 	public boolean required;				// Legacy
 	public String required_expression;		// Probably this should contain true or false if the value is boolean
 	public boolean compressed;
@@ -109,6 +110,7 @@ public class Question {
 		this.constraint_msg = q.constraint_msg;
 		this.visible = q.visible;	
 		this.readonly = q.readonly;
+		this.readonly_expression = q.readonly_expression;
 		this.required = q.required;
 		this.compressed = q.compressed;
 		this.autoplay = q.autoplay;
