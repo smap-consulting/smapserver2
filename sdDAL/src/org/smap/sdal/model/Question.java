@@ -117,6 +117,13 @@ public class Question {
 	}
 	
 	/*
+	 * Return true if this question either is required or could be required
+	 */
+	public boolean isRequired() {
+		return required || required_expression != null;
+	}
+	
+	/*
 	 * Get the selectable choices for this question
 	 *  If the choices came from an external file then one of the choices will be a dummy choice describing the file
 	 *  in that case only return the choices marked as coming from an external file

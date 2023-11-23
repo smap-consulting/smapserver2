@@ -468,8 +468,10 @@ public class GetHtml {
 			if (q.readonly) {
 				input.setAttribute("readonly", "readonly");
 			}
-			if (q.required) {
-				input.setAttribute("data-required", "true()");
+			if (q.isRequired()) {
+				input.setAttribute("data-required", UtilityMethods.getCompoundExpression(q.required, 
+						q.required_expression,
+						form.id, q.name, paths));
 			}
 			// relevant
 			if (q.relevant != null && q.relevant.trim().length() > 0) {
@@ -809,8 +811,10 @@ public class GetHtml {
 		if (q.readonly) {
 			textElement.setAttribute("readonly", "readonly");
 		}
-		if (q.required) {
-			textElement.setAttribute("data-required", "true()");
+		if (q.isRequired()) {
+			textElement.setAttribute("data-required", UtilityMethods.getCompoundExpression(q.required, 
+					q.required_expression,
+					form.id, q.name, paths));
 		}
 		// Dynamic Default
 		if (q.calculation != null && q.calculation.trim().length() > 0) {
@@ -874,8 +878,10 @@ public class GetHtml {
 			selectElement.setAttribute("data-constraint",
 					UtilityMethods.convertAllxlsNames(q.constraint, false, paths, form.id, true, q.name, false));
 		}
-		if (q.required) {
-			selectElement.setAttribute("data-required", "true()");
+		if (q.isRequired()) {
+			selectElement.setAttribute("data-required", UtilityMethods.getCompoundExpression(q.required, 
+					q.required_expression,
+					form.id, q.name, paths));
 		}
 		if (q.calculation != null && q.calculation.trim().length() > 0) {
 			selectElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name, false));
@@ -984,8 +990,10 @@ public class GetHtml {
 			if (q.calculation != null && q.calculation.trim().length() > 0) {
 				inputElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name, false));
 			}
-			if (q.required) {
-				inputElement.setAttribute("data-required", "true()");
+			if (q.isRequired()) {
+				inputElement.setAttribute("data-required", UtilityMethods.getCompoundExpression(q.required, 
+						q.required_expression,
+						form.id, q.name, paths));
 			}
 			if (q.relevant != null && q.relevant.trim().length() > 0) {
 				inputElement.setAttribute("data-relevant",
@@ -1083,8 +1091,10 @@ public class GetHtml {
 
 		// Required - note allow required on read only questions to support form level
 		// validation trick
-		if (q.required && !q.type.startsWith("select")) {
-			bodyElement.setAttribute("data-required", "true()");
+		if (q.isRequired() && !q.type.startsWith("select")) {
+			bodyElement.setAttribute("data-required", UtilityMethods.getCompoundExpression(q.required, 
+					q.required_expression,
+					form.id, q.name, paths));
 		}
 
 		// decimal
@@ -1173,8 +1183,10 @@ public class GetHtml {
 				inputElement.setAttribute("data-constraint", UtilityMethods.convertAllxlsNames(q.constraint, false, paths, form.id, true, q.name, false));
 			}
 
-			if(q.required) {
-				inputElement.setAttribute("data-required", "true()");
+			if(q.isRequired()) {
+				inputElement.setAttribute("data-required", UtilityMethods.getCompoundExpression(q.required, 
+						q.required_expression,
+						form.id, q.name, paths));
 			}
 			if (q.readonly) {
 				inputElement.setAttribute("readonly", "readonly");
@@ -1460,7 +1472,7 @@ public class GetHtml {
 			
 			// Constraint
 			constraintMessageAdded = addConstraintMsg(q.labels.get(idx).constraint_msg, lang.name, parent, idx);
-			if(q.required) {
+			if(q.isRequired()) {
 				if(q.labels.get(idx).required_msg != null) {
 					if(!requiredIndicatorAdded) {
 						bodyElement = outputDoc.createElement("span");
@@ -1484,7 +1496,7 @@ public class GetHtml {
 		}
 
 		// Required (Without a language)
-		if (q.required && !requiredMessageAdded) {
+		if (q.isRequired() && !requiredMessageAdded) {
 			bodyElement = outputDoc.createElement("span");
 			bodyElement.setAttribute("class", "required");
 			bodyElement.setTextContent("*");

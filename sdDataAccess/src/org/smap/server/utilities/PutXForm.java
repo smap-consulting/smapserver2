@@ -1025,6 +1025,8 @@ public class PutXForm {
 	    		} else if (name.equals("required")) {
 	    			if(attribute.getNodeValue().equals("true()")) {
 	    				q.setMandatory(true);
+	    			} else if(!attribute.getNodeValue().trim().equals("")) {
+	    				q.setRequiredExpression(attribute.getNodeValue().trim());
 	    			}
 	    			
 	    		} else if (name.equals("type")) {
