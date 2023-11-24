@@ -49,6 +49,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.Role;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
 import org.smap.sdal.model.UserSimple;
@@ -474,6 +475,7 @@ public class UserList extends Application {
 					}
 					
 					UserManager um = new UserManager(localisation);
+					String msg = null;
 					if(u.id == -1) {
 						// New user
 						um.createUser(sd, u, o_id,
@@ -487,6 +489,8 @@ public class UserList extends Application {
 								adminName,
 								adminEmail,
 								localisation);
+						
+						msg = localisation.getString("lm_new_user");
 								
 					} else {
 						// Existing user
@@ -500,9 +504,14 @@ public class UserList extends Application {
 								adminName,
 								false);
 						
-						lm.writeLogOrganisation(sd, 
-								o_id, request.getRemoteUser(), LogManager.USER, "User " + u.ident + " was updated. Groups: " + getGroups(u.groups), 0);
+						msg = localisation.getString("lm_user");
 					}
+							
+					msg = msg.replace("%s1", u.ident);
+					msg = msg.replace("%s2", getGroups(u.groups));
+					msg = msg.replace("%s3", getRoles(sd, o_id, u.roles));
+					lm.writeLogOrganisation(sd, 
+							o_id, request.getRemoteUser(), LogManager.USER, msg, 0);
 					
 					// Record the user change so that devices can be notified
 					MessagingManager mm = new MessagingManager(localisation);
@@ -888,6 +897,36 @@ public class UserList extends Application {
 			}
 		}
 		return g.toString();
+	}
+	
+	private String getRoles(Connection sd, int oId, ArrayList<Role> roles) throws SQLException {
+		StringBuffer rList = new StringBuffer("");
+		PreparedStatement pstmt = null;
+		String sql = "select name from role where id = ? and o_id = ?";
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(2, oId);
+			ResultSet rs = null;
+			if(roles != null) {
+				for(Role r : roles) {
+					pstmt.setInt(1,  r.id);
+					rs = pstmt.executeQuery();
+					if(rs.next()) {
+						String name = rs.getString(1);
+						if(name != null) {
+							if(rList.length() > 0) {
+								rList.append(", ");
+							}
+							rList.append(name);
+						}	
+					}
+					rs.close();		
+				}
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+		return rList.toString();
 	}
 	
 

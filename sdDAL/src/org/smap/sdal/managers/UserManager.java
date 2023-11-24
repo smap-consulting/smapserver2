@@ -1412,7 +1412,7 @@ public class UserManager {
 									break;
 								}
 							}
-							// Set roles from current
+							// Set roles from current, this user cannot change their roles
 							u.roles = uCurrent.roles;						
 						}
 					
