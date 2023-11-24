@@ -1034,6 +1034,8 @@ public class GetHtml {
 	 */
 	private void addLabelContents(Element parent, Question q, Form form, boolean hideLabels) throws Exception {
 
+		StringBuilder classValue = new StringBuilder();
+		
 		// span
 		if(!hideLabels) {
 			addLabels(parent, q, form);
@@ -1086,7 +1088,7 @@ public class GetHtml {
 			bodyElement.setAttribute("min", GeneralUtilityMethods.getSurveyParameter("start", q.paramArray));
 			bodyElement.setAttribute("max", GeneralUtilityMethods.getSurveyParameter("end", q.paramArray));
 			bodyElement.setAttribute("step", GeneralUtilityMethods.getSurveyParameter("step", q.paramArray));
-			bodyElement.setAttribute("class", "hide");
+			classValue.append("hide");
 		}
 
 		// Required - note allow required on read only questions to support form level
@@ -1127,10 +1129,17 @@ public class GetHtml {
 		
 			bodyElement.setAttribute("data-event", sv.event);
 			bodyElement.setAttribute("data-setvalue", UtilityMethods.convertAllxlsNames(sv.value, false, paths, form.id, true, q.name, false));
-			bodyElement.setAttribute("class", "action setvalue form-control-action " + sv.event);
+			if(classValue.length() > 0) {
+				classValue.append(" ");
+			}
+			classValue.append("action form-control-action ref-target ");
+			classValue.append(sv.event);
 		}
 		
-
+		if(classValue.length() > 0) {
+			bodyElement.setAttribute("class",  classValue.toString());
+		}
+		
 		parent.appendChild(bodyElement);
 		if (q.type.equals("image")) {
 			parent.appendChild(createDynamicInput());	// Add a dummy value for dynamic defaults
