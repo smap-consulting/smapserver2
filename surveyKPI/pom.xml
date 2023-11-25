@@ -37,24 +37,8 @@
             </plugin>
 		</plugins>
 	</build>
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>com.amazonaws</groupId>
-				<artifactId>aws-java-sdk-bom</artifactId>
-				<version>1.11.745</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
 	<dependencies>
 	
-	  	<dependency>
-	      	<groupId>smapserver</groupId>
-	      	<artifactId>cloudinterface</artifactId>
-	      	<version>1.0.0</version>
-      	</dependency>
       	<dependency>
 	      	<groupId>smapserver</groupId>
 	      	<artifactId>sdDAL</artifactId>

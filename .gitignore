@@ -17,6 +17,7 @@ subscribers/.aws/
 koboToolboxApi/.aws/
 koboToolboxApi/target/
 surveyMobileApi/target/
+surveyKPI/target/
 
 build/css.orig
 

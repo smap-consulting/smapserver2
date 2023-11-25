@@ -1113,8 +1113,10 @@ public class XLSTemplateUploadManager {
 			if(!choiceSheet) {
 				lab.hint = XLSUtilities.getTextColumn(wb, row, "hint", header, lastCellNum, null);
 				lab.guidance_hint = XLSUtilities.getTextColumn(wb, row, "guidance_hint", header, lastCellNum, null);
-				lab.constraint_msg = XLSUtilities.getTextColumn(wb, row, XLSFormColumns.CONSTRAINT_MESSAGE, header, lastCellNum, null);
-				lab.required_msg = XLSUtilities.getTextColumn(wb, row, XLSFormColumns.REQUIRED_MESSAGE, header, lastCellNum, null);
+				lab.constraint_msg = XLSUtilities.getTextColumn(wb, row, 
+						XLSFormColumns.CONSTRAINT_MESSAGE, header, lastCellNum, null);
+				lab.required_msg = XLSUtilities.getTextColumn(wb, row, 
+						XLSFormColumns.REQUIRED_MESSAGE, header, lastCellNum, null);
 			}
 			
 			lab.image = XLSUtilities.getTextColumn(wb, row, "image", header, lastCellNum, null);
