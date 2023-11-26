@@ -1040,7 +1040,7 @@ public class SubscriberBatch {
 					CaseManagementSettings settings = settingsCache.get(groupSurveyIdent);
 					if(settings == null) {
 						pstmtSettings.setString(1,groupSurveyIdent);
-						log.info("CMS Settings: " + pstmtSettings.toString());
+						//log.info("CMS Settings: " + pstmtSettings.toString());
 						ResultSet srs = pstmtSettings.executeQuery();
 						if(srs.next()) {
 							settings = gson.fromJson(srs.getString("settings"), CaseManagementSettings.class);
@@ -1085,7 +1085,7 @@ public class SubscriberBatch {
 							idx = GeneralUtilityMethods.setFragParams(pstmtMatches, filterFrag, idx, tz);
 						}
 						
-						log.info(pstmtMatches.toString());
+						//log.info(pstmtMatches.toString());
 						try {
 							ResultSet mrs = pstmtMatches.executeQuery();
 							

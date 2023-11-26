@@ -9,6 +9,4 @@ public class SmapExportTypes {
 	public static final String VRT = "vrt";
 	public static final String SHAPE = "shape";
 	public static final String KML = "kml";
-
-	
 }
