@@ -4068,7 +4068,7 @@ public class GeneralUtilityMethods {
 						if(GeneralUtilityMethods.hasColumn(cResults, table_name, mi.columnName)) {
 							c = new TableColumn();
 							c.column_name = mi.columnName;						
-							if(mi.display_name != null) {
+							if(mi.display_name != null && mi.display_name.trim().length() > 0) {
 								c.displayName = mi.display_name;
 							} else {
 								c.displayName = mi.name;

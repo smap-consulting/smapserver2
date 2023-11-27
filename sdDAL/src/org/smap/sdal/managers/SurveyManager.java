@@ -4444,7 +4444,7 @@ public class SurveyManager {
 							int parentQuestion = f.parentQuestionIndex;
 							Question q = form.questions.get(parentQuestion);
 							String qName = q.name;
-							if(q.display_name != null) {
+							if(q.display_name != null && q.display_name.trim().length() > 0) {
 								qName = q.display_name;
 							}
 							if(instance.repeats.get(qName) == null) {

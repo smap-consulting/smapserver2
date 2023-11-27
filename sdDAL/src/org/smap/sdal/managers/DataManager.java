@@ -381,7 +381,7 @@ public class DataManager {
 							int parentQuestion = f.parentQuestionIndex;
 							Question q = form.questions.get(parentQuestion);
 							String name = q.name;
-							if(q.display_name != null) {
+							if(q.display_name != null && q.display_name.trim().length() > 0) {
 								name = q.display_name;
 							}
 							data.put(name, getInstanceData(
