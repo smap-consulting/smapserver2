@@ -137,6 +137,7 @@ fi
 cp $deploy_from/fieldTask.apk /var/www/smap
 cp $deploy_from/fieldTaskPreJellyBean.apk /var/www/smap
 cp $deploy_from/smapFingerprint.apk /var/www/smap
+cp $deploy_from/fpReader2.apk /var/www/smap
 cp $deploy_from/smapUploader.jar /var/www/smap
 cp $deploy_from/fieldTask.apk /var/www/default
 #cp -r $deploy_from/smapIcons/WebContent/* /var/www/smap/smapIcons
