@@ -4782,7 +4782,7 @@ public class SurveyManager {
 	}
 	
 	/*
-	 * If a form is replaced the form will need to be replaced in the report
+	 * Get some summary level details for the ident
 	 */
 	public SurveySummary getSummary(Connection sd, String sIdent) throws SQLException {
 		
@@ -4803,6 +4803,40 @@ public class SurveyManager {
 				summary.ident = sIdent;
 				summary.displayName = rs.getString("display_name");
 				summary.projectName = rs.getString("name");
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+		}
+		return summary;
+	}
+	
+	/*
+	 * Get a full summary of the survey including organisation and enterprise
+	 */
+	public SurveySummary getFullSummary(Connection sd, String sIdent) throws SQLException {
+		
+		String sql = "select s.display_name, s.version, p.name as proj_name, "
+				+ "o.name as org_name, e.name as ent_name "
+				+ "from survey s, project p, organisation o, enterprise e "
+				+ "where s.p_id = p.id "
+				+ "and p.o_id = o.id "
+				+ "and o.e_id = e.id "
+				+ "and s.ident = ? ";
+		PreparedStatement pstmt = null;
+		SurveySummary summary = new SurveySummary();
+		
+		try {
+	
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, sIdent);
+
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				summary.ident = sIdent;
+				summary.displayName = rs.getString("display_name");
+				summary.projectName = rs.getString("proj_name");
+				summary.organisation = rs.getString("org_name");
+				summary.enterprise = rs.getString("ent_name");
 			}
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
