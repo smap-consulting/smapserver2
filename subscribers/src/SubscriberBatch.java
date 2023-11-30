@@ -379,7 +379,7 @@ public class SubscriberBatch {
 							+ "and p.id = s.p_id "
 							+ "and not q.soft_deleted "
 							+ "and not s.deleted "
-							+ "and q.appearance like '%keppel%'";
+							+ "and (q.appearance like '%keppel%' or q.appearance like '%fingerprintreader%')";
 					
 					PreparedStatement pstmt = null;
 					PreparedStatement pstmtClear = null;
@@ -401,9 +401,8 @@ public class SubscriberBatch {
 						while(rs.next()) {
 							
 							String appearance = rs.getString("appearance");
-							if(appearance.contains(linkMgr.REQUEST_FP_IMAGE) || appearance.contains(linkMgr.REQUEST_FP_ISO_TEMPLATE)) {
-							
-								
+							if(linkMgr.isLinkageItem(rs.getString("appearance"))) {
+										
 								int sId = rs.getInt("s_id");
 								int fId = rs.getInt("f_id");
 								int parentForm = rs.getInt("parentform");

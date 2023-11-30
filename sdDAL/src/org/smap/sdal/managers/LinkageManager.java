@@ -58,11 +58,29 @@ public class LinkageManager {
 
 	public final String REQUEST_FP_IMAGE = "ex:uk.ac.lshtm.keppel.android.SCAN(type='image')";
 	public final String REQUEST_FP_ISO_TEMPLATE = "ex:uk.ac.lshtm.keppel.android.SCAN(type='iso')";
+	public final String REQUEST_FP_IMAGE2 = "ex:au.smap.fingerprintreader.SCAN";
 	
 	private ResourceBundle localisation;
 	
 	public LinkageManager(ResourceBundle localisation) {
 		localisation = this.localisation;
+	}
+	
+	public boolean isLinkageItem(String appearance) {
+		if(appearance != null && (appearance.contains(REQUEST_FP_IMAGE) 
+				|| appearance.contains(REQUEST_FP_IMAGE2) 
+				|| appearance.contains(REQUEST_FP_ISO_TEMPLATE))) {
+			return true;
+		}
+		return false;
+	}
+	
+	public boolean isImageItem(String appearance) {
+		if(appearance != null && (appearance.contains(REQUEST_FP_IMAGE) 
+				|| appearance.contains(REQUEST_FP_IMAGE2))) {
+			return true;
+		}
+		return false;
 	}
 	
 	public ArrayList<Link> getSurveyLinks(Connection sd, Connection cRel, int sId, int fId, int prikey) throws SQLException {
@@ -160,43 +178,41 @@ public class LinkageManager {
 	 *  ....
 	 */
 	public void addDataitemToList(ArrayList<LinkageItem> links, String value, String appearance, ArrayList<KeyValueSimp> params, String sIdent, String colName) {
-		
-		if(links != null && value != null && value.trim().length() > 0  && appearance != null) {
-			if(appearance.contains(REQUEST_FP_IMAGE) || appearance.contains(REQUEST_FP_ISO_TEMPLATE)) {
-				// Fingerprint
-				String image = null;
-				String isoTemplate = null;
-				String fpLocation = null;
-				String fpSide = null;
-				int fpDigit = 0;
-				
-				// Set the value
-				if(appearance.contains(REQUEST_FP_IMAGE)) {
-					image = value;
-				} else {
-					isoTemplate = value;
-				}
-				
-				if(params != null) {
-					for(KeyValueSimp p : params) {
-						if(p.k.equals("fp_location")) {
-							fpLocation  = p.v;
-						} else if(p.k.equals("fp_side")) {
-							fpSide = p.v;
-						} else if(p.k.equals("fp_digit")) {
-							try {
-								fpDigit = Integer.parseInt(p.v);
-							} catch (Exception e) {
-								
-							}
+
+		if(links != null && value != null && value.trim().length() > 0  && isLinkageItem(appearance)) {
+			// Fingerprint
+			String image = null;
+			String isoTemplate = null;
+			String fpLocation = null;
+			String fpSide = null;
+			int fpDigit = 0;
+
+			// Set the value
+			if(isImageItem(appearance)) {
+				image = value;
+			} else {
+				isoTemplate = value;
+			}
+
+			if(params != null) {
+				for(KeyValueSimp p : params) {
+					if(p.k.equals("fp_location")) {
+						fpLocation  = p.v;
+					} else if(p.k.equals("fp_side")) {
+						fpSide = p.v;
+					} else if(p.k.equals("fp_digit")) {
+						try {
+							fpDigit = Integer.parseInt(p.v);
+						} catch (Exception e) {
+
 						}
 					}
 				}
-				
-				links.add(new LinkageItem(0, sIdent, colName, fpLocation, fpSide, fpDigit, image, isoTemplate));				
+			}
 
-			} 
-		}
+			links.add(new LinkageItem(0, sIdent, colName, fpLocation, fpSide, fpDigit, image, isoTemplate));				
+
+		} 
 
 	}
 	
@@ -373,7 +389,7 @@ public class LinkageManager {
 	
 	
 	/*
-	 * Get linkages in a single record of a survey
+	 * Get linkages to a single record of a survey
 	 */
 	public ArrayList<LinkageItem> getRecordLinkages(Connection sd, String server, String sIdent, String instanceId) throws SQLException {
 		
