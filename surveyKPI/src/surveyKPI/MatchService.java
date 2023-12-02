@@ -93,10 +93,11 @@ public class MatchService extends Application {
 			threshold = 30.0;
 		}
 		String originalImage = image;
+		// Use http when running on a local server - for dev. this is a hack.
 		if(image != null && request.getServerName().equals("localhost")) {
 			image = image.replaceFirst("https", "http");
 		}
-			
+		
 		log.info("Get fingerprint for image: " + image + " Threshold: " + threshold);
 		
 		try {
@@ -109,7 +110,8 @@ public class MatchService extends Application {
 			
 			String extension = image.substring(image.lastIndexOf('.') + 1);
 			URL url = new URL(image);
-			BufferedImage tempImg = ImageIO.read(url);
+			log.info("Matching image: " + image);
+			BufferedImage tempImg = ImageIO.read(url.openStream());
 			File file = new File(basePath + "/temp/fp_" + UUID.randomUUID() + "." + extension);
 			ImageIO.write(tempImg, extension, file);
 			URI uri = file.toURI();
