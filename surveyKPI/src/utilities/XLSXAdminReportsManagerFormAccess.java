@@ -171,13 +171,13 @@ public class XLSXAdminReportsManagerFormAccess {
 				cell = row.createCell(0);	// Survey Name
 				cell.setCellValue(localisation.getString("name"));
 				cell = row.createCell(1);	
-				cell.setCellValue(survey.displayName);
+				cell.setCellValue(survey.surveyData.displayName);
 				
 				row = dataSheet.createRow(rowNumber++);		
 				cell = row.createCell(0);	// Project Name
 				cell.setCellValue(localisation.getString("ar_project"));
 				cell = row.createCell(1);	
-				cell.setCellValue(survey.projectName);
+				cell.setCellValue(survey.surveyData.projectName);
 			}
 			
 			/*
@@ -233,7 +233,7 @@ public class XLSXAdminReportsManagerFormAccess {
 			cell.setCellValue(localisation.getString("rep_view"));
 			
 			int idx = 0;
-			for(String roleName : survey.roles.keySet()) {	// Role
+			for(String roleName : survey.surveyData.roles.keySet()) {	// Role
 				if(idx++ == 0) {
 					// Add a marker that roles have stated
 					cell = preHeaderRow.createCell(colNumber);	
@@ -271,13 +271,13 @@ public class XLSXAdminReportsManagerFormAccess {
 				hasNoAccessReasonCol = colNumber++;			// Come back to the reason for no access
 				
 				cell = row.createCell(colNumber++);	// Current Organisation
-				isInOrg = u.current_org_id == survey.o_id;
+				isInOrg = u.current_org_id == survey.surveyData.o_id;
 				if(isInOrg ? setCellGood(cell) : setCellBad(cell));
 				
 				cell = row.createCell(colNumber++);	// Has Project
 				if(u.projects != null) {
 					for(Project p : u.projects) {
-						if(p.id == survey.p_id) {
+						if(p.id == survey.surveyData.p_id) {
 							hasProject = true;
 							break;
 						}
@@ -309,10 +309,10 @@ public class XLSXAdminReportsManagerFormAccess {
 				if(hasView ? setCellGood(cell) : setCellBad(cell));
 				
 				boolean hasRole = false;
-				if(survey.roles.size() == 0) {
+				if(survey.surveyData.roles.size() == 0) {
 					hasRole = true;		// No roles to worry about
 				} else {
-					for(String roleName : survey.roles.keySet()) {	// Role
+					for(String roleName : survey.surveyData.roles.keySet()) {	// Role
 						boolean hasThisRole = false;
 						for(Role r : u.roles) {
 							if(r.name.equals(roleName)) {

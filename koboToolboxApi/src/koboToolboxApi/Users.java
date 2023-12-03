@@ -26,6 +26,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -35,6 +36,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.glassfish.jersey.media.multipart.FormDataParam;
@@ -113,10 +115,11 @@ public class Users extends Application {
 	 */
 	@POST
 	@Path("/location")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Produces("application/json")
 	public Response updateUserLocation(@Context HttpServletRequest request,
-			@FormDataParam("lat") String latString,
-			@FormDataParam("lon") String lonString) { 
+			@FormParam("lat") String latString,
+			@FormParam("lon") String lonString) { 
 
 		Response response = null;
 		String connectionString = "API - updateUserLocation";

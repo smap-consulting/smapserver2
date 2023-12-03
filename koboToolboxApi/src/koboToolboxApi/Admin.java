@@ -177,7 +177,7 @@ public class Admin extends Application {
 					);
 				
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-			response = Response.ok(gson.toJson(surveys)).build();
+			response = Response.ok(gson.toJson(sm.getSurveyData(surveys))).build();
 				
 		} catch (Exception e) {
 			

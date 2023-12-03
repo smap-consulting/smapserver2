@@ -1143,7 +1143,7 @@ public class PdfUtilities {
 		if(r.qIdx >= 0) {
 			question = form.questions.get(r.qIdx);
 		} if(r.qIdx <= MetaItem.INITIAL_ID) {
-			question = GeneralUtilityMethods.getPreloadAsQuestion(sd, survey.id, r.qIdx);	// A preload
+			question = GeneralUtilityMethods.getPreloadAsQuestion(sd, survey.surveyData.id, r.qIdx);	// A preload
 		} else if(r.qIdx == -1) {
 			question = new Question();													// Server generated
 			question.name = r.name;
@@ -1411,7 +1411,7 @@ public class PdfUtilities {
 		PdfMapValues mapValues = new PdfMapValues();
 		
 		// Geo compound
-		lookupGeoCompoundValueInSurvey(di.linemap.geoCompoundQuestion, survey.instance.results, mapValues);
+		lookupGeoCompoundValueInSurvey(di.linemap.geoCompoundQuestion, survey.surveyData.instance.results, mapValues);
 		
 		if(mapValues.geoCompound) {
 			
@@ -1445,13 +1445,13 @@ public class PdfUtilities {
 			
 		} else if(!mapValues.geoCompound) {
 			// Start point
-			ArrayList<String> startValues = lookupInSurvey(di.linemap.startPoint, survey.instance.results);
+			ArrayList<String> startValues = lookupInSurvey(di.linemap.startPoint, survey.surveyData.instance.results);
 			if(startValues.size() > 0) {
 				mapValues.startLine = startValues.get(0);
 			}
 	
 			// End point
-			ArrayList<String> endValues = lookupInSurvey(di.linemap.endPoint, survey.instance.results);
+			ArrayList<String> endValues = lookupInSurvey(di.linemap.endPoint, survey.surveyData.instance.results);
 			if(endValues.size() > 0) {
 				mapValues.endLine = endValues.get(0);
 			}
@@ -1459,7 +1459,7 @@ public class PdfUtilities {
 			if(di.linemap.markers.size() > 0) {
 				mapValues.markers = new ArrayList<String> ();
 				for(String markerName : di.linemap.markers) {
-					mapValues.markers.addAll(lookupInSurvey(markerName, survey.instance.results));
+					mapValues.markers.addAll(lookupInSurvey(markerName, survey.surveyData.instance.results));
 				}		
 			}
 		}

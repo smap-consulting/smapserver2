@@ -188,7 +188,7 @@ public class FormList extends Application {
 				Survey s = surveys.get(i);
 				form.formID = String.valueOf(s.getIdent());
 				form.name = s.getDisplayName();
-				form.version = String.valueOf(s.version);
+				form.version = String.valueOf(s.surveyData.version);
 				form.hash = "md5:version:" + form.version + ":" + form.formID;		// If the version changes the form should be re-downloaded
 				form.downloadUrl = protocol + host + port + responsePath + "/formXML?key=" + form.formID;
 				if(s.hasManifest()) {

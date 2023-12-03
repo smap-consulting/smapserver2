@@ -144,6 +144,19 @@ public class UtilityMethods {
 	}
 	
 	/*
+	 * Get an expression for required or read only which may be a boolean or string value
+	 */
+	public static String getCompoundExpression(boolean bv, String sv, int fId, String qName, HashMap<String, String> paths) throws Exception {
+		if(bv && sv == null) {
+			return "true()";
+		} else if(bv && sv != null){
+			return convertAllxlsNames(sv, false, paths, fId, true, qName, false);
+		} else {
+			return null;
+		}
+	}
+	
+	/*
 	 * Convert names in xls format ${ } to xPath
 	 */
 	public static String convertAllxlsNames(

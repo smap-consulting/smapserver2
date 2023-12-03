@@ -117,8 +117,8 @@ public class HtmlManifest extends Application{
 			survey = sm.getSurveyId(connectionSD, templateName);	// Get the survey id from the templateName / key
 			boolean superUser = false;
 			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
-			a.isValidSurvey(connectionSD, user, survey.id, false, superUser);	// Validate that the user can access this survey
-			a.isBlocked(connectionSD, survey.id, false);
+			a.isValidSurvey(connectionSD, user, survey.surveyData.id, false, superUser);	// Validate that the user can access this survey
+			a.isBlocked(connectionSD, survey.surveyData.id, false);
 		} catch (Exception e) {
 			response = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
 			try {
@@ -154,7 +154,7 @@ public class HtmlManifest extends Application{
 		// Get any media files
 		try {			
 			// Get database driver and connection to the results database
-			ArrayList<String> media = getMedia(connectionSD, survey.id);
+			ArrayList<String> media = getMedia(connectionSD, survey.surveyData.id);
 			
 			for(int i = 0; i < media.size(); i++) {
 				manifest.append("/media/" + media.get(i) + "\n");		// TODO this is wrong needs to call getFileURL

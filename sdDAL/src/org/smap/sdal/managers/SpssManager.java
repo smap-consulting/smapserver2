@@ -87,8 +87,8 @@ public class SpssManager {
 			 */
 			boolean hasVariable = false;
 			sps.append("VARIABLE LABELS\n");
-			for(int i = 0; i < survey.forms.size(); i++) {
-				Form f = survey.forms.get(i);
+			for(int i = 0; i < survey.surveyData.forms.size(); i++) {
+				Form f = survey.surveyData.forms.get(i);
 				
 				for(int j = 0; j < f.questions.size(); j++) {
 					Question q = f.questions.get(j);
@@ -100,7 +100,7 @@ public class SpssManager {
 						}
 						hasVariable = true;
 						if(q.type.equals("select")) {
-							addSelectVariables(sps, q, label, languageIdx, survey.optionLists);
+							addSelectVariables(sps, q, label, languageIdx, survey.surveyData.optionLists);
 						} else {
 							sps.append(" ");
 							sps.append(q.columnName);
@@ -119,8 +119,8 @@ public class SpssManager {
 			sps.append("\n");
 			sps.append("VALUE LABELS\n");
 			boolean hasValue = false;
-			for(int i = 0; i < survey.forms.size(); i++) {
-				Form f = survey.forms.get(i);
+			for(int i = 0; i < survey.surveyData.forms.size(); i++) {
+				Form f = survey.surveyData.forms.get(i);
 				
 				for(int j = 0; j < f.questions.size(); j++) {
 					Question q = f.questions.get(j);
@@ -135,11 +135,11 @@ public class SpssManager {
 						sps.append(q.columnName);
 						sps.append("\n");
 						
-						addSelect1Values(sps, q, languageIdx, survey.optionLists);
+						addSelect1Values(sps, q, languageIdx, survey.surveyData.optionLists);
 						
 					} else if(q.type.equals("select")) {
 						hasValue = true;
-						addSelectValues(sps, q, languageIdx, survey.optionLists);
+						addSelectValues(sps, q, languageIdx, survey.surveyData.optionLists);
 					}
 				}
 			}	

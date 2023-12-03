@@ -42,7 +42,7 @@
 		
 		<dependency>
 	      	<groupId>smapserver</groupId>
-	      	<artifactId>cloudinterface</artifactId>
+	      	<artifactId>amazon</artifactId>
 	      	<version>1.0.0</version>
       	</dependency>
       	<dependency>
@@ -54,7 +54,6 @@
 	      	<groupId>smapserver</groupId>
 	      	<artifactId>sdDataAccess</artifactId>
 	      	<version>1.0.0</version>
-      	</dependency>
-       
+      	</dependency>      
 	</dependencies>
 </project>

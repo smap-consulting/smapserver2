@@ -89,11 +89,12 @@ public class QuestionManager {
 				+ "parameters, "
 				+ "visible, "
 				+ "readonly, "
+				+ "readonly_expression, "
 				+ "relevant, "
 				+ "qconstraint, "
 				+ "constraint_msg, "
 				+ "mandatory, "
-				+ "required_msg, "
+				+ "required_expression, "
 				+ "autoplay, "
 				+ "accuracy,"
 				+ "nodeset,"
@@ -104,7 +105,8 @@ public class QuestionManager {
 				+ "intent,"
 				+ "set_value"
 				+ ") " 
-				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, "
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
 		PreparedStatement pstmtUpdateSeq = null;
 		String sqlUpdateSeq = "update question set seq = seq + 1 where f_id = ? and seq >= ?;";
@@ -260,13 +262,15 @@ public class QuestionManager {
 				pstmtInsertQuestion.setString(14, params);
 				pstmtInsertQuestion.setBoolean(15, q.visible);
 				pstmtInsertQuestion.setBoolean(16, readonly);
-				pstmtInsertQuestion.setString(17, q.relevant);
-				pstmtInsertQuestion.setString(18, q.constraint);
-				pstmtInsertQuestion.setString(19, q.constraint_msg);
-				pstmtInsertQuestion.setBoolean(20, q.required);
-				pstmtInsertQuestion.setString(21, q.required_msg);
-				pstmtInsertQuestion.setString(22, q.autoplay);
-				pstmtInsertQuestion.setString(23, q.accuracy);
+				pstmtInsertQuestion.setBoolean(16, readonly);
+				pstmtInsertQuestion.setString(17, q.readonly_expression);
+				pstmtInsertQuestion.setString(18, q.relevant);
+				pstmtInsertQuestion.setString(19, q.constraint);
+				pstmtInsertQuestion.setString(20, q.constraint_msg);
+				pstmtInsertQuestion.setBoolean(21, q.required);
+				pstmtInsertQuestion.setString(22, q.required_expression);
+				pstmtInsertQuestion.setString(23, q.autoplay);
+				pstmtInsertQuestion.setString(24, q.accuracy);
 
 				String nodeset = null;
 				String nodeset_value = null;
@@ -287,13 +291,13 @@ public class QuestionManager {
 						nodeset_label = "jr:itext(itextId)";
 					}
 				}
-				pstmtInsertQuestion.setString(24, nodeset);
-				pstmtInsertQuestion.setString(25, nodeset_value);
-				pstmtInsertQuestion.setString(26, nodeset_label);
-				pstmtInsertQuestion.setString(27, sanitise.sanitiseHtml(q.display_name));
-				pstmtInsertQuestion.setBoolean(28, true);		// All select questions now default to compressed
-				pstmtInsertQuestion.setString(29, q.intent);
-				pstmtInsertQuestion.setString(30, q.getSetValueArrayAsString(gson));
+				pstmtInsertQuestion.setString(25, nodeset);
+				pstmtInsertQuestion.setString(26, nodeset_value);
+				pstmtInsertQuestion.setString(27, nodeset_label);
+				pstmtInsertQuestion.setString(28, sanitise.sanitiseHtml(q.display_name));
+				pstmtInsertQuestion.setBoolean(29, true);		// All select questions now default to compressed
+				pstmtInsertQuestion.setString(30, q.intent);
+				pstmtInsertQuestion.setString(31, q.getSetValueArrayAsString(gson));
 				
 				log.info("Insert question: " + pstmtInsertQuestion.toString());
 				pstmtInsertQuestion.executeUpdate();
@@ -1347,7 +1351,7 @@ public class QuestionManager {
 			fId = rs.getInt(1);
 
 			duplicateQuestions(sd, originalFormId, sId, fId, sharedResults);
-			duplicateQuestionLabels(sd, sId, existingSurveyId, originalFormId);
+			duplicateQuestionLabels(sd, sId, existingSurveyId);
 			duplicateOptionsInForm(sd, sId, fId, existingSurveyId);
 
 			// Duplicate sub forms
@@ -1428,8 +1432,8 @@ public class QuestionManager {
 	 */
 	public void duplicateQuestionLabels(Connection sd, 
 			int sId,					// The new survey
-			int existingSurveyId,       // The existing survey
-			int existingFormId) throws Exception {
+			int existingSurveyId)       // The existing survey
+			throws Exception {
 
 		String sql = "insert into translation("
 				+ "s_id,"
@@ -1444,18 +1448,13 @@ public class QuestionManager {
 				+ "type,"
 				+ "value "
 				+ "from translation "
-				+ "where s_id = ? "
-				+ "and "
-				+ "(text_id in (select qtext_id from question where f_id = ?) "
-				+ "or text_id in (select infotext_id from question where f_id = ?));";
+				+ "where s_id = ? ";
 		PreparedStatement pstmt = null;
 
 		try {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, existingSurveyId);
-			pstmt.setInt(2, existingFormId);
-			pstmt.setInt(3, existingFormId);
 
 			log.info("Duplicating question labels: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -1539,12 +1538,13 @@ public class QuestionManager {
 				+ "source, "
 				+ "source_param, "
 				+ "readonly, "
+				+ "readonly_expression, "
 				+ "mandatory, "
 				+ "relevant, "
 				+ "calculate, "
 				+ "qconstraint, "
 				+ "constraint_msg,"
-				+ "required_msg,"
+				+ "required_expression,"
 				+ "appearance,"
 				+ "parameters,"
 				+ "enabled,"
@@ -1575,12 +1575,13 @@ public class QuestionManager {
 				 + "source, "
 				 + "source_param, "
 				 + "readonly, "
+				 + "readonly_expression, "
 				 + "mandatory, "
 				 + "relevant, "
 				 + "calculate, "
 				 + "qconstraint, "
 				 + "constraint_msg, "
-				 + "required_msg, "
+				 + "required_expression, "
 				 + "appearance, "
 				 + "parameters, "
 				 + "enabled, "
@@ -1676,7 +1677,7 @@ public class QuestionManager {
 			ResultSet rs = pstmtGetLists.executeQuery();
 			while(rs.next()) {
 				int l_id = rs.getInt(1);
-				listIdHash.put(new Integer(l_id), new Integer(l_id));
+				listIdHash.put(Integer.valueOf(l_id), Integer.valueOf(l_id));
 			}
 
 			List<Integer> listIds = new ArrayList<Integer>(listIdHash.keySet());
@@ -1811,11 +1812,12 @@ public class QuestionManager {
 				+ "q.parameters, "
 				+ "q.qconstraint, "
 				+ "q.constraint_msg, "
-				+ "q.required_msg, "
+				+ "q.required_expression, "
 				+ "q.nodeset, "
 				+ "q.relevant, "
 				+ "q.visible, "
 				+ "q.readonly, "
+				+ "q.readonly_expression, "
 				+ "q.mandatory, "
 				+ "q.published, "
 				+ "q.column_name, "
@@ -1827,8 +1829,6 @@ public class QuestionManager {
 				+ "q.display_name,"
 				+ "q.f_id,"
 				+ "q.compressed,"
-				+ "q.external_choices,"
-				+ "q.external_table,"
 				+ "q.l_id,"
 				+ "q.intent, "
 				+ "st.name as style_name, "
@@ -1899,45 +1899,46 @@ public class QuestionManager {
 				q.defaultanswer = rsGetQuestions.getString(10);
 				q.appearance = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(11), true);
 				q.paramArray = GeneralUtilityMethods.convertParametersToArray(rsGetQuestions.getString(12));
-				q.parameters = rsGetQuestions.getString(12);		// For online editor - deprecate
-				q.constraint = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(13), true);
-				q.constraint_msg = rsGetQuestions.getString(14);
-				q.required_msg = rsGetQuestions.getString(15);
-				q.nodeset = rsGetQuestions.getString(16);	// Used when writing to HTML
+				q.parameters = rsGetQuestions.getString("parameters");		// For online editor - deprecate
+				q.constraint = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString("qconstraint"), true);
+				q.constraint_msg = rsGetQuestions.getString("constraint_msg");
+				q.required_expression = rsGetQuestions.getString("required_expression");
+				q.nodeset = rsGetQuestions.getString("nodeset");	// Used when writing to HTML
 				q.choice_filter = GeneralUtilityMethods.getChoiceFilterFromNodeset(q.nodeset, true);
 
-				q.relevant = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(17), true);
-				q.visible = rsGetQuestions.getBoolean(18);
-				q.readonly = rsGetQuestions.getBoolean(19);
-				q.required = rsGetQuestions.getBoolean(20);
-				q.published = rsGetQuestions.getBoolean(21);
-				q.columnName = rsGetQuestions.getString(22);
-				q.source_param = rsGetQuestions.getString(23);
-				q.soft_deleted = rsGetQuestions.getBoolean(24);
-				q.autoplay = rsGetQuestions.getString(25);
-				q.accuracy = rsGetQuestions.getString(26);
-				q.linked_target = rsGetQuestions.getString(27);
-				q.display_name = rsGetQuestions.getString(28);
-				q.fId = rsGetQuestions.getInt(29);
-				q.compressed = rsGetQuestions.getBoolean(30);				
-				q.l_id = rsGetQuestions.getInt(33);
-				q.intent = rsGetQuestions.getString(34);
-				q.style_list = rsGetQuestions.getString(35);
+				q.relevant = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString("relevant"), true);
+				q.visible = rsGetQuestions.getBoolean("visible");
+				q.readonly = rsGetQuestions.getBoolean("readonly");
+				q.readonly_expression = rsGetQuestions.getString("readonly_expression");
+				q.required = rsGetQuestions.getBoolean("mandatory");
+				q.published = rsGetQuestions.getBoolean("published");
+				q.columnName = rsGetQuestions.getString("column_name");
+				q.source_param = rsGetQuestions.getString("source_param");
+				q.soft_deleted = rsGetQuestions.getBoolean("soft_deleted");
+				q.autoplay = rsGetQuestions.getString("autoplay");
+				q.accuracy = rsGetQuestions.getString("accuracy");
+				q.linked_target = rsGetQuestions.getString("linked_target");
+				q.display_name = rsGetQuestions.getString("display_name");
+				q.fId = rsGetQuestions.getInt("f_id");
+				q.compressed = rsGetQuestions.getBoolean("compressed");				
+				q.l_id = rsGetQuestions.getInt("l_id");
+				q.intent = rsGetQuestions.getString("intent");
+				q.style_list = rsGetQuestions.getString("style_name");
 				
-				String serverCalculation = rsGetQuestions.getString(36);
+				String serverCalculation = rsGetQuestions.getString("server_calculate");
 				if(serverCalculation != null) {
 					q.server_calculation = gson.fromJson(serverCalculation, ServerCalculation.class);
 				}
 				
-				q.setSetValue(gson, rsGetQuestions.getString(37));
+				q.setSetValue(gson, rsGetQuestions.getString("set_value"));
 				if(mergeDefaultSetValue) {
 					// Add any set values that set the default value into the default field
 					if(q.defaultanswer == null || q.defaultanswer.trim().length() == 0) {
 						q.defaultanswer = q.getDefaultSetValue();
 					}
 				}
-				q.flash = rsGetQuestions.getInt(38);
-				q.trigger = rsGetQuestions.getString(39);
+				q.flash = rsGetQuestions.getInt("flash");
+				q.trigger = rsGetQuestions.getString("trigger");
 				
 				if(q.type.startsWith("select") || q.type.equals("rank")) {
 					GeneralUtilityMethods.setExternalFileValues(sd, q);
@@ -1999,7 +2000,7 @@ public class QuestionManager {
 				if(s != null) {
 					PreparedStatement pstmtLabels = null;
 					try {
-						pstmtLabels = UtilityMethodsEmail.getLabelsStatement(sd, s.id);
+						pstmtLabels = UtilityMethodsEmail.getLabelsStatement(sd, s.surveyData.id);
 						UtilityMethodsEmail.getLabels(pstmtLabels, s, q.text_id, q.labels, basePath, oId);
 					} finally {
 						if(pstmtLabels != null) {try{pstmtLabels.close();}catch(Exception e) {}}

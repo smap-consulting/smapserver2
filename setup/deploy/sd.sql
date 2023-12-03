@@ -47,3 +47,7 @@ alter table s3upload add column created_time timestamp with time zone;
 alter table cms_alert add column filter text;
 
 alter table server add column max_rate integer default 0;
+
+-- Version 23.11
+alter table question add column required_expression text;
+alter table question add column readonly_expression text;

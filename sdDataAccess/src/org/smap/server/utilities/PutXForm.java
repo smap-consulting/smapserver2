@@ -1025,6 +1025,9 @@ public class PutXForm {
 	    		} else if (name.equals("required")) {
 	    			if(attribute.getNodeValue().equals("true()")) {
 	    				q.setMandatory(true);
+	    			} else if(!attribute.getNodeValue().trim().equals("")) {
+	    				q.setMandatory(true);
+	    				q.setRequiredExpression(attribute.getNodeValue().trim());
 	    			}
 	    			
 	    		} else if (name.equals("type")) {
@@ -1058,7 +1061,7 @@ public class PutXForm {
 	   				q.setConstraintMsg(attribute.getNodeValue());   			
 	    			
 	    		} else if (name.equals("jr:requiredMsg")) {
-	   				q.setRequiredMsg(attribute.getNodeValue());   			
+	   				//q.setRequiredMsg(attribute.getNodeValue());   // TODO hand required message for multi language 			
 	    			
 	    		} else if (name.equals("orx:max-pixels")) {
 	   				q.addParameter(attribute.getNodeValue());   			

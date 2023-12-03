@@ -707,7 +707,7 @@ public class NotificationManager {
 
 					lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
 							localisation.getString("filter_applied")
-							.replace("%s1", survey.displayName)
+							.replace("%s1", survey.surveyData.displayName)
 							.replace("%s2", filter)
 							.replace("%s3", instanceId), 0, null);
 
@@ -861,7 +861,7 @@ public class NotificationManager {
 								null);
 
 						outputStream.close();
-						if(survey.compress_pdf) {
+						if(survey.surveyData.compress_pdf) {
 							// Compress the temporary file and write it toa new temporary file
 							String compressedPath = basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";	// New temporary file
 							try {
@@ -892,9 +892,9 @@ public class NotificationManager {
 					
 					EmailManager em = new EmailManager(localisation);
 					String emails = em.getEmails(sd, cResults, surveyId, msg);
-					SendEmailResponse resp = em.sendEmails(sd, cResults, emails, organisation, surveyId, logContent, docURL, survey.displayName, unsubscribedList,
+					SendEmailResponse resp = em.sendEmails(sd, cResults, emails, organisation, surveyId, logContent, docURL, survey.surveyData.displayName, unsubscribedList,
 							filePath, filename, messageId, createPending, topic, msg.user, serverName, 
-							survey.displayName, survey.projectName, msg.subject, msg.from, msg.content, msg.scheme, msg);
+							survey.surveyData.displayName, survey.surveyData.projectName, msg.subject, msg.from, msg.content, msg.scheme, msg);
 					
 					notify_details = resp.notify_details;
 					status = resp.status;
@@ -988,8 +988,8 @@ public class NotificationManager {
 					log.info("+++++ webhook call");
 					notify_details = localisation.getString("cb_nd");
 					notify_details = notify_details.replaceAll("%s1", msg.callback_url);
-					notify_details = notify_details.replaceAll("%s2", survey.displayName);
-					notify_details = notify_details.replaceAll("%s3", survey.projectName);
+					notify_details = notify_details.replaceAll("%s2", survey.surveyData.displayName);
+					notify_details = notify_details.replaceAll("%s3", survey.surveyData.projectName);
 
 					try {
 						JSONArray data = dm.getInstanceData(
@@ -1031,8 +1031,8 @@ public class NotificationManager {
 					log.info("+++++ escalate notification");
 					notify_details = localisation.getString("esc_nd");
 					notify_details = notify_details.replaceAll("%s1", msg.instanceId);
-					notify_details = notify_details.replaceAll("%s2", survey.displayName);
-					notify_details = notify_details.replaceAll("%s3", survey.projectName);
+					notify_details = notify_details.replaceAll("%s2", survey.surveyData.displayName);
+					notify_details = notify_details.replaceAll("%s3", survey.surveyData.projectName);
 					notify_details = notify_details.replaceAll("%s4", assignTo);
 
 					try {
@@ -1065,9 +1065,9 @@ public class NotificationManager {
 					//if(emailsAssigned != null) {
 					//	emails = em.mergeEmailLists(emails, emailsAssigned);
 					//}
-					em.sendEmails(sd, cResults, emails, organisation, surveyId, logContent, docURL, survey.displayName, unsubscribedList,
+					em.sendEmails(sd, cResults, emails, organisation, surveyId, logContent, docURL, survey.surveyData.displayName, unsubscribedList,
 							filePath, filename, messageId, createPending, topic, msg.user, serverName,
-							survey.displayName, survey.projectName,
+							survey.surveyData.displayName, survey.surveyData.projectName,
 							msg.subject, msg.from, msg.content, msg.scheme, msg);
 					
 				} else {
@@ -1400,8 +1400,8 @@ public class NotificationManager {
 
 							notify_details = localisation.getString("msg_er");
 							notify_details = notify_details.replaceAll("%s1", emails);
-							notify_details = notify_details.replaceAll("%s3", survey.displayName);
-							notify_details = notify_details.replaceAll("%s4", survey.projectName);
+							notify_details = notify_details.replaceAll("%s3", survey.surveyData.displayName);
+							notify_details = notify_details.replaceAll("%s4", survey.surveyData.projectName);
 
 							log.info("+++ emailing reminder to: " + emails + " docUrl: " + logContent + 
 									" from: " + from + 

@@ -38,9 +38,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public class JdbcQuestionManager {
-
-	private static Logger log =
-			 Logger.getLogger(GetXForm.class.getName());
 	
 	PreparedStatement pstmt = null;
 	String sql = "insert into question ("
@@ -58,12 +55,13 @@ public class JdbcQuestionManager {
 			+ "source,"
 			+ "source_param,"
 			+ "readonly,"
+			+ "readonly_expression,"
 			+ "mandatory,"
 			+ "relevant,"
 			+ "calculate,"
 			+ "qconstraint,"
 			+ "constraint_msg,"
-			+ "required_msg,"
+			+ "required_expression,"
 			+ "appearance,"
 			+ "parameters,"
 			+ "nodeset,"
@@ -79,7 +77,7 @@ public class JdbcQuestionManager {
 			+ "intent,"
 			+ "set_value"
 			+ ") "
-			+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+			+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 	
@@ -100,12 +98,13 @@ public class JdbcQuestionManager {
 			+ "source,"
 			+ "source_param,"
 			+ "readonly,"
+			+ "readonly_expression,"
 			+ "mandatory,"
 			+ "relevant,"
 			+ "calculate,"
 			+ "qconstraint,"
 			+ "constraint_msg,"
-			+ "required_msg,"
+			+ "required_expression,"
 			+ "appearance,"
 			+ "parameters,"
 			+ "nodeset,"
@@ -164,7 +163,7 @@ public class JdbcQuestionManager {
 		pstmt.setString(16, q.getCalculate(false, null, xFormRoot));
 		pstmt.setString(17, q.getConstraint(false, null, xFormRoot));
 		pstmt.setString(18, q.getConstraintMsg()); // ok
-		pstmt.setString(19, q.getRequiredMsg());
+		pstmt.setString(19, q.getRequiredExpression());
 		pstmt.setString(20, q.getAppearance(false, null));
 		pstmt.setString(21, GeneralUtilityMethods.convertParametersToString(q.getParameters()));
 		
@@ -257,41 +256,42 @@ public class JdbcQuestionManager {
 		ResultSet rs = pstmtGet.executeQuery();
 		while(rs.next()) {
 			Question q = new Question();
-			q.setId(rs.getInt(1));
-			q.setFormId(rs.getInt(2));
-			q.setSeq(rs.getInt(3));
-			q.setName(rs.getString(4));
-			q.setType(rs.getString(5));
-			q.setQuestion(rs.getString(6));
-			q.setQTextId(rs.getString(7));
-			q.setDefaultAnswer(rs.getString(8));
-			q.setInfo(rs.getString(9));
-			q.setInfoTextId(rs.getString(10));
-			q.setVisible(rs.getBoolean(11));
-			q.setSource(rs.getString(12));
-			q.setSourceParam(rs.getString(13));
-			q.setReadOnly(rs.getBoolean(14));
-			q.setMandatory(rs.getBoolean(15));
-			q.setRelevant(rs.getString(16));
-			q.setCalculate(rs.getString(17));
-			q.setConstraint(rs.getString(18));
-			q.setConstraintMsg(rs.getString(19));
-			q.setRequiredMsg(rs.getString(20));
-			q.setAppearance(rs.getString(21));
-			q.setParameters(rs.getString(22));
-			q.setNodeset(rs.getString(23));
-			q.setNodesetValue(rs.getString(24));
-			q.setNodesetLabel(rs.getString(25));
-			q.setColumnName(rs.getString(26));
-			q.setPublished(rs.getBoolean(27));
-			q.setListId(rs.getInt(28));
-			q.setAutoPlay(rs.getString(29));
-			q.setAccuracy(rs.getString(30));
-			q.setDataType(rs.getString(31));
-			q.setCompressed(rs.getBoolean(32));
-			q.setIntent(rs.getString(33));
-			q.setSetValue(gson, rs.getString(34));
-			q.setTrigger(rs.getString(35));
+			q.setId(rs.getInt("q_id"));
+			q.setFormId(rs.getInt("f_id"));
+			q.setSeq(rs.getInt("seq"));
+			q.setName(rs.getString("qname"));
+			q.setType(rs.getString("qtype"));
+			q.setQuestion(rs.getString("question"));
+			q.setQTextId(rs.getString("qtext_id"));
+			q.setDefaultAnswer(rs.getString("defaultanswer"));
+			q.setInfo(rs.getString("info"));
+			q.setInfoTextId(rs.getString("infotext_id"));
+			q.setVisible(rs.getBoolean("visible"));
+			q.setSource(rs.getString("source"));
+			q.setSourceParam(rs.getString("source_param"));
+			q.setReadOnly(rs.getBoolean("readonly"));
+			q.setReadOnlyExpression(rs.getString("readonly_expression"));
+			q.setMandatory(rs.getBoolean("mandatory"));
+			q.setRelevant(rs.getString("relevant"));
+			q.setCalculate(rs.getString("calculate"));
+			q.setConstraint(rs.getString("qconstraint"));
+			q.setConstraintMsg(rs.getString("constraint_msg"));
+			q.setRequiredExpression(rs.getString("required_expression"));
+			q.setAppearance(rs.getString("appearance"));
+			q.setParameters(rs.getString("parameters"));
+			q.setNodeset(rs.getString("nodeset"));
+			q.setNodesetValue(rs.getString("nodeset_value"));
+			q.setNodesetLabel(rs.getString("nodeset_label"));
+			q.setColumnName(rs.getString("column_name"));
+			q.setPublished(rs.getBoolean("published"));
+			q.setListId(rs.getInt("l_id"));
+			q.setAutoPlay(rs.getString("autoplay"));
+			q.setAccuracy(rs.getString("accuracy"));
+			q.setDataType(rs.getString("dataType"));
+			q.setCompressed(rs.getBoolean("compressed"));
+			q.setIntent(rs.getString("intent"));
+			q.setSetValue(gson, rs.getString("set_value"));
+			q.setTrigger(rs.getString("trigger"));
 		
 			/*
 			 * If the list id exists then set the list name

@@ -45,11 +45,12 @@ public class Question {
 	public ServerCalculation server_calculation;
 	public String constraint;
 	public String constraint_msg;
-	public String required_msg;
 	public String relevant;
 	public boolean visible;
 	public boolean readonly;
-	public boolean required;
+	public String readonly_expression;
+	public boolean required;				// Legacy
+	public String required_expression;		// Probably this should contain true or false if the value is boolean
 	public boolean compressed;
 	public boolean propertyType = false;	// If set these questions will not be shown in the editor
 	public boolean published;				// Set true if the question has been added to a results table
@@ -101,17 +102,25 @@ public class Question {
 		this.source_param = q.source_param;
 		this.calculation = q.calculation;
 		this.required = q.required;
-		this.required_msg = q.required_msg;
+		this.required_expression = q.required_expression;
 		this.relevant = q.relevant;
 		this.constraint = q.constraint;
 		this.constraint_msg = q.constraint_msg;
 		this.visible = q.visible;	
 		this.readonly = q.readonly;
+		this.readonly_expression = q.readonly_expression;
 		this.required = q.required;
 		this.compressed = q.compressed;
 		this.autoplay = q.autoplay;
 		this.accuracy = q.accuracy;
 		this.intent = q.intent;
+	}
+	
+	/*
+	 * Return the required value
+	 */
+	public boolean isRequired() {
+		return required;
 	}
 	
 	/*
@@ -122,7 +131,7 @@ public class Question {
 	public Collection<Option> getValidChoices(Survey s) {
 		
 		ArrayList<Option> externalChoices = new ArrayList<Option> ();
-		OptionList ol = s.optionLists.get(list_name);
+		OptionList ol = s.surveyData.optionLists.get(list_name);
 		ArrayList<Option> choiceArray = ol.options;
 		if(choiceArray == null) {
 			choiceArray = new ArrayList<Option> ();

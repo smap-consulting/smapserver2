@@ -176,15 +176,15 @@ public class XFormData {
 					 */
 					
 					boolean debug = false;		// debug
-					log.info("----------------------------- " + survey.displayName + " : " + debug);		// debug
+					log.info("----------------------------- " + survey.surveyData.displayName + " : " + debug);		// debug
 					
 					if(debug) {
-						log.info("       meta size: " + survey.meta.size());
+						log.info("       meta size: " + survey.surveyData.meta.size());
 					}
 					String topFormPath = "/main/";
-					if(survey.meta.size() > 0) {
+					if(survey.surveyData.meta.size() > 0) {
 						// New meta items stored with survey
-						for(MetaItem mi : survey.meta) {
+						for(MetaItem mi : survey.surveyData.meta) {
 							if(mi.isPreload) {
 								if(mi.sourceParam.equals("start")) {
 									thisStart = si.getValue(topFormPath + mi.name);
@@ -202,7 +202,7 @@ public class XFormData {
 						QuestionManager qm = new QuestionManager(localisation);
 						ArrayList<Question> questions = qm.getQuestionsInForm(sd, 
 								null, 		// Not checking for HRK so no need for results database
-								survey.id, 
+								survey.surveyData.id, 
 								0,			// Get the top level form (pass zero) 
 								false,		// Don't get deleted questions 
 								true,		// Get property questions 
@@ -307,41 +307,41 @@ public class XFormData {
 
 			if (survey.getDeleted()) {
 				String reason = localisation.getString("submit_deleted");
-				reason = reason.replace("%s1", survey.displayName);
+				reason = reason.replace("%s1", survey.surveyData.displayName);
 				if (!GeneralUtilityMethods.hasUploadErrorBeenReported(sd, user, si.getImei(), templateName, reason)) {
 					writeUploadError(sd, user, survey, templateName, si, reason);
 				}
-				throw new ApplicationException("deleted::" + survey.displayName);
+				throw new ApplicationException("deleted::" + survey.surveyData.displayName);
 			}
 			
 			// Throw an exception if the survey has been blocked from accepting any more submissions
 			if (survey.getBlocked()) { 
 				String reason = localisation.getString("submit_blocked");
-				reason = reason.replace("%s1", survey.displayName);
+				reason = reason.replace("%s1", survey.surveyData.displayName);
 				if (!GeneralUtilityMethods.hasUploadErrorBeenReported(sd, user, si.getImei(), templateName, reason)) {
 					writeUploadError(sd, user, survey, templateName, si, reason);
 				}
 
-				throw new ApplicationException("blocked::" + survey.displayName);
+				throw new ApplicationException("blocked::" + survey.surveyData.displayName);
 			}
 			
 			/*
 			 * Throw an exception if the submission limit for an organisation has been reached
 			 */
 			ResourceManager rm = new ResourceManager();
-			if(!rm.canUse(sd, survey.o_id, LogManager.SUBMISSION)) {
+			if(!rm.canUse(sd, survey.surveyData.o_id, LogManager.SUBMISSION)) {
 				String reason = localisation.getString("submission_limit");
 				if (!GeneralUtilityMethods.hasUploadErrorBeenReported(sd, user, si.getImei(), templateName, reason)) {
 					writeUploadError(sd, user, survey, templateName, si, reason);
 				}
 				EmailManager em = new EmailManager(localisation);
 				StringBuilder template = new StringBuilder(localisation.getString("submission_limit_email"));
-				em.alertAdministrator(sd, survey.o_id, user, localisation, serverName, reason,
+				em.alertAdministrator(sd, survey.surveyData.o_id, user, localisation, serverName, reason,
 						template, LogManager.SUBMISSION);
 
 				throw new ApplicationException("blocked::" + reason);
 			} else {
-				rm.recordUsage(sd, survey.o_id, survey.id, LogManager.SUBMISSION, null, user, 1);
+				rm.recordUsage(sd, survey.surveyData.o_id, survey.surveyData.id, LogManager.SUBMISSION, null, user, 1);
 			}
 
 			log.info("###### submitted by: " + user);
@@ -353,7 +353,7 @@ public class XFormData {
 				} catch (Exception e) {
 				}
 			}
-			a.isValidSurvey(sd, user, survey.id, false, superUser); // Throw an exception if the user is not authorised
+			a.isValidSurvey(sd, user, survey.surveyData.id, false, superUser); // Throw an exception if the user is not authorised
 																	// to upload this survey
 			
 			/*
@@ -393,13 +393,13 @@ public class XFormData {
 			}
 			ue.setFormStatus(form_status);
 			ue.setServerName(serverName);
-			ue.setSurveyId(survey.id);
+			ue.setSurveyId(survey.surveyData.id);
 			ue.setIdent(templateName);
 			ue.setFilePath(saveDetails.filePath);
 			ue.setAuditFilePath(auditFilePath);
 			ue.setProjectId(survey.getPId());
-			ue.setOrganisationId(survey.o_id);
-			ue.setEnterpriseId(survey.e_id);
+			ue.setOrganisationId(survey.surveyData.o_id);
+			ue.setEnterpriseId(survey.surveyData.e_id);
 			ue.setUploadTime(new Date());
 			ue.setFileName(saveDetails.fileName);
 			ue.setSurveyName(survey.getDisplayName());
@@ -472,7 +472,7 @@ public class XFormData {
 		UploadEvent ue = new UploadEvent();
 		ue.setUserName(user);
 		ue.setServerName(serverName);
-		ue.setSurveyId(survey.id);
+		ue.setSurveyId(survey.surveyData.id);
 		ue.setIdent(templateName);
 		ue.setProjectId(survey.getPId());
 		ue.setUploadTime(new Date());
@@ -493,7 +493,7 @@ public class XFormData {
 			}
 		}
 
-		lm.writeLog(sd, survey.id, user, LogManager.ERROR, reason, 0, null); // Write the application log
+		lm.writeLog(sd, survey.surveyData.id, user, LogManager.ERROR, reason, 0, null); // Write the application log
 
 	}
 

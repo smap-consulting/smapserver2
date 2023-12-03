@@ -94,6 +94,8 @@ public class Question {
 	
 	private boolean readOnly = false;
 	
+	private String readOnlyExpression;
+	
 	private boolean mandatory = false;
 	
 	private boolean compressed = false;
@@ -106,7 +108,7 @@ public class Question {
 	
 	private String constraint_msg;
 	
-	private String required_msg;
+	private String required_expression;
 	
 	private String appearance;
 	
@@ -253,6 +255,10 @@ public class Question {
 		}
 	}
 	
+	public String getReadOnlyExpression() {
+		return readOnlyExpression;
+	}
+	
 	public boolean isRepeatCount() {
 		return repeatCount;
 	}
@@ -284,6 +290,21 @@ public class Question {
 		return resp;
 	}
 
+	/*
+	 * Get an expression
+	 */
+	public String getExpression(String in, HashMap<String, String> questionPaths, String xFormRoot) throws Exception {
+		String v = in;
+		
+		if(xFormRoot != null) {
+			v = substituteRootName(v, xFormRoot);
+		}
+		
+		v = UtilityMethods.convertAllxlsNames(v, false, questionPaths, f_id, false, name, false);
+
+		return v;
+	}
+	
 	/*
 	 * Get the relevance
 	 *  if convertToXPath is set then any names in the format ${...} will be converted to an Xpath
@@ -346,8 +367,8 @@ public class Question {
 		return constraint_msg;
 	}
 	
-	public String getRequiredMsg() {
-		return required_msg;
+	public String getRequiredExpression() {
+		return required_expression;
 	}
 	
 	public String getAppearance(boolean convertToXPath, HashMap<String, String> questionPaths) throws Exception {
@@ -583,6 +604,10 @@ public class Question {
 		readOnly = v;
 	}
 	
+	public void setReadOnlyExpression(String v) {
+		readOnlyExpression = v;
+	}
+	
 	public void setRepeatCount(boolean v) {
 		repeatCount = v;
 	}
@@ -611,8 +636,8 @@ public class Question {
 		constraint_msg = v;
 	}
 	
-	public void setRequiredMsg(String v) {
-		required_msg = v;
+	public void setRequiredExpression(String v) {
+		required_expression = v;
 	}
 	
 	public void setAppearance(String v) {

@@ -42,10 +42,10 @@ public class AuditManager {
 		
 		for(Survey s: surveys) {
 			DataEndPoint dep = new DataEndPoint();
-			dep.id = s.id;
-			dep.id_string = s.ident;
-			dep.title = s.displayName;
-			dep.description = s.displayName;
+			dep.id = s.surveyData.id;
+			dep.id_string = s.surveyData.ident;
+			dep.title = s.surveyData.displayName;
+			dep.description = s.surveyData.displayName;
 			dep.url = urlprefix + dep.id_string;
 			
 			//if(s.forms != null && s.forms.size() > 0) {

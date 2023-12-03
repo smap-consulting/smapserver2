@@ -17,6 +17,7 @@ subscribers/.aws/
 koboToolboxApi/.aws/
 koboToolboxApi/target/
 surveyMobileApi/target/
+surveyKPI/target/
 
 build/css.orig
 
@@ -34,7 +35,7 @@ tmp/
 local.properties
 .loadpath
 .component
-.settings
+#.settings
 .classpath
 
 .idea/

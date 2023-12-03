@@ -1,10 +1,7 @@
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -23,19 +20,6 @@ import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.apache.commons.io.FileUtils;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
 import org.smap.notifications.interfaces.S3AttachmentUpload;
@@ -67,7 +51,6 @@ import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TableColumn;
 import org.smap.server.entities.MissingSurveyException;
 import org.smap.server.entities.MissingTemplateException;
 import org.smap.server.entities.SubscriberEvent;
@@ -379,7 +362,7 @@ public class SubscriberBatch {
 							+ "and p.id = s.p_id "
 							+ "and not q.soft_deleted "
 							+ "and not s.deleted "
-							+ "and q.appearance like '%keppel%'";
+							+ "and (q.appearance like '%keppel%' or q.appearance like '%fingerprintreader%')";
 					
 					PreparedStatement pstmt = null;
 					PreparedStatement pstmtClear = null;
@@ -401,9 +384,8 @@ public class SubscriberBatch {
 						while(rs.next()) {
 							
 							String appearance = rs.getString("appearance");
-							if(appearance.contains(linkMgr.REQUEST_FP_IMAGE) || appearance.contains(linkMgr.REQUEST_FP_ISO_TEMPLATE)) {
-							
-								
+							if(linkMgr.isLinkageItem(rs.getString("appearance"))) {
+										
 								int sId = rs.getInt("s_id");
 								int fId = rs.getInt("f_id");
 								int parentForm = rs.getInt("parentform");
@@ -1040,7 +1022,7 @@ public class SubscriberBatch {
 					CaseManagementSettings settings = settingsCache.get(groupSurveyIdent);
 					if(settings == null) {
 						pstmtSettings.setString(1,groupSurveyIdent);
-						log.info("CMS Settings: " + pstmtSettings.toString());
+						//log.info("CMS Settings: " + pstmtSettings.toString());
 						ResultSet srs = pstmtSettings.executeQuery();
 						if(srs.next()) {
 							settings = gson.fromJson(srs.getString("settings"), CaseManagementSettings.class);
@@ -1085,7 +1067,7 @@ public class SubscriberBatch {
 							idx = GeneralUtilityMethods.setFragParams(pstmtMatches, filterFrag, idx, tz);
 						}
 						
-						log.info(pstmtMatches.toString());
+						//log.info(pstmtMatches.toString());
 						try {
 							ResultSet mrs = pstmtMatches.executeQuery();
 							

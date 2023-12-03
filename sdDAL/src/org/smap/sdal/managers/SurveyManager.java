@@ -76,6 +76,7 @@ import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.SurveyDAO;
 import org.smap.sdal.model.SurveyIdent;
 import org.smap.sdal.model.SurveyLinks;
 import org.smap.sdal.model.SurveySummary;
@@ -233,26 +234,26 @@ public class SurveyManager {
 				s.setLoadedFromXLS(resultSet.getBoolean("loaded_from_xls"));
 				s.setProjectName(resultSet.getString("project_name"));
 				s.setProjectId(resultSet.getInt("project_id"));
-				s.groupSurveyIdent = resultSet.getString("group_survey_ident");
-				s.publicLink = resultSet.getString("public_link");
+				s.surveyData.groupSurveyIdent = resultSet.getString("group_survey_ident");
+				s.surveyData.publicLink = resultSet.getString("public_link");
 				s.setHideOnDevice(resultSet.getBoolean("hide_on_device"));
 				s.setSearchLocalData(resultSet.getBoolean("search_local_data"));
-				s.dataSurvey = resultSet.getBoolean("data_survey");
-				s.oversightSurvey = resultSet.getBoolean("oversight_survey");
-				s.readOnlySurvey = resultSet.getBoolean("read_only_survey");
+				s.surveyData.dataSurvey = resultSet.getBoolean("data_survey");
+				s.surveyData.oversightSurvey = resultSet.getBoolean("oversight_survey");
+				s.surveyData.readOnlySurvey = resultSet.getBoolean("read_only_survey");
 				
 				if(getGroupDetails) {
-					pstmtGetGroupDetails.setString(1, s.groupSurveyIdent);
-					pstmtGetGroupDetails.setString(2, s.groupSurveyIdent);
+					pstmtGetGroupDetails.setString(1, s.surveyData.groupSurveyIdent);
+					pstmtGetGroupDetails.setString(2, s.surveyData.groupSurveyIdent);
 					ResultSet rsGroup = pstmtGetGroupDetails.executeQuery();
 					if(rsGroup.next()) {
-						s.groupSurveyDetails = rsGroup.getString(1) + " : " + rsGroup.getString(2);
+						s.surveyData.groupSurveyDetails = rsGroup.getString(1) + " : " + rsGroup.getString(2);
 					}
 				}
 				
 				if(links) {
-					s.links = new SurveyLinks();
-					s.links.mailouts = urlprefix + "api/v1/mailout/" + s.ident + "?links=true";
+					s.surveyData.links = new SurveyLinks();
+					s.surveyData.links.mailouts = urlprefix + "api/v1/mailout/" + s.surveyData.ident + "?links=true";
 				}
 	
 				surveys.add(s);
@@ -325,16 +326,16 @@ public class SurveyManager {
 				s.setVersion(resultSet.getInt("version"));
 				s.setLoadedFromXLS(resultSet.getBoolean("loaded_from_xls"));
 
-				pstmtGetForms.setInt(1, s.id);
+				pstmtGetForms.setInt(1, s.surveyData.id);
 				ResultSet rsForms = pstmtGetForms.executeQuery();
 				while(rsForms.next()) {
-					if(s.forms == null) {
-						s.forms = new ArrayList<Form> ();
+					if(s.surveyData.forms == null) {
+						s.surveyData.forms = new ArrayList<Form> ();
 					}
 					Form f = new Form();
 					f.id = rsForms.getInt(1);
 					f.name = rsForms.getString(2);
-					s.forms.add(f);
+					s.surveyData.forms.add(f);
 				}
 				surveys.add(s);
 			} 
@@ -479,48 +480,48 @@ public class SurveyManager {
 				s.setIdent(resultSet.getString("ident"));
 				s.setDisplayName(resultSet.getString("display_name"));
 				s.setDeleted(resultSet.getBoolean("deleted"));
-				s.blocked = resultSet.getBoolean("blocked");
+				s.surveyData.blocked = resultSet.getBoolean("blocked");
 				s.setProjectName(resultSet.getString("pname"));
 				s.setProjectId(resultSet.getInt("p_id"));
-				s.def_lang = resultSet.getString("def_lang");
-				s.task_file = resultSet.getBoolean("task_file");
-				s.timing_data = resultSet.getBoolean("timing_data");
-				s.o_id = resultSet.getInt("o_id");
-				s.surveyClass = resultSet.getString("class");
-				s.instanceNameDefn = GeneralUtilityMethods.convertAllXpathNames(resultSet.getString("instance_name"), true);
-				s.basedOn = resultSet.getString("based_on");
-				s.created = resultSet.getTimestamp("created");
-				s.loadedFromXLS = resultSet.getBoolean("loaded_from_xls");
+				s.surveyData.def_lang = resultSet.getString("def_lang");
+				s.surveyData.task_file = resultSet.getBoolean("task_file");
+				s.surveyData.timing_data = resultSet.getBoolean("timing_data");
+				s.surveyData.o_id = resultSet.getInt("o_id");
+				s.surveyData.surveyClass = resultSet.getString("class");
+				s.surveyData.instanceNameDefn = GeneralUtilityMethods.convertAllXpathNames(resultSet.getString("instance_name"), true);
+				s.surveyData.basedOn = resultSet.getString("based_on");
+				s.surveyData.created = resultSet.getTimestamp("created");
+				s.surveyData.loadedFromXLS = resultSet.getBoolean("loaded_from_xls");
 
 				Type type = new TypeToken<ArrayList<Pulldata>>(){}.getType();
-				s.pulldata = new Gson().fromJson(resultSet.getString("pulldata"), type); 
+				s.surveyData.pulldata = new Gson().fromJson(resultSet.getString("pulldata"), type); 
 
-				s.version = resultSet.getInt("version");
-				s.exclude_empty = resultSet.getBoolean("exclude_empty");
-				s.compress_pdf = resultSet.getBoolean("compress_pdf");
+				s.surveyData.version = resultSet.getInt("version");
+				s.surveyData.exclude_empty = resultSet.getBoolean("exclude_empty");
+				s.surveyData.compress_pdf = resultSet.getBoolean("compress_pdf");
 				String meta = resultSet.getString("meta");
 				if(meta != null) {
-					s.meta = new Gson().fromJson(meta, 
+					s.surveyData.meta = new Gson().fromJson(meta, 
 							new TypeToken<ArrayList<MetaItem>>(){}.getType()); 
 				} else {
 					getLegacyMeta();
 				}
-				s.groupSurveyIdent = resultSet.getString("group_survey_ident");
-				s.publicLink = resultSet.getString("public_link");
-				s.e_id = resultSet.getInt("e_id");
+				s.surveyData.groupSurveyIdent = resultSet.getString("group_survey_ident");
+				s.surveyData.publicLink = resultSet.getString("public_link");
+				s.surveyData.e_id = resultSet.getInt("e_id");
 				s.setHideOnDevice(resultSet.getBoolean("hide_on_device"));
 				s.setSearchLocalData(resultSet.getBoolean("search_local_data"));
-				s.dataSurvey = resultSet.getBoolean("data_survey");
-				s.oversightSurvey = resultSet.getBoolean("oversight_survey");
-				s.readOnlySurvey = resultSet.getBoolean("read_only_survey");
-				s.audit_location_data = resultSet.getBoolean("audit_location_data");
-				s.myReferenceData = resultSet.getBoolean("my_reference_data");
-				s.track_changes = resultSet.getBoolean("track_changes");
-				s.autoTranslate = resultSet.getBoolean("auto_translate");
-				s.default_logo = resultSet.getString("default_logo");
+				s.surveyData.dataSurvey = resultSet.getBoolean("data_survey");
+				s.surveyData.oversightSurvey = resultSet.getBoolean("oversight_survey");
+				s.surveyData.readOnlySurvey = resultSet.getBoolean("read_only_survey");
+				s.surveyData.audit_location_data = resultSet.getBoolean("audit_location_data");
+				s.surveyData.myReferenceData = resultSet.getBoolean("my_reference_data");
+				s.surveyData.track_changes = resultSet.getBoolean("track_changes");
+				s.surveyData.autoTranslate = resultSet.getBoolean("auto_translate");
+				s.surveyData.default_logo = resultSet.getString("default_logo");
 				
 				KeyManager km = new KeyManager(localisation);
-				s.uk = km.get(sd, s.groupSurveyIdent);
+				s.surveyData.uk = km.get(sd, s.surveyData.groupSurveyIdent);
 				
 			} else {
 				log.info("Error: survey not found");
@@ -539,7 +540,7 @@ public class SurveyManager {
 				if(getResults) {								// Add results
 
 					Form ff = s.getFirstForm();
-					s.instance.results = getResults(
+					s.surveyData.instance.results = getResults(
 							ff, 
 							s.getFormIdx(ff.id), 
 							0,	
@@ -559,17 +560,17 @@ public class SurveyManager {
 							s, 
 							generateDummyValues,
 							geomFormat,
-							s.o_id,
+							s.surveyData.o_id,
 							true,
 							referenceSurveys	,	// Whether or not to get referenced surveys
 							onlyGetLaunched		// Use with referenceSuveys to restrict results to those created by launching another form
 							);
-					if(s.instance.results.size() > 0) {
-						ArrayList<Result> topForm = s.instance.results.get(0);
+					if(s.surveyData.instance.results.size() > 0) {
+						ArrayList<Result> topForm = s.surveyData.instance.results.get(0);
 						// Get the user ident that submitted the survey
 						for(Result r : topForm) {
 							if(r.type.equals("user")) {
-								s.instance.user = r.value;
+								s.surveyData.instance.user = r.value;
 								break;
 							}
 						}
@@ -859,24 +860,24 @@ public class SurveyManager {
 		PreparedStatement pstmtGetChanges = sd.prepareStatement(sqlGetChanges);
 		
 		// Get the available languages
-		s.languages = GeneralUtilityMethods.getLanguages(sd, s.id);
+		s.surveyData.languages = GeneralUtilityMethods.getLanguages(sd, s.surveyData.id);
 
 		// Get the organisation id
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 
 		// Set the default language if it has not previously been set	
-		if(s.def_lang == null) {
-			if(s.languages != null && s.languages.size() > 0) {
-				s.def_lang = s.languages.get(0).name;
+		if(s.surveyData.def_lang == null) {
+			if(s.surveyData.languages != null && s.surveyData.languages.size() > 0) {
+				s.surveyData.def_lang = s.surveyData.languages.get(0).name;
 			} else {
-				s.def_lang = "language";
+				s.surveyData.def_lang = "language";
 			}
 		}
 
 		QuestionManager qm = new QuestionManager(localisation);
 
 		// Get the Forms
-		pstmtGetForms.setInt(1, s.id);
+		pstmtGetForms.setInt(1, s.surveyData.id);
 		log.info("Get forms: " + pstmtGetForms.toString());
 		rsGetForms = pstmtGetForms.executeQuery();
 
@@ -894,27 +895,27 @@ public class SurveyManager {
 
 			f.questions = qm.getQuestionsInForm(sd, 
 					cResults,
-					s.id,
+					s.surveyData.id,
 					f.id, 
 					getSoftDeleted, 
 					getPropertyTypeQuestions, getHrk, 
 					f.parentform,
-					s.uk.key,
-					s.languages.size(),
+					s.surveyData.uk.key,
+					s.surveyData.languages.size(),
 					f.tableName,
 					basePath,
 					oId,
 					s,
 					mergeDefaultSetValue);
 
-			s.forms.add(f);
+			s.surveyData.forms.add(f);
 		} 
 
 		// Add the parentFormIndex and parent question index to sub forms
-		for(Form f : s.forms) {
+		for(Form f : s.surveyData.forms) {
 			if(f.parentform > 0) {
-				for(int i = 0; i < s.forms.size(); i++) {
-					Form aForm = s.forms.get(i);
+				for(int i = 0; i < s.surveyData.forms.size(); i++) {
+					Form aForm = s.surveyData.forms.get(i);
 					if(aForm.id == f.parentform) {
 						f.parentFormIndex = i;
 						for(int j = 0; j < aForm.questions.size(); j++) {
@@ -936,7 +937,7 @@ public class SurveyManager {
 		/*
 		 * Get the option lists
 		 */
-		pstmtGetLists.setInt(1, s.id);
+		pstmtGetLists.setInt(1, s.surveyData.id);
 		log.info("Get lists for survey: " + pstmtGetLists.toString());
 		rsGetLists = pstmtGetLists.executeQuery();
 
@@ -955,16 +956,16 @@ public class SurveyManager {
 				} else if(getExternalOptions.equals("internal")) {
 					external = false;
 				} else if(getExternalOptions.equals("real")) {
-					external = GeneralUtilityMethods.listHasExternalChoices(sd, s.id, listId);
+					external = GeneralUtilityMethods.listHasExternalChoices(sd, s.surveyData.id, listId);
 				}
 			}
 
 			// Get external options if required
 			ArrayList<Option> externalOptions = new ArrayList<> ();
 			if(external) {
-				int qId = GeneralUtilityMethods.getQuestionFromList(sd, s.id, listId);
+				int qId = GeneralUtilityMethods.getQuestionFromList(sd, s.surveyData.id, listId);
 				externalOptions = GeneralUtilityMethods.getExternalChoices(sd, 
-						cResults, localisation, user, oId, s.id, qId, null, s.ident, tz, null, null);
+						cResults, localisation, user, oId, s.surveyData.id, qId, null, s.surveyData.ident, tz, null, null);
 			} 
 			
 			// Get options from meta definition - insert external if required when not a numeric option
@@ -989,7 +990,7 @@ public class SurveyManager {
 					try {
 						o.cascade_filters = gson.fromJson(cascade_filters, hmType);
 						for (String key : o.cascade_filters.keySet()) {
-							s.filters.put(key, true);
+							s.surveyData.filters.put(key, true);
 						}
 	
 					} catch (Exception e) {
@@ -1005,7 +1006,7 @@ public class SurveyManager {
 				// Get the labels for the option
 				PreparedStatement pstmtLabels = null;
 				try {
-					pstmtLabels = UtilityMethodsEmail.getLabelsStatement(sd, s.id);
+					pstmtLabels = UtilityMethodsEmail.getLabelsStatement(sd, s.surveyData.id);
 					UtilityMethodsEmail.getLabels(pstmtLabels, s, o.text_id, o.labels, basePath, oId);
 				} finally {
 					if(pstmtLabels != null) {try{pstmtLabels.close();}catch(Exception e) {}}
@@ -1030,14 +1031,14 @@ public class SurveyManager {
 				}
 			}
 
-			s.optionLists.put(listName, optionList);
+			s.surveyData.optionLists.put(listName, optionList);
 
 		}
 
 		/*
 		 * Get the style lists
 		 */
-		pstmtGetStyles.setInt(1, s.id);
+		pstmtGetStyles.setInt(1, s.surveyData.id);
 		log.info("Get styles for survey: " + pstmtGetStyles.toString());
 		rsGetStyles = pstmtGetStyles.executeQuery();
 
@@ -1049,7 +1050,7 @@ public class SurveyManager {
 			if(style != null) {
 				sl.markup = gson.fromJson(style, markupType);
 			}
-			s.styleLists.put(styleListName, sl);
+			s.surveyData.styleLists.put(styleListName, sl);
 		}
 		
 		// Add the server side calculations
@@ -1064,7 +1065,7 @@ public class SurveyManager {
 			ssc.setUnits(rsGetSSC.getString(5));
 			ssc.setForm(rsGetSSC.getString(6));
 			ssc.setFormId(rsGetSSC.getInt(7));
-			s.sscList.add(ssc);
+			s.surveyData.sscList.add(ssc);
 		}
 
 		// Add the change log
@@ -1087,22 +1088,22 @@ public class SurveyManager {
 				cl.success = rsGetChanges.getBoolean(7) || !cl.apply_results;	// Set the update of the results database to success automatically if a change does not need to be applied
 				cl.msg = rsGetChanges.getString(8);
 
-				s.changes.add(cl);
+				s.surveyData.changes.add(cl);
 			}
 		}
 		
 		// Get the roles
 		if(getRoles) {
 			RoleManager rm = new RoleManager(localisation);
-			ArrayList<Role> roles = rm.getSurveyRoles(sd, s.ident, oId, true, user, superUser);	// Get enabled roles
+			ArrayList<Role> roles = rm.getSurveyRoles(sd, s.surveyData.ident, oId, true, user, superUser);	// Get enabled roles
 			for(Role r : roles) {
-				s.roles.put(r.name, r);
+				s.surveyData.roles.put(r.name, r);
 			}
 		}
 		
 		// Get the Meta Items
 		if(getPropertyTypeQuestions) {
-			s.meta = GeneralUtilityMethods.getPreloads(sd, s.id);
+			s.surveyData.meta = GeneralUtilityMethods.getPreloads(sd, s.surveyData.id);
 		}
 
 
@@ -1157,25 +1158,25 @@ public class SurveyManager {
 				boolean orgCanSubmit = resultSet.getBoolean("can_submit");				
 				s.setBlocked(surveyBlocked || !orgCanSubmit);
 				
-				s.surveyClass = resultSet.getString("class");
-				s.deleted = resultSet.getBoolean("deleted");
-				s.displayName = resultSet.getString("display_name");
-				s.ident = resultSet.getString("ident");
-				s.version = resultSet.getInt("version");
+				s.surveyData.surveyClass = resultSet.getString("class");
+				s.surveyData.deleted = resultSet.getBoolean("deleted");
+				s.surveyData.displayName = resultSet.getString("display_name");
+				s.surveyData.ident = resultSet.getString("ident");
+				s.surveyData.version = resultSet.getInt("version");
 				String meta = resultSet.getString("meta");
 				if(meta != null) {
-					s.meta = new Gson().fromJson(meta, 
+					s.surveyData.meta = new Gson().fromJson(meta, 
 							new TypeToken<ArrayList<MetaItem>>(){}.getType()); 
 				} else {
 					getLegacyMeta();
 				}
-				s.o_id = resultSet.getInt("o_id");
-				s.e_id = resultSet.getInt("e_id");
-				s.groupSurveyIdent = resultSet.getString("group_survey_ident");
-				s.readOnlySurvey = resultSet.getBoolean("read_only_survey");
+				s.surveyData.o_id = resultSet.getInt("o_id");
+				s.surveyData.e_id = resultSet.getInt("e_id");
+				s.surveyData.groupSurveyIdent = resultSet.getString("group_survey_ident");
+				s.surveyData.readOnlySurvey = resultSet.getBoolean("read_only_survey");
 				
 				KeyManager km = new KeyManager(localisation);
-				s.uk = km.get(sd, s.groupSurveyIdent);
+				s.surveyData.uk = km.get(sd, s.surveyData.groupSurveyIdent);
 				
 			}
 		} catch (Exception e) {
@@ -2707,7 +2708,7 @@ public class SurveyManager {
 				 */
 				if(isTopLevel) {
 					
-					preloads = GeneralUtilityMethods.getPreloads(sd, s.id);
+					preloads = GeneralUtilityMethods.getPreloads(sd, s.surveyData.id);
 					for(MetaItem mi : preloads) {
 						if(mi.isPreload) {			
 							if(GeneralUtilityMethods.hasColumn(cResults, form.tableName, mi.columnName)) {
@@ -2998,7 +2999,7 @@ public class SurveyManager {
 				if(refSurvey != null) {
 
 					// Get the forms for this Survey and add them to the list of forms for the main survey
-					s.forms.addAll(refSurvey.forms);
+					s.surveyData.forms.addAll(refSurvey.surveyData.forms);
 					
 					Form mainSubForm = refSurvey.getFirstForm();					
 					Result nr = new Result(qName, "form", null, false, fIdx, qIdx, 0, null, appearance, null);		// Result entry for this question
@@ -4288,8 +4289,8 @@ public class SurveyManager {
 					cResults,
 					localisation,
 					"none",
-					s.id,
-					s.ident,
+					s.surveyData.id,
+					s.surveyData.ident,
 					null,
 					null,		// roles for column filtering
 					0,			// parent form id
@@ -4329,8 +4330,8 @@ public class SurveyManager {
 					cResults,
 					columns,
 					urlprefix,
-					s.id,
-					s.ident,
+					s.surveyData.id,
+					s.surveyData.ident,
 					0,			// SubForm Id - Not required
 					form.tableName,
 					parkey,
@@ -4435,7 +4436,7 @@ public class SurveyManager {
 					/*
 					 * Check for repeats
 					 */
-					for(Form f : s.forms) {
+					for(Form f : s.surveyData.forms) {
 						if(f.parentform == form.id) {
 							if(instance.repeats == null) {
 								instance.repeats = new HashMap<String, ArrayList<Instance>> ();
@@ -4443,7 +4444,7 @@ public class SurveyManager {
 							int parentQuestion = f.parentQuestionIndex;
 							Question q = form.questions.get(parentQuestion);
 							String qName = q.name;
-							if(q.display_name != null) {
+							if(q.display_name != null && q.display_name.trim().length() > 0) {
 								qName = q.display_name;
 							}
 							if(instance.repeats.get(qName) == null) {
@@ -4562,8 +4563,8 @@ public class SurveyManager {
 			/*
 			 * Translate Question labels
 			 */
-			for(int i = 0; i < survey.forms.size(); i++) {
-				ArrayList<Question> formQuestions = survey.forms.get(i).questions; 
+			for(int i = 0; i < survey.surveyData.forms.size(); i++) {
+				ArrayList<Question> formQuestions = survey.surveyData.forms.get(i).questions; 
 				
 				for(int j = 0; j < formQuestions.size(); j++) {
 
@@ -4590,7 +4591,7 @@ public class SurveyManager {
 									q.id,
 									q.labels.get(toLanguageIndex).text,
 									toText,
-									survey.languages.get(toLanguageIndex).name));
+									survey.surveyData.languages.get(toLanguageIndex).name));
 	
 						}
 					}
@@ -4619,7 +4620,7 @@ public class SurveyManager {
 									q.id,
 									q.labels.get(toLanguageIndex).hint,
 									toText,
-									survey.languages.get(toLanguageIndex).name));
+									survey.surveyData.languages.get(toLanguageIndex).name));
 						}
 					}
 			
@@ -4647,7 +4648,7 @@ public class SurveyManager {
 									q.id,
 									q.labels.get(toLanguageIndex).constraint_msg,
 									toText,
-									survey.languages.get(toLanguageIndex).name));
+									survey.surveyData.languages.get(toLanguageIndex).name));
 						}
 					}
 					
@@ -4675,7 +4676,7 @@ public class SurveyManager {
 									q.id,
 									q.labels.get(toLanguageIndex).required_msg,
 									toText,
-									survey.languages.get(toLanguageIndex).name));
+									survey.surveyData.languages.get(toLanguageIndex).name));
 						}
 					}
 					
@@ -4703,7 +4704,7 @@ public class SurveyManager {
 									q.id,
 									q.labels.get(toLanguageIndex).guidance_hint,
 									toText,
-									survey.languages.get(toLanguageIndex).name));
+									survey.surveyData.languages.get(toLanguageIndex).name));
 						}
 					}
 					
@@ -4713,8 +4714,8 @@ public class SurveyManager {
 			/*
 			 * Translate Choices
 			 */
-			for(String listname : survey.optionLists.keySet()) {
-				OptionList ol = survey.optionLists.get(listname);
+			for(String listname : survey.surveyData.optionLists.keySet()) {
+				OptionList ol = survey.surveyData.optionLists.get(listname);
 				for(int j = 0; j < ol.options.size(); j++) {
 
 					Option o = ol.options.get(j);
@@ -4741,7 +4742,7 @@ public class SurveyManager {
 						ci.property.propType = "text";	// as opposed to media
 						ci.property.oldVal = o.labels.get(toLanguageIndex).text;
 						ci.property.newVal = toText;
-						ci.property.languageName = survey.languages.get(toLanguageIndex).name;
+						ci.property.languageName = survey.surveyData.languages.get(toLanguageIndex).name;
 						cs.items.add(ci);
 					}
 					
@@ -4781,7 +4782,7 @@ public class SurveyManager {
 	}
 	
 	/*
-	 * If a form is replaced the form will need to be replaced in the report
+	 * Get some summary level details for the ident
 	 */
 	public SurveySummary getSummary(Connection sd, String sIdent) throws SQLException {
 		
@@ -4802,6 +4803,40 @@ public class SurveyManager {
 				summary.ident = sIdent;
 				summary.displayName = rs.getString("display_name");
 				summary.projectName = rs.getString("name");
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+		}
+		return summary;
+	}
+	
+	/*
+	 * Get a full summary of the survey including organisation and enterprise
+	 */
+	public SurveySummary getFullSummary(Connection sd, String sIdent) throws SQLException {
+		
+		String sql = "select s.display_name, s.version, p.name as proj_name, "
+				+ "o.name as org_name, e.name as ent_name "
+				+ "from survey s, project p, organisation o, enterprise e "
+				+ "where s.p_id = p.id "
+				+ "and p.o_id = o.id "
+				+ "and o.e_id = e.id "
+				+ "and s.ident = ? ";
+		PreparedStatement pstmt = null;
+		SurveySummary summary = new SurveySummary();
+		
+		try {
+	
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, sIdent);
+
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				summary.ident = sIdent;
+				summary.displayName = rs.getString("display_name");
+				summary.projectName = rs.getString("proj_name");
+				summary.organisation = rs.getString("org_name");
+				summary.enterprise = rs.getString("ent_name");
 			}
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
@@ -4980,5 +5015,18 @@ public class SurveyManager {
 		}
 		
 		return templateFile;
+	}
+	
+	/*
+	 * Return an array of survey data from an array of surveys
+	 */
+	public ArrayList<SurveyDAO> getSurveyData(ArrayList<Survey> surveys) {
+		ArrayList<SurveyDAO> data = new ArrayList<>();
+		if(surveys != null) {
+			for(Survey survey : surveys) {
+				data.add(survey.surveyData);
+			}
+		}
+		return data;
 	}
 }

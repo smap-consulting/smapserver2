@@ -152,7 +152,7 @@ public class GetHtml {
 		bodyElement.setAttribute("novalidate", "novalidate");
 		bodyElement.setAttribute("autocomplete", "off");
 		bodyElement.setAttribute("class",
-				"or clearfix" + (survey.surveyClass != null ? (" " + survey.surveyClass) : ""));
+				"or clearfix" + (survey.surveyData.surveyClass != null ? (" " + survey.surveyData.surveyClass) : ""));
 		bodyElement.setAttribute("dir", "ltr");
 		bodyElement.setAttribute("id", survey.getIdent());
 
@@ -178,17 +178,17 @@ public class GetHtml {
 		// Languages
 		bodyElement = outputDoc.createElement("select");
 		bodyElement.setAttribute("id", "form-languages");
-		if (survey.languages == null || survey.languages.size() <= 1) {
+		if (survey.surveyData.languages == null || survey.surveyData.languages.size() <= 1) {
 			bodyElement.setAttribute("style", "display:none;");
 		}
-		bodyElement.setAttribute("data-default-lang", survey.def_lang);
+		bodyElement.setAttribute("data-default-lang", survey.surveyData.def_lang);
 		populateLanguageChoices(bodyElement);
 		parent.appendChild(bodyElement);
 
 		/*
 		 * Add preloads to the questionPaths hashmap so they can be referenced
 		 */
-		ArrayList<MetaItem> preloads = survey.meta;
+		ArrayList<MetaItem> preloads = survey.surveyData.meta;
 		for(MetaItem mi : preloads) {
 			if(mi.isPreload) {
 				paths.put(mi.name, "/main/" + mi.name);
@@ -196,7 +196,7 @@ public class GetHtml {
 		}
 		
 		// Questions
-		for (Form form : survey.forms) {
+		for (Form form : survey.surveyData.forms) {
 			if (form.parentform == 0) { // Start with top level form
 				log.info("Adding questions from: " + form.name);
 				addPaths(form, "/");
@@ -212,7 +212,7 @@ public class GetHtml {
 	private void populateLanguageChoices(Element parent) {
 		Element bodyElement = null;
 		int idx = 0;
-		for (Language lang : survey.languages) {
+		for (Language lang : survey.surveyData.languages) {
 			bodyElement = outputDoc.createElement("option");
 			bodyElement.setAttribute("value", lang.name);
 			
@@ -228,7 +228,7 @@ public class GetHtml {
 			parent.appendChild(bodyElement);
 
 			// Save the index of the default language
-			if (lang.name.equals(survey.def_lang)) {
+			if (lang.name.equals(survey.surveyData.def_lang)) {
 				languageIndex = idx;
 			}
 			idx++;
@@ -261,7 +261,7 @@ public class GetHtml {
 
 			} else if (q.type.equals("begin repeat")) {
 
-				for (Form subForm : survey.forms) {
+				for (Form subForm : survey.surveyData.forms) {
 					if (subForm.parentQuestion == q.id) { // continue with next form
 						addPaths(subForm, pathStem);
 						break;
@@ -468,8 +468,10 @@ public class GetHtml {
 			if (q.readonly) {
 				input.setAttribute("readonly", "readonly");
 			}
-			if (q.required) {
-				input.setAttribute("data-required", "true()");
+			if (q.isRequired()) {
+				input.setAttribute("data-required", UtilityMethods.getCompoundExpression(q.required, 
+						q.required_expression,
+						form.id, q.name, paths));
 			}
 			// relevant
 			if (q.relevant != null && q.relevant.trim().length() > 0) {
@@ -588,8 +590,8 @@ public class GetHtml {
 		bodyElement.setAttribute("style", "display:none;");
 		bodyElement.setAttribute("id", "or-preload-items");
 		
-		if(survey.meta != null) {
-			for(MetaItem mi : survey.meta) {
+		if(survey.surveyData.meta != null) {
+			for(MetaItem mi : survey.surveyData.meta) {
 				if(mi.isPreload) {
 					preloadLabel = outputDoc.createElement("label");
 					preloadLabel.setAttribute("class", "calculation non-select");
@@ -647,7 +649,7 @@ public class GetHtml {
 			calculationLabel.appendChild(calculationInput);
 			
 			// instanceName
-			if(survey.instanceNameDefn != null && survey.instanceNameDefn.trim().length() > 0) { 
+			if(survey.surveyData.instanceNameDefn != null && survey.surveyData.instanceNameDefn.trim().length() > 0) { 
 				calculationLabel = outputDoc.createElement("label");
 				calculationLabel.setAttribute("class", "calculation non-select");
 				bodyElement.appendChild(calculationLabel);
@@ -656,7 +658,7 @@ public class GetHtml {
 				calculationInput.setAttribute("name", "/main/meta/instanceName");			
 				calculationInput.setAttribute("data-type-xml", "string");
 				calculationInput.setAttribute("data-calculate",
-						" " + UtilityMethods.convertAllxlsNames(survey.instanceNameDefn, false, paths, form.id, true, "instanceName", false) + " ");
+						" " + UtilityMethods.convertAllxlsNames(survey.surveyData.instanceNameDefn, false, paths, form.id, true, "instanceName", false) + " ");
 				calculationLabel.appendChild(calculationInput);
 			}
 		}
@@ -684,7 +686,7 @@ public class GetHtml {
 			} 
 			
 			if (q.type.equals("begin repeat")) {
-				for (Form subForm : survey.forms) {
+				for (Form subForm : survey.surveyData.forms) {
 					if (subForm.parentQuestion == q.id) { // continue with next form
 						if(subForm.reference) {
 							calculation = "0";
@@ -758,7 +760,7 @@ public class GetHtml {
 			// Process calculations in repeats
 			if (q.type.equals("begin repeat")) {
 				// Process sub form
-				for (Form subForm : survey.forms) {
+				for (Form subForm : survey.surveyData.forms) {
 					if (subForm.parentQuestion == q.id) { // continue with next form
 						processCalculationQuestions(bodyElement, subForm);
 						break;
@@ -809,8 +811,10 @@ public class GetHtml {
 		if (q.readonly) {
 			textElement.setAttribute("readonly", "readonly");
 		}
-		if (q.required) {
-			textElement.setAttribute("data-required", "true()");
+		if (q.isRequired()) {
+			textElement.setAttribute("data-required", UtilityMethods.getCompoundExpression(q.required, 
+					q.required_expression,
+					form.id, q.name, paths));
 		}
 		// Dynamic Default
 		if (q.calculation != null && q.calculation.trim().length() > 0) {
@@ -874,8 +878,10 @@ public class GetHtml {
 			selectElement.setAttribute("data-constraint",
 					UtilityMethods.convertAllxlsNames(q.constraint, false, paths, form.id, true, q.name, false));
 		}
-		if (q.required) {
-			selectElement.setAttribute("data-required", "true()");
+		if (q.isRequired()) {
+			selectElement.setAttribute("data-required", UtilityMethods.getCompoundExpression(q.required, 
+					q.required_expression,
+					form.id, q.name, paths));
 		}
 		if (q.calculation != null && q.calculation.trim().length() > 0) {
 			selectElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name, false));
@@ -984,8 +990,10 @@ public class GetHtml {
 			if (q.calculation != null && q.calculation.trim().length() > 0) {
 				inputElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name, false));
 			}
-			if (q.required) {
-				inputElement.setAttribute("data-required", "true()");
+			if (q.isRequired()) {
+				inputElement.setAttribute("data-required", UtilityMethods.getCompoundExpression(q.required, 
+						q.required_expression,
+						form.id, q.name, paths));
 			}
 			if (q.relevant != null && q.relevant.trim().length() > 0) {
 				inputElement.setAttribute("data-relevant",
@@ -1026,6 +1034,8 @@ public class GetHtml {
 	 */
 	private void addLabelContents(Element parent, Question q, Form form, boolean hideLabels) throws Exception {
 
+		StringBuilder classValue = new StringBuilder();
+		
 		// span
 		if(!hideLabels) {
 			addLabels(parent, q, form);
@@ -1078,13 +1088,15 @@ public class GetHtml {
 			bodyElement.setAttribute("min", GeneralUtilityMethods.getSurveyParameter("start", q.paramArray));
 			bodyElement.setAttribute("max", GeneralUtilityMethods.getSurveyParameter("end", q.paramArray));
 			bodyElement.setAttribute("step", GeneralUtilityMethods.getSurveyParameter("step", q.paramArray));
-			bodyElement.setAttribute("class", "hide");
+			classValue.append("hide");
 		}
 
 		// Required - note allow required on read only questions to support form level
 		// validation trick
-		if (q.required && !q.type.startsWith("select")) {
-			bodyElement.setAttribute("data-required", "true()");
+		if (q.isRequired() && !q.type.startsWith("select")) {
+			bodyElement.setAttribute("data-required", UtilityMethods.getCompoundExpression(q.required, 
+					q.required_expression,
+					form.id, q.name, paths));
 		}
 
 		// decimal
@@ -1117,10 +1129,17 @@ public class GetHtml {
 		
 			bodyElement.setAttribute("data-event", sv.event);
 			bodyElement.setAttribute("data-setvalue", UtilityMethods.convertAllxlsNames(sv.value, false, paths, form.id, true, q.name, false));
-			bodyElement.setAttribute("class", "action setvalue form-control-action " + sv.event);
+			if(classValue.length() > 0) {
+				classValue.append(" ");
+			}
+			classValue.append("action form-control-action ref-target ");
+			classValue.append(sv.event);
 		}
 		
-
+		if(classValue.length() > 0) {
+			bodyElement.setAttribute("class",  classValue.toString());
+		}
+		
 		parent.appendChild(bodyElement);
 		if (q.type.equals("image")) {
 			parent.appendChild(createDynamicInput());	// Add a dummy value for dynamic defaults
@@ -1173,8 +1192,10 @@ public class GetHtml {
 				inputElement.setAttribute("data-constraint", UtilityMethods.convertAllxlsNames(q.constraint, false, paths, form.id, true, q.name, false));
 			}
 
-			if(q.required) {
-				inputElement.setAttribute("data-required", "true()");
+			if(q.isRequired()) {
+				inputElement.setAttribute("data-required", UtilityMethods.getCompoundExpression(q.required, 
+						q.required_expression,
+						form.id, q.name, paths));
 			}
 			if (q.readonly) {
 				inputElement.setAttribute("readonly", "readonly");
@@ -1209,7 +1230,7 @@ public class GetHtml {
 		boolean hasNodeset = hasNodeset(sd, q, form);
 		Element labelElement = null;
 
-		OptionList optionList = survey.optionLists.get(q.list_name);
+		OptionList optionList = survey.surveyData.optionLists.get(q.list_name);
 		if(optionList != null) {
 			ArrayList<Option> options = optionList.options;
 			for (Option o : options) {
@@ -1237,7 +1258,7 @@ public class GetHtml {
 				}
 				int idx = 0;
 				Element bodyElement = null;
-				for (Language lang : survey.languages) {
+				for (Language lang : survey.surveyData.languages) {
 					bodyElement = outputDoc.createElement("span");
 					if (hasNodeset) {
 						parent.appendChild(bodyElement);
@@ -1246,7 +1267,7 @@ public class GetHtml {
 					}
 					bodyElement.setAttribute("lang", lang.name);
 					bodyElement.setAttribute("class",
-							"option-label" + (lang.name.equals(survey.def_lang) ? " active" : ""));
+							"option-label" + (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 					bodyElement.setAttribute("data-itext-id", o.text_id);
 	
 					String label = o.labels.get(idx).text;
@@ -1303,7 +1324,7 @@ public class GetHtml {
 	
 	private void addMinimalOptionLabels(Connection sd, Element parent, Question q, Form form) throws Exception {
 
-		OptionList ol = survey.optionLists.get(q.list_name);
+		OptionList ol = survey.surveyData.optionLists.get(q.list_name);
 		if(ol != null) {
 			ArrayList<Option> options = ol.options;
 			
@@ -1312,11 +1333,11 @@ public class GetHtml {
 				//Element inputElement = outputDoc.createElement("span");
 				//parent.appendChild(inputElement);
 				int idx = 0;
-				for (Language lang : survey.languages) {
+				for (Language lang : survey.surveyData.languages) {
 					Element optionElement = outputDoc.createElement("span");
 					parent.appendChild(optionElement);
 					optionElement.setAttribute("lang", lang.name);
-					optionElement.setAttribute("class", "option-label" + (lang.name.equals(survey.def_lang) ? " active" : ""));
+					optionElement.setAttribute("class", "option-label" + (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 					optionElement.setAttribute("data-itext-id", o.text_id);
 					
 					String label = o.labels.get(idx).text;
@@ -1369,7 +1390,7 @@ public class GetHtml {
 		bodyElement.setAttribute("name", paths.get(getRefName(q.name, form)));
 
 		// Process sub form
-		for (Form subForm : survey.forms) {
+		for (Form subForm : survey.surveyData.forms) {
 			if (subForm.parentQuestion == q.id) { // continue with next form
 				processQuestions(sd, bodyElement, subForm);
 				newForm = subForm;
@@ -1395,12 +1416,12 @@ public class GetHtml {
 		boolean requiredMessageAdded = false;
 		boolean constraintMessageAdded = false;
 		boolean requiredIndicatorAdded = false;
-		for (Language lang : survey.languages) {
+		for (Language lang : survey.surveyData.languages) {
 
 			// Label
 			bodyElement = outputDoc.createElement("span");
 			bodyElement.setAttribute("lang", lang.name);
-			bodyElement.setAttribute("class", "question-label" + (lang.name.equals(survey.def_lang) ? " active" : ""));
+			bodyElement.setAttribute("class", "question-label" + (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("data-itext-id", q.text_id);
 
 			String label = q.labels.get(idx).text;
@@ -1422,7 +1443,7 @@ public class GetHtml {
 			if (hint != null && hint.trim().length() > 0) {
 				bodyElement = outputDoc.createElement("span");
 				bodyElement.setAttribute("lang", lang.name);
-				bodyElement.setAttribute("class", "or-hint" + (lang.name.equals(survey.def_lang) ? " active" : ""));
+				bodyElement.setAttribute("class", "or-hint" + (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 				bodyElement.setAttribute("data-itext-id", q.hint_id);
 
 				try {
@@ -1441,7 +1462,7 @@ public class GetHtml {
 			if (guidance != null && guidance.trim().length() > 0) {
 				bodyElement = outputDoc.createElement("details");
 				bodyElement.setAttribute("lang", lang.name);
-				bodyElement.setAttribute("class", "or-form-guidance" + (lang.name.equals(survey.def_lang) ? " active" : ""));
+				bodyElement.setAttribute("class", "or-form-guidance" + (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 
 				Element summaryElement = outputDoc.createElement("summary");
 				summaryElement.setAttribute("data-i18n", "hint.guidance.details");
@@ -1460,7 +1481,7 @@ public class GetHtml {
 			
 			// Constraint
 			constraintMessageAdded = addConstraintMsg(q.labels.get(idx).constraint_msg, lang.name, parent, idx);
-			if(q.required) {
+			if(q.isRequired()) {
 				if(q.labels.get(idx).required_msg != null) {
 					if(!requiredIndicatorAdded) {
 						bodyElement = outputDoc.createElement("span");
@@ -1484,14 +1505,11 @@ public class GetHtml {
 		}
 
 		// Required (Without a language)
-		if (q.required && !requiredMessageAdded) {
+		if (q.isRequired() && !requiredMessageAdded) {
 			bodyElement = outputDoc.createElement("span");
 			bodyElement.setAttribute("class", "required");
 			bodyElement.setTextContent("*");
 			parent.appendChild(bodyElement);
-
-			// Message
-			parent.appendChild(getRequiredMsg(q.required_msg, null, true));
 		}
 		
 		if (q.readonly && !(parent.getNodeName() == null || parent.getNodeName().equals("label") || parent.getNodeName().equals("h4"))) {
@@ -1565,7 +1583,7 @@ public class GetHtml {
 		if (image != null && image.trim().length() > 0) {
 			bodyElement = outputDoc.createElement("img");
 			bodyElement.setAttribute("lang", lang.name);
-			bodyElement.setAttribute("class", (lang.name.equals(survey.def_lang) ? " active" : ""));
+			bodyElement.setAttribute("class", (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("src", "jr://images/" + image);
 			bodyElement.setAttribute("alt", "image");
 			bodyElement.setAttribute("data-itext-id", textId);
@@ -1578,7 +1596,7 @@ public class GetHtml {
 		if (audio != null && audio.trim().length() > 0) {
 			bodyElement = outputDoc.createElement("audio");
 			bodyElement.setAttribute("lang", lang.name);
-			bodyElement.setAttribute("class", (lang.name.equals(survey.def_lang) ? " active" : ""));
+			bodyElement.setAttribute("class", (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("src", "jr://audio/" + audio);
 			bodyElement.setAttribute("alt", "audio");
 			bodyElement.setAttribute("controls", "controls");
@@ -1593,7 +1611,7 @@ public class GetHtml {
 		if (video != null && video.trim().length() > 0) {
 			bodyElement = outputDoc.createElement("video");
 			bodyElement.setAttribute("lang", lang.name);
-			bodyElement.setAttribute("class", (lang.name.equals(survey.def_lang) ? " active" : ""));
+			bodyElement.setAttribute("class", (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("src", "jr://video/" + video);
 			bodyElement.setAttribute("alt", "video");
 			bodyElement.setAttribute("data-itext-id", textId);
@@ -1694,7 +1712,7 @@ public class GetHtml {
 	private boolean hasLabel(Question q) {
 		boolean hasLabel = false;
 
-		for (int i = 0; i < survey.languages.size(); i++) {
+		for (int i = 0; i < survey.surveyData.languages.size(); i++) {
 			if (q.labels.get(i) != null) {
 				Label l = q.labels.get(i);
 				if ((l.text != null && l.text.trim().length() > 0) || l.image != null || l.video != null
@@ -1886,7 +1904,7 @@ public class GetHtml {
 
 	private void addDataList(Element parent, Question q, Form form) throws Exception {
 
-		ArrayList<Option> options = survey.optionLists.get(q.list_name).options;
+		ArrayList<Option> options = survey.surveyData.optionLists.get(q.list_name).options;
 
 		Element bodyElement = outputDoc.createElement("option"); // No selection value
 		parent.appendChild(bodyElement);
@@ -1908,12 +1926,12 @@ public class GetHtml {
 
 	private void addOptionTranslations(Element parent, Question q, Form form) throws Exception {
 
-		ArrayList<Option> options = survey.optionLists.get(q.list_name).options;
+		ArrayList<Option> options = survey.surveyData.optionLists.get(q.list_name).options;
 		if(options != null) {
 			for (Option o : options) {
 				int idx = 0;
 				Element bodyElement = null;
-				for (Language lang : survey.languages) {
+				for (Language lang : survey.surveyData.languages) {
 					bodyElement = outputDoc.createElement("span");
 					parent.appendChild(bodyElement);
 					bodyElement.setAttribute("lang", lang.name);

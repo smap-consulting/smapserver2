@@ -387,7 +387,7 @@ public class GetXForm {
 						 * Add the translation XML fragment to the output
 						 */
 						Document xfragDoc;
-						if (type.equals("image") || type.equals("video") || type.equals("audio")  || type.equals("file")) {
+						if (type.equals("image") || type.equals("big-image") || type.equals("video") || type.equals("audio")  || type.equals("file")) {
 							String base = type;
 							if (type.equals("image")) {
 								base = "images";
@@ -741,7 +741,7 @@ public class GetXForm {
 					questionElement = outputDoc.createElement(q.getName());
 					String def = q.getDefaultAnswer();
 					if (def != null && def.length() > 0) {
-						if(qType.equals("image") && !def.startsWith("jr://")) {
+						if((qType.equals("image") || qType.equals("big-image"))  && !def.startsWith("jr://")) {
 							def = "jr://images/" + def;
 						}
 						questionElement.setTextContent(def);
@@ -935,19 +935,36 @@ public class GetXForm {
 		if (!count) {
 			// Add read only
 			if (q.isReadOnly() || q.getType().equals("note")) {	
-				questionElement.setAttribute("readonly", "true()");
+				if(q.getReadOnlyExpression() == null) {
+					questionElement.setAttribute("readonly", "true()");
+				} else {
+					// ReadOnly expression
+					String expr = q.getExpression(q.getReadOnlyExpression(), template.getQuestionPaths(), template.getXFormFormName());
+					questionElement.setAttribute("readonly", expr);
+				}
 			}
 
 			// Add mandatory
 			if (q.isMandatory()) {
-				questionElement.setAttribute("required", "true()");
-
-				// Add required message
-				String requiredMsg = q.getRequiredMsg();
-				if (requiredMsg != null && requiredMsg.trim().length() > 0) {
-					questionElement.setAttribute("jr:requiredMsg", requiredMsg);
+				if(q.getRequiredExpression() == null) {
+					questionElement.setAttribute("required", "true()");
+				} else {
+					// Check for a mandatory expression
+					String expr = q.getExpression(q.getRequiredExpression(), template.getQuestionPaths(), template.getXFormFormName());
+					questionElement.setAttribute("required", expr);
 				}
-			}
+
+				// Add multi language required
+				String textId = q.getQTextId();
+				if(textId != null) {
+					String requiredId = textId.replace(":label", ":required");
+					String exists = multiLanguageRequireds.get(requiredId);
+					if(exists != null) {						
+						questionElement.setAttribute("jr:requiredMsg", 
+								"jr:itext('" + requiredId + "')");
+					}
+				}
+			} 
 
 			// Add relevant
 			String relevant = q.getRelevant(true, template.getQuestionPaths(), template.getXFormFormName());
@@ -978,23 +995,6 @@ public class GetXForm {
 				}
 			}
 			
-			// Add required message
-			String requiredMsg = q.getRequiredMsg();
-			if (requiredMsg != null && requiredMsg.trim().length() > 0) {
-				questionElement.setAttribute("jr:requiredMsg", requiredMsg);
-			} else {
-				// Add multi language required
-				String textId = q.getQTextId();
-				if(textId != null) {
-					String requiredId = textId.replace(":label", ":required");
-					String exists = multiLanguageRequireds.get(requiredId);
-					if(exists != null) {						
-						questionElement.setAttribute("jr:requiredMsg", 
-								"jr:itext('" + requiredId + "')");
-					}
-				}
-			}
-
 			// Add bind parameters
 			String pixelParam = GeneralUtilityMethods.getSurveyParameter("max-pixels", q.getParameters());
 			if(pixelParam != null) {

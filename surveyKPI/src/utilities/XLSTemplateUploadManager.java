@@ -128,7 +128,7 @@ public class XLSTemplateUploadManager {
 		public ArrayList<Question> getExpanded() {
 			ArrayList<Question> expanded = new ArrayList<Question> ();
 			
-			ArrayList<Option> choices = survey.optionLists.get(begin.list_name).options;
+			ArrayList<Option> choices = survey.surveyData.optionLists.get(begin.list_name).options;
 			expanded.addAll(getGroupQuestions(null, begin.name, "header", 1 + 2 * member.size()));
 			for(Option c : choices) {
 				expanded.addAll(getGroupQuestions(c, begin.name, c.value, 1 + 2 * member.size()));
@@ -267,15 +267,15 @@ public class XLSTemplateUploadManager {
 
 		// Create survey and set defaults
 		survey = new Survey();
-		survey.displayName = displayName;
-		survey.o_id = oId;
-		survey.p_id = p_id;
-		survey.version = merge ? existingVersion + 1 : 1;
-		survey.loadedFromXLS = true;
-		survey.deleted = false;
-		survey.blocked = false;
-		survey.meta.add(new MetaItem(metaId--, "string", "instanceID", null, "instanceid", null, false, null, null));
-		survey.meta.add(new MetaItem(metaId--, "string", "instanceName", null, "instancename", null, false, null, null));
+		survey.surveyData.displayName = displayName;
+		survey.surveyData.o_id = oId;
+		survey.surveyData.p_id = p_id;
+		survey.surveyData.version = merge ? existingVersion + 1 : 1;
+		survey.surveyData.loadedFromXLS = true;
+		survey.surveyData.deleted = false;
+		survey.surveyData.blocked = false;
+		survey.surveyData.meta.add(new MetaItem(metaId--, "string", "instanceID", null, "instanceid", null, false, null, null));
+		survey.surveyData.meta.add(new MetaItem(metaId--, "string", "instanceName", null, "instancename", null, false, null, null));
 
 		surveySheet = wb.getSheet("survey");		
 		choicesSheet = wb.getSheet("choices");
@@ -296,7 +296,7 @@ public class XLSTemplateUploadManager {
 			lastRowNumSettings = settingsSheet.getLastRowNum();
 		}		
 
-		getHeaders();	// get headers for survey, choices and setting. Use thse to set the languages
+		getHeaders();	// get headers for survey, choices and setting. Use these to set the languages
 
 		/*
 		 * 1. Process the choices sheet
@@ -311,10 +311,10 @@ public class XLSTemplateUploadManager {
 					String listName = XLSUtilities.getTextColumn(wb, row, "list_name", choicesHeader, lastCellNum, null);
 
 					if(listName != null) {
-						OptionList ol = survey.optionLists.get(listName);
+						OptionList ol = survey.surveyData.optionLists.get(listName);
 						if(ol == null) {
 							ol = new OptionList();
-							survey.optionLists.put(listName, ol);
+							survey.surveyData.optionLists.put(listName, ol);
 						}
 						ol.options.add(getOption(row, listName));
 					}
@@ -344,10 +344,10 @@ public class XLSTemplateUploadManager {
 					}
 
 					if(styleList != null) {
-						StyleList sl = survey.styleLists.get(styleList);
+						StyleList sl = survey.surveyData.styleLists.get(styleList);
 						if(sl == null) {
 							sl = new StyleList ();
-							survey.styleLists.put(styleList, sl);
+							survey.surveyData.styleLists.put(styleList, sl);
 						}
 						sl.markup.add(getStyle(row, styleList));
 					}
@@ -376,10 +376,10 @@ public class XLSTemplateUploadManager {
 					String value = XLSUtilities.getTextColumn(wb, row, "value", conditionsHeader, lastCellNum, null);
 
 					if(questionName != null && rule != null && value != null) {
-						ServerCalculation sc = survey.serverCalculations.get(questionName);
+						ServerCalculation sc = survey.surveyData.serverCalculations.get(questionName);
 						if(sc == null) {
 							sc = new ServerCalculation ();
-							survey.serverCalculations.put(questionName, sc);
+							survey.surveyData.serverCalculations.put(questionName, sc);
 						}
 						sc.addCondition(new Condition(rule, value));
 					}
@@ -395,7 +395,7 @@ public class XLSTemplateUploadManager {
 		 */
 		Form f = getForm("main", -1, -1, null);
 		// Validate the top level form
-		if(survey.forms.get(0).questions.size() == 0) {
+		if(survey.surveyData.forms.get(0).questions.size() == 0) {
 			throw new ApplicationException(localisation.getString("tu_nq"));
 		}
 		validateForm(1, f);
@@ -409,11 +409,11 @@ public class XLSTemplateUploadManager {
 				int lastCellNum = row.getLastCellNum();
 
 				// Default language
-				survey.def_lang = XLSUtilities.getTextColumn(wb, row, "default_language", settingsHeader, lastCellNum, null);
-				if(survey.def_lang != null) {
+				survey.surveyData.def_lang = XLSUtilities.getTextColumn(wb, row, "default_language", settingsHeader, lastCellNum, null);
+				if(survey.surveyData.def_lang != null) {
 					boolean validLanguage = false;
-					for(Language l : survey.languages) {
-						if(l.name.equals(survey.def_lang)) {
+					for(Language l : survey.surveyData.languages) {
+						if(l.name.equals(survey.surveyData.def_lang)) {
 							validLanguage = true;
 							break;
 						}
@@ -423,34 +423,34 @@ public class XLSTemplateUploadManager {
 					}
 				}
 
-				survey.instanceNameDefn = XLSUtilities.getTextColumn(wb, row, "instance_name", settingsHeader, lastCellNum, null);
-				survey.surveyClass = XLSUtilities.getTextColumn(wb, row, "style", settingsHeader, lastCellNum, null);
-				survey.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum, false);
+				survey.surveyData.instanceNameDefn = XLSUtilities.getTextColumn(wb, row, "instance_name", settingsHeader, lastCellNum, null);
+				survey.surveyData.surveyClass = XLSUtilities.getTextColumn(wb, row, "style", settingsHeader, lastCellNum, null);
+				survey.surveyData.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum, false);
 				survey.setHideOnDevice(getBooleanColumn(row, "hide_on_device", settingsHeader, lastCellNum, false));
 				survey.setSearchLocalData(getBooleanColumn(row, "search_local_data", settingsHeader, lastCellNum, false));
-				survey.dataSurvey = getBooleanColumn(row, "data_survey", settingsHeader, lastCellNum, true);
-				survey.oversightSurvey = getBooleanColumn(row, "oversight_survey", settingsHeader, lastCellNum, true);
-				survey.readOnlySurvey = getBooleanColumn(row, "read_only_survey", settingsHeader, lastCellNum, false);
-				survey.myReferenceData = getBooleanColumn(row, "my_reference_data", settingsHeader, lastCellNum, false);
+				survey.surveyData.dataSurvey = getBooleanColumn(row, "data_survey", settingsHeader, lastCellNum, true);
+				survey.surveyData.oversightSurvey = getBooleanColumn(row, "oversight_survey", settingsHeader, lastCellNum, true);
+				survey.surveyData.readOnlySurvey = getBooleanColumn(row, "read_only_survey", settingsHeader, lastCellNum, false);
+				survey.surveyData.myReferenceData = getBooleanColumn(row, "my_reference_data", settingsHeader, lastCellNum, false);
 				
-				survey.timing_data = getBooleanColumn(row, "timing_data", settingsHeader, lastCellNum, false);
-				survey.audit_location_data = getBooleanColumn(row, "audit_location_data", settingsHeader, lastCellNum, false);
-				survey.track_changes = getBooleanColumn(row, "track_changes", settingsHeader, lastCellNum, false);
-				survey.compress_pdf = getBooleanColumn(row, "compress_pdf", settingsHeader, lastCellNum, false);
+				survey.surveyData.timing_data = getBooleanColumn(row, "timing_data", settingsHeader, lastCellNum, false);
+				survey.surveyData.audit_location_data = getBooleanColumn(row, "audit_location_data", settingsHeader, lastCellNum, false);
+				survey.surveyData.track_changes = getBooleanColumn(row, "track_changes", settingsHeader, lastCellNum, false);
+				survey.surveyData.compress_pdf = getBooleanColumn(row, "compress_pdf", settingsHeader, lastCellNum, false);
 
-				survey.uk.key = XLSUtilities.getTextColumn(wb, row, "key", settingsHeader, lastCellNum, null);
+				survey.surveyData.uk.key = XLSUtilities.getTextColumn(wb, row, "key", settingsHeader, lastCellNum, null);
 				
-				survey.uk.key_policy = XLSUtilities.getTextColumn(wb, row, "key_policy", settingsHeader, lastCellNum, null);
-				if(survey.uk.key_policy == null) {
-					survey.uk.key_policy = SurveyManager.KP_NONE;
+				survey.surveyData.uk.key_policy = XLSUtilities.getTextColumn(wb, row, "key_policy", settingsHeader, lastCellNum, null);
+				if(survey.surveyData.uk.key_policy == null) {
+					survey.surveyData.uk.key_policy = SurveyManager.KP_NONE;
 				}
-				if(!SurveyManager.isValidSurveyKeyPolicy(survey.uk.key_policy)) {
+				if(!SurveyManager.isValidSurveyKeyPolicy(survey.surveyData.uk.key_policy)) {
 					String msg = localisation.getString("tu_inv_kp");
-					msg = msg.replace("%s1", survey.uk.key_policy);
+					msg = msg.replace("%s1", survey.surveyData.uk.key_policy);
 					throw new ApplicationException(msg);
 				}
-				survey.autoTranslate = getBooleanColumn(row, "auto_translate", settingsHeader, lastCellNum, false);
-				survey.default_logo = XLSUtilities.getTextColumn(wb, row, "report_logo", settingsHeader, lastCellNum, null);
+				survey.surveyData.autoTranslate = getBooleanColumn(row, "auto_translate", settingsHeader, lastCellNum, false);
+				survey.surveyData.default_logo = XLSUtilities.getTextColumn(wb, row, "report_logo", settingsHeader, lastCellNum, null);
 				
 				String pdRepeats = XLSUtilities.getTextColumn(wb, row, "pulldata_repeat", settingsHeader, lastCellNum, null);
 				if(pdRepeats != null) {
@@ -462,10 +462,10 @@ public class XLSTemplateUploadManager {
 							if(idx > 0) {
 								String sName = pd.substring(0, idx);
 								String key = pd.substring(idx + 1, pd.length() - 1);
-								if(survey.pulldata == null) {
-									survey.pulldata = new ArrayList<Pulldata> ();
+								if(survey.surveyData.pulldata == null) {
+									survey.surveyData.pulldata = new ArrayList<Pulldata> ();
 								}
-								survey.pulldata.add(new Pulldata(sName, key));
+								survey.surveyData.pulldata.add(new Pulldata(sName, key));
 							}
 
 						}
@@ -477,7 +477,7 @@ public class XLSTemplateUploadManager {
 					for(String h : rowRoleHeader.keySet()) {
 						String filter = XLSUtilities.getTextColumn(wb, row, h, settingsHeader, lastCellNum, null);
 						if(filter != null) {
-							Role r = survey.roles.get(h);
+							Role r = survey.surveyData.roles.get(h);
 							if(r != null) {
 								SqlFrag sq = new SqlFrag();
 								sq.addSqlFragment(filter, false, localisation, 0);
@@ -494,13 +494,13 @@ public class XLSTemplateUploadManager {
 		 * Add default preloads
 		 */
 		if(!hasMeta("start")) {
-			survey.meta.add(new MetaItem(metaId--, "dateTime", "_start", "start", "_start", "timestamp", true, "start", null));
+			survey.surveyData.meta.add(new MetaItem(metaId--, "dateTime", "_start", "start", "_start", "timestamp", true, "start", null));
 		}
 		if(!hasMeta("end")) {
-			survey.meta.add(new MetaItem(metaId--, "dateTime", "_end", "end", "_end", "timestamp", true, "end", null));
+			survey.surveyData.meta.add(new MetaItem(metaId--, "dateTime", "_end", "end", "_end", "timestamp", true, "end", null));
 		}
 		if(!hasMeta("deviceid")) {
-			survey.meta.add(new MetaItem(metaId--, "string", "_device", "deviceid", "_device", "property", true, "device", null));
+			survey.surveyData.meta.add(new MetaItem(metaId--, "string", "_device", "deviceid", "_device", "property", true, "device", null));
 		}
 		
 		validateSurvey();	// 4. Final Validation
@@ -510,7 +510,7 @@ public class XLSTemplateUploadManager {
 	}
 	
 	private boolean hasMeta(String sourceParam) {
-		for(MetaItem mi : survey.meta) {
+		for(MetaItem mi : survey.surveyData.meta) {
 			if(mi.isPreload && mi.sourceParam.equals(sourceParam)) {
 				return true;
 			}
@@ -600,7 +600,7 @@ public class XLSTemplateUploadManager {
 								String exists = langMap.get(sArray[1]);
 								if(exists == null) {
 									langMap.put(sArray[1], sArray[1]);
-									survey.languages.add(new Language(0, sArray[1],
+									survey.surveyData.languages.add(new Language(0, sArray[1],
 											GeneralUtilityMethods.getLanguageCode(sArray[1]),
 											GeneralUtilityMethods.isRtl(sArray[1])));
 								}
@@ -618,7 +618,7 @@ public class XLSTemplateUploadManager {
 						columnRoleHeader.put(h, surveyHeader.get(h));
 						String [] roleA = h.split("::");
 						if(roleA.length > 1) {
-							survey.roles.put(h, new Role(roleA[1]));
+							survey.surveyData.roles.put(h, new Role(roleA[1]));
 						}
 					}
 				}
@@ -664,8 +664,8 @@ public class XLSTemplateUploadManager {
 		}
 
 		// Add a default language if needed
-		if(survey.languages.size() == 0) {
-			survey.languages.add(new Language(0, "language", null, false));
+		if(survey.surveyData.languages.size() == 0) {
+			survey.surveyData.languages.add(new Language(0, "language", null, false));
 			useDefaultLanguage = true;
 		}
 		
@@ -689,7 +689,7 @@ public class XLSTemplateUploadManager {
 						rowRoleHeader.put(h, settingsHeader.get(h));
 						String [] roleA = h.split("::");
 						if(roleA.length > 1) {
-							survey.roles.put(h, new Role(roleA[1]));
+							survey.surveyData.roles.put(h, new Role(roleA[1]));
 						}
 					}
 				}
@@ -741,9 +741,9 @@ public class XLSTemplateUploadManager {
 		Form f = new Form(name, parentFormIndex, parentQuestionIndex);
 		setFormReference(parameters, f);
 		setFormMerge(parameters, f);
-		survey.forms.add(f);
+		survey.surveyData.forms.add(f);
 		
-		int thisFormIndex = survey.forms.size() - 1;
+		int thisFormIndex = survey.surveyData.forms.size() - 1;
 		boolean inMatrix = false;
 		MatrixWidget matrix = null;
 		
@@ -758,7 +758,7 @@ public class XLSTemplateUploadManager {
 					if(item != null) {
 						metaId--;
 						validateQuestion(q, rowNumSurvey, thisFormIndex);
-						survey.meta.add(item);
+						survey.surveyData.meta.add(item);
 					} else {
 						if(q.type.equals("end repeat")) {
 							if(parentFormIndex < 0) {
@@ -768,9 +768,9 @@ public class XLSTemplateUploadManager {
 						}
 							
 						// Update the survey manifest if csv files are referenced from the appearance and/or the calculation
-						ManifestInfo mi = GeneralUtilityMethods.addManifestFromAppearance(q.appearance, survey.manifest);
+						ManifestInfo mi = GeneralUtilityMethods.addManifestFromAppearance(q.appearance, survey.surveyData.manifest);
 						mi = GeneralUtilityMethods.addManifestFromCalculate(q.calculation, mi.manifest);
-						survey.manifest = mi.manifest;
+						survey.surveyData.manifest = mi.manifest;
 						
 						validateQuestion(q, rowNumSurvey, thisFormIndex);
 						
@@ -898,6 +898,15 @@ public class XLSTemplateUploadManager {
 		
 		// 9. Readonly
 		q.readonly = getBooleanColumn(row, "readonly", surveyHeader, lastCellNum, false);
+		if(!q.readonly) {
+			// Actually readonly can hold an expression - this is tacked on functionality
+			q.readonly_expression =  XLSUtilities.getTextColumn(wb, row, "readonly", surveyHeader, lastCellNum, null);
+			if(q.readonly_expression != null && q.readonly_expression.trim().length() > 0 
+					&& !q.readonly_expression.equals("no")
+					&& !q.readonly_expression.equals("false")) {
+				q.readonly = true;	// conditionally readonly
+			}
+		}
 		
 		// 10. Appearance
 		q.appearance = XLSUtilities.getTextColumn(wb, row, "appearance", surveyHeader, lastCellNum, null); 
@@ -913,11 +922,19 @@ public class XLSTemplateUploadManager {
 		// 13. body::accuracyThreshold
 		q.accuracy = XLSUtilities.getTextColumn(wb, row, "body::accuracyThreshold", surveyHeader, lastCellNum, null);
 		
-		// 14. Required
-		q.required = getBooleanColumn(row, "required", surveyHeader, lastCellNum, false);		
+		// 14. Required 
+		q.required = getBooleanColumn(row, "required", surveyHeader, lastCellNum, false);	// True if yes, y, true	
+		if(!q.required) {
+			// Actually required can hold an expression - this is tacked on functionality
+			q.required_expression =  XLSUtilities.getTextColumn(wb, row, "required", surveyHeader, lastCellNum, null);
+			if(q.required_expression != null && q.required_expression.trim().length() > 0 
+					&& !q.required_expression.equals("no")
+					&& !q.required_expression.equals("false")) {
+				q.required = true;	// conditionally required
+			}
+		}
 		
-		// 15. Required Message
-		q.required_msg = XLSUtilities.getTextColumn(wb, row, XLSFormColumns.REQUIRED_MESSAGE, surveyHeader, lastCellNum, null); 
+		// 15. Required Message - This is stored as a label
 		
 		// 16. Calculation
 		if(q.type.equals("server_calculate")) {
@@ -929,7 +946,7 @@ public class XLSTemplateUploadManager {
 				q.server_calculation = new ServerCalculation();
 				q.server_calculation.addExpression(serverCalculation);
 				if(serverCalculation.startsWith("if(")) {			
-					ServerCalculation sc = survey.serverCalculations.get(q.name);
+					ServerCalculation sc = survey.surveyData.serverCalculations.get(q.name);
 					if(sc != null) {
 						q.server_calculation.addAllConditions(sc.getConditions());
 					}
@@ -974,7 +991,7 @@ public class XLSTemplateUploadManager {
 		if(columnRoleHeader != null && columnRoleHeader.size() > 0) {
 			for(String h : columnRoleHeader.keySet()) {
 				if(getBooleanColumn(row, h, surveyHeader, lastCellNum, false)) {
-					Role r = survey.roles.get(h);
+					Role r = survey.surveyData.roles.get(h);
 					if(r != null) {
 						if(r.column_filter_ref == null) {
 							r.column_filter_ref = new ArrayList<RoleColumnFilterRef> ();
@@ -1002,7 +1019,7 @@ public class XLSTemplateUploadManager {
 		if(q.type.equals("end group") || q.type.equals("end matrix")) {
 			Stack<Question> groupStack = getGroupStack(formIndex);
 			if(groupStack.isEmpty()) { 
-				Form f = survey.forms.get(formIndex);
+				Form f = survey.surveyData.forms.get(formIndex);
 				throw XLSUtilities.getApplicationException(localisation, "tu_eegm", rowNumSurvey, "survey", f.name, null, null);
 			}
 			
@@ -1096,13 +1113,19 @@ public class XLSTemplateUploadManager {
 			if(!choiceSheet) {
 				lab.hint = XLSUtilities.getTextColumn(wb, row, "hint", header, lastCellNum, null);
 				lab.guidance_hint = XLSUtilities.getTextColumn(wb, row, "guidance_hint", header, lastCellNum, null);
-				lab.constraint_msg = XLSUtilities.getTextColumn(wb, row, XLSFormColumns.CONSTRAINT_MESSAGE, header, lastCellNum, null);
-				lab.required_msg = XLSUtilities.getTextColumn(wb, row, XLSFormColumns.REQUIRED_MESSAGE, header, lastCellNum, null);
+				lab.constraint_msg = XLSUtilities.getTextColumn(wb, row, 
+						XLSFormColumns.CONSTRAINT_MESSAGE, header, lastCellNum, null);
+				lab.required_msg = XLSUtilities.getTextColumn(wb, row, 
+						XLSFormColumns.REQUIRED_MESSAGE, header, lastCellNum, null);
 			}
 			
 			lab.image = XLSUtilities.getTextColumn(wb, row, "image", header, lastCellNum, null);
 			if(lab.image == null) {
 				lab.image = XLSUtilities.getTextColumn(wb, row, "media::image", header, lastCellNum, null);
+			}
+			lab.bigImage = XLSUtilities.getTextColumn(wb, row, "big-image", header, lastCellNum, null);
+			if(lab.bigImage == null) {
+				lab.bigImage = XLSUtilities.getTextColumn(wb, row, "media::big-image", header, lastCellNum, null);
 			}
 			lab.video = XLSUtilities.getTextColumn(wb, row, "video", header, lastCellNum, null);
 			if(lab.video == null) {
@@ -1122,8 +1145,8 @@ public class XLSTemplateUploadManager {
 			boolean guidanceHintSet = false;
 			boolean constraintMsgSet = false;
 			boolean requiredMsgSet = false;
-			for(int i = 0; i < survey.languages.size(); i++) {
-				String lang = survey.languages.get(i).name;
+			for(int i = 0; i < survey.surveyData.languages.size(); i++) {
+				String lang = survey.surveyData.languages.get(i).name;
 				if(!choiceSheet) {
 					if(XLSUtilities.getTextColumn(wb, row, "hint::" + lang, header, lastCellNum, null) != null) {
 						hintSet = true;
@@ -1140,8 +1163,8 @@ public class XLSTemplateUploadManager {
 				}
 				
 			}
-			for(int i = 0; i < survey.languages.size(); i++) {
-				String lang = survey.languages.get(i).name;
+			for(int i = 0; i < survey.surveyData.languages.size(); i++) {
+				String lang = survey.surveyData.languages.get(i).name;
 				
 				Label lab = new Label();
 				lab.text = XLSUtilities.getTextColumn(wb, row, "label::" + lang, header, lastCellNum, "-");
@@ -1186,6 +1209,18 @@ public class XLSTemplateUploadManager {
 				}
 				if(lab.image == null) {
 					lab.image = XLSUtilities.getTextColumn(wb, row, "image", header, lastCellNum, null);
+				}
+				
+				// big-image - try various combination of headers
+				lab.bigImage = XLSUtilities.getTextColumn(wb, row, "media::big-image::" + lang, header, lastCellNum, null);
+				if(lab.bigImage == null) {
+					lab.bigImage = XLSUtilities.getTextColumn(wb, row, "big-image::" + lang, header, lastCellNum, null);
+				}
+				if(lab.bigImage == null) {
+					lab.bigImage = XLSUtilities.getTextColumn(wb, row, "media::big-image", header, lastCellNum, null);
+				}
+				if(lab.bigImage == null) {
+					lab.bigImage = XLSUtilities.getTextColumn(wb, row, "big-image", header, lastCellNum, null);
 				}
 				
 				// video - try various combination of headers
@@ -1460,7 +1495,7 @@ public class XLSTemplateUploadManager {
 		
 		// List name not in choices
 		if(q.list_name != null  && !q.list_name.startsWith("$")) {
-			if(survey.optionLists.get(q.list_name) == null) {
+			if(survey.surveyData.optionLists.get(q.list_name) == null) {
 				throw XLSUtilities.getApplicationException(localisation, "tu_lnf", rowNumber, "survey", q.list_name, null, null);
 			}
 		}
@@ -1561,14 +1596,14 @@ public class XLSTemplateUploadManager {
 	private void validateSurvey() throws Exception {
 		
 		// Validate forms and questions
-		for(Form f : survey.forms) {
+		for(Form f : survey.surveyData.forms) {
 			if(f.reference) {
 				Integer rowNumber = qNameMap.get(f.name);
 				if(f.name.equals(f.referenceName)) {
 					throw XLSUtilities.getApplicationException(localisation, "tu_ref_self", rowNumber, "survey", f.name, null, null);
 				} else {
 					boolean validRef = false;
-					for(Form refForm : survey.forms) {
+					for(Form refForm : survey.surveyData.forms) {
 						if(refForm.name.equals(f.referenceName)) {
 							if(refForm.reference) {
 								throw XLSUtilities.getApplicationException(localisation, "tu_ref_ref", rowNumber, "survey", f.name, refForm.name, null);
@@ -1615,12 +1650,12 @@ public class XLSTemplateUploadManager {
 					for(Label l : q.labels) {
 						ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(l.text);
 						if(refs.size() > 0) {
-							questionInSurvey(refs, "label::" + survey.languages.get(idx).name, q);
+							questionInSurvey(refs, "label::" + survey.surveyData.languages.get(idx).name, q);
 							
 							if(refs.contains(q.name)) {		// Check for self reference
 								Integer rowNumber = qNameMap.get(q.name);
 								throw XLSUtilities.getApplicationException(localisation, "tu_cr", rowNumber, "survey", 
-										"label::" + survey.languages.get(idx).name, q.name, q.relevant);
+										"label::" + survey.surveyData.languages.get(idx).name, q.name, q.relevant);
 							}
 						}
 						idx++;
@@ -1661,8 +1696,8 @@ public class XLSTemplateUploadManager {
 		}
 		
 		// Validate Settings
-		if(survey.instanceNameDefn != null) {
-			ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(survey.instanceNameDefn );
+		if(survey.surveyData.instanceNameDefn != null) {
+			ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(survey.surveyData.instanceNameDefn );
 			if(refs.size() > 0) {
 				settingsQuestionInSurvey(refs, "instance_name");
 			}

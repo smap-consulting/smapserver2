@@ -2,6 +2,7 @@ package org.smap.sdal.Utilities;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.Connection;
@@ -28,6 +29,8 @@ import org.smap.sdal.model.Language;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Survey;
+
+import com.google.common.io.Files;
 
 
 public class UtilityMethodsEmail {
@@ -675,6 +678,15 @@ public class UtilityMethodsEmail {
 		String contentType = getContentType(name);
 		String dest = path + "/thumbs/" + name;
 
+		/*
+		 * Ensure that the thumbs directory exists
+		 */
+		try {
+			Files.createParentDirs(new File(dest));
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
 		int idx = dest.lastIndexOf('.');
 		String destRoot = dest;
 		if(idx > 0) {
@@ -731,7 +743,7 @@ public class UtilityMethodsEmail {
 
 		try {
 
-			for(int i = 0; i < s.languages.size(); i++) {
+			for(int i = 0; i < s.surveyData.languages.size(); i++) {
 
 				Label l = new Label();
 				ResultSet resultSet;
@@ -743,7 +755,7 @@ public class UtilityMethodsEmail {
 					if(idx > 0) {
 						String root = text_id.substring(0, idx + 1) + "%";
 						
-						pstmt.setString(2, s.languages.get(i).name);
+						pstmt.setString(2, s.surveyData.languages.get(i).name);
 						pstmt.setString(3, root);
 						//log.info("Get labels: " + pstmt.toString());
 	
@@ -756,14 +768,17 @@ public class UtilityMethodsEmail {
 	
 							if(t.equals("none") && id.endsWith("label")) {
 								l.text = GeneralUtilityMethods.convertAllEmbeddedOutput(v, true);
-							} else if(t.equals("image") || t.equals("audio") || t.equals("video")) {							
+							} else if(t.equals("image") || t.equals("big-image") || t.equals("audio") || t.equals("video")) {							
 								if(basePath != null && oId > 0) {							
 									ManifestValue manifest = new ManifestValue();
-									getFileUrl(manifest, s.ident, v, basePath, oId, s.id);
+									getFileUrl(manifest, s.surveyData.ident, v, basePath, oId, s.surveyData.id);
 									if(t.equals("image")) {
 										l.image = v;
 										l.imageUrl = manifest.url;
 										l.imageThumb = manifest.thumbsUrl;
+									} if(t.equals("big-image")) {
+										l.bigImage = v;
+										l.bigImageUrl = manifest.url;
 									} else if(t.equals("audio")) {
 										l.audio = v;
 										l.audioUrl = manifest.url;
@@ -949,6 +964,14 @@ public class UtilityMethodsEmail {
 				pstmt.setString(3, textId + ":label");
 				pstmt.setString(4, "image");
 				pstmt.setString(5, sanitise.sanitiseHtml(l.image));
+				pstmt.executeUpdate();
+			}
+			
+			// Update big-image
+			if(l.bigImage != null) {
+				pstmt.setString(3, textId + ":label");
+				pstmt.setString(4, "big-image");
+				pstmt.setString(5, sanitise.sanitiseHtml(l.bigImage));
 				pstmt.executeUpdate();
 			}
 

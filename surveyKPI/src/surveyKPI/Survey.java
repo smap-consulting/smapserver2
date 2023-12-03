@@ -760,7 +760,7 @@ public class Survey extends Application {
 
 					int id = (mi.id <= MetaItem.INITIAL_ID) ? mi.id : metaId--;
 					di.columnName = mi.columnName;
-					if(mi.display_name != null) {
+					if(mi.display_name != null && mi.display_name.trim().length() > 0) {
 						di.name = mi.display_name;
 					} else {
 						di.name = mi.name;

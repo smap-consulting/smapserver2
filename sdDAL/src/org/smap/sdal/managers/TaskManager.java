@@ -3259,11 +3259,11 @@ public class TaskManager {
 							if(docURL != null) {
 								notify_details = notify_details.replaceAll("%s2", docURL);
 							}
-							if(survey != null && survey.displayName != null) {
-								notify_details = notify_details.replaceAll("%s3", survey.displayName);
+							if(survey != null && survey.surveyData.displayName != null) {
+								notify_details = notify_details.replaceAll("%s3", survey.surveyData.displayName);
 							}
-							if(survey != null && survey.projectName != null) {
-								notify_details = notify_details.replaceAll("%s4", survey.projectName);
+							if(survey != null && survey.surveyData.projectName != null) {
+								notify_details = notify_details.replaceAll("%s4", survey.surveyData.projectName);
 							}
 							
 							log.info("+++ emailing task to: " + msg.email + " docUrl: " + docURL + 
@@ -3303,7 +3303,7 @@ public class TaskManager {
 											setAssignmentStatus(sd, msg.aId, "accepted");
 											
 											lm.writeLog(sd, 
-													survey.id, 
+													survey.surveyData.id, 
 													ia.getAddress(), 
 													LogManager.EMAIL_TASK, 
 													localisation.getString("mo_sent"), 0, null);

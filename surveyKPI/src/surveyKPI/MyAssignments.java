@@ -614,13 +614,13 @@ public class MyAssignments extends Application {
 				if(getManifests) {
 					// Get all manifests
 					manifestList = translationMgr.
-							getManifestBySurvey(sd, request.getRemoteUser(), survey.id, basepath, survey.ident);
+							getManifestBySurvey(sd, request.getRemoteUser(), survey.surveyData.id, basepath, survey.surveyData.ident);
 					hasManifest = manifestList.size() > 0;
 				} else {
 					// Get linked manifests only
 					manifestList = translationMgr.
-							getSurveyManifests(sd, survey.id, survey.ident, null, 0, true);	
-					hasManifest = translationMgr.hasManifest(sd, request.getRemoteUser(), survey.id);
+							getSurveyManifests(sd, survey.surveyData.id, survey.surveyData.ident, null, 0, true);	
+					hasManifest = translationMgr.hasManifest(sd, request.getRemoteUser(), survey.surveyData.id);
 				}
 				
 				if(hasManifest && manifestList.size() > 0) {
@@ -640,14 +640,14 @@ public class MyAssignments extends Application {
 							 *  is restricted to the user who submitted the record. 
 							 */
 							CustomUserReference cur = GeneralUtilityMethods.hasCustomUserReferenceData(sd, m.linkedSurveyIdent);
-							dirPath = efm.getLinkedDirPath(basepath, survey.ident, userIdent, cur.needCustomFile());
+							dirPath = efm.getLinkedDirPath(basepath, survey.surveyData.ident, userIdent, cur.needCustomFile());
 							logicalFilePath = efm.getLinkedLogicalFilePath(dirPath, m.fileName);
 							
 							// Make sure the destination exists
 							File dir = new File(dirPath);
 							dir.mkdirs();
 		
-							efm.createLinkedFile(sd, cResults, oId, survey.id, m.fileName ,  
+							efm.createLinkedFile(sd, cResults, oId, survey.surveyData.id, m.fileName ,  
 									logicalFilePath, 
 									userIdent, 
 									tz, 
@@ -661,10 +661,10 @@ public class MyAssignments extends Application {
 								String refSurveyIdent = getReferenceSurveyIdent(m.fileName);
 								if(refSurveyIdent != null) {
 									ReferenceSurvey ref = new ReferenceSurvey();
-									ref.survey = survey.ident;
+									ref.survey = survey.surveyData.ident;
 									ref.referenceSurvey = refSurveyIdent;
 									ref.tableName = m.fileName;
-									ref.columns = stm.getQuestionNames(survey.id, m.fileName);
+									ref.columns = stm.getQuestionNames(survey.surveyData.id, m.fileName);
 									tr.refSurveys.add(ref);
 								}
 							}		
@@ -700,11 +700,11 @@ public class MyAssignments extends Application {
 
 				FormLocator fl = new FormLocator();
 				
-				fl.ident = survey.ident;
-				fl.version = survey.version;
-				fl.name = survey.displayName;
-				fl.project = survey.projectName;
-				fl.pid = survey.p_id;
+				fl.ident = survey.surveyData.ident;
+				fl.version = survey.surveyData.version;
+				fl.name = survey.surveyData.displayName;
+				fl.project = survey.surveyData.projectName;
+				fl.pid = survey.surveyData.p_id;
 				fl.tasks_only = survey.getHideOnDevice();
 				fl.read_only = survey.getReadOnlySurvey();
 				fl.search_local_data = survey.getSearchLocalData();
@@ -720,7 +720,8 @@ public class MyAssignments extends Application {
 				 * Add any cases assigned to this user
 				 */
 				CaseManager cm = new CaseManager(localisation);
-				ArrayList<Case> cases = cm.getCases(sd, cResults, survey.ident, survey.displayName, survey.groupSurveyIdent, userIdent, survey.id);
+				ArrayList<Case> cases = cm.getCases(sd, cResults, survey.surveyData.ident, 
+						survey.surveyData.displayName, survey.surveyData.groupSurveyIdent, userIdent, survey.surveyData.id);
 				if(cases.size() > 0) {
 					if(tr.taskAssignments == null) {
 						tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
@@ -734,8 +735,8 @@ public class MyAssignments extends Application {
 						ta.location = new TaskLocation();
 						ta.assignment = new TrAssignment();
 
-						ta.task.form_id = survey.ident;
-						ta.task.pid = String.valueOf(survey.p_id);
+						ta.task.form_id = survey.surveyData.ident;
+						ta.task.pid = String.valueOf(survey.surveyData.p_id);
 						ta.task.update_id = c.instanceid;
 						ta.task.type = "case";
 						ta.task.initial_data_source = "survey";

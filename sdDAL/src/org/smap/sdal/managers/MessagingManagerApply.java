@@ -649,7 +649,8 @@ public class MessagingManagerApply {
 					status = "success";
 				} catch (Exception e) {
 					status = "failed";
-					reason = e.getMessage();					
+					reason = e.getMessage();
+					log.log(Level.SEVERE, e.getMessage(), e);
 				}	
 
 				pstmtDone.setString(1, status);

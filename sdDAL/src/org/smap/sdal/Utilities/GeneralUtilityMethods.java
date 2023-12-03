@@ -467,7 +467,7 @@ public class GeneralUtilityMethods {
 		
 		try {
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, survey.ident);
+			pstmt.setString(1, survey.surveyData.ident);
 			
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
@@ -4068,7 +4068,7 @@ public class GeneralUtilityMethods {
 						if(GeneralUtilityMethods.hasColumn(cResults, table_name, mi.columnName)) {
 							c = new TableColumn();
 							c.column_name = mi.columnName;						
-							if(mi.display_name != null) {
+							if(mi.display_name != null && mi.display_name.trim().length() > 0) {
 								c.displayName = mi.display_name;
 							} else {
 								c.displayName = mi.name;
@@ -6944,9 +6944,9 @@ public class GeneralUtilityMethods {
 	public static int getLanguageIdx(org.smap.sdal.model.Survey survey, String language) {
 		int idx = 0;
 
-		if (survey != null && survey.languages != null) {
-			for (int i = 0; i < survey.languages.size(); i++) {
-				if (survey.languages.get(i).name.equals(language)) {
+		if (survey != null && survey.surveyData.languages != null) {
+			for (int i = 0; i < survey.surveyData.languages.size(); i++) {
+				if (survey.surveyData.languages.get(i).name.equals(language)) {
 					idx = i;
 					break;
 				}
@@ -7451,9 +7451,9 @@ public class GeneralUtilityMethods {
 		boolean testResult = false;
 
 		StringBuffer filterQuery = new StringBuffer("select count(*) from ");
-		filterQuery.append(getTableOuterJoin(survey.forms, 0, null));
+		filterQuery.append(getTableOuterJoin(survey.surveyData.forms, 0, null));
 		filterQuery.append(" where ");
-		filterQuery.append(getMainTable(survey.forms));
+		filterQuery.append(getMainTable(survey.surveyData.forms));
 		filterQuery.append(".instanceid = ?");
 
 		// Add the filter
@@ -7483,7 +7483,7 @@ public class GeneralUtilityMethods {
 			String msg = localisation.getString("filter_error");
 			msg = msg.replace("%s1", caller + ": " + filter);
 			msg = msg.replace("%s2",  e.getMessage());
-			lm.writeLog(sd, survey.id, user, LogManager.ERROR, msg, 0, null);
+			lm.writeLog(sd, survey.surveyData.id, user, LogManager.ERROR, msg, 0, null);
 			throw new Exception(e);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
@@ -7500,9 +7500,9 @@ public class GeneralUtilityMethods {
 		String resp = null;
 
 		StringBuffer filterQuery = new StringBuffer("(select ");
-		filterQuery.append(getMainTable(survey.forms));
+		filterQuery.append(getMainTable(survey.surveyData.forms));
 		filterQuery.append(".instanceid from ");		
-		filterQuery.append(getTableOuterJoin(survey.forms, 0, null));
+		filterQuery.append(getTableOuterJoin(survey.surveyData.forms, 0, null));
 		filterQuery.append(" where (");		
 
 		// Add the filter
@@ -9605,9 +9605,9 @@ public class GeneralUtilityMethods {
 			ResultSet rs = pstmtQuestionResouces.executeQuery();
 			while(rs.next()) {
 				Survey s = new Survey();
-				s.displayName = rs.getString(1);
-				s.blocked = rs.getBoolean(2);
-				s.projectName = rs.getString(3);
+				s.surveyData.displayName = rs.getString(1);
+				s.surveyData.blocked = rs.getBoolean(2);
+				s.surveyData.projectName = rs.getString(3);
 				surveys.add(s);
 			}
 			
@@ -9620,9 +9620,9 @@ public class GeneralUtilityMethods {
 			rs = pstmtSurveyResouces.executeQuery();
 			while(rs.next()) {
 				Survey s = new Survey();
-				s.displayName = rs.getString(1);
-				s.blocked = rs.getBoolean(2);
-				s.projectName = rs.getString(3);
+				s.surveyData.displayName = rs.getString(1);
+				s.surveyData.blocked = rs.getBoolean(2);
+				s.surveyData.projectName = rs.getString(3);
 				surveys.add(s);
 			}
 		} finally {
