@@ -387,7 +387,7 @@ public class GetXForm {
 						 * Add the translation XML fragment to the output
 						 */
 						Document xfragDoc;
-						if (type.equals("image") || type.equals("video") || type.equals("audio")  || type.equals("file")) {
+						if (type.equals("image") || type.equals("big-image") || type.equals("video") || type.equals("audio")  || type.equals("file")) {
 							String base = type;
 							if (type.equals("image")) {
 								base = "images";
@@ -741,7 +741,7 @@ public class GetXForm {
 					questionElement = outputDoc.createElement(q.getName());
 					String def = q.getDefaultAnswer();
 					if (def != null && def.length() > 0) {
-						if(qType.equals("image") && !def.startsWith("jr://")) {
+						if((qType.equals("image") || qType.equals("big-image"))  && !def.startsWith("jr://")) {
 							def = "jr://images/" + def;
 						}
 						questionElement.setTextContent(def);

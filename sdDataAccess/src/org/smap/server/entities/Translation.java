@@ -19,17 +19,12 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.smap.server.entities;
 
-import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.server.utilities.UtilityMethods;
 
-public class Translation implements Serializable{
-	
-
-	private static final long serialVersionUID = 2497891756771818289L;
+public class Translation {
 
 	// Database attributes
 	private int t_id;

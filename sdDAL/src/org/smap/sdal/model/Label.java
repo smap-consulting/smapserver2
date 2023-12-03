@@ -1,7 +1,10 @@
 package org.smap.sdal.model;
 
 /*
- * Form Class
+ * Describes a label which may be for
+ *   - A question text
+ *   - A question hint
+ *   - etc
  * Used for survey editing
  */
 public class Label {
@@ -11,9 +14,11 @@ public class Label {
 	public String constraint_msg;
 	public String required_msg;
 	public String image;
+	public String bigImage;
 	public String audio;
 	public String video;
 	public String imageUrl;
+	public String bigImageUrl;
 	public String audioUrl;
 	public String videoUrl;
 	public String imageThumb;

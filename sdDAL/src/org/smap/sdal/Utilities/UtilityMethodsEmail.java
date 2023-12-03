@@ -768,7 +768,7 @@ public class UtilityMethodsEmail {
 	
 							if(t.equals("none") && id.endsWith("label")) {
 								l.text = GeneralUtilityMethods.convertAllEmbeddedOutput(v, true);
-							} else if(t.equals("image") || t.equals("audio") || t.equals("video")) {							
+							} else if(t.equals("image") || t.equals("big-image") || t.equals("audio") || t.equals("video")) {							
 								if(basePath != null && oId > 0) {							
 									ManifestValue manifest = new ManifestValue();
 									getFileUrl(manifest, s.surveyData.ident, v, basePath, oId, s.surveyData.id);
@@ -776,6 +776,9 @@ public class UtilityMethodsEmail {
 										l.image = v;
 										l.imageUrl = manifest.url;
 										l.imageThumb = manifest.thumbsUrl;
+									} if(t.equals("big-image")) {
+										l.bigImage = v;
+										l.bigImageUrl = manifest.url;
 									} else if(t.equals("audio")) {
 										l.audio = v;
 										l.audioUrl = manifest.url;
@@ -961,6 +964,14 @@ public class UtilityMethodsEmail {
 				pstmt.setString(3, textId + ":label");
 				pstmt.setString(4, "image");
 				pstmt.setString(5, sanitise.sanitiseHtml(l.image));
+				pstmt.executeUpdate();
+			}
+			
+			// Update big-image
+			if(l.bigImage != null) {
+				pstmt.setString(3, textId + ":label");
+				pstmt.setString(4, "big-image");
+				pstmt.setString(5, sanitise.sanitiseHtml(l.bigImage));
 				pstmt.executeUpdate();
 			}
 

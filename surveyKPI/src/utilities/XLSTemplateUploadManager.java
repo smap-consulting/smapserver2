@@ -296,7 +296,7 @@ public class XLSTemplateUploadManager {
 			lastRowNumSettings = settingsSheet.getLastRowNum();
 		}		
 
-		getHeaders();	// get headers for survey, choices and setting. Use thse to set the languages
+		getHeaders();	// get headers for survey, choices and setting. Use these to set the languages
 
 		/*
 		 * 1. Process the choices sheet
@@ -1123,6 +1123,10 @@ public class XLSTemplateUploadManager {
 			if(lab.image == null) {
 				lab.image = XLSUtilities.getTextColumn(wb, row, "media::image", header, lastCellNum, null);
 			}
+			lab.bigImage = XLSUtilities.getTextColumn(wb, row, "big-image", header, lastCellNum, null);
+			if(lab.bigImage == null) {
+				lab.bigImage = XLSUtilities.getTextColumn(wb, row, "media::big-image", header, lastCellNum, null);
+			}
 			lab.video = XLSUtilities.getTextColumn(wb, row, "video", header, lastCellNum, null);
 			if(lab.video == null) {
 				lab.video = XLSUtilities.getTextColumn(wb, row, "media::video", header, lastCellNum, null);
@@ -1205,6 +1209,18 @@ public class XLSTemplateUploadManager {
 				}
 				if(lab.image == null) {
 					lab.image = XLSUtilities.getTextColumn(wb, row, "image", header, lastCellNum, null);
+				}
+				
+				// big-image - try various combination of headers
+				lab.bigImage = XLSUtilities.getTextColumn(wb, row, "media::big-image::" + lang, header, lastCellNum, null);
+				if(lab.bigImage == null) {
+					lab.bigImage = XLSUtilities.getTextColumn(wb, row, "big-image::" + lang, header, lastCellNum, null);
+				}
+				if(lab.bigImage == null) {
+					lab.bigImage = XLSUtilities.getTextColumn(wb, row, "media::big-image", header, lastCellNum, null);
+				}
+				if(lab.bigImage == null) {
+					lab.bigImage = XLSUtilities.getTextColumn(wb, row, "big-image", header, lastCellNum, null);
 				}
 				
 				// video - try various combination of headers
