@@ -52,7 +52,7 @@ public class GetHtml {
 	Survey survey = null;
 	int languageIndex = 0;
 	HashMap<String, String> paths = new HashMap<>(); // Keep paths out of the survey model and instead store them here
-	HashMap<String, String> formRefs = new HashMap<>();		// Mpping between question name and form ref used for nodesets that reference repeats
+	HashMap<String, String> formRefs = new HashMap<>();		// Mapping between question name and form ref used for nodesets that reference repeats
 	Document outputDoc = null;
 	private boolean gInTableList = false;
 	private HashMap<String, Integer> gRecordCounts = null;
@@ -1083,6 +1083,10 @@ public class GetHtml {
 			bodyElement.setAttribute("readonly", "readonly");
 		}
 		
+		if(q.type.equals("int")) {
+			bodyElement.setAttribute("maxlength", "9");
+		}
+		
 		// range specific
 		if (q.type.equals("range")) {
 			bodyElement.setAttribute("min", GeneralUtilityMethods.getSurveyParameter("start", q.paramArray));
@@ -1629,7 +1633,7 @@ public class GetHtml {
 
 		String type = null;
 		if (q.type.equals("int")) {
-			type = "number";
+			type = "tel";
 		} else if (q.type.equals("range")) {
 			type = "number";
 		} else if (q.type.equals("string")) {

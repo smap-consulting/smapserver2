@@ -56,6 +56,7 @@ import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Pulldata;
+import org.smap.sdal.model.SurveyDAO;
 import org.smap.sdal.model.SurveyIdent;
 import org.smap.sdal.model.SurveySummary;
 import org.smap.sdal.model.Template;
@@ -884,9 +885,8 @@ public class Surveys extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			Type type = new TypeToken<org.smap.sdal.model.Survey>(){}.getType();
 			Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-			org.smap.sdal.model.Survey survey = gson.fromJson(settings, type);
+			SurveyDAO surveyData = gson.fromJson(settings, SurveyDAO.class);
 			
 			// Start transaction
 			sd.setAutoCommit(false);
@@ -930,29 +930,29 @@ public class Surveys extends Application {
 					+ "default_logo = ? "
 					+ "where s_id = ?";
 		
-			if(survey.surveyData.surveyClass != null && survey.surveyData.surveyClass.equals("none")) {
-				survey.surveyData.surveyClass = null;
+			if(surveyData.surveyClass != null && surveyData.surveyClass.equals("none")) {
+				surveyData.surveyClass = null;
 			}
 			pstmt = sd.prepareStatement(sql);	
-			pstmt.setString(1, HtmlSanitise.checkCleanName(survey.surveyData.displayName, localisation));
-			pstmt.setString(2, HtmlSanitise.checkCleanName(survey.surveyData.def_lang, localisation));
-			pstmt.setBoolean(3, survey.surveyData.task_file);
-			pstmt.setBoolean(4, survey.surveyData.timing_data);
-			pstmt.setInt(5, survey.surveyData.p_id);
-			pstmt.setString(6, survey.surveyData.instanceNameDefn);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(surveyData.displayName, localisation));
+			pstmt.setString(2, HtmlSanitise.checkCleanName(surveyData.def_lang, localisation));
+			pstmt.setBoolean(3, surveyData.task_file);
+			pstmt.setBoolean(4, surveyData.timing_data);
+			pstmt.setInt(5, surveyData.p_id);
+			pstmt.setString(6, surveyData.instanceNameDefn);
 			pstmt.setInt(7, version);
-			pstmt.setString(8, HtmlSanitise.checkCleanName(survey.surveyData.surveyClass, localisation));
-			pstmt.setBoolean(9, survey.surveyData.exclude_empty);
-			pstmt.setBoolean(10, survey.surveyData.compress_pdf);
-			pstmt.setBoolean(11, survey.getHideOnDevice());
-			pstmt.setBoolean(12, survey.getSearchLocalData());
-			pstmt.setBoolean(13, survey.surveyData.dataSurvey);
-			pstmt.setBoolean(14, survey.surveyData.oversightSurvey);
-			pstmt.setBoolean(15, survey.surveyData.readOnlySurvey);
-			pstmt.setBoolean(16, survey.surveyData.myReferenceData);
-			pstmt.setBoolean(17, survey.surveyData.audit_location_data);
-			pstmt.setBoolean(18, survey.surveyData.track_changes);
-			pstmt.setString(19, survey.surveyData.default_logo);
+			pstmt.setString(8, HtmlSanitise.checkCleanName(surveyData.surveyClass, localisation));
+			pstmt.setBoolean(9, surveyData.exclude_empty);
+			pstmt.setBoolean(10, surveyData.compress_pdf);
+			pstmt.setBoolean(11, surveyData.hideOnDevice);
+			pstmt.setBoolean(12, surveyData.searchLocalData);
+			pstmt.setBoolean(13, surveyData.dataSurvey);
+			pstmt.setBoolean(14, surveyData.oversightSurvey);
+			pstmt.setBoolean(15, surveyData.readOnlySurvey);
+			pstmt.setBoolean(16, surveyData.myReferenceData);
+			pstmt.setBoolean(17, surveyData.audit_location_data);
+			pstmt.setBoolean(18, surveyData.track_changes);
+			pstmt.setString(19, surveyData.default_logo);
 			pstmt.setInt(20, sId);
 			
 			log.info("Saving survey: " + pstmt.toString());
@@ -968,12 +968,12 @@ public class Surveys extends Application {
 				ChangeElement change = new ChangeElement();
 				change.action = "settings_update";
 				change.origSId = sId;
-				change.msg = localisation.getString("name") + ": " + survey.surveyData.displayName 
-						+ ", " + localisation.getString("cr_lang") + ": " + survey.surveyData.def_lang 
-						+ ", " + localisation.getString("a_in") + ": " + survey.surveyData.instanceNameDefn
+				change.msg = localisation.getString("name") + ": " + surveyData.displayName 
+						+ ", " + localisation.getString("cr_lang") + ": " + surveyData.def_lang 
+						+ ", " + localisation.getString("a_in") + ": " + surveyData.instanceNameDefn
 						+ ", " + localisation.getString("ar_project") + ": " 
-								+ GeneralUtilityMethods.getProjectName(sd, survey.surveyData.p_id) 
-						+ ", " + localisation.getString("cr_default_logo") + ": " + survey.surveyData.default_logo;
+								+ GeneralUtilityMethods.getProjectName(sd, surveyData.p_id) 
+						+ ", " + localisation.getString("cr_default_logo") + ": " + surveyData.default_logo;
 				
 				// Clear any entries in linked_forms for this survey - this is in case the myReferenceData setting has changed
 				GeneralUtilityMethods.clearLinkedForms(sd, sId, localisation);  
@@ -992,17 +992,17 @@ public class Surveys extends Application {
 			sd.setAutoCommit(true);
 			
 			// If the project id has changed update the project in the upload events so that the monitor will still show all events
-			if(originalProjectId != survey.surveyData.p_id) {
-				GeneralUtilityMethods.updateUploadEvent(sd, survey.surveyData.p_id, sId);
+			if(originalProjectId != surveyData.p_id) {
+				GeneralUtilityMethods.updateUploadEvent(sd, surveyData.p_id, sId);
 			}
 			
 			// If the display name or project id has changed rename template files
-			if((originalDisplayName != null && survey.surveyData.displayName != null && !originalDisplayName.equals(survey.surveyData.displayName)) 
-					|| originalProjectId != survey.surveyData.p_id) {
+			if((originalDisplayName != null && surveyData.displayName != null && !originalDisplayName.equals(surveyData.displayName)) 
+					|| originalProjectId != surveyData.p_id) {
 		
 				// Rename files
 				String basePath = GeneralUtilityMethods.getBasePath(request); 	// Get base path to files
-				GeneralUtilityMethods.renameTemplateFiles(originalDisplayName, survey.surveyData.displayName, basePath, originalProjectId, survey.surveyData.p_id);
+				GeneralUtilityMethods.renameTemplateFiles(originalDisplayName, surveyData.displayName, basePath, originalProjectId, surveyData.p_id);
 			}
 			
 			// Record the message so that devices can be notified
