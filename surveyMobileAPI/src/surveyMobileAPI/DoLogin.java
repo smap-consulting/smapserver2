@@ -37,13 +37,12 @@ import org.smap.sdal.Utilities.SDDataSource;
  */
 @Path("/dologin")
 public class DoLogin extends Application {
-
-	Authorise a = new Authorise(null, Authorise.ENUM);
 	
 	/*
 	 * Basic login request for enumerator access
 	 */
 	@POST
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response login(@Context HttpServletRequest request,
 			@FormParam("username") String username,
 			@FormParam("password") String password) {
