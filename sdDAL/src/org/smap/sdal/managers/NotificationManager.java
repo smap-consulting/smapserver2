@@ -152,6 +152,14 @@ public class NotificationManager {
 		pstmt.setInt(27, n.r_id);
 		
 		pstmt.executeUpdate();
+		
+		// Log the add event
+		String logMessage = localisation.getString("lm_added_notification");
+		if(n.name == null) {
+			n.name = "";
+		}
+		logMessage = logMessage.replaceAll("%s1", n.name);
+		lm.writeLog(sd, n.s_id, user, LogManager.CREATE, logMessage, 0, null);
 	}
 
 	/*
@@ -266,6 +274,19 @@ public class NotificationManager {
 		pstmt.setInt(idx++, n.periodic_month);		// Original local value
 		pstmt.setInt(idx++, n.r_id);		
 		pstmt.setInt(idx++, n.id);
+		
+		// Log the change event
+		String logMessage = localisation.getString("lm_change_notification");
+		if(n.name == null) {
+			n.name = "";
+		}
+		logMessage = logMessage.replaceAll("%s1", n.name);
+		if(n.notifyDetails.emails == null) {
+			logMessage = logMessage.replaceAll("%s2", "");
+		} else {
+			logMessage = logMessage.replaceAll("%s2", gson.toJson(n.notifyDetails.emails));
+		}
+		lm.writeLog(sd, n.s_id, user, LogManager.CREATE, logMessage, 0, null);
 		
 		log.info("Update Notifications: " + pstmt.toString());
 		pstmt.executeUpdate();
@@ -433,7 +454,8 @@ public class NotificationManager {
 	public void deleteNotification
 	(Connection sd,
 			String user,
-			int id) throws SQLException {
+			int id,
+			int sId) throws SQLException {
 
 		String nName = GeneralUtilityMethods.getNotificationName(sd, id);
 
@@ -454,7 +476,7 @@ public class NotificationManager {
 				nName = "";
 			}
 			logMessage = logMessage.replaceAll("%s1", nName);
-			lm.writeLog(sd, 0, user, LogManager.DELETE, logMessage, 0, null);
+			lm.writeLog(sd, sId, user, LogManager.DELETE, logMessage, 0, null);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}

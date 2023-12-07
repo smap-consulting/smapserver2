@@ -368,7 +368,7 @@ public class NotificationList extends Application {
 					a.isValidProject(sd, request.getRemoteUser(), pId);
 				}
 				NotificationManager fm = new NotificationManager(localisation);
-				fm.deleteNotification(sd, request.getRemoteUser(), id);
+				fm.deleteNotification(sd, request.getRemoteUser(), id, sId);
 			}
 			
 			response = Response.ok().build();
