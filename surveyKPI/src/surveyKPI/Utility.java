@@ -76,6 +76,7 @@ public class Utility extends Application {
 	 */
 	@Path("/timezones")
 	@GET
+	@Produces("application/json")
 	public Response getTimezones(
 			@Context HttpServletRequest request
 			) { 
