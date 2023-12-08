@@ -521,7 +521,7 @@ public class WebForm extends Application {
 				locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, userIdent));
 				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			} catch (Exception e) {
-
+				log.log(Level.SEVERE,"Error: ", e);
 			}
 			tz = "UTC";
 			
@@ -695,10 +695,6 @@ public class WebForm extends Application {
 		// Append locale
 		output.append("<html lang='").append(locale.toString()).append("'  class='no-js'");
 
-		if (instanceXML == null) {
-			// Single shot requests do not have a manifest
-			// TODO add manifest
-		}
 		output.append(">\n");
 
 		output.append(
