@@ -42,12 +42,9 @@ if [ $u2204 -eq 1 ]; then
 elif [ $u2004 -eq 1 ]; then
     TOMCAT_VERSION=tomcat9
     TOMCAT_USER=tomcat
-elif [ $u1804 -eq 1 ]; then
+else
     TOMCAT_VERSION=tomcat8
     TOMCAT_USER=tomcat8
-else
-    TOMCAT_VERSION=tomcat7
-    TOMCAT_USER=tomcat7
 fi
 
 CATALINA_HOME=/usr/share/$TOMCAT_VERSION
