@@ -3038,8 +3038,8 @@ public class GeneralUtilityMethods {
 									
 									// Location audit value based on location of last entry into the question
 									if(auditCols.length >= 6) {
-										Double lat = new Double(auditCols[4]);
-										Double lon = new Double(auditCols[5]);
+										Double lat = Double.valueOf(auditCols[4]);
+										Double lon = Double.valueOf(auditCols[5]);
 										currentItem.location = new GeoPoint(lat, lon);
 									}
 									data.firstPassAudit .put(name, currentItem);
@@ -10827,7 +10827,7 @@ public class GeneralUtilityMethods {
 			if(a != null) {
 				// Check that this action does not reference a survey using survey ID
 				if(a.surveyIdent == null && a.sId > 0) {
-					a.surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, a.sId);
+					a.surveyIdent = getSurveyIdent(sd, a.sId);
 				}
 				// Some client code still needs surveyId!
 				if(a.surveyIdent != null && a.sId == 0) {
