@@ -30,10 +30,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -71,7 +69,6 @@ import org.smap.sdal.model.DataEndPoint;
 import org.smap.sdal.model.DataItemChangeEvent;
 import org.smap.sdal.model.FormLink;
 import org.smap.sdal.model.Instance;
-import org.smap.sdal.model.RateLimitInfo;
 import org.smap.sdal.model.RecordUpdateEvent;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SqlParam;
@@ -151,7 +148,6 @@ public class Data extends Application {
 	}
 
 	/*
-	 * KoboToolBox API version 1 /data
 	 * Get records for an individual survey in JSON format
 	 * Survey and form identifiers are strings
 	 */
@@ -159,6 +155,79 @@ public class Data extends Application {
 	@Produces("application/json")
 	@Path("/{sIdent}")
 	public Response getDataRecordsService(@Context HttpServletRequest request,
+			@Context HttpServletResponse response,
+			@PathParam("sIdent") String sIdent,
+			@QueryParam("start") int start,				// Primary key to start from
+			@QueryParam("limit") int limit,				// Number of records to return
+			@QueryParam("mgmt") boolean mgmt,
+			@QueryParam("oversightSurvey") String oversightSurvey,	// Console
+			@PathParam("view") int viewId,					// Console
+			@QueryParam("schema") boolean schema,			// Console return schema with the data
+			@QueryParam("group") boolean group,			// If set include a dummy group value in the response, used by duplicate query
+			@QueryParam("sort") String sort,				// Column Human Name to sort on
+			@QueryParam("dirn") String dirn,				// Sort direction, asc || desc
+			@QueryParam("form") String formName,			// Form name (optional only specify for a child form)
+			@QueryParam("start_parkey") int start_parkey,// Parent key to start from
+			@QueryParam("parkey") int parkey,			// Parent key (optional, use to get records that correspond to a single parent record)
+			@QueryParam("hrk") String hrk,				// Unique key (optional, use to restrict records to a specific hrk)
+			@QueryParam("key") String key,				// Unique key (optional, use to restrict records to a specific key - same as hrk)
+			@QueryParam("format") String format,			// dt for datatables otherwise assume kobo
+			@QueryParam("bad") String include_bad,		// yes | only | none Include records marked as bad
+			@QueryParam("completed") String include_completed,		// If yes return unassigned records that have the final status
+			@QueryParam("audit") String audit_set,		// if yes return audit data
+			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
+			@QueryParam("tz") String tz,					// Timezone
+			@QueryParam("geojson") String geojson,		// if set to yes then format as geoJson
+			@QueryParam("geom_question") String geomQuestion,
+			@QueryParam("links") String links,
+			@QueryParam("meta") String meta,
+			@QueryParam("filter") String filter,
+			@QueryParam("dd_filter") String dd_filter,		// Drill Down Filter when driling down to a child survey
+			@QueryParam("prikey") int prikey,				// Return data for a specific primary key (Distinct from using start with limit 1 as this is for drill down and settings should not be stored)
+			@QueryParam("dd_hrk") String dd_hrk,				// Return data matching key when drilling down to parent
+			@QueryParam("dateName") String dateName,			// Name of question containing the date to filter by
+			@QueryParam("startDate") Date startDate,
+			@QueryParam("endDate") Date endDate,
+			@QueryParam("instanceid") String instanceId,
+			@QueryParam("getSettings") boolean getSettings			// if set true get the settings from the database
+			) throws ApplicationException, Exception { 
+			
+		boolean incLinks = false;
+		if(links != null && (links.equals("true") || links.equals("yes"))) {
+			incLinks = true;
+		}
+		if(formName != null) {
+			incLinks = false;		// Links can only be specified for the main form
+		}
+		
+		if(key != null) {
+			hrk = key;
+		}
+		
+		boolean includeMeta = true;		// Default to true for get all records (Historical consistency reason)
+		if(meta != null && (meta.equals("false") || meta.equals("no"))) {
+			includeMeta = false;
+		}
+		
+		// Authorisation is done in getDataRecords
+		getDataRecords(request, response, sIdent, start, limit, mgmt, oversightSurvey, viewId, 
+				schema, group, sort, dirn, formName, start_parkey,
+				parkey, hrk, format, include_bad, include_completed, audit_set, merge, geojson, geomQuestion,
+				tz, incLinks, 
+				filter, dd_filter, prikey, dd_hrk, dateName, startDate, endDate, getSettings, 
+				instanceId, includeMeta);
+		
+		return Response.status(Status.OK).build();
+	}
+	
+	/*
+	 * Get records for an individual survey in JSON format
+	 * Called from Smap application, hence has a different path to use form authentication
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/server/{sIdent}")
+	public Response getDataRecordsServiceSmap(@Context HttpServletRequest request,
 			@Context HttpServletResponse response,
 			@PathParam("sIdent") String sIdent,
 			@QueryParam("start") int start,				// Primary key to start from
