@@ -274,7 +274,7 @@ then
 fi
 
 # Version 23.11
-if [ $version -lt "2311" ]; then
+if [ $version -lt "2401" ]; then
 	sudo a2enmod auth_form
 	sudo a2enmod request
 	sudo a2enmod session
