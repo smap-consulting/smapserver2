@@ -298,17 +298,20 @@ public class PasswordReset extends Application {
 				}
 				
 				sql = "update users "
-						+ "set password = md5(?), password_reset = 'true', password_set = now() "
+						+ "set password = md5(?), "
+						+ "basic_password = '{SHA}'|| encode(digest(?,'sha1'),'base64'), "
+						+ "password_reset = 'true', "
+						+ "password_set = now() "
 						+ "where one_time_password = ? and ident = ?";
 				pstmtUpdate = sd.prepareStatement(sql);
 				String pwdString = ident + ":smap:" + pd.password;
 				pstmtUpdate.setString(1, pwdString);
-				pstmtUpdate.setString(2, pd.onetime);
-				pstmtUpdate.setString(3, ident);
+				pstmtUpdate.setString(2, pd.password);
+				pstmtUpdate.setString(3, pd.onetime);
+				pstmtUpdate.setString(4, ident);
 				
 				pstmtUpdate.executeUpdate();
 				response = Response.ok().build();
-				log.info("Password updated");
 				count++;
 				
 

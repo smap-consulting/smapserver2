@@ -75,11 +75,6 @@ public class UserSvc extends Application {
 
 	LogManager lm = new LogManager();		// Application log
 	
-	private class AlertStatus {
-		public String lastalert;
-		public boolean seen;
-	}
-	
 	@GET
 	@Produces("application/json")
 	public Response getUserDetails(@Context HttpServletRequest request) { 
@@ -199,71 +194,33 @@ public class UserSvc extends Application {
 
 			/*
 			 * Update what can be updated by the user, excluding the current project id, survey id, form id and task group
+			 * Password is not updated
 			 */
-			String pwdString = null;
 			String sql = null;
 			String ident = request.getRemoteUser();
-			PasswordManager pwm  = null;
-			if(u.password == null) {
-				// Do not update the password
-				sql = "update users set "
-						+ "name = ?, "
-						+ "settings = ?, "
-						+ "language = ?, "
-						+ "email = ?, "
-						+ "timezone = ? "
-						+ "where "
-						+ "ident = ?";
-			} else {
-				// Update the password
-				
-				/*
-				 * Verify that the password is strong enough
-				 */
-				pwm = new PasswordManager(sd, locale, localisation, request.getRemoteUser(), request.getServerName());
-				pwm.checkStrength(u.password);
-				
-				sql = "update users set "
-						+ "name = ?, " 
-						+ "settings = ?, "
-						+ "language = ?, "
-						+ "email = ?, "
-						+ "timezone = ?, "
-						+ "password = md5(?), "
-						+ "password_set = now() "
-						+ "where "
-						+ "ident = ?";
-				
-				pwdString = ident + ":smap:" + u.password;
-				
-				// Delete any session keys for this user
-				GeneralUtilityMethods.deleteAccessKeys(sd, ident);
-			}
-			
+			sql = "update users set "
+					+ "name = ?, "
+					+ "settings = ?, "
+					+ "language = ?, "
+					+ "email = ?, "
+					+ "timezone = ? "
+					+ "where "
+					+ "ident = ?";
+					
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, HtmlSanitise.checkCleanName(u.name, localisation));
 			pstmt.setString(2, u.settings);
 			pstmt.setString(3, HtmlSanitise.checkCleanName(u.language, localisation));
 			pstmt.setString(4, HtmlSanitise.checkCleanName(u.email, localisation));
 			pstmt.setString(5, HtmlSanitise.checkCleanName(u.timezone, localisation));
-			if(u.password == null) {
-				pstmt.setString(6, ident);
-			} else {
-				pstmt.setString(6, pwdString);
-				pstmt.setString(7, ident);
-			}
+			pstmt.setString(6, ident);
+			
 			log.info("Update user details: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			// Write logs
 			log.info("userevent: " + request.getRemoteUser() + (u.password == null ? " : updated user details : " : " : updated password : ") + u.name);
-			if(pwm != null) {
-				pwm.logReset();
-			} else if(u.password == null) {
-				lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.USER_DETAILS, localisation.getString("msg_ud_changed"), 0, request.getServerName());
-			} else {
-				lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.USER_DETAILS, localisation.getString("msg_pwd_changed"), 0, request.getServerName());
-			}
+			lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.USER_DETAILS, localisation.getString("msg_ud_changed"), 0, request.getServerName());
 			
 			UserManager um = new UserManager(localisation);
 			User userResp = um.getByIdent(sd, request.getRemoteUser());
@@ -340,6 +297,7 @@ public class UserSvc extends Application {
 				
 			sql = "update users set "
 					+ "password = md5(?), "
+					+ "basic_password = '{SHA}'|| encode(digest(?,'sha1'),'base64'), "
 					+ "password_set = now() "
 					+ "where "
 					+ "ident = ?";
@@ -351,6 +309,7 @@ public class UserSvc extends Application {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, pwdString);
+			pstmt.setString(2, pwd.password);
 			pstmt.setString(2, ident);
 		
 			log.info("Update password: " + pstmt.toString());

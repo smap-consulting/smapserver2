@@ -324,6 +324,7 @@ CREATE TABLE users (
 	temporary boolean default false,			-- If true will not show in user management page
 	imported boolean default false,				-- user was added using a bult import from a spreadsheet
 	password text,
+	basic_password text,						-- Begin migration to using basic instead of digest for authentication
 	password_set timestamp with time zone,		-- Date and time password was set
 	realm text,
 	name text,

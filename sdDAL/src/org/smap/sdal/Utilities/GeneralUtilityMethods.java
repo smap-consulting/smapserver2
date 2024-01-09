@@ -10360,7 +10360,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * REturns true if the provided password is correct for the user
+	 * Returns true if the provided password is correct for the user
 	 */
 	public static boolean isPasswordValid(Connection sd, String username, String password) throws SQLException {
 		boolean valid = false;

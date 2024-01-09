@@ -415,6 +415,7 @@ public class UserList extends Application {
 	
 	/*
 	 * Update the settings or create new user
+	 * Called when saving changes to a user from the users page
 	 */
 	@POST
 	@Consumes(MediaType.TEXT_HTML)

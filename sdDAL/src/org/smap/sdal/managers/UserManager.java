@@ -530,7 +530,10 @@ public class UserManager {
 
 		int u_id = -1;
 		String sql = "insert into users (ident, realm, name, email, o_id, imported, language, password, created, password_set) " +
-				" values (?, ?, ?, ?, ?, ?, ?, md5(?), now(), now());";
+				" values (?, ?, ?, ?, ?, ?, ?, "
+				+ "md5(?),"
+				+ "'{SHA}'|| encode(digest(?,'sha1'),'base64'),"
+				+ " now(), now());";
 
 		PreparedStatement pstmt = null;
 
@@ -556,6 +559,7 @@ public class UserManager {
 			pstmt.setBoolean(6,u.imported);
 			pstmt.setString(7,  HtmlSanitise.checkCleanName(language, localisation));
 			pstmt.setString(8, pwdString);
+			pstmt.setString(9, u.password);
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 
@@ -825,6 +829,7 @@ public class UserManager {
 								+ "email = ?, "
 								+ "o_id = ?, "
 								+ "password = md5(?), "
+								+ "basic_password = '{SHA}'|| encode(digest(?,'sha1'),'base64'), "
 								+ "password_set = now() "
 								+ "where "
 								+ "id = ?";
@@ -846,7 +851,8 @@ public class UserManager {
 						pstmt.setInt(6, u.id);
 					} else {
 						pstmt.setString(6, pwdString);
-						pstmt.setInt(7, u.id);
+						pstmt.setString(7, u.password);
+						pstmt.setInt(8, u.id);
 					}
 
 					log.info("Update user details: " + pstmt.toString());
