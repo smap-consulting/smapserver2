@@ -310,7 +310,7 @@ public class UserSvc extends Application {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, pwdString);
 			pstmt.setString(2, pwd.password);
-			pstmt.setString(2, ident);
+			pstmt.setString(3, ident);
 		
 			log.info("Update password: " + pstmt.toString());
 			pstmt.executeUpdate();
