@@ -5,6 +5,9 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -13,6 +16,7 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.GroupDetails;
 
 /*****************************************************************************
  * 
@@ -40,6 +44,7 @@ public class SubmissionsManager {
 	private static Logger log = Logger.getLogger(SubmissionsManager.class.getName());
 	private static ResourceBundle localisation;
 	String tz;
+	LogManager lm = new LogManager();		// Application log
 	
 	public SubmissionsManager(ResourceBundle l, String tz) {
 		localisation = l;
@@ -323,6 +328,108 @@ public class SubmissionsManager {
 		return jr;
 	}
 
+	/*
+	 * Restore a survey contents from original files
+	 */
+	public void restore(Connection sd, 
+			Connection connectionRel,
+			ResourceBundle localisation , String tz, 
+			HashMap<String, String> params,
+			int oId,
+			int uId) throws Exception {
+		
+		int sId = GeneralUtilityMethods.getKeyValueInt(BackgroundReportsManager.PARAM_SURVEY_ID, params);
+		String uIdent = GeneralUtilityMethods.getUserIdent(sd, uId);
+		
+		lm.writeLog(sd, sId, uIdent, LogManager.RESTORE, "Restore results", 0, null);
+		
+		if(sId > 0) {
+
+			String sql = null;				
+			PreparedStatement pstmt = null;
+			PreparedStatement pstmtReset = null;
+			PreparedStatement pstmtUnpublish = null;
+			
+			Statement stmtRel = null;
+			try {
+				
+				// Mark columns as unpublished		
+				String sqlUnpublish = "update question set published = 'false' where f_id in (select f_id from form where s_id = ?)";
+				pstmtUnpublish = sd.prepareStatement(sqlUnpublish);		
+				
+				String sqlResetLoadFlag = "update upload_event "
+						+ "set results_db_applied = 'false',"
+						+ "db_status = null, "
+						+ "db_reason = null "
+						+ "where ident = ?";
+				pstmtReset = sd.prepareStatement(sqlResetLoadFlag);
+				
+				/*
+				 * Get the surveys and tables that are part of the group that this survey belongs to
+				 */
+				SurveyManager sm = new SurveyManager(localisation, "UTC");
+				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+				ArrayList<GroupDetails> surveys = sm.getAccessibleGroupSurveys(sd, groupSurveyIdent, uIdent, false);
+				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyIdent, oId, uIdent, sId);
+				
+				/*
+				 * Delete data from each form ready for reload
+				 */
+				for(String tableName : tableList) {				
+
+					sql = "drop TABLE " + tableName + ";";
+					log.info("################################# Delete table contents and drop table prior to restore: " + sql);
+					
+					try {if (stmtRel != null) {stmtRel.close();}} catch (SQLException e) {}
+					stmtRel = connectionRel.createStatement();
+					try {
+						stmtRel.executeUpdate(sql);
+					} catch (Exception e) {
+						log.info("Error deleting table: " + e.getMessage());
+					}
+					log.info("userevent: " + uIdent + " : delete results : " + tableName + " in survey : "+ sId); 
+				}
+					
+				/*
+				 * Mark questions as unpublished
+				 */
+				connectionRel.setAutoCommit(false);
+				for(GroupDetails gd : surveys) {
+					pstmtUnpublish.setInt(1, gd.sId);
+					log.info("set unpublished " + pstmtUnpublish.toString());
+					pstmtUnpublish.executeUpdate();
+				}
+				
+				/*
+				 * Reload the surveys
+				 */
+				ExternalFileManager efm = new ExternalFileManager(localisation);
+				connectionRel.setAutoCommit(false);
+				for(GroupDetails gd : surveys) {
+					// restore backed up files from s3 of raw data
+					GeneralUtilityMethods.restoreUploadedFiles(gd.surveyIdent, "uploadedSurveys");			
+					pstmtReset.setString(1, gd.surveyIdent);			// Initiate reset of go faster flag
+					log.info("Restoring survey2 " + pstmtReset.toString());
+					pstmtReset.executeUpdate();
+					
+					// Force regeneration of any dynamic CSV files that this survey links to
+					efm.linkerChanged(sd, gd.sId);	// deprecated
+				}
+				connectionRel.commit();
+				
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				try {if (pstmtReset != null) {pstmtReset.close();}} catch (SQLException e) {}
+				try {if (pstmtUnpublish != null) {pstmtUnpublish.close();}} catch (SQLException e) {}
+				try {if (stmtRel != null) {stmtRel.close();}} catch (SQLException e) {}
+			
+
+				try {connectionRel.setAutoCommit(true);} catch (Exception e) {}
+				
+			}
+		}
+	}
+	
 	private String getJoin(StringBuffer whereClause) {
 		if(whereClause.length() == 0) {
 			return "where ";

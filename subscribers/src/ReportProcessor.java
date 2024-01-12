@@ -70,7 +70,7 @@ public class ReportProcessor {
 					 */
 					BackgroundReportsManager brm = new BackgroundReportsManager(null, null);
 					try {
-						while(brm.processNextReport(dbc.sd, basePath)) {
+						while(brm.processNextReport(dbc.sd, dbc.results, basePath)) {
 							log.info("..............................report processed");
 						}
 						

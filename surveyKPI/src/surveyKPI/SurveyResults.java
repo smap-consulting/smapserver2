@@ -227,7 +227,8 @@ public class SurveyResults extends Application {
 	
 	/*
 	 * Restore results for a survey
-	 */
+	 * Deprecated.  Restoration is now done as a background report to allow AWS sync to complete
+	 *
 	@GET
 	@Path("/restore")
 	public Response restoreSurveyResults(@Context HttpServletRequest request,
@@ -237,7 +238,13 @@ public class SurveyResults extends Application {
 		String connectionString = "surveyKPI-SurveyResults-restore";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
 		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, connectionString, sId, false, superUser);
 		// End Authorisation
 		
 		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.RESTORE, "Restore results", 0, request.getServerName());
@@ -259,7 +266,6 @@ public class SurveyResults extends Application {
 				
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				connectionRel = ResultsDataSource.getConnection(connectionString);
-				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 				
 				// Mark columns as unpublished		
 				String sqlUnpublish = "update question set published = 'false' where f_id in (select f_id from form where s_id = ?)";
@@ -274,7 +280,7 @@ public class SurveyResults extends Application {
 				
 				/*
 				 * Get the surveys and tables that are part of the group that this survey belongs to
-				 */
+				 *
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 				ArrayList<GroupDetails> surveys = sm.getAccessibleGroupSurveys(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
@@ -282,7 +288,7 @@ public class SurveyResults extends Application {
 				
 				/*
 				 * Delete data from each form ready for reload
-				 */
+				 *
 				for(String tableName : tableList) {				
 
 					sql = "drop TABLE " + tableName + ";";
@@ -300,7 +306,7 @@ public class SurveyResults extends Application {
 					
 				/*
 				 * Mark questions as unpublished
-				 */
+				 *
 				connectionRel.setAutoCommit(false);
 				for(GroupDetails gd : surveys) {
 					pstmtUnpublish.setInt(1, gd.sId);
@@ -310,7 +316,7 @@ public class SurveyResults extends Application {
 				
 				/*
 				 * Reload the surveys
-				 */
+				 *
 				ExternalFileManager efm = new ExternalFileManager(localisation);
 				connectionRel.setAutoCommit(false);
 				for(GroupDetails gd : surveys) {
@@ -352,6 +358,7 @@ public class SurveyResults extends Application {
 
 		return response; 
 	}
+	*/
 	
 	/*
 	 * Archive results for a survey

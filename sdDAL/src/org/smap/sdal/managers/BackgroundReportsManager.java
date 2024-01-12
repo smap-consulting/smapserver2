@@ -53,6 +53,7 @@ public class BackgroundReportsManager {
 	public static String PARAM_START_DATE = "startDate";
 	public static String PARAM_END_DATE = "endDate";
 	public static String PARAM_USER_ID = "userId";
+	public static String PARAM_SURVEY_ID = "sId";
 	public static String PARAM_MPS = "mps";
 	
 	public static String PARAM_O_ID = "oId";
@@ -76,7 +77,7 @@ public class BackgroundReportsManager {
 	/*
 	 * Localisation can change during the life of the manager
 	 */
-	public boolean processNextReport(Connection sd, String basePath) throws SQLException {
+	public boolean processNextReport(Connection sd, Connection cResults, String basePath) throws SQLException {
 		BackgroundReport report = getNextReport(sd);
 		if(report == null) {
 			return false;	// no more reports
@@ -106,6 +107,9 @@ public class BackgroundReportsManager {
 					XLSXAttendanceReportsManager rm = new XLSXAttendanceReportsManager(localisation, report.tz);
 					String userIdent = GeneralUtilityMethods.getUserIdent(sd, report.uId);
 					filename = rm.writeNewAttendanceReport(sd, userIdent, report.params, basePath);
+				} else if(report.report_type.equals("restore")) {
+					SubmissionsManager sm = new SubmissionsManager(localisation, report.tz);
+					sm.restore(sd, cResults, localisation, report.tz, report.params, report.oId, report.uId);
 				} else {
 					updateReportStatus(sd, report.id, false, null, "Unsupported report type: " + report.report_type);
 					error = true;

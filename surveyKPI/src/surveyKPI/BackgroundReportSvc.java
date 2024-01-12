@@ -156,12 +156,12 @@ public class BackgroundReportSvc extends Application {
 			@QueryParam("tz") String tz					// Timezone
 			) { 
 		
-		String requestName = "surveyKPI - Create Background Report";
+		String connectionString = "surveyKPI - Create Background Report";
 		Response response = null;
 		
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
-		Connection sd = SDDataSource.getConnection(requestName);
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		
 		PreparedStatement pstmtDuplicate = null;
@@ -193,6 +193,16 @@ public class BackgroundReportSvc extends Application {
 					if(reportUser > 0) {
 						a.isValidUser(sd, request.getRemoteUser(), reportUser);
 					}
+				}
+				
+				int sId = GeneralUtilityMethods.getKeyValueInt(BackgroundReportsManager.PARAM_SURVEY_ID, br.params);
+				if(sId > 0) {
+					boolean superUser = false;
+					try {
+						superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+					} catch (Exception e) {
+					}
+					a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 				}
 			}
 			if(br.pId > 0) {
@@ -253,7 +263,7 @@ public class BackgroundReportSvc extends Application {
 		} finally {
 			try {if (pstmtDuplicate != null) {pstmtDuplicate.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			SDDataSource.closeConnection(requestName, sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
