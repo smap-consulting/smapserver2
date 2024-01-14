@@ -56,6 +56,7 @@ public class GetHtml {
 	Document outputDoc = null;
 	private boolean gInTableList = false;
 	private HashMap<String, Integer> gRecordCounts = null;
+	private String gUrlPrefix;
 
 	private static Logger log = Logger.getLogger(GetHtml.class.getName());
 	
@@ -75,6 +76,7 @@ public class GetHtml {
 			HashMap<String, Integer> recordCounts, boolean temporaryUser) throws SQLException, Exception {
 		
 		gRecordCounts = recordCounts;
+		gUrlPrefix = GeneralUtilityMethods.getUrlPrefix(request);
 		
 		String response = null;
 		String connectionString = "Get Html";
@@ -532,6 +534,10 @@ public class GetHtml {
 			} else if(q.type.equals("rank") || (!q.appearance.contains("likert") && !minSelect(q.appearance) && !q.appearance.contains("compact"))) {
 				classVal.append(" simple-select");
 			}
+		}
+		
+		if (q.type.equals("form")) {
+			classVal.append(" or-appearance-form");
 		}
 
 		// Mark the question as a branch if it has a relevance
@@ -1059,7 +1065,7 @@ public class GetHtml {
 			}
 		} else {
 			bodyElement = outputDoc.createElement("input");
-		}
+		} 
 		bodyElement.setAttribute("type", getInputType(q));
 		bodyElement.setAttribute("name", paths.get(getRefName(q.name, form)));
 		bodyElement.setAttribute("data-type-xml", getXmlType(q));
@@ -1106,6 +1112,12 @@ public class GetHtml {
 		// decimal
 		if (q.type.equals("decimal")) {
 			bodyElement.setAttribute("step", "any");
+		}
+		
+		if(q.type.equals("form")) {
+			// Add a calculation containing the URL
+			bodyElement.setAttribute("data-calculate",
+					UtilityMethods.convertAllxlsNames(getFormLaunchURL(q), false, paths, form.id, true, q.name, false));
 		}
 
 		// constraint
@@ -1660,7 +1672,7 @@ public class GetHtml {
 			type = "text";
 		} else if (q.type.equals("decimal")) {
 			type = "number";
-		} else if (q.type.equals("trigger") || q.type.equals("acknowledge") ) {
+		} else if (q.type.equals("trigger") || q.type.equals("acknowledge")) {
 			type = "radio";
 		} else {
 			log.info("#### unknown type: " + q.type + " for question " + q.name);
@@ -1704,6 +1716,8 @@ public class GetHtml {
 			type = "trigger";
 		} else if (q.type.equals("pdf_field")) {
 			type = "geotrace";
+		} else if (q.type.equals("form")) {
+			type = "string";
 		} else {
 			type = q.type;
 		}
@@ -2034,6 +2048,17 @@ public class GetHtml {
 		}
 		sb.append(calculation);
 		return sb.toString();
+	}
+	
+	String getFormLaunchURL(Question q) {
+		StringBuilder url = new StringBuilder("concat('")
+				.append(gUrlPrefix)
+				.append("app/myWork/webForm/")
+				.append(GeneralUtilityMethods.getSurveyParameter("form_identifier", q.paramArray))
+				.append("')");
+		
+		System.out.println(url.toString());		// DEBUG Remove
+		return url.toString();
 	}
 	
 }
