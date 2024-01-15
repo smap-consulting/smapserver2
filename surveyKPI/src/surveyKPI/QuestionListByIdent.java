@@ -105,13 +105,12 @@ public class QuestionListByIdent extends Application {
 			if(inc_meta) {
 				ArrayList<MetaItem> metaItems = GeneralUtilityMethods.getPreloads(sd, sId);
 				for(MetaItem mi : metaItems) {
-					if(mi.isPreload) {
+					if(mi.isPreload || mi.columnName.equals("instanceid")) {
 						QuestionLite q = new QuestionLite();
 						q.id = mi.id;
 						q.name = mi.name;
 						q.f_id = tf.id;
 						q.type = mi.type;
-						q.is_ssc = false;
 						
 						questions.add(q);
 					}	

@@ -244,7 +244,6 @@ public class ExportSurvey extends Application {
 
 			PreparedStatement pstmt = null;
 			PreparedStatement pstmt2 = null;
-			PreparedStatement pstmtSSC = null;
 			PreparedStatement pstmtQType = null;
 			Connection connectionResults = null;
 
@@ -255,13 +254,6 @@ public class ExportSurvey extends Application {
 				Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());
 				Locale locale = new Locale(organisation.locale);
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-				// Prepare statement to get server side includes
-				String sqlSSC = "select ssc.name, ssc.function, ssc.type, ssc.units from ssc ssc, form f " +
-						" where f.f_id = ssc.f_id " +
-						" and f.table_name = ? " +
-						" order by ssc.id;";
-				pstmtSSC = sd.prepareStatement(sqlSSC);
 
 				// Prepare the statement to get the question type and read only attribute
 				String sqlQType = "select q.qtype, q.readonly from question q, form f " +
@@ -532,86 +524,6 @@ public class ExportSurvey extends Application {
 							}
 						}
 
-						/*
-						 * Add the server side calculations
-						 */ 
-						pstmtSSC.setString(1, f.table_name);
-						log.info("sql: " + sqlSSC + " : " + f.table_name);
-						resultSet = pstmtSSC.executeQuery();
-						while(resultSet.next()) {
-							String sscName = resultSet.getString(1);
-							String sscFn = resultSet.getString(2);
-							String sscType = resultSet.getString(3);
-							String sscUnits = resultSet.getString(4);
-							if(sscType == null) {
-								sscType = "decimal";
-							}
-
-							String colName = sscName + " (" + sscUnits + ")";
-
-							if(f.maxRepeats > 1) {	// Columns need to be repeated horizontally
-								colName += "_" + (k + 1);
-							}
-
-							if(f.visible) {	// Add column headings if the form is visible
-								qName.append(getContent(sd, colName, true,false, colName, sscType, split_locn));
-								if(!language.equals("none")) {
-									qText.append(getContent(sd, getQuestion(sd, sscName, sId, f, language, merge_select_multiple), true, false, sscName, sscType, split_locn));
-								}
-							}
-
-							// Set the sql selection text for this column (Only need to do this once, not for every repeating record)
-							if(k == 0) {
-
-								String selName = null;
-
-								if(sscFn.equals("area")) {
-
-									String geomColumn = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, f.f_id, "geoshape");
-									if(geomColumn != null) {
-										selName = "ST_Area(geography(" + geomColumn + "), true)";
-										if(sscUnits.equals("hectares")) {
-											selName += " / 10000";
-										}
-										selName += " as \"" + colName + "\"";
-									}
-
-								} else if (sscFn.equals("length")) {
-
-									String geomColumn = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, f.f_id, "geoshape");
-									if(geomColumn == null) {
-										geomColumn = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, f.f_id, "geotrace");
-									}
-									if(geomColumn != null) {
-									
-										selName = "ST_Length(geography(" + geomColumn + "), true)";
-										
-										if(sscUnits.equals("km")) {
-											selName += " / 1000";
-										}
-										selName += " as \"" + colName + "\"";
-									}
-
-								} else {
-									selName= sscName;
-								}
-
-								if(f.columns == null) {
-									f.columns = selName;
-								} else {
-									f.columns += "," + selName;
-								}
-
-								TableColumn tc = new TableColumn();
-								tc.column_name = selName;
-								tc.question_name = selName;
-								tc.type = sscType;
-								f.columnList.add(tc);
-
-								f.columnCount++;
-							}
-
-						}
 					}
 
 				}
@@ -688,7 +600,6 @@ public class ExportSurvey extends Application {
 
 				try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 				try {if (pstmt2 != null) {pstmt2.close();	}} catch (SQLException e) {	}
-				try {if (pstmtSSC != null) {pstmtSSC.close();	}} catch (SQLException e) {	}
 				try {if (pstmtQType != null) {pstmtQType.close();	}} catch (SQLException e) {	}
 
 				SDDataSource.closeConnection("surveyKPI-ExportSurvey", sd);
