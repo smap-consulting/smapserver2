@@ -500,6 +500,10 @@ public class GetHtml {
 
 			// Non select question
 			bodyElement = outputDoc.createElement("label");
+			if(q.type.equals("form")) {
+				bodyElement.setAttribute("title", survey.getDisplayName());
+			}
+			
 			setQuestionClass(q, bodyElement);
 
 			addLabelContents(bodyElement, q, form, hideLabels);
@@ -1115,6 +1119,7 @@ public class GetHtml {
 		}
 		
 		if(q.type.equals("form")) {
+
 			// Add a calculation containing the URL
 			bodyElement.setAttribute("data-calculate",
 					UtilityMethods.convertAllxlsNames(getFormLaunchURL(q), false, paths, form.id, true, q.name, false));
@@ -2050,12 +2055,44 @@ public class GetHtml {
 		return sb.toString();
 	}
 	
-	String getFormLaunchURL(Question q) {
+	/*
+	 * Get a calculation to create the URL to launch another survey from a survey
+	 */
+	String getFormLaunchURL(Question q) throws SQLException {
+		
+		String surveyIdent = GeneralUtilityMethods.getSurveyParameter("form_identifier", q.paramArray);
+		String initial = GeneralUtilityMethods.getSurveyParameter("initial", q.paramArray);
+		
 		StringBuilder url = new StringBuilder("concat('")
 				.append(gUrlPrefix)
 				.append("app/myWork/webForm/")
-				.append(GeneralUtilityMethods.getSurveyParameter("form_identifier", q.paramArray))
-				.append("')");
+				.append(surveyIdent)
+				.append("'");
+		
+		if(initial != null) {
+			initial = initial.trim();
+			if(initial.length() > 0) {
+				url.append(",'?initial='");
+				String [] a = initial.split(",");
+				if(a.length > 0) {
+					for(int i = 0; i < a.length; i++) {
+						String [] a2 = a[i].split(":");
+						if(a2.length == 2) {
+							if(i > 0) {
+								url.append("',',");
+							}
+							for(int j = 0; j < a2.length; j++) {
+								a2[j] = a2[j].trim();
+								url.append(",")
+									.append(j == 0 ? "" : "':',")
+									.append(a2[j].startsWith("$") ? a2[j] : "'" + a2[j] + "'");
+							}	
+						}
+					}
+				}
+			}
+		}
+		url.append(")");
 		
 		System.out.println(url.toString());		// DEBUG Remove
 		return url.toString();

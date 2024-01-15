@@ -235,7 +235,6 @@ public class WebForm extends Application {
 			@QueryParam("datakeyvalue") String datakeyvalue, 
 			@QueryParam("assignment_id") int assignmentId,
 			@QueryParam("taskkey") int taskKey,	// Task id, if set initial data is from task
-			@QueryParam("callback") String callback,
 			@QueryParam("readonly") boolean readOnly) throws IOException {
 
 		Response response;
@@ -261,7 +260,7 @@ public class WebForm extends Application {
 		mimeType = "json";
 		isTemporaryUser = false;
 		response = getWebform(request, "none", null, formIdent, datakey, datakeyvalue, 
-				assignmentId, taskKey, callback, false, false, 
+				assignmentId, taskKey, false, false, 
 				false, 
 				null,
 				false,	// show done page
@@ -271,7 +270,7 @@ public class WebForm extends Application {
 	}
 
 	/*
-	 * Fet webform identified by logon credentials
+	 * Get webform identified by logon credentials
 	 */
 	@GET
 	@Path("/{ident}")
@@ -284,16 +283,11 @@ public class WebForm extends Application {
 			@QueryParam("viewOnly") boolean vo,
 			@QueryParam("debug") String d,
 			@QueryParam("app") boolean app,
-			@QueryParam("callback") String callback,
 			@QueryParam("readonly") boolean readOnly) throws IOException {
 
 		Response response = null;
 		
 		mimeType = "html";
-		if (callback != null) {
-			// I guess they really want JSONP
-			mimeType = "json";
-		}
 		viewOnly = vo;
 		debug = d;
 		isApp = app;
@@ -333,7 +327,7 @@ public class WebForm extends Application {
 			try {
 				response = getWebform(request, "none", null, 
 						formIdent, datakey, datakeyvalue, assignmentId, 
-						taskKey, callback,
+						taskKey,
 						false, true, false, 
 						null,
 						false,		// show done page
@@ -364,21 +358,16 @@ public class WebForm extends Application {
 			@QueryParam("assignment_id") int assignmentId,
 			@QueryParam("taskkey") int taskKey,	// Task id, if set initial data is from task
 			@QueryParam("viewOnly") boolean vo,
-			@QueryParam("debug") String d,
-			@QueryParam("callback") String callback) throws IOException {
+			@QueryParam("debug") String d) throws IOException {
 
 		mimeType = "html";
-		if (callback != null) {
-			// I guess they really want JSONP
-			mimeType = "json";
-		}
 		viewOnly = vo;
 		debug = d;
 		
 		userIdent = tempUser;
 		isTemporaryUser = true;
 		return getWebform(request, "none", null, formIdent, datakey, datakeyvalue, assignmentId, 
-				taskKey, callback, false,
+				taskKey, false,
 				true, false, null, true, false);
 	}
 
@@ -442,8 +431,7 @@ public class WebForm extends Application {
 				isTemporaryUser = true;
 				try {
 					response = getWebform(request, a.action, a.email, 
-							a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, a.taskKey, 
-							null, 
+							a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, a.taskKey,  
 							false,
 							true, 
 							true,			// Close after saving
@@ -479,7 +467,6 @@ public class WebForm extends Application {
 			String datakeyvalue, 
 			int assignmentId, 
 			int taskKey, 
-			String callback, 
 			boolean simplifyMedia,
 			boolean isWebForm,
 			boolean singleParam,
@@ -644,14 +631,9 @@ public class WebForm extends Application {
 
 				jr.main = addMain(request, instanceStrToEditId, orgId, true, surveyClass, superUser, survey.surveyData.readOnlySurvey || readonly).toString();
 
-				if (callback != null) {
-					outputString.append(callback + " (");
-				}
 				Gson gsonResp = new GsonBuilder().disableHtmlEscaping().create();
 				outputString.append(gsonResp.toJson(jr));
-				if (callback != null) {
-					outputString.append(")");
-				}
+
 			} else {
 				// MAIN ENTRY POINT
 				outputString.append(addDocument(request, instanceXML, instanceStrToEditId, assignmentId,
