@@ -8962,7 +8962,7 @@ public class GeneralUtilityMethods {
 		boolean hasParam = false;
 		StringBuffer url = new StringBuffer(urlprefix);
 		
-		url.append("/webForm/").append(surveyIdent);
+		url.append("/app/myWork/webForm/").append(surveyIdent);
 		
 		if(initial_data_source != null && initial_data_source.equals("survey")) {
 			url.append(hasParam ? "&" : "?").append("datakey=instanceid&datakeyvalue=").append(updateId);
@@ -9054,12 +9054,16 @@ public class GeneralUtilityMethods {
 		return url.toString();
 	}
 	
-	public static String getWebformLink(String urlprefix, 
+	/*
+	 * This is a re-implementation of the getWebFormLink function above
+	 * One of these tow functions should be removed
+	 */
+	public static String getWebformLinkToInstanceId(String urlprefix, 
 			String surveyIdent, 
 			String updateId) {
 		
 		StringBuffer url = new StringBuffer(urlprefix);		
-		url.append("webForm/").append(surveyIdent);
+		url.append("app/myWork/webForm/").append(surveyIdent);
 		url.append("?datakey=instanceid");
 		url.append("&datakeyvalue=").append(updateId);
 			

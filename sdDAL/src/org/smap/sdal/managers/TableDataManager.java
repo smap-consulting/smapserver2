@@ -692,7 +692,7 @@ public class TableDataManager {
 						tz));
 				
 				// Link to webform
-				jl.put("webform", GeneralUtilityMethods.getWebformLink(
+				jl.put("webform", GeneralUtilityMethods.getWebformLinkToInstanceId(
 						urlprefix, 
 						sIdent, 
 						uuid));

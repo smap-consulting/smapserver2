@@ -313,7 +313,7 @@ public class SubmissionsManager {
 					tz));
 			
 			// Link to webform
-			jl.put("webform", GeneralUtilityMethods.getWebformLink(
+			jl.put("webform", GeneralUtilityMethods.getWebformLinkToInstanceId(
 					urlprefix, 
 					ident, 
 					instanceId));
