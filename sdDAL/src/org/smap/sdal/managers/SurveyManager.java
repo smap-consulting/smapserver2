@@ -836,12 +836,6 @@ public class SurveyManager {
 		ResultSet rsGetOptions = null;
 		PreparedStatement pstmtGetOptions = sd.prepareStatement(sqlGetOptions);
 
-		// Get the server side calculations
-		ResultSet rsGetSSC = null;
-		String sqlGetSSC = "SELECT ssc.id, ssc.name, ssc.function, ssc.parameters, ssc.units, f.name, f.f_id " +
-				"FROM ssc ssc, form f WHERE ssc.s_id = ? AND ssc.f_id = f.f_id ORDER BY id";
-		PreparedStatement pstmtGetSSC = sd.prepareStatement(sqlGetSSC);
-
 		// Get the changes that have been made to this survey
 		ResultSet rsGetChanges = null;
 		String sqlGetChanges = "SELECT c.changes, "
@@ -1052,21 +1046,6 @@ public class SurveyManager {
 			}
 			s.surveyData.styleLists.put(styleListName, sl);
 		}
-		
-		// Add the server side calculations
-		pstmtGetSSC.setInt(1, s.getId());
-		rsGetSSC= pstmtGetSSC.executeQuery();
-
-		while (rsGetSSC.next()) {
-			ServerSideCalculate ssc = new ServerSideCalculate();
-			ssc.setId(rsGetSSC.getInt(1));
-			ssc.setName(rsGetSSC.getString(2));
-			ssc.setFunction(rsGetSSC.getString(3));
-			ssc.setUnits(rsGetSSC.getString(5));
-			ssc.setForm(rsGetSSC.getString(6));
-			ssc.setFormId(rsGetSSC.getInt(7));
-			s.surveyData.sscList.add(ssc);
-		}
 
 		// Add the change log
 		if(getChangeHistory) {
@@ -1110,7 +1089,6 @@ public class SurveyManager {
 		// Close statements
 		try { if (pstmtGetForms != null) {pstmtGetForms.close();}} catch (SQLException e) {}
 		try { if (pstmtGetOptions != null) {pstmtGetOptions.close();}} catch (SQLException e) {}
-		try { if (pstmtGetSSC != null) {pstmtGetSSC.close();}} catch (SQLException e) {}
 		try { if (pstmtGetChanges != null) {pstmtGetChanges.close();}} catch (SQLException e) {}
 		try { if (pstmtGetLists != null) {pstmtGetLists.close();}} catch (SQLException e) {}
 		try { if (pstmtGetStyles != null) {pstmtGetStyles.close();}} catch (SQLException e) {}
