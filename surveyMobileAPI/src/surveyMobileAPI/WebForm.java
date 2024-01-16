@@ -262,9 +262,11 @@ public class WebForm extends Application {
 		response = getWebform(request, "none", null, formIdent, datakey, datakeyvalue, 
 				assignmentId, taskKey, false, false, 
 				false, 
-				null,
-				false,	// show done page
-				readOnly);
+				null,		// initial data
+				false,		// show done page
+				readOnly,
+				null		// initial values
+				);
 		
 		return response;
 	}
@@ -279,6 +281,7 @@ public class WebForm extends Application {
 			@QueryParam("datakey") String datakey, // Optional keys to instance data
 			@QueryParam("datakeyvalue") String datakeyvalue, 
 			@QueryParam("assignment_id") int assignmentId,
+			@QueryParam("initial") String initialValues,
 			@QueryParam("taskkey") int taskKey,	// Task id, if set initial data is from task
 			@QueryParam("viewOnly") boolean vo,
 			@QueryParam("debug") String d,
@@ -329,9 +332,10 @@ public class WebForm extends Application {
 						formIdent, datakey, datakeyvalue, assignmentId, 
 						taskKey,
 						false, true, false, 
-						null,
+						null,		// Initial Data
 						false,		// show done page
-						readOnly
+						readOnly,
+						initialValues
 						);
 			} catch (BlockedException e) {
 				response = getMessagePage(false, "mo_blocked", null);
@@ -368,7 +372,12 @@ public class WebForm extends Application {
 		isTemporaryUser = true;
 		return getWebform(request, "none", null, formIdent, datakey, datakeyvalue, assignmentId, 
 				taskKey, false,
-				true, false, null, true, false);
+				true, false, 
+				null, 	// initial data
+				true, 
+				false,
+				null	// initial values
+				);
 	}
 
 	/*
@@ -437,7 +446,9 @@ public class WebForm extends Application {
 							true,			// Close after saving
 							a.initialData,
 							false,			// show done page
-							false);
+							false,
+							null			// Initial Values
+							);
 					
 				} catch (BlockedException e) {
 					response = getMessagePage(false, "mo_blocked", null);
@@ -472,7 +483,8 @@ public class WebForm extends Application {
 			boolean singleParam,
 			Instance initialData,
 			boolean showDonePageParam,
-			boolean readonly) {
+			boolean readonly,
+			String initialValues) {
 
 		Response response = null;
 
@@ -591,7 +603,14 @@ public class WebForm extends Application {
 			String instanceXML = null;
 			String instanceStrToEditId = null;
 			
+			if(initialValues != null) {
+				if(initialData == null) {
+					initialData = new Instance();
+				}
+				mergeValuesToData(initialData, initialValues);
+			}
 			if ((datakey != null && datakeyvalue != null) || taskKey > 0 || initialData != null) {
+				
 				log.info("Adding initial data");
 				String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 				GetXForm xForm = new GetXForm(localisation, userIdent, tz);
@@ -1431,5 +1450,26 @@ public class WebForm extends Application {
 		}
 
 		return response;
+	}
+	
+	/*
+	 * Tasks can pass an instance to be the initial data for a webform
+	 * Random initial values can also be passed in the URL
+	 * Combine these here
+	 */
+	private void mergeValuesToData(Instance data, String values) {
+		
+		if(values != null) {
+			String [] a = values.split(",");
+			if(a.length > 0) {
+				for(int i = 0; i < a.length; i++) {
+					String [] a2 = a[i].split(":");
+					if(a2.length == 2) {
+						data.values.put(a2[0].trim(), a2[1].trim());
+					}
+				}
+			}
+		}
+			
 	}
 }

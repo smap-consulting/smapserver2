@@ -2057,10 +2057,12 @@ public class GetHtml {
 	
 	/*
 	 * Get a calculation to create the URL to launch another survey from a survey
+	 * This has to combine single quoted text with references to answers to questions without quotes
 	 */
 	String getFormLaunchURL(Question q) throws SQLException {
 		
 		String surveyIdent = GeneralUtilityMethods.getSurveyParameter("form_identifier", q.paramArray);
+		String instance = GeneralUtilityMethods.getSurveyParameter("instance", q.paramArray);
 		String initial = GeneralUtilityMethods.getSurveyParameter("initial", q.paramArray);
 		
 		StringBuilder url = new StringBuilder("concat('")
@@ -2069,18 +2071,34 @@ public class GetHtml {
 				.append(surveyIdent)
 				.append("'");
 		
+		if(instance != null) {
+			instance = instance.trim();
+			if(instance.length() > 0) {
+				url.append(",'?datakey=instanceid&datakeyvalue=',");
+				if(instance.startsWith("$")) {
+					url.append(instance);
+				} else {
+					url.append("'").append(instance).append("'");
+				}
+			}
+		}
+		
 		if(initial != null) {
 			initial = initial.trim();
 			if(initial.length() > 0) {
-				url.append(",'?initial='");
+				
+				url.append(",'")
+					.append(instance == null ? "?" : "&")
+					.append("initial='");
+				
 				String [] a = initial.split(",");
 				if(a.length > 0) {
 					for(int i = 0; i < a.length; i++) {
 						String [] a2 = a[i].split(":");
+						if(i > 0) {
+							url.append(",','");
+						}
 						if(a2.length == 2) {
-							if(i > 0) {
-								url.append("',',");
-							}
 							for(int j = 0; j < a2.length; j++) {
 								a2[j] = a2[j].trim();
 								url.append(",")
@@ -2094,7 +2112,6 @@ public class GetHtml {
 		}
 		url.append(")");
 		
-		System.out.println(url.toString());		// DEBUG Remove
 		return url.toString();
 	}
 	
