@@ -93,8 +93,7 @@ public class QuestionList extends Application {
 			@PathParam("sId") int sId,
 			@PathParam("language") String language,
 			@QueryParam("single_type") String single_type,
-			@QueryParam("exc_read_only") boolean exc_read_only,
-			@QueryParam("exc_ssc") boolean exc_ssc) { 
+			@QueryParam("exc_read_only") boolean exc_read_only) { 
 		
 		
 		String connectionString = "surveyKPI-getQuestions";
@@ -218,7 +217,6 @@ public class QuestionList extends Application {
 			@PathParam("language") String language,
 			@QueryParam("single_type") String single_type,
 			@QueryParam("exc_read_only") boolean exc_read_only,
-			@QueryParam("exc_ssc") boolean exc_ssc,
 			@QueryParam("inc_meta") boolean inc_meta) { 
 
 		String connectionString = "surveyKPI-getQuestionsNew";

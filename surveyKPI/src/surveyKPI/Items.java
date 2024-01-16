@@ -184,7 +184,6 @@ public class Items extends Application {
 			
 			Connection cResults = null;
 			PreparedStatement pstmt = null;
-			PreparedStatement pstmtSSC = null;
 			PreparedStatement pstmtFDetails = null;
 			
 			int parent = 0;
@@ -297,7 +296,6 @@ public class Items extends Application {
 				int newColIdx = 0;
 				JSONArray columns = new JSONArray();
 				JSONArray types = new JSONArray();
-				ArrayList<String> sscList = new ArrayList<String> ();
 				boolean hasGeometry = false;
 				String geomColumn = null;
 				
@@ -703,18 +701,6 @@ public class Items extends Application {
 						}
 					} 
 
-					/*
-					 * Get the server side calculates
-					 */
-					for(int i = 0; i < sscList.size(); i++) {
-						String name = sscList.get(i);
-						String value = resultSet.getString(name);	
-						if(value == null) {
-							value = "";
-						}
-						jp.put(name, value);
-					}
-
 					if(!bMustHaveGeom || jg != null) {
 						jr.put("geometry", jg);
 						jr.put("properties", jp);
@@ -798,7 +784,6 @@ public class Items extends Application {
 			} finally {
 				
 				try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-				try {if (pstmtSSC != null) {pstmtSSC.close();	}} catch (SQLException e) {	}
 				try {if (pstmtFDetails != null) {pstmtFDetails.close();	}} catch (SQLException e) {	}
 				
 				SDDataSource.closeConnection(connectionString, sd);
