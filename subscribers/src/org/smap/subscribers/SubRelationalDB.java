@@ -49,7 +49,6 @@ import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.LinkageManager;
-import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SubmissionEventManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -624,6 +623,7 @@ public class SubRelationalDB extends Subscriber {
 						rawAuditString = auditData.rawAudit.toString();
 					}
 					
+					log.info("Prepare statement for table " + tableName);
 					ArrayList<ForeignKey> thisTableKeys = new ArrayList<> ();
 					pstmt = getSubmissionStatement(sd, cResults, 
 							sIdent,
