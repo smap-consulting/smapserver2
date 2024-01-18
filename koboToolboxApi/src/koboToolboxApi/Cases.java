@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.ws.rs.GET;
@@ -85,7 +86,13 @@ public class Cases extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, false);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(),e);
+		}
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		
 		tz = (tz == null) ? "UTC" : tz;
 		
