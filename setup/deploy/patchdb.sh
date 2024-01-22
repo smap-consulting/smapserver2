@@ -333,5 +333,5 @@ echo "\COPY language_codes (code, aws_translate, aws_transcribe, transcribe_defa
 
 
 # update version reference
-new_version="2311"
+new_version="2401"
 echo "$new_version" > ~/smap_version
