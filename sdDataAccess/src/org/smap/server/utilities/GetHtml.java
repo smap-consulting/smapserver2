@@ -26,6 +26,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
@@ -500,7 +501,7 @@ public class GetHtml {
 
 			// Non select question
 			bodyElement = outputDoc.createElement("label");
-			if(q.type.equals("form")) {
+			if(q.type.equals(SmapQuestionTypes.PARENT_FORM) || q.type.equals(SmapQuestionTypes.CHILD_FORM)) {
 				bodyElement.setAttribute("title", survey.getDisplayName());
 			}
 			
@@ -540,7 +541,7 @@ public class GetHtml {
 			}
 		}
 		
-		if (q.type.equals("form")) {
+		if (q.type.equals(SmapQuestionTypes.PARENT_FORM) || q.type.equals(SmapQuestionTypes.CHILD_FORM)) {
 			classVal.append(" or-appearance-form");
 		}
 
@@ -1118,7 +1119,7 @@ public class GetHtml {
 			bodyElement.setAttribute("step", "any");
 		}
 		
-		if(q.type.equals("form")) {
+		if(q.type.equals(SmapQuestionTypes.PARENT_FORM) || q.type.equals(SmapQuestionTypes.CHILD_FORM)) {
 
 			// Add a calculation containing the URL
 			bodyElement.setAttribute("data-calculate",
@@ -1721,7 +1722,7 @@ public class GetHtml {
 			type = "trigger";
 		} else if (q.type.equals("pdf_field")) {
 			type = "geotrace";
-		} else if (q.type.equals("form")) {
+		} else if (q.type.equals(SmapQuestionTypes.PARENT_FORM) || q.type.equals(SmapQuestionTypes.CHILD_FORM)) {
 			type = "string";
 		} else {
 			type = q.type;
