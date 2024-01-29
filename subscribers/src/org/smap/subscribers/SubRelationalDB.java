@@ -410,22 +410,13 @@ public class SubRelationalDB extends Subscriber {
 					pstmtAddHrk = cResults.prepareStatement(sqlAddHrk);
 					pstmtAddHrk.executeUpdate();
 				}
-
-				String sql = "select prikey from " + topLevelForm.tableName 
-						+ " where _hrk is null "
-						+ "order by prikey asc";
-				pstmt = cResults.prepareStatement(sql);
 				
 				String sqlHrk = "update " + topLevelForm.tableName + " m set _hrk = "
 						+ hrkSql
-						+ " where prikey = ?;";
+						+ " where _hrk is null";
 				pstmtHrk = cResults.prepareStatement(sqlHrk);
-				ResultSet rs = pstmt.executeQuery();
-				while(rs.next()) {
-					pstmtHrk.setInt(1, rs.getInt(1));
-					log.info("Applying HRK: " + pstmtHrk.toString());
-					pstmtHrk.executeUpdate();
-				}	
+				log.info("Applying HRK: " + pstmtHrk.toString());
+				pstmtHrk.executeUpdate();	
 			}
 			
 			/*
