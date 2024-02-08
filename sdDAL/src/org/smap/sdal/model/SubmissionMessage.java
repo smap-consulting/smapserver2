@@ -39,6 +39,7 @@ public class SubmissionMessage {
 	public SubmissionMessage(
 			String title,
 			int taskId,
+			int pId,
 			String survey_ident,
 			String update_ident,
 			String instanceId, 

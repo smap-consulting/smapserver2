@@ -10937,6 +10937,25 @@ public class GeneralUtilityMethods {
 		}
 		return mapSource;
 	}
+	
+	/*
+	 * Get the next email ID
+	 */
+	public static int getNextEmailId(Connection sd) throws SQLException {
+		int id = 0;
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement("select nextval('email_id')");
+			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				id = rs.getInt(1);
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+		}
+		return id;
+	}
 
 	public static String getUTCDateTimeSuffix() {
 		DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd HH:mm:ss");

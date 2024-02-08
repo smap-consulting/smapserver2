@@ -763,7 +763,8 @@ public class MailoutManager {
 													localisation,
 													null,
 													organisation.getAdminEmail(),
-													organisation.getEmailFooter()
+													organisation.getEmailFooter(),
+													GeneralUtilityMethods.getNextEmailId(sd)
 													);
 											
 											if(subStatus.optedInSent == null) {

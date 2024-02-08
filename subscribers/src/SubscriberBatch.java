@@ -859,6 +859,7 @@ public class SubscriberBatch {
 				SubmissionMessage subMgr = new SubmissionMessage(
 						"reminder title",	// todo
 						tId,
+						pId,
 						sourceSurveyIdent,
 						null,
 						instanceId, 
@@ -954,7 +955,8 @@ public class SubscriberBatch {
 				+ "id,"
 				+ "target,"
 				+ "remote_user,"
-				+ "notify_details "
+				+ "notify_details, "
+				+ "p_id "
 				+ "from forward "
 				+ "where trigger = 'cm_alert' "
 				+ "and enabled "
@@ -1135,10 +1137,12 @@ public class SubscriberBatch {
 									NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
 									String target = notrs.getString("target");
 									String user = notrs.getString("remote_user");
+									int pId  = notrs.getInt("p_id");
 									
 									SubmissionMessage subMgr = new SubmissionMessage(
 											"Case Management",		// TODO title
 											0,
+											pId,
 											groupSurveyIdent,
 											null,
 											instanceid, 
@@ -1246,7 +1250,8 @@ public class SubscriberBatch {
 				+ "notify_details, "
 				+ "periodic_time, "
 				+ "periodic_period, "
-				+ "r_id "
+				+ "r_id, "
+				+ "p_id "
 				+ "from forward "
 				+ "where trigger = 'periodic' "
 				+ "and enabled "
@@ -1295,6 +1300,7 @@ public class SubscriberBatch {
 				String notifyDetailsString = rs.getString("notify_details");
 				String period = rs.getString("periodic_period");
 				int rId = rs.getInt("r_id");
+				int pId = rs.getInt("p_id");
 
 				NotifyDetails nd = gson.fromJson(notifyDetailsString, NotifyDetails.class);
 					
@@ -1320,6 +1326,7 @@ public class SubscriberBatch {
 				SubmissionMessage msg = new SubmissionMessage(
 						name,			// title
 						0,				// task id
+						pId,
 						null,			// Survey ident
 						null,			// Update ident
 						null,			// instance id

@@ -3298,7 +3298,8 @@ public class TaskManager {
 													localisation,
 													null,
 													organisation.getAdminEmail(),
-													organisation.getEmailFooter());
+													organisation.getEmailFooter(),
+													GeneralUtilityMethods.getNextEmailId(sd));
 											
 											setAssignmentStatus(sd, msg.aId, "accepted");
 											

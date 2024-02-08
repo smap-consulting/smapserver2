@@ -298,7 +298,8 @@ public class MessagingManager {
 						localisation,
 						null,
 						adminEmail,
-						null);
+						null,
+						GeneralUtilityMethods.getNextEmailId(sd));
 				
 			} else {
 				log.info("##### - Specific optin message does not need to be sent");

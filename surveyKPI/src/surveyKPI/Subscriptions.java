@@ -168,7 +168,8 @@ public class Subscriptions extends Application {
 								localisation,
 								null,
 								adminEmail,
-								null);
+								null,
+								GeneralUtilityMethods.getNextEmailId(sd));
 						
 						response = Response.ok().build();
 					} else {

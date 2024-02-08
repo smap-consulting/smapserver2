@@ -55,3 +55,7 @@ alter table question add column readonly_expression text;
 -- Version 24.01
 alter table users add column basic_password text;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Version 24.02
+create sequence email_id START 1;
+ALTER SEQUENCE email_id OWNER TO ws;

@@ -599,7 +599,8 @@ public class NotificationManager {
 
 			log.info("notifyForSubmission:: " + ue_id + " : " + updateQuestion + " : " + updateValue);
 
-			StringBuffer sqlGetNotifications = new StringBuffer("select n.target, n.notify_details, n.filter, n.remote_user, n.remote_password "
+			StringBuffer sqlGetNotifications = new StringBuffer("select n.target, n.notify_details, n.filter, "
+					+ "n.remote_user, n.remote_password, n.p_id "
 					+ "from forward n "
 					+ "where n.s_id = ? " 
 					+ "and n.target != 'forward' "
@@ -644,6 +645,7 @@ public class NotificationManager {
 				String filter = rsNotifications.getString(3);
 				String remoteUser = rsNotifications.getString(4);
 				String remotePassword = rsNotifications.getString(5);
+				int pId = rsNotifications.getInt("p_id");
 				NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
 
 				/*
@@ -699,6 +701,7 @@ public class NotificationManager {
 					SubmissionMessage subMsg = new SubmissionMessage(
 							"Submission",	// Title
 							0,				// Task Id - ignore, only relevant for a reminder
+							pId,
 							ident,			// Survey Ident
 							updateSurvey,
 							instanceId, 

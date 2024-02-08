@@ -285,7 +285,8 @@ public class EmailManager {
 			String serverName,
 			String subject,
 			StringBuilder template,
-			String type) throws SQLException, ApplicationException {
+			String type,
+			int emailId) throws SQLException, ApplicationException {
 				
 		EmailServer emailServer = null;
 		SubscriptionStatus subStatus = null;
@@ -335,7 +336,8 @@ public class EmailManager {
 									localisation,
 									customTokens,
 									null,
-									null);
+									null,
+									emailId);	
 						} catch(Exception e) {
 							lm.writeLogOrganisation(sd, oId, userIdent, LogManager.EMAIL, e.getMessage(), 0);
 						}
@@ -473,7 +475,8 @@ public class EmailManager {
 										localisation,
 										null,
 										organisation.getAdminEmail(),
-										organisation.getEmailFooter());
+										organisation.getEmailFooter(),
+										GeneralUtilityMethods.getNextEmailId(sd));
 
 							} else {
 								/*
@@ -531,7 +534,8 @@ public class EmailManager {
 			ResourceBundle localisation,
 			HashMap<String, String> tokens,
 			String adminEmail,
-			String orgFooter) throws Exception  {
+			String orgFooter,
+			int emailId) throws Exception  {
 
 		if(emailServer.smtpHost == null) {
 			throw new Exception("Cannot send email, smtp_host not available");
@@ -555,7 +559,13 @@ public class EmailManager {
 			msg.setRecipients(rt,	emailArray);
 			msg.setSubject(subject);
 
-			sender = sender + "@" + emailServer.emailDomain;
+			// Add the email server domain if not already set for sender
+			if(sender.indexOf('@') < 0) {
+				sender = sender + "@" + emailServer.emailDomain;
+			}
+			
+			// Add the email ID to the subject
+			subject = subject + " " + emailId;
 
 			log.info("Sending email from: (sendEmailHtml1) " + sender);
 			msg.setFrom(InternetAddress.parse(sender, false)[0]);

@@ -623,7 +623,8 @@ public class UserManager {
 						localisation,
 						customTokens,
 						organisation.getAdminEmail(),
-						organisation.getEmailFooter());
+						organisation.getEmailFooter(),
+						GeneralUtilityMethods.getNextEmailId(sd));
 
 			}
 			

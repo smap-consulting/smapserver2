@@ -196,7 +196,8 @@ public class PasswordReset extends Application {
 								localisation,
 								null,
 								null,
-								null);
+								null,
+								GeneralUtilityMethods.getNextEmailId(sd));
 						
 						UtilityMethodsEmail.reportOnetimePasswordSent(sd, email);
 						
