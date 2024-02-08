@@ -110,7 +110,7 @@ public class StorageProcessor {
 				Thread t = new Thread(new MessageLoop(basePath, awsPropertiesFile));
 				t.start();
 			} else {
-				log.info("Skipping notifications to devices. No aws properties file at: " + pFile.getAbsolutePath());
+				log.info("Skipping Storage Processor. No aws properties file at: " + pFile.getAbsolutePath());
 			}	
 
 		} catch (Exception e) {
