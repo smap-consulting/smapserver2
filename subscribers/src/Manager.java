@@ -48,8 +48,8 @@ public class Manager {
 		/*
 		 * Start asynchronous worker threads
 		 */
-		if(subscriberType.equals("upload")) {
-
+		if(subscriberType.equals("forward")) {
+			
 			// Start the AWS service processor
 			String mediaBucket = GeneralUtilityMethods.getSettingFromFile(fileLocn + "/settings/bucket");
 			String region = GeneralUtilityMethods.getSettingFromFile(fileLocn + "/settings/region");
@@ -57,7 +57,6 @@ public class Manager {
 			
 			AutoUpdateProcessor au = new AutoUpdateProcessor();
 			au.go(smapId, fileLocn, mediaBucket, region);
-		} else if(subscriberType.equals("forward")) {
 			
 			/*
 			 * Start the message processor
@@ -87,7 +86,7 @@ public class Manager {
 		log.info("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);
 		int delaySecs = 2;
 		
-		// Forwarding can happen less frequently, this reduce the load due to searching for items to forward
+		// The forward batch job processes events to reduce the server load
 		if(subscriberType.equals("forward")) {
 			delaySecs = 30;					
 		}
