@@ -1415,6 +1415,7 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Get the organisation id for a report
+	 * The report id is the id of a temporary user
 	 */
 	static public int getOrganisationIdForReport(Connection sd, int rId) throws SQLException {
 

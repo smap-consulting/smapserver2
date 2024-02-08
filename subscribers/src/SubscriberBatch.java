@@ -1299,6 +1299,10 @@ public class SubscriberBatch {
 				NotifyDetails nd = gson.fromJson(notifyDetailsString, NotifyDetails.class);
 					
 				int oId = GeneralUtilityMethods.getOrganisationIdForReport(sd, rId);
+				log.info("----- Organisation for report is: " + oId);
+				if(oId <= 0) {	// If the report is not valid and hence the organisation is not valid then continue
+					continue;
+				}
 						
 				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {

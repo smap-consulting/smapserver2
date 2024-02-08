@@ -115,6 +115,7 @@ public class EmailManager {
 			String serverDescription,
 			String organisationName) throws Exception  {
 
+		log.info("Using deprecated non HTML email");
 		if(emailServer.smtpHost == null) {
 			throw new Exception("Cannot send email, smtp_host not available");
 		}
@@ -678,7 +679,7 @@ public class EmailManager {
 		props.setProperty("mail.smtp.timeout", "60000");
 		props.setProperty("mail.smtp.writetimeout", "60000");
 		
-		log.info("Email properties: " + props.toString());
+		//log.info("Email properties: " + props.toString());
 		
 		return Session.getInstance(props, authenticator);
 	}

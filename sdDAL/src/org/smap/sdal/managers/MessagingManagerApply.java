@@ -254,6 +254,7 @@ public class MessagingManagerApply {
 					
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);	
 						
+					log.info("--------- Starting periodic notifications for " + data);
 					try {
 						nm.processPeriodicNotification(
 								sd, 
@@ -270,6 +271,7 @@ public class MessagingManagerApply {
 						log.log(Level.SEVERE, e.getMessage(), e);
 						lm.writeLogOrganisation(sd, o_id, localisation.getString("pn"), LogManager.NOTIFICATION_ERROR, e.getMessage(), 0);
 					}
+					log.info("--------- Periodic notifications processed");
 					
 					
 				} else {
