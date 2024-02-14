@@ -529,7 +529,8 @@ public class UserManager {
 		}
 
 		int u_id = -1;
-		String sql = "insert into users (ident, realm, name, email, o_id, imported, language, password, created, password_set) " +
+		String sql = "insert into users (ident, realm, name, email, o_id, imported, "
+				+ "language, password, basic_password, created, password_set) " +
 				" values (?, ?, ?, ?, ?, ?, ?, "
 				+ "md5(?),"
 				+ "'{SHA}'|| encode(digest(?,'sha1'),'base64'),"
