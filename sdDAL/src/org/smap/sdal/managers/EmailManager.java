@@ -557,17 +557,14 @@ public class EmailManager {
 			InternetAddress[] emailArray = InternetAddress.parse(email);
 			log.info("Number of email addresses: " + emailArray.length);
 			msg.setRecipients(rt,	emailArray);
-			msg.setSubject(subject);
+			msg.setSubject(subject + " " + emailId);	// Include email ID with subject to make it unique
 
 			// Add the email server domain if not already set for sender
 			if(sender.indexOf('@') < 0) {
 				sender = sender + "@" + emailServer.emailDomain;
 			}
-			
-			// Add the email ID to the subject
-			subject = subject + " " + emailId;
 
-			log.info("Sending email from: (sendEmailHtml1) " + sender);
+			log.info("Sending email from: (sendEmailHtml1) " + sender + " with subject " + subject);
 			msg.setFrom(InternetAddress.parse(sender, false)[0]);
 			
 			if(adminEmail != null) {
