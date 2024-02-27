@@ -323,6 +323,7 @@ public class SubscriberBatch {
 				
 				applyCaseManagementReminders(dbc.sd, dbc.results, basePath, serverName);
 				applyPeriodicNotifications(dbc.sd, dbc.results, basePath, serverName);
+				applyServerCalculateNotifications(dbc.sd, dbc.results, basePath, serverName);
 				
 				// Erase any templates that were deleted more than a set time ago
 				eraseOldSurveyTemplates(dbc.sd, dbc.results, localisation, basePath);
@@ -1213,6 +1214,118 @@ public class SubscriberBatch {
 			try {if (pstmtMatches != null) {pstmtMatches.close();}} catch (SQLException e) {}
 			try {if (pstmtNotifications != null) {pstmtNotifications.close();}} catch (SQLException e) {}
 			try {if (pstmtCaseUpdated != null) {pstmtCaseUpdated.close();}} catch (SQLException e) {}
+		}
+	}
+	
+	/*
+	 * Apply notifications resulting from a server calculate change
+	 */
+	private void applyServerCalculateNotifications(Connection sd, Connection cResults, String basePath, String serverName) {
+
+		String tz = null;
+		
+		/*
+		 * Get the notifications associated with a server calculate change
+		 */
+		String sqlNotifications = "select name as notification_name,"
+				+ "id,"
+				+ "s_id,"
+				+ "target,"
+				+ "remote_user,"
+				+ "notify_details, "
+				+ "p_id "
+				+ "from forward "
+				+ "where trigger = 'server_calc' "
+				+ "and enabled ";
+		PreparedStatement pstmtNotifications = null;
+
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		HashMap<String, CaseManagementSettings> settingsCache = new HashMap<>();
+		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
+
+		try {
+			
+			pstmtNotifications = sd.prepareStatement(sqlNotifications);
+			log.info("Server Calculate Notifications to be triggered: " + pstmtNotifications.toString());
+
+			ResultSet notrs = pstmtNotifications.executeQuery();
+
+			while(notrs.next()) {
+				
+				int nId = notrs.getInt("id");
+				int sId = notrs.getInt("s_id");
+				String notificationName = notrs.getString("notification_name");
+				String notifyDetailsString = notrs.getString("notify_details");
+				NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
+				String target = notrs.getString("target");
+				String user = notrs.getString("remote_user");
+				int pId  = notrs.getInt("p_id");
+				
+				int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
+				
+				log.info("xxxxxxxxxxxxx server calculate notification for " + notificationName);
+				
+				ResourceBundle localisation = locMap.get(oId);
+				if(localisation == null) {
+					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+					Locale orgLocale = new Locale(organisation.locale);
+					try {
+						localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+					} catch(Exception e) {
+						localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+					}
+					locMap.put(oId, localisation);
+				}
+				
+				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+				String instanceid = null;	// TODO - get these in a loop checking the server calculations in a survey
+				SubmissionMessage subMgr = new SubmissionMessage(
+						"Case Management",		// TODO title
+						0,
+						pId,
+						surveyIdent,
+						null,
+						instanceid, 
+						nd.from,
+						nd.subject, 
+						nd.content,
+						nd.attach,
+						nd.include_references,
+						nd.launched_only,
+						nd.emailQuestion,
+						nd.emailQuestionName,
+						nd.emailMeta,
+						nd.emailAssigned,
+						nd.emails,
+						target,
+						user,
+						"https",
+						nd.callback_url,
+						user,
+						null,
+						0,
+						nd.survey_case,
+						nd.assign_question,
+						null,					// Report Period
+						0						// report id
+						);
+
+				MessagingManager mm = new MessagingManager(localisation);
+				//mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));						
+
+				// Write to the log
+				String logMessage = "Notification triggered by server calculation for notification: " + notificationName;
+				if(localisation != null) {
+					logMessage = localisation.getString(NotificationManager.TOPIC_SERVER_CALC);
+					logMessage = logMessage.replaceAll("%s1", notificationName);
+				}
+				lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {if (pstmtNotifications != null) {pstmtNotifications.close();}} catch (SQLException e) {}
 		}
 	}
 	

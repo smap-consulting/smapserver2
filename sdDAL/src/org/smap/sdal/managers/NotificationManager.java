@@ -75,6 +75,7 @@ public class NotificationManager {
 	public static String TOPIC_TASK = "task";					// Data: TaskMessage
 	public static String TOPIC_PROJECT = "project";				// Data: ProjectMessage
 	public static String TOPIC_RESOURCE = "resource";			// Data: OrgResourceMessage
+	public static String TOPIC_SERVER_CALC = "server_calc";		// Data: SubmissionMessage
 	public static String TOPIC_SURVEY = "survey";				// Data: SurveyMessage
 	public static String TOPIC_USER = "user";					// Data: String: user ident
 	public static String TOPIC_REMINDER = "reminder";			// Data: SubmissionMessage
