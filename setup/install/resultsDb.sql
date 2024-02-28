@@ -128,6 +128,7 @@ CREATE TABLE server_calc_triggered (
 	id integer DEFAULT NEXTVAL('sct_seq') CONSTRAINT pk_sct PRIMARY KEY,
 	n_id integer,		// The notification id
 	table_name text,
+	question_name text,
 	thread text,
 	notification_sent TIMESTAMP WITH TIME ZONE	
 	);
