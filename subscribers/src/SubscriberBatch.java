@@ -47,6 +47,7 @@ import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SubmissionMessage;
@@ -1239,13 +1240,15 @@ public class SubscriberBatch {
 				+ "notify_details, "
 				+ "n.p_id,"
 				+ "n.filter,"
-				+ "f.table_name "
+				+ "f.table_name,"
+				+ "q.server_calculate "
 				+ "from forward n, form f, question q "
 				+ "where n.trigger = 'server_calc' "
 				+ "and n.enabled "
 				+ "and n.s_id = f.s_id "
 				+ "and f.f_id = q.f_id "
-				+ "and q.qname = n.update_question ";
+				+ "and q.qname = n.update_question "
+				+ "and q.qtype = 'server_calculate' ";
 		PreparedStatement pstmtNotifications = null;
 
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
@@ -1273,6 +1276,9 @@ public class SubscriberBatch {
 				String calculateQuestion = notrs.getString("calculate_question");
 				String calculateValue = notrs.getString("calculate_value");
 				String filter = notrs.getString("filter");
+				String serverCalculate = notrs.getString("server_calculate");
+				
+				
 				
 				int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 				
@@ -1292,83 +1298,92 @@ public class SubscriberBatch {
 				
 				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				
-				/*
-				 * Find records that match this server calculation
-				 */
-				StringBuilder sqlMatch = new StringBuilder("select prikey, instanceid, _thread from "); 
-				sqlMatch.append(table); 
-				sqlMatch.append(" where not _bad and ")
-					.append(calculateQuestion)
-					.append(" = ? ")
-					.append("and  _thread not in (select thread from server_calc_triggered where table_name = ? and question_name = ?) ");	
-				
-				/*
-				 * Add context filter
-				 */
-				SqlFrag filterFrag = null;
-				if(filter != null && filter.length() > 0) {			
-					filterFrag = new SqlFrag();
-					filterFrag.addSqlFragment(filter, false, localisation, 0);
-				}
-				if(filterFrag != null) {
-					sqlMatch.append(" and (").append(filterFrag.sql).append(")");
-				}
-				
-				pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
-				int idx = 1;
-				pstmtMatches.setString(idx++, calculateValue);
-				pstmtMatches.setString(idx++, table);
-				pstmtMatches.setString(idx++, calculateQuestion);					
-				
-				if(filterFrag != null) {
-					idx = GeneralUtilityMethods.setFragParams(pstmtMatches, filterFrag, idx, tz);
-				}
-				
-				ResultSet rs = pstmtMatches.executeQuery();
-				while (rs.next()) {
-					String instanceid = rs.getString("instanceid");		// TODO - get these in a loop checking the server calculations in a survey
-					log.info("Instance: " + instanceid);
-					SubmissionMessage subMgr = new SubmissionMessage(
-							"Case Management",		// TODO title
-							0,
-							pId,
-							surveyIdent,
-							null,
-							instanceid, 
-							nd.from,
-							nd.subject, 
-							nd.content,
-							nd.attach,
-							nd.include_references,
-							nd.launched_only,
-							nd.emailQuestion,
-							nd.emailQuestionName,
-							nd.emailMeta,
-							nd.emailAssigned,
-							nd.emails,
-							target,
-							user,
-							"https",
-							nd.callback_url,
-							user,
-							null,
-							0,
-							nd.survey_case,
-							nd.assign_question,
-							null,					// Report Period
-							0						// report id
-							);
-	
-					MessagingManager mm = new MessagingManager(localisation);
-					//mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));						
-	
-					// Write to the log
-					String logMessage = "Notification triggered by server calculation for notification: " + notificationName;
-					if(localisation != null) {
-						logMessage = localisation.getString(NotificationManager.TOPIC_SERVER_CALC);
-						logMessage = logMessage.replaceAll("%s1", notificationName);
+				if(serverCalculate != null) {
+					ServerCalculation sc = gson.fromJson(serverCalculate, ServerCalculation.class);
+					SqlFrag calculation = new SqlFrag();
+					sc.populateSql(calculation, localisation);
+						
+					/*
+					 * Find records that match this server calculation
+					 */
+					StringBuilder sqlMatch = new StringBuilder("select prikey, instanceid, _thread from "); 
+					sqlMatch.append(table); 
+					sqlMatch.append(" where not _bad and cast(")
+						.append(calculation.sql)
+						.append(" as text) = ? ")
+						.append("and  _thread not in (select thread from server_calc_triggered where table_name = ? and question_name = ?) ");	
+					
+					/*
+					 * Add context filter
+					 */
+					SqlFrag filterFrag = null;
+					if(filter != null && filter.length() > 0) {			
+						filterFrag = new SqlFrag();
+						filterFrag.addSqlFragment(filter, false, localisation, 0);
 					}
-					lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
+					if(filterFrag != null) {
+						sqlMatch.append(" and (").append(filterFrag.sql).append(")");
+					}
+					
+					pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
+					int idx = 1;
+					pstmtMatches.setString(idx++, calculateValue);
+					pstmtMatches.setString(idx++, table);
+					pstmtMatches.setString(idx++, calculateQuestion);					
+					
+					if(filterFrag != null) {
+						idx = GeneralUtilityMethods.setFragParams(pstmtMatches, filterFrag, idx, tz);
+					}
+					
+					log.info(pstmtMatches.toString());
+					ResultSet rs = pstmtMatches.executeQuery();
+					while (rs.next()) {
+						String instanceid = rs.getString("instanceid");		// TODO - get these in a loop checking the server calculations in a survey
+						log.info("Instance: " + instanceid);
+						SubmissionMessage subMgr = new SubmissionMessage(
+								"Case Management",		// TODO title
+								0,
+								pId,
+								surveyIdent,
+								null,
+								instanceid, 
+								nd.from,
+								nd.subject, 
+								nd.content,
+								nd.attach,
+								nd.include_references,
+								nd.launched_only,
+								nd.emailQuestion,
+								nd.emailQuestionName,
+								nd.emailMeta,
+								nd.emailAssigned,
+								nd.emails,
+								target,
+								user,
+								"https",
+								nd.callback_url,
+								user,
+								null,
+								0,
+								nd.survey_case,
+								nd.assign_question,
+								null,					// Report Period
+								0						// report id
+								);
+		
+						MessagingManager mm = new MessagingManager(localisation);
+						//mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));						
+		
+						// Write to the log
+						String logMessage = "Notification triggered by server calculation for notification: " + notificationName;
+						if(localisation != null) {
+							logMessage = localisation.getString(NotificationManager.TOPIC_SERVER_CALC);
+							logMessage = logMessage.replaceAll("%s1", notificationName);
+						}
+						lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
+					}
+				} else {
+					log.info("Error: Server calculation is null: " + notificationName);
 				}
 			}
 

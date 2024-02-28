@@ -292,7 +292,6 @@ public class Items extends Application {
 				
 				// Construct a new query that retrieves a geometry object as geoJson
 				StringBuffer cols = new StringBuffer("");
-				String geomType = null;
 				int newColIdx = 0;
 				JSONArray columns = new JSONArray();
 				JSONArray types = new JSONArray();
@@ -310,7 +309,6 @@ public class Items extends Application {
 							if(geomQuestionMap.get(c.question_name) != null) {		// requested this one
 								geomColumn = c.column_name;
 								hasGeometry = true;
-								geomType = c.type;
 							}						
 						}
 					
