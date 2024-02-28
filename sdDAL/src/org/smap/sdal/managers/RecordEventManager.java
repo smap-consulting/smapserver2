@@ -505,7 +505,6 @@ public class RecordEventManager {
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
 		}
-		
 	}
 
 }

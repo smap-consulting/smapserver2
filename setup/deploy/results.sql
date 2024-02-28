@@ -72,3 +72,15 @@ CREATE TABLE case_alert_triggered (
 	alert_sent TIMESTAMP WITH TIME ZONE	
 	);
 ALTER TABLE case_alert_triggered OWNER TO ws;
+
+CREATE SEQUENCE sct_seq START 1;
+ALTER SEQUENCE sct_seq OWNER TO ws;
+
+CREATE TABLE server_calc_triggered (
+	id integer DEFAULT NEXTVAL('sct_seq') CONSTRAINT pk_sct PRIMARY KEY,
+	n_id integer,		// The notification id
+	table_name text,
+	thread text,
+	notification_sent TIMESTAMP WITH TIME ZONE	
+	);
+ALTER TABLE server_calc_triggered OWNER TO ws;

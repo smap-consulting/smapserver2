@@ -355,4 +355,27 @@ public class MessagingManager {
 		}
 	}
 
+	public void deleteTableEvents(Connection rel, String tableName) throws SQLException {
+		
+		String sql = "delete from case_alert_triggered where table_name = ?";
+		String sql2 = "delete from server_calc_triggered where table_name = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = rel.prepareStatement(sql);
+			pstmt.setString(1, tableName);
+			log.info("Delete case alerts for a table: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
+			pstmt = rel.prepareStatement(sql2);
+			pstmt.setString(1, tableName);
+			log.info("Delete server calculate notifications for a table: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+		} finally {
+			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
+		}
+		
+	}
 }
