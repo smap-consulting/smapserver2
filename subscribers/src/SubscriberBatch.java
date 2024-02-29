@@ -1255,8 +1255,12 @@ public class SubscriberBatch {
 		HashMap<String, CaseManagementSettings> settingsCache = new HashMap<>();
 		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
 
+		// SQL to record an alert being triggered
+		String sqlTriggered = "insert into server_calc_triggered (n_id, table_name, question_name, thread, notification_sent) values (?, ?, ?, ?, now())";
+		PreparedStatement pstmtTriggered = null;
+	
 		try {
-			
+			pstmtTriggered = cResults.prepareStatement(sqlTriggered);
 			pstmtNotifications = sd.prepareStatement(sqlNotifications);
 			log.info("Server Calculate Notifications to be triggered: " + pstmtNotifications.toString());
 
@@ -1339,6 +1343,7 @@ public class SubscriberBatch {
 					ResultSet rs = pstmtMatches.executeQuery();
 					while (rs.next()) {
 						String instanceid = rs.getString("instanceid");		// TODO - get these in a loop checking the server calculations in a survey
+						String thread = rs.getString("_thread");
 						log.info("Instance: " + instanceid);
 						SubmissionMessage subMgr = new SubmissionMessage(
 								"Case Management",		// TODO title
@@ -1372,8 +1377,16 @@ public class SubscriberBatch {
 								);
 		
 						MessagingManager mm = new MessagingManager(localisation);
-						//mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));						
+						mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));						
 		
+						// update case_alert_triggered to record the raising of this alert	
+						pstmtTriggered.setInt(1, nId);	
+						pstmtTriggered.setString(2, table);
+						pstmtTriggered.setString(3, calculateQuestion);
+						pstmtTriggered.setString(4, thread);
+						
+						pstmtTriggered.executeUpdate();
+						
 						// Write to the log
 						String logMessage = "Notification triggered by server calculation for notification: " + notificationName;
 						if(localisation != null) {
@@ -1392,6 +1405,7 @@ public class SubscriberBatch {
 		} finally {
 			try {if (pstmtNotifications != null) {pstmtNotifications.close();}} catch (SQLException e) {}
 			try {if (pstmtMatches != null) {pstmtMatches.close();}} catch (SQLException e) {}
+			try {if (pstmtTriggered != null) {pstmtTriggered.close();}} catch (SQLException e) {}
 		}
 	}
 	

@@ -119,7 +119,7 @@ CREATE TABLE case_alert_triggered (
 	);
 ALTER TABLE case_alert_triggered OWNER TO ws;
 
-DROP SEQUENCE IF EXISTS sct_seq CASCADE
+DROP SEQUENCE IF EXISTS sct_seq CASCADE;
 CREATE SEQUENCE sct_seq START 1;
 ALTER SEQUENCE sct_seq OWNER TO ws;
 
