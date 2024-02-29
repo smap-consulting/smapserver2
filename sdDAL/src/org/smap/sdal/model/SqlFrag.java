@@ -193,7 +193,7 @@ public class SqlFrag {
 	public String sqlToken(String token, ResourceBundle localisation, int rowNum) throws Exception {
 		String out = "";
 		
-		token = token.trim();
+		token = token.trim().toLowerCase();
 		
 		// Check for a column name
 		if(token.startsWith("${") && token.endsWith("}")) {
@@ -242,6 +242,11 @@ public class SqlFrag {
 				token.equals("::integer") || 
 				token.equals("like") || 
 				token.equals("cast") || 
+				token.equals("case") ||
+				token.equals("when") ||
+				token.equals("then") ||
+				token.equals("else") ||
+				token.equals("end") ||
 				token.equals("extract") || 
 				token.equals("from") || 
 				token.equals("as") || 
