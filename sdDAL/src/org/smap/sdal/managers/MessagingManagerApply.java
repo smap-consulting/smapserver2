@@ -162,7 +162,9 @@ public class MessagingManagerApply {
 					
 					changedResources.put(orm.resourceName, orm);
 					
-				} else if(topic.equals(NotificationManager.TOPIC_SUBMISSION) || topic.equals(NotificationManager.TOPIC_CM_ALERT)) {
+				} else if(topic.equals(NotificationManager.TOPIC_SUBMISSION) 
+						|| topic.equals(NotificationManager.TOPIC_CM_ALERT)
+						|| topic.equals(NotificationManager.TOPIC_SERVER_CALC)) {
 					/*
 					 * A submission notification is a notification associated with a record of data
 					 */
@@ -279,8 +281,7 @@ public class MessagingManagerApply {
 
 					log.info("+++++++++ opt in +++++++++ Direct Email");
 					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, null, o_id);
-					if (isValidEmail(topic) && 
-							emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
+					if (emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 	
 						// Set the subject
 						String subject = "";
@@ -478,7 +479,9 @@ public class MessagingManagerApply {
 				pstmtConfirm.executeUpdate();
 				
 				String email = null;
-				if(topic.equals(NotificationManager.TOPIC_SUBMISSION)) {
+				if(topic.equals(NotificationManager.TOPIC_SUBMISSION) 
+						|| topic.equals(NotificationManager.TOPIC_CM_ALERT)
+						|| topic.equals(NotificationManager.TOPIC_SERVER_CALC)) {
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
 					email = msg.user;
 					

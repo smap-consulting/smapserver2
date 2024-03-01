@@ -1193,7 +1193,7 @@ public class SubscriberBatch {
 								msg = "";
 							}
 							if(!duplicateLogEntry(sId + "alert" + LogManager.CASE_MANAGEMENT + msg)) {
-								lm.writeLog(sd, sId, "alert", LogManager.CASE_MANAGEMENT, e.getMessage(), 0, serverName);
+								lm.writeLog(sd, sId, "alert", LogManager.CASE_MANAGEMENT, msg, 0, serverName);
 							}
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}
@@ -1259,18 +1259,21 @@ public class SubscriberBatch {
 		String sqlTriggered = "insert into server_calc_triggered (n_id, table_name, question_name, thread, notification_sent) values (?, ?, ?, ?, now())";
 		PreparedStatement pstmtTriggered = null;
 	
+		int sId = 0;
+		String notificationName = null;
+		
 		try {
 			pstmtTriggered = cResults.prepareStatement(sqlTriggered);
 			pstmtNotifications = sd.prepareStatement(sqlNotifications);
-			log.info("Server Calculate Notifications to be triggered: " + pstmtNotifications.toString());
+			//log.info("Server Calculate Notifications to be triggered: " + pstmtNotifications.toString());
 
 			ResultSet notrs = pstmtNotifications.executeQuery();
 
 			while(notrs.next()) {
 				
 				int nId = notrs.getInt("id");
-				int sId = notrs.getInt("s_id");
-				String notificationName = notrs.getString("notification_name");
+				sId = notrs.getInt("s_id");
+				notificationName = notrs.getString("notification_name");
 				String notifyDetailsString = notrs.getString("notify_details");
 				NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
 				String target = notrs.getString("target");
@@ -1280,13 +1283,11 @@ public class SubscriberBatch {
 				String calculateQuestion = notrs.getString("calculate_question");
 				String calculateValue = notrs.getString("calculate_value");
 				String filter = notrs.getString("filter");
-				String serverCalculate = notrs.getString("server_calculate");
-				
-				
+				String serverCalculate = notrs.getString("server_calculate");	
 				
 				int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 				
-				log.info("xxxxxxxxxxxxx server calculate notification for " + notificationName + " on table " + table);
+				//log.info("xxxxxxxxxxxxx server calculate notification for " + notificationName + " on table " + table);
 				
 				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
@@ -1302,10 +1303,11 @@ public class SubscriberBatch {
 				
 				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				
+				SqlFrag calculationFrag = null;
 				if(serverCalculate != null) {
 					ServerCalculation sc = gson.fromJson(serverCalculate, ServerCalculation.class);
-					SqlFrag calculation = new SqlFrag();
-					sc.populateSql(calculation, localisation);
+					calculationFrag = new SqlFrag();
+					sc.populateSql(calculationFrag, localisation);
 						
 					/*
 					 * Find records that match this server calculation
@@ -1313,7 +1315,7 @@ public class SubscriberBatch {
 					StringBuilder sqlMatch = new StringBuilder("select prikey, instanceid, _thread from "); 
 					sqlMatch.append(table); 
 					sqlMatch.append(" where not _bad and cast(")
-						.append(calculation.sql)
+						.append(calculationFrag.sql)
 						.append(" as text) = ? ")
 						.append("and  _thread not in (select thread from server_calc_triggered where table_name = ? and question_name = ?) ");	
 					
@@ -1331,6 +1333,9 @@ public class SubscriberBatch {
 					
 					pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
 					int idx = 1;
+					if(calculationFrag != null) {
+						idx = GeneralUtilityMethods.setFragParams(pstmtMatches, calculationFrag, idx, tz);
+					}
 					pstmtMatches.setString(idx++, calculateValue);
 					pstmtMatches.setString(idx++, table);
 					pstmtMatches.setString(idx++, calculateQuestion);					
@@ -1339,14 +1344,14 @@ public class SubscriberBatch {
 						idx = GeneralUtilityMethods.setFragParams(pstmtMatches, filterFrag, idx, tz);
 					}
 					
-					log.info(pstmtMatches.toString());
+					//log.info(pstmtMatches.toString());
 					ResultSet rs = pstmtMatches.executeQuery();
 					while (rs.next()) {
 						String instanceid = rs.getString("instanceid");		// TODO - get these in a loop checking the server calculations in a survey
 						String thread = rs.getString("_thread");
-						log.info("Instance: " + instanceid);
+						log.info("Server Calculation Triggered for Instance: " + instanceid + " in table " + table);
 						SubmissionMessage subMgr = new SubmissionMessage(
-								"Case Management",		// TODO title
+								"Server Calculation",	
 								0,
 								pId,
 								surveyIdent,
@@ -1377,7 +1382,7 @@ public class SubscriberBatch {
 								);
 		
 						MessagingManager mm = new MessagingManager(localisation);
-						mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));						
+						mm.createMessage(sd, oId, NotificationManager.TOPIC_SERVER_CALC, "", gson.toJson(subMgr));						
 		
 						// update case_alert_triggered to record the raising of this alert	
 						pstmtTriggered.setInt(1, nId);	
@@ -1401,7 +1406,15 @@ public class SubscriberBatch {
 			}
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			String msg = e.getMessage();
+			if(msg == null) {
+				msg = "";
+			}
+			msg += " - " + notificationName;
+			if(!duplicateLogEntry(sId + "notification" + LogManager.NOTIFICATION_ERROR + msg)) {
+				lm.writeLog(sd, sId, "notification", LogManager.NOTIFICATION_ERROR, msg, 0, serverName);
+			}
+			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {
 			try {if (pstmtNotifications != null) {pstmtNotifications.close();}} catch (SQLException e) {}
 			try {if (pstmtMatches != null) {pstmtMatches.close();}} catch (SQLException e) {}

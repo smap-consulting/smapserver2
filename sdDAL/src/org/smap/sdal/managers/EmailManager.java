@@ -455,12 +455,19 @@ public class EmailManager {
 				try {
 					PeopleManager peopleMgr = new PeopleManager(localisation);
 					InternetAddress[] emailArray = InternetAddress.parse(emails);
-
+							
 					for(InternetAddress ia : emailArray) {	
 						SubscriptionStatus subStatus = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());				
+						/*
+						 * If this email address is unsubscribed and we care if they are unsubscribed,
+						 * which is shown by the unsubscribed list not being null, then we just record that they
+						 * are unsubscribed
+						 */
 						if(subStatus.unsubscribed && unsubscribedList != null) {
+							log.info("#########: Email " + ia.getAddress() + " User has unsubscribed");
 							unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
 						} else {
+							log.info("#########: Email " + ia.getAddress() + " Opted in: " + subStatus.optedIn + "org:  " + !organisation.send_optin);
 							if(subStatus.optedIn || !organisation.send_optin) {
 								sendEmailHtml(
 										ia.getAddress(),  
