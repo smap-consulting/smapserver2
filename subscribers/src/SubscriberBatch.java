@@ -1256,7 +1256,9 @@ public class SubscriberBatch {
 		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
 
 		// SQL to record an alert being triggered
-		String sqlTriggered = "insert into server_calc_triggered (n_id, table_name, question_name, thread, notification_sent) values (?, ?, ?, ?, now())";
+		String sqlTriggered = "insert into server_calc_triggered "
+				+ "(n_id, table_name, question_name, value, thread, notification_sent) "
+				+ "values (?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmtTriggered = null;
 	
 		int sId = 0;
@@ -1384,11 +1386,12 @@ public class SubscriberBatch {
 						MessagingManager mm = new MessagingManager(localisation);
 						mm.createMessage(sd, oId, NotificationManager.TOPIC_SERVER_CALC, "", gson.toJson(subMgr));						
 		
-						// update case_alert_triggered to record the raising of this alert	
+						// update server_calc_triggered to record the raising of this alert	
 						pstmtTriggered.setInt(1, nId);	
 						pstmtTriggered.setString(2, table);
 						pstmtTriggered.setString(3, calculateQuestion);
-						pstmtTriggered.setString(4, thread);
+						pstmtTriggered.setString(4, calculateValue);
+						pstmtTriggered.setString(5, thread);
 						
 						pstmtTriggered.executeUpdate();
 						

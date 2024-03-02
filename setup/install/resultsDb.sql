@@ -129,6 +129,7 @@ CREATE TABLE server_calc_triggered (
 	n_id integer,		-- The notification id
 	table_name text,
 	question_name text,
+	value text,
 	thread text,
 	notification_sent TIMESTAMP WITH TIME ZONE	
 	);
