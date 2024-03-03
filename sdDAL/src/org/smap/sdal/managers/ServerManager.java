@@ -140,7 +140,7 @@ public class ServerManager {
 				
 				sql = "select f.table_name from form f " +
 						"where f.s_id = ? " +
-						"oder by f.table_name;";						
+						"order by f.table_name;";						
 
 				pstmt = sd.prepareStatement(sql);	
 				pstmt.setInt(1, sId);

@@ -131,7 +131,7 @@ CREATE TABLE server_calc_triggered (
 	question_name text,
 	value text,
 	thread text,
-	update_value boolean,	  -- the value of the updated flag when this event was triggered
+	updated_value boolean,	  -- the value of the updated flag when this event was triggered
 	notification_sent TIMESTAMP WITH TIME ZONE	
 	);
 ALTER TABLE server_calc_triggered OWNER TO ws;
