@@ -106,10 +106,10 @@ public class NotificationManager {
 				+ "p_id, periodic_time, periodic_period, periodic_day_of_week, "
 				+ "periodic_day_of_month, periodic_local_day_of_month,"
 				+ "periodic_month, periodic_local_month,"
-				+ "r_id) " +
+				+ "r_id, updated) " +
 				" values (?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, 'true')";
 
 		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 
@@ -199,7 +199,8 @@ public class NotificationManager {
 					+ "periodic_local_day_of_month = ?, "
 					+ "periodic_month = ?, "
 					+ "periodic_local_month = ?, "
-					+ "r_id = ? "
+					+ "r_id = ?, "
+					+ "updated = 'true' "
 					+ "where id = ?";
 		} else {
 			sql = "update forward set "
@@ -228,7 +229,8 @@ public class NotificationManager {
 					+ "periodic_local_day_of_month = ?, "
 					+ "periodic_month = ?, "
 					+ "periodic_local_month = ?, "
-					+ "r_id = ? "
+					+ "r_id = ?,"
+					+ "updated = 'true' "
 					+ "where id = ?";
 		}
 

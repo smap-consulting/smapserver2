@@ -1241,7 +1241,8 @@ public class SubscriberBatch {
 				+ "n.p_id,"
 				+ "n.filter,"
 				+ "f.table_name,"
-				+ "q.server_calculate "
+				+ "q.server_calculate,"
+				+ "n.updated "
 				+ "from forward n, form f, question q "
 				+ "where n.trigger = 'server_calc' "
 				+ "and n.enabled "
@@ -1257,15 +1258,19 @@ public class SubscriberBatch {
 
 		// SQL to record an alert being triggered
 		String sqlTriggered = "insert into server_calc_triggered "
-				+ "(n_id, table_name, question_name, value, thread, notification_sent) "
-				+ "values (?, ?, ?, ?, ?, now())";
+				+ "(n_id, table_name, question_name, value, thread, updated_value, notification_sent) "
+				+ "values (?, ?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmtTriggered = null;
 	
+		String sqlUpdateNot = "update forward set updated = false when id = ?";
+		PreparedStatement pstmtUpdateNot = null;
+		
 		int sId = 0;
 		String notificationName = null;
 		
 		try {
 			pstmtTriggered = cResults.prepareStatement(sqlTriggered);
+			pstmtUpdateNot = cResults.prepareStatement(sqlUpdateNot);
 			pstmtNotifications = sd.prepareStatement(sqlNotifications);
 			//log.info("Server Calculate Notifications to be triggered: " + pstmtNotifications.toString());
 
@@ -1286,6 +1291,7 @@ public class SubscriberBatch {
 				String calculateValue = notrs.getString("calculate_value");
 				String filter = notrs.getString("filter");
 				String serverCalculate = notrs.getString("server_calculate");	
+				boolean updated = notrs.getBoolean("updated");
 				
 				int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 				
@@ -1352,39 +1358,48 @@ public class SubscriberBatch {
 						String instanceid = rs.getString("instanceid");		// TODO - get these in a loop checking the server calculations in a survey
 						String thread = rs.getString("_thread");
 						log.info("Server Calculation Triggered for Instance: " + instanceid + " in table " + table);
-						SubmissionMessage subMgr = new SubmissionMessage(
-								"Server Calculation",	
-								0,
-								pId,
-								surveyIdent,
-								null,
-								instanceid, 
-								nd.from,
-								nd.subject, 
-								nd.content,
-								nd.attach,
-								nd.include_references,
-								nd.launched_only,
-								nd.emailQuestion,
-								nd.emailQuestionName,
-								nd.emailMeta,
-								nd.emailAssigned,
-								nd.emails,
-								target,
-								user,
-								"https",
-								nd.callback_url,
-								user,
-								null,
-								0,
-								nd.survey_case,
-								nd.assign_question,
-								null,					// Report Period
-								0						// report id
-								);
-		
-						MessagingManager mm = new MessagingManager(localisation);
-						mm.createMessage(sd, oId, NotificationManager.TOPIC_SERVER_CALC, "", gson.toJson(subMgr));						
+						
+						/*
+						 * Only send the notification if this is a new change that happened after the notification was
+						 * created or updated
+						 */
+						if(!updated) {
+							SubmissionMessage subMgr = new SubmissionMessage(
+									"Server Calculation",	
+									0,
+									pId,
+									surveyIdent,
+									null,
+									instanceid, 
+									nd.from,
+									nd.subject, 
+									nd.content,
+									nd.attach,
+									nd.include_references,
+									nd.launched_only,
+									nd.emailQuestion,
+									nd.emailQuestionName,
+									nd.emailMeta,
+									nd.emailAssigned,
+									nd.emails,
+									target,
+									user,
+									"https",
+									nd.callback_url,
+									user,
+									null,
+									0,
+									nd.survey_case,
+									nd.assign_question,
+									null,					// Report Period
+									0						// report id
+									);
+			
+							MessagingManager mm = new MessagingManager(localisation);
+							mm.createMessage(sd, oId, NotificationManager.TOPIC_SERVER_CALC, "", gson.toJson(subMgr));	
+						} else {
+							log.info("Message not send as the notification has been newly created ");
+						}
 		
 						// update server_calc_triggered to record the raising of this alert	
 						pstmtTriggered.setInt(1, nId);	
@@ -1392,6 +1407,7 @@ public class SubscriberBatch {
 						pstmtTriggered.setString(3, calculateQuestion);
 						pstmtTriggered.setString(4, calculateValue);
 						pstmtTriggered.setString(5, thread);
+						pstmtTriggered.setBoolean(6, updated);
 						
 						pstmtTriggered.executeUpdate();
 						
@@ -1405,6 +1421,14 @@ public class SubscriberBatch {
 					}
 				} else {
 					log.info("Error: Server calculation is null: " + notificationName);
+				}
+				
+				/*
+				 * Mark the notification as not updated so that events can be sent
+				 */
+				if(updated) {
+					pstmtUpdateNot.setInt(1, nId);
+					pstmtUpdateNot.executeUpdate();
 				}
 			}
 
@@ -1422,6 +1446,7 @@ public class SubscriberBatch {
 			try {if (pstmtNotifications != null) {pstmtNotifications.close();}} catch (SQLException e) {}
 			try {if (pstmtMatches != null) {pstmtMatches.close();}} catch (SQLException e) {}
 			try {if (pstmtTriggered != null) {pstmtTriggered.close();}} catch (SQLException e) {}
+			try {if (pstmtUpdateNot != null) {pstmtUpdateNot.close();}} catch (SQLException e) {}
 		}
 	}
 	

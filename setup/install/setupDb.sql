@@ -860,7 +860,8 @@ CREATE TABLE forward (
 	periodic_local_day_of_month integer,-- Original local day of the month as this cannot reliably be recreated from utc value
 	periodic_month integer,				-- Month used for yearly reports
 	periodic_local_month integer,		-- Original local month as this cannot reliably be recreated from utc value
-	r_id integer						-- report id
+	r_id integer,						-- report id
+	updated boolean						-- Set true if the notification has been changed
 	);
 ALTER TABLE forward OWNER TO ws;
 CREATE UNIQUE INDEX ForwardDest ON forward(s_id, remote_s_id, remote_host);

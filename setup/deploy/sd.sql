@@ -59,3 +59,5 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- Version 24.02
 create sequence email_id START 1;
 ALTER SEQUENCE email_id OWNER TO ws;
+
+alter table forward add column updated boolean;
