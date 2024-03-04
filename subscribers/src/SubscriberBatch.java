@@ -1262,7 +1262,7 @@ public class SubscriberBatch {
 				+ "values (?, ?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmtTriggered = null;
 	
-		String sqlUpdateNot = "update forward set updated = false when id = ?";
+		String sqlUpdateNot = "update forward set updated = false where id = ?";
 		PreparedStatement pstmtUpdateNot = null;
 		
 		int sId = 0;
@@ -1270,7 +1270,7 @@ public class SubscriberBatch {
 		
 		try {
 			pstmtTriggered = cResults.prepareStatement(sqlTriggered);
-			pstmtUpdateNot = cResults.prepareStatement(sqlUpdateNot);
+			pstmtUpdateNot = sd.prepareStatement(sqlUpdateNot);
 			pstmtNotifications = sd.prepareStatement(sqlNotifications);
 			//log.info("Server Calculate Notifications to be triggered: " + pstmtNotifications.toString());
 
@@ -1325,7 +1325,11 @@ public class SubscriberBatch {
 					sqlMatch.append(" where not _bad and cast(")
 						.append(calculationFrag.sql)
 						.append(" as text) = ? ")
-						.append("and  _thread not in (select thread from server_calc_triggered where table_name = ? and question_name = ?) ");	
+						.append("and  _thread not in "
+								+ "(select thread from server_calc_triggered "
+								+ "where table_name = ? "
+								+ "and question_name = ? "
+								+ "and value = ?) ");	
 					
 					/*
 					 * Add context filter
@@ -1346,7 +1350,8 @@ public class SubscriberBatch {
 					}
 					pstmtMatches.setString(idx++, calculateValue);
 					pstmtMatches.setString(idx++, table);
-					pstmtMatches.setString(idx++, calculateQuestion);					
+					pstmtMatches.setString(idx++, calculateQuestion);	
+					pstmtMatches.setString(idx++, calculateValue);	
 					
 					if(filterFrag != null) {
 						idx = GeneralUtilityMethods.setFragParams(pstmtMatches, filterFrag, idx, tz);

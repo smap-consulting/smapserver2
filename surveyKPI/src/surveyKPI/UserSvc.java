@@ -364,11 +364,13 @@ public class UserSvc extends Application {
 			if(u.current_project_id > 0) {
 				sql = "update users set current_project_id = ?, "
 						+ "current_survey_id = ?, "
+						+ "current_survey_ident = (select ident from survey where s_id = ?), "
 						+ "current_task_group_id = ? "
 						+ "where ident = ?";
 			} else if(u.current_survey_id > 0) {
 				// Only update the survey id
-				sql = "update users set current_survey_id = ? "
+				sql = "update users set current_survey_id = ?, "
+						+ "current_survey_ident = (select ident from survey where s_id = ?) "
 						+ "where ident = ?";
 			} else if(u.current_task_group_id > 0) {
 				// Only update the task group id
@@ -379,11 +381,13 @@ public class UserSvc extends Application {
 			if(u.current_project_id > 0) {
 				pstmt.setInt(1, u.current_project_id);
 				pstmt.setInt(2, u.current_survey_id);
-				pstmt.setInt(3, u.current_task_group_id);
-				pstmt.setString(4, request.getRemoteUser());
+				pstmt.setInt(3, u.current_survey_id);
+				pstmt.setInt(4, u.current_task_group_id);
+				pstmt.setString(5, request.getRemoteUser());
 			} else if(u.current_survey_id > 0) {
 				pstmt.setInt(1, u.current_survey_id);
-				pstmt.setString(2, request.getRemoteUser());
+				pstmt.setInt(2, u.current_survey_id);
+				pstmt.setString(3, request.getRemoteUser());
 			} else if(u.current_task_group_id > 0) {
 				pstmt.setInt(1, u.current_task_group_id);
 				pstmt.setString(2, request.getRemoteUser());

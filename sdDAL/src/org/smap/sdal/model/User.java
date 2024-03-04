@@ -36,7 +36,8 @@ public class User {
 	public boolean email_task;
 	public String ft_send_location;
 	public int current_project_id;
-	public int current_survey_id;
+	public int current_survey_id;	// deprecate
+	public String current_survey_ident;
 	public int current_task_group_id;
 	public int o_id;
 	public int e_id;

@@ -61,3 +61,6 @@ create sequence email_id START 1;
 ALTER SEQUENCE email_id OWNER TO ws;
 
 alter table forward add column updated boolean;
+
+alter table users add column current_survey_ident text;
+update users set current_survey_ident = (select ident from survey where s_id = current_survey_id) where current_survey_ident is null and current_survey_id > 0;

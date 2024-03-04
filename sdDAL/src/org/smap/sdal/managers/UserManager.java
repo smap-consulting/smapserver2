@@ -97,9 +97,10 @@ public class UserManager {
 					+ "u.signature as signature, "
 					+ "u.language as language, "
 					+ "u.email as email, "
-					+ "u.current_project_id as current_project_id, "
-					+ "u.current_survey_id as current_survey_id, "
-					+ "u.current_task_group_id as current_task_group_id, "
+					+ "u.current_project_id, "
+					+ "u.current_survey_id, "
+					+ "u.current_survey_ident, "
+					+ "u.current_task_group_id, "
 					+ "u.lastalert, "
 					+ "u.seen,"
 					+ "extract(year from age(now(), u.password_set)) * 12 + extract(month from age(now(), u.password_set)) as password_age,"
@@ -159,6 +160,7 @@ public class UserManager {
 				user.email = resultSet.getString("email");
 				user.current_project_id = resultSet.getInt("current_project_id");
 				user.current_survey_id = resultSet.getInt("current_survey_id");
+				user.current_survey_ident = resultSet.getString("current_survey_ident");
 				user.current_task_group_id = resultSet.getInt("current_task_group_id");
 				user.o_id = resultSet.getInt("o_id");
 				user.e_id = resultSet.getInt("e_id");
@@ -1343,6 +1345,7 @@ public class UserManager {
 						u.current_task_group_id = 0;
 						u.current_project_id = 0;
 						u.current_survey_id = 0;
+						u.current_survey_ident = null;
 						u.roles = null;
 						u.projects = null;
 						u.o_id = newOrgId;
