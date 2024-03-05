@@ -874,9 +874,13 @@ public class UserManager {
 					
 				} else {
 					// update the list of organisation that the user has access to.  These are always stored as current
+					// Am not sure what this is doing, possibly it is not needed
 					if(!isSwitch) {
 						insertUserOrganisations(sd, u, u.id, u.o_id, isOrgUser, userIdent);
 					}
+					String msg = localisation.getString("msg_unu");
+					msg = msg.replace("%s1", u.name);
+					throw new Exception(msg);
 				}
 
 			} else {

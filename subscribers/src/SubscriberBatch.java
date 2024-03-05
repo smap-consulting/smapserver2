@@ -1253,7 +1253,6 @@ public class SubscriberBatch {
 		PreparedStatement pstmtNotifications = null;
 
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-		HashMap<String, CaseManagementSettings> settingsCache = new HashMap<>();
 		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
 
 		// SQL to record an alert being triggered
@@ -1312,7 +1311,7 @@ public class SubscriberBatch {
 				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				
 				SqlFrag calculationFrag = null;
-				if(serverCalculate != null) {
+				if(serverCalculate != null && GeneralUtilityMethods.tableExists(cResults, table)) {
 					ServerCalculation sc = gson.fromJson(serverCalculate, ServerCalculation.class);
 					calculationFrag = new SqlFrag();
 					sc.populateSql(calculationFrag, localisation);
@@ -1425,7 +1424,7 @@ public class SubscriberBatch {
 						lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
 					}
 				} else {
-					log.info("Error: Server calculation is null: " + notificationName);
+					log.info("Error: Server calculation is null or data table has not been created: " + notificationName);
 				}
 				
 				/*
