@@ -1294,7 +1294,7 @@ public class SubscriberBatch {
 				
 				int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 				
-				//log.info("xxxxxxxxxxxxx server calculate notification for " + notificationName + " on table " + table);
+				log.info("xxxxxxxxxxxxx server calculate notification for " + notificationName + " on table " + table);
 				
 				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
@@ -1356,7 +1356,7 @@ public class SubscriberBatch {
 						idx = GeneralUtilityMethods.setFragParams(pstmtMatches, filterFrag, idx, tz);
 					}
 					
-					//log.info(pstmtMatches.toString());
+					log.info(pstmtMatches.toString());
 					ResultSet rs = pstmtMatches.executeQuery();
 					while (rs.next()) {
 						String instanceid = rs.getString("instanceid");		// TODO - get these in a loop checking the server calculations in a survey
