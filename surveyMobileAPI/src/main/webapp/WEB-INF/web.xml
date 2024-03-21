@@ -12,7 +12,7 @@
   </servlet>
   <servlet-mapping>
     <servlet-name>Jersey REST Service</servlet-name>
-    <url-pattern>/*</url-pattern>
+    <url-pattern>/rest/*</url-pattern>
   </servlet-mapping>
   <resource-ref>
     <description>Postgres Survey Definitions</description>
@@ -26,4 +26,14 @@
     <res-type>javax.sql.DataSource</res-type>
     <res-auth>Container</res-auth>
   </resource-ref>
+  
+  <error-page>
+  	<error-code>405</error-code>
+  	<location>/405.html</location>
+  </error-page>
+  <error-page>
+  	<error-code>404</error-code>
+  	<location>/404.html</location>
+  </error-page>
+  
 </web-app>
