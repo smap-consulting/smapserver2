@@ -47,7 +47,7 @@ public class PutXForm {
     	template = null;
      	    	
 
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+    	DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 		DocumentBuilder b = dbf.newDocumentBuilder();
 		
 		Document surveyDocument = b.parse(is);

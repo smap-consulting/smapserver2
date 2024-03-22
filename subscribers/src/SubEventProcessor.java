@@ -30,7 +30,7 @@ public class SubEventProcessor {
 
 	String confFilePath;
 
-	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+	DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 	DocumentBuilder db = null;
 
 	private static Logger log = Logger.getLogger(Subscriber.class.getName());

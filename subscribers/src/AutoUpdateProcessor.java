@@ -34,7 +34,7 @@ public class AutoUpdateProcessor {
 
 	String confFilePath;
 
-	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+	DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 
 	private static Logger log = Logger.getLogger(Subscriber.class.getName());
 

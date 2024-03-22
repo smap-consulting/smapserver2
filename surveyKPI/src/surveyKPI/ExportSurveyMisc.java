@@ -266,7 +266,7 @@ public class ExportSurveyMisc extends Application {
 					StreamResult out = new StreamResult(f);
 
 					// Create the document
-					DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+					DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 					DocumentBuilder b = dbf.newDocumentBuilder();    		
 					Document outputXML = b.newDocument(); 
 

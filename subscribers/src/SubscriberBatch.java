@@ -85,7 +85,7 @@ public class SubscriberBatch {
 
 	String confFilePath;
 
-	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+	DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 	DatabaseConnections dbc = new DatabaseConnections();
 
 	private static Logger log =

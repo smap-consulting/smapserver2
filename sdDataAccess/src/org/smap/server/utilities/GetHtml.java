@@ -105,7 +105,7 @@ public class GetHtml {
 			
 			log.info("Getting survey as Html-------------------------------");
 			// Create a new XML Document
-			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 			DocumentBuilder b = dbf.newDocumentBuilder();
 			outputDoc = b.newDocument();
 

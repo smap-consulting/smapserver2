@@ -10979,6 +10979,22 @@ public class GeneralUtilityMethods {
 		return out;
 	}
 	
+	/*
+	 * Return a Document Builder Factory for XML parsing
+	 * Disable DTD processing
+	 */
+	public static DocumentBuilderFactory getDocumentBuilderFactory() {
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		try {
+			dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false);   // XXE - Disable DTDs
+			dbf.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);  // Disable external DTDs
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error", e);
+		}
+
+		return dbf;
+	}
+	
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");

@@ -28,7 +28,7 @@ import org.smap.subscribers.Subscriber;
 
 public class ReportProcessor {
 
-	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+	DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 
 	private static Logger log = Logger.getLogger(Subscriber.class.getName());
 

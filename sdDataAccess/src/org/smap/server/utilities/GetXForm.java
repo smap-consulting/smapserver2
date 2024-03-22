@@ -131,7 +131,7 @@ public class GetXForm {
 			cResults = ResultsDataSource.getConnection("getXForm");
 
 			// Create a new XML Document
-			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 			DocumentBuilder b = dbf.newDocumentBuilder();
 			Document outputXML = b.newDocument();
 
@@ -1695,7 +1695,7 @@ public class GetXForm {
 		Connection cResults = null;
 		Connection sd = null;
 
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 		DocumentBuilder b = dbf.newDocumentBuilder();
 		Document outputXML = b.newDocument();
 

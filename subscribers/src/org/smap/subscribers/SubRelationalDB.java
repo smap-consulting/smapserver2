@@ -37,6 +37,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.smap.model.IE;
 import org.smap.model.SurveyInstance;
@@ -105,7 +106,7 @@ public class SubRelationalDB extends Subscriber {
 			boolean temporaryUser,
 			String server, String device, SubscriberEvent se, String confFilePath, String formStatus,
 			String basePath, String filePath, String updateId, int ue_id, Date uploadTime,
-			String surveyNotes, String locationTrigger, String auditFilePath, ResourceBundle l, Survey survey)  {
+			String surveyNotes, String locationTrigger, String auditFilePath, ResourceBundle l, Survey survey) {
 
 		localisation = l;
 		tz = "UTC";			// Default default time zone
@@ -119,7 +120,7 @@ public class SubRelationalDB extends Subscriber {
 		formStatus = (formStatus == null) ? "complete" : formStatus;
 
 		// Open the configuration file
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 		DatabaseConnections dbc = new DatabaseConnections();
 	
 		SubmissionEventManager sem = new SubmissionEventManager();
