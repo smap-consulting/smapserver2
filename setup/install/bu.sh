@@ -14,9 +14,6 @@ rm $file.gpg
 pg_dump -c -Fc survey_definitions > backups/sd.dmp
 pg_dump -c -Fc results > backups/results.dmp
 
-pg_dump survey_definitions -c > backups/sd.sql
-pg_dump results -c > backups/results.sql
-
 tar -zcf $file backups/*
 rm -rf backups/*
 
