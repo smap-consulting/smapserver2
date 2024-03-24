@@ -1222,7 +1222,6 @@ public class GeneralUtilityMethods {
 				+ "e_id,"
 				+ "limits,"
 				+ "refresh_rate,"
-				+ "api_rate_limit,"
 				+ "password_strength,"
 				+ "map_source "
 				+ "from organisation "
@@ -1281,7 +1280,6 @@ public class GeneralUtilityMethods {
 				String limits = resultSet.getString("limits");
 				org.limits = (limits == null) ? null : gson.fromJson(limits, new TypeToken<HashMap<String, Integer>>() {}.getType());
 				org.refresh_rate = resultSet.getInt("refresh_rate");
-				org.api_rate_limit = resultSet.getInt("api_rate_limit");
 				org.password_strength = resultSet.getDouble("password_strength");
 				org.map_source = resultSet.getString("map_source");
 			}
