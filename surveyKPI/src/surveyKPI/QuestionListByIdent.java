@@ -77,7 +77,6 @@ public class QuestionListByIdent extends Application {
 			@PathParam("language") String language,
 			@QueryParam("single_type") String single_type,
 			@QueryParam("exc_read_only") boolean exc_read_only,
-			@QueryParam("exc_ssc") boolean exc_ssc,
 			@QueryParam("inc_meta") boolean inc_meta) { 
 
 		String connectionString = "surveyKPI-getQuestionsNewIdent";
@@ -100,20 +99,18 @@ public class QuestionListByIdent extends Application {
 		ArrayList<QuestionLite> questions = new ArrayList<QuestionLite> ();
 		
 		PreparedStatement pstmt = null;
-		PreparedStatement pstmtSSC = null;
 		try {
 			Form tf = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 			
 			if(inc_meta) {
 				ArrayList<MetaItem> metaItems = GeneralUtilityMethods.getPreloads(sd, sId);
 				for(MetaItem mi : metaItems) {
-					if(mi.isPreload) {
+					if(mi.isPreload || mi.columnName.equals("instanceid")) {
 						QuestionLite q = new QuestionLite();
 						q.id = mi.id;
 						q.name = mi.name;
 						q.f_id = tf.id;
 						q.type = mi.type;
-						q.is_ssc = false;
 						
 						questions.add(q);
 					}	
@@ -184,30 +181,6 @@ public class QuestionListByIdent extends Application {
 				questions.add(q);			
 			}
 			
-			/*
-			 * get the server side calculation questions
-			 */
-			if(!exc_ssc) {
-				String sqlSSC = "select id, name, function, f_id from ssc " +
-						" where s_id = ? " + 
-						" order by id;";
-				pstmtSSC = sd.prepareStatement(sqlSSC);	
-				pstmtSSC.setInt(1, sId);
-				resultSet = pstmtSSC.executeQuery();
-				while(resultSet.next()) {
-					QuestionLite q = new QuestionLite();
-					
-					//joQuestion.put("id", "s:" + resultSet.getString(1));
-					q.id = resultSet.getInt(1);
-					q.name = resultSet.getString(2);
-					q.fn = resultSet.getString(3);
-					q.f_id = resultSet.getInt(4);
-					q.type = "decimal";
-					q.is_ssc = true;
-					questions.add(q);			
-				}
-			}
-			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			response = Response.ok(gson.toJson(questions)).build();
 				
@@ -216,7 +189,6 @@ public class QuestionListByIdent extends Application {
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-			try {if (pstmtSSC != null) {pstmtSSC.close();	}} catch (SQLException e) {	}
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 

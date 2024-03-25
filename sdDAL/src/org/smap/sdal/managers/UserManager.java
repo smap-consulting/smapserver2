@@ -97,9 +97,10 @@ public class UserManager {
 					+ "u.signature as signature, "
 					+ "u.language as language, "
 					+ "u.email as email, "
-					+ "u.current_project_id as current_project_id, "
-					+ "u.current_survey_id as current_survey_id, "
-					+ "u.current_task_group_id as current_task_group_id, "
+					+ "u.current_project_id, "
+					+ "u.current_survey_id, "
+					+ "u.current_survey_ident, "
+					+ "u.current_task_group_id, "
 					+ "u.lastalert, "
 					+ "u.seen,"
 					+ "extract(year from age(now(), u.password_set)) * 12 + extract(month from age(now(), u.password_set)) as password_age,"
@@ -159,6 +160,7 @@ public class UserManager {
 				user.email = resultSet.getString("email");
 				user.current_project_id = resultSet.getInt("current_project_id");
 				user.current_survey_id = resultSet.getInt("current_survey_id");
+				user.current_survey_ident = resultSet.getString("current_survey_ident");
 				user.current_task_group_id = resultSet.getInt("current_task_group_id");
 				user.o_id = resultSet.getInt("o_id");
 				user.e_id = resultSet.getInt("e_id");
@@ -529,8 +531,12 @@ public class UserManager {
 		}
 
 		int u_id = -1;
-		String sql = "insert into users (ident, realm, name, email, o_id, imported, language, password, created, password_set) " +
-				" values (?, ?, ?, ?, ?, ?, ?, md5(?), now(), now());";
+		String sql = "insert into users (ident, realm, name, email, o_id, imported, "
+				+ "language, password, basic_password, created, password_set) " +
+				" values (?, ?, ?, ?, ?, ?, ?, "
+				+ "md5(?),"
+				+ "'{SHA}'|| encode(digest(?,'sha1'),'base64'),"
+				+ " now(), now());";
 
 		PreparedStatement pstmt = null;
 
@@ -556,6 +562,7 @@ public class UserManager {
 			pstmt.setBoolean(6,u.imported);
 			pstmt.setString(7,  HtmlSanitise.checkCleanName(language, localisation));
 			pstmt.setString(8, pwdString);
+			pstmt.setString(9, u.password);
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 
@@ -619,7 +626,8 @@ public class UserManager {
 						localisation,
 						customTokens,
 						organisation.getAdminEmail(),
-						organisation.getEmailFooter());
+						organisation.getEmailFooter(),
+						GeneralUtilityMethods.getNextEmailId(sd));
 
 			}
 			
@@ -825,6 +833,7 @@ public class UserManager {
 								+ "email = ?, "
 								+ "o_id = ?, "
 								+ "password = md5(?), "
+								+ "basic_password = '{SHA}'|| encode(digest(?,'sha1'),'base64'), "
 								+ "password_set = now() "
 								+ "where "
 								+ "id = ?";
@@ -846,7 +855,8 @@ public class UserManager {
 						pstmt.setInt(6, u.id);
 					} else {
 						pstmt.setString(6, pwdString);
-						pstmt.setInt(7, u.id);
+						pstmt.setString(7, u.password);
+						pstmt.setInt(8, u.id);
 					}
 
 					log.info("Update user details: " + pstmt.toString());
@@ -864,6 +874,7 @@ public class UserManager {
 					
 				} else {
 					// update the list of organisation that the user has access to.  These are always stored as current
+					// This is the only change permissable if the user is in another organisation
 					if(!isSwitch) {
 						insertUserOrganisations(sd, u, u.id, u.o_id, isOrgUser, userIdent);
 					}
@@ -1335,6 +1346,7 @@ public class UserManager {
 						u.current_task_group_id = 0;
 						u.current_project_id = 0;
 						u.current_survey_id = 0;
+						u.current_survey_ident = null;
 						u.roles = null;
 						u.projects = null;
 						u.o_id = newOrgId;

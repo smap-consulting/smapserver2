@@ -11,11 +11,7 @@ public class QuestionLite {
 	public String q;				// The question for a specified language
 	public String name;
 	public String column_name;
-	
-	// Properties for Server Side Calculations
-	public String fn;
 	public int f_id;
-	public boolean is_ssc;
 	
 	public QuestionLite() {}
 	public QuestionLite(String type, String name, String column_name) {

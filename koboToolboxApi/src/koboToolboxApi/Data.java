@@ -624,6 +624,7 @@ public class Data extends Application {
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(),e);
 		}
 		int sId = 0;
 		int fId = 0;

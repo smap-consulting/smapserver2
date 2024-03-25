@@ -518,14 +518,18 @@ public class UploadFiles extends Application {
 						
 					} else if(item.getFieldName().equals("surveyId")) {
 						try {
-							// Authorise access to existing survey
-							surveyId = Integer.parseInt(item.getString());
-							if(surveyId > 0) {
-								auth.isValidSurvey(sd, request.getRemoteUser(), surveyId, false, superUser);	// Check the user has access to the survey
-							}
+							surveyId = Integer.parseInt(item.getString());	
 						} catch (Exception e) {
 							
 						}
+						// Authorise access to existing survey
+						// Hack.  Because the client is sending surveyId's instead of idents we need to get the latest
+						// survey id or we risk updating an old version
+						if(surveyId > 0) {
+							surveyId = GeneralUtilityMethods.getLatestSurveyId(sd, surveyId);
+							auth.isValidSurvey(sd, request.getRemoteUser(), surveyId, false, superUser);	// Check the user has access to the survey
+						}
+						
 						log.info("Add to bundle: " + surveyId);
 						
 					} else if(item.getFieldName().equals("action")) {						
@@ -573,9 +577,6 @@ public class UploadFiles extends Application {
 				 * Either a survey is being replaced, in which case the action is "replace"
 				 * or a survey is being added to a bundle in which case the action is "add"
 				 */
-				// Hack.  Because the client is sending surveyId's instead of idents we need to get the latest
-				// survey id or we risk updating an old version
-				surveyId = GeneralUtilityMethods.getLatestSurveyId(sd, surveyId);
 				
 				merge = true;
 				bundleSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, surveyId);

@@ -1222,7 +1222,6 @@ public class GeneralUtilityMethods {
 				+ "e_id,"
 				+ "limits,"
 				+ "refresh_rate,"
-				+ "api_rate_limit,"
 				+ "password_strength,"
 				+ "map_source "
 				+ "from organisation "
@@ -1281,7 +1280,6 @@ public class GeneralUtilityMethods {
 				String limits = resultSet.getString("limits");
 				org.limits = (limits == null) ? null : gson.fromJson(limits, new TypeToken<HashMap<String, Integer>>() {}.getType());
 				org.refresh_rate = resultSet.getInt("refresh_rate");
-				org.api_rate_limit = resultSet.getInt("api_rate_limit");
 				org.password_strength = resultSet.getDouble("password_strength");
 				org.map_source = resultSet.getString("map_source");
 			}
@@ -1415,6 +1413,7 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Get the organisation id for a report
+	 * The report id is the id of a temporary user
 	 */
 	static public int getOrganisationIdForReport(Connection sd, int rId) throws SQLException {
 
@@ -3038,8 +3037,8 @@ public class GeneralUtilityMethods {
 									
 									// Location audit value based on location of last entry into the question
 									if(auditCols.length >= 6) {
-										Double lat = new Double(auditCols[4]);
-										Double lon = new Double(auditCols[5]);
+										Double lat = Double.valueOf(auditCols[4]);
+										Double lon = Double.valueOf(auditCols[5]);
 										currentItem.location = new GeoPoint(lat, lon);
 									}
 									data.firstPassAudit .put(name, currentItem);
@@ -8962,7 +8961,7 @@ public class GeneralUtilityMethods {
 		boolean hasParam = false;
 		StringBuffer url = new StringBuffer(urlprefix);
 		
-		url.append("/webForm/").append(surveyIdent);
+		url.append("/app/myWork/webForm/").append(surveyIdent);
 		
 		if(initial_data_source != null && initial_data_source.equals("survey")) {
 			url.append(hasParam ? "&" : "?").append("datakey=instanceid&datakeyvalue=").append(updateId);
@@ -9054,12 +9053,16 @@ public class GeneralUtilityMethods {
 		return url.toString();
 	}
 	
-	public static String getWebformLink(String urlprefix, 
+	/*
+	 * This is a re-implementation of the getWebFormLink function above
+	 * One of these tow functions should be removed
+	 */
+	public static String getWebformLinkToInstanceId(String urlprefix, 
 			String surveyIdent, 
 			String updateId) {
 		
 		StringBuffer url = new StringBuffer(urlprefix);		
-		url.append("webForm/").append(surveyIdent);
+		url.append("app/myWork/webForm/").append(surveyIdent);
 		url.append("?datakey=instanceid");
 		url.append("&datakeyvalue=").append(updateId);
 			
@@ -10360,7 +10363,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * REturns true if the provided password is correct for the user
+	 * Returns true if the provided password is correct for the user
 	 */
 	public static boolean isPasswordValid(Connection sd, String username, String password) throws SQLException {
 		boolean valid = false;
@@ -10827,7 +10830,7 @@ public class GeneralUtilityMethods {
 			if(a != null) {
 				// Check that this action does not reference a survey using survey ID
 				if(a.surveyIdent == null && a.sId > 0) {
-					a.surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, a.sId);
+					a.surveyIdent = getSurveyIdent(sd, a.sId);
 				}
 				// Some client code still needs surveyId!
 				if(a.surveyIdent != null && a.sId == 0) {
@@ -10932,6 +10935,25 @@ public class GeneralUtilityMethods {
 		}
 		return mapSource;
 	}
+	
+	/*
+	 * Get the next email ID
+	 */
+	public static int getNextEmailId(Connection sd) throws SQLException {
+		int id = 0;
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement("select nextval('email_id')");
+			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				id = rs.getInt(1);
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+		}
+		return id;
+	}
 
 	public static String getUTCDateTimeSuffix() {
 		DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd HH:mm:ss");
@@ -10953,6 +10975,23 @@ public class GeneralUtilityMethods {
 		out = out.replace("%2C", ","); // Commas ok for file name within quotes
 		
 		return out;
+	}
+	
+	/*
+	 * Return a Document Builder Factory for XML parsing
+	 * Disable DTD processing
+	 */
+	public static DocumentBuilderFactory getDocumentBuilderFactory() {
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		try {
+			dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);  // XXE - Disable DTDs
+			dbf.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);  // Disable external DTDs
+			dbf.setXIncludeAware(false);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error", e);
+		}
+
+		return dbf;
 	}
 	
 	private static int getManifestParamStart(String property) {

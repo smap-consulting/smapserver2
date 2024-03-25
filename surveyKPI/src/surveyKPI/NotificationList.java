@@ -368,7 +368,7 @@ public class NotificationList extends Application {
 					a.isValidProject(sd, request.getRemoteUser(), pId);
 				}
 				NotificationManager fm = new NotificationManager(localisation);
-				fm.deleteNotification(sd, request.getRemoteUser(), id);
+				fm.deleteNotification(sd, request.getRemoteUser(), id, sId);
 			}
 			
 			response = Response.ok().build();
@@ -407,7 +407,7 @@ public class NotificationList extends Application {
 		String connectionString = "surveyKPI-Survey-send immediate notification";
 		
 		Type type = new TypeToken<Notification>(){}.getType();
-		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+		Gson gson =  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		Notification n = gson.fromJson(notificationString, type);
 		
 		log.info("Immediate Notification:========== " + notificationString);
@@ -441,6 +441,7 @@ public class NotificationList extends Application {
 			SubmissionMessage subMsg = new SubmissionMessage(
 					"Immediate",		// Title
 					0,					// Task Id - ignore, only relevant for a reminder
+					pId,
 					n.sIdent,			// Survey Ident
 					null,				// Update Survey
 					n.instanceId, 

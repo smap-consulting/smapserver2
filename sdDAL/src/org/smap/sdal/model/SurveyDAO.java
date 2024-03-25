@@ -28,7 +28,6 @@ public class SurveyDAO {
 	public HashMap<String, OptionList> optionLists = new HashMap<> ();
 	public HashMap<String, StyleList> styleLists = new HashMap<> ();
 	public HashMap<String, ServerCalculation> serverCalculations  = new HashMap<> ();
-	public ArrayList<ServerSideCalculate> sscList  = new ArrayList<ServerSideCalculate> ();	// legacy
 	public ArrayList<Language> languages = new ArrayList<Language> (); 
 	public ArrayList<ManifestValue> surveyManifest  = new ArrayList<> ();
 	public HashMap<String, Boolean> filters = new HashMap<> ();

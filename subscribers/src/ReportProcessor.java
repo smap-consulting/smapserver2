@@ -28,7 +28,7 @@ import org.smap.subscribers.Subscriber;
 
 public class ReportProcessor {
 
-	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+	DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 
 	private static Logger log = Logger.getLogger(Subscriber.class.getName());
 
@@ -70,7 +70,7 @@ public class ReportProcessor {
 					 */
 					BackgroundReportsManager brm = new BackgroundReportsManager(null, null);
 					try {
-						while(brm.processNextReport(dbc.sd, basePath)) {
+						while(brm.processNextReport(dbc.sd, dbc.results, basePath)) {
 							log.info("..............................report processed");
 						}
 						

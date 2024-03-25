@@ -293,7 +293,7 @@ public class ExportSurveyOSM extends Application {
 				 * Generate the XML
 				 */
 		    	try {  		
-		    		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		    		DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 		    		DocumentBuilder b = dbf.newDocumentBuilder();    		
 		    		Document outputXML = b.newDocument();     		
 		           	Writer outWriter = new StringWriter();

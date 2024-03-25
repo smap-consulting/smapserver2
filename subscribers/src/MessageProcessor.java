@@ -31,7 +31,7 @@ public class MessageProcessor {
 
 	String confFilePath;
 
-	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+	DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 	DocumentBuilder db = null;
 
 	private static Logger log = Logger.getLogger(Subscriber.class.getName());
@@ -116,7 +116,7 @@ public class MessageProcessor {
 				Thread t = new Thread(new MessageLoop(basePath, awsPropertiesFile));
 				t.start();
 			} else {
-				log.info("Skipping notifications to devices. No aws properties file at: " + pFile.getAbsolutePath());
+				log.info("Skipping Message Processing. No aws properties file at: " + pFile.getAbsolutePath());
 			}	
 
 		} catch (Exception e) {

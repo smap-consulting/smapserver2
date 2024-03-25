@@ -115,6 +115,7 @@ public class EmailManager {
 			String serverDescription,
 			String organisationName) throws Exception  {
 
+		log.info("Using deprecated non HTML email");
 		if(emailServer.smtpHost == null) {
 			throw new Exception("Cannot send email, smtp_host not available");
 		}
@@ -284,7 +285,8 @@ public class EmailManager {
 			String serverName,
 			String subject,
 			StringBuilder template,
-			String type) throws SQLException, ApplicationException {
+			String type,
+			int emailId) throws SQLException, ApplicationException {
 				
 		EmailServer emailServer = null;
 		SubscriptionStatus subStatus = null;
@@ -334,7 +336,8 @@ public class EmailManager {
 									localisation,
 									customTokens,
 									null,
-									null);
+									null,
+									emailId);	
 						} catch(Exception e) {
 							lm.writeLogOrganisation(sd, oId, userIdent, LogManager.EMAIL, e.getMessage(), 0);
 						}
@@ -452,12 +455,19 @@ public class EmailManager {
 				try {
 					PeopleManager peopleMgr = new PeopleManager(localisation);
 					InternetAddress[] emailArray = InternetAddress.parse(emails);
-
+							
 					for(InternetAddress ia : emailArray) {	
 						SubscriptionStatus subStatus = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());				
+						/*
+						 * If this email address is unsubscribed and we care if they are unsubscribed,
+						 * which is shown by the unsubscribed list not being null, then we just record that they
+						 * are unsubscribed
+						 */
 						if(subStatus.unsubscribed && unsubscribedList != null) {
+							log.info("#########: Email " + ia.getAddress() + " User has unsubscribed");
 							unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
 						} else {
+							log.info("#########: Email " + ia.getAddress() + " Opted in: " + subStatus.optedIn + "org:  " + !organisation.send_optin);
 							if(subStatus.optedIn || !organisation.send_optin) {
 								sendEmailHtml(
 										ia.getAddress(),  
@@ -472,7 +482,8 @@ public class EmailManager {
 										localisation,
 										null,
 										organisation.getAdminEmail(),
-										organisation.getEmailFooter());
+										organisation.getEmailFooter(),
+										GeneralUtilityMethods.getNextEmailId(sd));
 
 							} else {
 								/*
@@ -530,7 +541,8 @@ public class EmailManager {
 			ResourceBundle localisation,
 			HashMap<String, String> tokens,
 			String adminEmail,
-			String orgFooter) throws Exception  {
+			String orgFooter,
+			int emailId) throws Exception  {
 
 		if(emailServer.smtpHost == null) {
 			throw new Exception("Cannot send email, smtp_host not available");
@@ -552,11 +564,14 @@ public class EmailManager {
 			InternetAddress[] emailArray = InternetAddress.parse(email);
 			log.info("Number of email addresses: " + emailArray.length);
 			msg.setRecipients(rt,	emailArray);
-			msg.setSubject(subject);
+			msg.setSubject(subject + " " + emailId);	// Include email ID with subject to make it unique
 
-			sender = sender + "@" + emailServer.emailDomain;
+			// Add the email server domain if not already set for sender
+			if(sender.indexOf('@') < 0) {
+				sender = sender + "@" + emailServer.emailDomain;
+			}
 
-			log.info("Sending email from: (sendEmailHtml1) " + sender);
+			log.info("Sending email from: (sendEmailHtml1) " + sender + " with subject " + subject);
 			msg.setFrom(InternetAddress.parse(sender, false)[0]);
 			
 			if(adminEmail != null) {
@@ -678,7 +693,7 @@ public class EmailManager {
 		props.setProperty("mail.smtp.timeout", "60000");
 		props.setProperty("mail.smtp.writetimeout", "60000");
 		
-		log.info("Email properties: " + props.toString());
+		//log.info("Email properties: " + props.toString());
 		
 		return Session.getInstance(props, authenticator);
 	}

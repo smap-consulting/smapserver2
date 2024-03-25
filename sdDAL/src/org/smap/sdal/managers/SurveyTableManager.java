@@ -714,6 +714,10 @@ public class SurveyTableManager {
 						// This is not group friendly but will pick up meta items that have been referenced in the top form
 						colName = n; // For columns that are not questions such as _hrk, _device
 						tableName = topForm.tableName;
+					} else if(n.equals("instanceID")) {
+						// InstanceID is the only meta item with a name that differs from its column name
+						colName = n.toLowerCase(); // For columns that are not questions such as _hrk, _device
+						tableName = topForm.tableName;
 					} else {
 						if(GeneralUtilityMethods.tableExists(cResults, topForm.tableName)) {
 							// Only report the error if the top level table has been created otherwise probably no data has been submitted and all columns would be unpublished and missing

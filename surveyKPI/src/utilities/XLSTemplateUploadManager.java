@@ -900,11 +900,15 @@ public class XLSTemplateUploadManager {
 		q.readonly = getBooleanColumn(row, "readonly", surveyHeader, lastCellNum, false);
 		if(!q.readonly) {
 			// Actually readonly can hold an expression - this is tacked on functionality
-			q.readonly_expression =  XLSUtilities.getTextColumn(wb, row, "readonly", surveyHeader, lastCellNum, null);
-			if(q.readonly_expression != null && q.readonly_expression.trim().length() > 0 
-					&& !q.readonly_expression.equals("no")
-					&& !q.readonly_expression.equals("false")) {
+			String roValue = XLSUtilities.getTextColumn(wb, row, "readonly", surveyHeader, lastCellNum, null);
+			  
+			if(roValue != null && roValue.trim().length() > 0 
+					&& !roValue.equals("no")
+					&& !roValue.equals("false")) {
 				q.readonly = true;	// conditionally readonly
+				q.readonly_expression = roValue;
+			} else {
+				q.readonly_expression = null;
 			}
 		}
 		

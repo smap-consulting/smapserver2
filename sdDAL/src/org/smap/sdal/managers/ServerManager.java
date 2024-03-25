@@ -138,9 +138,9 @@ public class ServerManager {
 				// Get any tables that are shared with other surveys
 				HashMap<String, ArrayList<String>> sharedTables = surveyManager.getSharedTables(sd, sId);
 				
-				sql = "SELECT DISTINCT f.table_name FROM form f " +
-						"WHERE f.s_id = ? " +
-						"ORDER BY f.table_name;";						
+				sql = "select f.table_name from form f " +
+						"where f.s_id = ? " +
+						"order by f.table_name;";						
 
 				pstmt = sd.prepareStatement(sql);	
 				pstmt.setInt(1, sId);
@@ -189,6 +189,11 @@ public class ServerManager {
 								RecordEventManager rem = new RecordEventManager();
 								rem.deleteTableEvents(sd, tableName);
 								
+								/*
+								 * Delete records of notifications for this table
+								 */
+								MessagingManager mm = new MessagingManager(localisation);
+								mm.deleteTableEvents(rel, tableName);
 								/*
 								 * Drop any tables for compound data
 								 */

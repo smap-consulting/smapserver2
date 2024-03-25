@@ -131,7 +131,7 @@ public class GetXForm {
 			cResults = ResultsDataSource.getConnection("getXForm");
 
 			// Create a new XML Document
-			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 			DocumentBuilder b = dbf.newDocumentBuilder();
 			Document outputXML = b.newDocument();
 
@@ -1695,7 +1695,7 @@ public class GetXForm {
 		Connection cResults = null;
 		Connection sd = null;
 
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 		DocumentBuilder b = dbf.newDocumentBuilder();
 		Document outputXML = b.newDocument();
 
@@ -1744,7 +1744,7 @@ public class GetXForm {
 			if (priKey > 0) {
 				hasData = true;
 				populateFormData(outputXML, firstForm, priKey, -1, cResults, sd, template, null, sId, templateName, false,
-						simplifyMedia, null, -1);
+						simplifyMedia, null, -1, initialData);
 			} else if (key != null && keyval != null) {
 				// Create a blank form containing only the key values
 				hasData = true;
@@ -2263,7 +2263,8 @@ public class GetXForm {
 	 */
 	public void populateFormData(Document outputDoc, Form form, int id, int parentId, Connection cResults, Connection sd,
 			SurveyTemplate template, Element parentElement, int sId, String survey_ident, boolean isFirstSubForm,
-			boolean simplifyMedia, String order, int count) throws SQLException {
+			boolean simplifyMedia, String order, int count,
+			Instance initialData) throws SQLException {
 
 		List<List<Results>> results = null;
 		if (GeneralUtilityMethods.tableExists(cResults, form.getTableName())) {
@@ -2312,7 +2313,7 @@ public class GetXForm {
 
 					boolean needTemplate = (!generatedTemplate && (parentElement == null));
 					populateFormData(outputDoc, item.subForm, -1, Integer.parseInt(priKey.value), cResults, sd, template,
-							currentParent, sId, survey_ident, needTemplate, simplifyMedia, order, count);
+							currentParent, sId, survey_ident, needTemplate, simplifyMedia, order, count, initialData);
 					
 				} else if (item.begin_group) {
 					Element childElement = null;
@@ -2341,8 +2342,19 @@ public class GetXForm {
 					// Escape any single quotes if this is called by webforms as the output is
 					// stored as a string with single quotes around it
 					String escValue = item.value;
+					
+					/*
+					 * Override the value if it is specified in initial data
+					 */
+					if(initialData != null) {
+						String idValue = initialData.values.get(item.name);
+						if(idValue != null) {
+							escValue = idValue;
+						}
+					}
+					
 					if (isWebForms && item.value != null) {
-						escValue = item.value.replace("'", "\\\'");
+						escValue = escValue.replace("'", "\\\'");
 					}
 
 					if(!item.isStartPreload) {		// Don't add start time as this needs to be reset when editing the form instance

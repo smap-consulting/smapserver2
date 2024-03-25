@@ -28,6 +28,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.smap.notifications.interfaces.EmitNotifications;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -202,10 +203,15 @@ public class Register extends Application {
 				response = Response.serverError().entity(e.getMessage()).build();
 				log.log(Level.SEVERE,"Error", e);
 			}
-		} catch(Exception e) {
+		} catch(ApplicationException e) {
+			
 			try {sd.rollback();}catch(Exception ex) {}
 			response = Response.serverError().entity(e.getMessage()).build();
+			
+		} catch(Exception e) {
+			try {sd.rollback();}catch(Exception ex) {}
 			String msg = e.getMessage();
+			response = Response.serverError().entity(msg).build();		
 			if(msg == null || !msg.equals("xxxx")) {
 				log.log(Level.SEVERE,"Error", e);
 			}

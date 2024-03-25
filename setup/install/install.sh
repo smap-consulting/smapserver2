@@ -42,12 +42,9 @@ if [ $u2204 -eq 1 ]; then
 elif [ $u2004 -eq 1 ]; then
     TOMCAT_VERSION=tomcat9
     TOMCAT_USER=tomcat
-elif [ $u1804 -eq 1 ]; then
+else
     TOMCAT_VERSION=tomcat8
     TOMCAT_USER=tomcat8
-else
-    TOMCAT_VERSION=tomcat7
-    TOMCAT_USER=tomcat7
 fi
 
 CATALINA_HOME=/usr/share/$TOMCAT_VERSION
@@ -296,6 +293,7 @@ if [ "$DBHOST" = "127.0.0.1" ]; then
         echo 'survey_definitions database does not exist'
         sudo -i -u postgres createdb -E UTF8 -O ws $sd
         echo "CREATE EXTENSION postgis;" | sudo -i -u postgres psql -d $sd 
+        echo "CREATE EXTENSION pgcrypto;" | sudo -i -u postgres psql -d $sd 
         echo "ALTER TABLE geometry_columns OWNER TO ws; ALTER TABLE spatial_ref_sys OWNER TO ws; ALTER TABLE geography_columns OWNER TO ws;" | sudo -i -u postgres psql -d $sd
         cat setupDb.sql | sudo -i -u postgres psql -d $sd | grep -v "does not exist, skipping"
     else
@@ -315,6 +313,7 @@ if [ "$DBHOST" = "127.0.0.1" ]; then
         echo 'results database does not exist'
         sudo -i -u postgres createdb -E UTF8 -O ws $results
         echo "CREATE EXTENSION postgis;" | sudo -u postgres psql -d $results
+        echo "CREATE EXTENSION pgcrypto;" | sudo -u postgres psql -d $results
         sudo -i -u postgres echo "ALTER TABLE geometry_columns OWNER TO ws; ALTER TABLE spatial_ref_sys OWNER TO ws; ALTER TABLE geography_columns OWNER TO ws;" | sudo -i -u postgres psql -d $results
         cat resultsDb.sql | sudo -i -u postgres psql -d $results
 
@@ -408,7 +407,7 @@ sudo apt-get install gdal-bin -y
 sudo apt-get install ttf-dejavu -y
 
 # Add a file containing the version number
-echo "2311" > ~/smap_version
+echo "2403" > ~/smap_version
 
 echo '##### 21. Add postgres and apache to tomcat group'
 if [ "$DBHOST" = "127.0.0.1" ]; then

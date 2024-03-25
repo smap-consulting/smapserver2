@@ -63,6 +63,7 @@ import org.smap.sdal.model.TaskServerDefn;
 public class Tasks extends Application {
 
 	Authorise a = null;
+	Authorise aEnum = null;
 
 	private static Logger log =
 			Logger.getLogger(Tasks.class.getName());
@@ -84,6 +85,15 @@ public class Tasks extends Application {
 		authorisations.add(Authorise.MANAGE);
 		authorisations.add(Authorise.MANAGE_TASKS);
 		a = new Authorise(authorisations, null);
+		
+		ArrayList<String> authorisationsEnum = new ArrayList<String> ();	
+		authorisationsEnum.add(Authorise.ANALYST);
+		authorisationsEnum.add(Authorise.VIEW_DATA);
+		authorisationsEnum.add(Authorise.ADMIN);
+		authorisationsEnum.add(Authorise.MANAGE);
+		authorisationsEnum.add(Authorise.MANAGE_TASKS);
+		authorisationsEnum.add(Authorise.ENUM);
+		aEnum = new Authorise(authorisationsEnum, null);
 	}
 
 	/*
@@ -257,10 +267,10 @@ public class Tasks extends Application {
 		
 		String connectionString = "surveyKPI - Tasks - get Task";
 		
-		// Authorisation - Access
+		// Authorisation - Access - Allow enumerators access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidTask(sd, request.getRemoteUser(), taskId);
+		aEnum.isAuthorised(sd, request.getRemoteUser());
+		aEnum.isValidTask(sd, request.getRemoteUser(), taskId);
 		// End authorisation
 
 		Response response = null;

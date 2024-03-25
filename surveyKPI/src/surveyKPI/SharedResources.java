@@ -19,6 +19,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
@@ -43,6 +44,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CsvTableManager;
+import org.smap.sdal.managers.FileManager;
 import org.smap.sdal.managers.SharedResourceManager;
 import org.smap.sdal.model.CsvTable;
 import org.smap.sdal.model.SharedHistoryItem;
@@ -437,6 +439,50 @@ public class SharedResources extends Application {
 		return gson.toJson(tables);
 	}
 
+	/*
+	 * Get the latest shared resource file 
+	 * The last file uploaded for this resource is returned
+	 */
+	@GET
+	@Path("/latest/{resourceName}")
+	@Produces("application/x-download")
+	public Response getLatestSharedHistoryFile (
+			@Context HttpServletRequest request, 
+			@Context HttpServletResponse response,
+			@PathParam("resourceName") String resourceName,
+			@QueryParam("sIdent") String sIdent) throws Exception {
+		
+		Response r = null;
+		String connectionString = "SurveyKPI - Get Latest Shared History File";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());
+		if(sIdent != null) {
+			orgLevelAuth.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);
+		}
+		// End Authorisation 
+		
+		try {
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			FileManager fm = new FileManager();
+			r = fm.getLatestSharedHistoryFile(sd,  response, oId, resourceName, sIdent); 
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Error getting file", e);
+			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
+		} finally {	
+			SDDataSource.closeConnection(connectionString, sd);	
+		}
+		
+		return r;
+	}
 }
 
 

@@ -44,7 +44,7 @@ public class SurveyInstance {
 		String xml = GeneralUtilityMethods.convertStreamToString(is);
 			
 		try {
-			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 			DocumentBuilder b = dbf.newDocumentBuilder();
 			
 			Document surveyDocument = b.parse(new InputSource(new StringReader(xml)));

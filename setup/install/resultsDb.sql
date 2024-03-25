@@ -118,3 +118,20 @@ CREATE TABLE case_alert_triggered (
 	alert_sent TIMESTAMP WITH TIME ZONE	
 	);
 ALTER TABLE case_alert_triggered OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS sct_seq CASCADE;
+CREATE SEQUENCE sct_seq START 1;
+ALTER SEQUENCE sct_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS server_calc_triggered;
+CREATE TABLE server_calc_triggered (
+	id integer DEFAULT NEXTVAL('sct_seq') CONSTRAINT pk_sct PRIMARY KEY,
+	n_id integer,		-- The notification id
+	table_name text,
+	question_name text,
+	value text,
+	thread text,
+	updated_value boolean,	  -- the value of the updated flag when this event was triggered
+	notification_sent TIMESTAMP WITH TIME ZONE	
+	);
+ALTER TABLE server_calc_triggered OWNER TO ws;

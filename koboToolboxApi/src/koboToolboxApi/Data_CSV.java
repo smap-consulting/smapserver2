@@ -56,7 +56,6 @@ import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.DataEndPoint;
 import org.smap.sdal.model.KeyValue;
-import org.smap.sdal.model.RateLimitInfo;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.TableColumn;
 

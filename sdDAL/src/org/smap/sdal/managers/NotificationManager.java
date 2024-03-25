@@ -75,6 +75,7 @@ public class NotificationManager {
 	public static String TOPIC_TASK = "task";					// Data: TaskMessage
 	public static String TOPIC_PROJECT = "project";				// Data: ProjectMessage
 	public static String TOPIC_RESOURCE = "resource";			// Data: OrgResourceMessage
+	public static String TOPIC_SERVER_CALC = "server_calc";		// Data: SubmissionMessage
 	public static String TOPIC_SURVEY = "survey";				// Data: SurveyMessage
 	public static String TOPIC_USER = "user";					// Data: String: user ident
 	public static String TOPIC_REMINDER = "reminder";			// Data: SubmissionMessage
@@ -105,10 +106,10 @@ public class NotificationManager {
 				+ "p_id, periodic_time, periodic_period, periodic_day_of_week, "
 				+ "periodic_day_of_month, periodic_local_day_of_month,"
 				+ "periodic_month, periodic_local_month,"
-				+ "r_id) " +
+				+ "r_id, updated) " +
 				" values (?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, 'true')";
 
 		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 
@@ -152,6 +153,14 @@ public class NotificationManager {
 		pstmt.setInt(27, n.r_id);
 		
 		pstmt.executeUpdate();
+		
+		// Log the add event
+		String logMessage = localisation.getString("lm_added_notification");
+		if(n.name == null) {
+			n.name = "";
+		}
+		logMessage = logMessage.replaceAll("%s1", n.name);
+		lm.writeLog(sd, n.s_id, user, LogManager.CREATE, logMessage, 0, null);
 	}
 
 	/*
@@ -190,7 +199,8 @@ public class NotificationManager {
 					+ "periodic_local_day_of_month = ?, "
 					+ "periodic_month = ?, "
 					+ "periodic_local_month = ?, "
-					+ "r_id = ? "
+					+ "r_id = ?, "
+					+ "updated = 'true' "
 					+ "where id = ?";
 		} else {
 			sql = "update forward set "
@@ -219,7 +229,8 @@ public class NotificationManager {
 					+ "periodic_local_day_of_month = ?, "
 					+ "periodic_month = ?, "
 					+ "periodic_local_month = ?, "
-					+ "r_id = ? "
+					+ "r_id = ?,"
+					+ "updated = 'true' "
 					+ "where id = ?";
 		}
 
@@ -266,6 +277,19 @@ public class NotificationManager {
 		pstmt.setInt(idx++, n.periodic_month);		// Original local value
 		pstmt.setInt(idx++, n.r_id);		
 		pstmt.setInt(idx++, n.id);
+		
+		// Log the change event
+		String logMessage = localisation.getString("lm_change_notification");
+		if(n.name == null) {
+			n.name = "";
+		}
+		logMessage = logMessage.replaceAll("%s1", n.name);
+		if(n.notifyDetails.emails == null) {
+			logMessage = logMessage.replaceAll("%s2", "");
+		} else {
+			logMessage = logMessage.replaceAll("%s2", gson.toJson(n.notifyDetails.emails));
+		}
+		lm.writeLog(sd, n.s_id, user, LogManager.CREATE, logMessage, 0, null);
 		
 		log.info("Update Notifications: " + pstmt.toString());
 		pstmt.executeUpdate();
@@ -433,7 +457,8 @@ public class NotificationManager {
 	public void deleteNotification
 	(Connection sd,
 			String user,
-			int id) throws SQLException {
+			int id,
+			int sId) throws SQLException {
 
 		String nName = GeneralUtilityMethods.getNotificationName(sd, id);
 
@@ -454,7 +479,7 @@ public class NotificationManager {
 				nName = "";
 			}
 			logMessage = logMessage.replaceAll("%s1", nName);
-			lm.writeLog(sd, 0, user, LogManager.DELETE, logMessage, 0, null);
+			lm.writeLog(sd, sId, user, LogManager.DELETE, logMessage, 0, null);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
@@ -577,7 +602,8 @@ public class NotificationManager {
 
 			log.info("notifyForSubmission:: " + ue_id + " : " + updateQuestion + " : " + updateValue);
 
-			StringBuffer sqlGetNotifications = new StringBuffer("select n.target, n.notify_details, n.filter, n.remote_user, n.remote_password "
+			StringBuffer sqlGetNotifications = new StringBuffer("select n.target, n.notify_details, n.filter, "
+					+ "n.remote_user, n.remote_password, n.p_id "
 					+ "from forward n "
 					+ "where n.s_id = ? " 
 					+ "and n.target != 'forward' "
@@ -622,6 +648,7 @@ public class NotificationManager {
 				String filter = rsNotifications.getString(3);
 				String remoteUser = rsNotifications.getString(4);
 				String remotePassword = rsNotifications.getString(5);
+				int pId = rsNotifications.getInt("p_id");
 				NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
 
 				/*
@@ -677,6 +704,7 @@ public class NotificationManager {
 					SubmissionMessage subMsg = new SubmissionMessage(
 							"Submission",	// Title
 							0,				// Task Id - ignore, only relevant for a reminder
+							pId,
 							ident,			// Survey Ident
 							updateSurvey,
 							instanceId, 

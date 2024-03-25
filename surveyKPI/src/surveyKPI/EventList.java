@@ -207,8 +207,15 @@ public class EventList extends Application {
 			// Assume we were passed an ident
 			surveyIdent = surveyId;
 		}
-					
-		a.isValidSurveyIdent(sd, request.getRemoteUser(), surveyIdent, false, false);
+		
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(),e);
+		}
+		
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), surveyIdent, false, superUser);
 	
 		String sql1 = "update upload_event "
 				+ "set results_db_applied = 'false',"

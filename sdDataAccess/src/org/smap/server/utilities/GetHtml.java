@@ -26,6 +26,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
@@ -56,6 +57,7 @@ public class GetHtml {
 	Document outputDoc = null;
 	private boolean gInTableList = false;
 	private HashMap<String, Integer> gRecordCounts = null;
+	private String gUrlPrefix;
 
 	private static Logger log = Logger.getLogger(GetHtml.class.getName());
 	
@@ -75,6 +77,7 @@ public class GetHtml {
 			HashMap<String, Integer> recordCounts, boolean temporaryUser) throws SQLException, Exception {
 		
 		gRecordCounts = recordCounts;
+		gUrlPrefix = GeneralUtilityMethods.getUrlPrefix(request);
 		
 		String response = null;
 		String connectionString = "Get Html";
@@ -102,7 +105,7 @@ public class GetHtml {
 			
 			log.info("Getting survey as Html-------------------------------");
 			// Create a new XML Document
-			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 			DocumentBuilder b = dbf.newDocumentBuilder();
 			outputDoc = b.newDocument();
 
@@ -498,6 +501,10 @@ public class GetHtml {
 
 			// Non select question
 			bodyElement = outputDoc.createElement("label");
+			if(q.type.equals(SmapQuestionTypes.PARENT_FORM) || q.type.equals(SmapQuestionTypes.CHILD_FORM)) {
+				bodyElement.setAttribute("title", survey.getDisplayName());
+			}
+			
 			setQuestionClass(q, bodyElement);
 
 			addLabelContents(bodyElement, q, form, hideLabels);
@@ -532,6 +539,10 @@ public class GetHtml {
 			} else if(q.type.equals("rank") || (!q.appearance.contains("likert") && !minSelect(q.appearance) && !q.appearance.contains("compact"))) {
 				classVal.append(" simple-select");
 			}
+		}
+		
+		if (q.type.equals(SmapQuestionTypes.PARENT_FORM) || q.type.equals(SmapQuestionTypes.CHILD_FORM)) {
+			classVal.append(" or-appearance-form");
 		}
 
 		// Mark the question as a branch if it has a relevance
@@ -1059,7 +1070,7 @@ public class GetHtml {
 			}
 		} else {
 			bodyElement = outputDoc.createElement("input");
-		}
+		} 
 		bodyElement.setAttribute("type", getInputType(q));
 		bodyElement.setAttribute("name", paths.get(getRefName(q.name, form)));
 		bodyElement.setAttribute("data-type-xml", getXmlType(q));
@@ -1106,6 +1117,13 @@ public class GetHtml {
 		// decimal
 		if (q.type.equals("decimal")) {
 			bodyElement.setAttribute("step", "any");
+		}
+		
+		if(q.type.equals(SmapQuestionTypes.PARENT_FORM) || q.type.equals(SmapQuestionTypes.CHILD_FORM)) {
+
+			// Add a calculation containing the URL
+			bodyElement.setAttribute("data-calculate",
+					UtilityMethods.convertAllxlsNames(getFormLaunchURL(q), false, paths, form.id, true, q.name, false));
 		}
 
 		// constraint
@@ -1660,7 +1678,7 @@ public class GetHtml {
 			type = "text";
 		} else if (q.type.equals("decimal")) {
 			type = "number";
-		} else if (q.type.equals("trigger") || q.type.equals("acknowledge") ) {
+		} else if (q.type.equals("trigger") || q.type.equals("acknowledge")) {
 			type = "radio";
 		} else {
 			log.info("#### unknown type: " + q.type + " for question " + q.name);
@@ -1704,6 +1722,8 @@ public class GetHtml {
 			type = "trigger";
 		} else if (q.type.equals("pdf_field")) {
 			type = "geotrace";
+		} else if (q.type.equals(SmapQuestionTypes.PARENT_FORM) || q.type.equals(SmapQuestionTypes.CHILD_FORM)) {
+			type = "string";
 		} else {
 			type = q.type;
 		}
@@ -2034,6 +2054,66 @@ public class GetHtml {
 		}
 		sb.append(calculation);
 		return sb.toString();
+	}
+	
+	/*
+	 * Get a calculation to create the URL to launch another survey from a survey
+	 * This has to combine single quoted text with references to answers to questions without quotes
+	 */
+	String getFormLaunchURL(Question q) throws SQLException {
+		
+		String surveyIdent = GeneralUtilityMethods.getSurveyParameter("form_identifier", q.paramArray);
+		String instance = GeneralUtilityMethods.getSurveyParameter("instance", q.paramArray);
+		String initial = GeneralUtilityMethods.getSurveyParameter("initial", q.paramArray);
+		
+		StringBuilder url = new StringBuilder("concat('")
+				.append(gUrlPrefix)
+				.append("app/myWork/webForm/")
+				.append(surveyIdent)
+				.append("'");
+		
+		if(instance != null) {
+			instance = instance.trim();
+			if(instance.length() > 0) {
+				url.append(",'?datakey=instanceid&datakeyvalue=',");
+				if(instance.startsWith("$")) {
+					url.append(instance);
+				} else {
+					url.append("'").append(instance).append("'");
+				}
+			}
+		}
+		
+		if(initial != null) {
+			initial = initial.trim();
+			if(initial.length() > 0) {
+				
+				url.append(",'")
+					.append(instance == null ? "?" : "&")
+					.append("initial='");
+				
+				String [] a = initial.split(",");
+				if(a.length > 0) {
+					for(int i = 0; i < a.length; i++) {
+						String [] a2 = a[i].split(":");
+						if(i > 0) {
+							url.append(",','");
+						}
+						if(a2.length == 2) {
+							for(int j = 0; j < a2.length; j++) {
+								a2[j] = a2[j].trim();
+								url.append(",")
+									.append(j == 0 ? "" : "':',")
+									.append(a2[j].startsWith("$") ? a2[j] : "'" + a2[j] + "'");
+							}	
+						}
+					}
+				}
+			}
+		}
+		url.append(")");
+		
+		return url.toString();
 	}
 	
 }

@@ -128,6 +128,57 @@ public class FileManager {
 	}
 	
 	/*
+	 * Get the latest shared history file
+	 */
+	public Response getLatestSharedHistoryFile(
+			Connection sd,
+			HttpServletResponse response, 
+			int requestedOrgId, 
+			String resourceName, 
+			String surveyIdent) throws IOException, ApplicationException, SQLException {
+		
+		Response r = null;
+		
+		String filePath = null;
+		String fileName = null;
+		PreparedStatement pstmt = null;
+		
+		try {
+			StringBuilder sql = new StringBuilder("select file_path, file_name from sr_history "
+					+ "where o_id = ? "
+					+ "and resource_name = ? ");
+			if(surveyIdent != null) {
+				sql.append("and survey_ident = ? ");
+			}
+			sql.append("order by id desc limit 1");
+			
+			pstmt = sd.prepareStatement(sql.toString());
+			pstmt.setInt(1, requestedOrgId);
+			pstmt.setString(2, resourceName);
+			
+			if(surveyIdent != null) {
+				pstmt.setString(3, surveyIdent);
+			}
+			
+			ResultSet rs = pstmt.executeQuery();
+			log.info("Get path of latest history file: " + pstmt.toString());
+			if(rs.next()) {
+				filePath = rs.getString(1);
+				fileName = rs.getString(2);
+			}
+			
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+		
+		getFile(response, filePath, setExtension(resourceName, getExtension(fileName)));
+			
+		r = Response.ok("").build();
+		
+		return r;
+	}
+	
+	/*
 	 * Get a background report
 	 */
 	public Response getBackgroundReport(
@@ -195,4 +246,22 @@ public class FileManager {
 		}
 	}
 
+	private String getExtension(String name) {
+		String ext = "";
+		int idx = name.lastIndexOf('.');
+		if( idx >= 0 && name.length() > idx + 1 ) {
+			ext = name.substring(idx + 1);
+		}
+		return ext;
+	}
+	
+	private String setExtension(String name, String ext) {
+		
+		String newName = name;
+		int idx = name.lastIndexOf('.');
+		if( idx >= 0 && name.length() > idx + 1 ) {
+			newName = name.substring(0, idx + 1) + ext;
+		}
+		return newName;
+	}
 }

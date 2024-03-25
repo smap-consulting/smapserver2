@@ -117,7 +117,6 @@ public class OrganisationManager {
 				+ "send_optin = ?, "
 				+ "limits = ?," 
 				+ "refresh_rate = ?,"
-				+ "api_rate_limit = ?,"
 				+ "password_strength = ?,"
 				+ "map_source = ?,"
 				+ "changed_ts = now() " 
@@ -165,10 +164,9 @@ public class OrganisationManager {
 			pstmt.setBoolean(29, o.send_optin);
 			pstmt.setString(30, o.limits == null ? null : gson.toJson(o.limits));
 			pstmt.setInt(31, o.refresh_rate);
-			pstmt.setInt(32, o.api_rate_limit);
-			pstmt.setDouble(33, o.password_strength);
-			pstmt.setString(34, HtmlSanitise.checkCleanName(o.map_source, localisation));
-			pstmt.setInt(35, o.id);
+			pstmt.setDouble(32, o.password_strength);
+			pstmt.setString(33, HtmlSanitise.checkCleanName(o.map_source, localisation));
+			pstmt.setInt(34, o.id);
 					
 			log.info("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -307,11 +305,12 @@ public class OrganisationManager {
 				+ "can_notify, can_use_api, can_submit, set_as_theme, e_id, ft_backward_navigation, ft_navigation, "
 				+ "ft_guidance, ft_image_size, ft_send, ft_delete, "
 				+ "ft_send_location, ft_pw_policy, navbar_color, can_sms, send_optin, limits, "
-				+ "ft_high_res_video, refresh_rate, api_rate_limit, password_strength, map_source, ft_input_method, ft_im_ri, ft_im_acc, changed_ts, owner) "
+				+ "ft_high_res_video, refresh_rate, password_strength, map_source, "
+				+ "ft_input_method, ft_im_ri, ft_im_acc, changed_ts, owner) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?)";
 		PreparedStatement pstmt = null;
 		
@@ -389,12 +388,11 @@ public class OrganisationManager {
 			pstmt.setString(38, o.limits == null ? null : gson.toJson(o.limits));
 			pstmt.setString(39, "not set");		// High Resolution Video
 			pstmt.setInt(40, o.refresh_rate);
-			pstmt.setInt(41, o.api_rate_limit);
-			pstmt.setDouble(42, o.password_strength);
-			pstmt.setString(43, HtmlSanitise.checkCleanName(o.map_source, localisation));
-			pstmt.setString(44, "not set");		// send automatically
-			pstmt.setInt(45, 20);		// FT Geo Recording interval
-			pstmt.setInt(46, 10);		// FT Geo Accuracy distance
+			pstmt.setDouble(41, o.password_strength);
+			pstmt.setString(42, HtmlSanitise.checkCleanName(o.map_source, localisation));
+			pstmt.setString(43, "not set");		// send automatically
+			pstmt.setInt(44, 20);		// FT Geo Recording interval
+			pstmt.setInt(45, 10);		// FT Geo Accuracy distance
 			
 			/*
 			 * Set the owner only if this is a personal organisation.
@@ -403,7 +401,7 @@ public class OrganisationManager {
 			 * the owner would be set to zero.  In other words they are creating community organisations that
 			 * will need to be maintained by whichever user has organisational admin privilege
 			 */
-			pstmt.setInt(47, GeneralUtilityMethods.hasSecurityGroup(sd, userIdent, Authorise.ORG_ID) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
+			pstmt.setInt(46, GeneralUtilityMethods.hasSecurityGroup(sd, userIdent, Authorise.ORG_ID) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			

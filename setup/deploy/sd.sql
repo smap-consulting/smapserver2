@@ -51,3 +51,16 @@ alter table server add column max_rate integer default 0;
 -- Version 23.11
 alter table question add column required_expression text;
 alter table question add column readonly_expression text;
+
+-- Version 24.01
+alter table users add column basic_password text;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Version 24.02
+create sequence email_id START 1;
+ALTER SEQUENCE email_id OWNER TO ws;
+
+alter table forward add column updated boolean;
+
+alter table users add column current_survey_ident text;
+update users set current_survey_ident = (select ident from survey where s_id = current_survey_id) where current_survey_ident is null and current_survey_id > 0;

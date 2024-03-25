@@ -37,6 +37,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.smap.model.IE;
 import org.smap.model.SurveyInstance;
@@ -49,7 +50,6 @@ import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.LinkageManager;
-import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SubmissionEventManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -106,7 +106,7 @@ public class SubRelationalDB extends Subscriber {
 			boolean temporaryUser,
 			String server, String device, SubscriberEvent se, String confFilePath, String formStatus,
 			String basePath, String filePath, String updateId, int ue_id, Date uploadTime,
-			String surveyNotes, String locationTrigger, String auditFilePath, ResourceBundle l, Survey survey)  {
+			String surveyNotes, String locationTrigger, String auditFilePath, ResourceBundle l, Survey survey) {
 
 		localisation = l;
 		tz = "UTC";			// Default default time zone
@@ -120,7 +120,7 @@ public class SubRelationalDB extends Subscriber {
 		formStatus = (formStatus == null) ? "complete" : formStatus;
 
 		// Open the configuration file
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 		DatabaseConnections dbc = new DatabaseConnections();
 	
 		SubmissionEventManager sem = new SubmissionEventManager();
@@ -411,22 +411,13 @@ public class SubRelationalDB extends Subscriber {
 					pstmtAddHrk = cResults.prepareStatement(sqlAddHrk);
 					pstmtAddHrk.executeUpdate();
 				}
-
-				String sql = "select prikey from " + topLevelForm.tableName 
-						+ " where _hrk is null "
-						+ "order by prikey asc";
-				pstmt = cResults.prepareStatement(sql);
 				
 				String sqlHrk = "update " + topLevelForm.tableName + " m set _hrk = "
 						+ hrkSql
-						+ " where prikey = ?;";
+						+ " where _hrk is null";
 				pstmtHrk = cResults.prepareStatement(sqlHrk);
-				ResultSet rs = pstmt.executeQuery();
-				while(rs.next()) {
-					pstmtHrk.setInt(1, rs.getInt(1));
-					log.info("Applying HRK: " + pstmtHrk.toString());
-					pstmtHrk.executeUpdate();
-				}	
+				log.info("Applying HRK: " + pstmtHrk.toString());
+				pstmtHrk.executeUpdate();	
 			}
 			
 			/*
@@ -624,6 +615,7 @@ public class SubRelationalDB extends Subscriber {
 						rawAuditString = auditData.rawAudit.toString();
 					}
 					
+					log.info("Prepare statement for table " + tableName);
 					ArrayList<ForeignKey> thisTableKeys = new ArrayList<> ();
 					pstmt = getSubmissionStatement(sd, cResults, 
 							sIdent,

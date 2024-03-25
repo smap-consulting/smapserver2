@@ -1,5 +1,9 @@
 CREATE USER ws WITH PASSWORD 'ws1234';
 
+DROP SEQUENCE IF EXISTS email_id CASCADE;
+CREATE SEQUENCE email_id START 1;
+ALTER SEQUENCE email_id OWNER TO ws;
+
 DROP SEQUENCE IF EXISTS sc_seq CASCADE;
 CREATE SEQUENCE sc_seq START 1;
 ALTER SEQUENCE sc_seq OWNER TO ws;
@@ -210,7 +214,6 @@ create TABLE organisation (
 	limits text,				-- JSON object with resource limits
 	limit_type text,			-- alltime or monthly
 	refresh_rate integer,
-	api_rate_limit integer,
 	css text,
 	owner integer default 0,				-- User that owns this organisation
 	dashboard_region text,
@@ -324,6 +327,7 @@ CREATE TABLE users (
 	temporary boolean default false,			-- If true will not show in user management page
 	imported boolean default false,				-- user was added using a bult import from a spreadsheet
 	password text,
+	basic_password text,						-- Begin migration to using basic instead of digest for authentication
 	password_set timestamp with time zone,		-- Date and time password was set
 	realm text,
 	name text,
@@ -343,7 +347,8 @@ CREATE TABLE users (
 	timezone text,
 	user_role text,
 	current_project_id integer,		-- Set to the last project the user selected
-	current_survey_id integer,		-- Set to the last survey the user selected
+	current_survey_id integer,		-- Set to the last survey the user selected - deprecate
+	current_survey_ident text,		-- Set to the last survey the user selected
 	current_task_group_id integer,	-- Set to the last task group the user selected
 	one_time_password varchar(36),	-- For password reset
 	one_time_password_expiry timestamp with time zone,		-- Time and date one time password expires
@@ -855,7 +860,8 @@ CREATE TABLE forward (
 	periodic_local_day_of_month integer,-- Original local day of the month as this cannot reliably be recreated from utc value
 	periodic_month integer,				-- Month used for yearly reports
 	periodic_local_month integer,		-- Original local month as this cannot reliably be recreated from utc value
-	r_id integer						-- report id
+	r_id integer,						-- report id
+	updated boolean						-- Set true if the notification has been changed
 	);
 ALTER TABLE forward OWNER TO ws;
 CREATE UNIQUE INDEX ForwardDest ON forward(s_id, remote_s_id, remote_host);
