@@ -10984,8 +10984,9 @@ public class GeneralUtilityMethods {
 	public static DocumentBuilderFactory getDocumentBuilderFactory() {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		try {
-			dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false);   // XXE - Disable DTDs
+			dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);  // XXE - Disable DTDs
 			dbf.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);  // Disable external DTDs
+			dbf.setXIncludeAware(false);
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error", e);
 		}
