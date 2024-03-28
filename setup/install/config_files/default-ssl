@@ -61,8 +61,6 @@ NameVirtualHost *:443
     ProxyPassReverse  /submission ajp://localhost:8009/surveyMobileAPI/submission
     ProxyPass         /xformsManifest ajp://localhost:8009/surveyMobileAPI/xformsManifest
     ProxyPassReverse  /xformsManifest ajp://localhost:8009/surveyMobileAPI/xformsManifest
-   	ProxyPass         /htmlManifest ajp://localhost:8009/surveyMobileAPI/htmlManifest
-    ProxyPassReverse  /htmlManifest ajp://localhost:8009/surveyMobileAPI/htmlManifest
     
     ProxyPass         /surveyKPI ajp://localhost:8009/surveyKPI/rest
     ProxyPassReverse  /surveyKPI ajp://localhost:8009/surveyKPI/rest
