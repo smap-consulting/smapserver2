@@ -7,19 +7,24 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
+import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.GroupSurvey;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.PasswordDetails;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.SubscriptionStatus;
@@ -889,6 +894,66 @@ public class UserManager {
 		}
 	}
 
+	public Response setPassword(Connection sd, Locale locale, ResourceBundle localisation, 
+			String ident, String serverName, PasswordDetails pwd) {
+		
+		Response response = null;
+		
+		PreparedStatement pstmt = null;
+		try {	
+			
+			/*
+			 * Update what can be updated by the user, excluding the current project id, survey id, form id and task group
+			 */
+			String pwdString = null;
+			String sql = null;
+			PasswordManager pwm  = null;
+			
+			/*
+			 * Verify that the password is strong enough
+			 */
+			pwm = new PasswordManager(sd, locale, localisation, ident, serverName);
+			pwm.checkStrength(pwd.password);
+				
+			sql = "update users set "
+					+ "password = md5(?), "
+					+ "basic_password = '{SHA}'|| encode(digest(?,'sha1'),'base64'), "
+					+ "password_set = now() "
+					+ "where "
+					+ "ident = ?";
+				
+			pwdString = ident + ":smap:" + pwd.password;
+				
+			// Delete any session keys for this user
+			GeneralUtilityMethods.deleteAccessKeys(sd, ident);
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, pwdString);
+			pstmt.setString(2, pwd.password);
+			pstmt.setString(3, ident);
+		
+			log.info("Update password: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+			// Write logs
+			log.info("userevent: " + ident + " updated password : " + ident);
+			pwm.logReset();
+			lm.writeLog(sd, -1, ident, LogManager.USER_DETAILS, localisation.getString("msg_pwd_changed"), 0, serverName);
+		
+			response = Response.ok().build();
+			
+			
+		} catch (Exception e) {
+
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+			
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+		return response;
+	}
 
 	private void insertUserGroupsProjects(Connection sd, User u, int u_id, 
 			boolean isOrgUser, 

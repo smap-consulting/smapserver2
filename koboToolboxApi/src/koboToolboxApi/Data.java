@@ -222,7 +222,7 @@ public class Data extends Application {
 	
 	/*
 	 * Get records for an individual survey in JSON format
-	 * Called from Smap application, hence has a different path to use form authentication
+	 * Called from Smap application, hence has a different so that Form based authentication can be specified
 	 */
 	@GET
 	@Produces("application/json")

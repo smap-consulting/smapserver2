@@ -43,6 +43,7 @@ import org.smap.sdal.managers.PasswordManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.GroupSurvey;
+import org.smap.sdal.model.PasswordDetails;
 import org.smap.sdal.model.User;
 
 import com.google.gson.Gson;
@@ -250,13 +251,6 @@ public class UserSvc extends Application {
 	}
 	
 	/*
-	 * Update the user's password
-	 */
-	class PasswordDetails {
-		String password;
-	}
-	
-	/*
 	 * Update the user password
 	 */
 	@POST
@@ -274,52 +268,15 @@ public class UserSvc extends Application {
 		Type type = new TypeToken<PasswordDetails>(){}.getType();		
 		PasswordDetails pwd = new Gson().fromJson(passwordDetails, type);		// The user settings
 		
-		PreparedStatement pstmt = null;
 		try {	
 			
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
 
-			/*
-			 * Update what can be updated by the user, excluding the current project id, survey id, form id and task group
-			 */
-			String pwdString = null;
-			String sql = null;
-			String ident = request.getRemoteUser();
-			PasswordManager pwm  = null;
-			
-			/*
-			 * Verify that the password is strong enough
-			 */
-			pwm = new PasswordManager(sd, locale, localisation, request.getRemoteUser(), request.getServerName());
-			pwm.checkStrength(pwd.password);
-				
-			sql = "update users set "
-					+ "password = md5(?), "
-					+ "basic_password = '{SHA}'|| encode(digest(?,'sha1'),'base64'), "
-					+ "password_set = now() "
-					+ "where "
-					+ "ident = ?";
-				
-			pwdString = ident + ":smap:" + pwd.password;
-				
-			// Delete any session keys for this user
-			GeneralUtilityMethods.deleteAccessKeys(sd, ident);
-			
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, pwdString);
-			pstmt.setString(2, pwd.password);
-			pstmt.setString(3, ident);
-		
-			log.info("Update password: " + pstmt.toString());
-			pstmt.executeUpdate();
-			
-			// Write logs
-			log.info("userevent: " + request.getRemoteUser() + " updated password : " + ident);
-			pwm.logReset();
-			lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.USER_DETAILS, localisation.getString("msg_pwd_changed"), 0, request.getServerName());
-		
+			UserManager um = new UserManager(localisation);
+			response = um.setPassword(sd, locale, localisation, request.getRemoteUser(), request.getServerName(), pwd);
+					
 			response = Response.ok().build();
 			
 			
@@ -329,8 +286,6 @@ public class UserSvc extends Application {
 			log.log(Level.SEVERE,"Error", e);
 			
 		} finally {
-			
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection(authString, sd);
 		}
