@@ -94,6 +94,7 @@ sudo a2enmod auth_form
 sudo a2enmod request
 sudo a2enmod session
 sudo a2enmod session_cookie
+sudo a2enmod session_crypto
 
 sudo mkdir /var/www/smap
 
