@@ -40,7 +40,9 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.SystemException;
 import org.smap.sdal.managers.ContactManager;
 import org.smap.sdal.managers.DataManager;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
+import org.smap.sdal.model.LogsDt;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.MailoutPersonDt;
@@ -53,6 +55,9 @@ import com.google.gson.GsonBuilder;
 
 import java.sql.Connection;
 import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -69,19 +74,18 @@ public class APIEntryPoints extends Application {
 	private static Logger log =
 			 Logger.getLogger(APIEntryPoints.class.getName());
 	
-	Authorise aMailout = null;
+	Authorise aAdminAnalyst = null;
 	Authorise aContacts = null;
 	
 	public APIEntryPoints() {
 		ArrayList<String> authMailout = new ArrayList<String> ();	
 		authMailout.add(Authorise.ADMIN);
 		authMailout.add(Authorise.ANALYST);
-		aMailout = new Authorise(authMailout, null);
+		aAdminAnalyst = new Authorise(authMailout, null);
 		
 		ArrayList<String> authContacts = new ArrayList<String> ();	
 		authContacts.add(Authorise.ADMIN);
-		aContacts = new Authorise(authContacts, null);
-		
+		aContacts = new Authorise(authContacts, null);		
 	}
 	
 	/*
@@ -174,8 +178,8 @@ public class APIEntryPoints extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aMailout.isAuthorised(sd, request.getRemoteUser());
-		aMailout.isValidMailout(sd, request.getRemoteUser(), mailoutId);
+		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isValidMailout(sd, request.getRemoteUser(), mailoutId);
 		// End authorisation
 		
 		try {
@@ -231,8 +235,8 @@ public class APIEntryPoints extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aMailout.isAuthorised(sd, request.getRemoteUser());
-		aMailout.isValidSurveyIdent(sd, request.getRemoteUser(), surveyIdent, false, true);
+		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isValidSurveyIdent(sd, request.getRemoteUser(), surveyIdent, false, true);
 		// End Authorisation
 		
 		try {
@@ -287,16 +291,16 @@ public class APIEntryPoints extends Application {
 	
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aMailout.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
 		if(mailout.id > 0) {
-			aMailout.isValidMailout(sd, request.getRemoteUser(), mailout.id);
+			aAdminAnalyst.isValidMailout(sd, request.getRemoteUser(), mailout.id);
 		}
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aMailout.isValidSurveyIdent(sd, request.getRemoteUser(), mailout.survey_ident, false, superUser);
+		aAdminAnalyst.isValidSurveyIdent(sd, request.getRemoteUser(), mailout.survey_ident, false, superUser);
 		// End Authorisation
 		
 		try {	
@@ -347,8 +351,8 @@ public class APIEntryPoints extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aMailout.isAuthorised(sd, request.getRemoteUser());
-		aMailout.isValidMailout(sd, request.getRemoteUser(), mailoutId);
+		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isValidMailout(sd, request.getRemoteUser(), mailoutId);
 		// End authorisation
 		
 		try {
@@ -432,6 +436,110 @@ public class APIEntryPoints extends Application {
 		
 	}
 
+	/*
+	 * DataTables API version 1 /log
+	 * Get log entries
+	 */
+	@GET
+	@Path("/log")
+	@Produces("application/json")
+	public Response getDataTableLogs(@Context HttpServletRequest request,
+			@QueryParam("draw") int draw,
+			@QueryParam("start") int start,
+			@QueryParam("limit") int limit,
+			@QueryParam("length") int length,
+			@QueryParam("sort") String sort,			// Column Name to sort on
+			@QueryParam("dirn") String dirn,			// Sort direction, asc || desc
+			@QueryParam("month") int month,
+			@QueryParam("year") int year,
+			@QueryParam("tz") String tz
+			) { 
+		
+		String connectionString = "Get logs";
+		Response response = null;
+		String user = request.getRemoteUser();
+		LogsDt logs = new LogsDt();
+		logs.draw = draw;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		
+		String sqlTotal = "select count(*) from log where o_id = ?";
+		PreparedStatement pstmtTotal = null;
+		
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+
+		if(dirn == null) {
+			dirn = "desc";
+		} else {
+			dirn = dirn.replace("'", "''");
+		}
+		if(sort == null) {
+			sort = "id";
+		}
+		if(dirn.equals("desc") && start == 0) {
+			start = Integer.MAX_VALUE;
+		}
+		
+		// Limit overrides length which is retained for backwards compatability
+		if(limit > 0) {
+			length = limit;
+		}
+		// Set a default limit for the client app of 10,000 records
+		if(length == 0 || length > 10000) {
+			length = 10000;
+		}
+		
+		if(tz == null || tz.equals("undefined")) {
+			tz = "UTC";
+		}
+		
+		try {
+	
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
+			
+			/*
+			 * Get total log entries
+			 */
+			pstmtTotal = sd.prepareStatement(sqlTotal);
+			pstmtTotal.setInt(1, oId);
+			rs = pstmtTotal.executeQuery();
+			if(rs.next()) {
+				logs.recordsTotal = rs.getInt(1);
+				logs.recordsFiltered = rs.getInt(1);
+			}
+			rs.close();
+				
+			LogManager lm = new LogManager();
+			if(year > 0 && month > 0) {
+				logs.data = lm.getMonthLogEntries(sd, localisation, oId, year, month, tz, true);
+			} else {
+				logs.data = lm.getLogEntries(sd, localisation, oId, dirn, start, sort, length, true);
+			}
+			
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			response = Response.ok(gson.toJson(logs)).build();
+			
+	
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+			try {if (pstmtTotal != null) {pstmtTotal.close();	}} catch (SQLException e) {	}
+					
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+		
+	}
 
 }
 
