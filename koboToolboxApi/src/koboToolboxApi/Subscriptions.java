@@ -18,16 +18,11 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
-import model.SubItemDt;
-import model.SubsDt;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -44,6 +39,9 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.ContactManager;
+import org.smap.sdal.model.SubItemDt;
+import org.smap.sdal.model.SubsDt;
 
 /*
  * Provides access to people identified by emails (subscribers)
@@ -75,8 +73,7 @@ public class Subscriptions extends Application {
 		
 		String connectionString = "API - get subscriptions";
 		Response response = null;
-		String user = request.getRemoteUser();
-		ArrayList<SubItemDt> data = new ArrayList<> ();
+		ArrayList<SubItemDt> data = null;
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -84,89 +81,14 @@ public class Subscriptions extends Application {
 		
 		tz = (tz == null) ? "UTC" : tz;
 		
-		PreparedStatement pstmt = null;
-		ResultSet rs = null;
-		
 		try {
 	
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);			
-			
-			// Get the data
-			String sql = "select id, email, unsubscribed, opted_in, opted_in_sent,"
-					+ "name, "
-					+ "to_char(timezone(?, when_subscribed), 'YYYY-MM-DD HH24:MI:SS') as when_subscribed, "
-					+ "to_char(timezone(?, when_unsubscribed), 'YYYY-MM-DD HH24:MI:SS') as when_unsubscribed, "
-					+ "to_char(timezone(?, when_requested_subscribe), 'YYYY-MM-DD HH24:MI:SS') as when_requested_subscribe "
-					+ "from people "
-					+ "where o_id = ? "
-					+ "order by email asc";
-			
-			pstmt = sd.prepareStatement(sql);
-			int paramCount = 1;
-			pstmt.setString(paramCount++, tz);
-			pstmt.setString(paramCount++, tz);
-			pstmt.setString(paramCount++, tz);
-			pstmt.setInt(paramCount++, oId);
-			
-			log.info("Get subscriptions: " + pstmt.toString());
-			rs = pstmt.executeQuery();
-				
-			while (rs.next()) {
-					
-				SubItemDt item = new SubItemDt();
-
-				item.id = rs.getInt("id");
-				item.email = GeneralUtilityMethods.getSafeText(rs.getString("email"), dt);
-				item.name = GeneralUtilityMethods.getSafeText(rs.getString("name"), dt);
-				if(item.name == null) {
-					item.name = "";
-				}
-				
-				/*
-				 * Get status
-				 */
-				String status = "";
-				String status_loc = "";
-				boolean unsubscribed = rs.getBoolean("unsubscribed");
-				boolean optedin = rs.getBoolean("opted_in");
-				item.time_changed = "";
-				if(unsubscribed) {
-					status = "unsubscribed";
-					status_loc = localisation.getString("c_unsubscribed");
-					item.time_changed = rs.getString("when_unsubscribed");
-						
-				} else if(optedin) {
-					status = "subscribed";
-					status_loc = localisation.getString("c_s2");
-					item.time_changed = rs.getString("when_subscribed");
-				} else {
-					String optedInSent = rs.getString("opted_in_sent");
-					if(optedInSent != null) {
-						status = "pending";
-						status_loc = localisation.getString("c_pending");
-						item.time_changed = rs.getString("when_requested_subscribe");
-					} else {
-						status = "new";
-						status_loc = localisation.getString("c_new");
-					}
-				}
-				if(item.time_changed != null) {
-					item.time_changed = item.time_changed.replaceAll("\\.[0-9]+", ""); // Remove milliseconds
-				} else {
-					item.time_changed = "";
-				}
-				item.status = status;
-				if(dt) {
-					item.status_loc = status_loc;
-				}
-				
-				data.add(item);
-			}
-						
+			ContactManager cm = new ContactManager(localisation);
+			data = cm.getSubscriptions(sd, request.getRemoteUser(), tz, dt);
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
 			if(dt) {
@@ -182,9 +104,6 @@ public class Subscriptions extends Application {
 			log.log(Level.SEVERE, "Exception", e);
 			response = Response.serverError().build();
 		} finally {
-			
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-			
 					
 			SDDataSource.closeConnection(connectionString, sd);
 		}

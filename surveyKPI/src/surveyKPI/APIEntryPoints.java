@@ -38,12 +38,15 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.SystemException;
+import org.smap.sdal.managers.ContactManager;
 import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.MailoutPersonDt;
 import org.smap.sdal.model.MailoutPersonTotals;
+import org.smap.sdal.model.SubItemDt;
+import org.smap.sdal.model.SubsDt;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -67,12 +70,18 @@ public class APIEntryPoints extends Application {
 			 Logger.getLogger(APIEntryPoints.class.getName());
 	
 	Authorise aMailout = null;
+	Authorise aContacts = null;
 	
 	public APIEntryPoints() {
-		ArrayList<String> authorisations = new ArrayList<String> ();	
-		authorisations.add(Authorise.ADMIN);
-		authorisations.add(Authorise.ANALYST);
-		aMailout = new Authorise(authorisations, null);
+		ArrayList<String> authMailout = new ArrayList<String> ();	
+		authMailout.add(Authorise.ADMIN);
+		authMailout.add(Authorise.ANALYST);
+		aMailout = new Authorise(authMailout, null);
+		
+		ArrayList<String> authContacts = new ArrayList<String> ();	
+		authContacts.add(Authorise.ADMIN);
+		aContacts = new Authorise(authContacts, null);
+		
 	}
 	
 	/*
@@ -370,6 +379,59 @@ public class APIEntryPoints extends Application {
 		return response;
 		
 	}
+	
+	/*
+	 * Get subscription entries
+	 */
+	@GET
+	@Path("/subscriptions")
+	@Produces("application/json")
+	public Response getSubscriptions(@Context HttpServletRequest request,
+			@QueryParam("dt") boolean dt,
+			@QueryParam("tz") String tz					// Timezone
+			) { 
+		
+		String connectionString = "API - get subscriptions";
+		Response response = null;
+		ArrayList<SubItemDt> data = null;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aContacts.isAuthorised(sd, request.getRemoteUser());
+		
+		tz = (tz == null) ? "UTC" : tz;
+		
+		try {
+	
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			ContactManager cm = new ContactManager(localisation);
+			data = cm.getSubscriptions(sd, request.getRemoteUser(), tz, dt);
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			
+			if(dt) {
+				SubsDt subs = new SubsDt();
+				subs.data = data;
+				response = Response.ok(gson.toJson(subs)).build();
+			} else {
+				response = Response.ok(gson.toJson(data)).build();
+			}
+			
+	
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {
+					
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+		
+	}
+
 
 }
 
