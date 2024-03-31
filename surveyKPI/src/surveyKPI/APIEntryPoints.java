@@ -33,10 +33,25 @@ import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.SystemException;
 import org.smap.sdal.managers.DataManager;
+import org.smap.sdal.managers.MailoutManager;
+import org.smap.sdal.model.Mailout;
+import org.smap.sdal.model.MailoutPerson;
+import org.smap.sdal.model.MailoutPersonDt;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import java.sql.Connection;
 import java.sql.Date;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /*
  * Allow the GUI to get data from API functions while having a different entry point that can 
@@ -45,8 +60,16 @@ import java.util.ArrayList;
 @Path("/api")
 public class APIEntryPoints extends Application {
 
+	private static Logger log =
+			 Logger.getLogger(APIEntryPoints.class.getName());
+	
+	Authorise aMailout = null;
+	
 	public APIEntryPoints() {
-
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.ANALYST);
+		aMailout = new Authorise(authorisations, null);
 	}
 	
 	/*
@@ -121,6 +144,116 @@ public class APIEntryPoints extends Application {
 		
 		return Response.status(Status.OK).build();
 	}
+	
+	/*
+	 * Get a list of emails in a mailout
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/mailout/{mailoutId}/emails")
+	public Response getSubscriptions(@Context HttpServletRequest request,
+			@PathParam("mailoutId") int mailoutId,
+			@QueryParam("dt") boolean dt
+			) { 
+		
+		String connectionString = "API - get emails in mailout";
+		Response response = null;
+		ArrayList<MailoutPerson> data = new ArrayList<> ();
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aMailout.isAuthorised(sd, request.getRemoteUser());
+		aMailout.isValidMailout(sd, request.getRemoteUser(), mailoutId);
+		// End authorisation
+		
+		try {
+	
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			MailoutManager mm = new MailoutManager(localisation);
+			data = mm.getMailoutPeople(sd, mailoutId, oId, dt);				
+			
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			
+			if(dt) {
+				MailoutPersonDt mpDt = new MailoutPersonDt();
+				mpDt.data = data;
+				response = Response.ok(gson.toJson(mpDt)).build();
+			} else {
+				response = Response.ok(gson.toJson(data)).build();
+			}
+			
+	
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error: ", e);
+			String msg = e.getMessage();
+			if(msg == null) {
+				msg = "System Error";
+			}
+		    throw new SystemException(msg);
+		} finally {
+					
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+		
+	}
+	
+	/*
+	 * Get a list of mailouts
+	 */
+	@GET
+	@Path("/mailout/{survey}")
+	@Produces("application/json")
+	public Response getMailouts(@Context HttpServletRequest request,
+			@PathParam("survey") String surveyIdent,
+			@QueryParam("links") boolean links
+			) { 
+
+		Response response = null;
+		String connectionString = "surveyKPI-Mailout List";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aMailout.isAuthorised(sd, request.getRemoteUser());
+		aMailout.isValidSurveyIdent(sd, request.getRemoteUser(), surveyIdent, false, true);
+		// End Authorisation
+		
+		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+						
+			MailoutManager mm = new MailoutManager(localisation);
+				
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			ArrayList<Mailout> mailouts = mm.getMailouts(sd, surveyIdent, links, urlprefix); 
+				
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(mailouts);
+			response = Response.ok(resp).build();
+				
+		} catch (Exception e) {
+			
+			log.log(Level.SEVERE,"Error: ", e);
+			String msg = e.getMessage();
+			if(msg == null) {
+				msg = "System Error";
+			}
+		    throw new SystemException(msg);
+		    
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+
 
 }
 

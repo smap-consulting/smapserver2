@@ -28,10 +28,10 @@ if [ $subscribers_set -eq 0 ]; then
     SUBSCRIBER=yes; export SUBSCRIBER;
 fi
 
-# Update session password - generate a random 20 character alphanumeric string
+# Update session password - generate a random 10 character alphanumeric string
 sed '/SESSPASS/d' /etc/environment > /etc/environment.temp
 mv /etc/environment.temp /etc/environment
-echo "export SESSPASS=\"`cat /dev/random | tr -dc '[:alnum:]' | head -c 20`\"" >> /etc/environment
+echo "export SESSPASS=\"`cat /dev/random | tr -dc '[:alnum:]' | head -c 10`\"" >> /etc/environment
 
 # Get location of database
 if [ $DBHOST = "127.0.0.1" ]
