@@ -2,7 +2,9 @@ package surveyKPI;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 
 /*
 This file is part of SMAP.
@@ -41,6 +43,7 @@ import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.MailoutPersonDt;
+import org.smap.sdal.model.MailoutPersonTotals;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -254,6 +257,119 @@ public class APIEntryPoints extends Application {
 		return response;
 	}
 
+	/*
+	 * Add or update a mailout campaign
+	 */
+	@POST
+	@Path("/mailout")
+	public Response addUpdateMailout(@Context HttpServletRequest request,
+			@FormParam("mailout") String mailoutString) { 
+		
+		Response response = null;
+		String connectionString = "api/v1/mailout - add mailout";
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		Mailout mailout = null;
+		try {
+			mailout = gson.fromJson(mailoutString, Mailout.class);
+		} catch (Exception e) {
+			throw new SystemException("JSON Error: " + e.getMessage());
+		}
+	
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aMailout.isAuthorised(sd, request.getRemoteUser());
+		if(mailout.id > 0) {
+			aMailout.isValidMailout(sd, request.getRemoteUser(), mailout.id);
+		}
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		aMailout.isValidSurveyIdent(sd, request.getRemoteUser(), mailout.survey_ident, false, superUser);
+		// End Authorisation
+		
+		try {	
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			MailoutManager mm = new MailoutManager(localisation);
+ 
+			if(mailout.id <= 0) {
+				mailout.id = mm.addMailout(sd, mailout);
+			} else {
+				mm.updateMailout(sd, mailout);
+			}
+			
+			response = Response.ok(gson.toJson(mailout)).build();
+			
+		} catch(ApplicationException e) {
+			throw new SystemException(e.getMessage());
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error: ", e);
+			String msg = e.getMessage();
+			if(msg == null) {
+				msg = "System Error";
+			}
+		    throw new SystemException(msg);
+		    
+		} finally {			
+			SDDataSource.closeConnection(connectionString, sd);			
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Get subscription totals
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/mailout/{mailoutId}/emails/totals")
+	public Response getSubscriptionTotals(@Context HttpServletRequest request,
+			@PathParam("mailoutId") int mailoutId
+			) { 
+		
+		String connectionString = "API - get emails in mailout";
+		Response response = null;
+		MailoutPersonTotals totals = null;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aMailout.isAuthorised(sd, request.getRemoteUser());
+		aMailout.isValidMailout(sd, request.getRemoteUser(), mailoutId);
+		// End authorisation
+		
+		try {
+	
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
+			
+			MailoutManager mm = new MailoutManager(localisation);
+			totals = mm.getMailoutPeopleTotals(sd,mailoutId);		
+			
+			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			
+			response = Response.ok(gson.toJson(totals)).build();			
+	
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error: ", e);
+			String msg = e.getMessage();
+			if(msg == null) {
+				msg = "System Error";
+			}
+		    throw new SystemException(msg);
+		} finally {
+					
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+		
+	}
 
 }
 
