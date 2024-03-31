@@ -42,6 +42,7 @@ import org.smap.sdal.managers.ContactManager;
 import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
+import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.LogsDt;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutPerson;
@@ -539,6 +540,25 @@ public class APIEntryPoints extends Application {
 		
 		return response;
 		
+	}
+	
+	/*
+	 * Creates a new task
+	 */
+	@POST
+	@Path("/tasks")
+	@Produces("application/json")
+	public Response createTask(@Context HttpServletRequest request,
+			@QueryParam("tz") String tz,					// Timezone
+			@QueryParam("preserveInitialData") boolean preserveInitialData,		// Set true when the initial data for a task should not be updated
+			@FormParam("task") String task
+			) throws ApplicationException, Exception { 
+		
+		/*
+		 * Localisation and timezone will be determined in the createTask function
+		 */
+		TaskManager tm = new TaskManager(null, null);
+		return tm.createTask(request, task, preserveInitialData);
 	}
 
 }

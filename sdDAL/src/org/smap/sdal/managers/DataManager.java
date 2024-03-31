@@ -427,7 +427,6 @@ public class DataManager {
 	}
 	
 	/*
-	 * API version 1 /data
 	 * Get records for an individual survey in JSON format
 	 */
 	public void getDataRecords(HttpServletRequest request,
@@ -497,7 +496,7 @@ public class DataManager {
 				fId = GeneralUtilityMethods.getFormId(sd, sId, formName);
 			}
 		} catch (SQLException e1) {
-			e1.printStackTrace();
+			log.log(Level.SEVERE, e1.getMessage(), e1);
 		}
 		
 		String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);

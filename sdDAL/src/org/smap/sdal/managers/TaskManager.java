@@ -12,16 +12,21 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.mail.internet.InternetAddress;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
+import org.smap.sdal.Utilities.ResultsDataSource;
+import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.AssignFromSurvey;
@@ -123,6 +128,8 @@ public class TaskManager {
 			STATUS_T_BLOCKED
 			};
 	
+	Authorise a = null;
+	
 	public class TaskInstanceData {
 		public int prikey = 0;						// data from submission
 		public String ident = null;					// Identifier, from results, of person or role to be assigned
@@ -139,6 +146,14 @@ public class TaskManager {
 			tz = "UTC";
 		}
 		this.tz = tz;
+		
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.MANAGE);
+		authorisations.add(Authorise.MANAGE_TASKS);
+		a = new Authorise(authorisations, null);
 	}
 	
 	/*
@@ -1472,11 +1487,135 @@ public class TaskManager {
 		return tid;
 	}
 
-
 	/*
-	 * Create a new task
+	 * Create a task
+	 * Top level function called by API and Gui
 	 */
-	public CreateTaskResp writeTask(
+	public Response createTask(HttpServletRequest request, 
+			String task,
+			boolean preserveInitialData) throws SQLException {
+		
+		Response response = null;
+		String connectionString = "api - Tasks - add new task";
+		log.info("New task: " + task);
+		
+		if(task == null) {
+			response = Response.serverError().entity("No task has been provided").build();
+			return response;
+		}
+		
+		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		TaskProperties tp = gson.fromJson(task, TaskProperties.class);	
+		
+		if(tp == null) {
+			response = Response.serverError().entity("Error reading task form data: " + task).build();
+			return response;
+		}
+		
+		// Authorisation - Access
+		Connection cResults = null;
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+			
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		if(tp.form_id > 0) {
+			a.isValidSurvey(sd, request.getRemoteUser(), tp.form_id, false, superUser);
+		} else {
+			a.isValidSurveyIdent(sd, request.getRemoteUser(), tp.survey_ident, false, superUser);
+			tp.form_id = GeneralUtilityMethods.getSurveyId(sd, tp.survey_ident);
+		}
+		
+		if(tp.assignee_ident != null) {
+			tp.assignee = GeneralUtilityMethods.getUserId(sd, tp.assignee_ident);
+			a.isValidUser(sd, request.getRemoteUser(), tp.assignee);
+		}
+		
+		if(tp.tg_id > 0) {
+			a.isValidTaskGroup(sd, request.getRemoteUser(), tp.tg_id);
+		}
+		// End Authorisation
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			TaskManager tm = new TaskManager(localisation, tz);
+			SurveyManager sm = new SurveyManager(localisation, tz);
+			if(tp.tg_id <= 0) {
+				
+				Survey s = sm.getById(sd, cResults, request.getRemoteUser(), false, tp.form_id, 
+						false, null, null, false, false, 
+						false, false, false, null, false, false, 
+						superUser, 	// Super user
+						null, 		// Geom Format
+						false, 		// Referenced Surveys
+						false,		// Launched surveys
+						false		// Don't merge set value into default values
+					);
+				
+				if(s == null) {
+					throw new ApplicationException(localisation.getString("mf_snfpriv"));
+				}
+				// Create a task group based on the survey
+				tp.tg_id = tm.createTaskGroup(sd, s.surveyData.displayName, 
+						s.surveyData.p_id,
+						null,	// address columns
+						null,	// setting
+						0,	// source survey id
+						0,	// Target survey id
+						0,	// Download distance
+						tp.complete_all,
+						tp.assign_auto,
+						true		// Use an existing task group of the same name
+						);	
+			}
+			
+			tp.survey_ident = GeneralUtilityMethods.getSurveyIdent(sd, tp.form_id);
+			
+			if(tz == null) {
+				tz = "UTC";	// Set default for timezone
+			}
+			
+			cResults = ResultsDataSource.getConnection(connectionString);
+			
+			TaskFeature tf = new TaskFeature();
+			tf.properties = (TaskProperties) tp;
+			
+			TaskServerDefn tsd = tm.convertTaskFeature(tf);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			String urlprefix = request.getScheme() + "://" + request.getServerName();
+			CreateTaskResp resp = tm.writeTask(sd, cResults, tp.tg_id, tsd, request.getServerName(), 
+					false, 
+					oId, 
+					true, 
+					request.getRemoteUser(),
+					false,
+					urlprefix,
+					preserveInitialData);
+			
+			response = Response.ok(gson.toJson(resp)).build();
+		
+		} catch (Exception e) {
+			log.log(Level.SEVERE,e.getMessage(), e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+	
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+			
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Write a task to the database
+	 */
+	private CreateTaskResp writeTask(
 			Connection sd, 
 			Connection cResults,
 			int tgId,
