@@ -177,8 +177,6 @@ public class Login extends Application {
 
 			UserManager um = new UserManager(localisation);
 			response = um.setPassword(sd, locale, localisation, request.getRemoteUser(), request.getServerName(), pwd);
-					
-			response = Response.ok().build();
 			
 			
 		} catch (Exception e) {

@@ -273,16 +273,12 @@ then
 
 fi
 
-# Version 23.11
-if [ $version -lt "2401" ]; then
-	sudo a2enmod auth_form
-	sudo a2enmod request
-	sudo a2enmod session
-	sudo a2enmod session_cookie
-fi
-
 # Version 24.04
 if [ $version -lt "2405" ]; then
+	sudo a2enmod session
+	sudo a2enmod request
+	sudo a2enmod auth_form
+	sudo a2enmod session_cookie
 	sudo a2enmod session_crypto
 fi
 
