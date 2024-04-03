@@ -1,4 +1,4 @@
-package taskModel;
+package org.smap.sdal.model;
 
 public class FieldTaskSettings {
 	public boolean ft_delete_submitted;	// deprecated

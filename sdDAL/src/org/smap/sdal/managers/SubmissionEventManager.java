@@ -234,7 +234,7 @@ public class SubmissionEventManager {
 					LinkageManager linkMgr = new LinkageManager(localisation);
 					linkMgr.writeItems(sd, oId, submittingUser, instanceId, linkageItems);
 				} else {
-					log.info("----- No linkage items to apply");
+					//log.info("----- No linkage items to apply");
 				}
 				
 			}

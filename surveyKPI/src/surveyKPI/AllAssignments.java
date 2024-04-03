@@ -20,9 +20,12 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -43,6 +46,7 @@ import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.AssignmentsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -110,6 +114,36 @@ public class AllAssignments extends Application {
 		a = new Authorise(authorisations, null);		
 	}
 
+	/*
+	 * Get assignments for user authenticated with credentials
+	 * This is an alternate entry point for access from the GUI as the authentication
+	 * is going to be different than the authentication for fieldTask access
+	 */
+	@GET
+	@Path("/mine")
+	@Produces("application/json")
+	public Response getTasksCredentials(@Context HttpServletRequest request,
+			@QueryParam("noprojects") boolean noProjects, @QueryParam("orgs") boolean getOrgs,
+			@QueryParam("linked") boolean getLinkedRefDefns, @QueryParam("manifests") boolean getManifests)
+			throws SQLException {
+		AssignmentsManager am = new AssignmentsManager();
+		return am.getTasks(request, request.getRemoteUser(), noProjects, getOrgs, getLinkedRefDefns, getManifests);
+	}
+	
+	/*
+	 * Reject assignments for user authenticated with credentials
+	 */
+	@POST
+	@Path("/mine/update_status")
+	@Produces("application/json")
+	public Response rejectTaskCredentials(@FormParam("assignment") String assignment,
+			@Context HttpServletRequest request) {
+
+		AssignmentsManager am = new AssignmentsManager();
+		return am.updateStatusToRejected(request, assignment);
+	}
+
+	
 	/*
 	 * Add a task for every survey
 	 * Add a task for the array of locations passed in the input parameters
