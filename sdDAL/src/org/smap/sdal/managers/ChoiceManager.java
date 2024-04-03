@@ -55,7 +55,7 @@ public class ChoiceManager {
 		boolean checkLabels = true;
 		if(q != null && q.appearance != null && q.appearance.contains("pdfvalue")) {
 			
-			String [] appValues = q.appearance.split(" ");	// Make sure the apperance value is exactly pdfvalue
+			String [] appValues = q.appearance.split(" ");	// Make sure the appearance value is exactly pdfvalue
 			for(int i = 0; i < appValues.length; i++) {
 				String app = appValues[i].trim().toLowerCase();
 				if(app.equals("pdfvalue")) {
