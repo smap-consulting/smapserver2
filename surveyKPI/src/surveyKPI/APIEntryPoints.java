@@ -561,5 +561,25 @@ public class APIEntryPoints extends Application {
 		return tm.createTask(request, task, preserveInitialData);
 	}
 
+	/*
+	 * Get similar records for an individual survey in JSON format
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/data/similar/{sId}/{select}")
+	public Response getSimilarDataRecords(@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@PathParam("select") String select,			// comma separated list of qname::function
+														//  where function is none || lower
+			@QueryParam("start") int start,
+			@QueryParam("limit") int limit,
+			@QueryParam("mgmt") boolean mgmt,
+			@QueryParam("form") int fId,				// Form id (optional only specify for a child form)
+			@QueryParam("format") String format			// dt for datatables otherwise assume kobo
+			) { 
+
+		DataManager dm = new DataManager(null, null);
+		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit);
+	}
 }
 
