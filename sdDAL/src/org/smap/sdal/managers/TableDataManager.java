@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.ResourceBundle;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
-import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.QueryGenerator;
 import org.smap.sdal.constants.SmapQuestionTypes;
@@ -323,10 +322,10 @@ public class TableDataManager {
 			// Set parameters
 			int paramCount = 1;
 
-			// Parameters in select clause
+			// Parameters in select clause 
 			paramCount = GeneralUtilityMethods.addSqlParams(pstmt, paramCount, params);
 			
-			// Add parameters in table column selections
+			// Add parameters in table column selections - These might be for server calculates
 			if (columnSqlFrags.size() > 0) {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, columnSqlFrags, paramCount, tz);
 			}
@@ -437,8 +436,6 @@ public class TableDataManager {
 
 				} else {
 
-					// String name = rsMetaData.getColumnName(i);
-					// name = c.humanName;
 					name = c.question_name;
 
 					if (c.type != null && c.type.equals("decimal")) {
@@ -749,9 +746,7 @@ public class TableDataManager {
 		ArrayList<JSONObject> auditRecords = null;
 		JSONObject jr = null;
 		JSONObject jp = null;
-		JSONObject jf = null;
 		JSONObject jGeom = null;
-		String id = null;
 		
 		if (rs.next()) {
 
@@ -769,8 +764,7 @@ public class TableDataManager {
 					String columnName = GeneralUtilityMethods.getColumnName(sd, sId, question);	
 					String value = "";
 					if(columnName != null) {
-						value = rs.getString(columnName);		// TODO need to get column name	
-
+						value = rs.getString(columnName);
 					
 						AuditItem ai = auditData.get(question);
 						
