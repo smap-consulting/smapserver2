@@ -8983,7 +8983,7 @@ public class GeneralUtilityMethods {
 			String updateId) {
 		
 		StringBuffer url = new StringBuffer(urlprefix);		
-		url.append("/webForm/instance/").append(surveyIdent);
+		url.append("/app/myWork/webForm/instance/").append(surveyIdent);
 		
 		if(initial_data_source != null && initial_data_source.equals("survey")) {
 			url.append("/").append(updateId); 
