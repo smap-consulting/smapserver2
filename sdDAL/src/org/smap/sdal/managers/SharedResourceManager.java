@@ -9,13 +9,19 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.fileupload.FileItem;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
+import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.Message;
 import org.smap.sdal.model.SharedHistoryItem;
 
@@ -53,6 +59,7 @@ public class SharedResourceManager {
 	
 	public static long MAX_FILE_SIZE = 25000000;	// 25 Million Bytes
 	
+	Authorise aEnum = new Authorise(null, Authorise.ENUM);
 	ResourceBundle localisation;
 	String tz;
 	
@@ -496,6 +503,68 @@ public class SharedResourceManager {
 	
 		return items;
 	
+	}
+	
+	public Response getSurveyFile(HttpServletRequest request, 
+			HttpServletResponse response,
+			String filename, int sId, 
+			boolean thumbs,
+			boolean linked) {
+		Response r = null;
+		String connectionString = "Get Survey File";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		aEnum.isAuthorised(sd, request.getRemoteUser());
+		aEnum.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation 
+		
+		try {
+			
+			ExternalFileManager efm = new ExternalFileManager(null);
+			String basepath = GeneralUtilityMethods.getBasePath(request);
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			
+			String filepath = null;
+			if(linked) {
+				int idx = filename.indexOf(".csv");
+				String baseFileName = filename;
+				if(idx >= 0) {
+					baseFileName = filename.substring(0, idx);		// External file management routines assume no extension
+				}
+				String linkedSurveyIdent = baseFileName.substring("linked_".length());
+				CustomUserReference cur = GeneralUtilityMethods.hasCustomUserReferenceData(sd, linkedSurveyIdent);
+				filepath = efm.getLinkedPhysicalFilePath(sd, 
+						efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent, request.getRemoteUser(), cur.needCustomFile()), baseFileName)) 
+						+ ".csv";
+				log.info("%%%%%: Referencing: " + filepath);
+			} else {
+				if(thumbs) {
+					filepath = basepath + "/media/" + sIdent+ "/thumbs/" + filename;
+				} else {
+					filepath = basepath + "/media/" + sIdent+ "/" + filename;
+				}
+			}
+			
+			log.info("File path: " + filepath);
+			FileManager fm = new FileManager();
+			fm.getFile(response, filepath, filename);
+			
+			r = Response.ok("").build();
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Error getting file", e);
+			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
+		} finally {	
+			SDDataSource.closeConnection(connectionString, sd);	
+		}
+		
+		return r;
 	}
 }
 

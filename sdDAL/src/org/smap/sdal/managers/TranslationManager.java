@@ -229,7 +229,7 @@ public class TranslationManager {
 	}
 	
 	/*
-	 * Get the manifest entries for csv files used by pulldata functions (required by enketo)
+	 * Get the manifest entries for csv files used by pulldata functions (required by webforms)
 	 */
 	public List<ManifestValue> getPulldataManifests(Connection sd, 
 			int surveyId,

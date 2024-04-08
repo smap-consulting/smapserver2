@@ -141,6 +141,12 @@ public class FormsManifest {
 			List<ManifestValue> manifestList = translationMgr.
 					getManifestBySurvey(sd, request.getRemoteUser(), survey.surveyData.id, basepath, key);
 
+			/*
+			 * Device access to URLs is authenticated using Basic authentication
+			 * Hence all URLs must point to an end point that does that
+			 */
+			setUrlsForDevice(manifestList);
+			
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, survey.surveyData.id);
 			for( ManifestValue m : manifestList) {
 
@@ -193,4 +199,11 @@ public class FormsManifest {
 		return responseStr.toString();
 	}
 
+	private void setUrlsForDevice(List<ManifestValue> manifestList) {
+		for(ManifestValue mv : manifestList) {
+			if(mv.url != null) {
+				mv.url = mv.url.replace("/surveyKPI/file/", "/resource/");
+			}
+		}
+	}
 }
