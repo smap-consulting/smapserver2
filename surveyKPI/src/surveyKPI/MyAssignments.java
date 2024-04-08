@@ -74,11 +74,14 @@ public class MyAssignments extends Application {
 	@Produces("application/json")
 
 	public Response getTasksCredentials(@Context HttpServletRequest request,
-			@QueryParam("noprojects") boolean noProjects, @QueryParam("orgs") boolean getOrgs,
-			@QueryParam("linked") boolean getLinkedRefDefns, @QueryParam("manifests") boolean getManifests)
+			@QueryParam("noprojects") boolean noProjects, 
+			@QueryParam("orgs") boolean getOrgs,
+			@QueryParam("linked") boolean getLinkedRefDefns, 
+			@QueryParam("manifests") boolean getManifests)
 			throws SQLException {
 		AssignmentsManager am = new AssignmentsManager();
-		return am.getTasks(request, request.getRemoteUser(), noProjects, getOrgs, getLinkedRefDefns, getManifests);
+		return am.getTasks(request, request.getRemoteUser(), noProjects, getOrgs, 
+				getLinkedRefDefns, getManifests, true);
 	}
 
 	/*
@@ -110,7 +113,7 @@ public class MyAssignments extends Application {
 			throw new JsonAuthorisationException();
 		}
 		AssignmentsManager am = new AssignmentsManager();
-		return am.getTasks(request, user, noProjects, getOrgs, getLinkedRefDefns, getManifests);
+		return am.getTasks(request, user, noProjects, getOrgs, getLinkedRefDefns, getManifests, false);
 	}
 
 	/*

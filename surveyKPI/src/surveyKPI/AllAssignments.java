@@ -127,7 +127,8 @@ public class AllAssignments extends Application {
 			@QueryParam("linked") boolean getLinkedRefDefns, @QueryParam("manifests") boolean getManifests)
 			throws SQLException {
 		AssignmentsManager am = new AssignmentsManager();
-		return am.getTasks(request, request.getRemoteUser(), noProjects, getOrgs, getLinkedRefDefns, getManifests);
+		return am.getTasks(request, request.getRemoteUser(), noProjects, getOrgs, getLinkedRefDefns, 
+				getManifests, false);
 	}
 	
 	/*

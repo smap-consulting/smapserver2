@@ -81,7 +81,9 @@ public class AssignmentsManager {
 	 * Return the list of tasks allocated to the requesting user
 	 */
 	public Response getTasks(HttpServletRequest request, String userIdent, boolean noProjects, boolean getOrgs,
-			boolean getLinkedRefDefns, boolean getManifests) throws SQLException {
+			boolean getLinkedRefDefns, 
+			boolean getManifests,
+			boolean forDevice) throws SQLException {
 
 		Response response = null;
 
@@ -392,12 +394,12 @@ public class AssignmentsManager {
 				if (getManifests) {
 					// Get all manifests
 					manifestList = translationMgr.getManifestBySurvey(sd, request.getRemoteUser(), survey.surveyData.id,
-							basepath, survey.surveyData.ident);
+							basepath, survey.surveyData.ident, forDevice);
 					hasManifest = manifestList.size() > 0;
 				} else {
 					// Get linked manifests only
 					manifestList = translationMgr.getSurveyManifests(sd, survey.surveyData.id, survey.surveyData.ident,
-							null, 0, true);
+							null, 0, true, forDevice);
 					hasManifest = translationMgr.hasManifest(sd, request.getRemoteUser(), survey.surveyData.id);
 				}
 

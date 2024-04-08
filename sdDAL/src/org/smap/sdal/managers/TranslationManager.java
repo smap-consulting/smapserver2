@@ -62,7 +62,8 @@ public class TranslationManager {
 			String user, 
 			int surveyId,
 			String basePath,
-			String surveyIdent
+			String surveyIdent,
+			boolean forDevice
 			)	throws SQLException {
 		
 		HashMap<String, String> files = new HashMap<String, String> ();
@@ -100,7 +101,7 @@ public class TranslationManager {
 					// Get file name from value (Just for legacy, new media should be stored as the file name only)
 					int idx = m.value.lastIndexOf('/');	
 					m.fileName = m.value.substring(idx + 1);					
-					UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, basePath, oId, surveyId);		// Url will be null if file does not exist
+					UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, basePath, oId, surveyId, forDevice);		// Url will be null if file does not exist
 					
 					// Make sure we have not already added this file (Happens with multiple languages referencing the same file)
 					if(files.get(m.fileName) == null) {
@@ -110,7 +111,8 @@ public class TranslationManager {
 				}
 			} 
 			
-			List<ManifestValue> surveyManifests = getSurveyManifests(sd, surveyId, surveyIdent, basePath, oId, false);
+			List<ManifestValue> surveyManifests = getSurveyManifests(sd, surveyId, surveyIdent, basePath, 
+					oId, false, forDevice);
 			manifests.addAll(surveyManifests);
 			
 			/*
@@ -133,7 +135,7 @@ public class TranslationManager {
 					// Get file name from value (Just for legacy, new media should be stored as the file name only)
 					int idx = m.value.lastIndexOf('/');	
 					m.fileName = m.value.substring(idx + 1);					
-					UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, basePath, oId, surveyId);		// Url will be null if file does not exist
+					UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, basePath, oId, surveyId, forDevice);		// Url will be null if file does not exist
 					
 					// Make sure we have not already added this file (Happens with multiple languages referencing the same file)
 					if(files.get(m.fileName) == null) {
@@ -164,7 +166,8 @@ public class TranslationManager {
 			String surveyIdent,
 			String basePath,
 			int oId,
-			boolean linkedOnly
+			boolean linkedOnly,
+			boolean forDevice
 			)	throws SQLException {
 		
 		ArrayList<ManifestValue> manifests = new ArrayList<ManifestValue>();	// Results of request
@@ -206,13 +209,14 @@ public class TranslationManager {
 					if(m.fileName.endsWith(".csv") || m.fileName.endsWith(".zip")) {
 						if(!linkedOnly) {
 							m.type = "csv";
-							UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, basePath, oId, surveyId);
+							UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, basePath, oId, surveyId, forDevice);
 							manifests.add(m);
 						}
 					} else {
+						String urlBase = forDevice ? "/resource/" : "/surveyKPI/file/";
 						m.type = "linked";
 						m.linkedSurveyIdent = m.fileName.substring("linked_".length());
-						m.url = "/surveyKPI/file/" + m.fileName + ".csv/survey/" + surveyId + "?linked=true";
+						m.url = urlBase + m.fileName + ".csv/survey/" + surveyId + "?linked=true";
 						manifests.add(m);
 					}				
 				}
@@ -233,7 +237,8 @@ public class TranslationManager {
 	 */
 	public List<ManifestValue> getPulldataManifests(Connection sd, 
 			int surveyId,
-			HttpServletRequest request
+			HttpServletRequest request,
+			boolean forDevice
 			)	throws SQLException {
 		
 		
@@ -288,10 +293,9 @@ public class TranslationManager {
 						String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, surveyId);
 						if(m.type.equals("csv")) {
 							int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, surveyId);
-							UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, GeneralUtilityMethods.getBasePath(request), oId, surveyId);
+							UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, GeneralUtilityMethods.getBasePath(request), oId, surveyId, forDevice);
 						} else {
-							// TODO location depends on user
-							//m.url = "/surveyKPI/file/" + m.fileName + ".csv/survey/" + surveyId + "?linked=true";
+							// location depends on user
 						}
 						
 						if(m.fileName.equals("linked_self")) {

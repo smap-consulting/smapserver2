@@ -38,7 +38,7 @@ import org.smap.sdal.managers.SharedResourceManager;
 /*
  * Login functions
  */
-@Path("/resource/{resourcename}")
+@Path("/resource/{filename}")
 public class Resource extends Application {
 
 	Authorise a = new Authorise(null, Authorise.ENUM);

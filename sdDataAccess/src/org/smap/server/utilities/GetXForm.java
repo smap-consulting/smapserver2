@@ -267,10 +267,10 @@ public class GetXForm {
 			}
 		}
 
-		// Add pulldata instances as required by enketo
+		// Add pulldata instances as required by webForms
 		if (isWebForms) {
 			TranslationManager tm = new TranslationManager();
-			List<ManifestValue> manifests = tm.getPulldataManifests(sd, template.getSurvey().getId(), request);
+			List<ManifestValue> manifests = tm.getPulldataManifests(sd, template.getSurvey().getId(), request, false);
 			for (int i = 0; i < manifests.size(); i++) {
 				ManifestValue mv = manifests.get(i);
 				if (mv.filePath != null || (mv.type != null && mv.type.equals("linked"))) {

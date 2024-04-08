@@ -564,7 +564,8 @@ public class WebForm extends Application {
 				orgId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
 				accessKey = GeneralUtilityMethods.getNewAccessKey(sd, userIdent, isTemporaryUser);
 				
-				manifestList = translationMgr.getManifestBySurvey(sd, userIdent, survey.surveyData.id, basePath, formIdent);
+				manifestList = translationMgr.getManifestBySurvey(sd, userIdent, survey.surveyData.id, basePath, 
+						formIdent, false);
 				serverData = sm.getServer(sd, localisation);
 				
 				// Get the organisation specific options
