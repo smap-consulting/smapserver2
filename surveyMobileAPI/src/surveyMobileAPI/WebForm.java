@@ -855,7 +855,6 @@ public class WebForm extends Application {
 		output.append("window.smapConfig.username='").append(user).append("';");
 		
 		output.append("window.smapConfig.myWork=" + (myWork ? "true" : "false") + ";");
-		output.append("registerForServiceWorkerMessages();");
 		output.append("</script>");
 		output.append("</head>\n");
 

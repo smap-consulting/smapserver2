@@ -36,13 +36,16 @@ import javax.ws.rs.core.Response.Status;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.SystemException;
 import org.smap.sdal.managers.ContactManager;
 import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
+import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.TaskManager;
+import org.smap.sdal.model.DataItemChangeEvent;
 import org.smap.sdal.model.LogsDt;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutPerson;
@@ -580,6 +583,62 @@ public class APIEntryPoints extends Application {
 
 		DataManager dm = new DataManager(null, null);
 		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit, false);
+	}
+	
+	/*
+	 * Get changes to a record
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/data/changes/{sId}/{key}")
+	public Response getRecordChanges(@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@PathParam("key") String key,		
+			@QueryParam("tz") String tz,					// Timezone
+			@QueryParam("geojson") String geojson		// if set to yes then format as geoJson
+			) throws ApplicationException, Exception { 
+		
+		Response response = null;
+		String connectionString = "koboToolboxApi - get data changes";
+		
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.VIEW_OWN_DATA);
+		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.MANAGE);
+		Authorise a = new Authorise(authorisations, null);
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+			
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
+		try {			
+			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			String thread = GeneralUtilityMethods.getThread(cResults, tableName, key);
+			RecordEventManager rem = new RecordEventManager();
+			ArrayList<DataItemChangeEvent> changeEvents = rem.getChangeEvents(sd, tz, tableName, thread);
+			
+			response = Response.ok(gson.toJson(changeEvents)).build();
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, "Exception", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
+		}
+		
+		return response;
+		
 	}
 }
 
