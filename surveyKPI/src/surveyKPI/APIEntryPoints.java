@@ -157,7 +157,7 @@ public class APIEntryPoints extends Application {
 				parkey, hrk, format, include_bad, include_completed, audit_set, merge, geojson, geomQuestion,
 				tz, incLinks, 
 				filter, dd_filter, prikey, dd_hrk, dateName, startDate, endDate, getSettings, 
-				instanceId, includeMeta);
+				instanceId, includeMeta, false);
 		
 		return Response.status(Status.OK).build();
 	}
@@ -247,7 +247,7 @@ public class APIEntryPoints extends Application {
 						
 			MailoutManager mm = new MailoutManager(localisation);
 				
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, false);
 			ArrayList<Mailout> mailouts = mm.getMailouts(sd, surveyIdent, links, urlprefix); 
 				
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -579,7 +579,7 @@ public class APIEntryPoints extends Application {
 			) { 
 
 		DataManager dm = new DataManager(null, null);
-		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit);
+		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit, false);
 	}
 }
 

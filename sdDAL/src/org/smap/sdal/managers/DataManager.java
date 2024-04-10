@@ -465,7 +465,8 @@ public class DataManager {
 			Date endDate,
 			boolean getSettings,		// Set true if the settings are stored in the database, otherwise they are passed with the request
 			String instanceId,
-			boolean includeMeta
+			boolean includeMeta,
+			boolean forDevice
 			) throws ApplicationException, Exception { 
 
 		String connectionString = "koboToolboxApi - get data records";
@@ -593,7 +594,7 @@ public class DataManager {
 			}	
 			RateLimiter.isPermitted(sd, oId, response, localisation);
 
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
 
 			/*
 			 * Get the survey view
@@ -1006,7 +1007,8 @@ public class DataManager {
 			int fId,
 			boolean mgmt,
 			int start,
-			int limit) {
+			int limit,
+			boolean forDevice) {
 		Response response = null;
 
 		ArrayList<String> authorisationsSuper = new ArrayList<String> ();	
@@ -1071,7 +1073,7 @@ public class DataManager {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}
 			
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
 
 			// Get the managed Id
 			if(mgmt) {

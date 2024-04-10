@@ -163,7 +163,7 @@ public class MailoutApi extends Application {
 						
 			MailoutManager mm = new MailoutManager(localisation);
 				
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, true);
 			ArrayList<Mailout> mailouts = mm.getMailouts(sd, surveyIdent, links, urlprefix); 
 				
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();

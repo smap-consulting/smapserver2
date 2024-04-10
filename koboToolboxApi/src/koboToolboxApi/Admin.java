@@ -115,7 +115,7 @@ public class Admin extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			ProjectManager pm = new ProjectManager(localisation);
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, true);
 			projects = pm.getProjects(sd, request.getRemoteUser(), all, links, urlprefix, false, false);
 				
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
@@ -162,7 +162,7 @@ public class Admin extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			SurveyManager sm = new SurveyManager(localisation, tz);
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, true);
 			surveys = sm.getSurveys(sd, 
 					request.getRemoteUser(), 
 					false, 

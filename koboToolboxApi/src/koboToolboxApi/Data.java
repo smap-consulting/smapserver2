@@ -196,7 +196,7 @@ public class Data extends Application {
 				parkey, hrk, format, include_bad, include_completed, audit_set, merge, geojson, geomQuestion,
 				tz, incLinks, 
 				filter, dd_filter, prikey, dd_hrk, dateName, startDate, endDate, getSettings, 
-				instanceId, includeMeta);
+				instanceId, includeMeta, true);
 		
 		return Response.status(Status.OK).build();
 	}
@@ -578,7 +578,7 @@ public class Data extends Application {
 			) { 
 
 		DataManager dm = new DataManager(null, null);
-		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit);
+		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit, true);
 	}
 }
 

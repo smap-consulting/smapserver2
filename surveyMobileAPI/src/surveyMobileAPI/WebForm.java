@@ -613,7 +613,7 @@ public class WebForm extends Application {
 			if ((datakey != null && datakeyvalue != null) || taskKey > 0 || initialData != null) {
 				
 				log.info("Adding initial data");
-				String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+				String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, false);
 				GetXForm xForm = new GetXForm(localisation, userIdent, tz);
 				instanceXML = xForm.getInstanceXml(survey.surveyData.id, formIdent, template, datakey, datakeyvalue, 0, simplifyMedia,
 						isWebForm, taskKey, urlprefix, initialData, false);
@@ -1006,7 +1006,7 @@ public class WebForm extends Application {
 
 		GetHtml getHtml = new GetHtml(localisation);
 		String html = getHtml.get(request, template.getSurvey().getId(), superUser, userIdent, 
-				gRecordCounts, isTemporaryUser);
+				gRecordCounts, isTemporaryUser, false);
 
 		output.append(html);
 
@@ -1310,7 +1310,7 @@ public class WebForm extends Application {
 
 			String instanceXML = null;
 			String dataKey = "instanceid";
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, false);
 
 			GetXForm xForm = new GetXForm(localisation, userIdent, tz);
 			instanceXML = xForm.getInstanceXml(survey.surveyData.id, formIdent, template, dataKey, updateid, 0, simplifyMedia, 

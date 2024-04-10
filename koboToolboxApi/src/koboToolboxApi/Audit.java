@@ -256,7 +256,7 @@ public class Audit extends Application {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}
 			
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, true);
 
 			// Get the managed Id
 			if(mgmt) {

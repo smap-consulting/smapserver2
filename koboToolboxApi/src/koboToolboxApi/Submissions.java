@@ -196,7 +196,7 @@ public class Submissions extends Application {
 			rs = pstmt.executeQuery();
 			
 			int index = 0;
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, true);
 			while(rs.next()) {
 				
 				JSONObject jo  =  subMgr.getRecord(rs, isGeoJson, false, true, incLinks, urlprefix);

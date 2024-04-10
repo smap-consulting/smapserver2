@@ -289,9 +289,11 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Get the URL prefix for media
+	 * When accessed from the GUI /app is prepended to the path
 	 */
-	static public String getUrlPrefix(HttpServletRequest request) {
-		return request.getScheme() + "://" + request.getServerName() + "/";
+	static public String getUrlPrefix(HttpServletRequest request, boolean forDevice) {
+		return request.getScheme() + "://" + request.getServerName() + "/"
+				+ (forDevice ? "" : "app/");
 	}
 
 	/*

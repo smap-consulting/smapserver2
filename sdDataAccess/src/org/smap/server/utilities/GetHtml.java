@@ -74,10 +74,12 @@ public class GetHtml {
 	 * Get the Html as a string
 	 */
 	public String get(HttpServletRequest request, int sId, boolean superUser, String userIdent, 
-			HashMap<String, Integer> recordCounts, boolean temporaryUser) throws SQLException, Exception {
+			HashMap<String, Integer> recordCounts, 
+			boolean temporaryUser,
+			boolean forDevice) throws SQLException, Exception {
 		
 		gRecordCounts = recordCounts;
-		gUrlPrefix = GeneralUtilityMethods.getUrlPrefix(request);
+		gUrlPrefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
 		
 		String response = null;
 		String connectionString = "Get Html";

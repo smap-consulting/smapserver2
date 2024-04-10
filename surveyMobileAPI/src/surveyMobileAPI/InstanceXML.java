@@ -122,7 +122,7 @@ public class InstanceXML extends Application{
            	SurveyTemplate template = new SurveyTemplate(localisation);
 			template.readDatabase(survey.surveyData.id, false);
 			
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, true);
 			GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
 			String instanceXML = xForm.getInstanceXml(survey.surveyData.id, 
 					templateName, 

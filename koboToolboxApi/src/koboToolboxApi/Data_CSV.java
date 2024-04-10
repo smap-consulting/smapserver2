@@ -272,7 +272,7 @@ public class Data_CSV extends Application {
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 			response.setHeader("content-type", "text/plain; charset=utf-8");
 			outWriter = response.getWriter();
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, true);
 
 			/*
 			 * Check rate Limiter and whether or not the api is disabled
