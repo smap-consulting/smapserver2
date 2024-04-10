@@ -2354,6 +2354,10 @@ public class GetXForm {
 					}
 					
 					if (isWebForms && item.value != null) {
+						// Webforms has to access attachments via the app entry point so that it uses form login
+						if(escValue.startsWith("attachments/")) {
+							escValue = "app/" + item.value;
+						}
 						escValue = escValue.replace("'", "\\\'");
 					}
 
