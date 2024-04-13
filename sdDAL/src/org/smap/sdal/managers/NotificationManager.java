@@ -1356,7 +1356,8 @@ public class NotificationManager {
 				0,		// start 
 				0,		// limit
 				null,	// sort
-				null);	// sort direction	
+				null,
+				false);	// sort direction	
 
 		TaskProperties task = null;
 		if(t != null && t.features.size() > 0) {

@@ -283,7 +283,7 @@ public class APIEntryPoints extends Application {
 			@FormParam("mailout") String mailoutString) { 
 		
 		Response response = null;
-		String connectionString = "api/v1/mailout - add mailout";
+		String connectionString = "mailout - add mailout";
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		Mailout mailout = null;

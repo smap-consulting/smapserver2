@@ -110,7 +110,7 @@ public class MailoutManager {
 				
 				if(links) {
 					mo.links = new MailoutLinks();
-					mo.links.emails = urlprefix + "api/v1/mailout/" + mo.id + "/emails?links=true";
+					mo.links.emails = urlprefix + "api/v1/mailout/" + mo.id + "/emails?links=true"; // Links should only be specified if this is a call from an API and not the client
 				}
 				mailouts.add(mo);			
 			}

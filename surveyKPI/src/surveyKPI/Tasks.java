@@ -231,7 +231,9 @@ public class Tasks extends Application {
 					period, 
 					0, 
 					0,
-					"scheduled", "desc");		
+					"scheduled", 
+					"desc",
+					false);		
 			
 			// Return groups to calling program
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -530,7 +532,9 @@ public class Tasks extends Application {
 					true, 0, 
 					incStatus, 
 					period, 0, 0,
-					"scheduled", "desc");	// Get the task list
+					"scheduled", 
+					"desc",
+					false);	// Get the task list
 			
 			// Create XLSTasks File
 			XLSTaskManager xf = new XLSTaskManager(filetype, request.getScheme(), request.getServerName());
@@ -674,8 +678,15 @@ public class Tasks extends Application {
 						tgId, 
 						0,	// task id 
 						0,	// Assignment Id
-						true, userId, null, "all", 0, 0,
-						"scheduled", "desc");	// TODO set "complete" flag from passed in parameter
+						true, 
+						userId, 
+						null, 
+						"all", 
+						0, 
+						0,
+						"scheduled", 
+						"desc",
+						false);	
 				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 				String resp = gson.toJson(tl);
 				

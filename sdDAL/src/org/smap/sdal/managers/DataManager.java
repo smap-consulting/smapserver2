@@ -82,7 +82,7 @@ public class DataManager {
 		
 		String urlprefix = request.getScheme() + "://" + request.getServerName();
 		if(csv) {
-			urlprefix += "/api/v1/data.csv/";	
+			urlprefix += "/api/v1/data.csv/";	// This request should only be made as an API request and not from the client
 		} else {
 			urlprefix += "/api/v1/data/";
 		}

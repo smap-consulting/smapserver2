@@ -252,6 +252,7 @@ public class SurveyManager {
 				}
 				
 				if(links) {
+					// links should only be specified if this is a call from an API and not the client
 					s.surveyData.links = new SurveyLinks();
 					s.surveyData.links.mailouts = urlprefix + "api/v1/mailout/" + s.surveyData.ident + "?links=true";
 				}

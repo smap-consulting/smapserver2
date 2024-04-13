@@ -361,7 +361,10 @@ public class MiscPDFManager {
 					0, 		// task id
 					0,		// assignment id
 					false, 
-					0, null, "all", 0, 0, "scheduled", "desc");	
+					0, 
+					null, 
+					"all", 
+					0, 0, "scheduled", "desc", false);	
 			PdfWriter writer = null;			
 				
 

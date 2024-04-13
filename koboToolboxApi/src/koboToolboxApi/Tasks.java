@@ -166,7 +166,8 @@ public class Tasks extends Application {
 					start, 
 					limit,
 					sort,
-					dirn);		
+					dirn,
+					true);		
 			
 			// Return groups to calling program
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -231,7 +232,8 @@ public class Tasks extends Application {
 					0,		// start 
 					0,		// limit
 					null,	// sort
-					null);	// sort direction	
+					null,
+					true);	// sort direction	
 			
 			if(t != null && t.features.size() > 0) {
 				TaskProperties tp = t.features.get(0).properties;
@@ -297,7 +299,8 @@ public class Tasks extends Application {
 					0,		// start 
 					0,		// limit
 					null,	// sort
-					null);	// sort direction	
+					null,
+					true);	// sort direction	
 			
 			if(t != null && t.features.size() > 0) {
 				TaskProperties tp = t.features.get(0).properties;

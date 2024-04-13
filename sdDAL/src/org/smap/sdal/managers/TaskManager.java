@@ -315,7 +315,8 @@ public class TaskManager {
 			int start,		// First task id to return
 			int limit,		// Maximum number of tasks to return
 			String sort,		// Data to sort on
-			String dirn		// Direction of sort asc || desc
+			String dirn,		// Direction of sort asc || desc
+			boolean links		// Include links to other api end points
 			) throws Exception {
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -595,27 +596,30 @@ public class TaskManager {
 				}
 				
 				// Add links
-				tf.links = new HashMap<String, String> ();
-				tf.links.put("detail", urlprefix + "/api/v1/tasks/" + tf.properties.id);
-				tf.links.put("webform", GeneralUtilityMethods.getWebformLink(
-						urlprefix, 
-						tf.properties.survey_ident, 
-						tf.properties.initial_data_source,
-						tf.properties.a_id,
-						tf.properties.id,
-						tf.properties.update_id));
-				tf.links.put("xml_data", GeneralUtilityMethods.getInitialXmlDataLink(
-						urlprefix, 
-						tf.properties.survey_ident, 
-						tf.properties.initial_data_source,
-						tf.properties.id,
-						tf.properties.update_id));
-				tf.links.put("json_data", GeneralUtilityMethods.getInitialJsonDataLink(
-						urlprefix, 
-						tf.properties.survey_ident, 
-						tf.properties.initial_data_source,
-						tf.properties.id,
-						tf.properties.update_id));
+				// links should only be specified if this is a call from an API and not the client
+				if(links) {
+					tf.links = new HashMap<String, String> ();
+					tf.links.put("detail", urlprefix + "/api/v1/tasks/" + tf.properties.id);
+					tf.links.put("webform", GeneralUtilityMethods.getWebformLink(
+							urlprefix, 
+							tf.properties.survey_ident, 
+							tf.properties.initial_data_source,
+							tf.properties.a_id,
+							tf.properties.id,
+							tf.properties.update_id));
+					tf.links.put("xml_data", GeneralUtilityMethods.getInitialXmlDataLink(
+							urlprefix, 
+							tf.properties.survey_ident, 
+							tf.properties.initial_data_source,
+							tf.properties.id,
+							tf.properties.update_id));
+					tf.links.put("json_data", GeneralUtilityMethods.getInitialJsonDataLink(
+							urlprefix, 
+							tf.properties.survey_ident, 
+							tf.properties.initial_data_source,
+							tf.properties.id,
+							tf.properties.update_id));
+				}
 				
 				tl.features.add(tf);
 				
@@ -1959,7 +1963,8 @@ public class TaskManager {
 					0,		// start 
 					0,		// limit
 					null,	// sort
-					null);	// sort direction
+					null,
+					false);	// sort direction
 			
 			if(t != null && t.features.size() > 0) {
 				resp = new CreateTaskResp();
