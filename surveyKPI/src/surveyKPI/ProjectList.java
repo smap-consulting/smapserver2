@@ -38,6 +38,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
@@ -132,6 +133,11 @@ public class ProjectList extends Application {
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateProject(@Context HttpServletRequest request, @FormParam("projects") String projects) throws ApplicationException { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		
@@ -391,6 +397,11 @@ public class ProjectList extends Application {
 	public Response importProjects(
 			@Context HttpServletRequest request
 			) throws IOException {
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		boolean clear = false;

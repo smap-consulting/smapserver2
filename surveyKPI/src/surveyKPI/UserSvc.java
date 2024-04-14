@@ -37,6 +37,7 @@ import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PasswordManager;
@@ -153,6 +154,11 @@ public class UserSvc extends Application {
 	public Response updateUser(@Context HttpServletRequest request,
 			@FormParam("user") String user) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String authString = "SurveyKpi - Change Settings";
 
@@ -259,9 +265,14 @@ public class UserSvc extends Application {
 	public Response updateUserPassword(@Context HttpServletRequest request,
 			@FormParam("passwordDetails") String passwordDetails) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String authString = "surveyKPI - change password";
-
+		
 		// Authorisation - Not Required - the user is updating their own settings
 		Connection sd = SDDataSource.getConnection(authString);
 		
@@ -300,6 +311,11 @@ public class UserSvc extends Application {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/currentproject")
 	public Response updateCurrentProject(@Context HttpServletRequest request, User u) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 
@@ -378,6 +394,11 @@ public class UserSvc extends Application {
 	@Path("/groupsurvey")
 	public Response updateGroupSurvey(@Context HttpServletRequest request, String group) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String connectionString = "SurveyKPI - save groupsurvey";
 		// Authorisation - Not Required
@@ -444,6 +465,11 @@ public class UserSvc extends Application {
 	public Response postUserDetailsNoKey(
 			@Context HttpServletRequest request) throws IOException {
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+	        throw new AuthorisationException();   
+		} 
+		
 		return updateUserDetails(request, null);
 	}
 	
@@ -456,6 +482,11 @@ public class UserSvc extends Application {
 	public Response postUpdateInstance(
 			@Context HttpServletRequest request,
 	        @PathParam("key") String key) throws IOException {
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+	        throw new AuthorisationException();   
+		} 
 		
 		return updateUserDetails(request, key);
 	}
