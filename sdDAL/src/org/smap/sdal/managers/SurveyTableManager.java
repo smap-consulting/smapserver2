@@ -1003,7 +1003,7 @@ public class SurveyTableManager {
 			} else if (linked_s_pd && non_unique_key) {
 				// 6. Create the file
 				pstmtData = cResults.prepareStatement(sqlNoEscapes);
-				cur.setFilterParams(pstmtData, rfArray, 1, tz, userIdent);
+				setParameters(pstmtData, cur, rfArray, userIdent, tz);
 				
 				log.info("Get CSV data: " + pstmtData.toString());
 				rs = pstmtData.executeQuery();
@@ -1072,7 +1072,7 @@ public class SurveyTableManager {
 
 				HashMap<String, ArrayList<String>> chartData = new HashMap<> ();
 				pstmtData = cResults.prepareStatement(sqlNoEscapes);
-				cur.setFilterParams(pstmtData, rfArray, 1, tz, userIdent);
+				setParameters(pstmtData, cur, rfArray, userIdent, tz);
 				
 				if(rs != null) {
 					rs.close();
@@ -1131,14 +1131,16 @@ public class SurveyTableManager {
 				bw.close();
 			} else if (sqlDef.hasGeom || sqlDef.hasDateTime) { 	// CSV files with geotrace or geoshape or dateTime elements have to be generated without using PSQL
 				
-			
 				pstmtData = cResults.prepareStatement(sqlNoEscapes);
-				cur.setFilterParams(pstmtData, rfArray, 1, tz, userIdent);
+				
+				log.info("####### Pre parameter statement: " + pstmtData.toString());
+				
+				setParameters(pstmtData, cur, rfArray, userIdent, tz);
 				
 				if(rs != null) {
 					rs.close();
 				}
-				log.info("####### Progressively getting data with geometry or dateTime: " + pstmtData.toString());
+				log.info("####### Get CSV data through pstmt: " + pstmtData.toString());
 				rs = pstmtData.executeQuery();
 
 				BufferedWriter bw = new BufferedWriter(
@@ -1187,7 +1189,8 @@ public class SurveyTableManager {
 				// Use PSQL to generate the file as it is faster
 				int code = 0;
 				pstmtData = cResults.prepareStatement(sql);
-				cur.setFilterParams(pstmtData, rfArray, 1, tz, userIdent);
+				
+				setParameters(pstmtData, cur, rfArray, userIdent, tz);
 				
 				String filePath = f.getAbsolutePath();
 				int idx = filePath.indexOf(".csv");
@@ -1253,6 +1256,20 @@ public class SurveyTableManager {
 			bw.write(nonUniqueRecords.get(i).toString());
 			bw.newLine();
 		}
+	}
+	
+	private void setParameters(PreparedStatement pstmt, CustomUserReference cur, 
+			ArrayList<SqlFrag> rfArray,
+			String userIdent,
+			String tz) throws Exception {
+		
+		int paramCount = 1;
+		if (sqlDef.calcArray != null) {		// Set parameters from server calculates
+			paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDef.calcArray, paramCount, tz);
+		}
+		
+		// Set parameters from roles
+		cur.setFilterParams(pstmt, rfArray, paramCount, tz, userIdent);
 	}
 	
 	/*

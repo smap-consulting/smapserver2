@@ -89,6 +89,7 @@ public class UserManager {
 		int orgPasswordExpiry = 0;
 		int serverPasswordExpiry = 0;
 		int passwordExpiry = 0;
+		boolean noBasicPassword = false;
 
 		try {
 			String sql = null;
@@ -135,7 +136,8 @@ public class UserManager {
 					+ "o.ft_input_method, "
 					+ "o.ft_im_ri, "
 					+ "o.ft_im_acc, "
-					+ "o.password_expiry "
+					+ "o.password_expiry, "
+					+ "u.basic_password "
 					+ "from users u, organisation o, enterprise e "
 					+ "where u.ident = ? "
 					+ "and u.o_id = o.id "
@@ -200,6 +202,7 @@ public class UserManager {
 				
 				passwordAge = resultSet.getInt("password_age");
 				orgPasswordExpiry = resultSet.getInt("password_expiry");
+				noBasicPassword = resultSet.getString("basic_password") == null;
 			}
 
 			/*
@@ -299,24 +302,31 @@ public class UserManager {
 			getUserOrganisations(sd, user.orgs, user, user.id);
 
 			/*
-			 * Check for password expiry
-			 * Only expire admin and analyst passwords (revise this)
+			 * Force password reset if there is no basic password set
 			 */
-			if(canResetPassword) {
-				user.passwordExpired = false;
-				if(orgPasswordExpiry > 0 && passwordAge >= orgPasswordExpiry) {
-					user.passwordExpired = true;
-					passwordExpiry = orgPasswordExpiry;
-				} else {
-					sql = "select password_expiry from server";
-					if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-					pstmt = sd.prepareStatement(sql);
-					resultSet = pstmt.executeQuery();
-					if(resultSet.next()) {
-						serverPasswordExpiry = resultSet.getInt("password_expiry");
-						if(serverPasswordExpiry > 0 && passwordAge >= serverPasswordExpiry) {
-							user.passwordExpired = true;
-							passwordExpiry = serverPasswordExpiry;
+			if(noBasicPassword) {
+				user.passwordExpired = true;
+			} else {
+				/*
+				 * Check for password expiry
+				 * Only expire admin and analyst passwords (revise this)
+				 */
+				if(canResetPassword) {
+					user.passwordExpired = false;
+					if(orgPasswordExpiry > 0 && passwordAge >= orgPasswordExpiry) {
+						user.passwordExpired = true;
+						passwordExpiry = orgPasswordExpiry;
+					} else {
+						sql = "select password_expiry from server";
+						if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+						pstmt = sd.prepareStatement(sql);
+						resultSet = pstmt.executeQuery();
+						if(resultSet.next()) {
+							serverPasswordExpiry = resultSet.getInt("password_expiry");
+							if(serverPasswordExpiry > 0 && passwordAge >= serverPasswordExpiry) {
+								user.passwordExpired = true;
+								passwordExpiry = serverPasswordExpiry;
+							}
 						}
 					}
 				}

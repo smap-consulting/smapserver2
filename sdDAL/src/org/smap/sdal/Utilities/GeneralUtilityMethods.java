@@ -2596,7 +2596,7 @@ public class GeneralUtilityMethods {
 				+ " from question q, form f" 
 				+ " where q.f_id = f.f_id "
 				+ " and f.s_id = ? " 
-				+ " and q.qname = ?";
+				+ " and lower(q.qname) = ?";
 
 		PreparedStatement pstmt = null;
 
@@ -2612,7 +2612,7 @@ public class GeneralUtilityMethods {
 				} else {
 					pstmt = sd.prepareStatement(sql);
 					pstmt.setInt(1, sId);
-					pstmt.setString(2, qName);
+					pstmt.setString(2, qName.toLowerCase());
 					ResultSet rs = pstmt.executeQuery();
 					if (rs.next()) {
 						column_name = rs.getString(1);
@@ -7571,8 +7571,10 @@ public class GeneralUtilityMethods {
 	 * Set the parameters for an array of sql fragments
 	 */
 	public static int setArrayFragParams(PreparedStatement pstmt, ArrayList<SqlFrag> rfArray, int index, String tz) throws Exception {
-		for(SqlFrag rf : rfArray) {
-			index = setFragParams(pstmt, rf, index, tz);
+		if(rfArray != null) {
+			for(SqlFrag rf : rfArray) {
+				index = setFragParams(pstmt, rf, index, tz);
+			}
 		}
 		return index;
 	}
