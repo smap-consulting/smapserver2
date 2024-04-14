@@ -22,7 +22,6 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
 import org.smap.sdal.managers.RecordEventManager;
-import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Language;

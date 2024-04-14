@@ -39,6 +39,7 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
+import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.User;
@@ -257,6 +258,8 @@ public class XLSUsersManager {
 		PreparedStatement pstmtRoles = null;
 		String sqlRoles = "select id from role where o_id = ? and name = ?";
 		
+		UserManager um = new UserManager(localisation);
+		
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
@@ -348,9 +351,7 @@ public class XLSUsersManager {
 								msg = msg.replace("%s1", String.valueOf(j));
 								throw new ApplicationException(msg);
 							}
-							String regexIdent = "^[a-z0-9_]+$";
-							Pattern patternIdent = Pattern.compile(regexIdent);
-							if(!patternIdent.matcher(u.ident).matches()) {
+							if(!um.isValiduserIdent(u.ident)) {
 								String msg = localisation.getString("fup_uif");
 								msg = msg.replace("%s1", u.ident);
 								msg = msg.replace("%s2", String.valueOf(j));

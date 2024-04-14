@@ -11,6 +11,7 @@ import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import javax.ws.rs.core.Response;
 
@@ -1426,6 +1427,19 @@ public class UserManager {
 			try {if (pstmt != null) {pstmt.close();	}} catch (Exception e) {}
 			try {if (pstmtValidate != null) {pstmtValidate.close();	}} catch (Exception e) {}
 		}
+	}
+	
+	/*
+	 * Validate a user ident
+	 */
+	public boolean isValiduserIdent(String ident) {
+		boolean isValid = true;
+		String regexIdent = "^[a-z0-9_-]+$";
+		Pattern patternIdent = Pattern.compile(regexIdent);
+		if(!patternIdent.matcher(ident).matches() && !UtilityMethodsEmail.isValidEmail(ident)) {
+			isValid = false;
+		}
+		return isValid;
 	}
 	
 	/*
