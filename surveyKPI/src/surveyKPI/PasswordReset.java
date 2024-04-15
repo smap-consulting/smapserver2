@@ -254,6 +254,7 @@ public class PasswordReset extends Application {
 		String password;
 	}
 	
+	/*
 	@POST
 	public Response setPassword(@Context HttpServletRequest request, 
 			@QueryParam("lang") String lang,
@@ -291,7 +292,7 @@ public class PasswordReset extends Application {
 				
 				/*
 				 * Verify that the password is strong enough
-				 */
+				 *
 				PasswordManager pwm = null;
 				if(pd.password != null) {
 					pwm = new PasswordManager(sd, locale, localisation,ident, request.getServerName());
@@ -367,6 +368,7 @@ public class PasswordReset extends Application {
 		
 		return response;
 	}
+	*/
 
 }
 
