@@ -32,6 +32,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -67,12 +68,14 @@ public class PasswordReset extends Application {
 	/*
 	 * Send an email with a link for a one time logon
 	 */
-	@GET
-	@Path("/{email}")
-	public Response oneTimeLogon(@Context HttpServletRequest request,
-			@PathParam("email") String email		 
-			) throws ApplicationException { 
+	@POST
+	public Response oneTimeLogon(@Context HttpServletRequest request, String email) throws ApplicationException { 
 	
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 
 		Connection sd = SDDataSource.getConnection("surveyKPI-onetimelogon");
