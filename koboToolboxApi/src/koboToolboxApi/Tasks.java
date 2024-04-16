@@ -43,18 +43,12 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
-import org.smap.sdal.model.CreateTaskResp;
-import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskGroup;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
-import org.smap.sdal.model.TaskServerDefn;
 
 /*
  * Provides access to collected data

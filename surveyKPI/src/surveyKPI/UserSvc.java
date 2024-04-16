@@ -390,7 +390,7 @@ public class UserSvc extends Application {
 	 * Update the current group survey
 	 */
 	@POST
-	@Consumes(MediaType.TEXT_HTML)
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/groupsurvey")
 	public Response updateGroupSurvey(@Context HttpServletRequest request, String group) { 
 		
