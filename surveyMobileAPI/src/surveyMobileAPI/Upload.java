@@ -85,6 +85,8 @@ public class Upload extends Application {
 			@QueryParam("deviceID") String deviceId,
 			@Context HttpServletRequest request) throws IOException {
 		
+		// Do not check for Ajax as android device request is not ajax
+		
 		log.info("New submssion from device: " + deviceId);
 		return submission(request, null, null, deviceId);
 	}
@@ -261,17 +263,17 @@ public class Upload extends Application {
 	 * Head request to return the actual URL to submit data to
 	 * This is required by the Java Rosa protocol
 	 */
-		@HEAD
-		@Produces(MediaType.TEXT_XML)
-		public void getHead(@Context HttpServletRequest request,  @Context HttpServletResponse resp) {
-		
-			String url = request.getScheme() + "://" + request.getServerName() + "/submission";
-			
-			log.info("URL:" + url); 
-			resp.setHeader("location", url);
-			resp.setHeader(OPEN_ROSA_VERSION_HEADER,  OPEN_ROSA_VERSION);
-			resp.setStatus(HttpServletResponse.SC_OK);
-			
-		}
+	@HEAD
+	@Produces(MediaType.TEXT_XML)
+	public void getHead(@Context HttpServletRequest request,  @Context HttpServletResponse resp) {
+
+		String url = request.getScheme() + "://" + request.getServerName() + "/submission";
+
+		log.info("URL:" + url); 
+		resp.setHeader("location", url);
+		resp.setHeader(OPEN_ROSA_VERSION_HEADER,  OPEN_ROSA_VERSION);
+		resp.setStatus(HttpServletResponse.SC_OK);
+
+	}
 }
 

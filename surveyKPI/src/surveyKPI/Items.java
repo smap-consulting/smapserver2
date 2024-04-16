@@ -139,7 +139,8 @@ public class Items extends Application {
 		String connectionString = "surveyKPI-Items";
 		DecimalFormat decimalFormat = new DecimalFormat("0.00");
 		
-		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";	
+		// Called by client only
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, false);
 
 		if(geom != null && geom.equals("no")) {
 			bGeom = false;

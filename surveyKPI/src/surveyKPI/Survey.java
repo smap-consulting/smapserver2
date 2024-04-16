@@ -33,6 +33,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.core.Response.Status;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
@@ -1162,20 +1163,20 @@ public class Survey extends Application {
 	 *    be marked as deleted in the meta data tables but will remain in the database
 	 *  @param delData if set to yes then the results tables will be deleted even if they have data
 	 */
-	// JSON
 	@DELETE
-	public String deleteSurvey(@Context HttpServletRequest request,
+	public Response deleteSurvey(@Context HttpServletRequest request,
 			@PathParam("sId") int sId,
 			@QueryParam("tables") String tables,
 			@QueryParam("hard") boolean hard,
 			@QueryParam("undelete") boolean undelete,
 			@QueryParam("delData") boolean delData) { 
 
-		log.info("Deleting template:" + sId);
+		Response response = null;
+		String connectionString ="surveyKPI-Survey-Delete";
 
 		Connection cResults = null;
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Survey");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -1198,7 +1199,7 @@ public class Survey extends Application {
 				if(undelete) {				 
 					mgr.restore(sd, sId, request.getRemoteUser());	// Restore the survey
 				} else {
-					cResults = ResultsDataSource.getConnection("surveyKPI-Survey");
+					cResults = ResultsDataSource.getConnection(connectionString);
 					String basePath = GeneralUtilityMethods.getBasePath(request);
 					
 					mgr.delete(sd, 
@@ -1216,13 +1217,10 @@ public class Survey extends Application {
 				MessagingManager mm = new MessagingManager(localisation);
 				mm.surveyChange(sd, sId, 0);
 
-			} catch (SQLException e) {
-				log.log(Level.SEVERE, "SQL Error", e);
-				return "Error: Failed to delete";
-
+				response = Response.status(Status.OK).entity("").build();
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Error", e);
-				return "Error: Failed to delete";
+				response = Response.serverError().entity(e.getMessage()).build();
 
 			} finally {
 
@@ -1231,7 +1229,7 @@ public class Survey extends Application {
 			}
 		}
 
-		return null; 
+		return response; 
 	}
 
 }

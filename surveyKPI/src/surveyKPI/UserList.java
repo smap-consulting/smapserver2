@@ -418,7 +418,7 @@ public class UserList extends Application {
 	 * Called when saving changes to a user from the users page
 	 */
 	@POST
-	@Consumes(MediaType.TEXT_HTML)
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateUser(@Context HttpServletRequest request, String users) { 
 		
 		Response response = null;
@@ -550,13 +550,11 @@ public class UserList extends Application {
 		return response;
 	}
 	
-
-	
 	/*
 	 * Delete users
 	 */
 	@DELETE
-	@Consumes(MediaType.TEXT_HTML)
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response delUser(@Context HttpServletRequest request, String users) {
 		
 		Response response = null;

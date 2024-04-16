@@ -156,6 +156,7 @@ public class UserSvc extends Application {
 		
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
 	        throw new AuthorisationException();   
 		} 
 		
@@ -267,6 +268,7 @@ public class UserSvc extends Application {
 		
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
 	        throw new AuthorisationException();   
 		} 
 		
@@ -314,6 +316,7 @@ public class UserSvc extends Application {
 		
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
 	        throw new AuthorisationException();   
 		} 
 		
@@ -396,6 +399,7 @@ public class UserSvc extends Application {
 		
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
 	        throw new AuthorisationException();   
 		} 
 		
@@ -467,6 +471,7 @@ public class UserSvc extends Application {
 		
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
 	        throw new AuthorisationException();   
 		} 
 		
@@ -485,6 +490,7 @@ public class UserSvc extends Application {
 		
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
 	        throw new AuthorisationException();   
 		} 
 		

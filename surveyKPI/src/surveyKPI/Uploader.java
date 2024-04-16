@@ -75,6 +75,7 @@ import org.smap.sdal.Utilities.SDDataSource;
  * submissions copied directly from a device.
  */
 
+/*
 @Path("/uploadSubmissions")
 public class Uploader extends Application {
 
@@ -90,9 +91,9 @@ public class Uploader extends Application {
 	}
 	
 
-	/*
-	 * Get data identified in an action
-	 */
+	//
+	// Get data identified in an action
+	//
 	@GET
 	public Response uploadSubmissions(
 			@Context HttpServletRequest request, 
@@ -130,19 +131,16 @@ public class Uploader extends Application {
 				port = 80;
 			}
 			String user = request.getRemoteUser();
-			
-
-			
-			
+		
 			String urlString = protocol + "://" + host_name +  "/submission";
 			urlString += "?deviceID=uploader"; 
 			
 			String sql = "select count(*) from upload_event where file_path = ?";
 			pstmt = sd.prepareStatement(sql);
 			
-			/*
-			 * Process the directories
-			 */
+			//
+			// Process the directories
+			//
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			String folderPath = basePath + "/uploadedSurveys/" + surveyIdent;
 			
@@ -240,3 +238,4 @@ public class Uploader extends Application {
 
 
 }
+*/
