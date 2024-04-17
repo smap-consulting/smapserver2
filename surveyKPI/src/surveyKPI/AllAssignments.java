@@ -140,6 +140,12 @@ public class AllAssignments extends Application {
 	public Response rejectTaskCredentials(@FormParam("assignment") String assignment,
 			@Context HttpServletRequest request) {
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		AssignmentsManager am = new AssignmentsManager();
 		return am.updateStatusToRejected(request, assignment);
 	}
@@ -155,6 +161,12 @@ public class AllAssignments extends Application {
 			@PathParam("projectId") int projectId,
 			@FormParam("settings") String settings) { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
 
 		Response response = null;
@@ -573,6 +585,12 @@ public class AllAssignments extends Application {
 			@PathParam("tgId") int tgId,
 			@FormParam("settings") String settings) { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -665,6 +683,12 @@ public class AllAssignments extends Application {
 	public Response updateAssignmentStatus(@Context HttpServletRequest request, 
 			@FormParam("settings") String settings) { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 
 		log.info("Assignment:" + settings);
@@ -759,6 +783,12 @@ public class AllAssignments extends Application {
 	@Path("/load")
 	public Response loadResultsFromFile(@Context HttpServletRequest request) { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 
 		log.info("Load results from file");
@@ -1251,6 +1281,12 @@ public class AllAssignments extends Application {
 	@Path("/properties")
 	public Response updateTaskProperties(@Context HttpServletRequest request) { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String dbConnectionTitle = "surveyKPI-AllAssignments- Update task properties";
 

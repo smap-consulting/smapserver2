@@ -34,6 +34,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
@@ -141,6 +142,12 @@ public class EnterpriseList extends Application {
 			@Context HttpServletRequest request,
 			@FormParam("data") String data) throws Exception { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList-updateOrganisation");
 		a.isAuthorised(sd, request.getRemoteUser());

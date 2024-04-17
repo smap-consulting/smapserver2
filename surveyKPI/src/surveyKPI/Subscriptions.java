@@ -30,6 +30,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -114,6 +115,12 @@ public class Subscriptions extends Application {
 			@FormParam("email") String email,
 			@FormParam("oId") int oId) {
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String connectionString = "SurveyKPI - Post Subscribe";
 

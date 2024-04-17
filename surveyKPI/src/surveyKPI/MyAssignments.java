@@ -31,6 +31,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
@@ -57,6 +58,9 @@ import java.util.logging.Logger;
 
 /*
  * Returns tasks for the user that made the request
+ * This entry point should be used only by calls from fieldTask or API calls
+ * It will be set up to use basic authentication
+ * No checking is done on the use of Ajax for posts
  */
 @Path("/myassignments")
 public class MyAssignments extends Application {
@@ -125,6 +129,8 @@ public class MyAssignments extends Application {
 	public Response updateTasksKey(@PathParam("key") String key, @FormParam("assignInput") String assignInput,
 			@Context HttpServletRequest request) {
 
+		// Check for Ajax not done as this is a service called from fieldTask
+		
 		log.info("webserviceevent : updateTasksKey");
 		String connection = "surveyKPI-UpdateTasksKey";
 

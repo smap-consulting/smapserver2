@@ -39,6 +39,7 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.model.SurveyTemplate;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -864,6 +865,12 @@ public class Survey extends Application {
 			@PathParam("sId") int sId,
 			@QueryParam("set") boolean set) { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String connectionRequest = "surveyKPI-Survey";
 
@@ -924,71 +931,6 @@ public class Survey extends Application {
 	}
 
 	/*
-	 * Save the survey things@ model
-	 */
-	@Path("/model")
-	@POST
-	@Consumes("application/json")
-	public Response save_model(
-			@Context HttpServletRequest request,
-			@PathParam("sId") int sId,
-			@FormParam("model") String model
-			) { 
-
-		Response response = null;
-
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Survey");
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		} catch (Exception e) {
-		}
-		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
-		// End Authorisation
-
-		PreparedStatement pstmt = null;
-		if(model == null) {
-			response = Response.serverError().entity("Empty model").build();
-		} else {
-			try {
-
-				/*
-				 * Get Forms and row counts in this survey
-				 */
-				String sql = "update survey set model = ? where s_id = ?;";		
-
-
-				pstmt = sd.prepareStatement(sql);	
-				pstmt.setString(1, model);
-				pstmt.setInt(2, sId);
-				int count = pstmt.executeUpdate();
-
-				if(count == 0) {
-					response = Response.serverError().entity("Failed to update model").build();
-				} else {
-					response = Response.ok().build();
-				}
-
-
-
-			} catch (SQLException e) {
-				log.log(Level.SEVERE,"Failed to update model", e);
-				response = Response.serverError().entity("Failed to update model").build();
-			} finally {
-
-				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-
-				SDDataSource.closeConnection("surveyKPI-Survey", sd);
-
-			}
-		}
-
-		return response;
-	}
-
-	/*
 	 * Remove media attachments
 	 */
 	@Path("/remove_media")
@@ -1000,6 +942,12 @@ public class Survey extends Application {
 			@FormParam("oId") int oId,
 			@FormParam("text_id") String text_id) { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 
 		// Authorisation - Access
@@ -1090,6 +1038,12 @@ public class Survey extends Application {
 			@PathParam("sId") int sId,
 			@FormParam("columns") String sColumns) { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String connectionString = "surveyKPI-Survey-save console columns";
 

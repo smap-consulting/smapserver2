@@ -38,6 +38,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
@@ -421,6 +422,12 @@ public class UserList extends Application {
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateUser(@Context HttpServletRequest request, String users) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String requestName = "surveyKPI - updateUser";
 		
@@ -687,6 +694,12 @@ public class UserList extends Application {
 	public Response importProjects(
 			@Context HttpServletRequest request
 			) throws IOException {
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		boolean clear = false;

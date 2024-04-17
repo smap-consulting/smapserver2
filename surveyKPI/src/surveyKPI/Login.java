@@ -43,6 +43,8 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.UserManager;
@@ -159,6 +161,12 @@ public class Login extends Application {
 	@Path("/basic/password")
 	public Response updateUserPassword(@Context HttpServletRequest request,
 			@FormParam("passwordDetails") String passwordDetails) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String authString = "surveyKPI - change password";

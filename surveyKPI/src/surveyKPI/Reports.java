@@ -32,6 +32,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -141,6 +142,12 @@ public class Reports extends Application {
 			@QueryParam("tz") String tz,			// Keep this one to set up action manager
 			@QueryParam("ident") String ident		// Used when updating a link - keep this
 			) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "surveyKPI - Reports - GetLink";

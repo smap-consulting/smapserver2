@@ -2,12 +2,7 @@ package surveyKPI;
 
 import java.io.File;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.UUID;
@@ -16,9 +11,7 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
@@ -31,15 +24,10 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.managers.BackgroundReportsManager;
 import org.smap.sdal.managers.FileManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.XLSXAdminReportsManager;
 import org.smap.sdal.model.AR;
-import org.smap.sdal.model.BackgroundReport;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 
 /*

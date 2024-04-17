@@ -39,6 +39,7 @@ import model.Filter;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.RateLimiter;
@@ -1105,6 +1106,12 @@ public class Items extends Application {
 			@FormParam("reason") String reason
 			) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String connectionString = "surveyKPI-Items-bad";
 	
@@ -1190,6 +1197,12 @@ public class Items extends Application {
 			@FormParam("value") boolean value,
 			@FormParam("reason") String reason
 			) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-Items-bad Survey Level";

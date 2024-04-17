@@ -154,6 +154,12 @@ public class SharedResources extends Application {
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateMap(@Context HttpServletRequest request, @FormParam("map") String mapString) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String connectionString = "surveyKPI-SharedResources-UpdateMap";
 

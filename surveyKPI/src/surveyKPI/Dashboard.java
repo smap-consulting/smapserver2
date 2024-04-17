@@ -31,6 +31,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
@@ -284,6 +285,12 @@ public class Dashboard extends Application {
 			@FormParam("settings") String settings
 			) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		
 		String user = request.getRemoteUser();
@@ -492,6 +499,12 @@ public class Dashboard extends Application {
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateState(@Context HttpServletRequest request, 
 			@FormParam("state") String stateString) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		

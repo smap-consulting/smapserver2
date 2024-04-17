@@ -203,6 +203,12 @@ public class MailoutSvc extends Application {
 			@PathParam("mailoutId") int mailoutId
 			) throws IOException {
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		boolean clear = false;
 		

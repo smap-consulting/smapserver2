@@ -108,6 +108,12 @@ public class UploadFiles extends Application {
 	public Response uploadSingleSharedResourceFile(
 			@Context HttpServletRequest request) {
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String connectionString = "SurveyKPI-uploadSharedResourceFile";
 		
@@ -437,6 +443,12 @@ public class UploadFiles extends Application {
 	@Path("/surveytemplate")
 	public Response uploadForm(
 			@Context HttpServletRequest request) {
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "CreateXLSForm-uploadForm";

@@ -28,6 +28,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import org.apache.commons.codec.binary.Base64;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -105,6 +106,12 @@ public class TableReports extends Application {
 			@FormParam("settings") String settingsString,
 			@FormParam("tz") String tz
 			) throws Exception { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		// Authorisation - Access
 		String connectionString = "surveyKPI-tables";

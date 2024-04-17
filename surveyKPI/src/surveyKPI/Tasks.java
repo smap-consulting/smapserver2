@@ -48,6 +48,7 @@ import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -306,6 +307,12 @@ public class Tasks extends Application {
 	public Response uploadLocations(
 			@Context HttpServletRequest request) {
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();		
@@ -563,6 +570,12 @@ public class Tasks extends Application {
 			@QueryParam("user") int userId
 			) throws IOException {
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		int tgId = 0;
 		boolean tgClear = false;
@@ -725,6 +738,12 @@ public class Tasks extends Application {
 			@FormParam("task") String task
 			) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String connectionString = "surveyKPI - tasks - update date and time";
 
@@ -774,6 +793,12 @@ public class Tasks extends Application {
 			@PathParam("tgId") int tgId,
 			@FormParam("tasks") String tasks
 			) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-tasks-bulk";
@@ -876,6 +901,12 @@ public class Tasks extends Application {
 			@PathParam("tgId") int tgId,
 			@FormParam("emaildetails") String emaildetails
 			) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 

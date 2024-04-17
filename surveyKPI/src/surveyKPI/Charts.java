@@ -26,6 +26,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -69,6 +71,12 @@ public class Charts extends Application {
 	public Response saveCharts(@Context HttpServletRequest request,
 			@PathParam("sIdent") int sId,
 			@FormParam("chartArray") String chartArray) {
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-Charts-Save";
