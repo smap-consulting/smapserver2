@@ -7,6 +7,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -17,10 +20,14 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.CustomUserReference;
@@ -720,6 +727,137 @@ public class SharedResourceManager {
 		}
 
 		return response;	
+	}
+	
+	/*
+	 * Upload a shared resource media file
+	 */
+	public Response uploadSharedMedia(HttpServletRequest request) {
+		
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);
+		Authorise auth = new Authorise(authorisations, null);
+		
+		Response response = null;
+		String connectionString = "SurveyKPI-uploadSharedResourceFile";
+		
+		log.info("upload shared resource file -----------------------");
+		
+		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();
+		String resourceName = null;
+		String action = "add";	// By default add
+		int surveyId = 0;
+		String surveyIdent = null;
+		FileItem fileItem = null;
+		String user = request.getRemoteUser();
+		String tz = "UTC";
+
+		fileItemFactory.setSizeThreshold((int) SharedResourceManager.MAX_FILE_SIZE); 
+		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+	
+		Connection sd = SDDataSource.getConnection(connectionString); 
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
+
+		PreparedStatement pstmtChangeLog = null;
+		PreparedStatement pstmtUpdateChangeLog = null;
+		
+		try {
+			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);	
+			
+			boolean superUser = false;
+			try {
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			} catch (Exception e) {
+			}
+			
+			// Authorise the user
+			auth.isAuthorised(sd, request.getRemoteUser());
+			
+			/*
+			 * Parse the request
+			 */
+			List<?> items = uploadHandler.parseRequest(request);
+			Iterator<?> itr = items.iterator();
+			while(itr.hasNext()) {
+				
+				FileItem item = (FileItem) itr.next();
+
+				if(item.isFormField()) {
+					if(item.getFieldName().equals("itemName")) {
+						resourceName = item.getString("utf-8");
+						if(resourceName != null) {
+							resourceName = resourceName.trim();
+						}
+						log.info("Resource Name: " + resourceName);	
+						
+					} else if(item.getFieldName().equals("surveyId")) {
+						try {
+							// Authorise access to existing survey
+							surveyId = Integer.parseInt(item.getString());
+							if(surveyId > 0) {
+								auth.isValidSurvey(sd, request.getRemoteUser(), surveyId, false, superUser);	// Check the user has access to the survey
+							}
+							surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, surveyId);
+						} catch (Exception e) {
+							
+						}
+						log.info("Upload to survey: " + surveyId);
+						
+					} else if(item.getFieldName().equals("action")) {						
+						action = item.getString();
+						log.info("Action: " + action);
+						
+					} else {
+						log.info("Unknown field name = "+item.getFieldName()+", Value = "+item.getString());
+					}
+				} else {
+					if(item.getName().trim().length() > 0) {
+						fileItem = item;
+					} else {
+						log.info("No name specified for item in upload file");
+					}
+				}
+			} 
+				
+			/*
+			 * Default the resource name to the item name if it was not specified
+			 */
+			if(resourceName == null) {
+				String fileName = fileItem.getName();
+				int idx = fileName.lastIndexOf('.');
+				if (idx > 0) {
+					resourceName = fileName.substring(0, idx);
+				}
+			}
+			
+			/*
+			 * Load the resource
+			 */
+			SharedResourceManager srm = new SharedResourceManager(localisation, tz);			
+			String basePath = GeneralUtilityMethods.getBasePath(request);			
+			response = srm.add(sd, surveyIdent, surveyId, oId, basePath, user, resourceName, fileItem, action);
+			
+		} catch(AuthorisationException ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			throw ex;
+		} catch(Exception ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().entity(ex.getMessage()).build();
+		} finally {
+			if(pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (Exception e) {}
+			if(pstmtUpdateChangeLog != null) try {pstmtUpdateChangeLog.close();} catch (Exception e) {}
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+			
+		}
+		
+		return response;
 	}
 }
 

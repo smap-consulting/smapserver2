@@ -22,6 +22,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -30,6 +31,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.managers.SharedResourceManager;
 import org.smap.sdal.managers.UsageManager;
 
@@ -85,6 +87,20 @@ public class Misc extends Application {
 
 		SharedResourceManager srm = new SharedResourceManager(null, null);
 		return srm.getSharedMedia(request, sId, getall);
+	}
+	
+	/*
+	 * Upload a single shared resource file
+	 */
+	@POST
+	@Produces("application/json")
+	@Path("/media")
+	public Response uploadSingleSharedResourceFile(
+			@Context HttpServletRequest request) {
+		
+		// No check for Ajax in API
+		SharedResourceManager srm = new SharedResourceManager(null, null);
+		return srm.uploadSharedMedia(request);
 	}
 }
 
