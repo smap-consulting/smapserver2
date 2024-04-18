@@ -4,7 +4,9 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,6 +24,8 @@ import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.CustomUserReference;
+import org.smap.sdal.model.MediaItem;
+import org.smap.sdal.model.MediaResponse;
 import org.smap.sdal.model.Message;
 import org.smap.sdal.model.SharedHistoryItem;
 
@@ -60,12 +64,22 @@ public class SharedResourceManager {
 	public static long MAX_FILE_SIZE = 25000000;	// 25 Million Bytes
 	
 	Authorise aEnum = new Authorise(null, Authorise.ENUM);
+	Authorise aOrg = new Authorise(null, Authorise.ORG);
+	Authorise aAdmin = null;
+	
 	ResourceBundle localisation;
 	String tz;
 	
 	public SharedResourceManager(ResourceBundle localisation, String tz) {
 		this.localisation = localisation;
 		this.tz = tz;
+		
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.ENUM);
+		aAdmin = new Authorise(authorisations, null);	
 	}
 	
 	/*
@@ -505,6 +519,9 @@ public class SharedResourceManager {
 	
 	}
 	
+	/*
+	 * Get a shared resource file that has been loaded for a specific survey
+	 */
 	public Response getSurveyFile(HttpServletRequest request, 
 			HttpServletResponse response,
 			String filename, int sId, 
@@ -565,6 +582,144 @@ public class SharedResourceManager {
 		}
 		
 		return r;
+	}
+	
+	/*
+	 * Get a shared resource file at the organisation level
+	 */
+	public Response getOrganisationFile(
+			HttpServletRequest request, 
+			HttpServletResponse response, 
+			String user, 
+			int requestedOrgId, 
+			String filename, 
+			boolean settings,
+			boolean isTemporaryUser,
+			boolean thumbs) {
+		
+		int oId = 0;
+		Response r = null;
+		String connectionString = "Get Organisation File";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);	
+		if (isTemporaryUser) {
+			aAdmin.isValidTemporaryUser(sd, user);
+		}
+		aAdmin.isAuthorised(sd, user);		
+		try {		
+			oId = GeneralUtilityMethods.getOrganisationId(sd, user);
+		} catch(Exception e) {
+			// ignore error
+		}
+		if(requestedOrgId > 0 && requestedOrgId != oId) {
+			aOrg.isAuthorised(sd, user);	// Must be org admin to work on another organisations data
+			oId = requestedOrgId;
+		}
+		// End Authorisation 
+		
+		
+		log.info("Get File: " + filename + " for organisation: " + oId);
+		try {
+			
+			FileManager fm = new FileManager();
+			r = fm.getOrganisationFile(request, response, user, oId, 
+					filename, settings, thumbs);
+			
+		}  catch (Exception e) {
+			log.info("Error: Failed to get file:" + e.getMessage());
+			r = Response.status(Status.NOT_FOUND).build();
+		} finally {	
+			SDDataSource.closeConnection(connectionString, sd);	
+		}
+		
+		return r;
+	}
+	
+	/*
+	 * Return the shared resource files
+	 */
+	public Response getSharedMedia(HttpServletRequest request, int sId, boolean getall) {
+		Response response = null;
+		String user = request.getRemoteUser();
+		boolean superUser = false;
+
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);
+		Authorise auth = new Authorise(authorisations, null);
+		
+		String connectionString = "surveyKPI-UploadFiles-getMedia";
+		/*
+		 * Authorise
+		 *  If survey ident is passed then check user access to survey
+		 *  Else provide access to the media for the organisation
+		 */
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		if(sId > 0) {
+			try {
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			} catch (Exception e) {
+			}
+			auth.isAuthorised(sd, request.getRemoteUser());
+			auth.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		} else {
+			auth.isAuthorised(sd, request.getRemoteUser());
+		}
+		// End Authorisation		
+
+		/*
+		 * Get the path to the files
+		 */
+		String basePath = GeneralUtilityMethods.getBasePath(request);
+
+		MediaInfo mediaInfo = new MediaInfo();
+		mediaInfo.setServer(request.getRequestURL().toString());
+
+		PreparedStatement pstmt = null;		
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
+			
+			// Get the path to the media folder	
+			if(sId > 0) {
+				mediaInfo.setFolder(basePath, sId, null, sd);
+			} else {		
+				mediaInfo.setFolder(basePath, user, oId, false);				 
+			}
+
+			log.info("Media query on: " + mediaInfo.getPath());
+
+			MediaResponse mResponse = new MediaResponse();
+			mResponse.files = mediaInfo.get(sId, null);	
+			
+			if(sId > 0 && getall) {
+				log.info("Media getting files for survey: " + sId);
+				// Get a hashmap of the names to exclude
+				HashMap<String, String> exclude = new HashMap<> ();
+				for(MediaItem mi : mResponse.files) {
+					exclude.put(mi.name, mi.name);
+				}
+				// Add the organisation level media
+				mediaInfo.setFolder(basePath, user, oId, false);
+				mResponse.files.addAll(mediaInfo.get(0, exclude));
+				
+			}
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(mResponse);
+			response = Response.ok(resp).build();		
+
+		}  catch(Exception ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().build();
+		} finally {
+
+			if (pstmt != null) { try {pstmt.close();} catch (SQLException e) {}}
+
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;	
 	}
 }
 
