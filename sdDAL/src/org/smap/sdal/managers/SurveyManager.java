@@ -71,7 +71,6 @@ import org.smap.sdal.model.QuestionLite;
 import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerCalculation;
-import org.smap.sdal.model.ServerSideCalculate;
 import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.StyleList;
