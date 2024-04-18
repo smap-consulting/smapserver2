@@ -208,7 +208,6 @@ public class UserList extends Application {
 		return response;
 	}
 
-
 	@GET
 	@Path("/temporary")
 	@Produces("application/json")

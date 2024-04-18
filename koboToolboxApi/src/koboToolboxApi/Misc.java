@@ -21,6 +21,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -32,8 +39,18 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.AuthorisationException;
+import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.SharedResourceManager;
+import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.UsageManager;
+import org.smap.sdal.managers.UserManager;
+import org.smap.sdal.model.SurveyIdent;
+import org.smap.sdal.model.UserSimple;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 /*
  * Provides access to end points that were previously directly accessed via 
@@ -43,6 +60,9 @@ import org.smap.sdal.managers.UsageManager;
 @Path("/v1/misc")
 public class Misc extends Application {
 
+	private static Logger log =
+			 Logger.getLogger(Misc.class.getName());
+	
 	public Misc() {
 		
 	}
@@ -101,6 +121,111 @@ public class Misc extends Application {
 		// No check for Ajax in API
 		SharedResourceManager srm = new SharedResourceManager(null, null);
 		return srm.uploadSharedMedia(request);
+	}
+	
+	/*
+	 * Get a list of users
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/userList/simple")
+	public Response getUsersSimple(
+			@Context HttpServletRequest request
+			) { 
+
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.SECURITY);
+		authorisations.add(Authorise.ORG);
+		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.MANAGE);
+		authorisations.add(Authorise.MANAGE_TASKS);
+		Authorise aSimpleList = new Authorise(authorisations, null);
+		
+		Response response = null;
+		String connectionString = "surveyKPI-getUsersSimple";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aSimpleList.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		ArrayList<UserSimple> users = null;
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);	
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			boolean isOnlyViewData = GeneralUtilityMethods.isOnlyViewData(sd, request.getRemoteUser());
+			UserManager um = new UserManager(localisation);
+			users = um.getUserListSimple(sd, oId, true, isOnlyViewData, request.getRemoteUser(), false);		// Always sort by name
+			String resp = gson.toJson(users);
+			response = Response.ok(resp).build();
+						
+			
+		} catch (Exception e) {
+			
+			log.log(Level.SEVERE,"Error: ", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		    
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Get a list of surveys with their idents that are accessible to a user
+	 */
+	@GET
+	@Path("/surveys/idents")
+	@Produces("application/json")
+	public Response getSurveyIdents(@Context HttpServletRequest request) { 
+		
+		ArrayList<String> authorisations = new ArrayList<String> ();
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);
+		Authorise aUpdate = new Authorise(authorisations, null);
+		
+		String connectionString = "surveyKPI - Get Survey Idents";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString );	
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		
+		Response response = null;
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			ArrayList<SurveyIdent> surveyIdents = sm.getSurveyIdentList(sd, request.getRemoteUser(), superUser);
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			String resp = gson.toJson(surveyIdents);
+			response = Response.ok(resp).build();			
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {			
+			SDDataSource.closeConnection(connectionString , sd);				
+		}
+
+		return response;
 	}
 }
 
