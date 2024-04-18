@@ -82,7 +82,8 @@ public class GetFile extends Application {
 			@QueryParam("org") int requestedOrgId) throws Exception {
 		
 		log.info("------- " + filename);
-		return getOrganisationFile(request, response, request.getRemoteUser(), requestedOrgId, filename, settings, false, thumbs);
+		SharedResourceManager srm = new SharedResourceManager(null, null);
+		return srm.getOrganisationFile(request, response, request.getRemoteUser(), requestedOrgId, filename, settings, false, thumbs);
 	}
 	
 	@GET
@@ -134,7 +135,8 @@ public class GetFile extends Application {
 			log.info("User not found for key");
 			throw new AuthorisationException();
 		}
-		return getOrganisationFile(request, response, user, requestedOrgId, filename, 
+		SharedResourceManager srm = new SharedResourceManager(null, null);
+		return srm.getOrganisationFile(request, response, user, requestedOrgId, filename, 
 				settings, false, thumbs);
 	}
 	
@@ -152,7 +154,8 @@ public class GetFile extends Application {
 			@PathParam("ident") String user) throws SQLException {
 				
 		log.info("Getting file authenticated with a key");
-		return getOrganisationFile(request, response, user, 0, filename, false, true, thumbs);
+		SharedResourceManager srm = new SharedResourceManager(null, null);
+		return srm.getOrganisationFile(request, response, user, 0, filename, false, true, thumbs);
 	}
 	
 	@GET
@@ -382,58 +385,6 @@ public class GetFile extends Application {
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Error getting file", e);
 			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
-		} finally {	
-			SDDataSource.closeConnection(connectionString, sd);	
-		}
-		
-		return r;
-	}
-	
-	/*
-	 * Get the file at the organisation level
-	 */
-	private Response getOrganisationFile(
-			HttpServletRequest request, 
-			HttpServletResponse response, 
-			String user, 
-			int requestedOrgId, 
-			String filename, 
-			boolean settings,
-			boolean isTemporaryUser,
-			boolean thumbs) {
-		
-		int oId = 0;
-		Response r = null;
-		String connectionString = "Get Organisation File";
-		
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);	
-		if (isTemporaryUser) {
-			a.isValidTemporaryUser(sd, user);
-		}
-		a.isAuthorised(sd, user);		
-		try {		
-			oId = GeneralUtilityMethods.getOrganisationId(sd, user);
-		} catch(Exception e) {
-			// ignore error
-		}
-		if(requestedOrgId > 0 && requestedOrgId != oId) {
-			aOrg.isAuthorised(sd, user);	// Must be org admin to work on another organisations data
-			oId = requestedOrgId;
-		}
-		// End Authorisation 
-		
-		
-		log.info("Get File: " + filename + " for organisation: " + oId);
-		try {
-			
-			FileManager fm = new FileManager();
-			r = fm.getOrganisationFile(request, response, user, oId, 
-					filename, settings, thumbs);
-			
-		}  catch (Exception e) {
-			log.info("Error: Failed to get file:" + e.getMessage());
-			r = Response.status(Status.NOT_FOUND).build();
 		} finally {	
 			SDDataSource.closeConnection(connectionString, sd);	
 		}

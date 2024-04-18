@@ -39,7 +39,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -48,7 +47,7 @@ import org.smap.sdal.managers.UserLocationManager;
 import org.smap.sdal.managers.UserManager;
 
 /*
- * Provides access to audit views on the surveys
+ * Provides access to user information
  */
 @Path("/v1/users")
 public class Users extends Application {

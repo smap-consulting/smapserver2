@@ -64,6 +64,25 @@ public class Resource extends Application {
 		SharedResourceManager srm = new SharedResourceManager(null, null);
 		return srm.getSurveyFile(request, response,filename, sId, thumbs, linked);	
 	}
+	
+	/*
+	 * Get organisation level resource file
+	 */
+	@GET
+	@Path("/organisation")
+	@Produces("application/x-download")
+	public Response getOrganisationFileUser (
+			@Context HttpServletRequest request, 
+			@Context HttpServletResponse response,
+			@PathParam("filename") String filename,
+			@QueryParam("settings") boolean settings,
+			@QueryParam("thumbs") boolean thumbs,
+			@QueryParam("org") int requestedOrgId) throws Exception {
+		
+		log.info("------- " + filename);
+		SharedResourceManager srm = new SharedResourceManager(null, null);
+		return srm.getOrganisationFile(request, response, request.getRemoteUser(), requestedOrgId, filename, settings, false, thumbs);
+	}
 
 }
 
