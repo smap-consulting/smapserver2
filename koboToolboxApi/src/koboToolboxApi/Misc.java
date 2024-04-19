@@ -38,6 +38,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.smap.model.SurveyTemplateManager;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -226,6 +227,22 @@ public class Misc extends Application {
 		}
 
 		return response;
+	}
+	
+	/*
+	 * Upload a survey form
+	 * curl -u neil -i -X POST -H "Content-Type: multipart/form-data" -F "projectId=1" -F "templateName=age" -F "tname=@x.xls" http://localhost/surveyKPI/upload/surveytemplate
+	 */
+	@POST
+	@Produces("application/json")
+	@Path("/upload/surveytemplate")
+	public Response uploadForm(
+			@Context HttpServletRequest request) {
+		
+		// Allow non Ajax calls
+		
+		SurveyTemplateManager sm = new SurveyTemplateManager();
+		return sm.uploadTemplate(request);
 	}
 }
 

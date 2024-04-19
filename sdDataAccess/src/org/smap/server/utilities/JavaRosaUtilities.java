@@ -1,4 +1,4 @@
-package utilities;
+package org.smap.server.utilities;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
