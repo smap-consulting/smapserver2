@@ -36,9 +36,7 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -108,18 +106,18 @@ public class Login extends Application {
 	}
 
 	/*
-	 * Return true if the passed in user ident has a basic password
+	 * Return true if the currently logged in user has a basic password
 	 */
 	@GET
-	@Path("/basic/{ident}")
+	@Path("/basic")
 	@Produces("application/json")
-	public Response hasBasicPassword(@Context HttpServletRequest request,
-			@PathParam("ident") String ident) {
+	public Response hasBasicPassword(@Context HttpServletRequest request) {
 		
 		Response response = null;
 		String connectionString = "surveyKPI-login-has-basic";
 		 		
 		// No authorisation is required - the key is returned to the authenticated user
+		String userIdent = request.getRemoteUser();
 		
 		Connection sd = SDDataSource.getConnection(connectionString);	
 		
@@ -130,7 +128,7 @@ public class Login extends Application {
 		
 		try {
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, ident);
+			pstmt.setString(1, userIdent);
 			log.info("Test for basic password: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();		
 			if(rs.next() && rs.getInt(1) > 0) {
