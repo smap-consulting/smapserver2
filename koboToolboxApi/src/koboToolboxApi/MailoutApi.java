@@ -62,6 +62,8 @@ public class MailoutApi extends Application {
 	
 	Authorise a = null;
 	
+	boolean forDevice = true;	// URL prefixes for API should have the device/API format
+	
 	private static Logger log =
 			 Logger.getLogger(MailoutApi.class.getName());
 	
@@ -163,7 +165,7 @@ public class MailoutApi extends Application {
 						
 			MailoutManager mm = new MailoutManager(localisation);
 				
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, true);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
 			ArrayList<Mailout> mailouts = mm.getMailouts(sd, surveyIdent, links, urlprefix); 
 				
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();

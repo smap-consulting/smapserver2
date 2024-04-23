@@ -57,6 +57,8 @@ public class Submissions extends Application {
 	Authorise a = null;
 	Authorise aSuper = null;
 
+	boolean forDevice = true;	// URL prefixes for API should have the device/API format
+	
 	private static Logger log =
 			Logger.getLogger(Submissions.class.getName());
 
@@ -196,7 +198,7 @@ public class Submissions extends Application {
 			rs = pstmt.executeQuery();
 			
 			int index = 0;
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, true);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
 			while(rs.next()) {
 				
 				JSONObject jo  =  subMgr.getRecord(rs, isGeoJson, false, true, incLinks, urlprefix);

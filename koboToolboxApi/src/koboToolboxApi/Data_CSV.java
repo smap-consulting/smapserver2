@@ -71,6 +71,8 @@ public class Data_CSV extends Application {
 
 	Authorise a = null;
 
+	boolean forDevice = true;	// URL prefixes for API should have the device/API format
+	
 	private static Logger log = Logger.getLogger(Data_CSV.class.getName());
 
 	LogManager lm = new LogManager(); // Application log
@@ -272,7 +274,7 @@ public class Data_CSV extends Application {
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 			response.setHeader("content-type", "text/plain; charset=utf-8");
 			outWriter = response.getWriter();
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, true);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
 
 			/*
 			 * Check rate Limiter and whether or not the api is disabled

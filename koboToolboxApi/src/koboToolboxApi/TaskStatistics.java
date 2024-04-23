@@ -25,7 +25,6 @@ import com.google.gson.GsonBuilder;
 
 import java.sql.Connection;
 import java.util.ArrayList;
-import java.util.logging.Logger;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -49,8 +48,7 @@ public class TaskStatistics extends Application {
 	
 	Authorise a = null;
 	
-	private static Logger log =
-			 Logger.getLogger(TaskStatistics.class.getName());
+	boolean forDevice = true;	// URL prefixes for API should have the device/API format
 	
 	public TaskStatistics() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
@@ -74,7 +72,7 @@ public class TaskStatistics extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 
 		SDDataSource.closeConnection("KoboToolBoxAPI - Tasks - Endpoints", sd);
-		
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
 		ArrayList<TasksEndPoint> endPoints = new ArrayList<TasksEndPoint> ();
 		
 		TasksEndPoint ep = new TasksEndPoint(request, 
@@ -84,7 +82,8 @@ public class TaskStatistics extends Application {
 				"scheduled",
 				"year,month,week, day",
 				"user",
-				"?group=status&x=scheduled&period=month");
+				"?group=status&x=scheduled&period=month",
+				urlprefix);
 		endPoints.add(ep);
 		
 		ep = new TasksEndPoint(request, 
@@ -94,7 +93,8 @@ public class TaskStatistics extends Application {
 				null,
 				null,
 				"user",
-				"?user=2");
+				"?user=2",
+				urlprefix);
 		endPoints.add(ep);
 		
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
