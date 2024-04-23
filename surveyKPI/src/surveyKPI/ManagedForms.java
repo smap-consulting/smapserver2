@@ -78,6 +78,8 @@ public class ManagedForms extends Application {
 	Authorise aSuper = new Authorise(null, Authorise.ANALYST);
 	Authorise aAdmin = new Authorise(null, Authorise.ADMIN);
 	
+	boolean forDevice = false;	// URL prefixes should be in the client format
+	
 	private static Logger log =
 			 Logger.getLogger(Review.class.getName());
 	
@@ -206,9 +208,12 @@ public class ManagedForms extends Application {
 			if(instances == null || instances.size() == 0) {
 				throw(new ApplicationException("No instances to bulk update"));
 			}
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
 			for(String instance : instances) {
 				response = am.processUpdateGroupSurvey(request, sd, cResults, 
-						request.getRemoteUser(), sId, instance, subFormPrimaryKey, groupSurvey, groupForm, updatesString, bulk);
+						request.getRemoteUser(), sId, instance, subFormPrimaryKey, 
+						groupSurvey, groupForm, updatesString, bulk,
+						urlprefix);
 			}
 			
 			

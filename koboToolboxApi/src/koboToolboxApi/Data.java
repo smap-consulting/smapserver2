@@ -66,6 +66,8 @@ public class Data extends Application {
 	Authorise a = null;
 	Authorise aSuper = null;
 
+	boolean forDevice = true;	// URL prefixes for API should have the device/API format
+	
 	private static Logger log =
 			Logger.getLogger(Data.class.getName());
 
@@ -112,7 +114,8 @@ public class Data extends Application {
 			
 			DataManager dm = new DataManager(localisation, "UTC");
 			
-			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, request, false);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, request, false, urlprefix);
 
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(data);
@@ -189,6 +192,8 @@ public class Data extends Application {
 			includeMeta = false;
 		}
 		
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+		
 		// Authorisation, localisation and timezone are determined in getDataRecords
 		DataManager dm = new DataManager(null, "UTC");		
 		dm.getDataRecords(request, response, sIdent, start, limit, mgmt, oversightSurvey, viewId, 
@@ -196,7 +201,8 @@ public class Data extends Application {
 				parkey, hrk, format, include_bad, include_completed, audit_set, merge, geojson, geomQuestion,
 				tz, incLinks, 
 				filter, dd_filter, prikey, dd_hrk, dateName, startDate, endDate, getSettings, 
-				instanceId, includeMeta, true);
+				instanceId, includeMeta,
+				urlprefix);
 		
 		return Response.status(Status.OK).build();
 	}
@@ -254,6 +260,8 @@ public class Data extends Application {
 			a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 			// End Authorisation
 			
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+			
 			boolean includeHierarchy = false;
 			boolean includeMeta = false;		// Default to false for single record (Historical consistency reason)
 			String mergeExp = "no";
@@ -275,7 +283,8 @@ public class Data extends Application {
 						mergeExp, 			// If set to yes then do not put choices from select multiple questions in separate objects
 						localisation,
 						tz,				// Timezone
-						includeMeta
+						includeMeta,
+						urlprefix
 						);	
 			} else {
 				response = getSingleRecord(
@@ -346,6 +355,8 @@ public class Data extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+			
 			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}
@@ -359,7 +370,8 @@ public class Data extends Application {
 					"yes", 			// If set to yes then do not put choices from select multiple questions in separate objects
 					localisation,
 					tz,				// Timezone
-					true
+					true,
+					urlprefix
 					);	
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
@@ -575,7 +587,8 @@ public class Data extends Application {
 			) { 
 
 		DataManager dm = new DataManager(null, null);
-		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit, true);
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit, urlprefix);
 	}
 }
 

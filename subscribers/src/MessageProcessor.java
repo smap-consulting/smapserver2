@@ -34,11 +34,14 @@ public class MessageProcessor {
 	DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 	DocumentBuilder db = null;
 
+	boolean forDevice = false;	// URL prefixes should be in the client format
+	
 	private static Logger log = Logger.getLogger(Subscriber.class.getName());
 
 	private class MessageLoop implements Runnable {
 		DatabaseConnections dbc = new DatabaseConnections();
 		String serverName;
+		String urlprefix;
 		String basePath;
 		String awsPropertiesFile;
 
@@ -67,17 +70,20 @@ public class MessageProcessor {
 						// Make sure we have a connection to the database
 						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 						serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
+						urlprefix = GeneralUtilityMethods.getUrlPrefixBatch(serverName, forDevice);
 						
 						// Apply messages
 						MessagingManagerApply mma = new MessagingManagerApply();
 						try { 
-							mma.applyOutbound(dbc.sd, dbc.results, serverName, basePath, count++, awsPropertiesFile);
+							mma.applyOutbound(dbc.sd, dbc.results, serverName, 
+									basePath, count++, awsPropertiesFile, urlprefix);
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}
 						
 						try {
-							mma.applyPendingEmailMessages(dbc.sd, dbc.results, serverName, basePath);
+							mma.applyPendingEmailMessages(dbc.sd, dbc.results, 
+									serverName, basePath, urlprefix);
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}

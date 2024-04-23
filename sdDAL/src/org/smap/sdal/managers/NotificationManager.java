@@ -771,7 +771,8 @@ public class NotificationManager {
 			String topic,
 			boolean createPending,
 			String serverName,
-			String basePath) throws Exception {
+			String basePath,
+			String urlprefix) throws Exception {
 
 		String docURL = null;
 		String filePath = null;
@@ -873,8 +874,6 @@ public class NotificationManager {
 							landscape = msg.attach.equals("pdf_landscape");
 							msg.attach = "pdf";
 						}
-
-						String urlprefix = "https://" + serverName + "/";
 
 						filename = pm.createPdf(
 								outputStream,
@@ -1029,7 +1028,8 @@ public class NotificationManager {
 								null,
 								msg.instanceId,
 								sm,
-								true);
+								true,
+								urlprefix);
 						String resp = "{}";
 						if(data.length() > 0) {
 							resp = data.getString(0).toString();

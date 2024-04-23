@@ -574,7 +574,8 @@ public class ActionManager {
 			String groupSurvey, 
 			String groupForm,
 			String updateString,
-			boolean bulk) throws SQLException {
+			boolean bulk,
+			String urlprefix) throws SQLException {
 
 		Response response = null;
 
@@ -830,8 +831,6 @@ public class ActionManager {
 			NotificationManager nm = new NotificationManager(localisation);
 			String server = request.getServerName();
 			String basePath = GeneralUtilityMethods.getBasePath(request);
-			String urlprefix = "https://" + server + "/";
-			int pId = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, surveyIdent);
 			for (int i = 0; i < updates.size(); i++) {
 				
 				Update u = updates.get(i);

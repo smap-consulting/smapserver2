@@ -68,7 +68,8 @@ public class DataManager {
 	}
 	public ArrayList<DataEndPoint> getDataEndPoints(Connection sd, 
 			HttpServletRequest request,
-			boolean csv) throws SQLException {
+			boolean csv,
+			String urlprefix) throws SQLException {
 		
 		ArrayList<DataEndPoint> data = new ArrayList<DataEndPoint> ();
 		
@@ -80,7 +81,6 @@ public class DataManager {
 		boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		surveys = sm.getSurveysAndForms(sd, request.getRemoteUser(), superUser);
 		
-		String urlprefix = request.getScheme() + "://" + request.getServerName();
 		if(csv) {
 			urlprefix += "/api/v1/data.csv/";	// This request should only be made as an API request and not from the client
 		} else {
@@ -121,7 +121,8 @@ public class DataManager {
 			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
 			ResourceBundle localisation,
 			String tz,				// Timezone
-			boolean includeMeta
+			boolean includeMeta,
+			String urlprefix
 			) throws ApplicationException, Exception { 
 
 		Response response;
@@ -167,7 +168,8 @@ public class DataManager {
 					null,
 					uuid,
 					sm,
-					includeMeta);
+					includeMeta,
+					urlprefix);
 		} else {
 			throw new ApplicationException(localisation.getString("mf_snf"));
 		}
@@ -206,7 +208,8 @@ public class DataManager {
 			String hrk,				// Usually either hrk or instanceId would be used to identify the instance
 			String instanceId,
 			SurveyManager sm,
-			boolean includeMeta
+			boolean includeMeta,
+			String urlprefix
 			) throws Exception {
 
 		ArrayList<TableColumn> columns = null;
@@ -221,9 +224,6 @@ public class DataManager {
 		try {
 			
 			TableDataManager tdm = new TableDataManager(localisation, tz);
-			
-			String serverName = GeneralUtilityMethods.getSubmissionServer(sd);
-			String urlprefix = "https://" + serverName + "/";	
 			
 			if(!GeneralUtilityMethods.tableExists(cResults, form.tableName)) {
 				throw new ApplicationException(localisation.getString("imp_no_file"));
@@ -411,7 +411,8 @@ public class DataManager {
 									null,
 									null,
 									sm,
-									false));
+									false,
+									urlprefix));
 						}
 					}	
 					
@@ -466,7 +467,7 @@ public class DataManager {
 			boolean getSettings,		// Set true if the settings are stored in the database, otherwise they are passed with the request
 			String instanceId,
 			boolean includeMeta,
-			boolean forDevice
+			String urlprefix
 			) throws ApplicationException, Exception { 
 
 		String connectionString = "koboToolboxApi - get data records";
@@ -593,8 +594,6 @@ public class DataManager {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}	
 			RateLimiter.isPermitted(sd, oId, response, localisation);
-
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
 
 			/*
 			 * Get the survey view
@@ -1008,7 +1007,7 @@ public class DataManager {
 			boolean mgmt,
 			int start,
 			int limit,
-			boolean forDevice) {
+			String urlprefix) {
 		Response response = null;
 
 		ArrayList<String> authorisationsSuper = new ArrayList<String> ();	
@@ -1072,8 +1071,6 @@ public class DataManager {
 			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}
-			
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
 
 			// Get the managed Id
 			if(mgmt) {

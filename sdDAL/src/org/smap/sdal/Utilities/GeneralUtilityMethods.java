@@ -295,6 +295,15 @@ public class GeneralUtilityMethods {
 		return request.getScheme() + "://" + request.getServerName() + "/"
 				+ (forDevice ? "" : "app/");
 	}
+	
+	/*
+	 * Get the URL prefix for media
+	 * When accessed from the GUI /app is prepended to the path
+	 * Assume https as the scheme
+	 */
+	static public String getUrlPrefixBatch(String serverName, boolean forDevice) {
+		return "https://" + serverName + "/" + (forDevice ? "" : "app/");
+	}
 
 	/*
 	 * Throw a 404 exception if this is not a business server

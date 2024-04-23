@@ -81,6 +81,8 @@ public class APIEntryPoints extends Application {
 	Authorise aAdminAnalyst = null;
 	Authorise aContacts = null;
 	
+	boolean forDevice = false;	// URL prefixes should be in the client format
+	
 	public APIEntryPoints() {
 		ArrayList<String> authMailout = new ArrayList<String> ();	
 		authMailout.add(Authorise.ADMIN);
@@ -155,12 +157,13 @@ public class APIEntryPoints extends Application {
 		
 		// Authorisation, localisation and timezone are determined in getDataRecords
 		DataManager dm = new DataManager(null, "UTC");	
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
 		dm.getDataRecords(request, response, sIdent, start, limit, mgmt, oversightSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, include_completed, audit_set, merge, geojson, geomQuestion,
 				tz, incLinks, 
 				filter, dd_filter, prikey, dd_hrk, dateName, startDate, endDate, getSettings, 
-				instanceId, includeMeta, false);
+				instanceId, includeMeta, urlprefix);
 		
 		return Response.status(Status.OK).build();
 	}
@@ -578,11 +581,12 @@ public class APIEntryPoints extends Application {
 			@QueryParam("limit") int limit,
 			@QueryParam("mgmt") boolean mgmt,
 			@QueryParam("form") int fId,				// Form id (optional only specify for a child form)
-			@QueryParam("format") String format			// dt for datatables otherwise assume kobo
+			@QueryParam("format") String format			// dt for datatables otherwise assume an API call
 			) { 
 
 		DataManager dm = new DataManager(null, null);
-		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit, false);
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit, urlprefix);
 	}
 	
 	/*
