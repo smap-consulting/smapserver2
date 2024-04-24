@@ -71,7 +71,7 @@ public class Data_CSV extends Application {
 
 	Authorise a = null;
 
-	boolean forDevice = true;	// URL prefixes for API should have the device/API format
+	boolean forDevice = true;	// Attachment URL prefixes for API should have the device/API format
 	
 	private static Logger log = Logger.getLogger(Data_CSV.class.getName());
 
@@ -119,7 +119,7 @@ public class Data_CSV extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 						
 			DataManager dm = new DataManager(localisation, "UTC");
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, request, true, urlprefix);
 
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
@@ -275,7 +275,7 @@ public class Data_CSV extends Application {
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 			response.setHeader("content-type", "text/plain; charset=utf-8");
 			outWriter = response.getWriter();
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 
 			/*
 			 * Check rate Limiter and whether or not the api is disabled

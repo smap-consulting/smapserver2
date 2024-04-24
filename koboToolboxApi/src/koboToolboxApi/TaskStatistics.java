@@ -48,7 +48,7 @@ public class TaskStatistics extends Application {
 	
 	Authorise a = null;
 	
-	boolean forDevice = true;	// URL prefixes for API should have the device/API format
+	boolean forDevice = true;	// Attachment URL prefixes for API should have the device/API format
 	
 	public TaskStatistics() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
@@ -72,7 +72,7 @@ public class TaskStatistics extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 
 		SDDataSource.closeConnection("KoboToolBoxAPI - Tasks - Endpoints", sd);
-		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 		ArrayList<TasksEndPoint> endPoints = new ArrayList<TasksEndPoint> ();
 		
 		TasksEndPoint ep = new TasksEndPoint(request, 

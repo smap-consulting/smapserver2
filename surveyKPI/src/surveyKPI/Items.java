@@ -141,7 +141,7 @@ public class Items extends Application {
 		DecimalFormat decimalFormat = new DecimalFormat("0.00");
 		
 		// Called by client only
-		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, false);
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 
 		if(geom != null && geom.equals("no")) {
 			bGeom = false;

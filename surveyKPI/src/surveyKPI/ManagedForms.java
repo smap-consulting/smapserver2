@@ -208,7 +208,7 @@ public class ManagedForms extends Application {
 			if(instances == null || instances.size() == 0) {
 				throw(new ApplicationException("No instances to bulk update"));
 			}
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 			for(String instance : instances) {
 				response = am.processUpdateGroupSurvey(request, sd, cResults, 
 						request.getRemoteUser(), sId, instance, subFormPrimaryKey, 

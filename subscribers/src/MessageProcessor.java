@@ -42,6 +42,7 @@ public class MessageProcessor {
 		DatabaseConnections dbc = new DatabaseConnections();
 		String serverName;
 		String urlprefix;
+		String attachmentPrefix;
 		String basePath;
 		String awsPropertiesFile;
 
@@ -70,20 +71,25 @@ public class MessageProcessor {
 						// Make sure we have a connection to the database
 						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 						serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
-						urlprefix = GeneralUtilityMethods.getUrlPrefixBatch(serverName, forDevice);
+						urlprefix = GeneralUtilityMethods.getUrlPrefixBatch(serverName);
+						attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefixBatch(serverName, forDevice);
 						
 						// Apply messages
 						MessagingManagerApply mma = new MessagingManagerApply();
 						try { 
 							mma.applyOutbound(dbc.sd, dbc.results, serverName, 
-									basePath, count++, awsPropertiesFile, urlprefix);
+									basePath, count++, awsPropertiesFile, 
+									urlprefix,
+									attachmentPrefix);
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}
 						
 						try {
 							mma.applyPendingEmailMessages(dbc.sd, dbc.results, 
-									serverName, basePath, urlprefix);
+									serverName, basePath, 
+									urlprefix, 
+									attachmentPrefix);
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}

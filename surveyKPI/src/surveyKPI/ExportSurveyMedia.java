@@ -64,6 +64,8 @@ public class ExportSurveyMedia extends Application {
 	
 	LogManager lm = new LogManager();		// Application log
 	
+	boolean forDevice = false;	// Attachment URL prefixes should be in the client format
+	
 	public ExportSurveyMedia() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
@@ -96,7 +98,8 @@ public class ExportSurveyMedia extends Application {
 		
 		log.info("userevent: " + request.getRemoteUser() + " Export media " + sId + " file to " + filename );
 		
-		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+		String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
 		
 		String tz = "UTC";		// Default to UTC
 		
@@ -224,6 +227,7 @@ public class ExportSurveyMedia extends Application {
 						language, 
 						"media", 
 						urlprefix,
+						attachmentPrefix,
 						false,
 						false,
 						false,

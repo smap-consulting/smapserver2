@@ -288,21 +288,34 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Get the URL prefix for media
-	 * When accessed from the GUI /app is prepended to the path
+	 * Get the URL prefix
 	 */
-	static public String getUrlPrefix(HttpServletRequest request, boolean forDevice) {
-		return request.getScheme() + "://" + request.getServerName() + "/"
-				+ (forDevice ? "" : "app/");
+	static public String getUrlPrefix(HttpServletRequest request) {
+		return request.getScheme() + "://" + request.getServerName() + "/";
 	}
 	
 	/*
-	 * Get the URL prefix for media
-	 * When accessed from the GUI /app is prepended to the path
+	 * Get the URL prefix
 	 * Assume https as the scheme
 	 */
-	static public String getUrlPrefixBatch(String serverName, boolean forDevice) {
-		return "https://" + serverName + "/" + (forDevice ? "" : "app/");
+	static public String getUrlPrefixBatch(String serverName) {
+		return "https://" + serverName + "/";
+	}
+	
+	/*
+	 * Get the URL prefix for attachments
+	 * When accessed from the GUI /app is prepended to the path
+	 */
+	static public String getAttachmentPrefix(HttpServletRequest request, boolean forDevice) {
+		return getUrlPrefix(request) + (forDevice ? "" : "app/");
+	}
+	
+	/*
+	 * Get the URL prefix for attachments
+	 * When accessed from the GUI /app is prepended to the path
+	 */
+	static public String getAttachmentPrefixBatch(String serverName, boolean forDevice) {
+		return getUrlPrefixBatch(serverName) + (forDevice ? "" : "app/");
 	}
 
 	/*

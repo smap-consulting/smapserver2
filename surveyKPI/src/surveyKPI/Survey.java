@@ -372,8 +372,11 @@ public class Survey extends Application {
 					"", 
 					pId,
 					null);
-			String link = GeneralUtilityMethods.getUrlPrefix(request, false) + "webForm/id/" + tempUserId + 
-					"/" + sIdent;
+			
+			String link = GeneralUtilityMethods.getUrlPrefix(request) 
+					+ "/app/myWork/webForm/id/" 
+					+ tempUserId 
+					+ "/" + sIdent;
 			
 			// Store the link with the survey
 			pstmt = sd.prepareStatement(sql);

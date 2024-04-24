@@ -79,7 +79,7 @@ public class GetHtml {
 			boolean forDevice) throws SQLException, Exception {
 		
 		gRecordCounts = recordCounts;
-		gUrlPrefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+		gUrlPrefix = GeneralUtilityMethods.getUrlPrefix(request);
 		
 		String response = null;
 		String connectionString = "Get Html";

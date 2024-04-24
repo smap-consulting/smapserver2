@@ -66,6 +66,8 @@ public class ActionServiceKPI extends Application {
 
 	private static Logger log = Logger.getLogger(ActionServiceKPI.class.getName());
 
+	boolean forDevice = false;	// Attachment URL prefixes should be in the client format
+	
 	public ActionServiceKPI() {
 
 		ArrayList<String> authorisations = new ArrayList<String>();
@@ -134,6 +136,8 @@ public class ActionServiceKPI extends Application {
 						userIdent,
 						request.getScheme(),
 						request.getServerName(),
+						GeneralUtilityMethods.getUrlPrefix(request),
+						GeneralUtilityMethods.getAttachmentPrefix(request, forDevice),
 						GeneralUtilityMethods.getBasePath(request),
 						response.getOutputStream(),
 						sId,

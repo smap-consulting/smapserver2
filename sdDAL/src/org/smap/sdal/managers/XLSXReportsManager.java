@@ -73,6 +73,8 @@ public class XLSXReportsManager {
 			String username,
 			String scheme,
 			String serverName,
+			String urlprefix,
+			String attachmentPrefix,
 			String basePath,
 			OutputStream outputStream,
 			int sId, 
@@ -96,9 +98,7 @@ public class XLSXReportsManager {
 		Response responseVal = null;
 
 		HashMap<ArrayList<OptionDesc>, String> labelListMap = new  HashMap<ArrayList<OptionDesc>, String> ();
-		HashMap<String, String> surveyNames = new HashMap<String, String> ();
-
-		String urlprefix = scheme + "://" + serverName + "/";		
+		HashMap<String, String> surveyNames = new HashMap<String, String> ();	
 
 		String msg = localisation.getString("msg_exp_xlsx");
 		String start = startDate == null ? "" : startDate.toString();
@@ -199,6 +199,7 @@ public class XLSXReportsManager {
 						language, 
 						SmapExportTypes.XLSX, 
 						urlprefix, 
+						attachmentPrefix,
 						true,
 						exp_ro,
 						excludeParents,

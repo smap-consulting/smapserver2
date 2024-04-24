@@ -81,7 +81,7 @@ public class APIEntryPoints extends Application {
 	Authorise aAdminAnalyst = null;
 	Authorise aContacts = null;
 	
-	boolean forDevice = false;	// URL prefixes should be in the client format
+	boolean forDevice = false;	// Attachment URL prefixes should be in the client format
 	
 	public APIEntryPoints() {
 		ArrayList<String> authMailout = new ArrayList<String> ();	
@@ -157,7 +157,7 @@ public class APIEntryPoints extends Application {
 		
 		// Authorisation, localisation and timezone are determined in getDataRecords
 		DataManager dm = new DataManager(null, "UTC");	
-		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 		dm.getDataRecords(request, response, sIdent, start, limit, mgmt, oversightSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, include_completed, audit_set, merge, geojson, geomQuestion,
@@ -253,7 +253,7 @@ public class APIEntryPoints extends Application {
 						
 			MailoutManager mm = new MailoutManager(localisation);
 				
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, false);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 			ArrayList<Mailout> mailouts = mm.getMailouts(sd, surveyIdent, links, urlprefix); 
 				
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -585,7 +585,7 @@ public class APIEntryPoints extends Application {
 			) { 
 
 		DataManager dm = new DataManager(null, null);
-		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit, urlprefix);
 	}
 	

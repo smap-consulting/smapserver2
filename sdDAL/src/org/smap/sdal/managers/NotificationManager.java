@@ -1179,7 +1179,9 @@ public class NotificationManager {
 			String topic,
 			boolean createPending,
 			String serverName,
-			String basePath) throws Exception {
+			String basePath,
+			String urlprefix,
+			String attachmentPrefix) throws Exception {
 
 		String docURL = null;
 		String filePath = null;
@@ -1225,6 +1227,8 @@ public class NotificationManager {
 				userIdent,
 				"https:",
 				serverName,
+				urlprefix,
+				attachmentPrefix,
 				basePath,
 				outputStream,
 				sId,

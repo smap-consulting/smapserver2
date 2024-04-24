@@ -58,6 +58,7 @@ public class QueryGenerator {
 			String language, 
 			String format,
 			String urlprefix,
+			String attachmentPrefix,
 			boolean wantUrl,
 			boolean exp_ro,
 			boolean excludeParents,
@@ -147,6 +148,7 @@ public class QueryGenerator {
 					pstmtQLabel,
 					pstmtListLabels,
 					urlprefix,
+					attachmentPrefix,
 					wantUrl,
 					exp_ro,
 					labelListMap,
@@ -416,6 +418,7 @@ public class QueryGenerator {
 			PreparedStatement pstmtQLabel,
 			PreparedStatement pstmtListLabels,
 			String urlprefix,
+			String attachmentPrefix,
 			boolean wantUrl,
 			boolean exp_ro,
 			HashMap<ArrayList<OptionDesc>, String> labelListMap,
@@ -682,7 +685,7 @@ public class QueryGenerator {
 					}
 				
 					if(isAttachment && wantUrl) {	// Add the url prefix to the file
-						colBuf.append("'" + urlprefix + "' || " + form.table + "." + column_name);
+						colBuf.append("'" + attachmentPrefix + "' || " + form.table + "." + column_name);
 					} else if(!type.equals("server_calculate")) {
 						colBuf.append(form.table + "." + column_name);
 					}
@@ -753,6 +756,7 @@ public class QueryGenerator {
 						pstmtQLabel,
 						pstmtListLabels,
 						urlprefix,
+						attachmentPrefix,
 						wantUrl,
 						exp_ro,
 						labelListMap,

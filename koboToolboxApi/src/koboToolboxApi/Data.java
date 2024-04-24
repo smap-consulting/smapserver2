@@ -66,7 +66,7 @@ public class Data extends Application {
 	Authorise a = null;
 	Authorise aSuper = null;
 
-	boolean forDevice = true;	// URL prefixes for API should have the device/API format
+	boolean forDevice = true;	// Attachment URL prefixes for API should have the device/API format
 	
 	private static Logger log =
 			Logger.getLogger(Data.class.getName());
@@ -114,7 +114,7 @@ public class Data extends Application {
 			
 			DataManager dm = new DataManager(localisation, "UTC");
 			
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, request, false, urlprefix);
 
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
@@ -192,7 +192,7 @@ public class Data extends Application {
 			includeMeta = false;
 		}
 		
-		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 		
 		// Authorisation, localisation and timezone are determined in getDataRecords
 		DataManager dm = new DataManager(null, "UTC");		
@@ -260,7 +260,7 @@ public class Data extends Application {
 			a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 			// End Authorisation
 			
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 			
 			boolean includeHierarchy = false;
 			boolean includeMeta = false;		// Default to false for single record (Historical consistency reason)
@@ -355,7 +355,7 @@ public class Data extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 			
 			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
 				throw new ApplicationException(localisation.getString("susp_api"));
@@ -587,7 +587,7 @@ public class Data extends Application {
 			) { 
 
 		DataManager dm = new DataManager(null, null);
-		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit, urlprefix);
 	}
 }

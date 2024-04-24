@@ -72,7 +72,8 @@ public class MessagingManagerApply {
 			String basePath, 
 			int count, 
 			String awsProperties,
-			String urlprefix) {
+			String urlprefix,
+			String attachmentPrefix) {
 
 		ResultSet rs = null;
 		PreparedStatement pstmtGetMessages = null;
@@ -273,7 +274,9 @@ public class MessagingManagerApply {
 								topic,
 								true,		// create pending if needed
 								serverName,
-								basePath
+								basePath,
+								urlprefix,
+								attachmentPrefix
 								); 
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
@@ -421,7 +424,8 @@ public class MessagingManagerApply {
 			Connection cResults, 
 			String serverName, 
 			String basePath,
-			String urlprefix) {
+			String urlprefix,
+			String attachmentPrefix) {
 
 		ResultSet rs = null;
 		PreparedStatement pstmtGetMessages = null;
@@ -584,7 +588,9 @@ public class MessagingManagerApply {
 							topic,
 							false,		// Do not create pending
 							serverName,
-							basePath
+							basePath,
+							urlprefix,
+							attachmentPrefix
 							); 
 					
 				} else {

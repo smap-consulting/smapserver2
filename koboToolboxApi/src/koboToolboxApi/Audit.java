@@ -69,7 +69,7 @@ public class Audit extends Application {
 	Authorise aSuper = null;
 	Authorise aAdmin = null;
 
-	boolean forDevice = true;	// URL prefixes for API should have the device/API format
+	boolean forDevice = true;	// Attachment URL prefixes for API should have the device/API format
 	
 	private static Logger log =
 			Logger.getLogger(Audit.class.getName());
@@ -117,7 +117,7 @@ public class Audit extends Application {
 			
 			AuditManager am = new AuditManager(localisation);
 			
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 			ArrayList<DataEndPoint> data = am.getDataEndPoints(sd, request, false, urlprefix);
 
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
@@ -259,7 +259,7 @@ public class Audit extends Application {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}
 			
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request, forDevice);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 
 			// Get the managed Id
 			if(mgmt) {
