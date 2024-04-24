@@ -21,7 +21,6 @@ package surveyKPI;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -49,7 +48,6 @@ import org.smap.sdal.managers.PDFReportsManager;
 import org.smap.sdal.managers.XLSXReportsManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Form;
-import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.ReportParameters;
 import org.smap.sdal.model.SurveyViewDefn;
 
