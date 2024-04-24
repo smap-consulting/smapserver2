@@ -45,6 +45,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.SharedResourceManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.TimeZoneManager;
 import org.smap.sdal.managers.UsageManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.SurveyIdent;
@@ -243,6 +244,19 @@ public class Misc extends Application {
 		
 		SurveyTemplateManager sm = new SurveyTemplateManager();
 		return sm.uploadTemplate(request);
+	}
+	
+	/*
+	 * Return available Time Zones
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/timezones")
+	public Response getTimezones() {
+
+		TimeZoneManager tmz = new TimeZoneManager();
+		return tmz.get();
+		
 	}
 }
 
