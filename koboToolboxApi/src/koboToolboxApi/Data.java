@@ -193,6 +193,7 @@ public class Data extends Application {
 		}
 		
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+		String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
 		
 		// Authorisation, localisation and timezone are determined in getDataRecords
 		DataManager dm = new DataManager(null, "UTC");		
@@ -200,9 +201,13 @@ public class Data extends Application {
 				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, include_completed, audit_set, merge, geojson, geomQuestion,
 				tz, incLinks, 
-				filter, dd_filter, prikey, dd_hrk, dateName, startDate, endDate, getSettings, 
-				instanceId, includeMeta,
-				urlprefix);
+				filter, 
+				dd_filter, 
+				prikey, dd_hrk, dateName, startDate, endDate, getSettings, 
+				instanceId, 
+				includeMeta,
+				urlprefix,
+				attachmentPrefix);
 		
 		return Response.status(Status.OK).build();
 	}
@@ -261,6 +266,7 @@ public class Data extends Application {
 			// End Authorisation
 			
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
 			
 			boolean includeHierarchy = false;
 			boolean includeMeta = false;		// Default to false for single record (Historical consistency reason)
@@ -284,7 +290,8 @@ public class Data extends Application {
 						localisation,
 						tz,				// Timezone
 						includeMeta,
-						urlprefix
+						urlprefix,
+						attachmentPrefix
 						);	
 			} else {
 				response = getSingleRecord(
@@ -297,7 +304,9 @@ public class Data extends Application {
 						mergeExp, 			// If set to yes then do not put choices from select multiple questions in separate objects
 						localisation,
 						tz,				// Timezone
-						includeMeta
+						includeMeta,
+						urlprefix,
+						attachmentPrefix
 						);	
 			}
 		} catch (Exception e) {
@@ -356,6 +365,7 @@ public class Data extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
 			
 			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
 				throw new ApplicationException(localisation.getString("susp_api"));
@@ -371,7 +381,8 @@ public class Data extends Application {
 					localisation,
 					tz,				// Timezone
 					true,
-					urlprefix
+					urlprefix,
+					attachmentPrefix
 					);	
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
@@ -506,7 +517,9 @@ public class Data extends Application {
 			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
 			ResourceBundle localisation,
 			String tz,				// Timezone
-			boolean includeMeta
+			boolean includeMeta,
+			String urlprefix,
+			String attachmentPrefix
 			) throws ApplicationException, Exception { 
 
 		Response response;
@@ -553,7 +566,10 @@ public class Data extends Application {
 					null,
 					uuid,
 					sm,
-					includeMeta);
+					includeMeta,
+					urlprefix,
+					attachmentPrefix
+					);
 		
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
@@ -588,7 +604,10 @@ public class Data extends Application {
 
 		DataManager dm = new DataManager(null, null);
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
-		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit, urlprefix);
+		String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
+		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit, 
+				urlprefix,
+				attachmentPrefix);
 	}
 }
 

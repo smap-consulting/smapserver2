@@ -189,7 +189,8 @@ public class MessagingManagerApply {
 								true,		// create pending if needed
 								serverName,
 								basePath,
-								urlprefix
+								urlprefix,
+								attachmentPrefix
 								); 
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
@@ -511,7 +512,8 @@ public class MessagingManagerApply {
 							false,		// Do not create pending
 							serverName,
 							basePath,
-							urlprefix
+							urlprefix,
+							attachmentPrefix
 							); 
 					
 				} else if(topic.equals(NotificationManager.TOPIC_REMINDER)) {

@@ -122,7 +122,8 @@ public class DataManager {
 			ResourceBundle localisation,
 			String tz,				// Timezone
 			boolean includeMeta,
-			String urlprefix
+			String urlprefix,
+			String attachmentPrefix
 			) throws ApplicationException, Exception { 
 
 		Response response;
@@ -169,7 +170,8 @@ public class DataManager {
 					uuid,
 					sm,
 					includeMeta,
-					urlprefix);
+					urlprefix,
+					attachmentPrefix);
 		} else {
 			throw new ApplicationException(localisation.getString("mf_snf"));
 		}
@@ -209,7 +211,8 @@ public class DataManager {
 			String instanceId,
 			SurveyManager sm,
 			boolean includeMeta,
-			String urlprefix
+			String urlprefix,
+			String attachmentPrefix
 			) throws Exception {
 
 		ArrayList<TableColumn> columns = null;
@@ -283,6 +286,7 @@ public class DataManager {
 					cResults,
 					columns,
 					urlprefix,
+					attachmentPrefix,
 					s.surveyData.id,
 					s.surveyData.ident,
 					0,			// SubForm Id - Not required
@@ -412,7 +416,8 @@ public class DataManager {
 									null,
 									sm,
 									false,
-									urlprefix));
+									urlprefix,
+									attachmentPrefix));
 						}
 					}	
 					
@@ -467,7 +472,8 @@ public class DataManager {
 			boolean getSettings,		// Set true if the settings are stored in the database, otherwise they are passed with the request
 			String instanceId,
 			boolean includeMeta,
-			String urlprefix
+			String urlprefix,
+			String attachmentPrefix
 			) throws ApplicationException, Exception { 
 
 		String connectionString = "koboToolboxApi - get data records";
@@ -776,6 +782,7 @@ public class DataManager {
 					cResults,
 					columns,
 					urlprefix,
+					attachmentPrefix,
 					sId,
 					sIdent,
 					fId,
@@ -1007,7 +1014,8 @@ public class DataManager {
 			boolean mgmt,
 			int start,
 			int limit,
-			String urlprefix) {
+			String urlPrefix,
+			String attachmentPrefix) {
 		Response response = null;
 
 		ArrayList<String> authorisationsSuper = new ArrayList<String> ();	
@@ -1158,7 +1166,7 @@ public class DataManager {
 					if(i > 0) {
 						columnSelect.append(",");
 					}
-					columnSelect.append(c.getSqlSelect(urlprefix, tz, params));
+					columnSelect.append(c.getSqlSelect(attachmentPrefix, tz, params));
 				}
 
 
@@ -1203,12 +1211,12 @@ public class DataManager {
 								if(stringFnApplies 
 										&& (aSelect[1].equals("lower") 
 												|| aSelect[1].equals("soundex"))) {
-									String s = aSelect[1] +"(" + c.getSqlSelect(urlprefix, tz, params) + ")";
+									String s = aSelect[1] +"(" + c.getSqlSelect(attachmentPrefix, tz, params) + ")";
 									columnSelect.append(s);
 									groupSelect.append(c.column_name);
 									similarWhere.append(s + " = ?");
 								} else {
-									String s = c.getSqlSelect(urlprefix, tz, params);
+									String s = c.getSqlSelect(attachmentPrefix, tz, params);
 									columnSelect.append(s);
 									groupSelect.append(c.column_name);
 									similarWhere.append(s + " = ?");

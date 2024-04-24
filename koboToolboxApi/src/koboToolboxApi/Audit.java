@@ -260,7 +260,8 @@ public class Audit extends Application {
 			}
 			
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
-
+			String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
+			
 			// Get the managed Id
 			if(mgmt) {
 				pstmtGetManagedId = sd.prepareStatement(sqlGetManagedId);
@@ -343,6 +344,7 @@ public class Audit extends Application {
 					cResults,
 					columns,
 					urlprefix,
+					attachmentPrefix,
 					sId,
 					sIdent,
 					0,				// SubForm Id not required

@@ -1022,7 +1022,9 @@ public class TaskManager {
 			int pId,
 			String pName,
 			String remoteUser,
-			boolean temporaryUser) throws Exception {
+			boolean temporaryUser,
+			String urlprefix,
+			String attachmentPrefix) throws Exception {
 
 		String sqlGetRules = "select tg_id, name, rule, address_params, target_s_id, complete_all, assign_auto from task_group where source_s_id = ?;";
 		PreparedStatement pstmtGetRules = null;
@@ -1126,9 +1128,16 @@ public class TaskManager {
 										false		// Don't merge set value into default values
 										);
 							}
-							writeTaskCreatedFromSurveyResults(sd, cResults, as, hostname, tgId, tgName, pId, pName, sourceSurvey, 
-									target_s_ident, tid, instanceId, true, remoteUser, temporaryUser, complete_all,
-									assign_auto, as.repeat);  // Write to the database
+							writeTaskCreatedFromSurveyResults(sd, 
+									cResults, 
+									as, hostname, tgId, tgName, pId, pName, sourceSurvey, 
+									target_s_ident, 
+									tid, instanceId, 
+									true, 
+									remoteUser, temporaryUser, complete_all,
+									assign_auto, as.repeat,
+									urlprefix,
+									attachmentPrefix);  // Write to the database
 						}
 					}
 				} catch (Exception e) {
@@ -1167,7 +1176,9 @@ public class TaskManager {
 			boolean temporaryUser,
 			boolean complete_all,
 			boolean assign_auto,
-			boolean repeat
+			boolean repeat,
+			String urlprefix,
+			String attachmentPrefix
 			) throws Exception {
 
 		PreparedStatement pstmtAssign = null;
@@ -1207,7 +1218,9 @@ public class TaskManager {
 						null,
 						updateId,
 						sm,
-						false);		// Meta data
+						false,
+						urlprefix,
+						attachmentPrefix);		// Meta data
 				
 				// There should only be one instance at the top level
 				initialData = gson.toJson(instances.get(0), Instance.class);

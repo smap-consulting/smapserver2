@@ -102,6 +102,8 @@ public class AllAssignments extends Application {
 	private static Logger log =
 			Logger.getLogger(Survey.class.getName());
 
+	boolean forDevice = false;	// Attachment URL prefixes should be in the client format
+	
 	LogManager lm = new LogManager();		// Application log
 
 	public AllAssignments() {
@@ -167,7 +169,8 @@ public class AllAssignments extends Application {
 	        throw new AuthorisationException();   
 		} 
 		
-		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+		String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
 
 		Response response = null;
 		ArrayList<TaskAddress> addressArray = null;
@@ -525,7 +528,9 @@ public class AllAssignments extends Application {
 										false,
 										as.complete_all,
 										as.assign_auto,
-										as.repeat
+										as.repeat,
+										urlprefix,
+										attachmentPrefix
 										); 
 								
 							}

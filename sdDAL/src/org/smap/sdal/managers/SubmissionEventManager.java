@@ -79,7 +79,12 @@ public class SubmissionEventManager {
 	/*
 	 * Apply any pending submission events
 	 */
-	public void applyEvents(Connection sd, Connection cResults, String basePath) throws SQLException {
+	public void applyEvents(Connection sd, 
+			Connection cResults, 
+			String basePath,
+			String urlprefix,
+			String attachmentPrefix
+			) throws SQLException {
 		
 		String sql = "select id, ue_id, linkage_items "
 				+ "from subevent_queue "
@@ -116,7 +121,9 @@ public class SubmissionEventManager {
 					applySubmissionEvents(sd, cResults,
 							rs.getInt("ue_id"),
 							linkageItems,
-							basePath);
+							basePath,
+							urlprefix,
+							attachmentPrefix);
 					status = "success";
 				} catch (Exception e) {
 					status = "failed";
@@ -150,7 +157,9 @@ public class SubmissionEventManager {
 			Connection cResults, 
 			int ueId, 
 			ArrayList<LinkageItem> linkageItems,
-			String basePath) throws Exception {
+			String basePath,
+			String urlprefix,
+			String attachmentPrefix) throws Exception {
 
 		PreparedStatement pstmtGetUploadEvent = null;
 
@@ -193,7 +202,6 @@ public class SubmissionEventManager {
 				}
 				
 				// Apply notifications
-				String urlprefix = "https://" + server + "/";
 				NotificationManager nm = new NotificationManager(localisation);
 				nm.notifyForSubmission(
 						sd, 
@@ -223,7 +231,9 @@ public class SubmissionEventManager {
 						pId,
 						pName,
 						submittingUser,
-						temporaryUser
+						temporaryUser,
+						urlprefix,
+						attachmentPrefix
 						);
 				
 				/*

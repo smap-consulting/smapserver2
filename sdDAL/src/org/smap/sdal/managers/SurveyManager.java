@@ -4239,7 +4239,9 @@ public class SurveyManager {
 			String hrk,				// Usually either hrk or instanceId would be used to identify the instance
 			String instanceId,
 			SurveyManager sm,
-			boolean includeMeta
+			boolean includeMeta,
+			String urlprefix,
+			String attachmentPrefix
 			) throws Exception {
 
 		ArrayList<TableColumn> columns = null;
@@ -4255,10 +4257,7 @@ public class SurveyManager {
 		try {
 			
 			TableDataManager tdm = new TableDataManager(localisation, tz);
-			
-			String serverName = GeneralUtilityMethods.getSubmissionServer(sd);
-			String urlprefix = "https://" + serverName + "/";	
-			
+				
 			if(!GeneralUtilityMethods.tableExists(cResults, form.tableName)) {
 				throw new ApplicationException(localisation.getString("imp_no_file"));
 			}
@@ -4308,6 +4307,7 @@ public class SurveyManager {
 					cResults,
 					columns,
 					urlprefix,
+					attachmentPrefix,
 					s.surveyData.id,
 					s.surveyData.ident,
 					0,			// SubForm Id - Not required
@@ -4439,7 +4439,9 @@ public class SurveyManager {
 									null,
 									null,
 									sm,
-									false));
+									false,
+									urlprefix,
+									attachmentPrefix));
 						}
 					}
 						

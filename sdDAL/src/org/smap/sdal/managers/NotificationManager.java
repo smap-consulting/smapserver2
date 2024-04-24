@@ -772,7 +772,8 @@ public class NotificationManager {
 			boolean createPending,
 			String serverName,
 			String basePath,
-			String urlprefix) throws Exception {
+			String urlprefix,
+			String attachmentPrefix) throws Exception {
 
 		String docURL = null;
 		String filePath = null;
@@ -1029,7 +1030,8 @@ public class NotificationManager {
 								msg.instanceId,
 								sm,
 								true,
-								urlprefix);
+								urlprefix,
+								attachmentPrefix);
 						String resp = "{}";
 						if(data.length() > 0) {
 							resp = data.getString(0).toString();

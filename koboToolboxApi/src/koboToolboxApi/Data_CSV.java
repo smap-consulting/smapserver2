@@ -276,6 +276,7 @@ public class Data_CSV extends Application {
 			response.setHeader("content-type", "text/plain; charset=utf-8");
 			outWriter = response.getWriter();
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
 
 			/*
 			 * Check rate Limiter and whether or not the api is disabled
@@ -420,7 +421,11 @@ public class Data_CSV extends Application {
 
 				TableDataManager tdm = new TableDataManager(localisation, tz);
 
-				pstmt = tdm.getPreparedStatement(sd, cResults, columns, urlprefix, 
+				pstmt = tdm.getPreparedStatement(sd, 
+						cResults, 
+						columns, 
+						urlprefix,
+						attachmentPrefix,
 						sId, 
 						sIdent,
 						0,		// Sub form Id, only needed if _assigned has to be retrieved

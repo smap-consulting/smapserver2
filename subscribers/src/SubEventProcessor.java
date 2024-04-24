@@ -1,3 +1,4 @@
+import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,6 +33,8 @@ public class SubEventProcessor {
 
 	DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 	DocumentBuilder db = null;
+	
+	boolean forDevice = false;	// URL prefixes should be in the client format
 
 	private static Logger log = Logger.getLogger(Subscriber.class.getName());
 
@@ -47,6 +50,15 @@ public class SubEventProcessor {
 
 			int delaySecs = 2;
 		
+			String serverName = null;
+			try {
+				serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
+			} catch (SQLException e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
+			String urlprefix = GeneralUtilityMethods.getUrlPrefixBatch(serverName);
+			String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefixBatch(serverName, forDevice);
+			
 			boolean loop = true;
 			while(loop) {
 				
@@ -65,7 +77,8 @@ public class SubEventProcessor {
 						// Apply events
 						SubmissionEventManager sem = new SubmissionEventManager();
 						try { 
-							sem.applyEvents(dbc.sd, dbc.results, basePath);
+							sem.applyEvents(dbc.sd, dbc.results, 
+									basePath, urlprefix, attachmentPrefix);
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}

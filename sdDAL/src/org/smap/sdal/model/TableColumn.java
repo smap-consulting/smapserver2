@@ -92,11 +92,11 @@ public class TableColumn {
 	/*
 	 * Get the sql to select this column from the database
 	 */
-	public String getSqlSelect(String urlprefix, String tz, ArrayList<SqlParam> params) {
+	public String getSqlSelect(String attachmentPrefix, String tz, ArrayList<SqlParam> params) {
 		String selName = null;
 		
 		if(isAttachment()) {
-			selName = "'" + urlprefix + "' || " + column_name + " as " + column_name;
+			selName = "'" + attachmentPrefix + "' || " + column_name + " as " + column_name;
 		} else if(GeneralUtilityMethods.isGeometry(type)) {
 			selName = "ST_AsGeoJson(" + column_name + ") ";
 		} else if(isCalculate()) {

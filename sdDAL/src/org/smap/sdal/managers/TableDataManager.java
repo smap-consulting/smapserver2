@@ -73,7 +73,8 @@ public class TableDataManager {
 			Connection sd, 
 			Connection cResults, 
 			ArrayList<TableColumn> columns,
-			String urlprefix, 
+			String urlPrefix,
+			String attachmentPrefix, 
 			int sId, 
 			String sIdent,
 			int fId,
@@ -143,7 +144,7 @@ public class TableDataManager {
 				columnSelect.append(topLevelTable).append(".");
 			}
 			
-			columnSelect.append(c.getSqlSelect(urlprefix, tz, params));
+			columnSelect.append(c.getSqlSelect(attachmentPrefix, tz, params));
 			
 			// record any parameters for server side calculations
 			if (c.calculation != null && c.calculation.params != null) {

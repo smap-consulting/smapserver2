@@ -158,12 +158,17 @@ public class APIEntryPoints extends Application {
 		// Authorisation, localisation and timezone are determined in getDataRecords
 		DataManager dm = new DataManager(null, "UTC");	
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+		String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
+		
 		dm.getDataRecords(request, response, sIdent, start, limit, mgmt, oversightSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, include_completed, audit_set, merge, geojson, geomQuestion,
 				tz, incLinks, 
-				filter, dd_filter, prikey, dd_hrk, dateName, startDate, endDate, getSettings, 
-				instanceId, includeMeta, urlprefix);
+				filter, 
+				dd_filter, prikey, dd_hrk, dateName, startDate, endDate, getSettings, 
+				instanceId, includeMeta, 
+				urlprefix,
+				attachmentPrefix);
 		
 		return Response.status(Status.OK).build();
 	}
@@ -585,8 +590,14 @@ public class APIEntryPoints extends Application {
 			) { 
 
 		DataManager dm = new DataManager(null, null);
+		
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
-		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit, urlprefix);
+		String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
+		
+		return dm.getSimilarDataRecords(request, select, format, 
+				sId, fId, mgmt, start, limit, 
+				urlprefix, 
+				attachmentPrefix);
 	}
 	
 	/*
