@@ -43,6 +43,7 @@ public class MessageProcessor {
 		String serverName;
 		String urlprefix;
 		String attachmentPrefix;
+		String hyperlinkPrefix;
 		String basePath;
 		String awsPropertiesFile;
 
@@ -73,6 +74,8 @@ public class MessageProcessor {
 						serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 						urlprefix = GeneralUtilityMethods.getUrlPrefixBatch(serverName);
 						attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefixBatch(serverName, forDevice);
+						// hyperlink prefix assumes that the hyperlink will be used by a human, hence always use client authentication
+						hyperlinkPrefix = GeneralUtilityMethods.getAttachmentPrefixBatch(serverName, false);
 						
 						// Apply messages
 						MessagingManagerApply mma = new MessagingManagerApply();
@@ -80,7 +83,8 @@ public class MessageProcessor {
 							mma.applyOutbound(dbc.sd, dbc.results, serverName, 
 									basePath, count++, awsPropertiesFile, 
 									urlprefix,
-									attachmentPrefix);
+									attachmentPrefix,
+									hyperlinkPrefix);
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}
@@ -89,7 +93,8 @@ public class MessageProcessor {
 							mma.applyPendingEmailMessages(dbc.sd, dbc.results, 
 									serverName, basePath, 
 									urlprefix, 
-									attachmentPrefix);
+									attachmentPrefix,
+									hyperlinkPrefix);
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}

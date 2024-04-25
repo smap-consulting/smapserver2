@@ -116,6 +116,8 @@ public class PDFReportsManager {
 			QueryForm startingForm = qm.getQueryTree(sd, queryList);	// Convert the query list into a tree
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 			String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
+			// hyperlink prefix assumes that the hyperlink will be used by a human, hence always use client authentication
+			String hyperlinkPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, false);
 			HashMap<ArrayList<OptionDesc>, String> labelListMap = new  HashMap<ArrayList<OptionDesc>, String> ();
 			SqlDesc sqlDesc = QueryGenerator.gen(
 					sd, 
@@ -197,7 +199,8 @@ public class PDFReportsManager {
 				
 				pm.createPdf(tempFileStream, 
 						basePath, 
-						urlprefix, 
+						attachmentPrefix, 
+						hyperlinkPrefix,
 						username, 
 						language, 
 						pdfTemplateId,

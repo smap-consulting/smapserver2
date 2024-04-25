@@ -773,7 +773,8 @@ public class NotificationManager {
 			String serverName,
 			String basePath,
 			String urlprefix,
-			String attachmentPrefix) throws Exception {
+			String attachmentPrefix,
+			String hyperlinkPrefix) throws Exception {
 
 		String docURL = null;
 		String filePath = null;
@@ -879,7 +880,8 @@ public class NotificationManager {
 						filename = pm.createPdf(
 								outputStream,
 								basePath, 
-								urlprefix,
+								attachmentPrefix,
+								hyperlinkPrefix,
 								msg.user,
 								"none", 
 								msg.pdfTemplateId,

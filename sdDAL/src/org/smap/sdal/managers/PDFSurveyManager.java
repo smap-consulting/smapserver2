@@ -146,7 +146,8 @@ public class PDFSurveyManager {
 
 	boolean mExcludeEmpty = false;
 	String mBasePath;
-	String mServerRoot;
+	String mHyperlinkPrefix;
+	String mAttachmentPrefix;
 
 	private class StringElement {
 		public boolean htmlToken;
@@ -178,7 +179,7 @@ public class PDFSurveyManager {
 		}
 		this.tz = tz;
 	}
-
+	
 	/*
 	 * Call this function to create a PDF
 	 * Return a suggested name for the PDF file derived from the results
@@ -186,7 +187,8 @@ public class PDFSurveyManager {
 	public String createPdf(
 			OutputStream outputStream,
 			String basePath, 
-			String serverRoot,
+			String attachmentPrefix,
+			String hyperlinkPrefix,
 			String remoteUser,
 			String language, 
 			int pdfTemplateId,
@@ -203,7 +205,8 @@ public class PDFSurveyManager {
 
 		mExcludeEmpty = survey.surveyData.exclude_empty;
 		mBasePath = basePath;
-		mServerRoot = serverRoot;
+		mAttachmentPrefix = attachmentPrefix;
+		mHyperlinkPrefix = hyperlinkPrefix;
 
 		User user = null;
 
@@ -334,7 +337,7 @@ public class PDFSurveyManager {
 
 				for(int i = 0; i < survey.surveyData.instance.results.size(); i++) {
 					fillTemplate(gv, stamper.getAcroFields(), survey.surveyData.instance.results.get(i), 
-							null, i, serverRoot, stamper, oId);
+							null, i, stamper, oId);
 				}
 				if(user != null) {
 					fillTemplateUserDetails(stamper.getAcroFields(), user, mBasePath);
@@ -508,7 +511,6 @@ public class PDFSurveyManager {
 			ArrayList<Result> record, 
 			String formName,
 			int repeatIndex,
-			String serverRoot,
 			PdfStamper stamper,
 			int oId) throws Exception {
 
@@ -535,12 +537,11 @@ public class PDFSurveyManager {
 			 */
 			if(r.type.equals("form")) {
 				for(int k = 0; k < r.subForm.size(); k++) {
-					fillTemplate(gv, pdfForm, r.subForm.get(k),fieldName, k, serverRoot, stamper, oId);
+					fillTemplate(gv, pdfForm, r.subForm.get(k),fieldName, k, stamper, oId);
 				} 
 				
 				/*
 				 * Remove unused repeat fields
-				 * TODO fix this so it also removes records if there are no instances for the form
 				 */
 				if(r.subForm.size() > 0) {
 					removeRepeatFields(stamper, pdfForm, r.subForm.get(0), r.subForm.size(), fieldName);
@@ -704,14 +705,14 @@ public class PDFSurveyManager {
 
 
 			} else if(r.type.equals("image") || r.type.equals("video") || r.type.equals("audio")  || r.type.equals("file")) {
-				PdfUtilities.addImageTemplate(pdfForm, fieldName, mBasePath, value, serverRoot, stamper, defaultFontLink, di.stretch);
+				PdfUtilities.addImageTemplate(pdfForm, fieldName, mBasePath, value, mAttachmentPrefix, stamper, defaultFontLink, di.stretch);
 
 			} else if(r.type.equals("select1") && di.showImage) {
 				String filePath = UtilityMethodsEmail.getMediaPath(survey.surveyData.ident, value, mBasePath, oId, survey.surveyData.id);
 				if(filePath != null) {
 					// remove base path from file path as it will be added in again
 					String remnantPath = filePath.substring(mBasePath.length());
-					PdfUtilities.addImageTemplate(pdfForm, fieldName, mBasePath, remnantPath, serverRoot, stamper, defaultFontLink, di.stretch);
+					PdfUtilities.addImageTemplate(pdfForm, fieldName, mBasePath, remnantPath, mAttachmentPrefix, stamper, defaultFontLink, di.stretch);
 				}
 			} else {				
 				if(hideLabel) {
@@ -772,7 +773,7 @@ public class PDFSurveyManager {
 				PushbuttonField current = pdfForm.getNewPushbuttonFromField(fieldName);
 				if(current != null) {
 					PushbuttonField ad = new PushbuttonField(stamper.getWriter(), current.getBox(), null);
-					boolean replaced = pdfForm.replacePushbuttonField(fieldName, ad.getField());
+					pdfForm.replacePushbuttonField(fieldName, ad.getField());
 				}
 				exists = pdfForm.removeField(fieldName);
 			}
@@ -806,7 +807,6 @@ public class PDFSurveyManager {
 			pdfForm.setField("user_company", user.company_name);
 
 			/*
-			 * User configurable data TODO This should be an array of key value pairs
 			 * As interim use a hard coded class to hold the data
 			 */
 			String settings = user.settings;
@@ -1180,8 +1180,12 @@ public class PDFSurveyManager {
 			if(di.hideRepeatingLabels && depth > 0 && repIndexes[depth - 1] > 0) {
 				hideLabel = true;
 			}
-			PdfPCell cell = new PdfPCell(addDisplayItem(parser, di, mBasePath, mServerRoot, 
-					generateBlank, gv, remoteUser, oId, startGeopointValue, hideLabel));
+			PdfPCell cell = new PdfPCell(addDisplayItem(parser, di, 
+					mBasePath, 
+					mHyperlinkPrefix,
+					mAttachmentPrefix, 
+					generateBlank, 
+					gv, remoteUser, oId, startGeopointValue, hideLabel));
 			cell.setBorderColor(BaseColor.LIGHT_GRAY);
 
 			// Make sure the last cell extends to the end of the table
@@ -1556,7 +1560,8 @@ public class PDFSurveyManager {
 			Parser parser, 
 			DisplayItem di, 
 			String basePath,
-			String serverRoot,
+			String hyperlinkPrefix,
+			String attachmentPrefix,
 			boolean generateBlank,
 			GlobalVariables gv,
 			String remoteUser,
@@ -1667,7 +1672,10 @@ public class PDFSurveyManager {
 		// Set the content of the value cell
 		try {
 			updateValueCell(parser, remoteUser, valueCell, di, 
-					generateBlank, basePath, serverRoot, gv, 
+					generateBlank, basePath, 
+					hyperlinkPrefix, 
+					attachmentPrefix,
+					gv, 
 					oId,
 					startGeopointValue);
 		} catch (Exception e) {
@@ -1715,7 +1723,8 @@ public class PDFSurveyManager {
 			DisplayItem di, 
 			boolean generateBlank, 
 			String basePath,
-			String serverRoot,
+			String hyperlinkPrefix,
+			String attachmentPrefix,
 			GlobalVariables gv,
 			int oId,
 			String startGeopointValue
@@ -1731,8 +1740,8 @@ public class PDFSurveyManager {
 		} else if (di.type.equals("image")) {
 			if(di.value != null && !di.value.trim().equals("") && !di.value.trim().equals("Unknown")) {
 				if(di.isHyperlink) {
-					Anchor anchor = new Anchor(serverRoot + di.value);
-					anchor.setReference(serverRoot + di.value);
+					Anchor anchor = new Anchor(hyperlinkPrefix + di.value);
+					anchor.setReference(hyperlinkPrefix + di.value);
 
 					valueCell.addElement(getPara("", di, gv, deps, anchor));
 				} else {
@@ -1742,7 +1751,7 @@ public class PDFSurveyManager {
 						if(f.exists()) {
 							img = Image.getInstance(basePath + "/" + di.value);
 						} else {
-							img = Image.getInstance(serverRoot + di.value);
+							img = Image.getInstance(attachmentPrefix + di.value);
 						}
 						
 						valueCell.addElement(img);
@@ -1758,8 +1767,8 @@ public class PDFSurveyManager {
 
 		} else if (di.type.equals("video") || di.type.equals("audio") || di.type.equals("file")) {
 			if(di.value != null && !di.value.trim().equals("") && !di.value.trim().equals("Unknown")) {
-				Anchor anchor = new Anchor(serverRoot + di.value);
-				anchor.setReference(serverRoot + di.value);
+				Anchor anchor = new Anchor(hyperlinkPrefix + di.value);
+				anchor.setReference(hyperlinkPrefix + di.value);
 
 				valueCell.addElement(getPara("", di, gv, deps, anchor));
 
@@ -2067,7 +2076,6 @@ public class PDFSurveyManager {
 		 */
 
 		if(generateBlank) {
-			// TODO get real choices using choice manager
 			Form form = survey.surveyData.forms.get(di.fIdx);
 			Question question = form.questions.get(di.qIdx);
 			OptionList ol = survey.surveyData.optionLists.get(question.list_name);

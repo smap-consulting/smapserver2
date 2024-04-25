@@ -67,6 +67,8 @@ public class CreatePDF extends Application {
 	private static Logger log =
 			 Logger.getLogger(CreatePDF.class.getName());
 	
+	boolean forDevice = false;	// Attachment URL prefixes should be in the client format
+	
 	LogManager lm = new LogManager();		// Application log
 
 	public CreatePDF() {
@@ -175,7 +177,9 @@ public class CreatePDF extends Application {
 					false);	       // Don't merge set values into default value
 			PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, request.getRemoteUser(), tz);
 			
-			String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";
+			String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
+			// hyperlink prefix assumes that the hyperlink will be used by a human, hence always use client authentication
+			String hyperlinkPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, false);
 			
 			if(pdfTemplateId == -2) { // auto
 				pdfTemplateId = GeneralUtilityMethods.testForPdfTemplate(sd, cResults, localisation, survey, request.getRemoteUser(),
@@ -199,7 +203,8 @@ public class CreatePDF extends Application {
 			pm.createPdf(
 					os,
 					basePath, 
-					urlprefix,
+					attachmentPrefix,
+					hyperlinkPrefix,
 					request.getRemoteUser(),
 					language, 
 					pdfTemplateId,

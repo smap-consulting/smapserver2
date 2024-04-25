@@ -73,7 +73,8 @@ public class MessagingManagerApply {
 			int count, 
 			String awsProperties,
 			String urlprefix,
-			String attachmentPrefix) {
+			String attachmentPrefix,
+			String hyperlinkPrefix) {
 
 		ResultSet rs = null;
 		PreparedStatement pstmtGetMessages = null;
@@ -190,7 +191,8 @@ public class MessagingManagerApply {
 								serverName,
 								basePath,
 								urlprefix,
-								attachmentPrefix
+								attachmentPrefix,
+								hyperlinkPrefix
 								); 
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
@@ -426,7 +428,8 @@ public class MessagingManagerApply {
 			String serverName, 
 			String basePath,
 			String urlprefix,
-			String attachmentPrefix) {
+			String attachmentPrefix,
+			String hyperlinkPrefix) {
 
 		ResultSet rs = null;
 		PreparedStatement pstmtGetMessages = null;
@@ -513,7 +516,8 @@ public class MessagingManagerApply {
 							serverName,
 							basePath,
 							urlprefix,
-							attachmentPrefix
+							attachmentPrefix,
+							hyperlinkPrefix
 							); 
 					
 				} else if(topic.equals(NotificationManager.TOPIC_REMINDER)) {

@@ -9071,7 +9071,7 @@ public class GeneralUtilityMethods {
 			String tz) {
 		
 		StringBuffer url = new StringBuffer(urlprefix);		
-		url.append("surveyKPI/pdf/").append(surveyIdent);
+		url.append("api/v1/misc/pdf/").append(surveyIdent);
 		url.append("?instance=").append(updateId);
 		url.append("&tz=").append(tz);
 			
