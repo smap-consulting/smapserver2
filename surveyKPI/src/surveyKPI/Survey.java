@@ -334,7 +334,7 @@ public class Survey extends Application {
 	/*
 	 * Get a public link to a webform for this survey
 	 */
-	@Path("/link/")
+	@Path("/link")
 	@GET
 	@Produces("application/text")
 	public Response getLink(@Context HttpServletRequest request,
@@ -374,7 +374,7 @@ public class Survey extends Application {
 					null);
 			
 			String link = GeneralUtilityMethods.getUrlPrefix(request) 
-					+ "/app/myWork/webForm/id/" 
+					+ "app/myWork/webForm/id/" 
 					+ tempUserId 
 					+ "/" + sIdent;
 			
@@ -545,8 +545,8 @@ public class Survey extends Application {
 			 */
 			HashMap<Integer, Integer> completedSurveys = new HashMap <Integer, Integer> ();
 			Stack<Integer> surveys = new Stack<Integer>();
-			surveys.push(new Integer(sId));
-			completedSurveys.put(new Integer(sId), new Integer(sId));
+			surveys.push(Integer.valueOf(sId));
+			completedSurveys.put(Integer.valueOf(sId), Integer.valueOf(sId));
 			
 			/*
 			 * Get Forms and row counts the next survey
@@ -568,7 +568,7 @@ public class Survey extends Application {
 							if(completedSurveys.get(s) != null) {
 								log.info("Have already got meta data for survey " + s);
 							} else {
-								completedSurveys.put(new Integer(s), new Integer(s));
+								completedSurveys.put(Integer.valueOf(s), Integer.valueOf(s));
 								surveys.push(s);
 							}
 						}	
@@ -584,7 +584,7 @@ public class Survey extends Application {
 							if(completedSurveys.get(s) != null) {
 								log.info("Have already got meta data for survey " + s);
 							} else {
-								completedSurveys.put(new Integer(s), new Integer(s));
+								completedSurveys.put(Integer.valueOf(s), Integer.valueOf(s));
 								surveys.push(s);
 							}
 						}	
