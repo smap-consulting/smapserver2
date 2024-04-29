@@ -20,8 +20,12 @@ u1604=`lsb_release -r | grep -c "16\.04"`
 u1804=`lsb_release -r | grep -c "18\.04"`
 u2004=`lsb_release -r | grep -c "20\.04"`
 u2204=`lsb_release -r | grep -c "22\.04"`
+u2404=`lsb_release -r | grep -c "24\.04"`
 
-if [ $u2204 -eq 1 ]; then
+if [ $u2404 -eq 1 ]; then
+    TOMCAT_VERSION=tomcat10
+    TOMCAT_USER=tomcat
+elif [ $u2204 -eq 1 ]; then
     TOMCAT_VERSION=tomcat9
     TOMCAT_USER=tomcat
 elif [ $u2004 -eq 1 ]; then
@@ -161,10 +165,14 @@ java -jar version1/patch1505.jar apply survey_definitions results
 cd ../install
 # Set up new apache configuration structure
 
-sudo cp  $a_config_dir/smap.conf $a_config_dir/smap.conf.bu
+if [ ! -f "$a_config_dir/smap.conf.bu" ]; then
+    sudo cp  $a_config_dir/smap.conf $a_config_dir/smap.conf.bu
+fi
 sudo cp config_files/a24-smap.conf $a_config_dir/smap.conf
 
-sudo cp $a_config_dir/smap-ssl.conf $a_config_dir/smap-ssl.conf.bu
+if [ ! -f "$a_config_dir/smap-ssl.conf.bu" ]; then
+    sudo cp $a_config_dir/smap-ssl.conf $a_config_dir/smap-ssl.conf.bu
+fi
 sudo cp config_files/a24-smap-ssl.conf $a_config_dir/smap-ssl.conf
 
 sudo a2ensite  smap.conf
@@ -287,7 +295,9 @@ fi
 # Copy the new apache configuration files and tomcat directory access
 # Copy aws credentials
 
-if [ $u2204 -eq 1 ]; then
+if [ $u2404 -eq 1 ]; then
+    sudo cp  $deploy_from/resources/properties/credentials /var/lib/$TOMCAT_VERSION/.aws
+elif [ $u2204 -eq 1 ]; then
     sudo cp  $deploy_from/resources/properties/credentials /var/lib/$TOMCAT_VERSION/.aws
 elif [ $u2004 -eq 1 ]; then
     sudo cp  $deploy_from/resources/properties/credentials /var/lib/$TOMCAT_VERSION/.aws
@@ -316,6 +326,9 @@ cd ../install
 chmod +x apacheConfig.sh
 ./apacheConfig.sh
 
+if [ $u2404 -eq 1 ]; then
+cp config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
+fi
 if [ $u2204 -eq 1 ]; then
 cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
 fi
