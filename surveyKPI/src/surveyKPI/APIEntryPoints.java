@@ -39,12 +39,14 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.SystemException;
+import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.ContactManager;
 import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.TaskManager;
+import org.smap.sdal.model.CaseCount;
 import org.smap.sdal.model.DataItemChangeEvent;
 import org.smap.sdal.model.LogsDt;
 import org.smap.sdal.model.Mailout;
@@ -654,6 +656,74 @@ public class APIEntryPoints extends Application {
 		
 		return response;
 		
+	}
+	
+	/*
+	 * Returns counts of created and closed cases over time
+	 */
+	@GET
+	@Path("/cases/progress/{sId}")
+	@Produces("application/json")
+	public Response getOpenClosed(@Context HttpServletRequest request,
+			@PathParam("sId") int sId,						// Any survey in the survey bundle
+			@QueryParam("interval") String interval,		// hour, day, week
+			@QueryParam("intervalCount") int intervalCount,
+			@QueryParam("aggregationInterval") String aggregationInterval,	// hour, day, week
+			@QueryParam("tz") String tz) { 
+
+		Response response = null;
+		String connectionString = "SurveyKPI - getOpenClosedCases";
+
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.VIEW_DATA);
+		Authorise a = new Authorise(authorisations, null);
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(),e);
+		}
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		
+		tz = (tz == null) ? "UTC" : tz;
+		
+		Connection cResults = null;
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			cResults = ResultsDataSource.getConnection(connectionString);
+			
+			// Validate parameters
+			interval = "day";
+			if(intervalCount <= 0) {
+				intervalCount = 7;		// By default last week of data
+			}
+			aggregationInterval = "day";
+
+			CaseManager cm = new CaseManager(localisation);
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			ArrayList<CaseCount> cc = cm.getOpenClosed(sd, cResults, sIdent, interval, intervalCount, aggregationInterval);
+			
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+			response = Response.ok(gson.toJson(cc)).build();
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			response = Response.serverError().build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
+		}
+
+		return response;
 	}
 }
 

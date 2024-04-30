@@ -2,7 +2,7 @@ package org.smap.sdal.model;
 import java.sql.Timestamp;
 
 /*
- * Smap extension
+ * Details of a log entry as accessed from the client
  */
 public class LogItemDt {
 	

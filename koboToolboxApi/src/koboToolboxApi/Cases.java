@@ -129,24 +129,5 @@ public class Cases extends Application {
 		return response;
 	}
 	
-
-	/*
-	 * TODO 
-	 * Stick to days for all intervals 
-	 */
-	private String validateInterval(String interval, String defInterval) {
-		String valInterval = defInterval;	
-		
-		if(interval != null) {
-			interval = interval.trim();
-			if(interval.equals("day") || interval.equals("week")) {
-				valInterval = interval;
-			} else {
-				log.info("Error: Invalid Interval: " + interval);
-			}
-		}
-		
-		return valInterval;
-	}
 }
 
