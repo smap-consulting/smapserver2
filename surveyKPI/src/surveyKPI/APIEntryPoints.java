@@ -55,6 +55,8 @@ import org.smap.sdal.model.MailoutPersonDt;
 import org.smap.sdal.model.MailoutPersonTotals;
 import org.smap.sdal.model.SubItemDt;
 import org.smap.sdal.model.SubsDt;
+import org.smap.sdal.model.TaskListGeoJson;
+import org.smap.sdal.model.TaskProperties;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -723,6 +725,86 @@ public class APIEntryPoints extends Application {
 			ResultsDataSource.closeConnection(connectionString, cResults);	
 		}
 
+		return response;
+	}
+	
+	/*
+	 * Returns a single task assignment
+	 */
+	@GET
+	@Path("/tasks/assignment/{id}")
+	@Produces("application/json")
+	public Response getTaskAssignment(@Context HttpServletRequest request,
+			@PathParam("id") int aId,
+			@QueryParam("taskid") int taskId,			// Optional task if if unassigned task
+			@QueryParam("tz") String tz					// Timezone
+			) throws ApplicationException, Exception { 
+		
+		String connectionString = "SurveyKPI - Tasks - get Task Assignment";
+		
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.MANAGE);
+		authorisations.add(Authorise.MANAGE_TASKS);
+		Authorise a = new Authorise(authorisations, null);
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		if(aId > 0) {
+			a.isValidAssignment(sd, request.getRemoteUser(), aId);
+		} else {
+			a.isValidTask(sd, request.getRemoteUser(), taskId);
+		}
+		// End authorisation
+
+		Response response = null;
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String urlprefix = request.getScheme() + "://" + request.getServerName();
+			
+			// Get assignments
+			TaskManager tm = new TaskManager(localisation, tz);
+			TaskListGeoJson t = tm.getTasks(
+					sd, 
+					urlprefix,
+					0,		// Organisation id 
+					0, 		// task group id
+					aId == 0 ? taskId : 0,		// task id
+					aId,		// Assignment Id
+					true, 
+					0,		// userId 
+					null, 
+					null,	// period 
+					0,		// start 
+					0,		// limit
+					null,	// sort
+					null,
+					true);	// sort direction	
+			
+			if(t != null && t.features.size() > 0) {
+				TaskProperties tp = t.features.get(0).properties;
+				
+				// Return groups to calling program
+				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+				String resp = gson.toJson(tp);	
+				response = Response.ok(resp).build();	
+			} else {
+				response = Response.serverError().entity(localisation.getString("mf_nf")).build();
+			}
+			
+		} catch(Exception ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().entity(ex.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
 		return response;
 	}
 }

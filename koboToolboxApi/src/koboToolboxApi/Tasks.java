@@ -190,7 +190,7 @@ public class Tasks extends Application {
 			@QueryParam("tz") String tz					// Timezone
 			) throws ApplicationException, Exception { 
 		
-		String connectionString = "surveyKPI - Tasks - get Task";
+		String connectionString = "API - Tasks - get Task Assignment";
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -261,7 +261,7 @@ public class Tasks extends Application {
 			@QueryParam("tz") String tz					// Timezone
 			) throws ApplicationException, Exception { 
 		
-		String connectionString = "surveyKPI - Tasks - get Task";
+		String connectionString = "API - Tasks - get Task";
 		
 		// Authorisation - Access - Allow enumerators access
 		Connection sd = SDDataSource.getConnection(connectionString);
