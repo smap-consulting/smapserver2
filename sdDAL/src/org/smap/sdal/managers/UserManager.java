@@ -455,7 +455,7 @@ public class UserManager {
 	}
 	
 	/*
-	 * Get alerts for a user
+	 * Get the user email
 	 */
 	public String getUserEmailByIdent(
 			Connection connectionSD,
@@ -498,6 +498,53 @@ public class UserManager {
 		}
 
 		return email;
+
+	}
+	
+	/*
+	 * Get the user's API key
+	 */
+	public String getApiKeyByIdent(
+			Connection connectionSD,
+			String ident
+			) throws Exception {
+
+		PreparedStatement pstmt = null;
+
+		String key = null;
+
+		try {
+	
+			String sql = "select api_key from users where ident = ?";
+				
+			pstmt = connectionSD.prepareStatement(sql);
+			pstmt.setString(1, ident);
+
+			log.info("Get users email: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+
+			if(rs.next()) {
+				key = rs.getString(1);
+			}
+
+
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+			throw new Exception(e);
+
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (Exception e) {
+
+			}
+
+		}
+
+		return key;
 
 	}
 
