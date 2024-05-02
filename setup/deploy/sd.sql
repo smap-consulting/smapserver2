@@ -64,3 +64,6 @@ alter table forward add column updated boolean;
 
 alter table users add column current_survey_ident text;
 update users set current_survey_ident = (select ident from survey where s_id = current_survey_id) where current_survey_ident is null and current_survey_id > 0;
+
+-- Version 24.05
+alter table users add column api_key text;

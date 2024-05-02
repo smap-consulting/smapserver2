@@ -329,6 +329,7 @@ CREATE TABLE users (
 	password text,
 	basic_password text,						-- Begin migration to using basic instead of digest for authentication
 	password_set timestamp with time zone,		-- Date and time password was set
+	api_key text,								-- Key to use when acting as user and calling the API
 	realm text,
 	name text,
 	settings text,				-- User configurable settings
