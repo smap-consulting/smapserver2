@@ -104,7 +104,8 @@ public class Data_CSV extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("koboToolBoxApi-getDataCSV");
-		a.isAuthorised(sd, request.getRemoteUser());
+		String remoteUser = request.getRemoteUser();
+		a.isAuthorised(sd, remoteUser);
 
 		PrintWriter outWriter = null;
 
@@ -115,12 +116,12 @@ public class Data_CSV extends Application {
 		
 		try {
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, remoteUser));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 						
 			DataManager dm = new DataManager(localisation, "UTC");
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
-			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, request, true, urlprefix);
+			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, remoteUser, true, urlprefix);
 
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 

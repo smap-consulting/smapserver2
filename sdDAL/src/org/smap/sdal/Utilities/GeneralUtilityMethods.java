@@ -2909,7 +2909,7 @@ public class GeneralUtilityMethods {
 		String sqlGetUserDetails = "select u.ident from users u, dynamic_users d " 
 				+ " where u.id = d.u_id "
 				+ " and d.access_key = ? " 
-				+ " and d.expiry > now();";
+				+ " and d.expiry > now()";
 		PreparedStatement pstmtGetUserDetails = null;
 
 		log.info("GetDynamicUser");
@@ -2936,6 +2936,45 @@ public class GeneralUtilityMethods {
 				}
 			} catch (SQLException e) {
 			}
+		}
+
+		return userIdent;
+	}
+	
+	/*
+	 * Get a dynamic user's details from their unique key
+	 */
+	public static String getApiKeyUser(Connection sd, HttpServletRequest request) {
+
+		String userIdent = null;
+
+		String sql = "select u.ident from users u " 
+				+ " where u.api_key = ? ";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			/*
+			 * Get the key from the request
+			 */
+			String key = request.getHeader("x-api-key");
+			
+			/*
+			 * Get the user id
+			 */
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, key);
+			log.info("Get User Ident:" + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				userIdent = rs.getString(1);
+			} 
+
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Error", e);
+			userIdent = null;
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return userIdent;

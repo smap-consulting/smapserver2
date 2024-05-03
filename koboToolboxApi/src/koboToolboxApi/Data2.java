@@ -62,36 +62,18 @@ import org.smap.sdal.model.Survey;
 /*
  * Provides access to collected data
  */
-@Path("/v1/data")
-public class Data extends Application {
-
-	Authorise a = null;
-	Authorise aSuper = null;
+@Path("/v2/data")
+public class Data2 extends Application {
 
 	boolean forDevice = true;	// Attachment URL prefixes for API should have the device/API format
 	
+	Authorise a = null;			// TODO remove
+	Authorise aSuper = null;	// TODO remove
+	
 	private static Logger log =
-			Logger.getLogger(Data.class.getName());
+			Logger.getLogger(Data2.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
-
-	public Data() {
-		ArrayList<String> authorisations = new ArrayList<String> ();	
-		authorisations.add(Authorise.ANALYST);
-		authorisations.add(Authorise.VIEW_DATA);
-		authorisations.add(Authorise.VIEW_OWN_DATA);
-		authorisations.add(Authorise.ADMIN);
-		authorisations.add(Authorise.MANAGE);
-		a = new Authorise(authorisations, null);
-
-		ArrayList<String> authorisationsSuper = new ArrayList<String> ();	
-		authorisationsSuper.add(Authorise.ANALYST);
-		authorisationsSuper.add(Authorise.VIEW_DATA);
-		authorisationsSuper.add(Authorise.VIEW_OWN_DATA);
-		authorisationsSuper.add(Authorise.ADMIN);
-		aSuper = new Authorise(authorisationsSuper, null);
-
-	}
 
 	/*
 	 * KoboToolBox API version 1 /data
@@ -101,14 +83,15 @@ public class Data extends Application {
 	@Produces("application/json")
 	public Response getData(@Context HttpServletRequest request) { 
 
-		String connectionString = "koboToolBoxAPI-getData";
+		String connectionString = "koboToolBoxAPI-getData2";
 		DataEntryPoints dep = new DataEntryPoints();
-
+		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		String remoteUser = request.getRemoteUser();
+		String remoteUser = GeneralUtilityMethods.getApiKeyUser(sd, request);
 		
 		return dep.getData(sd, connectionString, request, remoteUser);
+		
 	}
 
 	/*

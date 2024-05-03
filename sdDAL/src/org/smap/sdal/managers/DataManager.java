@@ -67,7 +67,7 @@ public class DataManager {
 		a = new Authorise(authorisations, null);
 	}
 	public ArrayList<DataEndPoint> getDataEndPoints(Connection sd, 
-			HttpServletRequest request,
+			String remoteUser,
 			boolean csv,
 			String urlprefix) throws SQLException {
 		
@@ -78,8 +78,8 @@ public class DataManager {
 		 */
 		ArrayList<Survey> surveys = null;	
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
-		boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		surveys = sm.getSurveysAndForms(sd, request.getRemoteUser(), superUser);
+		boolean superUser = GeneralUtilityMethods.isSuperUser(sd, remoteUser);
+		surveys = sm.getSurveysAndForms(sd, remoteUser, superUser);
 		
 		if(csv) {
 			urlprefix += "/api/v1/data.csv/";	// This request should only be made as an API request and not from the client
