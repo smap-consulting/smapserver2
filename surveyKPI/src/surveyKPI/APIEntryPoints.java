@@ -164,7 +164,9 @@ public class APIEntryPoints extends Application {
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 		String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
 		
-		dm.getDataRecords(request, response, sIdent, start, limit, mgmt, oversightSurvey, viewId, 
+		dm.getDataRecords(request, 
+				request.getRemoteUser(),
+				response, sIdent, start, limit, mgmt, oversightSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, include_completed, audit_set, merge, geojson, geomQuestion,
 				tz, incLinks, 

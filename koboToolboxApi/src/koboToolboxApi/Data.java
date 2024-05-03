@@ -176,9 +176,19 @@ public class Data extends Application {
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 		String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
 		
+		String connectionString = "koboToolboxApi - get data records 2";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		String remoteUser = request.getRemoteUser();
+		
 		// Authorisation, localisation and timezone are determined in getDataRecords
 		DataManager dm = new DataManager(null, "UTC");		
-		dm.getDataRecords(request, response, sIdent, start, limit, mgmt, oversightSurvey, viewId, 
+		dm.getDataRecords(sd,
+				connectionString,
+				request, 
+				remoteUser,
+				response, sIdent, start, limit, mgmt, oversightSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, include_completed, audit_set, merge, geojson, geomQuestion,
 				tz, incLinks, 

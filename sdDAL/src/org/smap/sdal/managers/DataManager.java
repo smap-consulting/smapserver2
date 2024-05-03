@@ -437,7 +437,10 @@ public class DataManager {
 	/*
 	 * Get records for an individual survey in JSON format
 	 */
-	public void getDataRecords(HttpServletRequest request,
+	public void getDataRecords(Connection sd,
+			String connectionString,
+			HttpServletRequest request,
+			String remoteUser,
 			HttpServletResponse response,
 			String sIdent,
 			int start,				// Primary key to start from
@@ -476,13 +479,10 @@ public class DataManager {
 			String attachmentPrefix
 			) throws ApplicationException, Exception { 
 
-		String connectionString = "koboToolboxApi - get data records";
-		
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);
+
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, remoteUser);
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(),e);
 		}
@@ -511,13 +511,13 @@ public class DataManager {
 		
 		String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 		
-		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		a.isAuthorised(sd, remoteUser);
+		a.isValidSurvey(sd, remoteUser, sId, false, superUser);
 		if(viewId > 0) {
-			a.isValidView(sd, request.getRemoteUser(), viewId, false);
+			a.isValidView(sd, remoteUser, viewId, false);
 		}
 		if(oversightSurvey != null) {
-			a.isValidOversightSurvey(sd, request.getRemoteUser(), sId, oversightSurvey);
+			a.isValidOversightSurvey(sd, remoteUser, sId, oversightSurvey);
 		}		
 		// End Authorisation
 
@@ -572,7 +572,7 @@ public class DataManager {
 		
 		if(tz == null) {
 			tz = GeneralUtilityMethods.getOrganisationTZ(sd, 
-					GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser()));
+					GeneralUtilityMethods.getOrganisationId(sd, remoteUser));
 		}
 		tz = (tz == null) ? "UTC" : tz;
 
@@ -582,21 +582,21 @@ public class DataManager {
 		SurveySettingsDefn ssd = null;
 		int uId = 0;
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
 			
-			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_VIEW, "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk), 0, request.getServerName());
+			lm.writeLog(sd, sId, remoteUser, LogManager.API_VIEW, "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk), 0, request.getServerName());
 			
 			response.setContentType("application/json; charset=UTF-8");
 			response.setCharacterEncoding("UTF-8");
 			outWriter = response.getWriter();
 			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, remoteUser));
 			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			/*
 			 * Check rate Limiter and whether or not the api is disabled
 			 */
-			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
+			if(!GeneralUtilityMethods.isApiEnabled(sd, remoteUser)) {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}	
 			RateLimiter.isPermitted(sd, oId, response, localisation);
@@ -606,7 +606,7 @@ public class DataManager {
 			 */
 			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
 			ssm = new SurveySettingsManager(localisation, tz);
-			uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			uId = GeneralUtilityMethods.getUserId(sd, remoteUser);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			
 			SurveyViewDefn sv = null;
@@ -682,7 +682,7 @@ public class DataManager {
 						sId,
 						fId,
 						formName,
-						request.getRemoteUser(), 
+						remoteUser, 
 						oId, 
 						superUser,
 						oversightSurvey,
@@ -735,7 +735,7 @@ public class DataManager {
 						language,
 						sId,
 						sIdent,
-						request.getRemoteUser(),
+						remoteUser,
 						null,
 						parentform,
 						fId,
@@ -789,7 +789,7 @@ public class DataManager {
 					table_name,
 					parkey,
 					hrk,
-					request.getRemoteUser(),
+					remoteUser,
 					null,	// roles
 					sort,
 					dirn,
@@ -848,8 +848,8 @@ public class DataManager {
 				rs = pstmt.executeQuery();
 				JSONObject jo = new JSONObject();
 				int index = 0;
-				boolean viewOwnDataOnly = GeneralUtilityMethods.isOnlyViewOwnData(sd, request.getRemoteUser());
-				boolean viewLinks = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.LINKS_ID);
+				boolean viewOwnDataOnly = GeneralUtilityMethods.isOnlyViewOwnData(sd, remoteUser);
+				boolean viewLinks = GeneralUtilityMethods.hasSecurityGroup(sd, remoteUser, Authorise.LINKS_ID);
 				while(jo != null) {
 					
 					jo =  tdm.getNextRecord(
