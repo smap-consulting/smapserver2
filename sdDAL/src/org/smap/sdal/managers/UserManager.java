@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -524,7 +525,7 @@ public class UserManager {
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setString(1, ident);
 
-			log.info("Get users email: " + pstmt.toString());
+			log.info("Get users api key: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			if(rs.next()) {
@@ -538,20 +539,78 @@ public class UserManager {
 			throw new Exception(e);
 
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (Exception e) {
-
-			}
-
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
 
 		return key;
 
 	}
 
+	/*
+	 * Delete the user's API key
+	 */
+	public void deleteApiKeyByIdent(
+			Connection connectionSD,
+			String ident
+			) throws Exception {
+
+		PreparedStatement pstmt = null;
+
+		try {
+	
+			String sql = "update users set api_key = null where ident = ?";
+				
+			pstmt = connectionSD.prepareStatement(sql);
+			pstmt.setString(1, ident);
+
+			log.info("Delete users api key: " + pstmt.toString());
+			pstmt.executeUpdate();
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+			throw new Exception(e);
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+
+	}
+
+	/*
+	 * Create a new API key
+	 */
+	public String createApiKeyByIdent(
+			Connection connectionSD,
+			String ident
+			) throws Exception {
+
+		PreparedStatement pstmt = null;
+
+		String key = UUID.randomUUID().toString();
+
+		try {
+	
+			String sql = "update users set api_key = ? where ident = ?";
+				
+			pstmt = connectionSD.prepareStatement(sql);
+			pstmt.setString(1, key);
+			pstmt.setString(2, ident);
+
+			log.info("Create users api key: " + pstmt.toString());
+			pstmt.executeUpdate();
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+			throw new Exception(e);
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+
+		return key;
+
+	}
+	
 	/*
 	 * Create a new user Parameters:
 	 *   u: Details of the new user

@@ -20,6 +20,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -183,6 +184,76 @@ public class UserSvc extends Application {
 
 		return response;
 	}
+	
+	@DELETE
+	@Path("/api_key")
+	public Response deleteMyApiKey(@Context HttpServletRequest request) { 
+
+		Response response = null;
+		String connectionString = "surveyKPI-UserSvc-DeleteApiKey";
+
+		// Authorisation - Not required
+		Connection sd = SDDataSource.getConnection(connectionString);
+		
+		try {
+			UserManager um = new UserManager(null);
+			um.deleteApiKeyByIdent(sd, request.getRemoteUser());
+
+			response = Response.ok("").build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			response = Response.serverError().build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+
+		return response;
+	}
+	
+	/*
+	 * Create a new API key
+	 */
+	@POST
+	@Path("/api_key/create")
+	public Response createApiKey(@Context HttpServletRequest request) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
+		Response response = null;
+		ApiKeyDetails key = new ApiKeyDetails();
+		String authString = "surveyKPI-UserSvc-CreateApiKey";
+		
+		// Authorisation - Not Required - the user is updating their own settings
+		Connection sd = SDDataSource.getConnection(authString);
+		
+		try {	
+
+			UserManager um = new UserManager(null);
+			key.apiKey = um.createApiKeyByIdent(sd, request.getRemoteUser());
+				
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(key);
+			response = Response.ok(resp).build();
+				
+		} catch (Exception e) {
+
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+			
+		} finally {
+			
+			SDDataSource.closeConnection(authString, sd);
+		}
+		
+		return response;
+	}
+	
 	/*
 	 * Update the user settings
 	 */
