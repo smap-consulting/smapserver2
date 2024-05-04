@@ -206,96 +206,20 @@ public class Data2 extends Application {
 			@QueryParam("hierarchy") String hierarchy
 			) throws ApplicationException, Exception { 
 		
-		Response response;
-		
 		if(tz == null) {
 			tz = "UTC";
 		}
 		
-		String connectionString = "koboToolboxApi - get single data record";
-		
-		Connection cResults = null;
+		String connectionString = "koboToolboxApi - get single data record-2";
+		DataEntryPoints dep = new DataEntryPoints();
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		} catch (Exception e) {
-		}
+		String remoteUser = GeneralUtilityMethods.getApiKeyUser(sd, request);
 		
-		try {
-			
-			cResults = ResultsDataSource.getConnection(connectionString);
-			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
-				throw new ApplicationException(localisation.getString("susp_api"));
-			}
-			
-			DataManager dm = new DataManager(localisation, tz);
-			int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);	
-			
-			a.isAuthorised(sd, request.getRemoteUser());
-			a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
-			// End Authorisation
-			
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
-			String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
-			
-			boolean includeHierarchy = false;
-			boolean includeMeta = false;		// Default to false for single record (Historical consistency reason)
-			String mergeExp = "no";
-			if(meta != null && (meta.equals("true") || meta.equals("yes"))) {
-				includeMeta = true;
-			}
-			if(hierarchy != null && (hierarchy.equals("true") || hierarchy.equals("yes"))) {
-				includeHierarchy = true;
-			}
-			if(merge != null && (merge.equals("true") || merge.equals("yes"))) {
-				mergeExp = "yes";
-			}
-			
-			if(includeHierarchy) {
-				response = dm.getRecordHierarchy(sd, cResults, request,
-						sIdent,
-						sId,
-						uuid,
-						mergeExp, 			// If set to yes then do not put choices from select multiple questions in separate objects
-						localisation,
-						tz,				// Timezone
-						includeMeta,
-						urlprefix,
-						attachmentPrefix
-						);	
-			} else {
-				response = getSingleRecord(
-						sd,
-						cResults,
-						request,
-						sIdent,
-						sId,
-						uuid,
-						mergeExp, 			// If set to yes then do not put choices from select multiple questions in separate objects
-						localisation,
-						tz,				// Timezone
-						includeMeta,
-						urlprefix,
-						attachmentPrefix
-						);	
-			}
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			String resp = "{error: " + e.getMessage() + "}";
-			response = Response.serverError().entity(resp).build();
-		} finally {
-			SDDataSource.closeConnection(connectionString, sd);
-			ResultsDataSource.closeConnection(connectionString, cResults);	
-		}
+		return dep.getSingleDataRecord(sd, connectionString, request, remoteUser,
+				sIdent, uuid, meta, hierarchy, merge, tz);
 		
-		return response;
 	}
 	
 	/*

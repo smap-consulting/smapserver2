@@ -164,7 +164,11 @@ public class APIEntryPoints extends Application {
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 		String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
 		
-		dm.getDataRecords(request, 
+		String connectionString = "APIEntryPoints - get data records ";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		dm.getDataRecords(sd,
+				connectionString,
+				request, 
 				request.getRemoteUser(),
 				response, sIdent, start, limit, mgmt, oversightSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,

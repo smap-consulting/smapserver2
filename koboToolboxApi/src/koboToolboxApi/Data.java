@@ -228,88 +228,14 @@ public class Data extends Application {
 		
 		String connectionString = "koboToolboxApi - get single data record";
 		
-		Connection cResults = null;
+		DataEntryPoints dep = new DataEntryPoints();
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		} catch (Exception e) {
-		}
+		String remoteUser = request.getRemoteUser();
 		
-		try {
-			
-			cResults = ResultsDataSource.getConnection(connectionString);
-			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
-				throw new ApplicationException(localisation.getString("susp_api"));
-			}
-			
-			DataManager dm = new DataManager(localisation, tz);
-			int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);	
-			
-			a.isAuthorised(sd, request.getRemoteUser());
-			a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
-			// End Authorisation
-			
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
-			String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
-			
-			boolean includeHierarchy = false;
-			boolean includeMeta = false;		// Default to false for single record (Historical consistency reason)
-			String mergeExp = "no";
-			if(meta != null && (meta.equals("true") || meta.equals("yes"))) {
-				includeMeta = true;
-			}
-			if(hierarchy != null && (hierarchy.equals("true") || hierarchy.equals("yes"))) {
-				includeHierarchy = true;
-			}
-			if(merge != null && (merge.equals("true") || merge.equals("yes"))) {
-				mergeExp = "yes";
-			}
-			
-			if(includeHierarchy) {
-				response = dm.getRecordHierarchy(sd, cResults, request,
-						sIdent,
-						sId,
-						uuid,
-						mergeExp, 			// If set to yes then do not put choices from select multiple questions in separate objects
-						localisation,
-						tz,				// Timezone
-						includeMeta,
-						urlprefix,
-						attachmentPrefix
-						);	
-			} else {
-				response = getSingleRecord(
-						sd,
-						cResults,
-						request,
-						sIdent,
-						sId,
-						uuid,
-						mergeExp, 			// If set to yes then do not put choices from select multiple questions in separate objects
-						localisation,
-						tz,				// Timezone
-						includeMeta,
-						urlprefix,
-						attachmentPrefix
-						);	
-			}
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			String resp = "{error: " + e.getMessage() + "}";
-			response = Response.serverError().entity(resp).build();
-		} finally {
-			SDDataSource.closeConnection(connectionString, sd);
-			ResultsDataSource.closeConnection(connectionString, cResults);	
-		}
-		
-		return response;
+		return dep.getSingleDataRecord(sd, connectionString, request, remoteUser,
+				sIdent, uuid, meta, hierarchy, merge, tz);
 	}
 	
 	/*
@@ -494,87 +420,7 @@ public class Data extends Application {
 		
 	}
 	
-	/*
-	 * KoboToolBox API version 1 /data
-	 * Get a single record in JSON format
-	 */
-	private Response getSingleRecord(
-			Connection sd,
-			Connection cResults,
-			HttpServletRequest request,
-			String sIdent,
-			int sId,
-			String uuid,
-			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
-			ResourceBundle localisation,
-			String tz,				// Timezone
-			boolean includeMeta,
-			String urlprefix,
-			String attachmentPrefix
-			) throws ApplicationException, Exception { 
 
-		Response response;
-			
-			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_SINGLE_VIEW, "Managed Forms or the API. ", 0, request.getServerName());
-			
-			
-			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
-				throw new ApplicationException(localisation.getString("susp_api"));
-			}
-
-			SurveyManager sm = new SurveyManager(localisation, tz);
-			
-			Survey s = sm.getById(
-					sd, 
-					cResults, 
-					request.getRemoteUser(),
-					false,
-					sId, 
-					true, 		// full
-					null, 		// basepath
-					null, 		// instance id
-					false, 		// get results
-					false, 		// generate dummy values
-					true, 		// get property questions
-					false, 		// get soft deleted
-					true, 		// get HRK
-					"external", 	// get external options
-					false, 		// get change history
-					false, 		// get roles
-					true,		// superuser 
-					null, 		// geomformat
-					false, 		// reference surveys
-					false,		// only get launched
-					false		// Don't merge set value into default values
-					);
-			
-			ArrayList<Instance> instances = sm.getInstances(
-					sd,
-					cResults,
-					s,
-					s.getFirstForm(),
-					0,
-					null,
-					uuid,
-					sm,
-					includeMeta,
-					urlprefix,
-					attachmentPrefix
-					);
-		
-			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-			
-			// Just return the first instance - at the top level there should only ever be one
-			if(instances.size() > 0) {
-				response = Response.ok(gson.toJson(instances.get(0))).build();
-			} else {
-				log.log(Level.SEVERE, "Instance not found for " + s.surveyData.displayName + " : " + uuid);
-				response = Response.serverError().status(Status.NOT_FOUND).build();
-			}
-
-		return response;
-
-	}
 	
 	/*
 	 * Get similar records for an individual survey in JSON format

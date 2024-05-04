@@ -16,6 +16,7 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
@@ -30,6 +31,7 @@ import org.smap.sdal.model.ConsoleTotals;
 import org.smap.sdal.model.DataEndPoint;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.FormLink;
+import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.Point;
 import org.smap.sdal.model.Question;
@@ -1362,6 +1364,88 @@ public class DataManager {
 			ResultsDataSource.closeConnection(connectionString, cResults);			
 			SDDataSource.closeConnection(connectionString, sd);
 		}
+
+		return response;
+
+	}
+	
+	/*
+	 * KoboToolBox API version 1 /data
+	 * Get a single record in JSON format
+	 */
+	public Response getSingleRecord(
+			Connection sd,
+			Connection cResults,
+			HttpServletRequest request,
+			String sIdent,
+			int sId,
+			String uuid,
+			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
+			ResourceBundle localisation,
+			String tz,				// Timezone
+			boolean includeMeta,
+			String urlprefix,
+			String attachmentPrefix
+			) throws ApplicationException, Exception { 
+
+		Response response;
+			
+			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_SINGLE_VIEW, "Managed Forms or the API. ", 0, request.getServerName());
+			
+			
+			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
+				throw new ApplicationException(localisation.getString("susp_api"));
+			}
+
+			SurveyManager sm = new SurveyManager(localisation, tz);
+			
+			Survey s = sm.getById(
+					sd, 
+					cResults, 
+					request.getRemoteUser(),
+					false,
+					sId, 
+					true, 		// full
+					null, 		// basepath
+					null, 		// instance id
+					false, 		// get results
+					false, 		// generate dummy values
+					true, 		// get property questions
+					false, 		// get soft deleted
+					true, 		// get HRK
+					"external", 	// get external options
+					false, 		// get change history
+					false, 		// get roles
+					true,		// superuser 
+					null, 		// geomformat
+					false, 		// reference surveys
+					false,		// only get launched
+					false		// Don't merge set value into default values
+					);
+			
+			ArrayList<Instance> instances = sm.getInstances(
+					sd,
+					cResults,
+					s,
+					s.getFirstForm(),
+					0,
+					null,
+					uuid,
+					sm,
+					includeMeta,
+					urlprefix,
+					attachmentPrefix
+					);
+		
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			
+			// Just return the first instance - at the top level there should only ever be one
+			if(instances.size() > 0) {
+				response = Response.ok(gson.toJson(instances.get(0))).build();
+			} else {
+				log.log(Level.SEVERE, "Instance not found for " + s.surveyData.displayName + " : " + uuid);
+				response = Response.serverError().status(Status.NOT_FOUND).build();
+			}
 
 		return response;
 
