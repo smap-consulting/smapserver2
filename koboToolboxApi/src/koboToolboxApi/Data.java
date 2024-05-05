@@ -108,7 +108,7 @@ public class Data extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		String remoteUser = request.getRemoteUser();
 		
-		return dep.getData(sd, connectionString, request, remoteUser);
+		return dep.getData("v1", sd, connectionString, request, remoteUser);
 	}
 
 	/*

@@ -71,7 +71,8 @@ public class DataManager {
 	public ArrayList<DataEndPoint> getDataEndPoints(Connection sd, 
 			String remoteUser,
 			boolean csv,
-			String urlprefix) throws SQLException {
+			String urlprefix,
+			String version) throws SQLException {
 		
 		ArrayList<DataEndPoint> data = new ArrayList<DataEndPoint> ();
 		
@@ -84,9 +85,9 @@ public class DataManager {
 		surveys = sm.getSurveysAndForms(sd, remoteUser, superUser);
 		
 		if(csv) {
-			urlprefix += "/api/v1/data.csv/";	// This request should only be made as an API request and not from the client
+			urlprefix += "api/v1/data.csv/";	// This request should only be made as an API request and not from the client
 		} else {
-			urlprefix += "/api/v1/data/";
+			urlprefix += "api/" + version + "/data/";
 		}
 		
 		for(Survey s: surveys) {

@@ -27,7 +27,6 @@ import managers.DataEntryPoints;
 
 import java.sql.Connection;
 import java.sql.Date;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -53,7 +52,6 @@ import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.model.DataEndPoint;
 import org.smap.sdal.model.DataItemChangeEvent;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.RecordUpdateEvent;
@@ -90,7 +88,7 @@ public class Data2 extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		String remoteUser = GeneralUtilityMethods.getApiKeyUser(sd, request);
 		
-		return dep.getData(sd, connectionString, request, remoteUser);
+		return dep.getData("v2",sd, connectionString, request, remoteUser);
 		
 	}
 

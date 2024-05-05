@@ -52,7 +52,8 @@ public class DataEntryPoints {
 		aSuper = new Authorise(authorisationsSuper, null);
 	}
 	
-	public Response getData(Connection sd, 
+	public Response getData(String version,
+			Connection sd, 
 			String connectionString,
 			HttpServletRequest request,
 			String remoteUser) {
@@ -73,7 +74,7 @@ public class DataEntryPoints {
 			DataManager dm = new DataManager(localisation, "UTC");
 			
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
-			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, remoteUser, false, urlprefix);
+			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, remoteUser, false, urlprefix, version);
 
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(data);

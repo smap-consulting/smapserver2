@@ -121,7 +121,7 @@ public class Data_CSV extends Application {
 						
 			DataManager dm = new DataManager(localisation, "UTC");
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
-			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, remoteUser, true, urlprefix);
+			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, remoteUser, true, urlprefix, "v1");
 
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 
