@@ -27,7 +27,6 @@ import managers.DataEntryPoints;
 
 import java.sql.Connection;
 import java.sql.Date;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -52,12 +51,8 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RecordEventManager;
-import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.model.DataEndPoint;
 import org.smap.sdal.model.DataItemChangeEvent;
-import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.RecordUpdateEvent;
-import org.smap.sdal.model.Survey;
 
 /*
  * Provides access to collected data
@@ -69,6 +64,8 @@ public class Data extends Application {
 	Authorise aSuper = null;
 
 	boolean forDevice = true;	// Attachment URL prefixes for API should have the device/API format
+	
+	private static String VERSION = "v1";
 	
 	private static Logger log =
 			Logger.getLogger(Data.class.getName());
@@ -108,7 +105,7 @@ public class Data extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		String remoteUser = request.getRemoteUser();
 		
-		return dep.getData("v1", sd, connectionString, request, remoteUser);
+		return dep.getData(VERSION, sd, connectionString, request, remoteUser);
 	}
 
 	/*

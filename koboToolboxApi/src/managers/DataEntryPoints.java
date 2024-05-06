@@ -24,8 +24,6 @@ import org.smap.sdal.model.DataEndPoint;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import koboToolboxApi.Data2;
-
 public class DataEntryPoints {
 
 	Authorise a = null;

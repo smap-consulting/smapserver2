@@ -1,8 +1,6 @@
 package org.smap.sdal.model;
 import java.util.ArrayList;
 
-import org.smap.sdal.model.SubItemDt;
-
 /*
  * Smap extension
  */

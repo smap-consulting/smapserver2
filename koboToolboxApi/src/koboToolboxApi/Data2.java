@@ -68,6 +68,8 @@ public class Data2 extends Application {
 	Authorise a = null;			// TODO remove
 	Authorise aSuper = null;	// TODO remove
 	
+	private static String VERSION = "v2";
+	
 	private static Logger log =
 			Logger.getLogger(Data2.class.getName());
 
@@ -88,7 +90,7 @@ public class Data2 extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		String remoteUser = GeneralUtilityMethods.getApiKeyUser(sd, request);
 		
-		return dep.getData("v2",sd, connectionString, request, remoteUser);
+		return dep.getData(VERSION,sd, connectionString, request, remoteUser);
 		
 	}
 

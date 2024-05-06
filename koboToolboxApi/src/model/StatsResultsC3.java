@@ -1,17 +1,11 @@
 package model;
 
 import java.util.ArrayList;
-import java.util.logging.Logger;
-
-import koboToolboxApi.TaskStatistics;
 
 /*
  * Smap extension
  */
 public class StatsResultsC3 {
-	
-	private static Logger log =
-			 Logger.getLogger(TaskStatistics.class.getName());
 	
 	private ArrayList<ArrayList<Integer>> data;
 	public ArrayList<String> groups;

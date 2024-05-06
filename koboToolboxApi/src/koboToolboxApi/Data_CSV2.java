@@ -67,15 +67,15 @@ import com.google.gson.reflect.TypeToken;
  * Returns data for the passed in table name
  */
 @Path("/v1/data.csv")
-public class Data_CSV extends Application {
+public class Data_CSV2 extends Application {
 
 	Authorise a = null;
 	
-	private static String VERSION = "v1";
+	private static String VERSION = "v2";
 
 	boolean forDevice = true;	// Attachment URL prefixes for API should have the device/API format
 	
-	private static Logger log = Logger.getLogger(Data_CSV.class.getName());
+	private static Logger log = Logger.getLogger(Data_CSV2.class.getName());
 
 	LogManager lm = new LogManager(); // Application log
 	
@@ -83,11 +83,11 @@ public class Data_CSV extends Application {
 	// servlet 3)
 	public Set<Class<?>> getClasses() {
 		Set<Class<?>> s = new HashSet<Class<?>>();
-		s.add(Data_CSV.class);
+		s.add(Data_CSV2.class);
 		return s;
 	}
 
-	public Data_CSV() {
+	public Data_CSV2() {
 		ArrayList<String> authorisations = new ArrayList<String>();
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.VIEW_DATA);
@@ -97,7 +97,7 @@ public class Data_CSV extends Application {
 	}
 
 	/*
-	 * KoboToolBox API version 1 /data.csv CSV version
+	 * API version 2 /data.csv CSV
 	 */
 	@GET
 	@Produces("text/csv")
@@ -105,8 +105,8 @@ public class Data_CSV extends Application {
 			@Context HttpServletResponse response) {
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("koboToolBoxApi-getDataCSV-1");
-		String remoteUser = request.getRemoteUser();
+		Connection sd = SDDataSource.getConnection("koboToolBoxApi-getDataCSV-2");
+		String remoteUser = GeneralUtilityMethods.getApiKeyUser(sd, request);
 		a.isAuthorised(sd, remoteUser);
 
 		PrintWriter outWriter = null;
