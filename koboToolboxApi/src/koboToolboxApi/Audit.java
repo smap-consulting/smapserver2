@@ -539,7 +539,7 @@ public class Audit extends Application {
 	@GET
 	@Produces("application/json")
 	@Path("/refresh/log")
-	public void getrefreshRecords(@Context HttpServletRequest request,
+	public Response getrefreshRecords(@Context HttpServletRequest request,
 			@Context HttpServletResponse response,
 			@QueryParam("user") String uIdent,
 			@QueryParam("start") int start,				// Primary key to start from
@@ -691,6 +691,8 @@ public class Audit extends Application {
 		
 			SDDataSource.closeConnection(connectionString, sd);
 		}
+		
+		return Response.ok("").build();
 		
 	}
 

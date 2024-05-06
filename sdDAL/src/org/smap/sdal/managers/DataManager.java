@@ -84,10 +84,11 @@ public class DataManager {
 		boolean superUser = GeneralUtilityMethods.isSuperUser(sd, remoteUser);
 		surveys = sm.getSurveysAndForms(sd, remoteUser, superUser);
 		
+		urlprefix += "api/" + version;
 		if(csv) {
-			urlprefix += "api/v1/data.csv/";	// This request should only be made as an API request and not from the client
+			urlprefix += "/data.csv/";
 		} else {
-			urlprefix += "api/" + version + "/data/";
+			urlprefix += "/data/";
 		}
 		
 		for(Survey s: surveys) {
