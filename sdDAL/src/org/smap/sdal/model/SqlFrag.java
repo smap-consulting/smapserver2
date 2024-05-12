@@ -252,6 +252,7 @@ public class SqlFrag {
 				token.equals("as") || 
 				token.equals("integer") || 
 				token.equals("current_date") ||
+				token.equals("to_char") ||
 				token.equals("now()")) {
 			out = token;
 		} else if (token.equals("area")) {
