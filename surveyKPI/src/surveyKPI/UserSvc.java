@@ -186,43 +186,6 @@ public class UserSvc extends Application {
 		return response;
 	}
 	
-	/*
-	 * Get the user's API key
-	 */
-	class ApiKeyDetails {
-		String apiKey;
-	}
-	
-	@GET
-	@Path("/api_key")
-	@Produces("application/json")
-	public Response getMyApiKey(@Context HttpServletRequest request) { 
-
-		Response response = null;
-		String connectionString = "surveyKPI-UserSvc-GetApiKey";
-
-		// Authorisation - Not required
-		Connection sd = SDDataSource.getConnection(connectionString);
-		
-		try {
-			ApiKeyDetails key = new ApiKeyDetails();
-			UserManager um = new UserManager(null);
-			key.apiKey = um.getApiKeyByIdent(sd, request.getRemoteUser());
-
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-			String resp = gson.toJson(key);
-			response = Response.ok(resp).build();
-			
-		} catch (Exception e) {
-			log.log(Level.SEVERE, e.getMessage(), e);
-			response = Response.serverError().build();
-		} finally {
-			SDDataSource.closeConnection(connectionString, sd);
-		}
-		
-
-		return response;
-	}
 	
 	@DELETE
 	@Path("/api_key")
