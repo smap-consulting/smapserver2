@@ -6,8 +6,12 @@ u1604=`lsb_release -r | grep -c "16\.04"`
 u1804=`lsb_release -r | grep -c "18\.04"`
 u2004=`lsb_release -r | grep -c "20\.04"`
 u2204=`lsb_release -r | grep -c "22\.04"`
+u2404=`lsb_release -r | grep -c "24\.04"`
 
-if [ $u2204 -eq 1 ]; then
+if [ $u2404 -eq 1 ]; then
+    TOMCAT_VERSION=tomcat10
+    TOMCAT_USER=tomcat
+elif [ $u2204 -eq 1 ]; then
     TOMCAT_VERSION=tomcat9
     TOMCAT_USER=tomcat
 elif [ $u2004 -eq 1 ]; then
@@ -54,20 +58,7 @@ service $TOMCAT_VERSION stop
 if [ $u1404 -eq 1 ]; then
     service subscribers stop
     service subscribers_fwd stop
-fi
-if [ $u1604 -eq 1 ]; then
-    systemctl stop subscribers
-    systemctl stop subscribers_fwd
-fi
-if [ $u1804 -eq 1 ]; then
-    systemctl stop subscribers
-    systemctl stop subscribers_fwd
-fi
-if [ $u2004 -eq 1 ]; then
-    systemctl stop subscribers
-    systemctl stop subscribers_fwd
-fi
-if [ $u2204 -eq 1 ]; then
+else
     systemctl stop subscribers
     systemctl stop subscribers_fwd
 fi
@@ -193,8 +184,6 @@ else
     sudo sed -i "s#127.0.0.1#$DBHOST#g" /smap_bin/default/metaDataModel.xml
     sudo sed -i "s#127.0.0.1#$DBHOST#g" /smap_bin/default/results_db.xml
     sudo sed -i "s#127.0.0.1#$DBHOST#g" /smap_bin/getshape.sh
-#    sudo sed -i "s#127.0.0.1#$DBHOST#g" /smap_bin/forward/metaDataModel.xml
-#    sudo sed -i "s#127.0.0.1#$DBHOST#g" /smap_bin/forward/results_db.xml
 
 fi
 

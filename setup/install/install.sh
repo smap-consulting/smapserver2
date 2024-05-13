@@ -23,9 +23,12 @@ fi
 u1804=`lsb_release -r | grep -c "18\.04"`
 u2004=`lsb_release -r | grep -c "20\.04"`
 u2204=`lsb_release -r | grep -c "22\.04"`
+u2404=`lsb_release -r | grep -c "24\.04"`
 
 # Check that this version of ubuntu is supported
-if [ $u2204 -eq 1 ]; then
+if [ $u2404 -eq 1 ]; then
+    echo "Installing on Ubuntu 24.04"
+elif [ $u2204 -eq 1 ]; then
     echo "Installing on Ubuntu 22.04"
 elif [ $u2004 -eq 1 ]; then
     echo "Installing on Ubuntu 20.04"
@@ -36,7 +39,10 @@ else
     exit 1;
 fi
 
-if [ $u2204 -eq 1 ]; then
+if [ $u2404 -eq 1 ]; then
+    TOMCAT_VERSION=tomcat10
+    TOMCAT_USER=tomcat
+elif [ $u2204 -eq 1 ]; then
     TOMCAT_VERSION=tomcat9
     TOMCAT_USER=tomcat
 elif [ $u2004 -eq 1 ]; then
@@ -106,7 +112,14 @@ echo '##### 5. Install Postgres / Postgis'
 # Skip this section if the database is remote
 if [ "$DBHOST" = "127.0.0.1" ]; then
 
-    # Install Postgres for Ubuntu 20.04
+    # Install Postgres for Ubuntu 24.04
+    if [ $u2404 -eq 1 ]; then
+        echo 'installing postgres'
+        PGV=16
+        sudo apt-get install postgresql postgresql-contrib postgis -y
+    fi
+
+    # Install Postgres for Ubuntu 22.04
     if [ $u2204 -eq 1 ]; then
         echo 'installing postgres'
         PGV=14
@@ -150,6 +163,12 @@ sudo mkdir $filelocn/misc
 sudo mkdir $filelocn/temp
 sudo mkdir $filelocn/settings
 
+# For ubuntu 2404 allow tomcat10 to write to /smap
+if [ $u2404 -eq 1 ]; then
+mkdir /etc/systemd/system/tomcat10.service.d
+cp config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
+fi
+
 # For ubuntu 2204 allow tomcat9 to write to /smap
 if [ $u2204 -eq 1 ]; then
 mkdir /etc/systemd/system/tomcat9.service.d
@@ -189,33 +208,47 @@ then
         if [ $DBHOST = "127.0.0.1" ]; then
 	    sudo service postgresql stop
 	    echo '# copy postgres conf file'
-	    sudo mv $pg_conf $pg_conf.bu
+		if [ ! -f "$pg_conf.bu" ]; then
+	    	sudo mv $pg_conf $pg_conf.bu
+	    fi
 	    sudo cp config_files/postgresql.conf.$PGV $pg_conf
 	fi
 
 	echo '# copy tomcat server file'
-	sudo mv $tc_server_xml $tc_server_xml.bu
+	if [ ! -f "$tc_server_xml.bu" ]; then
+		sudo mv $tc_server_xml $tc_server_xml.bu
+	fi
 	sudo cp config_files/server.xml.$TOMCAT_VERSION $tc_server_xml
 	sudo chown $TOMCAT_USER $tc_server_xml
 
 	echo '# copy tomcat context file'
-	sudo mv $tc_context_xml $tc_context_xml.bu
+	if [ ! -f "$tc_context_xml.bu" ]; then
+		sudo mv $tc_context_xml $tc_context_xml.bu
+	fi
 	sudo cp config_files/context.xml $tc_context_xml
 	sudo chown $TOMCAT_USER $tc_context_xml
 
 	echo '# copy tomcat logging properties file'
-	sudo mv $tc_logging $tc_logging.bu
+	if [ ! -f "$tc_logging.bu" ]; then
+		sudo mv $tc_logging $tc_logging.bu
+	fi
 	sudo cp config_files/logging.properties $tc_logging
 
-	echo '# copy Apache cofiguration file'
-	sudo mv $a_config_prefork_conf $a_config_prefork_conf.bu
+	echo '# copy Apache configuration file'
+	if [ ! -f "$a_config_prefork_conf.bu" ]; then
+		sudo mv $a_config_prefork_conf $a_config_prefork_conf.bu
+	fi
 	sudo cp config_files/mpm_prefork.conf $a_config_prefork_conf
 
 	echo "Setting up Apache 2.4"
-	sudo cp $a_config_dir/smap.conf $a_config_dir/smap.conf.bu
+	if [ ! -f "$a_config_dir/smap.conf.bu" ]; then
+		sudo cp $a_config_dir/smap.conf $a_config_dir/smap.conf.bu
+	fi
 	sudo cp config_files/a24-smap.conf $a_config_dir/smap.conf
 
-	sudo cp $a_config_dir/smap-ssl.conf $a_config_dir/smap-ssl.conf.bu
+	if [ ! -f "$a_config_dir/smap-ssl.conf.bu" ]; then
+		sudo cp $a_config_dir/smap-ssl.conf $a_config_dir/smap-ssl.conf.bu
+	fi
 	sudo cp config_files/a24-smap-ssl.conf $a_config_dir/smap-ssl.conf
 	
 	# disable default config - TODO work out how to get Smap to coexist with existing Apache installations	
@@ -229,6 +262,16 @@ then
 	sudo ./apacheConfig.sh
 
 	echo '# copy subscriber upstart files'
+	if [ $u2404 -eq 1 ]; then
+		sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
+		sudo chmod 664 $service_dir/subscribers.service
+		sudo cp config_files/subscribers_fwd.service.u2004 $service_dir/subscribers_fwd.service
+		sudo chmod 664 $service_dir/subscribers_fwd.service
+		
+		sudo systemctl enable subscribers.service
+		sudo systemctl enable subscribers_fwd.service
+	fi
+
 	if [ $u2204 -eq 1 ]; then
 		sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
 		sudo chmod 664 $service_dir/subscribers.service
@@ -369,7 +412,10 @@ sudo apt-get install mlocate -y
 
 echo '##### Add file location to tomcat configuration'
 
-sudo cp /var/lib/$TOMCAT_VERSION/conf/web.xml /var/lib/$TOMCAT_VERSION/conf/web.xml.bu
+BU_FILE=/var/lib/$TOMCAT_VERSION/conf/web.xml.bu
+if [ ! -f "$BU_FILE" ]; then
+	sudo cp /var/lib/$TOMCAT_VERSION/conf/web.xml $BU_FILE
+fi
 
 sudo sed -i "/<\/web-app>/i \
 <context-param>\n\
@@ -379,18 +425,24 @@ sudo sed -i "/<\/web-app>/i \
 
 echo '##### Add shared memory setting to sysctl.conf'
 
-sudo cp /etc/sysctl.conf /etc/sysctl.conf.bu
+if [ ! -f "/etc/sysctl.conf.bu" ]; then
+	sudo cp /etc/sysctl.conf /etc/sysctl.conf.bu
+fi
 echo "kernel.shmmax=67068800" | sudo tee -a /etc/sysctl.conf 
 # TODO add "-Djava.net.preferIPv4Stack=true" to JAVA_OPTS
 
 echo '##### Increase shared memory available to tomcat'
-sudo cp /etc/default/$TOMCAT_VERSION  /etc/default/$TOMCAT_VERSION.bu
+if [ ! -f "/etc/default/$TOMCAT_VERSION.bu" ]; then
+	sudo cp /etc/default/$TOMCAT_VERSION  /etc/default/$TOMCAT_VERSION.bu
+fi
 sudo sed -i "s#-Xmx128m#-Xmx512m#g" /etc/default/$TOMCAT_VERSION
 
 if [ "$DBHOST" = "127.0.0.1" ]; then
     echo '##### Allow logon to postgres authenticated by md5 - used to export shape files'
     # This could be better written as it is not idempotent, each time the install script is run an additional line will be changed
-    sudo mv /etc/postgresql/$PGV/main/pg_hba.conf /etc/postgresql/$PGV/main/pg_hba.conf.bu
+    if [ ! -f "/etc/postgresql/$PGV/main/pg_hba.conf.bu" ]; then
+    	sudo mv /etc/postgresql/$PGV/main/pg_hba.conf /etc/postgresql/$PGV/main/pg_hba.conf.bu
+    fi
     sudo awk 'BEGIN{doit=0;}/# "local"/{doit=1;isdone=0;}{if(doit==1){isdone=sub("peer","md5",$0);print;if(isdone==1){doit=0}}else{print}}' /etc/postgresql/$PGV/main/pg_hba.conf.bu > x
     sudo mv x /etc/postgresql/$PGV/main/pg_hba.conf
 fi
