@@ -40,7 +40,7 @@ else
 fi
 
 if [ $u2404 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat10
+    TOMCAT_VERSION=tomcat9
     TOMCAT_USER=tomcat
 elif [ $u2204 -eq 1 ]; then
     TOMCAT_VERSION=tomcat9
@@ -105,41 +105,48 @@ sudo a2enmod session_crypto
 sudo mkdir /var/www/smap
 
 echo "##### 3. Install Tomcat: $TOMCAT_VERSION"
-sudo apt-get install $TOMCAT_VERSION -y
+if [ $u2404 -eq 1 ]; then
+    echo 'install java 11'
+    sudo apt install openjdk-11-jre-headless
+    echo 'Create tomcat user'
+    sudo groupadd tomcat
+    sudo useradd -s /bin/false -g tomcat -d /opt/tomcat tomcat
+    echo 'get tomcat'
+    wget https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.89/bin/apache-tomcat-9.0.89.tar.gz
+    sudo mkdir /opt/tomcat
+    sudo tar xzvf apache-tomcat-9*tar.gz -C /opt/tomcat --strip-components=1
+    rm apache-tomcat-9*tar.gz
+else
+    sudo apt-get install $TOMCAT_VERSION -y
+fi
 
 echo '##### 5. Install Postgres / Postgis'
 
 # Skip this section if the database is remote
 if [ "$DBHOST" = "127.0.0.1" ]; then
 
+    echo 'installing postgres'
     # Install Postgres for Ubuntu 24.04
     if [ $u2404 -eq 1 ]; then
-        echo 'installing postgres'
         PGV=16
-        sudo apt-get install postgresql postgresql-contrib postgis -y
     fi
 
     # Install Postgres for Ubuntu 22.04
     if [ $u2204 -eq 1 ]; then
-        echo 'installing postgres'
         PGV=14
-        sudo apt-get install postgresql postgresql-contrib postgis -y
     fi
 
     # Install Postgres for Ubuntu 20.04
     if [ $u2004 -eq 1 ]; then
-        echo 'installing postgres'
         PGV=12
-        sudo apt-get install postgresql postgresql-contrib postgis -y
     fi
 
     # Install Postgres for Ubuntu 18.04
     if [ $u1804 -eq 1 ]; then
-        echo 'installing postgres'
         PGV=10
-        sudo apt-get install postgresql postgresql-contrib postgis -y
     fi
 
+    sudo apt-get install postgresql postgresql-contrib postgis -y
     pg_conf="/etc/postgresql/$PGV/main/postgresql.conf"
 
 else
@@ -163,10 +170,10 @@ sudo mkdir $filelocn/misc
 sudo mkdir $filelocn/temp
 sudo mkdir $filelocn/settings
 
-# For ubuntu 2404 allow tomcat10 to write to /smap
+# For ubuntu 2404 allow tomcat9 to write to /smap
 if [ $u2404 -eq 1 ]; then
-mkdir /etc/systemd/system/tomcat10.service.d
-cp config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
+mkdir /etc/systemd/system/tomcat9.service.d
+cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
 fi
 
 # For ubuntu 2204 allow tomcat9 to write to /smap
@@ -360,13 +367,6 @@ if [ "$DBHOST" = "127.0.0.1" ]; then
         echo "CREATE EXTENSION pgcrypto;" | sudo -u postgres psql -d $results
         sudo -i -u postgres echo "ALTER TABLE geometry_columns OWNER TO ws; ALTER TABLE spatial_ref_sys OWNER TO ws; ALTER TABLE geography_columns OWNER TO ws;" | sudo -i -u postgres psql -d $results
         cat resultsDb.sql | sudo -i -u postgres psql -d $results
-
-# Boundary files can be created manually - remove from install
-#        cd ../geospatial
-#        echo '# adding countries shape files'
-#        sudo -i -u postgres shp2pgsql -s 4326 -I world_countries_boundary_file_world_2002.shp | sudo -u postgres psql -d $results
-#        sudo -i -u postgres echo "alter table world_countries_boundary_file_world_2002 owner to ws;" | sudo -u postgres psql -d $results
-#        cd ../install
 
     else
         echo "==================> $results database already exists.  Apply patches if necessary, to upgrade it."
