@@ -40,6 +40,7 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
@@ -277,6 +278,12 @@ public class OrganisationList extends Application {
 	@POST
 	public Response updateOrganisation(@Context HttpServletRequest request, @FormParam("settings") String settings) throws Exception { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		
 		// Authorisation - Access
@@ -373,7 +380,13 @@ public class OrganisationList extends Application {
 	@POST
 	@Path("/sensitive")
 	public Response updateOrganisationSensitiveData(@Context HttpServletRequest request, @FormParam("sensitive") String sensitive) { 
-			
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;	
 		
 		String connectionString = "surveyKPI-updateSensitiveData";
@@ -411,6 +424,12 @@ public class OrganisationList extends Application {
 	@Path("/other")
 	public Response updateOtherSensitiveData(@Context HttpServletRequest request, @FormParam("other") String other) { 
 			
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;	
 		
 		String connectionString = "surveyKPI-updateOtherData";
@@ -751,6 +770,13 @@ public class OrganisationList extends Application {
 	public Response updateDeviceSettings(
 			@Context HttpServletRequest request, 
 			@FormParam("settings") String settings) throws ApplicationException {
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		
 		String connectionString = "surveyKPI-OrganisationList-updateDeviceSettings";
@@ -857,6 +883,13 @@ public class OrganisationList extends Application {
 	public Response updateEmailSettings(
 			@Context HttpServletRequest request, 
 			@FormParam("settings") String settings) throws ApplicationException {
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		
 		String connectionString = "surveyKPI-OrganisationList-updateEmailSettings";
@@ -929,6 +962,13 @@ public class OrganisationList extends Application {
 	@POST
 	@Path("/webform")
 	public Response updateWebformSettings(@Context HttpServletRequest request) throws ApplicationException {
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();	
@@ -1082,6 +1122,13 @@ public class OrganisationList extends Application {
 	@POST
 	@Path("/appearance")
 	public Response updateAppearanceSettings(@Context HttpServletRequest request) throws ApplicationException {
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();	
@@ -1337,6 +1384,12 @@ public class OrganisationList extends Application {
 			@FormParam("users") String users,
 			@FormParam("projects") String projects) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String connectionString = "surveyKPI-OrganisationList-setOrganisation";
 		
@@ -1427,6 +1480,12 @@ public class OrganisationList extends Application {
 	public Response changeEnterprise(@Context HttpServletRequest request,
 			@FormParam("orgId") int orgId,
 			@FormParam("entId") int entId) throws SQLException { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		

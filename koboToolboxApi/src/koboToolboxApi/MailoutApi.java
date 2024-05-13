@@ -62,6 +62,8 @@ public class MailoutApi extends Application {
 	
 	Authorise a = null;
 	
+	boolean forDevice = true;	// Attachment URL prefixes for API should have the device/API format
+	
 	private static Logger log =
 			 Logger.getLogger(MailoutApi.class.getName());
 	

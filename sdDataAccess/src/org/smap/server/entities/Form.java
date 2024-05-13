@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.server.utilities.UtilityMethods;
 
@@ -114,7 +115,7 @@ public class Form implements Serializable {
 		return parentform;
 	}
 	
-	public List<Question> getQuestions(Connection sd, String formPath) throws SQLException {
+	public List<Question> getQuestions(Connection sd, String formPath) throws SQLException, ApplicationException {
 		
 		if(questions == null) {
 

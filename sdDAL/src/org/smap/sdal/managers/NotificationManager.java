@@ -771,7 +771,10 @@ public class NotificationManager {
 			String topic,
 			boolean createPending,
 			String serverName,
-			String basePath) throws Exception {
+			String basePath,
+			String urlprefix,
+			String attachmentPrefix,
+			String hyperlinkPrefix) throws Exception {
 
 		String docURL = null;
 		String filePath = null;
@@ -874,12 +877,11 @@ public class NotificationManager {
 							msg.attach = "pdf";
 						}
 
-						String urlprefix = "https://" + serverName + "/";
-
 						filename = pm.createPdf(
 								outputStream,
 								basePath, 
-								urlprefix,
+								attachmentPrefix,
+								hyperlinkPrefix,
 								msg.user,
 								"none", 
 								msg.pdfTemplateId,
@@ -1029,7 +1031,9 @@ public class NotificationManager {
 								null,
 								msg.instanceId,
 								sm,
-								true);
+								true,
+								urlprefix,
+								attachmentPrefix);
 						String resp = "{}";
 						if(data.length() > 0) {
 							resp = data.getString(0).toString();
@@ -1179,7 +1183,9 @@ public class NotificationManager {
 			String topic,
 			boolean createPending,
 			String serverName,
-			String basePath) throws Exception {
+			String basePath,
+			String urlprefix,
+			String attachmentPrefix) throws Exception {
 
 		String docURL = null;
 		String filePath = null;
@@ -1225,6 +1231,8 @@ public class NotificationManager {
 				userIdent,
 				"https:",
 				serverName,
+				urlprefix,
+				attachmentPrefix,
 				basePath,
 				outputStream,
 				sId,
@@ -1356,7 +1364,8 @@ public class NotificationManager {
 				0,		// start 
 				0,		// limit
 				null,	// sort
-				null);	// sort direction	
+				null,
+				false);	// sort direction	
 
 		TaskProperties task = null;
 		if(t != null && t.features.size() > 0) {

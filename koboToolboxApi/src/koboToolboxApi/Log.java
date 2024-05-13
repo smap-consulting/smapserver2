@@ -19,17 +19,12 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import javax.servlet.http.HttpServletRequest;
 
-import model.LogItemDt;
-import model.LogsDt;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -49,6 +44,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.HourlyLogSummaryItem;
+import org.smap.sdal.model.LogItemDt;
 import org.smap.sdal.model.OrgLogSummaryItem;
 
 /*
@@ -124,11 +120,13 @@ public class Log extends Application {
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 		
+			LogManager lm = new LogManager();
+			
 			ArrayList<LogItemDt> logs = null;
 			if(year > 0 && month > 0) {
-				logs = getMonthLogEntries(sd, localisation, oId, year, month, tz, false);
+				logs = lm.getMonthLogEntries(sd, localisation, oId, year, month, tz, false);
 			} else {
-				logs = getLogEntries(sd, localisation, oId, dirn, start, sort, length, false);
+				logs = lm.getLogEntries(sd, localisation, oId, dirn, start, sort, length, false);
 			}
 			
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -144,110 +142,6 @@ public class Log extends Application {
 		}
 		
 		return response;
-	}
-	
-	/*
-	 * DataTables API version 1 /log
-	 * Get log entries
-	 */
-	@GET
-	@Path("/dt")
-	@Produces("application/json")
-	public Response getDataTableLogs(@Context HttpServletRequest request,
-			@QueryParam("draw") int draw,
-			@QueryParam("start") int start,
-			@QueryParam("limit") int limit,
-			@QueryParam("length") int length,
-			@QueryParam("sort") String sort,			// Column Name to sort on
-			@QueryParam("dirn") String dirn,			// Sort direction, asc || desc
-			@QueryParam("month") int month,
-			@QueryParam("year") int year,
-			@QueryParam("tz") String tz
-			) { 
-		
-		String connectionString = "API - get logs - DataTable";
-		Response response = null;
-		String user = request.getRemoteUser();
-		LogsDt logs = new LogsDt();
-		logs.draw = draw;
-		
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
-		
-		String sqlTotal = "select count(*) from log where o_id = ?";
-		PreparedStatement pstmtTotal = null;
-		
-		PreparedStatement pstmt = null;
-		ResultSet rs = null;
-
-		if(dirn == null) {
-			dirn = "desc";
-		} else {
-			dirn = dirn.replace("'", "''");
-		}
-		if(sort == null) {
-			sort = "id";
-		}
-		if(dirn.equals("desc") && start == 0) {
-			start = Integer.MAX_VALUE;
-		}
-		
-		// Limit overrides length which is retained for backwards compatability
-		if(limit > 0) {
-			length = limit;
-		}
-		// Set a default limit for the client app of 10,000 records
-		if(length == 0 || length > 10000) {
-			length = 10000;
-		}
-		
-		if(tz == null || tz.equals("undefined")) {
-			tz = "UTC";
-		}
-		
-		try {
-	
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
-			
-			/*
-			 * Get total log entries
-			 */
-			pstmtTotal = sd.prepareStatement(sqlTotal);
-			pstmtTotal.setInt(1, oId);
-			rs = pstmtTotal.executeQuery();
-			if(rs.next()) {
-				logs.recordsTotal = rs.getInt(1);
-				logs.recordsFiltered = rs.getInt(1);
-			}
-			rs.close();
-					
-			if(year > 0 && month > 0) {
-				logs.data = getMonthLogEntries(sd, localisation, oId, year, month, tz, true);
-			} else {
-				logs.data = getLogEntries(sd, localisation, oId, dirn, start, sort, length, true);
-			}
-			
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-			response = Response.ok(gson.toJson(logs)).build();
-			
-	
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			response = Response.serverError().build();
-		} finally {
-			
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-			try {if (pstmtTotal != null) {pstmtTotal.close();	}} catch (SQLException e) {	}
-					
-			SDDataSource.closeConnection(connectionString, sd);
-		}
-		
-		return response;
-		
 	}
 	
 	/*
@@ -388,157 +282,6 @@ public class Log extends Application {
 		}
 		
 		return response;
-	}
-	
-	/*
-	 * Get the data
-	 */
-	private ArrayList<LogItemDt> getLogEntries(
-			Connection sd, 
-			ResourceBundle localisation,
-			int oId,
-			String dirn,
-			int start,
-			String sort,
-			int length,
-			boolean forHtml) throws SQLException {
-		
-		ArrayList<LogItemDt> items = new ArrayList<> ();
-		PreparedStatement pstmt = null;
-		ResultSet rs = null;
-		
-		try {
-
-			String sql = "select l.id, l.log_time, l.s_id, s.display_name, l.user_ident, l.event, l.note, l.server "
-					+ "from log l "
-					+ "left outer join survey s "
-					+ "on s.s_id = l.s_id ";
-			
-			String sqlSelect = "where ";
-			if(dirn.equals("asc")) {
-				sqlSelect += "l.id > ? ";
-			} else {
-				sqlSelect += "l.id < ? ";
-			}
-			
-			sqlSelect += "and l.o_id = ? ";
-			
-			String sqlOrder = "order by l." + sort + " " + dirn;
-			
-			pstmt = sd.prepareStatement(sql + sqlSelect + sqlOrder);
-			int paramCount = 1;
-			pstmt.setInt(paramCount++, start);	
-			pstmt.setInt(paramCount++, oId);
-			
-			log.info("Get data: " + pstmt.toString());
-			rs = pstmt.executeQuery();
-				
-			int index = 0;	
-			while (rs.next()) {
-					
-				if(length > 0 && index >= length) {
-					break;
-				}
-				index++;
-					
-				LogItemDt li = new LogItemDt();
-				populateLogItem(rs, li, localisation, forHtml);		
-				items.add(li);
-				
-			}
-		} finally {
-			try {if (rs != null) {rs.close();}} catch (SQLException e) {	}
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-		}
-		
-		return items;
-	}
-
-
-	/*
-	 * Get the data
-	 */
-	private ArrayList<LogItemDt> getMonthLogEntries(
-			Connection sd, 
-			ResourceBundle localisation,
-			int oId,
-			int year,
-			int month,
-			String tz,
-			boolean forHtml) throws SQLException {
-		
-		ArrayList<LogItemDt> items = new ArrayList<> ();
-		PreparedStatement pstmt = null;
-		ResultSet rs = null;
-		
-		try {
-
-			String sql = "select l.id, l.log_time, l.s_id, l.user_ident, l.event, l.note, l.server,"
-					+ "(select display_name from survey where ident = s.group_survey_ident) as display_name "
-					+ "from log l "
-					+ "left outer join survey s "
-					+ "on s.s_id = l.s_id "
-					+ "where l.o_id = ? "
-					+ "and timezone(?, l.log_time) >=  ? "
-					+ "and timezone(?, l.log_time) < ? "
-					+ "order by l.id desc";
-			
-			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
-			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
-			
-			pstmt = sd.prepareStatement(sql);
-			int paramCount = 1;
-			pstmt.setInt(paramCount++, oId);	
-			pstmt.setString(paramCount++, tz);
-			pstmt.setTimestamp(paramCount++, t1);
-			pstmt.setString(paramCount++, tz);
-			pstmt.setTimestamp(paramCount++, t2);
-			
-			log.info("Get data for month: " + pstmt.toString());
-			rs = pstmt.executeQuery();
-				
-			while (rs.next()) {
-					
-				LogItemDt li = new LogItemDt();
-				populateLogItem(rs, li, localisation, forHtml);		
-				items.add(li);
-			}
-		} finally {
-			try {if (rs != null) {rs.close();}} catch (SQLException e) {	}
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-		}
-		
-		return items;
-	}
-	
-	private void populateLogItem(ResultSet rs, LogItemDt li, ResourceBundle localisation, boolean forHtml) throws SQLException {
-		li.id = rs.getInt("id");
-		li.log_time = rs.getTimestamp("log_time");
-		li.sId = rs.getInt("s_id");
-		String displayName = rs.getString("display_name");
-		if(displayName != null) {
-			li.sName = GeneralUtilityMethods.getSafeText(displayName, forHtml);
-		} else {
-			if(li.sId > 0) {
-				li.sName = li.sId + " (" + localisation.getString("c_erased") + ")";
-			} else {
-				li.sName = "";
-			}
-		}
-		li.userIdent = rs.getString("user_ident");
-		if(li.userIdent == null) {
-			li.userIdent = "";
-		}
-		li.event = rs.getString("event");
-		if(li.event == null) {
-			li.event = "";
-		}
-		li.note = GeneralUtilityMethods.getSafeText(rs.getString("note"), forHtml);
-		
-		li.server = rs.getString("server");
-		if(li.server == null) {
-			li.server = "";
-		}
 	}
 }
 

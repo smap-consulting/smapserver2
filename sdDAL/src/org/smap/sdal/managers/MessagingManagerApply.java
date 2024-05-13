@@ -67,7 +67,14 @@ public class MessagingManagerApply {
 	/*
 	 * Apply any outbound messages
 	 */
-	public void applyOutbound(Connection sd, Connection cResults, String serverName, String basePath, int count, String awsProperties) {
+	public void applyOutbound(Connection sd, Connection cResults, 
+			String serverName, 
+			String basePath, 
+			int count, 
+			String awsProperties,
+			String urlprefix,
+			String attachmentPrefix,
+			String hyperlinkPrefix) {
 
 		ResultSet rs = null;
 		PreparedStatement pstmtGetMessages = null;
@@ -182,7 +189,10 @@ public class MessagingManagerApply {
 								topic,
 								true,		// create pending if needed
 								serverName,
-								basePath
+								basePath,
+								urlprefix,
+								attachmentPrefix,
+								hyperlinkPrefix
 								); 
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
@@ -267,7 +277,9 @@ public class MessagingManagerApply {
 								topic,
 								true,		// create pending if needed
 								serverName,
-								basePath
+								basePath,
+								urlprefix,
+								attachmentPrefix
 								); 
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
@@ -411,7 +423,13 @@ public class MessagingManagerApply {
 	 * Send pending email messages
 	 * These are stored in the pending queue until the user opts in to receive them
 	 */
-	public void applyPendingEmailMessages(Connection sd, Connection cResults, String serverName, String basePath) {
+	public void applyPendingEmailMessages(Connection sd, 
+			Connection cResults, 
+			String serverName, 
+			String basePath,
+			String urlprefix,
+			String attachmentPrefix,
+			String hyperlinkPrefix) {
 
 		ResultSet rs = null;
 		PreparedStatement pstmtGetMessages = null;
@@ -496,7 +514,10 @@ public class MessagingManagerApply {
 							topic,
 							false,		// Do not create pending
 							serverName,
-							basePath
+							basePath,
+							urlprefix,
+							attachmentPrefix,
+							hyperlinkPrefix
 							); 
 					
 				} else if(topic.equals(NotificationManager.TOPIC_REMINDER)) {
@@ -573,7 +594,9 @@ public class MessagingManagerApply {
 							topic,
 							false,		// Do not create pending
 							serverName,
-							basePath
+							basePath,
+							urlprefix,
+							attachmentPrefix
 							); 
 					
 				} else {

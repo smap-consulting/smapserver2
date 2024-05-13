@@ -551,6 +551,12 @@ public class Billing extends Application {
 			@FormParam("level") String level,
 			@FormParam("id") String id) throws Exception { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		if(level == null) {
 			throw new ApplicationException("Billing level must be set");
 		}

@@ -2,14 +2,10 @@ package org.smap.sdal.model;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.itextpdf.text.BaseColor;
 
 /*
  * Form Class

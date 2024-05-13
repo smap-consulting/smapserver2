@@ -20,9 +20,12 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -43,6 +46,7 @@ import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.AssignmentsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -98,6 +102,8 @@ public class AllAssignments extends Application {
 	private static Logger log =
 			Logger.getLogger(Survey.class.getName());
 
+	boolean forDevice = false;	// Attachment URL prefixes should be in the client format
+	
 	LogManager lm = new LogManager();		// Application log
 
 	public AllAssignments() {
@@ -111,6 +117,43 @@ public class AllAssignments extends Application {
 	}
 
 	/*
+	 * Get assignments for user authenticated with credentials
+	 * This is an alternate entry point for access from the GUI as the authentication
+	 * is going to be different than the authentication for fieldTask access
+	 */
+	@GET
+	@Path("/mine")
+	@Produces("application/json")
+	public Response getTasksCredentials(@Context HttpServletRequest request,
+			@QueryParam("noprojects") boolean noProjects, @QueryParam("orgs") boolean getOrgs,
+			@QueryParam("linked") boolean getLinkedRefDefns, @QueryParam("manifests") boolean getManifests)
+			throws SQLException {
+		AssignmentsManager am = new AssignmentsManager();
+		return am.getTasks(request, request.getRemoteUser(), noProjects, getOrgs, getLinkedRefDefns, 
+				getManifests, false);
+	}
+	
+	/*
+	 * Reject assignments for user authenticated with credentials
+	 */
+	@POST
+	@Path("/mine/update_status")
+	@Produces("application/json")
+	public Response rejectTaskCredentials(@FormParam("assignment") String assignment,
+			@Context HttpServletRequest request) {
+
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
+		AssignmentsManager am = new AssignmentsManager();
+		return am.updateStatusToRejected(request, assignment);
+	}
+
+	
+	/*
 	 * Add a task for every survey
 	 * Add a task for the array of locations passed in the input parameters
 	 */
@@ -120,7 +163,14 @@ public class AllAssignments extends Application {
 			@PathParam("projectId") int projectId,
 			@FormParam("settings") String settings) { 
 
-		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+		String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
 
 		Response response = null;
 		ArrayList<TaskAddress> addressArray = null;
@@ -478,7 +528,9 @@ public class AllAssignments extends Application {
 										false,
 										as.complete_all,
 										as.assign_auto,
-										as.repeat
+										as.repeat,
+										urlprefix,
+										attachmentPrefix
 										); 
 								
 							}
@@ -538,6 +590,12 @@ public class AllAssignments extends Application {
 			@PathParam("tgId") int tgId,
 			@FormParam("settings") String settings) { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -630,6 +688,12 @@ public class AllAssignments extends Application {
 	public Response updateAssignmentStatus(@Context HttpServletRequest request, 
 			@FormParam("settings") String settings) { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 
 		log.info("Assignment:" + settings);
@@ -724,6 +788,12 @@ public class AllAssignments extends Application {
 	@Path("/load")
 	public Response loadResultsFromFile(@Context HttpServletRequest request) { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 
 		log.info("Load results from file");
@@ -1216,6 +1286,12 @@ public class AllAssignments extends Application {
 	@Path("/properties")
 	public Response updateTaskProperties(@Context HttpServletRequest request) { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String dbConnectionTitle = "surveyKPI-AllAssignments- Update task properties";
 

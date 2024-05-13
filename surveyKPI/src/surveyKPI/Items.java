@@ -39,6 +39,7 @@ import model.Filter;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.RateLimiter;
@@ -77,6 +78,8 @@ public class Items extends Application {
 	
 	Authorise a = null;
 	Authorise aUpdate = null;
+	
+	boolean forDevice = false;	// Attachment URL prefixes should be in the client format
 	
 	private static Logger log =
 			 Logger.getLogger(Items.class.getName());
@@ -139,7 +142,7 @@ public class Items extends Application {
 		String connectionString = "surveyKPI-Items";
 		DecimalFormat decimalFormat = new DecimalFormat("0.00");
 		
-		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";	
+		String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
 
 		if(geom != null && geom.equals("no")) {
 			bGeom = false;
@@ -313,7 +316,7 @@ public class Items extends Application {
 						}
 					
 					} else if(GeneralUtilityMethods.isAttachmentType(c.type)) {
-							cols.append("'" + urlprefix + "' || " + tName + "." + c.column_name + " as " + c.column_name);
+							cols.append("'" + attachmentPrefix + "' || " + tName + "." + c.column_name + " as " + c.column_name);
 				
 					} else if(c.column_name.equals("prikey") || c.column_name.equals("parkey") 
 							|| c.column_name.equals("_bad") || c.column_name.equals("_bad_reason")) {
@@ -486,7 +489,7 @@ public class Items extends Application {
 				// Get date column information
 				QuestionInfo date = null;
 				if((dateId != 0) && (startDate != null || endDate != null)) {
-					date = new QuestionInfo(localisation, tz, sId, dateId, sd, cResults, request.getRemoteUser(), false, "", urlprefix, oId);	// Not interested in label any language will do
+					date = new QuestionInfo(localisation, tz, sId, dateId, sd, cResults, request.getRemoteUser(), false, "", attachmentPrefix, oId);	// Not interested in label any language will do
 					tables.add(date.getTableName(), date.getFId(), date.getParentFId());
 					log.info("Date name: " + date.getColumnName() + " Date Table: " + date.getTableName());
 				}
@@ -1104,6 +1107,12 @@ public class Items extends Application {
 			@FormParam("reason") String reason
 			) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String connectionString = "surveyKPI-Items-bad";
 	
@@ -1189,6 +1198,12 @@ public class Items extends Application {
 			@FormParam("value") boolean value,
 			@FormParam("reason") String reason
 			) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-Items-bad Survey Level";

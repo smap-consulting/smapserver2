@@ -35,6 +35,7 @@ import javax.ws.rs.core.Response;
 import org.smap.model.SurveyTemplate;
 import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -76,6 +77,8 @@ public class ManagedForms extends Application {
 	Authorise a = null;
 	Authorise aSuper = new Authorise(null, Authorise.ANALYST);
 	Authorise aAdmin = new Authorise(null, Authorise.ADMIN);
+	
+	boolean forDevice = false;	// URL prefixes should be in the client format
 	
 	private static Logger log =
 			 Logger.getLogger(Review.class.getName());
@@ -146,6 +149,12 @@ public class ManagedForms extends Application {
 			@FormParam("tz") String tz
 			) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String requester = "surveyKPI-UpdateManagedRecord";
 		
@@ -199,9 +208,12 @@ public class ManagedForms extends Application {
 			if(instances == null || instances.size() == 0) {
 				throw(new ApplicationException("No instances to bulk update"));
 			}
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 			for(String instance : instances) {
 				response = am.processUpdateGroupSurvey(request, sd, cResults, 
-						request.getRemoteUser(), sId, instance, subFormPrimaryKey, groupSurvey, groupForm, updatesString, bulk);
+						request.getRemoteUser(), sId, instance, subFormPrimaryKey, 
+						groupSurvey, groupForm, updatesString, bulk,
+						urlprefix);
 			}
 			
 			
@@ -232,6 +244,12 @@ public class ManagedForms extends Application {
 			@PathParam("sId") int sId,
 			@FormParam("record") String instanceId
 			) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String requester = "surveyKPI - lockManagedRecord";
@@ -299,6 +317,12 @@ public class ManagedForms extends Application {
 			@PathParam("user") String uIdent,
 			@FormParam("record") String instanceId
 			) throws SQLException { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String requester = "surveyKPI - assignManagedRecord";
@@ -401,6 +425,12 @@ public class ManagedForms extends Application {
 			@FormParam("record") String instanceId
 			) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String requester = "surveyKPI - releaseManagedRecord";
 		
@@ -464,6 +494,12 @@ public class ManagedForms extends Application {
 			@Context HttpServletRequest request, 
 			@FormParam("settings") String settings
 			) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		

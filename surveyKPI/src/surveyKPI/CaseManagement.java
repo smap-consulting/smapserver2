@@ -32,6 +32,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -191,6 +192,12 @@ public class CaseManagement extends Application {
 			@PathParam("group_survey_ident") String groupSurveyIdent,
 			@FormParam("keys") String keyString) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String connectionString = "surveyKPI-updateCaseManagementKeys";
 		
@@ -242,6 +249,12 @@ public class CaseManagement extends Application {
 	public Response updateCaseManagementSettings(@Context HttpServletRequest request, 
 			@PathParam("group_survey_ident") String groupSurveyIdent,
 			@FormParam("settings") String settingsString) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-updateCaseManagementSettings";
@@ -295,6 +308,12 @@ public class CaseManagement extends Application {
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateCaseManagementAlert(@Context HttpServletRequest request, @FormParam("alert") String alertString) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-updateCaseManagementAlert";

@@ -21,7 +21,8 @@ public class AuditManager {
 	}
 	public ArrayList<DataEndPoint> getDataEndPoints(Connection sd, 
 			HttpServletRequest request,
-			boolean csv) throws SQLException {
+			boolean csv,
+			String urlprefix) throws SQLException {
 		
 		ArrayList<DataEndPoint> data = new ArrayList<DataEndPoint> ();
 		
@@ -33,7 +34,6 @@ public class AuditManager {
 		boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		surveys = sm.getSurveysAndForms(sd, request.getRemoteUser(), superUser);
 		
-		String urlprefix = request.getScheme() + "://" + request.getServerName();
 		if(csv) {
 			urlprefix += "/api/v1/audit.csv/";	
 		} else {
@@ -47,13 +47,7 @@ public class AuditManager {
 			dep.title = s.surveyData.displayName;
 			dep.description = s.surveyData.displayName;
 			dep.url = urlprefix + dep.id_string;
-			
-			//if(s.forms != null && s.forms.size() > 0) {
-			//	dep.subforms = new HashMap<String, String> ();
-			//	for(Form f : s.forms) {
-			//		dep.subforms.put(f.name, dep.url + "?form=" + f.name);
-			//	}
-			//}
+	
 			data.add(dep);
 		}
 		

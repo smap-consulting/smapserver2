@@ -1,10 +1,7 @@
-package taskModel;
+package org.smap.sdal.model;
 
 import java.util.List;
 import java.util.Set;
-
-import org.smap.sdal.model.PointEntry;
-import org.smap.sdal.model.Project;
 
 import com.google.gson.annotations.SerializedName;
 

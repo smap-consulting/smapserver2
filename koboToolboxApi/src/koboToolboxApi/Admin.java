@@ -66,6 +66,8 @@ public class Admin extends Application {
 	Authorise a = null;
 	Authorise aOwner = null;
 
+	boolean forDevice = true;	// Attachment URL prefixes for API should have the device/API format
+	
 	private static Logger log =
 			Logger.getLogger(Admin.class.getName());
 
@@ -268,8 +270,7 @@ public class Admin extends Application {
 			ResultSet rs = pstmt.executeQuery();
 			NotificationManager nm = new NotificationManager(localisation);
 			String basePath = GeneralUtilityMethods.getBasePath(request);
-			String server = request.getServerName();
-			String urlprefix = "https://" + server + "/";
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 			
 			int count = 1;
 			while(rs.next()) {
@@ -339,8 +340,8 @@ public class Admin extends Application {
 									ueId, 
 									userName, 
 									false,
-									"https",
-									server,
+									request.getScheme(),
+									request.getServerName(),
 									basePath,
 									urlprefix,
 									sIdent,

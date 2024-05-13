@@ -27,12 +27,11 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
-import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.Question;
-import org.smap.server.utilities.GetXForm;
 import org.smap.server.utilities.UtilityMethods;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -222,7 +221,7 @@ public class JdbcQuestionManager {
 	/*
 	 * Get a list of questions in the passed in survey
 	 */
-	public List <Question> getBySurveyId(int sId, List <Form> forms) throws SQLException {
+	public List <Question> getBySurveyId(int sId, List <Form> forms) throws SQLException, ApplicationException {
 		pstmtGetBySurveyId.setInt(1, sId);
 		return getQuestionList(pstmtGetBySurveyId, forms);
 	}
@@ -230,7 +229,7 @@ public class JdbcQuestionManager {
 	/*
 	 * Get a list of questions in the passed in form
 	 */
-	public List <Question> getByFormId(int fId) throws SQLException {
+	public List <Question> getByFormId(int fId) throws SQLException, ApplicationException {
 		pstmtGetByFormId.setInt(1, fId);
 		return getQuestionList(pstmtGetByFormId, null);
 	}
@@ -245,7 +244,7 @@ public class JdbcQuestionManager {
 	}
 	
 	private List<Question> getQuestionList(PreparedStatement pstmtGet, 
-			List <Form> forms) throws SQLException {
+			List <Form> forms) throws SQLException, ApplicationException {
 		
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
@@ -311,7 +310,12 @@ public class JdbcQuestionManager {
 				paths.push(currentPath);
 				currentPath = q.getRelativePath();
 			} else if(q.getType().equals("end group")) {
-				currentPath = paths.pop();
+				if(paths.size() > 0) {
+					currentPath = paths.pop();
+				} else {
+					// Just throw the error in English, this should not normally happen unless the template gets corrupted
+					throw new ApplicationException("Question " + q.getName() + " with type \"end group\" does not have a begin group. Export the template to an XLS file and fix it there.");
+				}
 			}
 			
 			/*

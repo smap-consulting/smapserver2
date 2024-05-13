@@ -6,11 +6,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.HourlyLogSummaryItem;
+import org.smap.sdal.model.LogItemDt;
 import org.smap.sdal.model.OrgLogSummaryItem;
 
 /*****************************************************************************
@@ -322,6 +324,157 @@ public class LogManager {
 		}
 		
 		return items;
+	}
+	
+	/*
+	 * Get the log entries
+	 */
+	public ArrayList<LogItemDt> getLogEntries(
+			Connection sd, 
+			ResourceBundle localisation,
+			int oId,
+			String dirn,
+			int start,
+			String sort,
+			int length,
+			boolean forHtml) throws SQLException {
+		
+		ArrayList<LogItemDt> items = new ArrayList<> ();
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		
+		try {
+
+			String sql = "select l.id, l.log_time, l.s_id, s.display_name, l.user_ident, l.event, l.note, l.server "
+					+ "from log l "
+					+ "left outer join survey s "
+					+ "on s.s_id = l.s_id ";
+			
+			String sqlSelect = "where ";
+			if(dirn.equals("asc")) {
+				sqlSelect += "l.id > ? ";
+			} else {
+				sqlSelect += "l.id < ? ";
+			}
+			
+			sqlSelect += "and l.o_id = ? ";
+			
+			String sqlOrder = "order by l." + sort + " " + dirn;
+			
+			pstmt = sd.prepareStatement(sql + sqlSelect + sqlOrder);
+			int paramCount = 1;
+			pstmt.setInt(paramCount++, start);	
+			pstmt.setInt(paramCount++, oId);
+			
+			log.info("Get data: " + pstmt.toString());
+			rs = pstmt.executeQuery();
+				
+			int index = 0;	
+			while (rs.next()) {
+					
+				if(length > 0 && index >= length) {
+					break;
+				}
+				index++;
+					
+				LogItemDt li = new LogItemDt();
+				populateLogItem(rs, li, localisation, forHtml);		
+				items.add(li);
+				
+			}
+		} finally {
+			try {if (rs != null) {rs.close();}} catch (SQLException e) {	}
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+		}
+		
+		return items;
+	}
+
+
+	/*
+	 * Get the log entries for a month
+	 */
+	public ArrayList<LogItemDt> getMonthLogEntries(
+			Connection sd, 
+			ResourceBundle localisation,
+			int oId,
+			int year,
+			int month,
+			String tz,
+			boolean forHtml) throws SQLException {
+		
+		ArrayList<LogItemDt> items = new ArrayList<> ();
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		
+		try {
+
+			String sql = "select l.id, l.log_time, l.s_id, l.user_ident, l.event, l.note, l.server,"
+					+ "(select display_name from survey where ident = s.group_survey_ident) as display_name "
+					+ "from log l "
+					+ "left outer join survey s "
+					+ "on s.s_id = l.s_id "
+					+ "where l.o_id = ? "
+					+ "and timezone(?, l.log_time) >=  ? "
+					+ "and timezone(?, l.log_time) < ? "
+					+ "order by l.id desc";
+			
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			
+			pstmt = sd.prepareStatement(sql);
+			int paramCount = 1;
+			pstmt.setInt(paramCount++, oId);	
+			pstmt.setString(paramCount++, tz);
+			pstmt.setTimestamp(paramCount++, t1);
+			pstmt.setString(paramCount++, tz);
+			pstmt.setTimestamp(paramCount++, t2);
+			
+			log.info("Get data for month: " + pstmt.toString());
+			rs = pstmt.executeQuery();
+				
+			while (rs.next()) {
+					
+				LogItemDt li = new LogItemDt();
+				populateLogItem(rs, li, localisation, forHtml);		
+				items.add(li);
+			}
+		} finally {
+			try {if (rs != null) {rs.close();}} catch (SQLException e) {	}
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+		}
+		
+		return items;
+	}
+	
+	private void populateLogItem(ResultSet rs, LogItemDt li, ResourceBundle localisation, boolean forHtml) throws SQLException {
+		li.id = rs.getInt("id");
+		li.log_time = rs.getTimestamp("log_time");
+		li.sId = rs.getInt("s_id");
+		String displayName = rs.getString("display_name");
+		if(displayName != null) {
+			li.sName = GeneralUtilityMethods.getSafeText(displayName, forHtml);
+		} else {
+			if(li.sId > 0) {
+				li.sName = li.sId + " (" + localisation.getString("c_erased") + ")";
+			} else {
+				li.sName = "";
+			}
+		}
+		li.userIdent = rs.getString("user_ident");
+		if(li.userIdent == null) {
+			li.userIdent = "";
+		}
+		li.event = rs.getString("event");
+		if(li.event == null) {
+			li.event = "";
+		}
+		li.note = GeneralUtilityMethods.getSafeText(rs.getString("note"), forHtml);
+		
+		li.server = rs.getString("server");
+		if(li.server == null) {
+			li.server = "";
+		}
 	}
 	
 }

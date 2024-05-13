@@ -3,7 +3,6 @@ package org.smap.sdal.model;
 import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.TimeZone;
 

@@ -1,4 +1,4 @@
-package utilities;
+package org.smap.sdal.managers;
 
 
 /*

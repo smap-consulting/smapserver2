@@ -56,7 +56,7 @@ public class QuestionInfo {
 	private boolean isCalc;
 	private String fn = null;
 	private String units = null;
-	private String urlprefix = null;		// Added to attachments to complete url
+	private String attachmentPrefix = null;		// Added to attachments to complete url
 	private ArrayList<OptionInfo> o = null;	// Option array if this is a select / select1 question
 	
 	private ResourceBundle localisation;
@@ -74,11 +74,11 @@ public class QuestionInfo {
 			String user,
 			boolean isGeomDeprecated, 
 			String lang, 
-			String urlprefix,
+			String attachmentPrefix,
 			int oId) throws Exception {	
 		
 		//this.isGeom = isGeom;			Don't rely on isGeom parameter
-		this.urlprefix = urlprefix;
+		this.attachmentPrefix = attachmentPrefix;
 		qId = questionId;
 		sId = surveyId;
 		localisation = l;
@@ -324,9 +324,9 @@ public class QuestionInfo {
 	 * Constructor for server side calculate questions
 	 */
 	public QuestionInfo(int surveyId, int questionId, Connection connection, 
-			boolean isGeom, String lang, boolean isCalc, String urlprefix) throws SQLException {	
+			boolean isGeom, String lang, boolean isCalc, String attachmentPrefix) throws SQLException {	
 		this.isGeom = isGeom;
-		this.urlprefix = urlprefix;
+		this.attachmentPrefix = attachmentPrefix;
 		this.isCalc = isCalc;
 		qId = questionId;
 		sId = surveyId;
@@ -531,7 +531,7 @@ public class QuestionInfo {
 			}
 		} else {
 			if(qType != null && (GeneralUtilityMethods.isAttachmentType(qType))) {
-				return "'" + urlprefix + "' || " + tableName + "." + columnName;
+				return "'" + attachmentPrefix + "' || " + tableName + "." + columnName;
 			}
 			return tableName + "." + columnName;
 		}

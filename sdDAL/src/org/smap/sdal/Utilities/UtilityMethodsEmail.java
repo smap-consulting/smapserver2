@@ -22,7 +22,6 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
 import org.smap.sdal.managers.RecordEventManager;
-import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Language;
@@ -771,7 +770,8 @@ public class UtilityMethodsEmail {
 							} else if(t.equals("image") || t.equals("big-image") || t.equals("audio") || t.equals("video")) {							
 								if(basePath != null && oId > 0) {							
 									ManifestValue manifest = new ManifestValue();
-									getFileUrl(manifest, s.surveyData.ident, v, basePath, oId, s.surveyData.id);
+									// Assume this is only called by UI hence do not get the device form of the URLs
+									getFileUrl(manifest, s.surveyData.ident, v, basePath, oId, s.surveyData.id, false);
 									if(t.equals("image")) {
 										l.image = v;
 										l.imageUrl = manifest.url;
@@ -999,12 +999,18 @@ public class UtilityMethodsEmail {
 	/*
 	 * Get the partial (URL) of the file and its file path or null if the file does not exist
 	 */
-	public static void getFileUrl(ManifestValue manifest, String sIdent, String fileName, String basePath, int oId, int sId) {
+	public static void getFileUrl(ManifestValue manifest, String sIdent, String fileName, 
+			String basePath, 
+			int oId, 
+			int sId,
+			boolean forDevice) {
 
 		String path = null;
 		String thumbsPath = null;
 		File file = null;
 		File thumb = null;
+		String urlBase = forDevice ? "/resource/" : "/surveyKPI/file/";
+		
 
 		// First try the survey level
 		path = basePath + "/media/" + sIdent + "/" + fileName;	
@@ -1012,7 +1018,7 @@ public class UtilityMethodsEmail {
 
 		file = new File(path);
 		if(file.exists()) {
-			manifest.url = "/surveyKPI/file/" + fileName + "/survey/" + sId;
+			manifest.url = urlBase + fileName + "/survey/" + sId;
 			manifest.filePath = path;
 
 			thumb = new File(thumbsPath);
@@ -1026,7 +1032,7 @@ public class UtilityMethodsEmail {
 			thumbsPath = basePath + "/media/organisation/" + oId + "/thumbs/" + fileName;
 			file = new File(path);
 			if(file.exists()) {
-				manifest.url = "/surveyKPI/file/" + fileName + "/organisation";
+				manifest.url = urlBase + fileName + "/organisation";
 				manifest.filePath = path;
 
 				thumb = new File(thumbsPath);

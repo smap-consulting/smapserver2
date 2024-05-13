@@ -1,4 +1,4 @@
-package model;
+package org.smap.sdal.model;
 
 /*
  * Smap extension

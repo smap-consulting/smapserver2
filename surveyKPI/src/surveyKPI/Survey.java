@@ -33,11 +33,13 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.core.Response.Status;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.model.SurveyTemplate;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -332,7 +334,7 @@ public class Survey extends Application {
 	/*
 	 * Get a public link to a webform for this survey
 	 */
-	@Path("/link/")
+	@Path("/link")
 	@GET
 	@Produces("application/text")
 	public Response getLink(@Context HttpServletRequest request,
@@ -370,8 +372,11 @@ public class Survey extends Application {
 					"", 
 					pId,
 					null);
-			String link = GeneralUtilityMethods.getUrlPrefix(request) + "webForm/id/" + tempUserId + 
-					"/" + sIdent;
+			
+			String link = GeneralUtilityMethods.getUrlPrefix(request) 
+					+ "app/myWork/webForm/id/" 
+					+ tempUserId 
+					+ "/" + sIdent;
 			
 			// Store the link with the survey
 			pstmt = sd.prepareStatement(sql);
@@ -540,8 +545,8 @@ public class Survey extends Application {
 			 */
 			HashMap<Integer, Integer> completedSurveys = new HashMap <Integer, Integer> ();
 			Stack<Integer> surveys = new Stack<Integer>();
-			surveys.push(new Integer(sId));
-			completedSurveys.put(new Integer(sId), new Integer(sId));
+			surveys.push(Integer.valueOf(sId));
+			completedSurveys.put(Integer.valueOf(sId), Integer.valueOf(sId));
 			
 			/*
 			 * Get Forms and row counts the next survey
@@ -563,7 +568,7 @@ public class Survey extends Application {
 							if(completedSurveys.get(s) != null) {
 								log.info("Have already got meta data for survey " + s);
 							} else {
-								completedSurveys.put(new Integer(s), new Integer(s));
+								completedSurveys.put(Integer.valueOf(s), Integer.valueOf(s));
 								surveys.push(s);
 							}
 						}	
@@ -579,7 +584,7 @@ public class Survey extends Application {
 							if(completedSurveys.get(s) != null) {
 								log.info("Have already got meta data for survey " + s);
 							} else {
-								completedSurveys.put(new Integer(s), new Integer(s));
+								completedSurveys.put(Integer.valueOf(s), Integer.valueOf(s));
 								surveys.push(s);
 							}
 						}	
@@ -863,6 +868,12 @@ public class Survey extends Application {
 			@PathParam("sId") int sId,
 			@QueryParam("set") boolean set) { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String connectionRequest = "surveyKPI-Survey";
 
@@ -923,71 +934,6 @@ public class Survey extends Application {
 	}
 
 	/*
-	 * Save the survey things@ model
-	 */
-	@Path("/model")
-	@POST
-	@Consumes("application/json")
-	public Response save_model(
-			@Context HttpServletRequest request,
-			@PathParam("sId") int sId,
-			@FormParam("model") String model
-			) { 
-
-		Response response = null;
-
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Survey");
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		} catch (Exception e) {
-		}
-		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
-		// End Authorisation
-
-		PreparedStatement pstmt = null;
-		if(model == null) {
-			response = Response.serverError().entity("Empty model").build();
-		} else {
-			try {
-
-				/*
-				 * Get Forms and row counts in this survey
-				 */
-				String sql = "update survey set model = ? where s_id = ?;";		
-
-
-				pstmt = sd.prepareStatement(sql);	
-				pstmt.setString(1, model);
-				pstmt.setInt(2, sId);
-				int count = pstmt.executeUpdate();
-
-				if(count == 0) {
-					response = Response.serverError().entity("Failed to update model").build();
-				} else {
-					response = Response.ok().build();
-				}
-
-
-
-			} catch (SQLException e) {
-				log.log(Level.SEVERE,"Failed to update model", e);
-				response = Response.serverError().entity("Failed to update model").build();
-			} finally {
-
-				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-
-				SDDataSource.closeConnection("surveyKPI-Survey", sd);
-
-			}
-		}
-
-		return response;
-	}
-
-	/*
 	 * Remove media attachments
 	 */
 	@Path("/remove_media")
@@ -999,6 +945,12 @@ public class Survey extends Application {
 			@FormParam("oId") int oId,
 			@FormParam("text_id") String text_id) { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 
 		// Authorisation - Access
@@ -1089,6 +1041,12 @@ public class Survey extends Application {
 			@PathParam("sId") int sId,
 			@FormParam("columns") String sColumns) { 
 
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String connectionString = "surveyKPI-Survey-save console columns";
 
@@ -1162,20 +1120,20 @@ public class Survey extends Application {
 	 *    be marked as deleted in the meta data tables but will remain in the database
 	 *  @param delData if set to yes then the results tables will be deleted even if they have data
 	 */
-	// JSON
 	@DELETE
-	public String deleteSurvey(@Context HttpServletRequest request,
+	public Response deleteSurvey(@Context HttpServletRequest request,
 			@PathParam("sId") int sId,
 			@QueryParam("tables") String tables,
 			@QueryParam("hard") boolean hard,
 			@QueryParam("undelete") boolean undelete,
 			@QueryParam("delData") boolean delData) { 
 
-		log.info("Deleting template:" + sId);
+		Response response = null;
+		String connectionString ="surveyKPI-Survey-Delete";
 
 		Connection cResults = null;
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Survey");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -1198,7 +1156,7 @@ public class Survey extends Application {
 				if(undelete) {				 
 					mgr.restore(sd, sId, request.getRemoteUser());	// Restore the survey
 				} else {
-					cResults = ResultsDataSource.getConnection("surveyKPI-Survey");
+					cResults = ResultsDataSource.getConnection(connectionString);
 					String basePath = GeneralUtilityMethods.getBasePath(request);
 					
 					mgr.delete(sd, 
@@ -1216,13 +1174,10 @@ public class Survey extends Application {
 				MessagingManager mm = new MessagingManager(localisation);
 				mm.surveyChange(sd, sId, 0);
 
-			} catch (SQLException e) {
-				log.log(Level.SEVERE, "SQL Error", e);
-				return "Error: Failed to delete";
-
+				response = Response.status(Status.OK).entity("").build();
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Error", e);
-				return "Error: Failed to delete";
+				response = Response.serverError().entity(e.getMessage()).build();
 
 			} finally {
 
@@ -1231,7 +1186,7 @@ public class Survey extends Application {
 			}
 		}
 
-		return null; 
+		return response; 
 	}
 
 }

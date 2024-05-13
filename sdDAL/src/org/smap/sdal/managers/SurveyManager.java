@@ -71,7 +71,6 @@ import org.smap.sdal.model.QuestionLite;
 import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerCalculation;
-import org.smap.sdal.model.ServerSideCalculate;
 import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.StyleList;
@@ -252,6 +251,7 @@ public class SurveyManager {
 				}
 				
 				if(links) {
+					// links should only be specified if this is a call from an API and not the client
 					s.surveyData.links = new SurveyLinks();
 					s.surveyData.links.mailouts = urlprefix + "api/v1/mailout/" + s.surveyData.ident + "?links=true";
 				}
@@ -4239,7 +4239,9 @@ public class SurveyManager {
 			String hrk,				// Usually either hrk or instanceId would be used to identify the instance
 			String instanceId,
 			SurveyManager sm,
-			boolean includeMeta
+			boolean includeMeta,
+			String urlprefix,
+			String attachmentPrefix
 			) throws Exception {
 
 		ArrayList<TableColumn> columns = null;
@@ -4255,10 +4257,7 @@ public class SurveyManager {
 		try {
 			
 			TableDataManager tdm = new TableDataManager(localisation, tz);
-			
-			String serverName = GeneralUtilityMethods.getSubmissionServer(sd);
-			String urlprefix = "https://" + serverName + "/";	
-			
+				
 			if(!GeneralUtilityMethods.tableExists(cResults, form.tableName)) {
 				throw new ApplicationException(localisation.getString("imp_no_file"));
 			}
@@ -4308,6 +4307,7 @@ public class SurveyManager {
 					cResults,
 					columns,
 					urlprefix,
+					attachmentPrefix,
 					s.surveyData.id,
 					s.surveyData.ident,
 					0,			// SubForm Id - Not required
@@ -4439,7 +4439,9 @@ public class SurveyManager {
 									null,
 									null,
 									sm,
-									false));
+									false,
+									urlprefix,
+									attachmentPrefix));
 						}
 					}
 						
@@ -5007,4 +5009,5 @@ public class SurveyManager {
 		}
 		return data;
 	}
+	
 }

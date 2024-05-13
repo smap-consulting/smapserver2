@@ -43,18 +43,12 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
-import org.smap.sdal.model.CreateTaskResp;
-import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskGroup;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
-import org.smap.sdal.model.TaskServerDefn;
 
 /*
  * Provides access to collected data
@@ -166,7 +160,8 @@ public class Tasks extends Application {
 					start, 
 					limit,
 					sort,
-					dirn);		
+					dirn,
+					true);		
 			
 			// Return groups to calling program
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -195,7 +190,7 @@ public class Tasks extends Application {
 			@QueryParam("tz") String tz					// Timezone
 			) throws ApplicationException, Exception { 
 		
-		String connectionString = "surveyKPI - Tasks - get Task";
+		String connectionString = "API - Tasks - get Task Assignment";
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -231,7 +226,8 @@ public class Tasks extends Application {
 					0,		// start 
 					0,		// limit
 					null,	// sort
-					null);	// sort direction	
+					null,
+					true);	// sort direction	
 			
 			if(t != null && t.features.size() > 0) {
 				TaskProperties tp = t.features.get(0).properties;
@@ -265,7 +261,7 @@ public class Tasks extends Application {
 			@QueryParam("tz") String tz					// Timezone
 			) throws ApplicationException, Exception { 
 		
-		String connectionString = "surveyKPI - Tasks - get Task";
+		String connectionString = "API - Tasks - get Task";
 		
 		// Authorisation - Access - Allow enumerators access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -297,7 +293,8 @@ public class Tasks extends Application {
 					0,		// start 
 					0,		// limit
 					null,	// sort
-					null);	// sort direction	
+					null,
+					true);	// sort direction	
 			
 			if(t != null && t.features.size() > 0) {
 				TaskProperties tp = t.features.get(0).properties;
@@ -331,121 +328,11 @@ public class Tasks extends Application {
 			@FormParam("task") String task
 			) throws ApplicationException, Exception { 
 		
-		Response response = null;
-		String connectionString = "api - Tasks - add new task";
-		log.info("New task: " + task);
-		
-		if(task == null) {
-			response = Response.serverError().entity("No task has been provided").build();
-			return response;
-		}
-		
-		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-		TaskProperties tp = gson.fromJson(task, TaskProperties.class);	
-		
-		if(tp == null) {
-			response = Response.serverError().entity("Error reading task form data: " + task).build();
-			return response;
-		}
-		
-		// Authorisation - Access
-		Connection cResults = null;
-		Connection sd = SDDataSource.getConnection(connectionString);
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		} catch (Exception e) {
-			
-		}
-		a.isAuthorised(sd, request.getRemoteUser());
-		if(tp.form_id > 0) {
-			a.isValidSurvey(sd, request.getRemoteUser(), tp.form_id, false, superUser);
-		} else {
-			a.isValidSurveyIdent(sd, request.getRemoteUser(), tp.survey_ident, false, superUser);
-			tp.form_id = GeneralUtilityMethods.getSurveyId(sd, tp.survey_ident);
-		}
-		
-		if(tp.assignee_ident != null) {
-			tp.assignee = GeneralUtilityMethods.getUserId(sd, tp.assignee_ident);
-			a.isValidUser(sd, request.getRemoteUser(), tp.assignee);
-		}
-		
-		if(tp.tg_id > 0) {
-			a.isValidTaskGroup(sd, request.getRemoteUser(), tp.tg_id);
-		}
-		// End Authorisation
-		
-		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			TaskManager tm = new TaskManager(localisation, tz);
-			SurveyManager sm = new SurveyManager(localisation, tz);
-			if(tp.tg_id <= 0) {
-				
-				Survey s = sm.getById(sd, cResults, request.getRemoteUser(), false, tp.form_id, 
-						false, null, null, false, false, 
-						false, false, false, null, false, false, 
-						superUser, 	// Super user
-						null, 		// Geom Format
-						false, 		// Referenced Surveys
-						false,		// Launched surveys
-						false		// Don't merge set value into default values
-					);
-				
-				if(s == null) {
-					throw new ApplicationException(localisation.getString("mf_snfpriv"));
-				}
-				// Create a task group based on the survey
-				tp.tg_id = tm.createTaskGroup(sd, s.surveyData.displayName, 
-						s.surveyData.p_id,
-						null,	// address columns
-						null,	// setting
-						0,	// source survey id
-						0,	// Target survey id
-						0,	// Download distance
-						tp.complete_all,
-						tp.assign_auto,
-						true		// Use an existing task group of the same name
-						);	
-			}
-			
-			tp.survey_ident = GeneralUtilityMethods.getSurveyIdent(sd, tp.form_id);
-			
-			if(tz == null) {
-				tz = "UTC";	// Set default for timezone
-			}
-			
-			cResults = ResultsDataSource.getConnection(connectionString);
-			
-			TaskFeature tf = new TaskFeature();
-			tf.properties = (TaskProperties) tp;
-			
-			TaskServerDefn tsd = tm.convertTaskFeature(tf);
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			String urlprefix = request.getScheme() + "://" + request.getServerName();
-			CreateTaskResp resp = tm.writeTask(sd, cResults, tp.tg_id, tsd, request.getServerName(), 
-					false, 
-					oId, 
-					true, 
-					request.getRemoteUser(),
-					false,
-					urlprefix,
-					preserveInitialData);
-			
-			response = Response.ok(gson.toJson(resp)).build();
-		
-		} catch (Exception e) {
-			log.log(Level.SEVERE,e.getMessage(), e);
-			response = Response.serverError().entity(e.getMessage()).build();
-		} finally {
-	
-			SDDataSource.closeConnection(connectionString, sd);
-			ResultsDataSource.closeConnection(connectionString, cResults);
-			
-		}
-		
-		return response;
+		/*
+		 * Localisation and timezone will be determined in the createTask function
+		 */
+		TaskManager tm = new TaskManager(null, null);
+		return tm.createTask(request, task, preserveInitialData);
 	}
 
 	/*

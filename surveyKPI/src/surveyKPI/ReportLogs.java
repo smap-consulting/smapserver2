@@ -35,14 +35,12 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.model.Survey;
 
 import java.sql.*;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /*
- * Returns data for the passed in table name
- */
+ * Not used?
+ *
 @Path("/log")
 public class ReportLogs extends Application {
 
@@ -53,7 +51,7 @@ public class ReportLogs extends Application {
 	
 	/*
 	 * Post log for user authenticated with a key
-	 */
+	 *
 	@POST
 	@Produces("application/json")
 	@Path("/key/{key}")
@@ -84,12 +82,13 @@ public class ReportLogs extends Application {
 	
 	/*
 	 * Post log for user authenticated with credentials
-	 */
+	 *
 	@POST
 	@Produces("application/json")
 	public Response postReportCredentials(
 			@Context HttpServletRequest request, 
 			@FormParam("report") String assignInput) {
+		
 		return storeReport(request, assignInput, request.getRemoteUser());
 	}
 	
@@ -97,7 +96,7 @@ public class ReportLogs extends Application {
 	
 	/*
 	 * Store the report
-	 */
+	 *
 	public Response storeReport(@Context HttpServletRequest request, 
 			String report,
 			String userName) { 
@@ -137,7 +136,8 @@ public class ReportLogs extends Application {
 		
 		return response;
 	}
+	
 }
-
+*/
 
 

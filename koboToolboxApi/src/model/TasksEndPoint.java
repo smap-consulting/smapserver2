@@ -34,16 +34,17 @@ public class TasksEndPoint {
 	public String example;
 
 	public TasksEndPoint(HttpServletRequest request, String name, String description, 
-			String group, String x, String period, String filters, String example) {
+			String group, String x, String period, String filters, String example,
+			String urlprefix) {
 		
-		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/api/v1/tasks";
+		String taskprefix = urlprefix +"/api/v1/tasks";
 		
 		this.name = name;
 		this.description = description;
 		if(name != null) {
-			this.url = urlprefix + "/" + name;
+			this.url = taskprefix + "/" + name;
 		} else {
-			this.url = urlprefix;
+			this.url = taskprefix;
 		}
 		this.group = group;
 		this.x = x;

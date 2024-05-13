@@ -1,8 +1,6 @@
-package taskModel;
+package org.smap.sdal.model;
 
 import java.util.List;
-
-import org.smap.sdal.model.MediaFile;
 
 public class FormLocator {
 	public String ident;

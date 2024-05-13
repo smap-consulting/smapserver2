@@ -182,13 +182,19 @@ public class NotificationList extends Application {
 	}
 	
 	/*
-	 * Add a notifications
+	 * Add a notification
 	 */
 	@Path("/add")
 	@POST
 	public Response addNotification(@Context HttpServletRequest request,
 			@FormParam("notification") String notificationString,
 			@QueryParam("tz") String tz) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-Survey - add notification";
@@ -259,6 +265,12 @@ public class NotificationList extends Application {
 	public Response updateNotification(@Context HttpServletRequest request,
 			@FormParam("notification") String notificationString,
 			@QueryParam("tz") String tz) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-Survey-update notification";
@@ -395,13 +407,19 @@ public class NotificationList extends Application {
 	}
 	
 	/*
-	 * send an immmediate notification
+	 * send an immediate notification
 	 */
 	@Path("/immediate")
 	@POST
 	public Response immediateNotification(
 			@Context HttpServletRequest request,
 			@FormParam("notification") String notificationString) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-Survey-send immediate notification";

@@ -7,10 +7,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
@@ -21,6 +24,7 @@ import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.GroupSurvey;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.PasswordDetails;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.SubscriptionStatus;
@@ -455,7 +459,7 @@ public class UserManager {
 	}
 	
 	/*
-	 * Get alerts for a user
+	 * Get the user email
 	 */
 	public String getUserEmailByIdent(
 			Connection connectionSD,
@@ -500,7 +504,112 @@ public class UserManager {
 		return email;
 
 	}
+	
+	/*
+	 * Get the user's API key
+	 */
+	public String getApiKeyByIdent(
+			Connection connectionSD,
+			String ident
+			) throws Exception {
 
+		PreparedStatement pstmt = null;
+
+		String key = null;
+
+		try {
+	
+			String sql = "select api_key from users where ident = ?";
+				
+			pstmt = connectionSD.prepareStatement(sql);
+			pstmt.setString(1, ident);
+
+			log.info("Get users api key: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+
+			if(rs.next()) {
+				key = rs.getString(1);
+			}
+
+
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+			throw new Exception(e);
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+
+		return key;
+
+	}
+
+	/*
+	 * Delete the user's API key
+	 */
+	public void deleteApiKeyByIdent(
+			Connection connectionSD,
+			String ident
+			) throws Exception {
+
+		PreparedStatement pstmt = null;
+
+		try {
+	
+			String sql = "update users set api_key = null where ident = ?";
+				
+			pstmt = connectionSD.prepareStatement(sql);
+			pstmt.setString(1, ident);
+
+			log.info("Delete users api key: " + pstmt.toString());
+			pstmt.executeUpdate();
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+			throw new Exception(e);
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+
+	}
+
+	/*
+	 * Create a new API key
+	 */
+	public String createApiKeyByIdent(
+			Connection connectionSD,
+			String ident
+			) throws Exception {
+
+		PreparedStatement pstmt = null;
+
+		String key = UUID.randomUUID().toString();
+
+		try {
+	
+			String sql = "update users set api_key = ? where ident = ?";
+				
+			pstmt = connectionSD.prepareStatement(sql);
+			pstmt.setString(1, key);
+			pstmt.setString(2, ident);
+
+			log.info("Create users api key: " + pstmt.toString());
+			pstmt.executeUpdate();
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+			throw new Exception(e);
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+
+		return key;
+
+	}
+	
 	/*
 	 * Create a new user Parameters:
 	 *   u: Details of the new user
@@ -900,6 +1009,66 @@ public class UserManager {
 		}
 	}
 
+	public Response setPassword(Connection sd, Locale locale, ResourceBundle localisation, 
+			String ident, String serverName, PasswordDetails pwd) {
+		
+		Response response = null;
+		
+		PreparedStatement pstmt = null;
+		try {	
+			
+			/*
+			 * Update what can be updated by the user, excluding the current project id, survey id, form id and task group
+			 */
+			String pwdString = null;
+			String sql = null;
+			PasswordManager pwm  = null;
+			
+			/*
+			 * Verify that the password is strong enough
+			 */
+			pwm = new PasswordManager(sd, locale, localisation, ident, serverName);
+			pwm.checkStrength(pwd.password);
+				
+			sql = "update users set "
+					+ "password = md5(?), "
+					+ "basic_password = '{SHA}'|| encode(digest(?,'sha1'),'base64'), "
+					+ "password_set = now() "
+					+ "where "
+					+ "ident = ?";
+				
+			pwdString = ident + ":smap:" + pwd.password;
+				
+			// Delete any session keys for this user
+			GeneralUtilityMethods.deleteAccessKeys(sd, ident);
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, pwdString);
+			pstmt.setString(2, pwd.password);
+			pstmt.setString(3, ident);
+		
+			log.info("Update password: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+			// Write logs
+			log.info("userevent: " + ident + " updated password : " + ident);
+			pwm.logReset();
+			lm.writeLog(sd, -1, ident, LogManager.USER_DETAILS, localisation.getString("msg_pwd_changed"), 0, serverName);
+		
+			response = Response.ok().build();
+			
+			
+		} catch (Exception e) {
+
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+			
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+		return response;
+	}
 
 	private void insertUserGroupsProjects(Connection sd, User u, int u_id, 
 			boolean isOrgUser, 

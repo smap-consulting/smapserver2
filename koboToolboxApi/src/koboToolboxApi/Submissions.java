@@ -57,6 +57,8 @@ public class Submissions extends Application {
 	Authorise a = null;
 	Authorise aSuper = null;
 
+	boolean forDevice = true;	// Attachment URL prefixes for API should have the device/API format
+	
 	private static Logger log =
 			Logger.getLogger(Submissions.class.getName());
 

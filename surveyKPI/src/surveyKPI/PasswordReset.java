@@ -20,30 +20,24 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.PasswordManager;
 import org.smap.sdal.managers.PeopleManager;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SubscriptionStatus;
-
-import com.google.gson.Gson;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -67,12 +61,15 @@ public class PasswordReset extends Application {
 	/*
 	 * Send an email with a link for a one time logon
 	 */
-	@GET
-	@Path("/{email}")
-	public Response oneTimeLogon(@Context HttpServletRequest request,
-			@PathParam("email") String email		 
-			) throws ApplicationException { 
+	@POST
+	public Response oneTimeLogon(@Context HttpServletRequest request, String email) throws ApplicationException { 
 	
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 
 		Connection sd = SDDataSource.getConnection("surveyKPI-onetimelogon");
@@ -254,6 +251,7 @@ public class PasswordReset extends Application {
 		String password;
 	}
 	
+	/*
 	@POST
 	public Response setPassword(@Context HttpServletRequest request, 
 			@QueryParam("lang") String lang,
@@ -291,7 +289,7 @@ public class PasswordReset extends Application {
 				
 				/*
 				 * Verify that the password is strong enough
-				 */
+				 *
 				PasswordManager pwm = null;
 				if(pd.password != null) {
 					pwm = new PasswordManager(sd, locale, localisation,ident, request.getServerName());
@@ -367,6 +365,7 @@ public class PasswordReset extends Application {
 		
 		return response;
 	}
+	*/
 
 }
 

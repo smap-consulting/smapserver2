@@ -273,6 +273,15 @@ then
 
 fi
 
+# Version 24.04
+if [ $version -lt "2405" ]; then
+	sudo a2enmod session
+	sudo a2enmod request
+	sudo a2enmod auth_form
+	sudo a2enmod session_cookie
+	sudo a2enmod session_crypto
+fi
+
 if [ ! -d "/smap/settings" ]
 then
     mkdir /smap/settings

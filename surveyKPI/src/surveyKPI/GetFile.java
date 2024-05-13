@@ -42,10 +42,9 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.FileManager;
+import org.smap.sdal.managers.SharedResourceManager;
 import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.Template;
 
 /*
@@ -83,7 +82,8 @@ public class GetFile extends Application {
 			@QueryParam("org") int requestedOrgId) throws Exception {
 		
 		log.info("------- " + filename);
-		return getOrganisationFile(request, response, request.getRemoteUser(), requestedOrgId, filename, settings, false, thumbs);
+		SharedResourceManager srm = new SharedResourceManager(null, null);
+		return srm.getOrganisationFile(request, response, request.getRemoteUser(), requestedOrgId, filename, settings, false, thumbs);
 	}
 	
 	@GET
@@ -135,7 +135,8 @@ public class GetFile extends Application {
 			log.info("User not found for key");
 			throw new AuthorisationException();
 		}
-		return getOrganisationFile(request, response, user, requestedOrgId, filename, 
+		SharedResourceManager srm = new SharedResourceManager(null, null);
+		return srm.getOrganisationFile(request, response, user, requestedOrgId, filename, 
 				settings, false, thumbs);
 	}
 	
@@ -153,7 +154,8 @@ public class GetFile extends Application {
 			@PathParam("ident") String user) throws SQLException {
 				
 		log.info("Getting file authenticated with a key");
-		return getOrganisationFile(request, response, user, 0, filename, false, true, thumbs);
+		SharedResourceManager srm = new SharedResourceManager(null, null);
+		return srm.getOrganisationFile(request, response, user, 0, filename, false, true, thumbs);
 	}
 	
 	@GET
@@ -341,62 +343,8 @@ public class GetFile extends Application {
 			@QueryParam("linked") boolean linked) throws Exception {
 		
 		log.info("Get File: " + filename + " for survey: " + sId);
-		
-		Response r = null;
-		String connectionString = "Get Survey File";
-		
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		} catch (Exception e) {
-		}
-		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
-		// End Authorisation 
-		
-		try {
-			
-			ExternalFileManager efm = new ExternalFileManager(null);
-			String basepath = GeneralUtilityMethods.getBasePath(request);
-			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-			
-			String filepath = null;
-			if(linked) {
-				int idx = filename.indexOf(".csv");
-				String baseFileName = filename;
-				if(idx >= 0) {
-					baseFileName = filename.substring(0, idx);		// External file management routines assume no extension
-				}
-				String linkedSurveyIdent = baseFileName.substring("linked_".length());
-				CustomUserReference cur = GeneralUtilityMethods.hasCustomUserReferenceData(sd, linkedSurveyIdent);
-				filepath = efm.getLinkedPhysicalFilePath(sd, 
-						efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent, request.getRemoteUser(), cur.needCustomFile()), baseFileName)) 
-						+ ".csv";
-				log.info("%%%%%: Referencing: " + filepath);
-			} else {
-				if(thumbs) {
-					filepath = basepath + "/media/" + sIdent+ "/thumbs/" + filename;
-				} else {
-					filepath = basepath + "/media/" + sIdent+ "/" + filename;
-				}
-			}
-			
-			log.info("File path: " + filepath);
-			FileManager fm = new FileManager();
-			fm.getFile(response, filepath, filename);
-			
-			r = Response.ok("").build();
-			
-		}  catch (Exception e) {
-			log.log(Level.SEVERE, "Error getting file", e);
-			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
-		} finally {	
-			SDDataSource.closeConnection(connectionString, sd);	
-		}
-		
-		return r;
+		SharedResourceManager srm = new SharedResourceManager(null, null);
+		return srm.getSurveyFile(request, response,filename, sId, thumbs, linked);	
 	}
 	
 	/*
@@ -437,58 +385,6 @@ public class GetFile extends Application {
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Error getting file", e);
 			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
-		} finally {	
-			SDDataSource.closeConnection(connectionString, sd);	
-		}
-		
-		return r;
-	}
-	
-	/*
-	 * Get the file at the organisation level
-	 */
-	private Response getOrganisationFile(
-			HttpServletRequest request, 
-			HttpServletResponse response, 
-			String user, 
-			int requestedOrgId, 
-			String filename, 
-			boolean settings,
-			boolean isTemporaryUser,
-			boolean thumbs) {
-		
-		int oId = 0;
-		Response r = null;
-		String connectionString = "Get Organisation File";
-		
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);	
-		if (isTemporaryUser) {
-			a.isValidTemporaryUser(sd, user);
-		}
-		a.isAuthorised(sd, user);		
-		try {		
-			oId = GeneralUtilityMethods.getOrganisationId(sd, user);
-		} catch(Exception e) {
-			// ignore error
-		}
-		if(requestedOrgId > 0 && requestedOrgId != oId) {
-			aOrg.isAuthorised(sd, user);	// Must be org admin to work on another organisations data
-			oId = requestedOrgId;
-		}
-		// End Authorisation 
-		
-		
-		log.info("Get File: " + filename + " for organisation: " + oId);
-		try {
-			
-			FileManager fm = new FileManager();
-			r = fm.getOrganisationFile(request, response, user, oId, 
-					filename, settings, thumbs);
-			
-		}  catch (Exception e) {
-			log.info("Error: Failed to get file:" + e.getMessage());
-			r = Response.status(Status.NOT_FOUND).build();
 		} finally {	
 			SDDataSource.closeConnection(connectionString, sd);	
 		}

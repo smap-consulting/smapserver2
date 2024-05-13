@@ -138,9 +138,15 @@ public class FormsManifest {
  			String basepath = GeneralUtilityMethods.getBasePath(request);
 			TranslationManager translationMgr = new TranslationManager();
 			
+			/*
+			 * Get the manifest list setting the URLS as per device access
+			 * Device access to URLs is authenticated using Basic authentication
+			 * Hence all URLs must point to an end point that does that
+			 */
 			List<ManifestValue> manifestList = translationMgr.
-					getManifestBySurvey(sd, request.getRemoteUser(), survey.surveyData.id, basepath, key);
-
+					getManifestBySurvey(sd, request.getRemoteUser(), survey.surveyData.id, basepath, 
+							key, true);
+			
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, survey.surveyData.id);
 			for( ManifestValue m : manifestList) {
 

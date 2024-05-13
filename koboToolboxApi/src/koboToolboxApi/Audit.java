@@ -69,6 +69,8 @@ public class Audit extends Application {
 	Authorise aSuper = null;
 	Authorise aAdmin = null;
 
+	boolean forDevice = true;	// Attachment URL prefixes for API should have the device/API format
+	
 	private static Logger log =
 			Logger.getLogger(Audit.class.getName());
 
@@ -115,7 +117,8 @@ public class Audit extends Application {
 			
 			AuditManager am = new AuditManager(localisation);
 			
-			ArrayList<DataEndPoint> data = am.getDataEndPoints(sd, request, false);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			ArrayList<DataEndPoint> data = am.getDataEndPoints(sd, request, false, urlprefix);
 
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(data);
@@ -257,7 +260,8 @@ public class Audit extends Application {
 			}
 			
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
-
+			String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
+			
 			// Get the managed Id
 			if(mgmt) {
 				pstmtGetManagedId = sd.prepareStatement(sqlGetManagedId);
@@ -340,6 +344,7 @@ public class Audit extends Application {
 					cResults,
 					columns,
 					urlprefix,
+					attachmentPrefix,
 					sId,
 					sIdent,
 					0,				// SubForm Id not required
@@ -534,7 +539,7 @@ public class Audit extends Application {
 	@GET
 	@Produces("application/json")
 	@Path("/refresh/log")
-	public void getrefreshRecords(@Context HttpServletRequest request,
+	public Response getrefreshRecords(@Context HttpServletRequest request,
 			@Context HttpServletResponse response,
 			@QueryParam("user") String uIdent,
 			@QueryParam("start") int start,				// Primary key to start from
@@ -686,6 +691,8 @@ public class Audit extends Application {
 		
 			SDDataSource.closeConnection(connectionString, sd);
 		}
+		
+		return Response.ok("").build();
 		
 	}
 

@@ -38,6 +38,7 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
@@ -491,6 +492,12 @@ public class Surveys extends Application {
 			@FormParam("shared_results") boolean sharedResults
 			) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		log.info("userevent: " + request.getRemoteUser() + " create new survey " + name + " (" + existing + "," + 
 				existingSurveyId + "," + existingFormId + ")");
 		
@@ -582,6 +589,12 @@ public class Surveys extends Application {
 	public Response saveLanguages(@Context HttpServletRequest request,
 			@PathParam("sId") int sId,
 			@FormParam("languages") String languages) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		
@@ -712,6 +725,12 @@ public class Surveys extends Application {
 	public Response savePulldata(@Context HttpServletRequest request,
 			@PathParam("sId") int sId,
 			@FormParam("pulldata") String pulldata) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		
@@ -855,6 +874,12 @@ public class Surveys extends Application {
 	public Response saveSettings(@Context HttpServletRequest request,
 			@PathParam("sId") int sId,
 			@FormParam("settings") String settings) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-Save Settings";
@@ -1044,6 +1069,12 @@ public class Surveys extends Application {
 	@POST
 	public Response addTemplate(@Context HttpServletRequest request,
 			@PathParam("sId") int sId) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "SurveyKPI - AddTemplate";
@@ -1361,6 +1392,12 @@ public class Surveys extends Application {
 	public Response updateTemplateProperty(@Context HttpServletRequest request,
 			@FormParam("prop") String prop) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String connectionString = "SurveyKPI - UpdateTemplateProperty";
 	
@@ -1449,6 +1486,12 @@ public class Surveys extends Application {
 	public Response saveMetaItem(@Context HttpServletRequest request,
 			@PathParam("sIdent") String sIdent,
 			@FormParam("item") String metaString) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		
@@ -1720,6 +1763,12 @@ public class Surveys extends Application {
 	public Response setRequired(@Context HttpServletRequest request,
 			@PathParam("sId") int sId,
 			@PathParam("required") boolean required) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		int version;

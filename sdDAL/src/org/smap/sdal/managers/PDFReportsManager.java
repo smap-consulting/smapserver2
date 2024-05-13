@@ -53,6 +53,8 @@ public class PDFReportsManager {
 
 	LogManager lm = new LogManager();		// Application log
 
+	boolean forDevice = false;	// URL prefixes should be in the client format
+	
 	// Global values set in constructor
 	private ResourceBundle localisation;
 	
@@ -112,7 +114,10 @@ public class PDFReportsManager {
 			queryList = qm.getFormList(sd, sId, f.id);		// Get a form list for this survey / form combo
 
 			QueryForm startingForm = qm.getQueryTree(sd, queryList);	// Convert the query list into a tree
-			String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";	
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
+			// hyperlink prefix assumes that the hyperlink will be used by a human, hence always use client authentication
+			String hyperlinkPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, false);
 			HashMap<ArrayList<OptionDesc>, String> labelListMap = new  HashMap<ArrayList<OptionDesc>, String> ();
 			SqlDesc sqlDesc = QueryGenerator.gen(
 					sd, 
@@ -124,6 +129,7 @@ public class PDFReportsManager {
 					language, 
 					"pdf", 
 					urlprefix,
+					attachmentPrefix,
 					true,
 					true,
 					false,
@@ -193,7 +199,8 @@ public class PDFReportsManager {
 				
 				pm.createPdf(tempFileStream, 
 						basePath, 
-						urlprefix, 
+						attachmentPrefix, 
+						hyperlinkPrefix,
 						username, 
 						language, 
 						pdfTemplateId,

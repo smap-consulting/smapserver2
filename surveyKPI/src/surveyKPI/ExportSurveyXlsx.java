@@ -27,7 +27,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.XLSXReportsManager;
 
 /*
- * Export a survey in XLSX format
+ * Export survey results in XLSX format
  * This export follows the approach of CSV exports where a single sub form can be selected
  *    
  */
@@ -40,6 +40,8 @@ public class ExportSurveyXlsx extends Application {
 			Logger.getLogger(ExportSurveyXlsx.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
+	
+	boolean forDevice = false;	// Attachment URL prefixes should be in the client format
 
 	public ExportSurveyXlsx() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
@@ -106,6 +108,8 @@ public class ExportSurveyXlsx extends Application {
 					request.getRemoteUser(),
 					request.getScheme(),
 					request.getServerName(),
+					GeneralUtilityMethods.getUrlPrefix(request),
+					GeneralUtilityMethods.getAttachmentPrefix(request, forDevice),
 					GeneralUtilityMethods.getBasePath(request),
 					response.getOutputStream(),
 					sId,

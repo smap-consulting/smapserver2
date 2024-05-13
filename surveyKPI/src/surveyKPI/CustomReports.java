@@ -192,6 +192,12 @@ public class CustomReports extends Application {
 			@FormParam("report") String report,
 			@QueryParam("id") int id) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;	
 		
 		// Authorisation - Access

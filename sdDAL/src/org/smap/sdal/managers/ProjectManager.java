@@ -111,8 +111,9 @@ public class ProjectManager {
 					project.changed_ts = resultSet.getString("changed_ts");
 					
 					if(links) {
+						// links should only be specified if this is a call from an API and not the client
 						project.links = new ProjectLinks();
-						project.links.task_groups = urlprefix + "api/v1/tasks/groups/" + project.id + "?links=true";
+						project.links.task_groups = urlprefix + "api/v1/tasks/groups/" + project.id + "?links=true";  
 						project.links.surveys = urlprefix + "api/v1/admin/surveys/" + project.id + "?links=true";
 					}
 					projects.add(project);

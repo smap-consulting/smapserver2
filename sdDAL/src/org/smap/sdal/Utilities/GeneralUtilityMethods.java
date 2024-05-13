@@ -288,10 +288,34 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Get the URL prefix for media
+	 * Get the URL prefix
 	 */
 	static public String getUrlPrefix(HttpServletRequest request) {
 		return request.getScheme() + "://" + request.getServerName() + "/";
+	}
+	
+	/*
+	 * Get the URL prefix
+	 * Assume https as the scheme
+	 */
+	static public String getUrlPrefixBatch(String serverName) {
+		return "https://" + serverName + "/";
+	}
+	
+	/*
+	 * Get the URL prefix for attachments
+	 * When accessed from the GUI /app is prepended to the path
+	 */
+	static public String getAttachmentPrefix(HttpServletRequest request, boolean forDevice) {
+		return getUrlPrefix(request) + (forDevice ? "" : "app/");
+	}
+	
+	/*
+	 * Get the URL prefix for attachments
+	 * When accessed from the GUI /app is prepended to the path
+	 */
+	static public String getAttachmentPrefixBatch(String serverName, boolean forDevice) {
+		return getUrlPrefixBatch(serverName) + (forDevice ? "" : "app/");
 	}
 
 	/*
@@ -2885,7 +2909,7 @@ public class GeneralUtilityMethods {
 		String sqlGetUserDetails = "select u.ident from users u, dynamic_users d " 
 				+ " where u.id = d.u_id "
 				+ " and d.access_key = ? " 
-				+ " and d.expiry > now();";
+				+ " and d.expiry > now()";
 		PreparedStatement pstmtGetUserDetails = null;
 
 		log.info("GetDynamicUser");
@@ -2912,6 +2936,45 @@ public class GeneralUtilityMethods {
 				}
 			} catch (SQLException e) {
 			}
+		}
+
+		return userIdent;
+	}
+	
+	/*
+	 * Get a dynamic user's details from their unique key
+	 */
+	public static String getApiKeyUser(Connection sd, HttpServletRequest request) {
+
+		String userIdent = null;
+
+		String sql = "select u.ident from users u " 
+				+ " where u.api_key = ? ";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			/*
+			 * Get the key from the request
+			 */
+			String key = request.getHeader("x-api-key");
+			
+			/*
+			 * Get the user id
+			 */
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, key);
+			log.info("Get User Ident:" + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				userIdent = rs.getString(1);
+			} 
+
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Error", e);
+			userIdent = null;
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return userIdent;
@@ -9047,7 +9110,7 @@ public class GeneralUtilityMethods {
 			String tz) {
 		
 		StringBuffer url = new StringBuffer(urlprefix);		
-		url.append("surveyKPI/pdf/").append(surveyIdent);
+		url.append("api/v1/misc/pdf/").append(surveyIdent);
 		url.append("?instance=").append(updateId);
 		url.append("&tz=").append(tz);
 			

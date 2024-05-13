@@ -72,6 +72,8 @@ public class ExportSurveyMisc extends Application {
 			Logger.getLogger(ExportSurveyMisc.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
+	
+	boolean forDevice = false;	// Attachment URL prefixes should be in the client format
 
 	public ExportSurveyMisc() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
@@ -122,8 +124,9 @@ public class ExportSurveyMisc extends Application {
 		HashMap<ArrayList<OptionDesc>, String> labelListMap = new  HashMap<ArrayList<OptionDesc>, String> ();
 
 		log.info("userevent: " + request.getRemoteUser() + " Export " + targetId + " as a "+ format + " file to " + filename + " starting from form " + fId);
-
-		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
+		
+		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+		String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
 
 		String tz = "UTC";		// Default to UTC
 		String connectionString = "surveyKPI-ExportSurveyMisc";
@@ -226,6 +229,7 @@ public class ExportSurveyMisc extends Application {
 						language, 
 						format, 
 						urlprefix, 
+						attachmentPrefix,
 						true,
 						exp_ro,
 						excludeParents,

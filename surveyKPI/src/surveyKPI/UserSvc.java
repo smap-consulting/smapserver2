@@ -20,6 +20,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -37,12 +38,14 @@ import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PasswordManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.GroupSurvey;
+import org.smap.sdal.model.PasswordDetails;
 import org.smap.sdal.model.User;
 
 import com.google.gson.Gson;
@@ -145,12 +148,125 @@ public class UserSvc extends Application {
 	}
 	
 	/*
+	 * Get the user's API key
+	 */
+	class ApiKeyDetails {
+		String apiKey;
+	}
+	
+	@GET
+	@Path("/api_key")
+	@Produces("application/json")
+	public Response getMyApiKey(@Context HttpServletRequest request) { 
+
+		Response response = null;
+		String connectionString = "surveyKPI-UserSvc-GetApiKey";
+
+		// Authorisation - Not required
+		Connection sd = SDDataSource.getConnection(connectionString);
+		
+		try {
+			ApiKeyDetails key = new ApiKeyDetails();
+			UserManager um = new UserManager(null);
+			key.apiKey = um.getApiKeyByIdent(sd, request.getRemoteUser());
+
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(key);
+			response = Response.ok(resp).build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			response = Response.serverError().build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+
+		return response;
+	}
+	
+	@DELETE
+	@Path("/api_key")
+	public Response deleteMyApiKey(@Context HttpServletRequest request) { 
+
+		Response response = null;
+		String connectionString = "surveyKPI-UserSvc-DeleteApiKey";
+
+		// Authorisation - Not required
+		Connection sd = SDDataSource.getConnection(connectionString);
+		
+		try {
+			UserManager um = new UserManager(null);
+			um.deleteApiKeyByIdent(sd, request.getRemoteUser());
+
+			response = Response.ok("").build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			response = Response.serverError().build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+
+		return response;
+	}
+	
+	/*
+	 * Create a new API key
+	 */
+	@POST
+	@Path("/api_key/create")
+	public Response createApiKey(@Context HttpServletRequest request) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
+		Response response = null;
+		ApiKeyDetails key = new ApiKeyDetails();
+		String authString = "surveyKPI-UserSvc-CreateApiKey";
+		
+		// Authorisation - Not Required - the user is updating their own settings
+		Connection sd = SDDataSource.getConnection(authString);
+		
+		try {	
+
+			UserManager um = new UserManager(null);
+			key.apiKey = um.createApiKeyByIdent(sd, request.getRemoteUser());
+				
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(key);
+			response = Response.ok(resp).build();
+				
+		} catch (Exception e) {
+
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+			
+		} finally {
+			
+			SDDataSource.closeConnection(authString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
 	 * Update the user settings
 	 */
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateUser(@Context HttpServletRequest request,
 			@FormParam("user") String user) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String authString = "SurveyKpi - Change Settings";
@@ -250,13 +366,6 @@ public class UserSvc extends Application {
 	}
 	
 	/*
-	 * Update the user's password
-	 */
-	class PasswordDetails {
-		String password;
-	}
-	
-	/*
 	 * Update the user password
 	 */
 	@POST
@@ -265,61 +374,30 @@ public class UserSvc extends Application {
 	public Response updateUserPassword(@Context HttpServletRequest request,
 			@FormParam("passwordDetails") String passwordDetails) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String authString = "surveyKPI - change password";
-
+		
 		// Authorisation - Not Required - the user is updating their own settings
 		Connection sd = SDDataSource.getConnection(authString);
 		
 		Type type = new TypeToken<PasswordDetails>(){}.getType();		
 		PasswordDetails pwd = new Gson().fromJson(passwordDetails, type);		// The user settings
 		
-		PreparedStatement pstmt = null;
 		try {	
 			
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
 
-			/*
-			 * Update what can be updated by the user, excluding the current project id, survey id, form id and task group
-			 */
-			String pwdString = null;
-			String sql = null;
-			String ident = request.getRemoteUser();
-			PasswordManager pwm  = null;
-			
-			/*
-			 * Verify that the password is strong enough
-			 */
-			pwm = new PasswordManager(sd, locale, localisation, request.getRemoteUser(), request.getServerName());
-			pwm.checkStrength(pwd.password);
-				
-			sql = "update users set "
-					+ "password = md5(?), "
-					+ "basic_password = '{SHA}'|| encode(digest(?,'sha1'),'base64'), "
-					+ "password_set = now() "
-					+ "where "
-					+ "ident = ?";
-				
-			pwdString = ident + ":smap:" + pwd.password;
-				
-			// Delete any session keys for this user
-			GeneralUtilityMethods.deleteAccessKeys(sd, ident);
-			
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, pwdString);
-			pstmt.setString(2, pwd.password);
-			pstmt.setString(3, ident);
-		
-			log.info("Update password: " + pstmt.toString());
-			pstmt.executeUpdate();
-			
-			// Write logs
-			log.info("userevent: " + request.getRemoteUser() + " updated password : " + ident);
-			pwm.logReset();
-			lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.USER_DETAILS, localisation.getString("msg_pwd_changed"), 0, request.getServerName());
-		
+			UserManager um = new UserManager(localisation);
+			response = um.setPassword(sd, locale, localisation, request.getRemoteUser(), request.getServerName(), pwd);
+					
 			response = Response.ok().build();
 			
 			
@@ -329,8 +407,6 @@ public class UserSvc extends Application {
 			log.log(Level.SEVERE,"Error", e);
 			
 		} finally {
-			
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection(authString, sd);
 		}
@@ -345,6 +421,12 @@ public class UserSvc extends Application {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/currentproject")
 	public Response updateCurrentProject(@Context HttpServletRequest request, User u) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 
@@ -419,9 +501,15 @@ public class UserSvc extends Application {
 	 * Update the current group survey
 	 */
 	@POST
-	@Consumes(MediaType.TEXT_HTML)
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/groupsurvey")
 	public Response updateGroupSurvey(@Context HttpServletRequest request, String group) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "SurveyKPI - save groupsurvey";
@@ -489,6 +577,12 @@ public class UserSvc extends Application {
 	public Response postUserDetailsNoKey(
 			@Context HttpServletRequest request) throws IOException {
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		return updateUserDetails(request, null);
 	}
 	
@@ -501,6 +595,12 @@ public class UserSvc extends Application {
 	public Response postUpdateInstance(
 			@Context HttpServletRequest request,
 	        @PathParam("key") String key) throws IOException {
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		return updateUserDetails(request, key);
 	}

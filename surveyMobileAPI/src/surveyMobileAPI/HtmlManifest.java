@@ -51,7 +51,8 @@ import org.smap.server.entities.Form;
 
 /*
  * Get HTML Manifest for offline use of forms
- */
+ * No longer used
+ *
 
 @Path("/htmlManifest")
 public class HtmlManifest extends Application{
@@ -90,7 +91,7 @@ public class HtmlManifest extends Application{
 	 *  sName : Survey Name
 	 *  prikey : Primary key of data record in the top level table of this survey
 	 *  instructions on whether to preserve or replace each record
-	 */
+	 *
 	@GET
 	@Path("/{sName}")
 	@Produces("text/cache-manifest")
@@ -179,7 +180,7 @@ public class HtmlManifest extends Application{
 	/*
 	 * Get the primary key from the passed in key values
 	 *  The key must be in the top level form
-	 */
+	 *
 	ArrayList<String> getMedia(Connection connection, int s_id)  {
 
 		ArrayList<String> media = new ArrayList<String> ();
@@ -204,4 +205,4 @@ public class HtmlManifest extends Application{
 	
  
 }
-
+*/

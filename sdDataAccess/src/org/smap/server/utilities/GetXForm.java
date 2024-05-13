@@ -267,10 +267,10 @@ public class GetXForm {
 			}
 		}
 
-		// Add pulldata instances as required by enketo
+		// Add pulldata instances as required by webForms
 		if (isWebForms) {
 			TranslationManager tm = new TranslationManager();
-			List<ManifestValue> manifests = tm.getPulldataManifests(sd, template.getSurvey().getId(), request);
+			List<ManifestValue> manifests = tm.getPulldataManifests(sd, template.getSurvey().getId(), request, false);
 			for (int i = 0; i < manifests.size(); i++) {
 				ManifestValue mv = manifests.get(i);
 				if (mv.filePath != null || (mv.type != null && mv.type.equals("linked"))) {
@@ -1954,7 +1954,7 @@ public class GetXForm {
 	public void populateBlankForm(Document outputDoc, Form form, Connection sd, SurveyTemplate template,
 			Element parentElement, int sId, String key, String keyval, String survey_ident, boolean isTemplate, 
 			boolean addMeta)
-					throws SQLException {
+					throws SQLException, ApplicationException {
 
 		List<Results> record = new ArrayList<Results>();
 
@@ -2080,7 +2080,7 @@ public class GetXForm {
 				String urlprefix,
 				boolean isTopLevel,
 				boolean webform)
-			throws SQLException {
+			throws SQLException, ApplicationException {
 
 		List<Results> record = new ArrayList<Results>();
 
@@ -2264,7 +2264,7 @@ public class GetXForm {
 	public void populateFormData(Document outputDoc, Form form, int id, int parentId, Connection cResults, Connection sd,
 			SurveyTemplate template, Element parentElement, int sId, String survey_ident, boolean isFirstSubForm,
 			boolean simplifyMedia, String order, int count,
-			Instance initialData) throws SQLException {
+			Instance initialData) throws SQLException, ApplicationException {
 
 		List<List<Results>> results = null;
 		if (GeneralUtilityMethods.tableExists(cResults, form.getTableName())) {
@@ -2354,6 +2354,10 @@ public class GetXForm {
 					}
 					
 					if (isWebForms && item.value != null) {
+						// Webforms has to access attachments via the app entry point so that it uses form login
+						if(escValue.startsWith("attachments/")) {
+							escValue = "app/" + item.value;
+						}
 						escValue = escValue.replace("'", "\\\'");
 					}
 
@@ -2386,7 +2390,7 @@ public class GetXForm {
 	 * @param parentId
 	 */
 	List<List<Results>> getResults(Form form, int id, int parentId, Connection cResults, Connection sd,
-			SurveyTemplate template, boolean simplifyMedia, int sId, String order, int count) throws SQLException {
+			SurveyTemplate template, boolean simplifyMedia, int sId, String order, int count) throws SQLException, ApplicationException {
 
 		List<List<Results>> output = new ArrayList<List<Results>>();
 

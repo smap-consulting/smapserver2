@@ -72,6 +72,12 @@ public class PeopleSvc extends Application {
 	public Response addPerson(@Context HttpServletRequest request,
 			@FormParam("person") String personString) { 
 		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
 		Response response = null;
 		String connectionString = "surveyKPI-Survey - add person";
 		

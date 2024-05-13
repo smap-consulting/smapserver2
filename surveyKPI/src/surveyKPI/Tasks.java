@@ -48,6 +48,7 @@ import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -231,7 +232,9 @@ public class Tasks extends Application {
 					period, 
 					0, 
 					0,
-					"scheduled", "desc");		
+					"scheduled", 
+					"desc",
+					false);		
 			
 			// Return groups to calling program
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -303,6 +306,12 @@ public class Tasks extends Application {
 	@Path("/locations/upload")
 	public Response uploadLocations(
 			@Context HttpServletRequest request) {
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		
@@ -530,7 +539,9 @@ public class Tasks extends Application {
 					true, 0, 
 					incStatus, 
 					period, 0, 0,
-					"scheduled", "desc");	// Get the task list
+					"scheduled", 
+					"desc",
+					false);	// Get the task list
 			
 			// Create XLSTasks File
 			XLSTaskManager xf = new XLSTaskManager(filetype, request.getScheme(), request.getServerName());
@@ -558,6 +569,12 @@ public class Tasks extends Application {
 			@PathParam("pId") int pId,
 			@QueryParam("user") int userId
 			) throws IOException {
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		int tgId = 0;
@@ -674,8 +691,15 @@ public class Tasks extends Application {
 						tgId, 
 						0,	// task id 
 						0,	// Assignment Id
-						true, userId, null, "all", 0, 0,
-						"scheduled", "desc");	// TODO set "complete" flag from passed in parameter
+						true, 
+						userId, 
+						null, 
+						"all", 
+						0, 
+						0,
+						"scheduled", 
+						"desc",
+						false);	
 				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 				String resp = gson.toJson(tl);
 				
@@ -713,6 +737,12 @@ public class Tasks extends Application {
 			@PathParam("tgId") int tgId,
 			@FormParam("task") String task
 			) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "surveyKPI - tasks - update date and time";
@@ -763,6 +793,12 @@ public class Tasks extends Application {
 			@PathParam("tgId") int tgId,
 			@FormParam("tasks") String tasks
 			) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-tasks-bulk";
@@ -865,6 +901,12 @@ public class Tasks extends Application {
 			@PathParam("tgId") int tgId,
 			@FormParam("emaildetails") String emaildetails
 			) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
 		
 		Response response = null;
 

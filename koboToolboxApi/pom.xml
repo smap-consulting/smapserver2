@@ -56,6 +56,23 @@
 	      	<artifactId>sdDAL</artifactId>
 	      	<version>1.0.0</version>
       	</dependency>	  
-      	              
+      	<dependency>
+	      	<groupId>smapserver</groupId>
+	      	<artifactId>sdDataAccess</artifactId>
+	      	<version>1.0.0</version>
+      	</dependency>    
+      	
+      	<!-- Non SDAL -->
+        <dependency>
+      		<groupId>org.slf4j</groupId>
+      		<artifactId>slf4j-api</artifactId>
+      		<version>1.7.25</version>
+    	</dependency>
+    	 <dependency>
+			<groupId>net.sf.kxml</groupId>
+			<artifactId>kxml2</artifactId>
+			<version>2.3.0</version>
+			<scope>compile</scope>
+		</dependency>         
 	</dependencies>
 </project>

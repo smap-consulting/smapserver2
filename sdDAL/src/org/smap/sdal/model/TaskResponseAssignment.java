@@ -1,6 +1,4 @@
-package taskModel;
-
-import org.smap.sdal.model.TaskLocation;
+package org.smap.sdal.model;
 
 public class TaskResponseAssignment {
 	public TrTask task;
