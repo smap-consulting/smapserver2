@@ -56,8 +56,8 @@ public class JdbcTranslationManager {
 			+ "from translation t, language l "
 			+ "where t.s_id = l.s_id "
 			+ "and t.language = l.language "
-			+ "and t.s_id = ?";
-	String sqlNoExternal = " and external = false ";
+			+ "and t.s_id = ? ";
+	String sqlNoExternal = "and external = false ";
 	String sqlOrder = "order by language;";
 			
 	/*
