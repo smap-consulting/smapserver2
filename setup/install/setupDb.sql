@@ -476,8 +476,8 @@ insert into enterprise(id, name, changed_by, changed_ts) values(1, 'Default', ''
 -- Create an organisation with communal ownership
 insert into organisation(id, name, e_id, can_edit, owner) values(1, 'Smap', 1, 'true', 0);
 
-insert into users (id, ident, realm, password, o_id, name, email) 
-	values (1, 'admin', 'smap', '9f12895fe9898cc306c45c9d3fcbc3d6', 1, 'Administrator', '');
+insert into users (id, ident, realm, password, basic_password, o_id, name, email) 
+	values (1, 'admin', 'smap', '9f12895fe9898cc306c45c9d3fcbc3d6', '{SHA}0DPiKuNIrrVmD8IUCuw1hQxNqZc=', 1, 'Administrator', '');
 
 insert into groups(id,name) values(1,'admin');
 insert into groups(id,name) values(2,'analyst');

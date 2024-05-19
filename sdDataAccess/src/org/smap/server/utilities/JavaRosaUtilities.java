@@ -1,8 +1,6 @@
 package org.smap.server.utilities;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +16,6 @@ import org.javarosa.core.model.utils.IPreloadHandler;
 import org.javarosa.model.xform.XFormsModule;
 import org.javarosa.xform.util.XFormUtils;
 import org.smap.model.SurveyTemplate;
-import org.smap.server.utilities.GetXForm;
 
 public class JavaRosaUtilities {
 

@@ -1,0 +1,45 @@
+#
+# Systemd unit file for Apache Tomcat
+#
+
+[Unit]
+Description=Apache Tomcat 9 Web Application Server
+Documentation=https://tomcat.apache.org/tomcat-9.0-doc/index.html
+After=network.target
+RequiresMountsFor=/var/log/tomcat9 /var/lib/tomcat9
+
+[Service]
+
+# Configuration
+Environment="CATALINA_HOME=/usr/share/tomcat9"
+Environment="CATALINA_BASE=/var/lib/tomcat9"
+Environment="CATALINA_OUT=/var/log/tomcat9/catalina.out"
+Environment="CATALINA_TMPDIR=/tmp"
+Environment="JAVA_OPTS=-Djava.awt.headless=true"
+Environment="JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64/"
+
+# Lifecycle
+Type=forking
+ExecStart=/usr/share/tomcat9/bin/startup.sh
+ExecStop=/usr/share/tomcat9/bin/shutdown.sh
+
+SuccessExitStatus=143
+Restart=on-abort
+
+# Logging
+SyslogIdentifier=tomcat9
+
+# Security
+User=tomcat
+Group=tomcat
+PrivateTmp=yes
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+CacheDirectory=tomcat9
+CacheDirectoryMode=750
+ProtectSystem=strict
+ReadWritePaths=/var/lib/tomcat9/webapps/
+ReadWritePaths=/var/log/tomcat9/
+
+[Install]
+WantedBy=multi-user.target

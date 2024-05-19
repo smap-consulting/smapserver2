@@ -54,18 +54,17 @@ else
 fi
 
 CATALINA_HOME=/usr/share/$TOMCAT_VERSION
-sd="survey_definitions"										# Postgres config survey definitions db name
-results="results"										# Postgres config results db name
-tc_server_xml="/etc/$TOMCAT_VERSION/server.xml"							# Tomcat config
-tc_context_xml="/etc/$TOMCAT_VERSION/context.xml"						# Tomcat config
-tc_logging="/var/lib/$TOMCAT_VERSION/conf/logging.properties"					# Tomcat config
-a_config_dir="/etc/apache2/sites-available"							# Apache config	
-a_config_conf="/etc/apache2/apache2.conf"							# Apache config
-a_config_prefork_conf="/etc/apache2/mods-available/mpm_prefork.conf"				# Apache 2.4 config
+sd="survey_definitions"											# Postgres config survey definitions db name
+results="results"												# Postgres config results db name
+tc_server_xml="/etc/$TOMCAT_VERSION/server.xml"					# Tomcat config
+tc_context_xml="/etc/$TOMCAT_VERSION/context.xml"				# Tomcat config
+tc_logging="/var/lib/$TOMCAT_VERSION/conf/logging.properties"	# Tomcat config
+a_config_dir="/etc/apache2/sites-available"						# Apache config	
+a_config_conf="/etc/apache2/apache2.conf"						# Apache config
+a_config_prefork_conf="/etc/apache2/mods-available/mpm_prefork.conf"		# Apache 2.4 config
 a_default_xml="/etc/apache2/sites-available/default"						# Apache config
-a_default_ssl_xml="/etc/apache2/sites-available/default-ssl"					# Apache config
-upstart_dir="/etc/init"										# Subscriber config for Ubuntu 14.04
-service_dir="/etc/systemd/system"								# Subscriber config for Ubuntu 16.04
+a_default_ssl_xml="/etc/apache2/sites-available/default-ssl"				# Apache config
+service_dir="/etc/systemd/system"								# Subscriber config 
 
 echo "Setting up your server to run Smap"
 echo "If you have already installed Smap and just want to upgrade you need to run deploy.sh and not this script"
@@ -106,16 +105,31 @@ sudo mkdir /var/www/smap
 
 echo "##### 3. Install Tomcat: $TOMCAT_VERSION"
 if [ $u2404 -eq 1 ]; then
+
+    tc_server_xml="/var/lib/$TOMCAT_VERSION/conf/server.xml"					# Tomcat config
+    tc_context_xml="/var/lib/$TOMCAT_VERSION/conf/context.xml"				# Tomcat config
+
     echo 'install java 11'
-    sudo apt install openjdk-11-jre-headless
+    sudo apt-get install openjdk-11-jre-headless -y
     echo 'Create tomcat user'
     sudo groupadd tomcat
-    sudo useradd -s /bin/false -g tomcat -d /opt/tomcat tomcat
+    sudo useradd -s /bin/false -g tomcat -d /usr/share/tomcat9 tomcat
     echo 'get tomcat'
     wget https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.89/bin/apache-tomcat-9.0.89.tar.gz
-    sudo mkdir /opt/tomcat
-    sudo tar xzvf apache-tomcat-9*tar.gz -C /opt/tomcat --strip-components=1
+    sudo mkdir /usr/share/tomcat9
+    sudo tar xzf apache-tomcat-9*tar.gz -C /usr/share/tomcat9 --strip-components=1
     rm apache-tomcat-9*tar.gz
+    echo 'Tomcat service'
+    cp config_files/tomcat9.service /usr/lib/systemd/system
+    echo 'Create tomcat apps directory'
+    mkdir /var/lib/tomcat9
+    mkdir /var/lib/tomcat9/webapps
+    mkdir /var/lib/tomcat9/conf
+    echo 'Create tomcat log directory'
+    mkdir /var/log/tomcat9
+    chown -R tomcat /var/lib/tomcat9 /var/log/tomcat9 /usr/share/tomcat9
+    chgrp -R tomcat /var/lib/tomcat9 /var/log/tomcat9 /usr/share/tomcat9
+    systemctl enable tomcat9
 else
     sudo apt-get install $TOMCAT_VERSION -y
 fi

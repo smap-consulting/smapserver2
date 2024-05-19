@@ -9,7 +9,7 @@ u2204=`lsb_release -r | grep -c "22\.04"`
 u2404=`lsb_release -r | grep -c "24\.04"`
 
 if [ $u2404 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat10
+    TOMCAT_VERSION=tomcat9
     TOMCAT_USER=tomcat
 elif [ $u2204 -eq 1 ]; then
     TOMCAT_VERSION=tomcat9

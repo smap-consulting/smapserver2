@@ -23,7 +23,7 @@ u2204=`lsb_release -r | grep -c "22\.04"`
 u2404=`lsb_release -r | grep -c "24\.04"`
 
 if [ $u2404 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat10
+    TOMCAT_VERSION=tomcat9
     TOMCAT_USER=tomcat
 elif [ $u2204 -eq 1 ]; then
     TOMCAT_VERSION=tomcat9
@@ -336,7 +336,7 @@ chmod +x apacheConfig.sh
 ./apacheConfig.sh
 
 if [ $u2404 -eq 1 ]; then
-cp config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
+cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
 fi
 if [ $u2204 -eq 1 ]; then
 cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
