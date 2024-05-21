@@ -125,6 +125,8 @@ if [ $u2404 -eq 1 ]; then
     mkdir /var/lib/tomcat9
     mkdir /var/lib/tomcat9/webapps
     mkdir /var/lib/tomcat9/conf
+    mkdir /var/lib/tomcat9/logs
+    /var/lib/tomcat9/logs
     echo 'Create tomcat log directory'
     mkdir /var/log/tomcat9
     chown -R tomcat /var/lib/tomcat9 /var/log/tomcat9 /usr/share/tomcat9

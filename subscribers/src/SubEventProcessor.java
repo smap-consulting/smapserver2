@@ -52,8 +52,9 @@ public class SubEventProcessor {
 		
 			String serverName = null;
 			try {
+				GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 				serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
-			} catch (SQLException e) {
+			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 			String urlprefix = GeneralUtilityMethods.getUrlPrefixBatch(serverName);
@@ -71,7 +72,7 @@ public class SubEventProcessor {
 					System.out.print("(e)");		// Record the running of the subevent processor
 					
 					try {
-						// Make sure we have a connection to the database
+						// Make sure we have a valid connection to the database
 						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 						
 						// Apply events

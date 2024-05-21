@@ -1356,19 +1356,18 @@ public class EventList extends Application {
 		
 		String filter = "";
 		if(sId > 0) {		// surveyId is always a stronger filter than projectId
-			filter = "and n.s_id = ?";
+			filter = "and n.s_id = ? ";
 		} else if(pId > 0) {				
-			filter = "and n.p_id = ?";
+			filter = "and n.p_id = ? ";
 		}
 			
 		sql = "SELECT count(*) " +
 				"from notification_log n, users u " +
 				"where u.ident = ? " +
 				"and n.o_id = u.o_id " +
-				"and n.status = ?" +
+				"and n.status = ? " +
 				getObsoleteFilterNotifications(ignoreOld) +
-				filter +
-				";";
+				filter;
 
 		try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		pstmt = sd.prepareStatement(sql);

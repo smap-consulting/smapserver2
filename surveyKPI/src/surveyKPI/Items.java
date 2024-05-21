@@ -212,7 +212,7 @@ public class Items extends Application {
 				
 				// Prepare the statement to get the form details
 				String sqlFDetails = "select table_name, parentform, name from form " +
-					" where f_id = ?"
+					" where f_id = ? "
 					+ "and s_id = ?";	// Authorisation check
 				pstmtFDetails = sd.prepareStatement(sqlFDetails);
 				
@@ -241,7 +241,7 @@ public class Items extends Application {
 				jTotals.put("start_key", start_key);
 				
 				// Get the number of records
-				String sql = "SELECT count(*) FROM " + tName + ";";
+				String sql = "SELECT count(*) FROM " + tName;
 				log.info("Get the number of records: " + sql);	
 				pstmt = cResults.prepareStatement(sql);	 			
 				ResultSet resultSet = pstmt.executeQuery();
@@ -251,7 +251,7 @@ public class Items extends Application {
 				}
 				
 				// Get the number of bad records
-				sql = "SELECT count(*) FROM " + tName + " where _bad = 'true';";
+				sql = "SELECT count(*) FROM " + tName + " where _bad = 'true'";
 				log.info("Get the number of bad records: " + sql);
 				if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 				pstmt = cResults.prepareStatement(sql);	 			
