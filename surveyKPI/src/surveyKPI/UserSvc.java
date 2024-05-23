@@ -302,12 +302,7 @@ public class UserSvc extends Application {
 				 * If the new settings are null then they are not authorised to move to this new organisation
 				 */				
 				UserManager um = new UserManager(localisation);
-				try {
-					um.switchUsersOrganisation(sd, u.o_id,	request.getRemoteUser(), true);
-				} catch (Exception e) {
-					// log but otherwise ignore any errors
-					log.log(Level.SEVERE, e.getMessage(), e);
-				}
+				um.switchUsersOrganisation(sd, u.o_id,	request.getRemoteUser(), true);			
 			}			
 
 			/*

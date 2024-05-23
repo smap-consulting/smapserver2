@@ -965,11 +965,20 @@ public class UserManager {
 					}
 	
 					try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+					/*
+					 * If we are switching organisations do not check that names are clean - allows for smooth removal of bad names
+					 */
 					pstmt = sd.prepareStatement(sql);
-					pstmt.setString(1, HtmlSanitise.checkCleanName(u.ident, localisation));
 					pstmt.setString(2, "smap");
-					pstmt.setString(3, HtmlSanitise.checkCleanName(u.name, localisation));
-					pstmt.setString(4, HtmlSanitise.checkCleanName(u.email, localisation));
+					if(isSwitch) {
+						pstmt.setString(1, u.ident);
+						pstmt.setString(3, u.name);
+						pstmt.setString(4, u.email);
+					} else {
+						pstmt.setString(1, HtmlSanitise.checkCleanName(u.ident, localisation));
+						pstmt.setString(3, HtmlSanitise.checkCleanName(u.name, localisation));
+						pstmt.setString(4, HtmlSanitise.checkCleanName(u.email, localisation));
+					}
 					pstmt.setInt(5, u.o_id);
 					if(u.password == null) {
 						pstmt.setInt(6, u.id);
