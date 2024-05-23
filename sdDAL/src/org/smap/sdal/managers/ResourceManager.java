@@ -55,13 +55,15 @@ public class ResourceManager {
 				+ " from organisation where id = ?";		
 		PreparedStatement pstmt = null;
 		
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
+			log.info("Get limits for an organisation: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				String limitString = rs.getString(1);
+				log.info("Limit string: " + limitString);
 				if(limitString != null) {
 					HashMap<String, Integer> limits = gson.fromJson(limitString, 
 							new TypeToken<HashMap<String, Integer>>() {}.getType());

@@ -11,9 +11,6 @@ else
         PSQL="PGPASSWORD=keycar08 psql -h $DBHOST -U postgres"
 fi
 
-# Apply security updates
-unattended-upgrades
-
 # Set flag for ubuntu version
 u1404=`lsb_release -r | grep -c "14\.04"`
 u1604=`lsb_release -r | grep -c "16\.04"`
