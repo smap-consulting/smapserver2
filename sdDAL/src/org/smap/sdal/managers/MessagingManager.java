@@ -309,6 +309,7 @@ public class MessagingManager {
 			String sqlDone = "update people "
 					+ "set opted_in_sent = now(),"
 					+ "opted_in_status = 'success',"
+					+ "opted_in_status_msg = '',"
 					+ "opted_in_count = opted_in_count + 1 "
 					+ "where o_id = ? "
 					+ "and email = ? ";
