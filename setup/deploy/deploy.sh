@@ -180,20 +180,22 @@ if [ $DBHOST = "127.0.0.1" ]; then
 
 else
     echo ".............. using remote postgres at $DBHOST"
+    if [ "$SUBSCRIBER" != "no" ]
     # Update subscriber configuration files
-    sudo sed -i "s#127.0.0.1#$DBHOST#g" /smap_bin/default/metaDataModel.xml
-    sudo sed -i "s#127.0.0.1#$DBHOST#g" /smap_bin/default/results_db.xml
-    sudo sed -i "s#127.0.0.1#$DBHOST#g" /smap_bin/getshape.sh
+        sudo sed -i "s#127.0.0.1#$DBHOST#g" /smap_bin/default/metaDataModel.xml
+        sudo sed -i "s#127.0.0.1#$DBHOST#g" /smap_bin/default/results_db.xml
+        sudo sed -i "s#127.0.0.1#$DBHOST#g" /smap_bin/getshape.sh
+    fi
 
 fi
 
 service $TOMCAT_VERSION start
 service apache2 start
 
-echo "go" > /smap/settings/subscriber
 if [ "$SUBSCRIBER" != "no" ]
 then
     echo "...... starting subscriber"
+    echo "go" > /smap/settings/subscriber
     if [ $u1404 -eq 1 ]; then
         service subscribers start
         service subscribers_fwd start
