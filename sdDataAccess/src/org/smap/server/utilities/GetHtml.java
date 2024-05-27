@@ -1849,43 +1849,6 @@ public class GetHtml {
 
 	}
 
-	/*
-	 * Convert binary hex to Unicode
-	 */
-	private String unescapeEmoji(String input) {
-		StringBuffer output = new StringBuffer("");
-		String replaced;
-
-		Pattern pattern = Pattern.compile("&#[0-9A-Fa-f]*?;");
-		java.util.regex.Matcher matcher = pattern.matcher(input);
-		int start = 0;
-		while (matcher.find()) {
-
-			String matched = matcher.group();
-			replaced = matched.replaceAll("&#", "");
-			replaced = replaced.replaceAll(";", " ");
-
-			// Add any text before the match
-			int startOfGroup = matcher.start();
-			String initial = input.substring(start, startOfGroup).trim();
-
-			output.append(initial);
-			output.append(replaced);
-
-			// Reset the start
-			start = matcher.end();
-
-		}
-
-		// Get the remainder of the string
-		if (start < input.length()) {
-			replaced = input.substring(start).trim();
-			output.append(replaced);
-		}
-
-		return output.toString();
-	}
-
 	private boolean minSelect(String appearance) {
 
 		if (appearance.contains("minimal") || appearance.contains("autocomplete") || appearance.contains("search")) {

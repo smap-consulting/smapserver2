@@ -17,7 +17,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  ******************************************************************************/
 
-package surveyMobileAPI;
+package surveyKPI;
 
 import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
@@ -40,7 +40,7 @@ import org.smap.sdal.managers.LookupManager;
  */
 
 @Path("/lookup")
-public class Lookup extends Application{	
+public class WebFormLookup extends Application{	
 	
 	/*
 	 * Get a record from the reference data identified by the filename and key column
