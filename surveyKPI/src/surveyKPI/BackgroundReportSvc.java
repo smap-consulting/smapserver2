@@ -217,6 +217,15 @@ public class BackgroundReportSvc extends Application {
 			}
 			
 			/*
+			 * For kontrolid servers a restore can only be initiated by the server owner
+			 */
+			String serverName = request.getServerName();
+			if(serverName != null && serverName.contains("kontrolid") || serverName.equals("localhost")) {
+				if(!GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.OWNER_ID)) {
+					throw new ApplicationException("Only the server owner can now start a restore.  Contact Kontrolid.");
+				}
+			}
+			/*
 			 * Has this report already been requested
 			 */
 			String sqlDuplicate = "select count(*) from background_report "
