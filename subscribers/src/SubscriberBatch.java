@@ -106,6 +106,8 @@ public class SubscriberBatch {
 
 		JdbcUploadEventManager uem = null;
 		
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
 		Survey sdalSurvey = null;
 		
 		String sqlResultsDB = "update upload_event "
@@ -117,10 +119,16 @@ public class SubscriberBatch {
 		PreparedStatement pstmtResultsDB = null;
 		String serverName = null;
 
+		String sqlEnque = "Insert into submission_queue(element_identifier, time_inserted, ue_id, payload) "
+				+ "values(gen_random_uuid(), current_timestamp, ?, ?::jsonb)";
+		PreparedStatement pstmtEnqueue = null;
+		
 		try {
 			GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 			serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 
+			pstmtEnqueue = dbc.sd.prepareStatement(sqlEnque);
+			
 			uem = new JdbcUploadEventManager(dbc.sd);
 			pstmtResultsDB = dbc.sd.prepareStatement(sqlResultsDB);
 
@@ -138,6 +146,7 @@ public class SubscriberBatch {
 			Date timeNow = new Date();
 			
 			Subscriber subscriber = new SubRelationalDB();
+			
 			/*
 			 * Process all pending uploads
 			 */
@@ -155,6 +164,11 @@ public class SubscriberBatch {
 					log.info("\nUploading: "  + timeNow.toString());
 
 					for(UploadEvent ue : uel) {
+						// Enqueue event
+						pstmtEnqueue.setInt(1, ue.getId());
+						pstmtEnqueue.setString(2, gson.toJson(ue));
+						pstmtEnqueue.executeUpdate();
+						
 						log.info("        Survey:" + ue.getSurveyName() + ":" + ue.getId());
 
 						SurveyInstance instance = null;
@@ -479,7 +493,8 @@ public class SubscriberBatch {
 			e.printStackTrace();
 		} finally {
 			try {if (pstmtResultsDB != null) { pstmtResultsDB.close();}} catch (SQLException e) {}
-
+			try {if (pstmtEnqueue != null) { pstmtEnqueue.close();}} catch (SQLException e) {}
+			
 			if(uem != null) {uem.close();}
 
 			try {				
