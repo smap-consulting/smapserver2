@@ -180,7 +180,7 @@ if [ $DBHOST = "127.0.0.1" ]; then
 
 else
     echo ".............. using remote postgres at $DBHOST"
-    if [ "$SUBSCRIBER" != "no" ]
+    if [ "$SUBSCRIBER" != "no" ]; then
     # Update subscriber configuration files
         sudo sed -i "s#127.0.0.1#$DBHOST#g" /smap_bin/default/metaDataModel.xml
         sudo sed -i "s#127.0.0.1#$DBHOST#g" /smap_bin/default/results_db.xml
