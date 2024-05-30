@@ -77,3 +77,5 @@ CREATE UNLOGGED TABLE IF NOT EXISTS submission_queue
     payload JSON
 );
 ALTER TABLE submission_queue OWNER TO ws;
+
+alter table upload_event add column queue_name text;

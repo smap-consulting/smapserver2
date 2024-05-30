@@ -140,9 +140,7 @@ public class SubscriberBatch {
 						// Enqueue event
 						pstmtEnqueue.setInt(1, ue.getId());
 						pstmtEnqueue.setString(2, gson.toJson(ue));
-						pstmtEnqueue.executeUpdate();
-						
-
+						pstmtEnqueue.executeUpdate();		
 					} 
 				}
 			} 

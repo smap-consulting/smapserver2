@@ -84,7 +84,11 @@ public class Manager {
 		} else {
 			// Start the default submission queue processor in the upload subscriber
 			SubmissionProcessor subProcessor = new SubmissionProcessor();
-			subProcessor.go(smapId, fileLocn);
+			subProcessor.go(smapId, fileLocn, "q1");
+			
+			// Start another submission queue processor in the upload subscriber
+			SubmissionProcessor subProcessor2 = new SubmissionProcessor();
+			subProcessor2.go(smapId, fileLocn, "q2");
 		}
 		
 		

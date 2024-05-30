@@ -68,9 +68,11 @@ public class SubmissionProcessor {
 	private class SubmissionQueueLoop implements Runnable {
 		DatabaseConnections dbc = new DatabaseConnections();
 		String basePath;
+		String queueName;
 
-		public SubmissionQueueLoop(String basePath) {
+		public SubmissionQueueLoop(String basePath, String queueName) {
 			this.basePath = basePath;
+			this.queueName = queueName;
 		}
 
 		public void run() {
@@ -84,7 +86,8 @@ public class SubmissionProcessor {
 					+ "set results_db_applied = 'true',"
 					+ "processed_time = now(),"
 					+ "db_status = ?,"
-					+ "db_reason = ? "
+					+ "db_reason = ?,"
+					+ "queue_name = ? "
 					+ "where ue_id = ?";
 			PreparedStatement pstmtResultsDB = null;
 
@@ -252,7 +255,8 @@ public class SubmissionProcessor {
 
 										pstmtResultsDB.setString(1, se.getStatus());
 										pstmtResultsDB.setString(2, se.getReason());
-										pstmtResultsDB.setInt(3, ue.getId());
+										pstmtResultsDB.setString(3, queueName);
+										pstmtResultsDB.setInt(4, ue.getId());
 										pstmtResultsDB.executeUpdate();
 
 									}	
@@ -325,14 +329,14 @@ public class SubmissionProcessor {
 	/**
 	 * @param args
 	 */
-	public void go(String smapId, String basePath) {
+	public void go(String smapId, String basePath, String queueName) {
 
 		confFilePath = "./" + smapId;
 
 		try {
 
 			// Process submissions in queue
-			Thread t = new Thread(new SubmissionQueueLoop(basePath));
+			Thread t = new Thread(new SubmissionQueueLoop(basePath, queueName));
 			t.start();
 
 
