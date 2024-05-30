@@ -95,15 +95,34 @@ public class SubscriberBatch {
 		
 		String serverName = null;
 
-		String sqlEnqueue = "Insert into submission_queue(element_identifier, time_inserted, ue_id, payload) "
-				+ "values(gen_random_uuid(), current_timestamp, ?, ?::jsonb)";
+		/*
+		 * SQL to enqueue the submission
+		 */
+		String sqlEnqueue = "insert into submission_queue(element_identifier, time_inserted, ue_id, instanceid, payload) "
+				+ "values(gen_random_uuid(), current_timestamp, ?, ?, ?::jsonb)";
 		PreparedStatement pstmtEnqueue = null;
+		
+		/*
+		 * SQL to prevent duplicates being processed in the queue in parallel
+		 */
+		String sqlDup = "select count(*) from submission_queue where instanceid = ?";
+		PreparedStatement pstmtDup = null;
+		
+		/*
+		 * SQL to inform the upload event table that the submission has been moved to the queue
+		 */
+		String sqlQueueDone = "update upload_event "
+				+ "set queued = 'true' "
+				+ "where ue_id = ?";
+		PreparedStatement pstmtQueueDone = null;
 		
 		try {
 			GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 			serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 
 			pstmtEnqueue = dbc.sd.prepareStatement(sqlEnqueue);
+			pstmtQueueDone = dbc.sd.prepareStatement(sqlQueueDone);
+			pstmtDup = dbc.sd.prepareStatement(sqlDup);
 			
 			uem = new JdbcUploadEventManager(dbc.sd);
 
@@ -130,17 +149,24 @@ public class SubscriberBatch {
 			
 
 				if(uel.isEmpty()) {
-
 					System.out.print(".");		// Log the running of the upload processor
-
 				} else {
 					log.info("\nUploading: "  + timeNow.toString());
 
-					for(UploadEvent ue : uel) {
+					for(UploadEvent ue : uel) {					
 						// Enqueue event
-						pstmtEnqueue.setInt(1, ue.getId());
-						pstmtEnqueue.setString(2, gson.toJson(ue));
-						pstmtEnqueue.executeUpdate();		
+						pstmtDup.setString(1,ue.getInstanceId());
+						ResultSet rs = pstmtDup.executeQuery();
+						if(!rs.next() || rs.getInt(1) == 0) {						
+							pstmtEnqueue.setInt(1, ue.getId());
+							pstmtEnqueue.setString(2, ue.getInstanceId());
+							pstmtEnqueue.setString(3, gson.toJson(ue));
+							pstmtEnqueue.executeUpdate();	
+							
+							// Mark it as queued
+							pstmtQueueDone.setInt(1, ue.getId());
+							pstmtQueueDone.executeUpdate();
+						}
 					} 
 				}
 			} 
@@ -298,8 +324,6 @@ public class SubscriberBatch {
 				
 				// Set fingerprint templates for new fingerprint images
 				linkMgr.setFingerprintTemplates(dbc.sd, basePath, serverName);
-				
-
 			}
 
 
@@ -307,6 +331,8 @@ public class SubscriberBatch {
 			e.printStackTrace();
 		} finally {
 			try {if (pstmtEnqueue != null) { pstmtEnqueue.close();}} catch (SQLException e) {}
+			try {if (pstmtQueueDone != null) { pstmtQueueDone.close();}} catch (SQLException e) {}
+			try {if (pstmtDup != null) { pstmtDup.close();}} catch (SQLException e) {}
 			
 			if(uem != null) {uem.close();}
 
