@@ -22,7 +22,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
 /*
- * Usage java -jar subscribers.jar {path to subscriber configurations} {file base path} 
+ * Usage java -jar subscribers.jar {smap-id path to subscriber configurations} {file base path} {subscriber type upload or forward}
  */
 
 public class Manager {
@@ -81,12 +81,18 @@ public class Manager {
 			 */
 			SubEventProcessor sep = new SubEventProcessor();
 			sep.go(smapId, fileLocn);
+		} else {
+			// Start the default submission queue processor in the upload subscriber
+			SubmissionProcessor subProcessor = new SubmissionProcessor();
+			subProcessor.go(smapId, fileLocn);
 		}
+		
+		
 		
 		log.info("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);
 		int delaySecs = 2;
 		
-		// The forward batch job processes events to reduce the server load
+		// The forward batch job processes events such as emails. In order to reduce the server load set a longer delay between runs.
 		if(subscriberType.equals("forward")) {
 			delaySecs = 30;					
 		}
