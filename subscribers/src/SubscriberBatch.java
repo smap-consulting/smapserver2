@@ -74,7 +74,7 @@ public class SubscriberBatch {
 	DatabaseConnections dbc = new DatabaseConnections();
 
 	private static Logger log =
-			Logger.getLogger(Subscriber.class.getName());
+			Logger.getLogger(SubscriberBatch.class.getName());
 
 	private static LogManager lm = new LogManager();		// Application log
 	
@@ -147,7 +147,6 @@ public class SubscriberBatch {
 			if(subscriberType.equals("upload")) {
 				uel = uem.getPending();		// Get pending jobs
 			
-
 				if(uel.isEmpty()) {
 					System.out.print(".");		// Log the running of the upload processor
 				} else {

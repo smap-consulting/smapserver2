@@ -74,7 +74,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS submission_queue
     element_identifier UUID PRIMARY KEY,
     time_inserted TIMESTAMP,
     ue_id integer,
-    instance id text,	-- Don't allow duplicates in the submission queue where they can be worked on in parallel
+    instanceid text,	-- Don't allow duplicates in the submission queue where they can be worked on in parallel
     payload JSON
 );
 ALTER TABLE submission_queue OWNER TO ws;

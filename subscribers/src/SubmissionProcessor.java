@@ -85,6 +85,7 @@ public class SubmissionProcessor {
 			String sqlResultsDB = "update upload_event "
 					+ "set results_db_applied = 'true',"
 					+ "processed_time = now(),"
+					+ "queued = false, "
 					+ "db_status = ?,"
 					+ "db_reason = ?,"
 					+ "queue_name = ? "
