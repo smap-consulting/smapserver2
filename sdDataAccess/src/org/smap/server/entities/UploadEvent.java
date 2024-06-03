@@ -21,13 +21,7 @@ package org.smap.server.entities;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 
@@ -35,13 +29,8 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
  * Class to store an upload event
  */
 public class UploadEvent implements Serializable {
-
-	private static Logger log =
-			Logger.getLogger(UploadEvent.class.getName());
 	
 	private static final long serialVersionUID = -4784547709615805141L;
-	
-	private static DateFormat isoFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ+|-hh:mm");
 
 	// Database Attributes
 	private int ue_id;
@@ -51,6 +40,8 @@ public class UploadEvent implements Serializable {
 	private String userName;
 	
 	private boolean temporaryUser;
+	
+	private boolean restore;
 	
 	private String fileName;
 	
@@ -131,6 +122,10 @@ public class UploadEvent implements Serializable {
 	
 	public boolean getTemporaryUser() {
 		return temporaryUser;
+	}
+	
+	public boolean getRestore() {
+		return restore;
 	}
 	
 	public String getFileName() {
@@ -254,6 +249,10 @@ public class UploadEvent implements Serializable {
 	
 	public void setTemporaryUser(boolean v) {
 		this.temporaryUser = v;
+	}
+	
+	public void setRestore(boolean v) {
+		this.restore = v;
 	}
 	
 	public void setFileName(String name) {

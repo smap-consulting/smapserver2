@@ -29,7 +29,7 @@ alter table mailout add column anonymous boolean;
 CREATE SEQUENCE subevent_queue_seq START 1;
 ALTER SEQUENCE subevent_queue_seq OWNER TO ws;
 
-CREATE TABLE subevent_queue (
+CREATE TABLE IF NOT EXISTS subevent_queue (
 	id integer DEFAULT NEXTVAL('subevent_queue_seq') CONSTRAINT pk_subevent_queue PRIMARY KEY,
 	ue_id integer,
 	linkage_items text,    -- JSON
@@ -67,3 +67,20 @@ update users set current_survey_ident = (select ident from survey where s_id = c
 
 -- Version 24.05
 alter table users add column api_key text;
+
+-- Version 24.06
+CREATE UNLOGGED TABLE IF NOT EXISTS submission_queue
+(
+    element_identifier UUID PRIMARY KEY,
+    time_inserted TIMESTAMP,
+    ue_id integer,
+    instanceid text,	-- Don't allow duplicates in the submission queue where they can be worked on in parallel
+    restore boolean,
+    payload JSON
+);
+ALTER TABLE submission_queue OWNER TO ws;
+
+alter table upload_event add column queue_name text;
+alter table upload_event add column queued boolean default false;
+alter table upload_event add column restore boolean default false;
+

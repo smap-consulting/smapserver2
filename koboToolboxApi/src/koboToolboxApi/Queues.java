@@ -32,6 +32,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -70,7 +71,7 @@ public class Queues extends Application {
 	@Path("/{queue}")
 	@Produces("application/json")
 	public Response getOpenClosed(@Context HttpServletRequest request,
-			@PathParam("queue") String queueName) { 
+			@PathParam("queue") String queueName) throws ApplicationException { 
 
 		Response response = null;
 		String connectionString = "API - getQueues";
@@ -88,11 +89,13 @@ public class Queues extends Application {
 			
 			if(queueName.equals(qm.SUBMISSIONS)) {
 				q = qm.getSubmissionQueueData(sd);
-			} if(queueName.equals(qm.S3UPLOAD)) {
+			} else if(queueName.equals(qm.RESTORE)) {
+				q = qm.getRestoreQueueData(sd);
+			} else if(queueName.equals(qm.S3UPLOAD)) {
 				q = qm.getS3UploadQueueData(sd);
 			} else {
 				q = new Queue();
-				log.info("Unknown queue name: " + queueName);
+				throw new ApplicationException("Unknown queue name: " + queueName);
 			}
 			
 			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();

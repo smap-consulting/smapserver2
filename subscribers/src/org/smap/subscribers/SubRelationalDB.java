@@ -37,12 +37,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
 import org.smap.model.IE;
 import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
 import org.smap.model.TableManager;
+import org.smap.sdal.Utilities.AdvisoryLock;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
@@ -73,7 +72,7 @@ import com.google.gson.GsonBuilder;
 public class SubRelationalDB extends Subscriber {
 
 	private static Logger log =
-			Logger.getLogger(Subscriber.class.getName());
+			Logger.getLogger(SubRelationalDB.class.getName());
 	
 	private class Keys {
 		ArrayList<Integer> duplicateKeys = new ArrayList<Integer>();
@@ -83,6 +82,7 @@ public class SubRelationalDB extends Subscriber {
 	String gBasePath = null;
 	String gFilePath = null;
 	String gAuditFilePath = null;
+	AdvisoryLock lock;
 	
 	private Survey survey = null;
 	private Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
@@ -128,7 +128,7 @@ public class SubRelationalDB extends Subscriber {
 		try {
 
 			GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);			
-			
+			lock = new AdvisoryLock(dbc.sd, 1, survey.getId());	// Lock at the survey level - must be closed on exit
 			this.survey = survey;
 
 			int assignmentId = getAssignmentId(dbc.sd, ue_id);
@@ -182,6 +182,8 @@ public class SubRelationalDB extends Subscriber {
 			} catch (SQLException e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
+			
+			lock.close();
 		}
 
 		return mediaChanges;
@@ -282,7 +284,6 @@ public class SubRelationalDB extends Subscriber {
 				
 			}
 
-
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
@@ -326,6 +327,14 @@ public class SubRelationalDB extends Subscriber {
 			KeyManager km = new KeyManager(localisation);
 			UniqueKey uk = km.get(sd, survey.surveyData.groupSurveyIdent);
 			boolean hasHrk = (uk.key.trim().length() > 0);
+			
+			/*
+			 * Add advisory lock if existing data is to be updated
+			 */
+			if(updateId != null || hasHrk) {
+				lock.lock();
+			}
+			
 			Keys keys = writeTableContent(
 					topElement, 
 					0, 
@@ -419,6 +428,8 @@ public class SubRelationalDB extends Subscriber {
 				log.info("Applying HRK: " + pstmtHrk.toString());
 				pstmtHrk.executeUpdate();	
 			}
+			
+			lock.release();   // Release lock - merging of records finsished
 			
 			/*
 			 * Record any foreign keys that need to be set between forms
@@ -542,6 +553,8 @@ public class SubRelationalDB extends Subscriber {
 				CMS cms = null;
 				if (parent_key == 0) { // top level survey has a parent key of 0
 					
+					lock.lock();	// Start lock while modifying tables
+					
 					// Create new tables
 					SurveyTemplate template = new SurveyTemplate(localisation); 
 					template.readDatabase(sd, cResults, sIdent, false);	
@@ -569,6 +582,7 @@ public class SubRelationalDB extends Subscriber {
 						}
 					}
 					
+					lock.release();		// Release lock - table modification finished
 					/*
 					 * Get Case Management Settings
 					 */

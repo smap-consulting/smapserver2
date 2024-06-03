@@ -67,36 +67,38 @@ public class JdbcUploadEventManager {
 			+ ", ?, ?, ?, ?, ?, ?, ?, ?);";
 	
 	String sqlGet = "select "
-			+ "ue.ue_id, "
-			+ "ue.upload_time, "
-			+ "ue.user_name, "
-			+ "ue.file_name, "
-			+ "ue.survey_name, "
-			+ "ue.imei, "
-			+ "ue.status, "
-			+ "ue.reason, "
-			+ "ue.location,"
-			+ "ue.server_name,"
-			+ "ue.s_id,"
-			+ "ue.p_id,"
-			+ "ue.form_status,"
-			+ "ue.file_path,"
-			+ "ue.orig_survey_ident,"
-			+ "ue.update_id,"
-			+ "ue.ident,"
-			+ "ue.incomplete,"
-			+ "ue.instanceid,"
-			+ "ue.assignment_id,"
-			+ "ue.survey_notes,"
-			+ "ue.location_trigger,"
-			+ "ue.audit_file_path,"
-			+ "ue.temporary_user "
-			+ "from upload_event ue "
-				+ "where ue.status = 'success' "
-				+ "and ue.s_id is not null "
-				+ "and ue.incomplete = 'false' "
-				+ "and not ue.results_db_applied "
-				+ "order by ue.ue_id asc";
+			+ "ue_id, "
+			+ "upload_time, "
+			+ "user_name, "
+			+ "file_name, "
+			+ "survey_name, "
+			+ "imei, "
+			+ "status, "
+			+ "reason, "
+			+ "location,"
+			+ "server_name,"
+			+ "s_id,"
+			+ "p_id,"
+			+ "form_status,"
+			+ "file_path,"
+			+ "orig_survey_ident,"
+			+ "update_id,"
+			+ "ident,"
+			+ "incomplete,"
+			+ "instanceid,"
+			+ "assignment_id,"
+			+ "survey_notes,"
+			+ "location_trigger,"
+			+ "audit_file_path,"
+			+ "temporary_user,"
+			+ "restore "
+			+ "from upload_event "
+				+ "where status = 'success' "
+				+ "and s_id is not null "
+				+ "and not incomplete "
+				+ "and not results_db_applied "
+				+ "and not queued "
+				+ "order by ue_id asc";
 	
 	PreparedStatement pstmtGetPending = null;
 	
@@ -191,6 +193,7 @@ public class JdbcUploadEventManager {
 			ue.setLocationTrigger(rs.getString(22));
 			ue.setAuditFilePath(rs.getString(23));
 			ue.setTemporaryUser(rs.getBoolean(24));
+			ue.setRestore(rs.getBoolean(25));
 			
 			ueList.add(ue);
 		}

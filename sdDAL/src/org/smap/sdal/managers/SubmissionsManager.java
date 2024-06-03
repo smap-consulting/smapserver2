@@ -359,6 +359,7 @@ public class SubmissionsManager {
 				
 				String sqlResetLoadFlag = "update upload_event "
 						+ "set results_db_applied = 'false',"
+						+ "restore = true,"
 						+ "db_status = null, "
 						+ "db_reason = null "
 						+ "where ident = ?";
