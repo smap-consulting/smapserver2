@@ -37,6 +37,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 public class QueueManager {
 
 	public String SUBMISSIONS = "submissions";
+	public String RESTORE = "restore";
 	public String S3UPLOAD = "s3upload";
 
 	private static Logger log =
@@ -58,9 +59,10 @@ public class QueueManager {
 					+ "where ue.status = 'success' "
 					+ "and ue.s_id is not null "
 					+ "and not ue.incomplete "
+					+ "and not ue.restore "
 					+ "and not ue.results_db_applied ";
 			pstmtLength = sd.prepareStatement(sqlLength);
-
+			log.info("Get queue length: " + pstmtLength.toString());
 			ResultSet rs = pstmtLength.executeQuery();
 			if(rs.next()) {
 				queue.length = rs.getInt(1);
@@ -71,6 +73,7 @@ public class QueueManager {
 					+ "where ue.status = 'success' "
 					+ "and ue.s_id is not null "
 					+ "and not ue.incomplete "
+					+ "and not ue.restore "
 					+ "and ue.processed_time > now() - interval '1 minute' "
 					+ "group by db_status";
 			pstmtProcessedRate = sd.prepareStatement(sqlProcessedRate);
@@ -91,6 +94,78 @@ public class QueueManager {
 					+ "where ue.status = 'success' "
 					+ "and ue.s_id is not null "
 					+ "and not ue.incomplete "
+					+ "and not ue.restore "
+					+ "and ue.upload_time > now() - interval '1 minute'";
+			pstmtNewRate = sd.prepareStatement(sqlNewRate);
+
+			rs = pstmtNewRate.executeQuery();
+			if(rs.next()) {
+				queue.new_rpm = rs.getInt(1);
+			}
+
+
+		} finally {
+			try {if (pstmtLength != null) {pstmtLength.close();}} catch (SQLException e) {}
+			try {if (pstmtProcessedRate != null) {pstmtProcessedRate.close();}} catch (SQLException e) {}
+			try {if (pstmtNewRate != null) {pstmtNewRate.close();}} catch (SQLException e) {}
+		}
+
+		return queue;
+	}
+	
+	/*
+	 * Get status of restore queue
+	 */
+	public Queue getRestoreQueueData(Connection sd) throws SQLException {
+
+		PreparedStatement pstmtLength = null;
+		PreparedStatement pstmtProcessedRate = null;
+		PreparedStatement pstmtNewRate = null;
+
+		Queue queue = new Queue();
+		try {
+
+			String sqlLength = "select count(*) "
+					+ "from upload_event ue "
+					+ "where ue.status = 'success' "
+					+ "and ue.s_id is not null "
+					+ "and not ue.incomplete "
+					+ "and ue.restore "
+					+ "and not ue.results_db_applied ";
+			pstmtLength = sd.prepareStatement(sqlLength);
+			log.info("Get queue length: " + pstmtLength.toString());
+			ResultSet rs = pstmtLength.executeQuery();
+			if(rs.next()) {
+				queue.length = rs.getInt(1);
+			}
+
+			String sqlProcessedRate = "select db_status, count(*) "
+					+ "from upload_event ue "
+					+ "where ue.status = 'success' "
+					+ "and ue.s_id is not null "
+					+ "and not ue.incomplete "
+					+ "and ue.restore "
+					+ "and ue.processed_time > now() - interval '1 minute' "
+					+ "group by db_status";
+			pstmtProcessedRate = sd.prepareStatement(sqlProcessedRate);
+
+			rs = pstmtProcessedRate.executeQuery();
+			while(rs.next()) {
+				String status = rs.getString(1);
+				queue.processed_rpm += rs.getInt(2);	// Processed updated for all status values
+				if(status != null) {
+					if(status.equals("error")) {
+						queue.error_rpm = rs.getInt(2);
+					}
+				}
+			}
+
+			String sqlNewRate = "select count(*) "
+					+ "from upload_event ue "
+					+ "where ue.status = 'success' "
+					+ "and ue.s_id is not null "
+					+ "and not ue.incomplete "
+					+ "and ue.restore "
 					+ "and ue.upload_time > now() - interval '1 minute'";
 			pstmtNewRate = sd.prepareStatement(sqlNewRate);
 
