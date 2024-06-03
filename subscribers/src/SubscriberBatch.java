@@ -98,8 +98,8 @@ public class SubscriberBatch {
 		/*
 		 * SQL to enqueue the submission
 		 */
-		String sqlEnqueue = "insert into submission_queue(element_identifier, time_inserted, ue_id, instanceid, payload) "
-				+ "values(gen_random_uuid(), current_timestamp, ?, ?, ?::jsonb)";
+		String sqlEnqueue = "insert into submission_queue(element_identifier, time_inserted, ue_id, instanceid, restore, payload) "
+				+ "values(gen_random_uuid(), current_timestamp, ?, ?, ?, ?::jsonb)";
 		PreparedStatement pstmtEnqueue = null;
 		
 		/*
@@ -159,7 +159,8 @@ public class SubscriberBatch {
 						if(!rs.next() || rs.getInt(1) == 0) {						
 							pstmtEnqueue.setInt(1, ue.getId());
 							pstmtEnqueue.setString(2, ue.getInstanceId());
-							pstmtEnqueue.setString(3, gson.toJson(ue));
+							pstmtEnqueue.setBoolean(3, ue.getRestore());
+							pstmtEnqueue.setString(4, gson.toJson(ue));
 							pstmtEnqueue.executeUpdate();	
 							
 							// Mark it as queued

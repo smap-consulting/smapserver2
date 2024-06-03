@@ -327,6 +327,14 @@ public class SubRelationalDB extends Subscriber {
 			KeyManager km = new KeyManager(localisation);
 			UniqueKey uk = km.get(sd, survey.surveyData.groupSurveyIdent);
 			boolean hasHrk = (uk.key.trim().length() > 0);
+			
+			/*
+			 * Add advisory lock if existing data is to be updated
+			 */
+			if(updateId != null || hasHrk) {
+				lock.lock();
+			}
+			
 			Keys keys = writeTableContent(
 					topElement, 
 					0, 
@@ -420,6 +428,8 @@ public class SubRelationalDB extends Subscriber {
 				log.info("Applying HRK: " + pstmtHrk.toString());
 				pstmtHrk.executeUpdate();	
 			}
+			
+			lock.release();   // Release lock - merging of records finsished
 			
 			/*
 			 * Record any foreign keys that need to be set between forms

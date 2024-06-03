@@ -69,10 +69,12 @@ public class SubmissionProcessor {
 		DatabaseConnections dbc = new DatabaseConnections();
 		String basePath;
 		String queueName;
+		boolean incRestore;
 
-		public SubmissionQueueLoop(String basePath, String queueName) {
+		public SubmissionQueueLoop(String basePath, String queueName, boolean incRestore) {
 			this.basePath = basePath;
 			this.queueName = queueName;
+			this.incRestore = incRestore;
 		}
 
 		public void run() {
@@ -95,15 +97,18 @@ public class SubmissionProcessor {
 			/*
 			 * Dequeue SQL from https://chbussler.medium.com/implementing-queues-in-postgresql-3f6e9ab724fa
 			 */
-			String sql = "DELETE "
-					+ "FROM submission_queue q "
-					+ "WHERE q.element_identifier = "
-					+ "(SELECT q_inner.element_identifier "
-					+ "FROM submission_queue q_inner "
-					+ "ORDER BY q_inner.time_inserted ASC "
-					+ "FOR UPDATE SKIP LOCKED "
-					+ "LIMIT 1) "
-					+ "RETURNING q.time_inserted, q.ue_id, q.payload";
+			StringBuilder sql = new StringBuilder("delete "
+					+ "from submission_queue q "
+					+ "where q.element_identifier = "
+					+ "(select q_inner.element_identifier "
+					+ "from submission_queue q_inner "
+					+ "order by q_inner.time_inserted ASC "
+					+ "for update skip locked "
+					+ "limit 1) ");
+			if(!incRestore) {
+				sql.append("and not restore ");
+			}
+			sql.append("returning q.time_inserted, q.ue_id, q.payload");
 			PreparedStatement pstmt = null;
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -132,7 +137,7 @@ public class SubmissionProcessor {
 						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 						GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 
-						pstmt = dbc.sd.prepareStatement(sql);
+						pstmt = dbc.sd.prepareStatement(sql.toString());
 						pstmtResultsDB = dbc.sd.prepareStatement(sqlResultsDB);
 
 						/*
@@ -330,14 +335,14 @@ public class SubmissionProcessor {
 	/**
 	 * @param args
 	 */
-	public void go(String smapId, String basePath, String queueName) {
+	public void go(String smapId, String basePath, String queueName, boolean incRestore) {
 
 		confFilePath = "./" + smapId;
 
 		try {
 
 			// Process submissions in queue
-			Thread t = new Thread(new SubmissionQueueLoop(basePath, queueName));
+			Thread t = new Thread(new SubmissionQueueLoop(basePath, queueName, incRestore));
 			t.start();
 
 

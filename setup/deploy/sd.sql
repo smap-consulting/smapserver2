@@ -75,10 +75,12 @@ CREATE UNLOGGED TABLE IF NOT EXISTS submission_queue
     time_inserted TIMESTAMP,
     ue_id integer,
     instanceid text,	-- Don't allow duplicates in the submission queue where they can be worked on in parallel
+    restore boolean,
     payload JSON
 );
 ALTER TABLE submission_queue OWNER TO ws;
 
 alter table upload_event add column queue_name text;
 alter table upload_event add column queued boolean default false;
+alter table upload_event add column restore boolean default false;
 

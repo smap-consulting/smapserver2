@@ -548,7 +548,10 @@ CREATE TABLE upload_event (
 	scheduled_start timestamp with time zone,
 	processed_time timestamp with time zone,
 	instance_name text,
-	temporary_user boolean default false
+	temporary_user boolean default false,
+	queue_name text,
+	queued boolean default false,
+	restore boolean default false
 	);
 create index idx_ue_ident on upload_event(user_name);
 create index idx_ue_applied on upload_event (status, incomplete, results_db_applied);
@@ -1784,3 +1787,15 @@ CREATE TABLE sr_history (
 	uploaded_ts TIMESTAMP WITH TIME ZONE	-- When the file was uploaded	
 	);
 ALTER TABLE sr_history OWNER TO ws;
+
+DROP TABLE IF EXISTS submission_queue;
+CREATE UNLOGGED TABLE submission_queue
+(
+    element_identifier UUID PRIMARY KEY,
+    time_inserted TIMESTAMP,
+    ue_id integer,
+    instanceid text,	-- Don't allow duplicates in the submission queue where they can be worked on in parallel
+    restore boolean,
+    payload JSON
+);
+ALTER TABLE submission_queue OWNER TO ws;

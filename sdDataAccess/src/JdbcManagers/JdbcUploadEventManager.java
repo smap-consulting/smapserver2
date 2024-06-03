@@ -90,7 +90,8 @@ public class JdbcUploadEventManager {
 			+ "survey_notes,"
 			+ "location_trigger,"
 			+ "audit_file_path,"
-			+ "temporary_user "
+			+ "temporary_user,"
+			+ "restore "
 			+ "from upload_event "
 				+ "where status = 'success' "
 				+ "and s_id is not null "
@@ -192,6 +193,7 @@ public class JdbcUploadEventManager {
 			ue.setLocationTrigger(rs.getString(22));
 			ue.setAuditFilePath(rs.getString(23));
 			ue.setTemporaryUser(rs.getBoolean(24));
+			ue.setRestore(rs.getBoolean(25));
 			
 			ueList.add(ue);
 		}
