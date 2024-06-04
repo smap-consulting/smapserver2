@@ -71,10 +71,12 @@ public class Manager {
 			sp.go(smapId, fileLocn);
 			
 			/*
-			 * Start the report processor
+			 * Start the report processors
+			 * A separate processor is started for restores as these can block for a long time
 			 */
 			ReportProcessor rp = new ReportProcessor();
-			rp.go(smapId, fileLocn);
+			rp.go(smapId, fileLocn, false);	// No restore
+			rp.go(smapId, fileLocn, true);	// With restore
 			
 			/*
 			 * Start the submission event processor

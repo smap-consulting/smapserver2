@@ -37,10 +37,12 @@ public class ReportProcessor {
 
 		String basePath;
 		String confFilePath;
+		boolean restore;
 
-		public ReportsLoop(String basePath, String confFilePath) {
+		public ReportsLoop(String basePath, String confFilePath, boolean restore) {
 			this.basePath = basePath;
 			this.confFilePath = confFilePath;
+			this.restore = restore;
 		}
 
 		public void run() {
@@ -70,8 +72,12 @@ public class ReportProcessor {
 					 */
 					BackgroundReportsManager brm = new BackgroundReportsManager(null, null);
 					try {
-						while(brm.processNextReport(dbc.sd, dbc.results, basePath)) {
-							log.info("..............................report processed");
+						while(brm.processNextReport(dbc.sd, dbc.results, basePath, restore)) {
+							if(restore) {
+								log.info("..............................restore processed");
+							} else {
+								log.info("..............................report processed");
+							}
 						}
 						
 						/*
@@ -101,12 +107,12 @@ public class ReportProcessor {
 	/**
 	 * @param args
 	 */
-	public void go(String smapId, String basePath) {
+	public void go(String smapId, String basePath, boolean restore) {
 
 		String confFilePath = "./" + smapId;
 
 		try {
-			Thread t = new Thread(new ReportsLoop(basePath, confFilePath));
+			Thread t = new Thread(new ReportsLoop(basePath, confFilePath, restore));
 			t.start();
 			
 

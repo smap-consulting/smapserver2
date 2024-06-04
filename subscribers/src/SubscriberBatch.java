@@ -42,7 +42,6 @@ import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.server.entities.UploadEvent;
-import org.smap.subscribers.Subscriber;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import JdbcManagers.JdbcUploadEventManager;

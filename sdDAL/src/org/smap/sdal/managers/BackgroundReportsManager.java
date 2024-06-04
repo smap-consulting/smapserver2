@@ -77,8 +77,9 @@ public class BackgroundReportsManager {
 	/*
 	 * Localisation can change during the life of the manager
 	 */
-	public boolean processNextReport(Connection sd, Connection cResults, String basePath) throws SQLException {
-		BackgroundReport report = getNextReport(sd);
+	public boolean processNextReport(Connection sd, Connection cResults, 
+			String basePath, boolean restore) throws SQLException {
+		BackgroundReport report = getNextReport(sd, restore);
 		if(report == null) {
 			return false;	// no more reports
 		} else {
@@ -170,7 +171,7 @@ public class BackgroundReportsManager {
 		}
 	}
 	
-	private BackgroundReport getNextReport(Connection sd) throws SQLException {
+	private BackgroundReport getNextReport(Connection sd, boolean restore) throws SQLException {
 		
 		BackgroundReport br = null;
 		
@@ -184,11 +185,17 @@ public class BackgroundReportsManager {
 			/*
 			 * Get the next report to be processed
 			 */
-			String sql = "select id, u_id, o_id, p_id, report_type, tz, language, params "
+			StringBuilder sql = new StringBuilder("select id, u_id, o_id, p_id, report_type, tz, language, params "
 					+ "from background_report "
-					+ "where status = ? "
-					+ "order by id asc limit 1";
-			pstmtGet = sd.prepareStatement(sql);
+					+ "where status = ? ");
+			
+			if(restore) {
+				sql.append("and report_type = 'restore' ");
+			} else {
+				sql.append("and report_type != 'restore' ");
+			}
+			sql.append("order by id asc limit 1");
+			pstmtGet = sd.prepareStatement(sql.toString());
 			pstmtGet.setString(1, REPORT_STATUS_NEW);
 			ResultSet rs = pstmtGet.executeQuery();
 			if(rs.next()) {
