@@ -13,7 +13,7 @@ echo "processing $0 $1 $2 $3 $4 $5"
 if [ "$5" = "shape" ]
 then
 	rm -rf $4
-	rm $4.zip
+	rm -f $4.zip
 	mkdir $4
 #	echo "pgsql2shp -f $4/$2 -u ws -P ws1234 $1 \"$3\""
 #	pgsql2shp -f $4/$2 -u ws -P ws1234 $1 "$3"
@@ -27,15 +27,15 @@ then
 fi
 if [ "$5" = "kml" ]
 then
-	rm $4.kml
-	rm $4.zip
+	rm -f $4.kml
+	rm -f $4.zip
 	echo  "ogr2ogr -f \"KML\" $4.kml PG:\"host=127.0.0.1 user=ws dbname=$1 password=ws1234\" -sql \"$3\""
 	ogr2ogr -f "KML" $4.kml PG:"dbname=$1 host=127.0.0.1 user=ws password=ws1234" -sql "$3"
 	zip -rj $4.zip $4.kml
 fi
 if [ "$5" = "vrt" ] || [ "$5" = "stata" ]
 then
-	rm $4.zip
+	rm -f $4.zip
 	PGPASSWORD=ws1234;export PGPASSWORD
 
 	psql $1 -h 127.0.0.1 -U ws << EOF > $4/$2.csv
@@ -48,7 +48,7 @@ fi
 if [ "$5" = "csv" ]
 then
 	rm -rf $4
-	rm $4.zip
+	rm -f $4.zip
 	mkdir $4
 	PGPASSWORD=ws1234;export PGPASSWORD
 
@@ -58,7 +58,7 @@ EOF
 
         cp /smap_bin/utf8-bom.txt $4/$2.csv
         cat $4/$2.nb >> $4/$2.csv
-        rm $4/$2.nb
+        rm -f $4/$2.nb
 
 	zip -rj $4.zip $4/$2.csv
 fi
@@ -66,8 +66,7 @@ fi
 if [ "$5" = "csvnozip" ]
 then
         echo "csv extract without zip"
-        rm $4
-        rm $4.csv
+        rm -f $4.csv || true
         PGPASSWORD=ws1234;export PGPASSWORD
 
         psql $1 -h 127.0.0.1 -U ws << EOF > $4.csv
