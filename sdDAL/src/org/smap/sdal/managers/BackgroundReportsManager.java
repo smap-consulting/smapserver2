@@ -74,9 +74,7 @@ public class BackgroundReportsManager {
 		this.tz = tz;
 	}
 	
-	/*
-	 * Localisation can change during the life of the manager
-	 */
+	
 	public boolean processNextReport(Connection sd, Connection cResults, 
 			String basePath, boolean restore) throws SQLException {
 		BackgroundReport report = getNextReport(sd, restore);
@@ -85,6 +83,10 @@ public class BackgroundReportsManager {
 		} else {
 			// Process the report
 			String filename = null;
+			
+			/*
+			 * Localisation can change during with each report
+			 */
 			Locale locale = new Locale(report.language);
 			try {
 				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
@@ -108,11 +110,15 @@ public class BackgroundReportsManager {
 					XLSXAttendanceReportsManager rm = new XLSXAttendanceReportsManager(localisation, report.tz);
 					String userIdent = GeneralUtilityMethods.getUserIdent(sd, report.uId);
 					filename = rm.writeNewAttendanceReport(sd, userIdent, report.params, basePath);
+				} else if(report.report_type.equals("survey")) {
+					XLSXSurveyReportsManager rm = new XLSXSurveyReportsManager(localisation, report.tz);
+					String userIdent = GeneralUtilityMethods.getUserIdent(sd, report.uId);
+					filename = rm.writeNewReport(sd, cResults, report.oId, userIdent, report.params, basePath);
 				} else if(report.report_type.equals("restore")) {
 					SubmissionsManager sm = new SubmissionsManager(localisation, report.tz);
 					sm.restore(sd, cResults, localisation, report.tz, report.params, report.oId, report.uId);
 				} else {
-					updateReportStatus(sd, report.id, false, null, "Unsupported report type: " + report.report_type);
+					updateReportStatus(sd, report.id, false, null, localisation.getString("msg_err_us") + report.report_type);
 					error = true;
 				}
 				if(!error) {

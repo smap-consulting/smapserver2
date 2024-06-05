@@ -17,4 +17,7 @@ public class AR {
 	public Timestamp firstRefresh;
 	public Timestamp lastRefresh;
 	public String duration;
+	public boolean deleted;
+	public int bad;
+	public int records;
 }
