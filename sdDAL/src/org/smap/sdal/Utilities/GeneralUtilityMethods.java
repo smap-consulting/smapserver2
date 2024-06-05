@@ -1753,7 +1753,7 @@ public class GeneralUtilityMethods {
 	 */
 	static public String getOrganisationName(Connection sd, int o_id) throws SQLException {
 
-		String sql = "select name, company_name "
+		String sql = "select name "
 				+ "from organisation " 
 				+ "where id = ?;";
 
@@ -1766,10 +1766,7 @@ public class GeneralUtilityMethods {
 			pstmt.setInt(1, o_id);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
-				name = rs.getString(2);
-				if (name == null || name.trim().length() == 0) {
-					name = rs.getString(1);
-				}
+				name = rs.getString("name");
 			}
 
 		} finally {
