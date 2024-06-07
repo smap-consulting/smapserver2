@@ -1104,46 +1104,5 @@ public class CsvTableManager {
 		}
 
 	}
-	
-	/*
-	 * Remove a CSV record from the table
-	 */
-	private void remove(ArrayList<String> records, String filename) throws SQLException, IOException {
-		
-		if(records.size() == 0) {
-			return;
-		}
-		
-		// Create sql
-		StringBuffer sql = new StringBuffer("update ").append(fullTableName);
-		sql.append(" set ").append(ACOL).append(" = ").append(DELETE_ENTRY);
-		sql.append( " where ");
-		int idx = 0;
-		for(CsvHeader h : headers) {
-			if(idx++ > 0) {
-				sql.append(" and ");
-			}
-			sql.append(h.tName);
-			sql.append(" = ?");
-		}
-		
-		PreparedStatement pstmt = null;
-		
-		try {
-			pstmt = sd.prepareStatement(sql.toString());
-			int lineNumber = 1;
-			for(String r : records) {
-				String[] data = parser.parseLine(r, lineNumber++, filename);
-				for(int i = 0; i < data.length; i++) {
-					pstmt.setString(i + 1, data[i]);
-				}
-				log.info("Remove record: " + pstmt.toString());
-				pstmt.executeUpdate();
-			}
-			
-		} finally {
-			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
-		}
-	}
 
 }

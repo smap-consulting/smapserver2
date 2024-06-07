@@ -253,7 +253,7 @@ public class Survey {
 		
 		String sqlUpdate = "update survey set "
 				+ "ident = ?, "
-				+ "group_survey_ident = ?"
+				+ "group_survey_ident = ? "
 				+ "where s_id = ?;";
 		PreparedStatement pstmtUpdate = null;
 
