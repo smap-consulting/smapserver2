@@ -531,9 +531,11 @@ public class SharedResourceManager {
 	 */
 	public Response getSurveyFile(HttpServletRequest request, 
 			HttpServletResponse response,
-			String filename, int sId, 
+			String filename, 
+			int sId, 
 			boolean thumbs,
 			boolean linked) {
+		
 		Response r = null;
 		String connectionString = "Get Survey File";
 		
@@ -554,6 +556,7 @@ public class SharedResourceManager {
 			String basepath = GeneralUtilityMethods.getBasePath(request);
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			
+			log.info("Getting file: " + filename + " : " + linked);
 			String filepath = null;
 			if(linked) {
 				int idx = filename.indexOf(".csv");
