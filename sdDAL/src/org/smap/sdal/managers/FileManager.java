@@ -135,7 +135,8 @@ public class FileManager {
 			HttpServletResponse response, 
 			int requestedOrgId, 
 			String resourceName, 
-			String surveyIdent) throws IOException, ApplicationException, SQLException {
+			String surveyIdent,
+			String basePath) throws IOException, ApplicationException, SQLException {
 		
 		Response r = null;
 		
@@ -165,6 +166,9 @@ public class FileManager {
 			if(rs.next()) {
 				filePath = rs.getString(1);
 				fileName = rs.getString(2);
+			} else {
+				fileName = resourceName;
+				filePath = basePath + "/media/organisation/" + requestedOrgId + "/" + fileName;
 			}
 			
 		} finally {

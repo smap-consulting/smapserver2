@@ -478,7 +478,8 @@ public class SharedResources extends Application {
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			FileManager fm = new FileManager();
-			r = fm.getLatestSharedHistoryFile(sd,  response, oId, resourceName, sIdent); 
+			r = fm.getLatestSharedHistoryFile(sd,  response, oId, resourceName, sIdent, 
+					GeneralUtilityMethods.getBasePath(request)); 
 			
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Error getting file", e);
