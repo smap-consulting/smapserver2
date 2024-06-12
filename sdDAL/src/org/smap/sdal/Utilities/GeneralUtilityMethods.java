@@ -1654,7 +1654,7 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Get the assignment completion status 
-	 * If the assignment is intended to persist then "persist" is returned
+	 * If the assignment is intended to persist then "repeat" is returned
 	 * Otherwise the assignment status is returned
 	 */
 	static public String getAssignmentCompletionStatus(Connection sd, int assignmentId) throws SQLException {

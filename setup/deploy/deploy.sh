@@ -167,10 +167,10 @@ then
         echo "copy custom web files"
         cp -vr ../../custom/web/* /var/www/smap
 fi
-if [ -e ../../custom/subscribers/default ]
+if [ -e ../../custom/misc ]
 then
         echo "copy custom subscriber data files"
-        cp -v ../../custom/subscribers/default/* /smap_bin/default
+        cp -vr ../../custom/misc/* /smap_bin/misc
 fi
 
 # Restart Servers
