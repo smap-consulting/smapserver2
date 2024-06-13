@@ -1351,7 +1351,9 @@ public class QuestionManager {
 			fId = rs.getInt(1);
 
 			duplicateQuestions(sd, originalFormId, sId, fId, sharedResults);
-			duplicateQuestionLabels(sd, sId, existingSurveyId);
+			if(parentFormId == 0) {
+				duplicateQuestionLabels(sd, sId, existingSurveyId);  // All question labels at survey label duplicated
+			}
 			duplicateOptionsInForm(sd, sId, fId, existingSurveyId);
 
 			// Duplicate sub forms
@@ -1755,8 +1757,8 @@ public class QuestionManager {
 				log.info("Update list id in new form: " + pstmtUpdateListId.toString());
 				pstmtUpdateListId.executeUpdate();
 
-				// 6. Copy the list labels
-				duplicateOptionLabels(sd, sId, existingSurveyId, newListId);
+				// 6. Copy the list labels - Not required all labels are copied at the survey level
+				//duplicateOptionLabels(sd, sId, existingSurveyId, newListId);
 			}
 
 
