@@ -212,47 +212,41 @@ public class OrganisationManager {
 							
 							String content = localisation.getString("org_change");
 							content = content.replaceAll("%s1", originalOrg.name);
-							StringBuffer contentBuf = new StringBuffer(content);
+							StringBuilder contentBuilder = new StringBuilder(content);
 							if(originalOrg.can_notify != o.can_notify) {
-								contentBuf.append("\n    ").append(o.can_notify ? localisation.getString("en_notify") : localisation.getString("susp_notify"));
+								contentBuilder.append("<br/>    ").append(o.can_notify ? localisation.getString("en_notify") : localisation.getString("susp_notify"));
 							}
 							if(originalOrg.can_use_api != o.can_use_api) {
-								contentBuf.append("\n    ").append(o.can_use_api ? localisation.getString("en_api") : localisation.getString("susp_api"));
+								contentBuilder.append("<br/>    ").append(o.can_use_api ? localisation.getString("en_api") : localisation.getString("susp_api"));
 							}
 							if(originalOrg.can_submit != o.can_submit) {
-								contentBuf.append("\n    ").append(o.can_submit ? localisation.getString("en_submit") : localisation.getString("susp_submit"));
+								contentBuilder.append("<br/>    ").append(o.can_submit ? localisation.getString("en_submit") : localisation.getString("susp_submit"));
 							}
 							if(originalOrg.can_sms != o.can_sms) {
-								contentBuf.append("\n    ").append(o.can_sms ? localisation.getString("en_sms") : localisation.getString("susp_sms"));
+								contentBuilder.append("<br/>    ").append(o.can_sms ? localisation.getString("en_sms") : localisation.getString("susp_sms"));
 							}
 							if(originalOrg.email_task != o.email_task) {
-								contentBuf.append("\n    ").append(o.email_task ? localisation.getString("en_email_tasks") : localisation.getString("susp_email_tasks"));
+								contentBuilder.append("<br/>    ").append(o.email_task ? localisation.getString("en_email_tasks") : localisation.getString("susp_email_tasks"));
 							}
 							
 							String sender = "";
 							// Catch and log exceptions
 							try {
-								em.sendEmail(
+								em.sendEmailHtml(
 										originalOrg.getAdminEmail(), 
-										null, 
-										"orgchange", 
+										"bcc", 
 										subject, 
-										contentBuf.toString(), 
-										sender, 
-										"", 
+										contentBuilder, 
 										null, 
 										null, 
-										null, 
-										null,
-										null,
-										originalOrg.getAdminEmail(), 
 										emailServer,
-										scheme,
 										serverName,
 										subStatus.emailKey,
 										localisation,
-										originalOrg.server_description,
-										originalOrg.name);
+										null,
+										null,
+										null,
+										GeneralUtilityMethods.getNextEmailId(sd));
 							} catch(Exception e) {
 								lm.writeLogOrganisation(sd, o.id, userIdent, LogManager.ORGANISATION_UPDATE, e.getMessage(), 0);
 							}
