@@ -1428,11 +1428,11 @@ public class NotificationManager {
 							if(msg.from != null && msg.from.trim().length() > 0) {
 								from = msg.from;
 							}
-							String content = null;
+							StringBuilder content = null;
 							if(msg.content != null && msg.content.trim().length() > 0) {
-								content = msg.content;
+								content = new StringBuilder(msg.content);
 							} else {
-								content = organisation.default_email_content;
+								content = new StringBuilder(organisation.default_email_content);
 							}
 
 							notify_details = localisation.getString("msg_er");
@@ -1455,6 +1455,22 @@ public class NotificationManager {
 										unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
 									} else {
 										if(subStatus.optedIn || !organisation.send_optin) {
+											em.sendEmailHtml(
+													ia.getAddress(), 
+													"bcc", 
+													subject, 
+													content, 
+													null, 
+													null, 
+													emailServer,
+													serverName,
+													subStatus.emailKey,
+													localisation,
+													null,
+													organisation.getAdminEmail(),
+													organisation.getEmailFooter(),
+													GeneralUtilityMethods.getNextEmailId(sd));
+											/*
 											em.sendEmail(
 													ia.getAddress(), 
 													null, 
@@ -1476,6 +1492,7 @@ public class NotificationManager {
 													localisation,
 													organisation.server_description,
 													organisation.name);
+													*/
 										} else {
 											/*
 											 * User needs to opt in before email can be sent
