@@ -10,8 +10,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -61,8 +63,7 @@ public class SubmissionProcessor {
 
 	DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 	DocumentBuilder db = null;
-
-	private static Logger log = Logger.getLogger(Subscriber.class.getName());
+ 
 	private static LogManager lm = new LogManager();		// Application log
 
 	private class SubmissionQueueLoop implements Runnable {
@@ -70,11 +71,26 @@ public class SubmissionProcessor {
 		String basePath;
 		String queueName;
 		boolean incRestore;
+		private Logger log;
+		private FileHandler logFile;
 
 		public SubmissionQueueLoop(String basePath, String queueName, boolean incRestore) {
 			this.basePath = basePath;
 			this.queueName = queueName;
 			this.incRestore = incRestore;
+			try {
+				log = Logger.getLogger(queueName);
+				
+				logFile = new FileHandler("/var/log/subscribers/upload_" + queueName);  
+				SimpleFormatter formatter = new SimpleFormatter();  
+				logFile.setFormatter(formatter);  
+				
+				log.addHandler(logFile);
+				log.setUseParentHandlers(false);
+			
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 
 		public void run() {
@@ -101,13 +117,14 @@ public class SubmissionProcessor {
 					+ "from submission_queue q "
 					+ "where q.element_identifier = "
 					+ "(select q_inner.element_identifier "
-					+ "from submission_queue q_inner "
-					+ "order by q_inner.time_inserted ASC "
+					+ "from submission_queue q_inner ");
+			if(!incRestore) {
+				sql.append("where not restore ");
+			}
+			sql.append("order by q_inner.time_inserted ASC "
 					+ "for update skip locked "
 					+ "limit 1) ");
-			if(!incRestore) {
-				sql.append("and not restore ");
-			}
+			
 			sql.append("returning q.time_inserted, q.ue_id, q.payload");
 			PreparedStatement pstmt = null;
 
@@ -142,10 +159,12 @@ public class SubmissionProcessor {
 
 						/*
 						 * Dequeue
-						 */					
+						 */	
 						ResultSet rs = pstmt.executeQuery();
 						if(rs.next()) {
 
+							log.info("------ Start ");
+							
 							// Apply Submission to the database		
 							UploadEvent ue = gson.fromJson(rs.getString("payload"), UploadEvent.class);
 
@@ -205,7 +224,7 @@ public class SubmissionProcessor {
 								// instance.getTopElement().printIEModel("   ");	// Debug
 
 								// Get attachments from incomplete submissions
-								getAttachmentsFromIncompleteSurveys(dbc.sd, ue.getFilePath(), ue.getOrigSurveyIdent(), ue.getIdent(), 
+								getAttachmentsFromIncompleteSurveys(dbc.sd, log, ue.getFilePath(), ue.getOrigSurveyIdent(), ue.getIdent(), 
 										ue.getInstanceId());
 
 								is3 = new FileInputStream(uploadFile);	// Get an input stream for the file in case the subscriber uses that rather than an Instance object
@@ -278,7 +297,7 @@ public class SubmissionProcessor {
 							 * Update any media names with the final media names
 							 */
 							if(mediaChanges != null && mediaChanges.size() > 0) {
-								processMediaChanges(uploadFile, mediaChanges);
+								processMediaChanges(log, uploadFile, mediaChanges);
 							}
 							try {
 								GeneralUtilityMethods.sendToS3(dbc.sd, basePath, uploadFile, oId, false);
@@ -310,6 +329,7 @@ public class SubmissionProcessor {
 									+ (se.getReason() == null ? "" : se.getReason()) + " : " + ue.getImei(), 0, null);
 
 
+							log.info("======== Completed");
 						} else {
 							// Sleep and then go again
 							try {
@@ -366,6 +386,7 @@ public class SubmissionProcessor {
 	 *  attachments.  All other subscribers will then ignore incomplete attachments
 	 */
 	private void getAttachmentsFromIncompleteSurveys(Connection sd, 
+			Logger log,
 			String finalPath, 
 			String origIdent, 
 			String ident,
@@ -435,7 +456,7 @@ public class SubmissionProcessor {
 	/*
 	 * Add the updated paths to media to the uploaded XML file
 	 */
-	private void processMediaChanges(String uploadFile, ArrayList<MediaChange> mediaChanges) {
+	private void processMediaChanges(Logger log, String uploadFile, ArrayList<MediaChange> mediaChanges) {
 		File xmlFile = new File(uploadFile);
 		if(xmlFile.exists()) {
 			try {
