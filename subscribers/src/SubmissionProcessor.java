@@ -160,7 +160,6 @@ public class SubmissionProcessor {
 						/*
 						 * Dequeue
 						 */	
-						log.info("Dequeueing: " + pstmt.toString());
 						ResultSet rs = pstmt.executeQuery();
 						if(rs.next()) {
 
