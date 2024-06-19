@@ -85,8 +85,8 @@ public class Manager {
 			sep.go(smapId, fileLocn);
 			
 			// Start a restore submission queue processor in the forward subscriber
-			//SubmissionProcessor subProcessor = new SubmissionProcessor();
-			//			subProcessor.go(smapId, fileLocn, "qf1 restore", true);
+			SubmissionProcessor subProcessor = new SubmissionProcessor();
+						subProcessor.go(smapId, fileLocn, "qf1_restore", true);
 		} else {
 			// Start the default submission queue processor in the upload subscriber
 			SubmissionProcessor subProcessor = new SubmissionProcessor();
