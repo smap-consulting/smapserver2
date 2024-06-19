@@ -105,9 +105,9 @@ public class SubmissionProcessor {
 					+ "order by q_inner.time_inserted ASC "
 					+ "for update skip locked "
 					+ "limit 1) ");
-			if(!incRestore) {
-				sql.append("and not restore ");
-			}
+			//if(!incRestore) {
+			//	sql.append("and not restore ");
+			//}
 			sql.append("returning q.time_inserted, q.ue_id, q.payload");
 			PreparedStatement pstmt = null;
 
