@@ -86,15 +86,15 @@ public class Manager {
 			
 			// Start a restore submission queue processor in the forward subscriber
 			SubmissionProcessor subProcessor = new SubmissionProcessor();
-						subProcessor.go(smapId, fileLocn, "qf1 restore", true);
+						subProcessor.go(smapId, fileLocn, "qf1_restore", true);
 		} else {
 			// Start the default submission queue processor in the upload subscriber
 			SubmissionProcessor subProcessor = new SubmissionProcessor();
 			subProcessor.go(smapId, fileLocn, "qd1", false);
 			
 			// Start another submission queue processor in the upload subscriber
-			SubmissionProcessor subProcessor2 = new SubmissionProcessor();
-			subProcessor2.go(smapId, fileLocn, "qd2", false);
+			//SubmissionProcessor subProcessor2 = new SubmissionProcessor();
+			//subProcessor2.go(smapId, fileLocn, "qd2", false);
 		}
 		
 		
