@@ -71,8 +71,7 @@ import com.google.gson.GsonBuilder;
 
 public class SubRelationalDB extends Subscriber {
 
-	private static Logger log =
-			Logger.getLogger(SubRelationalDB.class.getName());
+	private Logger log;
 	
 	private class Keys {
 		ArrayList<Integer> duplicateKeys = new ArrayList<Integer>();
@@ -102,7 +101,7 @@ public class SubRelationalDB extends Subscriber {
 	}
 
 	@Override
-	public ArrayList<MediaChange> upload(SurveyInstance instance, InputStream is, String submittingUser, 
+	public ArrayList<MediaChange> upload(Logger log, SurveyInstance instance, InputStream is, String submittingUser, 
 			boolean temporaryUser,
 			String server, String device, SubscriberEvent se, String confFilePath, String formStatus,
 			String basePath, String filePath, String updateId, int ue_id, Date uploadTime,
@@ -113,6 +112,7 @@ public class SubRelationalDB extends Subscriber {
 		gBasePath = basePath;
 		gFilePath = filePath;
 		gAuditFilePath = auditFilePath;
+		log = this.log;
 
 		if(gBasePath == null || gBasePath.equals("/ebs1")) {
 			gBasePath = "/ebs1/servers/" + server.toLowerCase();
@@ -1866,6 +1866,7 @@ public class SubRelationalDB extends Subscriber {
 						File srcPathFile = new File(srcXmlDirFile.getAbsolutePath() + "/" + srcName);
 
 						value = GeneralUtilityMethods.createAttachments(
+								log,
 								sd,
 								srcName, 
 								srcPathFile, 

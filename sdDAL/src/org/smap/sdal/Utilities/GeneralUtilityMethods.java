@@ -640,7 +640,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Add an attachment to a survey
 	 */
-	static public String createAttachments(Connection sd, String srcName, File srcPathFile, String basePath, 
+	static public String createAttachments(Logger log, Connection sd, String srcName, File srcPathFile, String basePath, 
 			String sIdent, 
 			String srcUrl,
 			ArrayList<MediaChange> mediaChanges,
@@ -648,7 +648,7 @@ public class GeneralUtilityMethods {
 
 		log.info("Create attachments");
 
-		if(srcName.startsWith("attachments/")) {
+		if(srcName.startsWith("attachments/") || srcName.startsWith("/app/attachments/")) {
 			return srcName;		// An existing image or file 
 		}
 		
@@ -701,7 +701,7 @@ public class GeneralUtilityMethods {
 					log.info("Destination file already exists, copy skipped");
 				}
 			} else if(srcUrl != null) {
-				log.info("Processing attachment: " + srcUrl + " as " + dstPathFile);
+				log.info("Processing url attachment: " + srcUrl + " as " + dstPathFile);
 				FileUtils.copyURLToFile(new URL(srcUrl), dstPathFile);
 			}
 			processAttachment(sd, dstName, dstDir, contentType, srcExt, basePath, oId);

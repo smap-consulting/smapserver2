@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.ResourceBundle;
+import java.util.logging.Logger;
 
 import org.smap.model.SurveyInstance;
 import org.smap.sdal.model.LinkageItem;
@@ -67,7 +68,7 @@ public abstract class Subscriber {
 	 * @param server
 	 * @param se
 	 */
-	public abstract ArrayList<MediaChange> upload(SurveyInstance event, InputStream id, String user, 
+	public abstract ArrayList<MediaChange> upload(Logger log, SurveyInstance event, InputStream id, String user, 
 			boolean temporaryUser, String server, String device, 
 			SubscriberEvent se, String confFilePath, String formStatus, String basePath, String filePath,
 			String updateId, int ue_id, Date uploadTime, 

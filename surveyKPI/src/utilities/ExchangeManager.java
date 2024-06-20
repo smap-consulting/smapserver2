@@ -1345,6 +1345,7 @@ public class ExchangeManager {
 					// Copy the attachments to the target location and get the new name
 					if(srcPathFile != null || srcUrl != null) {
 						value = GeneralUtilityMethods.createAttachments(
+							log,
 							sd,
 							value, 
 							srcPathFile, 

@@ -192,6 +192,9 @@ public class SubscriberBatch {
 				sendMailouts(dbc.sd, basePath, serverName);
 				expireTemporaryUsers(localisation, dbc.sd);
 				
+				// Restore missing images on S3
+				//restoreMissingImages(dbc.sd, dbc.results, localisation, basePath);
+				
 				/*
 				 * Apply foreign keys
 				 */
@@ -572,7 +575,64 @@ public class SubscriberBatch {
 		}
 	}
 
+	/*
+	 * This can happen sometimes after a bad upgrade
+	 * Needs to be initiated from a management console
+	 */
+	private void restoreMissingImages(Connection sd, Connection cResults, ResourceBundle localisation, String basePath) {
 
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtCols = null;
+
+		try {
+
+			String sqlCols = "select q.column_name, f.table_name "
+					+ "from question q, form f "
+					+ "where f.s_id = ? "
+					+ "and f.f_id = q.f_id and (q.qtype = 'image')";
+			pstmtCols = sd.prepareStatement(sqlCols);
+			
+			String sql = "select ue_id, db_reason, s_id, instanceid from upload_event "
+					+ "where db_status = 'success' "
+					//+ "and processed_time > '2024-06-17 22:42:13.476596+00' "
+					+ "order by ue_id desc limit 1";
+			pstmt = sd.prepareStatement(sql);
+			
+			/*
+			 * Delete the files that have expired
+			 */
+			log.info("Validate images Statement: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				int ue_id = rs.getInt("ue_id");
+				String db_reason = rs.getString("db_reason");
+				int sId = rs.getInt("s_id");
+				String instanceId = rs.getString("instanceid");
+				log.info("Validate images: " + ue_id + " survey: " + sId);
+				
+				pstmtCols.setInt(1, sId);
+				ResultSet rsCols = pstmtCols.executeQuery();
+				while (rsCols.next()) {
+					String tableName = rsCols.getString("table_name");
+					String columnName = rsCols.getString("column_name");
+					log.info("     " + tableName + "." + columnName);
+					
+					String sqlValue = "select " + columnName + 
+							" from " + tableName + 
+							" where ";
+							
+				}
+				
+			}
+			
+		
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
+			try {if (pstmtCols != null) {pstmtCols.close();}} catch (SQLException e) {}	
+		}
+	}
 	
 	/*
 	 * Apply Reminder notifications

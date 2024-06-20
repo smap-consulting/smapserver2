@@ -81,7 +81,7 @@ public class SubmissionProcessor {
 			try {
 				log = Logger.getLogger(queueName);
 				
-				logFile = new FileHandler("/var/log/subscribers/upload_" + queueName);  
+				logFile = new FileHandler("/var/log/subscribers/upload_" + queueName + ".log");  
 				SimpleFormatter formatter = new SimpleFormatter();  
 				logFile.setFormatter(formatter);  
 				
@@ -228,7 +228,7 @@ public class SubmissionProcessor {
 										ue.getInstanceId());
 
 								is3 = new FileInputStream(uploadFile);	// Get an input stream for the file in case the subscriber uses that rather than an Instance object
-								mediaChanges = subscriber.upload(instance, 
+								mediaChanges = subscriber.upload(log, instance, 
 										is3, 
 										ue.getUserName(), 
 										ue.getTemporaryUser(),

@@ -93,10 +93,9 @@ public class Manager {
 			subProcessor.go(smapId, fileLocn, "qd1", false);
 			
 			// Start another submission queue processor in the upload subscriber
-			//SubmissionProcessor subProcessor2 = new SubmissionProcessor();
-			//subProcessor2.go(smapId, fileLocn, "qd2", false);
+			SubmissionProcessor subProcessor2 = new SubmissionProcessor();
+			subProcessor2.go(smapId, fileLocn, "qd2", false);
 		}
-		
 		
 		
 		log.info("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);
