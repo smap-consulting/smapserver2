@@ -59,6 +59,8 @@ public class UploadFiles extends Application {
 	Authorise auth = null;
 
 	LogManager lm = new LogManager();		// Application log
+	
+	boolean forDevice = false;
 
 	public UploadFiles() {
 
@@ -128,7 +130,7 @@ public class UploadFiles extends Application {
 			mediaInfo.setFolder(basePath, request.getRemoteUser(), oId, false);				 
 
 			MediaResponse mResponse = new MediaResponse ();
-			mResponse.files = mediaInfo.get(0, null);			
+			mResponse.files = mediaInfo.get(0, null, forDevice);			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(mResponse);
 			response = Response.ok(resp).build();	
@@ -183,7 +185,7 @@ public class UploadFiles extends Application {
 			mediaInfo.setFolder(basePath, 0, sIdent, sd);
 
 			MediaResponse mResponse = new MediaResponse ();
-			mResponse.files = mediaInfo.get(0, null);			
+			mResponse.files = mediaInfo.get(0, null, forDevice);			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(mResponse);
 			response = Response.ok(resp).build();	
@@ -212,7 +214,7 @@ public class UploadFiles extends Application {
 			) throws IOException {
 
 		SharedResourceManager srm = new SharedResourceManager(null, null);
-		return srm.getSharedMedia(request, sId, getall);
+		return srm.getSharedMedia(request, sId, getall, forDevice);
 	}
 	
 	/*

@@ -160,7 +160,7 @@ public class MediaInfo {
 	/*
 	 * Getters
 	 */
-	public ArrayList<MediaItem> get(int sId, HashMap<String, String> exclude) {
+	public ArrayList<MediaItem> get(int sId, HashMap<String, String> exclude, boolean forDevice) {
 		
 		ArrayList<MediaItem> media = new ArrayList<MediaItem> ();
 		
@@ -197,10 +197,11 @@ public class MediaInfo {
 				mi.size = f.length();
 				mi.modified = df.format(new Date(f.lastModified()));
 				if(server != null) {
+					String urlBase = forDevice ? "/resource/" : "/surveyKPI/file/";
 					if(sId > 0) {
-						mi.url = "/surveyKPI/file/" + GeneralUtilityMethods.urlEncode(fileName) + "/survey/" + sId;
+						mi.url = urlBase + GeneralUtilityMethods.urlEncode(fileName) + "/survey/" + sId;
 					} else {
-						mi.url = "/surveyKPI/file/" + GeneralUtilityMethods.urlEncode(fileName) + "/organisation";
+						mi.url = urlBase + GeneralUtilityMethods.urlEncode(fileName) + "/organisation";
 					}
 					
 					String contentType = UtilityMethodsEmail.getContentType(mi.name);

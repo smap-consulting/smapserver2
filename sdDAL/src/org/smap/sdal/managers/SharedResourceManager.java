@@ -649,7 +649,7 @@ public class SharedResourceManager {
 	/*
 	 * Return the shared resource files
 	 */
-	public Response getSharedMedia(HttpServletRequest request, int sId, boolean getall) {
+	public Response getSharedMedia(HttpServletRequest request, int sId, boolean getall, boolean forDevice) {
 		Response response = null;
 		String user = request.getRemoteUser();
 		boolean superUser = false;
@@ -701,7 +701,7 @@ public class SharedResourceManager {
 			log.info("Media query on: " + mediaInfo.getPath());
 
 			MediaResponse mResponse = new MediaResponse();
-			mResponse.files = mediaInfo.get(sId, null);	
+			mResponse.files = mediaInfo.get(sId, null, forDevice);	
 			
 			if(sId > 0 && getall) {
 				log.info("Media getting files for survey: " + sId);
@@ -712,7 +712,7 @@ public class SharedResourceManager {
 				}
 				// Add the organisation level media
 				mediaInfo.setFolder(basePath, user, oId, false);
-				mResponse.files.addAll(mediaInfo.get(0, exclude));
+				mResponse.files.addAll(mediaInfo.get(0, exclude, forDevice));
 				
 			}
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();

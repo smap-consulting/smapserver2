@@ -61,6 +61,8 @@ public class XLSXAdminReportsResourceUsage {
 	CellStyle good = null;
 	CellStyle bad = null;
 	
+	boolean forDevice = false;
+	
 	public XLSXAdminReportsResourceUsage(ResourceBundle l) {
 		localisation = l;
 	}
@@ -148,7 +150,7 @@ public class XLSXAdminReportsResourceUsage {
 			// Get the path to the media folder		
 			mediaInfo.setFolder(basePath, request.getRemoteUser(), oId, false);				 
 			log.info("Media query on: " + mediaInfo.getPath());
-			ArrayList<MediaItem> media = mediaInfo.get(0, null);	
+			ArrayList<MediaItem> media = mediaInfo.get(0, null, forDevice);	
 			
 			for(MediaItem mi : media) {
 				colNumber = 0;

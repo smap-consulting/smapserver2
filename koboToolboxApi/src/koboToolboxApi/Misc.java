@@ -120,7 +120,7 @@ public class Misc extends Application {
 			) throws IOException {
 
 		SharedResourceManager srm = new SharedResourceManager(null, null);
-		return srm.getSharedMedia(request, sId, getall);
+		return srm.getSharedMedia(request, sId, getall, forDevice);
 	}
 	
 	/*
