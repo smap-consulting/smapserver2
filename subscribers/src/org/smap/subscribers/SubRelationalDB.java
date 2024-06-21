@@ -112,7 +112,7 @@ public class SubRelationalDB extends Subscriber {
 		gBasePath = basePath;
 		gFilePath = filePath;
 		gAuditFilePath = auditFilePath;
-		log = this.log;
+		this.log = log;
 
 		if(gBasePath == null || gBasePath.equals("/ebs1")) {
 			gBasePath = "/ebs1/servers/" + server.toLowerCase();
