@@ -646,10 +646,13 @@ public class GeneralUtilityMethods {
 			ArrayList<MediaChange> mediaChanges,
 			int oId) {
 
-		log.info("Create attachments");
+		log.info("Create attachments for source name: " + srcName);
 
-		if(srcName.startsWith("attachments/") || srcName.startsWith("/app/attachments/")) {
+		if(srcName.startsWith("attachments/")) {
 			return srcName;		// An existing image or file 
+		} else if(srcName.startsWith("app/attachments/")) {
+			// Remove the leading app/ and return the value
+			return srcName.substring(4);
 		}
 		
 		String value = null;

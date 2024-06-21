@@ -2149,9 +2149,9 @@ public class GetXForm {
 					if(qValue != null) {
 						if(qType.equals("image")  || qType.equals("audio") || qType.equals("video") || qType.equals("file")) {
 							// Hack for special situation on localhost
-							if(urlprefix.equals("http://localhost/")) {
-								urlprefix = "https://localhost/";
-							}
+							//if(urlprefix.equals("http://localhost/")) {
+							//	urlprefix = "https://localhost/";
+							//}
 							if(qValue.startsWith(urlprefix)) {
 								int idx = 0;
 								if(webform) {
@@ -2165,7 +2165,11 @@ public class GetXForm {
 								} else {
 									value = qValue;
 								}
-								String path = qValue.substring(urlprefix.length());	// Local image remove prefix
+								int lengthPrefix = urlprefix.length();
+								if(!webform) {
+									lengthPrefix += 4;	// Also remove the /app 
+								}
+								String path = qValue.substring(lengthPrefix);	// Local image remove prefix
 								gPaths.add(path);
 							} else {
 								value = qValue;
