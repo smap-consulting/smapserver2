@@ -1,4 +1,7 @@
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,6 +18,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.apache.commons.io.FileUtils;
+import org.smap.model.IE;
+import org.smap.model.SurveyInstance;
+import org.smap.model.SurveyTemplate;
+import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.Tables;
 import org.smap.sdal.managers.ActionManager;
@@ -26,6 +35,7 @@ import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.ServerManager;
+import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
@@ -41,6 +51,7 @@ import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SubmissionMessage;
+import org.smap.sdal.model.Survey;
 import org.smap.server.entities.UploadEvent;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -78,6 +89,8 @@ public class SubscriberBatch {
 	private static LogManager lm = new LogManager();		// Application log
 	
 	HashMap<String, String> autoErrorCheck = new HashMap<> ();
+	
+	boolean mediaCheckDone = false;
 
 	/**
 	 * @param args
@@ -582,55 +595,196 @@ public class SubscriberBatch {
 	private void restoreMissingImages(Connection sd, Connection cResults, ResourceBundle localisation, String basePath) {
 
 		PreparedStatement pstmt = null;
-		PreparedStatement pstmtCols = null;
 
+		if(mediaCheckDone) {
+			return;
+		}
+		mediaCheckDone = true;
+		
+		log.info("############## Restore missing images start");
+		
 		try {
-
-			String sqlCols = "select q.column_name, f.table_name "
-					+ "from question q, form f "
-					+ "where f.s_id = ? "
-					+ "and f.f_id = q.f_id and (q.qtype = 'image')";
-			pstmtCols = sd.prepareStatement(sqlCols);
 			
-			String sql = "select ue_id, db_reason, s_id, instanceid from upload_event "
+			String sql = "select ue_id, db_reason, s_id, file_path, instanceid from upload_event "
 					+ "where db_status = 'success' "
-					//+ "and processed_time > '2024-06-17 22:42:13.476596+00' "
-					+ "order by ue_id desc limit 1";
+					+ "and processed_time > '2024-06-17 22:42:13.476596+00' "
+					+ "and ue_id > 28658423 "	// First one encountered was one more than this
+					+ "order by ue_id asc";
 			pstmt = sd.prepareStatement(sql);
 			
-			/*
-			 * Delete the files that have expired
-			 */
-			log.info("Validate images Statement: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
-			while(rs.next()) {
-				int ue_id = rs.getInt("ue_id");
-				String db_reason = rs.getString("db_reason");
-				int sId = rs.getInt("s_id");
-				String instanceId = rs.getString("instanceid");
-				log.info("Validate images: " + ue_id + " survey: " + sId);
+			while (rs.next()) {
+				UploadEvent ue = new UploadEvent();
+				ue.setId(rs.getInt("ue_id"));
+				ue.setSurveyId(rs.getInt("s_id"));
+				ue.setFilePath(rs.getString("file_path"));
+				ue.setInstanceId(rs.getString("instanceid"));
 				
-				pstmtCols.setInt(1, sId);
-				ResultSet rsCols = pstmtCols.executeQuery();
-				while (rsCols.next()) {
-					String tableName = rsCols.getString("table_name");
-					String columnName = rsCols.getString("column_name");
-					log.info("     " + tableName + "." + columnName);
-					
-					String sqlValue = "select " + columnName + 
-							" from " + tableName + 
-							" where ";
-							
+				// Get the organisation locales
+				int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
+				Organisation organisation = GeneralUtilityMethods.getOrganisation(dbc.sd, oId);
+				Locale orgLocale = new Locale(organisation.locale);
+				ResourceBundle orgLocalisation;
+				try {
+					orgLocalisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+				} catch(Exception e) {
+					orgLocalisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
 				}
 				
+				String uploadFile = ue.getFilePath();
+				InputStream is = null;
+				InputStream is3 = null;
+				
+				try {
+					// Get the submitted results as an XML document
+					try {
+						is = new FileInputStream(uploadFile);
+					} catch (FileNotFoundException e) {
+						// Possibly we are re-trying an upload and the XML file has been archived to S3
+						// Retrieve the file and try again
+						File f = new File(uploadFile);
+						FileUtils.forceMkdir(f.getParentFile());
+						S3AttachmentUpload.get(basePath, uploadFile);
+						is = new FileInputStream(uploadFile);
+					}
+
+					// Convert the file into a survey instance object
+					SurveyInstance instance = new SurveyInstance(is);
+					
+					String templateName = instance.getTemplateName();
+					SurveyTemplate template = new SurveyTemplate(orgLocalisation);
+
+					SurveyManager sm = new SurveyManager(localisation, "UTC");
+					Survey sdalSurvey = sm.getSurveyId(dbc.sd, templateName);	// Get the survey from the templateName / ident
+
+					template.readDatabase(dbc.sd, dbc.results, templateName, false);					
+					template.extendInstance(dbc.sd, instance, true, sdalSurvey);	// Extend the instance with information from the template
+					
+					is3 = new FileInputStream(uploadFile);
+					
+					mediaCheck(log, sd, cResults, basePath, uploadFile, ue.getId(),instance, is3, ue.getFilePath(), ue.getId(), 
+							sdalSurvey,
+							ue.getInstanceId());
+					
+				} catch (Exception e) {
+
+					e.printStackTrace();
+
+				} finally {
+
+					try {
+						if(is != null) {is.close();}						
+						if(is3 != null) {is3.close();}
+						
+					} catch (Exception e) {
+
+					}
+				}
 			}
 			
-		
+			log.info("############## Restore missing images end ##############");
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {			
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
-			try {if (pstmtCols != null) {pstmtCols.close();}} catch (SQLException e) {}	
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}		
+		}
+	}
+	
+	/*
+	 * Process a survey where potentially there are media issues
+	 */
+	private void mediaCheck(Logger log, Connection sd, Connection cResults, 
+			String basePath,
+			String uploadFile,
+			int ueId,
+			SurveyInstance instance, 
+			InputStream is, String filePath, int ue_id, Survey survey,
+			String instanceid) {
+
+
+		try {
+			IE element = instance.getTopElement();
+
+			if (element.getType() != null && (element.getType().equals("form"))) {
+				
+				mediaCheckForm(cResults, basePath, uploadFile, ueId, element.getTableName(), instanceid, element.getQuestions());
+				
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+		}
+			
+	}
+	
+	private void mediaCheckForm(Connection cResults, 
+			String basePath,
+			String uploadFile,
+			int ueId,
+			String tableName, String instanceid, List<IE> columns) {
+		for(IE col : columns) {
+			String qType = col.getQType();
+			String value = col.getValue();	
+			String colName = col.getColumnName();
+			
+			if (col.getType() != null && (col.getType().equals("form"))) {
+				//mediaCheckForm(col.getQuestions());  TODO sub forms
+			} else if(GeneralUtilityMethods.isAttachmentType(qType)) {
+						
+				if(value != null && value.startsWith("app/")) {
+					log.info("############## %%%%%%%%%%%%%%% Upload Event: " + ueId);
+					log.info("############## %%%%%%%%%%%%%%% Upload file for media recovery: " + uploadFile);
+					log.info("################ %%%%%%%%%%%%%% Processing media. Value: " + value);
+					log.info("################ %%%%%%%%%%%%%% Bad value in submit xml: " + value);
+					
+					/*
+					 * Check if database value points to a valid file
+					 */
+					String sql = "select " + colName + " from " + tableName +
+							" where instanceid = ?";
+					PreparedStatement pstmt = null;
+					
+					String sql2 = "update " + tableName + " set " + colName +
+							" = ? where instanceid = ?";
+					PreparedStatement pstmt2 = null;
+					
+					try {
+						pstmt = cResults.prepareStatement(sql);
+						pstmt.setString(1, instanceid);
+						
+						log.info(pstmt.toString());
+						ResultSet rs = pstmt.executeQuery();
+						if(rs.next()) {
+							String dbValue = rs.getString(1);
+							log.info("################ %%%%%%%%%%%%%% DB value is: " + dbValue);
+							
+							/*
+							 * Check file
+							 */
+							String path = basePath + "/" + dbValue;
+							File f = new File(path);
+							log.info("################ %%%%%%%%%%%%%% File Path: " + f.getAbsolutePath());
+							if(f.exists()) {
+								log.info("################ %%%%%%%%%%%%%% File exists Skipping");
+							} else {
+								log.info("################ %%%%%%%%%%%%%% File does not exist replace with corrected submit value");
+								String newValue = value.substring(4);
+								pstmt2 = cResults.prepareStatement(sql2);
+								pstmt2.setString(1, newValue);
+								pstmt2.setString(2, instanceid);
+								
+								log.info("############### %%%%%%%%%%%%%% " + pstmt2.toString());
+								pstmt2.executeUpdate();
+							}
+						}
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+					} finally {
+						if(pstmt != null) {try {pstmt.close();}catch (Exception e) {}}
+						if(pstmt2 != null) {try {pstmt2.close();}catch (Exception e) {}}
+					}
+				}
+			}
 		}
 	}
 	
