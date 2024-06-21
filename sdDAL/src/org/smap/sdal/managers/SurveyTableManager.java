@@ -270,7 +270,12 @@ public class SurveyTableManager {
 				log.info("Setting parameters: " + pstmt.toString());
 				for(String arg : arguments) {
 					log.info("Parameter: " + arg);
-					pstmt.setString(paramCount++, arg);
+					try {
+						pstmt.setString(paramCount++, arg);
+					} catch (Exception e) {
+						log.info(pstmt.toString());
+						log.log(Level.SEVERE, e.getMessage(), e);	
+					}
 				}
 			}		
 			
