@@ -97,7 +97,7 @@ import java.util.zip.ZipOutputStream;
 @Path("/assignments")
 public class AllAssignments extends Application {
 
-	Authorise a = null;;
+	Authorise a = null;
 
 	private static Logger log =
 			Logger.getLogger(Survey.class.getName());
@@ -597,6 +597,7 @@ public class AllAssignments extends Application {
 		} 
 		
 		Response response = null;
+		String connectionString = "surveyKPI-AllAssignments - updatetaskgroup";
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		AssignFromSurvey as = gson.fromJson(settings, AssignFromSurvey.class);
@@ -605,7 +606,7 @@ public class AllAssignments extends Application {
 		int sId = as.source_survey_id;								// Source survey id (optional)
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-AllAssignments");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -675,7 +676,7 @@ public class AllAssignments extends Application {
 
 			if(pstmtTaskGroup != null) try {	pstmtTaskGroup.close(); } catch(SQLException e) {};
 		
-			SDDataSource.closeConnection("surveyKPI-AllAssignments", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;
