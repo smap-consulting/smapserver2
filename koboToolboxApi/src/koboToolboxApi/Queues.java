@@ -93,6 +93,8 @@ public class Queues extends Application {
 				q = qm.getRestoreQueueData(sd);
 			} else if(queueName.equals(qm.S3UPLOAD)) {
 				q = qm.getS3UploadQueueData(sd);
+			} else if(queueName.equals(qm.SUBEVENT)) {
+				q = qm.getSubEventQueueData(sd);
 			} else {
 				q = new Queue();
 				throw new ApplicationException("Unknown queue name: " + queueName);

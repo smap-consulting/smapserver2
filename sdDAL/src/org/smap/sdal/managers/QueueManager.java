@@ -39,6 +39,7 @@ public class QueueManager {
 	public String SUBMISSIONS = "submissions";
 	public String RESTORE = "restore";
 	public String S3UPLOAD = "s3upload";
+	public String SUBEVENT = "subevent";
 
 	private static Logger log =
 			Logger.getLogger(QueueManager.class.getName());
@@ -96,6 +97,66 @@ public class QueueManager {
 					+ "and not ue.incomplete "
 					+ "and not ue.restore "
 					+ "and ue.upload_time > now() - interval '1 minute'";
+			pstmtNewRate = sd.prepareStatement(sqlNewRate);
+
+			rs = pstmtNewRate.executeQuery();
+			if(rs.next()) {
+				queue.new_rpm = rs.getInt(1);
+			}
+
+
+		} finally {
+			try {if (pstmtLength != null) {pstmtLength.close();}} catch (SQLException e) {}
+			try {if (pstmtProcessedRate != null) {pstmtProcessedRate.close();}} catch (SQLException e) {}
+			try {if (pstmtNewRate != null) {pstmtNewRate.close();}} catch (SQLException e) {}
+		}
+
+		return queue;
+	}
+	
+	/*
+	 * Get status of sub event queue
+	 * This is the queue that processes all the post submission processing such as sending emails
+	 */
+	public Queue getSubEventQueueData(Connection sd) throws SQLException {
+
+		PreparedStatement pstmtLength = null;
+		PreparedStatement pstmtProcessedRate = null;
+		PreparedStatement pstmtNewRate = null;
+
+		Queue queue = new Queue();
+		try {
+
+			String sqlLength = "select count(*) "
+					+ "from subevent_queue "
+					+ "where processed_time is null ";
+			pstmtLength = sd.prepareStatement(sqlLength);
+			log.info("Get queue length: " + pstmtLength.toString());
+			ResultSet rs = pstmtLength.executeQuery();
+			if(rs.next()) {
+				queue.length = rs.getInt(1);
+			}
+
+			String sqlProcessedRate = "select status, count(*) "
+					+ "from subevent_queue "
+					+ "where processed_time > now() - interval '1 minute' "
+					+ "group by status";
+			pstmtProcessedRate = sd.prepareStatement(sqlProcessedRate);
+
+			rs = pstmtProcessedRate.executeQuery();
+			while(rs.next()) {
+				String status = rs.getString(1);
+				queue.processed_rpm += rs.getInt(2);	// Processed updated for all status values
+				if(status != null) {
+					if(status.equals("failed")) {
+						queue.error_rpm = rs.getInt(2);
+					}
+				}
+			}
+
+			String sqlNewRate = "select count(*) "
+					+ "from subevent_queue "
+					+ "where created_time > now() - interval '1 minute'";
 			pstmtNewRate = sd.prepareStatement(sqlNewRate);
 
 			rs = pstmtNewRate.executeQuery();

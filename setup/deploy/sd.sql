@@ -84,3 +84,4 @@ alter table upload_event add column queue_name text;
 alter table upload_event add column queued boolean default false;
 alter table upload_event add column restore boolean default false;
 
+alter table subevent_queue add column created_time TIMESTAMP WITH TIME ZONE;

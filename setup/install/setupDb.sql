@@ -1705,6 +1705,7 @@ CREATE TABLE subevent_queue (
 	linkage_items text,    -- JSON
 	status text,    -- new or failed
 	reason text,	-- failure reason
+	created_time TIMESTAMP WITH TIME ZONE,
 	processed_time TIMESTAMP WITH TIME ZONE		-- Time of processing
 	);
 ALTER TABLE subevent_queue OWNER TO ws;
