@@ -141,7 +141,7 @@ public class SubRelationalDB extends Subscriber {
 			 * Create an item in the submission event queue for the processing of
 			 * notifications, Tasks and Linkage events associated with this submission
 			 */
-			sem.writeToQueue(dbc.sd, ue_id, linkageItems, gson);
+			sem.writeToQueue(log, dbc.sd, ue_id, linkageItems, gson);
 			
 			/*
 			 * Update the assignment status

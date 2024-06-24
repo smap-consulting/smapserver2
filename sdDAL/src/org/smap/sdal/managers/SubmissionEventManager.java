@@ -54,7 +54,9 @@ public class SubmissionEventManager {
 		gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 	}
 
-	public void writeToQueue(Connection sd, 
+	public void writeToQueue(
+			Logger log,
+			Connection sd, 
 			int ue_id,  
 			ArrayList<LinkageItem> linkageItems,
 			Gson gson) throws SQLException {
