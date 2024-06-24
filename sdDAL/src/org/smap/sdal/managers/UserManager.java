@@ -1739,7 +1739,7 @@ public class UserManager {
 				+ "where u.o_id = o.id "
 				+ "and u.id = ? ");
 		if(!isOrgUser && isAdminUser) {
-			sqlOrgs.append(" and o.owner = ?");
+			sqlOrgs.append(" and o.owner = ? ");
 		}
 		sqlOrgs.append("order by oname asc");
 		PreparedStatement pstmtOrgs = null;
