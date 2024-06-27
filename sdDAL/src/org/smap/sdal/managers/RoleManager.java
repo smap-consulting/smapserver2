@@ -328,7 +328,7 @@ public class RoleManager {
 					+ "join users u "
 					+ "on ur.u_id = u.id "
 					+ "where r.o_id = ? "
-					+ "and u.ident = ?";
+					+ "and u.ident = ? ";
 			
 			if(isSuperUser) {
 				sql = sqlSuperUser;
