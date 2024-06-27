@@ -59,12 +59,6 @@ public class Manager {
 			au.go(smapId, fileLocn, mediaBucket, region);
 			
 			/*
-			 * Start the message processor
-			 */
-			MessageProcessor mp = new MessageProcessor();
-			mp.go(smapId, fileLocn);
-			
-			/*
 			 * Start the storage processor - required if images are stored on s3
 			 */
 			StorageProcessor sp = new StorageProcessor();
@@ -76,7 +70,7 @@ public class Manager {
 			 */
 			ReportProcessor rp = new ReportProcessor();
 			rp.go(smapId, fileLocn, false);	// No restore
-			rp.go(smapId, fileLocn, true);	// With restore
+			//rp.go(smapId, fileLocn, true);	// With restore    -- TODO stop restores for performance
 			
 			/*
 			 * Start the submission event processor
@@ -97,6 +91,12 @@ public class Manager {
 			// Start a restore submission queue processor
 			SubmissionProcessor subProcessor3 = new SubmissionProcessor();
 			subProcessor3.go(smapId, fileLocn, "qf1_restore", true);
+			
+			/*
+			 * Start the message processor
+			 */
+			MessageProcessor mp = new MessageProcessor();
+			mp.go(smapId, fileLocn);
 		}
 		
 		

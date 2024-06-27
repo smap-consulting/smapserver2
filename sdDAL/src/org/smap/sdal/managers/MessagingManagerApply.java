@@ -93,7 +93,8 @@ public class MessagingManagerApply {
 				+ "data "
 				+ "from message "
 				+ "where outbound "
-				+ "and processed_time is null";
+				+ "and processed_time is null "
+				+ "limit 200";
 
 		String sqlConfirm = "update message set processed_time = now(), status = ? where id = ?; ";
 
@@ -447,7 +448,8 @@ public class MessagingManagerApply {
 				+ "and p.unsubscribed = false "
 				+ "and (p.opted_in = true or p.o_id in (select id from organisation where not send_optin)) "
 				+ "and pm.processed_time is null "
-				+ "order by id asc";	// Send in order
+				+ "order by id asc "
+				+ "limit 200";	// Send in order
 
 		String sqlConfirm = "update pending_message set processed_time = now(), status = ? where id = ?; ";
 
