@@ -78,6 +78,11 @@ public class Manager {
 			SubEventProcessor sep = new SubEventProcessor();
 			sep.go(smapId, fileLocn);
 			
+			/*
+			 * Start the queue monitor process
+			 */
+			MonitorProcessor mp = new MonitorProcessor();
+			mp.go(smapId, fileLocn);
 
 		} else {
 			// Start the default submission queue processor in the upload subscriber

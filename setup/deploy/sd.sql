@@ -85,3 +85,10 @@ alter table upload_event add column queued boolean default false;
 alter table upload_event add column restore boolean default false;
 
 alter table subevent_queue add column created_time TIMESTAMP WITH TIME ZONE;
+
+CREATE UNLOGGED TABLE IF NOT EXISTS monitor_data
+(
+    recorded_at TIMESTAMP WITH TIME ZONE,
+    payload JSON
+);
+ALTER TABLE monitor_data OWNER TO ws;

@@ -86,6 +86,7 @@ public class Queues extends Application {
 			
 			QueueManager qm = new QueueManager();
 			Queue q = new Queue();
+			boolean error = false;
 			
 			if(queueName.equals(qm.SUBMISSIONS)) {
 				q = qm.getSubmissionQueueData(sd);
@@ -95,13 +96,18 @@ public class Queues extends Application {
 				q = qm.getS3UploadQueueData(sd);
 			} else if(queueName.equals(qm.SUBEVENT)) {
 				q = qm.getSubEventQueueData(sd);
+			} else if(queueName.equals(qm.MESSAGE)) {
+				q = qm.getMessageQueueData(sd);
 			} else {
-				q = new Queue();
-				throw new ApplicationException("Unknown queue name: " + queueName);
+				error = true;		
 			}
 			
 			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-			response = Response.ok(gson.toJson(q)).build();
+			if(error) {
+				response = Response.ok("Unknown queue: " + queueName).build();
+			} else {
+				response = Response.ok(gson.toJson(q)).build();
+			}
 			
 		} catch (SQLException e) {
 			e.printStackTrace();

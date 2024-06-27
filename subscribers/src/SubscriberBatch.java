@@ -338,7 +338,7 @@ public class SubscriberBatch {
 				}
 				
 				// Set fingerprint templates for new fingerprint images
-				linkMgr.setFingerprintTemplates(dbc.sd, basePath, serverName);
+				//linkMgr.setFingerprintTemplates(dbc.sd, basePath, serverName);  TODO disable for performance
 			}
 
 

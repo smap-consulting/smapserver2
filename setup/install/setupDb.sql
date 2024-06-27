@@ -1800,3 +1800,11 @@ CREATE UNLOGGED TABLE submission_queue
     payload JSON
 );
 ALTER TABLE submission_queue OWNER TO ws;
+
+DROP TABLE IF EXISTS monitor_data;
+CREATE UNLOGGED TABLE IF NOT EXISTS monitor_data
+(
+    recorded_at TIMESTAMP WITH TIME ZONE,
+    payload JSON
+);
+ALTER TABLE monitor_data OWNER TO ws;

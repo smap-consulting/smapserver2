@@ -40,6 +40,7 @@ public class QueueManager {
 	public String RESTORE = "restore";
 	public String S3UPLOAD = "s3upload";
 	public String SUBEVENT = "subevent";
+	public String MESSAGE = "message";
 
 	private static Logger log =
 			Logger.getLogger(QueueManager.class.getName());
@@ -156,6 +157,60 @@ public class QueueManager {
 
 			String sqlNewRate = "select count(*) "
 					+ "from subevent_queue "
+					+ "where created_time > now() - interval '1 minute'";
+			pstmtNewRate = sd.prepareStatement(sqlNewRate);
+
+			rs = pstmtNewRate.executeQuery();
+			if(rs.next()) {
+				queue.new_rpm = rs.getInt(1);
+			}
+
+
+		} finally {
+			try {if (pstmtLength != null) {pstmtLength.close();}} catch (SQLException e) {}
+			try {if (pstmtProcessedRate != null) {pstmtProcessedRate.close();}} catch (SQLException e) {}
+			try {if (pstmtNewRate != null) {pstmtNewRate.close();}} catch (SQLException e) {}
+		}
+
+		return queue;
+	}
+	
+	/*
+	 * Get status of sub event queue
+	 * This is the queue that processes all the post submission processing such as sending emails
+	 */
+	public Queue getMessageQueueData(Connection sd) throws SQLException {
+
+		PreparedStatement pstmtLength = null;
+		PreparedStatement pstmtProcessedRate = null;
+		PreparedStatement pstmtNewRate = null;
+
+		Queue queue = new Queue();
+		try {
+
+			String sqlLength = "select count(*) "
+					+ "from message "
+					+ "where outbound "
+					+ "and processed_time is null ";
+			pstmtLength = sd.prepareStatement(sqlLength);
+			log.info("Get queue length: " + pstmtLength.toString());
+			ResultSet rs = pstmtLength.executeQuery();
+			if(rs.next()) {
+				queue.length = rs.getInt(1);
+			}
+
+			String sqlProcessedRate = "select count(*) "
+					+ "from message "
+					+ "where processed_time > now() - interval '1 minute' ";
+			pstmtProcessedRate = sd.prepareStatement(sqlProcessedRate);
+
+			rs = pstmtProcessedRate.executeQuery();
+			while(rs.next()) {
+				queue.processed_rpm += rs.getInt(1);	// Processed updated for all status values
+			}
+
+			String sqlNewRate = "select count(*) "
+					+ "from message "
 					+ "where created_time > now() - interval '1 minute'";
 			pstmtNewRate = sd.prepareStatement(sqlNewRate);
 
