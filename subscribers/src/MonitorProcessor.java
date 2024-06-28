@@ -80,6 +80,7 @@ public class MonitorProcessor {
 						qd.put(qm.SUBEVENT, qm.getSubEventQueueData(dbc.sd));
 						qd.put(qm.RESTORE, qm.getRestoreQueueData(dbc.sd));
 						qd.put(qm.S3UPLOAD, qm.getS3UploadQueueData(dbc.sd));
+						qd.put(qm.MESSAGE, qm.getMessageQueueData(dbc.sd));
 							
 						pstmt.setString(1, gson.toJson(qd));
 						pstmt.executeUpdate();
