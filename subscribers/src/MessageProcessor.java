@@ -1,6 +1,8 @@
 import java.io.File;
+import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -34,9 +36,9 @@ public class MessageProcessor {
 	DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 	DocumentBuilder db = null;
 
-	boolean forDevice = false;	// URL prefixes should be in the client format
+	private Logger log;
 	
-	private static Logger log = Logger.getLogger(Subscriber.class.getName());
+	boolean forDevice = false;	// URL prefixes should be in the client format
 
 	private class MessageLoop implements Runnable {
 		DatabaseConnections dbc = new DatabaseConnections();
@@ -47,9 +49,12 @@ public class MessageProcessor {
 		String basePath;
 		String awsPropertiesFile;
 
-		public MessageLoop(String basePath, String awsPropertiesFile) {
+		public MessageLoop(String basePath, String queueName, String awsPropertiesFile) {
 			this.basePath = basePath;
 			this.awsPropertiesFile = awsPropertiesFile;
+			
+			log = GeneralUtilityMethods.getLog(queueName);
+			
 		}
 
 		public void run() {
@@ -80,7 +85,7 @@ public class MessageProcessor {
 						// Apply messages
 						MessagingManagerApply mma = new MessagingManagerApply();
 						try { 
-							mma.applyOutbound(dbc.sd, dbc.results, serverName, 
+							mma.applyOutbound(dbc.sd, dbc.results, log, serverName, 
 									basePath, count++, awsPropertiesFile, 
 									urlprefix,
 									attachmentPrefix,
@@ -91,7 +96,7 @@ public class MessageProcessor {
 						
 						try {
 							mma.applyPendingEmailMessages(dbc.sd, dbc.results, 
-									serverName, basePath, 
+									log, serverName, basePath, 
 									urlprefix, 
 									attachmentPrefix,
 									hyperlinkPrefix);
@@ -119,7 +124,7 @@ public class MessageProcessor {
 	/**
 	 * @param args
 	 */
-	public void go(String smapId, String basePath) {
+	public void go(String smapId, String basePath, String queueName) {
 
 		confFilePath = "./" + smapId;
 
@@ -130,7 +135,7 @@ public class MessageProcessor {
 			File pFile = new File(basePath + "_bin/resources/properties/aws.properties");
 			if (pFile.exists()) {
 				awsPropertiesFile = pFile.getAbsolutePath();
-				Thread t = new Thread(new MessageLoop(basePath, awsPropertiesFile));
+				Thread t = new Thread(new MessageLoop(basePath, queueName, awsPropertiesFile));
 				t.start();
 			} else {
 				log.info("Skipping Message Processing. No aws properties file at: " + pFile.getAbsolutePath());

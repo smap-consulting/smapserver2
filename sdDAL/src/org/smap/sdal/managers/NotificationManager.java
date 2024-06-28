@@ -765,6 +765,7 @@ public class NotificationManager {
 	public void processSubmissionNotification(Connection sd, 
 			Connection cResults, 
 			Organisation organisation,
+			Logger log,
 			String tz,
 			SubmissionMessage msg,
 			int messageId,

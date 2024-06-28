@@ -44,8 +44,10 @@ import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -10970,6 +10972,27 @@ public class GeneralUtilityMethods {
 		}
 
 		return dbf;
+	}
+	
+	public static Logger getLog(String queueName) {
+		
+		Logger log = null;
+		
+		try {
+			log = Logger.getLogger(queueName);
+			
+			FileHandler logFile = new FileHandler("/var/log/subscribers/upload_" + queueName + ".log");  
+			SimpleFormatter formatter = new SimpleFormatter();  
+			logFile.setFormatter(formatter);  
+			
+			log.addHandler(logFile);
+			log.setUseParentHandlers(false);
+		
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return log;
 	}
 	
 	private static int getManifestParamStart(String property) {

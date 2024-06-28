@@ -72,25 +72,13 @@ public class SubmissionProcessor {
 		String queueName;
 		boolean incRestore;
 		private Logger log;
-		private FileHandler logFile;
 
 		public SubmissionQueueLoop(String basePath, String queueName, boolean incRestore) {
 			this.basePath = basePath;
 			this.queueName = queueName;
 			this.incRestore = incRestore;
-			try {
-				log = Logger.getLogger(queueName);
-				
-				logFile = new FileHandler("/var/log/subscribers/upload_" + queueName + ".log");  
-				SimpleFormatter formatter = new SimpleFormatter();  
-				logFile.setFormatter(formatter);  
-				
-				log.addHandler(logFile);
-				log.setUseParentHandlers(false);
 			
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+			log = GeneralUtilityMethods.getLog(queueName);
 		}
 
 		public void run() {

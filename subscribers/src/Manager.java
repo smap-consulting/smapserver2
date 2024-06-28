@@ -101,7 +101,7 @@ public class Manager {
 			 * Start the message processor
 			 */
 			MessageProcessor mp = new MessageProcessor();
-			mp.go(smapId, fileLocn);
+			mp.go(smapId, fileLocn, "qm1");
 		}
 		
 		

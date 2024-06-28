@@ -68,6 +68,7 @@ public class MessagingManagerApply {
 	 * Apply any outbound messages
 	 */
 	public void applyOutbound(Connection sd, Connection cResults, 
+			Logger log,
 			String serverName, 
 			String basePath, 
 			int count, 
@@ -184,6 +185,7 @@ public class MessagingManagerApply {
 								sd, 
 								cResults, 
 								organisation, 
+								log,
 								tz,
 								msg,
 								id,
@@ -426,6 +428,7 @@ public class MessagingManagerApply {
 	 */
 	public void applyPendingEmailMessages(Connection sd, 
 			Connection cResults, 
+			Logger log,
 			String serverName, 
 			String basePath,
 			String urlprefix,
@@ -510,6 +513,7 @@ public class MessagingManagerApply {
 							sd, 
 							cResults, 
 							organisation, 
+							log,
 							tz,
 							msg,
 							messageId,
