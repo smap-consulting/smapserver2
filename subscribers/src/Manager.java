@@ -83,13 +83,9 @@ public class Manager {
 			 */
 			MonitorProcessor mp = new MonitorProcessor();
 			mp.go(smapId, fileLocn);
-
-			// Start a restore submission queue processor
-			SubmissionProcessor subProcessor3 = new SubmissionProcessor();
-			subProcessor3.go(smapId, fileLocn, "qf1_restore", true);
 			
 			/*
-			 * Start the message processor
+			 * Start the message processor in the forward processor
 			 */
 			MessageProcessor messageProcessor1 = new MessageProcessor();
 			messageProcessor1.go(smapId, fileLocn, "qm1");
@@ -99,12 +95,12 @@ public class Manager {
 			SubmissionProcessor subProcessor = new SubmissionProcessor();
 			subProcessor.go(smapId, fileLocn, "qd1", false);
 			
-			// Start another submission queue processor in the upload subscriber
-			//SubmissionProcessor subProcessor2 = new SubmissionProcessor();
-			//subProcessor2.go(smapId, fileLocn, "qd2", false);
-				
+			// Start a restore submission queue processor
+			SubmissionProcessor subProcessor3 = new SubmissionProcessor();
+			subProcessor3.go(smapId, fileLocn, "qf1_restore", true);
+			
 			/*
-			 * Start the message processor
+			 * Start the message processor in the upload processor
 			 */
 			MessageProcessor messageProcessor2 = new MessageProcessor();
 			messageProcessor2.go(smapId, fileLocn, "qm2");

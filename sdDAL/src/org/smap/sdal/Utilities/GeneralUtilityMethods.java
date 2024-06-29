@@ -7461,6 +7461,7 @@ public class GeneralUtilityMethods {
 			msg = msg.replace("%s1", caller + ": " + filter);
 			msg = msg.replace("%s2",  e.getMessage());
 			lm.writeLog(sd, survey.surveyData.id, user, LogManager.ERROR, msg, 0, null);
+			log.info(msg);
 			throw new Exception(e);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
