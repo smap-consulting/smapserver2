@@ -1272,7 +1272,9 @@ create TABLE message (
 	outbound boolean,
 	created_time TIMESTAMP WITH TIME ZONE,
 	processed_time TIMESTAMP WITH TIME ZONE,
-	status text
+	status text,
+	queue_name text,
+	queued boolean default false
 );
 CREATE index msg_outbound ON message(outbound);
 CREATE index msg_processing_time ON message(processed_time);
@@ -1808,3 +1810,16 @@ CREATE UNLOGGED TABLE IF NOT EXISTS monitor_data
     payload JSON
 );
 ALTER TABLE monitor_data OWNER TO ws;
+
+DROP TABLE IF EXISTS message_queue;
+CREATE UNLOGGED TABLE IF NOT EXISTS message_queue
+(
+    element_identifier UUID PRIMARY KEY,
+    time_inserted TIMESTAMP,
+    m_id integer,
+    o_id integer,
+    topic text,	
+    description text,
+    data text
+);
+ALTER TABLE message_queue OWNER TO ws;

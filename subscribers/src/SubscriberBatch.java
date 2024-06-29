@@ -32,6 +32,7 @@ import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.ServerManager;
@@ -90,6 +91,7 @@ public class SubscriberBatch {
 	HashMap<String, String> autoErrorCheck = new HashMap<> ();
 	
 	boolean mediaCheckDone = false;
+	boolean forDevice = false;	// URL prefixes should be in the client format
 
 	/**
 	 * @param args
@@ -105,6 +107,9 @@ public class SubscriberBatch {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		String serverName = null;
+		String urlprefix = null;
+		String attachmentPrefix = null;
+		String hyperlinkPrefix = null;
 
 		/*
 		 * SQL to enqueue the submission
@@ -127,13 +132,47 @@ public class SubscriberBatch {
 				+ "where ue_id = ?";
 		PreparedStatement pstmtQueueDone = null;
 		
+		/*
+		 * SQL to get messages that need to be queued for processing
+		 */
+		String sqlGetMessages = "select id, "
+				+ "o_id, "
+				+ "topic, "
+				+ "description, "
+				+ "data "
+				+ "from message "
+				+ "where outbound "
+				+ "and not queued "
+				+ "and processed_time is null "
+				+ "order by id asc "
+				+ "limit 1000";
+		PreparedStatement pstmtGetMessages = null;
+		
+		String sqlEnqueueMessages = "insert into message_queue(element_identifier, time_inserted, "
+				+ "m_id, o_id, topic, description, data) "
+				+ "values(gen_random_uuid(), current_timestamp, ?, ?, ?, ?, ?)";
+		PreparedStatement pstmtEnqueueMessages = null;
+		
+		String sqlMessageQueueDone = "update message "
+				+ "set queued = 'true' "
+				+ "where id = ?";
+		PreparedStatement pstmtQueueMessagesDone = null;
+		
 		try {
 			GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 			serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
+			urlprefix = GeneralUtilityMethods.getUrlPrefixBatch(serverName);
+			attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefixBatch(serverName, forDevice);
+			// hyperlink prefix assumes that the hyperlink will be used by a human, hence always use client authentication
+			hyperlinkPrefix = GeneralUtilityMethods.getAttachmentPrefixBatch(serverName, false);
 
 			pstmtEnqueue = dbc.sd.prepareStatement(sqlEnqueue);
 			pstmtQueueDone = dbc.sd.prepareStatement(sqlQueueDone);
 			pstmtDup = dbc.sd.prepareStatement(sqlDup);
+			
+			pstmtGetMessages = dbc.sd.prepareStatement(sqlGetMessages);
+			pstmtEnqueueMessages = dbc.sd.prepareStatement(sqlEnqueueMessages);
+			pstmtQueueMessagesDone = dbc.sd.prepareStatement(sqlMessageQueueDone);
 			
 			uem = new JdbcUploadEventManager(dbc.sd);
 
@@ -150,12 +189,13 @@ public class SubscriberBatch {
 			LinkageManager linkMgr = new LinkageManager(localisation);
 			Date timeNow = new Date();
 			
-			/*
-			 * Process all pending uploads
-			 */
-			List<UploadEvent> uel = null;
-
 			if(subscriberType.equals("upload")) {
+				
+				/*
+				 * Process all pending uploads
+				 */
+				List<UploadEvent> uel = null;
+				
 				uel = uem.getPending();		// Get pending jobs
 			
 				if(uel.isEmpty()) {
@@ -180,6 +220,26 @@ public class SubscriberBatch {
 						}
 					} 
 				}
+				
+				/*
+				 * Process all pending messages
+				 */
+				ResultSet rs = pstmtGetMessages.executeQuery();
+				while (rs.next()) {
+					int mId = rs.getInt("id");
+					pstmtEnqueueMessages.setInt(1, mId);
+					pstmtEnqueueMessages.setInt(2, rs.getInt("o_id"));
+					pstmtEnqueueMessages.setString(3, rs.getString("topic"));
+					pstmtEnqueueMessages.setString(4, rs.getString("description"));
+					pstmtEnqueueMessages.setString(5, rs.getString("data"));
+
+					pstmtEnqueueMessages.executeUpdate();	
+					
+					// Mark it as queued
+					pstmtQueueMessagesDone.setInt(1, mId);
+					pstmtQueueMessagesDone.executeUpdate();
+				}
+				
 			} 
 
 			/*
@@ -212,6 +272,20 @@ public class SubscriberBatch {
 				 */
 				ForeignKeyManager fkm = new ForeignKeyManager();
 				fkm.apply(dbc.sd, dbc.results);
+				
+				/*
+				 * Apply pending messages held until a user opts in
+				 */
+				MessagingManagerApply mma = new MessagingManagerApply();
+				try {
+					mma.applyPendingEmailMessages(dbc.sd, dbc.results, 
+							serverName, basePath, 
+							urlprefix, 
+							attachmentPrefix,
+							hyperlinkPrefix);
+				} catch (Exception e) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
 				
 				/*
 				 * Initialise the linkage table if that has been requested
@@ -347,6 +421,10 @@ public class SubscriberBatch {
 			try {if (pstmtEnqueue != null) { pstmtEnqueue.close();}} catch (SQLException e) {}
 			try {if (pstmtQueueDone != null) { pstmtQueueDone.close();}} catch (SQLException e) {}
 			try {if (pstmtDup != null) { pstmtDup.close();}} catch (SQLException e) {}
+			
+			try {if (pstmtGetMessages != null) { pstmtGetMessages.close();}} catch (SQLException e) {}
+			try {if (pstmtEnqueueMessages != null) { pstmtEnqueueMessages.close();}} catch (SQLException e) {}
+			try {if (pstmtQueueMessagesDone != null) { pstmtQueueMessagesDone.close();}} catch (SQLException e) {}
 			
 			if(uem != null) {uem.close();}
 

@@ -59,8 +59,9 @@ public class MessageProcessor {
 		public void run() {
 
 			int delaySecs = 2;
-			int count = 0;
 		
+			MessagingManagerApply mma = new MessagingManagerApply();
+			
 			boolean loop = true;
 			while(loop) {
 				
@@ -82,21 +83,10 @@ public class MessageProcessor {
 						hyperlinkPrefix = GeneralUtilityMethods.getAttachmentPrefixBatch(serverName, false);
 						
 						// Apply messages
-						MessagingManagerApply mma = new MessagingManagerApply();
 						try { 
 							mma.applyOutbound(dbc.sd, dbc.results, queueName, serverName, 
-									basePath, count++, awsPropertiesFile, 
+									basePath, awsPropertiesFile, 
 									urlprefix,
-									attachmentPrefix,
-									hyperlinkPrefix);
-						} catch (Exception e) {
-							log.log(Level.SEVERE, e.getMessage(), e);
-						}
-						
-						try {
-							mma.applyPendingEmailMessages(dbc.sd, dbc.results, 
-									queueName, serverName, basePath, 
-									urlprefix, 
 									attachmentPrefix,
 									hyperlinkPrefix);
 						} catch (Exception e) {

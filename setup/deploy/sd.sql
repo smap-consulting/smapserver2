@@ -92,3 +92,18 @@ CREATE UNLOGGED TABLE IF NOT EXISTS monitor_data
     payload JSON
 );
 ALTER TABLE monitor_data OWNER TO ws;
+
+CREATE UNLOGGED TABLE IF NOT EXISTS message_queue
+(
+    element_identifier UUID PRIMARY KEY,
+    time_inserted TIMESTAMP,
+    m_id integer,
+    o_id integer,
+    topic text,	
+    description text,
+    data text
+);
+ALTER TABLE message_queue OWNER TO ws;
+
+alter table message add column queue_name text;
+alter table message add column queued boolean default false;
