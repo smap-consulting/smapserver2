@@ -68,7 +68,7 @@ public class MessagingManagerApply {
 	 * Apply any outbound messages
 	 */
 	public void applyOutbound(Connection sd, Connection cResults, 
-			Logger log,
+			String queueName,
 			String serverName, 
 			String basePath, 
 			int count, 
@@ -131,7 +131,8 @@ public class MessagingManagerApply {
 					tz = organisation.timeZone;
 				}
 				
-				log.info("++++++ Message: " + topic + " " + description + " : " + data );
+				GeneralUtilityMethods.log(log, "++++++ Message: " + topic + " " + description + " : " + data, 
+						queueName, String.valueOf(id));
 
 				String status = "success";
 				ArrayList<String> unsubscribedList = new ArrayList<>();
@@ -185,7 +186,7 @@ public class MessagingManagerApply {
 								sd, 
 								cResults, 
 								organisation, 
-								log,
+								queueName,
 								tz,
 								msg,
 								id,
@@ -269,7 +270,8 @@ public class MessagingManagerApply {
 					
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);	
 						
-					log.info("--------- Starting periodic notifications for " + data);
+					GeneralUtilityMethods.log(log, "--------- Starting periodic notifications for " + data,
+							queueName, String.valueOf(id));
 					try {
 						nm.processPeriodicNotification(
 								sd, 
@@ -288,7 +290,7 @@ public class MessagingManagerApply {
 						log.log(Level.SEVERE, e.getMessage(), e);
 						lm.writeLogOrganisation(sd, o_id, localisation.getString("pn"), LogManager.NOTIFICATION_ERROR, e.getMessage(), 0);
 					}
-					log.info("--------- Periodic notifications processed");
+					GeneralUtilityMethods.log(log, "--------- Periodic notifications processed", queueName, String.valueOf(id));
 					
 					
 				} else {
@@ -360,7 +362,7 @@ public class MessagingManagerApply {
 				}
 				pstmtConfirm.setString(1, status);
 				pstmtConfirm.setInt(2, id);
-				log.info(pstmtConfirm.toString());
+				GeneralUtilityMethods.log(log, pstmtConfirm.toString(), queueName, String.valueOf(id));
 				pstmtConfirm.executeUpdate();
 
 			}
@@ -368,13 +370,15 @@ public class MessagingManagerApply {
 			/*
 			 * Device notifications have been accumulated to an array so that duplicates can be eliminated
 			 * Process these now
-			 */
+			 *
+			 * Disable temporarily while this is fixed
+			 *
 			// Get a list of users impacted by task changes without duplicates
 			for(Integer taskId : changedTasks.keySet()) {
 				ArrayList<String> users = getTaskUsers(sd, taskId);
 				for(String user : users) {
 					usersImpacted.put(user, user);	
-					log.info("zzzzzzzzzzzzzzz: task change users: " + user);
+					GeneralUtilityMethods.log(log, "zzzzzzzzzzzzzzz: task change users: " + user, queueName, null);
 				}				
 			}
 						
@@ -383,7 +387,7 @@ public class MessagingManagerApply {
 				ArrayList<String> users = getSurveyUsers(sd, sId);
 				for(String user : users) {
 					usersImpacted.put(user, user);
-					log.info("zzzzzzzzzzzzzzz: survey change users: " + user);
+					GeneralUtilityMethods.log(log, "zzzzzzzzzzzzzzz: survey change users: " + user, queueName, null);
 				}				
 			}
 			
@@ -392,7 +396,7 @@ public class MessagingManagerApply {
 				ArrayList<String> users = getProjectUsers(sd, pId);
 				for(String user : users) {
 					usersImpacted.put(user, user);
-					log.info("zzzzzzzzzzzzzzz: project change users: " + user);
+					GeneralUtilityMethods.log(log, "zzzzzzzzzzzzzzz: project change users: " + user, queueName, null);
 				}				
 			}
 			
@@ -401,7 +405,7 @@ public class MessagingManagerApply {
 				ArrayList<String> users = GeneralUtilityMethods.getResourceUsers(sd, fileName, changedResources.get(fileName).orgId);
 				for(String user : users) {
 					usersImpacted.put(user, user);
-					log.info("zzzzzzzzzzzzzzz: resources change users: " + user);
+					GeneralUtilityMethods.log(log, "zzzzzzzzzzzzzzz: resources change users: " + user, queueName, null);
 				}				
 			}
 			
@@ -412,6 +416,7 @@ public class MessagingManagerApply {
 					emitDevice.notify(serverName, user);
 				}	
 			}
+			*/
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error", e);
@@ -428,7 +433,7 @@ public class MessagingManagerApply {
 	 */
 	public void applyPendingEmailMessages(Connection sd, 
 			Connection cResults, 
-			Logger log,
+			String queueName,
 			String serverName, 
 			String basePath,
 			String urlprefix,
@@ -513,7 +518,7 @@ public class MessagingManagerApply {
 							sd, 
 							cResults, 
 							organisation, 
-							log,
+							queueName,
 							tz,
 							msg,
 							messageId,

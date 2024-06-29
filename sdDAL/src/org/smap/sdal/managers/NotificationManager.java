@@ -765,7 +765,7 @@ public class NotificationManager {
 	public void processSubmissionNotification(Connection sd, 
 			Connection cResults, 
 			Organisation organisation,
-			Logger log,
+			String queueName,
 			String tz,
 			SubmissionMessage msg,
 			int messageId,
@@ -923,7 +923,7 @@ public class NotificationManager {
 					
 					EmailManager em = new EmailManager(localisation);
 					String emails = em.getEmails(sd, cResults, surveyId, msg);
-					SendEmailResponse resp = em.sendEmails(sd, cResults, emails, organisation, surveyId, logContent, docURL, survey.surveyData.displayName, unsubscribedList,
+					SendEmailResponse resp = em.sendEmails(sd, cResults, log, emails, organisation, surveyId, logContent, docURL, survey.surveyData.displayName, unsubscribedList,
 							filePath, filename, messageId, createPending, topic, msg.user, serverName, 
 							survey.surveyData.displayName, survey.surveyData.projectName, msg.subject, msg.from, msg.content, msg.scheme, msg);
 					
@@ -1098,7 +1098,7 @@ public class NotificationManager {
 					//if(emailsAssigned != null) {
 					//	emails = em.mergeEmailLists(emails, emailsAssigned);
 					//}
-					em.sendEmails(sd, cResults, emails, organisation, surveyId, logContent, docURL, survey.surveyData.displayName, unsubscribedList,
+					em.sendEmails(sd, cResults, log, emails, organisation, surveyId, logContent, docURL, survey.surveyData.displayName, unsubscribedList,
 							filePath, filename, messageId, createPending, topic, msg.user, serverName,
 							survey.surveyData.displayName, survey.surveyData.projectName,
 							msg.subject, msg.from, msg.content, msg.scheme, msg);
@@ -1275,7 +1275,8 @@ public class NotificationManager {
 			if(msg.target.equals("email")) {
 				EmailManager em = new EmailManager(localisation);
 				String emails = em.getEmails(sd, cResults, sId, msg);
-				SendEmailResponse resp = em.sendEmails(sd, cResults, emails, organisation, sId, logContent, docURL, msg.title, unsubscribedList,
+				SendEmailResponse resp = em.sendEmails(sd, cResults, log, 
+						emails, organisation, sId, logContent, docURL, msg.title, unsubscribedList,
 						filePath, filename, messageId, createPending, topic, msg.user, serverName, surveyName, projectName,
 						msg.subject, msg.from, msg.content, msg.scheme, msg);
 

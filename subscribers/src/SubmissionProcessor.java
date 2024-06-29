@@ -66,19 +66,18 @@ public class SubmissionProcessor {
  
 	private static LogManager lm = new LogManager();		// Application log
 
+	private static Logger log = Logger.getLogger(SubmissionProcessor.class.getName());
+	
 	private class SubmissionQueueLoop implements Runnable {
 		DatabaseConnections dbc = new DatabaseConnections();
 		String basePath;
 		String queueName;
 		boolean incRestore;
-		private Logger log;
 
 		public SubmissionQueueLoop(String basePath, String queueName, boolean incRestore) {
 			this.basePath = basePath;
 			this.queueName = queueName;
 			this.incRestore = incRestore;
-			
-			log = GeneralUtilityMethods.getLog(queueName);
 		}
 
 		public void run() {

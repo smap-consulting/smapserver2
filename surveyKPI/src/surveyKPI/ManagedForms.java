@@ -373,7 +373,7 @@ public class ManagedForms extends Application {
 					
 					EmailManager em = new EmailManager(localisation);
 					String emails = em.getAssignedUserEmails(sd, cResults, sId, instanceId);
-					em.sendEmails(sd, cResults, emails, organisation, sId, 
+					em.sendEmails(sd, cResults, log, emails, organisation, sId, 
 							null, 			// log content
 							null, 			// doc URL
 							null,			// name of a notification

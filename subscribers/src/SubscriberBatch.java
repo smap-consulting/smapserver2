@@ -83,8 +83,7 @@ public class SubscriberBatch {
 	DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 	DatabaseConnections dbc = new DatabaseConnections();
 
-	private static Logger log =
-			Logger.getLogger(SubscriberBatch.class.getName());
+	private static Logger log = Logger.getLogger(SubscriberBatch.class.getName());
 
 	private static LogManager lm = new LogManager();		// Application log
 	

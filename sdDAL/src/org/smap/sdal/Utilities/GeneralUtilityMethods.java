@@ -10974,6 +10974,7 @@ public class GeneralUtilityMethods {
 		return dbf;
 	}
 	
+	/*
 	public static Logger getLog(String queueName) {
 		
 		Logger log = null;
@@ -10993,6 +10994,28 @@ public class GeneralUtilityMethods {
 		}
 		
 		return log;
+	}
+	*/
+	
+	public static void log(Logger log, String msg, String queueName, String thread) {
+		StringBuilder track = new StringBuilder("::");
+		
+		if(queueName == null) {
+			track.append("main");
+		} else {
+			track.append(queueName);
+		}
+		track.append("::");
+		
+		if(thread == null) {
+			track.append("none");
+		} else {
+			track.append(thread);
+		}
+		track.append("::");
+		
+		track.append(msg);
+		log.info(track.toString());
 	}
 	
 	private static int getManifestParamStart(String property) {

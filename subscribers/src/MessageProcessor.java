@@ -36,7 +36,7 @@ public class MessageProcessor {
 	DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 	DocumentBuilder db = null;
 
-	private Logger log;
+	private static Logger log = Logger.getLogger(MessageProcessor.class.getName());
 	
 	boolean forDevice = false;	// URL prefixes should be in the client format
 
@@ -48,13 +48,12 @@ public class MessageProcessor {
 		String hyperlinkPrefix;
 		String basePath;
 		String awsPropertiesFile;
+		String queueName;
 
 		public MessageLoop(String basePath, String queueName, String awsPropertiesFile) {
 			this.basePath = basePath;
-			this.awsPropertiesFile = awsPropertiesFile;
-			
-			log = GeneralUtilityMethods.getLog(queueName);
-			
+			this.queueName = queueName;
+			this.awsPropertiesFile = awsPropertiesFile;			
 		}
 
 		public void run() {
@@ -67,7 +66,7 @@ public class MessageProcessor {
 				
 				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/smap/settings/subscriber");
 				if(subscriberControl != null && subscriberControl.equals("stop")) {
-					log.info("---------- Message Processor Stopped");
+					GeneralUtilityMethods.log(log, "---------- Message Processor Stopped", queueName, null);
 					loop = false;
 				} else {
 					
@@ -85,7 +84,7 @@ public class MessageProcessor {
 						// Apply messages
 						MessagingManagerApply mma = new MessagingManagerApply();
 						try { 
-							mma.applyOutbound(dbc.sd, dbc.results, log, serverName, 
+							mma.applyOutbound(dbc.sd, dbc.results, queueName, serverName, 
 									basePath, count++, awsPropertiesFile, 
 									urlprefix,
 									attachmentPrefix,
@@ -96,7 +95,7 @@ public class MessageProcessor {
 						
 						try {
 							mma.applyPendingEmailMessages(dbc.sd, dbc.results, 
-									log, serverName, basePath, 
+									queueName, serverName, basePath, 
 									urlprefix, 
 									attachmentPrefix,
 									hyperlinkPrefix);
@@ -138,7 +137,10 @@ public class MessageProcessor {
 				Thread t = new Thread(new MessageLoop(basePath, queueName, awsPropertiesFile));
 				t.start();
 			} else {
-				log.info("Skipping Message Processing. No aws properties file at: " + pFile.getAbsolutePath());
+				GeneralUtilityMethods.log(log, 
+						"Skipping Message Processing. No aws properties file at: " + pFile.getAbsolutePath(),
+						queueName,
+						null);
 			}	
 
 		} catch (Exception e) {

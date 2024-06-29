@@ -408,7 +408,7 @@ public class SubRelationalDB extends Subscriber {
 			}  
 
 			/*
-			 * Update any Human readable keys if this survey has them
+			 * Update the Human readable keys if this survey has them
 			 * This has to happen after merge so that previous HRK's are preserved
 			 */
 			if(hasHrk) {
@@ -421,15 +421,16 @@ public class SubRelationalDB extends Subscriber {
 					pstmtAddHrk.executeUpdate();
 				}
 				
-				String sqlHrk = "update " + topLevelForm.tableName + " m set _hrk = "
+				String sqlHrk = "update " + topLevelForm.tableName + " set _hrk = "
 						+ hrkSql
-						+ " where _hrk is null";
+						+ " where prikey = ?";
 				pstmtHrk = cResults.prepareStatement(sqlHrk);
+				pstmtHrk.setInt(1, keys.newKey);
 				log.info("Applying HRK: " + pstmtHrk.toString());
 				pstmtHrk.executeUpdate();	
 			}
 			
-			lock.release();   // Release lock - merging of records finsished
+			lock.release();   // Release lock - merging of records finished
 			
 			/*
 			 * Record any foreign keys that need to be set between forms

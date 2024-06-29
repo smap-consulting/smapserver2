@@ -165,6 +165,7 @@ public class EmailManager {
 	 */
 	public SendEmailResponse sendEmails(Connection sd, 
 			Connection cResults, 
+			Logger log,
 			String emails, 
 			Organisation organisation, 
 			int surveyId, 
