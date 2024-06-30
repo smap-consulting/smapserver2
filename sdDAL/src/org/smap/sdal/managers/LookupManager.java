@@ -172,7 +172,7 @@ public class LookupManager {
 			String tz = "UTC";
 			ArrayList<String> arguments = new ArrayList<> ();
 			ColDetails colDetails = getDetails(sd, gson, localisation, sId, keyColumn, fileName);		
-			StringBuffer selection = new StringBuffer(createLikeExpression(colDetails.getExpression(), keyValue, searchType, arguments));
+			StringBuilder selection = new StringBuilder(createLikeExpression(colDetails.getExpression(), keyValue, searchType, arguments));
 			
 			ArrayList<HashMap<String, String>> resultsArray = null;
 			HashMap<String, String> results = null;
@@ -632,7 +632,7 @@ public class LookupManager {
 				fColumn = fColumn.trim();
 			}
 			// Create a where clause and where parameters
-			StringBuffer selection = new StringBuffer("");
+			StringBuilder selection = new StringBuilder("");
 			String selectionString = null;
 			ArrayList<String> arguments = new ArrayList<String> ();
 			

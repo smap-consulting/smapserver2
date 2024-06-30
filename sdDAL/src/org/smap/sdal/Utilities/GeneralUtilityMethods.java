@@ -5297,9 +5297,12 @@ public class GeneralUtilityMethods {
 			ArrayList<KeyValueSimp> wfFilters,
 			String filename) throws Exception {
 
-		ArrayList<Option> choices = null;		
-		String sql = "select q.external_table, q.l_id, q.appearance from question q where q.q_id = ?";
-		PreparedStatement pstmt = null;
+		ArrayList<Option> choices = null;
+		PreparedStatement pstmt = null;		// Used by SurveyTableManager initData
+		
+		String sql = "select external_table, l_id, appearance, column_name "
+				+ "from question where q_id = ?";
+		PreparedStatement pstmtQuestion = null;
 		
 		String sqlChoices = "select ovalue, label_id "
 				+ "from option "
@@ -5318,12 +5321,13 @@ public class GeneralUtilityMethods {
 		
 		try {
 			
-			pstmt = sd.prepareStatement(sql);			
-			pstmt.setInt(1, qId);
-			log.info("Get external table info:" + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
+			pstmtQuestion = sd.prepareStatement(sql);			
+			pstmtQuestion.setInt(1, qId);
+			log.info("Get external table info:" + pstmtQuestion.toString());
+			ResultSet rs = pstmtQuestion.executeQuery();
 			if (rs.next()) {		
 				
+				String columnName = rs.getString("column_name");
 				if(filename == null) {
 					filename = rs.getString(1);	// Get the filename from the database only if it was not provided in the calling function.  The database can be null at this point
 				}
@@ -5367,6 +5371,9 @@ public class GeneralUtilityMethods {
 								}
 								
 								String selection = null;
+								if(matches != null && matches.size() == 1) {
+									selection = columnName + " = ?";
+								}
 						
 								// Get data from another form
 								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
@@ -5391,6 +5398,7 @@ public class GeneralUtilityMethods {
 			
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtQuestion != null) {pstmtQuestion.close();}} catch (SQLException e) {}
 			try {if (pstmtChoices != null) {pstmtChoices.close();}} catch (SQLException e) {}
 			try {if (pstmtLabels != null) {pstmtLabels.close();}} catch (SQLException e) {}
 		}

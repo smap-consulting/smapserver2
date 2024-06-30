@@ -48,7 +48,7 @@ public class ChoiceManager {
 			String surveyIdent,
 			boolean getImage) throws Exception {
 		
-		StringBuffer labels = new StringBuffer("");
+		StringBuilder labels = new StringBuilder("");
 		
 		// Only check the labels if the pdfvalue appearance is not set
 		Question q = GeneralUtilityMethods.getQuestion(sd,  qId);
