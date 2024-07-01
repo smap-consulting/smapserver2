@@ -289,7 +289,7 @@ public class MessagingManager {
 						email, 
 						"bcc", 
 						localisation.getString("c_opt_in_subject"), 
-						content, 
+						content.toString(), 
 						null, 
 						null, 
 						emailServer,

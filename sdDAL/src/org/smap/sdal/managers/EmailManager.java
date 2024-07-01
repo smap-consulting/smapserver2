@@ -139,7 +139,7 @@ public class EmailManager {
 									org.getAdminEmail(), 
 									"bcc", 
 									subject, 
-									content, 
+									content.toString(), 
 									null, 
 									null, 
 									emailServer,
@@ -286,7 +286,7 @@ public class EmailManager {
 										ia.getAddress(),  
 										"bcc", 
 										subject, 
-										content, 
+										content.toString(), 
 										filePath,
 										filename,
 										emailServer,
@@ -345,7 +345,7 @@ public class EmailManager {
 			String email, 
 			String ccType, 
 			String subject,
-			StringBuilder template,
+			String template,
 			String filePath,	// The next two parameters are for an attachment TODO make an array
 			String filename,
 			EmailServer emailServer,
@@ -357,6 +357,8 @@ public class EmailManager {
 			String orgFooter,
 			int emailId) throws Exception  {
 
+		StringBuilder content = new StringBuilder(template);
+		
 		if(emailServer.smtpHost == null) {
 			throw new Exception("Cannot send email, smtp_host not available");
 		}
@@ -388,17 +390,17 @@ public class EmailManager {
 			msg.setFrom(InternetAddress.parse(sender, false)[0]);
 			
 			if(adminEmail != null) {
-				template.append("</p>")
+				content.append("</p>")
 					.append("<p>")
 					.append(localisation.getString("email_dnr"))
 					.append("</p>");
 			}
 			if(orgFooter != null) {
-				template.append(" ").append(orgFooter);
+				content.append(" ").append(orgFooter);
 			}
 			
 			// Add unsubscribe
-			StringBuffer unsubscribe = new StringBuffer();
+			StringBuilder unsubscribe = new StringBuilder();
 			if(emailKey != null) {
 				unsubscribe.append("<br/><p style=\"color:blue;text-align:center;\">")
 						.append("<a href=\"https://")
@@ -410,13 +412,13 @@ public class EmailManager {
 						.append("</a>")
 						.append("</p>");		
 						
-				template.append(unsubscribe.toString());
+				content.append(unsubscribe.toString());
 			} 
 			
 			/*
 			 * Perform custom token replacements
 			 */
-			String contentString = template.toString();
+			String contentString = content.toString();
 			if(tokens != null) {
 				for(String token : tokens.keySet()) {
 					String val = tokens.get(token);

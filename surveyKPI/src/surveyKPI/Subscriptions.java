@@ -166,7 +166,7 @@ public class Subscriptions extends Application {
 								email, 
 								"bcc", 
 								localisation.getString("c_s"), 
-								content, 
+								content.toString(), 
 								null, 
 								null, 
 								emailServer,

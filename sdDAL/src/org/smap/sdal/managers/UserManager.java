@@ -737,7 +737,7 @@ public class UserManager {
 						u.email, 
 						"bcc", 
 						subject, 
-						content, 
+						content.toString(), 
 						null, 
 						null, 
 						emailServer,

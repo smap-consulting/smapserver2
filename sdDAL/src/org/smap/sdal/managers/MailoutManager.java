@@ -754,7 +754,7 @@ public class MailoutManager {
 													ia.getAddress(), 
 													"bcc", 
 													subject, 
-													content, 
+													content.toString(), 
 													null, 
 													null, 
 													emailServer,

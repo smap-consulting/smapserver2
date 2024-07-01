@@ -335,7 +335,7 @@ public class MessagingManagerApply {
 												ia.getAddress(), 	// email
 												"bcc",
 												subject, 
-												content, 
+												content.toString(), 
 												null,
 												null,
 												emailServer,
@@ -371,7 +371,7 @@ public class MessagingManagerApply {
 	
 				} else {
 					loop = false;
-					GeneralUtilityMethods.log(log, "Message queue empty", queueName, null);
+					//GeneralUtilityMethods.log(log, "Message queue empty", queueName, null);
 				}
 			}
 			

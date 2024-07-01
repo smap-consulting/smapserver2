@@ -189,7 +189,7 @@ public class PasswordReset extends Application {
 								email, 
 								"bcc", 
 								subject, 
-								content, 
+								content.toString(), 
 								null, 
 								null, 
 								emailServer,

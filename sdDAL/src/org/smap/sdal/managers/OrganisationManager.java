@@ -236,7 +236,7 @@ public class OrganisationManager {
 										originalOrg.getAdminEmail(), 
 										"bcc", 
 										subject, 
-										contentBuilder, 
+										contentBuilder.toString(), 
 										null, 
 										null, 
 										emailServer,

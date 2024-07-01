@@ -3446,7 +3446,7 @@ public class TaskManager {
 													ia.getAddress(),  
 													"bcc", 
 													subject, 
-													content, 
+													content.toString(), 
 													filePath,
 													filename,
 													emailServer,
