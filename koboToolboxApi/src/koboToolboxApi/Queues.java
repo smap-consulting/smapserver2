@@ -98,6 +98,8 @@ public class Queues extends Application {
 				q = qm.getSubEventQueueData(sd);
 			} else if(queueName.equals(qm.MESSAGE)) {
 				q = qm.getMessageQueueData(sd);
+			} else if(queueName.equals(qm.MESSAGE_DEVICE)) {
+				q = qm.getMessageDeviceQueueData(sd);
 			} else {
 				error = true;		
 			}
