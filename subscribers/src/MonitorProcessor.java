@@ -56,6 +56,12 @@ public class MonitorProcessor {
 			String sql = "insert into monitor_data(recorded_at, payload) values(now(), ?::jsonb)";
 			PreparedStatement pstmt = null;
 		
+			// Delete monitoring data after 14 days
+			String sqlDel = "delete from monitor_data where "
+					+ "recorded_at < now() - interval '14 days'";
+			PreparedStatement pstmtDel = null;
+			
+			int count = 0;
 			boolean loop = true;
 			while(loop) {
 				
@@ -67,6 +73,8 @@ public class MonitorProcessor {
 				} else {
 					
 					try {
+						count++;
+						
 						// Make sure we have a connection to the database
 						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 						
@@ -86,10 +94,17 @@ public class MonitorProcessor {
 						pstmt.setString(1, gson.toJson(qd));
 						pstmt.executeUpdate();
 						
+						// Delete old records every 100th time through
+						if(count > 100) {
+							count = 0;
+							pstmtDel = dbc.sd.prepareStatement(sqlDel);
+							pstmtDel.executeUpdate();
+						}
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
 					} finally{
 						if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+						if(pstmtDel != null) try {pstmt.close();} catch(Exception e) {}
 					}
 					
 					// Sleep and then go again
