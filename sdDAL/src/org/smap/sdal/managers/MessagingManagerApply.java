@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
+import org.smap.notifications.interfaces.EmitDeviceNotification;
 import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -70,7 +71,6 @@ public class MessagingManagerApply {
 			String queueName,
 			String serverName, 
 			String basePath, 
-			String awsProperties,
 			String urlprefix,
 			String attachmentPrefix,
 			String hyperlinkPrefix) {
@@ -78,12 +78,6 @@ public class MessagingManagerApply {
 		ResultSet rs = null;
 		PreparedStatement pstmtGetMessages = null;
 		PreparedStatement pstmtConfirm = null;
-		
-		HashMap<Integer, TaskMessage> changedTasks = new HashMap<> ();
-		HashMap<Integer, SurveyMessage> changedSurveys = new HashMap<> ();
-		HashMap<Integer, ProjectMessage> changedProjects = new HashMap<> ();
-		HashMap<String, OrgResourceMessage> changedResources = new HashMap<> ();
-		HashMap<String, String> usersImpacted =   new HashMap<> ();
 
 		String sqlConfirm = "update message "
 				+ "set processed_time = now(), "
@@ -150,33 +144,7 @@ public class MessagingManagerApply {
 					pstmtConfirm.setInt(2, id);
 					pstmtConfirm.executeUpdate();
 					
-					if(topic.equals(NotificationManager.TOPIC_TASK)) {
-						TaskMessage tm = gson.fromJson(data, TaskMessage.class);
-						
-						changedTasks.put(tm.id, tm);
-						
-					} else if(topic.equals(NotificationManager.TOPIC_SURVEY)) {
-						
-						SurveyMessage sm = gson.fromJson(data, SurveyMessage.class);
-						
-						changedSurveys.put(sm.id, sm);
-						
-					} else if(topic.equals(NotificationManager.TOPIC_USER)) {
-						UserMessage um = gson.fromJson(data, UserMessage.class);
-						
-						usersImpacted.put(um.ident, um.ident);
-						
-					} else if(topic.equals(NotificationManager.TOPIC_PROJECT)) {
-						ProjectMessage pm = gson.fromJson(data, ProjectMessage.class);
-						
-						changedProjects.put(pm.id, pm);
-						
-					} else if(topic.equals(NotificationManager.TOPIC_RESOURCE)) {
-						OrgResourceMessage orm = gson.fromJson(data, OrgResourceMessage.class);
-						
-						changedResources.put(orm.resourceName, orm);
-						
-					} else if(topic.equals(NotificationManager.TOPIC_SUBMISSION) 
+					if(topic.equals(NotificationManager.TOPIC_SUBMISSION) 
 							|| topic.equals(NotificationManager.TOPIC_CM_ALERT)
 							|| topic.equals(NotificationManager.TOPIC_SERVER_CALC)) {
 						/*
@@ -374,19 +342,102 @@ public class MessagingManagerApply {
 					//GeneralUtilityMethods.log(log, "Message queue empty", queueName, null);
 				}
 			}
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error", e);
+		} finally {
+			try {if (pstmtGetMessages != null) {	pstmtGetMessages.close();}} catch (Exception e) {	}
+			try {if (pstmtConfirm != null) {	pstmtConfirm.close();}} catch (Exception e) {}
+		}
+
+	}
+	
+	/*
+	 * Apply any device messages - these are done as a single queue
+	 */
+	public void applyDeviceMessages(Connection sd, Connection cResults, 
+			String serverName,  
+			String awsProperties) {
+
+		ResultSet rs = null;
+		PreparedStatement pstmtGetMessages = null;
+		PreparedStatement pstmtConfirm = null;
+		
+		HashMap<Integer, TaskMessage> changedTasks = new HashMap<> ();
+		HashMap<Integer, SurveyMessage> changedSurveys = new HashMap<> ();
+		HashMap<Integer, ProjectMessage> changedProjects = new HashMap<> ();
+		HashMap<String, OrgResourceMessage> changedResources = new HashMap<> ();
+		HashMap<String, String> usersImpacted =   new HashMap<> ();
+
+		String sqlConfirm = "update message "
+				+ "set processed_time = now(), "
+				+ "status = ?, "
+				+ "queued = false "
+				+ "where id = ? ";
+
+		// Get the messages that can trigger a message to a device
+		String sql = "select id, "
+				+ "topic, "
+				+ "data "
+				+ "from message "
+				+ "where outbound "
+				+ "and processed_time is null "
+				+ "and (topic = 'task' or topic = 'survey' or topic = 'user' or topic = 'project' or topic = 'resource') ";
+		try {
+
+			pstmtGetMessages = sd.prepareStatement(sql);
+			pstmtConfirm = sd.prepareStatement(sqlConfirm);
+
+			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();			
+
+			GeneralUtilityMethods.log(log, "zzzzzzzzzzzzzzz: " + pstmtGetMessages.toString(), "device_message", null);
+
+			rs = pstmtGetMessages.executeQuery();
+			while (rs.next()) {
+	
+				int id = rs.getInt("id");
+				String topic = rs.getString("topic");
+				String data = rs.getString("data");
+								
+				/*
+				 * Record that the message is being processed
+				 * After this point it will not be processed again even if it fails unless there is manual intervention
+				 */
+				pstmtConfirm.setString(1, "success");
+				pstmtConfirm.setInt(2, id);
+				pstmtConfirm.executeUpdate();
+					
+				if(topic.equals(NotificationManager.TOPIC_TASK)) {
+					TaskMessage tm = gson.fromJson(data, TaskMessage.class);					
+					changedTasks.put(tm.id, tm);					
+				} else if(topic.equals(NotificationManager.TOPIC_SURVEY)) {						
+					SurveyMessage sm = gson.fromJson(data, SurveyMessage.class);
+					changedSurveys.put(sm.id, sm);			
+				} else if(topic.equals(NotificationManager.TOPIC_USER)) {
+					UserMessage um = gson.fromJson(data, UserMessage.class);		
+					usersImpacted.put(um.ident, um.ident);		
+				} else if(topic.equals(NotificationManager.TOPIC_PROJECT)) {
+					ProjectMessage pm = gson.fromJson(data, ProjectMessage.class);	
+					changedProjects.put(pm.id, pm);	
+				} else if(topic.equals(NotificationManager.TOPIC_RESOURCE)) {
+					OrgResourceMessage orm = gson.fromJson(data, OrgResourceMessage.class);		
+					changedResources.put(orm.resourceName, orm);			
+				} 
+					
+			}
 			
 			/*
 			 * Device notifications have been accumulated to an array so that duplicates can be eliminated
 			 * Process these now
 			 *
 			 * Disable temporarily until this is fixed
-			 *
+			 */
 			// Get a list of users impacted by task changes without duplicates
 			for(Integer taskId : changedTasks.keySet()) {
 				ArrayList<String> users = getTaskUsers(sd, taskId);
 				for(String user : users) {
 					usersImpacted.put(user, user);	
-					GeneralUtilityMethods.log(log, "zzzzzzzzzzzzzzz: task change users: " + user, queueName, null);
+					GeneralUtilityMethods.log(log, "zzzzzzzzzzzzzzz: task change users: " + user, "device_message", null);
 				}				
 			}
 						
@@ -395,7 +446,7 @@ public class MessagingManagerApply {
 				ArrayList<String> users = getSurveyUsers(sd, sId);
 				for(String user : users) {
 					usersImpacted.put(user, user);
-					GeneralUtilityMethods.log(log, "zzzzzzzzzzzzzzz: survey change users: " + user, queueName, null);
+					GeneralUtilityMethods.log(log, "zzzzzzzzzzzzzzz: survey change users: " + user, "device_message", null);
 				}				
 			}
 			
@@ -404,7 +455,7 @@ public class MessagingManagerApply {
 				ArrayList<String> users = getProjectUsers(sd, pId);
 				for(String user : users) {
 					usersImpacted.put(user, user);
-					GeneralUtilityMethods.log(log, "zzzzzzzzzzzzzzz: project change users: " + user, queueName, null);
+					GeneralUtilityMethods.log(log, "zzzzzzzzzzzzzzz: project change users: " + user, "device_message", null);
 				}				
 			}
 			
@@ -413,7 +464,7 @@ public class MessagingManagerApply {
 				ArrayList<String> users = GeneralUtilityMethods.getResourceUsers(sd, fileName, changedResources.get(fileName).orgId);
 				for(String user : users) {
 					usersImpacted.put(user, user);
-					GeneralUtilityMethods.log(log, "zzzzzzzzzzzzzzz: resources change users: " + user, queueName, null);
+					GeneralUtilityMethods.log(log, "zzzzzzzzzzzzzzz: resources change users: " + user, "device_message", null);
 				}				
 			}
 			
@@ -424,7 +475,6 @@ public class MessagingManagerApply {
 					emitDevice.notify(serverName, user);
 				}	
 			}
-			*/
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error", e);

@@ -47,13 +47,11 @@ public class MessageProcessor {
 		String attachmentPrefix;
 		String hyperlinkPrefix;
 		String basePath;
-		String awsPropertiesFile;
 		String queueName;
 
-		public MessageLoop(String basePath, String queueName, String awsPropertiesFile) {
+		public MessageLoop(String basePath, String queueName) {
 			this.basePath = basePath;
-			this.queueName = queueName;
-			this.awsPropertiesFile = awsPropertiesFile;			
+			this.queueName = queueName;		
 		}
 
 		public void run() {
@@ -85,7 +83,7 @@ public class MessageProcessor {
 						// Apply messages
 						try { 
 							mma.applyOutbound(dbc.sd, dbc.results, queueName, serverName, 
-									basePath, awsPropertiesFile, 
+									basePath,
 									urlprefix,
 									attachmentPrefix,
 									hyperlinkPrefix);
@@ -120,18 +118,9 @@ public class MessageProcessor {
 		try {
 			
 			// Send any pending messages
-			String awsPropertiesFile = null;
-			File pFile = new File(basePath + "_bin/resources/properties/aws.properties");
-			if (pFile.exists()) {
-				awsPropertiesFile = pFile.getAbsolutePath();
-				Thread t = new Thread(new MessageLoop(basePath, queueName, awsPropertiesFile));
-				t.start();
-			} else {
-				GeneralUtilityMethods.log(log, 
-						"Skipping Message Processing. No aws properties file at: " + pFile.getAbsolutePath(),
-						queueName,
-						null);
-			}	
+			Thread t = new Thread(new MessageLoop(basePath, queueName));
+			t.start();
+				
 
 		} catch (Exception e) {
 			e.printStackTrace();

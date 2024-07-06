@@ -144,6 +144,7 @@ public class SubscriberBatch {
 				+ "where outbound "
 				+ "and not queued "
 				+ "and processed_time is null "
+				+ "and topic != 'task' and topic != 'survey' and topic != 'user' and topic != 'project' and topic != 'resource' "  // These have to be processed separately in a single queue to reduce number of device messages
 				+ "order by id asc "
 				+ "limit 1000";
 		PreparedStatement pstmtGetMessages = null;
@@ -286,6 +287,27 @@ public class SubscriberBatch {
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
+				
+				/*
+				 * Send device messages
+				 */
+				try {
+					String awsPropertiesFile = null;
+					File pFile = new File(basePath + "_bin/resources/properties/aws.properties");
+					if (pFile.exists()) {
+						awsPropertiesFile = pFile.getAbsolutePath();
+						mma.applyDeviceMessages(dbc.sd, dbc.results, serverName, 
+								awsPropertiesFile);
+					} else {
+						GeneralUtilityMethods.log(log, 
+							"Skipping Message Processing. No aws properties file at: " + pFile.getAbsolutePath(),
+							"device_message",
+							null);
+					}
+				} catch (Exception e) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
+				
 				
 				/*
 				 * Initialise the linkage table if that has been requested
