@@ -684,8 +684,8 @@ public class SubscriberBatch {
 			
 			String sql = "select ue_id, db_reason, s_id, file_path, instanceid from upload_event "
 					+ "where db_status = 'success' "
-					+ "and processed_time > '2024-06-17 22:42:13.476596+00' "
-					+ "and ue_id > 28658423 "	// First one encountered was one more than this
+					//+ "and processed_time > '2024-06-17 22:42:13.476596+00' "
+					+ "and (ue_id > '28654061' and ue_id < 29094187) "	// First one encountered was one more than this
 					+ "order by ue_id asc";
 			pstmt = sd.prepareStatement(sql);
 			
@@ -700,6 +700,10 @@ public class SubscriberBatch {
 				// Get the organisation locales
 				int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
 				Organisation organisation = GeneralUtilityMethods.getOrganisation(dbc.sd, oId);
+				if(organisation == null) {
+					log.info("######### Deleted survey ignore" );
+					continue;
+				}
 				Locale orgLocale = new Locale(organisation.locale);
 				ResourceBundle orgLocalisation;
 				try {
@@ -785,7 +789,9 @@ public class SubscriberBatch {
 
 			if (element.getType() != null && (element.getType().equals("form"))) {
 				
-				mediaCheckForm(cResults, basePath, uploadFile, ueId, element.getTableName(), instanceid, element.getQuestions());
+				mediaCheckForm(cResults, basePath, uploadFile, ueId, 
+						element.getTableName(), instanceid, element.getQuestions(),
+						survey.getIdent());
 				
 			}
 		} catch (Exception e) {
@@ -798,7 +804,9 @@ public class SubscriberBatch {
 			String basePath,
 			String uploadFile,
 			int ueId,
-			String tableName, String instanceid, List<IE> columns) {
+			String tableName, String instanceid, List<IE> columns,
+			String sIdent) {
+		
 		for(IE col : columns) {
 			String qType = col.getQType();
 			String value = col.getValue();	
@@ -808,11 +816,10 @@ public class SubscriberBatch {
 				//mediaCheckForm(col.getQuestions());  TODO sub forms
 			} else if(GeneralUtilityMethods.isAttachmentType(qType)) {
 						
-				if(value != null && value.startsWith("app/")) {
-					log.info("############## %%%%%%%%%%%%%%% Upload Event: " + ueId);
-					log.info("############## %%%%%%%%%%%%%%% Upload file for media recovery: " + uploadFile);
-					log.info("################ %%%%%%%%%%%%%% Processing media. Value: " + value);
-					log.info("################ %%%%%%%%%%%%%% Bad value in submit xml: " + value);
+				if(value != null) {
+					log.info("############## Upload Event: " + ueId);
+					log.info("############## Upload file for media recovery: " + uploadFile);
+					log.info("################ Processing media. Value: " + value);
 					
 					/*
 					 * Check if database value points to a valid file
@@ -833,26 +840,59 @@ public class SubscriberBatch {
 						ResultSet rs = pstmt.executeQuery();
 						if(rs.next()) {
 							String dbValue = rs.getString(1);
-							log.info("################ %%%%%%%%%%%%%% DB value is: " + dbValue);
-							
-							/*
-							 * Check file
-							 */
-							String path = basePath + "/" + dbValue;
-							File f = new File(path);
-							log.info("################ %%%%%%%%%%%%%% File Path: " + f.getAbsolutePath());
-							if(f.exists()) {
-								log.info("################ %%%%%%%%%%%%%% File exists Skipping");
-							} else {
-								log.info("################ %%%%%%%%%%%%%% File does not exist replace with corrected submit value");
-								String newValue = value.substring(4);
-								pstmt2 = cResults.prepareStatement(sql2);
-								pstmt2.setString(1, newValue);
-								pstmt2.setString(2, instanceid);
+							if(dbValue != null) {
+								log.info("################ DB value is: " + dbValue);
 								
-								log.info("############### %%%%%%%%%%%%%% " + pstmt2.toString());
-								pstmt2.executeUpdate();
+								/*
+								 * Check file
+								 */
+								String path = basePath + "/" + dbValue;
+								File f = new File(path);
+								
+								// Check to see if the file exists in S3
+								boolean exists = S3AttachmentUpload.exists(basePath, path);
+								if(!exists) {
+									log.info("################ %%%%%%%%%%%%%% ");
+									log.info("################ %%%%%%%%%%%%%% " + dbValue + " does not exist in bucket ");	
+									log.info("################ %%%%%%%%%%%%%% File does not exist upload appropriate attachment");
+									log.info("################ %%%%%%%%%%%%%% instanceId: " + instanceid);
+									log.info("################ %%%%%%%%%%%%%% Submitted value: " + value);	
+									log.info("############## %%%%%%%%%%%%%% XML file: " + uploadFile);
+									log.info("################ %%%%%%%%%%%%%% File Path: " + f.getAbsolutePath());
+									
+									int idx = uploadFile.lastIndexOf("/");
+									String submittedImagePath = uploadFile.substring(0, idx) + "/" + value;
+									File sFile = new File(submittedImagePath);
+									log.info("################ %%%%%%%%%%%%%% Submitted File Path: " + sFile.getAbsolutePath());
+									
+									if(f.exists() || sFile.exists()) {
+										log.info("################ %%%%%%%%%%%%%% Submitted File Exists");
+										
+										// Copy the uploaded file to attachments folder
+										if(!f.exists()) {
+											FileUtils.copyFile(sFile, f);
+											log.info("################ %%%%%%%%%%%%%% File copied from submissions directory");
+										}
+										log.info("################ %%%%%%%%%%%%%% ^^^^^^^^^^^  Sending local file " + f.getAbsolutePath() + " to bucket ");
+										//S3AttachmentUpload.put(basePath, f.getAbsolutePath());
+										
+									} else {
+										log.info("################ %%%%%%%%%%%%%% Submitted File Does not Exist skipping");
+									}
+									
+									
+									//String newValue = value.substring(4);
+									//pstmt2 = cResults.prepareStatement(sql2);
+									//pstmt2.setString(1, newValue);
+									//pstmt2.setString(2, instanceid);
+									
+									//log.info("############### %%%%%%%%%%%%%% " + pstmt2.toString());
+									//pstmt2.executeUpdate();
+								} else {
+									log.info("################ File exists Skipping");
+								}
 							}
+							
 						}
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
