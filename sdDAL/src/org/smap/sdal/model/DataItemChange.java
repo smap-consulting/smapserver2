@@ -8,9 +8,9 @@ import java.util.ArrayList;
 public class DataItemChange {
 	String col;
 	String displayName;
-	String type;
-	String newVal;									// Set for all types other than begin repeat
-	String oldVal;									// Set for all types other than begin repeat
+	public String type;
+	public String newVal;									// Set for all types other than begin repeat
+	public String oldVal;									// Set for all types other than begin repeat
 	ArrayList<ArrayList<DataItemChange>> changes = null;		// Set if this is a begin repeat
 
 	// Normal constructor

@@ -8496,8 +8496,10 @@ public class GeneralUtilityMethods {
 	
 	public static boolean isAttachmentType(String type) {
 		boolean attachment = false;
-		if(type.equals("image") || type.equals("audio") || type.equals("video") || type.equals("file") || type.equals("binary")) {
-			attachment = true;
+		if(type != null) {
+			if(type.equals("image") || type.equals("audio") || type.equals("video") || type.equals("file") || type.equals("binary")) {
+				attachment = true;
+			}
 		}
 		return attachment;
 	}

@@ -329,7 +329,9 @@ public class RecordEventManager {
 	/*
 	 * Get a list of event changes for a thread
 	 */
-	public ArrayList<DataItemChangeEvent> getChangeEvents(Connection sd, String tz, String tableName, String key) throws SQLException {
+	public ArrayList<DataItemChangeEvent> getChangeEvents(Connection sd, String tz, String tableName, 
+			String key,
+			boolean forDevice) throws SQLException {
 		
 		ArrayList<DataItemChangeEvent> events = new ArrayList<DataItemChangeEvent> ();
 		
@@ -402,6 +404,23 @@ public class RecordEventManager {
 				event.eventTime = rs.getString("event_time");
 				event.tz = tz;
 				
+				/*
+				 * If this data is destined for the client correct the URL of media files so they are authenticated using sessions
+				 */
+				if(!forDevice) {
+					if(event.changes != null) {
+						for(DataItemChange change : event.changes) {
+							if(GeneralUtilityMethods.isAttachmentType(change.type)) {
+								if(change.newVal != null && change.newVal.startsWith("attachments/")) {
+									change.newVal = "app/" + change.newVal;
+								}
+								if(change.oldVal != null && change.oldVal.startsWith("attachments/")) {
+									change.oldVal = "app/" + change.oldVal;
+								}
+							}
+						}
+					}
+				}
 				events.add(event);
 				
 			}
