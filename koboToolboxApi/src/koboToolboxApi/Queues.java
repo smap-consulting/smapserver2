@@ -18,9 +18,14 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 import javax.servlet.http.HttpServletRequest;
+
+import java.lang.reflect.Type;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.logging.Logger;
 
 import javax.ws.rs.GET;
@@ -34,6 +39,7 @@ import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
@@ -41,9 +47,11 @@ import org.smap.sdal.managers.QueueManager;
 import org.smap.sdal.managers.UserLocationManager;
 import org.smap.sdal.model.Queue;
 import org.smap.sdal.model.QueueItem;
+import org.smap.sdal.model.QueueTime;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 /*
  * Provides access to data on queues
@@ -65,7 +73,7 @@ public class Queues extends Application {
 	}
 
 	/*
-	 * Returns counts of created and closed cases over time
+	 * Returns counts of created and closed queue entries in the last minute
 	 */
 	@GET
 	@Path("/{queue}")
@@ -80,9 +88,7 @@ public class Queues extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		
-		Connection cResults = null;
 		try {			
-			cResults = ResultsDataSource.getConnection(connectionString);
 			
 			QueueManager qm = new QueueManager();
 			Queue q = new Queue();
@@ -113,10 +119,68 @@ public class Queues extends Application {
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
-			response = Response.serverError().build();
+			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
-			ResultsDataSource.closeConnection(connectionString, cResults);	
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Returns history of queue changes
+	 * 
+	 */
+	@GET
+	@Path("/history/{interval}")
+	@Produces("application/json")
+	public Response getHistory(@Context HttpServletRequest request,
+			@PathParam("interval") int interval,
+			@QueryParam("tz") String tz) throws ApplicationException { 
+
+		Response response = null;
+		String connectionString = "API - getQueueHistory";
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		
+		String sql = "select "
+				+ "to_char(timezone(?, recorded_at), 'YYYY-MM-DD HH24:MI:SS') as recorded_at,"
+				+ "payload "
+				+ "from monitor_data "
+				+ "where recorded_at > now() - interval '" + interval + " days' "
+				+ "order by recorded_at desc";
+		PreparedStatement pstmt = null;
+		
+		Type type = new TypeToken<HashMap<String, Queue>>() {}.getType();
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		ArrayList<QueueTime> data = new ArrayList<>();
+		
+		try {			
+			
+			if(tz == null) {
+				tz = GeneralUtilityMethods.getOrganisationTZ(sd, 
+						GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser()));
+			}
+			tz = (tz == null) ? "UTC" : tz;
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, tz);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				data.add(new QueueTime(rs.getString("recorded_at"), 
+						gson.fromJson(rs.getString("payload"), type)));
+			}
+			
+			response = Response.ok(gson.toJson(data)).build();
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;
