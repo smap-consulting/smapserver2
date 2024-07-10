@@ -707,7 +707,7 @@ public class SubscriberBatch {
 			String sql = "select ue_id, db_reason, s_id, file_path, instanceid from upload_event "
 					+ "where db_status = 'success' "
 					//+ "and processed_time > '2024-06-17 22:42:13.476596+00' "
-					+ "and (ue_id > '28654061' and ue_id < 29094187) "	// First one encountered was one more than this
+					+ "and (ue_id = '29087833') "	
 					+ "order by ue_id asc";
 			pstmt = sd.prepareStatement(sql);
 			
