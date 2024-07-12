@@ -1812,8 +1812,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS monitor_data
 ALTER TABLE monitor_data OWNER TO ws;
 
 DROP TABLE IF EXISTS message_queue;
-CREATE UNLOGGED TABLE IF NOT EXISTS message_queue
-(
+CREATE UNLOGGED TABLE IF NOT EXISTS message_queue (
     element_identifier UUID PRIMARY KEY,
     time_inserted TIMESTAMP,
     m_id integer,
@@ -1823,3 +1822,17 @@ CREATE UNLOGGED TABLE IF NOT EXISTS message_queue
     data text
 );
 ALTER TABLE message_queue OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS sms_event_seq CASCADE;
+CREATE SEQUENCE sms_event_seq START 1;
+ALTER SEQUENCE sms_event_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS sms_event;
+CREATE TABLE IF NOT EXISTS sms_event (
+    id integer DEFAULT NEXTVAL('sms_event_seq') CONSTRAINT pk_sms_event PRIMARY KEY,
+    time_inserted TIMESTAMP,
+    from_number text,
+    to_number text,
+    msg text	
+);
+ALTER TABLE sms_event OWNER TO ws;

@@ -107,3 +107,16 @@ ALTER TABLE message_queue OWNER TO ws;
 
 alter table message add column queue_name text;
 alter table message add column queued boolean default false;
+
+-- Version 24.08
+CREATE SEQUENCE IF NOT EXISTS sms_event_seq START 1;
+ALTER SEQUENCE sms_event_seq OWNER TO ws;
+
+CREATE TABLE IF NOT EXISTS sms_event (
+    id integer DEFAULT NEXTVAL('sms_event_seq') CONSTRAINT pk_sms_event PRIMARY KEY,
+    time_inserted TIMESTAMP,
+    from_number text,
+    to_number text,
+    msg text	
+);
+ALTER TABLE sms_event OWNER TO ws;
