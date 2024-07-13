@@ -6,6 +6,11 @@ import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.model.SMSDetails;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 /*****************************************************************************
 
 This file is part of SMAP.
@@ -33,29 +38,27 @@ public class SMSInboundManager {
 	private static Logger log =
 			 Logger.getLogger(SMSInboundManager.class.getName());
 	
+	private Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create(); 
+	
 	/*
 	 * Write a log entry that includes the survey id
 	 */
 	public void saveMessage(
 			Connection sd,
-			String fromNumber,
-			String toNumber,
-			String msg)  {
+			SMSDetails sms)  {
 		
-		String sql = "insert into sms_event ("
-				+ "time_inserted,"
-				+ "from_number,"
-				+ "msg) "
-				+ "values (now(), ?, ?);";
+		String sql = "insert into upload_event ("
+				+ "upload_time,"
+				+ "submission_type, "
+				+ "payload) "
+				+ "values (now(), 'SMS', ?);";
 
 		PreparedStatement pstmt = null;
 		
 		try {
 			
 			pstmt = sd.prepareStatement(sql);	
-			pstmt.setString(1, fromNumber);
-			pstmt.setString(2, toNumber);
-			pstmt.setString(3, msg);
+			pstmt.setString(1, gson.toJson(sms));
 			
 			log.info("----- new sms " + pstmt.toString());
 			pstmt.executeUpdate();

@@ -109,6 +109,7 @@ alter table message add column queue_name text;
 alter table message add column queued boolean default false;
 
 -- Version 24.08
+alter table upload_event add column submission_type text;
 alter table upload_event add column payload text;
 
 CREATE TABLE IF NOT EXISTS sms_number (

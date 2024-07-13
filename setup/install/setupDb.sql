@@ -515,7 +515,7 @@ insert into user_project (u_id, p_id) values (1 , 1);
 DROP TABLE IF EXISTS upload_event CASCADE;
 CREATE TABLE upload_event (
 	ue_id INTEGER DEFAULT NEXTVAL('ue_seq') CONSTRAINT pk_upload_event PRIMARY KEY,
-	results_db_applied boolean default false,	-- Speed up for most common subscriber
+	results_db_applied boolean default false,
 	s_id INTEGER,
 	ident text,	-- Identifier used by survey
 	p_id integer,
@@ -552,7 +552,8 @@ CREATE TABLE upload_event (
 	queue_name text,
 	queued boolean default false,
 	restore boolean default false,
-	payload text		-- SMS details, in future XML submission details
+	submission_type text,	-- SMS or Form (default)
+	payload text			-- SMS details, in future XML submission details
 	);
 create index idx_ue_ident on upload_event(user_name);
 create index idx_ue_applied on upload_event (status, incomplete, results_db_applied);
