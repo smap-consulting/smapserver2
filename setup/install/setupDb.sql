@@ -551,7 +551,8 @@ CREATE TABLE upload_event (
 	temporary_user boolean default false,
 	queue_name text,
 	queued boolean default false,
-	restore boolean default false
+	restore boolean default false,
+	payload text		-- SMS details, in future XML submission details
 	);
 create index idx_ue_ident on upload_event(user_name);
 create index idx_ue_applied on upload_event (status, incomplete, results_db_applied);
@@ -1823,16 +1824,14 @@ CREATE UNLOGGED TABLE IF NOT EXISTS message_queue (
 );
 ALTER TABLE message_queue OWNER TO ws;
 
-DROP SEQUENCE IF EXISTS sms_event_seq CASCADE;
-CREATE SEQUENCE sms_event_seq START 1;
-ALTER SEQUENCE sms_event_seq OWNER TO ws;
-
-DROP TABLE IF EXISTS sms_event;
-CREATE TABLE IF NOT EXISTS sms_event (
-    id integer DEFAULT NEXTVAL('sms_event_seq') CONSTRAINT pk_sms_event PRIMARY KEY,
-    time_inserted TIMESTAMP,
-    from_number text,
+DROP TABLE IF EXISTS sms_number;
+CREATE TABLE IF NOT EXISTS sms_number (
+    element_identifier UUID PRIMARY KEY,
+    time_modified TIMESTAMP WITH TIME ZONE,
     to_number text,
-    msg text	
+    o_id integer,
+    survey_ident text,	
+    description text
 );
-ALTER TABLE sms_event OWNER TO ws;
+ALTER TABLE sms_number OWNER TO ws;
+CREATE UNIQUE INDEX sms_number_to_idx ON sms_number(to_number);

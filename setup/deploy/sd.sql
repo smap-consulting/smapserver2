@@ -109,14 +109,14 @@ alter table message add column queue_name text;
 alter table message add column queued boolean default false;
 
 -- Version 24.08
-CREATE SEQUENCE IF NOT EXISTS sms_event_seq START 1;
-ALTER SEQUENCE sms_event_seq OWNER TO ws;
+alter table upload_event add column payload text;
 
-CREATE TABLE IF NOT EXISTS sms_event (
-    id integer DEFAULT NEXTVAL('sms_event_seq') CONSTRAINT pk_sms_event PRIMARY KEY,
-    time_inserted TIMESTAMP,
-    from_number text,
+CREATE TABLE IF NOT EXISTS sms_number (
+    element_identifier UUID PRIMARY KEY,
+    time_modified TIMESTAMP WITH TIME ZONE,
     to_number text,
-    msg text	
+    o_id integer,
+    survey_ident text,	
+    description text
 );
-ALTER TABLE sms_event OWNER TO ws;
+ALTER TABLE sms_number OWNER TO ws;
