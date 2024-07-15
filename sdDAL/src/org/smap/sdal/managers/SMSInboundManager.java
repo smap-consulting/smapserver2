@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.model.SMSDetails;
+import org.smap.sdal.model.SubscriberEvent;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -38,6 +39,8 @@ public class SMSInboundManager {
 	private static Logger log =
 			 Logger.getLogger(SMSInboundManager.class.getName());
 	
+	private static LogManager lm = new LogManager();		// Application log
+	
 	private Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create(); 
 	
 	/*
@@ -45,13 +48,17 @@ public class SMSInboundManager {
 	 */
 	public void saveMessage(
 			Connection sd,
-			SMSDetails sms)  {
+			SMSDetails sms,
+			String serverName)  {
 		
 		String sql = "insert into upload_event ("
 				+ "upload_time,"
 				+ "submission_type, "
-				+ "payload) "
-				+ "values (now(), 'SMS', ?);";
+				+ "payload, "
+				+ "server_name,"
+				+ "status,"
+				+ "s_id) "
+				+ "values (now(), 'SMS', ?, ?, 'success', 0);";
 
 		PreparedStatement pstmt = null;
 		
@@ -59,6 +66,7 @@ public class SMSInboundManager {
 			
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setString(1, gson.toJson(sms));
+			pstmt.setString(2, serverName);
 			
 			log.info("----- new sms " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -71,6 +79,20 @@ public class SMSInboundManager {
 	}
 	
 
+	public void processMessage(Connection sd, SMSDetails sms, SubscriberEvent se) {
+		
+		String sql = 
+		/*
+		 * Get destination for the SMS
+		 */
+		int sId = 0;
+		
+		/*
+		 * Write log entry
+		 */
+		lm.writeLog(sd, sId, sms.fromNumber, LogManager.SMS, se.getStatus() + " : " 
+				+ (se.getReason() == null ? "" : se.getReason()) + " : ", 0, null);
+	}
 }
 
 

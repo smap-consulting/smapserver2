@@ -17,17 +17,10 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  ******************************************************************************/
 
-package org.smap.server.entities;
+package org.smap.sdal.model;
 
-import java.io.Serializable;
+public class SubscriberEvent {
 
-public class SubscriberEvent implements Serializable{
-	
-	private static final long serialVersionUID = -6410553162606844278L;
-
-	private int se_id;
-	
-	private UploadEvent ue;
 	
 	private String status = null;
 	
@@ -40,13 +33,6 @@ public class SubscriberEvent implements Serializable{
 	/*
 	 * Getters
 	 */
-	public UploadEvent getUploadEvent() {
-		return ue;
-	}
-	
-	public int getId() {
-		return se_id;
-	}
 	
 	public String getStatus() {
 		return status;
@@ -59,9 +45,6 @@ public class SubscriberEvent implements Serializable{
 	/*
 	 * Setters
 	 */
-	public void setUploadEvent(UploadEvent value) {
-		ue = value;
-	}
     
 	public void setStatus(String value) {
 		status = value;

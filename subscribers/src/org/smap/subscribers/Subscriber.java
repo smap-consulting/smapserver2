@@ -27,9 +27,9 @@ import java.util.logging.Logger;
 import org.smap.model.SurveyInstance;
 import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.MediaChange;
+import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.HostUnreachableException;
-import org.smap.server.entities.SubscriberEvent;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
