@@ -2,10 +2,12 @@ package org.smap.sdal.managers;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.SMSDetails;
 import org.smap.sdal.model.SubscriberEvent;
 
@@ -81,17 +83,44 @@ public class SMSInboundManager {
 
 	public void processMessage(Connection sd, SMSDetails sms, SubscriberEvent se) {
 		
-		String sql = 
-		/*
-		 * Get destination for the SMS
-		 */
-		int sId = 0;
+		String surveyIdent = null;
 		
-		/*
-		 * Write log entry
-		 */
-		lm.writeLog(sd, sId, sms.fromNumber, LogManager.SMS, se.getStatus() + " : " 
-				+ (se.getReason() == null ? "" : se.getReason()) + " : ", 0, null);
+		String sql = "select "
+				+ "survey_ident "
+				+ "from sms_number "
+				+ "where to_number = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			/*
+			 * Get destination for the SMS
+			 */		
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, sms.toNumber);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				surveyIdent = rs.getString("survey_ident");
+				
+				/*
+				 * Write log entry
+				 */
+				int sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
+				lm.writeLog(sd, sId, sms.fromNumber, LogManager.SMS, se.getStatus() + " : " 
+						+ (se.getReason() == null ? "" : se.getReason()) + " : ", 0, null);
+				
+			} else {
+				se.setStatus("error");
+				se.setReason("SMS Inbound Number not found.  This number will need to be added to the numbers supported by the system before SMS messages to it can be processed.");
+			}
+			
+		} catch (Exception e) {
+			se.setStatus("error");
+			se.setReason(e.getMessage());
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}	
+
 	}
 }
 

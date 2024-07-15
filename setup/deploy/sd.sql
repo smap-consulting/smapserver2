@@ -116,7 +116,6 @@ CREATE TABLE IF NOT EXISTS sms_number (
     element_identifier UUID PRIMARY KEY,
     time_modified TIMESTAMP WITH TIME ZONE,
     to_number text,
-    o_id integer,
     survey_ident text,	
     description text
 );
