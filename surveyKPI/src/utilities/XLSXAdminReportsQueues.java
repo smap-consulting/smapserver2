@@ -100,10 +100,6 @@ public class XLSXAdminReportsQueues {
 		CellStyle errorStyle = null;
 		int rowNumber = 0;
 		int colNumber;
-
-		MediaInfo mediaInfo = new MediaInfo();
-		mediaInfo.setServer(request.getRequestURL().toString());
-		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		PreparedStatement pstmt = null;
 		
@@ -117,10 +113,7 @@ public class XLSXAdminReportsQueues {
 			dataSheet = wb.createSheet("data");
 			
 			Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
-			CellStyle headerStyle = styles.get("header");
-			errorStyle = styles.get("errorStyle");
-			good = styles.get("good");
-			bad = styles.get("bad");
+			CellStyle headerStyle = styles.get("header");	
 			
 			if(data.size() > 0) {
 				HashMap<String, Queue> h = data.get(0).data;
@@ -164,14 +157,23 @@ public class XLSXAdminReportsQueues {
 					for(String key : keys) {
 						Queue q = elem.data.get(key);
 						
+						int length = 0;
+						int newRPM = 0;
+						int processedRPM = 0;
+						
+						if(q != null) {
+							length = q.length;
+							newRPM = q.new_rpm;
+							processedRPM = q.processed_rpm;
+						}
 						cell = row.createCell(colNumber++);
-						cell.setCellValue(q.length);
+						cell.setCellValue(length);
 						
 						cell = row.createCell(colNumber++);
-						cell.setCellValue(q.new_rpm);
+						cell.setCellValue(newRPM);
 						
 						cell = row.createCell(colNumber++);	// Type
-						cell.setCellValue(q.processed_rpm);
+						cell.setCellValue(processedRPM);
 					}
 				}
 			}
@@ -182,7 +184,7 @@ public class XLSXAdminReportsQueues {
 			response.setHeader("Content-type",  "text/html; charset=UTF-8");
 				
 			String msg = e.getMessage();
-			if(msg.contains("does not exist")) {
+			if(msg != null && msg.contains("does not exist")) {
 				msg = localisation.getString("msg_no_data");
 			}
 			Row dataRow = dataSheet.createRow(rowNumber + 1);	

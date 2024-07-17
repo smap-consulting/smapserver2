@@ -518,7 +518,7 @@ public class QueueManager {
 				+ "payload "
 				+ "from monitor_data "
 				+ "where recorded_at > now() - interval '" + interval + " days' "
-				+ "order by recorded_at desc";
+				+ "order by recorded_at asc";
 		PreparedStatement pstmt = null;
 		
 		Type type = new TypeToken<HashMap<String, Queue>>() {}.getType();
@@ -535,6 +535,7 @@ public class QueueManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, tz);
+			log.info("Queue history: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				data.add(new QueueTime(rs.getString("recorded_at"), 
