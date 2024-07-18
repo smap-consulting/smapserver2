@@ -168,6 +168,12 @@ public class SubRelationalDB extends Subscriber {
 			
 		} finally {
 			try {
+				lock.release("top level");    // Ensure lock is released before closing
+				lock.close("top level");
+			} catch (Exception e) {
+				
+			}
+			try {
 				if (dbc.sd != null) {
 					dbc.sd.close();
 				}
@@ -183,7 +189,7 @@ public class SubRelationalDB extends Subscriber {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 			
-			lock.close();
+
 		}
 
 		return mediaChanges;
@@ -332,7 +338,7 @@ public class SubRelationalDB extends Subscriber {
 			 * Add advisory lock if existing data is to be updated
 			 */
 			if(updateId != null || hasHrk) {
-				lock.lock();
+				lock.lock("merge");
 			}
 			
 			Keys keys = writeTableContent(
@@ -430,7 +436,7 @@ public class SubRelationalDB extends Subscriber {
 				pstmtHrk.executeUpdate();	
 			}
 			
-			lock.release();   // Release lock - merging of records finished
+			lock.release("merge done");   // Release lock - merging of records finished
 			
 			/*
 			 * Record any foreign keys that need to be set between forms
@@ -554,7 +560,7 @@ public class SubRelationalDB extends Subscriber {
 				CMS cms = null;
 				if (parent_key == 0) { // top level survey has a parent key of 0
 					
-					lock.lock();	// Start lock while modifying tables
+					lock.lock("table mod start");	// Start lock while modifying tables
 					
 					// Create new tables
 					SurveyTemplate template = new SurveyTemplate(localisation); 
@@ -583,7 +589,7 @@ public class SubRelationalDB extends Subscriber {
 						}
 					}
 					
-					lock.release();		// Release lock - table modification finished
+					lock.release("table mod done");		// Release lock - table modification finished
 					/*
 					 * Get Case Management Settings
 					 */
@@ -747,7 +753,6 @@ public class SubRelationalDB extends Subscriber {
 			}
 			
 		} finally {
-			lock.release();		// In case exception thrown
 			if (pstmt != null) try {	pstmt.close();} catch (Exception e) {}
 		}
 

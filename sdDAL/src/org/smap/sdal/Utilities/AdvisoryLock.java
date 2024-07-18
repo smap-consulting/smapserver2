@@ -28,26 +28,28 @@ public class AdvisoryLock {
 		pstmtRelease = sd.prepareStatement("SELECT pg_advisory_unlock_all()");
 	}
 	
-	public void lock() {
+	public void lock(String msg) {
 		try {
-			log.info("=============== Execute lock: " + a + " : " + b);
+			log.info("=============== Execute lock: " + msg + " : " + a + " : " + b);
 			pstmtLock.execute();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 		}
 	}
 	
-	public void release() {
+	public void release(String msg) {
 		try {
-			log.info("=============== Release lock: " + a + " : " + b);
-			pstmtRelease.execute();
+			log.info("=============== Release lock: " + msg + " : "+ a + " : " + b);
+			if(pstmtRelease != null && !pstmtRelease.isClosed()) {
+				pstmtRelease.execute();
+			}
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 		}
 	}
 	
-	public void close() {
-		log.info("=============== Close lock: " + a + " : " + b);
+	public void close(String msg) {
+		log.info("=============== Close lock: " + msg + " : "+ a + " : " + b);
 		try {if (pstmtLock != null) {pstmtLock.close();}} catch (SQLException e) {}
 		try {if (pstmtRelease != null) {pstmtRelease.close();}} catch (SQLException e) {}
 	}
