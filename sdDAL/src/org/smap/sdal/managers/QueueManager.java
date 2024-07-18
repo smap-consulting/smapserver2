@@ -1,16 +1,26 @@
 package org.smap.sdal.managers;
 
+import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.logging.Logger;
 
+import javax.ws.rs.core.Response;
+
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.model.Queue;
 import org.smap.sdal.model.QueueItem;
+import org.smap.sdal.model.QueueTime;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 /*****************************************************************************
 
@@ -45,6 +55,8 @@ public class QueueManager {
 
 	private static Logger log =
 			Logger.getLogger(QueueManager.class.getName());
+	
+	private Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 	/*
 	 * Get status of submission queue
 	 */
@@ -494,6 +506,49 @@ public class QueueManager {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
+	}
+	
+	/*
+	 * Get get queue history
+	 */
+	public ArrayList<QueueTime> getHistory(Connection sd, int interval, String tz, String user) {
+		
+		String sql = "select "
+				+ "to_char(timezone(?, recorded_at), 'YYYY-MM-DD HH24:MI:SS') as recorded_at,"
+				+ "payload "
+				+ "from monitor_data "
+				+ "where recorded_at > now() - interval '" + interval + " days' "
+				+ "order by recorded_at asc";
+		PreparedStatement pstmt = null;
+		
+		Type type = new TypeToken<HashMap<String, Queue>>() {}.getType();
+
+		ArrayList<QueueTime> data = new ArrayList<>();
+		
+		try {			
+			
+			if(tz == null) {
+				tz = GeneralUtilityMethods.getOrganisationTZ(sd, 
+						GeneralUtilityMethods.getOrganisationId(sd, user));
+			}
+			tz = (tz == null) ? "UTC" : tz;
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, tz);
+			log.info("Queue history: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				data.add(new QueueTime(rs.getString("recorded_at"), 
+						gson.fromJson(rs.getString("payload"), type)));
+			}
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+		}
+		
+		return data;
 	}
 
 }

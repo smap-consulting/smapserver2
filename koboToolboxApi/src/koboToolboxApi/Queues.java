@@ -145,41 +145,17 @@ public class Queues extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		
-		String sql = "select "
-				+ "to_char(timezone(?, recorded_at), 'YYYY-MM-DD HH24:MI:SS') as recorded_at,"
-				+ "payload "
-				+ "from monitor_data "
-				+ "where recorded_at > now() - interval '" + interval + " days' "
-				+ "order by recorded_at desc";
-		PreparedStatement pstmt = null;
-		
-		Type type = new TypeToken<HashMap<String, Queue>>() {}.getType();
+		QueueManager qm = new QueueManager();
+
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-		ArrayList<QueueTime> data = new ArrayList<>();
 		
-		try {			
-			
-			if(tz == null) {
-				tz = GeneralUtilityMethods.getOrganisationTZ(sd, 
-						GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser()));
-			}
-			tz = (tz == null) ? "UTC" : tz;
-			
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, tz);
-			ResultSet rs = pstmt.executeQuery();
-			while (rs.next()) {
-				data.add(new QueueTime(rs.getString("recorded_at"), 
-						gson.fromJson(rs.getString("payload"), type)));
-			}
-			
+		try {
+			ArrayList<QueueTime> data = qm.getHistory(sd, interval, tz, request.getRemoteUser());
 			response = Response.ok(gson.toJson(data)).build();
-			
 		} catch (Exception e) {
 			e.printStackTrace();
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
-			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 
