@@ -747,6 +747,7 @@ public class SubRelationalDB extends Subscriber {
 			}
 			
 		} finally {
+			lock.release();		// In case exception thrown
 			if (pstmt != null) try {	pstmt.close();} catch (Exception e) {}
 		}
 

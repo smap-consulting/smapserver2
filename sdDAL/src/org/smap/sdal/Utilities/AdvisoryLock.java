@@ -20,6 +20,7 @@ public class AdvisoryLock {
 		this.a = a;
 		this.b = b;
 		
+		log.info("=============== Prepare lock: " + a + " : " + b);
 		pstmtLock = sd.prepareStatement("SELECT pg_advisory_lock(?,?)");
 		pstmtLock.setInt(1, a);
 		pstmtLock.setInt(2, b);
@@ -29,6 +30,7 @@ public class AdvisoryLock {
 	
 	public void lock() {
 		try {
+			log.info("=============== Execute lock: " + a + " : " + b);
 			pstmtLock.execute();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
@@ -37,6 +39,7 @@ public class AdvisoryLock {
 	
 	public void release() {
 		try {
+			log.info("=============== Release lock: " + a + " : " + b);
 			pstmtRelease.execute();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
@@ -44,6 +47,7 @@ public class AdvisoryLock {
 	}
 	
 	public void close() {
+		log.info("=============== Close lock: " + a + " : " + b);
 		try {if (pstmtLock != null) {pstmtLock.close();}} catch (SQLException e) {}
 		try {if (pstmtRelease != null) {pstmtRelease.close();}} catch (SQLException e) {}
 	}
