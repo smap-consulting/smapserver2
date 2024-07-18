@@ -163,7 +163,7 @@ public class SubmissionProcessor {
 								SMSDetails sms = gson.fromJson(ue.getPayload(), SMSDetails.class);
 								
 								SMSInboundManager sim = new SMSInboundManager();
-								sim.processMessage(dbc.sd, dbc.results, sms, se);
+								sim.processMessage(dbc.sd, sms, se);
 							} else {
 								// Form
 							

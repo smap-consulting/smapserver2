@@ -8,7 +8,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.model.SMSDetails;
 import org.smap.sdal.model.SubscriberEvent;
 
@@ -82,14 +81,12 @@ public class SMSInboundManager {
 	}
 	
 
-	public void processMessage(Connection sd, Connection cResults, SMSDetails sms, SubscriberEvent se) {
+	public void processMessage(Connection sd, SMSDetails sms, SubscriberEvent se) {
 		
 		String surveyIdent = null;
-		String questionName = null;
 		
 		String sql = "select "
-				+ "survey_ident, "
-				+ "question_name "
+				+ "survey_ident "
 				+ "from sms_number "
 				+ "where to_number = ?";
 		PreparedStatement pstmt = null;
@@ -104,12 +101,6 @@ public class SMSInboundManager {
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				surveyIdent = rs.getString("survey_ident");
-				questionName = rs.getString("question_name");
-				
-				/*
-				 * Create a case
-				 */
-				createCase(sd, cResults, surveyIdent, questionName);
 				
 				/*
 				 * Write log entry
@@ -130,14 +121,6 @@ public class SMSInboundManager {
 			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
 		}	
 
-	}
-	
-	/*
-	 * Create a case
-	 */
-	private void createCase(Connection sd, Connection cResults, String surveyIdent, String questionName) {
-		
-		
 	}
 }
 
