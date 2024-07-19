@@ -115,9 +115,11 @@ alter table upload_event add column payload text;
 CREATE TABLE IF NOT EXISTS sms_number (
     element_identifier UUID PRIMARY KEY,
     time_modified TIMESTAMP WITH TIME ZONE,
-    to_number text,
+    our_number text,			-- Our number that sends or receives messages
     survey_ident text,
-    question_name text,
+    their_number_question text, -- The question in the survey that holds the number of the counterpart
+    message_question text,		-- The question name in the survey that holds the message details
     description text
 );
 ALTER TABLE sms_number OWNER TO ws;
+CREATE UNIQUE INDEX IF NOT EXISTS sms_number_to_idx ON sms_number(our_number);

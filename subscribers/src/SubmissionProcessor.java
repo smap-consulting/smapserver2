@@ -23,9 +23,10 @@ import org.smap.model.TableManager;
 import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.AdvisoryLock;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.SMSInboundManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Organisation;
@@ -167,7 +168,13 @@ public class SubmissionProcessor {
 								System.out.println("------------ Processing SMS message");
 								SMSDetails sms = gson.fromJson(ue.getPayload(), SMSDetails.class);
 								
-								processMessage(dbc.sd, dbc.results, localisation, tz, sms, se);
+								processMessage(dbc.sd, 
+										dbc.results, 
+										localisation, 
+										tz, 
+										ue.getUserName(),
+										sms, 
+										se);
 							} else {
 								// Form
 							
@@ -484,24 +491,27 @@ public class SubmissionProcessor {
 	}
 	
 	/*
-	 * Process an uploaded SMS message
+	 * Process an uploaded message
 	 */
 	public void processMessage(Connection sd, Connection cResults, 
 			ResourceBundle localisation,
 			String tz,
+			String user,
 			SMSDetails sms, 
 			SubscriberEvent se) {
 		
 		AdvisoryLock lockTableChange = null;
 		
 		String surveyIdent = null;
-		String questionName = null;
+		String theirNumberQuestion = null;
+		String messageQuestion = null;
 		
 		String sql = "select "
 				+ "survey_ident,"
-				+ "question_name "
+				+ "their_number_question,"
+				+ "message_question "
 				+ "from sms_number "
-				+ "where to_number = ?";
+				+ "where our_number = ?";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -510,11 +520,12 @@ public class SubmissionProcessor {
 			 * Get destination for the SMS
 			 */		
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, sms.toNumber);
+			pstmt.setString(1, sms.ourNumber);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
-				surveyIdent = rs.getString("survey_ident");
-				questionName = rs.getString("question_name");
+				surveyIdent = rs.getString("their_number_question");
+				theirNumberQuestion = rs.getString("question_name");
+				messageQuestion = rs.getString("message_question");
 				
 				int sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
 				
@@ -530,9 +541,33 @@ public class SubmissionProcessor {
 				lockTableChange.release("table sms mod done");
 				
 				/*
+				 * Get the case details
+				 */
+				String statusQuestion = null;
+				String finalStatus = null;
+				CaseManager cm = new CaseManager(localisation);
+				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+				CMS caseSettings = cm.getCaseManagementSettings(sd, groupSurveyIdent);
+				if(caseSettings != null) {
+					statusQuestion = caseSettings.settings.statusQuestion;
+					finalStatus = caseSettings.settings.finalStatus;
+				}
+				/*
+				 * Write the message to the results table
+				 */
+				writeMessage(sd, cResults, 
+						user,
+						surveyIdent, 
+						sId, 
+						theirNumberQuestion, 
+						sms.theirNumber, 
+						statusQuestion, 
+						finalStatus);
+				
+				/*
 				 * Write log entry
 				 */		
-				lm.writeLog(sd, sId, sms.fromNumber, LogManager.SMS, se.getStatus() + " : " 
+				lm.writeLog(sd, sId, sms.theirNumber, LogManager.SMS, se.getStatus() + " : " 
 						+ (se.getReason() == null ? "" : se.getReason()) + " : ", 0, null);
 				
 			} else {
@@ -555,5 +590,72 @@ public class SubmissionProcessor {
 			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
 		}	
 
+	}
+	
+	/*
+	 * Write a text conversation to the results table
+	 */
+	private void writeMessage(Connection sd, Connection cResults,
+			String user,
+			String surveyIdent,
+			int sId,
+			String theirNumberQuestion,
+			String theirNumber,
+			String statusQuestion,
+			String finalStatus) throws SQLException {
+		
+		PreparedStatement pstmtExists = null;
+		PreparedStatement pstmt = null;
+		
+		try {
+			/*
+			 * Check to see if there is an existing case for this number
+			 */
+			int existingPrikey = 0;
+			boolean checkStatus = false;
+			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, surveyIdent);
+			String theirNumberColumn = GeneralUtilityMethods.getColumnName(sd, sId, theirNumberQuestion);
+			StringBuilder sqlExists = new StringBuilder("select count(*) from ")
+					.append(tableName)
+					.append(" where ")
+					.append(theirNumberColumn)
+					.append(" = ? ");
+			if(statusQuestion != null && finalStatus != null) {
+				checkStatus  = true;
+				String statusColumn = GeneralUtilityMethods.getColumnName(sd, sId, statusQuestion);
+				sqlExists.append(" and ")
+					.append(statusColumn)
+					.append(" != ?");
+			}
+			pstmtExists = cResults.prepareStatement(sqlExists.toString());
+			pstmtExists.setString(1, theirNumber);
+			if(checkStatus) {
+				pstmtExists.setString(2, finalStatus);
+			}
+			log.info("Check for existing cases: " + pstmtExists.toString());
+			ResultSet rs = pstmtExists.executeQuery();
+			if(rs.next()) {
+				existingPrikey = rs.getInt("prikey");
+			}
+			
+			if(existingPrikey == 0) {
+				/*
+				 * Create new entry
+				 */
+				StringBuilder sql = new StringBuilder("insert into ")
+						.append(tableName)
+						.append(" (_user)")
+						.append(" values(?)");
+				pstmt = cResults.prepareStatement(sql.toString());
+				pstmt.setString(1, user);
+			} else {
+				/*
+				 * Update existing entry
+				 */
+			}
+		} finally {
+			if(pstmtExists != null) {try {pstmtExists.close();} catch (Exception e) {}}
+			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}}
+		}
 	}
 }

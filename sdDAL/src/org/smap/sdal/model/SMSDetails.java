@@ -5,7 +5,7 @@ package org.smap.sdal.model;
  */
 public class SMSDetails {
 	
-	public String fromNumber;
-	public String toNumber;
+	public String theirNumber;
+	public String ourNumber;
 	public String msg;
 }
