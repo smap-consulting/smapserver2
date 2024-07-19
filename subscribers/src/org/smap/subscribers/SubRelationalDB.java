@@ -81,7 +81,8 @@ public class SubRelationalDB extends Subscriber {
 	String gBasePath = null;
 	String gFilePath = null;
 	String gAuditFilePath = null;
-	AdvisoryLock lock;
+	AdvisoryLock lockTableChange;
+	AdvisoryLock lockRecordUpdate;
 	
 	private Survey survey = null;
 	private Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
@@ -128,7 +129,8 @@ public class SubRelationalDB extends Subscriber {
 		try {
 
 			GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);			
-			lock = new AdvisoryLock(dbc.sd, 1, survey.getId());	// Lock at the survey level - must be closed on exit
+			lockTableChange = new AdvisoryLock(dbc.sd, 1, survey.getId());	// If necessary lock at the survey level - must be closed on exit
+			lockRecordUpdate = new AdvisoryLock(dbc.sd, 2, survey.getId());
 			this.survey = survey;
 
 			int assignmentId = getAssignmentId(dbc.sd, ue_id);
@@ -168,8 +170,10 @@ public class SubRelationalDB extends Subscriber {
 			
 		} finally {
 			try {
-				lock.release("top level");    // Ensure lock is released before closing
-				lock.close("top level");
+				lockTableChange.release("top level");    // Ensure lock is released before closing
+				lockRecordUpdate.release("top level");
+				lockTableChange.close("top level");
+				lockRecordUpdate.close("top level");
 			} catch (Exception e) {
 				
 			}
@@ -334,13 +338,6 @@ public class SubRelationalDB extends Subscriber {
 			UniqueKey uk = km.get(sd, survey.surveyData.groupSurveyIdent);
 			boolean hasHrk = (uk.key.trim().length() > 0);
 			
-			/*
-			 * Add advisory lock if existing data is to be updated
-			 */
-			if(updateId != null || hasHrk) {
-				lock.lock("merge");
-			}
-			
 			Keys keys = writeTableContent(
 					topElement, 
 					0, 
@@ -366,6 +363,13 @@ public class SubRelationalDB extends Subscriber {
 
 			// Commit so that we have the data
 			cResults.commit();
+			
+			/*
+			 * Add advisory lock if existing data is to be updated
+			 */
+			if(updateId != null || hasHrk) {
+				lockRecordUpdate.lock("merge");
+			}
 			
 			/*
 			 * Update existing records
@@ -436,7 +440,7 @@ public class SubRelationalDB extends Subscriber {
 				pstmtHrk.executeUpdate();	
 			}
 			
-			lock.release("merge done");   // Release lock - merging of records finished
+			lockRecordUpdate.release("merge done");   // Release lock - merging of records finished
 			
 			/*
 			 * Record any foreign keys that need to be set between forms
@@ -560,7 +564,7 @@ public class SubRelationalDB extends Subscriber {
 				CMS cms = null;
 				if (parent_key == 0) { // top level survey has a parent key of 0
 					
-					lock.lock("table mod start");	// Start lock while modifying tables
+					lockTableChange.lock("table mod start");	// Start lock while modifying tables
 					
 					// Create new tables
 					SurveyTemplate template = new SurveyTemplate(localisation); 
@@ -589,7 +593,7 @@ public class SubRelationalDB extends Subscriber {
 						}
 					}
 					
-					lock.release("table mod done");		// Release lock - table modification finished
+					lockTableChange.release("table mod done");		// Release lock - table modification finished
 					/*
 					 * Get Case Management Settings
 					 */
