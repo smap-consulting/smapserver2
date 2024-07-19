@@ -16,9 +16,12 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.commons.io.FileUtils;
+import org.smap.model.FormDesc;
 import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
+import org.smap.model.TableManager;
 import org.smap.notifications.interfaces.S3AttachmentUpload;
+import org.smap.sdal.Utilities.AdvisoryLock;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SMSInboundManager;
@@ -32,6 +35,7 @@ import org.smap.sdal.model.Survey;
 import org.smap.server.entities.MissingSurveyException;
 import org.smap.server.entities.MissingTemplateException;
 import org.smap.server.entities.UploadEvent;
+import org.smap.server.utilities.UtilityMethods;
 import org.smap.subscribers.SubRelationalDB;
 import org.smap.subscribers.Subscriber;
 
@@ -82,6 +86,7 @@ public class SubmissionProcessor {
 		public void run() {
 
 			int delaySecs = 1;
+			String 	tz = "UTC";			// Default default time zone
 
 			/*
 			 * SQL to write the results to the upload event table
@@ -162,8 +167,7 @@ public class SubmissionProcessor {
 								System.out.println("------------ Processing SMS message");
 								SMSDetails sms = gson.fromJson(ue.getPayload(), SMSDetails.class);
 								
-								SMSInboundManager sim = new SMSInboundManager();
-								sim.processMessage(dbc.sd, sms, se);
+								processMessage(dbc.sd, dbc.results, localisation, tz, sms, se);
 							} else {
 								// Form
 							
@@ -477,5 +481,79 @@ public class SubmissionProcessor {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 		}
+	}
+	
+	/*
+	 * Process an uploaded SMS message
+	 */
+	public void processMessage(Connection sd, Connection cResults, 
+			ResourceBundle localisation,
+			String tz,
+			SMSDetails sms, 
+			SubscriberEvent se) {
+		
+		AdvisoryLock lockTableChange = null;
+		
+		String surveyIdent = null;
+		String questionName = null;
+		
+		String sql = "select "
+				+ "survey_ident,"
+				+ "question_name "
+				+ "from sms_number "
+				+ "where to_number = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			/*
+			 * Get destination for the SMS
+			 */		
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, sms.toNumber);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				surveyIdent = rs.getString("survey_ident");
+				questionName = rs.getString("question_name");
+				
+				int sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
+				
+				lockTableChange = new AdvisoryLock(sd, 1, sId);	// If necessary lock at the survey level
+				
+				/*
+				 * Ensure tables are fully published
+				 */
+				lockTableChange.lock("table sms mod start");	// Start lock while modifying tables
+				TableManager tm = new TableManager(localisation, tz);
+				ArrayList <FormDesc> formList = tm.getFormList(sd, sId);
+				UtilityMethods.createSurveyTables(sd, cResults, localisation, sId, formList, surveyIdent, tz);
+				lockTableChange.release("table sms mod done");
+				
+				/*
+				 * Write log entry
+				 */		
+				lm.writeLog(sd, sId, sms.fromNumber, LogManager.SMS, se.getStatus() + " : " 
+						+ (se.getReason() == null ? "" : se.getReason()) + " : ", 0, null);
+				
+			} else {
+				se.setStatus("error");
+				se.setReason("SMS Inbound Number not found.  This number will need to be added to the numbers supported by the system before SMS messages to it can be processed.");
+			}
+			
+		} catch (Exception e) {
+			se.setStatus("error");
+			se.setReason(e.getMessage());
+		} finally {
+			try {
+				if(lockTableChange != null) {
+					lockTableChange.release("top level");    // Ensure lock is released before closing
+					lockTableChange.close("top level");
+				}
+			} catch (Exception e) {
+				
+			}
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}	
+
 	}
 }
