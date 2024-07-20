@@ -666,15 +666,16 @@ public class SubmissionProcessor {
 				log.info("Create new entry ");
 				StringBuilder sql = new StringBuilder("insert into ")
 						.append(tableName)
-						.append(" (_user, instanceid")
+						.append(" (_user, instanceid, _thread")
 						.append(",").append(theirNumberColumn)
 						.append(",").append(messageColumn)
-						.append(") values(?, ?, ?, ?)");
+						.append(") values(?, ?, ?, ?, ?)");
 				pstmt = cResults.prepareStatement(sql.toString());
 				pstmt.setString(1, user);
 				pstmt.setString(2,  instanceid);
-				pstmt.setString(3, sms.theirNumber);
-				pstmt.setString(4, gson.toJson(getMessageText(sms, null)));
+				pstmt.setString(3,  instanceid);	// thread
+				pstmt.setString(4, sms.theirNumber);
+				pstmt.setString(5, gson.toJson(getMessageText(sms, null)));
 				
 			} else {
 				/*
