@@ -38,10 +38,7 @@ public class TestInboundSMS extends Application {
 		String connectionString = "sms test";
 		
 		try {
-			SMSDetails sms = new SMSDetails();
-			sms.fromNumber = "9876543210";
-			sms.toNumber = "0123456789";
-			sms.msg = "Test number 4";
+			SMSDetails sms = new SMSDetails("9876543211", "0123456789", "Test number 5", true);
     		sd = SDDataSource.getConnection(connectionString);
     		
     		SMSInboundManager sim = new SMSInboundManager();

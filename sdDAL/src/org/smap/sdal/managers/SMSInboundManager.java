@@ -55,20 +55,23 @@ public class SMSInboundManager {
 		
 		String sql = "insert into upload_event ("
 				+ "upload_time,"
+				+ "user_name, "
 				+ "submission_type, "
 				+ "payload, "
 				+ "server_name,"
 				+ "status,"
-				+ "s_id) "
-				+ "values (now(), 'SMS', ?, ?, 'success', 0);";
+				+ "s_id,"
+				+ "instanceid) "
+				+ "values (now(), ?, 'SMS', ?, ?, 'success', 0, gen_random_uuid());";
 
 		PreparedStatement pstmt = null;
 		
 		try {
 			
-			pstmt = sd.prepareStatement(sql);	
-			pstmt.setString(1, gson.toJson(sms));
-			pstmt.setString(2, serverName);
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, sms.ourNumber);  	// User
+			pstmt.setString(2, gson.toJson(sms));	// Payload
+			pstmt.setString(3, serverName);			// Server Name
 			
 			log.info("----- new sms " + pstmt.toString());
 			pstmt.executeUpdate();

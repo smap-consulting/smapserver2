@@ -38,27 +38,31 @@ public class InboundSMSServlet extends HttpServlet {
 		/*
 		 * Get the parameters
 		 */
-		SMSDetails sms = new SMSDetails();
+		
 		
 		System.out.println("Received SMS: " + req.getMethod());
+        String theirNumber = null;
+        String ourNumber = null;
+        String msg = null;
         for (String param : Collections.list(req.getParameterNames())) {
             
         	String value = req.getParameter(param);
             System.out.println(param + ": " + value);
             
             if(FROM_PARAM.equals(param)) {
-            	sms.fromNumber = value;
+            	theirNumber = value;
             } else if(TO_PARAM.equals(param)) {
-            	sms.toNumber = value;
+            	ourNumber = value;
             } else if(MSG_PARAM.equals(param)) {
-            	sms.msg = value;
-            }
+            	msg = value;
+            }         
         }
+        SMSDetails sms = new SMSDetails(theirNumber, ourNumber, msg, true);
         
         /*
          * Save SMS message for further processing
          */
-        if(sms.toNumber != null && sms.msg != null) {	// TODO allow null from number?
+        if(sms.ourNumber != null && sms.msg != null) {	// TODO allow null from number?
         	
         	try {
         		sd = SDDataSource.getConnection(connectionString);

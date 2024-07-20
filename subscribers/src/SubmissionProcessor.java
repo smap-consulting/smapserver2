@@ -2,6 +2,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -42,6 +43,7 @@ import org.smap.subscribers.Subscriber;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 /*****************************************************************************
  * 
@@ -71,7 +73,7 @@ public class SubmissionProcessor {
 	private static LogManager lm = new LogManager();		// Application log
 
 	private static Logger log = Logger.getLogger(SubmissionProcessor.class.getName());
-	
+	private Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 	private class SubmissionQueueLoop implements Runnable {
 		DatabaseConnections dbc = new DatabaseConnections();
 		String basePath;
@@ -168,13 +170,20 @@ public class SubmissionProcessor {
 								System.out.println("------------ Processing SMS message");
 								SMSDetails sms = gson.fromJson(ue.getPayload(), SMSDetails.class);
 								
-								processMessage(dbc.sd, 
-										dbc.results, 
-										localisation, 
-										tz, 
-										ue.getUserName(),
-										sms, 
-										se);
+								try {
+									processMessage(dbc.sd, 
+											dbc.results, 
+											localisation, 
+											tz, 
+											ue.getUserName(),
+											ue.getInstanceId(),
+											sms, 
+											se);
+								} catch (Exception e) {
+									e.printStackTrace();
+									se.setStatus("error");
+									se.setReason(e.getMessage());
+								}
 							} else {
 								// Form
 							
@@ -280,10 +289,7 @@ public class SubmissionProcessor {
 	
 									try {
 										if(is != null) {is.close();}						
-										if(is3 != null) {is3.close();}
-	
-										
-	
+										if(is3 != null) {is3.close();}	
 									} catch (Exception e) {
 	
 									}
@@ -493,10 +499,12 @@ public class SubmissionProcessor {
 	/*
 	 * Process an uploaded message
 	 */
-	public void processMessage(Connection sd, Connection cResults, 
+	public void processMessage(Connection sd, 
+			Connection cResults, 
 			ResourceBundle localisation,
 			String tz,
 			String user,
+			String instanceid,
 			SMSDetails sms, 
 			SubscriberEvent se) {
 		
@@ -521,10 +529,11 @@ public class SubmissionProcessor {
 			 */		
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sms.ourNumber);
+			log.info("Get SMS destination: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
-				surveyIdent = rs.getString("their_number_question");
-				theirNumberQuestion = rs.getString("question_name");
+				surveyIdent = rs.getString("survey_ident");
+				theirNumberQuestion = rs.getString("their_number_question");
 				messageQuestion = rs.getString("message_question");
 				
 				int sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
@@ -557,10 +566,12 @@ public class SubmissionProcessor {
 				 */
 				writeMessage(sd, cResults, 
 						user,
+						instanceid,
 						surveyIdent, 
 						sId, 
-						theirNumberQuestion, 
-						sms.theirNumber, 
+						theirNumberQuestion,  
+						messageQuestion,
+						sms,
 						statusQuestion, 
 						finalStatus);
 				
@@ -576,6 +587,7 @@ public class SubmissionProcessor {
 			}
 			
 		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
 			se.setStatus("error");
 			se.setReason(e.getMessage());
 		} finally {
@@ -597,29 +609,36 @@ public class SubmissionProcessor {
 	 */
 	private void writeMessage(Connection sd, Connection cResults,
 			String user,
+			String instanceid,
 			String surveyIdent,
 			int sId,
 			String theirNumberQuestion,
-			String theirNumber,
+			String messageQuestion,
+			SMSDetails sms,
 			String statusQuestion,
 			String finalStatus) throws SQLException {
 		
 		PreparedStatement pstmtExists = null;
+		PreparedStatement pstmtGet = null;
 		PreparedStatement pstmt = null;
 		
 		try {
+			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, surveyIdent);
+			String theirNumberColumn = GeneralUtilityMethods.getColumnName(sd, sId, theirNumberQuestion);
+			String messageColumn = GeneralUtilityMethods.getColumnName(sd, sId, messageQuestion);
+			
 			/*
 			 * Check to see if there is an existing case for this number
 			 */
 			int existingPrikey = 0;
 			boolean checkStatus = false;
-			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, surveyIdent);
-			String theirNumberColumn = GeneralUtilityMethods.getColumnName(sd, sId, theirNumberQuestion);
-			StringBuilder sqlExists = new StringBuilder("select count(*) from ")
+
+			StringBuilder sqlExists = new StringBuilder("select prikey from ")
 					.append(tableName)
 					.append(" where ")
 					.append(theirNumberColumn)
 					.append(" = ? ");
+			
 			if(statusQuestion != null && finalStatus != null) {
 				checkStatus  = true;
 				String statusColumn = GeneralUtilityMethods.getColumnName(sd, sId, statusQuestion);
@@ -627,8 +646,9 @@ public class SubmissionProcessor {
 					.append(statusColumn)
 					.append(" != ?");
 			}
+			
 			pstmtExists = cResults.prepareStatement(sqlExists.toString());
-			pstmtExists.setString(1, theirNumber);
+			pstmtExists.setString(1, sms.theirNumber);
 			if(checkStatus) {
 				pstmtExists.setString(2, finalStatus);
 			}
@@ -637,25 +657,82 @@ public class SubmissionProcessor {
 			if(rs.next()) {
 				existingPrikey = rs.getInt("prikey");
 			}
+			rs.close();
 			
 			if(existingPrikey == 0) {
 				/*
 				 * Create new entry
 				 */
+				log.info("Create new entry ");
 				StringBuilder sql = new StringBuilder("insert into ")
 						.append(tableName)
-						.append(" (_user)")
-						.append(" values(?)");
+						.append(" (_user, instanceid")
+						.append(",").append(theirNumberColumn)
+						.append(",").append(messageColumn)
+						.append(") values(?, ?, ?, ?)");
 				pstmt = cResults.prepareStatement(sql.toString());
 				pstmt.setString(1, user);
+				pstmt.setString(2,  instanceid);
+				pstmt.setString(3, sms.theirNumber);
+				pstmt.setString(4, gson.toJson(getMessageText(sms, null)));
+				
 			} else {
 				/*
 				 * Update existing entry
 				 */
+				log.info("Update existing entry with prikey: " + existingPrikey);
+				ArrayList<SMSDetails> currentConv = null;
+				Type type = new TypeToken<ArrayList<SMSDetails>>() {}.getType();
+				StringBuilder sqlGet = new StringBuilder("select ")
+						.append(messageColumn)
+						.append(" from ")
+						.append(tableName)
+						.append(" where prikey = ?");
+				pstmtGet = cResults.prepareStatement(sqlGet.toString());
+				pstmtGet.setInt(1, existingPrikey);
+				log.info("Get existing: " + pstmtGet.toString());
+				ResultSet rsGet = pstmtGet.executeQuery();
+				if(rsGet.next()) {
+					String currentConvString = rsGet.getString(1);
+					if(currentConvString != null) {
+						currentConv = gson.fromJson(currentConvString, type);
+					}
+				}
+				
+				// Create update statement
+				StringBuilder sql = new StringBuilder("update ")
+						.append(tableName)
+						.append(" set ")
+						.append(messageColumn)
+						.append(" = ? where prikey = ?");
+				pstmt = cResults.prepareStatement(sql.toString());
+				pstmt.setString(1, gson.toJson(getMessageText(sms, currentConv)));
+				pstmt.setInt(2, existingPrikey);			
 			}
+			
+			log.info("Process sms: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
 		} finally {
 			if(pstmtExists != null) {try {pstmtExists.close();} catch (Exception e) {}}
+			if(pstmtGet != null) {try {pstmtGet.close();} catch (Exception e) {}}
 			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}}
 		}
+	}
+	
+	/*
+	 * Append new message details to existing
+	 */
+	private ArrayList<SMSDetails> getMessageText(SMSDetails sms, ArrayList<SMSDetails> current) {
+		ArrayList<SMSDetails> conversation = null;
+		
+		if(current != null) {
+			conversation = current;
+		} else {
+			conversation = new ArrayList<SMSDetails> ();
+		}
+		conversation.add(sms);
+		
+		return conversation;
 	}
 }
