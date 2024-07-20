@@ -1,7 +1,11 @@
 package sms;
 
-import javax.servlet.*;
 import javax.servlet.http.*;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.Application;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.SMSInboundManager;
@@ -11,8 +15,8 @@ import java.sql.Connection;
 import java.util.Collections;
 import java.util.logging.Logger;
 
-public class InboundSMSServlet extends HttpServlet {
-    private static final long serialVersionUID = 1L;
+@Path("/inbound")
+public class InboundSMSServlet extends Application {
 
 	private static Logger log =
 			 Logger.getLogger(InboundSMSServlet.class.getName());
@@ -21,12 +25,10 @@ public class InboundSMSServlet extends HttpServlet {
     private String TO_PARAM = "to";
     private String MSG_PARAM = "text";
     
-	@Override
-    protected void service(HttpServletRequest req,
-                         HttpServletResponse resp)
-            throws ServletException,
-                   java.io.IOException {
+	@GET
+	public Response inbound(@Context HttpServletRequest request) {
         
+		Response response = null;
 		String connectionString = "sms";
     	Connection sd = null;
     	
@@ -37,16 +39,14 @@ public class InboundSMSServlet extends HttpServlet {
 		
 		/*
 		 * Get the parameters
-		 */
-		
-		
-		System.out.println("Received SMS: " + req.getMethod());
+		 */	
+		System.out.println("Received SMS: " + request.getMethod());
         String theirNumber = null;
         String ourNumber = null;
         String msg = null;
-        for (String param : Collections.list(req.getParameterNames())) {
+        for (String param : Collections.list(request.getParameterNames())) {
             
-        	String value = req.getParameter(param);
+        	String value = request.getParameter(param);
             System.out.println(param + ": " + value);
             
             if(FROM_PARAM.equals(param)) {
@@ -68,12 +68,15 @@ public class InboundSMSServlet extends HttpServlet {
         		sd = SDDataSource.getConnection(connectionString);
         		
         		SMSInboundManager sim = new SMSInboundManager();
-        		sim.saveMessage(sd, sms, req.getServerName());
+        		sim.saveMessage(sd, sms, request.getServerName());
         	} finally {
         		SDDataSource.closeConnection(connectionString, sd);
         	}
+        	response = Response.ok().build();
         } else {
         	log.info("Error: Invalid SMS message");
         }
+        return response;
 	}
+
 }
