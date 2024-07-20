@@ -8608,7 +8608,7 @@ public class GeneralUtilityMethods {
 		String sql = "select _thread from " + table + " where instanceid = ?";
 		PreparedStatement pstmt = null;
 		
-		String sqlUpdate = "update table " + table + " set_thread = ? where instanceid = ?";
+		String sqlUpdate = "update table " + table + " set thread = ? where instanceid = ?";
 			
 		try {
 			
