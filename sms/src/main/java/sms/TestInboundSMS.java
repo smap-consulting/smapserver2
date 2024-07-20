@@ -12,7 +12,7 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.SMSInboundManager;
+import org.smap.sdal.managers.SMSManager;
 import org.smap.sdal.model.SMSDetails;
 
 /*
@@ -41,7 +41,7 @@ public class TestInboundSMS extends Application {
 			SMSDetails sms = new SMSDetails("9876543212", "0123456789", "Test number 5", true);
     		sd = SDDataSource.getConnection(connectionString);
     		
-    		SMSInboundManager sim = new SMSInboundManager();
+    		SMSManager sim = new SMSManager();
     		sim.saveMessage(sd, sms, request.getServerName());
     		
     		response = Response.ok().build();

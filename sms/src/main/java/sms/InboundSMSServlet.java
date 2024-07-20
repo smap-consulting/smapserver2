@@ -8,7 +8,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.managers.SMSInboundManager;
+import org.smap.sdal.managers.SMSManager;
 import org.smap.sdal.model.SMSDetails;
 
 import java.sql.Connection;
@@ -67,7 +67,7 @@ public class InboundSMSServlet extends Application {
         	try {
         		sd = SDDataSource.getConnection(connectionString);
         		
-        		SMSInboundManager sim = new SMSInboundManager();
+        		SMSManager sim = new SMSManager();
         		sim.saveMessage(sd, sms, request.getServerName());
         	} finally {
         		SDDataSource.closeConnection(connectionString, sd);

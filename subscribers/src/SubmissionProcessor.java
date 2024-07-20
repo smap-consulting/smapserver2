@@ -26,12 +26,14 @@ import org.smap.sdal.Utilities.AdvisoryLock;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.SMSManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SMSDetails;
+import org.smap.sdal.model.SMSNumber;
 import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.MissingSurveyException;
@@ -510,33 +512,17 @@ public class SubmissionProcessor {
 		
 		AdvisoryLock lockTableChange = null;
 		
-		String surveyIdent = null;
-		String theirNumberQuestion = null;
-		String messageQuestion = null;
-		
-		String sql = "select "
-				+ "survey_ident,"
-				+ "their_number_question,"
-				+ "message_question "
-				+ "from sms_number "
-				+ "where our_number = ?";
-		PreparedStatement pstmt = null;
-		
 		try {
 			
 			/*
 			 * Get destination for the SMS
-			 */		
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, sms.ourNumber);
-			log.info("Get SMS destination: " + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				surveyIdent = rs.getString("survey_ident");
-				theirNumberQuestion = rs.getString("their_number_question");
-				messageQuestion = rs.getString("message_question");
+			 */	
+			SMSManager mgr = new SMSManager();
+			SMSNumber smsNumber = mgr.getDetailsForOurNumber(sd, sms.ourNumber);
+			
+			if(smsNumber != null) {
 				
-				int sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
+				int sId = GeneralUtilityMethods.getSurveyId(sd, smsNumber.surveyIdent);
 				
 				lockTableChange = new AdvisoryLock(sd, 1, sId);	// If necessary lock at the survey level
 				
@@ -546,7 +532,8 @@ public class SubmissionProcessor {
 				lockTableChange.lock("table sms mod start");	// Start lock while modifying tables
 				TableManager tm = new TableManager(localisation, tz);
 				ArrayList <FormDesc> formList = tm.getFormList(sd, sId);
-				UtilityMethods.createSurveyTables(sd, cResults, localisation, sId, formList, surveyIdent, tz);
+				UtilityMethods.createSurveyTables(sd, cResults, localisation, 
+						sId, formList, smsNumber.surveyIdent, tz);
 				lockTableChange.release("table sms mod done");
 				
 				/*
@@ -567,10 +554,10 @@ public class SubmissionProcessor {
 				writeMessage(sd, cResults, 
 						user,
 						instanceid,
-						surveyIdent, 
+						smsNumber.surveyIdent, 
 						sId, 
-						theirNumberQuestion,  
-						messageQuestion,
+						smsNumber.theirNumberQuestion,  
+						smsNumber.messageQuestion,
 						sms,
 						statusQuestion, 
 						finalStatus);
@@ -599,7 +586,7 @@ public class SubmissionProcessor {
 			} catch (Exception e) {
 				
 			}
-			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+			
 		}	
 
 	}

@@ -36,6 +36,7 @@ import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.Point;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.ReportConfig;
+import org.smap.sdal.model.SMSNumber;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.SurveySettingsDefn;
@@ -468,7 +469,7 @@ public class DataManager {
 			String geojson,			// If set to yes then render as geoJson rather than the kobo toolbox structure
 			String geomQuestion,		// Set to the name of the question with the geometry
 			String tz,				// Timezone
-			boolean incLinks	,
+			boolean incLinks,
 			String advanced_filter,
 			String dd_filter,		// Console calls only
 			int prikey,
@@ -769,8 +770,14 @@ public class DataManager {
 			 * Get Case Management Settings
 			 */
 			CaseManager cm = new CaseManager(localisation);				
-			CMS cms = cm.getCaseManagementSettings(sd, groupSurveyIdent);
+			CMS cms = cm.getCaseManagementSettings(sd, sIdent);
 					
+			/*
+			 * Get SMS Settings
+			 */
+			SMSManager mgr = new SMSManager();
+			SMSNumber smsNumber = mgr.getDetailsForSurvey(sd, groupSurveyIdent);
+			
 			// Only set the filter if parkey is not set. Otherwise, if set, it is a drill down and the filter does not apply
 			String filter = null;
 			if(parkey == 0) {
@@ -935,6 +942,15 @@ public class DataManager {
 					// 5. Add case settings
 					outWriter.print(",\"case\":");
 					outWriter.print(gson.toJson(cms));
+					
+					// 6. Add SMS settings
+					if(smsNumber != null) {
+						outWriter.print(",\"sms\":");
+						smsNumber.identifier = null;	// Don't need these
+						smsNumber.ourNumber = null;
+						smsNumber.surveyIdent = null;
+						outWriter.print(gson.toJson(smsNumber));
+					}
 				}
 				
 				outWriter.print("}");
