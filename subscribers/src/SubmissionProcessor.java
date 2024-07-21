@@ -569,6 +569,7 @@ public class SubmissionProcessor {
 						+ (se.getReason() == null ? "" : se.getReason()) + " : ", 0, null);
 				
 			} else {
+				log.info("Error:  Inbound number " + sms.ourNumber + " not found");
 				se.setStatus("error");
 				se.setReason("SMS Inbound Number not found.  This number will need to be added to the numbers supported by the system before SMS messages to it can be processed.");
 			}

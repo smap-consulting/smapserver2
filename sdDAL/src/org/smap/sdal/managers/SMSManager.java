@@ -102,7 +102,7 @@ public class SMSManager {
 			 */		
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, ourNumber);
-			log.info("Get SMS destination: " + pstmt.toString());
+			log.info("Get SMS number details: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				smsNumber = new SMSNumber(rs.getString("element_identifier"),

@@ -1,7 +1,9 @@
 package sms;
 
 import javax.servlet.http.*;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
@@ -10,6 +12,11 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.SMSManager;
 import org.smap.sdal.model.SMSDetails;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import model.MessageVonage;
 
 import java.sql.Connection;
 import java.util.Collections;
@@ -21,12 +28,11 @@ public class InboundSMSServlet extends Application {
 	private static Logger log =
 			 Logger.getLogger(InboundSMSServlet.class.getName());
 	
-    private String FROM_PARAM = "msisdn";
-    private String TO_PARAM = "to";
-    private String MSG_PARAM = "text";
+	private Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create(); 
     
-	@GET
-	public Response inbound(@Context HttpServletRequest request) {
+	@POST
+	@Consumes("application/json")
+	public Response inbound(@Context HttpServletRequest request, String body) {
         
 		Response response = null;
 		String connectionString = "sms";
@@ -37,27 +43,11 @@ public class InboundSMSServlet extends Application {
 		 *  - Definitely from Vonage account
 		 */
 		
-		/*
-		 * Get the parameters
-		 */	
-		System.out.println("Received SMS: " + request.getMethod());
-        String theirNumber = null;
-        String ourNumber = null;
-        String msg = null;
-        for (String param : Collections.list(request.getParameterNames())) {
-            
-        	String value = request.getParameter(param);
-            System.out.println(param + ": " + value);
-            
-            if(FROM_PARAM.equals(param)) {
-            	theirNumber = value;
-            } else if(TO_PARAM.equals(param)) {
-            	ourNumber = value;
-            } else if(MSG_PARAM.equals(param)) {
-            	msg = value;
-            }         
-        }
-        SMSDetails sms = new SMSDetails(theirNumber, ourNumber, msg, true);
+    	/*
+    	 * Get message details
+    	 */
+        MessageVonage inbound = gson.fromJson(body, MessageVonage.class);
+        SMSDetails sms = new SMSDetails(inbound.from, inbound.to, inbound.text, true);
         
         /*
          * Save SMS message for further processing
