@@ -393,7 +393,7 @@ public class NotificationManager {
 	/*
 	 * Get a list of notification types
 	 */
-	public ArrayList<String> getNotificationTypes(Connection sd, String user) throws SQLException {
+	public ArrayList<String> getNotificationTypes(Connection sd, String user, String page) throws SQLException {
 
 		ArrayList<String> types = new ArrayList<>();
 
@@ -406,8 +406,10 @@ public class NotificationManager {
 				+ "and u.ident = ?";
 
 		types.add("email");
-		types.add("webhook");
-		types.add("escalate");
+		if("notifications".equals(page)) {
+			types.add("webhook");
+			types.add("escalate");
+		}
 
 		boolean awsSMS = false;
 
@@ -1103,6 +1105,8 @@ public class NotificationManager {
 							survey.surveyData.displayName, survey.surveyData.projectName,
 							msg.subject, msg.from, msg.content, msg.scheme, msg);
 					
+				} else if(msg.target.equals("conversation")) {
+					log.info("+++++ conversation notification");
 				} else {
 					status = "error";
 					error_details = "Invalid target: " + msg.target;

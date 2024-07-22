@@ -67,6 +67,8 @@ public class NotificationList extends Application {
 	private static Logger log =
 			 Logger.getLogger(NotificationList.class.getName());
 	
+	private Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
 	public NotificationList() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
@@ -124,7 +126,8 @@ public class NotificationList extends Application {
 	
 	@Path("/types")
 	@GET
-	public Response getTypes(@Context HttpServletRequest request) { 
+	public Response getTypes(@Context HttpServletRequest request,
+			@QueryParam("page") String page) { 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-NotificationList-getTypes";
@@ -133,13 +136,17 @@ public class NotificationList extends Application {
 		
 		Connection sd = SDDataSource.getConnection(connectionString);	
 		
+		if(page == null) {
+			page = "notifications";
+		}
+		
 		try {
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			NotificationManager fm = new NotificationManager(localisation);
-			ArrayList<String> tList = fm.getNotificationTypes(sd, request.getRemoteUser());
+			ArrayList<String> tList = fm.getNotificationTypes(sd, request.getRemoteUser(), page);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(tList);
@@ -401,9 +408,7 @@ public class NotificationList extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-Survey-send immediate notification";
 		
-		Type type = new TypeToken<Notification>(){}.getType();
-		Gson gson =  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-		Notification n = gson.fromJson(notificationString, type);
+		Notification n = gson.fromJson(notificationString, Notification.class);
 		
 		log.info("Immediate Notification:========== " + notificationString);
 		// Authorisation - Access
