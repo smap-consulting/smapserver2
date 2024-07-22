@@ -6,6 +6,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.MessagingManagerApply;
+import org.smap.sdal.managers.StorageManager;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.subscribers.Subscriber;
 
@@ -64,11 +65,10 @@ public class StorageProcessor {
 						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 						GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 						
-						// Apply messages
-						MessagingManagerApply mma = new MessagingManagerApply();
+						StorageManager sm = new StorageManager();
 					
 						try {
-							mma.uploadToS3(dbc.sd, basePath, s3count++);
+							sm.uploadToS3(dbc.sd, basePath, s3count++);
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}
