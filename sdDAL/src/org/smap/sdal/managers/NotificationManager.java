@@ -43,6 +43,11 @@ import org.smap.sdal.model.TaskProperties;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.vonage.client.VonageClient;
+import com.vonage.client.messages.MessageRequest;
+import com.vonage.client.messages.MessageResponse;
+import com.vonage.client.messages.MessagesClient;
+import com.vonage.client.messages.sms.SmsTextRequest;
 
 /*****************************************************************************
 
@@ -731,8 +736,8 @@ public class NotificationManager {
 							nd.survey_case,
 							nd.assign_question,
 							null,					// Report Period
-							0						// Report Id
-							);
+							0,						// Report Id
+							nd.ourNumber);
 					mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 
 					lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
@@ -766,6 +771,7 @@ public class NotificationManager {
 	 */
 	public void processSubmissionNotification(Connection sd, 
 			Connection cResults, 
+			VonageClient vonageClient,
 			Organisation organisation,
 			String queueName,
 			String tz,
@@ -1107,6 +1113,17 @@ public class NotificationManager {
 					
 				} else if(msg.target.equals("conversation")) {
 					log.info("+++++ conversation notification");
+					MessagesClient messagesClient = vonageClient.getMessagesClient();
+
+					String toNumber = msg.emails.get(0);
+					MessageRequest message = SmsTextRequest.builder()
+							.from(msg.ourNumber).to(toNumber)		// TODO from number
+							.text(msg.content)
+							.build();
+
+					MessageResponse response = messagesClient.sendMessage(message);
+					System.out.println("Message sent successfully. ID: "+response.getMessageUuid());
+
 				} else {
 					status = "error";
 					error_details = "Invalid target: " + msg.target;

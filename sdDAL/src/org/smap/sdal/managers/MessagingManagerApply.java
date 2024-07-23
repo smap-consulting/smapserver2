@@ -31,6 +31,7 @@ import org.smap.sdal.model.SubscriptionStatus;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.vonage.client.VonageClient;
 
 /*****************************************************************************
  * 
@@ -72,7 +73,8 @@ public class MessagingManagerApply {
 			String basePath, 
 			String urlprefix,
 			String attachmentPrefix,
-			String hyperlinkPrefix) {
+			String hyperlinkPrefix,
+			VonageClient vonageClient) {
 
 		ResultSet rs = null;
 		PreparedStatement pstmtGetMessages = null;
@@ -156,6 +158,7 @@ public class MessagingManagerApply {
 							nm.processSubmissionNotification(
 									sd, 
 									cResults, 
+									vonageClient,
 									organisation, 
 									queueName,
 									tz,
@@ -573,6 +576,7 @@ public class MessagingManagerApply {
 					nm.processSubmissionNotification(
 							sd, 
 							cResults, 
+							null,		// Should be no pending SMS messages hence Vonage client is not set
 							organisation, 
 							null,
 							tz,

@@ -947,7 +947,6 @@ public class DataManager {
 					if(smsNumber != null) {
 						outWriter.print(",\"sms\":");
 						smsNumber.identifier = null;	// Don't need these
-						smsNumber.ourNumber = null;
 						smsNumber.surveyIdent = null;
 						outWriter.print(gson.toJson(smsNumber));
 					}

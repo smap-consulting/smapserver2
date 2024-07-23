@@ -25,6 +25,7 @@ public class SubmissionMessage {
 	public String assignQuestion;
 	public String emailMeta;
 	public boolean emailAssigned;
+	public String ourNumber;			// SMS / WhatsApp messaging
 	public ArrayList<String> emails;
 	public String target;
 	public String user;
@@ -64,7 +65,8 @@ public class SubmissionMessage {
 			String survey_case,
 			String assignQuestion,
 			String period,
-			int reportId) {
+			int reportId,
+			String ourNumber) {
 		
 		this.title = title;
 		this.taskId = taskId;
@@ -94,6 +96,7 @@ public class SubmissionMessage {
 		this.assignQuestion = assignQuestion;
 		this.period = period;
 		this.reportId = reportId;
+		this.ourNumber = ourNumber;
 	}
 	
 	// copy constructor
@@ -130,6 +133,7 @@ public class SubmissionMessage {
 		this.assignQuestion = orig.assignQuestion;
 		this.period = orig.period;
 		this.reportId = orig.reportId;
+		this.ourNumber = orig.ourNumber;
 	}
 	
 	public boolean emailQuestionSet() {

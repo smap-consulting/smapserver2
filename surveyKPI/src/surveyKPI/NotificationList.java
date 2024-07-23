@@ -466,8 +466,8 @@ public class NotificationList extends Application {
 					nd.survey_case,
 					nd.assign_question,
 					null,				// Report Period
-					0					// report id
-					);
+					0,					// report id
+					nd.ourNumber);
 			MessagingManager mm = new MessagingManager(localisation);
 			mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 			

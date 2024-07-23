@@ -20,4 +20,5 @@ public class NotifyDetails {
 	public int pdfTemplateId;
 	public String survey_case;
 	public String assign_question;
+	public String ourNumber;			// For SMS / WhatsApp notifications
 }

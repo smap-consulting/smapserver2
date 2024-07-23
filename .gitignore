@@ -30,6 +30,7 @@ build/css.orig
 bin/
 tmp/
 *.tmp
+*.log
 *.class
 *.bak
 *.swp
