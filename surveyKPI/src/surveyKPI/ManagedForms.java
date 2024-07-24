@@ -32,14 +32,14 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.smap.model.SurveyTemplate;
-import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.legacy.SurveyTemplate;
+import org.smap.sdal.legacy.TableManager;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.EmailManager;
@@ -550,8 +550,8 @@ public class ManagedForms extends Application {
 				// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
 				boolean tablePublished = tm.addUnpublishedColumns(sd, cResults, am.sId, f.tableName);			
 				if(tableChanged || tablePublished) {
-					List<org.smap.server.entities.Form> forms = template.getAllForms();	
-					for(org.smap.server.entities.Form form : forms) {
+					List<org.smap.sdal.legacy.Form> forms = template.getAllForms();	
+					for(org.smap.sdal.legacy.Form form : forms) {
 						tm.markPublished(sd, form.getId(), am.sId);		// only mark published if there have been changes made
 					}
 				}

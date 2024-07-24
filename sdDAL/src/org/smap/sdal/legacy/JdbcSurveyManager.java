@@ -17,7 +17,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  ******************************************************************************/
 
-package JdbcManagers;
+package org.smap.sdal.legacy;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,7 +28,6 @@ import java.util.ResourceBundle;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.HtmlSanitise;
-import org.smap.server.entities.Survey;
 
 public class JdbcSurveyManager {
 

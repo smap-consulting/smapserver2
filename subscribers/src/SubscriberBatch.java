@@ -20,12 +20,12 @@ import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.commons.io.FileUtils;
-import org.smap.model.IE;
-import org.smap.model.SurveyInstance;
-import org.smap.model.SurveyTemplate;
 import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.Tables;
+import org.smap.sdal.legacy.IE;
+import org.smap.sdal.legacy.SurveyInstance;
+import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.LinkageManager;

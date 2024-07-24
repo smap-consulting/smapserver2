@@ -24,7 +24,7 @@ import java.util.Date;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
-import org.smap.model.SurveyInstance;
+import org.smap.sdal.legacy.SurveyInstance;
 import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.SubscriberEvent;

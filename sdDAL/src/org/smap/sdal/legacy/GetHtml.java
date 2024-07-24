@@ -1,4 +1,4 @@
-package org.smap.server.utilities;
+package org.smap.sdal.legacy;
 
 import java.io.StringWriter;
 import java.io.Writer;

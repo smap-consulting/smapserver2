@@ -34,8 +34,10 @@ import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.PeriodicTime;
 import org.smap.sdal.model.ReportParameters;
+import org.smap.sdal.model.SMSDetails;
 import org.smap.sdal.model.SendEmailResponse;
 import org.smap.sdal.model.SubmissionMessage;
+import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.SubscriptionStatus;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskListGeoJson;
@@ -1122,8 +1124,19 @@ public class NotificationManager {
 							.build();
 
 					MessageResponse response = messagesClient.sendMessage(message);
-					System.out.println("Message sent successfully. ID: "+response.getMessageUuid());
+					System.out.println("Message sent successfully. ID: " + response.getMessageUuid() + " To: " 
+							+ toNumber + " From: " + msg.ourNumber);
 
+					/*
+					 * Update the conversation
+					 */
+					SubscriberEvent se = new SubscriberEvent();
+					SMSDetails sms = new SMSDetails(toNumber, msg.ourNumber, msg.content, false);
+					SMSManager smsMgr = new SMSManager(localisation, tz);
+					smsMgr.writeMessageToResults(sd, cResults, se, msg.instanceId, sms);
+					
+					status = se.getStatus();
+					error_details = se.getReason();
 				} else {
 					status = "error";
 					error_details = "Invalid target: " + msg.target;

@@ -2,7 +2,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,35 +16,27 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.commons.io.FileUtils;
-import org.smap.model.FormDesc;
-import org.smap.model.SurveyInstance;
-import org.smap.model.SurveyTemplate;
-import org.smap.model.TableManager;
 import org.smap.notifications.interfaces.S3AttachmentUpload;
-import org.smap.sdal.Utilities.AdvisoryLock;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.managers.CaseManager;
+import org.smap.sdal.legacy.MissingSurveyException;
+import org.smap.sdal.legacy.MissingTemplateException;
+import org.smap.sdal.legacy.SurveyInstance;
+import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SMSManager;
 import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SMSDetails;
-import org.smap.sdal.model.SMSNumber;
 import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.Survey;
-import org.smap.server.entities.MissingSurveyException;
-import org.smap.server.entities.MissingTemplateException;
 import org.smap.server.entities.UploadEvent;
-import org.smap.server.utilities.UtilityMethods;
 import org.smap.subscribers.SubRelationalDB;
 import org.smap.subscribers.Subscriber;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 
 /*****************************************************************************
  * 
@@ -509,70 +500,19 @@ public class SubmissionProcessor {
 			String instanceid,
 			SMSDetails sms, 
 			SubscriberEvent se) {
-		
-		AdvisoryLock lockTableChange = null;
-		
+	
 		try {
 			
 			/*
-			 * Get destination for the SMS
-			 */	
-			SMSManager mgr = new SMSManager();
-			SMSNumber smsNumber = mgr.getDetailsForOurNumber(sd, sms.ourNumber);
+			 * Write the message to the results table
+			 */
+			SMSManager mgr = new SMSManager(localisation, tz);
+			mgr.writeMessageToResults(sd, 
+					cResults,
+					se,
+					instanceid,
+					sms);
 			
-			if(smsNumber != null) {
-				
-				int sId = GeneralUtilityMethods.getSurveyId(sd, smsNumber.surveyIdent);
-				
-				lockTableChange = new AdvisoryLock(sd, 1, sId);	// If necessary lock at the survey level
-				
-				/*
-				 * Ensure tables are fully published
-				 */
-				lockTableChange.lock("table sms mod start");	// Start lock while modifying tables
-				TableManager tm = new TableManager(localisation, tz);
-				ArrayList <FormDesc> formList = tm.getFormList(sd, sId);
-				UtilityMethods.createSurveyTables(sd, cResults, localisation, 
-						sId, formList, smsNumber.surveyIdent, tz);
-				lockTableChange.release("table sms mod done");
-				
-				/*
-				 * Get the case details
-				 */
-				String statusQuestion = null;
-				String finalStatus = null;
-				CaseManager cm = new CaseManager(localisation);
-				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
-				CMS caseSettings = cm.getCaseManagementSettings(sd, groupSurveyIdent);
-				if(caseSettings != null) {
-					statusQuestion = caseSettings.settings.statusQuestion;
-					finalStatus = caseSettings.settings.finalStatus;
-				}
-				/*
-				 * Write the message to the results table
-				 */
-				writeMessage(sd, cResults, 
-						user,
-						instanceid,
-						smsNumber.surveyIdent, 
-						sId, 
-						smsNumber.theirNumberQuestion,  
-						smsNumber.messageQuestion,
-						sms,
-						statusQuestion, 
-						finalStatus);
-				
-				/*
-				 * Write log entry
-				 */		
-				lm.writeLog(sd, sId, sms.theirNumber, LogManager.SMS, se.getStatus() + " : " 
-						+ (se.getReason() == null ? "" : se.getReason()) + " : ", 0, null);
-				
-			} else {
-				log.info("Error:  Inbound number " + sms.ourNumber + " not found");
-				se.setStatus("error");
-				se.setReason("SMS Inbound Number not found.  This number will need to be added to the numbers supported by the system before SMS messages to it can be processed.");
-			}
 			
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
@@ -580,10 +520,8 @@ public class SubmissionProcessor {
 			se.setReason(e.getMessage());
 		} finally {
 			try {
-				if(lockTableChange != null) {
-					lockTableChange.release("top level");    // Ensure lock is released before closing
-					lockTableChange.close("top level");
-				}
+				
+			
 			} catch (Exception e) {
 				
 			}
@@ -591,137 +529,5 @@ public class SubmissionProcessor {
 		}	
 
 	}
-	
-	/*
-	 * Write a text conversation to the results table
-	 */
-	private void writeMessage(Connection sd, Connection cResults,
-			String user,
-			String instanceid,
-			String surveyIdent,
-			int sId,
-			String theirNumberQuestion,
-			String messageQuestion,
-			SMSDetails sms,
-			String statusQuestion,
-			String finalStatus) throws SQLException {
-		
-		PreparedStatement pstmtExists = null;
-		PreparedStatement pstmtGet = null;
-		PreparedStatement pstmt = null;
-		
-		try {
-			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, surveyIdent);
-			String theirNumberColumn = GeneralUtilityMethods.getColumnName(sd, sId, theirNumberQuestion);
-			String messageColumn = GeneralUtilityMethods.getColumnName(sd, sId, messageQuestion);
-			
-			/*
-			 * Check to see if there is an existing case for this number
-			 */
-			int existingPrikey = 0;
-			boolean checkStatus = false;
 
-			StringBuilder sqlExists = new StringBuilder("select prikey from ")
-					.append(tableName)
-					.append(" where ")
-					.append(theirNumberColumn)
-					.append(" = ? ");
-			
-			if(statusQuestion != null && finalStatus != null) {
-				checkStatus  = true;
-				String statusColumn = GeneralUtilityMethods.getColumnName(sd, sId, statusQuestion);
-				sqlExists.append(" and ")
-					.append(statusColumn)
-					.append(" != ?");
-			}
-			
-			pstmtExists = cResults.prepareStatement(sqlExists.toString());
-			pstmtExists.setString(1, sms.theirNumber);
-			if(checkStatus) {
-				pstmtExists.setString(2, finalStatus);
-			}
-			log.info("Check for existing cases: " + pstmtExists.toString());
-			ResultSet rs = pstmtExists.executeQuery();
-			if(rs.next()) {
-				existingPrikey = rs.getInt("prikey");
-			}
-			rs.close();
-			
-			if(existingPrikey == 0) {
-				/*
-				 * Create new entry
-				 */
-				log.info("Create new entry ");
-				StringBuilder sql = new StringBuilder("insert into ")
-						.append(tableName)
-						.append(" (_user, instanceid, _thread")
-						.append(",").append(theirNumberColumn)
-						.append(",").append(messageColumn)
-						.append(") values(?, ?, ?, ?, ?)");
-				pstmt = cResults.prepareStatement(sql.toString());
-				pstmt.setString(1, user);
-				pstmt.setString(2,  instanceid);
-				pstmt.setString(3,  instanceid);	// thread
-				pstmt.setString(4, sms.theirNumber);
-				pstmt.setString(5, gson.toJson(getMessageText(sms, null)));
-				
-			} else {
-				/*
-				 * Update existing entry
-				 */
-				log.info("Update existing entry with prikey: " + existingPrikey);
-				ArrayList<SMSDetails> currentConv = null;
-				Type type = new TypeToken<ArrayList<SMSDetails>>() {}.getType();
-				StringBuilder sqlGet = new StringBuilder("select ")
-						.append(messageColumn)
-						.append(" from ")
-						.append(tableName)
-						.append(" where prikey = ?");
-				pstmtGet = cResults.prepareStatement(sqlGet.toString());
-				pstmtGet.setInt(1, existingPrikey);
-				log.info("Get existing: " + pstmtGet.toString());
-				ResultSet rsGet = pstmtGet.executeQuery();
-				if(rsGet.next()) {
-					String currentConvString = rsGet.getString(1);
-					if(currentConvString != null) {
-						currentConv = gson.fromJson(currentConvString, type);
-					}
-				}
-				
-				// Create update statement
-				StringBuilder sql = new StringBuilder("update ")
-						.append(tableName)
-						.append(" set ")
-						.append(messageColumn)
-						.append(" = ? where prikey = ?");
-				pstmt = cResults.prepareStatement(sql.toString());
-				pstmt.setString(1, gson.toJson(getMessageText(sms, currentConv)));
-				pstmt.setInt(2, existingPrikey);			
-			}
-			
-			log.info("Process sms: " + pstmt.toString());
-			pstmt.executeUpdate();
-			
-		} finally {
-			if(pstmtExists != null) {try {pstmtExists.close();} catch (Exception e) {}}
-			if(pstmtGet != null) {try {pstmtGet.close();} catch (Exception e) {}}
-			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}}
-		}
-	}
-	
-	/*
-	 * Append new message details to existing
-	 */
-	private ArrayList<SMSDetails> getMessageText(SMSDetails sms, ArrayList<SMSDetails> current) {
-		ArrayList<SMSDetails> conversation = null;
-		
-		if(current != null) {
-			conversation = current;
-		} else {
-			conversation = new ArrayList<SMSDetails> ();
-		}
-		conversation.add(sms);
-		
-		return conversation;
-	}
 }

@@ -15,7 +15,7 @@ import org.javarosa.core.model.instance.TreeElement;
 import org.javarosa.core.model.utils.IPreloadHandler;
 import org.javarosa.model.xform.XFormsModule;
 import org.javarosa.xform.util.XFormUtils;
-import org.smap.model.SurveyTemplate;
+import org.smap.sdal.legacy.SurveyTemplate;
 
 public class JavaRosaUtilities {
 

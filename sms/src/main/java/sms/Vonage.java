@@ -56,7 +56,7 @@ public class Vonage extends Application {
         	try {
         		sd = SDDataSource.getConnection(connectionString);
         		
-        		SMSManager sim = new SMSManager();
+        		SMSManager sim = new SMSManager(null, null);
         		sim.saveMessage(sd, sms, request.getServerName());
         	} finally {
         		SDDataSource.closeConnection(connectionString, sd);
@@ -96,7 +96,7 @@ public class Vonage extends Application {
         	try {
         		sd = SDDataSource.getConnection(connectionString);
         		
-        		SMSManager sim = new SMSManager();
+        		SMSManager sim = new SMSManager(null, null);
         		sim.saveMessage(sd, sms, request.getServerName());
         	} finally {
         		SDDataSource.closeConnection(connectionString, sd);

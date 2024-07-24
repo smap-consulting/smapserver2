@@ -42,7 +42,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.transform.TransformerFactoryConfigurationError;
 
-import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.BlockedException;
@@ -50,6 +49,8 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.legacy.GetHtml;
+import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
@@ -66,7 +67,6 @@ import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TempUserFinal;
 import org.smap.sdal.model.WebformOptions;
-import org.smap.server.utilities.GetHtml;
 import org.smap.server.utilities.GetXForm;
 
 import com.google.gson.Gson;

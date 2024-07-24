@@ -1,4 +1,4 @@
-package org.smap.model;
+package org.smap.sdal.legacy;
 
 /*
  * Contains form information used in import / export of survey data

@@ -17,7 +17,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  ******************************************************************************/
 
-package JdbcManagers;
+package org.smap.sdal.legacy;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -30,9 +30,6 @@ import java.util.Stack;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.server.entities.Form;
-import org.smap.server.entities.Question;
-import org.smap.server.utilities.UtilityMethods;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 

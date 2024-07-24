@@ -17,18 +17,13 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  ******************************************************************************/
 
-package JdbcManagers;
+package org.smap.sdal.legacy;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
-import org.smap.server.entities.Form;
-import org.smap.server.entities.Option;
-import org.smap.server.entities.Project;
-import org.smap.server.entities.Survey;
 
 public class JdbcProjectManager {
 

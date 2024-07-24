@@ -1,4 +1,4 @@
-package org.smap.model;
+package org.smap.sdal.legacy;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -21,10 +21,6 @@ import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.TableUpdateStatus;
-import org.smap.server.entities.Form;
-import org.smap.server.entities.Option;
-import org.smap.server.entities.Question;
-import org.smap.server.utilities.UtilityMethods;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

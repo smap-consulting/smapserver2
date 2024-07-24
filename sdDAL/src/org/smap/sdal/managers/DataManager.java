@@ -775,7 +775,7 @@ public class DataManager {
 			/*
 			 * Get SMS Settings
 			 */
-			SMSManager mgr = new SMSManager();
+			SMSManager mgr = new SMSManager(localisation, tz);
 			SMSNumber smsNumber = mgr.getDetailsForSurvey(sd, groupSurveyIdent);
 			
 			// Only set the filter if parkey is not set. Otherwise, if set, it is a drill down and the filter does not apply

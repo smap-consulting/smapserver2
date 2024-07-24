@@ -1,4 +1,4 @@
-package org.smap.model;
+package org.smap.sdal.legacy;
 
 public class CascadeInstance {
 	public String name;

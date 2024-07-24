@@ -1,9 +1,8 @@
-package org.smap.model;
+package org.smap.sdal.legacy;
 
 import java.util.ArrayList;
 
 import org.smap.sdal.model.KeyValueSimp;
-import org.smap.server.entities.Form;
 
 public class Results {
 	public String name;
