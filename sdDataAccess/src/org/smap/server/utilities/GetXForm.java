@@ -1181,17 +1181,26 @@ public class GetXForm {
 		// Add the appearance
 		if (questionElement != null) {
 			String appearance = q.getAppearance(true, template.getQuestionPaths());
-
-			if (gInTableList && type.startsWith("select")) {
-				if (appearance == null) {
-					appearance = "";
-				}
+			if (appearance == null) {
+				appearance = "";
+			}
+			
+			if (gInTableList && type.startsWith("select")) {				
 				if (!appearance.contains("field-list")) {
 					appearance = appearance.trim();
 					if (appearance.length() > 0) {
 						appearance += " ";
 					}
 					appearance += "list-nolabel";
+				}
+			}
+			
+			if(type.equals("phone")) {
+				if (!appearance.contains("numbers")) {
+					if (appearance.length() > 0) {
+						appearance += " ";
+					}
+					appearance += "numbers";
 				}
 			}
 			if (appearance != null && appearance.trim().length() > 0) {

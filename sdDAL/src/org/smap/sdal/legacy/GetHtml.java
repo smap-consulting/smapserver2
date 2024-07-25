@@ -1662,6 +1662,8 @@ public class GetHtml {
 			} else {
 				type = "text";
 			}
+		} else if (q.type.equals("phone")) {
+			type = "tel";
 		} else if (q.type.equals("select1")) {
 			type = "radio";
 		} else if (q.type.equals("select")) {
