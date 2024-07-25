@@ -1896,6 +1896,10 @@ public class XLSTemplateUploadManager {
 			out = "background-audio";
 		} else if (type.equals("pdf_field")) {
 			out = "pdf_field";
+		} else if (type.equals("phone")) {
+			out = "phone";
+		} else if (type.equals("conversation")) {
+			out = "conversation";
 		}
 				
 		return out;
