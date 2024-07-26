@@ -32,6 +32,7 @@ tmp/
 *.tmp
 *.log
 *.class
+*.log
 *.bak
 *.swp
 *~.nib
