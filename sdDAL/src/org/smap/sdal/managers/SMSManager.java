@@ -201,7 +201,6 @@ public class SMSManager {
 				 * Ensure tables are fully published
 				 */
 				lockTableChange.lock("table sms mod start");	// Start lock while modifying tables
-				TableManager tm = new TableManager(localisation, tz);
 				
 				UtilityMethods.createSurveyTables(sd, cResults, localisation, 
 						sId, smsNumber.surveyIdent, tz);
