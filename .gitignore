@@ -29,6 +29,7 @@ bin/
 tmp/
 *.tmp
 *.class
+*.log
 *.bak
 *.swp
 *~.nib

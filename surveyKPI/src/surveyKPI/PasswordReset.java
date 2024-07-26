@@ -104,14 +104,6 @@ public class PasswordReset extends Application {
 					throw new ApplicationException(msg);
 				}
 
-				/*
-				 * If the "email" does not have an "@" then it may be a user ident
-				 *  This is a hacky attempt to support legacy idents that were not emails
-				 */
-				if(!email.contains("@")) {
-					email = UtilityMethodsEmail.getEmailFromIdent(sd, pstmt, email);
-				}
-
 				String interval = "1 hour";
 				String uuid = UtilityMethodsEmail.setOnetimePassword(sd, pstmt, email, interval);
 
@@ -212,9 +204,8 @@ public class PasswordReset extends Application {
 					}
 				} else {
 					// email was not found 
-					String msg = localisation.getString("email_nf") + " :" + email;
-					log.info(msg);
-					response = Response.status(Status.NOT_FOUND).entity(msg).build();
+					log.info("Email was not found.  Respond with OK for security reasons.");
+					response = Response.ok().build();
 				}
 			} else {
 				response = Response.status(Status.NOT_FOUND).entity("Email not specified").build();
