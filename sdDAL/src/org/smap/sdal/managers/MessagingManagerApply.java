@@ -713,7 +713,7 @@ public class MessagingManagerApply {
 	 */
 	public void uploadToS3(Connection sd, String basePath, int s3count) throws SQLException {
 		
-		String sql = "select id, filepath "
+		String sql = "select id, filepath, o_id "
 				+ "from s3upload "
 				+ "where status = 'new' "
 				+ "order by id asc "
@@ -741,13 +741,16 @@ public class MessagingManagerApply {
 				
 				String status;
 				String reason = null;
+				int oId = rs.getInt("o_id");
+				String filePath = rs.getString("filepath");
 				try {
-					S3AttachmentUpload.put(basePath, rs.getString("filepath"));
+					S3AttachmentUpload.put(basePath, filePath);
 					status = "success";
 				} catch (Exception e) {
 					status = "failed";
 					reason = e.getMessage();
 					log.log(Level.SEVERE, e.getMessage(), e);
+					lm.writeLogOrganisation(sd, oId, "Upload of image " + filePath + " to AWS S3 storage failed", LogManager.SUBMISSION_ERROR, e.getMessage(), 0);
 				}	
 
 				pstmtDone.setString(1, status);
