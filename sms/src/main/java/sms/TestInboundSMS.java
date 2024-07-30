@@ -1,6 +1,8 @@
 package sms;
 
 import java.sql.Connection;
+import java.sql.Date;
+import java.sql.Timestamp;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -38,7 +40,8 @@ public class TestInboundSMS extends Application {
 		String connectionString = "sms test";
 		
 		try {
-			SMSDetails sms = new SMSDetails("9876543212", "0123456789", "Test number 5", true);
+			Timestamp ts = new Timestamp(System.currentTimeMillis());
+			SMSDetails sms = new SMSDetails("9876543212", "0123456789", "Test number 5", true, ts);
     		sd = SDDataSource.getConnection(connectionString);
     		
     		SMSManager sim = new SMSManager(null,null);

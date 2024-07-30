@@ -23,6 +23,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -467,7 +468,8 @@ public class NotificationList extends Application {
 					nd.assign_question,
 					null,				// Report Period
 					0,					// report id
-					nd.ourNumber);
+					nd.ourNumber,
+					new Timestamp(new java.util.Date().getTime()));
 			MessagingManager mm = new MessagingManager(localisation);
 			mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 			

@@ -46,7 +46,7 @@ public class Vonage extends Application {
     	 * Get message details
     	 */
         MessageVonage inbound = gson.fromJson(body, MessageVonage.class);
-        SMSDetails sms = new SMSDetails(inbound.from, inbound.to, inbound.text, true);
+        SMSDetails sms = new SMSDetails(inbound.from, inbound.to, inbound.text, true, inbound.timestamp);
         
         /*
          * Save SMS message for further processing
@@ -86,7 +86,7 @@ public class Vonage extends Application {
     	 * Get message details
     	 */
         MessageVonage inbound = gson.fromJson(body, MessageVonage.class);
-        SMSDetails sms = new SMSDetails(inbound.from, inbound.to, inbound.text, true);
+        SMSDetails sms = new SMSDetails(inbound.from, inbound.to, inbound.text, true, inbound.timestamp);
         
         /*
          * Save SMS message for further processing

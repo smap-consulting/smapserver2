@@ -739,7 +739,8 @@ public class NotificationManager {
 							nd.assign_question,
 							null,					// Report Period
 							0,						// Report Id
-							nd.ourNumber);
+							nd.ourNumber,
+							nd.ts);
 					mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 
 					lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
@@ -1131,7 +1132,7 @@ public class NotificationManager {
 					 * Update the conversation
 					 */
 					SubscriberEvent se = new SubscriberEvent();
-					SMSDetails sms = new SMSDetails(toNumber, msg.ourNumber, msg.content, false);
+					SMSDetails sms = new SMSDetails(toNumber, msg.ourNumber, msg.content, false, msg.ts);
 					SMSManager smsMgr = new SMSManager(localisation, tz);
 					smsMgr.writeMessageToResults(sd, cResults, se, msg.instanceId, sms);
 					

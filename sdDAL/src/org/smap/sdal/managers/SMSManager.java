@@ -12,7 +12,6 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.AdvisoryLock;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.legacy.TableManager;
 import org.smap.sdal.legacy.UtilityMethods;
 import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.SMSDetails;

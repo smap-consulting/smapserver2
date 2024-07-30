@@ -3,18 +3,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.model.DatabaseConnections;
-import org.smap.subscribers.Subscriber;
-
 import com.vonage.client.VonageClient;
 
 /*****************************************************************************

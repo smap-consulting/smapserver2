@@ -1021,7 +1021,8 @@ public class SubscriberBatch {
 						nd.assign_question,
 						null,					// Report Period
 						0,						// report id
-						null					// SMS Conversation from number
+						null,					// SMS Conversation from number
+						null					// SMS timestamp
 						);
 				
 				ResourceBundle localisation = locMap.get(oId);
@@ -1305,8 +1306,8 @@ public class SubscriberBatch {
 											nd.assign_question,
 											null,					// Report Period
 											0,						// report id
-											null					// SMS Conversation from number
-											);
+											null,					// SMS Conversation from number
+											null);					// SMS timestamp
 									
 									MessagingManager mm = new MessagingManager(localisation);
 									mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));						
@@ -1533,8 +1534,8 @@ public class SubscriberBatch {
 									nd.assign_question,
 									null,					// Report Period
 									0,						// report id
-									null					// SMS Conversation from number
-									);
+									null,					// SMS Conversation from number
+									null);					// SMS Timestamp
 			
 							MessagingManager mm = new MessagingManager(localisation);
 							mm.createMessage(sd, oId, NotificationManager.TOPIC_SERVER_CALC, "", gson.toJson(subMgr));	
@@ -1727,8 +1728,8 @@ public class SubscriberBatch {
 						null,			// Assign Question
 						period,			// Report Period
 						rId,
-						null			// SMS Conversation from number
-						);
+						null,			// SMS Conversation from number
+						null);
 				
 				mm.createMessage(sd, oId, NotificationManager.TOPIC_PERIODIC, "", gson.toJson(msg));	
 			}
