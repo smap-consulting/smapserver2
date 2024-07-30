@@ -375,9 +375,6 @@ public class SubRelationalDB extends Subscriber {
 			 * Update existing records
 			 */
 			int existingKey = 0;
-			if(keys.duplicateKeys.size() > 0) {
-				log.info("Dropping duplicate");
-			} 
 
 			/*
 			 * Key policy is applied if the table has an HRK
@@ -1502,8 +1499,8 @@ public class SubRelationalDB extends Subscriber {
 			pstmtSubmissionCols.setInt(1, f_id);
 			ResultSet rsSubs = pstmtSubmissionCols.executeQuery();
 			while(rsSubs.next()) {
-				subCols.put(rsSubs.getString(1), rsSubs.getString(2));
-				subColNames.put(rsSubs.getString(1), rsSubs.getString(3));
+				subCols.put(rsSubs.getString("column_name"), rsSubs.getString("qtype"));
+				subColNames.put(rsSubs.getString("column_name"), rsSubs.getString("qName"));
 			}
 			
 			/*

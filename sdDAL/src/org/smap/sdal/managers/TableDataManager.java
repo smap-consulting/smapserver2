@@ -645,7 +645,7 @@ public class TableDataManager {
 						}
 					}
 					
-					if (value == null) {
+					if (value == null && !c.type.equals("conversation")) {
 						value = "";
 					}
 

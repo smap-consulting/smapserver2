@@ -115,7 +115,6 @@ public class SubmissionProcessor {
 			sql.append("returning q.time_inserted, q.ue_id, q.payload");
 			PreparedStatement pstmt = null;
 
-			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			Subscriber subscriber = new SubRelationalDB();
 
 			// Default to English though we could get the locales from a server level setting
