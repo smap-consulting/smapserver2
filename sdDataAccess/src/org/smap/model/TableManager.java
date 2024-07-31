@@ -116,6 +116,7 @@ public class TableManager {
 						
 					if(count == 0) {
 						required = true;	// we need to create this table
+						log.info("zzzzzzz lock required to create new tables");
 						break;
 					}
 				}	
@@ -141,6 +142,7 @@ public class TableManager {
 				ResultSet rs = pstmtChanges.executeQuery();
 				if(rs.next() && rs.getInt(1) > 0) {
 					required = true;
+					log.info("zzzzzzz lock required to apply editor changes");
 				}
 			} finally {
 				try {if (pstmtChanges != null) {pstmtChanges.close();	}} catch (SQLException e) {}
@@ -170,6 +172,7 @@ public class TableManager {
 				ResultSet rs = pstmtUnpub.executeQuery();
 				if(rs.next() && rs.getInt(1) > 0) {
 					required = true;
+					log.info("zzzzzzz lock required to add columns from grouped surveys");
 				}
 			} finally {
 				try {if (pstmtUnpub != null) {pstmtUnpub.close();	}} catch (SQLException e) {}
