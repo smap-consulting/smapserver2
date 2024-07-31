@@ -23,11 +23,9 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QueueManager;
-import org.smap.sdal.managers.UsageManager;
 import org.smap.sdal.model.QueueTime;
 
 import utilities.XLSXAdminReportsQueues;
-import utilities.XLSXAdminReportsResourceUsage;
 
 
 /*
