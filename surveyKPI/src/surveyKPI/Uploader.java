@@ -19,6 +19,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 package surveyKPI;
 
+/*
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -60,6 +61,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+*/
 
 /*
  * Upload submissions from a folder.  A survey ident is specified and all submissions found in that folder are reapplied if they

@@ -1382,7 +1382,7 @@ public class OrganisationList extends Application {
 	public Response changeOrganisation(@Context HttpServletRequest request,
 			@FormParam("orgId") int orgId,
 			@FormParam("users") String users,
-			@FormParam("projects") String projects) { 
+			@FormParam("projects") String projects) throws SQLException { 
 		
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
@@ -1396,8 +1396,11 @@ public class OrganisationList extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		aAdminOrg.isAuthorised(sd, request.getRemoteUser());
-		aAdminOrg.isOrganisationInEnterprise(sd, request.getRemoteUser(), orgId);
-		aAdminOrg.canUserUpdateOrganisation(sd, request.getRemoteUser(), orgId);
+		// If the user is not an enterprise administrator make sure they can access this organisation
+		if(!GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ENTERPRISE_ID)) {
+			aAdminOrg.isOrganisationInEnterprise(sd, request.getRemoteUser(), orgId);
+			aAdminOrg.canUserUpdateOrganisation(sd, request.getRemoteUser(), orgId);
+		}
 		// End Authorisation
 		
 		Type type = new TypeToken<ArrayList<Project>>(){}.getType();		

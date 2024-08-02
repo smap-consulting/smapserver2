@@ -965,6 +965,7 @@ public class UserManager {
 					}
 	
 					try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+					
 					/*
 					 * If we are switching organisations do not check that names are clean - allows for smooth removal of bad names
 					 */

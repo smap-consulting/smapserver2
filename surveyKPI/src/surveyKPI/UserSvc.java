@@ -41,7 +41,6 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.PasswordManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.GroupSurvey;
