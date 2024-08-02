@@ -1402,49 +1402,69 @@ public class OrganisationList extends Application {
 			aAdminOrg.canUserUpdateOrganisation(sd, request.getRemoteUser(), orgId);
 		}
 		// End Authorisation
-		
-		Type type = new TypeToken<ArrayList<Project>>(){}.getType();		
-		ArrayList<Project> pArray = new Gson().fromJson(projects, type);
-		
-		//PreparedStatement pstmt2 = null;
-		PreparedStatement pstmt3 = null;
-		PreparedStatement pstmt4 = null;
+			
+		PreparedStatement pstmtProj = null;
+		PreparedStatement pstmtPrjUsers = null;
+		PreparedStatement pstmtUser = null;
 		try {	
 			sd.setAutoCommit(false);
 					
-			String sql3 = "update project set o_id =  ? " +  
-					" WHERE id = ?; ";			
+			String sql3 = "update project set o_id =  ? where id = ?";			
 			String sql4 = "delete from user_project where p_id = ? and " +
-					"u_id not in (select id from users where o_id = ?); ";	
+					"u_id not in (select id from users where o_id = ?)";	
+			String sqlUser = "update users set o_id = ? where id = ?";
 			
-	
-			pstmt3 = sd.prepareStatement(sql3);	
-			pstmt4 = sd.prepareStatement(sql4);	
-
+			pstmtProj = sd.prepareStatement(sql3);	
+			pstmtPrjUsers = sd.prepareStatement(sql4);	
+			pstmtUser = sd.prepareStatement(sqlUser);	
 			
-			// Move Projects
-			if(pArray != null) {
-				for(int i = 0; i < pArray.size(); i++) {
-					pstmt3.setInt(1, orgId);
-					pstmt3.setInt(2, pArray.get(i).id);
+			/*
+			 * Move Projects
+			 */
+			if(projects != null) {
+				
+				Type type = new TypeToken<ArrayList<Project>>(){}.getType();		
+				ArrayList<Project> pArray = new Gson().fromJson(projects, type);
+				
+				if(pArray != null) {
+					for(int i = 0; i < pArray.size(); i++) {
+						pstmtProj.setInt(1, orgId);
+						pstmtProj.setInt(2, pArray.get(i).id);
+						
+						log.info("Move Project: " + pstmtProj.toString());
+						pstmtProj.executeUpdate();
+						
+						log.info("userevent: " + request.getRemoteUser() + " : move project : " + pArray.get(i).id + " to: " + orgId);
+					}
 					
-					log.info("Move Project: " + pstmt3.toString());
-					pstmt3.executeUpdate();
-					
-					log.info("userevent: " + request.getRemoteUser() + " : move project : " + pArray.get(i).id + " to: " + orgId);
+					// Remove users from the moved projects if they are in a different organisation
+					for(int i = 0; i < pArray.size(); i++) {							
+						pstmtPrjUsers.setInt(1, pArray.get(i).id);
+						pstmtPrjUsers.setInt(2, orgId);
+						log.info("Delete Links to users: " + pstmtPrjUsers.toString());
+						pstmtPrjUsers.executeUpdate();			
+					}
 				}
 			}
 			
-			
-			// Remove users from projects if they are in a different organisation
-			if(pArray != null) {
-				for(int i = 0; i < pArray.size(); i++) {
-					
-					pstmt4.setInt(1, pArray.get(i).id);
-					pstmt4.setInt(2, orgId);
-					log.info("Delete Links to users: " + pstmt4.toString());
-					pstmt4.executeUpdate();
-	
+			/*
+			 * Move Users
+			 */
+			if(users != null) {
+				
+				Type type = new TypeToken<ArrayList<User>>(){}.getType();		
+				ArrayList<User> uArray = new Gson().fromJson(users, type);
+				
+				if(uArray != null) {
+					for(int i = 0; i < uArray.size(); i++) {
+						pstmtUser.setInt(1, orgId);
+						pstmtUser.setInt(2, uArray.get(i).id);
+						
+						log.info("Move User: " + pstmtUser.toString());
+						pstmtUser.executeUpdate();
+						
+						log.info("userevent: " + request.getRemoteUser() + " : move user : " + uArray.get(i).id + " to: " + orgId);
+					}
 				}
 			}
 			
@@ -1465,8 +1485,9 @@ public class OrganisationList extends Application {
 			
 		} finally {
 			
-			try {if (pstmt3 != null) {pstmt3.close();}	} catch (SQLException e) {}
-			try {if (pstmt4 != null) {pstmt4.close();}	} catch (SQLException e) {}
+			try {if (pstmtProj != null) {pstmtProj.close();}} catch (SQLException e) {}
+			try {if (pstmtPrjUsers != null) {pstmtPrjUsers.close();}	} catch (SQLException e) {}
+			try {if (pstmtUser != null) {pstmtUser.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection(connectionString, sd);
 		}
