@@ -82,6 +82,102 @@ public class TableManager {
 	}
 	
 
+	/*
+	 * Return true if the table structures need to be created or modified
+	 */
+	public boolean changesRequired(Connection sd, Connection cResults, SurveyTemplate template, int sId) throws SQLException {
+		
+		boolean required = false;
+		
+		/*
+		 * 1. Do tables need to be created
+		 */
+		String sql = "select count(*) from information_schema.tables where table_name = ?";		
+		PreparedStatement pstmt = null;	 
+
+		List<Form> forms = template.getAllForms();	
+		
+		try {
+			pstmt = cResults.prepareStatement(sql);
+			for(Form form : forms) {
+				if(!form.getReference()) {
+						
+					// Test to see if this table already exists
+					pstmt.setString(1, form.getTableName());
+					ResultSet res = pstmt.executeQuery();
+					int count = 0;
+					if(res.next()) {
+						count = res.getInt(1);
+					}
+						
+					if(count == 0) {
+						required = true;	// we need to create this table
+						log.info("zzzzzzz lock required to create new tables");
+						break;
+					}
+				}	
+			}
+			
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {}
+		}	
+
+		/*
+		 * 2. If no table creations were required then check to see if any online edit changes are queued
+		 */
+		if(!required) {
+			String sqlChanges = "select count(*) "
+					+ "from survey_change "
+					+ "where apply_results = 'true' "
+					+ "and s_id = ? ";
+			PreparedStatement pstmtChanges = null;
+			try {
+				pstmtChanges = sd.prepareStatement(sqlChanges);
+				pstmtChanges.setInt(1, sId);
+				ResultSet rs = pstmtChanges.executeQuery();
+				if(rs.next() && rs.getInt(1) > 0) {
+					required = true;
+					log.info("zzzzzzz lock required to apply editor changes");
+				}
+			} finally {
+				try {if (pstmtChanges != null) {pstmtChanges.close();	}} catch (SQLException e) {}
+			}
+		}
+		
+		/*
+		 * 3. If no changes have been identified so far then check to see if any other unpublished columns need to be added
+		 */
+		if(!required) {
+			String sqlUnpub = "select "
+					+ "count(*) "
+					+ "from question q, form f "
+					+ "where q.f_id = f.f_id "
+					+ "and (q.published = 'false' or (q.compressed = 'false' and q.qtype = 'select')) "
+					+ "and f.reference = 'false' "
+					+ "and q.soft_deleted = 'false' "
+					+ "and q.f_id in "
+					+ "(select f_id from form where s_id in (select s_id from survey where group_survey_ident = ? and deleted = 'false'))";
+
+			PreparedStatement pstmtUnpub = null;
+			
+			try {
+				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+				pstmtUnpub = sd.prepareStatement(sqlUnpub);
+				pstmtUnpub.setString(1, groupSurveyIdent);
+				ResultSet rs = pstmtUnpub.executeQuery();
+				if(rs.next() && rs.getInt(1) > 0) {
+					required = true;
+					log.info("zzzzzzz lock required to add columns from grouped surveys");
+				}
+			} finally {
+				try {if (pstmtUnpub != null) {pstmtUnpub.close();	}} catch (SQLException e) {}
+			}
+			
+		}
+		return required;
+	}
+	
 	public void addManagementColumns(Connection cResults, Connection sd, int sId, int managedId) throws Exception {
 
 		String sql = "select managed_id from survey where s_id = ?;";
@@ -276,7 +372,6 @@ public class TableManager {
 	public ArrayList<String> writeAllTableStructures(Connection sd, Connection cResults, int sId, SurveyTemplate template, int managedId) throws Exception {
 
 		String response = null;
-		//boolean hasHrk = (template.getHrk() != null);
 		boolean hasHrk = true;		// Always create the hrk column
 		boolean resAutoCommitSetFalse = false;
 		ArrayList<String> tablesCreated = new ArrayList<> ();
@@ -285,7 +380,8 @@ public class TableManager {
 		String sql = "select count(*) from information_schema.tables where table_name =?";		
 		PreparedStatement pstmt = null;
 		try {	 
-
+			pstmt = cResults.prepareStatement(sql);
+			
 			List<Form> forms = template.getAllForms();	
 			if(cResults.getAutoCommit()) {
 				log.info("Set autocommit results false");
@@ -296,9 +392,7 @@ public class TableManager {
 			for(Form form : forms) {
 				if(!form.getReference()) {
 					
-					// Test to see if this table already exists
-					try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {}
-					pstmt = cResults.prepareStatement(sql);
+					// Test to see if this table already exists					
 					pstmt.setString(1, form.getTableName());
 					log.info("SQL: " + pstmt.toString());
 					ResultSet res = pstmt.executeQuery();

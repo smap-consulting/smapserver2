@@ -39,7 +39,6 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.ActionLink;
-import org.smap.sdal.model.Role;
 import org.smap.sdal.model.User;
 
 import com.google.gson.Gson;

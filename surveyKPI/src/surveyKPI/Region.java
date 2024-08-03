@@ -38,8 +38,6 @@ import org.smap.sdal.Utilities.SDDataSource;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 

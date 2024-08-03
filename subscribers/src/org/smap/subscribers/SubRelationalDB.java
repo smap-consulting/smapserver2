@@ -559,38 +559,43 @@ public class SubRelationalDB extends Subscriber {
 				keys.duplicateKeys = new ArrayList<Integer>();
 				TableManager tm = new TableManager(localisation, tz);
 				CMS cms = null;
-				if (parent_key == 0) { // top level survey has a parent key of 0
+				if (parent_key == 0) { // top level survey has a parent key of 0	
 					
-					lockTableChange.lock("table mod start");	// Start lock while modifying tables
-					
-					// Create new tables
 					SurveyTemplate template = new SurveyTemplate(localisation); 
 					template.readDatabase(sd, cResults, sIdent, false);	
-					ArrayList<String> tablesCreated = tm.writeAllTableStructures(sd, cResults, sId, template,  0);
 					
-					boolean tableChanged = false;
-					boolean tablePublished = false;
-					keys.duplicateKeys = checkDuplicate(cResults, tableName, uuid);
-
-					if (keys.duplicateKeys.size() > 0 && getDuplicatePolicy() == DUPLICATE_DROP) {
-						throw new Exception("Duplicate survey: " + uuid);
-					}
-					// Apply any updates that have been made to the table structure since the last
-					// submission
-					tableChanged = tm.applyTableChanges(sd, cResults, sId, tablesCreated);
-
-					// Add any previously unpublished columns not in a changeset (Occurs if this is
-					// a new survey sharing an existing table)
-					tablePublished = tm.addUnpublishedColumns(sd, cResults, sId, tableName);
-
-					if (tableChanged || tablePublished) {
-						List<Form> forms = template.getAllForms();	
-						for(Form f : forms) {
-							tm.markPublished(sd, f.getId(), sId); // only mark published if there have been changes made
+					if(tm.changesRequired(sd, cResults, template, sId)) {
+						
+						lockTableChange.lock("table mod start");	// Start lock while modifying tables
+						
+						// Create new tables
+						ArrayList<String> tablesCreated = tm.writeAllTableStructures(sd, cResults, sId, template,  0);
+						
+						boolean tableChanged = false;
+						boolean tablePublished = false;
+						keys.duplicateKeys = checkDuplicate(cResults, tableName, uuid);
+	
+						if (keys.duplicateKeys.size() > 0 && getDuplicatePolicy() == DUPLICATE_DROP) {
+							throw new Exception("Duplicate survey: " + uuid);
 						}
+						// Apply any updates that have been made to the table structure since the last
+						// submission
+						tableChanged = tm.applyTableChanges(sd, cResults, sId, tablesCreated);
+	
+						// Add any previously unpublished columns not in a changeset (Occurs if this is
+						// a new survey sharing an existing table)
+						tablePublished = tm.addUnpublishedColumns(sd, cResults, sId, tableName);
+	
+						if (tableChanged || tablePublished) {
+							List<Form> forms = template.getAllForms();	
+							for(Form f : forms) {
+								tm.markPublished(sd, f.getId(), sId); // only mark published if there have been changes made
+							}
+						}
+						
+						lockTableChange.release("table mod done");		// Release lock - table modification finished
 					}
 					
-					lockTableChange.release("table mod done");		// Release lock - table modification finished
 					/*
 					 * Get Case Management Settings
 					 */

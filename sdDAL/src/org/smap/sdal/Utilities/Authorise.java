@@ -1693,7 +1693,7 @@ public class Authorise {
 	}
 	
 	/*
-	 * Verify that the user is a member of the same enterpise as the organisation
+	 * Verify that the user is a member of the same enterprise as the organisation
 	 */
 	public boolean isOrganisationInEnterprise(Connection conn, String user, int oId) {
 		ResultSet resultSet = null;

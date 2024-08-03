@@ -18,6 +18,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
+/*
+ * Not used?
+ *
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.POST;
@@ -38,9 +41,6 @@ import java.sql.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/*
- * Not used?
- *
 @Path("/log")
 public class ReportLogs extends Application {
 
