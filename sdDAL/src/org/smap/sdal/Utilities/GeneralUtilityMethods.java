@@ -8771,7 +8771,9 @@ public class GeneralUtilityMethods {
 			for(SqlParam p : params) {
 				if(p.type.equals("string")) {
 					pstmt.setString(idx++, p.vString);
-				} 
+				} else {
+					log.info("xxxxxx Invalid parameter type: " + p.type + " : " + p.vString);
+				}
 			}
 		}
 		return idx;
@@ -11027,6 +11029,28 @@ public class GeneralUtilityMethods {
 		
 		track.append(msg);
 		log.info(track.toString());
+	}
+	
+	/*
+	 * Get the SQL from a prepared Statement
+	 */
+	public static String getSql(PreparedStatement pstmt) throws ApplicationException {
+		String sql = pstmt.toString();
+		String DEL = "; Delegate=";
+		
+		log.info("Initial SQL:  " + sql);
+		if(sql.contains(DEL)) {
+			// TODO Not sure what is going on here, seems to be a change in jdbc driver behaviour
+			// but we want the delegate version
+			String a [] = sql.split(DEL);
+			if(a.length > 1) {
+				sql = a[1].substring(0, a[1].length() - 1);		// Get the delegate version and remove the trailing  bracket
+			} else {
+				throw new ApplicationException("Invalid SQL: " + sql);
+			}
+		}
+		log.info("Final SQL:  " + sql);
+		return sql;
 	}
 	
 	private static int getManifestParamStart(String property) {

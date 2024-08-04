@@ -338,7 +338,7 @@ public class QueryGenerator {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmtConvert, rfArray, paramCount, tz);
 			}
 			
-			sqlDesc.sql = pstmtConvert.toString();
+			sqlDesc.sql = GeneralUtilityMethods.getSql(pstmtConvert);
 		}  finally {
 			try {if (pstmtCols != null) {pstmtCols.close();}} catch (SQLException e) {}
 			try {if (pstmtGeom != null) {pstmtGeom.close();}} catch (SQLException e) {}

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class SqlDesc {
-	//public ArrayList<String> tables = new ArrayList<String>();
 	public ArrayList<ColDesc> column_details = new ArrayList<ColDesc>();
 	public ArrayList<String> column_names = new ArrayList<String> ();
 	public String cols;
