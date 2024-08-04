@@ -431,9 +431,9 @@ public class SubRelationalDB extends Subscriber {
 					pstmtAddHrk.executeUpdate();
 				}
 				
-				String sqlHrk = "update " + topLevelForm.tableName + " set _hrk = "
+				String sqlHrk = "update " + topLevelForm.tableName + " m set _hrk = "
 						+ hrkSql
-						+ " where prikey = ?";
+						+ " where m.prikey = ?";
 				pstmtHrk = cResults.prepareStatement(sqlHrk);
 				pstmtHrk.setInt(1, keys.newKey);
 				log.info("Applying HRK: " + pstmtHrk.toString());
