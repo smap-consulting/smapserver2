@@ -913,7 +913,9 @@ public class GetXForm {
 			bindType = "string";
 		} else if(bindType.equals("rank")) {
 			bindType = "odk:rank";
-		} 
+		}  else if(bindType.equals("phone")) {
+			bindType = "string";
+		}
 		
 		if (!bindType.equals("begin group") && !bindType.equals("begin repeat") && !bindType.equals("geopolygon")
 				&& !bindType.equals("geolinestring")) {

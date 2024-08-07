@@ -11,6 +11,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.AdvisoryLock;
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.legacy.UtilityMethods;
 import org.smap.sdal.model.CMS;
@@ -53,6 +54,15 @@ public class SMSManager {
 	
 	private Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create(); 
 	
+	private StringBuilder sqlSelect = new StringBuilder("select "
+			+ "element_identifier,"
+			+ "our_number,"
+			+ "survey_ident,"
+			+ "their_number_question,"
+			+ "message_question,"
+			+ "o_id "
+			+ "from sms_number ");
+	
 	private ResourceBundle localisation;
 	private String tz;
 	
@@ -60,6 +70,70 @@ public class SMSManager {
 		this.localisation = l;
 		this.tz = tz;
 	}
+	
+	/*
+	 * Get a list of available numbers
+	 */
+	public ArrayList<SMSNumber> getOurNumbers(Connection sd, String user) throws SQLException {
+		ArrayList<SMSNumber> numbers = new ArrayList<>();
+		boolean orgOnly = false;
+		
+		PreparedStatement pstmt = null;
+		
+		String sqlOrg = "select name from organisation where id = ?";
+		PreparedStatement pstmtOrg = sd.prepareStatement(sqlOrg);
+		
+		String sqlSurvey = "select display_name from survey where ident = ?";
+		PreparedStatement pstmtSurvey = sd.prepareStatement(sqlSurvey);
+		
+		try {
+			
+			if(!GeneralUtilityMethods.hasSecurityGroup(sd, user, Authorise.ORG_ID)) {
+				sqlSelect.append("where o_id = ? ");
+				orgOnly = true;
+			}
+			sqlSelect.append("order by time_modified asc ");
+			pstmt = sd.prepareStatement(sqlSelect.toString());
+			if(orgOnly) {
+				pstmt.setInt(1, GeneralUtilityMethods.getOrganisationId(sd, user));
+			}
+			
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				SMSNumber n = getNumber(rs);
+				numbers.add(n);
+				
+				/*
+				 * Get org name
+				 */
+				if(n.oId > 0) {
+					pstmtOrg.setInt(1, n.oId);
+					ResultSet rsOrg = pstmtOrg.executeQuery();
+					if(rsOrg.next()) {
+						n.orgName = rsOrg.getString(1);
+					}
+				}
+				
+				/*
+				 * Get survey name
+				 */
+				if(n.surveyIdent != null) {
+					pstmtSurvey.setString(1, n.surveyIdent);
+					ResultSet rsSurvey = pstmtSurvey.executeQuery();
+					if(rsSurvey.next()) {
+						n.surveyName = rsSurvey.getString(1);
+					}
+				}
+			}
+			
+		} finally {
+			if(pstmt != null) {try{pstmt.close();}catch (Exception e) {}}
+			if(pstmtOrg != null) {try{pstmtOrg.close();}catch (Exception e) {}}
+			if(pstmtSurvey != null) {try{pstmtSurvey.close();}catch (Exception e) {}}
+		}
+		return numbers;
+	}
+	
 	/*
 	 * Write a log entry that includes the survey id
 	 */
@@ -100,13 +174,7 @@ public class SMSManager {
 	
 	public SMSNumber getDetailsForOurNumber(Connection sd, String ourNumber) throws SQLException {
 		
-		String sql = "select "
-				+ "element_identifier,"
-				+ "survey_ident,"
-				+ "their_number_question,"
-				+ "message_question "
-				+ "from sms_number "
-				+ "where our_number = ?";
+		sqlSelect.append("where our_number = ?");
 		PreparedStatement pstmt = null;
 		
 		SMSNumber smsNumber = null;
@@ -116,16 +184,12 @@ public class SMSManager {
 			/*
 			 * Get destination for the SMS
 			 */		
-			pstmt = sd.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sqlSelect.toString());
 			pstmt.setString(1, ourNumber);
 			log.info("Get SMS number details: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
-				smsNumber = new SMSNumber(rs.getString("element_identifier"),
-						ourNumber,
-						rs.getString("survey_ident"),
-						rs.getString("their_number_question"),
-						rs.getString("message_question"));
+				smsNumber = getNumber(rs);
 			}
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
@@ -135,33 +199,21 @@ public class SMSManager {
 
 	public SMSNumber getDetailsForSurvey(Connection sd, String surveyIdent) throws SQLException {
 		
-		String sql = "select "
-				+ "element_identifier,"
-				+ "our_number,"
-				+ "their_number_question,"
-				+ "message_question "
-				+ "from sms_number "
-				+ "where survey_ident = ?";
-		PreparedStatement pstmt = null;
-		
+	
+		PreparedStatement pstmt = null;		
 		SMSNumber smsNumber = null;
-		
+		sqlSelect.append("where survey_ident = ?");
 		try {
 			
 			/*
 			 * Get destination for the SMS
 			 */		
-			pstmt = sd.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sqlSelect.toString());
 			pstmt.setString(1, surveyIdent);
 			log.info("Get SMS destination: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
-				smsNumber = new SMSNumber(
-						rs.getString("element_identifier"),
-						rs.getString("our_number"),
-						surveyIdent,
-						rs.getString("their_number_question"),
-						rs.getString("message_question"));
+				smsNumber = getNumber(rs);
 			}
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
@@ -344,6 +396,15 @@ public class SMSManager {
 		conversation.add(sms);
 		
 		return conversation;
+	}
+	
+	private SMSNumber getNumber(ResultSet rs) throws SQLException {
+		return new SMSNumber(rs.getString("element_identifier"),
+				rs.getString("our_number"),
+				rs.getString("survey_ident"),
+				rs.getString("their_number_question"),
+				rs.getString("message_question"),
+				rs.getInt("o_id"));
 	}
 }
 
