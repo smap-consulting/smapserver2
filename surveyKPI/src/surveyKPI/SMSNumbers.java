@@ -19,10 +19,12 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -124,11 +126,11 @@ public class SMSNumbers extends Application {
 	
 
 	/*
-	 * Add a notification
+	 * Add a new number
 	 */
 	@Path("/number")
 	@POST
-	public Response addNotification(@Context HttpServletRequest request,
+	public Response addNmber(@Context HttpServletRequest request,
 			@FormParam("ourNumber") String ourNumber,
 			@QueryParam("tz") String tz) { 
 		
@@ -140,8 +142,6 @@ public class SMSNumbers extends Application {
 		
 		Response response = null;
 		String connectionString = "surveyKPI-add sms number";
-		
-		log.info("Add Notification:========== " + ourNumber);
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -158,6 +158,57 @@ public class SMSNumbers extends Application {
 		try {	
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, ourNumber);
+			pstmt.executeUpdate();
+			response = Response.ok().build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+
+		return response;
+
+	}
+	
+	/*
+	 * Delete a number
+	 */
+	@Path("/number/{identifier}")
+	@DELETE
+	public Response deleteNumber(@Context HttpServletRequest request,
+			@PathParam("identifier") String identifier,
+			@QueryParam("tz") String tz) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
+		Response response = null;
+		String connectionString = "surveyKPI-delete sms number";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		// End Authorisation
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
+		String sql = "delete from sms_number "
+				+ "where element_identifier::text = ?";
+		PreparedStatement pstmt = null;
+		
+		try {	
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, identifier);
 			pstmt.executeUpdate();
 			response = Response.ok().build();
 			
