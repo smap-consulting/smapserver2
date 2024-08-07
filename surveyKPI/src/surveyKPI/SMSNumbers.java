@@ -19,22 +19,32 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.SMSManager;
+import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.SMSNumber;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -50,6 +60,7 @@ import java.util.logging.Logger;
 public class SMSNumbers extends Application {
 	
 	Authorise a = null;
+	Authorise aOwner = null;
 
 	private static Logger log =
 			 Logger.getLogger(SMSNumbers.class.getName());
@@ -62,14 +73,14 @@ public class SMSNumbers extends Application {
 		
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		
-		// Only allow security administrators and organisational administrators to view or update the roles
+		// Only allow server owners and organisational administrators to view or update number data
 		authorisations = new ArrayList<String> ();	
-		authorisations.add(Authorise.SECURITY);
+		authorisations.add(Authorise.OWNER);
 		authorisations.add(Authorise.ADMIN);
 		a = new Authorise(authorisations, null);
 		
-		authorisations = new ArrayList<String> ();	
-
+		aOwner = new Authorise(null, Authorise.ADMIN);
+	
 	}
 	
 	/*
@@ -112,5 +123,57 @@ public class SMSNumbers extends Application {
 	}
 	
 
+	/*
+	 * Add a notification
+	 */
+	@Path("/number")
+	@POST
+	public Response addNotification(@Context HttpServletRequest request,
+			@FormParam("ourNumber") String ourNumber,
+			@QueryParam("tz") String tz) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
+		Response response = null;
+		String connectionString = "surveyKPI-add sms number";
+		
+		log.info("Add Notification:========== " + ourNumber);
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		// End Authorisation
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
+		String sql = "insert into sms_number (element_identifier, time_modified, our_number) "
+				+ "values (gen_random_uuid(), now(), ?)";
+		PreparedStatement pstmt = null;
+		
+		try {	
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, ourNumber);
+			pstmt.executeUpdate();
+			response = Response.ok().build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+
+		return response;
+
+	}
 }
 
