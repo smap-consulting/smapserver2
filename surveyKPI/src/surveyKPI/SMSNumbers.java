@@ -31,22 +31,16 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
-import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.SMSManager;
-import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.SMSNumber;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
-import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -132,6 +126,7 @@ public class SMSNumbers extends Application {
 	@POST
 	public Response addNmber(@Context HttpServletRequest request,
 			@FormParam("ourNumber") String ourNumber,
+			@FormParam("oId") int oId,
 			@QueryParam("tz") String tz) { 
 		
 		// Check for Ajax and reject if not
@@ -151,13 +146,14 @@ public class SMSNumbers extends Application {
 			tz = "UTC";
 		}
 		
-		String sql = "insert into sms_number (element_identifier, time_modified, our_number) "
-				+ "values (gen_random_uuid(), now(), ?)";
+		String sql = "insert into sms_number (element_identifier, time_modified, our_number, o_id) "
+				+ "values (gen_random_uuid(), now(), ?, ?)";
 		PreparedStatement pstmt = null;
 		
 		try {	
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, ourNumber);
+			pstmt.setInt(2, oId);
 			pstmt.executeUpdate();
 			response = Response.ok().build();
 			
