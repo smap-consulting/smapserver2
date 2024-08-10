@@ -586,7 +586,9 @@ public class PDFSurveyManager {
 			} else if(di.tsep && (r.type.equals("int") || (r.type.equals("string") && r.value != null && !r.value.contains(".")))) {
 				long iValue = 0;
 				try {
-					iValue = Long.parseLong(r.value.replace(",", ""));
+					if(r.value.trim().length() > 0) {	// Zero length strings should map to 0
+						iValue = Long.parseLong(r.value.replace(",", ""));
+					}
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
