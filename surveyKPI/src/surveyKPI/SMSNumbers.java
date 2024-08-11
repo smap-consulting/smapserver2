@@ -181,6 +181,7 @@ public class SMSNumbers extends Application {
 	public Response editNmber(@Context HttpServletRequest request,
 			@FormParam("ourNumber") String ourNumber,
 			@FormParam("oId") int oId,
+			@FormParam("sId") int sId,
 			@QueryParam("tz") String tz) throws SQLException { 
 		
 		// Check for Ajax and reject if not
@@ -204,15 +205,23 @@ public class SMSNumbers extends Application {
 		PreparedStatement pstmt = null;
 		
 		try {	
+			/*
+			 * Data authorisation
+			 */
 			boolean isOwner = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.OWNER_ID);
 			if(!isOwner) {   // Validate number
 				a.isValidNumber(sd, request.getRemoteUser(), ourNumber);
 			}
+			if(sId > 0) {
+				a.isValidSurvey(sd, request.getRemoteUser(), sId, false, true);  // Make it a super user request and ignore roles
+			}
+			
 			/*
 			 * Construct SQL
 			 */
 			StringBuilder sql = new StringBuilder("update sms_number ")
-					.append("set time_modified = now()");
+					.append("set time_modified = now()")
+					.append(", survey_ident = (select ident from survey where s_id = ?) ");
 			if(isOwner) {
 				sql.append(", o_id = ? ");
 			}
@@ -223,9 +232,10 @@ public class SMSNumbers extends Application {
 			 */
 			pstmt = sd.prepareStatement(sql.toString());
 			if(isOwner) {
-				pstmt.setInt(1, oId);
+				pstmt.setInt(1, sId);
+				pstmt.setInt(2, oId);
 			}
-			pstmt.setString(2, ourNumber);
+			pstmt.setString(3, ourNumber);
 			log.info("update number: " + pstmt.toString());
 			pstmt.executeUpdate();
 			response = Response.ok().build();

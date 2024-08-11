@@ -85,6 +85,7 @@ public class Surveys extends Application {
 
 	Authorise aGet = null;
 	Authorise aUpdate = null;
+	Authorise aWholeOrg = null;
 	
 	private static Logger log =
 			 Logger.getLogger(Surveys.class.getName());
@@ -97,6 +98,7 @@ public class Surveys extends Application {
 		
 		ArrayList<String> authorisations1 = new ArrayList<String> ();
 		ArrayList<String> authorisations2 = new ArrayList<String> ();
+		ArrayList<String> authorisations3 = new ArrayList<String> ();
 		
 		authorisations1.add(Authorise.ANALYST);
 		authorisations1.add(Authorise.VIEW_DATA);
@@ -107,8 +109,12 @@ public class Surveys extends Application {
 		authorisations2.add(Authorise.ANALYST);
 		authorisations2.add(Authorise.ADMIN);
 		
+		authorisations3.add(Authorise.OWNER);
+		authorisations3.add(Authorise.ADMIN);
+		
 		aGet = new Authorise(authorisations1, null);
 		aUpdate = new Authorise(authorisations2, null);
+		aWholeOrg = new Authorise(authorisations3, null);
 		
 	}
 
@@ -498,12 +504,13 @@ public class Surveys extends Application {
 	        throw new AuthorisationException();   
 		} 
 		
+		String connectionString = "surveyKPI - create new survey";
 		log.info("userevent: " + request.getRemoteUser() + " create new survey " + name + " (" + existing + "," + 
 				existingSurveyId + "," + existingFormId + ")");
 		
 		// Authorisation - Access
 		boolean superUser = false;
-		Connection sd = SDDataSource.getConnection("surveyKPI-Surveys");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		aUpdate.isAuthorised(sd, request.getRemoteUser());
 		aUpdate.isValidProject(sd, request.getRemoteUser(), projectId);
 		if(existing) {
@@ -524,7 +531,7 @@ public class Surveys extends Application {
 				existingSurveyId + "," + existingFormId + ")");
 		
 		Response response = null;
-		Connection cResults = ResultsDataSource.getConnection("surveyKPI-Surveys");
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 
 		try {
 			// Get the users locale
@@ -573,8 +580,8 @@ public class Surveys extends Application {
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-Surveys", sd);	
-			ResultsDataSource.closeConnection("surveyKPI-Surveys", cResults);
+			SDDataSource.closeConnection(connectionString, sd);	
+			ResultsDataSource.closeConnection(connectionString, cResults);
 			
 		}
 
@@ -597,10 +604,11 @@ public class Surveys extends Application {
 	        throw new AuthorisationException();   
 		} 
 		
+		String connectionString = "SurveyKPI - save languages";
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Surveys");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -710,7 +718,7 @@ public class Surveys extends Application {
 			
 			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
 			if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
-			SDDataSource.closeConnection("surveyKPI-Surveys", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 			
 			try {sd.setAutoCommit(true);} catch(Exception e) {}
 		}
@@ -734,9 +742,10 @@ public class Surveys extends Application {
 		} 
 		
 		Response response = null;
+		String connectionString = "surveyKPI - save pulldata";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Surveys");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -779,7 +788,7 @@ public class Surveys extends Application {
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
-			SDDataSource.closeConnection("surveyKPI-Surveys", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 			
 		}
 
@@ -799,12 +808,13 @@ public class Surveys extends Application {
 		
 		log.info("Save survey:" + sId + " : " + changesString);
 		
+		String connectionString = "SurveyKPI - update survey";
 		Type type = new TypeToken<ArrayList<ChangeSet>>(){}.getType();
 		Gson gson =  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		ArrayList<ChangeSet> changes = gson.fromJson(changesString, type);	
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Surveys");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -813,7 +823,7 @@ public class Surveys extends Application {
 		aUpdate.isAuthorised(sd, request.getRemoteUser());	
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		
-		Connection cResults = ResultsDataSource.getConnection("surveyKPI-Surveys");
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		
 		// Authorise the changes
 		for(ChangeSet cs : changes) {
@@ -859,8 +869,8 @@ public class Surveys extends Application {
 			response = Response.serverError().build();
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-Surveys", sd);		
-			ResultsDataSource.closeConnection("surveyKPI-Surveys", cResults);
+			SDDataSource.closeConnection(connectionString, sd);		
+			ResultsDataSource.closeConnection(connectionString, cResults);
 			
 		}
 
