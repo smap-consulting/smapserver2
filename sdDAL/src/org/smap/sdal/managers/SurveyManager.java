@@ -4930,6 +4930,9 @@ public class SurveyManager {
 		return t;
 	}
 	
+	/*
+	 * Get a list of surveys accessible by a user suitable for dropdowns to select a survey
+	 */
 	public ArrayList<SurveyIdent> getSurveyIdentList(Connection sd, String user, boolean superUser) throws SQLException {
 		
 		ArrayList<SurveyIdent> surveys = new ArrayList<> ();
@@ -4969,6 +4972,46 @@ public class SurveyManager {
 		
 		return surveys;
 	}
+	
+	/*
+	 * Get a list of surveys in a project suitable for dropdowns to select a survey
+	 */
+	public ArrayList<SurveyIdent> getSurveyIdentListInProject(Connection sd, String user, boolean superUser, int pId) throws SQLException {
+		
+		ArrayList<SurveyIdent> surveys = new ArrayList<> ();
+		
+		StringBuffer sql = new StringBuffer("");
+		sql.append("select p.name as project_name, s.display_name, s.ident, s.s_id "
+				+ "from survey s, project p "
+				+ "where s.p_id = p.id "
+				+ "and p.id = ? "
+				+ "and s.deleted = 'false' "
+				+ "and s.hidden = 'false' ");
+
+		if(!superUser) {					// Add RBAC
+			sql.append(GeneralUtilityMethods.getSurveyRBAC());
+		}
+	
+		sql.append("order by p.name, s.display_name ");
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql.toString());	
+			pstmt.setInt(1,  pId);
+			if(!superUser) {
+				pstmt.setString(2, user);		// RBAC check
+			}
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				surveys.add(new SurveyIdent(rs.getInt("s_id"),rs.getString("project_name"), rs.getString("display_name"), rs.getString("ident")));
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();}catch(Exception e) {}}
+		}
+		
+		return surveys;
+	}
+	
 	
 	public File getLegacyPdfTemplateFile(Connection sd, String sIdent, String basePath) throws SQLException {
 		
