@@ -10,7 +10,10 @@ public class SMSNumber {
 	public String surveyIdent;
 	public String theirNumberQuestion;
 	public String messageQuestion;
+	
 	public int oId;
+	public int pId;
+	public int sId;
 	
 	public String orgName;
 	public String surveyName;

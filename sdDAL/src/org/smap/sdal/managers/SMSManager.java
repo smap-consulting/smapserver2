@@ -83,7 +83,7 @@ public class SMSManager {
 		String sqlOrg = "select name from organisation where id = ?";
 		PreparedStatement pstmtOrg = sd.prepareStatement(sqlOrg);
 		
-		String sqlSurvey = "select display_name from survey where ident = ?";
+		String sqlSurvey = "select display_name, p_id, s_id from survey where ident = ?";
 		PreparedStatement pstmtSurvey = sd.prepareStatement(sqlSurvey);
 		
 		try {
@@ -115,13 +115,15 @@ public class SMSManager {
 				}
 				
 				/*
-				 * Get survey name
+				 * Get survey name and project id
 				 */
 				if(n.surveyIdent != null) {
 					pstmtSurvey.setString(1, n.surveyIdent);
 					ResultSet rsSurvey = pstmtSurvey.executeQuery();
 					if(rsSurvey.next()) {
-						n.surveyName = rsSurvey.getString(1);
+						n.surveyName = rsSurvey.getString("display_name");
+						n.pId = rsSurvey.getInt("p_id");
+						n.sId = rsSurvey.getInt("s_id");
 					}
 				}
 			}

@@ -122,7 +122,7 @@ public class SMSNumbers extends Application {
 	/*
 	 * Add a new number
 	 */
-	@Path("/number")
+	@Path("/number/add")
 	@POST
 	public Response addNmber(@Context HttpServletRequest request,
 			@FormParam("ourNumber") String ourNumber,
@@ -140,6 +140,7 @@ public class SMSNumbers extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
+		aOwner.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		if(tz == null) {
@@ -154,6 +155,78 @@ public class SMSNumbers extends Application {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, ourNumber);
 			pstmt.setInt(2, oId);
+			pstmt.executeUpdate();
+			response = Response.ok().build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+
+		return response;
+
+	}
+	
+	/*
+	 * Edit a number
+	 */
+	@Path("/number/edit")
+	@POST
+	public Response editNmber(@Context HttpServletRequest request,
+			@FormParam("ourNumber") String ourNumber,
+			@FormParam("oId") int oId,
+			@QueryParam("tz") String tz) throws SQLException { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
+		Response response = null;
+		String connectionString = "surveyKPI-edit sms number";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
+				
+		PreparedStatement pstmt = null;
+		
+		try {	
+			boolean isOwner = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.OWNER_ID);
+			if(!isOwner) {   // Validate number
+				a.isValidNumber(sd, request.getRemoteUser(), ourNumber);
+			}
+			/*
+			 * Construct SQL
+			 */
+			StringBuilder sql = new StringBuilder("update sms_number ")
+					.append("set time_modified = now()");
+			if(isOwner) {
+				sql.append(", o_id = ? ");
+			}
+			sql.append("where our_number = ?");
+			
+			/*
+			 * Update
+			 */
+			pstmt = sd.prepareStatement(sql.toString());
+			if(isOwner) {
+				pstmt.setInt(1, oId);
+			}
+			pstmt.setString(2, ourNumber);
+			log.info("update number: " + pstmt.toString());
 			pstmt.executeUpdate();
 			response = Response.ok().build();
 			
@@ -192,6 +265,7 @@ public class SMSNumbers extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
+		aOwner.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		if(tz == null) {
