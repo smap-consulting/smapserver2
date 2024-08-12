@@ -85,15 +85,26 @@ public class QuestionListByIdent extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
+		boolean isAdmin = false;
+		boolean isOwner = false;
 		int sId = 0;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 			sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+			isAdmin = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ADMIN_ID);
+			isOwner = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.OWNER_ID);
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
 		
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		/*
+		 * Check that the survey is accessible to the user
+		 */
+		if(isAdmin  || isOwner) {
+			a.surveyInUsersOrganisation(sd, request.getRemoteUser(), sIdent);
+		} else {
+			a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		}
 		// End Authorisation
 		
 		ArrayList<QuestionLite> questions = new ArrayList<QuestionLite> ();
