@@ -181,7 +181,9 @@ public class SMSNumbers extends Application {
 	public Response editNmber(@Context HttpServletRequest request,
 			@FormParam("ourNumber") String ourNumber,
 			@FormParam("oId") int oId,
-			@FormParam("sId") int sId,
+			@FormParam("sIdent") String sIdent,
+			@FormParam("theirNumberQuestion") String theirNumberQuestion,
+			@FormParam("messageQuestion") String messageQuestion,
 			@QueryParam("tz") String tz) throws SQLException { 
 		
 		// Check for Ajax and reject if not
@@ -212,16 +214,22 @@ public class SMSNumbers extends Application {
 			if(!isOwner) {   // Validate number
 				a.isValidNumber(sd, request.getRemoteUser(), ourNumber);
 			}
-			if(sId > 0) {
-				a.isValidSurvey(sd, request.getRemoteUser(), sId, false, true);  // Make it a super user request and ignore roles
+			if(sIdent != null) {
+				a.surveyInUsersOrganisation(sd, request.getRemoteUser(), sIdent);  // Make it a super user request and ignore roles
 			}
 			
 			/*
-			 * Construct SQL
+			 * Validation
+			 * 1. TODO validate that the question names are in the specified survey
+			 */
+			/*
+			 * Construct the SQL
 			 */
 			StringBuilder sql = new StringBuilder("update sms_number ")
 					.append("set time_modified = now()")
-					.append(", survey_ident = (select ident from survey where s_id = ?) ");
+					.append(", survey_ident  = ? ")
+					.append(", their_number_question  = ? ")
+					.append(", message_question  = ? ");
 			if(isOwner) {
 				sql.append(", o_id = ? ");
 			}
@@ -231,11 +239,13 @@ public class SMSNumbers extends Application {
 			 * Update
 			 */
 			pstmt = sd.prepareStatement(sql.toString());
+			pstmt.setString(1, sIdent);
+			pstmt.setString(2, theirNumberQuestion);
+			pstmt.setString(3, messageQuestion);
 			if(isOwner) {
-				pstmt.setInt(1, sId);
-				pstmt.setInt(2, oId);
+				pstmt.setInt(4, oId);
 			}
-			pstmt.setString(3, ourNumber);
+			pstmt.setString(5, ourNumber);
 			log.info("update number: " + pstmt.toString());
 			pstmt.executeUpdate();
 			response = Response.ok().build();

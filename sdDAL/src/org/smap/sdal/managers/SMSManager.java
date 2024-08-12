@@ -137,7 +137,7 @@ public class SMSManager {
 	}
 	
 	/*
-	 * Write a log entry that includes the survey id
+	 * Write an upload entry for the message
 	 */
 	public void saveMessage(
 			Connection sd,
