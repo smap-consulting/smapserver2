@@ -27,6 +27,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -37,6 +38,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public class JdbcQuestionManager {
+	
+	private static Logger log =
+			 Logger.getLogger(JdbcQuestionManager.class.getName());
 	
 	PreparedStatement pstmt = null;
 	String sql = "insert into question ("
@@ -157,14 +161,15 @@ public class JdbcQuestionManager {
 		pstmt.setString(11, q.getSource());	
 		pstmt.setString(12, q.getSourceParam());	
 		pstmt.setBoolean(13, q.isReadOnly());
-		pstmt.setBoolean(14, q.isMandatory());
-		pstmt.setString(15, q.getRelevant(false, null, xFormRoot));
-		pstmt.setString(16, q.getCalculate(false, null, xFormRoot));
-		pstmt.setString(17, q.getConstraint(false, null, xFormRoot));
-		pstmt.setString(18, q.getConstraintMsg()); // ok
-		pstmt.setString(19, q.getRequiredExpression());
-		pstmt.setString(20, q.getAppearance(false, null));
-		pstmt.setString(21, GeneralUtilityMethods.convertParametersToString(q.getParameters()));
+		pstmt.setString(14, q.getReadOnlyExpression());
+		pstmt.setBoolean(15, q.isMandatory());
+		pstmt.setString(16, q.getRelevant(false, null, xFormRoot));
+		pstmt.setString(17, q.getCalculate(false, null, xFormRoot));
+		pstmt.setString(18, q.getConstraint(false, null, xFormRoot));
+		pstmt.setString(19, q.getConstraintMsg()); // ok
+		pstmt.setString(20, q.getRequiredExpression());
+		pstmt.setString(21, q.getAppearance(false, null));
+		pstmt.setString(22, GeneralUtilityMethods.convertParametersToString(q.getParameters()));
 		
 		String nodeset = null;
 		String nodeset_value = null;
@@ -191,24 +196,25 @@ public class JdbcQuestionManager {
 			}
 			
 		}	
-		pstmt.setString(22, nodeset);
-		pstmt.setString(23, nodeset_value);
-		pstmt.setString(24, nodeset_label);
+		pstmt.setString(23, nodeset);
+		pstmt.setString(24, nodeset_value);
+		pstmt.setString(25, nodeset_label);
 		
-		pstmt.setString(25, q.getColumnName(false)); 
-		pstmt.setBoolean(26, q.isPublished());
-		pstmt.setInt(27, q.getListId());  
-		pstmt.setString(28, q.getAutoPlay());
-		pstmt.setString(29, q.getAccuracy());
-		pstmt.setString(30, q.getDataType());
+		pstmt.setString(26, q.getColumnName(false)); 
+		pstmt.setBoolean(27, q.isPublished());
+		pstmt.setInt(28, q.getListId());  
+		pstmt.setString(29, q.getAutoPlay());
+		pstmt.setString(30, q.getAccuracy());
+		pstmt.setString(31, q.getDataType());
 		if(q.getType().equals("select")) {
-			pstmt.setBoolean(31, true);			// Set all select multiple to compressed
+			pstmt.setBoolean(32, true);			// Set all select multiple to compressed
 		} else {
-			pstmt.setBoolean(31, false);
+			pstmt.setBoolean(32, false);
 		}
-		pstmt.setString(32, q.getIntent());
-		pstmt.setString(33, q.getSetValueArrayAsString(gson));
+		pstmt.setString(33, q.getIntent());
+		pstmt.setString(34, q.getSetValueArrayAsString(gson));
 		
+		log.info("Write question (xml): " + pstmt.toString());
 		pstmt.executeUpdate();
 		
 		ResultSet rs = pstmt.getGeneratedKeys();

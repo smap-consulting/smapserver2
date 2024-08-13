@@ -49,7 +49,7 @@ public class JdbcSurveyManager {
 			+ "instance_name,"
 			+ "loaded_from_xls,"
 			+ "created) "
-			+ "values (nextval('s_seq'), ?, now(), ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
+			+ "values (nextval('s_seq'), now(), ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
 	
 	// Update survey ident based on id
 	PreparedStatement pstmtUpdate = null;
