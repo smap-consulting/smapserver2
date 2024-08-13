@@ -381,31 +381,6 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Rename template files
-	 */
-	static public void renameTemplateFiles(String oldName, String newName, String basePath, int oldProjectId,
-			int newProjectId) throws IOException {
-
-		String oldFileName = convertDisplayNameToFileName(oldName, false);
-		String newFileName = convertDisplayNameToFileName(newName, false);
-
-		String fromDirectory = basePath + "/templates/" + oldProjectId;
-		String toDirectory = basePath + "/templates/" + newProjectId;
-
-		log.info("Renaming files from " + fromDirectory + "/" + oldFileName + " to " + toDirectory + "/" + newFileName);
-		File dir = new File(fromDirectory);
-		FileFilter fileFilter = new WildcardFileFilter(oldFileName + ".*");
-		File[] files = dir.listFiles(fileFilter);
-
-		if (files != null) {
-			if (files.length > 0) {
-				moveFiles(files, toDirectory, newFileName);
-			} 
-		}
-
-	}
-
-	/*
 	 * Move an array of files to a new location
 	 */
 	static void moveFiles(File[] files, String toDirectory, String newFileName) {

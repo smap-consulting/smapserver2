@@ -188,12 +188,6 @@ public class Survey extends Application {
 				if(type.equals("codebook")) {
 					ext = "_gen.pdf";		// Codebooks are written as PDF files 
 					sourceExt = "_gen.xml";		// input name is xml for a codebook file
-				} else if(type.equals("xls")) {
-					ext = ".xls";
-					sourceExt = ".xls";
-				} else if(type.equals("xlsx")) {
-					ext = ".xlsx";
-					sourceExt = ".xlsx";
 				} else if(type.equals("xml")) {	
 					ext = "_gen.xml";		// Generate xml
 					sourceExt = "_gen.xml";
@@ -201,14 +195,7 @@ public class Survey extends Application {
 					ext = "." + type;
 					sourceExt = "." + type;
 				}
-				sourceName = fileBasePath + sourceExt;
-				
-				String sourceNameXls = null;
-				String sourceNameXlsX = null;
-				if(type.equals("xlsx") || type.equals("xls")) {
-					sourceNameXls = fileBasePath + ".xls";
-					sourceNameXlsX = fileBasePath + ".xlsx";
-				}
+				sourceName = fileBasePath + sourceExt;		
 
 				log.info("Source name: " + sourceName + " type: " + type);
 				/*
@@ -245,24 +232,12 @@ public class Survey extends Application {
 						log.log(Level.SEVERE, "", e);
 						throw e;
 					}
-
-
 				}
 
 				// Check for the existence of the source file
 				File outputFile = null;
-				if(type.equals("xlsx")) {
-					outputFile = new File(sourceNameXlsX);
-					if(!outputFile.exists()) {
-						outputFile = new File(sourceNameXls);
-						type = "xls";
-						ext = ".xls";
-						sourceExt = ".xls";
-					}
-				} else {
-					String filepath = fileBasePath + ext;
-					outputFile = new File(filepath);
-				}
+				String filepath = fileBasePath + ext;
+				outputFile = new File(filepath);
 
 				filename = target_name + ext;
 				try {  		
@@ -294,10 +269,6 @@ public class Survey extends Application {
 					builder = Response.ok(outputFile);
 					if(type.equals("codebook")) {
 						builder.header("Content-type","application/pdf; charset=UTF-8");
-					} else if(type.equals("xls")) {
-						builder.header("Content-type","application/vnd.ms-excel; charset=UTF-8");
-					} else if(type.equals("xlsx")) {
-						builder.header("Content-type","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; charset=UTF-8");
 					} else if(type.equals("xml")) {
 						builder.header("Content-type","text/xml; charset=UTF-8");
 					}

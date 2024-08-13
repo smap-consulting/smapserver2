@@ -1,6 +1,5 @@
 package org.smap.model;
 
-import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
@@ -19,7 +18,6 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
-import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.AuthorisationException;
@@ -111,10 +109,7 @@ public class SurveyTemplateManager {
 			
 			// Authorise the user
 			auth.isAuthorised(sd, request.getRemoteUser());
-			
-			/*
-			 * Parse the request
-			 */
+            
 			List<?> items = uploadHandler.parseRequest(request);
 			Iterator<?> itr = items.iterator();
 			while(itr.hasNext()) {
@@ -450,21 +445,6 @@ public class SurveyTemplateManager {
 						s.surveyData.id		   // New Survey Id for replacement 
 					);		
 			}
-			
-			/*
-			 * Save the file to disk
-			 */
-			String fileFolder = basePath + "/templates/" + projectId +"/"; 
-			String targetName = GeneralUtilityMethods.convertDisplayNameToFileName(displayName, false);
-			String filePath = fileFolder + targetName + "." + type;
-			
-			// 1. Create the project folder if it does not exist
-			File folder = new File(fileFolder);
-			FileUtils.forceMkdir(folder);
-
-			// 2. Save the file
-			File savedFile = new File(filePath);
-			fileItem.write(savedFile);	
 			
 			/*
 			 * Update the change history for the survey

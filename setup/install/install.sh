@@ -179,7 +179,6 @@ sudo mkdir $filelocn/attachments/report/thumbs
 sudo mkdir $filelocn/media
 sudo mkdir $filelocn/media/organisation
 sudo mkdir $filelocn/templates
-sudo mkdir $filelocn/templates/xls
 sudo mkdir $filelocn/uploadedSurveys
 sudo mkdir $filelocn/misc
 sudo mkdir $filelocn/temp
