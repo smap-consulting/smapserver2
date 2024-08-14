@@ -1,14 +1,13 @@
 package org.smap.sdal.managers;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.model.UniqueKey;
+import org.apache.commons.fileupload.FileItem;
+import org.smap.sdal.Utilities.ApplicationException;
 
 /*****************************************************************************
 
@@ -39,15 +38,62 @@ public class DocumentUploadManager {
 	private static Logger log =
 			 Logger.getLogger(DocumentUploadManager.class.getName());
 
+	public static ArrayList<String> SHARED_RESOURCE_TYPES = new ArrayList<>(List.of("csv", "excel", 
+			"image", "video", "audio"));
+	
+	private HashMap<String, ArrayList<String>> validExtensions = new HashMap<>();
+	
 	LogManager lm = new LogManager(); // Application log
 	ResourceBundle localisation = null;
 	
 	public DocumentUploadManager(ResourceBundle l) {
 		localisation = l;
+		
+		validExtensions.put("csv", new ArrayList<>(List.of("csv")));
+		validExtensions.put("excel", new ArrayList<>(List.of("xls, xlsx")));
+		validExtensions.put("image", new ArrayList<>(List.of("png", "jpg", "jpeg", "gif", "svg")));
+		validExtensions.put("video", new ArrayList<>(List.of("mp4", "mpeg")));
+		validExtensions.put("audio", new ArrayList<>(List.of("mp3")));
 	}
 
-	public void validateDocument(String fileType) {
+	public void validateDocument(String fileName, FileItem item, ArrayList<String> validTypes) throws ApplicationException {
+				
+		/*
+		 * Check the extension
+		 */
+		String docType = null;
+		String ext = getExtension(fileName);
+		ArrayList<String> extList = new ArrayList<> ();
+		for(String type : validTypes) {
+			ArrayList<String> v = validExtensions.get(type);
+			if(v.contains(ext)) {
+				docType = type;
+				break;
+			} else {
+				extList.addAll(v);
+			}	
+		}
+		if(docType == null) {
+			String msg = localisation.getString("tu_ift");
+			msg = msg.replaceAll("%s1", ext);
+			msg = msg.replaceAll("%s2", extList.toString());
+			throw new ApplicationException(msg);
+		}
 		
+	}
+	
+	/*
+	 * Get the file extension
+	 */
+	public String getExtension(String in) {
+		String ext = "";
+		if(in != null) {
+			int idx = in.lastIndexOf('.');
+			if(idx > 0) {
+				ext = in.substring(idx+1).toLowerCase().trim();
+			}
+		}
+		return ext;
 	}
 
 }

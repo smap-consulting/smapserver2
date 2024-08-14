@@ -753,6 +753,7 @@ public class SharedResourceManager {
 		int surveyId = 0;
 		String surveyIdent = null;
 		FileItem fileItem = null;
+		String fileName = null;
 		String user = request.getRemoteUser();
 		String tz = "UTC";
 
@@ -819,20 +820,26 @@ public class SharedResourceManager {
 					} else {
 						log.info("Unknown field name = "+item.getFieldName()+", Value = "+item.getString());
 					}
-				} else {
+				} else {					
 					if(item.getName().trim().length() > 0) {
+						fileName = item.getName().trim();
 						fileItem = item;
 					} else {
 						log.info("No name specified for item in upload file");
 					}
 				}
 			} 
-				
+			
+			/*
+			 * Validate the upload
+			 */
+			DocumentUploadManager dum = new DocumentUploadManager(localisation);
+			dum.validateDocument(fileName, fileItem, DocumentUploadManager.SHARED_RESOURCE_TYPES);
+			
 			/*
 			 * Default the resource name to the item name if it was not specified
 			 */
 			if(resourceName == null) {
-				String fileName = fileItem.getName();
 				int idx = fileName.lastIndexOf('.');
 				if (idx > 0) {
 					resourceName = fileName.substring(0, idx);
