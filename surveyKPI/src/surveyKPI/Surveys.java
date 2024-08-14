@@ -1022,15 +1022,6 @@ public class Surveys extends Application {
 				GeneralUtilityMethods.updateUploadEvent(sd, surveyData.p_id, sId);
 			}
 			
-			// If the display name or project id has changed rename template files
-			if((originalDisplayName != null && surveyData.displayName != null && !originalDisplayName.equals(surveyData.displayName)) 
-					|| originalProjectId != surveyData.p_id) {
-		
-				// Rename files
-				String basePath = GeneralUtilityMethods.getBasePath(request); 	// Get base path to files
-				GeneralUtilityMethods.renameTemplateFiles(originalDisplayName, surveyData.displayName, basePath, originalProjectId, surveyData.p_id);
-			}
-			
 			// Record the message so that devices can be notified
 			MessagingManager mm = new MessagingManager(localisation);
 			mm.surveyChange(sd, sId, 0);

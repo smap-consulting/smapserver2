@@ -303,6 +303,7 @@ public class ServerManager {
 				pstmt.executeUpdate();
 
 				// Delete the template files
+				// No longer required but keep this to delete legacy
 				try {
 					GeneralUtilityMethods.deleteTemplateFiles(surveyDisplayName, basePath, projectId );
 				} catch (Exception e) {

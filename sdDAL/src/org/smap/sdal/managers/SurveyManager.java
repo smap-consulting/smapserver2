@@ -3815,8 +3815,6 @@ public class SurveyManager {
 				lm.writeLog(sd, sId, user, LogManager.DELETE, "Soft Delete survey " + surveyDisplayName, 0, null);
 				log.info("userevent: " + user + " : soft delete survey : " + sId);
 	
-				// Rename files
-				GeneralUtilityMethods.renameTemplateFiles(surveyDisplayName, newDisplayName, basePath, projectId, projectId);
 			}
 	
 			/*
