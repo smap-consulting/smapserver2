@@ -661,7 +661,7 @@ public class SurveyTableManager {
 
 			boolean first = true;
 			if (linked_s_pd) {
-				linked_s_pd_sel = GeneralUtilityMethods.convertAllxlsNamesToQuery(data_key, groupSurveyIdent, sId, sd, null);	// data_key should not include sequence
+				linked_s_pd_sel = GeneralUtilityMethods.convertAllxlsNamesToQuery(data_key, groupSurveyIdent, sd, null);	// data_key should not include sequence
 				sql.append(linked_s_pd_sel);
 				sql.append(" as _data_key");
 				first = false;

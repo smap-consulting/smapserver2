@@ -28,6 +28,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.Tables;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.ForeignKeyManager;
+import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
@@ -264,6 +265,7 @@ public class SubscriberBatch {
 				applyReminderNotifications(dbc.sd, dbc.results, basePath, serverName);
 				sendMailouts(dbc.sd, basePath, serverName);
 				expireTemporaryUsers(localisation, dbc.sd);
+				setEmptyHrkValues(localisation, dbc.sd, dbc.results);
 				
 				// Restore missing images on S3
 				//restoreMissingImages(dbc.sd, dbc.results, localisation, basePath);
@@ -1898,7 +1900,66 @@ public class SubscriberBatch {
 		}
 	}
 	
-	private void expireTemporaryUsers(ResourceBundle localisation, Connection sd) throws SQLException {
+	/*
+	 * If an HRK is set on a table that already has data we want this key to be applied to the existing rows
+	 * This will be done in 2 stages
+	 *   a) If there are no HRKs in the queue then a list of all HRK's that may need to be applied will be stored into the queue table
+	 *   b) If there are HRKs in the queue then 10 of them will be processed
+	 */
+	private void setEmptyHrkValues(ResourceBundle localisation, Connection sd, Connection cResults) throws SQLException {
+		
+		String sql = "select count(*) from key_queue"; 
+		PreparedStatement pstmt = null;
+		
+		String sqlGetKeys = "delete from key_queue q "
+				+ "where q.element_identifier = "
+				+ "(select q_inner.element_identifier "
+				+ "from key_queue q_inner "
+				+ "for update skip locked "
+				+ "limit 1) "
+				+ "returning q.element_identifier, q.key, q.group_survey_ident";
+		PreparedStatement pstmtGetKeys = null;
+		
+		String sqlAddKeys = "insert into key_queue (element_identifier, key, group_survey_ident) "
+				+ "select gen_random_uuid(), key, group_survey_ident from cms_setting where key is not null and key != ''";
+		PreparedStatement pstmtAddKeys = null;
+		
+		try {
+			pstmtGetKeys = sd.prepareStatement(sqlGetKeys);
+			
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next() && rs.getInt(1) > 0) {
+				/*
+				 * Process Queue
+				 */
+				KeyManager km = new KeyManager(localisation);
+				ResultSet rsGetKeys = pstmtGetKeys.executeQuery();
+				while(rsGetKeys.next()) {
+					 String elementIdentifier = rsGetKeys.getString("element_identifier");
+					 String key = rsGetKeys.getString("key");
+					 String groupSurveyIdent = rsGetKeys.getString("group_survey_ident");
+					 
+					 String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, groupSurveyIdent);
+					 km.updateExistingData(sd, cResults, key, groupSurveyIdent, tableName, 0);
+				}
+			} else {
+				/*
+				 * Fill Queue
+				 */
+				pstmtAddKeys = sd.prepareStatement(sqlAddKeys);
+				pstmtAddKeys.executeUpdate();
+			}
+		} catch(Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtAddKeys != null) {pstmtAddKeys.close();}} catch (SQLException e) {}
+			try {if (pstmtGetKeys != null) {pstmtGetKeys.close();}} catch (SQLException e) {}
+		}
+	}
+	
+private void expireTemporaryUsers(ResourceBundle localisation, Connection sd) throws SQLException {
 		
 		int interval = 30;	// Expire after 30 days
 		String sql = "select ident, action_details, o_id from users "

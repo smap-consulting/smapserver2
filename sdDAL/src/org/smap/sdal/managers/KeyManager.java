@@ -202,5 +202,53 @@ public class KeyManager {
 		}
 
 	}
+	
+	/*
+	 * Update Existing Records when a key is added
+	 * The key is only updated if it is currently null
+	 */
+	public void updateExistingData(Connection sd,
+			Connection cResults,
+			String key,
+			String groupSurveyIdent,
+			String tableName,
+			int prikey) throws Exception {
+		
+		String hrkSql = GeneralUtilityMethods.convertAllxlsNamesToQuery(key, groupSurveyIdent, sd, tableName);
+		
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtAddHrk = null;
+		try {
+			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_hrk")) {
+				// This should not be needed as the _hrk column should be in the table if an hrk has been specified for the survey
+				log.info("Error:  _hrk being created for table " + tableName + " this column should already be there");
+				String sqlAddHrk = "alter table " + tableName + " add column _hrk text;";
+				pstmtAddHrk = cResults.prepareStatement(sqlAddHrk);
+				pstmtAddHrk.executeUpdate();
+			}
+			
+			StringBuilder sql = new StringBuilder("update ");
+			sql.append(tableName)
+				.append(" m set _hrk = ")
+				.append(hrkSql)
+				.append(" where m._hrk is null ");
+			if(prikey > 0) {
+				sql.append("and m.prikey = ?");
+			} 
+				
+			pstmt = cResults.prepareStatement(sql.toString());
+			if(prikey > 0) {
+				pstmt.setInt(1, prikey);
+			}
+			int count = pstmt.executeUpdate();
+			log.info("------------- HRK values update: " + count);
+			log.info("Applying HRK: " + pstmt.toString());
+	
+		} finally {
+			if(pstmt != null) {try {pstmt.close();}catch(Exception e) {}}
+			if(pstmtAddHrk != null) {try {pstmtAddHrk.close();}catch(Exception e) {}}
+			
+		}
+	}
 
 }

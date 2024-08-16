@@ -1823,3 +1823,12 @@ CREATE UNLOGGED TABLE IF NOT EXISTS message_queue
     data text
 );
 ALTER TABLE message_queue OWNER TO ws;
+
+DROP TABLE IF EXISTS key_queue;
+CREATE UNLOGGED TABLE IF NOT EXISTS key_queue
+(
+    element_identifier UUID PRIMARY KEY,
+    key text,
+    group_survey_ident text
+);
+ALTER TABLE key_queue OWNER TO ws;

@@ -622,13 +622,15 @@ public class NotificationManager {
 
 			// Localisation
 			Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
-			Locale locale = new Locale(organisation.locale);
-
-			ResourceBundle localisation;
-			try {
-				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			} catch(Exception e) {
-				localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", locale);
+			if(organisation != null) {
+				Locale locale = new Locale(organisation.locale);
+	
+				ResourceBundle localisation;
+				try {
+					localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				} catch(Exception e) {
+					localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", locale);
+				}
 			}
 
 			String tz = "UTC";		// Set default time to UTC

@@ -314,8 +314,6 @@ public class SubRelationalDB extends Subscriber {
 		int sId = survey.surveyData.id;
 		
 		PreparedStatement pstmt = null;
-		PreparedStatement pstmtHrk = null;
-		PreparedStatement pstmtAddHrk = null;
 		boolean resAutoCommitSetFalse = false;
 		ArrayList<ForeignKey> foreignKeys = new ArrayList<> ();
 
@@ -392,7 +390,7 @@ public class SubRelationalDB extends Subscriber {
 			}
 			log.info("################### Processing key policy:" + keyPolicy + ": " + hasHrk + " : " + assignmentId );
 			
-			String hrkSql = GeneralUtilityMethods.convertAllxlsNamesToQuery(uk.key, survey.surveyData.groupSurveyIdent, sId, sd, topLevelForm.tableName);
+			String hrkSql = GeneralUtilityMethods.convertAllxlsNamesToQuery(uk.key, survey.surveyData.groupSurveyIdent, sd, topLevelForm.tableName);
 			if(updateId != null) {
 				// Direct update to a record
 				log.info("Direct update with Existing unique id:" + updateId);
@@ -422,22 +420,7 @@ public class SubRelationalDB extends Subscriber {
 			 * This has to happen after merge so that previous HRK's are preserved
 			 */
 			if(hasHrk) {
-				
-				if(!GeneralUtilityMethods.hasColumn(cResults, topLevelForm.tableName, "_hrk")) {
-					// This should not be needed as the _hrk column should be in the table if an hrk has been specified for the survey
-					log.info("Error:  _hrk being created for table " + topLevelForm.tableName + " this column should already be there");
-					String sqlAddHrk = "alter table " + topLevelForm.tableName + " add column _hrk text;";
-					pstmtAddHrk = cResults.prepareStatement(sqlAddHrk);
-					pstmtAddHrk.executeUpdate();
-				}
-				
-				String sqlHrk = "update " + topLevelForm.tableName + " m set _hrk = "
-						+ hrkSql
-						+ " where m.prikey = ?";
-				pstmtHrk = cResults.prepareStatement(sqlHrk);
-				pstmtHrk.setInt(1, keys.newKey);
-				log.info("Applying HRK: " + pstmtHrk.toString());
-				pstmtHrk.executeUpdate();	
+				km.updateExistingData(sd, cResults, uk.key, survey.surveyData.groupSurveyIdent, topLevelForm.tableName, keys.newKey);	
 			}
 			
 			lockRecordUpdate.release("merge done");   // Release lock - merging of records finished
@@ -506,8 +489,6 @@ public class SubRelationalDB extends Subscriber {
 				try {cResults.setAutoCommit(true);} catch(Exception e) {}
 			}
 			
-			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {};
-			if(pstmtAddHrk != null) try{pstmtAddHrk.close();}catch(Exception e) {};
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
 		}		
 	}

@@ -2554,7 +2554,7 @@ public class GeneralUtilityMethods {
 	 * Get the column name from the question name This assumes that all names in the
 	 * survey group are unique
 	 */
-	static public String getGroupColumnName(Connection sd, int sId, String groupSurveyIdent, String qName) throws SQLException {
+	static public String getGroupColumnName(Connection sd, String groupSurveyIdent, String qName) throws SQLException {
 
 		String column_name = null;
 
@@ -2587,7 +2587,7 @@ public class GeneralUtilityMethods {
 				
 				if(column_name == null) {
 					// Try preloads
-					ArrayList<MetaItem> preloads = getPreloads(sd, sId);
+					ArrayList<MetaItem> preloads = getGroupPreloads(sd, groupSurveyIdent);
 					for(MetaItem item : preloads) {
 						if(item.name.equals(qName)) {							
 							column_name = item.columnName;
@@ -4763,7 +4763,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Convert names in xls format ${ } to an SQL query
 	 */
-	public static String convertAllxlsNamesToQuery(String input, String groupSurveyIdent, int sId, 
+	public static String convertAllxlsNamesToQuery(String input, String groupSurveyIdent, 
 			Connection sd, String tableName) throws SQLException, ApplicationException {
 
 		if (input == null || input.trim().length() == 0) {
@@ -4784,13 +4784,13 @@ public class GeneralUtilityMethods {
 			// Add any text before the match
 			int startOfGroup = matcher.start();
 			item = input.substring(start, startOfGroup).trim();
-			convertSqlFragToHrkElement(sd, sId, item, output, tableName);
+			convertSqlFragToHrkElement(sd, groupSurveyIdent, item, output, tableName);
 
 			// Add the column name
 			if (output.length() > 0) {
 				output.append(" || ");
 			}
-			String columnName = getColumnName(sd, sId, qname);	// Just search in submitting survey not group as other group questions will have null value
+			String columnName = getGroupColumnName(sd, groupSurveyIdent, qname);
 			if (columnName == null && (qname.equals("prikey") || qname.equals("_start")
 					|| qname.equals(SmapServerMeta.UPLOAD_TIME_NAME)
 					|| qname.equals(SmapServerMeta.SCHEDULED_START_NAME)
@@ -4811,7 +4811,7 @@ public class GeneralUtilityMethods {
 		// Get the remainder of the string
 		if (start < input.length()) {
 			item = input.substring(start).trim();
-			convertSqlFragToHrkElement(sd, sId, item, output, tableName);
+			convertSqlFragToHrkElement(sd, groupSurveyIdent, item, output, tableName);
 		}
 
 		return output.toString().trim();
@@ -4862,9 +4862,9 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Add a component that is not a data
+	 * Add a component of the SQL that is not data
 	 */
-	private static void convertSqlFragToHrkElement(Connection sd, int sId, 
+	private static void convertSqlFragToHrkElement(Connection sd, String groupSurveyIdent, 
 			String item, StringBuffer output, String tableName) {
 
 		if (item.length() > 0) {
@@ -4907,7 +4907,7 @@ public class GeneralUtilityMethods {
 						String filterColumn = item.substring(idx1 + 1, idx2);
 						if (filterColumn.trim().length() > 0) {
 							try {
-								String columnName = getColumnName(sd, sId, filterColumn.trim());
+								String columnName = getGroupColumnName(sd, groupSurveyIdent, filterColumn.trim());
 								if(columnName != null) {
 									output.append("(select count(*) from " + tableName + " f1 "
 											+ "where f1." + columnName 
@@ -8082,6 +8082,41 @@ public class GeneralUtilityMethods {
 		} else {
 			preloads = new ArrayList <>();
 		}
+
+		return preloads;
+	}
+	
+	/*
+	 * Get preloads in a survey group
+	 * The preloads are not unique as each survey in the group is likely to have the same ones
+	 */
+	public static ArrayList<MetaItem> getGroupPreloads(Connection sd, String groupSurveyIdent) throws SQLException {
+		ArrayList<MetaItem> preloads = new ArrayList <>();
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		Type type = new TypeToken<ArrayList<MetaItem>>() {}.getType();
+		
+		String sql = "select meta from survey where group_survey_ident = ?;";
+		PreparedStatement pstmt = null;
+
+		String metaString = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, groupSurveyIdent);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next())  {
+				metaString = rs.getString(1);
+
+				if(metaString != null) {			
+					ArrayList<MetaItem> sPreloads = gson.fromJson(metaString, type);
+					preloads.addAll(sPreloads);
+				} 
+			}
+
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+
 
 		return preloads;
 	}

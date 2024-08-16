@@ -107,3 +107,12 @@ ALTER TABLE message_queue OWNER TO ws;
 
 alter table message add column queue_name text;
 alter table message add column queued boolean default false;
+
+-- Version 24.09
+CREATE UNLOGGED TABLE IF NOT EXISTS key_queue
+(
+    element_identifier UUID PRIMARY KEY,
+    key text,
+    group_survey_ident text
+);
+ALTER TABLE key_queue OWNER TO ws;
