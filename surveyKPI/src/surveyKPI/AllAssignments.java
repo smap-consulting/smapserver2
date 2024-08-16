@@ -47,6 +47,7 @@ import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.AssignmentsManager;
+import org.smap.sdal.managers.DocumentUploadManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -924,6 +925,12 @@ public class AllAssignments extends Application {
 
 					uploadedFileName = item.getName();
 
+					/*
+					 * Validate the upload
+					 */
+					DocumentUploadManager dum = new DocumentUploadManager(localisation);
+					dum.validateDocument(uploadedFileName, item, DocumentUploadManager.DATA_import_TYPES);
+					
 					if(item.getSize() > 0) {
 						contentType = item.getContentType();
 
