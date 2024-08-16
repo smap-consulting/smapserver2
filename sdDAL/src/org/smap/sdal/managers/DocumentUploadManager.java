@@ -40,6 +40,7 @@ public class DocumentUploadManager {
 
 	public static ArrayList<String> SHARED_RESOURCE_TYPES = new ArrayList<>(List.of("csv", "excel", 
 			"image", "video", "audio"));
+	public static ArrayList<String> LOCATION_TYPES = new ArrayList<>(List.of("excel"));
 	
 	private HashMap<String, ArrayList<String>> validExtensions = new HashMap<>();
 	

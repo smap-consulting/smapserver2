@@ -54,6 +54,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.DocumentUploadManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MiscPDFManager;
 import org.smap.sdal.managers.TaskManager;
@@ -375,6 +376,12 @@ public class Tasks extends Application {
 			}
 			
 			if(fileName != null) {
+				
+				/*
+				 * Validate the upload
+				 */
+				DocumentUploadManager dum = new DocumentUploadManager(localisation);
+				dum.validateDocument(fileName, fileItem, DocumentUploadManager.LOCATION_TYPES);
 				
 				// Process xls file
 				XLSTaskManager xf = new XLSTaskManager();
