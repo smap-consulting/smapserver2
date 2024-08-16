@@ -179,7 +179,7 @@ public class Survey {
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			
-			writeSurvey(sd, localisation, gson, userIdent, oId);
+			writeSurvey(sd, cRel, localisation, gson, userIdent, oId);
 			GeneralUtilityMethods.setLanguages(sd, surveyData.id, surveyData.languages);
 			writeLists(sd, gson);
 			writeStyles(sd, gson);
@@ -213,7 +213,7 @@ public class Survey {
 	 * Private methods that support writing to the survey to the database
 	 * 1. Write the survey definition
 	 */
-	private void writeSurvey(Connection sd, ResourceBundle localisation, Gson gson, String userIdent, int oId) throws Exception {
+	private void writeSurvey(Connection sd, Connection cResults, ResourceBundle localisation, Gson gson, String userIdent, int oId) throws Exception {
 		
 		String sql = "insert into survey ("
 				+ "s_id, "
@@ -316,6 +316,10 @@ public class Survey {
 			// Write the key details
 			KeyManager km = new KeyManager(localisation);
 			km.update(sd, surveyData.groupSurveyIdent, surveyData.uk.key, surveyData.uk.key_policy, userIdent, oId, false);	// Do not override existing key when called from XLS upload
+			if(surveyData.uk.key != null && surveyData.uk.key.trim().length() > 0) {
+				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, surveyData.groupSurveyIdent);
+				km.updateExistingData(sd, cResults, surveyData.uk.key, surveyData.groupSurveyIdent, tableName, 0);
+			}
 			
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}

@@ -35,6 +35,7 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.KeyManager;
@@ -201,13 +202,17 @@ public class CaseManagement extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-updateCaseManagementKeys";
 		
+		Connection cResults = null;
+		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurveyIdent(sd, request.getRemoteUser(), groupSurveyIdent, false, false);
 		// End Authorisation
 			
-		try {	
+		try {
+			cResults = ResultsDataSource.getConnection(connectionString);
+			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
@@ -220,6 +225,10 @@ public class CaseManagement extends Application {
 
 			String msg = null;
 			km.update(sd, groupSurveyIdent, keys.key, keys.key_policy, request.getRemoteUser(), oId, true);
+			if(keys.key != null && keys.key.trim().length() > 0) {
+				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, groupSurveyIdent);
+				km.updateExistingData(sd, cResults, keys.key, groupSurveyIdent, tableName, 0);
+			}
 			msg = localisation.getString("cm_k_updated");	
 			msg = msg.replace("%s1", groupSurveyIdent);
 			msg = msg.replace("%s2", keys.key);
@@ -235,6 +244,7 @@ public class CaseManagement extends Application {
 
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
 		}
 		
 		return response;
