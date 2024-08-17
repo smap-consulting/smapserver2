@@ -41,7 +41,8 @@ public class DocumentUploadManager {
 	public static ArrayList<String> SHARED_RESOURCE_TYPES = new ArrayList<>(List.of("csv", "excel", 
 			"image", "video", "audio"));
 	public static ArrayList<String> LOCATION_TYPES = new ArrayList<>(List.of("excel"));
-	public static ArrayList<String> DATA_import_TYPES = new ArrayList<>(List.of("csv", "excel", "compress"));
+	public static ArrayList<String> SETTINGS_IMPORT_TYPES = new ArrayList<>(List.of("excel", "excel_macro"));
+	public static ArrayList<String> DATA_IMPORT_TYPES = new ArrayList<>(List.of("csv", "excel", "compress"));
 	
 	private HashMap<String, ArrayList<String>> validExtensions = new HashMap<>();
 	
@@ -53,6 +54,7 @@ public class DocumentUploadManager {
 		
 		validExtensions.put("csv", new ArrayList<>(List.of("csv")));
 		validExtensions.put("excel", new ArrayList<>(List.of("xls", "xlsx")));
+		validExtensions.put("excel_macro", new ArrayList<>(List.of("xlsm")));
 		validExtensions.put("image", new ArrayList<>(List.of("png", "jpg", "jpeg", "gif", "svg")));
 		validExtensions.put("video", new ArrayList<>(List.of("mp4", "mpeg")));
 		validExtensions.put("audio", new ArrayList<>(List.of("mp3")));

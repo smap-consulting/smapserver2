@@ -46,6 +46,7 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.ActionManager;
+import org.smap.sdal.managers.DocumentUploadManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.UserManager;
@@ -758,6 +759,13 @@ public class UserList extends Application {
 						", File Size = "+item.getSize());
 					
 					fileName = item.getName();
+					
+					/*
+					 * Validate the upload
+					 */
+					DocumentUploadManager dum = new DocumentUploadManager(localisation);
+					dum.validateDocument(fileName, item, DocumentUploadManager.SETTINGS_IMPORT_TYPES);
+					
 					if(fileName.endsWith("xlsx") || fileName.endsWith("xlsm")) {
 						filetype = "xlsx";
 					} else if(fileName.endsWith("xls")) {

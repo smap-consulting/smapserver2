@@ -929,7 +929,7 @@ public class AllAssignments extends Application {
 					 * Validate the upload
 					 */
 					DocumentUploadManager dum = new DocumentUploadManager(localisation);
-					dum.validateDocument(uploadedFileName, item, DocumentUploadManager.DATA_import_TYPES);
+					dum.validateDocument(uploadedFileName, item, DocumentUploadManager.DATA_IMPORT_TYPES);
 					
 					if(item.getSize() > 0) {
 						contentType = item.getContentType();
