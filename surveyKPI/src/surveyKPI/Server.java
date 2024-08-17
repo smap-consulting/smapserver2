@@ -137,6 +137,7 @@ public class Server extends Application {
 				+ "mapbox_default = ?,"
 				+ "google_key = ?,"
 				+ "maptiler_key = ?,"
+				+ "vonage_application_id = ?,"
 				+ "sms_url = ?,"
 				+ "max_rate = ?,"
 				+ "password_strength = ?,"
@@ -163,10 +164,11 @@ public class Server extends Application {
 			pstmt.setString(6, data.mapbox_default);
 			pstmt.setString(7, data.google_key);
 			pstmt.setString(8, data.maptiler_key);
-			pstmt.setString(9, data.sms_url);
-			pstmt.setInt(10, data.ratelimit);
-			pstmt.setDouble(11, data.password_strength);
-			pstmt.setString(12, data.css);
+			pstmt.setString(9, data.vonage_application_id);
+			pstmt.setString(10, data.sms_url);
+			pstmt.setInt(11, data.ratelimit);
+			pstmt.setDouble(12, data.password_strength);
+			pstmt.setString(13, data.css);
 			int count = pstmt.executeUpdate();
 			
 			if(count == 0) {			
