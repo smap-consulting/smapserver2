@@ -71,9 +71,11 @@ public class QuestionDetail extends Application {
 			@PathParam("lang") String lang, 
 			@PathParam("qId") String qId) { 
 
+		String connectionString = "surveyKPI-Question";
+		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Question");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		JSONObject jo = new JSONObject();
@@ -104,7 +106,7 @@ public class QuestionDetail extends Application {
 			sql = "SELECT qtype, qname, f_id, calculate FROM question " +
 					"WHERE q_id = ?;";
 			log.info(sql);
-			pstmt = connectionSD.prepareStatement(sql);	 
+			pstmt = sd.prepareStatement(sql);	 
 			pstmt.setInt(1, Integer.parseInt(qId));
 			resultSet = pstmt.executeQuery();
 			
@@ -150,7 +152,7 @@ public class QuestionDetail extends Application {
 						" ORDER BY o.seq;";			
 				
 				log.info(sql);
-				pstmt = connectionSD.prepareStatement(sql);	 
+				pstmt = sd.prepareStatement(sql);	 
 				pstmt.setInt(1, Integer.parseInt(sId));
 				pstmt.setString(2, lang);
 				pstmt.setInt(3, Integer.parseInt(qId));
@@ -179,7 +181,7 @@ public class QuestionDetail extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Question", connectionSD);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return jo.toString();

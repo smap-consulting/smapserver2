@@ -2,6 +2,7 @@ package org.smap.sdal.model;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -25,6 +26,7 @@ public class SubmissionMessage {
 	public String assignQuestion;
 	public String emailMeta;
 	public boolean emailAssigned;
+	public String ourNumber;			// SMS / WhatsApp messaging
 	public ArrayList<String> emails;
 	public String target;
 	public String user;
@@ -35,6 +37,7 @@ public class SubmissionMessage {
 	public int pdfTemplateId;
 	public String period;
 	public int reportId;
+	public Timestamp ts;
 	
 	public SubmissionMessage(
 			String title,
@@ -64,7 +67,9 @@ public class SubmissionMessage {
 			String survey_case,
 			String assignQuestion,
 			String period,
-			int reportId) {
+			int reportId,
+			String ourNumber,
+			Timestamp ts) {
 		
 		this.title = title;
 		this.taskId = taskId;
@@ -94,6 +99,8 @@ public class SubmissionMessage {
 		this.assignQuestion = assignQuestion;
 		this.period = period;
 		this.reportId = reportId;
+		this.ourNumber = ourNumber;
+		this.ts = ts;
 	}
 	
 	// copy constructor
@@ -130,6 +137,7 @@ public class SubmissionMessage {
 		this.assignQuestion = orig.assignQuestion;
 		this.period = orig.period;
 		this.reportId = orig.reportId;
+		this.ourNumber = orig.ourNumber;
 	}
 	
 	public boolean emailQuestionSet() {

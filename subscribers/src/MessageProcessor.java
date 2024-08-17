@@ -1,15 +1,16 @@
 import java.io.File;
-import java.util.logging.FileHandler;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.model.DatabaseConnections;
-import org.smap.subscribers.Subscriber;
+import com.vonage.client.VonageClient;
 
 /*****************************************************************************
  * 
@@ -49,9 +50,11 @@ public class MessageProcessor {
 		String basePath;
 		String queueName;
 
+		VonageClient vonageClient = null;
+		
 		public MessageLoop(String basePath, String queueName) {
 			this.basePath = basePath;
-			this.queueName = queueName;		
+			this.queueName = queueName;	
 		}
 
 		public void run() {
@@ -80,13 +83,28 @@ public class MessageProcessor {
 						// hyperlink prefix assumes that the hyperlink will be used by a human, hence always use client authentication
 						hyperlinkPrefix = GeneralUtilityMethods.getAttachmentPrefixBatch(serverName, false);
 						
-						// Apply messages
 						try { 
+							/*
+							 * Create a Vonage client object if the private key exists and application id is specified
+							 */
+							File vonagePrivateKey = new File(basePath + "_bin/resources/properties/vonage_private.key");
+							String vonageApplicationId = getVonageApplicationId(dbc.sd);
+							if(vonageClient == null && vonagePrivateKey.exists() && vonageApplicationId != null) {
+								vonageClient = VonageClient.builder()
+										.applicationId(vonageApplicationId)
+										.privateKeyPath(vonagePrivateKey.getAbsolutePath())
+										.build();
+							}
+							
+							/*
+							 * Send messages
+							 */
 							mma.applyOutbound(dbc.sd, dbc.results, queueName, serverName, 
 									basePath,
 									urlprefix,
 									attachmentPrefix,
-									hyperlinkPrefix);
+									hyperlinkPrefix,
+									vonageClient);
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}
@@ -132,6 +150,22 @@ public class MessageProcessor {
 
 		}
 
+	}
+	
+	private String getVonageApplicationId(Connection sd) throws SQLException {
+		String id = null;
+		String sql = "select vonage_application_id from server";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				id = rs.getString(1);
+			}
+		} finally {
+			if (pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+		}
+		return id;
 	}
 	
 }

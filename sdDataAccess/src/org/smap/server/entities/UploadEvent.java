@@ -30,6 +30,9 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
  */
 public class UploadEvent implements Serializable {
 	
+	public static String SMS_TYPE = "SMS";
+	public static String FORM_TYPE = "Form";
+	
 	private static final long serialVersionUID = -4784547709615805141L;
 
 	// Database Attributes
@@ -95,6 +98,10 @@ public class UploadEvent implements Serializable {
 	
 	private Timestamp scheduledStart;
 	
+	private String type;	// SMS or Form (default)
+	
+	private String payload;
+	
 	/*
 	 * Constructor
 	 */
@@ -126,6 +133,14 @@ public class UploadEvent implements Serializable {
 	
 	public boolean getRestore() {
 		return restore;
+	}
+	
+	public String getType() {
+		return type;
+	}
+	
+	public String getPayload() {
+		return payload;
 	}
 	
 	public String getFileName() {
@@ -253,6 +268,14 @@ public class UploadEvent implements Serializable {
 	
 	public void setRestore(boolean v) {
 		this.restore = v;
+	}
+	
+	public void setType(String v) {
+		this.type = v;
+	}
+	
+	public void setPayload(String v) {
+		this.payload = v;
 	}
 	
 	public void setFileName(String name) {

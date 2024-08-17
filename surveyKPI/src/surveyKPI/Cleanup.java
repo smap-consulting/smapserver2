@@ -94,7 +94,7 @@ public class Cleanup extends Application {
 	}
 	
 	/*
-	 * Get survey details from an ident
+	 * Check to see if a survey exists and if it has been erased when that happened
 	 */
 	@GET
 	@Produces("application/json")
@@ -164,7 +164,7 @@ public class Cleanup extends Application {
 	}
 	
 	/*
-	 * Get survey details from an ident
+	 * Delete a survey template
 	 */
 	@POST
 	@Produces("application/json")

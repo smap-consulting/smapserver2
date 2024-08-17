@@ -85,18 +85,22 @@ public class Surveys extends Application {
 
 	Authorise aGet = null;
 	Authorise aUpdate = null;
+	Authorise aWholeOrg = null;
 	
 	private static Logger log =
 			 Logger.getLogger(Surveys.class.getName());
 	
 	private HtmlSanitise sanitise = new HtmlSanitise();
 
+	Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+	
 	LogManager lm = new LogManager();		// Application log
 	
 	public Surveys() {
 		
 		ArrayList<String> authorisations1 = new ArrayList<String> ();
 		ArrayList<String> authorisations2 = new ArrayList<String> ();
+		ArrayList<String> authorisations3 = new ArrayList<String> ();
 		
 		authorisations1.add(Authorise.ANALYST);
 		authorisations1.add(Authorise.VIEW_DATA);
@@ -107,8 +111,12 @@ public class Surveys extends Application {
 		authorisations2.add(Authorise.ANALYST);
 		authorisations2.add(Authorise.ADMIN);
 		
+		authorisations3.add(Authorise.OWNER);
+		authorisations3.add(Authorise.ADMIN);
+		
 		aGet = new Authorise(authorisations1, null);
 		aUpdate = new Authorise(authorisations2, null);
+		aWholeOrg = new Authorise(authorisations3, null);
 		
 	}
 
@@ -159,7 +167,7 @@ public class Surveys extends Application {
 					false,		// Get links
 					null
 					);
-			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+
 			String resp = gson.toJson(sm.getSurveyData(surveys));
 			response = Response.ok(resp).build();
 			
@@ -170,6 +178,53 @@ public class Surveys extends Application {
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
 			response = Response.serverError().build();
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+
+		return response;
+	}
+	
+	@GET
+	@Path("/project/{projectId}")
+	@Produces("application/json")
+	public Response getSurveysInProject(@Context HttpServletRequest request,
+			@PathParam("projectId") int projectId
+			) { 
+		
+		String connectionString = "surveyKPI-Surveys in project";
+		
+		// Authorisation - Access
+		// We are not checking here to see if the user has the project so restrict to admins and owners
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aWholeOrg.isAuthorised(sd, request.getRemoteUser());
+
+		if(projectId > 0) {
+			aWholeOrg.projectInUsersOrganisation(sd, request.getRemoteUser(), projectId);
+		}
+		// End Authorisation
+		
+		ArrayList<SurveyIdent> surveys = null;
+		
+		Response response = null;
+		
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			
+			surveys = sm.getSurveyIdentListInProject(sd, request.getRemoteUser(), superUser, projectId);
+			String resp = gson.toJson(surveys);
+			response = Response.ok(resp).build();
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			
 			SDDataSource.closeConnection(connectionString, sd);
@@ -245,7 +300,7 @@ public class Surveys extends Application {
 					false,		// launched only
 					true		// merge setValues into default value
 					);
-			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
 			String resp = gson.toJson(survey.surveyData);
 			response = Response.ok(resp).build();		
 			
@@ -288,7 +343,7 @@ public class Surveys extends Application {
 			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			SurveySummary summary = sm.getSummary(sd, sIdent);
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
 			String resp = gson.toJson(summary);
 			response = Response.ok(resp).build();			
 			
@@ -325,8 +380,6 @@ public class Surveys extends Application {
 		}
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
-		
-		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
@@ -371,8 +424,6 @@ public class Surveys extends Application {
 		}
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
-		
-		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
@@ -420,7 +471,7 @@ public class Surveys extends Application {
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, id);
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			SurveySummary summary = sm.getSummary(sd, sIdent);
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
 			String resp = gson.toJson(summary);
 			response = Response.ok(resp).build();			
 			
@@ -463,7 +514,7 @@ public class Surveys extends Application {
 			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			ArrayList<SurveyIdent> surveyIdents = sm.getSurveyIdentList(sd, request.getRemoteUser(), superUser);
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
 			String resp = gson.toJson(surveyIdents);
 			response = Response.ok(resp).build();			
 			
@@ -498,12 +549,13 @@ public class Surveys extends Application {
 	        throw new AuthorisationException();   
 		} 
 		
+		String connectionString = "surveyKPI - create new survey";
 		log.info("userevent: " + request.getRemoteUser() + " create new survey " + name + " (" + existing + "," + 
 				existingSurveyId + "," + existingFormId + ")");
 		
 		// Authorisation - Access
 		boolean superUser = false;
-		Connection sd = SDDataSource.getConnection("surveyKPI-Surveys");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		aUpdate.isAuthorised(sd, request.getRemoteUser());
 		aUpdate.isValidProject(sd, request.getRemoteUser(), projectId);
 		if(existing) {
@@ -524,7 +576,7 @@ public class Surveys extends Application {
 				existingSurveyId + "," + existingFormId + ")");
 		
 		Response response = null;
-		Connection cResults = ResultsDataSource.getConnection("surveyKPI-Surveys");
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 
 		try {
 			// Get the users locale
@@ -548,7 +600,7 @@ public class Surveys extends Application {
 					true		// Merge set values into default value
 					);
 			log.info("userevent: " + request.getRemoteUser() + " : create empty survey : " + name + " in project " + projectId);
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
 			String resp = gson.toJson(survey.surveyData);
 			response = Response.ok(resp).build();
 			
@@ -573,8 +625,8 @@ public class Surveys extends Application {
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-Surveys", sd);	
-			ResultsDataSource.closeConnection("surveyKPI-Surveys", cResults);
+			SDDataSource.closeConnection(connectionString, sd);	
+			ResultsDataSource.closeConnection(connectionString, cResults);
 			
 		}
 
@@ -597,10 +649,11 @@ public class Surveys extends Application {
 	        throw new AuthorisationException();   
 		} 
 		
+		String connectionString = "SurveyKPI - save languages";
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Surveys");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -644,7 +697,6 @@ public class Surveys extends Application {
 			 * Parse the request
 			 */
 			Type type = new TypeToken<ArrayList<Language>>(){}.getType();
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			ArrayList<Language> languageList = gson.fromJson(languages, type);
 			
 			// Update the languages
@@ -710,7 +762,7 @@ public class Surveys extends Application {
 			
 			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
 			if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
-			SDDataSource.closeConnection("surveyKPI-Surveys", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 			
 			try {sd.setAutoCommit(true);} catch(Exception e) {}
 		}
@@ -734,9 +786,10 @@ public class Surveys extends Application {
 		} 
 		
 		Response response = null;
+		String connectionString = "surveyKPI - save pulldata";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Surveys");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -757,7 +810,6 @@ public class Surveys extends Application {
 			 * Parse the request
 			 */
 			Type type = new TypeToken<ArrayList<Pulldata>>(){}.getType();
-			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			ArrayList<Pulldata> pulldataList = gson.fromJson(pulldata, type);
 			
 			String parsedPd = gson.toJson(pulldataList);
@@ -779,7 +831,7 @@ public class Surveys extends Application {
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
-			SDDataSource.closeConnection("surveyKPI-Surveys", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 			
 		}
 
@@ -799,12 +851,12 @@ public class Surveys extends Application {
 		
 		log.info("Save survey:" + sId + " : " + changesString);
 		
+		String connectionString = "SurveyKPI - update survey";
 		Type type = new TypeToken<ArrayList<ChangeSet>>(){}.getType();
-		Gson gson =  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		ArrayList<ChangeSet> changes = gson.fromJson(changesString, type);	
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Surveys");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -813,7 +865,7 @@ public class Surveys extends Application {
 		aUpdate.isAuthorised(sd, request.getRemoteUser());	
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		
-		Connection cResults = ResultsDataSource.getConnection("surveyKPI-Surveys");
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		
 		// Authorise the changes
 		for(ChangeSet cs : changes) {
@@ -859,8 +911,8 @@ public class Surveys extends Application {
 			response = Response.serverError().build();
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-Surveys", sd);		
-			ResultsDataSource.closeConnection("surveyKPI-Surveys", cResults);
+			SDDataSource.closeConnection(connectionString, sd);		
+			ResultsDataSource.closeConnection(connectionString, cResults);
 			
 		}
 
@@ -911,7 +963,6 @@ public class Surveys extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 			SurveyDAO surveyData = gson.fromJson(settings, SurveyDAO.class);
 			
 			// Start transaction
@@ -1088,8 +1139,6 @@ public class Surveys extends Application {
 		
 		FileItem pdfItem = null;
 		String name = null;
-				
-		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		PreparedStatement pstmtUpdate = null;
 		PreparedStatement pstmtInsert = null;
@@ -1257,7 +1306,6 @@ public class Surveys extends Application {
 		PreparedStatement pstmtSurvey = null;
 		PreparedStatement pstmtGetLegacy = null;
 		
-		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		try {
@@ -1594,7 +1642,6 @@ public class Surveys extends Application {
 			change.msg = change.msg.replace("%s2", item.sourceParam);
 			
 			// Write to the change log
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, updated_time) " +
 					"values(?, ?, ?, ?, 'true', ?)";
@@ -1708,7 +1755,6 @@ public class Surveys extends Application {
 			change.msg = change.msg.replace("%s1", ident);
 			
 			// Write to the change log
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, updated_time) " +
 					"values(?, ?, ?, ?, 'true', ?)";
@@ -1845,7 +1891,6 @@ public class Surveys extends Application {
 			change.msg = required ? "Questions set required" : "Questions set not required"; 
 				
 			// Write to the change log
-			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, updated_time) " +
 					"values(?, ?, ?, ?, 'true', ?)";

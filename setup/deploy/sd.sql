@@ -116,3 +116,21 @@ CREATE UNLOGGED TABLE IF NOT EXISTS key_queue
     group_survey_ident text
 );
 ALTER TABLE key_queue OWNER TO ws;
+
+alter table upload_event add column submission_type text;
+alter table upload_event add column payload text;
+
+CREATE TABLE IF NOT EXISTS sms_number (
+    element_identifier UUID PRIMARY KEY,
+    int o_id,					-- Organisation that the number is allocated to
+    time_modified TIMESTAMP WITH TIME ZONE,
+    our_number text,			-- Our number that sends or receives messages
+    survey_ident text,
+    their_number_question text, -- The question in the survey that holds the number of the counterpart
+    message_question text,		-- The question name in the survey that holds the message details
+    description text
+);
+ALTER TABLE sms_number OWNER TO ws;
+CREATE UNIQUE INDEX IF NOT EXISTS sms_number_to_idx ON sms_number(our_number);
+
+ALTER TABLE server add column vonage_application_id text;

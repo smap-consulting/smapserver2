@@ -1877,7 +1877,7 @@ public class Authorise {
 				" and p.id = t.p_id " +
 				" and t.id = a.task_id " +
 				" and a.id = ? " +
-				" and u.ident = ?;";
+				" and u.ident = ?";
 		
 		
 		try {
@@ -1907,6 +1907,59 @@ public class Authorise {
  			log.info("Assignment validation failed for: " + user + " survey was: " + aId);
  			
  			SDDataSource.closeConnection("isValidAssignment", conn);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new AuthorisationException();
+			}
+		} 
+ 		
+		return true;
+	}
+	
+	
+	/*
+	 * Verify that the user is entitled to update this SMS number
+	 */
+	public boolean isValidNumber(Connection conn, String user, String number) {
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		boolean sqlError = false;
+
+		String sql = "select count(*) from sms_number n, users u " +
+				" where u.o_id = n.o_id" +
+				" and n.our_number = ?";
+		
+		
+		try {
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, number);
+			pstmt.setString(2, user);
+			
+			log.info("Is valid number: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
+			resultSet.next();
+			
+			count = resultSet.getInt(1);
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error in Authorisation", e);
+			sqlError = true;
+		} finally {
+			// Close the result set and prepared statement
+			try{
+				if(resultSet != null) {resultSet.close();};
+				if(pstmt != null) {pstmt.close();};
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
+			}
+		}
+		
+ 		if(count == 0) {
+ 			log.info("Number validation failed for: " + user + " number was: " + number);
+ 			
+ 			SDDataSource.closeConnection("isValidNumber", conn);
 			
 			if(sqlError) {
 				throw new ServerException();

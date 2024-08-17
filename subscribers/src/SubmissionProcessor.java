@@ -16,19 +16,21 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.commons.io.FileUtils;
-import org.smap.model.SurveyInstance;
-import org.smap.model.SurveyTemplate;
 import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.legacy.MissingSurveyException;
+import org.smap.sdal.legacy.MissingTemplateException;
+import org.smap.sdal.legacy.SurveyInstance;
+import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.SMSManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.SMSDetails;
+import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.Survey;
-import org.smap.server.entities.MissingSurveyException;
-import org.smap.server.entities.MissingTemplateException;
-import org.smap.server.entities.SubscriberEvent;
 import org.smap.server.entities.UploadEvent;
 import org.smap.subscribers.SubRelationalDB;
 import org.smap.subscribers.Subscriber;
@@ -64,7 +66,7 @@ public class SubmissionProcessor {
 	private static LogManager lm = new LogManager();		// Application log
 
 	private static Logger log = Logger.getLogger(SubmissionProcessor.class.getName());
-	
+	private Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 	private class SubmissionQueueLoop implements Runnable {
 		DatabaseConnections dbc = new DatabaseConnections();
 		String basePath;
@@ -80,6 +82,7 @@ public class SubmissionProcessor {
 		public void run() {
 
 			int delaySecs = 1;
+			String 	tz = "UTC";			// Default default time zone
 
 			/*
 			 * SQL to write the results to the upload event table
@@ -112,7 +115,6 @@ public class SubmissionProcessor {
 			sql.append("returning q.time_inserted, q.ue_id, q.payload");
 			PreparedStatement pstmt = null;
 
-			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			Subscriber subscriber = new SubRelationalDB();
 
 			// Default to English though we could get the locales from a server level setting
@@ -154,164 +156,187 @@ public class SubmissionProcessor {
 
 							log.info("        Retrieved Survey From Queue:" + ue.getSurveyName() + ":" + ue.getId());
 
-							SurveyInstance instance = null;
 							SubscriberEvent se = new SubscriberEvent();
-							String uploadFile = ue.getFilePath();
-
-							log.info("Upload file: " + uploadFile);
-							InputStream is = null;
-							InputStream is3 = null;
-
-							int oId = 0;
-
-							ArrayList<MediaChange> mediaChanges = null;
-
-							try {
-								// Get the organisation locales
-								oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
-								Organisation organisation = GeneralUtilityMethods.getOrganisation(dbc.sd, oId);
-								Locale orgLocale = new Locale(organisation.locale);
-								ResourceBundle orgLocalisation;
+							if(UploadEvent.SMS_TYPE.equals(ue.getType())) {
+								// SMS
+								System.out.println("------------ Processing SMS message");
+								SMSDetails sms = gson.fromJson(ue.getPayload(), SMSDetails.class);
+								
 								try {
-									orgLocalisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
-								} catch(Exception e) {
-									orgLocalisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
-								}
-
-								// Get the submitted results as an XML document
-								try {
-									is = new FileInputStream(uploadFile);
-								} catch (FileNotFoundException e) {
-									// Possibly we are re-trying an upload and the XML file has been archived to S3
-									// Retrieve the file and try again
-									File f = new File(uploadFile);
-									FileUtils.forceMkdir(f.getParentFile());
-									S3AttachmentUpload.get(basePath, uploadFile);
-									is = new FileInputStream(uploadFile);
-								}
-
-								// Convert the file into a survey instance object
-								instance = new SurveyInstance(is);
-								log.info("UUID:" + instance.getUuid());
-
-								//instance.getTopElement().printIEModel("   ");	// Debug 
-
-								// Get the template for this survey
-								String templateName = instance.getTemplateName();
-								SurveyTemplate template = new SurveyTemplate(orgLocalisation);
-
-								SurveyManager sm = new SurveyManager(localisation, "UTC");
-								Survey sdalSurvey = sm.getSurveyId(dbc.sd, templateName);	// Get the survey from the templateName / ident
-
-								template.readDatabase(dbc.sd, dbc.results, templateName, false);					
-								template.extendInstance(dbc.sd, instance, true, sdalSurvey);	// Extend the instance with information from the template
-								// instance.getTopElement().printIEModel("   ");	// Debug
-
-								// Get attachments from incomplete submissions
-								getAttachmentsFromIncompleteSurveys(dbc.sd, log, ue.getFilePath(), ue.getOrigSurveyIdent(), ue.getIdent(), 
-										ue.getInstanceId());
-
-								is3 = new FileInputStream(uploadFile);	// Get an input stream for the file in case the subscriber uses that rather than an Instance object
-								mediaChanges = subscriber.upload(log, instance, 
-										is3, 
-										ue.getUserName(), 
-										ue.getTemporaryUser(),
-										ue.getServerName(), 
-										ue.getImei(), 
-										se,
-										confFilePath, 
-										ue.getFormStatus(),
-										basePath, 
-										uploadFile, 
-										ue.getUpdateId(),
-										ue.getId(),
-										ue.getUploadTime(),
-										ue.getSurveyNotes(),
-										ue.getLocationTrigger(),
-										ue.getAuditFilePath(),
-										orgLocalisation, 
-										sdalSurvey);	// Call the subscriber	
-
-							} catch (FileNotFoundException e) {
-
-								se.setStatus("error");
-								se.setReason("Submission File Not Found:" + uploadFile);
-
-							} catch (MissingSurveyException e) {
-
-								se.setStatus("error");
-								se.setReason("Results file did not specify a survey template:" + uploadFile);
-
-							} catch (MissingTemplateException e) {
-
-								se.setStatus("error");
-								se.setReason("No template named: " + e.getMessage() + " in database");
-
-							} catch (Exception e) {
-
-								e.printStackTrace();
-								se.setStatus("error");
-								se.setReason(e.getMessage());
-
-							} finally {
-
-								try {
-									if(is != null) {is.close();}						
-									if(is3 != null) {is3.close();}
-
-									// Save the status
-									if(se.getStatus() != null) {
-
-										pstmtResultsDB.setString(1, se.getStatus());
-										pstmtResultsDB.setString(2, se.getReason());
-										pstmtResultsDB.setString(3, queueName);
-										pstmtResultsDB.setInt(4, ue.getId());
-										pstmtResultsDB.executeUpdate();
-
-									}	
-
+									processMessage(dbc.sd, 
+											dbc.results, 
+											localisation, 
+											tz, 
+											ue.getUserName(),
+											ue.getInstanceId(),
+											sms, 
+											se);
 								} catch (Exception e) {
-
+									e.printStackTrace();
+									se.setStatus("error");
+									se.setReason(e.getMessage());
 								}
-							}
-
-							/*
-							 * Perform post processing of the XML file
-							 * Send it to S3 if that is enabled
-							 * Update any media names with the final media names
-							 */
-							if(mediaChanges != null && mediaChanges.size() > 0) {
-								processMediaChanges(log, uploadFile, mediaChanges);
-							}
-							try {
-								GeneralUtilityMethods.sendToS3(dbc.sd, basePath, uploadFile, oId, false);
-							} catch (Exception e) {
-								log.log(Level.SEVERE, e.getMessage(), e);
-							}
-
-							/*
-							 * Write log entry
-							 */
-							String status = se.getStatus();
-							String reason = se.getReason();
-							String topic;
-							if(status.equals("error")) {
-								if(reason != null && reason .startsWith("Duplicate")) {
-									topic = LogManager.DUPLICATE;
-								} else {
-									topic = LogManager.SUBMISSION_ERROR;
-								}
-							} else if(ue.getAssignmentId() > 0) {
-								topic =  LogManager.SUBMISSION_TASK;
-							} else if(ue.getTemporaryUser() || GeneralUtilityMethods.isTemporaryUser(dbc.sd, ue.getUserName())) {	// Note the temporaryUser flag in ue is only set for submissions with an action
-								topic = LogManager.SUBMISSION_ANON;
 							} else {
-								topic = LogManager.SUBMISSION;
+								// Form
+							
+								SurveyInstance instance = null;	
+								String uploadFile = ue.getFilePath();
+	
+								log.info("Upload file: " + uploadFile);
+								InputStream is = null;
+								InputStream is3 = null;
+	
+								int oId = 0;
+	
+								ArrayList<MediaChange> mediaChanges = null;
+	
+								try {
+									// Get the organisation locales
+									oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
+									Organisation organisation = GeneralUtilityMethods.getOrganisation(dbc.sd, oId);
+									Locale orgLocale = new Locale(organisation.locale);
+									ResourceBundle orgLocalisation;
+									try {
+										orgLocalisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+									} catch(Exception e) {
+										orgLocalisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+									}
+	
+									// Get the submitted results as an XML document
+									try {
+										is = new FileInputStream(uploadFile);
+									} catch (FileNotFoundException e) {
+										// Possibly we are re-trying an upload and the XML file has been archived to S3
+										// Retrieve the file and try again
+										File f = new File(uploadFile);
+										FileUtils.forceMkdir(f.getParentFile());
+										S3AttachmentUpload.get(basePath, uploadFile);
+										is = new FileInputStream(uploadFile);
+									}
+	
+									// Convert the file into a survey instance object
+									instance = new SurveyInstance(is);
+									log.info("UUID:" + instance.getUuid());
+	
+									//instance.getTopElement().printIEModel("   ");	// Debug 
+	
+									// Get the template for this survey
+									String templateName = instance.getTemplateName();
+									SurveyTemplate template = new SurveyTemplate(orgLocalisation);
+	
+									SurveyManager sm = new SurveyManager(localisation, "UTC");
+									Survey sdalSurvey = sm.getSurveyId(dbc.sd, templateName);	// Get the survey from the templateName / ident
+	
+									template.readDatabase(dbc.sd, dbc.results, templateName, false);					
+									template.extendInstance(dbc.sd, instance, true, sdalSurvey);	// Extend the instance with information from the template
+									// instance.getTopElement().printIEModel("   ");	// Debug
+	
+									// Get attachments from incomplete submissions
+									getAttachmentsFromIncompleteSurveys(dbc.sd, log, ue.getFilePath(), ue.getOrigSurveyIdent(), ue.getIdent(), 
+											ue.getInstanceId());
+	
+									is3 = new FileInputStream(uploadFile);	// Get an input stream for the file in case the subscriber uses that rather than an Instance object
+									mediaChanges = subscriber.upload(log, instance, 
+											is3, 
+											ue.getUserName(), 
+											ue.getTemporaryUser(),
+											ue.getServerName(), 
+											ue.getImei(), 
+											se,
+											confFilePath, 
+											ue.getFormStatus(),
+											basePath, 
+											uploadFile, 
+											ue.getUpdateId(),
+											ue.getId(),
+											ue.getUploadTime(),
+											ue.getSurveyNotes(),
+											ue.getLocationTrigger(),
+											ue.getAuditFilePath(),
+											orgLocalisation, 
+											sdalSurvey);	// Call the subscriber	
+	
+								} catch (FileNotFoundException e) {
+	
+									se.setStatus("error");
+									se.setReason("Submission File Not Found:" + uploadFile);
+	
+								} catch (MissingSurveyException e) {
+	
+									se.setStatus("error");
+									se.setReason("Results file did not specify a survey template:" + uploadFile);
+	
+								} catch (MissingTemplateException e) {
+	
+									se.setStatus("error");
+									se.setReason("No template named: " + e.getMessage() + " in database");
+	
+								} catch (Exception e) {
+	
+									e.printStackTrace();
+									se.setStatus("error");
+									se.setReason(e.getMessage());
+	
+								} finally {
+	
+									try {
+										if(is != null) {is.close();}						
+										if(is3 != null) {is3.close();}	
+									} catch (Exception e) {
+	
+									}
+								}
+							
+								/*
+								 * Perform post processing of the XML file
+								 * Send it to S3 if that is enabled
+								 * Update any media names with the final media names
+								 */
+								if(mediaChanges != null && mediaChanges.size() > 0) {
+									processMediaChanges(log, uploadFile, mediaChanges);
+								}
+								try {
+									GeneralUtilityMethods.sendToS3(dbc.sd, basePath, uploadFile, oId, false);
+								} catch (Exception e) {
+									log.log(Level.SEVERE, e.getMessage(), e);
+								}
+								
+								/*
+								 * Write log entry
+								 */
+								String status = se.getStatus();
+								String reason = se.getReason();
+								if(status == null) {
+									status = "success";
+								}
+								String topic;
+								if(status.equals("error")) {
+									if(reason != null && reason .startsWith("Duplicate")) {
+										topic = LogManager.DUPLICATE;
+									} else {
+										topic = LogManager.SUBMISSION_ERROR;
+									}
+								} else if(ue.getAssignmentId() > 0) {
+									topic =  LogManager.SUBMISSION_TASK;
+								} else if(ue.getTemporaryUser() || GeneralUtilityMethods.isTemporaryUser(dbc.sd, ue.getUserName())) {	// Note the temporaryUser flag in ue is only set for submissions with an action
+									topic = LogManager.SUBMISSION_ANON;
+								} else {
+									topic = LogManager.SUBMISSION;
+								}
+
+								lm.writeLog(dbc.sd, ue.getSurveyId(), ue.getUserName(), topic, status + " : " 
+										+ (reason == null ? "" : reason) + " : " + ue.getImei(), 0, null);
+								
 							}
 
-							lm.writeLog(dbc.sd, ue.getSurveyId(), ue.getUserName(), topic, se.getStatus() + " : " 
-									+ (se.getReason() == null ? "" : se.getReason()) + " : " + ue.getImei(), 0, null);
-
+							/*
+							 * Save the status
+							 */
+							pstmtResultsDB.setString(1, se.getStatus());
+							pstmtResultsDB.setString(2, se.getReason());
+							pstmtResultsDB.setString(3, queueName);
+							pstmtResultsDB.setInt(4, ue.getId());
+							pstmtResultsDB.executeUpdate();	
 
 							log.info("======== Completed");
 						} else {
@@ -462,4 +487,46 @@ public class SubmissionProcessor {
 			}
 		}
 	}
+	
+	/*
+	 * Process an uploaded message
+	 */
+	public void processMessage(Connection sd, 
+			Connection cResults, 
+			ResourceBundle localisation,
+			String tz,
+			String user,
+			String instanceid,
+			SMSDetails sms, 
+			SubscriberEvent se) {
+	
+		try {
+			
+			/*
+			 * Write the message to the results table
+			 */
+			SMSManager mgr = new SMSManager(localisation, tz);
+			mgr.writeMessageToResults(sd, 
+					cResults,
+					se,
+					instanceid,
+					sms);
+			
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			se.setStatus("error");
+			se.setReason(e.getMessage());
+		} finally {
+			try {
+				
+			
+			} catch (Exception e) {
+				
+			}
+			
+		}	
+
+	}
+
 }

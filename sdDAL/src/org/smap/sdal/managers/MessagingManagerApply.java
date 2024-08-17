@@ -15,7 +15,6 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
 import org.smap.notifications.interfaces.EmitDeviceNotification;
-import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
@@ -32,6 +31,7 @@ import org.smap.sdal.model.SubscriptionStatus;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.vonage.client.VonageClient;
 
 /*****************************************************************************
  * 
@@ -73,7 +73,8 @@ public class MessagingManagerApply {
 			String basePath, 
 			String urlprefix,
 			String attachmentPrefix,
-			String hyperlinkPrefix) {
+			String hyperlinkPrefix,
+			VonageClient vonageClient) {
 
 		ResultSet rs = null;
 		PreparedStatement pstmtGetMessages = null;
@@ -157,6 +158,7 @@ public class MessagingManagerApply {
 							nm.processSubmissionNotification(
 									sd, 
 									cResults, 
+									vonageClient,
 									organisation, 
 									queueName,
 									tz,
@@ -574,6 +576,7 @@ public class MessagingManagerApply {
 					nm.processSubmissionNotification(
 							sd, 
 							cResults, 
+							null,		// Should be no pending SMS messages hence Vonage client is not set
 							organisation, 
 							null,
 							tz,
@@ -706,72 +709,6 @@ public class MessagingManagerApply {
 			isValid = false;
 		}
 		return isValid;
-	}
-	
-	/*
-	 * Upload files to s3
-	 */
-	public void uploadToS3(Connection sd, String basePath, int s3count) throws SQLException {
-		
-		String sql = "select id, filepath, o_id "
-				+ "from s3upload "
-				+ "where status = 'new' "
-				+ "order by id asc "
-				+ "limit 1000";	
-		PreparedStatement pstmt = null;
-		
-		String sqlClean = "delete from s3upload "
-				+ "where status = 'success' "
-				+ "and processed_time < now() - interval '3 day'";
-		PreparedStatement pstmtClean = null;
-		
-		String sqlDone = "update s3upload "
-				+ "set status = ?, "
-				+ "reason = ?, "
-				+ "processed_time = now() "
-				+ "where id = ?";
-		PreparedStatement pstmtDone = null;
-		
-		try {
-			pstmtDone = sd.prepareStatement(sqlDone);
-			
-			pstmt = sd.prepareStatement(sql);
-			ResultSet rs = pstmt.executeQuery();
-			while(rs.next()) {
-				
-				String status;
-				String reason = null;
-				int oId = rs.getInt("o_id");
-				String filePath = rs.getString("filepath");
-				try {
-					S3AttachmentUpload.put(basePath, filePath);
-					status = "success";
-				} catch (Exception e) {
-					status = "failed";
-					reason = e.getMessage();
-					log.log(Level.SEVERE, e.getMessage(), e);
-					lm.writeLogOrganisation(sd, oId, "Upload of image " + filePath + " to AWS S3 storage failed", LogManager.SUBMISSION_ERROR, e.getMessage(), 0);
-				}	
-
-				pstmtDone.setString(1, status);
-				pstmtDone.setString(2, reason);
-				pstmtDone.setInt(3, rs.getInt("id"));
-				pstmtDone.executeUpdate();
-			}
-			
-			/*
-			 * Clean up old data
-			 */
-			if(s3count == 0) {
-				pstmtClean = sd.prepareStatement(sqlClean);
-				pstmtClean.executeUpdate();
-			}
-			
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			try {if (pstmtDone != null) {pstmtDone.close();}} catch (SQLException e) {}
-			try {if (pstmtClean != null) {pstmtClean.close();}} catch (SQLException e) {}
-		}
 	}
 	
 	/*

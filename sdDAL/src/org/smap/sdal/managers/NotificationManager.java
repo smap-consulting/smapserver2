@@ -34,8 +34,10 @@ import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.PeriodicTime;
 import org.smap.sdal.model.ReportParameters;
+import org.smap.sdal.model.SMSDetails;
 import org.smap.sdal.model.SendEmailResponse;
 import org.smap.sdal.model.SubmissionMessage;
+import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.SubscriptionStatus;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskListGeoJson;
@@ -43,6 +45,11 @@ import org.smap.sdal.model.TaskProperties;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.vonage.client.VonageClient;
+import com.vonage.client.messages.MessageRequest;
+import com.vonage.client.messages.MessageResponse;
+import com.vonage.client.messages.MessagesClient;
+import com.vonage.client.messages.sms.SmsTextRequest;
 
 /*****************************************************************************
 
@@ -393,7 +400,7 @@ public class NotificationManager {
 	/*
 	 * Get a list of notification types
 	 */
-	public ArrayList<String> getNotificationTypes(Connection sd, String user) throws SQLException {
+	public ArrayList<String> getNotificationTypes(Connection sd, String user, String page) throws SQLException {
 
 		ArrayList<String> types = new ArrayList<>();
 
@@ -406,8 +413,10 @@ public class NotificationManager {
 				+ "and u.ident = ?";
 
 		types.add("email");
-		types.add("webhook");
-		types.add("escalate");
+		if("notifications".equals(page)) {
+			types.add("webhook");
+			types.add("escalate");
+		}
 
 		boolean awsSMS = false;
 
@@ -731,8 +740,9 @@ public class NotificationManager {
 							nd.survey_case,
 							nd.assign_question,
 							null,					// Report Period
-							0						// Report Id
-							);
+							0,						// Report Id
+							nd.ourNumber,
+							nd.ts);
 					mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 
 					lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
@@ -766,6 +776,7 @@ public class NotificationManager {
 	 */
 	public void processSubmissionNotification(Connection sd, 
 			Connection cResults, 
+			VonageClient vonageClient,
 			Organisation organisation,
 			String queueName,
 			String tz,
@@ -1105,6 +1116,30 @@ public class NotificationManager {
 							survey.surveyData.displayName, survey.surveyData.projectName,
 							msg.subject, msg.from, msg.content, msg.scheme, msg);
 					
+				} else if(msg.target.equals("conversation")) {
+					log.info("+++++ conversation notification");
+					MessagesClient messagesClient = vonageClient.getMessagesClient();
+
+					String toNumber = msg.emails.get(0);
+					MessageRequest message = SmsTextRequest.builder()
+							.from(msg.ourNumber).to(toNumber)		// TODO from number
+							.text(msg.content)
+							.build();
+
+					MessageResponse response = messagesClient.sendMessage(message);
+					System.out.println("Message sent successfully. ID: " + response.getMessageUuid() + " To: " 
+							+ toNumber + " From: " + msg.ourNumber);
+
+					/*
+					 * Update the conversation
+					 */
+					SubscriberEvent se = new SubscriberEvent();
+					SMSDetails sms = new SMSDetails(toNumber, msg.ourNumber, msg.content, false, msg.ts);
+					SMSManager smsMgr = new SMSManager(localisation, tz);
+					smsMgr.writeMessageToResults(sd, cResults, se, msg.instanceId, sms);
+					
+					status = se.getStatus();
+					error_details = se.getReason();
 				} else {
 					status = "error";
 					error_details = "Invalid target: " + msg.target;

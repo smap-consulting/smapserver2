@@ -1,5 +1,6 @@
 package org.smap.sdal.model;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 
 public class NotifyDetails {
@@ -20,4 +21,6 @@ public class NotifyDetails {
 	public int pdfTemplateId;
 	public String survey_case;
 	public String assign_question;
+	public String ourNumber;			// For SMS / WhatsApp notifications
+	public Timestamp ts;				// Timestamp of message
 }

@@ -2,6 +2,7 @@
 surveyKPI/build
 surveyMobileAPI/build
 koboToolboxApi/build
+sms/build
 
 surveyKPI/WebContent/WEB-INF/lib/
 sdDAL/src/META-INF/
@@ -18,6 +19,7 @@ koboToolboxApi/.aws/
 koboToolboxApi/target/
 surveyMobileApi/target/
 surveyKPI/target/
+sms/target/
 
 build/css.orig
 
@@ -28,6 +30,7 @@ build/css.orig
 bin/
 tmp/
 *.tmp
+*.log
 *.class
 *.log
 *.bak

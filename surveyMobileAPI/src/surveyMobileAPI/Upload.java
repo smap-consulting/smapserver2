@@ -50,9 +50,8 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.legacy.MissingTemplateException;
 import org.smap.sdal.model.AssignmentDetails;
-import org.smap.server.entities.MissingTemplateException;
-
 
 /*
  * Accept submitted surveys

@@ -9369,6 +9369,10 @@ public class GeneralUtilityMethods {
 			colType = "text";					
 		} else if(colType.equals("deviceid")) {
 			colType = "text";					
+		} else if(colType.equals("phone")) {
+			colType = "text";					
+		} else if(colType.equals("conversation")) {
+			colType = "text";					
 		}
 		return colType;
 	}

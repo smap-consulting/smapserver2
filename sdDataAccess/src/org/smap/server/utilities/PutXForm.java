@@ -7,11 +7,12 @@ import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.server.entities.Form;
-import org.smap.server.entities.Option;
-import org.smap.server.entities.Question;
+import org.smap.sdal.legacy.Form;
+import org.smap.sdal.legacy.Option;
+import org.smap.sdal.legacy.Question;
+import org.smap.sdal.legacy.SurveyTemplate;
+import org.smap.sdal.legacy.UtilityMethods;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;

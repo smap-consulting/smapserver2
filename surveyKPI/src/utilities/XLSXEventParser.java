@@ -5,7 +5,7 @@ import org.apache.poi.xssf.eventusermodel.XSSFReader;
 import org.apache.poi.ooxml.util.SAXHelper;
 import org.apache.poi.xssf.model.StylesTable;
 import org.apache.poi.xssf.usermodel.XSSFComment;
-import org.smap.model.FormDesc;
+import org.smap.sdal.legacy.FormDesc;
 import org.smap.sdal.model.MetaItem;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;

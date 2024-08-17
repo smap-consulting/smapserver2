@@ -91,7 +91,9 @@ public class JdbcUploadEventManager {
 			+ "location_trigger,"
 			+ "audit_file_path,"
 			+ "temporary_user,"
-			+ "restore "
+			+ "restore, "
+			+ "submission_type,"
+			+ "payload "
 			+ "from upload_event "
 				+ "where status = 'success' "
 				+ "and s_id is not null "
@@ -194,6 +196,8 @@ public class JdbcUploadEventManager {
 			ue.setAuditFilePath(rs.getString(23));
 			ue.setTemporaryUser(rs.getBoolean(24));
 			ue.setRestore(rs.getBoolean(25));
+			ue.setType(rs.getString("submission_type"));
+			ue.setPayload(rs.getString("payload"));
 			
 			ueList.add(ue);
 		}

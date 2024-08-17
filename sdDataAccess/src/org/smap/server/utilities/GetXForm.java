@@ -33,14 +33,20 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.smap.model.CascadeInstance;
-import org.smap.model.SurveyTemplate;
-import org.smap.model.Results;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.CSVParser;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.legacy.CascadeInstance;
+import org.smap.sdal.legacy.Form;
+import org.smap.sdal.legacy.Option;
+import org.smap.sdal.legacy.Question;
+import org.smap.sdal.legacy.Results;
+import org.smap.sdal.legacy.Survey;
+import org.smap.sdal.legacy.SurveyTemplate;
+import org.smap.sdal.legacy.Translation;
+import org.smap.sdal.legacy.UtilityMethods;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
@@ -53,11 +59,6 @@ import org.smap.sdal.model.NodesetFormDetails;
 import org.smap.sdal.model.Point;
 import org.smap.sdal.model.Polygon;
 import org.smap.sdal.model.SetValue;
-import org.smap.server.entities.Form;
-import org.smap.server.entities.Option;
-import org.smap.server.entities.Question;
-import org.smap.server.entities.Survey;
-import org.smap.server.entities.Translation;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -912,7 +913,9 @@ public class GetXForm {
 			bindType = "string";
 		} else if(bindType.equals("rank")) {
 			bindType = "odk:rank";
-		} 
+		}  else if(bindType.equals("phone")) {
+			bindType = "string";
+		}
 		
 		if (!bindType.equals("begin group") && !bindType.equals("begin repeat") && !bindType.equals("geopolygon")
 				&& !bindType.equals("geolinestring")) {
@@ -1180,17 +1183,26 @@ public class GetXForm {
 		// Add the appearance
 		if (questionElement != null) {
 			String appearance = q.getAppearance(true, template.getQuestionPaths());
-
-			if (gInTableList && type.startsWith("select")) {
-				if (appearance == null) {
-					appearance = "";
-				}
+			if (appearance == null) {
+				appearance = "";
+			}
+			
+			if (gInTableList && type.startsWith("select")) {				
 				if (!appearance.contains("field-list")) {
 					appearance = appearance.trim();
 					if (appearance.length() > 0) {
 						appearance += " ";
 					}
 					appearance += "list-nolabel";
+				}
+			}
+			
+			if(type.equals("phone")) {
+				if (!appearance.contains("numbers")) {
+					if (appearance.length() > 0) {
+						appearance += " ";
+					}
+					appearance += "numbers";
 				}
 			}
 			if (appearance != null && appearance.trim().length() > 0) {

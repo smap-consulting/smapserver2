@@ -20,12 +20,12 @@ import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.commons.io.FileUtils;
-import org.smap.model.IE;
-import org.smap.model.SurveyInstance;
-import org.smap.model.SurveyTemplate;
 import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.Tables;
+import org.smap.sdal.legacy.IE;
+import org.smap.sdal.legacy.SurveyInstance;
+import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.KeyManager;
@@ -1022,7 +1022,9 @@ public class SubscriberBatch {
 						null,
 						nd.assign_question,
 						null,					// Report Period
-						0						// report id
+						0,						// report id
+						null,					// SMS Conversation from number
+						null					// SMS timestamp
 						);
 				
 				ResourceBundle localisation = locMap.get(oId);
@@ -1305,8 +1307,9 @@ public class SubscriberBatch {
 											nd.survey_case,
 											nd.assign_question,
 											null,					// Report Period
-											0						// report id
-											);
+											0,						// report id
+											null,					// SMS Conversation from number
+											null);					// SMS timestamp
 									
 									MessagingManager mm = new MessagingManager(localisation);
 									mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));						
@@ -1532,8 +1535,9 @@ public class SubscriberBatch {
 									nd.survey_case,
 									nd.assign_question,
 									null,					// Report Period
-									0						// report id
-									);
+									0,						// report id
+									null,					// SMS Conversation from number
+									null);					// SMS Timestamp
 			
 							MessagingManager mm = new MessagingManager(localisation);
 							mm.createMessage(sd, oId, NotificationManager.TOPIC_SERVER_CALC, "", gson.toJson(subMgr));	
@@ -1725,7 +1729,9 @@ public class SubscriberBatch {
 						null,			// Survey case
 						null,			// Assign Question
 						period,			// Report Period
-						rId);
+						rId,
+						null,			// SMS Conversation from number
+						null);
 				
 				mm.createMessage(sd, oId, NotificationManager.TOPIC_PERIODIC, "", gson.toJson(msg));	
 			}

@@ -37,8 +37,6 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.openxml4j.opc.PackageAccess;
-import org.smap.model.FormDesc;
-import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -46,6 +44,9 @@ import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.legacy.FormDesc;
+import org.smap.sdal.legacy.TableManager;
+import org.smap.sdal.legacy.UtilityMethods;
 import org.smap.sdal.managers.AssignmentsManager;
 import org.smap.sdal.managers.DocumentUploadManager;
 import org.smap.sdal.managers.LogManager;
@@ -59,7 +60,6 @@ import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.TaskAddressSettings;
-import org.smap.server.utilities.UtilityMethods;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -1065,7 +1065,7 @@ public class AllAssignments extends Application {
 			/*
 			 * Create the results tables for the survey if they do not exist
 			 */
-			UtilityMethods.createSurveyTables(sd, results, localisation, sId, formList, sIdent, tz);
+			UtilityMethods.createSurveyTables(sd, results, localisation, sId, sIdent, tz);
 
 			/*
 			 * Delete the existing data if requested

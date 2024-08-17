@@ -125,7 +125,8 @@ create TABLE server (
 	rebuild_link_cache boolean default false,
 	password_expiry integer default 0,				-- password expiry in months
 	disable_ref_role_filters boolean default false,	-- If set true role filters will not be used for reference data
-	max_rate integer default 0						-- Max API rate per minute, 0 means no limit
+	max_rate integer default 0,						-- Max API rate per minute, 0 means no limit
+	vonage_application_id text
 	);
 ALTER TABLE server OWNER TO ws;
 
@@ -515,7 +516,7 @@ insert into user_project (u_id, p_id) values (1 , 1);
 DROP TABLE IF EXISTS upload_event CASCADE;
 CREATE TABLE upload_event (
 	ue_id INTEGER DEFAULT NEXTVAL('ue_seq') CONSTRAINT pk_upload_event PRIMARY KEY,
-	results_db_applied boolean default false,	-- Speed up for most common subscriber
+	results_db_applied boolean default false,
 	s_id INTEGER,
 	ident text,	-- Identifier used by survey
 	p_id integer,
@@ -551,7 +552,9 @@ CREATE TABLE upload_event (
 	temporary_user boolean default false,
 	queue_name text,
 	queued boolean default false,
-	restore boolean default false
+	restore boolean default false,
+	submission_type text,	-- SMS or Form (default)
+	payload text			-- SMS details, in future XML submission details
 	);
 create index idx_ue_ident on upload_event(user_name);
 create index idx_ue_applied on upload_event (status, incomplete, results_db_applied);
@@ -1812,8 +1815,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS monitor_data
 ALTER TABLE monitor_data OWNER TO ws;
 
 DROP TABLE IF EXISTS message_queue;
-CREATE UNLOGGED TABLE IF NOT EXISTS message_queue
-(
+CREATE UNLOGGED TABLE IF NOT EXISTS message_queue (
     element_identifier UUID PRIMARY KEY,
     time_inserted TIMESTAMP,
     m_id integer,
@@ -1832,3 +1834,17 @@ CREATE UNLOGGED TABLE IF NOT EXISTS key_queue
     group_survey_ident text
 );
 ALTER TABLE key_queue OWNER TO ws;
+
+DROP TABLE IF EXISTS sms_number;
+CREATE TABLE IF NOT EXISTS sms_number (
+    element_identifier UUID PRIMARY KEY,
+    int o_id,					-- Organisation that the number is allocated to
+    time_modified TIMESTAMP WITH TIME ZONE,
+    our_number text,			-- Our number that sends or receives messages
+    survey_ident text,
+    their_number_question text, -- The question in the survey that holds the number of the counterpart
+    message_question text,		-- The question name in the survey that holds the message details
+    description text
+);
+ALTER TABLE sms_number OWNER TO ws;
+CREATE UNIQUE INDEX sms_number_to_idx ON sms_number(our_number);

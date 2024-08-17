@@ -27,7 +27,6 @@ import org.smap.sdal.model.QueueTime;
 
 import utilities.XLSXAdminReportsQueues;
 
-
 /*
  * Queue reports
  */

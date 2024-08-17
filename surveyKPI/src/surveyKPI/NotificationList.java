@@ -18,13 +18,12 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-import java.io.IOException;
-import java.io.StringReader;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -42,25 +41,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-
-import model.Remote;
-
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
@@ -72,8 +52,6 @@ import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.SubmissionMessage;
-import org.smap.sdal.model.XformsJavaRosa;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -90,6 +68,8 @@ public class NotificationList extends Application {
 	private static Logger log =
 			 Logger.getLogger(NotificationList.class.getName());
 	
+	private Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
 	public NotificationList() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
@@ -147,7 +127,8 @@ public class NotificationList extends Application {
 	
 	@Path("/types")
 	@GET
-	public Response getTypes(@Context HttpServletRequest request) { 
+	public Response getTypes(@Context HttpServletRequest request,
+			@QueryParam("page") String page) { 
 		
 		Response response = null;
 		String connectionString = "surveyKPI-NotificationList-getTypes";
@@ -156,13 +137,17 @@ public class NotificationList extends Application {
 		
 		Connection sd = SDDataSource.getConnection(connectionString);	
 		
+		if(page == null) {
+			page = "notifications";
+		}
+		
 		try {
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			NotificationManager fm = new NotificationManager(localisation);
-			ArrayList<String> tList = fm.getNotificationTypes(sd, request.getRemoteUser());
+			ArrayList<String> tList = fm.getNotificationTypes(sd, request.getRemoteUser(), page);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(tList);
@@ -424,9 +409,7 @@ public class NotificationList extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-Survey-send immediate notification";
 		
-		Type type = new TypeToken<Notification>(){}.getType();
-		Gson gson =  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-		Notification n = gson.fromJson(notificationString, type);
+		Notification n = gson.fromJson(notificationString, Notification.class);
 		
 		log.info("Immediate Notification:========== " + notificationString);
 		// Authorisation - Access
@@ -484,8 +467,9 @@ public class NotificationList extends Application {
 					nd.survey_case,
 					nd.assign_question,
 					null,				// Report Period
-					0					// report id
-					);
+					0,					// report id
+					nd.ourNumber,
+					new Timestamp(new java.util.Date().getTime()));
 			MessagingManager mm = new MessagingManager(localisation);
 			mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 			
