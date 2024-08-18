@@ -42,6 +42,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.CssManager;
+import org.smap.sdal.managers.DocumentUploadManager;
 import org.smap.sdal.managers.LogManager;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -152,13 +153,12 @@ public class CssFiles extends Application {
 						fileName = fileName.replaceAll(" ", "_"); // Remove spaces from file name
 	
 						// Validation
-						String contentType = UtilityMethodsEmail.getContentType(fileName);
-						if(!contentType.equals("text/css")) {
-							throw new ApplicationException(localisation.getString("css_type"));
-						}
 						if(item.getSize() > 300000) {
 							throw new ApplicationException(localisation.getString("css_size"));
-						}	
+						}
+						
+						DocumentUploadManager dum = new DocumentUploadManager(localisation);
+						dum.validateDocument(fileName, item, DocumentUploadManager.CSS_TYPES);
 						
 						// save the file
 						File folder = cm.getCssLoadedFolder(orgId);
@@ -306,5 +306,4 @@ public class CssFiles extends Application {
 
 	}
 	
-
 }

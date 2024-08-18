@@ -43,6 +43,7 @@ public class DocumentUploadManager {
 	public static ArrayList<String> LOCATION_TYPES = new ArrayList<>(List.of("excel"));
 	public static ArrayList<String> SETTINGS_IMPORT_TYPES = new ArrayList<>(List.of("excel", "excel_macro"));
 	public static ArrayList<String> DATA_IMPORT_TYPES = new ArrayList<>(List.of("csv", "excel", "compress"));
+	public static ArrayList<String> CSS_TYPES = new ArrayList<>(List.of("css"));
 	
 	private HashMap<String, ArrayList<String>> validExtensions = new HashMap<>();
 	
@@ -59,6 +60,7 @@ public class DocumentUploadManager {
 		validExtensions.put("video", new ArrayList<>(List.of("mp4", "mpeg")));
 		validExtensions.put("audio", new ArrayList<>(List.of("mp3")));
 		validExtensions.put("compress", new ArrayList<>(List.of("zip")));
+		validExtensions.put("css", new ArrayList<>(List.of("css")));
 	}
 
 	public void validateDocument(String fileName, FileItem item, ArrayList<String> validTypes) throws ApplicationException {
