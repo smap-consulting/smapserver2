@@ -904,7 +904,7 @@ public class UserManager {
 				/*
 				 * If the organisation id is zero
 				 * then it will be for the organisation of the person doing the update
-				 * However if the current organisation is not in the list of organisations then the user has access to
+				 * However if the current organisation is not in the list of organisations that the user has access to
 				 * then their organisation acess is being removed.
 				 */
 				if(u.o_id == 0) {
@@ -1614,7 +1614,9 @@ public class UserManager {
 							// Set org admin group value from current
 							for(UserGroup ug : uCurrent.groups) {
 								if(ug.id == Authorise.ORG_ID || ug.id == Authorise.OWNER_ID || ug.id == Authorise.ENTERPRISE_ID) {
-									u.groups.add(ug);
+									if(!u.hasSecurityGroup(ug.id)) {
+										u.groups.add(ug);
+									}
 									break;
 								}
 							}
@@ -1623,7 +1625,9 @@ public class UserManager {
 							for(UserGroup ug : uCurrent.groups) {
 								if(ug.id == Authorise.ORG_ID || ug.id == Authorise.SECURITY_ID || 
 										ug.id == Authorise.OWNER_ID || ug.id == Authorise.ENTERPRISE_ID) {
-									u.groups.add(ug);
+									if(!u.hasSecurityGroup(ug.id)) {
+										u.groups.add(ug);
+									}
 									break;
 								}
 							}

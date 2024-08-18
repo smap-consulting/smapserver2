@@ -74,4 +74,14 @@ public class User {
 	public int ft_im_ri;
 	public int ft_im_acc;
 	public boolean passwordExpired;
+	
+	public boolean hasSecurityGroup(int id) {
+		for(UserGroup ug : groups) {
+			if(ug.id == id) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 }
