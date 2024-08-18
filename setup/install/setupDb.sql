@@ -1838,7 +1838,7 @@ ALTER TABLE key_queue OWNER TO ws;
 DROP TABLE IF EXISTS sms_number;
 CREATE TABLE IF NOT EXISTS sms_number (
     element_identifier UUID PRIMARY KEY,
-    int o_id,					-- Organisation that the number is allocated to
+    o_id integer,				-- Organisation that the number is allocated to
     time_modified TIMESTAMP WITH TIME ZONE,
     our_number text,			-- Our number that sends or receives messages
     survey_ident text,
