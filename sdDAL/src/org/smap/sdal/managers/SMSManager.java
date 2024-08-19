@@ -287,9 +287,11 @@ public class SMSManager {
 				if(statusQuestion != null && finalStatus != null) {
 					checkStatus  = true;
 					String statusColumn = GeneralUtilityMethods.getColumnName(sd, sId, statusQuestion);
-					sqlExists.append(" and ")
+					sqlExists.append(" and (")
 						.append(statusColumn)
-						.append(" != ?");
+						.append(" is null or ")
+						.append(statusColumn)
+						.append(" != ?)");
 				}
 				
 				pstmtExists = cResults.prepareStatement(sqlExists.toString());

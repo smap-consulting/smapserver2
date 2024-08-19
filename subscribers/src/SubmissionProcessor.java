@@ -157,6 +157,10 @@ public class SubmissionProcessor {
 							log.info("        Retrieved Survey From Queue:" + ue.getSurveyName() + ":" + ue.getId());
 
 							SubscriberEvent se = new SubscriberEvent();
+							
+							int oId = 0;
+							oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
+							
 							if(UploadEvent.SMS_TYPE.equals(ue.getType())) {
 								// SMS
 								System.out.println("------------ Processing SMS message");
@@ -186,13 +190,11 @@ public class SubmissionProcessor {
 								InputStream is = null;
 								InputStream is3 = null;
 	
-								int oId = 0;
-	
 								ArrayList<MediaChange> mediaChanges = null;
 	
 								try {
 									// Get the organisation locales
-									oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
+									
 									Organisation organisation = GeneralUtilityMethods.getOrganisation(dbc.sd, oId);
 									Locale orgLocale = new Locale(organisation.locale);
 									ResourceBundle orgLocalisation;
@@ -301,34 +303,34 @@ public class SubmissionProcessor {
 									log.log(Level.SEVERE, e.getMessage(), e);
 								}
 								
-								/*
-								 * Write log entry
-								 */
-								String status = se.getStatus();
-								String reason = se.getReason();
-								if(status == null) {
-									status = "success";
-								}
-								String topic;
-								if(status.equals("error")) {
-									if(reason != null && reason .startsWith("Duplicate")) {
-										topic = LogManager.DUPLICATE;
-									} else {
-										topic = LogManager.SUBMISSION_ERROR;
-									}
-								} else if(ue.getAssignmentId() > 0) {
-									topic =  LogManager.SUBMISSION_TASK;
-								} else if(ue.getTemporaryUser() || GeneralUtilityMethods.isTemporaryUser(dbc.sd, ue.getUserName())) {	// Note the temporaryUser flag in ue is only set for submissions with an action
-									topic = LogManager.SUBMISSION_ANON;
-								} else {
-									topic = LogManager.SUBMISSION;
-								}
-
-								lm.writeLog(dbc.sd, ue.getSurveyId(), ue.getUserName(), topic, status + " : " 
-										+ (reason == null ? "" : reason) + " : " + ue.getImei(), 0, null);
-								
 							}
 
+							/*
+							 * Write log entry
+							 */
+							String status = se.getStatus();
+							String reason = se.getReason();
+							if(status == null) {
+								status = "success";
+							}
+							String topic;
+							if(status.equals("error")) {
+								if(reason != null && reason .startsWith("Duplicate")) {
+									topic = LogManager.DUPLICATE;
+								} else {
+									topic = LogManager.SUBMISSION_ERROR;
+								}
+							} else if(ue.getAssignmentId() > 0) {
+								topic =  LogManager.SUBMISSION_TASK;
+							} else if(ue.getTemporaryUser() || GeneralUtilityMethods.isTemporaryUser(dbc.sd, ue.getUserName())) {	// Note the temporaryUser flag in ue is only set for submissions with an action
+								topic = LogManager.SUBMISSION_ANON;
+							} else {
+								topic = LogManager.SUBMISSION;
+							}
+
+							lm.writeLog(dbc.sd, ue.getSurveyId(), ue.getUserName(), topic, status + " : " 
+									+ (reason == null ? "" : reason) + " : " + ue.getImei(), 0, null);
+							
 							/*
 							 * Save the status
 							 */
