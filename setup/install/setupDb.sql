@@ -238,7 +238,7 @@ create TABLE log (
 	id integer DEFAULT NEXTVAL('log_seq') CONSTRAINT pk_log PRIMARY KEY,
 	log_time TIMESTAMP WITH TIME ZONE,
 	s_id integer,
-	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	o_id integer,
 	e_id integer,
 	user_ident text,
 	event text,	

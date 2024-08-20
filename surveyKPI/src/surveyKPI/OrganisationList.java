@@ -1319,12 +1319,18 @@ public class OrganisationList extends Application {
 							basePath, u.id, o.id, false);	
 				}
 					
-				sql = "DELETE FROM organisation o " +  
-						" WHERE o.id = ?; ";						
+				sql = "delete from organisation where id = ?";						
 				if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, o.id);
-				log.info("SQL: " + sql + ":" + o.id);
+				log.info("Delete organisation: " + pstmt.toString());
+				pstmt.executeUpdate();
+				
+				sql = "delete from log where o_id = ?";						
+				if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, o.id);
+				log.info("Delete organisation logs: " + pstmt.toString());
 				pstmt.executeUpdate();
 				
 			    // Delete the organisation shared resources - not necessary

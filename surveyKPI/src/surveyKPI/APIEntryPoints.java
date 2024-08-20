@@ -525,6 +525,9 @@ public class APIEntryPoints extends Application {
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 			
+			boolean getNonOrgEntries = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.OWNER_ID) || 
+					GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ENTERPRISE_ID);
+			
 			/*
 			 * Get total log entries
 			 */
@@ -539,9 +542,9 @@ public class APIEntryPoints extends Application {
 				
 			LogManager lm = new LogManager();
 			if(year > 0 && month > 0) {
-				logs.data = lm.getMonthLogEntries(sd, localisation, oId, year, month, tz, true);
+				logs.data = lm.getMonthLogEntries(sd, localisation, oId, year, month, tz, true, getNonOrgEntries);
 			} else {
-				logs.data = lm.getLogEntries(sd, localisation, oId, dirn, start, sort, length, true);
+				logs.data = lm.getLogEntries(sd, localisation, oId, dirn, start, sort, length, true, getNonOrgEntries);
 			}
 			
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();

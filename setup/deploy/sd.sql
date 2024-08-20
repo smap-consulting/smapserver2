@@ -134,3 +134,5 @@ ALTER TABLE sms_number OWNER TO ws;
 CREATE UNIQUE INDEX IF NOT EXISTS sms_number_to_idx ON sms_number(our_number);
 
 ALTER TABLE server add column vonage_application_id text;
+
+ALTER TABLE log  DROP CONSTRAINT log_o_id_fkey;

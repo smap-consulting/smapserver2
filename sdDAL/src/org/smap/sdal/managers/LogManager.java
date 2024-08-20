@@ -128,23 +128,19 @@ public class LogManager {
 			if(oId <= 0) {
 				 oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 			}
-			if(oId > 0) {
-				pstmt = sd.prepareStatement(sql);	
-				pstmt.setInt(1, sId);
-				pstmt.setInt(2, oId);
-				pstmt.setInt(3, oId);
-				pstmt.setString(4, uIdent);
-				pstmt.setString(5,  event);
-				pstmt.setString(6,  note);
-				pstmt.setInt(7, measure);
-				pstmt.setString(8,  server);
+
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setInt(1, sId);
+			pstmt.setInt(2, oId);
+			pstmt.setInt(3, oId);
+			pstmt.setString(4, uIdent);
+			pstmt.setString(5,  event);
+			pstmt.setString(6,  note);
+			pstmt.setInt(7, measure);
+			pstmt.setString(8,  server);
 				
-				pstmt.executeUpdate();
-			} else {
-				log.info("Error: Attempting to write log entry without a valid organisation");
-			}
-
-
+			pstmt.executeUpdate();
+			
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "SQL Error", e);
 		} finally {
@@ -338,7 +334,8 @@ public class LogManager {
 			int start,
 			String sort,
 			int length,
-			boolean forHtml) throws SQLException {
+			boolean forHtml,
+			boolean getNonOrgEntries) throws SQLException {
 		
 		ArrayList<LogItemDt> items = new ArrayList<> ();
 		PreparedStatement pstmt = null;
@@ -346,23 +343,27 @@ public class LogManager {
 		
 		try {
 
-			String sql = "select l.id, l.log_time, l.s_id, s.display_name, l.user_ident, l.event, l.note, l.server "
+			StringBuilder sql = new StringBuilder("select l.id, l.log_time, l.s_id, s.display_name, l.user_ident, l.event, l.note, l.server "
 					+ "from log l "
 					+ "left outer join survey s "
-					+ "on s.s_id = l.s_id ";
+					+ "on s.s_id = l.s_id "
+					+ "where ");
 			
-			String sqlSelect = "where ";
 			if(dirn.equals("asc")) {
-				sqlSelect += "l.id > ? ";
+				sql.append("l.id > ? ");
 			} else {
-				sqlSelect += "l.id < ? ";
+				sql.append("l.id < ? ");
 			}
 			
-			sqlSelect += "and l.o_id = ? ";
+			if(getNonOrgEntries) {
+				sql.append("and (l.o_id = ? or l.o_id = -1) ");
+			} else {
+				sql.append("and l.o_id = ? ");
+			}
 			
-			String sqlOrder = "order by l." + sort + " " + dirn;
+			sql.append("order by l.").append(sort).append(" ").append(dirn);
 			
-			pstmt = sd.prepareStatement(sql + sqlSelect + sqlOrder);
+			pstmt = sd.prepareStatement(sql.toString());
 			int paramCount = 1;
 			pstmt.setInt(paramCount++, start);	
 			pstmt.setInt(paramCount++, oId);
@@ -402,7 +403,8 @@ public class LogManager {
 			int year,
 			int month,
 			String tz,
-			boolean forHtml) throws SQLException {
+			boolean forHtml,
+			boolean getNonOrgEntries) throws SQLException {
 		
 		ArrayList<LogItemDt> items = new ArrayList<> ();
 		PreparedStatement pstmt = null;
@@ -410,20 +412,25 @@ public class LogManager {
 		
 		try {
 
-			String sql = "select l.id, l.log_time, l.s_id, l.user_ident, l.event, l.note, l.server,"
+			StringBuilder sql = new StringBuilder("select l.id, l.log_time, l.s_id, l.user_ident, l.event, l.note, l.server,"
 					+ "(select display_name from survey where ident = s.group_survey_ident) as display_name "
 					+ "from log l "
 					+ "left outer join survey s "
 					+ "on s.s_id = l.s_id "
-					+ "where l.o_id = ? "
-					+ "and timezone(?, l.log_time) >=  ? "
+					+ "where (l.o_id = ? ");
+			if(getNonOrgEntries) {
+				sql.append("or l.o_id = -1) ");
+			} else {
+				sql.append(") ");
+			}
+			sql.append("and timezone(?, l.log_time) >=  ? "
 					+ "and timezone(?, l.log_time) < ? "
-					+ "order by l.id desc";
+					+ "order by l.id desc");
 			
 			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
 			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
 			
-			pstmt = sd.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql.toString());
 			int paramCount = 1;
 			pstmt.setInt(paramCount++, oId);	
 			pstmt.setString(paramCount++, tz);

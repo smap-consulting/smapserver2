@@ -126,6 +126,8 @@ public class SubmissionProcessor {
 				localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", locale);
 			}
 
+			SMSManager smsMgr = new SMSManager(localisation, tz);
+			
 			boolean loop = true;
 			while(loop) {
 
@@ -167,14 +169,11 @@ public class SubmissionProcessor {
 								SMSDetails sms = gson.fromJson(ue.getPayload(), SMSDetails.class);
 								
 								try {
-									processMessage(dbc.sd, 
-											dbc.results, 
-											localisation, 
-											tz, 
-											ue.getUserName(),
+									smsMgr.writeMessageToResults(dbc.sd, 
+											dbc.sd,
+											se,
 											ue.getInstanceId(),
-											sms, 
-											se);
+											sms);
 								} catch (Exception e) {
 									e.printStackTrace();
 									se.setStatus("error");
@@ -304,7 +303,7 @@ public class SubmissionProcessor {
 								}
 								
 							}
-
+							
 							/*
 							 * Write log entry
 							 */
@@ -488,47 +487,6 @@ public class SubmissionProcessor {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 		}
-	}
-	
-	/*
-	 * Process an uploaded message
-	 */
-	public void processMessage(Connection sd, 
-			Connection cResults, 
-			ResourceBundle localisation,
-			String tz,
-			String user,
-			String instanceid,
-			SMSDetails sms, 
-			SubscriberEvent se) {
-	
-		try {
-			
-			/*
-			 * Write the message to the results table
-			 */
-			SMSManager mgr = new SMSManager(localisation, tz);
-			mgr.writeMessageToResults(sd, 
-					cResults,
-					se,
-					instanceid,
-					sms);
-			
-			
-		} catch (Exception e) {
-			log.log(Level.SEVERE, e.getMessage(), e);
-			se.setStatus("error");
-			se.setReason(e.getMessage());
-		} finally {
-			try {
-				
-			
-			} catch (Exception e) {
-				
-			}
-			
-		}	
-
 	}
 
 }

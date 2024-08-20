@@ -361,12 +361,6 @@ public class SMSManager {
 				log.info("Process sms: " + pstmt.toString());
 				pstmt.executeUpdate();
 				
-				/*
-				 * Write log entry
-				 */		
-				lm.writeLog(sd, sId, sms.theirNumber, LogManager.SMS, se.getStatus() + " : " 
-						+ (se.getReason() == null ? "" : se.getReason()) + " : ", 0, null);
-				
 			} else {
 				log.info("Error:  Inbound number " + sms.ourNumber + " not found");
 				se.setStatus("error");

@@ -119,14 +119,16 @@ public class Log extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			boolean getNonOrgEntries = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.OWNER_ID) || 
+					GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ENTERPRISE_ID);
 		
 			LogManager lm = new LogManager();
 			
 			ArrayList<LogItemDt> logs = null;
 			if(year > 0 && month > 0) {
-				logs = lm.getMonthLogEntries(sd, localisation, oId, year, month, tz, false);
+				logs = lm.getMonthLogEntries(sd, localisation, oId, year, month, tz, false, getNonOrgEntries);
 			} else {
-				logs = lm.getLogEntries(sd, localisation, oId, dirn, start, sort, length, false);
+				logs = lm.getLogEntries(sd, localisation, oId, dirn, start, sort, length, false, getNonOrgEntries);
 			}
 			
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
