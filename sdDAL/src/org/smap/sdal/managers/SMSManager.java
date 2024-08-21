@@ -142,7 +142,8 @@ public class SMSManager {
 	public void saveMessage(
 			Connection sd,
 			SMSDetails sms,
-			String serverName)  {
+			String serverName,
+			String instanceId)  {
 		
 		String sql = "insert into upload_event ("
 				+ "upload_time,"
@@ -153,7 +154,7 @@ public class SMSManager {
 				+ "status,"
 				+ "s_id,"
 				+ "instanceid) "
-				+ "values (now(), ?, 'SMS', ?, ?, 'success', 0, gen_random_uuid());";
+				+ "values (now(), ?, 'SMS', ?, ?, 'success', 0, ?);";
 
 		PreparedStatement pstmt = null;
 		
@@ -163,6 +164,7 @@ public class SMSManager {
 			pstmt.setString(1, sms.ourNumber);  	// User
 			pstmt.setString(2, gson.toJson(sms));	// Payload
 			pstmt.setString(3, serverName);			// Server Name
+			pstmt.setString(4, instanceId);			// Instance Id
 			
 			log.info("----- new sms " + pstmt.toString());
 			pstmt.executeUpdate();

@@ -642,6 +642,13 @@ public class Tasks extends Application {
 						", File Size = "+item.getSize());
 					
 					fileName = item.getName();
+					
+					/*
+					 * Validate the upload
+					 */
+					DocumentUploadManager dum = new DocumentUploadManager(localisation);
+					dum.validateDocument(fileName, item, DocumentUploadManager.SETTINGS_IMPORT_TYPES);
+
 					if(fileName.endsWith("xlsx") || fileName.endsWith("xlsm")) {
 						filetype = "xlsx";
 					} else if(fileName.endsWith("xls")) {
@@ -722,7 +729,6 @@ public class Tasks extends Application {
 			log.log(Level.SEVERE,ex.getMessage(), ex);
 			response = Response.serverError().entity(ex.getMessage()).build();
 		} finally {
-	
 			SDDataSource.closeConnection(requester, sd);
 			ResultsDataSource.closeConnection(requester, cResults);
 			

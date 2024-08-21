@@ -2,6 +2,7 @@ package sms;
 
 import java.sql.Connection;
 import java.sql.Timestamp;
+import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -44,7 +45,7 @@ public class TestInboundSMS extends Application {
     		sd = SDDataSource.getConnection(connectionString);
     		
     		SMSManager sim = new SMSManager(null,null);
-    		sim.saveMessage(sd, sms, request.getServerName());
+    		sim.saveMessage(sd, sms, request.getServerName(), UUID.randomUUID().toString());
     		
     		response = Response.ok().build();
     	} finally {

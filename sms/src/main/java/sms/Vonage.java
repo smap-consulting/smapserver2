@@ -45,6 +45,7 @@ public class Vonage extends Application {
     	/*
     	 * Get message details
     	 */
+    	log.info("Sms: " + body);
         MessageVonage inbound = gson.fromJson(body, MessageVonage.class);
         SMSDetails sms = new SMSDetails(inbound.from, inbound.to, inbound.text, true, inbound.timestamp);
         
@@ -57,7 +58,7 @@ public class Vonage extends Application {
         		sd = SDDataSource.getConnection(connectionString);
         		
         		SMSManager sim = new SMSManager(null, null);
-        		sim.saveMessage(sd, sms, request.getServerName());
+        		sim.saveMessage(sd, sms, request.getServerName(), inbound.message_uuid);
         	} finally {
         		SDDataSource.closeConnection(connectionString, sd);
         	}
@@ -96,8 +97,8 @@ public class Vonage extends Application {
         	try {
         		sd = SDDataSource.getConnection(connectionString);
         		
-        		SMSManager sim = new SMSManager(null, null);
-        		sim.saveMessage(sd, sms, request.getServerName());
+        		//SMSManager sim = new SMSManager(null, null);
+        		//sim.saveMessage(sd, sms, request.getServerName());
         	} finally {
         		SDDataSource.closeConnection(connectionString, sd);
         	}
