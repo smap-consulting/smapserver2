@@ -40,6 +40,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.DocumentUploadManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutPerson;
@@ -258,7 +259,15 @@ public class MailoutSvc extends Application {
 						", Content type = "+item.getContentType()+
 						", File Size = "+item.getSize());
 					
+					
 					fileName = item.getName();
+					
+					/*
+					 * Validate the upload
+					 */
+					DocumentUploadManager dum = new DocumentUploadManager(localisation);
+					dum.validateDocument(fileName, item, DocumentUploadManager.SETTINGS_IMPORT_TYPES);
+
 					if(fileName.endsWith("xlsx") || fileName.endsWith("xlsm")) {
 						filetype = "xlsx";
 					} else if(fileName.endsWith("xls")) {
