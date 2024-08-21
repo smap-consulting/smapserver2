@@ -44,6 +44,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.DocumentUploadManager;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
@@ -1147,8 +1148,8 @@ public class Surveys extends Application {
 		try {
 				
 			// Localisation			
-			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			/*
 			 * Parse the request
@@ -1179,7 +1180,14 @@ public class Surveys extends Application {
 					
 					if(item.getSize() > 0) {
 						pdfItem = item;
-					}				
+					}	
+					
+					/*
+					 * Validate the upload
+					 */
+					String fileName = item.getName();
+					DocumentUploadManager dum = new DocumentUploadManager(localisation);
+					dum.validateDocument(fileName, item, DocumentUploadManager.PDF_TYPES);
 				}
 
 			}

@@ -38,12 +38,14 @@ public class DocumentUploadManager {
 	private static Logger log =
 			 Logger.getLogger(DocumentUploadManager.class.getName());
 
-	public static ArrayList<String> SHARED_RESOURCE_TYPES = new ArrayList<>(List.of("csv", "excel", 
+	public static ArrayList<String> SHARED_RESOURCE_TYPES = new ArrayList<>(List.of(
+			"csv", "excel", 
 			"image", "video", "audio"));
 	public static ArrayList<String> LOCATION_TYPES = new ArrayList<>(List.of("excel"));
 	public static ArrayList<String> SETTINGS_IMPORT_TYPES = new ArrayList<>(List.of("excel", "excel_macro"));
 	public static ArrayList<String> DATA_IMPORT_TYPES = new ArrayList<>(List.of("csv", "excel", "compress"));
 	public static ArrayList<String> CSS_TYPES = new ArrayList<>(List.of("css"));
+	public static ArrayList<String> PDF_TYPES = new ArrayList<>(List.of("pdf"));
 	
 	private HashMap<String, ArrayList<String>> validExtensions = new HashMap<>();
 	
@@ -61,6 +63,7 @@ public class DocumentUploadManager {
 		validExtensions.put("audio", new ArrayList<>(List.of("mp3")));
 		validExtensions.put("compress", new ArrayList<>(List.of("zip")));
 		validExtensions.put("css", new ArrayList<>(List.of("css")));
+		validExtensions.put("pdf", new ArrayList<>(List.of("pdf")));
 	}
 
 	public void validateDocument(String fileName, FileItem item, ArrayList<String> validTypes) throws ApplicationException {
