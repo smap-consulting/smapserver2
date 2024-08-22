@@ -96,9 +96,6 @@ public class UserTrail extends Application {
 			mps = 200;
 		}
 
-		//Timestamp startDate = new Timestamp(start_t);
-		//Timestamp endDate = new Timestamp(end_t);
-
 		String user = request.getRemoteUser();
 		String connectionString = "usertrail - trail";
 		// Authorisation - Access
@@ -124,55 +121,6 @@ public class UserTrail extends Application {
 			UserTrailManager utm = new UserTrailManager(localisation, tz);
 			Trail trail = new Trail();
 			trail.features = utm.generateGeoJson(sd, 0, params, false);	// Set project to 0 as we are getting data for a single user, specify 3857 coordinate system
-			
-			/*
-			StringBuffer sql = new StringBuffer("SELECT ut.id as id, ST_X(ST_Transform(ut.the_geom, 3857)) as x, " +
-						"ST_Y(ST_Transform(ut.the_geom, 3857)) as y, ut.event_time as event_time, " +
-						"extract(epoch from ut.event_time) * 1000 as raw_time, " + 
-						"u.name as user_name " +	
-					"FROM user_trail ut, users u  " +
-					"where u.id = ut.u_id ");
-			
-			if(start_t > 0) {
-				sql.append("and ut.event_time >= ? ");
-			}
-			if(end_t > 0) {
-				sql.append("and ut.event_time <  ? ");
-			}
-			sql.append("and ut.u_id = ? " +
-					"order by ut.event_time asc");
-			
-			pstmt = sd.prepareStatement(sql.toString());
-			int idx = 1;
-			if(start_t > 0) {
-				pstmt.setTimestamp(idx++, startDate);
-			}
-			if(end_t > 0) {
-				pstmt.setTimestamp(idx++, endDate);
-			}
-			pstmt.setInt(idx++, uId);
-
-			log.info("Get User Trail: " + pstmt.toString());
-			resultSet = pstmt.executeQuery();
-			 
-			Trail trail = new Trail();
-			trail.features = new ArrayList<UserTrailPoint> ();
-			 
-			while (resultSet.next()) {
-				
-				if(trail.userName == null) {
-					trail.userName = resultSet.getString("user_name");
-				}
-				
-				UserTrailPoint f = new UserTrailPoint();
-				f.id = resultSet.getInt("id");
-				f.time = resultSet.getTimestamp("event_time");	
-				f.rawTime = resultSet.getLong("raw_time");
-				f.coordinates[0] = resultSet.getDouble("x");
-				f.coordinates[1] = resultSet.getDouble("y");
-				trail.features.add(f);
-			}
-			 */
 			
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			String resp = gson.toJson(trail);

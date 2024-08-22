@@ -263,7 +263,7 @@ public class SubmissionsManager {
 		}
 		
 		String location = resultSet.getString("location");
-		if(location != null) {							// For map
+		if(location != null && !location.contains(";") &&!location.contains(":")) {	// For map, ignore bad locations that are not just two coordinates
 			
 			try {
 				String[] coords = location.split(" ");
