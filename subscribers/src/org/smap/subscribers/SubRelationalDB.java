@@ -538,10 +538,16 @@ public class SubRelationalDB extends Subscriber {
 				 * if they do not already exist 2) Check if this survey is a duplicate
 				 */
 				keys.duplicateKeys = new ArrayList<Integer>();
-				TableManager tm = new TableManager(localisation, tz);
 				CMS cms = null;
 				if (parent_key == 0) { // top level survey has a parent key of 0	
 					
+					/*
+					 * Ensure tables are fully published
+					 */			
+					UtilityMethods.createSurveyTables(sd, cResults, localisation, 
+							sId, sIdent, tz, lockTableChange);
+					
+					/*
 					SurveyTemplate template = new SurveyTemplate(localisation); 
 					template.readDatabase(sd, cResults, sIdent, false);	
 					
@@ -554,11 +560,7 @@ public class SubRelationalDB extends Subscriber {
 						
 						boolean tableChanged = false;
 						boolean tablePublished = false;
-						keys.duplicateKeys = checkDuplicate(cResults, tableName, uuid);
-	
-						if (keys.duplicateKeys.size() > 0 && getDuplicatePolicy() == DUPLICATE_DROP) {
-							throw new Exception("Duplicate survey: " + uuid);
-						}
+						
 						// Apply any updates that have been made to the table structure since the last
 						// submission
 						tableChanged = tm.applyTableChanges(sd, cResults, sId, tablesCreated);
@@ -575,6 +577,15 @@ public class SubRelationalDB extends Subscriber {
 						}
 						
 						lockTableChange.release("table mod done");		// Release lock - table modification finished
+					}
+					*/
+					
+					/*
+					 * Duplicate check
+					 */
+					keys.duplicateKeys = checkDuplicate(cResults, tableName, uuid);
+					if (keys.duplicateKeys.size() > 0 && getDuplicatePolicy() == DUPLICATE_DROP) {
+						throw new Exception("Duplicate survey: " + uuid);
 					}
 					
 					/*
@@ -1518,8 +1529,9 @@ public class SubRelationalDB extends Subscriber {
 	
 					/*
 					 * Apply the merge if the policy is not replace or this is a question that is not in the submitting form
+					 * Conversation questions are not submitted so replace those too
 					 */
-					if(( !replace || subColType == null) && (val == null || val.trim().length() == 0)) {
+					if(( !replace || subColType == null || "conversation".equals(subColType)) && (val == null || val.trim().length() == 0)) {
 	
 						String sqlUpdateTarget = "update " + table 
 								+ " set " + col + " = (select " + col 

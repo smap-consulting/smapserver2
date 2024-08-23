@@ -165,17 +165,17 @@ public class SubmissionProcessor {
 							
 							if(UploadEvent.SMS_TYPE.equals(ue.getType())) {
 								// SMS
-								System.out.println("------------ Processing SMS message");
+								log.info("------------ Processing SMS message");
 								SMSDetails sms = gson.fromJson(ue.getPayload(), SMSDetails.class);
 								
 								try {
 									smsMgr.writeMessageToResults(dbc.sd, 
-											dbc.sd,
+											dbc.results,
 											se,
 											ue.getInstanceId(),
 											sms);
 								} catch (Exception e) {
-									e.printStackTrace();
+									log.log(Level.SEVERE, e.getMessage(), e);
 									se.setStatus("error");
 									se.setReason(e.getMessage());
 								}

@@ -37,6 +37,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.openxml4j.opc.PackageAccess;
+import org.smap.sdal.Utilities.AdvisoryLock;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -864,6 +865,7 @@ public class AllAssignments extends Application {
 		Connection results = ResultsDataSource.getConnection("surveyKPI-AllAssignments-LoadTasks From File");
 		boolean superUser = false;
 		ResourceBundle localisation = null;
+		AdvisoryLock lockTableChange = null;
 		try {
 
 			// Get the users locale
@@ -1065,7 +1067,8 @@ public class AllAssignments extends Application {
 			/*
 			 * Create the results tables for the survey if they do not exist
 			 */
-			UtilityMethods.createSurveyTables(sd, results, localisation, sId, sIdent, tz);
+			lockTableChange = new AdvisoryLock(sd, 1, sId);	// If necessary lock at the survey level
+			UtilityMethods.createSurveyTables(sd, results, localisation, sId, sIdent, tz, lockTableChange);
 
 			/*
 			 * Delete the existing data if requested
@@ -1267,6 +1270,7 @@ public class AllAssignments extends Application {
 
 
 		} finally {
+			
 			try {if (pstmtGetCol != null) {pstmtGetCol.close();}} catch (SQLException e) {}
 			try {if (pstmtGetColGS != null) {pstmtGetColGS.close();}} catch (SQLException e) {}
 			try {if (pstmtGetChoices != null) {pstmtGetChoices.close();}} catch (SQLException e) {}
@@ -1281,6 +1285,11 @@ public class AllAssignments extends Application {
 			try {
 				ResultsDataSource.closeConnection("surveyKPI-AllAssignments-LoadTasks From File", results);
 			} catch(Exception e) {};
+			
+			if(lockTableChange != null) {
+				lockTableChange.release("top level");    // Ensure lock is released before closing
+				lockTableChange.close("top level");
+			}
 		}
 
 		return response;

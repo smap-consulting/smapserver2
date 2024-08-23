@@ -54,14 +54,14 @@ public class SMSManager {
 	
 	private Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create(); 
 	
-	private StringBuilder sqlSelect = new StringBuilder("select "
+	private String sqlGetNumber = "select "
 			+ "element_identifier,"
 			+ "our_number,"
 			+ "survey_ident,"
 			+ "their_number_question,"
 			+ "message_question,"
 			+ "o_id "
-			+ "from sms_number ");
+			+ "from sms_number ";
 	
 	private ResourceBundle localisation;
 	private String tz;
@@ -78,6 +78,7 @@ public class SMSManager {
 		ArrayList<SMSNumber> numbers = new ArrayList<>();
 		boolean orgOnly = false;
 		
+		StringBuilder sqlSelect = new StringBuilder(sqlGetNumber);
 		PreparedStatement pstmt = null;
 		
 		String sqlOrg = "select name from organisation where id = ?";
@@ -178,6 +179,7 @@ public class SMSManager {
 	
 	public SMSNumber getDetailsForOurNumber(Connection sd, String ourNumber) throws SQLException {
 		
+		StringBuilder sqlSelect = new StringBuilder(sqlGetNumber);
 		sqlSelect.append("where our_number = ?");
 		PreparedStatement pstmt = null;
 		
@@ -203,7 +205,7 @@ public class SMSManager {
 
 	public SMSNumber getDetailsForSurvey(Connection sd, String surveyIdent) throws SQLException {
 		
-	
+		StringBuilder sqlSelect = new StringBuilder(sqlGetNumber);
 		PreparedStatement pstmt = null;		
 		SMSNumber smsNumber = null;
 		sqlSelect.append("where survey_ident = ?");
@@ -245,21 +247,17 @@ public class SMSManager {
 			
 			if(smsNumber != null) {
 				
-				int sId = GeneralUtilityMethods.getSurveyId(sd, smsNumber.surveyIdent);
-				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, smsNumber.surveyIdent);
-				String theirNumberColumn = GeneralUtilityMethods.getColumnName(sd, sId, smsNumber.theirNumberQuestion);
-				String messageColumn = GeneralUtilityMethods.getColumnName(sd, sId, smsNumber.messageQuestion);				
-				
-				lockTableChange = new AdvisoryLock(sd, 1, sId);	// If necessary lock at the survey level
-				
 				/*
 				 * Ensure tables are fully published
-				 */
-				lockTableChange.lock("table sms mod start");	// Start lock while modifying tables
-				
+				 */	
+				int sId = GeneralUtilityMethods.getSurveyId(sd, smsNumber.surveyIdent);
+				lockTableChange = new AdvisoryLock(sd, 1, sId);	// If necessary lock at the survey level
 				UtilityMethods.createSurveyTables(sd, cResults, localisation, 
-						sId, smsNumber.surveyIdent, tz);
-				lockTableChange.release("table sms mod done");
+						sId, smsNumber.surveyIdent, tz, lockTableChange);
+				
+				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, smsNumber.surveyIdent);
+				String theirNumberColumn = GeneralUtilityMethods.getColumnName(sd, sId, smsNumber.theirNumberQuestion);
+				String messageColumn = GeneralUtilityMethods.getColumnName(sd, sId, smsNumber.messageQuestion);	
 				
 				/*
 				 * Get the case details
@@ -280,33 +278,38 @@ public class SMSManager {
 				int existingPrikey = 0;
 				boolean checkStatus = false;
 	
-				StringBuilder sqlExists = new StringBuilder("select prikey from ")
-						.append(tableName)
-						.append(" where ")
-						.append(theirNumberColumn)
-						.append(" = ? ");
-				
-				if(statusQuestion != null && finalStatus != null) {
-					checkStatus  = true;
-					String statusColumn = GeneralUtilityMethods.getColumnName(sd, sId, statusQuestion);
-					sqlExists.append(" and (")
-						.append(statusColumn)
-						.append(" is null or ")
-						.append(statusColumn)
-						.append(" != ?)");
+				/*
+				 * If the results table has been created check for an existing case
+				 */
+				if(tableName != null) {
+					StringBuilder sqlExists = new StringBuilder("select prikey from ")
+							.append(tableName)
+							.append(" where ")
+							.append(theirNumberColumn)
+							.append(" = ? ");
+					
+					if(statusQuestion != null && finalStatus != null) {
+						checkStatus  = true;
+						String statusColumn = GeneralUtilityMethods.getColumnName(sd, sId, statusQuestion);
+						sqlExists.append(" and (")
+							.append(statusColumn)
+							.append(" is null or ")
+							.append(statusColumn)
+							.append(" != ?)");
+					}
+					
+					pstmtExists = cResults.prepareStatement(sqlExists.toString());
+					pstmtExists.setString(1, sms.theirNumber);
+					if(checkStatus) {
+						pstmtExists.setString(2, finalStatus);
+					}
+					log.info("Check for existing cases: " + pstmtExists.toString());
+					ResultSet rs = pstmtExists.executeQuery();
+					if(rs.next()) {
+						existingPrikey = rs.getInt("prikey");
+					}
+					rs.close();
 				}
-				
-				pstmtExists = cResults.prepareStatement(sqlExists.toString());
-				pstmtExists.setString(1, sms.theirNumber);
-				if(checkStatus) {
-					pstmtExists.setString(2, finalStatus);
-				}
-				log.info("Check for existing cases: " + pstmtExists.toString());
-				ResultSet rs = pstmtExists.executeQuery();
-				if(rs.next()) {
-					existingPrikey = rs.getInt("prikey");
-				}
-				rs.close();
 				
 				if(existingPrikey == 0) {
 					/*

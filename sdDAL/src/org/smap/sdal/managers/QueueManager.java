@@ -77,7 +77,7 @@ public class QueueManager {
 					+ "and not ue.restore "
 					+ "and not ue.results_db_applied ";
 			pstmtLength = sd.prepareStatement(sqlLength);
-			log.info("Get queue length: " + pstmtLength.toString());
+			//log.info("Get queue length: " + pstmtLength.toString());
 			ResultSet rs = pstmtLength.executeQuery();
 			if(rs.next()) {
 				queue.length = rs.getInt(1);
@@ -145,7 +145,7 @@ public class QueueManager {
 					+ "from subevent_queue "
 					+ "where processed_time is null ";
 			pstmtLength = sd.prepareStatement(sqlLength);
-			log.info("Get queue length: " + pstmtLength.toString());
+			//log.info("Get queue length: " + pstmtLength.toString());
 			ResultSet rs = pstmtLength.executeQuery();
 			if(rs.next()) {
 				queue.length = rs.getInt(1);
@@ -208,7 +208,7 @@ public class QueueManager {
 					+ "and topic != 'task' and topic != 'survey' and topic != 'user' and topic != 'project' and topic != 'resource' ";
 
 			pstmtLength = sd.prepareStatement(sqlLength);
-			log.info("Get queue length: " + pstmtLength.toString());
+			//log.info("Get queue length: " + pstmtLength.toString());
 			ResultSet rs = pstmtLength.executeQuery();
 			if(rs.next()) {
 				queue.length = rs.getInt(1);
@@ -270,7 +270,7 @@ public class QueueManager {
 					+ "and (topic = 'task' or topic = 'survey' or topic = 'user' or topic = 'project' or topic = 'resource') ";
 
 			pstmtLength = sd.prepareStatement(sqlLength);
-			log.info("Get queue length: " + pstmtLength.toString());
+			//log.info("Get queue length: " + pstmtLength.toString());
 			ResultSet rs = pstmtLength.executeQuery();
 			if(rs.next()) {
 				queue.length = rs.getInt(1);
@@ -331,7 +331,7 @@ public class QueueManager {
 					+ "and ue.restore "
 					+ "and not ue.results_db_applied ";
 			pstmtLength = sd.prepareStatement(sqlLength);
-			log.info("Get queue length: " + pstmtLength.toString());
+			//log.info("Get queue length: " + pstmtLength.toString());
 			ResultSet rs = pstmtLength.executeQuery();
 			if(rs.next()) {
 				queue.length = rs.getInt(1);

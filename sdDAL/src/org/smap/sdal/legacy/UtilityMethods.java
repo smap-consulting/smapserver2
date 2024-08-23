@@ -9,6 +9,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
+import org.smap.sdal.Utilities.AdvisoryLock;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.KeyValueSimp;
@@ -459,7 +460,8 @@ public class UtilityMethods {
 			ResourceBundle localisation, 
 			int sId,
 			String sIdent,
-			String tz) throws Exception {
+			String tz,
+			AdvisoryLock lockTableChange) throws Exception {
 			
 		TableManager tm = new TableManager(localisation, tz);
 		ArrayList <FormDesc> formList = tm.getFormList(sd, sId);
@@ -467,21 +469,26 @@ public class UtilityMethods {
 		
 		SurveyTemplate template = new SurveyTemplate(localisation); 
 		template.readDatabase(sd, results, sIdent, false);	
-		ArrayList<String> tablesCreated = tm.writeAllTableStructures(sd, results, sId, template,  0);
 		
-		boolean tableChanged = false;
-		boolean tablePublished = false;
-	
-		// Apply any updates that have been made to the table structure since the last submission
-		// If a table was newly created then just mark the changes as done	
-		tableChanged = tm.applyTableChanges(sd, results, sId, tablesCreated);
-	
-		// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
-		tablePublished = tm.addUnpublishedColumns(sd, results, sId, topForm.table_name);			
-		if(tableChanged || tablePublished) {
-			for(FormDesc f : formList) {
-				tm.markPublished(sd, f.f_id, sId);		// only mark published if there have been changes made
+		if(tm.changesRequired(sd, results, template, sId)) {
+			lockTableChange.lock("table mod start");	// Start lock while modifying tables
+			ArrayList<String> tablesCreated = tm.writeAllTableStructures(sd, results, sId, template,  0);
+			
+			boolean tableChanged = false;
+			boolean tablePublished = false;
+		
+			// Apply any updates that have been made to the table structure since the last submission
+			// If a table was newly created then just mark the changes as done	
+			tableChanged = tm.applyTableChanges(sd, results, sId, tablesCreated);
+		
+			// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
+			tablePublished = tm.addUnpublishedColumns(sd, results, sId, topForm.table_name);			
+			if(tableChanged || tablePublished) {
+				for(FormDesc f : formList) {
+					tm.markPublished(sd, f.f_id, sId);		// only mark published if there have been changes made
+				}
 			}
+			lockTableChange.release("table mod done");
 		}
 	}
 	
