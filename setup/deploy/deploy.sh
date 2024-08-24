@@ -192,6 +192,9 @@ service apache2 start
 
 if [ "$SUBSCRIBER" != "no" ]
 then
+    echo "Cleaning subscriber queues"
+    cat ./queueclean.sql | sudo -i -u postgres $PSQL -d survey_definitions 
+
     echo "...... starting subscriber"
     echo "go" > /smap/settings/subscriber
     if [ $u1404 -eq 1 ]; then
