@@ -284,7 +284,7 @@ public class SMSManager {
 				if(tableName != null) {
 					StringBuilder sqlExists = new StringBuilder("select prikey from ")
 							.append(tableName)
-							.append(" where ")
+							.append(" where not _bad and ")
 							.append(theirNumberColumn)
 							.append(" = ? ");
 					
