@@ -311,6 +311,7 @@ public class GetHtml {
 			if (!q.inMeta && !q.name.equals("meta_groupEnd") && !q.isPreload() 
 					&& !q.type.equals("calculate")		// Calculates are processed separately from questions for webforms
 					&& !q.type.equals("server_calculate")
+					&& !q.type.equals("conversation")
 					&& !q.type.equals("chart")) {	// Charts not supported in webforms
 				
 				if(q.type.equals("pdf_field") && q.source == null) {
