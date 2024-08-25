@@ -1068,6 +1068,7 @@ public class XLSTemplateUploadManager {
 				|| q.type.equals("begin matrix") 
 				|| q.type.equals("end matrix") 
 				|| q.type.equals("server_calculate") 
+				|| q.type.equals("conversation") 
 				|| q.type.equals("pdf_field") 
 				|| q.type.equals("begin repeat")) {
 			q.source = null;
