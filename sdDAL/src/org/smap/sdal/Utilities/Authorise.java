@@ -289,6 +289,61 @@ public class Authorise {
 	}
 	
 	/*
+	 * Check to make sure the user ident is in the organisation of the user making the request
+	 */
+	public boolean isValidUserIdent(Connection sd, String adminUser, String userIdent) {
+		
+		ResultSet resultSet = null;
+		int count = 0;
+		boolean sqlError = false;
+		
+
+		String sql = "select u.ident "
+					+ "from users u " 
+					+ "where u.ident = ? "
+					+ "and u.o_id = (select o_id from users where ident = ?) ";				
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, userIdent);
+			pstmt.setString(2, adminUser);
+			log.info("Validate user in correct organisation: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
+
+			if(resultSet.next()) {
+				count = 1;
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"SQL Error during authorisation", e);
+			sqlError = true;
+		} finally {		
+			// Close the result set and prepared statement
+			try{
+				if(resultSet != null) {resultSet.close();};
+				if(pstmt != null) {pstmt.close();};
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
+			}
+		}
+		
+		// Check to see if the user was authorised to access this service
+ 		if(count == 0 || sqlError) {
+ 			log.info("Authorisation failed for: " + adminUser);
+ 			SDDataSource.closeConnection("isAuthorised", sd);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new AuthorisationException();
+			}
+		} 
+ 		
+		return true;
+	}
+	
+	/*
 	 * Check to make sure the billing organisation is valid
 	 */
 	public boolean isValidBillingOrganisation(Connection conn, int oId) {

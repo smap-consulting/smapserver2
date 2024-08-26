@@ -885,6 +885,51 @@ public class UserList extends Application {
 		
 	}
 	
+
+	/*
+	 * Methods related to app code for use with fieldTask
+	 */
+	
+	class CodeDetails {
+		String code;
+	}
+	
+	/*
+	 * Get the users app key
+	 */
+	@GET
+	@Path("/app_key/{user}")
+	@Produces("application/json")
+	public Response getAppCode(@Context HttpServletRequest request,
+			@PathParam("user") String user) { 
+
+		Response response = null;
+		String connectionString = "surveyKPI-UserSvc-GetAppKey";
+
+		// Authorisation
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidUserIdent(sd, request.getRemoteUser(), user);
+		// End Authorisation	
+		try {
+			CodeDetails details = new CodeDetails();
+			UserManager um = new UserManager(null);
+			details.code = um.getKey(sd, user, "app");
+
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(details);
+			response = Response.ok(resp).build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			response = Response.serverError().build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+	
 	private String getGroups(ArrayList<UserGroup> groups) {
 		StringBuffer g = new StringBuffer("");
 		if(groups != null) {

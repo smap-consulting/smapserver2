@@ -147,13 +147,14 @@ public class UserSvc extends Application {
 		return response;
 	}
 	
-	/*
-	 * Get the user's API key
-	 */
-	class ApiKeyDetails {
+	class KeyDetails {
 		String apiKey;
 	}
 	
+	/*
+	 * Get the user's API key
+	 * In all cases these are called by a user to on their own keys and authorisation is not requried
+	 */	
 	@GET
 	@Path("/api_key")
 	@Produces("application/json")
@@ -166,9 +167,9 @@ public class UserSvc extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		
 		try {
-			ApiKeyDetails key = new ApiKeyDetails();
+			KeyDetails key = new KeyDetails();
 			UserManager um = new UserManager(null);
-			key.apiKey = um.getApiKeyByIdent(sd, request.getRemoteUser());
+			key.apiKey = um.getKey(sd, request.getRemoteUser(), "api");
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(key);
@@ -180,7 +181,6 @@ public class UserSvc extends Application {
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 		}
-		
 
 		return response;
 	}
@@ -227,7 +227,7 @@ public class UserSvc extends Application {
 		} 
 		
 		Response response = null;
-		ApiKeyDetails key = new ApiKeyDetails();
+		KeyDetails key = new KeyDetails();
 		String authString = "surveyKPI-UserSvc-CreateApiKey";
 		
 		// Authorisation - Not Required - the user is updating their own settings

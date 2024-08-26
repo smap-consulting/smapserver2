@@ -505,12 +505,14 @@ public class UserManager {
 
 	}
 	
+	
 	/*
-	 * Get the user's API key
+	 * Get the user's key
 	 */
-	public String getApiKeyByIdent(
+	public String getKey(
 			Connection connectionSD,
-			String ident
+			String ident,
+			String keyName			// api || app
 			) throws Exception {
 
 		PreparedStatement pstmt = null;
@@ -519,7 +521,14 @@ public class UserManager {
 
 		try {
 	
-			String sql = "select api_key from users where ident = ?";
+			String sql = null;
+			if(keyName.equals("api")) {
+				sql = "select api_key from users where ident = ?";
+			} else if(keyName.equals("app")) {
+				sql = "select app_key from users where ident = ?";
+			} else {
+				throw new ApplicationException("Unknown keyName");
+			}
 				
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setString(1, ident);
