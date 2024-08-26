@@ -890,8 +890,8 @@ public class UserList extends Application {
 	 * Methods related to app code for use with fieldTask
 	 */
 	
-	class CodeDetails {
-		String code;
+	class KeyDetails {
+		String key;
 	}
 	
 	/*
@@ -912,9 +912,9 @@ public class UserList extends Application {
 		a.isValidUserIdent(sd, request.getRemoteUser(), user);
 		// End Authorisation	
 		try {
-			CodeDetails details = new CodeDetails();
+			KeyDetails details = new KeyDetails();
 			UserManager um = new UserManager(null);
-			details.code = um.getKey(sd, user, "app");
+			details.key = um.getKey(sd, user, "app");
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(details);
