@@ -66,6 +66,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -890,34 +891,32 @@ public class UserList extends Application {
 	 * Methods related to app code for use with fieldTask
 	 */
 	
-	class KeyDetails {
-		String key;
-	}
-	
 	/*
 	 * Get the users app key
 	 */
 	@GET
 	@Path("/app_key/{user}")
 	@Produces("application/json")
-	public Response getAppCode(@Context HttpServletRequest request,
+	public Response getAppKey(@Context HttpServletRequest request,
 			@PathParam("user") String user) { 
 
 		Response response = null;
 		String connectionString = "surveyKPI-UserSvc-GetAppKey";
 
+		HashMap<String, String> keys = new HashMap<>();
+		
 		// Authorisation
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidUserIdent(sd, request.getRemoteUser(), user);
 		// End Authorisation	
 		try {
-			KeyDetails details = new KeyDetails();
 			UserManager um = new UserManager(null);
-			details.key = um.getKey(sd, user, "app");
+			keys.put("token", um.getKey(sd, user, "app"));
+			keys.put("url", request.getScheme() + "://" + request.getServerName());
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-			String resp = gson.toJson(details);
+			String resp = gson.toJson(keys);
 			response = Response.ok(resp).build();
 			
 		} catch (Exception e) {

@@ -507,7 +507,7 @@ public class UserManager {
 	
 	
 	/*
-	 * Get the user's key
+	 * Get one of the user's keys as identified by the key type
 	 */
 	public String getKey(
 			Connection connectionSD,
