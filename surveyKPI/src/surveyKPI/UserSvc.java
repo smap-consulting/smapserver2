@@ -198,7 +198,7 @@ public class UserSvc extends Application {
 		
 		try {
 			UserManager um = new UserManager(null);
-			um.deleteApiKeyByIdent(sd, request.getRemoteUser());
+			um.deleteKey(sd, request.getRemoteUser(), "api");
 
 			response = Response.ok("").build();
 			
@@ -209,7 +209,6 @@ public class UserSvc extends Application {
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
-
 		return response;
 	}
 	
@@ -236,7 +235,7 @@ public class UserSvc extends Application {
 		try {	
 
 			UserManager um = new UserManager(null);
-			key.apiKey = um.createApiKeyByIdent(sd, request.getRemoteUser());
+			key.apiKey = um.createKey(sd, request.getRemoteUser(), "api");
 				
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(key);

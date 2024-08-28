@@ -540,8 +540,6 @@ public class UserManager {
 				key = rs.getString(1);
 			}
 
-
-
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error", e);
 			throw new Exception(e);
@@ -555,41 +553,12 @@ public class UserManager {
 	}
 
 	/*
-	 * Delete the user's API key
+	 * Create a key
 	 */
-	public void deleteApiKeyByIdent(
+	public String createKey(
 			Connection connectionSD,
-			String ident
-			) throws Exception {
-
-		PreparedStatement pstmt = null;
-
-		try {
-	
-			String sql = "update users set api_key = null where ident = ?";
-				
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setString(1, ident);
-
-			log.info("Delete users api key: " + pstmt.toString());
-			pstmt.executeUpdate();
-
-		} catch (Exception e) {
-			log.log(Level.SEVERE,"Error", e);
-			throw new Exception(e);
-
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
-		}
-
-	}
-
-	/*
-	 * Create a new API key
-	 */
-	public String createApiKeyByIdent(
-			Connection connectionSD,
-			String ident
+			String ident,
+			String keyName			// api || app
 			) throws Exception {
 
 		PreparedStatement pstmt = null;
@@ -598,13 +567,20 @@ public class UserManager {
 
 		try {
 	
-			String sql = "update users set api_key = ? where ident = ?";
+			String sql = null;
+			if(keyName.equals("api")) {
+				sql = "update users set api_key = ? where ident = ?";
+			} else if(keyName.equals("app")) {
+				sql = "update users set app_key = ? where ident = ?";
+			} else {
+				throw new ApplicationException("Unknown keyName");
+			}
 				
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setString(1, key);
 			pstmt.setString(2, ident);
 
-			log.info("Create users api key: " + pstmt.toString());
+			log.info("Create users key: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} catch (Exception e) {
@@ -616,6 +592,44 @@ public class UserManager {
 		}
 
 		return key;
+
+	}
+	
+	/*
+	 * Delete the user's API key
+	 */
+	public void deleteKey(
+			Connection connectionSD,
+			String ident,
+			String keyName			// api || app
+			) throws Exception {
+
+		PreparedStatement pstmt = null;
+
+		try {
+	
+			String sql = null;
+			if(keyName.equals("api")) {
+				sql = "update users set api_key = null where ident = ?";
+			} else if(keyName.equals("app")) {
+				sql ="update users set app_key = null where ident = ?";
+			} else {
+				throw new ApplicationException("Unknown keyName");
+			}
+			
+			pstmt = connectionSD.prepareStatement(sql);
+			pstmt.setString(1, ident);
+
+			log.info("Delete users key: " + pstmt.toString());
+			pstmt.executeUpdate();
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+			throw new Exception(e);
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
 
 	}
 	

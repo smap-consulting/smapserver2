@@ -912,9 +912,92 @@ public class UserList extends Application {
 		// End Authorisation	
 		try {
 			UserManager um = new UserManager(null);
-			keys.put("token", um.getKey(sd, user, "app"));
-			keys.put("url", request.getScheme() + "://" + request.getServerName());
+			
+			keys.put("auth_token", um.getKey(sd, user, "app"));
+			keys.put("server_url", request.getScheme() + "://" + request.getServerName());
 
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(keys);
+			response = Response.ok(resp).build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			response = Response.serverError().build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Create or replace the users app key
+	 */
+	@POST
+	@Path("/app_key/{user}")
+	@Produces("application/json")
+	public Response createAppKey(@Context HttpServletRequest request,
+			@PathParam("user") String user) { 
+
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+			throw new AuthorisationException();   
+		} 
+				
+		Response response = null;
+		String connectionString = "surveyKPI-UserSvc-CreateAppKey";
+
+		HashMap<String, String> keys = new HashMap<>();
+		
+		// Authorisation
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidUserIdent(sd, request.getRemoteUser(), user);
+		// End Authorisation	
+		try {
+			UserManager um = new UserManager(null);
+			
+			keys.put("auth_token", um.createKey(sd, user, "app"));
+			keys.put("server_url", request.getScheme() + "://" + request.getServerName());
+
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(keys);
+			response = Response.ok(resp).build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			response = Response.serverError().build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Delete the users app key
+	 */
+	@DELETE
+	@Path("/app_key/{user}")
+	@Produces("application/json")
+	public Response deleteAppKey(@Context HttpServletRequest request,
+			@PathParam("user") String user) { 
+		
+		Response response = null;
+		String connectionString = "surveyKPI-UserSvc-DeleteAppKey";
+
+		HashMap<String, String> keys = new HashMap<>();
+		
+		// Authorisation
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidUserIdent(sd, request.getRemoteUser(), user);
+		// End Authorisation	
+		try {
+			UserManager um = new UserManager(null);
+			um.deleteKey(sd, user, "app");
+			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(keys);
 			response = Response.ok(resp).build();
