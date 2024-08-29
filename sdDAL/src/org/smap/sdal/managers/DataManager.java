@@ -48,9 +48,7 @@ import com.google.gson.GsonBuilder;
 
 public class DataManager {
 	
-	private static Logger log =
-			 Logger.getLogger(DataManager.class.getName());
-
+	private static Logger log = Logger.getLogger(DataManager.class.getName());
 	LogManager lm = new LogManager();		// Application log
 	
 	private ResourceBundle localisation;

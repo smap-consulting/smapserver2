@@ -65,12 +65,15 @@ import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.SurveyData;
 import org.smap.sdal.model.TempUserFinal;
 import org.smap.sdal.model.WebformOptions;
 import org.smap.server.utilities.GetXForm;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+
+import surveyMobileAPI.managers.WebFormManager;
 
 /*
  * Return a survey as a webform
@@ -83,17 +86,6 @@ public class WebForm extends Application {
 
 	private static Logger log = Logger.getLogger(WebForm.class.getName());
 	LogManager lm = new LogManager();		// Application log
-
-	class SurveyData {
-		String modelStr;
-		String instanceStrToEdit;
-		String instanceStrToEditId;
-		int assignmentId;
-		String accessKey;
-		String surveyClass;
-		ArrayList<String> files;		// deprecate
-		ArrayList<String> paths;		// media paths
-	}
 
 	class JsonResponse {
 		List<ManifestValue> manifestList;
@@ -139,8 +131,12 @@ public class WebForm extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
 			userIdent = GeneralUtilityMethods.getDynamicUser(sd, authorisationKey);
-			resp = getInstanceData(sd, request, formIdent, updateid, 0, userIdent, false);
+			WebFormManager wfm = new WebFormManager(localisation, "UTC");
+			resp = wfm.getInstanceData(sd, request, formIdent, updateid, 0, userIdent, false);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
@@ -176,9 +172,13 @@ public class WebForm extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
 			userIdent = request.getRemoteUser();
 			log.info("Requesting instance as: " + userIdent);
-			resp = getInstanceData(sd, request, formIdent, updateid, 0, userIdent, true);
+			WebFormManager wfm = new WebFormManager(localisation, "UTC");
+			resp = wfm.getInstanceData(sd, request, formIdent, updateid, 0, userIdent, true);
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -209,9 +209,13 @@ public class WebForm extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
 			userIdent = request.getRemoteUser();
 			log.info("Requesting instance as: " + userIdent);
-			resp = getInstanceData(sd, request, formIdent, null, taskId, userIdent, true);
+			WebFormManager wfm = new WebFormManager(localisation, "UTC");
+			resp = wfm.getInstanceData(sd, request, formIdent, null, taskId, userIdent, true);
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -1260,81 +1264,7 @@ public class WebForm extends Application {
 		return output;
 	}
 
-	/*
-	 * Get instance data as JSON
-	 */
-	private Response getInstanceData(Connection sd, HttpServletRequest request, String formIdent,
-			String updateid, int taskKey, String user, boolean simplifyMedia) {
 
-		Response response = null;
-
-		log.info("webForm:" + formIdent + " updateid:" + updateid + " user: " + user);
-
-		Survey survey = null;
-		StringBuffer outputString = new StringBuffer();
-		boolean superUser = false;
-
-		// Authorisation
-		if (user != null) {
-			a.isAuthorised(sd, user);
-			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			survey = sm.getSurveyId(sd, formIdent); // Get the survey id from the templateName / key
-			if (survey == null) {
-				throw new NotFoundException();
-			}
-
-			try {
-				superUser = GeneralUtilityMethods.isSuperUser(sd, userIdent);
-			} catch (Exception e) {
-			}
-			a.isValidSurvey(sd, user, survey.surveyData.id, false, superUser); // Validate that the user can access this
-																				// survey
-			a.isBlocked(sd, survey.surveyData.id, false); // Validate that the survey is not blocked
-
-			if(taskKey > 0) {
-				a.isValidTask(sd, request.getRemoteUser(), taskKey);
-			}
-		} else {
-			throw new AuthorisationException();
-		}
-		// End Authorisation
-
-		// Get the data
-		try {
-
-			// Get the XML of the Form
-			SurveyTemplate template = new SurveyTemplate(localisation);
-			template.readDatabase(survey.surveyData.id, false);
-
-			String instanceXML = null;
-			String dataKey = "instanceid";
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
-
-			GetXForm xForm = new GetXForm(localisation, userIdent, tz);
-			instanceXML = xForm.getInstanceXml(survey.surveyData.id, formIdent, template, dataKey, updateid, 0, simplifyMedia, 
-					false, taskKey, urlprefix, null, false);
-
-			SurveyData surveyData = new SurveyData();
-			surveyData.instanceStrToEdit = instanceXML.replace("\n", "").replace("\r", "");
-			surveyData.instanceStrToEditId = updateid;
-			surveyData.files = xForm.getFilenames();
-			surveyData.paths = xForm.getMediaPaths();
-
-			Gson gsonResp = new GsonBuilder().disableHtmlEscaping().create();
-			outputString.append(gsonResp.toJson(surveyData));
-
-			response = Response.status(Status.OK).entity(outputString.toString()).build();
-
-			log.info("userevent: " + user + " : instanceData : " + formIdent + " : updateId : " + updateid);
-
-		} catch (Exception e) {
-			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-			lm.writeLog(sd, survey.surveyData.id, userIdent, LogManager.ERROR, "Failed to get instance data: " + e.getMessage(), 0, request.getServerName());
-			log.log(Level.SEVERE, e.getMessage(), e);
-		}
-
-		return response;
-	}
 
 	private String addNoScriptWarning() {
 		StringBuffer output = new StringBuffer();

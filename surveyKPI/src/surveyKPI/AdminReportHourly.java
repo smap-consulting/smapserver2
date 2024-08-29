@@ -35,9 +35,7 @@ public class AdminReportHourly extends Application {
 
 	Authorise a = null;
 
-	private static Logger log =
-			Logger.getLogger(AdminReportHourly.class.getName());
-
+	private static Logger log = Logger.getLogger(AdminReportHourly.class.getName());
 	LogManager lm = new LogManager();		// Application log
 	
 	public AdminReportHourly() {

@@ -25,8 +25,6 @@ import org.smap.sdal.model.ODKForm;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.XformsJavaRosa;
 
-import surveyMobileAPI.FormList;
-
 /*****************************************************************************
 
 This file is part of SMAP.
@@ -54,8 +52,7 @@ public class FormListManager {
 	
 	Authorise a = new Authorise(null, Authorise.ENUM);
 	
-	private static Logger log =
-			 Logger.getLogger(FormList.class.getName());
+	private static Logger log = Logger.getLogger(FormListManager.class.getName());
 	
 	/*
 	 * Get the form list
