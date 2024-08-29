@@ -20,8 +20,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 package surveyMobileAPI;
 
 import java.io.IOException;
-import java.util.logging.Logger;
-
+import java.sql.SQLException;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -33,25 +32,17 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.managers.AssignmentsManager;
 
 import surveyMobileAPI.managers.FormListManager;
 
 /*
- * Get surveys assigned to the user (ODK Format)
- * Example output:
-	<forms>
-		<form url="//{server}/formXml?odkFormKey={generated key}">{name}</form>
-	</forms>
-
- * 
+ * Entry point for fieldTask requests using a token
  */
 
 @Path("/token")
 
 public class TokenAccess extends Application {
-	
-	private static Logger log =
-			 Logger.getLogger(FormList.class.getName());
 	
 	// Respond with XML 
 	@GET
@@ -59,11 +50,24 @@ public class TokenAccess extends Application {
 	@Produces({MediaType.TEXT_XML, MediaType.APPLICATION_XML})   
 	public Response getFormListToken(@Context HttpServletRequest request) throws IOException, ApplicationException {
 		
-		log.info("Token request for formList");
 		FormListManager flm = new FormListManager();
 		return flm.getFormList(request);
 	}
  
+	@GET
+	@Path("/refresh")
+	@Produces("application/json")
+	public Response getTasksCredentials(@Context HttpServletRequest request,
+			@QueryParam("noprojects") boolean noProjects, 
+			@QueryParam("orgs") boolean getOrgs,
+			@QueryParam("linked") boolean getLinkedRefDefns, 
+			@QueryParam("manifests") boolean getManifests)
+			throws SQLException, ApplicationException {
+		
+		AssignmentsManager am = new AssignmentsManager();
+		return am.getTasks(request, request.getRemoteUser(), noProjects, getOrgs, 
+				getLinkedRefDefns, getManifests, true);
+	}
 
 }
 

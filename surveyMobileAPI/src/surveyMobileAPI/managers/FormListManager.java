@@ -69,7 +69,6 @@ public class FormListManager {
 		
 		String user = request.getRemoteUser();
 		if(user == null) {
-			log.info("Not a logged in user, check for token: " + request.getHeader("x-api-key"));
 			user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
 		}
 		if(user == null) {

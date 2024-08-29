@@ -81,7 +81,7 @@ public class MyAssignments extends Application {
 			@QueryParam("orgs") boolean getOrgs,
 			@QueryParam("linked") boolean getLinkedRefDefns, 
 			@QueryParam("manifests") boolean getManifests)
-			throws SQLException {
+			throws SQLException, ApplicationException {
 		AssignmentsManager am = new AssignmentsManager();
 		return am.getTasks(request, request.getRemoteUser(), noProjects, getOrgs, 
 				getLinkedRefDefns, getManifests, true);
@@ -95,7 +95,7 @@ public class MyAssignments extends Application {
 	@Path("/key/{key}")
 	public Response getTaskskey(@PathParam("key") String key, @QueryParam("projects") boolean noProjects,
 			@QueryParam("orgs") boolean getOrgs, @QueryParam("linked") boolean getLinkedRefDefns,
-			@QueryParam("manifests") boolean getManifests, @Context HttpServletRequest request) throws SQLException {
+			@QueryParam("manifests") boolean getManifests, @Context HttpServletRequest request) throws SQLException, ApplicationException {
 
 		log.info("webserviceevent : getTaskskey");
 		String connection = "surveyKPI-getaskskey";

@@ -17,6 +17,8 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Response;
 
+import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -83,7 +85,7 @@ public class AssignmentsManager {
 	public Response getTasks(HttpServletRequest request, String userIdent, boolean noProjects, boolean getOrgs,
 			boolean getLinkedRefDefns, 
 			boolean getManifests,
-			boolean forDevice) throws SQLException {
+			boolean forDevice) throws SQLException, ApplicationException {
 
 		Response response = null;
 
@@ -95,6 +97,12 @@ public class AssignmentsManager {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
+		if(userIdent == null) {
+			userIdent = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
+		}
+		if(userIdent == null) {
+			throw new AuthorisationException("Unknown User");
+		}
 		a.isAuthorised(sd, userIdent);
 		// End Authorisation
 

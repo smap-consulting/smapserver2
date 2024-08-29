@@ -38,6 +38,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.openxml4j.opc.PackageAccess;
 import org.smap.sdal.Utilities.AdvisoryLock;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -129,7 +130,7 @@ public class AllAssignments extends Application {
 	public Response getTasksCredentials(@Context HttpServletRequest request,
 			@QueryParam("noprojects") boolean noProjects, @QueryParam("orgs") boolean getOrgs,
 			@QueryParam("linked") boolean getLinkedRefDefns, @QueryParam("manifests") boolean getManifests)
-			throws SQLException {
+			throws SQLException, ApplicationException {
 		AssignmentsManager am = new AssignmentsManager();
 		return am.getTasks(request, request.getRemoteUser(), noProjects, getOrgs, getLinkedRefDefns, 
 				getManifests, false);
