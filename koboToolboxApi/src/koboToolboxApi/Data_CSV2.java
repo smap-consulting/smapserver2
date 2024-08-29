@@ -87,11 +87,11 @@ public class Data_CSV2 extends Application {
 	@GET
 	@Produces("text/csv")
 	public Response getDataCsv(@Context HttpServletRequest request, @QueryParam("filename") String filename,
-			@Context HttpServletResponse response) {
+			@Context HttpServletResponse response) throws ApplicationException {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("koboToolBoxApi-getDataCSV-2");
-		String remoteUser = GeneralUtilityMethods.getApiKeyUser(sd, request);
+		String remoteUser = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "api");
 		if(remoteUser == null) {
 			return Response.status(Status.UNAUTHORIZED).build();
 		}
@@ -183,7 +183,7 @@ public class Data_CSV2 extends Application {
 		String connectionString = "Api - get data records 2 csv";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		String remoteUser = GeneralUtilityMethods.getApiKeyUser(sd, request);
+		String remoteUser = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "api");
 		
 		DataEntryPoints dep = new DataEntryPoints();
 		return dep.getCSVData(VERSION, sd, connectionString, request, response, remoteUser, 

@@ -81,14 +81,14 @@ public class Data2 extends Application {
 	 */
 	@GET
 	@Produces("application/json")
-	public Response getData(@Context HttpServletRequest request) { 
+	public Response getData(@Context HttpServletRequest request) throws ApplicationException { 
 
 		String connectionString = "koboToolBoxAPI-getData2";
 		DataEntryPoints dep = new DataEntryPoints();
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		String remoteUser = GeneralUtilityMethods.getApiKeyUser(sd, request);
+		String remoteUser = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "api");
 		
 		return dep.getData(VERSION,sd, connectionString, request, remoteUser);
 		
@@ -163,7 +163,7 @@ public class Data2 extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		String remoteUser = GeneralUtilityMethods.getApiKeyUser(sd, request);
+		String remoteUser = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "api");
 		if(remoteUser == null) {
 			return Response.status(Status.UNAUTHORIZED).build();
 		}
@@ -215,7 +215,7 @@ public class Data2 extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		String remoteUser = GeneralUtilityMethods.getApiKeyUser(sd, request);
+		String remoteUser = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "api");
 		
 		return dep.getSingleDataRecord(sd, connectionString, request, remoteUser,
 				sIdent, uuid, meta, hierarchy, merge, tz);

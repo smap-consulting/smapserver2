@@ -2832,14 +2832,20 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get a dynamic user's details from their unique key
+	 * Get a dynamic user's details from the key passed in the request
 	 */
-	public static String getApiKeyUser(Connection sd, HttpServletRequest request) {
+	public static String getUserFromRequestKey(Connection sd, HttpServletRequest request, String keyName) throws ApplicationException {
 
 		String userIdent = null;
 
-		String sql = "select u.ident from users u " 
-				+ " where u.api_key = ? ";
+		String sql = null;
+		if(keyName.equals("api")) {
+			sql = "select ident from users where api_key = ? ";
+		} else if(keyName.equals("app")) {
+			sql = "select ident from users where app_key = ? ";
+		} else {
+			throw new ApplicationException("Invalid Key Name: " + keyName);
+		}
 		PreparedStatement pstmt = null;
 
 		try {
