@@ -150,7 +150,7 @@ public class QuestionListByIdent extends Application {
 					+ "and t.type = 'none' " 
 					+ "and f.s_id = t.s_id "
 					+ "where f.s_id = ? "
-					+ "and (q.source is not null or q.qtype = 'server_calculate') "
+					+ "and (q.source is not null or q.qtype = 'server_calculate' q.qtype = 'conversation') "
 					+ "and q.soft_deleted = false ";
 								
 			
