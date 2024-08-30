@@ -160,9 +160,10 @@ public class QuestionManager {
 						|| q.type.equals("begin group")
 						|| q.type.equals("end group")
 						|| q.type.equals("server_calculate")
-						|| q.type.equals("conversation")
 						|| q.type.equals("pdf_field")) {
 					q.source = null;
+				} else if(q.type.equals("conversation")) {
+					q.source = "sms";
 				}
 
 				boolean isRepeatType = false;

@@ -915,6 +915,7 @@ public class UserList extends Application {
 			
 			keys.put("auth_token", um.getKey(sd, user, "app"));
 			keys.put("server_url", request.getScheme() + "://" + request.getServerName());
+			keys.put("username", user);
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(keys);
@@ -960,6 +961,7 @@ public class UserList extends Application {
 			
 			keys.put("auth_token", um.createKey(sd, user, "app"));
 			keys.put("server_url", request.getScheme() + "://" + request.getServerName());
+			keys.put("username", user);
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(keys);

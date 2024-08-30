@@ -277,10 +277,6 @@ public class SMSManager {
 				 */
 				int existingPrikey = 0;
 				boolean checkStatus = false;
-	
-				/*
-				 * If the results table has been created check for an existing case
-				 */
 				if(tableName != null) {
 					StringBuilder sqlExists = new StringBuilder("select prikey from ")
 							.append(tableName)

@@ -1072,6 +1072,8 @@ public class XLSTemplateUploadManager {
 				|| q.type.equals("pdf_field") 
 				|| q.type.equals("begin repeat")) {
 			q.source = null;
+		} else if(q.type.equals("conversation")) {
+			q.source = "sms";
 		} else {
 			q.source = "user";
 		}
