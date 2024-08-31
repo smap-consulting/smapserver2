@@ -51,8 +51,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 public class QuestionManager {
 
-	private static Logger log =
-			Logger.getLogger(QuestionManager.class.getName());
+	private static Logger log = Logger.getLogger(QuestionManager.class.getName());
 
 	private ResourceBundle localisation;
 

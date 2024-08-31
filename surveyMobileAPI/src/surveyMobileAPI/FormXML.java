@@ -35,8 +35,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -45,6 +43,8 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Survey;
 import org.smap.server.utilities.GetXForm;
+
+import surveyMobileAPI.managers.FormListManager;
 
 
 /*
@@ -69,63 +69,8 @@ public class FormXML extends Application{
 			@QueryParam("key") String templateName,
 			@QueryParam("deviceID") String deviceId) throws IOException {
 
-		log.info("formXML:" + templateName);
-
-		// Authorisation - Access
-
-		Survey survey = null;
-		String user = request.getRemoteUser();
-		boolean superUser = false;
-		ResourceBundle localisation = null;
-		String response = null;	
-
-		if(user != null) {
-			Connection connectionSD = SDDataSource.getConnection("surveyMobileAPI-FormXML");
-
-			try {
-
-				// Get some data where we will ignore a failure
-				try {
-					superUser = GeneralUtilityMethods.isSuperUser(connectionSD, user);
-					Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
-					localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-				} catch (Exception e) {
-					log.info("Error getting localisation");
-				}
-
-				String tz = "UTC";
-				
-				// Authorisation
-				a.isAuthorised(connectionSD, user);
-				SurveyManager sm = new SurveyManager(localisation, "UTC");
-				survey = sm.getSurveyId(connectionSD, templateName);	// Get the survey id from the templateName / key
-				a.isValidSurvey(connectionSD, user, survey.surveyData.id, false, superUser);	// Validate that the user can access this survey
-
-				// Extract the data
-				SurveyTemplate template = new SurveyTemplate(localisation);
-				template.readDatabase(survey.surveyData.id, false);
-				GetXForm xForm = new GetXForm(localisation, user, tz);
-				response = xForm.get(template, false, true, false, user, request);
-				log.info("userevent: " + user + " : download survey : " + templateName);		
-
-				// Record that this form was downloaded by this user
-				GeneralUtilityMethods.recordFormDownload(connectionSD, user, survey.surveyData.ident, survey.surveyData.version, deviceId);
-			} catch (AuthorisationException ae) { 
-				throw ae;
-			} catch (ApplicationException e) {
-				response = e.getMessage();
-				String msg = localisation.getString("msg_err_template");
-				msg= msg.replace("%s1", response);
-				lm.writeLog(connectionSD, survey.surveyData.id, user, LogManager.ERROR, msg, 0, null);
-			} catch (Exception e) {
-				response = e.getMessage();
-				log.log(Level.SEVERE, response, e);
-			} finally {
-				SDDataSource.closeConnection("surveyMobileAPI-FormXML", connectionSD);
-			}
-		}
-
-		return response;
+		FormListManager flm = new FormListManager();
+		return flm.getForm(request, templateName, deviceId);
 	}
 
 	/*

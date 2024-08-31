@@ -19,11 +19,14 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.legacy.SurveyTemplate;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.ODKForm;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.XformsJavaRosa;
+import org.smap.server.utilities.GetXForm;
 
 /*****************************************************************************
 
@@ -53,7 +56,7 @@ public class FormListManager {
 	Authorise a = new Authorise(null, Authorise.ENUM);
 	
 	private static Logger log = Logger.getLogger(FormListManager.class.getName());
-	
+	LogManager lm = new LogManager();		// Application log
 	/*
 	 * Get the form list
 	 */
@@ -128,6 +131,77 @@ public class FormListManager {
 		
 		return response;
 
+	}
+	
+	/*
+	 * Return a form in XML format
+	 */
+	public String getForm(HttpServletRequest request, String templateName, String deviceId) {
+		log.info("formXML:" + templateName);
+
+		// Authorisation - Access
+
+		Survey survey = null;
+		
+		boolean superUser = false;
+		ResourceBundle localisation = null;
+		String response = null;	
+
+		String user = null;
+		String connectionString = "surveyMobileAPI-FormXML";
+		Connection sd = SDDataSource.getConnection(connectionString);
+
+		try {
+
+			user = request.getRemoteUser();
+			if(user == null) {
+				user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
+			}
+			if(user == null) {
+				throw new AuthorisationException("Unknown User");
+			}
+			
+			try {
+				superUser = GeneralUtilityMethods.isSuperUser(sd, user);
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			} catch (Exception e) {
+				log.info("Error getting localisation");
+			}
+
+			String tz = "UTC";
+
+			// Authorisation
+			a.isAuthorised(sd, user);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			survey = sm.getSurveyId(sd, templateName);	// Get the survey id from the templateName / key
+			a.isValidSurvey(sd, user, survey.surveyData.id, false, superUser);	// Validate that the user can access this survey
+
+			// Extract the data
+			SurveyTemplate template = new SurveyTemplate(localisation);
+			template.readDatabase(survey.surveyData.id, false);
+			GetXForm xForm = new GetXForm(localisation, user, tz);
+			response = xForm.get(template, false, true, false, user, request);
+			log.info("userevent: " + user + " : download survey : " + templateName);		
+
+			// Record that this form was downloaded by this user
+			GeneralUtilityMethods.recordFormDownload(sd, user, survey.surveyData.ident, survey.surveyData.version, deviceId);
+		} catch (AuthorisationException ae) { 
+			throw ae;
+		} catch (ApplicationException e) {
+			response = e.getMessage();
+			String msg = localisation.getString("msg_err_template");
+			msg= msg.replace("%s1", response);
+			lm.writeLog(sd, survey.surveyData.id, user, LogManager.ERROR, msg, 0, null);
+		} catch (Exception e) {
+			response = e.getMessage();
+			log.log(Level.SEVERE, response, e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+
+		return response;
 	}
 		
 	private XformsJavaRosa processXForm(String host, int portNumber, 

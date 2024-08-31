@@ -1039,7 +1039,7 @@ public class GetXForm {
 		// Add preload
 		String source = q.getSource();
 		if (source != null && source.trim().length() > 0) {
-			if (!source.equals("user")) {
+			if (!source.equals("user") && !source.equals("sms")) {
 				questionElement.setAttribute("jr:preload", source);
 				String param = q.getSourceParam();
 				if (param != null && param.trim().length() > 0) {
@@ -2469,7 +2469,9 @@ public class GetXForm {
 			if (q.isPublished() || isReference) {		// Referenced questions are never published
 				if (template.getSubForm(processForm, q) == null) {
 					// This question is not a place holder for a subform
-					if (q.getSource() != null) { // Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
+					// Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
+					// Also ignore sms sourced questions - for now at any rate
+					if (q.getSource() != null && !q.getSource().equals("sms")) { 
 
 						String qType = q.getType();
 						if (qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("geocompound")) {

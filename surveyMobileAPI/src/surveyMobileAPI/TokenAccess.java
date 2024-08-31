@@ -65,6 +65,17 @@ public class TokenAccess extends Application {
 		FormListManager flm = new FormListManager();
 		return flm.getFormList(request);
 	}
+	
+	@GET
+	@Path("/formXML")
+	@Produces(MediaType.TEXT_XML)  
+	public String getFormToken(@Context HttpServletRequest request,
+			@QueryParam("key") String templateName,
+			@QueryParam("deviceID") String deviceId) {
+		
+		FormListManager flm = new FormListManager();
+		return flm.getForm(request, templateName, deviceId);
+	}
  
 	@GET
 	@Path("/refresh")
