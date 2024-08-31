@@ -27,7 +27,11 @@ import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.HEAD;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -44,6 +48,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.AssignmentsManager;
 
 import surveyMobileAPI.managers.FormListManager;
+import surveyMobileAPI.managers.UploadManager;
 import surveyMobileAPI.managers.WebFormManager;
 
 /*
@@ -127,5 +132,34 @@ public class TokenAccess extends Application {
 		return resp;
 	}
 
+	/*
+	 * Head request to return the actual URL to submit data to
+	 * This is required by the Java Rosa protocol
+	 */
+	@HEAD
+	@Path("/submission")
+	@Produces(MediaType.TEXT_XML)
+	public void getHead(@Context HttpServletRequest request,  @Context HttpServletResponse resp) {
+
+		UploadManager ulm = new UploadManager();
+		ulm.setHeaderResponse(request, resp);
+
+	}
+	
+	/*
+	 * Update
+	 * Key Provided
+	 */
+	@POST
+	@Path("/submission")
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	public Response postUpdateInstance(
+			@Context HttpServletRequest request,
+			@QueryParam("deviceID") String deviceId
+	       ) throws IOException {
+		
+		UploadManager ulm = new UploadManager();
+		return ulm.submission(request, null, null, deviceId);
+	}
 }
 
