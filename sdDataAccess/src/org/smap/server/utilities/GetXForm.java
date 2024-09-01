@@ -2667,7 +2667,7 @@ public class GetXForm {
 						index++;
 					}
 
-				} else if (qSource != null) {
+				} else if (qSource != null && !qSource.equals("sms")) {
 
 					String value = null;
 					if (q.isPublished() || isReference) { // Get the data from the table if this question has been published
