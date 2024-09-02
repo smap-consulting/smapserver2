@@ -81,7 +81,7 @@ public class Resource extends Application {
 		
 		log.info("------- " + filename);
 		SharedResourceManager srm = new SharedResourceManager(null, null);
-		return srm.getOrganisationFile(request, response, request.getRemoteUser(), requestedOrgId, filename, settings, false, thumbs);
+		return srm.getOrganisationFile(request, response, null, requestedOrgId, filename, settings, false, thumbs);
 	}
 
 }

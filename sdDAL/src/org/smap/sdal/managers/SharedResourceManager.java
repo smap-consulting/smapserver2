@@ -600,7 +600,7 @@ public class SharedResourceManager {
 	public Response getOrganisationFile(
 			HttpServletRequest request, 
 			HttpServletResponse response, 
-			String user, 
+			String user,
 			int requestedOrgId, 
 			String filename, 
 			boolean settings,
@@ -612,10 +612,24 @@ public class SharedResourceManager {
 		String connectionString = "Get Organisation File";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);	
+		Connection sd = SDDataSource.getConnection(connectionString);
+		// If the passed in user was null try setting it to the authenticated user
+		if(user == null) {
+			user = request.getRemoteUser();
+		}
+		// If the user is still null try setting it using an authentication token
+		if(user == null) {
+			try {
+				user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
+		}
+		
 		if (isTemporaryUser) {
 			aAdmin.isValidTemporaryUser(sd, user);
-		}
+		} 
+		
 		aAdmin.isAuthorised(sd, user);		
 		try {		
 			oId = GeneralUtilityMethods.getOrganisationId(sd, user);

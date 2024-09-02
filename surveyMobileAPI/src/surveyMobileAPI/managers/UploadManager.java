@@ -1,11 +1,8 @@
 package surveyMobileAPI.managers;
 
-import java.io.IOException;
-import java.io.StringWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -15,10 +12,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.core.Response.Status;
-import javax.xml.bind.JAXB;
-
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
@@ -26,16 +20,8 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.legacy.MissingTemplateException;
-import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.AssignmentDetails;
-import org.smap.sdal.model.ODKForm;
-import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.XformsJavaRosa;
-import org.smap.server.utilities.GetXForm;
-
 import surveyMobileAPI.XFormData;
 
 /*****************************************************************************

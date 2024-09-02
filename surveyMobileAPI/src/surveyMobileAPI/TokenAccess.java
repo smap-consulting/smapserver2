@@ -46,8 +46,10 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.AssignmentsManager;
+import org.smap.sdal.managers.SharedResourceManager;
 
 import surveyMobileAPI.managers.FormListManager;
+import surveyMobileAPI.managers.ManifestManager;
 import surveyMobileAPI.managers.UploadManager;
 import surveyMobileAPI.managers.WebFormManager;
 
@@ -148,7 +150,6 @@ public class TokenAccess extends Application {
 	
 	/*
 	 * Update
-	 * Key Provided
 	 */
 	@POST
 	@Path("/submission")
@@ -160,6 +161,62 @@ public class TokenAccess extends Application {
 		
 		UploadManager ulm = new UploadManager();
 		return ulm.submission(request, null, null, deviceId);
+	}
+	
+	/*
+	 * Manifest
+	 */
+	@GET
+	@Path("/xformsManifest")
+	@Produces(MediaType.TEXT_XML)
+	public String getManifest(
+			@QueryParam("key") String key, 
+			@Context HttpServletRequest request, 
+			@Context HttpServletResponse resp
+	       ) throws IOException {
+		
+		ManifestManager mm = new ManifestManager();
+		return mm.getManifest(request, resp, key);
+	}
+	
+	/*
+	 * Survey Resource
+	 */
+	@GET
+	@Path("/resource/{filename}/survey/{sId}")
+	@Produces("application/x-download")
+	public Response getSurveyFile(
+			@Context HttpServletRequest request, 
+			@Context HttpServletResponse response,
+			@PathParam("filename") String filename,
+			@PathParam("sId") int sId,
+			@QueryParam("thumbs") boolean thumbs,
+			@QueryParam("linked") boolean linked
+	       ) throws IOException {
+		
+		log.info("Get Resource: " + filename + " for survey: " + sId);
+		SharedResourceManager srm = new SharedResourceManager(null, null);
+		return srm.getSurveyFile(request, response,filename, sId, thumbs, linked);	
+	}
+	
+	/*
+	 * Organisation Resource
+	 */
+	@GET
+	@Path("/resource/{filename}/organisation")
+	@Produces("application/x-download")
+	public Response getOrganisationFile(
+			@Context HttpServletRequest request, 
+			@Context HttpServletResponse response,
+			@PathParam("filename") String filename,
+			@QueryParam("settings") boolean settings,
+			@QueryParam("thumbs") boolean thumbs,
+			@QueryParam("org") int requestedOrgId
+	       ) throws IOException {
+		
+		log.info("------- " + filename);
+		SharedResourceManager srm = new SharedResourceManager(null, null);
+		return srm.getOrganisationFile(request, response, null, requestedOrgId, filename, settings, false, thumbs);
 	}
 }
 
