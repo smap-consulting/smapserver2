@@ -62,6 +62,7 @@ public class ServerManager {
 				+ "google_key,"
 				+ "maptiler_key,"
 				+ "vonage_application_id,"
+				+ "vonage_webhook_secret,"
 				+ "sms_url,"
 				+ "max_rate,"
 				+ "password_strength,"
@@ -85,6 +86,7 @@ public class ServerManager {
 				data.google_key = rs.getString("google_key");
 				data.maptiler_key = rs.getString("maptiler_key");
 				data.vonage_application_id = rs.getString("vonage_application_id");
+				data.vonage_webhook_secret = rs.getString("vonage_webhook_secret");
 				data.sms_url = rs.getString("sms_url");
 				data.ratelimit = rs.getInt("max_rate");
 				data.password_strength = rs.getDouble("password_strength");

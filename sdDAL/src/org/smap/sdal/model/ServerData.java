@@ -11,6 +11,7 @@ public class ServerData {
 	public String google_key;
 	public String maptiler_key;
 	public String vonage_application_id;
+	public String vonage_webhook_secret;
 	public String sms_url;
 	public int ratelimit;
 	public double password_strength;

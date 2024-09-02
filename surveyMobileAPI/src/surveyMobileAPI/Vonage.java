@@ -21,6 +21,7 @@ import model.MessageVonage;
 
 import java.sql.Connection;
 import java.util.Enumeration;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Path("/sms/vonage")
@@ -36,45 +37,49 @@ public class Vonage extends Application {
 	@POST
 	@Path("/inbound")
 	@Consumes("application/json")
-	public Response inbound(@Context HttpServletRequest request, String body) {
+	public Response inbound(@Context HttpServletRequest request, String body) throws Exception {
         
 		Response response = null;
 		String connectionString = "sms";
     	Connection sd = null;
     	
-		/*
-		 * Authenticate request
-		 */
-    	if(jwt.validate(request.getHeader("authorization"))) {
+    	try {
+    		sd = SDDataSource.getConnection(connectionString);
+		
+    		/*
+    		 * Authenticate request
+    		 */
+    		if(jwt.validate(sd, request.getHeader("authorization"))) {
     		
-	    	/*
-	    	 * Get message details
-	    	 */
-	    	log.info("Sms: " + body);
-	        MessageVonage inbound = gson.fromJson(body, MessageVonage.class);
-	        SMSDetails sms = new SMSDetails(inbound.from, inbound.to, inbound.text, true, inbound.timestamp);
+		    	/*
+		    	 * Get message details
+		    	 */
+		    	log.info("Sms: " + body);
+		        MessageVonage inbound = gson.fromJson(body, MessageVonage.class);
+		        SMSDetails sms = new SMSDetails(inbound.from, inbound.to, inbound.text, true, inbound.timestamp);
 	        
-	        /*
-	         * Save SMS message for further processing
-	         */
-	        if(sms.ourNumber != null && sms.msg != null) {	// TODO allow null from number?
+		        /*
+		         * Save SMS message for further processing
+		         */
+		        if(sms.ourNumber != null && sms.msg != null) {	// TODO allow null from number?
 	        	
-	        	try {
-	        		sd = SDDataSource.getConnection(connectionString);
-	        		
+	        	
 	        		SMSManager sim = new SMSManager(null, null);
 	        		sim.saveMessage(sd, sms, request.getServerName(), inbound.message_uuid);
-	        	} finally {
-	        		SDDataSource.closeConnection(connectionString, sd);
-	        	}
-	        	response = Response.ok().build();
-	        } else {
-	        	log.info("Error: Invalid SMS message");
-	        }
-    	} else {
-    		log.info("Error: Message Authorisation Failed ");
-    		throw new AuthorisationException();
-    	}
+		        } else {
+		        	log.info("Error: Invalid SMS message");
+		        }
+    		} else {
+        		log.info("Error: Message Authorisation Failed ");
+        		throw new AuthorisationException();
+        	}
+    	} catch(Exception e) {
+    		log.log(Level.SEVERE, e.getMessage(), e);
+    		throw e;
+    	} finally {
+	        SDDataSource.closeConnection(connectionString, sd);
+	    }
+	    response = Response.ok().build();
     	
         return response;
 	}

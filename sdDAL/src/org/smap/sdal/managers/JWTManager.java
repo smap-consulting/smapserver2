@@ -1,6 +1,10 @@
 package org.smap.sdal.managers;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.logging.Logger;
+
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 import com.vonage.jwt.Jwt;
 
@@ -39,16 +43,15 @@ public class JWTManager {
 		
 	}
 	
-	public boolean validate(String key) {
+	public boolean validate(Connection sd, String key) throws SQLException {
 		boolean isValid = false;
 		if(key != null) {
 			if(key.startsWith("Bearer")) {
 				String[] comps = key.split(" ");
 				if(comps.length == 2) {
 					String token = comps[1];
-					System.out.println("Token: " + token);
 					
-					 if (Jwt.verifySignature(token, "j7FkubRmLCaNFibEvnkvGSw5NYJ4peeC6B2rZDzjj2h4rIVzP")) {
+					 if (Jwt.verifySignature(token, GeneralUtilityMethods.getVonageWebHookSecret(sd))) {
 						 isValid = true;
 					 } else {
 						 log.info("Error: JWT: Invalid key: Signature validation failed" + key);

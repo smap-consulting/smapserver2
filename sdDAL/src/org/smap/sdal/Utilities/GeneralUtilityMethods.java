@@ -11073,6 +11073,22 @@ public class GeneralUtilityMethods {
 		return sql;
 	}
 	
+	public static String getVonageWebHookSecret(Connection sd) throws SQLException {
+		String id = null;
+		String sql = "select vonage_webhook_secret from server";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				id = rs.getString(1);
+			}
+		} finally {
+			if (pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+		}
+		return id;
+	}
+	
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");

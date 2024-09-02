@@ -138,6 +138,7 @@ public class Server extends Application {
 				+ "google_key = ?,"
 				+ "maptiler_key = ?,"
 				+ "vonage_application_id = ?,"
+				+ "vonage_webhook_secret = ?,"
 				+ "sms_url = ?,"
 				+ "max_rate = ?,"
 				+ "password_strength = ?,"
@@ -165,10 +166,11 @@ public class Server extends Application {
 			pstmt.setString(7, data.google_key);
 			pstmt.setString(8, data.maptiler_key);
 			pstmt.setString(9, data.vonage_application_id);
-			pstmt.setString(10, data.sms_url);
-			pstmt.setInt(11, data.ratelimit);
-			pstmt.setDouble(12, data.password_strength);
-			pstmt.setString(13, data.css);
+			pstmt.setString(10, data.vonage_webhook_secret);
+			pstmt.setString(11, data.sms_url);
+			pstmt.setInt(12, data.ratelimit);
+			pstmt.setDouble(13, data.password_strength);
+			pstmt.setString(14, data.css);
 			int count = pstmt.executeUpdate();
 			
 			if(count == 0) {			
