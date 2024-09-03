@@ -546,8 +546,17 @@ public class SharedResourceManager {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aEnum.isAuthorised(sd, request.getRemoteUser());
-		aEnum.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		String user = request.getRemoteUser();
+		// If the user is still null try setting it using an authentication token
+				if(user == null) {
+					try {
+						user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+					}
+				}
+		aEnum.isAuthorised(sd, user);
+		aEnum.isValidSurvey(sd, user, sId, false, superUser);
 		// End Authorisation 
 		
 		try {
@@ -567,7 +576,7 @@ public class SharedResourceManager {
 				String linkedSurveyIdent = baseFileName.substring("linked_".length());
 				CustomUserReference cur = GeneralUtilityMethods.hasCustomUserReferenceData(sd, linkedSurveyIdent);
 				filepath = efm.getLinkedPhysicalFilePath(sd, 
-						efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent, request.getRemoteUser(), cur.needCustomFile()), baseFileName)) 
+						efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent, user, cur.needCustomFile()), baseFileName)) 
 						+ ".csv";
 				log.info("%%%%%: Referencing: " + filepath);
 			} else {
