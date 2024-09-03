@@ -476,22 +476,13 @@ public class XLSUtilities {
 
 			CreationHelper createHelper = wb.getCreationHelper();
 			if(embedImages) {
-				if(value.endsWith(".jpg") || value.endsWith(".png")) {
+				if(value.endsWith(".jpeg") || value.endsWith(".jpg") || value.endsWith(".png")) {
 					InputStream inputStream = null;
 					ByteArrayOutputStream baos = null;
 						try {
 							String thumbsUrl = GeneralUtilityMethods.getThumbsUrl(value);
 							inputStream = new URL(thumbsUrl).openStream();
 							
-							// Resize - From https://mkyong.com and https://www.baeldung.com/
-							/*
-							 * Too slow!
-							BufferedImage bi = GeneralUtilityMethods.resizeImage(ImageIO.read(inputStream), 300);
-							baos = new ByteArrayOutputStream();
-							String format = value.endsWith(".jpg") ? "jpg" : "png";
-							ImageIO.write(bi, format, baos);
-							byte[] imageBytes = baos.toByteArray();
-							*/
 							byte[] imageBytes = IOUtils.toByteArray(inputStream);
 							if(sheet.getColumnWidth(col) != IMAGE_CELL_WIDTH) {
 								sheet.setColumnWidth(col, IMAGE_CELL_WIDTH);
