@@ -49,6 +49,5 @@ public class Login extends Application {
 		return Response.ok("{}").build();
 	}
 	
-
 }
 

@@ -267,7 +267,6 @@ public class SurveyTableManager {
 			if(expressionFrag != null) {
 				paramCount = GeneralUtilityMethods.setFragParams(pstmt, expressionFrag, paramCount, tz);
 			} else if(arguments != null) {
-				log.info("Setting parameters: " + pstmt.toString());
 				for(String arg : arguments) {
 					log.info("Parameter: " + arg);
 					try {

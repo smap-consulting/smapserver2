@@ -43,6 +43,7 @@ import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.AssignmentsManager;
@@ -56,12 +57,11 @@ import surveyMobileAPI.managers.WebFormManager;
 /*
  * Entry point for fieldTask requests using a token
  */
-
 @Path("/token")
-
 public class TokenAccess extends Application {
 	
 	private static Logger log = Logger.getLogger(TokenAccess.class.getName());
+	Authorise a = new Authorise(null, Authorise.ENUM);
 	
 	// Respond with XML 
 	@GET
@@ -217,6 +217,20 @@ public class TokenAccess extends Application {
 		log.info("------- " + filename);
 		SharedResourceManager srm = new SharedResourceManager(null, null);
 		return srm.getOrganisationFile(request, response, null, requestedOrgId, filename, settings, false, thumbs);
+	}
+	
+	@GET
+	@Path("/login")
+	public Response login(@Context HttpServletRequest request) throws ApplicationException {
+		String connectionString = "surveyMobileAPI-token login";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		String user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
+		if(user == null) {
+			throw new AuthorisationException("Unknown User");
+		}
+	    a.isAuthorised(sd, request.getRemoteUser());	//Authorisation - Access 
+	    SDDataSource.closeConnection(connectionString, sd);
+		return Response.ok("{}").build();
 	}
 }
 
