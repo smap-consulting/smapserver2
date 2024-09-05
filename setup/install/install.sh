@@ -115,7 +115,7 @@ if [ $u2404 -eq 1 ]; then
     sudo groupadd tomcat
     sudo useradd -s /bin/false -g tomcat -d /usr/share/tomcat9 tomcat
     echo 'get tomcat'
-    wget https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.93/bin/apache-tomcat-9.0.93-deployer.tar.gz
+    wget https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.93/bin/apache-tomcat-9.0.93.tar.gz
     sudo mkdir /usr/share/tomcat9
     sudo tar xzf apache-tomcat-9*tar.gz -C /usr/share/tomcat9 --strip-components=1
     rm apache-tomcat-9*tar.gz

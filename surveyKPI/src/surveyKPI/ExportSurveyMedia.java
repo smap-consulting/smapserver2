@@ -171,7 +171,7 @@ public class ExportSurveyMedia extends Application {
 				 */
 				QuestionInfo mediaQInfo = new QuestionInfo(localisation, tz, sId, mediaQuestion, sd, 
 						cResults, request.getRemoteUser(),
-						false, language, urlprefix, oId);	
+						false, language, attachmentPrefix, oId);	
 				String media_name = mediaQInfo.getColumnName();
 				ArrayList<String> namedQuestions = new ArrayList<String> ();
 				ArrayList<String> requiredColumns = new ArrayList<String> ();
@@ -184,7 +184,7 @@ public class ExportSurveyMedia extends Application {
 							int nameQId = Integer.parseInt(nameQ[i]);
 							QuestionInfo qi = new QuestionInfo(localisation, tz, sId, nameQId, sd, 
 									cResults, request.getRemoteUser(),
-									false, language, urlprefix, oId);
+									false, language, attachmentPrefix, oId);
 							if(qi.getColumnName() != null) {
 								namedQuestions.add(qi.getColumnName());
 								requiredColumns.add(qi.getColumnName());
@@ -325,8 +325,8 @@ public class ExportSurveyMedia extends Application {
 						} else {
 							// File may have been moved to S3
 							try {
-								String url = urlprefix + source_file;
-								log.info("Getting remote medi: " + url);
+								String url = attachmentPrefix + source_file;
+								log.info("Getting remote media: " + url);
 								FileUtils.copyURLToFile(new URL(url), dest);
 							} catch (Exception e) {
 								log.info("Error: media file does not exist: " + mf);
