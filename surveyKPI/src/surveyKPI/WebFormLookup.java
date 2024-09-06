@@ -58,7 +58,7 @@ public class WebFormLookup extends Application{
 			@QueryParam("index") String indexFn,
 			@QueryParam("searchType") String searchType,
 			@QueryParam("expression") String expression
-			) throws IOException {
+			) throws IOException, ApplicationException {
 
 		LookupManager lm = new LookupManager();
 		return lm.lookup(request, surveyIdent, fileName, keyColumn, 

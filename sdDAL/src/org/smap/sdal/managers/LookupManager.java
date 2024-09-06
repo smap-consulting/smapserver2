@@ -109,7 +109,7 @@ public class LookupManager {
 			String keyValue,
 			String indexFn,
 			String searchType,
-			String expression) {
+			String expression) throws ApplicationException {
 		Response response = null;
 		String connectionString = "surveyMobileAPI-Lookup";
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
@@ -118,16 +118,23 @@ public class LookupManager {
 		log.info("Lookup: Filename=" + fileName + " key_column=" + keyColumn + " key_value=" + keyValue + " searchType=" + searchType + " Expression=" + expression);
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);		
-		a.isAuthorised(sd, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection(connectionString);
+		String user = request.getRemoteUser();
+		if(user == null) {
+			user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
+		}
+		if(user == null) {
+			throw new AuthorisationException("Unknown User");
+		}
+		a.isAuthorised(sd, user);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, user);
 			sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
 		} catch (Exception e) {
 		}
 		
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		a.isValidSurvey(sd, user, sId, false, superUser);
 		// End Authorisation
 		Connection cResults = null;
 		PreparedStatement pstmt = null;
@@ -135,7 +142,7 @@ public class LookupManager {
 		// Extract the data
 		try {
 			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, user));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 
 			if(searchType == null) {
@@ -177,7 +184,7 @@ public class LookupManager {
 			
 			ArrayList<HashMap<String, String>> resultsArray = null;
 			HashMap<String, String> results = null;
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 			if(fileName != null) {
 				if(fileName.startsWith("linked_s") || fileName.startsWith("chart_s")) {
 					// Get data from a survey
@@ -195,7 +202,7 @@ public class LookupManager {
 					}
 					
 					cResults = ResultsDataSource.getConnection(connectionString);				
-					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
+					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, user);
 					stm.initData(pstmt, "lookup", selection.toString(), arguments, 
 							expressionFrag, 		// expression Fragment
 							tz, null, null);

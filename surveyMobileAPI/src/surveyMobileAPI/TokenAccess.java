@@ -235,6 +235,27 @@ public class TokenAccess extends Application {
 	}
 	
 	/*
+	 * Get a record from the reference data identified by the filename and key column
+	 */
+	@GET
+	@Path("/lookup/{survey_ident}/{filename}/{key_column}/{key_value}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response lookup(@Context HttpServletRequest request,
+			@PathParam("survey_ident") String surveyIdent,		// Survey that needs to lookup some data
+			@PathParam("filename") String fileName,				// CSV filename, could be the identifier of another survey
+			@PathParam("key_column") String keyColumn,
+			@PathParam("key_value") String keyValue,
+			@QueryParam("index") String indexFn,
+			@QueryParam("searchType") String searchType,
+			@QueryParam("expression") String expression
+			) throws IOException, ApplicationException {
+
+		LookupManager lm = new LookupManager();
+		return lm.lookup(request, surveyIdent, fileName, keyColumn, 
+				keyValue, indexFn, searchType, expression);
+	}
+	
+	/*
 	 * Get external choices
 	 */
 	@GET
