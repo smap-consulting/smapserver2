@@ -47,6 +47,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.AssignmentsManager;
+import org.smap.sdal.managers.LookupManager;
 import org.smap.sdal.managers.SharedResourceManager;
 
 import surveyMobileAPI.managers.FormListManager;
@@ -228,9 +229,58 @@ public class TokenAccess extends Application {
 		if(user == null) {
 			throw new AuthorisationException("Unknown User");
 		}
-	    a.isAuthorised(sd, request.getRemoteUser());	//Authorisation - Access 
+	    a.isAuthorised(sd, user);	//Authorisation - Access 
 	    SDDataSource.closeConnection(connectionString, sd);
 		return Response.ok("{}").build();
+	}
+	
+	/*
+	 * Get external choices
+	 */
+	@GET
+	@Path("/lookup/choices/{survey_ident}/{filename}/{value_column}/{label_columns}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response choices(@Context HttpServletRequest request,
+			@PathParam("survey_ident") String surveyIdent,		// Survey that needs to lookup some data
+			@PathParam("filename") String fileName,				// CSV filename, could be the identifier of another survey
+			@PathParam("value_column") String valueColumn,
+			@PathParam("label_columns") String labelColumns,
+			@QueryParam("search_type") String searchType,
+			@QueryParam("q_column") String qColumn,
+			@QueryParam("q_value") String qValue,
+			@QueryParam("f_column") String fColumn,
+			@QueryParam("f_value") String fValue,
+			@QueryParam("expression") String expression
+			) throws IOException, ApplicationException {
+
+		LookupManager lm = new LookupManager();
+		return lm.choices(request, surveyIdent, fileName, valueColumn, 
+				labelColumns, searchType, qColumn, qValue, fColumn, fValue,
+				expression);	
+	}
+	
+	/*
+	 * Get external choices (Multi Language Version)
+	 */
+	@GET
+	@Path("/lookup/mlchoices/{survey_ident}/{filename}/{question}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response mlchoices(@Context HttpServletRequest request,
+			@PathParam("survey_ident") String surveyIdent,		// Survey that needs to lookup some data
+			@PathParam("filename") String fileName,				// CSV filename, could be the identifier of another survey
+			@PathParam("question") String questionName,
+			@QueryParam("search_type") String searchType,
+			@QueryParam("q_column") String qColumn,
+			@QueryParam("q_value") String qValue,
+			@QueryParam("f_column") String fColumn,
+			@QueryParam("f_value") String fValue,
+			@QueryParam("expression") String expression	
+			) throws IOException, ApplicationException {
+
+		LookupManager lm = new LookupManager();
+		return lm.mlchoices(request, surveyIdent, fileName, questionName, 
+				searchType, qColumn, qValue, fColumn, fValue,
+				expression);
 	}
 }
 

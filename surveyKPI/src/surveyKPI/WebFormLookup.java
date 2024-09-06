@@ -32,6 +32,8 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.managers.LookupManager;
 
 
@@ -80,7 +82,7 @@ public class WebFormLookup extends Application{
 			@QueryParam("f_column") String fColumn,
 			@QueryParam("f_value") String fValue,
 			@QueryParam("expression") String expression
-			) throws IOException {
+			) throws IOException, ApplicationException {
 
 		LookupManager lm = new LookupManager();
 		return lm.choices(request, surveyIdent, fileName, valueColumn, 
@@ -104,7 +106,7 @@ public class WebFormLookup extends Application{
 			@QueryParam("f_column") String fColumn,
 			@QueryParam("f_value") String fValue,
 			@QueryParam("expression") String expression	
-			) throws IOException {
+			) throws IOException, ApplicationException {
 
 		LookupManager lm = new LookupManager();
 		return lm.mlchoices(request, surveyIdent, fileName, questionName, 

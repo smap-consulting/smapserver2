@@ -23,6 +23,7 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.smap.notifications.interfaces.ImageProcessing;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -320,7 +321,7 @@ public class LookupManager {
 			String qValue,
 			String fColumn,
 			String fValue,
-			String expression) {
+			String expression) throws ApplicationException {
 		
 		Response response = null;
 		String connectionString = "surveyMobileAPI-Lookup-choices";
@@ -330,22 +331,29 @@ public class LookupManager {
  		log.info("Lookup choices: Filename=" + fileName + " value_column=" + valueColumn + " label_column=" + labelColumns);
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);		
-		a.isAuthorised(sd, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection(connectionString);	
+		String user = request.getRemoteUser();
+		if(user == null) {
+			user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
+		}
+		if(user == null) {
+			throw new AuthorisationException("Unknown User");
+		}
+		a.isAuthorised(sd, user);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, user);
 			sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
 		} catch (Exception e) {
 		}
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		a.isValidSurvey(sd, user, sId, false, superUser);
 		// End Authorisation
 			
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		// Extract the data
 		try {
 			
-			ArrayList<SelectChoice> results = getChoices(sd, cResults, request, gson, sId,
+			ArrayList<SelectChoice> results = getChoices(sd, cResults, request, user, gson, sId,
 					surveyIdent,		// Survey that needs to lookup some data
 					fileName,				// CSV filename, could be the identifier of another survey
 					valueColumn,
@@ -384,7 +392,7 @@ public class LookupManager {
 			String qValue,
 			String fColumn,
 			String fValue,
-			String expression) {
+			String expression) throws ApplicationException {
 		Response response = null;
 		String connectionString = "surveyMobileAPI-Lookup-multilangugage-choices";
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
@@ -393,15 +401,22 @@ public class LookupManager {
  		log.info("Lookup multi language choices: Filename=" + fileName + " questionName=" + questionName);
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);		
-		a.isAuthorised(sd, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection(connectionString);	
+		String user = request.getRemoteUser();
+		if(user == null) {
+			user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
+		}
+		if(user == null) {
+			throw new AuthorisationException("Unknown User");
+		}
+		a.isAuthorised(sd, user);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, user);
 			sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
 		} catch (Exception e) {
 		}
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		a.isValidSurvey(sd, user, sId, false, superUser);
 		// End Authorisation
 			
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
@@ -418,7 +433,7 @@ public class LookupManager {
 			/*
 			 * Get the choices
 			 */
-			ArrayList<SelectChoice> results = getChoices(sd, cResults, request, gson, sId,
+			ArrayList<SelectChoice> results = getChoices(sd, cResults, request, user, gson, sId,
 					surveyIdent,			// Survey that needs to lookup some data
 					fileName,				// CSV filename, could be the identifier of another survey
 					sk.valueColumn,
@@ -592,7 +607,9 @@ public class LookupManager {
 		return details;
 	}
 	
-	private ArrayList<SelectChoice> getChoices(Connection sd, Connection cResults, HttpServletRequest request, Gson gson, int sId,
+	private ArrayList<SelectChoice> getChoices(Connection sd, Connection cResults, HttpServletRequest request, 
+			String user,
+			Gson gson, int sId,
 			String surveyIdent,
 			String fileName,
 			String valueColumn,
@@ -609,7 +626,7 @@ public class LookupManager {
 		
 		PreparedStatement pstmt = null;
 		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, user));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 		
 			String tz = "UTC";
@@ -677,11 +694,11 @@ public class LookupManager {
 				selectionString = null;
 			}
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 			if(fileName != null) {
 				if(fileName.startsWith("linked_s")) {
 					// Get data from a survey				
-					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
+					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, user);
 					stm.initData(pstmt, "choices",
 							selectionString, arguments, frag, tz, qDetails.filterArray, fDetails.filterArray);
 					
