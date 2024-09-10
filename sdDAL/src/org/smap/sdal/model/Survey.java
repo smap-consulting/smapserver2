@@ -143,6 +143,10 @@ public class Survey {
 					if(r.value != null && r.value.trim().length() != 0) {
 						im.device = r.value;		
 					}
+				} else if(r.name.toLowerCase().equals("_assigned")) {	
+					if(r.value != null && r.value.trim().length() != 0) {
+						im.assigned = r.value;		
+					}
 				}
 			}
 		}

@@ -24,5 +24,5 @@ public class InstanceMeta {
 	public String username = "";
 	public String hrk = "";
 	public String device = "";
-	
+	public String assigned = "";
 }

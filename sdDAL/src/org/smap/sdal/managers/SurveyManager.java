@@ -2700,8 +2700,9 @@ public class SurveyManager {
 							} 
 						}
 					}
-					// Add instancename which is not in meta
+					// Add instancename, _assigned which are not in meta
 					sql.append(",instancename");
+					sql.append(",_assigned");
 				}
 				
 				sql.append(" from ").append(form.tableName);
@@ -2772,6 +2773,7 @@ public class SurveyManager {
 							}
 						}
 						record.add(new Result("instancename", "instancename", resultSet.getString("instancename"), false, fIdx, -1, 0, null, null, null));
+						record.add(new Result("_assigned", "_assigned", resultSet.getString("_assigned"), false, fIdx, -1, 0, null, null, null));
 						
 					}
 
@@ -3254,6 +3256,7 @@ public class SurveyManager {
 			out = out.replaceAll("\\$\\{hrk\\}", im.hrk);
 			out = out.replaceAll("\\$\\{username\\}", im.username);
 			out = out.replaceAll("\\$\\{device\\}", im.device);
+			out = out.replaceAll("\\$\\{assigned\\}", im.assigned);
 		} else {
 			log.info("Could not fill template details for: " + out + " : " + ((s == null) ? "survey is null" : "survey not null" ));
 		}
