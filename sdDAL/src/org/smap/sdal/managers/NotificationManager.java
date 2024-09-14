@@ -1118,7 +1118,7 @@ public class NotificationManager {
 					
 				} else if(msg.target.equals("conversation")) {
 					log.info("+++++ conversation notification");
-					MessagesClient messagesClient = vonageClient.getMessagesClient();
+					MessagesClient messagesClient = vonageClient.getMessagesClient(); // TODO check for null
 
 					String toNumber = msg.emails.get(0);
 					MessageRequest message = SmsTextRequest.builder()

@@ -82,6 +82,7 @@ public class LogManager {
 	public static String REPORT = "report";
 	public static String RESOURCES = "resources";
 	public static String RESTORE = "restore";
+	public static String SECURITY = "security";
 	public static String SUBMISSION = "submissions";
 	public static String SMS = "SMS";
 	public static String SUBMISSION_ANON = "anonymous submissions";

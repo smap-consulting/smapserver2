@@ -20,7 +20,7 @@ import org.smap.sdal.model.SMSDetails;
 /*
  * Test
  */
-@Path("/test")
+@Path("/testSMS")
 public class TestInboundSMS extends Application {
 
 	Authorise a = null;

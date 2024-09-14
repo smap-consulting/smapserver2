@@ -77,10 +77,5 @@ public class RateLimiter {
 		return;
 	
 	}
-	
-	public static void setRates(int r) {
-		rate = r;
-		store = new HashMap<> ();	// reset the cache
-	}
 
 }

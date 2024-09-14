@@ -37,6 +37,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
+import org.smap.sdal.Utilities.LogonLimiter;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -83,30 +84,36 @@ public class UserSvc extends Application {
 
 		Response response = null;
 
-		// Authorisation - Not required
+		// Authorisation 
 		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
-		
-		User user = null;
 		try {
-			// Localisation			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			LogonLimiter.isPermitted(request, sd, lm);
 			
-			UserManager um = new UserManager(localisation);
-			user = um.getByIdent(sd, request.getRemoteUser());
+			User user = null;
+			try {
+				// Localisation			
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				
+				UserManager um = new UserManager(localisation);
+				user = um.getByIdent(sd, request.getRemoteUser());
 
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-			String resp = gson.toJson(user);
-			response = Response.ok(resp).build();
+				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+				String resp = gson.toJson(user);
+				response = Response.ok(resp).build();
+				
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+				response = Response.serverError().build();
+			} 
 			
-		} catch (Exception e) {
-			log.log(Level.SEVERE, e.getMessage(), e);
-			response = Response.serverError().build();
+		} catch(Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			return response;
 		} finally {
 			SDDataSource.closeConnection("surveyKPI-UserSvc", sd);
 		}
 		
-
 		return response;
 	}
 	

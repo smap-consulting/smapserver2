@@ -1209,7 +1209,6 @@ public class SubscriberBatch {
 							idx = GeneralUtilityMethods.setFragParams(pstmtMatches, filterFrag, idx, tz);
 						}
 						
-						//log.info(pstmtMatches.toString());
 						try {
 							ResultSet mrs = pstmtMatches.executeQuery();
 							
