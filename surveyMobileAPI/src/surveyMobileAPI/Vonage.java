@@ -20,7 +20,6 @@ import com.google.gson.GsonBuilder;
 import model.MessageVonage;
 
 import java.sql.Connection;
-import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 

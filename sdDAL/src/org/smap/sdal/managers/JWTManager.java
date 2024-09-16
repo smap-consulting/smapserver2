@@ -64,7 +64,8 @@ public class JWTManager {
 				log.info("Error: JWT: Invalid key does not start with Bearer: " + key);
 			}
 		} else {
-			log.info("Error: JWT: Key is null");
+			isValid = true;		// Signed webhooks not being used
+			log.info("Error: ********************************************** JWT: Key is null");
 		}
 		return isValid;
 	}
