@@ -61,10 +61,11 @@ public class JdbcUploadEventManager {
 			+ "instance_name,"
 			+ "scheduled_start,"
 			+ "temporary_user,"
-			+ "results_db_applied) "
+			+ "results_db_applied,"
+			+ "submission_type) "
 			+ "values (nextval('ue_seq'), now(), ?, ?, ?, ?, ?, ?, ?, ?, ?"
 			+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-			+ ", ?, ?, ?, ?, ?, ?, ?, ?);";
+			+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 	
 	String sqlGet = "select "
 			+ "ue_id, "
@@ -145,6 +146,7 @@ public class JdbcUploadEventManager {
 		pstmtInsert.setTimestamp(27, ue.getScheduledStart());
 		pstmtInsert.setBoolean(28, ue.getTemporaryUser());
 		pstmtInsert.setBoolean(29, results_db_applied);
+		pstmtInsert.setString(30, ue.getType());
 	
 		pstmtInsert.executeUpdate();
 	}

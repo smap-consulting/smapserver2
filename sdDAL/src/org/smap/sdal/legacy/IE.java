@@ -220,6 +220,7 @@ public class IE {
 								|| qt.equals("rank")
 								|| qt.equals("odk:rank")
 								|| qt.equals("binary")
+								|| qt.equals("phone")
 								|| qt.equals("begin group")) {
 							questions.add(child);
 							

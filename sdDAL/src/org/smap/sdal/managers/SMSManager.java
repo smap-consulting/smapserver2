@@ -47,6 +47,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 public class SMSManager {
 	
+	public static String SMS_TYPE = "SMS";
+	public static String FORM_TYPE = "Form";
+	
 	private static Logger log =
 			 Logger.getLogger(SMSManager.class.getName());
 	
@@ -155,7 +158,7 @@ public class SMSManager {
 				+ "status,"
 				+ "s_id,"
 				+ "instanceid) "
-				+ "values (now(), ?, 'SMS', ?, ?, 'success', 0, ?);";
+				+ "values (now(), ?, ?, ?, ?, 'success', 0, ?);";
 
 		PreparedStatement pstmt = null;
 		
@@ -163,9 +166,10 @@ public class SMSManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sms.ourNumber);  	// User
-			pstmt.setString(2, gson.toJson(sms));	// Payload
-			pstmt.setString(3, serverName);			// Server Name
-			pstmt.setString(4, instanceId);			// Instance Id
+			pstmt.setString(2, SMS_TYPE);			// Submission type
+			pstmt.setString(3, gson.toJson(sms));	// Payload
+			pstmt.setString(4, serverName);			// Server Name
+			pstmt.setString(5, instanceId);			// Instance Id
 			
 			log.info("----- new sms " + pstmt.toString());
 			pstmt.executeUpdate();

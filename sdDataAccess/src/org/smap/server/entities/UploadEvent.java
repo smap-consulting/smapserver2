@@ -30,9 +30,6 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
  */
 public class UploadEvent implements Serializable {
 	
-	public static String SMS_TYPE = "SMS";
-	public static String FORM_TYPE = "Form";
-	
 	private static final long serialVersionUID = -4784547709615805141L;
 
 	// Database Attributes

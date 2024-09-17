@@ -58,6 +58,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.ResourceManager;
+import org.smap.sdal.managers.SMSManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
@@ -417,6 +418,7 @@ public class XFormData {
 			ue.setEnd(thisEnd);
 			ue.setScheduledStart(GeneralUtilityMethods.getScheduledStart(sd, assignmentId));
 			ue.setInstanceName(thisInstanceName);
+			ue.setType(SMSManager.FORM_TYPE);
 
 			JdbcUploadEventManager uem = null;
 			try {

@@ -163,7 +163,7 @@ public class SubmissionProcessor {
 							int oId = 0;
 							oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
 							
-							if(UploadEvent.SMS_TYPE.equals(ue.getType())) {
+							if(SMSManager.SMS_TYPE.equals(ue.getType())) {
 								// SMS
 								log.info("------------ Processing SMS message");
 								SMSDetails sms = gson.fromJson(ue.getPayload(), SMSDetails.class);
