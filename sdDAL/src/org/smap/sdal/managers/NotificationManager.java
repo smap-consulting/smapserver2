@@ -1118,31 +1118,56 @@ public class NotificationManager {
 					
 				} else if(msg.target.equals("conversation")) {
 					log.info("+++++ conversation notification");
-					MessagesClient messagesClient = vonageClient.getMessagesClient(); // TODO check for null
-
 					String toNumber = msg.emails.get(0);
-					MessageRequest message = SmsTextRequest.builder()
-							.from(msg.ourNumber).to(toNumber)		// TODO from number
-							.text(msg.content)
-							.build();
-
-					MessageResponse response = messagesClient.sendMessage(message);
-					System.out.println("Message sent successfully. ID: " + response.getMessageUuid() + " To: " 
-							+ toNumber + " From: " + msg.ourNumber);
-
-					/*
-					 * Update the conversation
-					 */
-					SubscriberEvent se = new SubscriberEvent();
-					SMSDetails sms = new SMSDetails(toNumber, msg.ourNumber, msg.content, false, msg.ts);
-					SMSManager smsMgr = new SMSManager(localisation, tz);
-					smsMgr.writeMessageToResults(sd, cResults, se, msg.instanceId, sms);
 					
-					status = se.getStatus();
-					error_details = se.getReason();
+					if(vonageClient != null) {
+						MessagesClient messagesClient = vonageClient.getMessagesClient(); // TODO check for null	
+
+						MessageRequest message = SmsTextRequest.builder()
+								.from(msg.ourNumber).to(toNumber)		// TODO from number
+								.text(msg.content)
+								.build();
+	
+						MessageResponse response = messagesClient.sendMessage(message);
+
+						/*
+						 * Update the conversation
+						 */
+						SubscriberEvent se = new SubscriberEvent();
+						SMSDetails sms = new SMSDetails(toNumber, msg.ourNumber, msg.content, false, msg.ts);
+						SMSManager smsMgr = new SMSManager(localisation, tz);
+						smsMgr.writeMessageToResults(sd, cResults, se, msg.instanceId, sms);
+						
+						status = se.getStatus();
+						error_details = se.getReason();
+						
+						if("success".equals(status)) {
+							notify_details = localisation.getString("msg_sms_sent");
+							notify_details = notify_details.replaceAll("%s1", msg.content);
+							notify_details = notify_details.replaceAll("%s2", msg.ourNumber);
+							notify_details = notify_details.replaceAll("%s3", toNumber);
+							notify_details = notify_details.replaceAll("%s4", response.getMessageUuid().toString());
+							log.info(notify_details);
+						} else {
+							notify_details = localisation.getString("msg_sms_not_updated");
+							notify_details =notify_details.replaceAll("%s1", msg.content);
+							notify_details =notify_details.replaceAll("%s2", msg.ourNumber);
+							notify_details =notify_details.replaceAll("%s3", toNumber);
+						}
+					} else {
+						status = "error";
+						error_details = "Vonage client has not been configured";
+						
+						notify_details = localisation.getString("msg_sms_not_sent");
+						notify_details =notify_details.replaceAll("%s1", msg.content);
+						notify_details =notify_details.replaceAll("%s2", msg.ourNumber);
+						notify_details =notify_details.replaceAll("%s3", toNumber);
+						
+						log.log(Level.SEVERE, "Vonage client has not been configured");
+					}
 				} else {
 					status = "error";
-					error_details = "Invalid target: " + msg.target;
+					error_details = "Invalid target: " + msg.target;				
 					log.log(Level.SEVERE, "Error: Invalid target" + msg.target);
 				}
 
@@ -1162,7 +1187,7 @@ public class NotificationManager {
 					error_details += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
 				}
 				writeToLog(sd, organisation.id, msg.pId, surveyId, notify_details, status, 
-						error_details, messageId);
+						error_details, messageId, msg.target);
 
 				/*
 				 * Write log entry
@@ -1344,7 +1369,7 @@ public class NotificationManager {
 				error_details += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
 			}
 			writeToLog(sd, organisation.id, msg.pId, sId, notify_details, status, 
-					error_details, messageId);
+					error_details, messageId, msg.target);
 
 			/*
 			 * Write application log entry
@@ -1509,29 +1534,6 @@ public class NotificationManager {
 													organisation.getAdminEmail(),
 													organisation.getEmailFooter(),
 													GeneralUtilityMethods.getNextEmailId(sd));
-											/*
-											em.sendEmail(
-													ia.getAddress(), 
-													null, 
-													"notify", 
-													subject, 
-													content,
-													from,		
-													null, 
-													null, 
-													null, 
-													null, 
-													null,
-													null,
-													organisation.getAdminEmail(), 
-													emailServer,
-													msg.scheme,
-													serverName,
-													subStatus.emailKey,
-													localisation,
-													organisation.server_description,
-													organisation.name);
-													*/
 										} else {
 											/*
 											 * User needs to opt in before email can be sent
@@ -1660,7 +1662,7 @@ public class NotificationManager {
 					error_details += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
 				}
 				writeToLog(sd, organisation.id, msg.pId, surveyId, notify_details, status, 
-						error_details, messageId);
+						error_details, messageId, msg.target);
 			}
 		} finally {
 			try {if (pstmtGetSMSUrl != null) {pstmtGetSMSUrl.close();}} catch (SQLException e) {}
@@ -1669,11 +1671,11 @@ public class NotificationManager {
 	}
 
 	public void writeToLog(Connection sd, int oId, int pId, int surveyId, String notify_details,
-			String status, String error_details, int messageId) throws SQLException {
+			String status, String error_details, int messageId, String target) throws SQLException {
 		PreparedStatement pstmt = null;
 		String sql = "insert into notification_log " +
 				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type) " +
-				"values( ?, ?,?, ?, ?, ?, now(), ?, 'submission'); ";
+				"values( ?, ?,?, ?, ?, ?, now(), ?, ?); ";
 
 		try {
 			pstmt = sd.prepareStatement(sql);
@@ -1684,6 +1686,7 @@ public class NotificationManager {
 			pstmt.setString(5, status);
 			pstmt.setString(6, error_details);
 			pstmt.setInt(7, messageId);
+			pstmt.setString(8, target);
 
 			pstmt.executeUpdate();
 		} finally {

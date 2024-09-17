@@ -362,6 +362,9 @@ public class SMSManager {
 				log.info("Process sms: " + pstmt.toString());
 				pstmt.executeUpdate();
 				
+				se.setStatus("success");
+				se.setReason("");
+				
 			} else {
 				log.info("Error:  Inbound number " + sms.ourNumber + " not found");
 				se.setStatus("error");

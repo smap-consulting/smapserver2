@@ -3519,7 +3519,7 @@ public class TaskManager {
 				}
 				NotificationManager nm = new NotificationManager(localisation);
 				nm.writeToLog(sd, organisation.id, msg.pId, msg.sId, notify_details, status, 
-						error_details, messageId);
+						error_details, messageId, msg.target);
 				
 			}
 		} finally {

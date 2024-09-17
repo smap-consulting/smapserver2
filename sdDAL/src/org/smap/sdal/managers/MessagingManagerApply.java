@@ -177,7 +177,7 @@ public class MessagingManagerApply {
 							nm.writeToLog(sd, organisation.id, msg.pId, 
 									GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident), 
 									organisation.name, status, 
-									e.getMessage(), id);
+									e.getMessage(), id, msg.target);
 						}
 						
 					} else if(topic.equals(NotificationManager.TOPIC_REMINDER)) {

@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.model.DatabaseConnections;
 import com.vonage.client.VonageClient;
@@ -38,6 +39,7 @@ public class MessageProcessor {
 	DocumentBuilder db = null;
 
 	private static Logger log = Logger.getLogger(MessageProcessor.class.getName());
+	private static LogManager lm = new LogManager();		// Application log
 	
 	boolean forDevice = false;	// URL prefixes should be in the client format
 
@@ -51,6 +53,8 @@ public class MessageProcessor {
 		String queueName;
 
 		VonageClient vonageClient = null;
+		boolean vonageClientLogMessageSet = false;
+		
 		
 		public MessageLoop(String basePath, String queueName) {
 			this.basePath = basePath;
@@ -89,13 +93,23 @@ public class MessageProcessor {
 							 */
 							File vonagePrivateKey = new File(basePath + "_bin/resources/properties/vonage_private.key");
 							String vonageApplicationId = getVonageApplicationId(dbc.sd);
-							if(vonageClient == null && vonagePrivateKey.exists() && vonageApplicationId != null) {
-								vonageClient = VonageClient.builder()
-										.applicationId(vonageApplicationId)
-										.privateKeyPath(vonagePrivateKey.getAbsolutePath())
-										.build();
+							if(vonageClient == null) {
+								if(vonagePrivateKey.exists() && vonageApplicationId != null) {
+									vonageClient = VonageClient.builder()
+											.applicationId(vonageApplicationId)
+											.privateKeyPath(vonagePrivateKey.getAbsolutePath())
+											.build();
+								} else if(!vonageClientLogMessageSet) {	// Only write log message once
+									// Set organisation id to -1 as this is an issue not related to an organisation
+									String msg = "Cannot create vonage client. " 
+											+ (!vonagePrivateKey.exists() ? " vonage_private.key was not found." : "")
+											+ (vonageApplicationId == null ? " The vonage application Id was not found in settings." : "");
+									lm.writeLogOrganisation(dbc.sd, -1, null, LogManager.SMS, msg, 0);
+									log.info("Error: " + msg);
+									vonageClientLogMessageSet = true;
+								}
 							}
-							
+									
 							/*
 							 * Send messages
 							 */
