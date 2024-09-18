@@ -173,7 +173,9 @@ public class SubmissionProcessor {
 											dbc.results,
 											se,
 											ue.getInstanceId(),
-											sms);
+											sms,
+											ue.getId(),
+											ue.getSurveyId());
 								} catch (Exception e) {
 									log.log(Level.SEVERE, e.getMessage(), e);
 									se.setStatus("error");

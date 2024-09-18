@@ -1136,7 +1136,7 @@ public class NotificationManager {
 						SubscriberEvent se = new SubscriberEvent();
 						SMSDetails sms = new SMSDetails(toNumber, msg.ourNumber, msg.content, false, msg.ts);
 						SMSManager smsMgr = new SMSManager(localisation, tz);
-						smsMgr.writeMessageToResults(sd, cResults, se, msg.instanceId, sms);
+						smsMgr.writeMessageToResults(sd, cResults, se, msg.instanceId, sms, 0, 0);
 						
 						status = se.getStatus();
 						error_details = se.getReason();

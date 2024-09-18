@@ -84,12 +84,6 @@ public class SMSManager {
 		StringBuilder sqlSelect = new StringBuilder(sqlGetNumber);
 		PreparedStatement pstmt = null;
 		
-		String sqlOrg = "select name from organisation where id = ?";
-		PreparedStatement pstmtOrg = sd.prepareStatement(sqlOrg);
-		
-		String sqlSurvey = "select display_name, p_id, s_id from survey where ident = ?";
-		PreparedStatement pstmtSurvey = sd.prepareStatement(sqlSurvey);
-		
 		try {
 			
 			if(!GeneralUtilityMethods.hasSecurityGroup(sd, user, Authorise.ORG_ID)) {
@@ -105,37 +99,12 @@ public class SMSManager {
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				SMSNumber n = getNumber(rs);
+				getSecondaryNumberAttributes(sd, n);
 				numbers.add(n);
-				
-				/*
-				 * Get org name
-				 */
-				if(n.oId > 0) {
-					pstmtOrg.setInt(1, n.oId);
-					ResultSet rsOrg = pstmtOrg.executeQuery();
-					if(rsOrg.next()) {
-						n.orgName = rsOrg.getString(1);
-					}
-				}
-				
-				/*
-				 * Get survey name and project id
-				 */
-				if(n.surveyIdent != null) {
-					pstmtSurvey.setString(1, n.surveyIdent);
-					ResultSet rsSurvey = pstmtSurvey.executeQuery();
-					if(rsSurvey.next()) {
-						n.surveyName = rsSurvey.getString("display_name");
-						n.pId = rsSurvey.getInt("p_id");
-						n.sId = rsSurvey.getInt("s_id");
-					}
-				}
 			}
 			
 		} finally {
 			if(pstmt != null) {try{pstmt.close();}catch (Exception e) {}}
-			if(pstmtOrg != null) {try{pstmtOrg.close();}catch (Exception e) {}}
-			if(pstmtSurvey != null) {try{pstmtSurvey.close();}catch (Exception e) {}}
 		}
 		return numbers;
 	}
@@ -238,8 +207,11 @@ public class SMSManager {
 			Connection cResults,
 			SubscriberEvent se,
 			String instanceid,
-			SMSDetails sms) throws Exception {
+			SMSDetails sms,
+			int ueId,
+			int ueSurveyId) throws Exception {
 		
+		PreparedStatement pstmtUploadEvent = null;
 		PreparedStatement pstmtExists = null;
 		PreparedStatement pstmtGet = null;
 		PreparedStatement pstmt = null;
@@ -248,6 +220,7 @@ public class SMSManager {
 		
 		try {
 			SMSNumber smsNumber = getDetailsForOurNumber(sd, sms.ourNumber);
+			getSecondaryNumberAttributes(sd, smsNumber);
 			
 			if(smsNumber != null) {
 				
@@ -366,8 +339,33 @@ public class SMSManager {
 				log.info("Process sms: " + pstmt.toString());
 				pstmt.executeUpdate();
 				
+				/*
+				 * Update Survey Details base on the settings for this number
+				 * Only do this if the survey details in the upload event table are different from those in the number details table
+				 */
+				if(ueId > 0 && ueSurveyId != sId) {
+					String sqlUploadEvent = "update upload_event "
+							+ "set imei = 'SMS',"
+							+ "o_id = ?,"
+							+ "p_id = ?,"
+							+ "s_id = ?, "
+							+ "ident = ?,"
+							+ "survey_name = ?,"
+							+ "file_name = ? "
+							+ "where ue_id = ?";
+					pstmtUploadEvent = sd.prepareStatement(sqlUploadEvent);
+					pstmtUploadEvent.setInt(1,  smsNumber.oId);
+					pstmtUploadEvent.setInt(2,  smsNumber.pId);
+					pstmtUploadEvent.setInt(3,  smsNumber.sId);
+					pstmtUploadEvent.setString(4,  smsNumber.surveyIdent);
+					pstmtUploadEvent.setString(5,  smsNumber.surveyName);
+					pstmtUploadEvent.setString(6,  sms.msg);
+					pstmtUploadEvent.setInt(7,  ueId);
+					pstmtUploadEvent.executeUpdate();
+				}
+				
 				se.setStatus("success");
-				se.setReason("");
+				se.setReason(null);
 				
 			} else {
 				log.info("Error:  Inbound number " + sms.ourNumber + " not found");
@@ -382,6 +380,7 @@ public class SMSManager {
 				lockTableChange.close("top level");
 			}
 			
+			if(pstmtUploadEvent != null) {try {pstmtUploadEvent.close();} catch (Exception e) {}}
 			if(pstmtExists != null) {try {pstmtExists.close();} catch (Exception e) {}}
 			if(pstmtGet != null) {try {pstmtGet.close();} catch (Exception e) {}}
 			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}}
@@ -411,6 +410,44 @@ public class SMSManager {
 				rs.getString("their_number_question"),
 				rs.getString("message_question"),
 				rs.getInt("o_id"));
+	}
+	
+	private void getSecondaryNumberAttributes(Connection sd, SMSNumber n) throws SQLException {
+		
+		String sqlOrg = "select name from organisation where id = ?";
+		PreparedStatement pstmtOrg = sd.prepareStatement(sqlOrg);
+		
+		String sqlSurvey = "select display_name, p_id, s_id from survey where ident = ?";
+		PreparedStatement pstmtSurvey = sd.prepareStatement(sqlSurvey);
+		
+		try {
+			/*
+			 * Get org name
+			 */
+			if(n.oId > 0) {
+				pstmtOrg.setInt(1, n.oId);
+				ResultSet rsOrg = pstmtOrg.executeQuery();
+				if(rsOrg.next()) {
+					n.orgName = rsOrg.getString(1);
+				}
+			}
+			
+			/*
+			 * Get survey name and project id
+			 */
+			if(n.surveyIdent != null) {
+				pstmtSurvey.setString(1, n.surveyIdent);
+				ResultSet rsSurvey = pstmtSurvey.executeQuery();
+				if(rsSurvey.next()) {
+					n.surveyName = rsSurvey.getString("display_name");
+					n.pId = rsSurvey.getInt("p_id");
+					n.sId = rsSurvey.getInt("s_id");
+				}
+			}
+		} finally {
+			if(pstmtOrg != null) {try{pstmtOrg.close();}catch (Exception e) {}}
+			if(pstmtSurvey != null) {try{pstmtSurvey.close();}catch (Exception e) {}}
+		}
 	}
 }
 
