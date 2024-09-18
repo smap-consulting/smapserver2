@@ -768,7 +768,7 @@ public class DataManager {
 			 * Get Case Management Settings
 			 */
 			CaseManager cm = new CaseManager(localisation);				
-			CMS cms = cm.getCaseManagementSettings(sd, sIdent);
+			CMS cms = cm.getCaseManagementSettings(sd, groupSurveyIdent);
 					
 			/*
 			 * Get SMS Settings

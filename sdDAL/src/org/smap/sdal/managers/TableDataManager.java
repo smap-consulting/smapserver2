@@ -197,9 +197,10 @@ public class TableDataManager {
 			/*
 			 * Include completed filter
 			 * A completed task is one where the status question has its final value and the case is not assigned
+			 * The default value of include_completed is "no"
 			 */
 			boolean completedFilter = false;
-			if(include_completed != null && include_completed.equals("no") && cms != null && cms.settings != null && cms.settings.statusQuestion != null) {
+			if((include_completed == null || include_completed.equals("no")) && cms != null && cms.settings != null && cms.settings.statusQuestion != null) {
 				completedFilter = true;
 				sqlGetData.append(" and (").append(cms.settings.statusQuestion)
 					.append(" is null or cast( ")
