@@ -58,6 +58,7 @@ public class RecordEventManager {
 	public static String NOTIFICATION = "notification";
 	public static String DELETED = "deleted";
 	public static String RESTORED = "restored";
+	public static String INBOUND_MESSAGE = "inbound_msg";
 	
 	public static String STATUS_SUCCESS = "success";
 	public static String STATUS_NEW = "new";
@@ -150,6 +151,7 @@ public class RecordEventManager {
 			pstmt.setInt(14,  sVersion);
 			pstmt.setInt(15,  taskId);
 			pstmt.setInt(16,  assignmentId);
+			log.info("Update history: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			/*

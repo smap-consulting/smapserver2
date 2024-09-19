@@ -253,9 +253,10 @@ public class SMSManager {
 				 * Check to see if there is an existing case for this number
 				 */
 				int existingPrikey = 0;
+				String existingInstanceId = null;
 				boolean checkStatus = false;
 				if(tableName != null) {
-					StringBuilder sqlExists = new StringBuilder("select prikey from ")
+					StringBuilder sqlExists = new StringBuilder("select prikey, instanceid from ")
 							.append(tableName)
 							.append(" where not _bad and ")
 							.append(theirNumberColumn)
@@ -280,11 +281,14 @@ public class SMSManager {
 					ResultSet rs = pstmtExists.executeQuery();
 					if(rs.next()) {
 						existingPrikey = rs.getInt("prikey");
+						existingInstanceId = rs.getString("instanceid");
 					}
 					rs.close();
 				}
 				
 				if(existingPrikey == 0) {
+					existingInstanceId = instanceid;
+					
 					/*
 					 * Create new entry
 					 */
@@ -338,6 +342,28 @@ public class SMSManager {
 				
 				log.info("Process sms: " + pstmt.toString());
 				pstmt.executeUpdate();
+				
+				/*
+				 * Update the history for the record
+				 */
+				String msg = localisation.getString("msg_sms_received");
+				msg = msg.replaceAll("%s1",  sms.msg);
+				msg = msg.replaceAll("%s2", sms.theirNumber);
+				RecordEventManager rem = new RecordEventManager();
+				rem.writeEvent(sd, cResults, 
+						RecordEventManager.INBOUND_MESSAGE, 
+						RecordEventManager.STATUS_SUCCESS,
+						sms.theirNumber, 
+						tableName, 
+						existingInstanceId, 
+						null, 					// Change object
+						null, 					// Task object
+						null,					// Notification object
+						msg, 					// Description
+						0, 						// sID legacy
+						smsNumber.surveyIdent,	// Survey Ident
+						0,
+						0);	
 				
 				/*
 				 * Update Survey Details base on the settings for this number
