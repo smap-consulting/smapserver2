@@ -111,7 +111,7 @@ public class PasswordReset extends Application {
 					// Update succeeded
 					log.info("Sending email");
 
-					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, email, request.getRemoteUser(), 0);
+					EmailServer emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, email, request.getRemoteUser(), 0);
 
 					PeopleManager pm = new PeopleManager(localisation);
 					SubscriptionStatus subStatus = pm.getEmailKey(sd, 0, email);
