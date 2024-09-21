@@ -15,7 +15,6 @@ import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.activation.FileDataSource;
 import javax.mail.AuthenticationFailedException;
-import javax.mail.BodyPart;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
@@ -28,6 +27,7 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import org.smap.notifications.interfaces.EmitAwsSES;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
@@ -70,20 +70,7 @@ public class EmailManager {
 	
 	private HtmlSanitise sanitise = new HtmlSanitise();
 	
-	/*
-	 * Add an authenticator class
-	 */
-	private class Authenticator extends javax.mail.Authenticator {
-		private PasswordAuthentication authentication;
 
-		public Authenticator(String username, String password) {
-			authentication = new PasswordAuthentication(username, password);
-		}
-
-		protected PasswordAuthentication getPasswordAuthentication() {
-			return authentication;
-		}
-	}
 
 	public EmailManager(ResourceBundle l) {
 		localisation = l;
@@ -111,7 +98,7 @@ public class EmailManager {
 			content = new StringBuilder(template.toString());
 			
 			if(org.admin_email != null) {
-				emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, userIdent, oId);
+				emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, null, userIdent, oId);
 				if(emailServer.smtpHost != null) {
 					
 					PeopleManager pm = new PeopleManager(localisation);
@@ -192,7 +179,7 @@ public class EmailManager {
 		SendEmailResponse resp = new SendEmailResponse();
 		
 		MessagingManager mm = new MessagingManager(localisation);
-		EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, user, organisation.id);
+		EmailServer emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, null, user, organisation.id);
 		if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 
 			if(emails.trim().length() > 0) {
@@ -357,160 +344,63 @@ public class EmailManager {
 			String orgFooter,
 			int emailId) throws Exception  {
 
+		/* 
+		 * Create the content
+		 */
 		StringBuilder content = new StringBuilder(template);
-		
-		if(emailServer.smtpHost == null) {
-			throw new Exception("Cannot send email, smtp_host not available");
+		if(adminEmail != null) {
+			content.append("</p>")
+				.append("<p>")
+				.append(localisation.getString("email_dnr"))
+				.append("</p>");
 		}
-
-		RecipientType rt = null;
-		String sender = emailServer == null ? "" : emailServer.emailUser;
-		try {
-			Session session = getEmailSession(emailServer);
-			
-			Message msg = new MimeMessage(session);
-			if(ccType.equals("bcc")) {
-				rt = Message.RecipientType.BCC;
-			} else {
-				rt = Message.RecipientType.TO;
-			}
-
-			log.info("Sending to email addresses: " + email);
-			InternetAddress[] emailArray = InternetAddress.parse(email);
-			log.info("Number of email addresses: " + emailArray.length);
-			msg.setRecipients(rt,	emailArray);
-			msg.setSubject(subject + " " + emailId);	// Include email ID with subject to make it unique
-
-			// Add the email server domain if not already set for sender
-			if(sender.indexOf('@') < 0) {
-				sender = sender + "@" + emailServer.emailDomain;
-			}
-
-			log.info("Sending email from: (sendEmailHtml1) " + sender + " with subject " + subject);
-			msg.setFrom(InternetAddress.parse(sender, false)[0]);
-			
-			if(adminEmail != null) {
-				content.append("</p>")
-					.append("<p>")
-					.append(localisation.getString("email_dnr"))
-					.append("</p>");
-			}
-			if(orgFooter != null) {
-				content.append(" ").append(orgFooter);
-			}
-			
-			// Add unsubscribe
-			StringBuilder unsubscribe = new StringBuilder();
-			if(emailKey != null) {
-				unsubscribe.append("<br/><p style=\"color:blue;text-align:center;\">")
-						.append("<a href=\"https://")
-						.append(serverName)
-						.append("/app/subscriptions.html?token=")
-						.append(emailKey)
-						.append("\">")
-						.append(localisation.getString("c_unsubscribe"))
-						.append("</a>")
-						.append("</p>");		
-						
-				content.append(unsubscribe.toString());
-			} 
-			
-			/*
-			 * Perform custom token replacements
-			 */
-			String contentString = content.toString();
-			if(tokens != null) {
-				for(String token : tokens.keySet()) {
-					String val = tokens.get(token);
-					if(val == null) {
-						val = "";
-					}
-					contentString = contentString.replace(token, val);
+		if(orgFooter != null) {
+			content.append(" ").append(orgFooter);
+		}
+		
+		// Add unsubscribe
+		StringBuilder unsubscribe = new StringBuilder();
+		if(emailKey != null) {
+			unsubscribe.append("<br/><p style=\"color:blue;text-align:center;\">")
+					.append("<a href=\"https://")
+					.append(serverName)
+					.append("/app/subscriptions.html?token=")
+					.append(emailKey)
+					.append("\">")
+					.append(localisation.getString("c_unsubscribe"))
+					.append("</a>")
+					.append("</p>");		
+					
+			content.append(unsubscribe.toString());
+		} 
+		
+		/*
+		 * Perform custom token replacements
+		 */
+		String contentString = content.toString();
+		if(tokens != null) {
+			for(String token : tokens.keySet()) {
+				String val = tokens.get(token);
+				if(val == null) {
+					val = "";
 				}
+				contentString = contentString.replace(token, val);
 			}
-			
-			/*
-			 * Sanitise the HTML
-			 */
-			sanitise.sanitiseHtml(contentString);
-			
-			Multipart multipart = new MimeMultipart();
-			
-			// Add body part
-			MimeBodyPart messageBodyPart = new MimeBodyPart();
-			messageBodyPart.setText(contentString, "utf-8", "html");
-			multipart.addBodyPart(messageBodyPart);
-
-			// Add file attachments if they exist
-			if(filePath != null) {			 
-				messageBodyPart = new MimeBodyPart();
-				DataSource source = new FileDataSource(filePath);
-				messageBodyPart.setDataHandler(new DataHandler(source));
-				messageBodyPart.setFileName(filename);
-				multipart.addBodyPart(messageBodyPart);
-			}
-
-			msg.setContent(multipart);
-
-			msg.setHeader("X-Mailer", "msgsend");
-			log.info("Sending email from: (sendEmailHtml2) " + sender);
-		
-			Transport.send(msg);
-
-		} catch(AuthenticationFailedException ae) { 
-			log.log(Level.SEVERE, "Messaging Exception", ae);
-			throw new Exception(localisation.getString("email_cs") + ":  " + localisation.getString("ae"));
-		} catch(MessagingException me) {
-			log.log(Level.SEVERE, "Messaging Exception", me);
-			String msg = me.getMessage();
-			throw new Exception(localisation.getString("email_cs") + ":  " + msg);
-		} catch(Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			String msg = e.getMessage();
-			throw new Exception(localisation.getString("email_cs") + ":  " + msg);
 		}
-	}
-	
-	private Session getEmailSession(EmailServer emailServer) {
-		Properties props = System.getProperties();
-		props.put("mail.smtp.host", emailServer.smtpHost);	
-
-		Authenticator authenticator = null;
-
-		// Create an authenticator if the user name and password is available
-		if(emailServer.emailUser != null && emailServer.emailPassword != null 
-				&& emailServer.emailUser.trim().length() > 0 
-				&& emailServer.emailPassword.trim().length() > 0) {
-			String authUser = emailServer.emailUser + "@" + emailServer.emailDomain;
-			authenticator = new Authenticator(authUser, emailServer.emailPassword);
-			props.setProperty("mail.smtp.submitter", authenticator.getPasswordAuthentication().getUserName());
-			props.setProperty("mail.smtp.auth", "true");
-			props.put("mail.smtp.ssl.trust", emailServer.smtpHost);
-			props.setProperty("mail.smtp.starttls.enable", "true");
-			props.setProperty("mail.smtp.ssl.protocols", "TLSv1.2");
-			if(emailServer.emailPort > 0) {
-				props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
-			} else {
-				props.setProperty("mail.smtp.port", "587");	
-			}
-
-			log.info("Trying to send email as html with authentication");
-		} else {
-			if(emailServer.emailPort > 0) {
-				props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
-			} else {
-				// Use default port (25?)
-			}
-			log.info("No authentication");
-		}
-
-		props.setProperty("mail.smtp.connectiontimeout", "60000");
-		props.setProperty("mail.smtp.timeout", "60000");
-		props.setProperty("mail.smtp.writetimeout", "60000");
 		
-		//log.info("Email properties: " + props.toString());
+		/*
+		 * Sanitise the HTML
+		 */
+		sanitise.sanitiseHtml(contentString);
 		
-		return Session.getInstance(props, authenticator);
+		/*
+		 * Send the email
+		 */
+		emailServer.send(email, ccType, subject, 
+						emailId, 
+						contentString,
+						filePath,
+						filename);
 	}
 	
 	boolean alertEmailSent(Connection sd, int oId, String type) throws SQLException {

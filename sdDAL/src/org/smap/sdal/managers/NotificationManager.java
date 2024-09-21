@@ -629,19 +629,6 @@ public class NotificationManager {
 			}
 			pstmtGetNotifications = sd.prepareStatement(sqlGetNotifications.toString());
 
-			// Localisation
-			Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
-			if(organisation != null) {
-				Locale locale = new Locale(organisation.locale);
-	
-				ResourceBundle localisation;
-				try {
-					localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-				} catch(Exception e) {
-					localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", locale);
-				}
-			}
-
 			String tz = "UTC";		// Set default time to UTC
 
 			pstmtGetNotifications.setInt(1, sId);
@@ -1469,7 +1456,7 @@ public class NotificationManager {
 				notify_details = null;				// Notification log
 				error_details = null;				// Notification log
 				if(msg.target.equals("email")) {
-					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user, o_id);
+					EmailServer emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, null, msg.user, o_id);
 					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 
 						String emails = em.getEmails(sd, cResults, surveyId, msg);   // Get the email addresses from the message

@@ -27,6 +27,7 @@ import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.SmtpEmailServer;
 import org.smap.sdal.model.Survey;
 
 import com.google.common.io.Files;
@@ -293,67 +294,18 @@ public class UtilityMethodsEmail {
 	}
 
 	/*
-	 * Get the details for the provided organisation
-	 *
-	static public Organisation getOrganisationDefaults(
-			Connection sd, 
-			int oId) throws SQLException {
-
-		Organisation o = new Organisation();
-
-		String sql = "select o.id, o.name, o.company_name, o.admin_email, o.smtp_host,"
-				+ "o.email_domain, o.default_email_content,"
-				+ "o.locale, o.company_email, o.timezone, o.email_task,"
-				+ "o.server_description "
-				+ "from organisation o "
-				+ "where o.id = ? ";
-
-		PreparedStatement pstmt = null;
-
-		try {
-
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, oId);
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				o.id = rs.getInt(1);
-				o.name = rs.getString(2);
-				o.company_name = rs.getString(3);
-				o.admin_email = rs.getString(4);
-				o.smtp_host = rs.getString(5);
-				o.email_domain = rs.getString(6);
-				o.default_email_content = rs.getString(7);
-				o.locale = rs.getString(8);
-				o.company_email = rs.getString(9);
-				o.timeZone = rs.getString(10);
-
-				if(o.locale == null) {
-					o.locale = "en";
-				}
-				o.email_task = rs.getBoolean(11);
-				o.server_description = rs.getString(12);
-
-			}
-		} catch (SQLException e) {
-			log.log(Level.SEVERE,"Error", e);
-			throw e;
-		} finally {
-			try {if (pstmt != null) { pstmt.close();}} catch (Exception e) {}
-		}
-		return o;
-	}
-	*/
-
-	/*
 	 * Get the smtp host for the organisation that the user belongs to
 	 */
-	static public EmailServer getSmtpHost(
-			Connection sd, 
+	static public EmailServer getEmailServer(
+			Connection sd,
+			ResourceBundle localisation,
 			String email,
 			String user,
 			int o_id) throws SQLException {
 
-		EmailServer emailServer = new EmailServer();
+		EmailServer emailServer;
+		
+		emailServer = new SmtpEmailServer(localisation);
 
 		String sqlOrg = "select o.smtp_host, o.email_domain, o.email_user, o.email_password, o.email_port " +
 				" from organisation o " +
@@ -460,6 +412,9 @@ public class UtilityMethodsEmail {
 				}
 			}
 
+			if(emailServer.smtpHost != null) {
+				emailServer.enabled = true;
+			}
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"Error", e);
 			throw e;

@@ -40,9 +40,10 @@ public class EmailTest extends Application {
 	 * Send a test email
 	 */
 	@GET
-	public void getKey(@Context HttpServletRequest request) throws Exception {
+	public void emailTest(@Context HttpServletRequest request) throws Exception {
 		
-		EmitAwsSES mgr = new EmitAwsSES(GeneralUtilityMethods.getBasePath(request));
+		EmitAwsSES mgr = new EmitAwsSES("ap-southeast-2", 
+				GeneralUtilityMethods.getBasePath(request));
 		mgr.sendSES();
 
 	}

@@ -271,7 +271,7 @@ public class MessagingManagerApply {
 						// Assume a direct email to be processed immediately
 	
 						log.info("+++++++++ opt in +++++++++ Direct Email");
-						EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, null, o_id);
+						EmailServer emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, null, null, o_id);
 						if (emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 		
 							// Set the subject

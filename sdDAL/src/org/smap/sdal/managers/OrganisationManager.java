@@ -194,7 +194,7 @@ public class OrganisationManager {
 				SubscriptionStatus subStatus = null;
 				
 				if(originalOrg.admin_email != null) {
-					emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, userIdent, 0);
+					emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, null, userIdent, 0);
 					if(emailServer.smtpHost != null) {
 						
 						PeopleManager pm = new PeopleManager(localisation);
