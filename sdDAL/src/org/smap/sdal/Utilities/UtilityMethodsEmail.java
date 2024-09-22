@@ -22,6 +22,7 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
 import org.smap.sdal.managers.RecordEventManager;
+import org.smap.sdal.model.AwsSdkEmailServer;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Language;
@@ -303,25 +304,23 @@ public class UtilityMethodsEmail {
 			String user,
 			int o_id) throws SQLException {
 
-		EmailServer emailServer;
+		EmailServer emailServer = null;
 		
-		emailServer = new SmtpEmailServer(localisation);
-
-		String sqlOrg = "select o.smtp_host, o.email_domain, o.email_user, o.email_password, o.email_port " +
+		String sqlOrg = "select email_type, smtp_host, email_domain, email_user, email_password, email_port " +
 				" from organisation o " +
-				" where o.id = ?";
+				" where id = ?";
 		
-		String sqlIdent = "select o.smtp_host, o.email_domain, o.email_user, o.email_password, o.email_port " +
+		String sqlIdent = "select o.email_type, o.smtp_host, o.email_domain, o.email_user, o.email_password, o.email_port " +
 				" from organisation o, users u " +
 				" where u.o_id = o.id " +
 				" and u.ident = ?";
 
-		String sqlEmail = "select o.smtp_host, o.email_domain, o.email_user, o.email_password, o.email_port " +
+		String sqlEmail = "select o.email_type, o.smtp_host, o.email_domain, o.email_user, o.email_password, o.email_port " +
 				" from organisation o, users u " +
 				" where u.o_id = o.id " +
 				" and u.email ilike ?";
 
-		String sqlServer = "select smtp_host, email_domain, email_user, email_password, email_port " +
+		String sqlServer = "select email_type, smtp_host, email_domain, email_user, email_password, email_port " +
 				" from server ";
 
 		PreparedStatement pstmt = null;
@@ -337,7 +336,7 @@ public class UtilityMethodsEmail {
 				pstmt.setString(1, user);
 			} else if(email != null) {
 				/*
-				 * This will be for a forgotton password
+				 * This will be for a forgotten password
 				 * Use the email server for the matching email
 				 */
 				pstmt = sd.prepareStatement(sqlEmail);
@@ -348,73 +347,23 @@ public class UtilityMethodsEmail {
 				log.info("Get smtp_host SQL:" + pstmt.toString());
 				rs = pstmt.executeQuery();
 				if(rs.next()) {
-					String host = rs.getString(1);
-					String domain = rs.getString(2);
-					String emailuser = rs.getString(3);
-					String emailpassword = rs.getString(4);
-					int emailport = rs.getInt(5);
-
-					if(host != null) {
-						if(host.trim().length() > 0) {
-							emailServer.smtpHost = host;
-						}
-					}
-					if(domain != null) {		
-						if(domain.trim().length() > 0) {
-							emailServer.emailDomain = domain;
-						}
-					}
-					if(emailuser != null) {		
-						if(emailuser.trim().length() > 0) {
-							emailServer.emailUser = emailuser;
-						}
-					}
-					if(emailpassword != null) {		
-						if(emailpassword.trim().length() > 0) {
-							emailServer.emailPassword = emailpassword;
-						}
-					}
-					if(emailport > 0) {		
-						emailServer.emailPort = emailport;	
-					}
+					emailServer = getEmailServerDetails(rs, localisation);		
 				}
 			}
 
 			/*
-			 * If the smtp_host or the email_domain was not set at the organisation level try the server level defaults
+			 * If the email details were not set at the organisation level try the server level defaults
 			 */
-			if(emailServer.smtpHost == null || emailServer.emailDomain == null) {
+			if(emailServer == null) {
 
 				try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sqlServer);
 				rs = pstmt.executeQuery();
 				if(rs.next()) {
-					String host = rs.getString(1);
-					String domain = rs.getString(2);
-					if(emailServer.smtpHost == null) {
-						emailServer.smtpHost = host;
-					}
-					if(emailServer.emailDomain == null) {
-						emailServer.emailDomain = domain;
-					}
-					if(emailServer.emailUser == null) {
-						emailServer.emailUser = rs.getString(3);
-						if(emailServer.emailUser != null && emailServer.emailUser.indexOf('@') > 0) {
-							emailServer.emailUser = emailServer.emailUser.substring(0, emailServer.emailUser.indexOf('@'));
-						}
-					}
-					if(emailServer.emailPassword == null) {
-						emailServer.emailPassword = rs.getString(4);
-					}
-					if(emailServer.emailPort == 0) {
-						emailServer.emailPort = rs.getInt(5);
-					}
+					emailServer = getEmailServerDetails(rs, localisation);
 				}
 			}
 
-			if(emailServer.smtpHost != null) {
-				emailServer.enabled = true;
-			}
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"Error", e);
 			throw e;
@@ -424,6 +373,61 @@ public class UtilityMethodsEmail {
 		return emailServer;
 	}
 
+	static private EmailServer getEmailServerDetails(ResultSet rs, ResourceBundle localisation) throws SQLException {
+		EmailServer emailServer = null;
+		
+		
+		String type = rs.getString("email_type");
+		String host = rs.getString("smtp_host");
+		String domain = rs.getString("email_domain");
+		String emailuser = rs.getString("email_user");
+		String emailpassword = rs.getString("email_password");
+		int emailport = rs.getInt("email_port");
+
+		/*
+		 * Create the SMTP or AWSSDK email server object
+		 */
+		if(type != null && type.equals("awssdk")) {
+			emailServer = new AwsSdkEmailServer(localisation);
+		} else if(host != null && domain != null) {
+			emailServer = new SmtpEmailServer(localisation);		// Default to smtp
+		}
+		
+		/*
+		 * Fill in the details
+		 */
+		if(emailServer != null) {
+			if(host != null) {
+				if(host.trim().length() > 0) {
+					emailServer.smtpHost = host;
+				}
+			}
+			if(domain != null) {		
+				if(domain.trim().length() > 0) {
+					emailServer.emailDomain = domain;
+				}
+			}
+			if(emailuser != null) {		
+				if(emailuser.trim().length() > 0) {
+					emailServer.emailUser = emailuser;
+					if(emailServer.emailUser.indexOf('@') > 0) {  // Remove domain if it has been included
+						emailServer.emailUser = emailServer.emailUser.substring(0, emailServer.emailUser.indexOf('@'));
+					}
+				}
+			}
+			if(emailpassword != null) {		
+				if(emailpassword.trim().length() > 0) {
+					emailServer.emailPassword = emailpassword;
+				}
+			}
+			if(emailport > 0) {		
+				emailServer.emailPort = emailport;	
+			}
+		}
+		
+		return emailServer;
+	}
+	
 	// Set a one time password
 	static public String setOnetimePassword(
 			Connection connectionSD, 

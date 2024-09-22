@@ -139,3 +139,7 @@ ALTER TABLE server add column vonage_webhook_secret text;
 ALTER TABLE log  DROP CONSTRAINT log_o_id_fkey;
 
 ALTER TABLE users add column app_key text;
+
+ALTER TABLE organisation add column email_type text;
+ALTER TABLE server add column email_type text;
+

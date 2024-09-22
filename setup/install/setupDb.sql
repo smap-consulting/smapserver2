@@ -104,6 +104,7 @@ ALTER SEQUENCE regions_seq OWNER TO ws;
 -- Server level defaults
 DROP TABLE IF EXISTS server CASCADE;
 create TABLE server (
+	email_type text,	-- smtp || awssdk
 	smtp_host text,
 	email_domain text,
 	email_user text,
@@ -197,6 +198,7 @@ create TABLE organisation (
 	ft_number_tasks integer default 20,
 	changed_by text,
 	admin_email text,
+	email_type text,
 	smtp_host text,				-- Set if email is enabled
 	email_domain text,
 	email_user text,

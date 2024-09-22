@@ -17,7 +17,6 @@ abstract public class EmailServer {
 	public String emailUser;
 	public String emailPassword;
 	public int emailPort;
-	public boolean enabled = false;
 	
 	EmailServer(ResourceBundle localisation) {
 		this.localisation = localisation;

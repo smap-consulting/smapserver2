@@ -207,7 +207,7 @@ public class UserManager {
 			/*
 			 * Set a flag if email is enabled on the server
 			 */
-			user.sendEmail = UtilityMethodsEmail.getEmailServer(sd, localisation, null, ident, 0).enabled;
+			user.sendEmail = UtilityMethodsEmail.getEmailServer(sd, localisation, null, ident, 0) != null;
 
 			/*
 			 * Get the security groups that the user belongs to
