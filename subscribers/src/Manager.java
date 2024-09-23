@@ -1,6 +1,7 @@
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ServerSettings;
 
 /*****************************************************************************
 
@@ -41,6 +42,8 @@ public class Manager {
 				fileLocn = args[1];	
 			}
 		}
+		ServerSettings.setBasePath(fileLocn);
+		
 		if(args.length > 2) {
 			subscriberType = args[2];	
 		}

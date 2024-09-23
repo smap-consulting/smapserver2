@@ -41,6 +41,7 @@ import org.smap.sdal.Utilities.LogonLimiter;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Alert;
@@ -94,6 +95,8 @@ public class UserSvc extends Application {
 				// Localisation			
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				
+				ServerSettings.setBasePath(request);	// Make sure basePath is in settings but we don't need it right away sp ignore returned response
 				
 				UserManager um = new UserManager(localisation);
 				user = um.getByIdent(sd, request.getRemoteUser());

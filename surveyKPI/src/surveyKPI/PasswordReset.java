@@ -33,6 +33,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.LogManager;
@@ -81,6 +82,8 @@ public class PasswordReset extends Application {
 		PreparedStatement pstmt = null;
 
 		try {
+			ServerSettings.setBasePath(request);
+			
 			if(email != null && email.trim().length() > 0) {	
 
 				// Localisation
@@ -122,7 +125,7 @@ public class PasswordReset extends Application {
 						throw new ApplicationException(msg);
 					}
 
-					if(emailServer.smtpHost != null) {
+					if(emailServer != null) {
 
 						String adminEmail = null;
 						int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
@@ -197,9 +200,8 @@ public class PasswordReset extends Application {
 
 						response = Response.ok().build();
 					} else {
-						String msg = "Error password reset.  Email not enabled on this server.";
+						String msg = localisation.getString("email_ne");
 						log.info(msg);
-						msg = localisation.getString("email_ne");
 						response = Response.status(Status.NOT_FOUND).entity(msg).build();
 					}
 				} else {

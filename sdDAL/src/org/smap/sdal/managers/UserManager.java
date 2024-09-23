@@ -19,6 +19,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
+import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.EmailServer;
@@ -660,7 +661,7 @@ public class UserManager {
 		SubscriptionStatus subStatus = null;
 		if(u.sendEmail) {
 			emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, null, userIdent, o_id);
-			if(emailServer.smtpHost == null) {
+			if(emailServer == null) {
 				throw new Exception(localisation.getString("email_ne2"));
 			}
 			PeopleManager pm = new PeopleManager(localisation);

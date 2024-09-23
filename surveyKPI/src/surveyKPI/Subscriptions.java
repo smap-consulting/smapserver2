@@ -148,7 +148,7 @@ public class Subscriptions extends Application {
 					EmailServer emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, email, request.getRemoteUser(), oId);
 					Organisation o = GeneralUtilityMethods.getOrganisation(sd, oId);
 					String adminEmail = o.getAdminEmail();
-					if(emailServer.smtpHost != null) {
+					if(emailServer != null) {
 
 						EmailManager em = new EmailManager(localisation);
 						
@@ -180,9 +180,8 @@ public class Subscriptions extends Application {
 						
 						response = Response.ok().build();
 					} else {
-						String msg = "Error password reset.  Email not enabled on this server.";
+						String msg = localisation.getString("email_ne");
 						log.info(msg);
-						msg = localisation.getString("email_ne");
 						response = Response.status(Status.NOT_FOUND).entity(msg).build();
 					}
 				} else {

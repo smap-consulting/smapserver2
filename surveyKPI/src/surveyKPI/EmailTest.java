@@ -1,5 +1,7 @@
 package surveyKPI;
 
+import java.util.ArrayList;
+
 /*
 This file is part of SMAP.
 
@@ -44,7 +46,10 @@ public class EmailTest extends Application {
 		
 		EmitAwsSES mgr = new EmitAwsSES("ap-southeast-2", 
 				GeneralUtilityMethods.getBasePath(request));
-		mgr.sendSES();
+		
+		ArrayList<String> recipients = new ArrayList<>();
+		recipients.add("neilpenman@gmail.com");
+		mgr.sendSES(recipients, "Hello There", 1, "Email Body");
 
 	}
 

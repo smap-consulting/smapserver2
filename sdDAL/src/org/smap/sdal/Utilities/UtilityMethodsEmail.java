@@ -302,7 +302,7 @@ public class UtilityMethodsEmail {
 			ResourceBundle localisation,
 			String email,
 			String user,
-			int o_id) throws SQLException {
+			int o_id) throws SQLException, ApplicationException {
 
 		EmailServer emailServer = null;
 		
@@ -326,6 +326,8 @@ public class UtilityMethodsEmail {
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
 
+		String basePath = ServerSettings.getBasePath();
+		String region = "ap-southeast-2";	// TODO Need a file for email region
 		try {
 
 			if(o_id > 0) {
@@ -347,7 +349,7 @@ public class UtilityMethodsEmail {
 				log.info("Get smtp_host SQL:" + pstmt.toString());
 				rs = pstmt.executeQuery();
 				if(rs.next()) {
-					emailServer = getEmailServerDetails(rs, localisation);		
+					emailServer = getEmailServerDetails(rs, localisation, region, basePath);		
 				}
 			}
 
@@ -360,7 +362,7 @@ public class UtilityMethodsEmail {
 				pstmt = sd.prepareStatement(sqlServer);
 				rs = pstmt.executeQuery();
 				if(rs.next()) {
-					emailServer = getEmailServerDetails(rs, localisation);
+					emailServer = getEmailServerDetails(rs, localisation, region, basePath);
 				}
 			}
 
@@ -373,9 +375,12 @@ public class UtilityMethodsEmail {
 		return emailServer;
 	}
 
-	static private EmailServer getEmailServerDetails(ResultSet rs, ResourceBundle localisation) throws SQLException {
-		EmailServer emailServer = null;
+	static private EmailServer getEmailServerDetails(ResultSet rs, 
+			ResourceBundle localisation,
+			String region,
+			String basePath) throws SQLException {
 		
+		EmailServer emailServer = null;	
 		
 		String type = rs.getString("email_type");
 		String host = rs.getString("smtp_host");
@@ -388,8 +393,8 @@ public class UtilityMethodsEmail {
 		 * Create the SMTP or AWSSDK email server object
 		 */
 		if(type != null && type.equals("awssdk")) {
-			emailServer = new AwsSdkEmailServer(localisation);
-		} else if(host != null && domain != null) {
+			emailServer = new AwsSdkEmailServer(localisation, region, basePath);
+		} else if(host != null && domain != null && host.trim().length() > 0 && domain.trim().length() > 0) {
 			emailServer = new SmtpEmailServer(localisation);		// Default to smtp
 		}
 		
