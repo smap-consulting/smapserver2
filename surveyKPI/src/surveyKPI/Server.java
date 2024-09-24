@@ -142,11 +142,15 @@ public class Server extends Application {
 				+ "sms_url = ?,"
 				+ "max_rate = ?,"
 				+ "password_strength = ?,"
-				+ "css=?";
+				+ "css = ?,"
+				+ "email_type = ?";
 		
 		PreparedStatement pstmt = null;
 
-		String sqlInsert = "insert into server(smtp_host) values(?)";
+		String sqlInsert = "insert into server(smtp_host, email_domain, email_user, email_password,"
+				+ "email_port, mapbox_default, google_key, maptiler_key, vonage_application_id,"
+				+ "vonage_webhook_secret, sms_url, max_rate, password_strength, css,"
+				+ "email_type) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement pstmtInsert = null;
 		
 		try {
@@ -171,13 +175,27 @@ public class Server extends Application {
 			pstmt.setInt(12, data.ratelimit);
 			pstmt.setDouble(13, data.password_strength);
 			pstmt.setString(14, data.css);
+			pstmt.setString(15, data.email_type);
 			int count = pstmt.executeUpdate();
 			
 			if(count == 0) {			
 				pstmtInsert = sd.prepareStatement(sqlInsert);
-				pstmtInsert.setString(1, null);
+				pstmtInsert.setString(1, data.smtp_host);
+				pstmtInsert.setString(2, data.email_domain);
+				pstmtInsert.setString(3, data.email_user);
+				pstmtInsert.setString(4, data.email_password);
+				pstmtInsert.setInt(5, data.email_port);
+				pstmtInsert.setString(6, data.mapbox_default);
+				pstmtInsert.setString(7, data.google_key);
+				pstmtInsert.setString(8, data.maptiler_key);
+				pstmtInsert.setString(9, data.vonage_application_id);
+				pstmtInsert.setString(10, data.vonage_webhook_secret);
+				pstmtInsert.setString(11, data.sms_url);
+				pstmtInsert.setInt(12, data.ratelimit);
+				pstmtInsert.setDouble(13, data.password_strength);
+				pstmtInsert.setString(14, data.css);
+				pstmtInsert.setString(15, data.email_type);
 				pstmtInsert.executeUpdate();
-				pstmt.executeUpdate();
 			}
 			
 			// Set the css custom styling file

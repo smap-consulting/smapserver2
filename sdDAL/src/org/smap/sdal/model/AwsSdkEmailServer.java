@@ -27,10 +27,9 @@ public class AwsSdkEmailServer extends EmailServer {
 		
 		InternetAddress[] emailArray = InternetAddress.parse(email);
 		log.info("Number of email addresses: " + emailArray.length);
-		for(InternetAddress a : emailArray) {
-			ArrayList<String> recipients = new ArrayList<>();
-			recipients.add(a.getAddress());
-			ses.sendSES(recipients, subject, emailId, contentString);	// Send each email separately
+		for(InternetAddress recipient : emailArray) {
+			InternetAddress[] recipientArray = new InternetAddress[] {recipient};
+			ses.sendSES(recipientArray, subject, emailId, contentString, filePath, filename);	// Send each email separately
 		}	
 		
 	}

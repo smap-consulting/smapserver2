@@ -67,7 +67,8 @@ public class ServerManager {
 				+ "max_rate,"
 				+ "password_strength,"
 				+ "keep_erased_days,"
-				+ "css "
+				+ "css,"
+				+ "email_type "
 				+ "from server;";
 		PreparedStatement pstmt = null;
 		ServerData data = new ServerData();
@@ -92,6 +93,7 @@ public class ServerManager {
 				data.password_strength = rs.getDouble("password_strength");
 				data.keep_erased_days = rs.getInt("keep_erased_days");
 				data.css = rs.getString("css");
+				data.email_type = rs.getString("email_type");
 			}
 
 		}  catch (Exception e) {

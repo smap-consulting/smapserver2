@@ -142,4 +142,5 @@ ALTER TABLE users add column app_key text;
 
 ALTER TABLE organisation add column email_type text;
 ALTER TABLE server add column email_type text;
+update server set email_type = 'smtp' where email_type is null;
 

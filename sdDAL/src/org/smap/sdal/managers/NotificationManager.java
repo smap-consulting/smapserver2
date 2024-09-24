@@ -1457,7 +1457,7 @@ public class NotificationManager {
 				error_details = null;				// Notification log
 				if(msg.target.equals("email")) {
 					EmailServer emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, null, msg.user, o_id);
-					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
+					if(emailServer != null) {
 
 						String emails = em.getEmails(sd, cResults, surveyId, msg);   // Get the email addresses from the message
 
@@ -1551,7 +1551,7 @@ public class NotificationManager {
 						}
 					} else {
 						status = "error";
-						error_details = "smtp_host not set";
+						error_details = localisation.getString("email_ns");
 						log.log(Level.SEVERE, "Error: Notification, Attempt to do email notification but email server not set");
 					}
 

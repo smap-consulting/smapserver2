@@ -1,6 +1,7 @@
 package org.smap.sdal.model;
 
 public class ServerData {
+	public String email_type;
 	public String smtp_host;
 	public String email_domain;
 	public String email_user;

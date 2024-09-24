@@ -180,7 +180,7 @@ public class EmailManager {
 		
 		MessagingManager mm = new MessagingManager(localisation);
 		EmailServer emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, null, user, organisation.id);
-		if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
+		if(emailServer != null) {
 
 			if(emails.trim().length() > 0) {
 				log.info("userevent: " + user + " sending email of '" + logContent + "' to " + emails);
@@ -250,6 +250,7 @@ public class EmailManager {
 				log.info("+++ emailing to: " + emails + " docUrl: " + logContent + 
 						" from: " + from + 
 						" subject: " + subject +
+						" type: " + emailServer.getClass() +
 						" smtp_host: " + emailServer.smtpHost +
 						" email_domain: " + emailServer.emailDomain);
 				try {
@@ -320,7 +321,7 @@ public class EmailManager {
 			}
 		} else {
 			resp.status = "error";
-			resp.error_details = "smtp_host not set";
+			resp.error_details = localisation.getString("email_ns");
 			log.log(Level.SEVERE, "Error: Notification, Attempt to do email notification but email server not set");
 		}
 		

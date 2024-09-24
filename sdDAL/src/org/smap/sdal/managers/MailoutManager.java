@@ -685,7 +685,7 @@ public class MailoutManager {
 				unsubscribed = false;
 				if(msg.target.equals("email")) {
 					EmailServer emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, null, msg.user, organisation.id);
-					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
+					if(emailServer != null) {
 						if(UtilityMethodsEmail.isValidEmail(msg.email)) {
 							try {	
 								log.info("userevent: " + msg.user + " sending email of '" + docURL + "' to " + msg.email);
@@ -813,7 +813,7 @@ public class MailoutManager {
 						}
 					} else {
 						status = "error";
-						error_details = "smtp_host not set";
+						error_details = localisation.getString("email_ns");
 						log.log(Level.SEVERE, "Error: Mailout, Attempt to do email notification but email server not set");
 					}
 					
