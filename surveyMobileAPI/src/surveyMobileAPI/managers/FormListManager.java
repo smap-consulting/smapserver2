@@ -19,6 +19,7 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.ServerConfig;
 import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -76,8 +77,9 @@ public class FormListManager {
 		}
 	    a.isAuthorised(sd, user);	//Authorisation - Access 
 
-		String host = request.getServerName();
-		int portNumber = request.getLocalPort();
+		String host = ServerConfig.getHost(request); // request.getServerName();
+		int portNumber = ServerConfig.getPortNumber(request); //request.getLocalPort();
+		log.log(Level.INFO, "Server Conf - portNumber", portNumber);
 		String javaRosaVersion = request.getHeader("X-OpenRosa-Version");
 		ArrayList<org.smap.sdal.model.Survey> surveys = null;
 		
@@ -219,10 +221,10 @@ public class FormListManager {
 			port = ":" + String.valueOf(portNumber);
 		}
 		
-		if(portNumber == 443) {
-			protocol = "https://";
-		} else {
+		if(portNumber == 80) {
 			protocol = "http://";
+		} else {
+			protocol = "https://";
 		}
 
 		// Extract the data

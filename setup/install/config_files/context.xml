@@ -21,6 +21,9 @@
     <!-- Default set of monitored resources -->
     <WatchedResource>WEB-INF/web.xml</WatchedResource>
 
+    <!-- <Environment name="server.host" value="example.com" type="java.lang.String"/> -->
+    <Environment name="server.port" value="61447" type="java.lang.Integer"/>
+
     <!-- Uncomment this to disable session persistence across Tomcat restarts -->
     <!--
     <Manager pathname="" />
