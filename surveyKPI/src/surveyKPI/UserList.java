@@ -44,6 +44,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.DocumentUploadManager;
@@ -443,6 +444,8 @@ public class UserList extends Application {
 		
 		// End Authorisation
 	
+		ServerSettings.setBasePath(request);
+		
 		PreparedStatement pstmt = null;
 		try {	
 			

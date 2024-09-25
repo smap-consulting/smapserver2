@@ -544,8 +544,15 @@ public class AssignmentsManager {
 			sql = new StringBuilder("select " + "o.ft_delete," + "o.ft_send_location, " + "o.ft_sync_incomplete, "
 					+ "o.ft_odk_style_menus, " + "o.ft_specify_instancename, " + "o.ft_mark_finalized, "
 					+ "o.ft_prevent_disable_track, " + "o.ft_enable_geofence, " + "o.ft_admin_menu, "
-					+ "o.ft_server_menu, " + "o.ft_meta_menu, " + "o.ft_exit_track_menu, " + "o.ft_bg_stop_menu, "
-					+ "o.ft_review_final, " + "o.ft_send," + "o.ft_image_size," + "o.ft_backward_navigation,"
+					+ "o.ft_server_menu, " 
+					+ "o.ft_meta_menu, " 
+					+ "o.ft_exit_track_menu, " 
+					+ "o.ft_bg_stop_menu, "
+					+ "o.ft_review_final, " 
+					+ "o.ft_force_token, " 
+					+ "o.ft_send," 
+					+ "o.ft_image_size," 
+					+ "o.ft_backward_navigation,"
 					+ "o.ft_navigation," + "o.ft_pw_policy," + "o.ft_high_res_video," + "o.ft_guidance,"
 					+ "o.ft_input_method," + "o.ft_im_ri," + "o.ft_im_acc " + "from organisation o, users u "
 					+ "where u.o_id = o.id " + "and u.ident = ?");
@@ -574,6 +581,7 @@ public class AssignmentsManager {
 				tr.settings.ft_exit_track_menu = resultSet.getBoolean("ft_exit_track_menu");
 				tr.settings.ft_bg_stop_menu = resultSet.getBoolean("ft_bg_stop_menu");
 				tr.settings.ft_review_final = resultSet.getBoolean("ft_review_final");
+				tr.settings.ft_force_token = resultSet.getBoolean("ft_force_token");
 				tr.settings.ft_send = resultSet.getString("ft_send");
 				tr.settings.ft_send_wifi = Organisation.get_ft_send_wifi(tr.settings.ft_send);
 				tr.settings.ft_send_wifi_cell = Organisation.get_ft_send_wifi_cell(tr.settings.ft_send);

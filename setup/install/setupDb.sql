@@ -193,6 +193,7 @@ create TABLE organisation (
 	ft_exit_track_menu boolean default false,
 	ft_bg_stop_menu boolean default false,
 	ft_review_final boolean default true,
+	ft_force_token boolean default false,
 	ft_send text,
 	ft_pw_policy integer default -1,
 	ft_number_tasks integer default 20,

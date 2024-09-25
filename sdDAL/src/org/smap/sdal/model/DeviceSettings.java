@@ -32,6 +32,7 @@ public class DeviceSettings {
 	public boolean ft_exit_track_menu;
 	public boolean ft_bg_stop_menu;
 	public boolean ft_review_final;
+	public boolean ft_force_token;
 	public String ft_send;
 	public int ft_number_tasks;
 	public String ft_image_size;
