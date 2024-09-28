@@ -203,7 +203,7 @@ public class SMSManager {
 	/*
 	 * Write a text conversation to the results table
 	 */
-	public void writeMessageToResults(Connection sd, 
+	public void writeInboundMessageToResults(Connection sd, 
 			Connection cResults,
 			SubscriberEvent se,
 			String instanceid,
@@ -416,7 +416,7 @@ public class SMSManager {
 	/*
 	 * Append new message details to existing
 	 */
-	private ArrayList<SMSDetails> getMessageText(SMSDetails sms, ArrayList<SMSDetails> current) {
+	public ArrayList<SMSDetails> getMessageText(SMSDetails sms, ArrayList<SMSDetails> current) {
 		ArrayList<SMSDetails> conversation = null;
 		
 		if(current != null) {

@@ -1120,13 +1120,17 @@ public class NotificationManager {
 						/*
 						 * Update the conversation
 						 */
-						SubscriberEvent se = new SubscriberEvent();
-						SMSDetails sms = new SMSDetails(toNumber, msg.ourNumber, msg.content, false, msg.ts);
-						SMSManager smsMgr = new SMSManager(localisation, tz);
-						smsMgr.writeMessageToResults(sd, cResults, se, msg.instanceId, sms, 0, 0);
+						ConversationManager conversationMgr = new ConversationManager(localisation, tz);
+						conversationMgr.writeConversationToResults(sd, 
+								cResults, 
+								msg.instanceId, msg.survey_ident,  
+								msg.ourNumber,
+								toNumber,
+								false, 
+								msg.content);
 						
-						status = se.getStatus();
-						error_details = se.getReason();
+						status = response.getMessageUuid() == null ? "success" : "error";
+						error_details = "";
 						
 						if("success".equals(status)) {
 							notify_details = localisation.getString("msg_sms_sent");

@@ -169,7 +169,7 @@ public class SubmissionProcessor {
 								SMSDetails sms = gson.fromJson(ue.getPayload(), SMSDetails.class);
 								
 								try {
-									smsMgr.writeMessageToResults(dbc.sd, 
+									smsMgr.writeInboundMessageToResults(dbc.sd, 
 											dbc.results,
 											se,
 											ue.getInstanceId(),

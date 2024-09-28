@@ -59,6 +59,7 @@ public class RecordEventManager {
 	public static String DELETED = "deleted";
 	public static String RESTORED = "restored";
 	public static String INBOUND_MESSAGE = "inbound_msg";
+	public static String OUTBOUND_MESSAGE = "outbound_msg";
 	
 	public static String STATUS_SUCCESS = "success";
 	public static String STATUS_NEW = "new";

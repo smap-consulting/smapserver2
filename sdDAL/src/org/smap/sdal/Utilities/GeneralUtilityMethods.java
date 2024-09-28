@@ -6325,6 +6325,38 @@ public class GeneralUtilityMethods {
 
 		return table;
 	}
+	
+	/*
+	 * Get the conversation column for a survey using the survey ident 
+	 */
+	public static String getConversationColumn(Connection sd, int sId) {
+		String conv = null;
+
+		String sql = "select column_name from question "
+				+ "where qtype = 'conversation' "
+				+ "and f_id  = (select f_id from form where parentform = 0 and s_id = ?) ";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+
+			log.info("Get conversation question: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				conv = rs.getString(1);
+			}
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+		} finally {
+			try {	if (pstmt != null) {	pstmt.close();}} catch (Exception e) {}
+		}
+
+		return conv;
+	}
+	
 
 	/*
 	 * Check for the existence of a table for a subform identified by its parent question
