@@ -927,6 +927,20 @@ public class NotificationManager {
 							filePath, filename, messageId, createPending, topic, msg.user, serverName, 
 							survey.surveyData.displayName, survey.surveyData.projectName, msg.subject, msg.from, msg.content, msg.scheme, msg);
 					
+					/*
+					 * Update the conversation
+					 */
+					if("success".equals(resp.status)) {
+						ConversationManager conversationMgr = new ConversationManager(localisation, tz);
+						conversationMgr.writeConversationToResults(sd, 
+								cResults, 
+								msg.instanceId, msg.survey_ident,  
+								msg.ourNumber,
+								emails,
+								false, 
+								msg.content);
+					}
+					
 					notify_details = resp.notify_details;
 					status = resp.status;
 					error_details = resp.error_details;
