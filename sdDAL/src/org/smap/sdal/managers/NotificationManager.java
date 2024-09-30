@@ -726,7 +726,8 @@ public class NotificationManager {
 							null,					// Report Period
 							0,						// Report Id
 							nd.ourNumber,
-							nd.ts);
+							nd.ts
+							);
 					mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 
 					lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
@@ -917,27 +918,33 @@ public class NotificationManager {
 				notify_details = null;				// Notification log
 				error_details = null;				// Notification log
 				if(msg.target.equals("email")) {
-					
+					ConversationManager conversationMgr = new ConversationManager(localisation, tz);
 					EmailManager em = new EmailManager(localisation);
 					String emails = em.getEmails(sd, cResults, surveyId, msg);
-					SendEmailResponse resp = em.sendEmails(sd, cResults, log, emails, organisation, surveyId, logContent, docURL, survey.surveyData.displayName, unsubscribedList,
-							filePath, filename, messageId, createPending, topic, msg.user, serverName, 
-							survey.surveyData.displayName, survey.surveyData.projectName, msg.subject, msg.from, msg.content, msg.scheme, msg);
 					
 					/*
 					 * Update the conversation
 					 */
-					if("success".equals(resp.status)) {
-						ConversationManager conversationMgr = new ConversationManager(localisation, tz);
-						conversationMgr.writeConversationToResults(sd, 
-								cResults, 
-								msg.instanceId, msg.survey_ident,  
-								msg.ourNumber,
-								emails,
-								false, 
-								msg.content);
+					int prikey = conversationMgr.writeConversationToResults(sd, 
+							cResults, 
+							msg.instanceId, msg.survey_ident,  
+							msg.ourNumber,
+							emails,
+							false, 
+							msg.subject + " - " + msg.content);
+					String caseReference = null;
+					if(prikey > 0) {
+						caseReference = surveyId + "-" + prikey;
 					}
-					
+ 
+					SendEmailResponse resp = em.sendEmails(sd, cResults, log, emails, organisation, surveyId, 
+							logContent, docURL, survey.surveyData.displayName, unsubscribedList,
+							filePath, filename, messageId, createPending, topic, msg.user, serverName, 
+							survey.surveyData.displayName, survey.surveyData.projectName, msg.subject, msg.from, 
+							msg.content, 
+							caseReference,
+							msg.scheme, msg);
+									
 					notify_details = resp.notify_details;
 					status = resp.status;
 					error_details = resp.error_details;
@@ -1112,34 +1119,43 @@ public class NotificationManager {
 					em.sendEmails(sd, cResults, log, emails, organisation, surveyId, logContent, docURL, survey.surveyData.displayName, unsubscribedList,
 							filePath, filename, messageId, createPending, topic, msg.user, serverName,
 							survey.surveyData.displayName, survey.surveyData.projectName,
-							msg.subject, msg.from, msg.content, msg.scheme, msg);
+							msg.subject, msg.from, msg.content, null, msg.scheme, msg);		// reference is null therefore cannot reply
 					
 				} else if(msg.target.equals("conversation")) {
 					log.info("+++++ conversation notification");
 					String toNumber = msg.emails.get(0);
 					
 					if(vonageClient != null) {
-						MessagesClient messagesClient = vonageClient.getMessagesClient(); // TODO check for null	
-
-						MessageRequest message = SmsTextRequest.builder()
-								.from(msg.ourNumber).to(toNumber)		// TODO from number
-								.text(msg.content)
-								.build();
 	
-						MessageResponse response = messagesClient.sendMessage(message);
-
 						/*
 						 * Update the conversation
+						 * Get the primary key in response to use as the case reference
 						 */
 						ConversationManager conversationMgr = new ConversationManager(localisation, tz);
-						conversationMgr.writeConversationToResults(sd, 
+						int prikey = conversationMgr.writeConversationToResults(sd, 
 								cResults, 
 								msg.instanceId, msg.survey_ident,  
 								msg.ourNumber,
 								toNumber,
 								false, 
 								msg.content);
+						String msgText = msg.content;
+						if(prikey > 0) {
+							msgText += " #" + prikey;
+						}
 						
+						/*
+						 * Send message
+						 */
+						MessagesClient messagesClient = vonageClient.getMessagesClient(); // TODO check for null	
+
+						MessageRequest message = SmsTextRequest.builder()
+								.from(msg.ourNumber).to(toNumber)		// TODO from number
+								.text(msgText)
+								.build();
+						
+						MessageResponse response = messagesClient.sendMessage(message);
+			
 						status = response.getMessageUuid() == null ? "success" : "error";
 						error_details = "";
 						
@@ -1342,7 +1358,7 @@ public class NotificationManager {
 				SendEmailResponse resp = em.sendEmails(sd, cResults, log, 
 						emails, organisation, sId, logContent, docURL, msg.title, unsubscribedList,
 						filePath, filename, messageId, createPending, topic, msg.user, serverName, surveyName, projectName,
-						msg.subject, msg.from, msg.content, msg.scheme, msg);
+						msg.subject, msg.from, msg.content, null, msg.scheme, msg);		// Reference is null therefore cannot reply
 
 				notify_details = resp.notify_details;
 				status = resp.status;

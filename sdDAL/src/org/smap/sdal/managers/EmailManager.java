@@ -155,6 +155,7 @@ public class EmailManager {
 			String subject,
 			String from,
 			String msgContent,
+			String caseReference,
 			String scheme,
 			SubmissionMessage msg		// Used if saving to pending
 			) throws Exception {
@@ -176,6 +177,9 @@ public class EmailManager {
 						subject = "Smap ";
 					}
 					subject += localisation.getString("c_notify");
+				}
+				if(caseReference != null) {
+					subject += " #" + caseReference; 
 				}
 
 				if(from == null || from.trim().length() == 0) {

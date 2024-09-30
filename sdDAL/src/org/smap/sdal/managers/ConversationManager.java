@@ -59,7 +59,7 @@ public class ConversationManager {
 	/*
 	 * Write a conversation update to the results table
 	 */
-	public void writeConversationToResults(Connection sd, 
+	public int writeConversationToResults(Connection sd, 
 			Connection cResults,
 			String instanceid,
 			String surveyIdent,
@@ -70,6 +70,8 @@ public class ConversationManager {
 		
 		PreparedStatement pstmtGet = null;
 		PreparedStatement pstmt = null;
+		
+		int prikey = 0;
 		
 		try {
 			
@@ -86,7 +88,7 @@ public class ConversationManager {
 			log.info("Update existing entry with instanceId: " + instanceid);
 			ArrayList<SMSDetails> currentConv = null;
 			Type type = new TypeToken<ArrayList<SMSDetails>>() {}.getType();
-			StringBuilder sqlGet = new StringBuilder("select ")
+			StringBuilder sqlGet = new StringBuilder("select prikey, ")
 					.append(messageColumn)
 					.append(" from ")
 					.append(tableName)
@@ -96,7 +98,8 @@ public class ConversationManager {
 			log.info("Get existing: " + pstmtGet.toString());
 			ResultSet rsGet = pstmtGet.executeQuery();
 			if(rsGet.next()) {
-				String currentConvString = rsGet.getString(1);
+				prikey = rsGet.getInt("prikey");
+				String currentConvString = rsGet.getString(2);
 				if(currentConvString != null) {
 					currentConv = gson.fromJson(currentConvString, type);
 				}
@@ -142,6 +145,8 @@ public class ConversationManager {
 			if(pstmtGet != null) {try {pstmtGet.close();} catch (Exception e) {}}
 			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}}
 		}
+		
+		return prikey;
 	}
 	
 	

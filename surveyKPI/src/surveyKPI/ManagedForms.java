@@ -390,6 +390,7 @@ public class ManagedForms extends Application {
 							localisation.getString("mf_ca"),	// Subject
 							null, 								// from
 							content, 							// Message content
+							null,								// Case reference
 							request.getScheme(), 
 							null								// Submission message
 							);
