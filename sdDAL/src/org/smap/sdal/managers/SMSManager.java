@@ -53,8 +53,6 @@ public class SMSManager {
 	private static Logger log =
 			 Logger.getLogger(SMSManager.class.getName());
 	
-	private static LogManager lm = new LogManager();		// Application log
-	
 	private Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create(); 
 	
 	private String sqlGetNumber = "select "

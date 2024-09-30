@@ -4,22 +4,13 @@ import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.smap.sdal.Utilities.AdvisoryLock;
-import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.legacy.UtilityMethods;
-import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.SMSDetails;
-import org.smap.sdal.model.SMSNumber;
-import org.smap.sdal.model.SubscriberEvent;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -54,18 +45,7 @@ public class ConversationManager {
 	private static Logger log =
 			 Logger.getLogger(ConversationManager.class.getName());
 	
-	private static LogManager lm = new LogManager();		// Application log
-	
 	private Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create(); 
-	
-	private String sqlGetNumber = "select "
-			+ "element_identifier,"
-			+ "our_number,"
-			+ "survey_ident,"
-			+ "their_number_question,"
-			+ "message_question,"
-			+ "o_id "
-			+ "from sms_number ";
 	
 	private ResourceBundle localisation;
 	private String tz;
