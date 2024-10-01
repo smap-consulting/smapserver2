@@ -68,7 +68,7 @@ public class EmailManager {
 			String subject,
 			StringBuilder template,
 			String type,
-			int emailId) throws SQLException, ApplicationException {
+			String emailId) throws SQLException, ApplicationException {
 				
 		EmailServer emailServer = null;
 		SubscriptionStatus subStatus = null;
@@ -178,9 +178,6 @@ public class EmailManager {
 					}
 					subject += localisation.getString("c_notify");
 				}
-				if(caseReference != null) {
-					subject += " #" + caseReference; 
-				}
 
 				if(from == null || from.trim().length() == 0) {
 					from = "smap";
@@ -271,7 +268,7 @@ public class EmailManager {
 										null,
 										organisation.getAdminEmail(),
 										organisation.getEmailFooter(),
-										GeneralUtilityMethods.getNextEmailId(sd));
+										GeneralUtilityMethods.getNextEmailId(sd, caseReference));
 
 							} else {
 								/*
@@ -330,7 +327,7 @@ public class EmailManager {
 			HashMap<String, String> tokens,
 			String adminEmail,
 			String orgFooter,
-			int emailId) throws Exception  {
+			String emailId) throws Exception  {
 
 		/* 
 		 * Create the content

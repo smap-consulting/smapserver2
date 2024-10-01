@@ -23,7 +23,7 @@ abstract public class EmailServer {
 	}
 	
 	public abstract void send(String email, String ccType, String subject, 
-			int emailId, 
+			String emailId, 
 			String contentString,
 			String filePath,
 			String filename) throws Exception;

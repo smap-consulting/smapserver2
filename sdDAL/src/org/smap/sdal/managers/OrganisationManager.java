@@ -246,7 +246,7 @@ public class OrganisationManager {
 										null,
 										null,
 										null,
-										GeneralUtilityMethods.getNextEmailId(sd));
+										GeneralUtilityMethods.getNextEmailId(sd, null));
 							} catch(Exception e) {
 								lm.writeLogOrganisation(sd, o.id, userIdent, LogManager.ORGANISATION_UPDATE, e.getMessage(), 0);
 							}

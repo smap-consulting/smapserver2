@@ -783,7 +783,6 @@ public class NotificationManager {
 		boolean writeToMonitor = true;
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 
-
 		boolean generateBlank =  (msg.instanceId == null) ? true : false;	// If false only show selected options
 
 		PreparedStatement pstmtGetSMSUrl = null;
@@ -1551,7 +1550,7 @@ public class NotificationManager {
 													null,
 													organisation.getAdminEmail(),
 													organisation.getEmailFooter(),
-													GeneralUtilityMethods.getNextEmailId(sd));
+													GeneralUtilityMethods.getNextEmailId(sd, null));
 										} else {
 											/*
 											 * User needs to opt in before email can be sent

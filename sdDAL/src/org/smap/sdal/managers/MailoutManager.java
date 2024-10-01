@@ -764,7 +764,7 @@ public class MailoutManager {
 													null,
 													organisation.getAdminEmail(),
 													organisation.getEmailFooter(),
-													GeneralUtilityMethods.getNextEmailId(sd)
+													GeneralUtilityMethods.getNextEmailId(sd, null)
 													);
 											
 											if(subStatus.optedInSent == null) {

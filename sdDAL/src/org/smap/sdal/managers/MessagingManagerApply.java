@@ -315,7 +315,7 @@ public class MessagingManagerApply {
 												null,
 												organisation.getAdminEmail(), 
 												null,
-												GeneralUtilityMethods.getNextEmailId(sd)
+												GeneralUtilityMethods.getNextEmailId(sd, null)
 												);
 									}
 								}

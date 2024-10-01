@@ -771,7 +771,7 @@ public class UserManager {
 						customTokens,
 						organisation.getAdminEmail(),
 						organisation.getEmailFooter(),
-						GeneralUtilityMethods.getNextEmailId(sd));
+						GeneralUtilityMethods.getNextEmailId(sd, null));
 
 			}
 			

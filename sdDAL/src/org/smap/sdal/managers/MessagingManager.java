@@ -299,7 +299,7 @@ public class MessagingManager {
 						null,
 						adminEmail,
 						null,
-						GeneralUtilityMethods.getNextEmailId(sd));
+						GeneralUtilityMethods.getNextEmailId(sd, null));
 				
 			} else {
 				log.info("##### - Specific optin message does not need to be sent");

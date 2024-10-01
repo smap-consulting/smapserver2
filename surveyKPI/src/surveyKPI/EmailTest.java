@@ -49,7 +49,7 @@ public class EmailTest extends Application {
 		EmitAwsSES mgr = new EmitAwsSES("ap-southeast-2", 
 				GeneralUtilityMethods.getBasePath(request));
 		InternetAddress[] recipients = InternetAddress.parse("neilpenman@gmail.com");
-		mgr.sendSES(recipients, "Hello There", 1, "Email Body", null, null);
+		mgr.sendSES(recipients, "Hello There", "1", "Email Body", null, null);
 
 	}
 

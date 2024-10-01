@@ -3456,7 +3456,7 @@ public class TaskManager {
 													null,
 													organisation.getAdminEmail(),
 													organisation.getEmailFooter(),
-													GeneralUtilityMethods.getNextEmailId(sd));
+													GeneralUtilityMethods.getNextEmailId(sd, null));
 											
 											setAssignmentStatus(sd, msg.aId, "accepted");
 											

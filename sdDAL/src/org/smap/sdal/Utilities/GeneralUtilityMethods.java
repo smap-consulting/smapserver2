@@ -10982,20 +10982,23 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the next email ID
 	 */
-	public static int getNextEmailId(Connection sd) throws SQLException {
-		int id = 0;
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = sd.prepareStatement("select nextval('email_id')");
-			
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				id = rs.getInt(1);
+	public static String getNextEmailId(Connection sd, String caseReference) throws SQLException {
+		String emailId = caseReference;
+		
+		if(emailId == null) {
+			PreparedStatement pstmt = null;
+			try {
+				pstmt = sd.prepareStatement("select nextval('email_id')");
+				
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					emailId = rs.getString(1);
+				}
+			} finally {
+				if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 			}
-		} finally {
-			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 		}
-		return id;
+		return emailId;
 	}
 
 	public static String getUTCDateTimeSuffix() {

@@ -43,7 +43,7 @@ public class SmtpEmailServer extends EmailServer {
 	
 	@Override
 	public void send(String email, String ccType, String subject, 
-			int emailId, 
+			String emailId, 
 			String contentString,
 			String filePath,
 			String filename) throws Exception {

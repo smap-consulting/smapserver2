@@ -338,7 +338,7 @@ public class XFormData {
 				EmailManager em = new EmailManager(localisation);
 				StringBuilder template = new StringBuilder(localisation.getString("submission_limit_email"));
 				em.alertAdministrator(sd, survey.surveyData.o_id, user, localisation, serverName, reason,
-						template, LogManager.SUBMISSION, GeneralUtilityMethods.getNextEmailId(sd));
+						template, LogManager.SUBMISSION, GeneralUtilityMethods.getNextEmailId(sd, null));
 
 				throw new ApplicationException("blocked::" + reason);
 			} else {

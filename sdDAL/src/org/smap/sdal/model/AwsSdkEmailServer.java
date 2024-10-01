@@ -17,7 +17,7 @@ public class AwsSdkEmailServer extends EmailServer {
 	}
 	
 	@Override
-	public void send(String email, String ccType, String subject, int emailId, String contentString, String filePath,
+	public void send(String email, String ccType, String subject, String emailId, String contentString, String filePath,
 			String filename) throws Exception {
 
 		/*
