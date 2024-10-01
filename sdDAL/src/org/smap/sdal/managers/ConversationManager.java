@@ -85,60 +85,64 @@ public class ConversationManager {
 			int sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
 			String messageColumn = GeneralUtilityMethods.getConversationColumn(sd, sId);	
 			
-			log.info("Update existing entry with instanceId: " + instanceid);
-			ArrayList<SMSDetails> currentConv = null;
-			Type type = new TypeToken<ArrayList<SMSDetails>>() {}.getType();
-			StringBuilder sqlGet = new StringBuilder("select prikey, ")
-					.append(messageColumn)
-					.append(" from ")
-					.append(tableName)
-					.append(" where instanceid = ?");
-			pstmtGet = cResults.prepareStatement(sqlGet.toString());
-			pstmtGet.setString(1, instanceid);
-			log.info("Get existing: " + pstmtGet.toString());
-			ResultSet rsGet = pstmtGet.executeQuery();
-			if(rsGet.next()) {
-				prikey = rsGet.getInt("prikey");
-				String currentConvString = rsGet.getString(2);
-				if(currentConvString != null) {
-					currentConv = gson.fromJson(currentConvString, type);
+			if(tableName != null && messageColumn != null && sId > 0) {
+				log.info("Update existing entry with instanceId: " + instanceid);
+				ArrayList<SMSDetails> currentConv = null;
+				Type type = new TypeToken<ArrayList<SMSDetails>>() {}.getType();
+				StringBuilder sqlGet = new StringBuilder("select prikey, ")
+						.append(messageColumn)
+						.append(" from ")
+						.append(tableName)
+						.append(" where instanceid = ?");
+				pstmtGet = cResults.prepareStatement(sqlGet.toString());
+				pstmtGet.setString(1, instanceid);
+				log.info("Get existing: " + pstmtGet.toString());
+				ResultSet rsGet = pstmtGet.executeQuery();
+				if(rsGet.next()) {
+					prikey = rsGet.getInt("prikey");
+					String currentConvString = rsGet.getString(2);
+					if(currentConvString != null) {
+						currentConv = gson.fromJson(currentConvString, type);
+					}
 				}
-			}
+						
+				// Create update statement
+				StringBuilder sql = new StringBuilder("update ")
+						.append(tableName)
+						.append(" set ")
+						.append(messageColumn)
+						.append(" = ? where instanceid = ?");
+				pstmt = cResults.prepareStatement(sql.toString());
+				pstmt.setString(1, gson.toJson(smsMgr.getMessageText(msg, currentConv)));
+				pstmt.setString(2, instanceid);			
 					
-			// Create update statement
-			StringBuilder sql = new StringBuilder("update ")
-					.append(tableName)
-					.append(" set ")
-					.append(messageColumn)
-					.append(" = ? where instanceid = ?");
-			pstmt = cResults.prepareStatement(sql.toString());
-			pstmt.setString(1, gson.toJson(smsMgr.getMessageText(msg, currentConv)));
-			pstmt.setString(2, instanceid);			
-				
-			log.info("Process sms: " + pstmt.toString());
-			pstmt.executeUpdate();
-				
-			/*
-			 * Update the history for the record
-			 */
-			String hEntry = localisation.getString("msg_sms_received");
-			hEntry = hEntry.replaceAll("%s1",  msg.msg);
-			hEntry = hEntry.replaceAll("%s2", theirAddress);
-			RecordEventManager rem = new RecordEventManager();
-			rem.writeEvent(sd, cResults, 
-						inbound ? RecordEventManager.INBOUND_MESSAGE : RecordEventManager.OUTBOUND_MESSAGE, 
-						RecordEventManager.STATUS_SUCCESS,
-						theirAddress, 
-						tableName, 
-						instanceid, 
-						null, 					// Change object
-						null, 					// Task object
-						null,					// Notification object
-						hEntry, 					// Description
-						0, 						// sID legacy
-						surveyIdent,			// Survey Ident
-						0,
-						0);	
+				log.info("Process sms: " + pstmt.toString());
+				pstmt.executeUpdate();
+					
+				/*
+				 * Update the history for the record
+				 */
+				String hEntry = localisation.getString("msg_sms_received");
+				hEntry = hEntry.replaceAll("%s1",  msg.msg);
+				hEntry = hEntry.replaceAll("%s2", theirAddress);
+				RecordEventManager rem = new RecordEventManager();
+				rem.writeEvent(sd, cResults, 
+							inbound ? RecordEventManager.INBOUND_MESSAGE : RecordEventManager.OUTBOUND_MESSAGE, 
+							RecordEventManager.STATUS_SUCCESS,
+							theirAddress, 
+							tableName, 
+							instanceid, 
+							null, 					// Change object
+							null, 					// Task object
+							null,					// Notification object
+							hEntry, 				// Description
+							0, 						// sID legacy
+							surveyIdent,			// Survey Ident
+							0,
+							0);	
+			} else {
+				log.info("Error: Conversation question not found");
+			}
 			
 		} finally {
 			

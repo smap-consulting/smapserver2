@@ -933,7 +933,7 @@ public class NotificationManager {
 							msg.subject + " - " + msg.content);
 					String caseReference = null;
 					if(prikey > 0) {
-						caseReference = surveyId + "-" + prikey;
+						caseReference = "#" + surveyId + "-" + prikey;
 					}
  
 					SendEmailResponse resp = em.sendEmails(sd, cResults, log, emails, organisation, surveyId, 

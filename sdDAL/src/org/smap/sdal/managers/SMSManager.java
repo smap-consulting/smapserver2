@@ -233,78 +233,66 @@ public class SMSManager {
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, smsNumber.surveyIdent);
 				String theirNumberColumn = GeneralUtilityMethods.getColumnName(sd, sId, smsNumber.theirNumberQuestion);
 				String messageColumn = GeneralUtilityMethods.getColumnName(sd, sId, smsNumber.messageQuestion);	
-				
-				/*
-				 * Get the case details
-				 */
-				String statusQuestion = null;
-				String finalStatus = null;
-				CaseManager cm = new CaseManager(localisation);
-				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
-				CMS caseSettings = cm.getCaseManagementSettings(sd, groupSurveyIdent);
-				if(caseSettings != null) {
-					statusQuestion = caseSettings.settings.statusQuestion;
-					finalStatus = caseSettings.settings.finalStatus;
-				}
-				
-				/*
-				 * Check to see if there is an existing case for this number
-				 */
-				int existingPrikey = 0;
 				String existingInstanceId = null;
-				boolean checkStatus = false;
-				if(tableName != null) {
-					StringBuilder sqlExists = new StringBuilder("select prikey, instanceid from ")
-							.append(tableName)
-							.append(" where not _bad and ")
-							.append(theirNumberColumn)
-							.append(" = ? ");
-					
-					if(statusQuestion != null && finalStatus != null) {
-						checkStatus  = true;
-						String statusColumn = GeneralUtilityMethods.getColumnName(sd, sId, statusQuestion);
-						sqlExists.append(" and (")
-							.append(statusColumn)
-							.append(" is null or ")
-							.append(statusColumn)
-							.append(" != ?)");
-					}
-					
-					pstmtExists = cResults.prepareStatement(sqlExists.toString());
-					pstmtExists.setString(1, sms.theirNumber);
-					if(checkStatus) {
-						pstmtExists.setString(2, finalStatus);
-					}
-					log.info("Check for existing cases: " + pstmtExists.toString());
-					ResultSet rs = pstmtExists.executeQuery();
-					if(rs.next()) {
-						existingPrikey = rs.getInt("prikey");
-						existingInstanceId = rs.getString("instanceid");
-					}
-					rs.close();
-				}
 				
+				/*
+				 * Check to see if there is a reference to a case in the message
+				 */
+				int existingPrikey = getReference(sms.msg);
+				
+				/*
+				 * If there is no case reference then check to see if there is an existing case for this number
+				 */
 				if(existingPrikey == 0) {
-					existingInstanceId = instanceid;
 					
 					/*
-					 * Create new entry
+					 * Get the case details
 					 */
-					log.info("Create new entry ");
-					StringBuilder sql = new StringBuilder("insert into ")
-							.append(tableName)
-							.append(" (_user, instanceid, _thread")
-							.append(",").append(theirNumberColumn)
-							.append(",").append(messageColumn)
-							.append(") values(?, ?, ?, ?, ?)");
-					pstmt = cResults.prepareStatement(sql.toString());
-					pstmt.setString(1, sms.ourNumber);
-					pstmt.setString(2,  instanceid);
-					pstmt.setString(3,  instanceid);	// thread
-					pstmt.setString(4, sms.theirNumber);
-					pstmt.setString(5, gson.toJson(getMessageText(sms, null)));
+					String statusQuestion = null;
+					String finalStatus = null;
+					CaseManager cm = new CaseManager(localisation);
+					String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+					CMS caseSettings = cm.getCaseManagementSettings(sd, groupSurveyIdent);
+					if(caseSettings != null) {
+						statusQuestion = caseSettings.settings.statusQuestion;
+						finalStatus = caseSettings.settings.finalStatus;
+					}
 					
-				} else {
+					boolean checkStatus = false;
+					if(tableName != null) {
+						StringBuilder sqlExists = new StringBuilder("select prikey, instanceid from ")
+								.append(tableName)
+								.append(" where not _bad and ")
+								.append(theirNumberColumn)
+								.append(" = ? ");
+						
+						if(statusQuestion != null && finalStatus != null) {
+							checkStatus  = true;
+							String statusColumn = GeneralUtilityMethods.getColumnName(sd, sId, statusQuestion);
+							sqlExists.append(" and (")
+								.append(statusColumn)
+								.append(" is null or ")
+								.append(statusColumn)
+								.append(" != ?)");
+						}
+						
+						pstmtExists = cResults.prepareStatement(sqlExists.toString());
+						pstmtExists.setString(1, sms.theirNumber);
+						if(checkStatus) {
+							pstmtExists.setString(2, finalStatus);
+						}
+						log.info("Check for existing cases: " + pstmtExists.toString());
+						ResultSet rs = pstmtExists.executeQuery();
+						if(rs.next()) {
+							existingPrikey = rs.getInt("prikey");
+							existingInstanceId = rs.getString("instanceid");
+						}
+						rs.close();
+					}
+				}	
+				
+				int count = 0;
+				if(existingPrikey > 0) {
 					/*
 					 * Update existing entry
 					 */
@@ -335,12 +323,42 @@ public class SMSManager {
 							.append(" = ? where prikey = ?");
 					pstmt = cResults.prepareStatement(sql.toString());
 					pstmt.setString(1, gson.toJson(getMessageText(sms, currentConv)));
-					pstmt.setInt(2, existingPrikey);			
-				}
+					pstmt.setInt(2, existingPrikey);	
+					log.info("Update existing sms case: " + pstmt.toString());
+					count = pstmt.executeUpdate();
+					if(count == 0) {
+						log.info("Tried to update an existing case but nothing was updated");
+					}
+				} 
 				
-				log.info("Process sms: " + pstmt.toString());
-				pstmt.executeUpdate();
-				
+				/*
+				 * Create a new entry if an existing entry was not updated
+				 */
+				if(count == 0) {
+
+					/*
+					 * Create new entry
+					 */
+					log.info("Create new entry ");
+					existingInstanceId = instanceid;
+					StringBuilder sql = new StringBuilder("insert into ")
+							.append(tableName)
+							.append(" (_user, instanceid, _thread")
+							.append(",").append(theirNumberColumn)
+							.append(",").append(messageColumn)
+							.append(") values(?, ?, ?, ?, ?)");
+					if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}}
+					pstmt = cResults.prepareStatement(sql.toString());
+					pstmt.setString(1, sms.ourNumber);
+					pstmt.setString(2,  instanceid);
+					pstmt.setString(3,  instanceid);	// thread
+					pstmt.setString(4, sms.theirNumber);
+					pstmt.setString(5, gson.toJson(getMessageText(sms, null)));
+					log.info("Create new sms case: " + pstmt.toString());
+					count = pstmt.executeUpdate();
+					
+				} 
+					
 				/*
 				 * Update the history for the record
 				 */
@@ -472,6 +490,29 @@ public class SMSManager {
 			if(pstmtOrg != null) {try{pstmtOrg.close();}catch (Exception e) {}}
 			if(pstmtSurvey != null) {try{pstmtSurvey.close();}catch (Exception e) {}}
 		}
+	}
+	
+	/*
+	 * Get the primary key which acts as the reference for a case from the message
+	 */
+	private int getReference(String msg) {
+		int caseReference = 0;
+		if(msg != null) {
+			int idx = msg.lastIndexOf('#');
+			if(idx >= 0) {
+				String ref = msg.substring(idx + 1);
+				int idx2 = ref.indexOf(' ');
+				if(idx2 > 0) {
+					ref = ref.substring(0, idx2);
+				}
+				try {
+					caseReference = Integer.valueOf(ref);
+				} catch (Exception e) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
+			}
+		}
+		return caseReference;
 	}
 }
 
