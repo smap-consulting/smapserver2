@@ -163,7 +163,7 @@ public class NotificationManager {
 		if(n.name == null) {
 			n.name = "";
 		}
-		logMessage = logMessage.replaceAll("%s1", n.name);
+		logMessage = logMessage.replace("%s1", n.name);
 		lm.writeLog(sd, n.s_id, user, LogManager.CREATE, logMessage, 0, null);
 	}
 
@@ -287,11 +287,11 @@ public class NotificationManager {
 		if(n.name == null) {
 			n.name = "";
 		}
-		logMessage = logMessage.replaceAll("%s1", n.name);
+		logMessage = logMessage.replace("%s1", n.name);
 		if(n.notifyDetails.emails == null) {
-			logMessage = logMessage.replaceAll("%s2", "");
+			logMessage = logMessage.replace("%s2", "");
 		} else {
-			logMessage = logMessage.replaceAll("%s2", gson.toJson(n.notifyDetails.emails));
+			logMessage = logMessage.replace("%s2", gson.toJson(n.notifyDetails.emails));
 		}
 		lm.writeLog(sd, n.s_id, user, LogManager.CREATE, logMessage, 0, null);
 		
@@ -484,7 +484,7 @@ public class NotificationManager {
 			if(nName == null) {
 				nName = "";
 			}
-			logMessage = logMessage.replaceAll("%s1", nName);
+			logMessage = logMessage.replace("%s1", nName);
 			lm.writeLog(sd, sId, user, LogManager.DELETE, logMessage, 0, null);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
@@ -904,7 +904,7 @@ public class NotificationManager {
 						logContent = filePath;
 
 					} else {
-						docURL = "/webForm/" + msg.survey_ident +
+						docURL = "/app/myWork/webForm/" + msg.survey_ident +
 								"?datakey=instanceid&datakeyvalue=" + msg.instanceId;
 						logContent = docURL;
 					}
@@ -921,33 +921,38 @@ public class NotificationManager {
 					EmailManager em = new EmailManager(localisation);
 					String emails = em.getEmails(sd, cResults, surveyId, msg);
 					
-					/*
-					 * Update the conversation
-					 */
-					int prikey = conversationMgr.writeConversationToResults(sd, 
-							cResults, 
-							msg.instanceId, msg.survey_ident,  
-							msg.ourNumber,
-							emails,
-							false, 
-							msg.subject + " - " + msg.content);
-					String caseReference = null;
-					if(prikey > 0) {
-						caseReference = "#" + surveyId + "-" + prikey;
+					try {
+						/*
+						 * Update the conversation
+						 */
+						int prikey = conversationMgr.writeConversationToResults(sd, 
+								cResults, 
+								msg.instanceId, msg.survey_ident,  
+								msg.ourNumber,
+								emails,
+								false, 
+								msg.subject + " - " + msg.content);
+						String caseReference = null;
+						if(prikey > 0) {
+							caseReference = "#" + surveyId + "-" + prikey;
+						}
+	 
+						SendEmailResponse resp = em.sendEmails(sd, cResults, log, emails, organisation, surveyId, 
+								logContent, docURL, survey.surveyData.displayName, unsubscribedList,
+								filePath, filename, messageId, createPending, topic, msg.user, serverName, 
+								survey.surveyData.displayName, survey.surveyData.projectName, msg.subject, msg.from, 
+								msg.content, 
+								caseReference,
+								msg.scheme, msg);
+										
+						notify_details = resp.notify_details;
+						status = resp.status;
+						error_details = resp.error_details;
+						writeToMonitor = resp.writeToMonitor;
+					} catch (Exception e) {
+						status = "error";
+						error_details = e.getMessage();
 					}
- 
-					SendEmailResponse resp = em.sendEmails(sd, cResults, log, emails, organisation, surveyId, 
-							logContent, docURL, survey.surveyData.displayName, unsubscribedList,
-							filePath, filename, messageId, createPending, topic, msg.user, serverName, 
-							survey.surveyData.displayName, survey.surveyData.projectName, msg.subject, msg.from, 
-							msg.content, 
-							caseReference,
-							msg.scheme, msg);
-									
-					notify_details = resp.notify_details;
-					status = resp.status;
-					error_details = resp.error_details;
-					writeToMonitor = resp.writeToMonitor;
 					
 				} else if(msg.target.equals("sms")) {   // SMS URL notification - SMS message is posted to an arbitrary URL 
 
@@ -1035,9 +1040,9 @@ public class NotificationManager {
 
 					log.info("+++++ webhook call");
 					notify_details = localisation.getString("cb_nd");
-					notify_details = notify_details.replaceAll("%s1", msg.callback_url);
-					notify_details = notify_details.replaceAll("%s2", survey.surveyData.displayName);
-					notify_details = notify_details.replaceAll("%s3", survey.surveyData.projectName);
+					notify_details = notify_details.replace("%s1", msg.callback_url);
+					notify_details = notify_details.replace("%s2", survey.surveyData.displayName);
+					notify_details = notify_details.replace("%s3", survey.surveyData.projectName);
 
 					try {
 						JSONArray data = dm.getInstanceData(
@@ -1080,10 +1085,10 @@ public class NotificationManager {
 					
 					log.info("+++++ escalate notification");
 					notify_details = localisation.getString("esc_nd");
-					notify_details = notify_details.replaceAll("%s1", msg.instanceId);
-					notify_details = notify_details.replaceAll("%s2", survey.surveyData.displayName);
-					notify_details = notify_details.replaceAll("%s3", survey.surveyData.projectName);
-					notify_details = notify_details.replaceAll("%s4", assignTo);
+					notify_details = notify_details.replace("%s1", msg.instanceId);
+					notify_details = notify_details.replace("%s2", survey.surveyData.displayName);
+					notify_details = notify_details.replace("%s3", survey.surveyData.projectName);
+					notify_details = notify_details.replace("%s4", assignTo);
 
 					try {
 						String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
@@ -1160,25 +1165,25 @@ public class NotificationManager {
 						
 						if("success".equals(status)) {
 							notify_details = localisation.getString("msg_sms_sent");
-							notify_details = notify_details.replaceAll("%s1", msg.content);
-							notify_details = notify_details.replaceAll("%s2", msg.ourNumber);
-							notify_details = notify_details.replaceAll("%s3", toNumber);
-							notify_details = notify_details.replaceAll("%s4", response.getMessageUuid().toString());
+							notify_details = notify_details.replace("%s1", msg.content);
+							notify_details = notify_details.replace("%s2", msg.ourNumber);
+							notify_details = notify_details.replace("%s3", toNumber);
+							notify_details = notify_details.replace("%s4", response.getMessageUuid().toString());
 							log.info(notify_details);
 						} else {
 							notify_details = localisation.getString("msg_sms_not_updated");
-							notify_details =notify_details.replaceAll("%s1", msg.content);
-							notify_details =notify_details.replaceAll("%s2", msg.ourNumber);
-							notify_details =notify_details.replaceAll("%s3", toNumber);
+							notify_details = notify_details.replace("%s1", msg.content);
+							notify_details = notify_details.replace("%s2", msg.ourNumber);
+							notify_details = notify_details.replace("%s3", toNumber);
 						}
 					} else {
 						status = "error";
 						error_details = "Vonage client has not been configured";
 						
 						notify_details = localisation.getString("msg_sms_not_sent");
-						notify_details =notify_details.replaceAll("%s1", msg.content);
-						notify_details =notify_details.replaceAll("%s2", msg.ourNumber);
-						notify_details =notify_details.replaceAll("%s3", toNumber);
+						notify_details = notify_details.replace("%s1", msg.content);
+						notify_details = notify_details.replace("%s2", msg.ourNumber);
+						notify_details = notify_details.replace("%s3", toNumber);
 						
 						log.log(Level.SEVERE, "Vonage client has not been configured");
 					}

@@ -123,8 +123,8 @@ public class ConversationManager {
 				 * Update the history for the record
 				 */
 				String hEntry = localisation.getString("msg_sms_received");
-				hEntry = hEntry.replaceAll("%s1",  msg.msg);
-				hEntry = hEntry.replaceAll("%s2", theirAddress);
+				hEntry = hEntry.replace("%s1",  msg.msg);
+				hEntry = hEntry.replace("%s2", theirAddress);
 				RecordEventManager rem = new RecordEventManager();
 				rem.writeEvent(sd, cResults, 
 							inbound ? RecordEventManager.INBOUND_MESSAGE : RecordEventManager.OUTBOUND_MESSAGE, 
