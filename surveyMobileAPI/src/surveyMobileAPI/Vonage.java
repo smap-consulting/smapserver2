@@ -12,7 +12,7 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.JWTManager;
 import org.smap.sdal.managers.SMSManager;
-import org.smap.sdal.model.SMSDetails;
+import org.smap.sdal.model.ConversationItemDetails;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -55,7 +55,10 @@ public class Vonage extends Application {
 		    	 */
 		    	log.info("Sms: " + body);
 		        MessageVonage inbound = gson.fromJson(body, MessageVonage.class);
-		        SMSDetails sms = new SMSDetails(inbound.from, inbound.to, inbound.text, true, inbound.timestamp);
+		        ConversationItemDetails sms = new ConversationItemDetails(inbound.from, 
+		        		inbound.to, inbound.text, true, 
+		        		inbound.channel,
+		        		inbound.timestamp);
 	        
 		        /*
 		         * Save SMS message for further processing
@@ -101,7 +104,9 @@ public class Vonage extends Application {
     	 * Get message details
     	 */
         MessageVonage inbound = gson.fromJson(body, MessageVonage.class);
-        SMSDetails sms = new SMSDetails(inbound.from, inbound.to, inbound.text, true, inbound.timestamp);
+        ConversationItemDetails sms = new ConversationItemDetails(inbound.from, inbound.to, inbound.text, true, 
+        		inbound.channel,
+        		inbound.timestamp);
         
         /*
          * Save SMS message for further processing

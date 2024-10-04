@@ -28,7 +28,7 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.SMSDetails;
+import org.smap.sdal.model.ConversationItemDetails;
 import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.UploadEvent;
@@ -166,7 +166,7 @@ public class SubmissionProcessor {
 							if(SMSManager.SMS_TYPE.equals(ue.getType())) {
 								// SMS
 								log.info("------------ Processing SMS message");
-								SMSDetails sms = gson.fromJson(ue.getPayload(), SMSDetails.class);
+								ConversationItemDetails sms = gson.fromJson(ue.getPayload(), ConversationItemDetails.class);
 								
 								try {
 									smsMgr.writeInboundMessageToResults(dbc.sd, 

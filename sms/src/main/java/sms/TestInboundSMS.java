@@ -15,7 +15,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SMSManager;
-import org.smap.sdal.model.SMSDetails;
+import org.smap.sdal.model.ConversationItemDetails;
 
 /*
  * Test
@@ -41,7 +41,8 @@ public class TestInboundSMS extends Application {
 		
 		try {
 			Timestamp ts = new Timestamp(System.currentTimeMillis());
-			SMSDetails sms = new SMSDetails("9876543212", "0123456789", "Test number 5", true, ts);
+			ConversationItemDetails sms = new ConversationItemDetails("9876543212", "0123456789", "Test number 5", true, 
+					ConversationItemDetails.SMS_CHANNEL, ts);
     		sd = SDDataSource.getConnection(connectionString);
     		
     		SMSManager sim = new SMSManager(null,null);

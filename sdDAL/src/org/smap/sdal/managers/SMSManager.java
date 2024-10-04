@@ -15,7 +15,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.legacy.UtilityMethods;
 import org.smap.sdal.model.CMS;
-import org.smap.sdal.model.SMSDetails;
+import org.smap.sdal.model.ConversationItemDetails;
 import org.smap.sdal.model.SMSNumber;
 import org.smap.sdal.model.SubscriberEvent;
 
@@ -112,7 +112,7 @@ public class SMSManager {
 	 */
 	public void saveMessage(
 			Connection sd,
-			SMSDetails sms,
+			ConversationItemDetails sms,
 			String serverName,
 			String instanceId)  {
 		
@@ -205,7 +205,7 @@ public class SMSManager {
 			Connection cResults,
 			SubscriberEvent se,
 			String instanceid,
-			SMSDetails sms,
+			ConversationItemDetails sms,
 			int ueId,
 			int ueSurveyId) throws Exception {
 		
@@ -218,9 +218,10 @@ public class SMSManager {
 		
 		try {
 			SMSNumber smsNumber = getDetailsForOurNumber(sd, sms.ourNumber);
-			getSecondaryNumberAttributes(sd, smsNumber);
 			
 			if(smsNumber != null) {
+				
+				getSecondaryNumberAttributes(sd, smsNumber);
 				
 				/*
 				 * Ensure tables are fully published
@@ -297,8 +298,8 @@ public class SMSManager {
 					 * Update existing entry
 					 */
 					log.info("Update existing entry with prikey: " + existingPrikey);
-					ArrayList<SMSDetails> currentConv = null;
-					Type type = new TypeToken<ArrayList<SMSDetails>>() {}.getType();
+					ArrayList<ConversationItemDetails> currentConv = null;
+					Type type = new TypeToken<ArrayList<ConversationItemDetails>>() {}.getType();
 					StringBuilder sqlGet = new StringBuilder("select ")
 							.append(messageColumn)
 							.append(" from ")
@@ -432,13 +433,13 @@ public class SMSManager {
 	/*
 	 * Append new message details to existing
 	 */
-	public ArrayList<SMSDetails> getMessageText(SMSDetails sms, ArrayList<SMSDetails> current) {
-		ArrayList<SMSDetails> conversation = null;
+	public ArrayList<ConversationItemDetails> getMessageText(ConversationItemDetails sms, ArrayList<ConversationItemDetails> current) {
+		ArrayList<ConversationItemDetails> conversation = null;
 		
 		if(current != null) {
 			conversation = current;
 		} else {
-			conversation = new ArrayList<SMSDetails> ();
+			conversation = new ArrayList<ConversationItemDetails> ();
 		}
 		conversation.add(sms);
 		

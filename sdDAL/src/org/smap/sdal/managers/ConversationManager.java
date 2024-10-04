@@ -10,7 +10,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.model.SMSDetails;
+import org.smap.sdal.model.ConversationItemDetails;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -66,6 +66,7 @@ public class ConversationManager {
 			String ourAddress,		// number or email
 			String theirAddress,	// number or email
 			boolean inbound,
+			String channel,
 			String content) throws Exception {
 		
 		PreparedStatement pstmtGet = null;
@@ -79,7 +80,7 @@ public class ConversationManager {
 			 * Update entry
 			 */
 			SMSManager smsMgr = new SMSManager(localisation, tz);
-			SMSDetails msg = new SMSDetails(theirAddress, ourAddress, content, false, new Timestamp(System.currentTimeMillis()));
+			ConversationItemDetails msg = new ConversationItemDetails(theirAddress, ourAddress, content, false, channel, new Timestamp(System.currentTimeMillis()));
 			
 			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, surveyIdent);
 			int sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
@@ -87,8 +88,8 @@ public class ConversationManager {
 			
 			if(tableName != null && messageColumn != null && sId > 0) {
 				log.info("Update existing entry with instanceId: " + instanceid);
-				ArrayList<SMSDetails> currentConv = null;
-				Type type = new TypeToken<ArrayList<SMSDetails>>() {}.getType();
+				ArrayList<ConversationItemDetails> currentConv = null;
+				Type type = new TypeToken<ArrayList<ConversationItemDetails>>() {}.getType();
 				StringBuilder sqlGet = new StringBuilder("select prikey, ")
 						.append(messageColumn)
 						.append(" from ")

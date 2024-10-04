@@ -8,4 +8,5 @@ public class MessageVonage {
 	public String text;
 	public Timestamp timestamp;
 	public String message_uuid;
+	public String channel;
 }

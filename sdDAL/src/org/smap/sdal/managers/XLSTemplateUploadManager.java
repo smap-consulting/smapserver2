@@ -37,7 +37,6 @@ import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.constants.XLSFormColumns;
-import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Condition;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;

@@ -27,6 +27,7 @@ import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.Action;
+import org.smap.sdal.model.ConversationItemDetails;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
@@ -931,6 +932,7 @@ public class NotificationManager {
 								msg.ourNumber,
 								emails,
 								false, 
+								ConversationItemDetails.EMAIL_CHANNEL,
 								msg.subject + " - " + msg.content);
 						String caseReference = null;
 						if(prikey > 0) {
@@ -1142,6 +1144,7 @@ public class NotificationManager {
 								msg.ourNumber,
 								toNumber,
 								false, 
+								ConversationItemDetails.SMS_CHANNEL,	// TODO - Or maybe this is whatsapp
 								msg.content);
 						String msgText = msg.content;
 						if(prikey > 0) {
