@@ -23,6 +23,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.ServerConfig;
 import org.smap.sdal.model.Case;
 import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.FieldTaskSettings;
@@ -109,7 +110,7 @@ public class AssignmentsManager {
 		int uId = GeneralUtilityMethods.getUserId(sd, userIdent);
 
 		String host = request.getServerName();
-		String protocol = (request.getLocalPort() == 443) ? "https://" : "http://";
+		String protocol = (ServerConfig.getPortNumber(request) == 80) ? "http://" : "https://"; // request.getLocalPort();
 
 		// Get the coordinates from which this request was made
 		String latString = request.getHeader("lat");
