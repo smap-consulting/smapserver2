@@ -1849,6 +1849,7 @@ CREATE TABLE IF NOT EXISTS sms_number (
     survey_ident text,
     their_number_question text, -- The question in the survey that holds the number of the counterpart
     message_question text,		-- The question name in the survey that holds the message details
+    channel text,				-- sms or whatsapp
     description text
 );
 ALTER TABLE sms_number OWNER TO ws;

@@ -58,6 +58,7 @@ public class SMSManager {
 	private String sqlGetNumber = "select "
 			+ "element_identifier,"
 			+ "our_number,"
+			+ "channel,"
 			+ "survey_ident,"
 			+ "their_number_question,"
 			+ "message_question,"
@@ -75,19 +76,24 @@ public class SMSManager {
 	/*
 	 * Get a list of available numbers
 	 */
-	public ArrayList<SMSNumber> getOurNumbers(Connection sd, String user) throws SQLException {
+	public ArrayList<SMSNumber> getOurNumbers(Connection sd, String user, boolean orgOnly) throws SQLException {
+		
 		ArrayList<SMSNumber> numbers = new ArrayList<>();
-		boolean orgOnly = false;
 		
 		StringBuilder sqlSelect = new StringBuilder(sqlGetNumber);
 		PreparedStatement pstmt = null;
 		
 		try {
 			
-			if(!GeneralUtilityMethods.hasSecurityGroup(sd, user, Authorise.ORG_ID)) {
+			/*
+			 * If the request is not explicitely for the current organisation then
+			 * force it to be so, if the user is not an organisation administrator
+			 */
+			if(orgOnly || !GeneralUtilityMethods.hasSecurityGroup(sd, user, Authorise.ORG_ID)) {
 				sqlSelect.append("where o_id = ? ");
 				orgOnly = true;
 			}
+			
 			sqlSelect.append("order by time_modified asc ");
 			pstmt = sd.prepareStatement(sqlSelect.toString());
 			if(orgOnly) {
@@ -452,7 +458,8 @@ public class SMSManager {
 				rs.getString("survey_ident"),
 				rs.getString("their_number_question"),
 				rs.getString("message_question"),
-				rs.getInt("o_id"));
+				rs.getInt("o_id"),
+				rs.getString("channel"));
 	}
 	
 	private void getSecondaryNumberAttributes(Connection sd, SMSNumber n) throws SQLException {

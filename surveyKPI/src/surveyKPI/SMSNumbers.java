@@ -85,7 +85,8 @@ public class SMSNumbers extends Application {
 	@GET
 	@Produces("application/json")
 	public Response getSMSNumbers(
-			@Context HttpServletRequest request
+			@Context HttpServletRequest request,
+			@QueryParam("org") boolean orgOnly
 			) { 
 
 		Response response = null;
@@ -102,7 +103,7 @@ public class SMSNumbers extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			SMSManager mgr = new SMSManager(localisation, "UTC");
-			ArrayList<SMSNumber> numbers = mgr.getOurNumbers(sd, request.getRemoteUser());
+			ArrayList<SMSNumber> numbers = mgr.getOurNumbers(sd, request.getRemoteUser(), orgOnly);
 			
 			response = Response.ok(gson.toJson(numbers)).build();
 		} catch (Exception e) {

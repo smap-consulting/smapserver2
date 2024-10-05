@@ -1140,7 +1140,8 @@ public class NotificationManager {
 						ConversationManager conversationMgr = new ConversationManager(localisation, tz);
 						int prikey = conversationMgr.writeConversationToResults(sd, 
 								cResults, 
-								msg.instanceId, msg.survey_ident,  
+								msg.instanceId, 
+								msg.survey_ident,  
 								msg.ourNumber,
 								toNumber,
 								false, 

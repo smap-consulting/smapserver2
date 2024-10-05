@@ -146,3 +146,5 @@ update server set email_type = 'smtp' where email_type is null;
 
 alter table organisation add column ft_force_token boolean default false;
 
+alter table sms_number add column channel text;
+update sms_number set channel = 'sms' where channel is null;
