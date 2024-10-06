@@ -1,5 +1,7 @@
 package org.smap.sdal.model;
 
+import java.util.Date;
+
 public class EmailTaskMessage {
 	public int sId;
 	public int pId;
@@ -14,6 +16,7 @@ public class EmailTaskMessage {
 	public String user;
 	public boolean temporaryUser;
 	public String actionLink;
+	public Date scheduledAt;
 
 	
 	public EmailTaskMessage(
@@ -29,7 +32,8 @@ public class EmailTaskMessage {
 			String target,
 			String user,
 			boolean temporaryUser,
-			String actionLink) {
+			String actionLink,
+			Date scheduledAt) {
 		
 		this.sId = sId;
 		this.pId = pId;
@@ -44,6 +48,7 @@ public class EmailTaskMessage {
 		this.user = user;
 		this.temporaryUser = temporaryUser;
 		this.actionLink = actionLink;
+		this.scheduledAt = scheduledAt;
 	}
 	
 }

@@ -2293,7 +2293,9 @@ public class TaskManager {
 								"email",
 								request.getRemoteUser(),
 								false,		// Not a temporary user if request.getRemoteUser() works
-								actionLink);
+								actionLink,
+								null		// Send immediately
+								);
 						mm.createMessage(sd, oId, NotificationManager.TOPIC_EMAIL_TASK, "", gson.toJson(taskMsg));					
 					}
 				} else {
@@ -3236,7 +3238,8 @@ public class TaskManager {
 								"email",
 								remoteUser,
 								temporaryUser,
-								link);
+								link,
+								scheduledAt);
 						mm.createMessage(sd, oId, NotificationManager.TOPIC_EMAIL_TASK, "", gson.toJson(taskMsg));
 					}
 				}

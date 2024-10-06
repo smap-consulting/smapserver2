@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -79,11 +80,16 @@ public class MessagingManagerApply {
 		ResultSet rs = null;
 		PreparedStatement pstmtGetMessages = null;
 		PreparedStatement pstmtConfirm = null;
+		PreparedStatement pstmtNotProcessed = null;
 
 		String sqlConfirm = "update message "
 				+ "set processed_time = now(), "
 				+ "status = ?, "
 				+ "queued = false "
+				+ "where id = ? ";
+		
+		String sqlNotProcessed = "update message "
+				+ "set queued = false "
 				+ "where id = ? ";
 
 		// dequeue
@@ -100,7 +106,8 @@ public class MessagingManagerApply {
 
 			pstmtGetMessages = sd.prepareStatement(sql);
 			pstmtConfirm = sd.prepareStatement(sqlConfirm);
-
+			pstmtNotProcessed = sd.prepareStatement(sqlNotProcessed);
+			
 			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
 			boolean loop = true;
@@ -108,236 +115,243 @@ public class MessagingManagerApply {
 				rs = pstmtGetMessages.executeQuery();
 				if (rs.next()) {
 	
-					int id = rs.getInt("m_id");
-					int o_id = rs.getInt("o_id");
-					String topic = rs.getString("topic");
-					String description = rs.getString("description");
-					String data = rs.getString("data");
-					
-					// Localisation
-					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, o_id);
-					
-					Locale locale = new Locale(organisation.locale);
-					ResourceBundle localisation;
-					try {
-						localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-					} catch(Exception e) {
-						localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", locale);
-					}
-					
-					String tz = "UTC";		// Default timezone to UTC
-					if(organisation.timeZone != null) {
-						tz = organisation.timeZone;
-					}
-					
-					GeneralUtilityMethods.log(log, "++++++ Message: " + topic + " " + description + " : " + data, 
-							queueName, String.valueOf(id));
-	
 					String status = "success";
 					ArrayList<String> unsubscribedList = new ArrayList<>();
+					boolean processed = true;
+					ResourceBundle localisation = null;
+					int id = 0;
 					
-				
-					/*
-					 * Record that the message is being processed
-					 * After this point it will not be processed again even if it fails unless there is manual intervention
-					 */
-					pstmtConfirm.setString(1, "Sending");
-					pstmtConfirm.setInt(2, id);
-					pstmtConfirm.executeUpdate();
-					
-					if(topic.equals(NotificationManager.TOPIC_SUBMISSION) 
-							|| topic.equals(NotificationManager.TOPIC_CM_ALERT)
-							|| topic.equals(NotificationManager.TOPIC_SERVER_CALC)) {
-						/*
-						 * A submission notification is a notification associated with a record of data
-						 */
-						SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
-				
-						NotificationManager nm = new NotificationManager(localisation);
+					try {
+						id = rs.getInt("m_id");
+						int o_id = rs.getInt("o_id");
+						String topic = rs.getString("topic");
+						String description = rs.getString("description");
+						String data = rs.getString("data");
+						
+						// Localisation
+						Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, o_id);
+						
+						Locale locale = new Locale(organisation.locale);
 						try {
-							nm.processSubmissionNotification(
+							localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+						} catch(Exception e) {
+							localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", locale);
+						}
+						
+						String tz = "UTC";		// Default timezone to UTC
+						if(organisation.timeZone != null) {
+							tz = organisation.timeZone;
+						}
+						
+						GeneralUtilityMethods.log(log, "++++++ Message: " + topic + " " + description + " : " + data, 
+								queueName, String.valueOf(id));
+		
+
+						if(topic.equals(NotificationManager.TOPIC_SUBMISSION) 
+								|| topic.equals(NotificationManager.TOPIC_CM_ALERT)
+								|| topic.equals(NotificationManager.TOPIC_SERVER_CALC)) {
+							/*
+							 * A submission notification is a notification associated with a record of data
+							 */
+							SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
+					
+							NotificationManager nm = new NotificationManager(localisation);
+							try {
+								nm.processSubmissionNotification(
+										sd, 
+										cResults, 
+										vonageClient,
+										organisation, 
+										queueName,
+										tz,
+										msg,
+										id,
+										topic,
+										true,		// create pending if needed
+										serverName,
+										basePath,
+										urlprefix,
+										attachmentPrefix,
+										hyperlinkPrefix
+										); 
+							} catch (Exception e) {
+								log.log(Level.SEVERE, e.getMessage(), e);
+								nm.writeToLog(sd, organisation.id, msg.pId, 
+										GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident), 
+										organisation.name, status, 
+										e.getMessage(), id, msg.target);
+							}
+							
+						} else if(topic.equals(NotificationManager.TOPIC_REMINDER)) {
+							// Use SubmissionMessage structure - this may change
+							SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
+					
+							NotificationManager nm = new NotificationManager(localisation);
+							nm.processReminderNotification(
 									sd, 
 									cResults, 
-									vonageClient,
 									organisation, 
-									queueName,
+									o_id,
 									tz,
 									msg,
 									id,
 									topic,
 									true,		// create pending if needed
 									serverName,
-									basePath,
-									urlprefix,
-									attachmentPrefix,
-									hyperlinkPrefix
+									basePath
 									); 
-						} catch (Exception e) {
-							log.log(Level.SEVERE, e.getMessage(), e);
-							nm.writeToLog(sd, organisation.id, msg.pId, 
-									GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident), 
-									organisation.name, status, 
-									e.getMessage(), id, msg.target);
-						}
-						
-					} else if(topic.equals(NotificationManager.TOPIC_REMINDER)) {
-						// Use SubmissionMessage structure - this may change
-						SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
-				
-						NotificationManager nm = new NotificationManager(localisation);
-						nm.processReminderNotification(
-								sd, 
-								cResults, 
-								organisation, 
-								o_id,
-								tz,
-								msg,
-								id,
-								topic,
-								true,		// create pending if needed
-								serverName,
-								basePath
-								); 
-						
-					} else if(topic.equals(NotificationManager.TOPIC_EMAIL_TASK)) {
-						TaskManager tm = new TaskManager(localisation, tz);
-	
-						EmailTaskMessage msg = gson.fromJson(data, EmailTaskMessage.class);	
 							
-						tm.emailTask(
-								sd, 
-								cResults, 
-								organisation, 
-								msg,
-								id,
-								msg.user,
-								basePath,
-								"https",
-								serverName,
-								topic,
-								true);		// create pending if needed
-						
-						
-					} else if(topic.equals(NotificationManager.TOPIC_MAILOUT)) {
-						
-						MailoutManager mm = new MailoutManager(localisation);
-						
-						MailoutMessage msg = gson.fromJson(data, MailoutMessage.class);	
+						} else if(topic.equals(NotificationManager.TOPIC_EMAIL_TASK)) {
+							TaskManager tm = new TaskManager(localisation, tz);
+		
+							EmailTaskMessage msg = gson.fromJson(data, EmailTaskMessage.class);	
+								
+							if(msg.scheduledAt == null || msg.scheduledAt.before(new Date(System.currentTimeMillis()))) {
+								tm.emailTask(
+										sd, 
+										cResults, 
+										organisation, 
+										msg,
+										id,
+										msg.user,
+										basePath,
+										"https",
+										serverName,
+										topic,
+										true);		// create pending if needed
+							} else {
+								processed = false;
+								log.info("Email Task: " + msg.subject + " to " + msg.email + " deferred to " + msg.scheduledAt);
+							}
 							
-						mm.emailMailout(
-								sd, 
-								cResults, 
-								organisation, 
-								msg,
-								id,
-								msg.user,
-								basePath,
-								"https",
-								serverName,
-								topic,
-								true);		// create pending if needed
-						
-						
-					} else if(topic.equals(NotificationManager.TOPIC_PERIODIC)) {
-						
-						NotificationManager nm = new NotificationManager(localisation);
-						
-						SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);	
 							
-						GeneralUtilityMethods.log(log, "--------- Starting periodic notifications for " + data,
-								queueName, String.valueOf(id));
-						try {
-							nm.processPeriodicNotification(
+						} else if(topic.equals(NotificationManager.TOPIC_MAILOUT)) {
+							
+							MailoutManager mm = new MailoutManager(localisation);
+							
+							MailoutMessage msg = gson.fromJson(data, MailoutMessage.class);	
+								
+							mm.emailMailout(
 									sd, 
 									cResults, 
 									organisation, 
 									msg,
 									id,
-									topic,
-									true,		// create pending if needed
-									serverName,
+									msg.user,
 									basePath,
-									urlprefix,
-									attachmentPrefix
-									); 
-						} catch (Exception e) {
-							log.log(Level.SEVERE, e.getMessage(), e);
-							lm.writeLogOrganisation(sd, o_id, localisation.getString("pn"), LogManager.NOTIFICATION_ERROR, e.getMessage(), 0);
-						}
-						GeneralUtilityMethods.log(log, "--------- Periodic notifications processed", queueName, String.valueOf(id));
-						
-						
-					} else {
-						// Assume a direct email to be processed immediately
-	
-						log.info("+++++++++ opt in +++++++++ Direct Email");
-						EmailServer emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, null, null, o_id);
-						if (emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
-		
-							// Set the subject
-							String subject = "";
-							String from = "";
-		
-							subject += localisation.getString("c_message");
+									"https",
+									serverName,
+									topic,
+									true);		// create pending if needed
+							
+							
+						} else if(topic.equals(NotificationManager.TOPIC_PERIODIC)) {
+							
+							NotificationManager nm = new NotificationManager(localisation);
+							
+							SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);	
+								
+							GeneralUtilityMethods.log(log, "--------- Starting periodic notifications for " + data,
+									queueName, String.valueOf(id));
 							try {
-								PeopleManager pm = new PeopleManager(localisation);
-								EmailManager em = new EmailManager(localisation);
-								InternetAddress[] emailArray = InternetAddress.parse(topic);
-								SubscriptionStatus subStatus = null;
-								for(InternetAddress ia : emailArray) {
-									
-									subStatus = pm.getEmailKey(sd, o_id, ia.getAddress());
-									
-									if(subStatus.unsubscribed) {
-										unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
-									} else {
-										StringBuilder content = new StringBuilder("");
-										
-										content.append(localisation.getString("email_ian"));
-										content.append(" https://");
-										content.append(serverName);
-										content.append(". ");
-	
-										content.append(localisation.getString("email_dnr"));
-										content.append("\n\n");
-										
-										em.sendEmailHtml(
-												ia.getAddress(), 	// email
-												"bcc",
-												subject, 
-												content.toString(), 
-												null,
-												null,
-												emailServer,
-												serverName, 
-												subStatus.emailKey,
-												localisation,
-												null,
-												organisation.getAdminEmail(), 
-												null,
-												GeneralUtilityMethods.getNextEmailId(sd, null)
-												);
-									}
-								}
+								nm.processPeriodicNotification(
+										sd, 
+										cResults, 
+										organisation, 
+										msg,
+										id,
+										topic,
+										true,		// create pending if needed
+										serverName,
+										basePath,
+										urlprefix,
+										attachmentPrefix
+										); 
 							} catch (Exception e) {
 								log.log(Level.SEVERE, e.getMessage(), e);
-								status = "error";
+								lm.writeLogOrganisation(sd, o_id, localisation.getString("pn"), LogManager.NOTIFICATION_ERROR, e.getMessage(), 0);
 							}
-		
+							GeneralUtilityMethods.log(log, "--------- Periodic notifications processed", queueName, String.valueOf(id));
+							
+							
 						} else {
-							log.log(Level.SEVERE, "Error: Messaging: Attempt to do email notification but email server not set");
-							status = localisation.getString("email_cs");
+							// Assume a direct email to be processed immediately
+		
+							log.info("+++++++++ opt in +++++++++ Direct Email");
+							EmailServer emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, null, null, o_id);
+							if (emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
+			
+								// Set the subject
+								String subject = "";
+								String from = "";
+			
+								subject += localisation.getString("c_message");
+								try {
+									PeopleManager pm = new PeopleManager(localisation);
+									EmailManager em = new EmailManager(localisation);
+									InternetAddress[] emailArray = InternetAddress.parse(topic);
+									SubscriptionStatus subStatus = null;
+									for(InternetAddress ia : emailArray) {
+										
+										subStatus = pm.getEmailKey(sd, o_id, ia.getAddress());
+										
+										if(subStatus.unsubscribed) {
+											unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
+										} else {
+											StringBuilder content = new StringBuilder("");
+											
+											content.append(localisation.getString("email_ian"));
+											content.append(" https://");
+											content.append(serverName);
+											content.append(". ");
+		
+											content.append(localisation.getString("email_dnr"));
+											content.append("\n\n");
+											
+											em.sendEmailHtml(
+													ia.getAddress(), 	// email
+													"bcc",
+													subject, 
+													content.toString(), 
+													null,
+													null,
+													emailServer,
+													serverName, 
+													subStatus.emailKey,
+													localisation,
+													null,
+													organisation.getAdminEmail(), 
+													null,
+													GeneralUtilityMethods.getNextEmailId(sd, null)
+													);
+										}
+									}
+								} catch (Exception e) {
+									log.log(Level.SEVERE, e.getMessage(), e);
+									status = "error";
+								}
+			
+							} else {
+								log.log(Level.SEVERE, "Error: Messaging: Attempt to do email notification but email server not set");
+								status = localisation.getString("email_cs");
+							}
+							
 						}
-						
+					} finally {
+						// Set the final status
+						if(processed) {
+							if(unsubscribedList.size() > 0) {
+								status += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
+							}
+							pstmtConfirm.setString(1, status);
+							pstmtConfirm.setInt(2, id);
+							GeneralUtilityMethods.log(log, pstmtConfirm.toString(), queueName, String.valueOf(id));
+							pstmtConfirm.executeUpdate();
+						} else {
+							pstmtNotProcessed.setInt(1, id);
+							pstmtNotProcessed.executeUpdate();   // Requeue
+						}
 					}
-					// Set the final status
-					if(unsubscribedList.size() > 0) {
-						status += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
-					}
-					pstmtConfirm.setString(1, status);
-					pstmtConfirm.setInt(2, id);
-					GeneralUtilityMethods.log(log, pstmtConfirm.toString(), queueName, String.valueOf(id));
-					pstmtConfirm.executeUpdate();
 	
 				} else {
 					loop = false;
@@ -350,6 +364,7 @@ public class MessagingManagerApply {
 		} finally {
 			try {if (pstmtGetMessages != null) {	pstmtGetMessages.close();}} catch (Exception e) {	}
 			try {if (pstmtConfirm != null) {	pstmtConfirm.close();}} catch (Exception e) {}
+			try {if (pstmtNotProcessed != null) {	pstmtNotProcessed.close();}} catch (Exception e) {}
 		}
 
 	}
