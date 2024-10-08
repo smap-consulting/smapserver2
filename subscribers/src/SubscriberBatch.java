@@ -1024,6 +1024,7 @@ public class SubscriberBatch {
 						null,					// Report Period
 						0,						// report id
 						null,					// SMS Conversation from number
+						null,					// Message Channel
 						null					// SMS timestamp
 						);
 				
@@ -1308,6 +1309,7 @@ public class SubscriberBatch {
 											null,					// Report Period
 											0,						// report id
 											null,					// SMS Conversation from number
+											null,					// Message Channel
 											null);					// SMS timestamp
 									
 									MessagingManager mm = new MessagingManager(localisation);
@@ -1432,7 +1434,7 @@ public class SubscriberBatch {
 				
 				int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 				
-				log.info("xxxxxxxxxxxxx server calculate notification for " + notificationName + " on table " + table);
+				//log.info("xxxxxxxxxxxxx server calculate notification for " + notificationName + " on table " + table);
 				
 				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
@@ -1536,6 +1538,7 @@ public class SubscriberBatch {
 									null,					// Report Period
 									0,						// report id
 									null,					// SMS Conversation from number
+									null,					// Message Channel
 									null);					// SMS Timestamp
 			
 							MessagingManager mm = new MessagingManager(localisation);
@@ -1730,6 +1733,7 @@ public class SubscriberBatch {
 						period,			// Report Period
 						rId,
 						null,			// SMS Conversation from number
+						null,			// Message Channel
 						null);
 				
 				mm.createMessage(sd, oId, NotificationManager.TOPIC_PERIODIC, "", gson.toJson(msg));	

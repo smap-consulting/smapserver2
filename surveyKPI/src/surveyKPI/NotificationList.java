@@ -469,6 +469,7 @@ public class NotificationList extends Application {
 					null,				// Report Period
 					0,					// report id
 					nd.ourNumber,
+					nd.msgChannel,
 					new Timestamp(new java.util.Date().getTime()));
 			MessagingManager mm = new MessagingManager(localisation);
 			mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));

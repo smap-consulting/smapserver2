@@ -22,5 +22,6 @@ public class NotifyDetails {
 	public String survey_case;
 	public String assign_question;
 	public String ourNumber;			// For SMS / WhatsApp notifications
+	public String msgChannel;
 	public Timestamp ts;				// Timestamp of message
 }

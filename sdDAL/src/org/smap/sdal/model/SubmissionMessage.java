@@ -27,6 +27,7 @@ public class SubmissionMessage {
 	public String emailMeta;
 	public boolean emailAssigned;
 	public String ourNumber;			// SMS / WhatsApp messaging
+	public String msgChannel;			// sms or whatsapp
 	public ArrayList<String> emails;
 	public String target;
 	public String user;
@@ -69,6 +70,7 @@ public class SubmissionMessage {
 			String period,
 			int reportId,
 			String ourNumber,
+			String msgChannel,
 			Timestamp ts) {
 		
 		this.title = title;
@@ -100,6 +102,7 @@ public class SubmissionMessage {
 		this.period = period;
 		this.reportId = reportId;
 		this.ourNumber = ourNumber;
+		this.msgChannel = msgChannel;
 		this.ts = ts;
 	}
 	
@@ -138,6 +141,7 @@ public class SubmissionMessage {
 		this.period = orig.period;
 		this.reportId = orig.reportId;
 		this.ourNumber = orig.ourNumber;
+		this.msgChannel = orig.msgChannel;
 	}
 	
 	public boolean emailQuestionSet() {

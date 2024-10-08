@@ -6332,6 +6332,7 @@ public class GeneralUtilityMethods {
 
 		String sql = "select column_name from question "
 				+ "where qtype = 'conversation' "
+				+ "and not soft_deleted "
 				+ "and f_id  = (select f_id from form where parentform = 0 and s_id = ?) ";
 		PreparedStatement pstmt = null;
 
@@ -10555,7 +10556,7 @@ public class GeneralUtilityMethods {
 		} else {
 			return input;
 		}
-        }
+    }
 
     /*
 	 * Return the question names that have a compound question type

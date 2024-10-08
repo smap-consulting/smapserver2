@@ -164,6 +164,10 @@ public class SMSManager {
 		
 		try {
 			
+			// Ignore "+"
+			if(ourNumber.startsWith("+")) {
+				ourNumber = ourNumber.substring(1);
+			} 
 			/*
 			 * Get destination for the SMS
 			 */		

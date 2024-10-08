@@ -143,8 +143,8 @@ public class MessagingManagerApply {
 							tz = organisation.timeZone;
 						}
 						
-						GeneralUtilityMethods.log(log, "++++++ Message: " + topic + " " + description + " : " + data, 
-								queueName, String.valueOf(id));
+						//GeneralUtilityMethods.log(log, "++++++ Message: " + topic + " " + description + " : " + data, 
+						//		queueName, String.valueOf(id));
 		
 
 						if(topic.equals(NotificationManager.TOPIC_SUBMISSION) 
@@ -221,7 +221,7 @@ public class MessagingManagerApply {
 										true);		// create pending if needed
 							} else {
 								processed = false;
-								log.info("Email Task: " + msg.subject + " to " + msg.email + " deferred to " + msg.scheduledAt);
+								//log.info("Email Task: " + msg.subject + " to " + msg.email + " deferred to " + msg.scheduledAt);
 							}
 							
 							

@@ -127,6 +127,7 @@ public class SMSNumbers extends Application {
 	@POST
 	public Response addNmber(@Context HttpServletRequest request,
 			@FormParam("ourNumber") String ourNumber,
+			@FormParam("channel") String channel,
 			@FormParam("oId") int oId,
 			@QueryParam("tz") String tz) { 
 		
@@ -147,17 +148,24 @@ public class SMSNumbers extends Application {
 		if(tz == null) {
 			tz = "UTC";
 		}
-		
-		String sql = "insert into sms_number (element_identifier, time_modified, our_number, o_id) "
-				+ "values (gen_random_uuid(), now(), ?, ?)";
+			
+		String sql = "insert into sms_number (element_identifier, time_modified, our_number, channel, o_id) "
+				+ "values (gen_random_uuid(), now(), ?, ?, ?)";
 		PreparedStatement pstmt = null;
 		
+		
 		try {	
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, ourNumber);
-			pstmt.setInt(2, oId);
-			pstmt.executeUpdate();
-			response = Response.ok().build();
+			if(ourNumber != null) {
+				if(ourNumber.startsWith("+")) {
+					ourNumber = ourNumber.substring(1);
+				}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, ourNumber);
+				pstmt.setString(2, channel);
+				pstmt.setInt(3, oId);
+				pstmt.executeUpdate();
+				response = Response.ok().build();
+			}
 			
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error", e);

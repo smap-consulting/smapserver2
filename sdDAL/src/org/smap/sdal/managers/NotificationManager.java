@@ -48,6 +48,7 @@ import com.vonage.client.messages.MessageRequest;
 import com.vonage.client.messages.MessageResponse;
 import com.vonage.client.messages.MessagesClient;
 import com.vonage.client.messages.sms.SmsTextRequest;
+import com.vonage.client.messages.whatsapp.WhatsappTextRequest;
 
 /*****************************************************************************
 
@@ -727,6 +728,7 @@ public class NotificationManager {
 							null,					// Report Period
 							0,						// Report Id
 							nd.ourNumber,
+							nd.msgChannel,
 							nd.ts
 							);
 					mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
@@ -1145,7 +1147,7 @@ public class NotificationManager {
 								msg.ourNumber,
 								toNumber,
 								false, 
-								ConversationItemDetails.SMS_CHANNEL,	// TODO - Or maybe this is whatsapp
+								msg.msgChannel,
 								msg.content);
 						String msgText = msg.content;
 						if(prikey > 0) {
@@ -1156,13 +1158,27 @@ public class NotificationManager {
 						 * Send message
 						 */
 						MessagesClient messagesClient = vonageClient.getMessagesClient(); // TODO check for null	
-
-						MessageRequest message = SmsTextRequest.builder()
-								.from(msg.ourNumber).to(toNumber)		// TODO from number
-								.text(msgText)
-								.build();
+						MessageResponse response = null;
 						
-						MessageResponse response = messagesClient.sendMessage(message);
+						if(msg.msgChannel != null && msg.msgChannel.equals("whatsapp")) {
+							
+							WhatsappTextRequest message = WhatsappTextRequest.builder()
+									.from(msg.ourNumber)
+									.to(toNumber)		// TODO from number
+									.text(msgText)
+									.build();
+							
+							response = messagesClient.sendMessage(message);
+						} else {
+						
+							MessageRequest message = SmsTextRequest.builder()
+									.from(msg.ourNumber)
+									.to(toNumber)		// TODO from number
+									.text(msgText)
+									.build();
+						
+							response = messagesClient.sendMessage(message);
+						}
 			
 						status = response.getMessageUuid() == null ? "success" : "error";
 						error_details = "";
