@@ -275,15 +275,18 @@ public class GeneralUtilityMethods {
 	 * Get Base Path
 	 */
 	static public String getBasePath(HttpServletRequest request) {
+		String basePath = null;
 		if(request.getServerName().equals("localhost")) {
-			return "/Users/neilpenman/smap_config/smap";
+			basePath = "/Users/neilpenman/smap_config/smap";
+		} else {
+			basePath = request.getServletContext().getInitParameter("au.com.smap.files");
+			if (basePath == null) {
+				basePath = "/smap";
+			} else if (basePath.equals("/ebs1")) { // Support for legacy apache virtual hosts
+				basePath = "/ebs1/servers/" + request.getServerName().toLowerCase();
+			}
 		}
-		String basePath = request.getServletContext().getInitParameter("au.com.smap.files");
-		if (basePath == null) {
-			basePath = "/smap";
-		} else if (basePath.equals("/ebs1")) { // Support for legacy apache virtual hosts
-			basePath = "/ebs1/servers/" + request.getServerName().toLowerCase();
-		}
+		ServerSettings.setBasePath(basePath);
 		return basePath;
 	}
 
