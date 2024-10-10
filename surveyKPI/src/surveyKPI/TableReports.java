@@ -3,6 +3,7 @@ package surveyKPI;
 import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 
 /*
@@ -27,7 +28,10 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+
 import org.apache.commons.codec.binary.Base64;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -90,21 +94,22 @@ public class TableReports extends Application {
 	}
 	
 	@POST
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
 	@Path("/generate")
 	public void generate(
 			@Context HttpServletRequest request, 
 			@Context HttpServletResponse response,
-			@FormParam("sId") int sId,
-			@FormParam("groupSurvey") String groupSurvey,	
-			@FormParam("form") String formName,			// Form name (optional only specify for a child form)
-			@FormParam("data") String data,
-			@FormParam("charts") String charts,
-			@FormParam("format") String format,
-			@FormParam("title") String title,
-			@FormParam("project") String project,
-			@FormParam("chartdata") String chartData,
-			@FormParam("settings") String settingsString,
-			@FormParam("tz") String tz
+			@FormDataParam("sId") int sId,
+			@FormDataParam("groupSurvey") String groupSurvey,	
+			@FormDataParam("form") String formName,			// Form name (optional only specify for a child form)
+			@FormDataParam("data") String data,
+			@FormDataParam("charts") String charts,
+			@FormDataParam("format") String format,
+			@FormDataParam("title") String title,
+			@FormDataParam("project") String project,
+			@FormDataParam("chartdata") String chartData,
+			@FormDataParam("settings") String settingsString,
+			@FormDataParam("tz") String tz
 			) throws Exception { 
 		
 		// Check for Ajax and reject if not
