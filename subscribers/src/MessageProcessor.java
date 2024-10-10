@@ -94,11 +94,20 @@ public class MessageProcessor {
 							File vonagePrivateKey = new File(basePath + "_bin/resources/properties/vonage_private.key");
 							String vonageApplicationId = getVonageApplicationId(dbc.sd);
 							if(vonageClient == null) {
-								if(vonagePrivateKey.exists() && vonageApplicationId != null) {
-									vonageClient = VonageClient.builder()
-											.applicationId(vonageApplicationId)
-											.privateKeyPath(vonagePrivateKey.getAbsolutePath())
-											.build();
+								if(vonagePrivateKey.exists() && vonageApplicationId != null && vonageApplicationId.trim().length() > 0) {
+									try {
+										vonageClient = VonageClient.builder()
+												.applicationId(vonageApplicationId)
+												.privateKeyPath(vonagePrivateKey.getAbsolutePath())
+												.build();
+									} catch (Exception e) {
+										if(!vonageClientLogMessageSet) {
+											log.log(Level.SEVERE, e.getMessage(),e);
+											lm.writeLogOrganisation(dbc.sd, -1, null, LogManager.SMS, 
+													"Cannot create vonage client" + " " + e.getMessage(), 0);
+											vonageClientLogMessageSet = true;
+										}
+									}
 								} else if(!vonageClientLogMessageSet) {	// Only write log message once
 									// Set organisation id to -1 as this is an issue not related to an organisation
 									String msg = "Cannot create vonage client. " 
