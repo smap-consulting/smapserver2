@@ -49,7 +49,7 @@ if [ $a24 -eq 0 ]; then
 	exit 1;
 fi
 
-version=2405
+version=2410
 if [ -e /smap_bin/smap_version ]; then
         version=`sudo cat /smap_bin/smap_version`
 elif [ -e ~/smap_version ]; then
@@ -281,7 +281,7 @@ then
 fi
 
 # Version 24.04
-if [ $version -lt "2405" ]; then
+if [ $version -lt "2410" ]; then
 	sudo a2enmod session
 	sudo a2enmod request
 	sudo a2enmod auth_form
@@ -354,5 +354,5 @@ echo "\COPY language_codes (code, aws_translate, aws_transcribe, transcribe_defa
 
 
 # update version reference
-new_version="2405"
+new_version="2410"
 echo "$new_version" > /smap_bin/smap_version
