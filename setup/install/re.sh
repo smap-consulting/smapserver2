@@ -42,8 +42,8 @@ pg_dump -c -Fc survey_definitions > replaced_sd.dmp
 pg_dump -c -Fc results > replaced_results.dmp
 
 # delete the existing databases
-echo "drop database survey_definitions" | psql
-echo "drop database results" | psql
+echo "drop database survey_definitions with (force)" | psql
+echo "drop database results with (force)" | psql
 
 # Create empty versions of the databases
 createdb -E UTF8 -O ws survey_definitions
@@ -55,7 +55,12 @@ echo "CREATE EXTENSION postgis;" | psql -d results
 echo "ALTER TABLE geometry_columns OWNER TO ws; ALTER TABLE spatial_ref_sys OWNER TO ws; ALTER TABLE geography_columns OWNER TO ws;" | psql -d results
 
 # restore the databse
-psql survey_definitions < restore/backups/sd.sql
-psql results < restore/backups/results.sql
+#psql survey_definitions < restore/backups/sd.sql
+#psql results < restore/backups/results.sql
+pg_restore -d survey_definitions restore/backups/sd.dmp
+pg_restore -d results restore/backups/results.dmp
 esac
 
+# After the restore
+echo "All done. You should now:"
+echo "Set ownership of files to tomcat:  sudo chown -R tomcat /smap/*"
