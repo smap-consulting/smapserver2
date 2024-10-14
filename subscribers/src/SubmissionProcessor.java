@@ -330,7 +330,9 @@ public class SubmissionProcessor {
 							}
 
 							lm.writeLog(dbc.sd, ue.getSurveyId(), ue.getUserName(), topic, status + " : " 
-									+ (reason == null ? "" : reason) + " : " + ue.getImei(), 0, null);
+									+ (reason == null ? "" : reason) 
+									+ (ue.getImei() == null ? "" : " : " + ue.getImei()), 
+									0, null);
 							
 							/*
 							 * Save the status

@@ -421,9 +421,12 @@ public class SMSManager {
 				se.setReason(null);
 				
 			} else {
-				log.info("Error:  Inbound number " + sms.ourNumber + " not found");
+				String msg = localisation.getString("msg_nf");
+				msg = msg.replace("%s1", sms.ourNumber);
+				msg = msg.replace("%s2", sms.msg);
+				log.info("Error: " + msg);
 				se.setStatus("error");
-				se.setReason("SMS Inbound Number not found.  This number will need to be added to the numbers supported by the system before SMS messages to it can be processed.");
+				se.setReason(msg);
 			}
 			
 		} finally {
