@@ -126,6 +126,7 @@ public class ConversationManager {
 				String hEntry = localisation.getString("msg_sms_received");
 				hEntry = hEntry.replace("%s1",  msg.msg);
 				hEntry = hEntry.replace("%s2", theirAddress);
+				hEntry = hEntry.replace("%s3", msg.channel);
 				RecordEventManager rem = new RecordEventManager();
 				rem.writeEvent(sd, cResults, 
 							inbound ? RecordEventManager.INBOUND_MESSAGE : RecordEventManager.OUTBOUND_MESSAGE, 

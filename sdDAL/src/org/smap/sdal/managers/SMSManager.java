@@ -221,7 +221,6 @@ public class SMSManager {
 		
 		PreparedStatement pstmtUploadEvent = null;
 		PreparedStatement pstmtExists = null;
-		PreparedStatement pstmtGet = null;
 		PreparedStatement pstmt = null;
 		
 		AdvisoryLock lockTableChange = null;
@@ -247,15 +246,30 @@ public class SMSManager {
 				String existingInstanceId = null;
 				
 				/*
-				 * Check to see if there is a reference to a case in the message
+				 * Success message
 				 */
-				int existingPrikey = getReference(sms.msg);
+				String msg = localisation.getString("msg_sms_received");
+				msg = msg.replaceAll("%s1",  sms.msg);
+				msg = msg.replaceAll("%s2", sms.theirNumber);
+				msg = msg.replace("%s3", sms.channel);			
+				
+				int count = 0;
 				
 				/*
-				 * If there is no case reference then check to see if there is an existing case for this number
+				 * Check to see if there is a reference to a case in the message
+				 * Update the referenced case
 				 */
-				if(existingPrikey == 0) {
-					
+				int existingPrikey = getReference(sms.msg);
+				if(existingPrikey > 0) {
+					count += updateExistingEntry(sd, cResults, sms, existingPrikey, messageColumn, tableName);
+					updateHistory(sd, cResults, sms, tableName, existingInstanceId, smsNumber, msg);
+				}
+				
+				/*
+				 * If no record was updated then look for an existing case for this number
+				 */
+				if(count == 0) {
+						
 					/*
 					 * Get the case details
 					 */
@@ -294,53 +308,17 @@ public class SMSManager {
 						}
 						log.info("Check for existing cases: " + pstmtExists.toString());
 						ResultSet rs = pstmtExists.executeQuery();
-						if(rs.next()) {
+						while(rs.next()) {
 							existingPrikey = rs.getInt("prikey");
 							existingInstanceId = rs.getString("instanceid");
+							
+							count += updateExistingEntry(sd, cResults, sms, existingPrikey, messageColumn, tableName);
+							updateHistory(sd, cResults, sms, tableName, existingInstanceId, smsNumber, msg);
+
 						}
 						rs.close();
 					}
 				}	
-				
-				int count = 0;
-				if(existingPrikey > 0) {
-					/*
-					 * Update existing entry
-					 */
-					log.info("Update existing entry with prikey: " + existingPrikey);
-					ArrayList<ConversationItemDetails> currentConv = null;
-					Type type = new TypeToken<ArrayList<ConversationItemDetails>>() {}.getType();
-					StringBuilder sqlGet = new StringBuilder("select ")
-							.append(messageColumn)
-							.append(" from ")
-							.append(tableName)
-							.append(" where prikey = ?");
-					pstmtGet = cResults.prepareStatement(sqlGet.toString());
-					pstmtGet.setInt(1, existingPrikey);
-					log.info("Get existing: " + pstmtGet.toString());
-					ResultSet rsGet = pstmtGet.executeQuery();
-					if(rsGet.next()) {
-						String currentConvString = rsGet.getString(1);
-						if(currentConvString != null) {
-							currentConv = gson.fromJson(currentConvString, type);
-						}
-					}
-					
-					// Create update statement
-					StringBuilder sql = new StringBuilder("update ")
-							.append(tableName)
-							.append(" set ")
-							.append(messageColumn)
-							.append(" = ? where prikey = ?");
-					pstmt = cResults.prepareStatement(sql.toString());
-					pstmt.setString(1, gson.toJson(getMessageText(sms, currentConv)));
-					pstmt.setInt(2, existingPrikey);	
-					log.info("Update existing sms case: " + pstmt.toString());
-					count = pstmt.executeUpdate();
-					if(count == 0) {
-						log.info("Tried to update an existing case but nothing was updated");
-					}
-				} 
 				
 				/*
 				 * Create a new entry if an existing entry was not updated
@@ -358,7 +336,6 @@ public class SMSManager {
 							.append(",").append(theirNumberColumn)
 							.append(",").append(messageColumn)
 							.append(") values(?, ?, ?, ?, ?)");
-					if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}}
 					pstmt = cResults.prepareStatement(sql.toString());
 					pstmt.setString(1, sms.ourNumber);
 					pstmt.setString(2,  instanceid);
@@ -368,30 +345,9 @@ public class SMSManager {
 					log.info("Create new sms case: " + pstmt.toString());
 					count = pstmt.executeUpdate();
 					
+					updateHistory(sd, cResults, sms, tableName, existingInstanceId, smsNumber, msg);
 				} 
 					
-				/*
-				 * Update the history for the record
-				 */
-				String msg = localisation.getString("msg_sms_received");
-				msg = msg.replaceAll("%s1",  sms.msg);
-				msg = msg.replaceAll("%s2", sms.theirNumber);
-				RecordEventManager rem = new RecordEventManager();
-				rem.writeEvent(sd, cResults, 
-						RecordEventManager.INBOUND_MESSAGE, 
-						RecordEventManager.STATUS_SUCCESS,
-						sms.theirNumber, 
-						tableName, 
-						existingInstanceId, 
-						null, 					// Change object
-						null, 					// Task object
-						null,					// Notification object
-						msg, 					// Description
-						0, 						// sID legacy
-						smsNumber.surveyIdent,	// Survey Ident
-						0,
-						0);	
-				
 				/*
 				 * Update Survey Details base on the settings for this number
 				 * Only do this if the survey details in the upload event table are different from those in the number details table
@@ -418,7 +374,7 @@ public class SMSManager {
 				}
 				
 				se.setStatus("success");
-				se.setReason(null);
+				se.setReason(msg);
 				
 			} else {
 				String msg = localisation.getString("msg_nf");
@@ -438,7 +394,6 @@ public class SMSManager {
 			
 			if(pstmtUploadEvent != null) {try {pstmtUploadEvent.close();} catch (Exception e) {}}
 			if(pstmtExists != null) {try {pstmtExists.close();} catch (Exception e) {}}
-			if(pstmtGet != null) {try {pstmtGet.close();} catch (Exception e) {}}
 			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}}
 		}
 	}
@@ -459,6 +414,65 @@ public class SMSManager {
 		return conversation;
 	}
 	
+	/*
+	 * Update existing entry
+	 */
+	private int updateExistingEntry(Connection sd,
+			Connection cResults, 
+			ConversationItemDetails sms,
+			int existingPrikey,
+			String messageColumn,
+			String tableName) throws SQLException {
+		
+		int count = 0;
+		PreparedStatement pstmtGet = null;
+		PreparedStatement pstmt = null;
+		
+		try {
+			log.info("Update existing entry with prikey: " + existingPrikey);
+			ArrayList<ConversationItemDetails> currentConv = null;
+			Type type = new TypeToken<ArrayList<ConversationItemDetails>>() {}.getType();
+			StringBuilder sqlGet = new StringBuilder("select ")
+					.append(messageColumn)
+					.append(" from ")
+					.append(tableName)
+					.append(" where prikey = ?");
+			pstmtGet = cResults.prepareStatement(sqlGet.toString());
+			pstmtGet.setInt(1, existingPrikey);
+			log.info("Get existing: " + pstmtGet.toString());
+			ResultSet rsGet = pstmtGet.executeQuery();
+			if(rsGet.next()) {
+				String currentConvString = rsGet.getString(1);
+				if(currentConvString != null) {
+					currentConv = gson.fromJson(currentConvString, type);
+				}
+			}
+			
+			// Create update statement
+			StringBuilder sql = new StringBuilder("update ")
+					.append(tableName)
+					.append(" set ")
+					.append(messageColumn)
+					.append(" = ? where prikey = ?");
+			pstmt = cResults.prepareStatement(sql.toString());
+			pstmt.setString(1, gson.toJson(getMessageText(sms, currentConv)));
+			pstmt.setInt(2, existingPrikey);	
+			log.info("Update existing sms case: " + pstmt.toString());
+			int c = pstmt.executeUpdate();
+			if(c == 0) {
+				log.info("Tried to update an existing case but nothing was updated");
+			} else {
+				count += c;
+			}
+			
+		} finally {
+			if(pstmtGet != null) {try {pstmtGet.close();} catch (Exception e) {}}
+			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}}
+		}
+		
+		return count;
+	}
+	
 	private SMSNumber getNumber(ResultSet rs) throws SQLException {
 		return new SMSNumber(rs.getString("element_identifier"),
 				rs.getString("our_number"),
@@ -467,6 +481,33 @@ public class SMSManager {
 				rs.getString("message_question"),
 				rs.getInt("o_id"),
 				rs.getString("channel"));
+	}
+	
+	/*
+	 * Update the history for the record
+	 */
+	private void updateHistory(Connection sd, Connection cResults, ConversationItemDetails sms,
+			String tableName,
+			String existingInstanceId,
+			SMSNumber smsNumber,
+			String msg) throws SQLException {
+		
+		RecordEventManager rem = new RecordEventManager();
+		rem.writeEvent(sd, cResults, 
+				RecordEventManager.INBOUND_MESSAGE, 
+				RecordEventManager.STATUS_SUCCESS,
+				sms.theirNumber, 
+				tableName, 
+				existingInstanceId, 
+				null, 					// Change object
+				null, 					// Task object
+				null,					// Notification object
+				msg, 					// Description
+				0, 						// sID legacy
+				smsNumber.surveyIdent,	// Survey Ident
+				0,
+				0);	
+		
 	}
 	
 	private void getSecondaryNumberAttributes(Connection sd, SMSNumber n) throws SQLException {
