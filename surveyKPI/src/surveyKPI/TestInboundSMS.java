@@ -47,7 +47,7 @@ public class TestInboundSMS extends Application {
 					"Test number 5", true, ConversationItemDetails.SMS_CHANNEL, ts);
     		
     		SMSManager sim = new SMSManager(null,null);
-    		sim.saveMessage(sd, sms, request.getServerName(), UUID.randomUUID().toString());
+    		sim.saveMessage(sd, sms, request.getServerName(), UUID.randomUUID().toString(), SMSManager.SMS_TYPE);
     		
     		response = Response.ok().build();
     	} finally {

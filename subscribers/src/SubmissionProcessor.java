@@ -181,6 +181,11 @@ public class SubmissionProcessor {
 									se.setStatus("error");
 									se.setReason(e.getMessage());
 								}
+							} if(SMSManager.NEW_CASE.equals(ue.getType())) {
+								// User has requested a new case from a message
+								
+								System.out.println("xxxxxxxxxxxxxxxxxxxxxxxx New Case xxxxxxxxxxxxxxxxxxxx");     // TODO
+								
 							} else {
 								// Form
 							

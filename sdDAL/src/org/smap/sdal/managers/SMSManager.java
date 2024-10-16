@@ -16,7 +16,6 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.legacy.UtilityMethods;
 import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.ConversationItemDetails;
-import org.smap.sdal.model.MessageItemChange;
 import org.smap.sdal.model.SMSNumber;
 import org.smap.sdal.model.SubscriberEvent;
 
@@ -48,8 +47,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 public class SMSManager {
 	
-	public static String SMS_TYPE = "SMS";
+	public static String SMS_TYPE = "SMS";		// More accurately would be "message", however there is now legacy entries where this is represented as SMS
 	public static String FORM_TYPE = "Form";
+	public static String NEW_CASE = "NewCase";
 	
 	private static Logger log =
 			 Logger.getLogger(SMSManager.class.getName());
@@ -121,7 +121,8 @@ public class SMSManager {
 			Connection sd,
 			ConversationItemDetails sms,
 			String serverName,
-			String instanceId)  {
+			String instanceId,
+			String submissionType)  {
 		
 		String sql = "insert into upload_event ("
 				+ "upload_time,"
@@ -140,7 +141,7 @@ public class SMSManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sms.ourNumber);  	// User
-			pstmt.setString(2, SMS_TYPE);			// Submission type
+			pstmt.setString(2, submissionType);		// Submission type
 			pstmt.setString(3, gson.toJson(sms));	// Payload
 			pstmt.setString(4, serverName);			// Server Name
 			pstmt.setString(5, instanceId);			// Instance Id
@@ -500,8 +501,6 @@ public class SMSManager {
 			SMSNumber smsNumber,
 			String msg) throws SQLException {
 		
-		MessageItemChange change = new MessageItemChange(msg);
-		
 		RecordEventManager rem = new RecordEventManager();
 		rem.writeEvent(sd, cResults, 
 				RecordEventManager.INBOUND_MESSAGE, 
@@ -511,7 +510,7 @@ public class SMSManager {
 				existingInstanceId, 
 				null, 					// Change object
 				null, 					// Task object
-				gson.toJson(change),	// Message object
+				gson.toJson(sms),		// Message object
 				null,					// Notification object
 				msg, 					// Description
 				0, 						// sID legacy

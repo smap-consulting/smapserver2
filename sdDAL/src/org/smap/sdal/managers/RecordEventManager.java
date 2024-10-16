@@ -12,9 +12,9 @@ import java.util.HashMap;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.ConversationItemDetails;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.DataItemChangeEvent;
-import org.smap.sdal.model.MessageItemChange;
 import org.smap.sdal.model.RecordUpdateEvent;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.TaskEventChange;
@@ -391,7 +391,7 @@ public class RecordEventManager {
 				}
 				String message = rs.getString("message");
 				if(message != null) {
-					event.message = gson.fromJson(message, MessageItemChange.class);
+					event.message = gson.fromJson(message, ConversationItemDetails.class);
 				}
 				event.status = rs.getString("status");
 				if(scheduledFinish > 0) {

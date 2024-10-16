@@ -64,10 +64,8 @@ public class Vonage extends Application {
 		         * Save SMS message for further processing
 		         */
 		        if(sms.ourNumber != null && sms.msg != null) {	// TODO allow null from number?
-	        	
-	        	
 	        		SMSManager sim = new SMSManager(null, null);
-	        		sim.saveMessage(sd, sms, request.getServerName(), inbound.message_uuid);
+	        		sim.saveMessage(sd, sms, request.getServerName(), inbound.message_uuid, SMSManager.SMS_TYPE);
 		        } else {
 		        	log.info("Error: Invalid SMS message");
 		        }
@@ -116,8 +114,6 @@ public class Vonage extends Application {
         	try {
         		sd = SDDataSource.getConnection(connectionString);
         		
-        		//SMSManager sim = new SMSManager(null, null);
-        		//sim.saveMessage(sd, sms, request.getServerName());
         	} finally {
         		SDDataSource.closeConnection(connectionString, sd);
         	}

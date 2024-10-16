@@ -44,13 +44,14 @@ public class EmailTest extends Application {
 	 * Send a test email
 	 */
 	@GET
-	public void emailTest(@Context HttpServletRequest request) throws Exception {
+	public String emailTest(@Context HttpServletRequest request) throws Exception {
 		
 		EmitAwsSES mgr = new EmitAwsSES("ap-southeast-2", 
 				GeneralUtilityMethods.getBasePath(request));
 		InternetAddress[] recipients = InternetAddress.parse("neilpenman@gmail.com");
 		mgr.sendSES(recipients, "Hello There", "1", "Email Body", null, null);
 
+		return "done";
 	}
 
 
