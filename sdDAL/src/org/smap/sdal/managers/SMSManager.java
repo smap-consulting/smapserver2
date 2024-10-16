@@ -256,10 +256,15 @@ public class SMSManager {
 				int count = 0;
 				
 				/*
+				 * Process
+				 * 1. Look for a reference in the message (#{prikey}) and attempt to update that record
+				 */
+				
+				/*
 				 * Check to see if there is a reference to a case in the message
 				 * Update the referenced case
 				 */
-				int existingPrikey = getReference(sms.msg);
+				int existingPrikey = getReference(cResults, sms.msg, tableName);
 				if(existingPrikey > 0) {
 					count += updateExistingEntry(sd, cResults, sms, existingPrikey, messageColumn, tableName);
 					updateHistory(sd, cResults, sms, tableName, existingInstanceId, smsNumber, msg);
@@ -551,7 +556,7 @@ public class SMSManager {
 	/*
 	 * Get the primary key which acts as the reference for a case from the message
 	 */
-	private int getReference(String msg) {
+	private int getReference(Connection cResults, String msg, String tableName) throws SQLException {
 		int caseReference = 0;
 		if(msg != null) {
 			int idx = msg.lastIndexOf('#');
@@ -567,6 +572,9 @@ public class SMSManager {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
 			}
+		}
+		if(caseReference > 0) {
+			caseReference = GeneralUtilityMethods.getLatestPrikey(cResults, tableName, caseReference);
 		}
 		return caseReference;
 	}

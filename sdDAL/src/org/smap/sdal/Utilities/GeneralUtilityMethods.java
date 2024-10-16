@@ -9240,6 +9240,9 @@ public class GeneralUtilityMethods {
 		return instanceId;
 	}
 	
+	/*
+	 * Get the latest instanceId in a thread of changes
+	 */
 	public static String getLatestInstanceId(Connection cResults, String tableName, String instanceId) throws SQLException {
 
 		String latestInstanceId = null;
@@ -9271,6 +9274,39 @@ public class GeneralUtilityMethods {
 		}
 		
 		return latestInstanceId;
+	}
+	
+	/*
+	 * Get the latest undeleted prikey in a thread of changes
+	 */
+	public static int getLatestPrikey(Connection cResults, String tableName, int prikey) throws SQLException {
+
+		int latestPrikey = 0;
+		
+		PreparedStatement pstmt = null;
+		String sql = "select prikey "
+				+ "from " + tableName + " "
+				+ "where _thread = (select distinct _thread from " + tableName + " where prikey = ?) "
+						+ "and not _bad "
+				+ "order by prikey desc limit 1";
+
+		if(GeneralUtilityMethods.hasColumn(cResults, tableName, "_thread")) {
+			try {
+				pstmt = cResults.prepareStatement(sql);
+	
+				pstmt.setInt(1, prikey);
+				log.info("Get latest prikey: " + pstmt.toString());
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					latestPrikey = rs.getInt(1);
+				}
+	
+			} finally {
+				try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
+			}
+		}
+		
+		return latestPrikey;
 	}
 	
 	/*
