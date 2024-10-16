@@ -219,7 +219,8 @@ public class SMSManager {
 			String instanceid,
 			ConversationItemDetails sms,
 			int ueId,
-			int ueSurveyId) throws Exception {
+			int ueSurveyId,
+			String submissionType) throws Exception {
 		
 		PreparedStatement pstmtUploadEvent = null;
 		PreparedStatement pstmtExists = null;
@@ -262,72 +263,77 @@ public class SMSManager {
 				 * 1. Look for a reference in the message (#{prikey}) and attempt to update that record
 				 * 2. If not found, look for open cases initiated by "their" number and update those
 				 * 3. If still not found, create a new entry
+				 * 
+				 * The first two steps are only done if the message is a new inbound SMS type, if the
+				 *  message is being reapplied as a new case then a new entry is always created
 				 */
 				
-				/*
-				 * 1. Check to see if there is a reference to a case in the message
-				 * Update the referenced case
-				 */
-				int existingPrikey = getReference(cResults, sms.msg, tableName);
-				if(existingPrikey > 0) {
-					count += updateExistingEntry(sd, cResults, sms, existingPrikey, messageColumn, tableName);
-					updateHistory(sd, cResults, sms, tableName, existingInstanceId, smsNumber, msg);
-				}
-				
-				/*
-				 * 2. If no record was updated then look for an existing case for this number
-				 */
-				if(count == 0) {
-						
+				if(SMSManager.SMS_TYPE.equals(submissionType)) {
 					/*
-					 * Get the case details
+					 * 1. Check to see if there is a reference to a case in the message
+					 * Update the referenced case
 					 */
-					String statusQuestion = null;
-					String finalStatus = null;
-					CaseManager cm = new CaseManager(localisation);
-					String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
-					CMS caseSettings = cm.getCaseManagementSettings(sd, groupSurveyIdent);
-					if(caseSettings != null) {
-						statusQuestion = caseSettings.settings.statusQuestion;
-						finalStatus = caseSettings.settings.finalStatus;
+					int existingPrikey = getReference(cResults, sms.msg, tableName);
+					if(existingPrikey > 0) {
+						count += updateExistingEntry(sd, cResults, sms, existingPrikey, messageColumn, tableName);
+						updateHistory(sd, cResults, sms, tableName, existingInstanceId, smsNumber, msg);
 					}
 					
-					boolean checkStatus = false;
-					if(tableName != null) {
-						StringBuilder sqlExists = new StringBuilder("select prikey, instanceid from ")
-								.append(tableName)
-								.append(" where not _bad and ")
-								.append(theirNumberColumn)
-								.append(" = ? ");
-						
-						if(statusQuestion != null && finalStatus != null) {
-							checkStatus  = true;
-							String statusColumn = GeneralUtilityMethods.getColumnName(sd, sId, statusQuestion);
-							sqlExists.append(" and (")
-								.append(statusColumn)
-								.append(" is null or ")
-								.append(statusColumn)
-								.append(" != ?)");
-						}
-						
-						pstmtExists = cResults.prepareStatement(sqlExists.toString());
-						pstmtExists.setString(1, sms.theirNumber);
-						if(checkStatus) {
-							pstmtExists.setString(2, finalStatus);
-						}
-						log.info("Check for existing cases: " + pstmtExists.toString());
-						ResultSet rs = pstmtExists.executeQuery();
-						while(rs.next()) {
-							existingPrikey = rs.getInt("prikey");
-							existingInstanceId = rs.getString("instanceid");
+					/*
+					 * 2. If no record was updated then look for an existing case for this number
+					 */
+					if(count == 0) {
 							
-							count += updateExistingEntry(sd, cResults, sms, existingPrikey, messageColumn, tableName);
-							updateHistory(sd, cResults, sms, tableName, existingInstanceId, smsNumber, msg);
-
+						/*
+						 * Get the case details
+						 */
+						String statusQuestion = null;
+						String finalStatus = null;
+						CaseManager cm = new CaseManager(localisation);
+						String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+						CMS caseSettings = cm.getCaseManagementSettings(sd, groupSurveyIdent);
+						if(caseSettings != null) {
+							statusQuestion = caseSettings.settings.statusQuestion;
+							finalStatus = caseSettings.settings.finalStatus;
 						}
-						rs.close();
-					}
-				}	
+						
+						boolean checkStatus = false;
+						if(tableName != null) {
+							StringBuilder sqlExists = new StringBuilder("select prikey, instanceid from ")
+									.append(tableName)
+									.append(" where not _bad and ")
+									.append(theirNumberColumn)
+									.append(" = ? ");
+							
+							if(statusQuestion != null && finalStatus != null) {
+								checkStatus  = true;
+								String statusColumn = GeneralUtilityMethods.getColumnName(sd, sId, statusQuestion);
+								sqlExists.append(" and (")
+									.append(statusColumn)
+									.append(" is null or ")
+									.append(statusColumn)
+									.append(" != ?)");
+							}
+							
+							pstmtExists = cResults.prepareStatement(sqlExists.toString());
+							pstmtExists.setString(1, sms.theirNumber);
+							if(checkStatus) {
+								pstmtExists.setString(2, finalStatus);
+							}
+							log.info("Check for existing cases: " + pstmtExists.toString());
+							ResultSet rs = pstmtExists.executeQuery();
+							while(rs.next()) {
+								existingPrikey = rs.getInt("prikey");
+								existingInstanceId = rs.getString("instanceid");
+								
+								count += updateExistingEntry(sd, cResults, sms, existingPrikey, messageColumn, tableName);
+								updateHistory(sd, cResults, sms, tableName, existingInstanceId, smsNumber, msg);
+	
+							}
+							rs.close();
+						}
+					}	
+				}
 				
 				/*
 				 * 3. Create a new entry if an existing entry was not updated

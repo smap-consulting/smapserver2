@@ -418,8 +418,6 @@ public class Data extends Application {
 		
 	}
 	
-
-	
 	/*
 	 * Get similar records for an individual survey in JSON format
 	 */

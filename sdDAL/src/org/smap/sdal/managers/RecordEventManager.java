@@ -512,8 +512,7 @@ public class RecordEventManager {
 					events.add(record);
 				}
 				record.add(item);
-				
-				
+					
 			}
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};

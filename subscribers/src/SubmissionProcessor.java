@@ -163,9 +163,9 @@ public class SubmissionProcessor {
 							int oId = 0;
 							oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
 							
-							if(SMSManager.SMS_TYPE.equals(ue.getType())) {
-								// SMS
-								log.info("------------ Processing SMS message");
+							if(SMSManager.SMS_TYPE.equals(ue.getType()) || SMSManager.NEW_CASE.equals(ue.getType())) {
+								// Message either newly arrived or being reused as a new case
+								log.info("------------ Processing message");
 								ConversationItemDetails sms = gson.fromJson(ue.getPayload(), ConversationItemDetails.class);
 								
 								try {
@@ -175,17 +175,13 @@ public class SubmissionProcessor {
 											ue.getInstanceId(),
 											sms,
 											ue.getId(),
-											ue.getSurveyId());
+											ue.getSurveyId(),
+											ue.getType());
 								} catch (Exception e) {
 									log.log(Level.SEVERE, e.getMessage(), e);
 									se.setStatus("error");
 									se.setReason(e.getMessage());
 								}
-							} if(SMSManager.NEW_CASE.equals(ue.getType())) {
-								// User has requested a new case from a message
-								
-								System.out.println("xxxxxxxxxxxxxxxxxxxxxxxx New Case xxxxxxxxxxxxxxxxxxxx");     // TODO
-								
 							} else {
 								// Form
 							
