@@ -677,6 +677,7 @@ CREATE TABLE record_event (
 	status text,									-- Status of event - determines how it is displayed
 	changes text,								-- Details of the change as json object	
 	task text,									-- Details of task changes as json object
+	message text,								-- Details of message changes as json object
 	notification text,							-- Details of notification as json object
 	description text,
 	success boolean default false,				-- Set true of the event was a success

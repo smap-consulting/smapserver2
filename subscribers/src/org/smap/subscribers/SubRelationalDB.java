@@ -444,6 +444,7 @@ public class SubRelationalDB extends Subscriber {
 						instance.getUuid(), 
 						null, 					// Change object
 						null, 					// Task object
+						null,					// Inbound message object
 						null,					// Notification object
 						null, 
 						sId, 
@@ -1386,6 +1387,7 @@ public class SubRelationalDB extends Subscriber {
 						newInstance, 
 						null, 					// Change object
 						null, 					// Task object
+						null,					// Inbound message object
 						null,					// Notification object
 						null, 
 						sId, 
@@ -1404,6 +1406,7 @@ public class SubRelationalDB extends Subscriber {
 						newInstance, 
 						gson.toJson(changes), 	// Change object
 						null, 					// Task object
+						null,					// Inbound message object
 						null,					// Notification object
 						null, 
 						sId, 

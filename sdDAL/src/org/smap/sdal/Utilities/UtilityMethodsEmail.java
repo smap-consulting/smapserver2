@@ -147,6 +147,7 @@ public class UtilityMethodsEmail {
 						instanceId, 
 						null, 					// Change object
 						null, 					// Task object
+						null,					// Message object
 						null,					// Notification object
 						reason, 				// Description
 						sId, 

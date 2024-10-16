@@ -462,6 +462,7 @@ public class CaseManager {
 				instanceId, 
 				null,				// Change object
 				null,	            // Task Object
+				null,				// Message Object
 				null,				// Notification object
 				details, 
 				0,				    // sId (don't care legacy)

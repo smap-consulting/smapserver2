@@ -16,6 +16,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.legacy.UtilityMethods;
 import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.ConversationItemDetails;
+import org.smap.sdal.model.MessageItemChange;
 import org.smap.sdal.model.SMSNumber;
 import org.smap.sdal.model.SubscriberEvent;
 
@@ -258,10 +259,12 @@ public class SMSManager {
 				/*
 				 * Process
 				 * 1. Look for a reference in the message (#{prikey}) and attempt to update that record
+				 * 2. If not found, look for open cases initiated by "their" number and update those
+				 * 3. If still not found, create a new entry
 				 */
 				
 				/*
-				 * Check to see if there is a reference to a case in the message
+				 * 1. Check to see if there is a reference to a case in the message
 				 * Update the referenced case
 				 */
 				int existingPrikey = getReference(cResults, sms.msg, tableName);
@@ -271,7 +274,7 @@ public class SMSManager {
 				}
 				
 				/*
-				 * If no record was updated then look for an existing case for this number
+				 * 2. If no record was updated then look for an existing case for this number
 				 */
 				if(count == 0) {
 						
@@ -326,7 +329,7 @@ public class SMSManager {
 				}	
 				
 				/*
-				 * Create a new entry if an existing entry was not updated
+				 * 3. Create a new entry if an existing entry was not updated
 				 */
 				if(count == 0) {
 
@@ -497,6 +500,8 @@ public class SMSManager {
 			SMSNumber smsNumber,
 			String msg) throws SQLException {
 		
+		MessageItemChange change = new MessageItemChange(msg);
+		
 		RecordEventManager rem = new RecordEventManager();
 		rem.writeEvent(sd, cResults, 
 				RecordEventManager.INBOUND_MESSAGE, 
@@ -506,6 +511,7 @@ public class SMSManager {
 				existingInstanceId, 
 				null, 					// Change object
 				null, 					// Task object
+				gson.toJson(change),	// Message object
 				null,					// Notification object
 				msg, 					// Description
 				0, 						// sID legacy

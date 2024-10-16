@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.DataItemChangeEvent;
+import org.smap.sdal.model.MessageItemChange;
 import org.smap.sdal.model.RecordUpdateEvent;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.TaskEventChange;
@@ -81,6 +82,7 @@ public class RecordEventManager {
 			String newInstance, 
 			String changes,
 			String task,
+			String msg,
 			String notification,
 			String description,
 			int sId,						// legacy
@@ -97,6 +99,7 @@ public class RecordEventManager {
 				+ "instanceid,	"
 				+ "changes, "
 				+ "task, "
+				+ "message, "
 				+ "notification, "
 				+ "description, "
 				+ "success, "
@@ -107,7 +110,7 @@ public class RecordEventManager {
 				+ "task_id, "
 				+ "assignment_id, "
 				+ "event_time) "
-				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmt = null;
 		
 		String sqlSurvey = "select version " 
@@ -143,15 +146,16 @@ public class RecordEventManager {
 			pstmt.setString(5,  newInstance);
 			pstmt.setString(6,  changes);
 			pstmt.setString(7,  task);
-			pstmt.setString(8,  notification);
-			pstmt.setString(9,  description);
-			pstmt.setBoolean(10,  true);	// success
-			pstmt.setString(11,  null);
-			pstmt.setInt(12, uId);
-			pstmt.setString(13,  sIdent);
-			pstmt.setInt(14,  sVersion);
-			pstmt.setInt(15,  taskId);
-			pstmt.setInt(16,  assignmentId);
+			pstmt.setString(8,  msg);
+			pstmt.setString(9,  notification);
+			pstmt.setString(10,  description);
+			pstmt.setBoolean(11,  true);	// success
+			pstmt.setString(12,  null);
+			pstmt.setInt(13, uId);
+			pstmt.setString(14,  sIdent);
+			pstmt.setInt(15,  sVersion);
+			pstmt.setInt(16,  taskId);
+			pstmt.setInt(17,  assignmentId);
 			log.info("Update history: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
@@ -343,6 +347,7 @@ public class RecordEventManager {
 				+ "status,"
 				+ "changes,"
 				+ "task, "
+				+ "message, "
 				+ "notification, "
 				+ "description, "
 				+ "changed_by, "
@@ -383,6 +388,10 @@ public class RecordEventManager {
 							scheduledFinish = lastEvent.schedule_finish.getTime();
 						}
 					}
+				}
+				String message = rs.getString("message");
+				if(message != null) {
+					event.message = gson.fromJson(message, MessageItemChange.class);
 				}
 				event.status = rs.getString("status");
 				if(scheduledFinish > 0) {

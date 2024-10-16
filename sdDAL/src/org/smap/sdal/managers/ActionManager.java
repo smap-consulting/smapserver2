@@ -528,6 +528,7 @@ public class ActionManager {
 						gson.toJson(changeMap.get(inst)),
 						null,		// task details
 						null,		// Notification details
+						null,		// Message object
 						null,		// description
 						sId, 
 						null,
@@ -866,6 +867,7 @@ public class ActionManager {
 					instanceId, 
 					gson.toJson(changes),
 					null,		// task details
+					null,		// Message object
 					null,		// notification details
 					null,		// description
 					sId, 

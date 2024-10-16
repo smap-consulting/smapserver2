@@ -136,6 +136,7 @@ public class ConversationManager {
 							instanceid, 
 							null, 					// Change object
 							null, 					// Task object
+							null,					// Message object
 							null,					// Notification object
 							hEntry, 				// Description
 							0, 						// sID legacy

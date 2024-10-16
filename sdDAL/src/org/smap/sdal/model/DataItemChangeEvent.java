@@ -16,6 +16,7 @@ public class DataItemChangeEvent {
 	public String tz;
 	public ArrayList<DataItemChange> changes;
 	public TaskItemChange task;
+	public MessageItemChange message;
 	public SubmissionMessage notification;
 	public String description;	
 }

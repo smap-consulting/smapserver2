@@ -1261,6 +1261,7 @@ public class NotificationManager {
 						msg.instanceId, 
 						null, 
 						null, 
+						null,				// Inbound message object
 						gson.toJson(msg),
 						error_details, 
 						0, 

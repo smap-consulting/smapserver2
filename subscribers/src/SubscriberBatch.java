@@ -1235,6 +1235,7 @@ public class SubscriberBatch {
 										instanceid, 
 										null,				// Change object
 										null,				// Task Object
+										null,				// Inbound message object
 										null,				// Notification object
 										details, 
 										0,					// sId (don't care legacy)
