@@ -277,7 +277,8 @@ public class SMSManager {
 					int existingPrikey = getReference(cResults, sms.msg, tableName);
 					if(existingPrikey > 0) {
 						updateExistingEntry(sd, cResults, true, sms, existingPrikey, messageColumn, tableName, 0);
-						updateHistory(sd, cResults, sms, tableName, existingInstanceId, smsNumber, msg);
+						updateHistory(sd, cResults, sms.theirNumber, tableName, existingInstanceId, smsNumber.surveyIdent, msg,
+								RecordEventManager.INBOUND_MESSAGE);
 						messageWritten = true;
 					}
 					
@@ -329,7 +330,8 @@ public class SMSManager {
 								existingInstanceId = rs.getString("instanceid");
 								
 								updateExistingEntry(sd, cResults, true, sms, existingPrikey, messageColumn, tableName, 0);
-								updateHistory(sd, cResults, sms, tableName, existingInstanceId, smsNumber, msg);
+								updateHistory(sd, cResults, sms.theirNumber, tableName, existingInstanceId, smsNumber.surveyIdent, msg,
+										RecordEventManager.INBOUND_MESSAGE);
 								messageWritten = true;
 							}
 							rs.close();
@@ -362,7 +364,8 @@ public class SMSManager {
 					log.info("Create new sms case: " + pstmt.toString());
 					pstmt.executeUpdate();
 					
-					updateHistory(sd, cResults, sms, tableName, existingInstanceId, smsNumber, msg);
+					updateHistory(sd, cResults, sms.theirNumber, tableName, existingInstanceId, smsNumber.surveyIdent, msg,
+							RecordEventManager.INBOUND_MESSAGE);
 				} 
 					
 				/*
@@ -529,26 +532,27 @@ public class SMSManager {
 	/*
 	 * Update the history for the record
 	 */
-	private void updateHistory(Connection sd, Connection cResults, ConversationItemDetails sms,
+	private void updateHistory(Connection sd, Connection cResults, String user,
 			String tableName,
 			String existingInstanceId,
-			SMSNumber smsNumber,
-			String msg) throws SQLException {
+			String surveyIdent,
+			String msg,
+			String event) throws SQLException {
 		
 		RecordEventManager rem = new RecordEventManager();
 		rem.writeEvent(sd, cResults, 
-				RecordEventManager.INBOUND_MESSAGE, 
+				event, 
 				RecordEventManager.STATUS_SUCCESS,
-				sms.theirNumber, 
+				user, 
 				tableName, 
 				existingInstanceId, 
 				null, 					// Change object
 				null, 					// Task object
-				gson.toJson(sms),		// Message object
+				null,					// Message object
 				null,					// Notification object
 				msg, 					// Description
 				0, 						// sID legacy
-				smsNumber.surveyIdent,	// Survey Ident
+				surveyIdent,			// Survey Ident
 				0,
 				0);	
 		
@@ -618,7 +622,7 @@ public class SMSManager {
 		return caseReference;
 	}
 	
-	public ConversationItemDetails removeConversationItemFromRecord(Connection sd, Connection cResults, int sId, int idx, String instanceid) throws SQLException {
+	public ConversationItemDetails removeConversationItemFromRecord(Connection sd, Connection cResults, int sId, int idx, String instanceid, String user) throws SQLException {
 		
 		ConversationItemDetails item = null;
 		PreparedStatement pstmt = null;
@@ -627,6 +631,7 @@ public class SMSManager {
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			String messageColumn = GeneralUtilityMethods.getConversationColumn(sd, sId);
 			int prikey = GeneralUtilityMethods.getPrikey(cResults, tableName, instanceid);
+			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			
 			/*
 			 * Delete the existing conversation item
@@ -634,6 +639,12 @@ public class SMSManager {
 			 */
 			item = updateExistingEntry(sd, cResults, false, null, prikey, messageColumn, tableName, idx);
 			
+			/*
+			 * Update the history
+			 */
+			String msg = localisation.getString("msg_new_case");
+			msg = msg.replaceAll("%s1",  item.msg);
+			updateHistory(sd, cResults, user, tableName, instanceid, surveyIdent, msg, RecordEventManager.NEW_CASE);
 			
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}

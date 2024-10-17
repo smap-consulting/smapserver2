@@ -61,6 +61,7 @@ public class RecordEventManager {
 	public static String RESTORED = "restored";
 	public static String INBOUND_MESSAGE = "inbound_msg";
 	public static String OUTBOUND_MESSAGE = "outbound_msg";
+	public static String NEW_CASE = "new_case";
 	
 	public static String STATUS_SUCCESS = "success";
 	public static String STATUS_NEW = "new";
@@ -162,7 +163,7 @@ public class RecordEventManager {
 			/*
 			 * Alert the user previously assigned to this record and the new user
 			 */
-			if(!event.equals(RecordEventManager.NOTIFICATION)) {
+			if(!event.equals(RecordEventManager.NOTIFICATION) && !event.equals(RecordEventManager.NEW_CASE)) {
 				MessagingManager mm = new MessagingManager(null);	// Assume no messages will require localisation!
 				String assignedUser = GeneralUtilityMethods.getAssignedUser(cResults, tableName, key);
 				

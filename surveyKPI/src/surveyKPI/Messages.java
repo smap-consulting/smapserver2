@@ -27,7 +27,6 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
-import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -39,6 +38,8 @@ import com.google.gson.GsonBuilder;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -81,22 +82,20 @@ public class Messages extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		} catch (Exception e) {
-		}
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 			
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		try {				
 			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
+
 			/*
 			 * Create new entry in upload event
 			 */
-			SMSManager sim = new SMSManager(null, null);
-			ConversationItemDetails message = sim.removeConversationItemFromRecord(sd, cResults, sId, idx, instanceid); 	
+			SMSManager sim = new SMSManager(localisation, "UTC");
+			ConversationItemDetails message = sim.removeConversationItemFromRecord(sd, cResults, sId, idx, instanceid, request.getRemoteUser()); 	
     		sim.saveMessage(sd, message, request.getServerName(), UUID.randomUUID().toString(), SMSManager.NEW_CASE);
 
     		response = Response.ok().build();
