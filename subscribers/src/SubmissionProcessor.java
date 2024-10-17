@@ -176,7 +176,8 @@ public class SubmissionProcessor {
 											sms,
 											ue.getId(),
 											ue.getSurveyId(),
-											ue.getType());
+											ue.getType(),
+											ue.getSurveyNotes());
 								} catch (Exception e) {
 									log.log(Level.SEVERE, e.getMessage(), e);
 									se.setStatus("error");

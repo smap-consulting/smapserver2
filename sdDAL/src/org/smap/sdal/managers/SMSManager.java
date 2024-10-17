@@ -123,7 +123,8 @@ public class SMSManager {
 			ConversationItemDetails sms,
 			String serverName,
 			String instanceId,
-			String submissionType)  {
+			String submissionType,
+			String comment)  {
 		
 		String sql = "insert into upload_event ("
 				+ "upload_time,"
@@ -133,12 +134,17 @@ public class SMSManager {
 				+ "server_name,"
 				+ "status,"
 				+ "s_id,"
-				+ "instanceid) "
-				+ "values (now(), ?, ?, ?, ?, 'success', 0, ?);";
+				+ "instanceid,"
+				+ "survey_notes) "
+				+ "values (now(), ?, ?, ?, ?, 'success', 0, ?, ?);";
 
 		PreparedStatement pstmt = null;
 		
 		try {
+			
+			if(comment != null && comment.trim().length() == 0) {
+				comment = null;
+			}
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sms.ourNumber);  	// User
@@ -146,6 +152,7 @@ public class SMSManager {
 			pstmt.setString(3, gson.toJson(sms));	// Payload
 			pstmt.setString(4, serverName);			// Server Name
 			pstmt.setString(5, instanceId);			// Instance Id
+			pstmt.setString(6, comment);			// Instance Id
 			
 			log.info("----- new sms " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -221,7 +228,8 @@ public class SMSManager {
 			ConversationItemDetails sms,
 			int ueId,
 			int ueSurveyId,
-			String submissionType) throws Exception {
+			String submissionType,
+			String comment) throws Exception {
 		
 		PreparedStatement pstmtUploadEvent = null;
 		PreparedStatement pstmtExists = null;
@@ -351,16 +359,17 @@ public class SMSManager {
 					existingInstanceId = instanceid;
 					StringBuilder sql = new StringBuilder("insert into ")
 							.append(tableName)
-							.append(" (_user, instanceid, _thread")
+							.append(" (_user, instanceid, _thread, _survey_notes")
 							.append(",").append(theirNumberColumn)
 							.append(",").append(messageColumn)
-							.append(") values(?, ?, ?, ?, ?)");
+							.append(") values(?, ?, ?, ?, ?, ?)");
 					pstmt = cResults.prepareStatement(sql.toString());
 					pstmt.setString(1, sms.ourNumber);
 					pstmt.setString(2,  instanceid);
 					pstmt.setString(3,  instanceid);	// thread
-					pstmt.setString(4, sms.theirNumber);
-					pstmt.setString(5, gson.toJson(getMessageText(sms, null)));
+					pstmt.setString(4, comment);
+					pstmt.setString(5, sms.theirNumber);
+					pstmt.setString(6, gson.toJson(getMessageText(sms, null)));
 					log.info("Create new sms case: " + pstmt.toString());
 					pstmt.executeUpdate();
 					
@@ -499,8 +508,12 @@ public class SMSManager {
 			if(add) {
 				pstmt.setString(1, gson.toJson(getMessageText(sms, currentConv)));
 			} else {
-				removedItem = currentConv.get(idx);
-				pstmt.setString(1, gson.toJson(removeMessageText(idx, currentConv)));
+				if(idx < currentConv.size()) {
+					removedItem = currentConv.get(idx);
+					pstmt.setString(1, gson.toJson(removeMessageText(idx, currentConv)));
+				} else {
+					pstmt.setString(1, gson.toJson(currentConv));
+				}
 			}
 			pstmt.setInt(2, existingPrikey);	
 			log.info("Update existing sms case: " + pstmt.toString());
@@ -622,7 +635,9 @@ public class SMSManager {
 		return caseReference;
 	}
 	
-	public ConversationItemDetails removeConversationItemFromRecord(Connection sd, Connection cResults, int sId, int idx, String instanceid, String user) throws SQLException {
+	public ConversationItemDetails removeConversationItemFromRecord(Connection sd, Connection cResults, int sId, int idx, 
+			String instanceid,
+			String user) throws SQLException {
 		
 		ConversationItemDetails item = null;
 		PreparedStatement pstmt = null;

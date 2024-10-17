@@ -74,7 +74,8 @@ public class Messages extends Application {
 			@FormParam("idx") int idx,
 			@FormParam("sId") int sId,
 			@FormParam("groupSurvey") String groupSurvey,
-			@FormParam("instanceid") String instanceid		
+			@FormParam("instanceid") String instanceid,
+			@FormParam("comment") String comment
 			) { 
 		
 		Response response = null;
@@ -92,11 +93,16 @@ public class Messages extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 
 			/*
-			 * Create new entry in upload event
+			 * Remove the conversation item from the source case
 			 */
 			SMSManager sim = new SMSManager(localisation, "UTC");
-			ConversationItemDetails message = sim.removeConversationItemFromRecord(sd, cResults, sId, idx, instanceid, request.getRemoteUser()); 	
-    		sim.saveMessage(sd, message, request.getServerName(), UUID.randomUUID().toString(), SMSManager.NEW_CASE);
+			ConversationItemDetails message = sim.removeConversationItemFromRecord(sd, cResults, sId, idx, instanceid, 
+					request.getRemoteUser()); 
+			
+			/*
+			 * Create new entry in upload event
+			 */	
+    		sim.saveMessage(sd, message, request.getServerName(), UUID.randomUUID().toString(), SMSManager.NEW_CASE, comment);
 
     		response = Response.ok().build();
 		} catch (Exception e) {

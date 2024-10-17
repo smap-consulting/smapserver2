@@ -65,7 +65,7 @@ public class Vonage extends Application {
 		         */
 		        if(sms.ourNumber != null && sms.msg != null) {	// TODO allow null from number?
 	        		SMSManager sim = new SMSManager(null, null);
-	        		sim.saveMessage(sd, sms, request.getServerName(), inbound.message_uuid, SMSManager.SMS_TYPE);
+	        		sim.saveMessage(sd, sms, request.getServerName(), inbound.message_uuid, SMSManager.SMS_TYPE, null);
 		        } else {
 		        	log.info("Error: Invalid SMS message");
 		        }
