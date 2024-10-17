@@ -70,10 +70,10 @@ public class Messages extends Application {
 	@Path("/newcase")
 	@Produces("application/json")
 	public Response createNewCaseFromMessage(@Context HttpServletRequest request,			
-			@FormParam("theirNumber") String theirNumber,
-			@FormParam("ourNumber") String ourNumber,
-			@FormParam("msg") String msg,
-			@FormParam("channel") String channel		
+			@FormParam("idx") int idx,
+			@FormParam("sId") int sId,
+			@FormParam("groupSurvey") String groupSurvey,
+			@FormParam("instanceid") String instanceid		
 			) { 
 		
 		Response response = null;
@@ -89,17 +89,14 @@ public class Messages extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 			
-		
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		try {				
 			
 			/*
 			 * Create new entry in upload event
 			 */
-			ConversationItemDetails message = new ConversationItemDetails(theirNumber, ourNumber, msg, true, channel, 
-					new Timestamp(System.currentTimeMillis()));
-			
 			SMSManager sim = new SMSManager(null, null);
+			ConversationItemDetails message = sim.removeConversationItemFromRecord(sd, cResults, sId, idx, instanceid); 	
     		sim.saveMessage(sd, message, request.getServerName(), UUID.randomUUID().toString(), SMSManager.NEW_CASE);
 
     		response = Response.ok().build();
@@ -114,5 +111,7 @@ public class Messages extends Application {
 		return response;
 		
 	}
+	
+
 }
 

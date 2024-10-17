@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -256,7 +257,7 @@ public class SMSManager {
 				msg = msg.replaceAll("%s2", sms.theirNumber);
 				msg = msg.replace("%s3", sms.channel);			
 				
-				int count = 0;
+				boolean messageWritten = false;
 				
 				/*
 				 * Process
@@ -275,14 +276,15 @@ public class SMSManager {
 					 */
 					int existingPrikey = getReference(cResults, sms.msg, tableName);
 					if(existingPrikey > 0) {
-						count += updateExistingEntry(sd, cResults, sms, existingPrikey, messageColumn, tableName);
+						updateExistingEntry(sd, cResults, true, sms, existingPrikey, messageColumn, tableName, 0);
 						updateHistory(sd, cResults, sms, tableName, existingInstanceId, smsNumber, msg);
+						messageWritten = true;
 					}
 					
 					/*
 					 * 2. If no record was updated then look for an existing case for this number
 					 */
-					if(count == 0) {
+					if(!messageWritten) {
 							
 						/*
 						 * Get the case details
@@ -326,9 +328,9 @@ public class SMSManager {
 								existingPrikey = rs.getInt("prikey");
 								existingInstanceId = rs.getString("instanceid");
 								
-								count += updateExistingEntry(sd, cResults, sms, existingPrikey, messageColumn, tableName);
+								updateExistingEntry(sd, cResults, true, sms, existingPrikey, messageColumn, tableName, 0);
 								updateHistory(sd, cResults, sms, tableName, existingInstanceId, smsNumber, msg);
-	
+								messageWritten = true;
 							}
 							rs.close();
 						}
@@ -338,7 +340,7 @@ public class SMSManager {
 				/*
 				 * 3. Create a new entry if an existing entry was not updated
 				 */
-				if(count == 0) {
+				if(!messageWritten) {
 
 					/*
 					 * Create new entry
@@ -358,7 +360,7 @@ public class SMSManager {
 					pstmt.setString(4, sms.theirNumber);
 					pstmt.setString(5, gson.toJson(getMessageText(sms, null)));
 					log.info("Create new sms case: " + pstmt.toString());
-					count = pstmt.executeUpdate();
+					pstmt.executeUpdate();
 					
 					updateHistory(sd, cResults, sms, tableName, existingInstanceId, smsNumber, msg);
 				} 
@@ -430,18 +432,38 @@ public class SMSManager {
 	}
 	
 	/*
-	 * Update existing entry
+	 * Remove message details from existing
 	 */
-	private int updateExistingEntry(Connection sd,
+	public ArrayList<ConversationItemDetails> removeMessageText(int idx, ArrayList<ConversationItemDetails> current) {
+		ArrayList<ConversationItemDetails> conversation = null;
+		
+		if(current != null) {
+			conversation = current;
+			conversation.remove(idx);
+		} 
+		
+		return conversation;
+	}
+	
+	/*
+	 * Update existing entry
+	 *  Items can be added or removed
+	 *  If removed the removed item details are returned
+	 */
+	private ConversationItemDetails updateExistingEntry(Connection sd,
 			Connection cResults, 
+			boolean add,
 			ConversationItemDetails sms,
 			int existingPrikey,
 			String messageColumn,
-			String tableName) throws SQLException {
+			String tableName,
+			int idx						// Index of conversation item if it is to be removed
+			) throws SQLException {
 		
 		int count = 0;
 		PreparedStatement pstmtGet = null;
 		PreparedStatement pstmt = null;
+		ConversationItemDetails removedItem = null;
 		
 		try {
 			log.info("Update existing entry with prikey: " + existingPrikey);
@@ -470,7 +492,13 @@ public class SMSManager {
 					.append(messageColumn)
 					.append(" = ? where prikey = ?");
 			pstmt = cResults.prepareStatement(sql.toString());
-			pstmt.setString(1, gson.toJson(getMessageText(sms, currentConv)));
+			
+			if(add) {
+				pstmt.setString(1, gson.toJson(getMessageText(sms, currentConv)));
+			} else {
+				removedItem = currentConv.get(idx);
+				pstmt.setString(1, gson.toJson(removeMessageText(idx, currentConv)));
+			}
 			pstmt.setInt(2, existingPrikey);	
 			log.info("Update existing sms case: " + pstmt.toString());
 			int c = pstmt.executeUpdate();
@@ -485,7 +513,7 @@ public class SMSManager {
 			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}}
 		}
 		
-		return count;
+		return removedItem;
 	}
 	
 	private SMSNumber getNumber(ResultSet rs) throws SQLException {
@@ -588,6 +616,30 @@ public class SMSManager {
 			caseReference = GeneralUtilityMethods.getLatestPrikey(cResults, tableName, caseReference);
 		}
 		return caseReference;
+	}
+	
+	public ConversationItemDetails removeConversationItemFromRecord(Connection sd, Connection cResults, int sId, int idx, String instanceid) throws SQLException {
+		
+		ConversationItemDetails item = null;
+		PreparedStatement pstmt = null;
+		
+		try {
+			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			String messageColumn = GeneralUtilityMethods.getConversationColumn(sd, sId);
+			int prikey = GeneralUtilityMethods.getPrikey(cResults, tableName, instanceid);
+			
+			/*
+			 * Delete the existing conversation item
+			 * Returns a copy of the item
+			 */
+			item = updateExistingEntry(sd, cResults, false, null, prikey, messageColumn, tableName, idx);
+			
+			
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+		return item;
+
 	}
 }
 
