@@ -1180,7 +1180,7 @@ public class NotificationManager {
 							response = messagesClient.sendMessage(message);
 						}
 			
-						status = response.getMessageUuid() == null ? "success" : "error";
+						status = response.getMessageUuid() == null ?  "error" : "success";
 						error_details = "";
 						
 						if("success".equals(status)) {

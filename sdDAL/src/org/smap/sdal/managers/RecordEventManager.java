@@ -163,7 +163,7 @@ public class RecordEventManager {
 			/*
 			 * Alert the user previously assigned to this record and the new user
 			 */
-			if(!event.equals(RecordEventManager.NOTIFICATION) && !event.equals(RecordEventManager.NEW_CASE)) {
+			if(event.equals(RecordEventManager.ASSIGNED)) {
 				MessagingManager mm = new MessagingManager(null);	// Assume no messages will require localisation!
 				String assignedUser = GeneralUtilityMethods.getAssignedUser(cResults, tableName, key);
 				
