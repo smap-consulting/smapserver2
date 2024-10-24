@@ -495,7 +495,7 @@ public class Audit extends Application {
 				// Get the raw audit data
 				StringBuffer sql = new StringBuffer("select ").append(AuditData.AUDIT_RAW_COLUMN_NAME);
 				sql.append(" from ").append(tablename);
-				sql.append(" where instanceid = ?");
+				sql.append(" where instanceid = ? ");
 								
 				pstmt = cResults.prepareStatement(sql.toString());
 				pstmt.setString(1, instanceId);

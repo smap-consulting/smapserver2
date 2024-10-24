@@ -7038,7 +7038,7 @@ public class GeneralUtilityMethods {
 	 * Return the SQL that does survey level Role Based Access Control
 	 */
 	public static String getSurveyRBAC() {
-		return "and ((s.ident not in (select survey_ident from survey_role where enabled = true)) or " // No roles on survey
+		return " and ((s.ident not in (select survey_ident from survey_role where enabled = true)) or " // No roles on survey
 				+ "(s.ident in (select sr.survey_ident from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
 				+ ") ";
 	}
@@ -7047,7 +7047,7 @@ public class GeneralUtilityMethods {
 	 * Return the SQL that does survey level Role Based Access Control (modified for use with upload event)
 	 */
 	public static String getSurveyRBACUploadEvent() {
-		return "((ue.ident not in (select survey_ident from survey_role where enabled = true)) or " // No roles on survey
+		return " ((ue.ident not in (select survey_ident from survey_role where enabled = true)) or " // No roles on survey
 				+ "(ue.ident in (select sr.survey_ident from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
 				+ ") ";
 	}
@@ -10872,7 +10872,7 @@ public class GeneralUtilityMethods {
 	 * Return true if the survey bundle has roles
 	 */
 	public static boolean bundleHasRoles(Connection sd, String user, String bundleSurveyIdent)
-			throws ServerException, AuthorisationException, NotFoundException, SQLException {
+			throws SQLException {
 		
 		ResultSet resultSet = null;
 		PreparedStatement pstmt = null;

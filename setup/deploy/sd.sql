@@ -149,3 +149,6 @@ alter table organisation add column ft_force_token boolean default false;
 alter table sms_number add column channel text;
 update sms_number set channel = 'sms' where channel is null;
 alter table record_event add column message text;
+
+-- Version 24.10
+alter table survey_role add column group_survey_ident text;

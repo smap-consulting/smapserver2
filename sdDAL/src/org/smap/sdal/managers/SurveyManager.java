@@ -3283,7 +3283,7 @@ public class SurveyManager {
 				+ "and up.u_id = u.id "
 				+ "and u.ident = ? "
 				+ "and not s.deleted "
-				+ "and group_survey_ident = ?");
+				+ "and s.group_survey_ident = ? ");
 
 		if(!superUser) {
 			sql.append(GeneralUtilityMethods.getSurveyRBAC());
