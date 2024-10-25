@@ -5970,7 +5970,7 @@ public class GeneralUtilityMethods {
 		StringBuffer sql = new StringBuffer("select distinct s.s_id "
 				+ "from survey s "
 				+ "where not s.deleted "
-				+ "and group_survey_ident = ?");
+				+ "and group_survey_ident = ? ");
 
 		PreparedStatement pstmt = null;
 		try {
