@@ -38,6 +38,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QueueManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -88,6 +89,7 @@ public class Lookup extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
+			ServerSettings.setBasePath(request);
 			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			SurveySummary sum = sm.getFullSummary(sd, surveyIdent);

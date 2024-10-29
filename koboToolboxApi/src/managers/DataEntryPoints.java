@@ -26,6 +26,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.RateLimiter;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.LogManager;
@@ -86,6 +87,8 @@ public class DataEntryPoints {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, remoteUser));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			ServerSettings.setBasePath(request);
 			
 			DataManager dm = new DataManager(localisation, "UTC");
 			
