@@ -1742,6 +1742,7 @@ public class UserManager {
 				+ "user_project up "
 				+ "where up.u_id = ? "
 				+ "and up.p_id = p.id "
+				+ "and p.o_id = ? "		// Only get projects in the current organisation
 				+ "order by p.name asc";
 		PreparedStatement pstmtProjects = null;
 		
@@ -1751,6 +1752,7 @@ public class UserManager {
 				+ "user_role ur "
 				+ "where ur.u_id = ? "
 				+ "and ur.r_id = r.id "
+				+ "and r.o_id = ? "
 				+ "order by r.name asc";
 		PreparedStatement pstmtRoles = null;
 		
@@ -1859,30 +1861,34 @@ public class UserManager {
 					}
 					
 					// Projects
-					if(usersOrgId == oId) {
-						if(rsProjects != null) try {rsProjects.close();} catch(Exception e) {};
-						pstmtProjects.setInt(1, user.id);
-						rsProjects = pstmtProjects.executeQuery();
-						user.projects = new ArrayList<Project> ();
-						while(rsProjects.next()) {
-							Project p = new Project();
-							p.id = rsProjects.getInt("id");
-							p.name = rsProjects.getString("name");
-							user.projects.add(p);
-						}
-						
-						// Roles
-						if(isOrgUser || isSecurityManager) {
-							if(rsRoles != null) try {rsRoles.close();} catch(Exception e) {};
-							pstmtRoles.setInt(1, user.id);
-							rsRoles = pstmtRoles.executeQuery();
-							user.roles = new ArrayList<Role> ();
-							while(rsRoles.next()) {
-								Role r = new Role();
-								r.id = rsRoles.getInt("id");
-								r.name = rsRoles.getString("name");
-								user.roles.add(r);
-							}
+					user.projects = new ArrayList<Project> ();
+					if(rsProjects != null) try {rsProjects.close();} catch(Exception e) {};
+					pstmtProjects.setInt(1, user.id);
+					pstmtProjects.setInt(2, oId);
+					log.info("Projects: " + pstmtProjects.toString());
+					
+					rsProjects = pstmtProjects.executeQuery();
+					
+					while(rsProjects.next()) {
+						Project p = new Project();
+						p.id = rsProjects.getInt("id");
+						p.name = rsProjects.getString("name");
+						user.projects.add(p);
+					}
+					
+					// Roles
+					user.roles = new ArrayList<Role> ();
+					if(isOrgUser || isSecurityManager) {
+						if(rsRoles != null) try {rsRoles.close();} catch(Exception e) {};
+						pstmtRoles.setInt(1, user.id);
+						pstmtRoles.setInt(2, oId);
+						rsRoles = pstmtRoles.executeQuery();
+
+						while(rsRoles.next()) {
+							Role r = new Role();
+							r.id = rsRoles.getInt("id");
+							r.name = rsRoles.getString("name");
+							user.roles.add(r);
 						}
 					}
 					

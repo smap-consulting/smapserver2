@@ -186,51 +186,38 @@ public class ProjectList extends Application {
 						p.id = pm.createProject(sd, user, p, o_id, u_id, request.getRemoteUser());
 						
 					} else {
-						// Existing project
-						
+						// Existing project	
 						// Check the project is in the same organisation as the administrator doing the editing
-						sql = "SELECT p.id " +
-								" FROM project p " +  
-								" WHERE p.id = ? " +
-								" AND p.o_id = ?;";				
 						
-						try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
-						pstmt = sd.prepareStatement(sql);
-						pstmt.setInt(1, p.id);
-						pstmt.setInt(2, o_id);
-						log.info("SQL: " + pstmt.toString());
-						resultSet = pstmt.executeQuery();
+						a.projectInUsersOrganisation(sd, user, p.id);
 						
-						if(resultSet.next()) {
 							sql = "update project set " +
 									" name = ?, " + 
 									" description = ?, " + 
 									" changed_by = ?, " + 
 									" changed_ts = now() " + 
 									" where " +
-									" id = ?;";
+									" id = ?";
 						
-							try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
-							pstmt = sd.prepareStatement(sql);
-							pstmt.setString(1, HtmlSanitise.checkCleanName(p.name, localisation));
-							pstmt.setString(2, HtmlSanitise.checkCleanName(p.desc, localisation));
-							pstmt.setString(3, request.getRemoteUser());
-							pstmt.setInt(4, p.id);
-							
-							log.info("update project: " + pstmt.toString());
-							pstmt.executeUpdate();
-							
-							// Remove users from project
-							sql = "delete from user_project " +
-									" where p_id = ? "
-									+ "and u_id not in (select id from users where temporary)";
-							try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
-							pstmt = sd.prepareStatement(sql);
-							pstmt.setInt(1, p.id);
-							log.info("Delete existing non temp users from project " + pstmt.toString());
-							pstmt.executeUpdate();
-
-						}
+						try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
+						pstmt = sd.prepareStatement(sql);
+						pstmt.setString(1, HtmlSanitise.checkCleanName(p.name, localisation));
+						pstmt.setString(2, HtmlSanitise.checkCleanName(p.desc, localisation));
+						pstmt.setString(3, request.getRemoteUser());
+						pstmt.setInt(4, p.id);
+						
+						log.info("update project: " + pstmt.toString());
+						pstmt.executeUpdate();
+						
+						// Remove users from project
+						sql = "delete from user_project " +
+								" where p_id = ? "
+								+ "and u_id not in (select id from users where temporary)";
+						try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
+						pstmt = sd.prepareStatement(sql);
+						pstmt.setInt(1, p.id);
+						log.info("Delete existing non temp users from project " + pstmt.toString());
+						pstmt.executeUpdate();
 						
 						// Record the project change so that devices can be notified
 						MessagingManager mm = new MessagingManager(localisation);
