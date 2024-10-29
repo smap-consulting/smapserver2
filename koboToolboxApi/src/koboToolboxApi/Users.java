@@ -42,6 +42,7 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.UserLocationManager;
 import org.smap.sdal.managers.UserManager;
@@ -181,6 +182,7 @@ public class Users extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			ServerSettings.setBasePath(request);
 			log.info("New organisation name: " + orgName);
 			UserManager um = new UserManager(localisation);
 			int newOrgId = GeneralUtilityMethods.getOrganisationIdfromName(sd, orgName);
