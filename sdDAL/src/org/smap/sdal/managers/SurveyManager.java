@@ -3583,7 +3583,7 @@ public class SurveyManager {
 			sql.append(" and ").append(filter);
 		}
 		if(statusOnly) {
-			sql.append(" and (q.qtype = 'string' or q.qtype = 'select1' or q.qtype = 'int')");
+			sql.append(" and (q.qtype = 'string' or q.qtype = 'select1' or q.qtype = 'int' or q.qtype = 'calculate')");
 		}
 		sql.append(" order by q.qname asc");
 		
