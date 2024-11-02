@@ -107,7 +107,7 @@ public class TableColumn {
 			}
 		} else if(type.equals("duration")) {
 			if(startName != null && endName != null) {
-				selName = "extract(epoch FROM (" + endName + " - " + startName + ")) as "+ column_name;
+				selName = "round(extract(epoch FROM (" + endName + " - " + startName + "))) as "+ column_name;
 			}
 		}  else if(!tz.equals("UTC") && type.equals("dateTime")) {
 			selName = "to_char(timezone(?, " + column_name;
