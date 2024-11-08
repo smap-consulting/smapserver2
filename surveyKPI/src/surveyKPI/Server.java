@@ -143,14 +143,15 @@ public class Server extends Application {
 				+ "max_rate = ?,"
 				+ "password_strength = ?,"
 				+ "css = ?,"
-				+ "email_type = ?";
+				+ "email_type = ?,"
+				+ "aws_region = ?";
 		
 		PreparedStatement pstmt = null;
 
 		String sqlInsert = "insert into server(smtp_host, email_domain, email_user, email_password,"
 				+ "email_port, mapbox_default, google_key, maptiler_key, vonage_application_id,"
 				+ "vonage_webhook_secret, sms_url, max_rate, password_strength, css,"
-				+ "email_type) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "email_type, aws_region) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement pstmtInsert = null;
 		
 		try {
@@ -176,6 +177,7 @@ public class Server extends Application {
 			pstmt.setDouble(13, data.password_strength);
 			pstmt.setString(14, data.css);
 			pstmt.setString(15, data.email_type);
+			pstmt.setString(16, data.aws_region);
 			int count = pstmt.executeUpdate();
 			
 			if(count == 0) {			
@@ -195,6 +197,7 @@ public class Server extends Application {
 				pstmtInsert.setDouble(13, data.password_strength);
 				pstmtInsert.setString(14, data.css);
 				pstmtInsert.setString(15, data.email_type);
+				pstmtInsert.setString(16, data.aws_region);
 				pstmtInsert.executeUpdate();
 			}
 			

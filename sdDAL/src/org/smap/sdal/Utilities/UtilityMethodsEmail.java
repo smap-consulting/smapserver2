@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.model.AwsSdkEmailServer;
 import org.smap.sdal.model.EmailServer;
@@ -39,6 +40,8 @@ public class UtilityMethodsEmail {
 	private static Logger log =
 			Logger.getLogger(UtilityMethodsEmail.class.getName());
 
+	LogManager lm = new LogManager();		// Application log
+	
 	/*
 	 * Mark a record and all its children as either bad or good
 	 */
@@ -307,28 +310,31 @@ public class UtilityMethodsEmail {
 
 		EmailServer emailServer = null;
 		
-		String sqlOrg = "select email_type, smtp_host, email_domain, email_user, email_password, email_port " +
+		String sqlOrg = "select email_type, aws_region, "
+				+ "smtp_host, email_domain, email_user, email_password, email_port " +
 				" from organisation o " +
 				" where id = ?";
 		
-		String sqlIdent = "select o.email_type, o.smtp_host, o.email_domain, o.email_user, o.email_password, o.email_port " +
+		String sqlIdent = "select o.email_type, o.aws_region, "
+				+ "o.smtp_host, o.email_domain, o.email_user, o.email_password, o.email_port " +
 				" from organisation o, users u " +
 				" where u.o_id = o.id " +
 				" and u.ident = ?";
 
-		String sqlEmail = "select o.email_type, o.smtp_host, o.email_domain, o.email_user, o.email_password, o.email_port " +
+		String sqlEmail = "select o.email_type, o.aws_region, "
+				+ "o.smtp_host, o.email_domain, o.email_user, o.email_password, o.email_port " +
 				" from organisation o, users u " +
 				" where u.o_id = o.id " +
 				" and u.email ilike ?";
 
-		String sqlServer = "select email_type, smtp_host, email_domain, email_user, email_password, email_port " +
+		String sqlServer = "select email_type, aws_region, "
+				+ "smtp_host, email_domain, email_user, email_password, email_port " +
 				" from server ";
 
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
 
 		String basePath = ServerSettings.getBasePath();
-		String region = "ap-southeast-2";	// TODO Need a file for email region
 		try {
 
 			if(o_id > 0) {
@@ -350,7 +356,7 @@ public class UtilityMethodsEmail {
 				log.info("Get smtp_host SQL:" + pstmt.toString());
 				rs = pstmt.executeQuery();
 				if(rs.next()) {
-					emailServer = getEmailServerDetails(rs, localisation, region, basePath);		
+					emailServer = getEmailServerDetails(rs, localisation, basePath);		
 				}
 			}
 
@@ -363,7 +369,7 @@ public class UtilityMethodsEmail {
 				pstmt = sd.prepareStatement(sqlServer);
 				rs = pstmt.executeQuery();
 				if(rs.next()) {
-					emailServer = getEmailServerDetails(rs, localisation, region, basePath);
+					emailServer = getEmailServerDetails(rs, localisation, basePath);
 				}
 			}
 
@@ -378,12 +384,12 @@ public class UtilityMethodsEmail {
 
 	static private EmailServer getEmailServerDetails(ResultSet rs, 
 			ResourceBundle localisation,
-			String region,
 			String basePath) throws SQLException {
 		
 		EmailServer emailServer = null;	
 		
 		String type = rs.getString("email_type");
+		String region = rs.getString("aws_region");
 		String host = rs.getString("smtp_host");
 		String domain = rs.getString("email_domain");
 		String emailuser = rs.getString("email_user");
@@ -393,10 +399,14 @@ public class UtilityMethodsEmail {
 		/*
 		 * Create the SMTP or AWSSDK email server object
 		 */
-		if(type != null && type.equals("awssdk")) {
-			emailServer = new AwsSdkEmailServer(localisation, region, basePath);
-		} else if(host != null && domain != null && host.trim().length() > 0 && domain.trim().length() > 0) {
-			emailServer = new SmtpEmailServer(localisation);		// Default to smtp
+		try {
+			if(type != null && type.equals("awssdk")) {
+				emailServer = new AwsSdkEmailServer(localisation, region, basePath);
+			} else if(host != null && domain != null && host.trim().length() > 0 && domain.trim().length() > 0) {
+				emailServer = new SmtpEmailServer(localisation);		// Default to smtp
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
 		}
 		
 		/*

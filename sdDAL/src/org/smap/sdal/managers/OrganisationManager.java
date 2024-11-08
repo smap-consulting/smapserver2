@@ -97,6 +97,8 @@ public class OrganisationManager {
 				+ "can_edit = ?, "
 				+ "email_task = ?, "
 				+ "admin_email = ?, "
+				+ "email_type = ?, "
+				+ "aws_region = ?, "
 				+ "smtp_host = ?, "
 				+ "email_domain = ?, "
 				+ "email_user = ?, "
@@ -144,29 +146,31 @@ public class OrganisationManager {
 			pstmt.setBoolean(9, o.can_edit);
 			pstmt.setBoolean(10, o.email_task);
 			pstmt.setString(11, HtmlSanitise.checkCleanName(o.admin_email, localisation));
-			pstmt.setString(12, HtmlSanitise.checkCleanName(o.smtp_host, localisation));
-			pstmt.setString(13, HtmlSanitise.checkCleanName(o.email_domain, localisation));
-			pstmt.setString(14, HtmlSanitise.checkCleanName(o.email_user, localisation));
-			pstmt.setString(15, o.email_password);
-			pstmt.setInt(16, o.email_port);
-			pstmt.setString(17, sanitise.sanitiseHtml(o.default_email_content));
-			pstmt.setString(18, o.website);
-			pstmt.setString(19, HtmlSanitise.checkCleanName(o.locale, localisation));
-			pstmt.setString(20, HtmlSanitise.checkCleanName(o.timeZone, localisation));
-			pstmt.setString(21, HtmlSanitise.checkCleanName(o.server_description, localisation));
-			pstmt.setString(22, userIdent);
-			pstmt.setBoolean(23, o.can_notify);
-			pstmt.setBoolean(24, o.can_use_api);
-			pstmt.setBoolean(25, o.can_submit);
-			pstmt.setBoolean(26, o.appearance.set_as_theme);
-			pstmt.setString(27, HtmlSanitise.checkCleanName(o.appearance.navbar_color, localisation));
-			pstmt.setBoolean(28, o.can_sms);
-			pstmt.setBoolean(29, o.send_optin);
-			pstmt.setString(30, o.limits == null ? null : gson.toJson(o.limits));
-			pstmt.setInt(31, o.refresh_rate);
-			pstmt.setDouble(32, o.password_strength);
-			pstmt.setString(33, HtmlSanitise.checkCleanName(o.map_source, localisation));
-			pstmt.setInt(34, o.id);
+			pstmt.setString(12, o.email_type);
+			pstmt.setString(13, o.aws_region);
+			pstmt.setString(14, HtmlSanitise.checkCleanName(o.smtp_host, localisation));
+			pstmt.setString(15, HtmlSanitise.checkCleanName(o.email_domain, localisation));
+			pstmt.setString(16, HtmlSanitise.checkCleanName(o.email_user, localisation));
+			pstmt.setString(17, o.email_password);
+			pstmt.setInt(18, o.email_port);
+			pstmt.setString(19, sanitise.sanitiseHtml(o.default_email_content));
+			pstmt.setString(20, o.website);
+			pstmt.setString(21, HtmlSanitise.checkCleanName(o.locale, localisation));
+			pstmt.setString(22, HtmlSanitise.checkCleanName(o.timeZone, localisation));
+			pstmt.setString(23, HtmlSanitise.checkCleanName(o.server_description, localisation));
+			pstmt.setString(24, userIdent);
+			pstmt.setBoolean(25, o.can_notify);
+			pstmt.setBoolean(26, o.can_use_api);
+			pstmt.setBoolean(27, o.can_submit);
+			pstmt.setBoolean(28, o.appearance.set_as_theme);
+			pstmt.setString(29, HtmlSanitise.checkCleanName(o.appearance.navbar_color, localisation));
+			pstmt.setBoolean(30, o.can_sms);
+			pstmt.setBoolean(31, o.send_optin);
+			pstmt.setString(32, o.limits == null ? null : gson.toJson(o.limits));
+			pstmt.setInt(33, o.refresh_rate);
+			pstmt.setDouble(34, o.password_strength);
+			pstmt.setString(35, HtmlSanitise.checkCleanName(o.map_source, localisation));
+			pstmt.setInt(36, o.id);
 					
 			log.info("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -294,7 +298,7 @@ public class OrganisationManager {
 				+ "company_phone, "
 				+ "company_email, "
 				+ "allow_email, allow_facebook, allow_twitter, can_edit, email_task, "
-				+ "changed_by, admin_email, smtp_host, email_domain, email_user, email_password, "
+				+ "changed_by, admin_email, email_type, aws_region, smtp_host, email_domain, email_user, email_password, "
 				+ "email_port, default_email_content, website, locale, timezone, "
 				+ "can_notify, can_use_api, can_submit, set_as_theme, e_id, ft_backward_navigation, ft_navigation, "
 				+ "ft_guidance, ft_image_size, ft_send, ft_delete, "
@@ -302,7 +306,7 @@ public class OrganisationManager {
 				+ "ft_high_res_video, refresh_rate, password_strength, map_source, "
 				+ "ft_input_method, ft_im_ri, ft_im_acc, changed_ts, owner) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-				+ "?, ?, ?, ?, ?, ?, "
+				+ "?, ?, ?, ?, ?, ?, ?, ? "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?)";
@@ -345,48 +349,50 @@ public class OrganisationManager {
 			pstmt.setBoolean(10, o.email_task);
 			pstmt.setString(11, HtmlSanitise.checkCleanName(userIdent, localisation));
 			pstmt.setString(12, HtmlSanitise.checkCleanName(o.admin_email, localisation));
-			pstmt.setString(13, HtmlSanitise.checkCleanName(o.smtp_host, localisation));
-			pstmt.setString(14, HtmlSanitise.checkCleanName(o.email_domain, localisation));
-			pstmt.setString(15, HtmlSanitise.checkCleanName(o.email_user, localisation));
-			pstmt.setString(16, o.email_password);
-			pstmt.setInt(17, o.email_port);
-			pstmt.setString(18, sanitise.sanitiseHtml(o.default_email_content));
-			pstmt.setString(19, o.website);			// Allowed to have https: - leave unchecked
-			pstmt.setString(20, HtmlSanitise.checkCleanName(o.locale, localisation));
+			pstmt.setString(13, o.email_type);
+			pstmt.setString(14, o.aws_region);
+			pstmt.setString(15, HtmlSanitise.checkCleanName(o.smtp_host, localisation));
+			pstmt.setString(16, HtmlSanitise.checkCleanName(o.email_domain, localisation));
+			pstmt.setString(17, HtmlSanitise.checkCleanName(o.email_user, localisation));
+			pstmt.setString(18, o.email_password);
+			pstmt.setInt(19, o.email_port);
+			pstmt.setString(20, sanitise.sanitiseHtml(o.default_email_content));
+			pstmt.setString(21, o.website);			// Allowed to have https: - leave unchecked
+			pstmt.setString(22, HtmlSanitise.checkCleanName(o.locale, localisation));
 			
 			if(o.timeZone == null || o.timeZone.trim().length() == 0) {
 				o.timeZone = "UTC";			// Default time zone for organisation
 			}
-			pstmt.setString(21, HtmlSanitise.checkCleanName(o.timeZone, localisation));
+			pstmt.setString(23, HtmlSanitise.checkCleanName(o.timeZone, localisation));
 			
-			pstmt.setBoolean(22, o.can_notify);
-			pstmt.setBoolean(23, o.can_use_api);
-			pstmt.setBoolean(24, o.can_submit);
-			pstmt.setBoolean(25, o.appearance.set_as_theme);
-			pstmt.setInt(26, o.e_id);
-			pstmt.setString(27, "not set");		// backward navigation
-			pstmt.setString(28, "not set");		// screen navigation
-			pstmt.setString(29, "not set");		// Guidance
-			pstmt.setString(30, "not set");		// image size
-			pstmt.setString(31, "not set");		// send automatically
-			pstmt.setString(32, "not set");		// FT delete after sending
-			pstmt.setString(33, "not set");		// Send location
-			pstmt.setInt(34, -1);				// Never require re-entry of FT password
+			pstmt.setBoolean(24, o.can_notify);
+			pstmt.setBoolean(25, o.can_use_api);
+			pstmt.setBoolean(26, o.can_submit);
+			pstmt.setBoolean(27, o.appearance.set_as_theme);
+			pstmt.setInt(28, o.e_id);
+			pstmt.setString(29, "not set");		// backward navigation
+			pstmt.setString(30, "not set");		// screen navigation
+			pstmt.setString(31, "not set");		// Guidance
+			pstmt.setString(32, "not set");		// image size
+			pstmt.setString(33, "not set");		// send automatically
+			pstmt.setString(34, "not set");		// FT delete after sending
+			pstmt.setString(35, "not set");		// Send location
+			pstmt.setInt(36, -1);				// Never require re-entry of FT password
 			String navBarColor = o.appearance.navbar_color;
 			if(navBarColor == null) {
 				navBarColor =  Organisation.DEFAULT_NAVBAR_COLOR;
 			}
-			pstmt.setString(35,navBarColor);
-			pstmt.setBoolean(36, o.can_sms);
-			pstmt.setBoolean(37, o.send_optin);
-			pstmt.setString(38, o.limits == null ? null : gson.toJson(o.limits));
-			pstmt.setString(39, "not set");		// High Resolution Video
-			pstmt.setInt(40, o.refresh_rate);
-			pstmt.setDouble(41, o.password_strength);
-			pstmt.setString(42, HtmlSanitise.checkCleanName(o.map_source, localisation));
-			pstmt.setString(43, "not set");		// send automatically
-			pstmt.setInt(44, 20);		// FT Geo Recording interval
-			pstmt.setInt(45, 10);		// FT Geo Accuracy distance
+			pstmt.setString(37,navBarColor);
+			pstmt.setBoolean(38, o.can_sms);
+			pstmt.setBoolean(39, o.send_optin);
+			pstmt.setString(40, o.limits == null ? null : gson.toJson(o.limits));
+			pstmt.setString(41, "not set");		// High Resolution Video
+			pstmt.setInt(42, o.refresh_rate);
+			pstmt.setDouble(43, o.password_strength);
+			pstmt.setString(44, HtmlSanitise.checkCleanName(o.map_source, localisation));
+			pstmt.setString(45, "not set");		// send automatically
+			pstmt.setInt(46, 20);		// FT Geo Recording interval
+			pstmt.setInt(47, 10);		// FT Geo Accuracy distance
 			
 			/*
 			 * Set the owner only if this is a personal organisation.
@@ -395,7 +401,7 @@ public class OrganisationManager {
 			 * the owner would be set to zero.  In other words they are creating community organisations that
 			 * will need to be maintained by whichever user has organisational admin privilege
 			 */
-			pstmt.setInt(46, GeneralUtilityMethods.hasSecurityGroup(sd, userIdent, Authorise.ORG_ID) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
+			pstmt.setInt(48, GeneralUtilityMethods.hasSecurityGroup(sd, userIdent, Authorise.ORG_ID) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			

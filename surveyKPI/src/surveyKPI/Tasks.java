@@ -214,9 +214,7 @@ public class Tasks extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			String tz = "UTC";	// Set default for timezone
-			
-			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.TASK, "Task group: " + tgId + " period: " + period + " user: " + userId, 0, request.getServerName());
-			
+						
 			// Get assignments
 			String urlprefix = request.getScheme() + "://" + request.getServerName();
 			TaskManager tm = new TaskManager(localisation, tz);

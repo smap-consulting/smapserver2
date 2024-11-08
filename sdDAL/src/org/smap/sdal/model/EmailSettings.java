@@ -19,6 +19,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 public class EmailSettings {
+	public String email_type;
+	public String aws_region;
 	public String admin_email;
 	public String smtp_host;
 	public String email_domain;

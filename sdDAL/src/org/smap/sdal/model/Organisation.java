@@ -47,6 +47,8 @@ public class Organisation {
 	public String changed_by;
 	public String changed_ts;
 	public String admin_email;
+	public String email_type;
+	public String aws_region;
 	public String smtp_host;
 	public String email_domain;
 	public String email_user;

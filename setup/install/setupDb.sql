@@ -105,6 +105,7 @@ ALTER SEQUENCE regions_seq OWNER TO ws;
 DROP TABLE IF EXISTS server CASCADE;
 create TABLE server (
 	email_type text,	-- smtp || awssdk
+	aws_region text,
 	smtp_host text,
 	email_domain text,
 	email_user text,
@@ -200,6 +201,8 @@ create TABLE organisation (
 	changed_by text,
 	admin_email text,
 	email_type text,
+	email_type text,	-- smtp || awssdk
+	aws_region text,
 	smtp_host text,				-- Set if email is enabled
 	email_domain text,
 	email_user text,

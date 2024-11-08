@@ -52,7 +52,9 @@ public class ServerManager {
 
 		localisation = l;
 		
-		String sql = "select smtp_host,"
+		String sql = "select email_type,"
+				+ "aws_region,"
+				+ "smtp_host,"
 				+ "email_domain,"
 				+ "email_user,"
 				+ "email_password,"
@@ -77,6 +79,8 @@ public class ServerManager {
 			pstmt = sd.prepareStatement(sql);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
+				data.email_type = rs.getString("email_type");
+				data.aws_region = rs.getString("aws_region");
 				data.smtp_host = rs.getString("smtp_host");
 				data.email_domain = rs.getString("email_domain");
 				data.email_user = rs.getString("email_user");

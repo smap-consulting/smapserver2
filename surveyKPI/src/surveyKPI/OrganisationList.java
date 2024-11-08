@@ -175,6 +175,8 @@ public class OrganisationList extends Application {
 					+ "changed_by, "
 					+ "changed_ts," 
 					+ "admin_email, "
+					+ "email_type, "
+					+ "aws_region, "
 					+ "smtp_host, "
 					+ "email_domain, "
 					+ "email_user, "
@@ -230,6 +232,8 @@ public class OrganisationList extends Application {
 				org.changed_by = resultSet.getString("changed_by");
 				org.changed_ts = resultSet.getString("changed_ts");
 				org.admin_email = resultSet.getString("admin_email");
+				org.email_type = resultSet.getString("email_type");
+				org.aws_region = resultSet.getString("aws_region");
 				org.smtp_host = resultSet.getString("smtp_host");
 				org.email_domain = resultSet.getString("email_domain");
 				org.email_user = resultSet.getString("email_user");
@@ -561,7 +565,7 @@ public class OrganisationList extends Application {
 		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
-		String sql = "select admin_email, smtp_host, email_domain, "
+		String sql = "select email_type, aws_region, admin_email, smtp_host, email_domain, "
 				+ "email_user, email_password,"
 				+ "email_port, default_email_content,"
 				+ "server_description "
@@ -580,6 +584,8 @@ public class OrganisationList extends Application {
 			
 			if(rs.next()) {
 				EmailSettings e = new EmailSettings();
+				e.email_type = rs.getString("email_type");
+				e.aws_region = rs.getString("aws_region");
 				e.admin_email = rs.getString("admin_email");
 				e.smtp_host = rs.getString("smtp_host");
 				e.email_domain = rs.getString("email_domain");
@@ -905,7 +911,8 @@ public class OrganisationList extends Application {
 		// End Authorisation
 		
 		String sql = "update organisation set "
-			
+				+ "email_type = ?, "
+				+ "aws_region = ?, "
 				+ "admin_email = ?, "
 				+ "smtp_host = ?, "
 				+ "email_domain = ?, "
@@ -931,16 +938,18 @@ public class OrganisationList extends Application {
 			
 			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, HtmlSanitise.checkCleanName(e.admin_email, localisation));
-			pstmt.setString(2, HtmlSanitise.checkCleanName(e.smtp_host, localisation));
-			pstmt.setString(3, HtmlSanitise.checkCleanName(e.email_domain, localisation));
-			pstmt.setString(4, HtmlSanitise.checkCleanName(e.email_user, localisation));
-			pstmt.setString(5, e.email_password);
-			pstmt.setInt(6, e.email_port);
-			pstmt.setString(7, sanitise.sanitiseHtml(e.default_email_content));
-			pstmt.setString(8, HtmlSanitise.checkCleanName(e.server_description, localisation));
-			pstmt.setString(9, request.getRemoteUser());
-			pstmt.setInt(10, oId);
+			pstmt.setString(1, e.email_type);
+			pstmt.setString(2, e.aws_region);
+			pstmt.setString(3, HtmlSanitise.checkCleanName(e.admin_email, localisation));
+			pstmt.setString(4, HtmlSanitise.checkCleanName(e.smtp_host, localisation));
+			pstmt.setString(5, HtmlSanitise.checkCleanName(e.email_domain, localisation));
+			pstmt.setString(6, HtmlSanitise.checkCleanName(e.email_user, localisation));
+			pstmt.setString(7, e.email_password);
+			pstmt.setInt(8, e.email_port);
+			pstmt.setString(9, sanitise.sanitiseHtml(e.default_email_content));
+			pstmt.setString(10, HtmlSanitise.checkCleanName(e.server_description, localisation));
+			pstmt.setString(11, request.getRemoteUser());
+			pstmt.setInt(12, oId);
 					
 			log.info("Update organisation with email details: " + pstmt.toString());
 			pstmt.executeUpdate();

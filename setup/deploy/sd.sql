@@ -152,3 +152,8 @@ alter table record_event add column message text;
 
 -- Version 24.10
 alter table survey_role add column group_survey_ident text;
+
+-- Version 24.11
+ALTER TABLE organisation add column email_type text;
+ALTER TABLE organisation add column aws_region text;
+ALTER TABLE server add column aws_region text;

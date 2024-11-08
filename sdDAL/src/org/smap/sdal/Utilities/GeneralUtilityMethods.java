@@ -1127,6 +1127,8 @@ public class GeneralUtilityMethods {
 				+ "changed_by, "
 				+ "changed_ts," 
 				+ "admin_email, "
+				+ "email_type, "
+				+ "aws_region, "
 				+ "smtp_host, "
 				+ "email_domain, "
 				+ "email_user, "
@@ -1179,6 +1181,8 @@ public class GeneralUtilityMethods {
 				org.changed_ts = resultSet.getString("changed_ts");
 				org.admin_email = resultSet.getString("admin_email");
 				org.smtp_host = resultSet.getString("smtp_host");
+				org.email_type = resultSet.getString("email_type");
+				org.aws_region = resultSet.getString("aws_region");
 				org.email_domain = resultSet.getString("email_domain");
 				org.email_user = resultSet.getString("email_user");
 				org.email_password = resultSet.getString("email_password");
