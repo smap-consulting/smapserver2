@@ -26,7 +26,7 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.managers.TimeZoneManager;
 
 /*
- * Services for managing roles
+ * Miscellaneous utility functions
  */
 
 @Path("/utility")

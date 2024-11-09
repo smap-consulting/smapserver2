@@ -274,7 +274,7 @@ public class SMSManager {
 				 * 3. If still not found, create a new entry
 				 * 
 				 * The first two steps are only done if the message is a new inbound SMS type, if the
-				 *  message is being reapplied as a new case then a new entry is always created
+				 *  message is being re-applied by a user as a new case then a new entry is always created
 				 */
 				
 				if(SMSManager.SMS_TYPE.equals(submissionType)) {
