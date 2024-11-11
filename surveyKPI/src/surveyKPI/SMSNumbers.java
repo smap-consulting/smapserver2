@@ -193,6 +193,7 @@ public class SMSNumbers extends Application {
 			@FormParam("sIdent") String sIdent,
 			@FormParam("theirNumberQuestion") String theirNumberQuestion,
 			@FormParam("messageQuestion") String messageQuestion,
+			@FormParam("mcMsg") String mcMsg,
 			@QueryParam("tz") String tz) throws SQLException { 
 		
 		// Check for Ajax and reject if not
@@ -238,7 +239,8 @@ public class SMSNumbers extends Application {
 					.append("set time_modified = now()")
 					.append(", survey_ident  = ? ")
 					.append(", their_number_question  = ? ")
-					.append(", message_question  = ? ");
+					.append(", message_question  = ? ")
+					.append(", mc_msg  = ? ");
 			if(isOwner) {
 				sql.append(", o_id = ? ");
 			}
@@ -251,10 +253,11 @@ public class SMSNumbers extends Application {
 			pstmt.setString(1, sIdent);
 			pstmt.setString(2, theirNumberQuestion);
 			pstmt.setString(3, messageQuestion);
+			pstmt.setString(4, mcMsg);
 			if(isOwner) {
-				pstmt.setInt(4, oId);
+				pstmt.setInt(5, oId);
 			}
-			pstmt.setString(5, ourNumber);
+			pstmt.setString(6, ourNumber);
 			log.info("update number: " + pstmt.toString());
 			pstmt.executeUpdate();
 			response = Response.ok().build();

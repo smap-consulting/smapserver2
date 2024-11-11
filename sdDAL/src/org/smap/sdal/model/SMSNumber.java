@@ -18,10 +18,12 @@ public class SMSNumber {
 	
 	public String orgName;
 	public String surveyName;
+	public String mcMsg;
 	
 	public SMSNumber(String identifier, String ourNumber, String surveyIdent, 
 			String theirNumberQuestion, String messageQuestion, int oId,
-			String channel) {
+			String channel,
+			String mcMsg) {
 		this.identifier = identifier;
 		this.ourNumber = ourNumber;
 		this.surveyIdent = surveyIdent;
@@ -29,5 +31,6 @@ public class SMSNumber {
 		this.messageQuestion = messageQuestion;	
 		this.oId = oId;
 		this.channel = channel;
+		this.mcMsg = mcMsg;
 	}
 }

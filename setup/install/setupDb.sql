@@ -1854,6 +1854,7 @@ CREATE TABLE IF NOT EXISTS sms_number (
     survey_ident text,
     their_number_question text, -- The question in the survey that holds the number of the counterpart
     message_question text,		-- The question name in the survey that holds the message details
+    mc_msg,						-- Message to send if there is more than one case to update
     channel text,				-- sms or whatsapp
     description text
 );

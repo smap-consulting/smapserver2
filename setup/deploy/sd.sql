@@ -157,3 +157,4 @@ alter table survey_role add column group_survey_ident text;
 ALTER TABLE organisation add column email_type text;
 ALTER TABLE organisation add column aws_region text;
 ALTER TABLE server add column aws_region text;
+alter table sms_number add column mc_msg text;	-- Message to send if there is more than one case to update

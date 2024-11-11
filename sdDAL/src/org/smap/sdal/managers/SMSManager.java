@@ -66,6 +66,7 @@ public class SMSManager {
 			+ "survey_ident,"
 			+ "their_number_question,"
 			+ "message_question,"
+			+ "mc_msg,"
 			+ "o_id "
 			+ "from sms_number ";
 	
@@ -98,7 +99,7 @@ public class SMSManager {
 				orgOnly = true;
 			}
 			
-			sqlSelect.append("order by time_modified asc ");
+			sqlSelect.append("order by our_number asc ");
 			pstmt = sd.prepareStatement(sqlSelect.toString());
 			if(orgOnly) {
 				pstmt.setInt(1, GeneralUtilityMethods.getOrganisationId(sd, user));
@@ -628,7 +629,8 @@ public class SMSManager {
 				rs.getString("their_number_question"),
 				rs.getString("message_question"),
 				rs.getInt("o_id"),
-				rs.getString("channel"));
+				rs.getString("channel"),
+				rs.getString("mc_msg"));
 	}
 	
 	/*
