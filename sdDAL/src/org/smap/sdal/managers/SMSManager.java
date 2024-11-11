@@ -5,13 +5,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.AdvisoryLock;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.legacy.UtilityMethods;
@@ -23,6 +23,8 @@ import org.smap.sdal.model.SubscriberEvent;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.vonage.client.VonageClient;
+import com.vonage.client.messages.MessageResponse;
 
 /*****************************************************************************
 
@@ -223,6 +225,7 @@ public class SMSManager {
 	 */
 	public void writeInboundMessageToResults(Connection sd, 
 			Connection cResults,
+			VonageClient vonageClient,
 			SubscriberEvent se,
 			String instanceid,
 			ConversationItemDetails sms,
@@ -269,20 +272,23 @@ public class SMSManager {
 				
 				/*
 				 * Process
-				 * 1. Look for a reference in the message (#{prikey}) and attempt to update that record
-				 * 2. If not found, look for open cases initiated by "their" number and update those
+				 * 1. Look for a reference, greater than 0, in the message (#{prikey}) and attempt to update that record
+				 *    1.1. If the reference is 0 create a new entry
+				 * 2. If not found, look for open cases initiated by "their" number
+				 *    2.1.  If one case is found update that
+				 *    2.2.  If more than one case is found send a response message requesting the user to include the case number
 				 * 3. If still not found, create a new entry
 				 * 
 				 * The first two steps are only done if the message is a new inbound SMS type, if the
 				 *  message is being re-applied by a user as a new case then a new entry is always created
 				 */
-				
-				if(SMSManager.SMS_TYPE.equals(submissionType)) {
+				int existingPrikey = getReference(cResults, sms.msg, tableName);
+				if(SMSManager.SMS_TYPE.equals(submissionType) && existingPrikey != 0) {
 					/*
 					 * 1. Check to see if there is a reference to a case in the message
 					 * Update the referenced case
 					 */
-					int existingPrikey = getReference(cResults, sms.msg, tableName);
+					
 					if(existingPrikey > 0) {
 						updateExistingEntry(sd, cResults, true, sms, existingPrikey, messageColumn, tableName, 0);
 						updateHistory(sd, cResults, sms.theirNumber, tableName, existingInstanceId, smsNumber.surveyIdent, msg,
@@ -326,23 +332,71 @@ public class SMSManager {
 									.append(" != ?)");
 							}
 							
-							pstmtExists = cResults.prepareStatement(sqlExists.toString());
+							pstmtExists = cResults.prepareStatement(sqlExists.toString(), 
+									ResultSet.TYPE_SCROLL_SENSITIVE, 
+			                        ResultSet.CONCUR_UPDATABLE);
 							pstmtExists.setString(1, sms.theirNumber);
 							if(checkStatus) {
 								pstmtExists.setString(2, finalStatus);
 							}
 							log.info("Check for existing cases: " + pstmtExists.toString());
 							ResultSet rs = pstmtExists.executeQuery();
+							
+							/*
+							 * Get the number of records
+							 * If there is only one then that record will be updated
+							 * If there is more than one record then a message requesting the user to specify the
+							 *  exact record will be returned
+							 */
+							StringBuilder caseList = new StringBuilder("");
+							int count = 0;
+							if(rs.last()) {
+								count = rs.getRow();
+								rs.beforeFirst();
+							}
 							while(rs.next()) {
 								existingPrikey = rs.getInt("prikey");
 								existingInstanceId = rs.getString("instanceid");
 								
-								updateExistingEntry(sd, cResults, true, sms, existingPrikey, messageColumn, tableName, 0);
-								updateHistory(sd, cResults, sms.theirNumber, tableName, existingInstanceId, smsNumber.surveyIdent, msg,
-										RecordEventManager.INBOUND_MESSAGE);
+								if(count == 1) {
+									updateExistingEntry(sd, cResults, true, sms, existingPrikey, messageColumn, tableName, 0);
+									updateHistory(sd, cResults, sms.theirNumber, tableName, existingInstanceId, smsNumber.surveyIdent, msg,
+											RecordEventManager.INBOUND_MESSAGE);
+								} else {
+									// Build response message
+									caseList.append("#")
+										.append(existingPrikey)
+										.append(": ")
+										.append(getFirstMessage(cResults, messageColumn, tableName, existingPrikey))
+										.append(", ");
+								}
 								messageWritten = true;
 							}
 							rs.close();
+							
+							if(count > 1) {
+								/*
+								 * Send response to the user who sent the message
+								 * Ask them to clarify which case they want to update
+								 */
+								String response_msg = localisation.getString("msg_mc");
+								response_msg = response_msg.replace("%s1", String.valueOf(count));
+								response_msg = response_msg.replace("%s2", caseList.toString());
+								
+								/*
+								 * Send message
+								 */
+								ConversationManager conversationMgr = new ConversationManager(localisation, tz);
+								MessageResponse response = conversationMgr.sendMessage(vonageClient,
+										sms.channel,
+										sms.ourNumber,
+										sms.theirNumber,
+										response_msg.toString());
+								if(response.getMessageUuid() == null) {
+									throw new ApplicationException("Failed to send response message \"" +
+											response_msg.toString() + "\" to " + sms.theirNumber);
+								}
+							}
 						}
 					}	
 				}
@@ -472,30 +526,14 @@ public class SMSManager {
 			int idx						// Index of conversation item if it is to be removed
 			) throws SQLException {
 		
-		int count = 0;
 		PreparedStatement pstmtGet = null;
 		PreparedStatement pstmt = null;
 		ConversationItemDetails removedItem = null;
 		
 		try {
 			log.info("Update existing entry with prikey: " + existingPrikey);
-			ArrayList<ConversationItemDetails> currentConv = null;
-			Type type = new TypeToken<ArrayList<ConversationItemDetails>>() {}.getType();
-			StringBuilder sqlGet = new StringBuilder("select ")
-					.append(messageColumn)
-					.append(" from ")
-					.append(tableName)
-					.append(" where prikey = ?");
-			pstmtGet = cResults.prepareStatement(sqlGet.toString());
-			pstmtGet.setInt(1, existingPrikey);
-			log.info("Get existing: " + pstmtGet.toString());
-			ResultSet rsGet = pstmtGet.executeQuery();
-			if(rsGet.next()) {
-				String currentConvString = rsGet.getString(1);
-				if(currentConvString != null) {
-					currentConv = gson.fromJson(currentConvString, type);
-				}
-			}
+			ArrayList<ConversationItemDetails> currentConv = getConversation(cResults, messageColumn,
+					tableName, existingPrikey);
 			
 			// Create update statement
 			StringBuilder sql = new StringBuilder("update ")
@@ -520,9 +558,7 @@ public class SMSManager {
 			int c = pstmt.executeUpdate();
 			if(c == 0) {
 				log.info("Tried to update an existing case but nothing was updated");
-			} else {
-				count += c;
-			}
+			} 
 			
 		} finally {
 			if(pstmtGet != null) {try {pstmtGet.close();} catch (Exception e) {}}
@@ -530,6 +566,59 @@ public class SMSManager {
 		}
 		
 		return removedItem;
+	}
+	
+	/*
+	 * Get the text of the first message sent for this case
+	 * Remove hash references from the message
+	 */
+	private String getFirstMessage(Connection cResults, 		
+			String messageColumn,
+			String tableName,
+			int existingPrikey) throws SQLException {
+		
+		String firstMessage = null;
+		
+		ArrayList<ConversationItemDetails> currentConv = getConversation(cResults, messageColumn,
+					tableName, existingPrikey);
+	
+		if(currentConv != null && currentConv.size() > 0) {
+			firstMessage = currentConv.get(0).msg;
+			firstMessage = firstMessage.replaceAll("#[0-9]*", "");
+ 		}
+		
+		return firstMessage;
+	}
+	
+	private ArrayList<ConversationItemDetails> getConversation(Connection cResults, 
+			String messageColumn,
+			String tableName,
+			int existingPrikey) throws SQLException {
+		
+		ArrayList<ConversationItemDetails> conv = null;
+		PreparedStatement pstmtGet = null;
+		try {
+
+			Type type = new TypeToken<ArrayList<ConversationItemDetails>>() {}.getType();
+			StringBuilder sqlGet = new StringBuilder("select ")
+					.append(messageColumn)
+					.append(" from ")
+					.append(tableName)
+					.append(" where prikey = ?");
+			pstmtGet = cResults.prepareStatement(sqlGet.toString());
+			pstmtGet.setInt(1, existingPrikey);
+			log.info("Get existing: " + pstmtGet.toString());
+			ResultSet rsGet = pstmtGet.executeQuery();
+			if(rsGet.next()) {
+				String currentConvString = rsGet.getString(1);
+				if(currentConvString != null) {
+					conv = gson.fromJson(currentConvString, type);
+				}
+			}
+		} finally {
+			if(pstmtGet != null) {try {pstmtGet.close();} catch (Exception e) {}}
+		}
+		return conv;
 	}
 	
 	private SMSNumber getNumber(ResultSet rs) throws SQLException {
@@ -611,9 +700,10 @@ public class SMSManager {
 	
 	/*
 	 * Get the primary key which acts as the reference for a case from the message
+	 * return minus 1 for not found
 	 */
 	private int getReference(Connection cResults, String msg, String tableName) throws SQLException {
-		int caseReference = 0;
+		int caseReference = -1;
 		if(msg != null) {
 			int idx = msg.lastIndexOf('#');
 			if(idx >= 0) {

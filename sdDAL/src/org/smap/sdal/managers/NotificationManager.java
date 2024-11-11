@@ -44,11 +44,7 @@ import org.smap.sdal.model.TaskProperties;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.vonage.client.VonageClient;
-import com.vonage.client.messages.MessageRequest;
 import com.vonage.client.messages.MessageResponse;
-import com.vonage.client.messages.MessagesClient;
-import com.vonage.client.messages.sms.SmsTextRequest;
-import com.vonage.client.messages.whatsapp.WhatsappTextRequest;
 
 /*****************************************************************************
 
@@ -1157,28 +1153,11 @@ public class NotificationManager {
 						/*
 						 * Send message
 						 */
-						MessagesClient messagesClient = vonageClient.getMessagesClient(); // TODO check for null	
-						MessageResponse response = null;
-						
-						if(msg.msgChannel != null && msg.msgChannel.equals("whatsapp")) {
-							
-							WhatsappTextRequest message = WhatsappTextRequest.builder()
-									.from(msg.ourNumber)
-									.to(toNumber)		// TODO from number
-									.text(msgText)
-									.build();
-							
-							response = messagesClient.sendMessage(message);
-						} else {
-						
-							MessageRequest message = SmsTextRequest.builder()
-									.from(msg.ourNumber)
-									.to(toNumber)		// TODO from number
-									.text(msgText)
-									.build();
-						
-							response = messagesClient.sendMessage(message);
-						}
+						MessageResponse response = conversationMgr.sendMessage(vonageClient,
+								msg.msgChannel,
+								msg.ourNumber,
+								toNumber,
+								msgText);				
 			
 						status = response.getMessageUuid() == null ?  "error" : "success";
 						error_details = "";

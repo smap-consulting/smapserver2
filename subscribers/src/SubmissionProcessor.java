@@ -22,6 +22,7 @@ import org.smap.sdal.legacy.MissingSurveyException;
 import org.smap.sdal.legacy.MissingTemplateException;
 import org.smap.sdal.legacy.SurveyInstance;
 import org.smap.sdal.legacy.SurveyTemplate;
+import org.smap.sdal.managers.ConversationManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SMSManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -37,6 +38,7 @@ import org.smap.subscribers.Subscriber;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.vonage.client.VonageClient;
 
 /*****************************************************************************
  * 
@@ -72,6 +74,7 @@ public class SubmissionProcessor {
 		String basePath;
 		String queueName;
 		boolean incRestore;
+		boolean gotVonageClient = false;
 
 		public SubmissionQueueLoop(String basePath, String queueName, boolean incRestore) {
 			this.basePath = basePath;
@@ -146,6 +149,15 @@ public class SubmissionProcessor {
 						pstmtResultsDB = dbc.sd.prepareStatement(sqlResultsDB);
 
 						/*
+						 * Get a vonage client
+						 */
+						VonageClient vonageClient = null;
+						if(!gotVonageClient) {
+							ConversationManager convMgr = new ConversationManager(localisation, "UTC");
+							vonageClient = convMgr.getVonageClient(dbc.sd);
+						}
+								
+						/*
 						 * Dequeue
 						 */	
 						ResultSet rs = pstmt.executeQuery();
@@ -171,6 +183,7 @@ public class SubmissionProcessor {
 								try {
 									smsMgr.writeInboundMessageToResults(dbc.sd, 
 											dbc.results,
+											vonageClient,
 											se,
 											ue.getInstanceId(),
 											sms,
