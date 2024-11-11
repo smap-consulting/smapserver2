@@ -380,22 +380,24 @@ public class SMSManager {
 								 * Send response to the user who sent the message
 								 * Ask them to clarify which case they want to update
 								 */
-								String response_msg = localisation.getString("msg_mc");
-								response_msg = response_msg.replace("%s1", String.valueOf(count));
-								response_msg = response_msg.replace("%s2", caseList.toString());
-								
-								/*
-								 * Send message
-								 */
-								ConversationManager conversationMgr = new ConversationManager(localisation, tz);
-								MessageResponse response = conversationMgr.sendMessage(vonageClient,
-										sms.channel,
-										sms.ourNumber,
-										sms.theirNumber,
-										response_msg.toString());
-								if(response.getMessageUuid() == null) {
-									throw new ApplicationException("Failed to send response message \"" +
-											response_msg.toString() + "\" to " + sms.theirNumber);
+								String response_msg = smsNumber.mcMsg;
+								if(response_msg != null && response_msg.trim().length() > 0) {
+									response_msg = response_msg.replace("%s1", String.valueOf(count));
+									response_msg = response_msg.replace("%s2", caseList.toString());
+									
+									/*
+									 * Send message
+									 */
+									ConversationManager conversationMgr = new ConversationManager(localisation, tz);
+									MessageResponse response = conversationMgr.sendMessage(vonageClient,
+											sms.channel,
+											sms.ourNumber,
+											sms.theirNumber,
+											response_msg.toString());
+									if(response.getMessageUuid() == null) {
+										throw new ApplicationException("Failed to send response message \"" +
+												response_msg.toString() + "\" to " + sms.theirNumber);
+									}
 								}
 							}
 						}
