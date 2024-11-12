@@ -302,6 +302,9 @@ public class WebForm extends Application {
 		userIdent = request.getRemoteUser();
 		isTemporaryUser = false;
 		
+		boolean single = false;
+		boolean showDonePage = datakeyvalue == null ? false : true;
+		
 		/*
 		 * Check to see if the assignment is already complete
 		 */
@@ -335,9 +338,10 @@ public class WebForm extends Application {
 				response = getWebform(request, "none", null, 
 						formIdent, datakey, datakeyvalue, assignmentId, 
 						taskKey,
-						false, true, false, 
-						null,		// Initial Data
-						false,		// show done page
+						false, true, 
+						single, 		// Single Param
+						null,			// Initial Data
+						showDonePage,	// show done page
 						readOnly,
 						initialValues
 						);
