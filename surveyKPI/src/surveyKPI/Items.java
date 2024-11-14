@@ -320,14 +320,14 @@ public class Items extends Application {
 				
 					} else if(c.column_name.equals("prikey") || c.column_name.equals("parkey") 
 							|| c.column_name.equals("_bad") || c.column_name.equals("_bad_reason")) {
-						cols.append(tName + "." + c.column_name + " as " +  c.column_name);
+						cols.append(tName + "." + c.column_name);
 					
 					} else if(c.type != null && c.type.equals("dateTime")) {
 						cols.append("timezone(?, ").append(tName).append(".").append(c.column_name).append(") as " +  c.column_name);
 						params.add(new SqlParam("string", tz));
 						
 					}  else if(c.type != null && c.type.equals("date")) {
-						cols.append(tName).append(".").append(c.column_name).append(" as ").append(c.column_name);
+						cols.append(tName).append(".").append(c.column_name);
 						
 					} else if(c.type != null && c.type.equals("server_calculate")) {
 						if (c.calculation != null) {
@@ -342,7 +342,7 @@ public class Items extends Application {
 						}
 						
 					} else {
-						cols.append(tName + "." + c.column_name + " as " +  c.column_name);
+						cols.append(tName + "." + c.column_name);
 						
 					}
 					
@@ -366,7 +366,7 @@ public class Items extends Application {
 					if(newColIdx > 0) {
 						cols.append(",");
 					}
-					cols.append(tName + "._import_source as _import_source");
+					cols.append(tName + "._import_source");
 				}
 				
 				
