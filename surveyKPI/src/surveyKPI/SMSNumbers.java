@@ -250,14 +250,15 @@ public class SMSNumbers extends Application {
 			 * Update
 			 */
 			pstmt = sd.prepareStatement(sql.toString());
-			pstmt.setString(1, sIdent);
-			pstmt.setString(2, theirNumberQuestion);
-			pstmt.setString(3, messageQuestion);
-			pstmt.setString(4, mcMsg);
+			int idx = 1;
+			pstmt.setString(idx++, sIdent);
+			pstmt.setString(idx++, theirNumberQuestion);
+			pstmt.setString(idx++, messageQuestion);
+			pstmt.setString(idx++, mcMsg);
 			if(isOwner) {
-				pstmt.setInt(5, oId);
+				pstmt.setInt(idx++, oId);
 			}
-			pstmt.setString(6, ourNumber);
+			pstmt.setString(idx++, ourNumber);
 			log.info("update number: " + pstmt.toString());
 			pstmt.executeUpdate();
 			response = Response.ok().build();

@@ -1983,9 +1983,10 @@ public class Authorise {
 		int count = 0;
 		boolean sqlError = false;
 
-		String sql = "select count(*) from sms_number n, users u " +
-				" where u.o_id = n.o_id" +
-				" and n.our_number = ?";
+		String sql = "select count(*) from sms_number n, users u "
+				+ "where u.o_id = n.o_id "
+				+ "and n.our_number = ? "
+				+ "and u.ident = ?";
 		
 		
 		try {
