@@ -860,7 +860,7 @@ public class SharedResourceManager {
 			dum.validateDocument(fileName, fileItem, DocumentUploadManager.SHARED_RESOURCE_TYPES);
 			
 			/*
-			 * Default the resource name to the item name if it was not specified
+			 * Default the resource name to the file name if it was not specified
 			 */
 			if(resourceName == null) {
 				int idx = fileName.lastIndexOf('.');

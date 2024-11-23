@@ -140,7 +140,7 @@ public class XLSXSharedResourceManager {
             if(cell != null) {
                 name = cell.getStringCellValue();
                 if(name != null && name.trim().length() > 0) {
-            		header.put(name, i);
+            		header.put(name.trim(), i);
                 }
             }
         }
