@@ -8453,22 +8453,6 @@ public class GeneralUtilityMethods {
 			q.external_table = null;
 		}
 		
-		String sql = "update question "
-				+ "set external_choices = ?,"
-				+ "external_table = ? "
-				+ "where q_id = ?";
-		PreparedStatement pstmt = null;
-
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1,  q.external_choices ? "yes" : "no");
-			pstmt.setString(2, q.external_table);
-			pstmt.setInt(3,  q.id);
-			pstmt.executeUpdate();
-		} finally {
-			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
-		}
-		
 	}
 	
 	/*
