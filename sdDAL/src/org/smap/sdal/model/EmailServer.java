@@ -27,4 +27,6 @@ abstract public class EmailServer {
 			String contentString,
 			String filePath,
 			String filename) throws Exception;
+	
+	public abstract void receive() throws Exception;
 }

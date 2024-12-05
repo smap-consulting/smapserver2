@@ -10,10 +10,13 @@ import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.ConversationManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.model.DatabaseConnections;
+import org.smap.sdal.model.EmailServer;
+
 import com.vonage.client.VonageClient;
 
 /*****************************************************************************
@@ -34,14 +37,14 @@ import com.vonage.client.VonageClient;
  * 
  ******************************************************************************/
 
-public class MessageProcessor {
+public class InboundEmailProcessor {
 
 	String confFilePath;
 
 	DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 	DocumentBuilder db = null;
 
-	private static Logger log = Logger.getLogger(MessageProcessor.class.getName());
+	private static Logger log = Logger.getLogger(InboundEmailProcessor.class.getName());
 	private static LogManager lm = new LogManager();		// Application log
 	
 	boolean forDevice = false;	// URL prefixes should be in the client format
@@ -52,13 +55,10 @@ public class MessageProcessor {
 		String urlprefix;
 		String attachmentPrefix;
 		String hyperlinkPrefix;
-		String basePath;
-		String queueName;	
-		boolean gotVonageClient = false;
+		String basePath;	
 		
-		public MessageLoop(String basePath, String queueName) {
+		public MessageLoop(String basePath) {
 			this.basePath = basePath;
-			this.queueName = queueName;	
 		}
 
 		public void run() {
@@ -72,11 +72,10 @@ public class MessageProcessor {
 				
 				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/smap/settings/subscriber");
 				if(subscriberControl != null && subscriberControl.equals("stop")) {
-					GeneralUtilityMethods.log(log, "---------- Message Processor Stopped", queueName, null);
 					loop = false;
 				} else {
 					
-					System.out.print("(m)");		// Record the running of the message processor
+					System.out.print("(i)");		// Record the running of the inbound email processor
 					
 					try {
 						// Make sure we have a connection to the database
@@ -87,26 +86,26 @@ public class MessageProcessor {
 						// hyperlink prefix assumes that the hyperlink will be used by a human, hence always use client authentication
 						hyperlinkPrefix = GeneralUtilityMethods.getAttachmentPrefixBatch(serverName, false);
 						
-						/*
-						 * Get a vonage client
-						 */
-						VonageClient vonageClient = null;
-						if(!gotVonageClient) {
-							ConversationManager convMgr = new ConversationManager(null, null);
-							vonageClient = convMgr.getVonageClient(dbc.sd);
-						}
 						
 						try { 
 							
+							Locale locale = new Locale("en");
+							ResourceBundle localisation;
+							try {
+								localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+							} catch(Exception e) {
+								localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", locale);
+							}
+							
 							/*
-							 * Send messages
+							 * Receive messages
 							 */
-							mma.applyOutbound(dbc.sd, dbc.results, queueName, serverName, 
-									basePath,
-									urlprefix,
-									attachmentPrefix,
-									hyperlinkPrefix,
-									vonageClient);
+							EmailServer emailServer = UtilityMethodsEmail.getEmailServer(dbc.sd, localisation, null, null, 0);
+							if(emailServer.smtpHost != null) {
+								emailServer.receive();
+							} else {
+								log.info("Error: Could not get an email server for inboud emails");
+							}
 							
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
@@ -132,14 +131,14 @@ public class MessageProcessor {
 	/**
 	 * @param args
 	 */
-	public void go(String smapId, String basePath, String queueName) {
+	public void go(String smapId, String basePath) {
 
 		confFilePath = "./" + smapId;
 
 		try {
 			
 			// Send any pending messages
-			Thread t = new Thread(new MessageLoop(basePath, queueName));
+			Thread t = new Thread(new MessageLoop(basePath));
 			t.start();
 				
 

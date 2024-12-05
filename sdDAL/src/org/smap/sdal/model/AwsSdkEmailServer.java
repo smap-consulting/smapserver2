@@ -32,5 +32,10 @@ public class AwsSdkEmailServer extends EmailServer {
 		}	
 		
 	}
+	
+	@Override
+	public void receive() {
+		log.info("Inbound emails not enabled for AWS");
+	}
 
 }

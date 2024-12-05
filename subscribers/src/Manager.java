@@ -101,6 +101,12 @@ public class Manager {
 			MessageProcessor messageProcessor1 = new MessageProcessor();
 			messageProcessor1.go(smapId, fileLocn, "qm1");
 			
+			/*
+			 * Start the inbound email processor in the forward processor
+			 */
+			InboundEmailProcessor inboundEmailProcessor = new InboundEmailProcessor();
+			inboundEmailProcessor.go(smapId, fileLocn);
+			
 		} else {
 			// Start the default submission queue processor in the upload subscriber
 			SubmissionProcessor subProcessor = new SubmissionProcessor();

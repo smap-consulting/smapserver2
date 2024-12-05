@@ -11,9 +11,13 @@ import javax.mail.AuthenticationFailedException;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
+import javax.mail.NoSuchProviderException;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
+import javax.mail.Store;
 import javax.mail.Transport;
+import javax.mail.Address;
+import javax.mail.Folder;
 import javax.mail.Message.RecipientType;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
@@ -117,9 +121,65 @@ public class SmtpEmailServer extends EmailServer {
 	}
 	
 	/*
+	 * Receive email messages
+	 */
+	public void receive() throws Exception {
+		Session session = getEmailSession();
+		try {
+			Store store = session.getStore("imap");
+			store.connect(emailUser, emailPassword);
+			Folder inbox = store.getFolder("inbox");
+			inbox.open(Folder.READ_ONLY);
+			
+			Message[] messages = inbox.getMessages();
+			
+			for (int i = 0; i < messages.length; i++) {
+                Message msg = messages[i];
+                Address[] fromAddress = msg.getFrom();
+                String from = fromAddress[0].toString();
+                String subject = msg.getSubject();
+                Address[] toList = msg.getRecipients(RecipientType.TO);
+               
+                String sentDate = msg.getSentDate().toString();
+  
+                String contentType = msg.getContentType();
+                String messageContent = "";
+  
+                if (contentType.contains("text/plain")
+                        || contentType.contains("text/html")) {
+                    try {
+                        Object content = msg.getContent();
+                        if (content != null) {
+                            messageContent = content.toString();
+                        }
+                    } catch (Exception ex) {
+                        messageContent = "[Error downloading content]";
+                        ex.printStackTrace();
+                    }
+                }
+  
+                // print out details of each message
+                System.out.println("Message #" + (i + 1) + ":");
+                System.out.println("\t From: " + from);
+                System.out.println("\t To: " + toList);
+                System.out.println("\t Subject: " + subject);
+                System.out.println("\t Sent Date: " + sentDate);
+                System.out.println("\t Message: " + messageContent);
+			}
+			System.out.println("Getting emails with store ");
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			String msg = e.getMessage();
+			throw new Exception(localisation.getString("email_rcv") + ":  " + msg);
+		}
+		
+		
+	}
+	
+	/*
 	 * Get an email session for SMTP
 	 */
-	private Session getEmailSession() {
+	Session getEmailSession() {
 		Properties props = System.getProperties();
 		props.put("mail.smtp.host", smtpHost);	
 
