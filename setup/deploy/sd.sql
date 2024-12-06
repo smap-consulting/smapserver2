@@ -158,3 +158,7 @@ ALTER TABLE organisation add column email_type text;
 ALTER TABLE organisation add column aws_region text;
 ALTER TABLE server add column aws_region text;
 alter table sms_number add column mc_msg text;	-- Message to send if there is more than one case to update
+
+-- Remove links security group
+delete from groups where name = 'links';
+delete from user_group where g_id = 13;
