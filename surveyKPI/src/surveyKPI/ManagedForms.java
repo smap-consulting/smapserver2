@@ -43,7 +43,6 @@ import org.smap.sdal.legacy.TableManager;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.EmailManager;
-import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.ActionLink;
@@ -906,7 +905,7 @@ public class ManagedForms extends Application {
 	
 	/*
 	 * Get data connected to the passed in record
-	 */
+	 * Disabled due to issues with the accuracy of fingerprint matching
 	@GET
 	@Path("/connected/{sId}/{fId}/{prikey}")
 	@Produces("application/json")
@@ -954,6 +953,7 @@ public class ManagedForms extends Application {
 
 		return response;
 	}
+	*/
 
 	
 	/*

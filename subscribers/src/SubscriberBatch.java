@@ -29,7 +29,6 @@ import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.KeyManager;
-import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.MessagingManager;
@@ -188,7 +187,7 @@ public class SubscriberBatch {
 			}
 			serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 
-			LinkageManager linkMgr = new LinkageManager(localisation);
+			//LinkageManager linkMgr = new LinkageManager(localisation);  Disable
 			Date timeNow = new Date();
 			
 			if(subscriberType.equals("upload")) {
@@ -315,7 +314,7 @@ public class SubscriberBatch {
 				 * Initialise the linkage table if that has been requested
 				 * Linkage is any arbitrary connection between survey instances 
 				 * Currently it is only used with fingerprints
-				 */
+				 * Disable due to issues with accuracy of fingerprint linking
 				if(rebuildLinkageTable(dbc.sd)) {
 					log.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Rebuild Linkage ");
 					
@@ -433,7 +432,7 @@ public class SubscriberBatch {
 					
 					rebuildLinkageTableComplete(dbc.sd);
 				}
-				
+				*/
 				// Set fingerprint templates for new fingerprint images
 				//linkMgr.setFingerprintTemplates(dbc.sd, basePath, serverName);  TODO disable for performance
 			}

@@ -17,6 +17,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  ******************************************************************************/
 
+/*
 package org.smap.sdal.managers;
 
 import java.awt.image.BufferedImage;
@@ -176,7 +177,7 @@ public class LinkageManager {
 	 * Add a data item to a linkage list, these can be
 	 *  Fingerprints
 	 *  ....
-	 */
+	 *
 	public void addDataitemToList(ArrayList<LinkageItem> links, String value, String appearance, ArrayList<KeyValueSimp> params, String sIdent, String colName) {
 
 		if(links != null && value != null && value.trim().length() > 0  && isLinkageItem(appearance)) {
@@ -218,7 +219,7 @@ public class LinkageManager {
 	
 	/*
 	 * Write the linkage items to the table
-	 */
+	 *
 	public void writeItems(Connection sd, int oId, String changedBy, String instanceId, ArrayList<LinkageItem> items) throws SQLException {
 		
 		String sql = "insert into linkage (o_id, instance_id, survey_ident, col_name, fp_location, fp_side, fp_digit, fp_image, fp_iso_template, changed_by, changed_ts) "
@@ -249,7 +250,7 @@ public class LinkageManager {
 	
 	/*
 	 * Set fingerprint templates in the linkage table using the image in the same table
-	 */
+	 *
 	public void setFingerprintTemplates(Connection sd, String basePath, String serverName) throws SQLException, IOException {
 		
 		PreparedStatement pstmt = null;
@@ -318,7 +319,7 @@ public class LinkageManager {
 	
 	/*
 	 * Get a list of matches to a fingerprint template
-	 */
+	 *
 	public ArrayList<Match> matchSingleTemplate(Connection sd, String server, int oId, FingerprintTemplate probe, double threshold, String image) throws SQLException {
 		
 		String sql = "select id, fp_native_template, fp_image, survey_ident, col_name,"
@@ -369,7 +370,7 @@ public class LinkageManager {
 						/*
 						 * Get the details of where this match is stored
 						 * If the match is not found, presumably because it has been deleted since the linkage cache was created then expire the link
-						 */
+						 *
 						if(!getStorageDetails(sd, match)) {
 							markExpired();
 						} else {	
@@ -390,7 +391,7 @@ public class LinkageManager {
 	
 	/*
 	 * Get linkages to a single record of a survey
-	 */
+	 *
 	public ArrayList<LinkageItem> getRecordLinkages(Connection sd, String server, String sIdent, String instanceId) throws SQLException {
 		
 		String sql = "select id, fp_image, col_name,"
@@ -444,3 +445,4 @@ public class LinkageManager {
 	}
 	
 }
+*/

@@ -55,7 +55,6 @@ import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.legacy.FormDesc;
 import org.smap.sdal.legacy.TableManager;
-import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.FileDescription;
 import org.smap.sdal.model.LinkageItem;
@@ -1203,8 +1202,8 @@ public class ExchangeManager {
 		String threadCreated = null;
 		boolean writeRecord = true;
 		
-		LinkageManager linkMgr = new LinkageManager(localisation);
-		ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
+		//LinkageManager linkMgr = new LinkageManager(localisation); Disabled
+		//ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
 		
 		eh.pstmtInsert.setString(index++, importSource);
 		eh.pstmtInsert.setTimestamp(index++, importTime);
@@ -1360,7 +1359,7 @@ public class ExchangeManager {
 					}
 					eh.pstmtInsert.setString(index++, value);
 					
-					linkMgr.addDataitemToList(linkageItems, value, col.appearance, col.parameters, sIdent, col.name);
+					// linkMgr.addDataitemToList(linkageItems, value, col.appearance, col.parameters, sIdent, col.name);  disabled
 					
 				} else if(col.type.equals("int")) {
 					int iVal = 0;
@@ -1453,7 +1452,7 @@ public class ExchangeManager {
 					}
 					eh.pstmtInsert.setString(index++, value);
 					
-					linkMgr.addDataitemToList(linkageItems, value, col.appearance, col.parameters, sIdent, col.name);
+					// linkMgr.addDataitemToList(linkageItems, value, col.appearance, col.parameters, sIdent, col.name);  Disabled
 				}
 				
 			}
@@ -1472,11 +1471,12 @@ public class ExchangeManager {
 			
 			/*
 			 * Write linkage items, fingerprints etc
-			 */
+			 * Disabled
 			if(linkageItems.size() > 0) {
 				log.info("----- Applying " + linkageItems.size() + " linkage items");
 				linkMgr.writeItems(sd, oId, user, instanceId, linkageItems);
 			}
+			*/
 			count++;
 		}
 		

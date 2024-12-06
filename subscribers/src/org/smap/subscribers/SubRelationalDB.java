@@ -47,7 +47,6 @@ import org.smap.sdal.legacy.UtilityMethods;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.KeyManager;
-import org.smap.sdal.managers.LinkageManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SubmissionEventManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -950,7 +949,7 @@ public class SubRelationalDB extends Subscriber {
 			int oId) {	
 		
 		DynamicMetaValues dmv = new DynamicMetaValues();
-		LinkageManager linkMgr = new LinkageManager(localisation);
+		//LinkageManager linkMgr = new LinkageManager(localisation); Disable
 		
 		/*
 		 * Prepare for checking for case closed
@@ -1018,7 +1017,7 @@ public class SubRelationalDB extends Subscriber {
 				}
 				
 				// Add to linkage items
-				linkMgr.addDataitemToList(linkageItems, value, col.getAppearance(), col.getParameters(), sIdent, colName);
+				//linkMgr.addDataitemToList(linkageItems, value, col.getAppearance(), col.getParameters(), sIdent, colName);  Disable
 			}
 
 		}

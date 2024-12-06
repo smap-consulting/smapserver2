@@ -241,7 +241,7 @@ public class SubmissionEventManager {
 				
 				/*
 				 * Apply any Linkage items
-				 */
+				 * Disable linkage due to accuracy issues
 				if(linkageItems.size() > 0) {
 					log.info("----- Applying " + linkageItems.size() + " linkage items");
 					LinkageManager linkMgr = new LinkageManager(localisation);
@@ -249,6 +249,7 @@ public class SubmissionEventManager {
 				} else {
 					//log.info("----- No linkage items to apply");
 				}
+				*/
 				
 			}
 

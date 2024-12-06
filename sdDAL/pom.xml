@@ -176,11 +176,13 @@
 			<artifactId>javase</artifactId>
 			<version>3.4.0</version>
 		</dependency>
+		<!-- Remove fingerprint matching
 		<dependency>
 			<groupId>com.machinezoo.sourceafis</groupId>
 			<artifactId>sourceafis</artifactId>
 			<version>3.17.1</version>
 		</dependency>
+		-->
 		<dependency>
 			<groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
 			<artifactId>owasp-java-html-sanitizer</artifactId>

@@ -1,8 +1,5 @@
 package surveyKPI;
 
-import javax.imageio.ImageIO;
-import javax.servlet.http.HttpServletRequest;
-
 /*
 This file is part of SMAP.
 
@@ -21,6 +18,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
+/*
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -73,7 +71,7 @@ public class MatchService extends Application {
 	
 	/*
 	 * Get the fingerprints that match the passed in fingerprint
-	 */
+	 *
 	@GET
 	@Path("/fingerprint/image")
 	@Produces("application/json")
@@ -144,7 +142,7 @@ public class MatchService extends Application {
 	
 	/*
 	 * Get the linkage items in a record
-	 */
+	 *
 	@GET
 	@Path("/record/{survey_ident}/{instanceid}")
 	@Produces("application/json")
@@ -185,4 +183,4 @@ public class MatchService extends Application {
 		return response;
 	}
 }
-
+*/
