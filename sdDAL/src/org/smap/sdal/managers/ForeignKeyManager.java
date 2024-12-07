@@ -95,6 +95,14 @@ public class ForeignKeyManager {
 		PreparedStatement pstmtGetHrk = null;
 		PreparedStatement pstmtInsertKey = null;
 		
+		String sqlClean = "update apply_foreign_keys "
+				+ "set applied = true,"
+				+ "ts_applied = now(),"
+				+ "comment = 'timed out waiting for foreign key value' "
+				+ "where ts_created < now() - interval '7 days' "
+				+ "and not applied";
+		PreparedStatement pstmtClean = null;
+		
 		try {
 			pstmtGetFkTable = sd.prepareStatement(sqlGetFkTable);
 			pstmtResult = sd.prepareStatement(sqlResult);
@@ -274,6 +282,13 @@ public class ForeignKeyManager {
 				}
 			}
 			
+			/*
+			 * Clean up the foreign key table by removing any keys that have not been updated for 7 days
+			 */
+			pstmtClean = sd.prepareStatement(sqlClean);
+			int count = pstmtClean.executeUpdate();
+			log.info("Cleaned up foreign keys " + count + " set as timed out: " + pstmtClean.toString());
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -283,6 +298,7 @@ public class ForeignKeyManager {
 			if(pstmtGetHrk != null) {try {pstmtGetHrk.close();}catch(Exception e) {}}
 			if(pstmtGetFkTable != null) {try {pstmtGetFkTable.close();}catch(Exception e) {}}
 			if(pstmtInsertKey != null) {try {pstmtInsertKey.close();}catch(Exception e) {}}
+			if(pstmtClean != null) {try {pstmtClean.close();}catch(Exception e) {}}
 		}
 	}
 }
