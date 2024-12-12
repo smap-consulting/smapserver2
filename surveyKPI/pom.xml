@@ -78,6 +78,18 @@
 			<version>2.3.0</version>
 			<scope>compile</scope>
 		</dependency>
+		
+		<dependency>
+    		<groupId>com.google.api-client</groupId>
+    		<artifactId>google-api-client</artifactId>
+    		<version>2.7.0</version>
+		</dependency>
+
+		<dependency>
+   		 	<groupId>com.google.apis</groupId>
+    		<artifactId>google-api-services-gmail</artifactId>
+    		<version>v1-rev20240520-2.0.0</version>
+		</dependency>
     	
 	</dependencies>
 </project>

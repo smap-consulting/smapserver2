@@ -1,7 +1,11 @@
 package surveyKPI;
 
-import java.util.ArrayList;
+import java.io.FileInputStream;
+import java.util.Collections;
+import java.util.Properties;
 
+import javax.mail.Session;
+import javax.mail.Store;
 import javax.mail.internet.InternetAddress;
 
 /*
@@ -31,6 +35,19 @@ import org.smap.notifications.interfaces.EmitAwsSES;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.http.HttpRequestInitializer;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.services.gmail.Gmail;
+import com.google.api.services.gmail.Gmail.Users;
+import com.google.api.services.gmail.GmailScopes;
+import com.google.api.services.gmail.model.ListLabelsResponse;
+import com.google.auth.http.HttpCredentialsAdapter;
+import com.google.auth.oauth2.GoogleCredentials;
+
 @Path("/emailTest")
 public class EmailTest extends Application {
 	
@@ -44,7 +61,8 @@ public class EmailTest extends Application {
 	 * Send a test email
 	 */
 	@GET
-	public String emailTest(@Context HttpServletRequest request) throws Exception {
+	@Path("/ses")
+	public String emailTestSES(@Context HttpServletRequest request) throws Exception {
 		
 		EmitAwsSES mgr = new EmitAwsSES("ap-southeast-2", 
 				GeneralUtilityMethods.getBasePath(request));
@@ -54,6 +72,31 @@ public class EmailTest extends Application {
 		return "done";
 	}
 
+	/*
+	 * Send a test email
+	 */
+	@GET
+	@Path("/gmail")
+	public String emailTestGmail(@Context HttpServletRequest request) throws Exception {
+		JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
+		NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+		 
+		String basePath = GeneralUtilityMethods.getBasePath(request);
+		String keyPath = basePath + "_bin/resources/properties/google.json";
+		
+		// Delegate domain wide authority
+		GoogleCredentials credential = GoogleCredentials.fromStream(new FileInputStream(keyPath))
+			    .createScoped(Collections.singleton(GmailScopes.GMAIL_MODIFY))
+			    .createDelegated("app@smap.com.au");
+		HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(credential);
+		
+		Gmail service = new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, requestInitializer).setApplicationName("app mail").build();
+		
+		String user = "me";
+	    ListLabelsResponse listResponse = service.users().labels().list(user).execute();
+			    
+		return "done";
+	}
 
 }
 
