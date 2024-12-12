@@ -841,7 +841,7 @@ public class SharedResourceManager {
 						log.info("Action: " + action);
 						
 					} else {
-						log.info("Unknown field name = "+item.getFieldName()+", Value = "+item.getString());
+						log.info("Unknown field name = " + item.getFieldName() + ", Value = " + item.getString());
 					}
 				} else {					
 					if(item.getName().trim().length() > 0) {

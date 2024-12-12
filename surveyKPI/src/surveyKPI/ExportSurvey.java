@@ -198,12 +198,8 @@ public class ExportSurvey extends Application {
 		
 		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "Export to XLS", 0, request.getServerName());
 
-		String escapedFileName = GeneralUtilityMethods.urlEncode(filename);
-		escapedFileName = escapedFileName + ".xls";
 		response.setHeader("Content-type",  "application/vnd.ms-excel; charset=UTF-8");
-
-		response.setHeader("Content-Disposition", "attachment; filename=\"" + escapedFileName +"\"");	
-		response.setStatus(HttpServletResponse.SC_OK);
+		GeneralUtilityMethods.setFilenameInResponse(filename + ".xls", response);
 
 		if(language != null) {
 			language = language.replace("'", "''");	// Escape apostrophes

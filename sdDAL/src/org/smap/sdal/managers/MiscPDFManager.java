@@ -178,7 +178,7 @@ public class MiscPDFManager {
 			// If the PDF is to be returned in an http response then set the file name now
 			if(response != null) {
 				log.info("Setting filename to: " + filename);
-				setFilenameInResponse(filename, response);
+				GeneralUtilityMethods.setFilenameInResponse(filename, response);
 			}
 			
 			/*
@@ -372,7 +372,7 @@ public class MiscPDFManager {
 			// If the PDF is to be returned in an http response then set the file name now
 			if(response != null) {
 				log.info("Setting filename to: " + filename);
-				setFilenameInResponse(filename, response);
+				GeneralUtilityMethods.setFilenameInResponse(filename, response);
 			}
 			
 			Document document = new Document(PageSize.A4);
@@ -411,10 +411,7 @@ public class MiscPDFManager {
 			
 
 			document.add(table);
-			document.close();
-				
-		
-			
+			document.close();		
 			
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "SQL Error", e);
@@ -424,25 +421,6 @@ public class MiscPDFManager {
 			
 		}  
 	
-	}
-	
-	
-	/*
-	 * Add the filename to the response
-	 */
-	private void setFilenameInResponse(String filename, HttpServletResponse response) {
-
-		String escapedFileName = null;
-		
-		log.info("Setting filename in response: " + filename);
-		if(filename == null) {
-			filename = "survey";
-		}
-		
-		escapedFileName = GeneralUtilityMethods.urlEncode(filename);
-		
-		response.setHeader("Content-Disposition", "attachment; filename=\"" + escapedFileName +"\"");	
-		response.setStatus(HttpServletResponse.SC_OK);	
 	}
 
 }

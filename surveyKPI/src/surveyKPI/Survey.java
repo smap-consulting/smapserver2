@@ -272,7 +272,7 @@ public class Survey extends Application {
 					} else if(type.equals("xml")) {
 						builder.header("Content-type","text/xml; charset=UTF-8");
 					}
-					builder.header("Content-Disposition", "attachment;Filename=" + filename);
+					builder.header("Content-Disposition", "attachment;Filename=" + GeneralUtilityMethods.urlEncode(filename));
 					response = builder.build();
 
 				} catch (Exception e) {

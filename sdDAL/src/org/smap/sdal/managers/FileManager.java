@@ -221,8 +221,7 @@ public class FileManager {
 			throw new ApplicationException("File not found: " + f.getAbsolutePath());
 		}
 		response.setContentType(UtilityMethodsEmail.getContentType(filename));
-			
-		response.addHeader("Content-Disposition", "attachment; filename=" + filename);
+		GeneralUtilityMethods.setFilenameInResponse(filename, response);	
 		response.setContentLength((int) f.length());
 		
 		FileInputStream fis = new FileInputStream(f);

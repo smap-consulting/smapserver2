@@ -4566,15 +4566,13 @@ public class GeneralUtilityMethods {
 	 */
 	public static void setFilenameInResponse(String filename, HttpServletResponse response) {
 
-		
-
 		log.info("Setting filename in response: " + filename);
 		if (filename == null) {
 			filename = "survey";
 		}
 		String escapedFileName = urlEncode(filename);
 
-		response.setHeader("Content-Disposition", "attachment; filename=\"" + escapedFileName + "\"");
+		response.setHeader("Content-Disposition", "attachment; filename=" + escapedFileName + "; filename*=UTF-8''" + escapedFileName);
 		response.setStatus(HttpServletResponse.SC_OK);
 	}
 
