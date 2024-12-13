@@ -162,3 +162,5 @@ alter table sms_number add column mc_msg text;	-- Message to send if there is mo
 -- Remove links security group
 delete from groups where name = 'links';
 delete from user_group where g_id = 13;
+
+create index question_l_id_idx on question(l_id);	-- Address performance issue

@@ -49,7 +49,6 @@ import org.smap.sdal.model.ActionLink;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.Filter;
 import org.smap.sdal.model.Form;
-import org.smap.sdal.model.Link;
 import org.smap.sdal.model.ManagedFormItem;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Role;

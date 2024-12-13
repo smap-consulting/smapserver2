@@ -810,6 +810,7 @@ CREATE UNIQUE INDEX qname_index ON question(f_id,qname) where soft_deleted = 'fa
 CREATE INDEX q_f_id ON question(f_id);
 CREATE INDEX idx_question_param ON question (parameters) WHERE (parameters is not null);
 CREATE INDEX question_column_name_key ON question(column_name);
+create index question_l_id_idx on question(l_id);
 	
 DROP TABLE IF EXISTS option CASCADE;
 CREATE TABLE option (
