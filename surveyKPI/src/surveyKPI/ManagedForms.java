@@ -479,6 +479,7 @@ public class ManagedForms extends Application {
 	
 	/*
 	 * Make a survey managed
+	 * Deprecate
 	 */
 	class AddManaged {
 		int sId;
