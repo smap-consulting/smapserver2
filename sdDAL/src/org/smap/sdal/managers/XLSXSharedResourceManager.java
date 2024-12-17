@@ -31,6 +31,7 @@ import java.util.ResourceBundle;
 
 import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.XLSUtilities;
@@ -111,7 +112,8 @@ public class XLSXSharedResourceManager {
 									fw.write(",");
 								}
 								if(value != null && value.trim().length() > 0) {
-									fw.write(value);
+									String escaped = StringEscapeUtils.escapeCsv(value);
+									fw.write(escaped);
 								}
 								first = false;
 							}
