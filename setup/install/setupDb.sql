@@ -736,6 +736,7 @@ CREATE TABLE form (
 	append boolean default false
 	);
 CREATE INDEX form_s_id ON form(s_id);
+create index form_table_name on form(table_name);
 ALTER TABLE form OWNER TO ws;
 
 DROP TABLE IF EXISTS listname CASCADE;
@@ -1063,6 +1064,7 @@ SELECT AddGeometryColumn('tasks', 'geo_point', 4326, 'POINT', 2);
 SELECT AddGeometryColumn('tasks', 'geo_point_actual', 4326, 'POINT', 2);
 CREATE INDEX task_task_group ON tasks(tg_id);
 create index idx_tasks_del_auto on tasks (deleted, assign_auto);
+create index tasks_survey_idx on tasks(survey_ident);
 ALTER TABLE public.tasks OWNER TO ws;
 
 CREATE TABLE public.locations (

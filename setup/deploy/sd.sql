@@ -164,3 +164,5 @@ delete from groups where name = 'links';
 delete from user_group where g_id = 13;
 
 create index question_l_id_idx on question(l_id);	-- Address performance issue
+create index form_table_name on form(table_name);
+create index tasks_survey_idx on tasks(survey_ident);
