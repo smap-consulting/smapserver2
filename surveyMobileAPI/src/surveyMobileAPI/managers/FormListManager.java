@@ -184,8 +184,6 @@ public class FormListManager {
 			response = xForm.get(template, false, true, false, user, request);
 			log.info("userevent: " + user + " : download survey : " + templateName);		
 
-			// Record that this form was downloaded by this user
-			GeneralUtilityMethods.recordFormDownload(sd, user, survey.surveyData.ident, survey.surveyData.version, deviceId);
 		} catch (AuthorisationException ae) { 
 			throw ae;
 		} catch (ApplicationException e) {

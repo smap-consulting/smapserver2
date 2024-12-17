@@ -7652,40 +7652,6 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Record the fact that a user has downloaded a form
-	 */
-	public static void recordFormDownload(Connection sd, String user, String formIdent, int version, String deviceId) throws SQLException {
-
-		String sqlDel = "delete from form_downloads where u_id = ? and form_ident = ? and device_id = ?";
-		PreparedStatement pstmtDel = null;
-
-		String sql = "insert into form_downloads(u_id, form_ident, form_version, device_id, updated_time) "
-				+ "values(?, ?, ?, ?, now())";
-		PreparedStatement pstmt = null;
-
-		try {
-			int uId = getUserId(sd, user);
-
-			pstmtDel = sd.prepareStatement(sqlDel);
-			pstmtDel.setInt(1, uId);
-			pstmtDel.setString(2, formIdent);
-			pstmtDel.setString(3, deviceId);
-			pstmtDel.executeUpdate();
-
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, uId);
-			pstmt.setString(2, formIdent);
-			pstmt.setInt(3, version);
-			pstmt.setString(4, deviceId);
-			pstmt.executeUpdate();	
-
-		} finally {
-			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
-		}
-
-	}
-
-	/*
 	 * Convert Parameters to Key Value array
 	 */
 	public static ArrayList<KeyValueSimp> convertParametersToArray(String in) {
