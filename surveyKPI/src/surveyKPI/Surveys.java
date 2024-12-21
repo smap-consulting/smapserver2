@@ -1994,7 +1994,7 @@ public class Surveys extends Application {
 			
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
-			response = Response.serverError().build();
+			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			
 			SDDataSource.closeConnection(connectionString, sd);		

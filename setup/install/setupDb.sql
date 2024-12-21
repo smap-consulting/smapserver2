@@ -501,6 +501,7 @@ insert into groups(id,name) values(10,'view own data');
 insert into groups(id,name) values(11,'manage tasks');
 insert into groups(id,name) values(12,'dashboard');
 --insert into groups(id,name) values(13,'links');
+insert into groups(id,name) values(14,'console admin');
 
 insert into user_group (u_id, g_id) values (1, 1);
 insert into user_group (u_id, g_id) values (1, 2);

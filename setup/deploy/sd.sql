@@ -163,6 +163,10 @@ alter table sms_number add column mc_msg text;	-- Message to send if there is mo
 delete from groups where name = 'links';
 delete from user_group where g_id = 13;
 
-create index question_l_id_idx on question(l_id);	-- Address performance issue
-create index form_table_name on form(table_name);
-create index tasks_survey_idx on tasks(survey_ident);
+create index if not exists question_l_id_idx on question(l_id);	-- Address performance issue
+create index if not exists form_table_name on form(table_name);
+create index if not exists tasks_survey_idx on tasks(survey_ident);
+create index if not exists linked_files_logical_path on linked_files(logical_path);
+
+-- Console Admin
+insert into groups(id,name) values(14,'console admin');

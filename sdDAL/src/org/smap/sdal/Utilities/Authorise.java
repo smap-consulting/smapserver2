@@ -49,6 +49,7 @@ public class Authorise {
 	public static String MANAGE_TASKS = "manage tasks";
 	public static String DASHBOARD = "dashboard";
 	public static String LINKS = "links";
+	public static String CONSOLE_ADMIN = "console admin";
 	
 	public static int ADMIN_ID = 1;
 	public static int ANALYST_ID = 2;
@@ -63,6 +64,7 @@ public class Authorise {
 	public static final int MANAGE_TASKS_ID = 11;
 	public static final int DASHBOARD_ID = 12;
 	public static final int LINKS_ID = 13;
+	public static final int CONSOLE_ADMIN_ID = 14;
 	
 	//private String requiredGroup;
 	ArrayList<String> permittedGroups; 
