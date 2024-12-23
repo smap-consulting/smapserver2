@@ -195,7 +195,8 @@ public class Data extends Application {
 				instanceId, 
 				includeMeta,
 				urlprefix,
-				attachmentPrefix);
+				attachmentPrefix,
+				null);
 		
 		return Response.status(Status.OK).build();
 	}

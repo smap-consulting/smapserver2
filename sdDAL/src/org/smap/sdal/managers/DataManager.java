@@ -479,7 +479,8 @@ public class DataManager {
 			String instanceId,
 			boolean includeMeta,
 			String urlprefix,
-			String attachmentPrefix
+			String attachmentPrefix,
+			String selectedInstanceId
 			) throws ApplicationException, Exception { 
 
 
@@ -947,6 +948,11 @@ public class DataManager {
 						smsNumber.identifier = null;	// Don't need these
 						smsNumber.surveyIdent = null;
 						outWriter.print(gson.toJson(smsNumber));
+					}
+					// 7. Add currently selected instanceid
+					if(selectedInstanceId != null) {
+						outWriter.print(",\"selectedRow\":");
+						outWriter.print(gson.toJson(GeneralUtilityMethods.getLatestInstanceId(cResults, table_name, selectedInstanceId)));
 					}
 				}
 				

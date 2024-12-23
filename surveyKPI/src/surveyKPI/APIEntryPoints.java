@@ -139,7 +139,8 @@ public class APIEntryPoints extends Application {
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
 			@QueryParam("instanceid") String instanceId,
-			@QueryParam("getSettings") boolean getSettings			// if set true get the settings from the database
+			@QueryParam("getSettings") boolean getSettings,			// if set true get the settings from the database
+			@QueryParam("selectedrow") String selectedRow
 			) throws ApplicationException, Exception { 
 			
 		boolean incLinks = false;
@@ -178,7 +179,8 @@ public class APIEntryPoints extends Application {
 				dd_filter, prikey, dd_hrk, dateName, startDate, endDate, getSettings, 
 				instanceId, includeMeta, 
 				urlprefix,
-				attachmentPrefix);
+				attachmentPrefix,
+				selectedRow);
 		
 		return Response.status(Status.OK).build();
 	}
