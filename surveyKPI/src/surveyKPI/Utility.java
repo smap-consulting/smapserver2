@@ -1,5 +1,7 @@
 package surveyKPI;
 
+import java.sql.Connection;
+
 /*
 This file is part of SMAP.
 
@@ -23,6 +25,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Response;
+
+import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.TimeZoneManager;
 
 /*
@@ -41,8 +45,17 @@ public class Utility extends Application {
 	@Produces("application/json")
 	public Response getTimezones() { 
 
-		TimeZoneManager tmz = new TimeZoneManager();
-		return tmz.get();
+		String connectionString = "surveyKPI-Utility - getTimezones";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		Response response = null;
+		try {
+			TimeZoneManager tmz = new TimeZoneManager();
+			response = tmz.get(sd);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
 		
 	}
 }

@@ -9,7 +9,6 @@ import java.util.logging.Logger;
 
 import javax.ws.rs.core.Response;
 
-import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.model.SmapTimeZone;
 
 import com.google.gson.Gson;
@@ -42,24 +41,13 @@ public class TimeZoneManager {
 	private static Logger log =
 			Logger.getLogger(TimeZoneManager.class.getName());
 	
-	public Response get() {
+	public Response get(Connection sd) {
 		Response response = null;
-		String connectionString = "surveyKPI-Utility - getTimezones";
-
-		// Authorisation - Not required
-		Connection sd = SDDataSource.getConnection(connectionString);
-		// End Authorisation
 		
-		String sql = "select name, utc_offset from pg_timezone_names "
-				+ "where substring(name FROM 1 FOR 3) <> 'Etc' "
-				+ "and substring(name FROM 1 FOR 7) <> 'SystemV' "
-				+ "and substring(name FROM 1 FOR 5) <> 'posix' "
-				+ "and name <> 'GMT0' "
-				+ "and name <> 'GMT-0' "
-				+ "and name <> 'GMT+0' "
-				+ "and name <> 'UCT' "
+		
+		String sql = "select name, utc_offset from timezone "
 				+ "order by utc_offset asc";
-		PreparedStatement pstmt;
+		PreparedStatement pstmt = null;
 		
 		try {
 			ArrayList<SmapTimeZone> timezones = new ArrayList<> ();
@@ -82,10 +70,45 @@ public class TimeZoneManager {
 			log.log(Level.SEVERE,"Error", e);
 
 		} finally {
-			
-			SDDataSource.closeConnection(connectionString, sd);
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
 		}
 
 		return response;
+	}
+	
+	/*
+	 * Refresh the cached timezone list
+	 * This has been added as extracting data from pg_timezones is slow
+	 */
+	public void refresh(Connection sd) {
+		
+		String sqlClear = "truncate timezone";
+		String sql = "insert into timezone select name, utc_offset from pg_timezone_names "
+				+ "where substring(name FROM 1 FOR 3) <> 'Etc' "
+				+ "and substring(name FROM 1 FOR 7) <> 'SystemV' "
+				+ "and substring(name FROM 1 FOR 5) <> 'posix' "
+				+ "and name <> 'GMT0' "
+				+ "and name <> 'GMT-0' "
+				+ "and name <> 'GMT+0' "
+				+ "and name <> 'UCT' "
+				+ "order by utc_offset asc";
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			// Clear the old timezone values
+			pstmt = sd.prepareStatement(sqlClear);
+			pstmt.executeUpdate();
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+			
+			pstmt = sd.prepareStatement(sql);
+			log.info("Refresh timezones: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+		} finally {		
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+		}
 	}
 }

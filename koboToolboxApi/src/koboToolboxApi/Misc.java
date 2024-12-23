@@ -56,6 +56,7 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TimeZoneManager;
 import org.smap.sdal.managers.UsageManager;
 import org.smap.sdal.managers.UserManager;
+import org.smap.sdal.model.SmapTimeZone;
 import org.smap.sdal.model.SurveyIdent;
 import org.smap.sdal.model.UserSimple;
 
@@ -266,8 +267,17 @@ public class Misc extends Application {
 	@Path("/timezones")
 	public Response getTimezones() {
 
-		TimeZoneManager tmz = new TimeZoneManager();
-		return tmz.get();
+		String connectionString = "API - getTimezones";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		Response response = null;
+		try {
+			TimeZoneManager tmz = new TimeZoneManager();
+			response = tmz.get(sd);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
 		
 	}
 	

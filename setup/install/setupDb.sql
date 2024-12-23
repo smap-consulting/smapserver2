@@ -1864,3 +1864,11 @@ CREATE TABLE IF NOT EXISTS sms_number (
 );
 ALTER TABLE sms_number OWNER TO ws;
 CREATE UNIQUE INDEX sms_number_to_idx ON sms_number(our_number);
+
+-- Improve Timezone Performance
+DROP TABLE IF EXISTS timezone;
+CREATE TABLE timezone (
+    name text,
+    utc_offset text
+);
+ALTER TABLE timezone OWNER TO ws;

@@ -38,6 +38,7 @@ import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
+import org.smap.sdal.managers.TimeZoneManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.CaseManagementSettings;
@@ -91,7 +92,8 @@ public class SubscriberBatch {
 	HashMap<String, String> autoErrorCheck = new HashMap<> ();
 	
 	boolean mediaCheckDone = false;
-	boolean forDevice = false;	// URL prefixes should be in the client format
+	boolean forDevice = false;			// URL prefixes should be in the client format
+	int timezoneRefreshInterval = 0;	// Only refresh timezone when this gets to 0, do it first time the batch job is run
 
 	/**
 	 * @param args
@@ -309,6 +311,14 @@ public class SubscriberBatch {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
 				
+				/*
+				 * Refresh timezones but not too often this is expensive
+				 */
+				if(timezoneRefreshInterval-- <= 0) {
+					TimeZoneManager tmz = new TimeZoneManager();
+					tmz.refresh(dbc.sd);
+					timezoneRefreshInterval = 2000;	// Every 2,000 times we will update timezones
+				}
 				
 				/*
 				 * Initialise the linkage table if that has been requested

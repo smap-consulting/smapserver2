@@ -170,3 +170,11 @@ create index if not exists linked_files_logical_path on linked_files(logical_pat
 
 -- Console Admin
 insert into groups(id,name) values(14,'console admin');
+
+-- Improve Timezone Performance
+CREATE TABLE IF NOT EXISTS timezone (
+    name text,
+    utc_offset text
+);
+ALTER TABLE timezone OWNER TO ws;
+
