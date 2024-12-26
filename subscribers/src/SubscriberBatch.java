@@ -93,7 +93,7 @@ public class SubscriberBatch {
 	
 	boolean mediaCheckDone = false;
 	boolean forDevice = false;			// URL prefixes should be in the client format
-	int timezoneRefreshInterval = 0;	// Only refresh timezone when this gets to 0, do it first time the batch job is run
+	int infrequentfreshInterval = 0;	// Only refresh timezone when this gets to 0, do it first time the batch job is run
 
 	/**
 	 * @param args
@@ -254,12 +254,6 @@ public class SubscriberBatch {
 				applyPeriodicNotifications(dbc.sd, dbc.results, basePath, serverName);
 				applyServerCalculateNotifications(dbc.sd, dbc.results, basePath, serverName);
 				
-				// Erase any templates that were deleted more than a set time ago
-				eraseOldSurveyTemplates(dbc.sd, dbc.results, localisation, basePath);
-
-				// Delete any case management alerts not linked to by a survey
-				deleteOldCaseManagementAlerts(dbc.sd,localisation);
-				
 				// Delete linked csv files logically deleted more than 10 minutes age
 				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
 				
@@ -312,12 +306,23 @@ public class SubscriberBatch {
 				}
 				
 				/*
-				 * Refresh timezones but not too often this is expensive
+				 * Refresh timezones and other operations that should be done ocaisionally
 				 */
-				if(timezoneRefreshInterval-- <= 0) {
+				if(infrequentfreshInterval-- <= 0) {
+					
+					log.info("xxxxxxxxxxxxxxxx: Infrequent refresh");
+					
+					// Refresh timezone
 					TimeZoneManager tmz = new TimeZoneManager();
 					tmz.refresh(dbc.sd);
-					timezoneRefreshInterval = 2000;	// Every 2,000 times we will update timezones
+					
+					// Erase any templates that were deleted more than a set time ago
+					eraseOldSurveyTemplates(dbc.sd, dbc.results, localisation, basePath);
+
+					// Delete any case management alerts not linked to by a survey
+					deleteOldCaseManagementAlerts(dbc.sd,localisation);
+					
+					infrequentfreshInterval = 2000;	// Every 2,000 times through these operations will be done, about 1.5 days
 				}
 				
 				/*
