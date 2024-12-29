@@ -57,6 +57,7 @@ public class HtmlSanitise {
 				msg = msg.replace("%s1", in);
 				throw new ApplicationException(msg);
 			}
+			in = in.trim();
 		}
 		return in;
 		

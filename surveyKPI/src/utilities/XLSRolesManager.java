@@ -113,7 +113,7 @@ public class XLSRolesManager {
 	}
 	
 	/*
-	 * Get the columns for the Project Psheet
+	 * Get the columns for the Roles Sheet
 	 */
 	private ArrayList<Column> getColumnList(ResourceBundle localisation, Map<String, CellStyle> styles) {
 		

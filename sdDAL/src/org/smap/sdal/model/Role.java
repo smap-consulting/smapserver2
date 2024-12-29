@@ -39,11 +39,11 @@ public class Role {
 	
 	public Role(int id, String name) {
 		this.id = id;
-		this.name = name;
+		this.name = name.trim();
 	}
 	
 	public Role(String name) {
-		this.name = name;
+		this.name = name.trim();
 		column_filter = new ArrayList<RoleColumnFilter> ();
 	}
 }

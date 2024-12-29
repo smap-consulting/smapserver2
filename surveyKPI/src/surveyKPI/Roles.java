@@ -505,7 +505,7 @@ public class Roles extends Application {
 			RoleManager rm = new RoleManager(localisation);
 			ArrayList<Role> roles = rm.getRoles(sd, oId);
 
-			// Create Project XLS File
+			// Create Roles XLS File
 			XLSRolesManager xr = new XLSRolesManager(request.getScheme(), request.getServerName());
 			xr.createXLSFile(response.getOutputStream(), roles, localisation, tz);
 
