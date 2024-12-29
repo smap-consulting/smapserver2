@@ -9948,7 +9948,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the group survey id for a survey
+	 * Get the group survey ident for a survey
 	 */
 	public static String getGroupSurveyIdent(Connection sd, int sId) throws SQLException {
 		String groupSurveyIdent = null;
@@ -9959,6 +9959,28 @@ public class GeneralUtilityMethods {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				groupSurveyIdent = rs.getString(1);
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+		return groupSurveyIdent;
+	}
+	
+	/*
+	 * Get the group survey ident for a survey
+	 */
+	public static String getGroupSurveyIdentFromIdent(Connection sd, String ident) throws SQLException {
+		String groupSurveyIdent = null;
+		
+		String sql = "select group_survey_ident from survey where ident = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, ident);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				groupSurveyIdent = rs.getString(1);

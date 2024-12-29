@@ -433,11 +433,11 @@ public class RoleManager {
 		SqlFrag sq = new SqlFrag();
 		sq.addSqlFragment(role.row_filter, false, localisation, 0);
 		
-		// Compile a list of columns not in the survey and throw an error if there are any
+		// Compile a list of columns not in the survey group and throw an error if there are any
 		StringBuilder bad = new StringBuilder();
-		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+		String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdentFromIdent(sd, sIdent);
 		for(int i = 0; i < sq.columns.size(); i++) {		
-			if(GeneralUtilityMethods.getColumnName(sd, sId, sq.humanNames.get(i)) == null) {
+			if(GeneralUtilityMethods.getGroupColumnName(sd, groupSurveyIdent, sq.humanNames.get(i)) == null) {
 				if(bad.length() > 0) {
 					bad.append(", ");
 				}
