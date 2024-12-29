@@ -56,7 +56,6 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TimeZoneManager;
 import org.smap.sdal.managers.UsageManager;
 import org.smap.sdal.managers.UserManager;
-import org.smap.sdal.model.SmapTimeZone;
 import org.smap.sdal.model.SurveyIdent;
 import org.smap.sdal.model.UserSimple;
 
@@ -94,8 +93,6 @@ public class Misc extends Application {
 			@QueryParam("project") boolean byProject,
 			@QueryParam("survey") boolean bySurvey,
 			@QueryParam("device") boolean byDevice,
-			@QueryParam("inc_temp") boolean includeTemporaryUsers,
-			@QueryParam("inc_alltime") boolean includeAllTimeUsers,
 			@QueryParam("o_id") int oId,
 			@QueryParam("tz") String tz,
 			@Context HttpServletResponse response) {
