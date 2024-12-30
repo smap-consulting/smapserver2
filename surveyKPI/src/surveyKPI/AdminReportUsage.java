@@ -11,14 +11,13 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.UsageManager;
 
 
 /*
  * Export a survey in XLSX format
  * This export follows the approach of CSV exports where a single sub form can be selected
  * Get access to a form for each user
- */
+ * Replaced by background reports
 @Path("/adminreport/usage")
 public class AdminReportUsage extends Application {
 
@@ -34,7 +33,7 @@ public class AdminReportUsage extends Application {
 	
 	/*
 	 * Get usage for a specific month and user
-	 */
+	 *
 	@GET
 	@Path("/{year}/{month}/{user}")
 	public Response exportSurveyXlsx (@Context HttpServletRequest request, 
@@ -59,3 +58,4 @@ public class AdminReportUsage extends Application {
 	}
 
 }
+*/

@@ -627,10 +627,26 @@ public class Survey {
 			pstmtGetRole = sd.prepareStatement(sqlGetRole);		
 			pstmtGetRole.setInt(1, surveyData.o_id);
 			
+			HashMap <String, String> roleNames = new HashMap<>();
 			for(String h : surveyData.roles.keySet()) {
 				Role r = surveyData.roles.get(h);
 				int rId;
 			
+				/*
+				 * Check for duplicate role names
+				 */
+				if(roleNames.get(r.name) != null) {
+					String msg = localisation.getString("tu_dr");
+					msg = msg.replace("%s1", r.name);
+					log.info("Error: " + msg);
+					throw new Exception(msg); 
+				} else {
+					roleNames.put(r.name,  r.name);
+				}
+				
+				/*
+				 * Get existing role or create new role
+				 */
 				pstmtGetRole.setString(2, r.name);
 				
 				ResultSet rs = pstmtGetRole.executeQuery();

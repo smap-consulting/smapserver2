@@ -41,6 +41,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.smap.model.SurveyTemplateManager;
 import org.smap.sdal.Utilities.ApplicationException;
@@ -54,9 +55,8 @@ import org.smap.sdal.managers.PDFSurveyManager;
 import org.smap.sdal.managers.SharedResourceManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TimeZoneManager;
-import org.smap.sdal.managers.UsageManager;
 import org.smap.sdal.managers.UserManager;
-import org.smap.sdal.model.SmapTimeZone;
+import org.smap.sdal.managers.XLSXAdminReportsManager;
 import org.smap.sdal.model.SurveyIdent;
 import org.smap.sdal.model.UserSimple;
 
@@ -94,17 +94,46 @@ public class Misc extends Application {
 			@QueryParam("project") boolean byProject,
 			@QueryParam("survey") boolean bySurvey,
 			@QueryParam("device") boolean byDevice,
-			@QueryParam("inc_temp") boolean includeTemporaryUsers,
-			@QueryParam("inc_alltime") boolean includeAllTimeUsers,
 			@QueryParam("o_id") int oId,
 			@QueryParam("tz") String tz,
 			@Context HttpServletResponse response) {
 
-		UsageManager um = new UsageManager();
-		return um.getUsageForMonth(request, response,
-				oId, userIdent, year, month, 
-				bySurvey, byProject, byDevice,
-				tz);
+		Response responseVal = null;
+		
+		Authorise a = new Authorise(null, Authorise.ADMIN);
+		Authorise aOrg = new Authorise(null, Authorise.ORG);
+		
+		// Authorisation - Access
+		String connectionString = "surveyKPI - AdminReports - Usage";
+		Connection sd = SDDataSource.getConnection(connectionString);		
+		// End Authorisation		
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			XLSXAdminReportsManager um = new XLSXAdminReportsManager(localisation, tz);
+			
+			um.getUsageForMonth(request, response,
+					sd,
+					oId, userIdent, year, month, 
+					bySurvey, byProject, byDevice,
+					true,	// Temporary users
+					true,	// All time usage
+					tz);
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "Error", e);
+			response.setHeader("Content-type",  "text/html; charset=UTF-8");
+			responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return responseVal;
 
 	}
 	
