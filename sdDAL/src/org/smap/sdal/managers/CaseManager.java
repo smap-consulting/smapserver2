@@ -404,6 +404,7 @@ public class CaseManager {
 
 		int count = 0;
 		
+		
 		StringBuilder sql = new StringBuilder("update ") 
 				.append(tablename) 
 				.append(" set _assigned = ?, _case_survey = ? ")
@@ -415,6 +416,7 @@ public class CaseManager {
 		}
 		
 		String thread = GeneralUtilityMethods.getThread(cResults, tablename, instanceId);
+		String assignedUser = GeneralUtilityMethods.getAssignedUser(cResults, tablename, instanceId);
 		
 		String assignTo = user;
 		String caseSurvey = surveyIdent;
@@ -472,7 +474,20 @@ public class CaseManager {
 				);
 		
 		try {
+					
 			count = pstmt.executeUpdate();
+			
+			if(count == 1) {
+				// Update the running total of cases maintained in the users table
+				UserManager um = new UserManager(null);
+				if(assignedUser != null) {
+					um.decrementTotalTasks(sd, assignedUser);
+				}
+				if(assignTo != null) {
+					um.incrementTotalTasks(sd, user);
+				}
+			}
+			
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}

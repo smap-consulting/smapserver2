@@ -172,9 +172,10 @@ public class RecordEventManager {
 					mm.userChange(sd, assignedUser);
 				}
 				// An assigned event - notify the newly assigned user
-				if(event.equals(RecordEventManager.ASSIGNED) && user != null && (assignedUser == null || !assignedUser.equals(user))) {
+				if(user != null && (assignedUser == null || !assignedUser.equals(user))) {
 					mm.userChange(sd, user);
 				}
+				
 			}
 			
 		} finally {

@@ -235,18 +235,18 @@ public class AssignmentsManager {
 			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, userIdent);
 
 			// Get the assignments
-			StringBuilder sql1 = new StringBuilder("select " + "t.id as task_id," + "t.title," + "t.url,"
-					+ "s.ident as form_ident," + "s.version as form_version," + "s.p_id as pid," + "t.update_id,"
-					+ "t.initial_data_source," + "t.schedule_at," + "t.schedule_finish," + "t.location_trigger,"
-					+ "t.repeat," + "a.status as assignment_status," + "a.id as assignment_id, "
-					+ "t.address as address, " + "t.guidance as guidance," + "t.show_dist, "
+			StringBuilder sql1 = new StringBuilder("select t.id as task_id, t.title,t.url,"
+					+ "s.ident as form_ident,s.version as form_version,s.p_id as pid,t.update_id,"
+					+ "t.initial_data_source,t.schedule_at,t.schedule_finish,t.location_trigger,"
+					+ "t.repeat,a.status as assignment_status,a.id as assignment_id, "
+					+ "t.address as address, t.guidance as guidance,t.show_dist, "
 					+ "ST_AsText(t.geo_point) as geo_point "
 					+ "from tasks t, assignments a, users u, survey s, user_project up, project p, task_group tg "
-					+ "where t.id = a.task_id " + "and t.tg_id = tg.tg_id " + "and t.survey_ident = s.ident "
-					+ "and u.id = up.u_id " + "and s.p_id = up.p_id " + "and s.p_id = p.id "
-					+ "and s.deleted = 'false' " + "and s.blocked = 'false' " + "and a.assignee = u.id "
+					+ "where t.id = a.task_id and t.tg_id = tg.tg_id and t.survey_ident = s.ident "
+					+ "and u.id = up.u_id and s.p_id = up.p_id and s.p_id = p.id "
+					+ "and s.deleted = 'false' and s.blocked = 'false' and a.assignee = u.id "
 					+ "and (a.status = 'cancelled' or a.status = 'accepted' or (a.status = 'submitted' and t.repeat)) "
-					+ "and u.ident = ? " + "and p.o_id = ? ");
+					+ "and u.ident = ? and p.o_id = ? ");
 			StringBuilder sqlOrder = new StringBuilder("order by t.schedule_at asc");
 
 			StringBuilder distanceFilter = new StringBuilder("");
@@ -272,12 +272,12 @@ public class AssignmentsManager {
 
 			int t_id = 0;
 			ArrayList<Integer> cancelledAssignments = new ArrayList<Integer>();
+			// Create the list of task assignments if it has not already been created
+			if (tr.taskAssignments == null) {
+				tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
+			}
+			
 			while (resultSet.next() && ft_number_tasks > 0) {
-
-				// Create the list of task assignments if it has not already been created
-				if (tr.taskAssignments == null) {
-					tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
-				}
 
 				// Create the new Task Assignment Objects
 				TaskResponseAssignment ta = new TaskResponseAssignment();
@@ -353,11 +353,6 @@ public class AssignmentsManager {
 						userIdent);
 
 				for (TaskFeature task : unassigned.features) {
-
-					// Create the list of task assignments if it has not already been created
-					if (tr.taskAssignments == null) {
-						tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
-					}
 
 					// Create the new Task Assignment Objects
 					TaskResponseAssignment ta = new TaskResponseAssignment();
@@ -716,6 +711,24 @@ public class AssignmentsManager {
 	} 
 	
 	/*
+	 * Set a cached value of the count of tasks in the users table
+	 */
+	public void setTasksCount(Connection sd, String userIdent, int count) throws SQLException {
+	
+		PreparedStatement pstmt = null;
+		
+		try {
+			String sql = "update users set total_tasks = ? where ident = ?";
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, count);
+			pstmt.setString(2,  userIdent);
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+	}
+	
+	/*
 	 * Mark the assignment rejected
 	 */
 	public Response updateStatusToRejected(HttpServletRequest request,
@@ -812,8 +825,13 @@ public class AssignmentsManager {
 		 * The assignment status can be set to rejected if the task is assigned to the
 		 * user and the task is currently accepted
 		 */
-		String sql = "update assignments a " + "set status = ?, " + "comment = ?," + "assignee = ?,"
-				+ "assignee_name = (select name from users where id = ?) " + "where a.id = ? " + "and a.assignee = ? "
+		String sql = "update assignments a " 
+				+ "set status = ?, " 
+				+ "comment = ?," 
+				+ "assignee = ?,"
+				+ "assignee_name = (select name from users where id = ?) " 
+				+ "where a.id = ? " 
+				+ "and a.assignee = ? "
 				+ "and status = 'accepted' ";
 		PreparedStatement pstmt = sd.prepareStatement(sql);
 		return pstmt;
@@ -827,8 +845,12 @@ public class AssignmentsManager {
 		 * The assignment status can be updated by a user if it is an auto allocate task
 		 * and the current status is new or the task is assigned to the user
 		 */
-		String sql = "update assignments a " + "set status = ?, " + "comment = ?," + "assignee = ?,"
-				+ "assignee_name = (select name from users where id = ?) " + "where a.id = ? "
+		String sql = "update assignments a " 
+				+ "set status = ?, " 
+				+ "comment = ?," 
+				+ "assignee = ?,"
+				+ "assignee_name = (select name from users where id = ?) " 
+				+ "where a.id = ? "
 				+ "and (a.assignee < 0 and ((a.status = 'new' or a.status = 'submitted') and task_id in (select id from tasks where id = task_id and assign_auto)) "
 				+ "or a.assignee = ?)";
 		PreparedStatement pstmt = sd.prepareStatement(sql);
@@ -839,7 +861,9 @@ public class AssignmentsManager {
 	public PreparedStatement getPreparedStatementEvents(Connection sd) throws SQLException {
 
 		String sql = "select t.survey_ident, f.table_name, t.update_id, t.title, t.assign_auto from tasks t, form f, survey s "
-				+ "where t.survey_ident = s.ident " + "and f.s_id = s.s_id " + "and t.id = ? ";
+				+ "where t.survey_ident = s.ident " 
+				+ "and f.s_id = s.s_id " 
+				+ "and t.id = ? ";
 		PreparedStatement pstmt = sd.prepareStatement(sql);
 		return pstmt;
 	}

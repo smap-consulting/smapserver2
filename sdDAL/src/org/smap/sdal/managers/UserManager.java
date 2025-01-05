@@ -1121,6 +1121,33 @@ public class UserManager {
 		return response;
 	}
 
+	/*
+	 * Keep a count of the total tasks assigned to a user
+	 */
+	public void decrementTotalTasks(Connection sd, String userIdent) throws SQLException {
+		PreparedStatement pstmt = null;
+		try {
+			String sql = "update users set total_tasks = total_tasks - 1 where ident = ?";
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, userIdent);
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+	}
+	
+	public void incrementTotalTasks(Connection sd, String userIdent) throws SQLException {
+		PreparedStatement pstmt = null;
+		try {
+			String sql = "update users set total_tasks = total_tasks + 1 where ident = ?";
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, userIdent);
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+	}
+	
 	private void insertUserGroupsProjects(Connection sd, User u, int u_id, 
 			boolean isOrgUser, 
 			boolean isSecurityManager,
@@ -2154,7 +2181,7 @@ public class UserManager {
 			/*
 			 * First check the cache value in the users table and lock the row
 			 */
-			String sqlGet = "select total_tasks from users where ident = ? and total_tasks is not null for update";
+			String sqlGet = "select total_tasks from users where ident = ? for update";
 			pstmt = sd.prepareStatement(sqlGet);
 			pstmt.setString(1, userIdent);
 			ResultSet rs = pstmt.executeQuery();
@@ -2162,7 +2189,7 @@ public class UserManager {
 				count = rs.getInt("total_tasks");
 				if(count < 0){
 					/*
-					 * Nothing found.  Create the cache 
+					 * Nothing found.  Create the cached count
 					 */
 					AssignmentsManager am = new AssignmentsManager();
 					TaskResponse tr = am.getTasksData(sd, 
@@ -2181,6 +2208,7 @@ public class UserManager {
 							null, null, null, null, null, null, null);
 					
 					count = tr.taskAssignments.size();
+					am.setTasksCount(sd, userIdent, count);
 				}
 			}
 			
