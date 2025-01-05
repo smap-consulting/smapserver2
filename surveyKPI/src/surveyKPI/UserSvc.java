@@ -545,13 +545,24 @@ public class UserSvc extends Application {
 			pstmtDel.executeUpdate();	
 			
 			// Add the group ident if it is not zero length (ie set to none)
-			
-			pstmt.setString(1, request.getRemoteUser());
-			pstmt.setInt(2, gs.sId);
-			pstmt.setString(3, gs.groupIdent);
-			pstmt.setString(4, gs.fName);
-			log.info("Update group survey: " + pstmt.toString());
-			pstmt.executeUpdate();
+			if(gs.groupIdent != null) {
+				if(gs.groupIdent.trim().length() == 0) {
+					gs.groupIdent = null;
+				}
+			}
+			if(gs.fName != null) {
+				if(gs.fName.trim().length() == 0) {
+					gs.fName = null;
+				}
+			}
+			if(gs.groupIdent != null || gs.fName != null) {			
+				pstmt.setString(1, request.getRemoteUser());
+				pstmt.setInt(2, gs.sId);
+				pstmt.setString(3, gs.groupIdent);
+				pstmt.setString(4, gs.fName);
+				log.info("Update group survey: " + pstmt.toString());
+				pstmt.executeUpdate();
+			}
 
 
 			response = Response.ok().build();
