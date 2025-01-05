@@ -60,6 +60,7 @@ public class User {
 	public Action action_details;
 	public String lastalert;
 	public boolean seen;
+	public int totalTasks;
 	public boolean billing_enabled;
 	public boolean singleSubmission;
 	public boolean all;		// Set on delete when the user should be deleted from all organisations

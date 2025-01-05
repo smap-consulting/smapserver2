@@ -4026,14 +4026,14 @@ public class SurveyManager {
 			 * The following tables reference the survey ident
 			 * Delete any entries that reference the deleted survey ident
 			 */
-			sql = "delete from form_downloads where form_ident = ?;";	
+			sql = "delete from form_downloads where form_ident = ?";	
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sIdent);
 			log.info("Delete form downloads: " + pstmt.toString());
 			pstmt.executeUpdate();
 		
-			sql = "delete from task_completion where form_ident = ?;";	
+			sql = "delete from task_completion where form_ident = ?";	
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sIdent);

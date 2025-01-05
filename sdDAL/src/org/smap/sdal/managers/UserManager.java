@@ -19,7 +19,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
-import org.smap.sdal.Utilities.ServerSettings;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.EmailServer;
@@ -29,6 +29,7 @@ import org.smap.sdal.model.PasswordDetails;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.SubscriptionStatus;
+import org.smap.sdal.model.TaskResponse;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
 import org.smap.sdal.model.UserSimple;
@@ -110,6 +111,7 @@ public class UserManager {
 					+ "u.current_task_group_id, "
 					+ "u.lastalert, "
 					+ "u.seen,"
+					+ "u.total_tasks,"
 					+ "extract(year from age(now(), u.password_set)) * 12 + extract(month from age(now(), u.password_set)) as password_age,"
 					+ "o.id as o_id, "
 					+ "o.name as organisation_name, "
@@ -185,6 +187,7 @@ public class UserManager {
 				user.ft_send_location = resultSet.getString("ft_send_location");
 				user.lastalert = resultSet.getString("lastalert");
 				user.seen = resultSet.getBoolean("seen");
+				user.totalTasks = resultSet.getInt("total_tasks");
 				user.billing_enabled = resultSet.getBoolean("billing_enabled");
 				user.timezone = resultSet.getString("timezone");
 				if(user.timezone == null || user.timezone.trim().equals("")) {
@@ -210,6 +213,20 @@ public class UserManager {
 			 */
 			user.sendEmail = UtilityMethodsEmail.getEmailServer(sd, localisation, null, ident, 0) != null;
 
+			/*
+			 * If the total tasks counter has not been set then calculate it
+			 */
+			if(user.totalTasks < 0) {
+				Connection cResults = null;
+				String connectionString = "UserManager - get task count";
+				cResults = ResultsDataSource.getConnection(connectionString);
+				try {
+					user.totalTasks = getTasksCount(sd, cResults, localisation, user.ident);
+				} finally {
+					ResultsDataSource.closeConnection(connectionString, cResults);
+				}
+			}
+			
 			/*
 			 * Get the security groups that the user belongs to
 			 */
@@ -2114,6 +2131,70 @@ public class UserManager {
 			try {if (pstmtSoftDelete != null) {pstmtSoftDelete.close();}} catch (SQLException e) {}
 			try {if (pstmtMove != null) {pstmtMove.close();}} catch (SQLException e) {}
 		}
+	}
+	
+	/*
+	 * Get a count of the number of tasks and cases assigned to a user
+	 * Try the cached total of tasks in the users table first then if that \has not been set try the source tables
+	 */
+	public int getTasksCount(Connection sd, 
+			Connection cResults, 
+			ResourceBundle localisation, 
+			String userIdent) throws Exception {
+		
+		int count = 0;
+		
+		PreparedStatement pstmt = null;
+		try {
+			/*
+			 * Start a transaction
+			 */
+			sd.setAutoCommit(false);
+			
+			/*
+			 * First check the cache value in the users table and lock the row
+			 */
+			String sqlGet = "select total_tasks from users where ident = ? and total_tasks is not null for update";
+			pstmt = sd.prepareStatement(sqlGet);
+			pstmt.setString(1, userIdent);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				count = rs.getInt("total_tasks");
+				if(count < 0){
+					/*
+					 * Nothing found.  Create the cache 
+					 */
+					AssignmentsManager am = new AssignmentsManager();
+					TaskResponse tr = am.getTasksData(sd, 
+							cResults,
+							localisation, 
+							userIdent, 
+							false, 	// no projects
+							false,  // Don't get organisation data
+							false, 	// Don't get linked references
+							false,  // Don't get manifests
+							false,	// Don't get settings
+							false,	// Don't record a device refresh
+							false,	// Request is not from a device
+							null,	// basePath
+							true,	// No limit on the count of tasks
+							null, null, null, null, null, null, null);
+					
+					count = tr.taskAssignments.size();
+				}
+			}
+			
+			sd.commit();
+			
+		} catch (Exception e) {
+			sd.rollback();
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {
+			sd.setAutoCommit(true);		// End transaction
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+		
+		return count;
 	}
 	
 	/*

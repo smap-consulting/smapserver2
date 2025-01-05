@@ -21,12 +21,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.ResourceBundle;
 
 import org.apache.poi.xssf.usermodel.*;
@@ -35,8 +32,6 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.XLSUtilities;
-import org.smap.sdal.model.Instance;
-import org.smap.sdal.model.MailoutPerson;
 
 /*
  * Manage the loading of spreadsheets as shared resource files

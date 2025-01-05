@@ -76,6 +76,7 @@ public class AssignmentsManager {
 			 Logger.getLogger(AssignmentsManager.class.getName());
 
 	LogManager lm = new LogManager(); // Application log
+	Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
 
 	Authorise a = new Authorise(null, Authorise.ENUM);
 
@@ -88,13 +89,9 @@ public class AssignmentsManager {
 			boolean forDevice) throws SQLException, ApplicationException {
 
 		Response response = null;
-
 		String connectionString = "surveyKPI-getTasks";
-		TaskResponse tr = new TaskResponse();
-		tr.message = "OK Task retrieved"; // Overwritten if there is an error
-		tr.status = "200";
-		tr.version = 1;
-
+		Connection cResults = null;
+		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		if(userIdent == null) {
@@ -105,15 +102,76 @@ public class AssignmentsManager {
 		}
 		a.isAuthorised(sd, userIdent);
 		// End Authorisation
+				
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, userIdent));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			cResults = ResultsDataSource.getConnection(connectionString);
+			
+			TaskResponse tr = getTasksData(sd, 
+					cResults, 
+					localisation, userIdent, noProjects, getOrgs,
+					getLinkedRefDefns, 
+					getManifests,
+					true,	// Get the settings
+					true,	// REcotd a task refresh
+					forDevice,
+					GeneralUtilityMethods.getBasePath(request),
+					false,						// Limit the number of tasks
+					request.getServerName(),
+					(request.getLocalPort() == 443) ? "https://" : "http://",
+					request.getHeader("lat"),
+					request.getHeader("lon"),
+					request.getHeader("devicetime"),
+					request.getHeader("deviceid"),
+					request.getHeader("appversion")
+					);
+			String resp = gson.toJson(tr);
+			response = Response.ok(resp).build();
+		} catch (Exception e) {
+			response = Response.serverError().build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+		}
+
+		return response;
+	} 
+	
+	/*
+	 * Return the list of tasks allocated to the requesting user
+	 */
+	public TaskResponse getTasksData(Connection sd, 
+			Connection cResults,
+			ResourceBundle localisation,
+			String userIdent, 
+			boolean noProjects, 
+			boolean getOrgs,
+			boolean getLinkedRefDefns, 
+			boolean getManifests,
+			boolean getSettings,
+			boolean logRefresh,
+			boolean forDevice,
+			String basepath,
+			boolean noLimit,	// Set true of the number of tasks is not to be limited
+			String host,		// The following parameters come from the request and need only be set if the call is made from a device
+			String protocol,
+			String latString,
+			String lonString,
+			String deviceTimeString,
+			String deviceid,
+			String appVersion) throws Exception {
+
+		TaskResponse tr = new TaskResponse();
+		tr.message = "OK Task retrieved"; // Overwritten if there is an error
+		tr.status = "200";
+		tr.version = 1;
 
 		int uId = GeneralUtilityMethods.getUserId(sd, userIdent);
 
-		String host = request.getServerName();
-		String protocol = (request.getLocalPort() == 443) ? "https://" : "http://";
-
 		// Get the coordinates from which this request was made
-		String latString = request.getHeader("lat");
-		String lonString = request.getHeader("lon");
 		Double lat = 0.0;
 		Double lon = 0.0;
 
@@ -133,7 +191,6 @@ public class AssignmentsManager {
 		}
 
 		// Get the device time if set
-		String deviceTimeString = request.getHeader("devicetime");
 		long deviceTime = 0;
 		if (deviceTimeString != null) {
 			try {
@@ -144,13 +201,6 @@ public class AssignmentsManager {
 			}
 		}
 
-		// Get the deviceid if set
-		String deviceid = request.getHeader("deviceid");
-
-		// Get the app version of set
-		String appVersion = request.getHeader("appversion");
-		log.info("Refresh assignments: " + deviceTimeString);
-
 		PreparedStatement pstmtGetSettings = null;
 		PreparedStatement pstmtGetProjects = null;
 		PreparedStatement pstmtGeo = null;
@@ -158,33 +208,31 @@ public class AssignmentsManager {
 		PreparedStatement pstmtNumberTasks = null;
 		PreparedStatement pstmtDeleteCancelled = null;
 
-		Connection cResults = null;
-
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
 
 		try {
-			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			String tz = "UTC";
-			String basepath = GeneralUtilityMethods.getBasePath(request);
 
 			String sqlDeleteCancelled = "update assignments set status = 'deleted', deleted_date = now() where id = ?";
 			pstmtDeleteCancelled = sd.prepareStatement(sqlDeleteCancelled);
-			String sqlNumberTasks = "select ft_number_tasks from organisation where id = ?";
-			pstmtNumberTasks = sd.prepareStatement(sqlNumberTasks);
-			pstmtNumberTasks.setInt(1, oId);
-			int ft_number_tasks = 20;
-			ResultSet rs = pstmtNumberTasks.executeQuery();
-			if (rs.next()) {
-				ft_number_tasks = rs.getInt(1);
+			
+			// Determine the number of tasks to return
+			int ft_number_tasks = 20;	// default
+			if(noLimit) {
+				ft_number_tasks = Integer.MAX_VALUE;
+			} else {
+				// Get the limit from the organisation settings
+				String sqlNumberTasks = "select ft_number_tasks from organisation where id = ?";
+				pstmtNumberTasks = sd.prepareStatement(sqlNumberTasks);
+				pstmtNumberTasks.setInt(1, oId);
+				ResultSet rs = pstmtNumberTasks.executeQuery();
+				if (rs.next()) {
+					ft_number_tasks = rs.getInt(1);
+				}
 			}
 
-			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-
-			cResults = ResultsDataSource.getConnection(connectionString);
-			sd.setAutoCommit(true);
+			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, userIdent);
 
 			// Get the assignments
 			StringBuilder sql1 = new StringBuilder("select " + "t.id as task_id," + "t.title," + "t.url,"
@@ -401,14 +449,14 @@ public class AssignmentsManager {
 				 */
 				if (getManifests) {
 					// Get all manifests
-					manifestList = translationMgr.getManifestBySurvey(sd, request.getRemoteUser(), survey.surveyData.id,
+					manifestList = translationMgr.getManifestBySurvey(sd, userIdent, survey.surveyData.id,
 							basepath, survey.surveyData.ident, forDevice);
 					hasManifest = manifestList.size() > 0;
 				} else {
 					// Get linked manifests only
 					manifestList = translationMgr.getSurveyManifests(sd, survey.surveyData.id, survey.surveyData.ident,
 							null, 0, true, forDevice);
-					hasManifest = translationMgr.hasManifest(sd, request.getRemoteUser(), survey.surveyData.id);
+					hasManifest = translationMgr.hasManifest(sd, userIdent, survey.surveyData.id);
 				}
 
 				if (hasManifest && manifestList.size() > 0) {
@@ -540,62 +588,64 @@ public class AssignmentsManager {
 			/*
 			 * Get the settings for the phone
 			 */
-			tr.settings = new FieldTaskSettings();
-			sql = new StringBuilder("select " + "o.ft_delete," + "o.ft_send_location, " + "o.ft_sync_incomplete, "
-					+ "o.ft_odk_style_menus, " + "o.ft_specify_instancename, " + "o.ft_mark_finalized, "
-					+ "o.ft_prevent_disable_track, " + "o.ft_enable_geofence, " + "o.ft_admin_menu, "
-					+ "o.ft_server_menu, " 
-					+ "o.ft_meta_menu, " 
-					+ "o.ft_exit_track_menu, " 
-					+ "o.ft_bg_stop_menu, "
-					+ "o.ft_review_final, " 
-					+ "o.ft_force_token, " 
-					+ "o.ft_send," 
-					+ "o.ft_image_size," 
-					+ "o.ft_backward_navigation,"
-					+ "o.ft_navigation," + "o.ft_pw_policy," + "o.ft_high_res_video," + "o.ft_guidance,"
-					+ "o.ft_input_method," + "o.ft_im_ri," + "o.ft_im_acc " + "from organisation o, users u "
-					+ "where u.o_id = o.id " + "and u.ident = ?");
-
-			pstmtGetSettings = sd.prepareStatement(sql.toString());
-			pstmtGetSettings.setString(1, userIdent);
-			log.info("Getting settings: " + pstmtGetSettings.toString());
-			resultSet = pstmtGetSettings.executeQuery();
-
-			if (resultSet.next()) {
-				tr.settings.ft_delete = resultSet.getString("ft_delete");
-				tr.settings.ft_delete_submitted = Organisation.get_ft_delete_submitted(tr.settings.ft_delete); // deprecated
-				tr.settings.ft_send_location = resultSet.getString("ft_send_location");
-				if (tr.settings.ft_send_location == null) {
-					tr.settings.ft_send_location = "off";
+			if(getSettings) {
+				tr.settings = new FieldTaskSettings();
+				sql = new StringBuilder("select " + "o.ft_delete," + "o.ft_send_location, " + "o.ft_sync_incomplete, "
+						+ "o.ft_odk_style_menus, " + "o.ft_specify_instancename, " + "o.ft_mark_finalized, "
+						+ "o.ft_prevent_disable_track, " + "o.ft_enable_geofence, " + "o.ft_admin_menu, "
+						+ "o.ft_server_menu, " 
+						+ "o.ft_meta_menu, " 
+						+ "o.ft_exit_track_menu, " 
+						+ "o.ft_bg_stop_menu, "
+						+ "o.ft_review_final, " 
+						+ "o.ft_force_token, " 
+						+ "o.ft_send," 
+						+ "o.ft_image_size," 
+						+ "o.ft_backward_navigation,"
+						+ "o.ft_navigation," + "o.ft_pw_policy," + "o.ft_high_res_video," + "o.ft_guidance,"
+						+ "o.ft_input_method," + "o.ft_im_ri," + "o.ft_im_acc " + "from organisation o, users u "
+						+ "where u.o_id = o.id " + "and u.ident = ?");
+	
+				pstmtGetSettings = sd.prepareStatement(sql.toString());
+				pstmtGetSettings.setString(1, userIdent);
+				log.info("Getting settings: " + pstmtGetSettings.toString());
+				resultSet = pstmtGetSettings.executeQuery();
+	
+				if (resultSet.next()) {
+					tr.settings.ft_delete = resultSet.getString("ft_delete");
+					tr.settings.ft_delete_submitted = Organisation.get_ft_delete_submitted(tr.settings.ft_delete); // deprecated
+					tr.settings.ft_send_location = resultSet.getString("ft_send_location");
+					if (tr.settings.ft_send_location == null) {
+						tr.settings.ft_send_location = "off";
+					}
+					tr.settings.ft_sync_incomplete = resultSet.getBoolean("ft_sync_incomplete");
+					tr.settings.ft_odk_style_menus = resultSet.getBoolean("ft_odk_style_menus");
+					tr.settings.ft_specify_instancename = resultSet.getBoolean("ft_specify_instancename");
+					tr.settings.ft_mark_finalized = resultSet.getBoolean("ft_mark_finalized");
+					tr.settings.ft_prevent_disable_track = resultSet.getBoolean("ft_prevent_disable_track");
+					tr.settings.setFtEnableGeofence(resultSet.getBoolean("ft_enable_geofence"));
+					tr.settings.ft_admin_menu = resultSet.getBoolean("ft_admin_menu");
+					tr.settings.ft_server_menu = resultSet.getBoolean("ft_server_menu");
+					tr.settings.ft_meta_menu = resultSet.getBoolean("ft_meta_menu");
+					tr.settings.ft_exit_track_menu = resultSet.getBoolean("ft_exit_track_menu");
+					tr.settings.ft_bg_stop_menu = resultSet.getBoolean("ft_bg_stop_menu");
+					tr.settings.ft_review_final = resultSet.getBoolean("ft_review_final");
+					tr.settings.ft_force_token = resultSet.getBoolean("ft_force_token");
+					tr.settings.ft_send = resultSet.getString("ft_send");
+					tr.settings.ft_send_wifi = Organisation.get_ft_send_wifi(tr.settings.ft_send);
+					tr.settings.ft_send_wifi_cell = Organisation.get_ft_send_wifi_cell(tr.settings.ft_send);
+					tr.settings.ft_image_size = resultSet.getString("ft_image_size");
+					tr.settings.ft_backward_navigation = resultSet.getString("ft_backward_navigation");
+					tr.settings.ft_navigation = resultSet.getString("ft_navigation");
+					tr.settings.ft_pw_policy = resultSet.getInt("ft_pw_policy");
+					tr.settings.ft_high_res_video = resultSet.getString("ft_high_res_video");
+					tr.settings.ft_guidance = resultSet.getString("ft_guidance");
+					tr.settings.ft_location_trigger = true;
+					tr.settings.ft_input_method = resultSet.getString("ft_input_method");
+					tr.settings.ft_im_ri = resultSet.getInt("ft_im_ri");
+					tr.settings.ft_im_acc = resultSet.getInt("ft_im_acc");
+					tr.settings.ft_location_trigger = true;
 				}
-				tr.settings.ft_sync_incomplete = resultSet.getBoolean("ft_sync_incomplete");
-				tr.settings.ft_odk_style_menus = resultSet.getBoolean("ft_odk_style_menus");
-				tr.settings.ft_specify_instancename = resultSet.getBoolean("ft_specify_instancename");
-				tr.settings.ft_mark_finalized = resultSet.getBoolean("ft_mark_finalized");
-				tr.settings.ft_prevent_disable_track = resultSet.getBoolean("ft_prevent_disable_track");
-				tr.settings.setFtEnableGeofence(resultSet.getBoolean("ft_enable_geofence"));
-				tr.settings.ft_admin_menu = resultSet.getBoolean("ft_admin_menu");
-				tr.settings.ft_server_menu = resultSet.getBoolean("ft_server_menu");
-				tr.settings.ft_meta_menu = resultSet.getBoolean("ft_meta_menu");
-				tr.settings.ft_exit_track_menu = resultSet.getBoolean("ft_exit_track_menu");
-				tr.settings.ft_bg_stop_menu = resultSet.getBoolean("ft_bg_stop_menu");
-				tr.settings.ft_review_final = resultSet.getBoolean("ft_review_final");
-				tr.settings.ft_force_token = resultSet.getBoolean("ft_force_token");
-				tr.settings.ft_send = resultSet.getString("ft_send");
-				tr.settings.ft_send_wifi = Organisation.get_ft_send_wifi(tr.settings.ft_send);
-				tr.settings.ft_send_wifi_cell = Organisation.get_ft_send_wifi_cell(tr.settings.ft_send);
-				tr.settings.ft_image_size = resultSet.getString("ft_image_size");
-				tr.settings.ft_backward_navigation = resultSet.getString("ft_backward_navigation");
-				tr.settings.ft_navigation = resultSet.getString("ft_navigation");
-				tr.settings.ft_pw_policy = resultSet.getInt("ft_pw_policy");
-				tr.settings.ft_high_res_video = resultSet.getString("ft_high_res_video");
-				tr.settings.ft_guidance = resultSet.getString("ft_guidance");
-				tr.settings.ft_location_trigger = true;
-				tr.settings.ft_input_method = resultSet.getString("ft_input_method");
-				tr.settings.ft_im_ri = resultSet.getInt("ft_im_ri");
-				tr.settings.ft_im_acc = resultSet.getInt("ft_im_acc");
-				tr.settings.ft_location_trigger = true;
 			}
 
 			/*
@@ -628,7 +678,7 @@ public class AssignmentsManager {
 			 * Get the organisations
 			 */
 			if (getOrgs) {
-				tr.current_org = GeneralUtilityMethods.getOrganisationName(sd, request.getRemoteUser());
+				tr.current_org = GeneralUtilityMethods.getOrganisationName(sd, userIdent);
 				UserManager um = new UserManager(localisation);
 				ArrayList<Organisation> orgs = new ArrayList<>();
 				um.getUserOrganisations(sd, orgs, null, uId);
@@ -642,65 +692,27 @@ public class AssignmentsManager {
 			/*
 			 * Log the request
 			 */
-			UserLocationManager ulm = new UserLocationManager(localisation, tz);
-			ulm.recordRefresh(sd, oId, userIdent, lat, lon, deviceTime, request.getServerName(), deviceid, appVersion,
-					true);
-
-			/*
-			 * Return the response
-			 */
-			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
-			String resp = gson.toJson(tr);
-			response = Response.ok(resp).build();
+			if(logRefresh) {
+				UserLocationManager ulm = new UserLocationManager(localisation, tz);
+				ulm.recordRefresh(sd, oId, userIdent, lat, lon, deviceTime, host, deviceid, appVersion,
+						true);
+			}
 
 		} catch (Exception e) {
 			tr.message = "Error: Message=" + e.getMessage();
 			tr.status = "400";
 			log.log(Level.SEVERE, "", e);
-			response = Response.serverError().build();
+			throw e;
 		} finally {
-			try {
-				if (pstmtGetSettings != null) {
-					pstmtGetSettings.close();
-				}
-			} catch (Exception e) {
-			}
-			try {
-				if (pstmtGetProjects != null) {
-					pstmtGetProjects.close();
-				}
-			} catch (Exception e) {
-			}
-			try {
-				if (pstmtGeo != null) {
-					pstmtGeo.close();
-				}
-			} catch (Exception e) {
-			}
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (Exception e) {
-			}
-			try {
-				if (pstmtNumberTasks != null) {
-					pstmtNumberTasks.close();
-				}
-			} catch (Exception e) {
-			}
-			try {
-				if (pstmtDeleteCancelled != null) {
-					pstmtDeleteCancelled.close();
-				}
-			} catch (Exception e) {
-			}
-
-			SDDataSource.closeConnection(connectionString, sd);
-			ResultsDataSource.closeConnection(connectionString, cResults);
+			try {if (pstmtGetSettings != null) {pstmtGetSettings.close();}} catch (Exception e) {}
+			try {if (pstmtGetProjects != null) {pstmtGetProjects.close();}} catch (Exception e) {}
+			try {if (pstmtGeo != null) {pstmtGeo.close();}} catch (Exception e) {}
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+			try {if (pstmtNumberTasks != null) {pstmtNumberTasks.close();}} catch (Exception e) {}
+			try {if (pstmtDeleteCancelled != null) {pstmtDeleteCancelled.close();}} catch (Exception e) {}
 		}
 
-		return response;
+		return tr;
 	} 
 	
 	/*
@@ -710,7 +722,6 @@ public class AssignmentsManager {
 			String assignment) {
 		Response response = null;
 
-		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
 		TaskUpdate tu = gson.fromJson(assignment, TaskUpdate.class);
 		log.info("webserviceevent : update assignment status: " + tu.assignment_id);
 
@@ -919,7 +930,6 @@ public class AssignmentsManager {
 	private String addKeyValuePair(String jIn, String name, String value) {
 
 		String jOut = null;
-		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
 		Type type = new TypeToken<ArrayList<KeyValueTask>>() {
 		}.getType();
 
