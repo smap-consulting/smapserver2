@@ -2204,11 +2204,11 @@ public class UserManager {
 							false,	// Don't record a device refresh
 							false,	// Request is not from a device
 							null,	// basePath
-							true,	// No limit on the count of tasks
+							true,	// No limit on the count of tasks - just get the count
 							null, null, null, null, null, null, null);
 					
 					count = tr.taskAssignments.size();
-					am.setTasksCount(sd, userIdent, count);
+					setTasksCount(sd, userIdent, count);
 				}
 			}
 			
@@ -2223,6 +2223,24 @@ public class UserManager {
 		}
 		
 		return count;
+	}
+	
+	/*
+	 * Set a cached value of the count of tasks in the users table
+	 */
+	public void setTasksCount(Connection sd, String userIdent, int count) throws SQLException {
+	
+		PreparedStatement pstmt = null;
+		
+		try {
+			String sql = "update users set total_tasks = ? where ident = ?";
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, count);
+			pstmt.setString(2,  userIdent);
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
 	}
 	
 	/*

@@ -209,206 +209,220 @@ public class AssignmentsManager {
 		PreparedStatement pstmtDeleteCancelled = null;
 
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
-
+		int totalTasks = 0;		// Count of the number of tasks assigned to the calling user
 		try {
 
 			String tz = "UTC";
-
-			String sqlDeleteCancelled = "update assignments set status = 'deleted', deleted_date = now() where id = ?";
-			pstmtDeleteCancelled = sd.prepareStatement(sqlDeleteCancelled);
-			
-			// Determine the number of tasks to return
-			int ft_number_tasks = 20;	// default
-			if(noLimit) {
-				ft_number_tasks = Integer.MAX_VALUE;
-			} else {
-				// Get the limit from the organisation settings
-				String sqlNumberTasks = "select ft_number_tasks from organisation where id = ?";
-				pstmtNumberTasks = sd.prepareStatement(sqlNumberTasks);
-				pstmtNumberTasks.setInt(1, oId);
-				ResultSet rs = pstmtNumberTasks.executeQuery();
-				if (rs.next()) {
-					ft_number_tasks = rs.getInt(1);
-				}
-			}
-
 			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, userIdent);
-
-			// Get the assignments
-			StringBuilder sql1 = new StringBuilder("select t.id as task_id, t.title,t.url,"
-					+ "s.ident as form_ident,s.version as form_version,s.p_id as pid,t.update_id,"
-					+ "t.initial_data_source,t.schedule_at,t.schedule_finish,t.location_trigger,"
-					+ "t.repeat,a.status as assignment_status,a.id as assignment_id, "
-					+ "t.address as address, t.guidance as guidance,t.show_dist, "
-					+ "ST_AsText(t.geo_point) as geo_point "
-					+ "from tasks t, assignments a, users u, survey s, user_project up, project p, task_group tg "
-					+ "where t.id = a.task_id and t.tg_id = tg.tg_id and t.survey_ident = s.ident "
-					+ "and u.id = up.u_id and s.p_id = up.p_id and s.p_id = p.id "
-					+ "and s.deleted = 'false' and s.blocked = 'false' and a.assignee = u.id "
-					+ "and (a.status = 'cancelled' or a.status = 'accepted' or (a.status = 'submitted' and t.repeat)) "
-					+ "and u.ident = ? and p.o_id = ? ");
-			StringBuilder sqlOrder = new StringBuilder("order by t.schedule_at asc");
-
-			StringBuilder distanceFilter = new StringBuilder("");
-			if (lat != 0.0 || lon != 0.0) {
-				distanceFilter.append(
-						" and (tg.dl_dist = 0 or ST_AsText(t.geo_point) = 'POINT(0 0)' or ST_DWithin(t.geo_point, ST_Point(?, ?)::geography, tg.dl_dist)) ");
-			}
-
-			StringBuilder sql = new StringBuilder("");
-			sql.append(sql1).append(distanceFilter).append(sqlOrder);
-
-			pstmt = sd.prepareStatement(sql.toString());
-			int paramIndex = 1;
-			pstmt.setString(paramIndex++, userIdent);
-			pstmt.setInt(paramIndex++, oId);
-			if (lat != 0.0 || lon != 0.0) {
-				pstmt.setDouble(paramIndex++, lon);
-				pstmt.setDouble(paramIndex++, lat);
-			}
-
-			log.info("Getting assignments: " + pstmt.toString());
-			ResultSet resultSet = pstmt.executeQuery();
-
-			int t_id = 0;
-			ArrayList<Integer> cancelledAssignments = new ArrayList<Integer>();
-			// Create the list of task assignments if it has not already been created
-			if (tr.taskAssignments == null) {
-				tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
+			StringBuilder sql = null;
+			ResultSet resultSet = null;
+			
+			/*
+			 * Check to see if we need to get tasks
+			 * This should reduce the load on the server
+			 */
+			UserManager um = new UserManager(localisation);
+			if(noLimit) {
+				totalTasks = 1;	// Force the recalculation of the number of tasks
+			} else {
+				totalTasks = um.getTasksCount(sd, cResults, localisation, userIdent);
 			}
 			
-			while (resultSet.next() && ft_number_tasks > 0) {
-
-				// Create the new Task Assignment Objects
-				TaskResponseAssignment ta = new TaskResponseAssignment();
-				ta.task = new TrTask();
-				ta.location = new TaskLocation();
-				ta.assignment = new TrAssignment();
-
-				// Populate the new Task Assignment
-				t_id = resultSet.getInt("task_id");
-				ta.task.id = t_id;
-				ta.task.type = "xform"; // Kept for backward compatibility with old versions of fieldTask
-				ta.task.title = resultSet.getString("title");
-				ta.task.pid = resultSet.getString("pid");
-				ta.task.url = resultSet.getString("url");
-				ta.task.form_id = resultSet.getString("form_ident"); // Form id is survey ident
-
-				String sVersion = resultSet.getString("form_version");
-				int version = 0;
-				try {
-					version = Integer.valueOf(sVersion);
-				} catch (Exception e) {
-
-				}
-				ta.task.form_version = version;
-
-				ta.task.update_id = resultSet.getString("update_id");
-				ta.task.initial_data_source = resultSet.getString("initial_data_source");
-				ta.task.scheduled_at = resultSet.getTimestamp("schedule_at");
-				ta.task.scheduled_finish = resultSet.getTimestamp("schedule_finish");
-				ta.task.location_trigger = resultSet.getString("location_trigger");
-				if (ta.task.location_trigger != null && ta.task.location_trigger.trim().length() == 0) {
-					ta.task.location_trigger = null;
-				}
-				ta.task.repeat = resultSet.getBoolean("repeat");
-				ta.task.address = resultSet.getString("address");
-				ta.task.address = addKeyValuePair(ta.task.address, "guidance", resultSet.getString("guidance")); // Address stored as json key value pairs																								
-				ta.task.show_dist = resultSet.getInt("show_dist");
-				ta.assignment.assignment_id = resultSet.getInt("assignment_id");
-				ta.assignment.assignment_status = resultSet.getString("assignment_status");
-
-				String geoString = resultSet.getString("geo_point");
-				if (geoString != null) {
-					int startIdx = geoString.lastIndexOf('(');
-					int endIdx = geoString.indexOf(')');
-					if (startIdx > 0 && endIdx > 0) {
-						ta.location.geometry = new GeometryString();
-						String geoString2 = geoString.substring(startIdx + 1, endIdx);
-						ta.location.geometry.type = "POINT";
-						ta.location.geometry.coordinates = geoString2.split(",");
+			if(totalTasks > 0) {
+				String sqlDeleteCancelled = "update assignments set status = 'deleted', deleted_date = now() where id = ?";
+				pstmtDeleteCancelled = sd.prepareStatement(sqlDeleteCancelled);
+				
+				// Determine the number of tasks to return
+				int ft_number_tasks = 20;	// default
+				if(noLimit) {
+					ft_number_tasks = Integer.MAX_VALUE;
+				} else {
+					// Get the limit from the organisation settings
+					String sqlNumberTasks = "select ft_number_tasks from organisation where id = ?";
+					pstmtNumberTasks = sd.prepareStatement(sqlNumberTasks);
+					pstmtNumberTasks.setInt(1, oId);
+					ResultSet rs = pstmtNumberTasks.executeQuery();
+					if (rs.next()) {
+						ft_number_tasks = rs.getInt(1);
 					}
 				}
-
-				// Add the new task assignment to the list of task assignments
-				tr.taskAssignments.add(ta);
-
-				// Limit the number of non cancelled tasks that can be downloaded
-				if (!ta.assignment.assignment_status.equals("cancelled")) {
-					ft_number_tasks--;
-				} else {
-					cancelledAssignments.add(ta.assignment.assignment_id);
+	
+				// Get the assignments
+				StringBuilder sql1 = new StringBuilder("select t.id as task_id, t.title,t.url,"
+						+ "s.ident as form_ident,s.version as form_version,s.p_id as pid,t.update_id,"
+						+ "t.initial_data_source,t.schedule_at,t.schedule_finish,t.location_trigger,"
+						+ "t.repeat,a.status as assignment_status,a.id as assignment_id, "
+						+ "t.address as address, t.guidance as guidance,t.show_dist, "
+						+ "ST_AsText(t.geo_point) as geo_point "
+						+ "from tasks t, assignments a, users u, survey s, user_project up, project p, task_group tg "
+						+ "where t.id = a.task_id and t.tg_id = tg.tg_id and t.survey_ident = s.ident "
+						+ "and u.id = up.u_id and s.p_id = up.p_id and s.p_id = p.id "
+						+ "and s.deleted = 'false' and s.blocked = 'false' and a.assignee = u.id "
+						+ "and (a.status = 'cancelled' or a.status = 'accepted' or (a.status = 'submitted' and t.repeat)) "
+						+ "and u.ident = ? and p.o_id = ? ");
+				StringBuilder sqlOrder = new StringBuilder("order by t.schedule_at asc");
+	
+				StringBuilder distanceFilter = new StringBuilder("");
+				if (lat != 0.0 || lon != 0.0) {
+					distanceFilter.append(
+							" and (tg.dl_dist = 0 or ST_AsText(t.geo_point) = 'POINT(0 0)' or ST_DWithin(t.geo_point, ST_Point(?, ?)::geography, tg.dl_dist)) ");
 				}
-			}
-
-			/*
-			 * If there is still room for tasks then add new tasks where the task group
-			 * allows auto selection
-			 */
-			log.info("ft_number_tasks: " + ft_number_tasks);
-			if (ft_number_tasks > 0) {
-				TaskManager tm = new TaskManager(localisation, tz);
-				TaskListGeoJson unassigned = tm.getUnassignedTasks(sd, oId, uId, ft_number_tasks, // Maximum number of
-																									// tasks to return
-						userIdent);
-
-				for (TaskFeature task : unassigned.features) {
-
+	
+				sql = new StringBuilder("");
+				sql.append(sql1).append(distanceFilter).append(sqlOrder);
+	
+				pstmt = sd.prepareStatement(sql.toString());
+				int paramIndex = 1;
+				pstmt.setString(paramIndex++, userIdent);
+				pstmt.setInt(paramIndex++, oId);
+				if (lat != 0.0 || lon != 0.0) {
+					pstmt.setDouble(paramIndex++, lon);
+					pstmt.setDouble(paramIndex++, lat);
+				}
+	
+				log.info("Getting assignments: " + pstmt.toString());
+				resultSet = pstmt.executeQuery();
+	
+				int t_id = 0;
+				ArrayList<Integer> cancelledAssignments = new ArrayList<Integer>();
+				// Create the list of task assignments if it has not already been created
+				if (tr.taskAssignments == null) {
+					tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
+				}
+				
+				while (resultSet.next() && ft_number_tasks > 0) {
+	
 					// Create the new Task Assignment Objects
 					TaskResponseAssignment ta = new TaskResponseAssignment();
 					ta.task = new TrTask();
 					ta.location = new TaskLocation();
 					ta.assignment = new TrAssignment();
-
+	
 					// Populate the new Task Assignment
-					ta.task.id = task.properties.id;
-					ta.task.type = "xform";
-					ta.task.title = task.properties.name;
-					ta.task.pid = String.valueOf(task.properties.p_id);
-					ta.task.form_id = task.properties.survey_ident; // Form id is survey ident
-
+					t_id = resultSet.getInt("task_id");
+					ta.task.id = t_id;
+					ta.task.type = "xform"; // Kept for backward compatibility with old versions of fieldTask
+					ta.task.title = resultSet.getString("title");
+					ta.task.pid = resultSet.getString("pid");
+					ta.task.url = resultSet.getString("url");
+					ta.task.form_id = resultSet.getString("form_ident"); // Form id is survey ident
+	
+					String sVersion = resultSet.getString("form_version");
 					int version = 0;
-					String sVersion = task.properties.form_version;
 					try {
 						version = Integer.valueOf(sVersion);
 					} catch (Exception e) {
-
+	
 					}
 					ta.task.form_version = version;
-
-					ta.task.update_id = task.properties.update_id;
-					ta.task.initial_data_source = task.properties.initial_data_source;
-					ta.task.scheduled_at = task.properties.from;
-					ta.task.scheduled_finish = task.properties.to;
-					ta.task.location_trigger = task.properties.location_trigger;
+	
+					ta.task.update_id = resultSet.getString("update_id");
+					ta.task.initial_data_source = resultSet.getString("initial_data_source");
+					ta.task.scheduled_at = resultSet.getTimestamp("schedule_at");
+					ta.task.scheduled_finish = resultSet.getTimestamp("schedule_finish");
+					ta.task.location_trigger = resultSet.getString("location_trigger");
 					if (ta.task.location_trigger != null && ta.task.location_trigger.trim().length() == 0) {
 						ta.task.location_trigger = null;
 					}
-					ta.task.repeat = task.properties.repeat;
-					ta.task.address = task.properties.address;
-					ta.task.address = addKeyValuePair(ta.task.address, "guidance", task.properties.guidance); // Address stored
-																						// as json key value pairs
-					ta.task.show_dist = task.properties.show_dist;
-					ta.assignment.assignment_id = task.properties.a_id;
-					ta.assignment.assignment_status = task.properties.status;
-
-					if (task.properties.lat != 0.0 && task.properties.lon != 0.0) {
-						ta.location.geometry = new GeometryString();
-						ta.location.geometry.type = "POINT";
-						ta.location.geometry.coordinates = new String[2];
-						ta.location.geometry.coordinates[0] = String.valueOf(task.properties.lon);
-						ta.location.geometry.coordinates[1] = String.valueOf(task.properties.lat);
+					ta.task.repeat = resultSet.getBoolean("repeat");
+					ta.task.address = resultSet.getString("address");
+					ta.task.address = addKeyValuePair(ta.task.address, "guidance", resultSet.getString("guidance")); // Address stored as json key value pairs																								
+					ta.task.show_dist = resultSet.getInt("show_dist");
+					ta.assignment.assignment_id = resultSet.getInt("assignment_id");
+					ta.assignment.assignment_status = resultSet.getString("assignment_status");
+	
+					String geoString = resultSet.getString("geo_point");
+					if (geoString != null) {
+						int startIdx = geoString.lastIndexOf('(');
+						int endIdx = geoString.indexOf(')');
+						if (startIdx > 0 && endIdx > 0) {
+							ta.location.geometry = new GeometryString();
+							String geoString2 = geoString.substring(startIdx + 1, endIdx);
+							ta.location.geometry.type = "POINT";
+							ta.location.geometry.coordinates = geoString2.split(",");
+						}
 					}
+	
+					// Add the new task assignment to the list of task assignments
 					tr.taskAssignments.add(ta);
+	
+					// Limit the number of non cancelled tasks that can be downloaded
+					if (!ta.assignment.assignment_status.equals("cancelled")) {
+						ft_number_tasks--;
+					} else {
+						cancelledAssignments.add(ta.assignment.assignment_id);
+					}
 				}
-			}
-
-			/*
-			 * Set all tasks to deleted that have been acknowledged as cancelled
-			 */
-			for (int assignmentId : cancelledAssignments) {
-				pstmtDeleteCancelled.setInt(1, assignmentId);
-				pstmtDeleteCancelled.executeUpdate();
+	
+				/*
+				 * If there is still room for tasks then add new tasks where the task group
+				 * allows auto selection
+				 */
+				log.info("ft_number_tasks: " + ft_number_tasks);
+				if (ft_number_tasks > 0) {
+					TaskManager tm = new TaskManager(localisation, tz);
+					TaskListGeoJson unassigned = tm.getUnassignedTasks(sd, oId, uId, ft_number_tasks, // Maximum number of
+																										// tasks to return
+							userIdent);
+	
+					for (TaskFeature task : unassigned.features) {
+	
+						// Create the new Task Assignment Objects
+						TaskResponseAssignment ta = new TaskResponseAssignment();
+						ta.task = new TrTask();
+						ta.location = new TaskLocation();
+						ta.assignment = new TrAssignment();
+	
+						// Populate the new Task Assignment
+						ta.task.id = task.properties.id;
+						ta.task.type = "xform";
+						ta.task.title = task.properties.name;
+						ta.task.pid = String.valueOf(task.properties.p_id);
+						ta.task.form_id = task.properties.survey_ident; // Form id is survey ident
+	
+						int version = 0;
+						String sVersion = task.properties.form_version;
+						try {
+							version = Integer.valueOf(sVersion);
+						} catch (Exception e) {
+	
+						}
+						ta.task.form_version = version;
+	
+						ta.task.update_id = task.properties.update_id;
+						ta.task.initial_data_source = task.properties.initial_data_source;
+						ta.task.scheduled_at = task.properties.from;
+						ta.task.scheduled_finish = task.properties.to;
+						ta.task.location_trigger = task.properties.location_trigger;
+						if (ta.task.location_trigger != null && ta.task.location_trigger.trim().length() == 0) {
+							ta.task.location_trigger = null;
+						}
+						ta.task.repeat = task.properties.repeat;
+						ta.task.address = task.properties.address;
+						ta.task.address = addKeyValuePair(ta.task.address, "guidance", task.properties.guidance); // Address stored
+																							// as json key value pairs
+						ta.task.show_dist = task.properties.show_dist;
+						ta.assignment.assignment_id = task.properties.a_id;
+						ta.assignment.assignment_status = task.properties.status;
+	
+						if (task.properties.lat != 0.0 && task.properties.lon != 0.0) {
+							ta.location.geometry = new GeometryString();
+							ta.location.geometry.type = "POINT";
+							ta.location.geometry.coordinates = new String[2];
+							ta.location.geometry.coordinates[0] = String.valueOf(task.properties.lon);
+							ta.location.geometry.coordinates[1] = String.valueOf(task.properties.lat);
+						}
+						tr.taskAssignments.add(ta);
+					}
+				}
+	
+				/*
+				 * Set all tasks to deleted that have been acknowledged as cancelled
+				 */
+				for (int assignmentId : cancelledAssignments) {
+					pstmtDeleteCancelled.setInt(1, assignmentId);
+					pstmtDeleteCancelled.executeUpdate();
+				}
 			}
 
 			/*
@@ -550,32 +564,34 @@ public class AssignmentsManager {
 				/*
 				 * Add any cases assigned to this user
 				 */
-				CaseManager cm = new CaseManager(localisation);
-				ArrayList<Case> cases = cm.getCases(sd, cResults, survey.surveyData.ident,
-						survey.surveyData.displayName, survey.surveyData.groupSurveyIdent, userIdent,
-						survey.surveyData.id);
-				if (cases.size() > 0) {
-					if (tr.taskAssignments == null) {
-						tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
-					}
-
-					for (Case c : cases) {
-
-						// Convert to cases
-						TaskResponseAssignment ta = new TaskResponseAssignment();
-						ta.task = new TrTask();
-						ta.location = new TaskLocation();
-						ta.assignment = new TrAssignment();
-
-						ta.task.form_id = survey.surveyData.ident;
-						ta.task.pid = String.valueOf(survey.surveyData.p_id);
-						ta.task.update_id = c.instanceid;
-						ta.task.type = "case";
-						ta.task.initial_data_source = "survey";
-						ta.task.title = c.title;
-						ta.assignment.assignment_status = TaskManager.STATUS_T_ACCEPTED;
-						ta.assignment.assignment_id = 0;
-						tr.taskAssignments.add(ta);
+				if(totalTasks > 0) {
+					CaseManager cm = new CaseManager(localisation);
+					ArrayList<Case> cases = cm.getCases(sd, cResults, survey.surveyData.ident,
+							survey.surveyData.displayName, survey.surveyData.groupSurveyIdent, userIdent,
+							survey.surveyData.id);
+					if (cases.size() > 0) {
+						if (tr.taskAssignments == null) {
+							tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
+						}
+	
+						for (Case c : cases) {
+	
+							// Convert to cases
+							TaskResponseAssignment ta = new TaskResponseAssignment();
+							ta.task = new TrTask();
+							ta.location = new TaskLocation();
+							ta.assignment = new TrAssignment();
+	
+							ta.task.form_id = survey.surveyData.ident;
+							ta.task.pid = String.valueOf(survey.surveyData.p_id);
+							ta.task.update_id = c.instanceid;
+							ta.task.type = "case";
+							ta.task.initial_data_source = "survey";
+							ta.task.title = c.title;
+							ta.assignment.assignment_status = TaskManager.STATUS_T_ACCEPTED;
+							ta.assignment.assignment_id = 0;
+							tr.taskAssignments.add(ta);
+						}
 					}
 				}
 			}
@@ -674,7 +690,6 @@ public class AssignmentsManager {
 			 */
 			if (getOrgs) {
 				tr.current_org = GeneralUtilityMethods.getOrganisationName(sd, userIdent);
-				UserManager um = new UserManager(localisation);
 				ArrayList<Organisation> orgs = new ArrayList<>();
 				um.getUserOrganisations(sd, orgs, null, uId);
 				tr.orgs = new HashSet<String>();
@@ -684,6 +699,19 @@ public class AssignmentsManager {
 				tr.orgs.add(tr.current_org);
 			}
 
+			/*
+			 * If tasks were retrieved and the number of tasks in the list were not equal to the number
+			 * predicted in totalTasks, then set the total tasks value to -1. This allows for automatic recovery of
+			 * the cached value of the number of tasks if it gets out of sync.
+			 * If the taskCounts value is less than 1 then it will be recalculated using locks to ensure integrity
+			 * Don't do this if we were just getting the real number of tasks in order to set totalTasks 
+			 */
+			if(totalTasks > 0) {
+				if(totalTasks != tr.taskAssignments.size() && !noLimit) {
+					um.setTasksCount(sd, userIdent, -1);
+				}
+			}
+			
 			/*
 			 * Log the request
 			 */
@@ -709,24 +737,6 @@ public class AssignmentsManager {
 
 		return tr;
 	} 
-	
-	/*
-	 * Set a cached value of the count of tasks in the users table
-	 */
-	public void setTasksCount(Connection sd, String userIdent, int count) throws SQLException {
-	
-		PreparedStatement pstmt = null;
-		
-		try {
-			String sql = "update users set total_tasks = ? where ident = ?";
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, count);
-			pstmt.setString(2,  userIdent);
-			pstmt.executeUpdate();
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
-		}
-	}
 	
 	/*
 	 * Mark the assignment rejected
