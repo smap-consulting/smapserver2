@@ -310,9 +310,7 @@ public class MyAssignments extends Application {
 		} catch (Exception e) {
 			response = Response.serverError().build();
 			log.log(Level.SEVERE, "Exception", e);
-			try {
-				sd.rollback();
-			} catch (Exception ex) {
+			try {sd.rollback();} catch (Exception ex) {
 				log.log(Level.SEVERE, "", ex);
 			}
 		} finally {

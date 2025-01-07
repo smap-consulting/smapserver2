@@ -455,17 +455,22 @@ public class AssignmentsManager {
 				 * For each form that has a manifest that links to another form generate the new
 				 * CSV files if the linked data has changed If we have been asked to return the
 				 * manifest then return that too
+				 * 
+				 * If nolimit has been set to the number of tasks then we are just counting tasks so do not
+				 * generate any manifests
 				 */
-				if (getManifests) {
-					// Get all manifests
-					manifestList = translationMgr.getManifestBySurvey(sd, userIdent, survey.surveyData.id,
-							basepath, survey.surveyData.ident, forDevice);
-					hasManifest = manifestList.size() > 0;
-				} else {
-					// Get linked manifests only
-					manifestList = translationMgr.getSurveyManifests(sd, survey.surveyData.id, survey.surveyData.ident,
-							null, 0, true, forDevice);
-					hasManifest = translationMgr.hasManifest(sd, userIdent, survey.surveyData.id);
+				if(!noLimit) {
+					if (getManifests) {
+						// Get all manifests
+						manifestList = translationMgr.getManifestBySurvey(sd, userIdent, survey.surveyData.id,
+								basepath, survey.surveyData.ident, forDevice);
+						hasManifest = manifestList.size() > 0;
+					} else {
+						// Get linked manifests only
+						manifestList = translationMgr.getSurveyManifests(sd, survey.surveyData.id, survey.surveyData.ident,
+								null, 0, true, forDevice);
+						hasManifest = translationMgr.hasManifest(sd, userIdent, survey.surveyData.id);
+					}
 				}
 
 				if (hasManifest && manifestList.size() > 0) {

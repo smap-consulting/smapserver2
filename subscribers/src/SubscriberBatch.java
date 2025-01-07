@@ -1912,7 +1912,6 @@ public class SubscriberBatch {
 				pstmtSent.executeUpdate();
 				
 			}
-			sd.setAutoCommit(true);
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);

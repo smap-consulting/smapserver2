@@ -705,16 +705,16 @@ public class AllAssignments extends Application {
 		ArrayList<Assignment> aArray = new Gson().fromJson(settings, type);	
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-AllAssignments");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection("surveyKPI-AllAssignments");
+		a.isAuthorised(sd, request.getRemoteUser());
 		for(int i = 0; i < aArray.size(); i++) {
 
 			Assignment ass = aArray.get(i);
 
 			if(ass.assignment_id == 0) {	// New assignment
-				a.isValidTask(connectionSD, request.getRemoteUser(), ass.task_id);
+				a.isValidTask(sd, request.getRemoteUser(), ass.task_id);
 			} else {	// update existing assignment
-				a.isValidAssignment(connectionSD, request.getRemoteUser(), ass.assignment_id);
+				a.isValidAssignment(sd, request.getRemoteUser(), ass.assignment_id);
 			}
 
 		}
@@ -731,11 +731,11 @@ public class AllAssignments extends Application {
 		String deleteSQL = "delete from assignments where id = ?;";
 
 		try {
-			pstmtInsert = connectionSD.prepareStatement(insertSQL);
-			pstmtUpdate = connectionSD.prepareStatement(updateSQL);
-			pstmtDelete = connectionSD.prepareStatement(deleteSQL);
+			pstmtInsert = sd.prepareStatement(insertSQL);
+			pstmtUpdate = sd.prepareStatement(updateSQL);
+			pstmtDelete = sd.prepareStatement(deleteSQL);
 			log.info("Set autocommit sd false");
-			connectionSD.setAutoCommit(false);
+			sd.setAutoCommit(false);
 
 			for(int i = 0; i < aArray.size(); i++) {
 
@@ -760,20 +760,23 @@ public class AllAssignments extends Application {
 				}
 
 			}
-			connectionSD.commit();
+			sd.commit();
 
 		} catch (Exception e) {
 			response = Response.serverError().build();
 			log.log(Level.SEVERE,"", e);
 
-			try { connectionSD.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
+			try { sd.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
 
 		} finally {
+			log.info("Set autocommit true");
+			try { sd.setAutoCommit(true);} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
+			
 			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}
 			try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (SQLException e) {}
 			try {if (pstmtDelete != null) {pstmtDelete.close();}} catch (SQLException e) {}
 
-			SDDataSource.closeConnection("surveyKPI-AllAssignments", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-AllAssignments", sd);
 		}
 
 		return response;

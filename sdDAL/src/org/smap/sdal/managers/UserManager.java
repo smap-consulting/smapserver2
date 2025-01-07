@@ -2215,9 +2215,10 @@ public class UserManager {
 			sd.commit();
 			
 		} catch (Exception e) {
-			sd.rollback();
 			log.log(Level.SEVERE, e.getMessage(), e);
+			sd.rollback();
 		} finally {
+			log.info("Set autocommit true");
 			sd.setAutoCommit(true);		// End transaction
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
