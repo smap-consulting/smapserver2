@@ -2398,13 +2398,18 @@ public class TaskManager {
 		String sqlAssignments = "update assignments set status = 'cancelled', cancelled_date = now() where task_id in "
 				+ "(select id from tasks where tg_id = ?)";
 
-		String sqlGetUsers = "select distinct ident from users where temporary = false and id in "
-				+ "(select assignee from assignments where task_id in "
-				+ "(select id from tasks where tg_id = ?))"; 
+		String sqlGetUsers = "select u.ident from users u, assignments a, tasks t "
+				+ "where u.temporary = false "
+				+ "and a.status = 'accepted' "
+				+ "and u.id = a.assignee "
+				+ "and a.task_id = t.id "
+				+ "and t.tg_id = ?";
 		PreparedStatement pstmtGetUsers = null;
 
 		try {
 
+			UserManager um = new UserManager(null);
+			
 			// Delete any temporary users created for this task
 			pstmtUsers = sd.prepareStatement(sqlUsers);
 			pstmtUsers.setInt(1, tgId);
@@ -2418,8 +2423,14 @@ public class TaskManager {
 			pstmtGetUsers.setInt(1, tgId);
 			log.info("Get task users: " + pstmtGetUsers.toString());
 			ResultSet rs = pstmtGetUsers.executeQuery();
+			HashMap<String, String> usersNotified = new HashMap<>();
 			while (rs.next()) {
-				mm.userChange(sd, rs.getString(1));
+				String ident = rs.getString("ident");
+				if(usersNotified.get("ident") == null) {
+					mm.userChange(sd, ident);
+					usersNotified.put(ident, ident);
+				}
+				um.decrementTotalTasks(sd, ident);
 			}			
 
 			// Delete the tasks
