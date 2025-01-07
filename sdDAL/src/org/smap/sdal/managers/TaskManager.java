@@ -1880,6 +1880,12 @@ public class TaskManager {
 							tsd.to,
 							tsd.assign_auto,
 							tsd.repeat);
+					
+					// Create a notification to alert the new user of the change to the task details
+					String userIdent = GeneralUtilityMethods.getUserIdent(sd, asd.assignee);
+					MessagingManager mm = new MessagingManager(localisation);
+					mm.userChange(sd, userIdent);
+					
 				} else {
 					
 					/*
@@ -1927,13 +1933,6 @@ public class TaskManager {
 							tsd.assign_auto,
 							tsd.repeat);
 					
-				}
-
-				if(asd.assignee > 0) {
-					// Create a notification to alert the new user of the change to the task details
-					String userIdent = GeneralUtilityMethods.getUserIdent(sd, asd.assignee);
-					MessagingManager mm = new MessagingManager(localisation);
-					mm.userChange(sd, userIdent);
 				}
 				
 			}
@@ -2563,7 +2562,7 @@ public class TaskManager {
 				+ "(select assignee from assignments where id = ?) ";
 		PreparedStatement pstmtUsers = null;
 		
-		String sqlGetUsers = "select distinct ident from users where temporary = false and id in "
+		String sqlGetUsers = "select ident from users where temporary = false and id in "
 				+ "(select assignee from assignments where id = ?) ";
 		PreparedStatement pstmtGetUsers = null;
 		
@@ -2573,6 +2572,8 @@ public class TaskManager {
 		
 		try {
 		
+			UserManager um = new UserManager(null);
+			
 			// 1. Delete any temporary users created for this task
 			pstmtUsers = sd.prepareStatement(sqlUsers);
 			pstmtUsers.setInt(1, assignmentId);
@@ -2586,7 +2587,9 @@ public class TaskManager {
 			log.info("Get task users: " + pstmtGetUsers.toString());
 			ResultSet rs = pstmtGetUsers.executeQuery();
 			while (rs.next()) {
-				mm.userChange(sd, rs.getString(1));
+				String ident = rs.getString("ident");
+				mm.userChange(sd, ident);
+				um.decrementTotalTasks(sd, ident);
 			}			
 			
 			// 3. Cancel the assignments
@@ -3104,6 +3107,7 @@ public class TaskManager {
 
 		String status = "accepted";
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		UserManager um = new UserManager(null);
 		
 		if(userId > 0) {		// Assign the user to the new task
 
@@ -3114,7 +3118,8 @@ public class TaskManager {
 			
 			// Notify the user of their new assignment		
 			MessagingManager mm = new MessagingManager(localisation);
-			mm.userChange(sd, userIdent);	
+			mm.userChange(sd, userIdent);
+			um.incrementTotalTasks(sd, userIdent);
 
 		} else if(roleId > 0) {		// Assign all users with the current role
 
@@ -3141,9 +3146,9 @@ public class TaskManager {
 						assign_auto);
 				
 				// Notify the user of their new assignment
-				
 				MessagingManager mm = new MessagingManager(localisation);
-				mm.userChange(sd, userIdent);	
+				mm.userChange(sd, userIdent);
+				um.incrementTotalTasks(sd, userIdent);
 			}
 			if(count == 0) {
 				log.info("No matching users found");
