@@ -2516,7 +2516,7 @@ public class TaskManager {
 				+ "and a.id = ?";
 		PreparedStatement pstmtGetTask = null;
 		
-		String sql = "select id from assignments a "
+		String sql = "select id, status, assignee from assignments a "
 				+ "where a.task_id = ? "
 				+ "and a.id != ? "
 				+ "and (a.status = 'new' "
@@ -2533,6 +2533,7 @@ public class TaskManager {
 			pstmtGetTask.setInt(1, assignmentId);
 			ResultSet rs = pstmtGetTask.executeQuery();
 			
+			UserManager um = new UserManager(null);
 			if(rs.next()) {
 				int taskId = rs.getInt(1);
 				boolean complete_all = rs.getBoolean(2);
@@ -2547,7 +2548,9 @@ public class TaskManager {
 					ResultSet rs2 = pstmt.executeQuery();
 		
 					while (rs2.next()) {
-						int aId = rs2.getInt(1);
+						int aId = rs2.getInt("id");
+						int assignee = rs2.getInt("assignee");
+						String status = rs2.getString("status");
 						if(aId != assignmentId) {
 							log.info("Cancelling other assignment");
 							cancelAssignment(
@@ -2557,6 +2560,11 @@ public class TaskManager {
 									aId,
 									taskName,
 									false);
+							
+							if("accepted".equals(status)) {
+								String ident = GeneralUtilityMethods.getUserIdent(sd, assignee);
+								um.decrementTotalTasks(sd, ident);
+							}
 						}
 					}
 				}

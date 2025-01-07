@@ -486,6 +486,8 @@ public class CaseManager {
 				if(assignTo != null) {
 					um.incrementTotalTasks(sd, user);
 				}
+			} else {
+				log.info("Error: xxxxxxxxxxxxxx: count is " + count + " : " + pstmt.toString());
 			}
 			
 		} finally {

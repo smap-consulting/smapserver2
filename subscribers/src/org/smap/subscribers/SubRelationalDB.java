@@ -51,6 +51,7 @@ import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SubmissionEventManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
+import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.CMS;
@@ -204,6 +205,7 @@ public class SubRelationalDB extends Subscriber {
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtRepeats = null;
 		PreparedStatement pstmtUpdateId = null;
+		PreparedStatement pstmtUsers = null;
 
 		String sql = "update assignments set status = 'submitted', completed_date = now() "
 				+ "where id = ? ";
@@ -215,11 +217,20 @@ public class SubRelationalDB extends Subscriber {
 				+ "where id = (select task_id from assignments where id = ?) "
 				+ "and update_id is null";
 
+		String sqlGetAssignedUser = "select u.ident from users u, assignments a, tasks t "
+				+ "where u.temporary = false "
+				+ "and u.id = a.assignee "
+				+ "and a.task_id = t.id "
+				+ "and not t.repeat "
+				+ "and a.id = ?"; 
 		try {
 
+			UserManager um = new UserManager(null);
+			
 			pstmt = sd.prepareStatement(sql);
 			pstmtRepeats = sd.prepareStatement(sqlRepeats);
 			pstmtUpdateId = sd.prepareStatement(sqlUpdateId);
+			pstmtUsers = sd.prepareStatement(sqlGetAssignedUser);
 			
 			if(assignmentId > 0) {
 				pstmt.setInt(1, assignmentId);
@@ -230,6 +241,13 @@ public class SubRelationalDB extends Subscriber {
 				log.info("Updating task repeats: " + pstmtRepeats.toString());
 				pstmtRepeats.executeUpdate();
 
+				// Decrement the task totals for the assigned user if this is not a repeating task
+				pstmtUsers.setInt(1, assignmentId);
+				ResultSet rs = pstmtUsers.executeQuery();
+				if(rs.next()) {
+					um.decrementTotalTasks(sd, rs.getString("ident"));
+				}
+				
 				// Cancel other assignments if complete_all is not set for the task
 				TaskManager tm = new TaskManager(localisation, tz);
 				tm.cancelOtherAssignments(sd, cResults, assignmentId);
@@ -261,6 +279,7 @@ public class SubRelationalDB extends Subscriber {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtRepeats != null) {pstmtRepeats.close();}} catch (SQLException e) {}
 			try {if (pstmtUpdateId != null) {pstmtUpdateId.close();}} catch (SQLException e) {}
+			try {if (pstmtUsers != null) {pstmtUsers.close();}} catch (SQLException e) {}
 
 		}
 	}

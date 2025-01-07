@@ -765,6 +765,8 @@ public class AssignmentsManager {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
+			UserManager um = new UserManager(localisation);
+			
 			if (tu.type != null && tu.type.equals("case")) {
 				CaseManager cm = new CaseManager(localisation);
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, tu.sIdent);
@@ -822,8 +824,10 @@ public class AssignmentsManager {
 	// Get a prepared statement to set the status of an assignment to deleted
 	public PreparedStatement getPreparedStatementSetDeleted(Connection sd) throws SQLException {
 
-		String sql = "update assignments a set status = 'deleted', deleted_date = now() " + "where a.id = ? "
-				+ "and a.assignee in (select id from users u " + "where u.ident = ?)";
+		String sql = "update assignments a set status = 'deleted', deleted_date = now() " 
+				+ "where a.id = ? "
+				+ "and a.assignee in (select id from users u " 
+				+ "where u.ident = ?)";
 		PreparedStatement pstmt = sd.prepareStatement(sql);
 		return pstmt;
 	}
@@ -888,7 +892,8 @@ public class AssignmentsManager {
 
 		RecordEventManager rem = new RecordEventManager();
 		TaskManager tm = new TaskManager(localisation, "UTC");
-
+		UserManager um = new UserManager(localisation);
+		
 		/*
 		 * If the updated status = "cancelled" then this is an acknowledgment of the
 		 * status set on the server hence update the server status to "deleted"
@@ -912,8 +917,11 @@ public class AssignmentsManager {
 				pstmtSetUpdatedRejected.setInt(5, assignmentId); // To get name
 				pstmtSetUpdatedRejected.setInt(6, uId);
 				log.info("update assignments rejected: " + pstmtSetUpdatedRejected.toString());
-				pstmtSetUpdatedRejected.executeUpdate();
+				int count = pstmtSetUpdatedRejected.executeUpdate();
 
+				if(count == 1) {
+					um.decrementTotalTasks(sd, userName);
+				}
 				// Potentially rejection of an unassigned task
 				// Record rejection just for this user so the task is not re-downloaded
 				updateTaskRejected(sd, assignmentId, userName);
