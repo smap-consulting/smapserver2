@@ -919,7 +919,7 @@ public class AssignmentsManager {
 				log.info("update assignments rejected: " + pstmtSetUpdatedRejected.toString());
 				int count = pstmtSetUpdatedRejected.executeUpdate();
 
-				if(count == 1) {
+				if(count == 1) {		// Should only be one record updated - If it has been updated then we need to update the task totals
 					um.decrementTotalTasks(sd, userName);
 				}
 				// Potentially rejection of an unassigned task

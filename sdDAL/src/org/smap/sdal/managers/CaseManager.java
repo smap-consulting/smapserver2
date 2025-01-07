@@ -477,7 +477,7 @@ public class CaseManager {
 					
 			count = pstmt.executeUpdate();
 			
-			if(count == 1) {
+			if(count > 0) {
 				// Update the running total of cases maintained in the users table
 				UserManager um = new UserManager(null);
 				if(assignedUser != null) {
