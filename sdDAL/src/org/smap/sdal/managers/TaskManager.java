@@ -2014,9 +2014,12 @@ public class TaskManager {
 			int pId, 
 			TaskBulkAction action) throws Exception {
 
-		String sqlGetAssignedUsers = "select distinct ident from users where temporary = false and id in "
-				+ "(select a.assignee from assignments a, tasks t "
-				+ "where a.task_id = t.id and t.p_id = ? and a.id in ("; 
+		String sqlGetAssignedUsers = "select u.ident from users u, assignments a, tasks t "
+				+ "where u.temporary = false "
+				+ "and u.id = a.assignee "
+				+ "and a.task_id = t.id "
+				+ "and t.p_id = ? "
+				+ "and a.id in ("; 
 
 		String sqlDeleteAssignedTemporaryUsers = "delete from users where temporary = true and id in "
 				+ "(select a.assignee from assignments a, tasks t "
@@ -2079,6 +2082,7 @@ public class TaskManager {
 		PreparedStatement pstmtDeleteHardNewAssignments = null;
 
 		RecordEventManager rem = new RecordEventManager();
+		UserManager um = new UserManager(null);
 		
 		try {
 
@@ -2129,16 +2133,23 @@ public class TaskManager {
 			whereTasksSql += ")";
 			whereAssignmentsSql += ")";
 
-
 			// Notify currently assigned users that are being modified
 			MessagingManager mm = new MessagingManager(localisation);
 			if(hasAssignments && !emailAction) {				
-				pstmtGetUsers = sd.prepareStatement(sqlGetAssignedUsers + whereAssignmentsSql + ")");
+				pstmtGetUsers = sd.prepareStatement(sqlGetAssignedUsers + whereAssignmentsSql);
 				pstmtGetUsers.setInt(1, pId);
 				log.info("Notify currently assigned users: " + pstmtGetUsers.toString());
 				ResultSet rsNot = pstmtGetUsers.executeQuery();
+				HashMap<String, String> usersNotified = new HashMap<>();
 				while(rsNot.next()) {
-					mm.userChange(sd, rsNot.getString(1));
+					String ident = rsNot.getString("ident");
+					if(usersNotified.get("ident") == null) {
+						mm.userChange(sd, ident);
+						usersNotified.put(ident, ident);
+					}
+					if(action.action.equals("delete")) {	// The same user can be assigned many times
+						um.decrementTotalTasks(sd, ident);
+					}
 				}
 			}
 
