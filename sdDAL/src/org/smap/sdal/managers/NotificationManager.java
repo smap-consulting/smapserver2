@@ -597,6 +597,7 @@ public class NotificationManager {
 		PreparedStatement pstmtUpdateUploadEvent = null;
 
 		int sId = GeneralUtilityMethods.getSurveyId(sd, ident);
+		String bundleIdent = GeneralUtilityMethods.getGroupSurveyIdentFromIdent(sd, ident);
 
 		try {
 
@@ -606,10 +607,11 @@ public class NotificationManager {
 
 			log.info("notifyForSubmission:: " + ue_id + " : " + updateQuestion + " : " + updateValue);
 
-			StringBuffer sqlGetNotifications = new StringBuffer("select n.target, n.notify_details, n.filter, "
+			StringBuilder sqlGetNotifications = 
+					new StringBuilder("select n.target, n.notify_details, n.filter, "
 					+ "n.remote_user, n.remote_password, n.p_id "
 					+ "from forward n "
-					+ "where n.s_id = ? " 
+					+ "where (n.s_id = ? and not n.bundle) or (n.bundle_ident = ? and n.bundle) " 
 					+ "and n.target != 'forward' "
 					+ "and n.target != 'document' "
 					+ "and n.enabled = 'true'");
@@ -617,7 +619,7 @@ public class NotificationManager {
 			if(updateQuestion == null) {
 				sqlGetNotifications.append(" and n.trigger = 'submission'");
 			} else {
-				sqlGetNotifications.append(" and n.trigger = 'console_update'");
+				sqlGetNotifications.append(" and n.trigger = 'console_update'");	// No longer used
 				sqlGetNotifications.append(" and n.update_survey = ?");
 				sqlGetNotifications.append(" and n.update_question = ?");
 				sqlGetNotifications.append(" and n.update_value = ?");
@@ -626,11 +628,13 @@ public class NotificationManager {
 
 			String tz = "UTC";		// Set default time to UTC
 
+			int idx = 1;
 			pstmtGetNotifications.setInt(1, sId);
+			pstmtGetNotifications.setString(2, bundleIdent);
 			if(updateQuestion != null) {
-				pstmtGetNotifications.setString(2, updateSurvey);
-				pstmtGetNotifications.setString(3, updateQuestion);
-				pstmtGetNotifications.setString(4, updateValue);
+				pstmtGetNotifications.setString(3, updateSurvey);	// Should never be required
+				pstmtGetNotifications.setString(4, updateQuestion);
+				pstmtGetNotifications.setString(5, updateValue);
 			}
 			log.info("Get notifications:: " + pstmtGetNotifications.toString());
 			rsNotifications = pstmtGetNotifications.executeQuery();

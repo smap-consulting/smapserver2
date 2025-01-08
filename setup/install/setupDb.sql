@@ -856,6 +856,8 @@ CREATE TABLE forward (
 	id INTEGER DEFAULT NEXTVAL('forward_seq') CONSTRAINT pk_forward PRIMARY KEY,
 	s_id INTEGER,
 	p_id integer,
+	bundle_ident text,
+	bundle boolean default false,
 	name text,
 	enabled boolean,
 	filter text,

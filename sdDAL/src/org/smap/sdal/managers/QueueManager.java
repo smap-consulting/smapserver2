@@ -10,10 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Logger;
 
-import javax.ws.rs.core.Response;
-
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.model.Queue;
 import org.smap.sdal.model.QueueItem;
 import org.smap.sdal.model.QueueTime;
@@ -251,7 +248,7 @@ public class QueueManager {
 	}
 	
 	/*
-	 * Get status of sub event queue
+	 * Get status of message queue
 	 * This is the queue that processes all the post submission processing such as sending emails
 	 */
 	public Queue getMessageDeviceQueueData(Connection sd) throws SQLException {
