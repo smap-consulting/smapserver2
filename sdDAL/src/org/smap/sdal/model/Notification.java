@@ -2,10 +2,12 @@ package org.smap.sdal.model;
 
 public class Notification {
 	public int id;
+	public boolean bundle;
 	public String name;
 	public String trigger;
 	public String target;
 	public int s_id;						// Deprecate in favour of sIdent
+	public String bundle_ident;
 	public String sIdent;
 	public String filter;
 	public String s_name;				// submission / update only

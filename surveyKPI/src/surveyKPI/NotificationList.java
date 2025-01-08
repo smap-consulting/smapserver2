@@ -203,6 +203,9 @@ public class NotificationList extends Application {
 		if(n.p_id > 0) {
 			a.isValidProject(sd, request.getRemoteUser(), n.p_id);
 		}
+		if(n.bundle_ident != null) {
+			a.isValidSurveyIdent(sd, request.getRemoteUser(), n.bundle_ident, false, superUser);
+		}
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;

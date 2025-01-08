@@ -108,10 +108,12 @@ public class NotificationManager {
 				+ "p_id, periodic_time, periodic_period, periodic_day_of_week, "
 				+ "periodic_day_of_month, periodic_local_day_of_month,"
 				+ "periodic_month, periodic_local_month,"
-				+ "r_id, updated) " +
+				+ "r_id, updated,"
+				+ "bundle, bundle_ident) " +
 				" values (?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, 'true')";
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, 'true',"
+				+ "?, ?)";
 
 		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 
@@ -153,6 +155,8 @@ public class NotificationManager {
 		pstmt.setInt(25, pt.getUtcMonth());
 		pstmt.setInt(26, n.periodic_month);			// Save local month
 		pstmt.setInt(27, n.r_id);
+		pstmt.setBoolean(28, n.bundle);
+		pstmt.setString(29, n.bundle_ident);
 		
 		pstmt.executeUpdate();
 		
@@ -318,6 +322,7 @@ public class NotificationManager {
 				+ "f.periodic_month, "
 				+ "f.periodic_local_month,"
 				+ "f.r_id,"
+				+ "f.bundle, f.bundle_ident,"
 				+ "a.name as alert_name "
 				+ "from forward f "
 				+ "left outer join survey s "
@@ -325,7 +330,8 @@ public class NotificationManager {
 				+ "left outer join cms_alert a "
 				+ "on a.id = f.alert_id "
 				+ "where (f.p_id = ? "
-				+ "or f.s_id in (select s_id from survey s where s.p_id = ? and not s.deleted)) "
+				+ "or f.s_id in (select s_id from survey s where s.p_id = ? and not s.deleted) "
+				+ "or f.bundle_ident in (select group_survey_ident from survey s where s.p_id = ? and not s.deleted)) "
 				+ "order by f.name, s.display_name asc";
 
 		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
@@ -333,6 +339,7 @@ public class NotificationManager {
 
 		pstmt.setInt(1, projectId);
 		pstmt.setInt(2, projectId);
+		pstmt.setInt(3, projectId);
 		log.info("Project Notifications: " + pstmt.toString());
 		resultSet = pstmt.executeQuery();
 
@@ -501,7 +508,9 @@ public class NotificationManager {
 
 			Notification n = new Notification();
 			n.id = resultSet.getInt("id");
+			n.bundle = resultSet.getBoolean("bundle");
 			n.s_id = resultSet.getInt("s_id");
+			n.bundle_ident = resultSet.getString("bundle_ident");
 			n.enabled = resultSet.getBoolean("enabled");
 			String remote_s_id = resultSet.getString("remote_s_id");
 			n.remote_s_ident = remote_s_id;
