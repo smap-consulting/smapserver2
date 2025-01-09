@@ -631,6 +631,7 @@ DROP INDEX IF EXISTS SurveyDisplayName;
 DROP INDEX IF EXISTS SurveyKey;
 CREATE UNIQUE INDEX SurveyKey ON survey(ident);
 CREATE INDEX group_survey_ident_idx ON survey(group_survey_ident);
+create index survey_p_id on survey(p_id);
 
 DROP TABLE IF EXISTS survey_change CASCADE;
 CREATE TABLE survey_change (

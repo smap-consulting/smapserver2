@@ -3,6 +3,7 @@ package surveyMobileAPI.managers;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -49,7 +50,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 public class UploadManager {
 	
-	Authorise a = new Authorise(null, Authorise.ENUM);
+	Authorise a = null;
 	
 	private static Logger log = Logger.getLogger(UploadManager.class.getName());
 	LogManager lm = new LogManager();		// Application log
@@ -59,6 +60,13 @@ public class UploadManager {
 	
 	private static final String RESPONSE_MSG1 = "<OpenRosaResponse xmlns=\"http://openrosa.org/http/response\">";
 	private static final String RESPONSE_MSG2 = "</OpenRosaResponse>";
+	
+	public UploadManager() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ENUM);
+		authorisations.add(Authorise.MANAGE);
+		a = new Authorise(authorisations, null);
+	}
 	
 	/*
 	 * Header response to submission request

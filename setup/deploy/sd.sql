@@ -186,3 +186,6 @@ delete from group_survey where group_ident is null and f_name is null;  	-- Remo
 -- Notification bundles
 alter table forward add column bundle boolean default false;
 alter table forward add column bundle_ident text;
+
+-- Performance
+create index if not exists survey_p_id on survey(p_id);
