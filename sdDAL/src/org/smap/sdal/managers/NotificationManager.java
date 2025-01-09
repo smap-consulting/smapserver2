@@ -206,7 +206,9 @@ public class NotificationManager {
 					+ "periodic_month = ?, "
 					+ "periodic_local_month = ?, "
 					+ "r_id = ?, "
-					+ "updated = 'true' "
+					+ "updated = 'true',"
+					+ "bundle = ?,"
+					+ "bundle_ident = ? "
 					+ "where id = ?";
 		} else {
 			sql = "update forward set "
@@ -236,7 +238,9 @@ public class NotificationManager {
 					+ "periodic_month = ?, "
 					+ "periodic_local_month = ?, "
 					+ "r_id = ?,"
-					+ "updated = 'true' "
+					+ "updated = 'true',"
+					+ "bundle = ?,"
+					+ "bundle_ident = ? "
 					+ "where id = ?";
 		}
 
@@ -281,7 +285,9 @@ public class NotificationManager {
 		pstmt.setInt(idx++, n.periodic_month_day);	// Original local value
 		pstmt.setInt(idx++, pt.getUtcMonth());	
 		pstmt.setInt(idx++, n.periodic_month);		// Original local value
-		pstmt.setInt(idx++, n.r_id);		
+		pstmt.setInt(idx++, n.r_id);	
+		pstmt.setBoolean(idx++, n.bundle);	
+		pstmt.setString(idx++, n.bundle_ident);
 		pstmt.setInt(idx++, n.id);
 		
 		// Log the change event

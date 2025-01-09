@@ -344,7 +344,7 @@ public class UserList extends Application {
 	@Produces("application/json")
 	public Response getUsersForSurvey(
 			@Context HttpServletRequest request,
-			@PathParam("survey") int sId
+			@PathParam("survey") String sIdent
 			) { 
 
 		Response response = null;
@@ -356,7 +356,26 @@ public class UserList extends Application {
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
-		}		
+		}	
+		
+		/*
+		 * Allow for use of an integer surveyId
+		 */
+		int sId = 0;
+		try {
+			sId = Integer.valueOf(sIdent);
+		} catch (Exception e) {
+			// Ignore errors		
+		}
+		
+		if(sId == 0) {
+			// Must be an ident
+			try {
+				sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+			} catch(Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
+		}
 		aSimpleList.isAuthorised(sd, request.getRemoteUser());
 		aSimpleList.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
