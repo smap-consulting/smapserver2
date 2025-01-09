@@ -183,3 +183,6 @@ ALTER TABLE users add column total_tasks integer default -1;
 
 alter table group_survey drop constraint group_survey_u_ident_fkey;			-- Remove constraint on group survey as sometimes this has to be null, for example when sub form is set up not group survey
 delete from group_survey where group_ident is null and f_name is null;  	-- Remove unused values
+
+-- Performance
+create index if not exists survey_p_id on survey(p_id);
