@@ -82,11 +82,24 @@ import surveyMobileAPI.managers.WebFormManager;
 @Path("/webForm")
 public class WebForm extends Application {
 
-	Authorise a = new Authorise(null, Authorise.ENUM);
+	Authorise a = null;
+	Authorise aConsole = null;
 
 	private static Logger log = Logger.getLogger(WebForm.class.getName());
 	LogManager lm = new LogManager();		// Application log
 
+	public WebForm() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ENUM);
+		a = new Authorise(authorisations, null);
+		
+		authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ENUM);
+		authorisations.add(Authorise.MANAGE);
+		aConsole = new Authorise(authorisations, null);
+		
+	}
+	
 	class JsonResponse {
 		List<ManifestValue> manifestList;
 		SurveyData surveyData = new SurveyData();
@@ -510,7 +523,7 @@ public class WebForm extends Application {
 		gFormIdent = formIdent;
 		
 		/*
-		 * Get the media manifest so we can set the url's of media files used the form
+		 * Get the media manifest so we can set the url's of media files used by the form
 		 * Also get the google api key
 		 */
 		String basePath = GeneralUtilityMethods.getBasePath(request);
@@ -536,7 +549,13 @@ public class WebForm extends Application {
 				a.isValidTemporaryUser(sd, userIdent);
 			} else {
 				try {
-					a.isAuthorised(sd, userIdent);
+					if(datakey != null && datakey.equals("instanceid")) {
+						// Allow enumerator or Manage data if this webform is to edit a specific instance
+						aConsole.isAuthorised(sd, userIdent);
+					} else {
+						// Require enumerator
+						a.isAuthorised(sd, userIdent);
+					}
 				} catch(Exception e) {
 					throw new AuthorisationException(localisation.getString("web_blocked"));
 				}
