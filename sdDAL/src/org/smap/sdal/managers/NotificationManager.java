@@ -321,10 +321,13 @@ public class NotificationManager {
 				+ "f.periodic_local_month,"
 				+ "f.r_id,"
 				+ "f.bundle, f.bundle_ident,"
-				+ "a.name as alert_name "
+				+ "a.name as alert_name,"
+				+ "s2.display_name as bundle_name "
 				+ "from forward f "
 				+ "left outer join survey s "
 				+ "on s.s_id = f.s_id "
+				+ "left outer join survey s2 "
+				+ "on s2.ident = f.bundle_ident "
 				+ "left outer join cms_alert a "
 				+ "on a.id = f.alert_id "
 				+ "where (f.p_id = ? "
@@ -370,10 +373,14 @@ public class NotificationManager {
 				+ "f.periodic_local_day_of_month,"
 				+ "f.periodic_month, "
 				+ "f.periodic_local_month, "
-				+ "f.r_id "
+				+ "f.r_id,"
+				+ "f.bundle, f.bundle_ident,"
+				+ "s2.display_name as bundle_name "
 				+ "from forward f "
 				+ "left outer join survey s "
 				+ "on s.s_id = f.s_id "
+				+ "left outer join survey s2 "
+				+ "on s2.ident = f.bundle_ident "
 				+ "left outer join project p "
 				+ "on s.p_id = p.id "
 				+ "left outer join cms_alert a "
@@ -509,6 +516,7 @@ public class NotificationManager {
 			n.bundle = resultSet.getBoolean("bundle");
 			n.s_id = resultSet.getInt("s_id");
 			n.bundle_ident = resultSet.getString("bundle_ident");
+			n.bundle_name = resultSet.getString("bundle_name");
 			n.enabled = resultSet.getBoolean("enabled");
 			n.remote_host = resultSet.getString("remote_host");
 			n.remote_user = resultSet.getString("remote_user");
