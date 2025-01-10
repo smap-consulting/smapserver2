@@ -358,24 +358,8 @@ public class UserList extends Application {
 		} catch (Exception e) {
 		}	
 		
-		/*
-		 * Allow for use of an integer surveyId
-		 */
-		int sId = 0;
-		try {
-			sId = Integer.valueOf(sIdent);
-		} catch (Exception e) {
-			// Ignore errors		
-		}
+		int sId = GeneralUtilityMethods.getSurveyIdFromIdentOrId(sd, sIdent);
 		
-		if(sId == 0) {
-			// Must be an ident
-			try {
-				sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
-			} catch(Exception e) {
-				log.log(Level.SEVERE, e.getMessage(), e);
-			}
-		}
 		aSimpleList.isAuthorised(sd, request.getRemoteUser());
 		aSimpleList.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation

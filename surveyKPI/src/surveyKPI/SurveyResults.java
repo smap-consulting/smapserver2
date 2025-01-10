@@ -226,141 +226,6 @@ public class SurveyResults extends Application {
 	}
 	
 	/*
-	 * Restore results for a survey
-	 * Deprecated.  Restoration is now done as a background report to allow AWS sync to complete
-	 *
-	@GET
-	@Path("/restore")
-	public Response restoreSurveyResults(@Context HttpServletRequest request,
-			@PathParam("sId") int sId) { 
-		
-		Response response = null;
-		String connectionString = "surveyKPI-SurveyResults-restore";
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		} catch (Exception e) {
-		}
-		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, connectionString, sId, false, superUser);
-		// End Authorisation
-		
-		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.RESTORE, "Restore results", 0, request.getServerName());
-		
-		// Escape any quotes
-		if(sId > 0) {
-
-			String sql = null;				
-			Connection connectionRel = null; 
-			PreparedStatement pstmt = null;
-			PreparedStatement pstmtReset = null;
-			PreparedStatement pstmtUnpublish = null;
-			
-			Statement stmtRel = null;
-			try {
-				// Get the users locale
-				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-				
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-				connectionRel = ResultsDataSource.getConnection(connectionString);
-				
-				// Mark columns as unpublished		
-				String sqlUnpublish = "update question set published = 'false' where f_id in (select f_id from form where s_id = ?)";
-				pstmtUnpublish = sd.prepareStatement(sqlUnpublish);		
-				
-				String sqlResetLoadFlag = "update upload_event "
-						+ "set results_db_applied = 'false',"
-						+ "db_status = null, "
-						+ "db_reason = null "
-						+ "where ident = ?";
-				pstmtReset = sd.prepareStatement(sqlResetLoadFlag);
-				
-				/*
-				 * Get the surveys and tables that are part of the group that this survey belongs to
-				 *
-				SurveyManager sm = new SurveyManager(localisation, "UTC");
-				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
-				ArrayList<GroupDetails> surveys = sm.getAccessibleGroupSurveys(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
-				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyIdent, oId, request.getRemoteUser(), sId);
-				
-				/*
-				 * Delete data from each form ready for reload
-				 *
-				for(String tableName : tableList) {				
-
-					sql = "drop TABLE " + tableName + ";";
-					log.info("################################# Delete table contents and drop table prior to restore: " + sql);
-					
-					try {if (stmtRel != null) {stmtRel.close();}} catch (SQLException e) {}
-					stmtRel = connectionRel.createStatement();
-					try {
-						stmtRel.executeUpdate(sql);
-					} catch (Exception e) {
-						log.info("Error deleting table: " + e.getMessage());
-					}
-					log.info("userevent: " + request.getRemoteUser() + " : delete results : " + tableName + " in survey : "+ sId); 
-				}
-					
-				/*
-				 * Mark questions as unpublished
-				 *
-				connectionRel.setAutoCommit(false);
-				for(GroupDetails gd : surveys) {
-					pstmtUnpublish.setInt(1, gd.sId);
-					log.info("set unpublished " + pstmtUnpublish.toString());
-					pstmtUnpublish.executeUpdate();
-				}
-				
-				/*
-				 * Reload the surveys
-				 *
-				ExternalFileManager efm = new ExternalFileManager(localisation);
-				connectionRel.setAutoCommit(false);
-				for(GroupDetails gd : surveys) {
-					// restore backed up files from s3 of raw data
-					GeneralUtilityMethods.restoreUploadedFiles(gd.surveyIdent, "uploadedSurveys");			
-					pstmtReset.setString(1, gd.surveyIdent);			// Initiate reset of go faster flag
-					log.info("Restoring survey2 " + pstmtReset.toString());
-					pstmtReset.executeUpdate();
-					
-					// Force regeneration of any dynamic CSV files that this survey links to
-					efm.linkerChanged(sd, gd.sId);	// deprecated
-				}
-				connectionRel.commit();
-				
-				response = Response.ok("").build();
-				
-			} catch (Exception e) {
-				String msg = e.getMessage();
-				if(msg != null && msg.contains("does not exist")) {
-					response = Response.ok("").build();
-				} else {
-					log.log(Level.SEVERE, "Survey: Restore Results");
-					e.printStackTrace();
-					response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-				}
-			} finally {
-				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				try {if (pstmtReset != null) {pstmtReset.close();}} catch (SQLException e) {}
-				try {if (pstmtUnpublish != null) {pstmtUnpublish.close();}} catch (SQLException e) {}
-				try {if (stmtRel != null) {stmtRel.close();}} catch (SQLException e) {}
-			
-
-				try {connectionRel.setAutoCommit(true);} catch (Exception e) {}
-				
-				SDDataSource.closeConnection(connectionString, sd);
-				ResultsDataSource.closeConnection(connectionString, connectionRel);
-			}
-		}
-
-		return response; 
-	}
-	*/
-	
-	/*
 	 * Archive results for a survey
 	 * All submissions received on or before the specified date will be moved into another survey
 	 */
@@ -635,12 +500,12 @@ public class SurveyResults extends Application {
 	
 	
 	/*
-	 * Get surveys belonging to a group
+	 * Get surveys in the same bundle as the passed in survey
 	 */
 	@GET
 	@Path("/groups")
 	public Response getGroups(@Context HttpServletRequest request,
-			@PathParam("sId") int sId) { 
+			@PathParam("sId") String sIdent) {	// Allow the survey identifier to be a string 
 		
 		Response response = null;
 		
@@ -649,6 +514,7 @@ public class SurveyResults extends Application {
 		aManage.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
+		int sId = GeneralUtilityMethods.getSurveyIdFromIdentOrId(sd, sIdent);
 		if(sId > 0) {
 		
 			PreparedStatement pstmt = null;

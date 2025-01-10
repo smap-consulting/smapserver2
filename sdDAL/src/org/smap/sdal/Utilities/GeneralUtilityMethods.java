@@ -11136,6 +11136,33 @@ public class GeneralUtilityMethods {
 		return id;
 	}
 	
+	/*
+	 * The passed in sIdent value may be a survey ident or it may
+	 * already be a survey id
+	 * Return the definitive survey Id
+	 */
+	public static int getSurveyIdFromIdentOrId(Connection sd, String sIdent) {
+		/*
+		 * Allow for use of an integer surveyId
+		 */
+		int sId = 0;
+		try {
+			sId = Integer.valueOf(sIdent);
+		} catch (Exception e) {
+			// Ignore errors		
+		}
+		
+		if(sId == 0) {
+			// Must be an ident
+			try {
+				sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+			} catch(Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
+		}
+		return sId;
+	}
+	
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");
