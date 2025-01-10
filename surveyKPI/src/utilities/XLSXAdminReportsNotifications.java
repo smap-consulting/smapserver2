@@ -216,8 +216,6 @@ public class XLSXAdminReportsNotifications {
 						}
 						details.append(localisation.getString("a_eqa"));
 					}
-				} else if(n.target.equals("forward")) {
-					details.append(n.remote_host).append(" : ").append(n.remote_s_name);
 				} else if(n.target.equals("sms") && n.notifyDetails != null) {
 					if(n.notifyDetails.emails != null && n.notifyDetails.emails.size() > 0) {
 						details.append(localisation.getString("a_sms_1"));

@@ -102,7 +102,7 @@ public class NotificationManager {
 
 		String sql = "insert into forward(" +
 				" s_id, enabled, " +
-				" remote_s_id, remote_s_name, remote_host, remote_user, remote_password, notify_details, "
+				" remote_host, remote_user, remote_password, notify_details, "
 				+ "trigger, target, filter, name, tg_id, period, update_survey, update_question, update_value,"
 				+ "alert_id, "
 				+ "p_id, periodic_time, periodic_period, periodic_day_of_week, "
@@ -110,7 +110,7 @@ public class NotificationManager {
 				+ "periodic_month, periodic_local_month,"
 				+ "r_id, updated,"
 				+ "bundle, bundle_ident) " +
-				" values (?, ?, ?, ?, ?, ?, ?, ?"
+				" values (?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
 				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, 'true',"
 				+ "?, ?)";
@@ -123,22 +123,20 @@ public class NotificationManager {
 		pstmt = sd.prepareStatement(sql);	 			
 		pstmt.setInt(1, n.s_id);
 		pstmt.setBoolean(2, n.enabled);
-		pstmt.setString(3, n.remote_s_ident);
-		pstmt.setString(4, n.remote_s_name);
-		pstmt.setString(5, n.remote_host);
-		pstmt.setString(6, n.remote_user);
-		pstmt.setString(7, n.remote_password);
-		pstmt.setString(8, notifyDetails);
-		pstmt.setString(9, n.trigger);
-		pstmt.setString(10, n.target);
-		pstmt.setString(11, n.filter);
-		pstmt.setString(12, n.name);
-		pstmt.setInt(13, n.tgId);
-		pstmt.setString(14, n.period);
-		pstmt.setString(15, n.updateSurvey);
-		pstmt.setString(16, n.updateQuestion);
-		pstmt.setString(17, n.updateValue);
-		pstmt.setInt(18, n.alert_id);
+		pstmt.setString(3, n.remote_host);
+		pstmt.setString(4, n.remote_user);
+		pstmt.setString(5, n.remote_password);
+		pstmt.setString(6, notifyDetails);
+		pstmt.setString(7, n.trigger);
+		pstmt.setString(8, n.target);
+		pstmt.setString(9, n.filter);
+		pstmt.setString(10, n.name);
+		pstmt.setInt(11, n.tgId);
+		pstmt.setString(12, n.period);
+		pstmt.setString(13, n.updateSurvey);
+		pstmt.setString(14, n.updateQuestion);
+		pstmt.setString(15, n.updateValue);
+		pstmt.setInt(16, n.alert_id);
 		
 		/*
 		 * Periodic Values
@@ -146,17 +144,17 @@ public class NotificationManager {
 		PeriodicTime pt = new PeriodicTime(n.periodic_period, tz);
 		pt.setLocalTime(n.periodic_time, n.periodic_week_day, n.periodic_month_day, n.periodic_month);
 		
-		pstmt.setInt(19, n.p_id);
-		pstmt.setTime(20, pt.getUtcTime());
-		pstmt.setString(21, n.periodic_period);
-		pstmt.setInt(22, pt.getUtcWeekday());
-		pstmt.setInt(23, pt.getUtcMonthday());
-		pstmt.setInt(24, n.periodic_month_day);		// Save local month day
-		pstmt.setInt(25, pt.getUtcMonth());
-		pstmt.setInt(26, n.periodic_month);			// Save local month
-		pstmt.setInt(27, n.r_id);
-		pstmt.setBoolean(28, n.bundle);
-		pstmt.setString(29, n.bundle_ident);
+		pstmt.setInt(17, n.p_id);
+		pstmt.setTime(18, pt.getUtcTime());
+		pstmt.setString(19, n.periodic_period);
+		pstmt.setInt(20, pt.getUtcWeekday());
+		pstmt.setInt(21, pt.getUtcMonthday());
+		pstmt.setInt(22, n.periodic_month_day);		// Save local month day
+		pstmt.setInt(23, pt.getUtcMonth());
+		pstmt.setInt(24, n.periodic_month);			// Save local month
+		pstmt.setInt(25, n.r_id);
+		pstmt.setBoolean(26, n.bundle);
+		pstmt.setString(27, n.bundle_ident);
 		
 		pstmt.executeUpdate();
 		
@@ -181,8 +179,6 @@ public class NotificationManager {
 			sql = "update forward set "
 					+ "s_id = ?, "
 					+ "enabled = ?, "
-					+ "remote_s_id = ?, "
-					+ "remote_s_name = ?, "
 					+ "remote_host = ?, "
 					+ "remote_user = ?, "
 					+ "notify_details = ?, "
@@ -214,8 +210,6 @@ public class NotificationManager {
 			sql = "update forward set "
 					+ "s_id = ?, "
 					+ "enabled = ?, "
-					+ "remote_s_id = ?, "
-					+ "remote_s_name = ?, "
 					+ "remote_host = ?, "
 					+ "remote_user = ?, "
 					+ "notify_details = ?, "
@@ -252,8 +246,6 @@ public class NotificationManager {
 		pstmt = sd.prepareStatement(sql);	 			
 		pstmt.setInt(idx++, n.s_id);
 		pstmt.setBoolean(idx++, n.enabled);
-		pstmt.setString(idx++, n.remote_s_ident);
-		pstmt.setString(idx++, n.remote_s_name);
 		pstmt.setString(idx++, n.remote_host);
 		pstmt.setString(idx++, n.remote_user);
 		pstmt.setString(idx++, notifyDetails);
@@ -319,7 +311,7 @@ public class NotificationManager {
 
 		ResultSet resultSet = null;
 		String sql = "select f.id, f.s_id, f.enabled, "
-				+ "f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user,"
+				+ "f.remote_host, f.remote_user,"
 				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
 				+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value, f.alert_id,"
 				+ "f.p_id, f.periodic_time, f.periodic_period, f.periodic_day_of_week, "
@@ -368,7 +360,7 @@ public class NotificationManager {
 
 		ResultSet resultSet = null;
 		String sql = "select f.id, f.s_id, f.enabled, "
-				+ "f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user,"
+				+ "f.remote_host, f.remote_user,"
 				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
 				+ "f.tg_id, f.period, f.update_survey,"
 				+ "f.update_question, f.update_value,"
@@ -518,9 +510,6 @@ public class NotificationManager {
 			n.s_id = resultSet.getInt("s_id");
 			n.bundle_ident = resultSet.getString("bundle_ident");
 			n.enabled = resultSet.getBoolean("enabled");
-			String remote_s_id = resultSet.getString("remote_s_id");
-			n.remote_s_ident = remote_s_id;
-			n.remote_s_name = resultSet.getString("remote_s_name");
 			n.remote_host = resultSet.getString("remote_host");
 			n.remote_user = resultSet.getString("remote_user");
 			n.trigger = resultSet.getString("trigger");

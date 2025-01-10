@@ -13,10 +13,8 @@ public class Notification {
 	public String s_name;				// submission / update only
 	public String updateSurvey;
 	public String updateQuestion;		// Update only
-	public String updateValue;
-	public String remote_s_ident;	
+	public String updateValue;	
 	public boolean enabled;
-	public String remote_s_name;
 	public String remote_user;
 	public String remote_password;
 	public String remote_host;
