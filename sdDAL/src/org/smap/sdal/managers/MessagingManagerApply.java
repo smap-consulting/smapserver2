@@ -125,7 +125,6 @@ public class MessagingManagerApply {
 						id = rs.getInt("m_id");
 						int o_id = rs.getInt("o_id");
 						String topic = rs.getString("topic");
-						String description = rs.getString("description");
 						String data = rs.getString("data");
 						
 						// Localisation
@@ -176,9 +175,13 @@ public class MessagingManagerApply {
 										); 
 							} catch (Exception e) {
 								log.log(Level.SEVERE, e.getMessage(), e);
+								String details = localisation.getString("msg_err_not");
+								details = details.replace("%s1", msg.msgChannel == null ? "" : msg.msgChannel);
+								details = details.replace("%s2", msg.ourNumber == null ? "" : msg.ourNumber );
+								details = details.replace("%s3", msg.content == null ? "" : msg.content);
 								nm.writeToLog(sd, organisation.id, msg.pId, 
 										GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident), 
-										organisation.name, status, 
+										details, status, 
 										e.getMessage(), id, msg.target);
 							}
 							
@@ -283,7 +286,6 @@ public class MessagingManagerApply {
 			
 								// Set the subject
 								String subject = "";
-								String from = "";
 			
 								subject += localisation.getString("c_message");
 								try {

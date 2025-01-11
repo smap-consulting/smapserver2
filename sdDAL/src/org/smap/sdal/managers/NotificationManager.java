@@ -640,7 +640,6 @@ public class NotificationManager {
 
 			String tz = "UTC";		// Set default time to UTC
 
-			int idx = 1;
 			pstmtGetNotifications.setInt(1, sId);
 			pstmtGetNotifications.setString(2, bundleIdent);
 			if(updateQuestion != null) {
