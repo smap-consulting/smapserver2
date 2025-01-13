@@ -37,6 +37,7 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -44,7 +45,9 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
+import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.ChangeElement;
+import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
@@ -427,6 +430,89 @@ public class Roles extends Application {
 		return response;
 	}
 
+	/*
+	 * Turn a survey's roles into the roles for the bundle that the survey is in
+	 */
+	@Path("/survey/bundle/set")
+	@POST
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Produces("application/json")
+	public Response setSurveyRolesAsBundleRoles(
+			@Context HttpServletRequest request,
+			@FormParam("sId") int sId
+			) { 
+
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
+		Response response = null;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("surveyKPI-updateSurveyRoles");
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		aSM.isAuthorised(sd, request.getRemoteUser());
+		aSM.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		
+		// End Authorisation
+		
+		String sqlChangeLog = "insert into survey_change " +
+				"(s_id, version, changes, user_id, apply_results, updated_time) " +
+				"values(?, ?, ?, ?, 'true', ?)";
+		PreparedStatement pstmtChangeLog = null;	
+		
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+	
+			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+			
+			/*
+			 * Get surveys in the bundle			
+			 */
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			String bundleIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			ArrayList<GroupDetails> bundledSurveys = sm.getSurveysInGroup(sd, bundleIdent);
+			if(bundledSurveys.size() > 1) {
+				for(GroupDetails gd : bundledSurveys) {
+					
+					/*
+					 * Update the change log for the survey
+					 */
+					
+					// TODO
+					//pstmtChangeLog.setInt(1, sId);
+					//pstmtChangeLog.setInt(2, version);
+					//pstmtChangeLog.setString(3, gson.toJson(change));
+					//pstmtChangeLog.setInt(4, userId);
+					//pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
+					//pstmtChangeLog.execute();		
+				}
+			} else {
+				throw new ApplicationException(localisation.getString("tu_one_s"));
+			}
+				
+			response = Response.ok().build();
+		} catch (Exception e) {
+			
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+
+		} finally {
+			if(pstmtChangeLog != null) try {pstmtChangeLog.close();}catch(Exception e) {}
+			SDDataSource.closeConnection("surveyKPI-updateSurveyRoles", sd);
+		}
+
+		return response;
+	}
+	
 	/*
 	 * Get the roles names in the organisation
 	 * This is a low privilege service to allow users who are not the security manager to get role names for purposes
