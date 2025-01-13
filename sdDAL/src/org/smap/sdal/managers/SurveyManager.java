@@ -191,7 +191,7 @@ public class SurveyManager {
 			sql.append("and s.blocked = 'false' ");
 		}
 		if(onlyGroup) {
-			sql.append("and s.group_survey_ident = s.ident ");
+			sql.append("and (s.group_survey_ident = s.ident or 0 = (select count(*) from survey where ident = s.group_survey_ident))");
 		}
 		if(onlyDataSurvey) {
 			sql.append("and s.data_survey = 'true' ");
@@ -647,16 +647,16 @@ public class SurveyManager {
 				pstmtGetSource.setInt(1, existingSurveyId);
 				ResultSet rsGetSource = pstmtGetSource.executeQuery();
 				if(rsGetSource.next()) {
-					existingSurvey = rsGetSource.getString(1);
-					existingFormId = rsGetSource.getInt(2);
-					existingMeta = rsGetSource.getString(3);
-					existingClass = rsGetSource.getString(4);
-					existingKeyPolicy = rsGetSource.getString(5);
-					existingDataSurvey = rsGetSource.getBoolean(6);
-					existingOversightSurvey = rsGetSource.getBoolean(7);
-					existingReadOnlySurvey = rsGetSource.getBoolean(8);
-					existingInstanceName = rsGetSource.getString(9);
-					bundleSurveyIdent = rsGetSource.getString(10);
+					existingSurvey = rsGetSource.getString("display_name");
+					existingFormId = rsGetSource.getInt("f_id");
+					existingMeta = rsGetSource.getString("meta");
+					existingClass = rsGetSource.getString("class");
+					existingKeyPolicy = rsGetSource.getString("key_policy");
+					existingDataSurvey = rsGetSource.getBoolean("data_survey");
+					existingOversightSurvey = rsGetSource.getBoolean("oversight_survey");
+					existingReadOnlySurvey = rsGetSource.getBoolean("read_only_survey");
+					existingInstanceName = rsGetSource.getString("instance_name");
+					bundleSurveyIdent = rsGetSource.getString("group_survey_ident");
 				}
 			}
 			/*
@@ -3502,7 +3502,6 @@ public class SurveyManager {
 				+ "from survey s "
 				+ "where not s.deleted "
 				+ "and s.group_survey_ident = ?");
-
 
 		PreparedStatement pstmt = null;
 		try {
