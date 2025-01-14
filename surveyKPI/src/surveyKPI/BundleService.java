@@ -40,6 +40,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.model.Bundle;
 import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.CaseManagementAlert;
 import org.smap.sdal.model.CaseManagementSettings;
@@ -55,20 +56,22 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /*
- * Services for managing cases
+ * Services for managing bundles
  */
 
-@Path("/cases")
-public class CaseManagement extends Application {
+@Path("/bundle")
+public class BundleService extends Application {
 	
 	Authorise a = null;
 
 	private static Logger log =
-			 Logger.getLogger(CaseManagement.class.getName());
+			 Logger.getLogger(BundleService.class.getName());
 	
 	LogManager lm = new LogManager(); // Application log
 	
-	public CaseManagement() {
+	Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+	
+	public BundleService() {
 		
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		
@@ -81,18 +84,20 @@ public class CaseManagement extends Application {
 	}
 	
 	/*
-	 * Get the case management settings for passed in survey
+	 * Get the bundle settings for passed in survey
 	 */
 	@GET
-	@Path("/settings/{survey_id}")
+	@Path("/bundle/settings/{survey_ident}")
 	@Produces("application/json")
 	public Response getCaseManagementSettings(
 			@Context HttpServletRequest request,
-			@PathParam("survey_id") int sId
+			@PathParam("survey_ident") String sIdent
 			) { 
 
+		Bundle bundle = new Bundle();
+		
 		Response response = null;
-		String connectionString = "surveyKPI-getCaseManagementSettings";
+		String connectionString = "surveyKPI-getBundleSettings";
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -102,21 +107,24 @@ public class CaseManagement extends Application {
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());	
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);
 		// End Authorisation
 		
+		String sql = "select bundle_roles from bundle "
+				+ "where group_survey_ident = (select group_survey_ident from survey where ident = ?)";
+		PreparedStatement pstmt = null;
 		try {
-			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			CaseManager cm = new CaseManager(localisation);
-			
-			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
-			CMS cms = cm.getCaseManagementSettings(sd, groupSurveyIdent);
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-			String resp = gson.toJson(cms);
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, sIdent);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				bundle.bundleRoles = rs.getBoolean("bundle_roles");
+			}
+
+			String resp = gson.toJson(bundle);
 			response = Response.ok(resp).build();
+			
 		} catch (Exception e) {
 			
 			response = Response.serverError().entity(e.getMessage()).build();
@@ -124,6 +132,7 @@ public class CaseManagement extends Application {
 
 		} finally {
 			
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 

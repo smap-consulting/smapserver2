@@ -322,6 +322,9 @@ public class SubscriberBatch {
 					// Delete any case management alerts not linked to by a survey
 					deleteOldCaseManagementAlerts(dbc.sd,localisation);
 					
+					// Erase any bundle settings not linked to by a survey
+					deleteOldBundleSettings(dbc.sd);
+					
 					infrequentfreshInterval = 2000;	// Every 2,000 times through these operations will be done, about 1.5 days
 				}
 				
@@ -638,6 +641,30 @@ public class SubscriberBatch {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
 			pstmt = sd.prepareStatement(sql);		
 			pstmt.executeUpdate();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
+			
+		}
+	}
+	
+	/*
+	 * Delete old bundle settings
+	 * These are attached to a survey group so it is easier to delete them here
+	 *  when they are no longer referenced than to delete them when the last survey in the
+	 *  group is deleted
+	 */
+	private void deleteOldBundleSettings(Connection sd) {
+
+		PreparedStatement pstmt = null;
+
+		try {
+			
+			String sql = "delete from bundle where group_survey_ident not in (select group_survey_ident from survey)";					
+			pstmt = sd.prepareStatement(sql);		
+			pstmt.executeUpdate();	
 			
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);

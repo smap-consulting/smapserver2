@@ -537,7 +537,7 @@ public class QuestionList extends Application {
 
 		String connectionString = "surveyKPI-getGroupQuestions";
 		Response response = null;
-		String sIdent = null;
+		String groupIdent = null;
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -545,11 +545,11 @@ public class QuestionList extends Application {
 		
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-			sIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			groupIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());				
-		a.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
 		ArrayList<QuestionLite> questions = new ArrayList<QuestionLite> ();
@@ -561,7 +561,7 @@ public class QuestionList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			SurveyManager sm = new SurveyManager(localisation, null);	
-			questions = sm.getGroupQuestionsArray(sd, sIdent, null, statusOnly);
+			questions = sm.getGroupQuestionsArray(sd, groupIdent, null, statusOnly);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			response = Response.ok(gson.toJson(questions)).build();

@@ -433,13 +433,14 @@ public class Roles extends Application {
 	/*
 	 * Turn a survey's roles into the roles for the bundle that the survey is in
 	 */
-	@Path("/survey/bundle/set")
+	@Path("/survey/bundle")
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Produces("application/json")
 	public Response setSurveyRolesAsBundleRoles(
 			@Context HttpServletRequest request,
-			@FormParam("sId") int sId
+			@FormParam("sId") int sId,
+			@FormParam("value") boolean value
 			) { 
 
 		// Check for Ajax and reject if not
@@ -467,18 +468,48 @@ public class Roles extends Application {
 				"values(?, ?, ?, ?, 'true', ?)";
 		PreparedStatement pstmtChangeLog = null;	
 		
+		String sqlRecordValueUpdate = "update bundle "
+				+ "set bundle_roles = ?, "
+				+ "changed_by = ?, "
+				+ "changed_ts = now() "
+				+ "where group_survey_ident = ?";
+		PreparedStatement pstmtRecordValueUpdate = null;
+		
+		String sqlRecordValueNew = "insert into bundle "
+				+ "(group_survey_ident, bundle_roles, changed_by, changed_ts) "
+				+ "values(?, ?, ?, now())";
+		PreparedStatement pstmtRecordValueNew = null;
 		try {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 	
-			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+			String bundleIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			
+			sd.setAutoCommit(false);
+			
+			/*
+			 * Record the new value for survey roles
+			 */
+			pstmtRecordValueUpdate = sd.prepareStatement(sqlRecordValueUpdate);
+			pstmtRecordValueUpdate.setBoolean(1, value);
+			pstmtRecordValueUpdate.setString(2,request.getRemoteUser());
+			pstmtRecordValueUpdate.setString(3,bundleIdent);
+			
+			int count = pstmtRecordValueUpdate.executeUpdate();
+			if(count == 0) {
+				// Create new entry
+				pstmtRecordValueNew = sd.prepareStatement(sqlRecordValueNew);
+				pstmtRecordValueNew.setString(1,bundleIdent);
+				pstmtRecordValueNew.setBoolean(2, value);
+				pstmtRecordValueNew.setString(3,request.getRemoteUser());
+				pstmtRecordValueNew.executeUpdate();
+			}
 			
 			/*
 			 * Get surveys in the bundle			
 			 */
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			String bundleIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 			ArrayList<GroupDetails> bundledSurveys = sm.getSurveysInGroup(sd, bundleIdent);
 			if(bundledSurveys.size() > 1) {
 				for(GroupDetails gd : bundledSurveys) {
@@ -486,7 +517,7 @@ public class Roles extends Application {
 					/*
 					 * Update the change log for the survey
 					 */
-					
+					pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
 					// TODO
 					//pstmtChangeLog.setInt(1, sId);
 					//pstmtChangeLog.setInt(2, version);
@@ -498,15 +529,19 @@ public class Roles extends Application {
 			} else {
 				throw new ApplicationException(localisation.getString("tu_one_s"));
 			}
-				
+			
+			sd.commit();
 			response = Response.ok().build();
 		} catch (Exception e) {
-			
+			try {sd.rollback();} catch(Exception ex) {}
 			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE,"Error", e);
 
 		} finally {
+			try {sd.setAutoCommit(true);} catch(Exception e) {}
 			if(pstmtChangeLog != null) try {pstmtChangeLog.close();}catch(Exception e) {}
+			if(pstmtRecordValueUpdate != null) try {pstmtRecordValueUpdate.close();}catch(Exception e) {}
+			if(pstmtRecordValueNew != null) try {pstmtRecordValueNew.close();}catch(Exception e) {}
 			SDDataSource.closeConnection("surveyKPI-updateSurveyRoles", sd);
 		}
 

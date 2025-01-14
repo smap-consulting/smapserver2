@@ -1768,6 +1768,21 @@ CREATE TABLE cms_setting (
 CREATE UNIQUE INDEX cms_unique_setting ON cms_setting(group_survey_ident);
 ALTER TABLE cms_setting OWNER TO ws;
 
+DROP SEQUENCE IF EXISTS bundle_seq CASCADE;
+CREATE SEQUENCE bundle_seq START 1;
+ALTER SEQUENCE bundle_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS bundle;
+CREATE TABLE bundle (
+	id integer DEFAULT NEXTVAL('bundle_seq') CONSTRAINT pk_bundle PRIMARY KEY,
+	group_survey_ident text,
+	bundle_roles boolean,
+	changed_by text,
+	changed_ts TIMESTAMP WITH TIME ZONE	
+	);
+CREATE UNIQUE INDEX bundle_group_idx ON bundle(group_survey_ident);
+ALTER TABLE bundle OWNER TO ws;
+
 -- Create a table to hold biometric, including fingerprint record linkage data
 DROP SEQUENCE IF EXISTS linkage_seq CASCADE;
 CREATE SEQUENCE linkage_seq START 1;
