@@ -10853,7 +10853,7 @@ public class GeneralUtilityMethods {
 		int count = 0;
 		
 		StringBuffer sql = new StringBuffer("select count(*) from survey_role "
-				+ "where group_survey_ident = ? ");
+				+ "where survey_ident in (select ident from survey where group_survey_ident = ?) ");
 				
 		try {		
 			

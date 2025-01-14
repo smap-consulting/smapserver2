@@ -485,6 +485,7 @@ public class Roles extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 	
 			String bundleIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			
 			sd.setAutoCommit(false);
 			
@@ -514,6 +515,12 @@ public class Roles extends Application {
 			if(bundledSurveys.size() > 1) {
 				for(GroupDetails gd : bundledSurveys) {
 					
+					/*
+					 * 
+					 */
+					if(!surveyIdent.equals(gd.surveyIdent)) {
+						
+					}
 					/*
 					 * Update the change log for the survey
 					 */
