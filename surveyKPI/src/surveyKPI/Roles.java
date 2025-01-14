@@ -84,6 +84,7 @@ public class Roles extends Application {
 			 Logger.getLogger(Roles.class.getName());
 	
 	LogManager lm = new LogManager(); // Application log
+	Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 	
 	public Roles() {
 		
@@ -134,7 +135,6 @@ public class Roles extends Application {
 			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
 			ArrayList<Role> roles = rm.getRoles(sd, o_id);
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(roles);
 			response = Response.ok(resp).build();
 		} catch (Exception e) {
@@ -311,7 +311,6 @@ public class Roles extends Application {
 			} else {
 				roles = new ArrayList<>();
 			}
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(roles);
 			response = Response.ok(resp).build();
 		} catch (Exception e) {
@@ -398,8 +397,6 @@ public class Roles extends Application {
 				change.msg = change.msg.replace("%s2", GeneralUtilityMethods.getSafeText(colMsg.toString(), true));
 			}
 
-			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-
 			// Record change in change log
 			int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 			int version = GeneralUtilityMethods.getSurveyVersion(sd, sId);
@@ -465,7 +462,8 @@ public class Roles extends Application {
 		
 		String sqlChangeLog = "insert into survey_change " +
 				"(s_id, version, changes, user_id, apply_results, updated_time) " +
-				"values(?, ?, ?, ?, 'true', ?)";
+				"values(?, (select max(version) from survey where s_id = ?)"
+				+ ", ?, ?, 'true', now())";
 		PreparedStatement pstmtChangeLog = null;	
 		
 		String sqlRecordValueUpdate = "update bundle "
@@ -479,6 +477,18 @@ public class Roles extends Application {
 				+ "(group_survey_ident, bundle_roles, changed_by, changed_ts) "
 				+ "values(?, ?, ?, now())";
 		PreparedStatement pstmtRecordValueNew = null;
+		
+		String sqlRemoveExisting = "delete from survey_role where "
+				+ "survey_ident = ?";
+		PreparedStatement pstmtRemoveExisting = null;
+		
+		String sqlAddMatching = "insert into survey_role (r_id, enabled, column_filter, row_filter, survey_ident) "
+				+ "select r_id, enabled, column_filter, row_filter, ? "
+				+ "from survey_role "
+				+ "where survey_ident = ?"
+				+ "and enabled";
+		PreparedStatement pstmtAddMatching = null;
+		
 		try {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
@@ -486,8 +496,12 @@ public class Roles extends Application {
 	
 			String bundleIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-			
+			int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 			sd.setAutoCommit(false);
+			
+			pstmtRemoveExisting = sd.prepareStatement(sqlRemoveExisting);
+			pstmtAddMatching = sd.prepareStatement(sqlAddMatching);
+			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
 			
 			/*
 			 * Record the new value for survey roles
@@ -508,33 +522,50 @@ public class Roles extends Application {
 			}
 			
 			/*
-			 * Get surveys in the bundle			
+			 * If the bundle roles value is set true then align all the roles		
 			 */
-			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			ArrayList<GroupDetails> bundledSurveys = sm.getSurveysInGroup(sd, bundleIdent);
-			if(bundledSurveys.size() > 1) {
-				for(GroupDetails gd : bundledSurveys) {
-					
-					/*
-					 * 
-					 */
-					if(!surveyIdent.equals(gd.surveyIdent)) {
+			if(value ) {
+				SurveyManager sm = new SurveyManager(localisation, "UTC");
+				ArrayList<GroupDetails> bundledSurveys = sm.getSurveysInGroup(sd, bundleIdent);
+				if(bundledSurveys.size() > 1) {
+					for(GroupDetails gd : bundledSurveys) {
 						
+						if(!surveyIdent.equals(gd.surveyIdent)) {
+							/*
+							 * Remove any roles that are not enabled in the prime survey
+							 */
+							pstmtRemoveExisting.setString(1, gd.surveyIdent);
+							log.info("Remove existing roles: " + pstmtRemoveExisting.toString());
+							pstmtRemoveExisting.executeUpdate();
+							
+							/*
+							 * Add roles enabled in the prime survey
+							 */
+							pstmtAddMatching.setString(1, gd.surveyIdent);
+							pstmtAddMatching.setString(2, surveyIdent);
+							log.info("Add matching roles roles: " + pstmtAddMatching.toString());
+							pstmtAddMatching.executeUpdate();
+							
+							/*
+							 * Update the change log for the survey
+							 */
+							
+							// TODO
+							ChangeElement change = new ChangeElement();
+							change.action = "roles_update";
+							change.origSId = sId;
+							StringBuilder msg = new StringBuilder(localisation.getString("tu_s_roles_c"));
+							
+							pstmtChangeLog.setInt(1, gd.sId);
+							pstmtChangeLog.setInt(2, gd.sId);
+							pstmtChangeLog.setString(3, gson.toJson(change));
+							pstmtChangeLog.setInt(4, userId);
+							//pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
+							//pstmtChangeLog.execute();	
+						}
+							
 					}
-					/*
-					 * Update the change log for the survey
-					 */
-					pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
-					// TODO
-					//pstmtChangeLog.setInt(1, sId);
-					//pstmtChangeLog.setInt(2, version);
-					//pstmtChangeLog.setString(3, gson.toJson(change));
-					//pstmtChangeLog.setInt(4, userId);
-					//pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
-					//pstmtChangeLog.execute();		
-				}
-			} else {
-				throw new ApplicationException(localisation.getString("tu_one_s"));
+				} 
 			}
 			
 			sd.commit();
@@ -549,6 +580,8 @@ public class Roles extends Application {
 			if(pstmtChangeLog != null) try {pstmtChangeLog.close();}catch(Exception e) {}
 			if(pstmtRecordValueUpdate != null) try {pstmtRecordValueUpdate.close();}catch(Exception e) {}
 			if(pstmtRecordValueNew != null) try {pstmtRecordValueNew.close();}catch(Exception e) {}
+			if(pstmtRemoveExisting != null) try {pstmtRemoveExisting.close();}catch(Exception e) {}
+			if(pstmtAddMatching != null) try {pstmtAddMatching.close();}catch(Exception e) {}
 			SDDataSource.closeConnection("surveyKPI-updateSurveyRoles", sd);
 		}
 
@@ -585,7 +618,6 @@ public class Roles extends Application {
 			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
 			ArrayList<RoleName> roles = rm.getRoleNames(sd, o_id);
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(roles);
 			response = Response.ok(resp).build();
 		} catch (Exception e) {

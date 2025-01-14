@@ -19,39 +19,23 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.managers.CaseManager;
-import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.Bundle;
-import org.smap.sdal.model.CMS;
-import org.smap.sdal.model.CaseManagementAlert;
-import org.smap.sdal.model.CaseManagementSettings;
-import org.smap.sdal.model.UniqueKey;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Locale;
-import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -87,11 +71,11 @@ public class BundleService extends Application {
 	 * Get the bundle settings for passed in survey
 	 */
 	@GET
-	@Path("/bundle/settings/{survey_ident}")
+	@Path("/settings/{survey_id}")
 	@Produces("application/json")
-	public Response getCaseManagementSettings(
+	public Response getBundleSettings(
 			@Context HttpServletRequest request,
-			@PathParam("survey_ident") String sIdent
+			@PathParam("survey_id") int sId
 			) { 
 
 		Bundle bundle = new Bundle();
@@ -107,16 +91,16 @@ public class BundleService extends Application {
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());	
-		a.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
 		String sql = "select bundle_roles from bundle "
-				+ "where group_survey_ident = (select group_survey_ident from survey where ident = ?)";
+				+ "where group_survey_ident = (select group_survey_ident from survey where s_id = ?)";
 		PreparedStatement pstmt = null;
 		try {
 			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, sIdent);
+			pstmt.setInt(1, sId);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				bundle.bundleRoles = rs.getBoolean("bundle_roles");
