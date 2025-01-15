@@ -582,7 +582,7 @@ CREATE TABLE linkage (
 	);
 ALTER TABLE linkage OWNER TO ws;
 
-insert into groups(id,name) values(13,'links');
+--insert into groups(id,name) values(13,'links'); Removed in version 25.01
 alter table server add column rebuild_link_cache boolean default false;
 
 -- Version 23.03

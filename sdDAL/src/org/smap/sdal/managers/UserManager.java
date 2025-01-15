@@ -1222,10 +1222,13 @@ public class UserManager {
 							|| (isSecurityManager && g.id != Authorise.ORG_ID && g.id != Authorise.ENTERPRISE_ID && g.id != Authorise.OWNER_ID)
 							|| (isEnterpriseManager && g.id != Authorise.OWNER_ID)
 							|| (g.id != Authorise.SECURITY_ID && g.id != Authorise.ORG_ID && g.id != Authorise.ENTERPRISE_ID && g.id != Authorise.OWNER_ID)) {
-							
-						pstmtInsertUserGroup.setInt(2, g.id);
-						log.info("Insert user group: " + pstmtInsertUserGroup.toString());
-						pstmtInsertUserGroup.executeUpdate();
+						
+						// Ignore deleted groups
+						if(g.id != 13) {
+							pstmtInsertUserGroup.setInt(2, g.id);
+							log.info("Insert user group: " + pstmtInsertUserGroup.toString());
+							pstmtInsertUserGroup.executeUpdate();
+						}
 						
 					}
 				}

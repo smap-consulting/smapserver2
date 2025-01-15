@@ -859,7 +859,7 @@ public class DataManager {
 				JSONObject jo = new JSONObject();
 				int index = 0;
 				boolean viewOwnDataOnly = GeneralUtilityMethods.isOnlyViewOwnData(sd, remoteUser);
-				boolean viewLinks = GeneralUtilityMethods.hasSecurityGroup(sd, remoteUser, Authorise.LINKS_ID);
+				//boolean viewLinks = GeneralUtilityMethods.hasSecurityGroup(sd, remoteUser, Authorise.LINKS_ID);
 				while(jo != null) {
 					
 					jo =  tdm.getNextRecord(
@@ -876,7 +876,7 @@ public class DataManager {
 							incLinks,
 							sIdent,
 							viewOwnDataOnly,
-							viewLinks
+							false				// View links no longer available
 							);
 					
 					if(jo != null) {
