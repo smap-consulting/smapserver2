@@ -11163,6 +11163,25 @@ public class GeneralUtilityMethods {
 		return sId;
 	}
 	
+	public static boolean getSurveyBundleRoles(Connection sd, int sId) throws SQLException {
+		boolean bundleRoles = false;
+		
+		String sql = "select bundle_roles from bundle "
+				+ "where group_survey_ident = (select group_survey_ident from survey where s_id = ?)";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				bundleRoles = rs.getBoolean("bundle_roles");
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+		}
+		return bundleRoles;
+	}
+	
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");

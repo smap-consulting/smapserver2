@@ -94,18 +94,10 @@ public class BundleService extends Application {
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
-		String sql = "select bundle_roles from bundle "
-				+ "where group_survey_ident = (select group_survey_ident from survey where s_id = ?)";
-		PreparedStatement pstmt = null;
 		try {
 			
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, sId);
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				bundle.bundleRoles = rs.getBoolean("bundle_roles");
-			}
-
+			bundle.bundleRoles = GeneralUtilityMethods.getSurveyBundleRoles(sd, sId);
+			
 			String resp = gson.toJson(bundle);
 			response = Response.ok(resp).build();
 			
@@ -116,7 +108,6 @@ public class BundleService extends Application {
 
 		} finally {
 			
-			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 

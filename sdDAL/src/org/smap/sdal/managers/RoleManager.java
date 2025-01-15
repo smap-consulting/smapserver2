@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -14,6 +15,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
+import org.smap.sdal.model.QuestionLite;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.RoleName;
@@ -51,6 +53,8 @@ public class RoleManager {
 
 	LogManager lm = new LogManager(); // Application log
 	ResourceBundle localisation = null;
+	
+	Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 	
 	public RoleManager(ResourceBundle l) {
 		localisation = l;
@@ -351,7 +355,6 @@ public class RoleManager {
 			resultSet = pstmt.executeQuery();
 							
 			Role role = null;
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			Type colFilterType = new TypeToken<ArrayList<RoleColumnFilter>>(){}.getType();
 			while(resultSet.next()) {		
 				role = new Role();
@@ -478,12 +481,24 @@ public class RoleManager {
 	 * Update the column filter in a survey link
 	 */
 	public void updateSurveyRoleColumnFilter(Connection sd, String sIdent, 
-			Role role, ResourceBundle localisation) throws Exception {
+			Role role, ResourceBundle localisation,
+			int sId, int primarySurveyId) throws Exception {
 		
 		PreparedStatement pstmt = null;
 		
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-		String configString = gson.toJson(role.column_filter);
+		/*
+		 * The primary survey id is the identifier of the survey that has changed its column filter
+		 * The sId is the identifier of the bundled survey that is being updated to match
+		 */
+		ArrayList<RoleColumnFilter> columnFilters = role.column_filter;
+		if(sId != primarySurveyId) {
+			columnFilters = adaptColumnFiltersToSurvey(sd, sId, 
+					primarySurveyId, 
+					columnFilters,
+					sIdent,
+					role.linkid);
+		}
+		String configString = gson.toJson(columnFilters);
 		
 		if(configString != null && (configString.trim().length() == 0 || configString.trim().equals("[]"))) {
 			configString = null;
@@ -491,7 +506,7 @@ public class RoleManager {
 		try {
 			String sql = "update survey_role "
 					+ "set column_filter = ? "
-					+ "where id = ? "
+					+ "where r_id = ? "
 					+ "and survey_ident = ?";
 			
 			pstmt = sd.prepareStatement(sql);
@@ -573,7 +588,6 @@ public class RoleManager {
 			log.info("Get surveyRowFilter: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 							
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			while(resultSet.next()) {		
 				String sqlFragString = resultSet.getString("row_filter");
 				if(sqlFragString != null && sqlFragString.trim().length() > 0) {
@@ -624,7 +638,6 @@ public class RoleManager {
 				log.info("Get surveyRowFilter: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
 								
-				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 				while(resultSet.next()) {		
 					String sqlFragString = resultSet.getString("row_filter");
 					if(sqlFragString != null) {
@@ -696,7 +709,6 @@ public class RoleManager {
 			log.info("Get surveyColumnFilter: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 							
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			Type cfArrayType = new TypeToken<ArrayList<RoleColumnFilter>>(){}.getType();
 			
 			while(resultSet.next()) {		
@@ -746,7 +758,6 @@ public class RoleManager {
 				log.info("Get surveyColumnFilter From Role List: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
 								
-				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 				Type cfArrayType = new TypeToken<ArrayList<RoleColumnFilter>>(){}.getType();
 				
 				while(resultSet.next()) {		
@@ -764,6 +775,69 @@ public class RoleManager {
 		return cfArray;
 	}
 
+	/*
+	 * Convert a list of column identifiers for one survey into the equivalent list for another
+	 * Every question that is in the secondary survey and is also in the primary survey
+	 *  will be set according to the value in the role column filter list
+	 *  Questions that are unique to the secondary survey will be left untouched
+	 */
+	private ArrayList<RoleColumnFilter> adaptColumnFiltersToSurvey(
+			Connection sd,
+			int sId,
+			int primarySurveyId,
+			ArrayList<RoleColumnFilter> columnFilters,
+			String sIdent,
+			int roleId) throws SQLException {
+		
+		System.out.println("Converting.........");
+		
+		// Convert the ColumnFilter list into a hash
+		HashMap<Integer, RoleColumnFilter> filterHash = new HashMap<>();		
+		for(RoleColumnFilter f : columnFilters) {
+			filterHash.put(f.id, f);
+		}
+		
+		// Get the current filters of the secondary survey in a hash
+		HashMap<Integer, RoleColumnFilter> secondaryColumnFiltersHash = getColumnFiltersForRole(sd, sIdent, roleId);
+		
+		// Get the secondary questions
+		QuestionManager qm = new QuestionManager(null);
+		ArrayList<QuestionLite> secondaryQuestions = qm.getQuestionsInSurvey(sd, sId, "none", true,
+				false, null);
+		
+		// Get the primary questions in a hash
+		HashMap<String, QuestionLite> questionsHash = new HashMap<>();
+		ArrayList<QuestionLite> primaryQuestions = qm.getQuestionsInSurvey(sd, primarySurveyId, "none", true,
+				false, null);
+		for(QuestionLite q : primaryQuestions) {
+			questionsHash.put(q.name, q);
+		}
+		
+		// Process the secondary questions
+		for(QuestionLite q : secondaryQuestions) {
+			QuestionLite primaryQuestion = questionsHash.get(q.name);
+			if(primaryQuestion != null) {
+				// Question is common
+				if(filterHash.get(primaryQuestion.id) != null) {
+					secondaryColumnFiltersHash.put(q.id, new RoleColumnFilter(q.id));	// Filter set in primary so add to secondary
+				} else {
+					secondaryColumnFiltersHash.remove(q.id);	// Filter not set in primary so remove secondary
+				}
+			} else {
+				// question is not common - ignore
+			}
+		
+		}
+		
+		// Convert the secondary column filters to an array and return them
+		ArrayList<RoleColumnFilter> secondaryColumnFilters = new ArrayList<RoleColumnFilter>();
+		for(int key : secondaryColumnFiltersHash.keySet()) {
+			secondaryColumnFilters.add(secondaryColumnFiltersHash.get(key));
+		}
+		
+		return secondaryColumnFilters;
+	}
+	
 	private void setUsersForRole(Connection sd, int rId, ArrayList<Integer> users) {
 		
 		String sqlDelete = "delete from user_role where r_id = ?";
@@ -803,5 +877,39 @@ public class RoleManager {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 		
+	}
+	
+	private HashMap<Integer, RoleColumnFilter> getColumnFiltersForRole(Connection sd, String sIdent, int roleId) throws SQLException {
+		
+		HashMap<Integer, RoleColumnFilter> columnFiltersHash = new HashMap<Integer, RoleColumnFilter>();
+		
+		String sql = "select column_filter "
+				+ "from survey_role "
+				+ "where survey_ident = ? "
+				+ "and enabled = true "
+				+ "and r_id = ? ";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1,  sIdent);
+			pstmt.setInt(2,  roleId);
+			log.info("Get column filters for a role: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				String fString = rs.getString("column_filter");
+				if(fString != null) {
+					Type colFilterType = new TypeToken<ArrayList<RoleColumnFilter>>(){}.getType();
+					ArrayList<RoleColumnFilter> array = gson.fromJson(fString, colFilterType);
+					for(RoleColumnFilter rcf : array) {
+						columnFiltersHash.put(rcf.id, rcf);
+					}
+				}
+			}
+			
+		} finally {
+			
+		}
+		return columnFiltersHash;
 	}
 }

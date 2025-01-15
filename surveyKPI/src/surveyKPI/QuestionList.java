@@ -34,6 +34,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.MetaItem;
@@ -64,6 +65,8 @@ public class QuestionList extends Application {
 	private static Logger log =
 			 Logger.getLogger(Review.class.getName());
 
+	Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+	
 	public QuestionList() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
@@ -233,104 +236,20 @@ public class QuestionList extends Application {
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
-		ArrayList<QuestionLite> questions = new ArrayList<QuestionLite> ();
-		
-		PreparedStatement pstmt = null;
+		ArrayList<QuestionLite> questions = null;
 		try {
-			Form tf = GeneralUtilityMethods.getTopLevelForm(sd, sId);
+			QuestionManager qm = new QuestionManager(null);
+			questions = qm.getQuestionsInSurvey(sd, sId, language, inc_meta,
+					exc_read_only, single_type);
 			
-			if(inc_meta) {
-				ArrayList<MetaItem> metaItems = GeneralUtilityMethods.getPreloads(sd, sId);
-				for(MetaItem mi : metaItems) {
-					if(mi.isPreload) {
-						QuestionLite q = new QuestionLite();
-						q.id = mi.id;
-						q.name = mi.name;
-						q.f_id = tf.id;
-						q.type = mi.type;
-						q.toplevel = true;
-						
-						questions.add(q);
-					}	
-				}
-			}
-			
-			StringBuffer combinedSql = new StringBuffer("");
-			String sql = null;
-			String sql1 = null;
-			String sqlro = null;
-			String sqlst = null;
-			String sqlEnd = null;
-			ResultSet resultSet = null;
-
-			if(language.equals("none")) {
-				language = GeneralUtilityMethods.getDefaultLanguage(sd, sId);
-			}
-			
-			sql1 = "select q.q_id, q.qtype, t.value, q.qname, q.f_id "
-					+ "from form f "
-					+ "inner join question q "
-					+ "on f.f_id = q.f_id "
-					+ "left outer join translation t "
-					+ "on q.qtext_id = t.text_id "
-					+ "and t.language = ? "
-					+ "and t.type = 'none' " 
-					+ "and f.s_id = t.s_id "
-					+ "where f.s_id = ? "
-					+ "and q.source is not null "
-					+ "and q.soft_deleted = false ";
-								
-			
-			if(exc_read_only) {
-				sqlro = " and q.readonly = 'false' ";
-			} else {
-				sqlro = "";
-			}
-			
-			if(single_type != null && single_type.equals("string")) {
-				sqlst = " and (q.qtype = 'string' or q.qtype = 'calculate' or q.qtype = 'barcode') ";
-			} else {
-				sqlst = "";
-			}
-			
-			sqlEnd = " order by q.q_id asc;";		// Order required for Role Column Merge in survey_roles.js
-			
-			combinedSql.append(sql1);
-			combinedSql.append(sqlro);
-			combinedSql.append(sqlst);
-			combinedSql.append(sqlEnd);
-			sql = combinedSql.toString();	
-			
-			pstmt = sd.prepareStatement(sql);	 
-			pstmt.setString(1,  language);
-			pstmt.setInt(2,  sId);
-
-			log.info("Get questions: " + pstmt.toString());
-			resultSet = pstmt.executeQuery();
-			while(resultSet.next()) {
-				QuestionLite q = new QuestionLite();
-				
-				q.id = resultSet.getInt(1);
-				q.type = resultSet.getString(2);
-				q.q = resultSet.getString(3);
-				q.name = resultSet.getString(4);
-				q.f_id = resultSet.getInt(5);
-				q.toplevel = (q.f_id == tf.id);
-				questions.add(q);			
-			}
-			
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			response = Response.ok(gson.toJson(questions)).build();
-				
 		} catch (SQLException e) {
-		    log.log(Level.SEVERE, "SQL Error", e);	    
-		    response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, "SQL Error", e);	    
+			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 			SDDataSource.closeConnection(connectionString, sd);
 		}
-
-
+		
 		return response;
 	}
 	
@@ -417,7 +336,6 @@ public class QuestionList extends Application {
 				questions.add(q);			
 			}
 			
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			response = Response.ok(gson.toJson(questions)).build();
 				
 		} catch (SQLException e) {
@@ -563,7 +481,6 @@ public class QuestionList extends Application {
 			SurveyManager sm = new SurveyManager(localisation, null);	
 			questions = sm.getGroupQuestionsArray(sd, groupIdent, null, statusOnly);
 			
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			response = Response.ok(gson.toJson(questions)).build();
 				
 		} catch (SQLException e) {

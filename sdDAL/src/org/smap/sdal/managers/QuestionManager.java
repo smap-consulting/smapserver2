@@ -14,15 +14,19 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.ws.rs.core.Response;
+
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Label;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.PropertyChange;
 import org.smap.sdal.model.Question;
+import org.smap.sdal.model.QuestionLite;
 import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.Survey;
@@ -2022,4 +2026,106 @@ public class QuestionManager {
 		return questions;
 	}
 
+	public ArrayList<QuestionLite> getQuestionsInSurvey(Connection sd, 
+			int sId, 
+			String language,
+			boolean inc_meta,
+			boolean exc_read_only,
+			String single_type) throws SQLException {
+		
+		ArrayList<QuestionLite> questions = new ArrayList<QuestionLite> ();
+		
+		PreparedStatement pstmt = null;
+		try {
+			Form tf = GeneralUtilityMethods.getTopLevelForm(sd, sId);
+			
+			if(inc_meta) {
+				ArrayList<MetaItem> metaItems = GeneralUtilityMethods.getPreloads(sd, sId);
+				for(MetaItem mi : metaItems) {
+					if(mi.isPreload) {
+						QuestionLite q = new QuestionLite();
+						q.id = mi.id;
+						q.name = mi.name;
+						q.f_id = tf.id;
+						q.type = mi.type;
+						q.toplevel = true;
+						
+						questions.add(q);
+					}	
+				}
+			}
+			
+			StringBuffer combinedSql = new StringBuffer("");
+			String sql = null;
+			String sql1 = null;
+			String sqlro = null;
+			String sqlst = null;
+			String sqlEnd = null;
+			ResultSet resultSet = null;
+
+			if(language.equals("none")) {
+				language = GeneralUtilityMethods.getDefaultLanguage(sd, sId);
+			}
+			
+			sql1 = "select q.q_id, q.qtype, t.value, q.qname, q.f_id "
+					+ "from form f "
+					+ "inner join question q "
+					+ "on f.f_id = q.f_id "
+					+ "left outer join translation t "
+					+ "on q.qtext_id = t.text_id "
+					+ "and t.language = ? "
+					+ "and t.type = 'none' " 
+					+ "and f.s_id = t.s_id "
+					+ "where f.s_id = ? "
+					+ "and q.source is not null "
+					+ "and q.soft_deleted = false ";
+								
+			
+			if(exc_read_only) {
+				sqlro = " and q.readonly = 'false' ";
+			} else {
+				sqlro = "";
+			}
+			
+			if(single_type != null && single_type.equals("string")) {
+				sqlst = " and (q.qtype = 'string' or q.qtype = 'calculate' or q.qtype = 'barcode') ";
+			} else {
+				sqlst = "";
+			}
+			
+			sqlEnd = " order by q.q_id asc;";		// Order required for Role Column Merge in survey_roles.js
+			
+			combinedSql.append(sql1);
+			combinedSql.append(sqlro);
+			combinedSql.append(sqlst);
+			combinedSql.append(sqlEnd);
+			sql = combinedSql.toString();	
+			
+			pstmt = sd.prepareStatement(sql);	 
+			pstmt.setString(1,  language);
+			pstmt.setInt(2,  sId);
+
+			log.info("Get questions: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
+			while(resultSet.next()) {
+				QuestionLite q = new QuestionLite();
+				
+				q.id = resultSet.getInt(1);
+				q.type = resultSet.getString(2);
+				q.q = resultSet.getString(3);
+				q.name = resultSet.getString(4);
+				q.f_id = resultSet.getInt(5);
+				q.toplevel = (q.f_id == tf.id);
+				questions.add(q);			
+			}
+			
+
+				
+		}  finally {
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+			
+		}
+		
+		return questions;
+	}
 }

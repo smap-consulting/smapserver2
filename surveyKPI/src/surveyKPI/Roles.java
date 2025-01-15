@@ -37,7 +37,6 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
-import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -347,6 +346,7 @@ public class Roles extends Application {
 		} 
 		
 		Response response = null;
+		Role updatedRole = new Role();
 		
 		Role role = new Gson().fromJson(roleString, Role.class);
 		
@@ -362,67 +362,48 @@ public class Roles extends Application {
 		aSM.isValidRole(sd, request.getRemoteUser(), role.id);
 		// End Authorisation
 		
-		String sqlChangeLog = "insert into survey_change " +
-				"(s_id, version, changes, user_id, apply_results, updated_time) " +
-				"values(?, ?, ?, ?, 'true', ?)";
-		PreparedStatement pstmtChangeLog = null;
-		
 		try {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			/*
+			 * Update the requested role
+			 */
+			updatedRole.linkid = updateSingleSurveyRole(sd, localisation, sId, role, property,
+					request.getRemoteUser(), sId);
 			
-			RoleManager rm = new RoleManager(localisation);
-			ChangeElement change = new ChangeElement();
-			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-			
-			if(property.equals("enabled")) {
-				role.linkid = rm.updateSurveyLink(sd, sIdent, role.id, role.linkid, role.enabled);
-				change.msg = localisation.getString(role.enabled ? "ed_c_re" : "ed_c_rne");
-			} else if(property.equals("row_filter")) {
-				rm.updateSurveyRoleRowFilter(sd, sIdent, role, localisation);
-				change.msg = localisation.getString("ed_c_rrf");
-				change.msg = change.msg.replace("%s2", GeneralUtilityMethods.getSafeText(role.row_filter, true));
-			} else if(property.equals("column_filter")) {
-				rm.updateSurveyRoleColumnFilter(sd, sIdent, role, localisation);
-				change.msg = localisation.getString("ed_c_rcf");
-				StringBuilder colMsg = new StringBuilder("");
-				for(RoleColumnFilter c : role.column_filter) {
-					String col = GeneralUtilityMethods.getQuestionNameFromId(sd, sId, c.id);
-					if(colMsg.length() > 0) {
-						colMsg.append(", ");
+			/*
+			 * If all roles are to be treated as a bundle then update the other surveys in the bundle 
+			 */
+			if(GeneralUtilityMethods.getSurveyBundleRoles(sd, sId)) {
+				SurveyManager sm = new SurveyManager(localisation, "UTC");
+				
+				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+				String bundleIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+				
+				ArrayList<GroupDetails> bundledSurveys = sm.getSurveysInGroup(sd, bundleIdent);
+				if(bundledSurveys.size() > 1) {
+					for(GroupDetails gd : bundledSurveys) {
+						
+						if(!surveyIdent.equals(gd.surveyIdent)) {
+							updateSingleSurveyRole(sd, localisation, gd.sId, role, property,
+									request.getRemoteUser(), sId);
+						}
 					}
-					colMsg.append(col);
 				}
-				change.msg = change.msg.replace("%s2", GeneralUtilityMethods.getSafeText(colMsg.toString(), true));
 			}
-
-			// Record change in change log
-			int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
-			int version = GeneralUtilityMethods.getSurveyVersion(sd, sId);
-
-			change.action = "role";
-			change.origSId = sId;	
-			change.msg = change.msg.replace("%s1", GeneralUtilityMethods.getSafeText(role.name, true));
 			
-			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
-			pstmtChangeLog.setInt(1, sId);
-			pstmtChangeLog.setInt(2, version);
-			pstmtChangeLog.setString(3, gson.toJson(change));
-			pstmtChangeLog.setInt(4, userId);
-			pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
-			pstmtChangeLog.execute();			
-			String resp = gson.toJson(role);
+			String resp = gson.toJson(updatedRole);
 			response = Response.ok(resp).build();
-		} catch (Exception e) {
 			
+		} catch (Exception e) {
 			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE,"Error", e);
-
 		} finally {
-			if(pstmtChangeLog != null) try {pstmtChangeLog.close();}catch(Exception e) {}
 			SDDataSource.closeConnection("surveyKPI-updateSurveyRoles", sd);
 		}
+
 
 		return response;
 	}
@@ -528,8 +509,7 @@ public class Roles extends Application {
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				ArrayList<GroupDetails> bundledSurveys = sm.getSurveysInGroup(sd, bundleIdent);
 				if(bundledSurveys.size() > 1) {
-					for(GroupDetails gd : bundledSurveys) {
-						
+					for(GroupDetails gd : bundledSurveys) {	
 						if(!surveyIdent.equals(gd.surveyIdent)) {
 							/*
 							 * Remove any roles that are not enabled in the prime survey
@@ -812,6 +792,71 @@ public class Roles extends Application {
 		
 		return response;
 		
+	}
+	
+	private int updateSingleSurveyRole(Connection sd, 
+			ResourceBundle localisation, 
+			int sId,
+			Role role,
+			String property,
+			String user,
+			int primarySurveyId) throws Exception {
+		
+		int linkid = role.linkid;
+		
+		String sqlChangeLog = "insert into survey_change " +
+				"(s_id, version, changes, user_id, apply_results, updated_time) " +
+				"values(?, ?, ?, ?, 'true', ?)";
+		PreparedStatement pstmtChangeLog = null;
+		
+		try {
+	
+			RoleManager rm = new RoleManager(localisation);
+			ChangeElement change = new ChangeElement();
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			
+			if(property.equals("enabled")) {
+				linkid = rm.updateSurveyLink(sd, sIdent, role.id, role.linkid, role.enabled);
+				change.msg = localisation.getString(role.enabled ? "ed_c_re" : "ed_c_rne");
+			} else if(property.equals("row_filter")) {
+				rm.updateSurveyRoleRowFilter(sd, sIdent, role, localisation);
+				change.msg = localisation.getString("ed_c_rrf");
+				change.msg = change.msg.replace("%s2", GeneralUtilityMethods.getSafeText(role.row_filter, true));
+			} else if(property.equals("column_filter")) {
+				rm.updateSurveyRoleColumnFilter(sd, sIdent, role, localisation, sId, primarySurveyId);
+				change.msg = localisation.getString("ed_c_rcf");
+				StringBuilder colMsg = new StringBuilder("");
+				for(RoleColumnFilter c : role.column_filter) {
+					String col = GeneralUtilityMethods.getQuestionNameFromId(sd, primarySurveyId, c.id);
+					if(colMsg.length() > 0) {
+						colMsg.append(", ");
+					}
+					colMsg.append(col);
+				}
+				change.msg = change.msg.replace("%s2", GeneralUtilityMethods.getSafeText(colMsg.toString(), true));
+			}
+
+			// Record change in change log
+			int userId = GeneralUtilityMethods.getUserId(sd, user);
+			int version = GeneralUtilityMethods.getSurveyVersion(sd, sId);
+
+			change.action = "role";
+			change.origSId = sId;	
+			change.msg = change.msg.replace("%s1", GeneralUtilityMethods.getSafeText(role.name, true));
+			
+			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+			pstmtChangeLog.setInt(1, sId);
+			pstmtChangeLog.setInt(2, version);
+			pstmtChangeLog.setString(3, gson.toJson(change));
+			pstmtChangeLog.setInt(4, userId);
+			pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
+			pstmtChangeLog.execute();			
+			
+		} finally {
+			if(pstmtChangeLog != null) try {pstmtChangeLog.close();}catch(Exception e) {}
+		}
+		
+		return linkid;
 	}
 
 }
