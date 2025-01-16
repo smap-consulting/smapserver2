@@ -370,7 +370,7 @@ public class Roles extends Application {
 			/*
 			 * Update the requested role
 			 */
-			updatedRole.linkid = updateSingleSurveyRole(sd, localisation, sId, role, property,
+			updatedRole.srId = updateSingleSurveyRole(sd, localisation, sId, role, property,
 					request.getRemoteUser(), sId);
 			
 			/*
@@ -463,6 +463,12 @@ public class Roles extends Application {
 				+ "survey_ident = ?";
 		PreparedStatement pstmtRemoveExisting = null;
 		
+		String sqlGetMatching = "select id, r_id, column_filter "
+				+ "from survey_role "
+				+ "where survey_ident = ?"
+				+ "and enabled";
+		PreparedStatement pstmtGetMatching = null;
+		
 		String sqlAddMatching = "insert into survey_role (r_id, enabled, column_filter, row_filter, survey_ident) "
 				+ "select r_id, enabled, column_filter, row_filter, ? "
 				+ "from survey_role "
@@ -481,6 +487,7 @@ public class Roles extends Application {
 			sd.setAutoCommit(false);
 			
 			pstmtRemoveExisting = sd.prepareStatement(sqlRemoveExisting);
+			pstmtGetMatching = sd.prepareStatement(sqlGetMatching);
 			pstmtAddMatching = sd.prepareStatement(sqlAddMatching);
 			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
 			
@@ -527,6 +534,24 @@ public class Roles extends Application {
 							pstmtAddMatching.executeUpdate();
 							
 							/*
+							 * Update column filters to refer to the correct question identifiers
+							 */
+							pstmtGetMatching.setString(1, surveyIdent);
+							log.info("Get matching roles roles: " + pstmtGetMatching.toString());
+							ResultSet rs = pstmtGetMatching.executeQuery();
+							while(rs.next()) {
+								Role role = new Role();
+								role.id = rs.getInt("r_id");
+								role.srId = rs.getInt("id");
+								String cfString = rs.getString("column_filter");
+								if(cfString != null) {
+									role.column_filter = gson.fromJson(cfString, new TypeToken<ArrayList<RoleColumnFilter>>(){}.getType());
+									updateSingleSurveyRole(sd, localisation, gd.sId, role, "column_filter",
+										request.getRemoteUser(), sId);
+								}
+							}
+							
+							/*
 							 * Update the change log for the survey
 							 */
 							
@@ -561,6 +586,7 @@ public class Roles extends Application {
 			if(pstmtRecordValueUpdate != null) try {pstmtRecordValueUpdate.close();}catch(Exception e) {}
 			if(pstmtRecordValueNew != null) try {pstmtRecordValueNew.close();}catch(Exception e) {}
 			if(pstmtRemoveExisting != null) try {pstmtRemoveExisting.close();}catch(Exception e) {}
+			if(pstmtGetMatching != null) try {pstmtGetMatching.close();}catch(Exception e) {}
 			if(pstmtAddMatching != null) try {pstmtAddMatching.close();}catch(Exception e) {}
 			SDDataSource.closeConnection("surveyKPI-updateSurveyRoles", sd);
 		}
@@ -802,7 +828,7 @@ public class Roles extends Application {
 			String user,
 			int primarySurveyId) throws Exception {
 		
-		int linkid = role.linkid;
+		int surveyRoleId = role.srId;
 		
 		String sqlChangeLog = "insert into survey_change " +
 				"(s_id, version, changes, user_id, apply_results, updated_time) " +
@@ -816,7 +842,7 @@ public class Roles extends Application {
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			
 			if(property.equals("enabled")) {
-				linkid = rm.updateSurveyLink(sd, sIdent, role.id, role.linkid, role.enabled);
+				surveyRoleId = rm.updateSurveyLink(sd, sIdent, role.id, role.srId, role.enabled);
 				change.msg = localisation.getString(role.enabled ? "ed_c_re" : "ed_c_rne");
 			} else if(property.equals("row_filter")) {
 				rm.updateSurveyRoleRowFilter(sd, sIdent, role, localisation);
@@ -856,7 +882,7 @@ public class Roles extends Application {
 			if(pstmtChangeLog != null) try {pstmtChangeLog.close();}catch(Exception e) {}
 		}
 		
-		return linkid;
+		return surveyRoleId;
 	}
 
 }

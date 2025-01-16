@@ -308,7 +308,7 @@ public class RoleManager {
 			String sqlSuperUser = "SELECT r.id as id, "
 					+ "r.name as name, "
 					+ "sr.enabled, "
-					+ "sr.id as linkid,"
+					+ "sr.id as sr_id,"
 					+ "sr.row_filter,"
 					+ "sr.column_filter "
 					+ "from role r "
@@ -320,7 +320,7 @@ public class RoleManager {
 			String sqlNormalUser = "SELECT r.id as id, "
 					+ "r.name as name, "
 					+ "sr.enabled, "
-					+ "sr.id as linkid,"
+					+ "sr.id as sr_id,"
 					+ "sr.row_filter,"
 					+ "sr.column_filter "
 					+ "from role r "
@@ -358,7 +358,7 @@ public class RoleManager {
 			Type colFilterType = new TypeToken<ArrayList<RoleColumnFilter>>(){}.getType();
 			while(resultSet.next()) {		
 				role = new Role();
-				role.linkid = resultSet.getInt("linkid");
+				role.srId = resultSet.getInt("sr_id");
 				role.id = resultSet.getInt("id");
 				role.name = resultSet.getString("name");
 				role.enabled = resultSet.getBoolean("enabled");
@@ -464,7 +464,7 @@ public class RoleManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, role.row_filter);
-			pstmt.setInt(2, role.linkid);
+			pstmt.setInt(2, role.srId);
 			pstmt.setString(3, sIdent);
 			
 			log.info("Update survey roles: " + pstmt.toString());
@@ -478,7 +478,7 @@ public class RoleManager {
 	}
 	
 	/*
-	 * Update the column filter in a survey link
+	 * Update the column filter in a role
 	 */
 	public void updateSurveyRoleColumnFilter(Connection sd, String sIdent, 
 			Role role, ResourceBundle localisation,
@@ -496,7 +496,7 @@ public class RoleManager {
 					primarySurveyId, 
 					columnFilters,
 					sIdent,
-					role.linkid);
+					role.id);
 		}
 		String configString = gson.toJson(columnFilters);
 		
@@ -511,7 +511,7 @@ public class RoleManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, configString);
-			pstmt.setInt(2, role.linkid);
+			pstmt.setInt(2, role.id);
 			pstmt.setString(3, sIdent);
 			
 			log.info("Update survey roles: " + pstmt.toString());
@@ -801,9 +801,12 @@ public class RoleManager {
 		HashMap<Integer, RoleColumnFilter> secondaryColumnFiltersHash = getColumnFiltersForRole(sd, sIdent, roleId);
 		
 		// Get the secondary questions
+		HashMap<Integer, QuestionLite> secondaryQuestionsHash = new HashMap<>();
 		QuestionManager qm = new QuestionManager(null);
-		ArrayList<QuestionLite> secondaryQuestions = qm.getQuestionsInSurvey(sd, sId, "none", true,
-				false, null);
+		ArrayList<QuestionLite> secondaryQuestions = qm.getQuestionsInSurvey(sd, sId, "none", true,false, null);
+		for(QuestionLite q : secondaryQuestions) {
+			secondaryQuestionsHash.put(q.id, q);
+		}
 		
 		// Get the primary questions in a hash
 		HashMap<String, QuestionLite> questionsHash = new HashMap<>();
@@ -813,6 +816,16 @@ public class RoleManager {
 			questionsHash.put(q.name, q);
 		}
 		
+		// Remove any questions from the secondary filters that are not in the secondary questions
+		ArrayList<Integer> questionsToRemove = new ArrayList<>();
+		for(Integer key : secondaryColumnFiltersHash.keySet()) {
+			if(secondaryQuestionsHash.get(key) == null) {
+				questionsToRemove.add(key);
+			}
+		}
+		for(Integer key : questionsToRemove) {
+			secondaryColumnFiltersHash.remove(key);
+		}
 		// Process the secondary questions
 		for(QuestionLite q : secondaryQuestions) {
 			QuestionLite primaryQuestion = questionsHash.get(q.name);
