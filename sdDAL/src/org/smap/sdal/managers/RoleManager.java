@@ -382,10 +382,10 @@ public class RoleManager {
 	/*
 	 * Update a survey role or the link between a survey and a role
 	 */
-	public int updateSurveyLink(Connection sd, String sIdent, int rId, int linkId, boolean enabled) throws SQLException {
+	public int updateSurveyRole(Connection sd, String sIdent, int rId, boolean enabled) throws SQLException {
 		
 		PreparedStatement pstmt = null;
-		int newLinkId = linkId;
+		int newLinkId = 0;
 		
 		try {
 			String sqlNew = "insert into survey_role (survey_ident, r_id, enabled) "
@@ -393,31 +393,31 @@ public class RoleManager {
 			
 			String sqlExisting = "update survey_role "
 					+ "set enabled = ? "
-					+ "where id = ? "
+					+ "where r_id = ? "
 					+ "and survey_ident = ?";
 			
-			if(linkId > 0) {
-				pstmt = sd.prepareStatement(sqlExisting);
-				pstmt.setBoolean(1, enabled);
-				pstmt.setInt(2, linkId);
-				pstmt.setString(3, sIdent);
-			} else {
+			pstmt = sd.prepareStatement(sqlExisting);
+			pstmt.setBoolean(1, enabled);
+			pstmt.setInt(2, rId);
+			pstmt.setString(3, sIdent);
+			log.info("Update survey role: " + pstmt.toString());
+			int count = pstmt.executeUpdate();
+			
+			if(count == 0) {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sqlNew, Statement.RETURN_GENERATED_KEYS);
 				pstmt.setString(1, sIdent);
 				pstmt.setInt(2, rId);
 				pstmt.setBoolean(3, enabled);	
-			}
-			
-			log.info("Get update survey roles: " + pstmt.toString());
-			pstmt.executeUpdate();
-			
-			if(linkId == 0) {
+				log.info("Create new survey role: " + pstmt.toString());
+				pstmt.executeUpdate();
+				
 				ResultSet rs = pstmt.getGeneratedKeys();
 				if(rs.next()) {
 					newLinkId = rs.getInt(1);
 				} 
 			}
-			    
+				    
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
@@ -842,10 +842,13 @@ public class RoleManager {
 		
 		}
 		
-		// Convert the secondary column filters to an array and return them
+		// Convert the secondary column filters to an array in the same order as the questions and return them
 		ArrayList<RoleColumnFilter> secondaryColumnFilters = new ArrayList<RoleColumnFilter>();
-		for(int key : secondaryColumnFiltersHash.keySet()) {
-			secondaryColumnFilters.add(secondaryColumnFiltersHash.get(key));
+		for(QuestionLite q : secondaryQuestions) {
+			RoleColumnFilter rcf = secondaryColumnFiltersHash.get(q.id);
+			if(rcf != null) {
+				secondaryColumnFilters.add(rcf);
+			}
 		}
 		
 		return secondaryColumnFilters;

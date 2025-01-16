@@ -842,7 +842,7 @@ public class Roles extends Application {
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			
 			if(property.equals("enabled")) {
-				surveyRoleId = rm.updateSurveyLink(sd, sIdent, role.id, role.srId, role.enabled);
+				surveyRoleId = rm.updateSurveyRole(sd, sIdent, role.id, role.enabled);
 				change.msg = localisation.getString(role.enabled ? "ed_c_re" : "ed_c_rne");
 			} else if(property.equals("row_filter")) {
 				rm.updateSurveyRoleRowFilter(sd, sIdent, role, localisation);
