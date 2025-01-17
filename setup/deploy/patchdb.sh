@@ -49,7 +49,7 @@ if [ $a24 -eq 0 ]; then
 	exit 1;
 fi
 
-version=2410
+version=2501
 if [ -e /smap_bin/smap_version ]; then
         version=`sudo cat /smap_bin/smap_version`
 elif [ -e ~/smap_version ]; then
@@ -354,5 +354,4 @@ echo "\COPY language_codes (code, aws_translate, aws_transcribe, transcribe_defa
 
 
 # update version reference
-new_version="2410"
-echo "$new_version" > /smap_bin/smap_version
+echo "2501" > /smap_bin/smap_version
