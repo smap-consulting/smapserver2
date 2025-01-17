@@ -375,8 +375,10 @@ public class Roles extends Application {
 			
 			/*
 			 * If all roles are to be treated as a bundle then update the other surveys in the bundle 
+			 * This is only required if the column filter or row filter are being updated
 			 */
-			if(GeneralUtilityMethods.getSurveyBundleRoles(sd, sId)) {
+			if(("row_filter".equals(property) || "column_filter".equals(property)) 
+					&& GeneralUtilityMethods.getSurveyBundleRoles(sd, sId)) {
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				
 				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
@@ -409,7 +411,8 @@ public class Roles extends Application {
 	}
 
 	/*
-	 * Turn a survey's roles into the roles for the bundle that the survey is in
+	 * Handle the action of the user in turning on the checkbox to make roles behave the same
+	 * for the bundle
 	 */
 	@Path("/survey/bundle")
 	@POST
@@ -459,22 +462,12 @@ public class Roles extends Application {
 				+ "values(?, ?, ?, now())";
 		PreparedStatement pstmtRecordValueNew = null;
 		
-		String sqlRemoveExisting = "delete from survey_role where "
-				+ "survey_ident = ?";
-		PreparedStatement pstmtRemoveExisting = null;
-		
-		String sqlGetMatching = "select id, r_id, column_filter "
+		String sqlGetMatching = "select id, r_id, column_filter, row_filter "
 				+ "from survey_role "
-				+ "where survey_ident = ?"
-				+ "and enabled";
+				+ "where survey_ident = ? "
+				+ "and enabled "
+				+ "and r_id in (select r_id from survey_role where enabled and survey_ident = ?)";
 		PreparedStatement pstmtGetMatching = null;
-		
-		String sqlAddMatching = "insert into survey_role (r_id, enabled, column_filter, row_filter, survey_ident) "
-				+ "select r_id, enabled, column_filter, row_filter, ? "
-				+ "from survey_role "
-				+ "where survey_ident = ?"
-				+ "and enabled";
-		PreparedStatement pstmtAddMatching = null;
 		
 		try {
 			// Get the users locale
@@ -485,10 +478,8 @@ public class Roles extends Application {
 			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 			sd.setAutoCommit(false);
-			
-			pstmtRemoveExisting = sd.prepareStatement(sqlRemoveExisting);
+			;
 			pstmtGetMatching = sd.prepareStatement(sqlGetMatching);
-			pstmtAddMatching = sd.prepareStatement(sqlAddMatching);
 			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
 			
 			/*
@@ -518,32 +509,26 @@ public class Roles extends Application {
 				if(bundledSurveys.size() > 1) {
 					for(GroupDetails gd : bundledSurveys) {	
 						if(!surveyIdent.equals(gd.surveyIdent)) {
-							/*
-							 * Remove any roles that are not enabled in the prime survey
-							 */
-							pstmtRemoveExisting.setString(1, gd.surveyIdent);
-							log.info("Remove existing roles: " + pstmtRemoveExisting.toString());
-							pstmtRemoveExisting.executeUpdate();
-							
-							/*
-							 * Add roles enabled in the prime survey
-							 */
-							pstmtAddMatching.setString(1, gd.surveyIdent);
-							pstmtAddMatching.setString(2, surveyIdent);
-							log.info("Add matching roles roles: " + pstmtAddMatching.toString());
-							pstmtAddMatching.executeUpdate();
 							
 							/*
 							 * Update column filters to refer to the correct question identifiers
 							 */
 							pstmtGetMatching.setString(1, surveyIdent);
+							pstmtGetMatching.setString(2, gd.surveyIdent);
 							log.info("Get matching roles roles: " + pstmtGetMatching.toString());
 							ResultSet rs = pstmtGetMatching.executeQuery();
 							while(rs.next()) {
 								Role role = new Role();
 								role.id = rs.getInt("r_id");
 								role.srId = rs.getInt("id");
+								role.row_filter = rs.getString("row_filter");
 								String cfString = rs.getString("column_filter");
+	
+								// Align row filter
+								updateSingleSurveyRole(sd, localisation, gd.sId, role, "row_filter",
+									request.getRemoteUser(), sId);
+
+								// Align column filter
 								if(cfString != null) {
 									role.column_filter = gson.fromJson(cfString, new TypeToken<ArrayList<RoleColumnFilter>>(){}.getType());
 									updateSingleSurveyRole(sd, localisation, gd.sId, role, "column_filter",
@@ -585,9 +570,7 @@ public class Roles extends Application {
 			if(pstmtChangeLog != null) try {pstmtChangeLog.close();}catch(Exception e) {}
 			if(pstmtRecordValueUpdate != null) try {pstmtRecordValueUpdate.close();}catch(Exception e) {}
 			if(pstmtRecordValueNew != null) try {pstmtRecordValueNew.close();}catch(Exception e) {}
-			if(pstmtRemoveExisting != null) try {pstmtRemoveExisting.close();}catch(Exception e) {}
 			if(pstmtGetMatching != null) try {pstmtGetMatching.close();}catch(Exception e) {}
-			if(pstmtAddMatching != null) try {pstmtAddMatching.close();}catch(Exception e) {}
 			SDDataSource.closeConnection("surveyKPI-updateSurveyRoles", sd);
 		}
 

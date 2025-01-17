@@ -459,12 +459,12 @@ public class RoleManager {
 		try {
 			String sql = "update survey_role "
 					+ "set row_filter = ? "
-					+ "where id = ? "
+					+ "where r_id = ? "
 					+ "and survey_ident = ?";
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, role.row_filter);
-			pstmt.setInt(2, role.srId);
+			pstmt.setInt(2, role.id);
 			pstmt.setString(3, sIdent);
 			
 			log.info("Update survey roles: " + pstmt.toString());
@@ -494,7 +494,7 @@ public class RoleManager {
 		if(sId != primarySurveyId) {
 			columnFilters = adaptColumnFiltersToSurvey(sd, sId, 
 					primarySurveyId, 
-					columnFilters,
+					role.column_filter,
 					sIdent,
 					role.id);
 		}
