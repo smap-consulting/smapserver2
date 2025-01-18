@@ -536,22 +536,6 @@ public class Roles extends Application {
 								}
 							}
 							
-							/*
-							 * Update the change log for the survey
-							 */
-							
-							// TODO
-							ChangeElement change = new ChangeElement();
-							change.action = "roles_update";
-							change.origSId = sId;
-							StringBuilder msg = new StringBuilder(localisation.getString("tu_s_roles_c"));
-							
-							pstmtChangeLog.setInt(1, gd.sId);
-							pstmtChangeLog.setInt(2, gd.sId);
-							pstmtChangeLog.setString(3, gson.toJson(change));
-							pstmtChangeLog.setInt(4, userId);
-							//pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
-							//pstmtChangeLog.execute();	
 						}
 							
 					}
