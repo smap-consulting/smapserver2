@@ -448,8 +448,6 @@ public class MessagingManagerApply {
 			/*
 			 * Device notifications have been accumulated to an array so that duplicates can be eliminated
 			 * Process these now
-			 *
-			 * Disable temporarily until this is fixed
 			 */
 			// Get a list of users impacted by task changes without duplicates
 			for(Integer taskId : changedTasks.keySet()) {

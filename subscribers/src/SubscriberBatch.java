@@ -93,7 +93,8 @@ public class SubscriberBatch {
 	
 	boolean mediaCheckDone = false;
 	boolean forDevice = false;			// URL prefixes should be in the client format
-	int infrequentfreshInterval = 0;	// Only refresh timezone when this gets to 0, do it first time the batch job is run
+	int infrequentRefreshInterval = 0;	// Only refresh timezone when this gets to 0, do it first time the batch job is run
+	int deviceRefreshInterval = 10;		// Only refresh devices once every 10 times through
 
 	/**
 	 * @param args
@@ -288,27 +289,30 @@ public class SubscriberBatch {
 				/*
 				 * Send device messages
 				 */
-				try {
-					String awsPropertiesFile = null;
-					File pFile = new File(basePath + "_bin/resources/properties/aws.properties");
-					if (pFile.exists()) {
-						awsPropertiesFile = pFile.getAbsolutePath();
-						mma.applyDeviceMessages(dbc.sd, dbc.results, serverName, 
-								awsPropertiesFile);
-					} else {
-						GeneralUtilityMethods.log(log, 
-							"Skipping Message Processing. No aws properties file at: " + pFile.getAbsolutePath(),
-							"device_message",
-							null);
+				if(deviceRefreshInterval-- <= 0) {		// TODO this is a temporary salve to high load caused by these refreshes
+					try {
+						String awsPropertiesFile = null;
+						File pFile = new File(basePath + "_bin/resources/properties/aws.properties");
+						if (pFile.exists()) {
+							awsPropertiesFile = pFile.getAbsolutePath();
+							mma.applyDeviceMessages(dbc.sd, dbc.results, serverName, 
+									awsPropertiesFile);
+						} else {
+							GeneralUtilityMethods.log(log, 
+								"Skipping Message Processing. No aws properties file at: " + pFile.getAbsolutePath(),
+								"device_message",
+								null);
+						}
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
 					}
-				} catch (Exception e) {
-					log.log(Level.SEVERE, e.getMessage(), e);
+					deviceRefreshInterval = 10;
 				}
 				
 				/*
 				 * Refresh timezones and other operations that should be done ocaisionally
 				 */
-				if(infrequentfreshInterval-- <= 0) {
+				if(infrequentRefreshInterval-- <= 0) {
 					
 					log.info("xxxxxxxxxxxxxxxx: Infrequent refresh");
 					
@@ -325,7 +329,7 @@ public class SubscriberBatch {
 					// Erase any bundle settings not linked to by a survey
 					deleteOldBundleSettings(dbc.sd);
 					
-					infrequentfreshInterval = 2000;	// Every 2,000 times through these operations will be done, about 1.5 days
+					infrequentRefreshInterval = 2000;	// Every 2,000 times through these operations will be done, about 1.5 days
 				}
 				
 				/*
