@@ -310,7 +310,7 @@ public class SubscriberBatch {
 				}
 				
 				/*
-				 * Refresh timezones and other operations that should be done ocaisionally
+				 * Refresh timezones and other operations that should be done occasionally
 				 */
 				if(infrequentRefreshInterval-- <= 0) {
 					

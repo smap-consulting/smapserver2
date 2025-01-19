@@ -730,7 +730,7 @@ public class UserManager {
 			ResultSet rs = pstmt.getGeneratedKeys();
 			if (rs.next()){
 				u_id = rs.getInt(1);
-				insertUserGroupsProjects(sd, u, u_id, isOrgUser, isSecurityManager, isEnterpriseManager, isServerOwner);
+				insertUserGroupsProjects(sd, u, u_id, isOrgUser, isSecurityManager, isEnterpriseManager, isServerOwner, false);
 				insertUserOrganisations(sd, u, u_id, o_id, isOrgUser, userIdent);
 			}
 
@@ -843,7 +843,7 @@ public class UserManager {
 			ResultSet rs = pstmt.getGeneratedKeys();
 			if (rs.next()){
 				u_id = rs.getInt(1);
-				insertUserGroupsProjects(sd, u, u_id, false, true, false, false);		// The user roles are sourced from the action and have been added by a security manager hence we will act as a security manager here
+				insertUserGroupsProjects(sd, u, u_id, false, true, false, false, false);		// The user roles are sourced from the action and have been added by a security manager hence we will act as a security manager here
 			}
 
 		}  finally {		
@@ -1034,7 +1034,8 @@ public class UserManager {
 					pstmt.executeUpdate();
 
 					// Update the groups, projects and roles
-					insertUserGroupsProjects(sd, u, u.id, isOrgUser, isSecurityManager, isEnterpriseManager, isServerOwner);
+					insertUserGroupsProjects(sd, u, u.id, isOrgUser, isSecurityManager, 
+							isEnterpriseManager, isServerOwner, isSwitch);
 					if(!isSwitch) {
 						insertUserOrganisations(sd, u, u.id, u.o_id, isOrgUser, userIdent);
 					}
@@ -1152,7 +1153,8 @@ public class UserManager {
 			boolean isOrgUser, 
 			boolean isSecurityManager,
 			boolean isEnterpriseManager,
-			boolean isServerOwner) throws SQLException {
+			boolean isServerOwner,
+			boolean isSwitch) throws SQLException {
 
 		String sql;
 		PreparedStatement pstmt = null;
@@ -1250,7 +1252,14 @@ public class UserManager {
 					Project p = u.projects.get(j);
 
 					pstmtInsertProjectGroup.setInt(2, p.id);
-					pstmtInsertProjectGroup.executeUpdate();
+					try {
+						pstmtInsertProjectGroup.executeUpdate();
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+						if(!isSwitch) { // Ignore the exception if we are switching organisation.  The project may have been deleted.
+							throw e;
+						}
+					}
 
 				}
 
@@ -1274,7 +1283,14 @@ public class UserManager {
 					Role r = u.roles.get(j);
 					pstmtInsertUserRole.setInt(2, r.id);
 					log.info("Insert user role: " + pstmtInsertUserRole.toString());
-					pstmtInsertUserRole.executeUpdate();
+					try {
+						pstmtInsertUserRole.executeUpdate();
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+						if(!isSwitch) { // Ignore the exception if we are switching organisation.  The role may have been deleted.
+							throw e;
+						}
+					}
 				}
 			}
 			
