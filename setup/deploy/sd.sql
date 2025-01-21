@@ -193,12 +193,12 @@ create index if not exists survey_p_id on survey(p_id);
 CREATE SEQUENCE bundle_seq START 1;
 ALTER SEQUENCE bundle_seq OWNER TO ws;
 
-CREATE TABLE bundle (
+CREATE if not exists TABLE bundle (
 	id integer DEFAULT NEXTVAL('bundle_seq') CONSTRAINT pk_bundle PRIMARY KEY,
 	group_survey_ident text,
 	bundle_roles boolean,
 	changed_by text,
 	changed_ts TIMESTAMP WITH TIME ZONE	
 	);
-CREATE UNIQUE INDEX bundle_group_idx ON bundle(group_survey_ident);
+CREATE UNIQUE INDEX if not exists bundle_group_idx ON bundle(group_survey_ident);
 ALTER TABLE bundle OWNER TO ws;

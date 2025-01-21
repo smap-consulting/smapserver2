@@ -1287,6 +1287,18 @@ public class SurveyTemplate {
 								includeExternal = GeneralUtilityMethods.listHasExternalChoices(sd, survey.getId(), q.getListId());
 								if(includeExternal) {
 									oList = getExternalList(sd, cResults, oId, survey.getId(), q, cascadeName, qList);
+									// Append any additional fixed choices included in the survey template
+									List <Option> internalList = om.getByListId(q.getListId());
+									for(Option o : internalList) {
+										try {
+											Integer ix = Integer.parseInt(o.getColumnName());
+											if(ix != null) {
+												oList.add(o);
+											}
+										} catch (Exception e) {
+											// We only want choices that have an integer column name
+										}
+									}
 								}
 							}				
 							if(!includeExternal) {
