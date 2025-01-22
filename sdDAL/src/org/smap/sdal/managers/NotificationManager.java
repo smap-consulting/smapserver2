@@ -1714,6 +1714,14 @@ public class NotificationManager {
 				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type) " +
 				"values( ?, ?,?, ?, ?, ?, now(), ?, ?); ";
 
+		/*
+		 * Project Ids in notifications are no longer reliable as the survey Id is used to idnetify the project
+		 * Hence set the project if it is missing
+		 */
+		if(pId <= 0 && surveyId > 0) {
+			pId = GeneralUtilityMethods.getProjectId(sd, surveyId);
+		}
+		
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
