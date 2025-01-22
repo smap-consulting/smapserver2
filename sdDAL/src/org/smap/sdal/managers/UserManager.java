@@ -775,6 +775,7 @@ public class UserManager {
 				log.info("Content: " + content);
 				log.info("tokens: " + customTokens.toString());
 				em.sendEmailHtml(
+						organisation.name,
 						u.email, 
 						"bcc", 
 						subject, 

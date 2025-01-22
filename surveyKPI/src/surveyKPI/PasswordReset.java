@@ -181,6 +181,7 @@ public class PasswordReset extends Application {
 						.append("</p>");
 
 						em.sendEmailHtml(
+								"",
 								email, 
 								"bcc", 
 								subject, 

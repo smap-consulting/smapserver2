@@ -237,6 +237,7 @@ public class OrganisationManager {
 							// Catch and log exceptions
 							try {
 								em.sendEmailHtml(
+										originalOrg.name,
 										originalOrg.getAdminEmail(), 
 										"bcc", 
 										subject, 

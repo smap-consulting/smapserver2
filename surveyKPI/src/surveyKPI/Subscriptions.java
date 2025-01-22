@@ -163,6 +163,7 @@ public class Subscriptions extends Application {
 							.append("</a> ");
 						
 						em.sendEmailHtml(
+								o.name,
 								email, 
 								"bcc", 
 								localisation.getString("c_s"), 

@@ -751,6 +751,7 @@ public class MailoutManager {
 													localisation.getString("mo_sent"), 0, null);
 
 											em.sendEmailHtml(
+													organisation.name,
 													ia.getAddress(), 
 													"bcc", 
 													subject, 
