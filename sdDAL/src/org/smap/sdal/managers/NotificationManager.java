@@ -623,7 +623,7 @@ public class NotificationManager {
 					new StringBuilder("select n.target, n.notify_details, n.filter, "
 					+ "n.remote_user, n.remote_password, n.p_id "
 					+ "from forward n "
-					+ "where (n.s_id = ? and not n.bundle) or (n.bundle_ident = ? and n.bundle) " 
+					+ "where ((n.s_id = ? and not n.bundle) or (n.bundle_ident = ? and n.bundle)) " 
 					+ "and n.target != 'forward' "
 					+ "and n.target != 'document' "
 					+ "and n.enabled = 'true'");
