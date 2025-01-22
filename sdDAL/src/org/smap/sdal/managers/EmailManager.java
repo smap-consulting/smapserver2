@@ -106,6 +106,7 @@ public class EmailManager {
 						// Catch and log exceptions
 						try {
 							sendEmailHtml(
+									org.name,
 									org.getAdminEmail(), 
 									"bcc", 
 									subject, 
@@ -255,6 +256,7 @@ public class EmailManager {
 							log.info("#########: Email " + ia.getAddress() + " Opted in: " + subStatus.optedIn + "org:  " + !organisation.send_optin);
 							if(subStatus.optedIn || !organisation.send_optin) {
 								sendEmailHtml(
+										organisation.name,
 										ia.getAddress(),  
 										"bcc", 
 										subject, 
@@ -314,6 +316,7 @@ public class EmailManager {
 	
 	// Send an email using HTML format
 	public void sendEmailHtml( 
+			String orgName,
 			String email, 
 			String ccType, 
 			String subject,
@@ -342,6 +345,15 @@ public class EmailManager {
 		if(orgFooter != null) {
 			content.append(" ").append(orgFooter);
 		}
+		
+		// Add source
+		StringBuilder source = new StringBuilder();
+		source.append("<p>").append(localisation.getString("c_sent_from")).append("</p>");
+		source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("bill_org"))
+		.append(": ").append(orgName).append("</p>");
+		source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("c_server"))
+				.append(": ").append(serverName).append("</p>");
+		content.append(source.toString());
 		
 		// Add unsubscribe
 		StringBuilder unsubscribe = new StringBuilder();

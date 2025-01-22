@@ -3482,6 +3482,7 @@ public class TaskManager {
 											log.info("Send email: " + msg.email + " : " + docURL);
 													
 											em.sendEmailHtml(
+													organisation.name,
 													ia.getAddress(),  
 													"bcc", 
 													subject, 

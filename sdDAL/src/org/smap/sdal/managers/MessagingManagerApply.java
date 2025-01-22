@@ -311,6 +311,7 @@ public class MessagingManagerApply {
 											content.append("\n\n");
 											
 											em.sendEmailHtml(
+													organisation.name,
 													ia.getAddress(), 	// email
 													"bcc",
 													subject, 

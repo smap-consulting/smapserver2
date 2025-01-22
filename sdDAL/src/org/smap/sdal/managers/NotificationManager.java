@@ -623,7 +623,7 @@ public class NotificationManager {
 					new StringBuilder("select n.target, n.notify_details, n.filter, "
 					+ "n.remote_user, n.remote_password, n.p_id "
 					+ "from forward n "
-					+ "where (n.s_id = ? and not n.bundle) or (n.bundle_ident = ? and n.bundle) " 
+					+ "where ((n.s_id = ? and not n.bundle) or (n.bundle_ident = ? and n.bundle)) " 
 					+ "and n.target != 'forward' "
 					+ "and n.target != 'document' "
 					+ "and n.enabled = 'true'");
@@ -1557,6 +1557,7 @@ public class NotificationManager {
 									} else {
 										if(subStatus.optedIn || !organisation.send_optin) {
 											em.sendEmailHtml(
+													organisation.name,
 													ia.getAddress(), 
 													"bcc", 
 													subject, 
@@ -1714,6 +1715,14 @@ public class NotificationManager {
 				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type) " +
 				"values( ?, ?,?, ?, ?, ?, now(), ?, ?); ";
 
+		/*
+		 * Project Ids in notifications are no longer reliable as the survey Id is used to idnetify the project
+		 * Hence set the project if it is missing
+		 */
+		if(pId <= 0 && surveyId > 0) {
+			pId = GeneralUtilityMethods.getProjectId(sd, surveyId);
+		}
+		
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
