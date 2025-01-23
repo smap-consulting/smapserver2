@@ -3137,17 +3137,37 @@ public class GeneralUtilityMethods {
 	 */
 	public static void setLanguages(Connection sd, int sId, ArrayList<Language> languages) throws SQLException {
 
+		PreparedStatement pstmtGetDefault = null;
+		PreparedStatement pstmtUpdateDefault = null;
+		PreparedStatement pstmtGetExistingName = null;
 		PreparedStatement pstmtDelete = null;
 		PreparedStatement pstmtInsert = null;
 		PreparedStatement pstmtUpdate = null;
 		PreparedStatement pstmtUpdateTranslations = null;
 
 		try {
-			String sqlDelete = "delete from language where id = ? and s_id = ?;";
+			/*
+			 * Get the current default language in case it has been changed
+			 */
+			boolean defLangInList = false;
+			String newDefault = null;
+			String defLang = null;;
+			String sqlGetDefault = "select def_lang from survey where s_id = ?";
+			pstmtGetDefault = sd.prepareStatement(sqlGetDefault);
+			pstmtGetDefault.setInt(1, sId);
+			ResultSet rs = pstmtGetDefault.executeQuery();
+			if(rs.next()) {
+				defLang = rs.getString("def_lang");
+			}
+			
+			String sqlGetExisitingName = "select language from language where id = ?";
+			pstmtGetExistingName = sd.prepareStatement(sqlGetExisitingName);
+			
+			String sqlDelete = "delete from language where id = ? and s_id = ?";
 			pstmtDelete = sd.prepareStatement(sqlDelete);
 
 			String sqlInsert = "insert into language(s_id, language, seq, code, rtl) "
-					+ "values(?, ?, ?, ?, ?);";
+					+ "values(?, ?, ?, ?, ?)";
 			pstmtInsert = sd.prepareStatement(sqlInsert);
 
 			String sqlUpdate = "update language " 
@@ -3162,7 +3182,7 @@ public class GeneralUtilityMethods {
 			String sqlUpdateTranslations = "update translation " 
 					+ "set language = ? " 
 					+ "where s_id = ? "
-					+ "and language = (select language from language where id = ?);";
+					+ "and language = (select language from language where id = ?)";
 			pstmtUpdateTranslations = sd.prepareStatement(sqlUpdateTranslations);
 
 			// Process each language in the list
@@ -3171,6 +3191,10 @@ public class GeneralUtilityMethods {
 
 				Language language = languages.get(i);
 
+				if(!language.deleted && defLang != null && language.name != null && defLang.equals(language.name)) {
+					defLangInList = true;
+				}
+				
 				if (language.deleted) {
 					// Delete language
 					pstmtDelete.setInt(1, language.id);
@@ -3181,6 +3205,17 @@ public class GeneralUtilityMethods {
 
 				} else if (language.id > 0) {
 
+					/*
+					 * Check to see if we are modifying the default language
+					 */
+					pstmtGetExistingName.setInt(1, language.id);
+					ResultSet rsName = pstmtGetExistingName.executeQuery();
+					if(rsName.next()) {
+						String oldName = rsName.getString("language");
+						if(oldName != null && defLang != null && oldName.equals(defLang)) {
+							newDefault = language.name;
+						}
+					}
 					// Update the translations using this language
 					// (note: for historical reasons the language name is repeated in each
 					// translation rather than the language id)
@@ -3218,40 +3253,42 @@ public class GeneralUtilityMethods {
 				}
 
 			}
+			
+			/*
+			 * set the default language
+			 */
+			if(newDefault == null) {
+				if(!defLangInList) {
+					// set the default language to the first language in the list
+					for (int i = 0; i < languages.size(); i++) {
+						Language language = languages.get(i);
+						if(!language.deleted) {
+							newDefault = language.name;
+							break;
+						}
+					}
+				}
+			}
+			if(newDefault != null) {
+				String sqlUpdateDefault = "update survey set def_lang = ? where s_id = ?";
+				pstmtUpdateDefault = sd.prepareStatement(sqlUpdateDefault);
+				pstmtUpdateDefault.setString(1, newDefault);
+				pstmtUpdateDefault.setInt(2, sId);
+				pstmtUpdateDefault.executeUpdate();
+			}
 
 		} catch (SQLException e) {
-			try {
-				sd.rollback();
-			} catch (Exception ex) {
-				log.log(Level.SEVERE, "", ex);
-			}
+			try {sd.rollback();} catch (Exception ex) {log.log(Level.SEVERE, "", ex);}
 			log.log(Level.SEVERE, "Error", e);
 			throw e;
 		} finally {
-			try {
-				if (pstmtDelete != null) {
-					pstmtDelete.close();
-				}
-			} catch (SQLException e) {
-			}
-			try {
-				if (pstmtInsert != null) {
-					pstmtInsert.close();
-				}
-			} catch (SQLException e) {
-			}
-			try {
-				if (pstmtUpdate != null) {
-					pstmtUpdate.close();
-				}
-			} catch (SQLException e) {
-			}
-			try {
-				if (pstmtUpdateTranslations != null) {
-					pstmtUpdateTranslations.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmtGetDefault != null) {pstmtGetDefault.close();}} catch (SQLException e) {}
+			try {if (pstmtUpdateDefault != null) {pstmtUpdateDefault.close();}} catch (SQLException e) {}
+			try {if (pstmtGetExistingName != null) {pstmtGetExistingName.close();}} catch (SQLException e) {}
+			try {if (pstmtDelete != null) {pstmtDelete.close();}} catch (SQLException e) {}
+			try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (SQLException e) {}
+			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}
+			try {if (pstmtUpdateTranslations != null) {pstmtUpdateTranslations.close();}} catch (SQLException e) {}
 		}
 
 	}
