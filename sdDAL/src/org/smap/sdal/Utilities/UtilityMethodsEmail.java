@@ -804,7 +804,7 @@ public class UtilityMethodsEmail {
 	 * Get labels for an option or question
 	 */
 	public static String getSingleLabel(
-			Connection connectionSD,
+			Connection sd,
 			int sId,
 			String languageName, 
 			int l_id,
@@ -827,7 +827,7 @@ public class UtilityMethodsEmail {
 						+ "(select label_id from option where l_id = ? and ovalue = ? limit 1)";
 			
 			// Display name takes precedence
-			pstmt = connectionSD.prepareStatement(sqlDisplayName);
+			pstmt = sd.prepareStatement(sqlDisplayName);
 			pstmt.setInt(1, l_id);
 			pstmt.setString(2, value);
 			ResultSet resultSet = pstmt.executeQuery();	
@@ -837,7 +837,7 @@ public class UtilityMethodsEmail {
 			
 			if(label == null || label.trim().length() == 0) {
 				if(pstmt != null) try{pstmt.close();}catch(Exception e){}
-				pstmt = connectionSD.prepareStatement(sql);
+				pstmt = sd.prepareStatement(sql);
 	
 				pstmt.setInt(1, sId);
 				pstmt.setString(2, languageName);

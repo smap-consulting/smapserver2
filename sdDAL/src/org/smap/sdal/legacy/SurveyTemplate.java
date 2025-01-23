@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.Vector;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.model.KeyValueSimp;
@@ -1289,10 +1290,19 @@ public class SurveyTemplate {
 									oList = getExternalList(sd, cResults, oId, survey.getId(), q, cascadeName, qList);
 									// Append any additional fixed choices included in the survey template
 									List <Option> internalList = om.getByListId(q.getListId());
+									int idx = oList.size() + 1;
 									for(Option o : internalList) {
 										try {
 											Integer ix = Integer.parseInt(o.getColumnName());
 											if(ix != null) {
+												o.setLabel(UtilityMethodsEmail.getSingleLabel(sd,
+														survey.getId(),
+														survey.getDefLang(),	// This is not currently multi language
+														q.getListId(),
+														o.getValue(),false));
+												o.setLabelId(null);
+												o.setExternalFile(true);
+												o.setSeq(idx++);
 												oList.add(o);
 											}
 										} catch (Exception e) {
