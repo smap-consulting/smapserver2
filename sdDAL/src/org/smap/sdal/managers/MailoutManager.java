@@ -752,6 +752,7 @@ public class MailoutManager {
 
 											em.sendEmailHtml(
 													organisation.name,
+													null,
 													ia.getAddress(), 
 													"bcc", 
 													subject, 

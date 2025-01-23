@@ -238,6 +238,7 @@ public class OrganisationManager {
 							try {
 								em.sendEmailHtml(
 										originalOrg.name,
+										null,
 										originalOrg.getAdminEmail(), 
 										"bcc", 
 										subject, 

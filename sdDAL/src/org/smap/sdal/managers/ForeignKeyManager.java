@@ -287,7 +287,9 @@ public class ForeignKeyManager {
 			 */
 			pstmtClean = sd.prepareStatement(sqlClean);
 			int count = pstmtClean.executeUpdate();
-			log.info("Cleaned up foreign keys " + count + " set as timed out: " + pstmtClean.toString());
+			if(count > 0) {
+				log.info("Cleaned up foreign keys " + count + " set as timed out: " + pstmtClean.toString());
+			}
 			
 		} catch (Exception e) {
 			e.printStackTrace();

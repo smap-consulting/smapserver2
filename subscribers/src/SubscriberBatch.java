@@ -1958,7 +1958,8 @@ public class SubscriberBatch {
 	 * If an HRK is set on a table that already has data we want this key to be applied to the existing rows
 	 * This will be done in 2 stages
 	 *   a) If there are no HRKs in the queue then a list of all HRK's that may need to be applied will be stored into the queue table
-	 *   b) If there are HRKs in the queue then 10 of them will be processed
+	 *   b) If there are HRKs in the queue then 1 of them will be processed
+	 * This approach is an attempt to speed up processing of submissions and make the update of old HRK's a background task
 	 */
 	private void setEmptyHrkValues(ResourceBundle localisation, Connection sd, Connection cResults) throws SQLException {
 		
@@ -1990,7 +1991,6 @@ public class SubscriberBatch {
 				KeyManager km = new KeyManager(localisation);
 				ResultSet rsGetKeys = pstmtGetKeys.executeQuery();
 				while(rsGetKeys.next()) {
-					 String elementIdentifier = rsGetKeys.getString("element_identifier");
 					 String key = rsGetKeys.getString("key");
 					 String groupSurveyIdent = rsGetKeys.getString("group_survey_ident");
 					 

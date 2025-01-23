@@ -242,8 +242,10 @@ public class KeyManager {
 					pstmt.setInt(1, prikey);
 				}
 				int count = pstmt.executeUpdate();
-				log.info("------------- HRK values update: " + count);
-				log.info("Applying HRK: " + pstmt.toString());
+				if(count > 0) {
+					log.info("------------- Background HRK values update: " + count);
+					log.info("Applying HRK: " + pstmt.toString());
+				}
 		
 			} finally {
 				if(pstmt != null) {try {pstmt.close();}catch(Exception e) {}}

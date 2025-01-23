@@ -1558,6 +1558,7 @@ public class NotificationManager {
 										if(subStatus.optedIn || !organisation.send_optin) {
 											em.sendEmailHtml(
 													organisation.name,
+													null,
 													ia.getAddress(), 
 													"bcc", 
 													subject, 

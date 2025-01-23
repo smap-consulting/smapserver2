@@ -17,6 +17,7 @@ public class EmailTaskMessage {
 	public boolean temporaryUser;
 	public String actionLink;
 	public Date scheduledAt;
+	public String tgName;
 
 	
 	public EmailTaskMessage(
@@ -33,7 +34,8 @@ public class EmailTaskMessage {
 			String user,
 			boolean temporaryUser,
 			String actionLink,
-			Date scheduledAt) {
+			Date scheduledAt,
+			String tgName) {
 		
 		this.sId = sId;
 		this.pId = pId;
@@ -49,6 +51,7 @@ public class EmailTaskMessage {
 		this.temporaryUser = temporaryUser;
 		this.actionLink = actionLink;
 		this.scheduledAt = scheduledAt;
+		this.tgName = tgName;
 	}
 	
 }

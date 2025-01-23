@@ -312,6 +312,7 @@ public class MessagingManagerApply {
 											
 											em.sendEmailHtml(
 													organisation.name,
+													null,
 													ia.getAddress(), 	// email
 													"bcc",
 													subject, 

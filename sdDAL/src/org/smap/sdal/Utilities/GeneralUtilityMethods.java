@@ -6348,7 +6348,6 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sIdent);
 
-			log.info("Get main table: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				String table_name = rs.getString(1);

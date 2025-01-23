@@ -2288,6 +2288,7 @@ public class TaskManager {
 						
 						TaskManager tm = new TaskManager(localisation, tz);
 						TaskEmailDetails ted = tm.getEmailDetails(sd, tgId);
+						String tgName = GeneralUtilityMethods.getTaskGroupName(sd, tgId);
 						
 						// Create a submission message (The task may or may not have come from a submission)
 						EmailTaskMessage taskMsg = new EmailTaskMessage(
@@ -2304,8 +2305,8 @@ public class TaskManager {
 								request.getRemoteUser(),
 								false,		// Not a temporary user if request.getRemoteUser() works
 								actionLink,
-								null		// Send immediately
-								);
+								null,		// Send immediately
+								tgName);
 						mm.createMessage(sd, oId, NotificationManager.TOPIC_EMAIL_TASK, "", gson.toJson(taskMsg));					
 					}
 				} else {
@@ -3197,6 +3198,7 @@ public class TaskManager {
 			
 			TaskManager tm = new TaskManager(localisation, tz);
 			TaskEmailDetails ted = tm.getEmailDetails(sd, tgId);
+			String tgName = GeneralUtilityMethods.getTaskGroupName(sd, tgId);
 			
 			// Add the task name to the email subject
 			if(ted.subject == null) {
@@ -3275,7 +3277,8 @@ public class TaskManager {
 								remoteUser,
 								temporaryUser,
 								link,
-								scheduledAt);
+								scheduledAt,
+								tgName);
 						mm.createMessage(sd, oId, NotificationManager.TOPIC_EMAIL_TASK, "", gson.toJson(taskMsg));
 					}
 				}
@@ -3483,6 +3486,7 @@ public class TaskManager {
 													
 											em.sendEmailHtml(
 													organisation.name,
+													msg.tgName,
 													ia.getAddress(),  
 													"bcc", 
 													subject, 
