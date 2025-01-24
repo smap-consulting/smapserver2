@@ -2032,7 +2032,7 @@ public class TaskManager {
 				+ "and t.id in (";		
 		String deleteAssignmentsSql = "update assignments set status = 'cancelled', cancelled_date = now() "
 				+ "where task_id in (select id from tasks t, task_group tg where t.tg_id = tg.tg_id and tg.p_id = ?) "		// Authorisation
-				+ "and (status = 'new' or status = 'accepted' or status = 'unsent' or status = 'error') "
+				+ "and (status = 'new' or status = 'accepted' or status = 'unsent' or status = 'error' or status = 'pending') "
 				+ "and id in (";
 		String acceptedAssignmentsSql = "update assignments set status = 'accepted', cancelled_date = null "
 				+ "where task_id in (select id from tasks t, task_group tg where t.tg_id = tg.tg_id and tg.p_id = ?) "		// Authorisation
