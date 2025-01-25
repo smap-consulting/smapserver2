@@ -1559,6 +1559,7 @@ public class NotificationManager {
 											em.sendEmailHtml(
 													organisation.name,
 													null,
+													null,
 													ia.getAddress(), 
 													"bcc", 
 													subject, 

@@ -3484,9 +3484,14 @@ public class TaskManager {
 										if(subStatus.optedIn || !organisation.send_optin) {
 											log.info("Send email: " + msg.email + " : " + docURL);
 													
+											String projectName = null;
+											if(msg.pId > 0) {
+												projectName = GeneralUtilityMethods.getProjectName(sd, msg.pId);
+											}
 											em.sendEmailHtml(
 													organisation.name,
 													msg.tgName,
+													projectName,
 													ia.getAddress(),  
 													"bcc", 
 													subject, 

@@ -288,6 +288,7 @@ public class MessagingManager {
 				em.sendEmailHtml(
 						GeneralUtilityMethods.getOrganisationName(sd, oId),
 						null,
+						null,
 						email, 
 						"bcc", 
 						localisation.getString("c_opt_in_subject"), 

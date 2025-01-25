@@ -750,9 +750,14 @@ public class MailoutManager {
 													LogManager.MAILOUT, 
 													localisation.getString("mo_sent"), 0, null);
 
+											String projectName = null;
+											if(msg.pId > 0) {
+												projectName = GeneralUtilityMethods.getProjectName(sd, msg.pId);
+											}
 											em.sendEmailHtml(
 													organisation.name,
 													null,
+													projectName,
 													ia.getAddress(), 
 													"bcc", 
 													subject, 

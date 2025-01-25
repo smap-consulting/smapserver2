@@ -108,6 +108,7 @@ public class EmailManager {
 							sendEmailHtml(
 									org.name,
 									null,
+									null,
 									org.getAdminEmail(), 
 									"bcc", 
 									subject, 
@@ -259,6 +260,7 @@ public class EmailManager {
 								sendEmailHtml(
 										organisation.name,
 										null,
+										projectName,
 										ia.getAddress(),  
 										"bcc", 
 										subject, 
@@ -320,6 +322,7 @@ public class EmailManager {
 	public void sendEmailHtml( 
 			String orgName,
 			String tgName,
+			String projectName,
 			String email, 
 			String ccType, 
 			String subject,
@@ -352,12 +355,20 @@ public class EmailManager {
 		// Add source
 		StringBuilder source = new StringBuilder();
 		source.append("<p>").append(localisation.getString("c_sent_from")).append("</p>");
-		source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("bill_org"))
-					.append(": ").append(orgName).append("</p>");
+		
 		if(tgName != null) {
 			source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("t_tg"))
 					.append(": ").append(tgName).append("</p>");
 		}
+		if(projectName != null) {
+			source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("ar_project"))
+					.append(": ").append(projectName).append("</p>");
+		}
+		if(orgName != null) {
+			source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("bill_org"))
+					.append(": ").append(orgName).append("</p>");
+		}
+		
 		source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("c_server"))
 					.append(": ").append(serverName).append("</p>");
 		content.append(source.toString());

@@ -777,6 +777,7 @@ public class UserManager {
 				em.sendEmailHtml(
 						organisation.name,
 						null,
+						null,
 						u.email, 
 						"bcc", 
 						subject, 
