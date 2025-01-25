@@ -83,9 +83,10 @@ public class Manager {
 			
 			/*
 			 * Start the queue monitor process
+			 * This is disabled as its output is not used,  however it could be re-enabled if there are issues with queues
 			 */
-			MonitorProcessor mp = new MonitorProcessor();
-			mp.go(smapId, fileLocn);
+			//MonitorProcessor mp = new MonitorProcessor();		
+			//mp.go(smapId, fileLocn);
 			
 			// Start the default submission queue processor in the forward
 			SubmissionProcessor subProcessor = new SubmissionProcessor();

@@ -604,9 +604,9 @@ public class WebForm extends Application {
 				if(action.equals("mailout")) {
 					PeopleManager pm = new PeopleManager(localisation);
 					pm.subscribeEmail(sd, email, orgId);
-					lm.writeLog(sd, survey.surveyData.id, email, LogManager.MAILOUT, localisation.getString("mo_submitted"), 0, request.getServerName());
+					lm.writeLog(sd, survey.surveyData.id, email, LogManager.MAILOUT, localisation.getString("mo_submitted_mailout"), 0, request.getServerName());
 				} else 	if(action.equals("task")) {
-					lm.writeLog(sd, survey.surveyData.id, email, LogManager.EMAIL_TASK, localisation.getString("mo_submitted"), 0, request.getServerName());
+					lm.writeLog(sd, survey.surveyData.id, email, LogManager.EMAIL_TASK, localisation.getString("mo_submitted_task"), 0, request.getServerName());
 				}
 				
 			} catch (Exception e) {

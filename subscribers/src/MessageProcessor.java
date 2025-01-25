@@ -94,6 +94,7 @@ public class MessageProcessor {
 						if(!gotVonageClient) {
 							ConversationManager convMgr = new ConversationManager(null, null);
 							vonageClient = convMgr.getVonageClient(dbc.sd);
+							gotVonageClient = true;
 						}
 						
 						try { 

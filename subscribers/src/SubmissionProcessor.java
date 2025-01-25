@@ -155,6 +155,7 @@ public class SubmissionProcessor {
 						if(!gotVonageClient) {
 							ConversationManager convMgr = new ConversationManager(localisation, "UTC");
 							vonageClient = convMgr.getVonageClient(dbc.sd);
+							gotVonageClient = true;
 						}
 								
 						/*
