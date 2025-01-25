@@ -92,6 +92,7 @@ public class MessageProcessor {
 						 */
 						VonageClient vonageClient = null;
 						if(!gotVonageClient) {
+							gotVonageClient = true;
 							ConversationManager convMgr = new ConversationManager(null, null);
 							vonageClient = convMgr.getVonageClient(dbc.sd);
 						}
