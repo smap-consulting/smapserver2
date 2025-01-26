@@ -277,12 +277,14 @@ public class MessagingManager {
 						.append(msg)
 						.append("</p>");
 				
-				content.append("<br/><p>")
+				content.append("<p>")
 					.append(" <a href=\"").append(scheme).append("://").append(server)
 					.append("/app/subscriptions.html?subscribe=yes&token=")
 					.append(emailKey)
 					.append("\">")
+					.append("<button type='button' style='margin:auto;style:block'>")
 					.append(localisation.getString("optin"))
+					.append("</button>")
 					.append("</a></p>");
 				
 				em.sendEmailHtml(

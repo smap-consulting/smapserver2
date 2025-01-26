@@ -33,6 +33,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.PeopleManager;
@@ -128,6 +129,8 @@ public class Subscriptions extends Application {
 
 		try {
 
+			ServerSettings.setBasePath(request);
+			
 			// Localisation
 			String hostname = request.getServerName();
 			String loc_code = "en";
@@ -152,15 +155,18 @@ public class Subscriptions extends Application {
 
 						EmailManager em = new EmailManager(localisation);
 						
+						String msg = localisation.getString("c_opt_in_content");
+						msg = msg.replace("%s1", o.name);
 						StringBuilder content = new StringBuilder();
-						content.append("<br/><p>").append(localisation.getString("c_goto"))
-							.append(" <a href=\"")
-							.append(request.getScheme()).append("://").append(request.getServerName())
-							.append("/app/subscriptions.html?subscribe=yes&token=")
-							.append(key)
-							.append("\">")
-							.append(localisation.getString("email_link"))
-							.append("</a> ");
+						content.append("<p>").append(localisation.getString("email_subs_s")).append("</p>")
+								.append("<p>").append(msg).append("</p>")
+								.append(" <a href=\"")
+								.append(request.getScheme()).append("://").append(request.getServerName())
+								.append("/app/subscriptions.html?subscribe=yes&token=")
+								.append(key)
+								.append("\">")
+								.append("<button type='button' style='margin:auto;style:block'>").append(localisation.getString("c_s")).append("</button>")
+								.append("</a> ");
 						
 						em.sendEmailHtml(
 								o.name,
