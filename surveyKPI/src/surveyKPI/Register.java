@@ -90,6 +90,7 @@ public class Register extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-Register");
 		
 		PreparedStatement pstmt = null;
+		String newUserIdent = null;
 		try {
 			
 			sd.setAutoCommit(false);  // Transaction
@@ -153,6 +154,8 @@ public class Register extends Application {
 			u.sendEmail = true;
 			u.projects = new ArrayList<Project> ();	// Empty list initially as no projects exist yet
 			
+			newUserIdent = u.ident;	// For error reporting
+			
 			// Add first three groups as default for an administrator
 			u.groups = new ArrayList<UserGroup> ();
 			for(int i = 1; i <= 3; i++) {
@@ -205,7 +208,13 @@ public class Register extends Application {
 			String state = e.getSQLState();
 			log.info("Register: sql state:" + state);
 			if(state.startsWith("23")) {
-				response = Response.status(Status.CONFLICT).entity(e.getMessage()).build();
+				String msg = e.getMessage();
+				if(msg != null) {
+					if(msg.contains("duplicate key") && msg.contains("idx_users_ident")) {
+						msg = "This user identifier (" + newUserIdent + ") already exists on the server";
+					}
+				}
+				response = Response.status(Status.CONFLICT).entity(msg).build();
 			} else {
 				response = Response.serverError().entity(e.getMessage()).build();
 				log.log(Level.SEVERE,"Error", e);

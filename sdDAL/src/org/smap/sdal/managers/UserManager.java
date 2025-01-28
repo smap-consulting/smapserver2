@@ -746,7 +746,6 @@ public class UserManager {
 				
 				HashMap<String, String> customTokens = new HashMap<> ();
 				StringBuilder template = new StringBuilder(localisation.getString("email_newuser"));
-				template.append(" ").append(localisation.getString("email_un2"));
 				
 				StringBuilder content = new StringBuilder(template.toString());
 				String serverUrl = scheme + "://" + serverName;
@@ -765,12 +764,11 @@ public class UserManager {
 				.append("/app/resetForgottonPassword.html?token=")
 				.append(uuid)
 				.append("\">")
-				.append(localisation.getString("email_link"))
+				.append("<button type='button' style='margin:auto;style:block'>").append(localisation.getString("c_s_p")).append("</button>")
 				.append("</a>");
 				customTokens.put("${set_password_url}", passwordUrl.toString());
 				
 				customTokens.put("${user_ident}", u.ident);
-				customTokens.put("${valid_for}", "48");
 
 				log.info("Content: " + content);
 				log.info("tokens: " + customTokens.toString());
