@@ -3441,14 +3441,17 @@ public class TaskManager {
 							
 							// Add the survey link and task message
 							if(docURL != null) {
-								content.append("<br />")
+								content.append("<p>")
 									.append(taskMsg)
-									.append(" <a href=\"").append(scheme + "://")
+									.append("</p>")
+									.append(" <p><a href=\"").append(scheme + "://")
 									.append(server)
 									.append(docURL)
 									.append("\">")
+									.append("<button type='button' style='margin:auto;style:block'>")
 									.append(localisation.getString("ar_survey"))
-									.append("</a>");
+									.append("</button>")
+									.append("</a></p>");
 							}
 
 							notify_details = localisation.getString("msg_et");
@@ -3463,6 +3466,9 @@ public class TaskManager {
 							}
 							if(survey != null && survey.surveyData.projectName != null) {
 								notify_details = notify_details.replaceAll("%s4", survey.surveyData.projectName);
+							}
+							if(msg != null && msg.subject != null) {
+								notify_details = notify_details.replaceAll("%s5", msg.subject);
 							}
 							
 							log.info("+++ emailing task to: " + msg.email + " docUrl: " + docURL + 
@@ -3509,11 +3515,21 @@ public class TaskManager {
 											
 											setAssignmentStatus(sd, msg.aId, "accepted");
 											
+											String logMsg = localisation.getString("mo_sent_t");
+											if(ia.getAddress() != null) {
+												logMsg = logMsg.replace("%s1", ia.getAddress());
+											}
+											if(msg.subject != null) {
+												logMsg = logMsg.replace("%s2", msg.subject);
+											}
+											if(msg.tgName != null) {
+												logMsg = logMsg.replace("%s3", msg.tgName);
+											}
 											lm.writeLog(sd, 
 													survey.surveyData.id, 
-													ia.getAddress(), 
+													msg.user, 
 													LogManager.EMAIL_TASK, 
-													localisation.getString("mo_sent"), 0, null);
+													logMsg, 0, null);
 
 										} else {
 											/*
