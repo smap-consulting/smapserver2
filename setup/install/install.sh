@@ -82,6 +82,7 @@ sudo apt-get upgrade -y
 sudo sysctl -w kernel.shmmax=67068800		# 64MB of shared memory
 sudo apt-get install ntp -y
 sudo apt-get install rename -y
+sudo apt-get install locate -y
 
 echo '##### 2. Install Apache' 
 sudo apt-get install apache2 apache2-doc apache2-utils -y
@@ -360,7 +361,7 @@ if [ "$DBHOST" = "127.0.0.1" ]; then
         echo "CREATE EXTENSION postgis;" | sudo -i -u postgres psql -d $sd 
         echo "CREATE EXTENSION pgcrypto;" | sudo -i -u postgres psql -d $sd 
         echo "ALTER TABLE geometry_columns OWNER TO ws; ALTER TABLE spatial_ref_sys OWNER TO ws; ALTER TABLE geography_columns OWNER TO ws;" | sudo -i -u postgres psql -d $sd
-        cat setupDb.sql | sudo -i -u postgres psql -d $sd | grep -v "does not exist, skipping"
+        cat setupDb.sql | sudo -i -u postgres psql -d $sd | grep -v "skipping"
     else
         echo "==================> $sd database already exists.  Apply patches if necessary, to upgrade it."
     fi
