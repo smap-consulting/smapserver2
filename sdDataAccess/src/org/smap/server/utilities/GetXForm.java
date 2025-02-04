@@ -592,7 +592,7 @@ public class GetXForm {
 								currentParent.appendChild(preload);
 											
 								Element event = outputDoc.createElement("odk:recordaudio");
-								event.setAttribute("event", "odk-instance-load");
+								event.setAttribute("event", SetValue.START);
 								event.setAttribute("ref", "/main/" + mi.name);
 								if(mi.settings != null && mi.settings.length() > 0) {
 									String [] sArray = mi.settings.split(" ");

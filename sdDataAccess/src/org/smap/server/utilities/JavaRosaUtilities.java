@@ -1,6 +1,7 @@
 package org.smap.server.utilities;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileWriter;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -60,10 +61,10 @@ public class JavaRosaUtilities {
 		GetXForm xForm = new GetXForm(localisation, user, tz);
 
 		String xmlForm = xForm.get(template, false, true, false, user, request);
-		
+				
 		// Remove any actions
 		xmlForm = xmlForm.replaceAll("\\<odk:setgeopoint [a-zA-Z0-9$,\\\\.{}=\\'\\-\"/ ]*\\/\\>", "");	
-		xmlForm = xmlForm.replaceAll("\\<odk:recordaudio .*\\/\\>", "");
+		xmlForm = xmlForm.replaceAll("\\<odk:recordaudio [a-zA-Z0-9$,\\\\.{}=\\'\\-\"/ ]*\\/\\>", "");	
 		
 		//FileWriter myWriter = new FileWriter("/Users/neilpenman/filename.xml");  // Debug enable if parser reports an error in the xml
 		//myWriter.write(xmlForm);
