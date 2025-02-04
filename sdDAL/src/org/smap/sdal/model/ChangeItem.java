@@ -20,6 +20,7 @@ public class ChangeItem {
 	public String qName;			// The name of the question being updated
 	public String qType;			// The question type (used when updating options for a question)
 	public String fileName;			// External file name used to load changes to choices
+	public String fileUrl;			// URL to retrieve the uploaded file
 	public String changeType;		// Copied from the changeset and added to the log for each change item
 	public String source;			// Copied from the changeset and added to the log for each change item
 	public Timestamp updatedTime;	// The time that this update was made (Only used when reading a change item from the log)

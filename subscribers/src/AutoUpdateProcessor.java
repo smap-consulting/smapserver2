@@ -127,7 +127,7 @@ public class AutoUpdateProcessor {
 		} finally {
 
 			/*
-			 * Do not close connections!  This processor is suppossed to run forever
+			 * Do not close connections!  This processor is supposed to run forever
 			 */
 
 		}

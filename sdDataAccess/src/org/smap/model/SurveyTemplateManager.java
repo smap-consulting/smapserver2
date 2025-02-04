@@ -1,5 +1,6 @@
 package org.smap.model;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
@@ -8,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,6 +20,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.AuthorisationException;
@@ -448,7 +451,21 @@ public class SurveyTemplateManager {
 			}
 			
 			/*
-			 * Update the change history for the survey
+			 * Save the FormXLS file so that it can be retrieved from the change history
+			 */
+			String fileFolder = basePath + "/templates/survey/" + s.getIdent();
+			String filePath = fileFolder +"/" + UUID.randomUUID().toString() + "." + type; 
+			
+			// Create the folder if it does not exist
+			File folder = new File(fileFolder);
+			FileUtils.forceMkdir(folder);
+			
+			// Save file
+			File savedFile = new File(filePath);
+			fileItem.write(savedFile); 
+			
+			/*
+			 * Copy the change history from the old survey to the new one that is replacing it
 			 */
 			int newVersion = existingVersion;
 			if(action.equals("replace")) {
@@ -464,6 +481,7 @@ public class SurveyTemplateManager {
 				pstmtUpdateChangeLog.setInt(1, existingSurveyId);
 				pstmtUpdateChangeLog.execute();
 			}
+			
 			/*
 			 * Add a new entry to the change history
 			 */
@@ -474,6 +492,7 @@ public class SurveyTemplateManager {
 			ChangeItem ci = new ChangeItem();
 			ci.fileName = fileItem.getName();
 			ci.origSId = s.surveyData.id;
+			ci.fileUrl = filePath;
 			pstmtChangeLog.setInt(1, s.surveyData.id);
 			pstmtChangeLog.setInt(2, newVersion);
 			pstmtChangeLog.setString(3, gson.toJson(new ChangeElement(ci, "upload_template")));

@@ -23,6 +23,7 @@ public class ChangeElement {
 	
 	// Miscelaneous data
 	public String fileName;			// External file name used to load changes to choices
+	public String fileUrl;			// URL to download the original template file
 	public String msg;
 	public int origSId;
 	
@@ -50,6 +51,7 @@ public class ChangeElement {
 		
 		source = ci.source;
 		fileName = ci.fileName;
+		fileUrl = ci.fileUrl;
 		origSId = ci.origSId;
 		if(ci.property != null) {
 			property = new PropertyChangeElement(ci.property);

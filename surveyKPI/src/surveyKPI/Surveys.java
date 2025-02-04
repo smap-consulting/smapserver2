@@ -974,12 +974,10 @@ public class Surveys extends Application {
 			pstmtGet = sd.prepareStatement(sqlGet);	
 			pstmtGet.setInt(1, sId);
 			
-			String originalDisplayName = null;
 			int originalProjectId = 0;
 
 			ResultSet rs = pstmtGet.executeQuery();
 			if(rs.next()) {
-				originalDisplayName = rs.getString("display_name");
 				originalProjectId = rs.getInt("p_id");
 				version = rs.getInt("version") + 1;
 			}

@@ -427,7 +427,7 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Delete a directory
+	 * Delete a directory and it's contents
 	 */
 	static public void deleteDirectory(String directory) {
 
