@@ -282,12 +282,13 @@ public class GetFile extends Application {
 			@Context HttpServletRequest request, 
 			@Context HttpServletResponse response,			
 			@PathParam("filename") String name,
-			@PathParam("sIdent") String sIdent) throws Exception {
+			@PathParam("sIdent") String sIdent,
+			@QueryParam("name") String downloadName) throws Exception {
 		
 		log.info("Get change history File:  for survey: " + sIdent);
 		
 		Response r = null;
-		String connectionString = "Get Template PDF File";
+		String connectionString = "Get Change History File";
 	
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -313,7 +314,10 @@ public class GetFile extends Application {
 				t.filepath = basepath + "/templates/survey/" + sIdent + "/" + name;
 			}
 			FileManager fm = new FileManager();
-			fm.getFile(response, t.filepath, name);
+			if(downloadName == null) {
+				downloadName = name;
+			}
+			fm.getFile(response, t.filepath, downloadName);
 			
 			r = Response.ok("").build();
 			

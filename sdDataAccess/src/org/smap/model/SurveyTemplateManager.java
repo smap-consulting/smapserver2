@@ -457,7 +457,7 @@ public class SurveyTemplateManager {
 			String changeFileName = UUID.randomUUID().toString() + "." + type;
 			String fileFolder = basePath + "/templates/survey/" + surveyIdent;
 			String filePath = fileFolder +"/" + changeFileName; 
-			String fileUrl = "/surveyKPI/file/" + changeFileName + "/change_survey/" + surveyIdent;
+			String fileUrl = "/surveyKPI/file/" + changeFileName + "/change_survey/" + surveyIdent + "?name=" + fileName;
 			
 			// Create the folder if it does not exist
 			File folder = new File(fileFolder);
