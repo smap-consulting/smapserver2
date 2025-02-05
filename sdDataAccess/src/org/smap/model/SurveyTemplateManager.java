@@ -453,8 +453,11 @@ public class SurveyTemplateManager {
 			/*
 			 * Save the FormXLS file so that it can be retrieved from the change history
 			 */
-			String fileFolder = basePath + "/templates/survey/" + s.getIdent();
-			String filePath = fileFolder +"/" + UUID.randomUUID().toString() + "." + type; 
+			String surveyIdent = (action.equals("replace")) ? existingSurvey.getIdent() : s.surveyData.ident;
+			String changeFileName = UUID.randomUUID().toString() + "." + type;
+			String fileFolder = basePath + "/templates/survey/" + surveyIdent;
+			String filePath = fileFolder +"/" + changeFileName; 
+			String fileUrl = "/surveyKPI/file/" + changeFileName + "/change_survey/" + surveyIdent;
 			
 			// Create the folder if it does not exist
 			File folder = new File(fileFolder);
@@ -492,7 +495,7 @@ public class SurveyTemplateManager {
 			ChangeItem ci = new ChangeItem();
 			ci.fileName = fileItem.getName();
 			ci.origSId = s.surveyData.id;
-			ci.fileUrl = filePath;
+			ci.fileUrl = fileUrl;
 			pstmtChangeLog.setInt(1, s.surveyData.id);
 			pstmtChangeLog.setInt(2, newVersion);
 			pstmtChangeLog.setString(3, gson.toJson(new ChangeElement(ci, "upload_template")));

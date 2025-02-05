@@ -327,7 +327,7 @@ public class Survey {
 			
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
-			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+			if(pstmtUpdate != null) {try {pstmtUpdate.close();} catch(Exception e) {}}
 		}
 	}
 	

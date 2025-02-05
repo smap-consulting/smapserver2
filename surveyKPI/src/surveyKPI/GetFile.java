@@ -273,6 +273,61 @@ public class GetFile extends Application {
 	}
 	
 	/*
+	 * Get a template change history file
+	 */
+	@GET
+	@Path("/change_survey/{sIdent}")
+	@Produces("application/x-download")
+	public Response getChangeHistoryFile (
+			@Context HttpServletRequest request, 
+			@Context HttpServletResponse response,			
+			@PathParam("filename") String name,
+			@PathParam("sIdent") String sIdent) throws Exception {
+		
+		log.info("Get change history File:  for survey: " + sIdent);
+		
+		Response r = null;
+		String connectionString = "Get Template PDF File";
+	
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);
+		// End Authorisation 
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);	
+			
+			String basepath = GeneralUtilityMethods.getBasePath(request);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			Template t = sm.getTemplate(sd, sIdent, name, basepath);
+			
+			if(t.filepath == null) {
+				// Template may have been deleted and the user is attempting to recover
+				t.filepath = basepath + "/templates/survey/" + sIdent + "/" + name;
+			}
+			FileManager fm = new FileManager();
+			fm.getFile(response, t.filepath, name);
+			
+			r = Response.ok("").build();
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Error getting file", e);
+			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
+		} finally {	
+			SDDataSource.closeConnection(connectionString, sd);	
+		}
+		
+		return r;
+	}
+	
+	/*
 	 * Get new template pdf file
 	 */
 	@GET
