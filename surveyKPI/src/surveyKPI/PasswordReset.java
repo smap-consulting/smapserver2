@@ -142,14 +142,14 @@ public class PasswordReset extends Application {
 						StringBuilder content = new StringBuilder(); 
 						String info = localisation.getString("c_rp_info");
 						info = info.replace("%s1", request.getServerName());
-						content.append("<p>").append(info).append("</p><p>").append(localisation.getString("c_goto")).append(" ")
+						content.append("<p>").append(info).append("</p><p>")
 						.append("<a href=\"").append("https").append("://").append(request.getServerName())
 						.append("/app/resetForgottonPassword.html?token=")
 						.append(uuid)
 						.append("\">")
-						.append(localisation.getString("email_link"))
+						.append("<button type='button' style='margin:auto;style:block'>").append(localisation.getString("c_r_p"))
+						.append("</button>")
 						.append("</a> ")				
-						.append(localisation.getString("email_rp"))
 						.append("</p>");
 
 						// User ident
@@ -176,7 +176,7 @@ public class PasswordReset extends Application {
 						.append(interval)
 						.append("</p>");
 
-						content.append("<br/><br/><p>")
+						content.append("<p>")
 						.append(localisation.getString("email_dnr"))
 						.append("</p>");
 

@@ -165,7 +165,8 @@ public class Subscriptions extends Application {
 								.append("/app/subscriptions.html?subscribe=yes&token=")
 								.append(key)
 								.append("\">")
-								.append("<button type='button' style='margin:auto;style:block'>").append(localisation.getString("c_s")).append("</button>")
+								.append("<button type='button' style='margin:auto;style:block'>").append(localisation.getString("c_s"))
+								.append("</button>")
 								.append("</a> ");
 						
 						em.sendEmailHtml(

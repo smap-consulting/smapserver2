@@ -35,6 +35,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.LogonLimiter;
@@ -268,9 +269,9 @@ public class UserSvc extends Application {
 	 * Update the user settings
 	 */
 	@POST
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
 	public Response updateUser(@Context HttpServletRequest request,
-			@FormParam("user") String user) { 
+			@FormDataParam("user") String user) { 
 		
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
