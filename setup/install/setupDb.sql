@@ -1298,6 +1298,7 @@ create TABLE message (
 );
 CREATE index msg_outbound ON message(outbound);
 CREATE index msg_processing_time ON message(processed_time);
+create index message_created_idx on message (created_time);
 ALTER TABLE message OWNER TO ws;
 
 DROP SEQUENCE IF EXISTS custom_query_seq CASCADE;
@@ -1388,7 +1389,7 @@ DROP SEQUENCE IF EXISTS people_seq CASCADE;
 CREATE SEQUENCE people_seq START 1;
 ALTER SEQUENCE people_seq OWNER TO ws;
 
-DROP TABLE IF EXISTS people;
+DROP TABLE IF EXISTS people cascade;
 create TABLE people (
 	id integer default nextval('people_seq') constraint pk_people primary key,
 	o_id integer,

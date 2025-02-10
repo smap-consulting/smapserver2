@@ -202,3 +202,6 @@ CREATE TABLE if not exists bundle (
 	);
 CREATE UNIQUE INDEX if not exists bundle_group_idx ON bundle(group_survey_ident);
 ALTER TABLE bundle OWNER TO ws;
+
+-- performance
+create index message_created_idx on message (created_time);
