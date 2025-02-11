@@ -407,19 +407,23 @@ public class SubRelationalDB extends Subscriber {
 				// Direct update to a record
 				log.info("Direct update with Existing unique id:" + updateId);
 				existingKey = getKeyFromId(cResults, topElement, updateId);
-
-				boolean replace = true;		// Always replace for direct updates
+	
 				if(existingKey != 0) {
 					log.info("Existing key:" + existingKey);
 					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
-							existingKey, replace, remoteUser, updateId, survey.surveyData.groupSurveyIdent, survey.surveyData.ident, localisation);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
+							existingKey, 
+							false,		// Always merge for direct updates - this protects data from bundled surveys	 
+							remoteUser, updateId, survey.surveyData.groupSurveyIdent, survey.surveyData.ident, localisation);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
 				} 
 			} else if(hasHrk && !keyPolicy.equals(SurveyManager.KP_NONE)) {
 				if(keyPolicy.equals(SurveyManager.KP_MERGE) || keyPolicy.equals(SurveyManager.KP_REPLACE)) {					
 					log.info("Apply merge-replace policy");
-					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0, 
-							keyPolicy.equals(SurveyManager.KP_REPLACE), remoteUser, instance.getUuid(), survey.surveyData.groupSurveyIdent, survey.surveyData.ident, localisation);
+					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, 
+							topLevelForm.id, 
+							0,		// existing key 
+							keyPolicy.equals(SurveyManager.KP_REPLACE), 
+							remoteUser, instance.getUuid(), survey.surveyData.groupSurveyIdent, survey.surveyData.ident, localisation);
 				} else if(keyPolicy.equals(SurveyManager.KP_DISCARD)) {
 					log.info("Apply discard policy");
 					discardTableContent(cResults, topLevelForm.tableName, keys.newKey);
@@ -1172,8 +1176,7 @@ public class SubRelationalDB extends Subscriber {
 				}
 			} 
 			
-			log.info("++++++++++++++ Merge Begins +++++++++++++++++");
-			log.info("++++++++++++++ Source Key: " + sourceKey );
+			log.info("++++++++++++++ Merge Begins - Source Key: " + sourceKey );
 			RecordEventManager rem = new RecordEventManager();
 			if(sourceKey > 0) {
 
@@ -1188,7 +1191,7 @@ public class SubRelationalDB extends Subscriber {
 				ArrayList<String> replaceTables = new ArrayList<> ();
 				ArrayList<Integer> copiedSourceKeys = new ArrayList<> ();
 				while(rtm.next()) {
-					if(rtm.getBoolean("replace") /*|| replace*/) {
+					if(rtm.getBoolean("replace")) {
 						replaceTables.add(rtm.getString(1));
 						log.info("Need to replace table " + rtm.getString(1));
 					} else if(rtm.getBoolean("merge")) {
@@ -1494,7 +1497,7 @@ public class SubRelationalDB extends Subscriber {
 				+ "and column_name != 'instanceid'");
 		PreparedStatement pstmtCols = null;
 		
-		String sqlSubmissionCols = "select column_name, qtype, qName from question where f_id = ?";
+		String sqlSubmissionCols = "select column_name, qtype, qName from question where f_id = ? and not soft_deleted";
 		PreparedStatement pstmtSubmissionCols = null;
 		
 		PreparedStatement pstmtGetTarget = null;
@@ -1546,10 +1549,11 @@ public class SubRelationalDB extends Subscriber {
 					String qName = subColNames.get(col);
 	
 					/*
-					 * Apply the merge if the policy is not replace or this is a question that is not in the submitting form
-					 * Conversation questions are not submitted so replace those too
+					 * Copy the value from the old table if the policy is not replace (that is merge) and
+					 *  this is a question that is not in the submitting form (subColType will be null)
+					 *  or the question is of type Conversation (these are not submitted)
 					 */
-					if(( !replace || subColType == null || "conversation".equals(subColType)) && (val == null || val.trim().length() == 0)) {
+					if(( !replace && (subColType == null || "conversation".equals(subColType)))) {
 	
 						String sqlUpdateTarget = "update " + table 
 								+ " set " + col + " = (select " + col 
