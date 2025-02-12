@@ -11140,7 +11140,6 @@ public class GeneralUtilityMethods {
 		String sql = pstmt.toString();
 		String DEL = "; Delegate=";
 		
-		log.info("Initial SQL:  " + sql);
 		if(sql.contains(DEL)) {
 			// TODO Not sure what is going on here, seems to be a change in jdbc driver behaviour
 			// but we want the delegate version
@@ -11151,7 +11150,6 @@ public class GeneralUtilityMethods {
 				throw new ApplicationException("Invalid SQL: " + sql);
 			}
 		}
-		log.info("Final SQL:  " + sql);
 		return sql;
 	}
 	
