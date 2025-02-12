@@ -58,12 +58,12 @@ public class PeriodicTime {
 			this.localWeekday = weekday;
 			
 			// month day
-			if(period.equals(MONTHLY) || period.equals(YEARLY)) {
+			if(period.equals(MONTHLY) || period.equals(QUARTERLY)|| period.equals(YEARLY)) {
 				lZdt = lZdt.withDayOfMonth(monthday);
 			}
 			
 			// month
-			if(period.equals(YEARLY)) {
+			if(period.equals(YEARLY) || period.equals(QUARTERLY)) {
 				lZdt = lZdt.withMonth(month);
 			}
 			

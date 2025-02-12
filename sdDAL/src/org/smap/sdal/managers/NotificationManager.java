@@ -149,7 +149,7 @@ public class NotificationManager {
 		pstmt.setTime(idx++, pt.getUtcTime());
 		pstmt.setString(idx++, n.periodic_period);
 		pstmt.setInt(idx++, pt.getUtcWeekday());
-		pstmt.setInt(idx++, pt.getUtcMonthday());
+		pstmt.setInt(idx++, pt.getUtcMonthday());		// Save UTC month day
 		pstmt.setInt(idx++, n.periodic_month_day);		// Save local month day
 		pstmt.setInt(idx++, pt.getUtcMonth());
 		pstmt.setInt(idx++, n.periodic_month);			// Save local month
