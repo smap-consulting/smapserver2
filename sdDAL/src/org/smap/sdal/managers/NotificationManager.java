@@ -120,23 +120,24 @@ public class NotificationManager {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		String notifyDetails = gson.toJson(n.notifyDetails);
 
+		int idx = 1;
 		pstmt = sd.prepareStatement(sql);	 			
-		pstmt.setInt(1, n.s_id);
-		pstmt.setBoolean(2, n.enabled);
-		pstmt.setString(3, n.remote_host);
-		pstmt.setString(4, n.remote_user);
-		pstmt.setString(5, n.remote_password);
-		pstmt.setString(6, notifyDetails);
-		pstmt.setString(7, n.trigger);
-		pstmt.setString(8, n.target);
-		pstmt.setString(9, n.filter);
-		pstmt.setString(10, n.name);
-		pstmt.setInt(11, n.tgId);
-		pstmt.setString(12, n.period);
-		pstmt.setString(13, n.updateSurvey);
-		pstmt.setString(14, n.updateQuestion);
-		pstmt.setString(15, n.updateValue);
-		pstmt.setInt(16, n.alert_id);
+		pstmt.setInt(idx++, n.s_id);
+		pstmt.setBoolean(idx++, n.enabled);
+		pstmt.setString(idx++, n.remote_host);
+		pstmt.setString(idx++, n.remote_user);
+		pstmt.setString(idx++, n.remote_password);
+		pstmt.setString(idx++, notifyDetails);
+		pstmt.setString(idx++, n.trigger);
+		pstmt.setString(idx++, n.target);
+		pstmt.setString(idx++, n.filter);
+		pstmt.setString(idx++, n.name);
+		pstmt.setInt(idx++, n.tgId);
+		pstmt.setString(idx++, n.period);
+		pstmt.setString(idx++, n.updateSurvey);
+		pstmt.setString(idx++, n.updateQuestion);
+		pstmt.setString(idx++, n.updateValue);
+		pstmt.setInt(idx++, n.alert_id);
 		
 		/*
 		 * Periodic Values
@@ -144,17 +145,17 @@ public class NotificationManager {
 		PeriodicTime pt = new PeriodicTime(n.periodic_period, tz);
 		pt.setLocalTime(n.periodic_time, n.periodic_week_day, n.periodic_month_day, n.periodic_month);
 		
-		pstmt.setInt(17, n.p_id);
-		pstmt.setTime(18, pt.getUtcTime());
-		pstmt.setString(19, n.periodic_period);
-		pstmt.setInt(20, pt.getUtcWeekday());
-		pstmt.setInt(21, pt.getUtcMonthday());
-		pstmt.setInt(22, n.periodic_month_day);		// Save local month day
-		pstmt.setInt(23, pt.getUtcMonth());
-		pstmt.setInt(24, n.periodic_month);			// Save local month
-		pstmt.setInt(25, n.r_id);
-		pstmt.setBoolean(26, n.bundle);
-		pstmt.setString(27, n.bundle_ident);
+		pstmt.setInt(idx++, n.p_id);
+		pstmt.setTime(idx++, pt.getUtcTime());
+		pstmt.setString(idx++, n.periodic_period);
+		pstmt.setInt(idx++, pt.getUtcWeekday());
+		pstmt.setInt(idx++, pt.getUtcMonthday());
+		pstmt.setInt(idx++, n.periodic_month_day);		// Save local month day
+		pstmt.setInt(idx++, pt.getUtcMonth());
+		pstmt.setInt(idx++, n.periodic_month);			// Save local month
+		pstmt.setInt(idx++, n.r_id);
+		pstmt.setBoolean(idx++, n.bundle);
+		pstmt.setString(idx++, n.bundle_ident);
 		
 		pstmt.executeUpdate();
 		
@@ -1755,6 +1756,8 @@ public class NotificationManager {
 			return endDate.minusDays(6);
 		} else if(period.equals(PeriodicTime.MONTHLY)) {
 			return endDate.minusMonths(1).plusDays(1);
+		} else if(period.equals(PeriodicTime.QUARTERLY)) {
+			return endDate.minusMonths(3).plusDays(1);
 		} else if(period.equals(PeriodicTime.YEARLY)) {
 			return endDate.minusMonths(12).plusDays(1);
 		} else {

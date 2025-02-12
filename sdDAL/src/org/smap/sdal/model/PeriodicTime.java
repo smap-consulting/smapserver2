@@ -14,6 +14,7 @@ public class PeriodicTime {
 	public static String DAILY = "daily";
 	public static String WEEKLY = "weekly";
 	public static String MONTHLY = "monthly";
+	public static String QUARTERLY = "quarterly";
 	public static String YEARLY = "yearly";
 	
 	private ZonedDateTime lZdt = null;			// Local date time with time zone
@@ -56,7 +57,7 @@ public class PeriodicTime {
 			// weekday
 			this.localWeekday = weekday;
 			
-			// monthday
+			// month day
 			if(period.equals(MONTHLY) || period.equals(YEARLY)) {
 				lZdt = lZdt.withDayOfMonth(monthday);
 			}

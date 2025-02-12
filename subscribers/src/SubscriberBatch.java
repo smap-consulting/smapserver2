@@ -1686,6 +1686,7 @@ public class SubscriberBatch {
 				+ "(periodic_period = 'daily') "
 				+ "or (periodic_period = 'weekly' and periodic_day_of_week = extract('DOW' from current_date)) "
 				+ "or (periodic_period = 'monthly' and periodic_day_of_month = extract('Day' from current_date)) "
+				+ "or (periodic_period = 'quarterly' and periodic_day_of_month = extract('Day' from current_date) and (periodic_month = extract('Month' from current_date) or periodic_month = 3 + extract('Month' from current_date) or periodic_month = 6 + extract('Month' from current_date) or periodic_month = 9 + extract('Month' from current_date))) "
 				+ "or (periodic_period = 'yearly' and periodic_day_of_month = extract('Day' from current_date) and periodic_month = extract('Month' from current_date)) "
 				+ ")";
 		PreparedStatement pstmt = null;
