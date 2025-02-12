@@ -851,7 +851,7 @@ ALTER TABLE ssc OWNER TO ws;
 CREATE UNIQUE INDEX SscName ON ssc(s_id, name);
 
 -- Survey Forwarding (All notifications are stored in here, forward is a legacy name)
-DROP TABLE IF EXISTS forward;
+DROP TABLE IF EXISTS forward cascade;
 CREATE TABLE forward (
 	id INTEGER DEFAULT NEXTVAL('forward_seq') CONSTRAINT pk_forward PRIMARY KEY,
 	s_id INTEGER,
