@@ -959,9 +959,10 @@ public class XLSFormManager {
 		// Add label columns which vary according to the number of languages
 		int labelIndex = 0;
 		for(Language language : survey.surveyData.languages) {
-			cols.add(new Column(colNumber++,"label::" + language.name, Column.COL_LABEL, labelIndex, "label"));
-			cols.add(new Column(colNumber++,"hint::" + language.name, Column.COL_HINT, labelIndex, "label"));
-			cols.add(new Column(colNumber++,"guidance_hint::" + language.name, Column.COL_GUIDANCE_HINT, labelIndex, "label"));	
+			String name = getLanguageLabel(language);
+			cols.add(new Column(colNumber++,"label::" + name, Column.COL_LABEL, labelIndex, "label"));
+			cols.add(new Column(colNumber++,"hint::" + name, Column.COL_HINT, labelIndex, "label"));
+			cols.add(new Column(colNumber++,"guidance_hint::" + name, Column.COL_GUIDANCE_HINT, labelIndex, "label"));	
 			labelIndex++;
 		}
 
@@ -1061,22 +1062,24 @@ public class XLSFormManager {
 		// Add label columns
 		int labelIndex = 0;
 		for(Language language : survey.surveyData.languages) {
-			cols.add(new Column(colNumber++, "label::" + language.name, Column.COL_CHOICE_LABEL, labelIndex++, "choice_label"));
+			String name = getLanguageLabel(language);
+			cols.add(new Column(colNumber++, "label::" + name, Column.COL_CHOICE_LABEL, labelIndex++, "choice_label"));
 		}
 
 		// Add media
 		labelIndex = 0;
 		for(Language language : survey.surveyData.languages) {
+			String name = getLanguageLabel(language);
 			if(hasMultiImageLanguages || labelIndex == 0) {
-				cols.add(new Column(colNumber++, "media::image" + (hasMultiImageLanguages ? "::" + language.name : ""), 
+				cols.add(new Column(colNumber++, "media::image" + (hasMultiImageLanguages ? "::" + name : ""), 
 						Column.COL_IMAGE, labelIndex, "image"));
 			}
 			if(hasMultiVideoLanguages || labelIndex == 0) {
-				cols.add(new Column(colNumber++, "media::video" + (hasMultiVideoLanguages ? "::" + language.name : ""), 
+				cols.add(new Column(colNumber++, "media::video" + (hasMultiVideoLanguages ? "::" + name : ""), 
 						Column.COL_VIDEO, labelIndex, "video"));
 			}
 			if(hasMultiAudioLanguages || labelIndex == 0) {
-				cols.add(new Column(colNumber++, "media::audio" + (hasMultiAudioLanguages ? "::" + language.name : ""), 
+				cols.add(new Column(colNumber++, "media::audio" + (hasMultiAudioLanguages ? "::" + name : ""), 
 						Column.COL_AUDIO, labelIndex, "audio"));
 			}
 			labelIndex++;
@@ -1119,6 +1122,20 @@ public class XLSFormManager {
 		return cols;
 	}
 
+	/*
+	 * Get a composite language label including the language code and direction
+	 */
+	private String getLanguageLabel(Language language) {
+		StringBuilder label = new StringBuilder(language.name);
+		if(language.code != null && language.code.trim().length() > 0) {
+			label.append(" (").append(language.code).append(")"); 
+		}
+		if(language.rtl) {
+			label.append(" (rtl)"); 
+		}
+		return label.toString();
+	}
+	
 	/*
 	 * Get the columns for the settings sheet
 	 */

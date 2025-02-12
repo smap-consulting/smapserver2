@@ -731,6 +731,9 @@ public class Surveys extends Application {
 				if(l.code != null) {
 					msg.append(" (").append(l.code).append(")");
 				}
+				if(l.rtl) {
+					msg.append(" (rtl)");
+				}
 				if(l.deleted) {
 					msg.append(" [").append(localisation.getString("c_del")).append("]");
 				} 
