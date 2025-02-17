@@ -224,7 +224,7 @@ public class PeopleManager {
 		
 		String sqlMailout = "update mailout_people "
 				+ "set status = '" + MailoutManager.STATUS_UNSUBSCRIBED + "' "
-				+ "where p_id = ?";
+				+ "where p_id = ? ";
 		PreparedStatement pstmtMailout = null;
 		
 		try {
@@ -354,7 +354,7 @@ public class PeopleManager {
 		People person = new People();
 		
 		String sql = "select o_id, email from people "
-				+ "where uuid = ?";
+				+ "where uuid = ? ";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -417,7 +417,7 @@ public class PeopleManager {
 		
 		String sql = "update people "
 				+ "set email = ?,"
-				+ "name = ?"
+				+ "name = ? "
 				+ "where id = ?";
 		
 		PreparedStatement pstmt = null;
@@ -446,7 +446,7 @@ public class PeopleManager {
 		
 		String sql = "select o.id, o.name from people p, organisation o "
 				+ "where p.o_id = o.id "
-				+ "and p.email = ?"
+				+ "and p.email = ? "
 				+ "and p.unsubscribed";
 		
 		PreparedStatement pstmt = null;
