@@ -288,6 +288,7 @@ public class MessagingManager {
 					.append("</a></p>");
 				
 				em.sendEmailHtml(
+						null,
 						GeneralUtilityMethods.getOrganisationName(sd, oId),
 						null,
 						null,

@@ -1040,6 +1040,7 @@ public class SubscriberBatch {
 				
 				// Send the reminder
 				SubmissionMessage subMgr = new SubmissionMessage(
+						null,
 						"reminder title",	// todo
 						tId,
 						pId,
@@ -1326,6 +1327,7 @@ public class SubscriberBatch {
 									int pId  = notrs.getInt("p_id");
 									
 									SubmissionMessage subMgr = new SubmissionMessage(
+											null,
 											"Case Management",		// TODO title
 											0,
 											pId,
@@ -1555,6 +1557,7 @@ public class SubscriberBatch {
 						 */
 						if(!updated) {
 							SubmissionMessage subMgr = new SubmissionMessage(
+									notificationName,
 									"Server Calculation",	
 									0,
 									pId,
@@ -1751,6 +1754,7 @@ public class SubscriberBatch {
 				MessagingManager mm = new MessagingManager(localisation);
 				
 				SubmissionMessage msg = new SubmissionMessage(
+						name,			// Notification Name
 						name,			// title
 						0,				// task id
 						pId,

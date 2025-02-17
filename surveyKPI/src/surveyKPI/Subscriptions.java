@@ -170,6 +170,7 @@ public class Subscriptions extends Application {
 								.append("</a> ");
 						
 						em.sendEmailHtml(
+								null,
 								o.name,
 								null,
 								null,

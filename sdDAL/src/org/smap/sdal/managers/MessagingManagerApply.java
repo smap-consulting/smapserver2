@@ -311,6 +311,7 @@ public class MessagingManagerApply {
 											content.append("\n\n");
 											
 											em.sendEmailHtml(
+													null,				// Notification name
 													organisation.name,
 													null,
 													null,
@@ -411,8 +412,6 @@ public class MessagingManagerApply {
 			pstmtConfirm = sd.prepareStatement(sqlConfirm);
 
 			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();			
-
-			GeneralUtilityMethods.log(log, "zzzzzzzzzzzzzzz: " + pstmtGetMessages.toString(), "device_message", null);
 
 			rs = pstmtGetMessages.executeQuery();
 			while (rs.next()) {

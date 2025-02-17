@@ -106,6 +106,7 @@ public class EmailManager {
 						// Catch and log exceptions
 						try {
 							sendEmailHtml(
+									null,
 									org.name,
 									null,
 									null,
@@ -258,6 +259,7 @@ public class EmailManager {
 							log.info("#########: Email " + ia.getAddress() + " Opted in: " + subStatus.optedIn + "org:  " + !organisation.send_optin);
 							if(subStatus.optedIn || !organisation.send_optin) {
 								sendEmailHtml(
+										msg.notificationName,				// notification name
 										organisation.name,
 										null,
 										projectName,
@@ -320,6 +322,7 @@ public class EmailManager {
 	
 	// Send an email using HTML format
 	public void sendEmailHtml( 
+			String notificationName,
 			String orgName,
 			String tgName,
 			String projectName,
@@ -359,6 +362,10 @@ public class EmailManager {
 		if(tgName != null) {
 			source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("t_tg"))
 					.append(": ").append(tgName).append("</p>");
+		}
+		if(notificationName != null) {
+			source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("c_notify"))
+					.append(": ").append(notificationName).append("</p>");
 		}
 		if(projectName != null) {
 			source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("ar_project"))

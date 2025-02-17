@@ -755,6 +755,7 @@ public class MailoutManager {
 												projectName = GeneralUtilityMethods.getProjectName(sd, msg.pId);
 											}
 											em.sendEmailHtml(
+													null,
 													organisation.name,
 													null,
 													projectName,

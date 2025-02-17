@@ -181,7 +181,8 @@ public class PasswordReset extends Application {
 						.append("</p>");
 
 						em.sendEmailHtml(
-								"",
+								null,		// notification name
+								null,		// organisation name
 								null,
 								null,
 								email, 

@@ -440,6 +440,7 @@ public class NotificationList extends Application {
 			String scheme = request.getScheme();
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			SubmissionMessage subMsg = new SubmissionMessage(
+					null,
 					"Immediate",		// Title
 					0,					// Task Id - ignore, only relevant for a reminder
 					pId,

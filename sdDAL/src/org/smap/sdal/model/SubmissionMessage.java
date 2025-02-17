@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 public class SubmissionMessage {
+	public String notificationName;
 	public String title;
 	public int taskId;
 	public String survey_ident;
@@ -41,6 +42,7 @@ public class SubmissionMessage {
 	public Timestamp ts;
 	
 	public SubmissionMessage(
+			String notificationName,
 			String title,
 			int taskId,
 			int pId,
@@ -73,6 +75,7 @@ public class SubmissionMessage {
 			String msgChannel,
 			Timestamp ts) {
 		
+		this.notificationName = notificationName;
 		this.title = title;
 		this.taskId = taskId;
 		this.survey_ident = survey_ident;
@@ -108,6 +111,7 @@ public class SubmissionMessage {
 	
 	// copy constructor
 	public SubmissionMessage(SubmissionMessage orig) {
+		this.notificationName = orig.notificationName;
 		this.title = orig.title;
 		this.taskId = orig.taskId;
 		this.survey_ident = orig.survey_ident;

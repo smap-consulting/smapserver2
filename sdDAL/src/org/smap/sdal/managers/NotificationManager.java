@@ -621,7 +621,7 @@ public class NotificationManager {
 			log.info("notifyForSubmission:: " + ue_id + " : " + updateQuestion + " : " + updateValue);
 
 			StringBuilder sqlGetNotifications = 
-					new StringBuilder("select n.target, n.notify_details, n.filter, "
+					new StringBuilder("select n.name, n.target, n.notify_details, n.filter, "
 					+ "n.remote_user, n.remote_password, n.p_id "
 					+ "from forward n "
 					+ "where ((n.s_id = ? and not n.bundle) or (n.bundle_ident = ? and n.bundle)) " 
@@ -652,11 +652,12 @@ public class NotificationManager {
 			rsNotifications = pstmtGetNotifications.executeQuery();
 			while(rsNotifications.next()) {
 
-				String target = rsNotifications.getString(1);
-				String notifyDetailsString = rsNotifications.getString(2);
-				String filter = rsNotifications.getString(3);
-				String remoteUser = rsNotifications.getString(4);
-				String remotePassword = rsNotifications.getString(5);
+				String notificationName = rsNotifications.getString("name");
+				String target = rsNotifications.getString("target");
+				String notifyDetailsString = rsNotifications.getString("notify_details");
+				String filter = rsNotifications.getString("filter");
+				String remoteUser = rsNotifications.getString("remote_user");
+				String remotePassword = rsNotifications.getString("remote_password");
 				int pId = rsNotifications.getInt("p_id");
 				NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
 
@@ -711,6 +712,7 @@ public class NotificationManager {
 								instanceId, tz);
 					}
 					SubmissionMessage subMsg = new SubmissionMessage(
+							notificationName,
 							"Submission",	// Title
 							0,				// Task Id - ignore, only relevant for a reminder
 							pId,
@@ -1558,6 +1560,7 @@ public class NotificationManager {
 									} else {
 										if(subStatus.optedIn || !organisation.send_optin) {
 											em.sendEmailHtml(
+													null,
 													organisation.name,
 													null,
 													null,

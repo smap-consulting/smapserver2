@@ -773,6 +773,7 @@ public class UserManager {
 				log.info("Content: " + content);
 				log.info("tokens: " + customTokens.toString());
 				em.sendEmailHtml(
+						null,
 						organisation.name,
 						null,
 						null,

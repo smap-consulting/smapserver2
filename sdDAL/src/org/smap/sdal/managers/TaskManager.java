@@ -3495,6 +3495,7 @@ public class TaskManager {
 												projectName = GeneralUtilityMethods.getProjectName(sd, msg.pId);
 											}
 											em.sendEmailHtml(
+													null,				// notification name
 													organisation.name,
 													msg.tgName,
 													projectName,
