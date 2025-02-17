@@ -850,7 +850,7 @@ public class SurveyManager {
 				+ "where c.s_id = ? "
 				+ "and c.user_id = u.id "
 				+ "and c.visible = true "
-				+ "order by c_id desc; ";
+				+ "order by c_id desc ";
 		PreparedStatement pstmtGetChanges = sd.prepareStatement(sqlGetChanges);
 		
 		// Get the available languages
@@ -1117,7 +1117,7 @@ public class SurveyManager {
 				+ "organisation o "
 				+ "where s.ident = ? "
 				+ "and s.p_id = p.id "
-				+ "and p.o_id = o.id";
+				+ "and p.o_id = o.id ";
 
 		PreparedStatement pstmt = null;
 		try {
@@ -1210,8 +1210,8 @@ public class SurveyManager {
 			 * Lock the survey
 			 * update version number of survey and get the new version
 			 */
-			String sqlUpdateVersion = "update survey set version = version + 1 where s_id = ?";
-			String sqlGetVersion = "select version from survey where s_id = ?";
+			String sqlUpdateVersion = "update survey set version = version + 1 where s_id = ? ";
+			String sqlGetVersion = "select version from survey where s_id = ? ";
 			pstmt = sd.prepareStatement(sqlUpdateVersion);
 			pstmt.setInt(1, sId);
 			pstmt.execute();
@@ -1619,7 +1619,7 @@ public class SurveyManager {
 		PreparedStatement pstmtDeleteForm = null;
 		String sqlDeleteForm = "delete from form f "
 				+ "where f.s_id = ? "
-				+ "and f.parentQuestion = ?"
+				+ "and f.parentQuestion = ? "
 				+ "and f.name = ?;";
 
 		String sql = "delete from question q where f_id = ? and qname = ? and q.q_id in " +
@@ -1639,7 +1639,7 @@ public class SurveyManager {
 
 					String sqlUpdateRepeat = "update form set repeats = ? "
 							+ "where s_id = ? "
-							+ "and parentquestion = ?";
+							+ "and parentquestion = ? ";
 					pstmtUpdateRepeat = sd.prepareStatement(sqlUpdateRepeat);
 
 					pstmtUpdateRepeat.setString(1, ci.property.newVal);
@@ -1771,29 +1771,27 @@ public class SurveyManager {
 						String sqlProperty2 = "update question set " + property + " = ? " +
 								"where q_id = ? ";
 						if(onlyIfNotPublished) {
-							sqlProperty2 += " and published = 'false';";
-						} else {
-							sqlProperty2 += ";";
-						}
+							sqlProperty2 += " and published = 'false' ";
+						} 
 						pstmtProperty2 = sd.prepareStatement(sqlProperty2);
 
 						// Special case for list name (no integrity checking)
 						String sqlProperty3 = "update question set l_id = ? " +
-								"where q_id = ?";
+								"where q_id = ? ";
 						pstmtProperty3 = sd.prepareStatement(sqlProperty3);
 
 						// Update listname - Get existing listname
-						String sqlGetListname = "select name from listname where l_id = ? and s_id = ?";
+						String sqlGetListname = "select name from listname where l_id = ? and s_id = ? ";
 						pstmtGetListname = sd.prepareStatement(sqlGetListname);
 
 						// Update listname
-						String sqlListname = "update listname set name = ? where l_id = ? and s_id = ?";
+						String sqlListname = "update listname set name = ? where l_id = ? and s_id = ? ";
 						pstmtListname = sd.prepareStatement(sqlListname);
 
 						// Update nodeset
 						String sqlUpdateNodeset = "update question set nodeset = replace(nodeset, '(''' || ? || ''')', '(''' || ? || ''')') "
 								+ "where l_id = ? "
-								+ "and f_id in (select f_id from form where s_id = ?)";
+								+ "and f_id in (select f_id from form where s_id = ?) ";
 						pstmtUpdateNodeset = sd.prepareStatement(sqlUpdateNodeset);	
 
 						// Update nodeset for a single question
@@ -1809,7 +1807,7 @@ public class SurveyManager {
 								+ "nodeset_label = 'jr:itext(itextId)',"
 								+ "l_id = ? "
 								+ "where q_id = ? "
-								+ "and q_id in (select q_id from question q, form f where f.f_id = q.f_id and f.s_id = ?)";
+								+ "and q_id in (select q_id from question q, form f where f.f_id = q.f_id and f.s_id = ?) ";
 						pstmtAddNodeset = sd.prepareStatement(sqlAddNodeset);
 						
 						String sqlClearNodeset = "update question "
@@ -1817,8 +1815,8 @@ public class SurveyManager {
 								+ "nodeset_value = null, "
 								+ "nodeset_label = null,"
 								+ "l_id = 0 "
-								+ "where q_id = ?"
-								+ "and q_id in (select q_id from question q, form f where f.f_id = q.f_id and f.s_id = ?)";
+								+ "where q_id = ? "
+								+ "and q_id in (select q_id from question q, form f where f.f_id = q.f_id and f.s_id = ?) ";
 						pstmtClearNodeset = sd.prepareStatement(sqlClearNodeset);
 
 						// Update for dependent properties
