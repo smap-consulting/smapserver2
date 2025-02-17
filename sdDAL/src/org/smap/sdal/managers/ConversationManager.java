@@ -222,11 +222,14 @@ public class ConversationManager {
 							"Cannot create vonage client" + " " + e.getMessage(), 0);
 			}
 		} else {
-			// Set organisation id to -1 as this is an issue not related to an organisation
 			String msg = "Cannot create vonage client. " 
 					+ (!vonagePrivateKey.exists() ? " vonage_private.key was not found." : "")
 					+ (vonageApplicationId == null ? " The vonage application Id was not found in settings." : "");
-			lm.writeLogOrganisation(sd, -1, null, LogManager.SMS, msg, 0);
+			
+			if(vonageApplicationId != null && vonageApplicationId.trim().length() > 0) {
+				// Set organisation id to -1 as this is an issue not related to an organisation			
+				lm.writeLogOrganisation(sd, -1, null, LogManager.SMS, msg, 0);	
+			}
 			log.info("Error: " + msg);
 		}
 		
