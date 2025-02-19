@@ -11067,7 +11067,9 @@ public class GeneralUtilityMethods {
 			log.log(Level.SEVERE, "Encoding Filename Error", e);
 		}
 		out = out.replace("+", " "); // Spaces ok for file name within quotes
-		out = out.replace("%2C", ","); // Commas ok for file name within quotes
+		//out = out.replace("%2C", ","); // Commas ok for file name within quotes
+		out = out.replace("%28", "(");
+		out = out.replace("%29", ")");
 		
 		return out;
 	}

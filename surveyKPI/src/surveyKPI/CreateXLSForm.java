@@ -22,6 +22,9 @@ import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
@@ -37,6 +40,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.PeopleManager;
 import org.smap.sdal.managers.SurveyManager;
 
 import utilities.XLSFormManager;
@@ -49,6 +53,9 @@ import utilities.XLSFormManager;
 public class CreateXLSForm extends Application {
 	
 	Authorise a = null;
+	
+	private static Logger log =
+			 Logger.getLogger(PeopleManager.class.getName());
 	
 	public CreateXLSForm() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
@@ -64,7 +71,9 @@ public class CreateXLSForm extends Application {
 			@Context HttpServletResponse response,
 			@PathParam("sId") int sId,
 			@QueryParam("filetype") String filetype) throws Exception {
-			
+		
+		Response resp = null;
+		
 		String connectionString = "createXLSForm";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);	
@@ -121,13 +130,18 @@ public class CreateXLSForm extends Application {
 			XLSFormManager xf = new XLSFormManager(filetype);
 			xf.createXLSForm(sd, sId, response.getOutputStream(), survey);
 			
+			resp = Response.ok("").build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			resp = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			
 			SDDataSource.closeConnection(connectionString, sd);		
 			ResultsDataSource.closeConnection(connectionString, cResults);
 			
 		}
-		return Response.ok("").build();
+		return resp;
 	}
 	
 
