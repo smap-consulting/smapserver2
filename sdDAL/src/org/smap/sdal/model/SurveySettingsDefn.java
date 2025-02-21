@@ -17,6 +17,8 @@ public class SurveySettingsDefn {
 	public String overridenDefaultLimit;
 	public String include_bad;
 	public String include_completed;
+	public int pageLen;				// Datatables
+	public String colOrder;			// Datatables
 	
 	public ArrayList<MapLayer> layers = new ArrayList<MapLayer> ();             // Map
 	public ArrayList<ChartDefn> charts = new ArrayList<ChartDefn> ();           // Charts

@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -480,7 +481,9 @@ public class DataManager {
 			boolean includeMeta,
 			String urlprefix,
 			String attachmentPrefix,
-			String selectedInstanceId
+			String selectedInstanceId,
+			int pageLen,							// Set by the console and remembered on the server
+			String colOrder					// Set by the console and remembered here
 			) throws ApplicationException, Exception { 
 
 
@@ -633,6 +636,8 @@ public class DataManager {
 					ssd.include_bad = include_bad;
 					ssd.include_completed = include_completed;
 					ssd.overridenDefaultLimit = "yes";
+					ssd.pageLen = pageLen;
+					ssd.colOrder = colOrder;
 					
 					ssm.setSurveySettings(sd, uId, sIdent, ssd);
 				} else {

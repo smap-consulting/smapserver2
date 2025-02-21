@@ -185,7 +185,10 @@ public class Data2 extends Application {
 				includeMeta,
 				urlprefix,
 				attachmentPrefix,
-				null);
+				null,
+				0,		// page length - not used from API
+				null	// column order - not used from API
+				);
 		
 		return Response.status(Status.OK).build();
 	}

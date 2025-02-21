@@ -67,6 +67,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -140,7 +141,9 @@ public class APIEntryPoints extends Application {
 			@QueryParam("endDate") Date endDate,
 			@QueryParam("instanceid") String instanceId,
 			@QueryParam("getSettings") boolean getSettings,			// if set true get the settings from the database
-			@QueryParam("selectedrow") String selectedRow
+			@QueryParam("selectedrow") String selectedRow,
+			@QueryParam("pageLen") int pageLen,
+			@QueryParam("colOrder") String colOrder
 			) throws ApplicationException, Exception { 
 			
 		boolean incLinks = false;
@@ -180,7 +183,9 @@ public class APIEntryPoints extends Application {
 				instanceId, includeMeta, 
 				urlprefix,
 				attachmentPrefix,
-				selectedRow);
+				selectedRow,
+				pageLen,
+				colOrder);
 		
 		return Response.status(Status.OK).build();
 	}
