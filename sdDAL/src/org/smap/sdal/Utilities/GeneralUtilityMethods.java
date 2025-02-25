@@ -3190,8 +3190,9 @@ public class GeneralUtilityMethods {
 			for (int i = 0; i < languages.size(); i++) {
 
 				Language language = languages.get(i);
+				String languageName = GeneralUtilityMethods.getLanguageName(language.name);
 
-				if(!language.deleted && defLang != null && language.name != null && defLang.equals(language.name)) {
+				if(!language.deleted && defLang != null && languageName != null && defLang.equals(languageName)) {
 					defLangInList = true;
 				}
 				
@@ -3213,13 +3214,13 @@ public class GeneralUtilityMethods {
 					if(rsName.next()) {
 						String oldName = rsName.getString("language");
 						if(oldName != null && defLang != null && oldName.equals(defLang)) {
-							newDefault = language.name;
+							newDefault = languageName;
 						}
 					}
 					// Update the translations using this language
 					// (note: for historical reasons the language name is repeated in each
 					// translation rather than the language id)
-					pstmtUpdateTranslations.setString(1, language.name);
+					pstmtUpdateTranslations.setString(1, languageName);
 					pstmtUpdateTranslations.setInt(2, sId);
 					pstmtUpdateTranslations.setInt(3, language.id);
 
@@ -3227,7 +3228,7 @@ public class GeneralUtilityMethods {
 					pstmtUpdateTranslations.executeUpdate();
 
 					// Update language name
-					pstmtUpdate.setString(1, language.name);
+					pstmtUpdate.setString(1, languageName);
 					pstmtUpdate.setInt(2, seq);
 					pstmtUpdate.setString(3, language.code);
 					pstmtUpdate.setBoolean(4, language.rtl);
@@ -3241,7 +3242,7 @@ public class GeneralUtilityMethods {
 				} else if (language.id <= 0) {
 					// insert language
 					pstmtInsert.setInt(1, sId);
-					pstmtInsert.setString(2, language.name);
+					pstmtInsert.setString(2, languageName);
 					pstmtInsert.setInt(3, seq);
 					pstmtInsert.setString(4, language.code);
 					pstmtInsert.setBoolean(5, language.rtl);
@@ -3262,8 +3263,9 @@ public class GeneralUtilityMethods {
 					// set the default language to the first language in the list
 					for (int i = 0; i < languages.size(); i++) {
 						Language language = languages.get(i);
+						String languageName = GeneralUtilityMethods.getLanguageName(language.name);
 						if(!language.deleted) {
-							newDefault = language.name;
+							newDefault = languageName;
 							break;
 						}
 					}
@@ -3374,7 +3376,7 @@ public class GeneralUtilityMethods {
 
 				// 2. Check that each language has this media
 				for (Language language : languages) {
-					String languageName = language.name;
+					String languageName = GeneralUtilityMethods.getLanguageName(language.name);
 					boolean hasMedia = false;
 
 					pstmtHasMedia.setString(2, type);
@@ -9945,6 +9947,20 @@ public class GeneralUtilityMethods {
 		}
 		return code;
 	}
+	
+	/*
+	 * Get the language code from the language specified by the user
+	 */
+	public static String getLanguageName(String name) {
+		
+		int idx1 = name.indexOf("(");
+		if(idx1 > -1) {
+			name = name.substring(0, idx1).trim();
+		}
+		
+		return name;
+	}
+	
 	
 	/*
 	 * Adjust by the specified amount

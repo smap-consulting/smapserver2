@@ -115,6 +115,8 @@ public class LanguageCodeManager {
 				code = "en";
 			} else if(name.equals("spanish")) {
 				code = "es";
+			} else if(name.equals("arabic")) {
+				code = "ar";
 			}
 		}
 		

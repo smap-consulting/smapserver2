@@ -1126,7 +1126,7 @@ public class XLSFormManager {
 	 * Get a composite language label including the language code and direction
 	 */
 	private String getLanguageLabel(Language language) {
-		StringBuilder label = new StringBuilder(language.name);
+		StringBuilder label = new StringBuilder(GeneralUtilityMethods.getLanguageName(language.name));
 		if(language.code != null && language.code.trim().length() > 0) {
 			label.append(" (").append(language.code).append(")"); 
 		}
