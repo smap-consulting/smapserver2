@@ -3190,9 +3190,9 @@ public class GeneralUtilityMethods {
 			for (int i = 0; i < languages.size(); i++) {
 
 				Language language = languages.get(i);
-				String languageName = GeneralUtilityMethods.getLanguageName(language.name);
 
-				if(!language.deleted && defLang != null && languageName != null && defLang.equals(languageName)) {
+				if(!language.deleted && defLang != null && language.name != null 
+						&& GeneralUtilityMethods.isSameLanguage(defLang, language.name)) {
 					defLangInList = true;
 				}
 				
@@ -3214,13 +3214,13 @@ public class GeneralUtilityMethods {
 					if(rsName.next()) {
 						String oldName = rsName.getString("language");
 						if(oldName != null && defLang != null && oldName.equals(defLang)) {
-							newDefault = languageName;
+							newDefault = language.name;
 						}
 					}
 					// Update the translations using this language
 					// (note: for historical reasons the language name is repeated in each
 					// translation rather than the language id)
-					pstmtUpdateTranslations.setString(1, languageName);
+					pstmtUpdateTranslations.setString(1, language.name);
 					pstmtUpdateTranslations.setInt(2, sId);
 					pstmtUpdateTranslations.setInt(3, language.id);
 
@@ -3228,7 +3228,7 @@ public class GeneralUtilityMethods {
 					pstmtUpdateTranslations.executeUpdate();
 
 					// Update language name
-					pstmtUpdate.setString(1, languageName);
+					pstmtUpdate.setString(1, language.name);
 					pstmtUpdate.setInt(2, seq);
 					pstmtUpdate.setString(3, language.code);
 					pstmtUpdate.setBoolean(4, language.rtl);
@@ -3242,7 +3242,7 @@ public class GeneralUtilityMethods {
 				} else if (language.id <= 0) {
 					// insert language
 					pstmtInsert.setInt(1, sId);
-					pstmtInsert.setString(2, languageName);
+					pstmtInsert.setString(2, language.name);
 					pstmtInsert.setInt(3, seq);
 					pstmtInsert.setString(4, language.code);
 					pstmtInsert.setBoolean(5, language.rtl);
@@ -3263,9 +3263,8 @@ public class GeneralUtilityMethods {
 					// set the default language to the first language in the list
 					for (int i = 0; i < languages.size(); i++) {
 						Language language = languages.get(i);
-						String languageName = GeneralUtilityMethods.getLanguageName(language.name);
 						if(!language.deleted) {
-							newDefault = languageName;
+							newDefault = language.name;
 							break;
 						}
 					}
@@ -3376,7 +3375,7 @@ public class GeneralUtilityMethods {
 
 				// 2. Check that each language has this media
 				for (Language language : languages) {
-					String languageName = GeneralUtilityMethods.getLanguageName(language.name);
+					String languageName = language.name;
 					boolean hasMedia = false;
 
 					pstmtHasMedia.setString(2, type);
@@ -9959,6 +9958,19 @@ public class GeneralUtilityMethods {
 		}
 		
 		return name;
+	}
+	
+	/*
+	 * Return true of the two names are the same language ignoring codes and language orientation
+	 */
+	public static boolean isSameLanguage(String n1, String n2) {
+		
+		boolean sameLang = false;
+		if(n1 != null && n2 != null) {
+			sameLang = getLanguageName(n1).equals(getLanguageName(n2));
+		}
+	
+		return sameLang;
 	}
 	
 	

@@ -229,11 +229,11 @@ public class GetHtml {
 			if(rtl) {
 				bodyElement.setAttribute("data-dir", "rtl");
 			}
-			bodyElement.setTextContent(sanitise.sanitiseHtml(lang.name));
+			bodyElement.setTextContent(sanitise.sanitiseHtml(GeneralUtilityMethods.getLanguageName(lang.name)));
 			parent.appendChild(bodyElement);
 
 			// Save the index of the default language
-			if (lang.name.equals(survey.surveyData.def_lang)) {
+			if (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang)) {
 				languageIndex = idx;
 			}
 			idx++;
@@ -1292,7 +1292,7 @@ public class GetHtml {
 					}
 					bodyElement.setAttribute("lang", lang.name);
 					bodyElement.setAttribute("class",
-							"option-label" + (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
+							"option-label" + (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 					bodyElement.setAttribute("data-itext-id", o.text_id);
 	
 					String label = o.labels.get(idx).text;
@@ -1362,7 +1362,7 @@ public class GetHtml {
 					Element optionElement = outputDoc.createElement("span");
 					parent.appendChild(optionElement);
 					optionElement.setAttribute("lang", lang.name);
-					optionElement.setAttribute("class", "option-label" + (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
+					optionElement.setAttribute("class", "option-label" + (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 					optionElement.setAttribute("data-itext-id", o.text_id);
 					
 					String label = o.labels.get(idx).text;
@@ -1446,7 +1446,7 @@ public class GetHtml {
 			// Label
 			bodyElement = outputDoc.createElement("span");
 			bodyElement.setAttribute("lang", lang.name);
-			bodyElement.setAttribute("class", "question-label" + (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
+			bodyElement.setAttribute("class", "question-label" + (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("data-itext-id", q.text_id);
 
 			String label = q.labels.get(idx).text;
@@ -1468,7 +1468,7 @@ public class GetHtml {
 			if (hint != null && hint.trim().length() > 0) {
 				bodyElement = outputDoc.createElement("span");
 				bodyElement.setAttribute("lang", lang.name);
-				bodyElement.setAttribute("class", "or-hint" + (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
+				bodyElement.setAttribute("class", "or-hint" + (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 				bodyElement.setAttribute("data-itext-id", q.hint_id);
 
 				try {
@@ -1487,7 +1487,7 @@ public class GetHtml {
 			if (guidance != null && guidance.trim().length() > 0) {
 				bodyElement = outputDoc.createElement("details");
 				bodyElement.setAttribute("lang", lang.name);
-				bodyElement.setAttribute("class", "or-form-guidance" + (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
+				bodyElement.setAttribute("class", "or-form-guidance" + (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 
 				Element summaryElement = outputDoc.createElement("summary");
 				summaryElement.setAttribute("data-i18n", "hint.guidance.details");
@@ -1608,7 +1608,7 @@ public class GetHtml {
 		if (image != null && image.trim().length() > 0) {
 			bodyElement = outputDoc.createElement("img");
 			bodyElement.setAttribute("lang", lang.name);
-			bodyElement.setAttribute("class", (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
+			bodyElement.setAttribute("class", (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("src", "jr://images/" + image);
 			bodyElement.setAttribute("alt", "image");
 			bodyElement.setAttribute("data-itext-id", textId);
@@ -1621,7 +1621,7 @@ public class GetHtml {
 		if (audio != null && audio.trim().length() > 0) {
 			bodyElement = outputDoc.createElement("audio");
 			bodyElement.setAttribute("lang", lang.name);
-			bodyElement.setAttribute("class", (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
+			bodyElement.setAttribute("class", (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("src", "jr://audio/" + audio);
 			bodyElement.setAttribute("alt", "audio");
 			bodyElement.setAttribute("controls", "controls");
@@ -1636,7 +1636,7 @@ public class GetHtml {
 		if (video != null && video.trim().length() > 0) {
 			bodyElement = outputDoc.createElement("video");
 			bodyElement.setAttribute("lang", lang.name);
-			bodyElement.setAttribute("class", (lang.name.equals(survey.surveyData.def_lang) ? " active" : ""));
+			bodyElement.setAttribute("class", (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("src", "jr://video/" + video);
 			bodyElement.setAttribute("alt", "video");
 			bodyElement.setAttribute("data-itext-id", textId);

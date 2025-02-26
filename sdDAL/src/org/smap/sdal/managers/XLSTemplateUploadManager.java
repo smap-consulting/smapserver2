@@ -413,9 +413,9 @@ public class XLSTemplateUploadManager {
 					boolean validLanguage = false;
 					for(Language l : survey.surveyData.languages) {
 						// Check the name in settings against the name used in the label and the simplified label name without the language code
-						if(l.name.equals(survey.surveyData.def_lang) 
-								|| GeneralUtilityMethods.getLanguageName(l.name).equals(survey.surveyData.def_lang) ) {
+						if(GeneralUtilityMethods.isSameLanguage(l.name, survey.surveyData.def_lang) ) {
 							validLanguage = true;
+							survey.surveyData.def_lang = l.name;	// Make the default language exactly the same as the language it refers to including codes
 							break;
 						}
 					}
