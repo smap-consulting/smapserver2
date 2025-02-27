@@ -333,7 +333,7 @@ public class ManagedForms extends Application {
 		} catch (Exception e) {
 		}
 		
-		aAdmin.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		if(!uIdent.equals("_none")) {
 			a.isValidUser(sd, request.getRemoteUser(), GeneralUtilityMethods.getUserId(sd, uIdent));

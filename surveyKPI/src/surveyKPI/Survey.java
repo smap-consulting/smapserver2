@@ -813,6 +813,7 @@ public class Survey extends Application {
 			response = Response.serverError().entity("No data available").build();
 		} catch (JSONException e) {
 			log.log(Level.SEVERE,"", e);
+			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}

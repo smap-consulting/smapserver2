@@ -3728,7 +3728,7 @@ public class GeneralUtilityMethods {
 
 		String type = null;
 
-		String sql = "select data_type from information_schema.columns where table_name = ? " + "and column_name = ?;";
+		String sql = "select data_type from information_schema.columns where table_name = ? and column_name = ?";
 		PreparedStatement pstmt = null;
 
 		try {
