@@ -49,6 +49,8 @@ public class SurveySettingsManager {
 	private ResourceBundle localisation = null;
 	String tz;
 	
+	private Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+	
 	public SurveySettingsManager(ResourceBundle l, String tz) {
 		localisation = l;
 		if(tz == null) {
@@ -75,7 +77,6 @@ public class SurveySettingsManager {
 		PreparedStatement pstmt = null;
 		
 		ResultSet rs = null;
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		try {
 
 			// Get the survey view
@@ -153,15 +154,13 @@ public class SurveySettingsManager {
 	}
 	
 	/*
-	 * Get the Managed Form Configuration
+	 * Set the Managed Form Configuration
 	 */
 	public void setSurveySettings(
 			Connection sd, 
 			int uId,
 			String sIdent,
 			SurveySettingsDefn ssd) throws SQLException {
-		
-		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtInsert = null;
@@ -199,6 +198,50 @@ public class SurveySettingsManager {
 		}
 	}
 	
+	public void updateConsoleSettings(Connection sd, int uId, String sIdent, int limit, String colOrder) {
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+		
+			sd.setAutoCommit(false);
+			String sql = "select view from survey_settings "
+					+ "where u_id = ? "
+					+ "and s_ident = ? ";
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, uId);
+			pstmt.setString(2, sIdent);
+			ResultSet rs = pstmt.executeQuery();
+			
+			SurveySettingsDefn ssd = null;
+			
+			if(rs.next()) {
+				
+				String sView = rs.getString("view");
+				if(sView != null) {
+					ssd = gson.fromJson(sView, SurveySettingsDefn.class);
+				}
+				
+			}
+			if(ssd == null) {
+				ssd = new SurveySettingsDefn();
+			}
+			ssd.pageLen = limit;
+			ssd.colOrder = colOrder;
+			
+			setSurveySettings(sd, uId, sIdent, ssd);
+			
+			sd.commit();
+			
+		} catch (Exception e) {
+			try {sd.rollback();}catch(Exception ex) {};
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {
+			try {sd.setAutoCommit(true);}catch(Exception e) {};
+			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}}
+		}
+	}
 }
 
 

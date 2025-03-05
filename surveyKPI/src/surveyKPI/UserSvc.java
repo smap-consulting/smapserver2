@@ -44,8 +44,10 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Alert;
+import org.smap.sdal.model.ConsoleSettings;
 import org.smap.sdal.model.GroupSurvey;
 import org.smap.sdal.model.PasswordDetails;
 import org.smap.sdal.model.User;
@@ -421,6 +423,50 @@ public class UserSvc extends Application {
 	}
 	
 	/*
+	 * Update the browser side console settings
+	 * Settings that affect data returned from the server are saved when the data is requested
+	 */
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/consolesettings/{sIdent}")
+	public Response updateCurrentConsoleSettings(@Context HttpServletRequest request, 
+			ConsoleSettings settings,
+			@PathParam("sIdent") String sIdent) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
+		Response response = null;
+		String connectionString = "SurveyKPI - ConsoleSettings";
+		// Authorisation - Not Required
+		Connection sd = SDDataSource.getConnection(connectionString);
+			
+		String user = request.getRemoteUser();
+		SurveySettingsManager ssm = new SurveySettingsManager(null, null);
+		
+		try {	
+			int uId = GeneralUtilityMethods.getUserId(sd, user);
+		  
+			ssm.updateConsoleSettings(sd, uId, sIdent, settings.pageLen, settings.colOrder);
+			response = Response.ok().build();
+				
+		} catch (Exception e) {
+
+			response = Response.serverError().build();
+			log.log(Level.SEVERE,"Error", e);
+			
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
 	 * Update the current survey, project and task group
 	 */
 	@POST
@@ -435,9 +481,10 @@ public class UserSvc extends Application {
 		} 
 		
 		Response response = null;
+		String connectionString  = "SurveyKPI - current project";
 
 		// Authorisation - Not Required
-		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
+		Connection sd = SDDataSource.getConnection(connectionString);
 			
 		PreparedStatement pstmt = null;
 		try {	
@@ -497,7 +544,7 @@ public class UserSvc extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-UserSvc", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
