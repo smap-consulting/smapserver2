@@ -74,7 +74,7 @@ public class SubmissionProcessor {
 		String basePath;
 		String queueName;
 		boolean incRestore;
-		boolean gotVonageClient = false;
+		VonageClient vonageClient = null;
 
 		public SubmissionQueueLoop(String basePath, String queueName, boolean incRestore) {
 			this.basePath = basePath;
@@ -151,9 +151,7 @@ public class SubmissionProcessor {
 						/*
 						 * Get a vonage client
 						 */
-						VonageClient vonageClient = null;
-						if(!gotVonageClient) {
-							gotVonageClient = true;
+						if(vonageClient == null) {
 							ConversationManager convMgr = new ConversationManager(localisation, "UTC");
 							vonageClient = convMgr.getVonageClient(dbc.sd);
 						}

@@ -54,7 +54,7 @@ public class MessageProcessor {
 		String hyperlinkPrefix;
 		String basePath;
 		String queueName;	
-		boolean gotVonageClient = false;
+		VonageClient vonageClient = null;
 		
 		public MessageLoop(String basePath, String queueName) {
 			this.basePath = basePath;
@@ -90,9 +90,8 @@ public class MessageProcessor {
 						/*
 						 * Get a vonage client
 						 */
-						VonageClient vonageClient = null;
-						if(!gotVonageClient) {
-							gotVonageClient = true;
+						
+						if(vonageClient == null) {
 							ConversationManager convMgr = new ConversationManager(null, null);
 							vonageClient = convMgr.getVonageClient(dbc.sd);
 						}

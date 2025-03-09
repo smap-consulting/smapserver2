@@ -207,15 +207,18 @@ public class ConversationManager {
 	public VonageClient getVonageClient(Connection sd) throws ApplicationException, SQLException {
 		
 		VonageClient vonageClient = null;
-		File vonagePrivateKey = new File(ServerSettings.getBasePath() + "_bin/resources/properties/vonage_private.key");
+		String privateKeyFile = ServerSettings.getBasePath() + "_bin/resources/properties/vonage_private.key";
+		File vonagePrivateKey = new File(privateKeyFile);
 		String vonageApplicationId = getVonageApplicationId(sd);
 			
+		log.info("Getting vonage client with application Id: " + vonageApplicationId + " file at: " + privateKeyFile);
 		if(vonagePrivateKey.exists() && vonageApplicationId != null && vonageApplicationId.trim().length() > 0) {
 			try {
 				vonageClient = VonageClient.builder()
 						.applicationId(vonageApplicationId)
 						.privateKeyPath(vonagePrivateKey.getAbsolutePath())
 						.build();
+				log.info("Got vonage client");
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(),e);
 				lm.writeLogOrganisation(sd, -1, null, LogManager.SMS, 
@@ -230,7 +233,7 @@ public class ConversationManager {
 				// Set organisation id to -1 as this is an issue not related to an organisation			
 				lm.writeLogOrganisation(sd, -1, null, LogManager.SMS, msg, 0);	
 			}
-			log.info("Error: " + msg);
+			log.info("Error setting up vonage client: " + msg);
 		}
 		
 		return vonageClient;

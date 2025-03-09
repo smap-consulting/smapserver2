@@ -1198,9 +1198,9 @@ public class NotificationManager {
 						error_details = "Vonage client has not been configured";
 						
 						notify_details = localisation.getString("msg_sms_not_sent");
-						notify_details = notify_details.replace("%s1", msg.content);
-						notify_details = notify_details.replace("%s2", msg.ourNumber);
-						notify_details = notify_details.replace("%s3", toNumber);
+						notify_details = notify_details.replace("%s1", msg.content != null ? msg.content : "");
+						notify_details = notify_details.replace("%s2", msg.ourNumber != null ? msg.ourNumber : "");
+						notify_details = notify_details.replace("%s3", toNumber != null ? toNumber : "");
 						
 						log.log(Level.SEVERE, "Vonage client has not been configured");
 					}
