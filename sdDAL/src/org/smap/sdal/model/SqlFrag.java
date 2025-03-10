@@ -193,11 +193,13 @@ public class SqlFrag {
 	public String sqlToken(String token, ResourceBundle localisation, int rowNum) throws Exception {
 		String out = "";
 		
+		String origToken = token.trim();
 		token = token.trim().toLowerCase();
 		
 		// Check for a column name
 		if(token.startsWith("${") && token.endsWith("}")) {
 			String name = token.substring(2, token.length() - 1);
+			String humanName = origToken.substring(2, origToken.length() - 1);
 			boolean columnNameCaptured = false;
 			out = GeneralUtilityMethods.cleanName(name, true, true, false);		// TODO - This check will fail with long names, it should do a lookup of the question name to see if it exists and o get the column name
 			for(int i = 0; i < columns.size(); i++) {
@@ -208,7 +210,7 @@ public class SqlFrag {
 			}
 			if(!columnNameCaptured) {
 				columns.add(out);
-				humanNames.add(name);
+				humanNames.add(humanName);
 			}
 		} else if (token.equals(">") ||
 				token.equals("<") ||
