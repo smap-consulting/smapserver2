@@ -682,7 +682,7 @@ public class SurveyTableManager {
 					
 					QuestionForm qf = refQuestionMap.get(n);
 					
-					if (qf != null && qf.published) {
+					if (qf != null && (qf.published || qf.qType.equals("server_calculate"))) {
 						colName = qf.columnName;
 						tableName = qf.tableName;
 						colType = qf.qType;
