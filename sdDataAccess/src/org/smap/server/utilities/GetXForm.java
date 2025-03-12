@@ -798,11 +798,15 @@ public class GetXForm {
 				}
 
 			} else if (location == BODY) {
+				/*
+				 * Ignore questions that should be hidden in the form
+				 */
 				String appearance = q.getAppearance(true, template.getQuestionPaths());
-				if(appearance != null && appearance.equals("hidden")) {
+				if(qType.equals("conversation") || 
+						(appearance != null && appearance.equals("hidden"))) {
 					continue;
 				}
-				// if(subForm != null) {
+
 				if (qType.equals("begin repeat") || qType.equals("geolinestring") || qType.equals("geopolygon")) {
 					Form subForm = template.getSubForm(f, q);
 
