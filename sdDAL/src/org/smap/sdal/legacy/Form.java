@@ -253,7 +253,11 @@ public class Form implements Serializable {
 						break;
 					}
 				}
-				path = calculateFormPath(parentForm.getName(), parentForm, forms) + currentForm.getRelativePath();
+				if(parentForm != null) {
+					path = calculateFormPath(parentForm.getName(), parentForm, forms) + currentForm.getRelativePath();
+				} else {
+					path = "/main" ;
+				}
 			} else {
 				path = "/main" ;
 			}
