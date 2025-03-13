@@ -29,6 +29,7 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -3631,6 +3632,16 @@ public class SurveyManager {
 			for (String qName : qMap.keySet()) {
 				groupQuestions.add(qMap.get(qName));
 			}
+			
+			/*
+			 * Sort alphabetically
+			 */
+			java.util.Collections.sort(groupQuestions, new Comparator<QuestionLite>() {
+				@Override
+				public int compare(QuestionLite object1, QuestionLite object2) {
+					return object1.name.toLowerCase().compareTo(object2.name.toLowerCase());
+				}
+			});
 			
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
