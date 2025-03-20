@@ -219,6 +219,8 @@ public class KeyManager {
 			
 			PreparedStatement pstmt = null;
 			PreparedStatement pstmtAddHrk = null;
+			PreparedStatement pstmtGet = null;
+			
 			try {
 				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_hrk")) {
 					// This should not be needed as the _hrk column should be in the table if an hrk has been specified for the survey
@@ -228,28 +230,42 @@ public class KeyManager {
 					pstmtAddHrk.executeUpdate();
 				}
 				
-				StringBuilder sql = new StringBuilder("update ");
+				StringBuilder sqlUpdate = new StringBuilder("update ")
+						.append(tableName)
+						.append(" m set _hrk = ")
+						.append(hrkSql)
+						.append(" where m.prikey = ?");
+				pstmt = cResults.prepareStatement(sqlUpdate.toString());
+				
+				// Process 1 record at a time to prevent breaking of key functions
+				StringBuilder sql = new StringBuilder("select prikey from ");
 				sql.append(tableName)
-					.append(" m set _hrk = ")
-					.append(hrkSql)
-					.append(" where m._hrk is null ");
+					.append(" where _hrk is null ");
 				if(prikey > 0) {
-					sql.append("and m.prikey = ?");
+					sql.append("and prikey = ? ");
 				} 
 					
-				pstmt = cResults.prepareStatement(sql.toString());
+				pstmtGet = cResults.prepareStatement(sql.toString());
 				if(prikey > 0) {
-					pstmt.setInt(1, prikey);
+					pstmtGet.setInt(1, prikey);
 				}
-				int count = pstmt.executeUpdate();
-				if(count > 0) {
-					log.info("------------- Background HRK values update: " + count);
+				ResultSet rs = pstmtGet.executeQuery();
+				int total = 0;
+				while(rs.next()) {
+					int pk = rs.getInt(1);
+					pstmt.setInt(1, pk);
+					total += pstmt.executeUpdate();
+				}
+				
+				if(total > 0) {
+					log.info("------------- Background HRK values update: " + total);
 					log.info("Applying HRK: " + pstmt.toString());
 				}
 		
 			} finally {
 				if(pstmt != null) {try {pstmt.close();}catch(Exception e) {}}
 				if(pstmtAddHrk != null) {try {pstmtAddHrk.close();}catch(Exception e) {}}
+				if(pstmtGet != null) {try {pstmtGet.close();}catch(Exception e) {}}
 				
 			}
 		}
