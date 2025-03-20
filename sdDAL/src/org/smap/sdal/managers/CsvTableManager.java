@@ -152,9 +152,9 @@ public class CsvTableManager {
 	 */
 	public ArrayList<CsvTable> getTables(int oId, int sId) throws Exception{
 		ArrayList<CsvTable> tables = new ArrayList<> ();
-		String sqlSelect = "select id, filename, headers from csvtable where o_id = ?";
-		String sqlsId = " and s_id = ?";
-		String sqlNosId = " and not survey";
+		String sqlSelect = "select id, filename, headers from csvtable where o_id = ? ";
+		String sqlsId = " and s_id = ? ";
+		String sqlNosId = " and not survey ";
 		String sqlOrder = " order by filename asc";
 		
 		String sql = sqlSelect + (sId > 0 ? sqlsId : sqlNosId) + sqlOrder;

@@ -11245,6 +11245,17 @@ public class GeneralUtilityMethods {
 		return bundleRoles;
 	}
 	
+	/*
+	 * Return a valid timezone
+	 */
+	public static String validTimezone(String tz) {
+		tz = (tz == null) ? "UTC" : tz;
+		if(tz.length() < 3) {
+			tz = "UTC";
+		}
+		return tz;
+	}
+	
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");

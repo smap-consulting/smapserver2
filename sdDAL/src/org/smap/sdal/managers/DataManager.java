@@ -581,7 +581,7 @@ public class DataManager {
 			tz = GeneralUtilityMethods.getOrganisationTZ(sd, 
 					GeneralUtilityMethods.getOrganisationId(sd, remoteUser));
 		}
-		tz = (tz == null) ? "UTC" : tz;
+		tz = GeneralUtilityMethods.validTimezone(tz);
 
 		PrintWriter outWriter = null;
 		ResourceBundle localisation = null;
