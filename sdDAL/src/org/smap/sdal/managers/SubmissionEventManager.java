@@ -48,18 +48,14 @@ public class SubmissionEventManager {
 			 Logger.getLogger(SubmissionEventManager.class.getName());
 
 	LogManager lm = new LogManager(); // Application log
-	Gson gson;
-	
-	public SubmissionEventManager() {
-		gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-	}
+
+	Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 
 	public void writeToQueue(
 			Logger log,
 			Connection sd, 
 			int ue_id,  
-			ArrayList<LinkageItem> linkageItems,
-			Gson gson) throws SQLException {
+			ArrayList<LinkageItem> linkageItems) throws SQLException {
 		
 		if(linkageItems == null) {
 			linkageItems = new ArrayList<LinkageItem> ();

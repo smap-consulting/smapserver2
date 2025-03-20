@@ -1029,7 +1029,7 @@ public class Survey extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		// Any user can do this as they are updating their own settings sp no need to check user groups
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 
