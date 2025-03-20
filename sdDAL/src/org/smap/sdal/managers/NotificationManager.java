@@ -479,7 +479,7 @@ public class NotificationManager {
 
 		String nName = GeneralUtilityMethods.getNotificationName(sd, id);
 
-		String sql = "delete from forward where id = ?; ";
+		String sql = "delete from forward where id = ?";
 		PreparedStatement pstmt = null;
 
 		try {

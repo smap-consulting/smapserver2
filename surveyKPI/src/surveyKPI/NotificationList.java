@@ -281,6 +281,9 @@ public class NotificationList extends Application {
 		if(n.p_id > 0) {
 			a.isValidProject(sd, request.getRemoteUser(), n.p_id);
 		}
+		if(n.bundle_ident != null) {
+			a.isValidSurveyIdent(sd, request.getRemoteUser(), n.bundle_ident, false, superUser);
+		}
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -345,7 +348,7 @@ public class NotificationList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
 			
 			ResultSet resultSet = null;
-			String sql = "select s_id, p_id " +
+			String sql = "select s_id, p_id, bundle_ident " +
 					" from forward " +
 					" where id = ?";
 			
@@ -355,14 +358,19 @@ public class NotificationList extends Application {
 
 			resultSet = pstmt.executeQuery();
 			if(resultSet.next()) {
-				int sId = resultSet.getInt(1);
-				int pId = resultSet.getInt(2);
+				int sId = resultSet.getInt("s_id");
+				int pId = resultSet.getInt("p_id");
+				String bundle_ident = resultSet.getString("bundle_ident");
 				
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 				if(sId > 0) {
-					superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 					a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
-				} else {
+				}
+				if(pId > 0) {
 					a.isValidProject(sd, request.getRemoteUser(), pId);
+				}
+				if(bundle_ident != null) {
+					a.isValidSurveyIdent(sd, request.getRemoteUser(), bundle_ident, false, superUser);
 				}
 				NotificationManager fm = new NotificationManager(localisation);
 				fm.deleteNotification(sd, request.getRemoteUser(), id, sId);
