@@ -218,6 +218,8 @@ public class SubscriberBatch {
 							pstmtEnqueue.setString(4, gson.toJson(ue));
 							pstmtEnqueue.executeUpdate();	
 							
+							log.info("Enqueue new submission: " + pstmtEnqueue.toString());
+							
 							// Mark it as queued
 							pstmtQueueDone.setInt(1, ue.getId());
 							pstmtQueueDone.executeUpdate();
@@ -237,6 +239,8 @@ public class SubscriberBatch {
 					pstmtEnqueueMessages.setString(4, rs.getString("description"));
 					pstmtEnqueueMessages.setString(5, rs.getString("data"));
 
+					log.info("Enqueue message: " + pstmtEnqueue.toString());
+					
 					pstmtEnqueueMessages.executeUpdate();	
 					
 					// Mark it as queued
