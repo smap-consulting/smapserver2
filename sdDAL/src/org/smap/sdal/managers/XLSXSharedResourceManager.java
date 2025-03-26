@@ -107,7 +107,7 @@ public class XLSXSharedResourceManager {
 									fw.write(",");
 								}
 								if(value != null && value.trim().length() > 0) {
-									String escaped = StringEscapeUtils.escapeCsv(value);
+									String escaped = StringEscapeUtils.escapeCsv(value.trim());
 									fw.write(escaped);
 								}
 								first = false;
