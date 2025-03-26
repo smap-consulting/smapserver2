@@ -205,3 +205,7 @@ ALTER TABLE bundle OWNER TO ws;
 
 -- performance
 create index message_created_idx on message (created_time);
+
+-- remove dashboard security group
+delete from groups where name = 'dashboard';
+delete from user_group where g_id = 12;
