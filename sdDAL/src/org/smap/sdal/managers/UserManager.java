@@ -1228,7 +1228,7 @@ public class UserManager {
 							|| (g.id != Authorise.SECURITY_ID && g.id != Authorise.ORG_ID && g.id != Authorise.ENTERPRISE_ID && g.id != Authorise.OWNER_ID)) {
 						
 						// Ignore deleted groups
-						if(g.id != 13) {
+						if(g.id != 13 && g.id != 12) {
 							pstmtInsertUserGroup.setInt(2, g.id);
 							log.info("Insert user group: " + pstmtInsertUserGroup.toString());
 							pstmtInsertUserGroup.executeUpdate();
