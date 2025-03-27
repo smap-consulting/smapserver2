@@ -38,6 +38,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.legacy.TableManager;
 import org.smap.sdal.managers.ActionManager;
@@ -339,6 +340,8 @@ public class ManagedForms extends Application {
 			a.isValidUser(sd, request.getRemoteUser(), GeneralUtilityMethods.getUserId(sd, uIdent));
 		}
 		// End Authorisation
+		
+		ServerSettings.setBasePath(request);
 		
 		Connection cResults = ResultsDataSource.getConnection(requester);
 		try {

@@ -259,7 +259,7 @@ public class EmailManager {
 							log.info("#########: Email " + ia.getAddress() + " Opted in: " + subStatus.optedIn + "org:  " + !organisation.send_optin);
 							if(subStatus.optedIn || !organisation.send_optin) {
 								sendEmailHtml(
-										msg.notificationName,				// notification name
+										msg != null ? msg.notificationName : null,				
 										organisation.name,
 										null,
 										projectName,
