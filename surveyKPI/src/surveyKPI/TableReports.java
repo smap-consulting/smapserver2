@@ -107,7 +107,7 @@ public class TableReports extends Application {
 			@FormDataParam("format") String format,
 			@FormDataParam("title") String title,
 			@FormDataParam("project") String project,
-			@FormDataParam("chartdata") String chartData,
+			//@FormDataParam("chartData") String chartData,		// deprecate
 			@FormDataParam("settings") String settingsString,
 			@FormDataParam("tz") String tz
 			) throws Exception { 
@@ -202,11 +202,11 @@ public class TableReports extends Application {
 			}
 			
 			// Convert chartData string to an object array
-			ArrayList<ChartData> chartDataArray = null;
-			if(chartData != null) {
-				Type type = new TypeToken<ArrayList<ChartData>>(){}.getType();		
-				chartDataArray = new Gson().fromJson(chartData, type);
-			}
+			//ArrayList<ChartData> chartDataArray = null;
+			//if(chartData != null) {
+			//	Type type = new TypeToken<ArrayList<ChartData>>(){}.getType();		
+			//	chartDataArray = new Gson().fromJson(chartData, type);
+			//}
 			
 			// Convert settings into an array of key value pairs
 			ArrayList<KeyValue> settings = null;
@@ -221,7 +221,7 @@ public class TableReports extends Application {
 				XLSReportsManager xm = new XLSReportsManager(format);
 				xm.createXLSReportsFile(response.getOutputStream(), 
 						dArray, 
-						chartDataArray, 
+						//chartDataArray, 
 						settings, 
 						mfc, 
 						GeneralUtilityMethods.getSurveyName(sd, sId),

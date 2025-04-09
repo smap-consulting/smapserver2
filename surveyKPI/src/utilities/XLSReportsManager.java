@@ -99,7 +99,7 @@ public class XLSReportsManager {
 	 */
 	public void createXLSReportsFile(OutputStream outputStream, 
 			ArrayList<ArrayList<KeyValue>> dArray, 
-			ArrayList<ChartData> chartDataArray,
+			//ArrayList<ChartData> chartDataArray,
 			ArrayList<KeyValue> settings,
 			SurveyViewDefn mfc,
 			String surveyName,
@@ -121,7 +121,7 @@ public class XLSReportsManager {
 		
 		/*
 		 * Write the chart data if it is not null
-		 */
+		 * Not used
 		if(chartDataArray != null) {
 			for(int i = 0; i < chartDataArray.size(); i++) {
 				ChartData cd = chartDataArray.get(i);
@@ -138,7 +138,7 @@ public class XLSReportsManager {
 					
 					/*
 					 *  Add column headers
-					 */
+					 *
 					int rowIndex = 0;
 					int colIndex = 0;
 					Row headerRow = dataSheet.createRow(rowIndex++);
@@ -169,7 +169,7 @@ public class XLSReportsManager {
 			        
 					/*
 					 *  Add rows
-					 */
+					 *
 			        for(ChartRow chartRow : cd.data) {
 			        	colIndex = 0;
 			        	Row aRow = dataSheet.createRow(rowIndex++);
@@ -193,6 +193,7 @@ public class XLSReportsManager {
 			
 
 		}
+		*/
 		
 		wb.write(outputStream);
 		outputStream.close();
