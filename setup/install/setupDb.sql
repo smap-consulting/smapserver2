@@ -1223,7 +1223,7 @@ ALTER SEQUENCE survey_role_seq OWNER TO ws;
 DROP TABLE IF EXISTS survey_role CASCADE;
 create TABLE survey_role (
 	id integer DEFAULT NEXTVAL('survey_role_seq') CONSTRAINT pk_survey_role PRIMARY KEY,
-	survey_ident text REFERENCES survey(ident) ON DELETE CASCADE,
+	survey_ident text,
 	group_survey_ident text,
 	r_id integer REFERENCES role(id) ON DELETE CASCADE,
 	enabled boolean,

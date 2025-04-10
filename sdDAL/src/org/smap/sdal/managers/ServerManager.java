@@ -324,7 +324,6 @@ public class ServerManager {
 				} catch (Exception e) {
 					log.info("Error deleting pdf templates: " + surveyDisplayName + " : " + e.getMessage());
 				}
-
 				
 			}
 

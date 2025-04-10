@@ -209,3 +209,6 @@ create index message_created_idx on message (created_time);
 -- remove dashboard security group
 delete from groups where name = 'dashboard';
 delete from user_group where g_id = 12;
+
+-- Drop survey role constraint that causes issues when replacing a survey that has roles
+alter table survey_role drop constraint survey_role_survey_ident_fkey;
