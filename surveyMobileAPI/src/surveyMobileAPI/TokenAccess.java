@@ -24,6 +24,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -49,6 +50,12 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.AssignmentsManager;
 import org.smap.sdal.managers.LookupManager;
 import org.smap.sdal.managers.SharedResourceManager;
+import org.smap.sdal.managers.TaskManager;
+import org.smap.sdal.model.TaskListGeoJson;
+import org.smap.sdal.model.TaskProperties;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import surveyMobileAPI.managers.FormListManager;
 import surveyMobileAPI.managers.ManifestManager;
@@ -303,5 +310,97 @@ public class TokenAccess extends Application {
 				searchType, qColumn, qValue, fColumn, fValue,
 				expression);
 	}
+	
+	/*
+	 * Returns a single task
+	 */
+	@GET
+	@Path("/api/v1/tasks/{id}")
+	@Produces("application/json")
+	public Response getTask(@Context HttpServletRequest request,
+			@PathParam("id") int taskId,
+			@QueryParam("tz") String tz					// Timezone
+			) throws ApplicationException, Exception { 
+		
+		String connectionString = "surveyMobileAPI-token - get Task";
+		
+		// Authorisation - Access - Allow enumerators access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		String user = request.getRemoteUser();
+		if(user == null) {
+			user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
+		}
+		if(user == null) {
+			throw new AuthorisationException("Unknown User");
+		}
+		a.isAuthorised(sd, user);
+		a.isValidTask(sd, user, taskId);
+		// End authorisation
+
+		Response response = null;
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, user));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String urlprefix = request.getScheme() + "://" + request.getServerName();
+			
+			// Get assignments
+			TaskManager tm = new TaskManager(localisation, tz);
+			TaskListGeoJson t = tm.getTasks(
+					sd, 
+					urlprefix,
+					0,		// Organisation id 
+					0, 		// task group id
+					taskId,
+					0,		// Assignment id
+					true, 
+					0,		// userId 
+					null, 
+					null,	// period 
+					0,		// start 
+					0,		// limit
+					null,	// sort
+					null,
+					true);	// sort direction	
+			
+			if(t != null && t.features.size() > 0) {
+				TaskProperties tp = t.features.get(0).properties;
+				
+				// Return task to calling program
+				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+				String resp = gson.toJson(tp);	
+				response = Response.ok(resp).build();	
+			} else {
+				response = Response.serverError().entity(localisation.getString("mf_nf")).build();
+			}
+			
+		} catch(Exception ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().entity(ex.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Update
+	 * No Key provided login required
+	 */
+	@POST
+	@Path("/submission/{instanceId}")
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	public Response postUpdateInstance(
+			@Context HttpServletRequest request,
+			@QueryParam("deviceID") String deviceId,
+	        @PathParam("instanceId") String instanceId) throws IOException {
+		
+		log.info("Update submssion: " + instanceId);
+		UploadManager ulm = new UploadManager();
+		return ulm.submission(request, instanceId, null, deviceId);
+	}
 }
+
 
