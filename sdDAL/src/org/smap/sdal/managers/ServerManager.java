@@ -70,7 +70,8 @@ public class ServerManager {
 				+ "password_strength,"
 				+ "keep_erased_days,"
 				+ "css,"
-				+ "email_type "
+				+ "email_type,"
+				+ "sec_mgr_del "
 				+ "from server;";
 		PreparedStatement pstmt = null;
 		ServerData data = new ServerData();
@@ -98,6 +99,7 @@ public class ServerManager {
 				data.keep_erased_days = rs.getInt("keep_erased_days");
 				data.css = rs.getString("css");
 				data.email_type = rs.getString("email_type");
+				data.sec_mgr_del = rs.getBoolean("sec_mgr_del");
 			}
 
 		}  catch (Exception e) {

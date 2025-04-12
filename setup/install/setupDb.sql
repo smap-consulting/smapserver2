@@ -129,7 +129,8 @@ create TABLE server (
 	disable_ref_role_filters boolean default false,	-- If set true role filters will not be used for reference data
 	max_rate integer default 0,						-- Max API rate per minute, 0 means no limit
 	vonage_application_id text,
-	vonage_webhook_secret text
+	vonage_webhook_secret text,
+	sec_mgr_del boolean default false
 	);
 ALTER TABLE server OWNER TO ws;
 

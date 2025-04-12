@@ -19,4 +19,5 @@ public class ServerData {
 	public double password_strength;
 	public int keep_erased_days;
 	public String css;
+	public boolean sec_mgr_del;
 }
