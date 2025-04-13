@@ -73,7 +73,7 @@ public class Manager {
 			 */
 			ReportProcessor rp = new ReportProcessor();
 			rp.go(smapId, fileLocn, false);	// No restore
-			//rp.go(smapId, fileLocn, true);	// With restore    -- TODO stop restores for performance
+			rp.go(smapId, fileLocn, true);	// With restore    -- TODO stop restores for performance
 			
 			/*
 			 * Start the submission event processor
