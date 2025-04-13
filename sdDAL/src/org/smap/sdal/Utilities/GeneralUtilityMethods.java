@@ -11256,6 +11256,34 @@ public class GeneralUtilityMethods {
 		return tz;
 	}
 	
+	/*
+	 * Return true if deletion of records is restricted for this server
+	 */
+	public static boolean isRestrictedDelete(Connection sd) throws SQLException {
+
+		boolean restricted = false;
+
+		String sql = "select sec_mgr_del from server"; 
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				restricted = rs.getBoolean(1);
+			}
+
+		} finally {
+			try {
+				if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {	}
+		}
+
+		return restricted;
+
+	}
+
+	
 	private static int getManifestParamStart(String property) {
 	
 		int idx = property.indexOf("search(");

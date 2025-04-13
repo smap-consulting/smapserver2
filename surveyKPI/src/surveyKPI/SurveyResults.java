@@ -61,6 +61,7 @@ public class SurveyResults extends Application {
 	
 	Authorise a = new Authorise(null, Authorise.ANALYST);
 	Authorise aManage = null;
+	Authorise aRestricted = null;
 	
 	private static Logger log =
 			 Logger.getLogger(Results.class.getName());
@@ -73,6 +74,8 @@ public class SurveyResults extends Application {
 		authorisations.add(Authorise.MANAGE);
 		authorisations.add(Authorise.ADMIN);
 		aManage = new Authorise(authorisations, null);
+		
+		aRestricted = new Authorise(null, Authorise.SECURITY);
 	}
 	
 	/*
@@ -80,13 +83,14 @@ public class SurveyResults extends Application {
 	 */
 	@DELETE
 	public Response deleteSurveyResults(@Context HttpServletRequest request,
-			@PathParam("sId") int sId) { 
+			@PathParam("sId") int sId) throws SQLException { 
 		
 		Response response = null;
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-SurveyResults");
 		a.isAuthorised(sd, request.getRemoteUser());
+
 		// End Authorisation
 		
 		// Escape any quotes
@@ -104,6 +108,18 @@ public class SurveyResults extends Application {
 				// Get the users locale
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				
+				/*
+				 * Authorisation step 2 (With language locale set for error message)
+				 */
+				if(GeneralUtilityMethods.isRestrictedDelete(sd)) {
+					try {
+						aRestricted.isAuthorised(sd, request.getRemoteUser());
+					} catch(Exception e) {
+						log.info("Failed to delete as security manager privilege required");
+						throw new ApplicationException(localisation.getString("aedd"));
+					}
+				}
 				
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				connectionRel = ResultsDataSource.getConnection("surveyKPI-SurveyResults");
@@ -137,7 +153,7 @@ public class SurveyResults extends Application {
 				 */
 				for(String tableName : tableList) {				
 
-					sql = "drop TABLE " + tableName + ";";
+					sql = "drop TABLE " + tableName;
 					log.info("*********************************  Delete table contents and drop table: " + sql);
 					
 					
@@ -199,6 +215,8 @@ public class SurveyResults extends Application {
 				}
 				response = Response.ok("").build();
 				
+			} catch (ApplicationException e) {
+				response = Response.ok(e.getMessage()).build();;
 			} catch (Exception e) {
 				String msg = e.getMessage();
 				if(msg != null && msg.contains("does not exist")) {
@@ -206,7 +224,7 @@ public class SurveyResults extends Application {
 					e.printStackTrace();
 					response = Response.ok("").build();
 				} else {
-					log.log(Level.SEVERE, "Survey: Delete REsults");
+					log.log(Level.SEVERE, "Survey: Delete Results");
 					e.printStackTrace();
 					response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 				}
