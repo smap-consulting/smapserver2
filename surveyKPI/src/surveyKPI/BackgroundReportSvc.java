@@ -57,6 +57,7 @@ import java.util.logging.Logger;
 public class BackgroundReportSvc extends Application {
 	
 	Authorise a = null;
+	Authorise aRestricted = null;
 	
 	private static Logger log =
 			 Logger.getLogger(BackgroundReportSvc.class.getName());
@@ -69,7 +70,9 @@ public class BackgroundReportSvc extends Application {
 		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.VIEW_DATA);
 		authorisations.add(Authorise.VIEW_OWN_DATA);
-		a = new Authorise(authorisations, null);		
+		a = new Authorise(authorisations, null);	
+		
+		aRestricted = new Authorise(null, Authorise.SECURITY);
 	}
 
 	@GET
@@ -187,6 +190,20 @@ public class BackgroundReportSvc extends Application {
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
+			/*
+			 * Apply additional security checks if this is a restore
+			 */
+			if(br.report_type.equals("restore")) {
+				if(GeneralUtilityMethods.isRestrictedDelete(sd)) {
+					try {
+						aRestricted.isAuthorised(sd, request.getRemoteUser());
+					} catch(Exception e) {
+						log.info("Failed to delete as security manager privilege required");
+						throw new ApplicationException(localisation.getString("aedd"));
+					}
+				}
+			}
+			
 			// Start validation
 			if(br.params != null) {
 				String reportUserString = br.params.get(BackgroundReportsManager.PARAM_USER_ID);
@@ -216,16 +233,6 @@ public class BackgroundReportSvc extends Application {
 				a.isValidProject(sd, request.getRemoteUser(), br.pId);
 			}
 			
-			/*
-			 * For kontrolid servers a restore can only be initiated by the server owner
-			 *
-			String serverName = request.getServerName();
-			if(serverName != null && serverName.contains("kontrolid") || serverName.equals("localhost")) {
-				if(!GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.OWNER_ID)) {
-					throw new ApplicationException("Only the server owner can now start a restore.  Contact Kontrolid.");
-				}
-			}
-			*/
 			/*
 			 * Has this report already been requested
 			 */
