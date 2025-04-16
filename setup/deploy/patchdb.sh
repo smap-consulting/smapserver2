@@ -352,6 +352,10 @@ cp language_codes.csv /smap_bin
 echo "truncate language_codes" | sudo -i -u postgres $PSQL -d survey_definitions
 echo "\COPY language_codes (code, aws_translate, aws_transcribe, transcribe_default, transcribe_medical) FROM '/smap_bin/language_codes.csv' DELIMITER ',' CSV HEADER;" | sudo -i -u postgres $PSQL -d survey_definitions
 
+# Set the full version in the database for the about page
+echo "Setting version for about page"
+full_version=`cat ./full_version`
+echo "update server set version = '$full_version'" | sudo -i -u postgres $PSQL -q -d survey_definitions 2>&1
 
 # update version reference
 echo "2501" > /smap_bin/smap_version
