@@ -359,5 +359,47 @@ public class Server extends Application {
 		return response;
 	}
 
+	/*
+	 * Get the version
+	 */
+	@GET
+	@Path("/version")
+	@Produces("text/html")
+	public Response getVersion(@Context HttpServletRequest request) {
+
+		Response response = null;
+		String connectionString = "SurveyKPI-getServerVersion";
+		
+		// Authorisation - Access
+		// No authorisation required
+		// End role based authorisation
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		String sql = "select version from server;";
+		PreparedStatement pstmt = null;
+		
+		try {
+		
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			String v = "";
+			if(rs.next()) {
+				v = rs.getString(1);
+			}
+			response = Response.ok(v).build();
+			
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();	}} catch (Exception e) {	}
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+
+		return response;
+	}
 }
 
