@@ -109,6 +109,49 @@ public class Lookup extends Application {
 	}
 	
 	/*
+	 * Returns organisation, project and other details on a survey identified by its id
+	 */
+	@GET
+	@Path("/survey_id/{survey_id}")
+	@Produces("application/json")
+	public Response getSurveyDetailsId(@Context HttpServletRequest request,
+			@PathParam("survey_id") int surveyId) { 
+
+		Response response = null;
+		String connectionString = "Server API - getSurveyDetails by Id";
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		
+		Connection cResults = null;
+		try {			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			ServerSettings.setBasePath(request);
+			
+			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, surveyId);
+			
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			SurveySummary sum = sm.getFullSummary(sd, surveyIdent);
+			
+			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+			response = Response.ok(gson.toJson(sum)).build();
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			response = Response.serverError().build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
+		}
+
+		return response;
+	}
+	
+	
+	/*
 	 * Return errors for a queue
 	 * Set period to 1 week
 	 */
