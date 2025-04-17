@@ -508,6 +508,14 @@ public class GetHtml {
 				bodyElement.setAttribute("title", survey.getDisplayName());
 			}
 			
+			/*
+			 * If this is an image question with a get_image() function in its calculate then add a calculation
+			 * TODO
+			 */
+			
+			/*
+			 * Add the question
+			 */
 			setQuestionClass(q, bodyElement);
 
 			addLabelContents(bodyElement, q, form, hideLabels);

@@ -682,7 +682,7 @@ public class WebForm extends Application {
 				outputString.append(gsonResp.toJson(jr));
 
 			} else {
-				// MAIN ENTRY POINT
+				// MAIN ENTRY POINT - XXXX
 				outputString.append(addDocument(request, instanceXML, instanceStrToEditId, assignmentId,
 						survey.surveyData.surveyClass, orgId, accessKey, superUser, survey.surveyData.readOnlySurvey || readonly));
 			}

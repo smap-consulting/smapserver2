@@ -81,6 +81,7 @@ public class JavaRosaUtilities {
 		addHandler(fd, "pulldata");
 		addHandler(fd, "lookup_image_labels");
 		addHandler(fd, "get_media");
+		addHandler(fd, "get_image");
 		addHandler(fd, "lookup");
 		addHandler(fd, "lookup_choices");
 
