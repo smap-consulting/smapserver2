@@ -20,6 +20,7 @@ public class Form {
 	public boolean replace;			// True if old records should be replaced
 	public boolean append;
 	public ArrayList<Question> questions = new ArrayList<Question> ();
+	public ArrayList<Question> generatedCalculations = new ArrayList<Question> ();	// Questions added dynamicly
 	
 	// Basic constructor
 	public Form() {

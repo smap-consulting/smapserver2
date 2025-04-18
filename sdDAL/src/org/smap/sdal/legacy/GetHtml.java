@@ -206,6 +206,7 @@ public class GetHtml {
 				log.info("Adding questions from: " + form.name);
 				addPaths(form, "/");
 				processQuestions(sd, parent, form);
+				form.questions.addAll(form.generatedCalculations);	// Add calculations generated during processing of the questions
 				processPreloads(parent, form);
 				processCalculations(parent, form);
 				break;
@@ -503,21 +504,34 @@ public class GetHtml {
 		} else {
 
 			// Non select question
-			bodyElement = outputDoc.createElement("label");
-			if(q.type.equals(SmapQuestionTypes.PARENT_FORM) || q.type.equals(SmapQuestionTypes.CHILD_FORM)) {
-				bodyElement.setAttribute("title", survey.getDisplayName());
-			}
+	
 			
 			/*
 			 * If this is an image question with a get_image() function in its calculate then add a calculation
 			 * TODO
 			 */
+			if(q.type.equals(SmapQuestionTypes.IMAGE) && q.calculation != null && q.calculation.contains("get_image(")) {
+				// Add calculation
+				Question qc = new Question();
+				qc.name = "_gic_" + q.name;
+				qc.type = SmapQuestionTypes.CALCULATE;
+				qc.labels = q.labels;
+				qc.calculation = getImageCalculation(q);	// removes get_image from q
+				
+				form.generatedCalculations.add(qc);	// Add the generated calculation question to the form for processing
+				String formPath = paths.get(form.name);
+				paths.put(getRefName(qc.name, form), formPath + q.name); // Save the path
+				formRefs.put(q.name, formPath);
+			}
 			
 			/*
 			 * Add the question
 			 */
+			bodyElement = outputDoc.createElement("label");
+			if(q.type.equals(SmapQuestionTypes.PARENT_FORM) || q.type.equals(SmapQuestionTypes.CHILD_FORM)) {
+				bodyElement.setAttribute("title", survey.getDisplayName());
+			}
 			setQuestionClass(q, bodyElement);
-
 			addLabelContents(bodyElement, q, form, hideLabels);
 			currentParent.appendChild(bodyElement);
 
@@ -525,6 +539,32 @@ public class GetHtml {
 
 	}
 
+	/*
+	 * Get the calculation required for a generated calculate to get an image
+	 */
+	private String getImageCalculation(Question q) {
+		String newCalc = q.calculation.replaceAll("get_image\\(", "get_media\\(");
+		StringBuilder cb = new StringBuilder("");
+		int idx = newCalc.indexOf("get_media", 0);
+		while(idx > 0) {
+			idx = newCalc.indexOf(")",idx);
+			if(idx > 0) {
+				cb.append(newCalc.substring(0, idx));
+				cb.append(",'/main/q3'");
+				newCalc = newCalc.substring(idx);
+				idx = newCalc.indexOf("get_media",0);
+			} else {
+				cb.append(newCalc);
+			}
+		}
+		cb.append(newCalc);
+		
+		q.calculation = null;
+		System.out.println(cb.toString());
+		return cb.toString();
+		// "if(string-length(${q1}) > 0, get_media(${q1}, '/main/q3'), '')";
+	}
+	
 	/*
 	 * Question classes
 	 */
