@@ -504,7 +504,6 @@ public class GetHtml {
 		} else {
 
 			// Non select question
-	
 			
 			/*
 			 * If this is an image question with a get_image() function in its calculate then add a calculation
@@ -519,9 +518,10 @@ public class GetHtml {
 				qc.calculation = getImageCalculation(q);	// removes get_image from q
 				
 				form.generatedCalculations.add(qc);	// Add the generated calculation question to the form for processing
-				String formPath = paths.get(form.name);
-				paths.put(getRefName(qc.name, form), formPath + q.name); // Save the path
-				formRefs.put(q.name, formPath);
+				String qPath = paths.get(q.name);
+				qPath = qPath.substring(0, qPath.lastIndexOf('/'));
+				paths.put(getRefName(qc.name, form), qPath + "/" + qc.name); // Save the path
+				//formRefs.put(qc.name, formPath);
 			}
 			
 			/*

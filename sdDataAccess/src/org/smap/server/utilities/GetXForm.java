@@ -38,6 +38,7 @@ import org.smap.sdal.Utilities.CSVParser;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.legacy.CascadeInstance;
 import org.smap.sdal.legacy.Form;
 import org.smap.sdal.legacy.Option;
@@ -295,7 +296,7 @@ public class GetXForm {
 
 		// Add forms to bind elements
 		if (firstForm != null && !modelInstanceOnly) {
-			populateForm(sd, outputDoc, parent, BIND, firstForm, false, false);
+			populateForm(sd, outputDoc, parent, BIND, firstForm, false, false, isWebForms);
 		}
 	}
 
@@ -479,7 +480,7 @@ public class GetXForm {
 			if (!isWebForms) {
 				formElement.setAttribute("project", String.valueOf(template.getProject().getName()));
 			}
-			populateForm(sd, outputDoc, formElement, INSTANCE, firstForm, false, false); // Process the top form
+			populateForm(sd, outputDoc, formElement, INSTANCE, firstForm, false, false, isWebForms); // Process the top form
 			parent.appendChild(formElement);
 		}
 	}
@@ -496,7 +497,7 @@ public class GetXForm {
 			gSurveyClass = surveyClass;
 		}
 		if (firstForm != null) {
-			populateForm(sd, outputDoc, bodyElement, BODY, firstForm, false, false); // Process the top level form
+			populateForm(sd, outputDoc, bodyElement, BODY, firstForm, false, false, isWebForms); // Process the top level form
 		}
 
 		parent.appendChild(bodyElement);
@@ -516,7 +517,8 @@ public class GetXForm {
 	 * 
 	 * @param parentXPath
 	 */
-	public void populateForm(Connection sd, Document outputDoc, Element parentElement, int location, Form f, boolean inTemplate, boolean inRealForm)
+	public void populateForm(Connection sd, Document outputDoc, Element parentElement, int location, 
+			Form f, boolean inTemplate, boolean inRealForm, boolean isWebForms)
 			throws Exception {
 
 		Element currentParent = parentElement;
@@ -703,14 +705,14 @@ public class GetXForm {
 					if(!inRealForm) {
 						Element template = outputDoc.createElement(subForm.getName());
 						template.setAttribute("jr:template", ""); // The model requires a local name only
-						populateForm(sd, outputDoc, template, INSTANCE, subForm, true, false);
+						populateForm(sd, outputDoc, template, INSTANCE, subForm, true, false, isWebForms);
 						currentParent.appendChild(template);
 					}
 					
 					// Add the real form
 					if(!inTemplate) {
 						Element form = outputDoc.createElement(subForm.getName());
-						populateForm(sd, outputDoc, form, INSTANCE, subForm, false, true);
+						populateForm(sd, outputDoc, form, INSTANCE, subForm, false, true, isWebForms);
 						currentParent.appendChild(form);
 					}
 
@@ -739,6 +741,17 @@ public class GetXForm {
 
 				} else {
 
+					/*
+					 * For webforms, if this is an image question with a get_image() function 
+					 * in its calculate then add an element for the calculation
+					 */
+					if(isWebForms) {
+						String calculate = q.getCalculate(true, template.getQuestionPaths(), template.getXFormFormName());
+						if(qType.equals(SmapQuestionTypes.IMAGE) && calculate != null && calculate.contains("get_image(")) {
+							currentParent.appendChild(outputDoc.createElement("_gic_" + q.getName()));
+						}
+					}
+					
 					questionElement = outputDoc.createElement(q.getName());
 					String def = q.getDefaultAnswer();
 					if (def != null && def.length() > 0) {
@@ -774,7 +787,7 @@ public class GetXForm {
 
 					// Process sub form
 
-					populateForm(sd, outputDoc, currentParent, BIND, subForm, false, false);
+					populateForm(sd, outputDoc, currentParent, BIND, subForm, false, false, isWebForms);
 					if (subForm.getRepeats(true, template.getQuestionPaths()) != null) {
 						// Add the calculation for repeat count
 						questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), true);
@@ -790,6 +803,16 @@ public class GetXForm {
 					// no action
 				} else {
 
+					/*
+					 * If this is an image question with a get_image() function in its calculate 
+					 * then replace get_image with get_media
+					 */
+					String calculate = q.getCalculate(true, template.getQuestionPaths(), template.getXFormFormName());
+					if(qType.equals(SmapQuestionTypes.IMAGE) && calculate != null && calculate.contains("get_image(")) {
+						calculate = calculate.replaceAll("get_image\\(", "get_media\\(");
+						q.setCalculate(calculate);
+					}
+					
 					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), false);
 					currentParent.appendChild(questionElement);
 					
@@ -843,7 +866,7 @@ public class GetXForm {
 					}
 					groupElement.appendChild(repeatElement);
 
-					populateForm(sd, outputDoc, repeatElement, BODY, subForm, false, false);
+					populateForm(sd, outputDoc, repeatElement, BODY, subForm, false, false, isWebForms);
 
 				} else if(qType.equals("end group")) { 
 					// Ignore end group
