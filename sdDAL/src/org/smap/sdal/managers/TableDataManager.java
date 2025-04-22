@@ -139,7 +139,7 @@ public class TableDataManager {
 				columnSelect.append(table_name).append(".");
 			}
 			
-			// _assigned should only be created in the top level table however this may not always have happened in the past
+			// _assigned should only be created in the top level table
 			if(c.column_name.equals(SurveyViewManager.ASSIGNED_COLUMN) && topLevelTable != null) {
 				columnSelect.append(topLevelTable).append(".");
 			}

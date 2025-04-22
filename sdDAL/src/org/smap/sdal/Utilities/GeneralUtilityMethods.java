@@ -3898,18 +3898,16 @@ public class GeneralUtilityMethods {
 
 		}
 
-		// Include HRK here as this was the old order and TDH depend on this ordering
-		if (includeOtherMeta && formParent == 0) {
+		// Always include HRK even for subforms
 
-			c = new TableColumn();
-			c.column_name = "_hrk";
-			c.displayName = "Key";
-			c.humanName = localisation.getString("cr_key");
-			c.type = SmapQuestionTypes.STRING;
-			c.question_name = c.column_name;
-			columnList.add(c);
-			hasHRK = true;
-		}
+		c = new TableColumn();
+		c.column_name = "_hrk";
+		c.displayName = "Key";
+		c.humanName = localisation.getString("cr_key");
+		c.type = SmapQuestionTypes.STRING;
+		c.question_name = c.column_name;
+		columnList.add(c);
+		hasHRK = true;
 		
 		if (includeParentKey) {
 			c = new TableColumn();
