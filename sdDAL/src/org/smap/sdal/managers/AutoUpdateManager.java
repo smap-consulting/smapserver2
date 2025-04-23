@@ -405,187 +405,189 @@ public class AutoUpdateManager {
 							String source = rs.getString(2);
 							String output = "";
 							
-							if(item.type.equals(AUTO_UPDATE_IMAGE)) {
-									
-								if(rm.canUse(sd, item.oId, LogManager.REKOGNITION)) {
-									if(source.trim().startsWith("attachments")) {
-										
-										try {
-											output = ip.getLabels(
-													basePath + "/",
-													source, 
-													item.labelColType,
-													mediaBucket);
-										} catch (Exception e) {
-											output = "[Error: " + e.getMessage() + "]";
-										}
-										
-										rm.recordUsage(sd, item.oId, 0, LogManager.REKOGNITION, "Batch: " + "/smap/" + source, "auto_update", 1);
-										
-									} else {
-										output = "[Error: invalid source data " + source + "]";
-									}
-								} else {
-									String msg = localisation.getString("re_error")
-											.replace("%s1", LogManager.REKOGNITION);
-									output = "[" + msg + "]";
-									lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
-								}
-									
-							} else if(item.type.equals(AUTO_UPDATE_AUDIO)) {
-								
-								String logCode = item.medical ? LogManager.TRANSCRIBE_MEDICAL : LogManager.TRANSCRIBE;
-								
-								if(rm.canUse(sd, item.oId, logCode)) {
-									if(source.trim().startsWith("attachments")) {
-										
-										// Unique job within the account
-										StringBuffer job = new StringBuffer(item.tableName)
-												.append("_")
-												.append(String.valueOf(UUID.randomUUID()));
-										
-										if(item.fromLang == null) {
-											item.fromLang = "en-US";
-										}
-										if(lcm.isSupported(sd, item.fromLang, LanguageCodeManager.LT_TRANSCRIBE)) {
+							if(source != null && source.trim().length() > 0) {
+								if(item.type.equals(AUTO_UPDATE_IMAGE)) {
+
+									if(rm.canUse(sd, item.oId, LogManager.REKOGNITION)) {
+										if(source.trim().startsWith("attachments")) {
+
 											try {
-												String  status = ap.submitJob(
-														localisation, 
+												output = ip.getLabels(
 														basePath + "/",
 														source, 
-														item.fromLang,
-														job.toString(),
-														mediaBucket,
-														item.medical,
-														item.medType);
-	
-												if(status.equals("IN_PROGRESS")) {
-													lm.writeLogOrganisation(sd, item.oId, "auto_update", logCode, "Batch: " + "/smap/" + source, 0);
-	
-													// Write result to async table, the transcript will be retrieved later
-													pstmtAsync.setInt(1, item.oId);
-													pstmtAsync.setString(2, item.tableName);
-													pstmtAsync.setString(3, item.targetColName);
-													pstmtAsync.setString(4, instanceId);
-													pstmtAsync.setString(5, item.type);
-													pstmtAsync.setBoolean(6, item.medical);
-													pstmtAsync.setString(7, gson.toJson(item));
-													pstmtAsync.setString(8, job.toString());
-													pstmtAsync.setString(9, AU_STATUS_PENDING);
-													pstmtAsync.setString(10, item.locale);
-													log.info("Save to Async queue: " + pstmtAsync.toString());
-													pstmtAsync.executeUpdate();
-	
-													// Update tables to record that update is pending
-													output = "[" + localisation.getString("c_pending") + "]";
-												} else {
-													output = "[" + status + "]";
-												}
+														item.labelColType,
+														mediaBucket);
 											} catch (Exception e) {
-												log.log(Level.SEVERE, e.getMessage(), e);
+												output = "[Error: " + e.getMessage() + "]";
+											}
+
+											rm.recordUsage(sd, item.oId, 0, LogManager.REKOGNITION, "Batch: " + "/smap/" + source, "auto_update", 1);
+
+										} else {
+											output = "[Error: invalid source data " + source + "]";
+										}
+									} else {
+										String msg = localisation.getString("re_error")
+												.replace("%s1", LogManager.REKOGNITION);
+										output = "[" + msg + "]";
+										lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
+									}
+
+								} else if(item.type.equals(AUTO_UPDATE_AUDIO)) {
+
+									String logCode = item.medical ? LogManager.TRANSCRIBE_MEDICAL : LogManager.TRANSCRIBE;
+
+									if(rm.canUse(sd, item.oId, logCode)) {
+										if(source.trim().startsWith("attachments")) {
+
+											// Unique job within the account
+											StringBuffer job = new StringBuffer(item.tableName)
+													.append("_")
+													.append(String.valueOf(UUID.randomUUID()));
+
+											if(item.fromLang == null) {
+												item.fromLang = "en-US";
+											}
+											if(lcm.isSupported(sd, item.fromLang, LanguageCodeManager.LT_TRANSCRIBE)) {
+												try {
+													String  status = ap.submitJob(
+															localisation, 
+															basePath + "/",
+															source, 
+															item.fromLang,
+															job.toString(),
+															mediaBucket,
+															item.medical,
+															item.medType);
+
+													if(status.equals("IN_PROGRESS")) {
+														lm.writeLogOrganisation(sd, item.oId, "auto_update", logCode, "Batch: " + "/smap/" + source, 0);
+
+														// Write result to async table, the transcript will be retrieved later
+														pstmtAsync.setInt(1, item.oId);
+														pstmtAsync.setString(2, item.tableName);
+														pstmtAsync.setString(3, item.targetColName);
+														pstmtAsync.setString(4, instanceId);
+														pstmtAsync.setString(5, item.type);
+														pstmtAsync.setBoolean(6, item.medical);
+														pstmtAsync.setString(7, gson.toJson(item));
+														pstmtAsync.setString(8, job.toString());
+														pstmtAsync.setString(9, AU_STATUS_PENDING);
+														pstmtAsync.setString(10, item.locale);
+														log.info("Save to Async queue: " + pstmtAsync.toString());
+														pstmtAsync.executeUpdate();
+
+														// Update tables to record that update is pending
+														output = "[" + localisation.getString("c_pending") + "]";
+													} else {
+														output = "[" + status + "]";
+													}
+												} catch (Exception e) {
+													log.log(Level.SEVERE, e.getMessage(), e);
+													output = "[Error: " + e.getMessage() + "]";
+												}
+											} else {
+												if(item.fromLang == null) {
+													output = "[Error: " + localisation.getString("aws_t_np").replace("%s1", "from_lang") + "]";
+												} else {
+													output = "[Error: " + localisation.getString("aws_t_ilc").replace("%s1", item.fromLang) + "]";
+												}
+											}
+										} else {
+											output = "[Error: invalid source data " + source + "]";
+										}
+									} else {
+										String msg = localisation.getString("re_error")
+												.replace("%s1", logCode);
+										output = "[" + msg + "]";
+										lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
+									}
+								} else if(item.type.equals(AUTO_UPDATE_TEXT)) {
+
+									if(rm.canUse(sd, item.oId, LogManager.TRANSLATE)) {
+
+										if(lcm.isSupported(sd, item.fromLang, LanguageCodeManager.LT_TRANSLATE)) {
+											if(lcm.isSupported(sd, item.toLang, LanguageCodeManager.LT_TRANSLATE)) {
+												try {
+													output = tp.getTranslatian(source, item.fromLang, item.toLang);
+													String msg = localisation.getString("aws_t_au")
+															.replace("%s1", item.fromLang)
+															.replace("%s2", item.toLang)
+															.replace("%s3", item.tableName)
+															.replace("%s4", item.targetColName);
+													rm.recordUsage(sd, item.oId, 0, LogManager.TRANSLATE, msg, 
+															"auto_update", source.length());
+												} catch(Exception e) {
+													output = "[Error: " + e.getMessage() + "]";
+												}
+											} else {
+												if(item.toLang == null) {
+													output = "[" + localisation.getString("aws_t_np").replace("%s1", "to_lang") + "]";
+												} else {
+													output = "[" + localisation.getString("aws_t_ilc").replace("%s1", item.toLang) + "]";
+												}
+											}
+										} else {
+											if(item.fromLang == null) {
+												output = "[" + localisation.getString("aws_t_np").replace("%s1", "from_lang") + "]";
+											} else {
+												output = "[" + localisation.getString("aws_t_ilc").replace("%s1", item.fromLang) + "]";
+											}
+										}
+									} else {
+										String msg = localisation.getString("re_error")
+												.replace("%s1", LogManager.TRANSLATE);
+										output = "[" + msg + "]";
+										lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
+									}
+								} else if(item.type.equals(AUTO_UPDATE_SENTIMENT)) {
+
+									if(rm.canUse(sd, item.oId, LogManager.SENTIMENT)) {
+
+										if(lcm.isSupported(sd, item.fromLang, LanguageCodeManager.LT_TRANSLATE)) {
+											try {
+												Sentiment sentiment = sm.getSentiment(source, item.fromLang);
+												String msg = localisation.getString("aws_s_au")
+														.replace("%s1", item.fromLang)
+														.replace("%s3", item.tableName)
+														.replace("%s4", item.targetColName);
+												rm.recordUsage(sd, item.oId, 0, LogManager.SENTIMENT, msg, 
+														"auto_update", source.length());
+
+												// Write the score and save the actual sentiment into the output
+												output = localisation.getString(sentiment.sentiment);
+
+												try {
+													writeResult(cResults, item.tableName, item.targetColName, instanceId, 
+															String.valueOf(sentiment.score), 
+															localisation,
+															"_score");
+												} catch(Exception e) {
+													log.log(Level.SEVERE, e.getMessage(), e);
+												}
+
+											} catch(Exception e) {
 												output = "[Error: " + e.getMessage() + "]";
 											}
 										} else {
 											if(item.fromLang == null) {
-												output = "[Error: " + localisation.getString("aws_t_np").replace("%s1", "from_lang") + "]";
+												output = "[" + localisation.getString("aws_t_np").replace("%s1", "from_lang") + "]";
 											} else {
-												output = "[Error: " + localisation.getString("aws_t_ilc").replace("%s1", item.fromLang) + "]";
+												output = "[" + localisation.getString("aws_t_ilc").replace("%s1", item.fromLang) + "]";
 											}
 										}
+
 									} else {
-										output = "[Error: invalid source data " + source + "]";
+										String msg = localisation.getString("re_error")
+												.replace("%s1", LogManager.SENTIMENT);
+										output = "[" + msg + "]";
+										lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
 									}
 								} else {
-									String msg = localisation.getString("re_error")
-											.replace("%s1", logCode);
-									output = "[" + msg + "]";
-									lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
+									String msg = "cannot perform auto update for update type: \" + item.type";
+									log.info("Error: " + msg);
+									output = "[" + localisation.getString("c_error") + " " + msg + "]";
 								}
-							} else if(item.type.equals(AUTO_UPDATE_TEXT)) {
-									
-								if(rm.canUse(sd, item.oId, LogManager.TRANSLATE)) {
-									
-									if(lcm.isSupported(sd, item.fromLang, LanguageCodeManager.LT_TRANSLATE)) {
-										if(lcm.isSupported(sd, item.toLang, LanguageCodeManager.LT_TRANSLATE)) {
-											try {
-												output = tp.getTranslatian(source, item.fromLang, item.toLang);
-												String msg = localisation.getString("aws_t_au")
-														.replace("%s1", item.fromLang)
-														.replace("%s2", item.toLang)
-														.replace("%s3", item.tableName)
-														.replace("%s4", item.targetColName);
-												rm.recordUsage(sd, item.oId, 0, LogManager.TRANSLATE, msg, 
-														"auto_update", source.length());
-											} catch(Exception e) {
-												output = "[Error: " + e.getMessage() + "]";
-											}
-										} else {
-											if(item.toLang == null) {
-												output = "[" + localisation.getString("aws_t_np").replace("%s1", "to_lang") + "]";
-											} else {
-												output = "[" + localisation.getString("aws_t_ilc").replace("%s1", item.toLang) + "]";
-											}
-										}
-									} else {
-										if(item.fromLang == null) {
-											output = "[" + localisation.getString("aws_t_np").replace("%s1", "from_lang") + "]";
-										} else {
-											output = "[" + localisation.getString("aws_t_ilc").replace("%s1", item.fromLang) + "]";
-										}
-									}
-								} else {
-									String msg = localisation.getString("re_error")
-											.replace("%s1", LogManager.TRANSLATE);
-									output = "[" + msg + "]";
-									lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
-								}
-							} else if(item.type.equals(AUTO_UPDATE_SENTIMENT)) {
-								
-								if(rm.canUse(sd, item.oId, LogManager.SENTIMENT)) {
-								
-									if(lcm.isSupported(sd, item.fromLang, LanguageCodeManager.LT_TRANSLATE)) {
-										try {
-											Sentiment sentiment = sm.getSentiment(source, item.fromLang);
-											String msg = localisation.getString("aws_s_au")
-													.replace("%s1", item.fromLang)
-													.replace("%s3", item.tableName)
-													.replace("%s4", item.targetColName);
-											rm.recordUsage(sd, item.oId, 0, LogManager.SENTIMENT, msg, 
-													"auto_update", source.length());
-											
-											// Write the score and save the actual sentiment into the output
-											output = localisation.getString(sentiment.sentiment);
-											
-											try {
-												writeResult(cResults, item.tableName, item.targetColName, instanceId, 
-														String.valueOf(sentiment.score), 
-														localisation,
-														"_score");
-											} catch(Exception e) {
-												log.log(Level.SEVERE, e.getMessage(), e);
-											}
-												
-										} catch(Exception e) {
-											output = "[Error: " + e.getMessage() + "]";
-										}
-									} else {
-										if(item.fromLang == null) {
-											output = "[" + localisation.getString("aws_t_np").replace("%s1", "from_lang") + "]";
-										} else {
-											output = "[" + localisation.getString("aws_t_ilc").replace("%s1", item.fromLang) + "]";
-										}
-									}
-								
-								} else {
-									String msg = localisation.getString("re_error")
-										.replace("%s1", LogManager.SENTIMENT);
-									output = "[" + msg + "]";
-									lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
-								}
-							} else {
-								String msg = "cannot perform auto update for update type: \" + item.type";
-								log.info("Error: " + msg);
-								output = "[" + localisation.getString("c_error") + " " + msg + "]";
 							}
 								
 							// Write result to database
