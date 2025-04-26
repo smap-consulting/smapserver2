@@ -521,7 +521,6 @@ public class GetHtml {
 				String qPath = paths.get(q.name);
 				qPath = qPath.substring(0, qPath.lastIndexOf('/'));
 				paths.put(getRefName(qc.name, form), qPath + "/" + qc.name); // Save the path
-				//formRefs.put(qc.name, formPath);
 			}
 			
 			/*

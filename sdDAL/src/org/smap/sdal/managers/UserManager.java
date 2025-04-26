@@ -1151,6 +1151,19 @@ public class UserManager {
 		}
 	}
 	
+	public void bulkIncrementTotalTasks(Connection sd, String userIdent, int count) throws SQLException {
+		PreparedStatement pstmt = null;
+		try {
+			String sql = "update users set total_tasks = total_tasks + ? where ident = ?";
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,  count);
+			pstmt.setString(2, userIdent);
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+	}
+	
 	private void insertUserGroupsProjects(Connection sd, User u, int u_id, 
 			boolean isOrgUser, 
 			boolean isSecurityManager,

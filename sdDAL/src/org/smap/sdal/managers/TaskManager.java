@@ -2035,7 +2035,8 @@ public class TaskManager {
 				+ "and (status = 'new' or status = 'accepted' or status = 'unsent' or status = 'error' or status = 'pending') "
 				+ "and id in (";
 		String acceptedAssignmentsSql = "update assignments set status = 'accepted', cancelled_date = null "
-				+ "where task_id in (select id from tasks t, task_group tg where t.tg_id = tg.tg_id and tg.p_id = ?) "		// Authorisation
+				+ "where status != 'accepted' "
+				+ "and task_id in (select id from tasks t, task_group tg where t.tg_id = tg.tg_id and tg.p_id = ?) "		// Authorisation
 				+ "and id in (";
 		
 		String assignSql = "update assignments set assignee = ?, assigned_date = now(), assignee_name = (select name from users where id = ?) "
@@ -2147,8 +2148,12 @@ public class TaskManager {
 						mm.userChange(sd, ident);
 						usersNotified.put(ident, ident);
 					}
-					if(action.action.equals("delete")) {	// The same user can be assigned many times
+					if(action.action.equals("delete") || action.action.equals("assign")) {
 						um.decrementTotalTasks(sd, ident);
+					}
+					if(action.action.equals("status")) {
+						// Force recalculation of tasks count, it is not worth the effort to find out if a status is bening changed from assigned to assigned or there is a real change
+						um.setTasksCount(sd, ident, -1);	
 					}
 				}
 			}
@@ -2236,21 +2241,24 @@ public class TaskManager {
 						pstmt.setInt(2,action.userId);
 						pstmt.setInt(3, pId);				
 						log.info("Update Assignments: " + pstmt.toString());
-						pstmt.executeUpdate();
+						int count = pstmt.executeUpdate();
+						
+						// Notify the user who has been assigned the tasks
+						updateAssigned = GeneralUtilityMethods.getUserIdent(sd, action.userId);
+						mm.userChange(sd, updateAssigned);
+						
+						// Update total tasks for the user
+						um.bulkIncrementTotalTasks(sd, updateAssigned, count);  
+						
 					} else {
 						// Set assignments to deleted
 						pstmt = sd.prepareStatement(deleteAssignmentsSql + whereAssignmentsSql);
 						pstmt.setInt(1, pId);
 						log.info("Delete assignments: " + pstmt.toString());
-						pstmt.executeUpdate();
+						// The count of tasks for these users has already been decremented when the notification was sent to them
 					}
 				}
-
-				// Notify the user who has been assigned the tasks
-				String userIdent = GeneralUtilityMethods.getUserIdent(sd, action.userId);
-				mm.userChange(sd, userIdent);
 				
-				updateAssigned = userIdent;
 				updateStatus = "accepted";
 				updateName = null;
 				

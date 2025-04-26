@@ -769,8 +769,6 @@ public class AssignmentsManager {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-			UserManager um = new UserManager(localisation);
 			
 			if (tu.type != null && tu.type.equals("case")) {
 				CaseManager cm = new CaseManager(localisation);
