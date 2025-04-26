@@ -55,6 +55,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
+import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.Assignment;
 import org.smap.sdal.model.FileDescription;
@@ -699,13 +700,15 @@ public class AllAssignments extends Application {
 		} 
 		
 		Response response = null;
+		String connectionString = "SurveyKPI - updateAssignmentStatus";
 
 		log.info("Assignment:" + settings);
 		Type type = new TypeToken<ArrayList<Assignment>>(){}.getType();		
 		ArrayList<Assignment> aArray = new Gson().fromJson(settings, type);	
+		UserManager um = new UserManager(null);
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-AllAssignments");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		for(int i = 0; i < aArray.size(); i++) {
 
@@ -722,17 +725,20 @@ public class AllAssignments extends Application {
 
 		PreparedStatement pstmtInsert = null;
 		PreparedStatement pstmtUpdate = null;
+		PreparedStatement pstmtGetAssignedUser = null;
 		PreparedStatement pstmtDelete = null;
-		String insertSQL = "insert into assignments (assignee, status, task_id) values (?, ?, ?);";
+		String insertSQL = "insert into assignments (assignee, status, task_id) values (?, ?, ?)";
 		String updateSQL = "update assignments set " +
 				"assignee = ?," +
 				"status = ? " +
-				"where id = ?;";
-		String deleteSQL = "delete from assignments where id = ?;";
-
+				"where id = ?";
+		String getAssignedUserSQL = "select assignee from assignements where id = ?";
+		String deleteSQL = "delete from assignments where id = ?";
+		
 		try {
 			pstmtInsert = sd.prepareStatement(insertSQL);
 			pstmtUpdate = sd.prepareStatement(updateSQL);
+			pstmtGetAssignedUser = sd.prepareStatement(getAssignedUserSQL);
 			pstmtDelete = sd.prepareStatement(deleteSQL);
 			log.info("Set autocommit sd false");
 			sd.setAutoCommit(false);
@@ -741,22 +747,39 @@ public class AllAssignments extends Application {
 
 				Assignment a = aArray.get(i);
 
+				int userId = 0;
 				if(a.assignment_id == 0) {	// New assignment
+					userId = a.user.id;
 					pstmtInsert.setInt(1,a.user.id);
 					pstmtInsert.setString(2, a.assignment_status);
 					pstmtInsert.setInt(3, a.task_id);
 					log.info("Add new assignment: " + pstmtInsert.toString());
 					pstmtInsert.executeUpdate();
 				} else if(a.user.id >= 0) {	// update existing assignment
+					userId = a.user.id;
 					pstmtUpdate.setInt(1,a.user.id);
 					pstmtUpdate.setString(2, a.assignment_status);
 					pstmtUpdate.setInt(3, a.assignment_id);
 					log.info("Update existing assignment: " + pstmtUpdate.toString());
 					pstmtUpdate.executeUpdate();
 				} else {		// delete the assignment
+					// First get the assignee
+					pstmtGetAssignedUser.setInt(1, a.assignment_id );
+					ResultSet rs = pstmtGetAssignedUser.executeQuery();
+					if(rs.next()) {
+						userId = rs.getInt(1);
+					}
+					
+					// Now delete the assignment
 					pstmtDelete.setInt(1, a.assignment_id);
 					log.info("Delete existing assignment: " + pstmtDelete.toString());
 					pstmtDelete.executeUpdate();
+				}
+				
+				// Force the tasks count for the user to be recalculated
+				if(userId > 0) {
+					String userIdent = GeneralUtilityMethods.getUserIdent(sd, userId);
+					um.setTasksCount(sd, userIdent, -1);
 				}
 
 			}
@@ -774,9 +797,10 @@ public class AllAssignments extends Application {
 			
 			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}
 			try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (SQLException e) {}
+			try {if (pstmtGetAssignedUser != null) {pstmtGetAssignedUser.close();}} catch (SQLException e) {}
 			try {if (pstmtDelete != null) {pstmtDelete.close();}} catch (SQLException e) {}
 
-			SDDataSource.closeConnection("surveyKPI-AllAssignments", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;
