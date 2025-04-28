@@ -515,12 +515,14 @@ public class GetHtml {
 				qc.name = "_gic_" + q.name;
 				qc.type = SmapQuestionTypes.CALCULATE;
 				qc.labels = q.labels;
-				qc.calculation = getImageCalculation(q);	// removes get_image from q
+				
+				String qPath = paths.get(q.name);
+				qc.calculation = getImageCalculation(q, qPath);	// removes get_image from q
 				
 				form.generatedCalculations.add(qc);	// Add the generated calculation question to the form for processing
-				String qPath = paths.get(q.name);
-				qPath = qPath.substring(0, qPath.lastIndexOf('/'));
-				paths.put(getRefName(qc.name, form), qPath + "/" + qc.name); // Save the path
+				
+				String qPathStem = qPath.substring(0, qPath.lastIndexOf('/'));
+				paths.put(getRefName(qc.name, form), qPathStem + "/" + qc.name); // Save the path
 			}
 			
 			/*
@@ -541,7 +543,8 @@ public class GetHtml {
 	/*
 	 * Get the calculation required for a generated calculate to get an image
 	 */
-	private String getImageCalculation(Question q) {
+	private String getImageCalculation(Question q, String qPath) {
+	
 		String newCalc = q.calculation.replaceAll("get_image\\(", "get_media\\(");
 		StringBuilder cb = new StringBuilder("");
 		int idx = newCalc.indexOf("get_media", 0);
@@ -549,7 +552,7 @@ public class GetHtml {
 			idx = newCalc.indexOf(")",idx);
 			if(idx > 0) {
 				cb.append(newCalc.substring(0, idx));
-				cb.append(",'/main/q3'");
+				cb.append(", '").append(qPath).append("'");
 				newCalc = newCalc.substring(idx);
 				idx = newCalc.indexOf("get_media",0);
 			} else {
@@ -559,7 +562,6 @@ public class GetHtml {
 		cb.append(newCalc);
 		
 		q.calculation = null;
-		System.out.println(cb.toString());
 		return cb.toString();
 		// "if(string-length(${q1}) > 0, get_media(${q1}, '/main/q3'), '')";
 	}
