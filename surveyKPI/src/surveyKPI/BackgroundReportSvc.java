@@ -129,7 +129,11 @@ public class BackgroundReportSvc extends Application {
 				br.report_type = rs.getString("report_type");
 				br.userName = rs.getString("name");
 				br.status = rs.getString("status");
-				br.status_loc = localisation.getString("c_" + br.status);
+				try {
+					br.status_loc = localisation.getString("c_" + br.status);
+				} catch (Exception e) {
+					br.status_loc = br.status;
+				}
 				br.status_msg = rs.getString("status_msg");
 				br.filename = rs.getString("filename");
 				br.completed = rs.getString("end_time");
