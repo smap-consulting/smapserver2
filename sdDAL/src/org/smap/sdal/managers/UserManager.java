@@ -1133,6 +1133,7 @@ public class UserManager {
 			String sql = "update users set total_tasks = total_tasks - 1 where ident = ?";
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, userIdent);
+			log.info("Decrement total tasks: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -1145,6 +1146,7 @@ public class UserManager {
 			String sql = "update users set total_tasks = total_tasks + 1 where ident = ?";
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, userIdent);
+			log.info("Increment total tasks: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -1158,6 +1160,7 @@ public class UserManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1,  count);
 			pstmt.setString(2, userIdent);
+			log.info("Bulk increment total tasks: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -2272,6 +2275,7 @@ public class UserManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, count);
 			pstmt.setString(2,  userIdent);
+			log.info("Set tasks count: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
