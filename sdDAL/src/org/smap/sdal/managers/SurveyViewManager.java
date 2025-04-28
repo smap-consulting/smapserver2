@@ -181,7 +181,7 @@ public void populateSvd(
 			includeMeta,	// Include "bad"
 			isMain,		// Include instanceId
 			isMain,		// include prikey
-			includeMeta,	// Include other meta data
+			true,		// Always include other meta from console requests so we can show the key with subform data
 			includeMeta,		// include preloads
 			includeMeta,		// include instancename
 			includeMeta,		// Survey duration

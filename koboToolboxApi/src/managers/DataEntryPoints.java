@@ -378,7 +378,7 @@ public class DataEntryPoints {
 					getParkey, 			// Include parent key if the form is not the top level form (fId is 0)
 					(include_bad.equals("yes") || include_bad.equals("only")), true, // include instance id
 					true,				// Include prikey
-					true, 				// include other meta data
+					fId == 0, 			// include other meta data if this is the top level form
 					true, 				// include preloads
 					true, 				// include instancename
 					true, 				// include survey duration

@@ -3900,14 +3900,16 @@ public class GeneralUtilityMethods {
 
 		// Always include HRK even for subforms
 
-		c = new TableColumn();
-		c.column_name = "_hrk";
-		c.displayName = "Key";
-		c.humanName = localisation.getString("cr_key");
-		c.type = SmapQuestionTypes.STRING;
-		c.question_name = c.column_name;
-		columnList.add(c);
-		hasHRK = true;
+		if(includeOtherMeta) {
+			c = new TableColumn();
+			c.column_name = "_hrk";
+			c.displayName = "Key";
+			c.humanName = localisation.getString("cr_key");
+			c.type = SmapQuestionTypes.STRING;
+			c.question_name = c.column_name;
+			columnList.add(c);
+			hasHRK = true;
+		}
 		
 		if (includeParentKey) {
 			c = new TableColumn();

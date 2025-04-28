@@ -279,7 +279,7 @@ public class Items extends Application {
 						true,	// Include "bad"
 						true,	// Include instanceId
 						true,	// Include prikey
-						true,	// Include other meta data
+						false,	// Include other meta data
 						true,	// Include preloads
 						true,	// Include instance names
 						false,	// Include survey duration
