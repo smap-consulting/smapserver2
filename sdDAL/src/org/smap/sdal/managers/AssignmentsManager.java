@@ -222,12 +222,12 @@ public class AssignmentsManager {
 			 * This should reduce the load on the server
 			 */
 			UserManager um = new UserManager(localisation);
-			if(noLimit) {
-				totalTasks = 1;	// Force the recalculation of the number of tasks
-			} else {
-				totalTasks = um.getTasksCount(sd, cResults, localisation, userIdent);
-			}
+				
+			//if(!noLimit) {
+			//	totalTasks = um.getTasksCount(sd, cResults, localisation, userIdent);
+			//} 
 			
+			totalTasks = 1;			// TODO disable caching
 			if(totalTasks > 0) {
 				String sqlDeleteCancelled = "update assignments set status = 'deleted', deleted_date = now() where id = ?";
 				pstmtDeleteCancelled = sd.prepareStatement(sqlDeleteCancelled);
