@@ -370,7 +370,8 @@ CREATE TABLE users (
 	seen boolean,					-- True if the user has aknowledged the alert
 	single_submission boolean default false,		-- Only one submission can be accepted by this user
 	created timestamp with time zone,
-	total_tasks integer default -1
+	total_tasks integer default -1,
+	reset_total_tasks boolean default false	 -- Set to true to recalculate total number of tasks
 	);
 CREATE UNIQUE INDEX idx_users_ident ON users(ident);
 ALTER TABLE users OWNER TO ws;

@@ -91,6 +91,7 @@ public class UserManager {
 		int serverPasswordExpiry = 0;
 		int passwordExpiry = 0;
 		boolean noBasicPassword = false;
+		boolean resetTotalTasks = false;
 
 		try {
 			String sql = null;
@@ -112,6 +113,7 @@ public class UserManager {
 					+ "u.lastalert, "
 					+ "u.seen,"
 					+ "u.total_tasks,"
+					+ "u.reset_total_tasks,"
 					+ "extract(year from age(now(), u.password_set)) * 12 + extract(month from age(now(), u.password_set)) as password_age,"
 					+ "o.id as o_id, "
 					+ "o.name as organisation_name, "
@@ -188,6 +190,7 @@ public class UserManager {
 				user.lastalert = resultSet.getString("lastalert");
 				user.seen = resultSet.getBoolean("seen");
 				user.totalTasks = resultSet.getInt("total_tasks");
+				resetTotalTasks = resultSet.getBoolean("reset_total_tasks");
 				user.billing_enabled = resultSet.getBoolean("billing_enabled");
 				user.timezone = resultSet.getString("timezone");
 				if(user.timezone == null || user.timezone.trim().equals("")) {
@@ -216,7 +219,7 @@ public class UserManager {
 			/*
 			 * If the total tasks counter has not been set then calculate it
 			 */
-			if(user.totalTasks < 0) {
+			if(resetTotalTasks || user.totalTasks < 0) {
 				Connection cResults = null;
 				String connectionString = "UserManager - get task count";
 				cResults = ResultsDataSource.getConnection(connectionString);
@@ -2207,6 +2210,7 @@ public class UserManager {
 			String userIdent) throws Exception {
 		
 		int count = 0;
+		boolean resetCount = false;
 		
 		PreparedStatement pstmt = null;
 		try {
@@ -2218,15 +2222,18 @@ public class UserManager {
 			/*
 			 * First check the cache value in the users table and lock the row
 			 */
-			String sqlGet = "select total_tasks from users where ident = ? for update";
+			String sqlGet = "select total_tasks, reset_total_tasks from users "
+					+ "where ident = ? for update";
 			pstmt = sd.prepareStatement(sqlGet);
 			pstmt.setString(1, userIdent);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				count = rs.getInt("total_tasks");
-				if(count < 0){
+				resetCount = rs.getBoolean("reset_total_tasks");
+				
+				if(resetCount || count < 0){
 					/*
-					 * Nothing found.  Create the cached count
+					 * Need to recalculate the count of tasks
 					 */
 					AssignmentsManager am = new AssignmentsManager();
 					TaskResponse tr = am.getTasksData(sd, 
@@ -2271,7 +2278,8 @@ public class UserManager {
 		PreparedStatement pstmt = null;
 		
 		try {
-			String sql = "update users set total_tasks = ? where ident = ?";
+			String sql = "update users set total_tasks = ?, reset_total_tasks = false "
+					+ "where ident = ?";
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, count);
 			pstmt.setString(2,  userIdent);

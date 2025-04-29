@@ -213,5 +213,8 @@ delete from user_group where g_id = 12;
 -- Drop survey role constraint that causes issues when replacing a survey that has roles
 alter table survey_role drop constraint survey_role_survey_ident_fkey;
 
--- Allow server setting ro require security manager privilege to delete
+-- Allow server setting to require security manager privilege to delete
 alter table server add column sec_mgr_del boolean default false;
+
+-- Add a flag to force reset of total tasks
+alter table users add column reset_total_tasks boolean default false;

@@ -222,12 +222,20 @@ public class AssignmentsManager {
 			 * This should reduce the load on the server
 			 */
 			UserManager um = new UserManager(localisation);
-				
-			//if(!noLimit) {
-			//	totalTasks = um.getTasksCount(sd, cResults, localisation, userIdent);
-			//} 
 			
-			totalTasks = 1;			// TODO disable caching
+			/*
+			 * This function is called by getTasksCount so to prevent infinite recursion
+			 * do not call getTasksCount if the noLimit flag is set instead set the task count to an arbitrary positive value
+			 * so that all the tasks will be retrieved and can be counted.
+			 * Otherwise we are being called by a refresh to get the tasks and we only do that
+			 * if we know there are some tasks to retrieve so call getTasksCount to determine this.
+			 */
+			if(noLimit) {
+				totalTasks = 1;
+			} else {
+				totalTasks = um.getTasksCount(sd, cResults, localisation, userIdent);
+			} 
+			
 			if(totalTasks > 0) {
 				String sqlDeleteCancelled = "update assignments set status = 'deleted', deleted_date = now() where id = ?";
 				pstmtDeleteCancelled = sd.prepareStatement(sqlDeleteCancelled);
