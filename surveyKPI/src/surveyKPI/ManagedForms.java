@@ -654,6 +654,7 @@ public class ManagedForms extends Application {
 						false, 
 						true, 	// include instance id
 						true,	// Include prikey
+						true,	// Include HRK
 						true,	// Include other meta data
 						true,	// Include preloads
 						true,	// Include instancename

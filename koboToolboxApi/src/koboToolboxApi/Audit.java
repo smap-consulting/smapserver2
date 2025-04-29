@@ -317,6 +317,7 @@ public class Audit extends Application {
 					(include_bad.equals("yes") || include_bad.equals("only")),
 					true,		// include instance id
 					true,		// Include prikey
+					(parentform == 0),	// Include HRK if top level form
 					true,		// include other meta data
 					true,		// include preloads
 					true,		// include instancename

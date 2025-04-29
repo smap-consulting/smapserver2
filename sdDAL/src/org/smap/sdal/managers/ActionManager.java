@@ -632,6 +632,7 @@ public class ActionManager {
 					false,		// Include "bad"
 					false,		// Include instanceId
 					false,		// include prikey
+					false,		// Include HRK
 					false,		// Include other meta data
 					false,		// include preloads
 					false,		// include instancename

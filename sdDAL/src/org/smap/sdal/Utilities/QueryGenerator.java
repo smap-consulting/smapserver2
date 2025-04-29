@@ -466,6 +466,7 @@ public class QueryGenerator {
 				false,				// Don't include "bad" columns
 				false,				// Don't include instance id
 				first && meta,		// Include prikey if meta set
+				first && meta,		// Include HRK if meta set
 				first && meta,		// Include other meta data if meta set
 				first && meta,		// Include preloads if meta set
 				first && meta,		// Include Instance Name in first form if meta set

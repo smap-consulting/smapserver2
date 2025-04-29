@@ -3777,6 +3777,7 @@ public class GeneralUtilityMethods {
 			boolean includeBad, 
 			boolean includeInstanceId, 
 			boolean includePrikey,
+			boolean includeHRK,
 			boolean includeOtherMeta, 
 			boolean includePreloads,
 			boolean includeInstanceName, 
@@ -3900,7 +3901,7 @@ public class GeneralUtilityMethods {
 
 		// Always include HRK even for subforms
 
-		if(includeOtherMeta) {
+		if(includeHRK) {
 			c = new TableColumn();
 			c.column_name = "_hrk";
 			c.displayName = "Key";

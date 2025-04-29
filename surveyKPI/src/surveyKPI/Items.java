@@ -279,7 +279,8 @@ public class Items extends Application {
 						true,	// Include "bad"
 						true,	// Include instanceId
 						true,	// Include prikey
-						false,	// Include other meta data
+						parent == 0,	// Include HRK
+						parent == 0,	// Include other meta data
 						true,	// Include preloads
 						true,	// Include instance names
 						false,	// Include survey duration

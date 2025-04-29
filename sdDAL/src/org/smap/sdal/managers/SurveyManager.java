@@ -4287,6 +4287,7 @@ public class SurveyManager {
 					false,
 					true,			// include instance id
 					true,			// include prikey
+					includeMeta,	// Include HRK
 					includeMeta,	// include other meta data
 					includeMeta,	// include preloads
 					true,			// include instancename

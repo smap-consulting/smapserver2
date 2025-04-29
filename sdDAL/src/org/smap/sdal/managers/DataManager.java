@@ -252,6 +252,7 @@ public class DataManager {
 					false,
 					true,			// include instance id
 					true,			// include prikey
+					includeMeta,	// Include HRK
 					includeMeta,	// include other meta data
 					includeMeta,	// include preloads
 					true,			// include instancename
@@ -754,6 +755,7 @@ public class DataManager {
 						(ssd.include_bad.equals("yes") || ssd.include_bad.equals("only")),
 						includeMeta,		// include instance id
 						includeMeta,		// Include prikey
+						includeMeta,		// Include HRK
 						includeMeta,		// include other meta data
 						includeMeta,		// include preloads
 						true,				// include instancename
@@ -1162,6 +1164,7 @@ public class DataManager {
 					false,		// Don't include "bad" columns
 					true,		// include instance id
 					true,		// Include prikey
+					true,		// Include HRK
 					true,		// Include other meta data
 					true,		// Include preloads
 					true,		// Include instance name
