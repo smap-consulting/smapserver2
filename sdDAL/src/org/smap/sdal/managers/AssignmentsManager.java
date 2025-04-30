@@ -234,7 +234,6 @@ public class AssignmentsManager {
 				totalTasks = 1;
 			} else {
 				totalTasks = um.getTasksCount(sd, cResults, localisation, userIdent);
-				totalTasks = 1;		// Disable caching temporarily
 			} 
 			
 			if(totalTasks > 0) {
