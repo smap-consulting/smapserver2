@@ -135,13 +135,15 @@ public class TableDataManager {
 			}
 			if(c.column_name.equals("prikey") || c.column_name.equals("parkey") 
 					|| c.column_name.equals("_bad") || c.column_name.equals("_bad_reason")
-					|| c.column_name.equals("_audit")
-					|| c.column_name.equals("_hrk")) {
+					|| c.column_name.equals("_audit")) {
 				columnSelect.append(table_name).append(".");
 			}
 			
-			// _assigned should only be created in the top level table
+			// _assigned and _hrk should only be created in the top level table
 			if(c.column_name.equals(SurveyViewManager.ASSIGNED_COLUMN) && topLevelTable != null) {
+				columnSelect.append(topLevelTable).append(".");
+			}
+			if(c.column_name.equals("_hrk") && topLevelTable != null) {
 				columnSelect.append(topLevelTable).append(".");
 			}
 			
