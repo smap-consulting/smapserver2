@@ -44,6 +44,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.NotFoundException;
+import org.smap.sdal.Utilities.QuestionInfo;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.legacy.FormDesc;
@@ -70,7 +71,6 @@ import com.google.gson.reflect.TypeToken;
 
 import taskModel.TaskAddress;
 import utilities.ExchangeManager;
-import utilities.QuestionInfo;
 import utilities.XLSXEventParser;
 
 import java.io.File;

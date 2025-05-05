@@ -1,4 +1,4 @@
-package utilities;
+package org.smap.sdal.Utilities;
 
 /*
 This file is part of SMAP.

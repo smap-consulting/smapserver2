@@ -25,6 +25,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
+import org.smap.sdal.Utilities.QuestionInfo;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -1034,6 +1035,7 @@ public class TaskManager {
 
 		
 		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
 			int source_s_id = GeneralUtilityMethods.getSurveyId(sd, source_s_ident);
 			pstmtGetRules = sd.prepareStatement(sqlGetRules);
 			pstmtGetRules.setInt(1, source_s_id);
@@ -1087,6 +1089,18 @@ public class TaskManager {
 							if(!fires) {
 								log.info("Rule not fired as filter criteria not met: " + as.filter.advanced);
 							}
+						} else if(as.filter != null && as.filter.qId > 0) {
+							
+							QuestionInfo filterQuestion = new QuestionInfo(localisation, tz, source_s_id, as.filter.qId, sd, 
+									cResults, remoteUser,
+									false, as.filter.lang, urlprefix, oId);
+							fires = GeneralUtilityMethods.testFilter(sd, cResults, remoteUser, localisation, survey, 
+									filterQuestion.getSimpleFilterSql(as.filter.oValue, as.filter.qInteger, as.filter.qStartDate, as.filter.qEndDate, as.filter.qText), 
+									instanceId, tz, "Tasks");
+							if(!fires) {
+								log.info("Rule not fired as filter criteria not met: " + as.filter.advanced);
+							}
+								
 						} else {
 							fires = true;
 						}

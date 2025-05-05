@@ -1,4 +1,4 @@
-package utilities;
+package org.smap.sdal.Utilities;
 
 /*
 This file is part of SMAP.
@@ -22,6 +22,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -566,6 +567,40 @@ public class QuestionInfo {
 		return filter;
 	}
 	
+	/*
+	 * Get the simple filter SQL
+	 */
+	public String getSimpleFilterSql(String oValue, int qInteger, long qStartDate, long qEndDate, String qText) {
+		String filter = null;
+		String value1 = null;
+		String value2 = null;
+		
+		log.info("Filter question type: " + qType);
+		if(qType != null) {
+			if(qType.equals("int")) {
+				value1 = String.valueOf(qInteger);
+			} else if(qType.equals("date")  || qType.equals("dateTime")) {
+				Timestamp startDate = new Timestamp(qStartDate);
+				Timestamp endDate = new Timestamp(qEndDate);
+
+				value1 = startDate.toString();
+				value2 = endDate.toString();
+			} else {
+				value1 = qText;
+			}
+			
+			if(value2 != null && (qType.equals("date") || qType.equals("dateTime"))) {
+				filter = tableName + "." + columnName + " between  '" + value1 + "' and  '" + value2 + "' ";
+			} else {
+				filter = "${" + qName + "} = '" + value1 + "' ";
+			}
+		}
+		
+		log.info("Filter: " + filter);
+		return filter;
+				
+	}
+	
 	public String getSelect() {
 		String sqlFrag = "";
 		log.info("get select: " + tableName + ":" + columnName + ":" + qType + " : " + qType);
@@ -630,3 +665,4 @@ public class QuestionInfo {
 	}
 	
 }
+

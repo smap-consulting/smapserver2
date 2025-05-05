@@ -37,6 +37,8 @@ import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.OptionInfo;
+import org.smap.sdal.Utilities.QuestionInfo;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.Tables;
@@ -50,8 +52,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import utilities.FeatureInfo;
-import utilities.OptionInfo;
-import utilities.QuestionInfo;
 
 import java.lang.reflect.Type;
 import java.sql.*;
