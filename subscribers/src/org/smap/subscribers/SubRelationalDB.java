@@ -413,7 +413,7 @@ public class SubRelationalDB extends Subscriber {
 					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
 							existingKey, 
-							false,		// Always merge for direct updates - this protects data from bundled surveys	 
+							keyPolicy.equals(SurveyManager.KP_REPLACE),
 							remoteUser, updateId, survey.surveyData.groupSurveyIdent, survey.surveyData.ident, localisation);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
 				} 
 			} else if(hasHrk && !keyPolicy.equals(SurveyManager.KP_NONE)) {
