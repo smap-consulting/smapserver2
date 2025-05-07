@@ -116,7 +116,7 @@ public class TokenAccess extends Application {
 			) throws SQLException, ApplicationException {
 		
 		Response resp = null;
-		String requester = "surveyMobileAPI-Webform";
+		String requester = "surveyMobileAPI-Webform-token";
 		Connection sd = SDDataSource.getConnection(requester);
 
 		try {
@@ -142,6 +142,50 @@ public class TokenAccess extends Application {
 		return resp;
 	}
 
+	/*
+	 * Get task data
+	 * The data is identified by the form and the unique updateid for the record
+	 * The json includes an instance XML as a string
+	 */
+	@GET
+	@Path("/webForm/instance/{ident}/task/{taskid}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getTaskDataJsonNoKey(
+			@Context HttpServletRequest request, 
+			@PathParam("ident") String formIdent,
+			@PathParam("taskid") int taskId
+	) throws IOException {
+
+		log.info("Requesting json instance no key");
+
+		Response resp = null;
+		String requester = "surveyMobileAPI-Webform-task-token";
+		Connection sd = SDDataSource.getConnection(requester);
+
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			String user = request.getRemoteUser();
+			if(user == null) {
+				user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
+			}
+			if(user == null) {
+				throw new AuthorisationException("Unknown User");
+			}
+			log.info("Requesting instance as: " + user);
+			WebFormManager wfm = new WebFormManager(localisation, "UTC");
+			resp = wfm.getInstanceData(sd, request, formIdent, null, taskId, user, true);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			SDDataSource.closeConnection(requester, sd);
+		}
+
+		return resp;
+	}
+
+	
 	/*
 	 * Head request to return the actual URL to submit data to
 	 * This is required by the Java Rosa protocol
