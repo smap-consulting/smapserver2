@@ -585,6 +585,8 @@ public class QuestionInfo {
 
 				value1 = startDate.toString();
 				value2 = endDate.toString();
+			} else if(qType.equals("select1")) {
+				value1 = oValue;
 			} else {
 				value1 = qText;
 			}
