@@ -211,8 +211,8 @@ public class ConversationManager {
 		File vonagePrivateKey = new File(privateKeyFile);
 		String vonageApplicationId = getVonageApplicationId(sd);
 			
-		log.info("Getting vonage client with application Id: " + vonageApplicationId + " file at: " + privateKeyFile);
 		if(vonagePrivateKey.exists() && vonageApplicationId != null && vonageApplicationId.trim().length() > 0) {
+			log.info("Getting vonage client with application Id: " + vonageApplicationId + " file at: " + privateKeyFile);
 			try {
 				vonageClient = VonageClient.builder()
 						.applicationId(vonageApplicationId)
@@ -232,8 +232,9 @@ public class ConversationManager {
 			if(vonageApplicationId != null && vonageApplicationId.trim().length() > 0) {
 				// Set organisation id to -1 as this is an issue not related to an organisation			
 				lm.writeLogOrganisation(sd, -1, null, LogManager.SMS, msg, 0);	
+				log.info("Error setting up vonage client: " + msg);
 			}
-			log.info("Error setting up vonage client: " + msg);
+			
 		}
 		
 		return vonageClient;
