@@ -197,7 +197,8 @@ public class Tasks extends Application {
 			@Context HttpServletRequest request,
 			@PathParam("tgId") int tgId,
 			@QueryParam("user") int userId,
-			@QueryParam("period") String period
+			@QueryParam("period") String period,
+			@QueryParam("tz") String tz
 			) throws IOException {
 		
 		Response response = null;
@@ -213,7 +214,9 @@ public class Tasks extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			String tz = "UTC";	// Set default for timezone
+			if(tz == null) {
+				tz = "UTC";	// Set default for timezone
+			}
 						
 			// Get assignments
 			String urlprefix = request.getScheme() + "://" + request.getServerName();

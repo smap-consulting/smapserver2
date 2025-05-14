@@ -124,7 +124,8 @@ public class MessagingManager {
 	 */
 	public void createMessage(Connection sd, int oId, String topic, String msg, String data) throws SQLException {
 		
-		String sqlMsg = "insert into message" + "(o_id, topic, description, data, outbound, created_time) "
+		String sqlMsg = "insert into message" 
+				+ "(o_id, topic, description, data, outbound, created_time) "
 				+ "values(?, ?, ?, ?, 'true', now())";
 		PreparedStatement pstmtMsg = null;
 		
