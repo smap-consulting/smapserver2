@@ -3490,7 +3490,7 @@ public class TaskManager {
 								notify_details = notify_details.replaceAll("%s4", survey.surveyData.projectName);
 							}
 							if(msg != null && msg.subject != null) {
-								notify_details = notify_details.replaceAll("%s5", msg.subject);
+								notify_details = notify_details.replace("%s5", msg.subject);
 							}
 							
 							log.info("+++ emailing task to: " + msg.email + " docUrl: " + docURL + 

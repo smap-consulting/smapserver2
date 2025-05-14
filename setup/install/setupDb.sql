@@ -1259,6 +1259,7 @@ DROP SEQUENCE IF EXISTS pending_message_seq CASCADE;
 CREATE SEQUENCE pending_message_seq START 1;
 ALTER SEQUENCE pending_message_seq OWNER TO ws;
 
+-- This table stores messages that are held until the user opts in
 DROP TABLE IF EXISTS pending_message CASCADE;
 create TABLE pending_message (
 	id integer DEFAULT NEXTVAL('pending_message_seq') CONSTRAINT pk_pending_message PRIMARY KEY,
