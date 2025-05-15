@@ -986,7 +986,8 @@ public class UserManager {
 								+ "realm = ?, "
 								+ "name = ?, " 
 								+ "email = ?, "
-								+ "o_id = ? "
+								+ "o_id = ?, "
+								+ "reset_total_tasks = true "	// recalculate task count cache
 								+ "where "
 								+ "id = ?";
 					} else {
@@ -998,6 +999,7 @@ public class UserManager {
 								+ "name = ?, " 
 								+ "email = ?, "
 								+ "o_id = ?, "
+								+ "reset_total_tasks = true, "	// recalculate task count cache
 								+ "password = md5(?), "
 								+ "basic_password = '{SHA}'|| encode(digest(?,'sha1'),'base64'), "
 								+ "password_set = now() "
