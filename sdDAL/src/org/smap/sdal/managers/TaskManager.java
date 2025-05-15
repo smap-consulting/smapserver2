@@ -1789,10 +1789,15 @@ public class TaskManager {
 			if(tsd.from == null) {
 				Calendar cal = Calendar.getInstance();
 				tsd.from = new Timestamp(cal.getTime().getTime());
+			} else {
+				// from time to UTC
+				if(!"UTC".equals(tz)) {
+					tsd.from = GeneralUtilityMethods.utcDate(tsd.from, tz);
+				}
 			}
 			
 			int taskId = tsd.id;
-			Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			Gson gson =  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			String initial_data = null;
 			if(tsd.initial_data != null) {
 				initial_data = gson.toJson(tsd.initial_data);	

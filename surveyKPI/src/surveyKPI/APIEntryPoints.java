@@ -587,7 +587,7 @@ public class APIEntryPoints extends Application {
 		/*
 		 * Localisation and timezone will be determined in the createTask function
 		 */
-		TaskManager tm = new TaskManager(null, null);
+		TaskManager tm = new TaskManager(null, tz);
 		return tm.createTask(request, task, preserveInitialData);
 	}
 

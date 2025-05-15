@@ -34,7 +34,9 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -7152,7 +7154,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Convert a date to local time
+	 * Convert a date in UTC to local time
 	 */
 	public static Date localDate(Date d, String tz) {
 
@@ -7172,7 +7174,23 @@ public class GeneralUtilityMethods {
 
 		return localDate;
 	}
+	
+	/*
+	 * Convert a local time to UTC
+	 */
+	/*
+	 * Convert an sql date in UTC to an sql date in local time
+	 */
+	public static Timestamp utcDate(Timestamp d, String tz) {
 
+		ZonedDateTime localDateTime = ZonedDateTime.ofInstant(d.toInstant(), TimeZone.getTimeZone(tz).toZoneId());
+		ZonedDateTime utcDateTime = localDateTime.withZoneSameInstant(TimeZone.getTimeZone("UTC").toZoneId());
+		
+		log.info("---------------------- Local date: " + localDateTime.toString());
+		log.info("---------------------- Utc date: " + utcDateTime.toString());
+		return new Timestamp(Date.from(utcDateTime.toInstant()).getTime());
+	}
+	
 	/*
 	 * Update the survey version
 	 */
