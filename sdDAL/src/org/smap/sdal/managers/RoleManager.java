@@ -307,6 +307,7 @@ public class RoleManager {
 			String sql = null;
 			String sqlSuperUser = "SELECT r.id as id, "
 					+ "r.name as name, "
+					+ "sr.restrictive, "
 					+ "sr.enabled, "
 					+ "sr.id as sr_id,"
 					+ "sr.row_filter,"
@@ -319,6 +320,7 @@ public class RoleManager {
 			
 			String sqlNormalUser = "SELECT r.id as id, "
 					+ "r.name as name, "
+					+ "sr.restrictive, "
 					+ "sr.enabled, "
 					+ "sr.id as sr_id,"
 					+ "sr.row_filter,"
@@ -363,6 +365,7 @@ public class RoleManager {
 				role.name = resultSet.getString("name");
 				role.enabled = resultSet.getBoolean("enabled");
 				role.row_filter = resultSet.getString("row_filter");
+				role.restrictive = resultSet.getBoolean("restrictive");
 				
 				String colFilter = resultSet.getString("column_filter");
 				if(colFilter != null) {
@@ -426,6 +429,33 @@ public class RoleManager {
 	}
 	
 	/*
+	 * Update a survey role or the link between a survey and a role
+	 */
+	public void updateSurveyRoleFilterType(Connection sd, String sIdent, int rId, boolean restrictive) throws SQLException {
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			String sql = "update survey_role "
+					+ "set restrictive = ? "
+					+ "where r_id = ? "
+					+ "and survey_ident = ?";
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setBoolean(1, restrictive);
+			pstmt.setInt(2, rId);
+			pstmt.setString(3, sIdent);
+			log.info("Update survey role: " + pstmt.toString());
+			pstmt.executeUpdate();
+				    
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+	}
+	
+	/*
 	 * Update the row filter in a survey link
 	 */
 	public void updateSurveyRoleRowFilter(Connection sd, String sIdent, 
@@ -451,7 +481,7 @@ public class RoleManager {
 			throw new Exception(localisation.getString("r_mc") + " " + bad);
 		}
 		
-		// if the row filter is emty set it to null
+		// if the row filter is empty set it to null
 		if(role.row_filter != null && role.row_filter.trim().length() == 0) {
 			role.row_filter = null;
 		}
