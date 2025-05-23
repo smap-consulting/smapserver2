@@ -236,7 +236,7 @@ public class AssignmentsManager {
 				totalTasks = um.getTasksCount(sd, cResults, localisation, userIdent);
 			} 
 			
-			if(totalTasks > 0) {
+			if(totalTasks != 0) {
 				String sqlDeleteCancelled = "update assignments set status = 'deleted', deleted_date = now() where id = ?";
 				pstmtDeleteCancelled = sd.prepareStatement(sqlDeleteCancelled);
 				
@@ -369,8 +369,7 @@ public class AssignmentsManager {
 				log.info("ft_number_tasks: " + ft_number_tasks);
 				if (ft_number_tasks > 0) {
 					TaskManager tm = new TaskManager(localisation, tz);
-					TaskListGeoJson unassigned = tm.getUnassignedTasks(sd, oId, uId, ft_number_tasks, // Maximum number of
-																										// tasks to return
+					TaskListGeoJson unassigned = tm.getUnassignedTasks(sd, oId, uId, ft_number_tasks, // Maximum number oftasks to return
 							userIdent);
 	
 					for (TaskFeature task : unassigned.features) {
@@ -431,6 +430,8 @@ public class AssignmentsManager {
 					pstmtDeleteCancelled.setInt(1, assignmentId);
 					pstmtDeleteCancelled.executeUpdate();
 				}
+			} else {
+				log.info("############### tasks count is zero, not getting tasks for user " + userIdent);
 			}
 
 			/*
@@ -577,7 +578,7 @@ public class AssignmentsManager {
 				/*
 				 * Add any cases assigned to this user
 				 */
-				if(totalTasks > 0) {
+				if(totalTasks != 0) {
 					CaseManager cm = new CaseManager(localisation);
 					ArrayList<Case> cases = cm.getCases(sd, cResults, survey.surveyData.ident,
 							survey.surveyData.displayName, survey.surveyData.groupSurveyIdent, userIdent,
@@ -606,6 +607,8 @@ public class AssignmentsManager {
 							tr.taskAssignments.add(ta);
 						}
 					}
+				} else {
+					log.info("############### tasks count is zero, not getting cases for user " + userIdent);
 				}
 			}
 
