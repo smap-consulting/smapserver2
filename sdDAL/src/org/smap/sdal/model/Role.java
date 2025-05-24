@@ -26,7 +26,7 @@ public class Role {
 	public String name;
 	public String desc;
 	public boolean enabled;
-	public boolean restrictive;
+	public String role_group;
 	public int srId;									// The identifier (id) from the survey_role table
 	public ArrayList<RoleColumnFilter> column_filter;	// Columns that are allowed to be seen by people with this role
 	public ArrayList<RoleColumnFilterRef> column_filter_ref;	// Columns that are allowed to be seen by people with this role

@@ -307,7 +307,7 @@ public class RoleManager {
 			String sql = null;
 			String sqlSuperUser = "SELECT r.id as id, "
 					+ "r.name as name, "
-					+ "sr.restrictive, "
+					+ "sr.role_group, "
 					+ "sr.enabled, "
 					+ "sr.id as sr_id,"
 					+ "sr.row_filter,"
@@ -320,7 +320,7 @@ public class RoleManager {
 			
 			String sqlNormalUser = "SELECT r.id as id, "
 					+ "r.name as name, "
-					+ "sr.restrictive, "
+					+ "sr.role_group, "
 					+ "sr.enabled, "
 					+ "sr.id as sr_id,"
 					+ "sr.row_filter,"
@@ -365,7 +365,7 @@ public class RoleManager {
 				role.name = resultSet.getString("name");
 				role.enabled = resultSet.getBoolean("enabled");
 				role.row_filter = resultSet.getString("row_filter");
-				role.restrictive = resultSet.getBoolean("restrictive");
+				role.role_group = resultSet.getString("role_group");
 				
 				String colFilter = resultSet.getString("column_filter");
 				if(colFilter != null) {
@@ -429,21 +429,21 @@ public class RoleManager {
 	}
 	
 	/*
-	 * Update a survey role or the link between a survey and a role
+	 * Update a survey role group
 	 */
-	public void updateSurveyRoleFilterType(Connection sd, String sIdent, int rId, boolean restrictive) throws SQLException {
+	public void updateSurveyRoleFilterGroup(Connection sd, String sIdent, int rId, String group) throws SQLException {
 		
 		PreparedStatement pstmt = null;
 		
 		try {
 			
 			String sql = "update survey_role "
-					+ "set restrictive = ? "
+					+ "set role_group = ? "
 					+ "where r_id = ? "
 					+ "and survey_ident = ?";
 			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setBoolean(1, restrictive);
+			pstmt.setString(1, group);
 			pstmt.setInt(2, rId);
 			pstmt.setString(3, sIdent);
 			log.info("Update survey role: " + pstmt.toString());
@@ -604,7 +604,7 @@ public class RoleManager {
 		try {
 			ResultSet resultSet = null;
 			
-			String sql = "SELECT sr.row_filter "
+			String sql = "SELECT sr.row_filter, sr.role_group "
 					+ "from survey_role sr, user_role ur, users u "
 					+ "where sr.survey_ident = ? "
 					+ "and sr.r_id = ur.r_id "
@@ -620,14 +620,17 @@ public class RoleManager {
 							
 			while(resultSet.next()) {		
 				String sqlFragString = resultSet.getString("row_filter");
+				String group = resultSet.getString("role_group");
 				if(sqlFragString != null && sqlFragString.trim().length() > 0) {
+					SqlFrag sf = null;
 					if(sqlFragString.trim().startsWith("{")) {
-						rfArray.add(gson.fromJson(sqlFragString, SqlFrag.class));		// legacy json
+						sf = gson.fromJson(sqlFragString, SqlFrag.class);
 					} else {
-						SqlFrag sf = new SqlFrag();									// New only the string is stored
-						sf.addSqlFragment(sqlFragString, false, localisation, 0);
-						rfArray.add(sf);
+						sf = new SqlFrag();			// New only the string is stored
+						sf.addSqlFragment(sqlFragString, false, localisation, 0);			
 					}
+					sf.group = group;	
+					rfArray.add(sf);
 				}		
 			}
 		} finally {

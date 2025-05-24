@@ -377,7 +377,7 @@ public class Roles extends Application {
 			 * If all roles are to be treated as a bundle then update the other surveys in the bundle 
 			 * This is only required if the column filter, row filter or filter type are being updated
 			 */
-			if(("row_filter".equals(property) || "column_filter".equals(property) || "restrictive".equals(property)) 
+			if(("row_filter".equals(property) || "column_filter".equals(property) || "role_group".equals(property)) 
 					&& GeneralUtilityMethods.getSurveyBundleRoles(sd, sId)) {
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				
@@ -827,9 +827,10 @@ public class Roles extends Application {
 					colMsg.append(col);
 				}
 				change.msg = change.msg.replace("%s2", GeneralUtilityMethods.getSafeText(colMsg.toString(), true));
-			} else if(property.equals("restrictive")) {
-				rm.updateSurveyRoleFilterType(sd, sIdent, role.id, role.restrictive);
-				change.msg = localisation.getString(role.restrictive ? "ed_c_rftr" : "ed_c_rftp");
+			} else if(property.equals("role_group")) {
+				rm.updateSurveyRoleFilterGroup(sd, sIdent, role.id, role.role_group);
+				change.msg = localisation.getString("ed_c_rftg");
+				change.msg = change.msg.replace("%s2", role.role_group);
 			}
 
 			// Record change in change log
