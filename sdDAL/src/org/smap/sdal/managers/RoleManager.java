@@ -693,26 +693,73 @@ public class RoleManager {
 	
 	/*
 	 * Convert an array of sql fragments into raw SQL
+	 * Fragments from the same group are combined with "or"
+	 * Different groups are combined with "and"
 	 */
 	public String convertSqlFragsToSql(ArrayList<SqlFrag> rfArray) {
-		StringBuffer rfString = new StringBuffer("");
-		StringBuffer sqlFilter = new StringBuffer("");
+
+		StringBuilder rowFilter = new StringBuilder("");
+		StringBuilder sqlFilter = new StringBuilder("");
+		
+		
 		if(rfArray.size() > 0) {
-			for(SqlFrag rf : rfArray) {
-				if(rf.columns.size() > 0) {
-					if(rfString.length() > 0) {
-						rfString.append(" or");
-					}
-					rfString.append(" (");
-					rfString.append(rf.sql.toString());
-					rfString.append(")");
+			// 1. Break the array down into groups
+			HashMap<String, ArrayList<SqlFrag>> groups = new HashMap<>();			
+			for(SqlFrag rf : rfArray) {				
+				ArrayList<SqlFrag> a = groups.get(rf.group);
+				if(a == null) {
+					a = new ArrayList<>();
 				}
+				a.add(rf);
+				groups.put(rf.group, a);
+			}
+			
+			// 2. The passed in role array may have the order of its elements changed, update it so that allocation of variables is still done in the correct order
+			rfArray.clear();
+			
+			// 2. Loop through the groups and combine with "and"
+			for(String group : groups.keySet()) {
+				String gf = getGroupFilterSql(groups.get(group), rfArray);
+				if(gf.length() > 0) {
+					if(rowFilter.length() > 0) {
+						rowFilter.append(" and");
+					}
+					rowFilter.append(" (");
+					rowFilter.append(gf);
+					rowFilter.append(")");
+				}
+				
 			}
 			sqlFilter.append("(");
-			sqlFilter.append(rfString);
+			sqlFilter.append(rowFilter);
 			sqlFilter.append(")");
 		}
 		return sqlFilter.toString();
+	}
+	
+	/*
+	 * Combine SQL fragments in the same group with "OR"
+	 * Add each SQL fragment back to rfArray in the order that they are processed
+	 */
+	private String getGroupFilterSql(ArrayList<SqlFrag> groupArray, ArrayList<SqlFrag> rfArray) {
+		StringBuilder gfString = new StringBuilder("");
+		
+		if(groupArray.size() > 0) {
+			for(SqlFrag rf : groupArray) {	
+				if(rf.columns.size() > 0) {
+					if(gfString.length() > 0) {
+						gfString.append(" or");
+					}
+					gfString.append(" (");
+					gfString.append(rf.sql.toString());
+					gfString.append(")");
+				}
+				
+				rfArray.add(rf);
+			}
+		}
+		
+		return gfString.toString();
 	}
 	
 	/*
