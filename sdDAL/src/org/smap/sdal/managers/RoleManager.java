@@ -367,6 +367,10 @@ public class RoleManager {
 				role.row_filter = resultSet.getString("row_filter");
 				role.role_group = resultSet.getString("role_group");
 				
+				if(role.role_group == null) {
+					role.role_group = "A";		// Default the role group if not set
+				}
+				
 				String colFilter = resultSet.getString("column_filter");
 				if(colFilter != null) {
 					role.column_filter = gson.fromJson(colFilter, colFilterType);
