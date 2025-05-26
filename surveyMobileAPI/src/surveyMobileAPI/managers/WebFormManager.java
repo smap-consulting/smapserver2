@@ -92,7 +92,7 @@ public class WebFormManager {
 			a.isBlocked(sd, survey.surveyData.id, false); // Validate that the survey is not blocked
 
 			if(taskKey > 0) {
-				a.isValidTask(sd, request.getRemoteUser(), taskKey);
+				a.isValidTask(sd, user, taskKey);
 			}
 		} else {
 			throw new AuthorisationException();
