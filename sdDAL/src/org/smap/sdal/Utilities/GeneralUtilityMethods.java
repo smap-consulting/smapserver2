@@ -11245,7 +11245,7 @@ public class GeneralUtilityMethods {
 		return sId;
 	}
 	
-	public static boolean getSurveyBundleRoles(Connection sd, int sId) throws SQLException {
+	public static boolean hasSurveyBundleRoles(Connection sd, int sId) throws SQLException {
 		boolean bundleRoles = false;
 		
 		String sql = "select bundle_roles from bundle "

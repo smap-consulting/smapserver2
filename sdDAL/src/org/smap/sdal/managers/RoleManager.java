@@ -269,7 +269,7 @@ public class RoleManager {
 	}
 	
 	/*
-	 * delete roles
+	 * delete imported roles
 	 */
 	public int deleteImportedRoles(Connection sd, int o_id) throws Exception {
 		
