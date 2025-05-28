@@ -664,7 +664,7 @@ public class Survey {
 					for(RoleColumnFilterRef ref : r.column_filter_ref) {
 						Question q = surveyData.forms.get(ref.formIndex).questions.get(ref.questionIndex);
 						if(q != null) {
-							RoleColumnFilter rcf = new RoleColumnFilter(q.id);
+							RoleColumnFilter rcf = new RoleColumnFilter(q.columnName);
 							r.column_filter.add(rcf);
 						}		
 					}

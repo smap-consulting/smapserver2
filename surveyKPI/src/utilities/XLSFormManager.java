@@ -345,7 +345,7 @@ public class XLSFormManager {
 					ArrayList<RoleColumnFilter> colFilters = r.column_filter;
 					if(colFilters != null) {
 						for(RoleColumnFilter rcf : colFilters) {
-							if(rcf.id == q.id) {
+							if(rcf.name != null && rcf.name.equals(q.name)) {
 								value = "yes";
 								break;
 							}

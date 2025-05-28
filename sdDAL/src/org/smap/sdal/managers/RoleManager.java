@@ -15,9 +15,9 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
-import org.smap.sdal.model.QuestionLite;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
+import org.smap.sdal.model.RoleColumnFilterOld;
 import org.smap.sdal.model.RoleName;
 import org.smap.sdal.model.SqlFrag;
 import com.google.gson.Gson;
@@ -371,9 +371,11 @@ public class RoleManager {
 					role.role_group = "A";		// Default the role group if not set
 				}
 				
+				// check for legacy question ids as filter columns
 				String colFilter = resultSet.getString("column_filter");
 				if(colFilter != null) {
 					role.column_filter = gson.fromJson(colFilter, colFilterType);
+					convertLegacyColumns(sd, sIdent, role.column_filter, colFilter);	// deal with legacy columns specified as question ids	
 				}
 				
 				roles.add(role);
@@ -516,23 +518,11 @@ public class RoleManager {
 	 */
 	public void updateSurveyRoleColumnFilter(Connection sd, String sIdent, 
 			Role role, ResourceBundle localisation,
-			int sId, int primarySurveyId) throws Exception {
+			int sId) throws Exception {
 		
 		PreparedStatement pstmt = null;
 		
-		/*
-		 * The primary survey id is the identifier of the survey that has changed its column filter
-		 * The sId is the identifier of the bundled survey that is being updated to match
-		 */
-		ArrayList<RoleColumnFilter> columnFilters = role.column_filter;
-		if(sId != primarySurveyId) {
-			columnFilters = adaptColumnFiltersToSurvey(sd, sId, 
-					primarySurveyId, 
-					role.column_filter,
-					sIdent,
-					role.id);
-		}
-		String configString = gson.toJson(columnFilters);
+		String configString = gson.toJson(role.column_filter);
 		
 		if(configString != null && (configString.trim().length() == 0 || configString.trim().equals("[]"))) {
 			configString = null;
@@ -799,6 +789,8 @@ public class RoleManager {
 				String sqlFragString = resultSet.getString("column_filter");
 				if(sqlFragString != null) {
 					ArrayList<RoleColumnFilter> cols = gson.fromJson(sqlFragString, cfArrayType);
+					convertLegacyColumns(sd, sIdent, cols, sqlFragString);	// deal with legacy columns specified as question ids	
+
 					cfArray.addAll(cols);
 				}		
 			}
@@ -858,85 +850,6 @@ public class RoleManager {
 		
 		return cfArray;
 	}
-
-	/*
-	 * Convert a list of column identifiers for one survey into the equivalent list for another
-	 * Every question that is in the secondary survey and is also in the primary survey
-	 *  will be set according to the value in the role column filter list
-	 *  Questions that are unique to the secondary survey will be left untouched
-	 */
-	private ArrayList<RoleColumnFilter> adaptColumnFiltersToSurvey(
-			Connection sd,
-			int sId,
-			int primarySurveyId,
-			ArrayList<RoleColumnFilter> columnFilters,
-			String sIdent,
-			int roleId) throws SQLException {
-		
-		System.out.println("Converting.........");
-		
-		// Convert the ColumnFilter list into a hash
-		HashMap<Integer, RoleColumnFilter> filterHash = new HashMap<>();		
-		for(RoleColumnFilter f : columnFilters) {
-			filterHash.put(f.id, f);
-		}
-		
-		// Get the current filters of the secondary survey in a hash
-		HashMap<Integer, RoleColumnFilter> secondaryColumnFiltersHash = getColumnFiltersForRole(sd, sIdent, roleId);
-		
-		// Get the secondary questions
-		HashMap<Integer, QuestionLite> secondaryQuestionsHash = new HashMap<>();
-		QuestionManager qm = new QuestionManager(null);
-		ArrayList<QuestionLite> secondaryQuestions = qm.getQuestionsInSurvey(sd, sId, "none", true,false, null);
-		for(QuestionLite q : secondaryQuestions) {
-			secondaryQuestionsHash.put(q.id, q);
-		}
-		
-		// Get the primary questions in a hash
-		HashMap<String, QuestionLite> questionsHash = new HashMap<>();
-		ArrayList<QuestionLite> primaryQuestions = qm.getQuestionsInSurvey(sd, primarySurveyId, "none", true,
-				false, null);
-		for(QuestionLite q : primaryQuestions) {
-			questionsHash.put(q.name, q);
-		}
-		
-		// Remove any questions from the secondary filters that are not in the secondary questions
-		ArrayList<Integer> questionsToRemove = new ArrayList<>();
-		for(Integer key : secondaryColumnFiltersHash.keySet()) {
-			if(secondaryQuestionsHash.get(key) == null) {
-				questionsToRemove.add(key);
-			}
-		}
-		for(Integer key : questionsToRemove) {
-			secondaryColumnFiltersHash.remove(key);
-		}
-		// Process the secondary questions
-		for(QuestionLite q : secondaryQuestions) {
-			QuestionLite primaryQuestion = questionsHash.get(q.name);
-			if(primaryQuestion != null) {
-				// Question is common
-				if(filterHash.get(primaryQuestion.id) != null) {
-					secondaryColumnFiltersHash.put(q.id, new RoleColumnFilter(q.id));	// Filter set in primary so add to secondary
-				} else {
-					secondaryColumnFiltersHash.remove(q.id);	// Filter not set in primary so remove secondary
-				}
-			} else {
-				// question is not common - ignore
-			}
-		
-		}
-		
-		// Convert the secondary column filters to an array in the same order as the questions and return them
-		ArrayList<RoleColumnFilter> secondaryColumnFilters = new ArrayList<RoleColumnFilter>();
-		for(QuestionLite q : secondaryQuestions) {
-			RoleColumnFilter rcf = secondaryColumnFiltersHash.get(q.id);
-			if(rcf != null) {
-				secondaryColumnFilters.add(rcf);
-			}
-		}
-		
-		return secondaryColumnFilters;
-	}
 	
 	private void setUsersForRole(Connection sd, int rId, ArrayList<Integer> users) {
 		
@@ -979,37 +892,32 @@ public class RoleManager {
 		
 	}
 	
-	private HashMap<Integer, RoleColumnFilter> getColumnFiltersForRole(Connection sd, String sIdent, int roleId) throws SQLException {
-		
-		HashMap<Integer, RoleColumnFilter> columnFiltersHash = new HashMap<Integer, RoleColumnFilter>();
-		
-		String sql = "select column_filter "
-				+ "from survey_role "
-				+ "where survey_ident = ? "
-				+ "and enabled = true "
-				+ "and r_id = ? ";
-		PreparedStatement pstmt = null;
-		
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1,  sIdent);
-			pstmt.setInt(2,  roleId);
-			log.info("Get column filters for a role: " + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				String fString = rs.getString("column_filter");
-				if(fString != null) {
-					Type colFilterType = new TypeToken<ArrayList<RoleColumnFilter>>(){}.getType();
-					ArrayList<RoleColumnFilter> array = gson.fromJson(fString, colFilterType);
-					for(RoleColumnFilter rcf : array) {
-						columnFiltersHash.put(rcf.id, rcf);
+	/*
+	 * Check for legacy column filters which use question ids to filter on - 27/5/2025 - Remove after a year or so
+	 * Question names are now used. This means that column filters are automatically preserved on survey replace
+	 */
+	private  void convertLegacyColumns(Connection sd, String sIdent, 
+			ArrayList<RoleColumnFilter> column_filter, String colFilter) throws SQLException {
+		if(column_filter!= null && column_filter.size() > 0) {
+			if(column_filter.get(0).name == null) {
+				// legacy found convert the definition into column names
+				log.info("x1x1x1x1x1x1x1x1x1x1: Found legacy column filter: " + colFilter);
+				Type legacyColFilterType = new TypeToken<ArrayList<RoleColumnFilterOld>>(){}.getType();
+				ArrayList<RoleColumnFilterOld> questions = gson.fromJson(colFilter, legacyColFilterType);
+				int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+				column_filter.clear();
+				if(questions.size() > 0) {
+					for(RoleColumnFilterOld old : questions) {
+						column_filter.add(new RoleColumnFilter(GeneralUtilityMethods.getQuestionNameFromId(sd, sId, old.id)));
 					}
 				}
+				
+				// TODO write the updated version back
+				
 			}
-			
-		} finally {
-			
 		}
-		return columnFiltersHash;
+		
+		
 	}
+
 }
