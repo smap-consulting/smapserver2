@@ -15,9 +15,9 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
-import org.smap.sdal.model.QuestionLite;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
+import org.smap.sdal.model.RoleColumnFilterOld;
 import org.smap.sdal.model.RoleName;
 import org.smap.sdal.model.SqlFrag;
 import com.google.gson.Gson;
@@ -269,7 +269,7 @@ public class RoleManager {
 	}
 	
 	/*
-	 * delete roles
+	 * delete imported roles
 	 */
 	public int deleteImportedRoles(Connection sd, int o_id) throws Exception {
 		
@@ -297,7 +297,7 @@ public class RoleManager {
 	 * Get roles associated with a survey
 	 */
 	public ArrayList<Role> getSurveyRoles(Connection sd, String sIdent, int o_id, boolean enabledOnly, 
-			String user, boolean isSuperUser) throws SQLException {
+			String user, boolean isSuperUser) throws Exception {
 		PreparedStatement pstmt = null;
 		ArrayList<Role> roles = new ArrayList<Role> ();
 		
@@ -307,6 +307,7 @@ public class RoleManager {
 			String sql = null;
 			String sqlSuperUser = "SELECT r.id as id, "
 					+ "r.name as name, "
+					+ "sr.role_group, "
 					+ "sr.enabled, "
 					+ "sr.id as sr_id,"
 					+ "sr.row_filter,"
@@ -319,6 +320,7 @@ public class RoleManager {
 			
 			String sqlNormalUser = "SELECT r.id as id, "
 					+ "r.name as name, "
+					+ "sr.role_group, "
 					+ "sr.enabled, "
 					+ "sr.id as sr_id,"
 					+ "sr.row_filter,"
@@ -363,10 +365,17 @@ public class RoleManager {
 				role.name = resultSet.getString("name");
 				role.enabled = resultSet.getBoolean("enabled");
 				role.row_filter = resultSet.getString("row_filter");
+				role.role_group = resultSet.getString("role_group");
 				
+				if(role.role_group == null) {
+					role.role_group = "A";		// Default the role group if not set
+				}
+				
+				// check for legacy question ids as filter columns
 				String colFilter = resultSet.getString("column_filter");
 				if(colFilter != null) {
 					role.column_filter = gson.fromJson(colFilter, colFilterType);
+					convertLegacyColumns(sd, sIdent, role.column_filter, colFilter, role);	// deal with legacy columns specified as question ids	
 				}
 				
 				roles.add(role);
@@ -426,6 +435,33 @@ public class RoleManager {
 	}
 	
 	/*
+	 * Update a survey role group
+	 */
+	public void updateSurveyRoleFilterGroup(Connection sd, String sIdent, int rId, String group) throws SQLException {
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			String sql = "update survey_role "
+					+ "set role_group = ? "
+					+ "where r_id = ? "
+					+ "and survey_ident = ?";
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, group);
+			pstmt.setInt(2, rId);
+			pstmt.setString(3, sIdent);
+			log.info("Update survey role: " + pstmt.toString());
+			pstmt.executeUpdate();
+				    
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+	}
+	
+	/*
 	 * Update the row filter in a survey link
 	 */
 	public void updateSurveyRoleRowFilter(Connection sd, String sIdent, 
@@ -451,7 +487,7 @@ public class RoleManager {
 			throw new Exception(localisation.getString("r_mc") + " " + bad);
 		}
 		
-		// if the row filter is emty set it to null
+		// if the row filter is empty set it to null
 		if(role.row_filter != null && role.row_filter.trim().length() == 0) {
 			role.row_filter = null;
 		}
@@ -482,23 +518,11 @@ public class RoleManager {
 	 */
 	public void updateSurveyRoleColumnFilter(Connection sd, String sIdent, 
 			Role role, ResourceBundle localisation,
-			int sId, int primarySurveyId) throws Exception {
+			int sId) throws Exception {
 		
 		PreparedStatement pstmt = null;
 		
-		/*
-		 * The primary survey id is the identifier of the survey that has changed its column filter
-		 * The sId is the identifier of the bundled survey that is being updated to match
-		 */
-		ArrayList<RoleColumnFilter> columnFilters = role.column_filter;
-		if(sId != primarySurveyId) {
-			columnFilters = adaptColumnFiltersToSurvey(sd, sId, 
-					primarySurveyId, 
-					role.column_filter,
-					sIdent,
-					role.id);
-		}
-		String configString = gson.toJson(columnFilters);
+		String configString = gson.toJson(role.column_filter);
 		
 		if(configString != null && (configString.trim().length() == 0 || configString.trim().equals("[]"))) {
 			configString = null;
@@ -574,7 +598,7 @@ public class RoleManager {
 		try {
 			ResultSet resultSet = null;
 			
-			String sql = "SELECT sr.row_filter "
+			String sql = "SELECT sr.row_filter, sr.role_group "
 					+ "from survey_role sr, user_role ur, users u "
 					+ "where sr.survey_ident = ? "
 					+ "and sr.r_id = ur.r_id "
@@ -590,14 +614,17 @@ public class RoleManager {
 							
 			while(resultSet.next()) {		
 				String sqlFragString = resultSet.getString("row_filter");
+				String group = resultSet.getString("role_group");
 				if(sqlFragString != null && sqlFragString.trim().length() > 0) {
+					SqlFrag sf = null;
 					if(sqlFragString.trim().startsWith("{")) {
-						rfArray.add(gson.fromJson(sqlFragString, SqlFrag.class));		// legacy json
+						sf = gson.fromJson(sqlFragString, SqlFrag.class);
 					} else {
-						SqlFrag sf = new SqlFrag();									// New only the string is stored
-						sf.addSqlFragment(sqlFragString, false, localisation, 0);
-						rfArray.add(sf);
+						sf = new SqlFrag();			// New only the string is stored
+						sf.addSqlFragment(sqlFragString, false, localisation, 0);			
 					}
+					sf.group = group;	
+					rfArray.add(sf);
 				}		
 			}
 		} finally {
@@ -660,33 +687,80 @@ public class RoleManager {
 	
 	/*
 	 * Convert an array of sql fragments into raw SQL
+	 * Fragments from the same group are combined with "or"
+	 * Different groups are combined with "and"
 	 */
 	public String convertSqlFragsToSql(ArrayList<SqlFrag> rfArray) {
-		StringBuffer rfString = new StringBuffer("");
-		StringBuffer sqlFilter = new StringBuffer("");
+
+		StringBuilder rowFilter = new StringBuilder("");
+		StringBuilder sqlFilter = new StringBuilder("");
+		
+		
 		if(rfArray.size() > 0) {
-			for(SqlFrag rf : rfArray) {
-				if(rf.columns.size() > 0) {
-					if(rfString.length() > 0) {
-						rfString.append(" or");
-					}
-					rfString.append(" (");
-					rfString.append(rf.sql.toString());
-					rfString.append(")");
+			// 1. Break the array down into groups
+			HashMap<String, ArrayList<SqlFrag>> groups = new HashMap<>();			
+			for(SqlFrag rf : rfArray) {				
+				ArrayList<SqlFrag> a = groups.get(rf.group);
+				if(a == null) {
+					a = new ArrayList<>();
 				}
+				a.add(rf);
+				groups.put(rf.group, a);
+			}
+			
+			// 2. The passed in role array may have the order of its elements changed, update it so that allocation of variables is still done in the correct order
+			rfArray.clear();
+			
+			// 2. Loop through the groups and combine with "and"
+			for(String group : groups.keySet()) {
+				String gf = getGroupFilterSql(groups.get(group), rfArray);
+				if(gf.length() > 0) {
+					if(rowFilter.length() > 0) {
+						rowFilter.append(" and");
+					}
+					rowFilter.append(" (");
+					rowFilter.append(gf);
+					rowFilter.append(")");
+				}
+				
 			}
 			sqlFilter.append("(");
-			sqlFilter.append(rfString);
+			sqlFilter.append(rowFilter);
 			sqlFilter.append(")");
 		}
 		return sqlFilter.toString();
 	}
 	
 	/*
+	 * Combine SQL fragments in the same group with "OR"
+	 * Add each SQL fragment back to rfArray in the order that they are processed
+	 */
+	private String getGroupFilterSql(ArrayList<SqlFrag> groupArray, ArrayList<SqlFrag> rfArray) {
+		StringBuilder gfString = new StringBuilder("");
+		
+		if(groupArray.size() > 0) {
+			for(SqlFrag rf : groupArray) {	
+				if(rf.columns.size() > 0) {
+					if(gfString.length() > 0) {
+						gfString.append(" or");
+					}
+					gfString.append(" (");
+					gfString.append(rf.sql.toString());
+					gfString.append(")");
+				}
+				
+				rfArray.add(rf);
+			}
+		}
+		
+		return gfString.toString();
+	}
+	
+	/*
 	 * Get the columns for a survey role column filter for a specific user and survey
 	 * A user can have multiple roles as can a survey hence an array of roles is returned
 	 */
-	public ArrayList<RoleColumnFilter> getSurveyColumnFilter(Connection sd, String sIdent, String user) throws SQLException {
+	public ArrayList<RoleColumnFilter> getSurveyColumnFilter(Connection sd, String sIdent, String user) throws Exception {
 		
 		PreparedStatement pstmt = null;
 		ArrayList<RoleColumnFilter> cfArray = new ArrayList<RoleColumnFilter> ();
@@ -715,6 +789,8 @@ public class RoleManager {
 				String sqlFragString = resultSet.getString("column_filter");
 				if(sqlFragString != null) {
 					ArrayList<RoleColumnFilter> cols = gson.fromJson(sqlFragString, cfArrayType);
+					convertLegacyColumns(sd, sIdent, cols, sqlFragString, null);	// deal with legacy columns specified as question ids	
+
 					cfArray.addAll(cols);
 				}		
 			}
@@ -774,85 +850,6 @@ public class RoleManager {
 		
 		return cfArray;
 	}
-
-	/*
-	 * Convert a list of column identifiers for one survey into the equivalent list for another
-	 * Every question that is in the secondary survey and is also in the primary survey
-	 *  will be set according to the value in the role column filter list
-	 *  Questions that are unique to the secondary survey will be left untouched
-	 */
-	private ArrayList<RoleColumnFilter> adaptColumnFiltersToSurvey(
-			Connection sd,
-			int sId,
-			int primarySurveyId,
-			ArrayList<RoleColumnFilter> columnFilters,
-			String sIdent,
-			int roleId) throws SQLException {
-		
-		System.out.println("Converting.........");
-		
-		// Convert the ColumnFilter list into a hash
-		HashMap<Integer, RoleColumnFilter> filterHash = new HashMap<>();		
-		for(RoleColumnFilter f : columnFilters) {
-			filterHash.put(f.id, f);
-		}
-		
-		// Get the current filters of the secondary survey in a hash
-		HashMap<Integer, RoleColumnFilter> secondaryColumnFiltersHash = getColumnFiltersForRole(sd, sIdent, roleId);
-		
-		// Get the secondary questions
-		HashMap<Integer, QuestionLite> secondaryQuestionsHash = new HashMap<>();
-		QuestionManager qm = new QuestionManager(null);
-		ArrayList<QuestionLite> secondaryQuestions = qm.getQuestionsInSurvey(sd, sId, "none", true,false, null);
-		for(QuestionLite q : secondaryQuestions) {
-			secondaryQuestionsHash.put(q.id, q);
-		}
-		
-		// Get the primary questions in a hash
-		HashMap<String, QuestionLite> questionsHash = new HashMap<>();
-		ArrayList<QuestionLite> primaryQuestions = qm.getQuestionsInSurvey(sd, primarySurveyId, "none", true,
-				false, null);
-		for(QuestionLite q : primaryQuestions) {
-			questionsHash.put(q.name, q);
-		}
-		
-		// Remove any questions from the secondary filters that are not in the secondary questions
-		ArrayList<Integer> questionsToRemove = new ArrayList<>();
-		for(Integer key : secondaryColumnFiltersHash.keySet()) {
-			if(secondaryQuestionsHash.get(key) == null) {
-				questionsToRemove.add(key);
-			}
-		}
-		for(Integer key : questionsToRemove) {
-			secondaryColumnFiltersHash.remove(key);
-		}
-		// Process the secondary questions
-		for(QuestionLite q : secondaryQuestions) {
-			QuestionLite primaryQuestion = questionsHash.get(q.name);
-			if(primaryQuestion != null) {
-				// Question is common
-				if(filterHash.get(primaryQuestion.id) != null) {
-					secondaryColumnFiltersHash.put(q.id, new RoleColumnFilter(q.id));	// Filter set in primary so add to secondary
-				} else {
-					secondaryColumnFiltersHash.remove(q.id);	// Filter not set in primary so remove secondary
-				}
-			} else {
-				// question is not common - ignore
-			}
-		
-		}
-		
-		// Convert the secondary column filters to an array in the same order as the questions and return them
-		ArrayList<RoleColumnFilter> secondaryColumnFilters = new ArrayList<RoleColumnFilter>();
-		for(QuestionLite q : secondaryQuestions) {
-			RoleColumnFilter rcf = secondaryColumnFiltersHash.get(q.id);
-			if(rcf != null) {
-				secondaryColumnFilters.add(rcf);
-			}
-		}
-		
-		return secondaryColumnFilters;
-	}
 	
 	private void setUsersForRole(Connection sd, int rId, ArrayList<Integer> users) {
 		
@@ -895,37 +892,38 @@ public class RoleManager {
 		
 	}
 	
-	private HashMap<Integer, RoleColumnFilter> getColumnFiltersForRole(Connection sd, String sIdent, int roleId) throws SQLException {
-		
-		HashMap<Integer, RoleColumnFilter> columnFiltersHash = new HashMap<Integer, RoleColumnFilter>();
-		
-		String sql = "select column_filter "
-				+ "from survey_role "
-				+ "where survey_ident = ? "
-				+ "and enabled = true "
-				+ "and r_id = ? ";
-		PreparedStatement pstmt = null;
-		
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1,  sIdent);
-			pstmt.setInt(2,  roleId);
-			log.info("Get column filters for a role: " + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				String fString = rs.getString("column_filter");
-				if(fString != null) {
-					Type colFilterType = new TypeToken<ArrayList<RoleColumnFilter>>(){}.getType();
-					ArrayList<RoleColumnFilter> array = gson.fromJson(fString, colFilterType);
-					for(RoleColumnFilter rcf : array) {
-						columnFiltersHash.put(rcf.id, rcf);
+	/*
+	 * Check for legacy column filters which use question ids to filter on - 27/5/2025 - Remove after a year or so
+	 * Question names are now used. This means that column filters are automatically preserved on survey replace
+	 */
+	private  void convertLegacyColumns(Connection sd, String sIdent, 
+			ArrayList<RoleColumnFilter> column_filter, String colFilter,
+			Role role) throws Exception {
+		if(column_filter!= null && column_filter.size() > 0) {
+			if(column_filter.get(0).name == null) {
+				// legacy found convert the definition into column names
+				log.info("x1x1x1x1x1x1x1x1x1x1: Found legacy column filter: " + colFilter);
+				Type legacyColFilterType = new TypeToken<ArrayList<RoleColumnFilterOld>>(){}.getType();
+				ArrayList<RoleColumnFilterOld> questions = gson.fromJson(colFilter, legacyColFilterType);
+				int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+				column_filter.clear();
+				if(questions.size() > 0) {
+					for(RoleColumnFilterOld old : questions) {
+						column_filter.add(new RoleColumnFilter(GeneralUtilityMethods.getQuestionNameFromId(sd, sId, old.id)));
 					}
 				}
+				
+				// write the updated version back if we have the role details
+				if(role != null) {
+					role.column_filter = column_filter;
+					updateSurveyRoleColumnFilter(sd, sIdent, 
+							role, localisation,
+							sId);
+				}
 			}
-			
-		} finally {
-			
 		}
-		return columnFiltersHash;
+		
+		
 	}
+
 }

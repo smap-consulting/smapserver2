@@ -218,3 +218,7 @@ alter table server add column sec_mgr_del boolean default false;
 
 -- Add a flag to force reset of total tasks
 alter table users add column reset_total_tasks boolean default false;
+
+-- Add survey role groups
+alter table survey_role add column role_group text default 'A';
+update survey_role set role_group = 'A' where role_group is null;

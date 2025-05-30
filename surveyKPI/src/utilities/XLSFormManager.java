@@ -121,6 +121,7 @@ public class XLSFormManager {
 		public static final int COL_COMPRESS_PDF = 217;
 		public static final int COL_READ_ONLY_SURVEY = 218;
 		public static final int COL_MY_REFERENCE_DATA = 219;
+		public static final int COL_ROLE_GROUP = 220;
 
 		// Style sheet columns
 		public static final int COL_STYLE_LIST2 = 300;
@@ -345,7 +346,7 @@ public class XLSFormManager {
 					ArrayList<RoleColumnFilter> colFilters = r.column_filter;
 					if(colFilters != null) {
 						for(RoleColumnFilter rcf : colFilters) {
-							if(rcf.id == q.id) {
+							if(rcf.name != null && rcf.name.equals(q.name)) {
 								value = "yes";
 								break;
 							}
@@ -460,6 +461,12 @@ public class XLSFormManager {
 				Role r = survey.surveyData.roles.get(typeString);
 				if(r != null) {
 					value = r.row_filter;
+				}
+
+			} else if(type == COL_ROLE_GROUP) {				
+				Role r = survey.surveyData.roles.get(typeString);
+				if(r != null) {
+					value = r.role_group;
 				}
 
 			} else if(type == COL_ALLOW_IMPORT) {				
@@ -1168,6 +1175,7 @@ public class XLSFormManager {
 		// Add role columns
 		for(String role : survey.surveyData.roles.keySet()) {
 			cols.add(new Column(colNumber++,"role::" + role, Column.COL_ROLE_ROW, 0, role));
+			cols.add(new Column(colNumber++,"filter_group::" + role, Column.COL_ROLE_GROUP, 0, role));
 		}
 		
 		return cols;

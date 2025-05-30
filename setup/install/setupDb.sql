@@ -1229,6 +1229,7 @@ create TABLE survey_role (
 	group_survey_ident text,
 	r_id integer REFERENCES role(id) ON DELETE CASCADE,
 	enabled boolean,
+	role_group text default 'A',
 	column_filter text,
 	row_filter text
 	);

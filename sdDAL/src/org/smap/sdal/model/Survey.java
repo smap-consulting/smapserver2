@@ -617,8 +617,8 @@ public class Survey {
 		PreparedStatement pstmtGetRole = null;
 		
 		String sqlAssociateSurvey = "insert into survey_role (survey_ident, r_id, column_filter, row_filter, "
-				+ "enabled) "
-				+ "values (?, ?, ?, ?, 'true')";
+				+ "enabled, role_group) "
+				+ "values (?, ?, ?, ?, 'true', ?)";
 		PreparedStatement pstmtAssociateSurvey = null;
 		
 		try {
@@ -664,15 +664,10 @@ public class Survey {
 					for(RoleColumnFilterRef ref : r.column_filter_ref) {
 						Question q = surveyData.forms.get(ref.formIndex).questions.get(ref.questionIndex);
 						if(q != null) {
-							RoleColumnFilter rcf = new RoleColumnFilter(q.id);
+							RoleColumnFilter rcf = new RoleColumnFilter(q.columnName);
 							r.column_filter.add(rcf);
 						}		
 					}
-				}
-				
-				// Sort the column filters in order of increasing id to improve speed of matching with questions
-				if(r.column_filter != null) {
-					r.column_filter.sort(null);
 				}
 				
 				// Associate the survey to the roles
@@ -681,6 +676,7 @@ public class Survey {
 				pstmtAssociateSurvey.setInt(2, rId);
 				pstmtAssociateSurvey.setString(3, gson.toJson(r.column_filter));
 				pstmtAssociateSurvey.setString(4, r.row_filter);
+				pstmtAssociateSurvey.setString(5, r.role_group);
 				
 				log.info("Associate survey to roles: " + pstmtAssociateSurvey.toString());
 				pstmtAssociateSurvey.executeUpdate();

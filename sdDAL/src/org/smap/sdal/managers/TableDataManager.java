@@ -244,7 +244,7 @@ public class TableDataManager {
 				}
 			}
 			
-			// Add custom filter (No parameters not settable by users)
+			// Add custom filter 
 			if(customFilter != null) {
 				sqlSelect.append(" and (").append(customFilter).append(")");
 			}

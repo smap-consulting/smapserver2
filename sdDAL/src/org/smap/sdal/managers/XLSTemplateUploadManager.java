@@ -87,6 +87,7 @@ public class XLSTemplateUploadManager {
 	HashMap<String, Integer> choiceFilterHeader = null;
 	HashMap<String, Integer> columnRoleHeader = null;
 	HashMap<String, Integer> rowRoleHeader = null;
+	HashMap<String, Integer> filterGroupRoleHeader = null;
 	
 	HashMap<String, QuestionForm> questionNames;	// Mapping between question name and truncated name
 	HashMap<String, String> optionNames;			// Mapping between option name and truncated name
@@ -478,12 +479,29 @@ public class XLSTemplateUploadManager {
 					for(String h : rowRoleHeader.keySet()) {
 						String filter = XLSUtilities.getTextColumn(wb, row, h, settingsHeader, lastCellNum, null);
 						if(filter != null) {
-							Role r = survey.surveyData.roles.get(h);
+							String [] roleA = h.split("::");
+							String name = roleA[1];
+							Role r = survey.surveyData.roles.get(name);
 							if(r != null) {
 								SqlFrag sq = new SqlFrag();
 								sq.addSqlFragment(filter, false, localisation, 0);
 								settingsQuestionInSurvey(sq.humanNames, h);		// validate question names
 								r.row_filter = filter;
+							}
+						}
+					}
+				}
+				
+				// Add filter groups
+				if(filterGroupRoleHeader != null && filterGroupRoleHeader.size() > 0) {
+					for(String h : filterGroupRoleHeader.keySet()) {
+						String group = XLSUtilities.getTextColumn(wb, row, h, settingsHeader, lastCellNum, null);
+						if(group != null) {
+							String [] roleA = h.split("::");
+							String name = roleA[1];
+							Role r = survey.surveyData.roles.get(name);
+							if(r != null) {
+								r.role_group = group;
 							}
 						}
 					}
@@ -619,7 +637,7 @@ public class XLSTemplateUploadManager {
 						columnRoleHeader.put(h, surveyHeader.get(h));
 						String [] roleA = h.split("::");
 						if(roleA.length > 1) {
-							survey.surveyData.roles.put(h, new Role(roleA[1]));
+							survey.surveyData.roles.put(roleA[1], new Role(roleA[1]));
 						}
 					}
 				}
@@ -680,7 +698,7 @@ public class XLSTemplateUploadManager {
 				}
 			}
 			
-			// Add security roles
+			// Add security roles and security filter groups
 			if(settingsHeader != null) {
 				for(String h : settingsHeader.keySet()) {
 					if(h.startsWith("role::")) {
@@ -690,11 +708,24 @@ public class XLSTemplateUploadManager {
 						rowRoleHeader.put(h, settingsHeader.get(h));
 						String [] roleA = h.split("::");
 						if(roleA.length > 1) {
-							survey.surveyData.roles.put(h, new Role(roleA[1]));
+							String name = roleA[1];
+							survey.surveyData.roles.put(name, new Role(name));
 						}
-					}
+					} 
+					if(h.startsWith("filter_group::")) {
+						if(filterGroupRoleHeader == null) {
+							filterGroupRoleHeader = new HashMap<String, Integer> ();
+						}
+						filterGroupRoleHeader.put(h, settingsHeader.get(h));
+						String [] roleA = h.split("::");
+						if(roleA.length > 1) {
+							String name = roleA[1];
+							survey.surveyData.roles.put(name, new Role(name));
+						}
+					} 
 				}
 			}
+			
 		}
 
 	}
@@ -996,7 +1027,9 @@ public class XLSTemplateUploadManager {
 		if(columnRoleHeader != null && columnRoleHeader.size() > 0) {
 			for(String h : columnRoleHeader.keySet()) {
 				if(getBooleanColumn(row, h, surveyHeader, lastCellNum, false)) {
-					Role r = survey.surveyData.roles.get(h);
+					String [] roleA = h.split("::");
+					String name = roleA[1];
+					Role r = survey.surveyData.roles.get(name);
 					if(r != null) {
 						if(r.column_filter_ref == null) {
 							r.column_filter_ref = new ArrayList<RoleColumnFilterRef> ();

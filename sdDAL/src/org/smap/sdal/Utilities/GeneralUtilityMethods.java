@@ -3809,6 +3809,7 @@ public class GeneralUtilityMethods {
 		
 		// Get column restrictions for RBAC
 		StringBuffer colList = new StringBuffer("");
+		ArrayList<String> params = new ArrayList<>();
 		if (!superUser) {
 			if (sId > 0) {
 				RoleManager rm = new RoleManager(localisation);
@@ -3821,13 +3822,18 @@ public class GeneralUtilityMethods {
 				}
 				
 				if (rcfArray.size() > 0) {
-					colList.append(" and q_id in (");
+					colList.append(" and qname in (");
+					boolean colAdded = false;
 					for (int i = 0; i < rcfArray.size(); i++) {
 						RoleColumnFilter rcf = rcfArray.get(i);
-						if (i > 0) {
-							colList.append(",");
+						if(rcf.name != null) {
+							if (colAdded) {
+								colList.append(",");
+							}
+							colList.append("?");
+							params.add(rcf.name);
+							colAdded = true;
 						}
-						colList.append(rcf.id);
 					}
 					colList.append(")");
 				}
@@ -4112,7 +4118,16 @@ public class GeneralUtilityMethods {
 
 		try {
 			
-			pstmtQuestions.setInt(1, f_id);
+			/*
+			 * Add params
+			 */
+			int idx = 1;
+			pstmtQuestions.setInt(idx++, f_id);
+			if(params.size() > 0) {
+				for(String p : params) {
+					pstmtQuestions.setString(idx++, p);
+				}
+			}
 
 			log.info("SQL: Get columns:" + pstmtQuestions.toString());
 			ResultSet rsQuestions = pstmtQuestions.executeQuery();
@@ -11245,7 +11260,7 @@ public class GeneralUtilityMethods {
 		return sId;
 	}
 	
-	public static boolean getSurveyBundleRoles(Connection sd, int sId) throws SQLException {
+	public static boolean hasSurveyBundleRoles(Connection sd, int sId) throws SQLException {
 		boolean bundleRoles = false;
 		
 		String sql = "select bundle_roles from bundle "

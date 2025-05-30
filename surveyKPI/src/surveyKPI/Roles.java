@@ -367,30 +367,70 @@ public class Roles extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
+			RoleManager rm = new RoleManager(localisation);
+			
 			/*
 			 * Update the requested role
 			 */
 			updatedRole.srId = updateSingleSurveyRole(sd, localisation, sId, role, property,
-					request.getRemoteUser(), sId);
+					request.getRemoteUser());
 			
 			/*
 			 * If all roles are to be treated as a bundle then update the other surveys in the bundle 
-			 * This is only required if the column filter or row filter are being updated
+			 * or get role details from another survey
 			 */
-			if(("row_filter".equals(property) || "column_filter".equals(property)) 
-					&& GeneralUtilityMethods.getSurveyBundleRoles(sd, sId)) {
-				SurveyManager sm = new SurveyManager(localisation, "UTC");
+			if(GeneralUtilityMethods.hasSurveyBundleRoles(sd, sId)) {
 				
 				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				String bundleIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 				
-				ArrayList<GroupDetails> bundledSurveys = sm.getSurveysInGroup(sd, bundleIdent);
-				if(bundledSurveys.size() > 1) {
-					for(GroupDetails gd : bundledSurveys) {
-						
-						if(!surveyIdent.equals(gd.surveyIdent)) {
-							updateSingleSurveyRole(sd, localisation, gd.sId, role, property,
-									request.getRemoteUser(), sId);
+				/*
+				 * Update other surveys in the bundle if the column filter, row filter or filter type are being updated
+				 */
+				if("row_filter".equals(property) || "column_filter".equals(property) 
+						|| "role_group".equals(property)) {
+					SurveyManager sm = new SurveyManager(localisation, "UTC");
+					
+					ArrayList<GroupDetails> bundledSurveys = sm.getSurveysInGroup(sd, bundleIdent);
+					if(bundledSurveys.size() > 1) {
+						for(GroupDetails gd : bundledSurveys) {
+							
+							if(!surveyIdent.equals(gd.surveyIdent)) {
+								updateSingleSurveyRole(sd, localisation, gd.sId, role, property,
+										request.getRemoteUser());
+							}
+						}
+					}
+				}
+				
+				/*
+				 * If the role is being enabled then we want to synchronise the settings with an existing enabled role
+				 * in the bundle
+				 */
+				if("enabled".equals(property) && role.enabled) {
+					int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+					ArrayList<Role> roles = rm.getSurveyRoles(sd, bundleIdent, oId, true,  // enabled only 
+							request.getRemoteUser(), superUser);
+					if(roles.size() > 1) {		// One would be the newly enabled role
+						for(Role r : roles) {
+							if(r.id == role.id) {
+								// Use this one as the template for row filters, column filters and groups
+								
+								updateSingleSurveyRole(sd, localisation, sId, r, "row_filter",
+										request.getRemoteUser());
+								updatedRole.row_filter = r.row_filter;
+								
+								if(r.column_filter != null) {
+									updateSingleSurveyRole(sd, localisation, sId, r, "column_filter",
+											request.getRemoteUser());
+									updatedRole.column_filter = r.column_filter;
+								}
+								
+								updateSingleSurveyRole(sd, localisation, sId, r, "role_group",
+										request.getRemoteUser());
+								updatedRole.role_group = r.role_group;
+								break;
+							}
 						}
 					}
 				}
@@ -526,13 +566,13 @@ public class Roles extends Application {
 	
 								// Align row filter
 								updateSingleSurveyRole(sd, localisation, gd.sId, role, "row_filter",
-									request.getRemoteUser(), sId);
+									request.getRemoteUser());
 
 								// Align column filter
 								if(cfString != null) {
 									role.column_filter = gson.fromJson(cfString, new TypeToken<ArrayList<RoleColumnFilter>>(){}.getType());
 									updateSingleSurveyRole(sd, localisation, gd.sId, role, "column_filter",
-										request.getRemoteUser(), sId);
+										request.getRemoteUser());
 								}
 							}
 							
@@ -792,8 +832,7 @@ public class Roles extends Application {
 			int sId,
 			Role role,
 			String property,
-			String user,
-			int primarySurveyId) throws Exception {
+			String user) throws Exception {
 		
 		int surveyRoleId = role.srId;
 		
@@ -816,17 +855,22 @@ public class Roles extends Application {
 				change.msg = localisation.getString("ed_c_rrf");
 				change.msg = change.msg.replace("%s2", GeneralUtilityMethods.getSafeText(role.row_filter, true));
 			} else if(property.equals("column_filter")) {
-				rm.updateSurveyRoleColumnFilter(sd, sIdent, role, localisation, sId, primarySurveyId);
+				rm.updateSurveyRoleColumnFilter(sd, sIdent, role, localisation, sId);
 				change.msg = localisation.getString("ed_c_rcf");
 				StringBuilder colMsg = new StringBuilder("");
 				for(RoleColumnFilter c : role.column_filter) {
-					String col = GeneralUtilityMethods.getQuestionNameFromId(sd, primarySurveyId, c.id);
-					if(colMsg.length() > 0) {
-						colMsg.append(", ");
+					if(c.name != null && c.name.length() > 0) {
+						if(colMsg.length() > 0) {
+							colMsg.append(", ");
+						}
+						colMsg.append(c.name);
 					}
-					colMsg.append(col);
 				}
 				change.msg = change.msg.replace("%s2", GeneralUtilityMethods.getSafeText(colMsg.toString(), true));
+			} else if(property.equals("role_group")) {
+				rm.updateSurveyRoleFilterGroup(sd, sIdent, role.id, role.role_group);
+				change.msg = localisation.getString("ed_c_rftg");
+				change.msg = change.msg.replace("%s2", role.role_group);
 			}
 
 			// Record change in change log

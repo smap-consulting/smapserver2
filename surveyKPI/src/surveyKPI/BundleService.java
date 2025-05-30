@@ -96,7 +96,7 @@ public class BundleService extends Application {
 		
 		try {
 			
-			bundle.bundleRoles = GeneralUtilityMethods.getSurveyBundleRoles(sd, sId);
+			bundle.bundleRoles = GeneralUtilityMethods.hasSurveyBundleRoles(sd, sId);
 			
 			String resp = gson.toJson(bundle);
 			response = Response.ok(resp).build();

@@ -22,6 +22,7 @@ package org.smap.sdal.Utilities;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -580,6 +581,7 @@ public class Authorise {
 		PreparedStatement pstmt = null;
 		int count = 0;
 		boolean sqlError = false;
+		String sName = null;
 		
 		/*
 		 * 1) Make sure the survey has not been soft deleted and exists or alternately 
@@ -616,6 +618,11 @@ public class Authorise {
 				count = resultSet.getInt(1);
 			}
 			
+			// If count is zero get the survey name to report the error
+			if(count == 0) {
+				sName = GeneralUtilityMethods.getSurveyNameFromIdent(conn, sIdent);
+			}
+			
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error in Authorisation", e);
 			sqlError = true;
@@ -633,7 +640,9 @@ public class Authorise {
 			if(sqlError) {
 				throw new ServerException();
 			} else {
-				throw new AuthorisationException("Survey validation failed for: " + user + " survey was: " + sIdent);	 
+				
+				throw new AuthorisationException("Survey validation failed for: " + user 
+						+ " survey was: " + sName);	 
 			}
 		} 
  		

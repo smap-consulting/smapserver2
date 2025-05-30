@@ -21,6 +21,7 @@ public class SqlFrag {
 	public ArrayList<SqlFragParam> params = new ArrayList<SqlFragParam> ();
 	public ArrayList<String> columns = new ArrayList<String> ();
 	public ArrayList<String> humanNames = new ArrayList<String> ();
+	public String group;			// OR restrictions in a group, AND groups together
 
 	private static Logger log = Logger.getLogger(SqlFrag.class.getName());
 	
