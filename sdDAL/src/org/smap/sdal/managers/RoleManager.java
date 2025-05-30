@@ -297,7 +297,7 @@ public class RoleManager {
 	 * Get roles associated with a survey
 	 */
 	public ArrayList<Role> getSurveyRoles(Connection sd, String sIdent, int o_id, boolean enabledOnly, 
-			String user, boolean isSuperUser) throws SQLException {
+			String user, boolean isSuperUser) throws Exception {
 		PreparedStatement pstmt = null;
 		ArrayList<Role> roles = new ArrayList<Role> ();
 		
@@ -375,7 +375,7 @@ public class RoleManager {
 				String colFilter = resultSet.getString("column_filter");
 				if(colFilter != null) {
 					role.column_filter = gson.fromJson(colFilter, colFilterType);
-					convertLegacyColumns(sd, sIdent, role.column_filter, colFilter);	// deal with legacy columns specified as question ids	
+					convertLegacyColumns(sd, sIdent, role.column_filter, colFilter, role);	// deal with legacy columns specified as question ids	
 				}
 				
 				roles.add(role);
@@ -760,7 +760,7 @@ public class RoleManager {
 	 * Get the columns for a survey role column filter for a specific user and survey
 	 * A user can have multiple roles as can a survey hence an array of roles is returned
 	 */
-	public ArrayList<RoleColumnFilter> getSurveyColumnFilter(Connection sd, String sIdent, String user) throws SQLException {
+	public ArrayList<RoleColumnFilter> getSurveyColumnFilter(Connection sd, String sIdent, String user) throws Exception {
 		
 		PreparedStatement pstmt = null;
 		ArrayList<RoleColumnFilter> cfArray = new ArrayList<RoleColumnFilter> ();
@@ -789,7 +789,7 @@ public class RoleManager {
 				String sqlFragString = resultSet.getString("column_filter");
 				if(sqlFragString != null) {
 					ArrayList<RoleColumnFilter> cols = gson.fromJson(sqlFragString, cfArrayType);
-					convertLegacyColumns(sd, sIdent, cols, sqlFragString);	// deal with legacy columns specified as question ids	
+					convertLegacyColumns(sd, sIdent, cols, sqlFragString, null);	// deal with legacy columns specified as question ids	
 
 					cfArray.addAll(cols);
 				}		
@@ -897,7 +897,8 @@ public class RoleManager {
 	 * Question names are now used. This means that column filters are automatically preserved on survey replace
 	 */
 	private  void convertLegacyColumns(Connection sd, String sIdent, 
-			ArrayList<RoleColumnFilter> column_filter, String colFilter) throws SQLException {
+			ArrayList<RoleColumnFilter> column_filter, String colFilter,
+			Role role) throws Exception {
 		if(column_filter!= null && column_filter.size() > 0) {
 			if(column_filter.get(0).name == null) {
 				// legacy found convert the definition into column names
@@ -912,8 +913,13 @@ public class RoleManager {
 					}
 				}
 				
-				// TODO write the updated version back
-				
+				// write the updated version back if we have the role details
+				if(role != null) {
+					role.column_filter = column_filter;
+					updateSurveyRoleColumnFilter(sd, sIdent, 
+							role, localisation,
+							sId);
+				}
 			}
 		}
 		
