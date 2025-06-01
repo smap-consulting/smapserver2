@@ -404,8 +404,8 @@ public class Roles extends Application {
 				}
 				
 				/*
-				 * If the role is being enabled then we want to synchronise the settings with an existing enabled role
-				 * in the bundle
+				 * If the role is being enabled then we want to synchronise the settings with 
+				 * the same role from the main bundle survey
 				 */
 				if("enabled".equals(property) && role.enabled) {
 					int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
@@ -413,9 +413,9 @@ public class Roles extends Application {
 							request.getRemoteUser(), superUser);
 					if(roles.size() > 1) {		// One would be the newly enabled role
 						for(Role r : roles) {
-							if(r.id == role.id) {
-								// Use this one as the template for row filters, column filters and groups
+							if(r.id == role.id) {  // The same role - use this as the template
 								
+								log.info("Using role: " + r.id + " : " + r.row_filter + " as template");
 								updateSingleSurveyRole(sd, localisation, sId, r, "row_filter",
 										request.getRemoteUser());
 								updatedRole.row_filter = r.row_filter;
