@@ -3,6 +3,7 @@ package org.smap.sdal.managers;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
 import java.lang.reflect.Type;
@@ -38,6 +39,11 @@ import org.smap.sdal.model.TrafficLightBulb;
 import org.smap.sdal.model.TrafficLightValues;
 import org.smap.sdal.model.User;
 
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.imaging.ImageProcessingException;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.MetadataException;
+import com.drew.metadata.exif.ExifIFD0Directory;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -1749,14 +1755,18 @@ public class PDFSurveyManager {
 				} else {
 					try {
 						File f = new File(basePath + "/" + di.value);
-						Image img = null;
+						if(!f.exists()) {
+							f = new File(attachmentPrefix + di.value);
+						}
 						if(f.exists()) {
-							img = Image.getInstance(basePath + "/" + di.value);
-						} else {
-							img = Image.getInstance(attachmentPrefix + di.value);
+							float angle = getImageRotation(new FileInputStream(f));
+							
+							Image img = Image.getInstance(f.getAbsolutePath()); 
+							img.setRotationDegrees(angle);
+							valueCell.addElement(img);
 						}
 						
-						valueCell.addElement(img);
+						
 					} catch(Exception e) {
 						log.info("Error: image " + basePath + "/" + di.value + " not added: " + e.getMessage());
 						log.log(Level.SEVERE, "Adding image to pdf", e);
@@ -1923,6 +1933,33 @@ public class PDFSurveyManager {
 			}
 			valueCell.addElement(getPara(value, di, gv, deps, null));
 		}
+	}
+	
+	/*
+	 * Get the image rotation
+	 */
+	float getImageRotation(InputStream imageBytes) throws MetadataException, ImageProcessingException, IOException {
+		Metadata metadata = ImageMetadataReader.readMetadata(imageBytes);
+		ExifIFD0Directory exifIFD0Directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
+		int orientation = exifIFD0Directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
+
+		float angle = 0;
+		switch (orientation)
+		{
+		case 1:
+		case 2:
+		    angle = 0; break;
+		case 3:
+		case 4:
+		    angle = (float) 180; break;
+		case 5:
+		case 6:
+		    angle = (float) -90; break;
+		case 7:
+		case 8:
+		    angle = (float) 90; break;
+		}
+		return angle;
 	}
 	
 	/*
