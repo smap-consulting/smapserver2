@@ -649,6 +649,85 @@ public class Authorise {
 		return true;
 	}
 	
+	/*
+	 * Verify that the user is entitled to access this particular bundle
+	 * That is if they have access to any survey in the bundle
+	 */
+	public boolean isValidBundle(Connection conn, String user, String sIdent, boolean isDeleted, boolean superUser)
+			throws ServerException, AuthorisationException, NotFoundException {
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		boolean sqlError = false;
+		String sName = null;
+		
+		/*
+		 * 1) Make sure the survey has not been soft deleted and exists or alternately 
+		 *    that it has been soft deleted and exists
+		 * 2) Make sure survey is in a project that the user has access to
+		 */
+
+		StringBuffer sql = new StringBuffer("select count(*) "
+				+ "from survey s, users u, user_project up, project p "
+				+ "where u.id = up.u_id "
+				+ "and p.id = up.p_id "
+				+ "and s.p_id = up.p_id "
+				+ "and s.group_survey_ident = ? "
+				+ "and u.ident = ? "
+				+ "and s.deleted = ? ");
+		
+		try {		
+			
+			if(!superUser) {
+				// Add RBAC
+				sql.append(GeneralUtilityMethods.getSurveyRBAC());
+			}
+			
+			pstmt = conn.prepareStatement(sql.toString());
+			pstmt.setString(1, sIdent);
+			pstmt.setString(2, user);
+			pstmt.setBoolean(3, isDeleted);
+			
+			if(!superUser) {
+				pstmt.setString(4, user);
+			}
+			
+			resultSet = pstmt.executeQuery();
+			if(resultSet.next()) {
+				count = resultSet.getInt(1);
+			}
+			
+			// If count is zero get the survey name to report the error
+			if(count == 0) {
+				sName = GeneralUtilityMethods.getSurveyNameFromIdent(conn, sIdent);
+			}
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error in Authorisation", e);
+			sqlError = true;
+		} finally {
+			if(resultSet != null) {try{resultSet.close();}catch(Exception e) {}};
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}};
+		}
+		
+ 		if(count == 0) {
+			log.info("IsValidBundle: " + pstmt.toString());
+ 			log.info("Bundle validation failed for: " + user + " survey was: " + sIdent);
+ 			
+ 			SDDataSource.closeConnection("isValidSurvey", conn);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				
+				throw new AuthorisationException("Survey validation failed for: " + user 
+						+ " survey was: " + sName);	 
+			}
+		} 
+ 		
+		return true;
+	}
+	
 	
 	/*
 	 * Verify that the user is entitled to access this particular pdf templates

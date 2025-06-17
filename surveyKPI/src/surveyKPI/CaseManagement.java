@@ -211,7 +211,7 @@ public class CaseManagement extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isValidSurveyIdent(sd, request.getRemoteUser(), groupSurveyIdent, false, superUser);
+		a.isValidBundle(sd, request.getRemoteUser(), groupSurveyIdent, false, superUser);
 		// End Authorisation
 			
 		try {
@@ -281,7 +281,7 @@ public class CaseManagement extends Application {
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurveyIdent(sd, request.getRemoteUser(), groupSurveyIdent, false, superUser);
+		a.isValidBundle(sd, request.getRemoteUser(), groupSurveyIdent, false, superUser);
 		// End Authorisation
 			
 		try {	
