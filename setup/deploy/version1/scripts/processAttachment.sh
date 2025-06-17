@@ -24,9 +24,15 @@ if [ x"$type" = ximage ]; then
 	echo "Creating thumbnails $destthumbnail from $destfile"
 	rm $destthumbnail
 	sh -c "convert -thumbnail 100 -background white -alpha remove $destfile $destthumbnail"
-# Process the image file with a null processing action to address a bug in iText where some malformed jpegs can't be shown
-	echo "processing image file for iText hack also set background white"
+    
+    echo "Preserve exif data in thumbnail"
+    sh -c "exiftool -v -overwrite_original_in_place -tagsFromFile $destfile $destthumbnail"
+    
+   	echo "processing image file for iText hack also set background white"
 	sh -c "convert -background white -alpha remove $destfile $destfile"
+	
+	echo "Preserving exif data in main file"
+    sh -c "exiftool -v -overwrite_original_in_place -tagsFromFile $destthumbnail $destfile"
 fi
 
 #If content type is "video" create a thumbnail 
@@ -37,22 +43,3 @@ if [ x"$type" = xvideo ]; then
 	sh -c "ffmpeg -i $destfile -vf scale=-1:100  $destthumbnail"
 fi
 
-# If there is an s3 bucket available then send files to it
-# Replaced with S3 API
-#if [ -f /smap/settings/bucket ]; then
-#
-#        prefix="/smap"
-#        region=`cat /smap/settings/region`
-#
-#	echo "Sending to aws bucket `cat /smap/settings/bucket`"
-#        if [ -f  $destfile ]; then
-#                relPath=${destfile#"$prefix"}
-#                awsPath="s3://`cat /smap/settings/bucket`$relPath"
-#                aws s3 --region $region cp $destfile $awsPath
-#        fi
-#        if [ -f  $destthumbnail ]; then
-#                relPath=${destthumbnail#"$prefix"}
-#                awsPath="s3://`cat /smap/settings/bucket`$relPath"
-#                aws s3 --region $region cp $destthumbnail $awsPath
-#        fi
-#fi
