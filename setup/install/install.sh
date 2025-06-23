@@ -131,6 +131,7 @@ if [ $u2404 -eq 1 ]; then
     mkdir /var/log/tomcat9
     chown -R tomcat /var/lib/tomcat9 /var/log/tomcat9 /usr/share/tomcat9
     chgrp -R tomcat /var/lib/tomcat9 /var/log/tomcat9 /usr/share/tomcat9
+    ln -s /var/lib/tomcat9/logs /var/log/tomcat9/logs
     systemctl enable tomcat9
 else
     sudo apt-get install $TOMCAT_VERSION -y
