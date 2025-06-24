@@ -438,7 +438,7 @@ public class CaseManager {
 		}
 		
 		if(assignTo != null) {
-			assignTo = assignTo.toLowerCase().trim();
+			assignTo = assignTo.trim();
 		}
 		
 		PreparedStatement pstmt = cResults.prepareStatement(sql.toString());
