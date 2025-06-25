@@ -503,6 +503,9 @@ public class XLSXReportsManager {
 					
 							if(vArray != null) {
 							
+								/*
+								 * Filter the choices so that only valid choices appear - Is this really necessary
+								 */
 								for(int i = 0; i < item.choices.size(); i++) {		
 									
 									String choiceValue = item.choices.get(i).k;
@@ -511,7 +514,7 @@ public class XLSXReportsManager {
 											if(value.length() > 0) {
 												value.append(" ");
 											}
-											value.append(item.choices.get(i).v);
+											value.append(item.choices.get(i).k);
 											break;
 										}
 									}
