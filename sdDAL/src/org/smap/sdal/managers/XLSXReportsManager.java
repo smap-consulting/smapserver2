@@ -355,7 +355,7 @@ public class XLSXReportsManager {
 							if(item.selectDisplayNames) {
 								cell.setCellValue(item.choices.get(i).v);	// Just show the choice display name
 							} else {
-								cell.setCellValue(values.name + " - " + item.choices.get(i).v);
+								cell.setCellValue(values.name + " - " + item.choices.get(i).k);
 							}
 						}
 					} else if(item.qType != null && item.qType.equals("rank") && !merge_select_multiple && item.choices != null) {
