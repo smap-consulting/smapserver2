@@ -585,7 +585,7 @@ public class TableDataManager {
 						if(c.selectDisplayNames) {
 							choiceName = kv.v;
 						} else {
-							choiceName = name + " - " + kv.v;
+							choiceName = name + " - " + kv.k;
 						}
 						boolean addChoice = false;
 						for(String selValue : selected) {
