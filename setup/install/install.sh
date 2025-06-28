@@ -122,6 +122,11 @@ if [ $u2404 -eq 1 ]; then
     rm apache-tomcat-9*tar.gz
     echo 'Tomcat service'
     cp config_files/tomcat9.service /usr/lib/systemd/system
+    
+    JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
+    JH="JAVA_HOME=\"$JAVA_HOME\""
+    sed -i "/JAVA_HOME/c$JH" /usr/lib/systemd/system/tomcat9.service
+    
     echo 'Create tomcat apps directory'
     mkdir /var/lib/tomcat9
     mkdir /var/lib/tomcat9/webapps
