@@ -32,6 +32,13 @@ if [ $subscribers_set -eq 0 ]; then
     SUBSCRIBER=yes; export SUBSCRIBER;
 fi
 
+# Add a default setting of "yes" as the value for WEBSITE if it has not already been set
+website_set=`grep WEBSITE /etc/environment | wc -l`
+if [ $website_set -eq 0 ]; then
+    echo "WEBSITE=yes" >> /etc/environment
+    WEBSITE=yes; export WEBSITE;
+fi
+
 # Update session password - generate a random 10 character alphanumeric string
 sed '/SESSPASS/d' /etc/environment > /etc/environment.temp
 mv /etc/environment.temp /etc/environment
@@ -188,8 +195,11 @@ else
     sudo sed -i "s#127.0.0.1#$DBHOST#g" /smap_bin/getshape.sh
 fi
 
-service $TOMCAT_VERSION start
-service apache2 start
+if [ "$WEBSITE" != "no" ]
+then
+	service $TOMCAT_VERSION start
+	service apache2 start
+fi
 
 if [ "$SUBSCRIBER" != "no" ]
 then
