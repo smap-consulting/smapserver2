@@ -1824,8 +1824,8 @@ public class SubRelationalDB extends Subscriber {
 
 		// If the deviceId is not in the form results add it from the form meta data
 		if(colName != null && colName.equals("_device")) {
-			if(value == null || value.trim().length() == 0) {
-				value = device;
+			if(value == null || value.trim().length() == 0 || value.equals("deviceid not found")) {
+				value = device;			
 			}
 		}
 
