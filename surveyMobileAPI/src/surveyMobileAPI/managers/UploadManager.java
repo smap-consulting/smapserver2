@@ -166,10 +166,6 @@ public class UploadManager {
 					.type("text/xml")
 					.header(OPEN_ROSA_VERSION_HEADER, OPEN_ROSA_VERSION)
 					.build();
-			//response = Response.created(uriInfo.getBaseUri()).status(HttpServletResponse.SC_CREATED)
-			//		.entity(RESPONSE_MSG1 + "<message>" + localisation.getString("c_success") +"</message>" + RESPONSE_MSG2)
-			//		.type("text/xml")
-			//		.header(OPEN_ROSA_VERSION_HEADER, OPEN_ROSA_VERSION).build();
 					
 		} catch (ApplicationException e) {
 			log.info(getErrorMessage(key, e.getMessage()));

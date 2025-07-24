@@ -107,6 +107,7 @@ public class XFormData {
 		SaveDetails saveDetails = null;
 		DiskFileItemFactory factory = new DiskFileItemFactory();
 		ServletFileUpload upload = new ServletFileUpload(factory);
+		upload.setFileSizeMax(30000000);		// Limit the maximum size of each uploaded file to 30MB
 
 		List<FileItem> items = upload.parseRequest(request);
 		int assignmentId = 0;
@@ -291,17 +292,15 @@ public class XFormData {
 					} else {
 						log.info("Warning FormField Ignored, Item:" + item.getFieldName() + ":" + item.getString());
 					}
-				} else {
-					if (!fieldName.equals("xml_submission_file") && !fieldName.equals("xml_submission_data")) {
-						SaveDetails attachSaveDetails = saveToDisk(item, basePath, saveDetails.instanceDir,
-								templateName, null, iosImageCount, iosVideoCount);
-						iosImageCount = attachSaveDetails.iosImageCount;
-						iosVideoCount = attachSaveDetails.iosVideoCount;
-						if(attachSaveDetails.auditFilePath != null) {
-							auditFilePath = attachSaveDetails.auditFilePath;
-						}
-						log.info("Saved file:" + attachSaveDetails.fileName + " (FieldName: " + fieldName + ")");
+				} else if (!fieldName.equals("xml_submission_file") && !fieldName.equals("xml_submission_data")) {
+					SaveDetails attachSaveDetails = saveToDisk(item, basePath, saveDetails.instanceDir,
+							templateName, null, iosImageCount, iosVideoCount);
+					iosImageCount = attachSaveDetails.iosImageCount;
+					iosVideoCount = attachSaveDetails.iosVideoCount;
+					if(attachSaveDetails.auditFilePath != null) {
+						auditFilePath = attachSaveDetails.auditFilePath;
 					}
+					log.info("Saved file:" + attachSaveDetails.fileName + " (FieldName: " + fieldName + ")");
 				}
 			}
 			log.info("####################### End of Saving everything to disk ##############################");
