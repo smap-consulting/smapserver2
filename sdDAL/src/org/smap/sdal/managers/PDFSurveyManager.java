@@ -1939,10 +1939,15 @@ public class PDFSurveyManager {
 	 * Get the image rotation
 	 */
 	float getImageRotation(InputStream imageBytes) throws MetadataException, ImageProcessingException, IOException {
-		Metadata metadata = ImageMetadataReader.readMetadata(imageBytes);
-		ExifIFD0Directory exifIFD0Directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
-		int orientation = exifIFD0Directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
-
+				int orientation = 1;
+		try {
+			Metadata metadata = ImageMetadataReader.readMetadata(imageBytes);
+			ExifIFD0Directory exifIFD0Directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
+			orientation = exifIFD0Directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
+		} catch(Exception e) {
+			log.info("Error getting image rotation" + e.getMessage());  // don't care much
+		}
+		
 		float angle = 0;
 		switch (orientation)
 		{
