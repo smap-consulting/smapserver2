@@ -167,7 +167,7 @@ chmod +r /usr/share/fonts/truetype/*
 
 cd /var/log/subscribers
 rm *.log_old
-rename 's/\.log$/\.log_old/g' *.log
+#rename 's/\.log$/\.log_old/g' *.log  # Remove this now will rely on log rotation
 cd $cwd
 
 # Copy any customised files
