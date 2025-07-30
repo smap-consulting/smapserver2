@@ -124,9 +124,10 @@ public class UploadManager {
 		// End Authorisation
 
 		// Extract the data
+		ResourceBundle localisation = null;
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			if(user == null) {
 				if(key == null) {
@@ -185,7 +186,14 @@ public class UploadManager {
 			response = Response.status(Status.NOT_FOUND).entity(getErrorMessage(key, e.getMessage())).build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "", e);
-			response = Response.status(Status.BAD_REQUEST).entity(getErrorMessage(key, e.getMessage())).build();
+			String msg = e.getMessage();
+			if(msg != null && msg.contains("exceeds its maximum permitted size")) {
+				msg = localisation.getString("msg_file_size");
+				String fileName = e.getMessage();
+				fileName = fileName.substring("The field ".length(), fileName.indexOf(" exceeds"));
+				msg = msg.replace("%s1", fileName);
+			}
+			response = Response.status(Status.BAD_REQUEST).entity(getErrorMessage(key, msg)).build();
 		} finally {
 			SDDataSource.closeConnection("surveyMobileAPI-Upload", sd);
 		}
