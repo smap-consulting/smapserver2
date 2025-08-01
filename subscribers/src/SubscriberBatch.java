@@ -1705,6 +1705,8 @@ public class SubscriberBatch {
 		PreparedStatement pstmtUpdate = null;		
 		String sqlInsert = "insert into periodic(last_checked_time) values(?)";
 		PreparedStatement pstmtInsert = null;
+		String sqlDelete = "truncate periodic";
+		PreparedStatement pstmtDelete = null;
 		
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
@@ -1800,7 +1802,10 @@ public class SubscriberBatch {
 			pstmtUpdate = sd.prepareStatement(sqlUpdate);
 			pstmtUpdate.setTime(1, currentTime);
 			int count = pstmtUpdate.executeUpdate();
-			if(count < 1) {
+			if(count != 1) {
+				pstmtDelete = sd.prepareStatement(sqlDelete);
+				pstmtDelete.executeUpdate();
+				
 				pstmtInsert = sd.prepareStatement(sqlInsert);
 				pstmtInsert.setTime(1, currentTime);
 				pstmtInsert.executeUpdate();
@@ -1815,6 +1820,7 @@ public class SubscriberBatch {
 			try {if (pstmtCurrentTime != null) {pstmtCurrentTime.close();}} catch (SQLException e) {}
 			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}
 			try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (SQLException e) {}
+			try {if (pstmtDelete != null) {pstmtDelete.close();}} catch (SQLException e) {}
 		}
 	}
 	
