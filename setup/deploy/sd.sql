@@ -222,3 +222,6 @@ alter table users add column reset_total_tasks boolean default false;
 -- Add survey role groups
 alter table survey_role add column role_group text default 'A';
 update survey_role set role_group = 'A' where role_group is null;
+
+-- Ensure users have a name
+update users set name = ident where name = '' and not temporary;
