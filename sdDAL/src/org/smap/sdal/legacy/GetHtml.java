@@ -1120,6 +1120,10 @@ public class GetHtml {
 			} else {
 				bodyElement.setAttribute("rows", "5");
 			}
+		} else if (q.type.equals("barcode")) {
+			bodyElement = outputDoc.createElement("div");
+			bodyElement.setAttribute("id", "reader");		// TODO replace this with non id specific
+			bodyElement.setAttribute("width", "600px");
 		} else {
 			bodyElement = outputDoc.createElement("input");
 		} 
@@ -1742,7 +1746,7 @@ public class GetHtml {
 	}
 
 	/*
-	 * Return the input type required by enketo
+	 * Return the XML type required by enketo
 	 */
 	private String getXmlType(Question q) {
 
@@ -1778,6 +1782,8 @@ public class GetHtml {
 			type = "geotrace";
 		} else if (q.type.equals(SmapQuestionTypes.PARENT_FORM) || q.type.equals(SmapQuestionTypes.CHILD_FORM)) {
 			type = "string";
+		} else if (q.type.equals("barcode")) {
+			type = "barcode";
 		} else {
 			type = q.type;
 		}
