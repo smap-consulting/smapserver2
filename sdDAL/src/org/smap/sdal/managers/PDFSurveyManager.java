@@ -8,6 +8,7 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.lang.reflect.Type;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.text.DecimalFormat;
@@ -1754,19 +1755,18 @@ public class PDFSurveyManager {
 					valueCell.addElement(getPara("", di, gv, deps, anchor));
 				} else {
 					try {
+						float angle = 0;
+						Image img = null;
 						File f = new File(basePath + "/" + di.value);
-						if(!f.exists()) {
-							f = new File(attachmentPrefix + di.value);
-						}
 						if(f.exists()) {
-							float angle = getImageRotation(new FileInputStream(f));
-							
-							Image img = Image.getInstance(f.getAbsolutePath()); 
-							img.setRotationDegrees(angle);
-							valueCell.addElement(img);
+							angle = getImageRotation(new FileInputStream(f));
+							img = Image.getInstance(f.getAbsolutePath());
+						} else {
+							angle = getImageRotation(new URL(attachmentPrefix + di.value).openStream());
+							img = Image.getInstance(attachmentPrefix + di.value);
 						}
-						
-						
+						img.setRotationDegrees(angle);
+						valueCell.addElement(img);	
 					} catch(Exception e) {
 						log.info("Error: image " + basePath + "/" + di.value + " not added: " + e.getMessage());
 						log.log(Level.SEVERE, "Adding image to pdf", e);
