@@ -1120,16 +1120,15 @@ public class GetHtml {
 			} else {
 				bodyElement.setAttribute("rows", "5");
 			}
-		} else if (q.type.equals("barcode")) {
-			bodyElement = outputDoc.createElement("div");
-			bodyElement.setAttribute("id", "reader");		// TODO replace this with non id specific
-			bodyElement.setAttribute("width", "600px");
 		} else {
 			bodyElement = outputDoc.createElement("input");
 		} 
 		bodyElement.setAttribute("type", getInputType(q));
 		bodyElement.setAttribute("name", paths.get(getRefName(q.name, form)));
 		bodyElement.setAttribute("data-type-xml", getXmlType(q));
+		if (q.type.equals("barcode")) {
+			bodyElement.setAttribute("class", "zxing-result");
+		}
 		
 		// media specific
 		if (q.type.equals("image")) {
