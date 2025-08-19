@@ -1782,7 +1782,7 @@ public class GetHtml {
 		} else if (q.type.equals(SmapQuestionTypes.PARENT_FORM) || q.type.equals(SmapQuestionTypes.CHILD_FORM)) {
 			type = "string";
 		} else if (q.type.equals("barcode")) {
-			type = "barcode";
+			type = "string";
 		} else {
 			type = q.type;
 		}
