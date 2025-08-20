@@ -174,7 +174,7 @@ if [ "$DBHOST" = "127.0.0.1" ]; then
 else
     # Just install the psql client and create a postgres user
     sudo useradd -s /bin/sh -d /home/postgres -m postgres
-    sudo apt-get install postgresql-client
+    sudo apt-get install postgresql-client -y
 fi
 # End of conditional install
 
