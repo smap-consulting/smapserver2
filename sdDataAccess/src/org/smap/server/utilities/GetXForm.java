@@ -86,7 +86,7 @@ public class GetXForm {
 	private ArrayList<String> gPaths;
 	private boolean embedExternalSearch = false;
 	private boolean gInTableList = false;
-	private boolean gLastSaved = false;
+	private ArrayList<Question> gLastSavedQuestions = new ArrayList <> ();
 	private boolean modelInstanceOnly = false;
 	private boolean isWebForms = false;
 	private boolean useNodesets = false;
@@ -249,10 +249,13 @@ public class GetXForm {
 		populateInstance(sd, outputDoc, instanceElement);
 		
 		// Add the instance element if last saved is used
-		if(gLastSaved && !isWebForms) {
+		if(gLastSavedQuestions.size() > 0) {
 			Element lsElement = outputDoc.createElement("instance");
 			lsElement.setAttribute("id", "__last-saved");
 			lsElement.setAttribute("src", "jr://instance/last-saved");
+			for(Question q : gLastSavedQuestions) {
+				lsElement.appendChild(outputDoc.createElement(q.getName()));
+			}
 			parent.appendChild(lsElement);
 		}
 		
@@ -671,7 +674,7 @@ public class GetXForm {
 
 			// Add a marker of this survey uses "last saved"
 			if(q.hasLastSaved()) {
-				gLastSaved = true;
+				gLastSavedQuestions.add(q);
 			}
 			
 			// Add a marker if this is a table list group

@@ -674,7 +674,6 @@ public class WebForm extends Application {
 
 				// Add survey class's - used for paging
 				jr.surveyData.surveyClass = survey.surveyData.surveyClass;
-				//jr.surveyData.surveyClass = xForm.getSurveyClass();
 
 				jr.main = addMain(request, instanceStrToEditId, orgId, true, surveyClass, superUser, survey.surveyData.readOnlySurvey || readonly).toString();
 

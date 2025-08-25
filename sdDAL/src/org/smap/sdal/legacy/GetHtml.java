@@ -1127,7 +1127,10 @@ public class GetHtml {
 		bodyElement.setAttribute("name", paths.get(getRefName(q.name, form)));
 		bodyElement.setAttribute("data-type-xml", getXmlType(q));
 		if (q.type.equals("barcode")) {
-			bodyElement.setAttribute("class", "zxing-result");
+			if(classValue.length() > 0) {
+				classValue.append(" ");
+			}
+			classValue.append("zxing-result");
 		}
 		
 		// media specific
@@ -1158,6 +1161,9 @@ public class GetHtml {
 			bodyElement.setAttribute("min", GeneralUtilityMethods.getSurveyParameter("start", q.paramArray));
 			bodyElement.setAttribute("max", GeneralUtilityMethods.getSurveyParameter("end", q.paramArray));
 			bodyElement.setAttribute("step", GeneralUtilityMethods.getSurveyParameter("step", q.paramArray));
+			if(classValue.length() > 0) {
+				classValue.append(" ");
+			}
 			classValue.append("hide");
 		}
 
