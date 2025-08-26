@@ -55,14 +55,13 @@ public class SubmissionEventManager {
 			Logger log,
 			Connection sd, 
 			int ue_id,  
-			ArrayList<LinkageItem> linkageItems,
-			String threadId) throws SQLException {
+			ArrayList<LinkageItem> linkageItems) throws SQLException {
 		
 		if(linkageItems == null) {
 			linkageItems = new ArrayList<LinkageItem> ();
 		};
 		
-		String sql = "insert into subevent_queue (ue_id, linkage_items, thread, status,"
+		String sql = "insert into subevent_queue (ue_id, linkage_items, status,"
 				+ "created_time ) values(?, ?, ?, 'new', now())";
 		PreparedStatement pstmt = null;
 		try {
@@ -86,7 +85,7 @@ public class SubmissionEventManager {
 			String attachmentPrefix
 			) throws SQLException {
 		
-		String sql = "select id, ue_id, linkage_items, thread "
+		String sql = "select id, ue_id, linkage_items "
 				+ "from subevent_queue "
 				+ "where status = 'new' "
 				+ "order by id asc "
@@ -121,7 +120,6 @@ public class SubmissionEventManager {
 					applySubmissionEvents(sd, cResults,
 							rs.getInt("ue_id"),
 							linkageItems,
-							rs.getString("thread"),
 							basePath,
 							urlprefix,
 							attachmentPrefix);
@@ -158,7 +156,6 @@ public class SubmissionEventManager {
 			Connection cResults, 
 			int ueId, 
 			ArrayList<LinkageItem> linkageItems,
-			String thread,
 			String basePath,
 			String urlprefix,
 			String attachmentPrefix) throws Exception {
