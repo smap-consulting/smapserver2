@@ -1730,6 +1730,7 @@ CREATE TABLE subevent_queue (
 	id integer DEFAULT NEXTVAL('subevent_queue_seq') CONSTRAINT pk_subevent_queue PRIMARY KEY,
 	ue_id integer,
 	linkage_items text,    -- JSON
+	thread text.	-- Thread of the submitted record
 	status text,    -- new or failed
 	reason text,	-- failure reason
 	created_time TIMESTAMP WITH TIME ZONE,

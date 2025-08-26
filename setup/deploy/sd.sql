@@ -225,3 +225,6 @@ update survey_role set role_group = 'A' where role_group is null;
 
 -- Ensure users have a name
 update users set name = ident where name = '' and not temporary;
+
+-- Version 25.08
+alter table subevent_queue add column thread text;

@@ -632,7 +632,7 @@ public class NotificationManager {
 			if(updateQuestion == null) {
 				sqlGetNotifications.append(" and n.trigger = 'submission'");
 			} else {
-				sqlGetNotifications.append(" and n.trigger = 'console_update'");	// No longer used
+				sqlGetNotifications.append(" and n.trigger = 'console_update'");	// Only used for bulk updates
 				sqlGetNotifications.append(" and n.update_survey = ?");
 				sqlGetNotifications.append(" and n.update_question = ?");
 				sqlGetNotifications.append(" and n.update_value = ?");

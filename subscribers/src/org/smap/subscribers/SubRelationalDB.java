@@ -59,6 +59,7 @@ import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.ForeignKey;
 import org.smap.sdal.model.MediaChange;
+import org.smap.sdal.model.RecordLocator;
 import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.UniqueKey;
@@ -132,7 +133,7 @@ public class SubRelationalDB extends Subscriber {
 
 			int assignmentId = getAssignmentId(dbc.sd, ue_id);
 			
-			writeAllTableContent(dbc.sd, dbc.results, instance, submittingUser, server, device, 
+			RecordLocator locator = writeAllTableContent(dbc.sd, dbc.results, instance, submittingUser, server, device, 
 					formStatus, updateId, uploadTime, surveyNotes, 
 					locationTrigger, assignmentId, survey.surveyData.o_id);	
 			
@@ -140,7 +141,8 @@ public class SubRelationalDB extends Subscriber {
 			 * Create an item in the submission event queue for the processing of
 			 * notifications, Tasks and Linkage events associated with this submission
 			 */
-			sem.writeToQueue(log, dbc.sd, ue_id, null);
+			sem.writeToQueue(log, dbc.sd, ue_id, null, 
+					locator == null ? null : locator.thread);
 			
 			/*
 			 * Update the assignment status
@@ -321,11 +323,12 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Write the submission to the database
 	 */
-	private void writeAllTableContent(Connection sd, Connection cResults, SurveyInstance instance, String remoteUser, 
+	private RecordLocator writeAllTableContent(Connection sd, Connection cResults, SurveyInstance instance, String remoteUser, 
 			String server, String device, String formStatus, String updateId,
 			Date uploadTime, String surveyNotes, String locationTrigger,
 			int assignmentId, int oId) throws SQLInsertException {
 
+		RecordLocator locator = null;
 		int sId = survey.surveyData.id;
 		
 		PreparedStatement pstmt = null;
@@ -386,10 +389,7 @@ public class SubRelationalDB extends Subscriber {
 			
 			/*
 			 * Update existing records
-			 */
-			int existingKey = 0;
-
-			/*
+			 *
 			 * Key policy is applied if the table has an HRK
 			 */
 			org.smap.sdal.model.Form topLevelForm = null;
@@ -406,13 +406,13 @@ public class SubRelationalDB extends Subscriber {
 			if(updateId != null) {
 				// Direct update to a record
 				log.info("Direct update with Existing unique id:" + updateId);
-				existingKey = getKeyFromId(cResults, topElement, updateId);
+				locator = getKeyFromId(cResults, topElement, updateId);
 	
-				if(existingKey != 0) {
-					log.info("Existing key:" + existingKey);
+				if(locator.key != 0) {
+					log.info("Existing key:" + locator.key);
 					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
-							existingKey, 
+							locator.key, 
 							keyPolicy.equals(SurveyManager.KP_REPLACE),
 							remoteUser, updateId, survey.surveyData.groupSurveyIdent, survey.surveyData.ident, localisation);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
 				} 
@@ -507,7 +507,9 @@ public class SubRelationalDB extends Subscriber {
 			}
 			
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
-		}		
+		}	
+		
+		return locator;
 	}
 
 	/*
@@ -1687,11 +1689,12 @@ public class SubRelationalDB extends Subscriber {
 	}
 
 	/*
-	 * Get the primary key from the unique instance id
+	 * Get the latest primary key and the thread id from the unique instance id
 	 */
-	private  int getKeyFromId(Connection connection, IE element, String instanceId) throws SQLException {
+	private  RecordLocator getKeyFromId(Connection connection, IE element, String instanceId) throws SQLException {
 
 		int key = 0;	
+		String thread = null;
 		String tableName = element.getTableName();
 
 		String sql = "select prikey, _bad from " + tableName + " where instanceid = ?";
@@ -1718,7 +1721,7 @@ public class SubRelationalDB extends Subscriber {
 						pstmtGetThread.setString(1, instanceId);
 						ResultSet rst = pstmtGetThread.executeQuery();
 						if(rst.next()) {
-							String thread = rst.getString(1);
+							thread = rst.getString(1);
 							if(thread != null) {
 								pstmtGetLatest = connection.prepareStatement(sqlGetLatest);
 								pstmtGetLatest.setString(1, thread);
@@ -1738,7 +1741,7 @@ public class SubRelationalDB extends Subscriber {
 			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
 		}
 
-		return key;
+		return new RecordLocator(key, thread);
 
 	}
 
