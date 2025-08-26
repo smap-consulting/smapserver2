@@ -39,7 +39,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
 /*
- * This class supports processing of events tiggered by a submission
+ * This class supports processing of events triggered by a submission
  * Including notifications and tasks
  */
 public class SubmissionEventManager {
@@ -55,14 +55,15 @@ public class SubmissionEventManager {
 			Logger log,
 			Connection sd, 
 			int ue_id,  
-			ArrayList<LinkageItem> linkageItems) throws SQLException {
+			ArrayList<LinkageItem> linkageItems,
+			String threadId) throws SQLException {
 		
 		if(linkageItems == null) {
 			linkageItems = new ArrayList<LinkageItem> ();
 		};
 		
-		String sql = "insert into subevent_queue (ue_id, linkage_items, status,"
-				+ "created_time ) values(?, ?, 'new', now())";
+		String sql = "insert into subevent_queue (ue_id, linkage_items, thread, status,"
+				+ "created_time ) values(?, ?, ?, 'new', now())";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
@@ -85,7 +86,7 @@ public class SubmissionEventManager {
 			String attachmentPrefix
 			) throws SQLException {
 		
-		String sql = "select id, ue_id, linkage_items "
+		String sql = "select id, ue_id, linkage_items, thread "
 				+ "from subevent_queue "
 				+ "where status = 'new' "
 				+ "order by id asc "
@@ -120,6 +121,7 @@ public class SubmissionEventManager {
 					applySubmissionEvents(sd, cResults,
 							rs.getInt("ue_id"),
 							linkageItems,
+							rs.getString("thread"),
 							basePath,
 							urlprefix,
 							attachmentPrefix);
@@ -156,6 +158,7 @@ public class SubmissionEventManager {
 			Connection cResults, 
 			int ueId, 
 			ArrayList<LinkageItem> linkageItems,
+			String thread,
 			String basePath,
 			String urlprefix,
 			String attachmentPrefix) throws Exception {
