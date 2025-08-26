@@ -62,7 +62,7 @@ public class SubmissionEventManager {
 		};
 		
 		String sql = "insert into subevent_queue (ue_id, linkage_items, status,"
-				+ "created_time ) values(?, ?, ?, 'new', now())";
+				+ "created_time ) values(?, ?, 'new', now())";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
