@@ -131,7 +131,7 @@ public class XLSXAdminReportsManagerFormAccess {
 					null, 		// basePath
 					null, 		// instance id
 					false, 		// get results
-					false, 		// generate dummmy values
+					false, 		// generate dummy values
 					false, 		// get property type 
 					true, 		// get soft deleted
 					false, 		// get hrk
@@ -224,6 +224,10 @@ public class XLSXAdminReportsManagerFormAccess {
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("rep_analyst"));
 			
+			cell = row.createCell(colNumber++);	// Manage Console
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_mc"));
+			
 			cell = row.createCell(colNumber++);	// Enum
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("rep_enum"));
@@ -256,6 +260,7 @@ public class XLSXAdminReportsManagerFormAccess {
 				boolean isInOrg = false;
 				boolean hasAdmin = false;
 				boolean hasAnalyst = false;
+				boolean hasManageConsole = false;
 				boolean hasEnum = false;
 				boolean hasView = false;
 				
@@ -293,6 +298,8 @@ public class XLSXAdminReportsManagerFormAccess {
 						hasAdmin = true;
 					} else if(ug.id == Authorise.ANALYST_ID) {
 						hasAnalyst = true;
+					} else if(ug.id == Authorise.CONSOLE_ADMIN_ID) {
+						hasManageConsole = true;
 					} else if(ug.id == Authorise.ENUM_ID) {
 						hasEnum = true;
 					} else if(ug.id == Authorise.VIEW_DATA_ID) {
@@ -301,10 +308,16 @@ public class XLSXAdminReportsManagerFormAccess {
 				}	
 				cell = row.createCell(colNumber++);	// Has Admin
 				if(hasAdmin ? setCellGood(cell) : setCellBad(cell));
+				
 				cell = row.createCell(colNumber++);	// Has Analyst
 				if(hasAnalyst ? setCellGood(cell) : setCellBad(cell));
+				
+				cell = row.createCell(colNumber++);	// Manage Console
+				if(hasManageConsole ? setCellGood(cell) : setCellBad(cell));
+				
 				cell = row.createCell(colNumber++);	// Has Enum
 				if(hasEnum ? setCellGood(cell) : setCellBad(cell));
+				
 				cell = row.createCell(colNumber++);	// Has View
 				if(hasView ? setCellGood(cell) : setCellBad(cell));
 				
