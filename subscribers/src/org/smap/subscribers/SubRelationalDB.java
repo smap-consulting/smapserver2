@@ -172,7 +172,7 @@ public class SubRelationalDB extends Subscriber {
 				lockTableChange.close("top level");
 				lockRecordUpdate.close("top level");
 			} catch (Exception e) {
-				
+				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 			try {
 				if (dbc.sd != null) {
@@ -567,38 +567,6 @@ public class SubRelationalDB extends Subscriber {
 					UtilityMethods.createSurveyTables(sd, cResults, localisation, 
 							sId, sIdent, tz, lockTableChange);
 					
-					/*
-					SurveyTemplate template = new SurveyTemplate(localisation); 
-					template.readDatabase(sd, cResults, sIdent, false);	
-					
-					if(tm.changesRequired(sd, cResults, template, sId)) {
-						
-						lockTableChange.lock("table mod start");	// Start lock while modifying tables
-						
-						// Create new tables
-						ArrayList<String> tablesCreated = tm.writeAllTableStructures(sd, cResults, sId, template,  0);
-						
-						boolean tableChanged = false;
-						boolean tablePublished = false;
-						
-						// Apply any updates that have been made to the table structure since the last
-						// submission
-						tableChanged = tm.applyTableChanges(sd, cResults, sId, tablesCreated);
-	
-						// Add any previously unpublished columns not in a changeset (Occurs if this is
-						// a new survey sharing an existing table)
-						tablePublished = tm.addUnpublishedColumns(sd, cResults, sId, tableName);
-	
-						if (tableChanged || tablePublished) {
-							List<Form> forms = template.getAllForms();	
-							for(Form f : forms) {
-								tm.markPublished(sd, f.getId(), sId); // only mark published if there have been changes made
-							}
-						}
-						
-						lockTableChange.release("table mod done");		// Release lock - table modification finished
-					}
-					*/
 					
 					/*
 					 * Duplicate check
