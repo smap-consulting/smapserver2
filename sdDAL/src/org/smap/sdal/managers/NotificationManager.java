@@ -592,7 +592,8 @@ public class NotificationManager {
 			String instanceId,
 			String updateSurvey,
 			String updateQuestion,
-			String updateValue) throws Exception {
+			String updateValue,
+			String thread) throws Exception {
 
 		/*
 		 * 1. Get notifications that may apply to the passed in upload event.
@@ -605,7 +606,8 @@ public class NotificationManager {
 		 * 4. Update upload event table to show that notifications have been applied
 		 */
 
-		ResultSet rsNotifications = null;		
+		ResultSet rsNotifications = null;
+		PreparedStatement pstmtNotified = null;
 		PreparedStatement pstmtGetNotifications = null;
 		PreparedStatement pstmtUpdateUploadEvent = null;
 
@@ -618,8 +620,9 @@ public class NotificationManager {
 			MessagingManager mm = new MessagingManager(localisation);
 			int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 
-			log.info("notifyForSubmission:: " + ue_id + " : " + updateQuestion + " : " + updateValue);
-
+			String sqlNotified = "insert into notified_records (n_id, thread) values(?, ?)";
+			pstmtNotified = sd.prepareStatement(sqlNotified);
+			
 			StringBuilder sqlGetNotifications = 
 					new StringBuilder("select n.name, n.target, n.notify_details, n.filter, "
 					+ "n.remote_user, n.remote_password, n.p_id "
@@ -627,10 +630,13 @@ public class NotificationManager {
 					+ "where ((n.s_id = ? and not n.bundle) or (n.bundle_ident = ? and n.bundle)) " 
 					+ "and n.target != 'forward' "
 					+ "and n.target != 'document' "
-					+ "and n.enabled = 'true'");
+					+ "and n.enabled = 'true' ");
 
 			if(updateQuestion == null) {
-				sqlGetNotifications.append(" and n.trigger = 'submission'");
+				sqlGetNotifications.append(" and n.trigger = 'submission' ");
+				if(thread != null) {
+					sqlGetNotifications.append(" and n.id not in (select n_id from notified_records where thread = ?) ");
+				}
 			} else {
 				sqlGetNotifications.append(" and n.trigger = 'console_update'");	// Only used for bulk updates
 				sqlGetNotifications.append(" and n.update_survey = ?");
@@ -641,17 +647,21 @@ public class NotificationManager {
 
 			String tz = "UTC";		// Set default time to UTC
 
-			pstmtGetNotifications.setInt(1, sId);
-			pstmtGetNotifications.setString(2, bundleIdent);
-			if(updateQuestion != null) {
-				pstmtGetNotifications.setString(3, updateSurvey);	// Should never be required
-				pstmtGetNotifications.setString(4, updateQuestion);
-				pstmtGetNotifications.setString(5, updateValue);
+			int idx = 1;
+			pstmtGetNotifications.setInt(idx++, sId);
+			pstmtGetNotifications.setString(idx++, bundleIdent);
+			if(updateQuestion == null && thread != null) {
+				pstmtGetNotifications.setString(idx++, thread);
+			} if(updateQuestion != null) {
+				pstmtGetNotifications.setString(idx++, updateSurvey);
+				pstmtGetNotifications.setString(idx++, updateQuestion);
+				pstmtGetNotifications.setString(idx++, updateValue);
 			}
 			log.info("Get notifications:: " + pstmtGetNotifications.toString());
 			rsNotifications = pstmtGetNotifications.executeQuery();
 			while(rsNotifications.next()) {
 
+				int nId = rsNotifications.getInt("id");
 				String notificationName = rsNotifications.getString("name");
 				String target = rsNotifications.getString("target");
 				String notifyDetailsString = rsNotifications.getString("notify_details");
@@ -752,7 +762,13 @@ public class NotificationManager {
 							.replace("%s1", survey.surveyData.displayName)
 							.replace("%s2", filter)
 							.replace("%s3", instanceId), 0, null);
-
+					
+					// Save the information that this thread has triggered this notification
+					if(thread != null) {
+						pstmtNotified.setInt(1, nId);
+						pstmtNotified.setString(2, thread);
+						pstmtNotified.executeUpdate();
+					}
 				}
 			}
 
@@ -768,6 +784,7 @@ public class NotificationManager {
 		} finally {
 			try {if (pstmtGetNotifications != null) {pstmtGetNotifications.close();}} catch (SQLException e) {}
 			try {if (pstmtUpdateUploadEvent != null) {pstmtUpdateUploadEvent.close();}} catch (SQLException e) {}
+			try {if (pstmtNotified != null) {pstmtNotified.close();}} catch (SQLException e) {}
 		}
 
 	}
