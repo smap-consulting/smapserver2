@@ -371,15 +371,10 @@ public class XLSXReportsManager {
 					}
 				}
 				
-				pstmt = cResults.prepareStatement(sqlDesc.sql);
-				
-				// Add parameters
-				int paramCount = 1;
-				// Add parameters in table column selections
-				if (sqlDesc.columnSqlFrags.size() > 0) {
-					paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDesc.columnSqlFrags, paramCount, tz);
-				}
-				
+				/*
+				 * Request the data
+				 */
+				pstmt = cResults.prepareStatement(sqlDesc.sql);		
 				cResults.setAutoCommit(false);	// page the results to reduce memory usage	
 				pstmt.setFetchSize(100);	
 				

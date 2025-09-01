@@ -514,14 +514,7 @@ public class ExportSurveyMisc extends Application {
 					/*
 					 * Write the data
 					 */
-					pstmt = connectionResults.prepareStatement(sqlDesc.sql);
-					
-					// Add table column parameters
-					int paramCount = 1;
-					if (sqlDesc.columnSqlFrags.size() > 0) {
-						paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDesc.columnSqlFrags, paramCount, tz);
-					}
-					
+					pstmt = connectionResults.prepareStatement(sqlDesc.sql);					
 					log.info("Get results for slow export: " + pstmt.toString());
 					ResultSet rs = pstmt.executeQuery();
 					while(rs.next()) {

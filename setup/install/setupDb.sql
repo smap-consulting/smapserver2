@@ -275,7 +275,7 @@ ALTER TABLE log_archive OWNER TO ws;
 DROP TABLE IF EXISTS project CASCADE;
 create TABLE project (
 	id INTEGER DEFAULT NEXTVAL('project_seq') CONSTRAINT pk_project PRIMARY KEY,
-	o_id INTEGER REFERENCES organisation(id) ON DELETE CASCADE,
+	o_id,
 	name text,
 	description text,
 	tasks_only boolean default false,	-- Deprecated - Set per form instead as (hide_on_device). When true only tasks will be downloaded to fieldTask

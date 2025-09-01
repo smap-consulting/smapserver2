@@ -228,3 +228,6 @@ update users set name = ident where name = '' and not temporary;
 
 -- Version 25.08
 alter table subevent_queue add column thread text;
+
+-- Remove foreign key on log archive file
+alter table log_archive drop constraint log_archive_o_id_fkey;
