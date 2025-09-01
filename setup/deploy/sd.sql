@@ -225,3 +225,6 @@ update survey_role set role_group = 'A' where role_group is null;
 
 -- Ensure users have a name
 update users set name = ident where name = '' and not temporary;
+
+-- Remove foreign key on log archive file
+alter table log_archive drop constraint log_archive_o_id_fkey;
