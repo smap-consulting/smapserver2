@@ -620,11 +620,11 @@ public class NotificationManager {
 			MessagingManager mm = new MessagingManager(localisation);
 			int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 
-			String sqlNotified = "insert into notified_records (n_id, thread) values(?, ?)";
+			String sqlNotified = "insert into notified_record (n_id, thread) values(?, ?)";
 			pstmtNotified = sd.prepareStatement(sqlNotified);
 			
 			StringBuilder sqlGetNotifications = 
-					new StringBuilder("select n.name, n.target, n.notify_details, n.filter, "
+					new StringBuilder("select n.id, n.name, n.target, n.notify_details, n.filter, "
 					+ "n.remote_user, n.remote_password, n.p_id "
 					+ "from forward n "
 					+ "where ((n.s_id = ? and not n.bundle) or (n.bundle_ident = ? and n.bundle)) " 
@@ -635,7 +635,7 @@ public class NotificationManager {
 			if(updateQuestion == null) {
 				sqlGetNotifications.append(" and n.trigger = 'submission' ");
 				if(thread != null) {
-					sqlGetNotifications.append(" and n.id not in (select n_id from notified_records where thread = ?) ");
+					sqlGetNotifications.append(" and n.id not in (select n_id from notified_record where thread = ?) ");
 				}
 			} else {
 				sqlGetNotifications.append(" and n.trigger = 'console_update'");	// Only used for bulk updates
