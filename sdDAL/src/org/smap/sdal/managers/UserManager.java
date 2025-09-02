@@ -2228,15 +2228,19 @@ public class UserManager {
 					+ "where ident = ? for update";
 			pstmt = sd.prepareStatement(sqlGet);
 			pstmt.setString(1, userIdent);
+			log.info("$$$$$$$ Get total tasks from cache: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				count = rs.getInt("total_tasks");
 				resetCount = rs.getBoolean("reset_total_tasks");
 				
+				log.info("$$$$$$$ reset: " + resetCount + " count: " + count);
 				if(resetCount || count < 0){
+					
 					/*
 					 * Need to recalculate the count of tasks
 					 */
+					log.info("$$$$$$$ recaclulating count of tasks");
 					AssignmentsManager am = new AssignmentsManager();
 					TaskResponse tr = am.getTasksData(sd, 
 							cResults,
@@ -2252,8 +2256,9 @@ public class UserManager {
 							null,	// basePath
 							true,	// No limit on the count of tasks - just get the count
 							null, null, null, null, null, null, null);
-					
+								
 					count = tr.taskAssignments.size();
+					log.info("$$$$$$$ new count is: " + count);
 					setTasksCount(sd, userIdent, count);
 				}
 			}
@@ -2291,6 +2296,26 @@ public class UserManager {
 			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
 	}
+	
+	/*
+	 * Set a cached value of the count of tasks in the users table
+	 */
+	public void requestResetTasksCount(Connection sd, String userIdent) throws SQLException {
+	
+		PreparedStatement pstmt = null;
+		
+		try {
+			String sql = "update users set reset_total_tasks = true "
+					+ "where ident = ?";
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1,  userIdent);
+			log.info("Reset tasks count: " + pstmt.toString());
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+	}
+	
 	
 	/*
 	 * Perform a hard delete of a user
