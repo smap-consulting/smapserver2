@@ -454,6 +454,12 @@ public class SubRelationalDB extends Subscriber {
 			GeneralUtilityMethods.clearLinkedForms(sd, sId, localisation);  // Clear any entries in linked_forms for this survey - The CSV files will need to be refreshed
 			
 			/*
+			 * Get the thread so that it can be used to enforce the rule of 
+			 * one notification sent per thread
+			 */
+			thread = getThreadFromPrimaryKey(cResults, topElement, keys.newKey);
+			
+			/*
 			 * If this is a simple create without an HRK then write to the record event manager
 			 */
 			if(updateId == null && !hasHrk) {
@@ -1689,7 +1695,7 @@ public class SubRelationalDB extends Subscriber {
 	}
 
 	/*
-	 * Get the latest primary key and the thread id from the unique instance id
+	 * Get the latest primary key from the unique instance id
 	 */
 	private  int getKeyFromId(Connection connection, IE element, String instanceId) throws SQLException {
 
@@ -1718,7 +1724,7 @@ public class SubRelationalDB extends Subscriber {
 					// way which was to create a new entry
 					try {
 
-						if(instanceId != null) {
+						if(thread != null) {
 							pstmtGetLatest = connection.prepareStatement(sqlGetLatest);
 							pstmtGetLatest.setString(1, thread);
 							ResultSet rsl = pstmtGetLatest.executeQuery();
@@ -1739,6 +1745,32 @@ public class SubRelationalDB extends Subscriber {
 		}
 
 		return key;
+
+	}
+	
+	/*
+	 * Get the latest primary key from the unique instance id
+	 */
+	private  String getThreadFromPrimaryKey(Connection connection, IE element, int prikey) throws SQLException {
+
+		String thread = null;	
+		String tableName = element.getTableName();
+
+		String sql = "select _thread from " + tableName + " where prikey = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = connection.prepareStatement(sql);
+			pstmt.setInt(1, prikey);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				thread = rs.getString(1);
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+
+		return thread;
 
 	}
 
