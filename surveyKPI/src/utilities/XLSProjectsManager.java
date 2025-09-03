@@ -25,8 +25,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.logging.Logger;
-
 import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -36,9 +34,6 @@ import org.smap.sdal.model.Project;
 
 
 public class XLSProjectsManager {
-	
-	private static Logger log =
-			 Logger.getLogger(XLSProjectsManager.class.getName());
 	
 	Workbook wb = null;
 	int rowNumber = 1;		// Heading row is 0

@@ -23,6 +23,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -40,11 +41,12 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.UserManager;
-import org.smap.sdal.model.AR;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
+import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
@@ -100,6 +102,7 @@ public class XLSXAdminReportsManagerFormAccess {
 		int colNumber = 0;
 		int hasAccessCol = 0;
 		int hasNoAccessReasonCol = 0;
+		PreparedStatement pstmt = null;
 
 		try {
 				
@@ -236,23 +239,30 @@ public class XLSXAdminReportsManagerFormAccess {
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("rep_view"));
 			
-			int idx = 0;
-			for(String roleName : survey.surveyData.roles.keySet()) {	// Role
-				if(idx++ == 0) {
-					// Add a marker that roles have stated
-					cell = preHeaderRow.createCell(colNumber);	
+			if(survey.surveyData.roles.size() > 0) {
+				int idx = 0;
+				for(String roleName : survey.surveyData.roles.keySet()) {	// Role
+					if(idx++ == 0) {
+						// Add a marker that roles have stated
+						cell = preHeaderRow.createCell(colNumber);	
+						cell.setCellStyle(headerStyle);
+						cell.setCellValue(localisation.getString("rep_roles"));
+					}
+					cell = row.createCell(colNumber++);	
 					cell.setCellStyle(headerStyle);
-					cell.setCellValue(localisation.getString("rep_roles"));
+					cell.setCellValue(roleName);
 				}
+				// Add the row filter cell
 				cell = row.createCell(colNumber++);	
 				cell.setCellStyle(headerStyle);
-				cell.setCellValue(roleName);
+				cell.setCellValue(localisation.getString("filters"));
 			}
 			
 			/*
 			 * Process the users
 			 */
 			UserManager um = new UserManager(localisation);
+			RoleManager rm = new RoleManager(localisation);	
 			ArrayList<User> users = um.getUserList(sd, oId, true, true, true, request.getRemoteUser());	
 			for(User u : users) {
 				colNumber = 0;
@@ -321,22 +331,36 @@ public class XLSXAdminReportsManagerFormAccess {
 				cell = row.createCell(colNumber++);	// Has View
 				if(hasView ? setCellGood(cell) : setCellBad(cell));
 				
-				boolean hasRole = false;
+				boolean hasRoleAccess = false;
 				if(survey.surveyData.roles.size() == 0) {
-					hasRole = true;		// No roles to worry about
+					hasRoleAccess = true;		// No roles to worry about - so has role access
 				} else {
 					for(String roleName : survey.surveyData.roles.keySet()) {	// Role
 						boolean hasThisRole = false;
 						for(Role r : u.roles) {
 							if(r.name.equals(roleName)) {
 								hasThisRole = true;
-								hasRole = true;
+								hasRoleAccess = true;
 								break;
 							}
 						}
 						cell = row.createCell(colNumber++);	// Role
 						if(hasThisRole ? setCellGood(cell) : setCellBad(cell));
 					}
+					
+					// RBAC filter	
+					String filter = "";
+					ArrayList<SqlFrag> rfArray = rm.getSurveyRowFilter(sd, formIdent, u.ident);				
+					if (rfArray.size() > 0) {
+						filter = rm.convertSqlFragsToSql(rfArray);
+						if(pstmt != null ) {try{pstmt.close();} catch (Exception e) {}}
+						pstmt = sd.prepareStatement(filter);	// Not the right database but we are not going to execute this query
+						GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, 1, "UTC");
+						
+						cell = row.createCell(colNumber++);	// Role
+						cell.setCellValue(pstmt.toString());
+					}
+					
 				}
 				
 				/*
@@ -347,7 +371,7 @@ public class XLSXAdminReportsManagerFormAccess {
 						isInOrg && 
 						hasProject &&
 						(hasAdmin || hasAnalyst || hasEnum || hasView) &&
-						hasRole;
+						hasRoleAccess;
 				if(hasAccess ? setCellGood(cell) : setCellBad(cell));
 				
 				/*
@@ -364,7 +388,7 @@ public class XLSXAdminReportsManagerFormAccess {
 					if(!hasAdmin && !hasAnalyst && !hasEnum && !hasView) {
 						reason.append(localisation.getString("rep_reason_sec_group")).append(". ");
 					}
-					if(!hasRole) {
+					if(!hasRoleAccess) {
 						reason.append(localisation.getString("rep_reason_role")).append(". ");
 					}
 					cell = row.createCell(hasNoAccessReasonCol);
@@ -389,6 +413,7 @@ public class XLSXAdminReportsManagerFormAccess {
 		} finally {	
 
 			try {
+				if(pstmt != null ) {try{pstmt.close();} catch (Exception e) {}}
 				OutputStream outputStream = response.getOutputStream();
 				wb.write(outputStream);
 				wb.close();
