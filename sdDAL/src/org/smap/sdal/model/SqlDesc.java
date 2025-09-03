@@ -16,5 +16,4 @@ public class SqlDesc {
 	public ArrayList<String> availableColumns = new ArrayList<String>();	// The subset of required columns that are available due to RBAC etc
 	public ArrayList<SqlParam> params = new ArrayList<SqlParam>();
 	public HashMap<String, String>  colNameLookup = new HashMap<> ();
-	public ArrayList<SqlFrag> columnSqlFrags = new ArrayList<> ();
 }

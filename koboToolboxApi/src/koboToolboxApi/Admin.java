@@ -348,7 +348,8 @@ public class Admin extends Application {
 									instanceId,
 									null,
 									null,			// Update question - update notifications not supported
-									null			// Update value
+									null,			// Update value
+									null			// Ignore thread and hence whether or not the notification has already been sent
 									);
 									
 									

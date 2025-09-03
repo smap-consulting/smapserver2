@@ -36,6 +36,7 @@ import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.SqlDesc;
 import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.SqlFragParam;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
 
@@ -133,7 +134,7 @@ public class QueryGenerator {
 			pstmtQLabel = sd.prepareStatement(sqlQLabel);
 			
 			/*
-			 * Create an object describing the sql query recursively from the target table
+			 * Create an object describing the SQL query recursively from the target table
 			 */
 			getSqlDesc(
 					localisation,
@@ -677,7 +678,9 @@ public class QueryGenerator {
 							
 							// record any parameters for server side calculations
 							if (col.calculation.params != null) {
-								sqlDesc.columnSqlFrags.add(col.calculation);
+								for(SqlFragParam p : col.calculation.params) {
+									sqlDesc.params.add(new SqlParam("string", p.sValue));
+								}
 							}
 							
 						} else {

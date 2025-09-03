@@ -116,7 +116,7 @@ public class AssignmentsManager {
 					getLinkedRefDefns, 
 					getManifests,
 					true,	// Get the settings
-					true,	// REcotd a task refresh
+					true,	// Log the request
 					forDevice,
 					GeneralUtilityMethods.getBasePath(request),
 					false,						// Limit the number of tasks
@@ -155,7 +155,7 @@ public class AssignmentsManager {
 			boolean logRefresh,
 			boolean forDevice,
 			String basepath,
-			boolean noLimit,	// Set true of the number of tasks is not to be limited
+			boolean noLimit,	// Set true if the number of tasks is not to be limited
 			String host,		// The following parameters come from the request and need only be set if the call is made from a device
 			String protocol,
 			String latString,
@@ -724,7 +724,7 @@ public class AssignmentsManager {
 			 */
 			if(totalTasks > 0) {
 				if(totalTasks != tr.taskAssignments.size() && !noLimit) {
-					um.setTasksCount(sd, userIdent, -1);
+					um.requestResetTasksCount(sd, userIdent);
 				}
 			}
 			

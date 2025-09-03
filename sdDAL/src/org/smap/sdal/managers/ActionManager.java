@@ -851,7 +851,8 @@ public class ActionManager {
 						instanceId,
 						groupSurvey,		// update survey ident
 						u.name,		// update question
-						u.value		// update value
+						u.value,	// update value
+						null		// thread used with submission notifications
 						);	
 			}
 			/*

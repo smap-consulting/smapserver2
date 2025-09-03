@@ -132,7 +132,7 @@ public class SubRelationalDB extends Subscriber {
 
 			int assignmentId = getAssignmentId(dbc.sd, ue_id);
 			
-			writeAllTableContent(dbc.sd, dbc.results, instance, submittingUser, server, device, 
+			String thread = writeAllTableContent(dbc.sd, dbc.results, instance, submittingUser, server, device, 
 					formStatus, updateId, uploadTime, surveyNotes, 
 					locationTrigger, assignmentId, survey.surveyData.o_id);	
 			
@@ -140,7 +140,7 @@ public class SubRelationalDB extends Subscriber {
 			 * Create an item in the submission event queue for the processing of
 			 * notifications, Tasks and Linkage events associated with this submission
 			 */
-			sem.writeToQueue(log, dbc.sd, ue_id, null);
+			sem.writeToQueue(log, dbc.sd, ue_id, null, thread);
 			
 			/*
 			 * Update the assignment status
@@ -172,7 +172,7 @@ public class SubRelationalDB extends Subscriber {
 				lockTableChange.close("top level");
 				lockRecordUpdate.close("top level");
 			} catch (Exception e) {
-				
+				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 			try {
 				if (dbc.sd != null) {
@@ -320,12 +320,15 @@ public class SubRelationalDB extends Subscriber {
 
 	/*
 	 * Write the submission to the database
+	 * Return the thread of the record
 	 */
-	private void writeAllTableContent(Connection sd, Connection cResults, SurveyInstance instance, String remoteUser, 
+	private String writeAllTableContent(Connection sd, Connection cResults, SurveyInstance instance, String remoteUser, 
 			String server, String device, String formStatus, String updateId,
 			Date uploadTime, String surveyNotes, String locationTrigger,
 			int assignmentId, int oId) throws SQLInsertException {
 
+		String thread = null;
+		int existingKey = 0;
 		int sId = survey.surveyData.id;
 		
 		PreparedStatement pstmt = null;
@@ -386,10 +389,7 @@ public class SubRelationalDB extends Subscriber {
 			
 			/*
 			 * Update existing records
-			 */
-			int existingKey = 0;
-
-			/*
+			 *
 			 * Key policy is applied if the table has an HRK
 			 */
 			org.smap.sdal.model.Form topLevelForm = null;
@@ -454,6 +454,12 @@ public class SubRelationalDB extends Subscriber {
 			GeneralUtilityMethods.clearLinkedForms(sd, sId, localisation);  // Clear any entries in linked_forms for this survey - The CSV files will need to be refreshed
 			
 			/*
+			 * Get the thread so that it can be used to enforce the rule of 
+			 * one notification sent per thread
+			 */
+			thread = getThreadFromPrimaryKey(cResults, topElement, keys.newKey);
+			
+			/*
 			 * If this is a simple create without an HRK then write to the record event manager
 			 */
 			if(updateId == null && !hasHrk) {
@@ -507,7 +513,9 @@ public class SubRelationalDB extends Subscriber {
 			}
 			
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
-		}		
+		}	
+		
+		return thread;
 	}
 
 	/*
@@ -567,38 +575,6 @@ public class SubRelationalDB extends Subscriber {
 					UtilityMethods.createSurveyTables(sd, cResults, localisation, 
 							sId, sIdent, tz, lockTableChange);
 					
-					/*
-					SurveyTemplate template = new SurveyTemplate(localisation); 
-					template.readDatabase(sd, cResults, sIdent, false);	
-					
-					if(tm.changesRequired(sd, cResults, template, sId)) {
-						
-						lockTableChange.lock("table mod start");	// Start lock while modifying tables
-						
-						// Create new tables
-						ArrayList<String> tablesCreated = tm.writeAllTableStructures(sd, cResults, sId, template,  0);
-						
-						boolean tableChanged = false;
-						boolean tablePublished = false;
-						
-						// Apply any updates that have been made to the table structure since the last
-						// submission
-						tableChanged = tm.applyTableChanges(sd, cResults, sId, tablesCreated);
-	
-						// Add any previously unpublished columns not in a changeset (Occurs if this is
-						// a new survey sharing an existing table)
-						tablePublished = tm.addUnpublishedColumns(sd, cResults, sId, tableName);
-	
-						if (tableChanged || tablePublished) {
-							List<Form> forms = template.getAllForms();	
-							for(Form f : forms) {
-								tm.markPublished(sd, f.getId(), sId); // only mark published if there have been changes made
-							}
-						}
-						
-						lockTableChange.release("table mod done");		// Release lock - table modification finished
-					}
-					*/
 					
 					/*
 					 * Duplicate check
@@ -1719,20 +1695,18 @@ public class SubRelationalDB extends Subscriber {
 	}
 
 	/*
-	 * Get the primary key from the unique instance id
+	 * Get the latest primary key from the unique instance id
 	 */
 	private  int getKeyFromId(Connection connection, IE element, String instanceId) throws SQLException {
 
 		int key = 0;	
 		String tableName = element.getTableName();
 
-		String sql = "select prikey, _bad from " + tableName + " where instanceid = ?";
+		String sql = "select prikey, _bad, _thread from " + tableName + " where instanceid = ?";
 		PreparedStatement pstmt = null;
 		
-		String sqlGetThread = "select _thread from " + tableName + " where instanceid = ?";
-		PreparedStatement pstmtGetThread = null;
-		
-		String sqlGetLatest = "select prikey from " + tableName + " where _thread = ? order by prikey desc limit 1";
+		String sqlGetLatest = "select prikey from " + tableName 
+				+ " where _thread = ? order by prikey desc limit 1";
 		PreparedStatement pstmtGetLatest = null;
 		
 		try {
@@ -1742,24 +1716,23 @@ public class SubRelationalDB extends Subscriber {
 			if(rs.next()) {
 				key = rs.getInt(1);
 				boolean bad = rs.getBoolean(2);
+				String thread = rs.getString(3);
+				
 				if(bad) {
-					// Try to get the latest good version of the thread.  During transition this may not happen so ignore errors and fall back to the old
+					// Try to get the latest good version of the thread.  
+					// During transition this may not happen so ignore errors and fall back to the old
 					// way which was to create a new entry
 					try {
-						pstmtGetThread = connection.prepareStatement(sqlGetThread);
-						pstmtGetThread.setString(1, instanceId);
-						ResultSet rst = pstmtGetThread.executeQuery();
-						if(rst.next()) {
-							String thread = rst.getString(1);
-							if(thread != null) {
-								pstmtGetLatest = connection.prepareStatement(sqlGetLatest);
-								pstmtGetLatest.setString(1, thread);
-								ResultSet rsl = pstmtGetLatest.executeQuery();
-								if(rsl.next()) {
-									key = rsl.getInt(1);
-								}
+
+						if(thread != null) {
+							pstmtGetLatest = connection.prepareStatement(sqlGetLatest);
+							pstmtGetLatest.setString(1, thread);
+							ResultSet rsl = pstmtGetLatest.executeQuery();
+							if(rsl.next()) {
+								key = rsl.getInt(1);
 							}
 						}
+
 					} catch (Exception ex) {
 						// Report and ignore
 						log.log(Level.SEVERE, ex.getMessage(), ex);
@@ -1768,9 +1741,36 @@ public class SubRelationalDB extends Subscriber {
 			}
 		} finally {
 			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+			if(pstmtGetLatest != null) {try{pstmtGetLatest.close();} catch(Exception e) {}}
 		}
 
 		return key;
+
+	}
+	
+	/*
+	 * Get the latest primary key from the unique instance id
+	 */
+	private  String getThreadFromPrimaryKey(Connection connection, IE element, int prikey) throws SQLException {
+
+		String thread = null;	
+		String tableName = element.getTableName();
+
+		String sql = "select _thread from " + tableName + " where prikey = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = connection.prepareStatement(sql);
+			pstmt.setInt(1, prikey);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				thread = rs.getString(1);
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+
+		return thread;
 
 	}
 

@@ -52,6 +52,10 @@ DROP SEQUENCE IF EXISTS notification_log_seq CASCADE;
 CREATE SEQUENCE notification_log_seq START 1;
 ALTER SEQUENCE notification_log_seq OWNER TO ws;
 
+DROP SEQUENCE IF EXISTS notified_record_seq CASCADE;
+CREATE SEQUENCE notified_record_seq START 1;
+ALTER SEQUENCE notified_record_seq OWNER TO ws;
+
 DROP SEQUENCE IF EXISTS t_seq CASCADE;
 CREATE SEQUENCE t_seq START 1;
 ALTER SEQUENCE t_seq OWNER TO ws;	
@@ -275,7 +279,7 @@ ALTER TABLE log_archive OWNER TO ws;
 DROP TABLE IF EXISTS project CASCADE;
 create TABLE project (
 	id INTEGER DEFAULT NEXTVAL('project_seq') CONSTRAINT pk_project PRIMARY KEY,
-	o_id INTEGER REFERENCES organisation(id) ON DELETE CASCADE,
+	o_id,
 	name text,
 	description text,
 	tasks_only boolean default false,	-- Deprecated - Set per form instead as (hide_on_device). When true only tasks will be downloaded to fieldTask
@@ -516,8 +520,6 @@ insert into user_group (u_id, g_id) values (1, 8);
 insert into user_group (u_id, g_id) values (1, 9);
 insert into user_group (u_id, g_id) values (1, 10);
 insert into user_group (u_id, g_id) values (1, 11);
---insert into user_group (u_id, g_id) values (1, 12);
---insert into user_group (u_id, g_id) values (1, 13);
 
 insert into project (id, o_id, name) values (1, 1, 'A project');
 
@@ -890,7 +892,7 @@ CREATE TABLE forward (
 ALTER TABLE forward OWNER TO ws;
 CREATE UNIQUE INDEX ForwardDest ON forward(s_id, remote_s_id, remote_host);
 
--- Log of all sent notifications (except for forwards which are recorded by the forward subscriber)
+-- Log of all sent notifications
 DROP TABLE IF EXISTS notification_log;
 CREATE TABLE public.notification_log (
 	id integer default nextval('notification_log_seq') not null PRIMARY KEY,
@@ -906,6 +908,15 @@ CREATE TABLE public.notification_log (
 	);
 ALTER TABLE notification_log OWNER TO ws;
 
+-- Records that have triggered a notification - use to prevent a record triggering a notification twice
+DROP TABLE IF EXISTS notified_record;
+CREATE TABLE public.notified_record (
+	id integer default nextval('notified_record_seq') not null PRIMARY KEY,
+	n_id integer REFERENCES forward(id) ON DELETE CASCADE,
+	thread text
+	);
+ALTER TABLE notified_record OWNER TO ws;
+CREATE INDEX n_thread ON notified_record(thread);
 
 -- form can be long, short, image, audio, video
 DROP TABLE IF EXISTS translation;
@@ -1730,6 +1741,7 @@ CREATE TABLE subevent_queue (
 	id integer DEFAULT NEXTVAL('subevent_queue_seq') CONSTRAINT pk_subevent_queue PRIMARY KEY,
 	ue_id integer,
 	linkage_items text,    -- JSON
+	thread text.	-- Thread of the submitted record
 	status text,    -- new or failed
 	reason text,	-- failure reason
 	created_time TIMESTAMP WITH TIME ZONE,

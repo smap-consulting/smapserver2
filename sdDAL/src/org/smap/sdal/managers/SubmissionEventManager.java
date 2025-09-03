@@ -39,7 +39,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
 /*
- * This class supports processing of events tiggered by a submission
+ * This class supports processing of events triggered by a submission
  * Including notifications and tasks
  */
 public class SubmissionEventManager {
@@ -55,19 +55,21 @@ public class SubmissionEventManager {
 			Logger log,
 			Connection sd, 
 			int ue_id,  
-			ArrayList<LinkageItem> linkageItems) throws SQLException {
+			ArrayList<LinkageItem> linkageItems,
+			String thread) throws SQLException {
 		
 		if(linkageItems == null) {
 			linkageItems = new ArrayList<LinkageItem> ();
 		};
 		
-		String sql = "insert into subevent_queue (ue_id, linkage_items, status,"
-				+ "created_time ) values(?, ?, 'new', now())";
+		String sql = "insert into subevent_queue (ue_id, linkage_items, thread, status,"
+				+ "created_time ) values(?, ?, ?, 'new', now())";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1,  ue_id);
 			pstmt.setString(2,  gson.toJson(linkageItems));
+			pstmt.setString(3,  thread);
 			log.info("Add submission notification event: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
@@ -85,7 +87,7 @@ public class SubmissionEventManager {
 			String attachmentPrefix
 			) throws SQLException {
 		
-		String sql = "select id, ue_id, linkage_items "
+		String sql = "select id, ue_id, linkage_items, thread "
 				+ "from subevent_queue "
 				+ "where status = 'new' "
 				+ "order by id asc "
@@ -122,7 +124,8 @@ public class SubmissionEventManager {
 							linkageItems,
 							basePath,
 							urlprefix,
-							attachmentPrefix);
+							attachmentPrefix,
+							rs.getString("thread"));
 					status = "success";
 				} catch (Exception e) {
 					status = "failed";
@@ -158,7 +161,8 @@ public class SubmissionEventManager {
 			ArrayList<LinkageItem> linkageItems,
 			String basePath,
 			String urlprefix,
-			String attachmentPrefix) throws Exception {
+			String attachmentPrefix,
+			String thread) throws Exception {
 
 		PreparedStatement pstmtGetUploadEvent = null;
 
@@ -216,7 +220,8 @@ public class SubmissionEventManager {
 						instanceId,
 						null,		// update survey ident
 						null,		// update question
-						null		// update value
+						null,		// update value
+						thread
 						);	
 
 				// Apply Tasks
