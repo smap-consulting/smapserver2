@@ -3857,7 +3857,7 @@ public class GeneralUtilityMethods {
 				+ "and (published = 'true') ";
 		
 		String sqlQuestion2 = colList.toString();
-		String sqlQuestion3 = "order by seq";
+		String sqlQuestion3 = "order by seq asc";
 		PreparedStatement pstmtQuestions = sd.prepareStatement(sqlQuestion1 
 				+ (includeServerCalculates ? sqlSC : sqlNonSC)
 				+ sqlQuestion2 + sqlQuestion3);
