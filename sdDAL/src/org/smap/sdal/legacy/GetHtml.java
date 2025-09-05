@@ -953,6 +953,17 @@ public class GetHtml {
 			selectElement.setAttribute("readonly", "readonly");
 		}
 		
+		/*
+		 * Add setvalue
+		 */
+		if(q.setValues != null && q.setValues.size() > 0) {
+			SetValue sv = q.setValues.get(0);		// Can only handle one?
+		
+			selectElement.setAttribute("data-event", sv.event);
+			selectElement.setAttribute("data-setvalue", UtilityMethods.convertAllxlsNames(sv.value, false, paths, form.id, true, q.name, false));
+			selectElement.setAttribute("class", "action form-control-action ref-target " + sv.event);
+		}
+		
 		// Itemset template option
 		if(!autoComplete) {
 			Element templateOption = outputDoc.createElement("option");
@@ -1045,8 +1056,13 @@ public class GetHtml {
 
 		// Input element for rank
 		if(q.type.equals("rank")) {
+			StringBuilder classValue = new StringBuilder();
+			
 			Element inputElement = outputDoc.createElement("input");
-			inputElement.setAttribute("class", "rank hide");
+			if(classValue.length() > 0) {
+				classValue.append(" ");
+			}
+			classValue.append("rank hide");
 			inputElement.setAttribute("type", "error");
 			inputElement.setAttribute("name", paths.get(getRefName(q.name, form)));
 			inputElement.setAttribute("data-type-xml", "rank");
@@ -1065,6 +1081,25 @@ public class GetHtml {
 			if (q.constraint != null && q.constraint.trim().length() > 0) {
 				inputElement.setAttribute("data-constraint",
 						UtilityMethods.convertAllxlsNames(q.constraint, false, paths, form.id, true, q.name, false));
+			}
+			
+			/*
+			 * Add setvalue
+			 */
+			if(q.setValues != null && q.setValues.size() > 0) {
+				SetValue sv = q.setValues.get(0);		// Can only handle one?
+			
+				inputElement.setAttribute("data-event", sv.event);
+				inputElement.setAttribute("data-setvalue", UtilityMethods.convertAllxlsNames(sv.value, false, paths, form.id, true, q.name, false));
+				if(classValue.length() > 0) {
+					classValue.append(" ");
+				}
+				classValue.append("action form-control-action ref-target ");
+				classValue.append(sv.event);
+			}
+			
+			if(classValue.length() > 0) {
+				inputElement.setAttribute("class",  classValue.toString());
 			}
 			
 			parent.appendChild(inputElement);
@@ -1285,6 +1320,17 @@ public class GetHtml {
 			}
 			if (q.calculation != null && q.calculation.trim().length() > 0) {
 				inputElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name, false));
+			}
+			
+			/*
+			 * Add setvalue
+			 */
+			if(q.setValues != null && q.setValues.size() > 0) {
+				SetValue sv = q.setValues.get(0);		// Can only handle one?
+			
+				inputElement.setAttribute("data-event", sv.event);
+				inputElement.setAttribute("data-setvalue", UtilityMethods.convertAllxlsNames(sv.value, false, paths, form.id, true, q.name, false));		
+				inputElement.setAttribute("class","action form-control-action ref-target " + sv.event);
 			}
 
 			// Itemset labels
