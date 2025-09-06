@@ -791,13 +791,30 @@ public class DataManager {
 			}
 			
 			/*
+			 * Reorder columns as per user preferences if column order has been set and is equal in length to the number of columns
+			 */
+			ArrayList<TableColumn> sortedColumns = columns;
+			if(ssd.colOrder != null) {
+				String colArray [] = ssd.colOrder.split(",");
+				if(colArray.length == columns.size()) {
+					sortedColumns = new ArrayList<> (columns.size());
+					for(String col : colArray ) {
+						sortedColumns.add(columns.get(Integer.valueOf(col.trim())));
+					}
+					if(sv != null) {
+						sv.columns = sortedColumns;
+					}
+				}
+			}
+			
+			/*
 			 * Get the prepared statement
 			 */
 			TableDataManager tdm = new TableDataManager(localisation, tz);
 			pstmt = tdm.getPreparedStatement(
 					sd, 
 					cResults,
-					columns,
+					sortedColumns,
 					urlprefix,
 					attachmentPrefix,
 					sId,
@@ -872,7 +889,7 @@ public class DataManager {
 					jo =  tdm.getNextRecord(
 							sd,
 							rs,
-							columns,
+							sortedColumns,
 							urlprefix,
 							group,
 							isDt,
@@ -916,7 +933,7 @@ public class DataManager {
 					 * Return the schema with the data 
 					 * 1. remove data not needed by the client for performance and security reasons
 					 */
-					for(TableColumn tc : sv.columns) {
+					for(TableColumn tc : sortedColumns) {
 						tc.actions = null;
 						tc.calculation = null;
 					}
