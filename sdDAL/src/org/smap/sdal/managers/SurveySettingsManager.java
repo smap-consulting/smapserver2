@@ -198,7 +198,7 @@ public class SurveySettingsManager {
 		}
 	}
 	
-	public void updateConsoleSettings(Connection sd, int uId, String sIdent, int limit, String colOrder) {
+	public void updateConsoleSettings(Connection sd, int uId, String sIdent, int pageLen, String colOrder) {
 		
 		PreparedStatement pstmt = null;
 		
@@ -227,9 +227,16 @@ public class SurveySettingsManager {
 			if(ssd == null) {
 				ssd = new SurveySettingsDefn();
 			}
-			ssd.pageLen = limit;
-			ssd.colOrder = colOrder;
+			if(pageLen > 0) { 
+				ssd.pageLen = pageLen;
+			} else if(ssd.pageLen <= 0) {
+				ssd.pageLen = 10;
+			}
+			if(colOrder != null) {
+				ssd.colOrder = colOrder;
+			}
 			
+			log.info("xoxoxoxox: Setting colOrder: " + ssd.colOrder);
 			setSurveySettings(sd, uId, sIdent, ssd);
 			
 			sd.commit();

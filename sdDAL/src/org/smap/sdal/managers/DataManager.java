@@ -796,6 +796,8 @@ public class DataManager {
 			ArrayList<TableColumn> sortedColumns = columns;
 			if(ssd.colOrder != null) {
 				String colArray [] = ssd.colOrder.split(",");
+				log.info("xoxoxoxox: colOrder: " + ssd.colOrder);
+				log.info("xoxoxoxox: column size is: " + columns.size());
 				if(colArray.length == columns.size()) {
 					sortedColumns = new ArrayList<> (columns.size());
 					for(String col : colArray ) {
@@ -804,7 +806,11 @@ public class DataManager {
 					if(sv != null) {
 						sv.columns = sortedColumns;
 					}
+				} else {
+					log.info("xoxoxoxox: no sort: colOrder size not equal to column size");
 				}
+			} else {
+				log.info("xoxoxoxox: no sort: colOrder is null");
 			}
 			
 			/*
