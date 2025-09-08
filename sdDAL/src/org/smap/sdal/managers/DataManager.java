@@ -797,6 +797,25 @@ public class DataManager {
 			log.info("xoxoxoxox: colOrderKey: " + colOrderKey);
 			if(ssdColOrder != null) {
 				String colArray [] = ssdColOrder.split(",");
+				
+				/*
+				 * If include bad is specified add two elements to the column order array for deleted and deleted reason
+				 */
+				if(ssd.include_bad.equals("yes")) {
+					if(colArray.length > 3) {
+						String [] newArray = new String[colArray.length + 2];
+						newArray[0] = "1";		// Deleted is the 2nd column
+						newArray[1] = "2";		// Deleted reason is the 3rd							
+						for(int i = 0; i < colArray.length; i++) {
+							if(colArray[i].trim().equals("0")) {
+								newArray[i + 2] = "0";				// Prikey is the first column	
+							} else {
+								newArray[i + 2] = String.valueOf(Integer.valueOf(colArray[i]) + 2);	// Everything else moves along 2
+							}
+						}
+						colArray = newArray;
+					}		
+				}
 				log.info("xoxoxoxox: colOrder: " + ssdColOrder);
 				log.info("xoxoxoxox: column size is: " + columns.size());
 				if(colArray.length == columns.size()) {
@@ -952,6 +971,8 @@ public class DataManager {
 						tc.calculation = null;
 					}
 					sv.tableName = null;
+					sv.mainColumnNames = null;
+					ssd.columnOrders = null;
 					
 					// 2. Add the schema to the results
 					outWriter.print(",\"schema\":");
