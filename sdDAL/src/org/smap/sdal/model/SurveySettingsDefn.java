@@ -18,7 +18,7 @@ public class SurveySettingsDefn {
 	public String include_bad;
 	public String include_completed;
 	public int pageLen;				// Datatables - no longer used
-	public String colOrder;			// Datatables
+	public HashMap<String, String> columnOrders = new HashMap <> ();	// Multiple column orders to allow for different oversight surveys
 	
 	public ArrayList<MapLayer> layers = new ArrayList<MapLayer> ();             // Map
 	public ArrayList<ChartDefn> charts = new ArrayList<ChartDefn> ();           // Charts

@@ -27,6 +27,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -431,7 +432,8 @@ public class UserSvc extends Application {
 	@Path("/consolesettings/{sIdent}")
 	public Response updateCurrentConsoleSettings(@Context HttpServletRequest request, 
 			ConsoleSettings settings,
-			@PathParam("sIdent") String sIdent) { 
+			@PathParam("sIdent") String sIdent,
+			@QueryParam("oversight") String oversightIdent) { 
 		
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
@@ -450,7 +452,7 @@ public class UserSvc extends Application {
 		try {	
 			int uId = GeneralUtilityMethods.getUserId(sd, user);
 		  
-			ssm.updateConsoleSettings(sd, uId, sIdent, settings.pageLen, settings.colOrder);
+			ssm.updateConsoleSettings(sd, uId, sIdent, oversightIdent, settings.pageLen, settings.colOrder);
 			response = Response.ok().build();
 				
 		} catch (Exception e) {

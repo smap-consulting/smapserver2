@@ -198,9 +198,11 @@ public class SurveySettingsManager {
 		}
 	}
 	
-	public void updateConsoleSettings(Connection sd, int uId, String sIdent, int pageLen, String colOrder) {
+	public void updateConsoleSettings(Connection sd, int uId, String sIdent, String oversightIdent, int pageLen, String colOrder) {
 		
 		PreparedStatement pstmt = null;
+		String colOrderKey = sIdent + (oversightIdent == null ? "" : oversightIdent);
+		String ssdColOrder = null;
 		
 		try {
 		
@@ -234,15 +236,17 @@ public class SurveySettingsManager {
 			}
 			
 			if(colOrder != null) {
-				if(ssd.colOrder == null) {
-					ssd.colOrder = colOrder;
+				ssdColOrder = ssd.columnOrders.get(colOrderKey);
+				
+				if(ssdColOrder == null) {
+					ssdColOrder = colOrder;
 				} else {
 					/*
 					 * reorder column order
 					 * New size should match the passed in column order
 					 */
 					String [] colArray = colOrder.split(",");
-					String [] oldColArray = ssd.colOrder.split(",");
+					String [] oldColArray = ssdColOrder.split(",");
 					boolean badArray = false;
 					if(colArray.length == oldColArray.length) {
 						String [] newColArray = colOrder.split(",");		
@@ -256,19 +260,18 @@ public class SurveySettingsManager {
 							}
 							
 						}
-						ssd.colOrder = String.join(",", newColArray);
+						ssdColOrder = String.join(",", newColArray);
 					} else {
-						ssd.colOrder = null;		// Length has changed so reset
+						ssdColOrder = null;		// Length has changed so reset
 					}
 					if(badArray) {
-						ssd.colOrder = null;
+						ssdColOrder = null;
 					}
 				}
-			} else {
-				ssd.colOrder = null;
-			}
+			} 
 			
-			log.info("xoxoxoxox: Setting colOrder: " + ssd.colOrder);
+			log.info("xoxoxoxox: Setting colOrder: " + colOrderKey + " : " + ssdColOrder);
+			ssd.columnOrders.put(colOrderKey, ssdColOrder);
 			setSurveySettings(sd, uId, sIdent, ssd);
 			
 			sd.commit();

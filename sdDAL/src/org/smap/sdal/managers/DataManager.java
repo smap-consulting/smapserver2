@@ -792,9 +792,12 @@ public class DataManager {
 			 * Reorder columns as per user preferences if column order has been set and is equal in length to the number of columns
 			 */
 			ArrayList<TableColumn> sortedColumns = columns;
-			if(ssd.colOrder != null) {
-				String colArray [] = ssd.colOrder.split(",");
-				log.info("xoxoxoxox: colOrder: " + ssd.colOrder);
+			String colOrderKey = sIdent + (oversightSurvey == null ? "" : oversightSurvey);
+			String ssdColOrder = ssd.columnOrders.get(colOrderKey);
+			log.info("xoxoxoxox: colOrderKey: " + colOrderKey);
+			if(ssdColOrder != null) {
+				String colArray [] = ssdColOrder.split(",");
+				log.info("xoxoxoxox: colOrder: " + ssdColOrder);
 				log.info("xoxoxoxox: column size is: " + columns.size());
 				if(colArray.length == columns.size()) {
 					sortedColumns = new ArrayList<> (columns.size());
