@@ -141,8 +141,7 @@ public class APIEntryPoints extends Application {
 			@QueryParam("instanceid") String instanceId,
 			@QueryParam("getSettings") boolean getSettings,			// if set true get the settings from the database
 			@QueryParam("selectedrow") String selectedRow,
-			@QueryParam("pageLen") int pageLen,
-			@QueryParam("colOrder") String colOrder
+			@QueryParam("pageLen") int pageLen
 			) throws ApplicationException, Exception { 
 			
 		boolean incLinks = false;
@@ -183,8 +182,7 @@ public class APIEntryPoints extends Application {
 				urlprefix,
 				attachmentPrefix,
 				selectedRow,
-				pageLen,
-				colOrder);
+				pageLen);
 		
 		return Response.status(Status.OK).build();
 	}

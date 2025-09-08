@@ -232,8 +232,40 @@ public class SurveySettingsManager {
 			} else if(ssd.pageLen <= 0) {
 				ssd.pageLen = 10;
 			}
+			
 			if(colOrder != null) {
-				ssd.colOrder = colOrder;
+				if(ssd.colOrder == null) {
+					ssd.colOrder = colOrder;
+				} else {
+					/*
+					 * reorder column order
+					 * New size should match the passed in column order
+					 */
+					String [] colArray = colOrder.split(",");
+					String [] oldColArray = ssd.colOrder.split(",");
+					boolean badArray = false;
+					if(colArray.length == oldColArray.length) {
+						String [] newColArray = colOrder.split(",");		
+						for(int idx = 0; idx < colArray.length; idx++) {
+							int colIndex = Integer.valueOf(colArray[idx]);
+							if(colIndex > newColArray.length) {
+								badArray = true;
+								break;
+							} else {
+								newColArray[idx] = oldColArray[colIndex];
+							}
+							
+						}
+						ssd.colOrder = String.join(",", newColArray);
+					} else {
+						ssd.colOrder = null;		// Length has changed so reset
+					}
+					if(badArray) {
+						ssd.colOrder = null;
+					}
+				}
+			} else {
+				ssd.colOrder = null;
 			}
 			
 			log.info("xoxoxoxox: Setting colOrder: " + ssd.colOrder);

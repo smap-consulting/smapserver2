@@ -197,8 +197,7 @@ public class Data extends Application {
 				urlprefix,
 				attachmentPrefix,
 				null,
-				0,		// page length - not used from API
-				null	// column order - not used from API
+				0		// page length - not used from API
 				);
 		
 		return Response.status(Status.OK).build();

@@ -483,8 +483,7 @@ public class DataManager {
 			String urlprefix,
 			String attachmentPrefix,
 			String selectedInstanceId,
-			int pageLen,							// Set by the console and remembered on the server
-			String colOrder					// Set by the console and remembered here
+			int pageLen							// Set by the console and remembered on the server - not used
 			) throws ApplicationException, Exception { 
 
 
@@ -638,7 +637,6 @@ public class DataManager {
 					ssd.include_completed = include_completed;
 					ssd.overridenDefaultLimit = "yes";
 					ssd.pageLen = pageLen;
-					ssd.colOrder = colOrder;
 					
 					ssm.setSurveySettings(sd, uId, sIdent, ssd);
 				} else {
@@ -801,7 +799,14 @@ public class DataManager {
 				if(colArray.length == columns.size()) {
 					sortedColumns = new ArrayList<> (columns.size());
 					for(String col : colArray ) {
-						sortedColumns.add(columns.get(Integer.valueOf(col.trim())));
+						int idx = Integer.valueOf(col.trim());
+						if(idx < columns.size()) {
+							sortedColumns.add(columns.get(idx));
+						} else {	
+							sortedColumns = columns;   // Bad column order list
+							log.info("xoxoxoxox: bad column order list");
+							break;
+						}
 					}
 					if(sv != null) {
 						sv.columns = sortedColumns;

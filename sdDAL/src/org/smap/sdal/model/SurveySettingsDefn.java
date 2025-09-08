@@ -17,12 +17,12 @@ public class SurveySettingsDefn {
 	public String overridenDefaultLimit;
 	public String include_bad;
 	public String include_completed;
-	public int pageLen;				// Datatables
+	public int pageLen;				// Datatables - no longer used
 	public String colOrder;			// Datatables
 	
 	public ArrayList<MapLayer> layers = new ArrayList<MapLayer> ();             // Map
 	public ArrayList<ChartDefn> charts = new ArrayList<ChartDefn> ();           // Charts
-	public HashMap<String, ConsoleColumn> columnSettings = new HashMap<> ();    // Columns
+	public HashMap<String, ConsoleColumn> columnSettings = new HashMap<> ();    // Columns - Used when generating a response
 
 	
 }
