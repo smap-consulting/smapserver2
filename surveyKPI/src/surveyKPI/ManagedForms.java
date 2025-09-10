@@ -74,6 +74,7 @@ import java.util.logging.Logger;
 public class ManagedForms extends Application {
 	
 	Authorise a = null;
+	Authorise aBulk = null;
 	Authorise aSuper = new Authorise(null, Authorise.ANALYST);
 	Authorise aAdmin = new Authorise(null, Authorise.ADMIN);
 	
@@ -87,7 +88,13 @@ public class ManagedForms extends Application {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.MANAGE);		// Enumerators with MANAGE access can process managed forms
-		a = new Authorise(authorisations, null);		
+		a = new Authorise(authorisations, null);
+		
+		ArrayList<String> bulkAuthorisations = new ArrayList<String> ();	
+		bulkAuthorisations.add(Authorise.ANALYST);
+		bulkAuthorisations.add(Authorise.ADMIN);
+		bulkAuthorisations.add(Authorise.SECURITY);
+		aBulk = new Authorise(bulkAuthorisations, null);
 	}
 
 	/*
@@ -157,6 +164,18 @@ public class ManagedForms extends Application {
 		Response response = null;
 		String requester = "surveyKPI-UpdateManagedRecord";
 		
+		// Get records to update
+		ArrayList<String> instances = null;
+		boolean bulk = false;
+		if(bulkInstanceString != null) {
+			Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+			instances = gson.fromJson(bulkInstanceString,  new TypeToken<ArrayList<String>>() {}.getType());
+			if(instances.size() > 1) {
+				bulk = true;
+			}
+		}
+					
+					
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requester);
 		boolean superUser = false;
@@ -164,7 +183,11 @@ public class ManagedForms extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		if(bulk) {
+			aBulk.isAuthorised(sd, request.getRemoteUser());
+		} else {
+			a.isAuthorised(sd, request.getRemoteUser());
+		}
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		a.isValidOversightSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
 		// End Authorisation
@@ -181,17 +204,6 @@ public class ManagedForms extends Application {
 			}
 			
 			ActionManager am = new ActionManager(localisation, tz);
-			
-			// Get records to update
-			ArrayList<String> instances = null;
-			boolean bulk = false;
-			if(bulkInstanceString != null) {
-				Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-				instances = gson.fromJson(bulkInstanceString,  new TypeToken<ArrayList<String>>() {}.getType());
-				if(instances.size() > 1) {
-					bulk = true;
-				}
-			}
 			
 			int subFormPrimaryKey = 0;
 			if(instances == null || instances.size() == 0) {
