@@ -230,7 +230,8 @@ public class MyAssignments extends Application {
 						String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults,
 								ta.task.form_id);
 						cm.assignRecord(sd, cResults, localisation, tableName, ta.task.update_id,
-								request.getRemoteUser(), "release", null, ta.assignment.task_comment);
+								request.getRemoteUser(), "release", null, ta.assignment.task_comment,
+								request.getRemoteUser());
 					}
 				} else if (ta.assignment.assignment_id > 0) {
 					log.info("Task Assignment: " + ta.assignment.assignment_status);

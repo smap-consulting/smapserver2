@@ -1133,7 +1133,9 @@ public class NotificationManager {
 						}
 					
 						CaseManager cm = new CaseManager(localisation);
-						int count = cm.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase, notify_details);
+						String requester = localisation.getString("c_notify") + " " + msg.notificationName;
+						int count = cm.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase, 
+								notify_details, requester);
 						if(count == 0) {
 							status = "error";
 							error_details = "case not found, attempting: " + notify_details;

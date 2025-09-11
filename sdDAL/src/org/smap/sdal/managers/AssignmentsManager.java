@@ -785,7 +785,7 @@ public class AssignmentsManager {
 				CaseManager cm = new CaseManager(localisation);
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, tu.sIdent);
 				cm.assignRecord(sd, cResults, localisation, tableName, tu.uuid, request.getRemoteUser(), "release",
-						null, tu.task_comment);
+						null, tu.task_comment, request.getRemoteUser());
 			} else {
 
 				pstmtSetDeleted = getPreparedStatementSetDeleted(sd);

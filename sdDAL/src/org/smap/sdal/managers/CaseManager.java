@@ -396,10 +396,11 @@ public class CaseManager {
 			ResourceBundle localisation, 
 			String tablename, 
 			String instanceId, 
-			String user, 
+			String assignTo, 
 			String type,					// lock || release || assign
 			String surveyIdent,
-			String note
+			String note,
+			String requestingUser
 			) throws SQLException {
 
 		int count = 0;
@@ -410,28 +411,29 @@ public class CaseManager {
 				.append(" set _assigned = ?, _case_survey = ? ")
 				.append("where _thread = ? ");
 
-		if(user != null && user.equals("_none")) {		// Assigning to no one
-			user = null;
+		if(assignTo != null && assignTo.equals("_none")) {		// Assigning to no one
+			assignTo = null;
 			surveyIdent = null;
 		}
 		
 		String thread = GeneralUtilityMethods.getThread(cResults, tablename, instanceId);
 		String assignedUser = GeneralUtilityMethods.getAssignedUser(cResults, tablename, instanceId);
 		
-		String assignTo = user;
 		String caseSurvey = surveyIdent;
 		String details = null;
 		if(type.equals("lock")) {
-			sql.append("and _assigned is null");		// User can only self assign if no one else is assigned
+			sql.append("and _assigned is null");		// User can only self assign if no one else is assigned 
 			details = localisation.getString("cm_lock");
+			details = details.replace("%s1", assignTo);
 		} else if(type.equals("release")) {
 			assignTo = null;
 			caseSurvey = null;
 			sql.append("and _assigned = ?");			// User can only release records that they are assigned to
 			details = localisation.getString("cm_release") + ": " + (note == null ? "" : note);
 		} else {
-			if(user != null) {
-				details = localisation.getString("assignee_ident");
+			if(assignTo != null) {
+				details = localisation.getString("assigned_to");
+				details = details.replace("%s1", assignTo);
 			} else {
 				details = localisation.getString("cm_ua");
 			}
@@ -446,7 +448,7 @@ public class CaseManager {
 		pstmt.setString(2, caseSurvey);
 		pstmt.setString(3,thread);
 		if(type.equals("release")) {
-			pstmt.setString(4,user);
+			pstmt.setString(4,assignedUser);
 		}
 		log.info("Assign record: " + pstmt.toString());
 		
@@ -459,7 +461,7 @@ public class CaseManager {
 				cResults, 
 				RecordEventManager.ASSIGNED, 
 				"success",
-				user, 
+				requestingUser, 
 				tablename, 
 				instanceId, 
 				null,				// Change object
@@ -484,7 +486,7 @@ public class CaseManager {
 					um.decrementTotalTasks(sd, assignedUser);
 				}
 				if(assignTo != null) {
-					um.incrementTotalTasks(sd, user);
+					um.incrementTotalTasks(sd, assignTo);
 				}
 			} else {
 				log.info("Error: xxxxxxxxxxxxxx: count is " + count + " : " + pstmt.toString());
