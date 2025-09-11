@@ -42,7 +42,6 @@ import org.smap.sdal.managers.PDFTableManager;
 import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.WordTableManager;
-import org.smap.sdal.model.ChartData;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.SurveySettingsDefn;
@@ -88,7 +87,6 @@ public class TableReports extends Application {
 	private class Chart {
 		public String title;
 		public String image;
-		public String description;
 		public String filePath;
 		public String entry;	// A unique name for the chart
 	}
@@ -107,7 +105,6 @@ public class TableReports extends Application {
 			@FormDataParam("format") String format,
 			@FormDataParam("title") String title,
 			@FormDataParam("project") String project,
-			//@FormDataParam("chartData") String chartData,		// deprecate
 			@FormDataParam("settings") String settingsString,
 			@FormDataParam("tz") String tz
 			) throws Exception { 
@@ -201,13 +198,6 @@ public class TableReports extends Application {
 				chartArray = new Gson().fromJson(charts, type);
 			}
 			
-			// Convert chartData string to an object array
-			//ArrayList<ChartData> chartDataArray = null;
-			//if(chartData != null) {
-			//	Type type = new TypeToken<ArrayList<ChartData>>(){}.getType();		
-			//	chartDataArray = new Gson().fromJson(chartData, type);
-			//}
-			
 			// Convert settings into an array of key value pairs
 			ArrayList<KeyValue> settings = null;
 			if(settingsString != null) {
@@ -221,7 +211,6 @@ public class TableReports extends Application {
 				XLSReportsManager xm = new XLSReportsManager(format);
 				xm.createXLSReportsFile(response.getOutputStream(), 
 						dArray, 
-						//chartDataArray, 
 						settings, 
 						mfc, 
 						GeneralUtilityMethods.getSurveyName(sd, sId),

@@ -20,6 +20,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URLDecoder;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.common.usermodel.HyperlinkType;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.ChartColumn;
@@ -110,7 +112,6 @@ public class XLSReportsManager {
 		this.localisation = l;
 		Sheet dataSheet = wb.createSheet(localisation.getString("rep_data"));
 		Sheet taskSettingsSheet = wb.createSheet(localisation.getString("rep_settings"));
-		//taskListSheet.createFreezePane(3, 1);	// Freeze header row and first 3 columns
 		
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 
@@ -118,82 +119,6 @@ public class XLSReportsManager {
 		
 		createHeader(cols, dataSheet, styles);	
 		processDataListForXLS(dArray, dataSheet, taskSettingsSheet, styles, cols, tz, settings, surveyName, formName);
-		
-		/*
-		 * Write the chart data if it is not null
-		 * Not used
-		if(chartDataArray != null) {
-			for(int i = 0; i < chartDataArray.size(); i++) {
-				ChartData cd = chartDataArray.get(i);
-				
-				if(cd.data.size() > 0) {
-					String name = cd.name;
-					if(name == null || name.trim().length() == 0) {
-						name = "chart " + i;
-					} else {
-						name += " (" + i + ")";	// Ensure name is unique
-					}
-					name = name.replaceAll("[\\/\\*\\[\\]:\\?]", "");
-					dataSheet = wb.createSheet(name);
-					
-					/*
-					 *  Add column headers
-					 *
-					int rowIndex = 0;
-					int colIndex = 0;
-					Row headerRow = dataSheet.createRow(rowIndex++);
-					CellStyle headerStyle = styles.get("header");
-					
-					// Add label summary cell above the row labels
-					String labsum = "";
-					if(cd.labels != null && cd.labels.size() > 0) {
-						for(String label : cd.labels) {
-							if(labsum.length() > 0) {
-								labsum += " / ";
-							}
-							labsum += label;
-						}
-					}
-					Cell cell = headerRow.createCell(colIndex++);
-			        cell.setCellStyle(headerStyle);
-			        cell.setCellValue(labsum);
-			        
-			        // Add a column for each group
-			        ChartRow row = cd.data.get(0);
-			        ArrayList<ChartColumn> chartCols = row.pr;
-			        for(ChartColumn chartCol : chartCols) {
-			            cell = headerRow.createCell(colIndex++);
-			            cell.setCellStyle(headerStyle);
-			            cell.setCellValue(chartCol.key);
-			        }
-			        
-					/*
-					 *  Add rows
-					 *
-			        for(ChartRow chartRow : cd.data) {
-			        	colIndex = 0;
-			        	Row aRow = dataSheet.createRow(rowIndex++);
-					
-					
-						// Add row label
-						cell = aRow.createCell(colIndex++);
-				        cell.setCellValue(chartRow.key);
-			        
-				        // Add a cell for each group
-				        chartCols = chartRow.pr;
-				        for(ChartColumn chartCol : chartCols) {
-				            cell = aRow.createCell(colIndex++);
-				            cell.setCellValue(chartCol.value);
-				        }
-	
-			        }
-				}
-
-			}
-			
-
-		}
-		*/
 		
 		wb.write(outputStream);
 		outputStream.close();
@@ -341,6 +266,9 @@ public class XLSReportsManager {
 
 				if(!cellWritten) {
 					cell.setCellStyle(styles.get("default"));
+					if(value != null) {
+						value = GeneralUtilityMethods.unesc(value);
+					}
 					cell.setCellValue(value);
 				}
 
