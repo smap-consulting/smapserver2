@@ -219,6 +219,18 @@ public class XLSXAdminReportsManagerFormAccess {
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("rep_sec_groups"));
 			
+			cell = row.createCell(colNumber++);	// Enterprise Admin
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_ent_admin"));
+			
+			cell = row.createCell(colNumber++);	// Organisational Admin
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_org_admin"));
+			
+			cell = row.createCell(colNumber++);	// Security Manager
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_sec_mgr"));
+			
 			cell = row.createCell(colNumber++);	// Admin
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("rep_admin"));
@@ -231,6 +243,14 @@ public class XLSXAdminReportsManagerFormAccess {
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("rep_mc"));
 			
+			cell = row.createCell(colNumber++);	// Manage Data
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_md"));
+			
+			cell = row.createCell(colNumber++);	// Manage Tasks
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_mt"));
+			
 			cell = row.createCell(colNumber++);	// Enum
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("rep_enum"));
@@ -238,6 +258,10 @@ public class XLSXAdminReportsManagerFormAccess {
 			cell = row.createCell(colNumber++);	// View Data
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("rep_view"));
+			
+			cell = row.createCell(colNumber++);	// View Own Data
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_view_own_data"));
 			
 			if(survey.surveyData.roles.size() > 0) {
 				int idx = 0;
@@ -268,11 +292,17 @@ public class XLSXAdminReportsManagerFormAccess {
 				colNumber = 0;
 				boolean hasProject = false;
 				boolean isInOrg = false;
+				boolean hasEnterpriseAdmin = false;
+				boolean hasOrganisationAdmin = false;
+				boolean hasSecurityMgr = false;
 				boolean hasAdmin = false;
 				boolean hasAnalyst = false;
 				boolean hasManageConsole = false;
+				boolean hasManageData = false;
+				boolean hasManageTasks = false;
 				boolean hasEnum = false;
 				boolean hasView = false;
+				boolean hasViewOwnData = false;
 				
 				row = dataSheet.createRow(rowNumber++);	
 				
@@ -304,18 +334,39 @@ public class XLSXAdminReportsManagerFormAccess {
 				 * Add security group cells
 				 */
 				for(UserGroup ug : u.groups) {
-					if(ug.id == Authorise.ADMIN_ID) {
+					if(ug.id == Authorise.ENTERPRISE_ID) {
+						hasEnterpriseAdmin = true;
+					} else if(ug.id == Authorise.ORG_ID) {
+						hasOrganisationAdmin = true;
+					} else if(ug.id == Authorise.SECURITY_ID) {
+						hasSecurityMgr = true;
+					} else if(ug.id == Authorise.ADMIN_ID) {
 						hasAdmin = true;
 					} else if(ug.id == Authorise.ANALYST_ID) {
 						hasAnalyst = true;
 					} else if(ug.id == Authorise.CONSOLE_ADMIN_ID) {
 						hasManageConsole = true;
+					} else if(ug.id == Authorise.MANAGE_ID) {
+						hasManageData = true;
+					} else if(ug.id == Authorise.MANAGE_TASKS_ID) {
+						hasManageTasks = true;
 					} else if(ug.id == Authorise.ENUM_ID) {
 						hasEnum = true;
 					} else if(ug.id == Authorise.VIEW_DATA_ID) {
 						hasView = true;
+					} else if(ug.id == Authorise.VIEW_OWN_DATA_ID) {
+						hasViewOwnData = true;
 					}
 				}	
+				cell = row.createCell(colNumber++);	// Has Enterprise Admin
+				if(hasEnterpriseAdmin ? setCellGood(cell) : setCellBad(cell));
+				
+				cell = row.createCell(colNumber++);	// Has Organisation Admin
+				if(hasOrganisationAdmin ? setCellGood(cell) : setCellBad(cell));
+				
+				cell = row.createCell(colNumber++);	// Has Security Manager
+				if(hasSecurityMgr ? setCellGood(cell) : setCellBad(cell));
+				
 				cell = row.createCell(colNumber++);	// Has Admin
 				if(hasAdmin ? setCellGood(cell) : setCellBad(cell));
 				
@@ -325,11 +376,20 @@ public class XLSXAdminReportsManagerFormAccess {
 				cell = row.createCell(colNumber++);	// Manage Console
 				if(hasManageConsole ? setCellGood(cell) : setCellBad(cell));
 				
+				cell = row.createCell(colNumber++);	// Manage Data
+				if(hasManageData ? setCellGood(cell) : setCellBad(cell));
+				
+				cell = row.createCell(colNumber++);	// Manage Tasks
+				if(hasManageTasks ? setCellGood(cell) : setCellBad(cell));
+				
 				cell = row.createCell(colNumber++);	// Has Enum
 				if(hasEnum ? setCellGood(cell) : setCellBad(cell));
 				
 				cell = row.createCell(colNumber++);	// Has View
 				if(hasView ? setCellGood(cell) : setCellBad(cell));
+				
+				cell = row.createCell(colNumber++);	// Has View Own Data
+				if(hasViewOwnData ? setCellGood(cell) : setCellBad(cell));
 				
 				boolean hasRoleAccess = false;
 				if(survey.surveyData.roles.size() == 0) {
