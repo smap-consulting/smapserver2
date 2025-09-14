@@ -131,6 +131,15 @@ public class SurveyViewManager {
 					includeBad);
 		}
 
+		/*
+		 * Sort the columns
+		 */
+		Collections.sort(svd.columns, new Comparator<TableColumn>() {
+		    @Override
+		    public int compare(TableColumn a, TableColumn b) {
+		        return a.seq > b.seq ? 1 : (a.seq < b.seq) ? -1 : 0;
+		    }
+		});
 
 	return svd;
 
@@ -280,16 +289,6 @@ public void populateSvd(
 			svd.mainColumnsRemoved.put(mainColumnsToRemove.get(i), 1);
 		}
 	}
-	
-	/*
-	 * Sort the columns
-	 */
-	Collections.sort(svd.columns, new Comparator<TableColumn>() {
-	    @Override
-	    public int compare(TableColumn a, TableColumn b) {
-	        return a.seq > b.seq ? 1 : (a.seq < b.seq) ? -1 : 0;
-	    }
-	});
 
 	/*
 	 * Add the choice lists 
