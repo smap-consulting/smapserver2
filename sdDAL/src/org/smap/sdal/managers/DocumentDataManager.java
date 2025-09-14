@@ -92,7 +92,7 @@ public class DocumentDataManager {
 						));
 		
 		// Set the categories to use
-		ArrayList<Category> categories = new ArrayList();
+		ArrayList<Category> categories = new ArrayList<>();
 		Category c1 = new Category("male", 0, 5);
 		Category c2 = new Category("female", 0, 5);
 		Category c3 = new Category("male", 5, 500);

@@ -197,7 +197,7 @@ public void populateSvd(
 			);		
 
 	// If this is a group form track which duplicate main questions need to be removed
-	ArrayList<Integer> mainColumnsToRemove = new ArrayList<Integer>();
+	ArrayList<Integer> mainColumnsToRemove = new ArrayList<>();
 
 	/*
 	 * Add any configuration settings
@@ -274,6 +274,7 @@ public void populateSvd(
 		Collections.sort(mainColumnsToRemove);
 		for(int i = mainColumnsToRemove.size() - 1; i >= 0; i--) {
 			svd.columns.remove(mainColumnsToRemove.get(i).intValue());
+			svd.mainColumnsRemoved.put(mainColumnsToRemove.get(i), 1);
 		}
 	}
 

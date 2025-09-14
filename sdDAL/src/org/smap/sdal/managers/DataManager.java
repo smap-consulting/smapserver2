@@ -8,7 +8,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -795,49 +794,82 @@ public class DataManager {
 			String colOrderKey = sIdent + (oversightSurvey == null ? "" : oversightSurvey);
 			String ssdColOrder = ssd.columnOrders.get(colOrderKey);
 			log.info("xoxoxoxox: colOrderKey: " + colOrderKey);
-			if(ssdColOrder != null) {
-				String colArray [] = ssdColOrder.split(",");
-				
-				/*
-				 * If include bad is specified add two elements to the column order array for deleted and deleted reason
-				 */
-				if(ssd.include_bad.equals("yes")) {
-					if(colArray.length > 3) {
-						String [] newArray = new String[colArray.length + 2];
-						newArray[0] = "1";		// Deleted is the 2nd column
-						newArray[1] = "2";		// Deleted reason is the 3rd							
-						for(int i = 0; i < colArray.length; i++) {
-							if(colArray[i].trim().equals("0")) {
-								newArray[i + 2] = "0";				// Prikey is the first column	
+			
+			/*
+			 * If the colOrder data is null, but there is column order data for the main form on its own,
+			 * then partially order the data using the main form order
+			 */
+			try {
+				if(ssdColOrder == null && oversightSurvey != null) {
+					String mainFormColOrder = ssd.columnOrders.get(sIdent);
+					if(mainFormColOrder != null) {
+						// OK lets use this
+						log.info("xoxoxoxox: Main form col order: " + mainFormColOrder);
+						String mainFormColArray [] = mainFormColOrder.split(","); 
+						String [] newArray = new String[columns.size()]; 
+						for(int i = 0, removedCount = 0; i < newArray.length; i++) {
+							if(i < mainFormColArray.length) {
+								int order = Integer.valueOf(mainFormColArray[i]);
+								if(sv.mainColumnsRemoved.get(order) != null) {
+									// Skip this one its been removed
+									removedCount++;
+								} else {
+									newArray[i] = String.valueOf(order - removedCount);
+								}
 							} else {
-								newArray[i + 2] = String.valueOf(Integer.valueOf(colArray[i]) + 2);	// Everything else moves along 2
+								newArray[i] = String.valueOf(i);
 							}
 						}
-						colArray = newArray;
-					}		
-				}
-				log.info("xoxoxoxox: colOrder: " + ssdColOrder);
-				log.info("xoxoxoxox: column size is: " + columns.size());
-				if(colArray.length == columns.size()) {
-					sortedColumns = new ArrayList<> (columns.size());
-					for(String col : colArray ) {
-						int idx = Integer.valueOf(col.trim());
-						if(idx < columns.size()) {
-							sortedColumns.add(columns.get(idx));
-						} else {	
-							sortedColumns = columns;   // Bad column order list
-							log.info("xoxoxoxox: bad column order list");
-							break;
-						}
+						ssdColOrder = String.join(",", newArray);
 					}
-					if(sv != null) {
-						sv.columns = sortedColumns;
+				}
+
+				if(ssdColOrder != null) {
+					String colArray [] = ssdColOrder.split(",");
+
+					/*
+					 * If include bad is specified add two elements to the column order array for deleted and deleted reason
+					 */
+					if(ssd.include_bad.equals("yes")) {
+						if(colArray.length > 3) {
+							String [] newArray = new String[colArray.length + 2];
+							newArray[0] = "1";		// Deleted is the 2nd column
+							newArray[1] = "2";		// Deleted reason is the 3rd							
+							for(int i = 0; i < colArray.length; i++) {
+								if(colArray[i].trim().equals("0")) {
+									newArray[i + 2] = "0";				// Prikey is the first column	
+								} else {
+									newArray[i + 2] = String.valueOf(Integer.valueOf(colArray[i]) + 2);	// Everything else moves along 2
+								}
+							}
+							colArray = newArray;
+						}		
+					}
+					log.info("xoxoxoxox: colOrder: " + ssdColOrder);
+					log.info("xoxoxoxox: column size is: " + columns.size());
+					if(colArray.length == columns.size()) {
+						sortedColumns = new ArrayList<> (columns.size());
+						for(String col : colArray ) {
+							int idx = Integer.valueOf(col.trim());
+							if(idx < columns.size()) {
+								sortedColumns.add(columns.get(idx));
+							} else {	
+								sortedColumns = columns;   // Bad column order list
+								log.info("xoxoxoxox: bad column order list");
+								break;
+							}
+						}
+						if(sv != null) {
+							sv.columns = sortedColumns;
+						}
+					} else {
+						log.info("xoxoxoxox: no sort: colOrder size not equal to column size");
 					}
 				} else {
-					log.info("xoxoxoxox: no sort: colOrder size not equal to column size");
+					log.info("xoxoxoxox: no sort: colOrder is null");
 				}
-			} else {
-				log.info("xoxoxoxox: no sort: colOrder is null");
+			} catch(Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);	// Report error but otherwise ignore
 			}
 			
 			/*
@@ -972,6 +1004,7 @@ public class DataManager {
 					}
 					sv.tableName = null;
 					sv.mainColumnNames = null;
+					sv.mainColumnsRemoved = null;
 					ssd.columnOrders = null;
 					
 					// 2. Add the schema to the results
