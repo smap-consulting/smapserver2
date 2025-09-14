@@ -36,6 +36,7 @@ public class TableColumn {
 	public boolean compressed = false;
 	public boolean isMeta = false;
 	public boolean selectDisplayNames = false;
+	public int seq;
 	
 	// Manage updating of data
 	public boolean readonly;	// Can't be modified by form management

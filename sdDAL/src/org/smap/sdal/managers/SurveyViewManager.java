@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -213,10 +214,12 @@ public void populateSvd(
 			
 			if(cc == null) {	
 				tc.hide = hideDefault(c.column_name, c.readonly);
+				tc.seq = i;
 			} else {
 				tc.hide = cc.hide;
 				tc.barcode = cc.barcode;
 				tc.includeText = cc.includeText;
+				tc.seq = cc.seq;
 			}
 			tc.mgmt = !isMain;
 			tc.filter = c.filter;
@@ -277,6 +280,16 @@ public void populateSvd(
 			svd.mainColumnsRemoved.put(mainColumnsToRemove.get(i), 1);
 		}
 	}
+	
+	/*
+	 * Sort the columns
+	 */
+	Collections.sort(svd.columns, new Comparator<TableColumn>() {
+	    @Override
+	    public int compare(TableColumn a, TableColumn b) {
+	        return a.seq > b.seq ? 1 : (a.seq < b.seq) ? -1 : 0;
+	    }
+	});
 
 	/*
 	 * Add the choice lists 
