@@ -417,7 +417,7 @@ public class CaseManager {
 		}
 		
 		String thread = GeneralUtilityMethods.getThread(cResults, tablename, instanceId);
-		String assignedUser = GeneralUtilityMethods.getAssignedUser(cResults, tablename, instanceId);
+		String assignedUser = GeneralUtilityMethods.getAssignedUser(cResults, tablename, thread);
 		
 		String caseSurvey = surveyIdent;
 		String details = null;
