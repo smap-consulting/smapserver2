@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
-import java.util.logging.Logger;
 
 import org.apache.commons.fileupload.FileItem;
 import org.smap.sdal.Utilities.ApplicationException;
@@ -34,9 +33,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  * Based on OWASP article : https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html
  */
 public class DocumentUploadManager {
-	
-	private static Logger log =
-			 Logger.getLogger(DocumentUploadManager.class.getName());
 
 	public static ArrayList<String> SHARED_RESOURCE_TYPES = new ArrayList<>(List.of(
 			"csv", "excel", 

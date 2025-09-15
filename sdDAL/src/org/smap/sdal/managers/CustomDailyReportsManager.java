@@ -52,7 +52,6 @@ public class CustomDailyReportsManager {
 	LogManager lm = new LogManager();		// Application log
 	
 	private ResourceBundle localisation = null;
-	private String tz;
 	
 	private class ChartItem {
 		ArrayList<Integer> bars = new ArrayList<> ();
@@ -64,7 +63,6 @@ public class CustomDailyReportsManager {
 		if(tz == null) {
 			tz = "UTC";
 		}
-		this.tz = tz;
 	}
 
 	public void getDailyReport(
