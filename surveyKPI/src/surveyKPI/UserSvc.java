@@ -424,51 +424,6 @@ public class UserSvc extends Application {
 	}
 	
 	/*
-	 * Update the browser side console settings
-	 * Settings that affect data returned from the server are saved when the data is requested
-	 */
-	@POST
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/consolesettings/{sIdent}")
-	public Response updateCurrentConsoleSettings(@Context HttpServletRequest request, 
-			ConsoleSettings settings,
-			@PathParam("sIdent") String sIdent,
-			@QueryParam("oversight") String oversightIdent) { 
-		
-		// Check for Ajax and reject if not
-		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
-			log.info("Error: Non ajax request");
-	        throw new AuthorisationException();   
-		} 
-		
-		Response response = null;
-		String connectionString = "SurveyKPI - ConsoleSettings";
-		// Authorisation - Not Required
-		Connection sd = SDDataSource.getConnection(connectionString);
-			
-		String user = request.getRemoteUser();
-		SurveySettingsManager ssm = new SurveySettingsManager(null, null);
-		
-		try {	
-			int uId = GeneralUtilityMethods.getUserId(sd, user);
-		  
-			ssm.updateConsoleSettings(sd, uId, sIdent, oversightIdent, settings.pageLen, settings.colOrder);
-			response = Response.ok().build();
-				
-		} catch (Exception e) {
-
-			response = Response.serverError().build();
-			log.log(Level.SEVERE,"Error", e);
-			
-		} finally {
-			
-			SDDataSource.closeConnection(connectionString, sd);
-		}
-		
-		return response;
-	}
-	
-	/*
 	 * Update the current survey, project and task group
 	 */
 	@POST
