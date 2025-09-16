@@ -1154,7 +1154,7 @@ public class Items extends Application {
 				int pId = tableSet.getInt(2);
 				boolean isChild = pId > 0;
 				UtilityMethodsEmail.markRecord(cRel, sd, localisation, tName, value, 
-						reason, key, sId, fId, false, isChild, request.getRemoteUser(), true, tz, true);
+						reason, key, sId, fId, false, isChild, request.getRemoteUser(), true, tz, true, true);
 				
 				String msg = localisation.getString("msg_del_rec_form");
 				msg = msg.replace("%s1", String.valueOf(fId));
@@ -1235,7 +1235,7 @@ public class Items extends Application {
 			boolean isChild = false;
 			UtilityMethodsEmail.markRecord(cRel, sd, localisation, form.tableName, value, 
 						reason, key, sId, form.id, false, isChild, 
-						request.getRemoteUser(), true, tz, true);
+						request.getRemoteUser(), true, tz, true, true);
 			String msg = localisation.getString("msg_del_rec");
 			msg = msg.replace("%s1", String.valueOf(key));
 			msg = msg.replace("%s2", reason == null ? "" : reason);

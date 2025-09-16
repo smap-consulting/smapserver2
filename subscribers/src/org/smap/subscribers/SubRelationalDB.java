@@ -1417,7 +1417,7 @@ public class SubRelationalDB extends Subscriber {
 				value +=  " " + prikey;
 				
 				UtilityMethodsEmail.markRecord(cResults, sd, localisation, table, 
-						true, value, sourceKey, sId, f_id, true, false, user, true, tz, false);
+						true, value, sourceKey, sId, f_id, true, false, user, true, tz, false, false);
 			}
 
 		} finally {

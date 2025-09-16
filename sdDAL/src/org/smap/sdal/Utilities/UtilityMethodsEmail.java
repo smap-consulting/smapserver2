@@ -60,7 +60,8 @@ public class UtilityMethodsEmail {
 			String user,
 			boolean updateChildren,
 			String tz,
-			boolean overideModifiedFlag		// Set if this is a manual request
+			boolean overideModifiedFlag,		// Set if this is a manual request
+			boolean writeToEventManager
 			) throws Exception {
 
 		String sql = "update " 
@@ -131,7 +132,8 @@ public class UtilityMethodsEmail {
 					while(childRecs.next()) {
 						int childKey = childRecs.getInt(1);
 						markRecord(cResults, sd, localisation, childTable, value, reason, childKey, 
-								sId, childFormId, modified, true, user, updateChildren, tz, overideModifiedFlag);
+								sId, childFormId, modified, true, user, updateChildren, tz, 
+								overideModifiedFlag, writeToEventManager);
 					}
 				}
 			}
@@ -139,7 +141,7 @@ public class UtilityMethodsEmail {
 			/*
 			 * Write to event table if this is the top level table
 			 */
-			if(!isChild) {
+			if(!isChild && writeToEventManager) {
 				String instanceId = GeneralUtilityMethods.getInstanceId(cResults, tName, key);
 				RecordEventManager rem = new RecordEventManager();
 				rem.writeEvent(sd, cResults, 
