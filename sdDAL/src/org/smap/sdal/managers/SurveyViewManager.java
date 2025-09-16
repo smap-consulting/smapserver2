@@ -208,7 +208,8 @@ public void populateSvd(
 
 	// If this is a group form track which duplicate main questions need to be removed
 	ArrayList<Integer> mainColumnsToRemove = new ArrayList<>();
-
+	int startingIndex = svd.columns.size();
+	
 	/*
 	 * Add any configuration settings
 	 */			
@@ -223,7 +224,7 @@ public void populateSvd(
 			
 			if(cc == null) {	
 				tc.hide = hideDefault(c.column_name, c.readonly);
-				tc.seq = i;
+				tc.seq = i + startingIndex;
 			} else {
 				tc.hide = cc.hide;
 				tc.barcode = cc.barcode;
