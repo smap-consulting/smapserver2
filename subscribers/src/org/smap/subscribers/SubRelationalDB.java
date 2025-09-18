@@ -80,6 +80,7 @@ public class SubRelationalDB extends Subscriber {
 	String gAuditFilePath = null;
 	AdvisoryLock lockTableChange;
 	AdvisoryLock lockRecordUpdate;
+	boolean isCaseClosed = false;		// Set to true if this update closes a case /(the case may already be closed)
 	
 	private Survey survey = null;
 	private Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
@@ -150,7 +151,7 @@ public class SubRelationalDB extends Subscriber {
 				if(id == null) {
 					id = instance.getUuid();
 				}
-				applyAssignmentStatus(dbc.sd, dbc.results, assignmentId, ue_id, id);
+				applyAssignmentStatus(dbc.sd, dbc.results, assignmentId, id);
 			}
 			
 			se.setStatus("success");			
@@ -199,7 +200,7 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Apply any changes to assignment status
 	 */
-	private void applyAssignmentStatus(Connection sd, Connection cResults, int assignmentId, int ue_id, 
+	private void applyAssignmentStatus(Connection sd, Connection cResults, int assignmentId,  
 			String updateId) {
 
 		PreparedStatement pstmt = null;
@@ -322,7 +323,8 @@ public class SubRelationalDB extends Subscriber {
 	 * Write the submission to the database
 	 * Return the thread of the record
 	 */
-	private String writeAllTableContent(Connection sd, Connection cResults, SurveyInstance instance, String remoteUser, 
+	private String writeAllTableContent(Connection sd, Connection cResults, SurveyInstance instance, 
+			String remoteUser, 
 			String server, String device, String formStatus, String updateId,
 			Date uploadTime, String surveyNotes, String locationTrigger,
 			int assignmentId, int oId) throws SQLInsertException {
@@ -414,7 +416,8 @@ public class SubRelationalDB extends Subscriber {
 							topLevelForm.id,
 							existingKey, 
 							keyPolicy.equals(SurveyManager.KP_REPLACE),
-							remoteUser, updateId, survey.surveyData.groupSurveyIdent, survey.surveyData.ident, localisation);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
+							remoteUser, updateId, survey.surveyData.groupSurveyIdent, survey.surveyData.ident, 
+							localisation);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
 				} 
 			} else if(hasHrk && !keyPolicy.equals(SurveyManager.KP_NONE)) {
 				if(keyPolicy.equals(SurveyManager.KP_MERGE) || keyPolicy.equals(SurveyManager.KP_REPLACE)) {					
@@ -553,7 +556,6 @@ public class SubRelationalDB extends Subscriber {
 			 * of a complex question will be written to their own table as well as being
 			 * handled as a composite/complex question by the parent form
 			 */
-
 			if (element.getType() != null && (element.getType().equals("form")
 					|| (element.getQType() != null && element.getQType().equals("geopolygon"))
 					|| (element.getQType() != null && element.getQType().equals("geolinestring")))) {
@@ -842,6 +844,7 @@ public class SubRelationalDB extends Subscriber {
 		 */
 		if(parentKey == 0) {
 			if(dmv.case_closed != null) {
+				isCaseClosed = true;
 				addTableCol(cols, vals, tableCols, "_case_closed", String.valueOf(dmv.case_closed), "timestamp");
 			} else {
 				addTableCol(cols, vals, tableCols, "_case_closed", null, "timestamp");
@@ -1376,6 +1379,34 @@ public class SubRelationalDB extends Subscriber {
 					}
 				}
 				
+				if(changes != null) {
+					// Save the changes
+					Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+					rem.writeEvent(sd, cResults, 
+							RecordEventManager.CHANGES, 
+							RecordEventManager.STATUS_SUCCESS,
+							user, table, 
+							newInstance, 
+							gson.toJson(changes), 	// Change object
+							null, 					// Task object
+							null,					// Inbound message object
+							null,					// Notification object
+							null, 
+							sId, 
+							null,
+							0,
+							0);	
+					
+					/*
+					 * Release the case if it has been closed
+					 */
+					if(isCaseClosed) {
+						CaseManager cm = new CaseManager(localisation);
+						cm.assignRecord(sd, cResults, localisation, table, newInstance, user, "release",
+								null, localisation.getString("cm_auto_release"), user);
+					}
+				}
+				
 			} else {
 				rem.writeEvent(sd, cResults, 
 						RecordEventManager.CREATED, 
@@ -1393,24 +1424,6 @@ public class SubRelationalDB extends Subscriber {
 						0);	
 			}
 			
-			if(changes != null) {
-				// Save the changes
-				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-				rem.writeEvent(sd, cResults, 
-						RecordEventManager.CHANGES, 
-						RecordEventManager.STATUS_SUCCESS,
-						user, table, 
-						newInstance, 
-						gson.toJson(changes), 	// Change object
-						null, 					// Task object
-						null,					// Inbound message object
-						null,					// Notification object
-						null, 
-						sId, 
-						null,
-						0,
-						0);					
-			}
 
 			if(sourceKey > 0) {
 				String value = (replace) ? localisation.getString("sub_rb") : localisation.getString("sub_mw");
