@@ -23,6 +23,7 @@ import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.SqlFragParam;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
 
@@ -108,7 +109,6 @@ public class TableDataManager {
 
 		StringBuffer columnSelect = new StringBuffer();
 		boolean hasRbacFilter = false;
-		ArrayList<SqlFrag> columnSqlFrags = new ArrayList<SqlFrag>();
 		ArrayList<SqlParam> params = new ArrayList<> ();
 
 		PreparedStatement pstmt = null;
@@ -151,7 +151,9 @@ public class TableDataManager {
 			
 			// record any parameters for server side calculations
 			if (c.calculation != null && c.calculation.params != null) {
-				columnSqlFrags.add(c.calculation);
+				for(SqlFragParam p : c.calculation.params) {
+					params.add(new SqlParam("string", p.sValue));
+				}
 			}
 		}
 		
@@ -327,13 +329,9 @@ public class TableDataManager {
 			// Set parameters
 			int paramCount = 1;
 
-			// Parameters in select clause 
+			 // Parameters in select clause 
 			paramCount = GeneralUtilityMethods.addSqlParams(pstmt, paramCount, params);
 			
-			// Add parameters in table column selections - These might be for server calculates
-			if (columnSqlFrags.size() > 0) {
-				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, columnSqlFrags, paramCount, tz);
-			}
 			pstmt.setInt(paramCount++, start);
 			if (getParkey) {
 				pstmt.setInt(paramCount++, start_parkey);
