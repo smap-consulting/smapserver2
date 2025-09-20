@@ -149,12 +149,6 @@ public class TableDataManager {
 			
 			columnSelect.append(c.getSqlSelect(attachmentPrefix, tz, params));
 			
-			// record any parameters for server side calculations
-			if (c.calculation != null && c.calculation.params != null) {
-				for(SqlFragParam p : c.calculation.params) {
-					params.add(new SqlParam("string", p.sValue));
-				}
-			}
 		}
 		
 		if (GeneralUtilityMethods.tableExists(cResults, table_name)) {

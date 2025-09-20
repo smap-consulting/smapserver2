@@ -103,9 +103,13 @@ public class TableColumn {
 		} else if(isCalculate()) {
 			if(calculation != null) {
 				selName = calculation.sql.toString();
+				for(SqlFragParam p : calculation.params) {
+					params.add(new SqlParam("string", p.sValue));
+				}
 			} else {
 				selName = "'' as " + column_name;
 			}
+			
 		} else if(type.equals("duration")) {
 			if(startName != null && endName != null) {
 				selName = "round(extract(epoch FROM (" + endName + " - " + startName + "))) as "+ column_name;
