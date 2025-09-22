@@ -266,7 +266,7 @@ create TABLE log_archive (
 	id integer CONSTRAINT pk_log_archive PRIMARY KEY,
 	log_time TIMESTAMP WITH TIME ZONE,
 	s_id integer,
-	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	o_id integer,
 	e_id integer,
 	user_ident text,
 	event text,	
@@ -279,7 +279,7 @@ ALTER TABLE log_archive OWNER TO ws;
 DROP TABLE IF EXISTS project CASCADE;
 create TABLE project (
 	id INTEGER DEFAULT NEXTVAL('project_seq') CONSTRAINT pk_project PRIMARY KEY,
-	o_id,
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
 	name text,
 	description text,
 	tasks_only boolean default false,	-- Deprecated - Set per form instead as (hide_on_device). When true only tasks will be downloaded to fieldTask
@@ -1741,7 +1741,7 @@ CREATE TABLE subevent_queue (
 	id integer DEFAULT NEXTVAL('subevent_queue_seq') CONSTRAINT pk_subevent_queue PRIMARY KEY,
 	ue_id integer,
 	linkage_items text,    -- JSON
-	thread text.	-- Thread of the submitted record
+	thread text,	-- Thread of the submitted record
 	status text,    -- new or failed
 	reason text,	-- failure reason
 	created_time TIMESTAMP WITH TIME ZONE,
