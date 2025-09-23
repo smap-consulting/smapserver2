@@ -365,6 +365,7 @@ public class ManagedForms extends Application {
 			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			String surveyName = GeneralUtilityMethods.getSurveyName(sd, sId);
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			String projectName = GeneralUtilityMethods.getProjectNameFromSurvey(sd, sId);
 			int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);		
 			Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
 			if(tableName != null) {
@@ -383,8 +384,9 @@ public class ManagedForms extends Application {
 				 */
 				if(organisation.can_notify) {
 					
+					String server = request.getServerName();				
 					String content = localisation.getString("mf_ca2");
-					content = content.replace("%s1", surveyName);
+					content = content.replaceAll("%s1", surveyName);
 					
 					EmailManager em = new EmailManager(localisation);
 					String emails = em.getAssignedUserEmails(sd, cResults, sId, instanceId);
@@ -399,9 +401,9 @@ public class ManagedForms extends Application {
 							false, 			// Create Pending
 							"none",			// Topic
 							request.getRemoteUser(), 
-							request.getServerName(),
-							null,			// Survey Name 
-							null,			// Project Name
+							server,
+							surveyName,				// Survey Name 
+							projectName,			// Project Name
 							localisation.getString("mf_ca"),	// Subject
 							null, 								// from
 							content, 							// Message content
