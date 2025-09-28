@@ -181,6 +181,30 @@ public class XLSXAdminReportsManagerFormAccess {
 				cell.setCellValue(localisation.getString("ar_project"));
 				cell = row.createCell(1);	
 				cell.setCellValue(survey.surveyData.projectName);
+				
+				row = dataSheet.createRow(rowNumber++);		
+				cell = row.createCell(0);	// Data Survey
+				cell.setCellValue(localisation.getString("br_ds"));
+				cell = row.createCell(1);	
+				if(survey.surveyData.dataSurvey ? setCellGood(cell) : setCellBad(cell));
+				
+				row = dataSheet.createRow(rowNumber++);		
+				cell = row.createCell(0);	// Oversight Survey
+				cell.setCellValue(localisation.getString("br_os"));
+				cell = row.createCell(1);	
+				if(survey.surveyData.oversightSurvey ? setCellGood(cell) : setCellBad(cell));
+				
+				row = dataSheet.createRow(rowNumber++);		
+				cell = row.createCell(0);	// Read Only Survey
+				cell.setCellValue(localisation.getString("br_ro"));
+				cell = row.createCell(1);	
+				if(survey.surveyData.readOnlySurvey ? setCellGood(cell) : setCellBad(cell));
+				
+				row = dataSheet.createRow(rowNumber++);		
+				cell = row.createCell(0);	// Hide on Device
+				cell.setCellValue(localisation.getString("br_hod"));
+				cell = row.createCell(1);	
+				if(survey.surveyData.hideOnDevice ? setCellGood(cell) : setCellBad(cell));
 			}
 			
 			/*
