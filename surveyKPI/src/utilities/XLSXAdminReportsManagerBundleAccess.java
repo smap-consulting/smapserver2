@@ -25,6 +25,7 @@ import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -37,20 +38,11 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
-import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.GroupDetails;
-import org.smap.sdal.model.Project;
-import org.smap.sdal.model.Role;
-import org.smap.sdal.model.SqlFrag;
-import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.User;
-import org.smap.sdal.model.UserGroup;
 
 
 /*
@@ -101,8 +93,6 @@ public class XLSXAdminReportsManagerBundleAccess {
 		CellStyle errorStyle = null;
 		int rowNumber = 0;
 		int colNumber = 0;
-		int hasAccessCol = 0;
-		int hasNoAccessReasonCol = 0;
 		PreparedStatement pstmt = null;
 
 		try {
@@ -121,221 +111,53 @@ public class XLSXAdminReportsManagerBundleAccess {
 			bad = styles.get("bad");
 
 			/*
-			 * Write the overview data
-			 */
-
-
-			/*
 			 * Add the headings 
 			 */
-			colNumber = 0;
-			Row preHeaderRow = dataSheet.createRow(rowNumber++);	
+			colNumber = 0;	
 			Row row = dataSheet.createRow(rowNumber++);	
 
 			Cell cell = row.createCell(colNumber++);	// Survey
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("a_name"));
 
-			// Project
-			// Data Survey
+			cell = row.createCell(colNumber++);			// Project
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("ar_project"));
+			
+			cell = row.createCell(colNumber++);			// Data Survey
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("br_ds"));
+			
 			// Oversight Survey
 			// Read only survey
-			// Hidden on Device  - Red if yes
+			// Hidden on Device  - Green if yes
 			// Users
-
-			/*
-
-				cell = row.createCell(colNumber++);	// User Name
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("ar_user_name"));
-
-				cell = row.createCell(colNumber++);	// Has Access
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_has_access"));
-
-				cell = row.createCell(colNumber++);	// No Access reason
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_reason"));
-
-				cell = row.createCell(colNumber++);	// In Organisation
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_current_org"));
-
-				cell = row.createCell(colNumber++);	// Has Project
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_has_project"));
-
-				// Add a marker that security groups have stated
-				cell = preHeaderRow.createCell(colNumber);	
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_sec_groups"));
-
-				cell = row.createCell(colNumber++);	// Enterprise Admin
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_ent_admin"));
-
-				cell = row.createCell(colNumber++);	// Organisational Admin
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_org_admin"));
-
-				cell = row.createCell(colNumber++);	// Security Manager
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_sec_mgr"));
-
-				cell = row.createCell(colNumber++);	// Admin
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_admin"));
-
-				cell = row.createCell(colNumber++);	// Analyst
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_analyst"));
-
-				cell = row.createCell(colNumber++);	// Manage Console
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_mc"));
-
-				cell = row.createCell(colNumber++);	// Manage Data
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_md"));
-
-				cell = row.createCell(colNumber++);	// Manage Tasks
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_mt"));
-
-				cell = row.createCell(colNumber++);	// Enum
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_enum"));
-
-				cell = row.createCell(colNumber++);	// View Data
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_view"));
-
-				cell = row.createCell(colNumber++);	// View Own Data
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue(localisation.getString("rep_view_own_data"));
-
-				if(survey.surveyData.roles.size() > 0) {
-					int idx = 0;
-					for(String roleName : survey.surveyData.roles.keySet()) {	// Role
-						if(idx++ == 0) {
-							// Add a marker that roles have stated
-							cell = preHeaderRow.createCell(colNumber);	
-							cell.setCellStyle(headerStyle);
-							cell.setCellValue(localisation.getString("rep_roles"));
-						}
-						cell = row.createCell(colNumber++);	
-						cell.setCellStyle(headerStyle);
-						cell.setCellValue(roleName);
-					}
-					// Add the row filter cell
-					cell = row.createCell(colNumber++);	
-					cell.setCellStyle(headerStyle);
-					cell.setCellValue(localisation.getString("filters"));
-				}
-			}
-			 */
 
 			/*
 			 * Process the surveys
 			 */
+			HashMap<Integer, String> projects = new HashMap<> ();
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			ArrayList<GroupDetails> surveys = sm.getSurveysInGroup(sd, bundleIdent);	
 			for(GroupDetails gd : surveys) {
 				colNumber = 0;
-				boolean hasProject = false;
-				boolean isInOrg = false;
-				boolean hasEnterpriseAdmin = false;
-				boolean hasOrganisationAdmin = false;
-				boolean hasSecurityMgr = false;
-				boolean hasAdmin = false;
-				boolean hasAnalyst = false;
-				boolean hasManageConsole = false;
-				boolean hasManageData = false;
-				boolean hasManageTasks = false;
-				boolean hasEnum = false;
-				boolean hasView = false;
-				boolean hasViewOwnData = false;
 
 				row = dataSheet.createRow(rowNumber++);	
 
 				cell = row.createCell(colNumber++);	// Survey Name
 				cell.setCellValue(gd.surveyName);
+				
+				cell = row.createCell(colNumber++);	// project
+				String projectName = projects.get(gd.sId);
+				if(projectName == null) {
+					projectName = GeneralUtilityMethods.getProjectNameFromSurvey(sd, gd.sId);
+					projects.put(gd.sId, projectName);
+				}
+				cell.setCellValue(projectName);
 
-				/*
-					cell = row.createCell(colNumber++);	// User Name
-					cell.setCellValue(u.name);
-
-					hasAccessCol = colNumber++;					// Come back to the overall yes/no has access
-					hasNoAccessReasonCol = colNumber++;			// Come back to the reason for no access
-
-					cell = row.createCell(colNumber++);	// Current Organisation
-					isInOrg = u.current_org_id == survey.surveyData.o_id;
-					if(isInOrg ? setCellGood(cell) : setCellBad(cell));
-
-					cell = row.createCell(colNumber++);	// Has Project
-					if(u.projects != null) {
-						for(Project p : u.projects) {
-							if(p.id == survey.surveyData.p_id) {
-								hasProject = true;
-								break;
-							}
-						}	
-					}
-
-					cell = row.createCell(colNumber++);	// Has Enterprise Admin
-					if(hasEnterpriseAdmin ? setCellGood(cell) : setCellBad(cell));
-
-					cell = row.createCell(colNumber++);	// Has Organisation Admin
-					if(hasOrganisationAdmin ? setCellGood(cell) : setCellBad(cell));
-
-					cell = row.createCell(colNumber++);	// Has Security Manager
-					if(hasSecurityMgr ? setCellGood(cell) : setCellBad(cell));
-
-					cell = row.createCell(colNumber++);	// Has Admin
-					if(hasAdmin ? setCellGood(cell) : setCellBad(cell));
-
-					cell = row.createCell(colNumber++);	// Has Analyst
-					if(hasAnalyst ? setCellGood(cell) : setCellBad(cell));
-
-					cell = row.createCell(colNumber++);	// Manage Console
-					if(hasManageConsole ? setCellGood(cell) : setCellBad(cell));
-
-					cell = row.createCell(colNumber++);	// Manage Data
-					if(hasManageData ? setCellGood(cell) : setCellBad(cell));
-
-					cell = row.createCell(colNumber++);	// Manage Tasks
-					if(hasManageTasks ? setCellGood(cell) : setCellBad(cell));
-
-					cell = row.createCell(colNumber++);	// Has Enum
-					if(hasEnum ? setCellGood(cell) : setCellBad(cell));
-
-					cell = row.createCell(colNumber++);	// Has View
-					if(hasView ? setCellGood(cell) : setCellBad(cell));
-
-					cell = row.createCell(colNumber++);	// Has View Own Data
-					if(hasViewOwnData ? setCellGood(cell) : setCellBad(cell));
-
-					boolean hasRoleAccess = false;
-					if(survey.surveyData.roles.size() == 0) {
-						hasRoleAccess = true;		// No roles to worry about - so has role access
-					} else {
-						for(String roleName : survey.surveyData.roles.keySet()) {	// Role
-							boolean hasThisRole = false;
-							for(Role r : u.roles) {
-								if(r.name.equals(roleName)) {
-									hasThisRole = true;
-									hasRoleAccess = true;
-									break;
-								}
-							}
-							cell = row.createCell(colNumber++);	// Role
-							if(hasThisRole ? setCellGood(cell) : setCellBad(cell));
-						}
-
-
-					}
-
-				 */
+				cell = row.createCell(colNumber++);	// Data Survey
+				if(gd.dataSurvey ? setCellGood(cell) : setCellBad(cell));
+				
 			}
 
 
