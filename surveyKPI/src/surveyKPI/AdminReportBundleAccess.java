@@ -21,22 +21,23 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
-import utilities.XLSXAdminReportsManagerFormAccess;
+
+import utilities.XLSXAdminReportsManagerBundleAccess;
 
 /*
- * Export details on how each user in the organisation can access a survey or are blocked from accessing a survey.
+ * Export details on how each user in the organisation can access surveys in a bundle
  */
-@Path("/adminreport/formaccess")
-public class AdminReportFormAccess extends Application {
+@Path("/adminreport/bundleaccess")
+public class AdminReportBundleAccess extends Application {
 
 	Authorise a = null;
 
 	private static Logger log =
-			Logger.getLogger(AdminReportFormAccess.class.getName());
+			Logger.getLogger(AdminReportBundleAccess.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
 	
-	public AdminReportFormAccess() {
+	public AdminReportBundleAccess() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ADMIN);
 		a = new Authorise(authorisations, null);
@@ -69,7 +70,7 @@ public class AdminReportFormAccess extends Application {
 			
 			String filename = localisation.getString("ar_report_name") + "_" + formIdent ;
 			
-			XLSXAdminReportsManagerFormAccess rm = new XLSXAdminReportsManagerFormAccess(localisation);
+			XLSXAdminReportsManagerBundleAccess rm = new XLSXAdminReportsManagerBundleAccess(localisation);
 			responseVal = rm.getNewReport(sd, request, response, filename, oId, formIdent);
 			
 		} catch(Exception e) {
