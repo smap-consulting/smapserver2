@@ -3276,7 +3276,8 @@ public class SurveyManager {
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
 		
 		StringBuffer sql = new StringBuffer("select s.s_id, s.display_name, s.ident,"
-				+ "s.data_survey, s.oversight_survey,  s.p_id "
+				+ "s.data_survey, s.oversight_survey,  s.p_id,"
+				+ "s.read_only_survey, s.hide_on_device "
 				+ "from survey s, users u, user_project up "
 				+ "where s.p_id = up.p_id "
 				+ "and up.u_id = u.id "
@@ -3306,7 +3307,9 @@ public class SurveyManager {
 						rs.getBoolean("data_survey"),
 						rs.getBoolean("oversight_survey"),
 						groupSurveyIdent,
-						rs.getInt("p_id")));
+						rs.getInt("p_id"),
+						rs.getBoolean("read_only_survey"),
+						rs.getBoolean("hide_on_device")));
 			}
 		} finally {
 			try {
@@ -3496,11 +3499,12 @@ public class SurveyManager {
 		
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
 		
-		StringBuffer sql = new StringBuffer("select s.s_id, s.display_name, s.ident,"
-				+ "s.data_survey, s.oversight_survey, s.p_id "
-				+ "from survey s "
-				+ "where not s.deleted "
-				+ "and s.group_survey_ident = ?");
+		StringBuffer sql = new StringBuffer("select s_id, display_name, ident,"
+				+ "data_survey, oversight_survey, p_id, "
+				+ "read_only_survey, hide_on_device "
+				+ "from survey "
+				+ "where not deleted "
+				+ "and group_survey_ident = ?");
 
 		PreparedStatement pstmt = null;
 		try {
@@ -3511,12 +3515,14 @@ public class SurveyManager {
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
-				groupSurveys.add(new GroupDetails(rs.getInt(1), rs.getString(2), 
-						rs.getString(3),
-						rs.getBoolean(4),
-						rs.getBoolean(5),
+				groupSurveys.add(new GroupDetails(rs.getInt("s_id"), rs.getString("display_name"), 
+						rs.getString("ident"),
+						rs.getBoolean("data_survey"),
+						rs.getBoolean("oversight_survey"),
 						groupSurveyIdent,
-						rs.getInt(6)));
+						rs.getInt("p_id"),
+						rs.getBoolean("read_only_survey"),
+						rs.getBoolean("hide_on_device")));
 			}
 		} finally {
 			try {

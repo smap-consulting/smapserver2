@@ -128,9 +128,18 @@ public class XLSXAdminReportsManagerBundleAccess {
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("br_ds"));
 			
-			// Oversight Survey
-			// Read only survey
-			// Hidden on Device  - Green if yes
+			cell = row.createCell(colNumber++);			// Oversight Survey
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("br_os"));
+			
+			cell = row.createCell(colNumber++);			// Read Only Survey
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("br_ro"));
+			
+			cell = row.createCell(colNumber++);			// Hide on device
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("br_hod"));
+			
 			// Users
 
 			/*
@@ -157,6 +166,15 @@ public class XLSXAdminReportsManagerBundleAccess {
 
 				cell = row.createCell(colNumber++);	// Data Survey
 				if(gd.dataSurvey ? setCellGood(cell) : setCellBad(cell));
+				
+				cell = row.createCell(colNumber++);	// Oversight Survey
+				if(gd.oversightSurvey ? setCellGood(cell) : setCellBad(cell));
+				
+				cell = row.createCell(colNumber++);	// Read Only Survey
+				if(gd.readOnlySurvey ? setCellGood(cell) : setCellBad(cell));
+				
+				cell = row.createCell(colNumber++);	// Hide on Device
+				if(gd.hideOnDevice ? setCellGood(cell) : setCellBad(cell));
 				
 			}
 
