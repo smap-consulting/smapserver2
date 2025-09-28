@@ -33,8 +33,6 @@ create TABLE last_refresh_log (
 	);
 ALTER TABLE last_refresh_log OWNER TO ws;
 
-alter table group_survey add column f_name text;
-
 update question set source = null where qtype = 'server_calculate' and source is not null;
 
 alter table organisation add column training text;

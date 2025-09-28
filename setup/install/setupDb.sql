@@ -1539,21 +1539,6 @@ SELECT AddGeometryColumn('last_refresh_log', 'geo_point', 4326, 'POINT', 2);
 create index idx_refresh_time on last_refresh_log (refresh_time);
 ALTER TABLE last_refresh_log OWNER TO ws;
 
--- Group Surveys
-DROP SEQUENCE IF EXISTS group_survey_seq CASCADE;
-CREATE SEQUENCE group_survey_seq START 1;
-ALTER SEQUENCE group_survey_seq OWNER TO ws;
-
-DROP TABLE IF EXISTS group_survey;
-create TABLE group_survey (
-	id integer default nextval('group_survey_seq') constraint pk_group_survey primary key,
-	u_ident text REFERENCES users(ident) ON DELETE CASCADE,
-	s_id integer REFERENCES survey(s_id) ON DELETE CASCADE,
-	group_ident text,	-- Oversight ident
-	f_name text			-- Sib form name
-	);
-ALTER TABLE group_survey OWNER TO ws;
-
 -- Survey Styles
 DROP SEQUENCE IF EXISTS style_seq CASCADE;
 CREATE SEQUENCE style_seq START 1;
