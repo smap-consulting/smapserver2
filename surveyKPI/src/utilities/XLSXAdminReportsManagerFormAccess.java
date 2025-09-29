@@ -327,6 +327,7 @@ public class XLSXAdminReportsManagerFormAccess {
 				boolean hasEnum = false;
 				boolean hasView = false;
 				boolean hasViewOwnData = false;
+				boolean hasRoleAccess = false;
 				
 				row = dataSheet.createRow(rowNumber++);	
 				
@@ -415,7 +416,10 @@ public class XLSXAdminReportsManagerFormAccess {
 				cell = row.createCell(colNumber++);	// Has View Own Data
 				if(hasViewOwnData ? setCellGood(cell) : setCellBad(cell));
 				
-				boolean hasRoleAccess = false;
+
+				/*
+				 * Determine role controlled access
+				 */
 				if(survey.surveyData.roles.size() == 0) {
 					hasRoleAccess = true;		// No roles to worry about - so has role access
 				} else {

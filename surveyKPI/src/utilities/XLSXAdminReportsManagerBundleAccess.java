@@ -46,6 +46,9 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.Project;
+import org.smap.sdal.model.Role;
+import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.User;
 
 
@@ -148,7 +151,34 @@ public class XLSXAdminReportsManagerBundleAccess {
 			 * Get the surveys in the bundle
 			 */
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			ArrayList<GroupDetails> surveys = sm.getSurveysInGroup(sd, bundleIdent);	
+			ArrayList<GroupDetails> surveys = sm.getSurveysInGroup(sd, bundleIdent);
+			HashMap<String, Survey> surveyDetails = new HashMap<>();
+			for(GroupDetails gd : surveys) {
+				surveyDetails.put(gd.surveyIdent, sm.getById(
+						sd, 
+						null, 		// cResults
+						request.getRemoteUser(), 
+						false,
+						gd.sId, 
+						true,		// full details
+						null, 		// basePath
+						null, 		// instance id
+						false, 		// get results
+						false, 		// generate dummy values
+						false, 		// get property type 
+						true, 		// get soft deleted
+						false, 		// get hrk
+						"internal",	// get external options 
+						false, 		// get changed history
+						true, 		// get roles
+						true, 		// Pretend to be super user
+						null,		// geom format
+						false,		// Child surveys
+						false,		// launched only
+						false		// Don't merge set values into default value
+						));
+			}
+			
 
 			/*
 			 * Add the users who have access to the bundle
@@ -161,6 +191,7 @@ public class XLSXAdminReportsManagerBundleAccess {
 				
 				for(GroupDetails gd : surveys) {
 					boolean hasProject = false;
+					boolean hasRoleAccess = false;
 					/*
 					 * Does the user have access to the survey project
 					 */
@@ -174,9 +205,26 @@ public class XLSXAdminReportsManagerBundleAccess {
 					}
 					
 					/*
+					 * Determine role controlled access
+					 */
+					Survey survey = surveyDetails.get(gd.surveyIdent);
+					if(survey.surveyData.roles.size() == 0) {
+						hasRoleAccess = true;		// No roles to worry about - so has role access
+					} else {
+						for(String roleName : survey.surveyData.roles.keySet()) {	// Role
+							for(Role r : u.roles) {
+								if(r.name.equals(roleName)) {
+									hasRoleAccess = true;
+									break;
+								}
+							}
+						}	
+					}
+					
+					/*
 					 * Add survey to user survey map
 					 */
-					if(hasProject) {
+					if(hasProject && hasRoleAccess) {
 						HashMap<String, String> sMap = userSurveys.get(u.ident);
 						if(sMap == null) {
 							sMap = new HashMap<> ();
