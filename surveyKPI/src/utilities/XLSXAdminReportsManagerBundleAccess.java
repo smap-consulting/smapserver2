@@ -41,8 +41,12 @@ import org.apache.poi.ss.usermodel.*;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.GroupDetails;
+import org.smap.sdal.model.Project;
+import org.smap.sdal.model.User;
 
 
 /*
@@ -140,14 +144,60 @@ public class XLSXAdminReportsManagerBundleAccess {
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("br_hod"));
 			
-			// Users
+			/*
+			 * Get the surveys in the bundle
+			 */
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			ArrayList<GroupDetails> surveys = sm.getSurveysInGroup(sd, bundleIdent);	
+
+			/*
+			 * Add the users who have access to the bundle
+			 */
+			UserManager um = new UserManager(localisation);
+			RoleManager rm = new RoleManager(localisation);	
+			HashMap<String, HashMap<String, String>> userSurveys = new HashMap<> ();
+			ArrayList<User> users = um.getUserList(sd, oId, true, true, true, request.getRemoteUser());	
+			for(User u : users) {
+				
+				for(GroupDetails gd : surveys) {
+					boolean hasProject = false;
+					/*
+					 * Does the user have access to the survey project
+					 */
+					if(u.projects != null) {
+						for(Project p : u.projects) {
+							if(p.id == gd.pId) {
+								hasProject = true;
+								break;
+							}
+						}	
+					}
+					
+					/*
+					 * Add survey to user survey map
+					 */
+					if(hasProject) {
+						HashMap<String, String> sMap = userSurveys.get(u.ident);
+						if(sMap == null) {
+							sMap = new HashMap<> ();
+							userSurveys.put(u.ident, sMap);
+						}
+						sMap.put(gd.surveyIdent, "yes");
+					}
+				}
+				
+				HashMap<String, String> sMap = userSurveys.get(u.ident);
+				if(sMap != null && sMap.size() > 0) {
+					cell = row.createCell(colNumber++);			// Add user name
+					cell.setCellStyle(headerStyle);
+					cell.setCellValue(u.name);
+				}
+			}
 
 			/*
 			 * Process the surveys
 			 */
 			HashMap<Integer, String> projects = new HashMap<> ();
-			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			ArrayList<GroupDetails> surveys = sm.getSurveysInGroup(sd, bundleIdent);	
 			for(GroupDetails gd : surveys) {
 				colNumber = 0;
 
@@ -176,6 +226,16 @@ public class XLSXAdminReportsManagerBundleAccess {
 				cell = row.createCell(colNumber++);	// Hide on Device
 				if(gd.hideOnDevice ? setCellGood(cell) : setCellBad(cell));
 				
+				// Add the users
+				for(User u : users) {
+					HashMap<String, String> sMap = userSurveys.get(u.ident);
+					if(sMap != null && sMap.size() > 0) {
+						cell = row.createCell(colNumber++);			// Add user name
+						String hasSurvey = sMap.get(gd.surveyIdent);
+						if(hasSurvey != null ? setCellGood(cell) : setCellBad(cell));
+					}
+				}
+				
 			}
 
 
@@ -184,7 +244,7 @@ public class XLSXAdminReportsManagerBundleAccess {
 			response.setHeader("Content-type",  "text/html; charset=UTF-8");
 
 			String msg = e.getMessage();
-			if(msg.contains("does not exist")) {
+			if(msg != null && msg.contains("does not exist")) {
 				msg = localisation.getString("msg_no_data");
 			}
 			Row dataRow = dataSheet.createRow(rowNumber + 1);	
