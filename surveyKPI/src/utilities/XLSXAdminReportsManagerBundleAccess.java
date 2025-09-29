@@ -38,18 +38,18 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
-import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.User;
+import org.smap.sdal.model.UserGroup;
 
 
 /*
@@ -184,7 +184,6 @@ public class XLSXAdminReportsManagerBundleAccess {
 			 * Add the users who have access to the bundle
 			 */
 			UserManager um = new UserManager(localisation);
-			RoleManager rm = new RoleManager(localisation);	
 			HashMap<String, HashMap<String, String>> userSurveys = new HashMap<> ();
 			ArrayList<User> users = um.getUserList(sd, oId, true, true, true, request.getRemoteUser());	
 			for(User u : users) {
@@ -192,6 +191,7 @@ public class XLSXAdminReportsManagerBundleAccess {
 				for(GroupDetails gd : surveys) {
 					boolean hasProject = false;
 					boolean hasRoleAccess = false;
+					boolean hasAuthority = false;
 					/*
 					 * Does the user have access to the survey project
 					 */
@@ -222,9 +222,20 @@ public class XLSXAdminReportsManagerBundleAccess {
 					}
 					
 					/*
+					 * Determine user group access
+					 */
+					for(UserGroup ug : u.groups) {
+						if(ug.id == Authorise.ADMIN_ID
+								|| ug.id == Authorise.ANALYST_ID
+								|| ug.id == Authorise.ENUM_ID) {
+							hasAuthority = true;
+						}
+					}	
+					
+					/*
 					 * Add survey to user survey map
 					 */
-					if(hasProject && hasRoleAccess) {
+					if(hasProject && hasRoleAccess && hasAuthority) {
 						HashMap<String, String> sMap = userSurveys.get(u.ident);
 						if(sMap == null) {
 							sMap = new HashMap<> ();
