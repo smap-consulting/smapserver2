@@ -56,7 +56,7 @@ public class AdminReportBundleAccess extends Application {
 		Response responseVal;
 		
 		// Authorisation - Access
-		String connectionString = "surveyKPI - AdminReports - Form Access";
+		String connectionString = "surveyKPI - AdminReports - Bundle Report";
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
