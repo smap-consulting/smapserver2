@@ -802,7 +802,9 @@ public class Results extends Application {
 							} else if(aQ.getType().equals("calculate") || aQ.getType().equals("string") 
 									|| aQ.getType().equals("server_calculate")) {									
 								
-								values.add(new RecordValues(value, 1.0 ));
+								if(value != null && value.trim().length() > 0) {
+									values.add(new RecordValues(value, 1.0 ));
+								}
 								
 							} else {	
 								double aVal = 0.0;
