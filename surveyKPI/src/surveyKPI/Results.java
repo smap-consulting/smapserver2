@@ -442,7 +442,6 @@ public class Results extends Application {
 			 * Collect the data
 			 */
 			Map<String, FeatureInfo> featureHash = new HashMap<String, FeatureInfo>();
-			//FeatureInfo defaultGroup = null;
 			
 			JSONObject featureCollection = new JSONObject();
 			JSONArray featuresArray = new JSONArray();
@@ -498,6 +497,7 @@ public class Results extends Application {
 			long firstYear = 0;
 			int timeIdx = 0;
 			int maxTimeIdx = 0;
+			
 			while(resultSet.next()) {
 				
 				totalRecordCount++;
@@ -506,7 +506,7 @@ public class Results extends Application {
 				// A record can be part of multiple groups when the group by is a select multiple
 				ArrayList<String> matchingGroups = new ArrayList<String>();
 				String theGeom = null;
-				String groupValue = null;		// The key to the group, ie the value of the question that is acting as the group
+				String groupValue = null;		// The key to the group, that is the value of the question that is acting as the group
 				String timeValue = "";
 				// Get the time interval to add to the group
 				if(hasTimeGroup) {
@@ -687,8 +687,7 @@ public class Results extends Application {
 		
 					} 
 				}
-				
-				
+								
 				/*
 				 * Add this record to all the groups that it matches 
 				 */
@@ -800,6 +799,11 @@ public class Results extends Application {
 									groupInfo.featureProps.put(aQ.getColumnName(), value);
 								}
 								
+							} else if(aQ.getType().equals("calculate") || aQ.getType().equals("string") 
+									|| aQ.getType().equals("server_calculate")) {									
+								
+								values.add(new RecordValues(value, 1.0 ));
+								
 							} else {	
 								double aVal = 0.0;
 								try {
@@ -864,7 +868,6 @@ public class Results extends Application {
 			firstTime = true;
 			if(!fn.equals("none")) {
 				for (FeatureInfo fi : featureHash.values()) {		
-				    //fi.featureProps.put("recordCount", fi.getRecordCount());
 				    fi.addTotalsToJSONObject(fi.featureProps, fn, columns, firstTime);
 				    firstTime = false;
 				}
