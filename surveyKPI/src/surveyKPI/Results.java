@@ -147,8 +147,9 @@ public class Results extends Application {
 		QuestionInfo group = null;
 		QuestionInfo fQ = null;
 		Tables tables = new Tables(sId);
-		ArrayList<QuestionInfo> q = new ArrayList<QuestionInfo> ();
-		HashMap<String, String> groupList = new HashMap<String, String> ();
+		ArrayList<QuestionInfo> q = new ArrayList<> ();
+		HashMap<String, String> groupList = new HashMap<> ();
+		HashMap<String, String> uniqueColumnNames = new HashMap <> ();	// Ensure column name list has unique names
 		JSONArray results = new JSONArray();
 		Connection cResults = null;
 		PreparedStatement pstmt = null;
@@ -870,7 +871,7 @@ public class Results extends Application {
 			firstTime = true;
 			if(!fn.equals("none")) {
 				for (FeatureInfo fi : featureHash.values()) {		
-				    fi.addTotalsToJSONObject(fi.featureProps, fn, columns, firstTime);
+				    fi.addTotalsToJSONObject(fi.featureProps, fn, columns, uniqueColumnNames);
 				    firstTime = false;
 				}
 				

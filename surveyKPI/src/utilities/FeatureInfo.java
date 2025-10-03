@@ -40,14 +40,7 @@ public class FeatureInfo {
 		return recordCount;
 	}
 	
-	public void printTotals() {
-		for (Map.Entry<String, Double> entry : totals.entrySet()) {
-		    String key = entry.getKey();
-		    Double value = entry.getValue();
-		}
-	}
-	
-	public void addTotalsToJSONObject(JSONObject jo, String fn, JSONArray cols, boolean firstTime) {
+	public void addTotalsToJSONObject(JSONObject jo, String fn, JSONArray cols, HashMap<String, String> uniqueColumnNames) {
 		for (Map.Entry<String, Double> entry : totals.entrySet()) {
 		    String key = entry.getKey();
 		    Double value = entry.getValue();
@@ -61,8 +54,9 @@ public class FeatureInfo {
 		    	value = (double) (Math.round(value * 100)) / 100;	// round to 2 decimal places
 		    }
 		    
-		    if(firstTime) {		// If this is the first time that a group has been added then set the column names
+		    if(uniqueColumnNames.get(key) == null) {		// If this is the first time that a group has been added then set the column names
 		    	cols.put(key);
+		    	uniqueColumnNames.put(key, "yes");
 		    }
 
 		    try {
