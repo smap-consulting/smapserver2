@@ -465,7 +465,7 @@ public class SubRelationalDB extends Subscriber {
 			/*
 			 * If this is a simple create without an HRK then write to the record event manager
 			 */
-			if(updateId == null && !hasHrk) {
+			if(updateId == null && (!hasHrk || hasHrk && keyPolicy.equals(SurveyManager.KP_NONE))) {
 				RecordEventManager rem = new RecordEventManager();
 				rem.writeEvent(sd, cResults, 
 						RecordEventManager.CREATED, 
