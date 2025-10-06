@@ -928,11 +928,12 @@ public class TableManager {
 										if(rsTableName.next()) {
 											String tableName = rsTableName.getString(1);
 	
-											String sqlCreateTable = "create table " + tableName + " ("
+											String sqlCreateTable = "create table if not exists " + tableName + " ("
 													+ "prikey SERIAL PRIMARY KEY, "
 													+ "parkey int,"
 													+ "_bad boolean DEFAULT FALSE, _bad_reason text)";
 											pstmtCreateTable = cResults.prepareStatement(sqlCreateTable);
+											log.info("Creating sub table: " + pstmtCreateTable.toString());
 											pstmtCreateTable.executeUpdate();
 										}
 	
