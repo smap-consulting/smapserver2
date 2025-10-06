@@ -157,7 +157,7 @@ public class XLSXAdminReportsManagerBundleAccess {
 				surveyDetails.put(gd.surveyIdent, sm.getById(
 						sd, 
 						null, 		// cResults
-						request.getRemoteUser(), 
+						null, 		// Anonymous - do not check that the user has access to the project
 						false,
 						gd.sId, 
 						true,		// full details
@@ -208,7 +208,7 @@ public class XLSXAdminReportsManagerBundleAccess {
 					 * Determine role controlled access
 					 */
 					Survey survey = surveyDetails.get(gd.surveyIdent);
-					if(survey.surveyData.roles.size() == 0) {
+					if(survey.surveyData.roles == null || survey.surveyData.roles.size() == 0) {
 						hasRoleAccess = true;		// No roles to worry about - so has role access
 					} else {
 						for(String roleName : survey.surveyData.roles.keySet()) {	// Role

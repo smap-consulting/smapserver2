@@ -768,7 +768,7 @@ public class SubRelationalDB extends Subscriber {
 	}
 	
 	private class DynamicMetaValues {
-		public Timestamp case_closed;
+		public Timestamp case_closed = null;
 	}
 	
 	/*
@@ -951,7 +951,6 @@ public class SubRelationalDB extends Subscriber {
 			int oId) {	
 		
 		DynamicMetaValues dmv = new DynamicMetaValues();
-		//LinkageManager linkMgr = new LinkageManager(localisation); Disable
 		
 		/*
 		 * Prepare for checking for case closed
@@ -1016,6 +1015,7 @@ public class SubRelationalDB extends Subscriber {
 				// Check for case closed
 				if(statusQuestion != null && colName.equals(statusQuestion) && value.equals(finalStatus)) {
 					dmv.case_closed = new Timestamp(new java.util.Date().getTime());
+					log.info("ccccccccccc: case marked closed.  Status question: " + statusQuestion + "Final status: " + finalStatus);
 				}
 				
 				// Add to linkage items
