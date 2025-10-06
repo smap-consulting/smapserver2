@@ -23,6 +23,7 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.GroupSurvey;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.PasswordDetails;
 import org.smap.sdal.model.Project;
@@ -291,6 +292,26 @@ public class UserManager {
 			 * Get the roles that the user belongs to
 			 */
 			user.roles = getUserRoles(sd, user.id);
+			
+			/*
+			 * Get the current survey - group survey relationships
+			 */
+			sql = "SELECT s_id, group_ident, f_name " +
+					" from group_survey " +
+					" where u_ident = ?";
+
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, ident);
+
+			resultSet = pstmt.executeQuery();
+
+			while(resultSet.next()) {
+				if(user.groupSurveys == null) {
+					user.groupSurveys = new ArrayList<GroupSurvey> ();
+				}
+				user.groupSurveys.add(new GroupSurvey(resultSet.getInt(1), resultSet.getString(2), resultSet.getString(3)));
+			}
 			
 			/*
 			 * Get the organisations that the user belongs to

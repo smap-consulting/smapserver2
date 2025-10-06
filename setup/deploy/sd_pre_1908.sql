@@ -1164,6 +1164,17 @@ alter table organisation add column can_sms boolean default false;
 -- Default key policy is now 'none', policy of 'add' is to be replaced with 'none' as it is no longer supported
 update survey set key_policy = 'none' where key_policy = 'add';
 
+CREATE SEQUENCE group_survey_seq START 1;
+ALTER SEQUENCE group_survey_seq OWNER TO ws;
+
+create TABLE group_survey (
+	id integer default nextval('group_survey_seq') constraint pk_group_survey primary key,
+	u_ident text REFERENCES users(ident) ON DELETE CASCADE,
+	s_id integer REFERENCES survey(s_id) ON DELETE CASCADE,
+	group_ident text REFERENCES survey(ident) ON DELETE CASCADE
+	);
+ALTER TABLE group_survey OWNER TO ws;
+
 CREATE SEQUENCE survey_settings_seq START 1;
 ALTER SEQUENCE survey_settings_seq OWNER TO ws;
 
