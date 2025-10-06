@@ -1404,6 +1404,8 @@ public class SubRelationalDB extends Subscriber {
 						CaseManager cm = new CaseManager(localisation);
 						cm.assignRecord(sd, cResults, localisation, table, newInstance, user, "release",
 								null, localisation.getString("cm_auto_release"), user);
+					} else {
+						log.info("Case not closed");
 					}
 				}
 				
