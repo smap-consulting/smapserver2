@@ -132,7 +132,6 @@ public class Results extends Application {
 			@QueryParam("endDate") Date endDate,
 			@QueryParam("filter") String sFilter,
 			@QueryParam("advanced_filter") String advanced_filter,
-			@QueryParam("geom_questions") String geomQuestions,
 			@QueryParam("selected_geom_question") String selectedGeomQuestion
 			) { 
 	
