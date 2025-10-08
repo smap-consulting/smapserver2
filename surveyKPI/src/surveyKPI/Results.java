@@ -872,8 +872,24 @@ public class Results extends Application {
 				for (FeatureInfo fi : featureHash.values()) {		
 				    fi.addTotalsToJSONObject(fi.featureProps, fn, columns, uniqueColumnNames);
 				    firstTime = false;
+				}	
+			}
+			
+			/*
+			 * Clean the features
+			 */
+			
+			// 1. Remove groups with no data
+			if(featuresArray.length() > 0) {
+				for(int i = featuresArray.length() - 1; i >= 0; i--) {
+					JSONObject o = (JSONObject) featuresArray.get(i);
+					JSONObject prop = (JSONObject) o.getJSONObject("properties");
+					JSONArray a = prop.names();
+					if(prop.length() <= 4) {
+						featuresArray.remove(o);
+						log.info("+++ remove: " + prop.get("group_name") );
+					}
 				}
-				
 			}
 			
 			response = Response.ok(results.toString()).build();
