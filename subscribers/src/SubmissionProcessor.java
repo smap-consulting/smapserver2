@@ -313,7 +313,7 @@ public class SubmissionProcessor {
 									processMediaChanges(log, uploadFile, mediaChanges);
 								}
 								try {
-									GeneralUtilityMethods.sendToS3(dbc.sd, basePath, uploadFile, oId, false);
+									GeneralUtilityMethods.sendToS3(dbc.sd, uploadFile, oId, false);
 								} catch (Exception e) {
 									log.log(Level.SEVERE, e.getMessage(), e);
 								}

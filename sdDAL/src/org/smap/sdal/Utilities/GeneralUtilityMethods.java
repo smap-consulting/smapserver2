@@ -34,7 +34,6 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -722,12 +721,12 @@ public class GeneralUtilityMethods {
 			 */
 			File destFile = new File(destDir + "/" + fileName + "." + ext);
 			if(destFile.exists()) {
-				GeneralUtilityMethods.sendToS3(sd, basePath, destFile.getAbsolutePath(), oId, true);
+				GeneralUtilityMethods.sendToS3(sd, destFile.getAbsolutePath(), oId, true);
 			}
 
 			File destThumb = new File(destDir + "/thumbs/" + fileName + "." + ext + ".jpg");
 			if(destThumb.exists()) {
-				GeneralUtilityMethods.sendToS3(sd, basePath, destThumb.getAbsolutePath(), oId, false);
+				GeneralUtilityMethods.sendToS3(sd, destThumb.getAbsolutePath(), oId, false);
 			}
 			
 
@@ -741,7 +740,7 @@ public class GeneralUtilityMethods {
 	 * Send a file to S3
 	 * Write the file to a table to be processed separately
 	 */
-	public static void sendToS3(Connection sd, String basePath, String filePath, int oId, boolean isMedia) throws SQLException {
+	public static void sendToS3(Connection sd, String filePath, int oId, boolean isMedia) throws SQLException {
 
 		String sql = "insert into s3upload (filepath, o_id, is_media, status, created_time ) values(?, ?, ?, 'new', now())";
 		PreparedStatement pstmt = null;

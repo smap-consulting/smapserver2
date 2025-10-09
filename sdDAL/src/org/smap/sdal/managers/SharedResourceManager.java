@@ -199,6 +199,11 @@ public class SharedResourceManager {
 						writeToHistory(sd, fileItem, folderPath, resourceFileName, uploadedFileName,
 								oId, sIdent, user);	// Record all changes to the shared resource
 						
+						/*
+						 * Backup file to S3
+						 */
+						GeneralUtilityMethods.sendToS3(sd, savedFile.getAbsolutePath(), oId, true);
+						
 					} else {
 						responseCode = "error";
 						responseMsg = new StringBuilder("Failed to save shared resource file: " + resourceName);
