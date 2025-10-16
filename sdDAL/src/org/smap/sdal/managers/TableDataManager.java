@@ -23,7 +23,6 @@ import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.SqlFrag;
-import org.smap.sdal.model.SqlFragParam;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
 

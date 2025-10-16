@@ -11316,6 +11316,24 @@ public class GeneralUtilityMethods {
 
 	}
 
+	/*
+	 * Return a string representation of a prepared statement
+	 */
+	public static String getStringFromStatement(PreparedStatement pstmt) {
+		String response = "";
+		
+		if(pstmt != null) {
+			response = pstmt.toString().trim();
+			if(response.startsWith("org.apache.tomcat.jdbc")) {
+				int idx = response.indexOf("Query=");
+				if(idx > 0) {
+					response = response.substring(idx + 6, response.length() - 1);
+				}
+			}
+		}
+		
+		return response;
+	}
 	
 	private static int getManifestParamStart(String property) {
 	

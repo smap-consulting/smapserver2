@@ -101,11 +101,11 @@ public class Misc extends Application {
 		Response responseVal = null;
 		
 		Authorise a = new Authorise(null, Authorise.ADMIN);
-		Authorise aOrg = new Authorise(null, Authorise.ORG);
 		
 		// Authorisation - Access
 		String connectionString = "surveyKPI - AdminReports - Usage";
 		Connection sd = SDDataSource.getConnection(connectionString);		
+		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation		
 		
 		if(tz == null) {

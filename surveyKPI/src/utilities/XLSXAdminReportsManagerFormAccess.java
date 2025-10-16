@@ -138,7 +138,7 @@ public class XLSXAdminReportsManagerFormAccess {
 					false, 		// get property type 
 					true, 		// get soft deleted
 					false, 		// get hrk
-					"internal",	// get external options 
+					"internal",	// get external or internal options 
 					false, 		// get changed history
 					true, 		// get roles
 					true, 		// Pretend to be super user
@@ -446,7 +446,7 @@ public class XLSXAdminReportsManagerFormAccess {
 						GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, 1, "UTC");
 						
 						cell = row.createCell(colNumber++);	// Role
-						cell.setCellValue(pstmt.toString());
+						cell.setCellValue( GeneralUtilityMethods.getStringFromStatement(pstmt));
 					}
 					
 				}
