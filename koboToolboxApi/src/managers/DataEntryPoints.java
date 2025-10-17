@@ -21,6 +21,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.RateLimiter;
@@ -203,7 +204,7 @@ public class DataEntryPoints {
 		return response;
 	}
 	
-	public Response getCSVData(String version, 
+	public void getCSVData(String version, 
 			Connection sd,
 			String connectionString,
 			HttpServletRequest request,
@@ -228,7 +229,8 @@ public class DataEntryPoints {
 			int limit) throws SQLException, IOException {
 		
 		if(remoteUser == null) {
-			return Response.status(Status.UNAUTHORIZED).build();
+			throw new AuthorisationException();
+			
 		}
 		
 		boolean superUser = false;
@@ -602,6 +604,7 @@ public class DataEntryPoints {
 
 		} catch(ApplicationException ae) {
 			
+			try {sd.setAutoCommit(true);} catch(Exception ex) {};
 			response.setContentType("text/plain");
 			response.setStatus(429);
 			response.getWriter().append(ae.getMessage());
@@ -625,8 +628,6 @@ public class DataEntryPoints {
 			ResultsDataSource.closeConnection(connectionString, cResults);
 			SDDataSource.closeConnection(connectionString, sd);
 		}
-		
-		return Response.ok("").build();
 
 	}
 	

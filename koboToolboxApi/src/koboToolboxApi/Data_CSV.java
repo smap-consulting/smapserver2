@@ -199,7 +199,7 @@ public class Data_CSV extends Application {
 				start_parkey,
 				filter,
 				limit);
-		return Response.ok("").build();
+		return Response.ok().build();
 	}
 	
 }
