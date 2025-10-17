@@ -186,7 +186,7 @@ public class Data_CSV2 extends Application {
 		String remoteUser = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "api");
 		
 		DataEntryPoints dep = new DataEntryPoints();
-		return dep.getCSVData(VERSION, sd, connectionString, request, response, remoteUser, 
+		dep.getCSVData(VERSION, sd, connectionString, request, response, remoteUser, 
 				sIdent,
 				formName,
 				sort,
@@ -204,6 +204,7 @@ public class Data_CSV2 extends Application {
 				start_parkey,
 				filter,
 				limit);
+		return Response.ok().build();
 		
 	}
 	
