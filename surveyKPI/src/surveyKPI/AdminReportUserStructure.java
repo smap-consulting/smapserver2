@@ -27,22 +27,22 @@ import org.smap.sdal.managers.LogManager;
 import utilities.XLSXAdminReportsHashMap;
 
 /*
- * Produce reports on the structural setup on the server in terms of enterprises, organisations and projects
+ * Produce reports on user hierarchies
  */
-@Path("/adminreport/structure")
-public class AdminReportStructure extends Application {
+@Path("/adminreport/userstructure")
+public class AdminReportUserStructure extends Application {
 
 	Authorise a = null;
 
 	private static Logger log =
-			Logger.getLogger(AdminReportStructure.class.getName());
+			Logger.getLogger(AdminReportUserStructure.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
 	boolean includeTemporaryUsers;
 	
-	public AdminReportStructure() {
+	public AdminReportUserStructure() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
-		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.ENTERPRISE);
 		a = new Authorise(authorisations, null);
 	}
 	
@@ -56,7 +56,7 @@ public class AdminReportStructure extends Application {
 		Response responseVal;
 		
 		// Authorisation - Access
-		String connectionString = "surveyKPI - AdminReports - Usage";
+		String connectionString = "surveyKPI - AdminReports - User Structure";
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
@@ -67,22 +67,9 @@ public class AdminReportStructure extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			boolean enterpriseLevel = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ENTERPRISE_ID);
-			boolean organisationLevel = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ORG_ID);
-			
-			int eId = 0;
-			int oId = 0;
-			if(enterpriseLevel) {
-				// No filtering by enterprise or organisation
-			} else if(organisationLevel) {
-				eId = GeneralUtilityMethods.getEnterpriseId(sd, request.getRemoteUser());
-			} else {
-				oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			}
-			
 			String filename = localisation.getString("ar_report_name");
 			
-			ArrayList<HashMap<String, String>> report = getAdminReportStructure(sd, eId, oId);
+			ArrayList<HashMap<String, String>> report = getUserReportStructure(sd);
 			
 			// Add header
 			ArrayList<String> header = new ArrayList<String> ();
@@ -111,7 +98,7 @@ public class AdminReportStructure extends Application {
 
 	}
 
-	private ArrayList<HashMap<String, String>> getAdminReportStructure(Connection sd, int eId, int oId) throws SQLException {
+	private ArrayList<HashMap<String, String>> getUserReportStructure(Connection sd) throws SQLException {
 		ArrayList<HashMap<String, String>> rows = new ArrayList<HashMap<String, String>> ();
 		StringBuilder sql = new StringBuilder("select e.name as ent_name, o.name as org_name, p.name as project_name "
 				+ "from enterprise e "
