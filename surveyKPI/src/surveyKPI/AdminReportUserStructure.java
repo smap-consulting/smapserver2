@@ -108,29 +108,14 @@ public class AdminReportUserStructure extends Application {
 				+ "on o.id = p.o_id ");
 		
 		boolean hasWhere = false;
-		if(eId > 0) {
-			sql.append("where e.id = ? ");
-			hasWhere = true;
-		}
-		if(oId > 0) {
-			if(hasWhere) {
-				sql.append("and o.id = ? ");
-			} else {
-				sql.append("where o.id = ? ");
-			}
-		}
+
 		sql.append("order by e.name, o.name, p.name");
 		PreparedStatement pstmt = null;
 		
 		try {
 			pstmt = sd.prepareStatement(sql.toString());
 			int idx = 1;
-			if(eId > 0) {
-				pstmt.setInt(idx++, eId);
-			}
-			if(oId > 0) {
-				pstmt.setInt(idx++, oId);
-			}
+		
 			
 			log.info("Admin structure report: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
