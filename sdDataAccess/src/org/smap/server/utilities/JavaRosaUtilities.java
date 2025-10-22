@@ -84,6 +84,7 @@ public class JavaRosaUtilities {
 		addHandler(fd, "get_image");
 		addHandler(fd, "lookup");
 		addHandler(fd, "lookup_choices");
+		addHandler(fd, "device");
 
 		fd.initialize(false, new InstanceInitializationFactory());
 

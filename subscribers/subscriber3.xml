@@ -15,7 +15,7 @@
             <fileset dir="${dir.buildfile}/git/smapserver2/subscribers/target/test-classes"/>
             <fileset dir="${dir.buildfile}/git/smapserver2/subscribers/target/classes"/>
             <fileset dir="/Users/neilpenman/git/smapserver2/sdDAL/target/classes"/>
-            <zipfileset excludes="META-INF/*.SF" src="/Users/neilpenman/git/smapserver2/surveyKPI/src/main/webapp/WEB-INF/lib/javarosa-3.1.3.jar"/>
+            <!-- <zipfileset excludes="META-INF/*.SF" src="/Users/neilpenman/git/smapserver2/surveyKPI/src/main/webapp/WEB-INF/lib/javarosa-3.1.3.jar"/> -->
             <fileset dir="/Users/neilpenman/git/smap2/amazon/target/classes"/>
             <zipfileset excludes="META-INF/*.SF" src="/Users/neilpenman/.m2/repository/com/amazonaws/aws-java-sdk-core/1.11.789/aws-java-sdk-core-1.11.789.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="/Users/neilpenman/.m2/repository/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.jar"/>
