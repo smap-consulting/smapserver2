@@ -71,7 +71,7 @@ public class GetHtml {
 		localisation = l;
 	}
 	/*
-	 * Get the Html as a string
+	 * Get the HTML as a string
 	 */
 	public String get(HttpServletRequest request, int sId, boolean superUser, String userIdent, 
 			HashMap<String, Integer> recordCounts, 
@@ -290,6 +290,10 @@ public class GetHtml {
 
 		for (Question q : form.questions) {
 
+			if(hideInWebForms(q.appearance)) {
+				continue;
+			}
+			
 			// Append _pull to pulldata sources in calculations
 			q.calculation = processPulldataSuffix(q.calculation);
 			
@@ -540,6 +544,16 @@ public class GetHtml {
 
 	}
 
+	/*
+	 * Return true if this question should be hidden in webForms
+	 */
+	private boolean hideInWebForms(String appearance) {
+		boolean hide = false;
+		if(appearance != null && appearance.toLowerCase().contains("hideinwebform")) {
+			hide = true;
+		}
+		return hide;
+	}
 	/*
 	 * Get the calculation required for a generated calculate to get an image
 	 */

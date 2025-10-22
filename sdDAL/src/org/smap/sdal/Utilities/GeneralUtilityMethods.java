@@ -11318,6 +11318,7 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Return a string representation of a prepared statement
+	 * Some JDBC drivers return an object
 	 */
 	public static String getStringFromStatement(PreparedStatement pstmt) {
 		String response = "";
@@ -11327,7 +11328,10 @@ public class GeneralUtilityMethods {
 			if(response.startsWith("org.apache.tomcat.jdbc")) {
 				int idx = response.indexOf("Query=");
 				if(idx > 0) {
-					response = response.substring(idx + 6, response.length() - 1);
+					int idx2 = response.indexOf(';', idx);
+					if(idx2 > idx) {
+						response = response.substring(idx + 6, idx2);
+					}
 				}
 			}
 		}
