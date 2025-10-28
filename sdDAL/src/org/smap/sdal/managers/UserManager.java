@@ -2184,13 +2184,15 @@ public class UserManager {
 				log.info("Move user: " + pstmtMove.toString());						
 				pstmtMove.executeUpdate();
 				 
-				String msg = localisation.getString("u_soft_del");
-				msg = msg.replace("%s1", ident);
-				lm.writeLogOrganisation(sd, 
-							oId, 
-							requestingUser, 
-							LogManager.DELETE, 
-							msg, 0);
+				if(ident != null) {
+					String msg = localisation.getString("u_soft_del");
+					msg = msg.replace("%s1", ident);
+					lm.writeLogOrganisation(sd, 
+								oId, 
+								requestingUser, 
+								LogManager.DELETE, 
+								msg, 0);
+				}
 			}
 		} finally {
 			try {if (pstmtHardDelete != null) {pstmtHardDelete.close();}} catch (SQLException e) {}
