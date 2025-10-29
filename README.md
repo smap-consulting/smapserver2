@@ -7,17 +7,22 @@ collection system.
 * Code contributions are very welcome. 
 * [Issue Tracker](https://github.com/smap-consulting/smapserver/issues)
 
-Components
-----------
+Modules
+-------
 * surveyMobileAPI. Web services used by data collection clients
 * surveyKPI.  Web services used for administration
-* koboToolboxAPI.  Data APIs based initially on the API use by kobo toolbox
+* koboToolboxAPI.  Data APIs based initially on the API used by kobo toolbox
 * subscribers.  A batch program whose main job is to apply submitted XML files to the database.
 * sdDAL.  A library of shared code.
 * sdDataAccess.  A legacy library of shared code.
-* setup.  Scripts.
-* cloudInterface.  Dummy end points for access to cloud services.  (Deprecated - use the AWS module and modify),
-* codebook.  A fork of the odk codebook for generating codebooks from survey templates.
+* amazon. This is in the Smap2 repository, it provides access to AWS services.
+* sms.  SMS and WhatsApp interface.
+
+Other Projects
+--------------
+
+* setup.  Scripts used for installation and upgrading of a Smap server.
+* codebook2.  A fork of the odk codebook for generating codebooks from survey templates.
 
 Follow the latest news about Smap on our [blog](http://blog.smap.com.au)
 
@@ -27,7 +32,7 @@ Development
 *  Install Eclipse IDE for Enterprise Java and Web
 *  Clone this project
 *  Clone the smap2 project which contains the amazon module: git clone https://github.com/nap2000/smap2.git
-*  Import the modules as existing maven projects
+*  Import the modules as existing git projects
 *  For each module set the project facets as: Dynamic Web Module 4.0, Java 11, JAX-RS 2.1.
 *  koboToolboxApi
     *  Add sdDAL to projects on build path and to deployment assembly
