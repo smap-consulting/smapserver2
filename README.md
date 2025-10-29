@@ -30,19 +30,27 @@ Development
 -----------
 
 *  Install Eclipse IDE for Enterprise Java and Web
+*  Install Java SDK 11
 *  Clone this project
 *  Clone the smap2 project which contains the amazon module: git clone https://github.com/nap2000/smap2.git
-*  Import the modules as existing git projects
-*  For each module set the project facets as: Dynamic Web Module 4.0, Java 11, JAX-RS 2.1.
+*  Import smapserver2 and smap2 as git repositories with sub projects
+*  For each module select and set the project facets as: Dynamic Web Module 4.0, Java 11, JAX-RS 2.1.
+*  For each module add java 11 as the JRE system library to the module path in the java build path libraries
+*  sdDAL
+    *  in java build path set the source folder to sdDAL/src
+    *  Add amazon to projects/classpath in java build path
+    *  Add amazon as a project in deployment assembly
+    *  Add javarosa-[version].jar as a jar library under classpath.  I can be found in surveyKPI/src/main/webapp/WEB_INF/lib
 *  koboToolboxApi
-    *  Add sdDAL to projects on build path and to deployment assembly
+    *  Add sdDAL to projects/classpath in java build path 
+    *  Add sdDAL as a project in deployment assembly
 *  surveyMobileApi
     *  Add sdDAL, sdDataAccess, amazon to projects to build path and to deployment assembly
 *  surveyKPI
     *  Add sdDAL, sdDataAccess, amazon to projects to build path and to deployment assembly
 *  subscribers
     *  Add sdDAL, sdDataAccess, amazon to projects to build path
-
+*  Run "maven update project" for all projects
 
 How to Install
 --------------
