@@ -40,7 +40,7 @@ Development
     *  in java build path set the source folder to sdDAL/src
     *  Add amazon to projects/classpath in java build path
     *  Add amazon as a project in deployment assembly
-    *  Add javarosa-[version].jar as a jar library under classpath.  I can be found in surveyKPI/src/main/webapp/WEB_INF/lib
+    *  Add javarosa-[version].jar as a jar library under classpath.  It can be found in surveyKPI/src/main/webapp/WEB_INF/lib
 *  koboToolboxApi
     *  Add sdDAL to projects/classpath in java build path 
     *  Add sdDAL as a project in deployment assembly
@@ -51,6 +51,21 @@ Development
 *  subscribers
     *  Add sdDAL, sdDataAccess, amazon to projects to build path
 *  Run "maven update project" for all projects
+
+Setting up a Test Environment
+-----------------------------
+
+If you are developing on one of the support Ubuntu LTS versions you can follow the [install instructions](https://www.smap.com.au/docs/server-admin-install.html).  However you can also manually set up a test environment on a linux or Mac system using the following steps. Use the install script as a guide.
+
+*  Database  
+    *  Install Postgresql
+    *  Add a user ws with password ws1234
+    *  create a database called "survey_dfinitions" and a database called "results"
+    *  Add postgis and pgcrypto extensions to both
+    *  Run the commands in setup/install/setupDb.sql in the survey_definitions database
+    *  Run the commands in setup/install/resultsDb.sql in survey_definitions
+  
+  
 
 How to Install
 --------------
