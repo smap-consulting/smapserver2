@@ -41,6 +41,7 @@ local.properties
 .component
 .settings
 .classpath
+.project
 
 .idea/
 workspace.xml
