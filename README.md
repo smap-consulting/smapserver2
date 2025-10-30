@@ -64,6 +64,10 @@ If you are developing on one of the support Ubuntu LTS versions you can follow t
     *  Add postgis and pgcrypto extensions to both
     *  Run the commands in setup/install/setupDb.sql in the survey_definitions database
     *  Run the commands in setup/install/resultsDb.sql in survey_definitions
+*  Application Server
+     *  Install Tomcat 9
+     *  Add Tomcat as an Eclipse Server
+     *  Run surveyKPI, surveyMobileAPI and koboToolboxApi on the server
   
   
 
