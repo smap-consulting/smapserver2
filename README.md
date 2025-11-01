@@ -41,11 +41,14 @@ Development
     *  Add amazon to projects/classpath in java build path
     *  Add amazon as a project in deployment assembly
     *  Add javarosa-[version].jar as a jar library under classpath.  It can be found in surveyKPI/src/main/webapp/WEB_INF/lib
+*  sdDataAccess
+    *  Add amazonand sdDAL to projects/classpath in java build path
+    *  In deployment assemby set the deploy path of "/src" to "/"
 *  koboToolboxApi
     *  Add sdDAL to projects/classpath in java build path 
     *  Add sdDAL as a project in deployment assembly
 *  surveyMobileApi
-    *  Add sdDAL, sdDataAccess, amazon to projects to build path and to deployment assembly
+    *  Add sdDAL, sdDataAccess to projects to build path and to deployment assembly
 *  surveyKPI
     *  Add sdDAL, sdDataAccess, amazon to projects to build path and to deployment assembly
 *  subscribers
@@ -67,19 +70,28 @@ If you are developing on one of the support Ubuntu LTS versions you can follow t
 *  Application Server
      *  Install Tomcat 9
      *  Add Tomcat as an Eclipse Server
+     *  Copy the context.xml and server.xml files from the server tar to the eclipse tomcat server directory (uncomment a port in server.xml for http on 8080, this is needed by eclipse to check that the server started ok)
      *  Run surveyKPI, surveyMobileAPI and koboToolboxApi on the server
+     
+*  HTTP Web Server
+     *  Install Apache Web Server
+     *  Add apr utils and modules (refer to install script for details)
+     *  Copy smap.conf, smap-ssl.conf, smap-volatile.conf to the apache2 sites-available directory
+     *  Enable/disable apache sites
+*  Files and Web Pages
+      *  Download the server tar file
+      *  Customise the deploy script to suit your installation and to copy files to smap_bin and the web site folder 
+      *  Copy the jdbc driver to the tomcat lib directory
+      *  Create the file structure at /smap to hold uploaded surveys etc
+*  Subscriber
+      *  There are two subscriber batch processors to run
+      *  Run both as Java applications
+      *  The main class is "Manager" for both
+      *  [upload] Arguments are "default /smap upload"
+      *  [forward] Arguments are "default /smap forward"
+      
   
-  
-
-How to Install
---------------
-
-The installation scripts currently are tested only on supported Ubuntu LTS versions and contain some lines specific to Ubuntu.
-
-*  Copy the setup folder to the location on the linux server that you want to install the Smap server
-*  Build the war files for surveyMobileAPI, surveyKPI, koboToolbox API and copy them the setup/deploy/version1 folder 
-*  Create a runnable jar file for subscribers and copy it to the setup/deploy/version1 folder
-*  run the install script in the install folder as: sudo su install.sh
+ 
 
 Upgrades
 --------
