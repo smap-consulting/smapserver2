@@ -1,5 +1,4 @@
-[Smap Server](http://www.smap.com.au) 
-======
+# [Smap Server](http://www.smap.com.au) 
 
 The Smap Server manages survey definitions, stores submitted results and helps analyse those results.  Access to the server is via REST APIS which can be used to create your own data 
 collection system.
@@ -7,27 +6,28 @@ collection system.
 * Code contributions are very welcome. 
 * [Issue Tracker](https://github.com/smap-consulting/smapserver/issues)
 
-Modules
--------
+## Modules
+
 * surveyMobileAPI. Web services used by data collection clients
 * surveyKPI.  Web services used for administration
 * koboToolboxAPI.  Data APIs based initially on the API used by kobo toolbox
 * subscribers.  A batch program whose main job is to apply submitted XML files to the database.
-* sdDAL.  A library of shared code.
-* sdDataAccess.  A legacy library of shared code.
+
+##### Shared Libraries
+
+* sdDAL.  Access to the database.
+* sdDataAccess.  A legacy library to access the database.
 * amazon. This is in the Smap2 repository, it provides access to AWS services.
 * sms.  SMS and WhatsApp interface.
 
-Other Projects
---------------
+##### Other Projects
 
 * setup.  Scripts used for installation and upgrading of a Smap server.
 * codebook2.  A fork of the odk codebook for generating codebooks from survey templates.
 
 Follow the latest news about Smap on our [blog](http://blog.smap.com.au)
 
-Development
------------
+## Development
 
 *  Install Eclipse IDE for Enterprise Java and Web
 *  Install Java SDK 11
@@ -41,9 +41,10 @@ Development
     *  Add amazon to projects/classpath in java build path
     *  Add amazon as a project in deployment assembly
     *  Add javarosa-[version].jar as a jar library under classpath.  It can be found in surveyKPI/src/main/webapp/WEB_INF/lib
+    *  Include java rosa in the order and export tab of java build path
 *  sdDataAccess
-    *  Add amazonand sdDAL to projects/classpath in java build path
-    *  In deployment assemby set the deploy path of "/src" to "/"
+    *  Add amazon and sdDAL to projects/classpath in java build path
+    *  In deployment assembly, set the deploy path of "/src" to "/"
 *  koboToolboxApi
     *  Add sdDAL to projects/classpath in java build path 
     *  Add sdDAL as a project in deployment assembly
@@ -53,10 +54,15 @@ Development
     *  Add sdDAL, sdDataAccess, amazon to projects to build path and to deployment assembly
 *  subscribers
     *  Add sdDAL, sdDataAccess, amazon to projects to build path
-*  Run "maven update project" for all projects
+*  **Run "maven update project" for all projects**
 
-Setting up a Test Environment
------------------------------
+## Build
+
+*  Use the eclipse export command to export surveyKPI, surveyMobileApi and koboToolboxApi
+*  Run the ant build file subscriber3.xml in subscriber to create a runnable jar file
+
+#### Setting up a Test Environment
+
 
 If you are developing on one of the support Ubuntu LTS versions you can follow the [install instructions](https://www.smap.com.au/docs/server-admin-install.html).  However you can also manually set up a test environment on a linux or Mac system using the following steps. Use the install script as a guide.
 
@@ -81,7 +87,7 @@ If you are developing on one of the support Ubuntu LTS versions you can follow t
 *  Files and Web Pages
       *  Download the server tar file
       *  Customise the deploy script to suit your installation and to copy files to smap_bin and the web site folder 
-      *  Copy the jdbc driver to the tomcat lib directory
+      *  Copy the JDBC driver to the tomcat lib directory
       *  Create the file structure at /smap to hold uploaded surveys etc
 *  Subscriber
       *  There are two subscriber batch processors to run
@@ -89,14 +95,5 @@ If you are developing on one of the support Ubuntu LTS versions you can follow t
       *  The main class is "Manager" for both
       *  [upload] Arguments are "default /smap upload"
       *  [forward] Arguments are "default /smap forward"
-      
-  
- 
 
-Upgrades
---------
 
-*  Copy the updated war file or runnable jar file to the version1 folder
-*  in the deploy folder run:
-*    sudo ./patchdb.sh
-*    sudo ./deploy.sh
