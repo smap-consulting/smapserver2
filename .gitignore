@@ -39,8 +39,9 @@ tmp/
 local.properties
 .loadpath
 .component
-#.settings
+.settings
 .classpath
+.project
 
 .idea/
 workspace.xml

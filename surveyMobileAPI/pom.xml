@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>smapserver</groupId>
   <artifactId>surveyMobileAPI</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <packaging>war</packaging>
   	<properties>
 		<failOnMissingWebXml>false</failOnMissingWebXml>
