@@ -4,7 +4,7 @@ The Smap Server manages survey definitions, stores submitted results and helps a
 collection system.
 
 * Code contributions are very welcome. 
-* [Issue Tracker](https://github.com/smap-consulting/smapserver/issues)
+* [Issue Tracker](https://github.com/smap-consulting/smapserver2/issues)
 
 ## Modules
 
