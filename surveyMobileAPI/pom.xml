@@ -40,11 +40,6 @@
 	</dependencyManagement>
 	<dependencies>
 		
-		<dependency>
-	      	<groupId>smapserver</groupId>
-	      	<artifactId>amazon</artifactId>
-	      	<version>1.0.0</version>
-      	</dependency>
       	<dependency>
 	      	<groupId>smapserver</groupId>
 	      	<artifactId>sdDAL</artifactId>

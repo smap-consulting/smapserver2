@@ -45,6 +45,7 @@ Follow the latest news about Smap on our [blog](http://blog.smap.com.au)
 *  sdDataAccess
     *  Add amazon and sdDAL to projects/classpath in java build path
     *  In deployment assembly, set the deploy path of "/src" to "/"
+*  Amazon
 *  koboToolboxApi
     *  Add sdDAL to projects/classpath in java build path 
     *  Add sdDAL as a project in deployment assembly
