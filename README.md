@@ -29,6 +29,7 @@ Follow the latest news about Smap on our [blog](http://blog.smap.com.au)
 
 ## Development
 
+*  Create a directory deploy under your home directory
 *  Install Eclipse IDE for Enterprise Java and Web
 *  Install Java SDK 11
 *  Clone this project
@@ -57,12 +58,15 @@ Follow the latest news about Smap on our [blog](http://blog.smap.com.au)
     *  Add sdDAL, sdDataAccess, amazon to projects to build path
 *  **Run "maven update project" for all projects**
 
-## Build
+## Build and Deployment
 
 *  Use the eclipse export command to export surveyKPI, surveyMobileApi and koboToolboxApi
-*  Run the ant build file subscriber3.xml in subscriber to create a runnable jar file
+*  Run the ant build file subscriber3.xml in subscriber to create a runnable jar file in the deploy directory under home
+*  Run the dep.sh script in smapserver2/setup to create a directory called "smap" in the deploy directory containing the install and deploy scripts for a Smap Server
+*  Copy the war files and runnable jar files into deploy/smap/deploy/version1
+*  The deploy/smap directory can then be deployed to a server to install smap server or update an existing installation
 
-#### Setting up a Test Environment
+## Setting up a Test Environment
 
 
 If you are developing on one of the support Ubuntu LTS versions you can follow the [install instructions](https://www.smap.com.au/docs/server-admin-install.html).  However you can also manually set up a test environment on a linux or Mac system using the following steps. Use the install script as a guide.
