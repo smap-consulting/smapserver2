@@ -44,7 +44,7 @@ Follow the latest news about Smap on our [blog](http://blog.smap.com.au)
     *  Add javarosa-[version].jar as a jar library under classpath.  It can be found in surveyKPI/src/main/webapp/WEB_INF/lib
     *  Include java rosa in the order and export tab of java build path
 *  sdDataAccess
-    *  Add amazon and sdDAL to projects/classpath in java build path
+    *  Add sdDAL to projects/classpath in java build path
     *  In deployment assembly, set the deploy path of "/src" to "/"
 *  Amazon
 *  koboToolboxApi

@@ -33,13 +33,7 @@
 
 	<dependencies>
 
-		<dependency>
-	      	<groupId>smapserver</groupId>
-	      	<artifactId>amazon</artifactId>
-	      	<version>1.0.0</version>
-	      	
-      	</dependency>
-      	     	<dependency>
+      	<dependency>
 	      	<groupId>smapserver</groupId>
 	      	<artifactId>sdDAL</artifactId>
 	      	<version>1.0.0</version>
@@ -50,6 +44,7 @@
 			<artifactId>gson</artifactId>
 			<version>2.9.0</version>
 		</dependency>
+		
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>javax.servlet-api</artifactId>
