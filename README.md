@@ -34,10 +34,12 @@ Follow the latest news about Smap on our [blog](http://blog.smap.com.au)
 *  Clone this project
 *  Clone the smap2 project which contains the amazon module: git clone https://github.com/nap2000/smap2.git
 * sdDAL
-    *  Add javarosa-[version].jar as a maven jar library under classpath.  It can be found in surveyKPI/src/main/webapp/WEB_INF/lib. To add to maven:
+    * Add javarosa-[version].jar as a maven jar library under classpath.  It can be found in surveyKPI/src/main/webapp/WEB_INF/lib. To add to maven:
     * mvn org.apache.maven.plugins:maven-install-plugin:2.5.2:install-file -Dfile=../surveyKPI/src/main/webapp/WEB-INF/lib/javarosa-3.1.4.jar -DgroupId=smapserver -DartifactId=javarosa -Dversion=3.1.4 -Dpackaging=jar
 
-### IntelliJ IDEA
+Smap is a web application and requires enterprise java.  We recommend using Apache Netbeans as an IDE due to its ease of use however instructions for setting up Eclipse are also included here.
+
+### Apache Netbeans IDE
 
 *  Set each project as a maven project: amazon, sdDAL, sdDataAccess, surveyMobileAPI, surveyKPI, koboToolboxApi
 *  Run mv clean install for all projects
@@ -53,7 +55,6 @@ Follow the latest news about Smap on our [blog](http://blog.smap.com.au)
     *  in java build path set the source folder to sdDAL/src
     *  Add amazon to projects/classpath in java build path
     *  Add amazon as a project in deployment assembly
-    *  Include java rosa in the order and export tab of java build path
 *  sdDataAccess
     *  Add sdDAL to projects/classpath in java build path
     *  In deployment assembly, set the deploy path of "/src" to "/"
@@ -91,9 +92,10 @@ If you are developing on one of the support Ubuntu LTS versions you can follow t
     *  Run the commands in setup/install/resultsDb.sql in survey_definitions
 *  Application Server
      *  Install Tomcat 9
-     *  Add Tomcat as an Eclipse Server
-     *  Copy the context.xml and server.xml files from the server tar to the eclipse tomcat server directory (uncomment a port in server.xml for http on 8080, this is needed by eclipse to check that the server started ok)
-     *  Run surveyKPI, surveyMobileAPI and koboToolboxApi on the server
+     *  Add Tomcat as an server in your IDE
+     *  Edit the context.xml file in the tomcat conf directory.  Add the two resources "jdbc/survey_dfinitions" and "jdbc/results" from the source context.xml file "$HOME/git/smapserver2/setup/install/config_files/context.xml" 
+     *  Edit the server.xml file to open up the 8009 port.  Use the source server.xml file from "$HOME/git/smapserver2/setup/install/config_files/server.xml.tomcat9" as a template.   
+*  Run surveyKPI, surveyMobileAPI and koboToolboxApi on the server
      
 *  HTTP Web Server
      *  Install Apache Web Server
