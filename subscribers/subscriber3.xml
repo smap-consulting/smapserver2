@@ -28,7 +28,6 @@
                 <attribute name="Main-Class" value="Manager"/>
                 <attribute name="Class-Path" value="."/>
             </manifest>
-            <fileset dir="${user.home}/git/smapserver2/subscribers/target/test-classes"/>
             <fileset dir="${user.home}/git/smapserver2/subscribers/target/classes"/>
             <fileset dir="${user.home}/git/smapserver2/sdDAL/target/classes"/>
             <!-- <zipfileset excludes="META-INF/*.SF" src="${user.home}/git/smapserver2/surveyKPI/src/main/webapp/WEB-INF/lib/javarosa-3.1.3.jar"/> -->

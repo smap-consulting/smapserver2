@@ -13,14 +13,14 @@ collection system.
 * koboToolboxAPI.  Data APIs based initially on the API used by kobo toolbox
 * subscribers.  A batch program whose main job is to apply submitted XML files to the database.
 
-##### Shared Libraries
+### Shared Libraries
 
 * sdDAL.  Access to the database.
 * sdDataAccess.  A legacy library to access the database.
 * amazon. This is in the Smap2 repository, it provides access to AWS services.
 * sms.  SMS and WhatsApp interface.
 
-##### Other Projects
+### Other Projects
 
 * setup.  Scripts used for installation and upgrading of a Smap server.
 * codebook2.  A fork of the odk codebook for generating codebooks from survey templates.
@@ -70,13 +70,15 @@ Smap is a web application and requires enterprise java.  We recommend using Apac
     *  Add sdDAL, sdDataAccess, amazon to projects to build path
 *  **Run "maven update project" for all projects**
 
-##### Build and Deployment
+## Build and Deployment
 
-*  Use the eclipse export command to export surveyKPI, surveyMobileApi and koboToolboxApi
-*  Run the ant build file subscriber3.xml in subscriber to create a runnable jar file in the deploy directory under home
-*  Run the dep.sh script in smapserver2/setup to create a directory called "smap" in the deploy directory containing the install and deploy scripts for a Smap Server
-*  Copy the war files and runnable jar files into deploy/smap/deploy/version1
-*  The deploy/smap directory can then be deployed to a server to install smap server or update an existing installation
+*  Run the dep.sh script in $HOME/smapserver2 to deploy the modules to the $HOME/deploy
+  *  Use "mvn clean install" or the eclipse export command to export surveyKPI, surveyMobileApi and koboToolboxApi. 
+  *  Run the ant build file subscriber3.xml in subscriber to create a runnable jar file in the $HOME/deploy directory
+  *  Run the dep.sh script in smapserver2/setup to create a directory called "smap" in the deploy directory containing the install and deploy scripts for a Smap Server
+*  To create an installable tar file  
+  * Copy the war files and runnable jar files into deploy/smap/deploy/version1
+  *  The deploy/smap directory can then be deployed to a server to install smap server or update an existing installation
 
 ## Setting up a Test Environment
 
