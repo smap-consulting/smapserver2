@@ -42,7 +42,7 @@ Smap is a web application and requires enterprise java.  We recommend using Apac
 ### Apache Netbeans IDE
 
 *  Set each project as a maven project: amazon, sdDAL, sdDataAccess, surveyMobileAPI, surveyKPI, koboToolboxApi
-*  Run mv clean install for all projects
+*  Run mvn clean install for all projects
 
 
 ### Eclipse
