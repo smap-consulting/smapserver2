@@ -10,7 +10,6 @@ cd ..
 #
 # Miscelaneous files
 #
-cp -rf subscribers/default ~/deploy/smap/deploy/version1
 cp ~/deploy/fieldTask.apk ~/deploy/smap/deploy/version1
 cp ~/deploy/fieldTaskPreJellyBean.apk ~/deploy/smap/deploy/version1
 cp ~/deploy/smapUploader.jar ~/deploy/smap/deploy/version1
@@ -46,5 +45,6 @@ cp surveyKPI/target/*.war ~/deploy/smap/deploy/version1/surveyKPI.war
 cd subscribers
 ant -f subscriber3.xml
 mv ~/deploy/subscribers.jar ~/deploy/smap/deploy/version1
+cp -rf default ~/deploy/smap/deploy/version1
 cd ..
 
