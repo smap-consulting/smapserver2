@@ -80,6 +80,14 @@ Smap is a web application and requires enterprise java.  We recommend using Apac
   * Copy the war files and runnable jar files into deploy/smap/deploy/version1
   *  The deploy/smap directory can then be deployed to a server to install smap server or update an existing installation
 
+### Building and deploying the entire Smap server
+
+To build the entire server
+
+*  Build the backend (This project)
+*  Build the Webform project (https://github.com/nap2000/webform)
+*  Build the client project (https://github.com/nap2000/prop-smapserver)
+
 ## Setting up a Test Environment
 
 
