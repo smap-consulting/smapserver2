@@ -102,6 +102,10 @@ sudo a2enmod session
 sudo a2enmod session_cookie
 sudo a2enmod session_crypto
 
+# Modules for openidc authentication
+sudo apt-get install libapache2-mod-auth-openidc
+sudo a2enmod auth_openidc
+
 sudo mkdir /var/www/smap
 
 echo "##### 3. Install Tomcat: $TOMCAT_VERSION"

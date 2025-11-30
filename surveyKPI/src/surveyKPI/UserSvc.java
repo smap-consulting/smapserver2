@@ -27,7 +27,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -45,10 +44,8 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Alert;
-import org.smap.sdal.model.ConsoleSettings;
 import org.smap.sdal.model.GroupSurvey;
 import org.smap.sdal.model.PasswordDetails;
 import org.smap.sdal.model.User;
@@ -160,11 +157,24 @@ public class UserSvc extends Application {
 
 		return response;
 	}
+        
+        /*
+	 * Get the user ident
+	 */
+	@GET
+	@Path("/ident")
+	@Produces("application/text")
+	public Response getIdent(@Context HttpServletRequest request) { 
+
+		return Response.ok(request.getRemoteUser()).build();
+			
+	}
 	
 	class KeyDetails {
 		String apiKey;
 	}
 	
+        
 	/*
 	 * Get the user's API key
 	 * In all cases these are called by a user to on their own keys and authorisation is not requried
