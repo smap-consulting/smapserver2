@@ -20,7 +20,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 package surveyMobileAPI;
 
 import java.io.IOException;
-import java.io.OutputStream;
+import java.util.logging.Logger;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -29,42 +30,44 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.apache.commons.io.IOUtils;
-
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.model.MCPQuery;
+import org.smap.sdal.model.MCPResponse;
+
+import com.google.gson.Gson;
 
 
 /*
- * Get surveys assigned to the user (ODK Format)
- * Example output:
-	<forms>
-		<form url="//{server}/formXml?odkFormKey={generated key}">{name}</form>
-	</forms>
- * 
+ * Handle MCP queries
  */
 
 @Path("/mcp")
 
 public class MCP extends Application {
 	
+	private Gson gson = new Gson();
+	private static Logger log = Logger.getLogger(MCP.class.getName());
+	
 	@POST
 	@Produces({MediaType.APPLICATION_JSON})   
-	public Response mcpHandler(@Context HttpServletRequest request) throws IOException, ApplicationException {
+	public Response mcpHandler(@Context HttpServletRequest request, String jsonQuery) throws IOException, ApplicationException {
 
-            String query = IOUtils.toString(request.getReader());
+		log.info("MCP request: " + jsonQuery);
+		
+		MCPResponse response;
+		MCPQuery query;
+		try {
+			query = gson.fromJson(jsonQuery, MCPQuery.class);
+			response = new MCPResponse("success", "plane");
+		} catch (Exception e) {
+			response = new MCPResponse("error", e.getMessage());
+			System.out.println("Invalid JSON");
+		}
 
-            System.out.println(query);
             
-            return Response.ok("{}").build();
-            /*
-            String response = processor.process(query);
-
-                exchange.sendResponseHeaders(200, response.length());
-                OutputStream os = exchange.getResponseBody();
-                os.write(response.getBytes());
-                os.close();
-*/
-        }
+		return Response.ok(gson.toJson(response)).build();
+           
+	}
 	
 }
 
