@@ -59,7 +59,7 @@ public class MCP extends Application {
 
 	private Gson gson = new Gson();
 	private static Logger log = Logger.getLogger(MCP.class.getName());
-	private Authorise a = new Authorise(null, Authorise.ENUM);
+	private Authorise a = new Authorise(null, Authorise.MCP_ACCESS);
 
 	// Singleton MCP manager with registered tools
 	private static MCPManager mcpManager;
