@@ -35,7 +35,6 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.MCPManager;
 import org.smap.sdal.mcp.tools.EchoTool;
@@ -87,9 +86,7 @@ public class MCP extends Application {
 
 			// Get authenticated user
 			String user = request.getRemoteUser();
-			if (user == null) {
-				user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-			}
+			
 			if (user == null) {
 				throw new AuthorisationException("Unknown User");
 			}

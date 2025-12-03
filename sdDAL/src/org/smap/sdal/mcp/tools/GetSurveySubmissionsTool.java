@@ -6,18 +6,25 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.smap.sdal.mcp.IMCPTool;
+import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.MCPToolDefinition;
 import org.smap.sdal.model.MCPToolResult;
 import org.smap.sdal.model.Survey;
+
 
 /**
  * Tool to get submission statistics for surveys
  */
 public class GetSurveySubmissionsTool implements IMCPTool {
 
+	private static Logger log = Logger.getLogger(IMCPTool.class.getName());
+	
 	@Override
 	public MCPToolDefinition getDefinition() {
 		Map<String, Object> inputSchema = new HashMap<>();
@@ -48,12 +55,29 @@ public class GetSurveySubmissionsTool implements IMCPTool {
 
 	@Override
 	public MCPToolResult execute(Connection sd, String username, Map<String, Object> arguments) throws Exception {
-		// Parse arguments
+		
+		/*
+		 * Add authorisations
+		 * Allow administrators and analysts
+		 */
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);
+		Authorise a = new Authorise(authorisations, null);
+		a.isAuthorised(sd, username);
+		
+
+		/*
+		 * Parse arguments
+		 * Validate that the resources requested (project or survey) are in the users organisation
+		 * The user does not need to have explicit access to the resource when accessing via the MCP end point
+		 */
 		Integer surveyId = null;
 		if (arguments.get("survey_id") != null) {
 			Object surveyIdObj = arguments.get("survey_id");
 			if (surveyIdObj instanceof Number) {
 				surveyId = ((Number) surveyIdObj).intValue();
+				a.surveyInUsersOrganisation(sd, username, GeneralUtilityMethods.getSurveyIdent(sd, surveyId));
 			}
 		}
 
@@ -62,6 +86,7 @@ public class GetSurveySubmissionsTool implements IMCPTool {
 			Object projectIdObj = arguments.get("project_id");
 			if (projectIdObj instanceof Number) {
 				projectId = ((Number) projectIdObj).intValue();
+				a.projectInUsersOrganisation(sd, username, projectId);
 			}
 		}
 
@@ -123,39 +148,23 @@ public class GetSurveySubmissionsTool implements IMCPTool {
 	private int getSubmissionCount(Connection sd, String surveyIdent) {
 		int count = 0;
 
-		// Query to get the table name for the main form of the survey
-		String sqlTableName = "SELECT table_name FROM form f "
-				+ "WHERE f.s_id = (SELECT s_id FROM survey WHERE ident = ?) "
-				+ "AND f.parentform = 0";
+		// Note: We need to use a different connection for the results database
+		// For now, we'll try to get it from upload_event table which tracks submissions
+		String sqlCount = "SELECT COUNT(*) FROM upload_event "
+				+ "WHERE ident = ? AND status != 'error'";
 
-		try (PreparedStatement pstmt = sd.prepareStatement(sqlTableName)) {
-			pstmt.setString(1, surveyIdent);
+		try (PreparedStatement pstmtCount = sd.prepareStatement(sqlCount)) {
+			pstmtCount.setString(1, surveyIdent);
 
-			try (ResultSet rs = pstmt.executeQuery()) {
-				if (rs.next()) {
-					String tableName = rs.getString(1);
-
-					// Get the count from the results database
-					// Note: We need to use a different connection for the results database
-					// For now, we'll try to get it from upload_event table which tracks submissions
-					String sqlCount = "SELECT COUNT(*) FROM upload_event "
-							+ "WHERE ident = ? AND status != 'error'";
-
-					try (PreparedStatement pstmtCount = sd.prepareStatement(sqlCount)) {
-						pstmtCount.setString(1, surveyIdent);
-
-						try (ResultSet rsCount = pstmtCount.executeQuery()) {
-							if (rsCount.next()) {
-								count = rsCount.getInt(1);
-							}
-						}
-					}
+			try (ResultSet rsCount = pstmtCount.executeQuery()) {
+				if (rsCount.next()) {
+					count = rsCount.getInt(1);
 				}
 			}
 		} catch (Exception e) {
 			// Return 0 if we can't get the count
-			// This might happen if the table doesn't exist yet or permissions issues
-		}
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} 
 
 		return count;
 	}
