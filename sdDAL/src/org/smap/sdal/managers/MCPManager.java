@@ -81,6 +81,9 @@ public class MCPManager {
 
 		try {
 			switch (method) {
+				case "initialize":
+					return handleInitialize(request);
+
 				case "tools/list":
 					return handleToolsList(request);
 
@@ -102,6 +105,32 @@ public class MCPManager {
 				new MCPError(MCPError.INTERNAL_ERROR, "Internal error: " + e.getMessage())
 			);
 		}
+	}
+
+	/**
+	 * Handle initialize request
+	 * @param request The request
+	 * @return Response with server capabilities and info
+	 */
+	private MCPResponse handleInitialize(MCPRequest request) {
+		Map<String, Object> result = new HashMap<>();
+
+		// Protocol version
+		result.put("protocolVersion", "2024-11-05");
+
+		// Server capabilities
+		Map<String, Object> capabilities = new HashMap<>();
+		Map<String, Object> toolsCapability = new HashMap<>();
+		capabilities.put("tools", toolsCapability);
+		result.put("capabilities", capabilities);
+
+		// Server information
+		Map<String, Object> serverInfo = new HashMap<>();
+		serverInfo.put("name", "SMAP MCP Server");
+		serverInfo.put("version", "1.0.0");
+		result.put("serverInfo", serverInfo);
+
+		return new MCPResponse(request.getId(), result);
 	}
 
 	/**
