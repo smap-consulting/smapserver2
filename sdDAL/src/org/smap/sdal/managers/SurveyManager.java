@@ -162,7 +162,7 @@ public class SurveyManager {
 		PreparedStatement pstmtGetGroupDetails = null;
 		
 		ResultSet resultSet = null;
-		StringBuffer sql = new StringBuffer("");
+		StringBuilder sql = new StringBuilder("");
 		sql.append("select s.s_id, s.display_name, s.deleted, s.blocked, "
 				+ "s.ident, s.version, s.loaded_from_xls, p.name as project_name, p.id as project_id, "
 				+ "p.tasks_only,"
