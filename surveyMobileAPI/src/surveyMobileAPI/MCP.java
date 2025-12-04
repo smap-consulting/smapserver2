@@ -82,10 +82,11 @@ public class MCP extends Application {
 
 		Connection sd = null;
 		MCPResponse mcpResponse = null;
+		String connectionString = "surveyMobileAPI-MCP";
 
 		try {
 			// Get database connection
-			sd = SDDataSource.getConnection("surveyMobileAPI-MCP");
+			sd = SDDataSource.getConnection(connectionString);
 
 			// Get authenticated user
 			String user = request.getRemoteUser();
@@ -130,7 +131,7 @@ public class MCP extends Application {
 			// Clean up database connection
 			if (sd != null) {
 				try {
-					sd.close();
+					SDDataSource.closeConnection(connectionString, sd);
 				} catch (Exception e) {
 					log.severe("Error closing connection: " + e.getMessage());
 				}

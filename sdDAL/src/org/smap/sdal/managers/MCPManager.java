@@ -88,6 +88,7 @@ public class MCPManager {
 					return handleToolsCall(sd, username, request);
 
 				default:
+					log.info("MCP error, method not found: " + method);
 					return new MCPResponse(
 						request.getId(),
 						new MCPError(MCPError.METHOD_NOT_FOUND, "Method not found: " + method)
