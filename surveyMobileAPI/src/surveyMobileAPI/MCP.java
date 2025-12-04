@@ -40,6 +40,7 @@ import org.smap.sdal.managers.MCPManager;
 import org.smap.sdal.mcp.tools.EchoTool;
 import org.smap.sdal.mcp.tools.GetSurveySubmissionsTool;
 import org.smap.sdal.mcp.tools.ListSurveysTool;
+import org.smap.sdal.mcp.tools.ListTopicsTool;
 import org.smap.sdal.model.MCPError;
 import org.smap.sdal.model.MCPRequest;
 import org.smap.sdal.model.MCPResponse;
@@ -69,6 +70,8 @@ public class MCP extends Application {
 		mcpManager.getToolRegistry().register(new EchoTool());
 		mcpManager.getToolRegistry().register(new ListSurveysTool());
 		mcpManager.getToolRegistry().register(new GetSurveySubmissionsTool());
+		
+		mcpManager.getToolRegistry().register(new ListTopicsTool());
 	}
 
 	@POST
