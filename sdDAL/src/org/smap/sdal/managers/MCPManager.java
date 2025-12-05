@@ -40,6 +40,7 @@ public class MCPManager {
 
 	private static Logger log = Logger.getLogger(MCPManager.class.getName());
 	private MCPToolRegistry toolRegistry;
+	private boolean initialized = false;
 
 	public MCPManager() {
 		this.toolRegistry = new MCPToolRegistry();
@@ -51,6 +52,14 @@ public class MCPManager {
 	 */
 	public MCPToolRegistry getToolRegistry() {
 		return toolRegistry;
+	}
+
+	/**
+	 * Check if the server has been initialized
+	 * @return true if initialized notification has been received
+	 */
+	public boolean isInitialized() {
+		return initialized;
 	}
 
 	/**
@@ -83,6 +92,9 @@ public class MCPManager {
 			switch (method) {
 				case "initialize":
 					return handleInitialize(request);
+
+				case "notifications/initialized":
+					return handleInitializedNotification(request);
 
 				case "tools/list":
 					return handleToolsList(request);
@@ -130,7 +142,24 @@ public class MCPManager {
 		serverInfo.put("version", "1.0.0");
 		result.put("serverInfo", serverInfo);
 
+		log.info("MCP Server initialize request handled");
+
 		return new MCPResponse(request.getId(), result);
+	}
+
+	/**
+	 * Handle initialized notification from client
+	 * According to MCP spec, client sends this after receiving initialize response
+	 * @param request The notification (has no id, expects no response)
+	 * @return Null response (notifications don't get responses)
+	 */
+	private MCPResponse handleInitializedNotification(MCPRequest request) {
+		initialized = true;
+		log.info("MCP Server received initialized notification from client - server is now ready");
+
+		// Notifications don't expect a response, but we return null to indicate success
+		// The calling code should check for null and not send a response
+		return null;
 	}
 
 	/**

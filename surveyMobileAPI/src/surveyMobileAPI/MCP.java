@@ -114,6 +114,12 @@ public class MCP extends Application {
 			// Process the request
 			mcpResponse = mcpManager.processRequest(sd, user, mcpRequest);
 
+			// If response is null, this was a notification that expects no response
+			if (mcpResponse == null) {
+				log.info("Notification processed, no response needed");
+				return Response.status(Response.Status.NO_CONTENT).build();
+			}
+
 		} catch (AuthorisationException e) {
 			log.warning("Authorization failed: " + e.getMessage());
 			mcpResponse = new MCPResponse(
