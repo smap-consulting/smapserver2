@@ -126,7 +126,8 @@ public class DataManager {
 			String tz,				// Timezone
 			boolean includeMeta,
 			String urlprefix,
-			String attachmentPrefix
+			String attachmentPrefix,
+			boolean poll			// Only recent data returned
 			) throws ApplicationException, Exception { 
 
 		Response response;
@@ -174,7 +175,8 @@ public class DataManager {
 					sm,
 					includeMeta,
 					urlprefix,
-					attachmentPrefix);
+					attachmentPrefix,
+					poll);
 		} else {
 			throw new ApplicationException(localisation.getString("mf_snf"));
 		}
@@ -215,7 +217,8 @@ public class DataManager {
 			SurveyManager sm,
 			boolean includeMeta,
 			String urlprefix,
-			String attachmentPrefix
+			String attachmentPrefix,
+			boolean poll			// Not sure if this is used
 			) throws Exception {
 
 		ArrayList<TableColumn> columns = null;
@@ -278,7 +281,7 @@ public class DataManager {
 			 * Assumes polling is at max 15 minutes
 			 */
 			String filter = null;
-			if(instanceId == null && parkey == 0) {
+			if(poll) {
 				filter = "${_upload_time} > now() - {20_minutes}";
 			}
 			
@@ -421,7 +424,8 @@ public class DataManager {
 									sm,
 									false,
 									urlprefix,
-									attachmentPrefix));
+									attachmentPrefix,
+									poll));
 						}
 					}	
 					

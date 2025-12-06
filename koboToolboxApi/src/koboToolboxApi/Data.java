@@ -220,8 +220,6 @@ public class Data extends Application {
 			@QueryParam("hierarchy") String hierarchy
 			) throws ApplicationException, Exception { 
 		
-		Response response;
-		
 		if(tz == null) {
 			tz = "UTC";
 		}
@@ -240,15 +238,88 @@ public class Data extends Application {
 	
 	/*
 	 * KoboToolBox API version 1 /data
-	 * Get multiple data records in hierarchy format
+	 * Poll for new records
 	 */
 	@GET
 	@Produces("application/json")
 	@Path("/poll")
+	public Response pollDataRecords(@Context HttpServletRequest request,
+			@QueryParam("survey") String sIdent,		// Should be a path param
+			@QueryParam("tz") String tz					// Timezone
+			) throws ApplicationException, Exception { 
+		
+		Response response;
+	
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
+		String connectionString = "koboToolboxApi - poll for records";
+		
+		Connection cResults = null;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		
+		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);	
+		
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+		
+		try {
+			cResults = ResultsDataSource.getConnection(connectionString);
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
+			
+			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
+				throw new ApplicationException(localisation.getString("susp_api"));
+			}
+			
+			DataManager dm = new DataManager(localisation, tz);
+
+			response = dm.getRecordHierarchy(sd, cResults, request,
+					sIdent,
+					sId,
+					null,			// Specific instanceId to retrieve
+					"yes", 			// If set to yes then do not put choices from select multiple questions in separate objects
+					localisation,
+					tz,				// Timezone
+					true,
+					urlprefix,
+					attachmentPrefix,
+					true			// Poll for recent data
+					);	
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			String resp = "{error: " + e.getMessage() + "}";
+			response = Response.serverError().entity(resp).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
+		}
+		return response;
+	}
+	
+	/*
+	 * KoboToolBox API version 1 /data
+	 * Get data records in hierarchy format
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/hierarchy/{survey}")
 	public Response getMultipleHierarchyDataRecords(@Context HttpServletRequest request,
-			@QueryParam("survey") String sIdent,	
-			@QueryParam("tz") String tz,					// Timezone
-			@QueryParam("filter") String filter
+			@PathParam("survey") String sIdent,	
+			@QueryParam("tz") String tz					// Timezone
 			) throws ApplicationException, Exception { 
 		
 		Response response;
@@ -293,13 +364,14 @@ public class Data extends Application {
 			response = dm.getRecordHierarchy(sd, cResults, request,
 					sIdent,
 					sId,
-					null,
+					null,			// Specific instanceId to retrieve
 					"yes", 			// If set to yes then do not put choices from select multiple questions in separate objects
 					localisation,
 					tz,				// Timezone
 					true,
 					urlprefix,
-					attachmentPrefix
+					attachmentPrefix,
+					false			// Poll for recent data
 					);	
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);

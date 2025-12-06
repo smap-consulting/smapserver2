@@ -174,7 +174,8 @@ public class DataEntryPoints {
 						tz,				// Timezone
 						includeMeta,
 						urlprefix,
-						attachmentPrefix
+						attachmentPrefix,
+						false
 						);	
 			} else {
 				response = dm.getSingleRecord(
