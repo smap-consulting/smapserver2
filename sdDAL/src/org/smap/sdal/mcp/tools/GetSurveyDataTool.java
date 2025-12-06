@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.Authorise;
@@ -44,7 +43,7 @@ public class GetSurveyDataTool implements IMCPTool {
 		// Optional uuid parameter
 		Map<String, Object> uuidProperty = new HashMap<>();
 		uuidProperty.put("type", "string");
-		uuidProperty.put("description", "Optional UUID of a specific record. If omitted, returns recent submissions (last 20 minutes).");
+		uuidProperty.put("description", "Optional UUID of a specific record. If omitted, returns all submissions");
 		properties.put("uuid", uuidProperty);
 
 		// Optional include_meta parameter
@@ -62,7 +61,7 @@ public class GetSurveyDataTool implements IMCPTool {
 
 		return new MCPToolDefinition(
 			"get_survey_data",
-			"Gets survey data in hierarchical format with repeating groups nested within parent records. Returns recent submissions (last 20 minutes) or a specific record by UUID.",
+			"Gets survey data in hierarchical format with repeating groups nested within parent records. Returns all submissions or a specific record by UUID.",
 			inputSchema
 		);
 	}
@@ -149,7 +148,7 @@ public class GetSurveyDataTool implements IMCPTool {
 				includeMeta,
 				null,           // urlprefix
 				null,           // attachmentPrefix
-				uuid == null    // poll - only get recent data if no UUID specified
+				false    		// Do not poll
 			);
 
 			// Extract the response entity as a string
