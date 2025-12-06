@@ -10,7 +10,6 @@ import org.smap.sdal.mcp.MCPToolRegistry;
 import org.smap.sdal.model.MCPError;
 import org.smap.sdal.model.MCPRequest;
 import org.smap.sdal.model.MCPResponse;
-import org.smap.sdal.model.MCPToolDefinition;
 import org.smap.sdal.model.MCPToolResult;
 
 /*****************************************************************************

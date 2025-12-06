@@ -287,7 +287,8 @@ public class Data extends Application {
 			
 			DataManager dm = new DataManager(localisation, tz);
 
-			response = dm.getRecordHierarchy(sd, cResults, request,
+			response = dm.getRecordHierarchy(sd, cResults, 
+					request.getRemoteUser(),
 					sIdent,
 					sId,
 					null,			// Specific instanceId to retrieve
@@ -361,7 +362,8 @@ public class Data extends Application {
 			
 			DataManager dm = new DataManager(localisation, tz);
 
-			response = dm.getRecordHierarchy(sd, cResults, request,
+			response = dm.getRecordHierarchy(sd, cResults, 
+					request.getRemoteUser(),
 					sIdent,
 					sId,
 					null,			// Specific instanceId to retrieve

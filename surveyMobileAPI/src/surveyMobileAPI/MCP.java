@@ -38,6 +38,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.MCPManager;
 import org.smap.sdal.mcp.tools.EchoTool;
+import org.smap.sdal.mcp.tools.GetSurveyDataTool;
 import org.smap.sdal.mcp.tools.GetSurveySubmissionsTool;
 import org.smap.sdal.mcp.tools.ListSurveysTool;
 import org.smap.sdal.mcp.tools.ListTopicsTool;
@@ -70,7 +71,7 @@ public class MCP extends Application {
 		mcpManager.getToolRegistry().register(new EchoTool());
 		mcpManager.getToolRegistry().register(new ListSurveysTool());
 		mcpManager.getToolRegistry().register(new GetSurveySubmissionsTool());
-		
+		mcpManager.getToolRegistry().register(new GetSurveyDataTool());
 		mcpManager.getToolRegistry().register(new ListTopicsTool());
 	}
 

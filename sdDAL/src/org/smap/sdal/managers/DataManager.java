@@ -117,7 +117,7 @@ public class DataManager {
 	public Response getRecordHierarchy(
 			Connection sd,
 			Connection cResults,
-			HttpServletRequest request,
+			String user,
 			String sIdent,
 			int sId,
 			String uuid,
@@ -132,7 +132,7 @@ public class DataManager {
 
 		Response response;
 
-		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_SINGLE_VIEW, "Hierarchy view. ", 0, request.getServerName());
+		lm.writeLog(sd, sId, user, LogManager.API_SINGLE_VIEW, "Hierarchy view. ", 0, null);
 
 		DataManager dm = new DataManager(localisation, tz);
 
@@ -141,7 +141,7 @@ public class DataManager {
 		Survey s = sm.getById(
 				sd, 
 				cResults, 
-				request.getRemoteUser(),
+				user,
 				false,
 				sId, 
 				true, 		// full

@@ -277,7 +277,8 @@ public class Data2 extends Application {
 			
 			DataManager dm = new DataManager(localisation, tz);
 
-			response = dm.getRecordHierarchy(sd, cResults, request,
+			response = dm.getRecordHierarchy(sd, cResults, 
+					request.getRemoteUser(),
 					sIdent,
 					sId,
 					null,
