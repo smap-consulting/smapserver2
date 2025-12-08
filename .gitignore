@@ -23,6 +23,10 @@ sms/target/
 
 build/css.orig
 
+# Netbeans
+**/META-INF/context.xml
+**/nb-configuration.xml
+
 # Eclipse artifacts
 *.pydevproject
 .metadata
@@ -93,5 +97,6 @@ Icon
 Network Trash Folder
 Temporary Items
 
-.claude
+# MCP
 mcp-wrapper
+.claude

@@ -34,20 +34,22 @@ public class Manager {
 	public static void main(String[] args) {
 		
 		String fileLocn = "/smap";			// Default for legacy servers that do not set file path
-		String subscriberType = "upload";	// Default subscriberType
+		String subscriberType = "upload";               // Default subscriberType
+                String smapId = "default";                      // Default smapId
 		
-		String smapId = args[0];
-		if(args.length > 1) {
-			if(args[1] != null && !args[1].equals("null")) {
-				fileLocn = args[1];	
-			}
-		}
-		ServerSettings.setBasePath(fileLocn);
-		
-		if(args.length > 2) {
-			subscriberType = args[2];	
-		}
-		
+                if(args.length > 0) {
+                    smapId = args[0];
+                    if(args.length > 1) {
+                            if(args[1] != null && !args[1].equals("null")) {
+                                    fileLocn = args[1];	
+                            }
+                    }
+                    if(args.length > 2) {
+                            subscriberType = args[2];	
+                    }
+                }		
+                ServerSettings.setBasePath(fileLocn);
+                
 		/*
 		 * Start asynchronous worker threads
 		 */

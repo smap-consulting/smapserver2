@@ -1091,7 +1091,8 @@ public class NotificationManager {
 								sm,
 								true,
 								urlprefix,
-								attachmentPrefix);
+								attachmentPrefix,
+								false);
 						String resp = "{}";
 						if(data.length() > 0) {
 							resp = data.getString(0).toString();
