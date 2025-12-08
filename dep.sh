@@ -16,6 +16,20 @@ cp ~/deploy/smapUploader.jar ~/deploy/smap/deploy/version1
 cp ~/deploy/codebook.jar ~/deploy/smap/deploy/version1
 
 #
+# sdDAL 
+#
+cd sdDAL
+mvn clean install
+cd ..
+
+#
+# sdDataAccess 
+#
+cd sdDataAccess
+mvn clean install
+cd ..
+
+#
 # surveyMobileAPI war file
 #
 cd surveyMobileAPI
