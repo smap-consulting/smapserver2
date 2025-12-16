@@ -43,6 +43,7 @@ import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.model.Action;
+import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.ChangeLog;
@@ -151,8 +152,9 @@ public class SurveyManager {
 			) throws SQLException {
 
 		ArrayList<Survey> surveys = new ArrayList<Survey>();	// Results of request
+		Gson gson = new Gson();
 
-		StringBuffer sqlGetGroupDetails = new StringBuffer("select p.name, s.display_name "
+		StringBuffer sqlGetGroupDetails = new StringBuffer("select p.name as project_name, s.display_name "
 				+ "from survey s, project p "
 				+ "where s.p_id = p.id "
 				+ "and s.ident = ? "
@@ -160,19 +162,25 @@ public class SurveyManager {
 		PreparedStatement pstmtGetGroupDetails = null;
 		
 		ResultSet resultSet = null;
-		StringBuffer sql = new StringBuffer("");
+		StringBuilder sql = new StringBuilder("");
 		sql.append("select s.s_id, s.display_name, s.deleted, s.blocked, "
 				+ "s.ident, s.version, s.loaded_from_xls, p.name as project_name, p.id as project_id, "
 				+ "p.tasks_only,"
 				+ "s.group_survey_ident, s.public_link, o.can_submit, s.hide_on_device, s.search_local_data,"
-				+ "s.data_survey, s.oversight_survey, s.read_only_survey "
-				+ "from survey s, users u, user_project up, project p, organisation o "
-				+ "where u.id = up.u_id "
-				+ "and p.id = up.p_id "
-				+ "and s.p_id = up.p_id "
+				+ "s.data_survey, s.oversight_survey, s.read_only_survey, c.settings "
+				+ "from survey s "
+				+ "join user_project up "
+				+ "on s.p_id = up.p_id "
+				+ "join users u "
+				+ "on u.id = up.u_id "
+				+ "join project p "
+				+ "on p.id = up.p_id "
 				+ "and p.o_id = u.o_id "
-				+ "and u.o_id = o.id "
-				+ "and u.ident = ? "
+				+ "join organisation o "
+				+ "on u.o_id = o.id "
+				+ "left outer join cms_setting c "
+				+ "on s.group_survey_ident = c.group_survey_ident "
+				+ "where u.ident = ? "
 				+ "and s.hidden = 'false' ");
 
 		if(!superUser) {					// Add RBAC
@@ -213,11 +221,11 @@ public class SurveyManager {
 			if(projectId != 0) {
 				pstmt.setInt(idx++, projectId);
 			}
-			log.info("Get surveys: " + pstmt.toString());
-			resultSet = pstmt.executeQuery();
-			
+				
 			pstmtGetGroupDetails = sd.prepareStatement(sqlGetGroupDetails.toString());
 			
+			log.info("Get surveys: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
 			while (resultSet.next()) {						
 	
 				Survey s = new Survey();
@@ -243,12 +251,36 @@ public class SurveyManager {
 				s.surveyData.readOnlySurvey = resultSet.getBoolean("read_only_survey");
 				
 				if(getGroupDetails) {
-					pstmtGetGroupDetails.setString(1, s.surveyData.groupSurveyIdent);
-					pstmtGetGroupDetails.setString(2, s.surveyData.groupSurveyIdent);
-					ResultSet rsGroup = pstmtGetGroupDetails.executeQuery();
-					if(rsGroup.next()) {
-						s.surveyData.groupSurveyDetails = rsGroup.getString(1) + " : " + rsGroup.getString(2);
+					
+					String bundleName = null;
+					String caseString = resultSet.getString("settings");
+					if(caseString != null && caseString.trim().length() > 0) {
+						try {
+							CaseManagementSettings settings = gson.fromJson(caseString, CaseManagementSettings.class);
+							if(settings.name != null && settings.name.trim().length() > 0) {
+								bundleName = settings.name;
+							}
+						} catch (Exception e) {
+							// ignore
+						}
 					}
+					/*
+					 * A bundle name has not been specified in the bundle settings. Try constructing a name if a bundle exists
+					 */
+					if(bundleName == null) {
+					
+						pstmtGetGroupDetails.setString(1, s.surveyData.groupSurveyIdent);
+						pstmtGetGroupDetails.setString(2, s.surveyData.groupSurveyIdent);
+					
+						ResultSet rsGroup = pstmtGetGroupDetails.executeQuery();
+						if(rsGroup.next()) {
+						
+							bundleName = rsGroup.getString("project_name") + " : " + rsGroup.getString("display_name");
+						
+						}
+					}
+					// Set the group details to the bundle name
+					s.surveyData.groupSurveyDetails = bundleName;
 				}
 				
 				if(links) {

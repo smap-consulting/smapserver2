@@ -226,8 +226,8 @@ public class Data2 extends Application {
 	}
 	
 	/*
-	 * KoboToolBox API version 1 /data
-	 * Get multiple data records in hierarchy format
+	 * KoboToolBox API version 2 /data
+	 * Poll for new records
 	 */
 	@GET
 	@Produces("application/json")
@@ -277,7 +277,8 @@ public class Data2 extends Application {
 			
 			DataManager dm = new DataManager(localisation, tz);
 
-			response = dm.getRecordHierarchy(sd, cResults, request,
+			response = dm.getRecordHierarchy(sd, cResults, 
+					request.getRemoteUser(),
 					sIdent,
 					sId,
 					null,
@@ -286,7 +287,8 @@ public class Data2 extends Application {
 					tz,				// Timezone
 					true,
 					urlprefix,
-					attachmentPrefix
+					attachmentPrefix,
+					true			// Poll for recent data
 					);	
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);

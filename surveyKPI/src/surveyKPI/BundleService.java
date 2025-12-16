@@ -30,12 +30,15 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.BundleManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.Bundle;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -66,6 +69,46 @@ public class BundleService extends Application {
 		authorisations.add(Authorise.ANALYST);
 		a = new Authorise(authorisations, null);
 	}
+	
+	@GET
+	@Produces("application/json")
+	public Response get(
+			@Context HttpServletRequest request
+			) { 
+		
+		Response response = null;
+		String connectionString = "surveyKPI-getBundles";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());	
+		// End Authorisation
+		
+		try {
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			BundleManager bm = new BundleManager(localisation);
+			
+			ArrayList<Bundle> bundles = bm.getBundles(sd, request.getRemoteUser());
+			
+			String resp = gson.toJson(bundles);
+			response = Response.ok(resp).build();
+			
+		} catch (Exception e) {
+			
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+	
 	
 	/*
 	 * Get the bundle settings for passed in survey

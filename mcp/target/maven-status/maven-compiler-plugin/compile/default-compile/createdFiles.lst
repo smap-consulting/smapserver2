@@ -1,0 +1,6 @@
+org/smap/mcp/MCPServer$MCPHandler.class
+org/smap/mcp/MCPResponse.class
+org/smap/mcp/Main.class
+org/smap/mcp/MCPProcessor.class
+org/smap/mcp/MCPQuery.class
+org/smap/mcp/MCPServer.class

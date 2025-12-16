@@ -117,7 +117,7 @@ public class DataManager {
 	public Response getRecordHierarchy(
 			Connection sd,
 			Connection cResults,
-			HttpServletRequest request,
+			String user,
 			String sIdent,
 			int sId,
 			String uuid,
@@ -126,12 +126,13 @@ public class DataManager {
 			String tz,				// Timezone
 			boolean includeMeta,
 			String urlprefix,
-			String attachmentPrefix
+			String attachmentPrefix,
+			boolean poll			// Only recent data returned
 			) throws ApplicationException, Exception { 
 
 		Response response;
 
-		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_SINGLE_VIEW, "Hierarchy view. ", 0, request.getServerName());
+		lm.writeLog(sd, sId, user, LogManager.API_SINGLE_VIEW, "Hierarchy view. ", 0, null);
 
 		DataManager dm = new DataManager(localisation, tz);
 
@@ -140,7 +141,7 @@ public class DataManager {
 		Survey s = sm.getById(
 				sd, 
 				cResults, 
-				request.getRemoteUser(),
+				user,
 				false,
 				sId, 
 				true, 		// full
@@ -174,7 +175,8 @@ public class DataManager {
 					sm,
 					includeMeta,
 					urlprefix,
-					attachmentPrefix);
+					attachmentPrefix,
+					poll);
 		} else {
 			throw new ApplicationException(localisation.getString("mf_snf"));
 		}
@@ -215,7 +217,8 @@ public class DataManager {
 			SurveyManager sm,
 			boolean includeMeta,
 			String urlprefix,
-			String attachmentPrefix
+			String attachmentPrefix,
+			boolean poll			// Not sure if this is used
 			) throws Exception {
 
 		ArrayList<TableColumn> columns = null;
@@ -278,7 +281,7 @@ public class DataManager {
 			 * Assumes polling is at max 15 minutes
 			 */
 			String filter = null;
-			if(instanceId == null && parkey == 0) {
+			if(poll) {
 				filter = "${_upload_time} > now() - {20_minutes}";
 			}
 			
@@ -421,7 +424,8 @@ public class DataManager {
 									sm,
 									false,
 									urlprefix,
-									attachmentPrefix));
+									attachmentPrefix,
+									poll));
 						}
 					}	
 					

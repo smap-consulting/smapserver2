@@ -165,7 +165,8 @@ public class DataEntryPoints {
 			}
 			
 			if(includeHierarchy) {
-				response = dm.getRecordHierarchy(sd, cResults, request,
+				response = dm.getRecordHierarchy(sd, cResults, 
+						request.getRemoteUser(),
 						sIdent,
 						sId,
 						uuid,
@@ -174,7 +175,8 @@ public class DataEntryPoints {
 						tz,				// Timezone
 						includeMeta,
 						urlprefix,
-						attachmentPrefix
+						attachmentPrefix,
+						false
 						);	
 			} else {
 				response = dm.getSingleRecord(
