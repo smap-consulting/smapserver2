@@ -53,7 +53,7 @@ else
     TOMCAT_USER=tomcat8
 fi
 
-CATALINA_HOME=/usr/share/$TOMCAT_VERSION
+CATALINA_HOME=/var/lib/$TOMCAT_VERSION
 sd="survey_definitions"											# Postgres config survey definitions db name
 results="results"												# Postgres config results db name
 tc_server_xml="/etc/$TOMCAT_VERSION/server.xml"					# Tomcat config
@@ -114,11 +114,11 @@ if [ $u2404 -eq 1 ]; then
     sudo apt-get install openjdk-11-jdk-headless -y
     echo 'Create tomcat user'
     sudo groupadd tomcat
-    sudo useradd -s /bin/false -g tomcat -d /usr/share/tomcat9 tomcat
+    sudo useradd -s /bin/false -g tomcat -d /var/lib/tomcat9 tomcat
     echo 'get tomcat'
     wget https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.106/bin/apache-tomcat-9.0.106.tar.gz
-    sudo mkdir /usr/share/tomcat9
-    sudo tar xzf apache-tomcat-9*tar.gz -C /usr/share/tomcat9 --strip-components=1
+    sudo mkdir /var/lib/tomcat9
+    sudo tar xzf apache-tomcat-9*tar.gz -C /var/lib/tomcat9 --strip-components=1
     rm apache-tomcat-9*tar.gz
     echo 'Tomcat service'
     cp config_files/tomcat9.service /usr/lib/systemd/system
@@ -126,16 +126,10 @@ if [ $u2404 -eq 1 ]; then
     JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
     JH="JAVA_HOME=\"$JAVA_HOME\""
     sed -i "/JAVA_HOME/c$JH" /usr/lib/systemd/system/tomcat9.service
-    
-    echo 'Create tomcat apps directory'
-    mkdir /var/lib/tomcat9
-    mkdir /var/lib/tomcat9/webapps
-    mkdir /var/lib/tomcat9/conf
-    mkdir /var/lib/tomcat9/logs
     echo 'Create tomcat log directory'
     mkdir /var/log/tomcat9
-    chown -R tomcat /var/lib/tomcat9 /var/log/tomcat9 /usr/share/tomcat9
-    chgrp -R tomcat /var/lib/tomcat9 /var/log/tomcat9 /usr/share/tomcat9
+    chown -R tomcat /var/lib/tomcat9 /var/log/tomcat9
+    chgrp -R tomcat /var/lib/tomcat9 /var/log/tomcat9
     ln -s /var/lib/tomcat9/logs /var/log/tomcat9/logs
     systemctl enable tomcat9
 else
@@ -221,8 +215,8 @@ elif [ $u1804 -eq 1 ]; then
     sudo mkdir /var/lib/$TOMCAT_VERSION/.aws
     sudo chown -R $TOMCAT_USER /var/lib/$TOMCAT_VERSION/.aws
 else
-    sudo mkdir /usr/share/$TOMCAT_VERSION/.aws
-    sudo chown -R $TOMCAT_USER /usr/share/$TOMCAT_VERSION/.aws
+    sudo mkdir /var/lib/$TOMCAT_VERSION/.aws
+    sudo chown -R $TOMCAT_USER /var/lib/$TOMCAT_VERSION/.aws
 fi
 
 # If auto configuration is set then copy the pre-set configuration files to their target destination

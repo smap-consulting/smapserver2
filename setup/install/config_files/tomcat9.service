@@ -11,7 +11,7 @@ RequiresMountsFor=/var/log/tomcat9 /var/lib/tomcat9
 [Service]
 
 # Configuration
-Environment="CATALINA_HOME=/usr/share/tomcat9"
+Environment="CATALINA_HOME=/var/lib/tomcat9"
 Environment="CATALINA_BASE=/var/lib/tomcat9"
 Environment="CATALINA_OUT=/var/log/tomcat9/catalina.out"
 Environment="CATALINA_TMPDIR=/tmp"
@@ -20,8 +20,8 @@ Environment="JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64/"
 
 # Lifecycle
 Type=forking
-ExecStart=/usr/share/tomcat9/bin/startup.sh
-ExecStop=/usr/share/tomcat9/bin/shutdown.sh
+ExecStart=/var/lib/tomcat9/bin/startup.sh
+ExecStop=/var/lib/tomcat9/bin/shutdown.sh
 
 SuccessExitStatus=143
 Restart=on-abort
