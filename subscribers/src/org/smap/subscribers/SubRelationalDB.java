@@ -661,9 +661,15 @@ public class SubRelationalDB extends Subscriber {
 					pstmt.executeUpdate();
 					ResultSet rs = pstmt.getGeneratedKeys();
 					
-					if (rs.next()) {
-						parent_key = rs.getInt(1);
-						keys.newKey = parent_key;
+					try {
+						if (rs.next()) {
+							parent_key = rs.getInt(1);
+							keys.newKey = parent_key;
+						}
+					} finally {
+						if (rs != null) {
+							try {rs.close();} catch (Exception e) {}
+						}
 					}
 					// Add primary key, instanceId and table name to the foreign keys for this table
 					for(ForeignKey fk : thisTableKeys) {
@@ -1500,13 +1506,15 @@ public class SubRelationalDB extends Subscriber {
 		HashMap<String, String> subCols = new HashMap<> (); 
 		HashMap<String, String> subColNames = new HashMap<> (); 
 		
+		ResultSet rsSubs = null;
+		ResultSet rsCols = null;
 		try {
 			/*
 			 * Get details on the columns that are in the submitting survey
 			 */
 			pstmtSubmissionCols = sd.prepareStatement(sqlSubmissionCols);
 			pstmtSubmissionCols.setInt(1, f_id);
-			ResultSet rsSubs = pstmtSubmissionCols.executeQuery();
+			rsSubs = pstmtSubmissionCols.executeQuery();
 			while(rsSubs.next()) {
 				subCols.put(rsSubs.getString("column_name"), rsSubs.getString("qtype"));
 				subColNames.put(rsSubs.getString("column_name"), rsSubs.getString("qName"));
@@ -1518,7 +1526,7 @@ public class SubRelationalDB extends Subscriber {
 			pstmtCols = cRel.prepareStatement(sqlCols.toString());
 			pstmtCols.setString(1, table);
 			
-			ResultSet rsCols = pstmtCols.executeQuery();
+			rsCols = pstmtCols.executeQuery();
 			int count = 0;
 			while(rsCols.next()) {
 				String col = rsCols.getString(1);
@@ -1533,77 +1541,94 @@ public class SubRelationalDB extends Subscriber {
 				pstmtGetSource = cRel.prepareStatement(sqlGetTarget);
 				
 				pstmtGetTarget.setInt(1, prikey);
-				ResultSet rsGetTarget = pstmtGetTarget.executeQuery();
-				if(rsGetTarget.next()) {
-					String val = rsGetTarget.getString(1);
-					String subColType = subCols.get(col);
-					String qName = subColNames.get(col);
-	
-					/*
-					 * Copy the value from the old table if the policy is not replace (that is merge) and
-					 *  this is a question that is not in the submitting form (subColType will be null)
-					 *  or the question is of type Conversation (these are not submitted)
-					 */
-					if(( !replace && (subColType == null || "conversation".equals(subColType)))) {
-	
-						String sqlUpdateTarget = "update " + table 
-								+ " set " + col + " = (select " + col 
-									+ " from " + table 
-									+ " where prikey = ?) "
-								+ "where prikey = ?";
-						if(pstmtUpdateTarget != null) try{pstmtUpdateTarget.close();}catch(Exception e) {}
-						pstmtUpdateTarget = cRel.prepareStatement(sqlUpdateTarget);
-						pstmtUpdateTarget.setInt(1, sourceKey);
-						pstmtUpdateTarget.setInt(2, prikey);
-						if(count++ == 0) {		// Only log the first merge
-							log.info(("Merging col: " + pstmtUpdateTarget.toString()));
+				ResultSet rsGetTarget = null;
+				try {
+					rsGetTarget = pstmtGetTarget.executeQuery();
+					if(rsGetTarget.next()) {
+						String val = rsGetTarget.getString(1);
+						String subColType = subCols.get(col);
+						String qName = subColNames.get(col);
+		
+						/*
+						 * Copy the value from the old table if the policy is not replace (that is merge) and
+						 *  this is a question that is not in the submitting form (subColType will be null)
+						 *  or the question is of type Conversation (these are not submitted)
+						 */
+						if(( !replace && (subColType == null || "conversation".equals(subColType)))) {
+		
+							String sqlUpdateTarget = "update " + table 
+									+ " set " + col + " = (select " + col 
+										+ " from " + table 
+										+ " where prikey = ?) "
+									+ "where prikey = ?";
+							if(pstmtUpdateTarget != null) try{pstmtUpdateTarget.close();}catch(Exception e) {}
+							pstmtUpdateTarget = cRel.prepareStatement(sqlUpdateTarget);
+							pstmtUpdateTarget.setInt(1, sourceKey);
+							pstmtUpdateTarget.setInt(2, prikey);
+							if(count++ == 0) {		// Only log the first merge
+								log.info(("Merging col: " + pstmtUpdateTarget.toString()));
+							}
+							pstmtUpdateTarget.executeUpdate();
 						}
-						pstmtUpdateTarget.executeUpdate();
+						
+						/*
+						 * Get the change value if this question is in the submitting form
+						 */
+						if(subColType != null) {
+							
+							String oldVal = null;
+							
+							// If this is a geo question then replace values with geoJson
+							if(GeneralUtilityMethods.isGeometry(subColType)) {
+								if(pstmtGetSourceGeom != null) try{pstmtGetSourceGeom.close();}catch(Exception e) {}
+								pstmtGetSourceGeom = cRel.prepareStatement(sqlGetTargetGeom);						
+								if(pstmtGetTargetGeom != null) try{pstmtGetTargetGeom.close();}catch(Exception e) {}
+								pstmtGetTargetGeom = cRel.prepareStatement(sqlGetTargetGeom);
+								
+								ResultSet rsGetSourceGeom = null;
+								ResultSet rsGetTargetGeom = null;
+								try {
+									pstmtGetSourceGeom.setInt(1, sourceKey);
+									rsGetSourceGeom = pstmtGetSourceGeom.executeQuery();						
+									if(rsGetSourceGeom.next()) {
+										oldVal = rsGetSourceGeom.getString(1);
+									}
+									
+									pstmtGetTargetGeom.setInt(1, prikey);
+									rsGetTargetGeom = pstmtGetTargetGeom.executeQuery();						
+									if(rsGetTargetGeom.next()) {
+										val = rsGetTargetGeom.getString(1);
+									}
+								} finally {
+									if(rsGetSourceGeom != null) try{rsGetSourceGeom.close();}catch(Exception e) {}
+									if(rsGetTargetGeom != null) try{rsGetTargetGeom.close();}catch(Exception e) {}
+								}
+								
+							} else {
+								// Just get the source in raw string format
+								ResultSet rsGetSource = null;
+								try {
+									pstmtGetSource.setInt(1, sourceKey);
+									rsGetSource = pstmtGetSource.executeQuery();
+									if(rsGetSource.next()) {
+										oldVal = rsGetSource.getString(1);
+									}
+								} finally {
+									if(rsGetSource != null) try{rsGetSource.close();}catch(Exception e) {}
+								}
+							}
+							
+							if(oldVal == null && val == null) {
+								continue;
+							} else if(oldVal == null || val == null || !oldVal.equals(val)) {
+								changes.add(new DataItemChange(col, qName, subColType, val, oldVal));
+							} else {
+								continue;
+							}
+						}
 					}
-					
-					/*
-					 * Get the change value if this question is in the submitting form
-					 */
-					if(subColType != null) {
-						
-						String oldVal = null;
-						
-						// If this is a geo question then replace values with geoJson
-						if(GeneralUtilityMethods.isGeometry(subColType)) {
-							if(pstmtGetSourceGeom != null) try{pstmtGetSourceGeom.close();}catch(Exception e) {}
-							pstmtGetSourceGeom = cRel.prepareStatement(sqlGetTargetGeom);						
-							if(pstmtGetTargetGeom != null) try{pstmtGetTargetGeom.close();}catch(Exception e) {}
-							pstmtGetTargetGeom = cRel.prepareStatement(sqlGetTargetGeom);
-							
-							pstmtGetSourceGeom.setInt(1, sourceKey);
-							ResultSet rsGetGeom = pstmtGetSourceGeom.executeQuery();						
-							if(rsGetGeom.next()) {
-								oldVal = rsGetGeom.getString(1);
-							}
-							
-							pstmtGetTargetGeom.setInt(1, prikey);
-							rsGetGeom = pstmtGetTargetGeom.executeQuery();						
-							if(rsGetGeom.next()) {
-								val = rsGetGeom.getString(1);
-							}
-							
-						} else {
-							// Just get the source in raw string format
-							pstmtGetSource.setInt(1, sourceKey);
-							ResultSet rsGetSource = pstmtGetSource.executeQuery();
-							if(rsGetSource.next()) {
-								oldVal = rsGetSource.getString(1);
-							}
-						}
-						
-						if(oldVal == null && val == null) {
-							continue;
-						} else if(oldVal == null || val == null || !oldVal.equals(val)) {
-							changes.add(new DataItemChange(col, qName, subColType, val, oldVal));
-						} else {
-							continue;
-						}
-					}
+				} finally {
+					if(rsGetTarget != null) try{rsGetTarget.close();}catch(Exception e) {}
 				}
 	
 			}
@@ -1614,6 +1639,8 @@ public class SubRelationalDB extends Subscriber {
 
 			
 		} finally {
+			if(rsSubs != null) try{rsSubs.close();}catch(Exception e) {}
+			if(rsCols != null) try{rsCols.close();}catch(Exception e) {}
 			if(pstmtCols != null) try{pstmtCols.close();}catch(Exception e) {}
 			if(pstmtSubmissionCols != null) try{pstmtSubmissionCols.close();}catch(Exception e) {}
 			if(pstmtGetTargetGeom != null) try{pstmtGetTargetGeom.close();}catch(Exception e) {}

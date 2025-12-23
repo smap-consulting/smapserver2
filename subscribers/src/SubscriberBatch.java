@@ -1994,17 +1994,19 @@ public class SubscriberBatch {
 				+ "select gen_random_uuid(), key, group_survey_ident from cms_setting where key is not null and key != ''";
 		PreparedStatement pstmtAddKeys = null;
 		
+		ResultSet rs = null;
+		ResultSet rsGetKeys = null;
 		try {
 			pstmtGetKeys = sd.prepareStatement(sqlGetKeys);
 			
 			pstmt = sd.prepareStatement(sql);
-			ResultSet rs = pstmt.executeQuery();
+			rs = pstmt.executeQuery();
 			if(rs.next() && rs.getInt(1) > 0) {
 				/*
 				 * Process Queue
 				 */
 				KeyManager km = new KeyManager(localisation);
-				ResultSet rsGetKeys = pstmtGetKeys.executeQuery();
+				rsGetKeys = pstmtGetKeys.executeQuery();
 				while(rsGetKeys.next()) {
 					 String key = rsGetKeys.getString("key");
 					 String groupSurveyIdent = rsGetKeys.getString("group_survey_ident");
@@ -2022,6 +2024,8 @@ public class SubscriberBatch {
 		} catch(Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {
+			try {if (rs != null) {rs.close();}} catch (SQLException e) {}
+			try {if (rsGetKeys != null) {rsGetKeys.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtAddKeys != null) {pstmtAddKeys.close();}} catch (SQLException e) {}
 			try {if (pstmtGetKeys != null) {pstmtGetKeys.close();}} catch (SQLException e) {}
