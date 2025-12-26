@@ -242,7 +242,7 @@ public class UserManager {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, user.id);
-			log.info("SQL: " + pstmt.toString());
+			// log.info("SQL: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 
 			boolean canResetPassword = false;	// Only reset passwords of users with specific groups
@@ -275,7 +275,7 @@ public class UserManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, user.id);
 
-			log.info("SQL: " + pstmt.toString());
+			// log.info("SQL: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 
 			while(resultSet.next()) {
@@ -2230,19 +2230,19 @@ public class UserManager {
 					+ "where ident = ? for update";
 			pstmt = sd.prepareStatement(sqlGet);
 			pstmt.setString(1, userIdent);
-			log.info("$$$$$$$ Get total tasks from cache: " + pstmt.toString());
+			//log.info("$$$$$$$ Get total tasks from cache: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				count = rs.getInt("total_tasks");
 				resetCount = rs.getBoolean("reset_total_tasks");
 				
-				log.info("$$$$$$$ reset: " + resetCount + " count: " + count);
+				//log.info("$$$$$$$ reset: " + resetCount + " count: " + count);
 				if(resetCount || count < 0){
 					
 					/*
 					 * Need to recalculate the count of tasks
 					 */
-					log.info("$$$$$$$ recaclulating count of tasks");
+					//log.info("$$$$$$$ recaclulating count of tasks");
 					AssignmentsManager am = new AssignmentsManager();
 					TaskResponse tr = am.getTasksData(sd, 
 							cResults,
@@ -2260,7 +2260,7 @@ public class UserManager {
 							null, null, null, null, null, null, null);
 								
 					count = tr.taskAssignments.size();
-					log.info("$$$$$$$ new count is: " + count);
+					//log.info("$$$$$$$ new count is: " + count);
 					setTasksCount(sd, userIdent, count);
 				}
 			}
@@ -2271,7 +2271,7 @@ public class UserManager {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			sd.rollback();
 		} finally {
-			log.info("Set autocommit true");
+			// log.info("Set autocommit true");
 			sd.setAutoCommit(true);		// End transaction
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}

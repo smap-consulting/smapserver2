@@ -224,7 +224,7 @@ public class SurveyManager {
 				
 			pstmtGetGroupDetails = sd.prepareStatement(sqlGetGroupDetails.toString());
 			
-			log.info("Get surveys: " + pstmt.toString());
+			// log.info("Get surveys: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			while (resultSet.next()) {						
 	

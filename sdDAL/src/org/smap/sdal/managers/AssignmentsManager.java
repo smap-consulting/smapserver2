@@ -635,7 +635,7 @@ public class AssignmentsManager {
 	
 				pstmtGetSettings = sd.prepareStatement(sql.toString());
 				pstmtGetSettings.setString(1, userIdent);
-				log.info("Getting settings: " + pstmtGetSettings.toString());
+				// log.info("Getting settings: " + pstmtGetSettings.toString());
 				resultSet = pstmtGetSettings.executeQuery();
 	
 				if (resultSet.next()) {
@@ -689,7 +689,7 @@ public class AssignmentsManager {
 				pstmtGetProjects.setString(1, userIdent);
 				pstmtGetProjects.setInt(2, oId);
 
-				log.info("Getting projects: " + pstmtGetProjects.toString());
+				// log.info("Getting projects: " + pstmtGetProjects.toString());
 				resultSet = pstmtGetProjects.executeQuery();
 
 				while (resultSet.next()) {
@@ -762,7 +762,7 @@ public class AssignmentsManager {
 		Response response = null;
 
 		TaskUpdate tu = gson.fromJson(assignment, TaskUpdate.class);
-		log.info("webserviceevent : update assignment status: " + tu.assignment_id);
+		// log.info("webserviceevent : update assignment status: " + tu.assignment_id);
 
 		String connectionString = "surveyKPI-MyAssignments-reject";
 		// Authorisation - Access
@@ -915,8 +915,8 @@ public class AssignmentsManager {
 		if (status.equals(TaskManager.STATUS_T_CANCELLED)) {
 			pstmtSetDeleted.setInt(1, assignmentId);
 			pstmtSetDeleted.setString(2, userName);
-			log.info("Assignment:" + assignmentId + " acknowledge cancel - update assignments to deleted: "
-					+ pstmtSetDeleted.toString());
+			// log.info("Assignment:" + assignmentId + " acknowledge cancel - update assignments to deleted: "
+			//		+ pstmtSetDeleted.toString());
 			pstmtSetDeleted.executeUpdate();
 		} else {
 
@@ -930,7 +930,7 @@ public class AssignmentsManager {
 				pstmtSetUpdatedRejected.setInt(4, uId);
 				pstmtSetUpdatedRejected.setInt(5, assignmentId); // To get name
 				pstmtSetUpdatedRejected.setInt(6, uId);
-				log.info("update assignments rejected: " + pstmtSetUpdatedRejected.toString());
+				// log.info("update assignments rejected: " + pstmtSetUpdatedRejected.toString());
 				int count = pstmtSetUpdatedRejected.executeUpdate();
 
 				if(count == 1) {		// Should only be one record updated - If it has been updated then we need to update the task totals
@@ -947,7 +947,7 @@ public class AssignmentsManager {
 				pstmtSetUpdatedNotRejected.setInt(4, uId);
 				pstmtSetUpdatedNotRejected.setInt(5, assignmentId); // To get name
 				pstmtSetUpdatedNotRejected.setInt(6, uId);
-				log.info("update assignments excluding rejected: " + pstmtSetUpdatedNotRejected.toString());
+				// log.info("update assignments excluding rejected: " + pstmtSetUpdatedNotRejected.toString());
 				pstmtSetUpdatedNotRejected.executeUpdate();
 			}
 
