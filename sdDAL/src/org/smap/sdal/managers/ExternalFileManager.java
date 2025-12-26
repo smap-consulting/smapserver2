@@ -67,7 +67,7 @@ public class ExternalFileManager {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
-			log.info("Linker changed: " + pstmt.toString());
+			// log.info("Linker changed: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Linker changed", e);
@@ -91,7 +91,7 @@ public class ExternalFileManager {
 
 		boolean regenerate = false;
 		
-		log.info("createLinkedFile: " + filename);
+		// log.info("createLinkedFile: " + filename);
 
 		try {
 			String physicalFilePath = getLinkedPhysicalFilePath(sd, logicalFilePath);
@@ -161,7 +161,7 @@ public class ExternalFileManager {
 		} finally {
 			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 		}
-		log.info("%%%%%: Returning current physical path: " + physicalFilePath + ".csv");
+		// log.info("%%%%%: Returning current physical path: " + physicalFilePath + ".csv");
 		return physicalFilePath;
 	}
 	
@@ -189,7 +189,7 @@ public class ExternalFileManager {
 			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 		}
 		
-		log.info("%%%%%: Getting a new file path: " + newPath + ".csv");
+		// log.info("%%%%%: Getting a new file path: " + newPath + ".csv");
 		
 		return newPath;
 	}
@@ -226,13 +226,13 @@ public class ExternalFileManager {
 					pstmtInsert.setInt(3, Integer.valueOf(newId));
 					pstmtInsert.executeUpdate();
 				}
-				log.info("%%%%%: Update current physical path to: " + physicalFilePath + ".csv");
+				// log.info("%%%%%: Update current physical path to: " + physicalFilePath + ".csv");
 				
 				pstmtDel = sd.prepareStatement(sqlDel);
 				pstmtDel.setString(1,  currentPhysicalFile.getAbsolutePath());
 				pstmtDel.executeUpdate();
 				
-				log.info("%%%%%: Marking file for deleting: " + currentPhysicalFile.getAbsolutePath());
+				// log.info("%%%%%: Marking file for deleting: " + currentPhysicalFile.getAbsolutePath());
 			
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);

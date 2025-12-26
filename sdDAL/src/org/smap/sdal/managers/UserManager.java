@@ -150,7 +150,7 @@ public class UserManager {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, ident);
-			log.info("Get user details: " + pstmt.toString());
+			// log.info("Get user details: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 
 			while(resultSet.next()) {
@@ -1207,7 +1207,7 @@ public class UserManager {
 			/*
 			 * Update user groups
 			 */
-			log.info("Set autocommit false");
+			// log.info("Set autocommit false");
 			sd.setAutoCommit(false);
 			if(isServerOwner || isEnterpriseManager) {	// Cannot remove server owner
 				sql = "delete from user_group where u_id = ? "
@@ -1232,7 +1232,7 @@ public class UserManager {
 			if(u.groups != null) {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, u.id);
-				log.info("SQL: " + pstmt.toString());
+				// log.info("SQL: " + pstmt.toString());
 				pstmt.executeUpdate();
 
 				for(int j = 0; j < u.groups.size(); j++) {
@@ -1251,7 +1251,7 @@ public class UserManager {
 						// Ignore deleted groups
 						if(g.id != 13 && g.id != 12) {
 							pstmtInsertUserGroup.setInt(2, g.id);
-							log.info("Insert user group: " + pstmtInsertUserGroup.toString());
+							// log.info("Insert user group: " + pstmtInsertUserGroup.toString());
 							pstmtInsertUserGroup.executeUpdate();
 						}
 						
@@ -1268,7 +1268,7 @@ public class UserManager {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, u.id);
-				log.info("SQL: " + pstmt.toString());
+				// log.info("SQL: " + pstmt.toString());
 				pstmt.executeUpdate();
 
 				for(int j = 0; j < u.projects.size(); j++) {
@@ -1299,13 +1299,13 @@ public class UserManager {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, u.id);
-				log.info("SQL add roles: " + pstmt.toString());
+				// log.info("SQL add roles: " + pstmt.toString());
 				pstmt.executeUpdate();
 
 				for(int j = 0; j < u.roles.size(); j++) {
 					Role r = u.roles.get(j);
 					pstmtInsertUserRole.setInt(2, r.id);
-					log.info("Insert user role: " + pstmtInsertUserRole.toString());
+					// log.info("Insert user role: " + pstmtInsertUserRole.toString());
 					try {
 						pstmtInsertUserRole.executeUpdate();
 					} catch (Exception e) {
@@ -1329,7 +1329,7 @@ public class UserManager {
 			throw e;
 		} finally {
 			if(!calledFromTransaction) {
-				log.info("Set autocommit true");
+				// log.info("Set autocommit true");
 				sd.setAutoCommit(true);
 			}
 			
@@ -1383,7 +1383,7 @@ public class UserManager {
 			}
 			
 			if(u.orgs != null) {
-				log.info("Set autocommit false");
+				// log.info("Set autocommit false");
 				sd.setAutoCommit(false);
 				
 				ArrayList<Integer> orgList = new ArrayList<Integer> ();
@@ -1399,7 +1399,7 @@ public class UserManager {
 				if(!isOrgUser) {
 					pstmtDelete.setInt(idx++, initiatorUserId);
 				}
-				log.info("Delete remove unset org links: " + pstmtDelete.toString());
+				// log.info("Delete remove unset org links: " + pstmtDelete.toString());
 				pstmtDelete.executeUpdate();
 
 				/*
@@ -1419,7 +1419,7 @@ public class UserManager {
 				// Create an entry for the users current organisation
 				if(isValidInsert(pstmtValidate, o_id, u_id)) {
 					pstmtInsertOrgUser.setInt(2, o_id);
-					log.info("Inserting org link: " + pstmtInsertOrgUser.toString());
+					// log.info("Inserting org link: " + pstmtInsertOrgUser.toString());
 					try {
 						pstmtInsertOrgUser.executeUpdate();
 					} catch (SQLException e) {
@@ -1433,7 +1433,7 @@ public class UserManager {
 						if(isValidInsert(pstmtValidate, u.orgs.get(j).id, u.id)) {
 
 							pstmtInsertOrgUser.setInt(2, u.orgs.get(j).id);
-							log.info("Inserting org link: " + pstmtInsertOrgUser.toString());
+							// log.info("Inserting org link: " + pstmtInsertOrgUser.toString());
 							try {
 								pstmtInsertOrgUser.executeUpdate();
 							} catch (SQLException e) {
@@ -1462,7 +1462,7 @@ public class UserManager {
 			}
 		} finally {
 			if(!calledFromTransaction) {
-				log.info("Set autocommit true");
+				// log.info("Set autocommit true");
 				sd.setAutoCommit(true);
 			}
 			

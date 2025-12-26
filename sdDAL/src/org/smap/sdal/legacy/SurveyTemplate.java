@@ -714,7 +714,7 @@ public class SurveyTemplate {
 	public int writeDatabase() throws Exception {
 		
 		Connection sd = org.smap.sdal.Utilities.SDDataSource.getConnection("SurveyTemplate-Write Database");
-		log.info("Set autocommit false");
+		// log.info("Set autocommit false");
 		sd.setAutoCommit(false);
 		
 		JdbcSurveyManager sm = null;
@@ -731,7 +731,7 @@ public class SurveyTemplate {
 				throw new Exception("No forms in this survey");
 			}
 			sm = new JdbcSurveyManager(sd, localisation);
-			log.info("Persisting survey");
+			// log.info("Persisting survey");
 			sm.write(survey);
 	
 			/*
@@ -1009,7 +1009,7 @@ public class SurveyTemplate {
 			throw e;
 		} finally {
 			
-			log.info("Set autocommit true");
+			// log.info("Set autocommit true");
 			sd.setAutoCommit(true);
 			if(sm != null) {sm.close();};
 			if(fm != null) {fm.close();};

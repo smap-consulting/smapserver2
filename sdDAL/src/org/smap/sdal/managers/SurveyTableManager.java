@@ -478,7 +478,7 @@ public class SurveyTableManager {
 
 				pstmtPulldata = sd.prepareStatement(sqlPulldata);
 				pstmtPulldata.setInt(1, sId);
-				log.info("Get pulldata key from survey: " + pstmtPulldata.toString());
+				// log.info("Get pulldata key from survey: " + pstmtPulldata.toString());
 				rs = pstmtPulldata.executeQuery();
 				if (rs.next()) {
 					Type type = new TypeToken<ArrayList<Pulldata>>() {}.getType();
@@ -493,7 +493,7 @@ public class SurveyTableManager {
 						if (pulldataIdent.equals("self")) {
 							pulldataIdent = linked_sIdent;
 						}
-						log.info("PulldataIdent: " + pulldataIdent);
+						// log.info("PulldataIdent: " + pulldataIdent);
 
 						if (pulldataIdent.equals(linked_sIdent)) {
 							data_key = pdArray.get(i).data_key;
@@ -550,7 +550,7 @@ public class SurveyTableManager {
 			// 3.Get question names from appearance
 			pstmtAppearance = sd.prepareStatement(sqlAppearance);
 			pstmtAppearance.setInt(1, sId);
-			log.info("Appearance cols: " + pstmtAppearance.toString());
+			// log.info("Appearance cols: " + pstmtAppearance.toString());
 			rs = pstmtAppearance.executeQuery();
 			while (rs.next()) {
 				int qId = rs.getInt(1);
@@ -569,7 +569,7 @@ public class SurveyTableManager {
 			// 4. Get question names from calculate
 			pstmtCalculate = sd.prepareStatement(sqlCalculate);
 			pstmtCalculate.setInt(1, sId);
-			log.info("Calculate cols: " + pstmtCalculate.toString());
+			// log.info("Calculate cols: " + pstmtCalculate.toString());
 			rs = pstmtCalculate.executeQuery();
 			while (rs.next()) {
 				int qId = rs.getInt(1);
@@ -580,13 +580,13 @@ public class SurveyTableManager {
 					for (String col : columns) {
 						if (!uniqueColumns.contains(col)) {
 							uniqueColumns.add(col);
-							log.info("Adding unique column: " + col);
+							// log.info("Adding unique column: " + col);
 						}
 					}
 				}
 			}
 
-			log.info("Unique Columns: " + uniqueColumns.size());
+			// log.info("Unique Columns: " + uniqueColumns.size());
 			// 5. Get the sql as long as there is data to retrieve
 			
 			if(uniqueColumns.size() > 0) {
@@ -604,13 +604,11 @@ public class SurveyTableManager {
 				pstmtUpdate.setBoolean(5, linked_s_pd);
 				pstmtUpdate.setString(6, new Gson().toJson(sqlDef));
 				pstmtUpdate.setInt(7, tableId);
-				log.info("Add sql info: " + pstmtUpdate.toString());
+				// log.info("Add sql info: " + pstmtUpdate.toString());
 				pstmtUpdate.executeUpdate();
 			} else {
 				throw new ApplicationException("Error: no columns found in linked survey " + sId + " for file " + filename);
-			}
-
-			
+			}			
 
 		} finally {
 			if (pstmtAppearance != null)	{try {pstmtAppearance.close();} catch (Exception e) {}}
@@ -656,7 +654,7 @@ public class SurveyTableManager {
 			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 			HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestionsMap(sd, groupSurveyIdent, null, false);
 
-			log.info("Question forms: " + refQuestionMap.toString());
+			// log.info("Question forms: " + refQuestionMap.toString());
 
 			boolean first = true;
 			if (linked_s_pd) {
@@ -1335,28 +1333,28 @@ public class SurveyTableManager {
 				throw new ApplicationException("Cannot link to external survey: " + linked_sIdent + " as it is in a different organisation");
 			}
 			
-			log.info("Set autocommit false");
+			// log.info("Set autocommit false");
 			sd.setAutoCommit(false);
 			// Get data on the link between the two surveys
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, linked_sId);
 			pstmt.setInt(2, sId);
 			pstmt.setString(3, logicalFilePath);
-			log.info("Test for regen: " + pstmt.toString());
+			// log.info("Test for regen: " + pstmt.toString());
 
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				int count = rs.getInt(1);
 				if (count > 0) {
 					regenerate = false;
-					log.info("Regenerate is false");
+					// log.info("Regenerate is false");
 				} else {
 
 					String table = GeneralUtilityMethods.getMainResultsTable(sd, cRel, linked_sId);
 
 					if (table != null) {
 						regenerate = true;
-						log.info("Need to regenerate");
+						// log.info("Need to regenerate");
 
 						pstmtInsert = sd.prepareStatement(sqlInsert);
 						
@@ -1369,14 +1367,14 @@ public class SurveyTableManager {
 								pstmtInsert.setInt(2, sId);
 								pstmtInsert.setString(3, logicalFilePath);
 								pstmtInsert.executeUpdate();
-								log.info("Insert record: " + pstmtInsert.toString());
+								// log.info("Insert record: " + pstmtInsert.toString());
 							}
 						}
 					} else {
-						log.info("Table " + table + " not found. Probably no data has been submitted");
+						// log.info("Table " + table + " not found. Probably no data has been submitted");
 						tableExists = false;
 						// Delete the file if it exists
-						log.info("Deleting file -------- : " + currentPhysicalFile.getAbsolutePath());
+						// log.info("Deleting file -------- : " + currentPhysicalFile.getAbsolutePath());
 						currentPhysicalFile.delete();
 						
 						fileExists = false;
@@ -1399,7 +1397,7 @@ public class SurveyTableManager {
 			regenerate = true; // Force creation of an empty file
 		}
 
-		log.info("Result of regenerate question is: " + regenerate);
+		// log.info("Result of regenerate question is: " + regenerate);
 		if(regenerate) {
 			log.info("xoxoxoxoxoxoxo regenerate: " + logicalFilePath);
 		}

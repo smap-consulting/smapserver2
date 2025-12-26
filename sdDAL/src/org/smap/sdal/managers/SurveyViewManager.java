@@ -397,7 +397,7 @@ public int save(Connection sd,
 
 		if(viewId == 0 || count == 0) {
 
-			log.info("Set autocommit false");
+			// log.info("Set autocommit false");
 			sd.setAutoCommit(false);
 
 			pstmtInsert = sd.prepareStatement(sqlInsert, Statement.RETURN_GENERATED_KEYS);
@@ -407,7 +407,7 @@ public int save(Connection sd,
 			pstmtInsert.setString(4, view);
 			pstmtInsert.setString(5, mapView);
 			pstmtInsert.setString(6, chartView);
-			log.info("Inserting survey view: " + pstmtInsert.toString());
+			// log.info("Inserting survey view: " + pstmtInsert.toString());
 			pstmtInsert.executeUpdate();
 
 			ResultSet rs = pstmtInsert.getGeneratedKeys();
@@ -420,7 +420,7 @@ public int save(Connection sd,
 			pstmtUserView = sd.prepareStatement(sqlUserView);
 			pstmtUserView.setInt(1,uId);
 			pstmtUserView.setInt(2,viewId);
-			log.info("adding view to user view table: " + pstmtUserView.toString());
+			// log.info("adding view to user view table: " + pstmtUserView.toString());
 			pstmtUserView.executeUpdate();
 
 			// Delete the old default view setting
@@ -429,7 +429,7 @@ public int save(Connection sd,
 			pstmtDeleteDefault.setInt(2, sId);
 			pstmtDeleteDefault.setInt(3, managedId);
 			pstmtDeleteDefault.setInt(4, queryId);
-			log.info("adding view to default view table: " + pstmtDeleteDefault.toString());
+			// log.info("adding view to default view table: " + pstmtDeleteDefault.toString());
 			pstmtDeleteDefault.executeUpdate();
 
 			// Set the view as the user's default
@@ -439,7 +439,7 @@ public int save(Connection sd,
 			pstmtDefaultView.setInt(3, managedId);
 			pstmtDefaultView.setInt(4, queryId);
 			pstmtDefaultView.setInt(5, viewId);
-			log.info("adding view to default view table: " + pstmtDefaultView.toString());
+			// log.info("adding view to default view table: " + pstmtDefaultView.toString());
 			pstmtDefaultView.executeUpdate();
 
 			sd.commit();
@@ -451,7 +451,7 @@ public int save(Connection sd,
 		log.log(Level.SEVERE,"Error", e);
 		throw new Exception(e.getMessage());
 	} finally {
-		log.info("Set autocommit true");
+		// log.info("Set autocommit true");
 		try {sd.setAutoCommit(true);} catch (Exception e) {}
 		try {if (pstmtUpdateView != null) {pstmtUpdateView.close();}} catch (Exception e) {}
 		try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (Exception e) {}

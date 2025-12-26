@@ -505,7 +505,7 @@ public class QuestionList extends Application {
 		// Get the parents questions first
 		pstmtGetParent.setInt(1, fId);
 		
-		log.info("SQL: getting parent id: " + pstmtGetParent.toString());
+		// log.info("SQL: getting parent id: " + pstmtGetParent.toString());
 		ResultSet resultSet = pstmtGetParent.executeQuery();
 		if(resultSet.next()) {
 			int pId = resultSet.getInt(1);
@@ -518,7 +518,7 @@ public class QuestionList extends Application {
 		pstmt.setInt(2,  sId);
 		pstmt.setInt(3,  fId);
 		
-		log.info("Getting question forms: " + pstmt.toString());
+		// log.info("Getting question forms: " + pstmt.toString());
 		resultSet = pstmt.executeQuery();
 		
 		while(resultSet.next()) {

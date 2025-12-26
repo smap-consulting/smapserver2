@@ -239,7 +239,7 @@ public class AllAssignments extends Application {
 						);	
 			}
 			
-			log.info("Set autocommit false");
+			// log.info("Set autocommit false");
 			sd.setAutoCommit(false);
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userName);
@@ -297,7 +297,7 @@ public class AllAssignments extends Application {
 					pstmt = sd.prepareStatement(sql);	 
 					pstmt.setInt(1, sId);
 
-					log.info("Get forms: " + pstmt.toString());
+					// log.info("Get forms: " + pstmt.toString());
 					resultSet = pstmt.executeQuery();
 
 					/*
@@ -318,7 +318,7 @@ public class AllAssignments extends Application {
 							QuestionInfo filterQuestion = null;
 							String filterSql = null;
 							if(as.filter != null && as.filter.advanced != null && as.filter.advanced.length() > 0) {
-								log.info("+++++ Using advanced filter: " + as.filter.advanced);
+								// log.info("+++++ Using advanced filter: " + as.filter.advanced);
 								
 								StringBuffer filterQuery = new StringBuffer(tableName);
 								filterQuery.append(".instanceid in ");
@@ -326,7 +326,7 @@ public class AllAssignments extends Application {
 										localisation, survey, as.filter.advanced, tz));
 								filterSql = filterQuery.toString();
 								
-								log.info("Query clause: " + filterSql);
+								// log.info("Query clause: " + filterSql);
 								
 							} else if(as.filter != null && as.filter.qId > 0) {
 								String fValue = null;
@@ -334,7 +334,7 @@ public class AllAssignments extends Application {
 								filterQuestion = new QuestionInfo(localisation, tz, sId, as.filter.qId, sd, 
 										cResults, request.getRemoteUser(),
 										false, as.filter.lang, urlprefix, oId);
-								log.info("Filter question type: " + as.filter.qType);
+								// log.info("Filter question type: " + as.filter.qType);
 								if(as.filter.qType != null) {
 									if(as.filter.qType.startsWith("select")) {
 										fValue = as.filter.oValue;
@@ -352,7 +352,7 @@ public class AllAssignments extends Application {
 								}
 
 								filterSql = filterQuestion.getFilterExpression(fValue, fValue2);		
-								log.info("filter: " + filterSql);
+								// log.info("filter: " + filterSql);
 							}
 							
 							// Check to see if we need to assign the task based on retrieved data
@@ -374,7 +374,7 @@ public class AllAssignments extends Application {
 							boolean hasInstanceName = GeneralUtilityMethods.hasColumn(cResults, tableName, "instancename");
 
 							if(hasGeom) {
-								log.info("Has geometry");
+								// log.info("Has geometry");
 								getTaskSql.append("select ").append(tableName)
 										.append(".prikey, ST_AsGeoJson(ST_Centroid(").append(tableName).append("." + geomColumn +")) as geomvalue,")
 										.append(tableName).append(".instanceid");
@@ -390,7 +390,7 @@ public class AllAssignments extends Application {
 
 							// Finally if we still haven't found a geometry column then set all locations to 0, 0
 							if(!hasGeom) {
-								log.info("No geometry columns found");
+								// log.info("No geometry columns found");
 								
 								getTaskSql = new StringBuffer("");
 								getTaskSqlWhere = new StringBuffer("");
@@ -448,7 +448,7 @@ public class AllAssignments extends Application {
 							if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 							pstmt = cResults.prepareStatement(getTaskSql.toString());	
 							
-							log.info("SQL Get Tasks: ----------------------- " + pstmt.toString());
+							// log.info("SQL Get Tasks: ----------------------- " + pstmt.toString());
 							if(resultSet != null) try {resultSet.close();} catch(Exception e) {};
 							resultSet = pstmt.executeQuery();
 							while (resultSet.next()) {
@@ -541,7 +541,7 @@ public class AllAssignments extends Application {
 
 							break;
 						} else {
-							log.info("parent is:" + p_id + ":");
+							// log.info("parent is:" + p_id + ":");
 						}
 					}
 				}
@@ -554,7 +554,7 @@ public class AllAssignments extends Application {
 				}
 			}
 
-			log.info("Returning task group id:" + taskGroupId);
+			// log.info("Returning task group id:" + taskGroupId);
 			response = Response.ok().entity("{\"tg_id\": " + taskGroupId + "}").build();
 
 		} catch (Exception e) {

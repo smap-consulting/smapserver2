@@ -534,7 +534,7 @@ public class GeneralUtilityMethods {
 						String templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName, false)
 							+ "_template.pdf";
 		
-						log.info("Attempt to get a pdf template with name: " + templateName);
+						// log.info("Attempt to get a pdf template with name: " + templateName);
 						templateFile = new File(templateName);
 						
 						if(templateFile == null || !templateFile.exists()) {  // Try legacy names
@@ -542,8 +542,8 @@ public class GeneralUtilityMethods {
 							templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName, true)
 								+ "_template.pdf";
 		
-						log.info("Attempt to get a pdf template with name: " + templateName);
-						templateFile = new File(templateName);
+							// log.info("Attempt to get a pdf template with name: " + templateName);
+							templateFile = new File(templateName);
 						}
 					}
 					
@@ -571,7 +571,7 @@ public class GeneralUtilityMethods {
 			String templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName, false)
 						+ "_template.pdf";
 			
-			log.info("Attempt to get a pdf template with name: " + templateName);
+			// log.info("Attempt to get a pdf template with name: " + templateName);
 			templateFile = new File(templateName);	
 			
 			if(templateFile == null || !templateFile.exists()) {  // Try legacy names
@@ -579,7 +579,7 @@ public class GeneralUtilityMethods {
 				templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName, true)
 					+ "_template.pdf";
 
-				log.info("Attempt to get a pdf template with name: " + templateName);
+				// log.info("Attempt to get a pdf template with name: " + templateName);
 				templateFile = new File(templateName);
 			}
 		}
@@ -600,7 +600,7 @@ public class GeneralUtilityMethods {
 
 		String templateName = basePath + "/media/organisation/" + oId + "/" + fileName;
 
-		log.info("Attempt to get a document  template with name: " + templateName);
+		// log.info("Attempt to get a document  template with name: " + templateName);
 		File templateFile = new File(templateName);
 
 		return templateFile;
@@ -630,7 +630,7 @@ public class GeneralUtilityMethods {
 			ArrayList<MediaChange> mediaChanges,
 			int oId) {
 
-		log.info("Create attachments for source name: " + srcName);
+		// log.info("Create attachments for source name: " + srcName);
 
 		if(srcName.startsWith("attachments/")) {
 			return srcName;		// An existing image or file 
@@ -673,7 +673,7 @@ public class GeneralUtilityMethods {
 			FileUtils.forceMkdir(dstDirFile);
 			FileUtils.forceMkdir(dstThumbsFile);
 			if(srcPathFile != null) {
-				log.info("Processing attachment: " + srcPathFile.getAbsolutePath() + " as " + dstPathFile.getAbsolutePath());
+				// log.info("Processing attachment: " + srcPathFile.getAbsolutePath() + " as " + dstPathFile.getAbsolutePath());
 				if(!dstPathFile.exists()) {
 					log.info(dstPathFile.getAbsolutePath() + " does not exist. Copy source file");
 					if(srcPathFile.exists()) {
@@ -688,7 +688,7 @@ public class GeneralUtilityMethods {
 					log.info("Destination file already exists, copy skipped");
 				}
 			} else if(srcUrl != null) {
-				log.info("Processing url attachment: " + srcUrl + " as " + dstPathFile);
+				// log.info("Processing url attachment: " + srcUrl + " as " + dstPathFile);
 				FileUtils.copyURLToFile(new URL(srcUrl), dstPathFile);
 			}
 			processAttachment(sd, dstName, dstDir, contentType, srcExt, basePath, oId);
@@ -700,7 +700,7 @@ public class GeneralUtilityMethods {
 		// scheme)
 		value = "attachments/" + sIdent + "/" + dstName + "." + srcExt;
 		
-		log.info("Media value: " + value);
+		// log.info("Media value: " + value);
 		
 		return value;
 	}
@@ -715,7 +715,7 @@ public class GeneralUtilityMethods {
 		String scriptPath = basePath + "_bin" + File.separator + "processAttachment.sh ";
 		String cmd = scriptPath + fileName + " " + destDir + " \"" + contentType + "\" " + ext
 				+ " >> /var/log/subscribers/attachments.log 2>&1";
-		log.info("Exec: " + cmd);
+		// log.info("Exec: " + cmd);
 		try {
 
 			Process proc = Runtime.getRuntime().exec(new String[] { "/bin/sh", "-c", cmd });
@@ -754,7 +754,7 @@ public class GeneralUtilityMethods {
 			pstmt.setString(1,  filePath);
 			pstmt.setInt(2,  oId);
 			pstmt.setBoolean(3,  isMedia);
-			log.info("xx upload file to s3: " + pstmt.toString());
+			// log.info("xx upload file to s3: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
@@ -1628,7 +1628,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, actionLink);
 			ResultSet rs = pstmt.executeQuery();
-			log.info("Getting assignment status: " + pstmt.toString());
+			// log.info("Getting assignment status: " + pstmt.toString());
 			if (rs.next()) {
 				a.status = rs.getString(1);
 				a.completed_date = rs.getTimestamp(2);
@@ -1664,7 +1664,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, assignmentId);
 			ResultSet rs = pstmt.executeQuery();
-			log.info("Getting assignment completion status: " + pstmt.toString());
+			// log.info("Getting assignment completion status: " + pstmt.toString());
 			if (rs.next()) {
 				boolean repeat = rs.getBoolean("repeat");
 				if(repeat) {
@@ -1813,7 +1813,7 @@ public class GeneralUtilityMethods {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, user);
-			log.info("Get user id: " + pstmt.toString());
+			// log.info("Get user id: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				id = rs.getInt(1);
@@ -1842,7 +1842,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, user);
 			pstmt.setInt(2, oId);
-			log.info("Get user id: " + pstmt.toString());
+			// log.info("Get user id: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				id = rs.getInt(1);
@@ -1871,7 +1871,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, name);
 			pstmt.setInt(2, oId);
-			log.info("Get role id: " + pstmt.toString());
+			// log.info("Get role id: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				id = rs.getInt(1);
@@ -2318,7 +2318,7 @@ public class GeneralUtilityMethods {
 			pstmt.setString(2, device);
 			pstmt.setString(3, ident);
 			pstmt.setString(4, reason);
-			log.info("Has error been reported: " + pstmt.toString());
+			// log.info("Has error been reported: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				reported = (rs.getInt(1) > 0) ? true : false;
@@ -2470,7 +2470,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sqlGetQuestionId);
 			pstmt.setInt(1, formId);
 			pstmt.setString(2, qName);
-			log.info("SQL get question id: " + pstmt.toString());
+			// log.info("SQL get question id: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				qId = rs.getInt(1);
@@ -2480,14 +2480,14 @@ public class GeneralUtilityMethods {
 				pstmt = sd.prepareStatement(sqlGetQuestionIdFromSurvey);
 				pstmt.setString(1, qName);
 				pstmt.setInt(2, sId);
-				log.info("Getting question id without the form id: " + pstmt.toString());
+				// log.info("Getting question id without the form id: " + pstmt.toString());
 				rs = pstmt.executeQuery();
 				if (rs.next()) {
 					qId = rs.getInt(1);
-					log.info("Found qId: " + qId);
+					// log.info("Found qId: " + qId);
 				} else {
 					// Question has been deleted or renamed. Not to worry
-					log.info("Question not found: " + sId + " : " + formId + " : " + qName);
+					// log.info("Question not found: " + sId + " : " + formId + " : " + qName);
 				}
 
 				// If there is more than one question with the same name then use the qId in the
@@ -2495,7 +2495,7 @@ public class GeneralUtilityMethods {
 				// This will work for existing questions and this question was presumably added
 				// from xlsForm
 				if (rs.next()) {
-					log.info("setting question id to changeQId: " + changeQId);
+					// log.info("setting question id to changeQId: " + changeQId);
 					qId = changeQId;
 				}
 			}
@@ -2751,7 +2751,7 @@ public class GeneralUtilityMethods {
 				pstmtAddKey = sd.prepareStatement(sqlAddKey);
 				pstmtAddKey.setInt(1, userId);
 				pstmtAddKey.setString(2, key);
-				log.info("Add new key:" + pstmtAddKey.toString());
+				// log.info("Add new key:" + pstmtAddKey.toString());
 				pstmtAddKey.executeUpdate();
 			}
 
@@ -2776,7 +2776,7 @@ public class GeneralUtilityMethods {
 				+ "(select u.id from users u where u.ident = ?);";
 		PreparedStatement pstmtDeleteKeys = null;
 
-		log.info("DeleteAccessKeys");
+		// log.info("DeleteAccessKeys");
 		try {
 
 			/*
@@ -2821,7 +2821,7 @@ public class GeneralUtilityMethods {
 			 */
 			pstmtGetUserDetails = sd.prepareStatement(sqlGetUserDetails);
 			pstmtGetUserDetails.setString(1, key);
-			log.info("Get User details:" + pstmtGetUserDetails.toString());
+			// log.info("Get User details:" + pstmtGetUserDetails.toString());
 			ResultSet rs = pstmtGetUserDetails.executeQuery();
 			if (rs.next()) {
 				userIdent = rs.getString(1);
@@ -2871,7 +2871,7 @@ public class GeneralUtilityMethods {
 			 */
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, key);
-			log.info("Get User Ident:" + pstmt.toString());
+			// log.info("Get User Ident:" + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				userIdent = rs.getString(1);
@@ -2973,7 +2973,7 @@ public class GeneralUtilityMethods {
 			// Get Header
 			String line = br.readLine();
 
-			log.info(" Start Get Audit =======================================================");
+			// log.info(" Start Get Audit =======================================================");
 			int lineNumber = 0;
 			while (line != null) {
 				
@@ -2991,7 +2991,7 @@ public class GeneralUtilityMethods {
 							if(idx >= 0) {
 								String name = id.substring(idx + 1);
 							
-								log.info("Name: " + name);
+								//log.info("Name: " + name);
 								try {
 									BigInteger from = new BigInteger(auditCols[2]);
 									BigInteger to = new BigInteger(auditCols[3]);
@@ -3026,7 +3026,7 @@ public class GeneralUtilityMethods {
 
 		
 			
-			log.info(" End Get Audit xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+			// log.info(" End Get Audit xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error", e);
@@ -3043,10 +3043,10 @@ public class GeneralUtilityMethods {
 	 */
 	public static  HashMap<String, AuditItem> getAuditValues(AuditData data, ArrayList<String> columns, ResourceBundle localisation) {
 
-			/*
-			 * Only add audit values that are in this form Also make sure we had a timing
-			 * value for very column in this form
-			 */
+		/*
+		 * Only add audit values that are in this form Also make sure we had a timing
+		 * value for very column in this form
+		 */
 		HashMap<String, AuditItem> auditItems = new HashMap<>();
 
 		for (String col : columns) {
@@ -3061,10 +3061,6 @@ public class GeneralUtilityMethods {
 
 			}
 		}
-			
-		log.info(" End Get Audit xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-
-		
 		
 		return auditItems;
 
@@ -5735,7 +5731,7 @@ public class GeneralUtilityMethods {
 
 				int idx1 = getManifestParamStart(property);
 				int idx2 = property.indexOf(')', idx1);
-				log.info("xxxxxx: " + property + " : " + idx1 + " : " + idx2);
+				// log.info("xxxxxx: " + property + " : " + idx1 + " : " + idx2);
 				if (idx1 >= 0 && idx2 > idx1) {
 					String criteriaString = property.substring(idx1 + 1, idx2);
 
@@ -5786,7 +5782,7 @@ public class GeneralUtilityMethods {
 								}
 
 							} else {
-								log.info("ooooooo ignoring: " + filename + " is not equal to " + appFilename);
+								// log.info("ooooooo ignoring: " + filename + " is not equal to " + appFilename);
 							}
 
 						}
@@ -5957,7 +5953,7 @@ public class GeneralUtilityMethods {
 			 */
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
-			log.info("SQL survey level manifests:" + pstmt.toString());
+			// log.info("SQL survey level manifests:" + pstmt.toString());
 
 			rs = pstmt.executeQuery();
 			if (rs.next()) {
@@ -9714,7 +9710,7 @@ public class GeneralUtilityMethods {
 			pstmtQuestionResouces = sd.prepareStatement(sqlQuestionResources);
 			pstmtQuestionResouces.setInt(1, oId);
 			pstmtQuestionResouces.setString(2, fileName);
-			log.info("Get question level resource users: " + pstmtQuestionResouces.toString());
+			// log.info("Get question level resource users: " + pstmtQuestionResouces.toString());
 			ResultSet rs = pstmtQuestionResouces.executeQuery();
 			while(rs.next()) {
 				Survey s = new Survey();
@@ -9729,7 +9725,7 @@ public class GeneralUtilityMethods {
 			pstmtSurveyResouces.setInt(1, oId);
 			String modName = fileName.replace("_", "!_").replace("%", "!%").replace("!", "!!");
 			pstmtSurveyResouces.setString(2, "%" + modName + "%");
-			log.info("Get survey level resource users: " + pstmtSurveyResouces.toString());
+			// log.info("Get survey level resource users: " + pstmtSurveyResouces.toString());
 			rs = pstmtSurveyResouces.executeQuery();
 			while(rs.next()) {
 				Survey s = new Survey();
@@ -11039,7 +11035,7 @@ public class GeneralUtilityMethods {
 				pstmtRole = sd.prepareStatement(sqlRole);
 				pstmtRole.setString(1, sIdent);
 				
-				log.info("Check for use of roles in reference data: " + pstmtRole.toString());
+				// log.info("Check for use of roles in reference data: " + pstmtRole.toString());
 				rsRoles = pstmtRole.executeQuery();
 				if(rsRoles.next()) {
 					cur.roles = rsRoles.getInt(1) > 0;

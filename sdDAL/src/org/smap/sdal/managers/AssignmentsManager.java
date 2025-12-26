@@ -431,7 +431,7 @@ public class AssignmentsManager {
 					pstmtDeleteCancelled.executeUpdate();
 				}
 			} else {
-				log.info("############### tasks count is zero, not getting tasks for user " + userIdent);
+				// log.info("############### tasks count is zero, not getting tasks for user " + userIdent);
 			}
 
 			/*
@@ -608,7 +608,7 @@ public class AssignmentsManager {
 						}
 					}
 				} else {
-					log.info("############### tasks count is zero, not getting cases for user " + userIdent);
+					// log.info("############### tasks count is zero, not getting cases for user " + userIdent);
 				}
 			}
 

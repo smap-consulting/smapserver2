@@ -145,9 +145,9 @@ public class Users extends Application {
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				ulm.recordRefresh(sd, oId, request.getRemoteUser(), lat, lon, 
 						0L, null, null, null, false);
-				log.info("User Location update: " + latString + " : " + lonString);
+				// log.info("User Location update: " + latString + " : " + lonString);
 			} else {
-				log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ User Location 0.0 0.0: ");
+				// log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ User Location 0.0 0.0: ");
 			}
 			
 			response = Response.ok().build();
@@ -183,7 +183,7 @@ public class Users extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			ServerSettings.setBasePath(request);
-			log.info("New organisation name: " + orgName);
+			// log.info("New organisation name: " + orgName);
 			UserManager um = new UserManager(localisation);
 			int newOrgId = GeneralUtilityMethods.getOrganisationIdfromName(sd, orgName);
 			um.switchUsersOrganisation(sd, newOrgId, request.getRemoteUser(), true);

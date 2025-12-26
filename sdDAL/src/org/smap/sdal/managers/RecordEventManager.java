@@ -285,7 +285,7 @@ public class RecordEventManager {
 							pstmtGet.setInt(2, taskId);
 						}
 	
-						log.info("Set autocommit false");
+						// log.info("Set autocommit false");
 						sd.setAutoCommit(false);
 						ResultSet rs2 = pstmtGet.executeQuery();
 						if(rs2.next()) {
@@ -320,7 +320,7 @@ public class RecordEventManager {
 						}
 					}
 					
-					log.info("Set autocommit true");
+					// log.info("Set autocommit true");
 					sd.setAutoCommit(true);
 				}
 			}

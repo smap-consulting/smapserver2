@@ -705,7 +705,7 @@ public class SurveyManager {
 			
 			if(sd.getAutoCommit()) {
 				sdAutoCommitSetFalse = true;
-				log.info("Set autocommit false");
+				// log.info("Set autocommit false");
 				sd.setAutoCommit(false);
 			}			
 
@@ -737,7 +737,7 @@ public class SurveyManager {
 			pstmtCreateSurvey.setBoolean(9, existingReadOnlySurvey);
 			pstmtCreateSurvey.setString(10, existingInstanceName);
 			
-			log.info("Create new survey: " + pstmtCreateSurvey.toString());
+			// log.info("Create new survey: " + pstmtCreateSurvey.toString());
 			pstmtCreateSurvey.execute();
 			ResultSet rs = pstmtCreateSurvey.getGeneratedKeys();
 			rs.next();
@@ -755,7 +755,7 @@ public class SurveyManager {
 			}
 			pstmtUpdateSurvey.setInt(3,  sId);
 
-			log.info("Create new survey part 2: " + pstmtUpdateSurvey.toString());
+			// log.info("Create new survey part 2: " + pstmtUpdateSurvey.toString());
 			pstmtUpdateSurvey.execute();
 
 			/*
@@ -781,7 +781,7 @@ public class SurveyManager {
 				pstmtCreateForm.setInt(1,  sId);
 				pstmtCreateForm.setString(2,  tablename);
 
-				log.info("Create new form: " + pstmtCreateForm.toString());
+				// log.info("Create new form: " + pstmtCreateForm.toString());
 				pstmtCreateForm.execute();
 			}
 
@@ -799,7 +799,7 @@ public class SurveyManager {
 		} finally {
 
 			if(sdAutoCommitSetFalse) {
-				log.info("Set autocommit sd true");
+				// log.info("Set autocommit sd true");
 				sdAutoCommitSetFalse = false;
 				try{sd.setAutoCommit(true);} catch(Exception ex) {};
 			}
@@ -4034,7 +4034,7 @@ public class SurveyManager {
 			 */			
 			if(newSurveyId > 0) {
 				
-				log.info("Set autocommit false");
+				// log.info("Set autocommit false");
 				sd.setAutoCommit(false);
 				
 				// Delete the survey from the group survey table
@@ -4076,14 +4076,14 @@ public class SurveyManager {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sIdent);
-			log.info("Delete form downloads: " + pstmt.toString());
+			// log.info("Delete form downloads: " + pstmt.toString());
 			pstmt.executeUpdate();
 		
 			sql = "delete from task_completion where form_ident = ?";	
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sIdent);
-			log.info("Delete task completion downloads: " + pstmt.toString());
+			// log.info("Delete task completion downloads: " + pstmt.toString());
 			pstmt.executeUpdate();
 				
 		} catch (Exception e) {

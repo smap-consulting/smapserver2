@@ -506,9 +506,9 @@ public class XFormData {
 		saveDetails.iosVideoCount = iosVideoCount;
 
 		// Set the item name
-		log.info("-------------------------------- item name: " + item.getName());
-		log.info("-------------------------------- field name: " + item.getFieldName());
-		log.info("-------------------------------- base64: " + base64Data);
+		//log.info("-------------------------------- item name: " + item.getName());
+		//log.info("-------------------------------- field name: " + item.getFieldName());
+		//log.info("-------------------------------- base64: " + base64Data);
 		String itemName = item.getName();
 		if (base64Data != null) {
 			itemName = item.getFieldName();
@@ -555,7 +555,7 @@ public class XFormData {
 		FileUtils.forceMkdir(folder);
 
 		saveDetails.filePath = instancePath + "/" + saveDetails.fileName;
-		log.info("Saving to:" + saveDetails.filePath);
+		//log.info("Saving to:" + saveDetails.filePath);
 		
 		// set the audit file path if this is an audit file
 		if(saveDetails.fileName.equals("audit.csv")) {

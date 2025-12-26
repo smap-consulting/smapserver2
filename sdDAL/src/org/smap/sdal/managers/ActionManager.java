@@ -414,7 +414,7 @@ public class ActionManager {
 			 * Process each column
 			 */
 			HashMap<String, ArrayList<DataItemChange>> changeMap = new HashMap<>();
-			log.info("Set autocommit false");
+			// log.info("Set autocommit false");
 			cResults.setAutoCommit(false);
 			for (int i = 0; i < updates.size(); i++) {
 
@@ -487,7 +487,7 @@ public class ActionManager {
 				}
 				pstmtUpdate.setInt(paramCount++, u.prikey);
 
-				log.info("Updating managed survey: " + pstmtUpdate.toString());
+				// log.info("Updating managed survey: " + pstmtUpdate.toString());
 				int count = pstmtUpdate.executeUpdate();
 				if (count == 0) {
 					throw new Exception(
@@ -548,7 +548,7 @@ public class ActionManager {
 		} finally {
 
 			try {
-				log.info("Set autocommit true");
+				// log.info("Set autocommit true");
 				cResults.setAutoCommit(true);
 			} catch (Exception ex) {
 			}
@@ -667,7 +667,7 @@ public class ActionManager {
 			 * Process each column
 			 */
 			ArrayList<DataItemChange> changes = new ArrayList<DataItemChange> ();
-			log.info("Set autocommit false");
+			// log.info("Set autocommit false");
 			cResults.setAutoCommit(false);
 			for (int i = 0; i < updates.size(); i++) {
 

@@ -178,7 +178,7 @@ public class Survey {
 			String userIdent, HashMap<String, String> groupForms, int existingSurveyId, int oId) throws Exception {
 		
 		try {
-			log.info("Set autocommit false");
+			// log.info("Set autocommit false");
 			sd.setAutoCommit(false);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -208,7 +208,7 @@ public class Survey {
 			try {sd.rollback();} catch (Exception ex) {}
 			throw e;
 		} finally {
-			log.info("Set autocommit true");
+			// log.info("Set autocommit true");
 			try {sd.setAutoCommit(true);} catch (Exception e) {}
 		}
 	}
