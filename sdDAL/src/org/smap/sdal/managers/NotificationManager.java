@@ -193,7 +193,7 @@ public class NotificationManager {
 					+ "update_question = ?, "
 					+ "update_value = ?,"
 					+ "alert_id = ?,"
-					+ "remote_password = ? "
+					+ "remote_password = ?, "
 					+ "p_id = ?, "
 					+ "periodic_time = ?, "
 					+ "periodic_period = ?, "
