@@ -905,7 +905,7 @@ public class SurveyManager {
 
 		// Get the Forms
 		pstmtGetForms.setInt(1, s.surveyData.id);
-		log.info("Get forms: " + pstmtGetForms.toString());
+		// log.info("Get forms: " + pstmtGetForms.toString());
 		rsGetForms = pstmtGetForms.executeQuery();
 
 		while (rsGetForms.next()) {								
@@ -965,7 +965,7 @@ public class SurveyManager {
 		 * Get the option lists
 		 */
 		pstmtGetLists.setInt(1, s.surveyData.id);
-		log.info("Get lists for survey: " + pstmtGetLists.toString());
+		// log.info("Get lists for survey: " + pstmtGetLists.toString());
 		rsGetLists = pstmtGetLists.executeQuery();
 
 		int idx = 0;
@@ -1000,7 +1000,7 @@ public class SurveyManager {
 			pstmtGetOptions.setInt(1, listId);
 			
 			if(idx++ == 0) {
-				log.info("SQL Get options: " + pstmtGetOptions.toString());
+				// log.info("SQL Get options: " + pstmtGetOptions.toString());
 			}
 			rsGetOptions = pstmtGetOptions.executeQuery();
 	
@@ -1066,7 +1066,7 @@ public class SurveyManager {
 		 * Get the style lists
 		 */
 		pstmtGetStyles.setInt(1, s.surveyData.id);
-		log.info("Get styles for survey: " + pstmtGetStyles.toString());
+		// log.info("Get styles for survey: " + pstmtGetStyles.toString());
 		rsGetStyles = pstmtGetStyles.executeQuery();
 
 		Type markupType = new TypeToken<ArrayList<TableColumnMarkup>>(){}.getType();
