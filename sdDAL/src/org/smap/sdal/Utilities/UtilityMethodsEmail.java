@@ -600,6 +600,8 @@ public class UtilityMethodsEmail {
 			ct = "image/jpeg";
 		} else if (extension.equals("png")) {
 			ct = "image/png";
+		} else if (extension.equals("webp")) {
+			ct = "image/webp";
 		} else if (extension.equals("svg")) {
 			ct = "image/svg+xml";
 		} else if (extension.equals("gif")) {
