@@ -65,7 +65,7 @@ public class KeyManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1,  groupSurveyIdent);
-			log.info("Get key settings: " + pstmt.toString());
+			// log.info("Get key settings: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 							
 			if(rs.next()) {
@@ -82,7 +82,7 @@ public class KeyManager {
 				pstmt = sd.prepareStatement(sql);		
 				pstmt.setString(1,  groupSurveyIdent);
 				
-				log.info("Get legacy key settings: " + pstmt.toString());
+				// log.info("Get legacy key settings: " + pstmt.toString());
 				ResultSet rsLegacy = pstmt.executeQuery();
 				
 				String keyGroup = null;
