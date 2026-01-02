@@ -102,6 +102,10 @@ sudo a2enmod session
 sudo a2enmod session_cookie
 sudo a2enmod session_crypto
 
+# Modules for oauth2
+sudo apt install libapache2-mod-oauth2
+sudo a2enmod oauth2
+
 sudo mkdir /var/www/smap
 
 echo "##### 3. Install Tomcat: $TOMCAT_VERSION"

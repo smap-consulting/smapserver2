@@ -195,7 +195,7 @@ public class UploadManager {
 			}
 			response = Response.status(Status.BAD_REQUEST).entity(getErrorMessage(key, msg)).build();
 		} finally {
-			SDDataSource.closeConnection("surveyMobileAPI-Upload", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;

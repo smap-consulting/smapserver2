@@ -104,6 +104,7 @@ public class WebhookManager {
 		entityBuilder.addPart("data", sba);
 		req.setEntity(entityBuilder.build());
 		log.info("	Info: Webhook request to: " + req.getURI().toString());
+		log.info("	Info: Webhook content: " + payload);
 		HttpResponse response = httpclient.execute(target, req, localContext);
 		int responseCode = response.getStatusLine().getStatusCode();
 		String responseReason = response.getStatusLine().getReasonPhrase(); 

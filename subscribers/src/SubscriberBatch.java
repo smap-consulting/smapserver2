@@ -238,8 +238,6 @@ public class SubscriberBatch {
 					pstmtEnqueueMessages.setString(3, rs.getString("topic"));
 					pstmtEnqueueMessages.setString(4, rs.getString("description"));
 					pstmtEnqueueMessages.setString(5, rs.getString("data"));
-
-					log.info("Enqueue message: " + pstmtEnqueue.toString());
 					
 					pstmtEnqueueMessages.executeUpdate();	
 					

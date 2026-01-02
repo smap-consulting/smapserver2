@@ -33,9 +33,8 @@ cd ..
 # surveyMobileAPI war file
 #
 cd surveyMobileAPI
-mvn clean install
+./dep.sh
 cd ..
-cp surveyMobileAPI/target/*.war ~/deploy/smap/deploy/version1/surveyMobileAPI.war
 
 #
 # koboTolboxApi war file
@@ -57,9 +56,6 @@ cp surveyKPI/target/*.war ~/deploy/smap/deploy/version1/surveyKPI.war
 # subscribers runnable jar file
 #
 cd subscribers
-ant -f subscriber3.xml
-mv ~/deploy/subscribers.jar ~/deploy/smap/deploy/version1
-mkdir ~/deploy/smap/deploy/version1/subscribers
-cp -rf default ~/deploy/smap/deploy/version1/subscribers
+./dep.sh
 cd ..
 
