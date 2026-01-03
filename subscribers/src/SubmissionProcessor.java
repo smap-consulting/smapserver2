@@ -34,6 +34,7 @@ import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.UploadEvent;
 import org.smap.subscribers.SubRelationalDB;
+import org.smap.subscribers.JsonRelationalDB;
 import org.smap.subscribers.Subscriber;
 
 import com.google.gson.Gson;
@@ -118,8 +119,6 @@ public class SubmissionProcessor {
 			sql.append("returning q.time_inserted, q.ue_id, q.payload");
 			PreparedStatement pstmt = null;
 
-			Subscriber subscriber = new SubRelationalDB();
-
 			// Default to English though we could get the locales from a server level setting
 			Locale locale = new Locale("en");
 			ResourceBundle localisation;
@@ -197,19 +196,23 @@ public class SubmissionProcessor {
 								}
 							} else {
 								// Form
-							
-								SurveyInstance instance = null;	
+
+								SurveyInstance instance = null;
 								String uploadFile = ue.getFilePath();
-	
+
 								log.info("Upload file: " + uploadFile);
 								InputStream is = null;
 								InputStream is3 = null;
-	
+
 								ArrayList<MediaChange> mediaChanges = null;
-	
+
+								// Determine if this is JSON or XML submission
+								boolean isJson = uploadFile != null && uploadFile.endsWith(".json");
+								Subscriber subscriber = isJson ? new JsonRelationalDB() : new SubRelationalDB();
+
 								try {
 									// Get the organisation locales
-									
+
 									Organisation organisation = GeneralUtilityMethods.getOrganisation(dbc.sd, oId);
 									Locale orgLocale = new Locale(organisation.locale);
 									ResourceBundle orgLocalisation;
@@ -218,60 +221,93 @@ public class SubmissionProcessor {
 									} catch(Exception e) {
 										orgLocalisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
 									}
-	
-									// Get the submitted results as an XML document
-									try {
-										is = new FileInputStream(uploadFile);
-									} catch (FileNotFoundException e) {
-										// Possibly we are re-trying an upload and the XML file has been archived to S3
-										// Retrieve the file and try again
-										File f = new File(uploadFile);
-										FileUtils.forceMkdir(f.getParentFile());
-										S3AttachmentUpload.get(basePath, uploadFile);
-										is = new FileInputStream(uploadFile);
-									}
-	
-									// Convert the file into a survey instance object
-									instance = new SurveyInstance(is);
-									log.info("UUID:" + instance.getUuid());
-	
-									//instance.getTopElement().printIEModel("   ");	// Debug 
-	
-									// Get the template for this survey
-									String templateName = instance.getTemplateName();
-									SurveyTemplate template = new SurveyTemplate(orgLocalisation);
-	
-									SurveyManager sm = new SurveyManager(localisation, "UTC");
-									Survey sdalSurvey = sm.getSurveyId(dbc.sd, templateName);	// Get the survey from the templateName / ident
-	
-									template.readDatabase(dbc.sd, dbc.results, templateName, false);					
-									template.extendInstance(dbc.sd, instance, true, sdalSurvey);	// Extend the instance with information from the template
-									// instance.getTopElement().printIEModel("   ");	// Debug
-	
-									// Get attachments from incomplete submissions
-									getAttachmentsFromIncompleteSurveys(dbc.sd, log, ue.getFilePath(), ue.getOrigSurveyIdent(), ue.getIdent(), 
-											ue.getInstanceId());
-	
-									is3 = new FileInputStream(uploadFile);	// Get an input stream for the file in case the subscriber uses that rather than an Instance object
-									mediaChanges = subscriber.upload(log, instance, 
-											is3, 
-											ue.getUserName(), 
-											ue.getTemporaryUser(),
-											ue.getServerName(), 
-											ue.getImei(), 
-											se,
-											confFilePath, 
-											ue.getFormStatus(),
-											basePath, 
-											uploadFile, 
-											ue.getUpdateId(),
-											ue.getId(),
-											ue.getUploadTime(),
-											ue.getSurveyNotes(),
-											ue.getLocationTrigger(),
-											ue.getAuditFilePath(),
-											orgLocalisation, 
-											sdalSurvey);	// Call the subscriber	
+
+									if (isJson) {
+										// JSON submission - process without XML parsing
+										log.info("Processing JSON submission");
+
+										SurveyManager sm = new SurveyManager(localisation, "UTC");
+										Survey sdalSurvey = sm.getById(dbc.sd, dbc.results, ue.getUserName(),
+												false, ue.getSurveyId(), false, basePath, null, false, false,
+												false, false, false, "internal", false, false, false,
+												"geojson", false, false, false);
+
+										mediaChanges = subscriber.upload(log, null,  // No SurveyInstance for JSON
+												null,  // No InputStream needed
+												ue.getUserName(),
+												ue.getTemporaryUser(),
+												ue.getServerName(),
+												ue.getImei(),
+												se,
+												confFilePath,
+												ue.getFormStatus(),
+												basePath,
+												uploadFile,
+												ue.getUpdateId(),
+												ue.getId(),
+												ue.getUploadTime(),
+												ue.getSurveyNotes(),
+												ue.getLocationTrigger(),
+												ue.getAuditFilePath(),
+												orgLocalisation,
+												sdalSurvey);
+									} else {
+										// XML submission - original processing
+
+										// Get the submitted results as an XML document
+										try {
+											is = new FileInputStream(uploadFile);
+										} catch (FileNotFoundException e) {
+											// Possibly we are re-trying an upload and the XML file has been archived to S3
+											// Retrieve the file and try again
+											File f = new File(uploadFile);
+											FileUtils.forceMkdir(f.getParentFile());
+											S3AttachmentUpload.get(basePath, uploadFile);
+											is = new FileInputStream(uploadFile);
+										}
+
+										// Convert the file into a survey instance object
+										instance = new SurveyInstance(is);
+										log.info("UUID:" + instance.getUuid());
+
+										//instance.getTopElement().printIEModel("   ");	// Debug
+
+										// Get the template for this survey
+										String templateName = instance.getTemplateName();
+										SurveyTemplate template = new SurveyTemplate(orgLocalisation);
+
+										SurveyManager sm = new SurveyManager(localisation, "UTC");
+										Survey sdalSurvey = sm.getSurveyId(dbc.sd, templateName);	// Get the survey from the templateName / ident
+
+										template.readDatabase(dbc.sd, dbc.results, templateName, false);
+										template.extendInstance(dbc.sd, instance, true, sdalSurvey);	// Extend the instance with information from the template
+										// instance.getTopElement().printIEModel("   ");	// Debug
+
+										// Get attachments from incomplete submissions
+										getAttachmentsFromIncompleteSurveys(dbc.sd, log, ue.getFilePath(), ue.getOrigSurveyIdent(), ue.getIdent(),
+												ue.getInstanceId());
+
+										is3 = new FileInputStream(uploadFile);	// Get an input stream for the file in case the subscriber uses that rather than an Instance object
+										mediaChanges = subscriber.upload(log, instance,
+												is3,
+												ue.getUserName(),
+												ue.getTemporaryUser(),
+												ue.getServerName(),
+												ue.getImei(),
+												se,
+												confFilePath,
+												ue.getFormStatus(),
+												basePath,
+												uploadFile,
+												ue.getUpdateId(),
+												ue.getId(),
+												ue.getUploadTime(),
+												ue.getSurveyNotes(),
+												ue.getLocationTrigger(),
+												ue.getAuditFilePath(),
+												orgLocalisation,
+												sdalSurvey);	// Call the subscriber
+									}	
 	
 								} catch (FileNotFoundException e) {
 	

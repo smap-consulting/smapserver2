@@ -245,3 +245,7 @@ alter table log_archive drop constraint log_archive_o_id_fkey;
 
 -- Version 25.12
 insert into groups(id,name) values(15,'mcp access');
+
+-- JSON upload support - add file_type column to upload_event
+alter table upload_event add column if not exists file_type text default 'xml';
+comment on column upload_event.file_type is 'Type of uploaded file: xml or json';

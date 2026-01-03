@@ -60,43 +60,37 @@ public class UploadJson extends Application {
 	 * New Submission
 	 */
 	@POST
-	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	@Consumes(MediaType.APPLICATION_JSON)
 	public Response postInstance(
 			@Context HttpServletRequest request) throws IOException {
-		
+
 		// Do not check for Ajax as device request is not ajax
-		
+
 		String user = request.getRemoteUser();
-		if("1ia9qb9qs6bn8uqqnn1pe5a5lk".equals(user)) {
-			user = "neil";		// For testing with M2M grant types
-			
-		}
-		log.info("New upload request from : " + user);
-		
+		log.info("New JSON upload request from: " + user);
+
 		String connectionString = "surveyMobileAPI-UploadJson";
 		Response response = null;
 		ResourceBundle localisation = null;
 		Connection sd = null;
-		
+
 		try {
 			sd = SDDataSource.getConnection(connectionString);
 			a.isAuthorised(sd, user);
-			
+
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			XFormData xForm = new XFormData();
-			String instanceId = null;	// TODO
-			String deviceId = null;		// TODO
-			xForm.loadMultiPartMime(request, user, instanceId, deviceId, false);
-			
+
+			JsonFormData jsonForm = new JsonFormData();
+			jsonForm.loadJson(sd, request, user);
+
 			response = Response.status(Status.CREATED).build();
 		} catch (Exception e) {
 			response = Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build();
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 		}
-		
+
 		return response;
 	}
 	

@@ -142,7 +142,7 @@ public class XFormData {
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 
 			/*
-			 * Save the XML or JSON submission file
+			 * Save the XML submission file
 			 */
 			Iterator<FileItem> iter = items.iterator();
 			String thisInstanceId = null;
@@ -248,10 +248,7 @@ public class XFormData {
 					}
 
 					break; // There is only one XML submission file
-				} else if (name.equals("json_submission_data")) {
-					String body = item.getString();
-					System.out.println("Received " + body);
-				}
+				} 
 			}
 
 			/*
@@ -267,8 +264,7 @@ public class XFormData {
 				String dataUrl = null;
 
 				log.info("==== Item: " + fieldName);
-				if (item.isFormField() && !fieldName.equals("xml_submission_data") 
-						&& !fieldName.equals("json_submission_data")) {
+				if (item.isFormField() && !fieldName.equals("xml_submission_data")) {
 					// Check to see if this form field indicates the submission is incomplete
 					if (fieldName.equals("*isIncomplete*") && item.getString().equals("yes")) {
 						log.info("    ++++++ Incomplete Submission");

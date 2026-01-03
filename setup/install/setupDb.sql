@@ -568,7 +568,8 @@ CREATE TABLE upload_event (
 	queued boolean default false,
 	restore boolean default false,
 	submission_type text,	-- SMS or Form (default)
-	payload text			-- SMS details, in future XML submission details
+	payload text,			-- SMS details, in future XML submission details
+	file_type text default 'xml'	-- Type of uploaded file: xml or json
 	);
 create index idx_ue_ident on upload_event(user_name);
 create index idx_ue_applied on upload_event (status, incomplete, results_db_applied);
