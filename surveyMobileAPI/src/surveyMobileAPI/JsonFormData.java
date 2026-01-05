@@ -27,6 +27,7 @@ import java.sql.Connection;
 import java.util.Date;
 import java.util.ResourceBundle;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -70,6 +71,7 @@ public class JsonFormData {
 		// Parse JSON
 		JsonObject json;
 		try {
+			log.info("Received JSON: " + jsonString.toString());
 			json = JsonParser.parseString(jsonString.toString()).getAsJsonObject();
 		} catch (Exception e) {
 			log.severe("Invalid JSON: " + e.getMessage());
@@ -78,6 +80,7 @@ public class JsonFormData {
 
 		// Extract required fields
 		if (!json.has("_survey")) {
+			log.severe("Survey is missing: ");
 			throw new Exception("Missing required field: _survey");
 		}
 		String surveyIdent = json.get("_survey").getAsString();

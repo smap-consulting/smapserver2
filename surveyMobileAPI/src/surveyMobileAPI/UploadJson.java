@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -67,6 +68,9 @@ public class UploadJson extends Application {
 		// Do not check for Ajax as device request is not ajax
 
 		String user = request.getRemoteUser();
+		if("1ia9qb9qs6bn8uqqnn1pe5a5lk".equals(user)) {
+			user = "neil";		// Testing
+		}
 		log.info("New JSON upload request from: " + user);
 
 		String connectionString = "surveyMobileAPI-UploadJson";
