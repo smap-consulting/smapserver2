@@ -36,31 +36,34 @@ import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.smap.sdal.Utilities.AdvisoryLock;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.legacy.SurveyInstance;
+import org.smap.sdal.legacy.UtilityMethods;
 import org.smap.sdal.managers.SubmissionEventManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.HostUnreachableException;
-import org.smap.subscribers.util.DatabaseConnections;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 /*
  * JSON submission processor
- * Phase 1: INSERT only (no UPDATE)
+ * Phase 2: INSERT and UPDATE support
  */
 public class JsonRelationalDB extends Subscriber {
 
 	private ResourceBundle localisation;
 	private String tz = "UTC";
 	private Logger log;
+	private AdvisoryLock lockTableChange;
 
 	@Override
 	public String getDest() {
@@ -95,6 +98,9 @@ public class JsonRelationalDB extends Subscriber {
 			// Extract survey identifier and get survey structure
 			String surveyIdent = json.get("_survey").getAsString();
 			int surveyId = GeneralUtilityMethods.getSurveyId(dbc.sd, surveyIdent);
+
+			// Initialize advisory lock for table creation
+			lockTableChange = new AdvisoryLock(dbc.sd, 1, surveyId);
 
 			SurveyManager sm = new SurveyManager(localisation, tz);
 			Survey fullSurvey = sm.getById(
@@ -141,66 +147,34 @@ public class JsonRelationalDB extends Subscriber {
 				questionMap.put(q.name, q);
 			}
 
-			// Build INSERT statement dynamically
-			StringBuilder cols = new StringBuilder();
-			StringBuilder vals = new StringBuilder();
-			ArrayList<ColumnValue> columnValues = new ArrayList<>();
+			// Ensure tables exist (create if first submission)
+			UtilityMethods.createSurveyTables(dbc.sd, dbc.results, localisation,
+					surveyId, surveyIdent, tz, lockTableChange);
 
-			// Add metadata columns
-			addColumn(cols, vals, columnValues, "parkey", "0", "int");
-			addColumn(cols, vals, columnValues, "_user", submittingUser, "string");
-			addColumn(cols, vals, columnValues, "_complete", "true", "boolean");
-			addColumn(cols, vals, columnValues, SmapServerMeta.UPLOAD_TIME_NAME,
-					String.valueOf(new Timestamp(uploadTime.getTime())), "timestamp");
-			addColumn(cols, vals, columnValues, SmapServerMeta.SURVEY_ID_NAME, String.valueOf(surveyId), "int");
-			addColumn(cols, vals, columnValues, "_version", String.valueOf(version), "int");
-
-			if (instanceId != null) {
-				addColumn(cols, vals, columnValues, "instanceid", instanceId, "string");
+			// Check if record exists
+			boolean recordExists = false;
+			if (instanceId != null && !instanceId.trim().isEmpty()) {
+				recordExists = checkInstanceIdExists(dbc.results, tableName, instanceId);
 			}
 
-			// Add question columns
-			for (String key : json.keySet()) {
-				// Skip reserved keys
-				if (key.startsWith("_") || key.equals("instanceid")) {
-					continue;
-				}
-
-				// Check if question exists
-				Question q = questionMap.get(key);
-				if (q == null) {
-					// Silently ignore unknown keys (per plan)
-					log.info("Ignoring unknown JSON key: " + key);
-					continue;
-				}
-
-				String value = json.get(key).getAsString();
-				String columnName = q.columnName;
-				String type = q.type;
-
-				addColumn(cols, vals, columnValues, columnName, value, type);
-			}
-
-			// Build and execute INSERT statement
-			String sql = "INSERT INTO " + tableName + " (" + cols + ") VALUES (" + vals + ")";
-			log.info("INSERT SQL: " + sql);
-
-			pstmt = dbc.results.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-
-			// Set parameter values
-			int idx = 1;
-			for (ColumnValue cv : columnValues) {
-				setParameterValue(pstmt, idx++, cv);
-			}
-
-			pstmt.executeUpdate();
-
-			// Get generated primary key
+			// Build and execute appropriate statement
 			int prikey = 0;
-			ResultSet rs = pstmt.getGeneratedKeys();
-			if (rs.next()) {
-				prikey = rs.getInt(1);
-				log.info("Inserted record with prikey: " + prikey);
+			if (recordExists) {
+				// UPDATE existing record
+				pstmt = buildUpdateStatement(dbc.results, tableName, instanceId, json,
+						questionMap, uploadTime, surveyId);
+				pstmt.executeUpdate();
+			} else {
+				// INSERT new record
+				pstmt = buildInsertStatement(dbc.results, tableName, instanceId, json,
+						questionMap, submittingUser, uploadTime, surveyId, version);
+				pstmt.executeUpdate();
+
+				// Get generated primary key
+				ResultSet rs = pstmt.getGeneratedKeys();
+				if (rs.next()) {
+					prikey = rs.getInt(1);
+				}
 			}
 
 			// Update upload_event - set results_db_applied = true
@@ -209,8 +183,6 @@ public class JsonRelationalDB extends Subscriber {
 			pstmtUpdate = dbc.sd.prepareStatement(updateSql);
 			pstmtUpdate.setInt(1, ue_id);
 			pstmtUpdate.executeUpdate();
-
-			log.info("Updated upload_event ue_id: " + ue_id);
 
 			// Create submission event for notifications
 			sem.writeToQueue(log, dbc.sd, ue_id, null, String.valueOf(prikey));
@@ -232,6 +204,12 @@ public class JsonRelationalDB extends Subscriber {
 			}
 
 		} finally {
+			try {
+				if (lockTableChange != null) {
+					lockTableChange.release("json upload");
+					lockTableChange.close("json upload");
+				}
+			} catch (Exception e) {}
 			try { if (pstmt != null) pstmt.close(); } catch (Exception e) {}
 			try { if (pstmtUpdate != null) pstmtUpdate.close(); } catch (Exception e) {}
 			try { if (dbc.sd != null) dbc.sd.close(); } catch (Exception e) {}
@@ -253,6 +231,129 @@ public class JsonRelationalDB extends Subscriber {
 			}
 		}
 		return JsonParser.parseString(jsonString.toString()).getAsJsonObject();
+	}
+
+	/*
+	 * Check if instanceid exists in results table
+	 */
+	private boolean checkInstanceIdExists(Connection cResults, String tableName, String instanceId) throws Exception {
+		if (instanceId == null || instanceId.trim().isEmpty()) {
+			return false;
+		}
+
+		String sql = "SELECT prikey FROM " + tableName + " WHERE instanceid = ? LIMIT 1";
+		try (PreparedStatement pstmt = cResults.prepareStatement(sql)) {
+			pstmt.setString(1, instanceId);
+			try (ResultSet rs = pstmt.executeQuery()) {
+				return rs.next();
+			}
+		}
+	}
+
+	/*
+	 * Build INSERT statement for new record
+	 */
+	private PreparedStatement buildInsertStatement(Connection cResults, String tableName,
+			String instanceId, JsonObject json, HashMap<String, Question> questionMap,
+			String submittingUser, Date uploadTime, int surveyId, int version) throws Exception {
+
+		StringBuilder cols = new StringBuilder();
+		StringBuilder vals = new StringBuilder();
+		ArrayList<ColumnValue> columnValues = new ArrayList<>();
+
+		// Add metadata columns
+		addColumn(cols, vals, columnValues, "parkey", "0", "int");
+		addColumn(cols, vals, columnValues, "_user", submittingUser, "string");
+		addColumn(cols, vals, columnValues, "_complete", "true", "boolean");
+		addColumn(cols, vals, columnValues, SmapServerMeta.UPLOAD_TIME_NAME,
+				String.valueOf(new Timestamp(uploadTime.getTime())), "timestamp");
+		addColumn(cols, vals, columnValues, SmapServerMeta.SURVEY_ID_NAME, String.valueOf(surveyId), "int");
+		addColumn(cols, vals, columnValues, "_version", String.valueOf(version), "int");
+
+		if (instanceId != null) {
+			addColumn(cols, vals, columnValues, "instanceid", instanceId, "string");
+		}
+
+		// Add question columns
+		for (String key : json.keySet()) {
+			// Skip reserved keys
+			if (key.startsWith("_") || key.equals("instanceid")) {
+				continue;
+			}
+
+			// Check if question exists
+			Question q = questionMap.get(key);
+			if (q == null) {
+				continue; // Silently ignore unknown keys
+			}
+
+			String value = json.get(key).getAsString();
+			String columnName = q.columnName;
+			String type = q.type;
+
+			addColumn(cols, vals, columnValues, columnName, value, type);
+		}
+
+		// Build INSERT statement
+		String sql = "INSERT INTO " + tableName + " (" + cols + ") VALUES (" + vals + ")";
+		PreparedStatement pstmt = cResults.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+
+		// Set parameter values
+		int idx = 1;
+		for (ColumnValue cv : columnValues) {
+			setParameterValue(pstmt, idx++, cv);
+		}
+
+		return pstmt;
+	}
+
+	/*
+	 * Build UPDATE statement for existing record
+	 */
+	private PreparedStatement buildUpdateStatement(Connection cResults, String tableName,
+			String instanceId, JsonObject json, HashMap<String, Question> questionMap,
+			Date uploadTime, int surveyId) throws Exception {
+
+		StringBuilder setClauses = new StringBuilder();
+		ArrayList<ColumnValue> columnValues = new ArrayList<>();
+
+		// Add metadata columns to update
+		addUpdateColumn(setClauses, columnValues, SmapServerMeta.UPLOAD_TIME_NAME,
+				String.valueOf(new Timestamp(uploadTime.getTime())), "timestamp");
+
+		// Add question columns
+		for (String key : json.keySet()) {
+			// Skip reserved keys
+			if (key.startsWith("_") || key.equals("instanceid")) {
+				continue;
+			}
+
+			// Check if question exists
+			Question q = questionMap.get(key);
+			if (q == null) {
+				continue; // Silently ignore unknown keys
+			}
+
+			String value = json.get(key).getAsString();
+			String columnName = q.columnName;
+			String type = q.type;
+
+			addUpdateColumn(setClauses, columnValues, columnName, value, type);
+		}
+
+		// Build UPDATE statement
+		String sql = "UPDATE " + tableName + " SET " + setClauses + " WHERE instanceid = ?";
+		PreparedStatement pstmt = cResults.prepareStatement(sql);
+
+		// Set parameter values
+		int idx = 1;
+		for (ColumnValue cv : columnValues) {
+			setParameterValue(pstmt, idx++, cv);
+		}
+		// Set instanceid for WHERE clause
+		pstmt.setString(idx, instanceId);
+
+		return pstmt;
 	}
 
 	/*
@@ -278,6 +379,26 @@ public class JsonRelationalDB extends Subscriber {
 			vals.append("ST_GeomFromText(?, 4326)");
 		} else {
 			vals.append("?");
+		}
+
+		columnValues.add(new ColumnValue(columnName, value, type));
+	}
+
+	/*
+	 * Add column to UPDATE statement
+	 */
+	private void addUpdateColumn(StringBuilder setClauses, ArrayList<ColumnValue> columnValues,
+			String columnName, String value, String type) {
+		if (setClauses.length() > 0) {
+			setClauses.append(", ");
+		}
+
+		// Handle geometry types specially
+		if (type.equals("geopoint") || type.equals("geoshape") ||
+		    type.equals("geotrace") || type.equals("geocompound")) {
+			setClauses.append(columnName).append(" = ST_GeomFromText(?, 4326)");
+		} else {
+			setClauses.append(columnName).append(" = ?");
 		}
 
 		columnValues.add(new ColumnValue(columnName, value, type));

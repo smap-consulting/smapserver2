@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.util.Date;
+import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -32,6 +33,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.UploadEvent;
 
@@ -48,7 +50,7 @@ public class JsonFormData {
 
 	private static Logger log = Logger.getLogger(JsonFormData.class.getName());
 
-	public void loadJson(Connection sd, HttpServletRequest request, String user) throws Exception {
+	public void loadJson(Connection sd, ResourceBundle localisation, HttpServletRequest request, String user) throws Exception {
 
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		String serverName = request.getServerName();
@@ -96,11 +98,8 @@ public class JsonFormData {
 
 		// Get survey details
 		int surveyId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
-		if (surveyId == 0) {
-			throw new Exception("Survey not found: " + surveyIdent);
-		}
-
-		Survey survey = GeneralUtilityMethods.getSurvey(sd, surveyId);
+		SurveyManager sm = new SurveyManager(localisation, "UTC");
+		Survey survey = sm.getSurveyId(sd, surveyIdent);
 		if (survey == null) {
 			throw new Exception("Survey not found: " + surveyIdent);
 		}

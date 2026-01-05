@@ -61,7 +61,7 @@ public class UploadJson extends Application {
 	 */
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
-	public Response postInstance(
+	public Response postJsonInstance(
 			@Context HttpServletRequest request) throws IOException {
 
 		// Do not check for Ajax as device request is not ajax
@@ -82,7 +82,7 @@ public class UploadJson extends Application {
 			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			JsonFormData jsonForm = new JsonFormData();
-			jsonForm.loadJson(sd, request, user);
+			jsonForm.loadJson(sd, localisation, request, user);
 
 			response = Response.status(Status.CREATED).build();
 		} catch (Exception e) {
