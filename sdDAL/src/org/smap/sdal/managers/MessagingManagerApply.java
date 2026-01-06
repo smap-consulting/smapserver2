@@ -491,6 +491,7 @@ public class MessagingManagerApply {
 			if(awsProperties != null && usersImpacted.size() > 0) {
 				EmitDeviceNotification emitDevice = new EmitDeviceNotification(awsProperties);
 				for(String user : usersImpacted.keySet()) {
+					log.info("Notifying Device of::: " + user);
 					emitDevice.notify(serverName, user);
 				}	
 			}
