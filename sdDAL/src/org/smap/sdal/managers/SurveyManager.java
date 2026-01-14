@@ -109,6 +109,64 @@ public class SurveyManager {
 	public static String KP_MERGE = "merge";
 	public static String KP_DISCARD = "discard";
 	
+	/*
+	 * Validate table name to prevent SQL injection
+	 * Only allows alphanumeric characters, underscores, and no SQL keywords
+	 */
+	public static boolean isValidTableName(String tableName) {
+		if(tableName == null || tableName.trim().isEmpty()) {
+			return false;
+		}
+		
+		// Check length to prevent buffer overflow attempts
+		if(tableName.length() > 63) { // PostgreSQL max table name length
+			return false;
+		}
+		
+		// Only allow alphanumeric characters and underscores
+		if(!tableName.matches("^[a-zA-Z_][a-zA-Z0-9_]*$")) {
+			return false;
+		}
+		
+		// Check against SQL keywords (PostgreSQL specific)
+		String upperName = tableName.toUpperCase();
+		String[] sqlKeywords = {
+			// SQL reserved words
+			"SELECT", "FROM", "WHERE", "INSERT", "UPDATE", "DELETE", "CREATE", "DROP", "ALTER",
+			"TABLE", "INDEX", "VIEW", "DATABASE", "SCHEMA", "TRIGGER", "PROCEDURE", "FUNCTION",
+			"JOIN", "INNER", "OUTER", "LEFT", "RIGHT", "FULL", "UNION", "GROUP", "ORDER", "HAVING",
+			"AND", "OR", "NOT", "IN", "EXISTS", "BETWEEN", "LIKE", "IS", "NULL", "TRUE", "FALSE",
+			"CASE", "WHEN", "THEN", "ELSE", "END", "IF", "ELSEIF", "WHILE", "FOR", "BEGIN", "COMMIT",
+			"ROLLBACK", "TRANSACTION", "SAVEPOINT", "LOCK", "UNLOCK", "GRANT", "REVOKE", "USER", "ROLE",
+			
+			// PostgreSQL specific keywords
+			"SERIAL", "BIGSERIAL", "SMALLSERIAL", "TEXT", "VARCHAR", "CHARACTER", "INTEGER", "BIGINT",
+			"SMALLINT", "DECIMAL", "NUMERIC", "REAL", "DOUBLE", "PRECISION", "BOOLEAN", "DATE", "TIME",
+			"TIMESTAMP", "INTERVAL", "UUID", "JSON", "JSONB", "XML", "BYTEA", "GEOMETRY", "GEOGRAPHY",
+			"PRIMARY", "KEY", "FOREIGN", "REFERENCES", "UNIQUE", "CHECK", "DEFAULT", "CONSTRAINT",
+			"PARTITION", "PARTITIONED", "RANGE", "LIST", "HASH", "MATERIALIZED", "UNLOGGED", "TEMPORARY",
+			"TEMP", "LOCAL", "GLOBAL", "SESSION", "AUTOCOMMIT", "ISOLATION", "LEVEL", "READ", "WRITE",
+			"ONLY", "DEFERRABLE", "INITIALLY", "DEFERRED", "IMMEDIATE", "CASCADE", "RESTRICT", "SET",
+			"RESET", "SHOW", "EXPLAIN", "ANALYZE", "VACUUM", "REINDEX", "CLUSTER", "DISCARD", "LISTEN",
+			"NOTIFY", "LOAD", "COPY", "MOVE", "FETCH", "CLOSE", "DECLARE", "CURSOR", "PREPARE", "EXECUTE",
+			"DEALLOCATE", "PLPGSQL", "LANGUAGE", "SECURITY", "DEFINER", "INVOKER", "STABLE", "VOLATILE",
+			"IMMUTABLE", "LEAKPROOF", "NOTICE", "WARNING", "ERROR", "EXCEPTION", "RAISE", "ASSERT",
+			
+			// Common system table names that shouldn't be user tables
+			"USERS", "USER", "ADMIN", "PASSWORD", "SALT", "HASH", "TOKEN", "SESSION", "COOKIE",
+			"CONFIG", "SETTINGS", "LOGS", "AUDIT", "HISTORY", "BACKUP", "TEMP", "TMP", "SYSTEM",
+			"INFORMATION_SCHEMA", "PG_CATALOG", "PG_TOAST", "PG_TEMP", "PG_TOAST_TEMP"
+		};
+		
+		for(String keyword : sqlKeywords) {
+			if(upperName.equals(keyword)) {
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
 	private static String sqlGetGroupQuestions = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, "
 			+ "q.qtype, f.s_id, f.reference, q.published, f.f_id, q.server_calculate "
 			+ "from question q, form f "

@@ -153,7 +153,12 @@ public class SurveyResults extends Application {
 				 */
 				for(String tableName : tableList) {				
 
-					sql = "drop TABLE " + tableName;
+					// Validate table name to prevent SQL injection
+					if(!org.smap.sdal.managers.SurveyManager.isValidTableName(tableName)) {
+						throw new ApplicationException("Invalid table name: " + tableName);
+					}
+					
+					sql = "DROP TABLE IF EXISTS " + tableName;
 					log.info("*********************************  Delete table contents and drop table: " + sql);
 					
 					
@@ -240,7 +245,7 @@ public class SurveyResults extends Application {
 			}
 		}
 
-		return response; 
+        return response; 
 	}
 	
 	/*
@@ -254,6 +259,7 @@ public class SurveyResults extends Application {
 		ArrayList<String> surveys = new ArrayList<>();
 		String msg;
 	}
+	
 	
 	private class SurveyMap {
 		int oldSurveyId;

@@ -174,7 +174,11 @@ public class ServerManager {
 						// Ensure the table is empty
 						if(!delData) {
 							try {
-								sql = "select count(*) from " + tableName + ";";
+								// Validate table name to prevent SQL injection
+								if(!SurveyManager.isValidTableName(tableName)) {
+									throw new Exception("Invalid table name: " + tableName);
+								}
+								sql = "SELECT COUNT(*) FROM " + tableName + ";";
 								if(pstmtCompound != null) try {pstmtCompound.close();}catch(Exception e) {}
 								pstmtCompound = rel.prepareStatement(sql);
 								ResultSet resultSetCount = pstmtCompound.executeQuery();
@@ -189,7 +193,11 @@ public class ServerManager {
 						try {
 							if(delData || (rowCount == 0)) {
 								if(GeneralUtilityMethods.tableExists(sd, tableName)) {
-									sql = "drop table " + tableName + ";";
+									// Validate table name to prevent SQL injection
+									if(!SurveyManager.isValidTableName(tableName)) {
+										throw new Exception("Invalid table name: " + tableName);
+									}
+									sql = "DROP TABLE IF EXISTS " + tableName + ";";
 									log.info(sql + " : " + tableName);
 									stmtRel = rel.createStatement();
 									stmtRel.executeUpdate(sql);	
@@ -223,7 +231,11 @@ public class ServerManager {
 											
 											if(stmtRel != null) try{stmtRel.close();} catch(Exception e) {}
 	
-											sql = "drop table " + markerTable;
+											// Validate table name to prevent SQL injection
+											if(!SurveyManager.isValidTableName(markerTable)) {
+												throw new Exception("Invalid table name: " + markerTable);
+											}
+											sql = "DROP TABLE IF EXISTS " + markerTable;
 											stmtRel = rel.createStatement();
 											stmtRel.executeUpdate(sql);	
 										}
@@ -335,5 +347,7 @@ public class ServerManager {
 			try {if (pstmtCompound != null) {pstmtCompound.close();}} catch (SQLException e) {}
 		}
 	}
+	
+	
 
 }
