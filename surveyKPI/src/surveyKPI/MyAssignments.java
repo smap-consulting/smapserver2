@@ -291,14 +291,14 @@ public class MyAssignments extends Application {
 
 				}
 
-				/*
-				 * Record user trail information
-				 */
-				UserLocationManager ulm = new UserLocationManager(localisation, "UTC");
-				ulm.recordUserTrail(sd, userId, tr.deviceId, tr.userTrail);
-
 			}
 
+			/*
+			 * Record user trail information
+			 */
+			UserLocationManager ulm = new UserLocationManager(localisation, "UTC");
+			ulm.recordUserTrail(sd, userId, tr.deviceId, tr.userTrail);
+			
 			if (!sd.getAutoCommit()) {
 				sd.commit();
 			}

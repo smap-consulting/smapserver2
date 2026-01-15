@@ -359,7 +359,8 @@ public class GeneralUtilityMethods {
 		if(host.contains("kontrolid") 
 				|| host.contains("sterliteapps")
 				|| host.equals("localhost")
-				|| host.equals("demo.smap.com.au")) {
+				|| host.equals("demo.smap.com.au")
+				|| host.equals("dev.smap.com.au")) {
 			locationServer = true;
 		}
 		log.info("++++++++++++++++ Is location Server Host: " + host);

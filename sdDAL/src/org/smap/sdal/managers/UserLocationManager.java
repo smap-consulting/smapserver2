@@ -373,6 +373,7 @@ public class UserLocationManager {
 					} else {						
 						pstmt.setTimestamp(4, new Timestamp(pe.time));
 					}
+					//log.info("Add point: " + GeneralUtilityMethods.getStringFromStatement(pstmt));
 					pstmt.executeUpdate();
 				}
 			} finally {
