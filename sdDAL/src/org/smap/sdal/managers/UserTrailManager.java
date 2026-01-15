@@ -9,7 +9,6 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -530,12 +529,10 @@ public class UserTrailManager {
 		
 		HashMap<String, TravelDistance> distances = new HashMap<>();
 		
-		String s1 = "select ST_Length(the_geog) "
-				+ "from (select ST_GeographyFromText(" 
-				+ "'SRID=4326;LINESTRING(";
-		String s2 = ")') As the_geog) as foo";
+		String sql = "select ST_Length(the_geog) "
+				+ "from (select ST_GeographyFromText(?) As the_geog) as foo";
 
-		Statement pstmt = sd.createStatement();
+		PreparedStatement pstmt = sd.prepareStatement(sql);
 		ResultSet rs;
 		try {
 		
@@ -545,19 +542,22 @@ public class UserTrailManager {
 					td = new TravelDistance(f.ident, 0);
 				}
 				if(f.points.size() > 1) {				
-					StringBuilder query = new StringBuilder(s1);
+					StringBuilder lineString = new StringBuilder("SRID=4326;LINESTRING(");
 					boolean first = true;
 					for(UserTrailPoint point : f.points) {
 						if(!first) {
-							query.append(",");
+							lineString.append(",");
 						}
 						first = false;
-						query.append(point.coordinates[0])
+						lineString.append(point.coordinates[0])
 							.append(" ")
 							.append(point.coordinates[1]);
 					}
-					query.append(s2);
-					rs = pstmt.executeQuery(query.toString());
+					lineString.append(")");
+					
+					pstmt.setString(1, lineString.toString());
+                    //log.info("Report: " + pstmt.toString());
+					rs = pstmt.executeQuery();
 					if(rs.next()) {
 						td.distance += rs.getInt(1);
 					}			
