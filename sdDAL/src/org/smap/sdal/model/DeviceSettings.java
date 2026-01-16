@@ -26,7 +26,6 @@ public class DeviceSettings {
 	public boolean ft_mark_finalized;
 	public boolean ft_prevent_disable_track;
 	public boolean ft_enable_geofence;
-	public boolean ft_admin_menu;
 	public boolean ft_server_menu;
 	public boolean ft_meta_menu;
 	public boolean ft_exit_track_menu;

@@ -11,7 +11,6 @@ public class FieldTaskSettings {
 	public boolean ft_mark_finalized;
 	public boolean ft_prevent_disable_track;
 	public String ft_enable_geofence;
-	public boolean ft_admin_menu;
 	public boolean ft_server_menu;
 	public boolean ft_meta_menu;
 	public boolean ft_exit_track_menu;

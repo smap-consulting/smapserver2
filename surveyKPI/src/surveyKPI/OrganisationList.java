@@ -478,7 +478,7 @@ public class OrganisationList extends Application {
 		
 		String sql = "select ft_delete, ft_send_location, ft_odk_style_menus, "
 				+ "ft_specify_instancename, ft_mark_finalized,"
-				+ "ft_prevent_disable_track, ft_enable_geofence, ft_admin_menu, "
+				+ "ft_prevent_disable_track, ft_enable_geofence, "
 				+ "ft_exit_track_menu, "
 				+ "ft_bg_stop_menu, "
 				+ "ft_review_final, "
@@ -516,7 +516,6 @@ public class OrganisationList extends Application {
 				d.ft_mark_finalized = rs.getBoolean("ft_mark_finalized");
 				d.ft_prevent_disable_track = rs.getBoolean("ft_prevent_disable_track");
 				d.ft_enable_geofence = rs.getBoolean("ft_enable_geofence");
-				d.ft_admin_menu = rs.getBoolean("ft_admin_menu");
 				d.ft_exit_track_menu = rs.getBoolean("ft_exit_track_menu");
 				d.ft_bg_stop_menu = rs.getBoolean("ft_bg_stop_menu");
 				d.ft_review_final = rs.getBoolean("ft_review_final");
@@ -804,7 +803,6 @@ public class OrganisationList extends Application {
 				+ "ft_mark_finalized = ?, "
 				+ "ft_prevent_disable_track = ?, "
 				+ "ft_enable_geofence = ?, "
-				+ "ft_admin_menu = ?, "
 				+ "ft_exit_track_menu = ?, "
 				+ "ft_bg_stop_menu = ?, "
 				+ "ft_review_final = ?, "
@@ -848,26 +846,25 @@ public class OrganisationList extends Application {
 			pstmt.setBoolean(5, d.ft_mark_finalized);
 			pstmt.setBoolean(6, d.ft_prevent_disable_track);
 			pstmt.setBoolean(7, d.ft_enable_geofence);
-			pstmt.setBoolean(8, d.ft_admin_menu);
-			pstmt.setBoolean(9, d.ft_exit_track_menu);
-			pstmt.setBoolean(10, d.ft_bg_stop_menu);
-			pstmt.setBoolean(11, d.ft_review_final);
-			pstmt.setBoolean(12, d.ft_force_token);
-			pstmt.setString(13, HtmlSanitise.checkCleanName(d.ft_send, localisation));
-			pstmt.setInt(14, d.ft_number_tasks);
-			pstmt.setString(15, HtmlSanitise.checkCleanName(d.ft_image_size, localisation));
-			pstmt.setString(16, HtmlSanitise.checkCleanName(d.ft_backward_navigation, localisation));
-			pstmt.setString(17, HtmlSanitise.checkCleanName(d.ft_navigation, localisation));
-			pstmt.setInt(18, d.ft_pw_policy);
-			pstmt.setString(19, HtmlSanitise.checkCleanName(d.ft_high_res_video, localisation));
-			pstmt.setString(20, HtmlSanitise.checkCleanName(d.ft_guidance, localisation));
-			pstmt.setBoolean(21, d.ft_server_menu);
-			pstmt.setBoolean(22, d.ft_meta_menu);
-			pstmt.setString(23, HtmlSanitise.checkCleanName(d.ft_input_method, localisation));
-			pstmt.setInt(24, d.ft_im_ri);
-			pstmt.setInt(25, d.ft_im_acc);
-			pstmt.setString(26, request.getRemoteUser());
-			pstmt.setInt(27, oId);
+			pstmt.setBoolean(8, d.ft_exit_track_menu);
+			pstmt.setBoolean(9, d.ft_bg_stop_menu);
+			pstmt.setBoolean(10, d.ft_review_final);
+			pstmt.setBoolean(11, d.ft_force_token);
+			pstmt.setString(12, HtmlSanitise.checkCleanName(d.ft_send, localisation));
+			pstmt.setInt(13, d.ft_number_tasks);
+			pstmt.setString(14, HtmlSanitise.checkCleanName(d.ft_image_size, localisation));
+			pstmt.setString(15, HtmlSanitise.checkCleanName(d.ft_backward_navigation, localisation));
+			pstmt.setString(16, HtmlSanitise.checkCleanName(d.ft_navigation, localisation));
+			pstmt.setInt(17, d.ft_pw_policy);
+			pstmt.setString(18, HtmlSanitise.checkCleanName(d.ft_high_res_video, localisation));
+			pstmt.setString(19, HtmlSanitise.checkCleanName(d.ft_guidance, localisation));
+			pstmt.setBoolean(20, d.ft_server_menu);
+			pstmt.setBoolean(21, d.ft_meta_menu);
+			pstmt.setString(22, HtmlSanitise.checkCleanName(d.ft_input_method, localisation));
+			pstmt.setInt(23, d.ft_im_ri);
+			pstmt.setInt(24, d.ft_im_acc);
+			pstmt.setString(25, request.getRemoteUser());
+			pstmt.setInt(26, oId);
 					
 			log.info("Update organisation with device details: " + pstmt.toString());
 			pstmt.executeUpdate();
