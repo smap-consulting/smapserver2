@@ -377,6 +377,12 @@ public class SubmissionProcessor {
 				}
 
 			}
+
+			// Cleanup resources when loop exits
+			vonageClient = null;  // Release for GC
+			try {if (dbc.sd != null) { dbc.sd.close();}} catch (SQLException e) {}
+			try {if (dbc.results != null) { dbc.results.close();}} catch (SQLException e) {}
+			log.info("---------- Submission Queue resources released");
 		}
 	}
 

@@ -100,6 +100,11 @@ public class ReportProcessor {
 				}
 
 			}
+
+			// Cleanup resources when loop exits
+			try {if (dbc.sd != null) { dbc.sd.close();}} catch (SQLException e) {}
+			try {if (dbc.results != null) { dbc.results.close();}} catch (SQLException e) {}
+			log.info("---------- Report Processor resources released");
 		}
 	}
 

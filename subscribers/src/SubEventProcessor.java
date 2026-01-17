@@ -1,3 +1,4 @@
+import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -96,8 +97,13 @@ public class SubEventProcessor {
 				}
 
 			}
+
+			// Cleanup resources when loop exits
+			try {if (dbc.sd != null) { dbc.sd.close();}} catch (SQLException e) {}
+			try {if (dbc.results != null) { dbc.results.close();}} catch (SQLException e) {}
+			log.info("---------- SubEvent Processor resources released");
 		}
-		
+
 	}
 
 	/**

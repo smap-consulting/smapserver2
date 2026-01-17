@@ -1,6 +1,7 @@
 import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -116,8 +117,13 @@ public class MonitorProcessor {
 				}
 
 			}
+
+			// Cleanup resources when loop exits
+			try {if (dbc.sd != null) { dbc.sd.close();}} catch (SQLException e) {}
+			try {if (dbc.results != null) { dbc.results.close();}} catch (SQLException e) {}
+			log.info("---------- Monitor Processor resources released");
 		}
-		
+
 	}
 
 	/**
