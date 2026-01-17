@@ -90,7 +90,8 @@ public class SubscriberBatch {
 	private static LogManager lm = new LogManager();		// Application log
 	
 	HashMap<String, String> autoErrorCheck = new HashMap<> ();
-	
+	int autoErrorCheckDay = -1;  // Track day for cache cleanup
+
 	boolean mediaCheckDone = false;
 	boolean forDevice = false;			// URL prefixes should be in the client format
 	int infrequentRefreshInterval = 0;	// Only refresh timezone when this gets to 0, do it first time the batch job is run
@@ -102,6 +103,13 @@ public class SubscriberBatch {
 	public void go(String smapId, String basePath, String subscriberType) {
 
 		confFilePath = "./" + smapId;
+
+		// Clear error check cache daily to prevent memory leak
+		int today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR);
+		if(autoErrorCheckDay != today) {
+			autoErrorCheck.clear();
+			autoErrorCheckDay = today;
+		}
 
 		// Get the connection details for the meta data database
 
