@@ -275,14 +275,21 @@ public class TokenAccess extends Application {
 	@Path("/login")
 	public Response login(@Context HttpServletRequest request) throws ApplicationException {
 		String connectionString = "surveyMobileAPI-token login";
-		Connection sd = SDDataSource.getConnection(connectionString);
-		String user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-		if(user == null) {
-			throw new AuthorisationException("Unknown User");
+		Connection sd = null;
+		Response response = null;
+		
+		try {
+			sd = SDDataSource.getConnection(connectionString);
+			String user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
+			if(user == null) {
+				throw new AuthorisationException("Unknown User");
+			}
+			a.isAuthorised(sd, user);	//Authorisation - Access 
+			response = Response.ok("{}").build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
 		}
-	    a.isAuthorised(sd, user);	//Authorisation - Access 
-	    SDDataSource.closeConnection(connectionString, sd);
-		return Response.ok("{}").build();
+		return response;
 	}
 	
 	/*
