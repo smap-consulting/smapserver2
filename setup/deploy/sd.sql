@@ -244,4 +244,4 @@ CREATE INDEX n_thread ON notified_record(thread);
 alter table log_archive drop constraint log_archive_o_id_fkey;
 
 -- Version 25.12
-insert into groups(id,name) values(15,'mcp access');
+-- insert into groups(id,name) values(15,'mcp access');
