@@ -1216,6 +1216,7 @@ CREATE TABLE public.linked_forms (
 	user_ident text,
 	download_time TIMESTAMP WITH TIME ZONE
 );
+create index if not exists linked_forms_idx on linked_forms(linked_s_id);
 ALTER TABLE public.linked_forms OWNER TO ws;
 
 DROP SEQUENCE IF EXISTS form_dependencies_seq CASCADE;
@@ -1423,6 +1424,8 @@ create TABLE people (
 	when_requested_subscribe TIMESTAMP WITH TIME ZONE		-- prevent spamming
 	);
 create unique index idx_people on people(o_id, email);
+create index if not exists opted_in_people_idx on people(opted_in);
+create index if not exists unsub_people_idx on people(unsubscribed);
 ALTER TABLE people OWNER TO ws;
 
 DROP SEQUENCE IF EXISTS mailout_seq CASCADE;

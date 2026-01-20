@@ -245,3 +245,10 @@ alter table log_archive drop constraint log_archive_o_id_fkey;
 
 -- Version 25.12
 -- insert into groups(id,name) values(15,'mcp access');
+
+-- Performance tuning
+create index if not exists linked_forms_idx on linked_forms(linked_s_id);
+delete from pending_message where created_time < now() - interval '1 year';
+create index if not exists opted_in_people_idx on people(opted_in);
+create index if not exists unsub_people_idx on people(unsubscribed);
+
