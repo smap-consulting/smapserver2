@@ -619,7 +619,7 @@ public class AssignmentsManager {
 				tr.settings = new FieldTaskSettings();
 				sql = new StringBuilder("select " + "o.ft_delete," + "o.ft_send_location, " + "o.ft_sync_incomplete, "
 						+ "o.ft_odk_style_menus, " + "o.ft_specify_instancename, " + "o.ft_mark_finalized, "
-						+ "o.ft_prevent_disable_track, " + "o.ft_enable_geofence, "
+						+ "o.ft_prevent_disable_track, " + "o.ft_enable_geofence, " + "o.ft_admin_menu, "
 						+ "o.ft_server_menu, " 
 						+ "o.ft_meta_menu, " 
 						+ "o.ft_exit_track_menu, " 
@@ -651,6 +651,7 @@ public class AssignmentsManager {
 					tr.settings.ft_mark_finalized = resultSet.getBoolean("ft_mark_finalized");
 					tr.settings.ft_prevent_disable_track = resultSet.getBoolean("ft_prevent_disable_track");
 					tr.settings.setFtEnableGeofence(resultSet.getBoolean("ft_enable_geofence"));
+					tr.settings.ft_admin_menu = resultSet.getBoolean("ft_admin_menu");
 					tr.settings.ft_server_menu = resultSet.getBoolean("ft_server_menu");
 					tr.settings.ft_meta_menu = resultSet.getBoolean("ft_meta_menu");
 					tr.settings.ft_exit_track_menu = resultSet.getBoolean("ft_exit_track_menu");
