@@ -240,22 +240,12 @@ public class DataEntryPoints {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, remoteUser);
 		} catch (Exception e) {
 		}
-		int sId = 0;
-		int fId = 0;
-		try {
-			sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
-			if(formName != null) {
-				fId = GeneralUtilityMethods.getFormId(sd, sId, formName);
-			}
-		} catch (SQLException e1) {
-			e1.printStackTrace();
-		}
+		
 		a.isAuthorised(sd, remoteUser);
-		a.isValidSurvey(sd, remoteUser, sId, false, superUser);
+		a.isValidSurveyIdent(sd, remoteUser, sIdent, false, superUser);
 		// End Authorisation
 
 		String language = "none";
-		lm.writeLog(sd, sId, remoteUser, LogManager.API_CSV_VIEW, "", 0, request.getServerName());
 
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 
@@ -303,20 +293,19 @@ public class DataEntryPoints {
 
 		if (filename == null) {
 			filename = "data.csv";
-		}
-		
-		if(tz == null) {
-			tz = GeneralUtilityMethods.getOrganisationTZ(sd, 
-					GeneralUtilityMethods.getOrganisationId(sd, remoteUser));
-		}
-		tz = (tz == null) ? "UTC" : tz;
+		}	
 
 		try {
+			
+			/*
+			 * Check rate Limiter and whether or not the api is disabled
+			 */
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
+			RateLimiter.isPermitted(sd, oId, response);
+			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, remoteUser));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
-			
+				
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 			response.setHeader("content-type", "text/plain; charset=utf-8");
 			outWriter = response.getWriter();
@@ -324,12 +313,36 @@ public class DataEntryPoints {
 			String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
 
 			/*
-			 * Check rate Limiter and whether or not the api is disabled
+			 * Check that the api is enabled
 			 */
 			if(!GeneralUtilityMethods.isApiEnabled(sd, remoteUser)) {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}
-			RateLimiter.isPermitted(sd, oId, response, localisation);
+			
+			if(tz == null) {
+				tz = GeneralUtilityMethods.getOrganisationTZ(sd, 
+						GeneralUtilityMethods.getOrganisationId(sd, remoteUser));
+			}
+			tz = (tz == null) ? "UTC" : tz;
+	
+			/*
+			 * Get the survey id and form id
+			 */
+			int sId = 0;
+			int fId = 0;
+			try {
+				sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+				if(formName != null) {
+					fId = GeneralUtilityMethods.getFormId(sd, sId, formName);
+				}
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+			}
+			
+			/*
+			 * Log this request
+			 */
+			lm.writeLog(sd, sId, remoteUser, LogManager.API_CSV_VIEW, "", 0, request.getServerName());
 			
 			// Get the managed Id
 			if (mgmt) {

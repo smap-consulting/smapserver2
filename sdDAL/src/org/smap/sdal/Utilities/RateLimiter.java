@@ -34,8 +34,7 @@ public class RateLimiter {
 	private static int rate = -1;
 	
 	public static void isPermitted(Connection sd, int oId, 
-			HttpServletResponse response,
-			ResourceBundle localisation) throws ApplicationException {
+			HttpServletResponse response) throws ApplicationException {
 		
 		PreparedStatement pstmt = null;
 		
@@ -62,7 +61,7 @@ public class RateLimiter {
 				
 				if (!bucket.tryConsume(1)) {
 			        // limit is exceeded
-					String msg = localisation.getString("rl_api");
+					String msg = "Rate exceeded.  Access to this service is rate limited to %s1 requests per minute.";
 					msg = msg.replace("%s1", String.valueOf(rate));
 					throw new ApplicationException(msg);
 				}

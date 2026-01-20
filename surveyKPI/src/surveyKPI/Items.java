@@ -195,16 +195,15 @@ public class Items extends Application {
 			 
 			try {
 				
-				// Get the users locale
-				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-				
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-				
 				/*
 				 * Check the rate limiter
 				 */
-				RateLimiter.isPermitted(sd, oId, response, localisation);				
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				RateLimiter.isPermitted(sd, oId, response);	
+				
+				// Get the users locale
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
 				// Connect to the results database
 				cResults = ResultsDataSource.getConnection(connectionString);	

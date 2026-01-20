@@ -519,8 +519,6 @@ public class DataManager {
 			log.log(Level.SEVERE, e1.getMessage(), e1);
 		}
 		
-		String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
-		
 		a.isAuthorised(sd, remoteUser);
 		a.isValidSurvey(sd, remoteUser, sId, false, superUser);
 		if(viewId > 0) {
@@ -579,12 +577,6 @@ public class DataManager {
 		if(format != null && format.equals("dt")) {
 			isDt = true;
 		}
-		
-		if(tz == null) {
-			tz = GeneralUtilityMethods.getOrganisationTZ(sd, 
-					GeneralUtilityMethods.getOrganisationId(sd, remoteUser));
-		}
-		tz = GeneralUtilityMethods.validTimezone(tz);
 
 		PrintWriter outWriter = null;
 		ResourceBundle localisation = null;
@@ -593,6 +585,7 @@ public class DataManager {
 		int uId = 0;
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
+			RateLimiter.isPermitted(sd, oId, response);
 			
 			lm.writeLog(sd, sId, remoteUser, LogManager.API_VIEW, "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk), 0, request.getServerName());
 			
@@ -603,13 +596,20 @@ public class DataManager {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, remoteUser));
 			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			if(tz == null) {
+				tz = GeneralUtilityMethods.getOrganisationTZ(sd, 
+						GeneralUtilityMethods.getOrganisationId(sd, remoteUser));
+			}
+			tz = GeneralUtilityMethods.validTimezone(tz);
+			
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			
 			/*
 			 * Check rate Limiter and whether or not the api is disabled
 			 */
 			if(!GeneralUtilityMethods.isApiEnabled(sd, remoteUser)) {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}	
-			RateLimiter.isPermitted(sd, oId, response, localisation);
 
 			/*
 			 * Get the survey view
