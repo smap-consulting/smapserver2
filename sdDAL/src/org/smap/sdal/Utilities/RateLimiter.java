@@ -28,12 +28,15 @@ public class RateLimiter {
 	 * A shared bucket will also be created per module
 	 * Hence all the rate limited services in a module for an organisation will get a 
 	 * single total limit
+	 * 
+	 * Return the record limit for the server
 	 */
 	private static HashMap<Integer, Bucket> store  = new HashMap<> ();
 	
 	private static int rate = -1;
+	private static int limit = 0;	// number of records returned
 	
-	public static void isPermitted(Connection sd, int oId, 
+	public static int isPermitted(Connection sd, int oId, 
 			HttpServletResponse response) throws ApplicationException {
 		
 		PreparedStatement pstmt = null;
@@ -43,10 +46,11 @@ public class RateLimiter {
 			 * Get the rate from the database if we don't already have it
 			 */
 			if(rate == -1) {
-				pstmt = sd.prepareStatement("select max_rate from server");
+				pstmt = sd.prepareStatement("select max_rate, record_limit from server");
 				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) {
 					rate = rs.getInt("max_rate");
+					limit = rs.getInt("record_limit");
 				}
 			}
 			
@@ -73,7 +77,7 @@ public class RateLimiter {
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 		}
 		
-		return;
+		return limit;
 	
 	}
 

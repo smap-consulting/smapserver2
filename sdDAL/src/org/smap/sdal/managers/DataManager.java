@@ -585,7 +585,7 @@ public class DataManager {
 		int uId = 0;
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
-			RateLimiter.isPermitted(sd, oId, response);
+			limit = RateLimiter.isPermitted(sd, oId, response);
 			
 			lm.writeLog(sd, sId, remoteUser, LogManager.API_VIEW, "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk), 0, request.getServerName());
 			
@@ -897,6 +897,7 @@ public class DataManager {
 					index++;
 					if (ssd.limit > 0 && index >= ssd.limit) {
 						totals.reached_limit = true;
+						log.info("xxxxx Limit reached");
 						break;
 					}
 
