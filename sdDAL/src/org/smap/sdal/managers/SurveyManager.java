@@ -4899,20 +4899,26 @@ public class SurveyManager {
 	/*
 	 * Get a full summary of the survey including organisation and enterprise
 	 */
-	public SurveySummary getFullSummary(Connection sd, String sIdent) throws SQLException {
+	public SurveySummary getFullSummary(Connection sd, Connection cResults, String sIdent) throws SQLException {
 		
 		String sql = "select s.display_name, s.version, p.name as proj_name, "
-				+ "o.name as org_name, e.name as ent_name "
-				+ "from survey s, project p, organisation o, enterprise e "
+				+ "o.name as org_name, e.name as ent_name, f.table_name "
+				+ "from survey s, project p, organisation o, enterprise e, form f "
 				+ "where s.p_id = p.id "
 				+ "and p.o_id = o.id "
 				+ "and o.e_id = e.id "
+				+ "and s.s_id = f.s_id "
 				+ "and s.ident = ? ";
 		PreparedStatement pstmt = null;
 		SurveySummary summary = new SurveySummary();
 		
 		try {
 	
+			String tableName = null;
+			
+			/*
+			 * Get Survey definition
+			 */
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sIdent);
 
@@ -4923,7 +4929,49 @@ public class SurveyManager {
 				summary.projectName = rs.getString("proj_name");
 				summary.organisation = rs.getString("org_name");
 				summary.enterprise = rs.getString("ent_name");
+				
+				tableName = rs.getString("table_name");
 			}
+			
+			/*
+			 * Get results data
+			 */
+			if(GeneralUtilityMethods.tableExists(cResults, tableName)) {
+				StringBuilder sqlCount = new StringBuilder("select count(*) from ").append(tableName);
+				StringBuilder sqlFirst = new StringBuilder("select to_char(_start, 'YYYY-MM-DD') as _start from ")
+						.append(tableName).append(" order by prikey asc limit 1");
+				StringBuilder sqlLast = new StringBuilder("select to_char(_start, 'YYYY-MM-DD') as _end from ")
+						.append(tableName).append(" order by prikey desc limit 1");
+			
+				// Count
+				if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+				if(rs != null) {try {rs.close();} catch(Exception e) {}};
+				pstmt = cResults.prepareStatement(sqlCount.toString());
+				rs = pstmt.executeQuery();
+				if(rs.next()) {
+					summary.records = rs.getInt(1);
+				}
+				
+				// First record
+				if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+				if(rs != null) {try {rs.close();} catch(Exception e) {}};
+				pstmt = cResults.prepareStatement(sqlFirst.toString());
+				rs = pstmt.executeQuery();
+				if(rs.next()) {
+					summary.firstDate = rs.getString("_start");
+				}
+				
+				// Last record
+				if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+				if(rs != null) {try {rs.close();} catch(Exception e) {}};
+				pstmt = cResults.prepareStatement(sqlLast.toString());
+				rs = pstmt.executeQuery();
+				if(rs.next()) {
+					summary.lastDate = rs.getString("_end");
+				}
+			}
+				
+			
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
 		}

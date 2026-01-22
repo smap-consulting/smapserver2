@@ -89,10 +89,12 @@ public class Lookup extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
+			cResults = ResultsDataSource.getConnection(connectionString);
+			
 			ServerSettings.setBasePath(request);
 			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			SurveySummary sum = sm.getFullSummary(sd, surveyIdent);
+			SurveySummary sum = sm.getFullSummary(sd, cResults, surveyIdent);
 			
 			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			response = Response.ok(gson.toJson(sum)).build();
@@ -129,12 +131,14 @@ public class Lookup extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
+			cResults = ResultsDataSource.getConnection(connectionString);
+			
 			ServerSettings.setBasePath(request);
 			
 			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, surveyId);
 			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			SurveySummary sum = sm.getFullSummary(sd, surveyIdent);
+			SurveySummary sum = sm.getFullSummary(sd, cResults, surveyIdent);
 			
 			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			response = Response.ok(gson.toJson(sum)).build();
