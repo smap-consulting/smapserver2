@@ -127,6 +127,8 @@ public class MessagingManagerApply {
 						String topic = rs.getString("topic");
 						String data = rs.getString("data");
 						
+						log.info("----------- Process message queue: " + id);
+						
 						// Localisation
 						Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, o_id);
 						
