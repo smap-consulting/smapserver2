@@ -103,6 +103,10 @@ public class ForeignKeyManager {
 				+ "and not applied";
 		PreparedStatement pstmtClean = null;
 		
+		String sqlClean2 = "delete from apply_foreign_keys "
+				+ "where ts_created < now() - interval '14 days' ";
+		PreparedStatement pstmtClean2 = null;
+		
 		try {
 			pstmtGetFkTable = sd.prepareStatement(sqlGetFkTable);
 			pstmtResult = sd.prepareStatement(sqlResult);
@@ -291,6 +295,14 @@ public class ForeignKeyManager {
 				log.info("Cleaned up foreign keys " + count + " set as timed out: " + pstmtClean.toString());
 			}
 			
+			/*
+			 * Clean up the foreign key table by removing all entries created more than 14 days ago
+			 */
+			pstmtClean2 = sd.prepareStatement(sqlClean2);
+			log.info("Remove old foreign key entries: " + GeneralUtilityMethods.getStringFromStatement(pstmtClean2));
+			pstmtClean2.executeUpdate();
+		
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -301,6 +313,7 @@ public class ForeignKeyManager {
 			if(pstmtGetFkTable != null) {try {pstmtGetFkTable.close();}catch(Exception e) {}}
 			if(pstmtInsertKey != null) {try {pstmtInsertKey.close();}catch(Exception e) {}}
 			if(pstmtClean != null) {try {pstmtClean.close();}catch(Exception e) {}}
+			if(pstmtClean2 != null) {try {pstmtClean2.close();}catch(Exception e) {}}
 		}
 	}
 }
