@@ -115,9 +115,10 @@ CREATE TABLE case_alert_triggered (
 	table_name text,
 	thread text,
 	final_status text,
-	alert_sent TIMESTAMP WITH TIME ZONE	
+	alert_sent TIMESTAMP WITH TIME ZONE
 	);
 ALTER TABLE case_alert_triggered OWNER TO ws;
+CREATE UNIQUE INDEX case_alert_triggered_unique ON case_alert_triggered(a_id, table_name, thread);
 
 DROP SEQUENCE IF EXISTS sct_seq CASCADE;
 CREATE SEQUENCE sct_seq START 1;
@@ -132,6 +133,7 @@ CREATE TABLE server_calc_triggered (
 	value text,
 	thread text,
 	updated_value boolean,	  -- the value of the updated flag when this event was triggered
-	notification_sent TIMESTAMP WITH TIME ZONE	
+	notification_sent TIMESTAMP WITH TIME ZONE
 	);
 ALTER TABLE server_calc_triggered OWNER TO ws;
+CREATE UNIQUE INDEX server_calc_triggered_unique ON server_calc_triggered(n_id, table_name, question_name, value, thread);

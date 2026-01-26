@@ -57,7 +57,6 @@ import org.smap.sdal.model.Survey;
 import org.smap.server.entities.UploadEvent;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import JdbcManagers.JdbcUploadEventManager;
 
 /*****************************************************************************
 
@@ -113,8 +112,6 @@ public class SubscriberBatch {
 
 		// Get the connection details for the meta data database
 
-		JdbcUploadEventManager uem = null;
-		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		String serverName = null;
@@ -123,18 +120,37 @@ public class SubscriberBatch {
 		String hyperlinkPrefix = null;
 
 		/*
+		 * SQL to get pending uploads with lock (multi-server safe, batch)
+		 */
+		int UPLOAD_BATCH_SIZE = 100;
+		String sqlGetPendingUpload = "select ue_id, upload_time, user_name, file_name, survey_name, "
+				+ "imei, orig_survey_ident, ident, instanceid, status, reason, location, "
+				+ "server_name, s_id, p_id, o_id, e_id, form_status, file_path, "
+				+ "temporary_user, survey_notes, location_trigger, assignment_id, restore, audit_file_path "
+				+ "from upload_event "
+				+ "where status = 'success' "
+				+ "and s_id is not null "
+				+ "and not incomplete "
+				+ "and not results_db_applied "
+				+ "and not queued "
+				+ "order by ue_id asc "
+				+ "for update skip locked "
+				+ "limit " + UPLOAD_BATCH_SIZE;
+		PreparedStatement pstmtGetPendingUpload = null;
+
+		/*
 		 * SQL to enqueue the submission
 		 */
 		String sqlEnqueue = "insert into submission_queue(element_identifier, time_inserted, ue_id, instanceid, restore, payload) "
 				+ "values(gen_random_uuid(), current_timestamp, ?, ?, ?, ?::jsonb)";
 		PreparedStatement pstmtEnqueue = null;
-		
+
 		/*
 		 * SQL to prevent duplicates being processed in the queue in parallel
 		 */
 		String sqlDup = "select count(*) from submission_queue where instanceid = ?";
 		PreparedStatement pstmtDup = null;
-		
+
 		/*
 		 * SQL to inform the upload event table that the submission has been moved to the queue
 		 */
@@ -142,10 +158,11 @@ public class SubscriberBatch {
 				+ "set queued = 'true' "
 				+ "where ue_id = ?";
 		PreparedStatement pstmtQueueDone = null;
-		
+
 		/*
-		 * SQL to get messages that need to be queued for processing
+		 * SQL to get pending messages with lock (multi-server safe, batch)
 		 */
+		int MESSAGE_BATCH_SIZE = 100;
 		String sqlGetMessages = "select id, "
 				+ "o_id, "
 				+ "topic, "
@@ -155,16 +172,17 @@ public class SubscriberBatch {
 				+ "where outbound "
 				+ "and not queued "
 				+ "and processed_time is null "
-				+ "and topic != 'task' and topic != 'survey' and topic != 'user' and topic != 'project' and topic != 'resource' "  // These have to be processed separately in a single queue to reduce number of device messages
+				+ "and topic != 'task' and topic != 'survey' and topic != 'user' and topic != 'project' and topic != 'resource' "
 				+ "order by id asc "
-				+ "limit 1000";
+				+ "for update skip locked "
+				+ "limit " + MESSAGE_BATCH_SIZE;
 		PreparedStatement pstmtGetMessages = null;
-		
+
 		String sqlEnqueueMessages = "insert into message_queue(element_identifier, time_inserted, "
 				+ "m_id, o_id, topic, description, data) "
 				+ "values(gen_random_uuid(), current_timestamp, ?, ?, ?, ?, ?)";
 		PreparedStatement pstmtEnqueueMessages = null;
-		
+
 		String sqlMessageQueueDone = "update message "
 				+ "set queued = 'true' "
 				+ "where id = ?";
@@ -178,15 +196,14 @@ public class SubscriberBatch {
 			// hyperlink prefix assumes that the hyperlink will be used by a human, hence always use client authentication
 			hyperlinkPrefix = GeneralUtilityMethods.getAttachmentPrefixBatch(serverName, false);
 
+			pstmtGetPendingUpload = dbc.sd.prepareStatement(sqlGetPendingUpload);
 			pstmtEnqueue = dbc.sd.prepareStatement(sqlEnqueue);
 			pstmtQueueDone = dbc.sd.prepareStatement(sqlQueueDone);
 			pstmtDup = dbc.sd.prepareStatement(sqlDup);
-			
+
 			pstmtGetMessages = dbc.sd.prepareStatement(sqlGetMessages);
 			pstmtEnqueueMessages = dbc.sd.prepareStatement(sqlEnqueueMessages);
 			pstmtQueueMessagesDone = dbc.sd.prepareStatement(sqlMessageQueueDone);
-			
-			uem = new JdbcUploadEventManager(dbc.sd);
 
 			// Default to English though we could get the locales from a server level setting
 			Locale locale = new Locale("en");
@@ -202,60 +219,128 @@ public class SubscriberBatch {
 			Date timeNow = new Date();
 			
 			if(subscriberType.equals("upload")) {
-				
-				/*
-				 * Process all pending uploads
-				 */
-				List<UploadEvent> uel = null;
-				
-				uel = uem.getPending();		// Get pending jobs
-			
-				if(uel.isEmpty()) {
-					System.out.print(".");		// Log the running of the upload processor
-				} else {
-					log.info("\nUploading: "  + timeNow.toString());
 
-					for(UploadEvent ue : uel) {					
-						// Enqueue event
-						pstmtDup.setString(1,ue.getInstanceId());
-						ResultSet rs = pstmtDup.executeQuery();
-						if(!rs.next() || rs.getInt(1) == 0) {						
-							pstmtEnqueue.setInt(1, ue.getId());
-							pstmtEnqueue.setString(2, ue.getInstanceId());
-							pstmtEnqueue.setBoolean(3, ue.getRestore());
-							pstmtEnqueue.setString(4, gson.toJson(ue));
-							pstmtEnqueue.executeUpdate();	
-							
-							log.info("Enqueue new submission: " + pstmtEnqueue.toString());
-							
-							// Mark it as queued
+				/*
+				 * Process pending uploads in batches with row locking (multi-server safe)
+				 */
+				boolean foundUpload = false;
+				dbc.sd.setAutoCommit(false);
+				try {
+					while (true) {
+						ResultSet rs = pstmtGetPendingUpload.executeQuery();
+						int batchCount = 0;
+
+						while (rs.next()) {
+							batchCount++;
+							foundUpload = true;
+
+							// Build UploadEvent from locked row
+							UploadEvent ue = new UploadEvent();
+							ue.setId(rs.getInt("ue_id"));
+							ue.setUploadTime(rs.getTimestamp("upload_time"));
+							ue.setUserName(rs.getString("user_name"));
+							ue.setFileName(rs.getString("file_name"));
+							ue.setSurveyName(rs.getString("survey_name"));
+							ue.setImei(rs.getString("imei"));
+							ue.setOrigSurveyIdent(rs.getString("orig_survey_ident"));
+							ue.setIdent(rs.getString("ident"));
+							ue.setInstanceId(rs.getString("instanceid"));
+							ue.setStatus(rs.getString("status"));
+							ue.setReason(rs.getString("reason"));
+							ue.setLocation(rs.getString("location"));
+							ue.setServerName(rs.getString("server_name"));
+							ue.setSurveyId(rs.getInt("s_id"));
+							ue.setProjectId(rs.getInt("p_id"));
+							ue.setOrganisationId(rs.getInt("o_id"));
+							ue.setEnterpriseId(rs.getInt("e_id"));
+							ue.setFormStatus(rs.getString("form_status"));
+							ue.setFilePath(rs.getString("file_path"));
+							ue.setTemporaryUser(rs.getBoolean("temporary_user"));
+							ue.setSurveyNotes(rs.getString("survey_notes"));
+							ue.setLocationTrigger(rs.getString("location_trigger"));
+							ue.setAssignmentId(rs.getInt("assignment_id"));
+							ue.setRestore(rs.getBoolean("restore"));
+							ue.setAuditFilePath(rs.getString("audit_file_path"));
+
+							// Check for duplicate in queue (safety check)
+							pstmtDup.setString(1, ue.getInstanceId());
+							ResultSet rsDup = pstmtDup.executeQuery();
+							if (!rsDup.next() || rsDup.getInt(1) == 0) {
+								pstmtEnqueue.setInt(1, ue.getId());
+								pstmtEnqueue.setString(2, ue.getInstanceId());
+								pstmtEnqueue.setBoolean(3, ue.getRestore());
+								pstmtEnqueue.setString(4, gson.toJson(ue));
+								pstmtEnqueue.executeUpdate();
+								log.info("Enqueue new submission: " + ue.getId());
+							}
+
+							// Mark as queued
 							pstmtQueueDone.setInt(1, ue.getId());
 							pstmtQueueDone.executeUpdate();
 						}
-					} 
-				}
-				
-				/*
-				 * Process all pending messages
-				 */
-				ResultSet rs = pstmtGetMessages.executeQuery();
-				while (rs.next()) {
-					int mId = rs.getInt("id");
-					pstmtEnqueueMessages.setInt(1, mId);
-					pstmtEnqueueMessages.setInt(2, rs.getInt("o_id"));
-					pstmtEnqueueMessages.setString(3, rs.getString("topic"));
-					pstmtEnqueueMessages.setString(4, rs.getString("description"));
-					pstmtEnqueueMessages.setString(5, rs.getString("data"));
 
-					log.info("Enqueue message: " + pstmtEnqueue.toString());
-					
-					pstmtEnqueueMessages.executeUpdate();	
-					
-					// Mark it as queued
-					pstmtQueueMessagesDone.setInt(1, mId);
-					pstmtQueueMessagesDone.executeUpdate();
+						dbc.sd.commit();  // Release locks for this batch
+
+						if (batchCount < UPLOAD_BATCH_SIZE) {
+							break;  // No more pending uploads
+						}
+						// Full batch processed, check for more
+					}
+				} catch (Exception e) {
+					try { dbc.sd.rollback(); } catch (SQLException ex) {}
+					throw e;
+				} finally {
+					dbc.sd.setAutoCommit(true);
 				}
-				
+
+				if (!foundUpload) {
+					System.out.print(".");  // Log running of upload processor
+				} else {
+					log.info("\nUploading: " + timeNow.toString());
+				}
+
+				/*
+				 * Process pending messages in batches with row locking (multi-server safe)
+				 */
+				dbc.sd.setAutoCommit(false);
+				try {
+					while (true) {
+						ResultSet rs = pstmtGetMessages.executeQuery();
+						int batchCount = 0;
+
+						while (rs.next()) {
+							batchCount++;
+
+							int mId = rs.getInt("id");
+							pstmtEnqueueMessages.setInt(1, mId);
+							pstmtEnqueueMessages.setInt(2, rs.getInt("o_id"));
+							pstmtEnqueueMessages.setString(3, rs.getString("topic"));
+							pstmtEnqueueMessages.setString(4, rs.getString("description"));
+							pstmtEnqueueMessages.setString(5, rs.getString("data"));
+
+							log.info("Enqueue message: " + mId);
+
+							pstmtEnqueueMessages.executeUpdate();
+
+							// Mark as queued
+							pstmtQueueMessagesDone.setInt(1, mId);
+							pstmtQueueMessagesDone.executeUpdate();
+						}
+
+						dbc.sd.commit();  // Release locks for this batch
+
+						if (batchCount < MESSAGE_BATCH_SIZE) {
+							break;  // No more pending messages
+						}
+						// Full batch processed, check for more
+					}
+				} catch (Exception e) {
+					try { dbc.sd.rollback(); } catch (SQLException ex) {}
+					throw e;
+				} finally {
+					dbc.sd.setAutoCommit(true);
+				}
+
 			} 
 
 			/*
@@ -475,15 +560,14 @@ public class SubscriberBatch {
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
+			try {if (pstmtGetPendingUpload != null) { pstmtGetPendingUpload.close();}} catch (SQLException e) {}
 			try {if (pstmtEnqueue != null) { pstmtEnqueue.close();}} catch (SQLException e) {}
 			try {if (pstmtQueueDone != null) { pstmtQueueDone.close();}} catch (SQLException e) {}
 			try {if (pstmtDup != null) { pstmtDup.close();}} catch (SQLException e) {}
-			
+
 			try {if (pstmtGetMessages != null) { pstmtGetMessages.close();}} catch (SQLException e) {}
 			try {if (pstmtEnqueueMessages != null) { pstmtEnqueueMessages.close();}} catch (SQLException e) {}
 			try {if (pstmtQueueMessagesDone != null) { pstmtQueueMessagesDone.close();}} catch (SQLException e) {}
-			
-			if(uem != null) {uem.close();}
 
 			try {				
 				if (dbc.sd != null) {
@@ -987,12 +1071,12 @@ public class SubscriberBatch {
 	}
 	
 	/*
-	 * Apply Reminder notifications
+	 * Apply Reminder notifications (multi-server safe with row locking)
 	 * Triggered by a time period
 	 */
 	private void applyReminderNotifications(Connection sd, Connection cResults, String basePath, String serverName) {
 
-		// Sql to get notifications that need a reminder
+		// SQL to get one notification needing a reminder with lock on assignment
 		String sql = "select "
 				+ "t.id as t_id, "
 				+ "n.id as f_id, "
@@ -1012,25 +1096,33 @@ public class SubscriberBatch {
 				+ "and n.trigger = 'task_reminder' "
 				+ "and a.status = 'accepted' "
 				+ "and t.schedule_at < now() - cast(n.period as interval) "
-				+ "and a.id not in (select a_id from reminder where n_id = n.id)";
+				+ "and a.id not in (select a_id from reminder where n_id = n.id) "
+				+ "order by a.id asc "
+				+ "for update of a skip locked "
+				+ "limit 1";
 		PreparedStatement pstmt = null;
-		
+
 		// SQL to record a reminder being sent
 		String sqlSent = "insert into reminder (n_id, a_id, reminder_date) values (?, ?, now())";
 		PreparedStatement pstmtSent = null;
-		
+
 		try {
-			
+
 			pstmt = sd.prepareStatement(sql);
 			pstmtSent = sd.prepareStatement(sqlSent);
-			
+
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
-			
-			ResultSet rs = pstmt.executeQuery();
+
+			sd.setAutoCommit(false);
 			int idx = 0;
-			while (rs.next()) {
-				
+			while (true) {
+				ResultSet rs = pstmt.executeQuery();
+				if (!rs.next()) {
+					sd.commit();
+					break;  // No more pending reminders
+				}
+
 				if(idx++ == 0) {
 					log.info("\n-------------");
 				}
@@ -1046,10 +1138,10 @@ public class SubscriberBatch {
 				String remotePassword = rs.getString(10);
 				int sourceSurveyId = rs.getInt(11);
 				NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
-				
+
 				int oId = GeneralUtilityMethods.getOrganisationIdForNotification(sd, nId);
 				String sourceSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sourceSurveyId);
-				
+
 				// Send the reminder
 				SubmissionMessage subMgr = new SubmissionMessage(
 						null,
@@ -1058,9 +1150,9 @@ public class SubscriberBatch {
 						pId,
 						sourceSurveyIdent,
 						null,
-						instanceId, 
+						instanceId,
 						nd.from,
-						nd.subject, 
+						nd.subject,
 						nd.content,
 						nd.attach,
 						nd.include_references,
@@ -1085,7 +1177,7 @@ public class SubscriberBatch {
 						null,					// Message Channel
 						null					// SMS timestamp
 						);
-				
+
 				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
 					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
@@ -1099,12 +1191,12 @@ public class SubscriberBatch {
 				}
 				MessagingManager mm = new MessagingManager(localisation);
 				mm.createMessage(sd, oId, "reminder", "", gson.toJson(subMgr));
-				
+
 				// record the sending of the notification
 				pstmtSent.setInt(1, nId);
 				pstmtSent.setInt(2, aId);
 				pstmtSent.executeUpdate();
-				
+
 				// Write to the log
 				String logMessage = "Reminder sent for: " + nId;
 				if(localisation != null) {
@@ -1112,17 +1204,19 @@ public class SubscriberBatch {
 					logMessage = logMessage.replaceAll("%s1", GeneralUtilityMethods.getNotificationName(sd, nId));
 				}
 				lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
-							
+
+				sd.commit();  // Release lock, process next
 			}
-			
+
 
 		} catch (Exception e) {
 			e.printStackTrace();
+			try { sd.rollback(); } catch (SQLException ex) {}
 		} finally {
-
+			try { sd.setAutoCommit(true); } catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtSent != null) {pstmtSent.close();}} catch (SQLException e) {}
-			
+
 		}
 	}
 	
@@ -1174,8 +1268,11 @@ public class SubscriberBatch {
 		HashMap<String, CaseManagementSettings> settingsCache = new HashMap<>();
 		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
 		
-		// SQL to record an alert being triggered
-		String sqlTriggered = "insert into case_alert_triggered (a_id, table_name, thread, final_status, alert_sent) values (?, ?,  ?, ?, now())";
+		// SQL to record an alert being triggered (multi-server safe with ON CONFLICT)
+		// Requires unique constraint: CREATE UNIQUE INDEX IF NOT EXISTS case_alert_triggered_unique ON case_alert_triggered(a_id, table_name, thread);
+		String sqlTriggered = "insert into case_alert_triggered (a_id, table_name, thread, final_status, alert_sent) "
+				+ "values (?, ?, ?, ?, now()) "
+				+ "on conflict (a_id, table_name, thread) do nothing";
 		PreparedStatement pstmtTriggered = null;
 		
 		try {
@@ -1302,34 +1399,38 @@ public class SubscriberBatch {
 										0					// Assignment id
 										);
 								
-								// update case_alert_triggered to record the raising of this alert	
-								pstmtTriggered.setInt(1, aId);	
+								// Try to record the alert - ON CONFLICT ensures only one server processes it
+								pstmtTriggered.setInt(1, aId);
 								pstmtTriggered.setString(2, table);
 								pstmtTriggered.setString(3, thread);
 								pstmtTriggered.setString(4, settings.finalStatus);
-								
-								pstmtTriggered.executeUpdate();
-								
+
+								int insertCount = pstmtTriggered.executeUpdate();
+								if (insertCount == 0) {
+									// Another server already processed this alert, skip
+									continue;
+								}
+
 								// Update the case so that the alert status can be charted
-								StringBuilder sqlUpdate = new StringBuilder("update ") 
+								StringBuilder sqlUpdate = new StringBuilder("update ")
 										.append(table)
-										.append(" set _alert = ? where prikey = ?");	
-								
+										.append(" set _alert = ? where prikey = ?");
+
 								pstmtCaseUpdated = cResults.prepareStatement(sqlUpdate.toString());
 								pstmtCaseUpdated.setString(1, alertName);
-								pstmtCaseUpdated.setInt(2, prikey);	
+								pstmtCaseUpdated.setInt(2, prikey);
 								pstmtCaseUpdated.executeUpdate();
-								
+
 								/*
 								 * Process notifications associated with this alert
 								 */
 								pstmtNotifications.setInt(1, aId);
 								log.info("Notifications to be triggered: " + pstmtNotifications.toString());
-								
+
 								ResultSet notrs = pstmtNotifications.executeQuery();
-								
+
 								while(notrs.next()) {
-								
+
 									int nId = notrs.getInt("id");
 									String notificationName = notrs.getString("notification_name");
 									String notifyDetailsString = notrs.getString("notify_details");
@@ -1337,7 +1438,7 @@ public class SubscriberBatch {
 									String target = notrs.getString("target");
 									String user = notrs.getString("remote_user");
 									int pId  = notrs.getInt("p_id");
-									
+
 									SubmissionMessage subMgr = new SubmissionMessage(
 											null,
 											"Case Management",		// TODO title
@@ -1345,9 +1446,9 @@ public class SubscriberBatch {
 											pId,
 											groupSurveyIdent,
 											null,
-											instanceid, 
+											instanceid,
 											nd.from,
-											nd.subject, 
+											nd.subject,
 											nd.content,
 											nd.attach,
 											nd.include_references,
@@ -1371,10 +1472,10 @@ public class SubscriberBatch {
 											null,					// SMS Conversation from number
 											null,					// Message Channel
 											null);					// SMS timestamp
-									
+
 									MessagingManager mm = new MessagingManager(localisation);
-									mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));						
-								
+									mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));
+
 									// Write to the log
 									String logMessage = "Notification triggered by alert id " + aId + " for notification: " + nId;
 									if(localisation != null) {
@@ -1455,10 +1556,12 @@ public class SubscriberBatch {
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
 
-		// SQL to record an alert being triggered
+		// SQL to record an alert being triggered (multi-server safe with ON CONFLICT)
+		// Requires unique constraint: CREATE UNIQUE INDEX IF NOT EXISTS server_calc_triggered_unique ON server_calc_triggered(n_id, table_name, question_name, value, thread);
 		String sqlTriggered = "insert into server_calc_triggered "
 				+ "(n_id, table_name, question_name, value, thread, updated_value, notification_sent) "
-				+ "values (?, ?, ?, ?, ?, ?, now())";
+				+ "values (?, ?, ?, ?, ?, ?, now()) "
+				+ "on conflict (n_id, table_name, question_name, value, thread) do nothing";
 		PreparedStatement pstmtTriggered = null;
 	
 		String sqlUpdateNot = "update forward set updated = false where id = ?";
@@ -1562,7 +1665,21 @@ public class SubscriberBatch {
 						String instanceid = rs.getString("instanceid");		// TODO - get these in a loop checking the server calculations in a survey
 						String thread = rs.getString("_thread");
 						log.info("Server Calculation Triggered for Instance: " + instanceid + " in table " + table);
-						
+
+						// Try to record the trigger - ON CONFLICT ensures only one server processes it
+						pstmtTriggered.setInt(1, nId);
+						pstmtTriggered.setString(2, table);
+						pstmtTriggered.setString(3, calculateQuestion);
+						pstmtTriggered.setString(4, calculateValue);
+						pstmtTriggered.setString(5, thread);
+						pstmtTriggered.setBoolean(6, updated);
+
+						int insertCount = pstmtTriggered.executeUpdate();
+						if (insertCount == 0) {
+							// Another server already processed this, skip
+							continue;
+						}
+
 						/*
 						 * Only send the notification if this is a new change that happened after the notification was
 						 * created or updated
@@ -1570,14 +1687,14 @@ public class SubscriberBatch {
 						if(!updated) {
 							SubmissionMessage subMgr = new SubmissionMessage(
 									notificationName,
-									"Server Calculation",	
+									"Server Calculation",
 									0,
 									pId,
 									surveyIdent,
 									null,
-									instanceid, 
+									instanceid,
 									nd.from,
-									nd.subject, 
+									nd.subject,
 									nd.content,
 									nd.attach,
 									nd.include_references,
@@ -1601,23 +1718,13 @@ public class SubscriberBatch {
 									null,					// SMS Conversation from number
 									null,					// Message Channel
 									null);					// SMS Timestamp
-			
+
 							MessagingManager mm = new MessagingManager(localisation);
-							mm.createMessage(sd, oId, NotificationManager.TOPIC_SERVER_CALC, "", gson.toJson(subMgr));	
+							mm.createMessage(sd, oId, NotificationManager.TOPIC_SERVER_CALC, "", gson.toJson(subMgr));
 						} else {
 							log.info("Message not send as the notification has been newly created ");
 						}
-		
-						// update server_calc_triggered to record the raising of this alert	
-						pstmtTriggered.setInt(1, nId);	
-						pstmtTriggered.setString(2, table);
-						pstmtTriggered.setString(3, calculateQuestion);
-						pstmtTriggered.setString(4, calculateValue);
-						pstmtTriggered.setString(5, thread);
-						pstmtTriggered.setBoolean(6, updated);
-						
-						pstmtTriggered.executeUpdate();
-						
+
 						// Write to the log
 						String logMessage = "Notification triggered by server calculation for notification: " + notificationName;
 						if(localisation != null) {
@@ -1671,18 +1778,19 @@ public class SubscriberBatch {
 	}
 	
 	/*
-	 * Apply Periodic notifications
+	 * Apply Periodic notifications (multi-server safe with row locking)
+	 * Lock the periodic table row to serialize across servers
 	 */
 	private void applyPeriodicNotifications(Connection sd, Connection cResults, String basePath, String serverName) {
-		
+
 		HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
-		
+
 		/*
-		 * Get current time
+		 * Lock the periodic row and get last_checked_time + current_time atomically
 		 */
-		String sqlCurrentTime = "select current_time";
-		PreparedStatement pstmtCurrentTime = null;
-		
+		String sqlLockAndGetTimes = "select last_checked_time, current_time as now_time from periodic for update";
+		PreparedStatement pstmtLockAndGetTimes = null;
+
 		/*
 		 * Get the notifications that send a response at fixed periods and where the time is due
 		 */
@@ -1696,7 +1804,7 @@ public class SubscriberBatch {
 				+ "from forward "
 				+ "where trigger = 'periodic' "
 				+ "and enabled "
-				+ "and periodic_time > (select last_checked_time from periodic) and periodic_time < ? "
+				+ "and periodic_time > ? and periodic_time < ? "
 				+ "and ("
 				+ "(periodic_period = 'daily') "
 				+ "or (periodic_period = 'weekly' and periodic_day_of_week = extract('DOW' from current_date)) "
@@ -1710,35 +1818,48 @@ public class SubscriberBatch {
 		 * Update last checked time
 		 */
 		String sqlUpdate = "update periodic set last_checked_time = ?";
-		PreparedStatement pstmtUpdate = null;		
+		PreparedStatement pstmtUpdate = null;
 		String sqlInsert = "insert into periodic(last_checked_time) values(?)";
 		PreparedStatement pstmtInsert = null;
 		String sqlDelete = "truncate periodic";
 		PreparedStatement pstmtDelete = null;
-		
+
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-		
+
 		try {
+			sd.setAutoCommit(false);
 
 			/*
-			 * Get the current time
+			 * Lock the periodic row and get times - this serializes across servers
 			 */
+			Time lastCheckedTime = null;
 			Time currentTime = null;
-			pstmtCurrentTime = sd.prepareStatement(sqlCurrentTime);
-			ResultSet rs = pstmtCurrentTime.executeQuery();
-			if(rs.next()) {
-				currentTime = rs.getTime("current_time");
+			pstmtLockAndGetTimes = sd.prepareStatement(sqlLockAndGetTimes);
+			ResultSet rsLock = pstmtLockAndGetTimes.executeQuery();
+			if(rsLock.next()) {
+				lastCheckedTime = rsLock.getTime("last_checked_time");
+				currentTime = rsLock.getTime("now_time");
+			} else {
+				// No periodic row exists, create one and commit to release lock attempt
+				currentTime = new Time(System.currentTimeMillis());
+				pstmtInsert = sd.prepareStatement(sqlInsert);
+				pstmtInsert.setTime(1, currentTime);
+				pstmtInsert.executeUpdate();
+				sd.commit();
+				sd.setAutoCommit(true);
+				return;
 			}
-			
+
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setTime(1, currentTime);
-			rs = pstmt.executeQuery();
-			
+			pstmt.setTime(1, lastCheckedTime);
+			pstmt.setTime(2, currentTime);
+			ResultSet rs = pstmt.executeQuery();
+
 			/*
 			 * Get periodic notifications that have a time between the last check and now
 			 */
 			while(rs.next()) {
-				
+
 				String name = rs.getString("name");
 				String target = rs.getString("target");
 				String notifyDetailsString = rs.getString("notify_details");
@@ -1747,13 +1868,13 @@ public class SubscriberBatch {
 				int pId = rs.getInt("p_id");
 
 				NotifyDetails nd = gson.fromJson(notifyDetailsString, NotifyDetails.class);
-					
+
 				int oId = GeneralUtilityMethods.getOrganisationIdForReport(sd, rId);
 				log.info("----- Organisation for report is: " + oId);
 				if(oId <= 0) {	// If the report is not valid and hence the organisation is not valid then continue
 					continue;
 				}
-						
+
 				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
 					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
@@ -1764,9 +1885,9 @@ public class SubscriberBatch {
 						localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
 					}
 				}
-				
+
 				MessagingManager mm = new MessagingManager(localisation);
-				
+
 				SubmissionMessage msg = new SubmissionMessage(
 						name,			// Notification Name
 						name,			// title
@@ -1776,7 +1897,7 @@ public class SubscriberBatch {
 						null,			// Update ident
 						null,			// instance id
 						nd.from,
-						nd.subject, 
+						nd.subject,
 						nd.content,
 						nd.attach,
 						false,			// include references (not used)
@@ -1800,10 +1921,10 @@ public class SubscriberBatch {
 						null,			// SMS Conversation from number
 						null,			// Message Channel
 						null);
-				
-				mm.createMessage(sd, oId, NotificationManager.TOPIC_PERIODIC, "", gson.toJson(msg));	
+
+				mm.createMessage(sd, oId, NotificationManager.TOPIC_PERIODIC, "", gson.toJson(msg));
 			}
-			
+
 			/*
 			 * Store the current time as the last checked time
 			 */
@@ -1813,19 +1934,23 @@ public class SubscriberBatch {
 			if(count != 1) {
 				pstmtDelete = sd.prepareStatement(sqlDelete);
 				pstmtDelete.executeUpdate();
-				
-				pstmtInsert = sd.prepareStatement(sqlInsert);
+
+				if(pstmtInsert == null) {
+					pstmtInsert = sd.prepareStatement(sqlInsert);
+				}
 				pstmtInsert.setTime(1, currentTime);
 				pstmtInsert.executeUpdate();
 			}
-			
+
+			sd.commit();  // Release lock
 
 		} catch (Exception e) {
 			e.printStackTrace();
+			try { sd.rollback(); } catch (SQLException ex) {}
 		} finally {
-
+			try { sd.setAutoCommit(true); } catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			try {if (pstmtCurrentTime != null) {pstmtCurrentTime.close();}} catch (SQLException e) {}
+			try {if (pstmtLockAndGetTimes != null) {pstmtLockAndGetTimes.close();}} catch (SQLException e) {}
 			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}
 			try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (SQLException e) {}
 			try {if (pstmtDelete != null) {pstmtDelete.close();}} catch (SQLException e) {}
@@ -1833,12 +1958,12 @@ public class SubscriberBatch {
 	}
 	
 	/*
-	 * Send Mailouts
+	 * Send Mailouts (multi-server safe with row locking)
 	 */
-	private void sendMailouts(Connection sd, String basePath, 
+	private void sendMailouts(Connection sd, String basePath,
 			String serverName) {
 
-		// Sql to get mailouts
+		// SQL to get one pending mailout with lock
 		String sql = "select "
 				+ "mp.id, "
 				+ "p.o_id, "
@@ -1859,30 +1984,38 @@ public class SubscriberBatch {
 				+ "and m.survey_ident = s.ident "
 				+ "and s.p_id = p.id "
 				+ "and mp.status = '" + MailoutManager.STATUS_PENDING + "' "
-				+ "and mp.processed is null ";
+				+ "and mp.processed is null "
+				+ "order by mp.id asc "
+				+ "for update of mp skip locked "
+				+ "limit 1";
 		PreparedStatement pstmt = null;
-		
+
 		// SQL to record a mailout being sent
 		String sqlSent = "update mailout_people set processed = now(), link = ? where id = ?";
 		PreparedStatement pstmtSent = null;
-		
+
 		try {
-			
+
 			pstmt = sd.prepareStatement(sql);
 			pstmtSent = sd.prepareStatement(sqlSent);
-			
+
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			HashMap<String, ResourceBundle> locMap = new HashMap<> ();
 
-			ResultSet rs = pstmt.executeQuery();
-			while (rs.next()) {
-				
+			sd.setAutoCommit(false);
+			while (true) {
+				ResultSet rs = pstmt.executeQuery();
+				if (!rs.next()) {
+					sd.commit();
+					break;  // No more pending mailouts
+				}
+
 				log.info("----- Sending mailout");
 				int id = rs.getInt("id");
 				int oId = rs.getInt("o_id");
 				String surveyIdent = rs.getString("survey_ident");
 				int pId = rs.getInt("p_id");
-				String email = rs.getString("email");	
+				String email = rs.getString("email");
 				String name = rs.getString("name");
 				String content = rs.getString("content");
 				String subject = rs.getString("subject");
@@ -1891,10 +2024,10 @@ public class SubscriberBatch {
 				boolean single = !rs.getBoolean("multiple_submit");
 				String campaignName = rs.getString("campaign_name");
 				boolean anonymousCampaign = rs.getBoolean("anonymous");
-				
+
 				ResourceBundle localisation = locMap.get(surveyIdent);
-				
-				if(link == null) { 
+
+				if(link == null) {
 					// Create an action to complete the mailed out form if a link does not already exist
 					ActionManager am = new ActionManager(localisation, "UTC");
 					Action action = new Action("mailout");
@@ -1905,14 +2038,14 @@ public class SubscriberBatch {
 					action.email = email;
 					action.campaignName = campaignName;
 					action.anonymousCampaign = anonymousCampaign;
-					
+
 					if(initialData != null) {
 						action.initialData = gson.fromJson(initialData, Instance.class);
 					}
-					
+
 					link = am.getLink(sd, action, oId, action.single);
 				}
-				
+
 				// Add user name to content
 				log.info("Add username to content: " + name);
 				String messageLink = link;
@@ -1923,12 +2056,12 @@ public class SubscriberBatch {
 						content = content.replaceAll("\\$\\{name\\}", name);
 					}
 					String url = "https://" + serverName + "/webForm" + link;
-					if(content.contains("${url}")) {					
+					if(content.contains("${url}")) {
 						content = content.replaceAll("\\$\\{url\\}", url);
 						messageLink = null;	// Default link replaced
-					} 
+					}
 				}
-				
+
 				// Send the Mailout Message
 				log.info("Create send message");
 				MailoutMessage msg = new MailoutMessage(
@@ -1936,7 +2069,7 @@ public class SubscriberBatch {
 						surveyIdent,
 						pId,
 						"from",
-						subject, 
+						subject,
 						content,
 						email,
 						"email",
@@ -1945,7 +2078,7 @@ public class SubscriberBatch {
 						serverName,
 						basePath,
 						messageLink);
-				
+
 				if(localisation == null) {
 					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
 					Locale orgLocale = new Locale(organisation.locale);
@@ -1958,22 +2091,24 @@ public class SubscriberBatch {
 				}
 				MessagingManager mm = new MessagingManager(localisation);
 				mm.createMessage(sd, oId, NotificationManager.TOPIC_MAILOUT, "", gson.toJson(msg));
-				
+
 				// record the sending of the notification
 				pstmtSent.setString(1, "https://" + serverName + "/webForm" + link);
 				pstmtSent.setInt(2, id);
 				log.info("Record sending of message: " + pstmtSent.toString());
 				pstmtSent.executeUpdate();
-				
+
+				sd.commit();  // Release lock, process next
 			}
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
+			try { sd.rollback(); } catch (SQLException ex) {}
 		} finally {
-
+			try { sd.setAutoCommit(true); } catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtSent != null) {pstmtSent.close();}} catch (SQLException e) {}
-			
+
 		}
 	}
 	
@@ -2040,47 +2175,64 @@ public class SubscriberBatch {
 		}
 	}
 	
-private void expireTemporaryUsers(ResourceBundle localisation, Connection sd) throws SQLException {
-		
+	/*
+	 * Expire temporary users (multi-server safe with row locking)
+	 */
+	private void expireTemporaryUsers(ResourceBundle localisation, Connection sd) throws SQLException {
+
 		int interval = 30;	// Expire after 30 days
 		String sql = "select ident, action_details, o_id from users "
 				+ "where temporary "
 				+ "and single_submission "
 				+ "and (created < now() - interval '" + interval + " days') "
-				+ "limit 100";  // Apply progressively incase a large number expire simultaneously
-		
+				+ "order by id asc "
+				+ "for update skip locked "
+				+ "limit 1";
+
 		PreparedStatement pstmt = null;
-		
+
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		MailoutManager mm = new MailoutManager(localisation);
 		UserManager um = new UserManager(localisation);
 		TaskManager tm = new TaskManager(localisation, null);
-		
+
 		try {
 			pstmt = sd.prepareStatement(sql);
-			ResultSet rs = pstmt.executeQuery();
-			while(rs.next()) {
+
+			sd.setAutoCommit(false);
+			while (true) {
+				ResultSet rs = pstmt.executeQuery();
+				if (!rs.next()) {
+					sd.commit();
+					break;  // No more users to expire
+				}
+
 				String userIdent = rs.getString("ident");
 				Action action = GeneralUtilityMethods.getAction(sd, gson, rs.getString("action_details"));
 				int oId = rs.getInt("o_id");
-				
+
 				// Record the expiry of this action
 				if(action.assignmentId > 0) {
 					// Assignment
 					tm.setTaskStatusCancelled(sd, action.assignmentId);
 				} else if(action.mailoutPersonId > 0) {
 					// Mailout
-					mm.setMailoutStatus(sd, action.mailoutPersonId, 
+					mm.setMailoutStatus(sd, action.mailoutPersonId,
 							MailoutManager.STATUS_EXPIRED, null);
 				}
-				
+
 				um.deleteSingleSubmissionTemporaryUser(sd, userIdent, UserManager.STATUS_EXPIRED);
-				String modIdent = action.email != null ? action.email : userIdent;			
+				String modIdent = action.email != null ? action.email : userIdent;
 				lm.writeLogOrganisation(sd, oId, modIdent, LogManager.EXPIRED, localisation.getString("msg_expired")
 						+ ": " + userIdent, 0);
-				
+
+				sd.commit();  // Release lock, process next
 			}
+		} catch (Exception e) {
+			try { sd.rollback(); } catch (SQLException ex) {}
+			throw e;
 		} finally {
+			try { sd.setAutoCommit(true); } catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 	}

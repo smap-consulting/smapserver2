@@ -7,23 +7,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Building the Subscribers Module
 
 ```bash
-# Maven compile (dependencies: sdDAL, sdDataAccess, amazon from smap2 repo)
+# Full build sequence (run in order)
+cd ../sdDAL && mvn clean install && cd ../sdDataAccess && mvn clean install && cd ../subscribers
 mvn clean install
-
-# Ant build - creates executable JAR with all dependencies
 ant -f subscriber3.xml
 
 # Output: ~/deploy/subscribers.jar
 ```
 
-### Dependencies
-Requires parent modules built first:
-```bash
-cd ../sdDAL && mvn clean install && cd ../subscribers
-cd ../sdDataAccess && mvn clean install && cd ../subscribers
-```
-
-External dependency: `amazon` module from separate `smap2` repository must be cloned and built.
+External dependency: `amazon` module from separate `smap2` repository must be cloned and built at `~/git/smap2/amazon`.
 
 ### Running Locally
 
@@ -208,6 +200,7 @@ src/
 - **sdDAL**: All Manager classes, database utilities, model objects
 - **sdDataAccess**: Legacy JDBC wrappers, UploadEvent JDBC manager
 - **amazon** (from smap2 repo): S3AttachmentUpload for media storage
+- **Vonage SDK**: SMS messaging via MessageProcessor
 
 ## Important Notes
 
@@ -216,3 +209,4 @@ src/
 - Restore flag prevents infinite reprocessing of restore submissions
 - All processors use same database connection pattern via `GeneralUtilityMethods.getDatabaseConnections()`
 - UploadEvent payload in queue contains full metadata to avoid join queries during dequeue
+- Polling interval: 2s (upload mode), 60s (forward mode)

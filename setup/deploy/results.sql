@@ -78,12 +78,20 @@ ALTER SEQUENCE sct_seq OWNER TO ws;
 
 CREATE TABLE server_calc_triggered (
 	id integer DEFAULT NEXTVAL('sct_seq') CONSTRAINT pk_sct PRIMARY KEY,
-	n_id integer,	
+	n_id integer,
 	table_name text,
 	question_name text,
 	value text,
 	thread text,
 	updated_value boolean,	  -- the value of the updated flag when this event was triggered
-	notification_sent TIMESTAMP WITH TIME ZONE	
+	notification_sent TIMESTAMP WITH TIME ZONE
 	);
 ALTER TABLE server_calc_triggered OWNER TO ws;
+
+-- Upgrade to: 25.01 ============
+-- Unique indexes for multi-server subscriber support
+CREATE UNIQUE INDEX IF NOT EXISTS case_alert_triggered_unique
+ON case_alert_triggered(a_id, table_name, thread);
+
+CREATE UNIQUE INDEX IF NOT EXISTS server_calc_triggered_unique
+ON server_calc_triggered(n_id, table_name, question_name, value, thread);

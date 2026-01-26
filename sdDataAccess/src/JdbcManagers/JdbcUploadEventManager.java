@@ -67,50 +67,13 @@ public class JdbcUploadEventManager {
 			+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 			+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 	
-	String sqlGet = "select "
-			+ "ue_id, "
-			+ "upload_time, "
-			+ "user_name, "
-			+ "file_name, "
-			+ "survey_name, "
-			+ "imei, "
-			+ "status, "
-			+ "reason, "
-			+ "location,"
-			+ "server_name,"
-			+ "s_id,"
-			+ "p_id,"
-			+ "form_status,"
-			+ "file_path,"
-			+ "orig_survey_ident,"
-			+ "update_id,"
-			+ "ident,"
-			+ "incomplete,"
-			+ "instanceid,"
-			+ "assignment_id,"
-			+ "survey_notes,"
-			+ "location_trigger,"
-			+ "audit_file_path,"
-			+ "temporary_user,"
-			+ "restore, "
-			+ "submission_type,"
-			+ "payload "
-			+ "from upload_event "
-				+ "where status = 'success' "
-				+ "and s_id is not null "
-				+ "and not incomplete "
-				+ "and not results_db_applied "
-				+ "and not queued "
-				+ "order by ue_id asc";
 	
-	PreparedStatement pstmtGetPending = null;
 	
 	/*
 	 * Constructor
 	 */
 	public JdbcUploadEventManager(Connection sd) throws SQLException {
 		pstmtInsert = sd.prepareStatement(sql);
-		pstmtGetPending = sd.prepareStatement(sqlGet);
 	}
 	
 	/*
@@ -151,58 +114,11 @@ public class JdbcUploadEventManager {
 		pstmtInsert.executeUpdate();
 	}
 	
-
-	/*
-	 * Get Uploads that have not been processed
-	 */
-	public List<UploadEvent> getPending() throws SQLException {
-		return getUploadEventList(pstmtGetPending);
-	}
-	
 	/*
 	 * Close prepared statements
 	 */
 	public void close() {
 		try {if(pstmtInsert != null) {pstmtInsert.close();}} catch(Exception e) {};
-		try {if(pstmtGetPending != null) {pstmtGetPending.close();}} catch(Exception e) {};
 	}
 	
-	private List <UploadEvent> getUploadEventList(PreparedStatement pstmt) throws SQLException {
-		ArrayList <UploadEvent> ueList = new ArrayList<UploadEvent> ();
-		
-		ResultSet rs = pstmt.executeQuery();
-		while(rs.next()) {
-			UploadEvent ue = new UploadEvent();
-			ue.setId(rs.getInt(1));
-			ue.setUploadTime(rs.getTimestamp(2));
-			ue.setUserName(rs.getString(3));
-			ue.setFileName(rs.getString(4));
-			ue.setSurveyName(rs.getString(5));
-			ue.setImei(rs.getString(6));
-			ue.setStatus(rs.getString(7));
-			ue.setReason(rs.getString(8));
-			ue.setLocation(rs.getString(9));
-			ue.setServerName(rs.getString(10));
-			ue.setSurveyId(rs.getInt(11));
-			ue.setProjectId(rs.getInt(12));
-			ue.setFormStatus(rs.getString(13));
-			ue.setFilePath(rs.getString(14));
-			ue.setOrigSurveyIdent(rs.getString(15));
-			ue.setUpdateId(rs.getString(16));
-			ue.setIdent(rs.getString(17));
-			ue.setIncomplete(rs.getBoolean(18));
-			ue.setInstanceId(rs.getString(19));
-			ue.setAssignmentId(rs.getInt(20));
-			ue.setSurveyNotes(rs.getString(21));
-			ue.setLocationTrigger(rs.getString(22));
-			ue.setAuditFilePath(rs.getString(23));
-			ue.setTemporaryUser(rs.getBoolean(24));
-			ue.setRestore(rs.getBoolean(25));
-			ue.setType(rs.getString("submission_type"));
-			ue.setPayload(rs.getString("payload"));
-			
-			ueList.add(ue);
-		}
-		return ueList;
-	}
 }
