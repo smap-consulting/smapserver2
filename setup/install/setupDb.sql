@@ -577,6 +577,7 @@ create index idx_ue_upload_time on upload_event (upload_time);
 create index idx_ue_processed_time on upload_event (processed_time);
 CREATE index ue_survey_ident ON upload_event(ident);
 CREATE INDEX idx_ue_p_id ON upload_event(p_id);
+CREATE INDEX idx_ue_pending ON upload_event (results_db_applied, queued, incomplete, ue_id);
 ALTER TABLE upload_event OWNER TO ws;
 
 DROP TABLE IF EXISTS option CASCADE;

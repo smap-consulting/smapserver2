@@ -254,3 +254,12 @@ create index if not exists unsub_people_idx on people(unsubscribed);
 
 alter table server add column record_limit integer default 0;
 
+
+
+-- Version 25.01 Multi-server subscriber support
+-- Drop old indexes that interfere with query planner
+drop index if exists idx_ue_ra;
+drop index if exists idx_ue_queued;
+drop index if exists idx_ue_pending;
+-- Composite index for pending upload queries
+create index concurrently if not exists idx_ue_pending on upload_event (results_db_applied, queued, incomplete, ue_id);

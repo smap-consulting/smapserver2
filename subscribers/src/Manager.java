@@ -122,7 +122,7 @@ public class Manager {
 		
 		
 		log.info("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);
-		int delaySecs = 2;
+		int delaySecs = 4;
 		
 		// The forward batch job processes events less important. In order to reduce the server load set a longer delay between runs.
 		if(subscriberType.equals("forward")) {

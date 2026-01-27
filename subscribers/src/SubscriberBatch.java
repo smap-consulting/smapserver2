@@ -294,7 +294,7 @@ public class SubscriberBatch {
 				}
 
 				if (!foundUpload) {
-					System.out.print(".");  // Log running of upload processor
+					System.out.print("_");  // Log running of upload processor
 				} else {
 					log.info("\nUploading: " + timeNow.toString());
 				}
