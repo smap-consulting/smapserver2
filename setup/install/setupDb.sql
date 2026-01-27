@@ -572,7 +572,6 @@ CREATE TABLE upload_event (
 	payload text			-- SMS details, in future XML submission details
 	);
 create index idx_ue_ident on upload_event(user_name);
-create index idx_ue_applied on upload_event (status, incomplete, results_db_applied);
 create index idx_ue_upload_time on upload_event (upload_time);
 create index idx_ue_processed_time on upload_event (processed_time);
 CREATE index ue_survey_ident ON upload_event(ident);
