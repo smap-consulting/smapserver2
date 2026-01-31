@@ -880,16 +880,20 @@ public class Results extends Application {
 			/*
 			 * Clean the features
 			 */
-			
+
 			// 1. Remove groups with no data
 			if(featuresArray.length() > 0) {
 				for(int i = featuresArray.length() - 1; i >= 0; i--) {
 					JSONObject o = (JSONObject) featuresArray.get(i);
 					JSONObject prop = (JSONObject) o.getJSONObject("properties");
-					if(prop.length() <= 4) {
-						featuresArray.remove(o);
-						if(prop.has("group_name")) {
-							log.info("+++ remove: " + prop.get("group_name") );
+					// Remove if prikeys array is empty (no records matched this group)
+					if(prop.has("prikeys")) {
+						JSONArray prikeys = (JSONArray) prop.get("prikeys");
+						if(prikeys.length() == 0) {
+							featuresArray.remove(o);
+							if(prop.has("group_name")) {
+								log.info("+++ remove: " + prop.get("group_name") );
+							}
 						}
 					}
 				}
