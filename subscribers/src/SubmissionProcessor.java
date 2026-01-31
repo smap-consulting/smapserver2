@@ -98,7 +98,6 @@ public class SubmissionProcessor {
 					+ "db_reason = ?,"
 					+ "queue_name = ? "
 					+ "where ue_id = ?";
-			PreparedStatement pstmtResultsDB = null;
 
 			/*
 			 * Dequeue SQL from https://chbussler.medium.com/implementing-queues-in-postgresql-3f6e9ab724fa
@@ -114,9 +113,8 @@ public class SubmissionProcessor {
 			sql.append("order by q_inner.time_inserted ASC "
 					+ "for update skip locked "
 					+ "limit 1) ");
-			
+
 			sql.append("returning q.time_inserted, q.ue_id, q.payload");
-			PreparedStatement pstmt = null;
 
 			Subscriber subscriber = new SubRelationalDB();
 
@@ -130,7 +128,10 @@ public class SubmissionProcessor {
 			}
 
 			SMSManager smsMgr = new SMSManager(localisation, tz);
-			
+
+			PreparedStatement pstmt = null;
+			PreparedStatement pstmtResultsDB = null;
+
 			boolean loop = true;
 			while(loop) {
 
@@ -138,15 +139,20 @@ public class SubmissionProcessor {
 				if(submissionControl != null && submissionControl.equals("stop")) {
 					log.info("---------- Submission Queue Stopped");
 					loop = false;
-				} else {					
+				} else {
+					ResultSet rs = null;
 					try {
 
 						// Make sure we have a connection to the database
 						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 						GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 
-						pstmt = dbc.sd.prepareStatement(sql.toString());
-						pstmtResultsDB = dbc.sd.prepareStatement(sqlResultsDB);
+						if(pstmt == null) {
+							pstmt = dbc.sd.prepareStatement(sql.toString());
+						}
+						if(pstmtResultsDB == null) {
+							pstmtResultsDB = dbc.sd.prepareStatement(sqlResultsDB);
+						}
 
 						/*
 						 * Get a vonage client
@@ -155,11 +161,11 @@ public class SubmissionProcessor {
 							ConversationManager convMgr = new ConversationManager(localisation, "UTC");
 							vonageClient = convMgr.getVonageClient(dbc.sd);
 						}
-								
+
 						/*
 						 * Dequeue
-						 */	
-						ResultSet rs = pstmt.executeQuery();
+						 */
+						rs = pstmt.executeQuery();
 						if(rs.next()) {
 
 							log.info("------ Start ");
@@ -370,13 +376,16 @@ public class SubmissionProcessor {
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
 					} finally {
-						try {if (pstmtResultsDB != null) { pstmtResultsDB.close();}} catch (SQLException e) {}
-						try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
+						try {if (rs != null) { rs.close();}} catch (SQLException e) {}
 					}
 
 				}
 
 			}
+
+			// Close prepared statements after loop exits
+			try {if (pstmtResultsDB != null) { pstmtResultsDB.close();}} catch (SQLException e) {}
+			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 
 			// Cleanup resources when loop exits
 			vonageClient = null;  // Release for GC
@@ -442,6 +451,7 @@ public class SubmissionProcessor {
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtUpdate = null;
+		ResultSet rs = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, origIdent);
@@ -455,7 +465,7 @@ public class SubmissionProcessor {
 			String finalDir = finalDirFile.getPath();
 
 			log.info("Get incomplete attachments: " + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
+			rs = pstmt.executeQuery();
 			while(rs.next()) {
 				log.info("++++++ Processing incomplete file name is: " + rs.getString(2));
 
@@ -481,6 +491,7 @@ public class SubmissionProcessor {
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
+			if(rs != null) try {rs.close();} catch(Exception e) {};
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 			if(pstmtUpdate != null) try {pstmtUpdate.close();} catch(Exception e) {};
 		}
