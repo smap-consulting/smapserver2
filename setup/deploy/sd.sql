@@ -266,4 +266,3 @@ create index concurrently if not exists idx_ue_pending on upload_event (results_
 
 -- Add API rate limiting configuration
 alter table server add column if not exists api_max_records integer default 0;
-alter table server add column if not exists api_max_age_days integer default 0;
