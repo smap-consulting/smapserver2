@@ -211,7 +211,7 @@ public class Server extends Application {
 			// Set the css custom styling file
 			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request), localisation);
 			cm.setCurrentCssFile(data.css, 0);
-				
+
 		} catch (Exception e) {
 			String msg = e.getMessage();
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(msg).build();	

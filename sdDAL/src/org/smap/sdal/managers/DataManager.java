@@ -585,14 +585,17 @@ public class DataManager {
 		int uId = 0;
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
-			limit = RateLimiter.isPermitted(sd, oId, response);
-			
+			// Apply rate limiting and max records for API requests only (not console)
+			if(!schema) {	
+				limit = RateLimiter.isPermitted(sd, oId, response);
+			}
+
 			lm.writeLog(sd, sId, remoteUser, LogManager.API_VIEW, "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk), 0, request.getServerName());
-			
+
 			response.setContentType("application/json; charset=UTF-8");
 			response.setCharacterEncoding("UTF-8");
 			outWriter = response.getWriter();
-			
+
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, remoteUser));
 			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
@@ -1024,9 +1027,11 @@ public class DataManager {
 			
 		} finally {
 
-			outWriter.flush(); 
-			outWriter.close();
-			
+			if (outWriter != null) {
+				outWriter.flush();
+				outWriter.close();
+			}
+
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 			try {if (pstmtGetMainForm != null) {pstmtGetMainForm.close();	}} catch (SQLException e) {	}
 			try {if (pstmtGetForm != null) {pstmtGetForm.close();	}} catch (SQLException e) {	}

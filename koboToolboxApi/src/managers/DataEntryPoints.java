@@ -628,13 +628,17 @@ public class DataEntryPoints {
 		} catch (Exception e) {
 			try {sd.setAutoCommit(true);} catch(Exception ex) {};
 			log.log(Level.SEVERE, "Exception", e);
-			outWriter.print(e.getMessage());
-			
+			if (outWriter != null) {
+				outWriter.print(e.getMessage());
+			}
+
 		} finally {
 
-			outWriter.flush();
-			outWriter.close();
-			
+			if (outWriter != null) {
+				outWriter.flush();
+				outWriter.close();
+			}
+
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtGetMainForm != null) {	pstmtGetMainForm.close();}} catch (SQLException e) {}
 			try {if (pstmtGetForm != null) {	pstmtGetForm.close();}} catch (SQLException e) {}

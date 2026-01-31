@@ -252,10 +252,6 @@ delete from pending_message where created_time < now() - interval '1 year';
 create index if not exists opted_in_people_idx on people(opted_in);
 create index if not exists unsub_people_idx on people(unsubscribed);
 
-alter table server add column record_limit integer default 0;
-
-
-
 -- Version 25.01 Multi-server subscriber support
 -- Drop old indexes that interfere with query planner
 drop index if exists idx_ue_ra;
