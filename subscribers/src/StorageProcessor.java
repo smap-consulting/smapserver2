@@ -49,38 +49,37 @@ public class StorageProcessor {
 
 			int delaySecs = 2;
 			int s3count = 0;
-		
+			StorageManager sm = new StorageManager();
+
 			boolean loop = true;
 			while(loop) {
-				
+
 				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/smap/settings/subscriber");
 				if(subscriberControl != null && subscriberControl.equals("stop")) {
 					log.info("---------- Message Processor Stopped");
 					loop = false;
 				} else {
-					
+
 					System.out.print("(a)");		// Record the running of the storage processor
-					
+
 					try {
 						// Make sure we have a connection to the database
 						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 						GeneralUtilityMethods.getSubmissionServer(dbc.sd);
-						
-						StorageManager sm = new StorageManager();
-					
+
 						try {
 							sm.uploadToS3(dbc.sd, basePath, s3count++);
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}
-						
+
 						if(s3count > 100) {
 							s3count = 0;		// Only check to truncate s3 table after every 100 uploads
 						}
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
 					}
-					
+
 					// Sleep and then go again
 					try {
 						Thread.sleep(delaySecs * 1000);

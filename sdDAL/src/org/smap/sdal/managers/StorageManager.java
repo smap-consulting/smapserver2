@@ -43,33 +43,34 @@ public class StorageManager {
 	 * Upload files to s3
 	 */
 	public void uploadToS3(Connection sd, String basePath, int s3count) throws SQLException {
-		
+
 		String sql = "select id, filepath "
 				+ "from s3upload "
 				+ "where status = 'new' "
 				+ "order by id asc "
-				+ "limit 1000";	
+				+ "limit 100";
 		PreparedStatement pstmt = null;
-		
+
 		String sqlClean = "delete from s3upload "
 				+ "where status = 'success' "
 				+ "and processed_time < now() - interval '3 day'";
 		PreparedStatement pstmtClean = null;
-		
+
 		String sqlDone = "update s3upload "
 				+ "set status = ?, "
 				+ "reason = ?, "
 				+ "processed_time = now() "
 				+ "where id = ?";
 		PreparedStatement pstmtDone = null;
-		
+		ResultSet rs = null;
+
 		try {
 			pstmtDone = sd.prepareStatement(sqlDone);
-			
+
 			pstmt = sd.prepareStatement(sql);
-			ResultSet rs = pstmt.executeQuery();
+			rs = pstmt.executeQuery();
 			while(rs.next()) {
-				
+
 				String status;
 				String reason = null;
 				try {
@@ -79,14 +80,14 @@ public class StorageManager {
 					status = "failed";
 					reason = e.getMessage();
 					log.log(Level.SEVERE, e.getMessage(), e);
-				}	
+				}
 
 				pstmtDone.setString(1, status);
 				pstmtDone.setString(2, reason);
 				pstmtDone.setInt(3, rs.getInt("id"));
 				pstmtDone.executeUpdate();
 			}
-			
+
 			/*
 			 * Clean up old data
 			 */
@@ -94,8 +95,9 @@ public class StorageManager {
 				pstmtClean = sd.prepareStatement(sqlClean);
 				pstmtClean.executeUpdate();
 			}
-			
+
 		} finally {
+			try {if (rs != null) {rs.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtDone != null) {pstmtDone.close();}} catch (SQLException e) {}
 			try {if (pstmtClean != null) {pstmtClean.close();}} catch (SQLException e) {}
