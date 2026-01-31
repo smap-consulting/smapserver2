@@ -150,22 +150,13 @@ public class Results extends Application {
 		HashMap<String, String> groupList = new HashMap<> ();
 		HashMap<String, String> uniqueColumnNames = new HashMap <> ();	// Ensure column name list has unique names
 		JSONArray results = new JSONArray();
+		Connection sd = null;
 		Connection cResults = null;
 		PreparedStatement pstmt = null;
-		
-		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
-		
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Results");
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		} catch (Exception e) {
-		}
-		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
-		// End Authorisation
-		
+		ResultSet resultSet = null;
+
+		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";
+
 		String tz = "UTC";		// default to UTC
 		
 		if(groupId != 0) {
@@ -197,8 +188,19 @@ public class Results extends Application {
 		} else {
 			timeGroup = "none";
 		}
-					
+
 		try {
+			// Authorisation - Access
+			sd = SDDataSource.getConnection("surveyKPI-Results");
+			boolean superUser = false;
+			try {
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			} catch (Exception e) {
+			}
+			a.isAuthorised(sd, request.getRemoteUser());
+			a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+			// End Authorisation
+
 			cResults = ResultsDataSource.getConnection("surveyKPI-Results");
 
 			// Localisation			
@@ -436,7 +438,7 @@ public class Results extends Application {
 				attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx, tz);
 			}
 			log.info("Get results select: " + pstmt.toString());
-			ResultSet resultSet = pstmt.executeQuery();
+			resultSet = pstmt.executeQuery();
 
 			/*
 			 * Collect the data
@@ -884,10 +886,11 @@ public class Results extends Application {
 				for(int i = featuresArray.length() - 1; i >= 0; i--) {
 					JSONObject o = (JSONObject) featuresArray.get(i);
 					JSONObject prop = (JSONObject) o.getJSONObject("properties");
-					JSONArray a = prop.names();
 					if(prop.length() <= 4) {
 						featuresArray.remove(o);
-						log.info("+++ remove: " + prop.get("group_name") );
+						if(prop.has("group_name")) {
+							log.info("+++ remove: " + prop.get("group_name") );
+						}
 					}
 				}
 			}
@@ -912,9 +915,10 @@ public class Results extends Application {
 			log.log(Level.SEVERE,"Exception", e);
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		} finally {
-			
+
+			try {if (resultSet != null) {resultSet.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			
+
 			SDDataSource.closeConnection("surveyKPI-Results", sd);
 			ResultsDataSource.closeConnection("surveyKPI-Results", cResults);
 		}
