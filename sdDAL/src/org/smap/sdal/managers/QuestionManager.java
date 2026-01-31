@@ -955,6 +955,7 @@ public class QuestionManager {
 			
 			for(Option o : options) {
 
+				log.info("##### Processing option for column: " + o.columnName);
 				// Get the list id for this option
 				int listId = -1;
 				if(l_id >= 0) {
@@ -969,7 +970,7 @@ public class QuestionManager {
 				pstmtUpdateSeq.setInt(1, listId);
 				pstmtUpdateSeq.setInt(2, o.seq);
 
-				log.info("Update sequences: " + pstmtUpdateSeq.toString());
+				log.info("###### Update sequences: " + GeneralUtilityMethods.getStringFromStatement(pstmtUpdateSeq));
 				pstmtUpdateSeq.executeUpdate();
 				
 				// Add a 10 character random string to the choice trans id to allow duplicate option names
@@ -983,12 +984,17 @@ public class QuestionManager {
 				pstmtInsertOption.setString(6, gson.toJson(o.cascade_filters));	
 				pstmtInsertOption.setString(7, o.display_name);	
 
-				log.info("Insert option: " + pstmtInsertOption.toString());
+				log.info("###### Insert option: " + GeneralUtilityMethods.getStringFromStatement(pstmtInsertOption));
 				pstmtInsertOption.executeUpdate();
 
 				// Set the labels 
-				if (updateLabels && transId != null && transId.trim().length() > 0) {
-					UtilityMethodsEmail.setLabels(sd, sId, transId, o.labels, pstmtSetLabels, false, sanitise);
+				log.info("##### Setting the labels ");
+				if(o.labels != null && o.labels.size() > 0) {
+					if (updateLabels && transId != null && transId.trim().length() > 0) {
+						UtilityMethodsEmail.setLabels(sd, sId, transId, o.labels, pstmtSetLabels, false, sanitise);
+					}
+				} else {
+					log.info("##### Error: labels are null for " + o.columnName);
 				}
 			}
 

@@ -1854,6 +1854,9 @@ public class SurveyManager {
 					 * otherwise check to ensure that the properties column exists for this property
 					 */
 					if(property.equals("app_choices")) {
+						
+						log.info("##### Apply app_choices property: New Val" + (ci.property != null && ci.property.newVal != null ? ci.property.newVal : ""));
+						
 						updateSearchChoices(sd, pstmt, ci.property.newVal, sId, ci.property.qId);
 						
 					} else if((propertyType = GeneralUtilityMethods.columnType(sd, "question", property)) != null) {
