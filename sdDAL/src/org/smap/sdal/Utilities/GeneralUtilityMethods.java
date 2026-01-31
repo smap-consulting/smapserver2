@@ -3103,10 +3103,10 @@ public class GeneralUtilityMethods {
 		ArrayList<Language> languages = new ArrayList<Language>();
 
 		try {
-			String sqlLanguages = "select id, language, code, rtl from language where s_id = ? order by seq asc";
+			String sqlLanguages = "select id, language, code, rtl from language where s_id = ? order by seq asc";		
 			pstmt = sd.prepareStatement(sqlLanguages);
-
 			pstmt.setInt(1, sId);
+			log.info("Get languages: " + GeneralUtilityMethods.getStringFromStatement(pstmt));
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				languages.add(new Language(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getBoolean(4)));

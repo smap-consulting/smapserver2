@@ -135,7 +135,9 @@ create TABLE server (
 	record_limit integer default 0,					-- Maximum number of records to return
 	vonage_application_id text,
 	vonage_webhook_secret text,
-	sec_mgr_del boolean default false
+	sec_mgr_del boolean default false,
+	api_max_records integer default 0,				-- Maximum number of records to return via API
+	api_max_age_days integer default 0				-- Maximum age of records to return via API in days
 	);
 ALTER TABLE server OWNER TO ws;
 

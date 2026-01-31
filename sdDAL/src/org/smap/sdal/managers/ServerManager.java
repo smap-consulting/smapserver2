@@ -71,7 +71,9 @@ public class ServerManager {
 				+ "keep_erased_days,"
 				+ "css,"
 				+ "email_type,"
-				+ "sec_mgr_del "
+				+ "sec_mgr_del,"
+				+ "api_max_records,"
+				+ "api_max_age_days "
 				+ "from server;";
 		PreparedStatement pstmt = null;
 		ServerData data = new ServerData();
@@ -100,6 +102,8 @@ public class ServerManager {
 				data.css = rs.getString("css");
 				data.email_type = rs.getString("email_type");
 				data.sec_mgr_del = rs.getBoolean("sec_mgr_del");
+				data.api_max_records = rs.getInt("api_max_records");
+				data.api_max_age_days = rs.getInt("api_max_age_days");
 			}
 
 		}  catch (Exception e) {

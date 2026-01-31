@@ -20,4 +20,6 @@ public class ServerData {
 	public int keep_erased_days;
 	public String css;
 	public boolean sec_mgr_del;
+	public int api_max_records;
+	public int api_max_age_days;
 }

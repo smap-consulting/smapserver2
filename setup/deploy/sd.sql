@@ -263,3 +263,7 @@ drop index if exists idx_ue_queued;
 drop index if exists idx_ue_applied;
 -- Composite index for pending upload queries
 create index concurrently if not exists idx_ue_pending on upload_event (results_db_applied, queued, incomplete, ue_id);
+
+-- Add API rate limiting configuration
+alter table server add column if not exists api_max_records integer default 0;
+alter table server add column if not exists api_max_age_days integer default 0;
