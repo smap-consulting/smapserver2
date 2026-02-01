@@ -970,7 +970,7 @@ public class QuestionManager {
 				pstmtUpdateSeq.setInt(1, listId);
 				pstmtUpdateSeq.setInt(2, o.seq);
 
-				log.info("###### Update sequences: " + GeneralUtilityMethods.getStringFromStatement(pstmtUpdateSeq));
+				log.info("###### Update sequences: " + pstmtUpdateSeq.toString());
 				pstmtUpdateSeq.executeUpdate();
 				
 				// Add a 10 character random string to the choice trans id to allow duplicate option names
@@ -984,7 +984,7 @@ public class QuestionManager {
 				pstmtInsertOption.setString(6, gson.toJson(o.cascade_filters));	
 				pstmtInsertOption.setString(7, o.display_name);	
 
-				log.info("###### Insert option: " + GeneralUtilityMethods.getStringFromStatement(pstmtInsertOption));
+				log.info("###### Insert option: " + pstmtInsertOption.toString());
 				pstmtInsertOption.executeUpdate();
 
 				// Set the labels 
@@ -994,7 +994,7 @@ public class QuestionManager {
 						UtilityMethodsEmail.setLabels(sd, sId, transId, o.labels, pstmtSetLabels, false, sanitise);
 					}
 				} else {
-					log.info("##### Error: labels are null for " + o.columnName);
+					log.info("##### Error: labels are null for " + transId);
 				}
 			}
 

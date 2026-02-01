@@ -4212,26 +4212,27 @@ public class SurveyManager {
 		Option o = new Option();
 		o.labels = new ArrayList<Label> ();
 		
-		if(pVal.length() > 0) {
-			if(pVal != null && pVal.trim().length() > 0) {
-				String [] vArray = pVal.split("\\s+");
-				ArrayList<String> elems = new ArrayList<String>();
-				Collections.addAll(elems, vArray);
-				for(String e : elems) {
-					String [] eArray = e.split("::");
-					if(eArray.length > 1) {
-						if(eArray[0].equals("_sv")) {
-							o.value = eArray[1];
-						} else if(eArray.length > 2) {
-							if(eArray[0].equals("_sl")) {
-								Label l = new Label();
-								l.text = eArray[2];
-								o.labels.add(l);
-							}
-						}
+		log.info("##### Adding labels: " + pVal);
+		if(pVal != null && pVal.trim().length() > 0) {
+			
+			String [] vArray = pVal.split("_sl::");
+			ArrayList<String> elems = new ArrayList<String>();
+			Collections.addAll(elems, vArray);
+			for(String e : elems) {
+				e = e.trim();
+				log.info("  ##### Elem: " + e);
+				String [] eArray = e.split("::");
+				if(eArray.length > 1) {
+					if(eArray[0].equals("_sv")) {
+						o.value = eArray[1];
+					} else {	
+						Label l = new Label();
+						l.text = eArray[1];
+						o.labels.add(l);
 					}
 				}
 			}
+			
 			
 			if(o.value != null) {
 				
@@ -4299,6 +4300,7 @@ public class SurveyManager {
 					o.seq = sequenceNumber;								
 					ArrayList<Option> options = new ArrayList<Option> ();
 					options.add(o);
+					log.info("##### Inserting the new choice: " + o.text_id);
 					qm.saveOptions(sd, sId, options, true, listId);
 				}
 				
