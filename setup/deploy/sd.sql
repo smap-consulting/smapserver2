@@ -262,3 +262,6 @@ create index concurrently if not exists idx_ue_pending on upload_event (results_
 
 -- Add API rate limiting configuration
 alter table server add column if not exists api_max_records integer default 0;
+
+-- Performance improvement to get tasks
+CREATE INDEX idx_tasks_tg_schedule_desc ON tasks(tg_id, schedule_at DESC); 

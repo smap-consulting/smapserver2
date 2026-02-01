@@ -1084,6 +1084,7 @@ SELECT AddGeometryColumn('tasks', 'geo_point_actual', 4326, 'POINT', 2);
 CREATE INDEX task_task_group ON tasks(tg_id);
 create index idx_tasks_del_auto on tasks (deleted, assign_auto);
 create index tasks_survey_idx on tasks(survey_ident);
+CREATE INDEX idx_tasks_tg_schedule_desc ON tasks(tg_id, schedule_at DESC); 
 ALTER TABLE public.tasks OWNER TO ws;
 
 CREATE TABLE public.locations (
