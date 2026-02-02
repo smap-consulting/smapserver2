@@ -926,7 +926,7 @@ public class NotificationManager {
 						outputStream.close();
 						originalFilePath = filePath;
 						if(survey.surveyData.compress_pdf) {
-							// Compress the temporary file and write it toa new temporary file
+							// Compress the temporary file and write it to a new temporary file
 							String compressedPath = basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";	// New temporary file
 							try {
 								outputStream = new FileOutputStream(compressedPath); 

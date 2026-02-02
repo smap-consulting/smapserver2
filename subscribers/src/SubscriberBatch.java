@@ -1366,7 +1366,13 @@ public class SubscriberBatch {
 						}
 						
 						try {
-							ResultSet mrs = pstmtMatches.executeQuery();
+							ResultSet mrs = null;
+							try {
+								mrs = pstmtMatches.executeQuery();
+							} catch(Exception e) {
+								log.info("Error in search for case reminder for survey: "+ groupSurveyIdent + " check the alerts for this survey to find the error " + pstmtMatches.toString());
+								throw e;
+							}
 							
 							while(mrs.next()) {
 								
