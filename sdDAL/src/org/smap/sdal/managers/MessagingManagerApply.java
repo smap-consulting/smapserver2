@@ -110,10 +110,17 @@ public class MessagingManagerApply {
 			
 			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
+			int batchCount = 0;
+			int batchLimit = 50;
 			boolean loop = true;
 			while(loop) {
+				if(batchCount >= batchLimit) {
+					loop = false;
+					break;
+				}
 				rs = pstmtGetMessages.executeQuery();
 				if (rs.next()) {
+					batchCount++;
 	
 					String status = "success";
 					ArrayList<String> unsubscribedList = new ArrayList<>();

@@ -811,6 +811,7 @@ public class NotificationManager {
 
 		String docURL = null;
 		String filePath = null;
+		String originalFilePath = null;		// Track uncompressed file for cleanup
 		String filename = "instance";
 		String logContent = null;
 
@@ -923,6 +924,7 @@ public class NotificationManager {
 								null);
 
 						outputStream.close();
+						originalFilePath = filePath;
 						if(survey.surveyData.compress_pdf) {
 							// Compress the temporary file and write it toa new temporary file
 							String compressedPath = basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";	// New temporary file
@@ -1290,6 +1292,13 @@ public class NotificationManager {
 		} finally {
 			try {if (pstmtGetSMSUrl != null) {pstmtGetSMSUrl.close();}} catch (SQLException e) {}
 
+			// Clean up temp files
+			if(filePath != null) {
+				try { new File(filePath).delete(); } catch (Exception e) {}
+			}
+			if(originalFilePath != null && !originalFilePath.equals(filePath)) {
+				try { new File(originalFilePath).delete(); } catch (Exception e) {}
+			}
 		}
 	}
 
@@ -1327,6 +1336,8 @@ public class NotificationManager {
 		File file = new File(basePath + "/temp/periodic_" + UUID.randomUUID() + ".xlsx");
 		filePath = file.getAbsolutePath();
 		OutputStream outputStream = new FileOutputStream(file);
+
+		try {
 
 		/*
 		 * Set start and end time of the report based on report period
@@ -1444,6 +1455,12 @@ public class NotificationManager {
 			lm.writeLogOrganisation(sd, organisation.id, "subscriber", logTopic, status + " : " + notify_details + (error_details == null ? "" : error_details), 0);
 		}
 
+		} finally {
+			try { outputStream.close(); } catch (Exception e) {}
+			if(filePath != null) {
+				try { new File(filePath).delete(); } catch (Exception e) {}
+			}
+		}
 	}
 
 	/*
