@@ -4943,9 +4943,9 @@ public class SurveyManager {
 			 */
 			if(GeneralUtilityMethods.tableExists(cResults, tableName)) {
 				StringBuilder sqlCount = new StringBuilder("select count(*) from ").append(tableName);
-				StringBuilder sqlFirst = new StringBuilder("select to_char(_start, 'YYYY-MM-DD') as _start from ")
+				StringBuilder sqlFirst = new StringBuilder("select to_char(_upload_time, 'YYYY-MM-DD') as _start from ")
 						.append(tableName).append(" order by prikey asc limit 1");
-				StringBuilder sqlLast = new StringBuilder("select to_char(_start, 'YYYY-MM-DD') as _end from ")
+				StringBuilder sqlLast = new StringBuilder("select to_char(_upload_time, 'YYYY-MM-DD') as _end from ")
 						.append(tableName).append(" order by prikey desc limit 1");
 			
 				// Count
