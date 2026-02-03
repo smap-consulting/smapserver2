@@ -182,7 +182,7 @@ public class Server extends Application {
 			pstmt.setString(15, data.email_type);
 			pstmt.setString(16, data.aws_region);
 			pstmt.setBoolean(17, data.sec_mgr_del);
-			pstmt.setInt(18, data.api_max_records);
+			pstmt.setInt(18, data.getMaxRecords());
 			int count = pstmt.executeUpdate();
 			
 			if(count == 0) {			
@@ -204,7 +204,7 @@ public class Server extends Application {
 				pstmtInsert.setString(15, data.email_type);
 				pstmtInsert.setString(16, data.aws_region);
 				pstmtInsert.setBoolean(17, data.sec_mgr_del);
-				pstmtInsert.setInt(18, data.api_max_records);
+				pstmtInsert.setInt(18, data.getMaxRecords());
 				pstmtInsert.executeUpdate();
 			}
 			

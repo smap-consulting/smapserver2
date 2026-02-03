@@ -489,7 +489,6 @@ public class DataManager {
 			int pageLen							// Set by the console and remembered on the server - not used
 			) throws ApplicationException, Exception { 
 
-
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, remoteUser);
@@ -585,9 +584,16 @@ public class DataManager {
 		int uId = 0;
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
+			
 			// Apply rate limiting and max records for API requests only (not console)
+			if(limit < 0) {
+				limit = 0;
+			}
 			if(!schema) {	
-				limit = RateLimiter.isPermitted(sd, oId, response);
+				int serverLimit = RateLimiter.isPermitted(sd, oId, response);
+				if(limit == 0 || (serverLimit > 0 && serverLimit < limit)) {
+					limit = serverLimit;
+				}
 			}
 
 			lm.writeLog(sd, sId, remoteUser, LogManager.API_VIEW, "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk), 0, request.getServerName());

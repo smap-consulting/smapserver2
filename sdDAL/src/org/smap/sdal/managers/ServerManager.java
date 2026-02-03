@@ -101,7 +101,7 @@ public class ServerManager {
 				data.css = rs.getString("css");
 				data.email_type = rs.getString("email_type");
 				data.sec_mgr_del = rs.getBoolean("sec_mgr_del");
-				data.api_max_records = rs.getInt("api_max_records");
+				data.setMaxRecords(rs.getInt("api_max_records"));
 			}
 
 		}  catch (Exception e) {

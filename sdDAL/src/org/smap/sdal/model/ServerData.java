@@ -20,5 +20,17 @@ public class ServerData {
 	public int keep_erased_days;
 	public String css;
 	public boolean sec_mgr_del;
-	public int api_max_records;
+	private int api_max_records;
+	
+	public void setMaxRecords(int v) {
+		api_max_records = v;
+	}
+	
+	public int getMaxRecords() {
+		if(api_max_records < 0) {
+			return 0;
+		} else {
+			return api_max_records;
+		}
+	}
 }
