@@ -165,9 +165,6 @@ cp  $deploy_from/resources/fonts/* /usr/share/fonts/truetype
 chmod +x /smap_bin/*.sh
 chmod +r /usr/share/fonts/truetype/*
 
-cd /var/log/subscribers
-rm *.log_old
-#rename 's/\.log$/\.log_old/g' *.log  # Remove this now will rely on log rotation
 cd $cwd
 
 # Copy any customised files
