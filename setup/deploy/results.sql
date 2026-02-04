@@ -63,7 +63,7 @@ ALTER TABLE sync OWNER TO ws;
 CREATE SEQUENCE cat_seq START 1;
 ALTER SEQUENCE cat_seq OWNER TO ws;
 
-CREATE TABLE case_alert_triggered (
+CREATE TABLE IF NOT EXISTS case_alert_triggered (
 	id integer DEFAULT NEXTVAL('cat_seq') CONSTRAINT pk_cat PRIMARY KEY,
 	a_id integer,
 	table_name text,
@@ -76,7 +76,7 @@ ALTER TABLE case_alert_triggered OWNER TO ws;
 CREATE SEQUENCE sct_seq START 1;
 ALTER SEQUENCE sct_seq OWNER TO ws;
 
-CREATE TABLE server_calc_triggered (
+CREATE TABLE IF NOT EXISTS server_calc_triggered (
 	id integer DEFAULT NEXTVAL('sct_seq') CONSTRAINT pk_sct PRIMARY KEY,
 	n_id integer,
 	table_name text,
@@ -89,7 +89,24 @@ CREATE TABLE server_calc_triggered (
 ALTER TABLE server_calc_triggered OWNER TO ws;
 
 -- Upgrade to: 25.01 ============
--- Unique indexes for multi-server subscriber support
+-- Remove any duplicates before creating the indexes
+DELETE FROM case_alert_triggered a USING case_alert_triggered b
+WHERE
+    a.id < b.id
+	AND a.a_id = b.a_id
+	AND a.table_name = b.table_name
+	AND a.thread = b. thread;
+
+DELETE FROM server_calc_triggered a USING server_calc_triggered b
+WHERE
+    a.id < b.id
+	AND a.n_id = b.n_id
+	AND a.table_name = b.table_name
+	AND a.question_name = b.question_name
+	AND a.value = b.value
+	AND a.thread = b. thread;
+
+-- Add Unique indexes for multi-server subscriber support
 CREATE UNIQUE INDEX IF NOT EXISTS case_alert_triggered_unique
 ON case_alert_triggered(a_id, table_name, thread);
 
