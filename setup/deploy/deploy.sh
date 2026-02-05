@@ -180,7 +180,6 @@ then
 fi
 
 # Restart Servers
-systemctl daemon-reload
 if [ $DBHOST = "127.0.0.1" ]; then
     service postgresql start
     echo "Starting postgres"

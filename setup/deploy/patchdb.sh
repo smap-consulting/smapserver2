@@ -346,6 +346,7 @@ if [ $u2004 -eq 1 ]; then
 cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
 fi
 
+systemctl daemon-reload
 cd ../deploy
  
 
