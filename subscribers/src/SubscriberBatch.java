@@ -124,9 +124,10 @@ public class SubscriberBatch {
 		 */
 		int UPLOAD_BATCH_SIZE = 100;
 		String sqlGetPendingUpload = "select ue_id, upload_time, user_name, file_name, survey_name, "
-				+ "imei, orig_survey_ident, ident, instanceid, status, reason, location, "
+				+ "imei, orig_survey_ident, update_id, ident, instanceid, status, reason, location, "
 				+ "server_name, s_id, p_id, o_id, e_id, form_status, file_path, "
-				+ "temporary_user, survey_notes, location_trigger, assignment_id, restore, audit_file_path "
+				+ "temporary_user, survey_notes, location_trigger, assignment_id, restore, submission_type, "
+				+ "audit_file_path "
 				+ "from upload_event "
 				+ "where status = 'success' "
 				+ "and s_id is not null "
@@ -243,6 +244,7 @@ public class SubscriberBatch {
 							ue.setSurveyName(rs.getString("survey_name"));
 							ue.setImei(rs.getString("imei"));
 							ue.setOrigSurveyIdent(rs.getString("orig_survey_ident"));
+							ue.setUpdateId(rs.getString("update_id"));
 							ue.setIdent(rs.getString("ident"));
 							ue.setInstanceId(rs.getString("instanceid"));
 							ue.setStatus(rs.getString("status"));
@@ -260,6 +262,7 @@ public class SubscriberBatch {
 							ue.setLocationTrigger(rs.getString("location_trigger"));
 							ue.setAssignmentId(rs.getInt("assignment_id"));
 							ue.setRestore(rs.getBoolean("restore"));
+							ue.setType(rs.getString("submission_type"));
 							ue.setAuditFilePath(rs.getString("audit_file_path"));
 
 							// Check for duplicate in queue (safety check)
