@@ -173,10 +173,10 @@ public class ForeignKeyManager {
 							ResultSet rsGetFkTable = pstmtGetFkTable.executeQuery();
 							if(rsGetFkTable.next()) {
 								String foreignTable = rsGetFkTable.getString(1);
-								String sqlGetHrk1 = "select prikey from " + foreignTable +
-										" where instanceid=?";
-								String sqlGetHrk2 = "select prikey, _hrk from " + foreignTable +
-										" where instanceid=?";
+								String sqlGetHrk1 = "select prikey, _thread from " + foreignTable +
+										" where instanceid = ?";
+								String sqlGetHrk2 = "select prikey, _thread, _hrk from " + foreignTable +
+										" where instanceid = ?";
 								boolean hasHrk = GeneralUtilityMethods.hasColumn(cResults, foreignTable, "_hrk");
 								if(hasHrk) {
 									pstmtGetHrk = cResults.prepareStatement(sqlGetHrk2);
@@ -187,9 +187,9 @@ public class ForeignKeyManager {
 								log.info("Get HRK: " + pstmtGetHrk.toString());
 								ResultSet rsGetHrk = pstmtGetHrk.executeQuery();
 								if(rsGetHrk.next()) {
-									String key = rsGetHrk.getString(1);
+									String key = rsGetHrk.getString("prikey");	// TODO replace with _thread
 									if(hasHrk) {
-										String hrkKey = rsGetHrk.getString(2);
+										String hrkKey = rsGetHrk.getString("_hrk");
 										if(hrkKey != null) {
 											key = hrkKey;
 										}
@@ -198,8 +198,8 @@ public class ForeignKeyManager {
 									
 									/*
 									 * Update the key question that contains the foreign key value
-									 */	
-									// Use the sId of the launched form to get key column name
+									 * Use the sId of the launched form to get key column name
+									 */	 
 									String keyColumnName = GeneralUtilityMethods.getColumnName(sd, 
 											surveyIdContainingKeyQuestion, keyQuestion);
 
@@ -260,9 +260,10 @@ public class ForeignKeyManager {
 									}
 									
 								} else {
-									pstmtResult.setString(1, "error: foreign key table not found");
+									String msg = "error: foreign key table not found";
+									pstmtResult.setString(1, msg);
 									pstmtResult.setInt(2, id);
-									log.info("error: foreign key table not found");
+									log.info(msg);
 									pstmtResult.executeUpdate();
 								}
 							} else {

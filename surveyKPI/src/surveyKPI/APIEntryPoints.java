@@ -132,7 +132,7 @@ public class APIEntryPoints extends Application {
 			@QueryParam("links") String links,
 			@QueryParam("meta") String meta,
 			@QueryParam("filter") String filter,
-			@QueryParam("dd_filter") String dd_filter,		// Drill Down Filter when driling down to a child survey
+			@QueryParam("dd_filter") String dd_filter,		// Drill Down Filter when drilling down to a child survey
 			@QueryParam("prikey") int prikey,				// Return data for a specific primary key (Distinct from using start with limit 1 as this is for drill down and settings should not be stored)
 			@QueryParam("dd_hrk") String dd_hrk,				// Return data matching key when drilling down to parent
 			@QueryParam("dateName") String dateName,			// Name of question containing the date to filter by
