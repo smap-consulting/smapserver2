@@ -2129,12 +2129,15 @@ public class GetHtml {
 				.append(gUrlPrefix)
 				.append("app/myWork/webForm/")
 				.append(surveyIdent)
+				.append("?launched=true")
 				.append("'");
+		
+		url.append(",'").append(GeneralUtilityMethods.getCacheBuster(url.toString())).append("'");
 		
 		if(instance != null) {
 			instance = instance.trim();
 			if(instance.length() > 0) {
-				url.append(",'?datakey=instanceid&datakeyvalue=',");
+				url.append(",'&datakey=instanceid&datakeyvalue=',");
 				if(instance.startsWith("$")) {
 					url.append(instance);
 				} else {
@@ -2148,8 +2151,7 @@ public class GetHtml {
 			if(initial.length() > 0) {
 				
 				url.append(",'")
-					.append(instance == null ? "?" : "&")
-					.append("initial='");
+					.append("&initial='");
 				
 				String [] a = initial.split(",");
 				if(a.length > 0) {
@@ -2171,6 +2173,8 @@ public class GetHtml {
 			}
 		}
 		url.append(")");
+		
+		
 		
 		return url.toString();
 	}
