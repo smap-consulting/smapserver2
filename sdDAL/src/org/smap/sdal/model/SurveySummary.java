@@ -1,5 +1,7 @@
 package org.smap.sdal.model;
 
+import java.util.HashMap;
+
 public class SurveySummary {	
 	public String ident;
 	public String displayName;
@@ -9,4 +11,5 @@ public class SurveySummary {
 	public int records;		// Number of records in the main table
 	public String firstDate;
 	public String lastDate;
+	public HashMap<String, Integer> subForms;
 }

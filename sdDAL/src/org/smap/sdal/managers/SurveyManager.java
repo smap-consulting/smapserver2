@@ -4901,13 +4901,20 @@ public class SurveyManager {
 		return summary;
 	}
 	
+	private class TableDetails {
+		int parentForm;
+		String formName;
+		String tableName;
+	}
+	
 	/*
 	 * Get a full summary of the survey including organisation and enterprise
 	 */
 	public SurveySummary getFullSummary(Connection sd, Connection cResults, String sIdent) throws SQLException {
 		
 		String sql = "select s.display_name, s.version, p.name as proj_name, "
-				+ "o.name as org_name, e.name as ent_name, f.table_name "
+				+ "o.name as org_name, e.name as ent_name, f.table_name,"
+				+ "f.name as form_name, f.parentform "
 				+ "from survey s, project p, organisation o, enterprise e, form f "
 				+ "where s.p_id = p.id "
 				+ "and p.o_id = o.id "
@@ -4919,7 +4926,7 @@ public class SurveyManager {
 		
 		try {
 	
-			String tableName = null;
+			ArrayList<TableDetails> forms = new ArrayList<> ();
 			
 			/*
 			 * Get Survey definition
@@ -4928,51 +4935,76 @@ public class SurveyManager {
 			pstmt.setString(1, sIdent);
 
 			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				summary.ident = sIdent;
-				summary.displayName = rs.getString("display_name");
-				summary.projectName = rs.getString("proj_name");
-				summary.organisation = rs.getString("org_name");
-				summary.enterprise = rs.getString("ent_name");
+			while (rs.next()) {
+				if(summary.ident == null) {
+					summary.ident = sIdent;
+					summary.displayName = rs.getString("display_name");
+					summary.projectName = rs.getString("proj_name");
+					summary.organisation = rs.getString("org_name");
+					summary.enterprise = rs.getString("ent_name");
+				}
 				
-				tableName = rs.getString("table_name");
+				TableDetails td = new TableDetails();
+				td.tableName = rs.getString("table_name");
+				td.formName = rs.getString("form_name");
+				td.parentForm = rs.getInt("parentForm");
+				forms.add(td);
 			}
 			
 			/*
 			 * Get results data
 			 */
-			if(GeneralUtilityMethods.tableExists(cResults, tableName)) {
-				StringBuilder sqlCount = new StringBuilder("select count(*) from ").append(tableName);
-				StringBuilder sqlFirst = new StringBuilder("select to_char(_upload_time, 'YYYY-MM-DD') as _start from ")
-						.append(tableName).append(" order by prikey asc limit 1");
-				StringBuilder sqlLast = new StringBuilder("select to_char(_upload_time, 'YYYY-MM-DD') as _end from ")
-						.append(tableName).append(" order by prikey desc limit 1");
-			
-				// Count
-				if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
-				if(rs != null) {try {rs.close();} catch(Exception e) {}};
-				pstmt = cResults.prepareStatement(sqlCount.toString());
-				rs = pstmt.executeQuery();
-				if(rs.next()) {
-					summary.records = rs.getInt(1);
-				}
+			for(TableDetails td : forms) {
+				if(td.tableName != null && GeneralUtilityMethods.tableExists(cResults, td.tableName)) {
+					int records = 0;
+					String firstDate = null;
+					String lastDate = null;
+					
+					// Count
+					StringBuilder sqlCount = new StringBuilder("select count(*) from ").append(td.tableName);
+					if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+					if(rs != null) {try {rs.close();} catch(Exception e) {}};
+					pstmt = cResults.prepareStatement(sqlCount.toString());
+					rs = pstmt.executeQuery();
+					if(rs.next()) {
+						records = rs.getInt(1);
+					}
+					
+					if(td.parentForm == 0) {	// Main form
+						
+						StringBuilder sqlFirst = new StringBuilder("select to_char(_upload_time, 'YYYY-MM-DD') as _start from ")
+							.append(td.tableName).append(" order by prikey asc limit 1");
+						StringBuilder sqlLast = new StringBuilder("select to_char(_upload_time, 'YYYY-MM-DD') as _end from ")
+							.append(td.tableName).append(" order by prikey desc limit 1");
 				
-				// First record
-				if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
-				if(rs != null) {try {rs.close();} catch(Exception e) {}};
-				pstmt = cResults.prepareStatement(sqlFirst.toString());
-				rs = pstmt.executeQuery();
-				if(rs.next()) {
-					summary.firstDate = rs.getString("_start");
-				}
-				
-				// Last record
-				if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
-				if(rs != null) {try {rs.close();} catch(Exception e) {}};
-				pstmt = cResults.prepareStatement(sqlLast.toString());
-				rs = pstmt.executeQuery();
-				if(rs.next()) {
-					summary.lastDate = rs.getString("_end");
+						// First record
+						if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+						if(rs != null) {try {rs.close();} catch(Exception e) {}};
+						pstmt = cResults.prepareStatement(sqlFirst.toString());
+						rs = pstmt.executeQuery();
+						if(rs.next()) {
+							firstDate = rs.getString("_start");
+						}
+						
+						// Last record
+						if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+						if(rs != null) {try {rs.close();} catch(Exception e) {}};
+						pstmt = cResults.prepareStatement(sqlLast.toString());
+						rs = pstmt.executeQuery();
+						if(rs.next()) {
+							lastDate = rs.getString("_end");
+						}
+					
+						summary.records = records;
+						summary.firstDate = firstDate;
+						summary.lastDate = lastDate;
+						
+					} else {  // subform
+						if(summary.subForms == null) {
+							summary.subForms = new HashMap <String, Integer> ();	
+						}
+						summary.subForms.put(td.formName, records);
+					}
 				}
 			}
 				
