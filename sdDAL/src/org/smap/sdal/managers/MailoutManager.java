@@ -659,7 +659,7 @@ public class MailoutManager {
 		
 		String docURL = null;
 		if(msg.actionLink != null) {
-			docURL = "https://" + server + "/webForm" + msg.actionLink;
+			docURL = msg.actionLink;	// actionLink is already a full URL (https://server/webForm/action/{id})
 		}
 		int surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
 		

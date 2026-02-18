@@ -3424,7 +3424,9 @@ public class TaskManager {
 				msg.content = text.get(1);
 				log.info("xxxxxxxxxxxxx3: " + msg.content);
 				
-				docURL = "/webForm" + msg.actionLink;
+				if(msg.actionLink != null) {
+					docURL = scheme + "://" + server + "/webForm" + msg.actionLink;
+				}
 					
 				/*
 				 * Send document to target
@@ -3471,9 +3473,7 @@ public class TaskManager {
 								content.append("<p>")
 									.append(taskMsg)
 									.append("</p>")
-									.append(" <p><a href=\"").append(scheme + "://")
-									.append(server)
-									.append(docURL)
+									.append(" <p><a href=\"").append(docURL)
 									.append("\">")
 									.append("<button type='button' style='margin:auto;style:block'>")
 									.append(localisation.getString("ar_survey"))

@@ -2052,7 +2052,7 @@ public class SubscriberBatch {
 						action.initialData = gson.fromJson(initialData, Instance.class);
 					}
 
-					link = am.getLink(sd, action, oId, action.single);
+					link = "https://" + serverName + "/webForm" + am.getLink(sd, action, oId, action.single);
 				}
 
 				// Add user name to content
@@ -2064,9 +2064,8 @@ public class SubscriberBatch {
 					if(name != null) {
 						content = content.replaceAll("\\$\\{name\\}", name);
 					}
-					String url = "https://" + serverName + "/webForm" + link;
 					if(content.contains("${url}")) {
-						content = content.replaceAll("\\$\\{url\\}", url);
+						content = content.replaceAll("\\$\\{url\\}", link);
 						messageLink = null;	// Default link replaced
 					}
 				}
