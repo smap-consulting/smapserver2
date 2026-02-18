@@ -2102,7 +2102,7 @@ public class SubscriberBatch {
 				mm.createMessage(sd, oId, NotificationManager.TOPIC_MAILOUT, "", gson.toJson(msg));
 
 				// record the sending of the notification
-				pstmtSent.setString(1, "https://" + serverName + "/webForm" + link);
+				pstmtSent.setString(1, link);
 				pstmtSent.setInt(2, id);
 				log.info("Record sending of message: " + pstmtSent.toString());
 				pstmtSent.executeUpdate();
