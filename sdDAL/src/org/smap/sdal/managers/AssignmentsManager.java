@@ -369,7 +369,7 @@ public class AssignmentsManager {
 				log.info("ft_number_tasks: " + ft_number_tasks);
 				if (ft_number_tasks > 0) {
 					TaskManager tm = new TaskManager(localisation, tz);
-					TaskListGeoJson unassigned = tm.getUnassignedTasks(sd, oId, uId, ft_number_tasks, // Maximum number oftasks to return
+					TaskListGeoJson unassigned = tm.getUnassignedTasks(sd, oId, uId, ft_number_tasks, // Maximum number of tasks to return
 							userIdent);
 	
 					for (TaskFeature task : unassigned.features) {
@@ -717,7 +717,7 @@ public class AssignmentsManager {
 
 			/*
 			 * If tasks were retrieved and the number of tasks in the list were not equal to the number
-			 * predicted in totalTasks, then set the total tasks value to -1. This allows for automatic recovery of
+			 * predicted in totalTasks, then request a task recount. This allows for automatic recovery of
 			 * the cached value of the number of tasks if it gets out of sync.
 			 * If the taskCounts value is less than 1 then it will be recalculated using locks to ensure integrity
 			 * Don't do this if we were just getting the real number of tasks in order to set totalTasks 
