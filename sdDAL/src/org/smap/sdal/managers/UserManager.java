@@ -2242,7 +2242,7 @@ public class UserManager {
 					/*
 					 * Need to recalculate the count of tasks
 					 */
-					//log.info("$$$$$$$ recaclulating count of tasks");
+					//log.info("$$$$$$$ recalculating count of tasks");
 					AssignmentsManager am = new AssignmentsManager();
 					TaskResponse tr = am.getTasksData(sd, 
 							cResults,
@@ -2300,7 +2300,7 @@ public class UserManager {
 	}
 	
 	/*
-	 * Set a cached value of the count of tasks in the users table
+	 * Force the count of tasks to be recalculated
 	 */
 	public void requestResetTasksCount(Connection sd, String userIdent) throws SQLException {
 	

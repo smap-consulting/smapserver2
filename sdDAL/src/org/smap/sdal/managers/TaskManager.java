@@ -655,7 +655,7 @@ public class TaskManager {
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
-		StringBuffer sql = new StringBuffer("select t.id as t_id, "
+		StringBuilder sql = new StringBuilder("select t.id as t_id, "
 				+ "t.title as name,"
 				+ "timezone(?, t.schedule_at) as schedule_at,"
 				+ "timezone(?, t.schedule_finish) as schedule_finish,"
@@ -3211,6 +3211,26 @@ public class TaskManager {
 			if(count == 0) {
 				log.info("No matching users found");
 			}
+		} else if(assign_auto) {		// This is a self assign task, don't assign users but increment their task count
+
+			ResultSet rs = null;
+			String sqlUsers = "select u.ident from users u, user_project up where not temporary "
+					+ "and u.id = up.u_id and up.p_id = ?";
+			PreparedStatement pstmt = null;
+			try {
+				pstmt = sd.prepareStatement(sqlUsers);
+				pstmt.setInt(1, pId);
+				log.info("Get users to increment task count for self assign: " + pstmt.toString());
+				rs = pstmt.executeQuery();
+				while(rs.next()) {
+					String userIdent = rs.getString("ident");
+					
+					um.incrementTotalTasks(sd, userIdent);
+				}
+			} finally {
+				if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+			}
+			
 		} else if(emails != null && emails.length() > 0) {
 			boolean emailTaskBlocked = GeneralUtilityMethods.emailTaskBlocked(sd, oId);
 			String [] emailArray = emails.split(",");
