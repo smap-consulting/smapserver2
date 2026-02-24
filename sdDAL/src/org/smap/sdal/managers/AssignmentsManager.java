@@ -757,12 +757,10 @@ public class AssignmentsManager {
 	/*
 	 * Mark the assignment rejected
 	 */
-	public Response updateStatusToRejected(HttpServletRequest request,
-			String assignment) {
+	public Response updateStatus(HttpServletRequest request, String assignment) {
 		Response response = null;
 
 		TaskUpdate tu = gson.fromJson(assignment, TaskUpdate.class);
-		// log.info("webserviceevent : update assignment status: " + tu.assignment_id);
 
 		String connectionString = "surveyKPI-MyAssignments-reject";
 		// Authorisation - Access
@@ -793,10 +791,16 @@ public class AssignmentsManager {
 				pstmtSetUpdatedNotRejected = getPreparedStatementSetUpdatedNotRejected(sd);
 				pstmtEvents = getPreparedStatementEvents(sd);
 
-				int taskId = GeneralUtilityMethods.getTaskId(sd, tu.assignment_id);
+				//int taskId = GeneralUtilityMethods.getTaskId(sd, tu.assignment_id);
 				updateAssignment(sd, cResults, localisation, pstmtSetDeleted, pstmtSetUpdatedRejected,
-						pstmtSetUpdatedNotRejected, pstmtEvents, gson, request.getRemoteUser(), taskId,
+						pstmtSetUpdatedNotRejected, pstmtEvents, gson, request.getRemoteUser(), tu.task_id,
 						tu.assignment_id, tu.assignment_status, tu.task_comment);
+				
+				// Record rejection just for this user so the task is not re-downloaded
+				if(tu.assignment_status.equals("rejected")) {
+					updateTaskRejected(sd, tu.task_id, request.getRemoteUser());
+				}
+				
 			}
 
 		} catch (Exception e) {
@@ -907,6 +911,7 @@ public class AssignmentsManager {
 		RecordEventManager rem = new RecordEventManager();
 		TaskManager tm = new TaskManager(localisation, "UTC");
 		UserManager um = new UserManager(localisation);
+		PreparedStatement pstmtInsert = null;
 		
 		/*
 		 * If the updated status = "cancelled" then this is an acknowledgment of the
@@ -915,8 +920,6 @@ public class AssignmentsManager {
 		if (status.equals(TaskManager.STATUS_T_CANCELLED)) {
 			pstmtSetDeleted.setInt(1, assignmentId);
 			pstmtSetDeleted.setString(2, userName);
-			// log.info("Assignment:" + assignmentId + " acknowledge cancel - update assignments to deleted: "
-			//		+ pstmtSetDeleted.toString());
 			pstmtSetDeleted.executeUpdate();
 		} else {
 
@@ -938,17 +941,28 @@ public class AssignmentsManager {
 				}
 				// Potentially rejection of an unassigned task
 				// Record rejection just for this user so the task is not re-downloaded
-				updateTaskRejected(sd, assignmentId, userName);
+				updateTaskRejected(sd, taskId, userName);
 
 			} else {
-				pstmtSetUpdatedNotRejected.setString(1, status);
-				pstmtSetUpdatedNotRejected.setString(2, comment);
-				pstmtSetUpdatedNotRejected.setInt(3, uId);
-				pstmtSetUpdatedNotRejected.setInt(4, uId);
-				pstmtSetUpdatedNotRejected.setInt(5, assignmentId); // To get name
-				pstmtSetUpdatedNotRejected.setInt(6, uId);
-				// log.info("update assignments excluding rejected: " + pstmtSetUpdatedNotRejected.toString());
-				pstmtSetUpdatedNotRejected.executeUpdate();
+				if(assignmentId > 0) {
+					pstmtSetUpdatedNotRejected.setString(1, status);
+					pstmtSetUpdatedNotRejected.setString(2, comment);
+					pstmtSetUpdatedNotRejected.setInt(3, uId);
+					pstmtSetUpdatedNotRejected.setInt(4, uId);
+					pstmtSetUpdatedNotRejected.setInt(5, assignmentId); // To get name
+					pstmtSetUpdatedNotRejected.setInt(6, uId);
+					log.info("update assignments excluding rejected: " + pstmtSetUpdatedNotRejected.toString());
+					pstmtSetUpdatedNotRejected.executeUpdate();
+				} else if(taskId > 0 && "accepted".equals(status)) {
+					// A self assign task has been accepted create a new assignment
+					String insertSQL = "insert into assignments (assignee, status, task_id) values (?, ?, ?)";
+					pstmtInsert = sd.prepareStatement(insertSQL);
+					pstmtInsert.setInt(1,uId);
+					pstmtInsert.setString(2, status);
+					pstmtInsert.setInt(3, taskId);
+					log.info("Add new assignment: " + pstmtInsert.toString());
+					pstmtInsert.executeUpdate();
+				}
 			}
 
 			if (status.equals(TaskManager.STATUS_T_SUBMITTED)) {
@@ -1048,50 +1062,26 @@ public class AssignmentsManager {
 	 * If a user has rejected a self allocating task then remember this so it is not
 	 * sent to them again
 	 */
-	private void updateTaskRejected(Connection sd, int assignmentId, String userName) throws SQLException {
+	public  void updateTaskRejected(Connection sd, int taskId, String userName) throws SQLException {
 
-		String sql = "select status from assignments where id = ?";
+		String sqlUnassignedRejected = "insert into " + "task_rejected(t_id, ident, rejected_at) "
+				+ "values(?, ?, now()) ";
 		PreparedStatement pstmt = null;
 
-		String sqlUnassignedRejected = "insert into " + "task_rejected(a_id, ident, rejected_at) "
-				+ "values(?, ?, now()) ";
-		PreparedStatement pstmtUnassignedRejected = null;
-
 		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, assignmentId);
-			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
-				String status = rs.getString(1);
-				if (status != null && status.equals("new")) {
-
-					// Must have been a self allocate task
-					pstmtUnassignedRejected = sd.prepareStatement(sqlUnassignedRejected);
-					pstmtUnassignedRejected.setInt(1, assignmentId);
-					pstmtUnassignedRejected.setString(2, userName);
-					try {
-						log.info("Adding to unassigned rejected: " + pstmtUnassignedRejected.toString());
-						pstmtUnassignedRejected.executeUpdate();
-					} catch (Exception e) {
-						// Ignore errors as if this has already been rejected we don't really care
-						log.info("Error: Could not record rejection of unassigned task: " + e.getMessage());
-					}
-				}
+			pstmt = sd.prepareStatement(sqlUnassignedRejected);
+			pstmt.setInt(1, taskId);
+			pstmt.setString(2, userName);
+			try {
+				log.info("Adding to unassigned rejected: " + pstmt.toString());
+				pstmt.executeUpdate();
+			} catch (Exception e) {
+				// Ignore errors as if this has already been rejected we don't really care
+				log.info("Error: Could not record rejection of unassigned task: " + e.getMessage());
 			}
 
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (Exception e) {
-			}
-			try {
-				if (pstmtUnassignedRejected != null) {
-					pstmtUnassignedRejected.close();
-				}
-			} catch (Exception e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
 	}
 }

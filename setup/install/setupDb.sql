@@ -1120,7 +1120,7 @@ ALTER TABLE public.assignments OWNER TO ws;
 
 CREATE TABLE public.task_rejected (
 	id integer DEFAULT nextval('task_rejected_seq') NOT NULL PRIMARY KEY,
-	a_id integer REFERENCES assignments(id) ON DELETE CASCADE,    -- assignment id
+	t_id integer REFERENCES tasks(id) ON DELETE CASCADE,    -- task id
 	ident text,		 -- user identifier
 	rejected_at timestamp with time zone
 );

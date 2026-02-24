@@ -138,7 +138,7 @@ public class AllAssignments extends Application {
 	}
 	
 	/*
-	 * Reject assignments for user authenticated with credentials
+	 * Reject or accept assignments for user authenticated with credentials
 	 */
 	@POST
 	@Path("/mine/update_status")
@@ -153,7 +153,7 @@ public class AllAssignments extends Application {
 		} 
 		
 		AssignmentsManager am = new AssignmentsManager();
-		return am.updateStatusToRejected(request, assignment);
+		return am.updateStatus(request, assignment);
 	}
 
 	

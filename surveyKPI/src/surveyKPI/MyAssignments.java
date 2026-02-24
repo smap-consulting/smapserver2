@@ -174,7 +174,7 @@ public class MyAssignments extends Application {
 			@Context HttpServletRequest request) {
 
 		AssignmentsManager am = new AssignmentsManager();
-		return am.updateStatusToRejected(request, assignment);
+		return am.updateStatus(request, assignment);
 
 	}
 
@@ -189,6 +189,7 @@ public class MyAssignments extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		AssignmentsManager am = new AssignmentsManager();
 
+		log.info("Update request: " + assignInput);
 		// Authorisation not required as a user can only update their own assignments
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
@@ -260,8 +261,9 @@ public class MyAssignments extends Application {
 						pstmtUpdateId.executeUpdate();
 					}
 
-				} else {
-					log.info("Error: assignment id is zero");
+				} else {   // If assignment Id is zero then this could be a self assign task being rejected
+					am.updateTaskRejected(sd, ta.task.id, request.getRemoteUser());
+					log.info("Error: assignment id is zero mark task as rejected: TaskId: " + ta.task.id);
 				}
 			}
 

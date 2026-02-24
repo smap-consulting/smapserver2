@@ -266,3 +266,7 @@ alter table server add column if not exists api_max_records integer default 0;
 -- Performance improvement to get tasks
 CREATE INDEX idx_tasks_tg_schedule_desc ON tasks(tg_id, schedule_at DESC); 
 delete from groups where id = 15;
+
+-- Self assign tasks
+alter table task_rejected add column t_id integer REFERENCES tasks(id) ON DELETE CASCADE;
+delete from task_rejected where t_id is null;

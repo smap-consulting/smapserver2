@@ -708,7 +708,7 @@ public class TaskManager {
 		sql.append(" and (a.status is null or a.status = 'new' or assignee < 0) ");
 		sql.append(" and not t.deleted ");
 		sql.append(" and t.assign_auto ");
-		sql.append(" and (a.id is null or a.id not in (select a_id from task_rejected where ident = ?)) ");
+		sql.append(" and t.id not in (select t_id from task_rejected where ident = ?) ");
 		sql.append(" order by t.schedule_at::timestamp(0) ").append("asc").append(", t.id ");	
 		sql.append(", a.id ");
 		
@@ -731,7 +731,7 @@ public class TaskManager {
 			pstmt.setString(paramIdx++, userName);
 			
 			// Get the data
-			log.info("Get unassignd tasks: " + pstmt.toString());
+			log.info("Get unassigned tasks: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			JsonParser parser = new JsonParser();
 			int index = 0;
