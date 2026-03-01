@@ -300,7 +300,7 @@ public class ForeignKeyManager {
 			 * Clean up the foreign key table by removing all entries created more than 14 days ago
 			 */
 			pstmtClean2 = sd.prepareStatement(sqlClean2);
-			log.info("Remove old foreign key entries: " + GeneralUtilityMethods.getStringFromStatement(pstmtClean2));
+			//log.info("Remove old foreign key entries: " + GeneralUtilityMethods.getStringFromStatement(pstmtClean2));
 			pstmtClean2.executeUpdate();
 		
 			
