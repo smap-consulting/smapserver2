@@ -1324,7 +1324,7 @@ public class WebForm extends Application {
 			output.append("<script src='/js/libs/modernizr.js'></script>");
 			output.append("<script src='/js/libs/jquery-3.5.1.min.js'></script>");
 			output.append("<script src='/js/libs/bootstrap.bundle.v4.5.min.js'></script>");
-			output.append("<script data-main='/js/msg' src='/js/libs/require.js'></script>");
+			output.append("<script type='module' src='/js/msg.js'></script>");
 
 			output.append("<style>");
 
