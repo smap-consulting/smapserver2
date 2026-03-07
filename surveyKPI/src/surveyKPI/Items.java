@@ -118,7 +118,7 @@ public class Items extends Application {
 			@QueryParam("geom") String geom,			
 			@QueryParam("mustHaveGeom") String mustHaveGeom,
 			@QueryParam("start_key") int start_key,
-			@QueryParam("get_bad") boolean bBad,		// Get bad records
+			@QueryParam("get_bad") String getBad,		// Get bad records
 			@QueryParam("rec_limit") int rec_limit,
 			@QueryParam("dateId") int dateId,		// Id of question containing the date to filter by
 			@QueryParam("startDate") Date startDate,
@@ -131,6 +131,7 @@ public class Items extends Application {
 		
 		JSONObject jo = new JSONObject();
 		boolean bGeom = true;
+		boolean bBad = false;
 		boolean bMustHaveGeom = true;
 		int maxRec = 0;
 		int recCount = 0;
@@ -145,6 +146,10 @@ public class Items extends Application {
 
 		if(geom != null && geom.equals("no")) {
 			bGeom = false;
+		}
+		
+		if(getBad != null && (getBad.equals("true") || getBad.equals("yes"))) {
+			bBad = true;
 		}
 
 		if(mustHaveGeom != null && mustHaveGeom.equals("no")) {

@@ -980,7 +980,12 @@ public class ExchangeManager {
 		} else if(qName.equals("_alert")) {
 			col = new ExchangeColumn();
 			col.name = qName;
-			col.columnName = "_alert";
+			col.columnName = qName;
+			col.type = "string";
+		} else if(qName.equals("_assigned")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = qName;
 			col.type = "string";
 		} else if(qName.equals("_thread_created")) {
 			// Don't add a column, _thread_created is added by default, however record the column for this data
