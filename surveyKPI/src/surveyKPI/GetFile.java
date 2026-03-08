@@ -81,7 +81,6 @@ public class GetFile extends Application {
 			@QueryParam("thumbs") boolean thumbs,
 			@QueryParam("org") int requestedOrgId) throws Exception {
 		
-		log.info("------- " + filename);
 		SharedResourceManager srm = new SharedResourceManager(null, null);
 		return srm.getOrganisationFile(request, response, request.getRemoteUser(), requestedOrgId, filename, settings, false, thumbs);
 	}
@@ -95,7 +94,6 @@ public class GetFile extends Application {
 			@PathParam("filename") String filename,
 			@QueryParam("reportname") String reportname) throws Exception {
 		
-		log.info("------- " + filename);
 		if(reportname == null) {
 			reportname = filename;
 		}

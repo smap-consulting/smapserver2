@@ -59,8 +59,6 @@ public class FileManager {
 			boolean thumbs) throws IOException, ApplicationException {
 		
 		Response r = null;
-		
-		log.info("Get File: " + filename + " for organisation: " + requestedOrgId);
 
 		String basepath = GeneralUtilityMethods.getBasePath(request);
 		String filepath = null;

@@ -266,7 +266,6 @@ public class TokenAccess extends Application {
 			@QueryParam("org") int requestedOrgId
 	       ) throws IOException {
 		
-		log.info("------- " + filename);
 		SharedResourceManager srm = new SharedResourceManager(null, null);
 		return srm.getOrganisationFile(request, response, null, requestedOrgId, filename, settings, false, thumbs);
 	}

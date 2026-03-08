@@ -656,8 +656,6 @@ public class SharedResourceManager {
 		}
 		// End Authorisation 
 		
-		
-		log.info("Get File: " + filename + " for organisation: " + oId);
 		try {
 			
 			FileManager fm = new FileManager();

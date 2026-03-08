@@ -79,7 +79,6 @@ public class Resource extends Application {
 			@QueryParam("thumbs") boolean thumbs,
 			@QueryParam("org") int requestedOrgId) throws Exception {
 		
-		log.info("------- " + filename);
 		SharedResourceManager srm = new SharedResourceManager(null, null);
 		return srm.getOrganisationFile(request, response, null, requestedOrgId, filename, settings, false, thumbs);
 	}

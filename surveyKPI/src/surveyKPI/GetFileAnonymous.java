@@ -92,8 +92,6 @@ public class GetFileAnonymous extends Application {
 		}
 		// End Authorisation 
 		
-		
-		log.info("Get File anonymously: " + filename + " for organisation: " + oId);
 		try {
 			
 			FileManager fm = new FileManager();
