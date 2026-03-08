@@ -2161,9 +2161,12 @@ public class SubscriberBatch {
 				while(rsGetKeys.next()) {
 					 String key = rsGetKeys.getString("key");
 					 String groupSurveyIdent = rsGetKeys.getString("group_survey_ident");
-					 
-					 String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, groupSurveyIdent);
-					 km.updateExistingData(sd, cResults, key, groupSurveyIdent, tableName, 0);
+					 try {
+						 String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, groupSurveyIdent);
+						 km.updateExistingData(sd, cResults, key, groupSurveyIdent, tableName, 0);
+					 } catch(Exception e) {
+						 log.log(Level.SEVERE, "Failed to apply HRK key: " + key + " for survey: " + groupSurveyIdent + " - skipping", e);
+					 }
 				}
 			} else {
 				/*

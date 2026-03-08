@@ -375,6 +375,14 @@ public class SubmissionProcessor {
 
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
+						// Connection may have been replaced; null prepared statements so they
+						// are re-prepared against the fresh connection on the next iteration.
+						try {if (pstmt != null) { pstmt.close(); }} catch (Exception ex) {}
+						try {if (pstmtResultsDB != null) { pstmtResultsDB.close(); }} catch (Exception ex) {}
+						pstmt = null;
+						pstmtResultsDB = null;
+						// Back off to prevent log flooding on persistent failures
+						try { Thread.sleep(delaySecs * 1000); } catch (InterruptedException ie) {}
 					} finally {
 						try {if (rs != null) { rs.close();}} catch (SQLException e) {}
 					}
