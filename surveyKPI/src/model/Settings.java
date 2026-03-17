@@ -35,4 +35,5 @@ public class Settings {
 	public boolean inc_ro;
 	public GeomQuestions [] geomFormQuestions;
 	public String selectedGeomQuestion;
+	public String chartType;
 }

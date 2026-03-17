@@ -270,3 +270,5 @@ delete from groups where id = 15;
 -- Self assign tasks
 alter table task_rejected add column t_id integer REFERENCES tasks(id) ON DELETE CASCADE;
 delete from task_rejected where t_id is null;
+
+alter table dashboard_settings add column ds_chart_type text default 'histogram';

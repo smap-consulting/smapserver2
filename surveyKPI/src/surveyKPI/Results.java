@@ -220,7 +220,7 @@ public class Results extends Application {
 			}
 			
 			// Get date column information
-			if(dateId != 0) {
+			if(dateId != 0 && dateId != -1) {
 				date = new QuestionInfo(localisation, tz,
 						sId, dateId, sd, cResults, request.getRemoteUser(), false, lang, urlprefix, oId);
 				q.add(date);
@@ -413,7 +413,7 @@ public class Results extends Application {
 			}
 			sql.append(sqlRestrictToDateRange);
 			sql.append(sqlFilter);
-			if(dateId != 0) {
+			if(dateId != 0 && dateId != -1) {
 				sql.append(" order by ").append(date.getTableName()).append(".").append(date.getColumnName()).append(" asc");
 			} else {
 				sql.append(" order by ").append(aQ.getTableName()).append(".prikey asc");
@@ -421,7 +421,7 @@ public class Results extends Application {
 				
 			pstmt = cResults.prepareStatement(sql.toString());
 			int attribIdx = 1;
-			if(dateId != 0) {
+			if(dateId != 0 && dateId != -1) {
 				if(startDate != null) {
 					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
 				}
@@ -831,7 +831,7 @@ public class Results extends Application {
 				}
 				
 				// If this is the first record then set the fromDate
-				if(dateId != 0) {
+				if(dateId != 0 && dateId != -1) {
 					if(totalRecordCount == 1) {
 						fromDate = resultSet.getDate(date.getColumnName());
 					} else {

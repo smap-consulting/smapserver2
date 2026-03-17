@@ -301,7 +301,7 @@ public class XLSXAttendanceReportsManager {
 								+ ":" + cal.get(Calendar.SECOND));
 					}
 
-					cell = row.createCell(colNumber++);	// Start Time
+					cell = row.createCell(colNumber++);	// End Time
 					if(ar.lastRefresh != null) {
 						cell.setCellStyle(styles.get("time"));
 						
