@@ -6,6 +6,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,6 +28,11 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.ProjectManager;
+import org.smap.sdal.model.Project;
+import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.SurveySummary;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -77,6 +84,54 @@ public class Cleanup extends Application {
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				surveys.put(GeneralUtilityMethods.convertDisplayNameToFileName(rs.getString(1), false), rs.getString(1));
+			}
+			responseVal = Response.ok(gson.toJson(surveys)).build();
+				
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "Error", e);
+			response.setHeader("Content-type",  "text/html; charset=UTF-8");
+			responseVal = Response.status(Status.INTERNAL_SERVER_ERROR).entity("Error: " + e.getMessage()).build();
+		} finally {
+			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return responseVal;
+
+	}
+	
+	/*
+	 * Get surveys for a project
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/projectsurveys/{project}")
+	public Response getSurveyIdents (@Context HttpServletRequest request, 
+			@PathParam("project") int pId,
+			@Context HttpServletResponse response) {
+
+		Response responseVal = null;
+		
+		// Authorisation - Access
+		String connectionString = "surveyKPI - cleanup - project surveys";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		PreparedStatement pstmt = null;
+		ArrayList<SurveySummary> surveys = new ArrayList<> ();
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		try {
+			String sql = "select ident, display_name from survey where p_id = ?";
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, pId);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				SurveySummary s = new SurveySummary();
+				s.ident = rs.getString("ident");
+				s.displayName = rs.getString("display_name");
+				surveys.add(s);
 			}
 			responseVal = Response.ok(gson.toJson(surveys)).build();
 				
@@ -214,5 +269,53 @@ public class Cleanup extends Application {
 
 	}
 
+	/*
+	 * Get a list of projects for the organisation that the user is in
+	 */
+	@GET
+	@Path("/projects")
+	@Produces("application/json")
+	public Response getProjects(@Context HttpServletRequest request) { 
+
+		Response response = null;
+		String connectionString = "Cleanup-ProjectList";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		ArrayList<Project> projects = null;
+		
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			ProjectManager pm = new ProjectManager(localisation);
+			projects = pm.getProjects(sd, request.getRemoteUser(), 
+					true,		// always get all projects in organisation
+					false, 		// Don't get links
+					null,		// Don't need url prefix
+					false,		// Don't just want empty projects
+					false		// Don't just want imported projects
+					);
+				
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(projects);
+			response = Response.ok(resp).build();
+				
+		} catch (Exception e) {
+			
+			log.log(Level.SEVERE,"Error: ", e);
+		    response = Response.serverError().build();
+		    
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
 
 }
