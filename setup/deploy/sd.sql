@@ -272,3 +272,4 @@ alter table task_rejected add column t_id integer REFERENCES tasks(id) ON DELETE
 delete from task_rejected where t_id is null;
 
 alter table dashboard_settings add column ds_chart_type text default 'histogram';
+alter table dashboard_settings add column ds_show_meta boolean default true;

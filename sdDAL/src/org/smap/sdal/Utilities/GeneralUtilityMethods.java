@@ -4359,7 +4359,7 @@ public class GeneralUtilityMethods {
 	 */
 	static public void ensureTableCurrent(Connection cResults, String table_name, boolean topLevel) throws SQLException {
 		
-		log.info("Check columns: " + table_name + " : " + topLevel);
+		//log.info("Check columns: " + table_name + " : " + topLevel);
 		
 		if(topLevel) {
 			
@@ -5763,7 +5763,7 @@ public class GeneralUtilityMethods {
 
 									// Need to get columns from choices
 									pstmt.setInt(1, qId);
-									log.info("Getting search columns from choices: " + pstmt.toString());
+									//log.info("Getting search columns from choices: " + pstmt.toString());
 									ResultSet rs = pstmt.executeQuery();
 									while (rs.next()) {
 										if (params == null) {

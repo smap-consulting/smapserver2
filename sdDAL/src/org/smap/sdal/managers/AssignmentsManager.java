@@ -175,7 +175,7 @@ public class AssignmentsManager {
 		Double lat = 0.0;
 		Double lon = 0.0;
 
-		if (latString != null) {
+		if (latString != null) {			
 			try {
 				lat = Double.parseDouble(latString);
 			} catch (Exception e) {

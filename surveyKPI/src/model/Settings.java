@@ -36,4 +36,5 @@ public class Settings {
 	public GeomQuestions [] geomFormQuestions;
 	public String selectedGeomQuestion;
 	public String chartType;
+	public boolean tShowMeta;
 }

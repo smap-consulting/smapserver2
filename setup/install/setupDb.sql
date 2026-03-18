@@ -989,7 +989,8 @@ CREATE TABLE dashboard_settings (
 	ds_inc_ro boolean default false,
 	ds_geom_questions text,
 	ds_selected_geom_question text,
-	ds_chart_type text default 'histogram'
+	ds_chart_type text default 'histogram',
+	ds_show_meta boolean default true
 	);
 alter table dashboard_settings add constraint ds_user_ident FOREIGN KEY (ds_user_ident)
 	REFERENCES users (ident) MATCH SIMPLE

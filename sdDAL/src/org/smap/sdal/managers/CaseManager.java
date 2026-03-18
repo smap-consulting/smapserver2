@@ -305,7 +305,7 @@ public class CaseManager {
 				pstmt.setString(1, user);
 				pstmt.setString(2,  sIdent);
 				pstmt.setInt(3, sId);
-				log.info("Get cases: " + pstmt.toString());
+				//log.info("Get cases: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 
 				while(rs.next()) {
@@ -370,8 +370,8 @@ public class CaseManager {
 			
 				pstmtOpened = cResults.prepareStatement(cte.toString() + sqlOpened.toString());
 				pstmtClosed = cResults.prepareStatement(cte.toString() + sqlClosed.toString());
-				log.info("Open: " + pstmtOpened.toString());
-				log.info("Closed: " + pstmtClosed.toString());
+				//log.info("Open: " + pstmtOpened.toString());
+				//log.info("Closed: " + pstmtClosed.toString());
 				ResultSet rs = pstmtOpened.executeQuery();
 				ResultSet rsc = pstmtClosed.executeQuery();
 				while(rs.next()) {
