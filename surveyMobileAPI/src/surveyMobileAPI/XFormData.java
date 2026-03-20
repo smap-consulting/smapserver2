@@ -438,6 +438,8 @@ public class XFormData {
 				// If this is for a temporary user then process the Action Details
 				if(action.single) {
 					um.deleteSingleSubmissionTemporaryUser(sd, user, UserManager.STATUS_COMPLETE);
+				} else {
+					am.incrementSubmissionCount(sd, user);
 				}
 				if(action.mailoutPersonId > 0) {
 					MailoutManager mm = new MailoutManager(localisation);

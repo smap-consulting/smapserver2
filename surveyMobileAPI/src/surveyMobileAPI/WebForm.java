@@ -410,8 +410,9 @@ public class WebForm extends Application {
 	@Path("/action/{ident}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response getFormHTMLTemporaryUser(
-			@Context HttpServletRequest request, 
+			@Context HttpServletRequest request,
 			@QueryParam("debug") String d,
+			@QueryParam("proceed") String proceed,
 			@PathParam("ident") String ident) throws Exception {
 
 		Response response = null;
@@ -454,23 +455,30 @@ public class WebForm extends Application {
 				response = getMessagePage(success, message, null);
 			} else if(!a.action.equals("task") && !a.action.equals("mailout")) {
 				response = getMessagePage(false, "mo_se", "Invalid action type: " + a.action);
+			} else if(!a.single && a.submissionCount > 0 && proceed == null) {
+
+				// For multiple-submission forms, show a count page after each submission
+				// so the user knows they already submitted and can choose to submit again.
+				String formUrl = request.getScheme() + "://" + request.getServerName() + "/webForm/action/" + ident;
+				response = getSubmissionCountPage(a.submissionCount, formUrl);
+
 			} else {
 
 				// 3. Get webform
 				userIdent = ident;
 				isTemporaryUser = true;
 				try {
-					response = getWebform(request, a.action, a.email, 
-							a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, a.taskKey,  
+					response = getWebform(request, a.action, a.email,
+							a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, a.taskKey,
 							false,
-							true, 
+							true,
 							true,			// Close after saving
 							a.initialData,
 							false,			// show done page
 							false,
 							null			// Initial Values
 							);
-					
+
 				} catch (BlockedException e) {
 					response = getMessagePage(false, "mo_blocked", null);
 				}
@@ -1302,6 +1310,78 @@ public class WebForm extends Application {
 		output.append("</noscript>");
 
 		return output.toString();
+	}
+
+	private Response getSubmissionCountPage(int count, String formUrl) {
+		Response response = null;
+		StringBuffer output = new StringBuffer();
+
+		try {
+			output.append("<!doctype html>");
+			output.append("<html class='no-js' lang='en'>");
+			output.append("<head>");
+			output.append("<meta name='keywords' content='' />");
+			output.append("<meta name='description' content='' />");
+			output.append("<meta http-equiv='content-type' content='text/html; charset=utf-8' />");
+			output.append("<meta name='viewport' content='width=device-width, initial-scale=1.0'>");
+			output.append("<title class='lang' data-lang='c_msg'></title>");
+			output.append("<link rel='shortcut icon' href='/favicon.ico' />");
+			output.append("<link rel='stylesheet' href='/css/normalize.css' />");
+			output.append("<link href='/css/bootstrap.v4.5.min.css' rel='stylesheet'>");
+			output.append("<link href='/css/fa.v5.15.1.all.min.css' rel='stylesheet'>");
+			output.append("<script src='/js/libs/modernizr.js'></script>");
+			output.append("<script src='/js/libs/jquery-3.5.1.min.js'></script>");
+			output.append("<script src='/js/libs/bootstrap.bundle.v4.5.min.js'></script>");
+			output.append("<style>");
+			output.append(
+				".success {"
+					+ "color: green;"
+					+ "text-align: center;"
+					+ "margin-top: 100px;"
+					+ "margin-bottom: 50px;"
+					+ "font-size: 86px;"
+				+ "}"
+				+ ".msg {"
+					+ "text-align: center;"
+					+ "margin-top: 20px;"
+					+ "margin-bottom: 10px;"
+					+ "font-size: 1.2em;"
+				+ "}"
+				+ ".count {"
+					+ "text-align: center;"
+					+ "font-size: 3em;"
+					+ "font-weight: bold;"
+					+ "margin-bottom: 10px;"
+				+ "}"
+				+ ".proceed {"
+					+ "text-align: center;"
+					+ "margin-top: 40px;"
+				+ "}"
+			);
+			output.append("</style>");
+			output.append("<script type='module' src='/js/msg.js'></script>");
+			output.append("</head>");
+			output.append("<body>");
+			output.append("<h1 class='success'><i class='fa fa-check'></i></h1>");
+			output.append("<p class='msg'>");
+			output.append("<span class='lang' data-lang='mo_ms_count_pre'></span>");
+			output.append(" <strong>" + count + "</strong> ");
+			output.append("<span class='lang' data-lang='mo_ms_count_post'></span>");
+			output.append("</p>");
+			output.append("<div class='proceed'>");
+			output.append("<a href='" + formUrl + "?proceed=true' class='btn btn-primary lang' data-lang='mo_ms_again'></a>");
+			output.append("</div>");
+			output.append("</body>");
+			output.append("</html>");
+
+			response = Response.status(Status.OK).entity(output.toString()).build();
+
+		} catch (Exception e) {
+			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			log.log(Level.SEVERE, e.getMessage(), e);
+		}
+
+		return response;
 	}
 
 	private Response getMessagePage(boolean success, String msg, String systemError) {

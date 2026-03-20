@@ -19,6 +19,7 @@ public class Action {
 	public String notify_person;
 	public String link;
 	public boolean single = false;	// Set to true to only allow a single submission
+	public int submissionCount = 0;	// Number of times this action has been submitted (for multiple submission actions)
 	public String email;
 	public ArrayList<Role> roles = null;
 	public Instance initialData;

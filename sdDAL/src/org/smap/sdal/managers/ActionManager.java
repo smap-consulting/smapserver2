@@ -185,6 +185,40 @@ public class ActionManager {
 	}
 
 	/*
+	 * Increment the submission count for a multiple-submission temporary user
+	 */
+	public void incrementSubmissionCount(Connection sd, String userIdent) throws Exception {
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		String sqlGet = "select action_details from users where temporary = true and ident = ?";
+		String sqlUpdate = "update users set action_details = ? where temporary = true and ident = ?";
+		PreparedStatement pstmtGet = null;
+		PreparedStatement pstmtUpdate = null;
+
+		try {
+			pstmtGet = sd.prepareStatement(sqlGet);
+			pstmtGet.setString(1, userIdent);
+			ResultSet rs = pstmtGet.executeQuery();
+			if(rs.next()) {
+				String actionString = rs.getString(1);
+				if(actionString != null) {
+					Action a = GeneralUtilityMethods.getAction(sd, gson, actionString);
+					if(a != null) {
+						a.submissionCount++;
+						pstmtUpdate = sd.prepareStatement(sqlUpdate);
+						pstmtUpdate.setString(1, gson.toJson(a));
+						pstmtUpdate.setString(2, userIdent);
+						pstmtUpdate.executeUpdate();
+					}
+				}
+			}
+		} finally {
+			try { if(pstmtGet != null) { pstmtGet.close(); } } catch(SQLException e) {}
+			try { if(pstmtUpdate != null) { pstmtUpdate.close(); } } catch(SQLException e) {}
+		}
+	}
+
+	/*
 	 * Create a temporary user to complete an action Add an alert into the alerts
 	 * table - Deprecate add a message into message table (Replaces alerts)
 	 */
