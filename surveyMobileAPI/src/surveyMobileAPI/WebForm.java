@@ -483,11 +483,15 @@ public class WebForm extends Application {
 		} finally {
 			SDDataSource.closeConnection(requester, sd);
 		}
-		
-		return response;
-		
+
+		// Prevent browser caching so revisiting the link always fetches fresh from server.
+		// This ensures a completed one-shot form shows the message page immediately on re-visit.
+		return Response.fromResponse(response)
+				.header("Cache-Control", "no-cache")
+				.build();
+
 	}
-	
+
 	/*
 	 * Get the response as either HTML or JSON
 	 */
@@ -1324,7 +1328,6 @@ public class WebForm extends Application {
 			output.append("<script src='/js/libs/modernizr.js'></script>");
 			output.append("<script src='/js/libs/jquery-3.5.1.min.js'></script>");
 			output.append("<script src='/js/libs/bootstrap.bundle.v4.5.min.js'></script>");
-			output.append("<script data-main='/js/msg' src='/js/libs/require.js'></script>");
 
 			output.append("<style>");
 
@@ -1360,6 +1363,7 @@ public class WebForm extends Application {
 				);
 			
 			output.append("</style>");
+			output.append("<script type='module' src='/js/msg.js'></script>");
 			output.append("</head>");
 			output.append("<body>");
 
