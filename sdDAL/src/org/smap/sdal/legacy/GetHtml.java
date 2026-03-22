@@ -27,6 +27,7 @@ import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.constants.SmapQuestionTypes;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
@@ -66,7 +67,9 @@ public class GetHtml {
 	private static  String FILE_MIME="text/plain,application/pdf,application/vnd.ms-excel,application/msword,text/richtext,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-zip,application/x-zip-compressed" ;
 
 	private ResourceBundle localisation;
-	
+	private Connection sd = null;
+	private String userIdent = null;
+
 	public GetHtml(ResourceBundle l) {
 		localisation = l;
 	}
@@ -86,7 +89,8 @@ public class GetHtml {
 
 		// Get the base path
 		String basePath = GeneralUtilityMethods.getBasePath(request);
-		Connection sd = SDDataSource.getConnection(connectionString);
+		sd = SDDataSource.getConnection(connectionString);
+		this.userIdent = userIdent;
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 
@@ -1574,6 +1578,8 @@ public class GetHtml {
 
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
+				new LogManager().writeLog(sd, survey.surveyData.id, userIdent, LogManager.ERROR,
+						"Survey: " + survey.surveyData.displayName + ". Question label for '" + q.name + "' contains an unresolved ${} reference: " + e.getMessage(), 0, null);
 			}
 			bodyElement.setTextContent(sanitise.sanitiseHtml(label));
 			parent.appendChild(bodyElement);
