@@ -104,7 +104,7 @@ public class Queues extends Application {
 				error = true;		
 			}
 			
-			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			if(error) {
 				response = Response.ok("Unknown queue: " + queueName).build();
 			} else {
@@ -141,7 +141,7 @@ public class Queues extends Application {
 		
 		QueueManager qm = new QueueManager();
 
-		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		try {
 			ArrayList<QueueTime> data = qm.getHistory(sd, interval, tz, request.getRemoteUser());
@@ -197,7 +197,7 @@ public class Queues extends Application {
 				log.info("Unknown queue name: " + queueName);
 			}
 			
-			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			response = Response.ok(gson.toJson(items)).build();
 			
 		} catch (SQLException e) {
