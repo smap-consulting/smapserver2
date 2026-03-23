@@ -56,26 +56,24 @@ public class QueueManager {
 	
 	private Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 	/*
-	 * Get active workers from subscriber_worker table (heartbeat within last 5 minutes)
-	 * Optionally filter by queue_name
+	 * Get active workers from subscriber_worker table (heartbeat within last 5 minutes).
+	 * workerFilter: optional SQL AND condition appended to the WHERE clause, e.g.
+	 *   "subscriber_type = 'upload'" or "queue_name = 'storage'"
 	 */
-	private ArrayList<WorkerInfo> getActiveWorkers(Connection sd, String queueNameFilter) throws SQLException {
+	private ArrayList<WorkerInfo> getActiveWorkers(Connection sd, String workerFilter) throws SQLException {
 		ArrayList<WorkerInfo> workers = new ArrayList<>();
 		StringBuilder sql = new StringBuilder(
 				"select hostname, pid, subscriber_type, queue_name, started_time, heartbeat "
 				+ "from subscriber_worker "
 				+ "where heartbeat > now() - interval '5 minutes' ");
-		if(queueNameFilter != null) {
-			sql.append("and queue_name = ? ");
+		if(workerFilter != null) {
+			sql.append("and ").append(workerFilter).append(" ");
 		}
 		sql.append("order by hostname, pid, queue_name");
 
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql.toString());
-			if(queueNameFilter != null) {
-				pstmt.setString(1, queueNameFilter);
-			}
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				WorkerInfo w = new WorkerInfo();
@@ -99,12 +97,13 @@ public class QueueManager {
 	public Queue getSubmissionQueueData(Connection sd) throws SQLException {
 
 		PreparedStatement pstmtLength = null;
-		PreparedStatement pstmtProcessedRate = null;
 		PreparedStatement pstmtNewRate = null;
+		PreparedStatement pstmtStats = null;
 
 		Queue queue = new Queue();
 		try {
 
+			// Backlog: received but not yet written to results DB
 			String sqlLength = "select count(*) "
 					+ "from upload_event ue "
 					+ "where ue.status = 'success' "
@@ -113,33 +112,12 @@ public class QueueManager {
 					+ "and not ue.restore "
 					+ "and not ue.results_db_applied ";
 			pstmtLength = sd.prepareStatement(sqlLength);
-			//log.info("Get queue length: " + pstmtLength.toString());
 			ResultSet rs = pstmtLength.executeQuery();
 			if(rs.next()) {
 				queue.length = rs.getInt(1);
 			}
 
-			String sqlProcessedRate = "select db_status, count(*) "
-					+ "from upload_event ue "
-					+ "where ue.status = 'success' "
-					+ "and ue.s_id is not null "
-					+ "and not ue.incomplete "
-					+ "and not ue.restore "
-					+ "and ue.processed_time > now() - interval '1 minute' "
-					+ "group by db_status";
-			pstmtProcessedRate = sd.prepareStatement(sqlProcessedRate);
-
-			rs = pstmtProcessedRate.executeQuery();
-			while(rs.next()) {
-				String status = rs.getString(1);
-				queue.processed_rpm += rs.getInt(2);	// Processed updated for all status values
-				if(status != null) {
-					if(status.equals("error")) {
-						queue.error_rpm = rs.getInt(2);
-					}
-				}
-			}
-
+			// Received rate: submissions arriving at the API (pre-worker, queue-level only)
 			String sqlNewRate = "select count(*) "
 					+ "from upload_event ue "
 					+ "where ue.status = 'success' "
@@ -148,20 +126,54 @@ public class QueueManager {
 					+ "and not ue.restore "
 					+ "and ue.upload_time > now() - interval '1 minute'";
 			pstmtNewRate = sd.prepareStatement(sqlNewRate);
-
 			rs = pstmtNewRate.executeQuery();
 			if(rs.next()) {
 				queue.new_rpm = rs.getInt(1);
 			}
 
+			// Single stats query grouped by worker: drives both queue totals and per-worker counts
+			String sqlStats = "select worker_host, queue_name, db_status, count(*) "
+					+ "from upload_event "
+					+ "where processed_time > now() - interval '1 minute' "
+					+ "and status = 'success' "
+					+ "and s_id is not null "
+					+ "and not incomplete "
+					+ "and not restore "
+					+ "group by worker_host, queue_name, db_status";
+			pstmtStats = sd.prepareStatement(sqlStats);
+
+			queue.workers = getActiveWorkers(sd, "subscriber_type = 'upload'");
+
+			rs = pstmtStats.executeQuery();
+			while(rs.next()) {
+				String host = rs.getString("worker_host");
+				String qName = rs.getString("queue_name");
+				String status = rs.getString("db_status");
+				int count = rs.getInt(4);
+
+				queue.processed_rpm += count;
+				if("error".equals(status)) {
+					queue.error_rpm += count;
+				}
+
+				if(host != null) {
+					for(WorkerInfo w : queue.workers) {
+						if(w.hostname.equals(host) && w.queue_name.equals(qName)) {
+							w.processed_rpm += count;
+							if("error".equals(status)) {
+								w.error_rpm += count;
+							}
+						}
+					}
+				}
+			}
 
 		} finally {
 			try {if (pstmtLength != null) {pstmtLength.close();}} catch (SQLException e) {}
-			try {if (pstmtProcessedRate != null) {pstmtProcessedRate.close();}} catch (SQLException e) {}
 			try {if (pstmtNewRate != null) {pstmtNewRate.close();}} catch (SQLException e) {}
+			try {if (pstmtStats != null) {pstmtStats.close();}} catch (SQLException e) {}
 		}
 
-		queue.workers = getActiveWorkers(sd, null);
 		return queue;
 	}
 
@@ -425,58 +437,70 @@ public class QueueManager {
 	public Queue getS3UploadQueueData(Connection sd) throws SQLException {
 
 		PreparedStatement pstmtLength = null;
-		PreparedStatement pstmtProcessedRate = null;
 		PreparedStatement pstmtNewRate = null;
+		PreparedStatement pstmtStats = null;
 
 		Queue queue = new Queue();
 		try {
 
+			// Backlog: files waiting to be sent to S3
 			String sqlLength = "select count(*) "
 					+ "from s3upload "
 					+ "where status = 'new' ";
 			pstmtLength = sd.prepareStatement(sqlLength);
-
 			ResultSet rs = pstmtLength.executeQuery();
 			if(rs.next()) {
 				queue.length = rs.getInt(1);
 			}
 
-			String sqlProcessedRate = "select status, count(*) "
-					+ "from s3upload "
-					+ "where processed_time > now() - interval '1 minute' "
-					+ "group by status";
-			pstmtProcessedRate = sd.prepareStatement(sqlProcessedRate);
-
-			rs = pstmtProcessedRate.executeQuery();
-			while(rs.next()) {
-				String status = rs.getString(1);
-				if(status != null) {
-					queue.processed_rpm += rs.getInt(2);	// processed applies for all status values
-					if(status.equals("failed")) {
-						queue.error_rpm = rs.getInt(2);
-					}
-				}
-			}
-
+			// New items rate: files added to queue (pre-worker, queue-level only)
 			String sqlNewRate = "select count(*) "
 					+ "from s3upload "
 					+ "where created_time > now() - interval '1 minute' ";
-
 			pstmtNewRate = sd.prepareStatement(sqlNewRate);
-
 			rs = pstmtNewRate.executeQuery();
 			if(rs.next()) {
 				queue.new_rpm = rs.getInt(1);
 			}
 
+			// Single stats query grouped by worker: drives both queue totals and per-worker counts
+			String sqlStats = "select worker_id, status, count(*) "
+					+ "from s3upload "
+					+ "where processed_time > now() - interval '1 minute' "
+					+ "group by worker_id, status";
+			pstmtStats = sd.prepareStatement(sqlStats);
+
+			queue.workers = getActiveWorkers(sd, "queue_name = 'storage'");
+
+			rs = pstmtStats.executeQuery();
+			while(rs.next()) {
+				String workerId = rs.getString("worker_id");
+				String status = rs.getString("status");
+				int count = rs.getInt(3);
+
+				queue.processed_rpm += count;
+				if("failed".equals(status)) {
+					queue.error_rpm += count;
+				}
+
+				if(workerId != null) {
+					for(WorkerInfo w : queue.workers) {
+						if((w.hostname + ":" + w.pid).equals(workerId)) {
+							w.processed_rpm += count;
+							if("failed".equals(status)) {
+								w.error_rpm += count;
+							}
+						}
+					}
+				}
+			}
 
 		} finally {
 			try {if (pstmtLength != null) {pstmtLength.close();}} catch (SQLException e) {}
-			try {if (pstmtProcessedRate != null) {pstmtProcessedRate.close();}} catch (SQLException e) {}
 			try {if (pstmtNewRate != null) {pstmtNewRate.close();}} catch (SQLException e) {}
+			try {if (pstmtStats != null) {pstmtStats.close();}} catch (SQLException e) {}
 		}
 
-		queue.workers = getActiveWorkers(sd, "storage");
 		return queue;
 	}
 

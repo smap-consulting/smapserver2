@@ -9,4 +9,6 @@ public class WorkerInfo {
 	public String queue_name;
 	public Timestamp started_time;
 	public Timestamp heartbeat;
+	public int processed_rpm;
+	public int error_rpm;
 }

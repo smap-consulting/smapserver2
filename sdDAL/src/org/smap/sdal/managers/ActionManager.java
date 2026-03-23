@@ -73,15 +73,15 @@ public class ActionManager {
 
 	private ResourceBundle localisation;
 	private String tz;
-	
+
 	public ActionManager(ResourceBundle l, String tz) {
 		localisation = l;
-		if(tz == null) {
+		if (tz == null) {
 			tz = "UTC";
 		}
 		this.tz = tz;
 	}
-	
+
 	/*
 	 * Update a data record from an anonymous form
 	 */
@@ -98,8 +98,8 @@ public class ActionManager {
 	 * Apply actions resulting from a change to managed forms
 	 */
 	public void applyManagedFormActions(@Context HttpServletRequest request, Connection sd, TableColumn tc, int oId,
-			String sIdent, int pId, String groupSurvey, int prikey, int priority, String value, ResourceBundle localisation)
-			throws Exception {
+			String sIdent, int pId, String groupSurvey, int prikey, int priority, String value,
+			ResourceBundle localisation) throws Exception {
 
 		for (int i = 0; i < tc.actions.size(); i++) {
 			Action a = tc.actions.get(i);
@@ -168,7 +168,7 @@ public class ActionManager {
 
 			if (rs.next()) {
 				String actionString = rs.getString(1);
-				if(actionString != null) {
+				if (actionString != null) {
 					a = GeneralUtilityMethods.getAction(sd, gson, rs.getString(1));
 				}
 			}
@@ -199,11 +199,11 @@ public class ActionManager {
 			pstmtGet = sd.prepareStatement(sqlGet);
 			pstmtGet.setString(1, userIdent);
 			ResultSet rs = pstmtGet.executeQuery();
-			if(rs.next()) {
+			if (rs.next()) {
 				String actionString = rs.getString(1);
-				if(actionString != null) {
+				if (actionString != null) {
 					Action a = GeneralUtilityMethods.getAction(sd, gson, actionString);
-					if(a != null) {
+					if (a != null) {
 						a.submissionCount++;
 						pstmtUpdate = sd.prepareStatement(sqlUpdate);
 						pstmtUpdate.setString(1, gson.toJson(a));
@@ -213,8 +213,18 @@ public class ActionManager {
 				}
 			}
 		} finally {
-			try { if(pstmtGet != null) { pstmtGet.close(); } } catch(SQLException e) {}
-			try { if(pstmtUpdate != null) { pstmtUpdate.close(); } } catch(SQLException e) {}
+			try {
+				if (pstmtGet != null) {
+					pstmtGet.close();
+				}
+			} catch (SQLException e) {
+			}
+			try {
+				if (pstmtUpdate != null) {
+					pstmtUpdate.close();
+				}
+			} catch (SQLException e) {
+			}
 		}
 	}
 
@@ -300,10 +310,10 @@ public class ActionManager {
 		u.projects.add(p);
 		log.info("xxxxxxxxxxxxxxxxx p1: " + a.pId);
 		// Check to see if the survey to be updated was in a different project
-		if(a.surveyIdent != null) {
+		if (a.surveyIdent != null) {
 			int p2Id = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, a.surveyIdent);
 			log.info("xxxxxxxxxxxxxxxxx p2Id: " + p2Id);
-			if(p2Id != a.pId && p2Id != 0) {
+			if (p2Id != a.pId && p2Id != 0) {
 				Project p2 = new Project();
 				p2.id = p2Id;
 				u.projects.add(p2);
@@ -311,57 +321,59 @@ public class ActionManager {
 		}
 
 		// If the action is a task or mailout then add enum access
-		if(a.action.equals("task") || a.action.equals("mailout")) {
-			u.groups = new ArrayList<UserGroup> ();
+		if (a.action.equals("task") || a.action.equals("mailout")) {
+			u.groups = new ArrayList<UserGroup>();
 			u.groups.add(new UserGroup(Authorise.ENUM_ID, Authorise.ENUM));
 		}
-		
+
 		// Add the roles for the temporary user
 		u.roles = a.roles;
 
 		um.createTemporaryUser(sd, u, oId);
-		
+
 		link = "/action/" + tempUserId;
 
 		return link;
 	}
-	
-	public String updateLink(Connection sd, Action a, int oId, String userIdent, String remoteUser, boolean superUser) throws Exception {
+
+	public String updateLink(Connection sd, Action a, int oId, String userIdent, String remoteUser, boolean superUser)
+			throws Exception {
 
 		String sql = "update users set action_details = ? where temporary = true and ident = ?";
 		PreparedStatement pstmt = null;
-		
+
 		String sqlDelRoles = "delete from user_role "
 				+ "where u_id = (select id from users where temporary = true and ident = ?) ";
-		PreparedStatement pstmtDelRoles = null;;
-		
-		String sqlInsertRole = "insert into user_role (u_id, r_id) values ((select id from users where temporary = true and ident = ?), ?);";		
+		PreparedStatement pstmtDelRoles = null;
+		;
+
+		String sqlInsertRole = "insert into user_role (u_id, r_id) values ((select id from users where temporary = true and ident = ?), ?);";
 		PreparedStatement pstmtInsertRole = null;
-		
+
 		String sqlGetUserRoles = "select r_id from user_role "
 				+ "where u_id = (select id from users where temporary = true and ident = ?) ";
 		PreparedStatement pstmtGetuserRoles = null;
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-		
+
 		try {
 			// Validate action name before saving action details
-			if(a != null) {
+			if (a != null) {
 				a.validateNames(localisation);
 			}
-						
-			if(superUser) {
+
+			if (superUser) {
 				// delete roles no longer referenced
 				pstmtDelRoles = sd.prepareStatement(sqlDelRoles);
 				pstmtDelRoles.setString(1, userIdent);
 				pstmtDelRoles.executeUpdate();
-			
+
 				// Add roles
-				if(a.roles != null && a.roles.size() > 0) {
+				if (a.roles != null && a.roles.size() > 0) {
 
 					pstmtInsertRole = sd.prepareStatement(sqlInsertRole);
 					pstmtInsertRole.setString(1, userIdent);
-					
-					for( Role r : a.roles) {
+
+					for (Role r : a.roles) {
 						pstmtInsertRole.setInt(2, r.id);
 						log.info("Insert role: " + pstmtInsertRole.toString());
 						pstmtInsertRole.executeUpdate();
@@ -373,42 +385,62 @@ public class ActionManager {
 				pstmtGetuserRoles = sd.prepareStatement(sqlGetUserRoles);
 				pstmtGetuserRoles.setString(1, userIdent);
 				ResultSet rs = pstmtGetuserRoles.executeQuery();
-				while(rs.next()) {
+				while (rs.next()) {
 					Role r = new Role();
 					r.id = rs.getInt(1);
 					a.roles.add(r);
 				}
 			}
-			
+
 			// Store the action details
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, gson.toJson(a));
 			pstmt.setString(2, userIdent);
 			log.info("Update action details: " + pstmt.toString());
 			pstmt.executeUpdate();
-			
+
 		} finally {
-			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
-			try {if (pstmtDelRoles != null) {	pstmtDelRoles.close();}} catch (SQLException e) {}
-			try {if (pstmtInsertRole != null) {	pstmtInsertRole.close();}} catch (SQLException e) {}
-			try {if (pstmtGetuserRoles != null) {	pstmtGetuserRoles.close();}} catch (SQLException e) {}
-		}	
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (SQLException e) {
+			}
+			try {
+				if (pstmtDelRoles != null) {
+					pstmtDelRoles.close();
+				}
+			} catch (SQLException e) {
+			}
+			try {
+				if (pstmtInsertRole != null) {
+					pstmtInsertRole.close();
+				}
+			} catch (SQLException e) {
+			}
+			try {
+				if (pstmtGetuserRoles != null) {
+					pstmtGetuserRoles.close();
+				}
+			} catch (SQLException e) {
+			}
+		}
 
 		return "/action/" + userIdent;
-		
+
 	}
 
 	/*
 	 * Process an update request that came either from an anonymous form or from the
 	 * managed forms page
 	 */
-	public Response processUpdate(
-			HttpServletRequest request, Connection sd, Connection cResults, String userIdent,
+	public Response processUpdate(HttpServletRequest request, Connection sd, Connection cResults, String userIdent,
 			int sId, String sIdent, String groupSurvey, String updatesString) {
 
 		Response response = null;
 
-		Type type = new TypeToken<ArrayList<Update>>() {}.getType();
+		Type type = new TypeToken<ArrayList<Update>>() {
+		}.getType();
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		ArrayList<Update> updates = gson.fromJson(updatesString, type);
 
@@ -429,17 +461,11 @@ public class ActionManager {
 			 * Get the data processing columns
 			 */
 			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
-			SurveyViewDefn svd = svm.getSurveyView(sd, 
-					cResults, 
-					uId, 
-					null,		// ssd 
-					sId,
-					0,			// TODO SubForm Id
-					null,		// Subform name
-					request.getRemoteUser(), oId, false,
-					groupSurvey,
-					false		// include bad
-					);	
+			SurveyViewDefn svd = svm.getSurveyView(sd, cResults, uId, null, // ssd
+					sId, 0, // TODO SubForm Id
+					null, // Subform name
+					request.getRemoteUser(), oId, false, groupSurvey, false // include bad
+			);
 
 			Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get the table name of the top level form
 			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -457,11 +483,11 @@ public class ActionManager {
 				// Set up storage of changes
 				String instanceid = GeneralUtilityMethods.getInstanceId(cResults, f.tableName, u.prikey);
 				ArrayList<DataItemChange> changes = changeMap.get(instanceid);
-				if(changes == null) {
-					changes = new ArrayList<DataItemChange> ();
+				if (changes == null) {
+					changes = new ArrayList<DataItemChange>();
 					changeMap.put(instanceid, changes);
 				}
-				
+
 				// 1. Escape quotes in update name, though not really necessary due to next step
 				u.name = u.name.replace("'", "''").trim();
 
@@ -491,7 +517,12 @@ public class ActionManager {
 				}
 				sqlUpdate += "where " + "prikey = ? ";
 
-				try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
+				try {
+					if (pstmtUpdate != null) {
+						pstmtUpdate.close();
+					}
+				} catch (Exception e) {
+				}
 				pstmtUpdate = cResults.prepareStatement(sqlUpdate);
 
 				// Set the parameters
@@ -539,44 +570,36 @@ public class ActionManager {
 					applyManagedFormActions(request, sd, tc, oId, sIdent, pId, groupSurvey, u.prikey, priority, u.value,
 							localisation);
 				}
-				
+
 				/*
 				 * Record the change
 				 */
 				changes.add(new DataItemChange(u.name, u.displayName, tc.type, u.value, u.currentValue));
 			}
-			
+
 			/*
 			 * save change log
 			 */
 			RecordEventManager rem = new RecordEventManager();
-			for(String inst : changeMap.keySet()) {
-				rem.writeEvent(
-						sd, 
-						cResults, 
-						"changes", 
-						RecordEventManager.STATUS_SUCCESS, 
-						userIdent, 
-						f.tableName, 
-						inst, 
-						gson.toJson(changeMap.get(inst)),
-						null,		// task details
-						null,		// Notification details
-						null,		// Message object
-						null,		// description
-						sId, 
-						null,
-						0,			// AssignmentId - tasks only
-						0			// Task Id - tasks only
-						);
+			for (String inst : changeMap.keySet()) {
+				rem.writeEvent(sd, cResults, "changes", RecordEventManager.STATUS_SUCCESS, userIdent, f.tableName, inst,
+						gson.toJson(changeMap.get(inst)), null, // task details
+						null, // Notification details
+						null, // Message object
+						null, // description
+						sId, null, 0, // AssignmentId - tasks only
+						0 // Task Id - tasks only
+				);
 			}
-			
-			
+
 			cResults.commit();
 			response = Response.ok().build();
 
 		} catch (Exception e) {
-			try {cResults.rollback();} catch (Exception ex) {	}
+			try {
+				cResults.rollback();
+			} catch (Exception ex) {
+			}
 			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE, "Error", e);
 		} finally {
@@ -587,39 +610,35 @@ public class ActionManager {
 			} catch (Exception ex) {
 			}
 
-			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
+			try {
+				if (pstmtUpdate != null) {
+					pstmtUpdate.close();
+				}
+			} catch (Exception e) {
+			}
 
 		}
 
 		return response;
 	}
-	
+
 	/*
-	 * Process an update request that came from the console
-	 * The update is for a Group Survey
+	 * Process an update request that came from the console The update is for a
+	 * Group Survey
 	 */
-	public Response processUpdateGroupSurvey(
-			HttpServletRequest request, 
-			Connection sd, 
-			Connection cResults, 
-			String userIdent,
-			int sId, 
-			String instanceId,
-			int subFormPrimaryKey,
-			String groupSurvey, 
-			String groupForm,
-			String updateString,
-			boolean bulk,
-			String urlprefix) throws SQLException {
+	public Response processUpdateGroupSurvey(HttpServletRequest request, Connection sd, Connection cResults,
+			String userIdent, int sId, String instanceId, int subFormPrimaryKey, String groupSurvey, String groupForm,
+			String updateString, boolean bulk, String urlprefix) throws SQLException {
 
 		Response response = null;
 
-		Type type = new TypeToken<ArrayList<Update>>() {}.getType();
+		Type type = new TypeToken<ArrayList<Update>>() {
+		}.getType();
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		ArrayList<Update> updates = gson.fromJson(updateString, type);
 
 		String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-		
+
 		PreparedStatement pstmtUpdate = null;
 		PreparedStatement pstmtGetValue = null;
 
@@ -633,80 +652,71 @@ public class ActionManager {
 			 * Get the data processing columns
 			 */
 			int groupSurveyId = GeneralUtilityMethods.getSurveyId(sd, groupSurvey);
-			
+
 			Form f = null;
 			Form topLevelForm = null;
 			boolean isSubForm = false;
-			if(groupForm == null || groupForm.equals("_none")) {
-				 f = GeneralUtilityMethods.getTopLevelForm(sd, groupSurveyId ); // Get formId of top level form and its table name
-				 topLevelForm = f;
+			if (groupForm == null || groupForm.equals("_none")) {
+				f = GeneralUtilityMethods.getTopLevelForm(sd, groupSurveyId); // Get formId of top level form and its
+																				// table name
+				topLevelForm = f;
 			} else {
 				int fId = GeneralUtilityMethods.getFormId(sd, groupSurveyId, groupForm);
 				f = GeneralUtilityMethods.getForm(sd, groupSurveyId, fId);
-				topLevelForm = GeneralUtilityMethods.getTopLevelForm(sd, groupSurveyId );
+				topLevelForm = GeneralUtilityMethods.getTopLevelForm(sd, groupSurveyId);
 			}
-			if(f.parentform > 0) {
+			if (f.parentform > 0) {
 				isSubForm = true;
 			}
-		
-			ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
-					sd,
-					cResults,
-					localisation,
-					"none",
-					sId,
-					groupSurvey,
-					userIdent,
-					null,	// roles to apply
-					0,
-					f.id,
-					f.tableName,
-					false,		// Don't include Read only
-					false,		// Include parent key
-					false,		// Include "bad"
-					false,		// Include instanceId
-					false,		// include prikey
-					false,		// Include HRK
-					false,		// Include other meta data
-					false,		// include preloads
-					false,		// include instancename
-					false,		// Survey duration
-					false,		// Case management
-					false,
-					false,		// HXL only include with XLS exports
-					false,		// Don't include audit data
-					tz,
-					false,		// mgmt - Only the main survey request should result in the addition of the mgmt columns
-					false,		// Accuracy and Altitude
-					true		// Server calculates
-					);		
-			
+
+			ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(sd, cResults, localisation,
+					"none", sId, groupSurvey, userIdent, null, // roles to apply
+					0, f.id, f.tableName, false, // Don't include Read only
+					false, // Include parent key
+					false, // Include "bad"
+					false, // Include instanceId
+					false, // include prikey
+					false, // Include HRK
+					false, // Include other meta data
+					false, // include preloads
+					false, // include instancename
+					false, // Survey duration
+					false, // Case management
+					false, false, // HXL only include with XLS exports
+					false, // Don't include audit data
+					tz, false, // mgmt - Only the main survey request should result in the addition of the mgmt
+								// columns
+					false, // Accuracy and Altitude
+					true // Server calculates
+			);
+
 			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
 			/*
 			 * Prepare for checking for case closed
 			 */
-			CaseManager cm = new CaseManager(localisation);				
+			CaseManager cm = new CaseManager(localisation);
 			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 			CMS cms = cm.getCaseManagementSettings(sd, groupSurveyIdent);
 
 			String statusQuestion = null;
 			String finalStatus = null;
-			if(cms != null && cms.settings != null && cms.settings.statusQuestion != null && cms.settings.finalStatus != null) {
+			if (cms != null && cms.settings != null && cms.settings.statusQuestion != null
+					&& cms.settings.finalStatus != null) {
 				statusQuestion = cms.settings.statusQuestion;
 				finalStatus = cms.settings.finalStatus;
 			}
-			
+
 			/*
 			 * Process each column
 			 */
-			ArrayList<DataItemChange> changes = new ArrayList<DataItemChange> ();
+			ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
 			// log.info("Set autocommit false");
 			cResults.setAutoCommit(false);
 			for (int i = 0; i < updates.size(); i++) {
 
 				Update u = updates.get(i);
-				
+
 				// 1. Escape quotes in update name, though not really necessary due to next step
 				u.name = u.name.replace("'", "''").trim();
 
@@ -730,64 +740,63 @@ public class ActionManager {
 				/*
 				 * If this is a bulk update then get the original value for this record
 				 */
-				if(bulk) {
-					
-					StringBuilder sb = new StringBuilder("select ")
-							.append(u.name)
-							.append(" from ")
-							.append(f.tableName)
+				if (bulk) {
+
+					StringBuilder sb = new StringBuilder("select ").append(u.name).append(" from ").append(f.tableName)
 							.append(" where instanceid = ?");
-					
-					try {if (pstmtGetValue != null) {pstmtGetValue.close();}} catch (Exception e) {}
+
+					try {
+						if (pstmtGetValue != null) {
+							pstmtGetValue.close();
+						}
+					} catch (Exception e) {
+					}
 					pstmtGetValue = cResults.prepareStatement(sb.toString());
 					pstmtGetValue.setString(1, instanceId);
 					ResultSet rs = pstmtGetValue.executeQuery();
-					if(rs.next()) {
+					if (rs.next()) {
 						String v = rs.getString(1);
 						u.currentValue = v;
 						/*
-						 * If this is a bulk change to a select question then the value is either set or cleared
+						 * If this is a bulk change to a select question then the value is either set or
+						 * cleared
 						 */
-						if(tc.type.equals("select")) {
+						if (tc.type.equals("select")) {
 							u.value = mergeSelMultValue(v, u.value, u.clear);
 						}
 					}
 					rs.close();
 				}
-				
-				StringBuilder sqlUpdate = new StringBuilder("update ")
-						.append(f.tableName);
+
+				StringBuilder sqlUpdate = new StringBuilder("update ").append(f.tableName);
 
 				if (u.value == null) {
-					sqlUpdate.append(" set ")
-						.append(u.name)
-						.append(" = null ");
+					sqlUpdate.append(" set ").append(u.name).append(" = null ");
 				} else {
-					if(tc.type.equals("geopoint")) {
-						sqlUpdate.append(" set ")
-							.append(u.name)
-							.append(" = ST_GeomFromText(? ,4326) "); 
+					if (tc.type.equals("geopoint")) {
+						sqlUpdate.append(" set ").append(u.name).append(" = ST_GeomFromText(? ,4326) ");
 					} else {
-						sqlUpdate.append(" set ")
-							.append(u.name)
-							.append(" = ? ");
+						sqlUpdate.append(" set ").append(u.name).append(" = ? ");
 					}
 				}
-				
+
 				// Set closed date
-				if(statusQuestion != null && u.name.equals(statusQuestion)) {							
-					sqlUpdate.append(" ,")
-					.append("_case_closed")
-					.append(" = ? ");
+				if (statusQuestion != null && u.name.equals(statusQuestion)) {
+					sqlUpdate.append(" ,").append("_case_closed").append(" = ? ");
 				}
-				
-				if(isSubForm) {
+
+				if (isSubForm) {
 					sqlUpdate.append("where prikey = ? ");
 				} else {
 					sqlUpdate.append("where instanceid = ? ");
 				}
 
-				try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
+				try {
+					if (pstmtUpdate != null) {
+						pstmtUpdate.close();
+					}
+				} catch (Exception e) {
+				}
 				pstmtUpdate = cResults.prepareStatement(sqlUpdate.toString());
 
 				// Set the parameters
@@ -808,7 +817,8 @@ public class ActionManager {
 						} else {
 							// Value is in local time hence we need to add the timezone of the client
 							LocalDateTime localDateTime = LocalDateTime.parse(u.value);
-							ZonedDateTime userZdt = ZonedDateTime.of(localDateTime, TimeZone.getTimeZone(tz).toZoneId());
+							ZonedDateTime userZdt = ZonedDateTime.of(localDateTime,
+									TimeZone.getTimeZone(tz).toZoneId());
 							ZonedDateTime utcZdt = userZdt.withZoneSameInstant(TimeZone.getTimeZone("UtC").toZoneId());
 							Timestamp ts = Timestamp.valueOf(utcZdt.toLocalDateTime());
 							pstmtUpdate.setTimestamp(paramCount++, ts);
@@ -826,25 +836,24 @@ public class ActionManager {
 					} else {
 						log.info("Warning: unknown type: " + tc.type + " value: " + u.value);
 						pstmtUpdate.setString(paramCount++, u.value);
-					}			
+					}
 				}
-				
+
 				// Set closed date value
-				if(statusQuestion != null && u.name.equals(statusQuestion)) {							
+				if (statusQuestion != null && u.name.equals(statusQuestion)) {
 					// Set case to closed if this is the final status
-					if(u.value == null || !u.value.equals(finalStatus)) {
+					if (u.value == null || !u.value.equals(finalStatus)) {
 						pstmtUpdate.setTimestamp(paramCount++, null);
 					} else {
 						pstmtUpdate.setTimestamp(paramCount++, new Timestamp(new java.util.Date().getTime()));
 					}
 				}
-				
-				if(isSubForm) {
+
+				if (isSubForm) {
 					pstmtUpdate.setInt(paramCount++, subFormPrimaryKey);
 				} else {
 					pstmtUpdate.setString(paramCount++, instanceId);
 				}
-				
 
 				log.info("Updating managed survey: " + pstmtUpdate.toString());
 				int count = pstmtUpdate.executeUpdate();
@@ -853,7 +862,7 @@ public class ActionManager {
 							"Update failed: " + "Try refreshing your view of the data as someone may already "
 									+ "have updated this record.");
 				}
-				
+
 				/*
 				 * Record the change
 				 */
@@ -861,68 +870,63 @@ public class ActionManager {
 			}
 
 			/*
-			 * Process update notifications after all the changes have been applied
-			 * This allows the filter to work on the latest record data
+			 * Process update notifications after all the changes have been applied This
+			 * allows the filter to work on the latest record data
 			 */
 			NotificationManager nm = new NotificationManager(localisation);
 			String server = request.getServerName();
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			for (int i = 0; i < updates.size(); i++) {
-				
+
 				Update u = updates.get(i);
-				
-				nm.notifyForSubmission(
-						sd, 
-						cResults,
-						0, 
-						request.getRemoteUser(), 
-						false,
-						"https",
-						server,
-						basePath,
-						urlprefix,
-						surveyIdent,
-						instanceId,
-						groupSurvey,		// update survey ident
-						u.name,		// update question
-						u.value,	// update value
-						null		// thread used with submission notifications
-						);	
+
+				nm.notifyForSubmission(sd, cResults, 0, request.getRemoteUser(), false, "https", server, basePath,
+						urlprefix, surveyIdent, instanceId, groupSurvey, // update survey ident
+						u.name, // update question
+						u.value, // update value
+						null // thread used with submission notifications
+				);
 			}
 			/*
 			 * save change log
 			 */
 			RecordEventManager rem = new RecordEventManager();
-			rem.writeEvent(
-					sd, 
-					cResults, 
-					RecordEventManager.CHANGES, 
-					RecordEventManager.STATUS_SUCCESS, 
-					userIdent, 
-					topLevelForm.tableName, 
-					instanceId, 
-					gson.toJson(changes),
-					null,		// task details
-					null,		// Message object
-					null,		// notification details
-					null,		// description
-					sId, 
-					null,
-					0,
-					0);
+			rem.writeEvent(sd, cResults, RecordEventManager.CHANGES, RecordEventManager.STATUS_SUCCESS, userIdent,
+					topLevelForm.tableName, instanceId, gson.toJson(changes), null, // task details
+					null, // Message object
+					null, // notification details
+					null, // description
+					sId, null, 0, 0);
 
 			cResults.commit();
 			response = Response.ok().build();
 
 		} catch (Exception e) {
-			try {cResults.rollback();} catch (Exception ex) {	}
+			try {
+				cResults.rollback();
+			} catch (Exception ex) {
+			}
 			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE, "Error", e);
 		} finally {
 
-			try {log.info("Set autocommit true");cResults.setAutoCommit(true);} catch (Exception ex) {}
-			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
-			try {if (pstmtGetValue != null) {pstmtGetValue.close();}} catch (Exception e) {}
+			try {
+				log.info("Set autocommit true");
+				cResults.setAutoCommit(true);
+			} catch (Exception ex) {
+			}
+			try {
+				if (pstmtUpdate != null) {
+					pstmtUpdate.close();
+				}
+			} catch (Exception e) {
+			}
+			try {
+				if (pstmtGetValue != null) {
+					pstmtGetValue.close();
+				}
+			} catch (Exception e) {
+			}
 
 		}
 
@@ -932,88 +936,87 @@ public class ActionManager {
 	/*
 	 * Get temporary users
 	 */
-	public ArrayList<User> getTemporaryUsers(Connection sd, int o_id, String action, String sIdent, int pId) throws SQLException {
-		
-		String sql = "select id,"
-				+ "ident, "
-				+ "name, "
-				+ "action_details "
-				+ "from users "
-				+ "where users.o_id = ? "
-				+ "and users.temporary "
-				+ "order by id desc";
-		
-		ArrayList<User> users = new ArrayList<User> ();
+	public ArrayList<User> getTemporaryUsers(Connection sd, int o_id, String action, String sIdent, int pId)
+			throws SQLException {
+
+		String sql = "select id," + "ident, " + "name, " + "action_details " + "from users " + "where users.o_id = ? "
+				+ "and users.temporary " + "order by id desc";
+
+		ArrayList<User> users = new ArrayList<User>();
 		PreparedStatement pstmt = null;
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
 		try {
 			pstmt = sd.prepareStatement(sql);
 			ResultSet rs = null;
 
-			
 			pstmt.setInt(1, o_id);
 			log.info("Get user list: " + pstmt.toString());
 			rs = pstmt.executeQuery();
-			while(rs.next()) {
+			while (rs.next()) {
 				User user = new User();
-				
+
 				user.id = rs.getInt("id");
 				user.ident = rs.getString("ident");
-				user.name = rs.getString("name");				
+				user.name = rs.getString("name");
 				Action a = GeneralUtilityMethods.getAction(sd, gson, rs.getString("action_details"));
-				
+
 				// Filter out non matching actions
-				if(action != null && !action.equals("none") && (a == null || a.action == null)) {
-					continue;	// A filter was specified but the action does not exist
-				} else if(action != null && action.equals("none") && a != null && a.action != null) {
-					continue;	// filter of none was specified but the action exists
-				} else if(action != null) {
-					if(!a.action.equals(action)) {
-						continue;	// Action does not match the specified filter
-					}			
+				if (action != null && !action.equals("none") && (a == null || a.action == null)) {
+					continue; // A filter was specified but the action does not exist
+				} else if (action != null && action.equals("none") && a != null && a.action != null) {
+					continue; // filter of none was specified but the action exists
+				} else if (action != null) {
+					if (!a.action.equals(action)) {
+						continue; // Action does not match the specified filter
+					}
 				}
-				
+
 				// Filter out non matching surveys when survey Ident specified
-				if(sIdent != null && (a == null || !sIdent.equals(a.surveyIdent))) {
+				if (sIdent != null && (a == null || !sIdent.equals(a.surveyIdent))) {
 					continue;
 				}
-				
+
 				// Filter out non matching reports when project id specified
-				if(pId > 0 && (a == null || a.pId != pId)) {
+				if (pId > 0 && (a == null || a.pId != pId)) {
 					continue;
 				}
-				
+
 				user.action_details = a;
 				users.add(user);
 			}
 		} finally {
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (SQLException e) {
+			}
 		}
-		
+
 		return users;
 	}
-	
+
 	String mergeSelMultValue(String in, String change, boolean clear) {
-		
+
 		StringBuilder out = new StringBuilder("");
 		change = change.trim();
 		HashMap<String, String> inMap = new HashMap<>();
-		
-		if(in != null) {
+
+		if (in != null) {
 			String[] a = in.split(" ");
-			for(int i = 0; i < a.length; i++) {
+			for (int i = 0; i < a.length; i++) {
 				inMap.put(a[i], a[i]);
 			}
 		}
-		
-		if(clear) {
+
+		if (clear) {
 			inMap.remove(change);
 		} else {
 			inMap.put(change, change);
 		}
-		for(String k : inMap.keySet()) {
-			if(out.length() > 0) {
+		for (String k : inMap.keySet()) {
+			if (out.length() > 0) {
 				out.append(" ");
 			}
 			out.append(k);
