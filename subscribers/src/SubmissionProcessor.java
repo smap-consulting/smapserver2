@@ -74,12 +74,19 @@ public class SubmissionProcessor {
 		String basePath;
 		String queueName;
 		boolean incRestore;
+		String hostname;
+		String subscriberType;
+		long pid;
 		VonageClient vonageClient = null;
 
-		public SubmissionQueueLoop(String basePath, String queueName, boolean incRestore) {
+		public SubmissionQueueLoop(String basePath, String queueName, boolean incRestore,
+				String hostname, String subscriberType, long pid) {
 			this.basePath = basePath;
 			this.queueName = queueName;
 			this.incRestore = incRestore;
+			this.hostname = hostname;
+			this.subscriberType = subscriberType;
+			this.pid = pid;
 		}
 
 		public void run() {
@@ -96,8 +103,17 @@ public class SubmissionProcessor {
 					+ "queued = false, "
 					+ "db_status = ?,"
 					+ "db_reason = ?,"
-					+ "queue_name = ? "
+					+ "queue_name = ?, "
+					+ "worker_host = ? "
 					+ "where ue_id = ?";
+
+			String sqlRegisterWorker = "insert into subscriber_worker "
+					+ "(hostname, pid, subscriber_type, queue_name, started_time, heartbeat) "
+					+ "values(?, ?, ?, ?, now(), now())";
+
+			String sqlHeartbeat = "update subscriber_worker "
+					+ "set heartbeat = now() "
+					+ "where hostname = ? and pid = ? and queue_name = ?";
 
 			/*
 			 * Dequeue SQL from https://chbussler.medium.com/implementing-queues-in-postgresql-3f6e9ab724fa
@@ -131,6 +147,8 @@ public class SubmissionProcessor {
 
 			PreparedStatement pstmt = null;
 			PreparedStatement pstmtResultsDB = null;
+			PreparedStatement pstmtHeartbeat = null;
+			boolean registered = false;
 
 			boolean loop = true;
 			while(loop) {
@@ -153,6 +171,27 @@ public class SubmissionProcessor {
 						if(pstmtResultsDB == null) {
 							pstmtResultsDB = dbc.sd.prepareStatement(sqlResultsDB);
 						}
+						if(pstmtHeartbeat == null) {
+							pstmtHeartbeat = dbc.sd.prepareStatement(sqlHeartbeat);
+						}
+
+						// Register this worker on first successful connection
+						if(!registered) {
+							PreparedStatement pstmtReg = dbc.sd.prepareStatement(sqlRegisterWorker);
+							pstmtReg.setString(1, hostname);
+							pstmtReg.setLong(2, pid);
+							pstmtReg.setString(3, subscriberType);
+							pstmtReg.setString(4, queueName);
+							pstmtReg.executeUpdate();
+							pstmtReg.close();
+							registered = true;
+						}
+
+						// Heartbeat
+						pstmtHeartbeat.setString(1, hostname);
+						pstmtHeartbeat.setLong(2, pid);
+						pstmtHeartbeat.setString(3, queueName);
+						pstmtHeartbeat.executeUpdate();
 
 						/*
 						 * Get a vonage client
@@ -360,8 +399,9 @@ public class SubmissionProcessor {
 							pstmtResultsDB.setString(1, se.getStatus());
 							pstmtResultsDB.setString(2, se.getReason());
 							pstmtResultsDB.setString(3, queueName);
-							pstmtResultsDB.setInt(4, ue.getId());
-							pstmtResultsDB.executeUpdate();	
+							pstmtResultsDB.setString(4, hostname);
+							pstmtResultsDB.setInt(5, ue.getId());
+							pstmtResultsDB.executeUpdate();
 
 							log.info("======== Completed");
 						} else {
@@ -379,8 +419,11 @@ public class SubmissionProcessor {
 						// are re-prepared against the fresh connection on the next iteration.
 						try {if (pstmt != null) { pstmt.close(); }} catch (Exception ex) {}
 						try {if (pstmtResultsDB != null) { pstmtResultsDB.close(); }} catch (Exception ex) {}
+						try {if (pstmtHeartbeat != null) { pstmtHeartbeat.close(); }} catch (Exception ex) {}
 						pstmt = null;
 						pstmtResultsDB = null;
+						pstmtHeartbeat = null;
+						registered = false;
 						// Back off to prevent log flooding on persistent failures
 						try { Thread.sleep(delaySecs * 1000); } catch (InterruptedException ie) {}
 					} finally {
@@ -394,6 +437,7 @@ public class SubmissionProcessor {
 			// Close prepared statements after loop exits
 			try {if (pstmtResultsDB != null) { pstmtResultsDB.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtHeartbeat != null) { pstmtHeartbeat.close();}} catch (SQLException e) {}
 
 			// Cleanup resources when loop exits
 			vonageClient = null;  // Release for GC
@@ -406,14 +450,16 @@ public class SubmissionProcessor {
 	/**
 	 * @param args
 	 */
-	public void go(String smapId, String basePath, String queueName, boolean incRestore) {
+	public void go(String smapId, String basePath, String queueName, boolean incRestore,
+			String hostname, String subscriberType, long pid) {
 
 		confFilePath = "./" + smapId;
 
 		try {
 
 			// Process submissions in queue
-			Thread t = new Thread(new SubmissionQueueLoop(basePath, queueName, incRestore));
+			Thread t = new Thread(new SubmissionQueueLoop(basePath, queueName, incRestore,
+					hostname, subscriberType, pid));
 			t.start();
 
 

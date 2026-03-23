@@ -14,6 +14,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Queue;
 import org.smap.sdal.model.QueueItem;
 import org.smap.sdal.model.QueueTime;
+import org.smap.sdal.model.WorkerInfo;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -54,6 +55,44 @@ public class QueueManager {
 			Logger.getLogger(QueueManager.class.getName());
 	
 	private Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+	/*
+	 * Get active workers from subscriber_worker table (heartbeat within last 5 minutes)
+	 * Optionally filter by queue_name
+	 */
+	private ArrayList<WorkerInfo> getActiveWorkers(Connection sd, String queueNameFilter) throws SQLException {
+		ArrayList<WorkerInfo> workers = new ArrayList<>();
+		StringBuilder sql = new StringBuilder(
+				"select hostname, pid, subscriber_type, queue_name, started_time, heartbeat "
+				+ "from subscriber_worker "
+				+ "where heartbeat > now() - interval '5 minutes' ");
+		if(queueNameFilter != null) {
+			sql.append("and queue_name = ? ");
+		}
+		sql.append("order by hostname, pid, queue_name");
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql.toString());
+			if(queueNameFilter != null) {
+				pstmt.setString(1, queueNameFilter);
+			}
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				WorkerInfo w = new WorkerInfo();
+				w.hostname = rs.getString("hostname");
+				w.pid = rs.getLong("pid");
+				w.subscriber_type = rs.getString("subscriber_type");
+				w.queue_name = rs.getString("queue_name");
+				w.started_time = rs.getTimestamp("started_time");
+				w.heartbeat = rs.getTimestamp("heartbeat");
+				workers.add(w);
+			}
+		} finally {
+			try {if(pstmt != null) {pstmt.close();}} catch(SQLException e) {}
+		}
+		return workers;
+	}
+
 	/*
 	 * Get status of submission queue
 	 */
@@ -122,9 +161,10 @@ public class QueueManager {
 			try {if (pstmtNewRate != null) {pstmtNewRate.close();}} catch (SQLException e) {}
 		}
 
+		queue.workers = getActiveWorkers(sd, null);
 		return queue;
 	}
-	
+
 	/*
 	 * Get status of sub event queue
 	 * This is the queue that processes all the post submission processing such as sending emails
@@ -436,6 +476,7 @@ public class QueueManager {
 			try {if (pstmtNewRate != null) {pstmtNewRate.close();}} catch (SQLException e) {}
 		}
 
+		queue.workers = getActiveWorkers(sd, "storage");
 		return queue;
 	}
 
@@ -458,7 +499,7 @@ public class QueueManager {
 			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
 			
 			String sql1 = "select id, filepath, status, o_id, "
-					+ "is_media, created_time, processed_time, status, reason "
+					+ "is_media, created_time, processed_time, status, reason, worker_id "
 					+ "from s3upload ";		
 			String sql2 = "where timezone(?, created_time) >=  ? "
 					+ "and timezone(?, created_time) < ? ";
@@ -496,6 +537,7 @@ public class QueueManager {
 				item.processed_time = rs.getTimestamp("processed_time");
 				item.status = rs.getString("status");
 				item.reason = rs.getString("reason");
+				item.worker_id = rs.getString("worker_id");
 			}
 
 

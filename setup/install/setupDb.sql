@@ -569,7 +569,8 @@ CREATE TABLE upload_event (
 	queued boolean default false,
 	restore boolean default false,
 	submission_type text,	-- SMS or Form (default)
-	payload text			-- SMS details, in future XML submission details
+	payload text,			-- SMS details, in future XML submission details
+	worker_host text		-- Hostname of the server that processed this submission
 	);
 create index idx_ue_ident on upload_event(user_name);
 create index idx_ue_upload_time on upload_event (upload_time);
@@ -1737,7 +1738,8 @@ CREATE TABLE s3upload (
 	o_id integer default 0,
 	is_media boolean default false,
 	created_time timestamp with time zone,
-	processed_time TIMESTAMP WITH TIME ZONE		-- Time of processing
+	processed_time TIMESTAMP WITH TIME ZONE,	-- Time of processing
+	worker_id text							-- Identifies the process that handled this entry
 	);
 ALTER TABLE s3upload OWNER TO ws;
 
@@ -1863,6 +1865,18 @@ CREATE UNLOGGED TABLE submission_queue
     payload JSON
 );
 ALTER TABLE submission_queue OWNER TO ws;
+
+DROP TABLE IF EXISTS subscriber_worker;
+CREATE UNLOGGED TABLE IF NOT EXISTS subscriber_worker (
+	id serial PRIMARY KEY,
+	hostname text,
+	pid bigint,
+	subscriber_type text,
+	queue_name text,
+	started_time timestamptz DEFAULT now(),
+	heartbeat timestamptz DEFAULT now()
+);
+ALTER TABLE subscriber_worker OWNER TO ws;
 
 DROP TABLE IF EXISTS monitor_data;
 CREATE UNLOGGED TABLE IF NOT EXISTS monitor_data

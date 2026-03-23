@@ -11,4 +11,5 @@ public class QueueItem {
 	public String reason;
 	public Timestamp created_time;
 	public Timestamp processed_time;
+	public String worker_id;
 }

@@ -41,8 +41,12 @@ public class StorageProcessor {
 	private class MessageLoop implements Runnable {
 		DatabaseConnections dbc = new DatabaseConnections();
 		String basePath;
-		public MessageLoop(String basePath, String awsPropertiesFile) {
+		String hostname;
+		long pid;
+		public MessageLoop(String basePath, String awsPropertiesFile, String hostname, long pid) {
 			this.basePath = basePath;
+			this.hostname = hostname;
+			this.pid = pid;
 		}
 
 		public void run() {
@@ -50,6 +54,17 @@ public class StorageProcessor {
 			int delaySecs = 2;
 			int s3count = 0;
 			StorageManager sm = new StorageManager();
+			String workerId = hostname + ":" + pid;
+
+			String sqlRegisterWorker = "insert into subscriber_worker "
+					+ "(hostname, pid, subscriber_type, queue_name, started_time, heartbeat) "
+					+ "values(?, ?, 'forward', 'storage', now(), now())";
+
+			String sqlHeartbeat = "update subscriber_worker "
+					+ "set heartbeat = now() "
+					+ "where hostname = ? and pid = ? and queue_name = 'storage'";
+
+			boolean registered = false;
 
 			boolean loop = true;
 			while(loop) {
@@ -67,8 +82,23 @@ public class StorageProcessor {
 						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 						GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 
+						if(!registered) {
+							java.sql.PreparedStatement pstmtReg = dbc.sd.prepareStatement(sqlRegisterWorker);
+							pstmtReg.setString(1, hostname);
+							pstmtReg.setLong(2, pid);
+							pstmtReg.executeUpdate();
+							pstmtReg.close();
+							registered = true;
+						}
+
+						java.sql.PreparedStatement pstmtHb = dbc.sd.prepareStatement(sqlHeartbeat);
+						pstmtHb.setString(1, hostname);
+						pstmtHb.setLong(2, pid);
+						pstmtHb.executeUpdate();
+						pstmtHb.close();
+
 						try {
-							sm.uploadToS3(dbc.sd, basePath, s3count++);
+							sm.uploadToS3(dbc.sd, basePath, s3count++, workerId);
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}
@@ -101,18 +131,18 @@ public class StorageProcessor {
 	/**
 	 * @param args
 	 */
-	public void go(String smapId, String basePath) {
+	public void go(String smapId, String basePath, String hostname, long pid) {
 
 		confFilePath = "./" + smapId;
 
 		try {
-			
+
 			// Upload any images or other files waiting to be sent to permanent storage
 			String awsPropertiesFile = null;
 			File pFile = new File(basePath + "_bin/resources/properties/aws.properties");
 			if (pFile.exists()) {
 				awsPropertiesFile = pFile.getAbsolutePath();
-				Thread t = new Thread(new MessageLoop(basePath, awsPropertiesFile));
+				Thread t = new Thread(new MessageLoop(basePath, awsPropertiesFile, hostname, pid));
 				t.start();
 			} else {
 				log.info("Skipping Storage Processor. No aws properties file at: " + pFile.getAbsolutePath());

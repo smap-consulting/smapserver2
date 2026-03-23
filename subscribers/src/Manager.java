@@ -1,7 +1,15 @@
+import java.net.InetAddress;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.sql.PreparedStatement;
+import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ServerSettings;
+import org.smap.sdal.model.DatabaseConnections;
 
 /*****************************************************************************
 
@@ -30,7 +38,57 @@ public class Manager {
 	
 	private static Logger log =
 			 Logger.getLogger(Manager.class.getName());
-	
+
+	/*
+	 * Resolve the hostname for this server.
+	 * Tries basePath/settings/hostname first, then several system-level fallbacks.
+	 */
+	private static String getHostname(String basePath) {
+		// 1. Admin-configured name
+		String hostname = GeneralUtilityMethods.getSettingFromFile(basePath + "/settings/hostname");
+		if(hostname != null && !hostname.trim().isEmpty()) return hostname.trim();
+
+		// 2. JVM hostname resolution
+		try {
+			hostname = InetAddress.getLocalHost().getHostName();
+			if(hostname != null && !hostname.trim().isEmpty() && !hostname.equals("localhost")) return hostname.trim();
+		} catch(Exception e) {}
+
+		// 3. HOSTNAME environment variable
+		hostname = System.getenv("HOSTNAME");
+		if(hostname != null && !hostname.trim().isEmpty()) return hostname.trim();
+
+		// 4. /etc/hostname (works without DNS)
+		try {
+			hostname = new String(Files.readAllBytes(Paths.get("/etc/hostname"))).trim();
+			if(!hostname.isEmpty()) return hostname;
+		} catch(Exception e) {}
+
+		// 5. Random UUID as last resort
+		return UUID.randomUUID().toString().substring(0, 8);
+	}
+
+	/*
+	 * Remove subscriber_worker entries that have not sent a heartbeat in the last
+	 * 5 minutes. Called on startup so dead workers from any previous run are cleaned
+	 * up without disturbing other subscribers that are still running.
+	 */
+	private static void clearWorkers(String smapId) {
+		DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
+		DatabaseConnections dbc = new DatabaseConnections();
+		try {
+			GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, "./" + smapId);
+			PreparedStatement pstmt = dbc.sd.prepareStatement(
+					"delete from subscriber_worker where heartbeat < now() - interval '5 minutes'");
+			pstmt.executeUpdate();
+			pstmt.close();
+		} catch(Exception e) {
+			log.log(Level.WARNING, "Could not clear subscriber_worker: " + e.getMessage(), e);
+		} finally {
+			try {if(dbc.sd != null) {dbc.sd.close();}} catch(Exception e) {}
+		}
+	}
+
 	public static void main(String[] args) {
 		
 		String fileLocn = "/smap";			// Default for legacy servers that do not set file path
@@ -49,7 +107,12 @@ public class Manager {
                     }
                 }		
                 ServerSettings.setBasePath(fileLocn);
-                
+
+		String hostname = getHostname(fileLocn);
+		long pid = ProcessHandle.current().pid();
+		log.info("Subscriber starting: hostname=" + hostname + " pid=" + pid + " type=" + subscriberType);
+		clearWorkers(smapId);
+
 		/*
 		 * Start asynchronous worker threads
 		 */
@@ -67,8 +130,8 @@ public class Manager {
 			 * Start the storage processor - required if images are stored on s3
 			 */
 			StorageProcessor sp = new StorageProcessor();
-			sp.go(smapId, fileLocn);
-			
+			sp.go(smapId, fileLocn, hostname, pid);
+
 			/*
 			 * Start the report processors
 			 * A separate processor is started for restores as these can block for a long time
@@ -76,43 +139,43 @@ public class Manager {
 			ReportProcessor rp = new ReportProcessor();
 			rp.go(smapId, fileLocn, false);	// No restore
 			rp.go(smapId, fileLocn, true);	// With restore    -- TODO stop restores for performance
-			
+
 			/*
 			 * Start the submission event processor
 			 */
 			SubEventProcessor sep = new SubEventProcessor();
 			sep.go(smapId, fileLocn);
-			
+
 			/*
 			 * Start the queue monitor process
 			 * This is disabled as its output is not used,  however it could be re-enabled if there are issues with queues
 			 */
-			//MonitorProcessor mp = new MonitorProcessor();		
+			//MonitorProcessor mp = new MonitorProcessor();
 			//mp.go(smapId, fileLocn);
-			
+
 			// Start the default submission queue processor in the forward
 			SubmissionProcessor subProcessor = new SubmissionProcessor();
-			subProcessor.go(smapId, fileLocn, "qf1", false);
+			subProcessor.go(smapId, fileLocn, "qf1", false, hostname, subscriberType, pid);
 
 			// Start the default submission queue processor that processes restore requests
 			SubmissionProcessor subProcessor2 = new SubmissionProcessor();
-			subProcessor2.go(smapId, fileLocn, "qf2_restore", true);
-			
+			subProcessor2.go(smapId, fileLocn, "qf2_restore", true, hostname, subscriberType, pid);
+
 			/*
 			 * Start the message processor in the forward processor
 			 */
 			MessageProcessor messageProcessor1 = new MessageProcessor();
 			messageProcessor1.go(smapId, fileLocn, "qm1");
-			
+
 		} else {
 			// Start the default submission queue processor in the upload subscriber
 			SubmissionProcessor subProcessor = new SubmissionProcessor();
-			subProcessor.go(smapId, fileLocn, "qu1", false);
-			
+			subProcessor.go(smapId, fileLocn, "qu1", false, hostname, subscriberType, pid);
+
 			// Start a restore submission queue processor
 			SubmissionProcessor subProcessor3 = new SubmissionProcessor();
-			subProcessor3.go(smapId, fileLocn, "qu2", false);
-			
+			subProcessor3.go(smapId, fileLocn, "qu2", false, hostname, subscriberType, pid);
+
 			/*
 			 * Start the message processor in the upload processor
 			 */

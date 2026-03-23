@@ -42,7 +42,7 @@ public class StorageManager {
 	/*
 	 * Upload files to s3
 	 */
-	public void uploadToS3(Connection sd, String basePath, int s3count) throws SQLException {
+	public void uploadToS3(Connection sd, String basePath, int s3count, String workerId) throws SQLException {
 
 		String sql = "select id, filepath "
 				+ "from s3upload "
@@ -59,7 +59,8 @@ public class StorageManager {
 		String sqlDone = "update s3upload "
 				+ "set status = ?, "
 				+ "reason = ?, "
-				+ "processed_time = now() "
+				+ "processed_time = now(), "
+				+ "worker_id = ? "
 				+ "where id = ?";
 		PreparedStatement pstmtDone = null;
 		ResultSet rs = null;
@@ -84,7 +85,8 @@ public class StorageManager {
 
 				pstmtDone.setString(1, status);
 				pstmtDone.setString(2, reason);
-				pstmtDone.setInt(3, rs.getInt("id"));
+				pstmtDone.setString(3, workerId);
+				pstmtDone.setInt(4, rs.getInt("id"));
 				pstmtDone.executeUpdate();
 			}
 

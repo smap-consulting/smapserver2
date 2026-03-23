@@ -20,6 +20,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.apache.commons.fileupload.FileUploadException;
 import org.smap.sdal.legacy.MissingTemplateException;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.AssignmentDetails;
@@ -184,6 +185,13 @@ public class UploadManager {
 		} catch (MissingTemplateException e) {
 			log.log(Level.SEVERE, "", e);
 			response = Response.status(Status.NOT_FOUND).entity(getErrorMessage(key, e.getMessage())).build();
+		} catch (FileUploadException e) {
+			if (e.getCause() instanceof java.io.EOFException) {
+				log.warning("Upload connection dropped by client (EOF): " + e.getMessage());
+			} else {
+				log.log(Level.SEVERE, "", e);
+			}
+			response = Response.status(Status.BAD_REQUEST).entity(getErrorMessage(key, e.getMessage())).build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "", e);
 			String msg = e.getMessage();

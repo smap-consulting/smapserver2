@@ -273,3 +273,18 @@ delete from task_rejected where t_id is null;
 
 alter table dashboard_settings add column ds_chart_type text default 'histogram';
 alter table dashboard_settings add column ds_show_meta boolean default true;
+
+-- Version 26.03 Subscriber worker identification
+CREATE UNLOGGED TABLE IF NOT EXISTS subscriber_worker (
+	id serial PRIMARY KEY,
+	hostname text,
+	pid bigint,
+	subscriber_type text,
+	queue_name text,
+	started_time timestamptz DEFAULT now(),
+	heartbeat timestamptz DEFAULT now()
+);
+ALTER TABLE subscriber_worker OWNER TO ws;
+
+alter table upload_event add column if not exists worker_host text;
+alter table s3upload add column if not exists worker_id text;
