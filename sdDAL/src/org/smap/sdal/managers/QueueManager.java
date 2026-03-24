@@ -386,8 +386,8 @@ public class QueueManager {
 	public Queue getRestoreQueueData(Connection sd) throws SQLException {
 
 		PreparedStatement pstmtLength = null;
-		PreparedStatement pstmtProcessedRate = null;
 		PreparedStatement pstmtNewRate = null;
+		PreparedStatement pstmtStats = null;
 
 		Queue queue = new Queue();
 		try {
@@ -400,31 +400,9 @@ public class QueueManager {
 					+ "and ue.restore "
 					+ "and not ue.results_db_applied ";
 			pstmtLength = sd.prepareStatement(sqlLength);
-			//log.info("Get queue length: " + pstmtLength.toString());
 			ResultSet rs = pstmtLength.executeQuery();
 			if(rs.next()) {
 				queue.length = rs.getInt(1);
-			}
-
-			String sqlProcessedRate = "select db_status, count(*) "
-					+ "from upload_event ue "
-					+ "where ue.status = 'success' "
-					+ "and ue.s_id is not null "
-					+ "and not ue.incomplete "
-					+ "and ue.restore "
-					+ "and ue.processed_time > now() - interval '1 minute' "
-					+ "group by db_status";
-			pstmtProcessedRate = sd.prepareStatement(sqlProcessedRate);
-
-			rs = pstmtProcessedRate.executeQuery();
-			while(rs.next()) {
-				String status = rs.getString(1);
-				queue.processed_rpm += rs.getInt(2);	// Processed updated for all status values
-				if(status != null) {
-					if(status.equals("error")) {
-						queue.error_rpm = rs.getInt(2);
-					}
-				}
 			}
 
 			String sqlNewRate = "select count(*) "
@@ -435,17 +413,52 @@ public class QueueManager {
 					+ "and ue.restore "
 					+ "and ue.upload_time > now() - interval '1 minute'";
 			pstmtNewRate = sd.prepareStatement(sqlNewRate);
-
 			rs = pstmtNewRate.executeQuery();
 			if(rs.next()) {
 				queue.new_rpm = rs.getInt(1);
 			}
 
+			// Single stats query grouped by worker: drives both queue totals and per-worker counts
+			String sqlStats = "select worker_host, queue_name, db_status, count(*) "
+					+ "from upload_event "
+					+ "where processed_time > now() - interval '1 minute' "
+					+ "and status = 'success' "
+					+ "and s_id is not null "
+					+ "and not incomplete "
+					+ "and restore "
+					+ "group by worker_host, queue_name, db_status";
+			pstmtStats = sd.prepareStatement(sqlStats);
+
+			queue.workers = getActiveWorkers(sd, "queue_name = 'qf2_restore'");
+
+			rs = pstmtStats.executeQuery();
+			while(rs.next()) {
+				String host = rs.getString("worker_host");
+				String qName = rs.getString("queue_name");
+				String status = rs.getString("db_status");
+				int count = rs.getInt(4);
+
+				queue.processed_rpm += count;
+				if("error".equals(status)) {
+					queue.error_rpm += count;
+				}
+
+				if(host != null) {
+					for(WorkerInfo w : queue.workers) {
+						if(w.hostname.equals(host) && w.queue_name.equals(qName)) {
+							w.processed_rpm += count;
+							if("error".equals(status)) {
+								w.error_rpm += count;
+							}
+						}
+					}
+				}
+			}
 
 		} finally {
 			try {if (pstmtLength != null) {pstmtLength.close();}} catch (SQLException e) {}
-			try {if (pstmtProcessedRate != null) {pstmtProcessedRate.close();}} catch (SQLException e) {}
 			try {if (pstmtNewRate != null) {pstmtNewRate.close();}} catch (SQLException e) {}
+			try {if (pstmtStats != null) {pstmtStats.close();}} catch (SQLException e) {}
 		}
 
 		return queue;
