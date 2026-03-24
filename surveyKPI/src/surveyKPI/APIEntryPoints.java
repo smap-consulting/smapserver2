@@ -44,6 +44,7 @@ import org.smap.sdal.managers.ContactManager;
 import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
+import org.smap.sdal.managers.QueueManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.CaseCount;
@@ -53,6 +54,9 @@ import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.MailoutPersonDt;
 import org.smap.sdal.model.MailoutPersonTotals;
+import org.smap.sdal.model.Queue;
+import org.smap.sdal.model.QueueItem;
+import org.smap.sdal.model.QueueTime;
 import org.smap.sdal.model.SubItemDt;
 import org.smap.sdal.model.SubsDt;
 import org.smap.sdal.model.TaskListGeoJson;
@@ -84,18 +88,23 @@ public class APIEntryPoints extends Application {
 	
 	Authorise aAdminAnalyst = null;
 	Authorise aContacts = null;
-	
+	Authorise aOwner = null;
+
 	boolean forDevice = false;	// Attachment URL prefixes should be in the client format
-	
+
 	public APIEntryPoints() {
-		ArrayList<String> authMailout = new ArrayList<String> ();	
+		ArrayList<String> authMailout = new ArrayList<String> ();
 		authMailout.add(Authorise.ADMIN);
 		authMailout.add(Authorise.ANALYST);
 		aAdminAnalyst = new Authorise(authMailout, null);
-		
-		ArrayList<String> authContacts = new ArrayList<String> ();	
+
+		ArrayList<String> authContacts = new ArrayList<String> ();
 		authContacts.add(Authorise.ADMIN);
-		aContacts = new Authorise(authContacts, null);		
+		aContacts = new Authorise(authContacts, null);
+
+		ArrayList<String> authOwner = new ArrayList<String> ();
+		authOwner.add(Authorise.OWNER);
+		aOwner = new Authorise(authOwner, null);
 	}
 	
 	/*
@@ -741,6 +750,142 @@ public class APIEntryPoints extends Application {
 		return response;
 	}
 	
+	/*
+	 * Returns current status of a named queue (length, rates, active workers)
+	 */
+	@GET
+	@Path("/queues/{queue}")
+	@Produces("application/json")
+	public Response getQueueStatus(@Context HttpServletRequest request,
+			@PathParam("queue") String queueName) throws ApplicationException {
+
+		Response response = null;
+		String connectionString = "APIEntryPoints - getQueueStatus";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aOwner.isAuthorised(sd, request.getRemoteUser());
+
+		try {
+			QueueManager qm = new QueueManager();
+			Queue q = new Queue();
+			boolean error = false;
+
+			if(queueName.equals(qm.SUBMISSIONS)) {
+				q = qm.getSubmissionQueueData(sd);
+			} else if(queueName.equals(qm.RESTORE)) {
+				q = qm.getRestoreQueueData(sd);
+			} else if(queueName.equals(qm.S3UPLOAD)) {
+				q = qm.getS3UploadQueueData(sd);
+			} else if(queueName.equals(qm.SUBEVENT)) {
+				q = qm.getSubEventQueueData(sd);
+			} else if(queueName.equals(qm.MESSAGE)) {
+				q = qm.getMessageQueueData(sd);
+			} else if(queueName.equals(qm.MESSAGE_DEVICE)) {
+				q = qm.getMessageDeviceQueueData(sd);
+			} else {
+				error = true;
+			}
+
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			if(error) {
+				response = Response.ok("Unknown queue: " + queueName).build();
+			} else {
+				response = Response.ok(gson.toJson(q)).build();
+			}
+
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+
+	/*
+	 * Returns history of queue changes over the specified interval (minutes)
+	 */
+	@GET
+	@Path("/queues/history/{interval}")
+	@Produces("application/json")
+	public Response getQueueHistory(@Context HttpServletRequest request,
+			@PathParam("interval") int interval,
+			@QueryParam("tz") String tz) throws ApplicationException {
+
+		Response response = null;
+		String connectionString = "APIEntryPoints - getQueueHistory";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aOwner.isAuthorised(sd, request.getRemoteUser());
+
+		QueueManager qm = new QueueManager();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
+		try {
+			ArrayList<QueueTime> data = qm.getHistory(sd, interval, tz, request.getRemoteUser());
+			response = Response.ok(gson.toJson(data)).build();
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+
+	/*
+	 * Returns individual queue items (e.g. errors) for the named queue
+	 */
+	@GET
+	@Path("/queues/{queue}/items")
+	@Produces("application/json")
+	public Response getQueueItems(@Context HttpServletRequest request,
+			@PathParam("queue") String queueName,
+			@QueryParam("status") String status,
+			@QueryParam("month") int month,
+			@QueryParam("year") int year,
+			@QueryParam("tz") String tz) throws ApplicationException {
+
+		Response response = null;
+		String connectionString = "APIEntryPoints - getQueueItems";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aOwner.isAuthorised(sd, request.getRemoteUser());
+
+		if(tz == null) { tz = "UTC"; }
+
+		Connection cResults = null;
+		try {
+			cResults = ResultsDataSource.getConnection(connectionString);
+
+			QueueManager qm = new QueueManager();
+			ArrayList<QueueItem> items = new ArrayList<>();
+
+			if(queueName.equals(qm.SUBMISSIONS)) {
+				// placeholder – submission item drill-down not yet implemented
+			}
+			if(queueName.equals(qm.S3UPLOAD)) {
+				qm.getS3UploadQueueEvents(sd, items, month, year, status, tz);
+			} else {
+				log.info("Unknown queue name: " + queueName);
+			}
+
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			response = Response.ok(gson.toJson(items)).build();
+
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+		}
+
+		return response;
+	}
+
 	/*
 	 * Returns a single task assignment
 	 */

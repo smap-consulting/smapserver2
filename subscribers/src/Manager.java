@@ -1,11 +1,15 @@
 import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.Document;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ServerSettings;
@@ -74,18 +78,25 @@ public class Manager {
 	 * up without disturbing other subscribers that are still running.
 	 */
 	private static void clearWorkers(String smapId) {
-		DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
-		DatabaseConnections dbc = new DatabaseConnections();
+		Connection sd = null;
 		try {
-			GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, "./" + smapId);
-			PreparedStatement pstmt = dbc.sd.prepareStatement(
+			DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			Document xmlConf = db.parse(new java.io.File("./" + smapId + "/metaDataModel.xml"));
+			String dbClass  = xmlConf.getElementsByTagName("dbclass").item(0).getTextContent();
+			String database = xmlConf.getElementsByTagName("database").item(0).getTextContent();
+			String user     = xmlConf.getElementsByTagName("user").item(0).getTextContent();
+			String password = xmlConf.getElementsByTagName("password").item(0).getTextContent();
+			Class.forName(dbClass);
+			sd = DriverManager.getConnection(database, user, password);
+			PreparedStatement pstmt = sd.prepareStatement(
 					"delete from subscriber_worker where heartbeat < now() - interval '5 minutes'");
 			pstmt.executeUpdate();
 			pstmt.close();
 		} catch(Exception e) {
 			log.log(Level.WARNING, "Could not clear subscriber_worker: " + e.getMessage(), e);
 		} finally {
-			try {if(dbc.sd != null) {dbc.sd.close();}} catch(Exception e) {}
+			try {if(sd != null) {sd.close();}} catch(Exception e) {}
 		}
 	}
 
