@@ -244,8 +244,12 @@ public class QueueManager {
 	public Queue getMessageQueueData(Connection sd) throws SQLException {
 
 		PreparedStatement pstmtLength = null;
-		PreparedStatement pstmtProcessedRate = null;
 		PreparedStatement pstmtNewRate = null;
+		PreparedStatement pstmtStats = null;
+
+		// Topic filter used in multiple queries
+		String topicFilter = "and topic != 'task' and topic != 'survey' and topic != 'user' "
+				+ "and topic != 'project' and topic != 'resource' ";
 
 		Queue queue = new Queue();
 		try {
@@ -254,46 +258,62 @@ public class QueueManager {
 					+ "from message "
 					+ "where outbound "
 					+ "and processed_time is null "
-					+ "and topic != 'task' and topic != 'survey' and topic != 'user' and topic != 'project' and topic != 'resource' ";
-
+					+ topicFilter;
 			pstmtLength = sd.prepareStatement(sqlLength);
-			//log.info("Get queue length: " + pstmtLength.toString());
 			ResultSet rs = pstmtLength.executeQuery();
 			if(rs.next()) {
 				queue.length = rs.getInt(1);
-			}
-
-			String sqlProcessedRate = "select count(*) "
-					+ "from message "
-					+ "where processed_time > now() - interval '1 minute' "
-					+ "and outbound "
-					+ "and topic != 'task' and topic != 'survey' and topic != 'user' and topic != 'project' and topic != 'resource' ";
-
-			pstmtProcessedRate = sd.prepareStatement(sqlProcessedRate);
-
-			rs = pstmtProcessedRate.executeQuery();
-			while(rs.next()) {
-				queue.processed_rpm += rs.getInt(1);	// Processed updated for all status values
 			}
 
 			String sqlNewRate = "select count(*) "
 					+ "from message "
 					+ "where created_time > now() - interval '1 minute' "
 					+ "and outbound "
-					+ "and topic != 'task' and topic != 'survey' and topic != 'user' and topic != 'project' and topic != 'resource' ";
-
+					+ topicFilter;
 			pstmtNewRate = sd.prepareStatement(sqlNewRate);
-
 			rs = pstmtNewRate.executeQuery();
 			if(rs.next()) {
 				queue.new_rpm = rs.getInt(1);
 			}
 
+			// Single stats query grouped by worker: drives both queue totals and per-worker counts
+			String sqlStats = "select worker_host, status, count(*) "
+					+ "from message "
+					+ "where processed_time > now() - interval '1 minute' "
+					+ "and outbound "
+					+ topicFilter
+					+ "group by worker_host, status";
+			pstmtStats = sd.prepareStatement(sqlStats);
+
+			queue.workers = getActiveWorkers(sd, "queue_name like 'qm%'");
+
+			rs = pstmtStats.executeQuery();
+			while(rs.next()) {
+				String host = rs.getString("worker_host");
+				String status = rs.getString("status");
+				int count = rs.getInt(3);
+
+				queue.processed_rpm += count;
+				if("error".equals(status)) {
+					queue.error_rpm += count;
+				}
+
+				if(host != null) {
+					for(WorkerInfo w : queue.workers) {
+						if(w.hostname.equals(host)) {
+							w.processed_rpm += count;
+							if("error".equals(status)) {
+								w.error_rpm += count;
+							}
+						}
+					}
+				}
+			}
 
 		} finally {
 			try {if (pstmtLength != null) {pstmtLength.close();}} catch (SQLException e) {}
-			try {if (pstmtProcessedRate != null) {pstmtProcessedRate.close();}} catch (SQLException e) {}
 			try {if (pstmtNewRate != null) {pstmtNewRate.close();}} catch (SQLException e) {}
+			try {if (pstmtStats != null) {pstmtStats.close();}} catch (SQLException e) {}
 		}
 
 		return queue;

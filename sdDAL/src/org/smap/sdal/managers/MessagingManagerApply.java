@@ -68,10 +68,11 @@ public class MessagingManagerApply {
 	/*
 	 * Apply any outbound messages
 	 */
-	public void applyOutbound(Connection sd, Connection cResults, 
+	public void applyOutbound(Connection sd, Connection cResults,
 			String queueName,
-			String serverName, 
-			String basePath, 
+			String workerHost,
+			String serverName,
+			String basePath,
 			String urlprefix,
 			String attachmentPrefix,
 			String hyperlinkPrefix,
@@ -85,9 +86,10 @@ public class MessagingManagerApply {
 		String sqlConfirm = "update message "
 				+ "set processed_time = now(), "
 				+ "status = ?, "
+				+ "worker_host = ?, "
 				+ "queued = false "
 				+ "where id = ? ";
-		
+
 		String sqlNotProcessed = "update message "
 				+ "set queued = false "
 				+ "where id = ? ";
@@ -359,7 +361,8 @@ public class MessagingManagerApply {
 								status += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
 							}
 							pstmtConfirm.setString(1, status);
-							pstmtConfirm.setInt(2, id);
+							pstmtConfirm.setString(2, workerHost);
+							pstmtConfirm.setInt(3, id);
 							GeneralUtilityMethods.log(log, pstmtConfirm.toString(), queueName, String.valueOf(id));
 							pstmtConfirm.executeUpdate();
 						} else {

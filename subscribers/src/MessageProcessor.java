@@ -53,31 +53,47 @@ public class MessageProcessor {
 		String attachmentPrefix;
 		String hyperlinkPrefix;
 		String basePath;
-		String queueName;	
+		String queueName;
+		String hostname;
+		String subscriberType;
+		long pid;
 		VonageClient vonageClient = null;
-		
-		public MessageLoop(String basePath, String queueName) {
+
+		public MessageLoop(String basePath, String queueName, String hostname, String subscriberType, long pid) {
 			this.basePath = basePath;
-			this.queueName = queueName;	
+			this.queueName = queueName;
+			this.hostname = hostname;
+			this.subscriberType = subscriberType;
+			this.pid = pid;
 		}
 
 		public void run() {
 
 			int delaySecs = 2;
-		
+
+			String sqlRegisterWorker = "insert into subscriber_worker "
+					+ "(hostname, pid, subscriber_type, queue_name, started_time, heartbeat) "
+					+ "values(?, ?, ?, ?, now(), now())";
+			String sqlHeartbeat = "update subscriber_worker "
+					+ "set heartbeat = now() "
+					+ "where hostname = ? and pid = ? and queue_name = ?";
+
 			MessagingManagerApply mma = new MessagingManagerApply();
-			
+
+			PreparedStatement pstmtHeartbeat = null;
+			boolean registered = false;
+
 			boolean loop = true;
 			while(loop) {
-				
+
 				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/smap/settings/subscriber");
 				if(subscriberControl != null && subscriberControl.equals("stop")) {
 					GeneralUtilityMethods.log(log, "---------- Message Processor Stopped", queueName, null);
 					loop = false;
 				} else {
-					
+
 					System.out.print("(m)");		// Record the running of the message processor
-					
+
 					try {
 						// Make sure we have a connection to the database
 						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
@@ -86,22 +102,44 @@ public class MessageProcessor {
 						attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefixBatch(serverName, forDevice);
 						// hyperlink prefix assumes that the hyperlink will be used by a human, hence always use client authentication
 						hyperlinkPrefix = GeneralUtilityMethods.getAttachmentPrefixBatch(serverName, false);
-						
+
+						if(pstmtHeartbeat == null) {
+							pstmtHeartbeat = dbc.sd.prepareStatement(sqlHeartbeat);
+						}
+
+						// Register this worker on first successful connection
+						if(!registered) {
+							PreparedStatement pstmtReg = dbc.sd.prepareStatement(sqlRegisterWorker);
+							pstmtReg.setString(1, hostname);
+							pstmtReg.setLong(2, pid);
+							pstmtReg.setString(3, subscriberType);
+							pstmtReg.setString(4, queueName);
+							pstmtReg.executeUpdate();
+							pstmtReg.close();
+							registered = true;
+						}
+
+						// Heartbeat
+						pstmtHeartbeat.setString(1, hostname);
+						pstmtHeartbeat.setLong(2, pid);
+						pstmtHeartbeat.setString(3, queueName);
+						pstmtHeartbeat.executeUpdate();
+
 						/*
 						 * Get a vonage client
 						 */
-						
+
 						if(vonageClient == null) {
 							ConversationManager convMgr = new ConversationManager(null, null);
 							vonageClient = convMgr.getVonageClient(dbc.sd);
 						}
-						
-						try { 
-							
+
+						try {
+
 							/*
 							 * Send messages
 							 */
-							mma.applyOutbound(dbc.sd, dbc.results, queueName, serverName, 
+							mma.applyOutbound(dbc.sd, dbc.results, queueName, hostname, serverName,
 									basePath,
 									urlprefix,
 									attachmentPrefix,
@@ -110,9 +148,12 @@ public class MessageProcessor {
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}
-						
+
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
+						try {if (pstmtHeartbeat != null) { pstmtHeartbeat.close(); }} catch (Exception ex) {}
+						pstmtHeartbeat = null;
+						registered = false;
 					}
 					
 					// Sleep and then go again
@@ -127,6 +168,7 @@ public class MessageProcessor {
 
 			// Cleanup resources when loop exits
 			vonageClient = null;  // Release for GC
+			try {if (pstmtHeartbeat != null) { pstmtHeartbeat.close();}} catch (SQLException e) {}
 			try {if (dbc.sd != null) { dbc.sd.close();}} catch (SQLException e) {}
 			try {if (dbc.results != null) { dbc.results.close();}} catch (SQLException e) {}
 			GeneralUtilityMethods.log(log, "---------- Message Processor resources released", queueName, null);
@@ -137,14 +179,14 @@ public class MessageProcessor {
 	/**
 	 * @param args
 	 */
-	public void go(String smapId, String basePath, String queueName) {
+	public void go(String smapId, String basePath, String queueName, String hostname, String subscriberType, long pid) {
 
 		confFilePath = "./" + smapId;
 
 		try {
 			
 			// Send any pending messages
-			Thread t = new Thread(new MessageLoop(basePath, queueName));
+			Thread t = new Thread(new MessageLoop(basePath, queueName, hostname, subscriberType, pid));
 			t.start();
 				
 

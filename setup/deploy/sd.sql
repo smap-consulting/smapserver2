@@ -288,3 +288,4 @@ ALTER TABLE subscriber_worker OWNER TO ws;
 
 alter table upload_event add column if not exists worker_host text;
 alter table s3upload add column if not exists worker_id text;
+alter table message add column if not exists worker_host text;

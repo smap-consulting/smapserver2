@@ -1316,7 +1316,8 @@ create TABLE message (
 	processed_time TIMESTAMP WITH TIME ZONE,
 	status text,
 	queue_name text,
-	queued boolean default false
+	queued boolean default false,
+	worker_host text
 );
 CREATE index msg_outbound ON message(outbound);
 CREATE index msg_processing_time ON message(processed_time);

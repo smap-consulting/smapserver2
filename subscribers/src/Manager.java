@@ -176,7 +176,7 @@ public class Manager {
 			 * Start the message processor in the forward processor
 			 */
 			MessageProcessor messageProcessor1 = new MessageProcessor();
-			messageProcessor1.go(smapId, fileLocn, "qm1");
+			messageProcessor1.go(smapId, fileLocn, "qm1", hostname, subscriberType, pid);
 
 		} else {
 			// Start the default submission queue processor in the upload subscriber
@@ -191,7 +191,7 @@ public class Manager {
 			 * Start the message processor in the upload processor
 			 */
 			MessageProcessor messageProcessor2 = new MessageProcessor();
-			messageProcessor2.go(smapId, fileLocn, "qm2");
+			messageProcessor2.go(smapId, fileLocn, "qm2", hostname, subscriberType, pid);
 		}
 		
 		
