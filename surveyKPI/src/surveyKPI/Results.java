@@ -278,18 +278,18 @@ public class Results extends Application {
 			
 			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "View results for question " + aQ.getName(), 0, request.getServerName());
 			
-			 // Get the filter
+			 // Get the filter by value
 			Filter filter = null;
-			String sqlFilter = "";
+			StringBuilder sqlFilter = new StringBuilder("");
 			if(sFilter != null) {
 				Type type = new TypeToken<Filter>(){}.getType();
-				Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+				Gson gson =  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 				filter = gson.fromJson(sFilter, type);
 
 				fQ = new QuestionInfo(localisation, tz, sId, filter.qId, sd, cResults, request.getRemoteUser(),  hasGeo, lang, urlprefix, oId);	
 				q.add(fQ);
 				tables.add(fQ.getTableName(), fQ.getFId(), fQ.getParentFId());
-				sqlFilter = " and " + fQ.getFilterExpression(filter.value, null);
+				sqlFilter.append(" and ").append(fQ.getFilterExpression(filter.value, null));
 			}
 				
 			/*
@@ -312,7 +312,7 @@ public class Results extends Application {
 			
 			// Add the advanced filter fragment
 			if(advancedFilterFrag != null) {
-				sqlFilter += " and " + "(" + advancedFilterFrag.sql + ")";
+				sqlFilter.append(" and ").append("(").append(advancedFilterFrag.sql).append(")");
 				
 				for(int i = 0; i < advancedFilterFrag.columns.size(); i++) {
 					int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, advancedFilterFrag.humanNames.get(i));
@@ -358,7 +358,7 @@ public class Results extends Application {
 						}
 					}
 					if(rfString.length() > 0) {
-						sqlFilter += " and " + "(" + rfString.toString() + ")";
+						sqlFilter.append(" and ").append("(").append(rfString.toString()).append(")");
 					}
 				}
 			}
