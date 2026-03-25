@@ -545,15 +545,7 @@ public class QuestionInfo {
 		String filter = "";
 		if(qType != null) {
 			if(qType.equals("select")) {
-				
-				for(int i = 0; i < o.size(); i++) {
-					OptionInfo aO = o.get(i);
-					if(aO.getValue().equals(value1)) {
-						String oName = aO.getColumnName();
-						filter = tableName + "." + oName + " = 1 ";
-						break;
-					}
-				}
+				filter = tableName + "." + columnName + " ~* '\\m" + value1 + "\\M' ";
 			} else if(qType.equals("select1") || qType.equals("string") || qType.equals("calculate")) {
 				filter = tableName + "." + columnName + " =  '" + value1 + "' ";
 			} else if(value2 != null && (qType.equals("date") || qType.equals("dateTime"))) {
