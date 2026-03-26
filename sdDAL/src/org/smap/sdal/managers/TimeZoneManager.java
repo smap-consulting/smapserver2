@@ -52,7 +52,7 @@ public class TimeZoneManager {
 		try {
 			ArrayList<SmapTimeZone> timezones = new ArrayList<> ();
 			pstmt = sd.prepareStatement(sql);
-			log.info("Get timezones: " + pstmt.toString());
+			log.fine("Get timezones: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				String id = rs.getString(1);
@@ -102,7 +102,7 @@ public class TimeZoneManager {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
 			
 			pstmt = sd.prepareStatement(sql);
-			log.info("Refresh timezones: " + pstmt.toString());
+			log.fine("Refresh timezones: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 		} catch (Exception e) {

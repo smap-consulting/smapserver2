@@ -85,7 +85,7 @@ public class RateLimiter {
 					rate = rs.getInt("max_rate");
 					limit = rs.getInt("api_max_records");
 					lastConfigLoad = now;
-					log.info("Rate limit config loaded: rate=" + rate + ", limit=" + limit);
+					log.fine("Rate limit config loaded: rate=" + rate + ", limit=" + limit);
 				}
 			} finally {
 				try {if (rs != null) {rs.close();}} catch (SQLException e) {}
@@ -99,7 +99,7 @@ public class RateLimiter {
 	 */
 	public static void reset() {
 		synchronized(configLock) {
-			log.info("Rate limiter reset - forcing reload and clearing all buckets");
+			log.fine("Rate limiter reset - forcing reload and clearing all buckets");
 			lastConfigLoad = 0; // Force reload on next call
 			store.clear();
 		}

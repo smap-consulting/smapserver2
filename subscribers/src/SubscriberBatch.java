@@ -274,7 +274,7 @@ public class SubscriberBatch {
 								pstmtEnqueue.setBoolean(3, ue.getRestore());
 								pstmtEnqueue.setString(4, gson.toJson(ue));
 								pstmtEnqueue.executeUpdate();
-								log.info("Enqueue new submission: " + ue.getId());
+								log.fine("Enqueue new submission: " + ue.getId());
 							}
 
 							// Mark as queued
@@ -296,10 +296,8 @@ public class SubscriberBatch {
 					dbc.sd.setAutoCommit(true);
 				}
 
-				if (!foundUpload) {
-					System.out.print("_");  // Log running of upload processor
-				} else {
-					log.info("\nUploading: " + timeNow.toString());
+				if (foundUpload) {
+					log.fine("Uploading: " + timeNow.toString());
 				}
 
 				/*
@@ -321,7 +319,7 @@ public class SubscriberBatch {
 							pstmtEnqueueMessages.setString(4, rs.getString("description"));
 							pstmtEnqueueMessages.setString(5, rs.getString("data"));
 
-							log.info("Enqueue message: " + mId);
+							log.fine("Enqueue message: " + mId);
 
 							pstmtEnqueueMessages.executeUpdate();
 
@@ -414,7 +412,7 @@ public class SubscriberBatch {
 				 */
 				if(infrequentRefreshInterval-- <= 0) {
 					
-					log.info("xxxxxxxxxxxxxxxx: Infrequent refresh");
+					log.fine("xxxxxxxxxxxxxxxx: Infrequent refresh");
 					
 					// Refresh timezone
 					TimeZoneManager tmz = new TimeZoneManager();
@@ -438,7 +436,7 @@ public class SubscriberBatch {
 				 * Currently it is only used with fingerprints
 				 * Disable due to issues with accuracy of fingerprint linking
 				if(rebuildLinkageTable(dbc.sd)) {
-					log.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Rebuild Linkage ");
+					log.fine("%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Rebuild Linkage ");
 					
 					String sqlInst = "select table_name, f_id from form where s_id = ? and parentform = 0";
 					
@@ -483,7 +481,7 @@ public class SubscriberBatch {
 								String tableName = rs.getString("table_name");
 								int oId = rs.getInt("o_id");
 								ArrayList<KeyValueSimp> params = GeneralUtilityMethods.convertParametersToArray(rs.getString("parameters"));
-								log.info("------ " + sIdent + " : " + colName + " : " + tableName);
+								log.fine("------ " + sIdent + " : " + colName + " : " + tableName);
 								
 								Tables tables = new Tables(sId);
 								tables.add(tableName, fId, parentForm);
@@ -493,7 +491,7 @@ public class SubscriberBatch {
 									try {
 										pstmtInst.setInt(1, sId);
 
-										log.info("Getting main form: " + pstmt.toString());
+										log.fine("Getting main form: " + pstmt.toString());
 										ResultSet rsInst = pstmtInst.executeQuery();
 										if (rsInst.next()) {
 											String mainTable = rs.getString(1);
@@ -532,11 +530,11 @@ public class SubscriberBatch {
 								if(rsData != null) try {rsData.close();} catch (Exception e) {}
 								pstmtData = dbc.results.prepareStatement(sqlData.toString());
 								
-								log.info("Get values: " + pstmtData.toString());
+								log.fine("Get values: " + pstmtData.toString());
 								rsData = pstmtData.executeQuery();
 								while(rsData.next()) {
 									ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
-									log.info("  Value: " + rsData.getString(1));
+									log.fine("  Value: " + rsData.getString(1));
 									linkMgr.addDataitemToList(linkageItems, rsData.getString(colName), appearance, params, sIdent, colName);
 									linkMgr.writeItems(dbc.sd, oId, "rebuild", rsData.getString("instanceid"), linkageItems);
 								}
@@ -685,7 +683,7 @@ public class SubscriberBatch {
 					}
 				}
 				if(date == null) {
-					log.info("******** Failed to get date from: " + surveyDisplayName + " deleted date was: " + deletedDate);
+					log.fine("******** Failed to get date from: " + surveyDisplayName + " deleted date was: " + deletedDate);
 				} else {
 					try {
 						java.sql.Date dx = java.sql.Date.valueOf(date);
@@ -710,7 +708,7 @@ public class SubscriberBatch {
 				String surveyIdent = rs.getString("ident");
 				String surveyDisplayName = rs.getString("display_name");
 
-				log.info("######### Erasing: " + surveyDisplayName + " which was deleted on " +  deletedDate);
+				log.fine("######### Erasing: " + surveyDisplayName + " which was deleted on " +  deletedDate);
 				sm.deleteSurvey(sd, cResults, "auto erase", projectId, sId, surveyIdent, surveyDisplayName, basePath, true, "yes");
 			}
 
@@ -809,7 +807,7 @@ public class SubscriberBatch {
 				
 				File f = new File(filePath);
 				if(f.exists()) {
-					log.info("Delete linked CSV file: " + f.getAbsolutePath() + " logical delete date was " + logicalDelDate);
+					log.fine("Delete linked CSV file: " + f.getAbsolutePath() + " logical delete date was " + logicalDelDate);
 					f.delete();
 				}
 				pstmtFix.setInt(1,  id);
@@ -846,7 +844,7 @@ public class SubscriberBatch {
 		}
 		mediaCheckDone = true;
 		
-		log.info("############## Restore missing images start");
+		log.fine("############## Restore missing images start");
 		
 		try {
 			
@@ -869,7 +867,7 @@ public class SubscriberBatch {
 				int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
 				Organisation organisation = GeneralUtilityMethods.getOrganisation(dbc.sd, oId);
 				if(organisation == null) {
-					log.info("######### Deleted survey ignore" );
+					log.fine("######### Deleted survey ignore" );
 					continue;
 				}
 				Locale orgLocale = new Locale(organisation.locale);
@@ -931,7 +929,7 @@ public class SubscriberBatch {
 				}
 			}
 			
-			log.info("############## Restore missing images end ##############");
+			log.fine("############## Restore missing images end ##############");
 			
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -985,9 +983,9 @@ public class SubscriberBatch {
 			} else if(GeneralUtilityMethods.isAttachmentType(qType)) {
 						
 				if(value != null) {
-					log.info("############## Upload Event: " + ueId);
-					log.info("############## Upload file for media recovery: " + uploadFile);
-					log.info("################ Processing media. Value: " + value);
+					log.fine("############## Upload Event: " + ueId);
+					log.fine("############## Upload file for media recovery: " + uploadFile);
+					log.fine("################ Processing media. Value: " + value);
 					
 					/*
 					 * Check if database value points to a valid file
@@ -1004,12 +1002,12 @@ public class SubscriberBatch {
 						pstmt = cResults.prepareStatement(sql);
 						pstmt.setString(1, instanceid);
 						
-						log.info(pstmt.toString());
+						log.fine(pstmt.toString());
 						ResultSet rs = pstmt.executeQuery();
 						if(rs.next()) {
 							String dbValue = rs.getString(1);
 							if(dbValue != null) {
-								log.info("################ DB value is: " + dbValue);
+								log.fine("################ DB value is: " + dbValue);
 								
 								/*
 								 * Check file
@@ -1020,32 +1018,32 @@ public class SubscriberBatch {
 								// Check to see if the file exists in S3
 								boolean exists = S3AttachmentUpload.exists(basePath, path);
 								if(!exists) {
-									log.info("################ %%%%%%%%%%%%%% ");
-									log.info("################ %%%%%%%%%%%%%% " + dbValue + " does not exist in bucket ");	
-									log.info("################ %%%%%%%%%%%%%% File does not exist upload appropriate attachment");
-									log.info("################ %%%%%%%%%%%%%% instanceId: " + instanceid);
-									log.info("################ %%%%%%%%%%%%%% Submitted value: " + value);	
-									log.info("############## %%%%%%%%%%%%%% XML file: " + uploadFile);
-									log.info("################ %%%%%%%%%%%%%% File Path: " + f.getAbsolutePath());
+									log.fine("################ %%%%%%%%%%%%%% ");
+									log.fine("################ %%%%%%%%%%%%%% " + dbValue + " does not exist in bucket ");	
+									log.fine("################ %%%%%%%%%%%%%% File does not exist upload appropriate attachment");
+									log.fine("################ %%%%%%%%%%%%%% instanceId: " + instanceid);
+									log.fine("################ %%%%%%%%%%%%%% Submitted value: " + value);	
+									log.fine("############## %%%%%%%%%%%%%% XML file: " + uploadFile);
+									log.fine("################ %%%%%%%%%%%%%% File Path: " + f.getAbsolutePath());
 									
 									int idx = uploadFile.lastIndexOf("/");
 									String submittedImagePath = uploadFile.substring(0, idx) + "/" + value;
 									File sFile = new File(submittedImagePath);
-									log.info("################ %%%%%%%%%%%%%% Submitted File Path: " + sFile.getAbsolutePath());
+									log.fine("################ %%%%%%%%%%%%%% Submitted File Path: " + sFile.getAbsolutePath());
 									
 									if(f.exists() || sFile.exists()) {
-										log.info("################ %%%%%%%%%%%%%% Submitted File Exists");
+										log.fine("################ %%%%%%%%%%%%%% Submitted File Exists");
 										
 										// Copy the uploaded file to attachments folder
 										if(!f.exists()) {
 											FileUtils.copyFile(sFile, f);
-											log.info("################ %%%%%%%%%%%%%% File copied from submissions directory");
+											log.fine("################ %%%%%%%%%%%%%% File copied from submissions directory");
 										}
-										log.info("################ %%%%%%%%%%%%%% ^^^^^^^^^^^  Sending local file " + f.getAbsolutePath() + " to bucket ");
+										log.fine("################ %%%%%%%%%%%%%% ^^^^^^^^^^^  Sending local file " + f.getAbsolutePath() + " to bucket ");
 										//S3AttachmentUpload.put(basePath, f.getAbsolutePath());
 										
 									} else {
-										log.info("################ %%%%%%%%%%%%%% Submitted File Does not Exist skipping");
+										log.fine("################ %%%%%%%%%%%%%% Submitted File Does not Exist skipping");
 									}
 									
 									
@@ -1054,10 +1052,10 @@ public class SubscriberBatch {
 									//pstmt2.setString(1, newValue);
 									//pstmt2.setString(2, instanceid);
 									
-									//log.info("############### %%%%%%%%%%%%%% " + pstmt2.toString());
+									//log.fine("############### %%%%%%%%%%%%%% " + pstmt2.toString());
 									//pstmt2.executeUpdate();
 								} else {
-									log.info("################ File exists Skipping");
+									log.fine("################ File exists Skipping");
 								}
 							}
 							
@@ -1127,7 +1125,7 @@ public class SubscriberBatch {
 				}
 
 				if(idx++ == 0) {
-					log.info("\n-------------");
+					log.fine("\n-------------");
 				}
 				int tId = rs.getInt(1);
 				int nId = rs.getInt(2);
@@ -1286,7 +1284,7 @@ public class SubscriberBatch {
 			
 			// 1. Get case management alerts 
 			pstmt = sd.prepareStatement(sql);
-			//log.info("Cm alerts: " + pstmt.toString());
+			//log.fine("Cm alerts: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
@@ -1300,7 +1298,7 @@ public class SubscriberBatch {
 				int oId = GeneralUtilityMethods.getOrganisationIdForGroupSurveyIdent(sd, groupSurveyIdent);
 				
 				if(!isValidPeriod(period)) {
-					log.info("Error: ++++++ : Invalid Period: " + period);
+					log.fine("Error: ++++++ : Invalid Period: " + period);
 					continue;
 				}
 				if(GeneralUtilityMethods.tableExists(cResults, table)) {
@@ -1323,7 +1321,7 @@ public class SubscriberBatch {
 					CaseManagementSettings settings = settingsCache.get(groupSurveyIdent);
 					if(settings == null) {
 						pstmtSettings.setString(1,groupSurveyIdent);
-						//log.info("CMS Settings: " + pstmtSettings.toString());
+						//log.fine("CMS Settings: " + pstmtSettings.toString());
 						ResultSet srs = pstmtSettings.executeQuery();
 						if(srs.next()) {
 							settings = gson.fromJson(srs.getString("settings"), CaseManagementSettings.class);
@@ -1373,7 +1371,7 @@ public class SubscriberBatch {
 							try {
 								mrs = pstmtMatches.executeQuery();
 							} catch(Exception e) {
-								log.info("Error in search for case reminder for survey: "+ groupSurveyIdent + " check the alerts for this survey to find the error " + pstmtMatches.toString());
+								log.fine("Error in search for case reminder for survey: "+ groupSurveyIdent + " check the alerts for this survey to find the error " + pstmtMatches.toString());
 								throw e;
 							}
 							
@@ -1434,7 +1432,7 @@ public class SubscriberBatch {
 								 * Process notifications associated with this alert
 								 */
 								pstmtNotifications.setInt(1, aId);
-								log.info("Notifications to be triggered: " + pstmtNotifications.toString());
+								log.fine("Notifications to be triggered: " + pstmtNotifications.toString());
 
 								ResultSet notrs = pstmtNotifications.executeQuery();
 
@@ -1509,7 +1507,7 @@ public class SubscriberBatch {
 						}
 					 
 					} else {
-						//log.info("cm: no status settings");
+						//log.fine("cm: no status settings");
 					}
 				}
 			}
@@ -1583,7 +1581,7 @@ public class SubscriberBatch {
 			pstmtTriggered = cResults.prepareStatement(sqlTriggered);
 			pstmtUpdateNot = sd.prepareStatement(sqlUpdateNot);
 			pstmtNotifications = sd.prepareStatement(sqlNotifications);
-			//log.info("Server Calculate Notifications to be triggered: " + pstmtNotifications.toString());
+			//log.fine("Server Calculate Notifications to be triggered: " + pstmtNotifications.toString());
 
 			ResultSet notrs = pstmtNotifications.executeQuery();
 
@@ -1606,7 +1604,7 @@ public class SubscriberBatch {
 				
 				int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 				
-				//log.info("xxxxxxxxxxxxx server calculate notification for " + notificationName + " on table " + table);
+				//log.fine("xxxxxxxxxxxxx server calculate notification for " + notificationName + " on table " + table);
 				
 				ResourceBundle localisation = locMap.get(oId);
 				if(localisation == null) {
@@ -1668,12 +1666,12 @@ public class SubscriberBatch {
 						idx = GeneralUtilityMethods.setFragParams(pstmtMatches, filterFrag, idx, tz);
 					}
 					
-					log.info(pstmtMatches.toString());
+					log.fine(pstmtMatches.toString());
 					ResultSet rs = pstmtMatches.executeQuery();
 					while (rs.next()) {
 						String instanceid = rs.getString("instanceid");		// TODO - get these in a loop checking the server calculations in a survey
 						String thread = rs.getString("_thread");
-						log.info("Server Calculation Triggered for Instance: " + instanceid + " in table " + table);
+						log.fine("Server Calculation Triggered for Instance: " + instanceid + " in table " + table);
 
 						// Try to record the trigger - ON CONFLICT ensures only one server processes it
 						pstmtTriggered.setInt(1, nId);
@@ -1731,7 +1729,7 @@ public class SubscriberBatch {
 							MessagingManager mm = new MessagingManager(localisation);
 							mm.createMessage(sd, oId, NotificationManager.TOPIC_SERVER_CALC, "", gson.toJson(subMgr));
 						} else {
-							log.info("Message not send as the notification has been newly created ");
+							log.fine("Message not send as the notification has been newly created ");
 						}
 
 						// Write to the log
@@ -1743,7 +1741,7 @@ public class SubscriberBatch {
 						lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
 					}
 				} else {
-					log.info("Error: Server calculation is null or data table has not been created: " + notificationName);
+					log.fine("Error: Server calculation is null or data table has not been created: " + notificationName);
 				}
 				
 				/*
@@ -1879,7 +1877,7 @@ public class SubscriberBatch {
 				NotifyDetails nd = gson.fromJson(notifyDetailsString, NotifyDetails.class);
 
 				int oId = GeneralUtilityMethods.getOrganisationIdForReport(sd, rId);
-				log.info("----- Organisation for report is: " + oId);
+				log.fine("----- Organisation for report is: " + oId);
 				if(oId <= 0) {	// If the report is not valid and hence the organisation is not valid then continue
 					continue;
 				}
@@ -2019,7 +2017,7 @@ public class SubscriberBatch {
 					break;  // No more pending mailouts
 				}
 
-				log.info("----- Sending mailout");
+				log.fine("----- Sending mailout");
 				int id = rs.getInt("id");
 				int oId = rs.getInt("o_id");
 				String surveyIdent = rs.getString("survey_ident");
@@ -2056,7 +2054,7 @@ public class SubscriberBatch {
 				}
 
 				// Add user name to content
-				log.info("Add username to content: " + name);
+				log.fine("Add username to content: " + name);
 				String messageLink = link;
 				if(content == null) {
 					content = "Mailout";
@@ -2071,7 +2069,7 @@ public class SubscriberBatch {
 				}
 
 				// Send the Mailout Message
-				log.info("Create send message");
+				log.fine("Create send message");
 				MailoutMessage msg = new MailoutMessage(
 						id,
 						surveyIdent,
@@ -2103,7 +2101,7 @@ public class SubscriberBatch {
 				// record the sending of the notification
 				pstmtSent.setString(1, link);
 				pstmtSent.setInt(2, id);
-				log.info("Record sending of message: " + pstmtSent.toString());
+				log.fine("Record sending of message: " + pstmtSent.toString());
 				pstmtSent.executeUpdate();
 
 				sd.commit();  // Release lock, process next

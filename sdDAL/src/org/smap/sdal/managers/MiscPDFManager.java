@@ -76,7 +76,7 @@ public class MiscPDFManager {
 		int pagenumber = 0;
 		public void onStartPage(PdfWriter writer, Document document) {
 			pagenumber++;
-			log.info("Page number: " + pagenumber);
+			log.fine("Page number: " + pagenumber);
 
 			document.setMargins(marginLeft, marginRight, marginTop_2, marginBottom_2);
 			
@@ -124,7 +124,7 @@ public class MiscPDFManager {
 			
 			// Get fonts and embed them
 			String os = System.getProperty("os.name");
-			log.info("Operating System:" + os);
+			log.fine("Operating System:" + os);
 			
 			if(os.startsWith("Mac")) {
 				FontFactory.register("/Library/Fonts/fontawesome-webfont.ttf", "Symbols");
@@ -172,12 +172,12 @@ public class MiscPDFManager {
 			pstmt.setTimestamp(1, t1);
 			pstmt.setTimestamp(2, t2);
 			pstmt.setInt(3, o_id);
-			log.info("Get Usage Data: " + pstmt.toString());
+			log.fine("Get Usage Data: " + pstmt.toString());
 
 			
 			// If the PDF is to be returned in an http response then set the file name now
 			if(response != null) {
-				log.info("Setting filename to: " + filename);
+				log.fine("Setting filename to: " + filename);
 				GeneralUtilityMethods.setFilenameInResponse(filename, response);
 			}
 			
@@ -272,7 +272,7 @@ public class MiscPDFManager {
 				AcroFields pdfForm = s_stamper.getAcroFields();
 				Set<String> fields = pdfForm.getFields().keySet();
 				for(String key: fields) {
-					log.info("Field: " + key);
+					log.fine("Field: " + key);
 				}
 					
 				pdfForm.setField("billing_period", period);
@@ -330,7 +330,7 @@ public class MiscPDFManager {
 			
 			// Get fonts and embed them
 			String os = System.getProperty("os.name");
-			log.info("Operating System:" + os);
+			log.fine("Operating System:" + os);
 			
 			if(os.startsWith("Mac")) {
 				FontFactory.register("/Library/Fonts/fontawesome-webfont.ttf", "Symbols");
@@ -371,7 +371,7 @@ public class MiscPDFManager {
 			String filename = "tasks.pdf";
 			// If the PDF is to be returned in an http response then set the file name now
 			if(response != null) {
-				log.info("Setting filename to: " + filename);
+				log.fine("Setting filename to: " + filename);
 				GeneralUtilityMethods.setFilenameInResponse(filename, response);
 			}
 			

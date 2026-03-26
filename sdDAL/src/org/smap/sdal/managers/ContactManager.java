@@ -77,7 +77,7 @@ public class ContactManager {
 			pstmt.setString(paramCount++, tz);
 			pstmt.setInt(paramCount++, oId);
 			
-			log.info("Get subscriptions: " + pstmt.toString());
+			log.fine("Get subscriptions: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 				
 			while (rs.next()) {

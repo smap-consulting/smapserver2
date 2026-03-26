@@ -103,11 +103,11 @@ public class WebhookManager {
 		StringBody sba = new StringBody(payload, ContentType.TEXT_PLAIN);
 		entityBuilder.addPart("data", sba);
 		req.setEntity(entityBuilder.build());
-		log.info("	Info: Webhook request to: " + req.getURI().toString());
+		log.fine("	Info: Webhook request to: " + req.getURI().toString());
 		HttpResponse response = httpclient.execute(target, req, localContext);
 		int responseCode = response.getStatusLine().getStatusCode();
 		String responseReason = response.getStatusLine().getReasonPhrase(); 
-		log.info("	Info: Webhook response: " + responseCode + " : " + responseReason);
+		log.fine("	Info: Webhook response: " + responseCode + " : " + responseReason);
 		if(responseCode != HttpStatus.SC_OK && responseCode != HttpStatus.SC_ACCEPTED && responseCode != HttpStatus.SC_CREATED) {
 			throw new ApplicationException(responseCode + " : " + responseReason);
 		}

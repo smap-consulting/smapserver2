@@ -163,7 +163,7 @@ public class DocumentDataManager {
 				pstmt.setInt(index++, cat.age1);
 				pstmt.setInt(index++,  cat.age2);
 			
-				log.info("Get count: " + pstmt.toString());
+				log.fine("Get count: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) {
 					for(String col : qnames) {

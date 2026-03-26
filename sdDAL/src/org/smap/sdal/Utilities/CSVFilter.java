@@ -50,13 +50,13 @@ public class CSVFilter {
 		
 		if(idx1 > 0 && idx2 > idx1) {
 			String criteriaString = appearance.substring(idx1 + 1, idx2);
-			log.info("#### criteria for csv filter: " + criteriaString);
+			log.fine("#### criteria for csv filter: " + criteriaString);
 			
 			String criteria [] = criteriaString.split(",");
 			if(criteria.length < 4) {
 				
 				// This is presumably a search without a criteria - It can't have too many rows so lets include it
-				log.info("Info: Criteria elements less than 4, incude all rows");
+				log.fine("Info: Criteria elements less than 4, incude all rows");
 				includeAll = true;
 				
 			} else {
@@ -73,7 +73,7 @@ public class CSVFilter {
 						// remove quotes
 						criteria[i] = criteria[i].trim();
 						criteria[i] = criteria[i].substring(1, criteria[i].length() -1);
-						log.info("@@@@ criterion " + i + " " + criteria[i]);
+						log.fine("@@@@ criterion " + i + " " + criteria[i]);
 						
 						if(criteria[i].equals("contains")) {
 							r1.function = 1;	
@@ -84,7 +84,7 @@ public class CSVFilter {
 						} else if(criteria[i].equals("matches")) {
 							r1.function = 4;	
 						} else {
-							log.info("Error: unknown function, " + criteria[i]);
+							log.fine("Error: unknown function, " + criteria[i]);
 							return;
 						}
 					}
@@ -95,17 +95,17 @@ public class CSVFilter {
 						// remove quotes
 						criteria[i] = criteria[i].trim();
 						criteria[i] = criteria[i].substring(1, criteria[i].length() -1);
-						log.info("@@@@ criterion " + i + " " + criteria[i]);
+						log.fine("@@@@ criterion " + i + " " + criteria[i]);
 						
 						for(int j = 0; j < cols.length; j++) {
-							log.info("***: " + criteria[i] + " : " + cols[j]);
+							log.fine("***: " + criteria[i] + " : " + cols[j]);
 							if (criteria[i].equals(cols[j])) {
 								r1.column = j;
 								break;
 							}	
 						}
 						if(r1.column == -1) {
-							log.info("Error: no matching column");
+							log.fine("Error: no matching column");
 							return;
 						}
 					}
@@ -117,12 +117,12 @@ public class CSVFilter {
 						criteria[i] = criteria[i].trim();
 						if(criteria[i].charAt(0) == '\'') {
 							criteria[i] = criteria[i].substring(1, criteria[i].length() -1);
-							log.info("@@@@ value criterion " + i + " " + criteria[i]);
+							log.fine("@@@@ value criterion " + i + " " + criteria[i]);
 							
 							r1.value =  criteria[i];
 							
 						} else {	
-							log.info("Only static values can be filtered on");
+							log.fine("Only static values can be filtered on");
 							return;
 						}	
 					}
@@ -132,10 +132,10 @@ public class CSVFilter {
 						// remove quotes
 						criteria[i] = criteria[i].trim();
 						criteria[i] = criteria[i].substring(1, criteria[i].length() -1);
-						log.info("++++ Filter criterion " + i + " " + criteria[i]);
+						log.fine("++++ Filter criterion " + i + " " + criteria[i]);
 						
 						for(int j = 0; j < cols.length; j++) {
-							log.info("***: " + criteria[i] + " : " + cols[j]);
+							log.fine("***: " + criteria[i] + " : " + cols[j]);
 							if (criteria[i].equals(cols[j])) {
 								r2 = new Rule();
 								r2.column = j;
@@ -144,7 +144,7 @@ public class CSVFilter {
 							}	
 						}
 						if(r2 == null) {
-							log.info("Error: no matching column for filter ignore");
+							log.fine("Error: no matching column for filter ignore");
 						}
 					}
 					
@@ -155,12 +155,12 @@ public class CSVFilter {
 						criteria[i] = criteria[i].trim();
 						if(criteria[i].charAt(0) == '\'') {
 							criteria[i] = criteria[i].substring(1, criteria[i].length() -1);
-							log.info("+++ Filter value criterion " + i + " " + criteria[i]);
+							log.fine("+++ Filter value criterion " + i + " " + criteria[i]);
 							
 							r2.value =  criteria[i];
 							
 						} else {
-							log.info("Info dynamic filter value are not supported: Filter will be ignored.");
+							log.fine("Info dynamic filter value are not supported: Filter will be ignored.");
 							r2 = null;
 						}	
 					}
@@ -169,7 +169,7 @@ public class CSVFilter {
 				
 			}
 		} else {
-			log.info("Error: Unknown appearance: " + appearance);
+			log.fine("Error: Unknown appearance: " + appearance);
 		}
 		
 	}

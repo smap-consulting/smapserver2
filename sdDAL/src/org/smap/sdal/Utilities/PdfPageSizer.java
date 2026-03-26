@@ -172,7 +172,7 @@ public class PdfPageSizer extends PdfPageEventHelper {
 					}
 
 				} catch (Exception e) {
-					log.info("Error: Failed to add image " + fileName + " to pdf");
+					log.fine("Error: Failed to add image " + fileName + " to pdf");
 				}
 			}
 		}

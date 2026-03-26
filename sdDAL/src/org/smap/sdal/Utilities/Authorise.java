@@ -131,18 +131,18 @@ public class Authorise {
 				pstmt.setString(i + 2, permittedGroups.get(i));
 			}
 
-			log.info(GeneralUtilityMethods.getStringFromStatement(pstmt));
+			log.fine(GeneralUtilityMethods.getStringFromStatement(pstmt));
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			
 			count = resultSet.getInt(1);
 		} catch (Exception e) {
-			log.info("Authorisation failed for: " + user + " groups required were one of: " );
+			log.fine("Authorisation failed for: " + user + " groups required were one of: " );
 			if(pstmt!=null) {
-				log.info("isAuthorised: " + pstmt.toString());
+				log.fine("isAuthorised: " + pstmt.toString());
 			}
 			for(int i = 0; i < permittedGroups.size(); i++) {
-				log.info("  ==== " + permittedGroups.get(i));
+				log.fine("  ==== " + permittedGroups.get(i));
 			}
 			log.log(Level.SEVERE,"SQL Error during authorisation", e);
 			sqlError = true;
@@ -166,7 +166,7 @@ public class Authorise {
  				}
 				msg.append(permittedGroups.get(i));
 			}
- 			log.info(msg.toString());
+ 			log.fine(msg.toString());
  			
  			
  			lm.writeLog(sd, 0, user, LogManager.ERROR, msg.toString(), 0, null);		// Write the application log
@@ -201,7 +201,7 @@ public class Authorise {
 			pstmt = conn.prepareStatement(sql); 	
 			pstmt.setString(1, user);
 
-			log.info("is temporary user: " + pstmt.toString());
+			log.fine("is temporary user: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			
@@ -217,7 +217,7 @@ public class Authorise {
 		
 		// Check to see if the user was authorised to access this service
  		if(count == 0 || sqlError) {
- 			log.info("Authorisation failed for: " + user + " needs to be a temporary user");
+ 			log.fine("Authorisation failed for: " + user + " needs to be a temporary user");
  			SDDataSource.closeConnection("isAuthorised", conn);
 			
 			if(sqlError) {
@@ -259,7 +259,7 @@ public class Authorise {
 			pstmt.setInt(2, adminUserOrgId);
 			pstmt.setInt(3, uId);
 			pstmt.setInt(4, adminUserOrgId);
-			log.info("Validate user in correct organisation: " + pstmt.toString());
+			log.fine("Validate user in correct organisation: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 
 			if(resultSet.next()) {
@@ -280,7 +280,7 @@ public class Authorise {
 		
 		// Check to see if the user was authorised to access this service
  		if(count == 0 || sqlError) {
- 			log.info("Authorisation failed for: " + adminUser);
+ 			log.fine("Authorisation failed for: " + adminUser);
  			SDDataSource.closeConnection("isAuthorised", sd);
 			
 			if(sqlError) {
@@ -314,7 +314,7 @@ public class Authorise {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, userIdent);
 			pstmt.setString(2, adminUser);
-			log.info("Validate user in correct organisation: " + pstmt.toString());
+			log.fine("Validate user in correct organisation: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 
 			if(resultSet.next()) {
@@ -335,7 +335,7 @@ public class Authorise {
 		
 		// Check to see if the user was authorised to access this service
  		if(count == 0 || sqlError) {
- 			log.info("Authorisation failed for: " + adminUser);
+ 			log.fine("Authorisation failed for: " + adminUser);
  			SDDataSource.closeConnection("isAuthorised", sd);
 			
 			if(sqlError) {
@@ -384,7 +384,7 @@ public class Authorise {
 		
 		// Check to see if the org has billing enabled
  		if(count == 0 || sqlError) {
- 			log.info("Authorisation failed for: " + oId + " billing needs to be enabled for this organisation");
+ 			log.fine("Authorisation failed for: " + oId + " billing needs to be enabled for this organisation");
  			SDDataSource.closeConnection("isAuthorised", conn);
 			
 			if(sqlError) {
@@ -433,7 +433,7 @@ public class Authorise {
 		
 		// Check to see if the ent has billing enabled
  		if(count == 0 || sqlError) {
- 			log.info("Authorisation failed for: " + eId + " billing needs to be enabled for this enterprise");
+ 			log.fine("Authorisation failed for: " + eId + " billing needs to be enabled for this enterprise");
  			SDDataSource.closeConnection("isAuthorised", conn);
 			
 			if(sqlError) {
@@ -500,8 +500,8 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
-			log.info("IsValidSurvey: " + pstmt.toString());
- 			log.info("Survey validation failed for: " + user + " survey was: " + sId);
+			log.fine("IsValidSurvey: " + pstmt.toString());
+ 			log.fine("Survey validation failed for: " + user + " survey was: " + sId);
  			
  			SDDataSource.closeConnection("isValidSurvey", conn);
 			
@@ -559,8 +559,8 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
-			log.info("IsValidCaseManagementAlert: " + pstmt.toString());
- 			log.info("Case management setting validation failed for: " + user + " case management alert id was: " + id);
+			log.fine("IsValidCaseManagementAlert: " + pstmt.toString());
+ 			log.fine("Case management setting validation failed for: " + user + " case management alert id was: " + id);
  			
  			SDDataSource.closeConnection("isValidAlert", conn);
 			
@@ -634,8 +634,8 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
-			log.info("IsValidSurvey: " + pstmt.toString());
- 			log.info("Survey validation failed for: " + user + " survey was: " + sIdent);
+			log.fine("IsValidSurvey: " + pstmt.toString());
+ 			log.fine("Survey validation failed for: " + user + " survey was: " + sIdent);
  			
  			SDDataSource.closeConnection("isValidSurvey", conn);
 			
@@ -713,8 +713,8 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
-			log.info("IsValidBundle: " + pstmt.toString());
- 			log.info("Bundle validation failed for: " + user + " survey was: " + sIdent);
+			log.fine("IsValidBundle: " + pstmt.toString());
+ 			log.fine("Bundle validation failed for: " + user + " survey was: " + sIdent);
  			
  			SDDataSource.closeConnection("isValidSurvey", conn);
 			
@@ -775,8 +775,8 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
-			log.info("IsValidPdfTemplate: " + pstmt.toString());
- 			log.info("Pdf validation failed for: " + user + "  template was: " + id);
+			log.fine("IsValidPdfTemplate: " + pstmt.toString());
+ 			log.fine("Pdf validation failed for: " + user + "  template was: " + id);
  			
  			SDDataSource.closeConnection("isValidPdfTemplate", conn);
 			
@@ -829,8 +829,8 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
-			log.info("IsValidSurvey: " + pstmt.toString());
- 			log.info("Survey validation failed for survey: " + sIdent);
+			log.fine("IsValidSurvey: " + pstmt.toString());
+ 			log.fine("Survey validation failed for survey: " + sIdent);
  			
  			SDDataSource.closeConnection("isValidSurvey", conn);
 			
@@ -866,7 +866,7 @@ public class Authorise {
 			pstmt.setInt(1, messageId);
 			pstmt.setString(2, user);
 			
-			log.info("IsValidMessage: " + pstmt.toString());
+			log.fine("IsValidMessage: " + pstmt.toString());
 			
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
@@ -886,7 +886,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Message validation failed for: " + user + " message id was: " + messageId);
+ 			log.fine("Message validation failed for: " + user + " message id was: " + messageId);
  			
  			SDDataSource.closeConnection("isValidMessage", conn);
 			
@@ -923,7 +923,7 @@ public class Authorise {
 			pstmt.setInt(1, id);
 			pstmt.setString(2, user);
 			
-			log.info("IsValidOptin: " + pstmt.toString());
+			log.fine("IsValidOptin: " + pstmt.toString());
 			
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
@@ -943,7 +943,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("optin validation failed for: " + user + " opt in id was: " + id);
+ 			log.fine("optin validation failed for: " + user + " opt in id was: " + id);
  			
  			SDDataSource.closeConnection(connectionString, conn);
 			
@@ -993,7 +993,7 @@ public class Authorise {
 			if(!superUser) {
 				pstmt.setString(3, user);
 			}
-			log.info("IsValidSurvey: " + pstmt.toString());
+			log.fine("IsValidSurvey: " + pstmt.toString());
 			
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
@@ -1013,7 +1013,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Survey validation failed for: " + user + " survey was: " + sId);
+ 			log.fine("Survey validation failed for: " + user + " survey was: " + sId);
  			
  			SDDataSource.closeConnection("isValidSurvey", conn);
 			
@@ -1053,7 +1053,7 @@ public class Authorise {
 			pstmt.setInt(1, queryId);
 			pstmt.setString(2, user);
 			
-			log.info("IsValidQuery: " + pstmt.toString());
+			log.fine("IsValidQuery: " + pstmt.toString());
 			
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
@@ -1073,7 +1073,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Error: Query validation failed for: " + user + " query was: " + queryId);
+ 			log.fine("Error: Query validation failed for: " + user + " query was: " + queryId);
  			
  			SDDataSource.closeConnection("isValidQuery", conn);
 			
@@ -1116,7 +1116,7 @@ public class Authorise {
 			pstmt.setInt(1, viewId);
 			pstmt.setString(2, user);
 			
-			log.info("IsValidView: " + pstmt.toString());
+			log.fine("IsValidView: " + pstmt.toString());
 			
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
@@ -1136,7 +1136,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Error: Query validation failed for: " + user + " query was: " + viewId);
+ 			log.fine("Error: Query validation failed for: " + user + " query was: " + viewId);
  			
  			SDDataSource.closeConnection("isValidView", conn);
 			
@@ -1174,7 +1174,7 @@ public class Authorise {
 			pstmt.setString(1, user);
 			pstmt.setInt(2, rId);
 			
-			log.info("IsValidRole: " + pstmt.toString());
+			log.fine("IsValidRole: " + pstmt.toString());
 			
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
@@ -1194,7 +1194,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Survey validation failed for: " + user + " role was: " + rId);
+ 			log.fine("Survey validation failed for: " + user + " role was: " + rId);
  			
  			SDDataSource.closeConnection("isValidRole", conn);
 			
@@ -1234,7 +1234,7 @@ public class Authorise {
 			pstmt.setInt(1, crId);
 			pstmt.setString(2, user);
 			
-			log.info("IsValidCustomReport: " + pstmt.toString());
+			log.fine("IsValidCustomReport: " + pstmt.toString());
 			
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
@@ -1254,7 +1254,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Survey validation failed for: " + user + " custom report was: " + crId);
+ 			log.fine("Survey validation failed for: " + user + " custom report was: " + crId);
  			
  			SDDataSource.closeConnection("isValidSurvey", conn);
 			
@@ -1298,7 +1298,7 @@ public class Authorise {
 			pstmt.setString(2,  oversightSurveyIdent);
 			pstmt.setInt(3,  sId);
 			
-			log.info("IsValidGroupSurvey: " + pstmt.toString());
+			log.fine("IsValidGroupSurvey: " + pstmt.toString());
 			
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
@@ -1318,7 +1318,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Survey validation failed for: " + user + " custom survey was: " + oversightSurveyIdent);
+ 			log.fine("Survey validation failed for: " + user + " custom survey was: " + oversightSurveyIdent);
  			
  			SDDataSource.closeConnection("isValidSurvey", conn);
 			
@@ -1354,7 +1354,7 @@ public class Authorise {
 			pstmt.setInt(1, tgId);
 			pstmt.setString(2, user);
 			
-			log.info("IsValidTaskGroup: " + pstmt.toString());
+			log.fine("IsValidTaskGroup: " + pstmt.toString());
 			
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
@@ -1374,7 +1374,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Survey validation failed for: " + user + " task group was: " + tgId);
+ 			log.fine("Survey validation failed for: " + user + " task group was: " + tgId);
  			
  			SDDataSource.closeConnection("isValidTaskGroup", conn);
 			
@@ -1414,7 +1414,7 @@ public class Authorise {
 			pstmt.setInt(1, sId);
 			pstmt.setInt(2, qId);
 			
-			log.info("IsValidQuestion: " + pstmt.toString());
+			log.fine("IsValidQuestion: " + pstmt.toString());
 			
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
@@ -1434,7 +1434,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Question validation failed for question: " + qId + " survey was: " + sId);
+ 			log.fine("Question validation failed for question: " + qId + " survey was: " + sId);
  			
  			SDDataSource.closeConnection("isValidQuestion", conn);
 			
@@ -1475,7 +1475,7 @@ public class Authorise {
 			pstmt.setInt(1, sId);
 			pstmt.setString(2, qName);
 			
-			log.info("IsValidQuestion: " + pstmt.toString());
+			log.fine("IsValidQuestion: " + pstmt.toString());
 			
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
@@ -1508,7 +1508,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Question name validation failed for question: " + qName + " survey was: " + sId);
+ 			log.fine("Question name validation failed for question: " + qName + " survey was: " + sId);
  			
  			SDDataSource.closeConnection("isValidQuestion", conn);
 			
@@ -1542,7 +1542,7 @@ public class Authorise {
 			pstmt = conn.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 			
-			log.info("isBlocked: " + pstmt.toString());
+			log.fine("isBlocked: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			
@@ -1569,7 +1569,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Survey validation failed for block check: " + isBlocked + " survey was: " + sId);
+ 			log.fine("Survey validation failed for block check: " + isBlocked + " survey was: " + sId);
  			
  			SDDataSource.closeConnection("isBlocked", conn);
 			
@@ -1601,7 +1601,7 @@ public class Authorise {
 			pstmt = conn.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 			
-			log.info("Verify can load tasks: " + pstmt.toString());
+			log.fine("Verify can load tasks: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			
@@ -1620,7 +1620,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Survey validation failed for can load tasks: survey was: " + sId);
+ 			log.fine("Survey validation failed for can load tasks: survey was: " + sId);
  			
  			SDDataSource.closeConnection("canLoadTasks", conn);
 			
@@ -1653,7 +1653,7 @@ public class Authorise {
 			pstmt = conn.prepareStatement(sql);
 			pstmt.setInt(1, pId);
 			pstmt.setString(2, user);
-			log.info("IsValidProject: " + pstmt.toString());
+			log.fine("IsValidProject: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			
@@ -1672,7 +1672,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Project validation failed for: " + user + " project was: " + pId);
+ 			log.fine("Project validation failed for: " + user + " project was: " + pId);
  			
  			SDDataSource.closeConnection("isValidProject", conn);
 			
@@ -1705,7 +1705,7 @@ public class Authorise {
 			pstmt = conn.prepareStatement(sql);
 			pstmt.setInt(1, pId);
 			pstmt.setInt(2, oId);
-			log.info("IsProjectInUsersOrganisation: " + pstmt.toString());
+			log.fine("IsProjectInUsersOrganisation: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			
@@ -1723,7 +1723,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Project in organisation validation failed for: " + user + " project was: " + pId);
+ 			log.fine("Project in organisation validation failed for: " + user + " project was: " + pId);
  			
  			SDDataSource.closeConnection("isValidProject", conn);
 			
@@ -1774,7 +1774,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Survey in organisation validation failed for: " + user + " survey ident was: " + sIdent);
+ 			log.fine("Survey in organisation validation failed for: " + user + " survey ident was: " + sIdent);
  			
  			SDDataSource.closeConnection("isValidProject", conn);
 			
@@ -1806,7 +1806,7 @@ public class Authorise {
 			pstmt.setInt(1, oId);
 			pstmt.setString(2, user);
 			pstmt.setInt(3, oId);
-			log.info("IsValidOrganisation: " + pstmt.toString());
+			log.fine("IsValidOrganisation: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			
@@ -1825,7 +1825,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Security: Organisation validation failed for: " + user + " organisation was: " + oId);
+ 			log.fine("Security: Organisation validation failed for: " + user + " organisation was: " + oId);
  			
  			SDDataSource.closeConnection("isValidOrganisation", conn);
 			
@@ -1857,7 +1857,7 @@ public class Authorise {
 			pstmt = conn.prepareStatement(sql);
 			pstmt.setString(1, user);
 			pstmt.setInt(2, oId);
-			log.info("IsOrganisationInEnterprise: " + pstmt.toString());
+			log.fine("IsOrganisationInEnterprise: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			
@@ -1876,7 +1876,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Security: Enterprise validation failed for: " + user + " organisation was: " + oId);
+ 			log.fine("Security: Enterprise validation failed for: " + user + " organisation was: " + oId);
  			
  			SDDataSource.closeConnection("isOrganisationInEnterprise", conn);
 			
@@ -1918,7 +1918,7 @@ public class Authorise {
 			pstmt = conn.prepareStatement(sql);
 			pstmt.setString(1, user);
 			pstmt.setInt(2, oId);
-			log.info("IsOrganisationOwned: " + pstmt.toString());
+			log.fine("IsOrganisationOwned: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			
@@ -1937,7 +1937,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Security: Check for ownership of organisation failed for user: " + user + " organisation was: " + oId);
+ 			log.fine("Security: Check for ownership of organisation failed for user: " + user + " organisation was: " + oId);
  			
  			SDDataSource.closeConnection("canUserUpdateOrganisation", conn);
 			
@@ -1972,14 +1972,14 @@ public class Authorise {
 			pstmt.setInt(1, tId);
 			pstmt.setString(2, user);
 			
-			log.info("Is valid task: " + pstmt.toString());
+			log.fine("Is valid task: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			
 			count = resultSet.getInt(1);
 			
 			if(count == 0) {
-				log.info("Validation of task failed: " + pstmt.toString());
+				log.fine("Validation of task failed: " + pstmt.toString());
 			}
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error in Authorisation", e);
@@ -1995,7 +1995,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Task validation failed for: " + user + " task was: " + tId);
+ 			log.fine("Task validation failed for: " + user + " task was: " + tId);
  			
  			SDDataSource.closeConnection("isValidTask", conn);
 			
@@ -2032,7 +2032,7 @@ public class Authorise {
 			pstmt.setInt(1, aId);
 			pstmt.setString(2, user);
 			
-			log.info("Is valid assignment: " + pstmt.toString());
+			log.fine("Is valid assignment: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			
@@ -2051,7 +2051,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Assignment validation failed for: " + user + " survey was: " + aId);
+ 			log.fine("Assignment validation failed for: " + user + " survey was: " + aId);
  			
  			SDDataSource.closeConnection("isValidAssignment", conn);
 			
@@ -2086,7 +2086,7 @@ public class Authorise {
 			pstmt.setString(1, number);
 			pstmt.setString(2, user);
 			
-			log.info("Is valid number: " + pstmt.toString());
+			log.fine("Is valid number: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			
@@ -2105,7 +2105,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Number validation failed for: " + user + " number was: " + number);
+ 			log.fine("Number validation failed for: " + user + " number was: " + number);
  			
  			SDDataSource.closeConnection("isValidNumber", conn);
 			
@@ -2141,14 +2141,14 @@ public class Authorise {
 			pstmt.setInt(1, mailoutId);
 			pstmt.setString(2, user);
 			
-			log.info("Is valid mailout id: " + pstmt.toString());
+			log.fine("Is valid mailout id: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			
 			count = resultSet.getInt(1);
 			
 			if(count == 0) {
-				log.info("Validation of mailout failed: " + pstmt.toString());
+				log.fine("Validation of mailout failed: " + pstmt.toString());
 			}
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error in Authorisation", e);
@@ -2164,7 +2164,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Mailout validation failed for: " + user + " mailout id was: " + mailoutId);
+ 			log.fine("Mailout validation failed for: " + user + " mailout id was: " + mailoutId);
  			
  			SDDataSource.closeConnection("isValidTask", conn);
 			
@@ -2199,14 +2199,14 @@ public class Authorise {
 			pstmt.setInt(1, id);
 			pstmt.setString(2, user);
 			
-			log.info("Is valid custom report id: " + pstmt.toString());
+			log.fine("Is valid custom report id: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			
 			count = resultSet.getInt(1);
 			
 			if(count == 0) {
-				log.info("Validation of cusom report failed: " + pstmt.toString());
+				log.fine("Validation of cusom report failed: " + pstmt.toString());
 			}
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error in Authorisation", e);
@@ -2222,7 +2222,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Custom report validation failed for: " + user + " custom report id was: " + id);
+ 			log.fine("Custom report validation failed for: " + user + " custom report id was: " + id);
  			
  			SDDataSource.closeConnection("is Valid Custom Report", conn);
 			

@@ -102,7 +102,7 @@ public class PeopleManager {
 					pstmtCreate.setInt(1,  oId);
 					pstmtCreate.setString(2, email);
 					pstmtCreate.setString(3, subStatus.emailKey);
-					log.info(pstmtCreate.toString());
+					log.fine(pstmtCreate.toString());
 					pstmtCreate.executeUpdate();
 				}
 				
@@ -160,10 +160,10 @@ public class PeopleManager {
 				pstmtRegulate = sd.prepareStatement(sqlRegulate);
 				pstmtRegulate.setString(1, email);
 				pstmtRegulate.setInt(2, oId);
-				log.info("Check for aleady sent subscription request: " + pstmtRegulate.toString());
+				log.fine("Check for aleady sent subscription request: " + pstmtRegulate.toString());
 				ResultSet rs = pstmtRegulate.executeQuery();
 				if(rs.next() && rs.getInt(1) > 0) {
-					log.info("Email request subscription already sent");
+					log.fine("Email request subscription already sent");
 					throw new ApplicationException(localisation.getString("email_subs"));
 				}
 				
@@ -183,7 +183,7 @@ public class PeopleManager {
 					pstmtUpdate.setString(1, key);
 					pstmtUpdate.setString(2, email);
 					pstmtUpdate.setInt(3, oId);
-					log.info(pstmtUpdate.toString());
+					log.fine(pstmtUpdate.toString());
 					pstmtUpdate.executeUpdate();
 					
 				} else {
@@ -193,7 +193,7 @@ public class PeopleManager {
 					pstmtCreate.setInt(1, oId);
 					pstmtCreate.setString(2, email);
 					pstmtCreate.setString(3, key);
-					log.info(pstmtCreate.toString());
+					log.fine(pstmtCreate.toString());
 					pstmtCreate.executeUpdate();
 				}
 			}
@@ -326,7 +326,7 @@ public class PeopleManager {
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setString(1, email);	
 			pstmt.setInt(2,  oId);
-			log.info("Subscribe for email: " + pstmt.toString());
+			log.fine("Subscribe for email: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
 			
 			/*
@@ -395,7 +395,7 @@ public class PeopleManager {
 			pstmt.setInt(1, oId);
 			pstmt.setString(2,  HtmlSanitise.checkCleanName(email, localisation));
 			pstmt.setString(3, HtmlSanitise.checkCleanName(person.name, localisation));
-			log.info("Add person: " + pstmt.toString());
+			log.fine("Add person: " + pstmt.toString());
 			pstmt.executeUpdate();
 		
 		} catch(Exception e) {
@@ -432,7 +432,7 @@ public class PeopleManager {
 			pstmt.setString(2, HtmlSanitise.checkCleanName(person.name, localisation));	
 			pstmt.setInt(3, person.id);
 			
-			log.info("Update person: " + pstmt.toString());
+			log.fine("Update person: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -483,7 +483,7 @@ public class PeopleManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, id);
 			
-			log.info("Delete contact: " + pstmt.toString());
+			log.fine("Delete contact: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}

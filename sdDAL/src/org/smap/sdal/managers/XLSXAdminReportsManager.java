@@ -285,7 +285,7 @@ public class XLSXAdminReportsManager {
 			if(userIdent != null) {
 				pstmt.setString(4, userIdent);
 			}
-			log.info("Admin report: " + pstmt.toString());
+			log.fine("Admin report: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
@@ -368,7 +368,7 @@ public class XLSXAdminReportsManager {
 			if(userIdent != null) {
 				pstmtMonth.setString(4, userIdent);
 			}
-			log.info("Monthly Admin report by project: " + pstmtMonth.toString());
+			log.fine("Monthly Admin report by project: " + pstmtMonth.toString());
 			ResultSet rs = pstmtMonth.executeQuery();
 			
 			while(rs.next()) {
@@ -390,7 +390,7 @@ public class XLSXAdminReportsManager {
 				if(userIdent != null) {
 					pstmtAllTime.setString(2, userIdent);
 				}
-				log.info("All Time Admin report by project: " + pstmtAllTime.toString());
+				log.fine("All Time Admin report by project: " + pstmtAllTime.toString());
 				rs = pstmtAllTime.executeQuery();
 				while(rs.next()) {
 							
@@ -490,7 +490,7 @@ public class XLSXAdminReportsManager {
 			if(userIdent != null) {
 				pstmtMonth.setString(4, userIdent);
 			}
-			log.info("Monthly Admin report by survey: " + pstmtMonth.toString());
+			log.fine("Monthly Admin report by survey: " + pstmtMonth.toString());
 			ResultSet rs = pstmtMonth.executeQuery();
 			
 			while(rs.next()) {
@@ -515,7 +515,7 @@ public class XLSXAdminReportsManager {
 				if(userIdent != null) {
 					pstmtAllTime.setString(2, userIdent);
 				}
-				log.info("All Time Admin report by survey: " + pstmtAllTime.toString());
+				log.fine("All Time Admin report by survey: " + pstmtAllTime.toString());
 				rs = pstmtAllTime.executeQuery();
 				while(rs.next()) {
 							
@@ -609,7 +609,7 @@ public class XLSXAdminReportsManager {
 			if(userIdent != null) {
 				pstmtMonth.setString(4, userIdent);
 			}
-			log.info("Monthly Admin report by device: " + pstmtMonth.toString());
+			log.fine("Monthly Admin report by device: " + pstmtMonth.toString());
 			ResultSet rs = pstmtMonth.executeQuery();
 			
 			while(rs.next()) {
@@ -630,7 +630,7 @@ public class XLSXAdminReportsManager {
 				if(userIdent != null) {
 					pstmtAllTime.setString(2, userIdent);
 				}
-				log.info("All Time Admin report by device: " + pstmtAllTime.toString());
+				log.fine("All Time Admin report by device: " + pstmtAllTime.toString());
 				rs = pstmtAllTime.executeQuery();
 				while(rs.next()) {
 							

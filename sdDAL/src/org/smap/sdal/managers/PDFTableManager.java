@@ -126,7 +126,7 @@ public class PDFTableManager {
 			
 			// Get fonts and embed them
 			String os = System.getProperty("os.name");
-			log.info("Operating System:" + os);
+			log.fine("Operating System:" + os);
 			
 			if(os.startsWith("Mac")) {
 				FontFactory.register("/Library/Fonts/fontawesome-webfont.ttf", "Symbols");
@@ -387,7 +387,7 @@ public class PDFTableManager {
 				valueCell.addElement(getPara(kv.v));
 			}
 		} catch (Exception e) {
-			log.info("Error updating value cell, continuing: " + basePath + " : " + kv.v);
+			log.fine("Error updating value cell, continuing: " + basePath + " : " + kv.v);
 			log.log(Level.SEVERE, "Exception", e);
 		}
 
@@ -538,7 +538,7 @@ public class PDFTableManager {
 				    document.add(img);
 					
 			} catch (Exception e) {
-				log.info("Error: Failed to add image " + fileName + " to pdf");
+				log.fine("Error: Failed to add image " + fileName + " to pdf");
 			}
 		}
 		addValue(document, user.name, indent);

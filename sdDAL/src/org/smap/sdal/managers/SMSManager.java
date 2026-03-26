@@ -157,7 +157,7 @@ public class SMSManager {
 			pstmt.setString(5, instanceId);			// Instance Id
 			pstmt.setString(6, comment);			// Instance Id
 			
-			log.info("----- new sms " + pstmt.toString());
+			log.fine("----- new sms " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 		} catch(Exception e) {
@@ -186,7 +186,7 @@ public class SMSManager {
 			 */		
 			pstmt = sd.prepareStatement(sqlSelect.toString());
 			pstmt.setString(1, ourNumber);
-			log.info("Get SMS number details: " + pstmt.toString());
+			log.fine("Get SMS number details: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				smsNumber = getNumber(rs);
@@ -210,7 +210,7 @@ public class SMSManager {
 			 */		
 			pstmt = sd.prepareStatement(sqlSelect.toString());
 			pstmt.setString(1, surveyIdent);
-			log.info("Get SMS destination: " + pstmt.toString());
+			log.fine("Get SMS destination: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				smsNumber = getNumber(rs);
@@ -340,7 +340,7 @@ public class SMSManager {
 							if(checkStatus) {
 								pstmtExists.setString(2, finalStatus);
 							}
-							log.info("Check for existing cases: " + pstmtExists.toString());
+							log.fine("Check for existing cases: " + pstmtExists.toString());
 							ResultSet rs = pstmtExists.executeQuery();
 							
 							/*
@@ -412,7 +412,7 @@ public class SMSManager {
 					/*
 					 * Create new entry
 					 */
-					log.info("Create new entry ");
+					log.fine("Create new entry ");
 					existingInstanceId = instanceid;
 					StringBuilder sql = new StringBuilder("insert into ")
 							.append(tableName)
@@ -427,7 +427,7 @@ public class SMSManager {
 					pstmt.setString(4, comment);
 					pstmt.setString(5, sms.theirNumber);
 					pstmt.setString(6, gson.toJson(getMessageText(sms, null)));
-					log.info("Create new sms case: " + pstmt.toString());
+					log.fine("Create new sms case: " + pstmt.toString());
 					pstmt.executeUpdate();
 					
 					updateHistory(sd, cResults, sms.theirNumber, tableName, existingInstanceId, smsNumber.surveyIdent, msg,
@@ -466,7 +466,7 @@ public class SMSManager {
 				String msg = localisation.getString("msg_nf");
 				msg = msg.replace("%s1", sms.ourNumber);
 				msg = msg.replace("%s2", sms.msg);
-				log.info("Error: " + msg);
+				log.fine("Error: " + msg);
 				se.setStatus("error");
 				se.setReason(msg);
 			}
@@ -534,7 +534,7 @@ public class SMSManager {
 		ConversationItemDetails removedItem = null;
 		
 		try {
-			log.info("Update existing entry with prikey: " + existingPrikey);
+			log.fine("Update existing entry with prikey: " + existingPrikey);
 			ArrayList<ConversationItemDetails> currentConv = getConversation(cResults, messageColumn,
 					tableName, existingPrikey);
 			
@@ -557,10 +557,10 @@ public class SMSManager {
 				}
 			}
 			pstmt.setInt(2, existingPrikey);	
-			log.info("Update existing sms case: " + pstmt.toString());
+			log.fine("Update existing sms case: " + pstmt.toString());
 			int c = pstmt.executeUpdate();
 			if(c == 0) {
-				log.info("Tried to update an existing case but nothing was updated");
+				log.fine("Tried to update an existing case but nothing was updated");
 			} 
 			
 		} finally {
@@ -610,7 +610,7 @@ public class SMSManager {
 					.append(" where prikey = ?");
 			pstmtGet = cResults.prepareStatement(sqlGet.toString());
 			pstmtGet.setInt(1, existingPrikey);
-			log.info("Get existing: " + pstmtGet.toString());
+			log.fine("Get existing: " + pstmtGet.toString());
 			ResultSet rsGet = pstmtGet.executeQuery();
 			if(rsGet.next()) {
 				String currentConvString = rsGet.getString(1);

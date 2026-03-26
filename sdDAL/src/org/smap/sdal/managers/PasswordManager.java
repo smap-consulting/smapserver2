@@ -184,7 +184,7 @@ public class PasswordManager {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, userIdent);
-			log.info(pstmt.toString());
+			log.fine(pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				if(rs.getInt(1) > 0) {

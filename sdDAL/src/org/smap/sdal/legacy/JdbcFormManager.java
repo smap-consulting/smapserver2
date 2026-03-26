@@ -128,7 +128,7 @@ public class JdbcFormManager {
 	private List <Form> getFormList(PreparedStatement aPstmt) throws SQLException {
 		ArrayList <Form> forms = new ArrayList<Form> ();
 		
-		log.info("Get form list: " + aPstmt.toString());
+		log.fine("Get form list: " + aPstmt.toString());
 		ResultSet rs = aPstmt.executeQuery();
 		while(rs.next()) {
 			Form f = new Form();

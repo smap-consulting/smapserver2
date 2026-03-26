@@ -85,7 +85,7 @@ public class RoleManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, o_id);
-			log.info("Get user roles: " + pstmt.toString());
+			log.fine("Get user roles: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 							
 			Role role = null;
@@ -170,7 +170,7 @@ public class RoleManager {
 				pstmt.setBoolean(4, imported);
 				pstmt.setString(5, ident);
 	
-				log.info("SQL: " + pstmt.toString());
+				log.fine("SQL: " + pstmt.toString());
 				pstmt.executeUpdate();
 				
 				ResultSet rs = pstmt.getGeneratedKeys();
@@ -217,7 +217,7 @@ public class RoleManager {
 			pstmt.setInt(4, o_id);
 			pstmt.setInt(5, r.id);
 
-			log.info("SQL: " + pstmt.toString());
+			log.fine("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			setUsersForRole(sd, r.id, r.users);
@@ -353,7 +353,7 @@ public class RoleManager {
 			if(!isSuperUser) {
 				pstmt.setString(3,  user);
 			}
-			log.info("Get survey roles: " + pstmt.toString());
+			log.fine("Get survey roles: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 							
 			Role role = null;
@@ -409,7 +409,7 @@ public class RoleManager {
 			pstmt.setBoolean(1, enabled);
 			pstmt.setInt(2, rId);
 			pstmt.setString(3, sIdent);
-			log.info("Update survey role: " + pstmt.toString());
+			log.fine("Update survey role: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
 			
 			if(count == 0) {
@@ -418,7 +418,7 @@ public class RoleManager {
 				pstmt.setString(1, sIdent);
 				pstmt.setInt(2, rId);
 				pstmt.setBoolean(3, enabled);	
-				log.info("Create new survey role: " + pstmt.toString());
+				log.fine("Create new survey role: " + pstmt.toString());
 				pstmt.executeUpdate();
 				
 				ResultSet rs = pstmt.getGeneratedKeys();
@@ -452,7 +452,7 @@ public class RoleManager {
 			pstmt.setString(1, group);
 			pstmt.setInt(2, rId);
 			pstmt.setString(3, sIdent);
-			log.info("Update survey role: " + pstmt.toString());
+			log.fine("Update survey role: " + pstmt.toString());
 			pstmt.executeUpdate();
 				    
 		} finally {
@@ -503,7 +503,7 @@ public class RoleManager {
 			pstmt.setInt(2, role.id);
 			pstmt.setString(3, sIdent);
 			
-			log.info("Update survey roles: " + pstmt.toString());
+			log.fine("Update survey roles: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 			    
@@ -538,7 +538,7 @@ public class RoleManager {
 			pstmt.setInt(2, role.id);
 			pstmt.setString(3, sIdent);
 			
-			log.info("Update survey roles: " + pstmt.toString());
+			log.fine("Update survey roles: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 			    
@@ -609,7 +609,7 @@ public class RoleManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sIdent);
 			pstmt.setString(2, user);
-			log.info("Get surveyRowFilter: " + pstmt.toString());
+			log.fine("Get surveyRowFilter: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 							
 			while(resultSet.next()) {		
@@ -662,7 +662,7 @@ public class RoleManager {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, sIdent);
 				pstmt.setArray(2, sd.createArrayOf("text", roleids.toArray(new Integer[roleids.size()])));
-				log.info("Get surveyRowFilter: " + pstmt.toString());
+				log.fine("Get surveyRowFilter: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
 								
 				while(resultSet.next()) {		
@@ -780,7 +780,7 @@ public class RoleManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sIdent);
 			pstmt.setString(2, user);
-			log.info("Get surveyColumnFilter: " + pstmt.toString());
+			log.fine("Get surveyColumnFilter: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 							
 			Type cfArrayType = new TypeToken<ArrayList<RoleColumnFilter>>(){}.getType();
@@ -831,7 +831,7 @@ public class RoleManager {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, sIdent);
 				pstmt.setArray(2, sd.createArrayOf("text", roleids.toArray(new Integer[roleids.size()])));
-				log.info("Get surveyColumnFilter From Role List: " + pstmt.toString());
+				log.fine("Get surveyColumnFilter From Role List: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
 								
 				Type cfArrayType = new TypeToken<ArrayList<RoleColumnFilter>>(){}.getType();
@@ -861,7 +861,7 @@ public class RoleManager {
 		
 		
 		try {
-			// log.info("Set autocommit false");
+			// log.fine("Set autocommit false");
 			sd.setAutoCommit(false);
 			
 			// delete existing
@@ -902,7 +902,7 @@ public class RoleManager {
 		if(column_filter!= null && column_filter.size() > 0) {
 			if(column_filter.get(0).name == null) {
 				// legacy found convert the definition into column names
-				log.info("x1x1x1x1x1x1x1x1x1x1: Found legacy column filter: " + colFilter);
+				log.fine("x1x1x1x1x1x1x1x1x1x1: Found legacy column filter: " + colFilter);
 				Type legacyColFilterType = new TypeToken<ArrayList<RoleColumnFilterOld>>(){}.getType();
 				ArrayList<RoleColumnFilterOld> questions = gson.fromJson(colFilter, legacyColFilterType);
 				int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);

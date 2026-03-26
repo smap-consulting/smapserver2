@@ -28,7 +28,7 @@ public class ResultsDataSource {
 			Connection c = ds.getConnection();
 			c.setAutoCommit(true);		// Can't rely on auto commit being set to true when connection comes from pool
 			count++;
-			log.info(" ++++ " + count + " Create Results connection: " + requester);
+			log.fine(" ++++ " + count + " Create Results connection: " + requester);
 			return c;
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error getting results datasource", e);
@@ -42,7 +42,7 @@ public class ResultsDataSource {
 			c.setAutoCommit(true);
 			c.close(); 
 			count--;
-			log.info(" ---- " + count + " Close Results connection: " + requester);
+			log.fine(" ---- " + count + " Close Results connection: " + requester);
 		} catch(SQLException e) {
 			log.log(Level.SEVERE,"Failed to close results connection", e);
 		}

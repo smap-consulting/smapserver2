@@ -296,7 +296,7 @@ public class NotificationManager {
 		}
 		lm.writeLog(sd, n.s_id, user, LogManager.CREATE, logMessage, 0, null);
 		
-		log.info("Update Notifications: " + pstmt.toString());
+		log.fine("Update Notifications: " + pstmt.toString());
 		pstmt.executeUpdate();
 	}
 
@@ -342,7 +342,7 @@ public class NotificationManager {
 		pstmt.setInt(1, projectId);
 		pstmt.setInt(2, projectId);
 		pstmt.setInt(3, projectId);
-		log.info("Project Notifications: " + pstmt.toString());
+		log.fine("Project Notifications: " + pstmt.toString());
 		resultSet = pstmt.executeQuery();
 
 		addToList(sd, resultSet, notifications, false, false, tz);
@@ -396,7 +396,7 @@ public class NotificationManager {
 
 		pstmt.setInt(1, oId);
 		pstmt.setInt(2, oId);
-		log.info("All Notifications: " + pstmt.toString());
+		log.fine("All Notifications: " + pstmt.toString());
 		resultSet = pstmt.executeQuery();
 
 		addToList(sd, resultSet, notifications, false, true, tz);
@@ -450,7 +450,7 @@ public class NotificationManager {
 			if(awsSMS) {
 				orgLevelPstmt = sd.prepareStatement(sqlOrgLevel);
 				orgLevelPstmt.setString(1, user);
-				log.info("Check for SMS: " + orgLevelPstmt.toString());
+				log.fine("Check for SMS: " + orgLevelPstmt.toString());
 				rs = orgLevelPstmt.executeQuery();
 				if(rs.next()) {
 					if(rs.getBoolean(1)) {
@@ -487,7 +487,7 @@ public class NotificationManager {
 			// Delete
 			pstmt = sd.prepareStatement(sql);	 			
 			pstmt.setInt(1, id);
-			log.info("Delete: " + pstmt.toString());
+			log.fine("Delete: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 			// Log the delete event
@@ -657,7 +657,7 @@ public class NotificationManager {
 				pstmtGetNotifications.setString(idx++, updateQuestion);
 				pstmtGetNotifications.setString(idx++, updateValue);
 			}
-			log.info("Get notifications:: " + pstmtGetNotifications.toString());
+			log.fine("Get notifications:: " + pstmtGetNotifications.toString());
 			rsNotifications = pstmtGetNotifications.executeQuery();
 			while(rsNotifications.next()) {
 
@@ -713,7 +713,7 @@ public class NotificationManager {
 				}
 
 				if(!proceed) {
-					log.info("Notification not sent because of filter rule: " + filter);
+					log.fine("Notification not sent because of filter rule: " + filter);
 				} else {
 
 					if(nd.attach != null && nd.attach.equals("pdf")) {
@@ -1009,7 +1009,7 @@ public class NotificationManager {
 					if(sms_url != null) {
 						ArrayList<String> smsList = null;
 						ArrayList<String> responseList = new ArrayList<> ();
-						log.info("SMS question: " + msg.getEmailQuestionName(sd));
+						log.fine("SMS question: " + msg.getEmailQuestionName(sd));
 						if(msg.emailQuestionSet()) {
 							smsList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
 						} else {
@@ -1019,7 +1019,7 @@ public class NotificationManager {
 						// Add the static sms numbers to the per question sms numbers
 						for(String sms : msg.emails) {
 							if(sms.length() > 0) {
-								log.info("Adding static sms: " + sms); 
+								log.fine("Adding static sms: " + sms); 
 								smsList.add(sms);
 							}
 						}
@@ -1044,7 +1044,7 @@ public class NotificationManager {
 							for(String sms : smsList) {
 
 								if(sentEndPoints.get(sms) == null) {
-									log.info("userevent: " + msg.user + " sending sms of '" + msg.content + "' to " + sms);
+									log.fine("userevent: " + msg.user + " sending sms of '" + msg.content + "' to " + sms);
 									try {
 										responseList.add(smsMgr.sendSMS(sms, msg.content));
 									} catch (Exception e) {
@@ -1053,12 +1053,12 @@ public class NotificationManager {
 									}
 									sentEndPoints.put(sms, sms);
 								} else {
-									log.info("Duplicate phone number: " + sms);
+									log.fine("Duplicate phone number: " + sms);
 								}
 
 							} 
 						} else {
-							log.info("No phone numbers to send to");
+							log.fine("No phone numbers to send to");
 							writeToMonitor = false;
 						}
 
@@ -1075,7 +1075,7 @@ public class NotificationManager {
 
 				} else if(msg.target.equals("webhook")) {   // webhook call
 
-					log.info("+++++ webhook call");
+					log.fine("+++++ webhook call");
 					notify_details = localisation.getString("cb_nd");
 					notify_details = notify_details.replace("%s1", msg.callback_url);
 					notify_details = notify_details.replace("%s2", survey.surveyData.displayName);
@@ -1121,7 +1121,7 @@ public class NotificationManager {
 						}
 					}
 					
-					log.info("+++++ escalate notification");
+					log.fine("+++++ escalate notification");
 					notify_details = localisation.getString("esc_nd");
 					notify_details = notify_details.replace("%s1", msg.instanceId);
 					notify_details = notify_details.replace("%s2", survey.surveyData.displayName);
@@ -1166,7 +1166,7 @@ public class NotificationManager {
 							msg.subject, msg.from, msg.content, null, msg.scheme, msg);		// reference is null therefore cannot reply
 					
 				} else if(msg.target.equals("conversation")) {
-					log.info("+++++ conversation notification");
+					log.fine("+++++ conversation notification");
 					String toNumber = msg.emails.get(0);
 					
 					if(vonageClient != null) {
@@ -1208,7 +1208,7 @@ public class NotificationManager {
 							notify_details = notify_details.replace("%s2", msg.ourNumber);
 							notify_details = notify_details.replace("%s3", toNumber);
 							notify_details = notify_details.replace("%s4", response.getMessageUuid().toString());
-							log.info(notify_details);
+							log.fine(notify_details);
 						} else {
 							notify_details = localisation.getString("msg_sms_not_updated");
 							notify_details = notify_details.replace("%s1", msg.content);
@@ -1350,10 +1350,10 @@ public class NotificationManager {
 		ZonedDateTime lZdtEnd = utcZdt.withZoneSameInstant(TimeZone.getTimeZone(p.tz).toZoneId()).minusDays(1);	// Report up to yesterday in local time
 		ZonedDateTime lZdtStart = getStartZDT(lZdtEnd, msg.period);
 
-		log.info("---------- Local UTC Date Time: " + utcDateTime);
-		log.info("---------- Zoned UTC Date Time: " + utcZdt);
-		log.info("---------- Zoned End Date Time: " + lZdtEnd);
-		log.info("---------- Local End Date Time: " + lZdtEnd.toLocalDate());
+		log.fine("---------- Local UTC Date Time: " + utcDateTime);
+		log.fine("---------- Zoned UTC Date Time: " + utcZdt);
+		log.fine("---------- Zoned End Date Time: " + lZdtEnd);
+		log.fine("---------- Local End Date Time: " + lZdtEnd.toLocalDate());
 		
 		Date endDate = Date.valueOf(lZdtEnd.toLocalDate());
 		Date startDate = Date.valueOf(lZdtStart.toLocalDate());
@@ -1481,7 +1481,7 @@ public class NotificationManager {
 
 		String logContent = null;
 
-		log.info("----------- Process Reminder Notification");
+		log.fine("----------- Process Reminder Notification");
 		
 		boolean writeToMonitor = true;
 
@@ -1552,7 +1552,7 @@ public class NotificationManager {
 						String emails = em.getEmails(sd, cResults, surveyId, msg);   // Get the email addresses from the message
 
 						if(emails.trim().length() > 0) {
-							log.info("userevent: " + msg.user + " sending email of '" + logContent + "' to " + emails);
+							log.fine("userevent: " + msg.user + " sending email of '" + logContent + "' to " + emails);
 
 							// Set the subject
 							String subject = "";
@@ -1581,7 +1581,7 @@ public class NotificationManager {
 							notify_details = notify_details.replaceAll("%s3", survey.surveyData.displayName);
 							notify_details = notify_details.replaceAll("%s4", survey.surveyData.projectName);
 
-							log.info("+++ emailing reminder to: " + emails + " docUrl: " + logContent + 
+							log.fine("+++ emailing reminder to: " + emails + " docUrl: " + logContent + 
 									" from: " + from + 
 									" subject: " + subject +
 									" smtp_host: " + emailServer.smtpHost +
@@ -1667,7 +1667,7 @@ public class NotificationManager {
 					if(sms_url != null) {
 						ArrayList<String> smsList = null;
 						ArrayList<String> responseList = new ArrayList<> ();
-						log.info("SMS question: " + msg.getEmailQuestionName(sd));
+						log.fine("SMS question: " + msg.getEmailQuestionName(sd));
 						if(msg.emailQuestionSet()) {
 							smsList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
 						} else {
@@ -1677,7 +1677,7 @@ public class NotificationManager {
 						// Add the static sms numbers to the per question sms numbers
 						for(String sms : msg.emails) {
 							if(sms.length() > 0) {
-								log.info("Adding static sms: " + sms); 
+								log.fine("Adding static sms: " + sms); 
 								smsList.add(sms);
 							}
 						}
@@ -1698,16 +1698,16 @@ public class NotificationManager {
 							for(String sms : smsList) {
 
 								if(sentEndPoints.get(sms) == null) {
-									log.info("userevent: " + msg.user + " sending sms of '" + msg.content + "' to " + sms);
+									log.fine("userevent: " + msg.user + " sending sms of '" + msg.content + "' to " + sms);
 									responseList.add(smsMgr.sendSMS(sms, msg.content));
 									sentEndPoints.put(sms, sms);
 								} else {
-									log.info("Duplicate phone number: " + sms);
+									log.fine("Duplicate phone number: " + sms);
 								}
 
 							} 
 						} else {
-							log.info("No phone numbers to send to");
+							log.fine("No phone numbers to send to");
 							writeToMonitor = false;
 						}
 

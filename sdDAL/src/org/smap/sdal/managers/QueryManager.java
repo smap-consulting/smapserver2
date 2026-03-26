@@ -152,7 +152,7 @@ public class QueryManager {
 					qf.parent = rs.getInt(2);
 				} else {
 					String msg = "Exporting survey, Form not found:" + sId + ":" + fId;
-					log.info(msg);
+					log.fine(msg);
 					throw new Exception(msg);
 				}
 				
@@ -362,7 +362,7 @@ public class QueryManager {
 					qf.parent = rs.getInt(2);
 				} else {
 					String msg = "Exporting survey, Form not found:" + qf.survey + ":" + qf.form;
-					log.info(msg);
+					log.fine(msg);
 					throw new Exception(msg);
 				}
 				

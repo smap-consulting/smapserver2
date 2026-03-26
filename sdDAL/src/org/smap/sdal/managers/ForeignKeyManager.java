@@ -55,7 +55,7 @@ public class ForeignKeyManager {
 				pstmt.setInt(5,  fk.primaryKey);
 				pstmt.setString(6, fk.tableName);
 				pstmt.setString(7, fk.instanceIdLaunchingForm);
-				log.info("Add pending foreign key: " + pstmt.toString());
+				log.fine("Add pending foreign key: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
 			
@@ -122,11 +122,11 @@ public class ForeignKeyManager {
 
 				String instanceIdLaunchingForm = rs.getString(7);
 				
-				log.info("Found foreign key to apply: " + sId + " : " + qname + " : " + instanceidLaunchedForm);
+				log.fine("Found foreign key to apply: " + sId + " : " + qname + " : " + instanceidLaunchedForm);
 				// 1. Get the details on the foreign form and the question that will hold the foreign key
 				pstmtForeign.setInt(1, sId);
 				pstmtForeign.setString(2, qname);
-				log.info("Get parameters: " + pstmtForeign.toString());
+				log.fine("Get parameters: " + pstmtForeign.toString());
 				ResultSet rsForeign = pstmtForeign.executeQuery();
 				if(rsForeign.next()) {
 					String parameters = rsForeign.getString(1);
@@ -169,7 +169,7 @@ public class ForeignKeyManager {
 								instanceOfKeyQuestion = instanceIdLaunchingForm;
 							}
 							pstmtGetFkTable.setInt(1, foreignSiD);
-							log.info("Get foreign key table: " + pstmtGetFkTable.toString());
+							log.fine("Get foreign key table: " + pstmtGetFkTable.toString());
 							ResultSet rsGetFkTable = pstmtGetFkTable.executeQuery();
 							if(rsGetFkTable.next()) {
 								String foreignTable = rsGetFkTable.getString(1);
@@ -184,7 +184,7 @@ public class ForeignKeyManager {
 									pstmtGetHrk = cResults.prepareStatement(sqlGetHrk1);
 								}
 								pstmtGetHrk.setString(1, instanceOfHrk);
-								log.info("Get HRK: " + pstmtGetHrk.toString());
+								log.fine("Get HRK: " + pstmtGetHrk.toString());
 								ResultSet rsGetHrk = pstmtGetHrk.executeQuery();
 								if(rsGetHrk.next()) {
 									String key = rsGetHrk.getString("prikey");	// TODO replace with _thread
@@ -194,7 +194,7 @@ public class ForeignKeyManager {
 											key = hrkKey;
 										}
 									}
-									log.info("------------ got foreign key details: " + key);
+									log.fine("------------ got foreign key details: " + key);
 									
 									/*
 									 * Update the key question that contains the foreign key value
@@ -221,7 +221,7 @@ public class ForeignKeyManager {
 												pstmtInsertKey = cResults.prepareStatement(sqlInsertKey);
 												pstmtInsertKey.setString(1, key);
 												pstmtInsertKey.setString(2, instanceOfKeyQuestion);
-												log.info("Inserting key: " + pstmtInsertKey.toString());
+												log.fine("Inserting key: " + pstmtInsertKey.toString());
 												int count = 0;
 												try {	// Continue on error
 													count = pstmtInsertKey.executeUpdate();
@@ -233,29 +233,29 @@ public class ForeignKeyManager {
 													}					
 												}
 												if(count == 0) {
-													log.info("xxxxxxxxx Foreign key not found - maybe it has not been submited yet");
+													log.fine("xxxxxxxxx Foreign key not found - maybe it has not been submited yet");
 												} else {
 													pstmtResult.setString(1, "ok: applied");
 													pstmtResult.setInt(2, id);
-													log.info("ok: applied");
+													log.fine("ok: applied");
 													pstmtResult.executeUpdate();
 												}
 											} else {
 												pstmtResult.setString(1, "error: Error: foreign key question is in a subform which is not supported " + keyQuestion);
 												pstmtResult.setInt(2, id);
 												pstmtResult.executeUpdate();
-												log.info("Error: foreign key question is in a subform which is not supported");
+												log.fine("Error: foreign key question is in a subform which is not supported");
 											}
 										} else {
 											pstmtResult.setString(1, "Error: could not find question table " + keyQuestion);
 											pstmtResult.setInt(2, id);
 											pstmtResult.executeUpdate();
-											log.info("Error: could not find question table ");
+											log.fine("Error: could not find question table ");
 										}
 									} else {
 										pstmtResult.setString(1, "error: failed column name for question " + keyQuestion + " not found");
 										pstmtResult.setInt(2, id);
-										log.info("error: failed column name for question " + keyQuestion + " not found");
+										log.fine("error: failed column name for question " + keyQuestion + " not found");
 										pstmtResult.executeUpdate();
 									}
 									
@@ -263,25 +263,25 @@ public class ForeignKeyManager {
 									String msg = "error: foreign key table not found";
 									pstmtResult.setString(1, msg);
 									pstmtResult.setInt(2, id);
-									log.info(msg);
+									log.fine(msg);
 									pstmtResult.executeUpdate();
 								}
 							} else {
 								pstmtResult.setString(1, "error: HRK found");
 								pstmtResult.setInt(2, id);
-								log.info("error: HRK found");
+								log.fine("error: HRK found");
 								pstmtResult.executeUpdate();
 							}
 						}
 					} else {
 						pstmtResult.setString(1, "error: no parameters found");
 						pstmtResult.setInt(2, id);
-						log.info("error: no parameters found");
+						log.fine("error: no parameters found");
 						pstmtResult.executeUpdate();
 					}
 				} else {
 					pstmtResult.setString(1, "error: no parameters found");
-					log.info("error: no parameters found 2");
+					log.fine("error: no parameters found 2");
 					pstmtResult.setInt(2, id);
 					pstmtResult.executeUpdate();
 				}
@@ -293,14 +293,14 @@ public class ForeignKeyManager {
 			pstmtClean = sd.prepareStatement(sqlClean);
 			int count = pstmtClean.executeUpdate();
 			if(count > 0) {
-				log.info("Cleaned up foreign keys " + count + " set as timed out: " + pstmtClean.toString());
+				log.fine("Cleaned up foreign keys " + count + " set as timed out: " + pstmtClean.toString());
 			}
 			
 			/*
 			 * Clean up the foreign key table by removing all entries created more than 14 days ago
 			 */
 			pstmtClean2 = sd.prepareStatement(sqlClean2);
-			//log.info("Remove old foreign key entries: " + GeneralUtilityMethods.getStringFromStatement(pstmtClean2));
+			//log.fine("Remove old foreign key entries: " + GeneralUtilityMethods.getStringFromStatement(pstmtClean2));
 			pstmtClean2.executeUpdate();
 		
 			

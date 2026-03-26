@@ -154,7 +154,7 @@ public class BackgroundReportsManager {
 			pstmt.setString(2,  success ? REPORT_STATUS_COMPLETED : REPORT_STATUS_ERROR);
 			pstmt.setString(3,  msg);
 			pstmt.setInt(4, id);
-			log.info("Update report status: " + pstmt.toString());
+			log.fine("Update report status: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 		} finally {
@@ -169,7 +169,7 @@ public class BackgroundReportsManager {
 					+ "where end_time < now() - interval '14 days'";
 			
 			pstmt = sd.prepareStatement(sql);
-			// log.info("Delete old reports: " + pstmt.toString());   debug only
+			// log.fine("Delete old reports: " + pstmt.toString());   debug only
 			pstmt.executeUpdate();
 			
 		} finally {

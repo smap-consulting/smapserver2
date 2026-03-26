@@ -743,7 +743,7 @@ public class Question {
 					qType = "time";
 				}
 			} else {
-				log.info("Unknown type in cleanseOSM: " + qType);
+				log.fine("Unknown type in cleanseOSM: " + qType);
 			}
 		}
 	}

@@ -150,7 +150,7 @@ public class UserLocationManager {
 						pstmt.setArray(idx++, sd.createArrayOf("integer", roleids.toArray(new Integer[roleids.size()])));
 					}
 				}
-				log.info("Get the number of records: " + pstmt.toString());	
+				log.fine("Get the number of records: " + pstmt.toString());	
 				ResultSet resultSet = pstmt.executeQuery();
 				if(resultSet.next()) {
 					totalCount = resultSet.getInt(1);
@@ -222,7 +222,7 @@ public class UserLocationManager {
 				}
 
 				// Request the data
-				log.info("Get Usage Data: " + pstmt.toString());
+				log.fine("Get Usage Data: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
 
 				JSONArray ja = new JSONArray();
@@ -367,13 +367,13 @@ public class UserLocationManager {
 					pstmt.setString(3, "POINT(" + pe.lon + " " + pe.lat + ")");
 					
 					if(pe.time == 0) {
-						log.info("Error time is zero ######### --------+++++++-----------+++++++------------ " + pstmt.toString());
+						log.fine("Error time is zero ######### --------+++++++-----------+++++++------------ " + pstmt.toString());
 						// Seting to now
 						pstmt.setTimestamp(4, new Timestamp(System.currentTimeMillis()));		// Hack
 					} else {						
 						pstmt.setTimestamp(4, new Timestamp(pe.time));
 					}
-					//log.info("Add point: " + GeneralUtilityMethods.getStringFromStatement(pstmt));
+					//log.fine("Add point: " + GeneralUtilityMethods.getStringFromStatement(pstmt));
 					pstmt.executeUpdate();
 				}
 			} finally {
@@ -458,7 +458,7 @@ public class UserLocationManager {
 					pstmt.setInt(1, oId);
 					pstmt.setString(2, user);
 					if(GeneralUtilityMethods.isLocationServer(hostname)) {
-						log.info("Is location server setting location");
+						log.fine("Is location server setting location");
 						pstmt.setDouble(3, lon);
 						pstmt.setDouble(4, lat);
 					} else {

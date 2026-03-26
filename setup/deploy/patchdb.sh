@@ -360,5 +360,11 @@ echo "Setting version for about page"
 full_version=`cat ./full_version`
 echo "update server set version = '$full_version'" | sudo -i -u postgres $PSQL -q -d survey_definitions 2>&1
 
+# Make sure there is a logging properties file in the settings directory
+if [ ! -f "/smap/settings/smap-logging.properties" ]; then
+    echo "Default logging properties file added"
+    sudo cp config_files/smap-logging.properties /smap/settings
+fi
+
 # update version reference
 echo "2603" > /smap_bin/smap_version

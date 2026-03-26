@@ -103,7 +103,7 @@ public class CustomReportsManager {
 			pstmt.setInt(5, pId);
 			pstmt.setString(6, surveyIdent);
 
-			log.info(pstmt.toString());
+			log.fine(pstmt.toString());
 			pstmt.executeUpdate();
 
 		} catch (SQLException e) {
@@ -171,7 +171,7 @@ public class CustomReportsManager {
 				pstmt.setInt(2, oId);
 			}
 
-			log.info(pstmt.toString());
+			log.fine(pstmt.toString());
 			pstmt.executeQuery();
 
 			String configString = null;
@@ -236,7 +236,7 @@ public class CustomReportsManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, id);
 			pstmt.setInt(2, oId);
-			log.info("Delete custom report: " + pstmt.toString());
+			log.fine("Delete custom report: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} finally {

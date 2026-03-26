@@ -247,7 +247,7 @@ public class IE {
 							
 						} else {
 							if(child.getQType() != null && !child.getQType().equals("form") && !child.getQType().equals("note")) {
-								log.info("Warning question ignored, type:" + child.getQType());
+								log.fine("Warning question ignored, type:" + child.getQType());
 							}
 						}
 					}

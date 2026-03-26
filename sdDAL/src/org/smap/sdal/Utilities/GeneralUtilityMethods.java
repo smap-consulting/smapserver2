@@ -331,10 +331,10 @@ public class GeneralUtilityMethods {
 	 * Throw a 404 exception if this is not a business server
 	 */
 	static public void assertBusinessServer(String host) {
-		log.info("Business Server check: " + host);
+		log.fine("Business Server check: " + host);
 
 		if (!isBusinessServer(host)) {
-			log.info("Business Server check failed: " + host);
+			log.fine("Business Server check failed: " + host);
 			throw new AuthorisationException();
 		}
 
@@ -363,7 +363,7 @@ public class GeneralUtilityMethods {
 				|| host.equals("dev.smap.com.au")) {
 			locationServer = true;
 		}
-		log.info("++++++++++++++++ Is location Server Host: " + host);
+		log.fine("++++++++++++++++ Is location Server Host: " + host);
 		
 		return locationServer;
 	}
@@ -372,7 +372,7 @@ public class GeneralUtilityMethods {
 	 * Throw a 404 exception if this is not a self registration server
 	 */
 	static public void assertSelfRegistrationServer(String host) {
-		log.info("Self registration check: " + host);
+		log.fine("Self registration check: " + host);
 
 		if (!host.equals("sg.smap.com.au") 
 				&& !host.equals("localhost") 
@@ -382,7 +382,7 @@ public class GeneralUtilityMethods {
 				&& !host.equals("app.kontrolid.com")
 				&& !host.equals("kontrolid.smap.com.au")) {
 
-			log.info("Self registration check failed: " + host);
+			log.fine("Self registration check failed: " + host);
 			throw new AuthorisationException();
 		}
 
@@ -394,15 +394,15 @@ public class GeneralUtilityMethods {
 	static void moveFiles(File[] files, String toDirectory, String newFileName) {
 		if (files != null) { // Can be null if the directory did not exist
 			for (int i = 0; i < files.length; i++) {
-				log.info("renaming file: " + files[i]);
+				log.fine("renaming file: " + files[i]);
 				String filename = files[i].getName();
 				String ext = filename.substring(filename.lastIndexOf('.'));
 				String newPath = toDirectory + "/" + newFileName + ext;
 				try {
 					FileUtils.moveFile(files[i], new File(newPath));
-					log.info("Moved " + files[i] + " to " + newPath);
+					log.fine("Moved " + files[i] + " to " + newPath);
 				} catch (IOException e) {
-					log.info("Error moving " + files[i] + " to " + newPath + ", message: " + e.getMessage());
+					log.fine("Error moving " + files[i] + " to " + newPath + ", message: " + e.getMessage());
 
 				}
 			}
@@ -419,7 +419,7 @@ public class GeneralUtilityMethods {
 		String fileName = convertDisplayNameToFileName(name, false);	// Note legacy templates will not be deleted now but should be picked up by purge
 
 		String directory = basePath + "/templates/" + projectId;
-		log.info("Deleting files in " + directory + " with stem: " + fileName);
+		log.fine("Deleting files in " + directory + " with stem: " + fileName);
 		/*
 		 * Note this is safe because the survey will have been deleted before being erased
 		 * Hence its stem name will include the date and time of deletion it should not pick up any other survey templates
@@ -428,7 +428,7 @@ public class GeneralUtilityMethods {
 		FileFilter fileFilter = new WildcardFileFilter(fileName + ".*");
 		File[] files = dir.listFiles(fileFilter);
 		for (int i = 0; i < files.length; i++) {
-			log.info("deleting file: " + files[i]);
+			log.fine("deleting file: " + files[i]);
 			files[i].delete();
 		}
 	}
@@ -443,7 +443,7 @@ public class GeneralUtilityMethods {
 		File[] files = dir.listFiles();
 		if (files != null) {
 			for (int i = 0; i < files.length; i++) {
-				log.info("deleting file: " + files[i]);
+				log.fine("deleting file: " + files[i]);
 				if (files[i].isDirectory()) {
 					deleteDirectory(files[i].getAbsolutePath());
 				} else {
@@ -451,7 +451,7 @@ public class GeneralUtilityMethods {
 				}
 			}
 		}
-		log.info("Deleting directory " + directory);
+		log.fine("Deleting directory " + directory);
 		dir.delete();
 	}
 
@@ -535,7 +535,7 @@ public class GeneralUtilityMethods {
 						String templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName, false)
 							+ "_template.pdf";
 		
-						// log.info("Attempt to get a pdf template with name: " + templateName);
+						// log.fine("Attempt to get a pdf template with name: " + templateName);
 						templateFile = new File(templateName);
 						
 						if(templateFile == null || !templateFile.exists()) {  // Try legacy names
@@ -543,7 +543,7 @@ public class GeneralUtilityMethods {
 							templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName, true)
 								+ "_template.pdf";
 		
-							// log.info("Attempt to get a pdf template with name: " + templateName);
+							// log.fine("Attempt to get a pdf template with name: " + templateName);
 							templateFile = new File(templateName);
 						}
 					}
@@ -572,7 +572,7 @@ public class GeneralUtilityMethods {
 			String templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName, false)
 						+ "_template.pdf";
 			
-			// log.info("Attempt to get a pdf template with name: " + templateName);
+			// log.fine("Attempt to get a pdf template with name: " + templateName);
 			templateFile = new File(templateName);	
 			
 			if(templateFile == null || !templateFile.exists()) {  // Try legacy names
@@ -580,7 +580,7 @@ public class GeneralUtilityMethods {
 				templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName, true)
 					+ "_template.pdf";
 
-				// log.info("Attempt to get a pdf template with name: " + templateName);
+				// log.fine("Attempt to get a pdf template with name: " + templateName);
 				templateFile = new File(templateName);
 			}
 		}
@@ -601,7 +601,7 @@ public class GeneralUtilityMethods {
 
 		String templateName = basePath + "/media/organisation/" + oId + "/" + fileName;
 
-		// log.info("Attempt to get a document  template with name: " + templateName);
+		// log.fine("Attempt to get a document  template with name: " + templateName);
 		File templateFile = new File(templateName);
 
 		return templateFile;
@@ -631,7 +631,7 @@ public class GeneralUtilityMethods {
 			ArrayList<MediaChange> mediaChanges,
 			int oId) {
 
-		// log.info("Create attachments for source name: " + srcName);
+		// log.fine("Create attachments for source name: " + srcName);
 
 		if(srcName.startsWith("attachments/")) {
 			return srcName;		// An existing image or file 
@@ -649,7 +649,7 @@ public class GeneralUtilityMethods {
 			srcExt = srcName.substring(idx + 1);
 			srcBase = srcName.substring(0, idx);
 		} else {
-			log.info("Error: attachment without extension: " + srcName);
+			log.fine("Error: attachment without extension: " + srcName);
 		}
 		
 		String dstName = null;
@@ -674,22 +674,22 @@ public class GeneralUtilityMethods {
 			FileUtils.forceMkdir(dstDirFile);
 			FileUtils.forceMkdir(dstThumbsFile);
 			if(srcPathFile != null) {
-				// log.info("Processing attachment: " + srcPathFile.getAbsolutePath() + " as " + dstPathFile.getAbsolutePath());
+				// log.fine("Processing attachment: " + srcPathFile.getAbsolutePath() + " as " + dstPathFile.getAbsolutePath());
 				if(!dstPathFile.exists()) {
-					log.info(dstPathFile.getAbsolutePath() + " does not exist. Copy source file");
+					log.fine(dstPathFile.getAbsolutePath() + " does not exist. Copy source file");
 					if(srcPathFile.exists()) {
 						FileUtils.copyFile(srcPathFile, dstPathFile);
 						if(mediaChanges != null) {
 							mediaChanges.add(new MediaChange(srcPathFile.getName(), dstPathFile.getName(), srcPathFile.getAbsolutePath()));
 						}
 					} else {
-						log.info("Error: Source file does not exist: " + srcPathFile.getAbsolutePath());
+						log.fine("Error: Source file does not exist: " + srcPathFile.getAbsolutePath());
 					}
 				} else {
-					log.info("Destination file already exists, copy skipped");
+					log.fine("Destination file already exists, copy skipped");
 				}
 			} else if(srcUrl != null) {
-				// log.info("Processing url attachment: " + srcUrl + " as " + dstPathFile);
+				// log.fine("Processing url attachment: " + srcUrl + " as " + dstPathFile);
 				FileUtils.copyURLToFile(new URL(srcUrl), dstPathFile);
 			}
 			processAttachment(sd, dstName, dstDir, contentType, srcExt, basePath, oId);
@@ -701,7 +701,7 @@ public class GeneralUtilityMethods {
 		// scheme)
 		value = "attachments/" + sIdent + "/" + dstName + "." + srcExt;
 		
-		// log.info("Media value: " + value);
+		// log.fine("Media value: " + value);
 		
 		return value;
 	}
@@ -716,7 +716,7 @@ public class GeneralUtilityMethods {
 		String scriptPath = basePath + "_bin" + File.separator + "processAttachment.sh ";
 		String cmd = scriptPath + fileName + " " + destDir + " \"" + contentType + "\" " + ext
 				+ " >> /var/log/subscribers/attachments.log 2>&1";
-		// log.info("Exec: " + cmd);
+		// log.fine("Exec: " + cmd);
 		try {
 
 			Process proc = Runtime.getRuntime().exec(new String[] { "/bin/sh", "-c", cmd });
@@ -755,7 +755,7 @@ public class GeneralUtilityMethods {
 			pstmt.setString(1,  filePath);
 			pstmt.setInt(2,  oId);
 			pstmt.setBoolean(3,  isMedia);
-			// log.info("xx upload file to s3: " + pstmt.toString());
+			// log.fine("xx upload file to s3: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
@@ -1629,7 +1629,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, actionLink);
 			ResultSet rs = pstmt.executeQuery();
-			// log.info("Getting assignment status: " + pstmt.toString());
+			// log.fine("Getting assignment status: " + pstmt.toString());
 			if (rs.next()) {
 				a.status = rs.getString(1);
 				a.completed_date = rs.getTimestamp(2);
@@ -1665,7 +1665,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, assignmentId);
 			ResultSet rs = pstmt.executeQuery();
-			// log.info("Getting assignment completion status: " + pstmt.toString());
+			// log.fine("Getting assignment completion status: " + pstmt.toString());
 			if (rs.next()) {
 				boolean repeat = rs.getBoolean("repeat");
 				if(repeat) {
@@ -1814,7 +1814,7 @@ public class GeneralUtilityMethods {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, user);
-			// log.info("Get user id: " + pstmt.toString());
+			// log.fine("Get user id: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				id = rs.getInt(1);
@@ -1843,7 +1843,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, user);
 			pstmt.setInt(2, oId);
-			// log.info("Get user id: " + pstmt.toString());
+			// log.fine("Get user id: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				id = rs.getInt(1);
@@ -1872,7 +1872,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, name);
 			pstmt.setInt(2, oId);
-			// log.info("Get role id: " + pstmt.toString());
+			// log.fine("Get role id: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				id = rs.getInt(1);
@@ -2319,7 +2319,7 @@ public class GeneralUtilityMethods {
 			pstmt.setString(2, device);
 			pstmt.setString(3, ident);
 			pstmt.setString(4, reason);
-			// log.info("Has error been reported: " + pstmt.toString());
+			// log.fine("Has error been reported: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				reported = (rs.getInt(1) > 0) ? true : false;
@@ -2471,7 +2471,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sqlGetQuestionId);
 			pstmt.setInt(1, formId);
 			pstmt.setString(2, qName);
-			// log.info("SQL get question id: " + pstmt.toString());
+			// log.fine("SQL get question id: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				qId = rs.getInt(1);
@@ -2481,14 +2481,14 @@ public class GeneralUtilityMethods {
 				pstmt = sd.prepareStatement(sqlGetQuestionIdFromSurvey);
 				pstmt.setString(1, qName);
 				pstmt.setInt(2, sId);
-				// log.info("Getting question id without the form id: " + pstmt.toString());
+				// log.fine("Getting question id without the form id: " + pstmt.toString());
 				rs = pstmt.executeQuery();
 				if (rs.next()) {
 					qId = rs.getInt(1);
-					// log.info("Found qId: " + qId);
+					// log.fine("Found qId: " + qId);
 				} else {
 					// Question has been deleted or renamed. Not to worry
-					// log.info("Question not found: " + sId + " : " + formId + " : " + qName);
+					// log.fine("Question not found: " + sId + " : " + formId + " : " + qName);
 				}
 
 				// If there is more than one question with the same name then use the qId in the
@@ -2496,7 +2496,7 @@ public class GeneralUtilityMethods {
 				// This will work for existing questions and this question was presumably added
 				// from xlsForm
 				if (rs.next()) {
-					// log.info("setting question id to changeQId: " + changeQId);
+					// log.fine("setting question id to changeQId: " + changeQId);
 					qId = changeQId;
 				}
 			}
@@ -2752,7 +2752,7 @@ public class GeneralUtilityMethods {
 				pstmtAddKey = sd.prepareStatement(sqlAddKey);
 				pstmtAddKey.setInt(1, userId);
 				pstmtAddKey.setString(2, key);
-				// log.info("Add new key:" + pstmtAddKey.toString());
+				// log.fine("Add new key:" + pstmtAddKey.toString());
 				pstmtAddKey.executeUpdate();
 			}
 
@@ -2777,7 +2777,7 @@ public class GeneralUtilityMethods {
 				+ "(select u.id from users u where u.ident = ?);";
 		PreparedStatement pstmtDeleteKeys = null;
 
-		// log.info("DeleteAccessKeys");
+		// log.fine("DeleteAccessKeys");
 		try {
 
 			/*
@@ -2814,7 +2814,7 @@ public class GeneralUtilityMethods {
 				+ " and d.expiry > now()";
 		PreparedStatement pstmtGetUserDetails = null;
 
-		log.info("GetDynamicUser");
+		log.fine("GetDynamicUser");
 		try {
 
 			/*
@@ -2822,7 +2822,7 @@ public class GeneralUtilityMethods {
 			 */
 			pstmtGetUserDetails = sd.prepareStatement(sqlGetUserDetails);
 			pstmtGetUserDetails.setString(1, key);
-			// log.info("Get User details:" + pstmtGetUserDetails.toString());
+			// log.fine("Get User details:" + pstmtGetUserDetails.toString());
 			ResultSet rs = pstmtGetUserDetails.executeQuery();
 			if (rs.next()) {
 				userIdent = rs.getString(1);
@@ -2872,7 +2872,7 @@ public class GeneralUtilityMethods {
 			 */
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, key);
-			// log.info("Get User Ident:" + pstmt.toString());
+			// log.fine("Get User Ident:" + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				userIdent = rs.getString(1);
@@ -2974,7 +2974,7 @@ public class GeneralUtilityMethods {
 			// Get Header
 			String line = br.readLine();
 
-			// log.info(" Start Get Audit =======================================================");
+			// log.fine(" Start Get Audit =======================================================");
 			int lineNumber = 0;
 			while (line != null) {
 				
@@ -2992,7 +2992,7 @@ public class GeneralUtilityMethods {
 							if(idx >= 0) {
 								String name = id.substring(idx + 1);
 							
-								//log.info("Name: " + name);
+								//log.fine("Name: " + name);
 								try {
 									BigInteger from = new BigInteger(auditCols[2]);
 									BigInteger to = new BigInteger(auditCols[3]);
@@ -3015,7 +3015,7 @@ public class GeneralUtilityMethods {
 									data.firstPassAudit .put(name, currentItem);
 									
 								} catch (Exception e) {
-									log.info("Error: invalid audit line: " + e.getMessage() + " : " + line);
+									log.fine("Error: invalid audit line: " + e.getMessage() + " : " + line);
 								}
 							}
 						}
@@ -3027,7 +3027,7 @@ public class GeneralUtilityMethods {
 
 		
 			
-			// log.info(" End Get Audit xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+			// log.fine(" End Get Audit xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error", e);
@@ -3106,7 +3106,7 @@ public class GeneralUtilityMethods {
 			String sqlLanguages = "select id, language, code, rtl from language where s_id = ? order by seq asc";		
 			pstmt = sd.prepareStatement(sqlLanguages);
 			pstmt.setInt(1, sId);
-			log.info("Get languages: " + GeneralUtilityMethods.getStringFromStatement(pstmt));
+			log.fine("Get languages: " + GeneralUtilityMethods.getStringFromStatement(pstmt));
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				languages.add(new Language(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getBoolean(4)));
@@ -3204,7 +3204,7 @@ public class GeneralUtilityMethods {
 					pstmtDelete.setInt(1, language.id);
 					pstmtDelete.setInt(2, sId);
 
-					log.info("Delete language: " + pstmtDelete.toString());
+					log.fine("Delete language: " + pstmtDelete.toString());
 					pstmtDelete.executeUpdate();
 
 				} else if (language.id > 0) {
@@ -3227,7 +3227,7 @@ public class GeneralUtilityMethods {
 					pstmtUpdateTranslations.setInt(2, sId);
 					pstmtUpdateTranslations.setInt(3, language.id);
 
-					log.info("Update Translations: " + pstmtUpdateTranslations.toString());
+					log.fine("Update Translations: " + pstmtUpdateTranslations.toString());
 					pstmtUpdateTranslations.executeUpdate();
 
 					// Update language name
@@ -3238,7 +3238,7 @@ public class GeneralUtilityMethods {
 					pstmtUpdate.setInt(5, language.id);
 					pstmtUpdate.setInt(6, sId);
 
-					log.info("Update Language: " + pstmtUpdate.toString());
+					log.fine("Update Language: " + pstmtUpdate.toString());
 					pstmtUpdate.executeUpdate();
 
 					seq++;
@@ -3250,7 +3250,7 @@ public class GeneralUtilityMethods {
 					pstmtInsert.setString(4, language.code);
 					pstmtInsert.setBoolean(5, language.rtl);
 
-					log.info("Insert Language: " + pstmtInsert.toString());
+					log.fine("Insert Language: " + pstmtInsert.toString());
 					pstmtInsert.executeUpdate();
 
 					seq++;
@@ -3315,7 +3315,7 @@ public class GeneralUtilityMethods {
 			pstmt.setInt(2, seq);
 			pstmt.setInt(3, sId);
 
-			log.info("Update Language code: " + pstmt.toString());
+			log.fine("Update Language code: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} finally {
@@ -3356,7 +3356,7 @@ public class GeneralUtilityMethods {
 			pstmtGetMedia = sd.prepareStatement(sqlGetMedia);
 			pstmtGetMedia.setInt(1, sId);
 
-			log.info("Get distinct media: " + pstmtGetMedia.toString());
+			log.fine("Get distinct media: " + pstmtGetMedia.toString());
 			ResultSet rs = pstmtGetMedia.executeQuery();
 
 			/*
@@ -3386,7 +3386,7 @@ public class GeneralUtilityMethods {
 					pstmtHasMedia.setString(4, text_id);
 					pstmtHasMedia.setString(5, languageName);
 
-					log.info("Has Media: " + pstmtHasMedia.toString());
+					log.fine("Has Media: " + pstmtHasMedia.toString());
 					ResultSet rsHasMedia = pstmtHasMedia.executeQuery();
 					if (rsHasMedia.next()) {
 						if (rsHasMedia.getInt(1) > 0) {
@@ -3401,7 +3401,7 @@ public class GeneralUtilityMethods {
 						pstmtDeleteMedia.setString(3, text_id);
 						pstmtDeleteMedia.setString(4, languageName);
 
-						log.info("SQL delete media: " + pstmtDeleteMedia.toString());
+						log.fine("SQL delete media: " + pstmtDeleteMedia.toString());
 						pstmtDeleteMedia.executeUpdate();
 
 						// 4. Insert this translation value
@@ -3410,7 +3410,7 @@ public class GeneralUtilityMethods {
 						pstmtInsertMedia.setString(4, sanitise.sanitiseHtml(value));
 						pstmtInsertMedia.setString(5, languageName);
 
-						log.info("SQL insert media: " + pstmtInsertMedia.toString());
+						log.fine("SQL insert media: " + pstmtInsertMedia.toString());
 						pstmtInsertMedia.executeUpdate();
 					}
 
@@ -3538,7 +3538,7 @@ public class GeneralUtilityMethods {
 				pstmtQuestion = sd.prepareStatement(sqlQuestion);
 				pstmtQuestion.setString(1, qName);
 				pstmtQuestion.setInt(2, sId);
-				log.info("GetResponseForQuestion: " + pstmtQuestion.toString());
+				log.fine("GetResponseForQuestion: " + pstmtQuestion.toString());
 				ResultSet rs = pstmtQuestion.executeQuery();
 				if (rs.next()) {
 					qType = rs.getString("qType");
@@ -3593,7 +3593,7 @@ public class GeneralUtilityMethods {
 
 				pstmtResults = results.prepareStatement(query.toString());
 				pstmtResults.setString(1, instanceId);
-				log.info("Get results for a question: " + pstmtResults.toString());
+				log.fine("Get results for a question: " + pstmtResults.toString());
 
 				ResultSet rs = pstmtResults.executeQuery();
 				while (rs.next()) {
@@ -3671,7 +3671,7 @@ public class GeneralUtilityMethods {
 						
 						pstmt = results.prepareStatement(query.toString());
 						pstmt.setString(1, instanceId);
-						log.info("Get results for a question: " + pstmt.toString());
+						log.fine("Get results for a question: " + pstmt.toString());
 						ResultSet rs = pstmt.executeQuery();
 						if (rs.next()) {
 							value = rs.getString(1);
@@ -4130,7 +4130,7 @@ public class GeneralUtilityMethods {
 				}
 			}
 
-			log.info("SQL: Get columns:" + pstmtQuestions.toString());
+			log.fine("SQL: Get columns:" + pstmtQuestions.toString());
 			ResultSet rsQuestions = pstmtQuestions.executeQuery();
 
 			/*
@@ -4188,7 +4188,7 @@ public class GeneralUtilityMethods {
 					// file but not both
 					pstmtSelectMultipleNotCompressed.setInt(1, qId);
 					pstmtSelectMultipleNotCompressed.setBoolean(2, false);	// no external
-					log.info("Get choices for select multiple question: " + pstmtSelectMultipleNotCompressed.toString());
+					log.fine("Get choices for select multiple question: " + pstmtSelectMultipleNotCompressed.toString());
 					ResultSet rsMultiples = pstmtSelectMultipleNotCompressed.executeQuery();
 
 					HashMap<String, String> uniqueColumns = new HashMap<String, String>();
@@ -4359,7 +4359,7 @@ public class GeneralUtilityMethods {
 	 */
 	static public void ensureTableCurrent(Connection cResults, String table_name, boolean topLevel) throws SQLException {
 		
-		//log.info("Check columns: " + table_name + " : " + topLevel);
+		//log.fine("Check columns: " + table_name + " : " + topLevel);
 		
 		if(topLevel) {
 			
@@ -4500,7 +4500,7 @@ public class GeneralUtilityMethods {
 				pstmtChoices.setString(3, defLang);
 			}
 
-			log.info("SQL: Get choices:" + pstmtChoices.toString());
+			log.fine("SQL: Get choices:" + pstmtChoices.toString());
 			ResultSet rsChoices = pstmtChoices.executeQuery();
 
 			/*
@@ -4623,7 +4623,7 @@ public class GeneralUtilityMethods {
 	 */
 	public static void setFilenameInResponse(String filename, HttpServletResponse response) {
 
-		log.info("Setting filename in response: " + filename);
+		log.fine("Setting filename in response: " + filename);
 		if (filename == null) {
 			filename = "survey";
 		}
@@ -4865,7 +4865,7 @@ public class GeneralUtilityMethods {
 			}
 			if(columnName == null) {
 				output.append("prikey");	// Can't find the column just write the primary key into the key - possibly the key is set directly through _hrk
-				log.info("Could not find column for question: " + qname);
+				log.fine("Could not find column for question: " + qname);
 			} else {
 				output.append(columnName);
 			}
@@ -4963,7 +4963,7 @@ public class GeneralUtilityMethods {
 								Integer.valueOf(offset);
 								output.append("prikey + " + offset);
 							} catch (Exception e) {
-								log.info("Error parsing HRK item: " + item);
+								log.fine("Error parsing HRK item: " + item);
 								output.append("prikey");
 							}
 						} else {
@@ -4989,7 +4989,7 @@ public class GeneralUtilityMethods {
 						}		
 					}
 				} else {
-					log.info("Error parsing HRK item: " + item);
+					log.fine("Error parsing HRK item: " + item);
 				}
 
 				if (idx2 + 1 < item.length()) {
@@ -5298,7 +5298,7 @@ public class GeneralUtilityMethods {
 			pstmtChoices = sd.prepareStatement(sqlChoices);
 			pstmtChoices.setString(1, qName);
 			pstmtChoices.setInt(2,  sId);
-			log.info(pstmtChoices.toString());
+			log.fine(pstmtChoices.toString());
 			ResultSet rs = pstmtChoices.executeQuery();
 			if(rs.next()) {
 				sk.valueColumn = rs.getString(1);
@@ -5306,7 +5306,7 @@ public class GeneralUtilityMethods {
 				pstmtLabels = sd.prepareStatement(sqlLabels);
 				pstmtLabels.setString(1,rs.getString(2));
 				pstmtLabels.setInt(2, sId);
-				log.info(pstmtLabels.toString());
+				log.fine(pstmtLabels.toString());
 				ResultSet rsl = pstmtLabels.executeQuery();
 				while(rsl.next()) {
 					sk.labelColumns.put(rsl.getString(2), rsl.getString(1));
@@ -5364,7 +5364,7 @@ public class GeneralUtilityMethods {
 			
 			pstmtQuestion = sd.prepareStatement(sql);			
 			pstmtQuestion.setInt(1, qId);
-			log.info("Get external table info:" + pstmtQuestion.toString());
+			log.fine("Get external table info:" + pstmtQuestion.toString());
 			ResultSet rs = pstmtQuestion.executeQuery();
 			if (rs.next()) {		
 				
@@ -5386,7 +5386,7 @@ public class GeneralUtilityMethods {
 					
 					pstmtChoices = sd.prepareStatement(sqlChoices);
 					pstmtChoices.setInt(1, l_id);
-					log.info("Get choices: " + pstmtChoices.toString());
+					log.fine("Get choices: " + pstmtChoices.toString());
 					ResultSet rsChoices = pstmtChoices.executeQuery();
 					if(rsChoices.next()) {
 						String ovalue = rsChoices.getString(1);
@@ -5395,7 +5395,7 @@ public class GeneralUtilityMethods {
 						pstmtLabels = sd.prepareCall(sqlLabels);
 						pstmtLabels.setString(1, oLabelId);
 						pstmtLabels.setInt(2,  sId);
-						log.info(pstmtLabels.toString());
+						log.fine(pstmtLabels.toString());
 						ResultSet rsLabels = pstmtLabels.executeQuery();
 						ArrayList<LanguageItem> languageItems = new ArrayList<LanguageItem> ();
 						while(rsLabels.next()) {
@@ -5477,7 +5477,7 @@ public class GeneralUtilityMethods {
 					pstmtUpdate.setInt(1, newSeq);
 					pstmtUpdate.setInt(2, oId);
 
-					log.info("Updating sequence for list id: " + listId + " : " + pstmtUpdate.toString());
+					log.fine("Updating sequence for list id: " + listId + " : " + pstmtUpdate.toString());
 					pstmtUpdate.execute();
 				}
 				newSeq++;
@@ -5537,7 +5537,7 @@ public class GeneralUtilityMethods {
 					pstmtUpdate.setInt(1, newSeq);
 					pstmtUpdate.setInt(2, qId);
 
-					log.info("Updating question sequence for form id: " + fId + " : " + pstmtUpdate.toString());
+					log.fine("Updating question sequence for form id: " + fId + " : " + pstmtUpdate.toString());
 					pstmtUpdate.execute();
 				}
 				newSeq++;
@@ -5679,7 +5679,7 @@ public class GeneralUtilityMethods {
 			pstmtGetListId.setInt(1, sId);
 			pstmtGetListId.setString(2, name);
 
-			log.info("SQL: Get list id: " + pstmtGetListId.toString());
+			log.fine("SQL: Get list id: " + pstmtGetListId.toString());
 			ResultSet rs = pstmtGetListId.executeQuery();
 			if (rs.next()) {
 				listId = rs.getInt(1);
@@ -5689,7 +5689,7 @@ public class GeneralUtilityMethods {
 				pstmtListName.setInt(1, sId);
 				pstmtListName.setString(2, name);
 
-				log.info("SQL: Create list name: " + pstmtListName.toString());
+				log.fine("SQL: Create list name: " + pstmtListName.toString());
 
 				pstmtListName.executeUpdate();
 
@@ -5732,7 +5732,7 @@ public class GeneralUtilityMethods {
 
 				int idx1 = getManifestParamStart(property);
 				int idx2 = property.indexOf(')', idx1);
-				// log.info("xxxxxx: " + property + " : " + idx1 + " : " + idx2);
+				// log.fine("xxxxxx: " + property + " : " + idx1 + " : " + idx2);
 				if (idx1 >= 0 && idx2 > idx1) {
 					String criteriaString = property.substring(idx1 + 1, idx2);
 
@@ -5755,7 +5755,7 @@ public class GeneralUtilityMethods {
 								appFilename += GeneralUtilityMethods.getKeyQuestionPulldata(criteria);
 							}
 							if (filename.equals(appFilename)) { // We want this one
-								//log.info("We have found a manifest link to " + filename);
+								//log.fine("We have found a manifest link to " + filename);
 
 								if (isAppearance) {
 
@@ -5763,7 +5763,7 @@ public class GeneralUtilityMethods {
 
 									// Need to get columns from choices
 									pstmt.setInt(1, qId);
-									//log.info("Getting search columns from choices: " + pstmt.toString());
+									//log.fine("Getting search columns from choices: " + pstmt.toString());
 									ResultSet rs = pstmt.executeQuery();
 									while (rs.next()) {
 										if (params == null) {
@@ -5783,7 +5783,7 @@ public class GeneralUtilityMethods {
 								}
 
 							} else {
-								// log.info("ooooooo ignoring: " + filename + " is not equal to " + appFilename);
+								// log.fine("ooooooo ignoring: " + filename + " is not equal to " + appFilename);
 							}
 
 						}
@@ -5954,7 +5954,7 @@ public class GeneralUtilityMethods {
 			 */
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
-			// log.info("SQL survey level manifests:" + pstmt.toString());
+			// log.fine("SQL survey level manifests:" + pstmt.toString());
 
 			rs = pstmt.executeQuery();
 			if (rs.next()) {
@@ -5968,7 +5968,7 @@ public class GeneralUtilityMethods {
 					int linked_sId = 0;
 					String fileName = manifestList.get(i);
 
-					log.info("Linked file name: " + fileName);
+					log.fine("Linked file name: " + fileName);
 					if (fileName.equals("linked_self")) {
 						linked_sId = sId;
 					} else if (fileName.equals("linked_s_pd_self")) {
@@ -5977,11 +5977,11 @@ public class GeneralUtilityMethods {
 						linked_sId = sId;
 					} else if (fileName.startsWith("linked_s")) {
 						String ident = fileName.substring(fileName.indexOf("s"));
-						log.info("Linked Survey Ident: " + ident);
+						log.fine("Linked Survey Ident: " + ident);
 						linked_sId = getSurveyId(sd, ident);
 					} else if (fileName.startsWith("chart_s")) {
 						String ident = fileName.substring(fileName.indexOf("s"), fileName.lastIndexOf('_'));
-						log.info("Chart Survey Ident: " + ident);
+						log.fine("Chart Survey Ident: " + ident);
 						linked_sId = getSurveyId(sd, ident);
 					}
 
@@ -6001,7 +6001,7 @@ public class GeneralUtilityMethods {
 				// Add new entries
 				for (int linked : linkedSurveys.keySet()) {
 					pstmtIns.setInt(2, linked);
-					log.info("Write form dependency: " + pstmtIns.toString());
+					log.fine("Write form dependency: " + pstmtIns.toString());
 					pstmtIns.executeUpdate();
 				}
 			}
@@ -6036,7 +6036,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql.toString());
 			pstmt.setString(1, groupSurveyIdent);
 				
-			log.info("Get group surveys ids: " + pstmt.toString());
+			log.fine("Get group surveys ids: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
@@ -6209,7 +6209,7 @@ public class GeneralUtilityMethods {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, String.valueOf(sId));
-			log.info("Getting linking surveys: " + pstmt.toString());
+			log.fine("Getting linking surveys: " + pstmt.toString());
 
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
@@ -6258,7 +6258,7 @@ public class GeneralUtilityMethods {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
-			log.info("Getting linked surveys: " + pstmt.toString());
+			log.fine("Getting linked surveys: " + pstmt.toString());
 
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
@@ -6305,7 +6305,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 
-			log.info("Getting main form: " + pstmt.toString());
+			log.fine("Getting main form: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				String table_name = rs.getString(1);
@@ -6337,7 +6337,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 
-			log.info("Getting main form: " + pstmt.toString());
+			log.fine("Getting main form: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				fId = rs.getInt(1);
@@ -6402,7 +6402,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 
-			log.info("Get conversation question: " + pstmt.toString());
+			log.fine("Get conversation question: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				conv = rs.getString(1);
@@ -6432,7 +6432,7 @@ public class GeneralUtilityMethods {
 			pstmt.setInt(1, qId);
 
 			ResultSet rs = pstmt.executeQuery();
-			log.info(pstmt.toString());
+			log.fine(pstmt.toString());
 			if (rs.next()) {
 				tableExists = tableExists(cResults, rs.getString(1));
 			}
@@ -6548,7 +6548,7 @@ public class GeneralUtilityMethods {
 			String sql = "alter table " + tablename + " add column if not exists " + columnName + " " + type;
 	
 			PreparedStatement pstmt = conn.prepareStatement(sql);
-			log.info("Adding column: " + pstmt.toString());
+			log.fine("Adding column: " + pstmt.toString());
 			try {
 				pstmt.executeUpdate();
 			} catch (Exception e) {
@@ -6576,7 +6576,7 @@ public class GeneralUtilityMethods {
 			pstmt.setString(1, tablename);
 			pstmt.setString(2, schema);
 			pstmt.setString(3, columnName);
-			//log.info("SQL: " + pstmt.toString());
+			//log.fine("SQL: " + pstmt.toString());
 
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
@@ -6612,7 +6612,7 @@ public class GeneralUtilityMethods {
 			pstmt = cRel.prepareStatement(sql);
 			pstmt.setString(1, tablename);
 			pstmt.setString(2, schema);
-			//log.info("SQL: " + pstmt.toString());
+			//log.fine("SQL: " + pstmt.toString());
 
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
@@ -6697,7 +6697,7 @@ public class GeneralUtilityMethods {
 			pstmt.setInt(1, sId);
 			pstmt.setString(2, column_name);
 
-			log.info("Get table for repeat question: " + pstmt.toString());
+			log.fine("Get table for repeat question: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				table = rs.getString(1);
@@ -6854,7 +6854,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sqlLaunched);
 			pstmt.setInt(1, sId);
 			
-			log.info("Get linked forms----------------: " + pstmt.toString());
+			log.fine("Get linked forms----------------: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 			while (rs.next()) {
 				String name = rs.getString(1);
@@ -6878,7 +6878,7 @@ public class GeneralUtilityMethods {
 				if(qName != null && childSurveyId != null) {
 					formLinks.add(new FormLink(name, parent, type, childSurveyId, qName));
 				} else {
-					log.info("Failed to add child survey. qname: " + qName + " sIdent: " + sIdent + " iChildSurveyId: " + iChildSurveyId);
+					log.fine("Failed to add child survey. qname: " + qName + " sIdent: " + sIdent + " iChildSurveyId: " + iChildSurveyId);
 				}
 			}
 			
@@ -7070,7 +7070,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
 			pstmt.setString(2, role);
-			log.info("Get users with role: " + pstmt.toString());
+			log.fine("Get users with role: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				users.add(new KeyValue(rs.getString(1), rs.getString(2)));
@@ -7202,8 +7202,8 @@ public class GeneralUtilityMethods {
 		ZonedDateTime localDateTime = ZonedDateTime.ofInstant(d.toInstant(), TimeZone.getTimeZone(tz).toZoneId());
 		ZonedDateTime utcDateTime = localDateTime.withZoneSameInstant(TimeZone.getTimeZone("UTC").toZoneId());
 		
-		log.info("---------------------- Local date: " + localDateTime.toString());
-		log.info("---------------------- Utc date: " + utcDateTime.toString());
+		log.fine("---------------------- Local date: " + localDateTime.toString());
+		log.fine("---------------------- Utc date: " + utcDateTime.toString());
 		return new Timestamp(Date.from(utcDateTime.toInstant()).getTime());
 	}
 	
@@ -7282,7 +7282,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, saveString);
 			pstmt.setInt(2, sId);
-			log.info("Set auto update: " + pstmt.toString());
+			log.fine("Set auto update: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} catch (SQLException e) {
@@ -7347,7 +7347,7 @@ public class GeneralUtilityMethods {
 
 			if (idx1 > 0 && idx2 > idx1) {
 				String criteriaString = appearance.substring(idx1 + 1, idx2);
-				log.info("#### criteria for csv filter1: " + criteriaString);
+				log.fine("#### criteria for csv filter1: " + criteriaString);
 				String criteria[] = criteriaString.split(",");
 				if (criteria.length >= 2) {
 					search.fn = criteria[1].trim().replace("\'", "");
@@ -7545,7 +7545,7 @@ public class GeneralUtilityMethods {
 			int idx = 2;
 			idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx, tz);
 
-			log.info("Evaluate Filter: " + pstmt.toString());
+			log.fine("Evaluate Filter: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				if(rs.getInt(1) > 0) {
@@ -7558,7 +7558,7 @@ public class GeneralUtilityMethods {
 			msg = msg.replace("%s1", caller + ": " + filter);
 			msg = msg.replace("%s2",  e.getMessage());
 			lm.writeLog(sd, survey.surveyData.id, user, LogManager.ERROR, msg, 0, null);
-			log.info(msg);
+			log.fine(msg);
 			throw new Exception(e);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
@@ -7598,7 +7598,7 @@ public class GeneralUtilityMethods {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
 
-		log.info("Filter check sql: " + resp);
+		log.fine("Filter check sql: " + resp);
 
 		return resp;
 	}
@@ -8124,7 +8124,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, metaString);
 			pstmt.setInt(2, sId);
-			log.info("Update meta item data: " + pstmt.toString());
+			log.fine("Update meta item data: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} finally {
@@ -8544,17 +8544,17 @@ public class GeneralUtilityMethods {
 				pstmtClearObsoleteKeys = sd.prepareStatement(sqlClearObsoleteKeys);
 				pstmtClearObsoleteKeys.setString(1, uIdent);
 				pstmtClearObsoleteKeys.setInt(2,  oId);
-				log.info("Delete access keys for temporary user: " + pstmtClearObsoleteKeys.toString());
+				log.fine("Delete access keys for temporary user: " + pstmtClearObsoleteKeys.toString());
 				pstmtClearObsoleteKeys.executeUpdate();
 				
 				// Delete the user
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, uIdent);
 				pstmt.setInt(2,  oId);
-				log.info("Delete temporary user: " + pstmt.toString());
+				log.fine("Delete temporary user: " + pstmt.toString());
 				int count = pstmt.executeUpdate();
 				if(count == 0) {
-					log.info("error: failed to delete temporary user: " + uIdent);
+					log.fine("error: failed to delete temporary user: " + uIdent);
 				}
 
 
@@ -8657,7 +8657,7 @@ public class GeneralUtilityMethods {
 			pstmtCopyThreadCol.setInt(4, sourceKey);
 			pstmtCopyThreadCol.setInt(5, sourceKey);
 			pstmtCopyThreadCol.setInt(6, prikey);
-			log.info("continue thread: " + pstmtCopyThreadCol.toString());
+			log.fine("continue thread: " + pstmtCopyThreadCol.toString());
 			pstmtCopyThreadCol.executeUpdate();
 			
 			
@@ -8700,7 +8700,7 @@ public class GeneralUtilityMethods {
 				pstmt.setString(1,  instanceId);
 				pstmt.setString(2,  instanceId);
 				
-				log.info("starting thread: " + pstmt.toString());
+				log.fine("starting thread: " + pstmt.toString());
 				thread = instanceId;
 			}
 			
@@ -8793,7 +8793,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 		
-			log.info("Get question count: " + pstmt.toString());
+			log.fine("Get question count: " + pstmt.toString());
 			
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
@@ -8846,7 +8846,7 @@ public class GeneralUtilityMethods {
 				if(p.type.equals("string")) {
 					pstmt.setString(idx++, p.vString);
 				} else {
-					log.info("xxxxxx Invalid parameter type: " + p.type + " : " + p.vString);
+					log.fine("xxxxxx Invalid parameter type: " + p.type + " : " + p.vString);
 				}
 			}
 		}
@@ -8911,7 +8911,7 @@ public class GeneralUtilityMethods {
 				java.util.Date date = Date.from( instant );				
 				t =  new Timestamp(date.getTime());
 			} catch (Exception e) {
-				log.info("Failed to parse string into Timestamp: "  + timeString + " : " + e.getMessage());			
+				log.fine("Failed to parse string into Timestamp: "  + timeString + " : " + e.getMessage());			
 			}
 		}
 		return t;
@@ -8944,7 +8944,7 @@ public class GeneralUtilityMethods {
 			if(assignmentId > 0) {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, assignmentId);
-				log.info("Get scheduled date: " + pstmt.toString());
+				log.fine("Get scheduled date: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) {
 					scheduledDate = rs.getTimestamp(1);
@@ -8973,7 +8973,7 @@ public class GeneralUtilityMethods {
 		/*
 		 * If type is uploadedSurveys then also get attachments as raw media are no longer saved
 		 */
-		log.info("Restore files for survey: " + ident);
+		log.fine("Restore files for survey: " + ident);
 		if(type.equals("uploadedSurveys")) {
 			Process proc2 = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/restoreFiles.sh " + 
 					ident + 	" attachments"});
@@ -8984,14 +8984,14 @@ public class GeneralUtilityMethods {
 				if ((len = proc2.getErrorStream().available()) > 0) {
 					byte[] buf = new byte[len];
 					proc2.getErrorStream().read(buf);
-					log.info("Command error:\t\"" + new String(buf) + "\"");
+					log.fine("Command error:\t\"" + new String(buf) + "\"");
 				}
 			} else {
 				int len;
 				if ((len = proc2.getInputStream().available()) > 0) {
 					byte[] buf = new byte[len];
 					proc2.getInputStream().read(buf);
-					log.info("Completed restore media atachments process:\t\"" + new String(buf) + "\"");
+					log.fine("Completed restore media atachments process:\t\"" + new String(buf) + "\"");
 				}
 			}
 		}
@@ -9003,14 +9003,14 @@ public class GeneralUtilityMethods {
 			if ((len = proc.getErrorStream().available()) > 0) {
 				byte[] buf = new byte[len];
 				proc.getErrorStream().read(buf);
-				log.info("Command error:\t\"" + new String(buf) + "\"");
+				log.fine("Command error:\t\"" + new String(buf) + "\"");
 			}
 		} else {
 			int len;
 			if ((len = proc.getInputStream().available()) > 0) {
 				byte[] buf = new byte[len];
 				proc.getInputStream().read(buf);
-				log.info("Completed restore media process:\t\"" + new String(buf) + "\"");
+				log.fine("Completed restore media process:\t\"" + new String(buf) + "\"");
 			}
 		}
 		
@@ -9190,7 +9190,7 @@ public class GeneralUtilityMethods {
 			Point newPoint = new Point(lon, lat);
 			pstmt.setString(5, newPoint.getAsText());
 			
-			log.info("Create new location (" + name + "): " + pstmt.toString());
+			log.fine("Create new location (" + name + "): " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} finally {
@@ -9231,7 +9231,7 @@ public class GeneralUtilityMethods {
 			pstmt.setString(4,  group);
 			pstmt.setString(5,  name);
 
-			log.info("Update location: " + pstmt.toString());
+			log.fine("Update location: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} finally {
@@ -9282,7 +9282,7 @@ public class GeneralUtilityMethods {
 				pstmt = cResults.prepareStatement(sql);
 	
 				pstmt.setString(1, instanceId);
-				log.info("Get latest instance id: " + pstmt.toString());
+				log.fine("Get latest instance id: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) {
 					latestInstanceId = rs.getString(1);
@@ -9319,7 +9319,7 @@ public class GeneralUtilityMethods {
 				pstmt = cResults.prepareStatement(sql);
 	
 				pstmt.setInt(1, prikey);
-				log.info("Get latest prikey: " + pstmt.toString());
+				log.fine("Get latest prikey: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) {
 					latestPrikey = rs.getInt(1);
@@ -9361,7 +9361,7 @@ public class GeneralUtilityMethods {
 				}
 				String gSql = "SELECT AddGeometryColumn('" + table + 
 						"', '" + column + "', 4326, '" + geoType + "', 2);";
-				log.info("Add geometry column: " + gSql);
+				log.fine("Add geometry column: " + gSql);
 
 				pstmtApplyGeometryChange = cResults.prepareStatement(gSql);
 				
@@ -9377,7 +9377,7 @@ public class GeneralUtilityMethods {
 							sqlAlterTable = "alter table " + table + " add column " 
 									+  column + "_alt double precision";
 							pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
-							log.info("Alter table: " + pstmtAlterTable.toString());					
+							log.fine("Alter table: " + pstmtAlterTable.toString());					
 							pstmtAlterTable.executeUpdate();
 						}
 
@@ -9386,14 +9386,14 @@ public class GeneralUtilityMethods {
 							sqlAlterTable = "alter table " + table + " add column "
 									+ column + "_acc double precision";
 							pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
-							log.info("Alter table: " + pstmtAlterTable.toString());					
+							log.fine("Alter table: " + pstmtAlterTable.toString());					
 							pstmtAlterTable.executeUpdate();
 						}
 					}
 				} catch (Exception e) {
 					// Allow this to fail where an older version added a geometry, which was then deleted, then a new 
 					//  geometry with altitude was added we need to go on and add the altitude and accuracy
-					log.info("Error altering table -- continuing: " + e.getMessage());
+					log.fine("Error altering table -- continuing: " + e.getMessage());
 					try {cResults.rollback();} catch(Exception ex) {}
 				}			
 
@@ -9405,7 +9405,7 @@ public class GeneralUtilityMethods {
 				if(!GeneralUtilityMethods.hasColumn(cResults, table, column)) {
 					String sqlAlterTable = "alter table " + table + " add column " + column + " " + type + ";";
 					pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
-					log.info("Alter table: " + pstmtAlterTable.toString());
+					log.fine("Alter table: " + pstmtAlterTable.toString());
 	
 					pstmtAlterTable.executeUpdate();
 				}
@@ -9415,7 +9415,7 @@ public class GeneralUtilityMethods {
 			} 
 		} catch (Exception e) {
 			// Report but otherwise ignore any errors
-			log.info("Error altering table -- continuing: " + e.getMessage());
+			log.fine("Error altering table -- continuing: " + e.getMessage());
 
 			// Rollback this change
 			try {cResults.rollback();} catch(Exception ex) {}
@@ -9657,7 +9657,7 @@ public class GeneralUtilityMethods {
 			pstmtQuestionResouces = sd.prepareStatement(sqlQuestionResources);
 			pstmtQuestionResouces.setInt(1, oId);
 			pstmtQuestionResouces.setString(2, fileName);
-			log.info("Get question level resource users: " + pstmtQuestionResouces.toString());
+			log.fine("Get question level resource users: " + pstmtQuestionResouces.toString());
 			ResultSet rs = pstmtQuestionResouces.executeQuery();
 			while(rs.next()) {
 				users.add(rs.getString(1));
@@ -9668,7 +9668,7 @@ public class GeneralUtilityMethods {
 			pstmtSurveyResouces.setInt(1, oId);
 			String modName = fileName.replace("_", "!_").replace("%", "!%").replace("!", "!!");
 			pstmtSurveyResouces.setString(2, "%" + modName + "%");
-			log.info("Get survey level resource users: " + pstmtSurveyResouces.toString());
+			log.fine("Get survey level resource users: " + pstmtSurveyResouces.toString());
 			rs = pstmtSurveyResouces.executeQuery();
 			while(rs.next()) {
 				users.add(rs.getString(1));
@@ -9711,7 +9711,7 @@ public class GeneralUtilityMethods {
 			pstmtQuestionResouces = sd.prepareStatement(sqlQuestionResources);
 			pstmtQuestionResouces.setInt(1, oId);
 			pstmtQuestionResouces.setString(2, fileName);
-			// log.info("Get question level resource users: " + pstmtQuestionResouces.toString());
+			// log.fine("Get question level resource users: " + pstmtQuestionResouces.toString());
 			ResultSet rs = pstmtQuestionResouces.executeQuery();
 			while(rs.next()) {
 				Survey s = new Survey();
@@ -9726,7 +9726,7 @@ public class GeneralUtilityMethods {
 			pstmtSurveyResouces.setInt(1, oId);
 			String modName = fileName.replace("_", "!_").replace("%", "!%").replace("!", "!!");
 			pstmtSurveyResouces.setString(2, "%" + modName + "%");
-			// log.info("Get survey level resource users: " + pstmtSurveyResouces.toString());
+			// log.fine("Get survey level resource users: " + pstmtSurveyResouces.toString());
 			rs = pstmtSurveyResouces.executeQuery();
 			while(rs.next()) {
 				Survey s = new Survey();
@@ -10177,7 +10177,7 @@ public class GeneralUtilityMethods {
 			if(groupSurveys.size() > 0) {
 				for(int gSId : groupSurveys.keySet()) {
 					pstmt.setInt(1, gSId);
-					log.info("Clear entries in linked_forms: " + pstmt.toString());
+					log.fine("Clear entries in linked_forms: " + pstmt.toString());
 					pstmt.executeUpdate();
 				}
 			}
@@ -10324,7 +10324,7 @@ public class GeneralUtilityMethods {
     		pstmt = sd.prepareStatement(sql);
     		pstmt.setInt(1,  sId);
     		pstmt.setInt(2,  fId);
-    		log.info(pstmt.toString());
+    		log.fine(pstmt.toString());
     		ResultSet rs = pstmt.executeQuery();
     		if(rs.next() && rs.getInt(1) > 0) {
     			hasTheGeom = true;
@@ -10357,7 +10357,7 @@ public class GeneralUtilityMethods {
     	try {
     		pstmt = sd.prepareStatement(sql);
     		pstmt.setInt(1,  fId);
-    		log.info(pstmt.toString());
+    		log.fine(pstmt.toString());
     		ResultSet rs = pstmt.executeQuery();
     		while(rs.next()) {
     			if(rs.getString(2).equals("geopoint")) {
@@ -10406,7 +10406,7 @@ public class GeneralUtilityMethods {
     		pstmt = sd.prepareStatement(sql);
     		pstmt.setInt(1,  fId);
     		pstmt.setString(2, type);
-    		log.info(pstmt.toString());
+    		log.fine(pstmt.toString());
     		ResultSet rs = pstmt.executeQuery();
     		if(rs.next()) {
     			geomColumn = rs.getString(1);
@@ -10436,7 +10436,7 @@ public class GeneralUtilityMethods {
     		pstmt = sd.prepareStatement(sql);
     		pstmt.setInt(1,  fId);
     		pstmt.setString(2, type);
-    		log.info(pstmt.toString());
+    		log.fine(pstmt.toString());
     		ResultSet rs = pstmt.executeQuery();
     		if(rs.next()) {
     			geomColumn = rs.getString(1);
@@ -10567,7 +10567,7 @@ public class GeneralUtilityMethods {
 		
 		// Make sure any existing connections are closed
 		if(dbc.sd != null) {
-			log.info("Messaging: Closing sd connection");
+			log.fine("Messaging: Closing sd connection");
 			try {
 				dbc.sd.close();
 			} catch (Exception e) {
@@ -10577,7 +10577,7 @@ public class GeneralUtilityMethods {
 		
 		if(dbc.results != null) {
 			try {
-				log.info("Messaging: Closing cResults connection");
+				log.fine("Messaging: Closing cResults connection");
 				dbc.results.close();
 			} catch (Exception e) {
 				
@@ -10684,7 +10684,7 @@ public class GeneralUtilityMethods {
     	try {
     		pstmt = sd.prepareStatement(sql);
     		pstmt.setInt(1,  sId);
-    		log.info(pstmt.toString());
+    		log.fine(pstmt.toString());
     		ResultSet rs = pstmt.executeQuery();
     		while(rs.next()) {
     			questions.add(rs.getString(1));
@@ -10736,7 +10736,7 @@ public class GeneralUtilityMethods {
 	    		} else {
 	    			pstmt.setString(1, instanceId);
 	    		}
-	    		log.info(pstmt.toString());
+	    		log.fine(pstmt.toString());
 	    		ResultSet rs = pstmt.executeQuery();
 	    		while(rs.next()) {
 	    			if(markers == null) {
@@ -11036,7 +11036,7 @@ public class GeneralUtilityMethods {
 				pstmtRole = sd.prepareStatement(sqlRole);
 				pstmtRole.setString(1, sIdent);
 				
-				// log.info("Check for use of roles in reference data: " + pstmtRole.toString());
+				// log.fine("Check for use of roles in reference data: " + pstmtRole.toString());
 				rsRoles = pstmtRole.executeQuery();
 				if(rsRoles.next()) {
 					cur.roles = rsRoles.getInt(1) > 0;
@@ -11076,7 +11076,7 @@ public class GeneralUtilityMethods {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
-			log.info("Get default map source: " + pstmt.toString());
+			log.fine("Get default map source: " + pstmt.toString());
 			
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
@@ -11195,7 +11195,7 @@ public class GeneralUtilityMethods {
 		track.append("::");
 		
 		track.append(msg);
-		log.info(track.toString());
+		log.fine(track.toString());
 	}
 	
 	/*

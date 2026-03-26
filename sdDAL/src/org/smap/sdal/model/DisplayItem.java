@@ -49,6 +49,6 @@ public class DisplayItem {
 	public ArrayList<DistanceMarker> markers;
 	
 	public void debug() {
-		log.info("======== Display Item:   width: " + width + "   value: " + value + " text: " + text + " : " + type  );
+		log.fine("======== Display Item:   width: " + width + "   value: " + value + " text: " + text + " : " + type  );
 	}
 }

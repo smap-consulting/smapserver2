@@ -59,11 +59,11 @@ public class ResourceManager {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
-			log.info("Get limits for an organisation: " + pstmt.toString());
+			log.fine("Get limits for an organisation: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				String limitString = rs.getString(1);
-				log.info("Limit string: " + limitString);
+				log.fine("Limit string: " + limitString);
 				if(limitString != null) {
 					HashMap<String, Integer> limits = gson.fromJson(limitString, 
 							new TypeToken<HashMap<String, Integer>>() {}.getType());
@@ -106,7 +106,7 @@ public class ResourceManager {
 				pstmt.setInt(4, oId);
 			}
 			
-			log.info("Get resource usage: " + pstmt.toString());
+			log.fine("Get resource usage: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 		
 			if(rs.next()) {
@@ -225,7 +225,7 @@ public class ResourceManager {
 		}
 		
 		if(!decision) {
-			log.info("Usage denied. Period: " + period 
+			log.fine("Usage denied. Period: " + period 
 					+ " Resource: " + resource 
 					+ " Limit: " + limit 
 					+ " Usage: " + usage);

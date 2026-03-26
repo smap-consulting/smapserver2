@@ -212,7 +212,7 @@ public class WordTableManager {
 				run.setText(kv.v);
 			}
 		} catch (Exception e) {
-			log.info("Error updating value cell, continuing: " + basePath + " : " + kv.v);
+			log.fine("Error updating value cell, continuing: " + basePath + " : " + kv.v);
 			log.log(Level.SEVERE, "Exception", e);
 		}
 

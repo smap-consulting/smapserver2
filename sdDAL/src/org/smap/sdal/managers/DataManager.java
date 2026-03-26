@@ -326,7 +326,7 @@ public class DataManager {
 					);
 			
 			if(pstmt != null) {
-				log.info("Data Manager Getting instance data: " + pstmt.toString());
+				log.fine("Data Manager Getting instance data: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				
 				while(rs.next()) {
@@ -504,7 +504,7 @@ public class DataManager {
 			 * Hack - some older clients still pass the survey id rather than the ident
 			 * Until these are fixed handle either
 			 */
-			log.info("Get data records for survey ident: " + sIdent);
+			log.fine("Get data records for survey ident: " + sIdent);
 			if(sIdent.startsWith("s")) {
 				sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);		// Ident - the correct way
 			} else {
@@ -726,7 +726,7 @@ public class DataManager {
 					pstmtGetMainForm = sd.prepareStatement(sqlGetMainForm);
 					pstmtGetMainForm.setInt(1,sId);
 	
-					log.info("Getting main form: " + pstmtGetMainForm.toString() );
+					log.fine("Getting main form: " + pstmtGetMainForm.toString() );
 					rs = pstmtGetMainForm.executeQuery();
 					if(rs.next()) {
 						fId = rs.getInt(1);
@@ -739,7 +739,7 @@ public class DataManager {
 					pstmtGetForm.setInt(1,sId);
 					pstmtGetForm.setInt(2,fId);
 	
-					log.info("Getting specific form: " + pstmtGetForm.toString() );
+					log.fine("Getting specific form: " + pstmtGetForm.toString() );
 					rs = pstmtGetForm.executeQuery();
 					if(rs.next()) {
 						parentform = rs.getInt(1);
@@ -862,13 +862,13 @@ public class DataManager {
 			}
 			
 			if(pstmt != null) {
-				log.info("DataAPI data: " + pstmt.toString());
+				log.fine("DataAPI data: " + pstmt.toString());
 				/*
 				 * Get the data record by record so it can be streamed
 				 */
 				
 				// page the results to reduce memory usage
-				log.info("---------------------- paging results to postgres");
+				log.fine("---------------------- paging results to postgres");
 				cResults.setAutoCommit(false);		
 				pstmt.setFetchSize(100);	
 				
@@ -906,7 +906,7 @@ public class DataManager {
 					index++;
 					if (ssd.limit > 0 && index >= ssd.limit) {
 						totals.reached_limit = true;
-						log.info("xxxxx Limit reached");
+						log.fine("xxxxx Limit reached");
 						break;
 					}
 
@@ -915,7 +915,7 @@ public class DataManager {
 				cResults.setAutoCommit(true);		// page the results to reduce memory
 				
 			} else {
-				log.info("Error:  prepared statement is null");
+				log.fine("Error:  prepared statement is null");
 			}
 			
 			outWriter.print("]");
@@ -989,7 +989,7 @@ public class DataManager {
 			response.setContentType("text/plain");
 			response.setStatus(429);
 			response.getWriter().append(ae.getMessage());
-			log.info(ae.getMessage());
+			log.fine(ae.getMessage());
 		} catch (Exception e) {
 			try {cResults.setAutoCommit(true);} catch(Exception ex) {};
 			
@@ -1001,7 +1001,7 @@ public class DataManager {
 				log.log(Level.SEVERE, "Exception", e);
 			} else if(msg.indexOf("does not exist", 0) > 0 && msg.startsWith("ERROR: relation")) {
 				status = "ok";
-				log.info(msg);
+				log.fine(msg);
 			} else {
 				status = "error";
 				log.log(Level.SEVERE, "Exception", e);
@@ -1140,7 +1140,7 @@ public class DataManager {
 				pstmtGetMainForm = sd.prepareStatement(sqlGetMainForm);
 				pstmtGetMainForm.setInt(1,sId);
 
-				log.info("Getting main form: " + pstmtGetMainForm.toString() );
+				log.fine("Getting main form: " + pstmtGetMainForm.toString() );
 				rs = pstmtGetMainForm.executeQuery();
 				if(rs.next()) {
 					fId = rs.getInt(1);
@@ -1152,7 +1152,7 @@ public class DataManager {
 				pstmtGetForm.setInt(1,sId);
 				pstmtGetForm.setInt(2,fId);
 
-				log.info("Getting specific form: " + pstmtGetForm.toString() );
+				log.fine("Getting specific form: " + pstmtGetForm.toString() );
 				rs = pstmtGetForm.executeQuery();
 				if(rs.next()) {
 					parentform = rs.getInt(1);
@@ -1292,7 +1292,7 @@ public class DataManager {
 				int paramCount = 1;			
 				pstmtGetSimilar.setInt(paramCount++, start);
 				
-				log.info("Get similar: " + pstmtGetSimilar.toString());
+				log.fine("Get similar: " + pstmtGetSimilar.toString());
 				rs = pstmtGetSimilar.executeQuery();				
 
 				/*
@@ -1312,7 +1312,7 @@ public class DataManager {
 					pstmtGetData.setInt(paramCount++, start);
 					for(int i = 0; i < groupColumns; i++) {
 						String gType = groupTypes.get(i);
-						log.info("Adding group type: " + gType);
+						log.fine("Adding group type: " + gType);
 						if(gType.equals("int")) {
 							pstmtGetData.setInt(paramCount++, rs.getInt(i + 2));	
 						} else { 
@@ -1323,7 +1323,7 @@ public class DataManager {
 						}
 						groupKey += rs.getString(i + 2);
 					}
-					log.info("Get data: " + pstmtGetData.toString());
+					log.fine("Get data: " + pstmtGetData.toString());
 					ResultSet rsD = pstmtGetData.executeQuery();
 
 					int index = 0;

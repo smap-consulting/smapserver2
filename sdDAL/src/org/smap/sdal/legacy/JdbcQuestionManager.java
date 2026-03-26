@@ -211,7 +211,7 @@ public class JdbcQuestionManager {
 		pstmt.setString(33, q.getIntent());
 		pstmt.setString(34, q.getSetValueArrayAsString(gson));
 		
-		log.info("Write question (xml): " + pstmt.toString());
+		log.fine("Write question (xml): " + pstmt.toString());
 		pstmt.executeUpdate();
 		
 		ResultSet rs = pstmt.getGeneratedKeys();

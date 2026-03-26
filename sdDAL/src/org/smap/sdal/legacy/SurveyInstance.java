@@ -75,7 +75,7 @@ public class SurveyInstance {
 	
 			processElement(rootElement, topInstanceElement, path);   
 		} catch(Exception e) {
-			log.info("Error in xml: " + xml);
+			log.fine("Error in xml: " + xml);
 			throw e;
 		}
  
@@ -243,7 +243,7 @@ public class SurveyInstance {
 				   		ie.setPath(childPath);
 						processElement(n, ie, childPath);	// Recursively process the XML tree
 					} else {
-						log.info("Ignoring template node: " + n.getTextContent());
+						log.fine("Ignoring template node: " + n.getTextContent());
 					}
 				}
 			}

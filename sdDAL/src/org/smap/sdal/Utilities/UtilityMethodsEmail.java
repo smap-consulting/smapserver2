@@ -95,11 +95,11 @@ public class UtilityMethodsEmail {
 				pstmt.setInt(4, key);
 			}
 
-			log.info("Mark record: " + pstmt.toString());
+			log.fine("Mark record: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
 
 			if(count != 1) {
-				log.info("Expecting 1 record to be updated.  Number of records updated: " + count);
+				log.fine("Expecting 1 record to be updated.  Number of records updated: " + count);
 			}
 			
 			if(updateChildren) {
@@ -113,7 +113,7 @@ public class UtilityMethodsEmail {
 				pstmt.setInt(1, sId);
 				pstmt.setInt(2, fId);
 	
-				log.info(pstmt.toString());
+				log.fine(pstmt.toString());
 				ResultSet tableSet = pstmt.executeQuery();
 				while(tableSet.next()) {
 					String childTable = tableSet.getString(1);
@@ -126,7 +126,7 @@ public class UtilityMethodsEmail {
 					if (pstmt2 != null) try {pstmt2.close();} catch(Exception e) {};
 					pstmt2 = cResults.prepareStatement(sql);	
 					pstmt2.setInt(1, key);
-					log.info(pstmt2.toString());
+					log.fine(pstmt2.toString());
 	
 					ResultSet childRecs = pstmt2.executeQuery();
 					while(childRecs.next()) {
@@ -189,7 +189,7 @@ public class UtilityMethodsEmail {
 
 		pstmt = connectionSD.prepareStatement(sql);	
 		pstmt.setString(1, email);
-		log.info(pstmt.toString());
+		log.fine(pstmt.toString());
 		ResultSet rs = pstmt.executeQuery();
 		while (rs.next()) {
 			idents.add(rs.getString(1));
@@ -216,7 +216,7 @@ public class UtilityMethodsEmail {
 
 		pstmt = connectionSD.prepareStatement(sql);	
 		pstmt.setString(1, ident);
-		log.info(pstmt.toString());
+		log.fine(pstmt.toString());
 		ResultSet rs = pstmt.executeQuery();
 		if (rs.next()) {
 			email = rs.getString(1);
@@ -355,7 +355,7 @@ public class UtilityMethodsEmail {
 			} 
 			
 			if(pstmt != null) {
-				log.info("Get smtp_host SQL:" + pstmt.toString());
+				log.fine("Get smtp_host SQL:" + pstmt.toString());
 				rs = pstmt.executeQuery();
 				if(rs.next()) {
 					emailServer = getEmailServerDetails(rs, localisation, basePath);		
@@ -468,7 +468,7 @@ public class UtilityMethodsEmail {
 		pstmt = connectionSD.prepareStatement(sql);	
 		pstmt.setString(1, uuid);
 		pstmt.setString(2, email);
-		log.info("SQL set oneTimePassword: " + pstmt.toString());
+		log.fine("SQL set oneTimePassword: " + pstmt.toString());
 		int count = pstmt.executeUpdate();
 
 		if(count > 0) {
@@ -502,7 +502,7 @@ public class UtilityMethodsEmail {
 
 		pstmt = connectionSD.prepareStatement(sql);	
 		pstmt.setString(1, email);
-		log.info("SQL checking for already sent email: " + pstmt.toString());
+		log.fine("SQL checking for already sent email: " + pstmt.toString());
 		ResultSet rs = pstmt.executeQuery();
 		if(rs.next()) {
 			seconds = rs.getInt(1);
@@ -529,7 +529,7 @@ public class UtilityMethodsEmail {
 		try {
 			pstmt = connectionSD.prepareStatement(sql);	
 			pstmt.setString(1, email);
-			log.info("SQL record one time password sent: " + pstmt.toString());
+			log.fine("SQL record one time password sent: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 		} finally {
@@ -642,7 +642,7 @@ public class UtilityMethodsEmail {
 			ct = "application/octet-stream; charset=UTF-8";
 		} else {
 			ct = "application/octet-stream";
-			log.info("	Info: unrecognised content type for extension " + extension);           
+			log.fine("	Info: unrecognised content type for extension " + extension);           
 		}
 
 		return ct;
@@ -683,7 +683,7 @@ public class UtilityMethodsEmail {
 			cmd = binDir + "ffmpeg -i \"" + file.getAbsolutePath() + "\" -vf scale=-1:100 -vframes 1 \"" + destRoot + "jpg\" -y";
 		} 
 
-		log.info("Exec: " + cmd);
+		log.fine("Exec: " + cmd);
 
 		if(cmd != null) {
 			try {
@@ -691,15 +691,15 @@ public class UtilityMethodsEmail {
 				Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", cmd});
 
 				int code = proc.waitFor();
-				log.info("Attachment processing finished with status:" + code);
+				log.fine("Attachment processing finished with status:" + code);
 				if(code != 0) {
-					log.info("Error: Attachment processing failed");
+					log.fine("Error: Attachment processing failed");
 					InputStream stderr = proc.getErrorStream();
 					InputStreamReader isr = new InputStreamReader(stderr);
 					BufferedReader br = new BufferedReader(isr);
 					String line = null;
 					while ( (line = br.readLine()) != null) {
-						log.info("** " + line);
+						log.fine("** " + line);
 					}
 				}
 
@@ -735,7 +735,7 @@ public class UtilityMethodsEmail {
 						
 						pstmt.setString(2, s.surveyData.languages.get(i).name);
 						pstmt.setString(3, root);
-						//log.info("Get labels: " + pstmt.toString());
+						//log.fine("Get labels: " + pstmt.toString());
 	
 						resultSet = pstmt.executeQuery();		
 						while(resultSet.next()) {
@@ -777,7 +777,7 @@ public class UtilityMethodsEmail {
 							} else if(t.equals("required_msg")) {
 								l.required_msg = v;
 							} else {
-								log.info("Error: Invalid label type: " + t);
+								log.fine("Error: Invalid label type: " + t);
 							}
 						}
 						

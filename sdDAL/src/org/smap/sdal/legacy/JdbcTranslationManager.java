@@ -80,7 +80,7 @@ public class JdbcTranslationManager {
 		String noPathValue = GeneralUtilityMethods.convertAllXpathLabels(value, true);
 		pstmt.setString(5, sanitise.sanitiseHtml(noPathValue));
 		
-		//log.info("Write translation: " + pstmt.toString());
+		//log.fine("Write translation: " + pstmt.toString());
 		pstmt.executeUpdate();
 	}
 	
@@ -129,7 +129,7 @@ public class JdbcTranslationManager {
 	
 		ArrayList <Translation> trans = new ArrayList<Translation> ();
 		
-		log.info("Get Translations: " + pstmt.toString());
+		log.fine("Get Translations: " + pstmt.toString());
 		ResultSet rs = pstmt.executeQuery();
 		while(rs.next()) {
 			Translation t = new Translation();

@@ -49,14 +49,14 @@ public class OptionListManager {
 			pstmtClear.setString(1, name);
 			pstmtClear.setInt(2, sId);
 			pstmtClear.setString(3, name);
-			log.info("Clear list id: " + pstmtClear.toString());
+			log.fine("Clear list id: " + pstmtClear.toString());
 			pstmtClear.executeUpdate();
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 			pstmt.setString(2, name);
 			
-			log.info("Delete list name: " + pstmt.toString());
+			log.fine("Delete list name: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} catch (Exception e) {

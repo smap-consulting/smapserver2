@@ -157,7 +157,7 @@ public class XLSXAttendanceReportsManager {
 		
 		try {
 			
-			log.info("###### tx: " + tz);
+			log.fine("###### tx: " + tz);
 			
 			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, day);
 			Date d1 = Date.valueOf(t1.toLocalDateTime().toLocalDate());
@@ -178,7 +178,7 @@ public class XLSXAttendanceReportsManager {
 			pstmt.setInt(3, oId);
 			pstmt.setInt(4,  Authorise.ENUM_ID);
 			
-			log.info("Attendance report: " + pstmt.toString());
+			log.fine("Attendance report: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
@@ -189,7 +189,7 @@ public class XLSXAttendanceReportsManager {
 				ar.usageInPeriod = rs.getInt("month");
 				
 				pstmtDurn.setString(6,  ar.userIdent);
-				log.info("Get attendance: " + pstmtDurn.toString());
+				log.fine("Get attendance: " + pstmtDurn.toString());
 				ResultSet rsDurn = pstmtDurn.executeQuery();
 				if(rsDurn.next()) {
 					ar.firstRefresh = rsDurn.getTimestamp(1);

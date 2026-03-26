@@ -528,7 +528,7 @@ public class XLSUtilities {
 				url.setAddress(value);
 				cell.setHyperlink(url);
 			} catch (Exception e) {
-				log.info("Error: " + e.getMessage() + " setting hypperlink address " + value);
+				log.fine("Error: " + e.getMessage() + " setting hypperlink address " + value);
 			}
 			
 			cell.setCellValue(value);
@@ -677,7 +677,7 @@ public class XLSUtilities {
 			if(idx <= lastCellNum) {
 				Cell c = row.getCell(idx);
 				if(c != null) {
-					log.info("Get date column: " + name);
+					log.fine("Get date column: " + name);
 					if(c.getCellType() == CellType.NUMERIC) {
 						if (DateUtil.isCellDateFormatted(c)) {
 							tsValue = new Timestamp(c.getDateCellValue().getTime());

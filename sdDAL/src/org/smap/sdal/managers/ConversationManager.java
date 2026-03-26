@@ -100,7 +100,7 @@ public class ConversationManager {
 			String messageColumn = GeneralUtilityMethods.getConversationColumn(sd, sId);	
 			
 			if(tableName != null && messageColumn != null && sId > 0) {
-				log.info("Update existing entry with instanceId: " + instanceid);
+				log.fine("Update existing entry with instanceId: " + instanceid);
 				ArrayList<ConversationItemDetails> currentConv = null;
 				Type type = new TypeToken<ArrayList<ConversationItemDetails>>() {}.getType();
 				StringBuilder sqlGet = new StringBuilder("select prikey, ")
@@ -110,7 +110,7 @@ public class ConversationManager {
 						.append(" where instanceid = ?");
 				pstmtGet = cResults.prepareStatement(sqlGet.toString());
 				pstmtGet.setString(1, instanceid);
-				log.info("Get existing: " + pstmtGet.toString());
+				log.fine("Get existing: " + pstmtGet.toString());
 				ResultSet rsGet = pstmtGet.executeQuery();
 				if(rsGet.next()) {
 					prikey = rsGet.getInt("prikey");
@@ -130,7 +130,7 @@ public class ConversationManager {
 				pstmt.setString(1, gson.toJson(smsMgr.getMessageText(msg, currentConv)));
 				pstmt.setString(2, instanceid);			
 					
-				log.info("Process sms: " + pstmt.toString());
+				log.fine("Process sms: " + pstmt.toString());
 				pstmt.executeUpdate();
 					
 				/*
@@ -157,7 +157,7 @@ public class ConversationManager {
 							0,
 							0);	
 			} else {
-				log.info("Error: Conversation question not found");
+				log.fine("Error: Conversation question not found");
 			}
 			
 		} finally {
@@ -212,13 +212,13 @@ public class ConversationManager {
 		String vonageApplicationId = getVonageApplicationId(sd);
 			
 		if(vonagePrivateKey.exists() && vonageApplicationId != null && vonageApplicationId.trim().length() > 0) {
-			log.info("Getting vonage client with application Id: " + vonageApplicationId + " file at: " + privateKeyFile);
+			log.fine("Getting vonage client with application Id: " + vonageApplicationId + " file at: " + privateKeyFile);
 			try {
 				vonageClient = VonageClient.builder()
 						.applicationId(vonageApplicationId)
 						.privateKeyPath(vonagePrivateKey.getAbsolutePath())
 						.build();
-				log.info("Got vonage client");
+				log.fine("Got vonage client");
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(),e);
 				lm.writeLogOrganisation(sd, -1, null, LogManager.SMS, 
@@ -232,7 +232,7 @@ public class ConversationManager {
 			if(vonageApplicationId != null && vonageApplicationId.trim().length() > 0) {
 				// Set organisation id to -1 as this is an issue not related to an organisation			
 				lm.writeLogOrganisation(sd, -1, null, LogManager.SMS, msg, 0);	
-				log.info("Error setting up vonage client: " + msg);
+				log.fine("Error setting up vonage client: " + msg);
 			}
 			
 		}

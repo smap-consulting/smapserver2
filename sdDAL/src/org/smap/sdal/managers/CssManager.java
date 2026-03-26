@@ -111,7 +111,7 @@ public class CssManager {
 	public void deleteCustomCssFile(Connection sd, String user, String name, int orgId) throws IOException {
 		File loadedFolder = getCssLoadedFolder(orgId);
 		File f = new File(loadedFolder.getAbsolutePath() + File.separator + name);
-		log.info("Deleting css file: " + f.getAbsolutePath());
+		log.fine("Deleting css file: " + f.getAbsolutePath());
 		String msg = localisation.getString("c_del_css") + " " + f.getAbsolutePath();
 		lm.writeLogOrganisation(sd, orgId, user, LogManager.DELETE, msg, 0);
 		f.delete();

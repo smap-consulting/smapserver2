@@ -136,7 +136,7 @@ public class XLSXReportsManager {
 				/*
 				 * Create XLSX File
 				 */
-				log.info("####################### Create XLSX file");
+				log.fine("####################### Create XLSX file");
 				wb = new SXSSFWorkbook(10);		// Serialised output
 				Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 				CellStyle headerStyle = styles.get("header");
@@ -155,7 +155,7 @@ public class XLSXReportsManager {
 				/*
 				 * Populate settings sheet
 				 */
-				log.info("####################### Populate settings sheet: ");
+				log.fine("####################### Populate settings sheet: ");
 				int settingsRowIdx = 0;
 				Row settingsRow = settingsSheet.createRow(settingsRowIdx++);
 				Cell sk = settingsRow.createCell(0);
@@ -378,7 +378,7 @@ public class XLSXReportsManager {
 				cResults.setAutoCommit(false);	// page the results to reduce memory usage	
 				pstmt.setFetchSize(100);	
 				
-				log.info("Get results: " + pstmt.toString());
+				log.fine("Get results: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				ArrayList<ReadData> dataItems = null;
 				Row dataRow = null;
@@ -386,7 +386,7 @@ public class XLSXReportsManager {
 				while(rs.next()) {
 					
 					if(rowCount++ % 1000 == 0) {
-						log.info("#report row: " + rowCount);
+						log.fine("#report row: " + rowCount);
 					}
 					// Re-get the survey name for the survey that wrote this record, this may vary in groups
 					if(meta) {

@@ -27,7 +27,7 @@ public class SDDataSource {
 			Connection c = ds.getConnection();
 			c.setAutoCommit(true);		// Can't rely on auto commit being set to true when connection comes from pool
 			count++;
-			log.info(" #### " + count + " Create SurveyDefinitions connection: " + requester);
+			log.fine(" #### " + count + " Create SurveyDefinitions connection: " + requester);
 			return c;
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error getting SD data source", e);
@@ -43,9 +43,9 @@ public class SDDataSource {
 					c.setAutoCommit(true);
 					c.close(); 
 					count--;
-					log.info(" $$$$ " + count + " Close SurveyDefinitions connection: " + requester);
+					log.fine(" $$$$ " + count + " Close SurveyDefinitions connection: " + requester);
 				} else {
-					log.info(" $$$$ " + count + " SurveyDefinitions connection is already closed: " + requester);
+					log.fine(" $$$$ " + count + " SurveyDefinitions connection is already closed: " + requester);
 				}
 				c = null;
 				
@@ -53,7 +53,7 @@ public class SDDataSource {
 				log.log(Level.SEVERE,"Failed to close the surveyDefinitions connection", e);
 			}
 		} else {
-			log.info(" $$$$ " + count + " SurveyDefinitions connection is already closed: " + requester);
+			log.fine(" $$$$ " + count + " SurveyDefinitions connection is already closed: " + requester);
 		}
 	}
 	

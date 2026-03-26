@@ -150,7 +150,7 @@ public class UserManager {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, ident);
-			// log.info("Get user details: " + pstmt.toString());
+			// log.fine("Get user details: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 
 			while(resultSet.next()) {
@@ -242,7 +242,7 @@ public class UserManager {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, user.id);
-			// log.info("SQL: " + pstmt.toString());
+			// log.fine("SQL: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 
 			boolean canResetPassword = false;	// Only reset passwords of users with specific groups
@@ -275,7 +275,7 @@ public class UserManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, user.id);
 
-			// log.info("SQL: " + pstmt.toString());
+			// log.fine("SQL: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 
 			while(resultSet.next()) {
@@ -356,7 +356,7 @@ public class UserManager {
 					msg = msg.replace("%s2", String.valueOf(passwordAge));
 					msg = msg.replace("%s3", String.valueOf(passwordExpiry));
 					lm.writeLogOrganisation(sd, user.o_id, ident, LogManager.USER, msg, 0);
-					log.info(msg);
+					log.fine(msg);
 				}
 			}
 			
@@ -388,7 +388,7 @@ public class UserManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, uId);
 	
-			log.info("SQL: " + pstmt.toString());
+			log.fine("SQL: " + pstmt.toString());
 			ResultSet resultSet = pstmt.executeQuery();
 	
 			while(resultSet.next()) {
@@ -441,7 +441,7 @@ public class UserManager {
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setString(1, ident);
 
-			log.info("Get alert details: " + pstmt.toString());
+			log.fine("Get alert details: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 
 			while(resultSet.next()) {
@@ -498,7 +498,7 @@ public class UserManager {
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setString(1, ident);
 
-			log.info("Get users email: " + pstmt.toString());
+			log.fine("Get users email: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			if(rs.next()) {
@@ -554,7 +554,7 @@ public class UserManager {
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setString(1, ident);
 
-			log.info("Get users api key: " + pstmt.toString());
+			log.fine("Get users api key: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			if(rs.next()) {
@@ -601,7 +601,7 @@ public class UserManager {
 			pstmt.setString(1, key);
 			pstmt.setString(2, ident);
 
-			log.info("Create users key: " + pstmt.toString());
+			log.fine("Create users key: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} catch (Exception e) {
@@ -641,7 +641,7 @@ public class UserManager {
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setString(1, ident);
 
-			log.info("Delete users key: " + pstmt.toString());
+			log.fine("Delete users key: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} catch (Exception e) {
@@ -727,7 +727,7 @@ public class UserManager {
 			pstmt.setString(7,  HtmlSanitise.checkCleanName(language, localisation));
 			pstmt.setString(8, pwdString);
 			pstmt.setString(9, u.password);
-			log.info("SQL: " + pstmt.toString());
+			log.fine("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 			ResultSet rs = pstmt.getGeneratedKeys();
@@ -739,7 +739,7 @@ public class UserManager {
 
 			// Send a notification email to the user
 			if(u.sendEmail) {
-				log.info("Checking to see if email enabled: " + u.sendEmail);
+				log.fine("Checking to see if email enabled: " + u.sendEmail);
 
 				Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, userIdent);
 
@@ -773,8 +773,8 @@ public class UserManager {
 				
 				customTokens.put("${user_ident}", u.ident);
 
-				log.info("Content: " + content);
-				log.info("tokens: " + customTokens.toString());
+				log.fine("Content: " + content);
+				log.fine("tokens: " + customTokens.toString());
 				em.sendEmailHtml(
 						null,
 						organisation.name,
@@ -818,7 +818,7 @@ public class UserManager {
 			User u, 
 			int o_id) throws Exception {
 
-		log.info("############# Creating temporary user");
+		log.fine("############# Creating temporary user");
 		
 		int u_id = -1;
 		String sql = "insert into users "
@@ -842,7 +842,7 @@ public class UserManager {
 			}
 			pstmt.setString(5, gson.toJson(u.action_details));
 			pstmt.setBoolean(6, u.singleSubmission);
-			log.info("SQL: " + pstmt.toString());
+			log.fine("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 			ResultSet rs = pstmt.getGeneratedKeys();
@@ -874,7 +874,7 @@ public class UserManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, uId);
 	
-			log.info("SQL: " + pstmt.toString());
+			log.fine("SQL: " + pstmt.toString());
 			ResultSet resultSet = pstmt.executeQuery();
 	
 			while(resultSet.next()) {			
@@ -934,7 +934,7 @@ public class UserManager {
 			pstmt.setInt(2, adminUserOrgId);
 			pstmt.setInt(3, u.id);
 			pstmt.setInt(4, adminUserOrgId);
-			log.info("Validate user in correct organisation: " + pstmt.toString());
+			log.fine("Validate user in correct organisation: " + pstmt.toString());
 			ResultSet resultSet = pstmt.executeQuery();
 
 			if(resultSet.next()) {
@@ -1037,7 +1037,7 @@ public class UserManager {
 						pstmt.setInt(8, u.id);
 					}
 
-					log.info("Update user details: " + pstmt.toString());
+					log.fine("Update user details: " + pstmt.toString());
 					pstmt.executeUpdate();
 
 					// Update the groups, projects and roles
@@ -1106,11 +1106,11 @@ public class UserManager {
 			pstmt.setString(2, pwd.password);
 			pstmt.setString(3, ident);
 		
-			log.info("Update password: " + pstmt.toString());
+			log.fine("Update password: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			// Write logs
-			log.info("userevent: " + ident + " updated password : " + ident);
+			log.fine("userevent: " + ident + " updated password : " + ident);
 			pwm.logReset();
 			lm.writeLog(sd, -1, ident, LogManager.USER_DETAILS, localisation.getString("msg_pwd_changed"), 0, serverName);
 		
@@ -1138,7 +1138,7 @@ public class UserManager {
 			String sql = "update users set total_tasks = total_tasks - 1 where ident = ?";
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, userIdent);
-			log.info("Decrement total tasks: " + pstmt.toString());
+			log.fine("Decrement total tasks: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -1151,7 +1151,7 @@ public class UserManager {
 			String sql = "update users set total_tasks = total_tasks + 1 where ident = ?";
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, userIdent);
-			log.info("Increment total tasks: " + pstmt.toString());
+			log.fine("Increment total tasks: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -1165,7 +1165,7 @@ public class UserManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1,  count);
 			pstmt.setString(2, userIdent);
-			log.info("Bulk increment total tasks: " + pstmt.toString());
+			log.fine("Bulk increment total tasks: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -1185,7 +1185,7 @@ public class UserManager {
 		PreparedStatement pstmtInsertUserRole = null;
 		PreparedStatement pstmtInsertProjectGroup = null;
 
-		log.info("Update groups and projects user id:" + u_id);
+		log.fine("Update groups and projects user id:" + u_id);
 
 		boolean calledFromTransaction = !sd.getAutoCommit();  // Manage auto commit
 		
@@ -1207,7 +1207,7 @@ public class UserManager {
 			/*
 			 * Update user groups
 			 */
-			// log.info("Set autocommit false");
+			// log.fine("Set autocommit false");
 			sd.setAutoCommit(false);
 			if(isServerOwner || isEnterpriseManager) {	// Cannot remove server owner
 				sql = "delete from user_group where u_id = ? "
@@ -1232,7 +1232,7 @@ public class UserManager {
 			if(u.groups != null) {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, u.id);
-				// log.info("SQL: " + pstmt.toString());
+				// log.fine("SQL: " + pstmt.toString());
 				pstmt.executeUpdate();
 
 				for(int j = 0; j < u.groups.size(); j++) {
@@ -1251,7 +1251,7 @@ public class UserManager {
 						// Ignore deleted groups
 						if(g.id != 13 && g.id != 12) {
 							pstmtInsertUserGroup.setInt(2, g.id);
-							// log.info("Insert user group: " + pstmtInsertUserGroup.toString());
+							// log.fine("Insert user group: " + pstmtInsertUserGroup.toString());
 							pstmtInsertUserGroup.executeUpdate();
 						}
 						
@@ -1259,7 +1259,7 @@ public class UserManager {
 				}
 				
 			} else {
-				log.info("No user groups");
+				log.fine("No user groups");
 			}
 
 			// Delete existing user projects
@@ -1268,7 +1268,7 @@ public class UserManager {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, u.id);
-				// log.info("SQL: " + pstmt.toString());
+				// log.fine("SQL: " + pstmt.toString());
 				pstmt.executeUpdate();
 
 				for(int j = 0; j < u.projects.size(); j++) {
@@ -1287,7 +1287,7 @@ public class UserManager {
 				}
 
 			} else {
-				log.info("No projects to add");
+				log.fine("No projects to add");
 			}
 
 			/*
@@ -1299,13 +1299,13 @@ public class UserManager {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, u.id);
-				// log.info("SQL add roles: " + pstmt.toString());
+				// log.fine("SQL add roles: " + pstmt.toString());
 				pstmt.executeUpdate();
 
 				for(int j = 0; j < u.roles.size(); j++) {
 					Role r = u.roles.get(j);
 					pstmtInsertUserRole.setInt(2, r.id);
-					// log.info("Insert user role: " + pstmtInsertUserRole.toString());
+					// log.fine("Insert user role: " + pstmtInsertUserRole.toString());
 					try {
 						pstmtInsertUserRole.executeUpdate();
 					} catch (Exception e) {
@@ -1329,7 +1329,7 @@ public class UserManager {
 			throw e;
 		} finally {
 			if(!calledFromTransaction) {
-				// log.info("Set autocommit true");
+				// log.fine("Set autocommit true");
 				sd.setAutoCommit(true);
 			}
 			
@@ -1348,8 +1348,8 @@ public class UserManager {
 		PreparedStatement pstmtInsertOrgUser = null;
 		PreparedStatement pstmtValidate = null;
 
-		log.info("Update organisations for user id:" + u_id);
-		log.info("Autocommit: " + sd.getAutoCommit());
+		log.fine("Update organisations for user id:" + u_id);
+		log.fine("Autocommit: " + sd.getAutoCommit());
 		
 		boolean calledFromTransaction = !sd.getAutoCommit();  // Manage auto commit
 		
@@ -1383,7 +1383,7 @@ public class UserManager {
 			}
 			
 			if(u.orgs != null) {
-				// log.info("Set autocommit false");
+				// log.fine("Set autocommit false");
 				sd.setAutoCommit(false);
 				
 				ArrayList<Integer> orgList = new ArrayList<Integer> ();
@@ -1399,7 +1399,7 @@ public class UserManager {
 				if(!isOrgUser) {
 					pstmtDelete.setInt(idx++, initiatorUserId);
 				}
-				// log.info("Delete remove unset org links: " + pstmtDelete.toString());
+				// log.fine("Delete remove unset org links: " + pstmtDelete.toString());
 				pstmtDelete.executeUpdate();
 
 				/*
@@ -1419,7 +1419,7 @@ public class UserManager {
 				// Create an entry for the users current organisation
 				if(isValidInsert(pstmtValidate, o_id, u_id)) {
 					pstmtInsertOrgUser.setInt(2, o_id);
-					// log.info("Inserting org link: " + pstmtInsertOrgUser.toString());
+					// log.fine("Inserting org link: " + pstmtInsertOrgUser.toString());
 					try {
 						pstmtInsertOrgUser.executeUpdate();
 					} catch (SQLException e) {
@@ -1433,7 +1433,7 @@ public class UserManager {
 						if(isValidInsert(pstmtValidate, u.orgs.get(j).id, u.id)) {
 
 							pstmtInsertOrgUser.setInt(2, u.orgs.get(j).id);
-							// log.info("Inserting org link: " + pstmtInsertOrgUser.toString());
+							// log.fine("Inserting org link: " + pstmtInsertOrgUser.toString());
 							try {
 								pstmtInsertOrgUser.executeUpdate();
 							} catch (SQLException e) {
@@ -1451,7 +1451,7 @@ public class UserManager {
 				}
 				
 			} else {
-				log.info("No user groups");
+				log.fine("No user groups");
 			}
 		
 			
@@ -1462,7 +1462,7 @@ public class UserManager {
 			}
 		} finally {
 			if(!calledFromTransaction) {
-				// log.info("Set autocommit true");
+				// log.fine("Set autocommit true");
 				sd.setAutoCommit(true);
 			}
 			
@@ -1478,7 +1478,7 @@ public class UserManager {
 		pstmtValidate.setInt(2, o_id);
 		pstmtValidate.setInt(3, u_id);
 		ResultSet rs = pstmtValidate.executeQuery();
-		log.info("Validate update to organisation link: " + pstmtValidate.toString() );
+		log.fine("Validate update to organisation link: " + pstmtValidate.toString() );
 		if(rs.next()) {
 			if(rs.getInt(1) > 0) {
 				valid = true;
@@ -1510,7 +1510,7 @@ public class UserManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1,  userIdent);	
-			log.info("Deleting single submisison user: " + pstmt.toString());
+			log.fine("Deleting single submisison user: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
 			
 			if(count > 0) {
@@ -1532,7 +1532,7 @@ public class UserManager {
 					pstmtArchive.executeUpdate();
 				}
 			} else {
-				log.info("Deletion did not happen.");
+				log.fine("Deletion did not happen.");
 			}
 			
 		} finally {	
@@ -1600,7 +1600,7 @@ public class UserManager {
 					pstmtValidate = sd.prepareStatement(sqlValidate);
 					pstmtValidate.setInt(1, newOrgId);
 					pstmtValidate.setInt(2, uId);
-					log.info("Validate user organisation switch: " + pstmtValidate.toString());
+					log.fine("Validate user organisation switch: " + pstmtValidate.toString());
 					rs = pstmtValidate.executeQuery();
 					
 					String targetSettings = null;
@@ -1766,7 +1766,7 @@ public class UserManager {
 			pstmtUpdateSettings.setString(1, gson.toJson(u));
 			pstmtUpdateSettings.setInt(2, oId);
 			pstmtUpdateSettings.setInt(3, uId);
-			log.info("Update current org settings: " + pstmtUpdateSettings.toString());
+			log.fine("Update current org settings: " + pstmtUpdateSettings.toString());
 			int count = pstmtUpdateSettings.executeUpdate();
 			if(count == 0) {
 				// Need to insert the new settings
@@ -1774,7 +1774,7 @@ public class UserManager {
 				pstmtInsertSettings.setInt(1, uId);
 				pstmtInsertSettings.setInt(2, oId);
 				pstmtInsertSettings.setString(3,  gson.toJson(u));
-				log.info("Insert settings: " + pstmtInsertSettings.toString());
+				log.fine("Insert settings: " + pstmtInsertSettings.toString());
 				pstmtInsertSettings.executeUpdate();
 			}
 		} finally {
@@ -1886,7 +1886,7 @@ public class UserManager {
 			
 			pstmt.setInt(1, oId);
 			pstmt.setInt(2, oId);
-			log.info("Get user list: " + pstmt.toString());
+			log.fine("Get user list: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
 				int usersOrgId = rs.getInt("u_o_id");
@@ -1900,7 +1900,7 @@ public class UserManager {
 					pstmtGetSavedUser = sd.prepareStatement(sqlGetSavedUser);
 					pstmtGetSavedUser.setInt(1, oId);
 					pstmtGetSavedUser.setInt(2, uId);
-					log.info("Get saved user details: " + pstmtGetSavedUser.toString());
+					log.fine("Get saved user details: " + pstmtGetSavedUser.toString());
 					ResultSet rs2 = pstmtGetSavedUser.executeQuery();
 					if(rs2.next()) {
 						user = gson.fromJson(rs2.getString(1), User.class);
@@ -1951,7 +1951,7 @@ public class UserManager {
 					if(rsProjects != null) try {rsProjects.close();} catch(Exception e) {};
 					pstmtProjects.setInt(1, user.id);
 					pstmtProjects.setInt(2, oId);
-					log.info("Projects: " + pstmtProjects.toString());
+					log.fine("Projects: " + pstmtProjects.toString());
 					
 					rsProjects = pstmtProjects.executeQuery();
 					
@@ -2067,7 +2067,7 @@ public class UserManager {
 				pstmt.setString(3, ident);
 			}
 			
-			log.info("Get user list: " + pstmt.toString());
+			log.fine("Get user list: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
 				UserSimple u = new UserSimple();
@@ -2168,7 +2168,7 @@ public class UserManager {
 				
 				pstmtSoftDelete.setInt(1, uId);
 				pstmtSoftDelete.setInt(2, oId);
-				log.info("Soft Delete user: " + pstmtSoftDelete.toString());						
+				log.fine("Soft Delete user: " + pstmtSoftDelete.toString());						
 				pstmtSoftDelete.executeUpdate();
 				
 				// Move the user to another organisation if they are currently in the organisation from which they have been soft deleted
@@ -2181,7 +2181,7 @@ public class UserManager {
 				pstmtMove.setInt(1, uId);
 				pstmtMove.setInt(2, uId);
 				pstmtMove.setInt(3, oId);
-				log.info("Move user: " + pstmtMove.toString());						
+				log.fine("Move user: " + pstmtMove.toString());						
 				pstmtMove.executeUpdate();
 				 
 				if(ident != null) {
@@ -2230,19 +2230,19 @@ public class UserManager {
 					+ "where ident = ? for update";
 			pstmt = sd.prepareStatement(sqlGet);
 			pstmt.setString(1, userIdent);
-			//log.info("$$$$$$$ Get total tasks from cache: " + pstmt.toString());
+			//log.fine("$$$$$$$ Get total tasks from cache: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				count = rs.getInt("total_tasks");
 				resetCount = rs.getBoolean("reset_total_tasks");
 				
-				//log.info("$$$$$$$ reset: " + resetCount + " count: " + count);
+				//log.fine("$$$$$$$ reset: " + resetCount + " count: " + count);
 				if(resetCount || count < 0){
 					
 					/*
 					 * Need to recalculate the count of tasks
 					 */
-					//log.info("$$$$$$$ recalculating count of tasks");
+					//log.fine("$$$$$$$ recalculating count of tasks");
 					AssignmentsManager am = new AssignmentsManager();
 					TaskResponse tr = am.getTasksData(sd, 
 							cResults,
@@ -2260,7 +2260,7 @@ public class UserManager {
 							null, null, null, null, null, null, null);
 								
 					count = tr.taskAssignments.size();
-					//log.info("$$$$$$$ new count is: " + count);
+					//log.fine("$$$$$$$ new count is: " + count);
 					setTasksCount(sd, userIdent, count);
 				}
 			}
@@ -2271,7 +2271,7 @@ public class UserManager {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			sd.rollback();
 		} finally {
-			// log.info("Set autocommit true");
+			// log.fine("Set autocommit true");
 			sd.setAutoCommit(true);		// End transaction
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
@@ -2292,7 +2292,7 @@ public class UserManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, count);
 			pstmt.setString(2,  userIdent);
-			log.info("Set tasks count: " + pstmt.toString());
+			log.fine("Set tasks count: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
@@ -2311,7 +2311,7 @@ public class UserManager {
 					+ "where ident = ?";
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1,  userIdent);
-			log.info("Reset tasks count: " + pstmt.toString());
+			log.fine("Reset tasks count: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
@@ -2338,7 +2338,7 @@ public class UserManager {
 		if(!delete_all) {
 			pstmt.setInt(2, o_id);
 		}
-		log.info("Hard Delete user: " + pstmt.toString());
+		log.fine("Hard Delete user: " + pstmt.toString());
 		
 		int count = pstmt.executeUpdate();
 		

@@ -235,11 +235,11 @@ public class SubRelationalDB extends Subscriber {
 			
 			if(assignmentId > 0) {
 				pstmt.setInt(1, assignmentId);
-				log.info("Updating assignment status: " + pstmt.toString());
+				log.fine("Updating assignment status: " + pstmt.toString());
 				pstmt.executeUpdate();
 
 				pstmtRepeats.setInt(1, assignmentId);
-				log.info("Updating task repeats: " + pstmtRepeats.toString());
+				log.fine("Updating task repeats: " + pstmtRepeats.toString());
 				pstmtRepeats.executeUpdate();
 
 				// Decrement the task totals for the assigned user if this is not a repeating task
@@ -256,7 +256,7 @@ public class SubRelationalDB extends Subscriber {
 				// If this task created new data then set its updateId to point to that new data
 				pstmtUpdateId.setString(1, updateId);
 				pstmtUpdateId.setInt(2, assignmentId);
-				log.info("Updating task updateId: " + pstmtUpdateId.toString());
+				log.fine("Updating task updateId: " + pstmtUpdateId.toString());
 				pstmtUpdateId.executeUpdate();
 				
 				// Write a message to the record event manager
@@ -306,7 +306,7 @@ public class SubRelationalDB extends Subscriber {
 
 			if(rs.next()) {
 				assignmentId = rs.getInt(1);
-				log.info("Assignment id: " + assignmentId);
+				log.fine("Assignment id: " + assignmentId);
 				
 			}
 
@@ -340,7 +340,7 @@ public class SubRelationalDB extends Subscriber {
 		try {
 
 			if(cResults.getAutoCommit()) {
-				log.info("Set autocommit results false");
+				log.fine("Set autocommit results false");
 				resAutoCommitSetFalse = true;
 				cResults.setAutoCommit(false);
 			}
@@ -402,16 +402,16 @@ public class SubRelationalDB extends Subscriber {
 			if(!SurveyManager.isValidSurveyKeyPolicy(keyPolicy)) {
 				keyPolicy = SurveyManager.KP_NONE;
 			}
-			log.info("################### Processing key policy:" + keyPolicy + ": " + hasHrk + " : " + assignmentId );
+			log.fine("################### Processing key policy:" + keyPolicy + ": " + hasHrk + " : " + assignmentId );
 			
 			String hrkSql = GeneralUtilityMethods.convertAllxlsNamesToQuery(uk.key, survey.surveyData.groupSurveyIdent, sd, topLevelForm.tableName);
 			if(updateId != null) {
 				// Direct update to a record
-				log.info("Direct update with Existing unique id:" + updateId);
+				log.fine("Direct update with Existing unique id:" + updateId);
 				existingKey = getKeyFromId(cResults, topElement, updateId);
 	
 				if(existingKey != 0) {
-					log.info("Existing key:" + existingKey);
+					log.fine("Existing key:" + existingKey);
 					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
 							existingKey, 
@@ -421,14 +421,14 @@ public class SubRelationalDB extends Subscriber {
 				} 
 			} else if(hasHrk && !keyPolicy.equals(SurveyManager.KP_NONE)) {
 				if(keyPolicy.equals(SurveyManager.KP_MERGE) || keyPolicy.equals(SurveyManager.KP_REPLACE)) {					
-					log.info("Apply merge-replace policy");
+					log.fine("Apply merge-replace policy");
 					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id, 
 							0,		// existing key 
 							keyPolicy.equals(SurveyManager.KP_REPLACE), 
 							remoteUser, instance.getUuid(), survey.surveyData.groupSurveyIdent, survey.surveyData.ident, localisation);
 				} else if(keyPolicy.equals(SurveyManager.KP_DISCARD)) {
-					log.info("Apply discard policy");
+					log.fine("Apply discard policy");
 					discardTableContent(cResults, topLevelForm.tableName, keys.newKey);
 				} 
 				
@@ -494,7 +494,7 @@ public class SubRelationalDB extends Subscriber {
 
 				} catch (SQLException ex) {
 
-					log.info(ex.getMessage());
+					log.fine(ex.getMessage());
 					throw new SQLInsertException(e.getMessage());
 
 				}
@@ -502,7 +502,7 @@ public class SubRelationalDB extends Subscriber {
 			} else {
 
 				String mesg = "Error: Connection to the database is null";
-				log.info("        " + mesg);
+				log.fine("        " + mesg);
 				throw new SQLInsertException(mesg);
 
 			}
@@ -510,7 +510,7 @@ public class SubRelationalDB extends Subscriber {
 		} finally {
 
 			if(resAutoCommitSetFalse) {
-				log.info("Set autocommit results true");
+				log.fine("Set autocommit results true");
 				resAutoCommitSetFalse = false;
 				try {cResults.setAutoCommit(true);} catch(Exception e) {}
 			}
@@ -632,7 +632,7 @@ public class SubRelationalDB extends Subscriber {
 						rawAuditString = auditData.rawAudit.toString();
 					}
 					
-					log.info("Prepare statement for table " + tableName);
+					log.fine("Prepare statement for table " + tableName);
 					ArrayList<ForeignKey> thisTableKeys = new ArrayList<> ();
 					pstmt = getSubmissionStatement(sd, cResults, 
 							sIdent,
@@ -657,7 +657,7 @@ public class SubRelationalDB extends Subscriber {
 							rawAuditString,
 							oId);
 					
-					log.info("1111111111: " + pstmt.toString());
+					log.fine("1111111111: " + pstmt.toString());
 					pstmt.executeUpdate();
 					ResultSet rs = pstmt.getGeneratedKeys();
 					
@@ -693,7 +693,7 @@ public class SubRelationalDB extends Subscriber {
 						pstmt = cResults.prepareStatement(compoundSql);
 						
 						String compoundValue = col.getValue();
-						log.info("------------------------------ Adding compound Value: " + compoundValue);
+						log.fine("------------------------------ Adding compound Value: " + compoundValue);
 						if(compoundValue != null) {
 							String components[] = compoundValue.split("#");
 							for(int i = 0; i < components.length; i++) {
@@ -726,7 +726,7 @@ public class SubRelationalDB extends Subscriber {
 									pstmt.setInt(1, parent_key);
 									pstmt.setString(2, gson.toJson(propObj));
 									pstmt.setString(3, locnText);
-									log.info("Update compound points: " + pstmt.toString());
+									log.fine("Update compound points: " + pstmt.toString());
 									pstmt.executeUpdate();
 								}
 							}
@@ -1021,7 +1021,7 @@ public class SubRelationalDB extends Subscriber {
 				// Check for case closed
 				if(statusQuestion != null && colName.equals(statusQuestion) && value.equals(finalStatus)) {
 					dmv.case_closed = new Timestamp(new java.util.Date().getTime());
-					log.info("ccccccccccc: case marked closed.  Status question: " + statusQuestion + "Final status: " + finalStatus);
+					log.fine("ccccccccccc: case marked closed.  Status question: " + statusQuestion + "Final status: " + finalStatus);
 				}
 				
 				// Add to linkage items
@@ -1135,7 +1135,7 @@ public class SubRelationalDB extends Subscriber {
 				 */
 				pstmtHrk = cResults.prepareStatement(sqlHrk);
 				pstmtHrk.setInt(1, prikey);
-				log.info("Get HRK1: " + pstmtHrk.toString());
+				log.fine("Get HRK1: " + pstmtHrk.toString());
 				ResultSet rs = pstmtHrk.executeQuery();
 				if(rs.next()) {
 					hrk = rs.getString(1);
@@ -1143,7 +1143,7 @@ public class SubRelationalDB extends Subscriber {
 				if(hrk == null) {	// Try getting the hrk from the data
 					pstmt = cResults.prepareStatement(sql);
 					pstmt.setInt(1, prikey);
-					log.info("Get HRK: " + pstmt.toString());
+					log.fine("Get HRK: " + pstmt.toString());
 					rs = pstmt.executeQuery();
 					if(rs.next()) {
 						hrk = rs.getString(1);
@@ -1161,7 +1161,7 @@ public class SubRelationalDB extends Subscriber {
 				}
 			} 
 			
-			log.info("++++++++++++++ Merge Begins - Source Key: " + sourceKey );
+			log.fine("++++++++++++++ Merge Begins - Source Key: " + sourceKey );
 			RecordEventManager rem = new RecordEventManager();
 			if(sourceKey > 0) {
 
@@ -1170,7 +1170,7 @@ public class SubRelationalDB extends Subscriber {
 				// Get the per table merge policy for this survey
 				pstmtTableMerge = sd.prepareStatement(sqlTableMerge);
 				pstmtTableMerge.setInt(1, sId);
-				log.info("Get table merge policy: " + pstmtTableMerge.toString());
+				log.fine("Get table merge policy: " + pstmtTableMerge.toString());
 				ResultSet rtm = pstmtTableMerge.executeQuery();
 				ArrayList<String> mergeTables = new ArrayList<> ();
 				ArrayList<String> replaceTables = new ArrayList<> ();
@@ -1178,21 +1178,21 @@ public class SubRelationalDB extends Subscriber {
 				while(rtm.next()) {
 					if(rtm.getBoolean("replace")) {
 						replaceTables.add(rtm.getString(1));
-						log.info("Need to replace table " + rtm.getString(1));
+						log.fine("Need to replace table " + rtm.getString(1));
 					} else if(rtm.getBoolean("merge")) {
 						mergeTables.add(rtm.getString(1));
-						log.info("Need to merge table " + rtm.getString(1));
+						log.fine("Need to merge table " + rtm.getString(1));
 					} else if(rtm.getBoolean("append")) {
 						// No need to do anything
-						log.info("Appending " + rtm.getString(1));
+						log.fine("Appending " + rtm.getString(1));
 					} else {
 						// Default
 						if(replace) {
-							log.info("Defaulting to replace " + rtm.getString(1));
+							log.fine("Defaulting to replace " + rtm.getString(1));
 							replaceTables.add(rtm.getString(1));
 						} else {
 							// No need to do anything
-							log.info("Defaulting to append " + rtm.getString(1));
+							log.fine("Defaulting to append " + rtm.getString(1));
 						}
 					}
 				}
@@ -1202,7 +1202,7 @@ public class SubRelationalDB extends Subscriber {
 				if(!ident.equals(groupSurveyIdent)) {
 					pstmtChildTablesInGroup = sd.prepareStatement(sqlChildTablesInGroup);
 					pstmtChildTablesInGroup.setString(1,  groupSurveyIdent);
-					log.info("Get child tables for group: " + pstmtChildTablesInGroup.toString());
+					log.fine("Get child tables for group: " + pstmtChildTablesInGroup.toString());
 					rsc = pstmtChildTablesInGroup.executeQuery();
 				
 					pstmtFormDetails = sd.prepareStatement(sqlGetFormDetails);
@@ -1212,7 +1212,7 @@ public class SubRelationalDB extends Subscriber {
 					// Not in a group - update the child tables directly
 					pstmtChildTables = sd.prepareStatement(sqlChildTables);
 					pstmtChildTables.setInt(1,  sId);
-					log.info("Get child tables: " + pstmtChildTables.toString());
+					log.fine("Get child tables: " + pstmtChildTables.toString());
 					rsc = pstmtChildTables.executeQuery();
 				}
 				
@@ -1236,7 +1236,7 @@ public class SubRelationalDB extends Subscriber {
 					}
 					if(GeneralUtilityMethods.tableExists(cResults, tableName)) {
 						
-						log.info("++++++++++++++ Table: " + tableName );
+						log.fine("++++++++++++++ Table: " + tableName );
 						
 						ArrayList<ArrayList<DataItemChange>> subFormChanges = new ArrayList<ArrayList<DataItemChange>> ();
 						
@@ -1263,13 +1263,13 @@ public class SubRelationalDB extends Subscriber {
 						
 						if(mergeTables.contains(tableName)) {					
 							
-							log.info("====================== Merging " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
+							log.fine("====================== Merging " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
 							
 							for(int i = 0; i < childSourcekeys.size(); i++) {
 								
 								if(i < childPrikeys.size()) {
 									// merge
-									log.info("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
+									log.fine("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
 									if(child_f_id > 0) {
 										subFormChanges.add(mergeRecords(
 												sd,
@@ -1285,7 +1285,7 @@ public class SubRelationalDB extends Subscriber {
 									// copy		
 									pstmtCopyChild.setInt(1, prikey);
 									pstmtCopyChild.setInt(2, childSourcekeys.get(i));
-									log.info("Copy from " + childSourcekeys.get(i) + " to new parent " + prikey + " : " + pstmtCopyChild.toString());
+									log.fine("Copy from " + childSourcekeys.get(i) + " to new parent " + prikey + " : " + pstmtCopyChild.toString());
 									pstmtCopyChild.executeUpdate();
 									copiedSourceKeys.add(childSourcekeys.get(i));
 								}
@@ -1293,12 +1293,12 @@ public class SubRelationalDB extends Subscriber {
 							}
 							
 						} else if(replaceTables.contains(tableName)) {
-							log.info("==================== Replacing " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
+							log.fine("==================== Replacing " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
 							
 							for(int i = 0; i < childSourcekeys.size(); i++) {
 								if(i < childPrikeys.size()) {
 									// merge
-									log.info("Replace from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
+									log.fine("Replace from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
 									if(child_f_id > 0) {
 										subFormChanges.add(mergeRecords(
 												sd,
@@ -1375,13 +1375,13 @@ public class SubRelationalDB extends Subscriber {
 						for(int i = childSourcekeys.size() - 1; i >= 0; i--) {
 							if(copiedSourceKeys.contains(childSourcekeys.get(i))) {
 								pstmtCopyBack.setInt(1, childSourcekeys.get(i));
-								log.info("Copy back: " + pstmtCopyBack.toString());
+								log.fine("Copy back: " + pstmtCopyBack.toString());
 								pstmtCopyBack.executeUpdate();
 							}
 						}
 						
 					} else {
-						log.info("Skipping update of parent keys for non existent table: " + tableName);
+						log.fine("Skipping update of parent keys for non existent table: " + tableName);
 					}
 				}
 				
@@ -1411,7 +1411,7 @@ public class SubRelationalDB extends Subscriber {
 						cm.assignRecord(sd, cResults, localisation, table, newInstance, user, "release",
 								null, localisation.getString("cm_auto_release"), user);
 					} else {
-						log.info("Case not closed");
+						log.fine("Case not closed");
 					}
 				}
 				
@@ -1566,7 +1566,7 @@ public class SubRelationalDB extends Subscriber {
 							pstmtUpdateTarget.setInt(1, sourceKey);
 							pstmtUpdateTarget.setInt(2, prikey);
 							if(count++ == 0) {		// Only log the first merge
-								log.info(("Merging col: " + pstmtUpdateTarget.toString()));
+								log.fine(("Merging col: " + pstmtUpdateTarget.toString()));
 							}
 							pstmtUpdateTarget.executeUpdate();
 						}
@@ -1723,7 +1723,7 @@ public class SubRelationalDB extends Subscriber {
 				pstmtCloseNew = cRel.prepareStatement(sqlCloseNew);
 				pstmtCloseNew.setString(1, localisation.getString("sub_dif") + " " + sourceKey);
 				pstmtCloseNew.setInt(2, prikey);
-				log.info(("Discarding new: " + pstmtCloseNew.toString()));
+				log.fine(("Discarding new: " + pstmtCloseNew.toString()));
 				pstmtCloseNew.executeUpdate();
 			}
 
@@ -1917,7 +1917,7 @@ public class SubRelationalDB extends Subscriber {
 
 				} else if(GeneralUtilityMethods.isAttachmentType(qType)) {
 
-					log.info("Processing media. Value: " + value);
+					log.fine("Processing media. Value: " + value);
 					if(value.length() == 0) {
 						value = null;
 					
@@ -1929,7 +1929,7 @@ public class SubRelationalDB extends Subscriber {
 						 */
 						String srcName = value;
 
-						log.info("Creating file: " + srcName);				
+						log.fine("Creating file: " + srcName);				
 
 						File srcXmlFile = new File(gFilePath);
 						File srcXmlDirFile = srcXmlFile.getParentFile();
@@ -1991,7 +1991,7 @@ public class SubRelationalDB extends Subscriber {
 								ptString.append(" ");
 								ptString.append(points[0]);
 							} else {
-								log.info("Error: " + qType + " Badly formed point." + coords[i]);
+								log.fine("Error: " + qType + " Badly formed point." + coords[i]);
 							}
 						}
 						
@@ -1999,7 +1999,7 @@ public class SubRelationalDB extends Subscriber {
 
 					} else {
 						value = null;
-						log.info("Error: " + qType + " Insufficient points for " + qType + ": " + coords.length);
+						log.fine("Error: " + qType + " Insufficient points for " + qType + ": " + coords.length);
 					}
 
 				} else if(qType.equals("geopolygon") || qType.equals("geolinestring")) {
@@ -2010,10 +2010,10 @@ public class SubRelationalDB extends Subscriber {
 					int number_points = points.size();
 					if(number_points < 3 && qType.equals("geopolygon")) {
 						value = null;
-						log.info("Error: Insufficient points for polygon." + number_points);
+						log.fine("Error: Insufficient points for polygon." + number_points);
 					} else if(number_points < 2 && qType.equals("geolinestring")) {
 						value = null;
-						log.info("Error: Insufficient points for line." + number_points);
+						log.fine("Error: Insufficient points for line." + number_points);
 					} else {
 						for(IE point : points) {
 
@@ -2076,11 +2076,11 @@ public class SubRelationalDB extends Subscriber {
 					}
 	
 				} catch (Exception e) {
-					log.info("Error: Invalid geometry point detected: "  + in);
+					log.fine("Error: Invalid geometry point detected: "  + in);
 				}
 	
 			} else {
-				log.info("Info: Empty geometry point detected: " + in);
+				log.fine("Info: Empty geometry point detected: " + in);
 			}
 		}
 		return components;
@@ -2139,7 +2139,7 @@ public class SubRelationalDB extends Subscriber {
 
 
 				if(duplicateKeys.size() > 0) {
-					log.info("Submission has " + duplicateKeys.size() + " duplicates for uuid: " + uuid);
+					log.fine("Submission has " + duplicateKeys.size() + " duplicates for uuid: " + uuid);
 				} 
 
 			} catch (SQLException e) {

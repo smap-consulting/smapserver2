@@ -119,6 +119,10 @@ public class Manager {
                 }		
                 ServerSettings.setBasePath(fileLocn);
 
+		// Set mode property before LogConfig so the formatter can read it
+		System.setProperty("smap.subscriber.mode", subscriberType);
+		LogConfig.init(fileLocn);
+
 		String hostname = getHostname(fileLocn);
 		long pid = ProcessHandle.current().pid();
 		log.info("Subscriber starting: hostname=" + hostname + " pid=" + pid + " type=" + subscriberType);
@@ -211,7 +215,6 @@ public class Manager {
 				log.info("######## Stopped");		
 				loop = false;
 			} else {
-				System.out.print("-");	// Log running of batch job
 				batchJob.go(smapId, fileLocn, subscriberType);	// Run the batch job for the specified server
 
 				try {

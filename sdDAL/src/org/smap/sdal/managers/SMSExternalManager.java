@@ -67,7 +67,7 @@ public class SMSExternalManager extends EmitSMS {
 			url = url.replaceAll("\\$\\{msg\\}", URLEncoder.encode(content, "UTF-8"));
 			
 			HttpGet httpget = new HttpGet(url);
-			log.info("Executing SMS request " + httpget.getRequestLine());
+			log.fine("Executing SMS request " + httpget.getRequestLine());
 			
 			ResponseHandler<String> responseHandler = new ResponseHandler<String>() {
 
@@ -86,7 +86,7 @@ public class SMSExternalManager extends EmitSMS {
 			};
 
 			responseBody = httpclient.execute(httpget, responseHandler);
-			log.info("Sent SMS: " + responseBody);
+			log.fine("Sent SMS: " + responseBody);
 			 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);

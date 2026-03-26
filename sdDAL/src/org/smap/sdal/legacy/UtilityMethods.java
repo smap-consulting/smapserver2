@@ -248,7 +248,7 @@ public class UtilityMethods {
 				String [] qSteps = qPath.trim().split("/");
 				
 				int idx;
-				log.info("xxxxx: " + cfPath + " : " + qPath);
+				log.fine("xxxxx: " + cfPath + " : " + qPath);
 				
 				for(idx = 0; idx < qSteps.length && idx < cfSteps.length && qSteps[idx].equals(cfSteps[idx]); idx++) {					
 					relPath.add(qSteps[idx]);
@@ -273,7 +273,7 @@ public class UtilityMethods {
 					path.append("/").append(qSteps[i]);
 				}
 				qPath = path.toString();
-				log.info("------------- Relative Path: " + qPath);
+				log.fine("------------- Relative Path: " + qPath);
 			}
 			
 			output.append(lastSaved);
@@ -330,7 +330,7 @@ public class UtilityMethods {
 			Search search = GeneralUtilityMethods.getSearchFiltersFromAppearance(appearance);
 
 			if(search.filters.size() > 0) {
-				log.info("Add filter from: " + appearance + " to: " + nodeset);
+				log.fine("Add filter from: " + appearance + " to: " + nodeset);
 
 				if(out != null) {
 					// First remove any filter added through setting of choice_filter this is incompatible with the use of search()

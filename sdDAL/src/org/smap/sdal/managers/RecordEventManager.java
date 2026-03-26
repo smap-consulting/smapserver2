@@ -157,7 +157,7 @@ public class RecordEventManager {
 			pstmt.setInt(15,  sVersion);
 			pstmt.setInt(16,  taskId);
 			pstmt.setInt(17,  assignmentId);
-			log.info("Update history: " + pstmt.toString());
+			log.fine("Update history: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			/*
@@ -198,7 +198,7 @@ public class RecordEventManager {
 			boolean assign_auto
 			) throws SQLException {
 		
-		log.info("####################### TASK STATUS EVENT DISABLED FOR PERFORMANCE REASONS ##########################");
+		log.fine("####################### TASK STATUS EVENT DISABLED FOR PERFORMANCE REASONS ##########################");
 		if(true) {
 			return;
 		}
@@ -259,7 +259,7 @@ public class RecordEventManager {
 				pstmt = sd.prepareStatement(sqlUsingTask);
 				pstmt.setInt(1, taskId);
 			}
-			log.info("Get task info: " + pstmt.toString());
+			log.fine("Get task info: " + pstmt.toString());
 			
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
@@ -285,7 +285,7 @@ public class RecordEventManager {
 							pstmtGet.setInt(2, taskId);
 						}
 	
-						// log.info("Set autocommit false");
+						// log.fine("Set autocommit false");
 						sd.setAutoCommit(false);
 						ResultSet rs2 = pstmtGet.executeQuery();
 						if(rs2.next()) {
@@ -320,7 +320,7 @@ public class RecordEventManager {
 						}
 					}
 					
-					// log.info("Set autocommit true");
+					// log.fine("Set autocommit true");
 					sd.setAutoCommit(true);
 				}
 			}
@@ -369,7 +369,7 @@ public class RecordEventManager {
 			pstmt.setString(1, tz);
 			pstmt.setString(2, tableName);
 			pstmt.setString(3, key);
-			log.info("Get changes: " + pstmt.toString());
+			log.fine("Get changes: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				DataItemChangeEvent event = new DataItemChangeEvent();
@@ -497,7 +497,7 @@ public class RecordEventManager {
 				}
 			}	
 			
-			log.info("Get data changes: " + pstmt.toString());
+			log.fine("Get data changes: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				
@@ -531,7 +531,7 @@ public class RecordEventManager {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, tableName);
-			log.info("Delete record events for a table: " + pstmt.toString());
+			log.fine("Delete record events for a table: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 		} finally {

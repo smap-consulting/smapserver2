@@ -466,7 +466,7 @@ public class UserTrailManager {
 			 * Process for each user
 			 */
 			ResultSet rsUsers = pstmtUsers.executeQuery();
-			log.info("Getting users for report: " + pstmtUsers.toString());
+			log.fine("Getting users for report: " + pstmtUsers.toString());
 			while (rsUsers.next()) {		
 				pstmt.setInt(idx, rsUsers.getInt("id"));	
 				String userIdent = rsUsers.getString("ident");
@@ -477,7 +477,7 @@ public class UserTrailManager {
 				boolean havePrev = false;
 				Double prevX = 0.0;
 				Double prevY = 0.0;
-				log.info("Get location features: " + pstmt.toString());
+				log.fine("Get location features: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				while(rs.next()) {
 					UserTrailPoint f = new UserTrailPoint();
@@ -556,7 +556,7 @@ public class UserTrailManager {
 					lineString.append(")");
 					
 					pstmt.setString(1, lineString.toString());
-                    //log.info("Report: " + pstmt.toString());
+                    //log.fine("Report: " + pstmt.toString());
 					rs = pstmt.executeQuery();
 					if(rs.next()) {
 						td.distance += rs.getInt(1);

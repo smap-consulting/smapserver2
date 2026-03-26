@@ -58,7 +58,7 @@ public class ReportProcessor {
 					loop = false;
 				} else {
 					
-					System.out.print("(r)");	// log the running of the report processor
+
 					
 					try {
 						// Make sure we have a connection to the database

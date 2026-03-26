@@ -133,7 +133,7 @@ public class AutoUpdateManager {
 							}
 							
 							if(refQf == null) {
-								log.info("    @@@@@@@ Reference question: " + refColumn + " not found in survey group");
+								log.fine("    @@@@@@@ Reference question: " + refColumn + " not found in survey group");
 							} else if(refQf.qType != null 
 										&& (refQf.qType.equals("image")
 												|| refQf.qType.equals("audio")
@@ -165,9 +165,9 @@ public class AutoUpdateManager {
 									
 									// Validate
 									if(updateType == null) {
-										log.info("------------------ AutoUpdate: Error: invalid reference question type" + refQf.qType);
+										log.fine("------------------ AutoUpdate: Error: invalid reference question type" + refQf.qType);
 									} else {
-										//log.info("     @@@@@@ Adding auto update: " + updateType + " : " + oId + " : " + refColumn + " to " + qf.columnName);
+										//log.fine("     @@@@@@ Adding auto update: " + updateType + " : " + oId + " : " + refColumn + " to " + qf.columnName);
 										AutoUpdate au = new AutoUpdate(updateType);
 										au.oId = oId;
 										au.locale = itemLocaleString;
@@ -183,14 +183,14 @@ public class AutoUpdateManager {
 									}
 
 							} else {
-								log.info("    @@@@@@@ Invalud reference question: " + refColumn + " question type: " + refQf.qType);
+								log.fine("    @@@@@@@ Invalud reference question: " + refColumn + " question type: " + refQf.qType);
 							}
 						} else {
-							log.info("    @@@@@@@ Reference question not found in data table. It amy not have been publushed yet: " + refColumn);
+							log.fine("    @@@@@@@ Reference question not found in data table. It amy not have been publushed yet: " + refColumn);
 						}
 					} 
 				} else {
-					log.info("------------------ AutoUpdate: auto not set for " + qf.qName);
+					log.fine("------------------ AutoUpdate: auto not set for " + qf.qName);
 				}
 			}
 		}
@@ -324,7 +324,7 @@ public class AutoUpdateManager {
 										"auto_update", billableDuration);
 							}
 						} else {
-							log.info("Error:xxxxxxxxxx duration of audio recorded as 0");
+							log.fine("Error:xxxxxxxxxx duration of audio recorded as 0");
 						}
 					} 
 				}
@@ -397,7 +397,7 @@ public class AutoUpdateManager {
 								+ "and not _bad";
 						if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 						pstmt = cResults.prepareStatement(sql);
-						//log.info("   @@@@@ Get instances to update: " + pstmt.toString());
+						//log.fine("   @@@@@ Get instances to update: " + pstmt.toString());
 												
 						ResultSet rs = pstmt.executeQuery();
 						while (rs.next()) {
@@ -474,7 +474,7 @@ public class AutoUpdateManager {
 														pstmtAsync.setString(8, job.toString());
 														pstmtAsync.setString(9, AU_STATUS_PENDING);
 														pstmtAsync.setString(10, item.locale);
-														log.info("Save to Async queue: " + pstmtAsync.toString());
+														log.fine("Save to Async queue: " + pstmtAsync.toString());
 														pstmtAsync.executeUpdate();
 
 														// Update tables to record that update is pending
@@ -585,7 +585,7 @@ public class AutoUpdateManager {
 									}
 								} else {
 									String msg = "cannot perform auto update for update type: \" + item.type";
-									log.info("Error: " + msg);
+									log.fine("Error: " + msg);
 									output = "[" + localisation.getString("c_error") + " " + msg + "]";
 								}
 							}
@@ -596,10 +596,10 @@ public class AutoUpdateManager {
 							
 						} 
 					} else {
-						log.info("------------ AutoUpdate: Target Columns not found: " + item.targetColName + " in " + item.tableName);
+						log.fine("------------ AutoUpdate: Target Columns not found: " + item.targetColName + " in " + item.tableName);
 					}				
 				} else {
-					log.info("------------ AutoUpdate: Source Columns not found: " + item.sourceColName + " in " + item.tableName);
+					log.fine("------------ AutoUpdate: Source Columns not found: " + item.sourceColName + " in " + item.tableName);
 				}
 			}
 			
@@ -632,7 +632,7 @@ public class AutoUpdateManager {
 		try {
 			
 			pstmt = sd.prepareStatement(sql);
-			//log.info("Get update questions: " + pstmt.toString());
+			//log.fine("Get update questions: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
@@ -699,7 +699,7 @@ public class AutoUpdateManager {
 				instanceId = GeneralUtilityMethods.getLatestInstanceId(cResults, tableName, instanceId);
 				pstmt.setString(1, output);
 				pstmt.setString(2, instanceId);
-				log.info("    @@@@@@ Write result to results table: " + pstmt.toString());
+				log.fine("    @@@@@@ Write result to results table: " + pstmt.toString());
 				pstmt.executeUpdate();
 			
 			} finally {
@@ -735,7 +735,7 @@ public class AutoUpdateManager {
 		pstmt.setLong(3, durn);
 		pstmt.setInt(4, id);
 		
-		log.info("Update sync status: " + pstmt.toString());
+		log.fine("Update sync status: " + pstmt.toString());
 		pstmt.executeUpdate();
 		
 		try {

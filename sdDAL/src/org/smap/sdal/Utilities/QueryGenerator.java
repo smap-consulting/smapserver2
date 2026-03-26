@@ -546,7 +546,7 @@ public class QueryGenerator {
 				String sqlGeom = "SELECT GeometryType(" + column_name + ") FROM " + form.table + ";";
 
 				pstmtGeom = cResults.prepareStatement(sqlGeom);
-				log.info("Get geometry type: " + pstmtGeom.toString());
+				log.fine("Get geometry type: " + pstmtGeom.toString());
 				ResultSet rsGeom = pstmtGeom.executeQuery();
 				
 				/*
@@ -565,7 +565,7 @@ public class QueryGenerator {
 						} else if(geomName.startsWith("POINT")) {
 							sqlDesc.geometry_type = "wkbPoint";
 						} else {
-							log.info("Error unknown geometry:  " + geomName);
+							log.fine("Error unknown geometry:  " + geomName);
 						}
 						sqlDesc.geometry_column = column_name;
 						sqlDesc.geometry_table = form.table;
@@ -732,7 +732,7 @@ public class QueryGenerator {
 				idx++;
 				sqlDesc.numberFields++;
 			} else {
-				log.info("Warning: Field dropped during shapefile generation: " + form.table + "." + column_name);
+				log.fine("Warning: Field dropped during shapefile generation: " + form.table + "." + column_name);
 			}
 		}
 		

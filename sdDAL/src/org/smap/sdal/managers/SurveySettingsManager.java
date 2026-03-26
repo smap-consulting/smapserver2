@@ -83,7 +83,7 @@ public class SurveySettingsManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, uId);
 			pstmt.setString(2, sIdent);
-			log.info("Get settings defn: " + pstmt.toString());
+			log.fine("Get settings defn: " + pstmt.toString());
 			
 			rs = pstmt.executeQuery();
 			if(rs.next()) {
@@ -178,7 +178,7 @@ public class SurveySettingsManager {
 			pstmt.setString(1, gson.toJson(ssd));
 			pstmt.setInt(2, uId);
 			pstmt.setString(3, sIdent);
-			log.info(pstmt.toString());
+			log.fine(pstmt.toString());
 			int count = pstmt.executeUpdate();	
 			
 			if(count == 0) {
@@ -187,7 +187,7 @@ public class SurveySettingsManager {
 				pstmtInsert.setInt(1, uId);
 				pstmtInsert.setString(2, sIdent);
 				pstmtInsert.setString(3, gson.toJson(ssd));
-				log.info(pstmtInsert.toString());
+				log.fine(pstmtInsert.toString());
 				pstmtInsert.executeUpdate();	
 			}
 			

@@ -146,7 +146,7 @@ public class QuestionManager {
 					pstmtGetFormId.setInt(1, sId);
 					pstmtGetFormId.setInt(2, q.formIndex);
 
-					log.info("SQL: Get form id: " + pstmtGetFormId.toString());
+					log.fine("SQL: Get form id: " + pstmtGetFormId.toString());
 					ResultSet rs = pstmtGetFormId.executeQuery();
 					if(rs.next()) {
 						q.fId = rs.getInt(1);
@@ -182,7 +182,7 @@ public class QuestionManager {
 				pstmtUpdateSeq.setInt(1, q.fId);
 				pstmtUpdateSeq.setInt(2, q.seq);
 
-				log.info("Update sequences: " + pstmtUpdateSeq.toString());
+				log.fine("Update sequences: " + pstmtUpdateSeq.toString());
 				pstmtUpdateSeq.executeUpdate();
 
 				// If there is a soft deleted question with the same name and question type in the form then delete it
@@ -304,7 +304,7 @@ public class QuestionManager {
 				pstmtInsertQuestion.setString(30, q.intent);
 				pstmtInsertQuestion.setString(31, q.getSetValueArrayAsString(gson));
 				
-				log.info("Insert question: " + pstmtInsertQuestion.toString());
+				log.fine("Insert question: " + pstmtInsertQuestion.toString());
 				pstmtInsertQuestion.executeUpdate();
 
 				// Set the labels
@@ -346,7 +346,7 @@ public class QuestionManager {
 							} else if(k.v.equals("none")) {
 								// default - ignore
 							} else {
-								log.info("Error: unknown key policy: " + k.v);
+								log.fine("Error: unknown key policy: " + k.v);
 							}
 						}
 					}
@@ -366,7 +366,7 @@ public class QuestionManager {
 					pstmtForm.setBoolean(12, replace);
 					pstmtForm.setBoolean(13, append);
 
-					log.info("SQL: Insert new form: " + pstmtForm.toString());
+					log.fine("SQL: Insert new form: " + pstmtForm.toString());
 					pstmtForm.executeUpdate();
 
 				}
@@ -415,7 +415,7 @@ public class QuestionManager {
 
 		for(Question q : questions) {
 
-			log.info("Move a question: " + q.name + " : " + q.type);
+			log.fine("Move a question: " + q.name + " : " + q.type);
 
 			if(q.type.equals("begin group")) {
 
@@ -496,7 +496,7 @@ public class QuestionManager {
 			pstmt.setInt(2, startSeq);
 			pstmt.setInt(3, endSeq);
 
-			log.info("SQL Get questions in group: " + pstmt.toString());
+			log.fine("SQL Get questions in group: " + pstmt.toString());
 
 			ResultSet rs = pstmt.executeQuery();
 			newSeq = q.seq;											// The target sequence
@@ -579,7 +579,7 @@ public class QuestionManager {
 
 				pstmtGetFormId.setInt(2, q.formIndex);
 
-				log.info("SQL: Get form id: " + pstmtGetFormId.toString());
+				log.fine("SQL: Get form id: " + pstmtGetFormId.toString());
 				ResultSet rs = pstmtGetFormId.executeQuery();
 				rs.next();
 				q.fId = rs.getInt(1);	
@@ -590,7 +590,7 @@ public class QuestionManager {
 
 				pstmtGetFormId.setInt(2, q.sourceFormIndex);
 
-				log.info("SQL: Get source form id: " + pstmtGetFormId.toString());
+				log.fine("SQL: Get source form id: " + pstmtGetFormId.toString());
 				ResultSet rs = pstmtGetFormId.executeQuery();
 				rs.next();
 				q.sourceFormId = rs.getInt(1);		
@@ -613,7 +613,7 @@ public class QuestionManager {
 				pstmtMovedToAnotherForm.setString(3, q.name);
 				pstmtMovedToAnotherForm.setInt(4, sId);
 
-				log.info("Move to another form: " + pstmtMovedToAnotherForm.toString());
+				log.fine("Move to another form: " + pstmtMovedToAnotherForm.toString());
 				pstmtMovedToAnotherForm.executeUpdate();
 
 				// 2. Reorder the questions in the old form
@@ -621,13 +621,13 @@ public class QuestionManager {
 
 				// 3. Update the form settings if a form is being moved
 				if(q.type.equals("begin repeat")) {
-					log.info("Moving repeat");
+					log.fine("Moving repeat");
 
 					// 3a. Get the question Id of the form being moved
 					pstmtGetQuestionId = sd.prepareStatement(sqlGetQuestionId);
 					pstmtGetQuestionId.setInt(1, q.fId);
 					pstmtGetQuestionId.setString(2, q.name);
-					log.info("Get question id: " + pstmtGetQuestionId.toString());
+					log.fine("Get question id: " + pstmtGetQuestionId.toString());
 					ResultSet rs = pstmtGetQuestionId.executeQuery();
 					if(rs.next()) {
 						int qId = rs.getInt(1);
@@ -637,10 +637,10 @@ public class QuestionManager {
 						pstmtMoveForm.setInt(1, q.fId);
 						pstmtMoveForm.setInt(2, qId);
 						pstmtMoveForm.setInt(3, q.sourceFormId);
-						log.info("Update parent form: " + pstmtMoveForm.toString());
+						log.fine("Update parent form: " + pstmtMoveForm.toString());
 						pstmtMoveForm.executeUpdate();
 					} else {
-						log.info("Error: did not find question id");
+						log.fine("Error: did not find question id");
 					}
 				}
 			}
@@ -657,7 +657,7 @@ public class QuestionManager {
 				pstmtMovedForward.setInt(2, q.sourceSeq);
 				pstmtMovedForward.setInt(3, q.seq);
 
-				log.info("Moving forward: " + pstmtMovedForward.toString());
+				log.fine("Moving forward: " + pstmtMovedForward.toString());
 				pstmtMovedForward.executeUpdate();
 			} else {	// Moved backward in list
 
@@ -666,7 +666,7 @@ public class QuestionManager {
 				pstmtMovedBack.setInt(2, q.seq);
 				pstmtMovedBack.setInt(3, q.sourceSeq);
 
-				log.info("Moving back: " + pstmtMovedBack.toString());
+				log.fine("Moving back: " + pstmtMovedBack.toString());
 				pstmtMovedBack.executeUpdate();						
 			}
 
@@ -678,7 +678,7 @@ public class QuestionManager {
 				pstmtMoveWithinIgnoreExistingSeq.setInt(2, q.fId );
 				pstmtMoveWithinIgnoreExistingSeq.setString(3, q.name);
 
-				log.info("Move question within same list: " + pstmtMoveWithinIgnoreExistingSeq.toString());
+				log.fine("Move question within same list: " + pstmtMoveWithinIgnoreExistingSeq.toString());
 				count = pstmtMoveWithinIgnoreExistingSeq.executeUpdate();
 			} else {
 				pstmtMoveWithin = sd.prepareStatement(sqlMoveWithin);
@@ -687,7 +687,7 @@ public class QuestionManager {
 				pstmtMoveWithin.setString(3, q.name);
 				pstmtMoveWithin.setInt(4, q.sourceSeq );
 
-				log.info("Move question within same list: " + pstmtMoveWithin.toString());
+				log.fine("Move question within same list: " + pstmtMoveWithin.toString());
 				count = pstmtMoveWithin.executeUpdate();
 			}
 
@@ -768,7 +768,7 @@ public class QuestionManager {
 				 */
 				pstmtGetSeq.setInt(1, q.fId);
 				pstmtGetSeq.setString(2, q.name );
-				log.info("SQL get sequence: " + pstmtGetSeq.toString());
+				log.fine("SQL get sequence: " + pstmtGetSeq.toString());
 				ResultSet rs = pstmtGetSeq.executeQuery();
 				if(rs.next()) {
 					seq = rs.getInt(1);
@@ -793,7 +793,7 @@ public class QuestionManager {
 						pstmtSoftDelete.setString(2, q.name );
 						pstmtSoftDelete.setInt(3, sId );
 
-						log.info("Soft Delete question: " + pstmtSoftDelete.toString());
+						log.fine("Soft Delete question: " + pstmtSoftDelete.toString());
 						pstmtSoftDelete.executeUpdate();
 					} else {
 						// Properly delete the question
@@ -804,7 +804,7 @@ public class QuestionManager {
 						pstmtDelLabels.setInt(3, q.fId);
 						pstmtDelLabels.setInt(4, sId );
 
-						log.info("Delete question labels: " + pstmtDelLabels.toString());
+						log.fine("Delete question labels: " + pstmtDelLabels.toString());
 						pstmtDelLabels.executeUpdate();
 
 						// Delete the hints
@@ -813,7 +813,7 @@ public class QuestionManager {
 						pstmtDelHints.setInt(3, q.fId);
 						pstmtDelHints.setInt(4, sId );
 
-						log.info("Delete question hints: " + pstmtDelHints.toString());
+						log.fine("Delete question hints: " + pstmtDelHints.toString());
 						pstmtDelHints.executeUpdate();
 
 						/*
@@ -823,7 +823,7 @@ public class QuestionManager {
 						pstmt.setString(2, q.name );
 						pstmt.setInt(3, sId );
 
-						log.info("Delete question: " + pstmt.toString());
+						log.fine("Delete question: " + pstmt.toString());
 						pstmt.executeUpdate();
 
 						// Update the sequences of questions after the deleted question
@@ -831,7 +831,7 @@ public class QuestionManager {
 						pstmtUpdateSeq.setInt(2, seq);
 						pstmtUpdateSeq.setInt(3, sId);
 
-						log.info("Update sequences: " + pstmtUpdateSeq.toString());
+						log.fine("Update sequences: " + pstmtUpdateSeq.toString());
 						pstmtUpdateSeq.executeUpdate();
 					}
 
@@ -856,7 +856,7 @@ public class QuestionManager {
 							pstmtDelLabels.setInt(3, q.fId);
 							pstmtDelLabels.setInt(4, sId );
 
-							log.info("Delete end group labels: " + pstmtDelLabels.toString());
+							log.fine("Delete end group labels: " + pstmtDelLabels.toString());
 							pstmtDelLabels.executeUpdate();
 
 							// Delete the end group
@@ -864,7 +864,7 @@ public class QuestionManager {
 							pstmt.setString(2, endGroupName);
 							pstmt.setInt(3, sId );
 
-							log.info("Delete End group of question: " + pstmt.toString());
+							log.fine("Delete End group of question: " + pstmt.toString());
 							pstmt.executeUpdate();
 
 							// Update the sequences of questions after the deleted end group
@@ -872,7 +872,7 @@ public class QuestionManager {
 							pstmtUpdateSeq.setInt(2, seq);
 							pstmtUpdateSeq.setInt(3, sId);
 
-							log.info("Update sequences: " + pstmtUpdateSeq.toString());
+							log.fine("Update sequences: " + pstmtUpdateSeq.toString());
 							pstmtUpdateSeq.executeUpdate();
 						}
 
@@ -895,7 +895,7 @@ public class QuestionManager {
 						pstmtDeleteForm.setInt(1, q.id);
 						pstmtDeleteForm.setInt(2, sId);
 
-						log.info("Deleting form: " + pstmtDeleteForm.toString());
+						log.fine("Deleting form: " + pstmtDeleteForm.toString());
 						pstmtDeleteForm.executeUpdate();
 
 					}
@@ -955,7 +955,7 @@ public class QuestionManager {
 			
 			for(Option o : options) {
 
-				log.info("##### Processing option for column: " + o.columnName);
+				log.fine("##### Processing option for column: " + o.columnName);
 				// Get the list id for this option
 				int listId = -1;
 				if(l_id >= 0) {
@@ -970,7 +970,7 @@ public class QuestionManager {
 				pstmtUpdateSeq.setInt(1, listId);
 				pstmtUpdateSeq.setInt(2, o.seq);
 
-				log.info("###### Update sequences: " + pstmtUpdateSeq.toString());
+				log.fine("###### Update sequences: " + pstmtUpdateSeq.toString());
 				pstmtUpdateSeq.executeUpdate();
 				
 				// Add a 10 character random string to the choice trans id to allow duplicate option names
@@ -984,17 +984,17 @@ public class QuestionManager {
 				pstmtInsertOption.setString(6, gson.toJson(o.cascade_filters));	
 				pstmtInsertOption.setString(7, o.display_name);	
 
-				log.info("###### Insert option: " + pstmtInsertOption.toString());
+				log.fine("###### Insert option: " + pstmtInsertOption.toString());
 				pstmtInsertOption.executeUpdate();
 
 				// Set the labels 
-				log.info("##### Setting the labels ");
+				log.fine("##### Setting the labels ");
 				if(o.labels != null && o.labels.size() > 0) {
 					if (updateLabels && transId != null && transId.trim().length() > 0) {
 						UtilityMethodsEmail.setLabels(sd, sId, transId, o.labels, pstmtSetLabels, false, sanitise);
 					}
 				} else {
-					log.info("##### Error: labels are null for " + transId);
+					log.fine("##### Error: labels are null for " + transId);
 				}
 			}
 
@@ -1048,7 +1048,7 @@ public class QuestionManager {
 					pstmtDelLabels.setInt(2, listId );
 					pstmtDelLabels.setString(3, o.value );
 
-					log.info("Delete option labels: " + pstmtDelLabels.toString());
+					log.fine("Delete option labels: " + pstmtDelLabels.toString());
 					pstmtDelLabels.executeUpdate();
 				}
 
@@ -1056,14 +1056,14 @@ public class QuestionManager {
 				pstmt.setInt(1, listId );
 				pstmt.setString(2, o.value );
 
-				log.info("Delete option: " + pstmt.toString());
+				log.fine("Delete option: " + pstmt.toString());
 				pstmt.executeUpdate();
 
 				// Update sequence numbers of options after the option to be inserted
 				pstmtUpdateSeq.setInt(1, listId);
 				pstmtUpdateSeq.setInt(2, o.seq);
 
-				log.info("Update sequences: " + pstmtUpdateSeq.toString());
+				log.fine("Update sequences: " + pstmtUpdateSeq.toString());
 				pstmtUpdateSeq.executeUpdate();
 			}
 
@@ -1120,7 +1120,7 @@ public class QuestionManager {
 					pstmtMovedToAnotherList.setInt(2, sourceListId);
 					pstmtMovedToAnotherList.setString(3, o.value);
 
-					log.info("Move to another list: " + pstmtMovedToAnotherList.toString());
+					log.fine("Move to another list: " + pstmtMovedToAnotherList.toString());
 					pstmtMovedToAnotherList.executeUpdate();
 
 					// 2. Reorder the questions in the old form
@@ -1138,7 +1138,7 @@ public class QuestionManager {
 					pstmtMovedForward.setInt(2, o.sourceSeq);
 					pstmtMovedForward.setInt(3, o.seq);
 
-					log.info("Moving forward: " + pstmtMovedForward.toString());
+					log.fine("Moving forward: " + pstmtMovedForward.toString());
 					pstmtMovedForward.executeUpdate();
 				} else {	// Moved backward in list
 
@@ -1147,7 +1147,7 @@ public class QuestionManager {
 					pstmtMovedBack.setInt(2, o.seq);
 					pstmtMovedBack.setInt(3, o.sourceSeq);
 
-					log.info("Moving back: " + pstmtMovedBack.toString());
+					log.fine("Moving back: " + pstmtMovedBack.toString());
 					pstmtMovedBack.executeUpdate();
 
 				}
@@ -1157,12 +1157,12 @@ public class QuestionManager {
 				pstmtMoveWithin.setInt(2, listId );
 				pstmtMoveWithin.setString(3, o.value);
 
-				log.info("Move choice within same list: " + pstmtMoveWithin.toString());
+				log.fine("Move choice within same list: " + pstmtMoveWithin.toString());
 				int count = pstmtMoveWithin.executeUpdate();
 				if(count == 0) {
 					String msg = "Warning: choice " + o.value + " in list " + o.optionList + 
 							" was not moved. It may have already been moved by someone else";
-					log.info(msg);
+					log.fine(msg);
 					throw new Exception(msg);		// No matching value assume it has already been modified
 				}
 
@@ -1231,7 +1231,7 @@ public class QuestionManager {
 						pstmtGetOldLabelId.setInt(3, p.o_id);
 					}
 
-					log.info("Get old label id: " + pstmtGetOldLabelId.toString());
+					log.fine("Get old label id: " + pstmtGetOldLabelId.toString());
 					ResultSet rs = pstmtGetOldLabelId.executeQuery();
 					if(rs.next()) {
 						oldLabelId = rs.getString(1);
@@ -1246,7 +1246,7 @@ public class QuestionManager {
 						pstmtUpdateValue.setInt(5, p.o_id);
 					}
 
-					log.info("Update option value: " + pstmtUpdateValue.toString());
+					log.fine("Update option value: " + pstmtUpdateValue.toString());
 					pstmtUpdateValue.executeUpdate();
 
 
@@ -1256,7 +1256,7 @@ public class QuestionManager {
 					pstmtUpdateLabelId.setInt(2, sId);
 					pstmtUpdateLabelId.setString(3, oldLabelId);
 
-					log.info("Update option label id: " + pstmtUpdateLabelId.toString());
+					log.fine("Update option label id: " + pstmtUpdateLabelId.toString());
 					pstmtUpdateLabelId.executeUpdate();
 
 				} else {
@@ -1273,7 +1273,7 @@ public class QuestionManager {
 						pstmtOtherProperties.setInt(2, listId );
 						pstmtOtherProperties.setString(3, p.name );
 
-						log.info("Update option: " + pstmtOtherProperties.toString());
+						log.fine("Update option: " + pstmtOtherProperties.toString());
 						pstmtOtherProperties.executeUpdate();
 
 
@@ -1334,7 +1334,7 @@ public class QuestionManager {
 			if(sharedResults) {
 				pstmtGetTableName.setInt(1, originalFormId);
 
-				log.info("Get table name: " + pstmtGetTableName.toString());
+				log.fine("Get table name: " + pstmtGetTableName.toString());
 				ResultSet rsTableName = pstmtGetTableName.executeQuery();
 				if(rsTableName.next()) {
 					tablename = rsTableName.getString(1);
@@ -1354,7 +1354,7 @@ public class QuestionManager {
 			pstmtCreateForm.setString(7,  "");	// path is no longer used
 			pstmtCreateForm.setString(8,  repeats);
 
-			log.info("Create new form: " + pstmtCreateForm.toString());
+			log.fine("Create new form: " + pstmtCreateForm.toString());
 			pstmtCreateForm.execute();
 
 			ResultSet rs = pstmtCreateForm.getGeneratedKeys();
@@ -1370,7 +1370,7 @@ public class QuestionManager {
 			// Duplicate sub forms
 			pstmtGetSubForms.setInt(1,originalFormId);
 
-			log.info("Get sub forms: " + pstmtGetSubForms.toString());
+			log.fine("Get sub forms: " + pstmtGetSubForms.toString());
 			rs = pstmtGetSubForms.executeQuery();
 			String subFormParentPath = parentPath + "/" + formName;
 			while(rs.next()) {
@@ -1384,7 +1384,7 @@ public class QuestionManager {
 				pstmtGetParentQuestionId.setInt(1, fId);
 				pstmtGetParentQuestionId.setInt(2, existingParentQuestionId);
 
-				log.info("Get existing parent question id: " + pstmtGetParentQuestionId.toString());
+				log.fine("Get existing parent question id: " + pstmtGetParentQuestionId.toString());
 				ResultSet rsParent = pstmtGetParentQuestionId.executeQuery();
 				int newParentQuestionId = 0;
 				if(rsParent.next()) {
@@ -1429,7 +1429,7 @@ public class QuestionManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, existingSurveyId);
 
-			log.info("Duplicating languages: " + pstmt.toString());
+			log.fine("Duplicating languages: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} catch (Exception e) {
@@ -1469,7 +1469,7 @@ public class QuestionManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, existingSurveyId);
 
-			log.info("Duplicating question labels: " + pstmt.toString());
+			log.fine("Duplicating question labels: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} catch (Exception e) {
@@ -1514,12 +1514,12 @@ public class QuestionManager {
 			pstmt.setInt(1, existingSurveyId);
 			pstmt.setInt(2, listId);
 
-			log.info("Duplicating option labels: " + pstmt.toString());
+			log.fine("Duplicating option labels: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} catch (Exception e) {
 			if(e.getMessage().contains("duplicate key value violates unique constraint")) {
-				log.info("Warning:  Option labels already exist");
+				log.fine("Warning:  Option labels already exist");
 				sd.rollback(optionLabelsSP);
 			} else {
 				throw e;
@@ -1622,14 +1622,14 @@ public class QuestionManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, existingFormId);
 
-			log.info("Duplicating questions: " + pstmt.toString());
+			log.fine("Duplicating questions: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 			// Update the survey manifest if this question references CSV files
 			SurveyManager sm = new SurveyManager(localisation, "UTC");	
 			pstmtGetQuestionsForManifest = sd.prepareStatement(sqlGetQuestionsForManifest);
 			pstmtGetQuestionsForManifest.setInt(1, existingFormId);
-			log.info("Getting questions that may affect manifest: " + pstmtGetQuestionsForManifest.toString());
+			log.fine("Getting questions that may affect manifest: " + pstmtGetQuestionsForManifest.toString());
 
 			ResultSet rs = pstmtGetQuestionsForManifest.executeQuery();
 			while(rs.next()) {
@@ -1686,7 +1686,7 @@ public class QuestionManager {
 			pstmtGetLists = sd.prepareStatement(sqlGetLists);
 			pstmtGetLists.setInt(1, fId);	
 
-			log.info("Getting option lists that need to be replicated: " + pstmtGetLists.toString());
+			log.fine("Getting option lists that need to be replicated: " + pstmtGetLists.toString());
 			ResultSet rs = pstmtGetLists.executeQuery();
 			while(rs.next()) {
 				int l_id = rs.getInt(1);
@@ -1699,7 +1699,7 @@ public class QuestionManager {
 				// 1. Get the list name
 				pstmtGetListName.setInt(1, listId);
 
-				log.info("Getting list name: " + pstmtGetListName.toString());
+				log.fine("Getting list name: " + pstmtGetListName.toString());
 				rs = pstmtGetListName.executeQuery();
 				rs.next();
 				String listName = rs.getString(1);
@@ -1708,11 +1708,11 @@ public class QuestionManager {
 				pstmtCheckListName.setInt(1, sId);
 				pstmtCheckListName.setString(2, listName);
 
-				log.info("Checking list name: " + pstmtCheckListName.toString());
+				log.fine("Checking list name: " + pstmtCheckListName.toString());
 				rs = pstmtCheckListName.executeQuery();
 				rs.next();
 				if(rs.getInt(1) > 0) {
-					log.info("List name " + listName + " has already been added");
+					log.fine("List name " + listName + " has already been added");
 					continue;
 				}
 
@@ -1720,7 +1720,7 @@ public class QuestionManager {
 				pstmtCreateList.setInt(1,  sId);
 				pstmtCreateList.setString(2,  listName);
 
-				log.info("Create new list: " + pstmtCreateList.toString());
+				log.fine("Create new list: " + pstmtCreateList.toString());
 				pstmtCreateList.execute();
 
 				rs = pstmtCreateList.getGeneratedKeys();
@@ -1757,7 +1757,7 @@ public class QuestionManager {
 				pstmtInsertOptions = sd.prepareStatement(sqlInsertOptions);
 				pstmtInsertOptions.setInt(1, listId);
 
-				log.info("Adding options to survey: " + pstmtInsertOptions.toString());
+				log.fine("Adding options to survey: " + pstmtInsertOptions.toString());
 				pstmtInsertOptions.executeUpdate();
 
 				// 5. Update the list id in the form to point to the newly created list
@@ -1765,7 +1765,7 @@ public class QuestionManager {
 				pstmtUpdateListId.setInt(2, fId);
 				pstmtUpdateListId.setInt(3, listId);
 
-				log.info("Update list id in new form: " + pstmtUpdateListId.toString());
+				log.fine("Update list id in new form: " + pstmtUpdateListId.toString());
 				pstmtUpdateListId.executeUpdate();
 
 				// 6. Copy the list labels - Not required all labels are copied at the survey level
@@ -1893,7 +1893,7 @@ public class QuestionManager {
 			 * Get the questions for this form
 			 */
 			pstmtGetQuestions.setInt(1, fId);
-			log.info("Get questions for form: " + pstmtGetQuestions.toString());
+			log.fine("Get questions for form: " + pstmtGetQuestions.toString());
 			rsGetQuestions = pstmtGetQuestions.executeQuery();
 			
 			boolean inMeta = false;				// Set true if the question is in the meta group
@@ -1976,7 +1976,7 @@ public class QuestionManager {
 					pstmtGetRepeatValue.setInt(1, sId);
 					pstmtGetRepeatValue.setInt(2, q.id);
 
-					log.info("Get repeat from form: " + pstmtGetRepeatValue.toString());
+					log.fine("Get repeat from form: " + pstmtGetRepeatValue.toString());
 					rsGetRepeatValue = pstmtGetRepeatValue.executeQuery();
 					if(rsGetRepeatValue.next()) {
 						q.calculation = GeneralUtilityMethods.convertAllXpathNames(rsGetRepeatValue.getString(1), true);
@@ -2111,7 +2111,7 @@ public class QuestionManager {
 			pstmt.setString(1,  language);
 			pstmt.setInt(2,  sId);
 
-			log.info("Get questions: " + pstmt.toString());
+			log.fine("Get questions: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			while(resultSet.next()) {
 				QuestionLite q = new QuestionLite();

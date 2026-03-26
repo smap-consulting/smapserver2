@@ -660,7 +660,7 @@ public class SurveyTemplate {
 			String existingQuestion = questionMap.get(qName.trim().toLowerCase());
 			if(existingQuestion != null) {
 				badNames.add(qName + " in forms(" + fName + "," + existingQuestion + ")");
-				log.info("Duplicate Question:" + qName + " in form:" + fName);
+				log.fine("Duplicate Question:" + qName + " in form:" + fName);
 			} else {
 				questionMap.put(qName.trim().toLowerCase(), fName);
 			}
@@ -689,14 +689,14 @@ public class SurveyTemplate {
 		
 			// Check for mandatory and readonly
 			if(man && ro && relevance == null) {
-				log.info("check man read: " + qName + " : " + man + " : " + ro + " : " + relevance);
+				log.fine("check man read: " + qName + " : " + man + " : " + ro + " : " + relevance);
 				String roMsg = "Question '" + qName + "' is mandatory, read only and has nothing in the 'relevance' column - remove the 'yes' in the required column" ;
 				badNames.add(roMsg);
 			}
 			
 			// Check for constraints without dots
 			if(constraint !=null && !constraint.contains(".") && !constraint.contains("false()")) {
-				log.info("check constraint: " + qName + " : " + constraint);
+				log.fine("check constraint: " + qName + " : " + constraint);
 				String roMsg = "Constraint '" + constraint + "' for question " + qName + " must refer to the answer using a '.' (dot)";
 				badNames.add(roMsg);
 			}
@@ -714,7 +714,7 @@ public class SurveyTemplate {
 	public int writeDatabase() throws Exception {
 		
 		Connection sd = org.smap.sdal.Utilities.SDDataSource.getConnection("SurveyTemplate-Write Database");
-		// log.info("Set autocommit false");
+		// log.fine("Set autocommit false");
 		sd.setAutoCommit(false);
 		
 		JdbcSurveyManager sm = null;
@@ -731,7 +731,7 @@ public class SurveyTemplate {
 				throw new Exception("No forms in this survey");
 			}
 			sm = new JdbcSurveyManager(sd, localisation);
-			// log.info("Persisting survey");
+			// log.fine("Persisting survey");
 			sm.write(survey);
 	
 			/*
@@ -1009,7 +1009,7 @@ public class SurveyTemplate {
 			throw e;
 		} finally {
 			
-			// log.info("Set autocommit true");
+			// log.fine("Set autocommit true");
 			sd.setAutoCommit(true);
 			if(sm != null) {sm.close();};
 			if(fm != null) {fm.close();};
@@ -1085,7 +1085,7 @@ public class SurveyTemplate {
 				readDatabase(survey, sd, cResults, embedExternalSearch);	// Get the rest of the survey
 				newSurveyIdent = survey.getIdent();
 			} else {
-				log.info("Error: Survey Template not found: " + surveyIdent);
+				log.fine("Error: Survey Template not found: " + surveyIdent);
 				throw new MissingTemplateException("Error: Survey Template not found: " + surveyIdent);
 			}
 		} finally {
@@ -1116,7 +1116,7 @@ public class SurveyTemplate {
 			if(survey != null) {
 				readDatabase(survey, sd, cResults, embedExternalSearch);	// Get the rest of the survey
 			} else {
-				log.info("Error: Survey Template not found: " + surveyId);
+				log.fine("Error: Survey Template not found: " + surveyId);
 				throw new MissingTemplateException("Error: Survey Template not found: " + surveyId);
 			}
 			
@@ -1201,7 +1201,7 @@ public class SurveyTemplate {
 				if(f != null) {
 					formRef = getFormById(f_id).getPath(formList);
 				} else {
-					log.info("Form not found for f_id = " + f_id);
+					log.fine("Form not found for f_id = " + f_id);
 				}
 				
 				q.setFormRef(formRef);
@@ -1492,7 +1492,7 @@ public class SurveyTemplate {
 			
 			// Use geopoint meta questions to set survey location if it has not already been set
 			if(mq.type.equals("geopoint") && (instance.getSurveyGeopoint() == null || instance.getSurveyGeopoint().trim().equals(""))) {
-				log.info("+++++++ setting for: " + questionPath);
+				log.fine("+++++++ setting for: " + questionPath);
 				instance.setOverallLocation(questionPath);
 			}
 		}

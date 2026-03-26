@@ -282,7 +282,7 @@ public class SurveyManager {
 				
 			pstmtGetGroupDetails = sd.prepareStatement(sqlGetGroupDetails.toString());
 			
-			// log.info("Get surveys: " + pstmt.toString());
+			// log.fine("Get surveys: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			while (resultSet.next()) {						
 	
@@ -399,7 +399,7 @@ public class SurveyManager {
 				pstmt.setString(idx++, user);	// Second user entry for RBAC
 			}
 
-			log.info("Get surveys and forms: " + pstmt.toString());
+			log.fine("Get surveys and forms: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 
 			while (resultSet.next()) {						
@@ -455,7 +455,7 @@ public class SurveyManager {
 			pstmt.setString(1, displayName);
 			pstmt.setInt(2, projectId);
 
-			log.info("Check for existence of survey: " + pstmt.toString());
+			log.fine("Check for existence of survey: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 
 			if (resultSet.next()) {		
@@ -561,7 +561,7 @@ public class SurveyManager {
 				pstmt.setString(idx++, user);		// RBAC check
 			}
 
-			log.info("Get Survey info: " + pstmt.toString());
+			log.fine("Get Survey info: " + pstmt.toString());
 
 			resultSet = pstmt.executeQuery();	
 			if (resultSet.next()) {						
@@ -615,7 +615,7 @@ public class SurveyManager {
 				s.surveyData.uk = km.get(sd, s.surveyData.groupSurveyIdent);
 				
 			} else {
-				log.info("Error: survey not found");
+				log.fine("Error: survey not found");
 			}
 
 			if(full && s != null) {
@@ -763,7 +763,7 @@ public class SurveyManager {
 			
 			if(sd.getAutoCommit()) {
 				sdAutoCommitSetFalse = true;
-				// log.info("Set autocommit false");
+				// log.fine("Set autocommit false");
 				sd.setAutoCommit(false);
 			}			
 
@@ -795,7 +795,7 @@ public class SurveyManager {
 			pstmtCreateSurvey.setBoolean(9, existingReadOnlySurvey);
 			pstmtCreateSurvey.setString(10, existingInstanceName);
 			
-			// log.info("Create new survey: " + pstmtCreateSurvey.toString());
+			// log.fine("Create new survey: " + pstmtCreateSurvey.toString());
 			pstmtCreateSurvey.execute();
 			ResultSet rs = pstmtCreateSurvey.getGeneratedKeys();
 			rs.next();
@@ -813,7 +813,7 @@ public class SurveyManager {
 			}
 			pstmtUpdateSurvey.setInt(3,  sId);
 
-			// log.info("Create new survey part 2: " + pstmtUpdateSurvey.toString());
+			// log.fine("Create new survey part 2: " + pstmtUpdateSurvey.toString());
 			pstmtUpdateSurvey.execute();
 
 			/*
@@ -839,7 +839,7 @@ public class SurveyManager {
 				pstmtCreateForm.setInt(1,  sId);
 				pstmtCreateForm.setString(2,  tablename);
 
-				// log.info("Create new form: " + pstmtCreateForm.toString());
+				// log.fine("Create new form: " + pstmtCreateForm.toString());
 				pstmtCreateForm.execute();
 			}
 
@@ -857,7 +857,7 @@ public class SurveyManager {
 		} finally {
 
 			if(sdAutoCommitSetFalse) {
-				// log.info("Set autocommit sd true");
+				// log.fine("Set autocommit sd true");
 				sdAutoCommitSetFalse = false;
 				try{sd.setAutoCommit(true);} catch(Exception ex) {};
 			}
@@ -963,7 +963,7 @@ public class SurveyManager {
 
 		// Get the Forms
 		pstmtGetForms.setInt(1, s.surveyData.id);
-		// log.info("Get forms: " + pstmtGetForms.toString());
+		// log.fine("Get forms: " + pstmtGetForms.toString());
 		rsGetForms = pstmtGetForms.executeQuery();
 
 		while (rsGetForms.next()) {								
@@ -1023,7 +1023,7 @@ public class SurveyManager {
 		 * Get the option lists
 		 */
 		pstmtGetLists.setInt(1, s.surveyData.id);
-		// log.info("Get lists for survey: " + pstmtGetLists.toString());
+		// log.fine("Get lists for survey: " + pstmtGetLists.toString());
 		rsGetLists = pstmtGetLists.executeQuery();
 
 		int idx = 0;
@@ -1058,7 +1058,7 @@ public class SurveyManager {
 			pstmtGetOptions.setInt(1, listId);
 			
 			if(idx++ == 0) {
-				// log.info("SQL Get options: " + pstmtGetOptions.toString());
+				// log.fine("SQL Get options: " + pstmtGetOptions.toString());
 			}
 			rsGetOptions = pstmtGetOptions.executeQuery();
 	
@@ -1124,7 +1124,7 @@ public class SurveyManager {
 		 * Get the style lists
 		 */
 		pstmtGetStyles.setInt(1, s.surveyData.id);
-		// log.info("Get styles for survey: " + pstmtGetStyles.toString());
+		// log.fine("Get styles for survey: " + pstmtGetStyles.toString());
 		rsGetStyles = pstmtGetStyles.executeQuery();
 
 		Type markupType = new TypeToken<ArrayList<TableColumnMarkup>>(){}.getType();
@@ -1141,7 +1141,7 @@ public class SurveyManager {
 		// Add the change log
 		if(getChangeHistory) {
 			pstmtGetChanges.setInt(1, s.getId());
-			log.info("Get change log: " + pstmtGetChanges.toString());
+			log.fine("Get change log: " + pstmtGetChanges.toString());
 			rsGetChanges = pstmtGetChanges.executeQuery();
 
 			while (rsGetChanges.next()) {
@@ -1214,7 +1214,7 @@ public class SurveyManager {
 		try {
 			pstmt = sd.prepareStatement(sql);	 			
 			pstmt.setString(1, key);			
-			log.info("Get survey id: " + pstmt.toString());
+			log.fine("Get survey id: " + pstmt.toString());
 
 			resultSet = pstmt.executeQuery();
 
@@ -1292,7 +1292,7 @@ public class SurveyManager {
 			userId = GeneralUtilityMethods.getUserId(sd, userIdent);
 
 			if(sd.getAutoCommit()) {
-				log.info("Set autocommit sd false");
+				log.fine("Set autocommit sd false");
 				sdAutoCommitSetFalse = true;
 				sd.setAutoCommit(false);
 			}
@@ -1322,7 +1322,7 @@ public class SurveyManager {
 				Savepoint sp = sd.setSavepoint();
 				try {
 
-					log.info("SurveyManager, applyChanges. Change set type: " + cs.changeType);
+					log.fine("SurveyManager, applyChanges. Change set type: " + cs.changeType);
 					if(cs.changeType.equals("label")) {
 
 						applyLabel(sd, pstmtChangeLog, cs.items, sId, userId, resp.version, logIndividualChangeSets);
@@ -1348,7 +1348,7 @@ public class SurveyManager {
 						applyOptionList(sd, pstmtChangeLog, cs.items, sId, userId, resp.version, cs.changeType, cs.action, logIndividualChangeSets);
 
 					} else {
-						log.info("Error: unknown changeset type: " + cs.changeType);
+						log.fine("Error: unknown changeset type: " + cs.changeType);
 						throw new Exception("Error: unknown changeset type: " + cs.changeType);
 					}
 
@@ -1359,7 +1359,7 @@ public class SurveyManager {
 
 					// Failure
 					sd.rollback(sp);
-					log.info("Error: " + e.getMessage());
+					log.fine("Error: " + e.getMessage());
 					cs.updateFailed = true;
 					cs.errorMsg = e.getMessage();
 					resp.failed++;
@@ -1375,12 +1375,12 @@ public class SurveyManager {
 
 			if(resp.success > 0) {
 				sd.commit();
-				log.info("Survey update to version: " + resp.version + ". " + 
+				log.fine("Survey update to version: " + resp.version + ". " + 
 						resp.success + " successful changes and " + 
 						resp.failed + " failed changes");
 			} else {
 				sd.rollback();
-				log.info("Survey version not updated: " + 
+				log.fine("Survey version not updated: " + 
 						resp.success + " successful changes and " + 
 						resp.failed + " failed changes");
 			}
@@ -1390,7 +1390,7 @@ public class SurveyManager {
 			throw e;
 		} finally {
 			if(sdAutoCommitSetFalse) {
-				log.info("Set autocommit sd true");
+				log.fine("Set autocommit sd true");
 				sdAutoCommitSetFalse = false;
 				sd.setAutoCommit(true);
 			}
@@ -1474,7 +1474,7 @@ public class SurveyManager {
 					pstmtGetOptionTextId.setInt(1, listId);
 					pstmtGetOptionTextId.setString(2, ci.property.name);
 
-					// (debug) log.info("Getting text id for option: " + pstmtGetOptionTextId.toString());
+					// (debug) log.fine("Getting text id for option: " + pstmtGetOptionTextId.toString());
 					ResultSet rs = pstmtGetOptionTextId.executeQuery();
 					if(rs.next()) {
 						text_id = rs.getString(1);
@@ -1533,7 +1533,7 @@ public class SurveyManager {
 							if(isQuestion) {
 								pstmtNewQuestionLabel.setString(1, text_id);
 								pstmtNewQuestionLabel.setInt(2, ci.property.qId);
-								log.info("Update question table with text_id: " + pstmtNewQuestionLabel.toString());
+								log.fine("Update question table with text_id: " + pstmtNewQuestionLabel.toString());
 								pstmtNewQuestionLabel.executeUpdate();
 							} else if(isOption) {
 								pstmtNewOptionLabel.setString(1, text_id);
@@ -1561,7 +1561,7 @@ public class SurveyManager {
 					}
 				}
 
-				log.info("userevent: " + userId + " : modify survey label : " + ci.property.key + " to: " + ci.property.newVal + " survey: " + sId + " language: " + ci.property.languageName + " labelId: "  + transType);
+				log.fine("userevent: " + userId + " : modify survey label : " + ci.property.key + " to: " + ci.property.newVal + " survey: " + sId + " language: " + ci.property.languageName + " labelId: "  + transType);
 
 				// Write the change log
 				Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
@@ -1616,7 +1616,7 @@ public class SurveyManager {
 		}
 		pstmtLangOldVal.setString(5,  transType);
 
-		//log.info("Update question translation: " + pstmtLangOldVal.toString());
+		//log.fine("Update question translation: " + pstmtLangOldVal.toString());
 
 		pstmtLangOldVal.executeUpdate();
 
@@ -1647,7 +1647,7 @@ public class SurveyManager {
 			}
 			pstmtLangNew.setString(5,  transType);
 
-			log.info("Insert new question label: " + pstmtLangNew.toString());
+			log.fine("Insert new question label: " + pstmtLangNew.toString());
 
 			pstmtLangNew.executeUpdate();
 		} else {
@@ -1655,7 +1655,7 @@ public class SurveyManager {
 			pstmtDeleteLabel.setInt(1, sId);
 			pstmtDeleteLabel.setString(2, ci.property.key);
 			pstmtDeleteLabel.setString(3, ci.property.propType);
-			// (debug) log.info("Delete media label: " + pstmtDeleteLabel.toString());
+			// (debug) log.fine("Delete media label: " + pstmtDeleteLabel.toString());
 			pstmtDeleteLabel.executeUpdate();
 			ci.property.key = null;		// Clear the key in the question table
 		}  
@@ -1737,7 +1737,7 @@ public class SurveyManager {
 					pstmtUpdateRepeat.setInt(2, sId);
 					pstmtUpdateRepeat.setInt(3, ci.property.qId);
 
-					log.info("Updating repeat count: " + pstmtUpdateRepeat.toString());
+					log.fine("Updating repeat count: " + pstmtUpdateRepeat.toString());
 					int count = pstmtUpdateRepeat.executeUpdate();
 					if(count == 0) {
 						String msg = "Warning: property \"" + ci.property.prop 
@@ -1746,7 +1746,7 @@ public class SurveyManager {
 								+ " was not updated to "
 								+ ci.property.newVal
 								+ ". It may have already been updated by someone else";
-						log.info(msg);
+						log.fine(msg);
 						throw new Exception(msg);		// No matching value assume it has already been modified
 					}
 
@@ -1855,7 +1855,7 @@ public class SurveyManager {
 					 */
 					if(property.equals("app_choices")) {
 						
-						log.info("##### Apply app_choices property: New Val" + (ci.property != null && ci.property.newVal != null ? ci.property.newVal : ""));
+						log.fine("##### Apply app_choices property: New Val" + (ci.property != null && ci.property.newVal != null ? ci.property.newVal : ""));
 						
 						updateSearchChoices(sd, pstmt, ci.property.newVal, sId, ci.property.qId);
 						
@@ -1955,7 +1955,7 @@ public class SurveyManager {
 							// Update the list id property of the question
 							pstmtProperty3.setInt(1, Integer.parseInt(ci.property.newVal));
 							pstmtProperty3.setInt(2, ci.property.qId);				
-							log.info("Update list name property: " + pstmtProperty3.toString());
+							log.fine("Update list name property: " + pstmtProperty3.toString());
 							count = pstmtProperty3.executeUpdate();
 
 							// Update the nodeset for the question
@@ -1963,7 +1963,7 @@ public class SurveyManager {
 								pstmtUpdateQuestionNodeset.setString(1, originalListname);
 								pstmtUpdateQuestionNodeset.setString(2, newListname);
 								pstmtUpdateQuestionNodeset.setInt(3, ci.property.qId);
-								log.info("Update nodeset for question: " + pstmtUpdateQuestionNodeset.toString());
+								log.fine("Update nodeset for question: " + pstmtUpdateQuestionNodeset.toString());
 								pstmtUpdateQuestionNodeset.executeUpdate();
 							}
 
@@ -1985,7 +1985,7 @@ public class SurveyManager {
 								pstmtListname.setInt(2, ci.property.l_id);
 								pstmtListname.setInt(3, sId);
 
-								log.info("Update name of list : " + pstmtListname.toString());
+								log.fine("Update name of list : " + pstmtListname.toString());
 								count = pstmtListname.executeUpdate();
 
 								// Update the nodeset for any questions that references this list
@@ -1994,7 +1994,7 @@ public class SurveyManager {
 									pstmtUpdateNodeset.setString(2, cleanName);
 									pstmtUpdateNodeset.setInt(3, ci.property.l_id);
 									pstmtUpdateNodeset.setInt(4, sId);
-									log.info("Update nodeset : " + pstmtUpdateNodeset.toString());
+									log.fine("Update nodeset : " + pstmtUpdateNodeset.toString());
 									pstmtUpdateNodeset.executeUpdate();
 								}
 
@@ -2010,7 +2010,7 @@ public class SurveyManager {
 								pstmtUpdateQuestion.setInt(1, ci.property.l_id);
 								pstmtUpdateQuestion.setInt(2, sId);
 								pstmtUpdateQuestion.setString(3, ci.property.newVal);
-								log.info("SQL: Update any matching questions: " + pstmtUpdateQuestion.toString());
+								log.fine("SQL: Update any matching questions: " + pstmtUpdateQuestion.toString());
 								pstmtUpdateQuestion.executeUpdate();
 
 							} else {
@@ -2033,7 +2033,7 @@ public class SurveyManager {
 								pstmtProperty2.setString(1, ci.property.newVal);
 							}
 
-							log.info("Update question property: " + pstmtProperty2.toString());
+							log.fine("Update question property: " + pstmtProperty2.toString());
 							count = pstmtProperty2.executeUpdate();
 
 							// Type dependent changes
@@ -2046,12 +2046,12 @@ public class SurveyManager {
 									pstmtAddNodeset.setInt(1, l_id);
 									pstmtAddNodeset.setInt(2, ci.property.qId);
 									pstmtAddNodeset.setInt(3, sId);
-									log.info("Add nodeset: " + pstmtAddNodeset.toString());
+									log.fine("Add nodeset: " + pstmtAddNodeset.toString());
 									pstmtAddNodeset.executeUpdate();
 								} else if(!ci.property.newVal.startsWith("select") && !ci.property.newVal.equals("rank")) {
 									pstmtClearNodeset.setInt(1, ci.property.qId);
 									pstmtClearNodeset.setInt(2, sId);
-									log.info("Clear nodeset: " + pstmtClearNodeset.toString());
+									log.fine("Clear nodeset: " + pstmtClearNodeset.toString());
 									pstmtClearNodeset.executeUpdate();
 								} 
 								
@@ -2067,13 +2067,13 @@ public class SurveyManager {
 							pstmtDependent.setBoolean(1, ci.property.visibleValue);
 							pstmtDependent.setString(2, ci.property.sourceValue);
 							pstmtDependent.setInt(3, ci.property.qId);
-							log.info("Update dependent properties: " + pstmtDependent.toString());
+							log.fine("Update dependent properties: " + pstmtDependent.toString());
 							pstmtDependent.executeUpdate();
 						}
 						
 						if(setReadonly) {
 							pstmtReadonly.setInt(1, ci.property.qId);
-							log.info("Update readonly status for note type: " + pstmtReadonly.toString());
+							log.fine("Update readonly status for note type: " + pstmtReadonly.toString());
 							pstmtReadonly.executeUpdate();
 						}
 
@@ -2085,7 +2085,7 @@ public class SurveyManager {
 									+ originalNewValue
 									+ ". It may have already been updated by someone else "
 									+ "or the question may have been published while you were editing it.";
-							log.info(msg);
+							log.fine(msg);
 							throw new Exception(msg);		// No matching value assume it has already been modified
 						}
 
@@ -2112,7 +2112,7 @@ public class SurveyManager {
 							pstmtForm.setString(8, "");	// path is no longer used
 							pstmtForm.setInt(9, ci.property.childFormIndex);
 
-							log.info("SQL: Insert new form: " + pstmtForm.toString());
+							log.fine("SQL: Insert new form: " + pstmtForm.toString());
 							pstmtForm.executeUpdate();
 
 						}
@@ -2128,7 +2128,7 @@ public class SurveyManager {
 							pstmt.setString(2, endGroupName);
 							pstmt.setInt(3, sId );
 
-							log.info("Delete End group of question: " + pstmt.toString());
+							log.fine("Delete End group of question: " + pstmt.toString());
 							pstmt.executeUpdate();
 						}
 						
@@ -2156,7 +2156,7 @@ public class SurveyManager {
 							pstmtSource = sd.prepareStatement(sqlSource);
 							pstmtSource.setString(1, newSource);
 							pstmtSource.setInt(2, ci.property.qId);
-							log.info("Update source: " + pstmtSource.toString());
+							log.fine("Update source: " + pstmtSource.toString());
 							pstmtSource.executeUpdate();
 						}
 
@@ -2266,7 +2266,7 @@ public class SurveyManager {
 								pstmtUpdateEndGroup.setInt(2,  fId);
 								pstmtUpdateEndGroup.setString(3,  ci.property.oldVal + "_groupEnd");
 
-								log.info("Updating group end name: " + pstmtUpdateEndGroup.toString());
+								log.fine("Updating group end name: " + pstmtUpdateEndGroup.toString());
 								pstmtUpdateEndGroup.executeUpdate();
 							}
 
@@ -2284,7 +2284,7 @@ public class SurveyManager {
 								pstmtUpdateForm.setInt(3,  sId);
 								pstmtUpdateForm.setString(4,  ci.property.oldVal);
 
-								log.info("Updating form name: " + pstmtUpdateForm.toString());
+								log.fine("Updating form name: " + pstmtUpdateForm.toString());
 								pstmtUpdateForm.executeUpdate();
 							}
 
@@ -2318,7 +2318,7 @@ public class SurveyManager {
 									} else if(k.v.equals("append")) {
 										append = true;
 									} else {
-										log.info("Error: unknown key policy: " + k.v);
+										log.fine("Error: unknown key policy: " + k.v);
 									}
 								}
 							}
@@ -2335,7 +2335,7 @@ public class SurveyManager {
 							pstmtUpdateForm.setInt(5,  sId);
 							pstmtUpdateForm.setInt(6, ci.property.qId);
 	
-							log.info("Updating form properties: " + pstmtUpdateForm.toString());
+							log.fine("Updating form properties: " + pstmtUpdateForm.toString());
 							pstmtUpdateForm.executeUpdate();	
 							
 							// If the reference was set then set the table name to the name of the reference form
@@ -2360,7 +2360,7 @@ public class SurveyManager {
 							pstmtUpdateForm.setInt(2,  sId);
 							pstmtUpdateForm.setInt(3, ci.property.qId);
 							
-							log.info("Updating form properties2: " + pstmtUpdateForm.toString());
+							log.fine("Updating form properties2: " + pstmtUpdateForm.toString());
 							pstmtUpdateForm.executeUpdate();				
 							
 						}
@@ -2370,7 +2370,7 @@ public class SurveyManager {
 							GeneralUtilityMethods.writeAutoUpdateQuestion(sd, sId, ci.property.qId, ci.property.newVal, true);
 						}
 								
-						log.info("userevent: " + userId + " : modify survey property : " + property + " to: " + ci.property.newVal + " survey: " + sId);
+						log.fine("userevent: " + userId + " : modify survey property : " + property + " to: " + ci.property.newVal + " survey: " + sId);
 
 
 					} else {
@@ -2486,7 +2486,7 @@ public class SurveyManager {
 
 				questions.add(ci.question);
 
-				log.info("userevent: " + userId + " : " + action + " question : " + ci.question.name + " survey: " + sId);
+				log.fine("userevent: " + userId + " : " + action + " question : " + ci.question.name + " survey: " + sId);
 
 				// Write the change log
 				Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
@@ -2506,14 +2506,14 @@ public class SurveyManager {
 			} else if(action.equals("move")) {
 				qm.moveQuestions(sd, sId, questions);
 			} else {
-				log.info("Unkown action: " + action);
+				log.fine("Unkown action: " + action);
 			}
 			
 			// Clear the csvtable cache
 			String ident = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			pstmt = sd.prepareStatement(sqlCache);
 			pstmt.setString(1, "linked_" + ident);
-			log.info("Clear csvtable cache: " + pstmt.toString());
+			log.fine("Clear csvtable cache: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} catch (Exception e) {
@@ -2547,7 +2547,7 @@ public class SurveyManager {
 
 			for(ChangeItem ci : changeItemList) {
 
-				log.info("userevent: " + userId + " : " + action + " optionlist : " + ci.name + " survey: " + sId);
+				log.fine("userevent: " + userId + " : " + action + " optionlist : " + ci.name + " survey: " + sId);
 
 				// Write the change log
 				Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
@@ -2565,7 +2565,7 @@ public class SurveyManager {
 				} else if(action.equals("delete")) {
 					olm.delete(connectionSD, sId, ci.name);
 				} else {
-					log.info("Unkown action: " + action);
+					log.fine("Unkown action: " + action);
 				}
 			}
 
@@ -2605,10 +2605,10 @@ public class SurveyManager {
 
 				if(changeType.equals("property")) {
 					properties.add(ci.property);
-					log.info("userevent: " + userId + " modify option " + ci.property.newVal + " survey: " + sId);
+					log.fine("userevent: " + userId + " modify option " + ci.property.newVal + " survey: " + sId);
 				} else {
 					options.add(ci.option);		
-					log.info("userevent: " + userId + (action.equals("add") ? " : add option : " : " : delete option : ") + ci.option.value + " survey: " + sId);
+					log.fine("userevent: " + userId + (action.equals("add") ? " : add option : " : " : delete option : ") + ci.option.value + " survey: " + sId);
 				}
 
 				// Write the change log
@@ -2835,11 +2835,11 @@ public class SurveyManager {
 					pstmt.setString(attribIdx++, remoteUser);
 				}
 				
-				log.info("Get results: " + pstmt.toString());
+				log.fine("Get results: " + pstmt.toString());
 				if(GeneralUtilityMethods.tableExists(cResults, form.tableName)) {
 					resultSet = pstmt.executeQuery();
 				} else {
-					log.info("Table does not exist");
+					log.fine("Table does not exist");
 				}
 			}
 
@@ -3160,12 +3160,12 @@ public class SurveyManager {
 						if(pstmtSelect != null) try {pstmtSelect.close();} catch(Exception e) {};
 						pstmtSelect = cResults.prepareStatement(sqlSelect);	 
 	
-						log.info("Get data from option columns: " + pstmtSelect.toString());
+						log.fine("Get data from option columns: " + pstmtSelect.toString());
 						resultSetOptions = pstmtSelect.executeQuery();
 						resultSetOptions.next();		// There will only be one record
 					}
 				} else {
-					log.info("No published options for question: " + q.name);
+					log.fine("No published options for question: " + q.name);
 				}
 
 				//Result nr = new Result(qName, qType, null, false, fIdx, qIdx, 0, listName, appearance);
@@ -3290,7 +3290,7 @@ public class SurveyManager {
 				pstmtUpdate = sd.prepareStatement(sqlUpdate);
 				pstmtUpdate.setString(1, manifest);
 				pstmtUpdate.setInt(2,sId);
-				log.info("Updating manifest:" + pstmtUpdate.toString());
+				log.fine("Updating manifest:" + pstmtUpdate.toString());
 				pstmtUpdate.executeUpdate();
 			}
 
@@ -3321,12 +3321,12 @@ public class SurveyManager {
 		try {
 			pstmtClear = sd.prepareStatement(sqlClear);
 			pstmtClear.setInt(1, sId);
-			log.info("Cleaning up manifest: " + pstmtClear.toString());
+			log.fine("Cleaning up manifest: " + pstmtClear.toString());
 			pstmtClear.executeUpdate();
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
-			log.info("Cleaning up manifest. Getting questions that may affect manifest: " + pstmt.toString());
+			log.fine("Cleaning up manifest. Getting questions that may affect manifest: " + pstmt.toString());
 
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
@@ -3350,7 +3350,7 @@ public class SurveyManager {
 			out = out.replaceAll("\\$\\{device\\}", im.device);
 			out = out.replaceAll("\\$\\{assigned\\}", im.assigned);
 		} else {
-			log.info("Could not fill template details for: " + out + " : " + ((s == null) ? "survey is null" : "survey not null" ));
+			log.fine("Could not fill template details for: " + out + " : " + ((s == null) ? "survey is null" : "survey not null" ));
 		}
 
 
@@ -3391,7 +3391,7 @@ public class SurveyManager {
 				pstmt.setString(3, user);	// Second user entry for RBAC
 			}
 				
-			log.info("Get group surveys: " + pstmt.toString());
+			log.fine("Get group surveys: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
@@ -3431,7 +3431,7 @@ public class SurveyManager {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, groupSurveyIdent);
-			log.info("Get group forms: " + pstmt.toString());
+			log.fine("Get group forms: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
@@ -3475,7 +3475,7 @@ public class SurveyManager {
 			pstmt.setString(2, user);
 			pstmt.setString(3, groupSurveyIdent);
 			
-			log.info("Get group forms: " + pstmt.toString());
+			log.fine("Get group forms: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
@@ -3511,7 +3511,7 @@ public class SurveyManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 			pstmt.setInt(2, sId);
-			log.info("Get shared tables: " + pstmt.toString());
+			log.fine("Get shared tables: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
@@ -3604,7 +3604,7 @@ public class SurveyManager {
 			pstmt = sd.prepareStatement(sql.toString());
 			pstmt.setString(1, groupSurveyIdent);
 			
-			log.info("Get anonymous group surveys: " + pstmt.toString());
+			log.fine("Get anonymous group surveys: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
@@ -3688,7 +3688,7 @@ public class SurveyManager {
 		try {
 			pstmt = sd.prepareStatement(sql.toString());
 			pstmt.setString(1, groupSurveyIdent);
-			log.info("++++++++ Get Group Questions: " + pstmt.toString());
+			log.fine("++++++++ Get Group Questions: " + pstmt.toString());
 			
 			ResultSet rs = pstmt.executeQuery();
 
@@ -3706,7 +3706,7 @@ public class SurveyManager {
 				sql = new StringBuilder("select meta from survey where group_survey_ident = ? and deleted = 'false' and not hidden and meta like '%background-audio%'");
 				pstmt = sd.prepareStatement(sql.toString());
 				pstmt.setString(1, groupSurveyIdent);
-				log.info("++++++++ Get background audio questions: " + pstmt.toString());
+				log.fine("++++++++ Get background audio questions: " + pstmt.toString());
 				rs = pstmt.executeQuery();
 	
 				while (rs.next()) {
@@ -3766,7 +3766,7 @@ public class SurveyManager {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, groupSurveyIdent);
-			log.info("Getting group options: " + pstmt.toString());
+			log.fine("Getting group options: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
@@ -3795,10 +3795,10 @@ public class SurveyManager {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
-			log.info(pstmt.toString());
+			log.fine(pstmt.toString());
 			pstmt.executeUpdate();
 			lm.writeLog(sd, sId, user, LogManager.RESTORE, "Restore survey ", 0, null);
-			log.info("userevent: " + user + " : un delete survey : " + sId);
+			log.fine("userevent: " + user + " : un delete survey : " + sId);
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
@@ -3867,7 +3867,7 @@ public class SurveyManager {
 					// Get the surveys that were replaced by this one
 					pstmtReplaced = sd.prepareStatement(sqlreplaced);
 					pstmtReplaced.setString(1, sIdent);
-					log.info("Get replaced surveys: " + pstmtReplaced);
+					log.fine("Get replaced surveys: " + pstmtReplaced);
 					ResultSet rs = pstmtReplaced.executeQuery();
 					while (rs.next()) {
 						int rSId = rs.getInt("s_id");
@@ -3919,11 +3919,11 @@ public class SurveyManager {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, newDisplayName);	// This is an automatic update of an existing name - do not validate
 				pstmt.setInt(2, sId);
-				log.info("Soft delete survey: " + pstmt.toString());
+				log.fine("Soft delete survey: " + pstmt.toString());
 				pstmt.executeUpdate();
 	
 				lm.writeLog(sd, sId, user, LogManager.DELETE, "Soft Delete survey " + surveyDisplayName, 0, null);
-				log.info("userevent: " + user + " : soft delete survey : " + sId);
+				log.fine("userevent: " + user + " : soft delete survey : " + sId);
 	
 			}
 	
@@ -3936,7 +3936,7 @@ public class SurveyManager {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, sId);
-				log.info("Delete dashboard panels: " + pstmt.toString());
+				log.fine("Delete dashboard panels: " + pstmt.toString());
 				pstmt.executeUpdate();
 			} else {
 				sql = "update dashboard_settings set ds_s_id = ? where ds_s_id = ?";	
@@ -3944,7 +3944,7 @@ public class SurveyManager {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, newSurveyId);
 				pstmt.setInt(2, sId);
-				log.info("Update dashboard panels: " + pstmt.toString());
+				log.fine("Update dashboard panels: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
 	
@@ -3956,7 +3956,7 @@ public class SurveyManager {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, sIdent);
-				log.info("Delete survey views: " + pstmt.toString());
+				log.fine("Delete survey views: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
 	
@@ -3987,7 +3987,7 @@ public class SurveyManager {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, sId);
-				log.info("Delete notifications: " + pstmt.toString());
+				log.fine("Delete notifications: " + pstmt.toString());
 				pstmt.executeUpdate();
 			} else {
 				sql = "update forward set s_id = ? where s_id = ?";	
@@ -3995,7 +3995,7 @@ public class SurveyManager {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, newSurveyId);
 				pstmt.setInt(2, sId);
-				log.info("Update notifications: " + pstmt.toString());
+				log.fine("Update notifications: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
 			
@@ -4010,7 +4010,7 @@ public class SurveyManager {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, sId);
 				pstmt.setInt(2, sId);
-				log.info("Update task groups 1: " + pstmt.toString());
+				log.fine("Update task groups 1: " + pstmt.toString());
 				pstmt.executeUpdate();
 			} else {
 				
@@ -4021,7 +4021,7 @@ public class SurveyManager {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, newSurveyId);
 				pstmt.setInt(2, sId);
-				log.info("Update task groups 2: " + pstmt.toString());
+				log.fine("Update task groups 2: " + pstmt.toString());
 				pstmt.executeUpdate();
 				
 				sql = "update task_group "
@@ -4031,7 +4031,7 @@ public class SurveyManager {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, newSurveyId);
 				pstmt.setInt(2, sId);
-				log.info("Update task groups 3: " + pstmt.toString());
+				log.fine("Update task groups 3: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
 			
@@ -4051,7 +4051,7 @@ public class SurveyManager {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, newGroupSurveyIdent);
 				pstmt.setString(2, groupSurveyIdent);
-				log.info("Update group survey ids: " + pstmt.toString());
+				log.fine("Update group survey ids: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
 			
@@ -4066,7 +4066,7 @@ public class SurveyManager {
 				pstmt = sd.prepareStatement(sql);
 				for(User u : usersToDelete) {
 					pstmt.setString(1, u.ident);
-					log.info("Delete temporary user: " + pstmt.toString());
+					log.fine("Delete temporary user: " + pstmt.toString());
 					pstmt.execute();
 				}
 			} else {
@@ -4082,7 +4082,7 @@ public class SurveyManager {
 					u.action_details.sId = newSurveyId;
 					pstmt.setString(1, gson.toJson(u.action_details));
 					pstmt.setString(2, u.ident);
-					log.info("update temporary user: " + pstmt.toString());
+					log.fine("update temporary user: " + pstmt.toString());
 					pstmt.execute();
 				}
 			}
@@ -4095,7 +4095,7 @@ public class SurveyManager {
 			 */			
 			if(newSurveyId > 0) {
 				
-				// log.info("Set autocommit false");
+				// log.fine("Set autocommit false");
 				sd.setAutoCommit(false);
 				
 				// Delete the survey from the group survey table
@@ -4137,14 +4137,14 @@ public class SurveyManager {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sIdent);
-			// log.info("Delete form downloads: " + pstmt.toString());
+			// log.fine("Delete form downloads: " + pstmt.toString());
 			pstmt.executeUpdate();
 		
 			sql = "delete from task_completion where form_ident = ?";	
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sIdent);
-			// log.info("Delete task completion downloads: " + pstmt.toString());
+			// log.fine("Delete task completion downloads: " + pstmt.toString());
 			pstmt.executeUpdate();
 				
 		} catch (Exception e) {
@@ -4189,7 +4189,7 @@ public class SurveyManager {
 					pstmt.setInt(1, newSurveyId);
 					pstmt.setInt(2, origSurveyId);
 					pstmt.setInt(3, originalfId);
-					log.info("Get new form id for report: " + pstmt.toString());
+					log.fine("Get new form id for report: " + pstmt.toString());
 					ResultSet rs = pstmt.executeQuery();
 					if(rs.next()) {
 						newFid = rs.getInt(1);
@@ -4212,7 +4212,7 @@ public class SurveyManager {
 		Option o = new Option();
 		o.labels = new ArrayList<Label> ();
 		
-		log.info("##### Adding labels: " + pVal);
+		log.fine("##### Adding labels: " + pVal);
 		if(pVal != null && pVal.trim().length() > 0) {
 			
 			String [] vArray = pVal.split("_sl::");
@@ -4220,7 +4220,7 @@ public class SurveyManager {
 			Collections.addAll(elems, vArray);
 			for(String e : elems) {
 				e = e.trim();
-				log.info("  ##### Elem: " + e);
+				log.fine("  ##### Elem: " + e);
 				String [] eArray = e.split("::");
 				if(eArray.length > 1) {
 					if(eArray[0].equals("_sv")) {
@@ -4300,7 +4300,7 @@ public class SurveyManager {
 					o.seq = sequenceNumber;								
 					ArrayList<Option> options = new ArrayList<Option> ();
 					options.add(o);
-					log.info("##### Inserting the new choice: " + o.text_id);
+					log.fine("##### Inserting the new choice: " + o.text_id);
 					qm.saveOptions(sd, sId, options, true, listId);
 				}
 				
@@ -4451,7 +4451,7 @@ public class SurveyManager {
 					);
 			
 			if(pstmt != null) {
-				log.info("Getting single instance: " + pstmt.toString());
+				log.fine("Getting single instance: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				
 				while(rs.next()) {
@@ -5093,7 +5093,7 @@ public class SurveyManager {
 			pstmtTemplates.setString(1, sIdent);
 			pstmtTemplates.setString(2, name);
 
-			log.info(pstmtTemplates.toString());
+			log.fine(pstmtTemplates.toString());
 			ResultSet rs = pstmtTemplates.executeQuery();
 			if(rs.next()) {
 				t.id = rs.getInt("t_id");

@@ -109,7 +109,7 @@ public class GetHtml {
 				throw new Exception("Survey not available - Check to see if it has been deleted or Security Roles applied");
 			}
 			
-			log.info("Getting survey as Html-------------------------------");
+			log.fine("Getting survey as Html-------------------------------");
 			// Create a new XML Document
 			DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
 			DocumentBuilder b = dbf.newDocumentBuilder();
@@ -207,7 +207,7 @@ public class GetHtml {
 		// Questions
 		for (Form form : survey.surveyData.forms) {
 			if (form.parentform == 0) { // Start with top level form
-				log.info("Adding questions from: " + form.name);
+				log.fine("Adding questions from: " + form.name);
 				addPaths(form, "/");
 				processQuestions(sd, parent, form);
 				form.questions.addAll(form.generatedCalculations);	// Add calculations generated during processing of the questions
@@ -1398,7 +1398,7 @@ public class GetHtml {
 						//inputElement.setAttribute("data-type-xml", q.type);   // Not used with simple select multiple
 						if(q.constraint != null && q.constraint.length() > 0) { 
 							// inputElement.setAttribute("data-constraint", q.constraint);
-							log.info("XXXXXXXXXXXXXXXXXX wants to set constraint on attribute for question: " + q.name + " : " + q.fId);
+							log.fine("XXXXXXXXXXXXXXXXXX wants to set constraint on attribute for question: " + q.name + " : " + q.fId);
 						}
 					}
 	
@@ -1810,7 +1810,7 @@ public class GetHtml {
 		} else if (q.type.equals("trigger") || q.type.equals("acknowledge")) {
 			type = "radio";
 		} else {
-			log.info("#### unknown type: " + q.type + " for question " + q.name);
+			log.fine("#### unknown type: " + q.type + " for question " + q.name);
 			type = "text";
 		}
 		return type;

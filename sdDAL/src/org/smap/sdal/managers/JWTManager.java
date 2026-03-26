@@ -54,18 +54,18 @@ public class JWTManager {
 					 if (Jwt.verifySignature(token, GeneralUtilityMethods.getVonageWebHookSecret(sd))) {
 						 isValid = true;
 					 } else {
-						 log.info("Error: JWT: Invalid key: Signature validation failed" + key);
+						 log.fine("Error: JWT: Invalid key: Signature validation failed" + key);
 					 }	
 					
 				} else {
-					log.info("Error: JWT: Invalid key does not have two parts separated by a space: " + key);
+					log.fine("Error: JWT: Invalid key does not have two parts separated by a space: " + key);
 				}
 			} else {
-				log.info("Error: JWT: Invalid key does not start with Bearer: " + key);
+				log.fine("Error: JWT: Invalid key does not start with Bearer: " + key);
 			}
 		} else {
 			isValid = true;		// Signed webhooks not being used
-			log.info("Error: ********************************************** JWT: Key is null");
+			log.fine("Error: ********************************************** JWT: Key is null");
 		}
 		return isValid;
 	}

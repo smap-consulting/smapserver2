@@ -83,7 +83,7 @@ public class CaseManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1,  groupSurveyIdent);
-			log.info("Get case management settings: " + pstmt.toString());
+			log.fine("Get case management settings: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 							
 			if(rs.next()) {
@@ -148,7 +148,7 @@ public class CaseManager {
 			pstmt.setString(4,  alert.filter);
 			pstmt.setString(5,  user);
 
-			log.info("SQL: " + pstmt.toString());
+			log.fine("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 		}  finally {		
@@ -189,7 +189,7 @@ public class CaseManager {
 			pstmt.setString(5, user);
 			pstmt.setInt(6, alert.id);
 
-			log.info("SQL: " + pstmt.toString());
+			log.fine("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 		}  finally {		
@@ -223,7 +223,7 @@ public class CaseManager {
 			pstmt.setString(2, user);
 			pstmt.setString(3, group_survey_ident);
 
-			log.info("SQL: " + pstmt.toString());
+			log.fine("SQL: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
 			if(count < 1) {
 				try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -235,7 +235,7 @@ public class CaseManager {
 				pstmt.setString(1, gson.toJson(settings));
 				pstmt.setString(2, user);
 				pstmt.setString(3, group_survey_ident);
-				log.info("SQL: " + pstmt.toString());
+				log.fine("SQL: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
 			
@@ -262,7 +262,7 @@ public class CaseManager {
 
 			pstmt.setInt(1, id);
 
-			log.info("SQL: " + pstmt.toString());
+			log.fine("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 		}  finally {		
@@ -305,7 +305,7 @@ public class CaseManager {
 				pstmt.setString(1, user);
 				pstmt.setString(2,  sIdent);
 				pstmt.setInt(3, sId);
-				//log.info("Get cases: " + pstmt.toString());
+				//log.fine("Get cases: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 
 				while(rs.next()) {
@@ -370,8 +370,8 @@ public class CaseManager {
 			
 				pstmtOpened = cResults.prepareStatement(cte.toString() + sqlOpened.toString());
 				pstmtClosed = cResults.prepareStatement(cte.toString() + sqlClosed.toString());
-				//log.info("Open: " + pstmtOpened.toString());
-				//log.info("Closed: " + pstmtClosed.toString());
+				//log.fine("Open: " + pstmtOpened.toString());
+				//log.fine("Closed: " + pstmtClosed.toString());
 				ResultSet rs = pstmtOpened.executeQuery();
 				ResultSet rsc = pstmtClosed.executeQuery();
 				while(rs.next()) {
@@ -450,7 +450,7 @@ public class CaseManager {
 		if(type.equals("release")) {
 			pstmt.setString(4,assignedUser);
 		}
-		log.info("Assign record: " + pstmt.toString());
+		log.fine("Assign record: " + pstmt.toString());
 		
 		/*
 		 * Write the event before applying the update so that an alert can be sent to the previously assigned user
@@ -489,7 +489,7 @@ public class CaseManager {
 					um.incrementTotalTasks(sd, assignTo);
 				}
 			} else {
-				log.info("Error: xxxxxxxxxxxxxx: count is " + count + " : " + pstmt.toString());
+				log.fine("Error: xxxxxxxxxxxxxx: count is " + count + " : " + pstmt.toString());
 			}
 			
 		} finally {

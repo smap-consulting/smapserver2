@@ -99,7 +99,7 @@ public class ProjectManager {
 					pstmt.setString(2, user);
 				}
 				
-				log.info("Get project list: " + pstmt.toString());
+				log.fine("Get project list: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
 				while(resultSet.next()) {
 					Project project = new Project();
@@ -154,7 +154,7 @@ public class ProjectManager {
 			pstmt.setString(2, HtmlSanitise.checkCleanName(p.desc, localisation));
 			pstmt.setInt(3, o_id);
 			pstmt.setString(4, userIdent);
-			log.info("Insert project: " + pstmt.toString());
+			log.fine("Insert project: " + pstmt.toString());
 			pstmt.executeUpdate();
 			ResultSet rs = pstmt.getGeneratedKeys();
 			if(rs.next()) {
@@ -169,7 +169,7 @@ public class ProjectManager {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, u_id);
 				pstmt.setInt(2, p_id);
-				log.info("Add the user to the project " + pstmt.toString());
+				log.fine("Add the user to the project " + pstmt.toString());
 				pstmt.executeUpdate();
 				
 				String msg = localisation.getString("msg_add_proj");
@@ -211,12 +211,12 @@ public class ProjectManager {
 			pstmtValid.setInt(2, o_id);
 			pstmtValid.setInt(3, p_id);
 			
-			log.info("Is valid: " + pstmtValid.toString());
+			log.fine("Is valid: " + pstmtValid.toString());
 			ResultSet rs = pstmtValid.executeQuery();
 			if(rs.next() && rs.getInt(1) > 0) {
 				pstmt.setInt(1, u_id);
 				pstmt.setInt(2, p_id);
-				log.info("Add user: " + pstmt.toString());
+				log.fine("Add user: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
 
@@ -265,7 +265,7 @@ public class ProjectManager {
 				
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, p.id);
-				log.info("Check for undeleted surveys: " + pstmt.toString());
+				log.fine("Check for undeleted surveys: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
 				if(resultSet.next()) {
 					int count = resultSet.getInt(1);
@@ -316,7 +316,7 @@ public class ProjectManager {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, p.id);
 				pstmt.setInt(2, o_id);
-				log.info("Delete project: " + pstmt.toString());
+				log.fine("Delete project: " + pstmt.toString());
 				pstmt.executeUpdate();
 
 				/*
@@ -328,7 +328,7 @@ public class ProjectManager {
 				try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, p.id);
-				log.info("Delete notification: " + pstmt.toString());
+				log.fine("Delete notification: " + pstmt.toString());
 				pstmt.executeUpdate();
 				
 				/*

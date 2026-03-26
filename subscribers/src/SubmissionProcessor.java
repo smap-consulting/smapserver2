@@ -207,12 +207,12 @@ public class SubmissionProcessor {
 						rs = pstmt.executeQuery();
 						if(rs.next()) {
 
-							log.info("------ Start ");
-							
-							// Apply Submission to the database		
+							// Apply Submission to the database
 							UploadEvent ue = gson.fromJson(rs.getString("payload"), UploadEvent.class);
+							SubmissionContext.set(ue.getInstanceId());
 
-							log.info("        Retrieved Survey From Queue:" + ue.getSurveyName() + ":" + ue.getId());
+							log.info("Dequeued from " + queueName + " survey=" + ue.getSurveyName());
+							log.fine("Survey id: " + ue.getSurveyName() + ":" + ue.getId());
 
 							SubscriberEvent se = new SubscriberEvent();
 							
@@ -221,7 +221,7 @@ public class SubmissionProcessor {
 							
 							if(SMSManager.SMS_TYPE.equals(ue.getType()) || SMSManager.NEW_CASE.equals(ue.getType())) {
 								// Message either newly arrived or being reused as a new case
-								log.info("------------ Processing message");
+								log.fine("Processing message");
 								ConversationItemDetails sms = gson.fromJson(ue.getPayload(), ConversationItemDetails.class);
 								
 								try {
@@ -246,7 +246,7 @@ public class SubmissionProcessor {
 								SurveyInstance instance = null;	
 								String uploadFile = ue.getFilePath();
 	
-								log.info("Upload file: " + uploadFile);
+								log.fine("Upload file: " + uploadFile);
 								InputStream is = null;
 								InputStream is3 = null;
 	
@@ -278,7 +278,7 @@ public class SubmissionProcessor {
 	
 									// Convert the file into a survey instance object
 									instance = new SurveyInstance(is);
-									log.info("UUID:" + instance.getUuid());
+									log.fine("UUID: " + instance.getUuid());
 	
 									//instance.getTopElement().printIEModel("   ");	// Debug 
 	
@@ -403,7 +403,7 @@ public class SubmissionProcessor {
 							pstmtResultsDB.setInt(5, ue.getId());
 							pstmtResultsDB.executeUpdate();
 
-							log.info("======== Completed");
+							log.info("Completed status=" + status + (reason != null ? " reason=" + reason : ""));
 						} else {
 							// Sleep and then go again
 							try {
@@ -427,6 +427,7 @@ public class SubmissionProcessor {
 						// Back off to prevent log flooding on persistent failures
 						try { Thread.sleep(delaySecs * 1000); } catch (InterruptedException ie) {}
 					} finally {
+						SubmissionContext.clear();
 						try {if (rs != null) { rs.close();}} catch (SQLException e) {}
 					}
 
@@ -518,10 +519,10 @@ public class SubmissionProcessor {
 			File finalDirFile = finalFile.getParentFile();
 			String finalDir = finalDirFile.getPath();
 
-			log.info("Get incomplete attachments: " + pstmt.toString());
+			log.fine("Get incomplete attachments: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
-				log.info("++++++ Processing incomplete file name is: " + rs.getString(2));
+				log.fine("Processing incomplete file name is: " + rs.getString(2));
 
 				int ue_id = rs.getInt(1);
 				File sourceFile = new File(rs.getString(2));
@@ -529,10 +530,10 @@ public class SubmissionProcessor {
 
 				File files[] = sourceDirFile.listFiles();
 				for(int i = 0; i < files.length; i++) {
-					log.info("       File: " + files[i].getName());
+					log.fine("File: " + files[i].getName());
 					String fileName = files[i].getName();
 					if(!fileName.endsWith("xml")) {
-						log.info("++++++ Moving " + fileName + " to " + finalDir);
+						log.fine("Moving " + fileName + " to " + finalDir);
 						files[i].renameTo(new File(finalDir + "/" + fileName));
 					}
 				}
@@ -568,7 +569,7 @@ public class SubmissionProcessor {
 				for(MediaChange mc : mediaChanges) {
 					File srcFile = new File(mc.srcPath);
 					if(srcFile.exists()) {
-						log.info("Deleting input file: " + srcFile.getAbsolutePath());
+						log.fine("Deleting input file: " + srcFile.getAbsolutePath());
 						srcFile.delete();
 					}
 				}

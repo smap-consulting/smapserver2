@@ -178,7 +178,7 @@ public class Survey {
 			String userIdent, HashMap<String, String> groupForms, int existingSurveyId, int oId) throws Exception {
 		
 		try {
-			// log.info("Set autocommit false");
+			// log.fine("Set autocommit false");
 			sd.setAutoCommit(false);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -208,7 +208,7 @@ public class Survey {
 			try {sd.rollback();} catch (Exception ex) {}
 			throw e;
 		} finally {
-			// log.info("Set autocommit true");
+			// log.fine("Set autocommit true");
 			try {sd.setAutoCommit(true);} catch (Exception e) {}
 		}
 	}
@@ -638,7 +638,7 @@ public class Survey {
 				if(roleNames.get(r.name) != null) {
 					String msg = localisation.getString("tu_dr");
 					msg = msg.replace("%s1", r.name);
-					log.info("Error: " + msg);
+					log.fine("Error: " + msg);
 					throw new Exception(msg); 
 				} else {
 					roleNames.put(r.name,  r.name);
@@ -678,7 +678,7 @@ public class Survey {
 				pstmtAssociateSurvey.setString(4, r.row_filter);
 				pstmtAssociateSurvey.setString(5, r.role_group);
 				
-				log.info("Associate survey to roles: " + pstmtAssociateSurvey.toString());
+				log.fine("Associate survey to roles: " + pstmtAssociateSurvey.toString());
 				pstmtAssociateSurvey.executeUpdate();
 			
 			}

@@ -147,7 +147,7 @@ public class ServerManager {
 			if(delTables != null && delTables.equals("yes")) {
 
 				lm.writeLog(sd, sId, user, LogManager.ERASE, "Delete survey " + surveyDisplayName + " and its results", 0, null);
-				log.info("userevent: " + user + " : hard delete survey : " + surveyDisplayName);
+				log.fine("userevent: " + user + " : hard delete survey : " + surveyDisplayName);
 
 				// Get any tables that are shared with other surveys
 				HashMap<String, ArrayList<String>> sharedTables = surveyManager.getSharedTables(sd, sId);
@@ -158,7 +158,7 @@ public class ServerManager {
 
 				pstmt = sd.prepareStatement(sql);	
 				pstmt.setInt(1, sId);
-				log.info("Get tables for deletion: " + pstmt.toString());
+				log.fine("Get tables for deletion: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
 
 				while (resultSet.next() && (delData || !nonEmptyDataTables)) {		
@@ -167,7 +167,7 @@ public class ServerManager {
 					
 					ArrayList<String> surveys = sharedTables.get(tableName);
 					if(surveys != null && surveys.size() > 0) {
-						log.info("Table " + tableName + " not erased as it is used by " + surveys.toString());
+						log.fine("Table " + tableName + " not erased as it is used by " + surveys.toString());
 						lm.writeLog(sd, sId, user, LogManager.ERASE, "Table " + tableName + " not erased as it is used by " + surveys.toString(), 0, null);
 					} else {				
 					
@@ -200,7 +200,7 @@ public class ServerManager {
 										throw new Exception("Invalid table name: " + tableName);
 									}
 									sql = "DROP TABLE IF EXISTS " + tableName + ";";
-									log.info(sql + " : " + tableName);
+									log.fine(sql + " : " + tableName);
 									stmtRel = rel.createStatement();
 									stmtRel.executeUpdate(sql);	
 								}
@@ -265,10 +265,10 @@ public class ServerManager {
 				String fileFolder = basePath + "/attachments/" + surveyIdent;
 				File folder = new File(fileFolder);
 				try {
-					log.info("Deleting attachments folder: " + fileFolder);
+					log.fine("Deleting attachments folder: " + fileFolder);
 					FileUtils.deleteDirectory(folder);
 				} catch (IOException e) {
-					log.info("Error deleting attachments directory:" + fileFolder + " : " + e.getMessage());
+					log.fine("Error deleting attachments directory:" + fileFolder + " : " + e.getMessage());
 				}
 
 				/*
@@ -277,10 +277,10 @@ public class ServerManager {
 				fileFolder = basePath + "/uploadedSurveys/" + surveyIdent;
 				folder = new File(fileFolder);
 				try {
-					log.info("Deleting uploaded files for survey: " + surveyDisplayName + " in folder: " + fileFolder);
+					log.fine("Deleting uploaded files for survey: " + surveyDisplayName + " in folder: " + fileFolder);
 					FileUtils.deleteDirectory(folder);
 				} catch (IOException e) {
-					log.info("Error deleting uploaded instances: " + fileFolder + " : " + e.getMessage());
+					log.fine("Error deleting uploaded instances: " + fileFolder + " : " + e.getMessage());
 				}
 
 				/*
@@ -289,10 +289,10 @@ public class ServerManager {
 				fileFolder = basePath + "/media/" + surveyIdent;
 				folder = new File(fileFolder);
 				try {
-					log.info("Deleting media files for survey: " + surveyDisplayName + " in folder: " + fileFolder);
+					log.fine("Deleting media files for survey: " + surveyDisplayName + " in folder: " + fileFolder);
 					FileUtils.deleteDirectory(folder);
 				} catch (IOException e) {
-					log.info("Error deleting media files: " + fileFolder + " : " + e.getMessage());
+					log.fine("Error deleting media files: " + fileFolder + " : " + e.getMessage());
 				}
 
 
@@ -306,7 +306,7 @@ public class ServerManager {
 				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, sId);
-				log.info("Delete survey definition: " + pstmt.toString());
+				log.fine("Delete survey definition: " + pstmt.toString());
 				pstmt.execute();
 
 				// Delete changeset data, this is an audit trail of modifications to the data
@@ -314,7 +314,7 @@ public class ServerManager {
 				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 				pstmt = rel.prepareStatement(sql);
 				pstmt.setInt(1, sId);
-				log.info("Delete changeset data: " + pstmt.toString());
+				log.fine("Delete changeset data: " + pstmt.toString());
 				pstmt.execute();
 				
 				
@@ -325,7 +325,7 @@ public class ServerManager {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, surveyIdent);
-				log.info("Delete survey templates: " + pstmt.toString());
+				log.fine("Delete survey templates: " + pstmt.toString());
 				pstmt.executeUpdate();
 
 				// Delete the template files
@@ -333,12 +333,12 @@ public class ServerManager {
 				try {
 					GeneralUtilityMethods.deleteTemplateFiles(surveyDisplayName, basePath, projectId );
 				} catch (Exception e) {
-					log.info("Error deleting templates: " + surveyDisplayName + " : " + e.getMessage());
+					log.fine("Error deleting templates: " + surveyDisplayName + " : " + e.getMessage());
 				}
 				try {
 					GeneralUtilityMethods.deleteDirectory(basePath + "/templates/survey/" + surveyIdent);
 				} catch (Exception e) {
-					log.info("Error deleting pdf templates: " + surveyDisplayName + " : " + e.getMessage());
+					log.fine("Error deleting pdf templates: " + surveyDisplayName + " : " + e.getMessage());
 				}
 				
 			}

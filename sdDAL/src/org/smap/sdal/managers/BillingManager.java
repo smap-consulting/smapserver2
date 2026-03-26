@@ -95,7 +95,7 @@ public class BillingManager {
 			pstmtSubmissions.setTimestamp(1, t1);
 			pstmtSubmissions.setTimestamp(2, t2);
 			
-			log.info("Get per organisation usage: " + pstmtSubmissions.toString());
+			log.fine("Get per organisation usage: " + pstmtSubmissions.toString());
 			ResultSet rs = pstmtSubmissions.executeQuery();
 			while(rs.next()) {
 				int submissions = rs.getInt(1);
@@ -115,7 +115,7 @@ public class BillingManager {
 				
 				ResultSet rsDisk = pstmtDisk.executeQuery();				
 				if(rsDisk.next()) {
-					log.info("Disk usage for organisation: " + oId + " = " + rsDisk.getDouble("organisation"));
+					log.fine("Disk usage for organisation: " + oId + " = " + rsDisk.getDouble("organisation"));
 					int diskUsage = (int) (rsDisk.getDouble("organisation") / 1000.0);
 					bill.line.add(new BillLineItem("disk", diskUsage, 0, 0, 0));
 				}
@@ -173,7 +173,7 @@ public class BillingManager {
 			pstmt.setInt(1, oId);
 			pstmt.setInt(2, eId);
 			pstmt.setObject(3, d);
-			log.info("Get rates: " + pstmt.toString());
+			log.fine("Get rates: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				getRates(rs, rd);
@@ -190,7 +190,7 @@ public class BillingManager {
 				}
 				pstmt.setInt(1, oId);
 				pstmt.setInt(2, eId);
-				log.info("Get rates2: " + pstmt.toString());
+				log.fine("Get rates2: " + pstmt.toString());
 				rs.close();
 				rs = pstmt.executeQuery();
 				if(rs.next()) {
@@ -206,7 +206,7 @@ public class BillingManager {
 					}
 					pstmt.setInt(1, oId);
 					pstmt.setInt(2, eId);
-					log.info("Get rates3: " + pstmt.toString());
+					log.fine("Get rates3: " + pstmt.toString());
 					rs.close();
 					rs = pstmt.executeQuery();
 					if(rs.next()) {
@@ -221,7 +221,7 @@ public class BillingManager {
 		} catch (ApplicationException e) {
 			rd.oId = -1;
 			rd.eId = -1;
-			log.info("Error: rates not found");
+			log.fine("Error: rates not found");
 		} finally {
 			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
 		}
@@ -274,7 +274,7 @@ public class BillingManager {
 			pstmt.setString(2, tz);		// Created time
 			pstmt.setInt(3, oId);
 			pstmt.setInt(4, eId);
-			log.info("Get rates list: " + pstmt.toString());
+			log.fine("Get rates list: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				RateDetail rd = new RateDetail();
@@ -333,7 +333,7 @@ public class BillingManager {
 				pstmt.setInt(1, oId);
 			}
 		
-			log.info("Is billing enabled: " + pstmt.toString());
+			log.fine("Is billing enabled: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				enabled = rs.getBoolean(1);

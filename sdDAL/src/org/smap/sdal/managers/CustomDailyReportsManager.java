@@ -152,7 +152,7 @@ public class CustomDailyReportsManager {
 			
 			pstmt.setInt(1,  month);
 			pstmt.setInt(2,  year);
-			log.info("Get daily report data: " + pstmt.toString());
+			log.fine("Get daily report data: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 		
 			/*

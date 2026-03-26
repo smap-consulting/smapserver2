@@ -102,7 +102,7 @@ public class MCPManager {
 					return handleToolsCall(sd, username, request);
 
 				default:
-					log.info("MCP error, method not found: " + method);
+					log.fine("MCP error, method not found: " + method);
 					return new MCPResponse(
 						request.getId(),
 						new MCPError(MCPError.METHOD_NOT_FOUND, "Method not found: " + method)
@@ -141,7 +141,7 @@ public class MCPManager {
 		serverInfo.put("version", "1.0.0");
 		result.put("serverInfo", serverInfo);
 
-		log.info("MCP Server initialize request handled");
+		log.fine("MCP Server initialize request handled");
 
 		return new MCPResponse(request.getId(), result);
 	}
@@ -154,7 +154,7 @@ public class MCPManager {
 	 */
 	private MCPResponse handleInitializedNotification(MCPRequest request) {
 		initialized = true;
-		log.info("MCP Server received initialized notification from client - server is now ready");
+		log.fine("MCP Server received initialized notification from client - server is now ready");
 
 		// Notifications don't expect a response, but we return null to indicate success
 		// The calling code should check for null and not send a response

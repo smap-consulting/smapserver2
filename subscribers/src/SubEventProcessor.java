@@ -69,7 +69,7 @@ public class SubEventProcessor {
 					loop = false;
 				} else {
 					
-					System.out.print("(e)");		// Record the running of the subevent processor
+
 					
 					try {
 						// Make sure we have a valid connection to the database

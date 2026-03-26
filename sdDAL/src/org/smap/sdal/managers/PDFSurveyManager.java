@@ -232,7 +232,7 @@ public class PDFSurveyManager {
 
 			// Get fonts and embed them
 			String os = System.getProperty("os.name");
-			log.info("Operating System:" + os);
+			log.fine("Operating System:" + os);
 
 			if(os.startsWith("Mac")) {
 				FontFactory.register("/Library/Fonts/fontawesome-webfont.ttf", "Symbols");
@@ -281,7 +281,7 @@ public class PDFSurveyManager {
 			 * Get the results and details of the user that submitted the survey
 			 */
 
-			log.info("User Ident who submitted the survey: " + survey.surveyData.instance.user);
+			log.fine("User Ident who submitted the survey: " + survey.surveyData.instance.user);
 			String userName = survey.surveyData.instance.user;
 			if(userName == null) {
 				userName = remoteUser;
@@ -293,7 +293,7 @@ public class PDFSurveyManager {
 			// If a filename was not specified then get one from the survey data
 			// This filename is returned to the calling program so that it can be used as a permanent name for the temporary file created here
 			// If the PDF is to be returned in an http response then the header is set now before writing to the output stream
-			log.info("Filename passed to createPDF is: " + filename);
+			log.fine("Filename passed to createPDF is: " + filename);
 			if(filename == null) {
 				filename = survey.getInstanceName();
 				filename = GeneralUtilityMethods.convertDisplayNameToFileName(filename, false);
@@ -307,7 +307,7 @@ public class PDFSurveyManager {
 
 			// If the PDF is to be returned in an http response then set the file name now
 			if(response != null) {
-				log.info("Setting filename to: " + filename);
+				log.fine("Setting filename to: " + filename);
 				GeneralUtilityMethods.setFilenameInResponse(filename, response);
 			}
 
@@ -336,7 +336,7 @@ public class PDFSurveyManager {
 			languageIdx = GeneralUtilityMethods.getLanguageIdx(survey, language);
 			if(templateFile != null && templateFile.exists()) {
 
-				log.info("PDF Template Exists: " + templateFile.getAbsolutePath());
+				log.fine("PDF Template Exists: " + templateFile.getAbsolutePath());
 				String templateName = templateFile.getAbsolutePath();
 
 				reader = new PdfReader(templateName);
@@ -355,7 +355,7 @@ public class PDFSurveyManager {
 				stamper = null;
 
 			} else {
-				log.info("++++No template exists creating a pdf file programmatically");
+				log.fine("++++No template exists creating a pdf file programmatically");
 
 				/*
 				 * Create a PDF without the stationary
@@ -631,7 +631,7 @@ public class PDFSurveyManager {
 				try {
 					pdfForm.removeField(fieldName);
 				} catch (Exception e) {
-					log.info("Error removing field: " + fieldName + ": " + e.getMessage());
+					log.fine("Error removing field: " + fieldName + ": " + e.getMessage());
 				}
 
 			} else if(r.type.equals("geopoint") || r.type.equals("geoshape") || r.type.equals("geotrace") || r.type.startsWith("geopolygon_") 
@@ -655,7 +655,7 @@ public class PDFSurveyManager {
 							mBasePath);
 					PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img, di.stretch);
 				} else {
-					log.info("No field for image (Mapbox not called: " + fieldName);
+					log.fine("No field for image (Mapbox not called: " + fieldName);
 				}
 
 			} else if(r.type.equals("pdf_field") && di.linemap != null) {
@@ -728,7 +728,7 @@ public class PDFSurveyManager {
 					try {
 						pdfForm.removeField(fieldName);
 					} catch (Exception e) {
-						log.info("Error removing field: " + fieldName + ": " + e.getMessage());
+						log.fine("Error removing field: " + fieldName + ": " + e.getMessage());
 					}
 				} else {
 					if(di.isBarcode) {
@@ -836,11 +836,11 @@ public class PDFSurveyManager {
 						filename = basePath + "/media/users/" + user.id + "/sig/"  + user.signature;
 						ad.setImage(Image.getInstance(filename));
 					} catch (Exception e) {
-						log.info("Error: Failed to add signature " + filename + " to pdf");
+						log.fine("Error: Failed to add signature " + filename + " to pdf");
 					}
 					pdfForm.replacePushbuttonField("user_signature", ad.getField());
 				} else {
-					//log.info("Picture field: user_signature not found");
+					//log.fine("Picture field: user_signature not found");
 				}
 			}
 
@@ -879,7 +879,7 @@ public class PDFSurveyManager {
 		ElementHandlerPipeline end = new ElementHandlerPipeline(parser.elements, null);
 
 		String os = System.getProperty("os.name");
-		log.info("Operating System:" + os);
+		log.fine("Operating System:" + os);
 
 
 		XMLWorkerFontProvider fontProvider = new XMLWorkerFontProvider();
@@ -1081,7 +1081,7 @@ public class PDFSurveyManager {
 						}
 					}
 				} else {
-					log.info("Question Idx not found: " + r.qIdx);
+					log.fine("Question Idx not found: " + r.qIdx);
 				}
 
 			}
@@ -1275,7 +1275,7 @@ public class PDFSurveyManager {
 					label = new Label();
 					if(question.source != null) {
 						// Probably should have a label
-						log.info("Error: No label found for question: " + question.name);
+						log.fine("Error: No label found for question: " + question.name);
 					}
 				}
 			}
@@ -1688,7 +1688,7 @@ public class PDFSurveyManager {
 					oId,
 					startGeopointValue);
 		} catch (Exception e) {
-			log.info("Error updating value cell, continuing: " + basePath + " : " + di.value);
+			log.fine("Error updating value cell, continuing: " + basePath + " : " + di.value);
 			log.log(Level.SEVERE, "Exception", e);
 		}
 
@@ -1768,7 +1768,7 @@ public class PDFSurveyManager {
 						img.setRotationDegrees(angle);
 						valueCell.addElement(img);	
 					} catch(Exception e) {
-						log.info("Error: image " + basePath + "/" + di.value + " not added: " + e.getMessage());
+						log.fine("Error: image " + basePath + "/" + di.value + " not added: " + e.getMessage());
 						log.log(Level.SEVERE, "Adding image to pdf", e);
 					}
 				}
@@ -1945,7 +1945,7 @@ public class PDFSurveyManager {
 			ExifIFD0Directory exifIFD0Directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
 			orientation = exifIFD0Directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
 		} catch(Exception e) {
-			log.info("Error getting image rotation" + e.getMessage());  // don't care much
+			log.fine("Error getting image rotation" + e.getMessage());  // don't care much
 		}
 		
 		float angle = 0;
@@ -2252,7 +2252,7 @@ public class PDFSurveyManager {
 				document.add(img);
 
 			} catch (Exception e) {
-				log.info("Error: Failed to add signature (non template) " + fileName + " to pdf: " + e.getMessage());
+				log.fine("Error: Failed to add signature (non template) " + fileName + " to pdf: " + e.getMessage());
 			}
 		}
 		addValue(document, user.name, indent);

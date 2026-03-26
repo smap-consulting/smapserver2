@@ -179,14 +179,14 @@ public class AssignmentsManager {
 			try {
 				lat = Double.parseDouble(latString);
 			} catch (Exception e) {
-				log.info("Invalid latitude: " + latString);
+				log.fine("Invalid latitude: " + latString);
 			}
 		}
 		if (lonString != null) {
 			try {
 				lon = Double.parseDouble(lonString);
 			} catch (Exception e) {
-				log.info("Invalid longitude: " + lonString);
+				log.fine("Invalid longitude: " + lonString);
 			}
 		}
 
@@ -197,7 +197,7 @@ public class AssignmentsManager {
 				deviceTime = Long.parseLong(deviceTimeString);
 				tr.time_difference = deviceTime - (new java.util.Date()).getTime();
 			} catch (Exception e) {
-				log.info("Invalid device time: " + deviceTimeString);
+				log.fine("Invalid device time: " + deviceTimeString);
 			}
 		}
 
@@ -288,7 +288,7 @@ public class AssignmentsManager {
 					pstmt.setDouble(paramIndex++, lat);
 				}
 	
-				log.info("Getting assignments: " + pstmt.toString());
+				log.fine("Getting assignments: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
 	
 				int t_id = 0;
@@ -366,7 +366,7 @@ public class AssignmentsManager {
 				 * If there is still room for tasks then add new tasks where the task group
 				 * allows auto selection
 				 */
-				log.info("ft_number_tasks: " + ft_number_tasks);
+				log.fine("ft_number_tasks: " + ft_number_tasks);
 				if (ft_number_tasks > 0) {
 					TaskManager tm = new TaskManager(localisation, tz);
 					TaskListGeoJson unassigned = tm.getUnassignedTasks(sd, oId, uId, ft_number_tasks, // Maximum number of tasks to return
@@ -431,7 +431,7 @@ public class AssignmentsManager {
 					pstmtDeleteCancelled.executeUpdate();
 				}
 			} else {
-				// log.info("############### tasks count is zero, not getting tasks for user " + userIdent);
+				// log.fine("############### tasks count is zero, not getting tasks for user " + userIdent);
 			}
 
 			/*
@@ -492,7 +492,7 @@ public class AssignmentsManager {
 							/*
 							 * Generate the CSV file if data has changed
 							 */
-							log.info("Linked file:" + m.fileName);
+							log.fine("Linked file:" + m.fileName);
 
 							/*
 							 * The file is unique per survey unless there are roles on the survey or the
@@ -537,7 +537,7 @@ public class AssignmentsManager {
 							if (m.type.equals("linked")) {
 								physicalFilePath = efm.getLinkedPhysicalFilePath(sd, logicalFilePath) + ".csv";
 								m.fileName += ".csv";
-								log.info("%%%%%: Referencing: " + physicalFilePath);
+								log.fine("%%%%%: Referencing: " + physicalFilePath);
 							} else {
 								physicalFilePath = m.filePath;
 							}
@@ -608,7 +608,7 @@ public class AssignmentsManager {
 						}
 					}
 				} else {
-					// log.info("############### tasks count is zero, not getting cases for user " + userIdent);
+					// log.fine("############### tasks count is zero, not getting cases for user " + userIdent);
 				}
 			}
 
@@ -635,7 +635,7 @@ public class AssignmentsManager {
 	
 				pstmtGetSettings = sd.prepareStatement(sql.toString());
 				pstmtGetSettings.setString(1, userIdent);
-				// log.info("Getting settings: " + pstmtGetSettings.toString());
+				// log.fine("Getting settings: " + pstmtGetSettings.toString());
 				resultSet = pstmtGetSettings.executeQuery();
 	
 				if (resultSet.next()) {
@@ -689,7 +689,7 @@ public class AssignmentsManager {
 				pstmtGetProjects.setString(1, userIdent);
 				pstmtGetProjects.setInt(2, oId);
 
-				// log.info("Getting projects: " + pstmtGetProjects.toString());
+				// log.fine("Getting projects: " + pstmtGetProjects.toString());
 				resultSet = pstmtGetProjects.executeQuery();
 
 				while (resultSet.next()) {
@@ -933,7 +933,7 @@ public class AssignmentsManager {
 				pstmtSetUpdatedRejected.setInt(4, uId);
 				pstmtSetUpdatedRejected.setInt(5, assignmentId); // To get name
 				pstmtSetUpdatedRejected.setInt(6, uId);
-				// log.info("update assignments rejected: " + pstmtSetUpdatedRejected.toString());
+				// log.fine("update assignments rejected: " + pstmtSetUpdatedRejected.toString());
 				int count = pstmtSetUpdatedRejected.executeUpdate();
 
 				if(count == 1) {		// Should only be one record updated - If it has been updated then we need to update the task totals
@@ -951,7 +951,7 @@ public class AssignmentsManager {
 					pstmtSetUpdatedNotRejected.setInt(4, uId);
 					pstmtSetUpdatedNotRejected.setInt(5, assignmentId); // To get name
 					pstmtSetUpdatedNotRejected.setInt(6, uId);
-					log.info("update assignments excluding rejected: " + pstmtSetUpdatedNotRejected.toString());
+					log.fine("update assignments excluding rejected: " + pstmtSetUpdatedNotRejected.toString());
 					pstmtSetUpdatedNotRejected.executeUpdate();
 				} else if(taskId > 0 && "accepted".equals(status)) {
 					// A self assign task has been accepted create a new assignment
@@ -960,7 +960,7 @@ public class AssignmentsManager {
 					pstmtInsert.setInt(1,uId);
 					pstmtInsert.setString(2, status);
 					pstmtInsert.setInt(3, taskId);
-					log.info("Add new assignment: " + pstmtInsert.toString());
+					log.fine("Add new assignment: " + pstmtInsert.toString());
 					pstmtInsert.executeUpdate();
 				}
 			}
@@ -1073,11 +1073,11 @@ public class AssignmentsManager {
 			pstmt.setInt(1, taskId);
 			pstmt.setString(2, userName);
 			try {
-				log.info("Adding to unassigned rejected: " + pstmt.toString());
+				log.fine("Adding to unassigned rejected: " + pstmt.toString());
 				pstmt.executeUpdate();
 			} catch (Exception e) {
 				// Ignore errors as if this has already been rejected we don't really care
-				log.info("Error: Could not record rejection of unassigned task: " + e.getMessage());
+				log.fine("Error: Could not record rejection of unassigned task: " + e.getMessage());
 			}
 
 		} finally {

@@ -137,7 +137,7 @@ public class XLSXSurveyReportsManager {
 			
 			pstmt = sd.prepareStatement(sql.toString());		
 			pstmt.setInt(1, oId);
-			log.info("Survey report: " + pstmt.toString());
+			log.fine("Survey report: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			while(rs.next()) {

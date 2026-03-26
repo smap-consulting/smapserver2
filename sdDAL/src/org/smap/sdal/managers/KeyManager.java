@@ -65,7 +65,7 @@ public class KeyManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1,  groupSurveyIdent);
-			// log.info("Get key settings: " + pstmt.toString());
+			// log.fine("Get key settings: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 							
 			if(rs.next()) {
@@ -82,7 +82,7 @@ public class KeyManager {
 				pstmt = sd.prepareStatement(sql);		
 				pstmt.setString(1,  groupSurveyIdent);
 				
-				// log.info("Get legacy key settings: " + pstmt.toString());
+				// log.fine("Get legacy key settings: " + pstmt.toString());
 				ResultSet rsLegacy = pstmt.executeQuery();
 				
 				String keyGroup = null;
@@ -178,7 +178,7 @@ public class KeyManager {
 				pstmt.setString(3, user);
 				pstmt.setString(4, groupSurveyIdent);
 	
-				log.info("SQL: " + pstmt.toString());
+				log.fine("SQL: " + pstmt.toString());
 				int count = pstmt.executeUpdate();
 				if(count < 1) {
 					try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -191,7 +191,7 @@ public class KeyManager {
 					pstmt.setString(2, key_policy);
 					pstmt.setString(3,  user);
 					pstmt.setString(4, groupSurveyIdent);
-					log.info("Update Key Settings: " + pstmt.toString());
+					log.fine("Update Key Settings: " + pstmt.toString());
 					pstmt.executeUpdate();
 				}
 				
@@ -224,7 +224,7 @@ public class KeyManager {
 			try {
 				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, "_hrk")) {
 					// This should not be needed as the _hrk column should be in the table if an hrk has been specified for the survey
-					log.info("Error:  _hrk being created for table " + tableName + " this column should already be there");
+					log.fine("Error:  _hrk being created for table " + tableName + " this column should already be there");
 					String sqlAddHrk = "alter table " + tableName + " add column _hrk text;";
 					pstmtAddHrk = cResults.prepareStatement(sqlAddHrk);
 					pstmtAddHrk.executeUpdate();
@@ -258,8 +258,8 @@ public class KeyManager {
 				}
 				
 				if(total > 0) {
-					log.info("------------- Background HRK values update: " + total);
-					log.info("Applying HRK: " + pstmt.toString());
+					log.fine("------------- Background HRK values update: " + total);
+					log.fine("Applying HRK: " + pstmt.toString());
 				}
 		
 			} finally {

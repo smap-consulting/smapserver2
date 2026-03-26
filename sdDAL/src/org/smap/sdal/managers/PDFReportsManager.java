@@ -106,7 +106,7 @@ public class PDFReportsManager {
 			 */
 			Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 			if(!GeneralUtilityMethods.tableExists(cResults, f.tableName)) {
-				log.info("Table: " + f.tableName + " does not exist. Presumably no data has been submitted to this survey");
+				log.fine("Table: " + f.tableName + " does not exist. Presumably no data has been submitted to this survey");
 				throw new ApplicationException(localisation.getString("msg_no_data"));
 			}
 			QueryManager qm = new QueryManager();	
@@ -155,7 +155,7 @@ public class PDFReportsManager {
 					);
 			
 			pstmt = cResults.prepareStatement(sqlDesc.sql);
-			log.info("Get records to convert to PDF's: " + pstmt.toString());
+			log.fine("Get records to convert to PDF's: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			String filePath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());

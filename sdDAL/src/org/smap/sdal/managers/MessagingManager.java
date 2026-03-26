@@ -135,7 +135,7 @@ public class MessagingManager {
 			pstmtMsg.setString(2, topic);
 			pstmtMsg.setString(3, msg);
 			pstmtMsg.setString(4, data);
-			log.info("Add message: " + pstmtMsg.toString());
+			log.fine("Add message: " + pstmtMsg.toString());
 			pstmtMsg.executeUpdate();
 		} finally {
 
@@ -214,7 +214,7 @@ public class MessagingManager {
 				pstmt.setString(3, topic);
 				pstmt.setString(4, msgString);
 				pstmt.setInt(5, messageId);
-				log.info("Add pending message: " + pstmt.toString());
+				log.fine("Add pending message: " + pstmt.toString());
 				pstmt.executeUpdate();	
 				
 				// Cancel all but the last 5
@@ -309,7 +309,7 @@ public class MessagingManager {
 						GeneralUtilityMethods.getNextEmailId(sd, null));
 				
 			} else {
-				log.info("##### - Specific optin message does not need to be sent");
+				log.fine("##### - Specific optin message does not need to be sent");
 			}
 			
 			// Record that the opt in message has been sent
@@ -323,7 +323,7 @@ public class MessagingManager {
 			pstmt = sd.prepareStatement(sqlDone);
 			pstmt.setInt(1, oId);
 			pstmt.setString(2, email.toLowerCase());
-			log.info("Record opt in sent: " + pstmt.toString());
+			log.fine("Record opt in sent: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			String note = localisation.getString("optin_sent");
@@ -345,7 +345,7 @@ public class MessagingManager {
 			pstmt.setString(1, e.getMessage());
 			pstmt.setInt(2, oId);
 			pstmt.setString(3, email.toLowerCase());
-			log.info("Record opt in send fail: " + pstmt.toString());
+			log.fine("Record opt in send fail: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			String note = localisation.getString("optin_failed");
@@ -372,13 +372,13 @@ public class MessagingManager {
 		try {
 			pstmt = rel.prepareStatement(sql);
 			pstmt.setString(1, tableName);
-			log.info("Delete case alerts for a table: " + pstmt.toString());
+			log.fine("Delete case alerts for a table: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
 			pstmt = rel.prepareStatement(sql2);
 			pstmt.setString(1, tableName);
-			log.info("Delete server calculate notifications for a table: " + pstmt.toString());
+			log.fine("Delete server calculate notifications for a table: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 		} finally {

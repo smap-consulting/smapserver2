@@ -109,7 +109,7 @@ public class FileManager {
 			}
 			
 			ResultSet rs = pstmt.executeQuery();
-			log.info("Get path of history file: " + pstmt.toString());
+			log.fine("Get path of history file: " + pstmt.toString());
 			if(rs.next()) {
 				filepath = rs.getString(1);
 			}
@@ -160,7 +160,7 @@ public class FileManager {
 			}
 			
 			ResultSet rs = pstmt.executeQuery();
-			log.info("Get path of latest history file: " + pstmt.toString());
+			log.fine("Get path of latest history file: " + pstmt.toString());
 			if(rs.next()) {
 				filePath = rs.getString(1);
 				fileName = rs.getString(2);
@@ -194,7 +194,7 @@ public class FileManager {
 		
 		Response r = null;
 		
-		log.info("Get Report File: " + filename);
+		log.fine("Get Report File: " + filename);
 
 		String basepath = GeneralUtilityMethods.getBasePath(request);
 		String filepath = null;
@@ -212,10 +212,10 @@ public class FileManager {
 	 */
 	public void getFile(HttpServletResponse response, String filepath, String filename) throws IOException, ApplicationException {
 		
-		log.info("getfile: " + filepath);
+		log.fine("getfile: " + filepath);
 		File f = new File(filepath);
 		if(!f.exists()) {
-			log.info("Error: File not found: " + f.getAbsolutePath());
+			log.fine("Error: File not found: " + f.getAbsolutePath());
 			throw new ApplicationException("File not found: " + f.getAbsolutePath());
 		}
 		response.setContentType(UtilityMethodsEmail.getContentType(filename));
@@ -234,13 +234,13 @@ public class FileManager {
 			try {
 				responseOutputStream.flush();
 			} catch(Exception e) {
-				log.info("Error flushing output stream for file: " + f.getAbsolutePath());
+				log.fine("Error flushing output stream for file: " + f.getAbsolutePath());
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 			try {
 				responseOutputStream.close();
 			} catch(Exception e) {
-				log.info("Error closing output stream for file: " + f.getAbsolutePath());
+				log.fine("Error closing output stream for file: " + f.getAbsolutePath());
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 			fis.close();

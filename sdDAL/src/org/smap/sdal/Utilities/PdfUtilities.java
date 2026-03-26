@@ -108,17 +108,17 @@ public class PdfUtilities {
 				}
 				pdfForm.replacePushbuttonField(fieldName, ad.getField());
 			} catch (Exception e) {
-				log.info("Error: Failed to add image " + basePath + "/" + value + " to pdf: " + e.getMessage());
+				log.fine("Error: Failed to add image " + basePath + "/" + value + " to pdf: " + e.getMessage());
 			}
 			
-			log.info("Adding image to: " + fieldName);
+			log.fine("Adding image to: " + fieldName);
 		} else {
 	
 			String imageUrl = serverRoot + value;
 
 			List<FieldPosition> posList = pdfForm.getFieldPositions(fieldName);
 			if(posList == null) {
-				log.info("Field not found for: " + fieldName);
+				log.fine("Field not found for: " + fieldName);
 			} else {
 				Rectangle targetPosition = posList.get(0).position;
 				int page = pdfForm.getFieldPositions(fieldName).get(0).page;
@@ -141,10 +141,10 @@ public class PdfUtilities {
 			try {
 				ad.setImage(img);
 			} catch (Exception e) {
-				log.info("Error: Failed to add image to pdf: " + e.getMessage());
+				log.fine("Error: Failed to add image to pdf: " + e.getMessage());
 			}
 			pdfForm.replacePushbuttonField(fieldName, ad.getField());
-			log.info("Adding image to: " + fieldName);
+			log.fine("Adding image to: " + fieldName);
 		} 
 	}
 	
@@ -262,12 +262,12 @@ public class PdfUtilities {
 		}
 		
 		if(getMap && mapbox_key == null) {
-			log.info("Mapbox key not specified.  PDF Map not created");
+			log.fine("Mapbox key not specified.  PDF Map not created");
 		} else if(getMap) {;
 			url.append("500x300?access_token=");
 			url.append(mapbox_key);
 			try {
-				log.info("Mapbox API call: " + url);
+				log.fine("Mapbox API call: " + url);
 				
 				/*
 				 * There is a problem with passing a URL to the IText getInstance function as
@@ -328,12 +328,12 @@ public class PdfUtilities {
 		} 
 		
 		if(google_key == null) {
-			log.info("Google key not specified.  PDF Map not created");
+			log.fine("Google key not specified.  PDF Map not created");
 		} else {;
 			url.append("&size=400x400&key=");
 			url.append(google_key);
 			try {
-				log.info("Google API call: " + url);
+				log.fine("Google API call: " + url);
 				
 				URL googleUrl = new URL(url.toString());
 				BufferedImage tempImg = ImageIO.read(googleUrl);
@@ -406,7 +406,7 @@ public class PdfUtilities {
 		url.append("500x300.png");
 		
 		if(getMap && maptiler_key == null) {
-			log.info("Maptiler key not specified.  PDF Map not created");
+			log.fine("Maptiler key not specified.  PDF Map not created");
 		} else if(getMap) {
 			url.append("?key=").append(maptiler_key);
 			
@@ -424,7 +424,7 @@ public class PdfUtilities {
 			}
 			
 			try {
-				log.info("Maptiler API call: " + url.toString());
+				log.fine("Maptiler API call: " + url.toString());
 				
 				/*
 				 * There is a problem with passing a URL to the IText getInstance function as
@@ -908,7 +908,7 @@ public class PdfUtilities {
 				pstmt.setString(1, "SRID=4326;POINT(" + GeneralUtilityMethods.getDouble(coords1[0]) + " " + GeneralUtilityMethods.getDouble(coords1[1]) + ")");
 				pstmt.setString(2, "SRID=4326;POINT(" + GeneralUtilityMethods.getDouble(coords2[0]) + " " + GeneralUtilityMethods.getDouble(coords2[1]) + ")");
 				
-				log.info(pstmt.toString());
+				log.fine(pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) {
 					distance = rs.getFloat(1);
@@ -989,7 +989,7 @@ public class PdfUtilities {
 		try {
 			pstmt = sd.prepareStatement(sb.toString());
 				
-			log.info(pstmt.toString());
+			log.fine(pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				distance = rs.getFloat(1);
@@ -1019,7 +1019,7 @@ public class PdfUtilities {
 		try {
 			pstmt = sd.prepareStatement(sb.toString());
 				
-			log.info(pstmt.toString());
+			log.fine(pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				distance = rs.getFloat(1);
@@ -1059,7 +1059,7 @@ public class PdfUtilities {
 	             * Calculate amount of compression
 	             */
 	    	    float factor = 1.0f;
-	            log.info("compressing.  width: " + width + " height: " + height);
+	            log.fine("compressing.  width: " + width + " height: " + height);
 	            if(width > 2000 && height > 2000) {
 	            	factor = 0.25f;
 	            } else if(width > 1000 && height > 1000) {
@@ -1178,7 +1178,7 @@ public class PdfUtilities {
 	
 				Date nepalDate;
 				
-				log.info("utc value: " + utcValue);
+				log.fine("utc value: " + utcValue);
 				
 				
 				if(type.equals("dateTime") || type.equals("timestamp")) {
@@ -1186,7 +1186,7 @@ public class PdfUtilities {
 					date = df.parse(utcValue);
 					df.setTimeZone(TimeZone.getTimeZone(tz));
 					value = df.format(date);
-					log.info("xxxxxxxxx: " + value);
+					log.fine("xxxxxxxxx: " + value);
 					df.setTimeZone(TimeZone.getTimeZone("UTC"));
 					nepalDate = df.parse(value);
 				} else {	
@@ -1196,7 +1196,7 @@ public class PdfUtilities {
 					nepalDate = date;
 				} 		
 					
-				log.info("Value: " + value);
+				log.fine("Value: " + value);
 				
 				StringBuilder bsValue = new StringBuilder("");
 				DateBS dateBS = DateConverter.convertADToBS(nepalDate);  //returns corresponding DateBS

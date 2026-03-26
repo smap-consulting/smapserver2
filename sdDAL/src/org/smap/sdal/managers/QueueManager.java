@@ -194,7 +194,7 @@ public class QueueManager {
 					+ "from subevent_queue "
 					+ "where processed_time is null ";
 			pstmtLength = sd.prepareStatement(sqlLength);
-			//log.info("Get queue length: " + pstmtLength.toString());
+			//log.fine("Get queue length: " + pstmtLength.toString());
 			ResultSet rs = pstmtLength.executeQuery();
 			if(rs.next()) {
 				queue.length = rs.getInt(1);
@@ -339,7 +339,7 @@ public class QueueManager {
 					+ "and (topic = 'task' or topic = 'survey' or topic = 'user' or topic = 'project' or topic = 'resource') ";
 
 			pstmtLength = sd.prepareStatement(sqlLength);
-			//log.info("Get queue length: " + pstmtLength.toString());
+			//log.fine("Get queue length: " + pstmtLength.toString());
 			ResultSet rs = pstmtLength.executeQuery();
 			if(rs.next()) {
 				queue.length = rs.getInt(1);
@@ -580,7 +580,7 @@ public class QueueManager {
 				pstmt.setString(paramCount++, status);
 			}
 			
-			log.info("Queue: " + pstmt.toString());
+			log.fine("Queue: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				QueueItem item = new QueueItem();
@@ -631,7 +631,7 @@ public class QueueManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, tz);
-			log.info("Queue history: " + pstmt.toString());
+			log.fine("Queue history: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				data.add(new QueueTime(rs.getString("recorded_at"), 

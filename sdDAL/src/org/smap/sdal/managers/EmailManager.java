@@ -90,7 +90,7 @@ public class EmailManager {
 						// Person has unsubscribed
 						String msg = localisation.getString("email_us");
 						msg = msg.replaceFirst("%s1", org.getAdminEmail());
-						log.info(msg);
+						log.fine(msg);
 					} else {
 						
 						// Add custom tokens
@@ -171,7 +171,7 @@ public class EmailManager {
 		if(emailServer != null) {
 
 			if(emails.trim().length() > 0) {
-				log.info("userevent: " + user + " sending email of '" + logContent + "' to " + emails);
+				log.fine("userevent: " + user + " sending email of '" + logContent + "' to " + emails);
 
 				// Set the subject
 
@@ -235,7 +235,7 @@ public class EmailManager {
 					resp.notify_details = resp.notify_details.replaceAll("%s4", projectName);
 				}
 
-				log.info("+++ emailing to: " + emails + " docUrl: " + logContent + 
+				log.fine("+++ emailing to: " + emails + " docUrl: " + logContent + 
 						" from: " + from + 
 						" subject: " + subject +
 						" type: " + emailServer.getClass() +
@@ -253,10 +253,10 @@ public class EmailManager {
 						 * are unsubscribed
 						 */
 						if(subStatus.unsubscribed && unsubscribedList != null) {
-							log.info("#########: Email " + ia.getAddress() + " User has unsubscribed");
+							log.fine("#########: Email " + ia.getAddress() + " User has unsubscribed");
 							unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
 						} else {
-							log.info("#########: Email " + ia.getAddress() + " Opted in: " + subStatus.optedIn + "org:  " + !organisation.send_optin);
+							log.fine("#########: Email " + ia.getAddress() + " Opted in: " + subStatus.optedIn + "org:  " + !organisation.send_optin);
 							if(subStatus.optedIn || !organisation.send_optin) {
 								sendEmailHtml(
 										msg != null ? msg.notificationName : null,				
@@ -294,7 +294,7 @@ public class EmailManager {
 										scheme,
 										serverName,
 										messageId);
-								log.info("#########: Email " + ia.getAddress() + " saved to pending while waiting for optin");
+								log.fine("#########: Email " + ia.getAddress() + " saved to pending while waiting for optin");
 
 								lm.writeLogOrganisation(sd, organisation.id, ia.getAddress(), LogManager.OPTIN, localisation.getString("mo_pending_saved2"), 0);
 							}
@@ -481,7 +481,7 @@ public class EmailManager {
 		ArrayList<String> emailList = null;
 		if(msg.emailQuestionSet()) {
 			String emailQuestionName = msg.getEmailQuestionName(sd);
-			log.info("Email question: " + emailQuestionName);
+			log.fine("Email question: " + emailQuestionName);
 			emailList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, emailQuestionName, msg.instanceId);
 		} else {
 			emailList = new ArrayList<String> ();
@@ -497,7 +497,7 @@ public class EmailManager {
 		if(msg.emails != null) {
 			for(String email : msg.emails) {
 				if(email.length() > 0) {
-					log.info("Adding static email: " + email); 
+					log.fine("Adding static email: " + email); 
 					emailList.add(email);
 				}
 			}
@@ -506,13 +506,13 @@ public class EmailManager {
 		// Add the assigned user email
 		UserManager um = new UserManager(localisation);
 		if(msg.emailAssigned) {
-			log.info("--------------------------------------- Adding Assigned User Email Address -----------------");
+			log.fine("--------------------------------------- Adding Assigned User Email Address -----------------");
 			ArrayList<String> assignedUser = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, "_assigned", msg.instanceId);
 			if(assignedUser != null) {
 				for(String user : assignedUser) {	// Should only be one assigned user but in future could be more
-					log.info("----- User: " + user);
+					log.fine("----- User: " + user);
 					String email = um.getUserEmailByIdent(sd, user);
-					log.info("----- Email: " + user);
+					log.fine("----- Email: " + user);
 					if(email != null) {
 						emailList.add(email);
 					}
@@ -529,11 +529,11 @@ public class EmailManager {
 					}
 					emails += email;
 				} else {
-					log.info("Email Notifications: Discarding invalid email: " + email);
+					log.fine("Email Notifications: Discarding invalid email: " + email);
 				}
 				sentEndPoints.put(email, email);
 			} else {
-				log.info("Duplicate email: " + email);
+				log.fine("Duplicate email: " + email);
 			}
 		}
 		
@@ -552,13 +552,13 @@ public class EmailManager {
 
 		// Add the assigned user email
 		UserManager um = new UserManager(localisation);
-		log.info("--------------------------------------- Adding Assigned User Email Address -----------------");
+		log.fine("--------------------------------------- Adding Assigned User Email Address -----------------");
 		ArrayList<String> assignedUser = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, "_assigned", instanceId);
 		if(assignedUser != null) {
 			for(String user : assignedUser) {	// Should only be one assigned user but in future could be more
-				log.info("----- User: " + user);
+				log.fine("----- User: " + user);
 				String email = um.getUserEmailByIdent(sd, user);
-				log.info("----- Email: " + user);
+				log.fine("----- Email: " + user);
 				if(email != null) {
 					emailList.add(email);
 				}
@@ -574,11 +574,11 @@ public class EmailManager {
 					}
 					emails += email;
 				} else {
-					log.info("Assigned User Email: Discarding invalid email: " + email);
+					log.fine("Assigned User Email: Discarding invalid email: " + email);
 				}
 				sentEndPoints.put(email, email);
 			} else {
-				log.info("Duplicate email: " + email);
+				log.fine("Duplicate email: " + email);
 			}
 		}
 		

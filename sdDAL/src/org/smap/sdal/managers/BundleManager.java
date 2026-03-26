@@ -91,7 +91,7 @@ public class BundleManager {
 			pstmt = sd.prepareStatement(sql.toString());
 			pstmt.setString(1,  user);
 			pstmt.setString(2, user);	// Second user entry for RBAC
-			log.info("Get Bundles: " + pstmt.toString());
+			log.fine("Get Bundles: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 							
 			while(rs.next()) {

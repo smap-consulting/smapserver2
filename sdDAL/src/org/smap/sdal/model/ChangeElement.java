@@ -45,7 +45,7 @@ public class ChangeElement {
 				this.type = "optionlist";
 			} else {
 				this.type = "unknown";
-				log.info("Error: unknown change type");
+				log.fine("Error: unknown change type");
 			}
 		}
 		

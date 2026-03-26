@@ -103,7 +103,7 @@ public class CsvTableManager {
 			pstmtGetCsvTable.setInt(1, oId);
 			pstmtGetCsvTable.setInt(2, sId);
 			pstmtGetCsvTable.setString(3, fileName);
-			log.info("Getting csv table id: " + pstmtGetCsvTable.toString());
+			log.fine("Getting csv table id: " + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			
 			if(rs.next()) {
@@ -118,7 +118,7 @@ public class CsvTableManager {
 				pstmtInsertCsvTable.setInt(2, sId);
 				pstmtInsertCsvTable.setString(3, fileName);
 				pstmtInsertCsvTable.setString(4, null);
-				log.info("Create a new csv file entry (Table Manager): " + pstmtInsertCsvTable.toString());
+				log.fine("Create a new csv file entry (Table Manager): " + pstmtInsertCsvTable.toString());
 				pstmtInsertCsvTable.executeUpdate();
 				ResultSet rsKeys = pstmtInsertCsvTable.getGeneratedKeys();
 				if(rsKeys.next()) {
@@ -170,7 +170,7 @@ public class CsvTableManager {
 			Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 			
 			ResultSet rs = pstmt.executeQuery();
-			log.info("Get CSV Files: " + pstmt.toString());
+			log.fine("Get CSV Files: " + pstmt.toString());
 			while (rs.next()) {
 				CsvTable t = new CsvTable();
 				t.id = rs.getInt(1);
@@ -226,7 +226,7 @@ public class CsvTableManager {
 				try { 
 					pstmtCreateSeq.executeUpdate();
 				} catch(Exception e) {
-					log.info(e.getMessage());  // Ignore error
+					log.fine(e.getMessage());  // Ignore error
 				}
 				
 						// Create the table
@@ -239,7 +239,7 @@ public class CsvTableManager {
 				}				
 				sqlCreate.append(")");
 				pstmtCreateTable = sd.prepareStatement(sqlCreate.toString());
-				log.info("Create table: " + pstmtCreateTable.toString());
+				log.fine("Create table: " + pstmtCreateTable.toString());
 				pstmtCreateTable.executeUpdate();
 				
 			} else {
@@ -251,7 +251,7 @@ public class CsvTableManager {
 						String sqlAddColumn = "alter table " + fullTableName + " add column " + c.tName + " text";
 						if(pstmtAlterColumn != null) {try{pstmtAlterColumn.close();} catch(Exception e) {}}
 						pstmtAlterColumn = sd.prepareStatement(sqlAddColumn);
-						log.info("alter: " + pstmtAlterColumn.toString());
+						log.fine("alter: " + pstmtAlterColumn.toString());
 						pstmtAlterColumn.executeUpdate();
 					}
 				}
@@ -283,7 +283,7 @@ public class CsvTableManager {
 			 */
 			ArrayList<String> tableCols = GeneralUtilityMethods.getColumnsInSchema(sd, tableName, schema);
 			if(tableCols.size() != headers.size() + 1) {		// If the number of columns match then table cannot have any columns that need deleting
-				log.info("Checking for columns in csv file that need to be deleted");
+				log.fine("Checking for columns in csv file that need to be deleted");
 				for(String tableCol : tableCols) {
 					if(tableCol.equals(PKCOL) || tableCol.equals(ACOL) || tableCol.equals(TSCOL)) {
 						continue;
@@ -329,18 +329,18 @@ public class CsvTableManager {
 			pstmtGetCsvTable.setInt(1, oId);
 			pstmtGetCsvTable.setInt(2, sId);
 			pstmtGetCsvTable.setString(3, fileName);
-			log.info("Getting csv file name (survey lvl): " + pstmtGetCsvTable.toString());
+			log.fine("Getting csv file name (survey lvl): " + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			if(rs.next()) {
 				choices = readChoicesFromTable(rs.getInt(1), ovalue, items, matches, fileName, wfFilters);				
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
-				log.info("Getting csv file name (organisational): " + pstmtGetCsvTable.toString());
+				log.fine("Getting csv file name (organisational): " + pstmtGetCsvTable.toString());
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
 					choices = readChoicesFromTable(rsx.getInt(1), ovalue, items, matches, fileName, wfFilters);	
 				} else {
-					log.info("CSV file not found: " + fileName);
+					log.fine("CSV file not found: " + fileName);
 				}
 				
 			}
@@ -369,13 +369,13 @@ public class CsvTableManager {
 			pstmtGetCsvTable.setInt(1, oId);
 			pstmtGetCsvTable.setInt(2, sId);
 			pstmtGetCsvTable.setString(3, fileName);
-			log.info("Getting csv file name for lookup value: (survey level) " + pstmtGetCsvTable.toString());
+			log.fine("Getting csv file name for lookup value: (survey level) " + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			if(rs.next()) {
 				records = readRecordsFromTable(rs.getInt(1), rs.getString(2), key_column, key_value, fileName, expression, tz, selection, arguments);				
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
-				log.info("Getting csv file name fo lookup value: (organisation level) " + pstmtGetCsvTable.toString());
+				log.fine("Getting csv file name fo lookup value: (organisation level) " + pstmtGetCsvTable.toString());
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
 					records = readRecordsFromTable(rsx.getInt(1), rsx.getString(2), key_column, key_value, fileName, expression, tz, selection, arguments);	
@@ -409,7 +409,7 @@ public class CsvTableManager {
 			pstmtGetCsvTable.setInt(1, oId);
 			pstmtGetCsvTable.setInt(2, sId);
 			pstmtGetCsvTable.setString(3, fileName);
-			log.info("Getting csv file name: (survey)" + pstmtGetCsvTable.toString());
+			log.fine("Getting csv file name: (survey)" + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			if(rs.next()) {
 				if(mlLabelColumns != null) {
@@ -423,7 +423,7 @@ public class CsvTableManager {
 				}
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
-				log.info("Getting csv file name: (organisation)" + pstmtGetCsvTable.toString());
+				log.fine("Getting csv file name: (organisation)" + pstmtGetCsvTable.toString());
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
 					if(mlLabelColumns != null) {
@@ -477,7 +477,7 @@ public class CsvTableManager {
 				pstmt.setInt(1, oId);
 			}
 			
-			log.info("Get shared resources to delete: " + pstmt.toString());
+			log.fine("Get shared resources to delete: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
@@ -487,12 +487,12 @@ public class CsvTableManager {
 				
 				if(pstmtDrop != null) {try {pstmtDrop.close();} catch(Exception e) {}}
 				pstmtDrop = sd.prepareStatement(sqlDrop);
-				log.info("Dropping resource table: "  + pstmtDrop.toString());
+				log.fine("Dropping resource table: "  + pstmtDrop.toString());
 				pstmtDrop.executeUpdate();
 				
 				if(pstmtDrop != null) {try {pstmtDrop.close();} catch(Exception e) {}}
 				pstmtDrop = sd.prepareStatement(sqlDropSeq);
-				log.info("Dropping resource sequence: "  + pstmtDrop.toString());
+				log.fine("Dropping resource sequence: "  + pstmtDrop.toString());
 				pstmtDrop.executeUpdate();
 				
 				pstmtDelete.setInt(1, id);
@@ -566,7 +566,7 @@ public class CsvTableManager {
 					pstmt.setString(idx++, match);;
 				}
 			}
-			log.info("Get CSV values: " + pstmt.toString());
+			log.fine("Get CSV values: " + pstmt.toString());
 			ResultSet rsx = pstmt.executeQuery();
 			HashMap<String, String> choicesLoaded = new HashMap<String, String> ();		// Eliminate duplicates
 			
@@ -662,7 +662,7 @@ public class CsvTableManager {
 				expression = expression.replace("\'${", "${");
 				expression = expression.replace("}\'", "}");
 				expressionFrag = new SqlFrag();
-				log.info("Lookup with expression: " + expression);
+				log.fine("Lookup with expression: " + expression);
 				expressionFrag.addSqlFragment(expression, false, localisation, 0);
 				sql.append(" where ( ").append(expressionFrag.sql).append(")");
 			} else if(tKeyColumn == null) {
@@ -680,7 +680,7 @@ public class CsvTableManager {
 					pstmt.setString(paramCount++, arg);
 				}
 			}
-			log.info("Get CSV lookup values: " + pstmt.toString());
+			log.fine("Get CSV lookup values: " + pstmt.toString());
 			ResultSet rsx = pstmt.executeQuery();
 			
 			while(rsx.next()) {
@@ -809,7 +809,7 @@ public class CsvTableManager {
 					pstmt.setString(paramIndex++, arg);
 				}
 			}
-			log.info("Get CSV choices: " + pstmt.toString());
+			log.fine("Get CSV choices: " + pstmt.toString());
 			ResultSet rsx = pstmt.executeQuery();
 			
 			int idx = 0;
@@ -820,7 +820,7 @@ public class CsvTableManager {
 					if(choiceMap.get(value) == null) {		// Only add unique values
 						choices.add(new SelectChoice(value, rsx.getString("__label"), idx++));
 						choiceMap.put(value, value);
-						log.info("#####: " + " add choice: " + value + " : " + rsx.getString("__label"));
+						log.fine("#####: " + " add choice: " + value + " : " + rsx.getString("__label"));
 					}
 				}			
 			}	
@@ -947,7 +947,7 @@ public class CsvTableManager {
 				}
 			}
 
-			log.info("Get CSV choices (multi language): " + pstmt.toString());
+			log.fine("Get CSV choices (multi language): " + pstmt.toString());
 			ResultSet rsx = pstmt.executeQuery();
 			
 			int idx = 0;
@@ -1092,8 +1092,8 @@ public class CsvTableManager {
 						pstmt.setString(i + 1, v);
 					}
 					if(idx++ == 0) {
-						log.info("Insert first record of csv values: " + pstmt.toString());
-						log.info("Number of records: " + records.size());
+						log.fine("Insert first record of csv values: " + pstmt.toString());
+						log.fine("Number of records: " + records.size());
 					}
 					pstmt.executeUpdate();
 				}

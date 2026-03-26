@@ -150,7 +150,7 @@ public class Tables {
 		//itr = t.iterator();
 		//while (itr.hasNext()) {
 		//	TableInfo nt = itr.next();
-		//	log.info("Final set of tables: " + nt.getTName());
+		//	log.fine("Final set of tables: " + nt.getTName());
 		//}
 	}
 	

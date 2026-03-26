@@ -115,7 +115,7 @@ public class LookupManager {
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		int sId = 0;
 		
-		log.info("Lookup: Filename=" + fileName + " key_column=" + keyColumn + " key_value=" + keyValue + " searchType=" + searchType + " Expression=" + expression);
+		log.fine("Lookup: Filename=" + fileName + " key_column=" + keyColumn + " key_value=" + keyValue + " searchType=" + searchType + " Expression=" + expression);
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -197,7 +197,7 @@ public class LookupManager {
 						expression = expression.replace("\'${", "${");
 						expression = expression.replace("}\'", "}");
 						expressionFrag = new SqlFrag();
-						log.info("Lookup with expression: " + expression);
+						log.fine("Lookup with expression: " + expression);
 						expressionFrag.addSqlFragment(expression, false, localisation, 0);
 					}
 					
@@ -335,7 +335,7 @@ public class LookupManager {
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		int sId = 0;
 		
- 		log.info("Lookup choices: Filename=" + fileName + " value_column=" + valueColumn + " label_column=" + labelColumns);
+ 		log.fine("Lookup choices: Filename=" + fileName + " value_column=" + valueColumn + " label_column=" + labelColumns);
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);	
@@ -373,7 +373,7 @@ public class LookupManager {
 					fValue,
 					expression);         	
 
-			log.info("Got the choices: " + results.size());
+			log.fine("Got the choices: " + results.size());
 			response = Response.ok(gson.toJson(results)).build();
 		
 		}  catch (Exception e) {
@@ -405,7 +405,7 @@ public class LookupManager {
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		int sId = 0;
 		
- 		log.info("Lookup multi language choices: Filename=" + fileName + " questionName=" + questionName);
+ 		log.fine("Lookup multi language choices: Filename=" + fileName + " questionName=" + questionName);
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);	
@@ -532,13 +532,13 @@ public class LookupManager {
 			String region = GeneralUtilityMethods.getSettingFromFile("/smap/settings/region");
 			ImageProcessing ip = new ImageProcessing(region, basePath);
 			try {
-				log.info("xxxxxxxx Image lookup: " + tempFileName + " : " + region);
+				log.fine("xxxxxxxx Image lookup: " + tempFileName + " : " + region);
 				String labels = ip.getLabels(
 						basePath + "/temp/",
 						tempFileName, 
 						"text",
 						null);
-				log.info("Labels: " + labels);
+				log.fine("Labels: " + labels);
 				response = Response.ok(labels).build();
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
@@ -591,7 +591,7 @@ public class LookupManager {
 			pstmt.setInt(1, sId);
 			pstmt.setString(2, qname);
 			ResultSet rs = pstmt.executeQuery();
-			log.info(pstmt.toString());
+			log.fine(pstmt.toString());
 			if (rs.next()) {
 				details.colName = rs.getString(1);
 				colType = rs.getString(2);
@@ -680,7 +680,7 @@ public class LookupManager {
 				// Convert #{qname} syntax to ${qname} syntax
 				expression = expression.replace("#{", "${");
 				frag = new SqlFrag();
-				log.info("Lookup with expression: " + expression);
+				log.fine("Lookup with expression: " + expression);
 				frag.addSqlFragment(expression, false, localisation, 0);
 				selection.append("( ").append(frag.sql).append(")");
 			} else if (searchType != null && fColumn != null) {

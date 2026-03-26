@@ -108,7 +108,7 @@ public class QuestionInfo {
 				pstmt.setInt(2, sId);
 				pstmt.setInt(3, qId);
 		
-				log.info("SQL: Normal Complete Constructor for QuestionInfo: " + pstmt.toString());
+				log.fine("SQL: Normal Complete Constructor for QuestionInfo: " + pstmt.toString());
 				ResultSet resultSet = pstmt.executeQuery();
 				
 				if(resultSet.next()) {
@@ -123,7 +123,7 @@ public class QuestionInfo {
 					qAppearance = resultSet.getString(9);		// Used to determine if choices come from external file
 					compressed = resultSet.getBoolean(10);
 					
-					log.info("Table:"  + tableName + ":" + fId + ":" + parentFId + ":" + qName + ":" + qType + " : " + 
+					log.fine("Table:"  + tableName + ":" + fId + ":" + parentFId + ":" + qName + ":" + qType + " : " + 
 							qLabel + ":" + qCalculate + ":" + qAppearance );
 					
 					/*
@@ -166,7 +166,7 @@ public class QuestionInfo {
 							pstmt.setInt(3, sId);
 							pstmt.setBoolean(4,  qExternalChoices);
 							
-							log.info("Getting options for question: " + pstmt.toString());
+							log.fine("Getting options for question: " + pstmt.toString());
 							resultSet = pstmt.executeQuery();
 							
 							boolean select = false;
@@ -212,7 +212,7 @@ public class QuestionInfo {
 					}
 					
 				} else {
-					log.info("Error (QuetionInfo.java) retrieving question data for survey: " + surveyId + " and question: " + questionId);
+					log.fine("Error (QuetionInfo.java) retrieving question data for survey: " + surveyId + " and question: " + questionId);
 				}
 			} else if (questionId < 0) {
 				setForPreDefinedQuestion(sd, sId, questionId);		
@@ -250,7 +250,7 @@ public class QuestionInfo {
 				pstmt = connection.prepareStatement(sql);	
 				pstmt.setInt(1, sId);
 				pstmt.setInt(2, qId);
-				log.info("Get question info no language: " + pstmt.toString());
+				log.fine("Get question info no language: " + pstmt.toString());
 				ResultSet resultSet = pstmt.executeQuery();
 				
 				if(resultSet.next()) {
@@ -262,7 +262,7 @@ public class QuestionInfo {
 					qCalculate = resultSet.getString(6);
 					columnName = resultSet.getString(7);
 					
-					log.info("Table:"  + tableName + ":" + fId + ":" + parentFId + ":" + qName + ":" + qType);
+					log.fine("Table:"  + tableName + ":" + fId + ":" + parentFId + ":" + qName + ":" + qType);
 					
 					/*
 					 * Polygon and linestring questions have "_parentquestion" removed from their name
@@ -289,7 +289,7 @@ public class QuestionInfo {
 						if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 						pstmt = connection.prepareStatement(sql);
 						pstmt.setInt(1,  qId);
-						log.info("Getting options for question " + pstmt.toString());
+						log.fine("Getting options for question " + pstmt.toString());
 						
 						resultSet = pstmt.executeQuery();
 						
@@ -308,7 +308,7 @@ public class QuestionInfo {
 					}
 					
 				} else {
-					log.info("Error (QuetionInfo.java) retrieving question data for survey: " + surveyId + " and question: " + questionId);
+					log.fine("Error (QuetionInfo.java) retrieving question data for survey: " + surveyId + " and question: " + questionId);
 				}	
 			} else if (questionId < 0) {
 				
@@ -344,7 +344,7 @@ public class QuestionInfo {
 			pstmt.setInt(1, sId);
 			pstmt.setInt(2, qId);
 	
-			log.info("SQL: Question Info Constructor for SSC: " + pstmt.toString());
+			log.fine("SQL: Question Info Constructor for SSC: " + pstmt.toString());
 			ResultSet resultSet = pstmt.executeQuery();
 			
 			if(resultSet.next()) {
@@ -357,7 +357,7 @@ public class QuestionInfo {
 				units = resultSet.getString(6);
 				columnName = resultSet.getString(7);
 				
-				log.info("Table:"  + tableName + ":" + fId + ":" + parentFId + ":" + qName + ":" + qType + " : " + fn + " : " + units);
+				log.fine("Table:"  + tableName + ":" + fId + ":" + parentFId + ":" + qName + ":" + qType + " : " + fn + " : " + units);
 				
 				/*
 				 * TODO future calculates might return polygons
@@ -392,7 +392,7 @@ public class QuestionInfo {
 					pstmt.setInt(1,  qId);
 					pstmt.setString(2, lang);
 					pstmt.setInt(3, sId);
-					log.info("SQL: " + pstmt.toString());
+					log.fine("SQL: " + pstmt.toString());
 					
 					resultSet = pstmt.executeQuery();
 					
@@ -413,7 +413,7 @@ public class QuestionInfo {
 				}
 				
 			} else {
-				log.info("Error (QuetionInfo.java) retrieving question data for survey: " + surveyId + " and question: " + questionId);
+				log.fine("Error (QuetionInfo.java) retrieving question data for survey: " + surveyId + " and question: " + questionId);
 			}
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
@@ -527,7 +527,7 @@ public class QuestionInfo {
 				}
 				return "ST_Length(geography(" + tableName + "." + columnName + "), true) / " + divBy;
 			} else {
-				log.info("getSelectExpression: Unknown function: " + fn);
+				log.fine("getSelectExpression: Unknown function: " + fn);
 				return tableName + "." + columnName;
 			}
 		} else {
@@ -555,7 +555,7 @@ public class QuestionInfo {
 			}
 		}
 		
-		log.info("Filter: " + filter);
+		log.fine("Filter: " + filter);
 		return filter;
 	}
 	
@@ -567,7 +567,7 @@ public class QuestionInfo {
 		String value1 = null;
 		String value2 = null;
 		
-		log.info("Filter question type: " + qType);
+		log.fine("Filter question type: " + qType);
 		if(qType != null) {
 			if(qType.equals("int")) {
 				value1 = String.valueOf(qInteger);
@@ -590,14 +590,14 @@ public class QuestionInfo {
 			}
 		}
 		
-		log.info("Filter: " + filter);
+		log.fine("Filter: " + filter);
 		return filter;
 				
 	}
 	
 	public String getSelect() {
 		String sqlFrag = "";
-		log.info("get select: " + tableName + ":" + columnName + ":" + qType + " : " + qType);
+		log.fine("get select: " + tableName + ":" + columnName + ":" + qType + " : " + qType);
 		if(qType != null && qType.equals("select") && !compressed) {
 			// Add primary key with each question, assume only one question per query
 			sqlFrag = tableName + ".prikey as prikey";

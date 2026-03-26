@@ -115,7 +115,7 @@ public class LinkageManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, fId);
 			pstmt.setInt(2, sId);
-			log.info("Links:  Getting child forms: " + pstmt.toString());
+			log.fine("Links:  Getting child forms: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
 				Link l = new Link();
@@ -131,7 +131,7 @@ public class LinkageManager {
 			pstmtLinked = sd.prepareStatement(sqlLinked);
 			pstmtLinked.setInt(1, fId);
 			pstmtLinked.setInt(2, sId);
-			log.info("Links:  Getting linked forms: " + pstmtLinked.toString());
+			log.fine("Links:  Getting linked forms: " + pstmtLinked.toString());
 			rs = pstmtLinked.executeQuery();
 			while(rs.next()) {
 				String linkedTarget = rs.getString(1);
@@ -148,7 +148,7 @@ public class LinkageManager {
 				String sqlGetHrk = "select " + valueColName + " from " + valueForm.tableName + " where prikey = ?;";
 				pstmtGetHrk = cRel.prepareStatement(sqlGetHrk);
 				pstmtGetHrk.setInt(1,prikey);
-				log.info("Getting Hrk: " + pstmtGetHrk.toString());
+				log.fine("Getting Hrk: " + pstmtGetHrk.toString());
 				rsHrk = pstmtGetHrk.executeQuery();
 				if(rsHrk.next()) {
 					hrk = rsHrk.getString(1);
@@ -240,7 +240,7 @@ public class LinkageManager {
 				pstmt.setString(8,  item.fp_image);
 				pstmt.setString(9,  item.fp_iso_template);
 				
-				log.info("Add linkage: " + pstmt.toString());
+				log.fine("Add linkage: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
 		} finally {
@@ -264,7 +264,7 @@ public class LinkageManager {
 					+ "and fp_image is not null";
 			
 			pstmt = sd.prepareStatement(sql);
-			//log.info("Get linkages to update: " + pstmt.toString());
+			//log.fine("Get linkages to update: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				int id = rs.getInt("id");
@@ -305,7 +305,7 @@ public class LinkageManager {
 					pstmtUpdate = sd.prepareStatement(sqlUpdate);
 					pstmtUpdate.setBytes(1, serialized);
 					pstmtUpdate.setInt(2,  id);
-					log.info("update linkage: " + pstmtUpdate.toString());
+					log.fine("update linkage: " + pstmtUpdate.toString());
 					pstmtUpdate.executeUpdate();
 				}
 			}
@@ -341,7 +341,7 @@ public class LinkageManager {
 			pstmt.setFetchSize(100);
 			pstmt.setInt(1,  oId);
 			
-			log.info("Match fingerprint: " + pstmt.toString());
+			log.fine("Match fingerprint: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 
@@ -361,7 +361,7 @@ public class LinkageManager {
 					String instanceId = rs.getString("instance_id");
 						
 					double score = new FingerprintMatcher(probe).match(candidate);
-					log.info("Score: " + score + " Threshold: " + threshold);
+					log.fine("Score: " + score + " Threshold: " + threshold);
 					
 					String url = "https://" + server + "/app/myWork/webForm/" + sIdent + "?datakey=instanceid&datakeyvalue=" + instanceId + "&readonly=true";
 					if(score > threshold) {
@@ -411,7 +411,7 @@ public class LinkageManager {
 			pstmt.setString(1, sIdent);
 			pstmt.setString(2, instanceId);
 			
-			log.info("Get linkage items for a record: " + pstmt.toString());
+			log.fine("Get linkage items for a record: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 

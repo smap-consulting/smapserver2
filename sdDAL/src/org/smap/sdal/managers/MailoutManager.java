@@ -96,7 +96,7 @@ public class MailoutManager {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, surveyIdent);
-			log.info("Get mailouts: " + pstmt.toString());
+			log.fine("Get mailouts: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				Mailout mo = new Mailout(
@@ -143,7 +143,7 @@ public class MailoutManager {
 			pstmt.setString(4, sanitise.sanitiseHtml(mailout.content));
 			pstmt.setBoolean(5, mailout.multiple_submit);
 			pstmt.setBoolean(6, mailout.anonymous);
-			log.info("Add mailout: " + pstmt.toString());
+			log.fine("Add mailout: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			ResultSet rsKeys = pstmt.getGeneratedKeys();
@@ -191,7 +191,7 @@ public class MailoutManager {
 			pstmt.setBoolean(5, mailout.multiple_submit);
 			pstmt.setBoolean(6, mailout.anonymous);
 			pstmt.setInt(7, mailout.id);
-			log.info("Update mailout: " + pstmt.toString());
+			log.fine("Update mailout: " + pstmt.toString());
 			pstmt.executeUpdate();
 		
 		} catch(Exception e) {
@@ -223,7 +223,7 @@ public class MailoutManager {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, mailoutId);
-			log.info("Get mailout details: " + pstmt.toString());
+			log.fine("Get mailout details: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				mailout = new Mailout(
@@ -279,7 +279,7 @@ public class MailoutManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
 			pstmt.setInt(2, mailoutId);
-			log.info("Get mailout people: " + pstmt.toString());
+			log.fine("Get mailout people: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				MailoutPerson mp = new MailoutPerson(
@@ -381,7 +381,7 @@ public class MailoutManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, mailoutId);
 			pstmt.setString(2, STATUS_NEW);
-			log.info("Delete unsent: " + pstmt.toString());
+			log.fine("Delete unsent: " + pstmt.toString());
 			pstmt.executeUpdate();	
 		
 		} finally {
@@ -465,7 +465,7 @@ public class MailoutManager {
 					// 2. Add person to people table if they do not exist
 					pstmtAddPerson.setString(2, person.email);
 					pstmtAddPerson.setString(3, person.name);
-					log.info("Add person to people: " + pstmtAddPerson.toString());
+					log.fine("Add person to people: " + pstmtAddPerson.toString());
 					pstmtAddPerson.executeUpdate();
 					ResultSet rsKeys = pstmtAddPerson.getGeneratedKeys();
 					if(rsKeys.next()) {
@@ -491,7 +491,7 @@ public class MailoutManager {
 						initialData = gson.toJson(person.initialData);
 					}
 					pstmtAddMailoutPerson.setString(4, initialData);	
-					log.info("Add person to mailout table: " + pstmtAddMailoutPerson.toString());
+					log.fine("Add person to mailout table: " + pstmtAddMailoutPerson.toString());
 					pstmtAddMailoutPerson.executeUpdate();
 					
 					if(index++ == 0) {
@@ -545,7 +545,7 @@ public class MailoutManager {
 		try {
 			pstmt = sd.prepareStatement(sql.toString());
 			pstmt.setInt(1, mailoutId);
-			log.info("Send unsent: " + pstmt.toString());
+			log.fine("Send unsent: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 		
@@ -592,7 +592,7 @@ public class MailoutManager {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			ActionManager am = new ActionManager(localisation, "UTC");
 
-			log.info("----- Gen mailout links: " + pstmt.toString());
+			log.fine("----- Gen mailout links: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {		
 				int id = rs.getInt("id");
@@ -630,7 +630,7 @@ public class MailoutManager {
 				pstmtLinkCreated.setString(1, "https://" + serverName + "/webForm" + link);
 				pstmtLinkCreated.setString(2, userIdent);
 				pstmtLinkCreated.setInt(3, id);
-				log.info("Generate link: " + pstmtLinkCreated.toString());
+				log.fine("Generate link: " + pstmtLinkCreated.toString());
 				pstmtLinkCreated.executeUpdate();
 				
 			}
@@ -688,7 +688,7 @@ public class MailoutManager {
 					if(emailServer != null) {
 						if(UtilityMethodsEmail.isValidEmail(msg.email)) {
 							try {	
-								log.info("userevent: " + msg.user + " sending email of '" + docURL + "' to " + msg.email);
+								log.fine("userevent: " + msg.user + " sending email of '" + docURL + "' to " + msg.email);
 								
 								// Set the subject
 								String subject = "";
@@ -723,7 +723,7 @@ public class MailoutManager {
 								notify_details = notify_details.replace("%s1", msg.email);
 								notify_details = notify_details.replace("%s2", docURL == null ? "" : docURL);
 								
-								log.info("+++ emailing mailout to: " + msg.email + " docUrl: " + docURL + 
+								log.fine("+++ emailing mailout to: " + msg.email + " docUrl: " + docURL + 
 										" from: " + from + 
 										" subject: " + subject +
 										" smtp_host: " + emailServer.smtpHost +
@@ -743,7 +743,7 @@ public class MailoutManager {
 												|| subStatus.optedInSent == null	// First mailout is the optin
 												) {
 											
-											log.info("Send email: " + msg.email + " : " + docURL);									
+											log.fine("Send email: " + msg.email + " : " + docURL);									
 											lm.writeLog(sd, 
 													GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident), 
 													ia.getAddress(), 
@@ -913,7 +913,7 @@ public class MailoutManager {
 			 */
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, mailoutId);
-			log.info("Delete Mailout: " + pstmt.toString());
+			log.fine("Delete Mailout: " + pstmt.toString());
 			pstmt.executeUpdate();
 		
 		} finally {

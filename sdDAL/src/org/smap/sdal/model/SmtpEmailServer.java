@@ -65,9 +65,9 @@ public class SmtpEmailServer extends EmailServer {
 				rt = Message.RecipientType.TO;
 			}
 	
-			log.info("Sending to email addresses: " + email);
+			log.fine("Sending to email addresses: " + email);
 			InternetAddress[] emailArray = InternetAddress.parse(email);
-			log.info("Number of email addresses: " + emailArray.length);
+			log.fine("Number of email addresses: " + emailArray.length);
 			msg.setRecipients(rt,	emailArray);
 			msg.setSubject(subject + " " + emailId);	// Include email ID with subject to make it unique
 	
@@ -76,7 +76,7 @@ public class SmtpEmailServer extends EmailServer {
 				sender = sender + "@" + emailDomain;
 			}
 	
-			log.info("Sending email from: (sendEmailHtml1) " + sender + " with subject " + subject);
+			log.fine("Sending email from: (sendEmailHtml1) " + sender + " with subject " + subject);
 			msg.setFrom(InternetAddress.parse(sender, false)[0]);
 	
 			Multipart multipart = new MimeMultipart();
@@ -98,7 +98,7 @@ public class SmtpEmailServer extends EmailServer {
 			msg.setContent(multipart);
 	
 			msg.setHeader("X-Mailer", "msgsend");
-			log.info("Sending email from: (sendEmailHtml2) " + sender);
+			log.fine("Sending email from: (sendEmailHtml2) " + sender);
 	
 			Transport.send(msg);
 			
@@ -142,21 +142,21 @@ public class SmtpEmailServer extends EmailServer {
 				props.setProperty("mail.smtp.port", "587");	
 			}
 
-			log.info("Trying to send email as html with authentication");
+			log.fine("Trying to send email as html with authentication");
 		} else {
 			if(emailPort > 0) {
 				props.setProperty("mail.smtp.port", String.valueOf(emailPort));
 			} else {
 				// Use default port (25?)
 			}
-			log.info("No authentication");
+			log.fine("No authentication");
 		}
 
 		props.setProperty("mail.smtp.connectiontimeout", "60000");
 		props.setProperty("mail.smtp.timeout", "60000");
 		props.setProperty("mail.smtp.writetimeout", "60000");
 		
-		//log.info("Email properties: " + props.toString());
+		//log.fine("Email properties: " + props.toString());
 		
 		return Session.getInstance(props, authenticator);
 	}

@@ -86,7 +86,7 @@ public class TranslationManager {
 			 */
 			pstmtQuestionLevel = sd.prepareStatement(sqlQuestionLevel);	 			
 			pstmtQuestionLevel.setInt(1, surveyId);
-			//log.info("xxxx: get question and option level manifests: " + pstmtQuestionLevel.toString());
+			//log.fine("xxxx: get question and option level manifests: " + pstmtQuestionLevel.toString());
 			ResultSet rs = pstmtQuestionLevel.executeQuery();
 			
 			while (rs.next()) {								
@@ -121,7 +121,7 @@ public class TranslationManager {
 			pstmtDefaultImage = sd.prepareStatement(sqlDefaultImage);	 			
 			pstmtDefaultImage.setInt(1, surveyId);
 
-			//log.info("xxxx: get default image manifests: " + pstmtQuestionLevel.toString());
+			//log.fine("xxxx: get default image manifests: " + pstmtQuestionLevel.toString());
 			rs = pstmtDefaultImage.executeQuery();
 				
 			while (rs.next()) {		
@@ -185,7 +185,7 @@ public class TranslationManager {
 			pstmt = sd.prepareStatement(sql);	 			
 			pstmt.setInt(1, surveyId);
 			
-			//log.info("xxxx get survey manifests: " + pstmt.toString());
+			//log.fine("xxxx get survey manifests: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 			if(rs.next()) {
 				String manifestString = rs.getString(1);
@@ -262,7 +262,7 @@ public class TranslationManager {
 			 */
 			pstmt = sd.prepareStatement(sql);	 			
 			pstmt.setInt(1, surveyId);
-			log.info("SQL survey level manifests:" + pstmt.toString());
+			log.fine("SQL survey level manifests:" + pstmt.toString());
 			
 			pstmtPull = sd.prepareStatement(pull);
 			pstmtPull.setInt(1, surveyId);
@@ -287,7 +287,7 @@ public class TranslationManager {
 						m.type = "linked";
 					}
 					pstmtPull.setString(2, "%pulldata%" + m.baseName + "%");
-					//log.info("Looking for pulldata manifests: " + pstmtPull.toString());
+					//log.fine("Looking for pulldata manifests: " + pstmtPull.toString());
 					rs = pstmtPull.executeQuery();
 					if(rs.next() && rs.getInt(1) > 0) {
 						String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, surveyId);

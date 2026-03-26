@@ -75,7 +75,7 @@ public class StorageProcessor {
 					loop = false;
 				} else {
 
-					System.out.print("(a)");		// Record the running of the storage processor
+
 
 					try {
 						// Make sure we have a connection to the database

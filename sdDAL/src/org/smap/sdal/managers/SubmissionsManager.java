@@ -379,16 +379,16 @@ public class SubmissionsManager {
 				for(String tableName : tableList) {				
 
 					sql = "drop TABLE " + tableName + ";";
-					log.info("################################# Delete table contents and drop table prior to restore: " + sql);
+					log.fine("################################# Delete table contents and drop table prior to restore: " + sql);
 					
 					try {if (stmtRel != null) {stmtRel.close();}} catch (SQLException e) {}
 					stmtRel = connectionRel.createStatement();
 					try {
 						stmtRel.executeUpdate(sql);
 					} catch (Exception e) {
-						log.info("Error deleting table: " + e.getMessage());
+						log.fine("Error deleting table: " + e.getMessage());
 					}
-					log.info("userevent: " + uIdent + " : delete results : " + tableName + " in survey : "+ sId); 
+					log.fine("userevent: " + uIdent + " : delete results : " + tableName + " in survey : "+ sId); 
 				}
 					
 				/*
@@ -397,7 +397,7 @@ public class SubmissionsManager {
 				connectionRel.setAutoCommit(false);
 				for(GroupDetails gd : surveys) {
 					pstmtUnpublish.setInt(1, gd.sId);
-					log.info("set unpublished " + pstmtUnpublish.toString());
+					log.fine("set unpublished " + pstmtUnpublish.toString());
 					pstmtUnpublish.executeUpdate();
 				}
 				
@@ -410,7 +410,7 @@ public class SubmissionsManager {
 					// restore backed up files from s3 of raw data
 					GeneralUtilityMethods.restoreUploadedFiles(gd.surveyIdent, "uploadedSurveys");			
 					pstmtReset.setString(1, gd.surveyIdent);			// Initiate reset of go faster flag
-					log.info("Restoring survey2 " + pstmtReset.toString());
+					log.fine("Restoring survey2 " + pstmtReset.toString());
 					pstmtReset.executeUpdate();
 					
 					// Force regeneration of any dynamic CSV files that this survey links to

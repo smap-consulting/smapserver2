@@ -228,7 +228,7 @@ public class LogManager {
 			pstmt.setString(paramCount++, tz);
 			pstmt.setTimestamp(paramCount++, t2);
 			
-			log.info("Get data: " + pstmt.toString());
+			log.fine("Get data: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 				
 			int hour = -1;	
@@ -299,7 +299,7 @@ public class LogManager {
 			pstmt.setString(paramCount++, tz);
 			pstmt.setTimestamp(paramCount++, t2);
 			
-			log.info("Get data: " + pstmt.toString());
+			log.fine("Get data: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 				
 			String org = null;	
@@ -369,7 +369,7 @@ public class LogManager {
 			pstmt.setInt(paramCount++, start);	
 			pstmt.setInt(paramCount++, oId);
 			
-			log.info("Get data: " + pstmt.toString());
+			log.fine("Get data: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 				
 			int index = 0;	
@@ -439,7 +439,7 @@ public class LogManager {
 			pstmt.setString(paramCount++, tz);
 			pstmt.setTimestamp(paramCount++, t2);
 			
-			log.info("Get data for month: " + pstmt.toString());
+			log.fine("Get data for month: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 				
 			while (rs.next()) {

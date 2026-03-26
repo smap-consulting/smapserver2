@@ -172,7 +172,7 @@ public class OrganisationManager {
 			pstmt.setString(35, HtmlSanitise.checkCleanName(o.map_source, localisation));
 			pstmt.setInt(36, o.id);
 					
-			log.info("Update organisation: " + pstmt.toString());
+			log.fine("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 	
 			// Save the banner logo, if it has been passed
@@ -207,12 +207,12 @@ public class OrganisationManager {
 							// Person has unsubscribed
 							String msg = localisation.getString("email_us");
 							msg = msg.replaceFirst("%s1", originalOrg.getAdminEmail());
-							log.info(msg);
+							log.fine(msg);
 						} else {
 							String subject = localisation.getString("email_org_change");
 							subject = subject.replaceAll("%s1", serverName);
 							subject = subject.replaceAll("%s2", originalOrg.name);
-							log.info("Sending email confirmation: Header = " + subject);
+							log.fine("Sending email confirmation: Header = " + subject);
 							
 							String content = localisation.getString("org_change");
 							content = content.replaceAll("%s1", originalOrg.name);
@@ -325,7 +325,7 @@ public class OrganisationManager {
 			 */
 			pstmtCheckExists = sd.prepareStatement(sqlCheckExists);
 			pstmtCheckExists.setString(1,  o.name);
-			log.info("Check for existing organisations with same name " + pstmtCheckExists.toString());
+			log.fine("Check for existing organisations with same name " + pstmtCheckExists.toString());
 			ResultSet rs = pstmtCheckExists.executeQuery();			
 			if(rs.next()) {
 				throw new ApplicationException(localisation.getString("msg_org_exists"));
@@ -406,7 +406,7 @@ public class OrganisationManager {
 			 * will need to be maintained by whichever user has organisational admin privilege
 			 */
 			pstmt.setInt(48, GeneralUtilityMethods.hasSecurityGroup(sd, userIdent, Authorise.ORG_ID) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
-			log.info("Insert organisation: " + pstmt.toString());
+			log.fine("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			rs = pstmt.getGeneratedKeys();
@@ -463,7 +463,7 @@ public class OrganisationManager {
 		if(folderPath != null) {						
 			String filePath = folderPath + "/" + storageName;
 		    File savedFile = new File(filePath);
-		    log.info("Saving file to: " + filePath);
+		    log.fine("Saving file to: " + filePath);
 		    try {
 				logoItem.write(savedFile);
 				savedFile.setReadable(true);
@@ -477,14 +477,14 @@ public class OrganisationManager {
 					if ((len = proc.getErrorStream().available()) > 0) {
 						byte[] buf = new byte[len];
 						proc.getErrorStream().read(buf);
-						log.info("Command error:\t\"" + new String(buf) + "\"");
+						log.fine("Command error:\t\"" + new String(buf) + "\"");
 					}
 				} else {
 					int len;
 					if ((len = proc.getInputStream().available()) > 0) {
 						byte[] buf = new byte[len];
 						proc.getInputStream().read(buf);
-						log.info("Completed setting access rights to new file process:\t\"" + new String(buf) + "\"");
+						log.fine("Completed setting access rights to new file process:\t\"" + new String(buf) + "\"");
 					}
 				}
 	            
@@ -513,7 +513,7 @@ public class OrganisationManager {
 		if(folderPath != null) {						
 			String filePath = folderPath + "/" + storageName;
 		    File savedFile = new File(filePath);
-		    log.info("Deleting file: " + filePath);
+		    log.fine("Deleting file: " + filePath);
 		    savedFile.delete();
 		            
 		} else {
@@ -622,7 +622,7 @@ public class OrganisationManager {
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setString(1, user);
 					
-			log.info("Get organisation webform options: " + pstmt.toString());
+			log.fine("Get organisation webform options: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			if(rs.next()) {
@@ -660,7 +660,7 @@ public class OrganisationManager {
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setString(1, user);
 					
-			log.info("Get organisation appearance options: " + pstmt.toString());
+			log.fine("Get organisation appearance options: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			if(rs.next()) {
@@ -697,7 +697,7 @@ public class OrganisationManager {
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setString(1, user);
 			
-			log.info("Get organisation dashboard options: " + pstmt.toString());
+			log.fine("Get organisation dashboard options: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			if(rs.next()) {

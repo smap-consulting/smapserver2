@@ -104,7 +104,7 @@ public class SurveyTableManager {
 		this.requestingUser = user;
 		
 		if(oId <= 0) {
-			log.info("************************ Error: Create Survey Table Manager : Organisation id is less than or equal to 0");
+			log.fine("************************ Error: Create Survey Table Manager : Organisation id is less than or equal to 0");
 		} else {
 			Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 			
@@ -124,7 +124,7 @@ public class SurveyTableManager {
 				pstmtGetCsvTable.setInt(1, oId);
 				pstmtGetCsvTable.setInt(2, sId);
 				pstmtGetCsvTable.setString(3, fileName);
-				log.info("Getting csv table id: " + pstmtGetCsvTable.toString());
+				log.fine("Getting csv table id: " + pstmtGetCsvTable.toString());
 				ResultSet rs = pstmtGetCsvTable.executeQuery();
 				
 				if(rs.next()) {
@@ -143,7 +143,7 @@ public class SurveyTableManager {
 					pstmtInsertCsvTable.setInt(1, oId);
 					pstmtInsertCsvTable.setInt(2, sId);
 					pstmtInsertCsvTable.setString(3, fileName);
-					log.info("Create a new csv file entry (Survey Manager): " + pstmtInsertCsvTable.toString());
+					log.fine("Create a new csv file entry (Survey Manager): " + pstmtInsertCsvTable.toString());
 					pstmtInsertCsvTable.executeUpdate();
 					ResultSet rsKeys = pstmtInsertCsvTable.getGeneratedKeys();
 					if(rsKeys.next()) {
@@ -268,23 +268,23 @@ public class SurveyTableManager {
 				paramCount = GeneralUtilityMethods.setFragParams(pstmt, expressionFrag, paramCount, tz);
 			} else if(arguments != null) {
 				for(String arg : arguments) {
-					log.info("Parameter: " + arg);
+					log.fine("Parameter: " + arg);
 					try {
 						pstmt.setString(paramCount++, arg);
 					} catch (Exception e) {
-						log.info(pstmt.toString());
+						log.fine(pstmt.toString());
 						log.log(Level.SEVERE, e.getMessage(), e);	
 					}
 				}
 			}		
 			
-			log.info("Init data: " + pstmt.toString());
+			log.fine("Init data: " + pstmt.toString());
 			try {
 				rs = pstmt.executeQuery();
 			} catch (Exception e) {
 				String msg = e.getMessage();
 				if(msg != null && msg.contains("does not exist")) {
-					log.info("Attempting to get data from a survey that has had no data submitted. " + msg);
+					log.fine("Attempting to get data from a survey that has had no data submitted. " + msg);
 				} else {
 					log.log(Level.SEVERE, msg, e);
 					throw new ApplicationException(msg + " : " + pstmt.toString());
@@ -478,7 +478,7 @@ public class SurveyTableManager {
 
 				pstmtPulldata = sd.prepareStatement(sqlPulldata);
 				pstmtPulldata.setInt(1, sId);
-				// log.info("Get pulldata key from survey: " + pstmtPulldata.toString());
+				// log.fine("Get pulldata key from survey: " + pstmtPulldata.toString());
 				rs = pstmtPulldata.executeQuery();
 				if (rs.next()) {
 					Type type = new TypeToken<ArrayList<Pulldata>>() {}.getType();
@@ -493,7 +493,7 @@ public class SurveyTableManager {
 						if (pulldataIdent.equals("self")) {
 							pulldataIdent = linked_sIdent;
 						}
-						// log.info("PulldataIdent: " + pulldataIdent);
+						// log.fine("PulldataIdent: " + pulldataIdent);
 
 						if (pulldataIdent.equals(linked_sIdent)) {
 							data_key = pdArray.get(i).data_key;
@@ -550,7 +550,7 @@ public class SurveyTableManager {
 			// 3.Get question names from appearance
 			pstmtAppearance = sd.prepareStatement(sqlAppearance);
 			pstmtAppearance.setInt(1, sId);
-			// log.info("Appearance cols: " + pstmtAppearance.toString());
+			// log.fine("Appearance cols: " + pstmtAppearance.toString());
 			rs = pstmtAppearance.executeQuery();
 			while (rs.next()) {
 				int qId = rs.getInt(1);
@@ -569,7 +569,7 @@ public class SurveyTableManager {
 			// 4. Get question names from calculate
 			pstmtCalculate = sd.prepareStatement(sqlCalculate);
 			pstmtCalculate.setInt(1, sId);
-			// log.info("Calculate cols: " + pstmtCalculate.toString());
+			// log.fine("Calculate cols: " + pstmtCalculate.toString());
 			rs = pstmtCalculate.executeQuery();
 			while (rs.next()) {
 				int qId = rs.getInt(1);
@@ -580,13 +580,13 @@ public class SurveyTableManager {
 					for (String col : columns) {
 						if (!uniqueColumns.contains(col)) {
 							uniqueColumns.add(col);
-							// log.info("Adding unique column: " + col);
+							// log.fine("Adding unique column: " + col);
 						}
 					}
 				}
 			}
 
-			// log.info("Unique Columns: " + uniqueColumns.size());
+			// log.fine("Unique Columns: " + uniqueColumns.size());
 			// 5. Get the sql as long as there is data to retrieve
 			
 			if(uniqueColumns.size() > 0) {
@@ -604,7 +604,7 @@ public class SurveyTableManager {
 				pstmtUpdate.setBoolean(5, linked_s_pd);
 				pstmtUpdate.setString(6, new Gson().toJson(sqlDef));
 				pstmtUpdate.setInt(7, tableId);
-				// log.info("Add sql info: " + pstmtUpdate.toString());
+				// log.fine("Add sql info: " + pstmtUpdate.toString());
 				pstmtUpdate.executeUpdate();
 			} else {
 				throw new ApplicationException("Error: no columns found in linked survey " + sId + " for file " + filename);
@@ -654,7 +654,7 @@ public class SurveyTableManager {
 			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 			HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestionsMap(sd, groupSurveyIdent, null, false);
 
-			// log.info("Question forms: " + refQuestionMap.toString());
+			// log.fine("Question forms: " + refQuestionMap.toString());
 
 			boolean first = true;
 			if (linked_s_pd) {
@@ -750,9 +750,9 @@ public class SurveyTableManager {
 			// 2. Add the tables
 			pstmtGetTable = sd.prepareStatement(sqlGetTable);
 			pstmtGetTable.setInt(1, sId);
-			log.info("Tables: " + tables.size() + " : " + tables.toString());
+			log.fine("Tables: " + tables.size() + " : " + tables.toString());
 			getTables(pstmtGetTable, 0, null, tabs, where, tables, subTables);
-			log.info("Subtables: " + subTables.size());
+			log.fine("Subtables: " + subTables.size());
 			
 			// 2.5 Add the order clause
 			sql.append(",")
@@ -823,14 +823,14 @@ public class SurveyTableManager {
 		ArrayList<String> parentTables = new ArrayList<>();
 
 		pstmt.setInt(2, parentId);
-		log.info("Get tables: " + pstmt.toString());
+		log.fine("Get tables: " + pstmt.toString());
 		ResultSet rs = pstmt.executeQuery();
 		while (rs.next()) {
 			int fId = rs.getInt(1);
 			String table = rs.getString(2);
 
-			log.info("Processing form: " + fId + " : " + table + " : " + parentId);
-			log.info(tables.toString());
+			log.fine("Processing form: " + fId + " : " + table + " : " + parentId);
+			log.fine(tables.toString());
 			
 			/*
 			 * Ignore tables that where no questions have been asked for
@@ -917,7 +917,7 @@ public class SurveyTableManager {
 			pstmt.setInt(1,  sId);
 			pstmt.setString(2, filename);
 			ResultSet rs = pstmt.executeQuery();
-			log.info("Get sqldef in order to get columns: " + pstmt.toString());
+			log.fine("Get sqldef in order to get columns: " + pstmt.toString());
 			if(rs.next()) {
 				String s = rs.getString(1);
 				if(s != null) {
@@ -988,7 +988,7 @@ public class SurveyTableManager {
 			String sqlNoEscapes = sql.replace("\\", "");		// Remove escaping of quotes when used in prepared statement
 			
 			if(sqlDef.colNames.size() == 0) {
-				log.info("++++++ No column names present in table. Creating empty file");
+				log.fine("++++++ No column names present in table. Creating empty file");
 				
 				// Use requested columns which will be in the qnames list
 				BufferedWriter bw = new BufferedWriter(
@@ -1007,7 +1007,7 @@ public class SurveyTableManager {
 				pstmtData = cResults.prepareStatement(sqlNoEscapes);
 				setParameters(pstmtData, cur, rfArray, userIdent, tz);
 				
-				log.info("Get CSV data: " + pstmtData.toString());
+				log.fine("Get CSV data: " + pstmtData.toString());
 				rs = pstmtData.executeQuery();
 
 				BufferedWriter bw = new BufferedWriter(
@@ -1079,7 +1079,7 @@ public class SurveyTableManager {
 				if(rs != null) {
 					rs.close();
 				}
-				log.info("####### Getting chart data: " + pstmtData.toString());
+				log.fine("####### Getting chart data: " + pstmtData.toString());
 				rs = pstmtData.executeQuery();
 
 				BufferedWriter bw = new BufferedWriter(
@@ -1135,14 +1135,14 @@ public class SurveyTableManager {
 				
 				pstmtData = cResults.prepareStatement(sqlNoEscapes);
 				
-				log.info("####### Pre parameter statement: " + pstmtData.toString());
+				log.fine("####### Pre parameter statement: " + pstmtData.toString());
 				
 				setParameters(pstmtData, cur, rfArray, userIdent, tz);
 				
 				if(rs != null) {
 					rs.close();
 				}
-				log.info("####### Get CSV data through pstmt: " + pstmtData.toString());
+				log.fine("####### Get CSV data through pstmt: " + pstmtData.toString());
 				rs = pstmtData.executeQuery();
 
 				BufferedWriter bw = new BufferedWriter(
@@ -1203,7 +1203,7 @@ public class SurveyTableManager {
 				String[] cmd = { "/bin/sh", "-c",
 						scriptPath + " results linked " + "\"" + pstmtData.toString() + "\" "
 								+ filePath + " csvnozip" };
-				log.info("Getting linked data: " + cmd[2]);
+				log.fine("Getting linked data: " + cmd[2]);
 				Process proc = Runtime.getRuntime().exec(cmd);
 				code = proc.waitFor();
 				if(code > 0) {
@@ -1211,14 +1211,14 @@ public class SurveyTableManager {
 					if ((len = proc.getErrorStream().available()) > 0) {
 						byte[] buf = new byte[len];
 						proc.getErrorStream().read(buf);
-						log.info("Command error:\t\"" + new String(buf) + "\"");
+						log.fine("Command error:\t\"" + new String(buf) + "\"");
 					}
 				} else {
 					int len;
 					if ((len = proc.getInputStream().available()) > 0) {
 						byte[] buf = new byte[len];
 						proc.getInputStream().read(buf);
-						log.info("Completed getshape process:\t\"" + new String(buf) + "\"");
+						log.fine("Completed getshape process:\t\"" + new String(buf) + "\"");
 					}
 				}
 			}
@@ -1329,32 +1329,32 @@ public class SurveyTableManager {
 			int linked_sId = GeneralUtilityMethods.getSurveyId(sd, linked_sIdent);
 			
 			if(!GeneralUtilityMethods.inSameOrganisation(sd, sId, linked_sId)) {
-				log.info("---------------------------- Authorisation exception");
+				log.fine("---------------------------- Authorisation exception");
 				throw new ApplicationException("Cannot link to external survey: " + linked_sIdent + " as it is in a different organisation");
 			}
 			
-			// log.info("Set autocommit false");
+			// log.fine("Set autocommit false");
 			sd.setAutoCommit(false);
 			// Get data on the link between the two surveys
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, linked_sId);
 			pstmt.setInt(2, sId);
 			pstmt.setString(3, logicalFilePath);
-			// log.info("Test for regen: " + pstmt.toString());
+			// log.fine("Test for regen: " + pstmt.toString());
 
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				int count = rs.getInt(1);
 				if (count > 0) {
 					regenerate = false;
-					// log.info("Regenerate is false");
+					// log.fine("Regenerate is false");
 				} else {
 
 					String table = GeneralUtilityMethods.getMainResultsTable(sd, cRel, linked_sId);
 
 					if (table != null) {
 						regenerate = true;
-						// log.info("Need to regenerate");
+						// log.fine("Need to regenerate");
 
 						pstmtInsert = sd.prepareStatement(sqlInsert);
 						
@@ -1367,14 +1367,14 @@ public class SurveyTableManager {
 								pstmtInsert.setInt(2, sId);
 								pstmtInsert.setString(3, logicalFilePath);
 								pstmtInsert.executeUpdate();
-								// log.info("Insert record: " + pstmtInsert.toString());
+								// log.fine("Insert record: " + pstmtInsert.toString());
 							}
 						}
 					} else {
-						// log.info("Table " + table + " not found. Probably no data has been submitted");
+						// log.fine("Table " + table + " not found. Probably no data has been submitted");
 						tableExists = false;
 						// Delete the file if it exists
-						// log.info("Deleting file -------- : " + currentPhysicalFile.getAbsolutePath());
+						// log.fine("Deleting file -------- : " + currentPhysicalFile.getAbsolutePath());
 						currentPhysicalFile.delete();
 						
 						fileExists = false;
@@ -1397,9 +1397,9 @@ public class SurveyTableManager {
 			regenerate = true; // Force creation of an empty file
 		}
 
-		// log.info("Result of regenerate question is: " + regenerate);
+		// log.fine("Result of regenerate question is: " + regenerate);
 		if(regenerate) {
-			log.info("xoxoxoxoxoxoxo regenerate: " + logicalFilePath);
+			log.fine("xoxoxoxoxoxoxo regenerate: " + logicalFilePath);
 		}
 		return regenerate;
 	}

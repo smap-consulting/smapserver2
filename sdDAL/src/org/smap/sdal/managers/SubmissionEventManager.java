@@ -70,7 +70,7 @@ public class SubmissionEventManager {
 			pstmt.setInt(1,  ue_id);
 			pstmt.setString(2,  gson.toJson(linkageItems));
 			pstmt.setString(3,  thread);
-			log.info("Add submission notification event: " + pstmt.toString());
+			log.fine("Add submission notification event: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
@@ -244,11 +244,11 @@ public class SubmissionEventManager {
 				 * Apply any Linkage items
 				 * Disable linkage due to accuracy issues
 				if(linkageItems.size() > 0) {
-					log.info("----- Applying " + linkageItems.size() + " linkage items");
+					log.fine("----- Applying " + linkageItems.size() + " linkage items");
 					LinkageManager linkMgr = new LinkageManager(localisation);
 					linkMgr.writeItems(sd, oId, submittingUser, instanceId, linkageItems);
 				} else {
-					//log.info("----- No linkage items to apply");
+					//log.fine("----- No linkage items to apply");
 				}
 				*/
 				

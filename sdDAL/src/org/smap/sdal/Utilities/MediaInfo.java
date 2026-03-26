@@ -123,14 +123,14 @@ public class MediaInfo {
 					if ((len = proc.getErrorStream().available()) > 0) {
 						byte[] buf = new byte[len];
 						proc.getErrorStream().read(buf);
-						log.info("Command error:\t\"" + new String(buf) + "\"");
+						log.fine("Command error:\t\"" + new String(buf) + "\"");
 					}
 				} else {
 					int len;
 					if ((len = proc.getInputStream().available()) > 0) {
 						byte[] buf = new byte[len];
 						proc.getInputStream().read(buf);
-						log.info("Completed setting organisation folder process:\t\"" + new String(buf) + "\"");
+						log.fine("Completed setting organisation folder process:\t\"" + new String(buf) + "\"");
 					}
 				}
 			}
@@ -165,7 +165,7 @@ public class MediaInfo {
 		ArrayList<MediaItem> media = new ArrayList<MediaItem> ();
 		
 		if(folder != null) {
-			//log.info("MediaInfo: Getting files from folder: " + folder);
+			//log.fine("MediaInfo: Getting files from folder: " + folder);
 			ArrayList <File> files = new ArrayList<File> (FileUtils.listFiles(folder, FileFilterUtils.fileFileFilter(), null));
 			
 			// Sort the files alphabetically
@@ -238,7 +238,7 @@ public class MediaInfo {
 				media.add(mi);
 			}
 		} else {
-			log.info("Error: Get media: folder is null" );
+			log.fine("Error: Get media: folder is null" );
 		}
 		return media;
 	}
@@ -270,7 +270,7 @@ public class MediaInfo {
 		try {
 			pstmt = conn.prepareStatement(sql);
 			pstmt.setInt(1, sId);
-			log.info("SQL: " + pstmt.toString());
+			log.fine("SQL: " + pstmt.toString());
 			
 			ResultSet resultSet = pstmt.executeQuery();
 			if(resultSet.next()) {
@@ -280,7 +280,7 @@ public class MediaInfo {
 				
 				
 			} else {
-				log.info("Error: Form identifier not found for form id: " + sId);
+				log.fine("Error: Form identifier not found for form id: " + sId);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

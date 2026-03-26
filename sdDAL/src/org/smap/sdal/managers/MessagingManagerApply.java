@@ -136,7 +136,7 @@ public class MessagingManagerApply {
 						String topic = rs.getString("topic");
 						String data = rs.getString("data");
 						
-						log.info("----------- Process message queue: " + id);
+						log.fine("----------- Process message queue: " + id);
 						
 						// Localisation
 						Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, o_id);
@@ -235,7 +235,7 @@ public class MessagingManagerApply {
 										true);		// create pending if needed
 							} else {
 								processed = false;
-								//log.info("Email Task: " + msg.subject + " to " + msg.email + " deferred to " + msg.scheduledAt);
+								//log.fine("Email Task: " + msg.subject + " to " + msg.email + " deferred to " + msg.scheduledAt);
 							}
 							
 							
@@ -291,7 +291,7 @@ public class MessagingManagerApply {
 						} else {
 							// Assume a direct email to be processed immediately
 		
-							log.info("+++++++++ opt in +++++++++ Direct Email");
+							log.fine("+++++++++ opt in +++++++++ Direct Email");
 							EmailServer emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, null, null, o_id);
 							if (emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 			
@@ -582,7 +582,7 @@ public class MessagingManagerApply {
 					tz = organisation.timeZone;
 				}
 				
-				log.info("++++++ Pending Message: " + topic + " " + description + " : " + data );
+				log.fine("++++++ Pending Message: " + topic + " " + description + " : " + data );
 
 				String status = "success";
 				
@@ -701,14 +701,14 @@ public class MessagingManagerApply {
 					
 				} else {
 
-					log.info("+++++++++ opt in send pending +++++++++ Unknown topic: " + topic);
+					log.fine("+++++++++ opt in send pending +++++++++ Unknown topic: " + topic);
 					status = "error";
 					
 				}
 				
 				pstmtConfirm.setString(1, status);
 				pstmtConfirm.setInt(2, id);
-				log.info(pstmtConfirm.toString());
+				log.fine(pstmtConfirm.toString());
 				pstmtConfirm.executeUpdate();
 
 				String note = localisation.getString("mo_pending_sent");
@@ -794,7 +794,7 @@ public class MessagingManagerApply {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, pId);
-			log.info("Get Project users: " + pstmt.toString());
+			log.fine("Get Project users: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				users.add(rs.getString(1));
@@ -829,7 +829,7 @@ public class MessagingManagerApply {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, taskId);
-			log.info("Get task users: " + pstmt.toString());
+			log.fine("Get task users: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				users.add(rs.getString(1));

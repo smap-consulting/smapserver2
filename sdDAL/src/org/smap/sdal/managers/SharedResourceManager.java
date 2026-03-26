@@ -175,7 +175,7 @@ public class SharedResourceManager {
 						// no conversion required
 						fileItem.write(savedFile);  
 					}
-					log.info("Uploaded file written to: " + savedFile.getAbsolutePath());
+					log.fine("Uploaded file written to: " + savedFile.getAbsolutePath());
 					
 					if(savedFile.exists()) {
 						
@@ -403,7 +403,7 @@ public class SharedResourceManager {
 			pstmt.setString(4, uploadedFileName);
 			pstmt.setString(5,  archiveFile.getAbsolutePath());
 			pstmt.setString(6,  user);
-			log.info("Save shared resource archive record: " + pstmt.toString());
+			log.fine("Save shared resource archive record: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) {try{pstmt.close();} catch (Exception e) {}}
@@ -440,7 +440,7 @@ public class SharedResourceManager {
 					pstmtList.setInt(1, oId);
 					pstmtList.setString(2, resourceFileName);
 					pstmtList.setInt(3, count - 10);
-					log.info("Get excess files: " + pstmtList.toString());
+					log.fine("Get excess files: " + pstmtList.toString());
 					rs = pstmtList.executeQuery();
 					while(rs.next()) {
 						int id = rs.getInt(1);
@@ -448,7 +448,7 @@ public class SharedResourceManager {
 						
 						File f = new File(filePath);
 						if(f.exists()) {
-							log.info("Deleting resource history file: " + f.getName());
+							log.fine("Deleting resource history file: " + f.getName());
 							f.delete();
 						}
 						
@@ -501,7 +501,7 @@ public class SharedResourceManager {
 				pstmt.setString(idx++,  sIdent);
 			}
 			
-			log.info("Get shared history: " + pstmt.toString());
+			log.fine("Get shared history: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
@@ -570,7 +570,7 @@ public class SharedResourceManager {
 			String basepath = GeneralUtilityMethods.getBasePath(request);
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			
-			log.info("Getting file: " + filename + " : " + linked);
+			log.fine("Getting file: " + filename + " : " + linked);
 			String filepath = null;
 			if(linked) {
 				int idx = filename.indexOf(".csv");
@@ -583,7 +583,7 @@ public class SharedResourceManager {
 				filepath = efm.getLinkedPhysicalFilePath(sd, 
 						efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent, user, cur.needCustomFile()), baseFileName)) 
 						+ ".csv";
-				log.info("%%%%%: Referencing: " + filepath);
+				log.fine("%%%%%: Referencing: " + filepath);
 			} else {
 				if(thumbs) {
 					filepath = basepath + "/media/" + sIdent+ "/thumbs/" + filename;
@@ -592,7 +592,7 @@ public class SharedResourceManager {
 				}
 			}
 			
-			log.info("File path: " + filepath);
+			log.fine("File path: " + filepath);
 			FileManager fm = new FileManager();
 			fm.getFile(response, filepath, filename);
 			
@@ -663,7 +663,7 @@ public class SharedResourceManager {
 					filename, settings, thumbs);
 			
 		}  catch (Exception e) {
-			log.info("Error: Failed to get file:" + e.getMessage());
+			log.fine("Error: Failed to get file:" + e.getMessage());
 			r = Response.status(Status.NOT_FOUND).build();
 		} finally {	
 			SDDataSource.closeConnection(connectionString, sd);	
@@ -724,13 +724,13 @@ public class SharedResourceManager {
 				mediaInfo.setFolder(basePath, user, oId, false);				 
 			}
 
-			log.info("Media query on: " + mediaInfo.getPath());
+			log.fine("Media query on: " + mediaInfo.getPath());
 
 			MediaResponse mResponse = new MediaResponse();
 			mResponse.files = mediaInfo.get(sId, null, forDevice);	
 			
 			if(sId > 0 && getall) {
-				log.info("Media getting files for survey: " + sId);
+				log.fine("Media getting files for survey: " + sId);
 				// Get a hashmap of the names to exclude
 				HashMap<String, String> exclude = new HashMap<> ();
 				for(MediaItem mi : mResponse.files) {
@@ -771,7 +771,7 @@ public class SharedResourceManager {
 		Response response = null;
 		String connectionString = "SurveyKPI-uploadSharedResourceFile";
 		
-		log.info("upload shared resource file -----------------------");
+		log.fine("upload shared resource file -----------------------");
 		
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();
 		String resourceName = null;
@@ -824,7 +824,7 @@ public class SharedResourceManager {
 						if(resourceName != null) {
 							resourceName = resourceName.trim();
 						}
-						log.info("Resource Name: " + resourceName);	
+						log.fine("Resource Name: " + resourceName);	
 						
 					} else if(item.getFieldName().equals("surveyId")) {
 						try {
@@ -837,21 +837,21 @@ public class SharedResourceManager {
 						} catch (Exception e) {
 							
 						}
-						log.info("Upload to survey: " + surveyId);
+						log.fine("Upload to survey: " + surveyId);
 						
 					} else if(item.getFieldName().equals("action")) {						
 						action = item.getString();
-						log.info("Action: " + action);
+						log.fine("Action: " + action);
 						
 					} else {
-						log.info("Unknown field name = " + item.getFieldName() + ", Value = " + item.getString());
+						log.fine("Unknown field name = " + item.getFieldName() + ", Value = " + item.getString());
 					}
 				} else {					
 					if(item.getName().trim().length() > 0) {
 						fileName = item.getName().trim();
 						fileItem = item;
 					} else {
-						log.info("No name specified for item in upload file");
+						log.fine("No name specified for item in upload file");
 					}
 				}
 			} 

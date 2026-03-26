@@ -198,17 +198,17 @@ public class TaskManager {
 
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setInt(1, projectId);
-			log.info("Get task groups: " + pstmt.toString());
+			log.fine("Get task groups: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			pstmtTotal = sd.prepareStatement(sqlTotal);	
 			pstmtTotal.setInt(1, projectId);
-			log.info("Get task groups totals: " + pstmtTotal.toString());
+			log.fine("Get task groups totals: " + pstmtTotal.toString());
 			ResultSet rsTotal = pstmtTotal.executeQuery();
 
 			pstmtComplete = sd.prepareStatement(sqlComplete);	
 			pstmtComplete.setInt(1, projectId);
-			log.info("Get task groups totals complete: " + pstmtComplete.toString());
+			log.fine("Get task groups totals complete: " + pstmtComplete.toString());
 			ResultSet rsComplete = pstmtComplete.executeQuery();
 
 			while (rs.next()) {
@@ -271,7 +271,7 @@ public class TaskManager {
 
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setInt(1, tgId);
-			log.info("Get task group details: " + pstmt.toString());
+			log.fine("Get task group details: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 
@@ -478,7 +478,7 @@ public class TaskManager {
 			}
 			
 			// Get the data
-			log.info("Get tasks: " + pstmt.toString());
+			log.fine("Get tasks: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			int index = 0;
@@ -731,7 +731,7 @@ public class TaskManager {
 			pstmt.setString(paramIdx++, userName);
 			
 			// Get the data
-			log.info("Get unassigned tasks: " + pstmt.toString());
+			log.fine("Get unassigned tasks: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			JsonParser parser = new JsonParser();
 			int index = 0;
@@ -881,7 +881,7 @@ public class TaskManager {
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setInt(1, oId);
 
-			log.info("Get locations: " + pstmt.toString());
+			log.fine("Get locations: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				Location locn = new Location();
@@ -969,7 +969,7 @@ public class TaskManager {
 		
 		try {
 
-			// log.info("Set autocommit false");
+			// log.fine("Set autocommit false");
 			sd.setAutoCommit(false);
 
 			// Remove existing data
@@ -1002,7 +1002,7 @@ public class TaskManager {
 			sd.rollback();
 			throw(e);
 		} finally {
-			// log.info("Set autocommit true");
+			// log.fine("Set autocommit true");
 			sd.setAutoCommit(true);
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 			try {if (pstmtDelete != null) {pstmtDelete.close();} } catch (SQLException e) {	}
@@ -1039,7 +1039,7 @@ public class TaskManager {
 			int source_s_id = GeneralUtilityMethods.getSurveyId(sd, source_s_ident);
 			pstmtGetRules = sd.prepareStatement(sqlGetRules);
 			pstmtGetRules.setInt(1, source_s_id);
-			log.info("Get task rules: " + pstmtGetRules.toString());
+			log.fine("Get task rules: " + pstmtGetRules.toString());
 
 			ResultSet rs = pstmtGetRules.executeQuery();
 			while(rs.next()) {
@@ -1074,8 +1074,8 @@ public class TaskManager {
 						boolean complete_all = rs.getBoolean(6);
 						boolean assign_auto = rs.getBoolean(7);
 						
-						log.info("Assign Survey String: " + rs.getString(3));
-						log.info("userevent: matching rule: " + as.task_group_name + " for survey: " + source_s_id);	// For log
+						log.fine("Assign Survey String: " + rs.getString(3));
+						log.fine("userevent: matching rule: " + as.task_group_name + " for survey: " + source_s_id);	// For log
 		
 						/*
 						 * Check filter to see if this rule should be fired
@@ -1087,7 +1087,7 @@ public class TaskManager {
 						if(as.filter != null && as.filter.advanced != null) {
 							fires = GeneralUtilityMethods.testFilter(sd, cResults, remoteUser, localisation, survey, as.filter.advanced, instanceId, tz, "Tasks");
 							if(!fires) {
-								log.info("Rule not fired as filter criteria not met: " + as.filter.advanced);
+								log.fine("Rule not fired as filter criteria not met: " + as.filter.advanced);
 							}
 						} else if(as.filter != null && as.filter.qId > 0) {
 							
@@ -1098,7 +1098,7 @@ public class TaskManager {
 									filterQuestion.getSimpleFilterSql(as.filter.oValue, as.filter.qInteger, as.filter.qStartDate, as.filter.qEndDate, as.filter.qText), 
 									instanceId, tz, "Tasks");
 							if(!fires) {
-								log.info("Rule not fired as filter criteria not met: " + as.filter.advanced);
+								log.fine("Rule not fired as filter criteria not met: " + as.filter.advanced);
 							}
 								
 						} else {
@@ -1106,12 +1106,12 @@ public class TaskManager {
 						}
 						
 						if(fires && source_s_id == target_s_id) {
-							log.info("Rule fired however target survey id = source id (" + source_s_id + ")");
+							log.fine("Rule fired however target survey id = source id (" + source_s_id + ")");
 						}
 						
 		
 						if(fires) {
-							log.info("userevent: rule fires: " + (as.filter == null ? "no filter" : "yes filter") + " for survey: " + source_s_id + 
+							log.fine("userevent: rule fires: " + (as.filter == null ? "no filter" : "yes filter") + " for survey: " + source_s_id + 
 									" task survey: " + target_s_id);
 							TaskInstanceData tid = getTaskInstanceData(sd, cResults, 
 									source_s_id, instanceId, as, address); // Get data from new submission
@@ -1155,7 +1155,7 @@ public class TaskManager {
 						}
 					}
 				} catch (Exception e) {
-					log.info("Assignment: " + asString);
+					log.fine("Assignment: " + asString);
 					lm.writeLog(sd, source_s_id, "subscriber", LogManager.TASK, e.getMessage(), 0, null);
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
@@ -1254,7 +1254,7 @@ public class TaskManager {
 					Point p = gson.fromJson(location, Point.class);
 					taskPoint = p.getAsText();
 				} else if(location.toLowerCase().contains("linestring")) {
-					log.info("Starts with linestring: " + tid.location.split(" ").length);
+					log.fine("Starts with linestring: " + tid.location.split(" ").length);
 					if(location.split(" ").length < 3) {	// Convert to point if there is only one location in the line
 						location = location.replaceFirst("LINESTRING", "POINT");
 					}
@@ -1348,7 +1348,7 @@ public class TaskManager {
 			 */
 			int userId = as.user_id;
 			int roleId = as.role_id;
-			log.info("Assign user: userId: "  + userId + " roleId: " + roleId + " tid.ident: " + tid.ident);
+			log.fine("Assign user: userId: "  + userId + " roleId: " + roleId + " tid.ident: " + tid.ident);
 			int fixedRoleId = as.fixed_role_id;
 			int oId = GeneralUtilityMethods.getOrganisationIdForSurveyIdent(sd, target_s_ident);
 			
@@ -1356,7 +1356,7 @@ public class TaskManager {
 			String emails = as.emails;
 			if(tid.ident != null) {
 			
-				log.info("Assign Ident: " + tid.ident);
+				log.fine("Assign Ident: " + tid.ident);
 				if(as.user_id == -2) {
 					userId = GeneralUtilityMethods.getUserIdOrgCheck(sd, tid.ident, oId);   // Its a user ident
 				} else if (as.role_id == -2){
@@ -1487,7 +1487,7 @@ public class TaskManager {
 			
 			pstmt = cResults.prepareStatement(sql.toString());
 			pstmt.setString(1, instanceId);
-			log.info("Get instance task data: " + pstmt.toString());
+			log.fine("Get instance task data: " + pstmt.toString());
 
 			ResultSet rsData = pstmt.executeQuery();
 			if(rsData.next()) {
@@ -1528,7 +1528,7 @@ public class TaskManager {
 		
 		Response response = null;
 		String connectionString = "api - Tasks - add new task";
-		log.info("New task: " + task);
+		log.fine("New task: " + task);
 		
 		if(task == null) {
 			response = Response.serverError().entity("No task has been provided").build();
@@ -1702,7 +1702,7 @@ public class TaskManager {
 				} else {
 					pstmtGetSurveyIdent.setString(1, tsd.survey_name);
 					pstmtGetSurveyIdent.setInt(2, pId);
-					log.info("Get survey id: " + pstmtGetSurveyIdent.toString());
+					log.fine("Get survey id: " + pstmtGetSurveyIdent.toString());
 					ResultSet rs = pstmtGetSurveyIdent.executeQuery();
 					if(rs.next()) {
 						tsd.survey_ident = rs.getString(1);
@@ -1720,7 +1720,7 @@ public class TaskManager {
 	
 					pstmtGetAssigneeId.setString(1, asd.assignee_ident);
 					pstmtGetAssigneeId.setInt(2, pId);
-					log.info("Get user id: " + pstmtGetAssigneeId.toString());
+					log.fine("Get user id: " + pstmtGetAssigneeId.toString());
 					ResultSet rs = pstmtGetAssigneeId.executeQuery();
 					if(rs.next()) {
 						asd.assignee = rs.getInt(1);
@@ -2158,7 +2158,7 @@ public class TaskManager {
 			if(hasAssignments && !emailAction) {				
 				pstmtGetUsers = sd.prepareStatement(sqlGetAssignedUsers + whereAssignmentsSql);
 				pstmtGetUsers.setInt(1, pId);
-				log.info("Notify currently assigned users: " + pstmtGetUsers.toString());
+				log.fine("Notify currently assigned users: " + pstmtGetUsers.toString());
 				ResultSet rsNot = pstmtGetUsers.executeQuery();
 				HashMap<String, String> usersNotified = new HashMap<>();
 				while(rsNot.next()) {
@@ -2187,13 +2187,13 @@ public class TaskManager {
 					// Delete temporary users
 					pstmtDelTempUsers = sd.prepareStatement(sqlDeleteAssignedTemporaryUsers + whereAssignmentsSql + ")");
 					pstmtDelTempUsers.setInt(1, pId);
-					log.info("Del temp users created for tasks to be deleted: " + pstmtDelTempUsers.toString());
+					log.fine("Del temp users created for tasks to be deleted: " + pstmtDelTempUsers.toString());
 					pstmtDelTempUsers.executeUpdate();
 					
 					// Set assignments to deleted
 					pstmt = sd.prepareStatement(deleteAssignmentsSql + whereAssignmentsSql);
 					pstmt.setInt(1, pId);
-					log.info("Delete assignments: " + pstmt.toString());
+					log.fine("Delete assignments: " + pstmt.toString());
 					pstmt.executeUpdate();
 				}
 				
@@ -2201,7 +2201,7 @@ public class TaskManager {
 				if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
 				pstmt = sd.prepareStatement(deleteTaskSql + whereTasksSql);
 				pstmt.setInt(1, pId);
-				log.info("Delete unassigned and singly assigned tasks: " + pstmt.toString());
+				log.fine("Delete unassigned and singly assigned tasks: " + pstmt.toString());
 				pstmt.executeUpdate();
 				
 				updateAssigned = null;
@@ -2215,7 +2215,7 @@ public class TaskManager {
 					// Set assignments to accepted
 					pstmt = sd.prepareStatement(acceptedAssignmentsSql + whereAssignmentsSql);
 					pstmt.setInt(1, pId);
-					log.info("Set assgignments accepted: " + pstmt.toString());
+					log.fine("Set assgignments accepted: " + pstmt.toString());
 					pstmt.executeUpdate();
 				}
 				
@@ -2236,7 +2236,7 @@ public class TaskManager {
 					pstmtCreateAssignments.setInt(1, action.userId);
 					pstmtCreateAssignments.setInt(2, rs.getInt(1));
 					pstmtCreateAssignments.setInt(3, action.userId);
-					log.info("Create assignment: " + pstmtCreateAssignments.toString());
+					log.fine("Create assignment: " + pstmtCreateAssignments.toString());
 					pstmtCreateAssignments.executeUpdate();
 				}
 				
@@ -2245,11 +2245,11 @@ public class TaskManager {
 				 * Set remaining auto assign tasks to cancelled
 				 */
 				pstmtDeleteHardNewAssignments.setInt(1, pId);
-				log.info("Delete new assignments: " + pstmtDeleteHardNewAssignments.toString());
+				log.fine("Delete new assignments: " + pstmtDeleteHardNewAssignments.toString());
 				pstmtDeleteHardNewAssignments.executeUpdate();
 				
 				pstmtDeleteNewAssignments.setInt(1, pId);
-				log.info("Delete new assignments: " + pstmtDeleteNewAssignments.toString());
+				log.fine("Delete new assignments: " + pstmtDeleteNewAssignments.toString());
 				pstmtDeleteNewAssignments.executeUpdate();
 				
 				// Update assignments
@@ -2259,7 +2259,7 @@ public class TaskManager {
 						pstmt.setInt(1,action.userId);
 						pstmt.setInt(2,action.userId);
 						pstmt.setInt(3, pId);				
-						log.info("Update Assignments: " + pstmt.toString());
+						log.fine("Update Assignments: " + pstmt.toString());
 						int count = pstmt.executeUpdate();
 						
 						// Notify the user who has been assigned the tasks
@@ -2273,7 +2273,7 @@ public class TaskManager {
 						// Set assignments to deleted
 						pstmt = sd.prepareStatement(deleteAssignmentsSql + whereAssignmentsSql);
 						pstmt.setInt(1, pId);
-						log.info("Delete assignments: " + pstmt.toString());
+						log.fine("Delete assignments: " + pstmt.toString());
 						// The count of tasks for these users has already been decremented when the notification was sent to them
 					}
 				}
@@ -2290,7 +2290,7 @@ public class TaskManager {
 					// 1. Get tasks and loop
 					pstmtEmailDetails = sd.prepareStatement(sqlEmailDetails + whereAssignmentsSql);
 					pstmtEmailDetails.setInt(1, pId);
-					log.info("Get email tasks: " + pstmtEmailDetails.toString());
+					log.fine("Get email tasks: " + pstmtEmailDetails.toString());
 					
 					ResultSet rs = pstmtEmailDetails.executeQuery();
 					while(rs.next()) {
@@ -2304,7 +2304,7 @@ public class TaskManager {
 						String instanceId = rs.getString("update_id");
 						
 						if(action.action.equals("email_unsent") && !status.equals("unsent") && !status.equals("blocked")) {
-							log.info("Ignoring task with status " + status + " when sending unsent");
+							log.fine("Ignoring task with status " + status + " when sending unsent");
 							continue;
 						}
 						
@@ -2397,7 +2397,7 @@ public class TaskManager {
 			pstmt.setInt(3, pId);
 			pstmt.setInt(4, taskId);
 
-			log.info("Update start date and time: " + pstmt.toString());
+			log.fine("Update start date and time: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 			// Create a notification of the change
@@ -2442,14 +2442,14 @@ public class TaskManager {
 			pstmtUsers = sd.prepareStatement(sqlUsers);
 			pstmtUsers.setInt(1, tgId);
 
-			log.info("Delete temporary user: " + pstmtUsers.toString());
+			log.fine("Delete temporary user: " + pstmtUsers.toString());
 			pstmtUsers.executeUpdate();
 
 			// Notify users whose task has been deleted
 			MessagingManager mm = new MessagingManager(localisation);
 			pstmtGetUsers = sd.prepareStatement(sqlGetUsers);
 			pstmtGetUsers.setInt(1, tgId);
-			log.info("Get task users: " + pstmtGetUsers.toString());
+			log.fine("Get task users: " + pstmtGetUsers.toString());
 			ResultSet rs = pstmtGetUsers.executeQuery();
 			HashMap<String, String> usersNotified = new HashMap<>();
 			while (rs.next()) {
@@ -2464,14 +2464,14 @@ public class TaskManager {
 			// Delete the tasks
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, tgId);
-			log.info("Delete tasks in task group: " + pstmt.toString());
+			log.fine("Delete tasks in task group: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			// Delete the assignments
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
 			pstmt = sd.prepareStatement(sqlAssignments);
 			pstmt.setInt(1, tgId);
-			log.info("Delete assignments in task group: " + pstmt.toString());
+			log.fine("Delete assignments in task group: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} finally {
@@ -2504,7 +2504,7 @@ public class TaskManager {
 			// Delete the task
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, taskId);
-			log.info("Delete tasks in task group: " + pstmt.toString());
+			log.fine("Delete tasks in task group: " + pstmt.toString());
 			pstmt.executeUpdate();
 				
 			// Cancel the assignments
@@ -2572,7 +2572,7 @@ public class TaskManager {
 					pstmt = sd.prepareStatement(sql);
 					pstmt.setInt(1, taskId);
 					pstmt.setInt(2, assignmentId);
-					log.info("Get other asignments: " + pstmt.toString());
+					log.fine("Get other asignments: " + pstmt.toString());
 					ResultSet rs2 = pstmt.executeQuery();
 		
 					while (rs2.next()) {
@@ -2580,7 +2580,7 @@ public class TaskManager {
 						int assignee = rs2.getInt("assignee");
 						String status = rs2.getString("status");
 						if(aId != assignmentId) {
-							log.info("Cancelling other assignment");
+							log.fine("Cancelling other assignment");
 							cancelAssignment(
 									sd, 
 									cResults,
@@ -2635,14 +2635,14 @@ public class TaskManager {
 			// 1. Delete any temporary users created for this task
 			pstmtUsers = sd.prepareStatement(sqlUsers);
 			pstmtUsers.setInt(1, assignmentId);
-			log.info("Delete temporary user for assignment: " + pstmtUsers.toString());
+			log.fine("Delete temporary user for assignment: " + pstmtUsers.toString());
 			pstmtUsers.executeUpdate();
 			
 			// 2. Notify users whose task has been deleted
 			MessagingManager mm = new MessagingManager(localisation);
 			pstmtGetUsers = sd.prepareStatement(sqlGetUsers);
 			pstmtGetUsers.setInt(1, assignmentId);
-			log.info("Get task users: " + pstmtGetUsers.toString());
+			log.fine("Get task users: " + pstmtGetUsers.toString());
 			ResultSet rs = pstmtGetUsers.executeQuery();
 			while (rs.next()) {
 				String ident = rs.getString("ident");
@@ -2653,7 +2653,7 @@ public class TaskManager {
 			// 3. Cancel the assignments
 			pstmtCancel = sd.prepareStatement(sqlAssignments);
 			pstmtCancel.setInt(1, assignmentId);
-			log.info("Cancel Assignment: " + pstmtCancel.toString());
+			log.fine("Cancel Assignment: " + pstmtCancel.toString());
 			pstmtCancel.executeUpdate();
 			
 			// Update Record Event Manager
@@ -2831,7 +2831,7 @@ public class TaskManager {
 		pstmt.setString(21, initial_data);	
 		pstmt.setInt(22, show_dist);	
 
-		log.info("Create a new task: " + pstmt.toString());
+		log.fine("Create a new task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
 		
 	}
@@ -2914,7 +2914,7 @@ public class TaskManager {
 		pstmt.setInt(idx++, tId);
 		pstmt.setInt(idx++, tgId);
 
-		log.info("Update a task: " + pstmt.toString());
+		log.fine("Update a task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
 	}
 	
@@ -2976,7 +2976,7 @@ public class TaskManager {
 		pstmt.setString(4,  status);	
 		pstmt.setInt(5,  task_id);
 
-		log.info("Create a new assignment: " + pstmt.toString());
+		log.fine("Create a new assignment: " + pstmt.toString());
 		pstmt.executeUpdate();
 		
 		ResultSet rs = pstmt.getGeneratedKeys();
@@ -2992,7 +2992,7 @@ public class TaskManager {
 		if(updateId != null) {
 			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
 			if(tableName != null) {
-				log.info("Record event: " + sIdent + " : " + tableName);
+				log.fine("Record event: " + sIdent + " : " + tableName);
 				String assigned = null;
 				if(email != null) {
 					assigned = email;
@@ -3185,11 +3185,11 @@ public class TaskManager {
 			if(fixedRoleId > 0) {
 				pstmtRoles2.setInt(1, roleId);
 				pstmtRoles2.setInt(2, fixedRoleId);
-				log.info("Get roles2: " + pstmtRoles2.toString());
+				log.fine("Get roles2: " + pstmtRoles2.toString());
 				rsRoles = pstmtRoles2.executeQuery();
 			} else {
 				pstmtRoles.setInt(1, roleId);
-				log.info("Get roles: " + pstmtRoles.toString());
+				log.fine("Get roles: " + pstmtRoles.toString());
 				rsRoles = pstmtRoles.executeQuery();
 			}	
 			
@@ -3209,7 +3209,7 @@ public class TaskManager {
 				um.incrementTotalTasks(sd, userIdent);
 			}
 			if(count == 0) {
-				log.info("No matching users found");
+				log.fine("No matching users found");
 			}
 		} else if(assign_auto) {		// This is a self assign task, don't assign users but increment their task count
 
@@ -3220,7 +3220,7 @@ public class TaskManager {
 			try {
 				pstmt = sd.prepareStatement(sqlUsers);
 				pstmt.setInt(1, pId);
-				log.info("Get users to increment task count for self assign: " + pstmt.toString());
+				log.fine("Get users to increment task count for self assign: " + pstmt.toString());
 				rs = pstmt.executeQuery();
 				while(rs.next()) {
 					String userIdent = rs.getString("ident");
@@ -3295,7 +3295,7 @@ public class TaskManager {
 						assign_auto);
 				// Create a temporary user embedding the assignment id in the action link, get the link to that user
 				action.assignmentId = aId;
-				log.info("######## Creating action link inside task manager: " + action.single);
+				log.fine("######## Creating action link inside task manager: " + action.single);
 				String link = am.getLink(sd, action, oId, true);	// For email tasks it is always a single submission
 				
 				// Update the assignment with the link to the action
@@ -3422,12 +3422,12 @@ public class TaskManager {
 				/*
 				 * Add details from the survey to the subject and email content
 				 */
-				log.info("xxxxxxxxxxxxx1: " + msg.content);
+				log.fine("xxxxxxxxxxxxx1: " + msg.content);
 				if(survey != null) {
 					msg.subject = sm.fillStringTemplate(survey, msg.subject);
 					msg.content = sm.fillStringTemplate(survey, msg.content);
 				}
-				log.info("xxxxxxxxxxxxx2: " + msg.content);
+				log.fine("xxxxxxxxxxxxx2: " + msg.content);
 				TextManager tm = new TextManager(localisation, tz);
 				ArrayList<String> text = new ArrayList<> ();
 				text.add(msg.subject);
@@ -3442,7 +3442,7 @@ public class TaskManager {
 							organisation.id);
 				msg.subject = text.get(0);
 				msg.content = text.get(1);
-				log.info("xxxxxxxxxxxxx3: " + msg.content);
+				log.fine("xxxxxxxxxxxxx3: " + msg.content);
 				
 				if(msg.actionLink != null) {
 					docURL = scheme + "://" + server + "/webForm" + msg.actionLink;
@@ -3460,7 +3460,7 @@ public class TaskManager {
 					if(emailServer != null) {
 						if(UtilityMethodsEmail.isValidEmail(msg.email)) {
 								
-							log.info("userevent: " + msg.user + " sending email of '" + docURL + "' to " + msg.email);
+							log.fine("userevent: " + msg.user + " sending email of '" + docURL + "' to " + msg.email);
 							
 							// Set the subject
 							String subject = "";
@@ -3518,7 +3518,7 @@ public class TaskManager {
 								notify_details = notify_details.replace("%s5", msg.subject);
 							}
 							
-							log.info("+++ emailing task to: " + msg.email + " docUrl: " + docURL + 
+							log.fine("+++ emailing task to: " + msg.email + " docUrl: " + docURL + 
 									" from: " + from + 
 									" subject: " + subject +
 									" smtp_host: " + emailServer.smtpHost +
@@ -3535,7 +3535,7 @@ public class TaskManager {
 										setAssignmentStatus(sd, msg.aId, "unsubscribed");
 									} else {
 										if(subStatus.optedIn || !organisation.send_optin) {
-											log.info("Send email: " + msg.email + " : " + docURL);
+											log.fine("Send email: " + msg.email + " : " + docURL);
 													
 											String projectName = null;
 											if(msg.pId > 0) {
@@ -3649,7 +3649,7 @@ public class TaskManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, status);
 			pstmt.setInt(2, aId);
-			log.info("Set assignment status: " + pstmt.toString());
+			log.fine("Set assignment status: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
@@ -3838,7 +3838,7 @@ public class TaskManager {
 			out = out.replaceAll("\\$\\{scheduled\\}", task.from.toString());
 
 		} else {
-			log.info("Could not fill task template details for: " + out + " : " + ((task == null) ? "task is null" : "task not null" ));
+			log.fine("Could not fill task template details for: " + out + " : " + ((task == null) ? "task is null" : "task not null" ));
 		}
 
 		return out;
@@ -3877,7 +3877,7 @@ public class TaskManager {
 			pstmtUniqueTg = sd.prepareStatement(checkUniqueTg);
 			pstmtUniqueTg.setString(1, taskGroupName);
 			pstmtUniqueTg.setInt(2, projectId);
-			log.info("Check uniqueness of task group name in project: " + pstmtUniqueTg.toString());
+			log.fine("Check uniqueness of task group name in project: " + pstmtUniqueTg.toString());
 			ResultSet rs = pstmtUniqueTg.executeQuery();
 	
 			if(rs.next()) {
@@ -3911,7 +3911,7 @@ public class TaskManager {
 				pstmtTaskGroup.setInt(7, dlDist);
 				pstmtTaskGroup.setBoolean(8, complete_all);
 				pstmtTaskGroup.setBoolean(9, assign_auto);
-				log.info("Insert into task group: " + pstmtTaskGroup.toString());
+				log.fine("Insert into task group: " + pstmtTaskGroup.toString());
 				pstmtTaskGroup.execute();
 		
 				rsKeys = pstmtTaskGroup.getGeneratedKeys();
@@ -3952,7 +3952,7 @@ public class TaskManager {
 			
 			if(assignmentId > 0) {
 				pstmt.setInt(1, assignmentId);
-				log.info("Updating assignment status: " + pstmt.toString());
+				log.fine("Updating assignment status: " + pstmt.toString());
 				pstmt.executeUpdate();
 
 		

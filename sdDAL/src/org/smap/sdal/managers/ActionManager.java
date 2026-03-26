@@ -110,7 +110,7 @@ public class ActionManager {
 			a.groupSurvey = groupSurvey;
 			a.prikey = prikey;
 
-			log.info("Apply managed actions: Action: " + a.action + " : " + a.notify_type + " : " + a.notify_person);
+			log.fine("Apply managed actions: Action: " + a.action + " : " + a.notify_type + " : " + a.notify_person);
 
 			addAction(request, sd, a, oId, localisation, a.action, null, priority, value);
 		}
@@ -129,13 +129,13 @@ public class ActionManager {
 			if (priType != null && priType.equals("integer")) {
 				pstmt = cResults.prepareStatement(sql);
 				pstmt.setInt(1, prikey);
-				log.info("Get priority: " + pstmt.toString());
+				log.fine("Get priority: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				if (rs.next()) {
 					priority = rs.getInt(1);
 				}
 			} else {
-				log.info("Cannot get priority for table: " + tableName + " and prikey " + prikey);
+				log.fine("Cannot get priority for table: " + tableName + " and prikey " + prikey);
 			}
 		} finally {
 			if (pstmt != null) {
@@ -163,7 +163,7 @@ public class ActionManager {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, userIdent);
-			log.info("Get action details: " + pstmt.toString());
+			log.fine("Get action details: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			if (rs.next()) {
@@ -261,10 +261,10 @@ public class ActionManager {
 					topic = a.notify_person;
 				}
 			} else {
-				log.info("Info: User attempted to use a notify type other than ident");
+				log.fine("Info: User attempted to use a notify type other than ident");
 			}
 		} else {
-			log.info("Error: Notify type null for message: " + msg);
+			log.fine("Error: Notify type null for message: " + msg);
 		}
 
 		/*
@@ -284,7 +284,7 @@ public class ActionManager {
 		if (topic != null) {
 			mm.createMessage(sd, oId, topic, msg, null);
 		} else {
-			log.info("Error: Null topic for message: " + msg);
+			log.fine("Error: Null topic for message: " + msg);
 		}
 
 	}
@@ -294,7 +294,7 @@ public class ActionManager {
 		String tempUserId = null;
 		String link = null;
 
-		log.info("###### getLink: action single is: " + singleSubmission);
+		log.fine("###### getLink: action single is: " + singleSubmission);
 		UserManager um = new UserManager(localisation);
 		tempUserId = "u" + String.valueOf(UUID.randomUUID());
 		User u = new User();
@@ -308,11 +308,11 @@ public class ActionManager {
 		Project p = new Project();
 		p.id = a.pId;
 		u.projects.add(p);
-		log.info("xxxxxxxxxxxxxxxxx p1: " + a.pId);
+		log.fine("xxxxxxxxxxxxxxxxx p1: " + a.pId);
 		// Check to see if the survey to be updated was in a different project
 		if (a.surveyIdent != null) {
 			int p2Id = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, a.surveyIdent);
-			log.info("xxxxxxxxxxxxxxxxx p2Id: " + p2Id);
+			log.fine("xxxxxxxxxxxxxxxxx p2Id: " + p2Id);
 			if (p2Id != a.pId && p2Id != 0) {
 				Project p2 = new Project();
 				p2.id = p2Id;
@@ -375,7 +375,7 @@ public class ActionManager {
 
 					for (Role r : a.roles) {
 						pstmtInsertRole.setInt(2, r.id);
-						log.info("Insert role: " + pstmtInsertRole.toString());
+						log.fine("Insert role: " + pstmtInsertRole.toString());
 						pstmtInsertRole.executeUpdate();
 					}
 				}
@@ -396,7 +396,7 @@ public class ActionManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, gson.toJson(a));
 			pstmt.setString(2, userIdent);
-			log.info("Update action details: " + pstmt.toString());
+			log.fine("Update action details: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} finally {
@@ -474,7 +474,7 @@ public class ActionManager {
 			 * Process each column
 			 */
 			HashMap<String, ArrayList<DataItemChange>> changeMap = new HashMap<>();
-			// log.info("Set autocommit false");
+			// log.fine("Set autocommit false");
 			cResults.setAutoCommit(false);
 			for (int i = 0; i < updates.size(); i++) {
 
@@ -546,13 +546,13 @@ public class ActionManager {
 					} else if (tc.type.equals("string")) {
 						pstmtUpdate.setString(paramCount++, u.value);
 					} else {
-						log.info("Warning: unknown type: " + tc.type + " value: " + u.value);
+						log.fine("Warning: unknown type: " + tc.type + " value: " + u.value);
 						pstmtUpdate.setString(paramCount++, u.value);
 					}
 				}
 				pstmtUpdate.setInt(paramCount++, u.prikey);
 
-				// log.info("Updating managed survey: " + pstmtUpdate.toString());
+				// log.fine("Updating managed survey: " + pstmtUpdate.toString());
 				int count = pstmtUpdate.executeUpdate();
 				if (count == 0) {
 					throw new Exception(
@@ -605,7 +605,7 @@ public class ActionManager {
 		} finally {
 
 			try {
-				// log.info("Set autocommit true");
+				// log.fine("Set autocommit true");
 				cResults.setAutoCommit(true);
 			} catch (Exception ex) {
 			}
@@ -711,7 +711,7 @@ public class ActionManager {
 			 * Process each column
 			 */
 			ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
-			// log.info("Set autocommit false");
+			// log.fine("Set autocommit false");
 			cResults.setAutoCommit(false);
 			for (int i = 0; i < updates.size(); i++) {
 
@@ -834,7 +834,7 @@ public class ActionManager {
 					} else if (tc.type.equals("string")) {
 						pstmtUpdate.setString(paramCount++, u.value);
 					} else {
-						log.info("Warning: unknown type: " + tc.type + " value: " + u.value);
+						log.fine("Warning: unknown type: " + tc.type + " value: " + u.value);
 						pstmtUpdate.setString(paramCount++, u.value);
 					}
 				}
@@ -855,7 +855,7 @@ public class ActionManager {
 					pstmtUpdate.setString(paramCount++, instanceId);
 				}
 
-				log.info("Updating managed survey: " + pstmtUpdate.toString());
+				log.fine("Updating managed survey: " + pstmtUpdate.toString());
 				int count = pstmtUpdate.executeUpdate();
 				if (count == 0) {
 					throw new Exception(
@@ -911,7 +911,7 @@ public class ActionManager {
 		} finally {
 
 			try {
-				log.info("Set autocommit true");
+				log.fine("Set autocommit true");
 				cResults.setAutoCommit(true);
 			} catch (Exception ex) {
 			}
@@ -951,7 +951,7 @@ public class ActionManager {
 			ResultSet rs = null;
 
 			pstmt.setInt(1, o_id);
-			log.info("Get user list: " + pstmt.toString());
+			log.fine("Get user list: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 			while (rs.next()) {
 				User user = new User();
