@@ -275,11 +275,10 @@ public class SubscriberBatch {
 								pstmtEnqueue.setString(4, gson.toJson(ue));
 								pstmtEnqueue.executeUpdate();
 								log.fine("Enqueue new submission: " + ue.getId());
+								// Mark as queued only when actually enqueued
+								pstmtQueueDone.setInt(1, ue.getId());
+								pstmtQueueDone.executeUpdate();
 							}
-
-							// Mark as queued
-							pstmtQueueDone.setInt(1, ue.getId());
-							pstmtQueueDone.executeUpdate();
 						}
 
 						dbc.sd.commit();  // Release locks for this batch

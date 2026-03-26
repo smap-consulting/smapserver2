@@ -142,7 +142,7 @@ public class QueueManager {
 					+ "group by worker_host, queue_name, db_status";
 			pstmtStats = sd.prepareStatement(sqlStats);
 
-			queue.workers = getActiveWorkers(sd, "subscriber_type = 'upload'");
+			queue.workers = getActiveWorkers(sd, "subscriber_type = 'upload' and queue_name not like 'qm%'");
 
 			rs = pstmtStats.executeQuery();
 			while(rs.next()) {
