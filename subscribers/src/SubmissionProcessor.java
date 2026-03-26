@@ -217,7 +217,13 @@ public class SubmissionProcessor {
 							SubscriberEvent se = new SubscriberEvent();
 							
 							int oId = 0;
-							oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
+							try {
+								oId = GeneralUtilityMethods.getOrganisationIdForSurvey(dbc.sd, ue.getSurveyId());
+							} catch (Exception e) {
+								log.log(Level.SEVERE, e.getMessage(), e);
+								se.setStatus("error");
+								se.setReason(e.getMessage());
+							}
 							
 							if(SMSManager.SMS_TYPE.equals(ue.getType()) || SMSManager.NEW_CASE.equals(ue.getType())) {
 								// Message either newly arrived or being reused as a new case
@@ -382,10 +388,13 @@ public class SubmissionProcessor {
 								}
 							} else if(ue.getAssignmentId() > 0) {
 								topic =  LogManager.SUBMISSION_TASK;
-							} else if(ue.getTemporaryUser() || GeneralUtilityMethods.isTemporaryUser(dbc.sd, ue.getUserName())) {	// Note the temporaryUser flag in ue is only set for submissions with an action
-								topic = LogManager.SUBMISSION_ANON;
 							} else {
-								topic = LogManager.SUBMISSION;
+								boolean isAnon = ue.getTemporaryUser();  // Note the temporaryUser flag in ue is only set for submissions with an action
+								if (!isAnon) {
+									try { isAnon = GeneralUtilityMethods.isTemporaryUser(dbc.sd, ue.getUserName()); }
+									catch (Exception e) { log.log(Level.SEVERE, e.getMessage(), e); }
+								}
+								topic = isAnon ? LogManager.SUBMISSION_ANON : LogManager.SUBMISSION;
 							}
 
 							lm.writeLog(dbc.sd, ue.getSurveyId(), ue.getUserName(), topic, status + " : " 
