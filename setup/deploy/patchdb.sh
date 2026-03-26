@@ -346,6 +346,12 @@ if [ $u2004 -eq 1 ]; then
 cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
 fi
 
+# Make sure there is a logging properties file in the settings directory
+if [ ! -f "/smap/settings/smap-logging.properties" ]; then
+    echo "Default logging properties file added"
+    sudo cp config_files/smap-logging.properties /smap/settings
+fi
+
 systemctl daemon-reload
 cd ../deploy
  
@@ -359,12 +365,6 @@ echo "\COPY language_codes (code, aws_translate, aws_transcribe, transcribe_defa
 echo "Setting version for about page"
 full_version=`cat ./full_version`
 echo "update server set version = '$full_version'" | sudo -i -u postgres $PSQL -q -d survey_definitions 2>&1
-
-# Make sure there is a logging properties file in the settings directory
-if [ ! -f "/smap/settings/smap-logging.properties" ]; then
-    echo "Default logging properties file added"
-    sudo cp config_files/smap-logging.properties /smap/settings
-fi
 
 # update version reference
 echo "2603" > /smap_bin/smap_version
