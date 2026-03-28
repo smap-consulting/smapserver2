@@ -250,9 +250,10 @@ public class Survey {
 				+ "track_changes,"
 				+ "auto_translate,"
 				+ "default_logo,"
-				+ "compress_pdf) "
+				+ "compress_pdf,"
+				+ "turnstile) "
 				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
@@ -296,6 +297,7 @@ public class Survey {
 			pstmt.setBoolean(26, surveyData.autoTranslate);
 			pstmt.setString(27, surveyData.default_logo);
 			pstmt.setBoolean(28, surveyData.compress_pdf);
+			pstmt.setBoolean(29, surveyData.turnstile);
 			pstmt.executeUpdate();
 			
 			// If an ident was not provided then assign a new ident based on the survey id
