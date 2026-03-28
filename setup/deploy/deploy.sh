@@ -93,7 +93,7 @@ then
 	rm -rf /var/www/smap/*.html
 	rm -rf /var/www/smap/*.js
         rm -rf /var/www/smap/*.json
-	tar -xzf $deploy_from/smapServer.tgz -C /var/www/smap
+	tar -xzf $deploy_from/smapServer.tgz -C /var/www/smap --warning=no-unknown-keyword
 	cp /var/www/smap/images/smap_logo.png /smap/misc
 	chown -R $TOMCAT_USER /smap/misc
 fi
@@ -103,7 +103,7 @@ then
         echo "Updating fieldAnalysis"
         rm -rf /var/www/smap/fieldAnalysis
         rm -rf /var/www/smap/app/fieldAnalysis
-        tar -xzf $deploy_from/fieldAnalysis.tgz -C /var/www/smap/app
+        tar -xzf $deploy_from/fieldAnalysis.tgz -C /var/www/smap/app --warning=no-unknown-keyword
 fi
 
 if [ -e $deploy_from/fieldManager.tgz ]
@@ -112,7 +112,7 @@ then
         rm -rf /var/www/smap/fieldManager
         rm -rf /var/www/smap/app/fieldManager
 
-        tar -xzf $deploy_from/fieldManager.tgz -C /var/www/smap/app
+        tar -xzf $deploy_from/fieldManager.tgz -C /var/www/smap/app --warning=no-unknown-keyword
 fi
 
 if [ -e $deploy_from/tasks.tgz ]
@@ -120,7 +120,7 @@ then
         echo "Updating tasks"
         rm -rf /var/www/smap/tasks
         rm -rf /var/www/smap/app/tasks
-        tar -xzf $deploy_from/tasks.tgz -C /var/www/smap/app
+        tar -xzf $deploy_from/tasks.tgz -C /var/www/smap/app --warning=no-unknown-keyword
 fi
 
 if [ -e $deploy_from/myWork.tgz ]
@@ -128,14 +128,14 @@ then
         echo "Updating myWork"
         rm -rf /var/www/smap/myWork
         rm -rf /var/www/smap/app/myWork
-        tar -xzf $deploy_from/myWork.tgz -C /var/www/smap/app
+        tar -xzf $deploy_from/myWork.tgz -C /var/www/smap/app --warning=no-unknown-keyword
 fi
 
 if [ -e $deploy_from/dashboard.tgz ]
 then
         echo "Dashboard"
         rm -rf /var/www/smap/dashboard
-        tar -xzf $deploy_from/dashboard.tgz -C /var/www/smap
+        tar -xzf $deploy_from/dashboard.tgz -C /var/www/smap --warning=no-unknown-keyword
 fi
 
 cp $deploy_from/fieldTask.apk /var/www/smap
