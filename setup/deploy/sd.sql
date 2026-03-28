@@ -264,8 +264,13 @@ create index concurrently if not exists idx_ue_pending on upload_event (results_
 alter table server add column if not exists api_max_records integer default 0;
 
 -- Performance improvement to get tasks
-CREATE INDEX idx_tasks_tg_schedule_desc ON tasks(tg_id, schedule_at DESC); 
+CREATE INDEX idx_tasks_tg_schedule_desc ON tasks(tg_id, schedule_at DESC);
 delete from groups where id = 15;
+
+-- Cloudflare Turnstile anti-bot support
+alter table server add column if not exists turnstile_site_key text;
+alter table server add column if not exists turnstile_secret_key text;
+alter table survey add column if not exists turnstile boolean default false;
 
 -- Self assign tasks
 alter table task_rejected add column t_id integer REFERENCES tasks(id) ON DELETE CASCADE;

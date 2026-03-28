@@ -146,15 +146,17 @@ public class Server extends Application {
 				+ "email_type = ?,"
 				+ "aws_region = ?,"
 				+ "sec_mgr_del = ?,"
-				+ "api_max_records = ? ";
+				+ "api_max_records = ?,"
+				+ "turnstile_site_key = ?,"
+				+ "turnstile_secret_key = ? ";
 		
 		PreparedStatement pstmt = null;
 
 		String sqlInsert = "insert into server(smtp_host, email_domain, email_user, email_password,"
 				+ "email_port, mapbox_default, google_key, maptiler_key, vonage_application_id,"
 				+ "vonage_webhook_secret, sms_url, max_rate, password_strength, css,"
-				+ "email_type, aws_region, sec_mgr_del, api_max_records) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
-				+ " ?, ?, ?, ?)";
+				+ "email_type, aws_region, sec_mgr_del, api_max_records, turnstile_site_key, turnstile_secret_key)"
+				+ " values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement pstmtInsert = null;
 		
 		try {
@@ -183,6 +185,8 @@ public class Server extends Application {
 			pstmt.setString(16, data.aws_region);
 			pstmt.setBoolean(17, data.sec_mgr_del);
 			pstmt.setInt(18, data.getMaxRecords());
+			pstmt.setString(19, data.turnstile_site_key);
+			pstmt.setString(20, data.turnstile_secret_key);
 			int count = pstmt.executeUpdate();
 			
 			if(count == 0) {			
@@ -205,6 +209,8 @@ public class Server extends Application {
 				pstmtInsert.setString(16, data.aws_region);
 				pstmtInsert.setBoolean(17, data.sec_mgr_del);
 				pstmtInsert.setInt(18, data.getMaxRecords());
+				pstmtInsert.setString(19, data.turnstile_site_key);
+				pstmtInsert.setString(20, data.turnstile_secret_key);
 				pstmtInsert.executeUpdate();
 			}
 			

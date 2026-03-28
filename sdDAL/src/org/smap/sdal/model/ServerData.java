@@ -20,8 +20,10 @@ public class ServerData {
 	public int keep_erased_days;
 	public String css;
 	public boolean sec_mgr_del;
+	public String turnstile_site_key;
+	public String turnstile_secret_key;
 	private int api_max_records;
-	
+
 	public void setMaxRecords(int v) {
 		api_max_records = v;
 	}

@@ -19,9 +19,21 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 package surveyMobileAPI;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import javax.servlet.http.HttpSession;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.POST;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -126,6 +138,7 @@ public class WebForm extends Application {
 	boolean single = false;
 	boolean showDonePage = false;
 	String gFormIdent = null;
+	boolean requiresTurnstile = false;
 
 	/*
 	 * Get instance data Respond with JSON
@@ -389,6 +402,8 @@ public class WebForm extends Application {
 		viewOnly = vo;
 		debug = d;
 		
+		log.info("Get form");
+		
 		userIdent = tempUser;
 		isTemporaryUser = true;
 		return getWebform(request, "none", null, formIdent, datakey, datakeyvalue, assignmentId, 
@@ -606,7 +621,15 @@ public class WebForm extends Application {
 				manifestList = translationMgr.getManifestBySurvey(sd, userIdent, survey.surveyData.id, basePath, 
 						formIdent, false);
 				serverData = sm.getServer(sd, localisation);
-				
+
+				// Turnstile required for public (temp user) forms that have it enabled
+				requiresTurnstile = isTemporaryUser && survey.surveyData.turnstile
+						&& serverData.turnstile_site_key != null && !serverData.turnstile_site_key.isEmpty()
+						&& serverData.turnstile_secret_key != null && !serverData.turnstile_secret_key.isEmpty();
+				if(requiresTurnstile) {
+					request.getSession(true).setAttribute("survey_ident_" + accessKey, formIdent);
+				}
+
 				// Get the organisation specific options
 				OrganisationManager om = new OrganisationManager(localisation);
 				options = om.getWebform(sd, userIdent);
@@ -891,7 +914,16 @@ public class WebForm extends Application {
 		output.append("window.smapConfig.username='").append(user).append("';");
 		
 		output.append("window.smapConfig.myWork=" + (myWork ? "true" : "false") + ";");
+		if(requiresTurnstile) {
+			output.append("window.smapConfig.requiresTurnstile=true;");
+			output.append("window.smapConfig.turnstileSiteKey='").append(serverData.turnstile_site_key).append("';");
+			output.append("window.smapConfig.formIdent='").append(gFormIdent).append("';");
+			output.append(getTurnstileJs());
+		}
 		output.append("</script>");
+		if(requiresTurnstile) {
+			output.append("<script src='https://challenges.cloudflare.com/turnstile/v0/api.js' async defer></script>\n");
+		}
 		output.append("</head>\n");
 
 		return output;
@@ -992,6 +1024,126 @@ public class WebForm extends Application {
 		
 		return model;
 
+	}
+
+	/*
+	 * Verify a Cloudflare Turnstile token and store result in session
+	 */
+	@POST
+	@Path("/captcha/verify")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response verifyCaptcha(
+			@Context HttpServletRequest request,
+			@FormParam("cfToken") String cfToken,
+			@FormParam("formIdent") String formIdent) {
+
+		String connectionString = "surveyMobileAPI-verifyCaptcha";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, null));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			// Check survey requires Turnstile
+			boolean turnstileRequired = false;
+			String sql = "select turnstile from survey where ident = ?";
+			PreparedStatement pstmt = null;
+			try {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, formIdent);
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					turnstileRequired = rs.getBoolean("turnstile");
+				}
+			} finally {
+				if(pstmt != null) try { pstmt.close(); } catch(Exception e) {}
+			}
+
+			if(!turnstileRequired || cfToken == null || cfToken.isEmpty()) {
+				return Response.status(Status.BAD_REQUEST).entity("{\"success\":false}").build();
+			}
+
+			// Get secret key from server settings
+			ServerManager sm = new ServerManager();
+			ServerData serverSettings = sm.getServer(sd, localisation);
+			if(serverSettings.turnstile_secret_key == null || serverSettings.turnstile_secret_key.isEmpty()) {
+				log.warning("Turnstile secret key not configured");
+				return Response.status(Status.INTERNAL_SERVER_ERROR).entity("{\"success\":false}").build();
+			}
+
+			// Call Cloudflare verification API
+			boolean verified = callTurnstileVerifyApi(cfToken, serverSettings.turnstile_secret_key, request.getRemoteAddr());
+
+			if(verified) {
+				HttpSession session = request.getSession(true);
+				session.setAttribute("turnstile_verified_" + formIdent, Boolean.TRUE);
+				return Response.ok("{\"success\":true}").build();
+			} else {
+				return Response.ok("{\"success\":false}").build();
+			}
+
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "verifyCaptcha", e);
+			return Response.status(Status.INTERNAL_SERVER_ERROR).entity("{\"success\":false}").build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+	}
+
+	/*
+	 * Call Cloudflare Turnstile siteverify API
+	 */
+	private boolean callTurnstileVerifyApi(String token, String secretKey, String remoteIp) {
+		try {
+			URL url = new URL("https://challenges.cloudflare.com/turnstile/v0/siteverify");
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("POST");
+			conn.setDoOutput(true);
+			conn.setConnectTimeout(5000);
+			conn.setReadTimeout(5000);
+			conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+			String body = "secret=" + secretKey + "&response=" + token
+					+ (remoteIp != null ? "&remoteip=" + remoteIp : "");
+			try(OutputStream os = conn.getOutputStream()) {
+				os.write(body.getBytes(StandardCharsets.UTF_8));
+			}
+
+			StringBuilder sb = new StringBuilder();
+			try(BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+				String line;
+				while((line = br.readLine()) != null) { sb.append(line); }
+			}
+			String response = sb.toString();
+			return response.contains("\"success\":true");
+		} catch(Exception e) {
+			log.log(Level.WARNING, "Turnstile API call failed", e);
+			return false;
+		}
+	}
+
+	/*
+	 * Inline JS for Turnstile: disables submit until challenge completes and pre-verify succeeds
+	 */
+	private String getTurnstileJs() {
+		return "(function(){"
+				+ "window.smapTurnstileVerified=false;"
+				+ "var _idx=window.location.pathname.indexOf('/webForm/');"
+				+ "var _verifyUrl=(_idx>=0?window.location.pathname.substring(0,_idx):'')+'/webForm/captcha/verify';"
+				+ "document.addEventListener('submit',function(e){"
+				+ "if(!window.smapTurnstileVerified){e.stopImmediatePropagation();e.preventDefault();}"
+				+ "},true);"
+				+ "window.smapTurnstileCallback=function(token){"
+				+ "fetch(_verifyUrl,{"
+				+ "method:'POST',"
+				+ "headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},"
+				+ "body:'cfToken='+encodeURIComponent(token)+'&formIdent='+encodeURIComponent(window.smapConfig.formIdent)"
+				+ "}).then(function(r){return r.json();})"
+				+ ".then(function(d){"
+				+ "if(d.success){window.smapTurnstileVerified=true;}"
+				+ "}).catch(function(){});"
+				+ "};"
+				+ "})();";
 	}
 
 	/*
@@ -1257,18 +1409,21 @@ public class WebForm extends Application {
 
 		output.append("<section class='form-footer'>\n");
 		output.append("<div class='content'>\n");
-		if(!options.wf_hide_draft) {
-			output.append(
-				"<fieldset class='draft question'><div class='option-wrapper'><label class='select'><input class='ignore' type='checkbox' name='draft'/><span class='option-label lang' data-lang='formfooter.savedraft.label'>Save as Draft</span></label></div></fieldset>\n");
-		}
 		output.append("<div class='main-controls'>\n");
-		
 		if (readOnly) {
 			output.append("<button id='exit-form' class='btn btn-primary btn-large lang' data-lang='alert.default.button'>Close</button>\n");
 		} else if (dataToEditId == null) {
 			output.append("<button id='submit-form' class='btn btn-primary btn-large lang' data-lang='formfooter.submit.btn'>Submit</button>\n");
 		} else {
 			output.append("<button id='submit-form-single' class='btn btn-primary btn-large lang' data-lang='formfooter.submit.btn'>Submit</button>\n");
+		}
+		if(!options.wf_hide_draft) {
+			output.append(
+				"<fieldset class='draft question'><div class='option-wrapper'><label class='select'><input class='ignore' type='checkbox' name='draft'/><span class='option-label lang' data-lang='formfooter.savedraft.label'>Save as Draft</span></label></div></fieldset>\n");
+		}
+		if(requiresTurnstile && !readOnly) {
+			output.append("<div class='cf-turnstile' style='margin-top:12px;' data-sitekey='").append(serverData.turnstile_site_key)
+					.append("' data-callback='smapTurnstileCallback'></div>\n");
 		}
 		if (surveyClass != null && surveyClass.contains("pages")) {
 			output.append("<button class='btn previous-page disabled' href='#'><<<</button>\n");

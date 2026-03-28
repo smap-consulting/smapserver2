@@ -439,6 +439,7 @@ public class XLSTemplateUploadManager {
 				survey.surveyData.audit_location_data = getBooleanColumn(row, "audit_location_data", settingsHeader, lastCellNum, false);
 				survey.surveyData.track_changes = getBooleanColumn(row, "track_changes", settingsHeader, lastCellNum, false);
 				survey.surveyData.compress_pdf = getBooleanColumn(row, "compress_pdf", settingsHeader, lastCellNum, false);
+				survey.surveyData.turnstile = getBooleanColumn(row, "turnstile", settingsHeader, lastCellNum, false);
 
 				survey.surveyData.uk.key = XLSUtilities.getTextColumn(wb, row, "key", settingsHeader, lastCellNum, null);
 				

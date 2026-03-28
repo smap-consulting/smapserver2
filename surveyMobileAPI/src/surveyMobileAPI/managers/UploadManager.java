@@ -9,8 +9,11 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -156,6 +159,11 @@ public class UploadManager {
 				}
 			}
 			
+			// Verify Turnstile for key-based public form submissions
+			if(key != null) {
+				checkTurnstileSession(request, sd, key);
+			}
+
 			log.info("Upload Started ================= " + instanceId + " ==============");
 			log.info("Url:" + request.getRequestURI());
 			XFormData xForm = new XFormData();
@@ -215,7 +223,7 @@ public class UploadManager {
 	 */
 	private String getErrorMessage(String key, String error) {
 		String msg = error;
-		
+
 		if(key != null) {
 			msg = "{" +
 					"\"status\": \"error\"," +
@@ -223,5 +231,44 @@ public class UploadManager {
 					"}";
 		}
 		return msg;
+	}
+
+	/*
+	 * Check Turnstile session for key-based public form submissions.
+	 * If the survey requires Turnstile and the session has not been verified, throws AuthorisationException.
+	 */
+	private void checkTurnstileSession(HttpServletRequest request, Connection sd, String key) throws Exception {
+		HttpSession session = request.getSession(false);
+		if(session == null) {
+			return; // No session - Turnstile was not loaded so skip check
+		}
+		String formIdent = (String) session.getAttribute("survey_ident_" + key);
+		if(formIdent == null) {
+			return; // No survey ident stored - not a Turnstile-protected public form
+		}
+		// Check if this survey requires Turnstile
+		String sql = "select turnstile from survey where ident = ?";
+		PreparedStatement pstmt = null;
+		boolean turnstileRequired = false;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, formIdent);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				turnstileRequired = rs.getBoolean("turnstile");
+			}
+		} finally {
+			if(pstmt != null) try { pstmt.close(); } catch(Exception e) {}
+		}
+		if(!turnstileRequired) {
+			return;
+		}
+		Boolean verified = (Boolean) session.getAttribute("turnstile_verified_" + formIdent);
+		if(verified == null || !verified) {
+			log.warning("Turnstile required but not verified for survey: " + formIdent);
+			throw new AuthorisationException();
+		}
+		// One-time use: clear after successful check
+		session.removeAttribute("turnstile_verified_" + formIdent);
 	}
 }

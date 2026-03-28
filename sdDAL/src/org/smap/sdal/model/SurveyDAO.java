@@ -56,4 +56,5 @@ public class SurveyDAO {
 	public String publicLink;
 	
 	public SurveyLinks links;
+	public boolean turnstile;
 }

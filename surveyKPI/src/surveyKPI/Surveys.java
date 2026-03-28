@@ -1006,7 +1006,8 @@ public class Surveys extends Application {
 					+ "my_reference_data = ?, "
 					+ "audit_location_data = ?, "
 					+ "track_changes = ?,"
-					+ "default_logo = ? "
+					+ "default_logo = ?,"
+					+ "turnstile = ? "
 					+ "where s_id = ?";
 		
 			if(surveyData.surveyClass != null && surveyData.surveyClass.equals("none")) {
@@ -1032,7 +1033,8 @@ public class Surveys extends Application {
 			pstmt.setBoolean(17, surveyData.audit_location_data);
 			pstmt.setBoolean(18, surveyData.track_changes);
 			pstmt.setString(19, surveyData.default_logo);
-			pstmt.setInt(20, sId);
+			pstmt.setBoolean(20, surveyData.turnstile);
+			pstmt.setInt(21, sId);
 			
 			log.info("Saving survey: " + pstmt.toString());
 			int count = pstmt.executeUpdate();

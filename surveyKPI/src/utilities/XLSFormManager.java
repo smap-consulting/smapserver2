@@ -121,7 +121,8 @@ public class XLSFormManager {
 		public static final int COL_COMPRESS_PDF = 217;
 		public static final int COL_READ_ONLY_SURVEY = 218;
 		public static final int COL_MY_REFERENCE_DATA = 219;
-		public static final int COL_ROLE_GROUP = 220;
+		public static final int COL_TURNSTILE = 220;
+		public static final int COL_ROLE_GROUP = 221;
 
 		// Style sheet columns
 		public static final int COL_STYLE_LIST2 = 300;
@@ -520,8 +521,11 @@ public class XLSFormManager {
 			} else if(type == COL_COMPRESS_PDF) {				
 				value = survey.surveyData.compress_pdf ? "yes" : "no";
 
-			} else if(type == COL_READ_ONLY_SURVEY) {				
+			} else if(type == COL_READ_ONLY_SURVEY) {
 				value = survey.surveyData.readOnlySurvey ? "yes" : "no";
+
+			} else if(type == COL_TURNSTILE) {
+				value = survey.surveyData.turnstile ? "yes" : "no";
 
 			} else {
 				log.info("Unknown settings type: " + type);
@@ -1171,6 +1175,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "compress_pdf", Column.COL_COMPRESS_PDF, 0, "compress_pdf"));
 		cols.add(new Column(colNumber++, "read_only_survey", Column.COL_READ_ONLY_SURVEY, 0, "read_only_survey"));
 		cols.add(new Column(colNumber++, "my_reference_data", Column.COL_MY_REFERENCE_DATA, 0, "my_reference_data"));
+		cols.add(new Column(colNumber++, "turnstile", Column.COL_TURNSTILE, 0, "turnstile"));
 
 		// Add role columns
 		for(String role : survey.surveyData.roles.keySet()) {

@@ -135,7 +135,9 @@ create TABLE server (
 	vonage_application_id text,
 	vonage_webhook_secret text,
 	sec_mgr_del boolean default false,
-	api_max_records integer default 0				-- Maximum number of records to return via API
+	api_max_records integer default 0,				-- Maximum number of records to return via API
+	turnstile_site_key text,
+	turnstile_secret_key text
 	);
 ALTER TABLE server OWNER TO ws;
 
@@ -630,7 +632,8 @@ CREATE TABLE survey (
 	oversight_survey boolean default true,
 	read_only_survey boolean default false,
 	my_reference_data boolean default false,
-	auto_translate boolean default false
+	auto_translate boolean default false,
+	turnstile boolean default false
 	);
 ALTER TABLE survey OWNER TO ws;
 DROP INDEX IF EXISTS SurveyDisplayName;
