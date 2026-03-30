@@ -166,7 +166,7 @@ public class Authorise {
  				}
 				msg.append(permittedGroups.get(i));
 			}
- 			log.log(Level.SEVERE, .toString());
+ 			log.log(Level.SEVERE, msg.toString());
  			
  			
  			lm.writeLog(sd, 0, user, LogManager.ERROR, msg.toString(), 0, null);		// Write the application log
