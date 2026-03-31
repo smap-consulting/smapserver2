@@ -282,7 +282,7 @@ public class SurveyManager {
 				
 			pstmtGetGroupDetails = sd.prepareStatement(sqlGetGroupDetails.toString());
 			
-			// log.fine("Get surveys: " + pstmt.toString());
+			log.info("Get surveys: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			while (resultSet.next()) {						
 	
@@ -3853,8 +3853,11 @@ public class SurveyManager {
 			pstmtIdent.setInt(1, sId);
 			ResultSet resultSet = pstmtIdent.executeQuery();
 	
-			if (resultSet.next()) {		
+			if (resultSet.next()) {
 				sIdent = resultSet.getString("ident");
+				if(sIdent != null) {
+					sIdent = sIdent.replaceAll("\u00A0", " ").trim();
+				}
 				surveyDisplayName = resultSet.getString("display_name");
 				projectId = resultSet.getInt("p_id");
 			}
