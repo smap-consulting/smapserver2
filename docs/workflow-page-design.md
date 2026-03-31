@@ -64,18 +64,18 @@ if the user can access any of those surveys they will be able to see and modify 
 - Arrow: bezier curve from right edge of trigger to left edge of action, stroke `#4a9eff`
 
 **Node card colors**
-| Type | Role | Color |
+| Work Item Type | Color |
 |------|------|-------|
-| submission | trigger | #e06c00 |
-| periodic | trigger | #7c3aed |
-| reminder | trigger | #ca8a04 |
-| task | action | #2563eb |
-| case | action | #7c3aed |
-| email | action | #16a34a |
-| sms | action | #0891b2 |
-| server_calc | action | #0e7490 |
-| forward | action | #e06c00 |
-| default | either | #6b7280 |
+| submission | #e06c00 |
+| periodic | #7c3aed |
+| reminder | #ca8a04 |
+| task | #2563eb |
+| case | #7c3aed |
+| email | #16a34a |
+| sms | #0891b2 |
+| server_calc | #0e7490 |
+| forward | #e06c00 |
+| default | #6b7280 |
 
 ---
 
@@ -88,8 +88,27 @@ so on based on an event.  This new feature is a new view of that existing functi
 
 workitems are the visual components shown on the workflow page.  They are connected together to form a workflow.
 
-The existing notifications table contains the specification of most workitems.
+**WorkItem Types**
+
+| Type | Role |
+|------|------|
+| submission | trigger |
+| periodic | trigger |
+| reminder | trigger |
+| task | action |
+| case | action |
+| email | action |
+| sms | action |
+| server_calc | action |
+| forward | action |
+| default | either |
+
+**Sources**
+
+workitems to be displayed on the workflow page should be obtained
+1.  The existing notifications table contains the specification of most workitems.
 Notifications are stored in the table **forward**
+2. The existing **task_group** table.  This contains submission work item types (source_s_id) and task work item types (target_s_id)
 
 Notifications commonly contain two workitems that will form the core workflow functionality
  - a trigger (such as submission of data from a form)
