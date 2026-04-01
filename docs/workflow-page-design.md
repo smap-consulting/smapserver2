@@ -63,20 +63,6 @@ if the user can access any of those surveys they will be able to see and modify 
 - Node width: 280px
 - Arrow: bezier curve from right edge of trigger to left edge of action, stroke `#4a9eff`
 
-**Node card colors**
-| Work Item Type | Color |
-|------|------|-------|
-| submission | #e06c00 |
-| periodic | #7c3aed |
-| reminder | #ca8a04 |
-| task | #2563eb |
-| case | #7c3aed |
-| email | #16a34a |
-| sms | #0891b2 |
-| server_calc | #0e7490 |
-| forward | #e06c00 |
-| default | #6b7280 |
-
 ---
 
 ## 4. Data Model
@@ -90,18 +76,16 @@ workitems are the visual components shown on the workflow page.  They are connec
 
 **WorkItem Types**
 
-| Type | Role |
-|------|------|
-| submission | trigger |
-| periodic | trigger |
-| reminder | trigger |
-| task | action |
-| case | action |
-| email | action |
-| sms | action |
-| server_calc | action |
-| forward | action |
-| default | either |
+| Type | Role   | Name Source       |
+|------|--------|-------------------|
+| form | form   | Survey Name       |
+| task | form   | Survey Name       |
+| case | form   | Survey Name       |
+| decision | decision | None              |
+| periodic | trigger | Notification Name |
+| reminder | trigger | Notification Name |
+| email | notification | Notification Name |
+| sms | notification | Notification Name |
 
 **Sources**
 

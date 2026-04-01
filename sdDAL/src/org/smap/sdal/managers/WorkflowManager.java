@@ -33,41 +33,51 @@ public class WorkflowManager {
 
 	private static Logger log = Logger.getLogger(WorkflowManager.class.getName());
 
+	// WorkItem type constants
+	private static final String TYPE_FORM      = "form";
+	private static final String TYPE_TASK      = "task";
+	private static final String TYPE_CASE      = "case";
+	private static final String TYPE_PERIODIC  = "periodic";
+	private static final String TYPE_REMINDER  = "reminder";
+	private static final String TYPE_EMAIL     = "email";
+	private static final String TYPE_SMS       = "sms";
+
+	// WorkItem role constants (determines visual shape)
+	private static final String ROLE_FORM         = "form";
+	private static final String ROLE_TRIGGER      = "trigger";
+	private static final String ROLE_NOTIFICATION = "notification";
+
 	/*
 	 * Build the full set of workflow nodes and links accessible to the user.
 	 *
-	 * Each record in forward or task_group is split into:
-	 *   - one trigger WorkflowItem  (role = "trigger")
-	 *   - one action  WorkflowItem  (role = "action")
-	 *   - one WorkflowLink connecting them
+	 * Each record in forward / task_group is decomposed into two WorkflowItems
+	 * (source + destination) plus a WorkflowLink between them.
 	 *
-	 * Nodes are deduplicated: two forward records that both trigger from the same
-	 * survey share a single "submission:s:<s_id>" trigger node, and two records
-	 * that both create tasks via the same task group share a single
-	 * "task:tg:<tg_id>" action node.
+	 * Items are deduplicated by id so that the same survey or task group
+	 * referenced by multiple records produces a single shared node.
 	 */
 	public WorkflowData getWorkflowItems(Connection sd, String user) throws Exception {
 
 		WorkflowData data = new WorkflowData();
-
-		// Use LinkedHashMap to preserve insertion order while deduplicating by id
 		LinkedHashMap<String, WorkflowItem> itemMap = new LinkedHashMap<>();
 
-		// -----------------------------------------------------------------------
+		// -------------------------------------------------------------------
 		// 1. forward table
-		// -----------------------------------------------------------------------
+		// -------------------------------------------------------------------
 		String sqlForward =
 				"select f.id, f.name, f.trigger, f.target, f.enabled, "
 				+ "f.s_id, f.bundle_ident, f.p_id, f.tg_id, f.alert_id, "
 				+ "s_src.display_name as trigger_survey, "
 				+ "s_bun.display_name as bundle_name, "
 				+ "a.name as alert_name, "
-				+ "tg.name as task_group_name "
+				+ "tg.name as task_group_name, "
+				+ "s_tgt.display_name as target_survey "
 				+ "from forward f "
 				+ "left outer join survey s_src on s_src.s_id = f.s_id "
 				+ "left outer join survey s_bun on s_bun.ident = f.bundle_ident "
 				+ "left outer join cms_alert a on a.id = f.alert_id "
 				+ "left outer join task_group tg on tg.tg_id = f.tg_id "
+				+ "left outer join survey s_tgt on s_tgt.s_id = tg.target_s_id "
 				+ "where (f.p_id in (select p.id from project p, user_project up, users u "
 				+ "  where p.id = up.p_id and up.u_id = u.id and u.ident = ?) "
 				+ "or f.s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
@@ -85,77 +95,115 @@ public class WorkflowManager {
 			log.fine("Workflow items from forward: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
-				int    fId          = rs.getInt("id");
-				String fName        = rs.getString("name");
-				String trigger      = rs.getString("trigger");
-				String target       = rs.getString("target");
-				boolean enabled     = rs.getBoolean("enabled");
-				int    sId          = rs.getInt("s_id");
-				String bundleIdent  = rs.getString("bundle_ident");
-				int    pId          = rs.getInt("p_id");
-				int    tgId         = rs.getInt("tg_id");
-				int    alertId      = rs.getInt("alert_id");
-				String triggerSurvey = rs.getString("trigger_survey");
-				String bundleName   = rs.getString("bundle_name");
-				String alertName    = rs.getString("alert_name");
-				String tgName       = rs.getString("task_group_name");
+				int     fId          = rs.getInt("id");
+				String  fName        = rs.getString("name");
+				String  trigger      = rs.getString("trigger");
+				String  target       = rs.getString("target");
+				boolean enabled      = rs.getBoolean("enabled");
+				int     sId          = rs.getInt("s_id");
+				String  bundleIdent  = rs.getString("bundle_ident");
+				int     tgId         = rs.getInt("tg_id");
+				int     alertId      = rs.getInt("alert_id");
+				String  triggerSurvey = rs.getString("trigger_survey");
+				String  bundleName   = rs.getString("bundle_name");
+				String  alertName    = rs.getString("alert_name");
+				String  tgName       = rs.getString("task_group_name");
+				String  targetSurvey = rs.getString("target_survey");
 
-				// -- Trigger node --
-				String trigKey;
-				String trigName;
-				if (sId > 0) {
-					trigKey  = "submission:s:" + sId;
-					trigName = triggerSurvey != null ? triggerSurvey : fName;
-				} else if (bundleIdent != null && !bundleIdent.isEmpty()) {
-					trigKey  = "submission:bundle:" + bundleIdent;
-					trigName = bundleName != null ? bundleName : bundleIdent;
+				// -- Source node --
+				String srcKey;
+				WorkflowItem src = new WorkflowItem();
+				src.enabled = enabled;
+
+				if ("submission".equals(trigger)) {
+					if (sId > 0) {
+						srcKey    = "form:s:" + sId;
+						src.type  = TYPE_FORM;
+						src.role  = ROLE_FORM;
+						src.name  = triggerSurvey != null ? triggerSurvey : fName;
+					} else if (bundleIdent != null && !bundleIdent.isEmpty()) {
+						srcKey    = "form:bundle:" + bundleIdent;
+						src.type  = TYPE_FORM;
+						src.role  = ROLE_FORM;
+						src.name  = bundleName != null ? bundleName : bundleIdent;
+					} else {
+						srcKey    = "form:f:" + fId;
+						src.type  = TYPE_FORM;
+						src.role  = ROLE_FORM;
+						src.name  = fName;
+					}
+				} else if ("periodic".equals(trigger)) {
+					srcKey   = "periodic:f:" + fId;
+					src.type = TYPE_PERIODIC;
+					src.role = ROLE_TRIGGER;
+					src.name = fName;
+				} else if ("reminder".equals(trigger)) {
+					srcKey   = "reminder:f:" + fId;
+					src.type = TYPE_REMINDER;
+					src.role = ROLE_TRIGGER;
+					src.name = fName;
 				} else {
-					trigKey  = (trigger != null ? trigger : "trigger") + ":f:" + fId;
-					trigName = fName;
+					srcKey   = "trigger:" + trigger + ":f:" + fId;
+					src.type = trigger;
+					src.role = ROLE_TRIGGER;
+					src.name = fName;
 				}
-				if (!itemMap.containsKey(trigKey)) {
-					WorkflowItem trig = new WorkflowItem();
-					trig.id      = trigKey;
-					trig.type    = trigger != null ? trigger : "submission";
-					trig.role    = "trigger";
-					trig.name    = trigName;
-					trig.enabled = enabled;
-					itemMap.put(trigKey, trig);
-				}
+				src.id = srcKey;
+				itemMap.putIfAbsent(srcKey, src);
 
-				// -- Action node --
-				String actKey;
-				String actName;
-				if ("task".equals(target) && tgId > 0) {
-					actKey  = "task:tg:" + tgId;
-					actName = tgName != null ? tgName : fName;
-				} else if ("case".equals(target) && alertId > 0) {
-					actKey  = "case:a:" + alertId;
-					actName = alertName != null ? alertName : fName;
+				// -- Destination node --
+				String dstKey;
+				WorkflowItem dst = new WorkflowItem();
+				dst.enabled = enabled;
+
+				if ("task".equals(target)) {
+					if (tgId > 0) {
+						dstKey   = "task:tg:" + tgId;
+						dst.name = targetSurvey != null ? targetSurvey : fName;
+					} else {
+						dstKey   = "task:f:" + fId;
+						dst.name = fName;
+					}
+					dst.type = TYPE_TASK;
+					dst.role = ROLE_FORM;
+				} else if ("case".equals(target)) {
+					if (alertId > 0) {
+						dstKey   = "case:a:" + alertId;
+						dst.name = targetSurvey != null ? targetSurvey : fName;
+					} else {
+						dstKey   = "case:f:" + fId;
+						dst.name = targetSurvey != null ? targetSurvey : fName;
+					}
+					dst.type = TYPE_CASE;
+					dst.role = ROLE_FORM;
+				} else if ("email".equals(target)) {
+					dstKey   = "email:f:" + fId;
+					dst.type = TYPE_EMAIL;
+					dst.role = ROLE_NOTIFICATION;
+					dst.name = fName;
+				} else if ("sms".equals(target)) {
+					dstKey   = "sms:f:" + fId;
+					dst.type = TYPE_SMS;
+					dst.role = ROLE_NOTIFICATION;
+					dst.name = fName;
 				} else {
-					actKey  = (target != null ? target : "action") + ":f:" + fId;
-					actName = fName;
+					dstKey   = "action:" + target + ":f:" + fId;
+					dst.type = target;
+					dst.role = ROLE_NOTIFICATION;
+					dst.name = fName;
 				}
-				if (!itemMap.containsKey(actKey)) {
-					WorkflowItem act = new WorkflowItem();
-					act.id      = actKey;
-					act.type    = target != null ? target : "task";
-					act.role    = "action";
-					act.name    = actName;
-					act.enabled = enabled;
-					itemMap.put(actKey, act);
-				}
+				dst.id = dstKey;
+				itemMap.putIfAbsent(dstKey, dst);
 
-				// -- Link --
-				addLinkIfAbsent(data, trigKey, actKey);
+				addLinkIfAbsent(data, srcKey, dstKey);
 			}
 		} finally {
 			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
 		}
 
-		// -----------------------------------------------------------------------
-		// 2. task_group table
-		// -----------------------------------------------------------------------
+		// -------------------------------------------------------------------
+		// 2. task_group table — source_s_id (form) → tg_id (task)
+		// -------------------------------------------------------------------
 		String sqlTg =
 				"select tg.tg_id, tg.name, tg.source_s_id, "
 				+ "src.display_name as trigger_survey, "
@@ -179,29 +227,31 @@ public class WorkflowManager {
 				String triggerSurvey = rs.getString("trigger_survey");
 				String targetSurvey  = rs.getString("target_survey");
 
-				// Trigger key matches forward submission triggers for the same source survey
-				String trigKey = "submission:s:" + sourceSId;
-				String actKey  = "task:tg:" + tgId;
+				// Source: the submission form — same key as forward submission triggers
+				String srcKey = "form:s:" + sourceSId;
+				if (!itemMap.containsKey(srcKey)) {
+					WorkflowItem src = new WorkflowItem();
+					src.id      = srcKey;
+					src.type    = TYPE_FORM;
+					src.role    = ROLE_FORM;
+					src.name    = triggerSurvey != null ? triggerSurvey : tgName;
+					src.enabled = true;
+					itemMap.put(srcKey, src);
+				}
 
-				if (!itemMap.containsKey(trigKey)) {
-					WorkflowItem trig = new WorkflowItem();
-					trig.id      = trigKey;
-					trig.type    = "submission";
-					trig.role    = "trigger";
-					trig.name    = triggerSurvey != null ? triggerSurvey : tgName;
-					trig.enabled = true;
-					itemMap.put(trigKey, trig);
+				// Destination: the task form — same key as forward task actions for same tg
+				String dstKey = "task:tg:" + tgId;
+				if (!itemMap.containsKey(dstKey)) {
+					WorkflowItem dst = new WorkflowItem();
+					dst.id      = dstKey;
+					dst.type    = TYPE_TASK;
+					dst.role    = ROLE_FORM;
+					dst.name    = targetSurvey != null ? targetSurvey : tgName;
+					dst.enabled = true;
+					itemMap.put(dstKey, dst);
 				}
-				if (!itemMap.containsKey(actKey)) {
-					WorkflowItem act = new WorkflowItem();
-					act.id      = actKey;
-					act.type    = "task";
-					act.role    = "action";
-					act.name    = targetSurvey != null ? targetSurvey : tgName;
-					act.enabled = true;
-					itemMap.put(actKey, act);
-				}
-				addLinkIfAbsent(data, trigKey, actKey);
+
+				addLinkIfAbsent(data, srcKey, dstKey);
 			}
 		} finally {
 			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
