@@ -25,4 +25,6 @@ public class WorkflowItem {
 	public String role;
 	public String name;
 	public boolean enabled;
+	public int x;
+	public int y;
 }

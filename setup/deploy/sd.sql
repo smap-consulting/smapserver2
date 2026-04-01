@@ -294,3 +294,12 @@ ALTER TABLE subscriber_worker OWNER TO ws;
 alter table upload_event add column if not exists worker_host text;
 alter table s3upload add column if not exists worker_id text;
 alter table message add column if not exists worker_host text;
+
+-- Version 26.04 Workflow node positions per user per organisation
+CREATE TABLE IF NOT EXISTS workflow_node_positions (
+	user_ident   text,
+	o_id         integer references organisation(id) on delete cascade,
+	positions    jsonb,
+	PRIMARY KEY (user_ident, o_id)
+);
+ALTER TABLE workflow_node_positions OWNER TO ws;

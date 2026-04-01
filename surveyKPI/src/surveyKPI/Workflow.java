@@ -21,11 +21,15 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Application;
@@ -38,9 +42,11 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.WorkflowManager;
 import org.smap.sdal.model.WorkflowData;
+import org.smap.sdal.model.WorkflowItem;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 @Path("/workflow")
 public class Workflow extends Application {
@@ -82,6 +88,64 @@ public class Workflow extends Application {
 			response = Response.serverError().entity("No data available").build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error getting workflow items", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+
+	/*
+	 * Save the full node positions map for the current user+org.
+	 * Body: JSON object mapping node_id -> {x, y}
+	 */
+	@Path("/positions")
+	@PUT
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Response savePositions(@Context HttpServletRequest request, String body) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-Workflow-savePositions";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+
+		try {
+			Map<String, WorkflowItem> positions = new Gson().fromJson(body,
+					new TypeToken<Map<String, WorkflowItem>>(){}.getType());
+			WorkflowManager wm = new WorkflowManager();
+			wm.savePositions(sd, request.getRemoteUser(), positions);
+			response = Response.ok().build();
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error saving workflow positions", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+
+	/*
+	 * Reset node positions for the current user+org back to server-computed defaults.
+	 */
+	@Path("/positions")
+	@DELETE
+	public Response resetPositions(@Context HttpServletRequest request) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-Workflow-resetPositions";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+
+		try {
+			WorkflowManager wm = new WorkflowManager();
+			wm.resetPositions(sd, request.getRemoteUser());
+			response = Response.ok().build();
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error resetting workflow positions", e);
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);

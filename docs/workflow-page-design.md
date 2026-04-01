@@ -57,11 +57,28 @@ if the user can access any of those surveys they will be able to see and modify 
 | Action node card | Absolutely positioned div | Shows action type + details |
 | SVG bezier arrow | `<path>` in SVG overlay | Connects trigger to action |
 
-**Node layout (iteration 1)**
-- Trigger nodes: x=60px, y=index×130px+20px
-- Action nodes: x=380px, y=index×130px+20px
-- Node width: 280px
-- Arrow: bezier curve from right edge of trigger to left edge of action, stroke `#4a9eff`
+**Node layout (iteration 2)**
+
+Node positions are computed server-side in `WorkflowManager.applyLayout()` and returned as `x`/`y` pixel values on each `WorkflowItem`. The client uses these values directly.
+
+*Default layout algorithm (server)*
+- All nodes start at column 0.
+- For each link `from → to`, the destination column is set to `max(current column, source column + 1)`. This is iterated until stable, giving a left-to-right topological ordering.
+- Within each column, nodes are stacked vertically in insertion order.
+- Pixel coordinates: `x = column × X_SPACING`, `y = Y_OFFSET + row × Y_SPACING` where `X_SPACING = 320px` (card width 240px + 80px gap), `Y_SPACING = 150px`, `Y_OFFSET = 40px`.
+- Result: a chain `form → decision → task` lands at x = 0, 320, 640px. A direct link `form → task` (no decision) lands at x = 0, 320px.
+
+*User-saved positions*
+- Users can drag any node to a new position. Positions are saved per user per organisation in the `workflow_node_positions` table (`user_ident`, `o_id`, `positions jsonb`).
+- On load, the server merges saved positions over the default layout before returning items to the client.
+- Saving all positions at once (not per-node) means orphaned entries for deleted nodes are automatically removed on the next save.
+- A **Save** button sends `PUT /surveyKPI/workflow/positions` with the full positions map.
+- A **Reset** button sends `DELETE /surveyKPI/workflow/positions`, deleting the saved row and reverting to the server-computed defaults.
+
+*Client drag behaviour*
+- Each node card is draggable via `mousedown`/`mousemove`/`mouseup` on the document.
+- SVG arrows are redrawn live during drag.
+- The SVG dimensions are updated after each drag to cover the full node extent.
 
 ---
 
@@ -126,27 +143,26 @@ decision node is shown. If there is a rule then the decision node is shown.
 
 ## 5. REST API
 
-**Existing endpoint used (iteration 1)**
-| Method | Path | Auth roles | Response |
-|--------|------|------------|---------|
-| GET | `/surveyKPI/notifications/{projectId}` | ANALYST, ADMIN | `ArrayList<Notification>` JSON |
-
-The `Notification` model fields used: `id`, `name`, `trigger`, `target`, `s_name`, `bundle_name`, `enabled`
-
-**New endpoints** — none in iteration 1. Future iterations may add:
-- `GET /surveyKPI/workflow/{projectId}` — workflow with layout positions
-- `PUT /surveyKPI/workflow/layout` — save canvas positions
+| Method | Path | Auth roles | Description |
+|--------|------|------------|-------------|
+| GET | `/surveyKPI/workflow/items` | ANALYST, ADMIN | Returns `WorkflowData` (items + links) with server-computed x/y merged with any user-saved positions |
+| PUT | `/surveyKPI/workflow/positions` | ANALYST, ADMIN | Saves full positions map `{nodeId: {x,y}}` for current user+org |
+| DELETE | `/surveyKPI/workflow/positions` | ANALYST, ADMIN | Deletes saved positions for current user+org, reverting to defaults |
 
 ---
 
 ## 6. Backend Logic
 
-No backend changes in iteration 1. Existing `NotificationList.java` (`surveyKPI`) serves the data.
+**`WorkflowManager.java`** (`sdDAL`) — core logic:
+- `getWorkflowItems(sd, user)` — queries `forward` and `task_group`, builds nodes and links, calls `applyLayout()` then `mergeUserPositions()`.
+- `applyLayout()` — computes default x/y positions using topological column assignment (see §3 Node layout).
+- `mergeUserPositions()` — loads saved positions from `workflow_node_positions` for the user's current org and overwrites x/y on matching nodes.
+- `savePositions(sd, user, positions)` — upserts the full positions map as JSONB.
+- `resetPositions(sd, user)` — deletes the saved row.
 
-The `getNotifications` method in `NotificationManager.java` returns notifications scoped to:
-- Project directly (`f.p_id = ?`)
-- Surveys in the project (`f.s_id in (select s_id from survey where p_id = ?)`)
-- Bundles where any member survey is in the project
+**`Workflow.java`** (`surveyKPI`) — REST endpoints delegating to `WorkflowManager`.
+
+**Access scoping** — nodes are filtered to projects/surveys/bundles the user has access to (via `user_project` join), consistent with the existing notifications scoping.
 
 ---
 
@@ -177,6 +193,14 @@ The `getNotifications` method in `NotificationManager.java` returns notification
 2. `projectChanged()` → `fetch /surveyKPI/notifications/{projectId}`
 3. Response → `renderWorkflow(notifications)` — clears and redraws canvas
 
+**Layout**
+See §3 Node layout for the full description. The client uses `item.x` and `item.y` from the server response directly — no client-side layout calculation.
+
+**Drag and save**
+- `gPositions` — module-level map `{id: {x, y}}` updated live during drag.
+- `makeDraggable(el)` — attaches drag handlers; calls `drawArrows()` on each move.
+- `saveLayout()` — `PUT /surveyKPI/workflow/positions` with `gPositions`.
+- `resetLayout()` — `DELETE /surveyKPI/workflow/positions` then reloads.
 ---
 
 ## 8. Notifications / Events
@@ -195,7 +219,15 @@ Not applicable for iteration 1 (read-only view).
 
 ## 10. Migration / Deployment
 
-**Iteration 1: none.** No database changes, no config changes.
+**New table** (added to `setup/deploy/sd.sql`):
+```sql
+CREATE TABLE IF NOT EXISTS workflow_node_positions (
+    user_ident   text,
+    o_id         integer references organisation(id) on delete cascade,
+    positions    jsonb,
+    PRIMARY KEY (user_ident, o_id)
+);
+```
 
 Build step required:
 ```bash
@@ -209,6 +241,5 @@ Generates `WebContent/build/js/workflow.bundle.js`.
 ## 11. Open Questions
 
 - Should the modules dropdown in all pages replace "Tasks" with "Workflow" as the primary entry point? (deferred — large change across many pages)
-- What canvas positions should be used when there are many notifications (current linear layout won't scale)?
 - Should enabled/disabled notifications be visually distinguished on the canvas?
 - Should bundles and project-level notifications have a different visual grouping than survey-level ones?

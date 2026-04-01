@@ -22,15 +22,20 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.WorkflowData;
 import org.smap.sdal.model.WorkflowItem;
 import org.smap.sdal.model.WorkflowLink;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 public class WorkflowManager {
 
@@ -282,7 +287,118 @@ public class WorkflowManager {
 		}
 
 		data.items.addAll(itemMap.values());
+		applyLayout(data);
+		mergeUserPositions(sd, user, data);
 		return data;
+	}
+
+	/*
+	 * Save the full positions map for the user's current organisation.
+	 * Replaces any existing saved positions, which implicitly removes orphaned nodes.
+	 * positions: map of node_id -> WorkflowItem (only x and y are used)
+	 */
+	public void savePositions(Connection sd, String user, Map<String, WorkflowItem> positions) throws Exception {
+		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
+		String sql = "insert into workflow_node_positions(user_ident, o_id, positions) values(?, ?, ?::jsonb) "
+				+ "on conflict(user_ident, o_id) do update set positions = excluded.positions";
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setString(1, user);
+			pstmt.setInt(2, oId);
+			pstmt.setString(3, new Gson().toJson(positions));
+			pstmt.executeUpdate();
+		}
+	}
+
+	/*
+	 * Delete saved positions for the user's current organisation, reverting to defaults.
+	 */
+	public void resetPositions(Connection sd, String user) throws Exception {
+		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
+		String sql = "delete from workflow_node_positions where user_ident = ? and o_id = ?";
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setString(1, user);
+			pstmt.setInt(2, oId);
+			pstmt.executeUpdate();
+		}
+	}
+
+	/*
+	 * Overwrite x/y on items that have a saved position for this user+org.
+	 */
+	private void mergeUserPositions(Connection sd, String user, WorkflowData data) throws Exception {
+		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
+		String sql = "select positions from workflow_node_positions where user_ident = ? and o_id = ?";
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setString(1, user);
+			pstmt.setInt(2, oId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				String json = rs.getString("positions");
+				if (json != null) {
+					Map<String, WorkflowItem> saved = new Gson().fromJson(json,
+							new TypeToken<Map<String, WorkflowItem>>(){}.getType());
+					for (WorkflowItem item : data.items) {
+						WorkflowItem pos = saved.get(item.id);
+						if (pos != null) {
+							item.x = pos.x;
+							item.y = pos.y;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	private static final int CARD_W    = 240;
+	private static final int X_SPACING = CARD_W + 80;   // 320px — card width plus gap
+	private static final int Y_SPACING = 150;
+	private static final int Y_OFFSET  = 40;            // top margin below the menu bar
+
+	/*
+	 * Assign x/y pixel positions to each node.
+	 *
+	 * x column: propagated left-to-right through links until stable —
+	 *   each node's column = max(predecessor columns) + 1.
+	 * y row: within each column, nodes are stacked in their insertion order.
+	 */
+	private void applyLayout(WorkflowData data) {
+		// Build id → item map for quick lookup
+		LinkedHashMap<String, WorkflowItem> byId = new LinkedHashMap<>();
+		for (WorkflowItem item : data.items) {
+			byId.put(item.id, item);
+		}
+
+		// Propagate x columns until no more changes
+		boolean changed = true;
+		while (changed) {
+			changed = false;
+			for (WorkflowLink link : data.links) {
+				WorkflowItem from = byId.get(link.from);
+				WorkflowItem to   = byId.get(link.to);
+				if (from != null && to != null) {
+					int candidate = from.x + 1;
+					if (candidate > to.x) {
+						to.x  = candidate;
+						changed = true;
+					}
+				}
+			}
+		}
+
+		// Group items by x column (preserving insertion order within each column)
+		LinkedHashMap<Integer, List<WorkflowItem>> columns = new LinkedHashMap<>();
+		for (WorkflowItem item : data.items) {
+			columns.computeIfAbsent(item.x, k -> new ArrayList<>()).add(item);
+		}
+
+		// Assign pixel coordinates
+		for (List<WorkflowItem> col : columns.values()) {
+			for (int row = 0; row < col.size(); row++) {
+				WorkflowItem item = col.get(row);
+				item.x = item.x * X_SPACING;
+				item.y = Y_OFFSET + row * Y_SPACING;
+			}
+		}
 	}
 
 	private void addLinkIfAbsent(WorkflowData data, String from, String to) {
