@@ -116,6 +116,12 @@ Notifications commonly contain two workitems that will form the core workflow fu
 **Future iterations may add:**
 - `work_item` table for storing canvas layout positions (x, y per notification id)
 
+**decision work items**
+ Decision nodes appear between two other non decision nodes.  For example a workitem node of type "form" and a workitem node of type "task".  A decision node is required if there is a rule that          
+determines whether the notification is fired or the task is created. In the forward table the rule is in the column "filter".  In the task_group table the rule is in a JSON object in the column "rule". 
+The task group rule can be found in the "filter" property of that JSON object. The Java class AssignFromSurvey defines the json. 
+If there is no rule in the notification or task group that links two nodes then no        
+decision node is shown. If there is a rule then the decision node is shown.
 ---
 
 ## 5. REST API

@@ -25,9 +25,12 @@ import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.logging.Logger;
 
+import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.WorkflowData;
 import org.smap.sdal.model.WorkflowItem;
 import org.smap.sdal.model.WorkflowLink;
+
+import com.google.gson.Gson;
 
 public class WorkflowManager {
 
@@ -41,11 +44,13 @@ public class WorkflowManager {
 	private static final String TYPE_REMINDER  = "reminder";
 	private static final String TYPE_EMAIL     = "email";
 	private static final String TYPE_SMS       = "sms";
+	private static final String TYPE_DECISION  = "decision";
 
 	// WorkItem role constants (determines visual shape)
 	private static final String ROLE_FORM         = "form";
 	private static final String ROLE_TRIGGER      = "trigger";
 	private static final String ROLE_NOTIFICATION = "notification";
+	private static final String ROLE_DECISION     = "decision";
 
 	/*
 	 * Build the full set of workflow nodes and links accessible to the user.
@@ -66,7 +71,7 @@ public class WorkflowManager {
 		// -------------------------------------------------------------------
 		String sqlForward =
 				"select f.id, f.name, f.trigger, f.target, f.enabled, "
-				+ "f.s_id, f.bundle_ident, f.p_id, "
+				+ "f.s_id, f.bundle_ident, f.p_id, f.filter, "
 				+ "s_src.display_name as trigger_survey, "
 				+ "s_bun.display_name as bundle_name, "
 				+ "s_case.display_name as case_survey "
@@ -103,6 +108,7 @@ public class WorkflowManager {
 				String  triggerSurvey = rs.getString("trigger_survey");
 				String  bundleName   = rs.getString("bundle_name");
 				String  caseSurvey   = rs.getString("case_survey");
+				String  filter       = rs.getString("filter");
 
 				// -- Source node --
 				String srcKey;
@@ -179,7 +185,20 @@ public class WorkflowManager {
 				dst.id = dstKey;
 				itemMap.putIfAbsent(dstKey, dst);
 
-				addLinkIfAbsent(data, srcKey, dstKey);
+				if (filter != null && !filter.trim().isEmpty()) {
+					String decKey = "decision:f:" + fId;
+					WorkflowItem dec = new WorkflowItem();
+					dec.id      = decKey;
+					dec.type    = TYPE_DECISION;
+					dec.role    = ROLE_DECISION;
+					dec.name    = filter;
+					dec.enabled = enabled;
+					itemMap.putIfAbsent(decKey, dec);
+					addLinkIfAbsent(data, srcKey, decKey);
+					addLinkIfAbsent(data, decKey, dstKey);
+				} else {
+					addLinkIfAbsent(data, srcKey, dstKey);
+				}
 			}
 		} finally {
 			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
@@ -189,7 +208,7 @@ public class WorkflowManager {
 		// 2. task_group table — source_s_id (form) → tg_id (task)
 		// -------------------------------------------------------------------
 		String sqlTg =
-				"select tg.tg_id, tg.name, tg.source_s_id, "
+				"select tg.tg_id, tg.name, tg.source_s_id, tg.rule, "
 				+ "src.display_name as trigger_survey, "
 				+ "tgt.display_name as target_survey "
 				+ "from task_group tg "
@@ -210,6 +229,7 @@ public class WorkflowManager {
 				int    sourceSId     = rs.getInt("source_s_id");
 				String triggerSurvey = rs.getString("trigger_survey");
 				String targetSurvey  = rs.getString("target_survey");
+				String rule          = rs.getString("rule");
 
 				// Source: the submission form — same key as forward submission triggers
 				String srcKey = "form:s:" + sourceSId;
@@ -235,7 +255,27 @@ public class WorkflowManager {
 					itemMap.put(dstKey, dst);
 				}
 
-				addLinkIfAbsent(data, srcKey, dstKey);
+				String tgFilterName = null;
+				if (rule != null && !rule.trim().isEmpty()) {
+					AssignFromSurvey afs = new Gson().fromJson(rule, AssignFromSurvey.class);
+					if (afs != null && afs.filter != null) {
+						tgFilterName = afs.filter.advanced != null ? afs.filter.advanced : afs.filter.qText;
+					}
+				}
+				if (tgFilterName != null && !tgFilterName.trim().isEmpty()) {
+					String decKey = "decision:tg:" + tgId;
+					WorkflowItem dec = new WorkflowItem();
+					dec.id      = decKey;
+					dec.type    = TYPE_DECISION;
+					dec.role    = ROLE_DECISION;
+					dec.name    = tgFilterName;
+					dec.enabled = true;
+					itemMap.putIfAbsent(decKey, dec);
+					addLinkIfAbsent(data, srcKey, decKey);
+					addLinkIfAbsent(data, decKey, dstKey);
+				} else {
+					addLinkIfAbsent(data, srcKey, dstKey);
+				}
 			}
 		} finally {
 			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
