@@ -66,18 +66,16 @@ public class WorkflowManager {
 		// -------------------------------------------------------------------
 		String sqlForward =
 				"select f.id, f.name, f.trigger, f.target, f.enabled, "
-				+ "f.s_id, f.bundle_ident, f.p_id, f.tg_id, f.alert_id, "
+				+ "f.s_id, f.bundle_ident, f.p_id, "
 				+ "s_src.display_name as trigger_survey, "
 				+ "s_bun.display_name as bundle_name, "
-				+ "a.name as alert_name, "
-				+ "tg.name as task_group_name, "
-				+ "s_tgt.display_name as target_survey "
+				+ "s_case.display_name as case_survey "
 				+ "from forward f "
 				+ "left outer join survey s_src on s_src.s_id = f.s_id "
 				+ "left outer join survey s_bun on s_bun.ident = f.bundle_ident "
-				+ "left outer join cms_alert a on a.id = f.alert_id "
-				+ "left outer join task_group tg on tg.tg_id = f.tg_id "
-				+ "left outer join survey s_tgt on s_tgt.s_id = tg.target_s_id "
+				+ "left outer join survey s_case on f.target = 'escalate' "
+				+ "  and f.notify_details is not null "
+				+ "  and s_case.ident = (f.notify_details::json->>'survey_case') "
 				+ "where (f.p_id in (select p.id from project p, user_project up, users u "
 				+ "  where p.id = up.p_id and up.u_id = u.id and u.ident = ?) "
 				+ "or f.s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
@@ -92,7 +90,7 @@ public class WorkflowManager {
 			pstmt.setString(1, user);
 			pstmt.setString(2, user);
 			pstmt.setString(3, user);
-			log.fine("Workflow items from forward: " + pstmt.toString());
+			System.out.println("Workflow items from forward: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				int     fId          = rs.getInt("id");
@@ -102,13 +100,9 @@ public class WorkflowManager {
 				boolean enabled      = rs.getBoolean("enabled");
 				int     sId          = rs.getInt("s_id");
 				String  bundleIdent  = rs.getString("bundle_ident");
-				int     tgId         = rs.getInt("tg_id");
-				int     alertId      = rs.getInt("alert_id");
 				String  triggerSurvey = rs.getString("trigger_survey");
 				String  bundleName   = rs.getString("bundle_name");
-				String  alertName    = rs.getString("alert_name");
-				String  tgName       = rs.getString("task_group_name");
-				String  targetSurvey = rs.getString("target_survey");
+				String  caseSurvey   = rs.getString("case_survey");
 
 				// -- Source node --
 				String srcKey;
@@ -157,23 +151,13 @@ public class WorkflowManager {
 				dst.enabled = enabled;
 
 				if ("task".equals(target)) {
-					if (tgId > 0) {
-						dstKey   = "task:tg:" + tgId;
-						dst.name = targetSurvey != null ? targetSurvey : fName;
-					} else {
-						dstKey   = "task:f:" + fId;
-						dst.name = fName;
-					}
+					dstKey   = "task:f:" + fId;
+					dst.name = fName;
 					dst.type = TYPE_TASK;
 					dst.role = ROLE_FORM;
-				} else if ("case".equals(target)) {
-					if (alertId > 0) {
-						dstKey   = "case:a:" + alertId;
-						dst.name = targetSurvey != null ? targetSurvey : fName;
-					} else {
-						dstKey   = "case:f:" + fId;
-						dst.name = targetSurvey != null ? targetSurvey : fName;
-					}
+				} else if ("escalate".equals(target)) {
+					dstKey   = "case:f:" + fId;
+					dst.name = caseSurvey != null ? caseSurvey : fName;
 					dst.type = TYPE_CASE;
 					dst.role = ROLE_FORM;
 				} else if ("email".equals(target)) {
