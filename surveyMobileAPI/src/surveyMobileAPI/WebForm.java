@@ -1343,18 +1343,18 @@ public class WebForm extends Application {
 
 		output.append("<div id='feedback-bar' class='alert alert-warning'>\n");
 		output.append("<span class='glyphicon glyphicon-info-sign'></span>\n");
-		output.append("<button class='close'><span class='glyphicon glyphicon-step-backward'></span></button>\n");
+		output.append("<button class='close' aria-label='Close Feedback Bar'><span class='glyphicon glyphicon-step-backward'></span></button>\n");
 		output.append("</div>\n");
 
 		output.append("<aside class='side-slider'>\n");
-		output.append("<button type='button' class='close' data-dismiss='side-slider' aria-hidden='true'>×</button>\n");
+		output.append("<button type='button' class='close' data-dismiss='side-slider' aria-hidden='true' aria-label='Close'>×</button>\n");
 		output.append("<nav></nav>\n");
 		output.append("<div class='content'>\n");
 		output.append("</div>\n");
 		output.append("</aside>\n");
 
-		output.append("<button class='handle side-slider-toggle open'></button>\n");
-		output.append("<button class='handle side-slider-toggle close'></button>\n");
+		output.append("<button class='handle side-slider-toggle open' aria-label='Open Sidebar'></button>\n");
+		output.append("<button class='handle side-slider-toggle close' aria-label='Close Sidebar'></button>\n");
 		output.append("<div class='side-slider-toggle slider-overlay'></div>\n");
 
 		return output;
