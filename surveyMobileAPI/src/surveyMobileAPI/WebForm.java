@@ -58,6 +58,7 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.BlockedException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -100,6 +101,8 @@ public class WebForm extends Application {
 	private static Logger log = Logger.getLogger(WebForm.class.getName());
 	LogManager lm = new LogManager();		// Application log
 
+	private HtmlSanitise sanitise = new HtmlSanitise();
+	
 	public WebForm() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ENUM);
@@ -718,7 +721,9 @@ public class WebForm extends Application {
 			} else {
 				// MAIN ENTRY POINT - XXXX
 				outputString.append(addDocument(request, instanceXML, instanceStrToEditId, assignmentId,
-						survey.surveyData.surveyClass, orgId, accessKey, superUser, survey.surveyData.readOnlySurvey || readonly));
+						survey.surveyData.surveyClass, orgId, accessKey, superUser, 
+						survey.surveyData.readOnlySurvey || readonly,
+						survey));
 			}
 			
 			response = Response.status(Status.OK).entity(outputString.toString()).build();
@@ -748,7 +753,8 @@ public class WebForm extends Application {
 	private String addDocument(HttpServletRequest request, String instanceXML,
 			String dataToEditId, int assignmentId, String surveyClass, int orgId, String accessKey, 
 			boolean superUser,
-			boolean readOnly)
+			boolean readOnly,
+			Survey survey)
 			throws TransformerFactoryConfigurationError, Exception {
 
 		StringBuilder output = new StringBuilder();
@@ -762,7 +768,7 @@ public class WebForm extends Application {
 
 		output.append(
 				addHead(request, instanceXML, dataToEditId, assignmentId, surveyClass, 
-						accessKey, request.getRemoteUser()));
+						accessKey, request.getRemoteUser(), survey));
 		output.append(addBody(request, dataToEditId, orgId, surveyClass, superUser, readOnly));
 
 		output.append("</html>\n");
@@ -812,13 +818,15 @@ public class WebForm extends Application {
 	 * Add the head section
 	 */
 	private StringBuffer addHead(HttpServletRequest request, String instanceXML, String dataToEditId,
-			int assignmentId, String surveyClass, String accessKey, String user)
+			int assignmentId, String surveyClass, String accessKey, 
+			String user, Survey survey)
 			throws TransformerFactoryConfigurationError, Exception {
 
 		StringBuffer output = new StringBuffer();
 
 		// head
 		output.append("<head>\n");
+		output.append("<title>" + sanitise.sanitiseHtml(survey.getDisplayName()) + "</title>");
 		output.append("<link rel='preload' as='font' href='/fonts/OpenSans-Regular-webfont.woff' type='font/woff' crossorigin>");
 		output.append("<link rel='preload'as='font' href='/fonts/OpenSans-Bold-webfont.woff' type='font/woff' crossorigin>");
 		output.append("<link rel='preload' as='font' href='/fonts/fontawesome-webfont.woff' type='font/woff' crossorigin>");
@@ -1347,7 +1355,7 @@ public class WebForm extends Application {
 		output.append("</div>\n");
 
 		output.append("<aside class='side-slider'>\n");
-		output.append("<button type='button' class='close' data-dismiss='side-slider' aria-hidden='true' aria-label='Close'>×</button>\n");
+		output.append("<button type='button' class='close' data-dismiss='side-slider' aria-label='Close'>×</button>\n");
 		output.append("<nav></nav>\n");
 		output.append("<div class='content'>\n");
 		output.append("</div>\n");
