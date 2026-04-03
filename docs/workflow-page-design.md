@@ -139,6 +139,14 @@ determines whether the notification is fired or the task is created. In the forw
 The task group rule can be found in the "filter" property of that JSON object. The Java class AssignFromSurvey defines the json. 
 If there is no rule in the notification or task group that links two nodes then no        
 decision node is shown. If there is a rule then the decision node is shown.
+
+**bundle notifications**
+A notification applies to a bundle when `forward.bundle = true`. Processing is two-pass:
+
+- **Pass 1** — all non-bundle `forward` records and `task_group` records are processed first. As each node is created, its key is recorded in a `surveyItemKeys` map (`sId → [node keys]`), covering both source and destination sides of each notification chain.
+- **Pass 2** — bundle notifications are processed after pass 1. For each bundle member survey (identified by `survey.group_survey_ident = forward.bundle_ident`), all existing nodes recorded in `surveyItemKeys` for that survey are used as source nodes. If a member survey has no existing nodes it gets a fresh `form:s:<id>` node. All source nodes connect independently to the same downstream decision/action node(s), so multiple arrows converge on those nodes. If no accessible member surveys are found at all, a single fallback node labelled with the bundle ident is shown.
+
+A survey that is a bundle member may also have its own survey-specific notifications; those are rendered as ordinary single-source connections and share the same canvas nodes, which are then also wired as sources for any bundle notification.
 ---
 
 ## 5. REST API

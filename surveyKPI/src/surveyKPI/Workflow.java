@@ -38,7 +38,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.Authorise;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.WorkflowManager;
 import org.smap.sdal.model.WorkflowData;
@@ -82,6 +81,7 @@ public class Workflow extends Application {
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			response = Response.ok(gson.toJson(data)).build();
+			System.out.println(gson.toJson(data));
 
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "No data available", e);
