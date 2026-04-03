@@ -309,17 +309,17 @@ public class WorkflowManager {
 
 			List<String> srcKeys = new ArrayList<>();
 			for (String[] member : members) {
-				int    memberSId  = Integer.parseInt(member[0]);
-				String memberName = member[1];
+				int     memberSId    = Integer.parseInt(member[0]);
+				String  memberName   = member[1];
+				boolean isDataSurvey = "true".equals(member[2]);
 
 				List<String> existing = surveyItemKeys.get(memberSId);
 				if (existing != null && !existing.isEmpty()) {
-					// Wire all existing nodes for this survey as sources
 					for (String key : existing) {
 						if (!srcKeys.contains(key)) srcKeys.add(key);
 					}
-				} else {
-					// Survey is in the bundle but not yet on the canvas — add a form node
+				} else if (isDataSurvey) {
+					// Data survey with no existing nodes — add a bare form node
 					String key = "form:s:" + memberSId;
 					WorkflowItem src = new WorkflowItem();
 					src.id      = key;
@@ -331,6 +331,8 @@ public class WorkflowManager {
 					recordSurveyKey(surveyItemKeys, memberSId, key);
 					srcKeys.add(key);
 				}
+				// Oversight-only surveys have no form node — they appear only as task/case
+				// nodes created by other notifications, already captured via surveyItemKeys.
 			}
 
 			// Fallback: bundle with no accessible members
@@ -516,9 +518,10 @@ public class WorkflowManager {
 	 * Returns all bundle members accessible to the user, keyed by bundle ident.
 	 * Each entry is [sId-as-string, display_name].
 	 */
+	// member[0] = s_id, member[1] = display_name, member[2] = "true" if data_survey
 	private Map<String, List<String[]>> getBundleMembers(Connection sd, String user) throws SQLException {
 		Map<String, List<String[]>> result = new LinkedHashMap<>();
-		String sql = "select s.group_survey_ident, s.s_id, s.display_name "
+		String sql = "select s.group_survey_ident, s.s_id, s.display_name, s.data_survey "
 				+ "from survey s "
 				+ "join project p on s.p_id = p.id "
 				+ "join user_project up on p.id = up.p_id "
@@ -531,10 +534,11 @@ public class WorkflowManager {
 			pstmt.setString(1, user);
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
-				String bundleId = rs.getString("group_survey_ident");
-				String sId      = String.valueOf(rs.getInt("s_id"));
-				String name     = rs.getString("display_name");
-				result.computeIfAbsent(bundleId, k -> new ArrayList<>()).add(new String[]{sId, name});
+				String bundleId   = rs.getString("group_survey_ident");
+				String sId        = String.valueOf(rs.getInt("s_id"));
+				String name       = rs.getString("display_name");
+				String dataSurvey = String.valueOf(rs.getBoolean("data_survey"));
+				result.computeIfAbsent(bundleId, k -> new ArrayList<>()).add(new String[]{sId, name, dataSurvey});
 			}
 		}
 		return result;
