@@ -757,11 +757,15 @@ public class NotificationManager {
 							);
 					mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 
-					lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
-							localisation.getString("filter_applied")
-							.replace("%s1", survey.surveyData.displayName)
-							.replace("%s2", filter)
-							.replace("%s3", instanceId), 0, null);
+					if(localisation != null) {
+						lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
+								localisation.getString("filter_applied")
+								.replace("%s1", survey.surveyData.displayName)
+								.replace("%s2", filter)
+								.replace("%s3", instanceId), 0, null);
+					} else {
+						log.log(Level.WARNING, "localisation is null.");
+					}
 					
 					// Save the information that this thread has triggered this notification
 					if(thread != null) {
