@@ -696,7 +696,7 @@ public class GetHtml {
 		if(survey.surveyData.meta != null) {
 			for(MetaItem mi : survey.surveyData.meta) {
 				if(mi.isPreload) {
-					preloadLabel = outputDoc.createElement("label");
+					preloadLabel = outputDoc.createElement("div");
 					preloadLabel.setAttribute("class", "calculation non-select");
 					bodyElement.appendChild(preloadLabel);
 
@@ -714,7 +714,7 @@ public class GetHtml {
 		for (Question q : form.questions) {
 
 			if (q.isPreload() && !q.inMeta) {
-				preloadLabel = outputDoc.createElement("label");
+				preloadLabel = outputDoc.createElement("div");
 				preloadLabel.setAttribute("class", "calculation non-select");
 				bodyElement.appendChild(preloadLabel);
 
@@ -742,18 +742,18 @@ public class GetHtml {
 
 		if(form.parentform == 0) {
 			// instanceID
-			Element calculationLabel = outputDoc.createElement("label");
+			Element calculationLabel = outputDoc.createElement("div");
 			calculationLabel.setAttribute("class", "calculation non-select");
 			bodyElement.appendChild(calculationLabel);
 			Element calculationInput = outputDoc.createElement("input");
 			calculationInput.setAttribute("type", "hidden");
-			calculationInput.setAttribute("name", "/main/meta/instanceID");			
+			calculationInput.setAttribute("name", "/main/meta/instanceID");
 			calculationInput.setAttribute("data-type-xml", "string");
 			calculationLabel.appendChild(calculationInput);
-			
+
 			// instanceName
-			if(survey.surveyData.instanceNameDefn != null && survey.surveyData.instanceNameDefn.trim().length() > 0) { 
-				calculationLabel = outputDoc.createElement("label");
+			if(survey.surveyData.instanceNameDefn != null && survey.surveyData.instanceNameDefn.trim().length() > 0) {
+				calculationLabel = outputDoc.createElement("div");
 				calculationLabel.setAttribute("class", "calculation non-select");
 				bodyElement.appendChild(calculationLabel);
 				calculationInput = outputDoc.createElement("input");
@@ -811,7 +811,7 @@ public class GetHtml {
 
 			if (calculation != null && calculation.trim().length() > 0 &&(q.type.equals("calculate") || q.type.equals("begin repeat"))) {
 
-				calculationLabel = outputDoc.createElement("label");
+				calculationLabel = outputDoc.createElement("div");
 				calculationLabel.setAttribute("class", "calculation non-select");
 				bodyElement.appendChild(calculationLabel);
 
@@ -835,7 +835,7 @@ public class GetHtml {
 			 * Add an additional calculation for lookup_choices
 			 */
 			if(q.appearance != null && q.appearance.contains("lookup_choices(")) {
-				calculationLabel = outputDoc.createElement("label");
+				calculationLabel = outputDoc.createElement("div");
 				calculationLabel.setAttribute("class", "calculation non-select");
 				bodyElement.appendChild(calculationLabel);
 
@@ -1324,6 +1324,8 @@ public class GetHtml {
 			Element labelElement = outputDoc.createElement("label");
 			parent.appendChild(labelElement);
 			labelElement.setAttribute("class", "itemset-template");
+			labelElement.setAttribute("aria-hidden", "true");
+			labelElement.setAttribute("aria-label", "template");
 			if(isLikert) {
 				labelElement.setAttribute("style", "display:none;");
 			}
@@ -1692,21 +1694,23 @@ public class GetHtml {
 	/*
 	 * Add a constraint
 	 */
-	private boolean addConstraintMsg(String msg, String lang, Element parent, int idx) {		
+	private boolean addConstraintMsg(String msg, String lang, Element parent, int idx) {
 
 		boolean added = false;
-		
-		if(lang == null) {
-			lang = "";
-		}
-		
+
 		if (msg != null && msg.length() > 0) {
 			Element  bodyElement = outputDoc.createElement("span");
-			bodyElement.setAttribute("lang", lang);
-			
+
 			String theClass = "or-constraint-msg";
-			if(languageIndex == idx || lang.equals("")) {
+			if(lang == null || lang.isEmpty()) {
+				// No language specified — applies to all languages.
+				// Don't set lang attribute so language.js ignores it and it stays active always.
 				theClass += " active";
+			} else {
+				bodyElement.setAttribute("lang", lang);
+				if(languageIndex == idx) {
+					theClass += " active";
+				}
 			}
 			bodyElement.setAttribute("class", theClass);
 			bodyElement.setTextContent(sanitise.sanitiseHtml(msg));
@@ -1722,18 +1726,17 @@ public class GetHtml {
 	 * Get the required message
 	 */
 	private Element getRequiredMsg(String msg, String lang, boolean active) {
-		
-		if(lang == null) {
-			lang = "";
-		}
-		
+
 		Element bodyElement = outputDoc.createElement("span");
 		String theClass = "or-required-msg";
 		if(active) {
 			theClass += " active";
 		}
 		bodyElement.setAttribute("class", theClass);
-		bodyElement.setAttribute("lang", lang);
+		if(lang != null && !lang.isEmpty()) {
+			bodyElement.setAttribute("lang", lang);
+		}
+		// No lang set when null/empty — applies to all languages, stays active permanently.
 		bodyElement.setAttribute("data-i18n", "constraint.required");
 		if (msg != null && msg.trim().length() > 0) {
 			bodyElement.setTextContent(sanitise.sanitiseHtml(msg));
