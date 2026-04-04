@@ -190,7 +190,7 @@ public class GetHtml {
 		if (survey.surveyData.languages == null || survey.surveyData.languages.size() <= 1) {
 			bodyElement.setAttribute("style", "display:none;");
 		}
-		bodyElement.setAttribute("data-default-lang", survey.surveyData.def_lang);
+		bodyElement.setAttribute("data-default-lang", getDefaultLangId());
 		populateLanguageChoices(bodyElement);
 		parent.appendChild(bodyElement);
 
@@ -219,12 +219,34 @@ public class GetHtml {
 
 	}
 
+	/*
+	 * Return the language identifier to use for lang attributes.
+	 * Uses the language code if set, otherwise falls back to the name.
+	 */
+	private String getLangId(Language lang) {
+		return (lang.code != null && !lang.code.trim().isEmpty()) ? lang.code : lang.name;
+	}
+
+	/*
+	 * Return the lang id for the default language.
+	 */
+	private String getDefaultLangId() {
+		String defLang = survey.surveyData.def_lang;
+		if (defLang == null) return "";
+		for (Language lang : survey.surveyData.languages) {
+			if (GeneralUtilityMethods.isSameLanguage(lang.name, defLang)) {
+				return getLangId(lang);
+			}
+		}
+		return defLang;
+	}
+
 	private void populateLanguageChoices(Element parent) {
 		Element bodyElement = null;
 		int idx = 0;
 		for (Language lang : survey.surveyData.languages) {
 			bodyElement = outputDoc.createElement("option");
-			bodyElement.setAttribute("value", lang.name);
+			bodyElement.setAttribute("value", getLangId(lang));
 			
 			boolean rtl = lang.rtl;
 			// For backward compatability if the language code is null guess the rtl from the language name
@@ -1412,7 +1434,7 @@ public class GetHtml {
 					} else {
 						labelElement.appendChild(bodyElement);
 					}
-					bodyElement.setAttribute("lang", lang.name);
+					bodyElement.setAttribute("lang", getLangId(lang));
 					bodyElement.setAttribute("class",
 							"option-label" + (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 					bodyElement.setAttribute("data-itext-id", o.text_id);
@@ -1483,7 +1505,7 @@ public class GetHtml {
 				for (Language lang : survey.surveyData.languages) {
 					Element optionElement = outputDoc.createElement("span");
 					parent.appendChild(optionElement);
-					optionElement.setAttribute("lang", lang.name);
+					optionElement.setAttribute("lang", getLangId(lang));
 					optionElement.setAttribute("class", "option-label" + (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 					optionElement.setAttribute("data-itext-id", o.text_id);
 					
@@ -1567,7 +1589,7 @@ public class GetHtml {
 
 			// Label
 			bodyElement = outputDoc.createElement("span");
-			bodyElement.setAttribute("lang", lang.name);
+			bodyElement.setAttribute("lang", getLangId(lang));
 			bodyElement.setAttribute("class", "question-label" + (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("data-itext-id", q.text_id);
 
@@ -1591,7 +1613,7 @@ public class GetHtml {
 
 			if (hint != null && hint.trim().length() > 0) {
 				bodyElement = outputDoc.createElement("span");
-				bodyElement.setAttribute("lang", lang.name);
+				bodyElement.setAttribute("lang", getLangId(lang));
 				bodyElement.setAttribute("class", "or-hint" + (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 				bodyElement.setAttribute("data-itext-id", q.hint_id);
 
@@ -1610,7 +1632,7 @@ public class GetHtml {
 
 			if (guidance != null && guidance.trim().length() > 0) {
 				bodyElement = outputDoc.createElement("details");
-				bodyElement.setAttribute("lang", lang.name);
+				bodyElement.setAttribute("lang", getLangId(lang));
 				bodyElement.setAttribute("class", "or-form-guidance" + (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 
 				Element summaryElement = outputDoc.createElement("summary");
@@ -1629,7 +1651,7 @@ public class GetHtml {
 			}
 			
 			// Constraint
-			constraintMessageAdded = addConstraintMsg(q.labels.get(idx).constraint_msg, lang.name, parent, idx);
+			constraintMessageAdded = addConstraintMsg(q.labels.get(idx).constraint_msg, getLangId(lang), parent, idx);
 			if(q.isRequired()) {
 				if(q.labels.get(idx).required_msg != null) {
 					if(!requiredIndicatorAdded) {
@@ -1639,8 +1661,8 @@ public class GetHtml {
 						parent.appendChild(bodyElement);
 						requiredIndicatorAdded = true;
 					}
-					parent.appendChild(getRequiredMsg(q.labels.get(idx).required_msg, 
-							lang.name, !requiredMessageAdded));
+					parent.appendChild(getRequiredMsg(q.labels.get(idx).required_msg,
+							getLangId(lang), !requiredMessageAdded));
 					requiredMessageAdded = true;
 				}
 			}
@@ -1731,7 +1753,7 @@ public class GetHtml {
 		String image = label.image;
 		if (image != null && image.trim().length() > 0) {
 			bodyElement = outputDoc.createElement("img");
-			bodyElement.setAttribute("lang", lang.name);
+			bodyElement.setAttribute("lang", getLangId(lang));
 			bodyElement.setAttribute("class", (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("src", "jr://images/" + image);
 			bodyElement.setAttribute("alt", "image");
@@ -1744,7 +1766,7 @@ public class GetHtml {
 		String audio = label.audio;
 		if (audio != null && audio.trim().length() > 0) {
 			bodyElement = outputDoc.createElement("audio");
-			bodyElement.setAttribute("lang", lang.name);
+			bodyElement.setAttribute("lang", getLangId(lang));
 			bodyElement.setAttribute("class", (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("src", "jr://audio/" + audio);
 			bodyElement.setAttribute("alt", "audio");
@@ -1759,7 +1781,7 @@ public class GetHtml {
 		String video = label.video;
 		if (video != null && video.trim().length() > 0) {
 			bodyElement = outputDoc.createElement("video");
-			bodyElement.setAttribute("lang", lang.name);
+			bodyElement.setAttribute("lang", getLangId(lang));
 			bodyElement.setAttribute("class", (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("src", "jr://video/" + video);
 			bodyElement.setAttribute("alt", "video");
@@ -2052,7 +2074,7 @@ public class GetHtml {
 				for (Language lang : survey.surveyData.languages) {
 					bodyElement = outputDoc.createElement("span");
 					parent.appendChild(bodyElement);
-					bodyElement.setAttribute("lang", lang.name);
+					bodyElement.setAttribute("lang", getLangId(lang));
 					bodyElement.setAttribute("data-option-value", o.value);
 					String label = UtilityMethods.convertAllxlsNames(o.labels.get(idx).text, true, paths, form.id, true, o.value, false);
 					bodyElement.setTextContent(sanitise.sanitiseHtml(label));
