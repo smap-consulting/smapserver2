@@ -1371,7 +1371,7 @@ public class WebForm extends Application {
 	private StringBuffer openMain(int orgId, boolean minimal) {
 		StringBuffer output = new StringBuffer();
 
-		output.append("<div class='main'>\n");
+		output.append("<main class='main' aria-labelledby='form-title'>\n");
 
 		// Add the google api key
 		if (serverData != null) {
@@ -1455,7 +1455,7 @@ public class WebForm extends Application {
 		output.append("</section> <!-- end form-footer -->\n");
 
 		output.append("</article>\n");
-		output.append("</div> <!-- end main -->\n");
+		output.append("</main> <!-- end main -->\n");
 
 		return output;
 	}
