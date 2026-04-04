@@ -620,7 +620,7 @@ public class XLSTemplateUploadManager {
 								String exists = langMap.get(sArray[1]);
 								if(exists == null) {
 									langMap.put(sArray[1], sArray[1]);
-									survey.surveyData.languages.add(new Language(0, sArray[1],
+									survey.surveyData.languages.add(new Language(0, GeneralUtilityMethods.getLanguageName(sArray[1]),
 											GeneralUtilityMethods.getLanguageCode(sArray[1]),
 											GeneralUtilityMethods.isRtl(sArray[1])));
 								}

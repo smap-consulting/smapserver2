@@ -3122,7 +3122,7 @@ public class GeneralUtilityMethods {
 						String code = getLanguageCode(lName);
 						boolean rtl = isRtl(lName);
 						
-						languages.add(new Language(-1, languageNames.get(i), code, rtl));
+						languages.add(new Language(-1, getLanguageName(lName), code, rtl));
 					}
 				}
 				setLanguages(sd, sId, languages);
