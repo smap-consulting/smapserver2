@@ -27,4 +27,6 @@ public class WorkflowItem {
 	public boolean enabled;
 	public int x;
 	public int y;
+	public String project;   // project name the notification belongs to
+	public String bundle;    // bundle display name, if this node is part of a bundle
 }

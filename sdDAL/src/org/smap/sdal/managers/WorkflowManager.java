@@ -64,11 +64,13 @@ public class WorkflowManager {
 	private static class BundleNotif {
 		int     fId;
 		String  bundleIdent;
+		String  bundleName;   // display name of the group survey (used for highlight)
 		String  target;
 		boolean enabled;
 		String  filter;
 		String  fName;
 		String  caseSurvey;
+		String  projectName;
 	}
 
 	/*
@@ -91,6 +93,13 @@ public class WorkflowManager {
 		Map<Integer, List<String>> surveyItemKeys = new LinkedHashMap<>();
 
 		Map<String, List<String[]>> bundleMembers = getBundleMembers(sd, user);
+		// Reverse map: sId → bundle display name, for post-process stamping
+		Map<Integer, String> surveyBundleNames = new LinkedHashMap<>();
+		for (List<String[]> members : bundleMembers.values()) {
+			for (String[] m : members) {
+				if (m[3] != null) surveyBundleNames.put(Integer.parseInt(m[0]), m[3]);
+			}
+		}
 		List<BundleNotif> pendingBundles = new ArrayList<>();
 
 		// -------------------------------------------------------------------
@@ -101,13 +110,15 @@ public class WorkflowManager {
 				+ "f.s_id, f.bundle_ident, f.p_id, f.filter, "
 				+ "s_src.display_name as trigger_survey, "
 				+ "s_bun.display_name as bundle_name, "
-				+ "s_case.display_name as case_survey "
+				+ "s_case.display_name as case_survey, "
+				+ "proj.name as project_name "
 				+ "from forward f "
 				+ "left outer join survey s_src on s_src.s_id = f.s_id "
 				+ "left outer join survey s_bun on s_bun.ident = f.bundle_ident "
 				+ "left outer join survey s_case on f.target = 'escalate' "
 				+ "  and f.notify_details is not null "
 				+ "  and s_case.ident = (f.notify_details::json->>'survey_case') "
+				+ "left outer join project proj on proj.id = f.p_id "
 				+ "where (f.p_id in (select p.id from project p, user_project up, users u "
 				+ "  where p.id = up.p_id and up.u_id = u.id and u.ident = ?) "
 				+ "or f.s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
@@ -134,19 +145,23 @@ public class WorkflowManager {
 				int     sId           = rs.getInt("s_id");
 				String  bundleIdent   = rs.getString("bundle_ident");
 				String  triggerSurvey = rs.getString("trigger_survey");
+				String  bundleName    = rs.getString("bundle_name");
 				String  caseSurvey    = rs.getString("case_survey");
 				String  filter        = rs.getString("filter");
+				String  projectName   = rs.getString("project_name");
 
 				// Defer bundle notifications until all survey nodes are built
 				if (isBundle) {
 					BundleNotif bn = new BundleNotif();
 					bn.fId         = fId;
 					bn.bundleIdent = bundleIdent;
+					bn.bundleName  = bundleName;
 					bn.target      = target;
 					bn.enabled     = enabled;
 					bn.filter      = filter;
 					bn.fName       = fName;
 					bn.caseSurvey  = caseSurvey;
+					bn.projectName = projectName;
 					pendingBundles.add(bn);
 					continue;
 				}
@@ -161,6 +176,7 @@ public class WorkflowManager {
 					src.role    = ROLE_FORM;
 					src.name    = triggerSurvey != null ? triggerSurvey : fName;
 					src.enabled = enabled;
+					src.project = projectName;
 					itemMap.putIfAbsent(srcKey, src);
 					recordSurveyKey(surveyItemKeys, sId, srcKey);
 				} else if ("periodic".equals(trigger)) {
@@ -171,6 +187,7 @@ public class WorkflowManager {
 					src.role    = ROLE_TRIGGER;
 					src.name    = fName;
 					src.enabled = enabled;
+					src.project = projectName;
 					itemMap.putIfAbsent(srcKey, src);
 				} else if ("reminder".equals(trigger)) {
 					srcKey = "reminder:f:" + fId;
@@ -180,6 +197,7 @@ public class WorkflowManager {
 					src.role    = ROLE_TRIGGER;
 					src.name    = fName;
 					src.enabled = enabled;
+					src.project = projectName;
 					itemMap.putIfAbsent(srcKey, src);
 				} else {
 					srcKey = "trigger:" + trigger + ":f:" + fId;
@@ -189,6 +207,7 @@ public class WorkflowManager {
 					src.role    = ROLE_TRIGGER;
 					src.name    = fName;
 					src.enabled = enabled;
+					src.project = projectName;
 					itemMap.putIfAbsent(srcKey, src);
 				}
 
@@ -196,6 +215,7 @@ public class WorkflowManager {
 				String dstKey;
 				WorkflowItem dst = new WorkflowItem();
 				dst.enabled = enabled;
+				dst.project = projectName;
 
 				if ("task".equals(target)) {
 					dstKey   = "task:f:" + fId;
@@ -227,7 +247,7 @@ public class WorkflowManager {
 				itemMap.putIfAbsent(dstKey, dst);
 				if (sId > 0 && ROLE_FORM.equals(dst.role)) recordSurveyKey(surveyItemKeys, sId, dstKey);
 
-				linkWithOptionalDecision(data, itemMap, filter, fId, "f", srcKey, dstKey, enabled);
+				linkWithOptionalDecision(data, itemMap, filter, fId, "f", srcKey, dstKey, enabled, projectName, null);
 			}
 		} finally {
 			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
@@ -239,10 +259,12 @@ public class WorkflowManager {
 		String sqlTg =
 				"select tg.tg_id, tg.name, tg.source_s_id, tg.target_s_id, tg.rule, "
 				+ "src.display_name as trigger_survey, "
-				+ "tgt.display_name as target_survey "
+				+ "tgt.display_name as target_survey, "
+				+ "proj.name as project_name "
 				+ "from task_group tg "
 				+ "left outer join survey src on src.s_id = tg.source_s_id "
 				+ "left outer join survey tgt on tgt.s_id = tg.target_s_id "
+				+ "left outer join project proj on proj.id = tg.p_id "
 				+ "where tg.p_id in (select p.id from project p, user_project up, users u "
 				+ "  where p.id = up.p_id and up.u_id = u.id and u.ident = ?) "
 				+ "order by tg.name asc";
@@ -260,6 +282,7 @@ public class WorkflowManager {
 				String triggerSurvey = rs.getString("trigger_survey");
 				String targetSurvey  = rs.getString("target_survey");
 				String rule          = rs.getString("rule");
+				String tgProjectName = rs.getString("project_name");
 
 				String srcKey = "form:s:" + sourceSId;
 				if (!itemMap.containsKey(srcKey)) {
@@ -269,6 +292,7 @@ public class WorkflowManager {
 					src.role    = ROLE_FORM;
 					src.name    = triggerSurvey != null ? triggerSurvey : tgName;
 					src.enabled = true;
+					src.project = tgProjectName;
 					itemMap.put(srcKey, src);
 				}
 				recordSurveyKey(surveyItemKeys, sourceSId, srcKey);
@@ -281,6 +305,7 @@ public class WorkflowManager {
 					dst.role    = ROLE_FORM;
 					dst.name    = targetSurvey != null ? targetSurvey : tgName;
 					dst.enabled = true;
+					dst.project = tgProjectName;
 					itemMap.put(dstKey, dst);
 				}
 				// Record the task node under its own survey (target), not the triggering survey
@@ -293,7 +318,7 @@ public class WorkflowManager {
 						tgFilterName = afs.filter.advanced != null ? afs.filter.advanced : afs.filter.qText;
 					}
 				}
-				linkWithOptionalDecision(data, itemMap, tgFilterName, tgId, "tg", srcKey, dstKey, true);
+				linkWithOptionalDecision(data, itemMap, tgFilterName, tgId, "tg", srcKey, dstKey, true, tgProjectName, null);
 			}
 		} finally {
 			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
@@ -352,6 +377,8 @@ public class WorkflowManager {
 			String dstKey;
 			WorkflowItem dst = new WorkflowItem();
 			dst.enabled = bn.enabled;
+			dst.project = bn.projectName;
+			dst.bundle  = bn.bundleName;
 
 			if ("task".equals(bn.target)) {
 				dstKey   = "task:f:" + bn.fId;
@@ -382,24 +409,20 @@ public class WorkflowManager {
 			dst.id = dstKey;
 			itemMap.putIfAbsent(dstKey, dst);
 
-			// Link each source → decision (if filter) → dst
-			if (bn.filter != null && !bn.filter.trim().isEmpty()) {
-				String decKey = "decision:f:" + bn.fId;
-				WorkflowItem dec = new WorkflowItem();
-				dec.id      = decKey;
-				dec.type    = TYPE_DECISION;
-				dec.role    = ROLE_DECISION;
-				dec.name    = bn.filter;
-				dec.enabled = bn.enabled;
-				itemMap.putIfAbsent(decKey, dec);
-				for (String srcKey : srcKeys) {
-					addLinkIfAbsent(data, srcKey, decKey);
-				}
-				addLinkIfAbsent(data, decKey, dstKey);
-			} else {
-				for (String srcKey : srcKeys) {
-					addLinkIfAbsent(data, srcKey, dstKey);
-				}
+			linkWithOptionalDecision(data, itemMap, bn.filter, bn.fId, "f", null, dstKey, bn.enabled, bn.projectName, bn.bundleName);
+			for (String srcKey : srcKeys) {
+				String linkTarget = (bn.filter != null && !bn.filter.trim().isEmpty())
+						? "decision:f:" + bn.fId : dstKey;
+				addLinkIfAbsent(data, srcKey, linkTarget);
+			}
+		}
+
+		// Post-process: stamp bundle name onto form nodes for bundle member surveys
+		for (Map.Entry<String, WorkflowItem> entry : itemMap.entrySet()) {
+			if (entry.getKey().startsWith("form:s:") && entry.getValue().bundle == null) {
+				int sId = Integer.parseInt(entry.getKey().substring(7));
+				String bName = surveyBundleNames.get(sId);
+				if (bName != null) entry.getValue().bundle = bName;
 			}
 		}
 
@@ -518,11 +541,14 @@ public class WorkflowManager {
 	 * Returns all bundle members accessible to the user, keyed by bundle ident.
 	 * Each entry is [sId-as-string, display_name].
 	 */
-	// member[0] = s_id, member[1] = display_name, member[2] = "true" if data_survey
+	// member[0] = s_id, member[1] = display_name, member[2] = "true" if data_survey,
+	// member[3] = bundle display name (group survey's display_name)
 	private Map<String, List<String[]>> getBundleMembers(Connection sd, String user) throws SQLException {
 		Map<String, List<String[]>> result = new LinkedHashMap<>();
-		String sql = "select s.group_survey_ident, s.s_id, s.display_name, s.data_survey "
+		String sql = "select s.group_survey_ident, s.s_id, s.display_name, s.data_survey, "
+				+ "gs.display_name as bundle_display_name "
 				+ "from survey s "
+				+ "left join survey gs on gs.ident = s.group_survey_ident "
 				+ "join project p on s.p_id = p.id "
 				+ "join user_project up on p.id = up.p_id "
 				+ "join users u on up.u_id = u.id "
@@ -534,11 +560,12 @@ public class WorkflowManager {
 			pstmt.setString(1, user);
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
-				String bundleId   = rs.getString("group_survey_ident");
-				String sId        = String.valueOf(rs.getInt("s_id"));
-				String name       = rs.getString("display_name");
-				String dataSurvey = String.valueOf(rs.getBoolean("data_survey"));
-				result.computeIfAbsent(bundleId, k -> new ArrayList<>()).add(new String[]{sId, name, dataSurvey});
+				String bundleId    = rs.getString("group_survey_ident");
+				String sId         = String.valueOf(rs.getInt("s_id"));
+				String name        = rs.getString("display_name");
+				String dataSurvey  = String.valueOf(rs.getBoolean("data_survey"));
+				String bundleName  = rs.getString("bundle_display_name");
+				result.computeIfAbsent(bundleId, k -> new ArrayList<>()).add(new String[]{sId, name, dataSurvey, bundleName});
 			}
 		}
 		return result;
@@ -548,8 +575,14 @@ public class WorkflowManager {
 	 * Creates a decision node (if filter is non-empty) and links src → [dec →] dst.
 	 * decSuffix distinguishes decision keys: "f" for forward, "tg" for task_group.
 	 */
+	/*
+	 * Creates a decision node (if filter non-empty) and links src → [dec →] dst.
+	 * When srcKey is null (bundle pass, multiple srcs handled by caller), only the
+	 * decision node itself is created; the caller links each source to it.
+	 */
 	private void linkWithOptionalDecision(WorkflowData data, LinkedHashMap<String, WorkflowItem> itemMap,
-			String filter, int id, String decSuffix, String srcKey, String dstKey, boolean enabled) {
+			String filter, int id, String decSuffix, String srcKey, String dstKey,
+			boolean enabled, String project, String bundle) {
 		if (filter != null && !filter.trim().isEmpty()) {
 			String decKey = "decision:" + decSuffix + ":" + id;
 			WorkflowItem dec = new WorkflowItem();
@@ -558,10 +591,12 @@ public class WorkflowManager {
 			dec.role    = ROLE_DECISION;
 			dec.name    = filter;
 			dec.enabled = enabled;
+			dec.project = project;
+			dec.bundle  = bundle;
 			itemMap.putIfAbsent(decKey, dec);
-			addLinkIfAbsent(data, srcKey, decKey);
+			if (srcKey != null) addLinkIfAbsent(data, srcKey, decKey);
 			addLinkIfAbsent(data, decKey, dstKey);
-		} else {
+		} else if (srcKey != null) {
 			addLinkIfAbsent(data, srcKey, dstKey);
 		}
 	}
