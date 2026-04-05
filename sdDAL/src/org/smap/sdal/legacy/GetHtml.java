@@ -1759,7 +1759,7 @@ public class GetHtml {
 			bodyElement.setAttribute("lang", getLangId(lang));
 			bodyElement.setAttribute("class", (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("src", "jr://images/" + image);
-			bodyElement.setAttribute("alt", "image");
+			bodyElement.setAttribute("alt", (label.text != null && !label.text.trim().isEmpty()) ? sanitise.sanitiseHtml(label.text) : "");
 			bodyElement.setAttribute("data-itext-id", textId);
 
 			parent.appendChild(bodyElement);
