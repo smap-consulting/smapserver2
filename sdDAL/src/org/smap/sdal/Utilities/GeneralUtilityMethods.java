@@ -5436,7 +5436,8 @@ public class GeneralUtilityMethods {
 
 		} catch(Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
-			
+			throw e;
+
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtQuestion != null) {pstmtQuestion.close();}} catch (SQLException e) {}
