@@ -1438,7 +1438,7 @@ public class WebForm extends Application {
 			output.append("<button class='btn next-page' href='#'>>>></span></button>\n");
 		}
 		output.append(
-				"<div class=\"enketo-power\" style=\"margin-bottom: 30px;\"><span class='lang' data-lang='enketo.power'>Powered by</span> <a href=\"http://enketo.org\" title=\"enketo.org website\"><img src=\"/images/enketo_bare_150x56.png\" alt=\"enketo logo\" /></a> </div>");
+				"<div class=\"enketo-power\" style=\"margin-bottom: 30px;\"><span class='lang' data-lang='enketo.power'>Powered by</span> <a href=\"http://enketo.org\" title=\"enketo.org website\" tabindex=\"-1\"><img src=\"/images/enketo_bare_150x56.png\" alt=\"enketo logo\" /></a> </div>");
 		// output.append("<img src=/images/enketo.png style=\"position: absolute; right:
 		// 0px; bottom: 0px; height:40px;\">");
 		output.append("</div>\n"); // main controls
