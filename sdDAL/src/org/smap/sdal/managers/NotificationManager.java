@@ -924,24 +924,34 @@ public class NotificationManager {
 				ArrayList<String> text = new ArrayList<> ();
 				text.add(msg.subject);
 				text.add(msg.content);
-				tm.createTextOutput(sd,
-						cResults,
-						text,
-						basePath, 
-						msg.user,
-						survey,
-						"none",
-						organisation.id);
-				// Update text with oversight data if it exists
-				if(updateSurvey != null) {
+				try {
 					tm.createTextOutput(sd,
 							cResults,
 							text,
-							basePath, 
+							basePath,
 							msg.user,
-							updateSurvey,
+							survey,
 							"none",
 							organisation.id);
+					// Update text with oversight data if it exists
+					if(updateSurvey != null) {
+						tm.createTextOutput(sd,
+								cResults,
+								text,
+								basePath,
+								msg.user,
+								updateSurvey,
+								"none",
+								organisation.id);
+					}
+				} catch(Exception e) {
+					String note = localisation.getString("msg_err_notification_text");
+					note = note.replace("%s1", msg.survey_ident == null ? "" : msg.survey_ident);
+					note = note.replace("%s2", e.getMessage() == null ? "" : e.getMessage());
+					LogManager lm = new LogManager();
+					lm.writeLog(sd, GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident),
+							msg.user, LogManager.NOTIFICATION_ERROR, note, 0, null);
+					throw e;
 				}
 				msg.subject = text.get(0);
 				msg.content = text.get(1);

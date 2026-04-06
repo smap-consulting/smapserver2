@@ -1220,12 +1220,12 @@ public class WebForm extends Application {
 
 		output.append("<!-- Start Dialogs -->\n");
 		output.append(
-				"<div id='dialog-alert' class='modal fade' role='dialog' aria-labelledby='alert dialog' aria-hidden='true'  data-keyboard='true'>\n");
+				"<div id='dialog-alert' class='modal fade' role='dialog' aria-label='Alert dialog' aria-hidden='true' data-keyboard='true'>\n");
 		output.append("<div class='modal-dialog'>\n");
 		output.append("<div class='modal-content'>\n");
 		output.append("<div class='modal-header'>\n");
 		output.append("<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>\n");
-		output.append("<h3></h3>\n");
+		output.append("<div class='modal-title'></div>\n");
 		output.append("</div>\n");
 		output.append("<div class='modal-body'>\n");
 		output.append("<p class=''></p>\n");
@@ -1239,18 +1239,18 @@ public class WebForm extends Application {
 		output.append("</div>  <!-- end dialog-alert -->\n");
 
 		output.append(
-				"<div id='dialog-confirm' class='modal fade' role='dialog' aria-labelledby='confirmation dialog' aria-hidden='true'  data-keyboard='true'>\n");
+				"<div id='dialog-confirm' class='modal fade' role='dialog' aria-label='Confirmation dialog' aria-hidden='true' data-keyboard='true'>\n");
 		output.append("<div class='modal-dialog'>\n");
 		output.append("<div class='modal-content'>\n");
 		output.append("<div class='modal-header'>\n");
 		output.append("<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>\n");
 		output.append("</div>\n");
 		output.append("<div class='modal-body'>\n");
-		output.append("<h4></h4>\n");
+		output.append("<div class='modal-title'></div>\n");
 		output.append("<p class='alert alert-danger'></p>\n");
 		output.append("<p class='msg'></p>\n");
-		output.append("<span id=\"recname\"></span><span>: </span>");
-		output.append("<input type=\"text\" name=\"record-name\">\n");
+		output.append("<span id=\"recname\"></span>");
+		output.append("<input type=\"text\" name=\"record-name\" aria-labelledby=\"recname\" tabindex=\"-1\">\n");
 		output.append("</div>\n");
 		output.append("<div class='modal-footer'>\n");
 		output.append("<span class='self-destruct-timer'></span>\n");
@@ -1263,14 +1263,14 @@ public class WebForm extends Application {
 		// TRANSLATION LIMIT
 
 		output.append(
-				"<div id='dialog-save' class='modal fade' role='dialog' aria-labelledby='save dialog' aria-hidden='true' data-keyboard='true'>\n");
+				"<div id='dialog-save' class='modal fade' role='dialog' aria-label='Save dialog' aria-hidden='true' data-keyboard='true'>\n");
 		output.append("<div class='modal-dialog'>\n");
 		output.append("<div class='modal-content'>\n");
 		output.append("<div class='modal-header'>\n");
 		output.append("<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>\n");
 		output.append("</div>\n");
 		output.append("<div class='modal-body'>\n");
-		output.append("<h4></h4>\n");
+		output.append("<div class='modal-title'></div>\n");
 		output.append("<form onsubmit='return false;'>\n");
 		output.append("<div class='alert alert-danger'></div>\n");
 		output.append("<label>\n");
@@ -1291,7 +1291,7 @@ public class WebForm extends Application {
 
 		// used for Grid theme only
 		output.append(
-				"<div id='dialog-print' class='modal fade' role='dialog' aria-labelledby='print dialog' aria-hidden='true'  data-keyboard='true'>\n");
+				"<div id='dialog-print' class='modal fade' role='dialog' aria-label='Print dialog' aria-hidden='true' data-keyboard='true'>\n");
 		output.append("<div class='modal-dialog'>\n");
 		output.append("<div class='modal-content'>\n");
 		output.append("<div class='modal-header'>\n");
@@ -1371,7 +1371,7 @@ public class WebForm extends Application {
 	private StringBuffer openMain(int orgId, boolean minimal) {
 		StringBuffer output = new StringBuffer();
 
-		output.append("<div class='main'>\n");
+		output.append("<main class='main' aria-labelledby='form-title'>\n");
 
 		// Add the google api key
 		if (serverData != null) {
@@ -1387,12 +1387,12 @@ public class WebForm extends Application {
 			output.append("<div class='offline-enabled'>\n");
 			output.append("<div title='Records Queued' class='queue-length side-slider-toggle'>0</div>\n");
 			if(isApp) {		// include back button
-				output.append("<div style=' font-size: large;'><button onclick='window.history.back();'><i class='fa fa-arrow-left' aria-hidden='true'></i></button></div>\n");
+				output.append("<div style=' font-size: large;'><button onclick='window.history.back();' aria-label='Go back'><i class='fa fa-arrow-left' aria-hidden='true'></i></button></div>\n");
 			}
 			output.append("<div><img id=\"hour_glass\" src=\"/images/ajax-loader.gif\" style=\"display:none;\" alt=\"hourglass\" height=\"34\" width=\"34\"></div>\n");
 			output.append("</div>\n");
 			//output.append("<button onclick='window.print();' class='print' title='Print this Form'> </button>\n");
-			output.append("<button class=\"print form-header__button--print btn-bg-icon-only\" onclick=\"return false;\"></button>");
+			output.append("<button class=\"print form-header__button--print btn-bg-icon-only\" onclick=\"return false;\" aria-label=\"Print form\"></button>");
 			output.append("<span class='form-language-selector'><span class='lang' data-lang='form.chooseLanguage'>language</span></span>\n");
 			output.append("<div class='form-progress'></div>\n");
 
@@ -1404,7 +1404,7 @@ public class WebForm extends Application {
 			
 			output.append("<img class='banner_logo' src='/custom/banner/")
 				.append(orgId)
-				.append("' alt='logo'>\n");
+				.append("' alt=''>\n");
 			output.append("</span>\n");
 			
 			output.append("</header>\n");
@@ -1438,7 +1438,7 @@ public class WebForm extends Application {
 			output.append("<button class='btn next-page' href='#'>>>></span></button>\n");
 		}
 		output.append(
-				"<div class=\"enketo-power\" style=\"margin-bottom: 30px;\"><span class='lang' data-lang='enketo.power'>Powered by</span> <a href=\"http://enketo.org\" title=\"enketo.org website\"><img src=\"/images/enketo_bare_150x56.png\" alt=\"enketo logo\" /></a> </div>");
+				"<div class=\"enketo-power\" style=\"margin-bottom: 30px;\"><span class='lang' data-lang='enketo.power'>Powered by</span> <a href=\"http://enketo.org\" title=\"enketo.org website\" tabindex=\"-1\"><img src=\"/images/enketo_bare_150x56.png\" alt=\"enketo logo\" /></a> </div>");
 		// output.append("<img src=/images/enketo.png style=\"position: absolute; right:
 		// 0px; bottom: 0px; height:40px;\">");
 		output.append("</div>\n"); // main controls
@@ -1455,7 +1455,7 @@ public class WebForm extends Application {
 		output.append("</section> <!-- end form-footer -->\n");
 
 		output.append("</article>\n");
-		output.append("</div> <!-- end main -->\n");
+		output.append("</main> <!-- end main -->\n");
 
 		return output;
 	}
