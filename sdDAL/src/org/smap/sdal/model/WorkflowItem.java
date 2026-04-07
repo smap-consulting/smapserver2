@@ -29,4 +29,5 @@ public class WorkflowItem {
 	public int y;
 	public String project;   // project name the notification belongs to
 	public String bundle;    // bundle display name, if this node is part of a bundle
+	public String assignee;  // for task/case types: username, role name, emails, "Submitter", "From Data"
 }

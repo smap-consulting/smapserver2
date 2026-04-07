@@ -93,16 +93,16 @@ workitems are the visual components shown on the workflow page.  They are connec
 
 **WorkItem Types**
 
-| Type | Role   | Name Source       |
-|------|--------|-------------------|
-| form | form   | Survey Name       |
-| task | form   | Survey Name       |
-| case | form   | Survey Name       |
-| decision | decision | None              |
-| periodic | trigger | Notification Name |
-| reminder | trigger | Notification Name |
-| email | notification | Notification Name |
-| sms | notification | Notification Name |
+| Type | Role   | Name Source    | Edit / Delete / Create                                                                                                                               |
+|------|--------|----------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| form | form   | Survey Name    | No. Created automatically when a survey with `data_survey=true, hide_on_device=false` is used as a source. |
+| task | form   | Survey Name    | TaskGroup(s) that link another workitem of type form to this one. If there are more than one then select the one to edit/delete based on the filter. |
+| case | form   | Survey Name    | Notifications(s) that link another workitem of type form to this one. Again multiple notifications will be distinguished by the filter.              |
+| decision | decision | None           | No                                                                                                                                                   |
+| periodic | trigger | Notification Name | Ignore for now                                                                                                                                       |
+| reminder | trigger | Notification Name | Ignore for now                                                                                                                                       |
+| email | notification | Notification Name | Notification that links another workitem to this email                                                                                               |
+| sms | notification | Notification Name | Notification that links another workitem to this sms                                                                                                 |
 
 **Sources**
 
@@ -121,12 +121,36 @@ Notifications commonly contain two workitems that will form the core workflow fu
 - `bundle`, `bundle_ident` — bundle association
 - `p_id` — project id
 - `trigger` — trigger type: `submission`, `periodic`, `reminder`, `server_calc`, etc.
-- `target` — action type: `task`, `case`, `email`, `sms`, `server_calc`, `forward`, etc.
+- `target` — action type: `task`, `escalate` (case), `email`, `sms`, `server_calc`, `forward`, etc.
 - `name` — notification name
 - `enabled` — boolean
-- `notify_details` — JSON details of the action
+- `notify_details` — JSON details of the action; for `escalate` targets, `notify_details->>'survey_case'` is the case survey ident
 - `filter` — submission filter expression
-- `remote_user`, `remote_host`, `remote_password` — for forward targets
+- `remote_user` — assignee for task/case targets: a username, role name, comma-separated emails, `_submitter` (person who submitted), or `_data` (taken from a form question)
+- `remote_host`, `remote_password` — for forward targets
+
+**task_group table key columns**
+- `tg_id` — primary key
+- `source_s_id` — survey whose submissions trigger this task group
+- `target_s_id` — survey used as the task form
+- `rule` — JSON (`AssignFromSurvey`); key sub-fields: `assign_data` (From Data), `emails`, `role_id`, `user_id`, `filter` (decision rule)
+- `p_id` — project id
+
+**Assignee display** (task and case workitems)
+
+A unique task or case workitem is identified by the triple **(type, survey, assignee)**. Two items with the same survey and assignee are shown as one node. The assignee is derived as follows:
+
+| Source | Raw value | Displayed as |
+|--------|-----------|--------------|
+| `forward.remote_user` | `_submitter` | Submitter |
+| `forward.remote_user` | `_data` | From Data |
+| `forward.remote_user` | anything else | the raw value (username, role, emails) |
+| `task_group.rule.assign_data` | non-empty | From Data |
+| `task_group.rule.emails` | non-empty | the email string |
+| `task_group.rule.role_id` | > 0 | role name (DB lookup) |
+| `task_group.rule.user_id` | > 0 | user ident (DB lookup) |
+
+The assignee is shown below the survey name in the workitem card.
 
 **Iteration 1: no new tables.** The `forward` table provides all needed data.
 
@@ -140,10 +164,29 @@ The task group rule can be found in the "filter" property of that JSON object. T
 If there is no rule in the notification or task group that links two nodes then no        
 decision node is shown. If there is a rule then the decision node is shown.
 
+**task_group chaining and source node rules**
+
+A task workitem can itself be the trigger for further task_groups (completing a task produces a submission that starts the next step). `WorkflowManager` handles this with a two-sub-pass approach for `task_group` records:
+
+- **Sub-pass i** — create all task destination nodes and record them in `surveyItemKeys[targetSId]`. No links are created here.
+- **Sub-pass ii** — for each task_group, resolve its source nodes and create links. The source survey's `data_survey` and `hide_on_device` columns (from the `survey` table) drive which nodes appear as sources:
+
+**Source node resolution rules (sub-pass ii)**
+
+| Condition | Source node(s) created / used |
+|-----------|-------------------------------|
+| Existing `task:s:{sourceSId}:a:*` nodes in itemMap | Link from each of those task nodes |
+| Source survey has `data_survey=true` AND `hide_on_device=false` | Also create (or reuse) a `form:s:{sourceSId}` node and link from it |
+| Neither of the above | Create a fallback `form:s:{sourceSId}` node and link from it |
+
+The `data_survey=true, hide_on_device=false` condition identifies a visible, standalone data-collection form — one that users fill in ad-hoc as well as potentially completing as a task. Such a form warrants its own Form workitem on the canvas in addition to any task node. Surveys that are hidden (`hide_on_device=true`) or non-data (`data_survey=false`) are oversight-only forms and do not get a standalone Form workitem.
+
+Multiple source nodes produce multiple arrows converging on the same destination (or decision) node. This also ensures that an alphabetical ordering of task_groups cannot cause a spurious duplicate form node.
+
 **bundle notifications**
 A notification applies to a bundle when `forward.bundle = true`. Processing is two-pass:
 
-- **Pass 1** — all non-bundle `forward` records and `task_group` records are processed first. As each node is created, its key is recorded in a `surveyItemKeys` map (`sId → [node keys]`), covering both source and destination sides of each notification chain.
+- **Pass 1** — all non-bundle `forward` records and `task_group` records are processed first (with the sub-pass approach above for task_groups). As each node is created, its key is recorded in a `surveyItemKeys` map (`sId → [node keys]`), covering both source and destination sides of each notification chain.
 - **Pass 2** — bundle notifications are processed after pass 1. For each bundle member survey (identified by `survey.group_survey_ident = forward.bundle_ident`), all existing nodes recorded in `surveyItemKeys` for that survey are used as source nodes. If a member survey has no existing nodes it gets a fresh `form:s:<id>` node. All source nodes connect independently to the same downstream decision/action node(s), so multiple arrows converge on those nodes. If no accessible member surveys are found at all, a single fallback node labelled with the bundle ident is shown.
 
 A survey that is a bundle member may also have its own survey-specific notifications; those are rendered as ordinary single-source connections and share the same canvas nodes, which are then also wired as sources for any bundle notification.

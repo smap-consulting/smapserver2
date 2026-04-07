@@ -70,7 +70,9 @@ public class WorkflowManager {
 		String  filter;
 		String  fName;
 		String  caseSurvey;
+		String  caseSurveyIdent;
 		String  projectName;
+		String  remoteUser;
 	}
 
 	/*
@@ -107,10 +109,11 @@ public class WorkflowManager {
 		// -------------------------------------------------------------------
 		String sqlForward =
 				"select f.id, f.name, f.trigger, f.target, f.enabled, f.bundle, "
-				+ "f.s_id, f.bundle_ident, f.p_id, f.filter, "
+				+ "f.s_id, f.bundle_ident, f.p_id, f.filter, f.remote_user, "
 				+ "s_src.display_name as trigger_survey, "
 				+ "s_bun.display_name as bundle_name, "
 				+ "s_case.display_name as case_survey, "
+				+ "s_case.ident as case_survey_ident, "
 				+ "proj.name as project_name "
 				+ "from forward f "
 				+ "left outer join survey s_src on s_src.s_id = f.s_id "
@@ -136,32 +139,36 @@ public class WorkflowManager {
 			log.fine("Workflow items from forward: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
-				int     fId           = rs.getInt("id");
-				String  fName         = rs.getString("name");
-				String  trigger       = rs.getString("trigger");
-				String  target        = rs.getString("target");
-				boolean enabled       = rs.getBoolean("enabled");
-				boolean isBundle      = rs.getBoolean("bundle");
-				int     sId           = rs.getInt("s_id");
-				String  bundleIdent   = rs.getString("bundle_ident");
-				String  triggerSurvey = rs.getString("trigger_survey");
-				String  bundleName    = rs.getString("bundle_name");
-				String  caseSurvey    = rs.getString("case_survey");
-				String  filter        = rs.getString("filter");
-				String  projectName   = rs.getString("project_name");
+				int     fId              = rs.getInt("id");
+				String  fName            = rs.getString("name");
+				String  trigger          = rs.getString("trigger");
+				String  target           = rs.getString("target");
+				boolean enabled          = rs.getBoolean("enabled");
+				boolean isBundle         = rs.getBoolean("bundle");
+				int     sId              = rs.getInt("s_id");
+				String  bundleIdent      = rs.getString("bundle_ident");
+				String  triggerSurvey    = rs.getString("trigger_survey");
+				String  bundleName       = rs.getString("bundle_name");
+				String  caseSurvey       = rs.getString("case_survey");
+				String  caseSurveyIdent  = rs.getString("case_survey_ident");
+				String  filter           = rs.getString("filter");
+				String  projectName      = rs.getString("project_name");
+				String  remoteUser       = rs.getString("remote_user");
 
 				// Defer bundle notifications until all survey nodes are built
 				if (isBundle) {
 					BundleNotif bn = new BundleNotif();
-					bn.fId         = fId;
-					bn.bundleIdent = bundleIdent;
-					bn.bundleName  = bundleName;
-					bn.target      = target;
-					bn.enabled     = enabled;
-					bn.filter      = filter;
-					bn.fName       = fName;
-					bn.caseSurvey  = caseSurvey;
-					bn.projectName = projectName;
+					bn.fId             = fId;
+					bn.bundleIdent     = bundleIdent;
+					bn.bundleName      = bundleName;
+					bn.target          = target;
+					bn.enabled         = enabled;
+					bn.filter          = filter;
+					bn.fName           = fName;
+					bn.caseSurvey      = caseSurvey;
+					bn.caseSurveyIdent = caseSurveyIdent;
+					bn.projectName     = projectName;
+					bn.remoteUser      = remoteUser;
 					pendingBundles.add(bn);
 					continue;
 				}
@@ -218,15 +225,23 @@ public class WorkflowManager {
 				dst.project = projectName;
 
 				if ("task".equals(target)) {
-					dstKey   = "task:f:" + fId;
-					dst.name = fName;
-					dst.type = TYPE_TASK;
-					dst.role = ROLE_FORM;
+					String assignee   = mapAssignee(remoteUser);
+					String assigneeK  = assigneeKey(remoteUser);
+					dstKey = "task:f:" + fId + ":a:" + assigneeK;
+					dst.name     = fName;
+					dst.type     = TYPE_TASK;
+					dst.role     = ROLE_FORM;
+					dst.assignee = assignee;
 				} else if ("escalate".equals(target)) {
-					dstKey   = "case:f:" + fId;
-					dst.name = caseSurvey != null ? caseSurvey : fName;
-					dst.type = TYPE_CASE;
-					dst.role = ROLE_FORM;
+					String assignee   = mapAssignee(remoteUser);
+					String assigneeK  = assigneeKey(remoteUser);
+					dstKey = caseSurveyIdent != null
+							? "case:s:" + caseSurveyIdent + ":a:" + assigneeK
+							: "case:f:" + fId + ":a:" + assigneeK;
+					dst.name     = caseSurvey != null ? caseSurvey : fName;
+					dst.type     = TYPE_CASE;
+					dst.role     = ROLE_FORM;
+					dst.assignee = assignee;
 				} else if ("email".equals(target)) {
 					dstKey   = "email:f:" + fId;
 					dst.type = TYPE_EMAIL;
@@ -254,11 +269,18 @@ public class WorkflowManager {
 		}
 
 		// -------------------------------------------------------------------
-		// Pass 1b: task_group table — source_s_id (form) → tg_id (task)
+		// Pass 1b: task_group table — two-sub-pass approach
+		//   Sub-pass i:  Create all destination task nodes; record in surveyItemKeys.
+		//   Sub-pass ii: Resolve source nodes using surveyItemKeys (so a task node
+		//                created in sub-pass i is found as the source when a
+		//                subsequent task_group chains off that same survey), then
+		//                create links.
 		// -------------------------------------------------------------------
 		String sqlTg =
 				"select tg.tg_id, tg.name, tg.source_s_id, tg.target_s_id, tg.rule, "
 				+ "src.display_name as trigger_survey, "
+				+ "src.data_survey as src_data_survey, "
+				+ "src.hide_on_device as src_hide_on_device, "
 				+ "tgt.display_name as target_survey, "
 				+ "proj.name as project_name "
 				+ "from task_group tg "
@@ -269,59 +291,132 @@ public class WorkflowManager {
 				+ "  where p.id = up.p_id and up.u_id = u.id and u.ident = ?) "
 				+ "order by tg.name asc";
 
+		// Stored for sub-pass ii: {tgId, sourceSId, triggerSurvey, dstKey, tgFilterName, tgProjectName}
+		List<Object[]> pendingTgLinks = new ArrayList<>();
+
 		try {
 			pstmt = sd.prepareStatement(sqlTg);
 			pstmt.setString(1, user);
 			log.fine("Workflow items from task_group: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
-				int    tgId          = rs.getInt("tg_id");
-				String tgName        = rs.getString("name");
-				int    sourceSId     = rs.getInt("source_s_id");
-				int    targetSId     = rs.getInt("target_s_id");
-				String triggerSurvey = rs.getString("trigger_survey");
-				String targetSurvey  = rs.getString("target_survey");
-				String rule          = rs.getString("rule");
-				String tgProjectName = rs.getString("project_name");
+				int    tgId           = rs.getInt("tg_id");
+				String tgName         = rs.getString("name");
+				int    sourceSId      = rs.getInt("source_s_id");
+				int    targetSId      = rs.getInt("target_s_id");
+				String triggerSurvey  = rs.getString("trigger_survey");
+				boolean srcDataSurvey = rs.getBoolean("src_data_survey");
+				boolean srcHideOnDev  = rs.getBoolean("src_hide_on_device");
+				String targetSurvey   = rs.getString("target_survey");
+				String rule           = rs.getString("rule");
+				String tgProjectName  = rs.getString("project_name");
 
-				String srcKey = "form:s:" + sourceSId;
-				if (!itemMap.containsKey(srcKey)) {
-					WorkflowItem src = new WorkflowItem();
-					src.id      = srcKey;
-					src.type    = TYPE_FORM;
-					src.role    = ROLE_FORM;
-					src.name    = triggerSurvey != null ? triggerSurvey : tgName;
-					src.enabled = true;
-					src.project = tgProjectName;
-					itemMap.put(srcKey, src);
-				}
-				recordSurveyKey(surveyItemKeys, sourceSId, srcKey);
-
-				String dstKey = "task:tg:" + tgId;
-				if (!itemMap.containsKey(dstKey)) {
-					WorkflowItem dst = new WorkflowItem();
-					dst.id      = dstKey;
-					dst.type    = TYPE_TASK;
-					dst.role    = ROLE_FORM;
-					dst.name    = targetSurvey != null ? targetSurvey : tgName;
-					dst.enabled = true;
-					dst.project = tgProjectName;
-					itemMap.put(dstKey, dst);
-				}
-				// Record the task node under its own survey (target), not the triggering survey
-				if (targetSId > 0) recordSurveyKey(surveyItemKeys, targetSId, dstKey);
-
+				String tgAssignee   = null;
+				String tgAssigneeK  = "";
 				String tgFilterName = null;
 				if (rule != null && !rule.trim().isEmpty()) {
 					AssignFromSurvey afs = new Gson().fromJson(rule, AssignFromSurvey.class);
-					if (afs != null && afs.filter != null) {
-						tgFilterName = afs.filter.advanced != null ? afs.filter.advanced : afs.filter.qText;
+					if (afs != null) {
+						tgAssignee  = deriveAssignee(sd, afs);
+						tgAssigneeK = assigneeKey(tgAssignee);
+						if (afs.filter != null) {
+							tgFilterName = afs.filter.advanced != null ? afs.filter.advanced : afs.filter.qText;
+						}
 					}
 				}
-				linkWithOptionalDecision(data, itemMap, tgFilterName, tgId, "tg", srcKey, dstKey, true, tgProjectName, null);
+				String dstKey = targetSId > 0
+						? "task:s:" + targetSId + ":a:" + tgAssigneeK
+						: "task:tg:" + tgId + ":a:" + tgAssigneeK;
+				if (!itemMap.containsKey(dstKey)) {
+					WorkflowItem dst = new WorkflowItem();
+					dst.id       = dstKey;
+					dst.type     = TYPE_TASK;
+					dst.role     = ROLE_FORM;
+					dst.name     = targetSurvey != null ? targetSurvey : tgName;
+					dst.enabled  = true;
+					dst.project  = tgProjectName;
+					dst.assignee = tgAssignee;
+					itemMap.put(dstKey, dst);
+				}
+				// Record the task node under its own (target) survey so that
+				// a downstream task_group that sources this survey will find it.
+				if (targetSId > 0) recordSurveyKey(surveyItemKeys, targetSId, dstKey);
+
+				pendingTgLinks.add(new Object[]{tgId, sourceSId, triggerSurvey, dstKey, tgFilterName, tgProjectName, srcDataSurvey, srcHideOnDev});
 			}
 		} finally {
 			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
+		}
+
+		// Sub-pass ii: resolve source nodes and create links.
+		// We look for nodes whose key directly encodes the source survey ID:
+		//   "form:s:{sourceSId}"          — plain form submission trigger
+		//   "task:s:{sourceSId}:a:*"      — task workitem for that survey (from sub-pass i)
+		// This avoids accidentally picking up task nodes that were *triggered by*
+		// the source survey (recorded under the same sId by the forward pass).
+		for (Object[] tgr : pendingTgLinks) {
+			int     tgId          = (int)     tgr[0];
+			int     sourceSId     = (int)     tgr[1];
+			String  triggerSurvey = (String)  tgr[2];
+			String  dstKey        = (String)  tgr[3];
+			String  tgFilterName  = (String)  tgr[4];
+			String  tgProjectName = (String)  tgr[5];
+			boolean srcDataSurvey = (boolean) tgr[6];
+			boolean srcHideOnDev  = (boolean) tgr[7];
+
+			List<String> srcKeyList = new ArrayList<>();
+			String formKey = "form:s:" + sourceSId;
+
+			// Task/case nodes whose key directly encodes this survey's sId
+			// (created in sub-pass i for chained task_groups).
+			String taskPrefix = "task:s:" + sourceSId + ":a:";
+			for (String k : itemMap.keySet()) {
+				if (k.startsWith(taskPrefix)) srcKeyList.add(k);
+			}
+
+			// If the source survey is a visible data-collection form
+			// (data_survey=true AND hide_on_device=false) it should also
+			// appear as an explicit Form workitem and trigger the new step.
+			boolean isVisibleForm = srcDataSurvey && !srcHideOnDev;
+			if (isVisibleForm) {
+				if (!itemMap.containsKey(formKey)) {
+					WorkflowItem src = new WorkflowItem();
+					src.id      = formKey;
+					src.type    = TYPE_FORM;
+					src.role    = ROLE_FORM;
+					src.name    = triggerSurvey;
+					src.enabled = true;
+					src.project = tgProjectName;
+					itemMap.put(formKey, src);
+					recordSurveyKey(surveyItemKeys, sourceSId, formKey);
+				}
+				if (!srcKeyList.contains(formKey)) srcKeyList.add(formKey);
+			}
+
+			if (srcKeyList.isEmpty()) {
+				// Non-visible survey with no existing workitem — fallback form node.
+				if (!itemMap.containsKey(formKey)) {
+					WorkflowItem src = new WorkflowItem();
+					src.id      = formKey;
+					src.type    = TYPE_FORM;
+					src.role    = ROLE_FORM;
+					src.name    = triggerSurvey;
+					src.enabled = true;
+					src.project = tgProjectName;
+					itemMap.put(formKey, src);
+					recordSurveyKey(surveyItemKeys, sourceSId, formKey);
+				}
+				srcKeyList.add(formKey);
+			}
+
+			// Create the decision node (if filtered) without a src, then wire
+			// each source key to it — mirrors the bundle-processing pattern.
+			linkWithOptionalDecision(data, itemMap, tgFilterName, tgId, "tg", null, dstKey, true, tgProjectName, null);
+			for (String srcKey : srcKeyList) {
+				String linkTarget = (tgFilterName != null && !tgFilterName.trim().isEmpty())
+						? "decision:tg:" + tgId : dstKey;
+				addLinkIfAbsent(data, srcKey, linkTarget);
+			}
 		}
 
 		// -------------------------------------------------------------------
@@ -381,15 +476,23 @@ public class WorkflowManager {
 			dst.bundle  = bn.bundleName;
 
 			if ("task".equals(bn.target)) {
-				dstKey   = "task:f:" + bn.fId;
-				dst.name = bn.fName;
-				dst.type = TYPE_TASK;
-				dst.role = ROLE_FORM;
+				String assignee  = mapAssignee(bn.remoteUser);
+				String assigneeK = assigneeKey(bn.remoteUser);
+				dstKey       = "task:f:" + bn.fId + ":a:" + assigneeK;
+				dst.name     = bn.fName;
+				dst.type     = TYPE_TASK;
+				dst.role     = ROLE_FORM;
+				dst.assignee = assignee;
 			} else if ("escalate".equals(bn.target)) {
-				dstKey   = "case:f:" + bn.fId;
-				dst.name = bn.caseSurvey != null ? bn.caseSurvey : bn.fName;
-				dst.type = TYPE_CASE;
-				dst.role = ROLE_FORM;
+				String assignee  = mapAssignee(bn.remoteUser);
+				String assigneeK = assigneeKey(bn.remoteUser);
+				dstKey       = bn.caseSurveyIdent != null
+						? "case:s:" + bn.caseSurveyIdent + ":a:" + assigneeK
+						: "case:f:" + bn.fId + ":a:" + assigneeK;
+				dst.name     = bn.caseSurvey != null ? bn.caseSurvey : bn.fName;
+				dst.type     = TYPE_CASE;
+				dst.role     = ROLE_FORM;
+				dst.assignee = assignee;
 			} else if ("email".equals(bn.target)) {
 				dstKey   = "email:f:" + bn.fId;
 				dst.type = TYPE_EMAIL;
@@ -613,5 +716,68 @@ public class WorkflowManager {
 		link.from = from;
 		link.to   = to;
 		data.links.add(link);
+	}
+
+	/*
+	 * Maps the raw remote_user value to a display string.
+	 * "_submitter" → "Submitter", "_data" → "From Data", else the raw value.
+	 */
+	private String mapAssignee(String remoteUser) {
+		if (remoteUser == null || remoteUser.trim().isEmpty()) return null;
+		if ("_submitter".equals(remoteUser)) return "Submitter";
+		if ("_data".equals(remoteUser))      return "From Data";
+		return remoteUser;
+	}
+
+	/*
+	 * Returns a normalised string safe for use as part of a node key.
+	 * Null or blank input → empty string.
+	 */
+	private String assigneeKey(String assignee) {
+		if (assignee == null || assignee.trim().isEmpty()) return "";
+		return assignee.trim().toLowerCase().replaceAll("[^a-z0-9@._-]", "_");
+	}
+
+	/*
+	 * Derives a display assignee string from an AssignFromSurvey rule.
+	 * Priority: assign_data → emails → role_id (lookup) → user_id (lookup).
+	 */
+	private String deriveAssignee(Connection sd, AssignFromSurvey afs) {
+		if (afs == null) return null;
+		if (afs.assign_data != null && !afs.assign_data.trim().isEmpty()) return "From Data";
+		if (afs.emails != null && !afs.emails.trim().isEmpty()) return afs.emails.trim();
+		if (afs.role_id > 0) {
+			String name = lookupRoleName(sd, afs.role_id);
+			if (name != null) return name;
+		}
+		if (afs.user_id > 0) {
+			String name = lookupUserName(sd, afs.user_id);
+			if (name != null) return name;
+		}
+		return null;
+	}
+
+	private String lookupUserName(Connection sd, int userId) {
+		String sql = "select ident from users where id = ?";
+		try (PreparedStatement ps = sd.prepareStatement(sql)) {
+			ps.setInt(1, userId);
+			ResultSet rs = ps.executeQuery();
+			return rs.next() ? rs.getString(1) : null;
+		} catch (SQLException e) {
+			log.warning("lookupUserName failed for id " + userId + ": " + e.getMessage());
+			return null;
+		}
+	}
+
+	private String lookupRoleName(Connection sd, int roleId) {
+		String sql = "select name from roles where id = ?";
+		try (PreparedStatement ps = sd.prepareStatement(sql)) {
+			ps.setInt(1, roleId);
+			ResultSet rs = ps.executeQuery();
+			return rs.next() ? rs.getString(1) : null;
+		} catch (SQLException e) {
+			log.warning("lookupRoleName failed for id " + roleId + ": " + e.getMessage());
+			return null;
+		}
 	}
 }
