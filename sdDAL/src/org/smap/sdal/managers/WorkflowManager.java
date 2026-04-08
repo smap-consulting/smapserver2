@@ -610,8 +610,12 @@ public class WorkflowManager {
 			byId.put(item.id, item);
 		}
 
+		// A DAG with n nodes converges in at most n-1 passes.
+		// If the graph contains a cycle the loop would never terminate, so cap
+		// iterations at n to detect and break out of cyclic graphs safely.
+		int maxPasses = data.items.size();
 		boolean changed = true;
-		while (changed) {
+		for (int pass = 0; changed && pass < maxPasses; pass++) {
 			changed = false;
 			for (WorkflowLink link : data.links) {
 				WorkflowItem from = byId.get(link.from);
@@ -624,6 +628,9 @@ public class WorkflowManager {
 					}
 				}
 			}
+		}
+		if (changed) {
+			log.warning("applyLayout: cycle detected in workflow graph — layout may be incorrect");
 		}
 
 		LinkedHashMap<Integer, List<WorkflowItem>> columns = new LinkedHashMap<>();
