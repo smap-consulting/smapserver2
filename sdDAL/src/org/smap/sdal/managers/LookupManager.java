@@ -212,11 +212,15 @@ public class LookupManager {
 						resultsArray.add(line);
 					}
 					
+				} else if(fileName.startsWith("sharepointlist_")) {
+					// SharePoint list cache — stored without .csv suffix at org level (sId=0)
+					CsvTableManager ctm = new CsvTableManager(sd, localisation);
+					resultsArray = ctm.lookup(oId, 0, fileName, keyColumn, keyValue, expression, tz, selection.toString(), arguments);
 				} else {
 					// Get data from a csv file
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);
 					resultsArray = ctm.lookup(oId, sId, fileName + ".csv", keyColumn, keyValue, expression, tz, selection.toString(), arguments);
-				} 
+				}
 
 				results = new HashMap<String, String> ();
 				if(resultsArray != null) {
@@ -753,6 +757,11 @@ public class LookupManager {
 							}
 						}
 					}
+				} else if(fileName.startsWith("sharepointlist_")) {
+					// SharePoint list cache — stored without .csv suffix at org level (sId=0)
+					CsvTableManager ctm = new CsvTableManager(sd, localisation);
+					results = ctm.lookupChoices(oId, 0, fileName, valueColumn, labelColumns, mlLabelColumns,
+							selectionString, arguments, frag);
 				} else {
 					// Get data from a csv file
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);
