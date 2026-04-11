@@ -55,6 +55,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /*
  * Manages communication with SharePoint via the SharePoint REST API.
@@ -81,23 +83,33 @@ public class SharePointManager {
 	private static final int READ_TIMEOUT_MS    = 30_000;
 
 	/*
-	 * Discover the SharePoint farm realm GUID.
-	 * No authentication required — safe to call before credentials are configured.
+	 * Discover the SharePoint farm realm GUID without credentials.
+	 *
+	 * Hits a protected SP endpoint with no auth token. SharePoint responds with
+	 * HTTP 401 and includes the realm in the WWW-Authenticate header:
+	 *   Bearer realm="<guid>",client_id="...",trusted_issuers="..."
+	 * This is the standard no-auth discovery approach and works regardless of
+	 * whether the SP.OAuth.NTRealm API endpoint is publicly accessible.
 	 */
 	public static String getRealm(String serverUrl) throws Exception {
 		String base = stripTrailingSlash(serverUrl);
-		String url  = base + "/_api/SP.OAuth.NTRealm/Realm";
+		String url  = base + "/_vti_bin/client.svc";
 
 		HttpURLConnection conn = openConnection(url, "GET", null, false);
 		int status = conn.getResponseCode();
-		String body = readResponse(conn);
+		readResponse(conn);  // consume body to free the connection
 
-		if (status == 200) {
-			// {"d":{"GetNTRealm":"<guid>"}}
-			JsonObject json = JsonParser.parseString(body).getAsJsonObject();
-			return json.getAsJsonObject("d").get("GetNTRealm").getAsString();
+		String wwwAuth = conn.getHeaderField("WWW-Authenticate");
+		if (wwwAuth != null) {
+			Matcher m = Pattern.compile("realm=\"([0-9a-fA-F\\-]{36})\"").matcher(wwwAuth);
+			if (m.find()) {
+				return m.group(1);
+			}
 		}
-		throw new Exception("Realm discovery failed, HTTP " + status + ": " + body);
+
+		throw new Exception("Could not discover realm from " + serverUrl
+				+ " (HTTP " + status + "). "
+				+ "Check the URL is correct and the server is reachable.");
 	}
 
 	/*

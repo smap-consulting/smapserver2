@@ -410,8 +410,8 @@ public class Server extends Application {
 				response = Response.ok("{\"realm\":\"" + realm + "\"}").build();
 			}
 		} catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			log.warning("SharePoint realm discovery failed: " + e.getMessage());
+			response = Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build();
 		}
 
 		return response;

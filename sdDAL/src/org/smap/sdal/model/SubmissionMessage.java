@@ -40,7 +40,14 @@ public class SubmissionMessage {
 	public String period;
 	public int reportId;
 	public Timestamp ts;
-	
+
+	// SharePoint list target
+	public String sp_list_title;
+	public String sp_operation;
+	public String sp_match_column;
+	public String sp_match_field;
+	public ArrayList<SharePointColumnMap> sp_column_map;
+
 	public SubmissionMessage(
 			String notificationName,
 			String title,
