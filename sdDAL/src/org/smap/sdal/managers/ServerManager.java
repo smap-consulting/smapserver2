@@ -74,7 +74,11 @@ public class ServerManager {
 				+ "sec_mgr_del,"
 				+ "api_max_records,"
 				+ "turnstile_site_key,"
-				+ "turnstile_secret_key "
+				+ "turnstile_secret_key,"
+				+ "sharepoint_url,"
+				+ "sharepoint_client_id,"
+				+ "sharepoint_realm,"
+				+ "sharepoint_cert_pem "
 				+ "from server;";
 		PreparedStatement pstmt = null;
 		ServerData data = new ServerData();
@@ -106,6 +110,10 @@ public class ServerManager {
 				data.setMaxRecords(rs.getInt("api_max_records"));
 				data.turnstile_site_key = rs.getString("turnstile_site_key");
 				data.turnstile_secret_key = rs.getString("turnstile_secret_key");
+				data.sharepoint_url = rs.getString("sharepoint_url");
+				data.sharepoint_client_id = rs.getString("sharepoint_client_id");
+				data.sharepoint_realm = rs.getString("sharepoint_realm");
+				data.sharepoint_cert_pem = rs.getString("sharepoint_cert_pem");
 			}
 
 		}  catch (Exception e) {

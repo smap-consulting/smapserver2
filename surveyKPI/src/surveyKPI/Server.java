@@ -24,7 +24,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -36,7 +38,9 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CssManager;
 import org.smap.sdal.managers.ServerManager;
+import org.smap.sdal.managers.SharePointManager;
 import org.smap.sdal.model.ServerData;
+import org.smap.sdal.model.SharePointField;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -148,15 +152,20 @@ public class Server extends Application {
 				+ "sec_mgr_del = ?,"
 				+ "api_max_records = ?,"
 				+ "turnstile_site_key = ?,"
-				+ "turnstile_secret_key = ? ";
+				+ "turnstile_secret_key = ?,"
+				+ "sharepoint_url = ?,"
+				+ "sharepoint_client_id = ?,"
+				+ "sharepoint_realm = ?,"
+				+ "sharepoint_cert_pem = ? ";
 		
 		PreparedStatement pstmt = null;
 
 		String sqlInsert = "insert into server(smtp_host, email_domain, email_user, email_password,"
 				+ "email_port, mapbox_default, google_key, maptiler_key, vonage_application_id,"
 				+ "vonage_webhook_secret, sms_url, max_rate, password_strength, css,"
-				+ "email_type, aws_region, sec_mgr_del, api_max_records, turnstile_site_key, turnstile_secret_key)"
-				+ " values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "email_type, aws_region, sec_mgr_del, api_max_records, turnstile_site_key, turnstile_secret_key,"
+				+ "sharepoint_url, sharepoint_client_id, sharepoint_realm, sharepoint_cert_pem)"
+				+ " values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement pstmtInsert = null;
 		
 		try {
@@ -187,6 +196,10 @@ public class Server extends Application {
 			pstmt.setInt(18, data.getMaxRecords());
 			pstmt.setString(19, data.turnstile_site_key);
 			pstmt.setString(20, data.turnstile_secret_key);
+			pstmt.setString(21, data.sharepoint_url);
+			pstmt.setString(22, data.sharepoint_client_id);
+			pstmt.setString(23, data.sharepoint_realm);
+			pstmt.setString(24, data.sharepoint_cert_pem);
 			int count = pstmt.executeUpdate();
 			
 			if(count == 0) {			
@@ -211,6 +224,10 @@ public class Server extends Application {
 				pstmtInsert.setInt(18, data.getMaxRecords());
 				pstmtInsert.setString(19, data.turnstile_site_key);
 				pstmtInsert.setString(20, data.turnstile_secret_key);
+				pstmtInsert.setString(21, data.sharepoint_url);
+				pstmtInsert.setString(22, data.sharepoint_client_id);
+				pstmtInsert.setString(23, data.sharepoint_realm);
+				pstmtInsert.setString(24, data.sharepoint_cert_pem);
 				pstmtInsert.executeUpdate();
 			}
 			
@@ -363,6 +380,76 @@ public class Server extends Application {
 			try {if (pstmt != null) {pstmt.close();	}} catch (Exception e) {	}
 			SDDataSource.closeConnection(connectionString, sd);
 			
+		}
+
+		return response;
+	}
+
+	/*
+	 * Discover the SharePoint farm realm GUID from the server URL.
+	 * No SharePoint credentials required — safe to call before the cert is configured.
+	 */
+	@GET
+	@Path("/sharepoint/realm")
+	@Produces("application/json")
+	public Response getSharePointRealm(@Context HttpServletRequest request,
+			@QueryParam("url") String url) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-getSharePointRealm";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aServerLevel.isAuthorised(sd, request.getRemoteUser());
+		SDDataSource.closeConnection(connectionString, sd);
+
+		try {
+			if(url == null || url.trim().isEmpty()) {
+				response = Response.status(Status.BAD_REQUEST).entity("url parameter required").build();
+			} else {
+				String realm = SharePointManager.getRealm(url.trim());
+				response = Response.ok("{\"realm\":\"" + realm + "\"}").build();
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		}
+
+		return response;
+	}
+
+	/*
+	 * Return the non-hidden fields of a SharePoint list.
+	 * Used to populate the column-name dropdown in the notifications UI.
+	 */
+	@GET
+	@Path("/sharepoint/lists/{listTitle}/fields")
+	@Produces("application/json")
+	public Response getSharePointListFields(@Context HttpServletRequest request,
+			@PathParam("listTitle") String listTitle) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-getSharePointListFields";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aServerLevel.isAuthorised(sd, request.getRemoteUser());
+
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			ServerManager sm = new ServerManager();
+			ServerData serverData = sm.getServer(sd, localisation);
+
+			java.util.List<SharePointField> fields = SharePointManager.getListFields(serverData, listTitle);
+
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			response = Response.ok(gson.toJson(fields)).build();
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;
