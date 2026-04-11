@@ -11,6 +11,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -448,6 +450,97 @@ public class CsvTableManager {
 	/*
 	 * Delete csv tables
 	 */
+	/*
+	 * Populate the CSV table from an in-memory list of rows (e.g. from a SharePoint sync).
+	 * Each map key is a column name; values are cell values.
+	 * The table is created or altered as needed, then truncated and repopulated.
+	 */
+	public void updateTableFromRows(List<Map<String, String>> rows) throws Exception {
+
+		if(rows == null || rows.isEmpty()) {
+			return;
+		}
+
+		PreparedStatement pstmtCreateSeq   = null;
+		PreparedStatement pstmtCreateTable = null;
+		PreparedStatement pstmtAlterColumn = null;
+
+		try {
+			// Derive column names from the keys of the first row
+			List<String> colNames = new ArrayList<>(rows.get(0).keySet());
+			headers = new ArrayList<>();
+			for(String name : colNames) {
+				headers.add(new CsvHeader(name, GeneralUtilityMethods.cleanNameNoRand(name)));
+			}
+
+			boolean tableExists = GeneralUtilityMethods.tableExistsInSchema(sd, tableName, schema);
+			if(!tableExists) {
+				String sequenceName = fullTableName + "_seq";
+				pstmtCreateSeq = sd.prepareStatement(
+						"create sequence " + sequenceName + " start 1");
+				try { pstmtCreateSeq.executeUpdate(); } catch(Exception e) { log.fine(e.getMessage()); }
+
+				StringBuilder sqlCreate = new StringBuilder("create table ")
+						.append(fullTableName).append("(");
+				sqlCreate.append(PKCOL).append(" integer default nextval('").append(sequenceName).append("')");
+				sqlCreate.append(",").append(ACOL).append(" integer");
+				sqlCreate.append(",").append(TSCOL).append(" TIMESTAMP WITH TIME ZONE");
+				for(CsvHeader h : headers) {
+					sqlCreate.append(",").append(h.tName).append(" text");
+				}
+				sqlCreate.append(")");
+				pstmtCreateTable = sd.prepareStatement(sqlCreate.toString());
+				pstmtCreateTable.executeUpdate();
+			} else {
+				for(CsvHeader h : headers) {
+					if(!GeneralUtilityMethods.hasColumnInSchema(sd, tableName, h.tName, schema)) {
+						String sqlAddColumn = "alter table " + fullTableName + " add column " + h.tName + " text";
+						if(pstmtAlterColumn != null) { try { pstmtAlterColumn.close(); } catch(Exception e) {} }
+						pstmtAlterColumn = sd.prepareStatement(sqlAddColumn);
+						pstmtAlterColumn.executeUpdate();
+					}
+				}
+			}
+			updateHeaders();
+
+			// Build insert SQL
+			StringBuilder sqlInsert = new StringBuilder("insert into ").append(fullTableName).append("(");
+			StringBuilder params = new StringBuilder();
+			sqlInsert.append(PKCOL); params.append("nextval('").append(fullTableName).append("_seq')");
+			sqlInsert.append(",").append(ACOL);   params.append(",").append(ADD_ENTRY);
+			sqlInsert.append(",").append(TSCOL);  params.append(",now()");
+			for(CsvHeader h : headers) {
+				sqlInsert.append(",").append(h.tName);
+				params.append(",?");
+			}
+			sqlInsert.append(") values (").append(params).append(")");
+
+			truncate();
+
+			PreparedStatement pstmtInsert = null;
+			try {
+				pstmtInsert = sd.prepareStatement(sqlInsert.toString());
+				for(Map<String, String> row : rows) {
+					int idx = 1;
+					for(CsvHeader h : headers) {
+						String val = row.get(h.fName);
+						pstmtInsert.setString(idx++, val != null ? val.trim() : "");
+					}
+					pstmtInsert.executeUpdate();
+				}
+			} finally {
+				if(pstmtInsert != null) { try { pstmtInsert.close(); } catch(Exception e) {} }
+			}
+
+			updateInitialisationTimetamp();
+
+		} finally {
+			if(pstmtCreateSeq   != null) { try { pstmtCreateSeq.close();   } catch(Exception e) {} }
+			if(pstmtCreateTable != null) { try { pstmtCreateTable.close(); } catch(Exception e) {} }
+			if(pstmtAlterColumn != null) { try { pstmtAlterColumn.close(); } catch(Exception e) {} }
+		}
+	}
+
 	public void delete(int oId, int sId, String fileName) throws SQLException {
 		
 		String sqlFile = "select id from csvtable where o_id = ? and s_id = ? and filename = ?";
