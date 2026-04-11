@@ -49,18 +49,18 @@
             <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/com/amazonaws/aws-java-sdk-comprehend/1.11.789/aws-java-sdk-comprehend-1.11.789.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/com/amazonaws/aws-java-sdk-ses/1.11.789/aws-java-sdk-ses-1.11.789.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/javax/activation/activation/1.1.1/activation-1.1.1.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-catalina/9.0.107/tomcat-catalina-9.0.107.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-servlet-api/9.0.107/tomcat-servlet-api-9.0.107.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-jsp-api/9.0.107/tomcat-jsp-api-9.0.107.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-el-api/9.0.107/tomcat-el-api-9.0.107.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-juli/9.0.107/tomcat-juli-9.0.107.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-annotations-api/9.0.107/tomcat-annotations-api-9.0.107.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-api/9.0.107/tomcat-api-9.0.107.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-jni/9.0.107/tomcat-jni-9.0.107.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-coyote/9.0.107/tomcat-coyote-9.0.107.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-util/9.0.107/tomcat-util-9.0.107.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-util-scan/9.0.107/tomcat-util-scan-9.0.107.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-jaspic-api/9.0.107/tomcat-jaspic-api-9.0.107.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-catalina/9.0.117/tomcat-catalina-9.0.117.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-servlet-api/9.0.117/tomcat-servlet-api-9.0.117.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-jsp-api/9.0.117/tomcat-jsp-api-9.0.117.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-el-api/9.0.117/tomcat-el-api-9.0.117.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-juli/9.0.117/tomcat-juli-9.0.117.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-annotations-api/9.0.117/tomcat-annotations-api-9.0.117.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-api/9.0.117/tomcat-api-9.0.117.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-jni/9.0.117/tomcat-jni-9.0.117.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-coyote/9.0.117/tomcat-coyote-9.0.117.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-util/9.0.117/tomcat-util-9.0.117.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-util-scan/9.0.117/tomcat-util-scan-9.0.117.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/apache/tomcat/tomcat-jaspic-api/9.0.117/tomcat-jaspic-api-9.0.117.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/glassfish/jersey/inject/jersey-hk2/2.40/jersey-hk2-2.40.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/glassfish/jersey/core/jersey-common/2.40/jersey-common-2.40.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/jakarta/annotation/jakarta.annotation-api/1.3.5/jakarta.annotation-api-1.3.5.jar"/>
@@ -154,7 +154,7 @@
             <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/com/adobe/xmp/xmpcore/6.1.11/xmpcore-6.1.11.jar"/>
             <fileset dir="${user.home}/git/smapserver2/sdDataAccess/target/classes"/>
             <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/commons-io/commons-io/2.14.0/commons-io-2.14.0.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.15.0/jackson-core-2.15.0.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.18.6/jackson-core-2.18.6.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-cbor/2.14.1/jackson-dataformat-cbor-2.14.1.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.14.1/jackson-databind-2.14.1.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${user.home}/.m2/repository/org/postgresql/postgresql/42.6.1/postgresql-42.6.1.jar"/>
