@@ -294,3 +294,25 @@ ALTER TABLE subscriber_worker OWNER TO ws;
 alter table upload_event add column if not exists worker_host text;
 alter table s3upload add column if not exists worker_id text;
 alter table message add column if not exists worker_host text;
+
+-- Version 26.05 SharePoint integration
+alter table server add column if not exists sharepoint_url text;
+alter table server add column if not exists sharepoint_client_id text;
+alter table server add column if not exists sharepoint_realm text;
+alter table server add column if not exists sharepoint_cert_pem text;
+
+CREATE SEQUENCE IF NOT EXISTS sharepoint_list_map_seq START 1;
+ALTER SEQUENCE sharepoint_list_map_seq OWNER TO ws;
+
+CREATE TABLE IF NOT EXISTS sharepoint_list_map (
+	id integer DEFAULT nextval('sharepoint_list_map_seq') NOT NULL PRIMARY KEY,
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	smap_name text NOT NULL,
+	list_title text NOT NULL,
+	refresh_minutes integer DEFAULT 60,
+	last_sync TIMESTAMP WITH TIME ZONE,
+	csv_table_id integer REFERENCES csvtable(id) ON DELETE SET NULL,
+	enabled boolean DEFAULT true
+	);
+CREATE INDEX IF NOT EXISTS sharepoint_list_map_org_idx ON sharepoint_list_map(o_id);
+ALTER TABLE sharepoint_list_map OWNER TO ws;
