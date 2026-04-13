@@ -194,6 +194,8 @@ fi
 
 if [ "$WEBSITE" != "no" ]
 then
+	# Ensure PostgreSQL JDBC driver is in Tomcat's shared lib before startup
+	cp -r $deploy_from/jdbc/* /var/lib/$TOMCAT_VERSION/lib/
 	service $TOMCAT_VERSION start
 	service apache2 start
 fi
