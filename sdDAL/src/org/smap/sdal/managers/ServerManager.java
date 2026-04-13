@@ -78,7 +78,11 @@ public class ServerManager {
 				+ "sharepoint_url,"
 				+ "sharepoint_client_id,"
 				+ "sharepoint_realm,"
-				+ "sharepoint_cert_pem "
+				+ "sharepoint_cert_pem,"
+				+ "coalesce(sharepoint_auth_type, 's2s') as sharepoint_auth_type,"
+				+ "sharepoint_username,"
+				+ "sharepoint_password,"
+				+ "sharepoint_domain "
 				+ "from server;";
 		PreparedStatement pstmt = null;
 		ServerData data = new ServerData();
@@ -114,6 +118,10 @@ public class ServerManager {
 				data.sharepoint_client_id = rs.getString("sharepoint_client_id");
 				data.sharepoint_realm = rs.getString("sharepoint_realm");
 				data.sharepoint_cert_pem = rs.getString("sharepoint_cert_pem");
+				data.sharepoint_auth_type = rs.getString("sharepoint_auth_type");
+				data.sharepoint_username = rs.getString("sharepoint_username");
+				data.sharepoint_password = rs.getString("sharepoint_password");
+				data.sharepoint_domain = rs.getString("sharepoint_domain");
 			}
 
 		}  catch (Exception e) {

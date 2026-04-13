@@ -61,16 +61,12 @@ import java.util.regex.Pattern;
 /*
  * Manages communication with SharePoint via the SharePoint REST API.
  *
- * Authentication: S2S high-trust (app-only). A signed RS256 JWT is used
- * directly as the Bearer token — no separate STS exchange is required for
- * on-premises high-trust app-only scenarios.
- *
- * The private key stored in ServerData.sharepoint_cert_pem must be in
- * PKCS8 PEM format (-----BEGIN PRIVATE KEY-----).  Convert from PKCS1 with:
- *   openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in key.pem -out key_pkcs8.pem
- *
- * Extensibility: replace getAccessToken() with an AzureAD client-credentials
- * flow when adding SharePoint Online support.
+ * Supported authentication modes (sharepoint_auth_type):
+ *   "s2s"  — S2S high-trust app-only. A signed RS256 JWT is sent as Bearer token.
+ *             Requires sharepoint_client_id, sharepoint_realm, sharepoint_cert_pem.
+ *   "ntlm" — Windows NTLM/Negotiate. Java's built-in HttpURLConnection NTLM support
+ *             is activated via java.net.Authenticator.
+ *             Requires sharepoint_username, sharepoint_password, sharepoint_domain.
  */
 public class SharePointManager {
 
@@ -92,22 +88,51 @@ public class SharePointManager {
 	 * whether the SP.OAuth.NTRealm API endpoint is publicly accessible.
 	 */
 	public static String getRealm(String serverUrl) throws Exception {
-		String base = stripTrailingSlash(serverUrl);
+		// Accept any URL the user has entered — extract only scheme+host+port
+		java.net.URL parsed = new java.net.URL(serverUrl);
+		String base = parsed.getProtocol() + "://" + parsed.getHost()
+				+ (parsed.getPort() > 0 ? ":" + parsed.getPort() : "");
 		String url  = base + "/_vti_bin/client.svc";
 
 		HttpURLConnection conn = openConnection(url, "GET", null, false);
 		int status = conn.getResponseCode();
 		readResponse(conn);  // consume body to free the connection
 
-		String wwwAuth = conn.getHeaderField("WWW-Authenticate");
-		if (wwwAuth != null) {
-			Matcher m = Pattern.compile("realm=\"([0-9a-fA-F\\-]{36})\"").matcher(wwwAuth);
-			if (m.find()) {
-				return m.group(1);
+		// SharePoint may return multiple WWW-Authenticate headers (e.g. NTLM + Bearer).
+		// getHeaderField() only returns the last value, so scan all header fields.
+		Pattern realmPattern = Pattern.compile("realm=\"([0-9a-fA-F\\-]{36})\"");
+		for (Map.Entry<String, java.util.List<String>> entry : conn.getHeaderFields().entrySet()) {
+			if ("WWW-Authenticate".equalsIgnoreCase(entry.getKey())) {
+				for (String val : entry.getValue()) {
+					if (val != null) {
+						Matcher m = realmPattern.matcher(val);
+						if (m.find()) {
+							return m.group(1);
+						}
+					}
+				}
 			}
 		}
 
-		throw new Exception("Could not discover realm from " + serverUrl
+		// Check whether the response used NTLM/Negotiate — if so, OAuth is not yet
+		// configured on this SharePoint server and the realm must be obtained manually.
+		boolean ntlmOnly = false;
+		for (Map.Entry<String, java.util.List<String>> entry : conn.getHeaderFields().entrySet()) {
+			if ("WWW-Authenticate".equalsIgnoreCase(entry.getKey())) {
+				for (String val : entry.getValue()) {
+					if (val != null && (val.startsWith("NTLM") || val.startsWith("Negotiate"))) {
+						ntlmOnly = true;
+					}
+				}
+			}
+		}
+		if (ntlmOnly) {
+			throw new Exception("SharePoint at " + base + " is using Windows (NTLM/Negotiate) authentication only. "
+					+ "OAuth/S2S has not been configured, so the realm cannot be discovered automatically. "
+					+ "Obtain the realm GUID manually by running on the SharePoint server: "
+					+ "Get-SPFarm | Select Id");
+		}
+		throw new Exception("Could not discover realm from " + base
 				+ " (HTTP " + status + "). "
 				+ "Check the URL is correct and the server is reachable.");
 	}
@@ -149,11 +174,40 @@ public class SharePointManager {
 	}
 
 	/*
+	 * Set up authentication for an API call.
+	 * For S2S: returns a Bearer token string.
+	 * For NTLM: installs a java.net.Authenticator scoped to the SP host and returns null.
+	 *           Java's HttpURLConnection handles the NTLM handshake automatically.
+	 */
+	private static String authenticate(ServerData sd) throws Exception {
+		if ("ntlm".equalsIgnoreCase(sd.sharepoint_auth_type)) {
+			final String spHost   = new java.net.URL(sd.sharepoint_url).getHost();
+			final String username = sd.sharepoint_username != null ? sd.sharepoint_username : "";
+			final String password = sd.sharepoint_password != null ? sd.sharepoint_password : "";
+			final String domain   = sd.sharepoint_domain   != null ? sd.sharepoint_domain   : "";
+			// Prefix domain to username if provided (NTLM format: domain\\user)
+			final String fullUser = domain.isEmpty() ? username : domain + "\\" + username;
+			java.net.Authenticator.setDefault(new java.net.Authenticator() {
+				@Override
+				protected java.net.PasswordAuthentication getPasswordAuthentication() {
+					// Only respond to the configured SharePoint host
+					if (getRequestingHost() != null && getRequestingHost().equalsIgnoreCase(spHost)) {
+						return new java.net.PasswordAuthentication(fullUser, password.toCharArray());
+					}
+					return null;
+				}
+			});
+			return null;  // NTLM — no Bearer token
+		}
+		return getAccessToken(sd);  // S2S — return JWT
+	}
+
+	/*
 	 * Return the non-hidden, non-read-only fields of a SharePoint list.
 	 * Used to populate the column-name dropdown in the notifications UI.
 	 */
 	public static List<SharePointField> getListFields(ServerData sd, String listTitle) throws Exception {
-		String token = getAccessToken(sd);
+		String token = authenticate(sd);
 		String url   = stripTrailingSlash(sd.sharepoint_url)
 				+ "/_api/web/lists/getbytitle('" + encodeTitle(listTitle) + "')/fields"
 				+ "?$select=Title,InternalName"
@@ -182,7 +236,7 @@ public class SharePointManager {
 	 */
 	public static void postListItem(ServerData sd, String listTitle,
 			Map<String, Object> fields) throws Exception {
-		String token      = getAccessToken(sd);
+		String token      = authenticate(sd);
 		String entityType = getListEntityType(sd, listTitle, token);
 		String url        = stripTrailingSlash(sd.sharepoint_url)
 				+ "/_api/web/lists/getbytitle('" + encodeTitle(listTitle) + "')/items";
@@ -202,7 +256,7 @@ public class SharePointManager {
 	public static void updateListItem(ServerData sd, String listTitle,
 			String matchColumn, String matchValue,
 			Map<String, Object> fields) throws Exception {
-		String token = getAccessToken(sd);
+		String token = authenticate(sd);
 
 		// Find the item by filter
 		String filterUrl = stripTrailingSlash(sd.sharepoint_url)
@@ -242,7 +296,7 @@ public class SharePointManager {
 	 */
 	public static List<Map<String, String>> getListItems(ServerData sd,
 			String listTitle, int maxRows) throws Exception {
-		String token = getAccessToken(sd);
+		String token = authenticate(sd);
 		String url   = stripTrailingSlash(sd.sharepoint_url)
 				+ "/_api/web/lists/getbytitle('" + encodeTitle(listTitle) + "')/items"
 				+ "?$top=" + maxRows;

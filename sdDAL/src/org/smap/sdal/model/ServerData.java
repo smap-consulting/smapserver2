@@ -26,6 +26,10 @@ public class ServerData {
 	public String sharepoint_client_id;
 	public String sharepoint_realm;
 	public String sharepoint_cert_pem;
+	public String sharepoint_auth_type;   // "s2s" (default) or "ntlm"
+	public String sharepoint_username;
+	public String sharepoint_password;
+	public String sharepoint_domain;
 	private int api_max_records;
 
 	public void setMaxRecords(int v) {

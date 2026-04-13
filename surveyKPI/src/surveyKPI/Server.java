@@ -71,6 +71,9 @@ public class Server extends Application {
 		aUserLevel = new Authorise(authorisations, null);
 	}
 	
+	/*
+	 * Return the server settings
+	 */
 	@GET
 	@Produces("application/json")
 	public Response getServerSettings(@Context HttpServletRequest request) { 
@@ -156,16 +159,21 @@ public class Server extends Application {
 				+ "sharepoint_url = ?,"
 				+ "sharepoint_client_id = ?,"
 				+ "sharepoint_realm = ?,"
-				+ "sharepoint_cert_pem = ? ";
-		
+				+ "sharepoint_cert_pem = ?,"
+				+ "sharepoint_auth_type = ?,"
+				+ "sharepoint_username = ?,"
+				+ "sharepoint_password = ?,"
+				+ "sharepoint_domain = ? ";
+
 		PreparedStatement pstmt = null;
 
 		String sqlInsert = "insert into server(smtp_host, email_domain, email_user, email_password,"
 				+ "email_port, mapbox_default, google_key, maptiler_key, vonage_application_id,"
 				+ "vonage_webhook_secret, sms_url, max_rate, password_strength, css,"
 				+ "email_type, aws_region, sec_mgr_del, api_max_records, turnstile_site_key, turnstile_secret_key,"
-				+ "sharepoint_url, sharepoint_client_id, sharepoint_realm, sharepoint_cert_pem)"
-				+ " values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "sharepoint_url, sharepoint_client_id, sharepoint_realm, sharepoint_cert_pem,"
+				+ "sharepoint_auth_type, sharepoint_username, sharepoint_password, sharepoint_domain)"
+				+ " values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement pstmtInsert = null;
 		
 		try {
@@ -200,9 +208,13 @@ public class Server extends Application {
 			pstmt.setString(22, data.sharepoint_client_id);
 			pstmt.setString(23, data.sharepoint_realm);
 			pstmt.setString(24, data.sharepoint_cert_pem);
+			pstmt.setString(25, data.sharepoint_auth_type != null ? data.sharepoint_auth_type : "s2s");
+			pstmt.setString(26, data.sharepoint_username);
+			pstmt.setString(27, data.sharepoint_password);
+			pstmt.setString(28, data.sharepoint_domain);
 			int count = pstmt.executeUpdate();
-			
-			if(count == 0) {			
+
+			if(count == 0) {
 				pstmtInsert = sd.prepareStatement(sqlInsert);
 				pstmtInsert.setString(1, data.smtp_host);
 				pstmtInsert.setString(2, data.email_domain);
@@ -228,6 +240,10 @@ public class Server extends Application {
 				pstmtInsert.setString(22, data.sharepoint_client_id);
 				pstmtInsert.setString(23, data.sharepoint_realm);
 				pstmtInsert.setString(24, data.sharepoint_cert_pem);
+				pstmtInsert.setString(25, data.sharepoint_auth_type != null ? data.sharepoint_auth_type : "s2s");
+				pstmtInsert.setString(26, data.sharepoint_username);
+				pstmtInsert.setString(27, data.sharepoint_password);
+				pstmtInsert.setString(28, data.sharepoint_domain);
 				pstmtInsert.executeUpdate();
 			}
 			
@@ -237,6 +253,7 @@ public class Server extends Application {
 
 		} catch (Exception e) {
 			String msg = e.getMessage();
+			log.log(Level.SEVERE,msg, e);
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(msg).build();	
 			
 		} finally {

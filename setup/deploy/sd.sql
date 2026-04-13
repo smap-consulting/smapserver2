@@ -300,6 +300,10 @@ alter table server add column if not exists sharepoint_url text;
 alter table server add column if not exists sharepoint_client_id text;
 alter table server add column if not exists sharepoint_realm text;
 alter table server add column if not exists sharepoint_cert_pem text;
+alter table server add column if not exists sharepoint_auth_type text default 's2s';
+alter table server add column if not exists sharepoint_username text;
+alter table server add column if not exists sharepoint_password text;
+alter table server add column if not exists sharepoint_domain text;
 
 CREATE SEQUENCE IF NOT EXISTS sharepoint_list_map_seq START 1;
 ALTER SEQUENCE sharepoint_list_map_seq OWNER TO ws;

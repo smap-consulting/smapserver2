@@ -141,7 +141,11 @@ create TABLE server (
 	sharepoint_url text,						-- SharePoint server base URL
 	sharepoint_client_id text,					-- App principal GUID registered in SharePoint
 	sharepoint_realm text,						-- SharePoint farm realm GUID
-	sharepoint_cert_pem text					-- PEM private key for S2S high-trust auth
+	sharepoint_cert_pem text,					-- PEM private key for S2S high-trust auth
+	sharepoint_auth_type text DEFAULT 's2s',	-- Authentication type: 's2s' or 'ntlm'
+	sharepoint_username text,					-- NTLM username
+	sharepoint_password text,					-- NTLM password
+	sharepoint_domain text						-- NTLM Windows domain
 	);
 ALTER TABLE server OWNER TO ws;
 
