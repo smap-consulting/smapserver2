@@ -199,6 +199,15 @@ A survey that is a bundle member may also have its own survey-specific notificat
 | GET | `/surveyKPI/workflow/items` | ANALYST, ADMIN | Returns `WorkflowData` (items + links) with server-computed x/y merged with any user-saved positions |
 | PUT | `/surveyKPI/workflow/positions` | ANALYST, ADMIN | Saves full positions map `{nodeId: {x,y}}` for current user+org |
 | DELETE | `/surveyKPI/workflow/positions` | ANALYST, ADMIN | Deletes saved positions for current user+org, reverting to defaults |
+| GET | `/surveyKPI/workflow/edit/surveys` | ANALYST, ADMIN | Lists surveys accessible to the user (for dropdowns) |
+| GET | `/surveyKPI/workflow/edit/notifications?ids=1,2` | ANALYST, ADMIN | Returns simplified notification records for the edit drawer |
+| PUT | `/surveyKPI/workflow/edit/notifications` | ANALYST, ADMIN | Batch-saves notification edits (shared fields + per-connection filters) |
+| DELETE | `/surveyKPI/workflow/edit/notification/{id}` | ANALYST, ADMIN | Deletes a forward record |
+| POST | `/surveyKPI/workflow/edit/notification` | ANALYST, ADMIN | Creates a new forward record |
+| GET | `/surveyKPI/workflow/edit/taskgroups?ids=1,2` | ANALYST, ADMIN | Returns simplified task group records for the edit drawer |
+| PUT | `/surveyKPI/workflow/edit/taskgroups` | ANALYST, ADMIN | Batch-saves task group edits (name + per-connection filters) |
+| DELETE | `/surveyKPI/workflow/edit/taskgroup/{id}` | ANALYST, ADMIN | Deletes a task group and any linked forward records |
+| POST | `/surveyKPI/workflow/edit/taskgroup` | ANALYST, ADMIN | Creates a new task group |
 
 ---
 
@@ -289,8 +298,61 @@ Generates `WebContent/build/js/workflow.bundle.js`.
 
 ---
 
-## 11. Open Questions
+## 11. Edit / Create / Delete
+
+**UX model**
+
+- Each editable node card (task, case, email, sms) shows a **✏ Edit** icon button in the card header.
+- Clicking a **decision node** follows its outgoing link and opens the downstream target node's drawer.
+- A floating **+** button (bottom-right of canvas) opens the Add Step dialog.
+
+**Edit drawer** (right-side slide-in panel, 360px)
+- Header: type icon + type label + × close.
+- Body: type-specific fields (see table below).
+- Condition section (amber background matching decision card): one filter input per backing record, labelled "From: [source survey name]" when multiple sources exist.
+- Footer: **Save** | **Delete** | **Advanced ↗** (links to `/app/fieldManager/notifications.html` for forward-backed nodes, `/app/tasks/taskManagement.html` for task-group-backed nodes).
+
+**Edit behaviour with multiple backing records**
+
+When a node is backed by N notifications/task groups (same target, different sources), edits to shared fields (name, assignee, enabled) are applied to all N records. The filter/condition is per-record.
+
+**Add Step dialog** (Bootstrap modal)
+
+1. Choose action type: Task | Case | Email | SMS
+2. Choose trigger (source survey from dropdown of all accessible surveys)
+3. Fill in type-specific fields (assignee, email addresses, etc.) + optional condition
+4. **Create** → `POST /surveyKPI/workflow/edit/notification` → canvas reloads
+
+**Delete**
+
+Delete button in the drawer shows a confirmation modal listing the number of records to be removed. Confirming deletes all backing forward/task-group records. The canvas reloads.
+
+**Drag-to-connect** deferred.
+
+**Field sets per node type**
+
+| Type | Editable in drawer | Read-only in drawer |
+|------|--------------------|---------------------|
+| task | Label, Assign to, Enabled | — |
+| case | Label, Assign to, Enabled | — |
+| email | Label, To, Subject, Message, Enabled | — |
+| sms | Label, To, Message, Enabled | — |
+| task (task_group backed) | Label | Assignee (use Advanced) |
+| form | — (no drawer) | — |
+| decision | — (opens target drawer) | — |
+
+**WorkflowItem model additions**
+
+```java
+public List<Integer> fwdIds = new ArrayList<>();  // forward record IDs backing this node
+public List<Integer> tgIds  = new ArrayList<>();  // task_group record IDs backing this node
+```
+
+---
+
+## 12. Open Questions
 
 - Should the modules dropdown in all pages replace "Tasks" with "Workflow" as the primary entry point? (deferred — large change across many pages)
 - Should enabled/disabled notifications be visually distinguished on the canvas?
 - Should bundles and project-level notifications have a different visual grouping than survey-level ones?
+- Should the Add Step dialog support creating task_group records (full task assignment) in addition to forward records? Currently creates forward records only; task groups require the full task management editor.

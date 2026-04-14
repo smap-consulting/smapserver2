@@ -1,5 +1,8 @@
 package org.smap.sdal.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /*
  * A single node in a workflow diagram.
  *
@@ -30,4 +33,6 @@ public class WorkflowItem {
 	public String project;   // project name the notification belongs to
 	public String bundle;    // bundle display name, if this node is part of a bundle
 	public String assignee;  // for task/case types: username, role name, emails, "Submitter", "From Data"
+	public List<Integer> fwdIds = new ArrayList<>();  // forward record IDs backing this node
+	public List<Integer> tgIds  = new ArrayList<>();  // task_group record IDs backing this node
 }

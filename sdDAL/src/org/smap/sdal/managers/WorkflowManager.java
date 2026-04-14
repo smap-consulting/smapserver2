@@ -260,6 +260,7 @@ public class WorkflowManager {
 				}
 				dst.id = dstKey;
 				itemMap.putIfAbsent(dstKey, dst);
+				itemMap.get(dstKey).fwdIds.add(fId);
 				if (sId > 0 && ROLE_FORM.equals(dst.role)) recordSurveyKey(surveyItemKeys, sId, dstKey);
 
 				linkWithOptionalDecision(data, itemMap, filter, fId, "f", srcKey, dstKey, enabled, projectName, null);
@@ -340,6 +341,7 @@ public class WorkflowManager {
 				}
 				// Record the task node under its own (target) survey so that
 				// a downstream task_group that sources this survey will find it.
+				itemMap.get(dstKey).tgIds.add(tgId);
 				if (targetSId > 0) recordSurveyKey(surveyItemKeys, targetSId, dstKey);
 
 				pendingTgLinks.add(new Object[]{tgId, sourceSId, triggerSurvey, dstKey, tgFilterName, tgProjectName, srcDataSurvey, srcHideOnDev});
@@ -511,6 +513,7 @@ public class WorkflowManager {
 			}
 			dst.id = dstKey;
 			itemMap.putIfAbsent(dstKey, dst);
+			itemMap.get(dstKey).fwdIds.add(bn.fId);
 
 			linkWithOptionalDecision(data, itemMap, bn.filter, bn.fId, "f", null, dstKey, bn.enabled, bn.projectName, bn.bundleName);
 			for (String srcKey : srcKeys) {
