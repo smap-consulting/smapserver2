@@ -318,8 +318,12 @@ When a node is backed by N notifications/task groups (same target, different sou
 
 **Add Step dialog** (Bootstrap modal)
 
-1. Choose action type: Task | Case | Email | SMS
-2. Choose trigger (source survey from dropdown of all accessible surveys)
+The dialog adds a **target** (action) element. The **trigger** is derived from the currently selected workflow item on the canvas — the user does not choose a trigger manually.
+
+When creating the backing `forward` or `task_group` record, all trigger-side columns (e.g. `s_id`, `bundle`, `bundle_ident`, `p_id`, `trigger`) are pre-populated from the first backing record of the selected workflow item. If the selected item has more than one backing record, the first record is used.
+
+1. Ensure a workflow item is selected on the canvas (its node is highlighted) — this becomes the trigger.
+2. Choose action type: Task | Case | Email | SMS
 3. Fill in type-specific fields (assignee, email addresses, etc.) + optional condition
 4. **Create** → `POST /surveyKPI/workflow/edit/notification` → canvas reloads
 

@@ -84,6 +84,7 @@ public class Workflow extends Application {
 		public String filter;
 		public boolean enabled;
 		public int    projectId;
+		public boolean bundle;
 		// email
 		public String emailTo;
 		public String emailSubject;
@@ -499,15 +500,20 @@ public class Workflow extends Application {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		WorkflowEditNotif n = gson.fromJson(body, WorkflowEditNotif.class);
 
-		// Derive p_id from source survey if not supplied
+		// Derive p_id and bundle_ident from source survey if needed
 		PreparedStatement pstmtPid = null;
 		PreparedStatement pstmtIns = null;
+		String bundleIdent = null;
 		try {
-			if (n.projectId <= 0 && n.srcSurveyId > 0) {
-				pstmtPid = sd.prepareStatement("select p_id from survey where s_id = ?");
+			if (n.srcSurveyId > 0) {
+				pstmtPid = sd.prepareStatement(
+						"select p_id, group_survey_ident from survey where s_id = ?");
 				pstmtPid.setInt(1, n.srcSurveyId);
 				ResultSet rs = pstmtPid.executeQuery();
-				if (rs.next()) n.projectId = rs.getInt(1);
+				if (rs.next()) {
+					if (n.projectId <= 0) n.projectId = rs.getInt("p_id");
+					if (n.bundle) bundleIdent = rs.getString("group_survey_ident");
+				}
 				rs.close();
 			}
 
@@ -532,11 +538,16 @@ public class Workflow extends Application {
 			}
 
 			String sql = "insert into forward(s_id, enabled, trigger, target, filter, name, p_id, "
-					+ "remote_user, notify_details, updated) "
-					+ "values(?, ?, 'submission', ?, ?, ?, ?, ?, ?::jsonb, true) "
+					+ "remote_user, notify_details, bundle, bundle_ident, updated) "
+					+ "values(?, ?, 'submission', ?, ?, ?, ?, ?, ?::jsonb, ?, ?, true) "
 					+ "returning id";
 			pstmtIns = sd.prepareStatement(sql);
-			pstmtIns.setInt(1, n.srcSurveyId);
+			// For bundle notifications the survey is identified via bundle_ident, not s_id
+			if (n.bundle) {
+				pstmtIns.setNull(1, java.sql.Types.INTEGER);
+			} else {
+				pstmtIns.setInt(1, n.srcSurveyId);
+			}
 			pstmtIns.setBoolean(2, true);
 			pstmtIns.setString(3, target);
 			pstmtIns.setString(4, n.filter);
@@ -544,6 +555,8 @@ public class Workflow extends Application {
 			pstmtIns.setInt(6, n.projectId);
 			pstmtIns.setString(7, n.remoteUser);
 			pstmtIns.setString(8, gson.toJson(nd));
+			pstmtIns.setBoolean(9, n.bundle);
+			pstmtIns.setString(10, bundleIdent);
 			ResultSet rs = pstmtIns.executeQuery();
 			int newId = rs.next() ? rs.getInt(1) : 0;
 			response = Response.ok("{\"id\":" + newId + "}").build();
