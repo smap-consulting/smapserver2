@@ -320,3 +320,12 @@ CREATE TABLE IF NOT EXISTS sharepoint_list_map (
 	);
 CREATE INDEX IF NOT EXISTS sharepoint_list_map_org_idx ON sharepoint_list_map(o_id);
 ALTER TABLE sharepoint_list_map OWNER TO ws;
+
+-- Version 26.04 Workflow node positions per user per organisation
+CREATE TABLE IF NOT EXISTS workflow_node_positions (
+	user_ident   text,
+	o_id         integer references organisation(id) on delete cascade,
+	positions    jsonb,
+	PRIMARY KEY (user_ident, o_id)
+);
+ALTER TABLE workflow_node_positions OWNER TO ws;

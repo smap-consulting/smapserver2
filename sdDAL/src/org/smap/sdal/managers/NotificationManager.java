@@ -409,6 +409,59 @@ public class NotificationManager {
 	}
 
 	/*
+	 * Get all notifications accessible to the user across all their projects
+	 */
+	public ArrayList<Notification> getUserNotifications(Connection sd, PreparedStatement pstmt,
+			String user,
+			String tz) throws Exception {
+
+		ArrayList<Notification> notifications = new ArrayList<Notification>();
+
+		ResultSet resultSet = null;
+		String sql = "select f.id, f.s_id, f.enabled, "
+				+ "f.remote_host, f.remote_user,"
+				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
+				+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value, f.alert_id,"
+				+ "f.p_id, f.periodic_time, f.periodic_period, f.periodic_day_of_week, "
+				+ "f.periodic_day_of_month, "
+				+ "f.periodic_local_day_of_month,"
+				+ "f.periodic_month, "
+				+ "f.periodic_local_month,"
+				+ "f.r_id,"
+				+ "f.bundle, f.bundle_ident,"
+				+ "a.name as alert_name,"
+				+ "s2.display_name as bundle_name "
+				+ "from forward f "
+				+ "left outer join survey s "
+				+ "on s.s_id = f.s_id "
+				+ "left outer join survey s2 "
+				+ "on s2.ident = f.bundle_ident "
+				+ "left outer join cms_alert a "
+				+ "on a.id = f.alert_id "
+				+ "where (f.p_id in (select p.id from project p, user_project up, users u "
+				+ "  where p.id = up.p_id and up.u_id = u.id and u.ident = ?) "
+				+ "or f.s_id in (select s.s_id from survey s, project p, user_project up, users u "
+				+ "  where s.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s.deleted) "
+				+ "or f.bundle_ident in (select s.group_survey_ident from survey s, project p, user_project up, users u "
+				+ "  where s.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s.deleted)) "
+				+ "order by f.name, s.display_name asc";
+
+		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
+		pstmt = sd.prepareStatement(sql);
+
+		pstmt.setString(1, user);
+		pstmt.setString(2, user);
+		pstmt.setString(3, user);
+		log.fine("User Notifications: " + pstmt.toString());
+		resultSet = pstmt.executeQuery();
+
+		addToList(sd, resultSet, notifications, false, false, tz);
+
+		return notifications;
+
+	}
+
+	/*
 	 * Get a list of notification types
 	 */
 	public ArrayList<String> getNotificationTypes(Connection sd, String user, String page) throws SQLException {
