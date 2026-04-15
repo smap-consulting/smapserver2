@@ -676,10 +676,10 @@ public class Workflow extends Application {
 		PreparedStatement pstmtGet = null;
 		PreparedStatement pstmtUpd = null;
 		try {
-			String sqlGet = "select rule from task_group where tg_id = ? "
+			String sqlGet = "select rule, target_s_id from task_group where tg_id = ? "
 					+ "and p_id in (select p.id from project p, user_project up, users u "
 					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?)";
-			String sqlUpd = "update task_group set name = ?, rule = ? where tg_id = ? "
+			String sqlUpd = "update task_group set name = ?, rule = ?, target_s_id = ? where tg_id = ? "
 					+ "and p_id in (select p.id from project p, user_project up, users u "
 					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?)";
 
@@ -692,8 +692,10 @@ public class Workflow extends Application {
 				pstmtGet.setString(2, request.getRemoteUser());
 				ResultSet rs = pstmtGet.executeQuery();
 				org.smap.sdal.model.AssignFromSurvey afs = new org.smap.sdal.model.AssignFromSurvey();
+				int existingTargetSId = 0;
 				if (rs.next()) {
 					String existing = rs.getString("rule");
+					existingTargetSId = rs.getInt("target_s_id");
 					if (existing != null) {
 						org.smap.sdal.model.AssignFromSurvey parsed =
 							gson.fromJson(existing, org.smap.sdal.model.AssignFromSurvey.class);
@@ -712,10 +714,15 @@ public class Workflow extends Application {
 					afs.filter = null;
 				}
 
+				// Update target survey if provided
+				int newTargetSId = tg.targetSurveyId > 0 ? tg.targetSurveyId : existingTargetSId;
+				afs.target_survey_id = newTargetSId;
+
 				pstmtUpd.setString(1, tg.name);
 				pstmtUpd.setString(2, gson.toJson(afs));
-				pstmtUpd.setInt(3, tg.tgId);
-				pstmtUpd.setString(4, request.getRemoteUser());
+				pstmtUpd.setInt(3, newTargetSId);
+				pstmtUpd.setInt(4, tg.tgId);
+				pstmtUpd.setString(5, request.getRemoteUser());
 				pstmtUpd.executeUpdate();
 			}
 			response = Response.ok().build();
