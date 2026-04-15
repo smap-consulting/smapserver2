@@ -203,6 +203,36 @@ public class SharePointManager {
 	}
 
 	/*
+	 * Return the titles of all non-hidden SharePoint lists.
+	 * Used to populate the list-title dropdown on the resources page.
+	 */
+	public static List<String> getAvailableLists(ServerData sd) throws Exception {
+		String token = authenticate(sd);
+		String url   = stripTrailingSlash(sd.sharepoint_url)
+				+ "/_api/web/lists?$select=Title&$filter=Hidden%20eq%20false";
+
+		List<String> titles = new ArrayList<>();
+
+		try {
+			String body = get(url, token);
+			
+			JsonArray items = JsonParser.parseString(body)
+					.getAsJsonObject()
+					.getAsJsonObject("d")
+					.getAsJsonArray("results");
+	
+			for (JsonElement el : items) {
+				titles.add(el.getAsJsonObject().get("Title").getAsString());
+			}
+		} catch (Exception e) {
+			log.info("Error getting sharepoint lists from: " + url);
+			log.log(Level.SEVERE, e.getMessage(), e);
+			throw e;
+		}
+		return titles;
+	}
+
+	/*
 	 * Return the non-hidden, non-read-only fields of a SharePoint list.
 	 * Used to populate the column-name dropdown in the notifications UI.
 	 */
@@ -211,7 +241,7 @@ public class SharePointManager {
 		String url   = stripTrailingSlash(sd.sharepoint_url)
 				+ "/_api/web/lists/getbytitle('" + encodeTitle(listTitle) + "')/fields"
 				+ "?$select=Title,InternalName"
-				+ "&$filter=Hidden eq false and ReadOnlyField eq false";
+				+ "&$filter=Hidden%20eq%20false%20and%20ReadOnlyField%20eq%20false";
 
 		String body = get(url, token);
 		List<SharePointField> fields = new ArrayList<>();

@@ -188,7 +188,7 @@ public class SharePointListMaps extends Application {
 
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.managers.ResourceBundle", locale);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			ArrayList<SharePointListMap> maps = new SharePointListMapManager().getMappings(sd, oId);
