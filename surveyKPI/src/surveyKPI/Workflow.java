@@ -105,7 +105,8 @@ public class Workflow extends Application {
 		public int    targetSurveyId;
 		public String targetSurveyName;
 		public String filter;
-		public String remoteUser;   // derived assignee display string (read-only in simple editor)
+		public String remoteUser;   // "_data" or email string
+		public int    userId;       // direct user assignment (> 0 means assign to this user)
 		public int    projectId;
 	}
 
@@ -804,7 +805,11 @@ public class Workflow extends Application {
 			afs.task_group_name  = tg.name;
 			afs.source_survey_id = tg.sourceSurveyId;
 			afs.target_survey_id = tg.targetSurveyId;
-			if (tg.remoteUser != null && !tg.remoteUser.trim().isEmpty()) {
+			afs.add_future       = true;
+			afs.add_current      = false;
+			if (tg.userId > 0) {
+				afs.user_id = tg.userId;
+			} else if (tg.remoteUser != null && !tg.remoteUser.trim().isEmpty()) {
 				if ("_data".equals(tg.remoteUser)) {
 					afs.assign_data = "_data";
 				} else {
