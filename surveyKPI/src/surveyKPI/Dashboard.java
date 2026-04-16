@@ -128,7 +128,8 @@ public class Dashboard extends Application {
 					+ "d.ds_geom_questions as geom_questions, "
 					+ "d.ds_selected_geom_question as selected_geom_question,"
 					+ "d.ds_chart_type as chart_type,"
-					+ "d.ds_show_meta as show_meta "
+					+ "d.ds_show_meta as show_meta,"
+					+ "d.ds_wrap_text as wrap_text "
 					+ "from dashboard_settings d, users u, user_project up, survey s "
 					+ "where u.id = up.u_id "
 					+ "and up.p_id = ? "
@@ -172,7 +173,8 @@ public class Dashboard extends Application {
 					+ "d.ds_geom_questions as geom_questions, "
 					+ "d.ds_selected_geom_question as selected_geom_question,"
 					+ "d.ds_chart_type as chart_type,"
-					+ "d.ds_show_meta as show_meta "
+					+ "d.ds_show_meta as show_meta,"
+					+ "d.ds_wrap_text as wrap_text "
 					+ "from dashboard_settings d "
 					+ "where d.ds_user_ident = ? "
 					+ "and d.ds_subject_type = 'user' "
@@ -212,7 +214,8 @@ public class Dashboard extends Application {
 					+ "d.ds_geom_questions as geom_questions,"
 					+ "d.ds_selected_geom_question as selected_geom_question,"
 					+ "d.ds_chart_type as chart_type,"
-					+ "d.ds_show_meta as show_meta "
+					+ "d.ds_show_meta as show_meta,"
+					+ "d.ds_wrap_text as wrap_text "
 					+ "from dashboard_settings d "
 					+ "where d.ds_user_ident = ? "
 					+ "and d.ds_subject_type = 'user_locations' ";
@@ -332,8 +335,8 @@ public class Dashboard extends Application {
 					+ "ds_lang, ds_qname, ds_date_question_name, ds_question, ds_fn, ds_table, ds_key_words, ds_q1_function, "
 					+ "ds_group_question_name, ds_group_question_text, ds_group_type, ds_user_ident, ds_time_group,"
 					+ "ds_from_date, ds_to_date, ds_q_is_calc, ds_filter, ds_advanced_filter, ds_subject_type, ds_u_id,"
-					+ "ds_inc_ro, ds_geom_questions, ds_selected_geom_question, ds_chart_type, ds_show_meta) values ("
-					+ "?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
+					+ "ds_inc_ro, ds_geom_questions, ds_selected_geom_question, ds_chart_type, ds_show_meta, ds_wrap_text) values ("
+					+ "?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
 			pstmtAddView = sd.prepareStatement(sqlAddView);	 			
 			
 			String sqlReplaceView = "update dashboard_settings set " +
@@ -368,7 +371,8 @@ public class Dashboard extends Application {
 					" ds_geom_questions = ?, " +
 					" ds_selected_geom_question = ?," +
 					" ds_chart_type = ?," +
-					" ds_show_meta = ? " +
+					" ds_show_meta = ?," +
+					" ds_wrap_text = ? " +
 					" where ds_id = ? " +
 					" and ds_user_ident = ?;";						
 			pstmtReplaceView = sd.prepareStatement(sqlReplaceView);
@@ -428,7 +432,8 @@ public class Dashboard extends Application {
 						pstmtAddView.setString(31, s.selectedGeomQuestion);
 						pstmtAddView.setString(32, s.chartType);
 						pstmtAddView.setBoolean(33, s.tShowMeta);
-						
+						pstmtAddView.setBoolean(34, s.tWrapText);
+
 						log.info("Add view: " + pstmtAddView.toString());
 						pstmtAddView.executeUpdate();		
 
@@ -473,9 +478,10 @@ public class Dashboard extends Application {
 						
 						pstmtReplaceView.setString(31, s.chartType);
 						pstmtReplaceView.setBoolean(32, s.tShowMeta);
-						
-						pstmtReplaceView.setInt(33, s.id);
-						pstmtReplaceView.setString(34, user);
+						pstmtReplaceView.setBoolean(33, s.tWrapText);
+
+						pstmtReplaceView.setInt(34, s.id);
+						pstmtReplaceView.setString(35, user);
 						
 						log.info("Update view: " + pstmtReplaceView.toString());
 						pstmtReplaceView.executeUpdate();
@@ -618,6 +624,7 @@ public class Dashboard extends Application {
 		s.selectedGeomQuestion = resultSet.getString("selected_geom_question");
 		s.chartType = resultSet.getString("chart_type");
 		s.tShowMeta = resultSet.getBoolean("show_meta");
+		s.tWrapText = resultSet.getBoolean("wrap_text");
 		
 		String gQuestions = resultSet.getString("geom_questions");
 		if(gQuestions != null) {
