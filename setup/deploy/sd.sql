@@ -296,5 +296,5 @@ alter table upload_event add column if not exists worker_host text;
 alter table s3upload add column if not exists worker_id text;
 alter table message add column if not exists worker_host text;
 
--- Version 26.04.21 Prevent duplicate submissions in queue via unique constraint
-alter table submission_queue add constraint if not exists submission_queue_instanceid_unique unique (instanceid);
+-- Version 26.04.1 Prevent duplicate submissions in queue via unique index
+create unique index if not exists submission_queue_instanceid_idx on submission_queue(instanceid);
