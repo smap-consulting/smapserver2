@@ -579,8 +579,10 @@ public class SubRelationalDB extends Subscriber {
 					
 					
 					/*
-					 * Duplicate check
+					 * Duplicate check — serialise concurrent threads on the same uuid so that
+					 * the check-then-insert is atomic under READ COMMITTED isolation.
 					 */
+					acquireAdvisoryLock(cResults, uuid);
 					keys.duplicateKeys = checkDuplicate(cResults, tableName, uuid);
 					if (keys.duplicateKeys.size() > 0 && getDuplicatePolicy() == DUPLICATE_DROP) {
 						throw new Exception("Duplicate survey: " + uuid);
@@ -2086,6 +2088,20 @@ public class SubRelationalDB extends Subscriber {
 		return components;
 	}
 	
+	/*
+	 * Acquire a transaction-level advisory lock keyed on the instanceid so that
+	 * concurrent threads processing the same uuid serialise here. The lock is
+	 * automatically released when the surrounding cResults transaction commits
+	 * or rolls back.
+	 */
+	private void acquireAdvisoryLock(Connection cResults, String uuid) throws SQLException {
+		String sql = "select pg_advisory_xact_lock(hashtext(?))";
+		try (PreparedStatement pstmt = cResults.prepareStatement(sql)) {
+			pstmt.setString(1, uuid);
+			pstmt.execute();
+		}
+	}
+
 	/*
 	 * Check for duplicates specified using a column named instanceid or _instanceid
 	 * Return true if this instance has already been uploaded

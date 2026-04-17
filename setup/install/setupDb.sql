@@ -1891,7 +1891,7 @@ CREATE UNLOGGED TABLE submission_queue
     element_identifier UUID PRIMARY KEY,
     time_inserted TIMESTAMP,
     ue_id integer,
-    instanceid text,	-- Don't allow duplicates in the submission queue where they can be worked on in parallel
+    instanceid text UNIQUE,	-- Don't allow duplicates in the submission queue where they can be worked on in parallel
     restore boolean,
     payload JSON
 );

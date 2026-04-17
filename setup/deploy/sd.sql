@@ -330,3 +330,5 @@ CREATE TABLE IF NOT EXISTS workflow_node_positions (
 	PRIMARY KEY (user_ident, o_id)
 );
 ALTER TABLE workflow_node_positions OWNER TO ws;
+-- Version 26.04.1 Prevent duplicate submissions in queue via unique index
+create unique index if not exists submission_queue_instanceid_idx on submission_queue(instanceid);
