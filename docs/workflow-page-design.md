@@ -44,15 +44,14 @@ if the user can access any of those surveys they will be able to see and modify 
 - Full system-wide menu replacement (tasks→workflow in modules dropdown) deferred to a later iteration
 
 **Layout description**
-- Navbar: brand "Workflow" + inline project selector + links to Tasks, Notifications, Help, Profile
-- Main area: full-viewport dark canvas (`background: #1a1a2e`) with:
+- Navbar: brand "Workflow" + modules dropdown + links to Tasks, Notifications, Highlight dropdown, Reset, Refresh, Help, Profile
+- Main area: full-viewport dark canvas (`background: #1a1a2e`) **[TODO: not yet applied in workflow.html]** with:
   - SVG overlay (`id="wf-arrows"`) for bezier connection arrows
   - Node container (`id="wf-nodes"`) for absolutely-positioned cards
 
 **Key UI components**
 | Component | Type | Purpose |
 |-----------|------|---------|
-| Project selector | `<select class="project_list">` in navbar | Filter workflow by project |
 | Trigger node card | Absolutely positioned div | Shows trigger type + survey name |
 | Action node card | Absolutely positioned div | Shows action type + details |
 | SVG bezier arrow | `<path>` in SVG overlay | Connects trigger to action |
@@ -72,8 +71,8 @@ Node positions are computed server-side in `WorkflowManager.applyLayout()` and r
 - Users can drag any node to a new position. Positions are saved per user per organisation in the `workflow_node_positions` table (`user_ident`, `o_id`, `positions jsonb`).
 - On load, the server merges saved positions over the default layout before returning items to the client.
 - Saving all positions at once (not per-node) means orphaned entries for deleted nodes are automatically removed on the next save.
-- A **Save** button sends `PUT /surveyKPI/workflow/positions` with the full positions map.
-- A **Reset** button sends `DELETE /surveyKPI/workflow/positions`, deleting the saved row and reverting to the server-computed defaults.
+- Positions are **auto-saved** after each drag (`PUT /surveyKPI/workflow/positions` with the full positions map).
+- A **Reset** nav-link sends `DELETE /surveyKPI/workflow/positions`, deleting the saved row and reverting to the server-computed defaults.
 
 *Client drag behaviour*
 - Each node card is draggable via `mousedown`/`mousemove`/`mouseup` on the document.
@@ -244,14 +243,13 @@ A survey that is a bundle member may also have its own survey-specific notificat
 | `fieldManagerClient/WebContent/notifications.html` | Added Workflow nav link |
 
 **State management**
-- `globals.gCurrentProject` holds selected project id
-- Project list populated by `getLoggedInUser()` from common.js
-- On project change: re-fetch and re-render workflow canvas
+- `gData` — current `WorkflowData` (items + links)
+- `gPositions` — `{id: {x,y}}` map updated live during drag
 
 **API call sequence**
-1. Page load → `getLoggedInUser(projectChanged, ...)` — populates `.project_list` selects
-2. `projectChanged()` → `fetch /surveyKPI/notifications/{projectId}`
-3. Response → `renderWorkflow(notifications)` — clears and redraws canvas
+1. Page load → `getLoggedInUser(loadWorkflow, ...)` — sets up user/locale
+2. `loadWorkflow()` → `fetch /surveyKPI/workflow/items`
+3. Response → `renderWorkflow(data)` — clears and redraws canvas
 
 **Layout**
 See §3 Node layout for the full description. The client uses `item.x` and `item.y` from the server response directly — no client-side layout calculation.

@@ -74,7 +74,15 @@ public class ServerManager {
 				+ "sec_mgr_del,"
 				+ "api_max_records,"
 				+ "turnstile_site_key,"
-				+ "turnstile_secret_key "
+				+ "turnstile_secret_key,"
+				+ "sharepoint_url,"
+				+ "sharepoint_client_id,"
+				+ "sharepoint_realm,"
+				+ "sharepoint_cert_pem,"
+				+ "coalesce(sharepoint_auth_type, 's2s') as sharepoint_auth_type,"
+				+ "sharepoint_username,"
+				+ "sharepoint_password,"
+				+ "sharepoint_domain "
 				+ "from server;";
 		PreparedStatement pstmt = null;
 		ServerData data = new ServerData();
@@ -106,6 +114,14 @@ public class ServerManager {
 				data.setMaxRecords(rs.getInt("api_max_records"));
 				data.turnstile_site_key = rs.getString("turnstile_site_key");
 				data.turnstile_secret_key = rs.getString("turnstile_secret_key");
+				data.sharepoint_url = rs.getString("sharepoint_url");
+				data.sharepoint_client_id = rs.getString("sharepoint_client_id");
+				data.sharepoint_realm = rs.getString("sharepoint_realm");
+				data.sharepoint_cert_pem = rs.getString("sharepoint_cert_pem");
+				data.sharepoint_auth_type = rs.getString("sharepoint_auth_type");
+				data.sharepoint_username = rs.getString("sharepoint_username");
+				data.sharepoint_password = rs.getString("sharepoint_password");
+				data.sharepoint_domain = rs.getString("sharepoint_domain");
 			}
 
 		}  catch (Exception e) {
@@ -330,6 +346,14 @@ public class ServerManager {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, surveyIdent);
 				log.fine("Delete survey templates: " + pstmt.toString());
+				pstmt.executeUpdate();
+
+				// Delete any workflow start records for this survey
+				sql = "delete from workflow_start where s_ident = ?";
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, surveyIdent);
+				log.fine("Delete workflow start records: " + pstmt.toString());
 				pstmt.executeUpdate();
 
 				// Delete the template files

@@ -466,6 +466,8 @@ echo '##### . Start the servers'
 if [ "$DBHOST" = "127.0.0.1" ]; then
     sudo service postgresql start
 fi
+# Copy PostgreSQL JDBC driver to Tomcat shared lib before first startup
+cp ../deploy/version1/jdbc/* /var/lib/$TOMCAT_VERSION/lib/
 sudo service $TOMCAT_VERSION start
 sudo service apache2 start
 

@@ -137,7 +137,15 @@ create TABLE server (
 	sec_mgr_del boolean default false,
 	api_max_records integer default 0,				-- Maximum number of records to return via API
 	turnstile_site_key text,
-	turnstile_secret_key text
+	turnstile_secret_key text,
+	sharepoint_url text,						-- SharePoint server base URL
+	sharepoint_client_id text,					-- App principal GUID registered in SharePoint
+	sharepoint_realm text,						-- SharePoint farm realm GUID
+	sharepoint_cert_pem text,					-- PEM private key for S2S high-trust auth
+	sharepoint_auth_type text DEFAULT 's2s',	-- Authentication type: 's2s' or 'ntlm'
+	sharepoint_username text,					-- NTLM username
+	sharepoint_password text,					-- NTLM password
+	sharepoint_domain text						-- NTLM Windows domain
 	);
 ALTER TABLE server OWNER TO ws;
 
@@ -994,7 +1002,8 @@ CREATE TABLE dashboard_settings (
 	ds_geom_questions text,
 	ds_selected_geom_question text,
 	ds_chart_type text default 'histogram',
-	ds_show_meta boolean default true
+	ds_show_meta boolean default true,
+	ds_wrap_text boolean default true
 	);
 alter table dashboard_settings add constraint ds_user_ident FOREIGN KEY (ds_user_ident)
 	REFERENCES users (ident) MATCH SIMPLE
@@ -1390,6 +1399,24 @@ create TABLE csvtable (
 	ts_initialised TIMESTAMP WITH TIME ZONE
 	);
 ALTER TABLE csvtable OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS sharepoint_list_map_seq CASCADE;
+CREATE SEQUENCE sharepoint_list_map_seq START 1;
+ALTER SEQUENCE sharepoint_list_map_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS sharepoint_list_map CASCADE;
+CREATE TABLE sharepoint_list_map (
+	id integer DEFAULT nextval('sharepoint_list_map_seq') NOT NULL PRIMARY KEY,
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	smap_name text NOT NULL,					-- Internal name, used as "sharepointlist_{smap_name}" in pulldata/search
+	list_title text NOT NULL,					-- SharePoint list display name
+	refresh_minutes integer DEFAULT 60,			-- Cache refresh interval
+	last_sync TIMESTAMP WITH TIME ZONE,
+	csv_table_id integer REFERENCES csvtable(id) ON DELETE SET NULL,
+	enabled boolean DEFAULT true
+	);
+CREATE INDEX IF NOT EXISTS sharepoint_list_map_org_idx ON sharepoint_list_map(o_id);
+ALTER TABLE sharepoint_list_map OWNER TO ws;
 
 CREATE SCHEMA csv AUTHORIZATION ws;
 
@@ -1864,7 +1891,7 @@ CREATE UNLOGGED TABLE submission_queue
     element_identifier UUID PRIMARY KEY,
     time_inserted TIMESTAMP,
     ue_id integer,
-    instanceid text,	-- Don't allow duplicates in the submission queue where they can be worked on in parallel
+    instanceid text UNIQUE,	-- Don't allow duplicates in the submission queue where they can be worked on in parallel
     restore boolean,
     payload JSON
 );

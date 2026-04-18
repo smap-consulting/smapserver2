@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -32,6 +33,8 @@ import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.ServerData;
+import org.smap.sdal.model.SharePointColumnMap;
 import org.smap.sdal.model.PeriodicTime;
 import org.smap.sdal.model.ReportParameters;
 import org.smap.sdal.model.SendEmailResponse;
@@ -477,6 +480,7 @@ public class NotificationManager {
 		if("notifications".equals(page)) {
 			types.add("webhook");
 			types.add("escalate");
+			types.add("sharepoint_list");
 		}
 
 		boolean awsSMS = false;
@@ -808,6 +812,12 @@ public class NotificationManager {
 							nd.msgChannel,
 							nd.ts
 							);
+					subMsg.sp_list_title = nd.sp_list_title;
+					subMsg.sp_operation = nd.sp_operation;
+					subMsg.sp_match_column = nd.sp_match_column;
+					subMsg.sp_match_field = nd.sp_match_field;
+					subMsg.sp_column_map = nd.sp_column_map;
+
 					mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 
 					if(localisation != null) {
@@ -1293,9 +1303,42 @@ public class NotificationManager {
 						
 						log.log(Level.SEVERE, "Vonage client has not been configured");
 					}
+				} else if(msg.target.equals("sharepoint_list")) {
+
+					try {
+						ServerManager serverMgr = new ServerManager();
+						ServerData serverData = serverMgr.getServer(sd, localisation);
+
+						Map<String, Object> fields = new java.util.LinkedHashMap<>();
+						if(msg.sp_column_map != null) {
+							for(org.smap.sdal.model.SharePointColumnMap cm : msg.sp_column_map) {
+								ArrayList<String> values = GeneralUtilityMethods.getResponseForQuestion(
+										sd, cResults, surveyId, cm.smap_field, msg.instanceId);
+								fields.put(cm.sp_column, values.size() > 0 ? values.get(0) : "");
+							}
+						}
+
+						if("update".equals(msg.sp_operation) && msg.sp_match_field != null) {
+							ArrayList<String> matchValues = GeneralUtilityMethods.getResponseForQuestion(
+									sd, cResults, surveyId, msg.sp_match_field, msg.instanceId);
+							String matchValue = matchValues.size() > 0 ? matchValues.get(0) : "";
+							SharePointManager.updateListItem(serverData, msg.sp_list_title,
+									msg.sp_match_column, matchValue, fields);
+						} else {
+							SharePointManager.postListItem(serverData, msg.sp_list_title, fields);
+						}
+
+						notify_details = "SharePoint: wrote to list '" + msg.sp_list_title + "'";
+
+					} catch(Exception e) {
+						status = "error";
+						error_details = e.getMessage();
+						log.log(Level.SEVERE, e.getMessage(), e);
+					}
+
 				} else {
 					status = "error";
-					error_details = "Invalid target: " + msg.target;				
+					error_details = "Invalid target: " + msg.target;
 					log.log(Level.SEVERE, "Error: Invalid target" + msg.target);
 				}
 

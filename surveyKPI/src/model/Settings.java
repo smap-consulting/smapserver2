@@ -37,4 +37,5 @@ public class Settings {
 	public String selectedGeomQuestion;
 	public String chartType;
 	public boolean tShowMeta;
+	public boolean tWrapText;
 }

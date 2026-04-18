@@ -47,9 +47,10 @@ public class WorkflowManager {
 	private static final String TYPE_CASE      = "case";
 	private static final String TYPE_PERIODIC  = "periodic";
 	private static final String TYPE_REMINDER  = "reminder";
-	private static final String TYPE_EMAIL     = "email";
-	private static final String TYPE_SMS       = "sms";
-	private static final String TYPE_DECISION  = "decision";
+	private static final String TYPE_EMAIL           = "email";
+	private static final String TYPE_SMS             = "sms";
+	private static final String TYPE_SHAREPOINT_LIST = "sharepoint_list";
+	private static final String TYPE_DECISION        = "decision";
 
 	// WorkItem role constants (determines visual shape)
 	private static final String ROLE_FORM         = "form";
@@ -103,6 +104,46 @@ public class WorkflowManager {
 			}
 		}
 		List<BundleNotif> pendingBundles = new ArrayList<>();
+		PreparedStatement pstmt = null;
+
+		// -------------------------------------------------------------------
+		// Pass 0: explicit form start nodes from workflow_start table
+		// -------------------------------------------------------------------
+		String sqlStart =
+				"select ws.id, ws.s_ident, s.s_id, s.display_name, proj.name as project_name "
+				+ "from workflow_start ws "
+				+ "join survey s on s.ident = ws.s_ident "
+				+ "join project proj on proj.id = ws.p_id "
+				+ "join user_project up on up.p_id = ws.p_id "
+				+ "join users u on u.id = up.u_id "
+				+ "where u.ident = ? and not s.deleted "
+				+ "order by s.display_name";
+		try {
+			pstmt = sd.prepareStatement(sqlStart);
+			pstmt.setString(1, user);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				int    startId     = rs.getInt("id");
+				int    sId         = rs.getInt("s_id");
+				String displayName = rs.getString("display_name");
+				String projectName = rs.getString("project_name");
+				String key = "form:s:" + sId;
+				if (!itemMap.containsKey(key)) {
+					WorkflowItem src = new WorkflowItem();
+					src.id      = key;
+					src.type    = TYPE_FORM;
+					src.role    = ROLE_FORM;
+					src.name    = displayName;
+					src.enabled = true;
+					src.project = projectName;
+					itemMap.put(key, src);
+				}
+				itemMap.get(key).startIds.add(startId);
+				recordSurveyKey(surveyItemKeys, sId, key);
+			}
+		} finally {
+			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
+		}
 
 		// -------------------------------------------------------------------
 		// Pass 1a: forward table — non-bundle records
@@ -130,7 +171,6 @@ public class WorkflowManager {
 				+ "  where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted)) "
 				+ "order by f.name asc";
 
-		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sqlForward);
 			pstmt.setString(1, user);
@@ -250,6 +290,11 @@ public class WorkflowManager {
 				} else if ("sms".equals(target)) {
 					dstKey   = "sms:f:" + fId;
 					dst.type = TYPE_SMS;
+					dst.role = ROLE_NOTIFICATION;
+					dst.name = fName;
+				} else if ("sharepoint_list".equals(target)) {
+					dstKey   = "sharepoint_list:f:" + fId;
+					dst.type = TYPE_SHAREPOINT_LIST;
 					dst.role = ROLE_NOTIFICATION;
 					dst.name = fName;
 				} else {
@@ -503,6 +548,11 @@ public class WorkflowManager {
 			} else if ("sms".equals(bn.target)) {
 				dstKey   = "sms:f:" + bn.fId;
 				dst.type = TYPE_SMS;
+				dst.role = ROLE_NOTIFICATION;
+				dst.name = bn.fName;
+			} else if ("sharepoint_list".equals(bn.target)) {
+				dstKey   = "sharepoint_list:f:" + bn.fId;
+				dst.type = TYPE_SHAREPOINT_LIST;
 				dst.role = ROLE_NOTIFICATION;
 				dst.name = bn.fName;
 			} else {

@@ -4,6 +4,13 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 
 public class NotifyDetails {
+
+	// SharePoint list target
+	public String sp_list_title;
+	public String sp_operation;             // "insert" or "update"
+	public String sp_match_column;          // SP column used to find existing row (update only)
+	public String sp_match_field;           // Smap field whose value is matched (update only)
+	public ArrayList<SharePointColumnMap> sp_column_map;
 	public ArrayList<String> emails;
 	public int emailQuestion = 0;				// legacy question identifier
 	public String emailQuestionName = null;

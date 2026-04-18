@@ -36,6 +36,7 @@ import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.ServerManager;
+import org.smap.sdal.managers.SharePointListMapManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TimeZoneManager;
@@ -140,17 +141,13 @@ public class SubscriberBatch {
 		PreparedStatement pstmtGetPendingUpload = null;
 
 		/*
-		 * SQL to enqueue the submission
+		 * SQL to enqueue the submission. ON CONFLICT DO NOTHING provides atomic duplicate
+		 * prevention across concurrent SubscriberBatch instances without a separate check.
 		 */
 		String sqlEnqueue = "insert into submission_queue(element_identifier, time_inserted, ue_id, instanceid, restore, payload) "
-				+ "values(gen_random_uuid(), current_timestamp, ?, ?, ?, ?::jsonb)";
+				+ "values(gen_random_uuid(), current_timestamp, ?, ?, ?, ?::jsonb) "
+				+ "on conflict (instanceid) do nothing";
 		PreparedStatement pstmtEnqueue = null;
-
-		/*
-		 * SQL to prevent duplicates being processed in the queue in parallel
-		 */
-		String sqlDup = "select count(*) from submission_queue where instanceid = ?";
-		PreparedStatement pstmtDup = null;
 
 		/*
 		 * SQL to inform the upload event table that the submission has been moved to the queue
@@ -200,7 +197,6 @@ public class SubscriberBatch {
 			pstmtGetPendingUpload = dbc.sd.prepareStatement(sqlGetPendingUpload);
 			pstmtEnqueue = dbc.sd.prepareStatement(sqlEnqueue);
 			pstmtQueueDone = dbc.sd.prepareStatement(sqlQueueDone);
-			pstmtDup = dbc.sd.prepareStatement(sqlDup);
 
 			pstmtGetMessages = dbc.sd.prepareStatement(sqlGetMessages);
 			pstmtEnqueueMessages = dbc.sd.prepareStatement(sqlEnqueueMessages);
@@ -265,19 +261,17 @@ public class SubscriberBatch {
 							ue.setType(rs.getString("submission_type"));
 							ue.setAuditFilePath(rs.getString("audit_file_path"));
 
-							// Check for duplicate in queue (safety check)
-							pstmtDup.setString(1, ue.getInstanceId());
-							ResultSet rsDup = pstmtDup.executeQuery();
-							if (!rsDup.next() || rsDup.getInt(1) == 0) {
-								pstmtEnqueue.setInt(1, ue.getId());
-								pstmtEnqueue.setString(2, ue.getInstanceId());
-								pstmtEnqueue.setBoolean(3, ue.getRestore());
-								pstmtEnqueue.setString(4, gson.toJson(ue));
-								pstmtEnqueue.executeUpdate();
+							pstmtEnqueue.setInt(1, ue.getId());
+							pstmtEnqueue.setString(2, ue.getInstanceId());
+							pstmtEnqueue.setBoolean(3, ue.getRestore());
+							pstmtEnqueue.setString(4, gson.toJson(ue));
+							int enqueued = pstmtEnqueue.executeUpdate();
+							if (enqueued > 0) {
 								log.fine("Enqueue new submission: " + ue.getId());
-								// Mark as queued only when actually enqueued
 								pstmtQueueDone.setInt(1, ue.getId());
 								pstmtQueueDone.executeUpdate();
+							} else {
+								log.info("Duplicate instanceid skipped for ue_id: " + ue.getId());
 							}
 						}
 
@@ -351,6 +345,7 @@ public class SubscriberBatch {
 				applyCaseManagementReminders(dbc.sd, dbc.results, basePath, serverName);
 				applyPeriodicNotifications(dbc.sd, dbc.results, basePath, serverName);
 				applyServerCalculateNotifications(dbc.sd, dbc.results, basePath, serverName);
+				syncSharePointLists(dbc.sd, localisation);
 				
 				// Delete linked csv files logically deleted more than 10 minutes age
 				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
@@ -563,7 +558,6 @@ public class SubscriberBatch {
 			try {if (pstmtGetPendingUpload != null) { pstmtGetPendingUpload.close();}} catch (SQLException e) {}
 			try {if (pstmtEnqueue != null) { pstmtEnqueue.close();}} catch (SQLException e) {}
 			try {if (pstmtQueueDone != null) { pstmtQueueDone.close();}} catch (SQLException e) {}
-			try {if (pstmtDup != null) { pstmtDup.close();}} catch (SQLException e) {}
 
 			try {if (pstmtGetMessages != null) { pstmtGetMessages.close();}} catch (SQLException e) {}
 			try {if (pstmtEnqueueMessages != null) { pstmtEnqueueMessages.close();}} catch (SQLException e) {}
@@ -2293,5 +2287,21 @@ public class SubscriberBatch {
 			}
 		}
 		return valid;
+	}
+
+	/*
+	 * Sync all SharePoint list mappings whose cache has expired.
+	 */
+	private void syncSharePointLists(Connection sd, ResourceBundle localisation) {
+		try {
+			ServerManager serverManager = new ServerManager();
+			org.smap.sdal.model.ServerData serverData = serverManager.getServer(sd, localisation);
+			if(serverData.sharepoint_url == null || serverData.sharepoint_url.isEmpty()) {
+				return;  // SharePoint not configured
+			}
+			new SharePointListMapManager().syncDue(sd, serverData, localisation);
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "SharePoint list sync error: " + e.getMessage(), e);
+		}
 	}
 }
