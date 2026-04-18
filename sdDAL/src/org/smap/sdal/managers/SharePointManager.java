@@ -460,7 +460,13 @@ public class SharePointManager {
 	}
 
 	private static String encodeTitle(String title) {
-		// Single-quote escape for OData string literals; URL encoding handled by caller
-		return title == null ? "" : title.replace("'", "''");
+		if (title == null) return "";
+		// Escape single quotes for OData string literals, then URL-encode for the path segment
+		String escaped = title.replace("'", "''");
+		try {
+			return java.net.URLEncoder.encode(escaped, "UTF-8").replace("+", "%20");
+		} catch (java.io.UnsupportedEncodingException e) {
+			return escaped;
+		}
 	}
 }

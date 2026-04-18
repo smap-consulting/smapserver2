@@ -100,7 +100,7 @@ public class Workflow extends Application {
 		public String spOperation;
 		public String spMatchColumn;
 		public String spMatchField;
-		public java.util.List<org.smap.sdal.model.SharePointColumnMap> spColumnMap;
+		public ArrayList<org.smap.sdal.model.SharePointColumnMap> spColumnMap;
 	}
 
 	static class WorkflowEditTG {
