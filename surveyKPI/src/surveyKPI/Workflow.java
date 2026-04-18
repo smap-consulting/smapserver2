@@ -95,6 +95,12 @@ public class Workflow extends Application {
 		// case
 		public String caseSurveyIdent;
 		public String caseSurveyName;
+		// sharepoint_list
+		public String spListTitle;
+		public String spOperation;
+		public String spMatchColumn;
+		public String spMatchField;
+		public java.util.List<org.smap.sdal.model.SharePointColumnMap> spColumnMap;
 	}
 
 	static class WorkflowEditTG {
@@ -108,6 +114,10 @@ public class Workflow extends Application {
 		public String remoteUser;   // "_data" or email string
 		public int    userId;       // direct user assignment (> 0 means assign to this user)
 		public int    projectId;
+	}
+
+	static class WorkflowEditForm {
+		public String sIdent;
 	}
 
 	static class WorkflowSurvey {
@@ -333,6 +343,12 @@ public class Workflow extends Application {
 						} else if ("escalate".equals(n.target)) {
 							n.caseSurveyIdent = nd.survey_case;
 							n.caseSurveyName  = rs.getString("case_survey_name");
+						} else if ("sharepoint_list".equals(n.target)) {
+							n.spListTitle   = nd.sp_list_title;
+							n.spOperation   = nd.sp_operation;
+							n.spMatchColumn = nd.sp_match_column;
+							n.spMatchField  = nd.sp_match_field;
+							n.spColumnMap   = nd.sp_column_map;
 						}
 					}
 				}
@@ -421,6 +437,12 @@ public class Workflow extends Application {
 					if (n.smsMessage != null) nd.content   = n.smsMessage;
 				} else if ("escalate".equals(target)) {
 					if (n.caseSurveyIdent != null) nd.survey_case = n.caseSurveyIdent;
+				} else if ("sharepoint_list".equals(target)) {
+					if (n.spListTitle   != null) nd.sp_list_title   = n.spListTitle;
+					if (n.spOperation   != null) nd.sp_operation    = n.spOperation;
+					if (n.spMatchColumn != null) nd.sp_match_column = n.spMatchColumn;
+					if (n.spMatchField  != null) nd.sp_match_field  = n.spMatchField;
+					if (n.spColumnMap   != null) nd.sp_column_map   = n.spColumnMap;
 				}
 
 				pstmtUpd.setString(1, n.name);
@@ -536,6 +558,12 @@ public class Workflow extends Application {
 				nd.content   = n.smsMessage;
 			} else if ("escalate".equals(target)) {
 				nd.survey_case = n.caseSurveyIdent;
+			} else if ("sharepoint_list".equals(target)) {
+				nd.sp_list_title   = n.spListTitle;
+				nd.sp_operation    = n.spOperation;
+				nd.sp_match_column = n.spMatchColumn;
+				nd.sp_match_field  = n.spMatchField;
+				nd.sp_column_map   = n.spColumnMap;
 			}
 
 			String sql = "insert into forward(s_id, enabled, trigger, target, filter, name, p_id, "
@@ -754,9 +782,14 @@ public class Workflow extends Application {
 		PreparedStatement pstmtFwd = null;
 		PreparedStatement pstmtTG  = null;
 		try {
-			// Delete any forward records that reference this task group
-			pstmtFwd = sd.prepareStatement("delete from forward where tg_id = ?");
+			// Delete forward records linked to this task group (scoped to user's projects)
+			pstmtFwd = sd.prepareStatement(
+					"delete from forward where tg_id = ? "
+					+ "and tg_id in (select tg_id from task_group where p_id in "
+					+ "  (select p.id from project p, user_project up, users u "
+					+ "   where p.id = up.p_id and up.u_id = u.id and u.ident = ?))");
 			pstmtFwd.setInt(1, id);
+			pstmtFwd.setString(2, request.getRemoteUser());
 			pstmtFwd.executeUpdate();
 
 			// Delete the task group itself (checking project access)
@@ -846,6 +879,82 @@ public class Workflow extends Application {
 		} finally {
 			try { if (pstmtPid != null) pstmtPid.close(); } catch (SQLException e) {}
 			try { if (pstmtIns != null) pstmtIns.close(); } catch (SQLException e) {}
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		return response;
+	}
+
+	// ============================================================
+	// POST /workflow/edit/form
+	// Creates an explicit workflow start node for the given survey ident.
+	// ============================================================
+	@Path("/edit/form")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response createForm(@Context HttpServletRequest request, String body) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-Workflow-editForm-post";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		WorkflowEditForm f = gson.fromJson(body, WorkflowEditForm.class);
+
+		PreparedStatement pstmt = null;
+		try {
+			String sql = "insert into workflow_start(s_ident, p_id) "
+					+ "select s.ident, s.p_id from survey s "
+					+ "join user_project up on up.p_id = s.p_id "
+					+ "join users u on u.id = up.u_id "
+					+ "where s.ident = ? and u.ident = ? and not s.deleted "
+					+ "returning id";
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, f.sIdent);
+			pstmt.setString(2, request.getRemoteUser());
+			ResultSet rs = pstmt.executeQuery();
+			int newId = rs.next() ? rs.getInt(1) : 0;
+			response = Response.ok("{\"id\":" + newId + "}").build();
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error creating workflow start form", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		return response;
+	}
+
+	// ============================================================
+	// DELETE /workflow/edit/form/{id}
+	// Deletes a workflow_start record.
+	// ============================================================
+	@Path("/edit/form/{id}")
+	@DELETE
+	public Response deleteForm(@Context HttpServletRequest request,
+			@PathParam("id") int id) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-Workflow-editForm-delete";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+
+		PreparedStatement pstmt = null;
+		try {
+			String sql = "delete from workflow_start where id = ? "
+					+ "and p_id in (select p.id from project p, user_project up, users u "
+					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?)";
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, id);
+			pstmt.setString(2, request.getRemoteUser());
+			pstmt.executeUpdate();
+			response = Response.ok().build();
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error deleting workflow start form " + id, e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 		return response;

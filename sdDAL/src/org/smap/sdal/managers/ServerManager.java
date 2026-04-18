@@ -348,6 +348,14 @@ public class ServerManager {
 				log.fine("Delete survey templates: " + pstmt.toString());
 				pstmt.executeUpdate();
 
+				// Delete any workflow start records for this survey
+				sql = "delete from workflow_start where s_ident = ?";
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, surveyIdent);
+				log.fine("Delete workflow start records: " + pstmt.toString());
+				pstmt.executeUpdate();
+
 				// Delete the template files
 				// No longer required but keep this to delete legacy
 				try {
