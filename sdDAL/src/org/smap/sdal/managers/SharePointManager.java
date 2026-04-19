@@ -214,8 +214,8 @@ public class SharePointManager {
 		List<String> titles = new ArrayList<>();
 
 		try {
-			String body = get(url, token);
-			
+			log.info("Getting sharepoint lists: " + url);
+			String body = get(url, token);		
 			JsonArray items = JsonParser.parseString(body)
 					.getAsJsonObject()
 					.getAsJsonObject("d")

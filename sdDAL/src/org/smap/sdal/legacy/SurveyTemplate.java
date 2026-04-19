@@ -495,65 +495,6 @@ public class SurveyTemplate {
 	}
 
 	/*
-	 * Method to print out the model for debug purposes
-	 */
-	public void printModel() throws Exception {
-
-		Collection c = null;
-		Iterator itr = null;
-
-		// Survey
-		System.out.println("Survey: " + survey.getDisplayName());
-		System.out.println("     Id: " + survey.getId());
-
-		// Forms
-		c = forms.values();
-		itr = c.iterator();
-		while (itr.hasNext()) {
-			Form f = (Form) itr.next();
-			System.out.println("Form: " + f.getId());
-			System.out.println("	Name: " + f.getName());
-			System.out.println("	Parent Ref: " + f.getParentFormRef());
-			if(f.getParentForm() != 0) {
-				System.out.println("	Parent Form: " + f.getParentForm());
-			} else {
-				System.out.println("	Parent Form: None");
-			}
-			System.out.println("	Parent Question: " + f.getParentQuestionId());
-		}
-
-		// Questions
-		c = questions.values();
-		itr = c.iterator();
-		while (itr.hasNext()) {
-			Question q = (Question) itr.next();
-			System.out.println("Question: " + q.getName());
-			System.out.println("	Form: " + q.getFormRef());
-			System.out.println("	Type: " + q.getType());
-			System.out.println("	ReadOnly: " + q.isReadOnly());
-			System.out.println("	Mandatory: " + q.isMandatory());
-			System.out.println("	Default: " + q.getDefaultAnswer());
-			System.out.println("	QuestionId: " + q.getQTextId());
-			System.out.println("	Relevance: " + q.getRelevant(true, questionPaths, getXFormFormName()));
-			System.out.println("	Question Sequence: " + q.getSeq());
-		}
-		
-		// Cascade Options
-		c = cascade_options.values();
-		itr = c.iterator();
-		while (itr.hasNext()) {
-			Option o = (Option) itr.next();
-			System.out.println("Cascade Option: ");
-			System.out.println("	Instance: " + o.getListName());
-			System.out.println("	Question: " + o.getQuestionRef());
-			System.out.println("	Value: " + o.getValue());
-			System.out.println("	Label: " + o.getLabel());
-			System.out.println("	Label Id: " + o.getLabelId());
-			System.out.println("	Seq: " + o.getSeq());
-		}
-	}
-
-	/*
 	 * Method to count total questions per form and  table columns per form
 	 * Total table columns are limited by Postgres to 1,600
 	 */
