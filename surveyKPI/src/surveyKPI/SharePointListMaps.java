@@ -201,8 +201,8 @@ public class SharePointListMaps extends Application {
 			}
 
 			ServerData serverData = new ServerManager().getServer(sd, localisation);
-			new SharePointListMapManager().syncOne(sd, target, serverData, localisation);
-			return Response.ok().build();
+			int count = new SharePointListMapManager().syncOne(sd, target, serverData, localisation);
+			return Response.ok("{\"count\":" + count + "}").type(MediaType.APPLICATION_JSON).build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			return Response.serverError().entity(e.getMessage()).build();

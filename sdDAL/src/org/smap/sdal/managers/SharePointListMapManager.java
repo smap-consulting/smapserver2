@@ -19,8 +19,14 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  ******************************************************************************/
 
+import org.smap.sdal.model.CsvHeader;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SharePointListMap;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -53,10 +59,14 @@ public class SharePointListMapManager {
 
 	public ArrayList<SharePointListMap> getMappings(Connection sd, int oId) throws SQLException {
 		ArrayList<SharePointListMap> maps = new ArrayList<>();
-		String sql = "select id, o_id, smap_name, list_title, refresh_minutes, last_sync, "
-				+ "coalesce(csv_table_id, 0) as csv_table_id, enabled "
-				+ "from sharepoint_list_map where o_id = ? order by smap_name";
+		String sql = "select slm.id, slm.o_id, slm.smap_name, slm.list_title, slm.refresh_minutes, slm.last_sync, "
+				+ "coalesce(slm.csv_table_id, 0) as csv_table_id, slm.enabled, ct.headers "
+				+ "from sharepoint_list_map slm "
+				+ "left join csvtable ct on ct.id = slm.csv_table_id "
+				+ "where slm.o_id = ? order by slm.smap_name";
 		PreparedStatement pstmt = null;
+		Type headersType = new TypeToken<ArrayList<CsvHeader>>(){}.getType();
+		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
@@ -71,6 +81,10 @@ public class SharePointListMapManager {
 				m.last_sync      = rs.getTimestamp("last_sync");
 				m.csv_table_id   = rs.getInt("csv_table_id");
 				m.enabled        = rs.getBoolean("enabled");
+				String hString = rs.getString("headers");
+				if(hString != null) {
+					m.headers = gson.fromJson(hString, headersType);
+				}
 				maps.add(m);
 			}
 		} finally {
@@ -171,7 +185,7 @@ public class SharePointListMapManager {
 	/*
 	 * Sync a single mapping immediately (also used by the sync-now endpoint).
 	 */
-	public void syncOne(Connection sd, SharePointListMap m,
+	public int syncOne(Connection sd, SharePointListMap m,
 			ServerData serverData, ResourceBundle localisation) throws Exception {
 
 		log.info("SharePoint sync: fetching list '" + m.list_title + "' for org " + m.o_id);
@@ -188,6 +202,7 @@ public class SharePointListMapManager {
 		updateSyncStatus(sd, m.id, csvMgr.getTableId());
 
 		log.info("SharePoint sync: wrote " + rows.size() + " rows to cache for '" + m.list_title + "'");
+		return rows.size();
 	}
 
 	/*

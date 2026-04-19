@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -114,6 +115,46 @@ public class ExternalFileManager {
 		return regenerate;
 	}
 
+
+	/*
+	 * Create/refresh the physical CSV file for a SharePoint list cache.
+	 * Regenerates if the file is missing or older than the last SP sync.
+	 */
+	public boolean createSpListFile(Connection sd, int oId, String fileName, String filePath) {
+		boolean regenerate = false;
+		try {
+			File f = new File(filePath);
+			boolean needsRegen = !f.exists();
+			if(!needsRegen) {
+				String smapName = fileName.startsWith("sharepointlist_")
+						? fileName.substring("sharepointlist_".length()) : fileName;
+				String sql = "select last_sync from sharepoint_list_map where o_id = ? and smap_name = ?";
+				PreparedStatement pstmt = null;
+				try {
+					pstmt = sd.prepareStatement(sql);
+					pstmt.setInt(1, oId);
+					pstmt.setString(2, smapName);
+					ResultSet rs = pstmt.executeQuery();
+					if(rs.next()) {
+						Timestamp lastSync = rs.getTimestamp(1);
+						if(lastSync != null && lastSync.getTime() > f.lastModified()) {
+							needsRegen = true;
+						}
+					}
+				} finally {
+					if(pstmt != null) try { pstmt.close(); } catch(Exception e) {}
+				}
+			}
+			if(needsRegen) {
+				CsvTableManager ctm = new CsvTableManager(sd, localisation, oId, 0, fileName);
+				ctm.writeCsvFile(f);
+				regenerate = true;
+			}
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "createSpListFile: " + fileName, e);
+		}
+		return regenerate;
+	}
 
 	/*
 	 * Get the path  to the current linked file

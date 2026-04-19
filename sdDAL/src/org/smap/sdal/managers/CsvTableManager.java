@@ -1,8 +1,11 @@
 package org.smap.sdal.managers;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -546,6 +549,56 @@ public class CsvTableManager {
 		}
 	}
 
+	/*
+	 * Write all rows from the csv.csvN table to a physical CSV file on disk.
+	 * Used to materialise SharePoint cache data for FieldTask download.
+	 */
+	public void writeCsvFile(File f) throws Exception {
+		if(headers == null || headers.isEmpty()) {
+			return;
+		}
+		StringBuilder sqlSelect = new StringBuilder("select ");
+		for(int i = 0; i < headers.size(); i++) {
+			if(i > 0) sqlSelect.append(",");
+			sqlSelect.append(headers.get(i).tName);
+		}
+		sqlSelect.append(" from ").append(fullTableName).append(" order by ").append(PKCOL);
+
+		PreparedStatement pstmt = null;
+		try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(f), "UTF8"))) {
+			// header row
+			StringBuilder headerRow = new StringBuilder();
+			for(int i = 0; i < headers.size(); i++) {
+				if(i > 0) headerRow.append(",");
+				headerRow.append(escapeCsvValue(headers.get(i).fName));
+			}
+			bw.write(headerRow.toString());
+			bw.newLine();
+
+			pstmt = sd.prepareStatement(sqlSelect.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				StringBuilder row = new StringBuilder();
+				for(int i = 0; i < headers.size(); i++) {
+					if(i > 0) row.append(",");
+					String val = rs.getString(headers.get(i).tName);
+					row.append(escapeCsvValue(val != null ? val : ""));
+				}
+				bw.write(row.toString());
+				bw.newLine();
+			}
+		} finally {
+			if(pstmt != null) try { pstmt.close(); } catch(Exception e) {}
+		}
+	}
+
+	private String escapeCsvValue(String val) {
+		if(val.contains(",") || val.contains("\"") || val.contains("\n")) {
+			return "\"" + val.replace("\"", "\"\"") + "\"";
+		}
+		return val;
+	}
+
 	public void delete(int oId, int sId, String fileName) throws SQLException {
 		
 		String sqlFile = "select id from csvtable where o_id = ? and s_id = ? and filename = ?";
@@ -580,7 +633,7 @@ public class CsvTableManager {
 			
 			while(rs.next()) {
 				int id = rs.getInt(1);
-				String sqlDrop = "drop table csv.csv" + id;
+				String sqlDrop = "drop table if exists csv.csv" + id;
 				String sqlDropSeq = "drop sequence if exists csv.csv" + id + "_seq cascade";
 				
 				if(pstmtDrop != null) {try {pstmtDrop.close();} catch(Exception e) {}}

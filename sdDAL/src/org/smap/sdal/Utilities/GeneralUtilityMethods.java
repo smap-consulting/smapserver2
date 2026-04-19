@@ -5410,19 +5410,26 @@ public class GeneralUtilityMethods {
 								if(filename.equals("linked_self")) {
 									filename = "linked_" + surveyIdent;
 								}
-								
+
 								String selection = null;
 								if(matches != null && matches.size() == 1) {
 									selection = columnName + " = ?";
 								}
-						
+
 								// Get data from another form
 								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
-								stm.initData(pstmt, "choices", selection, matches, 
+								stm.initData(pstmt, "choices", selection, matches,
 										null,	// expression fragment
-										tz, null, null);						
+										tz, null, null);
 								choices = stm.getChoices(ovalue, languageItems, wfFilters);
-								
+
+							} else if(filename.startsWith("sharepointlist_")) {
+								// Stored at org level without .csv suffix
+								String spFileName = filename.endsWith(".csv")
+										? filename.substring(0, filename.length() - 4) : filename;
+								CsvTableManager csvMgr = new CsvTableManager(sd, localisation);
+								choices = csvMgr.getChoices(oId, 0, spFileName, ovalue, languageItems, matches, wfFilters);
+
 							} else {
 								// Get data from a csv table
 								CsvTableManager csvMgr = new CsvTableManager(sd, localisation);

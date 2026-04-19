@@ -206,7 +206,12 @@ public class TranslationManager {
 						m.fileName = m.fileName.replace("chart_self", "chart_" + surveyIdent);
 					}
 					
-					if(m.fileName.endsWith(".csv") || m.fileName.endsWith(".zip")) {
+					if(m.fileName.startsWith("sharepointlist_")) {
+						m.type = "sharepoint";
+						String urlBase = forDevice ? "/resource/" : "/surveyKPI/file/";
+						m.url = urlBase + m.fileName + ".csv/organisation";
+						manifests.add(m);
+					} else if(m.fileName.endsWith(".csv") || m.fileName.endsWith(".zip")) {
 						if(!linkedOnly) {
 							m.type = "csv";
 							UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, basePath, oId, surveyId, forDevice);
@@ -280,7 +285,10 @@ public class TranslationManager {
 					m.sId = surveyId;
 					
 					m.baseName = m.fileName;
-					if(m.baseName.endsWith(".csv")) {
+					if(m.fileName.startsWith("sharepointlist_")) {
+						m.type = "sharepoint";
+						m.baseName = m.fileName;
+					} else if(m.baseName.endsWith(".csv")) {
 						m.baseName = m.baseName.substring(0, m.baseName.length() - 4);
 						m.type = "csv";
 					} else {
@@ -294,6 +302,9 @@ public class TranslationManager {
 						if(m.type.equals("csv")) {
 							int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, surveyId);
 							UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, GeneralUtilityMethods.getBasePath(request), oId, surveyId, forDevice);
+						} else if(m.type.equals("sharepoint")) {
+							String urlBase = forDevice ? "/resource/" : "/surveyKPI/file/";
+							m.url = urlBase + m.fileName + ".csv/organisation";
 						} else {
 							// location depends on user
 						}

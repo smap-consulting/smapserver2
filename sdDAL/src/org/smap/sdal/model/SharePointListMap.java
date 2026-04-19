@@ -1,6 +1,7 @@
 package org.smap.sdal.model;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 
 public class SharePointListMap {
 	public int id;
@@ -11,4 +12,5 @@ public class SharePointListMap {
 	public Timestamp last_sync;
 	public int csv_table_id;        // FK to csvtable — the local cache
 	public boolean enabled;
+	public ArrayList<CsvHeader> headers;  // Column headers from csvtable (null until first sync)
 }
