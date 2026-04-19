@@ -64,6 +64,7 @@ public class CsvTableManager {
 	Connection sd = null;
 	ResourceBundle localisation = null;
 	private int tableId = 0;
+	public int getTableId() { return tableId; }
 	private String tableName = null;
 	private String schema = "csv";
 	private String fullTableName = null;
@@ -469,8 +470,12 @@ public class CsvTableManager {
 			// Derive column names from the keys of the first row
 			List<String> colNames = new ArrayList<>(rows.get(0).keySet());
 			headers = new ArrayList<>();
+			java.util.Set<String> seenTNames = new java.util.LinkedHashSet<>();
 			for(String name : colNames) {
-				headers.add(new CsvHeader(name, GeneralUtilityMethods.cleanNameNoRand(name)));
+				String tName = GeneralUtilityMethods.cleanNameNoRand(name);
+				if(seenTNames.add(tName)) {
+					headers.add(new CsvHeader(name, tName));
+				}
 			}
 
 			boolean tableExists = GeneralUtilityMethods.tableExistsInSchema(sd, tableName, schema);

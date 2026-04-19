@@ -184,9 +184,8 @@ public class SharePointListMapManager {
 		CsvTableManager csvMgr = new CsvTableManager(sd, localisation, m.o_id, 0, fileName);
 		csvMgr.updateTableFromRows(rows);
 
-		// Update csv_table_id and last_sync
-		int csvTableId = getCsvTableId(sd, m.o_id, fileName);
-		updateSyncStatus(sd, m.id, csvTableId);
+		// Update csv_table_id and last_sync using the id assigned by CsvTableManager
+		updateSyncStatus(sd, m.id, csvMgr.getTableId());
 
 		log.info("SharePoint sync: wrote " + rows.size() + " rows to cache for '" + m.list_title + "'");
 	}
