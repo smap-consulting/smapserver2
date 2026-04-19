@@ -267,6 +267,7 @@ public class SharePointManager {
 	public static void postListItem(ServerData sd, String listTitle,
 			Map<String, Object> fields) throws Exception {
 		String token      = authenticate(sd);
+		String digest     = getRequestDigest(sd.sharepoint_url, token);
 		String entityType = getListEntityType(sd, listTitle, token);
 		String url        = stripTrailingSlash(sd.sharepoint_url)
 				+ "/_api/web/lists/getbytitle('" + encodeTitle(listTitle) + "')/items";
@@ -274,7 +275,7 @@ public class SharePointManager {
 		Map<String, Object> body = new LinkedHashMap<>(fields);
 		body.put("__metadata", Map.of("type", entityType));
 
-		postJson(url, token, new Gson().toJson(body), "POST", null);
+		postJson(url, token, new Gson().toJson(body), "POST", null, digest);
 		log.info("SharePoint: inserted item into list '" + listTitle + "'");
 	}
 
@@ -310,12 +311,13 @@ public class SharePointManager {
 		String itemUrl = stripTrailingSlash(sd.sharepoint_url)
 				+ "/_api/web/lists/getbytitle('" + encodeTitle(listTitle) + "')/items(" + itemId + ")";
 
+		String digest     = getRequestDigest(sd.sharepoint_url, token);
 		String entityType = getListEntityType(sd, listTitle, token);
 		Map<String, Object> body = new LinkedHashMap<>(fields);
 		body.put("__metadata", Map.of("type", entityType));
 
 		// MERGE = partial update; IF-MATCH: * means update regardless of ETag
-		postJson(itemUrl, token, new Gson().toJson(body), "MERGE", "IF-MATCH: *");
+		postJson(itemUrl, token, new Gson().toJson(body), "MERGE", "IF-MATCH: *", digest);
 		log.info("SharePoint: updated item " + itemId + " in list '" + listTitle + "'");
 	}
 
@@ -395,8 +397,26 @@ public class SharePointManager {
 		return body;
 	}
 
+	private static String getRequestDigest(String baseUrl, String token) throws Exception {
+		String url = stripTrailingSlash(baseUrl) + "/_api/contextinfo";
+		HttpURLConnection conn = openConnection(url, "POST", token, true);
+		conn.setRequestProperty("Content-Length", "0");
+		conn.getOutputStream().close();
+		int status = conn.getResponseCode();
+		String body = readResponse(conn);
+		if (status < 200 || status >= 300) {
+			throw new Exception("SharePoint contextinfo failed, HTTP " + status + ": " + body);
+		}
+		return JsonParser.parseString(body)
+				.getAsJsonObject()
+				.getAsJsonObject("d")
+				.getAsJsonObject("GetContextWebInformation")
+				.get("FormDigestValue")
+				.getAsString();
+	}
+
 	private static void postJson(String url, String token, String jsonBody,
-			String httpMethod, String extraHeader) throws Exception {
+			String httpMethod, String extraHeader, String digest) throws Exception {
 		HttpURLConnection conn = openConnection(url, "POST", token, true);
 		// httpMethod may be "POST" or "MERGE" (tunnelled via X-HTTP-Method)
 		if (!"POST".equals(httpMethod)) {
@@ -405,6 +425,9 @@ public class SharePointManager {
 		if (extraHeader != null) {
 			String[] parts = extraHeader.split(": ", 2);
 			conn.setRequestProperty(parts[0], parts[1]);
+		}
+		if (digest != null) {
+			conn.setRequestProperty("X-RequestDigest", digest);
 		}
 		conn.setRequestProperty("Content-Type", "application/json;odata=verbose");
 
