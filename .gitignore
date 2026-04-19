@@ -13,6 +13,7 @@ surveyKPI/WebContent/WEB-INF/lib/*
 Servers/
 
 subscribers/target/
+subscribers/dependency-reduced-pom.xml
 tdh/target/
 subscribers/.aws/
 koboToolboxApi/.aws/
