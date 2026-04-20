@@ -107,6 +107,10 @@ public class SharePointListMaps extends Application {
 
 		try {
 			SharePointListMap m = new Gson().fromJson(body, SharePointListMap.class);
+			if(m.smap_name != null && m.smap_name.contains(" ")) {
+				return Response.status(Response.Status.BAD_REQUEST)
+						.entity("Smap name must not contain spaces").build();
+			}
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			int newId = new SharePointListMapManager().addMapping(sd, oId, m);
 			if (newId < 0) {
