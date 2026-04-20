@@ -113,8 +113,9 @@ public class Workflow extends Application {
 		public int    targetSurveyId;
 		public String targetSurveyName;
 		public String filter;
-		public String remoteUser;   // "_data" or email string
+		public String remoteUser;   // "_data" or email string (display / legacy)
 		public int    userId;       // direct user assignment (> 0 means assign to this user)
+		public int    roleId;       // role assignment (> 0 means assign to first user with this role)
 		public int    projectId;
 		// workflow sequencing
 		public String wfPrevNodeId;
@@ -663,14 +664,16 @@ public class Workflow extends Application {
 							tg.filter = afs.filter.advanced != null
 									? afs.filter.advanced : afs.filter.qText;
 						}
-						// Derive human-readable assignee
+						// Derive assignee fields
 						if (afs.assign_data != null && !afs.assign_data.trim().isEmpty()) {
 							tg.remoteUser = "_data";
 						} else if (afs.emails != null && !afs.emails.trim().isEmpty()) {
 							tg.remoteUser = afs.emails.trim();
 						} else if (afs.role_id > 0) {
+							tg.roleId     = afs.role_id;
 							tg.remoteUser = lookupRole(sd, afs.role_id);
 						} else if (afs.user_id > 0) {
+							tg.userId     = afs.user_id;
 							tg.remoteUser = lookupUser(sd, afs.user_id);
 						}
 					}
@@ -750,6 +753,22 @@ public class Workflow extends Application {
 				// Update target survey if provided
 				int newTargetSId = tg.targetSurveyId > 0 ? tg.targetSurveyId : existingTargetSId;
 				afs.target_survey_id = newTargetSId;
+
+				// Update assignee — clear all and set only the selected type
+				afs.role_id    = 0;
+				afs.user_id    = 0;
+				afs.emails     = null;
+				afs.assign_data = null;
+				if (tg.roleId > 0) {
+					afs.role_id = tg.roleId;
+				} else if (tg.userId > 0) {
+					afs.user_id = tg.userId;
+				} else if ("_data".equals(tg.remoteUser)) {
+					afs.assign_data = "_data";
+				} else if (tg.remoteUser != null && !tg.remoteUser.trim().isEmpty()) {
+					afs.emails = tg.remoteUser.trim();
+				}
+				// If none set → unassigned (all cleared above)
 
 				pstmtUpd.setString(1, tg.name);
 				pstmtUpd.setString(2, gson.toJson(afs));
@@ -852,7 +871,9 @@ public class Workflow extends Application {
 			afs.target_survey_id = tg.targetSurveyId;
 			afs.add_future       = true;
 			afs.add_current      = false;
-			if (tg.userId > 0) {
+			if (tg.roleId > 0) {
+				afs.role_id = tg.roleId;
+			} else if (tg.userId > 0) {
 				afs.user_id = tg.userId;
 			} else if (tg.remoteUser != null && !tg.remoteUser.trim().isEmpty()) {
 				if ("_data".equals(tg.remoteUser)) {
