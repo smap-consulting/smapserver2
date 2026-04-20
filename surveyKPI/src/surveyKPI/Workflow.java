@@ -243,7 +243,7 @@ public class Workflow extends Application {
 				+ "join project p on p.id = s.p_id "
 				+ "join user_project up on p.id = up.p_id "
 				+ "join users u on up.u_id = u.id "
-				+ "where u.ident = ? and not s.deleted "
+				+ "where u.ident = ? and not s.deleted and s.data_survey = true "
 				+ "order by p.name, s.display_name";
 
 		PreparedStatement pstmt = null;
