@@ -150,7 +150,7 @@ public class WorkflowManager {
 		// -------------------------------------------------------------------
 		String sqlForward =
 				"select f.id, f.name, f.trigger, f.target, f.enabled, f.bundle, "
-				+ "f.s_id, f.bundle_ident, f.p_id, f.filter, f.remote_user, "
+				+ "f.s_id, f.bundle_ident, f.p_id, f.filter, f.remote_user, f.wf_prev_node_id, "
 				+ "s_src.display_name as trigger_survey, "
 				+ "s_bun.display_name as bundle_name, "
 				+ "s_case.display_name as case_survey, "
@@ -194,6 +194,7 @@ public class WorkflowManager {
 				String  filter           = rs.getString("filter");
 				String  projectName      = rs.getString("project_name");
 				String  remoteUser       = rs.getString("remote_user");
+				String  wfPrevNodeId     = rs.getString("wf_prev_node_id");
 
 				// Defer bundle notifications until all survey nodes are built
 				if (isBundle) {
@@ -215,7 +216,12 @@ public class WorkflowManager {
 
 				// -- Source node --
 				String srcKey;
-				if ("submission".equals(trigger) && sId > 0) {
+				if (wfPrevNodeId != null && !wfPrevNodeId.trim().isEmpty()) {
+					// Explicit predecessor set by workflow canvas — use it directly.
+					// The predecessor node will already be (or will become) present in
+					// itemMap from its own record; no need to create it here.
+					srcKey = wfPrevNodeId;
+				} else if ("submission".equals(trigger) && sId > 0) {
 					srcKey = "form:s:" + sId;
 					WorkflowItem src = new WorkflowItem();
 					src.id      = srcKey;
@@ -303,7 +309,8 @@ public class WorkflowManager {
 					dst.role = ROLE_NOTIFICATION;
 					dst.name = fName;
 				}
-				dst.id = dstKey;
+				dst.id    = dstKey;
+				dst.label = fName;
 				itemMap.putIfAbsent(dstKey, dst);
 				itemMap.get(dstKey).fwdIds.add(fId);
 				if (sId > 0 && ROLE_FORM.equals(dst.role)) recordSurveyKey(surveyItemKeys, sId, dstKey);
@@ -323,7 +330,7 @@ public class WorkflowManager {
 		//                create links.
 		// -------------------------------------------------------------------
 		String sqlTg =
-				"select tg.tg_id, tg.name, tg.source_s_id, tg.target_s_id, tg.rule, "
+				"select tg.tg_id, tg.name, tg.source_s_id, tg.target_s_id, tg.rule, tg.wf_prev_node_id, "
 				+ "src.display_name as trigger_survey, "
 				+ "src.data_survey as src_data_survey, "
 				+ "src.hide_on_device as src_hide_on_device, "
@@ -356,6 +363,7 @@ public class WorkflowManager {
 				String targetSurvey   = rs.getString("target_survey");
 				String rule           = rs.getString("rule");
 				String tgProjectName  = rs.getString("project_name");
+				String tgWfPrevNodeId = rs.getString("wf_prev_node_id");
 
 				String tgAssignee   = null;
 				String tgAssigneeK  = "";
@@ -379,6 +387,7 @@ public class WorkflowManager {
 					dst.type     = TYPE_TASK;
 					dst.role     = ROLE_FORM;
 					dst.name     = targetSurvey != null ? targetSurvey : tgName;
+					dst.label    = tgName;
 					dst.enabled  = true;
 					dst.project  = tgProjectName;
 					dst.assignee = tgAssignee;
@@ -389,7 +398,7 @@ public class WorkflowManager {
 				itemMap.get(dstKey).tgIds.add(tgId);
 				if (targetSId > 0) recordSurveyKey(surveyItemKeys, targetSId, dstKey);
 
-				pendingTgLinks.add(new Object[]{tgId, sourceSId, triggerSurvey, dstKey, tgFilterName, tgProjectName, srcDataSurvey, srcHideOnDev});
+				pendingTgLinks.add(new Object[]{tgId, sourceSId, triggerSurvey, dstKey, tgFilterName, tgProjectName, srcDataSurvey, srcHideOnDev, tgWfPrevNodeId});
 			}
 		} finally {
 			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
@@ -410,9 +419,22 @@ public class WorkflowManager {
 			String  tgProjectName = (String)  tgr[5];
 			boolean srcDataSurvey = (boolean) tgr[6];
 			boolean srcHideOnDev  = (boolean) tgr[7];
+			String  wfPrevNodeId  = tgr.length > 8 ? (String) tgr[8] : null;
 
 			List<String> srcKeyList = new ArrayList<>();
 			String formKey = "form:s:" + sourceSId;
+
+			// Explicit predecessor set by workflow canvas — skip inference.
+			if (wfPrevNodeId != null && !wfPrevNodeId.trim().isEmpty()) {
+				srcKeyList.add(wfPrevNodeId);
+				linkWithOptionalDecision(data, itemMap, tgFilterName, tgId, "tg", null, dstKey, true, tgProjectName, null);
+				for (String srcKey : srcKeyList) {
+					String linkTarget = (tgFilterName != null && !tgFilterName.trim().isEmpty())
+							? "decision:tg:" + tgId : dstKey;
+					addLinkIfAbsent(data, srcKey, linkTarget);
+				}
+				continue;
+			}
 
 			// Task/case nodes whose key directly encodes this survey's sId
 			// (created in sub-pass i for chained task_groups).
@@ -561,7 +583,8 @@ public class WorkflowManager {
 				dst.role = ROLE_NOTIFICATION;
 				dst.name = bn.fName;
 			}
-			dst.id = dstKey;
+			dst.id    = dstKey;
+			dst.label = bn.fName;
 			itemMap.putIfAbsent(dstKey, dst);
 			itemMap.get(dstKey).fwdIds.add(bn.fId);
 

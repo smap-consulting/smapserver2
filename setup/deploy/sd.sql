@@ -337,5 +337,8 @@ CREATE TABLE IF NOT EXISTS workflow_start (
     p_id    integer references project(id) on delete cascade
 );
 ALTER TABLE workflow_start OWNER TO ws;
+-- Workflow explicit sequence: predecessor node ID set by workflow canvas
+ALTER TABLE forward     ADD COLUMN IF NOT EXISTS wf_prev_node_id text;
+ALTER TABLE task_group  ADD COLUMN IF NOT EXISTS wf_prev_node_id text;
 -- Version 26.04.2 Prevent duplicate submissions in queue via unique index
 create unique index if not exists submission_queue_instanceid_idx on submission_queue(instanceid);

@@ -127,6 +127,7 @@ Notifications commonly contain two workitems that will form the core workflow fu
 - `filter` — submission filter expression
 - `remote_user` — assignee for task/case targets: a username, role name, comma-separated emails, `_submitter` (person who submitted), or `_data` (taken from a form question)
 - `remote_host`, `remote_password` — for forward targets
+- `wf_prev_node_id` *(iteration 2)* — the node ID of the predecessor workflow step that this record was created from (e.g. `form:s:123`, `task:s:456:a:user`). Set by the Add Step dialog. NULL for records not created via the workflow canvas; those fall back to the legacy inference logic in WorkflowManager.
 
 **task_group table key columns**
 - `tg_id` — primary key
@@ -134,6 +135,7 @@ Notifications commonly contain two workitems that will form the core workflow fu
 - `target_s_id` — survey used as the task form
 - `rule` — JSON (`AssignFromSurvey`); key sub-fields: `assign_data` (From Data), `emails`, `role_id`, `user_id`, `filter` (decision rule)
 - `p_id` — project id
+- `wf_prev_node_id` *(iteration 2)* — the node ID of the predecessor workflow step (same semantics as `forward.wf_prev_node_id`)
 
 **Assignee display** (task and case workitems)
 
@@ -153,8 +155,10 @@ The assignee is shown below the survey name in the workitem card.
 
 **Iteration 1: no new tables.** The `forward` table provides all needed data.
 
+**Iteration 2: explicit sequence storage.** Two columns are added to store the user-defined workflow sequence directly in the backing tables (see §13).
+
 **Future iterations may add:**
-- `work_item` table for storing canvas layout positions (x, y per notification id)
+- Monitoring counts per workflow step (see §14)
 
 **decision work items**
  Decision nodes appear between two other non decision nodes.  For example a workitem node of type "form" and a workitem node of type "task".  A decision node is required if there is a rule that          
@@ -202,11 +206,11 @@ A survey that is a bundle member may also have its own survey-specific notificat
 | GET | `/surveyKPI/workflow/edit/notifications?ids=1,2` | ANALYST, ADMIN | Returns simplified notification records for the edit drawer |
 | PUT | `/surveyKPI/workflow/edit/notifications` | ANALYST, ADMIN | Batch-saves notification edits (shared fields + per-connection filters) |
 | DELETE | `/surveyKPI/workflow/edit/notification/{id}` | ANALYST, ADMIN | Deletes a forward record |
-| POST | `/surveyKPI/workflow/edit/notification` | ANALYST, ADMIN | Creates a new forward record |
+| POST | `/surveyKPI/workflow/edit/notification` | ANALYST, ADMIN | Creates a new forward record. Accepts optional `wfPrevNodeId` field — stored in `forward.wf_prev_node_id` |
 | GET | `/surveyKPI/workflow/edit/taskgroups?ids=1,2` | ANALYST, ADMIN | Returns simplified task group records for the edit drawer |
 | PUT | `/surveyKPI/workflow/edit/taskgroups` | ANALYST, ADMIN | Batch-saves task group edits (name + per-connection filters) |
 | DELETE | `/surveyKPI/workflow/edit/taskgroup/{id}` | ANALYST, ADMIN | Deletes a task group and any linked forward records |
-| POST | `/surveyKPI/workflow/edit/taskgroup` | ANALYST, ADMIN | Creates a new task group |
+| POST | `/surveyKPI/workflow/edit/taskgroup` | ANALYST, ADMIN | Creates a new task group. Accepts optional `wfPrevNodeId` field — stored in `task_group.wf_prev_node_id` |
 
 ---
 
@@ -218,6 +222,15 @@ A survey that is a bundle member may also have its own survey-specific notificat
 - `mergeUserPositions()` — loads saved positions from `workflow_node_positions` for the user's current org and overwrites x/y on matching nodes.
 - `savePositions(sd, user, positions)` — upserts the full positions map as JSONB.
 - `resetPositions(sd, user)` — deletes the saved row.
+
+**DAG construction priority (iteration 2)**
+
+When building nodes and links, `WorkflowManager` follows this priority:
+
+1. **Explicit links** — if a `forward` or `task_group` record has `wf_prev_node_id` set, use it directly to create the link from that predecessor node to the destination node. The predecessor node is looked up in the already-built `itemMap`; if not yet present (e.g. the record was created before its predecessor), a placeholder form node is created and reconciled during layout.
+2. **Inferred links** (legacy fallback) — if `wf_prev_node_id` is NULL, apply the existing multi-pass inference logic (source/target survey matching, `surveyItemKeys` map, bundle pass). This preserves backwards compatibility for pre-existing notifications and task groups.
+
+This means records created via the workflow canvas (which always set `wf_prev_node_id`) will render their sequence exactly as the user designed it. Legacy records continue to render as before.
 
 **`Workflow.java`** (`surveyKPI`) — REST endpoints delegating to `WorkflowManager`.
 
@@ -287,6 +300,14 @@ CREATE TABLE IF NOT EXISTS workflow_node_positions (
 );
 ```
 
+**Iteration 2 schema changes** (added to `setup/deploy/sd.sql`):
+```sql
+ALTER TABLE forward      ADD COLUMN IF NOT EXISTS wf_prev_node_id text;
+ALTER TABLE task_group   ADD COLUMN IF NOT EXISTS wf_prev_node_id text;
+```
+
+No data migration required. Existing records with `wf_prev_node_id = NULL` continue to use the legacy inference path in WorkflowManager.
+
 Build step required:
 ```bash
 cd /path/to/prop-smapserver/tasks
@@ -320,10 +341,12 @@ The dialog adds a **target** (action) element. The **trigger** is derived from t
 
 When creating the backing `forward` or `task_group` record, all trigger-side columns (e.g. `s_id`, `bundle`, `bundle_ident`, `p_id`, `trigger`) are pre-populated from the first backing record of the selected workflow item. If the selected item has more than one backing record, the first record is used.
 
+*(Iteration 2)* The **node ID of the selected trigger item** is also passed as `wfPrevNodeId` in the POST body and stored in `forward.wf_prev_node_id` / `task_group.wf_prev_node_id`. This records the explicit sequence position and is used by WorkflowManager to build the DAG (see §6).
+
 1. Ensure a workflow item is selected on the canvas (its node is highlighted) — this becomes the trigger.
 2. Choose action type: Task | Case | Email | SMS
 3. Fill in type-specific fields (assignee, email addresses, etc.) + optional condition
-4. **Create** → `POST /surveyKPI/workflow/edit/notification` → canvas reloads
+4. **Create** → `POST /surveyKPI/workflow/edit/notification` (or `/taskgroup`) with `wfPrevNodeId` set → canvas reloads
 
 **Delete**
 
@@ -349,6 +372,64 @@ Delete button in the drawer shows a confirmation modal listing the number of rec
 public List<Integer> fwdIds = new ArrayList<>();  // forward record IDs backing this node
 public List<Integer> tgIds  = new ArrayList<>();  // task_group record IDs backing this node
 ```
+
+---
+
+---
+
+## 13. Explicit Sequence Storage (Iteration 2)
+
+### Problem
+
+The workflow diagram is currently built by inferring the DAG from `task_group` and `forward` table relationships (source/target survey IDs, trigger types). This works for simple cases but has two limitations:
+
+1. If survey A has two forward records — one assigning to person Y and one to person Z — both are inferred as parallel branches from A. There is no way to express the intended chain A → Y → Z.
+2. Without a stored link, there is no way to know which workflow step a running task belongs to (needed for future monitoring).
+
+### Solution
+
+Add `wf_prev_node_id text` to both `forward` and `task_group`. This column stores the node ID of the predecessor workflow step and is set whenever a record is created via the workflow canvas "Add Step" dialog.
+
+**Node ID format** (stable, reconstructible):
+
+| Record source | Node ID format |
+|---------------|----------------|
+| Form (workflow_start) | `form:s:{sId}` |
+| Task from task_group | `task:s:{targetSId}:a:{assigneeKey}` |
+| Case from forward | `case:s:{caseSurveyIdent}:a:{assigneeKey}` |
+| Email from forward | `email:f:{fId}` |
+| SMS from forward | `sms:f:{fId}` |
+| SharePoint from forward | `sharepoint_list:f:{fId}` |
+
+### WorkflowManager DAG construction changes
+
+When processing a `forward` or `task_group` record that has `wf_prev_node_id` set:
+
+1. Look up the predecessor node in `itemMap` by its stored ID.
+2. If found: create the link directly (`prevNode → thisNode`) instead of running the inference logic for that record.
+3. If not found (predecessor not yet in map): create the link anyway — the predecessor node will be added when its own record is processed. The topological pass in `applyLayout()` will correctly position it.
+4. If `wf_prev_node_id` is NULL: run the existing inference logic unchanged (backwards compatible).
+
+Records created via the workflow canvas will always have `wf_prev_node_id` set (to `gSelectedNode.dataset.id` at creation time). Legacy records without the column set continue to render as before.
+
+### Frontend changes
+
+`submitAddStep()` in `workflow.js` — add `wfPrevNodeId: gSelectedNode ? gSelectedNode.dataset.id : null` to every POST payload (both notification and taskgroup paths). No other frontend changes required.
+
+---
+
+## 14. Workflow Monitoring (Deferred — Iteration 3)
+
+The second purpose of the workflow page is to show how many active tasks and cases are at each step. This is deferred to a later iteration.
+
+**Planned approach (high level):**
+
+- New table `workflow_step_counts (o_id, node_id, active_count, reset_count)` — per-org, per-node count, maintained incrementally.
+- `tasks` table gains `workflow_node_id text` — set at task creation time using the same node-key formula as `wf_prev_node_id` above. Links each task instance to its workflow step.
+- The same code paths that call `UserManager.incrementTotalTasks()` / `decrementTotalTasks()` also call equivalent methods on `workflow_step_counts`.
+- `reset_count=true` triggers a full recalculation on next read (mirroring the `users.reset_total_tasks` pattern). Recalculation is org-scoped and only scans users with `total_tasks > 0`.
+- `GET /workflow/items` merges step counts into `WorkflowItem.activeCount`.
+- A "Monitor" nav-link on the workflow page toggles count badges on node cards, auto-refreshing every 30 seconds.
 
 ---
 

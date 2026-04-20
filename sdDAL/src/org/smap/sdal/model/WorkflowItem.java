@@ -27,6 +27,7 @@ public class WorkflowItem {
 	public String type;
 	public String role;
 	public String name;
+	public String label;  // notification / task-group name (user-entered step label)
 	public boolean enabled;
 	public int x;
 	public int y;

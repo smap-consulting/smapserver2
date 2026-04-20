@@ -101,6 +101,8 @@ public class Workflow extends Application {
 		public String spMatchColumn;
 		public String spMatchField;
 		public ArrayList<org.smap.sdal.model.SharePointColumnMap> spColumnMap;
+		// workflow sequencing
+		public String wfPrevNodeId;
 	}
 
 	static class WorkflowEditTG {
@@ -114,6 +116,8 @@ public class Workflow extends Application {
 		public String remoteUser;   // "_data" or email string
 		public int    userId;       // direct user assignment (> 0 means assign to this user)
 		public int    projectId;
+		// workflow sequencing
+		public String wfPrevNodeId;
 	}
 
 	static class WorkflowEditForm {
@@ -567,8 +571,8 @@ public class Workflow extends Application {
 			}
 
 			String sql = "insert into forward(s_id, enabled, trigger, target, filter, name, p_id, "
-					+ "remote_user, notify_details, bundle, bundle_ident, updated) "
-					+ "values(?, ?, 'submission', ?, ?, ?, ?, ?, ?::jsonb, ?, ?, true) "
+					+ "remote_user, notify_details, bundle, bundle_ident, wf_prev_node_id, updated) "
+					+ "values(?, ?, 'submission', ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, true) "
 					+ "returning id";
 			pstmtIns = sd.prepareStatement(sql);
 			// For bundle notifications the survey is identified via bundle_ident, not s_id
@@ -586,6 +590,7 @@ public class Workflow extends Application {
 			pstmtIns.setString(8, gson.toJson(nd));
 			pstmtIns.setBoolean(9, n.bundle);
 			pstmtIns.setString(10, bundleIdent);
+			pstmtIns.setString(11, n.wfPrevNodeId);
 			ResultSet rs = pstmtIns.executeQuery();
 			int newId = rs.next() ? rs.getInt(1) : 0;
 			response = Response.ok("{\"id\":" + newId + "}").build();
@@ -862,14 +867,15 @@ public class Workflow extends Application {
 			}
 
 			String sql = "insert into task_group(name, p_id, source_s_id, target_s_id, rule, "
-					+ "address_params, dl_dist, complete_all, assign_auto) "
-					+ "values(?, ?, ?, ?, ?::jsonb, '[]', 0, false, false) returning tg_id";
+					+ "address_params, dl_dist, complete_all, assign_auto, wf_prev_node_id) "
+					+ "values(?, ?, ?, ?, ?::jsonb, '[]', 0, false, false, ?) returning tg_id";
 			pstmtIns = sd.prepareStatement(sql);
 			pstmtIns.setString(1, tg.name != null ? tg.name : "");
 			pstmtIns.setInt(2, tg.projectId);
 			pstmtIns.setInt(3, tg.sourceSurveyId);
 			pstmtIns.setInt(4, tg.targetSurveyId);
 			pstmtIns.setString(5, gson.toJson(afs));
+			pstmtIns.setString(6, tg.wfPrevNodeId);
 			ResultSet rs = pstmtIns.executeQuery();
 			int newId = rs.next() ? rs.getInt(1) : 0;
 			response = Response.ok("{\"tgId\":" + newId + "}").build();
