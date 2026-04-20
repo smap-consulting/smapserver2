@@ -215,7 +215,7 @@ public class LookupManager {
 				} else if(fileName.startsWith("sharepointlist_")) {
 					// SharePoint list cache — stored without .csv suffix at org level (sId=0)
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);
-					resultsArray = ctm.lookup(oId, 0, fileName, keyColumn, keyValue, expression, tz, selection.toString(), arguments);
+					resultsArray = ctm.lookup(oId, sId, fileName, keyColumn, keyValue, expression, tz, selection.toString(), arguments);
 				} else {
 					// Get data from a csv file
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);
