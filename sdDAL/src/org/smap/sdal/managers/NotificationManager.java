@@ -587,6 +587,57 @@ public class NotificationManager {
 			if(n.notifyDetails != null && (n.notifyDetails.emailQuestionName == null || n.notifyDetails.emailQuestionName.equals("-1")) && n.notifyDetails.emailQuestion > 0) {
 				n.notifyDetails.emailQuestionName = GeneralUtilityMethods.getQuestionNameFromId(sd, n.s_id, n.notifyDetails.emailQuestion);
 			}
+
+			// Resolve human-readable names for escalate notifications
+			if("escalate".equals(n.target) && n.notifyDetails != null) {
+				// Case survey display name
+				if(n.notifyDetails.survey_case != null && !n.notifyDetails.survey_case.isEmpty()) {
+					PreparedStatement pstmtCase = null;
+					try {
+						pstmtCase = sd.prepareStatement(
+							"select display_name from survey where ident = ? and not deleted limit 1");
+						pstmtCase.setString(1, n.notifyDetails.survey_case);
+						ResultSet rsCase = pstmtCase.executeQuery();
+						if(rsCase.next()) n.notifyDetails.survey_case_name = rsCase.getString(1);
+					} finally {
+						try { if(pstmtCase != null) pstmtCase.close(); } catch(SQLException ignored) {}
+					}
+				}
+				// Remote user readable name
+				if(n.remote_user == null || n.remote_user.equals("_none")) {
+					n.remote_user_name = "";
+				} else if(n.remote_user.equals("_submitter")) {
+					n.remote_user_name = "Submitter";
+				} else if(n.remote_user.equals("_data")) {
+					n.remote_user_name = "From data";
+				} else if(n.remote_user.startsWith("_role:")) {
+					int roleId = 0;
+					try { roleId = Integer.parseInt(n.remote_user.substring(6)); } catch(NumberFormatException ignored) {}
+					if(roleId > 0) {
+						PreparedStatement pstmtRole = null;
+						try {
+							pstmtRole = sd.prepareStatement("select name from role where id = ?");
+							pstmtRole.setInt(1, roleId);
+							ResultSet rsRole = pstmtRole.executeQuery();
+							if(rsRole.next()) n.remote_user_name = rsRole.getString(1);
+						} finally {
+							try { if(pstmtRole != null) pstmtRole.close(); } catch(SQLException ignored) {}
+						}
+					}
+				} else {
+					PreparedStatement pstmtUser = null;
+					try {
+						pstmtUser = sd.prepareStatement("select name from users where ident = ?");
+						pstmtUser.setString(1, n.remote_user);
+						ResultSet rsUser = pstmtUser.executeQuery();
+						if(rsUser.next()) n.remote_user_name = rsUser.getString(1);
+					} finally {
+						try { if(pstmtUser != null) pstmtUser.close(); } catch(SQLException ignored) {}
+					}
+					if(n.remote_user_name == null) n.remote_user_name = n.remote_user;
+				}
+			}
+
 			n.filter = resultSet.getString("filter");
 			n.name = resultSet.getString("name");
 			n.tgId = resultSet.getInt("tg_id");
@@ -1195,6 +1246,28 @@ public class NotificationManager {
 						ArrayList<String> userList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, msg.assignQuestion, msg.instanceId);
 						if(userList.size() > 0) {
 							assignTo = userList.get(0);	// Only one user can be assigned
+						}
+					} else if(msg.remoteUser.startsWith("_role:")) {
+						// Assign to the first user (alphabetically) who has the specified role
+						int roleId = 0;
+						try { roleId = Integer.parseInt(msg.remoteUser.substring(6)); } catch(NumberFormatException ignored) {}
+						if(roleId > 0) {
+							PreparedStatement pstmtRole = null;
+							try {
+								pstmtRole = sd.prepareStatement(
+									"select u.ident from users u "
+									+ "join user_role ur on u.id = ur.u_id "
+									+ "where ur.r_id = ? and u.o_id = ? and u.temporary = false "
+									+ "order by u.ident limit 1");
+								pstmtRole.setInt(1, roleId);
+								pstmtRole.setInt(2, organisation.id);
+								ResultSet rsRole = pstmtRole.executeQuery();
+								if(rsRole.next()) {
+									assignTo = rsRole.getString(1);
+								}
+							} finally {
+								try { if(pstmtRole != null) pstmtRole.close(); } catch(SQLException ignored) {}
+							}
 						}
 					}
 					

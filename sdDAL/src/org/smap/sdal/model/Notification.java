@@ -17,6 +17,7 @@ public class Notification {
 	public String updateValue;	
 	public boolean enabled;
 	public String remote_user;
+	public String remote_user_name;     // human-readable label for remote_user (escalate)
 	public String remote_password;
 	public String remote_host;
 	public boolean update_password;

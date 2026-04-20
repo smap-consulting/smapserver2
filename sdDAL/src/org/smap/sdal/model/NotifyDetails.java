@@ -27,6 +27,7 @@ public class NotifyDetails {
 	public String callback_url;
 	public int pdfTemplateId;
 	public String survey_case;
+	public String survey_case_name;     // display name of the case survey
 	public String assign_question;
 	public String ourNumber;			// For SMS / WhatsApp notifications
 	public String msgChannel;
