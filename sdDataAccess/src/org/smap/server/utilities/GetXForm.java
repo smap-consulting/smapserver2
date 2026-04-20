@@ -48,6 +48,8 @@ import org.smap.sdal.legacy.Survey;
 import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.legacy.Translation;
 import org.smap.sdal.legacy.UtilityMethods;
+import org.smap.sdal.managers.CsvTableManager;
+import org.smap.sdal.model.CsvHeader;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
@@ -275,19 +277,23 @@ public class GetXForm {
 		// Add pulldata instances as required by webForms
 		if (isWebForms) {
 			TranslationManager tm = new TranslationManager();
-			List<ManifestValue> manifests = tm.getPulldataManifests(sd, template.getSurvey().getId(), request, false);
+			List<ManifestValue> manifests = tm.getPulldataManifests(sd, template.getSurvey().getId(), request);
 			for (int i = 0; i < manifests.size(); i++) {
 				ManifestValue mv = manifests.get(i);
-				if (mv.filePath != null || (mv.type != null && mv.type.equals("linked"))) {
+				if (mv.filePath != null || (mv.type != null && (mv.type.equals("linked") || mv.type.equals("sharepoint")))) {
 					Element pulldataElement = outputDoc.createElement("instance");
 					pulldataElement.setAttribute("id", mv.baseName + "__pull");
 					pulldataElement.setAttribute("src", "jr://csv/" + mv.baseName + ".csv");
 					parent.appendChild(pulldataElement);
 					Element rootElement = outputDoc.createElement("root");
 					pulldataElement.appendChild(rootElement);
-					
+
 					if(mv.filePath != null) {
 						populateCSVElements(outputDoc, rootElement, mv.filePath);
+					} else if(mv.type.equals("sharepoint")) {
+						int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
+						CsvTableManager ctm = new CsvTableManager(sd, localisation, oId, 0, mv.baseName);
+						populateCSVElementsFromCsvTable(sd, outputDoc, rootElement, ctm);
 					} else {
 						int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
 						SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, mv.sId, mv.fileName, user);
@@ -1714,6 +1720,34 @@ public class GetXForm {
 
 		} finally {
 			if (pstmt != null) try {	pstmt.close();} catch (Exception e) {};
+		}
+	}
+
+	public void populateCSVElementsFromCsvTable(Connection sd, Document outputXML, Element parent, CsvTableManager ctm) throws Exception {
+		PreparedStatement pstmt = null;
+		try {
+			StringBuilder sqlSelect = new StringBuilder("select ");
+			ArrayList<CsvHeader> headers = ctm.getHeaders();
+			if(headers == null || headers.isEmpty()) return;
+			for(int i = 0; i < headers.size(); i++) {
+				if(i > 0) sqlSelect.append(",");
+				sqlSelect.append(headers.get(i).tName);
+			}
+			sqlSelect.append(" from ").append(ctm.getFullTableName()).append(" order by ").append(ctm.getPkCol());
+			pstmt = sd.prepareStatement(sqlSelect.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				Element item = outputXML.createElement("item");
+				parent.appendChild(item);
+				for(CsvHeader h : headers) {
+					Element elem = outputXML.createElement(h.fName);
+					String v = rs.getString(h.tName);
+					elem.setTextContent(v != null ? v : "");
+					item.appendChild(elem);
+				}
+			}
+		} finally {
+			if(pstmt != null) try { pstmt.close(); } catch(Exception e) {}
 		}
 	}
 

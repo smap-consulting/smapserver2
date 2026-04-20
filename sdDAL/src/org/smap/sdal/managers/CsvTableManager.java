@@ -71,11 +71,14 @@ public class CsvTableManager {
 	private String tableName = null;
 	private String schema = "csv";
 	private String fullTableName = null;
+	public String getFullTableName() { return fullTableName; }
 	private ArrayList<CsvHeader> headers = null;
+	public ArrayList<CsvHeader> getHeaders() { return headers; }
 	CSVParser parser = null;
 	CSVReader csvReader = null;
 	
 	private final String PKCOL = "_id";
+	public String getPkCol() { return PKCOL; }
 	private final String ACOL = "_action";
 	private final String TSCOL = "_changed_ts";
 	private final String SORTCOL = "sortby";

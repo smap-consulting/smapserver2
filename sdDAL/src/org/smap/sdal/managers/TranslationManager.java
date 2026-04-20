@@ -238,97 +238,94 @@ public class TranslationManager {
 	}
 	
 	/*
-	 * Get the manifest entries for csv files used by pulldata functions (required by webforms)
+	 * Get pulldata manifest entries for webforms. Three source types are supported:
+	 *   csv       - a CSV file uploaded to the server
+	 *   sharepoint - a SharePoint list synchronised into a csvtable
+	 *   linked    - data from another survey
 	 */
-	public List<ManifestValue> getPulldataManifests(Connection sd, 
+	public List<ManifestValue> getPulldataManifests(Connection sd,
 			int surveyId,
-			HttpServletRequest request,
-			boolean forDevice
-			)	throws SQLException {
-		
-		
-		ArrayList<ManifestValue> manifests = new ArrayList<ManifestValue>();	// Results of request
-		
-		String sql = "select manifest from survey where s_id = ? and manifest is not null; ";
-		PreparedStatement pstmt = null;
-		
-		String pull = "select count(*) from question q, form f "
+			HttpServletRequest request) throws SQLException {
+
+		ArrayList<ManifestValue> manifests = new ArrayList<>();
+
+		String sqlManifest = "select manifest from survey where s_id = ? and manifest is not null";
+		String sqlUsed = "select count(*) from question q, form f "
 				+ "where q.f_id = f.f_id "
 				+ "and f.s_id = ? "
 				+ "and q.calculate like ?";
-		PreparedStatement pstmtPull = null;
-		
+
+		PreparedStatement pstmtManifest = null;
+		PreparedStatement pstmtUsed = null;
+
 		try {
-			
-			ResultSet rs = null;
-			
-			/*
-			 * Get Survey Level manifests from survey table
-			 */
-			pstmt = sd.prepareStatement(sql);	 			
-			pstmt.setInt(1, surveyId);
-			log.fine("SQL survey level manifests:" + pstmt.toString());
-			
-			pstmtPull = sd.prepareStatement(pull);
-			pstmtPull.setInt(1, surveyId);
-			
-			rs = pstmt.executeQuery();
-			if(rs.next()) {
-				String manifestString = rs.getString(1);
-				Type type = new TypeToken<ArrayList<String>>(){}.getType();
-				ArrayList<String> manifestList = new Gson().fromJson(manifestString, type);
-				
-				for(int i = 0; i < manifestList.size(); i++) {
-					
-					ManifestValue m = new ManifestValue();
-					m.fileName = manifestList.get(i);
-					m.sId = surveyId;
-					
-					m.baseName = m.fileName;
-					if(m.fileName.startsWith("sharepointlist_")) {
-						m.type = "sharepoint";
-						m.baseName = m.fileName;
-					} else if(m.baseName.endsWith(".csv")) {
-						m.baseName = m.baseName.substring(0, m.baseName.length() - 4);
-						m.type = "csv";
-					} else {
-						m.type = "linked";
-					}
-					pstmtPull.setString(2, "%pulldata%" + m.baseName + "%");
-					//log.fine("Looking for pulldata manifests: " + pstmtPull.toString());
-					rs = pstmtPull.executeQuery();
-					if(rs.next() && rs.getInt(1) > 0) {
-						String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, surveyId);
-						if(m.type.equals("csv")) {
-							int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, surveyId);
-							UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, GeneralUtilityMethods.getBasePath(request), oId, surveyId, forDevice);
-						} else if(m.type.equals("sharepoint")) {
-							String urlBase = forDevice ? "/resource/" : "/surveyKPI/file/";
-							m.url = urlBase + m.fileName + ".csv/organisation";
-						} else {
-							// location depends on user
-						}
-						
-						if(m.fileName.equals("linked_self")) {
-							m.fileName = "linked_" + surveyIdent;
-						} else if(m.fileName.equals("linked_s_pd_self")) {
-							m.fileName = "linked_s_pd_" + surveyIdent;
-						}
-						
-						manifests.add(m);
-					} 
-				}
+			pstmtManifest = sd.prepareStatement(sqlManifest);
+			pstmtManifest.setInt(1, surveyId);
+			log.fine("getPulldataManifests: " + pstmtManifest);
+
+			pstmtUsed = sd.prepareStatement(sqlUsed);
+			pstmtUsed.setInt(1, surveyId);
+
+			ResultSet rsManifest = pstmtManifest.executeQuery();
+			if(!rsManifest.next()) {
+				return manifests;
 			}
-			
-			
+
+			Type listType = new TypeToken<ArrayList<String>>(){}.getType();
+			ArrayList<String> manifestList = new Gson().fromJson(rsManifest.getString(1), listType);
+			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, surveyId);
+
+			for(String fileName : manifestList) {
+				ManifestValue m = new ManifestValue();
+				m.fileName = fileName;
+				m.sId = surveyId;
+
+				if(fileName.startsWith("sharepointlist_")) {
+					m.type = "sharepoint";
+					// strip .csv suffix if present so baseName matches the pulldata() argument
+					m.baseName = fileName.endsWith(".csv")
+							? fileName.substring(0, fileName.length() - 4)
+							: fileName;
+				} else if(fileName.endsWith(".csv")) {
+					m.type = "csv";
+					m.baseName = fileName.substring(0, fileName.length() - 4);
+				} else {
+					m.type = "linked";
+					m.baseName = fileName;
+				}
+
+				// Check that this manifest entry is actually referenced by a pulldata() calculation
+				pstmtUsed.setString(2, "%pulldata%" + m.baseName + "%");
+				log.fine("getPulldataManifests checking used: " + pstmtUsed);
+				ResultSet rsUsed = pstmtUsed.executeQuery();
+				boolean used = rsUsed.next() && rsUsed.getInt(1) > 0;
+				rsUsed.close();
+
+				if(!used) continue;
+
+				if(m.type.equals("csv")) {
+					int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, surveyId);
+					UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, GeneralUtilityMethods.getBasePath(request), oId, surveyId, false);
+				} else if(m.type.equals("linked")) {
+					if(m.fileName.equals("linked_self")) {
+						m.fileName = "linked_" + surveyIdent;
+					} else if(m.fileName.equals("linked_s_pd_self")) {
+						m.fileName = "linked_s_pd_" + surveyIdent;
+					}
+				}
+				// sharepoint: no extra fields needed — caller uses baseName to open csvtable
+
+				manifests.add(m);
+			}
+
 		} catch (SQLException e) {
-			log.log(Level.SEVERE,"Error", e);
+			log.log(Level.SEVERE, "Error", e);
 			throw e;
 		} finally {
-			if (pstmt != null) { try {pstmt.close();} catch (SQLException e) {}}
-			if (pstmtPull != null) { try {pstmtPull.close();} catch (SQLException e) {}}
+			if(pstmtManifest != null) { try { pstmtManifest.close(); } catch(SQLException e) {}}
+			if(pstmtUsed != null) { try { pstmtUsed.close(); } catch(SQLException e) {}}
 		}
-		
+
 		return manifests;
 	}
 	
