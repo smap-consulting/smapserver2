@@ -279,7 +279,7 @@ public class WorkflowManager {
 					dst.role     = ROLE_FORM;
 					dst.assignee = assignee;
 				} else if ("escalate".equals(target)) {
-					String assignee   = mapAssignee(remoteUser);
+					String assignee   = mapAssignee(sd, remoteUser);
 					String assigneeK  = assigneeKey(remoteUser);
 					dstKey = caseSurveyIdent != null
 							? "case:s:" + caseSurveyIdent + ":a:" + assigneeK
@@ -553,7 +553,7 @@ public class WorkflowManager {
 				dst.role     = ROLE_FORM;
 				dst.assignee = assignee;
 			} else if ("escalate".equals(bn.target)) {
-				String assignee  = mapAssignee(bn.remoteUser);
+				String assignee  = mapAssignee(sd, bn.remoteUser);
 				String assigneeK = assigneeKey(bn.remoteUser);
 				dstKey       = bn.caseSurveyIdent != null
 						? "case:s:" + bn.caseSurveyIdent + ":a:" + assigneeK
@@ -812,6 +812,17 @@ public class WorkflowManager {
 		return remoteUser;
 	}
 
+	private String mapAssignee(Connection sd, String remoteUser) {
+		if (remoteUser != null && remoteUser.startsWith("_role:")) {
+			try {
+				int roleId = Integer.parseInt(remoteUser.substring(6));
+				String name = lookupRoleName(sd, roleId);
+				if (name != null) return name;
+			} catch (NumberFormatException ignored) {}
+		}
+		return mapAssignee(remoteUser);
+	}
+
 	/*
 	 * Returns a normalised string safe for use as part of a node key.
 	 * Null or blank input → empty string.
@@ -853,7 +864,7 @@ public class WorkflowManager {
 	}
 
 	private String lookupRoleName(Connection sd, int roleId) {
-		String sql = "select name from roles where id = ?";
+		String sql = "select name from role where id = ?";
 		try (PreparedStatement ps = sd.prepareStatement(sql)) {
 			ps.setInt(1, roleId);
 			ResultSet rs = ps.executeQuery();
