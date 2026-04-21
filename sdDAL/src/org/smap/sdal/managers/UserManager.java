@@ -1135,7 +1135,7 @@ public class UserManager {
 	public void decrementTotalTasks(Connection sd, String userIdent) throws SQLException {
 		PreparedStatement pstmt = null;
 		try {
-			String sql = "update users set total_tasks = total_tasks - 1 where ident = ?";
+			String sql = "update users set total_tasks = greatest(total_tasks, 0) - 1 where ident = ?";
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, userIdent);
 			log.fine("Decrement total tasks: " + pstmt.toString());
@@ -1148,7 +1148,7 @@ public class UserManager {
 	public void incrementTotalTasks(Connection sd, String userIdent) throws SQLException {
 		PreparedStatement pstmt = null;
 		try {
-			String sql = "update users set total_tasks = total_tasks + 1 where ident = ?";
+			String sql = "update users set total_tasks = greatest(total_tasks, 0) + 1 where ident = ?";
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, userIdent);
 			log.fine("Increment total tasks: " + pstmt.toString());
@@ -1161,7 +1161,7 @@ public class UserManager {
 	public void bulkIncrementTotalTasks(Connection sd, String userIdent, int count) throws SQLException {
 		PreparedStatement pstmt = null;
 		try {
-			String sql = "update users set total_tasks = total_tasks + ? where ident = ?";
+			String sql = "update users set total_tasks = greatest(total_tasks, 0) + ? where ident = ?";
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1,  count);
 			pstmt.setString(2, userIdent);
