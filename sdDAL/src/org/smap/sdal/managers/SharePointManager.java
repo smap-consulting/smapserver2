@@ -329,9 +329,15 @@ public class SharePointManager {
 	public static List<Map<String, String>> getListItems(ServerData sd,
 			String listTitle, int maxRows) throws Exception {
 		String token = authenticate(sd);
-		String url   = stripTrailingSlash(sd.sharepoint_url)
+
+		// SharePoint REST does not return custom columns without an explicit $select.
+		// Fetch all non-hidden field internal names first, then build the select list.
+		List<String> fieldNames = getNonHiddenFieldNames(sd, listTitle, token);
+		String selectClause = fieldNames.isEmpty() ? "" : "&$select=" + String.join(",", fieldNames);
+
+		String url = stripTrailingSlash(sd.sharepoint_url)
 				+ "/_api/web/lists/getbytitle('" + encodeTitle(listTitle) + "')/items"
-				+ "?$top=" + maxRows;
+				+ "?$top=" + maxRows + selectClause;
 
 		String response = get(url, token);
 		JsonArray items = JsonParser.parseString(response)
@@ -359,6 +365,42 @@ public class SharePointManager {
 	// -------------------------------------------------------------------------
 	// Private helpers
 	// -------------------------------------------------------------------------
+
+	// Returns InternalNames of all non-hidden, scalar fields.
+	// Lookup, User, and Taxonomy types are excluded because SharePoint requires
+	// $expand for them in $select, and they return objects that the sync skips anyway.
+	private static List<String> getNonHiddenFieldNames(ServerData sd, String listTitle,
+			String token) throws Exception {
+		String url = stripTrailingSlash(sd.sharepoint_url)
+				+ "/_api/web/lists/getbytitle('" + encodeTitle(listTitle) + "')/fields"
+				+ "?$select=InternalName"
+				+ "&$filter=Hidden%20eq%20false"
+				+ "%20and%20TypeAsString%20ne%20'User'"
+				+ "%20and%20TypeAsString%20ne%20'UserMulti'"
+				+ "%20and%20TypeAsString%20ne%20'Lookup'"
+				+ "%20and%20TypeAsString%20ne%20'LookupMulti'"
+				+ "%20and%20TypeAsString%20ne%20'TaxonomyFieldType'"
+				+ "%20and%20TypeAsString%20ne%20'TaxonomyFieldTypeMulti'"
+				+ "%20and%20TypeAsString%20ne%20'URL'";
+
+		String body = get(url, token);
+		List<String> names = new ArrayList<>();
+
+		JsonArray items = JsonParser.parseString(body)
+				.getAsJsonObject()
+				.getAsJsonObject("d")
+				.getAsJsonArray("results");
+
+		for (JsonElement el : items) {
+			String name = el.getAsJsonObject().get("InternalName").getAsString();
+			// Skip internal system fields (e.g. _UIVersionString, _Level) — they appear
+			// in the schema but cannot be used in $select on list items.
+			if (!name.startsWith("_")) {
+				names.add(name);
+			}
+		}
+		return names;
+	}
 
 	private static String getListEntityType(ServerData sd, String listTitle,
 			String token) throws Exception {
