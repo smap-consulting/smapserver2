@@ -37,4 +37,5 @@ public class WorkflowItem {
 	public List<Integer> fwdIds   = new ArrayList<>();  // forward record IDs backing this node
 	public List<Integer> tgIds    = new ArrayList<>();  // task_group record IDs backing this node
 	public List<Integer> startIds = new ArrayList<>();  // workflow_start record IDs backing this node
+	public int caseSurveyId;  // for case nodes: the integer ID of the case management survey
 }

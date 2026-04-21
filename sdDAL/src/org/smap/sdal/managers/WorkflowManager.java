@@ -156,6 +156,7 @@ public class WorkflowManager {
 				+ "s_bun.display_name as bundle_name, "
 				+ "s_case.display_name as case_survey, "
 				+ "s_case.ident as case_survey_ident, "
+				+ "s_case.s_id as case_survey_id, "
 				+ "proj.name as project_name "
 				+ "from forward f "
 				+ "left outer join survey s_src on s_src.s_id = f.s_id "
@@ -192,6 +193,7 @@ public class WorkflowManager {
 				String  bundleName       = rs.getString("bundle_name");
 				String  caseSurvey       = rs.getString("case_survey");
 				String  caseSurveyIdent  = rs.getString("case_survey_ident");
+				int     caseSurveyId     = rs.getInt("case_survey_id");
 				String  filter           = rs.getString("filter");
 				String  projectName      = rs.getString("project_name");
 				String  remoteUser       = rs.getString("remote_user");
@@ -292,10 +294,11 @@ public class WorkflowManager {
 								? "case:s:" + caseSurveyIdent + ":a:" + assigneeK
 								: "case:f:" + fId + ":a:" + assigneeK;
 					}
-					dst.name     = caseSurvey != null ? caseSurvey : fName;
-					dst.type     = TYPE_CASE;
-					dst.role     = ROLE_FORM;
-					dst.assignee = assignee;
+					dst.name         = caseSurvey != null ? caseSurvey : fName;
+					dst.type         = TYPE_CASE;
+					dst.role         = ROLE_FORM;
+					dst.assignee     = assignee;
+					dst.caseSurveyId = caseSurveyId;
 				} else if ("email".equals(target)) {
 					dstKey   = "email:f:" + fId;
 					dst.type = TYPE_EMAIL;
