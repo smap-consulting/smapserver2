@@ -74,6 +74,7 @@ public class WorkflowManager {
 		String  caseSurveyIdent;
 		String  projectName;
 		String  remoteUser;
+		String  wfPrevNodeId;
 	}
 
 	/*
@@ -210,6 +211,7 @@ public class WorkflowManager {
 					bn.caseSurveyIdent = caseSurveyIdent;
 					bn.projectName     = projectName;
 					bn.remoteUser      = remoteUser;
+					bn.wfPrevNodeId    = wfPrevNodeId;
 					pendingBundles.add(bn);
 					continue;
 				}
@@ -281,9 +283,15 @@ public class WorkflowManager {
 				} else if ("escalate".equals(target)) {
 					String assignee   = mapAssignee(sd, remoteUser);
 					String assigneeK  = assigneeKey(remoteUser);
-					dstKey = caseSurveyIdent != null
-							? "case:s:" + caseSurveyIdent + ":a:" + assigneeK
-							: "case:f:" + fId + ":a:" + assigneeK;
+					boolean wfCreated = wfPrevNodeId != null && !wfPrevNodeId.trim().isEmpty();
+					if (wfCreated) {
+						// Created from workflow page — unique per forward record
+						dstKey = "case:f:" + fId + ":a:" + assigneeK;
+					} else {
+						dstKey = caseSurveyIdent != null
+								? "case:s:" + caseSurveyIdent + ":a:" + assigneeK
+								: "case:f:" + fId + ":a:" + assigneeK;
+					}
 					dst.name     = caseSurvey != null ? caseSurvey : fName;
 					dst.type     = TYPE_CASE;
 					dst.role     = ROLE_FORM;
@@ -378,9 +386,12 @@ public class WorkflowManager {
 						}
 					}
 				}
-				String dstKey = targetSId > 0
-						? "task:s:" + targetSId + ":a:" + tgAssigneeK
-						: "task:tg:" + tgId + ":a:" + tgAssigneeK;
+				boolean tgWfCreated = tgWfPrevNodeId != null && !tgWfPrevNodeId.trim().isEmpty();
+				String dstKey = tgWfCreated
+						? "task:tg:" + tgId + ":a:" + tgAssigneeK       // workflow-page record — always unique
+						: (targetSId > 0
+								? "task:s:" + targetSId + ":a:" + tgAssigneeK  // legacy — deduplicate by survey+assignee
+								: "task:tg:" + tgId + ":a:" + tgAssigneeK);
 				if (!itemMap.containsKey(dstKey)) {
 					WorkflowItem dst = new WorkflowItem();
 					dst.id       = dstKey;
@@ -555,9 +566,12 @@ public class WorkflowManager {
 			} else if ("escalate".equals(bn.target)) {
 				String assignee  = mapAssignee(sd, bn.remoteUser);
 				String assigneeK = assigneeKey(bn.remoteUser);
-				dstKey       = bn.caseSurveyIdent != null
-						? "case:s:" + bn.caseSurveyIdent + ":a:" + assigneeK
-						: "case:f:" + bn.fId + ":a:" + assigneeK;
+				boolean bnWfCreated = bn.wfPrevNodeId != null && !bn.wfPrevNodeId.trim().isEmpty();
+				dstKey = bnWfCreated
+						? "case:f:" + bn.fId + ":a:" + assigneeK
+						: (bn.caseSurveyIdent != null
+								? "case:s:" + bn.caseSurveyIdent + ":a:" + assigneeK
+								: "case:f:" + bn.fId + ":a:" + assigneeK);
 				dst.name     = bn.caseSurvey != null ? bn.caseSurvey : bn.fName;
 				dst.type     = TYPE_CASE;
 				dst.role     = ROLE_FORM;
