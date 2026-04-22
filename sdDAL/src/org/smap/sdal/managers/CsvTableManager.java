@@ -14,9 +14,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -666,29 +669,62 @@ public class CsvTableManager {
 	 */
 	private ArrayList<Option> readChoicesFromTable(int tableId, String ovalue, ArrayList<LanguageItem> items,
 			ArrayList<String> matches, String filename, ArrayList<KeyValueSimp> wfFilterColumns) throws SQLException, ApplicationException {
-			
+
 		ArrayList<Option> choices = new ArrayList<Option> ();
-		
+
 		String table = "csv.csv" + tableId;
+		String csvTableName = "csv" + tableId;
 		PreparedStatement pstmt = null;
 		try {
 			String cValue = GeneralUtilityMethods.cleanNameNoRand(ovalue);
+
+			// Check each unique column name once, build valid set for both SQL and read phases
+			Set<String> colsToCheck = new LinkedHashSet<>();
+			for(LanguageItem item : items) {
+				if(item.text.contains(",")) {
+					for(String c : item.text.split(",")) {
+						colsToCheck.add(GeneralUtilityMethods.cleanNameNoRand(c));
+					}
+				} else {
+					colsToCheck.add(GeneralUtilityMethods.cleanNameNoRand(item.text));
+				}
+			}
+			if(wfFilterColumns != null) {
+				for(KeyValueSimp fc : wfFilterColumns) {
+					colsToCheck.add(GeneralUtilityMethods.cleanNameNoRand(fc.k));
+				}
+			}
+			Set<String> validCols = new HashSet<>();
+			for(String col : colsToCheck) {
+				if(GeneralUtilityMethods.hasColumn(sd, csvTableName, col)) {
+					validCols.add(col);
+				}
+			}
+
 			StringBuffer sql = new StringBuffer("select ");
 			sql.append(cValue);
 			for(LanguageItem item : items) {
 				if(item.text.contains(",")) {
-					String[] comp = item.text.split(",");
-					for(int i = 0; i < comp.length; i++) {
-						sql.append(",").append(GeneralUtilityMethods.cleanNameNoRand(comp[i]));
+					for(String c : item.text.split(",")) {
+						String col = GeneralUtilityMethods.cleanNameNoRand(c);
+						if(validCols.contains(col)) {
+							sql.append(",").append(col);
+						}
 					}
 				} else {
-					sql.append(",").append(GeneralUtilityMethods.cleanNameNoRand(item.text));
+					String col = GeneralUtilityMethods.cleanNameNoRand(item.text);
+					if(validCols.contains(col)) {
+						sql.append(",").append(col);
+					}
 				}
 			}
 			// Get filter values for webforms
 			if(wfFilterColumns != null) {
 				for(KeyValueSimp fc : wfFilterColumns) {
-					sql.append(",").append(GeneralUtilityMethods.cleanNameNoRand(fc.k));
+					String col = GeneralUtilityMethods.cleanNameNoRand(fc.k);
+					if(validCols.contains(col)) {
+						sql.append(",").append(col);
+					}
 				}
 			}
 			sql.append(" from ").append(table);
@@ -701,38 +737,38 @@ public class CsvTableManager {
 				for(int i = 0; i < matches.size(); i++) {
 					if(idx++ > 0) {
 						sql.append(", ");
-					}					
+					}
 					sql.append("?");
 				}
 				sql.append(")");
 			}
-			
-			if(GeneralUtilityMethods.hasColumn(sd, "csv" + tableId, SORTCOL)) {
+
+			if(GeneralUtilityMethods.hasColumn(sd, csvTableName, SORTCOL)) {
 				sql.append(" order by ").append(SORTCOL).append(" asc");
 			} else {
 				sql.append(" order by ").append(PKCOL).append(" asc");
 			}
-			
-			pstmt = sd.prepareStatement(sql.toString());		
+
+			pstmt = sd.prepareStatement(sql.toString());
 			if(matches != null && matches.size() > 0) {
 				int idx = 1;
-				for(String match : matches) {									
-					pstmt.setString(idx++, match);;
+				for(String match : matches) {
+					pstmt.setString(idx++, match);
 				}
 			}
-			log.fine("Get CSV values: " + pstmt.toString());
+			log.info("Get CSV values: " + pstmt.toString());
 			ResultSet rsx = pstmt.executeQuery();
 			HashMap<String, String> choicesLoaded = new HashMap<String, String> ();		// Eliminate duplicates
-			
+
 			while(rsx.next()) {
-				
+
 				StringBuffer uniqueChoice = new StringBuffer("");
-				
+
 				int idx = 1;
 				Option o = new Option();
 				o.value = rsx.getString(idx++);
 				uniqueChoice.append(o.value);
-				
+
 				o.labels = new ArrayList<Label> ();
 				o.externalLabel = items;
 				o.externalFile = true;
@@ -741,32 +777,41 @@ public class CsvTableManager {
 					if(item.text.contains(",")) {
 						String[] comp = item.text.split(",");
 						l.text = "";
-						for(int i = 0; i < comp.length; i++) {
-							if(i > 0) {
-								l.text += ", ";
+						boolean firstValid = true;
+						for(String c : comp) {
+							String col = GeneralUtilityMethods.cleanNameNoRand(c);
+							if(validCols.contains(col)) {
+								if(!firstValid) {
+									l.text += ", ";
+								}
+								l.text += rsx.getString(idx++);
+								firstValid = false;
 							}
-							l.text += rsx.getString(idx++);
 						}
 					} else {
-						l.text = rsx.getString(idx++);
+						String col = GeneralUtilityMethods.cleanNameNoRand(item.text);
+						l.text = validCols.contains(col) ? rsx.getString(idx++) : "";
 					}
-					o.labels.add(l);					
+					o.labels.add(l);
 				}
-					
+
 				if(wfFilterColumns != null) {
 					o.cascade_filters = new HashMap<>();
-					for(KeyValueSimp fc : wfFilterColumns) {					
-						String fv = rsx.getString(idx++);
-						o.cascade_filters.put(fc.k, fv); 
-						uniqueChoice.append(":::").append(fv);
+					for(KeyValueSimp fc : wfFilterColumns) {
+						String col = GeneralUtilityMethods.cleanNameNoRand(fc.k);
+						if(validCols.contains(col)) {
+							String fv = rsx.getString(idx++);
+							o.cascade_filters.put(fc.k, fv);
+							uniqueChoice.append(":::").append(fv);
+						}
 					}
 				}
-				
+
 				if(choicesLoaded.get(uniqueChoice.toString()) == null) {
 					choices.add(o);
 					choicesLoaded.put(uniqueChoice.toString(), "x");
 				}
-			}	
+			}
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			throw new ApplicationException("Error getting choices from csv file: " + filename + " " + e.getMessage());
