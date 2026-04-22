@@ -263,9 +263,13 @@ public class SharePointManager {
 
 	/*
 	 * Insert a new row into a SharePoint list.
+	 * submitterIdent is the Smap _user value (typically the submitter's email).
+	 * When it resolves to an M365 site user, that user is set as the item Author via
+	 * ValidateUpdateListItem so SharePoint item-level permissions work correctly.
+	 * Falls back silently to the service account when the ident cannot be resolved.
 	 */
 	public static void postListItem(ServerData sd, String listTitle,
-			Map<String, Object> fields) throws Exception {
+			Map<String, Object> fields, String submitterIdent) throws Exception {
 		String token      = authenticate(sd);
 		String digest     = getRequestDigest(sd.sharepoint_url, token);
 		String entityType = getListEntityType(sd, listTitle, token);
@@ -275,8 +279,20 @@ public class SharePointManager {
 		Map<String, Object> body = new LinkedHashMap<>(fields);
 		body.put("__metadata", Map.of("type", entityType));
 
-		postJson(url, token, new Gson().toJson(body), "POST", null, digest);
+		String responseBody = postJson(url, token, new Gson().toJson(body), "POST", null, digest);
 		log.info("SharePoint: inserted item into list '" + listTitle + "'");
+
+		if (submitterIdent != null && !submitterIdent.isBlank()) {
+			try {
+				int itemId = JsonParser.parseString(responseBody)
+						.getAsJsonObject()
+						.getAsJsonObject("d")
+						.get("Id").getAsInt();
+				trySetItemAuthor(sd, listTitle, itemId, submitterIdent, token, digest);
+			} catch (Exception e) {
+				log.warning("SharePoint: could not set author for new item — " + e.getMessage());
+			}
+		}
 	}
 
 	/*
@@ -457,7 +473,7 @@ public class SharePointManager {
 				.getAsString();
 	}
 
-	private static void postJson(String url, String token, String jsonBody,
+	private static String postJson(String url, String token, String jsonBody,
 			String httpMethod, String extraHeader, String digest) throws Exception {
 		HttpURLConnection conn = openConnection(url, "POST", token, true);
 		// httpMethod may be "POST" or "MERGE" (tunnelled via X-HTTP-Method)
@@ -480,11 +496,12 @@ public class SharePointManager {
 		}
 
 		int status = conn.getResponseCode();
+		String body = readResponse(conn);
 		// 201 Created (insert) or 204 No Content (update) are both success
 		if (status < 200 || status >= 300) {
-			String body = readResponse(conn);
 			throw new Exception("SharePoint " + httpMethod + " failed, HTTP " + status + ": " + body);
 		}
+		return body;
 	}
 
 	private static HttpURLConnection openConnection(String url, String method,
@@ -522,6 +539,58 @@ public class SharePointManager {
 
 	private static String stripTrailingSlash(String url) {
 		return url == null ? "" : url.replaceAll("/+$", "");
+	}
+
+	/*
+	 * Attempt to set the Author (Created By) of a newly inserted list item to the
+	 * given submitterIdent (Smap _user value, expected to be an email address).
+	 *
+	 * Resolves the ident against the SharePoint site user directory. If found,
+	 * calls ValidateUpdateListItem with bNewDocumentUpdate=true, which lets the
+	 * service account overwrite the Author field without a version bump.
+	 * Silently skips if the user cannot be resolved (external / anonymous submitters).
+	 */
+	private static void trySetItemAuthor(ServerData sd, String listTitle, int itemId,
+			String submitterIdent, String token, String digest) throws Exception {
+
+		// Resolve email to SharePoint site user
+		String usersUrl = stripTrailingSlash(sd.sharepoint_url)
+				+ "/_api/web/siteusers?$filter=Email%20eq%20'"
+				+ URLEncoder.encode(submitterIdent, StandardCharsets.UTF_8).replace("+", "%20")
+				+ "'&$select=LoginName";
+		String usersBody = get(usersUrl, token);
+		JsonArray userResults = JsonParser.parseString(usersBody)
+				.getAsJsonObject()
+				.getAsJsonObject("d")
+				.getAsJsonArray("results");
+
+		if (userResults.size() == 0) {
+			log.info("SharePoint: submitter '" + submitterIdent + "' is not a site user — Author left as service account");
+			return;
+		}
+		String loginName = userResults.get(0).getAsJsonObject().get("LoginName").getAsString();
+
+		// Build ValidateUpdateListItem payload
+		String validateUrl = stripTrailingSlash(sd.sharepoint_url)
+				+ "/_api/web/lists/getbytitle('" + encodeTitle(listTitle)
+				+ "')/items(" + itemId + ")/ValidateUpdateListItem";
+
+		List<Map<String, Object>> formValues = new ArrayList<>();
+		for (String field : new String[]{"Author", "Editor"}) {
+			Map<String, Object> fv = new LinkedHashMap<>();
+			fv.put("__metadata", Map.of("type", "SP.ListItemFormUpdateValue"));
+			fv.put("FieldName", field);
+			fv.put("FieldValue", loginName);
+			fv.put("HasException", false);
+			formValues.add(fv);
+		}
+		Map<String, Object> payload = new LinkedHashMap<>();
+		payload.put("bNewDocumentUpdate", true);
+		payload.put("checkInComment", "");
+		payload.put("formValues", formValues);
+
+		postJson(validateUrl, token, new Gson().toJson(payload), "POST", null, digest);
+		log.info("SharePoint: set Author to '" + loginName + "' for item " + itemId + " in '" + listTitle + "'");
 	}
 
 	private static String encodeTitle(String title) {

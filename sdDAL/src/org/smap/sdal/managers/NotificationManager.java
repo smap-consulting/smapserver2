@@ -875,7 +875,7 @@ public class NotificationManager {
 						lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
 								localisation.getString("filter_applied")
 								.replace("%s1", survey.surveyData.displayName)
-								.replace("%s2", filter)
+								.replace("%s2", filter == null ? "" : filter)
 								.replace("%s3", instanceId), 0, null);
 					} else {
 						log.log(Level.WARNING, "localisation is null.");
@@ -1398,7 +1398,8 @@ public class NotificationManager {
 							SharePointManager.updateListItem(serverData, msg.sp_list_title,
 									msg.sp_match_column, matchValue, fields);
 						} else {
-							SharePointManager.postListItem(serverData, msg.sp_list_title, fields);
+							String submitterIdent = getSubmitterIdent(sd, cResults, surveyId, msg.instanceId);
+							SharePointManager.postListItem(serverData, msg.sp_list_title, fields, submitterIdent);
 						}
 
 						notify_details = "SharePoint: wrote to list '" + msg.sp_list_title + "'";
@@ -1986,5 +1987,28 @@ public class NotificationManager {
 		} else {
 			throw new Exception("Invalid report period: " + period);
 		}
+	}
+
+	/*
+	 * Look up the _user meta-column for the given submission from the results database.
+	 * Returns null if the value cannot be determined.
+	 */
+	private String getSubmitterIdent(Connection sd, Connection cResults, int surveyId, String instanceId) {
+		if (instanceId == null) return null;
+		String table = GeneralUtilityMethods.getMainResultsTable(sd, cResults, surveyId);
+		if (table == null) return null;
+		String sql = "select _user from " + table + " where instanceid = ?";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cResults.prepareStatement(sql);
+			pstmt.setString(1, instanceId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) return rs.getString(1);
+		} catch (Exception e) {
+			log.warning("Could not retrieve _user for instanceId " + instanceId + ": " + e.getMessage());
+		} finally {
+			try { if (pstmt != null) pstmt.close(); } catch (Exception ignored) {}
+		}
+		return null;
 	}
 }
