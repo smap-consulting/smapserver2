@@ -22,6 +22,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import java.io.InputStream;
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.List;
 
 import java.util.HashMap;
 import java.util.ResourceBundle;
@@ -88,7 +89,8 @@ public class XLSTemplateUploadManager {
 	HashMap<String, Integer> columnRoleHeader = null;
 	HashMap<String, Integer> rowRoleHeader = null;
 	HashMap<String, Integer> filterGroupRoleHeader = null;
-	
+	List<String> languageHeaderKeys = new ArrayList<>();	// Original XLS header form (e.g., "English (en)") for column lookups
+
 	HashMap<String, QuestionForm> questionNames;	// Mapping between question name and truncated name
 	HashMap<String, String> optionNames;			// Mapping between option name and truncated name
 	boolean merge;
@@ -623,6 +625,7 @@ public class XLSTemplateUploadManager {
 									survey.surveyData.languages.add(new Language(0, GeneralUtilityMethods.getLanguageName(sArray[1]),
 											GeneralUtilityMethods.getLanguageCode(sArray[1]),
 											GeneralUtilityMethods.isRtl(sArray[1])));
+									languageHeaderKeys.add(sArray[1]);
 								}
 							}
 						}
@@ -686,6 +689,7 @@ public class XLSTemplateUploadManager {
 		// Add a default language if needed
 		if(survey.surveyData.languages.size() == 0) {
 			survey.surveyData.languages.add(new Language(0, "language", null, false));
+			languageHeaderKeys.add("language");
 			useDefaultLanguage = true;
 		}
 		
@@ -1187,7 +1191,7 @@ public class XLSTemplateUploadManager {
 			boolean constraintMsgSet = false;
 			boolean requiredMsgSet = false;
 			for(int i = 0; i < survey.surveyData.languages.size(); i++) {
-				String lang = survey.surveyData.languages.get(i).name;
+				String lang = languageHeaderKeys.get(i);
 				if(!choiceSheet) {
 					if(XLSUtilities.getTextColumn(wb, row, "hint::" + lang, header, lastCellNum, null) != null) {
 						hintSet = true;
@@ -1205,7 +1209,7 @@ public class XLSTemplateUploadManager {
 				
 			}
 			for(int i = 0; i < survey.surveyData.languages.size(); i++) {
-				String lang = survey.surveyData.languages.get(i).name;
+				String lang = languageHeaderKeys.get(i);
 				
 				Label lab = new Label();
 				lab.text = XLSUtilities.getTextColumn(wb, row, "label::" + lang, header, lastCellNum, "-");
