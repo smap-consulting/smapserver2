@@ -1,8 +1,11 @@
 package org.smap.sdal.managers;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -11,7 +14,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -62,14 +70,18 @@ public class CsvTableManager {
 	Connection sd = null;
 	ResourceBundle localisation = null;
 	private int tableId = 0;
+	public int getTableId() { return tableId; }
 	private String tableName = null;
 	private String schema = "csv";
 	private String fullTableName = null;
+	public String getFullTableName() { return fullTableName; }
 	private ArrayList<CsvHeader> headers = null;
+	public ArrayList<CsvHeader> getHeaders() { return headers; }
 	CSVParser parser = null;
 	CSVReader csvReader = null;
 	
 	private final String PKCOL = "_id";
+	public String getPkCol() { return PKCOL; }
 	private final String ACOL = "_action";
 	private final String TSCOL = "_changed_ts";
 	private final String SORTCOL = "sortby";
@@ -448,6 +460,151 @@ public class CsvTableManager {
 	/*
 	 * Delete csv tables
 	 */
+	/*
+	 * Populate the CSV table from an in-memory list of rows (e.g. from a SharePoint sync).
+	 * Each map key is a column name; values are cell values.
+	 * The table is created or altered as needed, then truncated and repopulated.
+	 */
+	public void updateTableFromRows(List<Map<String, String>> rows) throws Exception {
+
+		if(rows == null || rows.isEmpty()) {
+			return;
+		}
+
+		PreparedStatement pstmtCreateSeq   = null;
+		PreparedStatement pstmtCreateTable = null;
+		PreparedStatement pstmtAlterColumn = null;
+
+		try {
+			// Derive column names from the keys of the first row
+			List<String> colNames = new ArrayList<>(rows.get(0).keySet());
+			headers = new ArrayList<>();
+			java.util.Set<String> seenTNames = new java.util.LinkedHashSet<>();
+			for(String name : colNames) {
+				String tName = GeneralUtilityMethods.cleanNameNoRand(name);
+				if(seenTNames.add(tName)) {
+					headers.add(new CsvHeader(name, tName));
+				}
+			}
+
+			boolean tableExists = GeneralUtilityMethods.tableExistsInSchema(sd, tableName, schema);
+			if(!tableExists) {
+				String sequenceName = fullTableName + "_seq";
+				pstmtCreateSeq = sd.prepareStatement(
+						"create sequence " + sequenceName + " start 1");
+				try { pstmtCreateSeq.executeUpdate(); } catch(Exception e) { log.fine(e.getMessage()); }
+
+				StringBuilder sqlCreate = new StringBuilder("create table ")
+						.append(fullTableName).append("(");
+				sqlCreate.append(PKCOL).append(" integer default nextval('").append(sequenceName).append("')");
+				sqlCreate.append(",").append(ACOL).append(" integer");
+				sqlCreate.append(",").append(TSCOL).append(" TIMESTAMP WITH TIME ZONE");
+				for(CsvHeader h : headers) {
+					sqlCreate.append(",").append(h.tName).append(" text");
+				}
+				sqlCreate.append(")");
+				pstmtCreateTable = sd.prepareStatement(sqlCreate.toString());
+				pstmtCreateTable.executeUpdate();
+			} else {
+				for(CsvHeader h : headers) {
+					if(!GeneralUtilityMethods.hasColumnInSchema(sd, tableName, h.tName, schema)) {
+						String sqlAddColumn = "alter table " + fullTableName + " add column " + h.tName + " text";
+						if(pstmtAlterColumn != null) { try { pstmtAlterColumn.close(); } catch(Exception e) {} }
+						pstmtAlterColumn = sd.prepareStatement(sqlAddColumn);
+						pstmtAlterColumn.executeUpdate();
+					}
+				}
+			}
+			updateHeaders();
+
+			// Build insert SQL
+			StringBuilder sqlInsert = new StringBuilder("insert into ").append(fullTableName).append("(");
+			StringBuilder params = new StringBuilder();
+			sqlInsert.append(PKCOL); params.append("nextval('").append(fullTableName).append("_seq')");
+			sqlInsert.append(",").append(ACOL);   params.append(",").append(ADD_ENTRY);
+			sqlInsert.append(",").append(TSCOL);  params.append(",now()");
+			for(CsvHeader h : headers) {
+				sqlInsert.append(",").append(h.tName);
+				params.append(",?");
+			}
+			sqlInsert.append(") values (").append(params).append(")");
+
+			truncate();
+
+			PreparedStatement pstmtInsert = null;
+			try {
+				pstmtInsert = sd.prepareStatement(sqlInsert.toString());
+				for(Map<String, String> row : rows) {
+					int idx = 1;
+					for(CsvHeader h : headers) {
+						String val = row.get(h.fName);
+						pstmtInsert.setString(idx++, val != null ? val.trim() : "");
+					}
+					pstmtInsert.executeUpdate();
+				}
+			} finally {
+				if(pstmtInsert != null) { try { pstmtInsert.close(); } catch(Exception e) {} }
+			}
+
+			updateInitialisationTimetamp();
+
+		} finally {
+			if(pstmtCreateSeq   != null) { try { pstmtCreateSeq.close();   } catch(Exception e) {} }
+			if(pstmtCreateTable != null) { try { pstmtCreateTable.close(); } catch(Exception e) {} }
+			if(pstmtAlterColumn != null) { try { pstmtAlterColumn.close(); } catch(Exception e) {} }
+		}
+	}
+
+	/*
+	 * Write all rows from the csv.csvN table to a physical CSV file on disk.
+	 * Used to materialise SharePoint cache data for FieldTask download.
+	 */
+	public void writeCsvFile(File f) throws Exception {
+		if(headers == null || headers.isEmpty()) {
+			return;
+		}
+		StringBuilder sqlSelect = new StringBuilder("select ");
+		for(int i = 0; i < headers.size(); i++) {
+			if(i > 0) sqlSelect.append(",");
+			sqlSelect.append(headers.get(i).tName);
+		}
+		sqlSelect.append(" from ").append(fullTableName).append(" order by ").append(PKCOL);
+
+		PreparedStatement pstmt = null;
+		try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(f), "UTF8"))) {
+			// header row
+			StringBuilder headerRow = new StringBuilder();
+			for(int i = 0; i < headers.size(); i++) {
+				if(i > 0) headerRow.append(",");
+				headerRow.append(escapeCsvValue(headers.get(i).fName));
+			}
+			bw.write(headerRow.toString());
+			bw.newLine();
+
+			pstmt = sd.prepareStatement(sqlSelect.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				StringBuilder row = new StringBuilder();
+				for(int i = 0; i < headers.size(); i++) {
+					if(i > 0) row.append(",");
+					String val = rs.getString(headers.get(i).tName);
+					row.append(escapeCsvValue(val != null ? val : ""));
+				}
+				bw.write(row.toString());
+				bw.newLine();
+			}
+		} finally {
+			if(pstmt != null) try { pstmt.close(); } catch(Exception e) {}
+		}
+	}
+
+	private String escapeCsvValue(String val) {
+		if(val.contains(",") || val.contains("\"") || val.contains("\n")) {
+			return "\"" + val.replace("\"", "\"\"") + "\"";
+		}
+		return val;
+	}
+
 	public void delete(int oId, int sId, String fileName) throws SQLException {
 		
 		String sqlFile = "select id from csvtable where o_id = ? and s_id = ? and filename = ?";
@@ -482,7 +639,7 @@ public class CsvTableManager {
 			
 			while(rs.next()) {
 				int id = rs.getInt(1);
-				String sqlDrop = "drop table csv.csv" + id;
+				String sqlDrop = "drop table if exists csv.csv" + id;
 				String sqlDropSeq = "drop sequence if exists csv.csv" + id + "_seq cascade";
 				
 				if(pstmtDrop != null) {try {pstmtDrop.close();} catch(Exception e) {}}
@@ -512,29 +669,62 @@ public class CsvTableManager {
 	 */
 	private ArrayList<Option> readChoicesFromTable(int tableId, String ovalue, ArrayList<LanguageItem> items,
 			ArrayList<String> matches, String filename, ArrayList<KeyValueSimp> wfFilterColumns) throws SQLException, ApplicationException {
-			
+
 		ArrayList<Option> choices = new ArrayList<Option> ();
-		
+
 		String table = "csv.csv" + tableId;
+		String csvTableName = "csv" + tableId;
 		PreparedStatement pstmt = null;
 		try {
 			String cValue = GeneralUtilityMethods.cleanNameNoRand(ovalue);
+
+			// Check each unique column name once, build valid set for both SQL and read phases
+			Set<String> colsToCheck = new LinkedHashSet<>();
+			for(LanguageItem item : items) {
+				if(item.text.contains(",")) {
+					for(String c : item.text.split(",")) {
+						colsToCheck.add(GeneralUtilityMethods.cleanNameNoRand(c));
+					}
+				} else {
+					colsToCheck.add(GeneralUtilityMethods.cleanNameNoRand(item.text));
+				}
+			}
+			if(wfFilterColumns != null) {
+				for(KeyValueSimp fc : wfFilterColumns) {
+					colsToCheck.add(GeneralUtilityMethods.cleanNameNoRand(fc.k));
+				}
+			}
+			Set<String> validCols = new HashSet<>();
+			for(String col : colsToCheck) {
+				if(GeneralUtilityMethods.hasColumn(sd, csvTableName, col)) {
+					validCols.add(col);
+				}
+			}
+
 			StringBuffer sql = new StringBuffer("select ");
 			sql.append(cValue);
 			for(LanguageItem item : items) {
 				if(item.text.contains(",")) {
-					String[] comp = item.text.split(",");
-					for(int i = 0; i < comp.length; i++) {
-						sql.append(",").append(GeneralUtilityMethods.cleanNameNoRand(comp[i]));
+					for(String c : item.text.split(",")) {
+						String col = GeneralUtilityMethods.cleanNameNoRand(c);
+						if(validCols.contains(col)) {
+							sql.append(",").append(col);
+						}
 					}
 				} else {
-					sql.append(",").append(GeneralUtilityMethods.cleanNameNoRand(item.text));
+					String col = GeneralUtilityMethods.cleanNameNoRand(item.text);
+					if(validCols.contains(col)) {
+						sql.append(",").append(col);
+					}
 				}
 			}
 			// Get filter values for webforms
 			if(wfFilterColumns != null) {
 				for(KeyValueSimp fc : wfFilterColumns) {
-					sql.append(",").append(GeneralUtilityMethods.cleanNameNoRand(fc.k));
+					String col = GeneralUtilityMethods.cleanNameNoRand(fc.k);
+					if(validCols.contains(col)) {
+						sql.append(",").append(col);
+					}
 				}
 			}
 			sql.append(" from ").append(table);
@@ -547,38 +737,38 @@ public class CsvTableManager {
 				for(int i = 0; i < matches.size(); i++) {
 					if(idx++ > 0) {
 						sql.append(", ");
-					}					
+					}
 					sql.append("?");
 				}
 				sql.append(")");
 			}
-			
-			if(GeneralUtilityMethods.hasColumn(sd, "csv" + tableId, SORTCOL)) {
+
+			if(GeneralUtilityMethods.hasColumn(sd, csvTableName, SORTCOL)) {
 				sql.append(" order by ").append(SORTCOL).append(" asc");
 			} else {
 				sql.append(" order by ").append(PKCOL).append(" asc");
 			}
-			
-			pstmt = sd.prepareStatement(sql.toString());		
+
+			pstmt = sd.prepareStatement(sql.toString());
 			if(matches != null && matches.size() > 0) {
 				int idx = 1;
-				for(String match : matches) {									
-					pstmt.setString(idx++, match);;
+				for(String match : matches) {
+					pstmt.setString(idx++, match);
 				}
 			}
-			log.fine("Get CSV values: " + pstmt.toString());
+			log.info("Get CSV values: " + pstmt.toString());
 			ResultSet rsx = pstmt.executeQuery();
 			HashMap<String, String> choicesLoaded = new HashMap<String, String> ();		// Eliminate duplicates
-			
+
 			while(rsx.next()) {
-				
+
 				StringBuffer uniqueChoice = new StringBuffer("");
-				
+
 				int idx = 1;
 				Option o = new Option();
 				o.value = rsx.getString(idx++);
 				uniqueChoice.append(o.value);
-				
+
 				o.labels = new ArrayList<Label> ();
 				o.externalLabel = items;
 				o.externalFile = true;
@@ -587,32 +777,41 @@ public class CsvTableManager {
 					if(item.text.contains(",")) {
 						String[] comp = item.text.split(",");
 						l.text = "";
-						for(int i = 0; i < comp.length; i++) {
-							if(i > 0) {
-								l.text += ", ";
+						boolean firstValid = true;
+						for(String c : comp) {
+							String col = GeneralUtilityMethods.cleanNameNoRand(c);
+							if(validCols.contains(col)) {
+								if(!firstValid) {
+									l.text += ", ";
+								}
+								l.text += rsx.getString(idx++);
+								firstValid = false;
 							}
-							l.text += rsx.getString(idx++);
 						}
 					} else {
-						l.text = rsx.getString(idx++);
+						String col = GeneralUtilityMethods.cleanNameNoRand(item.text);
+						l.text = validCols.contains(col) ? rsx.getString(idx++) : "";
 					}
-					o.labels.add(l);					
+					o.labels.add(l);
 				}
-					
+
 				if(wfFilterColumns != null) {
 					o.cascade_filters = new HashMap<>();
-					for(KeyValueSimp fc : wfFilterColumns) {					
-						String fv = rsx.getString(idx++);
-						o.cascade_filters.put(fc.k, fv); 
-						uniqueChoice.append(":::").append(fv);
+					for(KeyValueSimp fc : wfFilterColumns) {
+						String col = GeneralUtilityMethods.cleanNameNoRand(fc.k);
+						if(validCols.contains(col)) {
+							String fv = rsx.getString(idx++);
+							o.cascade_filters.put(fc.k, fv);
+							uniqueChoice.append(":::").append(fv);
+						}
 					}
 				}
-				
+
 				if(choicesLoaded.get(uniqueChoice.toString()) == null) {
 					choices.add(o);
 					choicesLoaded.put(uniqueChoice.toString(), "x");
 				}
-			}	
+			}
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			throw new ApplicationException("Error getting choices from csv file: " + filename + " " + e.getMessage());

@@ -905,13 +905,6 @@ public class PDFSurveyManager {
 			fontProvider.register("/usr/share/fonts/truetype/NotoSansDevanagari-Bold.ttf", BaseFont.IDENTITY_H);
 		}
 
-		/* debug
-		System.out.println("Fonts present in " + fontProvider.getClass().getName());
-	    	Set<String> registeredFonts = fontProvider.getRegisteredFonts();
-	        for (String font : registeredFonts)
-	        	System.out.println(font);
-		 */
-
 		CssAppliers cssAppliers = new CssAppliersImpl(fontProvider);
 
 		// HTML

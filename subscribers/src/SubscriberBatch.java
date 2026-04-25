@@ -36,6 +36,7 @@ import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.ServerManager;
+import org.smap.sdal.managers.SharePointListMapManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TimeZoneManager;
@@ -344,6 +345,7 @@ public class SubscriberBatch {
 				applyCaseManagementReminders(dbc.sd, dbc.results, basePath, serverName);
 				applyPeriodicNotifications(dbc.sd, dbc.results, basePath, serverName);
 				applyServerCalculateNotifications(dbc.sd, dbc.results, basePath, serverName);
+				syncSharePointLists(dbc.sd, localisation);
 				
 				// Delete linked csv files logically deleted more than 10 minutes age
 				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
@@ -2285,5 +2287,21 @@ public class SubscriberBatch {
 			}
 		}
 		return valid;
+	}
+
+	/*
+	 * Sync all SharePoint list mappings whose cache has expired.
+	 */
+	private void syncSharePointLists(Connection sd, ResourceBundle localisation) {
+		try {
+			ServerManager serverManager = new ServerManager();
+			org.smap.sdal.model.ServerData serverData = serverManager.getServer(sd, localisation);
+			if(serverData.sharepoint_url == null || serverData.sharepoint_url.isEmpty()) {
+				return;  // SharePoint not configured
+			}
+			new SharePointListMapManager().syncDue(sd, serverData, localisation);
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "SharePoint list sync error: " + e.getMessage(), e);
+		}
 	}
 }

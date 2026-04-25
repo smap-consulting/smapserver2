@@ -371,10 +371,10 @@ public class SqlFrag {
 		return out;
 	}
 	public void debug() {
-		System.out.println("======");
-		System.out.println("sql     " + sql.toString());
+		log.info("======");
+		log.info("sql     " + sql.toString());
 		for(int i = 0; i < params.size(); i++) {
-			System.out.println("   " + params.get(i).debug());
+			log.info("   " + params.get(i).debug());
 		}
 	}
 	

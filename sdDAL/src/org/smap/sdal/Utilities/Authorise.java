@@ -993,7 +993,7 @@ public class Authorise {
 			if(!superUser) {
 				pstmt.setString(3, user);
 			}
-			log.fine("IsValidSurvey: " + pstmt.toString());
+			log.fine("IsValidDel33Survey: " + pstmt.toString());
 			
 			resultSet = pstmt.executeQuery();
 			resultSet.next();

@@ -95,14 +95,14 @@ public class ExportSurvey extends Application {
 
 		@SuppressWarnings("unused")
 		public void debugForm() {
-			System.out.println("Form=============");
-			System.out.println("    f_id:" + f_id);
-			System.out.println("    parent:" + parent);
-			System.out.println("    table_name:" + table_name);
-			System.out.println("    maxRepeats:" + maxRepeats);
-			System.out.println("    visible:" + visible);
-			System.out.println("    flat:" + flat);
-			System.out.println("End Form=============");
+			log.info("Form=============");
+			log.info("    f_id:" + f_id);
+			log.info("    parent:" + parent);
+			log.info("    table_name:" + table_name);
+			log.info("    maxRepeats:" + maxRepeats);
+			log.info("    visible:" + visible);
+			log.info("    flat:" + flat);
+			log.info("End Form=============");
 		}
 
 		public void clearRecords() {

@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -32,6 +33,8 @@ import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.ServerData;
+import org.smap.sdal.model.SharePointColumnMap;
 import org.smap.sdal.model.PeriodicTime;
 import org.smap.sdal.model.ReportParameters;
 import org.smap.sdal.model.SendEmailResponse;
@@ -406,6 +409,59 @@ public class NotificationManager {
 	}
 
 	/*
+	 * Get all notifications accessible to the user across all their projects
+	 */
+	public ArrayList<Notification> getUserNotifications(Connection sd, PreparedStatement pstmt,
+			String user,
+			String tz) throws Exception {
+
+		ArrayList<Notification> notifications = new ArrayList<Notification>();
+
+		ResultSet resultSet = null;
+		String sql = "select f.id, f.s_id, f.enabled, "
+				+ "f.remote_host, f.remote_user,"
+				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
+				+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value, f.alert_id,"
+				+ "f.p_id, f.periodic_time, f.periodic_period, f.periodic_day_of_week, "
+				+ "f.periodic_day_of_month, "
+				+ "f.periodic_local_day_of_month,"
+				+ "f.periodic_month, "
+				+ "f.periodic_local_month,"
+				+ "f.r_id,"
+				+ "f.bundle, f.bundle_ident,"
+				+ "a.name as alert_name,"
+				+ "s2.display_name as bundle_name "
+				+ "from forward f "
+				+ "left outer join survey s "
+				+ "on s.s_id = f.s_id "
+				+ "left outer join survey s2 "
+				+ "on s2.ident = f.bundle_ident "
+				+ "left outer join cms_alert a "
+				+ "on a.id = f.alert_id "
+				+ "where (f.p_id in (select p.id from project p, user_project up, users u "
+				+ "  where p.id = up.p_id and up.u_id = u.id and u.ident = ?) "
+				+ "or f.s_id in (select s.s_id from survey s, project p, user_project up, users u "
+				+ "  where s.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s.deleted) "
+				+ "or f.bundle_ident in (select s.group_survey_ident from survey s, project p, user_project up, users u "
+				+ "  where s.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s.deleted)) "
+				+ "order by f.name, s.display_name asc";
+
+		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
+		pstmt = sd.prepareStatement(sql);
+
+		pstmt.setString(1, user);
+		pstmt.setString(2, user);
+		pstmt.setString(3, user);
+		log.fine("User Notifications: " + pstmt.toString());
+		resultSet = pstmt.executeQuery();
+
+		addToList(sd, resultSet, notifications, false, false, tz);
+
+		return notifications;
+
+	}
+
+	/*
 	 * Get a list of notification types
 	 */
 	public ArrayList<String> getNotificationTypes(Connection sd, String user, String page) throws SQLException {
@@ -424,6 +480,7 @@ public class NotificationManager {
 		if("notifications".equals(page)) {
 			types.add("webhook");
 			types.add("escalate");
+			types.add("sharepoint_list");
 		}
 
 		boolean awsSMS = false;
@@ -530,6 +587,57 @@ public class NotificationManager {
 			if(n.notifyDetails != null && (n.notifyDetails.emailQuestionName == null || n.notifyDetails.emailQuestionName.equals("-1")) && n.notifyDetails.emailQuestion > 0) {
 				n.notifyDetails.emailQuestionName = GeneralUtilityMethods.getQuestionNameFromId(sd, n.s_id, n.notifyDetails.emailQuestion);
 			}
+
+			// Resolve human-readable names for escalate notifications
+			if("escalate".equals(n.target) && n.notifyDetails != null) {
+				// Case survey display name
+				if(n.notifyDetails.survey_case != null && !n.notifyDetails.survey_case.isEmpty()) {
+					PreparedStatement pstmtCase = null;
+					try {
+						pstmtCase = sd.prepareStatement(
+							"select display_name from survey where ident = ? and not deleted limit 1");
+						pstmtCase.setString(1, n.notifyDetails.survey_case);
+						ResultSet rsCase = pstmtCase.executeQuery();
+						if(rsCase.next()) n.notifyDetails.survey_case_name = rsCase.getString(1);
+					} finally {
+						try { if(pstmtCase != null) pstmtCase.close(); } catch(SQLException ignored) {}
+					}
+				}
+				// Remote user readable name
+				if(n.remote_user == null || n.remote_user.equals("_none")) {
+					n.remote_user_name = "";
+				} else if(n.remote_user.equals("_submitter")) {
+					n.remote_user_name = "Submitter";
+				} else if(n.remote_user.equals("_data")) {
+					n.remote_user_name = "From data";
+				} else if(n.remote_user.startsWith("_role:")) {
+					int roleId = 0;
+					try { roleId = Integer.parseInt(n.remote_user.substring(6)); } catch(NumberFormatException ignored) {}
+					if(roleId > 0) {
+						PreparedStatement pstmtRole = null;
+						try {
+							pstmtRole = sd.prepareStatement("select name from role where id = ?");
+							pstmtRole.setInt(1, roleId);
+							ResultSet rsRole = pstmtRole.executeQuery();
+							if(rsRole.next()) n.remote_user_name = rsRole.getString(1);
+						} finally {
+							try { if(pstmtRole != null) pstmtRole.close(); } catch(SQLException ignored) {}
+						}
+					}
+				} else {
+					PreparedStatement pstmtUser = null;
+					try {
+						pstmtUser = sd.prepareStatement("select name from users where ident = ?");
+						pstmtUser.setString(1, n.remote_user);
+						ResultSet rsUser = pstmtUser.executeQuery();
+						if(rsUser.next()) n.remote_user_name = rsUser.getString(1);
+					} finally {
+						try { if(pstmtUser != null) pstmtUser.close(); } catch(SQLException ignored) {}
+					}
+					if(n.remote_user_name == null) n.remote_user_name = n.remote_user;
+				}
+			}
+
 			n.filter = resultSet.getString("filter");
 			n.name = resultSet.getString("name");
 			n.tgId = resultSet.getInt("tg_id");
@@ -755,13 +863,19 @@ public class NotificationManager {
 							nd.msgChannel,
 							nd.ts
 							);
+					subMsg.sp_list_title = nd.sp_list_title;
+					subMsg.sp_operation = nd.sp_operation;
+					subMsg.sp_match_column = nd.sp_match_column;
+					subMsg.sp_match_field = nd.sp_match_field;
+					subMsg.sp_column_map = nd.sp_column_map;
+
 					mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 
 					if(localisation != null) {
 						lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
 								localisation.getString("filter_applied")
 								.replace("%s1", survey.surveyData.displayName)
-								.replace("%s2", filter)
+								.replace("%s2", filter == null ? "" : filter)
 								.replace("%s3", instanceId), 0, null);
 					} else {
 						log.log(Level.WARNING, "localisation is null.");
@@ -1133,6 +1247,28 @@ public class NotificationManager {
 						if(userList.size() > 0) {
 							assignTo = userList.get(0);	// Only one user can be assigned
 						}
+					} else if(msg.remoteUser.startsWith("_role:")) {
+						// Assign to the first user (alphabetically) who has the specified role
+						int roleId = 0;
+						try { roleId = Integer.parseInt(msg.remoteUser.substring(6)); } catch(NumberFormatException ignored) {}
+						if(roleId > 0) {
+							PreparedStatement pstmtRole = null;
+							try {
+								pstmtRole = sd.prepareStatement(
+									"select u.ident from users u "
+									+ "join user_role ur on u.id = ur.u_id "
+									+ "where ur.r_id = ? and u.o_id = ? and u.temporary = false "
+									+ "order by u.ident limit 1");
+								pstmtRole.setInt(1, roleId);
+								pstmtRole.setInt(2, organisation.id);
+								ResultSet rsRole = pstmtRole.executeQuery();
+								if(rsRole.next()) {
+									assignTo = rsRole.getString(1);
+								}
+							} finally {
+								try { if(pstmtRole != null) pstmtRole.close(); } catch(SQLException ignored) {}
+							}
+						}
 					}
 					
 					log.fine("+++++ escalate notification");
@@ -1240,9 +1376,43 @@ public class NotificationManager {
 						
 						log.log(Level.SEVERE, "Vonage client has not been configured");
 					}
+				} else if(msg.target.equals("sharepoint_list")) {
+
+					try {
+						ServerManager serverMgr = new ServerManager();
+						ServerData serverData = serverMgr.getServer(sd, localisation);
+
+						Map<String, Object> fields = new java.util.LinkedHashMap<>();
+						if(msg.sp_column_map != null) {
+							for(org.smap.sdal.model.SharePointColumnMap cm : msg.sp_column_map) {
+								ArrayList<String> values = GeneralUtilityMethods.getResponseForQuestion(
+										sd, cResults, surveyId, cm.smap_field, msg.instanceId);
+								fields.put(cm.sp_column, values.size() > 0 ? values.get(0) : "");
+							}
+						}
+
+						if("update".equals(msg.sp_operation) && msg.sp_match_field != null) {
+							ArrayList<String> matchValues = GeneralUtilityMethods.getResponseForQuestion(
+									sd, cResults, surveyId, msg.sp_match_field, msg.instanceId);
+							String matchValue = matchValues.size() > 0 ? matchValues.get(0) : "";
+							SharePointManager.updateListItem(serverData, msg.sp_list_title,
+									msg.sp_match_column, matchValue, fields);
+						} else {
+							String submitterIdent = getSubmitterIdent(sd, cResults, surveyId, msg.instanceId);
+							SharePointManager.postListItem(serverData, msg.sp_list_title, fields, submitterIdent);
+						}
+
+						notify_details = "SharePoint: wrote to list '" + msg.sp_list_title + "'";
+
+					} catch(Exception e) {
+						status = "error";
+						error_details = e.getMessage();
+						log.log(Level.SEVERE, e.getMessage(), e);
+					}
+
 				} else {
 					status = "error";
-					error_details = "Invalid target: " + msg.target;				
+					error_details = "Invalid target: " + msg.target;
 					log.log(Level.SEVERE, "Error: Invalid target" + msg.target);
 				}
 
@@ -1817,5 +1987,28 @@ public class NotificationManager {
 		} else {
 			throw new Exception("Invalid report period: " + period);
 		}
+	}
+
+	/*
+	 * Look up the _user meta-column for the given submission from the results database.
+	 * Returns null if the value cannot be determined.
+	 */
+	private String getSubmitterIdent(Connection sd, Connection cResults, int surveyId, String instanceId) {
+		if (instanceId == null) return null;
+		String table = GeneralUtilityMethods.getMainResultsTable(sd, cResults, surveyId);
+		if (table == null) return null;
+		String sql = "select _user from " + table + " where instanceid = ?";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cResults.prepareStatement(sql);
+			pstmt.setString(1, instanceId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) return rs.getString(1);
+		} catch (Exception e) {
+			log.warning("Could not retrieve _user for instanceId " + instanceId + ": " + e.getMessage());
+		} finally {
+			try { if (pstmt != null) pstmt.close(); } catch (Exception ignored) {}
+		}
+		return null;
 	}
 }

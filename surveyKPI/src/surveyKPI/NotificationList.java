@@ -125,6 +125,47 @@ public class NotificationList extends Application {
 
 	}
 	
+	/*
+	 * Get all notifications accessible to the logged-in user across all their projects
+	 */
+	@Path("/user")
+	@GET
+	public Response getUserNotifications(@Context HttpServletRequest request,
+			@QueryParam("tz") String tz) throws Exception {
+
+		Response response = null;
+		String connectionString = "surveyKPI-Notifications-user";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+
+		if(tz == null) {
+			tz = "UTC";
+		}
+
+		PreparedStatement pstmt = null;
+
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			NotificationManager nm = new NotificationManager(localisation);
+			ArrayList<Notification> nList = nm.getUserNotifications(sd, pstmt, request.getRemoteUser(), tz);
+
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			response = Response.ok(gson.toJson(nList)).build();
+
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "No data available", e);
+			response = Response.serverError().entity("No data available").build();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+
 	@Path("/types")
 	@GET
 	public Response getTypes(@Context HttpServletRequest request,

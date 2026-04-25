@@ -16,7 +16,14 @@ cp ~/deploy/smapUploader.jar ~/deploy/smap/deploy/version1
 cp ~/deploy/codebook.jar ~/deploy/smap/deploy/version1
 
 #
-# sdDAL 
+# amazon
+#
+cd ~/git/smap2/amazon
+mvn clean install
+cd ~/git/smapserver2
+
+#
+# sdDAL
 #
 cd sdDAL
 mvn clean install
@@ -57,9 +64,9 @@ cp surveyKPI/target/*.war ~/deploy/smap/deploy/version1/surveyKPI.war
 # subscribers runnable jar file
 #
 cd subscribers
-ant -f subscriber3.xml
-mv ~/deploy/subscribers.jar ~/deploy/smap/deploy/version1
-mkdir ~/deploy/smap/deploy/version1/subscribers
+mvn clean package
+cp target/subscribers.jar ~/deploy/smap/deploy/version1/subscribers.jar
+mkdir -p ~/deploy/smap/deploy/version1/subscribers
 cp -rf default ~/deploy/smap/deploy/version1/subscribers
 cd ..
 

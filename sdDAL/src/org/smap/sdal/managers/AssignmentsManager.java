@@ -526,6 +526,14 @@ public class AssignmentsManager {
 									tr.refSurveys.add(ref);
 								}
 							}
+						} else if (m.type.equals("sharepoint")) {
+							String spFilePath = basepath + File.separator + "media" + File.separator
+									+ "organisation" + File.separator + oId + File.separator + m.fileName + ".csv";
+							File dir = new File(basepath + File.separator + "media" + File.separator
+									+ "organisation" + File.separator + oId);
+							dir.mkdirs();
+							efm.createSpListFile(sd, oId, m.fileName, spFilePath);
+							logicalFilePath = spFilePath;
 						}
 
 						/*
@@ -538,6 +546,9 @@ public class AssignmentsManager {
 								physicalFilePath = efm.getLinkedPhysicalFilePath(sd, logicalFilePath) + ".csv";
 								m.fileName += ".csv";
 								log.fine("%%%%%: Referencing: " + physicalFilePath);
+							} else if (m.type.equals("sharepoint")) {
+								physicalFilePath = logicalFilePath;
+								m.fileName += ".csv";
 							} else {
 								physicalFilePath = m.filePath;
 							}

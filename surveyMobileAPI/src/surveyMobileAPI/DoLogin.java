@@ -47,7 +47,6 @@ public class DoLogin extends Application {
 			@FormParam("password") String password) {
 		String connectionString = "surveyMobileAPI-dologin";
 		Connection sd = SDDataSource.getConnection(connectionString);
-	    System.out.println("Login request");
 	    
 	    SDDataSource.closeConnection(connectionString, sd);
 		return Response.ok("{}").build();
