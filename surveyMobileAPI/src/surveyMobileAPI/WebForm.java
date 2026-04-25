@@ -140,6 +140,7 @@ public class WebForm extends Application {
 	boolean myWork = false;			// When set use the myWork app to submit data rather than the form
 	boolean single = false;
 	boolean showDonePage = false;
+	boolean showFormIndex = false;
 	String gFormIdent = null;
 	boolean requiresTurnstile = false;
 
@@ -629,6 +630,7 @@ public class WebForm extends Application {
 				requiresTurnstile = isTemporaryUser && survey.surveyData.turnstile
 						&& serverData.turnstile_site_key != null && !serverData.turnstile_site_key.isEmpty()
 						&& serverData.turnstile_secret_key != null && !serverData.turnstile_secret_key.isEmpty();
+				showFormIndex = survey.surveyData.showFormIndex;
 				if(requiresTurnstile) {
 					request.getSession(true).setAttribute("survey_ident_" + accessKey, formIdent);
 				}
@@ -1005,6 +1007,8 @@ public class WebForm extends Application {
 		} else {
 			output.append("surveyData.viewOnly=false;\n");
 		}
+
+		output.append("surveyData.showFormIndex=").append(showFormIndex).append(";\n");
 
 		output.append("</script>\n");
 		return output;

@@ -57,4 +57,5 @@ public class SurveyDAO {
 	
 	public SurveyLinks links;
 	public boolean turnstile;
+	public boolean showFormIndex;			// Show a form index panel for navigation
 }

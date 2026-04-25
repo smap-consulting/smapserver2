@@ -298,3 +298,6 @@ alter table message add column if not exists worker_host text;
 
 -- Version 26.04.1 Prevent duplicate submissions in queue via unique index
 create unique index if not exists submission_queue_instanceid_idx on submission_queue(instanceid);
+
+-- Show form index panel in webforms
+alter table survey add column if not exists show_form_index boolean default false;

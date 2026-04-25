@@ -633,7 +633,8 @@ CREATE TABLE survey (
 	read_only_survey boolean default false,
 	my_reference_data boolean default false,
 	auto_translate boolean default false,
-	turnstile boolean default false
+	turnstile boolean default false,
+	show_form_index boolean default false
 	);
 ALTER TABLE survey OWNER TO ws;
 DROP INDEX IF EXISTS SurveyDisplayName;

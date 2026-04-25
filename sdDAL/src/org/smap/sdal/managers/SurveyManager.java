@@ -525,7 +525,8 @@ public class SurveyManager {
 				+ "s.auto_translate,"
 				+ "s.pdf_template,"
 				+ "s.default_logo,"
-				+ "s.turnstile ");
+				+ "s.turnstile,"
+				+ "s.show_form_index ");
 				
 		String userIdentifiedSql = "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
@@ -612,6 +613,7 @@ public class SurveyManager {
 				s.surveyData.autoTranslate = resultSet.getBoolean("auto_translate");
 				s.surveyData.default_logo = resultSet.getString("default_logo");
 				s.surveyData.turnstile = resultSet.getBoolean("turnstile");
+				s.surveyData.showFormIndex = resultSet.getBoolean("show_form_index");
 
 				KeyManager km = new KeyManager(localisation);
 				s.surveyData.uk = km.get(sd, s.surveyData.groupSurveyIdent);
@@ -1205,7 +1207,8 @@ public class SurveyManager {
 				+ "o.can_submit,"
 				+ "s.group_survey_ident,"
 				+ "s.read_only_survey,"
-				+ "s.turnstile "
+				+ "s.turnstile,"
+				+ "s.show_form_index "
 				+ "from survey s,"
 				+ "project p,"
 				+ "organisation o "
@@ -1247,6 +1250,7 @@ public class SurveyManager {
 				s.surveyData.groupSurveyIdent = resultSet.getString("group_survey_ident");
 				s.surveyData.readOnlySurvey = resultSet.getBoolean("read_only_survey");
 				s.surveyData.turnstile = resultSet.getBoolean("turnstile");
+				s.surveyData.showFormIndex = resultSet.getBoolean("show_form_index");
 
 				KeyManager km = new KeyManager(localisation);
 				s.surveyData.uk = km.get(sd, s.surveyData.groupSurveyIdent);

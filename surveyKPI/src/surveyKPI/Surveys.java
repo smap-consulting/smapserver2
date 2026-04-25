@@ -1007,7 +1007,8 @@ public class Surveys extends Application {
 					+ "audit_location_data = ?, "
 					+ "track_changes = ?,"
 					+ "default_logo = ?,"
-					+ "turnstile = ? "
+					+ "turnstile = ?,"
+					+ "show_form_index = ? "
 					+ "where s_id = ?";
 		
 			if(surveyData.surveyClass != null && surveyData.surveyClass.equals("none")) {
@@ -1034,7 +1035,8 @@ public class Surveys extends Application {
 			pstmt.setBoolean(18, surveyData.track_changes);
 			pstmt.setString(19, surveyData.default_logo);
 			pstmt.setBoolean(20, surveyData.turnstile);
-			pstmt.setInt(21, sId);
+			pstmt.setBoolean(21, surveyData.showFormIndex);
+			pstmt.setInt(22, sId);
 			
 			log.info("Saving survey: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
