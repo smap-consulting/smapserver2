@@ -150,8 +150,9 @@ public class APIEntryPoints extends Application {
 			@QueryParam("instanceid") String instanceId,
 			@QueryParam("getSettings") boolean getSettings,			// if set true get the settings from the database
 			@QueryParam("selectedrow") String selectedRow,
-			@QueryParam("pageLen") int pageLen
-			) throws ApplicationException, Exception { 
+			@QueryParam("pageLen") int pageLen,
+			@QueryParam("assignRole") int assign_role
+			) throws ApplicationException, Exception {
 			
 		boolean incLinks = false;
 		if(links != null && (links.equals("true") || links.equals("yes"))) {
@@ -191,7 +192,8 @@ public class APIEntryPoints extends Application {
 				urlprefix,
 				attachmentPrefix,
 				selectedRow,
-				pageLen);
+				pageLen,
+				assign_role);
 		
 		return Response.status(Status.OK).build();
 	}

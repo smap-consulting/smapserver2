@@ -17,6 +17,7 @@ public class SurveySettingsDefn {
 	public String overridenDefaultLimit;
 	public String include_bad;
 	public String include_completed;
+	public int assign_role;
 	public int pageLen;				// Datatables - no longer used
 		
 	public ArrayList<MapLayer> layers = new ArrayList<MapLayer> ();             // Map

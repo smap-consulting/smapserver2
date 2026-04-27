@@ -486,8 +486,9 @@ public class DataManager {
 			String urlprefix,
 			String attachmentPrefix,
 			String selectedInstanceId,
-			int pageLen							// Set by the console and remembered on the server - not used
-			) throws ApplicationException, Exception { 
+			int pageLen,						// Set by the console and remembered on the server - not used
+			int assign_role						// Role filter for assign dialog - saved but not used in query
+			) throws ApplicationException, Exception {
 
 		boolean superUser = false;
 		try {
@@ -647,6 +648,7 @@ public class DataManager {
 					ssd.toDate = endDate;
 					ssd.include_bad = include_bad;
 					ssd.include_completed = include_completed;
+					ssd.assign_role = assign_role;
 					ssd.overridenDefaultLimit = "yes";
 					ssd.pageLen = pageLen;
 					

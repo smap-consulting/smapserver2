@@ -344,8 +344,9 @@ public class UserList extends Application {
 	@Produces("application/json")
 	public Response getUsersForSurvey(
 			@Context HttpServletRequest request,
-			@PathParam("survey") String sIdent
-			) { 
+			@PathParam("survey") String sIdent,
+			@QueryParam("role") int roleId
+			) {
 
 		Response response = null;
 		String requestName = "surveyKPI - getUsersForSurvey";
@@ -356,27 +357,27 @@ public class UserList extends Application {
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
-		}	
-		
+		}
+
 		int sId = GeneralUtilityMethods.getSurveyIdFromIdentOrId(sd, sIdent);
-		
+
 		aSimpleList.isAuthorised(sd, request.getRemoteUser());
 		aSimpleList.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
-		
+
 		PreparedStatement pstmt = null;
 		ArrayList<UserSimple> users = new ArrayList<> ();
-		
+
 		try {
 			ResultSet resultSet = null;
-			
+
 			StringBuffer sql = new StringBuffer("select u.id, u.ident, u.name from survey s, users u, user_project up, project p "
 					+ "where u.id = up.u_id "
 					+ "and p.id = up.p_id "
 					+ "and s.p_id = up.p_id "
 					+ "and s.s_id = ? "
 					+ "and not temporary");
-			
+
 			String sqlRBAC = " and ((s.ident not in (select survey_ident from survey_role where enabled = true)) " // No roles on survey
 					+ "or (s.ident in (select sr.survey_ident from users u2, user_role ur, survey_role sr where u2.ident = u.ident and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
 					+ "or (select count(*) from users u3, user_group ug "		// Include super users
@@ -384,11 +385,20 @@ public class UserList extends Application {
 					+ "and u3.id = ug.u_id "
 					+ "and (ug.g_id = 6 or ug.g_id = 4)) > 0 "
 					+ ") ";
-			
+
 			sql.append(sqlRBAC);
-			
+
+			if(roleId > 0) {
+				sql.append("and exists (select 1 from user_role ur_f "
+						+ "where ur_f.u_id = u.id "
+						+ "and ur_f.r_id = ?) ");
+			}
+
 			pstmt = sd.prepareStatement(sql.toString());
 			pstmt.setInt(1, sId);
+			if(roleId > 0) {
+				pstmt.setInt(2, roleId);
+			}
 			log.info("Get users of survey: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 							
