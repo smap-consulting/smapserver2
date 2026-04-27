@@ -1449,8 +1449,9 @@ public class NotificationManager {
 
 			/*
 			 * If this notification is for a record then update the Record Event Manager
+			 * Skip escalate: assignRecord() already wrote an "assigned" event
 			 */
-			if(msg.instanceId != null) {
+			if(msg.instanceId != null && !"escalate".equals(msg.target)) {
 				RecordEventManager rem = new RecordEventManager();
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
 
