@@ -711,16 +711,18 @@ public class Workflow extends Application {
 
 		PreparedStatement pstmtGet = null;
 		PreparedStatement pstmtUpd = null;
+		PreparedStatement pstmtGetPid = null;
 		try {
 			String sqlGet = "select rule, target_s_id from task_group where tg_id = ? "
 					+ "and p_id in (select p.id from project p, user_project up, users u "
 					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?)";
-			String sqlUpd = "update task_group set name = ?, rule = ?, target_s_id = ? where tg_id = ? "
+			String sqlUpd = "update task_group set name = ?, rule = ?, target_s_id = ?, p_id = ? where tg_id = ? "
 					+ "and p_id in (select p.id from project p, user_project up, users u "
 					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?)";
 
-			pstmtGet = sd.prepareStatement(sqlGet);
-			pstmtUpd = sd.prepareStatement(sqlUpd);
+			pstmtGet    = sd.prepareStatement(sqlGet);
+			pstmtUpd    = sd.prepareStatement(sqlUpd);
+			pstmtGetPid = sd.prepareStatement("select p_id from survey where s_id = ?");
 
 			for (WorkflowEditTG tg : tgs) {
 				// Fetch and update the rule JSON (preserving fields we don't edit)
@@ -770,11 +772,21 @@ public class Workflow extends Application {
 				}
 				// If none set → unassigned (all cleared above)
 
+				// Resolve the project from the target survey (may differ from source project)
+				int newProjectId = tg.projectId;
+				if (newTargetSId > 0) {
+					pstmtGetPid.setInt(1, newTargetSId);
+					ResultSet rsp = pstmtGetPid.executeQuery();
+					if (rsp.next()) newProjectId = rsp.getInt(1);
+					rsp.close();
+				}
+
 				pstmtUpd.setString(1, tg.name);
 				pstmtUpd.setString(2, gson.toJson(afs));
 				pstmtUpd.setInt(3, newTargetSId);
-				pstmtUpd.setInt(4, tg.tgId);
-				pstmtUpd.setString(5, request.getRemoteUser());
+				pstmtUpd.setInt(4, newProjectId);
+				pstmtUpd.setInt(5, tg.tgId);
+				pstmtUpd.setString(6, request.getRemoteUser());
 				pstmtUpd.executeUpdate();
 			}
 			response = Response.ok().build();
@@ -782,8 +794,9 @@ public class Workflow extends Application {
 			log.log(Level.SEVERE, "Error updating task groups", e);
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
-			try { if (pstmtGet != null) pstmtGet.close(); } catch (SQLException e) {}
-			try { if (pstmtUpd != null) pstmtUpd.close(); } catch (SQLException e) {}
+			try { if (pstmtGet    != null) pstmtGet.close();    } catch (SQLException e) {}
+			try { if (pstmtUpd    != null) pstmtUpd.close();    } catch (SQLException e) {}
+			try { if (pstmtGetPid != null) pstmtGetPid.close(); } catch (SQLException e) {}
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 		return response;
@@ -857,7 +870,14 @@ public class Workflow extends Application {
 		PreparedStatement pstmtPid = null;
 		PreparedStatement pstmtIns = null;
 		try {
-			if (tg.projectId <= 0 && tg.sourceSurveyId > 0) {
+			// Project comes from the target survey, not the source
+			if (tg.targetSurveyId > 0) {
+				pstmtPid = sd.prepareStatement("select p_id from survey where s_id = ?");
+				pstmtPid.setInt(1, tg.targetSurveyId);
+				ResultSet rs = pstmtPid.executeQuery();
+				if (rs.next()) tg.projectId = rs.getInt(1);
+				rs.close();
+			} else if (tg.projectId <= 0 && tg.sourceSurveyId > 0) {
 				pstmtPid = sd.prepareStatement("select p_id from survey where s_id = ?");
 				pstmtPid.setInt(1, tg.sourceSurveyId);
 				ResultSet rs = pstmtPid.executeQuery();
@@ -887,7 +907,7 @@ public class Workflow extends Application {
 				afs.filter.advanced = tg.filter;
 			}
 
-			String sql = "insert into task_group(name, p_id, source_s_id, target_s_id, rule, "
+			String sql = "insert into task_group(name, p_id, source_s_id, sourve_p_id, target_s_id, rule, "
 					+ "address_params, dl_dist, complete_all, assign_auto, wf_prev_node_id) "
 					+ "values(?, ?, ?, ?, ?::jsonb, '[]', 0, false, false, ?) returning tg_id";
 			pstmtIns = sd.prepareStatement(sql);

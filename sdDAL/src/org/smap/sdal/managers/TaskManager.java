@@ -162,9 +162,12 @@ public class TaskManager {
 	 */
 	public ArrayList<TaskGroup> getTaskGroups(Connection sd, int projectId) throws Exception {
 
-		String sql = "select tg_id, name, address_params, p_id, rule, "
-				+ "source_s_id, target_s_id, email_details "
-				+ "from task_group where p_id = ? order by tg_id asc;";
+		String sql = "select tg.tg_id, tg.name, tg.address_params, tg.p_id, tg.rule, "
+				+ "tg.source_s_id, s.p_id as source_p_id, tg.target_s_id, tg.email_details "
+				+ "from task_group tg "
+				+ "left outer join survey s "
+				+ "on tg.source_s_id = s.s_id "
+				+ "where tg.p_id = ? order by tg.tg_id asc;";
 		PreparedStatement pstmt = null;
 
 		String sqlTotal = "select tg.tg_id, count(t.id)  "
@@ -214,14 +217,17 @@ public class TaskManager {
 			while (rs.next()) {
 				TaskGroup tg = new TaskGroup();
 
-				tg.tg_id = rs.getInt(1);
-				tg.name = rs.getString(2);
-				tg.address_params = rs.getString(3);
-				tg.p_id = rs.getInt(4);
-				tg.rule = new Gson().fromJson(rs.getString(5), AssignFromSurvey.class);
-				tg.source_s_id = rs.getInt(6);
-				tg.target_s_id = rs.getInt(7);
-				tg.emaildetails = new Gson().fromJson(rs.getString(8), TaskEmailDetails.class);
+				tg.tg_id = rs.getInt("tg_id");
+				tg.name = rs.getString("name");
+				tg.address_params = rs.getString("address_params");
+				tg.p_id = rs.getInt("p_id");
+				tg.rule = new Gson().fromJson(rs.getString("rule"), AssignFromSurvey.class);		
+				tg.source_s_id = rs.getInt("source_s_id");
+				if(tg.rule != null) {
+					tg.rule.source_project = rs.getInt("source_p_id");
+				}
+				tg.target_s_id = rs.getInt("target_s_id");	// In tg.p_id project
+				tg.emaildetails = new Gson().fromJson(rs.getString("email_details"), TaskEmailDetails.class);
 				
 
 				if(rsTotal.next()) {

@@ -7,6 +7,7 @@ public class TaskGroup {
 	public int p_id;
 	public AssignFromSurvey rule;
 	public int source_s_id;
+	public int source_p_id;
 	public int target_s_id;
 	
 	public int totalTasks;
