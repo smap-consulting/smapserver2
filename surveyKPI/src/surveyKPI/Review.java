@@ -137,7 +137,6 @@ public class Review extends Application {
 		String count;
 		String targetQuestion;
 	}
-	private ArrayList<Result> results = new ArrayList<Result> ();
 
 	private class AuditItem {
 		int id;
@@ -190,10 +189,12 @@ public class Review extends Application {
 		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "Review of text data", 0, request.getServerName());
 		
 		try {
-			// Localisation			
+			ArrayList<Result> results = new ArrayList<Result>();
+
+			// Localisation
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
+
 			cResults = ResultsDataSource.getConnection(connectionString);
 
 			if(sort != null) {
