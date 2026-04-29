@@ -1201,7 +1201,7 @@ public class SurveyTableManager {
 				}
 				String scriptPath = basePath + "_bin" + File.separator + "getshape.sh";
 				String[] cmd = { "/bin/sh", "-c",
-						scriptPath + " results linked " + "\"" + pstmtData.toString() + "\" "
+						scriptPath + " results linked " + "\"" + GeneralUtilityMethods.interpolateSql(sql, sqlDef.calcArray, cur, rfArray, userIdent, tz) + "\" "
 								+ filePath + " csvnozip" };
 				log.fine("Getting linked data: " + cmd[2]);
 				Process proc = Runtime.getRuntime().exec(cmd);

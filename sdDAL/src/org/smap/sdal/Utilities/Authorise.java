@@ -131,7 +131,7 @@ public class Authorise {
 				pstmt.setString(i + 2, permittedGroups.get(i));
 			}
 
-			log.fine(GeneralUtilityMethods.getStringFromStatement(pstmt));
+			log.fine(pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			

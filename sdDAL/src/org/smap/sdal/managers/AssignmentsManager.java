@@ -489,12 +489,10 @@ public class AssignmentsManager {
 						String logicalFilePath = null;
 						if (m.type.equals("linked")) {
 
-							/*
-							 * Generate the CSV file if data has changed
-							 */
 							log.fine("Linked file:" + m.fileName);
 
 							/*
+							 * Generate the CSV file if data has changed
 							 * The file is unique per survey unless there are roles on the survey or the
 							 * reference data from the survey is restricted to the user who submitted the
 							 * record.

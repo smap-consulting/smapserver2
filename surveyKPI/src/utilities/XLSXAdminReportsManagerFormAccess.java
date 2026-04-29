@@ -441,12 +441,8 @@ public class XLSXAdminReportsManagerFormAccess {
 					ArrayList<SqlFrag> rfArray = rm.getSurveyRowFilter(sd, formIdent, u.ident);				
 					if (rfArray.size() > 0) {
 						filter = rm.convertSqlFragsToSql(rfArray);
-						if(pstmt != null ) {try{pstmt.close();} catch (Exception e) {}}
-						pstmt = sd.prepareStatement(filter);	// Not the right database but we are not going to execute this query
-						GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, 1, "UTC");
-						
 						cell = row.createCell(colNumber++);	// Role
-						cell.setCellValue( GeneralUtilityMethods.getStringFromStatement(pstmt));
+						cell.setCellValue(GeneralUtilityMethods.interpolateSql(filter, rfArray, "UTC"));
 					}
 					
 				}
