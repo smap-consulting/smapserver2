@@ -1168,7 +1168,10 @@ public class WebForm extends Application {
 
 		output.append("<body class='clearfix edit'>");
 		output.append(getAside());
+		output.append("<div class='smap-layout'>\n");
+		output.append(getSidePanel());
 		output.append(addMain(request, dataToEditId, orgId, false, surveyClass, superUser, readOnly));
+		output.append("</div>\n");
 		output.append(getDialogs());
 
 		// Webforms script
@@ -1358,16 +1361,120 @@ public class WebForm extends Application {
 		output.append("<button class='close' aria-label='Close Feedback Bar'><span class='glyphicon glyphicon-step-backward'></span></button>\n");
 		output.append("</div>\n");
 
-		output.append("<aside class='side-slider'>\n");
-		output.append("<button type='button' class='close' data-dismiss='side-slider' aria-label='Close'>×</button>\n");
-		output.append("<nav></nav>\n");
-		output.append("<div class='content'>\n");
+		output.append("<div id='smap-queue-panel' class='smap-full-panel' hidden>\n");
+		output.append("<div class='smap-full-panel__header'>\n");
+		output.append("<h3 class='lang' data-lang='record-list.title'>Queue</h3>\n");
+		output.append("<button class='smap-full-panel__close' aria-label='Close'>&times;</button>\n");
 		output.append("</div>\n");
-		output.append("</aside>\n");
+		output.append("<div class='smap-full-panel__body'></div>\n");
+		output.append("</div>\n");
 
-		output.append("<button class='handle side-slider-toggle open' aria-label='Open Sidebar'></button>\n");
-		output.append("<button class='handle side-slider-toggle close' aria-label='Close Sidebar'></button>\n");
-		output.append("<div class='side-slider-toggle slider-overlay'></div>\n");
+		return output;
+	}
+
+	private StringBuffer getSidePanel() {
+		StringBuffer output = new StringBuffer();
+
+		output.append("<div id='smap-side-panel' class='smap-side-panel'>\n");
+
+		output.append("<div id='smap-notification-panel' class='smap-notification-panel' hidden>\n");
+		output.append("<div class='smap-panel-header'>\n");
+		output.append("<h3 class='lang' data-lang='msg_send_notification'>Send Notification</h3>\n");
+		output.append("<button class='smap-panel-close' aria-label='Close'>&times;</button>\n");
+		output.append("</div>\n");
+		output.append("<div class='smap-panel-body'>\n");
+		output.append(getNotificationForm());
+		output.append("</div>\n");
+		output.append("</div>\n");
+
+		output.append("<div id='smap-index-area'></div>\n");
+
+		output.append("</div>\n");
+		return output;
+	}
+
+	private StringBuffer getNotificationForm() {
+		StringBuffer output = new StringBuffer();
+
+		output.append("<form id='wf-notification-form'>\n");
+
+		output.append("<div class='form-group'>\n");
+		output.append("<label class='lang' data-lang='c_target' for='target'>Type</label>\n");
+		output.append("<select class='form-select' id='target'></select>\n");
+		output.append("</div>\n");
+
+		output.append("<div class='email_options submission_options' style='display:none;'>\n");
+		output.append("<div class='form-group'>\n");
+		output.append("<label class='lang' data-lang='c_email' for='notify_emails'>Emails</label>\n");
+		output.append("<textarea id='notify_emails' class='form-control' rows='2'></textarea>\n");
+		output.append("</div>\n");
+		output.append("<div class='form-group'>\n");
+		output.append("<label class='lang' data-lang='c_subject' for='email_subject'>Subject</label>\n");
+		output.append("<input type='text' id='email_subject' class='form-control'>\n");
+		output.append("</div>\n");
+		output.append("<div class='form-group'>\n");
+		output.append("<label class='lang' data-lang='c_content' for='email_content'>Content</label>\n");
+		output.append("<textarea id='email_content' class='form-control' rows='3'></textarea>\n");
+		output.append("</div>\n");
+		output.append("<div class='form-group'>\n");
+		output.append("<label class='lang' data-lang='c_attach' for='email_attach'>Attachment</label>\n");
+		output.append("<select class='form-select' id='email_attach'>\n");
+		output.append("<option value='none' class='lang' data-lang='c_none'>None</option>\n");
+		output.append("<option value='webform' class='lang' data-lang='n_wf'>Web Form</option>\n");
+		output.append("<option value='pdf' class='lang' data-lang='n_pdfp'>PDF portrait</option>\n");
+		output.append("<option value='pdf_landscape' class='lang' data-lang='n_pdfl'>PDF landscape</option>\n");
+		output.append("</select>\n");
+		output.append("</div>\n");
+		output.append("</div>\n");
+
+		output.append("<div class='sms_options' style='display:none;'>\n");
+		output.append("<div class='form-group'>\n");
+		output.append("<label class='lang' data-lang='c_sms' for='notify_sms'>Phone</label>\n");
+		output.append("<input type='tel' id='notify_sms' class='form-control'>\n");
+		output.append("</div>\n");
+		output.append("<div class='form-group'>\n");
+		output.append("<label class='lang' data-lang='n_si' for='sms_sender_id'>Sender ID</label>\n");
+		output.append("<input type='text' id='sms_sender_id' class='form-control'>\n");
+		output.append("</div>\n");
+		output.append("<div class='form-group'>\n");
+		output.append("<label class='lang' data-lang='c_content' for='sms_content'>Content</label>\n");
+		output.append("<textarea id='sms_content' class='form-control' rows='3'></textarea>\n");
+		output.append("</div>\n");
+		output.append("</div>\n");
+
+		output.append("<div class='conv_options' style='display:none;'>\n");
+		output.append("<div class='form-group'>\n");
+		output.append("<label class='lang' data-lang='n_their_nbr' for='msg_cur_nbr'>Their number</label>\n");
+		output.append("<select id='msg_cur_nbr' class='form-select'><option value='other'>...</option></select>\n");
+		output.append("</div>\n");
+		output.append("<div class='other_msg' style='display:none;'>\n");
+		output.append("<div class='form-group'>\n");
+		output.append("<label class='lang' data-lang='n_spec_nbr' for='msg_nbr_other'>Specify number</label>\n");
+		output.append("<input type='number' id='msg_nbr_other' class='form-control'>\n");
+		output.append("</div>\n");
+		output.append("</div>\n");
+		output.append("<div class='form-group'>\n");
+		output.append("<label class='lang' data-lang='c_channel' for='msg_channel'>Channel</label>\n");
+		output.append("<select id='msg_channel' class='form-select'>\n");
+		output.append("<option value='sms'>SMS</option>\n");
+		output.append("<option value='whatsapp'>WhatsApp</option>\n");
+		output.append("</select>\n");
+		output.append("</div>\n");
+		output.append("<div class='form-group'>\n");
+		output.append("<label class='lang' data-lang='n_our_nbr' for='msg_our_nbr'>Our number</label>\n");
+		output.append("<select id='msg_our_nbr' class='form-select'></select>\n");
+		output.append("</div>\n");
+		output.append("<div class='form-group'>\n");
+		output.append("<label class='lang' data-lang='rev_text' for='conversation_text'>Message</label>\n");
+		output.append("<textarea id='conversation_text' class='form-control' rows='3'></textarea>\n");
+		output.append("</div>\n");
+		output.append("</div>\n");
+
+		output.append("</form>\n");
+		output.append("<div class='smap-notification-footer'>\n");
+		output.append("<div id='wf-notification-status' class='alert' style='display:none;'></div>\n");
+		output.append("<button id='wf-send-notification' class='btn btn-primary lang' data-lang='c_save'>Send</button>\n");
+		output.append("</div>\n");
 
 		return output;
 	}
@@ -1389,7 +1496,7 @@ public class WebForm extends Application {
 		if (!minimal) {
 			output.append("<header class='form-header clearfix'>\n");
 			output.append("<div class='offline-enabled'>\n");
-			output.append("<div title='Records Queued' class='queue-length side-slider-toggle'>0</div>\n");
+			output.append("<div title='Records Queued' class='queue-length'>0</div>\n");
 			if(isApp) {		// include back button
 				output.append("<div style=' font-size: large;'><button onclick='window.history.back();' aria-label='Go back'><i class='fa fa-arrow-left' aria-hidden='true'></i></button></div>\n");
 			}
@@ -1405,12 +1512,24 @@ public class WebForm extends Application {
 			 */
 			output.append("<span class='logo-wrapper'>\n");
 			output.append(addNoScriptWarning());
-			
+
 			output.append("<img class='banner_logo' src='/custom/banner/")
 				.append(orgId)
 				.append("' alt=''>\n");
 			output.append("</span>\n");
-			
+
+			output.append("<div class='smap-menu-wrapper'>\n");
+			output.append("<button class='smap-menu-btn' aria-label='Menu'>&#9776;</button>\n");
+			output.append("<ul class='smap-dropdown-menu' hidden>\n");
+			output.append("<li><button class='smap-menu-item lang' data-action='open-queue' data-lang='record-list.title'>Queue</button></li>\n");
+			if(showFormIndex) {
+				output.append("<li><button class='smap-menu-item lang' data-action='toggle-index' data-lang='form.index'>Index</button></li>\n");
+			}
+			output.append("<li><button class='smap-menu-item lang' data-action='toggle-notification' data-lang='msg_send_notification'>Send Notification</button></li>\n");
+			output.append("<li><a class='smap-menu-item lang' href='/app/myWork/history.html' target='_blank' data-lang='record-list.history'>History</a></li>\n");
+			output.append("</ul>\n");
+			output.append("</div>\n");
+
 			output.append("</header>\n");
 		}
 		return output;
