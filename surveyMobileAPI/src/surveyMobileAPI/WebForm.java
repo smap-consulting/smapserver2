@@ -66,8 +66,10 @@ import org.smap.sdal.legacy.GetHtml;
 import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.PeopleManager;
+import org.smap.sdal.managers.SMSManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
@@ -76,6 +78,7 @@ import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.ManifestValue;
+import org.smap.sdal.model.SMSNumber;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.SurveyData;
@@ -143,6 +146,8 @@ public class WebForm extends Application {
 	boolean showFormIndex = false;
 	String gFormIdent = null;
 	boolean requiresTurnstile = false;
+	ArrayList<String> gNotificationTypes = new ArrayList<>();
+	ArrayList<SMSNumber> gOurNumbers = new ArrayList<>();
 
 	/*
 	 * Get instance data Respond with JSON
@@ -638,7 +643,21 @@ public class WebForm extends Application {
 				// Get the organisation specific options
 				OrganisationManager om = new OrganisationManager(localisation);
 				options = om.getWebform(sd, userIdent);
-				
+
+				// Get notification types and SMS numbers for embedding in surveyData
+				try {
+					NotificationManager nm = new NotificationManager(localisation);
+					gNotificationTypes = nm.getNotificationTypes(sd, userIdent, "console");
+				} catch (Exception e) {
+					log.info("Could not get notification types: " + e.getMessage());
+				}
+				try {
+					SMSManager smsm = new SMSManager(localisation, tz);
+					gOurNumbers = smsm.getOurNumbers(sd, userIdent, true);
+				} catch (Exception e) {
+					log.info("Could not get SMS numbers: " + e.getMessage());
+				}
+
 				log.info("++++++ Action: " + action);
 				// If this request is for a mailout then opt in
 				if(action.equals("mailout")) {
@@ -1009,6 +1028,10 @@ public class WebForm extends Application {
 		}
 
 		output.append("surveyData.showFormIndex=").append(showFormIndex).append(";\n");
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		output.append("surveyData.notificationTypes=").append(gson.toJson(gNotificationTypes)).append(";\n");
+		output.append("surveyData.ourNumbers=").append(gson.toJson(gOurNumbers)).append(";\n");
 
 		output.append("</script>\n");
 		return output;
@@ -1473,7 +1496,8 @@ public class WebForm extends Application {
 		output.append("</form>\n");
 		output.append("<div class='smap-notification-footer'>\n");
 		output.append("<div id='wf-notification-status' class='alert' style='display:none;'></div>\n");
-		output.append("<button id='wf-send-notification' class='btn btn-primary lang' data-lang='c_save'>Send</button>\n");
+		output.append("<ul id='wf-pending-notifications' class='wf-pending-list' style='display:none;'></ul>\n");
+		output.append("<button id='wf-send-notification' class='btn btn-primary lang' data-lang='c_queue'>Queue</button>\n");
 		output.append("</div>\n");
 
 		return output;
@@ -1525,7 +1549,7 @@ public class WebForm extends Application {
 			if(showFormIndex) {
 				output.append("<li><button class='smap-menu-item lang' data-action='toggle-index' data-lang='form.index'>Index</button></li>\n");
 			}
-			output.append("<li><button class='smap-menu-item lang' data-action='toggle-notification' data-lang='msg_send_notification'>Send Notification</button></li>\n");
+			output.append("<li id='smap-notif-menu-item' hidden><button class='smap-menu-item lang' data-action='toggle-notification' data-lang='msg_send_notification'>Send Notification</button></li>\n");
 			output.append("<li><a class='smap-menu-item lang' href='/app/myWork/history.html' target='_blank' data-lang='record-list.history'>History</a></li>\n");
 			output.append("</ul>\n");
 			output.append("</div>\n");

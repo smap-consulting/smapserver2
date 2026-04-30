@@ -289,6 +289,15 @@ public class XFormData {
 					} else if (fieldName.equals("survey_notes")) {
 						log.info("Got surveyNotes ++++++++++++++++++" + item.getString());
 						surveyNotes = item.getString();
+					} else if (fieldName.equals("notifications")) {
+						String notificationsJson = item.getString();
+						if (notificationsJson != null && !notificationsJson.isEmpty()) {
+							String surveyPath = basePath + "/uploadedSurveys/" + templateName;
+							String instancePath = surveyPath + "/" + saveDetails.instanceDir;
+							java.io.File notifFile = new java.io.File(instancePath + "/notifications.json");
+							org.apache.commons.io.FileUtils.writeStringToFile(notifFile, notificationsJson, java.nio.charset.StandardCharsets.UTF_8);
+							log.info("Saved notifications.json to: " + notifFile.getPath());
+						}
 					} else {
 						log.info("Warning FormField Ignored, Item:" + item.getFieldName() + ":" + item.getString());
 					}

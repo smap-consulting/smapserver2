@@ -52,6 +52,8 @@ import org.smap.sdal.managers.SubmissionEventManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.UserManager;
+import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.CMS;
@@ -59,6 +61,7 @@ import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.ForeignKey;
 import org.smap.sdal.model.MediaChange;
+import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.UniqueKey;
@@ -142,7 +145,12 @@ public class SubRelationalDB extends Subscriber {
 			 * notifications, Tasks and Linkage events associated with this submission
 			 */
 			sem.writeToQueue(log, dbc.sd, ue_id, null, thread);
-			
+
+			/*
+			 * Process any webform notifications stored alongside the submission
+			 */
+			processWebformNotifications(log, dbc.sd, filePath, instance, survey);
+
 			/*
 			 * Update the assignment status
 			 */
@@ -196,11 +204,88 @@ public class SubRelationalDB extends Subscriber {
 
 		return mediaChanges;
 	}
-	
+
+	private static class WebformNotification {
+		String target;
+		ArrayList<String> emails;
+		String subject;
+		String content;
+		String ourNumber;
+		String toNumber;
+		String msgChannel;
+	}
+
+	private void processWebformNotifications(Logger log, Connection sd, String filePath,
+			SurveyInstance instance, Survey survey) {
+		File xmlFile = new File(filePath);
+		File notifFile = new File(xmlFile.getParent(), "notifications.json");
+		if (!notifFile.exists()) {
+			return;
+		}
+		try {
+			String json = org.apache.commons.io.FileUtils.readFileToString(notifFile, java.nio.charset.StandardCharsets.UTF_8);
+			java.lang.reflect.Type listType = new com.google.gson.reflect.TypeToken<ArrayList<WebformNotification>>(){}.getType();
+			ArrayList<WebformNotification> notifications = gson.fromJson(json, listType);
+			if (notifications == null || notifications.isEmpty()) {
+				return;
+			}
+			MessagingManager mm = new MessagingManager(localisation);
+			int pId = GeneralUtilityMethods.getProjectId(sd, survey.surveyData.id);
+			for (WebformNotification wn : notifications) {
+				ArrayList<String> emails = wn.target != null && wn.target.equals("email") ? wn.emails : null;
+				String ourNum = (wn.target != null && !wn.target.equals("email")) ? wn.ourNumber : null;
+				String toNum = (wn.target != null && !wn.target.equals("email")) ? wn.toNumber : null;
+				String channel = wn.msgChannel;
+				// For sms/conversation: treat toNumber as single email-like recipient in the emails list
+				if (toNum != null && emails == null) {
+					emails = new ArrayList<>();
+					emails.add(toNum);
+				}
+				SubmissionMessage subMsg = new SubmissionMessage(
+						null,
+						"Webform Notification",
+						0,
+						pId,
+						survey.surveyData.ident,
+						null,
+						instance.getUuid(),
+						null,
+						wn.subject,
+						wn.content,
+						null,
+						false,
+						false,
+						0,
+						null,
+						null,
+						false,
+						emails,
+						wn.target,
+						null,
+						null,
+						null,
+						null,
+						null,
+						0,
+						null,
+						null,
+						null,
+						0,
+						ourNum,
+						channel,
+						new java.sql.Timestamp(new java.util.Date().getTime()));
+				mm.createMessage(sd, survey.surveyData.o_id, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
+				log.info("Queued webform notification: target=" + wn.target);
+			}
+		} catch (Exception e) {
+			log.log(Level.WARNING, "Error processing webform notifications: " + e.getMessage(), e);
+		}
+	}
+
 	/*
 	 * Apply any changes to assignment status
 	 */
-	private void applyAssignmentStatus(Connection sd, Connection cResults, int assignmentId,  
+	private void applyAssignmentStatus(Connection sd, Connection cResults, int assignmentId,
 			String updateId) {
 
 		PreparedStatement pstmt = null;
