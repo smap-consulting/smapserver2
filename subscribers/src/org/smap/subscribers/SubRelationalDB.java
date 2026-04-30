@@ -210,6 +210,7 @@ public class SubRelationalDB extends Subscriber {
 		ArrayList<String> emails;
 		String subject;
 		String content;
+		String attach;
 		String ourNumber;
 		String toNumber;
 		String msgChannel;
@@ -252,7 +253,7 @@ public class SubRelationalDB extends Subscriber {
 						null,
 						wn.subject,
 						wn.content,
-						null,
+						wn.attach,
 						false,
 						false,
 						0,

@@ -848,9 +848,6 @@ public class WebForm extends Application {
 		// head
 		output.append("<head>\n");
 		output.append("<title>" + sanitise.sanitiseHtml(survey.getDisplayName()) + "</title>");
-		output.append("<link rel='preload' as='font' href='/fonts/OpenSans-Regular-webfont.woff' type='font/woff' crossorigin>");
-		output.append("<link rel='preload'as='font' href='/fonts/OpenSans-Bold-webfont.woff' type='font/woff' crossorigin>");
-		output.append("<link rel='preload' as='font' href='/fonts/fontawesome-webfont.woff' type='font/woff' crossorigin>");
 		
 		if (surveyClass != null && surveyClass.trim().contains("theme-grid")) {		
 			output.append("<link type='text/css' href='/build/css/theme-grid.css' media='all' rel='stylesheet' />\n");
@@ -922,7 +919,7 @@ public class WebForm extends Application {
 
 		output.append("<meta charset='utf-8' />\n");
 		output.append("<meta name='viewport' content='width=device-width, initial-scale=1.0' />\n");
-		output.append("<meta name='apple-mobile-web-app-capable' content='yes' />\n");
+		output.append("<meta name='mobile-web-app-capable' content='yes' />\n");
 		output.append("<script>");
 		output.append("if ( navigator.userAgent.indexOf( 'Trident/' ) >= 0 ) {");
 		output.append("window.location.href = '/browser-support.html'}");
