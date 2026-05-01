@@ -68,15 +68,15 @@ Ubuntu 20.04 is EOL (April 2025) and will be dropped from the support matrix.
 
 ---
 
-## Phase 2 — Ant Build (`subscribers/subscriber3.xml`)
+## Phase 2 — Replace Ant Build with Maven Shade Plugin — **DONE**
 
-Hardcodes Tomcat 9 jar filenames. All must be updated to `10.1.40` equivalents:
+`subscriber3.xml` (Ant) hardcoded every dependency JAR path from `~/.m2/repository` by version number, requiring manual updates on every dep bump. Already resolved in `master`; applied to `ubuntu_upgrade` branch.
 
-- `tomcat-catalina-9.0.117.jar` → `tomcat-catalina-10.1.40.jar` (and all other `tomcat-*-9.0.117.jar`)
-- `javax.mail-1.6.2.jar` → `angus-mail-2.0.3.jar`
-- `commons-fileupload-1.6.0.jar` → `commons-fileupload2-jakarta-servlet6-2.0.0-M2.jar`
-- JAXB: `jaxb-api-2.3.1.jar` / `jaxb-core-2.3.0.1.jar` / `jaxb-impl-2.3.0.jar` → `jakarta.xml.bind-api-4.0.0.jar` / `jaxb-core-4.0.3.jar` / `jaxb-impl-4.0.3.jar`
-- `javax.activation-api-1.2.0.jar` → `jakarta.activation-api-2.1.0.jar`
+`subscribers/pom.xml`: replaced `maven-assembly-plugin` (unbound) with `maven-shade-plugin:3.5.2` bound to the `package` phase. Shade is preferred over assembly because `ServicesResourceTransformer` merges `META-INF/services` files correctly (required for Jersey service discovery). `ManifestResourceTransformer` sets `Main-Class: Manager`. Output: `target/subscribers.jar`.
+
+`dep.sh`: replaced `ant -f subscriber3.xml` + `mv` with `mvn clean package` + `cp target/subscribers.jar`. Added `-p` flag to `mkdir` for idempotency.
+
+`subscriber3.xml` can be deleted once this branch is merged.
 
 ---
 
@@ -166,9 +166,101 @@ The subscriber service file uses `User=tomcat` which is the same for both Tomcat
 
 ---
 
-## Phase 6 — Testing Strategy
+## Phase 6 — Upgrade Path for Existing Servers (`deploy.sh`)
 
-1. **Ubuntu 24.04 first**: deploy updated WARs to a manually installed Tomcat 10, verify all REST endpoints respond.
+### Problem
+
+`deploy.sh` currently infers the Tomcat version from the Ubuntu version and hardcodes `tomcat9` for 24.04, 22.04, and 20.04. After the Jakarta migration, deploying new WARs to a server still running Tomcat 9 will fail silently — Tomcat 9 will refuse to load `jakarta.*` WARs with `ClassNotFoundException`.
+
+### Solution: Detect Actual Installed Tomcat, Auto-Migrate If Needed
+
+Replace the Ubuntu-version-based `TOMCAT_VERSION` block with a detection of the actually-installed Tomcat service. If Tomcat 9 is found, perform the Tomcat 9 → 10 upgrade inline before deploying the WARs. On subsequent deploys, Tomcat 10 is already present so the migration block is a no-op.
+
+### Detection Logic (replaces the existing Ubuntu version block at lines 4–26)
+
+```sh
+u2604=`lsb_release -r | grep -c "26\.04"`
+
+if [ -d /var/lib/tomcat10 ] || systemctl is-enabled tomcat10 2>/dev/null | grep -q "enabled"; then
+    TOMCAT_VERSION=tomcat10
+    TOMCAT_USER=tomcat
+elif [ -d /var/lib/tomcat9 ] || systemctl is-enabled tomcat9 2>/dev/null | grep -q "enabled"; then
+    TOMCAT_VERSION=tomcat9
+    TOMCAT_USER=tomcat
+    NEEDS_TOMCAT_UPGRADE=true
+else
+    echo "ERROR: No supported Tomcat installation found"
+    exit 1
+fi
+```
+
+The `u2604` flag is still needed separately to select the correct `server.xml` template and PostgreSQL version.
+
+### Migration Block (runs before the stop-services block if `NEEDS_TOMCAT_UPGRADE=true`)
+
+```sh
+if [ "$NEEDS_TOMCAT_UPGRADE" = "true" ]; then
+    echo "=== Migrating Tomcat 9 → Tomcat 10 ==="
+
+    # Locate and save the existing context.xml (JNDI datasource config)
+    if [ -f /etc/tomcat9/context.xml ]; then
+        OLD_CONTEXT=/etc/tomcat9/context.xml          # 22.04 apt install
+    else
+        OLD_CONTEXT=/var/lib/tomcat9/conf/context.xml  # 24.04 manual install
+    fi
+    cp $OLD_CONTEXT /tmp/context.xml.bak
+
+    # Stop and disable Tomcat 9
+    systemctl stop tomcat9
+    systemctl disable tomcat9
+
+    # Install Tomcat 10 (manual wget — works on 22.04 and 24.04)
+    TC10_VER=10.1.40
+    TC10_URL=https://archive.apache.org/dist/tomcat/tomcat-10/v${TC10_VER}/bin/apache-tomcat-${TC10_VER}.tar.gz
+    wget -q $TC10_URL -O /tmp/tomcat10.tar.gz
+    mkdir -p /var/lib/tomcat10
+    tar -xzf /tmp/tomcat10.tar.gz -C /var/lib/tomcat10 --strip-components=1
+    rm /tmp/tomcat10.tar.gz
+
+    # Apply config files
+    cp $cwd/../install/config_files/server.xml.tomcat10 /var/lib/tomcat10/conf/server.xml
+    cp /tmp/context.xml.bak /var/lib/tomcat10/conf/context.xml
+
+    # Install and enable systemd service
+    cp $cwd/../install/config_files/tomcat10.service /etc/systemd/system/tomcat10.service
+    cp $cwd/../install/config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
+    systemctl daemon-reload
+    systemctl enable tomcat10
+
+    chown -R tomcat /var/lib/tomcat10
+
+    TOMCAT_VERSION=tomcat10
+    TOMCAT_USER=tomcat
+    echo "=== Tomcat 10 migration complete ==="
+fi
+```
+
+### What Is Preserved
+
+- **`context.xml`** (JNDI datasource config, including database passwords) is copied from the old Tomcat 9 location and applied to the new Tomcat 10 install. No database connection config needs to be re-entered.
+- **`server.xml`** is replaced with the new `server.xml.tomcat10` template (AJP connector config is identical between Tomcat 9 and 10, so no functional change).
+- The rest of `deploy.sh` continues unchanged — WAR deployment, chown, service start/stop all use `$TOMCAT_VERSION` which is now `tomcat10`.
+
+### Behaviour Per Ubuntu Version After This Change
+
+| Ubuntu | Tomcat before deploy | Action taken | Tomcat after deploy |
+|---|---|---|---|
+| 22.04 (first Jakarta deploy) | tomcat9 (apt) | migrate to tomcat10 (manual) | tomcat10 |
+| 22.04 (subsequent deploys) | tomcat10 | none | tomcat10 |
+| 24.04 (first Jakarta deploy) | tomcat9 (manual) | migrate to tomcat10 (manual) | tomcat10 |
+| 24.04 (subsequent deploys) | tomcat10 | none | tomcat10 |
+| 26.04 (fresh install) | tomcat10 (apt) | none | tomcat10 |
+
+---
+
+## Phase 7 — Testing Strategy
+
+1. **Ubuntu 24.04 first**: run deploy.sh on an existing 24.04 server; verify auto-migration from Tomcat 9 → 10 completes and all REST endpoints respond.
 2. **AJP proxy**: Apache httpd → Tomcat 10 AJP port 8009 — critical path since Apache config uses `proxy_ajp`.
 3. **JNDI datasource**: verify `context.xml` `org.apache.tomcat.jdbc.pool.DataSourceFactory` works under Tomcat 10 (expected unchanged).
 4. **Multipart uploads**: `UserSvc.java` and `TableReports.java` use Jersey `@FormDataParam` — test these endpoints.
@@ -176,15 +268,16 @@ The subscriber service file uses `User=tomcat` which is the same for both Tomcat
 6. **JavaMail**: test SMTP email sending via Angus Mail.
 7. **JAXB**: test form list serialization (`FormListManager.java` uses `JAXB.marshal()`).
 8. **Ubuntu 26.04 VM**: run the updated `install.sh` on a fresh 26.04 VM end-to-end.
-9. **Ubuntu 22.04**: verify the manual Tomcat 10 install path works correctly.
+9. **Ubuntu 22.04**: verify auto-migration from apt Tomcat 9 to manual Tomcat 10 preserves `context.xml` and connects to the database correctly.
+10. **Idempotency**: run deploy.sh a second time on a migrated server — confirm it detects Tomcat 10 already present and skips the migration block.
 
 ---
 
 ## Risks and Unresolved Questions
 
-1. **`JAXB.marshal()` removed in JAXB 4.x** — The static helper was deprecated in Java 9 and dropped in Jakarta JAXB 4.x. `FormListManager.java` uses it and will need to switch to the longform `JAXBContext.newInstance(...).createMarshaller()` pattern.
+1. ~~**`JAXB.marshal()` removed in JAXB 4.x**~~ — **RESOLVED**. `FormListManager.java` updated to use `JAXBContext.newInstance(formList.getClass()).createMarshaller().marshal(formList, writer)`.
 
-2. **javarosa custom artifact** (`smapserver:javarosa:3.1.4`) — This is a custom internal build. If compiled against `javax.*` it will cause `ClassNotFoundException` at runtime on Tomcat 10. Needs inspection and likely a rebuild against Jakarta namespace before any other work begins.
+2. ~~**javarosa custom artifact** (`smapserver:javarosa:3.1.4`)~~ — **RESOLVED**. Source in `~/git/javarosa` contains no Jakarta EE imports — only standard JDK XML classes (`javax.xml.parsers`, `javax.xml.transform`) which are unaffected. No rebuild needed.
 
 3. **commons-fileupload2 API surface** — 16 files need actual code changes (class renames), not just import substitution. The upload flow is central to form submission — these need careful testing.
 
