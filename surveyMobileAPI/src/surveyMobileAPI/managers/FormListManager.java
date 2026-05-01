@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Response;
-import javax.xml.bind.JAXB;
+import jakarta.xml.bind.JAXBContext;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
@@ -112,7 +112,7 @@ public class FormListManager {
 			// Convert response into xml
 			String resp = null;
 			StringWriter writer = new StringWriter();
-			JAXB.marshal(formList, writer);
+			JAXBContext.newInstance(formList.getClass()).createMarshaller().marshal(formList, writer);
 			resp = writer.toString();
 			
 			response = Response.ok(resp).header("X-OpenRosa-Version", javaRosaVersion).build();
