@@ -1,8 +1,8 @@
 package org.smap.sdal.model;
 
 import java.util.ArrayList;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlSeeAlso;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlSeeAlso;
 
 @XmlRootElement(name="xforms")
 @XmlSeeAlso({ODKForm.class})

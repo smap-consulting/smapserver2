@@ -13,13 +13,13 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Response;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.Response;
 
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload2.core.FileItem;
+import org.apache.commons.fileupload2.core.FileUploadException;
+import org.apache.commons.fileupload2.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.ApplicationWarning;
@@ -70,7 +70,7 @@ public class SurveyTemplateManager {
 		
 		log.info("upload survey -----------------------");
 		
-		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();
+		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();
 		String displayName = null;
 		int projectId = -1;
 		int surveyId = -1;
@@ -84,7 +84,7 @@ public class SurveyTemplateManager {
 		String bundleSurveyIdent = null;
 
 		fileItemFactory.setSizeThreshold(5*1024*1024); 
-		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+		ServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 	
 		Connection sd = SDDataSource.getConnection(connectionString); 
 		Connection cResults = ResultsDataSource.getConnection(connectionString);

@@ -10,8 +10,8 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Response;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.Response;
 import jakarta.xml.bind.JAXBContext;
 
 import org.smap.sdal.Utilities.ApplicationException;

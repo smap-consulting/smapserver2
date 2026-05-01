@@ -19,10 +19,10 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.smap.sdal.Utilities;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
 public class JsonAuthorisationException extends WebApplicationException {
 	

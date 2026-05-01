@@ -12,8 +12,8 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
 
 import org.smap.notifications.interfaces.EmitDeviceNotification;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;

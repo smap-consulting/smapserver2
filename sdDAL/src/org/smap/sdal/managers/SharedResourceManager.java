@@ -14,14 +14,14 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload2.core.FileItem;
+import org.apache.commons.fileupload2.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
@@ -773,7 +773,7 @@ public class SharedResourceManager {
 		
 		log.fine("upload shared resource file -----------------------");
 		
-		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();
+		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();
 		String resourceName = null;
 		String action = "add";	// By default add
 		int surveyId = 0;
@@ -784,7 +784,7 @@ public class SharedResourceManager {
 		String tz = "UTC";
 
 		fileItemFactory.setSizeThreshold((int) SharedResourceManager.MAX_FILE_SIZE); 
-		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+		ServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 	
 		Connection sd = SDDataSource.getConnection(connectionString); 
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
