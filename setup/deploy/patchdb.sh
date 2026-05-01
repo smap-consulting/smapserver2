@@ -11,27 +11,67 @@ else
         PSQL="PGPASSWORD=keycar08 psql -h $DBHOST -U postgres"
 fi
 
-# Set flag for ubuntu version
-u1404=`lsb_release -r | grep -c "14\.04"`
+# Set flag for ubuntu version (still needed for legacy version-gated patches below)
 u1604=`lsb_release -r | grep -c "16\.04"`
 u1804=`lsb_release -r | grep -c "18\.04"`
 u2004=`lsb_release -r | grep -c "20\.04"`
 u2204=`lsb_release -r | grep -c "22\.04"`
 u2404=`lsb_release -r | grep -c "24\.04"`
+u2604=`lsb_release -r | grep -c "26\.04"`
 
-if [ $u2404 -eq 1 ]; then
+if [ $u2604 -eq 0 ] && [ $u2404 -eq 0 ] && [ $u2204 -eq 0 ] && [ $u2004 -eq 0 ]; then
+    echo "ERROR: Unsupported Ubuntu version. Smap requires Ubuntu 20.04 or later."
+    exit 1
+fi
+
+# Detect installed Tomcat by checking for actual service/directory
+if [ -d /var/lib/tomcat10 ] || systemctl is-enabled tomcat10 2>/dev/null | grep -q "enabled"; then
+    TOMCAT_VERSION=tomcat10
+    TOMCAT_USER=tomcat
+elif [ -d /var/lib/tomcat9 ] || systemctl is-enabled tomcat9 2>/dev/null | grep -q "enabled"; then
     TOMCAT_VERSION=tomcat9
     TOMCAT_USER=tomcat
-elif [ $u2204 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat9
-    TOMCAT_USER=tomcat
-elif [ $u2004 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat9
-    TOMCAT_USER=tomcat
-elif [ $u1804 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat8
+    NEEDS_TOMCAT_UPGRADE=true
 else
-    TOMCAT_VERSION=tomcat7
+    echo "ERROR: No supported Tomcat installation found (expected tomcat9 or tomcat10)"
+    exit 1
+fi
+
+# Migrate Tomcat 9 -> 10 if needed (runs once; subsequent deploys skip this block)
+if [ "$NEEDS_TOMCAT_UPGRADE" = "true" ]; then
+    echo "=== Migrating Tomcat 9 -> Tomcat 10 ==="
+
+    # Save existing context.xml (JNDI datasource config including passwords)
+    if [ -f /etc/tomcat9/context.xml ]; then
+        OLD_CONTEXT=/etc/tomcat9/context.xml         # 22.04 apt install
+    else
+        OLD_CONTEXT=/var/lib/tomcat9/conf/context.xml # 24.04 manual install
+    fi
+    cp $OLD_CONTEXT /tmp/context.xml.bak
+
+    systemctl stop tomcat9
+    systemctl disable tomcat9
+
+    TC10_VER=10.1.40
+    TC10_URL=https://archive.apache.org/dist/tomcat/tomcat-10/v${TC10_VER}/bin/apache-tomcat-${TC10_VER}.tar.gz
+    wget -q $TC10_URL -O /tmp/tomcat10.tar.gz
+    mkdir -p /var/lib/tomcat10
+    tar -xzf /tmp/tomcat10.tar.gz -C /var/lib/tomcat10 --strip-components=1
+    rm /tmp/tomcat10.tar.gz
+
+    cp ../install/config_files/server.xml.tomcat10 /var/lib/tomcat10/conf/server.xml
+    cp /tmp/context.xml.bak /var/lib/tomcat10/conf/context.xml
+
+    mkdir -p /etc/systemd/system/tomcat10.service.d
+    cp ../install/config_files/tomcat10.service /etc/systemd/system/tomcat10.service
+    cp ../install/config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
+    systemctl daemon-reload
+    systemctl enable tomcat10
+    chown -R tomcat /var/lib/tomcat10
+
+    TOMCAT_VERSION=tomcat10
+    TOMCAT_USER=tomcat
+    echo "=== Tomcat 10 migration complete ==="
 fi
 
 CATALINA_HOME=/var/lib/$TOMCAT_VERSION
@@ -273,11 +313,6 @@ then
 		sudo chmod 664 $service_dir/subscribers_fwd.service
 	fi
 	
-	if [ $u1404 -eq 1 ]; then
-		sudo cp ../install/config_files/subscribers.conf $upstart_dir
-		sudo cp ../install/config_files/subscribers_fwd.conf $upstart_dir
-	fi
-
 fi
 
 # Version 24.04
@@ -336,14 +371,13 @@ cd ../install
 chmod +x apacheConfig.sh
 ./apacheConfig.sh
 
-if [ $u2404 -eq 1 ]; then
-cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
-fi
-if [ $u2204 -eq 1 ]; then
-cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
+if [ $u2604 -eq 1 ] || [ $u2404 -eq 1 ] || [ $u2204 -eq 1 ]; then
+    mkdir -p /etc/systemd/system/tomcat10.service.d
+    cp config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
 fi
 if [ $u2004 -eq 1 ]; then
-cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
+    mkdir -p /etc/systemd/system/tomcat9.service.d
+    cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
 fi
 
 # Make sure there is a logging properties file in the settings directory
