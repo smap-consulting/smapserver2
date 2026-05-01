@@ -32,7 +32,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
 import org.apache.commons.fileupload2.core.FileItem;
-import org.apache.commons.fileupload2.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
 import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.apache.poi.openxml4j.opc.OPCPackage;
@@ -835,8 +835,7 @@ public class AllAssignments extends Application {
 		// End role based authorisation - Check access to the requested survey once the survey id has been extracted
 
 		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();	
-		fileItemFactory.setSizeThreshold(20*1024*1024); // 20 MB TODO handle this with exception and redirect to an error page
-		ServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 
 		// SQL to get a column name from the survey
 		String sqlGetCol = "select q_id, qname, column_name, qtype, appearance, parameters "
@@ -976,7 +975,7 @@ public class AllAssignments extends Application {
 
 						filePath = basePath + "/temp/" + fileName;
 						savedFile = new File(filePath);
-						item.write(savedFile);
+						item.write(savedFile.toPath());
 					}					
 				}
 
@@ -1348,8 +1347,7 @@ public class AllAssignments extends Application {
 		// End role based authorisation - Check access to the requested survey once the survey id has been extracted
 
 		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();	
-		fileItemFactory.setSizeThreshold(20*1024*1024); // 20 MB TODO handle this with exception and redirect to an error page
-		ServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 
 		PreparedStatement pstmtUpdate = null;
 

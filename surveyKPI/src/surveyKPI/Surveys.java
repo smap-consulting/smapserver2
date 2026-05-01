@@ -34,7 +34,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
 import org.apache.commons.fileupload2.core.FileItem;
-import org.apache.commons.fileupload2.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
 import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
@@ -1127,8 +1127,7 @@ public class Surveys extends Application {
 		String connectionString = "SurveyKPI - AddTemplate";
 		
 		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();	
-		fileItemFactory.setSizeThreshold(20*1024*1024);
-		ServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -1168,7 +1167,7 @@ public class Surveys extends Application {
 		
 					if(item.getFieldName().equals("templateName")) {
 						try {
-							name = item.getString("UTF-8");  // Set encoding type to UTF-8 as per http://stackoverflow.com/questions/22025999/sending-files-and-text-with-ajax-multipart-form-data-utf-8-encoding
+							name = item.getString(java.nio.charset.StandardCharsets.UTF_8);  // Set encoding type to UTF-8 as per http://stackoverflow.com/questions/22025999/sending-files-and-text-with-ajax-multipart-form-data-utf-8-encoding
 						} catch (Exception e) {
 							
 						}
@@ -2036,7 +2035,7 @@ public class Surveys extends Application {
 	    
 	    try {
 	    	FileUtils.forceMkdir(new File(folderPath));
-			pdfItem.write(savedFile);
+			pdfItem.write(savedFile.toPath());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

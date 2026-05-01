@@ -35,7 +35,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
 import org.apache.commons.fileupload2.core.FileItem;
-import org.apache.commons.fileupload2.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
 import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
@@ -399,8 +399,7 @@ public class ProjectList extends Application {
 
 		log.info("userevent: " + request.getRemoteUser() + " : import projects ");
 
-		fileItemFactory.setSizeThreshold(20*1024*1024); 	// 20 MB TODO handle this with exception and redirect to an error page
-		ServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 	
 		Connection cResults = null;
 		String fileName = null;

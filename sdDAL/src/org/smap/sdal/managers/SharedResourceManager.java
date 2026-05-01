@@ -20,7 +20,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
 import org.apache.commons.fileupload2.core.FileItem;
-import org.apache.commons.fileupload2.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
 import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
@@ -173,7 +173,7 @@ public class SharedResourceManager {
 						
 					} else {
 						// no conversion required
-						fileItem.write(savedFile);  
+						fileItem.write(savedFile.toPath());  
 					}
 					log.fine("Uploaded file written to: " + savedFile.getAbsolutePath());
 					
@@ -386,7 +386,7 @@ public class SharedResourceManager {
 		
 		// Write Archived file
 		File archiveFile = new File(archivePath.getAbsolutePath() + "/" + uploadedFileName + GeneralUtilityMethods.getUTCDateTimeSuffix());		
-		fileItem.write(archiveFile);
+		fileItem.write(archiveFile.toPath());
 		
 		/*
 		 * Record history in the database
@@ -783,8 +783,7 @@ public class SharedResourceManager {
 		String user = request.getRemoteUser();
 		String tz = "UTC";
 
-		fileItemFactory.setSizeThreshold((int) SharedResourceManager.MAX_FILE_SIZE); 
-		ServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 	
 		Connection sd = SDDataSource.getConnection(connectionString); 
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
@@ -820,7 +819,7 @@ public class SharedResourceManager {
 
 				if(item.isFormField()) {
 					if(item.getFieldName().equals("itemName")) {
-						resourceName = item.getString("utf-8");
+						resourceName = item.getString(java.nio.charset.StandardCharsets.UTF_8);
 						if(resourceName != null) {
 							resourceName = resourceName.trim();
 						}

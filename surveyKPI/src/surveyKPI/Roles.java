@@ -35,7 +35,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import org.apache.commons.fileupload2.core.FileItem;
-import org.apache.commons.fileupload2.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
 import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
@@ -716,8 +716,7 @@ public class Roles extends Application {
 
 		log.info("userevent: " + request.getRemoteUser() + " : import roles ");
 
-		fileItemFactory.setSizeThreshold(20*1024*1024); 	// 20 MB 
-		ServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 	
 		String fileName = null;
 		String filetype = null;

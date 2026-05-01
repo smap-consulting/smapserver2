@@ -45,7 +45,7 @@ import jakarta.ws.rs.core.Response;
 
 import org.apache.commons.fileupload2.core.FileItem;
 import org.apache.commons.fileupload2.core.FileUploadException;
-import org.apache.commons.fileupload2.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
 import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
@@ -319,8 +319,7 @@ public class Tasks extends Application {
 		
 		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();		
 
-		fileItemFactory.setSizeThreshold(5*1024*1024); //1 MB TODO handle this with exception and redirect to an error page
-		ServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 	
 		Connection sd = null; 
 		
@@ -592,8 +591,7 @@ public class Tasks extends Application {
 
 		log.info("userevent: " + request.getRemoteUser() + " : upload tasks from xls file for project: " + pId);
 
-		fileItemFactory.setSizeThreshold(5*1024*1024); //1 MB TODO handle this with exception and redirect to an error page
-		ServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 	
 		Connection sd = null; 
 		Connection cResults = null;

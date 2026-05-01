@@ -31,7 +31,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 
 import org.apache.commons.fileupload2.core.FileItem;
-import org.apache.commons.fileupload2.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
 import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
@@ -105,8 +105,7 @@ public class CssFiles extends Application {
 
 		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();		
 
-		fileItemFactory.setSizeThreshold(5*1024*1024);
-		ServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 
 		String connectionString = "surveyKPI - cssFiles - upload";
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -164,7 +163,7 @@ public class CssFiles extends Application {
 						File folder = cm.getCssLoadedFolder(orgId);
 						String filePath = folder.getAbsolutePath() + File.separator + fileName;
 						File savedFile = new File(filePath);
-						item.write(savedFile);  // Save the new file
+						item.write(savedFile.toPath());  // Save the new file
 						
 						String msg = localisation.getString("c_add_css") + " " + filePath;
 						lm.writeLogOrganisation(sd, orgId, request.getRemoteUser(), LogManager.CREATE, msg, 0);

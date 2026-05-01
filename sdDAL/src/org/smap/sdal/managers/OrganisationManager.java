@@ -465,7 +465,7 @@ public class OrganisationManager {
 		    File savedFile = new File(filePath);
 		    log.fine("Saving file to: " + filePath);
 		    try {
-				logoItem.write(savedFile);
+				logoItem.write(savedFile.toPath());
 				savedFile.setReadable(true);
 				savedFile.setWritable(true);
 				

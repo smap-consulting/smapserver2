@@ -33,7 +33,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.fileupload2.core.FileItem;
-import org.apache.commons.fileupload2.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
 import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.glassfish.jersey.media.multipart.FormDataParam;
@@ -639,8 +639,7 @@ public class UserSvc extends Application {
 		Response response = null;
 		
 		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();	
-		fileItemFactory.setSizeThreshold(5*1024*1024); // 5 MB TODO handle this with exception and redirect to an error page
-		ServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 
 		// Authorisation - Not Required
 		
@@ -738,7 +737,7 @@ public class UserSvc extends Application {
 					    
 					    // 5. Save the file
 					    File savedFile = new File(sigPath);
-					    item.write(savedFile);
+					    item.write(savedFile.toPath());
 					}					
 				}
 

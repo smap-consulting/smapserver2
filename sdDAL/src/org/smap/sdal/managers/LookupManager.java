@@ -19,7 +19,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
 import org.apache.commons.fileupload2.core.FileItem;
-import org.apache.commons.fileupload2.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
 import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.smap.notifications.interfaces.ImageProcessing;
 import org.smap.sdal.Utilities.ApplicationException;
@@ -495,8 +495,7 @@ public class LookupManager {
 		 * Parse the request
 		 */
 		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();
-		fileItemFactory.setSizeThreshold(20*1024*1024);
-		ServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 		try {
 					
 			List<?> items = uploadHandler.parseRequest(request);
@@ -512,7 +511,7 @@ public class LookupManager {
 						contentType = item.getContentType();
 						String filePath = basePath + "/temp/" + tempFileName;								
 						savedFile = new File(filePath);
-						item.write(savedFile);  // Save the new file
+						item.write(savedFile.toPath());  // Save the new file
 					}
 				}
 			}		

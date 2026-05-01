@@ -36,7 +36,7 @@ import jakarta.ws.rs.core.Response.Status;
 
 import org.apache.commons.fileupload2.core.FileItem;
 import org.apache.commons.fileupload2.core.FileUploadException;
-import org.apache.commons.fileupload2.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
 import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
@@ -987,8 +987,7 @@ public class OrganisationList extends Application {
 		Response response = null;
 		
 		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();	
-		fileItemFactory.setSizeThreshold(20*1024*1024); 
-		ServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 
 		String connectionString = "surveyKPI-OrganisationList-updateWebformSettings";
 		// Authorisation - Access
@@ -1147,8 +1146,7 @@ public class OrganisationList extends Application {
 		Response response = null;
 		
 		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();	
-		fileItemFactory.setSizeThreshold(20*1024*1024); 
-		ServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 
 		
 		String connectionString = "surveyKPI-OrganisationList-updateAppearanceSettings";
