@@ -60,12 +60,19 @@ if [ "$NEEDS_TOMCAT_UPGRADE" = "true" ]; then
     cp ../install/config_files/server.xml.tomcat10 /var/lib/tomcat10/conf/server.xml
     cp /tmp/context.xml.bak /var/lib/tomcat10/conf/context.xml
 
+    mkdir -p /var/log/tomcat10
+    chown -R tomcat /var/lib/tomcat10 /var/log/tomcat10
+    chgrp -R tomcat /var/lib/tomcat10 /var/log/tomcat10
+    ln -s /var/lib/tomcat10/logs /var/log/tomcat10/logs 2>/dev/null || true
+
     mkdir -p /etc/systemd/system/tomcat10.service.d
     cp ../install/config_files/tomcat10.service /etc/systemd/system/tomcat10.service
+    JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
+    JH="JAVA_HOME=\"$JAVA_HOME\""
+    sed -i "/JAVA_HOME/c$JH" /etc/systemd/system/tomcat10.service
     cp ../install/config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
     systemctl daemon-reload
     systemctl enable tomcat10
-    chown -R tomcat /var/lib/tomcat10
 
     TOMCAT_VERSION=tomcat10
     TOMCAT_USER=tomcat
