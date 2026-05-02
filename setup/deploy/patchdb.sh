@@ -11,10 +11,7 @@ else
         PSQL="PGPASSWORD=keycar08 psql -h $DBHOST -U postgres"
 fi
 
-# Set flag for ubuntu version (still needed for legacy version-gated patches below)
-u1604=`lsb_release -r | grep -c "16\.04"`
-u1804=`lsb_release -r | grep -c "18\.04"`
-u2004=`lsb_release -r | grep -c "20\.04"`
+# Set flag for ubuntu version
 u2204=`lsb_release -r | grep -c "22\.04"`
 u2404=`lsb_release -r | grep -c "24\.04"`
 u2604=`lsb_release -r | grep -c "26\.04"`
@@ -284,36 +281,12 @@ fi
 # version 16.12
 if [ $version -lt "1612" ]
 then
-	echo '# copy subscriber upstart files'
-	upstart_dir="/etc/init"			
+	echo '# copy subscriber service files'
 	service_dir="/etc/systemd/system"
-	if [ $u1910 -eq 1 ]; then
-		sudo cp ../install/config_files/subscribers.service $service_dir
-		sudo chmod 664 $service_dir/subscribers.service
-		sudo cp ../install/config_files/subscribers_fwd.service $service_dir
-		sudo chmod 664 $service_dir/subscribers_fwd.service
-		
-		sudo sed -i "s#tomcat7#tomcat8#g" $service_dir/subscribers.service
-		sudo sed -i "s#tomcat7#tomcat8#g" $service_dir/subscribers_fwd.service
-	fi
-	
-	if [ $u1804 -eq 1 ]; then
-		sudo cp ../install/config_files/subscribers.service $service_dir
-		sudo chmod 664 $service_dir/subscribers.service
-		sudo cp ../install/config_files/subscribers_fwd.service $service_dir
-		sudo chmod 664 $service_dir/subscribers_fwd.service
-		
-		sudo sed -i "s#tomcat7#tomcat8#g" $service_dir/subscribers.service
-		sudo sed -i "s#tomcat7#tomcat8#g" $service_dir/subscribers_fwd.service
-	fi
-	
-	if [ $u1604 -eq 1 ]; then
-		sudo cp ../install/config_files/subscribers.service $service_dir
-		sudo chmod 664 $service_dir/subscribers.service
-		sudo cp ../install/config_files/subscribers_fwd.service $service_dir
-		sudo chmod 664 $service_dir/subscribers_fwd.service
-	fi
-	
+	sudo cp ../install/config_files/subscribers.service $service_dir/subscribers.service
+	sudo chmod 664 $service_dir/subscribers.service
+	sudo cp ../install/config_files/subscribers_fwd.service $service_dir/subscribers_fwd.service
+	sudo chmod 664 $service_dir/subscribers_fwd.service
 fi
 
 # Version 24.04
@@ -339,17 +312,7 @@ fi
 # Copy the new apache configuration files and tomcat directory access
 # Copy aws credentials
 
-if [ $u2404 -eq 1 ]; then
-    sudo cp  $deploy_from/resources/properties/credentials /var/lib/$TOMCAT_VERSION/.aws
-elif [ $u2204 -eq 1 ]; then
-    sudo cp  $deploy_from/resources/properties/credentials /var/lib/$TOMCAT_VERSION/.aws
-elif [ $u2004 -eq 1 ]; then
-    sudo cp  $deploy_from/resources/properties/credentials /var/lib/$TOMCAT_VERSION/.aws
-elif [ $u1804 -eq 1 ]; then
-    sudo cp  $deploy_from/resources/properties/credentials /var/lib/$TOMCAT_VERSION/.aws
-else
-    sudo cp  $deploy_from/resources/properties/credentials /var/lib/$TOMCAT_VERSION/.aws
-fi
+sudo cp $deploy_from/resources/properties/credentials /var/lib/$TOMCAT_VERSION/.aws
 # update existing credentials
 if [ -f $deploy_from/resources/properties/credentials ]
 then

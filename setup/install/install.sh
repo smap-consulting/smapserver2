@@ -124,8 +124,6 @@ elif [ $u2404 -eq 1 ] || [ $u2204 -eq 1 ]; then
     chgrp -R tomcat /var/lib/tomcat10 /var/log/tomcat10
     ln -s /var/lib/tomcat10/logs /var/log/tomcat10/logs 2>/dev/null || true
     systemctl enable tomcat10
-else
-    sudo apt-get install $TOMCAT_VERSION -y
 fi
 
 echo '##### 5. Install Postgres / Postgis'
@@ -251,9 +249,9 @@ if [ "$config" != "manual" ]; then
 
 	echo '# copy subscriber service files'
 
-	sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
+	sudo cp config_files/subscribers.service $service_dir/subscribers.service
 	sudo chmod 664 $service_dir/subscribers.service
-	sudo cp config_files/subscribers_fwd.service.u2004 $service_dir/subscribers_fwd.service
+	sudo cp config_files/subscribers_fwd.service $service_dir/subscribers_fwd.service
 	sudo chmod 664 $service_dir/subscribers_fwd.service
 
 	sudo systemctl enable subscribers.service
@@ -382,10 +380,12 @@ echo "kernel.shmmax=67068800" | sudo tee -a /etc/sysctl.conf
 # TODO add "-Djava.net.preferIPv4Stack=true" to JAVA_OPTS
 
 echo '##### Increase shared memory available to tomcat'
-if [ ! -f "/etc/default/$TOMCAT_VERSION.bu" ]; then
-	sudo cp /etc/default/$TOMCAT_VERSION  /etc/default/$TOMCAT_VERSION.bu
+if [ -f "/etc/default/$TOMCAT_VERSION" ]; then
+	if [ ! -f "/etc/default/$TOMCAT_VERSION.bu" ]; then
+		sudo cp /etc/default/$TOMCAT_VERSION /etc/default/$TOMCAT_VERSION.bu
+	fi
+	sudo sed -i "s#-Xmx128m#-Xmx512m#g" /etc/default/$TOMCAT_VERSION
 fi
-sudo sed -i "s#-Xmx128m#-Xmx512m#g" /etc/default/$TOMCAT_VERSION
 
 if [ "$DBHOST" = "127.0.0.1" ]; then
     echo '##### Allow logon to postgres authenticated by md5 - used to export shape files'

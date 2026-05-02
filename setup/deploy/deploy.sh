@@ -1,7 +1,6 @@
 #!/bin/sh
 deploy_from="version1"
 # Set flag for ubuntu version
-u2004=`lsb_release -r | grep -c "20\.04"`
 u2204=`lsb_release -r | grep -c "22\.04"`
 u2404=`lsb_release -r | grep -c "24\.04"`
 u2604=`lsb_release -r | grep -c "26\.04"`
@@ -16,12 +15,8 @@ fi
 if [ -d /var/lib/tomcat10 ] || systemctl is-enabled tomcat10 2>/dev/null | grep -q "enabled"; then
     TOMCAT_VERSION=tomcat10
     TOMCAT_USER=tomcat
-elif [ -d /var/lib/tomcat9 ] || systemctl is-enabled tomcat9 2>/dev/null | grep -q "enabled"; then
-    TOMCAT_VERSION=tomcat9
-    TOMCAT_USER=tomcat
-    NEEDS_TOMCAT_UPGRADE=true
 else
-    echo "ERROR: No supported Tomcat installation found"
+    echo "ERROR: Tomcat 10 installation not found. Run patchdb.sh first to migrate from Tomcat 9."
     exit 1
 fi
 
