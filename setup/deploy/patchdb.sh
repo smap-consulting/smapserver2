@@ -19,8 +19,9 @@ u2204=`lsb_release -r | grep -c "22\.04"`
 u2404=`lsb_release -r | grep -c "24\.04"`
 u2604=`lsb_release -r | grep -c "26\.04"`
 
-if [ $u2604 -eq 0 ] && [ $u2404 -eq 0 ] && [ $u2204 -eq 0 ] && [ $u2004 -eq 0 ]; then
-    echo "ERROR: Unsupported Ubuntu version. Smap requires Ubuntu 20.04 or later."
+if [ $u2604 -eq 0 ] && [ $u2404 -eq 0 ] && [ $u2204 -eq 0 ]; then
+    echo "ERROR: Unsupported Ubuntu version. This version of Smap requires Ubuntu 22.04 or later."
+    echo "Your server has not been changed."
     exit 1
 fi
 
@@ -371,14 +372,8 @@ cd ../install
 chmod +x apacheConfig.sh
 ./apacheConfig.sh
 
-if [ $u2604 -eq 1 ] || [ $u2404 -eq 1 ] || [ $u2204 -eq 1 ]; then
-    mkdir -p /etc/systemd/system/tomcat10.service.d
-    cp config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
-fi
-if [ $u2004 -eq 1 ]; then
-    mkdir -p /etc/systemd/system/tomcat9.service.d
-    cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
-fi
+mkdir -p /etc/systemd/system/tomcat10.service.d
+cp config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
 
 # Make sure there is a logging properties file in the settings directory
 if [ ! -f "/smap/settings/smap-logging.properties" ]; then

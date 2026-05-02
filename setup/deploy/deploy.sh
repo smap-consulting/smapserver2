@@ -6,8 +6,9 @@ u2204=`lsb_release -r | grep -c "22\.04"`
 u2404=`lsb_release -r | grep -c "24\.04"`
 u2604=`lsb_release -r | grep -c "26\.04"`
 
-if [ $u2604 -eq 0 ] && [ $u2404 -eq 0 ] && [ $u2204 -eq 0 ] && [ $u2004 -eq 0 ]; then
-    echo "ERROR: Unsupported Ubuntu version. Smap requires Ubuntu 20.04 or later."
+if [ $u2604 -eq 0 ] && [ $u2404 -eq 0 ] && [ $u2204 -eq 0 ]; then
+    echo "ERROR: Unsupported Ubuntu version. This version of Smap requires Ubuntu 22.04 or later."
+    echo "Your server has not been changed."
     exit 1
 fi
 

@@ -20,8 +20,6 @@ if [ $dbhost_set -eq 0 ]; then
 fi
 
 # Set flag for ubuntu version
-u1804=`lsb_release -r | grep -c "18\.04"`
-u2004=`lsb_release -r | grep -c "20\.04"`
 u2204=`lsb_release -r | grep -c "22\.04"`
 u2404=`lsb_release -r | grep -c "24\.04"`
 u2604=`lsb_release -r | grep -c "26\.04"`
@@ -33,31 +31,14 @@ elif [ $u2404 -eq 1 ]; then
     echo "Installing on Ubuntu 24.04"
 elif [ $u2204 -eq 1 ]; then
     echo "Installing on Ubuntu 22.04"
-elif [ $u2004 -eq 1 ]; then
-    echo "Installing on Ubuntu 20.04"
-elif [ $u1804 -eq 1 ]; then
-    echo "Installing on Ubuntu 18.04"
 else
     echo "Unsupported version of Ubuntu, you need 26.04, 24.04, or 22.04"
     exit 1;
 fi
 
-if [ $u2604 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat10
-    TOMCAT_USER=tomcat
-elif [ $u2404 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat10
-    TOMCAT_USER=tomcat
-elif [ $u2204 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat10
-    TOMCAT_USER=tomcat
-elif [ $u2004 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat9
-    TOMCAT_USER=tomcat
-else
-    TOMCAT_VERSION=tomcat8
-    TOMCAT_USER=tomcat8
-fi
+
+TOMCAT_VERSION=tomcat10
+TOMCAT_USER=tomcat
 
 CATALINA_HOME=/var/lib/$TOMCAT_VERSION
 sd="survey_definitions"											# Postgres config survey definitions db name
@@ -168,16 +149,6 @@ if [ "$DBHOST" = "127.0.0.1" ]; then
         PGV=14
     fi
 
-    # Install Postgres for Ubuntu 20.04
-    if [ $u2004 -eq 1 ]; then
-        PGV=12
-    fi
-
-    # Install Postgres for Ubuntu 18.04
-    if [ $u1804 -eq 1 ]; then
-        PGV=10
-    fi
-
     sudo apt-get install postgresql postgresql-contrib postgis -y
     pg_conf="/etc/postgresql/$PGV/main/postgresql.conf"
 
@@ -202,36 +173,22 @@ sudo mkdir $filelocn/temp
 sudo mkdir $filelocn/settings
 
 # Allow tomcat to write to /smap (systemd override)
-if [ $u2604 -eq 1 ] || [ $u2404 -eq 1 ] || [ $u2204 -eq 1 ]; then
-    mkdir -p /etc/systemd/system/tomcat10.service.d
-    cp config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
-fi
-
-if [ $u2004 -eq 1 ]; then
-    mkdir -p /etc/systemd/system/tomcat9.service.d
-    cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
-fi
+mkdir -p /etc/systemd/system/tomcat10.service.d
+cp config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
 
 # Make sure all subdirectories of filelocn are updated even if the latter is a symbolic link
 sudo chown -R $TOMCAT_USER $filelocn
 sudo chown -R $TOMCAT_USER $filelocn/*
 sudo chmod -R 0777 $filelocn/*
 
-if [ $u2004 -eq 1 ]; then
-    sudo mkdir /var/lib/$TOMCAT_VERSION/.aws
-    sudo chown -R $TOMCAT_USER /var/lib/$TOMCAT_VERSION/.aws
-elif [ $u1804 -eq 1 ]; then
-    sudo mkdir /var/lib/$TOMCAT_VERSION/.aws
-    sudo chown -R $TOMCAT_USER /var/lib/$TOMCAT_VERSION/.aws
-else
-    sudo mkdir /var/lib/$TOMCAT_VERSION/.aws
-    sudo chown -R $TOMCAT_USER /var/lib/$TOMCAT_VERSION/.aws
-fi
+sudo mkdir /var/lib/$TOMCAT_VERSION/.aws
+sudo chown -R $TOMCAT_USER /var/lib/$TOMCAT_VERSION/.aws
+
 
 # If auto configuration is set then copy the pre-set configuration files to their target destination
 
-if [ "$config" != "manual" ]
-then
+if [ "$config" != "manual" ]; then
+
 	echo '##### 7. Copying configuration files'
 
 	sudo service apache2 stop
@@ -293,15 +250,16 @@ then
 	sudo ./apacheConfig.sh
 
 	echo '# copy subscriber upstart files'
-	if [ $u2404 -eq 1 ]; then
-		sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
-		sudo chmod 664 $service_dir/subscribers.service
-		sudo cp config_files/subscribers_fwd.service.u2004 $service_dir/subscribers_fwd.service
-		sudo chmod 664 $service_dir/subscribers_fwd.service
-		
-		sudo systemctl enable subscribers.service
-		sudo systemctl enable subscribers_fwd.service
-	fi
+
+    if [ $u2404 -eq 1 ]; then
+        sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
+        sudo chmod 664 $service_dir/subscribers.service
+        sudo cp config_files/subscribers_fwd.service.u2004 $service_dir/subscribers_fwd.service
+        sudo chmod 664 $service_dir/subscribers_fwd.service
+  
+        sudo systemctl enable subscribers.service
+        sudo systemctl enable subscribers_fwd.service
+    fi
 
 	if [ $u2204 -eq 1 ]; then
 		sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
@@ -313,27 +271,7 @@ then
 		sudo systemctl enable subscribers_fwd.service
 	fi
 
-	if [ $u2004 -eq 1 ]; then
-		sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
-		sudo chmod 664 $service_dir/subscribers.service
-		sudo cp config_files/subscribers_fwd.service.u2004 $service_dir/subscribers_fwd.service
-		sudo chmod 664 $service_dir/subscribers_fwd.service
-		
-		sudo systemctl enable subscribers.service
-		sudo systemctl enable subscribers_fwd.service
-	fi
-
-	if [ $u1804 -eq 1 ]; then
-		sudo cp config_files/subscribers.service $service_dir
-		sudo chmod 664 $service_dir/subscribers.service
-		sudo cp config_files/subscribers_fwd.service $service_dir
-		sudo chmod 664 $service_dir/subscribers_fwd.service
-		
-		sudo systemctl enable subscribers.service
-		sudo systemctl enable subscribers_fwd.service
-	fi
-	
-        if [ "$DBHOST" = "127.0.0.1" ]; then
+    if [ "$DBHOST" = "127.0.0.1" ]; then
 	    echo '# update bu.sh file'
 	    sudo cp bu.sh ~postgres/bu.sh
 	    sudo chown postgres ~postgres/bu.sh
