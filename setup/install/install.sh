@@ -249,27 +249,15 @@ if [ "$config" != "manual" ]; then
 	chmod +x apacheConfig.sh
 	sudo ./apacheConfig.sh
 
-	echo '# copy subscriber upstart files'
+	echo '# copy subscriber service files'
 
-    if [ $u2404 -eq 1 ]; then
-        sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
-        sudo chmod 664 $service_dir/subscribers.service
-        sudo cp config_files/subscribers_fwd.service.u2004 $service_dir/subscribers_fwd.service
-        sudo chmod 664 $service_dir/subscribers_fwd.service
-  
-        sudo systemctl enable subscribers.service
-        sudo systemctl enable subscribers_fwd.service
-    fi
+	sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
+	sudo chmod 664 $service_dir/subscribers.service
+	sudo cp config_files/subscribers_fwd.service.u2004 $service_dir/subscribers_fwd.service
+	sudo chmod 664 $service_dir/subscribers_fwd.service
 
-	if [ $u2204 -eq 1 ]; then
-		sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
-		sudo chmod 664 $service_dir/subscribers.service
-		sudo cp config_files/subscribers_fwd.service.u2004 $service_dir/subscribers_fwd.service
-		sudo chmod 664 $service_dir/subscribers_fwd.service
-		
-		sudo systemctl enable subscribers.service
-		sudo systemctl enable subscribers_fwd.service
-	fi
+	sudo systemctl enable subscribers.service
+	sudo systemctl enable subscribers_fwd.service
 
     if [ "$DBHOST" = "127.0.0.1" ]; then
 	    echo '# update bu.sh file'
