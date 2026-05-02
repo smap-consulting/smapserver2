@@ -907,36 +907,6 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Return true if the user is an administrator
-	 *
-	static public boolean isAdminUser(Connection con, String ident) {
-
-		String sql = "select count(*) " 
-				+ "from users u, user_group ug " 
-				+ "where u.id = ug.u_id "
-				+ "and ug.g_id = 1 " 
-				+ "and u.ident = ? ";
-
-		boolean isAdmin = false;
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = con.prepareStatement(sql);
-			pstmt.setString(1, ident);
-			ResultSet resultSet = pstmt.executeQuery();
-
-			if (resultSet.next()) {
-				isAdmin = (resultSet.getInt(1) > 0);
-			}
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Error", e);
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-		}
-		return isAdmin;
-	}
-	*/
-	
-	/*
 	 * Return true if the user is a super user
 	 */
 	static public boolean isSuperUser(Connection sd, String user) throws SQLException {
@@ -1829,12 +1799,13 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Get the user id from the user ident
+	 * Include an organisation check
 	 */
 	static public int getUserIdOrgCheck(Connection sd, String user, int oId) throws SQLException {
 
 		int id = -1;
 
-		String sql = "select id " + " from users u " + " where u.ident = ? and u.o_id = ?;";
+		String sql = "select id from users u where u.ident = ? and u.o_id = ?";
 
 		PreparedStatement pstmt = null;
 
