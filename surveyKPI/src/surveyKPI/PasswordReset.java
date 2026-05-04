@@ -185,12 +185,12 @@ public class PasswordReset extends Application {
 								null,		// organisation name
 								null,
 								null,
-								email, 
-								"bcc", 
-								subject, 
-								content.toString(), 
-								null, 
-								null, 
+								email,
+								"bcc",
+								subject,
+								content.toString(),
+								null,
+								null,
 								emailServer,
 								request.getServerName(),
 								subStatus.emailKey,
@@ -198,7 +198,8 @@ public class PasswordReset extends Application {
 								null,
 								null,
 								null,
-								GeneralUtilityMethods.getNextEmailId(sd, null));
+								GeneralUtilityMethods.getNextEmailId(sd, null),
+								null);
 
 						UtilityMethodsEmail.reportOnetimePasswordSent(sd, email);
 

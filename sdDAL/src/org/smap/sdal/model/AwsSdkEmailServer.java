@@ -16,21 +16,20 @@ public class AwsSdkEmailServer extends EmailServer {
 	}
 	
 	@Override
-	public void send(String email, String ccType, String subject, String emailId, String contentString, String filePath,
-			String filename) throws Exception {
+	public String send(String email, String ccType, String subject, String emailId, String contentString, String filePath,
+			String filename, String replyTo) throws Exception {
 
-		/*
-		 * Get an array list of internet addresses
-		 */
 		log.fine("Sending to email addresses via aws: " + email);
-		
+
 		InternetAddress[] emailArray = InternetAddress.parse(email);
 		log.fine("Number of email addresses: " + emailArray.length);
+		String firstMessageId = null;
 		for(InternetAddress recipient : emailArray) {
 			InternetAddress[] recipientArray = new InternetAddress[] {recipient};
-			ses.sendSES(recipientArray, subject, emailId, contentString, filePath, filename);	// Send each email separately
-		}	
-		
+			String mid = ses.sendSES(recipientArray, subject, emailId, contentString, filePath, filename, replyTo);
+			if(firstMessageId == null) firstMessageId = mid;
+		}
+		return firstMessageId;
 	}
 
 }

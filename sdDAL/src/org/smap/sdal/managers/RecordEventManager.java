@@ -15,6 +15,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.ConversationItemDetails;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.DataItemChangeEvent;
+import org.smap.sdal.model.EmailReplyData;
 import org.smap.sdal.model.RecordUpdateEvent;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.TaskEventChange;
@@ -62,6 +63,7 @@ public class RecordEventManager {
 	public static String INBOUND_MESSAGE = "inbound_msg";
 	public static String OUTBOUND_MESSAGE = "outbound_msg";
 	public static String NEW_CASE = "new_case";
+	public static String EMAIL_REPLY = "email_reply";
 	
 	public static String STATUS_SUCCESS = "success";
 	public static String STATUS_NEW = "new";
@@ -406,7 +408,14 @@ public class RecordEventManager {
 				if(notification != null) {
 					event.notification = gson.fromJson(notification, SubmissionMessage.class);
 				}
-				
+
+				if(EMAIL_REPLY.equals(event.event)) {
+					String replyMsg = rs.getString("message");
+					if(replyMsg != null) {
+						event.emailReply = gson.fromJson(replyMsg, EmailReplyData.class);
+					}
+				}
+
 				event.description = rs.getString("description");
 				
 				String sIdent = rs.getString("change_survey");
@@ -523,6 +532,46 @@ public class RecordEventManager {
 		return events;
 	}
 	
+	public void writeEmailReply(Connection sd, Connection cResults,
+			String instanceId, String surveyIdent, int messageId, EmailReplyData reply) throws SQLException {
+
+		String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, surveyIdent);
+		if(tableName == null) {
+			log.warning("writeEmailReply: no table found for survey " + surveyIdent);
+			return;
+		}
+		String key = GeneralUtilityMethods.getThread(cResults, tableName, instanceId);
+		if(key == null) {
+			log.warning("writeEmailReply: no thread key for instance " + instanceId);
+			return;
+		}
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
+		String sql = "insert into record_event ("
+				+ "key, table_name, event, status, instanceid, message, description, "
+				+ "success, ses_message_id, event_time) "
+				+ "values(?, ?, ?, ?, ?, ?, ?, true, ?, "
+				+ "?::timestamptz)";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, key);
+			pstmt.setString(2, tableName);
+			pstmt.setString(3, EMAIL_REPLY);
+			pstmt.setString(4, STATUS_SUCCESS);
+			pstmt.setString(5, instanceId);
+			pstmt.setString(6, gson.toJson(reply));
+			pstmt.setString(7, "Reply from " + reply.fromAddress);
+			pstmt.setString(8, reply.replyMessageId);
+			pstmt.setString(9, reply.sentAt != null ? reply.sentAt : "1970-01-01T00:00:00Z");
+			log.fine("Write email reply: " + pstmt.toString());
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) try{pstmt.close();}catch(Exception e){}
+		}
+	}
+
 	public void deleteTableEvents(Connection sd, String tableName) throws SQLException {
 		
 		String sql = "delete from record_event where table_name = ?";

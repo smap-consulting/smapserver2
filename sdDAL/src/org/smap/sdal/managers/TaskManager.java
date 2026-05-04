@@ -3552,10 +3552,10 @@ public class TaskManager {
 													organisation.name,
 													msg.tgName,
 													projectName,
-													ia.getAddress(),  
-													"bcc", 
-													subject, 
-													content.toString(), 
+													ia.getAddress(),
+													"bcc",
+													subject,
+													content.toString(),
 													filePath,
 													filename,
 													emailServer,
@@ -3565,7 +3565,8 @@ public class TaskManager {
 													null,
 													organisation.getAdminEmail(),
 													organisation.getEmailFooter(),
-													GeneralUtilityMethods.getNextEmailId(sd, null));
+													GeneralUtilityMethods.getNextEmailId(sd, null),
+													null);
 											
 											setAssignmentStatus(sd, msg.aId, "accepted");
 											

@@ -1942,6 +1942,21 @@ public class GeneralUtilityMethods {
 		return name;
 	}
 
+	static public String getUserNameFromIdent(Connection sd, String ident) throws SQLException {
+		String name = null;
+		String sql = "select name from users where ident = ?";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, ident);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) name = rs.getString(1);
+		} finally {
+			try {if(pstmt != null) {pstmt.close();}} catch(Exception e) {}
+		}
+		return name;
+	}
+
 	/*
 	 * Get the user email from the user ident
 	 */

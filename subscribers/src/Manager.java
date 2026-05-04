@@ -182,6 +182,12 @@ public class Manager {
 			MessageProcessor messageProcessor1 = new MessageProcessor();
 			messageProcessor1.go(smapId, fileLocn, "qm1", hostname, subscriberType, pid);
 
+			/*
+			 * Start the email response processor (polls S3 for inbound reply emails)
+			 */
+			EmailResponseProcessor emailResponseProcessor = new EmailResponseProcessor();
+			emailResponseProcessor.go(smapId, fileLocn, hostname, pid);
+
 		} else {
 			// Start the default submission queue processor in the upload subscriber
 			SubmissionProcessor subProcessor = new SubmissionProcessor();

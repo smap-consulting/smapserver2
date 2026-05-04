@@ -1114,12 +1114,21 @@ public class NotificationManager {
 						status = resp.status;
 						error_details = resp.error_details;
 						writeToMonitor = resp.writeToMonitor;
+						if(writeToMonitor) {
+							writeToLog(sd, organisation.id, msg.pId, surveyId, notify_details, status,
+									error_details, messageId, msg.target, resp.awsSesMessageId);
+							String logTopic = (status != null && status.toLowerCase().equals("error"))
+									? LogManager.NOTIFICATION_ERROR : LogManager.NOTIFICATION;
+							lm.writeLog(sd, surveyId, "subscriber", logTopic,
+									status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null);
+							writeToMonitor = false;
+						}
 					} catch (Exception e) {
 						status = "error";
 						error_details = e.getMessage();
 					}
-					
-				} else if(msg.target.equals("sms")) {   // SMS URL notification - SMS message is posted to an arbitrary URL 
+
+				} else if(msg.target.equals("sms")) {   // SMS URL notification - SMS message is posted to an arbitrary URL
 
 					// Get the URL to use in sending the SMS
 					HashMap<String, String> sentEndPoints = new HashMap<> ();
@@ -1786,12 +1795,12 @@ public class NotificationManager {
 													organisation.name,
 													null,
 													null,
-													ia.getAddress(), 
-													"bcc", 
-													subject, 
-													content.toString(), 
-													null, 
-													null, 
+													ia.getAddress(),
+													"bcc",
+													subject,
+													content.toString(),
+													null,
+													null,
 													emailServer,
 													serverName,
 													subStatus.emailKey,
@@ -1799,7 +1808,8 @@ public class NotificationManager {
 													null,
 													organisation.getAdminEmail(),
 													organisation.getEmailFooter(),
-													GeneralUtilityMethods.getNextEmailId(sd, null));
+													GeneralUtilityMethods.getNextEmailId(sd, null),
+													null);
 										} else {
 											/*
 											 * User needs to opt in before email can be sent
@@ -1938,10 +1948,15 @@ public class NotificationManager {
 
 	public void writeToLog(Connection sd, int oId, int pId, int surveyId, String notify_details,
 			String status, String error_details, int messageId, String target) throws SQLException {
+		writeToLog(sd, oId, pId, surveyId, notify_details, status, error_details, messageId, target, null);
+	}
+
+	public void writeToLog(Connection sd, int oId, int pId, int surveyId, String notify_details,
+			String status, String error_details, int messageId, String target, String awsSesMessageId) throws SQLException {
 		PreparedStatement pstmt = null;
 		String sql = "insert into notification_log " +
-				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type) " +
-				"values( ?, ?,?, ?, ?, ?, now(), ?, ?); ";
+				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type, aws_message_id) " +
+				"values( ?, ?, ?, ?, ?, ?, now(), ?, ?, ?); ";
 
 		/*
 		 * Project Ids in notifications are no longer reliable as the survey Id is used to idnetify the project
@@ -1950,7 +1965,7 @@ public class NotificationManager {
 		if(pId <= 0 && surveyId > 0) {
 			pId = GeneralUtilityMethods.getProjectId(sd, surveyId);
 		}
-		
+
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
@@ -1961,6 +1976,7 @@ public class NotificationManager {
 			pstmt.setString(6, error_details);
 			pstmt.setInt(7, messageId);
 			pstmt.setString(8, target);
+			pstmt.setString(9, awsSesMessageId);
 
 			pstmt.executeUpdate();
 		} finally {

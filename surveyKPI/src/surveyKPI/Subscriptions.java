@@ -174,12 +174,12 @@ public class Subscriptions extends Application {
 								o.name,
 								null,
 								null,
-								email, 
-								"bcc", 
-								localisation.getString("c_s"), 
-								content.toString(), 
-								null, 
-								null, 
+								email,
+								"bcc",
+								localisation.getString("c_s"),
+								content.toString(),
+								null,
+								null,
 								emailServer,
 								request.getServerName(),
 								key,
@@ -187,7 +187,8 @@ public class Subscriptions extends Application {
 								null,
 								adminEmail,
 								null,
-								GeneralUtilityMethods.getNextEmailId(sd, null));
+								GeneralUtilityMethods.getNextEmailId(sd, null),
+								null);
 						
 						response = Response.ok().build();
 					} else {

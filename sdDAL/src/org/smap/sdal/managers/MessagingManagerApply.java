@@ -326,21 +326,21 @@ public class MessagingManagerApply {
 													organisation.name,
 													null,
 													null,
-													ia.getAddress(), 	// email
+													ia.getAddress(),
 													"bcc",
-													subject, 
-													content.toString(), 
+													subject,
+													content.toString(),
 													null,
 													null,
 													emailServer,
-													serverName, 
+													serverName,
 													subStatus.emailKey,
 													localisation,
 													null,
-													organisation.getAdminEmail(), 
+													organisation.getAdminEmail(),
 													null,
-													GeneralUtilityMethods.getNextEmailId(sd, null)
-													);
+													GeneralUtilityMethods.getNextEmailId(sd, null),
+													null);
 										}
 									}
 								} catch (Exception e) {

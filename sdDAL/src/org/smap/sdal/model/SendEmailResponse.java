@@ -5,4 +5,5 @@ public class SendEmailResponse {
 	public String status = null;
 	public String error_details = null;
 	public boolean writeToMonitor = true;
+	public String awsSesMessageId = null;
 }

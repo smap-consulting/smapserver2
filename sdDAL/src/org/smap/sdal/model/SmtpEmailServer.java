@@ -42,11 +42,12 @@ public class SmtpEmailServer extends EmailServer {
 	}
 	
 	@Override
-	public void send(String email, String ccType, String subject, 
-			String emailId, 
+	public String send(String email, String ccType, String subject,
+			String emailId,
 			String contentString,
 			String filePath,
-			String filename) throws Exception {
+			String filename,
+			String replyTo) throws Exception {
 		
 		if(smtpHost == null) {
 			throw new Exception("Cannot send email, smtp_host not available");
@@ -101,7 +102,8 @@ public class SmtpEmailServer extends EmailServer {
 			log.fine("Sending email from: (sendEmailHtml2) " + sender);
 	
 			Transport.send(msg);
-			
+			return null;
+
 		} catch(AuthenticationFailedException ae) { 
 			log.log(Level.SEVERE, "Messaging Exception", ae);
 			throw new Exception(localisation.getString("email_cs") + ":  " + localisation.getString("ae"));

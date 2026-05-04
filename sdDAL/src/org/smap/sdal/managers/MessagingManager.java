@@ -293,12 +293,12 @@ public class MessagingManager {
 						GeneralUtilityMethods.getOrganisationName(sd, oId),
 						null,
 						null,
-						email, 
-						"bcc", 
-						localisation.getString("c_opt_in_subject"), 
-						content.toString(), 
-						null, 
-						null, 
+						email,
+						"bcc",
+						localisation.getString("c_opt_in_subject"),
+						content.toString(),
+						null,
+						null,
 						emailServer,
 						server,
 						emailKey,
@@ -306,7 +306,8 @@ public class MessagingManager {
 						null,
 						adminEmail,
 						null,
-						GeneralUtilityMethods.getNextEmailId(sd, null));
+						GeneralUtilityMethods.getNextEmailId(sd, null),
+						null);
 				
 			} else {
 				log.fine("##### - Specific optin message does not need to be sent");

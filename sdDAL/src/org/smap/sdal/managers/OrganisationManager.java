@@ -241,12 +241,12 @@ public class OrganisationManager {
 										originalOrg.name,
 										null,
 										null,
-										originalOrg.getAdminEmail(), 
-										"bcc", 
-										subject, 
-										contentBuilder.toString(), 
-										null, 
-										null, 
+										originalOrg.getAdminEmail(),
+										"bcc",
+										subject,
+										contentBuilder.toString(),
+										null,
+										null,
 										emailServer,
 										serverName,
 										subStatus.emailKey,
@@ -254,7 +254,8 @@ public class OrganisationManager {
 										null,
 										null,
 										null,
-										GeneralUtilityMethods.getNextEmailId(sd, null));
+										GeneralUtilityMethods.getNextEmailId(sd, null),
+										null);
 							} catch(Exception e) {
 								lm.writeLogOrganisation(sd, o.id, userIdent, LogManager.ORGANISATION_UPDATE, e.getMessage(), 0);
 							}

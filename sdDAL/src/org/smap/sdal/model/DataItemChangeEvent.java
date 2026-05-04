@@ -18,5 +18,6 @@ public class DataItemChangeEvent {
 	public TaskItemChange task;
 	public ConversationItemDetails message;
 	public SubmissionMessage notification;
-	public String description;	
+	public EmailReplyData emailReply;
+	public String description;
 }

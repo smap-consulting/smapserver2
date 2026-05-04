@@ -780,12 +780,12 @@ public class UserManager {
 						organisation.name,
 						null,
 						null,
-						u.email, 
-						"bcc", 
-						subject, 
-						content.toString(), 
-						null, 
-						null, 
+						u.email,
+						"bcc",
+						subject,
+						content.toString(),
+						null,
+						null,
 						emailServer,
 						serverName,
 						subStatus.emailKey,
@@ -793,7 +793,8 @@ public class UserManager {
 						customTokens,
 						organisation.getAdminEmail(),
 						organisation.getEmailFooter(),
-						GeneralUtilityMethods.getNextEmailId(sd, null));
+						GeneralUtilityMethods.getNextEmailId(sd, null),
+						null);
 
 			}
 			

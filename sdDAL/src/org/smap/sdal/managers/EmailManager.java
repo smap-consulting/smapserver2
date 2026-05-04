@@ -1,14 +1,18 @@
 package org.smap.sdal.managers;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.google.gson.JsonObject;
 
 import javax.mail.internet.InternetAddress;
 import org.smap.sdal.Utilities.ApplicationException;
@@ -110,12 +114,12 @@ public class EmailManager {
 									org.name,
 									null,
 									null,
-									org.getAdminEmail(), 
-									"bcc", 
-									subject, 
-									content.toString(), 
-									null, 
-									null, 
+									org.getAdminEmail(),
+									"bcc",
+									subject,
+									content.toString(),
+									null,
+									null,
 									emailServer,
 									serverName,
 									subStatus.emailKey,
@@ -123,7 +127,8 @@ public class EmailManager {
 									customTokens,
 									null,
 									null,
-									emailId);	
+									emailId,
+									null);
 						} catch(Exception e) {
 							lm.writeLogOrganisation(sd, oId, userIdent, LogManager.EMAIL, e.getMessage(), 0);
 						}
@@ -242,11 +247,34 @@ public class EmailManager {
 						" smtp_host: " + emailServer.smtpHost +
 						" email_domain: " + emailServer.emailDomain);
 				try {
+					// Build reply-to address for AWS sends when reply tracking is configured
+					String replyTo = null;
+					if(msg != null && msg.instanceId != null && msg.survey_ident != null
+							&& emailServer instanceof org.smap.sdal.model.AwsSdkEmailServer) {
+						try {
+							String[] rc = getEmailResponseConfig(sd);
+							if(rc != null) {
+								String senderName = GeneralUtilityMethods.getUserNameFromIdent(sd, user);
+								if(senderName == null || senderName.trim().isEmpty()) senderName = user;
+								JsonObject payload = new JsonObject();
+								payload.addProperty("ii", msg.instanceId);
+								payload.addProperty("si", msg.survey_ident);
+								payload.addProperty("mi", messageId);
+								String encoded = Base64.getUrlEncoder().withoutPadding()
+										.encodeToString(payload.toString().getBytes(StandardCharsets.UTF_8));
+								replyTo = "\"" + senderName.replace("\"", "'") + "\" <reply+"
+										+ encoded + "@" + rc[1] + ">";
+							}
+						} catch(Exception e) {
+							log.log(Level.WARNING, "Failed to generate reply-to address", e);
+						}
+					}
+
 					PeopleManager peopleMgr = new PeopleManager(localisation);
 					InternetAddress[] emailArray = InternetAddress.parse(emails);
-							
-					for(InternetAddress ia : emailArray) {	
-						SubscriptionStatus subStatus = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());				
+
+					for(InternetAddress ia : emailArray) {
+						SubscriptionStatus subStatus = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());
 						/*
 						 * If this email address is unsubscribed and we care if they are unsubscribed,
 						 * which is shown by the unsubscribed list not being null, then we just record that they
@@ -258,15 +286,15 @@ public class EmailManager {
 						} else {
 							log.fine("#########: Email " + ia.getAddress() + " Opted in: " + subStatus.optedIn + "org:  " + !organisation.send_optin);
 							if(subStatus.optedIn || !organisation.send_optin) {
-								sendEmailHtml(
-										msg != null ? msg.notificationName : null,				
+								String mid = sendEmailHtml(
+										msg != null ? msg.notificationName : null,
 										organisation.name,
 										null,
 										projectName,
-										ia.getAddress(),  
-										"bcc", 
-										subject, 
-										content.toString(), 
+										ia.getAddress(),
+										"bcc",
+										subject,
+										content.toString(),
 										filePath,
 										filename,
 										emailServer,
@@ -276,7 +304,9 @@ public class EmailManager {
 										null,
 										organisation.getAdminEmail(),
 										organisation.getEmailFooter(),
-										GeneralUtilityMethods.getNextEmailId(sd, caseReference));
+										GeneralUtilityMethods.getNextEmailId(sd, caseReference),
+										replyTo);
+								if(resp.awsSesMessageId == null) resp.awsSesMessageId = mid;
 
 							} else {
 								/*
@@ -320,17 +350,17 @@ public class EmailManager {
 		return resp;
 	}
 	
-	// Send an email using HTML format
-	public void sendEmailHtml( 
+	// Send an email using HTML format; returns SES MessageId or null
+	public String sendEmailHtml(
 			String notificationName,
 			String orgName,
 			String tgName,
 			String projectName,
-			String email, 
-			String ccType, 
+			String email,
+			String ccType,
 			String subject,
 			String template,
-			String filePath,	// The next two parameters are for an attachment TODO make an array
+			String filePath,
 			String filename,
 			EmailServer emailServer,
 			String serverName,
@@ -339,7 +369,8 @@ public class EmailManager {
 			HashMap<String, String> tokens,
 			String adminEmail,
 			String orgFooter,
-			String emailId) throws Exception  {
+			String emailId,
+			String replyTo) throws Exception  {
 
 		/* 
 		 * Create the content
@@ -418,11 +449,12 @@ public class EmailManager {
 		/*
 		 * Send the email
 		 */
-		emailServer.send(email, ccType, subject, 
-						emailId, 
+		return emailServer.send(email, ccType, subject,
+						emailId,
 						contentString,
 						filePath,
-						filename);
+						filename,
+						replyTo);
 	}
 	
 	boolean alertEmailSent(Connection sd, int oId, String type) throws SQLException {
@@ -620,6 +652,28 @@ public class EmailManager {
 				}
 			}
 		}
+	}
+
+	// Returns [bucket, domain] if AWS reply tracking is configured, else null
+	private String[] getEmailResponseConfig(Connection sd) throws SQLException {
+		String sql = "select email_type, email_response_bucket, email_response_domain from server";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				String type   = rs.getString("email_type");
+				String bucket = rs.getString("email_response_bucket");
+				String domain = rs.getString("email_response_domain");
+				if("awssdk".equals(type) && bucket != null && !bucket.isEmpty()
+						&& domain != null && !domain.isEmpty()) {
+					return new String[]{bucket, domain};
+				}
+			}
+		} finally {
+			try {if(pstmt != null) {pstmt.close();}} catch(Exception e) {}
+		}
+		return null;
 	}
 }
 

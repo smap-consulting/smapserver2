@@ -115,6 +115,8 @@ create TABLE server (
 	email_user text,
 	email_password text,
 	email_port integer,
+	email_response_bucket text,
+	email_response_domain text,
 	version text,
 	mapbox_default text,
 	google_key text,
@@ -710,11 +712,13 @@ CREATE TABLE record_event (
 	change_survey text,							-- Survey ident that applied the change
 	change_survey_version integer,				-- Survey version that made the change	
 	assignment_id integer,						-- Record if this is an task event	
-	task_id integer,								-- Record if this is an task event	
+	task_id integer,							-- Record if this is an task event	
+	ses_message_id text,						-- Message ID from AWS SES response
 	event_time TIMESTAMP WITH TIME ZONE			-- Time and date of event
 	);
 CREATE INDEX record_event_key ON record_event(key);
 create index idx_record_event_table_name on record_event (table_name);
+create unique index if not exists record_event_ses_message_id_idx on record_event(ses_message_id) where ses_message_id is not null;
 ALTER TABLE record_event OWNER TO ws;
 
 
@@ -919,7 +923,8 @@ CREATE TABLE public.notification_log (
 	status_details text,
 	event_time TIMESTAMP WITH TIME ZONE,
 	message_id integer,			-- Identifier from the message queue that triggered this notification
-	type text					-- Notification type, submission || reminder || task
+	type text,					-- Notification type, submission || reminder || task
+	aws_message_id text			-- Message ID from AWS email response queue
 	);
 ALTER TABLE notification_log OWNER TO ws;
 

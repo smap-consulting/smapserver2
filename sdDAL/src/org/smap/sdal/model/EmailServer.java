@@ -22,9 +22,11 @@ abstract public class EmailServer {
 		this.localisation = localisation;
 	}
 	
-	public abstract void send(String email, String ccType, String subject, 
-			String emailId, 
+	// Returns SES MessageId for AWS sends; null for SMTP
+	public abstract String send(String email, String ccType, String subject,
+			String emailId,
 			String contentString,
 			String filePath,
-			String filename) throws Exception;
+			String filename,
+			String replyTo) throws Exception;
 }

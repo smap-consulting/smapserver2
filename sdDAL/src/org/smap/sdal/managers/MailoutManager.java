@@ -759,12 +759,12 @@ public class MailoutManager {
 													organisation.name,
 													null,
 													projectName,
-													ia.getAddress(), 
-													"bcc", 
-													subject, 
-													content.toString(), 
-													null, 
-													null, 
+													ia.getAddress(),
+													"bcc",
+													subject,
+													content.toString(),
+													null,
+													null,
 													emailServer,
 													server,
 													subStatus.emailKey,
@@ -772,8 +772,8 @@ public class MailoutManager {
 													null,
 													organisation.getAdminEmail(),
 													organisation.getEmailFooter(),
-													GeneralUtilityMethods.getNextEmailId(sd, null)
-													);
+													GeneralUtilityMethods.getNextEmailId(sd, null),
+													null);
 											
 											if(subStatus.optedInSent == null) {
 												mm.sendOptinEmail(sd, organisation.id, ia.getAddress(), 

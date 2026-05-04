@@ -345,3 +345,10 @@ create unique index if not exists submission_queue_instanceid_idx on submission_
 
 -- Show form index panel in webforms
 alter table survey add column if not exists show_form_index boolean default false;
+
+-- Version 26.05 Email reply tracking
+alter table server add column if not exists email_response_bucket text;
+alter table server add column if not exists email_response_domain text;
+alter table notification_log add column if not exists aws_message_id text;
+alter table record_event add column if not exists ses_message_id text;
+create unique index if not exists record_event_ses_message_id_idx on record_event(ses_message_id) where ses_message_id is not null;
