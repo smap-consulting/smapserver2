@@ -18,23 +18,23 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Application;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.FormParam;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Application;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import org.apache.commons.fileupload2.core.FileItem;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
+import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -638,9 +638,8 @@ public class UserSvc extends Application {
 		
 		Response response = null;
 		
-		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();	
-		fileItemFactory.setSizeThreshold(5*1024*1024); // 5 MB TODO handle this with exception and redirect to an error page
-		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();	
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 
 		// Authorisation - Not Required
 		
@@ -738,7 +737,7 @@ public class UserSvc extends Application {
 					    
 					    // 5. Save the file
 					    File savedFile = new File(sigPath);
-					    item.write(savedFile);
+					    item.write(savedFile.toPath());
 					}					
 				}
 

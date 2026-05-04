@@ -2,7 +2,7 @@ package surveyKPI;
 
 import java.util.ArrayList;
 
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.internet.InternetAddress;
 
 /*
 This file is part of SMAP.
@@ -22,11 +22,11 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Application;
-import javax.ws.rs.core.Context;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.Application;
+import jakarta.ws.rs.core.Context;
 import org.smap.notifications.interfaces.EmitAwsSES;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;

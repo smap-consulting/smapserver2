@@ -30,10 +30,10 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
@@ -441,12 +441,8 @@ public class XLSXAdminReportsManagerFormAccess {
 					ArrayList<SqlFrag> rfArray = rm.getSurveyRowFilter(sd, formIdent, u.ident);				
 					if (rfArray.size() > 0) {
 						filter = rm.convertSqlFragsToSql(rfArray);
-						if(pstmt != null ) {try{pstmt.close();} catch (Exception e) {}}
-						pstmt = sd.prepareStatement(filter);	// Not the right database but we are not going to execute this query
-						GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, 1, "UTC");
-						
 						cell = row.createCell(colNumber++);	// Role
-						cell.setCellValue( GeneralUtilityMethods.getStringFromStatement(pstmt));
+						cell.setCellValue(GeneralUtilityMethods.interpolateSql(filter, rfArray, "UTC"));
 					}
 					
 				}

@@ -51,8 +51,8 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -3092,7 +3092,7 @@ public class GeneralUtilityMethods {
 			String sqlLanguages = "select id, language, code, rtl from language where s_id = ? order by seq asc";		
 			pstmt = sd.prepareStatement(sqlLanguages);
 			pstmt.setInt(1, sId);
-			log.fine("Get languages: " + GeneralUtilityMethods.getStringFromStatement(pstmt));
+			log.fine("Get languages: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				languages.add(new Language(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getBoolean(4)));
@@ -11313,26 +11313,73 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Return a string representation of a prepared statement
-	 * Some JDBC drivers return an object
+	 * Return SQL with ? placeholders replaced by their literal values.
+	 * Use instead of PreparedStatement.toString() which is driver-version-specific.
 	 */
-	public static String getStringFromStatement(PreparedStatement pstmt) {
-		String response = "";
-		
-		if(pstmt != null) {
-			response = pstmt.toString().trim();
-			if(response.startsWith("org.apache.tomcat.jdbc")) {
-				int idx = response.indexOf("Query=");
-				if(idx > 0) {
-					int idx2 = response.indexOf(';', idx);
-					if(idx2 > idx) {
-						response = response.substring(idx + 6, idx2);
-					}
+	public static String interpolateSql(String sql, ArrayList<SqlFrag> calcArray,
+			CustomUserReference cur, ArrayList<SqlFrag> rfArray, String userIdent, String tz) throws Exception {
+		ArrayList<String> literals = new ArrayList<>();
+		if (calcArray != null) {
+			for (SqlFrag frag : calcArray) {
+				for (SqlFragParam p : frag.params) {
+					literals.add(fragParamToLiteral(p, tz));
 				}
 			}
 		}
-		
-		return response;
+		if (cur != null) {
+			if (cur.roles && rfArray != null) {
+				for (SqlFrag frag : rfArray) {
+					for (SqlFragParam p : frag.params) {
+						literals.add(fragParamToLiteral(p, tz));
+					}
+				}
+			}
+			if (cur.myReferenceData && userIdent != null) {
+				literals.add("'" + userIdent.replace("'", "''") + "'");
+			}
+		}
+		return substituteQuestionMarks(sql, literals);
+	}
+
+	public static String interpolateSql(String sql, ArrayList<SqlFrag> rfArray, String tz) throws Exception {
+		ArrayList<String> literals = new ArrayList<>();
+		if (rfArray != null) {
+			for (SqlFrag frag : rfArray) {
+				for (SqlFragParam p : frag.params) {
+					literals.add(fragParamToLiteral(p, tz));
+				}
+			}
+		}
+		return substituteQuestionMarks(sql, literals);
+	}
+
+	private static String fragParamToLiteral(SqlFragParam p, String tz) throws Exception {
+		switch (p.getType()) {
+			case "text":    return "'" + p.sValue.replace("'", "''") + "'";
+			case "integer": return String.valueOf(p.iValue);
+			case "double":  return String.valueOf(p.dValue);
+			case "date": {
+				Timestamp ts = startOfDay(java.sql.Date.valueOf(p.sValue), tz);
+				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				return "'" + sdf.format(ts) + "'";
+			}
+			default: return "NULL";
+		}
+	}
+
+	private static String substituteQuestionMarks(String sql, ArrayList<String> literals) {
+		StringBuilder result = new StringBuilder();
+		int qIdx = 0;
+		int start = 0;
+		int pos = sql.indexOf('?');
+		while (pos >= 0) {
+			result.append(sql, start, pos);
+			result.append(qIdx < literals.size() ? literals.get(qIdx++) : "?");
+			start = pos + 1;
+			pos = sql.indexOf('?', start);
+		}
+		result.append(sql, start, sql.length());
+		return result.toString();
 	}
 	
 	private static int getManifestParamStart(String property) {

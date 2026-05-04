@@ -13,13 +13,13 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Response;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.Response;
 
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload2.core.FileItem;
+import org.apache.commons.fileupload2.core.FileUploadException;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
+import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.ApplicationWarning;
@@ -70,7 +70,7 @@ public class SurveyTemplateManager {
 		
 		log.info("upload survey -----------------------");
 		
-		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();
+		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();
 		String displayName = null;
 		int projectId = -1;
 		int surveyId = -1;
@@ -83,8 +83,7 @@ public class SurveyTemplateManager {
 		int existingSurveyId = 0;	// The ID of a survey that is being replaced
 		String bundleSurveyIdent = null;
 
-		fileItemFactory.setSizeThreshold(5*1024*1024); 
-		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 	
 		Connection sd = SDDataSource.getConnection(connectionString); 
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
@@ -122,7 +121,7 @@ public class SurveyTemplateManager {
 
 				if(item.isFormField()) {
 					if(item.getFieldName().equals("templateName")) {
-						displayName = item.getString("utf-8");
+						displayName = item.getString(java.nio.charset.StandardCharsets.UTF_8);
 						if(displayName != null) {
 							displayName = displayName.trim();
 						}
@@ -465,7 +464,7 @@ public class SurveyTemplateManager {
 			
 			// Save file
 			File savedFile = new File(filePath);
-			fileItem.write(savedFile); 
+			fileItem.write(savedFile.toPath()); 
 			
 			/*
 			 * Copy the change history from the old survey to the new one that is replacing it

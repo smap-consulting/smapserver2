@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
 
-import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload2.core.FileItem;
 import org.smap.sdal.Utilities.ApplicationException;
 
 /*****************************************************************************

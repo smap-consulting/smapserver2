@@ -34,13 +34,13 @@ import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload2.core.FileItem;
+import org.apache.commons.fileupload2.core.FileUploadException;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
+import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
@@ -105,8 +105,8 @@ public class XFormData {
 
 		// Use Apache Commons file upload to get the items in the file
 		SaveDetails saveDetails = null;
-		DiskFileItemFactory factory = new DiskFileItemFactory();
-		ServletFileUpload upload = new ServletFileUpload(factory);
+		DiskFileItemFactory factory = DiskFileItemFactory.builder().get();
+		JakartaServletFileUpload upload = new JakartaServletFileUpload(factory);
 		upload.setFileSizeMax(30000000);		// Limit the maximum size of each uploaded file to 30MB
 
 		List<FileItem> items = upload.parseRequest(request);
@@ -578,7 +578,7 @@ public class XFormData {
 			if (base64Data != null) {
 				FileUtils.writeByteArrayToFile(savedFile, Base64.decodeBase64(base64Data));
 			} else {
-				item.write(savedFile);
+				item.write(savedFile.toPath());
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

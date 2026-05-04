@@ -2,7 +2,7 @@ package org.smap.sdal.model;
 
 import java.util.ResourceBundle;
 
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.internet.InternetAddress;
 
 import org.smap.notifications.interfaces.EmitAwsSES;
 

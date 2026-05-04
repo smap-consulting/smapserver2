@@ -18,21 +18,21 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  */
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Application;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Application;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
 
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload2.core.FileItem;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
+import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.smap.sdal.Utilities.ApplicationException;
@@ -103,10 +103,9 @@ public class CssFiles extends Application {
 		
 		Response response = null;
 
-		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();		
+		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();		
 
-		fileItemFactory.setSizeThreshold(5*1024*1024);
-		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
 
 		String connectionString = "surveyKPI - cssFiles - upload";
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -164,7 +163,7 @@ public class CssFiles extends Application {
 						File folder = cm.getCssLoadedFolder(orgId);
 						String filePath = folder.getAbsolutePath() + File.separator + fileName;
 						File savedFile = new File(filePath);
-						item.write(savedFile);  // Save the new file
+						item.write(savedFile.toPath());  // Save the new file
 						
 						String msg = localisation.getString("c_add_css") + " " + filePath;
 						lm.writeLogOrganisation(sd, orgId, request.getRemoteUser(), LogManager.CREATE, msg, 0);

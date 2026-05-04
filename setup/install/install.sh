@@ -20,38 +20,25 @@ if [ $dbhost_set -eq 0 ]; then
 fi
 
 # Set flag for ubuntu version
-u1804=`lsb_release -r | grep -c "18\.04"`
-u2004=`lsb_release -r | grep -c "20\.04"`
 u2204=`lsb_release -r | grep -c "22\.04"`
 u2404=`lsb_release -r | grep -c "24\.04"`
+u2604=`lsb_release -r | grep -c "26\.04"`
 
 # Check that this version of ubuntu is supported
-if [ $u2404 -eq 1 ]; then
+if [ $u2604 -eq 1 ]; then
+    echo "Installing on Ubuntu 26.04"
+elif [ $u2404 -eq 1 ]; then
     echo "Installing on Ubuntu 24.04"
 elif [ $u2204 -eq 1 ]; then
     echo "Installing on Ubuntu 22.04"
-elif [ $u2004 -eq 1 ]; then
-    echo "Installing on Ubuntu 20.04"
-elif [ $u1804 -eq 1 ]; then
-    echo "Installing on Ubuntu 18.04"
 else
-    echo "Unsupported version of Ubuntu, you need 22.04, 20.04, or 18.04"
+    echo "Unsupported version of Ubuntu, you need 26.04, 24.04, or 22.04"
     exit 1;
 fi
 
-if [ $u2404 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat9
-    TOMCAT_USER=tomcat
-elif [ $u2204 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat9
-    TOMCAT_USER=tomcat
-elif [ $u2004 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat9
-    TOMCAT_USER=tomcat
-else
-    TOMCAT_VERSION=tomcat8
-    TOMCAT_USER=tomcat8
-fi
+
+TOMCAT_VERSION=tomcat10
+TOMCAT_USER=tomcat
 
 CATALINA_HOME=/var/lib/$TOMCAT_VERSION
 sd="survey_definitions"											# Postgres config survey definitions db name
@@ -105,35 +92,38 @@ sudo a2enmod session_crypto
 sudo mkdir /var/www/smap
 
 echo "##### 3. Install Tomcat: $TOMCAT_VERSION"
-if [ $u2404 -eq 1 ]; then
+if [ $u2604 -eq 1 ]; then
+    # 26.04: tomcat10 and java 21 available natively via apt
+    sudo apt-get install openjdk-21-jdk-headless -y
+    sudo apt-get install tomcat10 -y
+elif [ $u2404 -eq 1 ] || [ $u2204 -eq 1 ]; then
+    # 24.04 and 22.04: manual wget install (apt does not provide tomcat10)
+    tc_server_xml="/var/lib/$TOMCAT_VERSION/conf/server.xml"
+    tc_context_xml="/var/lib/$TOMCAT_VERSION/conf/context.xml"
+    tc_logging="/var/lib/$TOMCAT_VERSION/conf/logging.properties"
 
-    tc_server_xml="/var/lib/$TOMCAT_VERSION/conf/server.xml"					# Tomcat config
-    tc_context_xml="/var/lib/$TOMCAT_VERSION/conf/context.xml"				# Tomcat config
-
-    echo 'install java 11'
-    sudo apt-get install openjdk-11-jdk-headless -y
+    echo 'install java 21'
+    sudo apt-get install openjdk-21-jdk-headless -y
     echo 'Create tomcat user'
-    sudo groupadd tomcat
-    sudo useradd -s /bin/false -g tomcat -d /var/lib/tomcat9 tomcat
+    sudo groupadd tomcat 2>/dev/null || true
+    sudo useradd -s /bin/false -g tomcat -d /var/lib/tomcat10 tomcat 2>/dev/null || true
     echo 'get tomcat'
-    wget https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.117/bin/apache-tomcat-9.0.117.tar.gz
-    sudo mkdir /var/lib/tomcat9
-    sudo tar xzf apache-tomcat-9*tar.gz -C /var/lib/tomcat9 --strip-components=1
-    rm apache-tomcat-9*tar.gz
+    TC10_VER=10.1.40
+    wget https://archive.apache.org/dist/tomcat/tomcat-10/v${TC10_VER}/bin/apache-tomcat-${TC10_VER}.tar.gz
+    sudo mkdir -p /var/lib/tomcat10
+    sudo tar xzf apache-tomcat-10*tar.gz -C /var/lib/tomcat10 --strip-components=1
+    rm apache-tomcat-10*tar.gz
     echo 'Tomcat service'
-    cp config_files/tomcat9.service /usr/lib/systemd/system
-    
+    cp config_files/tomcat10.service /usr/lib/systemd/system
     JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
     JH="JAVA_HOME=\"$JAVA_HOME\""
-    sed -i "/JAVA_HOME/c$JH" /usr/lib/systemd/system/tomcat9.service
+    sed -i "/JAVA_HOME/c$JH" /usr/lib/systemd/system/tomcat10.service
     echo 'Create tomcat log directory'
-    mkdir /var/log/tomcat9
-    chown -R tomcat /var/lib/tomcat9 /var/log/tomcat9
-    chgrp -R tomcat /var/lib/tomcat9 /var/log/tomcat9
-    ln -s /var/lib/tomcat9/logs /var/log/tomcat9/logs
-    systemctl enable tomcat9
-else
-    sudo apt-get install $TOMCAT_VERSION -y
+    mkdir -p /var/log/tomcat10
+    chown -R tomcat /var/lib/tomcat10 /var/log/tomcat10
+    chgrp -R tomcat /var/lib/tomcat10 /var/log/tomcat10
+    ln -s /var/lib/tomcat10/logs /var/log/tomcat10/logs 2>/dev/null || true
+    systemctl enable tomcat10
 fi
 
 echo '##### 5. Install Postgres / Postgis'
@@ -142,6 +132,11 @@ echo '##### 5. Install Postgres / Postgis'
 if [ "$DBHOST" = "127.0.0.1" ]; then
 
     echo 'installing postgres'
+    # Install Postgres for Ubuntu 26.04
+    if [ $u2604 -eq 1 ]; then
+        PGV=18
+    fi
+
     # Install Postgres for Ubuntu 24.04
     if [ $u2404 -eq 1 ]; then
         PGV=16
@@ -150,16 +145,6 @@ if [ "$DBHOST" = "127.0.0.1" ]; then
     # Install Postgres for Ubuntu 22.04
     if [ $u2204 -eq 1 ]; then
         PGV=14
-    fi
-
-    # Install Postgres for Ubuntu 20.04
-    if [ $u2004 -eq 1 ]; then
-        PGV=12
-    fi
-
-    # Install Postgres for Ubuntu 18.04
-    if [ $u1804 -eq 1 ]; then
-        PGV=10
     fi
 
     sudo apt-get install postgresql postgresql-contrib postgis -y
@@ -185,44 +170,23 @@ sudo mkdir $filelocn/misc
 sudo mkdir $filelocn/temp
 sudo mkdir $filelocn/settings
 
-# For ubuntu 2404 allow tomcat9 to write to /smap
-if [ $u2404 -eq 1 ]; then
-mkdir /etc/systemd/system/tomcat9.service.d
-cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
-fi
-
-# For ubuntu 2204 allow tomcat9 to write to /smap
-if [ $u2204 -eq 1 ]; then
-mkdir /etc/systemd/system/tomcat9.service.d
-cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
-fi
-
-# For ubuntu 2004 allow tomcat9 to write to /smap
-if [ $u2004 -eq 1 ]; then
-mkdir /etc/systemd/system/tomcat9.service.d
-cp config_files/override.conf /etc/systemd/system/tomcat9.service.d/override.conf
-fi
+# Allow tomcat to write to /smap (systemd override)
+mkdir -p /etc/systemd/system/tomcat10.service.d
+cp config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
 
 # Make sure all subdirectories of filelocn are updated even if the latter is a symbolic link
 sudo chown -R $TOMCAT_USER $filelocn
 sudo chown -R $TOMCAT_USER $filelocn/*
 sudo chmod -R 0777 $filelocn/*
 
-if [ $u2004 -eq 1 ]; then
-    sudo mkdir /var/lib/$TOMCAT_VERSION/.aws
-    sudo chown -R $TOMCAT_USER /var/lib/$TOMCAT_VERSION/.aws
-elif [ $u1804 -eq 1 ]; then
-    sudo mkdir /var/lib/$TOMCAT_VERSION/.aws
-    sudo chown -R $TOMCAT_USER /var/lib/$TOMCAT_VERSION/.aws
-else
-    sudo mkdir /var/lib/$TOMCAT_VERSION/.aws
-    sudo chown -R $TOMCAT_USER /var/lib/$TOMCAT_VERSION/.aws
-fi
+sudo mkdir /var/lib/$TOMCAT_VERSION/.aws
+sudo chown -R $TOMCAT_USER /var/lib/$TOMCAT_VERSION/.aws
+
 
 # If auto configuration is set then copy the pre-set configuration files to their target destination
 
-if [ "$config" != "manual" ]
-then
+if [ "$config" != "manual" ]; then
+
 	echo '##### 7. Copying configuration files'
 
 	sudo service apache2 stop
@@ -283,48 +247,17 @@ then
 	chmod +x apacheConfig.sh
 	sudo ./apacheConfig.sh
 
-	echo '# copy subscriber upstart files'
-	if [ $u2404 -eq 1 ]; then
-		sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
-		sudo chmod 664 $service_dir/subscribers.service
-		sudo cp config_files/subscribers_fwd.service.u2004 $service_dir/subscribers_fwd.service
-		sudo chmod 664 $service_dir/subscribers_fwd.service
-		
-		sudo systemctl enable subscribers.service
-		sudo systemctl enable subscribers_fwd.service
-	fi
+	echo '# copy subscriber service files'
 
-	if [ $u2204 -eq 1 ]; then
-		sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
-		sudo chmod 664 $service_dir/subscribers.service
-		sudo cp config_files/subscribers_fwd.service.u2004 $service_dir/subscribers_fwd.service
-		sudo chmod 664 $service_dir/subscribers_fwd.service
-		
-		sudo systemctl enable subscribers.service
-		sudo systemctl enable subscribers_fwd.service
-	fi
+	sudo cp config_files/subscribers.service $service_dir/subscribers.service
+	sudo chmod 664 $service_dir/subscribers.service
+	sudo cp config_files/subscribers_fwd.service $service_dir/subscribers_fwd.service
+	sudo chmod 664 $service_dir/subscribers_fwd.service
 
-	if [ $u2004 -eq 1 ]; then
-		sudo cp config_files/subscribers.service.u2004 $service_dir/subscribers.service
-		sudo chmod 664 $service_dir/subscribers.service
-		sudo cp config_files/subscribers_fwd.service.u2004 $service_dir/subscribers_fwd.service
-		sudo chmod 664 $service_dir/subscribers_fwd.service
-		
-		sudo systemctl enable subscribers.service
-		sudo systemctl enable subscribers_fwd.service
-	fi
+	sudo systemctl enable subscribers.service
+	sudo systemctl enable subscribers_fwd.service
 
-	if [ $u1804 -eq 1 ]; then
-		sudo cp config_files/subscribers.service $service_dir
-		sudo chmod 664 $service_dir/subscribers.service
-		sudo cp config_files/subscribers_fwd.service $service_dir
-		sudo chmod 664 $service_dir/subscribers_fwd.service
-		
-		sudo systemctl enable subscribers.service
-		sudo systemctl enable subscribers_fwd.service
-	fi
-	
-        if [ "$DBHOST" = "127.0.0.1" ]; then
+    if [ "$DBHOST" = "127.0.0.1" ]; then
 	    echo '# update bu.sh file'
 	    sudo cp bu.sh ~postgres/bu.sh
 	    sudo chown postgres ~postgres/bu.sh
@@ -447,10 +380,12 @@ echo "kernel.shmmax=67068800" | sudo tee -a /etc/sysctl.conf
 # TODO add "-Djava.net.preferIPv4Stack=true" to JAVA_OPTS
 
 echo '##### Increase shared memory available to tomcat'
-if [ ! -f "/etc/default/$TOMCAT_VERSION.bu" ]; then
-	sudo cp /etc/default/$TOMCAT_VERSION  /etc/default/$TOMCAT_VERSION.bu
+if [ -f "/etc/default/$TOMCAT_VERSION" ]; then
+	if [ ! -f "/etc/default/$TOMCAT_VERSION.bu" ]; then
+		sudo cp /etc/default/$TOMCAT_VERSION /etc/default/$TOMCAT_VERSION.bu
+	fi
+	sudo sed -i "s#-Xmx128m#-Xmx512m#g" /etc/default/$TOMCAT_VERSION
 fi
-sudo sed -i "s#-Xmx128m#-Xmx512m#g" /etc/default/$TOMCAT_VERSION
 
 if [ "$DBHOST" = "127.0.0.1" ]; then
     echo '##### Allow logon to postgres authenticated by md5 - used to export shape files'
@@ -477,7 +412,7 @@ sudo apt-get install gdal-bin -y
 sudo apt-get install ttf-dejavu -y
 
 # Add a file containing the version number
-echo "2501" > /smap_bin/smap_version
+echo "2603" > /smap_bin/smap_version
 
 echo '##### 21. Add postgres and apache to tomcat group'
 if [ "$DBHOST" = "127.0.0.1" ]; then

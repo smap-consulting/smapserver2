@@ -1,28 +1,23 @@
 #!/bin/sh
 deploy_from="version1"
 # Set flag for ubuntu version
-u1404=`lsb_release -r | grep -c "14\.04"`
-u1604=`lsb_release -r | grep -c "16\.04"`
-u1804=`lsb_release -r | grep -c "18\.04"`
-u2004=`lsb_release -r | grep -c "20\.04"`
 u2204=`lsb_release -r | grep -c "22\.04"`
 u2404=`lsb_release -r | grep -c "24\.04"`
+u2604=`lsb_release -r | grep -c "26\.04"`
 
-if [ $u2404 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat9
+if [ $u2604 -eq 0 ] && [ $u2404 -eq 0 ] && [ $u2204 -eq 0 ]; then
+    echo "ERROR: Unsupported Ubuntu version. This version of Smap requires Ubuntu 22.04 or later."
+    echo "Your server has not been changed."
+    exit 1
+fi
+
+# Detect installed Tomcat by checking for actual service/directory
+if [ -d /var/lib/tomcat10 ] || systemctl is-enabled tomcat10 2>/dev/null | grep -q "enabled"; then
+    TOMCAT_VERSION=tomcat10
     TOMCAT_USER=tomcat
-elif [ $u2204 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat9
-    TOMCAT_USER=tomcat
-elif [ $u2004 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat9
-    TOMCAT_USER=tomcat
-elif [ $u1804 -eq 1 ]; then
-    TOMCAT_VERSION=tomcat8
-    TOMCAT_USER=tomcat8
 else
-    TOMCAT_VERSION=tomcat7
-    TOMCAT_USER=tomcat7
+    echo "ERROR: Tomcat 10 installation not found. Run patchdb.sh first to migrate from Tomcat 9."
+    exit 1
 fi
 
 # Add a default setting of "yes" as the value for SUBSCRIBER if it has not already been set
@@ -62,13 +57,8 @@ cwd=`pwd`
 #
 service apache2 stop
 service $TOMCAT_VERSION stop
-if [ $u1404 -eq 1 ]; then
-    service subscribers stop
-    service subscribers_fwd stop
-else
-    systemctl stop subscribers
-    systemctl stop subscribers_fwd
-fi
+systemctl stop subscribers
+systemctl stop subscribers_fwd
 if [ $DBHOST = "127.0.0.1" ]; then
     service postgresql stop
 fi
@@ -207,16 +197,11 @@ then
 
     echo "...... starting subscriber"
     echo "go" > /smap/settings/subscriber
-    if [ $u1404 -eq 1 ]; then
-        service subscribers start
-        service subscribers_fwd start
-    else	
-        systemctl enable subscribers
-        systemctl start subscribers
+    systemctl enable subscribers
+    systemctl start subscribers
 
-        systemctl enable subscribers_fwd
-        systemctl start subscribers_fwd
-    fi
+    systemctl enable subscribers_fwd
+    systemctl start subscribers_fwd
 else
     # Disable subscribers so they will not restart on next reboot
     systemctl disable subscribers
