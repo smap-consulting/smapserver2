@@ -3,6 +3,8 @@ package org.smap.sdal.managers;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -1066,6 +1068,25 @@ public class NotificationManager {
 							filePath = compressedPath;
 						}
 						logContent = filePath;
+
+						// Save a permanent copy for the record timeline
+						if(msg.instanceId != null) {
+							try {
+								String attachUuid = UUID.randomUUID().toString();
+								String attachDir = basePath + "/attachments/" + msg.survey_ident;
+								new File(attachDir).mkdirs();
+								String attachDest = attachDir + "/" + attachUuid + ".pdf";
+								Files.copy(new File(filePath).toPath(),
+										new File(attachDest).toPath(),
+										StandardCopyOption.REPLACE_EXISTING);
+								String fragment = "attachments/" + msg.survey_ident + "/" + attachUuid + ".pdf";
+								GeneralUtilityMethods.sendToS3(sd, attachDest, organisation.id, true);
+								if(msg.attachments == null) msg.attachments = new ArrayList<>();
+								msg.attachments.add(fragment);
+							} catch(Exception e) {
+								log.log(Level.WARNING, "Failed to save notification PDF attachment", e);
+							}
+						}
 
 					} else {
 						docURL = "/app/myWork/webForm/" + msg.survey_ident +

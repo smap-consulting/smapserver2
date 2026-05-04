@@ -1,3 +1,5 @@
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
@@ -7,9 +9,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -113,7 +117,7 @@ public class EmailResponseProcessor {
 								lastRegion = region;
 							}
 
-							processInbound(dbc, s3, bucket);
+							processInbound(dbc, s3, bucket, basePath);
 						}
 					} catch(Exception e) {
 						log.log(Level.SEVERE, "Email response processor error", e);
@@ -151,7 +155,7 @@ public class EmailResponseProcessor {
 		return null;
 	}
 
-	private void processInbound(DatabaseConnections dbc, AmazonS3 s3, String bucket) {
+	private void processInbound(DatabaseConnections dbc, AmazonS3 s3, String bucket, String basePath) {
 		ListObjectsV2Request req = new ListObjectsV2Request()
 				.withBucketName(bucket)
 				.withPrefix(INBOUND_PREFIX)
@@ -161,11 +165,11 @@ public class EmailResponseProcessor {
 		for(S3ObjectSummary obj : listing.getObjectSummaries()) {
 			String key = obj.getKey();
 			if(key.equals(INBOUND_PREFIX)) continue;  // skip the prefix directory entry
-			processObject(dbc, s3, bucket, key);
+			processObject(dbc, s3, bucket, key, basePath);
 		}
 	}
 
-	private void processObject(DatabaseConnections dbc, AmazonS3 s3, String bucket, String key) {
+	private void processObject(DatabaseConnections dbc, AmazonS3 s3, String bucket, String key, String basePath) {
 		try {
 			S3Object s3obj = s3.getObject(bucket, key);
 			S3ObjectInputStream content = s3obj.getObjectContent();
@@ -218,6 +222,8 @@ public class EmailResponseProcessor {
 				s3.deleteObject(bucket, key);
 				return;
 			}
+
+			reply.attachments = extractAttachments(mime, basePath, surveyIdent, dbc);
 
 			RecordEventManager rem = new RecordEventManager();
 			rem.writeEmailReply(dbc.sd, dbc.results, instanceId, surveyIdent, messageId, reply);
@@ -382,6 +388,70 @@ public class EmailResponseProcessor {
 			out = out.substring(0, out.length() - 1);
 		}
 		return out.trim();
+	}
+
+	private ArrayList<String> extractAttachments(MimeMessage mime, String basePath,
+			String surveyIdent, DatabaseConnections dbc) {
+		ArrayList<String> fragments = new ArrayList<>();
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationIdForSurveyIdent(dbc.sd, surveyIdent);
+			if(oId <= 0) return fragments;
+			collectAttachments(mime, basePath, surveyIdent, dbc.sd, oId, fragments);
+		} catch(Exception e) {
+			log.log(Level.WARNING, "Error extracting email attachments", e);
+		}
+		return fragments;
+	}
+
+	private void collectAttachments(Part part, String basePath, String surveyIdent,
+			Connection sd, int oId, ArrayList<String> fragments) throws Exception {
+		if(part.isMimeType("multipart/*")) {
+			Multipart mp = (Multipart) part.getContent();
+			for(int i = 0; i < mp.getCount(); i++) {
+				collectAttachments(mp.getBodyPart(i), basePath, surveyIdent, sd, oId, fragments);
+			}
+		} else {
+			String disposition = part.getDisposition();
+			String fileName = part.getFileName();
+			boolean isAttachment = Part.ATTACHMENT.equalsIgnoreCase(disposition)
+					|| (Part.INLINE.equalsIgnoreCase(disposition) && fileName != null && !fileName.isEmpty());
+			if(isAttachment) {
+				if(fileName == null || fileName.isEmpty()) {
+					fileName = "attachment." + guessExtension(part.getContentType());
+				}
+				String ext = getFileExtension(fileName);
+				String uuid = UUID.randomUUID().toString();
+				String dirPath = basePath + "/attachments/" + surveyIdent;
+				new File(dirPath).mkdirs();
+				String destPath = dirPath + "/" + uuid + "." + ext;
+				try(FileOutputStream fos = new FileOutputStream(destPath);
+						InputStream is = part.getInputStream()) {
+					byte[] buf = new byte[8192];
+					int n;
+					while((n = is.read(buf)) > 0) fos.write(buf, 0, n);
+				}
+				String fragment = "attachments/" + surveyIdent + "/" + uuid + "." + ext;
+				GeneralUtilityMethods.sendToS3(sd, destPath, oId, true);
+				fragments.add(fragment);
+				log.fine("Saved inbound email attachment: " + destPath);
+			}
+		}
+	}
+
+	private String getFileExtension(String fileName) {
+		int dot = fileName.lastIndexOf('.');
+		if(dot >= 0 && dot < fileName.length() - 1) return fileName.substring(dot + 1).toLowerCase();
+		return "bin";
+	}
+
+	private String guessExtension(String contentType) {
+		if(contentType == null) return "bin";
+		String ct = contentType.toLowerCase();
+		if(ct.startsWith("image/jpeg")) return "jpg";
+		if(ct.startsWith("image/png")) return "png";
+		if(ct.startsWith("image/gif")) return "gif";
+		if(ct.startsWith("application/pdf")) return "pdf";
+		return "bin";
 	}
 
 	private boolean isDuplicate(Connection sd, String sesInReplyTo) throws SQLException {

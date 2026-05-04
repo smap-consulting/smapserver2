@@ -41,6 +41,8 @@ public class SubmissionMessage {
 	public int reportId;
 	public Timestamp ts;
 
+	public ArrayList<String> attachments; // URL fragments saved when a PDF is attached to a sent notification
+
 	// SharePoint list target
 	public String sp_list_title;
 	public String sp_operation;
@@ -153,6 +155,9 @@ public class SubmissionMessage {
 		this.reportId = orig.reportId;
 		this.ourNumber = orig.ourNumber;
 		this.msgChannel = orig.msgChannel;
+		if(orig.attachments != null) {
+			this.attachments = new ArrayList<>(orig.attachments);
+		}
 	}
 	
 	public boolean emailQuestionSet() {
