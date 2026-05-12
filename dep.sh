@@ -16,7 +16,14 @@ cp ~/deploy/smapUploader.jar ~/deploy/smap/deploy/version1
 cp ~/deploy/codebook.jar ~/deploy/smap/deploy/version1
 
 #
-# sdDAL 
+# amazon (smap2) - must be built before sdDAL to keep ~/.m2 jar in sync
+#
+cd ~/git/smap2/amazon
+mvn clean install
+cd -
+
+#
+# sdDAL
 #
 cd sdDAL
 mvn clean install
