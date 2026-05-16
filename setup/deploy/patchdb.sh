@@ -69,11 +69,14 @@ if [ "$NEEDS_TOMCAT_UPGRADE" = "true" ]; then
     mkdir -p /etc/systemd/system/tomcat10.service.d
     cp ../install/config_files/tomcat10.service /etc/systemd/system/tomcat10.service
     JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
-    JH="JAVA_HOME=\"$JAVA_HOME\""
+    JH="Environment=\"JAVA_HOME=$JAVA_HOME\""
     sed -i "/JAVA_HOME/c$JH" /etc/systemd/system/tomcat10.service
     cp ../install/config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
     systemctl daemon-reload
     systemctl enable tomcat10
+
+    a2enmod proxy
+    a2enmod proxy_ajp
 
     TOMCAT_VERSION=tomcat10
     TOMCAT_USER=tomcat

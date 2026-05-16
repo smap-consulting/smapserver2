@@ -122,7 +122,7 @@ elif [ $u2404 -eq 1 ] || [ $u2204 -eq 1 ]; then
     echo 'Tomcat service'
     cp config_files/tomcat10.service /usr/lib/systemd/system
     JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
-    JH="JAVA_HOME=\"$JAVA_HOME\""
+    JH="Environment=\"JAVA_HOME=$JAVA_HOME\""
     sed -i "/JAVA_HOME/c$JH" /usr/lib/systemd/system/tomcat10.service
     echo 'Create tomcat log directory'
     mkdir -p /var/log/tomcat10
