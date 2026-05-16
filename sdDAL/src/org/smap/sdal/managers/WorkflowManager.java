@@ -452,9 +452,14 @@ public class WorkflowManager {
 
 			// Task/case nodes whose key directly encodes this survey's sId
 			// (created in sub-pass i for chained task_groups).
+			// Skip when target == source survey: the single-fire rule prevents
+			// re-triggering for the same record, so including these nodes would
+			// create a misleading visual cycle.
 			String taskPrefix = "task:s:" + sourceSId + ":a:";
-			for (String k : itemMap.keySet()) {
-				if (k.startsWith(taskPrefix)) srcKeyList.add(k);
+			if (!dstKey.startsWith(taskPrefix)) {
+				for (String k : itemMap.keySet()) {
+					if (k.startsWith(taskPrefix)) srcKeyList.add(k);
+				}
 			}
 
 			// If the source survey is a visible data-collection form
