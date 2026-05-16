@@ -96,6 +96,12 @@ if [ $u2604 -eq 1 ]; then
     # 26.04: tomcat10 and java 21 available natively via apt
     sudo apt-get install openjdk-21-jdk-headless -y
     sudo apt-get install tomcat10 -y
+    echo 'Fix tomcat10 logs symlink for systemd sandboxing'
+    sudo systemctl stop tomcat10 2>/dev/null || true
+    sudo mkdir -p /var/log/tomcat10
+    sudo rm -rf /var/lib/tomcat10/logs
+    sudo ln -s /var/log/tomcat10 /var/lib/tomcat10/logs
+    sudo chown tomcat:tomcat /var/log/tomcat10
 elif [ $u2404 -eq 1 ] || [ $u2204 -eq 1 ]; then
     # 24.04 and 22.04: manual wget install (apt does not provide tomcat10)
     tc_server_xml="/var/lib/$TOMCAT_VERSION/conf/server.xml"
@@ -120,9 +126,10 @@ elif [ $u2404 -eq 1 ] || [ $u2204 -eq 1 ]; then
     sed -i "/JAVA_HOME/c$JH" /usr/lib/systemd/system/tomcat10.service
     echo 'Create tomcat log directory'
     mkdir -p /var/log/tomcat10
+    rm -rf /var/lib/tomcat10/logs
+    ln -s /var/log/tomcat10 /var/lib/tomcat10/logs
     chown -R tomcat /var/lib/tomcat10 /var/log/tomcat10
     chgrp -R tomcat /var/lib/tomcat10 /var/log/tomcat10
-    ln -s /var/lib/tomcat10/logs /var/log/tomcat10/logs 2>/dev/null || true
     systemctl enable tomcat10
 fi
 

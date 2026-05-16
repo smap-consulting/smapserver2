@@ -61,9 +61,10 @@ if [ "$NEEDS_TOMCAT_UPGRADE" = "true" ]; then
     cp /tmp/context.xml.bak /var/lib/tomcat10/conf/context.xml
 
     mkdir -p /var/log/tomcat10
+    rm -rf /var/lib/tomcat10/logs
+    ln -s /var/log/tomcat10 /var/lib/tomcat10/logs
     chown -R tomcat /var/lib/tomcat10 /var/log/tomcat10
     chgrp -R tomcat /var/lib/tomcat10 /var/log/tomcat10
-    ln -s /var/lib/tomcat10/logs /var/log/tomcat10/logs 2>/dev/null || true
 
     mkdir -p /etc/systemd/system/tomcat10.service.d
     cp ../install/config_files/tomcat10.service /etc/systemd/system/tomcat10.service
