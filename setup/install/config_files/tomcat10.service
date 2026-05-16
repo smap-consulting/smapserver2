@@ -39,6 +39,8 @@ CacheDirectory=tomcat10
 CacheDirectoryMode=750
 ProtectSystem=strict
 ReadWritePaths=/var/lib/tomcat10/webapps/
+ReadWritePaths=/var/lib/tomcat10/conf/
+ReadWritePaths=/var/lib/tomcat10/work/
 ReadWritePaths=/var/log/tomcat10/
 
 [Install]
