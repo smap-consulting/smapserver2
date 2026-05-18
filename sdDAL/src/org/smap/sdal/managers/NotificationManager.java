@@ -10,6 +10,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -102,7 +103,7 @@ public class NotificationManager {
 	/*
 	 * Add a record to the notification table
 	 */
-	public void addNotification(Connection sd, PreparedStatement pstmt, String user, 
+	public int addNotification(Connection sd, PreparedStatement pstmt, String user,
 			Notification n, String tz) throws Exception {
 
 		String sql = "insert into forward(" +
@@ -126,7 +127,7 @@ public class NotificationManager {
 		String notifyDetails = gson.toJson(n.notifyDetails);
 
 		int idx = 1;
-		pstmt = sd.prepareStatement(sql);	 			
+		pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 		pstmt.setInt(idx++, n.s_id);
 		pstmt.setBoolean(idx++, n.enabled);
 		pstmt.setString(idx++, n.remote_host);
@@ -163,7 +164,13 @@ public class NotificationManager {
 		pstmt.setString(idx++, n.bundle_ident);
 		
 		pstmt.executeUpdate();
-		
+
+		int newId = -1;
+		ResultSet generatedKeys = pstmt.getGeneratedKeys();
+		if (generatedKeys.next()) {
+			newId = generatedKeys.getInt(1);
+		}
+
 		// Log the add event
 		String logMessage = localisation.getString("lm_added_notification");
 		if(n.name == null) {
@@ -171,6 +178,8 @@ public class NotificationManager {
 		}
 		logMessage = logMessage.replace("%s1", n.name);
 		lm.writeLog(sd, n.s_id, user, LogManager.CREATE, logMessage, 0, null);
+
+		return newId;
 	}
 
 	/*
