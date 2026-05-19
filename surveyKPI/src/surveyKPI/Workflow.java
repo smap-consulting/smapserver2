@@ -907,7 +907,7 @@ public class Workflow extends Application {
 				afs.filter.advanced = tg.filter;
 			}
 
-			String sql = "insert into task_group(name, p_id, source_s_id, sourve_p_id, target_s_id, rule, "
+			String sql = "insert into task_group(name, p_id, source_s_id, target_s_id, rule, "
 					+ "address_params, dl_dist, complete_all, assign_auto, wf_prev_node_id) "
 					+ "values(?, ?, ?, ?, ?::jsonb, '[]', 0, false, false, ?) returning tg_id";
 			pstmtIns = sd.prepareStatement(sql);
