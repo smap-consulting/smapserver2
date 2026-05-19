@@ -240,6 +240,8 @@ public class MyAssignments extends Application {
 					if (ta.task == null) {
 						ta.task = new TrTask();
 						ta.task.id = GeneralUtilityMethods.getTaskId(sd, ta.assignment.assignment_id);
+					} else if (ta.task.id == 0) {
+						ta.task.id = GeneralUtilityMethods.getTaskId(sd, ta.assignment.assignment_id);
 					}
 					am.updateAssignment(sd, cResults, localisation, pstmtSetDeleted, pstmtSetUpdatedRejected,
 							pstmtSetUpdatedNotRejected, pstmtEvents, gson, userName, ta.task.id,

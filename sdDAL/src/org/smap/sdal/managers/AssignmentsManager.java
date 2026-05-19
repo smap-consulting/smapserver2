@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -1073,6 +1074,9 @@ public class AssignmentsManager {
 	 */
 	public  void updateTaskRejected(Connection sd, int taskId, String userName) throws SQLException {
 
+		if(taskId <= 0) {
+			return;
+		}
 		String sqlUnassignedRejected = "insert into " + "task_rejected(t_id, ident, rejected_at) "
 				+ "values(?, ?, now()) ";
 		PreparedStatement pstmt = null;
@@ -1081,12 +1085,22 @@ public class AssignmentsManager {
 			pstmt = sd.prepareStatement(sqlUnassignedRejected);
 			pstmt.setInt(1, taskId);
 			pstmt.setString(2, userName);
+			Savepoint sp = null;
 			try {
+				if(!sd.getAutoCommit()) {
+					sp = sd.setSavepoint();
+				}
 				log.fine("Adding to unassigned rejected: " + pstmt.toString());
 				pstmt.executeUpdate();
+				if(sp != null) {
+					sd.releaseSavepoint(sp);
+				}
 			} catch (Exception e) {
 				// Ignore errors as if this has already been rejected we don't really care
 				log.fine("Error: Could not record rejection of unassigned task: " + e.getMessage());
+				if(sp != null) {
+					try { sd.rollback(sp); } catch (Exception ex) {}
+				}
 			}
 
 		} finally {

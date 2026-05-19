@@ -2,6 +2,7 @@ package org.smap.sdal.managers;
 
 import java.lang.reflect.Type;
 import java.sql.Connection;
+import java.text.SimpleDateFormat;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -63,6 +64,8 @@ import org.smap.sdal.model.TaskServerDefn;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
@@ -1541,8 +1544,21 @@ public class TaskManager {
 			return response;
 		}
 		
-		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-		TaskProperties tp = gson.fromJson(task, TaskProperties.class);	
+		JsonDeserializer<Timestamp> tsDeserializer = (JsonElement json, java.lang.reflect.Type typeOfT, com.google.gson.JsonDeserializationContext context) -> {
+			if(json.isJsonNull()) return null;
+			String s = json.getAsString();
+			if(s == null || s.isEmpty()) return null;
+			try {
+				return new Timestamp(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(s).getTime());
+			} catch(Exception e) {
+				return null;
+			}
+		};
+		Gson gson = new GsonBuilder()
+				.registerTypeAdapter(Timestamp.class, tsDeserializer)
+				.setDateFormat("yyyy-MM-dd HH:mm:ss")
+				.create();
+		TaskProperties tp = gson.fromJson(task, TaskProperties.class);
 		
 		if(tp == null) {
 			response = Response.serverError().entity("Error reading task form data: " + task).build();
