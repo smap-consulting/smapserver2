@@ -404,7 +404,8 @@ public class WorkflowManager {
 					dst.label    = tgName;
 					dst.enabled  = true;
 					dst.project  = tgProjectName;
-					dst.assignee = tgAssignee;
+					dst.assignee       = tgAssignee;
+					dst.targetSurveyId = targetSId;
 					itemMap.put(dstKey, dst);
 				}
 				// Record the task node under its own (target) survey so that
