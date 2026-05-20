@@ -2505,11 +2505,12 @@ public class GetXForm {
 		 * Retrieve the results record from the database (excluding uncompressed select questions)
 		 */
 		StringBuffer sql = new StringBuffer("select prikey");
+		ArrayList<MetaItem> preloads = null;
 
 		if(parentId <= 0) {
 			// Add Meta
 			sql.append(",instanceID, instanceName");
-			ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
+			preloads = GeneralUtilityMethods.getPreloads(sd, sId);
 			for(MetaItem mi : preloads) {
 				// We have to check for the presence of the column name in the record as it may just have been added and published is not maintained for meta data
 				if(mi.isPreload && GeneralUtilityMethods.hasColumn(cResults, processForm.getTableName(), mi.columnName)) {
@@ -2625,8 +2626,7 @@ public class GetXForm {
 				record.add(new Results("instanceName", null, resultSet.getString(index++), false, false, false, null, null, false));	
 				record.add(new Results("meta_groupEnd", null, null, false, true, false, null, null, false));
 
-				ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
-				for(MetaItem mi : preloads) {
+				if(preloads != null) for(MetaItem mi : preloads) {
 					if(mi.isPreload) {
 						if(mi.published) {
 							String value = resultSet.getString(index++);
