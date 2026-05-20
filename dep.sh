@@ -11,6 +11,7 @@ cd ..
 # Miscelaneous files
 #
 cp ~/deploy/fieldTask.apk ~/deploy/smap/deploy/version1
+cp ~/deploy/meqa.apk ~/deploy/smap/deploy/version1
 cp ~/deploy/fieldTaskPreJellyBean.apk ~/deploy/smap/deploy/version1
 cp ~/deploy/smapUploader.jar ~/deploy/smap/deploy/version1
 cp ~/deploy/codebook.jar ~/deploy/smap/deploy/version1
