@@ -8134,7 +8134,7 @@ public class GeneralUtilityMethods {
 	public static ArrayList<MetaItem> getPreloads(Connection sd, int sId) throws SQLException {
 		ArrayList<MetaItem> preloads = null;
 
-		String sql = "select meta from survey where s_id = ?;";
+		String sql = "select meta from survey where s_id = ?";
 		PreparedStatement pstmt = null;
 
 		String metaString = null;

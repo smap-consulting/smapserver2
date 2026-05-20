@@ -2511,7 +2511,9 @@ public class GetXForm {
 			sql.append(",instanceID, instanceName");
 			ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
 			for(MetaItem mi : preloads) {
-				if(mi.isPreload) {
+				// We have to check for the presence of the column name in the record as it may just have been added and published is not maintained for meta data
+				if(mi.isPreload && GeneralUtilityMethods.hasColumn(cResults, processForm.getTableName(), mi.columnName)) {
+					mi.published = true;	// Record the existence of the meta item so its data can be retrieved from the SQL
 					sql.append(",").append(mi.columnName);
 				}
 			}
@@ -2571,7 +2573,7 @@ public class GetXForm {
 		}
 		/*
 		 * Get geometry altitude and accuracy of they are available
-		 * TODO - This is wrong as it assmumes a single geometry called the_geom
+		 * TODO - This is wrong as it assumes a single geometry called the_geom
 		 */
 		if(hasPoint) {
 			if(GeneralUtilityMethods.hasColumn(cResults, processForm.getTableName(), "the_geom_alt")) {
@@ -2626,12 +2628,14 @@ public class GetXForm {
 				ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
 				for(MetaItem mi : preloads) {
 					if(mi.isPreload) {
-						String value = resultSet.getString(index++);
-						boolean isStartPreload = false;
-						if(mi.sourceParam != null && mi.sourceParam.equals("start")) {
-							isStartPreload = true;
+						if(mi.published) {
+							String value = resultSet.getString(index++);
+							boolean isStartPreload = false;
+							if(mi.sourceParam != null && mi.sourceParam.equals("start")) {
+								isStartPreload = true;
+							}
+							record.add(new Results(mi.name, null, value, false, false, false, null, null, isStartPreload));	
 						}
-						record.add(new Results(mi.name, null, value, false, false, false, null, null, isStartPreload));	
 					}
 				}
 
