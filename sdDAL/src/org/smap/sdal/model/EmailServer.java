@@ -26,7 +26,7 @@ abstract public class EmailServer {
 	public abstract String send(String email, String ccType, String subject,
 			String emailId,
 			String contentString,
-			String filePath,
-			String filename,
+			java.util.ArrayList<String> filePaths,
+			java.util.ArrayList<String> filenames,
 			String replyTo) throws Exception;
 }

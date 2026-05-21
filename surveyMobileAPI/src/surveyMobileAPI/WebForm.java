@@ -1445,6 +1445,11 @@ public class WebForm extends Application {
 		output.append("<option value='pdf_landscape' class='lang' data-lang='n_pdfl'>PDF landscape</option>\n");
 		output.append("</select>\n");
 		output.append("</div>\n");
+		output.append("<div class='form-group'>\n");
+		output.append("<label class='lang' data-lang='c_extra_attach' for='email_extra_files'>Additional attachments</label>\n");
+		output.append("<input type='file' multiple id='email_extra_files' class='form-control'>\n");
+		output.append("<ul id='email_extra_files_list' class='notif-file-list'></ul>\n");
+		output.append("</div>\n");
 		output.append("</div>\n");
 
 		output.append("<div class='sms_options' style='display:none;'>\n");

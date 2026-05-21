@@ -109,7 +109,7 @@ public class EmailManager {
 								
 						// Catch and log exceptions
 						try {
-							sendEmailHtml(
+							sendEmailHtmlMulti(
 									null,
 									org.name,
 									null,
@@ -118,8 +118,8 @@ public class EmailManager {
 									"bcc",
 									subject,
 									content.toString(),
-									null,
-									null,
+									new ArrayList<>(),
+									new ArrayList<>(),
 									emailServer,
 									serverName,
 									subStatus.emailKey,
@@ -286,7 +286,20 @@ public class EmailManager {
 						} else {
 							log.fine("#########: Email " + ia.getAddress() + " Opted in: " + subStatus.optedIn + "org:  " + !organisation.send_optin);
 							if(subStatus.optedIn || !organisation.send_optin) {
-								String mid = sendEmailHtml(
+								ArrayList<String> emailFilePaths = new ArrayList<>();
+								ArrayList<String> emailFilenames = new ArrayList<>();
+								if(filePath != null) {
+									emailFilePaths.add(filePath);
+									emailFilenames.add(filename);
+								}
+								if(msg != null && msg.extraFilePaths != null) {
+									for(int efi = 0; efi < msg.extraFilePaths.size(); efi++) {
+										emailFilePaths.add(msg.extraFilePaths.get(efi));
+										emailFilenames.add(msg.extraFileNames != null && efi < msg.extraFileNames.size()
+												? msg.extraFileNames.get(efi) : "attachment_" + efi);
+									}
+								}
+								String mid = sendEmailHtmlMulti(
 										msg != null ? msg.notificationName : null,
 										organisation.name,
 										null,
@@ -295,8 +308,8 @@ public class EmailManager {
 										"bcc",
 										subject,
 										content.toString(),
-										filePath,
-										filename,
+										emailFilePaths,
+										emailFilenames,
 										emailServer,
 										serverName,
 										subStatus.emailKey,
@@ -351,6 +364,7 @@ public class EmailManager {
 	}
 	
 	// Send an email using HTML format; returns SES MessageId or null
+	// Legacy single-attachment overload — wraps the multi-attachment version
 	public String sendEmailHtml(
 			String notificationName,
 			String orgName,
@@ -362,6 +376,38 @@ public class EmailManager {
 			String template,
 			String filePath,
 			String filename,
+			EmailServer emailServer,
+			String serverName,
+			String emailKey,
+			ResourceBundle localisation,
+			HashMap<String, String> tokens,
+			String adminEmail,
+			String orgFooter,
+			String emailId,
+			String replyTo) throws Exception  {
+		ArrayList<String> filePaths = new ArrayList<>();
+		ArrayList<String> filenames = new ArrayList<>();
+		if (filePath != null) {
+			filePaths.add(filePath);
+			filenames.add(filename);
+		}
+		return sendEmailHtmlMulti(notificationName, orgName, tgName, projectName, email, ccType, subject, template,
+				filePaths, filenames, emailServer, serverName, emailKey, localisation, tokens, adminEmail, orgFooter,
+				emailId, replyTo);
+	}
+
+	// Multi-attachment version
+	public String sendEmailHtmlMulti(
+			String notificationName,
+			String orgName,
+			String tgName,
+			String projectName,
+			String email,
+			String ccType,
+			String subject,
+			String template,
+			ArrayList<String> filePaths,
+			ArrayList<String> filenames,
 			EmailServer emailServer,
 			String serverName,
 			String emailKey,
@@ -452,8 +498,8 @@ public class EmailManager {
 		return emailServer.send(email, ccType, subject,
 						emailId,
 						contentString,
-						filePath,
-						filename,
+						filePaths,
+						filenames,
 						replyTo);
 	}
 	

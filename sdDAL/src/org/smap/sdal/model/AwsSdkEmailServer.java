@@ -1,5 +1,6 @@
 package org.smap.sdal.model;
 
+import java.util.ArrayList;
 import java.util.ResourceBundle;
 
 import jakarta.mail.internet.InternetAddress;
@@ -16,8 +17,8 @@ public class AwsSdkEmailServer extends EmailServer {
 	}
 	
 	@Override
-	public String send(String email, String ccType, String subject, String emailId, String contentString, String filePath,
-			String filename, String replyTo) throws Exception {
+	public String send(String email, String ccType, String subject, String emailId, String contentString,
+			ArrayList<String> filePaths, ArrayList<String> filenames, String replyTo) throws Exception {
 
 		log.fine("Sending to email addresses via aws: " + email);
 
@@ -26,7 +27,7 @@ public class AwsSdkEmailServer extends EmailServer {
 		String firstMessageId = null;
 		for(InternetAddress recipient : emailArray) {
 			InternetAddress[] recipientArray = new InternetAddress[] {recipient};
-			String mid = ses.sendSES(recipientArray, subject, emailId, contentString, filePath, filename, replyTo);
+			String mid = ses.sendSES(recipientArray, subject, emailId, contentString, filePaths, filenames, replyTo);
 			if(firstMessageId == null) firstMessageId = mid;
 		}
 		return firstMessageId;

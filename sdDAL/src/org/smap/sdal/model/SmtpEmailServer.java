@@ -1,5 +1,6 @@
 package org.smap.sdal.model;
 
+import java.util.ArrayList;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -45,8 +46,8 @@ public class SmtpEmailServer extends EmailServer {
 	public String send(String email, String ccType, String subject,
 			String emailId,
 			String contentString,
-			String filePath,
-			String filename,
+			ArrayList<String> filePaths,
+			ArrayList<String> filenames,
 			String replyTo) throws Exception {
 		
 		if(smtpHost == null) {
@@ -88,12 +89,14 @@ public class SmtpEmailServer extends EmailServer {
 			multipart.addBodyPart(messageBodyPart);
 	
 			// Add file attachments if they exist
-			if(filePath != null) {			 
-				messageBodyPart = new MimeBodyPart();
-				DataSource source = new FileDataSource(filePath);
-				messageBodyPart.setDataHandler(new DataHandler(source));
-				messageBodyPart.setFileName(filename);
-				multipart.addBodyPart(messageBodyPart);
+			if(filePaths != null) {
+				for(int i = 0; i < filePaths.size(); i++) {
+					messageBodyPart = new MimeBodyPart();
+					DataSource source = new FileDataSource(filePaths.get(i));
+					messageBodyPart.setDataHandler(new DataHandler(source));
+					messageBodyPart.setFileName(filenames.get(i));
+					multipart.addBodyPart(messageBodyPart);
+				}
 			}
 	
 			msg.setContent(multipart);

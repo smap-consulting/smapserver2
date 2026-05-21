@@ -42,6 +42,8 @@ public class SubmissionMessage {
 	public Timestamp ts;
 
 	public ArrayList<String> attachments; // URL fragments saved when a PDF is attached to a sent notification
+	public ArrayList<String> extraFilePaths; // Paths to arbitrary extra files from webform notifications
+	public ArrayList<String> extraFileNames; // Display names for extra files
 
 	// SharePoint list target
 	public String sp_list_title;
@@ -157,6 +159,12 @@ public class SubmissionMessage {
 		this.msgChannel = orig.msgChannel;
 		if(orig.attachments != null) {
 			this.attachments = new ArrayList<>(orig.attachments);
+		}
+		if(orig.extraFilePaths != null) {
+			this.extraFilePaths = new ArrayList<>(orig.extraFilePaths);
+		}
+		if(orig.extraFileNames != null) {
+			this.extraFileNames = new ArrayList<>(orig.extraFileNames);
 		}
 	}
 	

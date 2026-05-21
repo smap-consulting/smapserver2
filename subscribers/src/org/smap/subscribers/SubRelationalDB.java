@@ -214,6 +214,7 @@ public class SubRelationalDB extends Subscriber {
 		String ourNumber;
 		String toNumber;
 		String msgChannel;
+		ArrayList<String> extraFileNames;
 	}
 
 	private void processWebformNotifications(Logger log, Connection sd, String filePath,
@@ -275,6 +276,19 @@ public class SubRelationalDB extends Subscriber {
 						ourNum,
 						channel,
 						new java.sql.Timestamp(new java.util.Date().getTime()));
+				if (wn.extraFileNames != null && !wn.extraFileNames.isEmpty()) {
+					subMsg.extraFilePaths = new ArrayList<>();
+					subMsg.extraFileNames = new ArrayList<>();
+					for (String fn : wn.extraFileNames) {
+						File extraFile = new File(xmlFile.getParent(), fn);
+						if (extraFile.exists()) {
+							subMsg.extraFilePaths.add(extraFile.getAbsolutePath());
+							subMsg.extraFileNames.add(fn.startsWith("notif_") ? fn.substring(6) : fn);
+						} else {
+							log.warning("Extra notification file not found: " + extraFile.getAbsolutePath());
+						}
+					}
+				}
 				mm.createMessage(sd, survey.surveyData.o_id, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 				log.info("Queued webform notification: target=" + wn.target);
 			}
