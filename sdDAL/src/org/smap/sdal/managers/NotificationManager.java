@@ -1102,7 +1102,31 @@ public class NotificationManager {
 								"?datakey=instanceid&datakeyvalue=" + msg.instanceId;
 						logContent = docURL;
 					}
-				} 
+				}
+
+				// Save permanent copies of extra file attachments for the record timeline
+				if(msg.instanceId != null && msg.extraFilePaths != null && !msg.extraFilePaths.isEmpty()) {
+					try {
+						String attachDir = basePath + "/attachments/" + msg.survey_ident;
+						new File(attachDir).mkdirs();
+						if(msg.extraAttachmentUrls == null) msg.extraAttachmentUrls = new ArrayList<>();
+						for(int efi = 0; efi < msg.extraFilePaths.size(); efi++) {
+							File srcFile = new File(msg.extraFilePaths.get(efi));
+							if(srcFile.exists()) {
+								String attachUuid = UUID.randomUUID().toString();
+								String origName = srcFile.getName();
+								int dotIdx = origName.lastIndexOf('.');
+								String ext = dotIdx >= 0 ? origName.substring(dotIdx) : "";
+								String attachDest = attachDir + "/" + attachUuid + ext;
+								Files.copy(srcFile.toPath(), new File(attachDest).toPath(), StandardCopyOption.REPLACE_EXISTING);
+								GeneralUtilityMethods.sendToS3(sd, attachDest, organisation.id, true);
+								msg.extraAttachmentUrls.add("attachments/" + msg.survey_ident + "/" + attachUuid + ext);
+							}
+						}
+					} catch(Exception e) {
+						log.log(Level.WARNING, "Failed to save extra notification file attachments", e);
+					}
+				}
 
 				/*
 				 * Send document to target

@@ -44,6 +44,7 @@ public class SubmissionMessage {
 	public ArrayList<String> attachments; // URL fragments saved when a PDF is attached to a sent notification
 	public ArrayList<String> extraFilePaths; // Paths to arbitrary extra files from webform notifications
 	public ArrayList<String> extraFileNames; // Display names for extra files
+	public ArrayList<String> extraAttachmentUrls; // URL fragments for saved copies of extra files
 
 	// SharePoint list target
 	public String sp_list_title;
