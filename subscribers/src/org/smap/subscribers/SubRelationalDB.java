@@ -149,7 +149,7 @@ public class SubRelationalDB extends Subscriber {
 			/*
 			 * Process any webform notifications stored alongside the submission
 			 */
-			processWebformNotifications(log, dbc.sd, filePath, instance, survey);
+			processWebformNotifications(log, dbc.sd, filePath, instance, survey, submittingUser);
 
 			/*
 			 * Update the assignment status
@@ -218,7 +218,7 @@ public class SubRelationalDB extends Subscriber {
 	}
 
 	private void processWebformNotifications(Logger log, Connection sd, String filePath,
-			SurveyInstance instance, Survey survey) {
+			SurveyInstance instance, Survey survey, String submittingUser) {
 		File xmlFile = new File(filePath);
 		File notifFile = new File(xmlFile.getParent(), "notifications.json");
 		if (!notifFile.exists()) {
@@ -263,7 +263,7 @@ public class SubRelationalDB extends Subscriber {
 						false,
 						emails,
 						wn.target,
-						null,
+						submittingUser,
 						null,
 						null,
 						null,

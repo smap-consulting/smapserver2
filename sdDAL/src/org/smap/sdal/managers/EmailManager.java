@@ -255,7 +255,7 @@ public class EmailManager {
 							String[] rc = getEmailResponseConfig(sd);
 							if(rc != null) {
 								String senderName = GeneralUtilityMethods.getUserNameFromIdent(sd, user);
-								if(senderName == null || senderName.trim().isEmpty()) senderName = user;
+								if(senderName == null || senderName.trim().isEmpty()) senderName = (user != null) ? user : "";
 								JsonObject payload = new JsonObject();
 								payload.addProperty("ii", msg.instanceId);
 								payload.addProperty("si", msg.survey_ident);
