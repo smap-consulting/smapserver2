@@ -281,8 +281,32 @@ public class SubRelationalDB extends Subscriber {
 					subMsg.extraFileNames = new ArrayList<>();
 					subMsg.extraAttachmentUrls = new ArrayList<>();
 					log.info("Processing " + wn.extraFileNames.size() + " notification attachment(s). basePath=" + gBasePath + " sIdent=" + survey.surveyData.ident);
+					// Log directory contents once for diagnostics
+					File xmlDir = xmlFile.getParentFile();
+					String[] dirFiles = xmlDir.list();
+					if (dirFiles != null) {
+						StringBuilder dirLog = new StringBuilder("Dir contents of " + xmlDir.getAbsolutePath() + ": ");
+						for (String df : dirFiles) dirLog.append("[").append(df).append("]");
+						log.info(dirLog.toString());
+					}
 					for (String fn : wn.extraFileNames) {
+						// Log hex bytes to diagnose encoding issues
+						StringBuilder hex = new StringBuilder("fn hex: ");
+						for (char c : fn.toCharArray()) hex.append(String.format("%04X ", (int) c));
+						log.info("Notification attachment fn=" + fn + " " + hex.toString().trim());
 						File extraFile = new File(xmlFile.getParent(), fn);
+						// If not found, try to match by normalizing Unicode spaces (e.g. U+202F vs U+0020)
+						if (!extraFile.exists() && dirFiles != null) {
+							String normFn = fn.replaceAll("[\\p{Zs}\\u00A0\\u202F\\u00E2\\u0080\\u00AF]", " ").trim();
+							for (String df : dirFiles) {
+								String normDf = df.replaceAll("[\\p{Zs}\\u00A0\\u202F\\u00E2\\u0080\\u00AF]", " ").trim();
+								if (normDf.equals(normFn)) {
+									extraFile = new File(xmlDir, df);
+									log.info("Matched by normalised name: " + df);
+									break;
+								}
+							}
+						}
 						log.info("Notification attachment: " + fn + " exists=" + extraFile.exists() + " path=" + extraFile.getAbsolutePath());
 						if (extraFile.exists()) {
 							try {

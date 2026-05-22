@@ -291,7 +291,7 @@ public class XFormData {
 						log.info("Got surveyNotes ++++++++++++++++++" + item.getString());
 						surveyNotes = item.getString();
 					} else if (fieldName.equals("notifications")) {
-						String notificationsJson = item.getString();
+						String notificationsJson = item.getString(java.nio.charset.StandardCharsets.UTF_8);
 						if (notificationsJson != null && !notificationsJson.isEmpty()) {
 							String surveyPath = basePath + "/uploadedSurveys/" + templateName;
 							String instancePath = surveyPath + "/" + saveDetails.instanceDir;
