@@ -107,6 +107,7 @@ public class XFormData {
 		SaveDetails saveDetails = null;
 		DiskFileItemFactory factory = DiskFileItemFactory.builder().get();
 		JakartaServletFileUpload upload = new JakartaServletFileUpload(factory);
+		upload.setHeaderCharset(java.nio.charset.StandardCharsets.UTF_8);
 		upload.setFileSizeMax(30000000);		// Limit the maximum size of each uploaded file to 30MB
 
 		List<FileItem> items = upload.parseRequest(request);
