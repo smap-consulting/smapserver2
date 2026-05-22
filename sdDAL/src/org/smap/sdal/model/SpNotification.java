@@ -9,6 +9,7 @@ import java.util.ArrayList;
 public class SpNotification {
 	public int id;
 	public String name;
+	public int survey_id;               // read-only: populated on GET
 	public String survey_ident;
 	public String survey_name;          // read-only: display name populated on GET
 	public boolean enabled;

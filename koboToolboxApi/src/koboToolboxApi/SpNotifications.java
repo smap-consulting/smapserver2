@@ -278,6 +278,7 @@ public class SpNotifications extends Application {
 		spn.id = n.id;
 		spn.name = n.name;
 		spn.enabled = n.enabled;
+		spn.survey_id = n.s_id;
 		spn.survey_name = n.s_name;
 		spn.survey_ident = GeneralUtilityMethods.getSurveyIdent(sd, n.s_id);
 		if (n.notifyDetails != null) {

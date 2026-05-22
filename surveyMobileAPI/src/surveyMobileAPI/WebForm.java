@@ -1403,7 +1403,16 @@ public class WebForm extends Application {
 		output.append("<button class='smap-panel-close' aria-label='Close'>&times;</button>\n");
 		output.append("</div>\n");
 		output.append("<div class='smap-panel-body'>\n");
+		output.append("<div id='wf-pending-section' hidden>\n");
+		output.append("<p class='notif-queue-label'>Queued</p>\n");
+		output.append("<ul id='wf-pending-notifications' class='wf-pending-list'></ul>\n");
+		output.append("<hr class='notif-divider'>\n");
+		output.append("</div>\n");
 		output.append(getNotificationForm());
+		output.append("</div>\n");
+		output.append("<div class='smap-notification-footer'>\n");
+		output.append("<div id='wf-notification-status' class='alert' style='display:none;'></div>\n");
+		output.append("<button id='wf-send-notification' class='btn btn-primary lang' data-lang='c_queue'>Add to queue</button>\n");
 		output.append("</div>\n");
 		output.append("</div>\n");
 
@@ -1495,11 +1504,6 @@ public class WebForm extends Application {
 		output.append("</div>\n");
 		output.append("</div>\n");
 
-		output.append("</div>\n");
-		output.append("<div class='smap-notification-footer'>\n");
-		output.append("<div id='wf-notification-status' class='alert' style='display:none;'></div>\n");
-		output.append("<ul id='wf-pending-notifications' class='wf-pending-list' style='display:none;'></ul>\n");
-		output.append("<button id='wf-send-notification' class='btn btn-primary lang' data-lang='c_queue'>Queue</button>\n");
 		output.append("</div>\n");
 
 		return output;

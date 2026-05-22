@@ -1104,27 +1104,21 @@ public class NotificationManager {
 					}
 				}
 
-				// Save permanent copies of extra file attachments for the record timeline
+				// Process extra file attachments like media questions; URLs go to record_event, not results table
 				if(msg.instanceId != null && msg.extraFilePaths != null && !msg.extraFilePaths.isEmpty()) {
-					try {
-						String attachDir = basePath + "/attachments/" + msg.survey_ident;
-						new File(attachDir).mkdirs();
-						if(msg.extraAttachmentUrls == null) msg.extraAttachmentUrls = new ArrayList<>();
-						for(int efi = 0; efi < msg.extraFilePaths.size(); efi++) {
-							File srcFile = new File(msg.extraFilePaths.get(efi));
-							if(srcFile.exists()) {
-								String attachUuid = UUID.randomUUID().toString();
-								String origName = srcFile.getName();
-								int dotIdx = origName.lastIndexOf('.');
-								String ext = dotIdx >= 0 ? origName.substring(dotIdx) : "";
-								String attachDest = attachDir + "/" + attachUuid + ext;
-								Files.copy(srcFile.toPath(), new File(attachDest).toPath(), StandardCopyOption.REPLACE_EXISTING);
-								GeneralUtilityMethods.sendToS3(sd, attachDest, organisation.id, true);
-								msg.extraAttachmentUrls.add("attachments/" + msg.survey_ident + "/" + attachUuid + ext);
+					if(msg.extraAttachmentUrls == null) msg.extraAttachmentUrls = new ArrayList<>();
+					for(String filePth : msg.extraFilePaths) {
+						File srcFile = new File(filePth);
+						if(srcFile.exists()) {
+							String fragment = GeneralUtilityMethods.createAttachments(
+									log, sd, srcFile.getName(), srcFile,
+									basePath, msg.survey_ident, null, null, organisation.id);
+							if(fragment != null) {
+								msg.extraAttachmentUrls.add(fragment);
 							}
+						} else {
+							log.warning("Extra notification attachment not found: " + filePth);
 						}
-					} catch(Exception e) {
-						log.log(Level.WARNING, "Failed to save extra notification file attachments", e);
 					}
 				}
 
