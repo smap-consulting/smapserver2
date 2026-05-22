@@ -346,6 +346,9 @@ create unique index if not exists submission_queue_instanceid_idx on submission_
 -- Show form index panel in webforms
 alter table survey add column if not exists show_form_index boolean default false;
 
+-- Allow notifications to be sent from WebForms (per org)
+alter table organisation add column if not exists notification_webform boolean default false;
+
 -- Version 26.05 Email reply tracking
 alter table server add column if not exists email_response_bucket text;
 alter table server add column if not exists email_response_domain text;

@@ -190,6 +190,7 @@ create TABLE organisation (
 	send_optin boolean default true,
 	set_as_theme boolean default false,
 	email_task boolean,
+	notification_webform boolean default false,
 	ft_delete text,
 	ft_backward_navigation text,
 	ft_high_res_video text,

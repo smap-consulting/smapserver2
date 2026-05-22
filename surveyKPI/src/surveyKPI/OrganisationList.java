@@ -172,8 +172,9 @@ public class OrganisationList extends Application {
 					+ "navbar_color,"
 					+ "navbar_text_color, "
 					+ "email_task, "
+					+ "notification_webform, "
 					+ "changed_by, "
-					+ "changed_ts," 
+					+ "changed_ts,"
 					+ "admin_email, "
 					+ "email_type, "
 					+ "aws_region, "
@@ -229,6 +230,7 @@ public class OrganisationList extends Application {
 				org.appearance.navbar_color = resultSet.getString("navbar_color");
 				org.appearance.navbar_text_color = resultSet.getString("navbar_text_color");
 				org.email_task = resultSet.getBoolean("email_task");
+				org.notification_webform = resultSet.getBoolean("notification_webform");
 				org.changed_by = resultSet.getString("changed_by");
 				org.changed_ts = resultSet.getString("changed_ts");
 				org.admin_email = resultSet.getString("admin_email");

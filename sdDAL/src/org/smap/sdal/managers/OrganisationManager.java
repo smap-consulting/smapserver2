@@ -121,14 +121,15 @@ public class OrganisationManager {
 				+ "refresh_rate = ?,"
 				+ "password_strength = ?,"
 				+ "map_source = ?,"
-				+ "changed_ts = now() " 
+				+ "notification_webform = ?,"
+				+ "changed_ts = now() "
 				+ "where "
 				+ "id = ?";
-	
+
 		PreparedStatement pstmt = null;
-		
+
 		try {
-			
+
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 
 			// Get the current settings in case we need to notify the administrator of a change
@@ -170,7 +171,8 @@ public class OrganisationManager {
 			pstmt.setInt(33, o.refresh_rate);
 			pstmt.setDouble(34, o.password_strength);
 			pstmt.setString(35, HtmlSanitise.checkCleanName(o.map_source, localisation));
-			pstmt.setInt(36, o.id);
+			pstmt.setBoolean(36, o.notification_webform);
+			pstmt.setInt(37, o.id);
 					
 			log.fine("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -309,12 +311,12 @@ public class OrganisationManager {
 				+ "ft_guidance, ft_image_size, ft_send, ft_delete, "
 				+ "ft_send_location, ft_pw_policy, navbar_color, can_sms, send_optin, limits, "
 				+ "ft_high_res_video, refresh_rate, password_strength, map_source, "
-				+ "ft_input_method, ft_im_ri, ft_im_acc, changed_ts, owner) "
+				+ "ft_input_method, ft_im_ri, ft_im_acc, notification_webform, changed_ts, owner) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?)";
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?)";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -398,7 +400,8 @@ public class OrganisationManager {
 			pstmt.setString(45, "not set");		// send automatically
 			pstmt.setInt(46, 20);		// FT Geo Recording interval
 			pstmt.setInt(47, 10);		// FT Geo Accuracy distance
-			
+			pstmt.setBoolean(48, o.notification_webform);
+
 			/*
 			 * Set the owner only if this is a personal organisation.
 			 * If it is being created by an organisational administrator then they do
@@ -406,7 +409,7 @@ public class OrganisationManager {
 			 * the owner would be set to zero.  In other words they are creating community organisations that
 			 * will need to be maintained by whichever user has organisational admin privilege
 			 */
-			pstmt.setInt(48, GeneralUtilityMethods.hasSecurityGroup(sd, userIdent, Authorise.ORG_ID) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
+			pstmt.setInt(49, GeneralUtilityMethods.hasSecurityGroup(sd, userIdent, Authorise.ORG_ID) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
 			log.fine("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			

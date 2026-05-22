@@ -77,6 +77,7 @@ import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Instance;
+import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.SMSNumber;
 import org.smap.sdal.model.ServerData;
@@ -148,6 +149,7 @@ public class WebForm extends Application {
 	boolean requiresTurnstile = false;
 	ArrayList<String> gNotificationTypes = new ArrayList<>();
 	ArrayList<SMSNumber> gOurNumbers = new ArrayList<>();
+	boolean gNotificationWebform = false;
 
 	/*
 	 * Get instance data Respond with JSON
@@ -644,6 +646,15 @@ public class WebForm extends Application {
 				OrganisationManager om = new OrganisationManager(localisation);
 				options = om.getWebform(sd, userIdent);
 
+				try {
+					Organisation wfOrg = GeneralUtilityMethods.getOrganisation(sd, orgId);
+					if(wfOrg != null) {
+						gNotificationWebform = wfOrg.notification_webform;
+					}
+				} catch(Exception e) {
+					log.info("Could not get notification_webform: " + e.getMessage());
+				}
+
 				// Get notification types and SMS numbers for embedding in surveyData
 				try {
 					NotificationManager nm = new NotificationManager(localisation);
@@ -1029,6 +1040,7 @@ public class WebForm extends Application {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		output.append("surveyData.notificationTypes=").append(gson.toJson(gNotificationTypes)).append(";\n");
 		output.append("surveyData.ourNumbers=").append(gson.toJson(gOurNumbers)).append(";\n");
+		output.append("surveyData.notificationWebform=").append(gNotificationWebform).append(";\n");
 
 		output.append("</script>\n");
 		return output;
