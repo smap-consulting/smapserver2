@@ -288,7 +288,7 @@ public class SharePointManager {
 						.getAsJsonObject()
 						.getAsJsonObject("d")
 						.get("Id").getAsInt();
-				trySetItemAuthor(sd, listTitle, itemId, submitterIdent, token, digest);
+				trySetItemAuthor(sd, listTitle, itemId, submitterIdent, entityType, token, digest);
 			} catch (Exception e) {
 				log.warning("SharePoint: could not set author for new item — " + e.getMessage());
 			}
@@ -542,22 +542,27 @@ public class SharePointManager {
 	}
 
 	/*
-	 * Attempt to set the Author (Created By) of a newly inserted list item to the
-	 * given submitterIdent (Smap _user value, expected to be an email address).
+	 * Attempt to set the Author (Created By) and Editor (Modified By) of a newly
+	 * inserted list item to the given submitterIdent (Smap _user value, expected
+	 * to be an email address).
 	 *
-	 * Resolves the ident against the SharePoint site user directory. If found,
-	 * calls ValidateUpdateListItem with bNewDocumentUpdate=true, which lets the
-	 * service account overwrite the Author field without a version bump.
+	 * Resolves the ident against the SharePoint site user directory by email. If
+	 * found, overwrites the item's AuthorId/EditorId lookup fields via a MERGE.
 	 * Silently skips if the user cannot be resolved (external / anonymous submitters).
+	 *
+	 * A MERGE is used rather than ValidateUpdateListItem: ValidateUpdateListItem
+	 * returns HTTP 200 even when an individual field fails to update (the failure
+	 * is reported per-field in the response body), so errors were being swallowed.
+	 * A MERGE that fails returns a non-2xx status and is caught by postJson.
 	 */
 	private static void trySetItemAuthor(ServerData sd, String listTitle, int itemId,
-			String submitterIdent, String token, String digest) throws Exception {
+			String submitterIdent, String entityType, String token, String digest) throws Exception {
 
-		// Resolve email to SharePoint site user
+		// Resolve email to a SharePoint site user Id
 		String usersUrl = stripTrailingSlash(sd.sharepoint_url)
 				+ "/_api/web/siteusers?$filter=Email%20eq%20'"
 				+ URLEncoder.encode(submitterIdent, StandardCharsets.UTF_8).replace("+", "%20")
-				+ "'&$select=LoginName";
+				+ "'&$select=Id";
 		String usersBody = get(usersUrl, token);
 		JsonArray userResults = JsonParser.parseString(usersBody)
 				.getAsJsonObject()
@@ -568,29 +573,21 @@ public class SharePointManager {
 			log.info("SharePoint: submitter '" + submitterIdent + "' is not a site user — Author left as service account");
 			return;
 		}
-		String loginName = userResults.get(0).getAsJsonObject().get("LoginName").getAsString();
+		int userId = userResults.get(0).getAsJsonObject().get("Id").getAsInt();
 
-		// Build ValidateUpdateListItem payload
-		String validateUrl = stripTrailingSlash(sd.sharepoint_url)
+		// Overwrite Author/Editor by MERGE-ing the AuthorId/EditorId lookup fields
+		String itemUrl = stripTrailingSlash(sd.sharepoint_url)
 				+ "/_api/web/lists/getbytitle('" + encodeTitle(listTitle)
-				+ "')/items(" + itemId + ")/ValidateUpdateListItem";
+				+ "')/items(" + itemId + ")";
 
-		List<Map<String, Object>> formValues = new ArrayList<>();
-		for (String field : new String[]{"Author", "Editor"}) {
-			Map<String, Object> fv = new LinkedHashMap<>();
-			fv.put("__metadata", Map.of("type", "SP.ListItemFormUpdateValue"));
-			fv.put("FieldName", field);
-			fv.put("FieldValue", loginName);
-			fv.put("HasException", false);
-			formValues.add(fv);
-		}
-		Map<String, Object> payload = new LinkedHashMap<>();
-		payload.put("bNewDocumentUpdate", true);
-		payload.put("checkInComment", "");
-		payload.put("formValues", formValues);
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("__metadata", Map.of("type", entityType));
+		body.put("AuthorId", userId);
+		body.put("EditorId", userId);
 
-		postJson(validateUrl, token, new Gson().toJson(payload), "POST", null, digest);
-		log.info("SharePoint: set Author to '" + loginName + "' for item " + itemId + " in '" + listTitle + "'");
+		postJson(itemUrl, token, new Gson().toJson(body), "MERGE", "IF-MATCH: *", digest);
+		log.info("SharePoint: set Author/Editor to site user " + userId
+				+ " for item " + itemId + " in '" + listTitle + "'");
 	}
 
 	private static String encodeTitle(String title) {
