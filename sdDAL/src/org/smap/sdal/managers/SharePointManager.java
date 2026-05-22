@@ -288,7 +288,7 @@ public class SharePointManager {
 						.getAsJsonObject()
 						.getAsJsonObject("d")
 						.get("Id").getAsInt();
-				trySetItemAuthor(sd, listTitle, itemId, submitterIdent, entityType, token, digest);
+				trySetItemAuthor(sd, listTitle, itemId, submitterIdent, token, digest);
 			} catch (Exception e) {
 				log.warning("SharePoint: could not set author for new item — " + e.getMessage());
 			}
@@ -546,23 +546,28 @@ public class SharePointManager {
 	 * inserted list item to the given submitterIdent (Smap _user value, expected
 	 * to be an email address).
 	 *
-	 * Resolves the ident against the SharePoint site user directory by email. If
-	 * found, overwrites the item's AuthorId/EditorId lookup fields via a MERGE.
-	 * Silently skips if the user cannot be resolved (external / anonymous submitters).
+	 * Resolves the ident against the SharePoint site user directory by email,
+	 * then rewrites Author/Editor via ValidateUpdateListItem with
+	 * bNewDocumentUpdate=true. Silently skips if the user cannot be resolved
+	 * (external / anonymous submitters).
 	 *
-	 * A MERGE is used rather than ValidateUpdateListItem: ValidateUpdateListItem
-	 * returns HTTP 200 even when an individual field fails to update (the failure
-	 * is reported per-field in the response body), so errors were being swallowed.
-	 * A MERGE that fails returns a non-2xx status and is caught by postJson.
+	 * A plain MERGE on AuthorId/EditorId does NOT work: SharePoint returns
+	 * HTTP 204 (success) but silently ignores the change to those system
+	 * fields, so the item keeps the service-account author. The documented
+	 * way to override Author/Editor on an existing item is
+	 * ValidateUpdateListItem with bNewDocumentUpdate=true. It returns HTTP 200
+	 * even when an individual field fails, so the per-field HasException flag
+	 * in the response body is checked here and a failure is raised explicitly.
 	 */
 	private static void trySetItemAuthor(ServerData sd, String listTitle, int itemId,
-			String submitterIdent, String entityType, String token, String digest) throws Exception {
+			String submitterIdent, String token, String digest) throws Exception {
 
-		// Resolve email to a SharePoint site user Id
+		// Resolve email to a SharePoint site user; LoginName is the claims-format
+		// login (e.g. "i:0#.w|m2geo\\username") that the Author field expects.
 		String usersUrl = stripTrailingSlash(sd.sharepoint_url)
 				+ "/_api/web/siteusers?$filter=Email%20eq%20'"
 				+ URLEncoder.encode(submitterIdent, StandardCharsets.UTF_8).replace("+", "%20")
-				+ "'&$select=Id";
+				+ "'&$select=Id,LoginName";
 		String usersBody = get(usersUrl, token);
 		JsonArray userResults = JsonParser.parseString(usersBody)
 				.getAsJsonObject()
@@ -573,21 +578,52 @@ public class SharePointManager {
 			log.info("SharePoint: submitter '" + submitterIdent + "' is not a site user — Author left as service account");
 			return;
 		}
-		int userId = userResults.get(0).getAsJsonObject().get("Id").getAsInt();
+		String loginName = userResults.get(0).getAsJsonObject().get("LoginName").getAsString();
 
-		// Overwrite Author/Editor by MERGE-ing the AuthorId/EditorId lookup fields
+		// The Author/Editor FieldValue is itself a JSON string of [{"Key":"<login>"}]
+		JsonArray keyArr = new JsonArray();
+		JsonObject keyObj = new JsonObject();
+		keyObj.addProperty("Key", loginName);
+		keyArr.add(keyObj);
+		String fieldValue = keyArr.toString();
+
+		JsonArray formValues = new JsonArray();
+		for (String fieldName : new String[] { "Author", "Editor" }) {
+			JsonObject fv = new JsonObject();
+			fv.addProperty("FieldName", fieldName);
+			fv.addProperty("FieldValue", fieldValue);
+			formValues.add(fv);
+		}
+		JsonObject body = new JsonObject();
+		body.add("formValues", formValues);
+		body.addProperty("bNewDocumentUpdate", true);
+
 		String itemUrl = stripTrailingSlash(sd.sharepoint_url)
 				+ "/_api/web/lists/getbytitle('" + encodeTitle(listTitle)
-				+ "')/items(" + itemId + ")";
+				+ "')/items(" + itemId + ")/ValidateUpdateListItem()";
 
-		Map<String, Object> body = new LinkedHashMap<>();
-		body.put("__metadata", Map.of("type", entityType));
-		body.put("AuthorId", userId);
-		body.put("EditorId", userId);
+		String responseBody = postJson(itemUrl, token, body.toString(), "POST", null, digest);
 
-		postJson(itemUrl, token, new Gson().toJson(body), "MERGE", "IF-MATCH: *", digest);
-		log.info("SharePoint: set Author/Editor to site user " + userId
-				+ " for item " + itemId + " in '" + listTitle + "'");
+		// ValidateUpdateListItem returns HTTP 200 even on per-field failure —
+		// check each result's HasException flag.
+		JsonArray results = JsonParser.parseString(responseBody)
+				.getAsJsonObject()
+				.getAsJsonObject("d")
+				.getAsJsonObject("ValidateUpdateListItem")
+				.getAsJsonArray("results");
+		for (JsonElement el : results) {
+			JsonObject r = el.getAsJsonObject();
+			if (r.has("HasException") && r.get("HasException").getAsBoolean()) {
+				String fld = r.has("FieldName") ? r.get("FieldName").getAsString() : "?";
+				String err = r.has("ErrorMessage") && !r.get("ErrorMessage").isJsonNull()
+						? r.get("ErrorMessage").getAsString() : "unknown error";
+				throw new Exception("ValidateUpdateListItem failed for field '"
+						+ fld + "': " + err);
+			}
+		}
+
+		log.info("SharePoint: set Author/Editor to '" + loginName
+				+ "' for item " + itemId + " in '" + listTitle + "'");
 	}
 
 	private static String encodeTitle(String title) {
