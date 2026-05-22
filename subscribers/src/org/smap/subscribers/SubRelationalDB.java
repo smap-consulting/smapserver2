@@ -279,15 +279,34 @@ public class SubRelationalDB extends Subscriber {
 				if (wn.extraFileNames != null && !wn.extraFileNames.isEmpty()) {
 					subMsg.extraFilePaths = new ArrayList<>();
 					subMsg.extraFileNames = new ArrayList<>();
+					subMsg.extraAttachmentUrls = new ArrayList<>();
+					log.info("Processing " + wn.extraFileNames.size() + " notification attachment(s). basePath=" + gBasePath + " sIdent=" + survey.surveyData.ident);
 					for (String fn : wn.extraFileNames) {
 						File extraFile = new File(xmlFile.getParent(), fn);
+						log.info("Notification attachment: " + fn + " exists=" + extraFile.exists() + " path=" + extraFile.getAbsolutePath());
 						if (extraFile.exists()) {
-							subMsg.extraFilePaths.add(extraFile.getAbsolutePath());
-							subMsg.extraFileNames.add(fn.startsWith("notif_") ? fn.substring(6) : fn);
+							try {
+								String fragment = GeneralUtilityMethods.createAttachments(
+										log, sd, fn, extraFile, gBasePath,
+										survey.surveyData.ident, null, null, survey.surveyData.o_id);
+								log.info("createAttachments returned: " + fragment);
+								if (fragment != null) {
+									String absPath = gBasePath + "/" + fragment;
+									log.info("Attachment processed: absPath=" + absPath + " exists=" + new java.io.File(absPath).exists());
+									subMsg.extraFilePaths.add(absPath);
+									subMsg.extraFileNames.add(fn.startsWith("notif_") ? fn.substring(6) : fn);
+									subMsg.extraAttachmentUrls.add(fragment);
+								}
+							} catch (Exception e) {
+								log.log(Level.WARNING, "Failed to process notification attachment: " + fn, e);
+								subMsg.extraFilePaths.add(extraFile.getAbsolutePath());
+								subMsg.extraFileNames.add(fn.startsWith("notif_") ? fn.substring(6) : fn);
+							}
 						} else {
 							log.warning("Extra notification file not found: " + extraFile.getAbsolutePath());
 						}
 					}
+					log.info("Notification attachments result: extraFilePaths=" + subMsg.extraFilePaths + " extraAttachmentUrls=" + subMsg.extraAttachmentUrls);
 				}
 				mm.createMessage(sd, survey.surveyData.o_id, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 				log.info("Queued webform notification: target=" + wn.target);

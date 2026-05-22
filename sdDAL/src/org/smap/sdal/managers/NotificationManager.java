@@ -1104,25 +1104,7 @@ public class NotificationManager {
 					}
 				}
 
-				// Process extra file attachments like media questions; URLs go to record_event, not results table
-				if(msg.instanceId != null && msg.extraFilePaths != null && !msg.extraFilePaths.isEmpty()) {
-					if(msg.extraAttachmentUrls == null) msg.extraAttachmentUrls = new ArrayList<>();
-					for(String filePth : msg.extraFilePaths) {
-						File srcFile = new File(filePth);
-						if(srcFile.exists()) {
-							String fragment = GeneralUtilityMethods.createAttachments(
-									log, sd, srcFile.getName(), srcFile,
-									basePath, msg.survey_ident, null, null, organisation.id);
-							if(fragment != null) {
-								msg.extraAttachmentUrls.add(fragment);
-							}
-						} else {
-							log.warning("Extra notification attachment not found: " + filePth);
-						}
-					}
-				}
-
-				/*
+/*
 				 * Send document to target
 				 */
 				status = "success";					// Notification log

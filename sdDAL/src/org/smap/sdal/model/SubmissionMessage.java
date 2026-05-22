@@ -167,6 +167,9 @@ public class SubmissionMessage {
 		if(orig.extraFileNames != null) {
 			this.extraFileNames = new ArrayList<>(orig.extraFileNames);
 		}
+		if(orig.extraAttachmentUrls != null) {
+			this.extraAttachmentUrls = new ArrayList<>(orig.extraAttachmentUrls);
+		}
 	}
 	
 	public boolean emailQuestionSet() {

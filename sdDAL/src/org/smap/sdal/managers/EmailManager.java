@@ -293,11 +293,16 @@ public class EmailManager {
 									emailFilenames.add(filename);
 								}
 								if(msg != null && msg.extraFilePaths != null) {
+									log.info("Adding " + msg.extraFilePaths.size() + " extra attachment(s) to email");
 									for(int efi = 0; efi < msg.extraFilePaths.size(); efi++) {
-										emailFilePaths.add(msg.extraFilePaths.get(efi));
+										String fp = msg.extraFilePaths.get(efi);
+										log.info("Extra attachment[" + efi + "]: " + fp + " exists=" + new java.io.File(fp).exists());
+										emailFilePaths.add(fp);
 										emailFilenames.add(msg.extraFileNames != null && efi < msg.extraFileNames.size()
 												? msg.extraFileNames.get(efi) : "attachment_" + efi);
 									}
+								} else {
+									log.info("No extra attachments on message (extraFilePaths=" + (msg == null ? "msg null" : "null") + ")");
 								}
 								String mid = sendEmailHtmlMulti(
 										msg != null ? msg.notificationName : null,
