@@ -352,6 +352,9 @@ alter table organisation add column if not exists notification_webform boolean d
 -- PII / anonymise flag on questions
 alter table question add column if not exists pii text;
 
+-- DPO role
+insert into groups(id,name) values(16,'dpo') on conflict(id) do nothing;
+
 -- Version 26.05 Email reply tracking
 alter table server add column if not exists email_response_bucket text;
 alter table server add column if not exists email_response_domain text;
