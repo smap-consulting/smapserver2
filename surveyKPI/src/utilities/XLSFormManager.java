@@ -92,6 +92,7 @@ public class XLSFormManager {
 		public static final int COL_STYLE_LIST = 25;
 		public static final int COL_FLASH = 26;
 		public static final int COL_TRIGGER = 27;
+		public static final int COL_PII = 28;
 
 		// Choice sheet columns
 		public static final int COL_LIST_NAME = 100;
@@ -359,8 +360,11 @@ public class XLSFormManager {
 			} else if(type == COL_STYLE_LIST) {				
 				value = q.style_list;
 
-			} else if(type == COL_FLASH) {				
+			} else if(type == COL_FLASH) {
 				value = String.valueOf(q.flash);
+
+			} else if(type == COL_PII) {
+				value = q.pii != null ? q.pii : "";
 
 			} else {
 				log.info("Unknown column type for survey: " + type);
@@ -1023,6 +1027,7 @@ public class XLSFormManager {
 		}
 		cols.add(new Column(colNumber++, "calculation", Column.COL_CALCULATION, 0, "calculation"));
 		cols.add(new Column(colNumber++, "trigger", Column.COL_TRIGGER, 0, "trigger"));
+		cols.add(new Column(colNumber++, "pii", Column.COL_PII, 0, "pii"));
 		cols.add(new Column(colNumber++, "server_calculation", Column.COL_SERVER_CALCULATION, 0, "server_calculation"));
 		cols.add(new Column(colNumber++, "style list", Column.COL_STYLE_LIST, 0, "style list"));
 		if(usesFlash) {

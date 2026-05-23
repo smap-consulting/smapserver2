@@ -1570,7 +1570,8 @@ public class QuestionManager {
 				+ "column_name_applied,"
 				+ "l_id,"
 				+ "display_name,"
-				+ "compressed)"						// List ids will need to be updated
+				+ "compressed,"
+				+ "pii)"							// List ids will need to be updated
 
 				 // Get the existing data
 				 + " select "
@@ -1607,7 +1608,8 @@ public class QuestionManager {
 				 + "column_name_applied, "
 				 + "l_id,"
 				 + "display_name,"
-				 + "true "								// compressed, new forms will be true
+				 + "true, "								// compressed, new forms will be true
+				 + "pii "
 				 + "from question where f_id = ? "		// Existing form id
 				 + "and soft_deleted = 'false';";	
 		PreparedStatement pstmt = null;
@@ -1848,7 +1850,8 @@ public class QuestionManager {
 				+ "q.server_calculate,"
 				+ "q.set_value,"
 				+ "q.flash, "
-				+ "q.trigger "
+				+ "q.trigger, "
+				+ "q.pii "
 				+ "from question q "
 				+ "left outer join listname l on q.l_id = l.l_id "
 				+ "left outer join style st on q.style_id = st.id "
@@ -1952,6 +1955,7 @@ public class QuestionManager {
 				}
 				q.flash = rsGetQuestions.getInt("flash");
 				q.trigger = rsGetQuestions.getString("trigger");
+				q.pii = rsGetQuestions.getString("pii");
 				
 				if(q.type.startsWith("select") || q.type.equals("rank")) {
 					GeneralUtilityMethods.setExternalFileValues(sd, q);

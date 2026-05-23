@@ -828,7 +828,8 @@ CREATE TABLE question (
 	external_table text,				-- The table containing the external choices
 	intent text,						-- ODK intent attribute
 	flash integer,						-- Interval in literacy test before question flashes
-	trigger text
+	trigger text,
+	pii text							-- null: not PII; 'pii': personal data store normally; 'anonymise': hash before submission
 	);
 ALTER TABLE question OWNER TO ws;
 CREATE INDEX qtext_id_sequence ON question(qtext_id);

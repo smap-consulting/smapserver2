@@ -349,6 +349,9 @@ alter table survey add column if not exists show_form_index boolean default fals
 -- Allow notifications to be sent from WebForms (per org)
 alter table organisation add column if not exists notification_webform boolean default false;
 
+-- PII / anonymise flag on questions
+alter table question add column if not exists pii text;
+
 -- Version 26.05 Email reply tracking
 alter table server add column if not exists email_response_bucket text;
 alter table server add column if not exists email_response_domain text;

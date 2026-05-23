@@ -221,6 +221,20 @@ public class TextManager {
 				}
 				
 				/*
+				 * Suppress PII fields from notification text
+				 */
+				if (!r.type.equals("form") && r.fIdx >= 0 && r.qIdx >= 0
+						&& r.fIdx < survey.surveyData.forms.size()) {
+					Form form = survey.surveyData.forms.get(r.fIdx);
+					if (form != null && r.qIdx < form.questions.size()) {
+						Question q = form.questions.get(r.qIdx);
+						if (q != null && q.pii != null && !q.pii.isEmpty()) {
+							value = "";
+						}
+					}
+				}
+
+				/*
 				 * Add the value to the text
 				 */
 				if(value == null ) {

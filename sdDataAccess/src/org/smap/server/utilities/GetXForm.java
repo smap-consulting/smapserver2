@@ -1045,6 +1045,10 @@ public class GetXForm {
 			} else if(q.getType().equals("audio")) {
 				questionElement.setAttribute("odk:quality", "normal");		// Set default quality for audio to normal
 			}
+			// Add pii attribute
+			if (q.getPii() != null && !q.getPii().isEmpty()) {
+				questionElement.setAttribute("pii", q.getPii());
+			}
 		}
 
 		// Add calculate

@@ -1026,7 +1026,10 @@ public class XLSTemplateUploadManager {
 		}
 		
 		// 22. Trigger
-		q.trigger = XLSUtilities.getTextColumn(wb, row, "trigger", surveyHeader, lastCellNum, null); 
+		q.trigger = XLSUtilities.getTextColumn(wb, row, "trigger", surveyHeader, lastCellNum, null);
+
+		// 23. PII
+		q.pii = XLSUtilities.getTextColumn(wb, row, "pii", surveyHeader, lastCellNum, null); 
 		
 		// Add Column Roles
 		if(columnRoleHeader != null && columnRoleHeader.size() > 0) {

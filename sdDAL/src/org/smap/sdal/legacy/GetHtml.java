@@ -1273,7 +1273,12 @@ public class GetHtml {
 			bodyElement.setAttribute("data-relevant",
 					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name, false));
 		}
-		
+
+		// pii
+		if (q.pii != null && !q.pii.isEmpty()) {
+			bodyElement.setAttribute("data-pii", q.pii);
+		}
+
 		// Add dynamic defaults
 		if(q.calculation != null && q.calculation.length() > 0) {
 			bodyElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name, false));

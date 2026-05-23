@@ -126,7 +126,9 @@ public class Question {
 	private String autoplay;
 	
 	private String trigger;
-	
+
+	private String pii;
+
 	private String accuracy;
 	
 	private String intent;
@@ -430,7 +432,11 @@ public class Question {
 	public String getTrigger() {
 		return trigger;
 	}
-	
+
+	public String getPii() {
+		return pii;
+	}
+
 	public String getAccuracy() {
 		return accuracy;
 	}
@@ -700,7 +706,11 @@ public class Question {
 	public void setTrigger(String v) {
 		trigger = v;
 	}
-	
+
+	public void setPii(String v) {
+		pii = v;
+	}
+
 	public void setAccuracy(String v) {
 		accuracy = v;
 	}
