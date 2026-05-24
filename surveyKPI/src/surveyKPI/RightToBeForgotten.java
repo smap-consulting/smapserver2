@@ -19,6 +19,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
@@ -38,23 +39,25 @@ import org.smap.sdal.managers.RTBFManager;
 
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /*
- * GDPR B2.3.2 — Right to be Forgotten (RTBF).
+ * GDPR B2.3.2 — Right to be Forgotten (RTBF). Two-phase workflow:
  *
- * POST /rest/rtbf?identifier=<value>[&field=<question_name>][&partial=true]
+ * GET  /rest/rtbf?identifier=<value>[&field=<qname>][&partial=true]
+ *   Search across all accessible surveys and return a JSON array of
+ *   matching records for the DPO to review before committing.
  *
- * Replaces PII column values with "[REDACTED]" in all rows (including edit
- * history / soft-deleted rows) matching the identifier across all accessible
- * surveys. Cascades to child form rows.
+ * POST /rest/rtbf?target=<tableName:prikey>[&target=...]
+ *   Redact only the specific records the DPO selected. Replaces PII
+ *   column values with "[REDACTED]" and cascades to child forms.
+ *   Returns JSON: {"affected":<n>}
  *
- * Returns JSON: {"affected":<n>, "identifier":"<value>"}
- *
- * Requires DPO role. All actions are logged at organisation level for audit.
+ * Requires ANALYST or VIEW_DATA role. All actions are logged at org level.
  */
 @Path("/rtbf")
 @Produces(MediaType.APPLICATION_JSON)
@@ -73,14 +76,17 @@ public class RightToBeForgotten extends Application {
 		a = new Authorise(authorisations, null);
 	}
 
-	@POST
-	public Response process(
+	/*
+	 * Phase 1 — search. Returns JSON array of matching records for review.
+	 */
+	@GET
+	public Response search(
 			@Context HttpServletRequest request,
 			@QueryParam("identifier") String identifier,
 			@QueryParam("field")      String field,
 			@QueryParam("partial")    boolean partial) {
 
-		String connectionName = "surveyKPI-RightToBeForgotten";
+		String connectionName = "surveyKPI-RightToBeForgotten-search";
 		Connection sd       = SDDataSource.getConnection(connectionName);
 		Connection cResults = null;
 
@@ -104,24 +110,62 @@ public class RightToBeForgotten extends Application {
 			cResults = ResultsDataSource.getConnection(connectionName);
 
 			RTBFManager rtbf = new RTBFManager();
-			int affected = rtbf.process(sd, cResults,
+			String json = rtbf.search(sd, cResults,
 					request.getRemoteUser(),
 					identifier, field, partial, superUser,
 					localisation);
 
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			String note = "RTBF anonymise: identifier='" + identifier + "'"
-					+ (field   != null ? ", field='" + field + "'" : "")
-					+ (partial ? ", partial=true" : "")
-					+ ", affected=" + affected;
-			lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), LogManager.ERASE, note, affected);
-
-			String json = "{\"affected\":" + affected
-					+ ",\"identifier\":\"" + identifier.replace("\"", "\\\"") + "\"}";
 			return Response.ok(json).build();
 
 		} catch (Exception e) {
-			log.log(Level.SEVERE, "RTBF failed", e);
+			log.log(Level.SEVERE, "RTBF search failed", e);
+			return Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity("{\"error\":\"" + e.getMessage().replace("\"", "'") + "\"}")
+					.build();
+		} finally {
+			SDDataSource.closeConnection(connectionName, sd);
+			ResultsDataSource.closeConnection(connectionName, cResults);
+		}
+	}
+
+	/*
+	 * Phase 2 — redact. Acts only on the DPO-selected targets.
+	 * Each target query param is "tableName:prikey".
+	 */
+	@POST
+	public Response process(
+			@Context HttpServletRequest request,
+			@QueryParam("target") List<String> targets) {
+
+		String connectionName = "surveyKPI-RightToBeForgotten";
+		Connection sd       = SDDataSource.getConnection(connectionName);
+		Connection cResults = null;
+
+		try {
+			if (targets == null || targets.isEmpty()) {
+				return Response.status(Status.BAD_REQUEST)
+						.entity("{\"error\":\"at least one target parameter is required\"}")
+						.build();
+			}
+
+			a.isAuthorised(sd, request.getRemoteUser());
+
+			cResults = ResultsDataSource.getConnection(connectionName);
+
+			RTBFManager rtbf = new RTBFManager();
+			int affected = rtbf.process(sd, cResults,
+					request.getRemoteUser(),
+					targets);
+
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			String note = "RTBF redact: " + targets.size() + " submission(s) selected, "
+					+ affected + " row(s) redacted";
+			lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), LogManager.ERASE, note, affected);
+
+			return Response.ok("{\"affected\":" + affected + "}").build();
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "RTBF redact failed", e);
 			return Response.status(Status.INTERNAL_SERVER_ERROR)
 					.entity("{\"error\":\"" + e.getMessage().replace("\"", "'") + "\"}")
 					.build();

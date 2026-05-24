@@ -25,6 +25,9 @@ import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
@@ -33,12 +36,12 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 /*
  * Right to be Forgotten (RTBF) — GDPR B2.3.2.
  *
- * Replaces PII column values with "[REDACTED]" in every row (including
- * soft-deleted / edit-history rows) where any PII-flagged column matches the
- * identifier across all accessible surveys. Cascades to child form rows.
+ * Two-phase workflow:
+ *   1. search()  — returns JSON array of matching records (active + history) for review
+ *   2. process() — redacts a specific list of (tableName:prikey) targets chosen by the DPO
  *
- * Search uses ILIKE (case-insensitive). Pass partial=true for substring match.
- * Returns total number of top-level submissions affected.
+ * Redaction replaces PII column values with "[REDACTED]" and cascades to child forms.
+ * Search uses ILIKE (case-insensitive). partial=true wraps value in %.
  */
 public class RTBFManager {
 
@@ -46,25 +49,31 @@ public class RTBFManager {
 
 	private static Logger log = Logger.getLogger(RTBFManager.class.getName());
 
+	// -------------------------------------------------------------------------
+	// Phase 1 — search
+	// -------------------------------------------------------------------------
+
 	/*
-	 * Process an RTBF request across all surveys accessible to the user.
-	 * Returns total number of top-level submission rows affected (active + history).
+	 * Search all top-level forms accessible to the user for the identifier.
+	 * Includes active, history, and soft-deleted rows.
+	 * Returns a JSON array of match objects for review in the UI.
 	 */
-	public int process(
+	public String search(
 			Connection sd,
 			Connection cResults,
 			String user,
 			String identifier,
-			String fieldName,   // optional: restrict to this question name; null = all PII cols
+			String fieldName,
 			boolean partial,
 			boolean superUser,
 			ResourceBundle localisation) throws Exception {
 
-		int totalAffected = 0;
 		String matchVal = partial ? "%" + identifier + "%" : identifier;
+		StringBuilder json = new StringBuilder("[");
+		boolean firstEntry = true;
 
 		StringBuilder sqlSurveys = new StringBuilder(
-				"select s.s_id "
+				"select s.s_id, s.display_name, p.name as project_name "
 				+ "from survey s "
 				+ "join user_project up on s.p_id = up.p_id "
 				+ "join users u on u.id = up.u_id "
@@ -75,17 +84,15 @@ public class RTBFManager {
 		if (!superUser) {
 			sqlSurveys.append(GeneralUtilityMethods.getSurveyRBAC());
 		}
+		sqlSurveys.append("order by p.name, s.display_name");
 
-		String sqlForms = "select f_id, table_name, parentform "
-				+ "from form where s_id = ? "
-				+ "order by parentform, f_id";
+		// Only top-level forms — child rows are cascaded automatically during redact
+		String sqlForms = "select f_id, name, table_name from form "
+				+ "where s_id = ? and parentform = 0 order by f_id";
 
-		String sqlPiiCols = "select column_name, qname "
-				+ "from question "
-				+ "where f_id = ? "
-				+ "and pii is not null "
-				+ "and soft_deleted = 'false' "
-				+ "and column_name is not null";
+		String sqlPiiCols = "select column_name, qname from question "
+				+ "where f_id = ? and pii is not null "
+				+ "and soft_deleted = 'false' and column_name is not null";
 
 		PreparedStatement pstmtSurveys = null;
 		PreparedStatement pstmtForms   = null;
@@ -104,173 +111,255 @@ public class RTBFManager {
 
 			ResultSet rsSurveys = pstmtSurveys.executeQuery();
 			while (rsSurveys.next()) {
-				int sId = rsSurveys.getInt("s_id");
-				totalAffected += processSurvey(
-						sd, cResults, sId, matchVal,
-						fieldName,
-						pstmtForms, pstmtPiiCols);
-			}
+				int    sId         = rsSurveys.getInt("s_id");
+				String surveyName  = rsSurveys.getString("display_name");
+				String projectName = rsSurveys.getString("project_name");
 
+				pstmtForms.setInt(1, sId);
+				ResultSet rsForms = pstmtForms.executeQuery();
+				while (rsForms.next()) {
+					int    fId       = rsForms.getInt("f_id");
+					String formName  = rsForms.getString("name");
+					String tableName = rsForms.getString("table_name");
+
+					if (tableName == null
+							|| !GeneralUtilityMethods.tableExists(cResults, tableName)) {
+						continue;
+					}
+
+					pstmtPiiCols.setInt(1, fId);
+					ResultSet rsPii = pstmtPiiCols.executeQuery();
+					ArrayList<String> searchCols = new ArrayList<>();
+					ArrayList<String> allPiiCols = new ArrayList<>();
+					while (rsPii.next()) {
+						String colName = rsPii.getString("column_name");
+						String qName   = rsPii.getString("qname");
+						if (!GeneralUtilityMethods.hasColumn(cResults, tableName, colName)) continue;
+						if (fieldName == null
+								|| fieldName.equals(qName)
+								|| fieldName.equals(colName)) {
+							searchCols.add(colName);
+						}
+						allPiiCols.add(colName);
+					}
+
+					if (searchCols.isEmpty()) continue;
+
+					// Select prikey, _bad, _bad_reason, and all PII column values
+					StringBuilder sql = new StringBuilder("select prikey, _bad, _bad_reason");
+					for (String col : allPiiCols) {
+						sql.append(", ").append(col);
+					}
+					sql.append(" from ").append(tableName).append(" where (");
+					for (int i = 0; i < searchCols.size(); i++) {
+						if (i > 0) sql.append(" or ");
+						sql.append(searchCols.get(i)).append("::text ilike ?");
+					}
+					sql.append(") order by _bad, prikey");
+
+					PreparedStatement pstmtSearch = null;
+					try {
+						pstmtSearch = cResults.prepareStatement(sql.toString());
+						for (int i = 0; i < searchCols.size(); i++) {
+							pstmtSearch.setString(i + 1, matchVal);
+						}
+
+						ResultSet rsRows = pstmtSearch.executeQuery();
+						while (rsRows.next()) {
+							int     prikey    = rsRows.getInt("prikey");
+							boolean isBad     = rsRows.getBoolean("_bad");
+							String  badReason = rsRows.getString("_bad_reason");
+							String  status    = recordStatus(isBad, badReason);
+
+							StringBuilder fields = new StringBuilder();
+							boolean firstField = true;
+							for (String col : allPiiCols) {
+								String val = rsRows.getString(col);
+								if (val != null && !val.isEmpty()) {
+									if (!firstField) fields.append("; ");
+									fields.append(col).append(": ").append(val);
+									firstField = false;
+								}
+							}
+
+							if (!firstEntry) json.append(",");
+							json.append("{");
+							json.append("\"target\":\"").append(je(tableName)).append(":").append(prikey).append("\"");
+							json.append(",\"project\":\"").append(je(projectName)).append("\"");
+							json.append(",\"survey\":\"").append(je(surveyName)).append("\"");
+							json.append(",\"form\":\"").append(je(formName)).append("\"");
+							json.append(",\"status\":\"").append(status).append("\"");
+							json.append(",\"fields\":\"").append(je(fields.toString())).append("\"");
+							json.append("}");
+							firstEntry = false;
+						}
+					} finally {
+						try { if (pstmtSearch != null) pstmtSearch.close(); } catch (SQLException e) {}
+					}
+				}
+			}
 		} finally {
 			try { if (pstmtSurveys != null) pstmtSurveys.close(); } catch (SQLException e) {}
 			try { if (pstmtForms   != null) pstmtForms.close();   } catch (SQLException e) {}
 			try { if (pstmtPiiCols != null) pstmtPiiCols.close(); } catch (SQLException e) {}
 		}
 
-		return totalAffected;
+		json.append("]");
+		return json.toString();
 	}
 
+	// -------------------------------------------------------------------------
+	// Phase 2 — redact
+	// -------------------------------------------------------------------------
+
 	/*
-	 * Process one survey. Returns number of top-level submission rows affected.
-	 * BFS traversal so parents are always processed before children.
+	 * Redact a specific list of targets chosen by the DPO after reviewing search results.
+	 * Each target is "tableName:prikey". Cascades to child forms.
+	 * Verifies the requesting user has access to each table.
+	 * Returns total number of top-level rows redacted.
 	 */
-	private int processSurvey(
+	public int process(
 			Connection sd,
 			Connection cResults,
-			int sId,
-			String matchVal,
-			String fieldName,
-			PreparedStatement pstmtForms,
-			PreparedStatement pstmtPiiCols) throws SQLException {
+			String user,
+			List<String> targets) throws Exception {
 
-		pstmtForms.setInt(1, sId);
-		ResultSet rsForms = pstmtForms.executeQuery();
-
-		ArrayList<FormInfo> allForms = new ArrayList<>();
-		while (rsForms.next()) {
-			allForms.add(new FormInfo(
-					rsForms.getInt("f_id"),
-					rsForms.getString("table_name"),
-					rsForms.getInt("parentform")));
+		// Parse targets: tableName -> prikeys
+		Map<String, List<Integer>> byTable = new LinkedHashMap<>();
+		for (String t : targets) {
+			int colon = t.lastIndexOf(':');
+			if (colon < 1) continue;
+			String tbl = t.substring(0, colon);
+			int pk;
+			try { pk = Integer.parseInt(t.substring(colon + 1)); } catch (NumberFormatException e) { continue; }
+			byTable.computeIfAbsent(tbl, k -> new ArrayList<>()).add(pk);
 		}
 
-		Deque<QueueEntry> queue = new ArrayDeque<>();
-		for (FormInfo fi : allForms) {
-			if (fi.parentFormId == 0) {
-				queue.add(new QueueEntry(fi, null));  // null = top-level: search by identifier
-			}
-		}
+		// Look up form info by table name, checking user access
+		String sqlFormInfo =
+				"select f.f_id, f.s_id, f.parentform from form f "
+				+ "join survey s on s.s_id = f.s_id "
+				+ "join user_project up on up.p_id = s.p_id "
+				+ "join users u on u.id = up.u_id "
+				+ "where f.table_name = ? and u.ident = ? "
+				+ "and s.deleted = 'false' limit 1";
 
-		int affected = 0;
+		String sqlAllForms = "select f_id, table_name, parentform from form "
+				+ "where s_id = ? order by parentform, f_id";
 
-		while (!queue.isEmpty()) {
-			QueueEntry entry = queue.poll();
-			FormInfo fi = entry.form;
+		String sqlPiiCols = "select column_name from question "
+				+ "where f_id = ? and pii is not null "
+				+ "and soft_deleted = 'false' and column_name is not null";
 
-			if (fi.tableName == null || !GeneralUtilityMethods.tableExists(cResults, fi.tableName)) {
-				continue;
-			}
+		PreparedStatement pstmtFormInfo = null;
+		PreparedStatement pstmtAllForms = null;
+		PreparedStatement pstmtPiiCols  = null;
 
-			ArrayList<Integer> prikeys;
+		int total = 0;
 
-			if (entry.parentPrikeys == null) {
-				// Top-level: find ALL rows (including _bad=true history rows) matching identifier
-				ArrayList<String> searchCols = getPiiSearchCols(
-						sd, cResults, fi, fieldName, pstmtPiiCols);
-				if (searchCols.isEmpty()) continue;
-				prikeys = findMatchingPrikeys(cResults, fi.tableName, searchCols, matchVal);
-				if (prikeys.isEmpty()) continue;
-				affected += prikeys.size();
-			} else {
-				// Child form: find all rows (including history) parented by the matched rows
-				prikeys = getChildPrikeys(cResults, fi.tableName, entry.parentPrikeys);
-				if (prikeys.isEmpty()) continue;
-			}
+		try {
+			pstmtFormInfo = sd.prepareStatement(sqlFormInfo);
+			pstmtAllForms = sd.prepareStatement(sqlAllForms);
+			pstmtPiiCols  = sd.prepareStatement(sqlPiiCols);
 
-			ArrayList<String> piiCols = getPiiCols(sd, cResults, fi, pstmtPiiCols);
-			if (!piiCols.isEmpty()) {
-				anonymiseRows(cResults, fi.tableName, piiCols, prikeys);
-			}
+			for (Map.Entry<String, List<Integer>> entry : byTable.entrySet()) {
+				String         tableName = entry.getKey();
+				List<Integer>  prikeys   = entry.getValue();
 
-			for (FormInfo child : allForms) {
-				if (child.parentFormId == fi.fId) {
-					queue.add(new QueueEntry(child, prikeys));
+				pstmtFormInfo.setString(1, tableName);
+				pstmtFormInfo.setString(2, user);
+				ResultSet rs = pstmtFormInfo.executeQuery();
+				if (!rs.next()) continue; // no access or unknown table
+
+				int fId        = rs.getInt("f_id");
+				int sId        = rs.getInt("s_id");
+
+				// Anonymise PII in the target table for these prikeys
+				pstmtPiiCols.setInt(1, fId);
+				ResultSet rsPii = pstmtPiiCols.executeQuery();
+				ArrayList<String> piiCols = new ArrayList<>();
+				while (rsPii.next()) {
+					String col = rsPii.getString(1);
+					if (GeneralUtilityMethods.hasColumn(cResults, tableName, col)) {
+						piiCols.add(col);
+					}
+				}
+				if (!piiCols.isEmpty()) {
+					anonymiseRows(cResults, tableName, piiCols, new ArrayList<>(prikeys));
+					total += prikeys.size();
+				}
+
+				// Load all forms for the survey and BFS-cascade to child forms
+				pstmtAllForms.setInt(1, sId);
+				ResultSet rsForms = pstmtAllForms.executeQuery();
+				ArrayList<FormInfo> allForms = new ArrayList<>();
+				while (rsForms.next()) {
+					allForms.add(new FormInfo(
+							rsForms.getInt("f_id"),
+							rsForms.getString("table_name"),
+							rsForms.getInt("parentform")));
+				}
+
+				Deque<QueueEntry> queue = new ArrayDeque<>();
+				for (FormInfo fi : allForms) {
+					if (fi.parentFormId == fId) {
+						queue.add(new QueueEntry(fi, new ArrayList<>(prikeys)));
+					}
+				}
+
+				while (!queue.isEmpty()) {
+					QueueEntry qe = queue.poll();
+					FormInfo   fi = qe.form;
+
+					if (fi.tableName == null
+							|| !GeneralUtilityMethods.tableExists(cResults, fi.tableName)) {
+						continue;
+					}
+
+					ArrayList<Integer> childPrikeys =
+							getChildPrikeys(cResults, fi.tableName, qe.parentPrikeys);
+					if (childPrikeys.isEmpty()) continue;
+
+					pstmtPiiCols.setInt(1, fi.fId);
+					ResultSet rsPiiChild = pstmtPiiCols.executeQuery();
+					ArrayList<String> childPiiCols = new ArrayList<>();
+					while (rsPiiChild.next()) {
+						String col = rsPiiChild.getString(1);
+						if (GeneralUtilityMethods.hasColumn(cResults, fi.tableName, col)) {
+							childPiiCols.add(col);
+						}
+					}
+					if (!childPiiCols.isEmpty()) {
+						anonymiseRows(cResults, fi.tableName, childPiiCols, childPrikeys);
+					}
+
+					for (FormInfo child : allForms) {
+						if (child.parentFormId == fi.fId) {
+							queue.add(new QueueEntry(child, childPrikeys));
+						}
+					}
 				}
 			}
+		} finally {
+			try { if (pstmtFormInfo != null) pstmtFormInfo.close(); } catch (SQLException e) {}
+			try { if (pstmtAllForms != null) pstmtAllForms.close(); } catch (SQLException e) {}
+			try { if (pstmtPiiCols  != null) pstmtPiiCols.close();  } catch (SQLException e) {}
 		}
 
-		return affected;
+		return total;
 	}
 
 	// -------------------------------------------------------------------------
 	// SQL helpers
 	// -------------------------------------------------------------------------
 
-	private ArrayList<String> getPiiSearchCols(
-			Connection sd, Connection cResults,
-			FormInfo fi, String fieldName,
-			PreparedStatement pstmtPiiCols) throws SQLException {
-
-		ArrayList<String> cols = new ArrayList<>();
-		pstmtPiiCols.setInt(1, fi.fId);
-		ResultSet rs = pstmtPiiCols.executeQuery();
-		while (rs.next()) {
-			String colName = rs.getString("column_name");
-			String qName   = rs.getString("qname");
-			if (fieldName != null && !fieldName.equals(qName) && !fieldName.equals(colName)) {
-				continue;
-			}
-			if (GeneralUtilityMethods.hasColumn(cResults, fi.tableName, colName)) {
-				cols.add(colName);
-			}
-		}
-		return cols;
-	}
-
-	private ArrayList<String> getPiiCols(
-			Connection sd, Connection cResults,
-			FormInfo fi,
-			PreparedStatement pstmtPiiCols) throws SQLException {
-
-		ArrayList<String> cols = new ArrayList<>();
-		pstmtPiiCols.setInt(1, fi.fId);
-		ResultSet rs = pstmtPiiCols.executeQuery();
-		while (rs.next()) {
-			String colName = rs.getString("column_name");
-			if (GeneralUtilityMethods.hasColumn(cResults, fi.tableName, colName)) {
-				cols.add(colName);
-			}
-		}
-		return cols;
-	}
-
-	// Finds ALL rows (active and soft-deleted) matching the identifier
-	private ArrayList<Integer> findMatchingPrikeys(
-			Connection cResults, String tableName,
-			ArrayList<String> searchCols, String matchVal) throws SQLException {
-
-		ArrayList<Integer> prikeys = new ArrayList<>();
-		StringBuilder sql = new StringBuilder("select prikey from ");
-		sql.append(tableName).append(" where (");
-		for (int i = 0; i < searchCols.size(); i++) {
-			if (i > 0) sql.append(" or ");
-			sql.append(searchCols.get(i)).append("::text ilike ?");
-		}
-		sql.append(")");
-
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = cResults.prepareStatement(sql.toString());
-			for (int i = 0; i < searchCols.size(); i++) {
-				pstmt.setString(i + 1, matchVal);
-			}
-			ResultSet rs = pstmt.executeQuery();
-			while (rs.next()) {
-				prikeys.add(rs.getInt(1));
-			}
-		} finally {
-			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
-		}
-		return prikeys;
-	}
-
-	// Finds ALL child rows (active and soft-deleted) for the given parent prikeys
 	private ArrayList<Integer> getChildPrikeys(
 			Connection cResults, String tableName,
 			ArrayList<Integer> parentPrikeys) throws SQLException {
 
 		if (parentPrikeys.isEmpty()) return new ArrayList<>();
-		String sql = "select prikey from " + tableName + " where parkey in " + inClause(parentPrikeys);
+		String sql = "select prikey from " + tableName
+				+ " where parkey in " + inClause(parentPrikeys);
 
 		ArrayList<Integer> prikeys = new ArrayList<>();
 		PreparedStatement pstmt = null;
@@ -301,14 +390,10 @@ public class RTBFManager {
 		try {
 			pstmt = cResults.prepareStatement(sql.toString());
 			int p = 1;
-			for (int i = 0; i < piiCols.size(); i++) {
-				pstmt.setString(p++, REDACTED);
-			}
-			for (int i = 0; i < prikeys.size(); i++) {
-				pstmt.setInt(p++, prikeys.get(i));
-			}
+			for (int i = 0; i < piiCols.size(); i++) pstmt.setString(p++, REDACTED);
+			for (int i = 0; i < prikeys.size(); i++) pstmt.setInt(p++, prikeys.get(i));
 			int updated = pstmt.executeUpdate();
-			log.info("RTBF anonymise: " + updated + " rows in " + tableName);
+			log.info("RTBF redact: " + updated + " rows in " + tableName);
 		} finally {
 			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
 		}
@@ -322,6 +407,35 @@ public class RTBFManager {
 		}
 		sb.append(")");
 		return sb.toString();
+	}
+
+	// -------------------------------------------------------------------------
+	// Helpers
+	// -------------------------------------------------------------------------
+
+	/*
+	 * Derive status from _bad and _bad_reason.
+	 * "Replaced by N" / "Discarded in favour of N" are set by the submission
+	 * processor when a newer version overwrites a record.
+	 */
+	private String recordStatus(boolean isBad, String badReason) {
+		if (!isBad) return "Live";
+		if (badReason != null
+				&& (badReason.startsWith("Replaced by")
+						|| badReason.startsWith("Discarded in favour of"))) {
+			return "History";
+		}
+		return "Deleted";
+	}
+
+	// Minimal JSON string escaping
+	private String je(String s) {
+		if (s == null) return "";
+		return s.replace("\\", "\\\\")
+				.replace("\"", "\\\"")
+				.replace("\n", "\\n")
+				.replace("\r", "\\r")
+				.replace("\t", "\\t");
 	}
 
 	// -------------------------------------------------------------------------
@@ -341,7 +455,7 @@ public class RTBFManager {
 
 	private static class QueueEntry {
 		final FormInfo           form;
-		final ArrayList<Integer> parentPrikeys;  // null = top-level search phase
+		final ArrayList<Integer> parentPrikeys;
 		QueueEntry(FormInfo form, ArrayList<Integer> parentPrikeys) {
 			this.form          = form;
 			this.parentPrikeys = parentPrikeys;
