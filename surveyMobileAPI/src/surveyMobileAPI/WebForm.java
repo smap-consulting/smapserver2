@@ -1412,7 +1412,11 @@ public class WebForm extends Application {
 		output.append("<div id='smap-notification-panel' class='smap-notification-panel' hidden>\n");
 		output.append("<div class='smap-panel-header'>\n");
 		output.append("<h3 class='lang' data-lang='msg_send_notification'>Send Notification</h3>\n");
+		output.append("<div class='smap-panel-header-btns'>\n");
+		output.append("<button class='smap-panel-expand' aria-label='Expand'>&#x2922;</button>\n");
+		output.append("<button class='smap-panel-minimize' aria-label='Minimise'>&#x2921;</button>\n");
 		output.append("<button class='smap-panel-close' aria-label='Close'>&times;</button>\n");
+		output.append("</div>\n");
 		output.append("</div>\n");
 		output.append("<div class='smap-panel-body'>\n");
 		output.append("<div id='wf-pending-section' hidden>\n");
@@ -1455,7 +1459,7 @@ public class WebForm extends Application {
 		output.append("</div>\n");
 		output.append("<div class='form-group'>\n");
 		output.append("<label class='lang' data-lang='c_content' for='email_content'>Content</label>\n");
-		output.append("<textarea id='email_content' class='form-control' rows='3'></textarea>\n");
+		output.append("<textarea id='email_content' class='form-control' rows='10'></textarea>\n");
 		output.append("</div>\n");
 		output.append("<div class='form-group'>\n");
 		output.append("<label class='lang' data-lang='c_attach' for='email_attach'>Attachment</label>\n");
