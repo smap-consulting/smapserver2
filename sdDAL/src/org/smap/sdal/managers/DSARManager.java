@@ -44,11 +44,12 @@ import org.smap.sdal.Utilities.XLSUtilities;
  *
  * Searches every PII-flagged column across all surveys accessible to the user,
  * collecting full submission rows that contain the supplied identifier value.
+ * Includes active, soft-deleted, and edit-history rows.
  * Writes a single XLSX workbook with one sheet per matching survey/form pair.
  *
- * Each sheet has Project/Survey/Form prepended as the first three columns.
- * PII column headers and cells are highlighted in yellow so the admin can see
- * which fields contain personal data when reviewing for false positives.
+ * Each sheet has Project/Survey/Form/Status prepended as the first four columns.
+ * Status values: "Live" (active), "History" (replaced by edit), "Deleted" (admin delete).
+ * PII column headers and cells are highlighted in yellow.
  *
  * Search is case-insensitive exact match (ILIKE) by default.
  * Pass partial=true for a substring match (ILIKE '%value%') for free-text name fields.
@@ -58,7 +59,7 @@ public class DSARManager {
 	private static Logger log = Logger.getLogger(DSARManager.class.getName());
 
 	// Number of context columns prepended before data columns
-	private static final int CTX_COLS = 3;  // Project, Survey, Form
+	private static final int CTX_COLS = 4;  // Project, Survey, Form, Status
 
 	public void export(
 			Connection sd,
@@ -78,6 +79,9 @@ public class DSARManager {
 			CellStyle piiHeaderStyle = styles.get("header_assignments"); // bold + yellow
 			CellStyle plainStyle     = styles.get("default");
 			CellStyle piiStyle       = styles.get("yellow");             // yellow background
+			CellStyle liveStyle      = styles.get("good");               // green
+			CellStyle historyStyle   = styles.get("yellow");             // yellow
+			CellStyle deletedStyle   = styles.get("bad");                // coral
 
 			StringBuilder sqlSurveys = new StringBuilder(
 					"select s.s_id, s.display_name, p.name as project_name "
@@ -162,7 +166,8 @@ public class DSARManager {
 						writeSheet(wb, cResults, tableName, searchCols, piiColSet,
 								identifier, partial,
 								projectName, surveyName, formName,
-								headerStyle, piiHeaderStyle, plainStyle, piiStyle);
+								headerStyle, piiHeaderStyle, plainStyle, piiStyle,
+								liveStyle, historyStyle, deletedStyle);
 					}
 				}
 
@@ -205,13 +210,17 @@ public class DSARManager {
 			CellStyle headerStyle,
 			CellStyle piiHeaderStyle,
 			CellStyle plainStyle,
-			CellStyle piiStyle) throws SQLException {
+			CellStyle piiStyle,
+			CellStyle liveStyle,
+			CellStyle historyStyle,
+			CellStyle deletedStyle) throws SQLException {
 
 		String matchVal = partial ? "%" + identifier + "%" : identifier;
 
+		// Include all rows — active, edit-history (_bad=true replaced by edit),
+		// and admin-deleted — so the DPO sees the complete picture
 		StringBuilder sql = new StringBuilder("select * from ");
-		sql.append(tableName);
-		sql.append(" where (_bad = 'false' or _bad is null) and (");
+		sql.append(tableName).append(" where (");
 		for (int i = 0; i < searchCols.size(); i++) {
 			if (i > 0) sql.append(" or ");
 			sql.append(searchCols.get(i)).append("::text ilike ?");
@@ -237,7 +246,7 @@ public class DSARManager {
 			Sheet sheet = wb.createSheet(sheetName);
 			int rowNum = 0;
 
-			// Header row: Project, Survey, Form, then data columns
+			// Header row: Project, Survey, Form, Status, then data columns
 			Row header = sheet.createRow(rowNum++);
 			header.createCell(0).setCellValue("Project");
 			header.getCell(0).setCellStyle(headerStyle);
@@ -245,6 +254,8 @@ public class DSARManager {
 			header.getCell(1).setCellStyle(headerStyle);
 			header.createCell(2).setCellValue("Form");
 			header.getCell(2).setCellStyle(headerStyle);
+			header.createCell(3).setCellValue("Status");
+			header.getCell(3).setCellStyle(headerStyle);
 
 			for (int c = 1; c <= colCount; c++) {
 				String colName = meta.getColumnName(c);
@@ -259,6 +270,16 @@ public class DSARManager {
 				row.createCell(0).setCellValue(projectName);
 				row.createCell(1).setCellValue(surveyName);
 				row.createCell(2).setCellValue(formName);
+
+				boolean isBad = rs.getBoolean("_bad");
+				String badReason = rs.getString("_bad_reason");
+				String status = recordStatus(isBad, badReason);
+				CellStyle statusStyle = isBad
+						? (status.equals("History") ? historyStyle : deletedStyle)
+						: liveStyle;
+				Cell statusCell = row.createCell(3);
+				statusCell.setCellValue(status);
+				statusCell.setCellStyle(statusStyle);
 
 				for (int c = 1; c <= colCount; c++) {
 					String colName = meta.getColumnName(c);
@@ -276,6 +297,22 @@ public class DSARManager {
 		} finally {
 			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
 		}
+	}
+
+	/*
+	 * Derive a human-readable record status from _bad and _bad_reason.
+	 * "Replaced by N" / "Discarded in favour of N" are set by the submission
+	 * processor when a newer version overwrites a record — these are History.
+	 * Any other _bad=true reason (admin delete, incomplete) is Deleted.
+	 */
+	private String recordStatus(boolean isBad, String badReason) {
+		if (!isBad) return "Live";
+		if (badReason != null
+				&& (badReason.startsWith("Replaced by")
+						|| badReason.startsWith("Discarded in favour of"))) {
+			return "History";
+		}
+		return "Deleted";
 	}
 
 	// Excel sheet names are max 31 chars and cannot contain : \ / ? * [ ]
