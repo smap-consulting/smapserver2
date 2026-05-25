@@ -1,6 +1,7 @@
 package org.smap.sdal.managers;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -196,7 +197,7 @@ public class SharedResourceManager {
 							mm.resourceChange(sd, oId, resourceName);
 						}
 						
-						writeToHistory(sd, fileItem, folderPath, resourceFileName, uploadedFileName,
+						writeToHistory(sd, savedFile, folderPath, resourceFileName, uploadedFileName,
 								oId, sIdent, user);	// Record all changes to the shared resource
 						
 						/*
@@ -367,15 +368,15 @@ public class SharedResourceManager {
 	/*
 	 * Save a change history for the shared resource
 	 */
-	private void writeToHistory(Connection sd, 
-			FileItem fileItem, 
-			String folderPath, 
-			String resourceFileName, 
+	private void writeToHistory(Connection sd,
+			File savedFile,
+			String folderPath,
+			String resourceFileName,
 			String uploadedFileName,
 			int oId,
-			String sIdent, 
+			String sIdent,
 			String user) throws Exception {
-		
+
 		// Create directories
 		File archivePath = new File(folderPath + "/history/" + resourceFileName);
 		if(!archivePath.exists()) {
@@ -383,10 +384,10 @@ public class SharedResourceManager {
 				throw new ApplicationException("Failed to create shared resource archive folder");
 			}
 		}
-		
-		// Write Archived file
-		File archiveFile = new File(archivePath.getAbsolutePath() + "/" + uploadedFileName + GeneralUtilityMethods.getUTCDateTimeSuffix());		
-		fileItem.write(archiveFile.toPath());
+
+		// Write Archived file (copy from already-saved destination; fileItem temp is gone after first write)
+		File archiveFile = new File(archivePath.getAbsolutePath() + "/" + uploadedFileName + GeneralUtilityMethods.getUTCDateTimeSuffix());
+		Files.copy(savedFile.toPath(), archiveFile.toPath());
 		
 		/*
 		 * Record history in the database
