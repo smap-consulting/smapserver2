@@ -25,7 +25,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,7 +47,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.WorkflowManager;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.WorkflowData;
@@ -61,6 +65,7 @@ public class Workflow extends Application {
 	Authorise a = null;
 
 	private static Logger log = Logger.getLogger(Workflow.class.getName());
+	LogManager lm = new LogManager();
 
 	public Workflow() {
 		ArrayList<String> authorisations = new ArrayList<String>();
@@ -406,6 +411,9 @@ public class Workflow extends Application {
 					+ "  or s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
 					+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted))";
 
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
 			pstmtGet = sd.prepareStatement(sqlGet);
 			pstmtUpd = sd.prepareStatement(sqlUpd);
 
@@ -459,6 +467,10 @@ public class Workflow extends Application {
 				pstmtUpd.setString(7, request.getRemoteUser());
 				pstmtUpd.setString(8, request.getRemoteUser());
 				pstmtUpd.executeUpdate();
+				lm.writeLog(sd, n.srcSurveyId, request.getRemoteUser(), LogManager.CREATE,
+						localisation.getString("lm_wf_update_notification")
+							.replace("%s1", n.name != null ? n.name : "")
+							.replace("%s2", String.valueOf(n.id)), 0, null);
 			}
 			response = Response.ok().build();
 		} catch (Exception e) {
@@ -494,11 +506,15 @@ public class Workflow extends Application {
 
 		PreparedStatement pstmt = null;
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, id);
 			pstmt.setString(2, request.getRemoteUser());
 			pstmt.setString(3, request.getRemoteUser());
 			pstmt.executeUpdate();
+			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.DELETE,
+					localisation.getString("lm_wf_delete_notification").replace("%s1", String.valueOf(id)), 0, null);
 			response = Response.ok().build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error deleting notification " + id, e);
@@ -533,6 +549,8 @@ public class Workflow extends Application {
 		PreparedStatement pstmtIns = null;
 		String bundleIdent = null;
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			if (n.srcSurveyId > 0) {
 				pstmtPid = sd.prepareStatement(
 						"select p_id, group_survey_ident from survey where s_id = ?");
@@ -594,6 +612,9 @@ public class Workflow extends Application {
 			pstmtIns.setString(11, n.wfPrevNodeId);
 			ResultSet rs = pstmtIns.executeQuery();
 			int newId = rs.next() ? rs.getInt(1) : 0;
+			lm.writeLog(sd, n.srcSurveyId, request.getRemoteUser(), LogManager.CREATE,
+					localisation.getString("lm_wf_create_notification")
+						.replace("%s1", n.name != null ? n.name : ""), 0, null);
 			response = Response.ok("{\"id\":" + newId + "}").build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error creating notification", e);
@@ -720,6 +741,9 @@ public class Workflow extends Application {
 					+ "and p_id in (select p.id from project p, user_project up, users u "
 					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?)";
 
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
 			pstmtGet    = sd.prepareStatement(sqlGet);
 			pstmtUpd    = sd.prepareStatement(sqlUpd);
 			pstmtGetPid = sd.prepareStatement("select p_id from survey where s_id = ?");
@@ -788,6 +812,10 @@ public class Workflow extends Application {
 				pstmtUpd.setInt(5, tg.tgId);
 				pstmtUpd.setString(6, request.getRemoteUser());
 				pstmtUpd.executeUpdate();
+				lm.writeLog(sd, tg.sourceSurveyId, request.getRemoteUser(), LogManager.CREATE,
+						localisation.getString("lm_wf_update_taskgroup")
+							.replace("%s1", tg.name != null ? tg.name : "")
+							.replace("%s2", String.valueOf(tg.tgId)), 0, null);
 			}
 			response = Response.ok().build();
 		} catch (Exception e) {
@@ -819,6 +847,8 @@ public class Workflow extends Application {
 		PreparedStatement pstmtFwd = null;
 		PreparedStatement pstmtTG  = null;
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			// Delete forward records linked to this task group (scoped to user's projects)
 			pstmtFwd = sd.prepareStatement(
 					"delete from forward where tg_id = ? "
@@ -837,6 +867,8 @@ public class Workflow extends Application {
 			pstmtTG.setInt(1, id);
 			pstmtTG.setString(2, request.getRemoteUser());
 			pstmtTG.executeUpdate();
+			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.DELETE,
+					localisation.getString("lm_wf_delete_taskgroup").replace("%s1", String.valueOf(id)), 0, null);
 			response = Response.ok().build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error deleting task group " + id, e);
@@ -870,6 +902,8 @@ public class Workflow extends Application {
 		PreparedStatement pstmtPid = null;
 		PreparedStatement pstmtIns = null;
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			// Project comes from the target survey, not the source
 			if (tg.targetSurveyId > 0) {
 				pstmtPid = sd.prepareStatement("select p_id from survey where s_id = ?");
@@ -919,6 +953,9 @@ public class Workflow extends Application {
 			pstmtIns.setString(6, tg.wfPrevNodeId);
 			ResultSet rs = pstmtIns.executeQuery();
 			int newId = rs.next() ? rs.getInt(1) : 0;
+			lm.writeLog(sd, tg.sourceSurveyId, request.getRemoteUser(), LogManager.CREATE,
+					localisation.getString("lm_wf_create_taskgroup")
+						.replace("%s1", tg.name != null ? tg.name : ""), 0, null);
 			response = Response.ok("{\"tgId\":" + newId + "}").build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error creating task group", e);
@@ -951,6 +988,8 @@ public class Workflow extends Application {
 
 		PreparedStatement pstmt = null;
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			String sql = "insert into workflow_start(s_ident, p_id) "
 					+ "select s.ident, s.p_id from survey s "
 					+ "join user_project up on up.p_id = s.p_id "
@@ -962,6 +1001,8 @@ public class Workflow extends Application {
 			pstmt.setString(2, request.getRemoteUser());
 			ResultSet rs = pstmt.executeQuery();
 			int newId = rs.next() ? rs.getInt(1) : 0;
+			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.CREATE,
+					localisation.getString("lm_wf_create_form").replace("%s1", f.sIdent != null ? f.sIdent : ""), 0, null);
 			response = Response.ok("{\"id\":" + newId + "}").build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error creating workflow start form", e);
@@ -989,6 +1030,8 @@ public class Workflow extends Application {
 
 		PreparedStatement pstmt = null;
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			String sql = "delete from workflow_start where id = ? "
 					+ "and p_id in (select p.id from project p, user_project up, users u "
 					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?)";
@@ -996,6 +1039,8 @@ public class Workflow extends Application {
 			pstmt.setInt(1, id);
 			pstmt.setString(2, request.getRemoteUser());
 			pstmt.executeUpdate();
+			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.DELETE,
+					localisation.getString("lm_wf_delete_form").replace("%s1", String.valueOf(id)), 0, null);
 			response = Response.ok().build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error deleting workflow start form " + id, e);
