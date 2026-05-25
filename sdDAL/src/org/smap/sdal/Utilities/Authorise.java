@@ -67,6 +67,7 @@ public class Authorise {
 	//public static final int LINKS_ID = 13;
 	public static final int CONSOLE_ADMIN_ID = 14;
 	public static final int MCP_ACCESS_ID = 15;
+	public static final int DPO_ID = 16;
 	
 	//private String requiredGroup;
 	ArrayList<String> permittedGroups; 

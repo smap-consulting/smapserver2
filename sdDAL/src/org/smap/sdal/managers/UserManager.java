@@ -1224,10 +1224,11 @@ public class UserManager {
 						+ " and g_id != " + Authorise.OWNER_ID;	
 			}  else {		// Admin user
 				sql = "delete from user_group where u_id = ? "
-						+ " and g_id != " + Authorise.ORG_ID 
-						+ " and g_id != " + Authorise.SECURITY_ID 
-						+ " and g_id != " + Authorise.ENTERPRISE_ID 
-						+ " and g_id != " + Authorise.OWNER_ID;	
+						+ " and g_id != " + Authorise.ORG_ID
+						+ " and g_id != " + Authorise.SECURITY_ID
+						+ " and g_id != " + Authorise.DPO_ID
+						+ " and g_id != " + Authorise.ENTERPRISE_ID
+						+ " and g_id != " + Authorise.OWNER_ID;
 			}
 
 			if(u.groups != null) {
@@ -1247,7 +1248,7 @@ public class UserManager {
 							|| (isOrgUser && g.id != Authorise.ENTERPRISE_ID && g.id != Authorise.OWNER_ID)
 							|| (isSecurityManager && g.id != Authorise.ORG_ID && g.id != Authorise.ENTERPRISE_ID && g.id != Authorise.OWNER_ID)
 							|| (isEnterpriseManager && g.id != Authorise.OWNER_ID)
-							|| (g.id != Authorise.SECURITY_ID && g.id != Authorise.ORG_ID && g.id != Authorise.ENTERPRISE_ID && g.id != Authorise.OWNER_ID)) {
+							|| (g.id != Authorise.SECURITY_ID && g.id != Authorise.ORG_ID && g.id != Authorise.DPO_ID && g.id != Authorise.ENTERPRISE_ID && g.id != Authorise.OWNER_ID)) {
 						
 						// Ignore deleted groups
 						if(g.id != 13 && g.id != 12) {
@@ -1734,7 +1735,8 @@ public class UserManager {
 						} else {
 							// Administrator
 							for(UserGroup ug : uCurrent.groups) {
-								if(ug.id == Authorise.ORG_ID || ug.id == Authorise.SECURITY_ID || 
+								if(ug.id == Authorise.ORG_ID || ug.id == Authorise.SECURITY_ID ||
+										ug.id == Authorise.DPO_ID ||
 										ug.id == Authorise.OWNER_ID || ug.id == Authorise.ENTERPRISE_ID) {
 									if(!u.hasSecurityGroup(ug.id)) {
 										u.groups.add(ug);
