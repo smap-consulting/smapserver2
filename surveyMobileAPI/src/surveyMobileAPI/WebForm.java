@@ -1428,7 +1428,7 @@ public class WebForm extends Application {
 		output.append("</div>\n");
 		output.append("<div class='smap-notification-footer'>\n");
 		output.append("<div id='wf-notification-status' class='alert' style='display:none;'></div>\n");
-		output.append("<button id='wf-send-notification' class='btn btn-primary lang' data-lang='c_queue'>Add to queue</button>\n");
+		output.append("<button type='button' id='wf-send-notification' class='btn btn-primary lang' data-lang='c_queue'>Add to queue</button>\n");
 		output.append("</div>\n");
 		output.append("</div>\n");
 

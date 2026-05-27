@@ -124,6 +124,7 @@ public class XLSFormManager {
 		public static final int COL_MY_REFERENCE_DATA = 219;
 		public static final int COL_TURNSTILE = 220;
 		public static final int COL_ROLE_GROUP = 221;
+		public static final int COL_SHOW_FORM_INDEX = 222;
 
 		// Style sheet columns
 		public static final int COL_STYLE_LIST2 = 300;
@@ -492,8 +493,11 @@ public class XLSFormManager {
 					value = pdSB.toString();
 				}
 
-			} else if(type == COL_HIDE_ON_DEVICE) {				
+			} else if(type == COL_HIDE_ON_DEVICE) {
 				value = survey.getHideOnDevice() ? "yes" : "no";
+
+			} else if(type == COL_SHOW_FORM_INDEX) {
+				value = survey.getShowFormIndex() ? "yes" : "no";
 
 			} else if(type == COL_TIMING_DATA) {				
 				value = survey.surveyData.timing_data ? "yes" : "no";
@@ -1168,6 +1172,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "key_policy", Column.COL_KEY_POLICY, 0, "key_policy"));
 		cols.add(new Column(colNumber++, "allow_import", Column.COL_ALLOW_IMPORT, 0, "allow_import"));
 		cols.add(new Column(colNumber++, "hide_on_device", Column.COL_HIDE_ON_DEVICE, 0, "hide_on_device"));
+		cols.add(new Column(colNumber++, "show_form_index", Column.COL_SHOW_FORM_INDEX, 0, "show_form_index"));
 		cols.add(new Column(colNumber++, "search_local_data", Column.COL_SEARCH_LOCAL_DATA, 0, "search_local_data"));
 		cols.add(new Column(colNumber++, "data_survey", Column.COL_DATA_SURVEY, 0, "data_survey"));
 		cols.add(new Column(colNumber++, "oversight_survey", Column.COL_OVERSIGHT_SURVEY, 0, "oversight_survey"));

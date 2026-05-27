@@ -41,8 +41,11 @@ public class Survey {
 	public boolean getDeleted() { return surveyData.deleted;};
 	public boolean getBlocked() { return surveyData.blocked;};
 	public boolean hasManifest() { return surveyData.hasManifest;};
-	public boolean getHideOnDevice() { 
+	public boolean getHideOnDevice() {
 		return surveyData.hideOnDevice;
+	};
+	public boolean getShowFormIndex() {
+		return surveyData.showFormIndex;
 	};
 	public boolean getSearchLocalData() { 
 		return surveyData.searchLocalData;
@@ -166,6 +169,7 @@ public class Survey {
 	public void setProjectId(int v) { surveyData.p_id = v;};
 	public void setHideOnDevice(boolean v) { surveyData.hideOnDevice = v;};
 	public void setSearchLocalData(boolean v) { surveyData.searchLocalData = v;};
+	public void setShowFormIndex(boolean v) { surveyData.showFormIndex = v;};
 	
 	/*
 	 * Write a survey to the database
@@ -251,9 +255,10 @@ public class Survey {
 				+ "auto_translate,"
 				+ "default_logo,"
 				+ "compress_pdf,"
-				+ "turnstile) "
+				+ "turnstile,"
+				+ "show_form_index) "
 				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
@@ -298,6 +303,7 @@ public class Survey {
 			pstmt.setString(27, surveyData.default_logo);
 			pstmt.setBoolean(28, surveyData.compress_pdf);
 			pstmt.setBoolean(29, surveyData.turnstile);
+			pstmt.setBoolean(30, surveyData.showFormIndex);
 			pstmt.executeUpdate();
 			
 			// If an ident was not provided then assign a new ident based on the survey id
