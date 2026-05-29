@@ -585,8 +585,19 @@ public class Survey extends Application {
 							rowCount = resultSetTable.getInt(1);
 						}
 
+					} catch (SQLException e) {
+						// Table may not exist yet — check if the connection itself is bad
+						String sqlState = e.getSQLState();
+						if(sqlState != null && sqlState.startsWith("08")) {
+							// Connection-level error; re-get connection
+							log.warning("Results DB connection lost getting row count for " + tableName + ": " + e.getMessage());
+							ResultsDataSource.closeConnection("surveyKPI-Survey-getSurveyMeta", connectionRel);
+							connectionRel = ResultsDataSource.getConnection("surveyKPI-Survey-getSurveyMeta");
+						} else {
+							log.info("Could not get row count for " + tableName + " (table may not exist yet): " + e.getMessage());
+						}
 					} catch (Exception e) {
-						// If the table has not been created yet set row count to the default=0
+						log.info("Could not get row count for " + tableName + ": " + e.getMessage());
 					}
 
 					// Get any geometry questions for this table
