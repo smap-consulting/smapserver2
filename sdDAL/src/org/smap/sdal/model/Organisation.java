@@ -45,6 +45,7 @@ public class Organisation {
 	public boolean notification_webform = false;
 	public boolean can_sms = false;
 	public boolean send_optin = true;
+	public boolean enable_redact = false;
 	public String changed_by;
 	public String changed_ts;
 	public String admin_email;

@@ -188,6 +188,7 @@ create TABLE organisation (
 	can_submit boolean default true,
 	can_sms boolean default false,
 	send_optin boolean default true,
+	enable_redact boolean default false,
 	set_as_theme boolean default false,
 	email_task boolean,
 	notification_webform boolean default false,

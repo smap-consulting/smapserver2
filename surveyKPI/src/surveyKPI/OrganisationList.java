@@ -168,6 +168,7 @@ public class OrganisationList extends Application {
 					+ "can_submit, "
 					+ "can_sms, "
 					+ "send_optin, "
+					+ "enable_redact, "
 					+ "set_as_theme, "
 					+ "navbar_color,"
 					+ "navbar_text_color, "
@@ -226,6 +227,7 @@ public class OrganisationList extends Application {
 				org.can_submit = resultSet.getBoolean("can_submit");
 				org.can_sms = resultSet.getBoolean("can_sms");
 				org.send_optin = resultSet.getBoolean("send_optin");
+				org.enable_redact = resultSet.getBoolean("enable_redact");
 				org.appearance.set_as_theme = resultSet.getBoolean("set_as_theme");
 				org.appearance.navbar_color = resultSet.getString("navbar_color");
 				org.appearance.navbar_text_color = resultSet.getString("navbar_text_color");

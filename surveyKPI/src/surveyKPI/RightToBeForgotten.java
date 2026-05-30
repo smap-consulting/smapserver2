@@ -36,6 +36,7 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RTBFManager;
+import org.smap.sdal.model.Organisation;
 
 import java.sql.Connection;
 import java.util.ArrayList;
@@ -150,6 +151,14 @@ public class RightToBeForgotten extends Application {
 
 			a.isAuthorised(sd, request.getRemoteUser());
 
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			Organisation org = GeneralUtilityMethods.getOrganisation(sd, oId);
+			if (org == null || !org.enable_redact) {
+				return Response.status(Status.FORBIDDEN)
+						.entity("{\"error\":\"redactions are not enabled for this organisation\"}")
+						.build();
+			}
+
 			cResults = ResultsDataSource.getConnection(connectionName);
 
 			RTBFManager rtbf = new RTBFManager();
@@ -157,7 +166,6 @@ public class RightToBeForgotten extends Application {
 					request.getRemoteUser(),
 					targets);
 
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			String note = "RTBF redact: " + targets.size() + " submission(s) selected, "
 					+ affected + " row(s) redacted";
 			lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), LogManager.ERASE, note, affected);

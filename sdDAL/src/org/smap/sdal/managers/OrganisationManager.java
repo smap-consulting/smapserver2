@@ -117,7 +117,8 @@ public class OrganisationManager {
 				+ "navbar_color = ?, "
 				+ "can_sms = ?, "
 				+ "send_optin = ?, "
-				+ "limits = ?," 
+				+ "enable_redact = ?, "
+				+ "limits = ?,"
 				+ "refresh_rate = ?,"
 				+ "password_strength = ?,"
 				+ "map_source = ?,"
@@ -167,12 +168,13 @@ public class OrganisationManager {
 			pstmt.setString(29, HtmlSanitise.checkCleanName(o.appearance.navbar_color, localisation));
 			pstmt.setBoolean(30, o.can_sms);
 			pstmt.setBoolean(31, o.send_optin);
-			pstmt.setString(32, o.limits == null ? null : gson.toJson(o.limits));
-			pstmt.setInt(33, o.refresh_rate);
-			pstmt.setDouble(34, o.password_strength);
-			pstmt.setString(35, HtmlSanitise.checkCleanName(o.map_source, localisation));
-			pstmt.setBoolean(36, o.notification_webform);
-			pstmt.setInt(37, o.id);
+			pstmt.setBoolean(32, o.enable_redact);
+			pstmt.setString(33, o.limits == null ? null : gson.toJson(o.limits));
+			pstmt.setInt(34, o.refresh_rate);
+			pstmt.setDouble(35, o.password_strength);
+			pstmt.setString(36, HtmlSanitise.checkCleanName(o.map_source, localisation));
+			pstmt.setBoolean(37, o.notification_webform);
+			pstmt.setInt(38, o.id);
 					
 			log.fine("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -309,14 +311,14 @@ public class OrganisationManager {
 				+ "email_port, default_email_content, website, locale, timezone, "
 				+ "can_notify, can_use_api, can_submit, set_as_theme, e_id, ft_backward_navigation, ft_navigation, "
 				+ "ft_guidance, ft_image_size, ft_send, ft_delete, "
-				+ "ft_send_location, ft_pw_policy, navbar_color, can_sms, send_optin, limits, "
+				+ "ft_send_location, ft_pw_policy, navbar_color, can_sms, send_optin, enable_redact, limits, "
 				+ "ft_high_res_video, refresh_rate, password_strength, map_source, "
 				+ "ft_input_method, ft_im_ri, ft_im_acc, notification_webform, changed_ts, owner) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?)";
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?)";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -392,15 +394,16 @@ public class OrganisationManager {
 			pstmt.setString(37,navBarColor);
 			pstmt.setBoolean(38, o.can_sms);
 			pstmt.setBoolean(39, o.send_optin);
-			pstmt.setString(40, o.limits == null ? null : gson.toJson(o.limits));
-			pstmt.setString(41, "not set");		// High Resolution Video
-			pstmt.setInt(42, o.refresh_rate);
-			pstmt.setDouble(43, o.password_strength);
-			pstmt.setString(44, HtmlSanitise.checkCleanName(o.map_source, localisation));
-			pstmt.setString(45, "not set");		// send automatically
-			pstmt.setInt(46, 20);		// FT Geo Recording interval
-			pstmt.setInt(47, 10);		// FT Geo Accuracy distance
-			pstmt.setBoolean(48, o.notification_webform);
+			pstmt.setBoolean(40, o.enable_redact);
+			pstmt.setString(41, o.limits == null ? null : gson.toJson(o.limits));
+			pstmt.setString(42, "not set");		// High Resolution Video
+			pstmt.setInt(43, o.refresh_rate);
+			pstmt.setDouble(44, o.password_strength);
+			pstmt.setString(45, HtmlSanitise.checkCleanName(o.map_source, localisation));
+			pstmt.setString(46, "not set");		// send automatically
+			pstmt.setInt(47, 20);		// FT Geo Recording interval
+			pstmt.setInt(48, 10);		// FT Geo Accuracy distance
+			pstmt.setBoolean(49, o.notification_webform);
 
 			/*
 			 * Set the owner only if this is a personal organisation.
@@ -409,7 +412,7 @@ public class OrganisationManager {
 			 * the owner would be set to zero.  In other words they are creating community organisations that
 			 * will need to be maintained by whichever user has organisational admin privilege
 			 */
-			pstmt.setInt(49, GeneralUtilityMethods.hasSecurityGroup(sd, userIdent, Authorise.ORG_ID) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
+			pstmt.setInt(50, GeneralUtilityMethods.hasSecurityGroup(sd, userIdent, Authorise.ORG_ID) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
 			log.fine("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
