@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.StreamingOutput;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -67,13 +68,9 @@ public class FileManager {
 		} else {
 			filepath = basepath + "/media/organisation/" + requestedOrgId + (settings ? "/settings/" : "/") + filename;
 		}
-		getFile(response, filepath, filename);
-			
-		r = Response.ok("").build();
-		
-		return r;
+		return getFileResponse(filepath, filename);
 	}
-	
+
 	/*
 	 * Get a shared history file
 	 */
@@ -118,13 +115,9 @@ public class FileManager {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
 		
-		getFile(response, filepath, filename);
-			
-		r = Response.ok("").build();
-		
-		return r;
+		return getFileResponse(filepath, filename);
 	}
-	
+
 	/*
 	 * Get the latest shared history file
 	 */
@@ -173,13 +166,9 @@ public class FileManager {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
 		
-		getFile(response, filePath, setExtension(resourceName, getExtension(fileName)));
-			
-		r = Response.ok("").build();
-		
-		return r;
+		return getFileResponse(filePath, setExtension(resourceName, getExtension(fileName)));
 	}
-	
+
 	/*
 	 * Get a background report
 	 */
@@ -200,13 +189,38 @@ public class FileManager {
 		String filepath = null;
 			filepath = basepath + "/reports/" + filename;
 		
-		getFile(response, filepath, reportname);
-			
-		r = Response.ok("").build();
-		
-		return r;
+		return getFileResponse(filepath, reportname);
 	}
 	
+	/*
+	 * Return a JAX-RS Response that streams the file — use this from JAX-RS endpoints
+	 */
+	public Response getFileResponse(String filepath, String filename) throws ApplicationException {
+		log.fine("getFileResponse: " + filepath);
+		File f = new File(filepath);
+		if(!f.exists()) {
+			log.fine("Error: File not found: " + f.getAbsolutePath());
+			throw new ApplicationException("File not found: " + f.getAbsolutePath());
+		}
+		String contentType = UtilityMethodsEmail.getContentType(filename);
+		String escapedFileName = GeneralUtilityMethods.urlEncode(filename != null ? filename : "survey");
+		String contentDisposition = "attachment; filename=" + escapedFileName + "; filename*=UTF-8''" + escapedFileName;
+		StreamingOutput stream = output -> {
+			try (FileInputStream fis = new FileInputStream(f)) {
+				byte[] buffer = new byte[8192];
+				int bytes;
+				while ((bytes = fis.read(buffer)) != -1) {
+					output.write(buffer, 0, bytes);
+				}
+			}
+		};
+		return Response.ok(stream)
+				.type(contentType)
+				.header("Content-Disposition", contentDisposition)
+				.header("Content-Length", f.length())
+				.build();
+	}
+
 	/*
 	 * Add the file to the response stream
 	 */
@@ -225,23 +239,22 @@ public class FileManager {
 		FileInputStream fis = new FileInputStream(f);
 		OutputStream responseOutputStream = response.getOutputStream();
 		
-		try {						
+		try {
+			byte[] buffer = new byte[8192];
 			int bytes;
-			while ((bytes = fis.read()) != -1) {
-				responseOutputStream.write(bytes);
+			while ((bytes = fis.read(buffer)) != -1) {
+				responseOutputStream.write(buffer, 0, bytes);
 			}
 		} finally {
 			try {
 				responseOutputStream.flush();
 			} catch(Exception e) {
 				log.fine("Error flushing output stream for file: " + f.getAbsolutePath());
-				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 			try {
 				responseOutputStream.close();
 			} catch(Exception e) {
 				log.fine("Error closing output stream for file: " + f.getAbsolutePath());
-				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 			fis.close();
 		}

@@ -62,26 +62,16 @@ public class Custom extends Application {
 	    try {
 	    	FileManager fm = new FileManager();
 	    	String basePath = GeneralUtilityMethods.getBasePath(request);
-
-	    	/*
-	    	 * First try to get the custom organisation logo
-	    	 */
 	    	try {
-		 		fm.getFile(response, basePath + "/media/organisation/" + oId + "/settings/bannerLogo", "bannerLogo");
+		 		r = fm.getFileResponse(basePath + "/media/organisation/" + oId + "/settings/bannerLogo", "bannerLogo");
 	    	} catch (Exception e) {
-	    		/*
-	    		 * No hard feelings
-	    		 * return the default banner
-	    		 */
-	    		fm.getFile(response, basePath + "/misc/smap_logo.png", "smap_logo.png");
+	    		r = fm.getFileResponse(basePath + "/misc/smap_logo.png", "smap_logo.png");
 	    	}
 	    } catch (Exception e) {
 			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
 	    } finally {
 	    	SDDataSource.closeConnection(connectionString, sd);
 	    }
-	   		
-		r = Response.ok("").build();
 		
 		return r;
 	}
@@ -107,16 +97,14 @@ public class Custom extends Application {
 	    	FileManager fm = new FileManager();
 	    	String basePath = GeneralUtilityMethods.getBasePath(request);
 
-	 		fm.getFile(response, basePath + "/css/custom.css", "custom.css");
-	    	
+	 		r = fm.getFileResponse(basePath + "/css/custom.css", "custom.css");
+
 	    } catch (Exception e) {
 			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
 	    } finally {
 	    	SDDataSource.closeConnection(connectionString, sd);
 	    }
-	   		
-		r = Response.ok("").build();
-		
+
 		return r;
 	}
 
@@ -126,32 +114,30 @@ public class Custom extends Application {
 	@GET
 	@Produces("application/x-download")
 	@Path("/css/org/custom.css")
-	public Response customOrgCss(@Context HttpServletRequest request, 
+	public Response customOrgCss(@Context HttpServletRequest request,
 			@Context HttpServletResponse response) {
-		
+
 		Response r = null;
-		
+
 		/*
 		 * No Authorisation
 		 */
 		String connectionString = "surveyMobileAPI-banner";
 		Connection sd = SDDataSource.getConnection(connectionString);
-	   
+
 	    try {
 	    	int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 	    	FileManager fm = new FileManager();
 	    	String basePath = GeneralUtilityMethods.getBasePath(request);
 
-		 	fm.getFile(response, basePath + "/css/" + oId + "/custom.css", "custom.css");
-	    	
+		 	r = fm.getFileResponse(basePath + "/css/" + oId + "/custom.css", "custom.css");
+
 	    } catch (Exception e) {
 			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
 	    } finally {
 	    	SDDataSource.closeConnection(connectionString, sd);
 	    }
-	   		
-		r = Response.ok("").build();
-		
+
 		return r;
 	}
 	

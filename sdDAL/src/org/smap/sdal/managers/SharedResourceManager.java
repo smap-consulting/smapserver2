@@ -595,9 +595,7 @@ public class SharedResourceManager {
 			
 			log.fine("File path: " + filepath);
 			FileManager fm = new FileManager();
-			fm.getFile(response, filepath, filename);
-			
-			r = Response.ok("").build();
+			r = fm.getFileResponse(filepath, filename);
 			
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Error getting file", e);

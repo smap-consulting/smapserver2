@@ -192,10 +192,8 @@ public class GetFile extends Application {
 			String filepath = basepath + "/media/users/" + uId + "/" + (type != null ? (type + "/") : "") + filename;
 			log.info("Getting user file: " + filepath);
 			FileManager fm = new FileManager();
-			fm.getFile(response, filepath, filename);
-			
-			r = Response.ok("").build();
-			
+			r = fm.getFileResponse(filepath, filename);
+
 		}  catch (Exception e) {
 			log.info("Error getting file:" + e.getMessage());
 			r = Response.serverError().build();
@@ -256,15 +254,13 @@ public class GetFile extends Application {
 			String filepath = folderPath + "/" + filename;
 			
 			FileManager fm = new FileManager();
-			fm.getFile(response, filepath, filename);
-			
-			r = Response.ok("").build();
-			
+			r = fm.getFileResponse(filepath, filename);
+
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Error getting file", e);
 			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
-		} finally {	
-			SDDataSource.closeConnection(connectionString, sd);	
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return r;
@@ -315,15 +311,13 @@ public class GetFile extends Application {
 			if(downloadName == null) {
 				downloadName = name;
 			}
-			fm.getFile(response, t.filepath, downloadName);
-			
-			r = Response.ok("").build();
-			
+			r = fm.getFileResponse(t.filepath, downloadName);
+
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Error getting file", e);
 			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
-		} finally {	
-			SDDataSource.closeConnection(connectionString, sd);	
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return r;
@@ -371,15 +365,13 @@ public class GetFile extends Application {
 				t.filepath = basepath + "/templates/survey/" + sIdent + "/" + name;
 			}
 			FileManager fm = new FileManager();
-			fm.getFile(response, t.filepath, name + ".pdf");
-			
-			r = Response.ok("").build();
-			
+			r = fm.getFileResponse(t.filepath, name + ".pdf");
+
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Error getting file", e);
 			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
-		} finally {	
-			SDDataSource.closeConnection(connectionString, sd);	
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return r;
