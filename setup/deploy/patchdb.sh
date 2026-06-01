@@ -323,14 +323,19 @@ fi
 # Copy the new apache configuration files and tomcat directory access
 # Copy aws credentials
 
-sudo cp $deploy_from/resources/properties/credentials /var/lib/$TOMCAT_VERSION/.aws
-# update existing credentials
 if [ -f $deploy_from/resources/properties/credentials ]
 then
-    for f in `locate .aws/credentials`
+    TOMCAT_HOME=$(getent passwd $TOMCAT_VERSION | cut -d: -f6)
+    if [ -z "$TOMCAT_HOME" ]; then
+        TOMCAT_HOME=/var/lib/$TOMCAT_VERSION
+    fi
+    sudo mkdir -p $TOMCAT_HOME/.aws
+    sudo cp $deploy_from/resources/properties/credentials $TOMCAT_HOME/.aws/credentials
+    # update any other existing credential files
+    for f in `locate .aws/credentials 2>/dev/null`
     do
-            echo "processing $f"
-            cp $deploy_from/resources/properties/credentials $f
+        echo "processing $f"
+        cp $deploy_from/resources/properties/credentials $f
     done
 fi
 sudo cp  $deploy_from/resources/properties/setcredentials.sh /smap_bin
