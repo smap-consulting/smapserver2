@@ -31,7 +31,6 @@ import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
-import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
@@ -431,198 +430,6 @@ public class ActionManager {
 	}
 
 	/*
-	 * Process an update request that came either from an anonymous form or from the
-	 * managed forms page
-	 */
-	public Response processUpdate(HttpServletRequest request, Connection sd, Connection cResults, String userIdent,
-			int sId, String sIdent, String groupSurvey, String updatesString) {
-
-		Response response = null;
-
-		Type type = new TypeToken<ArrayList<Update>>() {
-		}.getType();
-		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-		ArrayList<Update> updates = gson.fromJson(updatesString, type);
-
-		PreparedStatement pstmtUpdate = null;
-		int priority = -1;
-
-		try {
-
-			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, userIdent));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
-			int pId = GeneralUtilityMethods.getProjectId(sd, sId);
-			int uId = GeneralUtilityMethods.getUserId(sd, userIdent);
-
-			/*
-			 * Get the data processing columns
-			 */
-			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
-			SurveyViewDefn svd = svm.getSurveyView(sd, cResults, uId, null, // ssd
-					sId, 0, // TODO SubForm Id
-					null, // Subform name
-					request.getRemoteUser(), oId, false, groupSurvey, false // include bad
-			);
-
-			Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get the table name of the top level form
-			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-
-			/*
-			 * Process each column
-			 */
-			HashMap<String, ArrayList<DataItemChange>> changeMap = new HashMap<>();
-			// log.fine("Set autocommit false");
-			cResults.setAutoCommit(false);
-			for (int i = 0; i < updates.size(); i++) {
-
-				Update u = updates.get(i);
-
-				// Set up storage of changes
-				String instanceid = GeneralUtilityMethods.getInstanceId(cResults, f.tableName, u.prikey);
-				ArrayList<DataItemChange> changes = changeMap.get(instanceid);
-				if (changes == null) {
-					changes = new ArrayList<DataItemChange>();
-					changeMap.put(instanceid, changes);
-				}
-
-				// 1. Escape quotes in update name, though not really necessary due to next step
-				u.name = u.name.replace("'", "''").trim();
-
-				// 2. Confirm this is an editable managed column
-				boolean updateable = false;
-				TableColumn tc = null;
-				for (int j = 0; j < svd.columns.size(); j++) {
-					TableColumn xx = svd.columns.get(j);
-					if (xx.column_name.equals(u.name)) {
-						if (!xx.readonly) {
-							updateable = true;
-							tc = xx;
-						}
-						break;
-					}
-				}
-				if (!updateable) {
-					throw new Exception(u.name + " " + localisation.getString("mf_nu"));
-				}
-
-				String sqlUpdate = "update " + f.tableName;
-
-				if (u.value == null) {
-					sqlUpdate += " set " + u.name + " = null ";
-				} else {
-					sqlUpdate += " set " + u.name + " = ? ";
-				}
-				sqlUpdate += "where " + "prikey = ? ";
-
-				try {
-					if (pstmtUpdate != null) {
-						pstmtUpdate.close();
-					}
-				} catch (Exception e) {
-				}
-				pstmtUpdate = cResults.prepareStatement(sqlUpdate);
-
-				// Set the parameters
-				int paramCount = 1;
-				if (u.value != null) {
-					if (tc.type.equals("text") || tc.type.equals("select_one")) {
-						pstmtUpdate.setString(paramCount++, u.value);
-					} else if (tc.type.equals("date")) {
-						if (u.value == null || u.value.trim().length() == 0) {
-							pstmtUpdate.setDate(paramCount++, null);
-						} else {
-							java.util.Date inputDate = dateFormat.parse(u.value);
-							pstmtUpdate.setDate(paramCount++, new java.sql.Date(inputDate.getTime()));
-						}
-					} else if (tc.type.equals("integer") || tc.type.equals("int")) {
-						int inputInt = Integer.parseInt(u.value);
-						pstmtUpdate.setInt(paramCount++, inputInt);
-					} else if (tc.type.equals("decimal") || tc.type.equals("range")) {
-						double inputDouble = Double.parseDouble(u.value);
-						pstmtUpdate.setDouble(paramCount++, inputDouble);
-					} else if (tc.type.equals("string")) {
-						pstmtUpdate.setString(paramCount++, u.value);
-					} else {
-						log.fine("Warning: unknown type: " + tc.type + " value: " + u.value);
-						pstmtUpdate.setString(paramCount++, u.value);
-					}
-				}
-				pstmtUpdate.setInt(paramCount++, u.prikey);
-
-				// log.fine("Updating managed survey: " + pstmtUpdate.toString());
-				int count = pstmtUpdate.executeUpdate();
-				if (count == 0) {
-					throw new Exception(
-							"Update failed: " + "Try refreshing your view of the data as someone may already "
-									+ "have updated this record.");
-				}
-
-				/*
-				 * Apply any required actions
-				 */
-				if (tc.actions != null && tc.actions.size() > 0) {
-					if (priority < 0) {
-						priority = getPriority(cResults, f.tableName, u.prikey);
-					}
-					applyManagedFormActions(request, sd, tc, oId, sIdent, pId, groupSurvey, u.prikey, priority, u.value,
-							localisation);
-				}
-
-				/*
-				 * Record the change
-				 */
-				changes.add(new DataItemChange(u.name, u.displayName, tc.type, u.value, u.currentValue));
-			}
-
-			/*
-			 * save change log
-			 */
-			RecordEventManager rem = new RecordEventManager();
-			for (String inst : changeMap.keySet()) {
-				rem.writeEvent(sd, cResults, "changes", RecordEventManager.STATUS_SUCCESS, userIdent, f.tableName, inst,
-						gson.toJson(changeMap.get(inst)), null, // task details
-						null, // Notification details
-						null, // Message object
-						null, // description
-						sId, null, 0, // AssignmentId - tasks only
-						0 // Task Id - tasks only
-				);
-			}
-
-			cResults.commit();
-			response = Response.ok().build();
-
-		} catch (Exception e) {
-			try {
-				cResults.rollback();
-			} catch (Exception ex) {
-			}
-			response = Response.serverError().entity(e.getMessage()).build();
-			log.log(Level.SEVERE, "Error", e);
-		} finally {
-
-			try {
-				// log.fine("Set autocommit true");
-				cResults.setAutoCommit(true);
-			} catch (Exception ex) {
-			}
-
-			try {
-				if (pstmtUpdate != null) {
-					pstmtUpdate.close();
-				}
-			} catch (Exception e) {
-			}
-
-		}
-
-		return response;
-	}
-
-	/*
 	 * Process an update request that came from the console The update is for a
 	 * Group Survey
 	 */
@@ -891,8 +698,18 @@ public class ActionManager {
 			 * save change log
 			 */
 			RecordEventManager rem = new RecordEventManager();
+			String changesJson;
+			if (isSubForm) {
+				ArrayList<ArrayList<DataItemChange>> subRowChanges = new ArrayList<>();
+				subRowChanges.add(changes);
+				ArrayList<DataItemChange> topChanges = new ArrayList<>();
+				topChanges.add(new DataItemChange(f.tableName, f.name, subRowChanges));
+				changesJson = gson.toJson(topChanges);
+			} else {
+				changesJson = gson.toJson(changes);
+			}
 			rem.writeEvent(sd, cResults, RecordEventManager.CHANGES, RecordEventManager.STATUS_SUCCESS, userIdent,
-					topLevelForm.tableName, instanceId, gson.toJson(changes), null, // task details
+					topLevelForm.tableName, instanceId, changesJson, null, // task details
 					null, // Message object
 					null, // notification details
 					null, // description

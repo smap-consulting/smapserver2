@@ -1,6 +1,7 @@
 package org.smap.sdal.managers;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -166,29 +167,42 @@ public class SharedResourceManager {
 					/*
 					 * Save the file
 					 */
+					File xlsxArchiveFile = null;
 					if(filetype.equals("xlsx") || filetype.equals("xls")) {
-						
-						// Write to a CSV file
+
+						// Save original XLSX to history before consuming the stream
+						File archivePath = new File(folderPath + "/history/" + resourceFileName);
+						if(!archivePath.exists()) {
+							if(!archivePath.mkdirs()) {
+								throw new ApplicationException("Failed to create shared resource archive folder");
+							}
+						}
+						xlsxArchiveFile = new File(archivePath, uploadedFileName + GeneralUtilityMethods.getUTCDateTimeSuffix());
+						fileItem.write(xlsxArchiveFile.toPath());
+
+						// Convert the saved XLSX to CSV for FieldTask
 						XLSXSharedResourceManager xlsx = new XLSXSharedResourceManager();
-						xlsx.writeToCSV(filetype, fileItem.getInputStream(), savedFile, localisation, tz);
-						
+						try(FileInputStream fis = new FileInputStream(xlsxArchiveFile)) {
+							xlsx.writeToCSV(filetype, fis, savedFile, localisation, tz);
+						}
+
 					} else {
 						// no conversion required
-						fileItem.write(savedFile.toPath());  
+						fileItem.write(savedFile.toPath());
 					}
 					log.fine("Uploaded file written to: " + savedFile.getAbsolutePath());
-					
+
 					if(savedFile.exists()) {
-						
-						if(contentType.equals("text/csv") || resourceFileName.endsWith(".csv")) {				
+
+						if(contentType.equals("text/csv") || resourceFileName.endsWith(".csv")) {
 							// Upload any CSV data into a table, also checks maximum number of columns
 							CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, resourceFileName);
-							csvMgr.updateTable(savedFile);		
+							csvMgr.updateTable(savedFile);
 						} else {
 							// Create thumbnails
 							UtilityMethodsEmail.createThumbnail(resourceFileName, folderPath, savedFile);
 						}
-		
+
 						// Create a message so that devices are notified of the change
 						MessagingManager mm = new MessagingManager(localisation);
 						if(sId > 0) {
@@ -196,8 +210,8 @@ public class SharedResourceManager {
 						} else {
 							mm.resourceChange(sd, oId, resourceName);
 						}
-						
-						writeToHistory(sd, savedFile, folderPath, resourceFileName, uploadedFileName,
+
+						writeToHistory(sd, savedFile, xlsxArchiveFile, folderPath, resourceFileName, uploadedFileName,
 								oId, sIdent, user);	// Record all changes to the shared resource
 						
 						/*
@@ -376,18 +390,35 @@ public class SharedResourceManager {
 			int oId,
 			String sIdent,
 			String user) throws Exception {
+		writeToHistory(sd, savedFile, null, folderPath, resourceFileName, uploadedFileName, oId, sIdent, user);
+	}
 
-		// Create directories
-		File archivePath = new File(folderPath + "/history/" + resourceFileName);
-		if(!archivePath.exists()) {
-			if(!archivePath.mkdirs()) {
-				throw new ApplicationException("Failed to create shared resource archive folder");
+	private void writeToHistory(Connection sd,
+			File savedFile,
+			File existingArchive,
+			String folderPath,
+			String resourceFileName,
+			String uploadedFileName,
+			int oId,
+			String sIdent,
+			String user) throws Exception {
+
+		File archiveFile;
+		if(existingArchive != null) {
+			// Archive already written (e.g. original XLSX saved before CSV conversion)
+			archiveFile = existingArchive;
+		} else {
+			// Create directories
+			File archivePath = new File(folderPath + "/history/" + resourceFileName);
+			if(!archivePath.exists()) {
+				if(!archivePath.mkdirs()) {
+					throw new ApplicationException("Failed to create shared resource archive folder");
+				}
 			}
+			// Write Archived file (copy from already-saved destination; fileItem temp is gone after first write)
+			archiveFile = new File(archivePath.getAbsolutePath() + "/" + uploadedFileName + GeneralUtilityMethods.getUTCDateTimeSuffix());
+			Files.copy(savedFile.toPath(), archiveFile.toPath());
 		}
-
-		// Write Archived file (copy from already-saved destination; fileItem temp is gone after first write)
-		File archiveFile = new File(archivePath.getAbsolutePath() + "/" + uploadedFileName + GeneralUtilityMethods.getUTCDateTimeSuffix());
-		Files.copy(savedFile.toPath(), archiveFile.toPath());
 		
 		/*
 		 * Record history in the database

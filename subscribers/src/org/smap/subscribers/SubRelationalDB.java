@@ -1804,16 +1804,55 @@ public class SubRelationalDB extends Subscriber {
 	 */
 	private ArrayList<DataItemChange> getChangeRecord(
 			Connection sd,
-			Connection cRel, 
-			String table, 
-			int prikey, 
+			Connection cRel,
+			String table,
+			int prikey,
 			boolean replace,
 			int f_id) throws SQLException {
-		
+
 		ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
-		
-		// TODO calculate the values in the deleted or added record
-		
+
+		String sqlCols = "select column_name, qtype, qName from question where f_id = ? and not soft_deleted";
+		PreparedStatement pstmtCols = null;
+		PreparedStatement pstmtGetValue = null;
+
+		try {
+			pstmtCols = sd.prepareStatement(sqlCols);
+			pstmtCols.setInt(1, f_id);
+			ResultSet rsCols = pstmtCols.executeQuery();
+			while(rsCols.next()) {
+				String col = rsCols.getString("column_name");
+				String type = rsCols.getString("qtype");
+				String name = rsCols.getString("qName");
+				if(col == null || type == null) continue;
+
+				String sqlGetValue;
+				if(GeneralUtilityMethods.isGeometry(type)) {
+					sqlGetValue = "select ST_AsGeoJSON(" + col + ") from " + table + " where prikey = ?";
+				} else {
+					sqlGetValue = "select " + col + " from " + table + " where prikey = ?";
+				}
+				ResultSet rsVal = null;
+				try {
+					pstmtGetValue = cRel.prepareStatement(sqlGetValue);
+					pstmtGetValue.setInt(1, prikey);
+					rsVal = pstmtGetValue.executeQuery();
+					if(rsVal.next()) {
+						String val = rsVal.getString(1);
+						if(val != null) {
+							changes.add(new DataItemChange(col, name, type, val, null));
+						}
+					}
+				} finally {
+					if(rsVal != null) try{rsVal.close();}catch(Exception e){}
+					if(pstmtGetValue != null) try{pstmtGetValue.close();}catch(Exception e){}
+					pstmtGetValue = null;
+				}
+			}
+		} finally {
+			if(pstmtCols != null) try{pstmtCols.close();}catch(Exception e){}
+		}
+
 		return changes;
 
 	}
