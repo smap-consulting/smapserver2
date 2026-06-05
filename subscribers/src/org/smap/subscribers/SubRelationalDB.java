@@ -58,6 +58,7 @@ import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.DataItemChange;
+import org.smap.sdal.model.SubFormRowChange;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.ForeignKey;
 import org.smap.sdal.model.MediaChange;
@@ -1383,7 +1384,7 @@ public class SubRelationalDB extends Subscriber {
 						
 						log.fine("++++++++++++++ Table: " + tableName );
 						
-						ArrayList<ArrayList<DataItemChange>> subFormChanges = new ArrayList<ArrayList<DataItemChange>> ();
+						ArrayList<SubFormRowChange> subFormChanges = new ArrayList<SubFormRowChange>();
 						
 						/*
 						 * Get the source keys and the target primary keys
@@ -1406,79 +1407,65 @@ public class SubRelationalDB extends Subscriber {
 						String sqlCopyChild = "update " + tableName + " set parkey = ? where prikey = ?";
 						pstmtCopyChild = cResults.prepareStatement(sqlCopyChild);
 						
-						if(mergeTables.contains(tableName)) {					
-							
+						if(mergeTables.contains(tableName)) {
+
 							log.fine("====================== Merging " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
-							
+
 							for(int i = 0; i < childSourcekeys.size(); i++) {
-								
+
 								if(i < childPrikeys.size()) {
 									// merge
 									log.fine("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
 									if(child_f_id > 0) {
-										subFormChanges.add(mergeRecords(
-												sd,
-												cResults, 
-												tableName, 
-												childPrikeys.get(i), childSourcekeys.get(i), 
-												false,   // Doing a merge so set replace to false
-												child_f_id,
-												true,
-												groupSurveyIdent));  
+										subFormChanges.add(new SubFormRowChange(SubFormRowChange.CHANGED,
+												mergeRecords(sd, cResults, tableName,
+												childPrikeys.get(i), childSourcekeys.get(i),
+												false, child_f_id, true, groupSurveyIdent)));
 									}
 								} else {
-									// copy		
+									// copy
 									pstmtCopyChild.setInt(1, prikey);
 									pstmtCopyChild.setInt(2, childSourcekeys.get(i));
 									log.fine("Copy from " + childSourcekeys.get(i) + " to new parent " + prikey + " : " + pstmtCopyChild.toString());
 									pstmtCopyChild.executeUpdate();
 									copiedSourceKeys.add(childSourcekeys.get(i));
 								}
-								
+
 							}
-							
+							if(childPrikeys.size() > childSourcekeys.size()) {
+								for(int i = childSourcekeys.size(); i < childPrikeys.size(); i++) {
+									if(child_f_id > 0) {
+										subFormChanges.add(new SubFormRowChange(SubFormRowChange.NEW_RECORD,
+												getChangeRecord(sd, cResults, tableName, childPrikeys.get(i), false, child_f_id)));
+									}
+								}
+							}
+
 						} else if(replaceTables.contains(tableName)) {
 							log.fine("==================== Replacing " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
-							
+
 							for(int i = 0; i < childSourcekeys.size(); i++) {
 								if(i < childPrikeys.size()) {
-									// merge
 									log.fine("Replace from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
 									if(child_f_id > 0) {
-										subFormChanges.add(mergeRecords(
-												sd,
-												cResults, 
-												tableName, 
-												childPrikeys.get(i), 
-												childSourcekeys.get(i), 
-												true,    // Doing a replace so set replace to true
-												child_f_id,
-												true,
-												groupSurveyIdent));  
+										subFormChanges.add(new SubFormRowChange(SubFormRowChange.CHANGED,
+												mergeRecords(sd, cResults, tableName,
+												childPrikeys.get(i), childSourcekeys.get(i),
+												true, child_f_id, true, groupSurveyIdent)));
 									}
 								} else {
-									// Record the dropped record		
 									if(child_f_id > 0) {
-										subFormChanges.add(getChangeRecord(
-												sd,
-												cResults, 
-												tableName, 
-												childSourcekeys.get(i), false, child_f_id));
+										subFormChanges.add(new SubFormRowChange(SubFormRowChange.DELETED_RECORD,
+												getChangeRecord(sd, cResults, tableName, childSourcekeys.get(i), false, child_f_id)));
 									}
-											
 								}
 							}
 							if(childPrikeys.size() > childSourcekeys.size()) {
 								for(int i = childSourcekeys.size(); i < childPrikeys.size(); i++) {
-									// Record the added record	
 									if(child_f_id > 0) {
-										subFormChanges.add(getChangeRecord(
-												sd,
-												cResults, 
-												tableName, 
-												childPrikeys.get(i), false, child_f_id));
+										subFormChanges.add(new SubFormRowChange(SubFormRowChange.NEW_RECORD,
+												getChangeRecord(sd, cResults, tableName, childPrikeys.get(i), false, child_f_id)));
 									}
-									
 								}
 							}
 							
@@ -1491,22 +1478,17 @@ public class SubRelationalDB extends Subscriber {
 								copiedSourceKeys.add(childSourcekeys.get(i));
 							}
 							for(int i = 0; i < childPrikeys.size(); i++) {
-								// Record the added records	
 								if(child_f_id > 0) {
-									subFormChanges.add(getChangeRecord(
-											sd,
-											cResults, 
-											tableName, 
-											childPrikeys.get(i), false, child_f_id));
+									subFormChanges.add(new SubFormRowChange(SubFormRowChange.NEW_RECORD,
+											getChangeRecord(sd, cResults, tableName, childPrikeys.get(i), false, child_f_id)));
 								}
-								
 							}
-							
+
 						} 
 						
 						// Add the subform changes to the change record
 						if(hasSubFormChanges(subFormChanges)) {
-							changes.add(new DataItemChange(formname, formname, subFormChanges));
+							changes.add(new DataItemChange(formname, formname != null ? formname : tableName, subFormChanges));
 						}
 						
 						/*
@@ -1601,13 +1583,13 @@ public class SubRelationalDB extends Subscriber {
 
 	}
 
-	private boolean hasSubFormChanges(ArrayList<ArrayList<DataItemChange>> subFormChanges) {
-		
-		if(subFormChanges.size() > 0) {
-			for(ArrayList<DataItemChange> recChanges : subFormChanges) {
-				if(recChanges.size() > 0) {
-					return true;
-				}			
+	private boolean hasSubFormChanges(ArrayList<SubFormRowChange> subFormChanges) {
+		for(SubFormRowChange row : subFormChanges) {
+			if(!SubFormRowChange.CHANGED.equals(row.type)) {
+				return true;  // new_record and deleted_record always count
+			}
+			if(row.changes != null && row.changes.size() > 0) {
+				return true;
 			}
 		}
 		return false;

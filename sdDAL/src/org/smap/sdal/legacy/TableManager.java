@@ -689,14 +689,22 @@ public class TableManager {
 					pstmt.executeUpdate();
 					// Add geometry columns
 					for(GeometryColumn gc : geoms) {
-						String gSql = "SELECT AddGeometryColumn('" + gc.tableName + 
-								"', '" + gc.columnName + "', " + 
+						String gSql = "SELECT AddGeometryColumn('" + gc.tableName +
+								"', '" + gc.columnName + "', " +
 								gc.srid + ", '" + gc.type + "', " + gc.dimension + ");";
-	
+
 						if(pstmtGeom != null) try{pstmtGeom.close();}catch(Exception e) {}
 						pstmtGeom = cResults.prepareStatement(gSql);
 						log.fine("Add geometry columns: " + pstmtGeom.toString());
 						pstmtGeom.executeQuery();
+					}
+					// Index parkey on subform tables to speed up child lookups
+					if(form.hasParent()) {
+						String idxSql = "CREATE INDEX IF NOT EXISTS idx_" + tableName
+								+ "_parkey ON " + tableName + "(parkey)";
+						if(pstmt != null) try{pstmt.close();}catch(Exception e){}
+						pstmt = cResults.prepareStatement(idxSql);
+						pstmt.executeUpdate();
 					}
 				}
 			} finally {

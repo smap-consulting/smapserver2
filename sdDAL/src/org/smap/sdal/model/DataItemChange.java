@@ -9,9 +9,10 @@ public class DataItemChange {
 	String col;
 	String displayName;
 	public String type;
-	public String newVal;									// Set for all types other than begin repeat
-	public String oldVal;									// Set for all types other than begin repeat
-	ArrayList<ArrayList<DataItemChange>> changes = null;		// Set if this is a begin repeat
+	public String newVal;		// Set for all types other than begin repeat
+	public String oldVal;		// Set for all types other than begin repeat
+	ArrayList<SubFormRowChange> rows = null;					// begin repeat: new format (typed rows)
+	ArrayList<ArrayList<DataItemChange>> changes = null;	// begin repeat: legacy format (backward compat)
 
 	// Normal constructor
 	public DataItemChange(String col, String displayName, String type, String newVal, String oldVal) {
@@ -21,12 +22,12 @@ public class DataItemChange {
 		this.newVal = newVal;
 		this.oldVal = oldVal;
 	}
-	
+
 	// Constructor for subform
-	public DataItemChange(String col, String displayName, ArrayList<ArrayList<DataItemChange>> changes) {
+	public DataItemChange(String col, String displayName, ArrayList<SubFormRowChange> rows) {
 		this.col = col;
 		this.displayName = displayName;
 		type = "begin repeat";
-		this.changes = changes;
+		this.rows = rows;
 	}
 }

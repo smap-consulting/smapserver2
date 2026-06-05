@@ -11,8 +11,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.sql.Array;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -46,46 +49,34 @@ public class UtilityMethodsEmail {
 	 * Mark a record and all its children as either bad or good
 	 */
 	static public void markRecord(
-			Connection cResults, 
-			Connection sd, 
+			Connection cResults,
+			Connection sd,
 			ResourceBundle localisation,
-			String tName, 
-			boolean value, 
-			String reason, 
-			int key, 
-			int sId, 
+			String tName,
+			boolean value,
+			String reason,
+			int key,
+			int sId,
 			int fId,
 			boolean modified,
 			boolean isChild,
 			String user,
 			boolean updateChildren,
 			String tz,
-			boolean overideModifiedFlag,		// Set if this is a manual request
+			boolean overideModifiedFlag,
 			boolean writeToEventManager
 			) throws Exception {
 
-		String sql = "update " 
-				+ tName 
-				+ " set _bad = ?, _bad_reason = ?, _modified = ? " 
-				+ " where prikey = ?";
-		
+		String sql = "update " + tName
+				+ " set _bad = ?, _bad_reason = ?, _modified = ? where prikey = ?";
 		if(!overideModifiedFlag) {
-			 sql += " and _modified = 'false'";
+			sql += " and _modified = 'false'";
 		}
-		
-		String sqlChild = "update " + tName + " set _bad = ?, _bad_reason = ? " + 
-				" where prikey = ?;";
+		String sqlChild = "update " + tName + " set _bad = ?, _bad_reason = ? where prikey = ?";
 
 		PreparedStatement pstmt = null;
-		PreparedStatement pstmt2 = null;
-
 		try {
-
-			if(isChild) {
-				pstmt = cResults.prepareStatement(sqlChild);
-			} else {
-				pstmt = cResults.prepareStatement(sql);
-			}
+			pstmt = cResults.prepareStatement(isChild ? sqlChild : sql);
 			pstmt.setBoolean(1, value);
 			pstmt.setString(2, reason);
 			if(isChild) {
@@ -94,81 +85,101 @@ public class UtilityMethodsEmail {
 				pstmt.setBoolean(3, modified);
 				pstmt.setInt(4, key);
 			}
-
 			log.fine("Mark record: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
-
 			if(count != 1) {
-				log.fine("Expecting 1 record to be updated.  Number of records updated: " + count);
+				log.fine("Expecting 1 record updated. Got: " + count);
 			}
-			
+
 			if(updateChildren) {
-				// Get the child tables
-				sql = "SELECT DISTINCT f.table_name, f_id FROM form f " +
-						" where f.s_id = ? " + 
-						" and f.parentform = ?;";
-	
-				if (pstmt != null) try {pstmt.close();} catch(Exception e) {};
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, sId);
-				pstmt.setInt(2, fId);
-	
-				log.fine(pstmt.toString());
-				ResultSet tableSet = pstmt.executeQuery();
-				while(tableSet.next()) {
-					String childTable = tableSet.getString(1);
-					int childFormId = tableSet.getInt(2);
-	
-					// Get the child records to be updated
-					sql = "select prikey from " + childTable + 
-							" where parkey = ?;";
-	
-					if (pstmt2 != null) try {pstmt2.close();} catch(Exception e) {};
-					pstmt2 = cResults.prepareStatement(sql);	
-					pstmt2.setInt(1, key);
-					log.fine(pstmt2.toString());
-	
-					ResultSet childRecs = pstmt2.executeQuery();
-					while(childRecs.next()) {
-						int childKey = childRecs.getInt(1);
-						markRecord(cResults, sd, localisation, childTable, value, reason, childKey, 
-								sId, childFormId, modified, true, user, updateChildren, tz, 
-								overideModifiedFlag, writeToEventManager);
-					}
-				}
+				markChildRecordsBulk(cResults, sd, sId, fId,
+						Collections.singletonList(key), value, reason);
 			}
-			
-			/*
-			 * Write to event table if this is the top level table
-			 */
+
 			if(!isChild && writeToEventManager) {
 				String instanceId = GeneralUtilityMethods.getInstanceId(cResults, tName, key);
 				RecordEventManager rem = new RecordEventManager();
-				rem.writeEvent(sd, cResults, 
-						value ? RecordEventManager.DELETED : RecordEventManager.RESTORED, 
+				rem.writeEvent(sd, cResults,
+						value ? RecordEventManager.DELETED : RecordEventManager.RESTORED,
 						RecordEventManager.STATUS_SUCCESS,
-						user, 
-						tName, 
-						instanceId, 
-						null, 					// Change object
-						null, 					// Task object
-						null,					// Message object
-						null,					// Notification object
-						reason, 				// Description
-						sId, 
-						null,
-						0,
-						0);	
+						user, tName, instanceId,
+						null, null, null, null,
+						reason, sId, null, 0, 0);
 			}
-		} catch (SQLException e) {
-			log.log(Level.SEVERE,"Error", e);
+		} catch(SQLException e) {
+			log.log(Level.SEVERE, "Error", e);
 			throw e;
 		} finally {
-			if (pstmt != null) try {pstmt.close();} catch(Exception e) {};
-			if (pstmt2 != null) try {pstmt2.close();} catch(Exception e) {};
+			if(pstmt != null) try{pstmt.close();}catch(Exception e){}
 		}
+	}
 
+	/*
+	 * Bulk-mark all descendant subform records bad/restored.
+	 * One UPDATE and one SELECT per child table per level — no per-record recursion.
+	 */
+	private static void markChildRecordsBulk(
+			Connection cResults,
+			Connection sd,
+			int sId,
+			int parentFId,
+			List<Integer> parentKeys,
+			boolean value,
+			String reason) throws SQLException {
 
+		if(parentKeys.isEmpty()) return;
+
+		String sqlForms = "SELECT DISTINCT table_name, f_id FROM form WHERE s_id = ? AND parentform = ?";
+		PreparedStatement pstmtForms = null;
+		PreparedStatement pstmtUpdate = null;
+		PreparedStatement pstmtGetKeys = null;
+
+		try {
+			pstmtForms = sd.prepareStatement(sqlForms);
+			pstmtForms.setInt(1, sId);
+			pstmtForms.setInt(2, parentFId);
+			ResultSet rsForms = pstmtForms.executeQuery();
+
+			while(rsForms.next()) {
+				String childTable = rsForms.getString(1);
+				int childFId = rsForms.getInt(2);
+
+				Array pgArray = cResults.createArrayOf("integer",
+						parentKeys.toArray(new Integer[0]));
+
+				// Bulk update all children of these parents in one query
+				pstmtUpdate = cResults.prepareStatement(
+						"UPDATE " + childTable
+						+ " SET _bad = ?, _bad_reason = ? WHERE parkey = ANY(?)");
+				pstmtUpdate.setBoolean(1, value);
+				pstmtUpdate.setString(2, reason);
+				pstmtUpdate.setArray(3, pgArray);
+				log.fine("Bulk mark children: " + pstmtUpdate.toString());
+				pstmtUpdate.executeUpdate();
+				pstmtUpdate.close();
+				pstmtUpdate = null;
+
+				// Collect child prikeys for the next level
+				pstmtGetKeys = cResults.prepareStatement(
+						"SELECT prikey FROM " + childTable + " WHERE parkey = ANY(?)");
+				pstmtGetKeys.setArray(1, pgArray);
+				ResultSet rsKeys = pstmtGetKeys.executeQuery();
+				List<Integer> childKeys = new ArrayList<>();
+				while(rsKeys.next()) {
+					childKeys.add(rsKeys.getInt(1));
+				}
+				pstmtGetKeys.close();
+				pstmtGetKeys = null;
+
+				pgArray.free();
+
+				markChildRecordsBulk(cResults, sd, sId, childFId, childKeys, value, reason);
+			}
+		} finally {
+			if(pstmtForms  != null) try{pstmtForms.close();}catch(Exception e){}
+			if(pstmtUpdate != null) try{pstmtUpdate.close();}catch(Exception e){}
+			if(pstmtGetKeys != null) try{pstmtGetKeys.close();}catch(Exception e){}
+		}
 	}
 
 	/*

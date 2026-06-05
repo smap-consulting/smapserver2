@@ -28,6 +28,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.DataItemChange;
+import org.smap.sdal.model.SubFormRowChange;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
@@ -700,8 +701,8 @@ public class ActionManager {
 			RecordEventManager rem = new RecordEventManager();
 			String changesJson;
 			if (isSubForm) {
-				ArrayList<ArrayList<DataItemChange>> subRowChanges = new ArrayList<>();
-				subRowChanges.add(changes);
+				ArrayList<SubFormRowChange> subRowChanges = new ArrayList<>();
+				subRowChanges.add(new SubFormRowChange(SubFormRowChange.CHANGED, changes));
 				ArrayList<DataItemChange> topChanges = new ArrayList<>();
 				topChanges.add(new DataItemChange(f.tableName, f.name, subRowChanges));
 				changesJson = gson.toJson(topChanges);
