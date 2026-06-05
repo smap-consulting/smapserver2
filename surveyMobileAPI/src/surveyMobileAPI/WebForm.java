@@ -860,7 +860,7 @@ public class WebForm extends Application {
 		output.append("<head>\n");
 		output.append("<title>" + sanitise.sanitiseHtml(survey.getDisplayName()) + "</title>");
 		
-		output.append("<link rel='stylesheet' href='/build/css/bootstrap.min.css' />\n");
+		output.append("<link rel='stylesheet' href='/css/bootstrap.v5.3.8.min.css' />\n");
 		if (surveyClass != null && surveyClass.trim().contains("theme-grid")) {
 			output.append("<link type='text/css' href='/build/css/theme-grid.css' media='all' rel='stylesheet' />\n");
 			output.append("<link type='text/css' href='/build/css/grid-print.css' media='print' rel='stylesheet'/>\n");
@@ -1207,7 +1207,7 @@ public class WebForm extends Application {
 		output.append("</div>\n");
 		output.append(getDialogs());
 
-		output.append("<script src='/build/js/bootstrap.bundle.min.js'></script>\n");
+		output.append("<script src='/js/libs/bootstrap.bundle.v5.3.8.min.js'></script>\n");
 
 		// Webforms script
 		if(debug != null && debug.equals("yes")) {
@@ -1262,11 +1262,11 @@ public class WebForm extends Application {
 
 		output.append("<!-- Start Dialogs -->\n");
 		output.append(
-				"<div id='dialog-alert' class='modal fade' role='dialog' aria-label='Alert dialog' aria-hidden='true' data-keyboard='true'>\n");
+				"<div id='dialog-alert' class='modal fade' role='dialog' tabindex='-1' aria-labelledby='dialog-alert-title' aria-hidden='true'>\n");
 		output.append("<div class='modal-dialog'>\n");
 		output.append("<div class='modal-content'>\n");
 		output.append("<div class='modal-header'>\n");
-		output.append("<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>\n");
+		output.append("<button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>\n");
 		output.append("<div class='modal-title'></div>\n");
 		output.append("</div>\n");
 		output.append("<div class='modal-body'>\n");
@@ -1274,18 +1274,18 @@ public class WebForm extends Application {
 		output.append("</div>\n");
 		output.append("<div class='modal-footer'>\n");
 		output.append("<span class='self-destruct-timer'></span>\n");
-		output.append("<button class='btn btn-primary lang close-dialog' data-lang='alert.default.button' data-dismiss='modal' aria-hidden='true'>Close</button>\n");
+		output.append("<button class='btn btn-primary lang close-dialog' data-lang='alert.default.button' data-bs-dismiss='modal'>Close</button>\n");
 		output.append("</div>\n");
 		output.append("</div>\n");
 		output.append("</div>\n");
 		output.append("</div>  <!-- end dialog-alert -->\n");
 
 		output.append(
-				"<div id='dialog-confirm' class='modal fade' role='dialog' aria-label='Confirmation dialog' aria-hidden='true' data-keyboard='true'>\n");
+				"<div id='dialog-confirm' class='modal fade' role='dialog' tabindex='-1' aria-labelledby='dialog-confirm-title' aria-hidden='true'>\n");
 		output.append("<div class='modal-dialog'>\n");
 		output.append("<div class='modal-content'>\n");
 		output.append("<div class='modal-header'>\n");
-		output.append("<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>\n");
+		output.append("<button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>\n");
 		output.append("</div>\n");
 		output.append("<div class='modal-body'>\n");
 		output.append("<div class='modal-title'></div>\n");
@@ -1296,7 +1296,7 @@ public class WebForm extends Application {
 		output.append("</div>\n");
 		output.append("<div class='modal-footer'>\n");
 		output.append("<span class='self-destruct-timer'></span>\n");
-		output.append("<button class='negative btn lang' data-lang='alert.default.button'>Close</button>\n");
+		output.append("<button class='negative btn btn-secondary lang' data-lang='alert.default.button'>Close</button>\n");
 		output.append("<button class='positive btn btn-primary' data-lang='confirm.default.posButton'>Confirm</button>\n");
 		output.append("</div>\n");
 		output.append("</div>\n");
@@ -1305,11 +1305,11 @@ public class WebForm extends Application {
 		// TRANSLATION LIMIT
 
 		output.append(
-				"<div id='dialog-save' class='modal fade' role='dialog' aria-label='Save dialog' aria-hidden='true' data-keyboard='true'>\n");
+				"<div id='dialog-save' class='modal fade' role='dialog' tabindex='-1' aria-labelledby='dialog-save-title' aria-hidden='true'>\n");
 		output.append("<div class='modal-dialog'>\n");
 		output.append("<div class='modal-content'>\n");
 		output.append("<div class='modal-header'>\n");
-		output.append("<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>\n");
+		output.append("<button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>\n");
 		output.append("</div>\n");
 		output.append("<div class='modal-body'>\n");
 		output.append("<div class='modal-title'></div>\n");
@@ -1324,7 +1324,7 @@ public class WebForm extends Application {
 		output.append("</form>\n");
 		output.append("</div>\n");
 		output.append("<div class='modal-footer'>\n");
-		output.append("<button class='negative btn'>Close</button>\n");
+		output.append("<button class='negative btn btn-secondary'>Close</button>\n");
 		output.append("<button class='positive btn btn-primary'>Save &amp; Close</button>\n");
 		output.append("</div>\n");
 		output.append("</div>\n");
@@ -1333,11 +1333,11 @@ public class WebForm extends Application {
 
 		// used for Grid theme only
 		output.append(
-				"<div id='dialog-print' class='modal fade' role='dialog' aria-label='Print dialog' aria-hidden='true' data-keyboard='true'>\n");
+				"<div id='dialog-print' class='modal fade' role='dialog' tabindex='-1' aria-labelledby='dialog-print-title' aria-hidden='true'>\n");
 		output.append("<div class='modal-dialog'>\n");
 		output.append("<div class='modal-content'>\n");
 		output.append("<div class='modal-header'>\n");
-		output.append("<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>\n");
+		output.append("<button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>\n");
 		output.append("<h3 class='select-format'>Select Print Settings</h3>\n");
 		output.append("<h3 class='progress'>Preparing...</h3>\n");
 		output.append("</div>");
@@ -1377,7 +1377,7 @@ public class WebForm extends Application {
 		output.append("</section>\n");
 		output.append("</div>\n");
 		output.append("<div class='modal-footer'>\n");
-		output.append("<button class='negative btn'>Close</button>\n");
+		output.append("<button class='negative btn btn-secondary'>Close</button>\n");
 		output.append("<button class='positive btn btn-primary'>Prepare</button>\n");
 		output.append("</div>\n");
 		output.append("</div>\n");
@@ -1392,8 +1392,8 @@ public class WebForm extends Application {
 		StringBuffer output = new StringBuffer();
 
 		output.append("<div id='feedback-bar' class='alert alert-warning'>\n");
-		output.append("<span class='glyphicon glyphicon-info-sign'></span>\n");
-		output.append("<button class='close' aria-label='Close Feedback Bar'><span class='glyphicon glyphicon-step-backward'></span></button>\n");
+		output.append("<i class='fa fa-info-circle' aria-hidden='true'></i>\n");
+		output.append("<button class='btn-close btn-close-sm float-end' aria-label='Close Feedback Bar'></button>\n");
 		output.append("</div>\n");
 
 		output.append("<div id='smap-queue-panel' class='smap-full-panel' hidden>\n");
@@ -1412,7 +1412,7 @@ public class WebForm extends Application {
 
 		output.append("<div id='smap-side-panel' class='smap-side-panel'>\n");
 
-		output.append("<div id='smap-notification-panel' class='smap-notification-panel' hidden>\n");
+		output.append("<div id='smap-notification-panel' class='smap-notification-panel'>\n");
 		output.append("<div class='smap-panel-header'>\n");
 		output.append("<h3 class='lang' data-lang='msg_send_notification'>Send Notification</h3>\n");
 		output.append("<div class='smap-panel-header-btns'>\n");
@@ -1540,12 +1540,14 @@ public class WebForm extends Application {
 			output.append("</div>");
 		}
 
-		output.append("<div class='loader'></div>");
+		output.append("<div class='loader'>" +
+			"<div class='spinner-border text-primary' style='width:5rem;height:5rem;' role='status'>" +
+			"<span class='visually-hidden'>Loading...</span></div></div>");
 		output.append("<article class='paper' style='display:none;'>\n");
 		if (!minimal) {
 			output.append("<header class='form-header clearfix'>\n");
 			output.append("<div class='offline-enabled'>\n");
-			output.append("<div title='Records Queued' class='queue-length'>0</div>\n");
+			output.append("<span title='Records Queued' class='queue-length badge rounded-pill bg-secondary'>0</span>\n");
 			if(isApp) {		// include back button
 				output.append("<div style=' font-size: large;'><button onclick='window.history.back();' aria-label='Go back'><i class='fa fa-arrow-left' aria-hidden='true'></i></button></div>\n");
 			}
@@ -1567,15 +1569,15 @@ public class WebForm extends Application {
 				.append("' alt=''>\n");
 			output.append("</span>\n");
 
-			output.append("<div class='smap-menu-wrapper'>\n");
-			output.append("<button class='smap-menu-btn' aria-label='Menu'>&#9776;</button>\n");
-			output.append("<ul class='smap-dropdown-menu' hidden>\n");
-			output.append("<li><button class='smap-menu-item lang' data-action='open-queue' data-lang='record-list.title'>Queue</button></li>\n");
+			output.append("<div class='dropdown'>\n");
+			output.append("<button class='btn btn-outline-secondary dropdown-toggle smap-menu-btn' data-bs-toggle='dropdown' aria-expanded='false' aria-label='Menu'>&#9776;</button>\n");
+			output.append("<ul class='dropdown-menu dropdown-menu-end'>\n");
+			output.append("<li><button class='dropdown-item lang' data-action='open-queue' data-lang='record-list.title'>Queue</button></li>\n");
 			if(showFormIndex) {
-				output.append("<li><button class='smap-menu-item lang' data-action='toggle-index' data-lang='form.index'>Index</button></li>\n");
+				output.append("<li><button class='dropdown-item lang' data-action='toggle-index' data-lang='form.index'>Index</button></li>\n");
 			}
-			output.append("<li id='smap-notif-menu-item' hidden><button class='smap-menu-item lang' data-action='toggle-notification' data-lang='msg_send_notification'>Send Notification</button></li>\n");
-			output.append("<li><a class='smap-menu-item lang' href='/app/myWork/history.html' target='_blank' data-lang='record-list.history'>History</a></li>\n");
+			output.append("<li id='smap-notif-menu-item' hidden><button class='dropdown-item lang' data-action='toggle-notification' data-lang='msg_send_notification'>Send Notification</button></li>\n");
+			output.append("<li><a class='dropdown-item lang' href='/app/myWork/history.html' target='_blank' data-lang='record-list.history'>History</a></li>\n");
 			output.append("</ul>\n");
 			output.append("</div>\n");
 
@@ -1618,8 +1620,8 @@ public class WebForm extends Application {
 		if (surveyClass != null && surveyClass.contains("pages")) {
 
 			output.append("<div class='jump-nav'>\n");
-			output.append("<a class='lang btn btn-default disabled first-page' data-lang='forms.pages.return' href='#'>Return to Beginning</a>\n");
-			output.append("<a class='lang btn btn-default disabled last-page' data-lang='form.pages.end' href='#'>Go to End</a>\n");
+			output.append("<a class='lang btn btn-secondary disabled first-page' data-lang='forms.pages.return' href='#'>Return to Beginning</a>\n");
+			output.append("<a class='lang btn btn-secondary disabled last-page' data-lang='form.pages.end' href='#'>Go to End</a>\n");
 			output.append("</div>");
 		}
 
