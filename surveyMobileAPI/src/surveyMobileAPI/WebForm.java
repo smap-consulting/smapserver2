@@ -860,7 +860,8 @@ public class WebForm extends Application {
 		output.append("<head>\n");
 		output.append("<title>" + sanitise.sanitiseHtml(survey.getDisplayName()) + "</title>");
 		
-		if (surveyClass != null && surveyClass.trim().contains("theme-grid")) {		
+		output.append("<link rel='stylesheet' href='/build/css/bootstrap.min.css' />\n");
+		if (surveyClass != null && surveyClass.trim().contains("theme-grid")) {
 			output.append("<link type='text/css' href='/build/css/theme-grid.css' media='all' rel='stylesheet' />\n");
 			output.append("<link type='text/css' href='/build/css/grid-print.css' media='print' rel='stylesheet'/>\n");
 		} else {
@@ -1205,6 +1206,8 @@ public class WebForm extends Application {
 		output.append(addMain(request, dataToEditId, orgId, false, surveyClass, superUser, readOnly));
 		output.append("</div>\n");
 		output.append(getDialogs());
+
+		output.append("<script src='/build/js/bootstrap.bundle.min.js'></script>\n");
 
 		// Webforms script
 		if(debug != null && debug.equals("yes")) {
