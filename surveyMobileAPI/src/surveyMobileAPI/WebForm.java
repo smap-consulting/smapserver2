@@ -1574,13 +1574,13 @@ public class WebForm extends Application {
 			output.append("<div class='collapse navbar-collapse' id='wf-navbar'>\n");
 			output.append("<ul class='navbar-nav ms-auto align-items-sm-center'>\n");
 			output.append("<li class='nav-item'><span class='form-language-selector'><span class='lang' data-lang='form.chooseLanguage'>language</span></span></li>\n");
-			output.append("<li class='nav-item'><button class='print nav-link' onclick='return false;' aria-label='Print form'><i class='fa fa-print me-1' aria-hidden='true'></i>Print</button></li>\n");
-			output.append("<li class='nav-item d-flex align-items-center'><button class='nav-link lang' data-action='open-queue' data-lang='record-list.title'>Queue</button><span title='Records Queued' class='queue-length badge rounded-pill bg-secondary ms-1'>0</span></li>\n");
+			output.append("<li class='nav-item'><button class='nav-link' data-action='open-queue'><span class='lang' data-lang='record-list.title'>Queue</span> (<span class='queue-length'>0</span>)</button></li>\n");
 			if(showFormIndex) {
 				output.append("<li class='nav-item'><button class='nav-link lang' data-action='toggle-index' data-lang='form.index'>Index</button></li>\n");
 			}
-			output.append("<li id='smap-notif-menu-item' class='nav-item' hidden><button class='nav-link lang' data-action='toggle-notification' data-lang='msg_send_notification'>Send Notification</button></li>\n");
+			output.append("<li id='smap-notif-menu-item' class='nav-item' hidden><button class='nav-link' data-action='toggle-notification'>Notification</button></li>\n");
 			output.append("<li class='nav-item'><a class='nav-link lang' href='/app/myWork/history.html' target='_blank' data-lang='record-list.history'>History</a></li>\n");
+			output.append("<li class='nav-item'><button class='print nav-link' onclick='return false;' aria-label='Print form'><i class='fa fa-print me-1' aria-hidden='true'></i>Print</button></li>\n");
 			output.append("</ul>\n");
 			output.append("</div>\n");
 
