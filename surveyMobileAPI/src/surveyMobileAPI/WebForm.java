@@ -1545,42 +1545,46 @@ public class WebForm extends Application {
 			"<span class='visually-hidden'>Loading...</span></div></div>");
 		output.append("<article class='paper' style='display:none;'>\n");
 		if (!minimal) {
-			output.append("<header class='form-header clearfix'>\n");
-			output.append("<div class='offline-enabled'>\n");
-			output.append("<span title='Records Queued' class='queue-length badge rounded-pill bg-secondary'>0</span>\n");
-			if(isApp) {		// include back button
-				output.append("<div style=' font-size: large;'><button onclick='window.history.back();' aria-label='Go back'><i class='fa fa-arrow-left' aria-hidden='true'></i></button></div>\n");
-			}
-			output.append("<div><img id=\"hour_glass\" src=\"/images/ajax-loader.gif\" style=\"display:none;\" alt=\"hourglass\" height=\"34\" width=\"34\"></div>\n");
-			output.append("</div>\n");
-			//output.append("<button onclick='window.print();' class='print' title='Print this Form'> </button>\n");
-			output.append("<button class=\"print form-header__button--print btn-bg-icon-only\" onclick=\"return false;\" aria-label=\"Print form\"></button>");
-			output.append("<span class='form-language-selector'><span class='lang' data-lang='form.chooseLanguage'>language</span></span>\n");
 			output.append("<div class='form-progress'></div>\n");
+			output.append("<header class='navbar navbar-expand-sm navbar-light bg-white border-bottom shadow-sm fixed-top py-1' aria-label='Form navigation'>\n");
+			output.append("<div class='container-fluid px-3'>\n");
 
-			/*
-			 * Add the webform banner
-			 */
-			output.append("<span class='logo-wrapper'>\n");
+			// Brand / logo
+			output.append("<span class='navbar-brand py-0 me-2'>\n");
 			output.append(addNoScriptWarning());
-
 			output.append("<img class='banner_logo' src='/custom/banner/")
 				.append(orgId)
 				.append("' alt=''>\n");
 			output.append("</span>\n");
 
-			output.append("<div class='dropdown'>\n");
-			output.append("<button class='btn btn-outline-secondary dropdown-toggle smap-menu-btn' data-bs-toggle='dropdown' aria-expanded='false' aria-label='Menu'>&#9776;</button>\n");
-			output.append("<ul class='dropdown-menu dropdown-menu-end'>\n");
-			output.append("<li><button class='dropdown-item lang' data-action='open-queue' data-lang='record-list.title'>Queue</button></li>\n");
-			if(showFormIndex) {
-				output.append("<li><button class='dropdown-item lang' data-action='toggle-index' data-lang='form.index'>Index</button></li>\n");
+			// Always-visible: back button, hourglass
+			output.append("<div class='d-flex align-items-center gap-2 me-auto'>\n");
+			if(isApp) {
+				output.append("<button onclick='window.history.back();' class='btn btn-sm btn-link p-0' aria-label='Go back'><i class='fa fa-arrow-left' aria-hidden='true'></i></button>\n");
 			}
-			output.append("<li id='smap-notif-menu-item' hidden><button class='dropdown-item lang' data-action='toggle-notification' data-lang='msg_send_notification'>Send Notification</button></li>\n");
-			output.append("<li><a class='dropdown-item lang' href='/app/myWork/history.html' target='_blank' data-lang='record-list.history'>History</a></li>\n");
+			output.append("<img id='hour_glass' src='/images/ajax-loader.gif' style='display:none;' alt='' height='24' width='24'>\n");
+			output.append("</div>\n");
+
+			// Toggler for mobile
+			output.append("<button class='navbar-toggler' type='button' data-bs-toggle='collapse' data-bs-target='#wf-navbar' aria-controls='wf-navbar' aria-expanded='false' aria-label='Toggle navigation'>\n");
+			output.append("<span class='navbar-toggler-icon'></span>\n");
+			output.append("</button>\n");
+
+			// Collapsible nav items
+			output.append("<div class='collapse navbar-collapse' id='wf-navbar'>\n");
+			output.append("<ul class='navbar-nav ms-auto align-items-sm-center'>\n");
+			output.append("<li class='nav-item'><span class='form-language-selector'><span class='lang' data-lang='form.chooseLanguage'>language</span></span></li>\n");
+			output.append("<li class='nav-item'><button class='print nav-link' onclick='return false;' aria-label='Print form'><i class='fa fa-print me-1' aria-hidden='true'></i>Print</button></li>\n");
+			output.append("<li class='nav-item d-flex align-items-center'><button class='nav-link lang' data-action='open-queue' data-lang='record-list.title'>Queue</button><span title='Records Queued' class='queue-length badge rounded-pill bg-secondary ms-1'>0</span></li>\n");
+			if(showFormIndex) {
+				output.append("<li class='nav-item'><button class='nav-link lang' data-action='toggle-index' data-lang='form.index'>Index</button></li>\n");
+			}
+			output.append("<li id='smap-notif-menu-item' class='nav-item' hidden><button class='nav-link lang' data-action='toggle-notification' data-lang='msg_send_notification'>Send Notification</button></li>\n");
+			output.append("<li class='nav-item'><a class='nav-link lang' href='/app/myWork/history.html' target='_blank' data-lang='record-list.history'>History</a></li>\n");
 			output.append("</ul>\n");
 			output.append("</div>\n");
 
+			output.append("</div>\n");
 			output.append("</header>\n");
 		}
 		return output;
