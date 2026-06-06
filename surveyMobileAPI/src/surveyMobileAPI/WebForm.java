@@ -1597,11 +1597,11 @@ public class WebForm extends Application {
 		output.append("<div class='content'>\n");
 		output.append("<div class='main-controls'>\n");
 		if (readOnly) {
-			output.append("<button id='exit-form' class='btn btn-primary btn-large lang' data-lang='alert.default.button'>Close</button>\n");
+			output.append("<button id='exit-form' class='btn btn-primary btn-lg lang' data-lang='alert.default.button'>Close</button>\n");
 		} else if (dataToEditId == null) {
-			output.append("<button id='submit-form' class='btn btn-primary btn-large lang' data-lang='formfooter.submit.btn'>Submit</button>\n");
+			output.append("<button id='submit-form' class='btn btn-primary btn-lg lang' data-lang='formfooter.submit.btn'>Submit</button>\n");
 		} else {
-			output.append("<button id='submit-form-single' class='btn btn-primary btn-large lang' data-lang='formfooter.submit.btn'>Submit</button>\n");
+			output.append("<button id='submit-form-single' class='btn btn-primary btn-lg lang' data-lang='formfooter.submit.btn'>Submit</button>\n");
 		}
 		if(!options.wf_hide_draft) {
 			output.append(
