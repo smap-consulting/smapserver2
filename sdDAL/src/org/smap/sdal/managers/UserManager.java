@@ -30,6 +30,7 @@ import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.SubscriptionStatus;
 import org.smap.sdal.model.TaskResponse;
+import org.smap.sdal.model.TaskResponseAssignment;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
 import org.smap.sdal.model.UserSimple;
@@ -2264,7 +2265,13 @@ public class UserManager {
 							true,	// No limit on the count of tasks - just get the count
 							null, null, null, null, null, null, null);
 								
-					count = tr.taskAssignments.size();
+					// Badge count = tasks + owned cases. Referenced (read only) records do not count.
+					count = 0;
+					for(TaskResponseAssignment ta : tr.taskAssignments) {
+						if(ta.task == null || !ta.task.read_only) {
+							count++;
+						}
+					}
 					//log.fine("$$$$$$$ new count is: " + count);
 					setTasksCount(sd, userIdent, count);
 				}

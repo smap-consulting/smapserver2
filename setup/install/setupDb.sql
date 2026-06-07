@@ -147,7 +147,8 @@ create TABLE server (
 	sharepoint_auth_type text DEFAULT 's2s',	-- Authentication type: 's2s' or 'ntlm'
 	sharepoint_username text,					-- NTLM username
 	sharepoint_password text,					-- NTLM password
-	sharepoint_domain text						-- NTLM Windows domain
+	sharepoint_domain text,						-- NTLM Windows domain
+	record_user_backfilled boolean default false	-- One off backfill of record_user owner rows from _assigned has completed
 	);
 ALTER TABLE server OWNER TO ws;
 
@@ -1142,6 +1143,30 @@ CREATE INDEX assignments_status ON assignments(status);
 create index idx_assignments_task_id on assignments (task_id);
 create index assignments_assignee on assignments(assignee);
 ALTER TABLE public.assignments OWNER TO ws;
+
+-- Denormalised index of records a user owns (case) or can reference (read only)
+-- _assigned / _case_survey on the results record remain the source of truth for ownership.
+-- record_user is a fast lookup so getTasksData can retrieve all cases and references in one query.
+DROP SEQUENCE IF EXISTS record_user_id_seq CASCADE;
+CREATE SEQUENCE record_user_id_seq START 1;
+ALTER TABLE record_user_id_seq OWNER TO ws;
+
+CREATE TABLE public.record_user (
+	id bigint NOT NULL DEFAULT nextval('record_user_id_seq') PRIMARY KEY,
+	assignee integer REFERENCES users(id) ON DELETE CASCADE,	-- internal user, for cascade cleanup
+	assignee_ident text NOT NULL,			-- lookup key, matches _assigned (user ident)
+	group_survey_ident text NOT NULL,		-- survey bundle the record belongs to
+	survey_ident text,						-- survey used to open the record (= _case_survey)
+	thread text NOT NULL,					-- _thread of the record, used as download update_id
+	access text NOT NULL DEFAULT 'owner',	-- owner || reference
+	read_only boolean NOT NULL DEFAULT false,	-- true for reference
+	created_by text,
+	created_at timestamp with time zone DEFAULT now()
+);
+CREATE UNIQUE INDEX record_user_unique ON record_user(assignee_ident, group_survey_ident, thread);
+CREATE INDEX record_user_assignee ON record_user(assignee_ident);
+CREATE INDEX record_user_thread ON record_user(group_survey_ident, thread);
+ALTER TABLE public.record_user OWNER TO ws;
 
 CREATE TABLE public.task_rejected (
 	id integer DEFAULT nextval('task_rejected_seq') NOT NULL PRIMARY KEY,

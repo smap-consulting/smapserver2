@@ -43,6 +43,7 @@ import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.legacy.TableManager;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CaseManager;
+import org.smap.sdal.managers.ReferenceManager;
 import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.model.Action;
@@ -497,6 +498,246 @@ public class ManagedForms extends Application {
 	}
 	
 	
+	/*
+	 * Give one or more users read only (reference) access to a record
+	 */
+	@POST
+	@Produces("text/html")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Path("/reference/{sId}")
+	public Response referenceManagedRecord(
+			@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@FormParam("record") String instanceId,
+			@FormParam("users") String users			// Comma separated list of user idents
+			) {
+
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();
+		}
+
+		Response response = null;
+		String requester = "surveyKPI - referenceManagedRecord";
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(requester);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		try {
+			// Localisation
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			List<String> userList = new ArrayList<>();
+			if(users != null) {
+				for(String u : users.split(",")) {
+					if(u.trim().length() > 0) {
+						userList.add(u.trim());
+					}
+				}
+			}
+			if(tableName != null && userList.size() > 0) {
+				// Validate each user belongs to the requesting user's organisation
+				for(String u : userList) {
+					a.isValidUser(sd, request.getRemoteUser(), GeneralUtilityMethods.getUserId(sd, u));
+				}
+				ReferenceManager rm = new ReferenceManager(localisation);
+				rm.addReferences(sd, cResults, tableName, instanceId, surveyIdent, userList, request.getRemoteUser());
+				response = Response.ok().build();
+			} else {
+				response = Response.serverError().entity(localisation.getString("mf_nf")).build();
+			}
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {
+			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, cResults);
+		}
+
+		return response;
+	}
+
+	/*
+	 * Remove read only (reference) access for one or more users (all if none specified)
+	 */
+	@POST
+	@Produces("text/html")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Path("/unreference/{sId}")
+	public Response unreferenceManagedRecord(
+			@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@FormParam("record") String instanceId,
+			@FormParam("users") String users			// Comma separated list of user idents, empty to remove all
+			) {
+
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();
+		}
+
+		Response response = null;
+		String requester = "surveyKPI - unreferenceManagedRecord";
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(requester);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		try {
+			// Localisation
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			List<String> userList = new ArrayList<>();
+			if(users != null) {
+				for(String u : users.split(",")) {
+					if(u.trim().length() > 0) {
+						userList.add(u.trim());
+					}
+				}
+			}
+			if(tableName != null) {
+				ReferenceManager rm = new ReferenceManager(localisation);
+				rm.removeReferences(sd, cResults, tableName, instanceId, userList, request.getRemoteUser());
+				response = Response.ok().build();
+			} else {
+				response = Response.serverError().entity(localisation.getString("mf_nf")).build();
+			}
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {
+			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, cResults);
+		}
+
+		return response;
+	}
+
+	/*
+	 * Get the list of users who currently reference a record
+	 */
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	@Path("/references/{sId}")
+	public Response getReferences(
+			@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@QueryParam("record") String instanceId
+			) {
+
+		Response response = null;
+		String requester = "surveyKPI - getReferences";
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(requester);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			ArrayList<String> users = new ArrayList<>();
+			if(tableName != null) {
+				ReferenceManager rm = new ReferenceManager(localisation);
+				users = rm.getReferences(sd, cResults, tableName, instanceId);
+			}
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			response = Response.ok(gson.toJson(users)).build();
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {
+			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, cResults);
+		}
+
+		return response;
+	}
+
+	/*
+	 * Get the instance ids of records referenced by the requesting user for a survey
+	 */
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	@Path("/myreferences/{sId}")
+	public Response getMyReferences(
+			@Context HttpServletRequest request,
+			@PathParam("sId") int sId
+			) {
+
+		Response response = null;
+		String requester = "surveyKPI - getMyReferences";
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(requester);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			ArrayList<String> instances = new ArrayList<>();
+			if(tableName != null) {
+				ReferenceManager rm = new ReferenceManager(localisation);
+				instances = rm.getReferencedInstances(sd, cResults, tableName, groupSurveyIdent,
+						request.getRemoteUser());
+			}
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			response = Response.ok(gson.toJson(instances)).build();
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {
+			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, cResults);
+		}
+
+		return response;
+	}
+
 	/*
 	 * Make a survey managed
 	 * Deprecate

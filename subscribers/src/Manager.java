@@ -100,6 +100,29 @@ public class Manager {
 		}
 	}
 
+	/*
+	 * One off backfill of the record_user owner index from existing _assigned values.
+	 * Runs in a background thread on forward subscriber startup so it does not block the
+	 * processors, and is skipped once the server flag is set.
+	 */
+	private static void runRecordUserBackfill(String smapId) {
+		Thread t = new Thread(() -> {
+			DocumentBuilderFactory dbf = GeneralUtilityMethods.getDocumentBuilderFactory();
+			DatabaseConnections dbc = new DatabaseConnections();
+			try {
+				GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, "./" + smapId);
+				RecordUserBackfill.runIfNeeded(dbc.sd, dbc.results);
+			} catch(Exception e) {
+				log.log(Level.WARNING, "Could not run record_user backfill: " + e.getMessage(), e);
+			} finally {
+				try {if(dbc.sd != null) {dbc.sd.close();}} catch(Exception e) {}
+				try {if(dbc.results != null) {dbc.results.close();}} catch(Exception e) {}
+			}
+		}, "record-user-backfill");
+		t.setDaemon(true);
+		t.start();
+	}
+
 	public static void main(String[] args) {
 		
 		String fileLocn = "/smap";			// Default for legacy servers that do not set file path
@@ -132,7 +155,10 @@ public class Manager {
 		 * Start asynchronous worker threads
 		 */
 		if(subscriberType.equals("forward")) {
-			
+
+			// Run one off data migrations that only need to happen once per server
+			runRecordUserBackfill(smapId);
+
 			// Start the AWS service processor
 			String mediaBucket = GeneralUtilityMethods.getSettingFromFile(fileLocn + "/settings/bucket");
 			String region = GeneralUtilityMethods.getSettingFromFile(fileLocn + "/settings/region");

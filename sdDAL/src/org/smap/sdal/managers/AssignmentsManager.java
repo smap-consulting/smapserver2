@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -24,7 +25,6 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.model.Case;
 import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.FieldTaskSettings;
 import org.smap.sdal.model.FormLocator;
@@ -210,34 +210,21 @@ public class AssignmentsManager {
 		PreparedStatement pstmtDeleteCancelled = null;
 
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
-		int totalTasks = 0;		// Count of the number of tasks assigned to the calling user
 		try {
 
 			String tz = "UTC";
 			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, userIdent);
 			StringBuilder sql = null;
 			ResultSet resultSet = null;
-			
-			/*
-			 * Check to see if we need to get tasks
-			 * This should reduce the load on the server
-			 */
+
 			UserManager um = new UserManager(localisation);
-			
+
 			/*
-			 * This function is called by getTasksCount so to prevent infinite recursion
-			 * do not call getTasksCount if the noLimit flag is set instead set the task count to an arbitrary positive value
-			 * so that all the tasks will be retrieved and can be counted.
-			 * Otherwise we are being called by a refresh to get the tasks and we only do that
-			 * if we know there are some tasks to retrieve so call getTasksCount to determine this.
+			 * Always retrieve - tasks come from one indexed query on assignments,
+			 * cases and references from one indexed query on record_user.
+			 * The noLimit flag (set when counting) lifts the per-device task limit.
 			 */
-			if(noLimit) {
-				totalTasks = 1;
-			} else {
-				totalTasks = um.getTasksCount(sd, cResults, localisation, userIdent);
-			} 
-			
-			if(totalTasks != 0) {
+			{
 				String sqlDeleteCancelled = "update assignments set status = 'deleted', deleted_date = now() where id = ?";
 				pstmtDeleteCancelled = sd.prepareStatement(sqlDeleteCancelled);
 				
@@ -431,8 +418,6 @@ public class AssignmentsManager {
 					pstmtDeleteCancelled.setInt(1, assignmentId);
 					pstmtDeleteCancelled.executeUpdate();
 				}
-			} else {
-				// log.fine("############### tasks count is zero, not getting tasks for user " + userIdent);
 			}
 
 			/*
@@ -454,7 +439,12 @@ public class AssignmentsManager {
 				tr.refSurveys = new ArrayList<>();
 			}
 
+			// Map of accessible surveys by ident, used to build case/reference titles after the loop
+			HashMap<String, Survey> surveyByIdent = new HashMap<>();
+
 			for (Survey survey : surveys) {
+
+				surveyByIdent.put(survey.surveyData.ident, survey);
 
 				List<ManifestValue> manifestList = null;
 				List<MediaFile> mediaFiles = null;
@@ -584,42 +574,59 @@ public class AssignmentsManager {
 					fl.mediaFiles = mediaFiles;
 				}
 				tr.forms.add(fl);
+			}
 
-				/*
-				 * Add any cases assigned to this user
-				 */
-				if(totalTasks != 0) {
-					CaseManager cm = new CaseManager(localisation);
-					ArrayList<Case> cases = cm.getCases(sd, cResults, survey.surveyData.ident,
-							survey.surveyData.displayName, survey.surveyData.groupSurveyIdent, userIdent,
-							survey.surveyData.id);
-					if (cases.size() > 0) {
-						if (tr.taskAssignments == null) {
-							tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
-						}
-	
-						for (Case c : cases) {
-	
-							// Convert to cases
-							TaskResponseAssignment ta = new TaskResponseAssignment();
-							ta.task = new TrTask();
-							ta.location = new TaskLocation();
-							ta.assignment = new TrAssignment();
-	
-							ta.task.form_id = survey.surveyData.ident;
-							ta.task.pid = String.valueOf(survey.surveyData.p_id);
-							ta.task.update_id = c.instanceid;
-							ta.task.type = "case";
-							ta.task.initial_data_source = "survey";
-							ta.task.title = c.title;
-							ta.assignment.assignment_status = TaskManager.STATUS_T_ACCEPTED;
-							ta.assignment.assignment_id = 0;
-							tr.taskAssignments.add(ta);
-						}
+			/*
+			 * Add owned cases and referenced records for this user.
+			 * One indexed query on record_user replaces the per-survey getCases loop.
+			 * Titles are resolved live from the current record so they stay fresh and
+			 * rows pointing at deleted / bad records self-heal by being skipped.
+			 */
+			CaseManager cm = new CaseManager(localisation);
+			PreparedStatement pstmtRecordUser = null;
+			try {
+				pstmtRecordUser = sd.prepareStatement(
+						"select survey_ident, thread, read_only from record_user where assignee_ident = ?");
+				pstmtRecordUser.setString(1, userIdent);
+				ResultSet rsRu = pstmtRecordUser.executeQuery();
+				while (rsRu.next()) {
+					String caseSurveyIdent = rsRu.getString("survey_ident");
+					String thread = rsRu.getString("thread");
+					boolean readOnly = rsRu.getBoolean("read_only");
+
+					Survey survey = surveyByIdent.get(caseSurveyIdent);
+					if (survey == null) {
+						continue;	// Survey not accessible to this user
 					}
-				} else {
-					// log.fine("############### tasks count is zero, not getting cases for user " + userIdent);
+
+					String title = cm.getCaseTitle(sd, cResults, caseSurveyIdent,
+							survey.surveyData.displayName, thread);
+					if (title == null) {
+						continue;	// Record no longer exists or is bad
+					}
+
+					if (tr.taskAssignments == null) {
+						tr.taskAssignments = new ArrayList<TaskResponseAssignment>();
+					}
+
+					TaskResponseAssignment ta = new TaskResponseAssignment();
+					ta.task = new TrTask();
+					ta.location = new TaskLocation();
+					ta.assignment = new TrAssignment();
+
+					ta.task.form_id = caseSurveyIdent;
+					ta.task.pid = String.valueOf(survey.surveyData.p_id);
+					ta.task.update_id = thread;		// Cases use the thread as the update id
+					ta.task.type = readOnly ? "reference" : "case";
+					ta.task.read_only = readOnly;
+					ta.task.initial_data_source = "survey";
+					ta.task.title = title;
+					ta.assignment.assignment_status = TaskManager.STATUS_T_ACCEPTED;
+					ta.assignment.assignment_id = 0;
+					tr.taskAssignments.add(ta);
 				}
+			} finally {
+				try {if (pstmtRecordUser != null) {pstmtRecordUser.close();}} catch (Exception e) {}
 			}
 
 			/*
@@ -725,19 +732,6 @@ public class AssignmentsManager {
 				tr.orgs.add(tr.current_org);
 			}
 
-			/*
-			 * If tasks were retrieved and the number of tasks in the list were not equal to the number
-			 * predicted in totalTasks, then request a task recount. This allows for automatic recovery of
-			 * the cached value of the number of tasks if it gets out of sync.
-			 * If the taskCounts value is less than 1 then it will be recalculated using locks to ensure integrity
-			 * Don't do this if we were just getting the real number of tasks in order to set totalTasks 
-			 */
-			if(totalTasks > 0) {
-				if(totalTasks != tr.taskAssignments.size() && !noLimit) {
-					um.requestResetTasksCount(sd, userIdent);
-				}
-			}
-			
 			/*
 			 * Log the request
 			 */

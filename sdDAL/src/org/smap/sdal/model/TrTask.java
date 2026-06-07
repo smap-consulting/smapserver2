@@ -16,6 +16,7 @@ public class TrTask {
     public Date scheduled_finish;
 	public String location_trigger;
 	public boolean repeat;			// Task can be completed multiple times
+	public boolean read_only;		// Referenced case - opened read only, never submitted
 	public String address;			// Key value pairs representing an unstructured address
 	public String status;
 	public int show_dist;

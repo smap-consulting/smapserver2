@@ -336,6 +336,45 @@ public class CaseManager {
 		return cases;
 	}
 	
+	/*
+	 * Build the display title for a case / referenced record from its current (latest, not bad) instance.
+	 * Returns null if no live record exists for the thread so callers can skip stale index rows.
+	 */
+	public String getCaseTitle(Connection sd, Connection cResults, String sIdent, String sName, String thread)
+			throws Exception {
+
+		String title = null;
+		String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
+		if(tableName == null) {
+			return null;
+		}
+
+		PreparedStatement pstmt = null;
+		try {
+			String sql = "select instancename, _hrk, prikey from " + tableName
+					+ " where not _bad and _thread = ? order by prikey desc limit 1";
+			pstmt = cResults.prepareStatement(sql);
+			pstmt.setString(1, thread);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				String instanceName = rs.getString("instancename");
+				String hrk = rs.getString("_hrk");
+				int prikey = rs.getInt("prikey");
+				title = sName + " - ";
+				if(instanceName != null && instanceName.trim().length() > 0) {
+					title = title + instanceName;
+				} else if(hrk != null && hrk.trim().length() > 0) {
+					title = title + hrk;
+				} else {
+					title = title + String.valueOf(prikey);
+				}
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		return title;
+	}
+
 	public ArrayList<CaseCount> getOpenClosed(Connection sd, Connection cResults,
 			String sIdent, String interval, int intervalCount, String aggregationInterval) throws SQLException {
 		
@@ -488,6 +527,8 @@ public class CaseManager {
 				if(assignTo != null) {
 					um.incrementTotalTasks(sd, assignTo);
 				}
+				// Maintain the denormalised record_user owner index used by getTasksData
+				updateOwnerIndex(sd, thread, assignTo, caseSurvey, requestingUser);
 			} else {
 				log.fine("Error: xxxxxxxxxxxxxx: count is " + count + " : " + pstmt.toString());
 			}
@@ -495,7 +536,49 @@ public class CaseManager {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
-		
+
 		return count;
+	}
+
+	/*
+	 * Maintain the record_user owner index (single owner per thread) when a case is assigned or released.
+	 * _assigned on the record remains the source of truth, this is a denormalised lookup.
+	 * Thread (_thread) is a UUID so release/unassign can delete the owner row by thread alone.
+	 * The list title is recomputed live at download time so it is not stored here.
+	 */
+	private void updateOwnerIndex(Connection sd, String thread, String assignTo, String caseSurvey,
+			String requestingUser) throws SQLException {
+
+		if(thread == null) {
+			return;
+		}
+
+		PreparedStatement pstmt = null;
+		try {
+			// Remove any existing owner row for this thread (single owner)
+			pstmt = sd.prepareStatement("delete from record_user where thread = ? and access = 'owner'");
+			pstmt.setString(1, thread);
+			pstmt.executeUpdate();
+			pstmt.close();
+			pstmt = null;
+
+			if(assignTo != null) {
+				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdentFromIdent(sd, caseSurvey);
+				pstmt = sd.prepareStatement("insert into record_user "
+						+ "(assignee, assignee_ident, group_survey_ident, survey_ident, thread, access, read_only, created_by) "
+						+ "values ((select id from users where ident = ?), ?, ?, ?, ?, 'owner', false, ?) "
+						+ "on conflict (assignee_ident, group_survey_ident, thread) do update set "
+						+ "assignee = excluded.assignee, survey_ident = excluded.survey_ident");
+				pstmt.setString(1, assignTo);
+				pstmt.setString(2, assignTo);
+				pstmt.setString(3, groupSurveyIdent);
+				pstmt.setString(4, caseSurvey);
+				pstmt.setString(5, thread);
+				pstmt.setString(6, requestingUser);
+				pstmt.executeUpdate();
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
 	}
 }

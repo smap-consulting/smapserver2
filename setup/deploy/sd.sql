@@ -363,3 +363,25 @@ alter table server add column if not exists email_response_domain text;
 alter table notification_log add column if not exists aws_message_id text;
 alter table record_event add column if not exists ses_message_id text;
 create unique index if not exists record_event_ses_message_id_idx on record_event(ses_message_id) where ses_message_id is not null;
+
+-- Referenced cases: denormalised index of records a user owns (case) or can reference (read only)
+CREATE SEQUENCE IF NOT EXISTS record_user_id_seq START 1;
+ALTER SEQUENCE record_user_id_seq OWNER TO ws;
+CREATE TABLE IF NOT EXISTS record_user (
+	id bigint NOT NULL DEFAULT nextval('record_user_id_seq') PRIMARY KEY,
+	assignee integer REFERENCES users(id) ON DELETE CASCADE,
+	assignee_ident text NOT NULL,
+	group_survey_ident text NOT NULL,
+	survey_ident text,
+	thread text NOT NULL,
+	access text NOT NULL DEFAULT 'owner',	-- owner || reference
+	read_only boolean NOT NULL DEFAULT false,
+	created_by text,
+	created_at timestamp with time zone DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS record_user_unique ON record_user(assignee_ident, group_survey_ident, thread);
+CREATE INDEX IF NOT EXISTS record_user_assignee ON record_user(assignee_ident);
+CREATE INDEX IF NOT EXISTS record_user_thread ON record_user(group_survey_ident, thread);
+ALTER TABLE record_user OWNER TO ws;
+-- One off backfill of record_user owner rows from _assigned, run by the forward subscriber on startup
+alter table server add column if not exists record_user_backfilled boolean default false;
