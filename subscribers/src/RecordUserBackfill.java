@@ -61,6 +61,13 @@ public class RecordUserBackfill {
 			int inserted = backfill(sd, cResults);
 			log.info("record_user backfill complete. Owner rows inserted: " + inserted);
 
+			// The cached task counts predate the backfill, force each user's badge count to be
+			// recalculated the next time it is read
+			pstmtFlag = sd.prepareStatement("update users set reset_total_tasks = true");
+			pstmtFlag.executeUpdate();
+			pstmtFlag.close();
+			pstmtFlag = null;
+
 			pstmtFlag = sd.prepareStatement("update server set record_user_backfilled = true");
 			pstmtFlag.executeUpdate();
 		} catch (Exception e) {
