@@ -40,7 +40,11 @@
           logAbandoned="false"
           removeAbandoned="false"
           removeAbandonedTimeout="600"
-          maxWait="-1"/>
+          maxWait="-1"
+          testOnBorrow="true"
+          validationQuery="SELECT 1"
+          timeBetweenEvictionRunsMillis="60000"
+          minEvictableIdleTimeMillis="300000"/>
 
 
     <Resource name="jdbc/results" auth="Container"
@@ -51,6 +55,10 @@
           logAbandoned="false"
           removeAbandoned="false"
           removeAbandonedTimeout="600"
-          maxWait="-1"/>
+          maxWait="-1"
+          testOnBorrow="true"
+          validationQuery="SELECT 1"
+          timeBetweenEvictionRunsMillis="60000"
+          minEvictableIdleTimeMillis="300000"/>
 
 </Context>
