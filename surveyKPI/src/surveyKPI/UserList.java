@@ -561,6 +561,9 @@ public class UserList extends Application {
 				response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 				log.log(Level.SEVERE,"Error", e);
 			}
+		} catch (ApplicationException e) {
+			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			log.info("Error: " + e.getMessage());
 		} catch (Exception e) {
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 			log.log(Level.SEVERE,"Error", e);

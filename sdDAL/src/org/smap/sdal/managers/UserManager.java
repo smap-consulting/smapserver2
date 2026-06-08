@@ -1121,12 +1121,17 @@ public class UserManager {
 			response = Response.ok().build();
 			
 			
+		} catch (ApplicationException e) {
+
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.info("Error: " + e.getMessage());
+
 		} catch (Exception e) {
 
 			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE,"Error", e);
-			
-		} finally {			
+
+		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 		
