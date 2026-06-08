@@ -556,7 +556,7 @@ public class UserList extends Application {
 			log.info("sql state:" + state);
 			if(state.startsWith("23")) {
 				response = Response.status(Status.CONFLICT).entity(e.getMessage()).build();
-				log.log(Level.SEVERE,"Error", e);
+				log.info("Error: " + e.getMessage());
 			} else {
 				response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 				log.log(Level.SEVERE,"Error", e);
