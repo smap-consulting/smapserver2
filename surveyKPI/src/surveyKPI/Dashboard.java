@@ -26,6 +26,7 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
@@ -77,18 +78,21 @@ public class Dashboard extends Application {
 	@Path("/{projectId}")
 	@Produces("application/json")
 	public Response getSettings(@Context HttpServletRequest request,
-			@PathParam("projectId") int projectId 
+			@PathParam("projectId") int projectId,
+			@QueryParam("user") String onBehalfOf
 			) {
-		
+
 		Response response = null;
-		 		
+
 		// Authorisation - Access
 		String connectionString = "surveyKPI-Dashboard-get";
 		Connection sd = SDDataSource.getConnection(connectionString);
 		// No check for valid user as only panels owned by a user are returned
 		a.isValidProject(sd, request.getRemoteUser(), projectId);
+		// An administrator can manage another user's panels, otherwise a user can only manage their own
+		String user = getEffectiveUser(sd, request.getRemoteUser(), onBehalfOf);
 		// End Authorisation
-		
+
 		ArrayList<Settings> sArray = new ArrayList<Settings> ();
 
 		ResultSet resultSet = null;
@@ -220,12 +224,12 @@ public class Dashboard extends Application {
 					+ "where d.ds_user_ident = ? "
 					+ "and d.ds_subject_type = 'user_locations' ";
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
+
 			// Add Survey panels
-			pstmt = sd.prepareStatement(sql);	
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, projectId);
-			pstmt.setString(2, request.getRemoteUser());
+			pstmt.setString(2, user);
 
 			int idx = 0;
 			log.info("Get survey panels: " + pstmt.toString());
@@ -238,8 +242,8 @@ public class Dashboard extends Application {
 			
 			// Add  user panels
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
-			pstmt = sd.prepareStatement(sqlUser);	
-			pstmt.setString(1, request.getRemoteUser());
+			pstmt = sd.prepareStatement(sqlUser);
+			pstmt.setString(1, user);
 			pstmt.setInt(2, oId);
 
 			log.info("Get user panels: " + pstmt.toString());
@@ -252,8 +256,8 @@ public class Dashboard extends Application {
 			
 			// Add  user location panel
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
-			pstmt = sd.prepareStatement(sqlUserLocation);	
-			pstmt.setString(1, request.getRemoteUser());
+			pstmt = sd.prepareStatement(sqlUserLocation);
+			pstmt.setString(1, user);
 
 			log.info("Get user location panels: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
@@ -290,33 +294,34 @@ public class Dashboard extends Application {
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public Response updateSettings(
-			@Context HttpServletRequest request, 
-			@FormParam("settings") String settings
-			) { 
-		
+			@Context HttpServletRequest request,
+			@FormParam("settings") String settings,
+			@FormParam("user") String onBehalfOf
+			) {
+
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
 			log.info("Error: Non ajax request");
-	        throw new AuthorisationException();   
-		} 
-		
+	        throw new AuthorisationException();
+		}
+
 		Response response = null;
-		
-		String user = request.getRemoteUser();
+
 		log.info("Settings:" + settings);
-		
+
 		Type type = new TypeToken<ArrayList<Settings>>(){}.getType();
 		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		ArrayList<Settings> sArray = gson.fromJson(settings, type);
-		
+
 		PreparedStatement pstmtDel = null;
 		PreparedStatement pstmtDelView = null;
 		PreparedStatement pstmtAddView = null;
 		PreparedStatement pstmtReplaceView = null;
-		
-		// Authorisation not required as dashboard settings are specific to each authenticated user
+
+		// Authorisation - an administrator can manage another user's panels, otherwise a user can only manage their own
 		String connectionString = "surveyKPI-Dashboard-updateSettings";
 		Connection sd = SDDataSource.getConnection(connectionString);
+		String user = getEffectiveUser(sd, request.getRemoteUser(), onBehalfOf);
 
 		try {
 			// Get the users locale
@@ -516,30 +521,31 @@ public class Dashboard extends Application {
 	@POST
 	@Path("/state")
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-	public Response updateState(@Context HttpServletRequest request, 
-			@FormParam("state") String stateString) { 
-		
+	public Response updateState(@Context HttpServletRequest request,
+			@FormParam("state") String stateString,
+			@FormParam("user") String onBehalfOf) {
+
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
 			log.info("Error: Non ajax request");
-	        throw new AuthorisationException();   
-		} 
-		
+	        throw new AuthorisationException();
+		}
+
 		Response response = null;
-		
-		// Authorisation - Access
+
+		// Authorisation - an administrator can manage another user's panels, otherwise a user can only manage their own
 		String connectionString = "surveyKPI-Dashboard-updateState";
 		Connection sd = SDDataSource.getConnection(connectionString);
+		String user = getEffectiveUser(sd, request.getRemoteUser(), onBehalfOf);
 		// End Authorisation
-		
+
 		PreparedStatement pstmt = null;
 
 		try {
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			Settings s = gson.fromJson(stateString, Settings.class);
-			
+
 			String sql;
-			String user = request.getRemoteUser();
 
 			if(s.state != null && !s.state.equals("deleted")) {
 				
@@ -581,6 +587,27 @@ public class Dashboard extends Application {
 		}
 		
 		return response;
+	}
+
+	/*
+	 * Allow an administrator to act on behalf of another user when managing dashboard panels
+	 * Returns the identifier of the user whose panels should be read/written:
+	 *  - the requesting user's own identifier, unless they ask to act as someone else
+	 *  - the requested identifier, but only if the requesting user is an administrator
+	 */
+	private String getEffectiveUser(Connection sd, String requestingUser, String onBehalfOf) {
+
+		if(onBehalfOf != null && !onBehalfOf.isEmpty() && !onBehalfOf.equals(requestingUser)) {
+			try {
+				if(!GeneralUtilityMethods.hasSecurityGroup(sd, requestingUser, Authorise.ADMIN_ID)) {
+					throw new AuthorisationException();
+				}
+			} catch (SQLException e) {
+				throw new AuthorisationException();
+			}
+			return onBehalfOf;
+		}
+		return requestingUser;
 	}
 
 	private Settings getSettings(Connection sd, ResultSet resultSet, int idx) throws SQLException {
