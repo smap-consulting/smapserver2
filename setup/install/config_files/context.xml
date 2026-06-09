@@ -21,6 +21,10 @@
     <!-- Default set of monitored resources -->
     <WatchedResource>WEB-INF/web.xml</WatchedResource>
 
+    <!-- Uncomment to override port/host when running behind a reverse proxy on a non-standard port -->
+    <!-- <Environment name="server.port" value="443" type="java.lang.Integer"/> -->
+    <!-- <Environment name="server.host" value="example.com" type="java.lang.String"/> -->
+
     <!-- Uncomment this to disable session persistence across Tomcat restarts -->
     <!--
     <Manager pathname="" />

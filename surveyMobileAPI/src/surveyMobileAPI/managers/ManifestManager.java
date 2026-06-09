@@ -16,6 +16,7 @@ import jakarta.ws.rs.core.Context;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.ServerConfig;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
@@ -61,8 +62,8 @@ public class ManifestManager {
 			HttpServletResponse resp,
 			String key) {
 		
-		String host = request.getServerName();
-		int portNumber = request.getLocalPort();
+		String host = ServerConfig.getHost(request);
+		int portNumber = ServerConfig.getPortNumber(request);
 		String javaRosaVersion = request.getHeader("X-OpenRosa-Version");
 		String protocol = "";
 		StringBuilder responseStr = new StringBuilder();
@@ -98,11 +99,7 @@ public class ManifestManager {
 		a.isValidSurvey(sd, user, survey.surveyData.id, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
-		if(portNumber == 443) {
-			protocol = "https://";
-		} else {
-			protocol = "http://";
-		}
+		protocol = ServerConfig.getProtocol(request);
 
 		PreparedStatement pstmt = null;
 		try {
