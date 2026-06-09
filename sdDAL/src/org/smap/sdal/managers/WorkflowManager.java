@@ -117,7 +117,7 @@ public class WorkflowManager {
 				+ "join project proj on proj.id = ws.p_id "
 				+ "join user_project up on up.p_id = ws.p_id "
 				+ "join users u on u.id = up.u_id "
-				+ "where u.ident = ? and not s.deleted "
+				+ "where u.ident = ? and not s.deleted and proj.o_id = u.o_id "
 				+ "order by s.display_name";
 		try {
 			pstmt = sd.prepareStatement(sqlStart);
@@ -166,11 +166,11 @@ public class WorkflowManager {
 				+ "  and s_case.ident = (f.notify_details::json->>'survey_case') "
 				+ "left outer join project proj on proj.id = f.p_id "
 				+ "where (f.p_id in (select p.id from project p, user_project up, users u "
-				+ "  where p.id = up.p_id and up.u_id = u.id and u.ident = ?) "
+				+ "  where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
 				+ "or f.s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
-				+ "  where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted) "
+				+ "  where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id) "
 				+ "or f.bundle_ident in (select s2.group_survey_ident from survey s2, project p, user_project up, users u "
-				+ "  where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted)) "
+				+ "  where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id)) "
 				+ "order by f.name asc";
 
 		try {
@@ -352,7 +352,7 @@ public class WorkflowManager {
 				+ "left outer join survey tgt on tgt.s_id = tg.target_s_id "
 				+ "left outer join project proj on proj.id = tg.p_id "
 				+ "where tg.p_id in (select p.id from project p, user_project up, users u "
-				+ "  where p.id = up.p_id and up.u_id = u.id and u.ident = ?) "
+				+ "  where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
 				+ "order by tg.name asc";
 
 		// Stored for sub-pass ii: {tgId, sourceSId, triggerSurvey, dstKey, tgFilterName, tgProjectName}
@@ -764,6 +764,7 @@ public class WorkflowManager {
 				+ "where u.ident = ? "
 				+ "  and s.group_survey_ident is not null "
 				+ "  and not s.deleted "
+				+ "  and p.o_id = u.o_id "
 				+ "order by s.group_survey_ident, s.display_name";
 		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
 			pstmt.setString(1, user);

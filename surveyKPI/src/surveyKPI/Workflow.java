@@ -249,7 +249,7 @@ public class Workflow extends Application {
 				+ "join project p on p.id = s.p_id "
 				+ "join user_project up on p.id = up.p_id "
 				+ "join users u on up.u_id = u.id "
-				+ "where u.ident = ? and not s.deleted and s.data_survey = true "
+				+ "where u.ident = ? and not s.deleted and s.data_survey = true and p.o_id = u.o_id "
 				+ "order by p.name, s.display_name";
 
 		PreparedStatement pstmt = null;
@@ -305,9 +305,9 @@ public class Workflow extends Application {
 				+ "  and s_case.ident = (f.notify_details::json->>'survey_case') "
 				+ "where f.id = any(?) "
 				+ "and (f.p_id in (select p.id from project p, user_project up, users u "
-				+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?) "
+				+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
 				+ "  or f.s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
-				+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted)) "
+				+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id)) "
 				+ "order by f.id";
 
 		PreparedStatement pstmt = null;
@@ -399,17 +399,17 @@ public class Workflow extends Application {
 			// For each notification: fetch existing notify_details, merge changes, save.
 			String sqlGet = "select notify_details, target from forward where id = ? "
 					+ "and (p_id in (select p.id from project p, user_project up, users u "
-					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?) "
+					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
 					+ "  or s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
-					+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted))";
+					+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id))";
 
 			String sqlUpd = "update forward set name = ?, remote_user = ?, filter = ?, enabled = ?, "
 					+ "notify_details = ?, updated = true "
 					+ "where id = ? "
 					+ "and (p_id in (select p.id from project p, user_project up, users u "
-					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?) "
+					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
 					+ "  or s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
-					+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted))";
+					+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id))";
 
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
@@ -500,9 +500,9 @@ public class Workflow extends Application {
 
 		String sql = "delete from forward where id = ? "
 				+ "and (p_id in (select p.id from project p, user_project up, users u "
-				+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?) "
+				+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
 				+ "  or s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
-				+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted))";
+				+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id))";
 
 		PreparedStatement pstmt = null;
 		try {
@@ -650,7 +650,7 @@ public class Workflow extends Application {
 				+ "left join survey s_tgt on s_tgt.s_id = tg.target_s_id "
 				+ "where tg.tg_id = any(?) "
 				+ "and tg.p_id in (select p.id from project p, user_project up, users u "
-				+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?) "
+				+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
 				+ "order by tg.tg_id";
 
 		PreparedStatement pstmt = null;
@@ -736,10 +736,10 @@ public class Workflow extends Application {
 		try {
 			String sqlGet = "select rule, target_s_id from task_group where tg_id = ? "
 					+ "and p_id in (select p.id from project p, user_project up, users u "
-					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?)";
+					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id)";
 			String sqlUpd = "update task_group set name = ?, rule = ?, target_s_id = ?, p_id = ? where tg_id = ? "
 					+ "and p_id in (select p.id from project p, user_project up, users u "
-					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?)";
+					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id)";
 
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
@@ -854,7 +854,7 @@ public class Workflow extends Application {
 					"delete from forward where tg_id = ? "
 					+ "and tg_id in (select tg_id from task_group where p_id in "
 					+ "  (select p.id from project p, user_project up, users u "
-					+ "   where p.id = up.p_id and up.u_id = u.id and u.ident = ?))");
+					+ "   where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id))");
 			pstmtFwd.setInt(1, id);
 			pstmtFwd.setString(2, request.getRemoteUser());
 			pstmtFwd.executeUpdate();
@@ -863,7 +863,7 @@ public class Workflow extends Application {
 			pstmtTG = sd.prepareStatement(
 					"delete from task_group where tg_id = ? "
 					+ "and p_id in (select p.id from project p, user_project up, users u "
-					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?)");
+					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id)");
 			pstmtTG.setInt(1, id);
 			pstmtTG.setString(2, request.getRemoteUser());
 			pstmtTG.executeUpdate();
@@ -1034,7 +1034,7 @@ public class Workflow extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			String sql = "delete from workflow_start where id = ? "
 					+ "and p_id in (select p.id from project p, user_project up, users u "
-					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ?)";
+					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id)";
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, id);
 			pstmt.setString(2, request.getRemoteUser());
