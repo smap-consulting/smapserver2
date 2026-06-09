@@ -24,6 +24,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.ServerConfig;
 import org.smap.sdal.model.Case;
 import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.FieldTaskSettings;
@@ -121,8 +122,8 @@ public class AssignmentsManager {
 					forDevice,
 					GeneralUtilityMethods.getBasePath(request),
 					false,						// Limit the number of tasks
-					request.getServerName(),
-					(request.getLocalPort() == 443) ? "https://" : "http://",
+					ServerConfig.getHost(request),
+					ServerConfig.getProtocol(request),
 					request.getHeader("lat"),
 					request.getHeader("lon"),
 					request.getHeader("devicetime"),
