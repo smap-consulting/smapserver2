@@ -553,12 +553,18 @@ public class Workflow extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			if (n.srcSurveyId > 0) {
 				pstmtPid = sd.prepareStatement(
-						"select p_id, group_survey_ident from survey where s_id = ?");
+						"select s.p_id, s.group_survey_ident from survey s "
+						+ "join project p on p.id = s.p_id "
+						+ "join users u on u.o_id = p.o_id "
+						+ "where s.s_id = ? and u.ident = ? and not s.deleted");
 				pstmtPid.setInt(1, n.srcSurveyId);
+				pstmtPid.setString(2, request.getRemoteUser());
 				ResultSet rs = pstmtPid.executeQuery();
 				if (rs.next()) {
-					if (n.projectId <= 0) n.projectId = rs.getInt("p_id");
+					n.projectId = rs.getInt("p_id");
 					if (n.bundle) bundleIdent = rs.getString("group_survey_ident");
+				} else {
+					return Response.status(Response.Status.FORBIDDEN).entity("Survey not accessible").build();
 				}
 				rs.close();
 			}
@@ -746,7 +752,11 @@ public class Workflow extends Application {
 
 			pstmtGet    = sd.prepareStatement(sqlGet);
 			pstmtUpd    = sd.prepareStatement(sqlUpd);
-			pstmtGetPid = sd.prepareStatement("select p_id from survey where s_id = ?");
+			pstmtGetPid = sd.prepareStatement(
+					"select s.p_id from survey s "
+					+ "join project p on p.id = s.p_id "
+					+ "join users u on u.o_id = p.o_id "
+					+ "where s.s_id = ? and u.ident = ? and not s.deleted");
 
 			for (WorkflowEditTG tg : tgs) {
 				// Fetch and update the rule JSON (preserving fields we don't edit)
@@ -800,6 +810,7 @@ public class Workflow extends Application {
 				int newProjectId = tg.projectId;
 				if (newTargetSId > 0) {
 					pstmtGetPid.setInt(1, newTargetSId);
+					pstmtGetPid.setString(2, request.getRemoteUser());
 					ResultSet rsp = pstmtGetPid.executeQuery();
 					if (rsp.next()) newProjectId = rsp.getInt(1);
 					rsp.close();
@@ -904,18 +915,26 @@ public class Workflow extends Application {
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			// Project comes from the target survey, not the source
+			// Project comes from the target survey, not the source — validate org membership
+			String sqlOrgSurvey = "select s.p_id from survey s "
+					+ "join project p on p.id = s.p_id "
+					+ "join users u on u.o_id = p.o_id "
+					+ "where s.s_id = ? and u.ident = ? and not s.deleted";
 			if (tg.targetSurveyId > 0) {
-				pstmtPid = sd.prepareStatement("select p_id from survey where s_id = ?");
+				pstmtPid = sd.prepareStatement(sqlOrgSurvey);
 				pstmtPid.setInt(1, tg.targetSurveyId);
+				pstmtPid.setString(2, request.getRemoteUser());
 				ResultSet rs = pstmtPid.executeQuery();
 				if (rs.next()) tg.projectId = rs.getInt(1);
+				else { return Response.status(Response.Status.FORBIDDEN).entity("Survey not accessible").build(); }
 				rs.close();
-			} else if (tg.projectId <= 0 && tg.sourceSurveyId > 0) {
-				pstmtPid = sd.prepareStatement("select p_id from survey where s_id = ?");
+			} else if (tg.sourceSurveyId > 0) {
+				pstmtPid = sd.prepareStatement(sqlOrgSurvey);
 				pstmtPid.setInt(1, tg.sourceSurveyId);
+				pstmtPid.setString(2, request.getRemoteUser());
 				ResultSet rs = pstmtPid.executeQuery();
 				if (rs.next()) tg.projectId = rs.getInt(1);
+				else { return Response.status(Response.Status.FORBIDDEN).entity("Survey not accessible").build(); }
 				rs.close();
 			}
 
@@ -992,9 +1011,10 @@ public class Workflow extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			String sql = "insert into workflow_start(s_ident, p_id) "
 					+ "select s.ident, s.p_id from survey s "
+					+ "join project p on p.id = s.p_id "
 					+ "join user_project up on up.p_id = s.p_id "
 					+ "join users u on u.id = up.u_id "
-					+ "where s.ident = ? and u.ident = ? and not s.deleted "
+					+ "where s.ident = ? and u.ident = ? and not s.deleted and p.o_id = u.o_id "
 					+ "returning id";
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, f.sIdent);
