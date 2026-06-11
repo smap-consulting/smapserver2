@@ -21,6 +21,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
@@ -32,6 +33,7 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.OpsMonitorManager;
 import org.smap.sdal.model.OpsOverview;
+import org.smap.sdal.model.OpsUnitDetail;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -93,6 +95,53 @@ public class OpsMonitor extends Application {
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				resp = gson.toJson(ov);
 				om.putCachedOverview(oId, resp);
+			}
+
+			response = Response.ok(resp).build();
+
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, "Error", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+		}
+
+		return response;
+	}
+
+	/*
+	 * L1 drill-down: detail for a single unit (role).
+	 */
+	@GET
+	@Path("/unit/{role}")
+	@Produces("application/json")
+	public Response getUnit(@Context HttpServletRequest request, @PathParam("role") String role) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-OpsMonitor-unit";
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+
+		Connection cResults = null;
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			OpsMonitorManager om = new OpsMonitorManager(localisation);
+
+			String resp = om.getCachedUnit(oId, role);
+			if(resp == null) {
+				cResults = ResultsDataSource.getConnection(connectionString);
+				OpsUnitDetail detail = om.getUnitDetail(sd, cResults, oId, role);
+				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+				resp = gson.toJson(detail);
+				om.putCachedUnit(oId, role, resp);
 			}
 
 			response = Response.ok(resp).build();
