@@ -19,10 +19,13 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
@@ -32,7 +35,9 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.OpsMonitorManager;
+import org.smap.sdal.model.OpsItem;
 import org.smap.sdal.model.OpsOverview;
+import org.smap.sdal.model.OpsSettings;
 import org.smap.sdal.model.OpsUnitDetail;
 
 import com.google.gson.Gson;
@@ -105,6 +110,105 @@ public class OpsMonitor extends Application {
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection(connectionString, cResults);
+		}
+
+		return response;
+	}
+
+	/*
+	 * L2: org-wide at-risk record list. type = overdue | stale | all.
+	 */
+	@GET
+	@Path("/items")
+	@Produces("application/json")
+	public Response getItems(@Context HttpServletRequest request, @QueryParam("type") String type) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-OpsMonitor-items";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+
+		Connection cResults = null;
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			OpsMonitorManager om = new OpsMonitorManager(localisation);
+			cResults = ResultsDataSource.getConnection(connectionString);
+			ArrayList<OpsItem> items = om.getItems(sd, cResults, oId, type);
+
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			response = Response.ok(gson.toJson(items)).build();
+
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, "Error", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+		}
+
+		return response;
+	}
+
+	/*
+	 * Per-organisation settings (stale interval, RAG thresholds, trend window).
+	 */
+	@GET
+	@Path("/settings")
+	@Produces("application/json")
+	public Response getSettings(@Context HttpServletRequest request) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-OpsMonitor-getSettings";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			OpsMonitorManager om = new OpsMonitorManager(null);
+			OpsSettings s = om.getSettings(sd, oId);
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			response = Response.ok(gson.toJson(s)).build();
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, "Error", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+
+	@POST
+	@Path("/settings")
+	@Produces("application/json")
+	public Response saveSettings(@Context HttpServletRequest request, @FormParam("settings") String settings) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-OpsMonitor-saveSettings";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			OpsSettings s = gson.fromJson(settings, OpsSettings.class);
+			if(s == null) {
+				s = new OpsSettings();
+			}
+			OpsMonitorManager om = new OpsMonitorManager(null);
+			om.saveSettings(sd, oId, s, request.getRemoteUser());
+			response = Response.ok("{}").build();
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, "Error", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;

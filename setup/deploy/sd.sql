@@ -385,3 +385,12 @@ CREATE INDEX IF NOT EXISTS record_user_thread ON record_user(group_survey_ident,
 ALTER TABLE record_user OWNER TO ws;
 -- One off backfill of record_user owner rows from _assigned, run by the forward subscriber on startup
 alter table server add column if not exists record_user_backfilled boolean default false;
+
+-- Operations Monitor per-organisation settings (stale interval, RAG thresholds, trend window)
+CREATE TABLE IF NOT EXISTS ops_settings (
+	o_id        integer PRIMARY KEY references organisation(id) on delete cascade,
+	settings    jsonb,
+	changed_by  text,
+	changed_ts  timestamp with time zone
+);
+ALTER TABLE ops_settings OWNER TO ws;

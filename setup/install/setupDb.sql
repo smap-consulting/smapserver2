@@ -1321,6 +1321,16 @@ create TABLE alert (
 );
 ALTER TABLE alert OWNER TO ws;
 
+-- Operations Monitor per-organisation settings (stale interval, RAG thresholds, trend window)
+DROP TABLE IF EXISTS ops_settings CASCADE;
+CREATE TABLE ops_settings (
+	o_id        integer PRIMARY KEY references organisation(id) on delete cascade,
+	settings    jsonb,
+	changed_by  text,
+	changed_ts  timestamp with time zone
+);
+ALTER TABLE ops_settings OWNER TO ws;
+
 DROP SEQUENCE IF EXISTS pending_message_seq CASCADE;
 CREATE SEQUENCE pending_message_seq START 1;
 ALTER SEQUENCE pending_message_seq OWNER TO ws;
