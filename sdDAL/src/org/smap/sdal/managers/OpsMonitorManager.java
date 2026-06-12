@@ -3,6 +3,7 @@ package org.smap.sdal.managers;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -27,7 +28,10 @@ import com.google.gson.GsonBuilder;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.CaseCount;
 import org.smap.sdal.model.OpsAlert;
+import org.smap.sdal.model.OpsCase;
+import org.smap.sdal.model.OpsField;
 import org.smap.sdal.model.OpsSettings;
+import org.smap.sdal.model.User;
 import org.smap.sdal.model.OpsBacklogPoint;
 import org.smap.sdal.model.OpsItem;
 import org.smap.sdal.model.OpsKpi;
@@ -510,7 +514,7 @@ public class OpsMonitorManager {
 				setCell(row, 2, it.bundle);
 				setCell(row, 3, it.assignee);
 				setCell(row, 4, it.ageDays);
-				setCell(row, 5, it.overdue ? localise("ops_overdue_flag", "Overdue") : localise("ops_stale_flag", "Stale"));
+				setCell(row, 5, it.status);
 			}
 
 			// Alerts
@@ -607,46 +611,73 @@ public class OpsMonitorManager {
 	// ---------------------------------------------------------------------------
 
 	/*
-	 * Org-wide at-risk items. type = overdue (tasks) | stale (cases) | all.
+	 * Org-wide record list behind an L0 tile. type =
+	 *   overdue       - overdue tasks
+	 *   in_progress   - open (unsent/accepted) tasks
+	 *   stale         - open cases older than the stale interval
+	 *   open_cases    - all open cases
+	 *   unassigned    - open cases with no owner
+	 *   alerts        - open case-management alerts
+	 *   all (default) - overdue tasks + stale cases (used by the digest)
 	 */
 	public ArrayList<OpsItem> getItems(Connection sd, Connection cResults, int oId, String type) throws SQLException {
 		loadSettings(sd, oId);
 		ArrayList<OpsItem> items = new ArrayList<>();
-		boolean wantTasks = type == null || type.equals("all") || type.equals("overdue");
-		boolean wantCases = type == null || type.equals("all") || type.equals("stale");
-
-		if(wantTasks) {
-			getOverdueTaskItems(sd, oId, items);
+		if(type == null) {
+			type = "all";
 		}
-		if(wantCases) {
-			ArrayList<String> bundles = getCaseBundles(sd, oId);
-			for(String gsi : bundles) {
-				try {
-					String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, gsi);
-					if(table == null) {
-						continue;
-					}
-					GeneralUtilityMethods.ensureTableCurrent(cResults, table, true);
-					ensureCaseIndexes(cResults, table);
-					collectStaleCasesOrg(sd, cResults, table, gsi, items);
-				} catch (Exception e) {
-					log.log(Level.WARNING, "Ops items: skipping bundle " + gsi + ": " + e.getMessage());
-				}
-			}
+
+		if(type.equals("overdue")) {
+			getTaskItems(sd, oId, items, true);
+		} else if(type.equals("in_progress")) {
+			getTaskItems(sd, oId, items, false);
+		} else if(type.equals("alerts")) {
+			getAlertItemsOrg(sd, oId, items);
+		} else if(type.equals("stale") || type.equals("open_cases") || type.equals("unassigned")) {
+			collectCasesAllBundles(sd, cResults, oId, items, type);
+		} else {	// all (legacy / digest)
+			getTaskItems(sd, oId, items, true);
+			collectCasesAllBundles(sd, cResults, oId, items, "stale");
 		}
 		return items;
 	}
 
-	private void getOverdueTaskItems(Connection sd, int oId, java.util.List<OpsItem> items) throws SQLException {
-		String sql = "select t.title, t.tg_id, t.survey_name, a.assignee_name, "
-				+ "extract(epoch from (now() - t.schedule_finish)) as age "
+	private void collectCasesAllBundles(Connection sd, Connection cResults, int oId,
+			java.util.List<OpsItem> items, String mode) throws SQLException {
+		ArrayList<String> bundles = getCaseBundles(sd, oId);
+		for(String gsi : bundles) {
+			try {
+				String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, gsi);
+				if(table == null) {
+					continue;
+				}
+				GeneralUtilityMethods.ensureTableCurrent(cResults, table, true);
+				ensureCaseIndexes(cResults, table);
+				collectCaseItemsOrg(sd, cResults, table, gsi, items, mode);
+			} catch (Exception e) {
+				log.log(Level.WARNING, "Ops items: skipping bundle " + gsi + ": " + e.getMessage());
+			}
+		}
+	}
+
+	/*
+	 * Tasks for the org. overdueOnly=true -> past due; false -> all in-progress.
+	 */
+	private void getTaskItems(Connection sd, int oId, java.util.List<OpsItem> items, boolean overdueOnly) throws SQLException {
+		StringBuilder sql = new StringBuilder("select t.title, t.tg_id, t.survey_name, a.assignee_name, "
+				+ "(t.schedule_finish is not null and t.schedule_finish < now()) as overdue, "
+				+ "extract(epoch from (now() - t.schedule_finish)) as overdue_age, "
+				+ "extract(epoch from (now() - t.created_at)) as created_age "
 				+ "from assignments a join tasks t on t.id = a.task_id and not t.deleted "
 				+ "join project p on p.id = t.p_id and p.o_id = ? "
-				+ "where a.status in ('unsent','accepted') and t.schedule_finish is not null and t.schedule_finish < now() "
-				+ "order by t.schedule_finish asc limit " + ATRISK_LIMIT;
+				+ "where a.status in ('unsent','accepted') ");
+		if(overdueOnly) {
+			sql.append("and t.schedule_finish is not null and t.schedule_finish < now() ");
+		}
+		sql.append("order by t.schedule_finish asc nulls last limit " + ATRISK_LIMIT);
 		PreparedStatement pstmt = null;
 		try {
-			pstmt = sd.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql.toString());
 			pstmt.setInt(1, oId);
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
@@ -655,27 +686,40 @@ public class OpsMonitorManager {
 				if(title == null || title.trim().isEmpty()) {
 					title = surveyName;
 				}
-				long ageDays = (long) (rs.getDouble("age") / 86400);
+				boolean overdue = rs.getBoolean("overdue");
+				long ageDays = (long) ((overdue ? rs.getDouble("overdue_age") : rs.getDouble("created_age")) / 86400);
 				String link = "/app/tasks/taskManagement.html?tg_id=" + rs.getInt("tg_id");
-				items.add(new OpsItem("task", title, surveyName, rs.getString("assignee_name"), ageDays, true, link));
+				OpsItem it = new OpsItem("task", title, surveyName, rs.getString("assignee_name"), ageDays, overdue, link);
+				it.status = overdue ? "overdue" : "in_progress";
+				items.add(it);
 			}
 		} finally {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
 		}
 	}
 
-	private void collectStaleCasesOrg(Connection sd, Connection cResults, String table, String gsi,
-			java.util.List<OpsItem> items) throws SQLException {
+	/*
+	 * Open cases for one bundle. mode = stale | open_cases | unassigned.
+	 */
+	private void collectCaseItemsOrg(Connection sd, Connection cResults, String table, String gsi,
+			java.util.List<OpsItem> items, String mode) throws SQLException {
 		String bundleName = getSurveyDisplayName(sd, gsi);
-		String sql = "select prikey, instancename, _hrk, _assigned, "
+		StringBuilder sql = new StringBuilder("select prikey, instancename, _hrk, _assigned, instanceid, _s_id, "
 				+ "extract(epoch from (now() - _thread_created)) as age "
-				+ "from " + table + " where not _bad and _case_closed is null "
-				+ "and _thread_created < now() - ?::interval "
-				+ "order by _thread_created asc limit " + ATRISK_LIMIT;
+				+ "from " + table + " where not _bad and _case_closed is null ");
+		boolean stale = mode.equals("stale");
+		if(stale) {
+			sql.append("and _thread_created < now() - ?::interval ");
+		} else if(mode.equals("unassigned")) {
+			sql.append("and (_assigned is null or _assigned = '') ");
+		}
+		sql.append("order by _thread_created asc limit " + ATRISK_LIMIT);
 		PreparedStatement pstmt = null;
 		try {
-			pstmt = cResults.prepareStatement(sql);
-			pstmt.setString(1, staleInterval());
+			pstmt = cResults.prepareStatement(sql.toString());
+			if(stale) {
+				pstmt.setString(1, staleInterval());
+			}
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				String instanceName = rs.getString("instancename");
@@ -690,8 +734,44 @@ public class OpsMonitorManager {
 					label += prikey;
 				}
 				long ageDays = (long) (rs.getDouble("age") / 86400);
-				items.add(new OpsItem("case", label, bundleName, rs.getString("_assigned"),
-						ageDays, false, "/app/tasks/managed_forms.html"));
+				OpsItem it = new OpsItem("case", label, bundleName, rs.getString("_assigned"),
+						ageDays, false, caseLink(gsi, rs.getString("instanceid")));
+				if(mode.equals("unassigned")) {
+					it.status = "unassigned";
+				} else if(stale) {
+					it.status = "stale";
+				} else {	// open_cases - flag the old ones as stale
+					it.status = ageDays >= staleDays ? "stale" : "open";
+				}
+				items.add(it);
+			}
+		} finally {
+			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
+		}
+	}
+
+	/*
+	 * Open case-management alerts presented as items.
+	 */
+	private void getAlertItemsOrg(Connection sd, int oId, java.util.List<OpsItem> items) throws SQLException {
+		String sql = "select a.message, a.priority, a.link, s.display_name as bundle, "
+				+ "extract(epoch from (now() - a.created_time)) as age "
+				+ "from alert a "
+				+ "join users u on u.id = a.u_id and u.o_id = ? "
+				+ "left join survey s on s.s_id = a.s_id "
+				+ "where a.status = 'open' "
+				+ "order by a.priority asc, a.created_time asc limit " + ATRISK_LIMIT;
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				long ageDays = (long) (rs.getDouble("age") / 86400);
+				OpsItem it = new OpsItem("alert", rs.getString("message"), rs.getString("bundle"),
+						null, ageDays, false, rs.getString("link"));
+				it.status = "alert";
+				items.add(it);
 			}
 		} finally {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
@@ -941,7 +1021,7 @@ public class OpsMonitorManager {
 			ArrayList<String> idents, java.util.List<OpsItem> atRisk) throws SQLException {
 		String bundleName = getSurveyDisplayName(sd, gsi);
 		String ph = placeholders(idents.size());
-		String sql = "select prikey, instancename, _hrk, _assigned, "
+		String sql = "select prikey, instancename, _hrk, _assigned, instanceid, _s_id, "
 				+ "extract(epoch from (now() - _thread_created)) as age "
 				+ "from " + table + " where not _bad and _case_closed is null and _assigned in (" + ph + ") "
 				+ "and _thread_created < now() - ?::interval "
@@ -966,11 +1046,144 @@ public class OpsMonitorManager {
 				}
 				long ageDays = (long) (rs.getDouble("age") / 86400);
 				atRisk.add(new OpsItem("case", label, bundleName, rs.getString("_assigned"),
-						ageDays, false, "/app/tasks/managed_forms.html"));
+						ageDays, false, caseLink(gsi, rs.getString("instanceid"))));
 			}
 		} finally {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
 		}
+	}
+
+	/*
+	 * Deep link to a specific case record in the managed-forms console.
+	 * managed_forms.html parses id (survey) + instanceid and opens the single-record view,
+	 * deriving the project from the survey. Falls back to the console list if either is missing.
+	 */
+	private String caseLink(String groupSurveyIdent, String instanceid) {
+		if(groupSurveyIdent != null && instanceid != null && !instanceid.isEmpty()) {
+			return "/app/operations_case.html?survey=" + groupSurveyIdent + "&instanceid=" + instanceid;
+		}
+		return "/app/operations_case.html";
+	}
+
+	// ---------------------------------------------------------------------------
+	// Org-scoped single-case viewer (Phase 5)
+	// ---------------------------------------------------------------------------
+
+	// Result-table columns not shown as data fields in the case viewer
+	private static final java.util.Set<String> CASE_SKIP_COLS = new java.util.HashSet<>(java.util.Arrays.asList(
+			"prikey", "parkey", "instanceid", "the_geom"));
+
+	/*
+	 * Fetch one case record (org membership must be validated by the caller).
+	 */
+	public OpsCase getCase(Connection sd, Connection cResults, String groupSurveyIdent, String instanceid) throws SQLException {
+		OpsCase c = new OpsCase(groupSurveyIdent, instanceid);
+		c.bundle = getSurveyDisplayName(sd, groupSurveyIdent);
+
+		String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, groupSurveyIdent);
+		if(table == null) {
+			return c;
+		}
+		GeneralUtilityMethods.ensureTableCurrent(cResults, table, true);
+
+		String instanceName = null;
+		String hrk = null;
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cResults.prepareStatement("select * from " + table + " where instanceid = ? and not _bad limit 1");
+			pstmt.setString(1, instanceid);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				ResultSetMetaData md = rs.getMetaData();
+				for(int i = 1; i <= md.getColumnCount(); i++) {
+					String col = md.getColumnName(i);
+					String val = rs.getString(i);
+					if(col.equals("_assigned")) {
+						c.assignee = val;
+					} else if(col.equals("_case_survey")) {
+						c.caseSurveyIdent = val;
+					} else if(col.equals("_thread")) {
+						c.thread = val;
+					} else if(col.equals("_case_closed")) {
+						c.closed = val != null;
+					} else if(col.equals("prikey")) {
+						c.prikey = rs.getInt(i);
+					} else if(col.equals("instancename")) {
+						instanceName = val;
+					} else if(col.equals("_hrk")) {
+						hrk = val;
+					}
+					if(!CASE_SKIP_COLS.contains(col) && !col.startsWith("_") && val != null && !val.isEmpty()) {
+						c.fields.add(new OpsField(col, val));
+					}
+				}
+			}
+		} finally {
+			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
+		}
+
+		String t = (c.bundle == null ? "" : c.bundle) + " - ";
+		if(instanceName != null && instanceName.trim().length() > 0) {
+			t += instanceName;
+		} else if(hrk != null && hrk.trim().length() > 0) {
+			t += hrk;
+		} else {
+			t += c.prikey;
+		}
+		c.title = t;
+		if(c.caseSurveyIdent == null) {
+			c.caseSurveyIdent = groupSurveyIdent;
+		}
+		return c;
+	}
+
+	/*
+	 * Assign or release a case (org membership validated by the caller).
+	 * type = assign | release.
+	 */
+	public int assignCase(Connection sd, Connection cResults, String groupSurveyIdent, String instanceid,
+			String assignTo, String type, String requestingUser) throws SQLException {
+		String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, groupSurveyIdent);
+		if(table == null) {
+			return 0;
+		}
+		String caseSurvey = groupSurveyIdent;
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cResults.prepareStatement("select _case_survey from " + table + " where instanceid = ? limit 1");
+			pstmt.setString(1, instanceid);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next() && rs.getString(1) != null) {
+				caseSurvey = rs.getString(1);
+			}
+		} finally {
+			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
+		}
+
+		CaseManager cm = new CaseManager(localisation);
+		return cm.assignRecord(sd, cResults, localisation, table, instanceid, assignTo, type, caseSurvey, null, requestingUser);
+	}
+
+	/*
+	 * Org users that a case can be assigned to.
+	 */
+	public ArrayList<User> getAssignableUsers(Connection sd, int oId) throws SQLException {
+		ArrayList<User> users = new ArrayList<>();
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement("select ident, name from users where o_id = ? order by name asc");
+			pstmt.setInt(1, oId);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				User u = new User();
+				u.ident = rs.getString("ident");
+				u.name = rs.getString("name");
+				users.add(u);
+			}
+		} finally {
+			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
+		}
+		return users;
 	}
 
 	private String getSurveyDisplayName(Connection sd, String ident) throws SQLException {

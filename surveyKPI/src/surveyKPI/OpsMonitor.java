@@ -35,10 +35,12 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.OpsMonitorManager;
+import org.smap.sdal.model.OpsCase;
 import org.smap.sdal.model.OpsItem;
 import org.smap.sdal.model.OpsOverview;
 import org.smap.sdal.model.OpsSettings;
 import org.smap.sdal.model.OpsUnitDetail;
+import org.smap.sdal.model.User;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -74,7 +76,8 @@ public class OpsMonitor extends Application {
 	@GET
 	@Path("/overview")
 	@Produces("application/json")
-	public Response getOverview(@Context HttpServletRequest request) {
+	public Response getOverview(@Context HttpServletRequest request,
+			@QueryParam("refresh") boolean refresh) {
 
 		Response response = null;
 		String connectionString = "surveyKPI-OpsMonitor-overview";
@@ -93,7 +96,7 @@ public class OpsMonitor extends Application {
 
 			OpsMonitorManager om = new OpsMonitorManager(localisation);
 
-			String resp = om.getCachedOverview(oId);
+			String resp = refresh ? null : om.getCachedOverview(oId);
 			if(resp == null) {
 				cResults = ResultsDataSource.getConnection(connectionString);
 				OpsOverview ov = om.getOverview(sd, cResults, oId);
@@ -258,6 +261,125 @@ public class OpsMonitor extends Application {
 			ResultsDataSource.closeConnection(connectionString, cResults);
 		}
 
+		return response;
+	}
+
+	/*
+	 * Org-scoped single case viewer (Phase 5). Reads one case in the requester's org,
+	 * regardless of project assignment.
+	 */
+	@GET
+	@Path("/case")
+	@Produces("application/json")
+	public Response getCase(@Context HttpServletRequest request,
+			@QueryParam("survey") String groupSurveyIdent,
+			@QueryParam("instanceid") String instanceid) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-OpsMonitor-case";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+
+		Connection cResults = null;
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			if(GeneralUtilityMethods.getOrganisationIdForGroupSurveyIdent(sd, groupSurveyIdent) != oId) {
+				return Response.status(Response.Status.FORBIDDEN).entity("Case not in your organisation").build();
+			}
+
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			OpsMonitorManager om = new OpsMonitorManager(localisation);
+			cResults = ResultsDataSource.getConnection(connectionString);
+			OpsCase c = om.getCase(sd, cResults, groupSurveyIdent, instanceid);
+
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			response = Response.ok(gson.toJson(c)).build();
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, "Error", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+		}
+		return response;
+	}
+
+	/*
+	 * Org users a case can be assigned to.
+	 */
+	@GET
+	@Path("/case/users")
+	@Produces("application/json")
+	public Response getCaseUsers(@Context HttpServletRequest request) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-OpsMonitor-caseUsers";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			OpsMonitorManager om = new OpsMonitorManager(null);
+			ArrayList<User> users = om.getAssignableUsers(sd, oId);
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			response = Response.ok(gson.toJson(users)).build();
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, "Error", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		return response;
+	}
+
+	/*
+	 * Assign or release a case. action = assign | release.
+	 */
+	@POST
+	@Path("/case/assign")
+	@Produces("application/json")
+	public Response assignCase(@Context HttpServletRequest request,
+			@FormParam("survey") String groupSurveyIdent,
+			@FormParam("instanceid") String instanceid,
+			@FormParam("user") String assignTo,
+			@FormParam("action") String action) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-OpsMonitor-caseAssign";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+
+		Connection cResults = null;
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			if(GeneralUtilityMethods.getOrganisationIdForGroupSurveyIdent(sd, groupSurveyIdent) != oId) {
+				return Response.status(Response.Status.FORBIDDEN).entity("Case not in your organisation").build();
+			}
+			if(!"assign".equals(action) && !"release".equals(action)) {
+				return Response.status(Response.Status.BAD_REQUEST).entity("Invalid action").build();
+			}
+
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			OpsMonitorManager om = new OpsMonitorManager(localisation);
+			cResults = ResultsDataSource.getConnection(connectionString);
+			om.assignCase(sd, cResults, groupSurveyIdent, instanceid,
+					"release".equals(action) ? null : assignTo, action, request.getRemoteUser());
+
+			response = Response.ok("{}").build();
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, "Error", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+		}
 		return response;
 	}
 }

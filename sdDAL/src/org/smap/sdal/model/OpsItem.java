@@ -10,6 +10,7 @@ public class OpsItem {
 	public String assignee;		// user the item is assigned to
 	public long ageDays;		// age of the item in days
 	public boolean overdue;		// true = past due date; false = stale by age only
+	public String status;		// overdue | stale | open | in_progress | unassigned | alert (drives the badge)
 	public String link;
 
 	public OpsItem(String type, String title, String bundle, String assignee, long ageDays, boolean overdue, String link) {
@@ -19,6 +20,7 @@ public class OpsItem {
 		this.assignee = assignee;
 		this.ageDays = ageDays;
 		this.overdue = overdue;
+		this.status = overdue ? "overdue" : "stale";
 		this.link = link;
 	}
 }
