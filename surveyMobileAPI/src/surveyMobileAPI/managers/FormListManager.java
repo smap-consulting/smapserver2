@@ -108,7 +108,7 @@ public class FormListManager {
 				s.setHasManifest(translationMgr.hasManifest(sd, user, s.getId())); 
 			}
 			
-			XformsJavaRosa formList = processXForm(host, portNumber, surveys);	
+			XformsJavaRosa formList = processXForm(request, host, portNumber, surveys);
 			
 			// Convert response into xml
 			String resp = null;
@@ -203,7 +203,7 @@ public class FormListManager {
 		return response;
 	}
 		
-	private XformsJavaRosa processXForm(String host, int portNumber, 
+	private XformsJavaRosa processXForm(HttpServletRequest request, String host, int portNumber,
 			ArrayList<org.smap.sdal.model.Survey> surveys) {
 
 		String port = "";
