@@ -423,7 +423,11 @@ public class SubmissionProcessor {
 						}
 
 					} catch (Exception e) {
-						log.log(Level.SEVERE, e.getMessage(), e);
+						if(GeneralUtilityMethods.isTransientConnectionError(e)) {
+							log.log(Level.WARNING, "Database unavailable, will retry: " + e.getMessage());
+						} else {
+							log.log(Level.SEVERE, e.getMessage(), e);
+						}
 						// Connection may have been replaced; null prepared statements so they
 						// are re-prepared against the fresh connection on the next iteration.
 						try {if (pstmt != null) { pstmt.close(); }} catch (Exception ex) {}

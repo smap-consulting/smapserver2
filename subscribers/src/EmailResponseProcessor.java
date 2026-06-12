@@ -115,7 +115,11 @@ public class EmailResponseProcessor {
 							processInbound(dbc, s3, bucket, basePath);
 						}
 					} catch(Exception e) {
-						log.log(Level.SEVERE, "Email response processor error", e);
+						if(GeneralUtilityMethods.isTransientConnectionError(e)) {
+							log.log(Level.WARNING, "Email response processor: database unavailable, will retry: " + e.getMessage());
+						} else {
+							log.log(Level.SEVERE, "Email response processor error", e);
+						}
 					}
 
 					try { Thread.sleep(POLL_INTERVAL_SECS * 1000L); } catch(InterruptedException e) {}

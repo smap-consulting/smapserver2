@@ -107,7 +107,11 @@ public class StorageProcessor {
 							s3count = 0;		// Only check to truncate s3 table after every 100 uploads
 						}
 					} catch (Exception e) {
-						log.log(Level.SEVERE, e.getMessage(), e);
+						if(GeneralUtilityMethods.isTransientConnectionError(e)) {
+							log.log(Level.WARNING, "Database unavailable, will retry: " + e.getMessage());
+						} else {
+							log.log(Level.SEVERE, e.getMessage(), e);
+						}
 					}
 
 					// Sleep and then go again

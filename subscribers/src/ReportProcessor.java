@@ -64,7 +64,11 @@ public class ReportProcessor {
 						// Make sure we have a connection to the database
 						GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);
 					} catch (Exception e) {
-						log.log(Level.SEVERE, e.getMessage(), e);
+						if(GeneralUtilityMethods.isTransientConnectionError(e)) {
+							log.log(Level.WARNING, "Database unavailable, will retry: " + e.getMessage());
+						} else {
+							log.log(Level.SEVERE, e.getMessage(), e);
+						}
 					}
 					
 					/*

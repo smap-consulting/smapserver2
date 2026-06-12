@@ -10542,6 +10542,30 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
+	 * Return true if the throwable is a transient database-connection failure
+	 * (database restarting / not yet accepting connections). Subscriber loops use this
+	 * to log such errors at WARNING and back off, rather than SEVERE with a stack trace,
+	 * since they recover automatically once the database is available again.
+	 */
+	public static boolean isTransientConnectionError(Throwable e) {
+		while(e != null) {
+			String m = e.getMessage();
+			if(m != null) {
+				String lm = m.toLowerCase();
+				if(lm.contains("the database system is shutting down")
+						|| lm.contains("the database system is starting up")
+						|| lm.contains("connection attempt failed")
+						|| lm.contains("connection refused")
+						|| lm.contains("terminating connection due to administrator command")) {
+					return true;
+				}
+			}
+			e = e.getCause();
+		}
+		return false;
+	}
+
+	/*
 	 * Get database connections for background jobs
 	 */
 	public static void getDatabaseConnections(DocumentBuilderFactory dbf, DatabaseConnections dbc, String confFilePath) throws ParserConfigurationException, SAXException, IOException, ClassNotFoundException, SQLException {

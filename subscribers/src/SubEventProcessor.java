@@ -85,7 +85,11 @@ public class SubEventProcessor {
 						}
 						
 					} catch (Exception e) {
-						log.log(Level.SEVERE, e.getMessage(), e);
+						if(GeneralUtilityMethods.isTransientConnectionError(e)) {
+							log.log(Level.WARNING, "Database unavailable, will retry: " + e.getMessage());
+						} else {
+							log.log(Level.SEVERE, e.getMessage(), e);
+						}
 					}
 					
 					// Sleep and then go again

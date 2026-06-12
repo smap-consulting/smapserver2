@@ -102,7 +102,11 @@ public class MonitorProcessor {
 							pstmtDel.executeUpdate();
 						}
 					} catch (Exception e) {
-						log.log(Level.SEVERE, e.getMessage(), e);
+						if(GeneralUtilityMethods.isTransientConnectionError(e)) {
+							log.log(Level.WARNING, "Database unavailable, will retry: " + e.getMessage());
+						} else {
+							log.log(Level.SEVERE, e.getMessage(), e);
+						}
 					} finally{
 						if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 						if(pstmtDel != null) try {pstmt.close();} catch(Exception e) {}
