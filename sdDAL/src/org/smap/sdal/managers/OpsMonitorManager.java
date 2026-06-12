@@ -14,6 +14,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import java.io.OutputStream;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -431,6 +438,112 @@ public class OpsMonitorManager {
 			out.add(unit);
 		}
 		return out;
+	}
+
+	// ---------------------------------------------------------------------------
+	// Operations Summary XLSX (scheduled email digest - Phase 4)
+	// ---------------------------------------------------------------------------
+
+	/*
+	 * Write the org Operations Summary as an XLSX workbook (Summary, Units, At-risk, Alerts).
+	 * Reuses getOverview + getItems. Used by the periodic notification digest.
+	 */
+	public void writeSummaryXlsx(Connection sd, Connection cResults, int oId, OutputStream out) throws Exception {
+
+		OpsOverview ov = getOverview(sd, cResults, oId);
+		ArrayList<OpsItem> items = getItems(sd, cResults, oId, "all");
+
+		SXSSFWorkbook wb = new SXSSFWorkbook(10);
+		try {
+			// Summary (KPIs)
+			Sheet summary = wb.createSheet(localise("ops_xls_summary", "Summary"));
+			int r = 0;
+			Row gen = summary.createRow(r++);
+			setCell(gen, 0, localise("ops_generated", "Updated"));
+			setCell(gen, 1, ov.generatedAt);
+			r++;
+			Row sh = summary.createRow(r++);
+			setCell(sh, 0, localise("ops_item", "Item"));
+			setCell(sh, 1, localise("ops_xls_value", "Value"));
+			setCell(sh, 2, localise("ops_xls_status", "Status"));
+			for(OpsKpi k : ov.kpis) {
+				Row row = summary.createRow(r++);
+				setCell(row, 0, k.label);
+				setCell(row, 1, k.value);
+				setCell(row, 2, k.rag);
+			}
+
+			// Units
+			Sheet units = wb.createSheet(localise("ops_units", "Units (roles)"));
+			r = 0;
+			Row uh = units.createRow(r++);
+			setCell(uh, 0, localise("ops_role", "Role"));
+			setCell(uh, 1, localise("ops_open_cases", "Open cases"));
+			setCell(uh, 2, localise("ops_open_tasks", "Open tasks"));
+			setCell(uh, 3, localise("ops_tasks_overdue", "Overdue"));
+			setCell(uh, 4, localise("ops_overdue_pct", "Overdue %"));
+			setCell(uh, 5, localise("ops_xls_status", "Status"));
+			for(OpsUnit u : ov.units) {
+				Row row = units.createRow(r++);
+				setCell(row, 0, u.role);
+				setCell(row, 1, u.openCases);
+				setCell(row, 2, u.openTasks);
+				setCell(row, 3, u.overdue);
+				setCell(row, 4, Math.round(u.overduePct));
+				setCell(row, 5, u.rag);
+			}
+
+			// At-risk
+			Sheet atRisk = wb.createSheet(localise("ops_at_risk", "At-risk items"));
+			r = 0;
+			Row ah = atRisk.createRow(r++);
+			setCell(ah, 0, localise("ops_xls_type", "Type"));
+			setCell(ah, 1, localise("ops_item", "Item"));
+			setCell(ah, 2, localise("ops_xls_bundle", "Bundle"));
+			setCell(ah, 3, localise("ops_assignee", "Assignee"));
+			setCell(ah, 4, localise("ops_age_days", "Age (days)"));
+			setCell(ah, 5, localise("ops_xls_status", "Status"));
+			for(OpsItem it : items) {
+				Row row = atRisk.createRow(r++);
+				setCell(row, 0, it.type);
+				setCell(row, 1, it.title);
+				setCell(row, 2, it.bundle);
+				setCell(row, 3, it.assignee);
+				setCell(row, 4, it.ageDays);
+				setCell(row, 5, it.overdue ? localise("ops_overdue_flag", "Overdue") : localise("ops_stale_flag", "Stale"));
+			}
+
+			// Alerts
+			Sheet alerts = wb.createSheet(localise("ops_alerts", "Open alerts"));
+			r = 0;
+			Row alh = alerts.createRow(r++);
+			setCell(alh, 0, localise("ops_xls_priority", "Priority"));
+			setCell(alh, 1, localise("ops_xls_message", "Message"));
+			setCell(alh, 2, localise("ops_xls_bundle", "Bundle"));
+			setCell(alh, 3, localise("ops_age_days", "Age (days)"));
+			for(OpsAlert al : ov.alerts) {
+				Row row = alerts.createRow(r++);
+				setCell(row, 0, al.priority);
+				setCell(row, 1, al.message);
+				setCell(row, 2, al.bundle);
+				setCell(row, 3, al.sinceSeconds / 86400);
+			}
+
+			wb.write(out);
+		} finally {
+			try { wb.dispose(); } catch (Exception e) {}
+			try { wb.close(); } catch (Exception e) {}
+		}
+	}
+
+	private void setCell(Row row, int col, String value) {
+		Cell c = row.createCell(col);
+		c.setCellValue(value == null ? "" : value);
+	}
+
+	private void setCell(Row row, int col, long value) {
+		Cell c = row.createCell(col);
+		c.setCellValue(value);
 	}
 
 	// ---------------------------------------------------------------------------

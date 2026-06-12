@@ -1869,9 +1869,16 @@ public class SubscriberBatch {
 
 				NotifyDetails nd = gson.fromJson(notifyDetailsString, NotifyDetails.class);
 
-				int oId = GeneralUtilityMethods.getOrganisationIdForReport(sd, rId);
+				boolean opsSummary = nd != null && "ops_summary".equals(nd.report_type);
+
+				int oId;
+				if(opsSummary) {
+					oId = GeneralUtilityMethods.getOrganisationIdForProject(sd, pId);	// Org-level report, resolve org from project
+				} else {
+					oId = GeneralUtilityMethods.getOrganisationIdForReport(sd, rId);
+				}
 				log.fine("----- Organisation for report is: " + oId);
-				if(oId <= 0) {	// If the report is not valid and hence the organisation is not valid then continue
+				if(oId <= 0) {	// If the report / project is not valid and hence the organisation is not valid then continue
 					continue;
 				}
 
@@ -1921,6 +1928,10 @@ public class SubscriberBatch {
 						null,			// SMS Conversation from number
 						null,			// Message Channel
 						null);
+
+				if(opsSummary) {
+					msg.reportType = "ops_summary";
+				}
 
 				mm.createMessage(sd, oId, NotificationManager.TOPIC_PERIODIC, "", gson.toJson(msg));
 			}

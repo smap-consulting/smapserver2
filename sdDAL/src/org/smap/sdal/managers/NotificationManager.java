@@ -1550,12 +1550,8 @@ public class NotificationManager {
 
 		boolean writeToMonitor = true;
 
-		String userIdent = GeneralUtilityMethods.getUserIdent(sd, msg.reportId);	// Temporary user ident
-		ActionManager am = new ActionManager(localisation, "UTC");		// Time zone should be ignored, real time zone will be retrieved from the action
-		Action a = am.getAction(sd, userIdent);
-		ReportParameters p = new ReportParameters();
-		p.setParameters(a.parameters);	
-		int sId = GeneralUtilityMethods.getSurveyId(sd, a.surveyIdent);
+		boolean opsSummary = "ops_summary".equals(msg.reportType);
+		int sId = 0;
 
 		File file = new File(basePath + "/temp/periodic_" + UUID.randomUUID() + ".xlsx");
 		filePath = file.getAbsolutePath();
@@ -1563,53 +1559,64 @@ public class NotificationManager {
 
 		try {
 
-		/*
-		 * Set start and end time of the report based on report period
-		 * End date is the previous day
-		 * The date used is submission date
-		 */
-		int dateId = SmapServerMeta.UPLOAD_TIME_ID;
-		LocalDateTime utcDateTime = LocalDateTime.now();
-		ZonedDateTime utcZdt = ZonedDateTime.of(utcDateTime, TimeZone.getTimeZone("UTC").toZoneId());
-		ZonedDateTime lZdtEnd = utcZdt.withZoneSameInstant(TimeZone.getTimeZone(p.tz).toZoneId()).minusDays(1);	// Report up to yesterday in local time
-		ZonedDateTime lZdtStart = getStartZDT(lZdtEnd, msg.period);
+		if(opsSummary) {
 
-		log.fine("---------- Local UTC Date Time: " + utcDateTime);
-		log.fine("---------- Zoned UTC Date Time: " + utcZdt);
-		log.fine("---------- Zoned End Date Time: " + lZdtEnd);
-		log.fine("---------- Local End Date Time: " + lZdtEnd.toLocalDate());
-		
-		Date endDate = Date.valueOf(lZdtEnd.toLocalDate());
-		Date startDate = Date.valueOf(lZdtStart.toLocalDate());
+			// Pre-configured organisation-level Operations Summary - no survey data
+			OpsMonitorManager omm = new OpsMonitorManager(localisation);
+			omm.writeSummaryXlsx(sd, cResults, organisation.id, outputStream);
 
-		XLSXReportsManager rm = new XLSXReportsManager(localisation);
-		rm.getNewReport(
-				sd,
-				cResults,
-				userIdent,
-				"https:",
-				serverName,
-				urlprefix,
-				attachmentPrefix,
-				basePath,
-				outputStream,
-				sId,
-				a.surveyIdent,
-				p.split_locn,
-				p.meta,		// Get altitude and location
-				p.merge_select_multiple,
-				p.language,
-				p.exp_ro,
-				p.embedImages,
-				p.excludeParents,
-				p.hxl,
-				p.fId,
-				startDate,		// Override start date question specified in report
-				endDate,		// Override end date question specified in report
-				dateId,			// Override date question specified in report
-				p.filter,
-				p.meta,
-				p.tz);		// Use the report time zone
+		} else {
+
+			String userIdent = GeneralUtilityMethods.getUserIdent(sd, msg.reportId);	// Temporary user ident
+			ActionManager am = new ActionManager(localisation, "UTC");		// Time zone should be ignored, real time zone will be retrieved from the action
+			Action a = am.getAction(sd, userIdent);
+			ReportParameters p = new ReportParameters();
+			p.setParameters(a.parameters);
+			sId = GeneralUtilityMethods.getSurveyId(sd, a.surveyIdent);
+
+			/*
+			 * Set start and end time of the report based on report period
+			 * End date is the previous day
+			 * The date used is submission date
+			 */
+			int dateId = SmapServerMeta.UPLOAD_TIME_ID;
+			LocalDateTime utcDateTime = LocalDateTime.now();
+			ZonedDateTime utcZdt = ZonedDateTime.of(utcDateTime, TimeZone.getTimeZone("UTC").toZoneId());
+			ZonedDateTime lZdtEnd = utcZdt.withZoneSameInstant(TimeZone.getTimeZone(p.tz).toZoneId()).minusDays(1);	// Report up to yesterday in local time
+			ZonedDateTime lZdtStart = getStartZDT(lZdtEnd, msg.period);
+
+			Date endDate = Date.valueOf(lZdtEnd.toLocalDate());
+			Date startDate = Date.valueOf(lZdtStart.toLocalDate());
+
+			XLSXReportsManager rm = new XLSXReportsManager(localisation);
+			rm.getNewReport(
+					sd,
+					cResults,
+					userIdent,
+					"https:",
+					serverName,
+					urlprefix,
+					attachmentPrefix,
+					basePath,
+					outputStream,
+					sId,
+					a.surveyIdent,
+					p.split_locn,
+					p.meta,		// Get altitude and location
+					p.merge_select_multiple,
+					p.language,
+					p.exp_ro,
+					p.embedImages,
+					p.excludeParents,
+					p.hxl,
+					p.fId,
+					startDate,		// Override start date question specified in report
+					endDate,		// Override end date question specified in report
+					dateId,			// Override date question specified in report
+					p.filter,
+					p.meta,
+					p.tz);		// Use the report time zone
+		}
 
 
 		// Notification log

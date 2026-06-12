@@ -39,6 +39,7 @@ public class SubmissionMessage {
 	public int pdfTemplateId;
 	public String period;
 	public int reportId;
+	public String reportType;		// Pre-configured periodic report, e.g. "ops_summary" (empty = survey report)
 	public Timestamp ts;
 
 	public ArrayList<String> attachments; // URL fragments saved when a PDF is attached to a sent notification
@@ -156,6 +157,7 @@ public class SubmissionMessage {
 		this.assignQuestion = orig.assignQuestion;
 		this.period = orig.period;
 		this.reportId = orig.reportId;
+		this.reportType = orig.reportType;
 		this.ourNumber = orig.ourNumber;
 		this.msgChannel = orig.msgChannel;
 		if(orig.attachments != null) {

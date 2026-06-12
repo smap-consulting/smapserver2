@@ -32,4 +32,5 @@ public class NotifyDetails {
 	public String ourNumber;			// For SMS / WhatsApp notifications
 	public String msgChannel;
 	public Timestamp ts;				// Timestamp of message
+	public String report_type;			// Pre-configured report for periodic notifications, e.g. "ops_summary" (empty = survey report)
 }
