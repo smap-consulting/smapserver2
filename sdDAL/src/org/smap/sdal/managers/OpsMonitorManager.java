@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -361,25 +362,16 @@ public class OpsMonitorManager {
 		subsKpi.trend = subsTrend;
 		ov.kpis.add(subsKpi);
 
-		// 6. Per-unit (role) rollup - only roles that own open work
-		ov.units = getUnits(sd, oId);
+		// 6. Per-unit (role) rollup - only roles that own open work (incl. a "No unit" row)
+		ov.units = getUnits(sd, cResults, oId);
 
-		// Reconciliation rows so the unit table accounts for the open-cases total:
-		// open cases with no owner, and assigned cases whose owner is in no role.
+		// Unassigned reconciliation row so the unit table accounts for the open-cases total
 		if(ov.unassignedCases > 0) {
 			OpsUnit ua = new OpsUnit(localise("ops_unit_unassigned", "Unassigned"));
 			ua.openCases = ov.unassignedCases;
 			ua.aggregate = true;
 			ua.rag = "none";
 			ov.units.add(ua);
-		}
-		int noUnit = getNoUnitCaseCount(sd, oId);
-		if(noUnit > 0) {
-			OpsUnit nu = new OpsUnit(localise("ops_unit_none", "No unit"));
-			nu.openCases = noUnit;
-			nu.aggregate = true;
-			nu.rag = "none";
-			ov.units.add(nu);
 		}
 
 		return ov;
@@ -566,26 +558,77 @@ public class OpsMonitorManager {
 	}
 
 	/*
-	 * Per-unit (role) workload. Cases come from the record_user owner index (assigned cases only);
-	 * tasks come from assignments. A user in several roles contributes to each of those roles.
-	 * Only roles that currently own open work are returned.
+	 * Per-unit (role) workload. Open cases come from the results tables (same population as the
+	 * KPI - excludes closed/bad), attributed to roles via each owner's user_role; tasks come from
+	 * assignments. An owner in several roles contributes to each. Owners in no role roll up into a
+	 * synthetic "No unit" row. Only roles that currently own open work are returned.
 	 */
-	private ArrayList<OpsUnit> getUnits(Connection sd, int oId) throws SQLException {
+	private ArrayList<OpsUnit> getUnits(Connection sd, Connection cResults, int oId) throws SQLException {
 
 		Map<String, OpsUnit> units = new LinkedHashMap<>();
 
-		// Assigned cases by role (RBAC: hide bundles the requesting user may not see)
-		String caseSql = "select r.name as role, count(*) as cnt "
-				+ "from record_user ru "
-				+ "join users u on u.ident = ru.assignee_ident and u.o_id = ? "
-				+ "join user_role ur on ur.u_id = u.id "
-				+ "join role r on r.id = ur.r_id "
-				+ "where ru.access = 'owner' "
-				+ bundleRbacSql("ru.group_survey_ident")
-				+ roleMembershipSql("r.id")
-				+ "group by r.name";
+		// 1. Open-case counts per owner, from the results tables (accessible bundles only)
+		Map<String, Integer> ownerCounts = new HashMap<>();
+		for(String gsi : getCaseBundles(sd, oId)) {
+			try {
+				String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, gsi);
+				if(table == null) {
+					continue;
+				}
+				GeneralUtilityMethods.ensureTableCurrent(cResults, table, true);
+				ensureCaseIndexes(cResults, table);
+				PreparedStatement p = null;
+				try {
+					p = cResults.prepareStatement("select _assigned, count(*) as cnt from " + table
+							+ " where not _bad and _case_closed is null and _assigned is not null and _assigned <> '' "
+							+ "group by _assigned");
+					ResultSet rs = p.executeQuery();
+					while(rs.next()) {
+						ownerCounts.merge(rs.getString("_assigned"), rs.getInt("cnt"), Integer::sum);
+					}
+				} finally {
+					try { if(p != null) p.close(); } catch(Exception e) {}
+				}
+			} catch (Exception e) {
+				log.log(Level.WARNING, "Ops units: skipping bundle " + gsi + ": " + e.getMessage());
+			}
+		}
 
-		// Open / overdue tasks by role (restricted to the user's own roles unless security manager)
+		// 2. Owner ident -> roles held (org)
+		Map<String, ArrayList<String>> ownerRoles = new HashMap<>();
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement("select u.ident, r.name from users u "
+					+ "join user_role ur on ur.u_id = u.id join role r on r.id = ur.r_id where u.o_id = ?");
+			pstmt.setInt(1, oId);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				ownerRoles.computeIfAbsent(rs.getString("ident"), k -> new ArrayList<>()).add(rs.getString("name"));
+			}
+		} finally {
+			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
+		}
+
+		// 3. Roles the viewer may see (non security manager only)
+		java.util.Set<String> viewerRoles = securityManager ? null : getViewerRoleNames(sd, oId);
+
+		// 4. Attribute owner case counts to roles; owners in no role -> "No unit"
+		int noUnit = 0;
+		for(Map.Entry<String, Integer> e : ownerCounts.entrySet()) {
+			ArrayList<String> roles = ownerRoles.get(e.getKey());
+			if(roles == null || roles.isEmpty()) {
+				noUnit += e.getValue();
+			} else {
+				for(String role : roles) {
+					if(viewerRoles != null && !viewerRoles.contains(role)) {
+						continue;	// hide roles the viewer is not in
+					}
+					units.computeIfAbsent(role, OpsUnit::new).openCases += e.getValue();
+				}
+			}
+		}
+
+		// 5. Open / overdue tasks by role (restricted to the viewer's roles unless security manager)
 		String taskSql = "select r.name as role, "
 				+ "count(*) filter (where a.status in ('unsent','accepted')) as open_tasks, "
 				+ "count(*) filter (where a.status in ('unsent','accepted') and t.schedule_finish is not null and t.schedule_finish < now()) as overdue "
@@ -598,34 +641,17 @@ public class OpsMonitorManager {
 				+ "where true "
 				+ roleMembershipSql("r.id")
 				+ "group by r.name";
-
-		PreparedStatement pstmt = null;
+		pstmt = null;
 		try {
-			pstmt = sd.prepareStatement(caseSql);
-			int idx = 1;
-			pstmt.setInt(idx++, oId);
-			if(!securityManager) {
-				pstmt.setString(idx++, requestingUser);	// bundleRbacSql
-				pstmt.setString(idx++, requestingUser);	// roleMembershipSql
-			}
-			ResultSet rs = pstmt.executeQuery();
-			while(rs.next()) {
-				String role = rs.getString("role");
-				OpsUnit unit = units.computeIfAbsent(role, OpsUnit::new);
-				unit.openCases = rs.getInt("cnt");
-			}
-			pstmt.close();
-
 			pstmt = sd.prepareStatement(taskSql);
 			int tIdx = 1;
 			pstmt.setInt(tIdx++, oId);
 			if(!securityManager) {
 				pstmt.setString(tIdx++, requestingUser);	// roleMembershipSql
 			}
-			rs = pstmt.executeQuery();
+			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
-				String role = rs.getString("role");
-				OpsUnit unit = units.computeIfAbsent(role, OpsUnit::new);
+				OpsUnit unit = units.computeIfAbsent(rs.getString("role"), OpsUnit::new);
 				unit.openTasks = rs.getInt("open_tasks");
 				unit.overdue = rs.getInt("overdue");
 			}
@@ -633,10 +659,11 @@ public class OpsMonitorManager {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
 		}
 
+		// 6. Build output (hide idle roles)
 		ArrayList<OpsUnit> out = new ArrayList<>();
 		for(OpsUnit unit : units.values()) {
 			if(unit.openCases == 0 && unit.openTasks == 0) {
-				continue;	// no open work - hide idle roles
+				continue;
 			}
 			if(unit.openTasks > 0) {
 				unit.overduePct = (unit.overdue * 100.0) / unit.openTasks;
@@ -644,7 +671,35 @@ public class OpsMonitorManager {
 			unit.rag = ragForPct(unit.overduePct);
 			out.add(unit);
 		}
+
+		// 7. No-unit reconciliation row (owners in no role)
+		if(noUnit > 0) {
+			OpsUnit nu = new OpsUnit(localise("ops_unit_none", "No unit"));
+			nu.openCases = noUnit;
+			nu.aggregate = true;
+			nu.rag = "none";
+			out.add(nu);
+		}
+
 		return out;
+	}
+
+	private java.util.Set<String> getViewerRoleNames(Connection sd, int oId) throws SQLException {
+		java.util.Set<String> names = new java.util.HashSet<>();
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement("select r.name from role r join user_role ur on ur.r_id = r.id "
+					+ "join users u on u.id = ur.u_id where r.o_id = ? and u.ident = ?");
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, requestingUser);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				names.add(rs.getString(1));
+			}
+		} finally {
+			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
+		}
+		return names;
 	}
 
 	// ---------------------------------------------------------------------------
@@ -1470,33 +1525,6 @@ public class OpsMonitorManager {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
 		}
 		indexedTables.add(table);
-	}
-
-	/*
-	 * Assigned open cases (record_user owners) in accessible bundles whose owner is in no role.
-	 * These have no "unit", so they don't appear in the per-role rollup.
-	 */
-	private int getNoUnitCaseCount(Connection sd, int oId) throws SQLException {
-		String sql = "select count(*) from record_user ru "
-				+ "join users u on u.ident = ru.assignee_ident and u.o_id = ? "
-				+ "where ru.access = 'owner' "
-				+ bundleRbacSql("ru.group_survey_ident")
-				+ "and not exists (select 1 from user_role ur2 where ur2.u_id = u.id)";
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, oId);
-			if(!securityManager) {
-				pstmt.setString(2, requestingUser);
-			}
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				return rs.getInt(1);
-			}
-		} finally {
-			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
-		}
-		return 0;
 	}
 
 	private String ragForPct(double pct) {
