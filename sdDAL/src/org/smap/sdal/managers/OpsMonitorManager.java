@@ -191,6 +191,36 @@ public class OpsMonitorManager {
 		}
 	}
 
+	/*
+	 * Survey-level RBAC on a survey-ident column (e.g. tasks.survey_ident): not role-protected,
+	 * or the user has a matching role with no row filter. Adds one '?' (user ident). "" for security manager.
+	 */
+	private String surveyIdentRbacSql(String identCol) {
+		if(securityManager) {
+			return "";
+		}
+		return " and ( " + identCol + " is null "
+				+ "or not exists (select 1 from survey_role sr where sr.survey_ident = " + identCol + " and sr.enabled) "
+				+ "or exists (select 1 from survey_role sr2, user_role ur2, users u2 "
+				+ "where sr2.survey_ident = " + identCol + " and sr2.enabled and sr2.r_id = ur2.r_id and ur2.u_id = u2.id "
+				+ "and u2.ident = ? and (sr2.row_filter is null or sr2.row_filter = '')) ) ";
+	}
+
+	/*
+	 * Survey-level RBAC on a survey-id column (e.g. upload_event.s_id). Adds one '?' (user ident).
+	 */
+	private String surveyIdRbacSql(String sIdCol) {
+		if(securityManager) {
+			return "";
+		}
+		return " and ( " + sIdCol + " is null "
+				+ "or not exists (select 1 from survey sv, survey_role sr where sv.s_id = " + sIdCol
+				+ " and sr.survey_ident = sv.ident and sr.enabled) "
+				+ "or exists (select 1 from survey sv2, survey_role sr2, user_role ur2, users u2 "
+				+ "where sv2.s_id = " + sIdCol + " and sr2.survey_ident = sv2.ident and sr2.enabled "
+				+ "and sr2.r_id = ur2.r_id and ur2.u_id = u2.id and u2.ident = ? and (sr2.row_filter is null or sr2.row_filter = '')) ) ";
+	}
+
 	// Per-org cache so reloads / polling do not re-scan results tables
 	private static final long CACHE_TTL_MS = 60_000;
 	private static class Cached {
@@ -411,12 +441,16 @@ public class OpsMonitorManager {
 				+ "count(*) filter (where a.status in ('unsent','accepted') and t.created_at < now() - ?::interval) as stale_tasks "
 				+ "from assignments a "
 				+ "join tasks t on t.id = a.task_id and not t.deleted "
-				+ "join project p on p.id = t.p_id and p.o_id = ?";
+				+ "join project p on p.id = t.p_id and p.o_id = ?"
+				+ surveyIdentRbacSql("t.survey_ident");
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, staleInterval());
 			pstmt.setInt(2, oId);
+			if(!securityManager) {
+				pstmt.setString(3, requestingUser);
+			}
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				totals[0] = rs.getInt("in_progress");
@@ -494,11 +528,15 @@ public class OpsMonitorManager {
 				+ "from days left join upload_event ue "
 				+ "on date_trunc('day', ue.upload_time) = days.day "
 				+ "and ue.o_id = ? and ue.status = 'success' and not ue.incomplete "
+				+ surveyIdRbacSql("ue.s_id")
 				+ "group by 1 order by 1 asc";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
+			if(!securityManager) {
+				pstmt.setString(2, requestingUser);
+			}
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				trend.add(new OpsTrendPoint(rs.getString("day"), rs.getLong("cnt")));
@@ -821,11 +859,15 @@ public class OpsMonitorManager {
 		if(overdueOnly) {
 			sql.append("and t.schedule_finish is not null and t.schedule_finish < now() ");
 		}
+		sql.append(surveyIdentRbacSql("t.survey_ident"));
 		sql.append("order by t.schedule_finish asc nulls last limit " + ATRISK_LIMIT);
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql.toString());
 			pstmt.setInt(1, oId);
+			if(!securityManager) {
+				pstmt.setString(2, requestingUser);
+			}
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				String title = rs.getString("title");
