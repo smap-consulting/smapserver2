@@ -159,6 +159,38 @@ public class OpsMonitorManager {
 				+ "  and sr2.r_id = ur2.r_id and ur2.u_id = u2.id and u2.ident = ? and (sr2.row_filter is null or sr2.row_filter = '')) ) ";
 	}
 
+	/*
+	 * SQL fragment restricting a role id column to roles the requesting user is a member of.
+	 * Adds one '?' (user ident). Returns "" for a security manager (all roles visible).
+	 */
+	private String roleMembershipSql(String roleIdCol) {
+		if(securityManager) {
+			return "";
+		}
+		return " and " + roleIdCol + " in (select ur_m.r_id from user_role ur_m "
+				+ "join users u_m on u_m.id = ur_m.u_id where u_m.ident = ?) ";
+	}
+
+	/*
+	 * True if the requesting user is a member of the named role (or a security manager).
+	 */
+	private boolean isRoleMember(Connection sd, int oId, String role) throws SQLException {
+		if(securityManager) {
+			return true;
+		}
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement("select 1 from role r join user_role ur on ur.r_id = r.id "
+					+ "join users u on u.id = ur.u_id where r.o_id = ? and r.name = ? and u.ident = ? limit 1");
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, role);
+			pstmt.setString(3, requestingUser);
+			return pstmt.executeQuery().next();
+		} finally {
+			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
+		}
+	}
+
 	// Per-org cache so reloads / polling do not re-scan results tables
 	private static final long CACHE_TTL_MS = 60_000;
 	private static class Cached {
@@ -494,9 +526,10 @@ public class OpsMonitorManager {
 				+ "join role r on r.id = ur.r_id "
 				+ "where ru.access = 'owner' "
 				+ bundleRbacSql("ru.group_survey_ident")
+				+ roleMembershipSql("r.id")
 				+ "group by r.name";
 
-		// Open / overdue tasks by role
+		// Open / overdue tasks by role (restricted to the user's own roles unless security manager)
 		String taskSql = "select r.name as role, "
 				+ "count(*) filter (where a.status in ('unsent','accepted')) as open_tasks, "
 				+ "count(*) filter (where a.status in ('unsent','accepted') and t.schedule_finish is not null and t.schedule_finish < now()) as overdue "
@@ -506,14 +539,18 @@ public class OpsMonitorManager {
 				+ "join users u on u.id = a.assignee "
 				+ "join user_role ur on ur.u_id = u.id "
 				+ "join role r on r.id = ur.r_id "
+				+ "where true "
+				+ roleMembershipSql("r.id")
 				+ "group by r.name";
 
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(caseSql);
-			pstmt.setInt(1, oId);
+			int idx = 1;
+			pstmt.setInt(idx++, oId);
 			if(!securityManager) {
-				pstmt.setString(2, requestingUser);
+				pstmt.setString(idx++, requestingUser);	// bundleRbacSql
+				pstmt.setString(idx++, requestingUser);	// roleMembershipSql
 			}
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
@@ -524,7 +561,11 @@ public class OpsMonitorManager {
 			pstmt.close();
 
 			pstmt = sd.prepareStatement(taskSql);
-			pstmt.setInt(1, oId);
+			int tIdx = 1;
+			pstmt.setInt(tIdx++, oId);
+			if(!securityManager) {
+				pstmt.setString(tIdx++, requestingUser);	// roleMembershipSql
+			}
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
 				String role = rs.getString("role");
@@ -907,6 +948,12 @@ public class OpsMonitorManager {
 
 		OpsUnitDetail d = new OpsUnitDetail(role);
 		d.generatedAt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(new Date());
+
+		// A non security manager may only view a unit (role) they belong to
+		if(!isRoleMember(sd, oId, role)) {
+			d.rag = ragForPct(0);
+			return d;
+		}
 
 		RoleMembers m = getRoleMembers(sd, oId, role);
 
