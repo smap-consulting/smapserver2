@@ -96,13 +96,14 @@ public class OpsMonitor extends Application {
 
 			OpsMonitorManager om = new OpsMonitorManager(localisation);
 
-			String resp = refresh ? null : om.getCachedOverview(oId);
+			String user = request.getRemoteUser();
+			String resp = refresh ? null : om.getCachedOverview(oId, user);
 			if(resp == null) {
 				cResults = ResultsDataSource.getConnection(connectionString);
-				OpsOverview ov = om.getOverview(sd, cResults, oId);
+				OpsOverview ov = om.getOverview(sd, cResults, oId, user);
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				resp = gson.toJson(ov);
-				om.putCachedOverview(oId, resp);
+				om.putCachedOverview(oId, user, resp);
 			}
 
 			response = Response.ok(resp).build();
@@ -140,7 +141,7 @@ public class OpsMonitor extends Application {
 
 			OpsMonitorManager om = new OpsMonitorManager(localisation);
 			cResults = ResultsDataSource.getConnection(connectionString);
-			ArrayList<OpsItem> items = om.getItems(sd, cResults, oId, type);
+			ArrayList<OpsItem> items = om.getItems(sd, cResults, oId, type, request.getRemoteUser());
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			response = Response.ok(gson.toJson(items)).build();
@@ -242,13 +243,14 @@ public class OpsMonitor extends Application {
 
 			OpsMonitorManager om = new OpsMonitorManager(localisation);
 
-			String resp = om.getCachedUnit(oId, role);
+			String user = request.getRemoteUser();
+			String resp = om.getCachedUnit(oId, role, user);
 			if(resp == null) {
 				cResults = ResultsDataSource.getConnection(connectionString);
-				OpsUnitDetail detail = om.getUnitDetail(sd, cResults, oId, role);
+				OpsUnitDetail detail = om.getUnitDetail(sd, cResults, oId, role, user);
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				resp = gson.toJson(detail);
-				om.putCachedUnit(oId, role, resp);
+				om.putCachedUnit(oId, role, user, resp);
 			}
 
 			response = Response.ok(resp).build();
@@ -293,7 +295,7 @@ public class OpsMonitor extends Application {
 
 			OpsMonitorManager om = new OpsMonitorManager(localisation);
 			cResults = ResultsDataSource.getConnection(connectionString);
-			OpsCase c = om.getCase(sd, cResults, groupSurveyIdent, instanceid);
+			OpsCase c = om.getCase(sd, cResults, oId, groupSurveyIdent, instanceid, request.getRemoteUser());
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			response = Response.ok(gson.toJson(c)).build();
@@ -369,7 +371,7 @@ public class OpsMonitor extends Application {
 
 			OpsMonitorManager om = new OpsMonitorManager(localisation);
 			cResults = ResultsDataSource.getConnection(connectionString);
-			om.assignCase(sd, cResults, groupSurveyIdent, instanceid,
+			om.assignCase(sd, cResults, oId, groupSurveyIdent, instanceid,
 					"release".equals(action) ? null : assignTo, action, request.getRemoteUser());
 
 			response = Response.ok("{}").build();

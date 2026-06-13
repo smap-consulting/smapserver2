@@ -25,6 +25,7 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.CaseCount;
 import org.smap.sdal.model.OpsAlert;
@@ -66,8 +67,79 @@ public class OpsMonitorManager {
 	private double ragAmber = DEFAULT_RAG_AMBER;
 	private double ragRed = DEFAULT_RAG_RED;
 
+	// Request context for RBAC. A security manager (SECURITY group) sees all surveys;
+	// everyone else is restricted to bundles they have unfiltered role access to.
+	private String requestingUser;
+	private boolean securityManager;
+
 	private String staleInterval() {
 		return staleDays + " days";
+	}
+
+	/*
+	 * Load per-org settings and the RBAC context for the requesting user.
+	 * fullAccess (or a null user, e.g. the scheduled digest) grants security-manager access.
+	 */
+	private void loadContext(Connection sd, int oId, String user, boolean fullAccess) {
+		loadSettings(sd, oId);
+		requestingUser = user;
+		if(fullAccess || user == null) {
+			securityManager = true;
+		} else {
+			try {
+				securityManager = GeneralUtilityMethods.hasSecurityGroup(sd, user, Authorise.SECURITY_ID);
+			} catch (Exception e) {
+				securityManager = false;
+			}
+		}
+	}
+
+	/*
+	 * SQL fragment restricting a group-survey-ident column to bundles the requesting user
+	 * may see: not protected by enabled roles, or the user holds a matching role that has
+	 * no row filter. Adds one '?' (the user ident) to the statement when applied.
+	 * Returns "" for a security manager (no restriction).
+	 */
+	private String bundleRbacSql(String col) {
+		if(securityManager) {
+			return "";
+		}
+		return " and ( not exists (select 1 from survey_role sr where (sr.survey_ident = " + col
+				+ " or sr.group_survey_ident = " + col + ") and sr.enabled) "
+				+ "or exists (select 1 from survey_role sr2, user_role ur2, users u2 "
+				+ "where (sr2.survey_ident = " + col + " or sr2.group_survey_ident = " + col + ") and sr2.enabled "
+				+ "and sr2.r_id = ur2.r_id and ur2.u_id = u2.id and u2.ident = ? "
+				+ "and (sr2.row_filter is null or sr2.row_filter = '')) ) ";
+	}
+
+	/*
+	 * True if the requesting user may see the given bundle (security manager, or unfiltered role access).
+	 */
+	private boolean isBundleAccessible(Connection sd, String groupSurveyIdent) throws SQLException {
+		if(securityManager) {
+			return true;
+		}
+		String sql = "select ( not exists (select 1 from survey_role sr where (sr.survey_ident = ? or sr.group_survey_ident = ?) and sr.enabled) "
+				+ "or exists (select 1 from survey_role sr2, user_role ur2, users u2 "
+				+ "where (sr2.survey_ident = ? or sr2.group_survey_ident = ?) and sr2.enabled "
+				+ "and sr2.r_id = ur2.r_id and ur2.u_id = u2.id and u2.ident = ? "
+				+ "and (sr2.row_filter is null or sr2.row_filter = ''))) as ok";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, groupSurveyIdent);
+			pstmt.setString(2, groupSurveyIdent);
+			pstmt.setString(3, groupSurveyIdent);
+			pstmt.setString(4, groupSurveyIdent);
+			pstmt.setString(5, requestingUser);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				return rs.getBoolean("ok");
+			}
+		} finally {
+			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
+		}
+		return false;
 	}
 
 	// Per-org cache so reloads / polling do not re-scan results tables
@@ -76,7 +148,8 @@ public class OpsMonitorManager {
 		long builtAt;
 		String json;		// the serialised OpsOverview
 	}
-	private static final ConcurrentHashMap<Integer, Cached> cache = new ConcurrentHashMap<>();
+	// Cache keys include the user ident so an RBAC-filtered view is never served to another user
+	private static final ConcurrentHashMap<String, Cached> cache = new ConcurrentHashMap<>();
 	private static final ConcurrentHashMap<String, Cached> unitCache = new ConcurrentHashMap<>();
 
 	private static final int ATRISK_LIMIT = 100;
@@ -92,42 +165,42 @@ public class OpsMonitorManager {
 	/*
 	 * Return a cached serialised overview if it is still fresh, else null.
 	 */
-	public String getCachedOverview(int oId) {
-		Cached c = cache.get(oId);
+	public String getCachedOverview(int oId, String user) {
+		Cached c = cache.get(oId + ":" + user);
 		if(c != null && (System.currentTimeMillis() - c.builtAt) < CACHE_TTL_MS) {
 			return c.json;
 		}
 		return null;
 	}
 
-	public void putCachedOverview(int oId, String json) {
+	public void putCachedOverview(int oId, String user, String json) {
 		Cached c = new Cached();
 		c.builtAt = System.currentTimeMillis();
 		c.json = json;
-		cache.put(oId, c);
+		cache.put(oId + ":" + user, c);
 	}
 
-	public String getCachedUnit(int oId, String role) {
-		Cached c = unitCache.get(oId + ":" + role);
+	public String getCachedUnit(int oId, String role, String user) {
+		Cached c = unitCache.get(oId + ":" + role + ":" + user);
 		if(c != null && (System.currentTimeMillis() - c.builtAt) < CACHE_TTL_MS) {
 			return c.json;
 		}
 		return null;
 	}
 
-	public void putCachedUnit(int oId, String role, String json) {
+	public void putCachedUnit(int oId, String role, String user, String json) {
 		Cached c = new Cached();
 		c.builtAt = System.currentTimeMillis();
 		c.json = json;
-		unitCache.put(oId + ":" + role, c);
+		unitCache.put(oId + ":" + role + ":" + user, c);
 	}
 
 	/*
 	 * Build the complete overview for an organisation.
 	 */
-	public OpsOverview getOverview(Connection sd, Connection cResults, int oId) throws SQLException {
+	public OpsOverview getOverview(Connection sd, Connection cResults, int oId, String user) throws SQLException {
 
-		loadSettings(sd, oId);
+		loadContext(sd, oId, user, false);
 
 		OpsOverview ov = new OpsOverview();
 		ov.generatedAt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(new Date());
@@ -225,11 +298,15 @@ public class OpsMonitorManager {
 				+ "where cs.group_survey_ident is not null "
 				+ "and exists (select 1 from survey s, project p "
 				+ "  where s.group_survey_ident = cs.group_survey_ident "
-				+ "  and s.p_id = p.id and p.o_id = ? and not s.deleted)";
+				+ "  and s.p_id = p.id and p.o_id = ? and not s.deleted)"
+				+ bundleRbacSql("cs.group_survey_ident");
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
+			if(!securityManager) {
+				pstmt.setString(2, requestingUser);
+			}
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				bundles.add(rs.getString(1));
@@ -384,13 +461,14 @@ public class OpsMonitorManager {
 
 		Map<String, OpsUnit> units = new LinkedHashMap<>();
 
-		// Assigned cases by role
+		// Assigned cases by role (RBAC: hide bundles the requesting user may not see)
 		String caseSql = "select r.name as role, count(*) as cnt "
 				+ "from record_user ru "
 				+ "join users u on u.ident = ru.assignee_ident and u.o_id = ? "
 				+ "join user_role ur on ur.u_id = u.id "
 				+ "join role r on r.id = ur.r_id "
 				+ "where ru.access = 'owner' "
+				+ bundleRbacSql("ru.group_survey_ident")
 				+ "group by r.name";
 
 		// Open / overdue tasks by role
@@ -409,6 +487,9 @@ public class OpsMonitorManager {
 		try {
 			pstmt = sd.prepareStatement(caseSql);
 			pstmt.setInt(1, oId);
+			if(!securityManager) {
+				pstmt.setString(2, requestingUser);
+			}
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				String role = rs.getString("role");
@@ -454,8 +535,8 @@ public class OpsMonitorManager {
 	 */
 	public void writeSummaryXlsx(Connection sd, Connection cResults, int oId, OutputStream out) throws Exception {
 
-		OpsOverview ov = getOverview(sd, cResults, oId);
-		ArrayList<OpsItem> items = getItems(sd, cResults, oId, "all");
+		OpsOverview ov = getOverview(sd, cResults, oId, null);		// digest: org-level report, full access
+		ArrayList<OpsItem> items = getItems(sd, cResults, oId, "all", null);
 
 		SXSSFWorkbook wb = new SXSSFWorkbook(10);
 		try {
@@ -601,8 +682,8 @@ public class OpsMonitorManager {
 		} finally {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
 		}
-		// Invalidate any cached snapshots for this org
-		cache.remove(oId);
+		// Invalidate any cached snapshots for this org (all users)
+		cache.keySet().removeIf(k -> k.startsWith(oId + ":"));
 		unitCache.keySet().removeIf(k -> k.startsWith(oId + ":"));
 	}
 
@@ -620,8 +701,8 @@ public class OpsMonitorManager {
 	 *   alerts        - open case-management alerts
 	 *   all (default) - overdue tasks + stale cases (used by the digest)
 	 */
-	public ArrayList<OpsItem> getItems(Connection sd, Connection cResults, int oId, String type) throws SQLException {
-		loadSettings(sd, oId);
+	public ArrayList<OpsItem> getItems(Connection sd, Connection cResults, int oId, String type, String user) throws SQLException {
+		loadContext(sd, oId, user, false);
 		ArrayList<OpsItem> items = new ArrayList<>();
 		if(type == null) {
 			type = "all";
@@ -791,9 +872,9 @@ public class OpsMonitorManager {
 	 * Build the L1 detail for one role: open figures, throughput (cases + tasks),
 	 * average cycle times, 30-day trend and the at-risk item list.
 	 */
-	public OpsUnitDetail getUnitDetail(Connection sd, Connection cResults, int oId, String role) throws SQLException {
+	public OpsUnitDetail getUnitDetail(Connection sd, Connection cResults, int oId, String role, String user) throws SQLException {
 
-		loadSettings(sd, oId);
+		loadContext(sd, oId, user, false);
 
 		OpsUnitDetail d = new OpsUnitDetail(role);
 		d.generatedAt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(new Date());
@@ -1076,7 +1157,11 @@ public class OpsMonitorManager {
 	/*
 	 * Fetch one case record (org membership must be validated by the caller).
 	 */
-	public OpsCase getCase(Connection sd, Connection cResults, String groupSurveyIdent, String instanceid) throws SQLException {
+	public OpsCase getCase(Connection sd, Connection cResults, int oId, String groupSurveyIdent, String instanceid, String user) throws Exception {
+		loadContext(sd, oId, user, false);
+		if(!isBundleAccessible(sd, groupSurveyIdent)) {
+			throw new org.smap.sdal.Utilities.AuthorisationException();
+		}
 		OpsCase c = new OpsCase(groupSurveyIdent, instanceid);
 		c.bundle = getSurveyDisplayName(sd, groupSurveyIdent);
 
@@ -1141,8 +1226,12 @@ public class OpsMonitorManager {
 	 * Assign or release a case (org membership validated by the caller).
 	 * type = assign | release.
 	 */
-	public int assignCase(Connection sd, Connection cResults, String groupSurveyIdent, String instanceid,
-			String assignTo, String type, String requestingUser) throws SQLException {
+	public int assignCase(Connection sd, Connection cResults, int oId, String groupSurveyIdent, String instanceid,
+			String assignTo, String type, String requestingUser) throws Exception {
+		loadContext(sd, oId, requestingUser, false);
+		if(!isBundleAccessible(sd, groupSurveyIdent)) {
+			throw new org.smap.sdal.Utilities.AuthorisationException();
+		}
 		String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, groupSurveyIdent);
 		if(table == null) {
 			return 0;
