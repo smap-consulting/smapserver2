@@ -142,6 +142,23 @@ public class OpsMonitorManager {
 		return false;
 	}
 
+	/*
+	 * SQL fragment restricting alerts (alert a) to those whose survey the requesting user may
+	 * see: no survey, not role-protected, or a matching role with no row filter. Adds one '?'
+	 * (the user ident). Returns "" for a security manager.
+	 */
+	private String alertRbacSql() {
+		if(securityManager) {
+			return "";
+		}
+		return " and ( a.s_id is null "
+				+ "or not exists (select 1 from survey sv, survey_role sr "
+				+ "  where sv.s_id = a.s_id and (sr.survey_ident = sv.ident or sr.group_survey_ident = sv.group_survey_ident) and sr.enabled) "
+				+ "or exists (select 1 from survey sv2, survey_role sr2, user_role ur2, users u2 "
+				+ "  where sv2.s_id = a.s_id and (sr2.survey_ident = sv2.ident or sr2.group_survey_ident = sv2.group_survey_ident) and sr2.enabled "
+				+ "  and sr2.r_id = ur2.r_id and ur2.u_id = u2.id and u2.ident = ? and (sr2.row_filter is null or sr2.row_filter = '')) ) ";
+	}
+
 	// Per-org cache so reloads / polling do not re-scan results tables
 	private static final long CACHE_TTL_MS = 60_000;
 	private static class Cached {
@@ -383,11 +400,15 @@ public class OpsMonitorManager {
 	private int getOpenAlertCount(Connection sd, int oId) throws SQLException {
 		String sql = "select count(*) from alert a "
 				+ "join users u on u.id = a.u_id and u.o_id = ? "
-				+ "where a.status = 'open'";
+				+ "where a.status = 'open'"
+				+ alertRbacSql();
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
+			if(!securityManager) {
+				pstmt.setString(2, requestingUser);
+			}
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				return rs.getInt(1);
@@ -406,12 +427,16 @@ public class OpsMonitorManager {
 				+ "join users u on u.id = a.u_id and u.o_id = ? "
 				+ "left join survey s on s.s_id = a.s_id "
 				+ "where a.status = 'open' "
+				+ alertRbacSql()
 				+ "order by a.priority asc, a.created_time asc "
 				+ "limit " + ALERT_LIST_LIMIT;
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
+			if(!securityManager) {
+				pstmt.setString(2, requestingUser);
+			}
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				alerts.add(new OpsAlert(
@@ -841,11 +866,15 @@ public class OpsMonitorManager {
 				+ "join users u on u.id = a.u_id and u.o_id = ? "
 				+ "left join survey s on s.s_id = a.s_id "
 				+ "where a.status = 'open' "
+				+ alertRbacSql()
 				+ "order by a.priority asc, a.created_time asc limit " + ATRISK_LIMIT;
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
+			if(!securityManager) {
+				pstmt.setString(2, requestingUser);
+			}
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				long ageDays = (long) (rs.getDouble("age") / 86400);
