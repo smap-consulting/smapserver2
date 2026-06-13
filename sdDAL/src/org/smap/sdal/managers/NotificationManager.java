@@ -1287,7 +1287,9 @@ public class NotificationManager {
 							assignTo = userList.get(0);	// Only one user can be assigned
 						}
 					} else if(msg.remoteUser.startsWith("_role:")) {
-						// Assign to the first user (alphabetically) who has the specified role
+						// Assign to the first user (alphabetically) who has the specified role.
+						// If no user holds the role leave it unassigned (do not assign to the role placeholder)
+						assignTo = null;
 						int roleId = 0;
 						try { roleId = Integer.parseInt(msg.remoteUser.substring(6)); } catch(NumberFormatException ignored) {}
 						if(roleId > 0) {
@@ -1311,32 +1313,40 @@ public class NotificationManager {
 					}
 					
 					log.fine("+++++ escalate notification");
-					notify_details = localisation.getString("esc_nd");
-					notify_details = notify_details.replace("%s1", msg.instanceId);
-					notify_details = notify_details.replace("%s2", survey.surveyData.displayName);
-					notify_details = notify_details.replace("%s3", survey.surveyData.projectName);
-					notify_details = notify_details.replace("%s4", assignTo);
 
-					try {
-						String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
-						String surveyCase = msg.survey_case;
-						if(surveyCase == null) {	// if no survey to complete has been specified then complete with the submitting survey
-							surveyCase = msg.survey_ident;
-						}
-					
-						CaseManager cm = new CaseManager(localisation);
-						String requester = localisation.getString("c_notify") + " " + msg.notificationName;
-						int count = cm.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase, 
-								notify_details, requester);
-						if(count == 0) {
+					if(assignTo == null) {
+						// No user resolved (e.g. the role has no members) - leave the case unassigned
+						notify_details = "Case " + msg.instanceId + " in " + survey.surveyData.displayName
+								+ " left unassigned: no user holds the configured role";
+						log.info("Escalate notification " + msg.notificationName + ": " + notify_details);
+					} else {
+						notify_details = localisation.getString("esc_nd");
+						notify_details = notify_details.replace("%s1", msg.instanceId);
+						notify_details = notify_details.replace("%s2", survey.surveyData.displayName);
+						notify_details = notify_details.replace("%s3", survey.surveyData.projectName);
+						notify_details = notify_details.replace("%s4", assignTo);
+
+						try {
+							String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
+							String surveyCase = msg.survey_case;
+							if(surveyCase == null) {	// if no survey to complete has been specified then complete with the submitting survey
+								surveyCase = msg.survey_ident;
+							}
+
+							CaseManager cm = new CaseManager(localisation);
+							String requester = localisation.getString("c_notify") + " " + msg.notificationName;
+							int count = cm.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase,
+									notify_details, requester);
+							if(count == 0) {
+								status = "error";
+								error_details = "case not found, attempting: " + notify_details;
+								log.log(Level.SEVERE, "Error: " + error_details);
+							}
+						} catch (Exception e) {
 							status = "error";
-							error_details = "case not found, attempting: " + notify_details;
-							log.log(Level.SEVERE, "Error: " + error_details);
-						} 
-					} catch (Exception e) {
-						status = "error";
-						error_details = e.getMessage();
-						log.log(Level.SEVERE, e.getMessage(), e);
+							error_details = e.getMessage();
+							log.log(Level.SEVERE, e.getMessage(), e);
+						}
 					}
 					
 					/*
