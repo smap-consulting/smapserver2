@@ -11,6 +11,7 @@ public class OpsUnit {
 	public int overdue;			// overdue tasks for this role
 	public double overduePct;	// overdue / (openTasks) * 100
 	public String rag;			// green || amber || red
+	public boolean aggregate;	// true for the synthetic Unassigned / No-unit reconciliation rows (not a real role)
 
 	public OpsUnit(String role) {
 		this.role = role;

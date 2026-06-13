@@ -364,6 +364,24 @@ public class OpsMonitorManager {
 		// 6. Per-unit (role) rollup - only roles that own open work
 		ov.units = getUnits(sd, oId);
 
+		// Reconciliation rows so the unit table accounts for the open-cases total:
+		// open cases with no owner, and assigned cases whose owner is in no role.
+		if(ov.unassignedCases > 0) {
+			OpsUnit ua = new OpsUnit(localise("ops_unit_unassigned", "Unassigned"));
+			ua.openCases = ov.unassignedCases;
+			ua.aggregate = true;
+			ua.rag = "none";
+			ov.units.add(ua);
+		}
+		int noUnit = getNoUnitCaseCount(sd, oId);
+		if(noUnit > 0) {
+			OpsUnit nu = new OpsUnit(localise("ops_unit_none", "No unit"));
+			nu.openCases = noUnit;
+			nu.aggregate = true;
+			nu.rag = "none";
+			ov.units.add(nu);
+		}
+
 		return ov;
 	}
 
@@ -1452,6 +1470,33 @@ public class OpsMonitorManager {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
 		}
 		indexedTables.add(table);
+	}
+
+	/*
+	 * Assigned open cases (record_user owners) in accessible bundles whose owner is in no role.
+	 * These have no "unit", so they don't appear in the per-role rollup.
+	 */
+	private int getNoUnitCaseCount(Connection sd, int oId) throws SQLException {
+		String sql = "select count(*) from record_user ru "
+				+ "join users u on u.ident = ru.assignee_ident and u.o_id = ? "
+				+ "where ru.access = 'owner' "
+				+ bundleRbacSql("ru.group_survey_ident")
+				+ "and not exists (select 1 from user_role ur2 where ur2.u_id = u.id)";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			if(!securityManager) {
+				pstmt.setString(2, requestingUser);
+			}
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				return rs.getInt(1);
+			}
+		} finally {
+			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
+		}
+		return 0;
 	}
 
 	private String ragForPct(double pct) {
