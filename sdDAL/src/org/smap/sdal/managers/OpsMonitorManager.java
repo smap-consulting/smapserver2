@@ -1101,7 +1101,7 @@ public class OpsMonitorManager {
 					long[] cyc = caseCycleForUsers(cResults, table, m.idents);
 					cycleSumSec += cyc[0];
 					cycleCnt += cyc[1];
-					collectStaleCases(sd, cResults, table, gsi, m.idents, d.atRisk);
+					collectOpenCasesForRole(sd, cResults, table, gsi, m.idents, d.atRisk);
 				} catch (Exception e) {
 					log.log(Level.WARNING, "Ops unit: skipping bundle " + gsi + ": " + e.getMessage());
 				}
@@ -1194,13 +1194,15 @@ public class OpsMonitorManager {
 			}
 			pstmt.close();
 
-			// overdue tasks as at-risk items
+			// All open tasks for the unit (overdue ones flagged) - listed in full so the list
+			// reconciles with the open-task / overdue counts above
 			String itemSql = "select t.title, t.tg_id, t.survey_name, a.assignee_name, "
-					+ "extract(epoch from (now() - t.schedule_finish)) as age "
+					+ "(t.schedule_finish is not null and t.schedule_finish < now()) as overdue, "
+					+ "extract(epoch from (now() - t.schedule_finish)) as overdue_age, "
+					+ "extract(epoch from (now() - t.created_at)) as created_age "
 					+ "from assignments a join tasks t on t.id = a.task_id and not t.deleted "
 					+ "where a.assignee in (" + ph + ") and a.status in ('unsent','accepted') "
-					+ "and t.schedule_finish is not null and t.schedule_finish < now() "
-					+ "order by t.schedule_finish asc limit " + ATRISK_LIMIT;
+					+ "order by t.schedule_finish asc nulls last limit " + ATRISK_LIMIT;
 			pstmt = sd.prepareStatement(itemSql);
 			setInts(pstmt, 1, m.ids);
 			rs = pstmt.executeQuery();
@@ -1210,9 +1212,12 @@ public class OpsMonitorManager {
 				if(title == null || title.trim().isEmpty()) {
 					title = surveyName;
 				}
-				long ageDays = (long) (rs.getDouble("age") / 86400);
+				boolean overdue = rs.getBoolean("overdue");
+				long ageDays = (long) ((overdue ? rs.getDouble("overdue_age") : rs.getDouble("created_age")) / 86400);
 				String link = "/app/tasks/taskManagement.html?tg_id=" + rs.getInt("tg_id");
-				d.atRisk.add(new OpsItem("task", title, surveyName, rs.getString("assignee_name"), ageDays, true, link));
+				OpsItem it = new OpsItem("task", title, surveyName, rs.getString("assignee_name"), ageDays, overdue, link);
+				it.status = overdue ? "overdue" : "in_progress";
+				d.atRisk.add(it);
 			}
 		} finally {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
@@ -1289,20 +1294,23 @@ public class OpsMonitorManager {
 		return new long[] { 0, 0 };
 	}
 
-	private void collectStaleCases(Connection sd, Connection cResults, String table, String gsi,
-			ArrayList<String> idents, java.util.List<OpsItem> atRisk) throws SQLException {
+	/*
+	 * List ALL open cases owned by the role's members in one bundle (status open, or stale when
+	 * older than the stale interval). Listing every open case keeps the list consistent with the
+	 * unit's open-case count.
+	 */
+	private void collectOpenCasesForRole(Connection sd, Connection cResults, String table, String gsi,
+			ArrayList<String> idents, java.util.List<OpsItem> items) throws SQLException {
 		String bundleName = getSurveyDisplayName(sd, gsi);
 		String ph = placeholders(idents.size());
-		String sql = "select prikey, instancename, _hrk, _assigned, instanceid, _s_id, "
+		String sql = "select prikey, instancename, _hrk, _assigned, instanceid, "
 				+ "extract(epoch from (now() - _thread_created)) as age "
 				+ "from " + table + " where not _bad and _case_closed is null and _assigned in (" + ph + ") "
-				+ "and _thread_created < now() - ?::interval "
 				+ "order by _thread_created asc limit " + ATRISK_LIMIT;
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = cResults.prepareStatement(sql);
 			setStrings(pstmt, 1, idents);
-			pstmt.setString(idents.size() + 1, staleInterval());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				String instanceName = rs.getString("instancename");
@@ -1317,8 +1325,10 @@ public class OpsMonitorManager {
 					label += prikey;
 				}
 				long ageDays = (long) (rs.getDouble("age") / 86400);
-				atRisk.add(new OpsItem("case", label, bundleName, rs.getString("_assigned"),
-						ageDays, false, caseLink(gsi, rs.getString("instanceid"))));
+				OpsItem it = new OpsItem("case", label, bundleName, rs.getString("_assigned"),
+						ageDays, false, caseLink(gsi, rs.getString("instanceid")));
+				it.status = ageDays >= staleDays ? "stale" : "open";
+				items.add(it);
 			}
 		} finally {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
