@@ -370,6 +370,7 @@ public class OpsMonitorManager {
 			OpsUnit ua = new OpsUnit(localise("ops_unit_unassigned", "Unassigned"));
 			ua.openCases = ov.unassignedCases;
 			ua.aggregate = true;
+			ua.itemType = "unassigned";
 			ua.rag = "none";
 			ov.units.add(ua);
 		}
@@ -677,6 +678,7 @@ public class OpsMonitorManager {
 			OpsUnit nu = new OpsUnit(localise("ops_unit_none", "No unit"));
 			nu.openCases = noUnit;
 			nu.aggregate = true;
+			nu.itemType = "no_unit";
 			nu.rag = "none";
 			out.add(nu);
 		}
@@ -891,6 +893,8 @@ public class OpsMonitorManager {
 			getTaskItems(sd, oId, items, false);
 		} else if(type.equals("alerts")) {
 			getAlertItemsOrg(sd, oId, items);
+		} else if(type.equals("no_unit")) {
+			getNoUnitItems(sd, cResults, oId, items);
 		} else if(type.equals("stale") || type.equals("open_cases") || type.equals("unassigned")) {
 			collectCasesAllBundles(sd, cResults, oId, items, type);
 		} else {	// all (legacy / digest)
@@ -1010,6 +1014,76 @@ public class OpsMonitorManager {
 		} finally {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
 		}
+	}
+
+	/*
+	 * Open cases (org-wide) whose owner is in no role - the records behind the "No unit" row.
+	 */
+	private void getNoUnitItems(Connection sd, Connection cResults, int oId, java.util.List<OpsItem> items) throws SQLException {
+		java.util.Set<String> withRole = getUsersWithRole(sd, oId);
+		for(String gsi : getCaseBundles(sd, oId)) {
+			try {
+				String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, gsi);
+				if(table == null) {
+					continue;
+				}
+				GeneralUtilityMethods.ensureTableCurrent(cResults, table, true);
+				ensureCaseIndexes(cResults, table);
+				String bundleName = getSurveyDisplayName(sd, gsi);
+				PreparedStatement p = null;
+				try {
+					p = cResults.prepareStatement("select prikey, instancename, _hrk, _assigned, instanceid, "
+							+ "extract(epoch from (now() - _thread_created)) as age "
+							+ "from " + table + " where not _bad and _case_closed is null "
+							+ "and _assigned is not null and _assigned <> '' "
+							+ "order by _thread_created asc limit " + ATRISK_LIMIT);
+					ResultSet rs = p.executeQuery();
+					while(rs.next()) {
+						String owner = rs.getString("_assigned");
+						if(withRole.contains(owner)) {
+							continue;	// owner has a role -> belongs to a unit, not "No unit"
+						}
+						String instanceName = rs.getString("instancename");
+						String hrk = rs.getString("_hrk");
+						int prikey = rs.getInt("prikey");
+						String label = (bundleName == null ? "" : bundleName) + " - ";
+						if(instanceName != null && instanceName.trim().length() > 0) {
+							label += instanceName;
+						} else if(hrk != null && hrk.trim().length() > 0) {
+							label += hrk;
+						} else {
+							label += prikey;
+						}
+						long ageDays = (long) (rs.getDouble("age") / 86400);
+						OpsItem it = new OpsItem("case", label, bundleName, owner,
+								ageDays, false, caseLink(gsi, rs.getString("instanceid")));
+						it.status = ageDays >= staleDays ? "stale" : "open";
+						items.add(it);
+					}
+				} finally {
+					try { if(p != null) p.close(); } catch(Exception e) {}
+				}
+			} catch (Exception e) {
+				log.log(Level.WARNING, "Ops no-unit items: skipping bundle " + gsi + ": " + e.getMessage());
+			}
+		}
+	}
+
+	private java.util.Set<String> getUsersWithRole(Connection sd, int oId) throws SQLException {
+		java.util.Set<String> idents = new java.util.HashSet<>();
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement("select distinct u.ident from users u "
+					+ "join user_role ur on ur.u_id = u.id where u.o_id = ?");
+			pstmt.setInt(1, oId);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				idents.add(rs.getString(1));
+			}
+		} finally {
+			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
+		}
+		return idents;
 	}
 
 	/*
