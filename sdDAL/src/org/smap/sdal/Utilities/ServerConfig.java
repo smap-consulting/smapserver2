@@ -29,7 +29,10 @@ public class ServerConfig {
 	}
 
 	public static String getProtocol(HttpServletRequest request) {
-		int port = getPortNumber(request);
+		return getProtocol(getPortNumber(request));
+	}
+
+	public static String getProtocol(int port) {
 		return port == 80 ? "http://" : "https://";
 	}
 }

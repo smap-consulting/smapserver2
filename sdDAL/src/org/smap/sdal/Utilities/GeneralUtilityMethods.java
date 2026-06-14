@@ -7566,39 +7566,25 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Return SQL that can be used to filter out records not matching a filter
+	 * Return SQL that can be used to filter out records not matching a filter.
+	 * The returned SQL contains "?" placeholders. The supplied frag is populated
+	 * with the matching parameters so the caller can bind them (setFragParams)
+	 * on the outer prepared statement after this fragment has been embedded.
 	 */
-	public static String getFilterCheck(Connection cResults, ResourceBundle localisation, Survey survey, String filter, String tz) throws Exception {
-
-		String resp = null;
+	public static String getFilterCheck(ResourceBundle localisation, Survey survey, String filter, SqlFrag frag) throws Exception {
 
 		StringBuffer filterQuery = new StringBuffer("(select ");
 		filterQuery.append(getMainTable(survey.surveyData.forms));
-		filterQuery.append(".instanceid from ");		
+		filterQuery.append(".instanceid from ");
 		filterQuery.append(getTableOuterJoin(survey.surveyData.forms, 0, null));
-		filterQuery.append(" where (");		
+		filterQuery.append(" where (");
 
 		// Add the filter
-		SqlFrag frag = new SqlFrag();
 		frag.addSqlFragment(filter, false, localisation, 0);
 		filterQuery.append(frag.sql);
 		filterQuery.append("))");
 
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = cResults.prepareStatement(filterQuery.toString());
-			int idx = 1;
-			idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx, tz);
-
-			resp = pstmt.toString();
-
-		} finally {
-			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
-		}
-
-		log.fine("Filter check sql: " + resp);
-
-		return resp;
+		return filterQuery.toString();
 	}
 
 	/*
