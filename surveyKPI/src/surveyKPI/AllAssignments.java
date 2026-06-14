@@ -317,13 +317,15 @@ public class AllAssignments extends Application {
 							 */
 							QuestionInfo filterQuestion = null;
 							String filterSql = null;
+							SqlFrag filterFrag = null;
 							if(as.filter != null && as.filter.advanced != null && as.filter.advanced.length() > 0) {
 								// log.info("+++++ Using advanced filter: " + as.filter.advanced);
-								
+
+								filterFrag = new SqlFrag();
 								StringBuffer filterQuery = new StringBuffer(tableName);
 								filterQuery.append(".instanceid in ");
-								filterQuery.append(GeneralUtilityMethods.getFilterCheck(sd, 
-										localisation, survey, as.filter.advanced, tz));
+								filterQuery.append(GeneralUtilityMethods.getFilterCheck(
+										localisation, survey, as.filter.advanced, filterFrag));
 								filterSql = filterQuery.toString();
 								
 								// log.info("Query clause: " + filterSql);
@@ -357,10 +359,11 @@ public class AllAssignments extends Application {
 							
 							// Check to see if we need to assign the task based on retrieved data
 							String assignSql = null;
+							SqlFrag assignFrag = null;
 							if(as.assign_data != null && as.assign_data.trim().length() > 0) {
-								SqlFrag frag = new SqlFrag();
-								frag.addSqlFragment(as.assign_data, false, localisation, 0);
-								assignSql = frag.sql.toString();
+								assignFrag = new SqlFrag();
+								assignFrag.addSqlFragment(as.assign_data, false, localisation, 0);
+								assignSql = assignFrag.sql.toString();
 							}
 							
 							// Check to see if this form has geometry columns						
@@ -446,8 +449,21 @@ public class AllAssignments extends Application {
 							}
 
 							if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-							pstmt = cResults.prepareStatement(getTaskSql.toString());	
-							
+							pstmt = cResults.prepareStatement(getTaskSql.toString());
+
+							/*
+							 * Bind the filter/assignment parameters. Order matches their
+							 * position in the SQL: assignment ("?" in the select list) is
+							 * before the filter ("?" in the where clause).
+							 */
+							int paramIdx = 1;
+							if(assignFrag != null) {
+								paramIdx = GeneralUtilityMethods.setFragParams(pstmt, assignFrag, paramIdx, tz);
+							}
+							if(filterFrag != null) {
+								paramIdx = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, paramIdx, tz);
+							}
+
 							// log.info("SQL Get Tasks: ----------------------- " + pstmt.toString());
 							if(resultSet != null) try {resultSet.close();} catch(Exception e) {};
 							resultSet = pstmt.executeQuery();
