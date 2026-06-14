@@ -218,7 +218,7 @@ public class FormListManager {
 			port = ":" + String.valueOf(portNumber);
 		}
 		
-		protocol = ServerConfig.getProtocol(request);
+		protocol = ServerConfig.getProtocol(portNumber);
 
 		// Extract the data
 		try {
