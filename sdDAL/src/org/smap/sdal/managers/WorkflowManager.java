@@ -157,10 +157,13 @@ public class WorkflowManager {
 				+ "s_case.display_name as case_survey, "
 				+ "s_case.ident as case_survey_ident, "
 				+ "s_case.s_id as case_survey_id, "
+				+ "rep.name as report_name, "
+				+ "(f.notify_details::json->>'report_type') as report_type, "
 				+ "proj.name as project_name "
 				+ "from forward f "
 				+ "left outer join survey s_src on s_src.s_id = f.s_id "
 				+ "left outer join survey s_bun on s_bun.ident = f.bundle_ident "
+				+ "left outer join report rep on rep.id = f.r_id "
 				+ "left outer join survey s_case on f.target = 'escalate' "
 				+ "  and f.notify_details is not null "
 				+ "  and s_case.ident = (f.notify_details::json->>'survey_case') "
@@ -198,6 +201,8 @@ public class WorkflowManager {
 				String  projectName      = rs.getString("project_name");
 				String  remoteUser       = rs.getString("remote_user");
 				String  wfPrevNodeId     = rs.getString("wf_prev_node_id");
+				String  reportName       = rs.getString("report_name");
+				String  reportType       = rs.getString("report_type");
 
 				// Defer bundle notifications until all survey nodes are built
 				if (isBundle) {
@@ -242,7 +247,10 @@ public class WorkflowManager {
 					src.id      = srcKey;
 					src.type    = TYPE_PERIODIC;
 					src.role    = ROLE_TRIGGER;
-					src.name    = fName;
+					// Body shows the report; header shows the user-entered label (forward.name)
+					src.name    = "ops_summary".equals(reportType) ? "Operations Summary"
+							: (reportName != null ? reportName : fName);
+					src.label   = fName;
 					src.enabled = enabled;
 					src.project = projectName;
 					itemMap.putIfAbsent(srcKey, src);

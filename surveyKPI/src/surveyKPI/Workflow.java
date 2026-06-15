@@ -50,7 +50,9 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.WorkflowManager;
+import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.WorkflowData;
 import org.smap.sdal.model.WorkflowItem;
@@ -128,6 +130,23 @@ public class Workflow extends Application {
 
 	static class WorkflowEditForm {
 		public String sIdent;
+	}
+
+	// Scheduled (periodic) start step: a periodic trigger that emails a report.
+	// Persisted as a single forward record (trigger=periodic, target=email) with
+	// no recipients yet; the email node's recipients are set afterwards.
+	static class WorkflowEditScheduled {
+		public int    projectId;
+		public String label;          // user-entered step label, distinguishes schedules for the same report
+		public int    rId;            // report id (0 when reportType is a fixed report)
+		public String reportType;     // e.g. "ops_summary" (empty = custom report identified by rId)
+		public String reportName;     // report display name (fallback label if none entered)
+		public String periodicPeriod; // daily | weekly | monthly | quarterly | yearly
+		public String periodicTime;   // "HH:MM" local time
+		public int    periodicWeekDay;
+		public int    periodicMonthDay;
+		public int    periodicMonth;
+		public String tz;             // user timezone for local->UTC conversion
 	}
 
 	static class WorkflowSurvey {
@@ -1029,6 +1048,66 @@ public class Workflow extends Application {
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		return response;
+	}
+
+	// ============================================================
+	// POST /workflow/edit/scheduled
+	// Creates a periodic start step: a forward record with trigger=periodic and
+	// target=email (no recipients yet) that emails the chosen report on schedule.
+	// Rendered on the canvas as a Scheduled node linked to an Email node.
+	// ============================================================
+	@Path("/edit/scheduled")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response createScheduled(@Context HttpServletRequest request, String body) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-Workflow-editScheduled-post";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		WorkflowEditScheduled s = gson.fromJson(body, WorkflowEditScheduled.class);
+
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			Notification n = new Notification();
+			n.trigger          = "periodic";
+			n.target           = "email";
+			n.enabled          = true;
+			n.p_id             = s.projectId;
+			// forward.name holds the user label; the report is identified by r_id / report_type
+			n.name             = (s.label != null && !s.label.trim().isEmpty()) ? s.label.trim()
+					: (s.reportName != null ? s.reportName : "");
+			n.r_id             = s.rId;
+			n.periodic_period  = s.periodicPeriod;
+			n.periodic_time    = s.periodicTime;
+			n.periodic_week_day  = s.periodicWeekDay;
+			n.periodic_month_day = s.periodicMonthDay;
+			n.periodic_month     = s.periodicMonth;
+
+			NotifyDetails nd = new NotifyDetails();
+			nd.report_type = s.reportType;
+			nd.emails      = new ArrayList<>();   // recipients added later via the Email node
+			n.notifyDetails = nd;
+
+			String tz = (s.tz != null && !s.tz.trim().isEmpty()) ? s.tz : "UTC";
+			NotificationManager nm = new NotificationManager(localisation);
+			int newId = nm.addNotification(sd, null, request.getRemoteUser(), n, tz);
+
+			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.CREATE,
+					localisation.getString("lm_wf_create_notification").replace("%s1", n.name), 0, null);
+			response = Response.ok("{\"id\":" + newId + "}").build();
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error creating scheduled workflow step", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 		return response;
