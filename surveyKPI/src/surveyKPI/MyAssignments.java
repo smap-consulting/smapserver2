@@ -39,6 +39,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.SystemException;
 import org.smap.sdal.managers.AssignmentsManager;
 import org.smap.sdal.managers.CaseManager;
+import org.smap.sdal.managers.ReferenceManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.UserLocationManager;
 import org.smap.sdal.model.Survey;
@@ -233,6 +234,15 @@ public class MyAssignments extends Application {
 						cm.assignRecord(sd, cResults, localisation, tableName, ta.task.update_id,
 								request.getRemoteUser(), "release", null, ta.assignment.task_comment,
 								request.getRemoteUser());
+					}
+				} else if (ta.task != null && ta.task.type != null && ta.task.type.equals("reference")) {
+					// Device dereferenced a read only record - remove this user's reference link
+					if (ta.assignment.assignment_status != null && ta.assignment.assignment_status.equals("cancelled")) {
+						String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults,
+								ta.task.form_id);
+						ReferenceManager refMgr = new ReferenceManager(localisation);
+						refMgr.dereferenceByThread(sd, cResults, tableName, ta.task.update_id,
+								request.getRemoteUser(), request.getRemoteUser());
 					}
 				} else if (ta.assignment.assignment_id > 0) {
 					log.info("Task Assignment: " + ta.assignment.assignment_status);

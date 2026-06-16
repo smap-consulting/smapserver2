@@ -138,6 +138,67 @@ public class ReferenceManager {
 	}
 
 	/*
+	 * Remove read only access for a single user identified by the record thread.
+	 * Used when a device dereferences a record - the device holds the thread (sent as the task
+	 * update id) rather than an instance id, so the reference row is deleted by thread directly.
+	 */
+	public int dereferenceByThread(Connection sd, Connection cResults, String tableName, String thread,
+			String userIdent, String requestingUser) throws SQLException {
+
+		int count = 0;
+		if(thread == null || userIdent == null || userIdent.trim().length() == 0) {
+			return 0;
+		}
+
+		PreparedStatement pstmt = null;
+		RecordEventManager rem = new RecordEventManager();
+		try {
+			pstmt = sd.prepareStatement(
+					"delete from record_user where thread = ? and assignee_ident = ? and access = 'reference'");
+			pstmt.setString(1, thread);
+			pstmt.setString(2, userIdent.trim());
+			count = pstmt.executeUpdate();
+
+			if(count > 0) {
+				String instanceId = getInstanceIdForThread(cResults, tableName, thread);
+				if(instanceId != null) {
+					String details = localisation != null ? localisation.getString("c_unreferenced") : "Reference removed";
+					rem.writeEvent(sd, cResults, RecordEventManager.ASSIGNED, "success", requestingUser,
+							tableName, instanceId, null, null, null, null, details, 0, null, 0, 0);
+				}
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+		return count;
+	}
+
+	/*
+	 * Get the current (not bad) instance id for a record thread, used for audit events.
+	 */
+	private String getInstanceIdForThread(Connection cResults, String tableName, String thread) throws SQLException {
+
+		if(thread == null || tableName == null || !GeneralUtilityMethods.tableExists(cResults, tableName)) {
+			return null;
+		}
+
+		String instanceId = null;
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cResults.prepareStatement(
+					"select instanceid from " + tableName + " where _thread = ? and not _bad limit 1");
+			pstmt.setString(1, thread);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				instanceId = rs.getString(1);
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+		return instanceId;
+	}
+
+	/*
 	 * Get the list of users who currently reference a record
 	 */
 	public ArrayList<String> getReferences(Connection sd, Connection cResults, String tableName, String instanceId)
