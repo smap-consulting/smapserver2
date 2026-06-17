@@ -58,6 +58,7 @@ import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Pulldata;
+import org.smap.sdal.model.SettingChange;
 import org.smap.sdal.model.SurveyDAO;
 import org.smap.sdal.model.SurveyIdent;
 import org.smap.sdal.model.SurveySummary;
@@ -930,7 +931,8 @@ public class Surveys extends Application {
 	@POST
 	public Response saveSettings(@Context HttpServletRequest request,
 			@PathParam("sId") int sId,
-			@FormParam("settings") String settings) { 
+			@FormParam("settings") String settings,
+			@FormParam("changeList") String changeList) {
 		
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
@@ -1047,28 +1049,44 @@ public class Surveys extends Application {
 				log.info("Info: Survey updated");
 				
 				int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
-				
-				ChangeElement change = new ChangeElement();
-				change.action = "settings_update";
-				change.origSId = sId;
-				change.msg = localisation.getString("name") + ": " + surveyData.displayName 
-						+ ", " + localisation.getString("cr_lang") + ": " + surveyData.def_lang 
-						+ ", " + localisation.getString("a_in") + ": " + surveyData.instanceNameDefn
-						+ ", " + localisation.getString("ar_project") + ": " 
-								+ GeneralUtilityMethods.getProjectName(sd, surveyData.p_id) 
-						+ ", " + localisation.getString("cr_default_logo") + ": " + surveyData.default_logo;
-				
-				// Clear any entries in linked_forms for this survey - this is in case the myReferenceData setting has changed
-				GeneralUtilityMethods.clearLinkedForms(sd, sId, localisation);  
 
-				// Write to the change log
-				pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
-				pstmtChangeLog.setInt(1, sId);
-				pstmtChangeLog.setInt(2, version);
-				pstmtChangeLog.setString(3, gson.toJson(change));
-				pstmtChangeLog.setInt(4, userId);
-				pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
-				pstmtChangeLog.execute();
+				// The client sends a list of only the settings that actually changed (old -> new)
+				List<SettingChange> settingsChanges = null;
+				if(changeList != null && changeList.trim().length() > 0) {
+					Type listType = new TypeToken<ArrayList<SettingChange>>() {}.getType();
+					settingsChanges = gson.fromJson(changeList, listType);
+				}
+
+				// Clear any entries in linked_forms for this survey - this is in case the myReferenceData setting has changed
+				GeneralUtilityMethods.clearLinkedForms(sd, sId, localisation);
+
+				// Only write a change log entry if something actually changed
+				if(settingsChanges != null && settingsChanges.size() > 0) {
+
+					ChangeElement change = new ChangeElement();
+					change.action = "settings_update";
+					change.origSId = sId;
+					change.settingsChanges = settingsChanges;
+
+					// Build a plain text message as a fallback for readers that do not understand the structured data
+					StringBuilder msg = new StringBuilder();
+					for(SettingChange sc : settingsChanges) {
+						if(msg.length() > 0) {
+							msg.append(", ");
+						}
+						msg.append(sc.label).append(": ").append(sc.oldVal).append(" -> ").append(sc.newVal);
+					}
+					change.msg = msg.toString();
+
+					// Write to the change log
+					pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+					pstmtChangeLog.setInt(1, sId);
+					pstmtChangeLog.setInt(2, version);
+					pstmtChangeLog.setString(3, gson.toJson(change));
+					pstmtChangeLog.setInt(4, userId);
+					pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
+					pstmtChangeLog.execute();
+				}
 			}
 			
 			sd.commit();

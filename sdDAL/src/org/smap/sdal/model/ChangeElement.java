@@ -1,5 +1,6 @@
 package org.smap.sdal.model;
 
+import java.util.List;
 import java.util.logging.Logger;
 
 /*
@@ -25,6 +26,7 @@ public class ChangeElement {
 	public String fileName;			// External file name used to load changes to choices
 	public String fileUrl;			// URL to download the original template file
 	public String msg;
+	public List<SettingChange> settingsChanges;	// Per-field old/new for "settings_update" changes
 	public int origSId;
 	
 	// Constructor to create a ChangeElement from the old ChangeItem object
