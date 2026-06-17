@@ -192,7 +192,7 @@ public class ExchangeManager {
 							parentId,
 							f.f_id,
 							f.table_name,
-							false,		// Don't include Read Only
+							true,		// Include Read Only
 							true,		// Include parent key
 							false,		// Don't include "bad" columns
 							false,		// Don't include instance id
