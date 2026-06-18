@@ -491,6 +491,7 @@ public class NotificationManager {
 		if("notifications".equals(page)) {
 			types.add("webhook");
 			types.add("escalate");
+			types.add("reference");
 			types.add("sharepoint_list");
 		}
 
@@ -1364,6 +1365,78 @@ public class NotificationManager {
 							survey.surveyData.displayName, survey.surveyData.projectName,
 							msg.subject, msg.from, msg.content, null, msg.scheme, msg);		// reference is null therefore cannot reply
 					
+				} else if(msg.target.equals("reference")) {   // Give one or more users read only access to a record
+
+					log.fine("+++++ reference notification");
+
+					// Resolve the list of users who should reference this record.
+					// Unlike escalate (single assignee) a reference can be held by many users,
+					// so a role resolves to all of its members (snapshot at trigger time).
+					ArrayList<String> refUsers = new ArrayList<>();
+					if(msg.remoteUser != null) {
+						if(msg.remoteUser.equals("_submitter")) {
+							if(msg.user != null) {
+								refUsers.add(msg.user);
+							}
+						} else if(msg.remoteUser.equals("_data")) {
+							refUsers.addAll(GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, msg.assignQuestion, msg.instanceId));
+						} else if(msg.remoteUser.startsWith("_role:")) {
+							int roleId = 0;
+							try { roleId = Integer.parseInt(msg.remoteUser.substring(6)); } catch(NumberFormatException ignored) {}
+							if(roleId > 0) {
+								PreparedStatement pstmtRole = null;
+								try {
+									pstmtRole = sd.prepareStatement(
+										"select u.ident from users u "
+										+ "join user_role ur on u.id = ur.u_id "
+										+ "where ur.r_id = ? and u.o_id = ? and u.temporary = false "
+										+ "order by u.ident");
+									pstmtRole.setInt(1, roleId);
+									pstmtRole.setInt(2, organisation.id);
+									ResultSet rsRole = pstmtRole.executeQuery();
+									while(rsRole.next()) {
+										refUsers.add(rsRole.getString(1));
+									}
+								} finally {
+									try { if(pstmtRole != null) pstmtRole.close(); } catch(SQLException ignored) {}
+								}
+							}
+						} else {
+							refUsers.add(msg.remoteUser);
+						}
+					}
+
+					if(refUsers.size() == 0) {
+						notify_details = "Record " + msg.instanceId + " in " + survey.surveyData.displayName
+								+ " not referenced: no users resolved";
+						log.info("Reference notification " + msg.notificationName + ": " + notify_details);
+					} else {
+						try {
+							String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
+							String surveyCase = msg.survey_case;
+							if(surveyCase == null) {	// if no survey to reference has been specified then use the submitting survey
+								surveyCase = msg.survey_ident;
+							}
+
+							ReferenceManager refm = new ReferenceManager(localisation);
+							String requester = localisation.getString("c_notify") + " " + msg.notificationName;
+							int count = refm.addReferences(sd, cResults, tableName, msg.instanceId, surveyCase, refUsers, requester);
+
+							notify_details = localisation.getString("esc_nd");
+							notify_details = notify_details.replace("%s1", msg.instanceId);
+							notify_details = notify_details.replace("%s2", survey.surveyData.displayName);
+							notify_details = notify_details.replace("%s3", survey.surveyData.projectName);
+							notify_details = notify_details.replace("%s4", String.join(", ", refUsers));
+							if(count == 0) {
+								log.info("Reference notification " + msg.notificationName + ": no new references added (record not found or already referenced)");
+							}
+						} catch (Exception e) {
+							status = "error";
+							error_details = e.getMessage();
+							log.log(Level.SEVERE, e.getMessage(), e);
+						}
+					}
+
 				} else if(msg.target.equals("conversation")) {
 					log.fine("+++++ conversation notification");
 					String toNumber = msg.emails.get(0);
@@ -1498,9 +1571,9 @@ public class NotificationManager {
 
 			/*
 			 * If this notification is for a record then update the Record Event Manager
-			 * Skip escalate: assignRecord() already wrote an "assigned" event
+			 * Skip escalate/reference: assignRecord()/addReferences() already wrote an "assigned" event
 			 */
-			if(msg.instanceId != null && !"escalate".equals(msg.target)) {
+			if(msg.instanceId != null && !"escalate".equals(msg.target) && !"reference".equals(msg.target)) {
 				RecordEventManager rem = new RecordEventManager();
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
 

@@ -319,7 +319,7 @@ public class Workflow extends Application {
 				+ "s_case.display_name as case_survey_name "
 				+ "from forward f "
 				+ "left join survey s on s.s_id = f.s_id "
-				+ "left join survey s_case on f.target = 'escalate' "
+				+ "left join survey s_case on (f.target = 'escalate' or f.target = 'reference') "
 				+ "  and f.notify_details is not null "
 				+ "  and s_case.ident = (f.notify_details::json->>'survey_case') "
 				+ "where f.id = any(?) "
@@ -369,7 +369,7 @@ public class Workflow extends Application {
 						} else if ("sms".equals(n.target)) {
 							n.smsTo      = nd.ourNumber;
 							n.smsMessage = nd.content;
-						} else if ("escalate".equals(n.target)) {
+						} else if ("escalate".equals(n.target) || "reference".equals(n.target)) {
 							n.caseSurveyIdent = nd.survey_case;
 							n.caseSurveyName  = rs.getString("case_survey_name");
 						} else if ("sharepoint_list".equals(n.target)) {
@@ -467,7 +467,7 @@ public class Workflow extends Application {
 				} else if ("sms".equals(target)) {
 					if (n.smsTo      != null) nd.ourNumber = n.smsTo;
 					if (n.smsMessage != null) nd.content   = n.smsMessage;
-				} else if ("escalate".equals(target)) {
+				} else if ("escalate".equals(target) || "reference".equals(target)) {
 					if (n.caseSurveyIdent != null) nd.survey_case = n.caseSurveyIdent;
 				} else if ("sharepoint_list".equals(target)) {
 					if (n.spListTitle   != null) nd.sp_list_title   = n.spListTitle;
@@ -604,7 +604,7 @@ public class Workflow extends Application {
 			} else if ("sms".equals(target)) {
 				nd.ourNumber = n.smsTo;
 				nd.content   = n.smsMessage;
-			} else if ("escalate".equals(target)) {
+			} else if ("escalate".equals(target) || "reference".equals(target)) {
 				nd.survey_case = n.caseSurveyIdent;
 			} else if ("sharepoint_list".equals(target)) {
 				nd.sp_list_title   = n.spListTitle;

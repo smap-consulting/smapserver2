@@ -45,6 +45,7 @@ public class WorkflowManager {
 	private static final String TYPE_FORM      = "form";
 	private static final String TYPE_TASK      = "task";
 	private static final String TYPE_CASE      = "case";
+	private static final String TYPE_REFERENCE = "reference";
 	private static final String TYPE_PERIODIC  = "periodic";
 	private static final String TYPE_REMINDER  = "reminder";
 	private static final String TYPE_EMAIL           = "email";
@@ -164,7 +165,7 @@ public class WorkflowManager {
 				+ "left outer join survey s_src on s_src.s_id = f.s_id "
 				+ "left outer join survey s_bun on s_bun.ident = f.bundle_ident "
 				+ "left outer join report rep on rep.id = f.r_id "
-				+ "left outer join survey s_case on f.target = 'escalate' "
+				+ "left outer join survey s_case on (f.target = 'escalate' or f.target = 'reference') "
 				+ "  and f.notify_details is not null "
 				+ "  and s_case.ident = (f.notify_details::json->>'survey_case') "
 				+ "left outer join project proj on proj.id = f.p_id "
@@ -304,6 +305,23 @@ public class WorkflowManager {
 					}
 					dst.name         = caseSurvey != null ? caseSurvey : fName;
 					dst.type         = TYPE_CASE;
+					dst.role         = ROLE_FORM;
+					dst.assignee     = assignee;
+					dst.caseSurveyId = caseSurveyId;
+				} else if ("reference".equals(target)) {
+					String assignee   = mapAssignee(sd, remoteUser);
+					String assigneeK  = assigneeKey(remoteUser);
+					boolean wfCreated = wfPrevNodeId != null && !wfPrevNodeId.trim().isEmpty();
+					if (wfCreated) {
+						// Created from workflow page — unique per forward record
+						dstKey = "reference:f:" + fId + ":a:" + assigneeK;
+					} else {
+						dstKey = caseSurveyIdent != null
+								? "reference:s:" + caseSurveyIdent + ":a:" + assigneeK
+								: "reference:f:" + fId + ":a:" + assigneeK;
+					}
+					dst.name         = caseSurvey != null ? caseSurvey : fName;
+					dst.type         = TYPE_REFERENCE;
 					dst.role         = ROLE_FORM;
 					dst.assignee     = assignee;
 					dst.caseSurveyId = caseSurveyId;
@@ -591,6 +609,19 @@ public class WorkflowManager {
 								: "case:f:" + bn.fId + ":a:" + assigneeK);
 				dst.name     = bn.caseSurvey != null ? bn.caseSurvey : bn.fName;
 				dst.type     = TYPE_CASE;
+				dst.role     = ROLE_FORM;
+				dst.assignee = assignee;
+			} else if ("reference".equals(bn.target)) {
+				String assignee  = mapAssignee(sd, bn.remoteUser);
+				String assigneeK = assigneeKey(bn.remoteUser);
+				boolean bnWfCreated = bn.wfPrevNodeId != null && !bn.wfPrevNodeId.trim().isEmpty();
+				dstKey = bnWfCreated
+						? "reference:f:" + bn.fId + ":a:" + assigneeK
+						: (bn.caseSurveyIdent != null
+								? "reference:s:" + bn.caseSurveyIdent + ":a:" + assigneeK
+								: "reference:f:" + bn.fId + ":a:" + assigneeK);
+				dst.name     = bn.caseSurvey != null ? bn.caseSurvey : bn.fName;
+				dst.type     = TYPE_REFERENCE;
 				dst.role     = ROLE_FORM;
 				dst.assignee = assignee;
 			} else if ("email".equals(bn.target)) {
