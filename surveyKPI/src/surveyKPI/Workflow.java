@@ -54,6 +54,7 @@ import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.WorkflowManager;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
+import org.smap.sdal.model.PeriodicTime;
 import org.smap.sdal.model.WorkflowData;
 import org.smap.sdal.model.WorkflowItem;
 
@@ -108,6 +109,14 @@ public class Workflow extends Application {
 		public String spMatchColumn;
 		public String spMatchField;
 		public ArrayList<org.smap.sdal.model.SharePointColumnMap> spColumnMap;
+		// periodic (scheduled) trigger — local schedule values, only set when trigger=periodic
+		public Integer rId;
+		public String  reportType;
+		public String  periodicPeriod;
+		public String  periodicTime;
+		public Integer periodicWeekDay;
+		public Integer periodicMonthDay;
+		public Integer periodicMonth;
 		// workflow sequencing
 		public String wfPrevNodeId;
 	}
@@ -136,6 +145,7 @@ public class Workflow extends Application {
 	// Persisted as a single forward record (trigger=periodic, target=email) with
 	// no recipients yet; the email node's recipients are set afterwards.
 	static class WorkflowEditScheduled {
+		public int    id;             // forward record id (update only)
 		public int    projectId;
 		public String label;          // user-entered step label, distinguishes schedules for the same report
 		public int    rId;            // report id (0 when reportType is a fixed report)
@@ -305,9 +315,15 @@ public class Workflow extends Application {
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getEditNotifications(@Context HttpServletRequest request,
-			@QueryParam("ids") String idsParam) {
+			@QueryParam("ids") String idsParam,
+			@QueryParam("tz") String tz) {
 
 		Response response = null;
+		// Periodic times are stored as UTC; convert back using the user's timezone
+		// (matching the notifications page) so the displayed time round-trips on save
+		if (tz == null || tz.trim().isEmpty()) {
+			tz = "UTC";
+		}
 		String connectionString = "surveyKPI-Workflow-editNotifications-get";
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -316,6 +332,8 @@ public class Workflow extends Application {
 				+ "s.display_name as src_survey_name, "
 				+ "f.target, f.remote_user, f.filter, f.enabled, f.p_id, "
 				+ "f.notify_details, "
+				+ "f.r_id, f.periodic_period, f.periodic_time, f.periodic_day_of_week, "
+				+ "f.periodic_local_day_of_month, f.periodic_local_month, "
 				+ "s_case.display_name as case_survey_name "
 				+ "from forward f "
 				+ "left join survey s on s.s_id = f.s_id "
@@ -360,6 +378,9 @@ public class Workflow extends Application {
 				if (ndJson != null) {
 					NotifyDetails nd = gson.fromJson(ndJson, NotifyDetails.class);
 					if (nd != null) {
+						if ("periodic".equals(n.trigger)) {
+							n.reportType = nd.report_type;
+						}
 						if ("email".equals(n.target)) {
 							if (nd.emails != null && !nd.emails.isEmpty()) {
 								n.emailTo = String.join(", ", nd.emails);
@@ -380,6 +401,17 @@ public class Workflow extends Application {
 							n.spColumnMap   = nd.sp_column_map;
 						}
 					}
+				}
+				if ("periodic".equals(n.trigger)) {
+					n.rId            = rs.getInt("r_id");
+					n.periodicPeriod = rs.getString("periodic_period");
+					// Stored time/weekday are UTC; convert back to the org's local time
+					PeriodicTime pt = new PeriodicTime(n.periodicPeriod, tz);
+					pt.setUtcTime(rs.getTime("periodic_time"), rs.getInt("periodic_day_of_week"));
+					n.periodicTime     = pt.getLocalTime();
+					n.periodicWeekDay  = pt.getLocalWeekday();
+					n.periodicMonthDay = rs.getInt("periodic_local_day_of_month");
+					n.periodicMonth    = rs.getInt("periodic_local_month");
 				}
 				list.add(n);
 			}
@@ -1108,6 +1140,104 @@ public class Workflow extends Application {
 			log.log(Level.SEVERE, "Error creating scheduled workflow step", e);
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		return response;
+	}
+
+	// ============================================================
+	// PUT /workflow/edit/scheduled
+	// Updates an existing periodic start step: schedule, label and report.
+	// Recipients (notify_details.emails) are preserved — they are owned by the
+	// linked email node and edited separately.
+	// ============================================================
+	@Path("/edit/scheduled")
+	@PUT
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Response updateScheduled(@Context HttpServletRequest request, String body) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-Workflow-editScheduled-put";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		WorkflowEditScheduled s = gson.fromJson(body, WorkflowEditScheduled.class);
+
+		PreparedStatement pstmtGet = null;
+		PreparedStatement pstmtUpd = null;
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			// Auth clause: forward must belong to a project the user can access
+			String authClause = "and (p_id in (select p.id from project p, user_project up, users u "
+					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
+					+ "  or s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
+					+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id))";
+
+			// Preserve recipients: merge report_type into existing notify_details
+			pstmtGet = sd.prepareStatement("select notify_details from forward where id = ? and trigger = 'periodic' " + authClause);
+			pstmtGet.setInt(1, s.id);
+			pstmtGet.setString(2, request.getRemoteUser());
+			pstmtGet.setString(3, request.getRemoteUser());
+			ResultSet rs = pstmtGet.executeQuery();
+			NotifyDetails nd = new NotifyDetails();
+			boolean found = false;
+			if (rs.next()) {
+				found = true;
+				String existing = rs.getString("notify_details");
+				if (existing != null) {
+					NotifyDetails parsed = gson.fromJson(existing, NotifyDetails.class);
+					if (parsed != null) nd = parsed;
+				}
+			}
+			rs.close();
+			if (!found) {
+				return Response.status(Response.Status.NOT_FOUND).entity("scheduled step not found").build();
+			}
+			nd.report_type = s.reportType;
+
+			String name = (s.label != null && !s.label.trim().isEmpty()) ? s.label.trim()
+					: (s.reportName != null ? s.reportName : "");
+
+			String tz = (s.tz != null && !s.tz.trim().isEmpty()) ? s.tz : "UTC";
+			PeriodicTime pt = new PeriodicTime(s.periodicPeriod, tz);
+			pt.setLocalTime(s.periodicTime, s.periodicWeekDay, s.periodicMonthDay, s.periodicMonth);
+
+			String sqlUpd = "update forward set name = ?, r_id = ?, notify_details = ?, "
+					+ "periodic_period = ?, periodic_time = ?, periodic_day_of_week = ?, "
+					+ "periodic_day_of_month = ?, periodic_local_day_of_month = ?, "
+					+ "periodic_month = ?, periodic_local_month = ?, updated = true "
+					+ "where id = ? and trigger = 'periodic' " + authClause;
+			pstmtUpd = sd.prepareStatement(sqlUpd);
+			int idx = 1;
+			pstmtUpd.setString(idx++, name);
+			pstmtUpd.setInt(idx++, s.rId);
+			pstmtUpd.setString(idx++, gson.toJson(nd));
+			pstmtUpd.setString(idx++, s.periodicPeriod);
+			pstmtUpd.setTime(idx++, pt.getUtcTime());
+			pstmtUpd.setInt(idx++, pt.getUtcWeekday());
+			pstmtUpd.setInt(idx++, pt.getUtcMonthday());	// UTC month day
+			pstmtUpd.setInt(idx++, s.periodicMonthDay);		// local month day
+			pstmtUpd.setInt(idx++, pt.getUtcMonth());		// UTC month
+			pstmtUpd.setInt(idx++, s.periodicMonth);		// local month
+			pstmtUpd.setInt(idx++, s.id);
+			pstmtUpd.setString(idx++, request.getRemoteUser());
+			pstmtUpd.setString(idx++, request.getRemoteUser());
+			pstmtUpd.executeUpdate();
+
+			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.CREATE,
+					localisation.getString("lm_wf_update_notification")
+						.replace("%s1", name)
+						.replace("%s2", String.valueOf(s.id)), 0, null);
+			response = Response.ok().build();
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error updating scheduled workflow step", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			try { if (pstmtGet != null) pstmtGet.close(); } catch (SQLException e) {}
+			try { if (pstmtUpd != null) pstmtUpd.close(); } catch (SQLException e) {}
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 		return response;

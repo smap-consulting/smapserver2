@@ -254,6 +254,9 @@ public class WorkflowManager {
 					src.label   = fName;
 					src.enabled = enabled;
 					src.project = projectName;
+					// Periodic trigger is editable (schedule/label/report) so it carries
+					// the backing forward id; the email node it points to owns recipients.
+					src.fwdIds.add(fId);
 					itemMap.putIfAbsent(srcKey, src);
 				} else if ("reminder".equals(trigger)) {
 					srcKey = "reminder:f:" + fId;
