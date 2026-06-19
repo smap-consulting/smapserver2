@@ -337,13 +337,23 @@ public class CaseManager {
 	}
 	
 	/*
-	 * Build the display title for a case / referenced record from its current (latest, not bad) instance.
+	 * The display title plus the assignee of a case / referenced record, read live from its
+	 * current (latest, not bad) instance.
+	 */
+	public static class CaseListItem {
+		public String title;
+		public String assigned;		// User ident in _assigned, null if unassigned
+	}
+
+	/*
+	 * Build the list entry (title and assignee) for a case / referenced record from its current
+	 * (latest, not bad) instance.
 	 * Returns null if no live record exists for the thread so callers can skip stale index rows.
 	 */
-	public String getCaseTitle(Connection sd, Connection cResults, String sIdent, String sName, String thread)
+	public CaseListItem getCaseListItem(Connection sd, Connection cResults, String sIdent, String sName, String thread)
 			throws Exception {
 
-		String title = null;
+		CaseListItem item = null;
 		String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
 		if(tableName == null) {
 			return null;
@@ -351,7 +361,7 @@ public class CaseManager {
 
 		PreparedStatement pstmt = null;
 		try {
-			String sql = "select instancename, _hrk, prikey from " + tableName
+			String sql = "select instancename, _hrk, prikey, _assigned from " + tableName
 					+ " where not _bad and _thread = ? order by prikey desc limit 1";
 			pstmt = cResults.prepareStatement(sql);
 			pstmt.setString(1, thread);
@@ -360,19 +370,24 @@ public class CaseManager {
 				String instanceName = rs.getString("instancename");
 				String hrk = rs.getString("_hrk");
 				int prikey = rs.getInt("prikey");
-				title = sName + " - ";
+				item = new CaseListItem();
+				item.title = sName + " - ";
 				if(instanceName != null && instanceName.trim().length() > 0) {
-					title = title + instanceName;
+					item.title = item.title + instanceName;
 				} else if(hrk != null && hrk.trim().length() > 0) {
-					title = title + hrk;
+					item.title = item.title + hrk;
 				} else {
-					title = title + String.valueOf(prikey);
+					item.title = item.title + String.valueOf(prikey);
+				}
+				String assigned = rs.getString("_assigned");
+				if(assigned != null && assigned.trim().length() > 0) {
+					item.assigned = assigned;
 				}
 			}
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
-		return title;
+		return item;
 	}
 
 	public ArrayList<CaseCount> getOpenClosed(Connection sd, Connection cResults,

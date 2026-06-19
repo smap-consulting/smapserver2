@@ -600,9 +600,9 @@ public class AssignmentsManager {
 						continue;	// Survey not accessible to this user
 					}
 
-					String title = cm.getCaseTitle(sd, cResults, caseSurveyIdent,
+					CaseManager.CaseListItem caseItem = cm.getCaseListItem(sd, cResults, caseSurveyIdent,
 							survey.surveyData.displayName, thread);
-					if (title == null) {
+					if (caseItem == null || caseItem.title == null) {
 						continue;	// Record no longer exists or is bad
 					}
 
@@ -621,7 +621,8 @@ public class AssignmentsManager {
 					ta.task.type = readOnly ? "reference" : "case";
 					ta.task.read_only = readOnly;
 					ta.task.initial_data_source = "survey";
-					ta.task.title = title;
+					ta.task.title = caseItem.title;
+					ta.task.assignee = caseItem.assigned;
 					ta.assignment.assignment_status = TaskManager.STATUS_T_ACCEPTED;
 					ta.assignment.assignment_id = 0;
 					tr.taskAssignments.add(ta);
