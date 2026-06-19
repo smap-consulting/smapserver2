@@ -66,6 +66,12 @@ if [ "$NEEDS_TOMCAT_UPGRADE" = "true" ]; then
     chown -R tomcat /var/lib/tomcat10 /var/log/tomcat10
     chgrp -R tomcat /var/lib/tomcat10 /var/log/tomcat10
 
+    # Point the tomcat user's home at the new CATALINA_HOME. systemd derives
+    # the runtime $HOME from this passwd entry, and the AWS SDK reads
+    # $HOME/.aws/credentials. The old tomcat9 home (e.g. /var/lib/tomcat9) may
+    # no longer exist, so realign it now.
+    usermod -d /var/lib/tomcat10 tomcat
+
     mkdir -p /etc/systemd/system/tomcat10.service.d
     cp ../install/config_files/tomcat10.service /etc/systemd/system/tomcat10.service
     JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
@@ -325,12 +331,33 @@ fi
 
 if [ -f $deploy_from/resources/properties/credentials ]
 then
-    TOMCAT_HOME=$(getent passwd $TOMCAT_VERSION | cut -d: -f6)
-    if [ -z "$TOMCAT_HOME" ]; then
-        TOMCAT_HOME=/var/lib/$TOMCAT_VERSION
+    # Resolve the tomcat user's home directory. systemd sets $HOME for the
+    # tomcat service from this passwd entry, and the AWS SDK reads
+    # $HOME/.aws/credentials. On servers migrated from tomcat9 the passwd home
+    # can be stale (e.g. /var/lib/tomcat9, which no longer exists), so realign
+    # it with the live CATALINA_HOME before copying. This self-heals servers
+    # that were migrated before this fix and never re-run the migration block.
+    TOMCAT_HOME=$(getent passwd $TOMCAT_USER | cut -d: -f6)
+    NEEDS_HOME_FIX=false
+    if [ -z "$TOMCAT_HOME" ] || [ ! -d "$TOMCAT_HOME" ] || [ "$TOMCAT_HOME" != "$CATALINA_HOME" ]; then
+        NEEDS_HOME_FIX=true
+    fi
+    if [ "$NEEDS_HOME_FIX" = "true" ]; then
+        echo "Tomcat user home '$TOMCAT_HOME' missing or stale; setting to $CATALINA_HOME"
+        # usermod cannot change the home of a user that owns running processes.
+        # patchdb.sh otherwise leaves them up, so stop every service that runs
+        # as $TOMCAT_USER (tomcat plus the subscriber processes) for the change.
+        sudo systemctl stop $TOMCAT_VERSION subscribers subscribers_fwd
+        sudo usermod -d $CATALINA_HOME $TOMCAT_USER
+        TOMCAT_HOME=$CATALINA_HOME
     fi
     sudo mkdir -p $TOMCAT_HOME/.aws
     sudo cp $deploy_from/resources/properties/credentials $TOMCAT_HOME/.aws/credentials
+    sudo chown -R $TOMCAT_USER $TOMCAT_HOME/.aws
+    # Restart with the corrected home and credentials already in place
+    if [ "$NEEDS_HOME_FIX" = "true" ]; then
+        sudo systemctl start $TOMCAT_VERSION subscribers subscribers_fwd
+    fi
     # update any other existing credential files
     for f in `locate .aws/credentials 2>/dev/null`
     do
