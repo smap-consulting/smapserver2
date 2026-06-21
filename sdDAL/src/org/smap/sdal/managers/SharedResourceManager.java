@@ -32,6 +32,7 @@ import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.CsvTable;
 import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.MediaItem;
 import org.smap.sdal.model.MediaResponse;
@@ -769,8 +770,29 @@ public class SharedResourceManager {
 				// Add the organisation level media
 				mediaInfo.setFolder(basePath, user, oId, false);
 				mResponse.files.addAll(mediaInfo.get(0, exclude, forDevice));
-				
+
 			}
+
+			/*
+			 * Flag any CSV files that have not been loaded into a csvtable.
+			 * Such files cannot be used by pulldata/lookup/search as those resolve via csvtable.
+			 */
+			HashMap<String, String> loadedCsv = new HashMap<> ();
+			CsvTableManager ctm = new CsvTableManager(sd, null);
+			for(CsvTable t : ctm.getTables(oId, 0)) {		// Organisation level
+				loadedCsv.put(t.filename, t.filename);
+			}
+			if(sId > 0) {
+				for(CsvTable t : ctm.getTables(oId, sId)) {	// Survey level
+					loadedCsv.put(t.filename, t.filename);
+				}
+			}
+			for(MediaItem mi : mResponse.files) {
+				if("csv".equals(mi.type)) {
+					mi.loaded = loadedCsv.containsKey(mi.name);
+				}
+			}
+
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(mResponse);
 			response = Response.ok(resp).build();		

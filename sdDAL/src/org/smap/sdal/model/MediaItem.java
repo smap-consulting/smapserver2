@@ -19,10 +19,11 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 public class MediaItem {
-	public String name;	
-	public String url;	
-	public String thumbnailUrl;			
+	public String name;
+	public String url;
+	public String thumbnailUrl;
 	public String type;
 	public long size;
 	public String modified;
+	public boolean loaded = true;	// For CSV files: false if the file has not been loaded into a csvtable (so cannot be used by pulldata/lookup/search)
 }

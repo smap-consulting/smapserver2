@@ -167,9 +167,14 @@ public class CsvTableManager {
 		String sqlSelect = "select id, filename, headers from csvtable where o_id = ? ";
 		String sqlsId = " and s_id = ? ";
 		String sqlNosId = " and not survey ";
+		// Exclude system managed reference tables (SharePoint lists, linked surveys, charts)
+		// These are not uploaded CSV resource files and are offered through other source options
+		String sqlExclude = " and filename not like 'sharepointlist\\_%' "
+				+ " and filename not like 'linked\\_%' "
+				+ " and filename not like 'chart\\_%' ";
 		String sqlOrder = " order by filename asc";
-		
-		String sql = sqlSelect + (sId > 0 ? sqlsId : sqlNosId) + sqlOrder;
+
+		String sql = sqlSelect + (sId > 0 ? sqlsId : sqlNosId) + sqlExclude + sqlOrder;
 		PreparedStatement pstmt = null;;
 		try {
 			pstmt = sd.prepareStatement(sql);

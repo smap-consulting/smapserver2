@@ -410,27 +410,35 @@ public class SharedResources extends Application {
 	@GET
 	@Path("/csv/files")
 	@Produces("application/json")
-	public String getServer(@Context HttpServletRequest request) throws Exception { 
-	
+	public String getServer(@Context HttpServletRequest request,
+			@QueryParam("survey_id") int sId) throws Exception {
+
 		String connectionString = "surveyKPI-Csv - Files";
-		
+
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());	
+		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
-		
+
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-		
+
 		ArrayList<CsvTable> tables = null;
 		try {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-		
+
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			CsvTableManager tm = new CsvTableManager(sd, localisation);
+
+			// Always include the organisation level CSV files
 			tables = tm.getTables(oId, 0);
-			
+
+			// If a survey is specified also include CSV files uploaded for that survey
+			if(sId > 0) {
+				tables.addAll(tm.getTables(oId, sId));
+			}
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new Exception(e.getMessage());
