@@ -47,7 +47,6 @@ import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.UserManager;
-import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.ConsoleSettings;
 import org.smap.sdal.model.GroupSurvey;
 import org.smap.sdal.model.PasswordDetails;
@@ -121,43 +120,6 @@ public class UserSvc extends Application {
 			SDDataSource.closeConnection("surveyKPI-UserSvc", sd);
 		}
 		
-		return response;
-	}
-	
-	/*
-	 * Get alerts assigned to a user
-	 */
-	@GET
-	@Path("/alerts")
-	@Produces("application/json")
-	public Response getMyAlerts(@Context HttpServletRequest request) { 
-
-		Response response = null;
-
-		// Authorisation - Not required
-		String connectionString = "surveyKPI-UserSvc-getAlerts";
-		Connection sd = SDDataSource.getConnection(connectionString);
-		
-		try {
-			// Localisation			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			UserManager um = new UserManager(localisation);
-			ArrayList<Alert> alerts = um.getAlertsByIdent(sd, request.getRemoteUser());
-
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-			String resp = gson.toJson(alerts);
-			response = Response.ok(resp).build();
-			
-		} catch (Exception e) {
-			log.log(Level.SEVERE, e.getMessage(), e);
-			response = Response.serverError().build();
-		} finally {
-			SDDataSource.closeConnection(connectionString, sd);
-		}
-		
-
 		return response;
 	}
 	

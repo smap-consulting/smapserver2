@@ -1301,26 +1301,6 @@ create TABLE survey_role (
 ALTER TABLE survey_role OWNER TO ws;
 CREATE UNIQUE INDEX survey_role_ident_index ON public.survey_role(survey_ident, r_id);
 
-DROP SEQUENCE IF EXISTS alert_seq CASCADE;
-CREATE SEQUENCE alert_seq START 1;
-ALTER SEQUENCE alert_seq OWNER TO ws;
-
-DROP TABLE IF EXISTS alert CASCADE;
-create TABLE alert (
-	id integer DEFAULT NEXTVAL('alert_seq') CONSTRAINT pk_alert PRIMARY KEY,
-	u_id integer REFERENCES users(id) ON DELETE CASCADE,
-	status varchar(10),
-	priority integer,
-	updated_time TIMESTAMP WITH TIME ZONE,
-	created_time TIMESTAMP WITH TIME ZONE,
-	link text,
-	message text,
-	s_id integer,	-- Survey Id that the alert applies to
-	m_id integer,	-- Managed form id that the alert applies to
-	prikey integer	-- Primary key of survey for which the alert applies
-);
-ALTER TABLE alert OWNER TO ws;
-
 -- Operations Monitor per-organisation settings (stale interval, RAG thresholds, trend window)
 DROP TABLE IF EXISTS ops_settings CASCADE;
 CREATE TABLE ops_settings (

@@ -21,7 +21,6 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
-import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.GroupSurvey;
 import org.smap.sdal.model.Organisation;
@@ -409,78 +408,6 @@ public class UserManager {
 		return roles;
 	}
 
-	/*
-	 * Get alerts for a user
-	 */
-	public ArrayList<Alert> getAlertsByIdent(
-			Connection connectionSD,
-			String ident
-			) throws Exception {
-
-		PreparedStatement pstmt = null;
-
-		ArrayList<Alert> alerts = new ArrayList<Alert> ();
-
-		try {
-			String sql = null;
-			ResultSet resultSet = null;			
-
-			/*
-			 * Get the user details
-			 */
-			sql = "SELECT "
-					+ "a.id as id, "
-					+ "a.status as status, "
-					+ "a.priority as priority, "
-					+ "a.updated_time as updated_time, "
-					+ "a.link as link, "
-					+ "a.message as message, "
-					+ "extract(epoch from (now() - a.updated_time)) as since "
-					+ "from alert a, users u "
-					+ "where a.u_id = u.id "
-					+ "and u.ident = ? "
-					+ "order by a.updated_time asc";
-
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setString(1, ident);
-
-			log.fine("Get alert details: " + pstmt.toString());
-			resultSet = pstmt.executeQuery();
-
-			while(resultSet.next()) {
-				Alert a = new Alert();
-				a.id = resultSet.getInt("id");
-				a.userIdent = ident;
-				a.status = resultSet.getString("status");
-				a.priority = resultSet.getInt("priority");
-				a.link = resultSet.getString("link");
-				a.message = resultSet.getString("message");
-				a.updatedTime = resultSet.getString("updated_time");
-				a.since = resultSet.getInt("since");
-
-				alerts.add(a);
-			}
-
-
-
-		} catch (Exception e) {
-			log.log(Level.SEVERE,"Error", e);
-			throw new Exception(e);
-
-		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-
-			}
-
-		}
-
-		return alerts;
-
-	}
 	
 	/*
 	 * Get the user email

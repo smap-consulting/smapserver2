@@ -394,3 +394,8 @@ CREATE TABLE IF NOT EXISTS ops_settings (
 	changed_ts  timestamp with time zone
 );
 ALTER TABLE ops_settings OWNER TO ws;
+
+-- Remove the unused per-user alert table (never populated; ops alerts now come from
+-- cms_alert + case_alert_triggered, alert history lives in record_event)
+DROP TABLE IF EXISTS alert CASCADE;
+DROP SEQUENCE IF EXISTS alert_seq CASCADE;
