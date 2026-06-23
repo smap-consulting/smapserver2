@@ -38,13 +38,16 @@ public class ResultsDataSource {
 	
 	public static void closeConnection(String requester, Connection c) {
 
-		if (c != null) try { 
-			c.setAutoCommit(true);
-			c.close(); 
+		// Note: don't rely on isClosed() - it does not detect a connection the
+		// server has already dropped (eg after an idle timeout). Just close() it,
+		// which is safe even when the connection is already dead.
+		if (c != null) try {
+			c.close();
 			count--;
 			log.fine(" ---- " + count + " Close Results connection: " + requester);
 		} catch(SQLException e) {
-			log.log(Level.SEVERE,"Failed to close results connection", e);
+			// Likely a stale/already-dead pooled connection - not severe
+			log.fine(" ---- " + count + " Failed to close results connection (likely already dropped): " + requester);
 		}
 	}
 }

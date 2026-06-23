@@ -46,9 +46,11 @@
           removeAbandonedTimeout="600"
           maxWait="-1"
           testOnBorrow="true"
+          testWhileIdle="true"
           validationQuery="SELECT 1"
-          timeBetweenEvictionRunsMillis="60000"
-          minEvictableIdleTimeMillis="300000"/>
+          validationInterval="30000"
+          timeBetweenEvictionRunsMillis="30000"
+          minEvictableIdleTimeMillis="60000"/>
 
 
     <Resource name="jdbc/results" auth="Container"
@@ -61,8 +63,10 @@
           removeAbandonedTimeout="600"
           maxWait="-1"
           testOnBorrow="true"
+          testWhileIdle="true"
           validationQuery="SELECT 1"
-          timeBetweenEvictionRunsMillis="60000"
-          minEvictableIdleTimeMillis="300000"/>
+          validationInterval="30000"
+          timeBetweenEvictionRunsMillis="30000"
+          minEvictableIdleTimeMillis="60000"/>
 
 </Context>

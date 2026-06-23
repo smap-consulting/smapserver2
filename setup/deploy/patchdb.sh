@@ -92,7 +92,43 @@ fi
 CATALINA_HOME=/var/lib/$TOMCAT_VERSION
 
 # Copy postgres driver
-cp -r $deploy_from/jdbc/* $CATALINA_HOME/lib/ 
+cp -r $deploy_from/jdbc/* $CATALINA_HOME/lib/
+
+# version 26.06 - ensure the JDBC connection pool validates connections so a
+# connection dropped by the database during an idle period is detected and
+# replaced instead of being handed to the application (caused intermittent 500s
+# after a page was left idle for a long time). Patched in place so the existing
+# datasource url/username/password are preserved.
+CONTEXT_FILE=$CATALINA_HOME/conf/context.xml
+if [ -f "$CONTEXT_FILE" ] && ! grep -q "testWhileIdle" "$CONTEXT_FILE"; then
+    echo "Adding JDBC connection pool validation to $CONTEXT_FILE"
+    sudo cp "$CONTEXT_FILE" "$CONTEXT_FILE.bak.`date +%Y%m%d%H%M%S`"
+    cat > /tmp/patch_context.py <<'PYEOF'
+import re, sys
+f = sys.argv[1]
+s = open(f).read()
+attrs = ('          testOnBorrow="true"\n'
+         '          testWhileIdle="true"\n'
+         '          validationQuery="SELECT 1"\n'
+         '          validationInterval="30000"\n'
+         '          timeBetweenEvictionRunsMillis="30000"\n'
+         '          minEvictableIdleTimeMillis="60000"')
+def fix(m):
+    block = m.group(0)
+    # drop any pre-existing pool-validation attributes so a consistent set is applied
+    block = re.sub(r'\n\s*(testOnBorrow|testWhileIdle|validationQuery|validationInterval|'
+                   r'timeBetweenEvictionRunsMillis|minEvictableIdleTimeMillis)="[^"]*"', '', block)
+    # insert the validation attributes just before the closing />
+    block = re.sub(r'\s*/>\s*$', '\n' + attrs + '/>', block)
+    return block
+# each jdbc datasource Resource element (from <Resource ... name="jdbc/... up to />)
+s = re.sub(r'<Resource\b[^>]*?name="jdbc/[^>]*?/>', fix, s, flags=re.S)
+open(f, 'w').write(s)
+PYEOF
+    sudo python3 /tmp/patch_context.py "$CONTEXT_FILE"
+    rm -f /tmp/patch_context.py
+    echo "JDBC pool validation added - Tomcat restart required to take effect"
+fi
 
 echo '##### 0. check configuration'
 # Set flag if this is apache2.4

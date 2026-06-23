@@ -38,19 +38,16 @@ public class SDDataSource {
 	public static void closeConnection(String requester, Connection c) {
 
 		if (c != null) {
-			try { 
-				if(!c.isClosed()) {
-					c.setAutoCommit(true);
-					c.close(); 
-					count--;
-					log.fine(" $$$$ " + count + " Close SurveyDefinitions connection: " + requester);
-				} else {
-					log.fine(" $$$$ " + count + " SurveyDefinitions connection is already closed: " + requester);
-				}
-				c = null;
-				
+			// Note: don't rely on isClosed() - it does not detect a connection
+			// the server has already dropped (eg after an idle timeout). Just
+			// close() it, which is safe even when the connection is already dead.
+			try {
+				c.close();
+				count--;
+				log.fine(" $$$$ " + count + " Close SurveyDefinitions connection: " + requester);
 			} catch(SQLException e) {
-				log.log(Level.SEVERE,"Failed to close the surveyDefinitions connection", e);
+				// Likely a stale/already-dead pooled connection - not severe
+				log.fine(" $$$$ " + count + " Failed to close surveyDefinitions connection (likely already dropped): " + requester);
 			}
 		} else {
 			log.fine(" $$$$ " + count + " SurveyDefinitions connection is already closed: " + requester);
