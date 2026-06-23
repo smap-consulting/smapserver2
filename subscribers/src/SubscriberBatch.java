@@ -420,7 +420,10 @@ public class SubscriberBatch {
 					
 					// Erase any bundle settings not linked to by a survey
 					deleteOldBundleSettings(dbc.sd);
-					
+
+					// Prune fire-once alert guards for cases that are now closed
+					pruneClosedCaseAlerts(dbc.results);
+
 					infrequentRefreshInterval = 2000;	// Every 2,000 times through these operations will be done, about 1.5 days
 				}
 				
@@ -755,16 +758,70 @@ public class SubscriberBatch {
 		PreparedStatement pstmt = null;
 
 		try {
-			
-			String sql = "delete from bundle where group_survey_ident not in (select group_survey_ident from survey)";					
-			pstmt = sd.prepareStatement(sql);		
-			pstmt.executeUpdate();	
-			
+
+			String sql = "delete from bundle where group_survey_ident not in (select group_survey_ident from survey)";
+			pstmt = sd.prepareStatement(sql);
+			pstmt.executeUpdate();
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
-		} finally {			
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
-			
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+
+		}
+	}
+
+	/*
+	 * Prune case_alert_triggered rows whose case is now closed.
+	 *
+	 * The table exists only as a fire-once guard for the case-alert matcher, which never
+	 * matches closed cases, so a closed case's guard rows are dead weight - they bloat the
+	 * table and its unique index and slow the matcher's NOT-IN anti-join and the operations
+	 * overview alert query, both of which then scan history rather than live work. The audit
+	 * trail of fired alerts lives in record_event, so removing these rows loses no history.
+	 *
+	 * Removing the guard also means a later reopen of the case re-alerts (the guard is gone).
+	 * Note: a case reopened before this pass runs keeps its guard until it next closes; add an
+	 * inline delete at close time if reopen-re-alert must be immediate.
+	 */
+	private void pruneClosedCaseAlerts(Connection cResults) {
+
+		PreparedStatement pstmtTables = null;
+		PreparedStatement pstmtPrune = null;
+		try {
+			// Results tables referenced by triggered alerts
+			ArrayList<String> tables = new ArrayList<>();
+			pstmtTables = cResults.prepareStatement("select distinct table_name from case_alert_triggered");
+			ResultSet rs = pstmtTables.executeQuery();
+			while(rs.next()) {
+				tables.add(rs.getString(1));
+			}
+
+			for(String table : tables) {
+				if(table == null || !GeneralUtilityMethods.tableExists(cResults, table)) {
+					continue;	// table dropped - deleteTableEvents handles full removal
+				}
+				// Delete guards for cases whose current (not _bad) version is closed.
+				// Table name comes from the system, not user input, and is validated above.
+				String sql = "delete from case_alert_triggered cat "
+						+ "where cat.table_name = ? "
+						+ "and exists (select 1 from " + table + " r "
+						+ "where r._thread = cat.thread and not r._bad and r._case_closed is not null)";
+				pstmtPrune = cResults.prepareStatement(sql);
+				pstmtPrune.setString(1, table);
+				int n = pstmtPrune.executeUpdate();
+				pstmtPrune.close();
+				pstmtPrune = null;
+				if(n > 0) {
+					log.fine("Pruned " + n + " closed-case alert guard(s) from " + table);
+				}
+			}
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {
+			try {if (pstmtTables != null) {pstmtTables.close();}} catch (SQLException e) {}
+			try {if (pstmtPrune != null) {pstmtPrune.close();}} catch (SQLException e) {}
 		}
 	}
 	

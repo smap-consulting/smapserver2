@@ -110,5 +110,10 @@ WHERE
 CREATE UNIQUE INDEX IF NOT EXISTS case_alert_triggered_unique
 ON case_alert_triggered(a_id, table_name, thread);
 
+-- Support the closed-case prune (deletes by table_name + thread); the unique index above
+-- leads with a_id so cannot serve this lookup efficiently.
+CREATE INDEX IF NOT EXISTS case_alert_triggered_table_thread
+ON case_alert_triggered(table_name, thread);
+
 CREATE UNIQUE INDEX IF NOT EXISTS server_calc_triggered_unique
 ON server_calc_triggered(n_id, table_name, question_name, value, thread);

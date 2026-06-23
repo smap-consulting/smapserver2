@@ -119,6 +119,7 @@ CREATE TABLE case_alert_triggered (
 	);
 ALTER TABLE case_alert_triggered OWNER TO ws;
 CREATE UNIQUE INDEX case_alert_triggered_unique ON case_alert_triggered(a_id, table_name, thread);
+CREATE INDEX case_alert_triggered_table_thread ON case_alert_triggered(table_name, thread);
 
 DROP SEQUENCE IF EXISTS sct_seq CASCADE;
 CREATE SEQUENCE sct_seq START 1;
