@@ -146,23 +146,6 @@ public class OpsMonitorManager {
 	}
 
 	/*
-	 * SQL fragment restricting alerts (alert a) to those whose survey the requesting user may
-	 * see: no survey, not role-protected, or a matching role with no row filter. Adds one '?'
-	 * (the user ident). Returns "" for a security manager.
-	 */
-	private String alertRbacSql() {
-		if(securityManager) {
-			return "";
-		}
-		return " and ( a.s_id is null "
-				+ "or not exists (select 1 from survey sv, survey_role sr "
-				+ "  where sv.s_id = a.s_id and (sr.survey_ident = sv.ident or sr.group_survey_ident = sv.group_survey_ident) and sr.enabled) "
-				+ "or exists (select 1 from survey sv2, survey_role sr2, user_role ur2, users u2 "
-				+ "  where sv2.s_id = a.s_id and (sr2.survey_ident = sv2.ident or sr2.group_survey_ident = sv2.group_survey_ident) and sr2.enabled "
-				+ "  and sr2.r_id = ur2.r_id and ur2.u_id = u2.id and u2.ident = ? and (sr2.row_filter is null or sr2.row_filter = '')) ) ";
-	}
-
-	/*
 	 * SQL fragment restricting a role id column to roles the requesting user is a member of.
 	 * Adds one '?' (user ident). Returns "" for a security manager (all roles visible).
 	 */
@@ -365,10 +348,11 @@ public class OpsMonitorManager {
 		int[] taskTotals = getTaskTotals(sd, oId);	// [0]=inProgress [1]=overdue [2]=stale
 		int staleItems = staleCases + taskTotals[2];
 
-		// 3. Open alerts
-		int openAlertCount = getOpenAlertCount(sd, oId);
+		// 3. Open alerts (case-management alerts whose case is still open)
+		AlertSummary alertSummary = getOpenAlertSummary(sd, cResults, oId, ALERT_LIST_LIMIT);
+		int openAlertCount = alertSummary.count;
+		ov.alerts = alertSummary.list;
 		boolean anyHighAlert = false;
-		ov.alerts = getOpenAlerts(sd, oId);
 		for(OpsAlert al : ov.alerts) {
 			if(al.priority == 1) { anyHighAlert = true; break; }
 		}
@@ -517,60 +501,88 @@ public class OpsMonitorManager {
 		return totals;
 	}
 
-	private int getOpenAlertCount(Connection sd, int oId) throws SQLException {
-		String sql = "select count(*) from alert a "
-				+ "join users u on u.id = a.u_id and u.o_id = ? "
-				+ "where a.status = 'open'"
-				+ alertRbacSql();
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, oId);
-			if(!securityManager) {
-				pstmt.setString(2, requestingUser);
-			}
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				return rs.getInt(1);
-			}
-		} finally {
-			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
-		}
-		return 0;
+	// Open alerts = case-management alerts (cms_alert) that have fired (case_alert_triggered)
+	// for a case that is still open. cms_alert lives in the SD db, case_alert_triggered and the
+	// results tables in the results db, so the two are combined per bundle in Java.
+	private static class AlertSummary {
+		int count;								// total open alerts (uncapped)
+		ArrayList<OpsAlert> list = new ArrayList<>();	// up to listLimit, newest-fired first
 	}
 
-	private ArrayList<OpsAlert> getOpenAlerts(Connection sd, int oId) throws SQLException {
-		ArrayList<OpsAlert> alerts = new ArrayList<>();
-		String sql = "select a.id, a.message, a.priority, a.link, s.display_name as bundle, "
-				+ "extract(epoch from (now() - a.created_time)) as since "
-				+ "from alert a "
-				+ "join users u on u.id = a.u_id and u.o_id = ? "
-				+ "left join survey s on s.s_id = a.s_id "
-				+ "where a.status = 'open' "
-				+ alertRbacSql()
-				+ "order by a.priority asc, a.created_time asc "
-				+ "limit " + ALERT_LIST_LIMIT;
+	private AlertSummary getOpenAlertSummary(Connection sd, Connection cResults, int oId, int listLimit) throws SQLException {
+		AlertSummary out = new AlertSummary();
+		for(String gsi : getCaseBundles(sd, oId)) {
+			try {
+				String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, gsi);
+				if(table == null) {
+					continue;
+				}
+				Map<Integer, String> alertNames = getAlertNames(sd, gsi);
+				if(alertNames.isEmpty()) {
+					continue;	// no alert rules defined for this bundle
+				}
+				GeneralUtilityMethods.ensureTableCurrent(cResults, table, true);
+				ensureCaseIndexes(cResults, table);
+				String bundleName = getSurveyDisplayName(sd, gsi);
+
+				// Drive from case_alert_triggered (small, esp. once closed-case guards are pruned)
+				// and confirm the case is still open via the join.
+				String sql = "select cat.a_id, cat.thread, t.instanceid, t.instancename, t._hrk, t._assigned, "
+						+ "extract(epoch from (now() - cat.alert_sent)) as since "
+						+ "from case_alert_triggered cat "
+						+ "join " + table + " t on t._thread = cat.thread "
+						+ "where cat.table_name = ? and not t._bad and t._case_closed is null "
+						+ "order by cat.alert_sent desc";
+				PreparedStatement pstmt = null;
+				try {
+					pstmt = cResults.prepareStatement(sql);
+					pstmt.setString(1, table);
+					ResultSet rs = pstmt.executeQuery();
+					while(rs.next()) {
+						String name = alertNames.get(rs.getInt("a_id"));
+						if(name == null) {
+							continue;	// alert rule deleted since it fired
+						}
+						out.count++;
+						if(out.list.size() < listLimit) {
+							out.list.add(new OpsAlert(0, alertMessage(name, rs), 2, bundleName,
+									(long) rs.getDouble("since"), caseLink(gsi, rs.getString("instanceid"))));
+						}
+					}
+				} finally {
+					try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
+				}
+			} catch (Exception e) {
+				log.log(Level.WARNING, "Ops alerts: skipping bundle " + gsi + ": " + e.getMessage());
+			}
+		}
+		return out;
+	}
+
+	// a_id -> alert (rule) name for a bundle, from cms_alert (SD db)
+	private Map<Integer, String> getAlertNames(Connection sd, String groupSurveyIdent) throws SQLException {
+		Map<Integer, String> names = new HashMap<>();
 		PreparedStatement pstmt = null;
 		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, oId);
-			if(!securityManager) {
-				pstmt.setString(2, requestingUser);
-			}
+			pstmt = sd.prepareStatement("select id, name from cms_alert where group_survey_ident = ?");
+			pstmt.setString(1, groupSurveyIdent);
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
-				alerts.add(new OpsAlert(
-						rs.getInt("id"),
-						rs.getString("message"),
-						rs.getInt("priority"),
-						rs.getString("bundle"),
-						(long) rs.getDouble("since"),
-						rs.getString("link")));
+				names.put(rs.getInt("id"), rs.getString("name"));
 			}
 		} finally {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
 		}
-		return alerts;
+		return names;
+	}
+
+	// "<alert name> - <case label>", where the case label is the instance name or HRK if present
+	private String alertMessage(String alertName, ResultSet rs) throws SQLException {
+		String inst = rs.getString("instancename");
+		String hrk = rs.getString("_hrk");
+		String caseLabel = (inst != null && inst.trim().length() > 0) ? inst
+				: (hrk != null && hrk.trim().length() > 0 ? hrk : null);
+		return caseLabel != null ? (alertName + " - " + caseLabel) : alertName;
 	}
 
 	private ArrayList<OpsTrendPoint> getSubmissionsTrend(Connection sd, int oId) throws SQLException {
@@ -935,7 +947,7 @@ public class OpsMonitorManager {
 		} else if(type.equals("in_progress")) {
 			getTaskItems(sd, oId, items, false);
 		} else if(type.equals("alerts")) {
-			getAlertItemsOrg(sd, oId, items);
+			getAlertItemsOrg(sd, cResults, oId, items);
 		} else if(type.equals("no_unit")) {
 			getNoUnitItems(sd, cResults, oId, items);
 		} else if(type.equals("stale") || type.equals("open_cases") || type.equals("unassigned")) {
@@ -1132,32 +1144,52 @@ public class OpsMonitorManager {
 	/*
 	 * Open case-management alerts presented as items.
 	 */
-	private void getAlertItemsOrg(Connection sd, int oId, java.util.List<OpsItem> items) throws SQLException {
-		String sql = "select a.message, a.priority, a.link, s.display_name as bundle, "
-				+ "extract(epoch from (now() - a.created_time)) as age "
-				+ "from alert a "
-				+ "join users u on u.id = a.u_id and u.o_id = ? "
-				+ "left join survey s on s.s_id = a.s_id "
-				+ "where a.status = 'open' "
-				+ alertRbacSql()
-				+ "order by a.priority asc, a.created_time asc limit " + ATRISK_LIMIT;
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, oId);
-			if(!securityManager) {
-				pstmt.setString(2, requestingUser);
+	private void getAlertItemsOrg(Connection sd, Connection cResults, int oId, java.util.List<OpsItem> items) throws SQLException {
+		for(String gsi : getCaseBundles(sd, oId)) {
+			if(items.size() >= ATRISK_LIMIT) {
+				break;
 			}
-			ResultSet rs = pstmt.executeQuery();
-			while(rs.next()) {
-				long ageDays = (long) (rs.getDouble("age") / 86400);
-				OpsItem it = new OpsItem("alert", rs.getString("message"), rs.getString("bundle"),
-						null, ageDays, false, rs.getString("link"));
-				it.status = "alert";
-				items.add(it);
+			try {
+				String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, gsi);
+				if(table == null) {
+					continue;
+				}
+				Map<Integer, String> alertNames = getAlertNames(sd, gsi);
+				if(alertNames.isEmpty()) {
+					continue;
+				}
+				GeneralUtilityMethods.ensureTableCurrent(cResults, table, true);
+				ensureCaseIndexes(cResults, table);
+				String bundleName = getSurveyDisplayName(sd, gsi);
+
+				String sql = "select cat.a_id, cat.thread, t.instanceid, t.instancename, t._hrk, t._assigned, "
+						+ "extract(epoch from (now() - cat.alert_sent)) as since "
+						+ "from case_alert_triggered cat "
+						+ "join " + table + " t on t._thread = cat.thread "
+						+ "where cat.table_name = ? and not t._bad and t._case_closed is null "
+						+ "order by cat.alert_sent desc limit " + ATRISK_LIMIT;
+				PreparedStatement pstmt = null;
+				try {
+					pstmt = cResults.prepareStatement(sql);
+					pstmt.setString(1, table);
+					ResultSet rs = pstmt.executeQuery();
+					while(rs.next() && items.size() < ATRISK_LIMIT) {
+						String name = alertNames.get(rs.getInt("a_id"));
+						if(name == null) {
+							continue;
+						}
+						long ageDays = (long) (rs.getDouble("since") / 86400);
+						OpsItem it = new OpsItem("alert", alertMessage(name, rs), bundleName,
+								rs.getString("_assigned"), ageDays, false, caseLink(gsi, rs.getString("instanceid")));
+						it.status = "alert";
+						items.add(it);
+					}
+				} finally {
+					try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
+				}
+			} catch (Exception e) {
+				log.log(Level.WARNING, "Ops alert items: skipping bundle " + gsi + ": " + e.getMessage());
 			}
-		} finally {
-			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
 		}
 	}
 
