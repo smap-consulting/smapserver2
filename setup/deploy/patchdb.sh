@@ -387,6 +387,9 @@ then
         sudo usermod -d $CATALINA_HOME $TOMCAT_USER
         TOMCAT_HOME=$CATALINA_HOME
     fi
+    # Clear a stale .aws that is a plain file or broken symlink, not a dir;
+    # otherwise mkdir -p errors "File exists" and the cp fails "Not a directory".
+    [ -d "$TOMCAT_HOME/.aws" ] || sudo rm -f "$TOMCAT_HOME/.aws"
     sudo mkdir -p $TOMCAT_HOME/.aws
     sudo cp $deploy_from/resources/properties/credentials $TOMCAT_HOME/.aws/credentials
     sudo chown -R $TOMCAT_USER $TOMCAT_HOME/.aws
