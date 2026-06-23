@@ -1364,10 +1364,12 @@ public class OpsMonitorManager {
 		String cte = "with days as (select generate_series("
 				+ "date_trunc('day', now()) - '" + trendDays + " day'::interval, "
 				+ "date_trunc('day', now()), '1 day'::interval) as day) ";
+		// not t._bad: count only the surviving version per thread so case edits (which copy
+		// _thread_created onto a new row and mark the old one _bad) are not counted as new cases.
 		String openedSql = cte + "select to_char(days.day,'YYYY-MM-DD') as day, count(t.prikey) as cnt from days left join "
-				+ table + " t on date_trunc('day', t._thread_created) = days.day and t._assigned in (" + ph + ") group by 1 order by 1 asc";
+				+ table + " t on date_trunc('day', t._thread_created) = days.day and not t._bad and t._assigned in (" + ph + ") group by 1 order by 1 asc";
 		String closedSql = cte + "select to_char(days.day,'YYYY-MM-DD') as day, count(t.prikey) as cnt from days left join "
-				+ table + " t on date_trunc('day', t._case_closed) = days.day and t._assigned in (" + ph + ") group by 1 order by 1 asc";
+				+ table + " t on date_trunc('day', t._case_closed) = days.day and not t._bad and t._assigned in (" + ph + ") group by 1 order by 1 asc";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = cResults.prepareStatement(openedSql);
@@ -1396,7 +1398,7 @@ public class OpsMonitorManager {
 	private long[] caseCycleForUsers(Connection cResults, String table, ArrayList<String> idents) throws SQLException {
 		String ph = placeholders(idents.size());
 		String sql = "select coalesce(extract(epoch from sum(_case_closed - _thread_created)),0) as sum_sec, count(*) as cnt "
-				+ "from " + table + " where _assigned in (" + ph + ") and _case_closed is not null and _thread_created is not null";
+				+ "from " + table + " where not _bad and _assigned in (" + ph + ") and _case_closed is not null and _thread_created is not null";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = cResults.prepareStatement(sql);

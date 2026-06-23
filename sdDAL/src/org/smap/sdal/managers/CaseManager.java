@@ -402,16 +402,21 @@ public class CaseManager {
 				.append("'1 day'::interval")
 				.append(") as day) ");
 		
+		// Exclude superseded (_bad) versions: an edit/replace copies _thread_created onto the
+		// new row and marks the previous one _bad, so counting all rows would count each edit
+		// as another case opened on the original day. Count only the surviving version per thread.
 		StringBuilder sqlOpened = new StringBuilder("select days.day, count(")
 				.append(table).append(".prikey) as opened from days left join ")
 				.append(table)
-				.append(" on date_trunc('day', _thread_created) = days.day ")
+				.append(" on date_trunc('day', _thread_created) = days.day and not ")
+				.append(table).append("._bad ")
 				.append("group by 1 order by 1 asc");
-		
+
 		StringBuilder sqlClosed = new StringBuilder("select days.day, count(")
 				.append(table).append(".prikey) as closed from days left join ")
 				.append(table)
-				.append(" on date_trunc('day', _case_closed) = days.day ")
+				.append(" on date_trunc('day', _case_closed) = days.day and not ")
+				.append(table).append("._bad ")
 				.append("group by 1 order by 1 asc");
 		
 		ArrayList<CaseCount> cc = new ArrayList<>();
