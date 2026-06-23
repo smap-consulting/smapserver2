@@ -28,6 +28,7 @@ import com.google.gson.GsonBuilder;
 
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.CaseCount;
 import org.smap.sdal.model.OpsAlert;
 import org.smap.sdal.model.OpsCase;
@@ -39,6 +40,7 @@ import org.smap.sdal.model.OpsItem;
 import org.smap.sdal.model.OpsKpi;
 import org.smap.sdal.model.OpsOverview;
 import org.smap.sdal.model.OpsTrendPoint;
+import org.smap.sdal.model.OpsBundle;
 import org.smap.sdal.model.OpsUnit;
 import org.smap.sdal.model.OpsUnitDetail;
 
@@ -301,6 +303,32 @@ public class OpsMonitorManager {
 				staleCases += counts[1];
 				ov.unassignedCases += counts[2];
 
+				// Per-bundle breakdown (alternative to the per-unit rollup)
+				if(counts[0] > 0 || counts[1] > 0 || counts[2] > 0) {
+					// Bundle (topic) name is held in cms_setting.settings; fall back to the
+					// group survey display name, then the raw ident.
+					String bName = null;
+					try {
+						CMS cms = cm.getCaseManagementSettings(sd, groupSurveyIdent);
+						if(cms != null && cms.settings != null && cms.settings.name != null
+								&& cms.settings.name.trim().length() > 0) {
+							bName = cms.settings.name;
+						}
+					} catch (Exception e) {
+						// fall back below
+					}
+					if(bName == null) {
+						bName = GeneralUtilityMethods.getSurveyNameFromIdent(sd, groupSurveyIdent);
+					}
+					OpsBundle b = new OpsBundle(bName != null ? bName : groupSurveyIdent);
+					b.bundleIdent = groupSurveyIdent;
+					b.openCases = counts[0];
+					b.stale = counts[1];
+					b.unassigned = counts[2];
+					b.rag = counts[1] > 0 ? "red" : (counts[2] > 0 ? "amber" : "none");
+					ov.bundles.add(b);
+				}
+
 				ArrayList<CaseCount> cc = cm.getOpenClosed(sd, cResults, groupSurveyIdent, "day", trendDays, "day");
 				for(int i = 0; i < cc.size() && i <= trendDays; i++) {
 					trendDayLabels[i] = cc.get(i).day;
@@ -313,8 +341,18 @@ public class OpsMonitorManager {
 			}
 		}
 
-		// Build the cumulative backlog series
-		int net = 0;
+		// Build the cumulative backlog series.
+		// Seed the running total with the opening balance - cases already open before the
+		// trend window started - so the series ends at the current open-case count rather
+		// than at zero plus only the activity seen inside the window.
+		int windowNet = 0;
+		for(int i = 0; i <= trendDays; i++) {
+			if(trendDayLabels[i] == null) {
+				continue;
+			}
+			windowNet += (trend[i][0] - trend[i][1]);
+		}
+		int net = openCases - windowNet;	// opening balance (open cases at start of window)
 		for(int i = 0; i <= trendDays; i++) {
 			if(trendDayLabels[i] == null) {
 				continue;
@@ -383,9 +421,14 @@ public class OpsMonitorManager {
 	 */
 	private ArrayList<String> getCaseBundles(Connection sd, int oId) throws SQLException {
 		ArrayList<String> bundles = new ArrayList<>();
+		// cms_setting is shared between case-management config (settings populated) and
+		// record key/duplicate policy (KeyManager - settings null). Only rows with case
+		// settings are real bundles; without this filter, key-only surveys would be counted
+		// as bundles and every open record on them would inflate the open-case totals.
 		String sql = "select distinct cs.group_survey_ident "
 				+ "from cms_setting cs "
 				+ "where cs.group_survey_ident is not null "
+				+ "and cs.settings is not null "
 				+ "and exists (select 1 from survey s, project p "
 				+ "  where s.group_survey_ident = cs.group_survey_ident "
 				+ "  and s.p_id = p.id and p.o_id = ? and not s.deleted)"

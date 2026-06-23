@@ -12,6 +12,7 @@ public class OpsOverview {
 	public int unassignedCases;					// open cases not yet picked up by anyone
 	public List<OpsKpi> kpis = new ArrayList<>();
 	public List<OpsUnit> units = new ArrayList<>();
+	public List<OpsBundle> bundles = new ArrayList<>();		// open-case breakdown by case bundle
 	public List<OpsAlert> alerts = new ArrayList<>();
 	public List<OpsBacklogPoint> backlog = new ArrayList<>();
 }
