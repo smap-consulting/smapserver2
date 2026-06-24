@@ -1794,7 +1794,10 @@ public class SubRelationalDB extends Subscriber {
 
 		ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
 
-		String sqlCols = "select column_name, qtype, qName from question where f_id = ? and not soft_deleted";
+		String sqlCols = "select column_name, qtype, qName from question where f_id = ? and not soft_deleted "
+				+ "and qtype != 'begin group' "
+				+ "and qtype != 'end group' "
+				+ "and qtype != 'begin repeat'";
 		PreparedStatement pstmtCols = null;
 		PreparedStatement pstmtGetValue = null;
 
