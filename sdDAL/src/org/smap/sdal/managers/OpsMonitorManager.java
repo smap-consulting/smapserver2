@@ -263,7 +263,7 @@ public class OpsMonitorManager {
 	/*
 	 * Build the complete overview for an organisation.
 	 */
-	public OpsOverview getOverview(Connection sd, Connection cResults, int oId, String user) throws SQLException {
+	public OpsOverview getOverview(Connection sd, Connection cResults, int oId, String user, String tz) throws SQLException {
 
 		loadContext(sd, oId, user, false);
 
@@ -312,7 +312,7 @@ public class OpsMonitorManager {
 					ov.bundles.add(b);
 				}
 
-				ArrayList<CaseCount> cc = cm.getOpenClosed(sd, cResults, groupSurveyIdent, "day", trendDays, "day");
+				ArrayList<CaseCount> cc = cm.getOpenClosed(sd, cResults, groupSurveyIdent, "day", trendDays, "day", tz);
 				for(int i = 0; i < cc.size() && i <= trendDays; i++) {
 					trendDayLabels[i] = cc.get(i).day;
 					trend[i][0] += cc.get(i).opened;
@@ -769,7 +769,9 @@ public class OpsMonitorManager {
 	 */
 	public void writeSummaryXlsx(Connection sd, Connection cResults, int oId, OutputStream out) throws Exception {
 
-		OpsOverview ov = getOverview(sd, cResults, oId, null);		// digest: org-level report, full access
+		// Background digest has no browser tz, so bucket the backlog by the org's timezone.
+		String tz = GeneralUtilityMethods.getOrganisationTZ(sd, oId);
+		OpsOverview ov = getOverview(sd, cResults, oId, null, tz);		// digest: org-level report, full access
 		ArrayList<OpsItem> items = getItems(sd, cResults, oId, "all", null);
 
 		SXSSFWorkbook wb = new SXSSFWorkbook(10);

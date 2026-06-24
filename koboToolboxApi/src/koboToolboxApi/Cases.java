@@ -113,7 +113,7 @@ public class Cases extends Application {
 
 			CaseManager cm = new CaseManager(localisation);
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-			ArrayList<CaseCount> cc = cm.getOpenClosed(sd, cResults, sIdent, interval, intervalCount, aggregationInterval);
+			ArrayList<CaseCount> cc = cm.getOpenClosed(sd, cResults, sIdent, interval, intervalCount, aggregationInterval, tz);
 			
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			response = Response.ok(gson.toJson(cc)).build();

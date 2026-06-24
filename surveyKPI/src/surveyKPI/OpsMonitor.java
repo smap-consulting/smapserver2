@@ -77,7 +77,8 @@ public class OpsMonitor extends Application {
 	@Path("/overview")
 	@Produces("application/json")
 	public Response getOverview(@Context HttpServletRequest request,
-			@QueryParam("refresh") boolean refresh) {
+			@QueryParam("refresh") boolean refresh,
+			@QueryParam("tz") String tz) {
 
 		Response response = null;
 		String connectionString = "surveyKPI-OpsMonitor-overview";
@@ -100,7 +101,7 @@ public class OpsMonitor extends Application {
 			String resp = refresh ? null : om.getCachedOverview(oId, user);
 			if(resp == null) {
 				cResults = ResultsDataSource.getConnection(connectionString);
-				OpsOverview ov = om.getOverview(sd, cResults, oId, user);
+				OpsOverview ov = om.getOverview(sd, cResults, oId, user, tz);
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				resp = gson.toJson(ov);
 				om.putCachedOverview(oId, user, resp);

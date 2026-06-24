@@ -391,44 +391,55 @@ public class CaseManager {
 	}
 
 	public ArrayList<CaseCount> getOpenClosed(Connection sd, Connection cResults,
-			String sIdent, String interval, int intervalCount, String aggregationInterval) throws SQLException {
-		
+			String sIdent, String interval, int intervalCount, String aggregationInterval, String tz) throws SQLException {
+
 		String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
 		GeneralUtilityMethods.ensureTableCurrent(cResults, table, true);
-		
+
+		// Bucket by the organisation's local day, not UTC, so the day boundaries match
+		// what users see. _thread_created / _case_closed are timestamptz; timezone(tz, ts)
+		// converts to local wall-clock before truncating.
+		if(tz == null || tz.trim().length() == 0) { tz = "UTC"; }
+
 		StringBuilder cte = new StringBuilder("with days as (select generate_series(")
-				.append("date_trunc('day', now()) - '").append(intervalCount).append(" day'::interval,")
-				.append("date_trunc('day', now()),")
+				.append("date_trunc('day', timezone(?, now())) - '").append(intervalCount).append(" day'::interval,")
+				.append("date_trunc('day', timezone(?, now())),")
 				.append("'1 day'::interval")
 				.append(") as day) ");
-		
+
 		// Exclude superseded (_bad) versions: an edit/replace copies _thread_created onto the
 		// new row and marks the previous one _bad, so counting all rows would count each edit
 		// as another case opened on the original day. Count only the surviving version per thread.
 		StringBuilder sqlOpened = new StringBuilder("select days.day, count(")
 				.append(table).append(".prikey) as opened from days left join ")
 				.append(table)
-				.append(" on date_trunc('day', _thread_created) = days.day and not ")
+				.append(" on date_trunc('day', timezone(?, _thread_created)) = days.day and not ")
 				.append(table).append("._bad ")
 				.append("group by 1 order by 1 asc");
 
 		StringBuilder sqlClosed = new StringBuilder("select days.day, count(")
 				.append(table).append(".prikey) as closed from days left join ")
 				.append(table)
-				.append(" on date_trunc('day', _case_closed) = days.day and not ")
+				.append(" on date_trunc('day', timezone(?, _case_closed)) = days.day and not ")
 				.append(table).append("._bad ")
 				.append("group by 1 order by 1 asc");
-		
+
 		ArrayList<CaseCount> cc = new ArrayList<>();
-		
+
 		if(table != null) {
 			PreparedStatement pstmtOpened = null;
 			PreparedStatement pstmtClosed = null;
-			
+
 			try {
-			
+
 				pstmtOpened = cResults.prepareStatement(cte.toString() + sqlOpened.toString());
+				pstmtOpened.setString(1, tz);
+				pstmtOpened.setString(2, tz);
+				pstmtOpened.setString(3, tz);
 				pstmtClosed = cResults.prepareStatement(cte.toString() + sqlClosed.toString());
+				pstmtClosed.setString(1, tz);
+				pstmtClosed.setString(2, tz);
+				pstmtClosed.setString(3, tz);
 				//log.fine("Open: " + pstmtOpened.toString());
 				//log.fine("Closed: " + pstmtClosed.toString());
 				ResultSet rs = pstmtOpened.executeQuery();
