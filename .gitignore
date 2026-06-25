@@ -21,6 +21,7 @@ koboToolboxApi/target/
 surveyMobileApi/target/
 surveyKPI/target/
 sms/target/
+amazon/target/
 
 build/css.orig
 

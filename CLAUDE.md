@@ -46,7 +46,7 @@ Smap Server is a multi-module Java web application for survey management and dat
 ### Shared Libraries
 - **sdDAL** - Core data access layer containing 79+ Manager classes and 255+ model/DAO classes
 - **sdDataAccess** - Legacy JDBC wrapper for backward compatibility
-- **amazon** - AWS service integration (located in separate `smap2` repository - must be cloned separately)
+- **amazon** - AWS service integration
 - **sms** - SMS and WhatsApp messaging interface
 
 ### Database Architecture
@@ -556,9 +556,7 @@ Topic-based messaging via `forward` table with topics:
 - Ant (for subscribers build)
 - PostgreSQL with PostGIS and pgcrypto extensions
 - Apache Tomcat 9
-- Clone both repositories:
-  - `smapserver2` (this repo)
-  - `smap2` (contains amazon module)
+- Clone this repository: `smapserver2`
 
 ### IDE Setup
 Can use Apache Netbeans or Eclipse. Key requirements:
@@ -633,11 +631,6 @@ Each survey form gets its own table in the `results` database:
 - **Authentication**: Session-based, API tokens, or temporary task keys
 - **Authorization**: Role-based via Authorise class, organization-level isolation
 
-## Dependencies External to Repository
-
-- **smap2 repository**: Contains `amazon` module for AWS integration
-  - Clone from: https://github.com/nap2000/smap2.git
-  - Required for surveyKPI, subscribers, sdDAL builds
 
 ## File Structure Reference
 

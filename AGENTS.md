@@ -214,11 +214,6 @@ Business logic resides in Manager classes in sdDAL:
 
 ## Dependencies
 
-### Required External Repository
-- **smap2 repository**: Contains `amazon` module for AWS integration
-  - Clone from: https://github.com/nap2000/smap2.git
-  - Required for surveyKPI, subscribers, sdDAL builds
-
 ### Key Dependencies
 - **Jersey**: 2.40 (JAX-RS REST framework)
 - **PostgreSQL**: 42.6.1 with PostGIS and pgcrypto extensions

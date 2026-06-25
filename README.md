@@ -32,7 +32,6 @@ Follow the latest news about Smap on our [blog](http://blog.smap.com.au)
 *  Create a directory called "deploy" under your home directory, build scripts will put their output here
 *  Install Java SDK 11
 *  Clone this project
-*  Clone the smap2 project which contains the amazon module: git clone https://github.com/nap2000/smap2.git
 * sdDAL
     * Add javarosa-[version].jar as a maven jar library under classpath.  It can be found in surveyKPI/src/main/webapp/WEB_INF/lib. To add to maven:
     * mvn org.apache.maven.plugins:maven-install-plugin:2.5.2:install-file -Dfile=../surveyKPI/src/main/webapp/WEB-INF/lib/javarosa-3.1.4.jar -DgroupId=smapserver -DartifactId=javarosa -Dversion=3.1.4 -Dpackaging=jar
@@ -48,7 +47,7 @@ Smap is a web application and requires enterprise java.  We recommend using Apac
 ### Eclipse
 
 *  Install Eclipse IDE for Enterprise Java and Web
-*  Import smapserver2 and smap2 as git repositories with sub projects
+*  Import smapserver2 as a git repository with sub projects
 *  For each module select and set the project facets as: Dynamic Web Module 4.0, Java 11, JAX-RS 2.1.
 *  For each module add java 11 as the JRE system library to the module path in the java build path libraries
 *  sdDAL
