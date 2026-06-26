@@ -17,7 +17,7 @@ collection system.
 
 * sdDAL.  Access to the database.
 * sdDataAccess.  A legacy library to access the database.
-* amazon. This is in the Smap2 repository, it provides access to AWS services.
+* amazon. This provides access to AWS services.
 * sms.  SMS and WhatsApp interface.
 
 ### Other Projects
