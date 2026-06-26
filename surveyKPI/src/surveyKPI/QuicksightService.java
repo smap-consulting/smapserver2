@@ -41,7 +41,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.model.DashboardDetails;
 
-import com.amazonaws.auth.BasicSessionCredentials;
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 
 /*
  * Manages access to quicksight dashboard
@@ -91,8 +91,8 @@ public class QuicksightService extends Application {
 			if(dbd != null && dbd.region != null) {
 				String region = dbd.region;
 				STS sts = new STS(region, basePath);
-				BasicSessionCredentials credentials = sts.getSessionCredentials(dbd.roleArn, dbd.roleSessionName);
-				log.info("xoxoxoxoxo accessKey: " + credentials.getAWSAccessKeyId());
+				AwsSessionCredentials credentials = sts.getSessionCredentials(dbd.roleArn, dbd.roleSessionName);
+				log.info("xoxoxoxoxo accessKey: " + credentials.accessKeyId());
 				
 				QuickSight quicksight = new QuickSight(region, credentials, basePath, 
 						"dashboardid",

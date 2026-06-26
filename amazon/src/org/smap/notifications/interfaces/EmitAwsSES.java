@@ -2,9 +2,9 @@ package org.smap.notifications.interfaces;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,12 +18,13 @@ import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
-import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClient;
-import com.amazonaws.services.simpleemail.model.RawMessage;
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
-import com.amazonaws.services.simpleemail.model.SendRawEmailResult;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.ses.SesClient;
+import software.amazon.awssdk.services.ses.model.RawMessage;
+import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
 
 /*****************************************************************************
 
@@ -41,27 +42,30 @@ public class EmitAwsSES {
 	private static Logger log =
 			 Logger.getLogger(EmitAwsSES.class.getName());
 	
+	// SES clients are thread-safe and expensive to create, so share one per region
+	private static final ConcurrentHashMap<String, SesClient> sesClients = new ConcurrentHashMap<>();
+
 	Properties properties = new Properties();
-	AmazonSimpleEmailService client;
-	
+	SesClient client;
+
 	public EmitAwsSES(String region, String basePath) {
-		
+
 		FileInputStream fis = null;
 		try {
 			fis = new FileInputStream(basePath + "_bin/resources/properties/aws.properties");
 			properties.load(fis);
 		}
-		catch (Exception e) { 
+		catch (Exception e) {
 			log.log(Level.SEVERE, "Error reading properties", e);
 		} finally {
 			try {fis.close();} catch (Exception e) {}
 		}
-		
-		//create a new SES client
-		client = AmazonSimpleEmailServiceClient.builder()
-				.withRegion(region)
-				.withCredentials(new DefaultAWSCredentialsProviderChain())
-				.build();
+
+		//get a shared SES client for this region
+		client = sesClients.computeIfAbsent(region, r -> SesClient.builder()
+				.region(Region.of(r))
+				.credentialsProvider(DefaultCredentialsProvider.create())
+				.build());
 	}
 	
 	// Send an email; returns the SES MessageId
@@ -84,7 +88,7 @@ public class EmitAwsSES {
         return messageId;
 	}
 
-	public static String send(AmazonSimpleEmailService client,
+	public static String send(SesClient client,
             String sender,
             InternetAddress[] recipients,
             String subject,
@@ -124,17 +128,17 @@ public class EmitAwsSES {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         msg.writeTo(outputStream);
         byte[] rawBytes = outputStream.toByteArray();
-        outputStream = null;	// Allow GC before allocating ByteBuffer
+        outputStream = null;	// Allow GC before allocating SdkBytes
         msg = null;
-        RawMessage rawMessage = new RawMessage(ByteBuffer.wrap(rawBytes));
+        RawMessage rawMessage = RawMessage.builder().data(SdkBytes.fromByteArray(rawBytes)).build();
         rawBytes = null;
-        SendRawEmailRequest rawEmailRequest = new SendRawEmailRequest(rawMessage);
+        SendRawEmailRequest rawEmailRequest = SendRawEmailRequest.builder().rawMessage(rawMessage).build();
 
         log.info("Attempting to send an email through Amazon SES "
             		+ "using the AWS SDK for Java...");
         log.info("Sending AWS email from: " + sender + " with subject " + subject);
-        SendRawEmailResult result = client.sendRawEmail(rawEmailRequest);
-        return result.getMessageId();
+        SendRawEmailResponse result = client.sendRawEmail(rawEmailRequest);
+        return result.messageId();
     }
 
 }

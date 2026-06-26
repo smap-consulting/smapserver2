@@ -1,20 +1,22 @@
 package org.smap.notifications.interfaces;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.BasicSessionCredentials;
-import com.amazonaws.services.quicksight.AmazonQuickSight;
-import com.amazonaws.services.quicksight.AmazonQuickSightClientBuilder;
-import com.amazonaws.services.quicksight.model.CreateGroupMembershipRequest;
-import com.amazonaws.services.quicksight.model.DescribeUserRequest;
-import com.amazonaws.services.quicksight.model.DescribeUserResult;
-import com.amazonaws.services.quicksight.model.GetDashboardEmbedUrlRequest;
-import com.amazonaws.services.quicksight.model.GetDashboardEmbedUrlResult;
-import com.amazonaws.services.quicksight.model.IdentityType;
-import com.amazonaws.services.quicksight.model.RegisterUserRequest;
-import com.amazonaws.services.quicksight.model.RegisterUserResult;
-import com.amazonaws.services.quicksight.model.ResourceNotFoundException;
+import java.time.Duration;
+
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.quicksight.QuickSightClient;
+import software.amazon.awssdk.services.quicksight.model.CreateGroupMembershipRequest;
+import software.amazon.awssdk.services.quicksight.model.DescribeUserRequest;
+import software.amazon.awssdk.services.quicksight.model.DescribeUserResponse;
+import software.amazon.awssdk.services.quicksight.model.EmbeddingIdentityType;
+import software.amazon.awssdk.services.quicksight.model.GetDashboardEmbedUrlRequest;
+import software.amazon.awssdk.services.quicksight.model.GetDashboardEmbedUrlResponse;
+import software.amazon.awssdk.services.quicksight.model.IdentityType;
+import software.amazon.awssdk.services.quicksight.model.RegisterUserRequest;
+import software.amazon.awssdk.services.quicksight.model.RegisterUserResponse;
+import software.amazon.awssdk.services.quicksight.model.ResourceNotFoundException;
 
 /*****************************************************************************
  * 
@@ -28,43 +30,28 @@ import com.amazonaws.services.quicksight.model.ResourceNotFoundException;
  */
 public class QuickSight extends AWSService {
 
-	AmazonQuickSight quicksightClient = null;
+	QuickSightClient quicksightClient = null;
 	//final String dashboardId = "3c0205d9-c84c-49bd-8112-20e81c16f619";
 	//final String awsAccountId = "439804189189";
 	String dashboardId = null;
 	String awsAccountId = null;
 
-	public QuickSight(String r, BasicSessionCredentials credentials, String basePath,
+	public QuickSight(String r, AwsSessionCredentials credentials, String basePath,
 			String dashboardId,
-			String awsAccountId) {	
+			String awsAccountId) {
 
 		super(r, basePath);
-		
+
 		this.dashboardId = dashboardId;
 		this.awsAccountId = awsAccountId;
-		
-		// create a new transcribe client
-		ClientConfiguration clientConfig = new ClientConfiguration();
-        clientConfig.setConnectionTimeout(60000);
-        clientConfig.setMaxConnections(100);
-        clientConfig.setSocketTimeout(60000);
-        
-        final AWSCredentialsProvider credsProvider = new AWSCredentialsProvider() {
-        	@Override
-        	public AWSCredentials getCredentials() {
-        		// provide actual IAM access key and secret key here
-        		return credentials;
-        	}
-        	
-        	@Override
-        	public void refresh() {}
-        };
-        	
-        
-		quicksightClient = AmazonQuickSightClientBuilder.standard()
-				.withCredentials(credsProvider)
-				.withRegion(region)
-				.withClientConfiguration(clientConfig)
+
+		quicksightClient = QuickSightClient.builder()
+				.credentialsProvider(StaticCredentialsProvider.create(credentials))
+				.region(Region.of(region))
+				.httpClientBuilder(ApacheHttpClient.builder()
+						.connectionTimeout(Duration.ofMillis(60000))
+						.socketTimeout(Duration.ofMillis(60000))
+						.maxConnections(100))
 				.build();
 	}
 	
@@ -74,34 +61,37 @@ public class QuickSight extends AWSService {
 		String memberName = "dashboard_role/" + userId;
 		
 		try {
-			DescribeUserResult userResult = quicksightClient.describeUser(new DescribeUserRequest()
-		            .withAwsAccountId(awsAccountId)
-		            .withUserName(memberName)
-		            .withNamespace("default"));
-			
-			userArn = userResult.getUser().getArn();
-			
+			DescribeUserResponse userResult = quicksightClient.describeUser(DescribeUserRequest.builder()
+		            .awsAccountId(awsAccountId)
+		            .userName(memberName)
+		            .namespace("default")
+		            .build());
+
+			userArn = userResult.user().arn();
+
 
 		} catch (ResourceNotFoundException e) {
-			
+
 			userArn = "arn:aws:quicksight:" + region + ":" + awsAccountId + ":user/default/dashboard_role/" + userId;
-			
-			RegisterUserResult registerUserResult = quicksightClient.registerUser(new RegisterUserRequest()
-		            .withAwsAccountId(awsAccountId)
-		            .withIdentityType(IdentityType.IAM)
-		            .withNamespace("default")
-		            .withIamArn("arn:aws:iam::439804189189:role/dashboard_role")
-		            .withUserRole("READER")
-		            .withSessionName(userId)
-		            .withEmail("john.doe@example.com"));
-			userArn = registerUserResult.getUser().getArn();
-			
+
+			RegisterUserResponse registerUserResult = quicksightClient.registerUser(RegisterUserRequest.builder()
+		            .awsAccountId(awsAccountId)
+		            .identityType(IdentityType.IAM)
+		            .namespace("default")
+		            .iamArn("arn:aws:iam::439804189189:role/dashboard_role")
+		            .userRole("READER")
+		            .sessionName(userId)
+		            .email("john.doe@example.com")
+		            .build());
+			userArn = registerUserResult.user().arn();
+
 			// Add the user to the dashboard group
-			quicksightClient.createGroupMembership(new CreateGroupMembershipRequest()
-		            .withAwsAccountId(awsAccountId)
-		            .withNamespace("default")
-		            .withMemberName(memberName)
-		            .withGroupName("cuso"));
+			quicksightClient.createGroupMembership(CreateGroupMembershipRequest.builder()
+		            .awsAccountId(awsAccountId)
+		            .namespace("default")
+		            .memberName(memberName)
+		            .groupName("cuso")
+		            .build());
 		}
 		
 		return userArn;
@@ -109,17 +99,18 @@ public class QuickSight extends AWSService {
 	
 	public String getDashboardUrl(String userArn) {
 
-		final GetDashboardEmbedUrlResult dashboardEmbedUrlResult =
-				quicksightClient.getDashboardEmbedUrl(new GetDashboardEmbedUrlRequest()
-		            .withDashboardId(dashboardId)
-		            .withAwsAccountId(awsAccountId)
-		            .withUserArn(userArn)
-		            .withIdentityType(IdentityType.QUICKSIGHT)
-		            .withResetDisabled(true)
-		            .withSessionLifetimeInMinutes(100l)
-		            .withUndoRedoDisabled(false));
-		
-		return dashboardEmbedUrlResult.getEmbedUrl();
+		final GetDashboardEmbedUrlResponse dashboardEmbedUrlResult =
+				quicksightClient.getDashboardEmbedUrl(GetDashboardEmbedUrlRequest.builder()
+		            .dashboardId(dashboardId)
+		            .awsAccountId(awsAccountId)
+		            .userArn(userArn)
+		            .identityType(EmbeddingIdentityType.QUICKSIGHT)
+		            .resetDisabled(true)
+		            .sessionLifetimeInMinutes(100l)
+		            .undoRedoDisabled(false)
+		            .build());
+
+		return dashboardEmbedUrlResult.embedUrl();
 	}
 
 }

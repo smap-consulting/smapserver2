@@ -1,17 +1,13 @@
 package org.smap.notifications.interfaces;
 
-import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.comprehend.AmazonComprehend;
-import com.amazonaws.services.comprehend.AmazonComprehendClient;
-import com.amazonaws.services.comprehend.model.DetectSentimentRequest;
-import com.amazonaws.services.comprehend.model.DetectSentimentResult;
-import com.amazonaws.services.comprehend.model.SentimentScore;
-import com.amazonaws.services.translate.AmazonTranslate;
-import com.amazonaws.services.translate.AmazonTranslateClient;
-import com.amazonaws.services.translate.model.TranslateTextRequest;
-import com.amazonaws.services.translate.model.TranslateTextResult;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
+import software.amazon.awssdk.services.comprehend.model.DetectSentimentRequest;
+import software.amazon.awssdk.services.comprehend.model.DetectSentimentResponse;
+import software.amazon.awssdk.services.comprehend.model.SentimentScore;
 
 import model.Sentiment;
 
@@ -26,9 +22,12 @@ import model.Sentiment;
  * Manage access to AWS Comprehend service
  */
 public class SentimentProcessing extends AWSService {
-	
+
+	// Comprehend clients are thread-safe and expensive to create, so share one per region
+	private static final ConcurrentHashMap<String, ComprehendClient> comprehendClients = new ConcurrentHashMap<>();
+
 	public SentimentProcessing(String region, String basePath) {
-		super(region, basePath);	
+		super(region, basePath);
 	}
 
 	/*
@@ -39,19 +38,20 @@ public class SentimentProcessing extends AWSService {
 			String language) throws Exception {
 		
 		Sentiment sentiment = new Sentiment();
-		
-		AmazonComprehend comprehend = AmazonComprehendClient.builder()
-                .withCredentials(DefaultAWSCredentialsProviderChain.getInstance())
-                .withRegion(region)
-                .build();
-		
-		DetectSentimentRequest request = new DetectSentimentRequest()
-				.withText(source)
-				.withLanguageCode(language);
-		DetectSentimentResult result  = comprehend.detectSentiment(request);
-			
-		sentiment.sentiment = result.getSentiment();
-		sentiment.score = getScore(result.getSentimentScore(), sentiment.sentiment);
+
+		ComprehendClient comprehend = comprehendClients.computeIfAbsent(region, r -> ComprehendClient.builder()
+                .credentialsProvider(DefaultCredentialsProvider.create())
+                .region(Region.of(r))
+                .build());
+
+		DetectSentimentRequest request = DetectSentimentRequest.builder()
+				.text(source)
+				.languageCode(language)
+				.build();
+		DetectSentimentResponse result  = comprehend.detectSentiment(request);
+
+		sentiment.sentiment = result.sentimentAsString();
+		sentiment.score = getScore(result.sentimentScore(), sentiment.sentiment);
         
 		log.info("Sentiment: " + sentiment);
 		return sentiment;
@@ -63,15 +63,15 @@ public class SentimentProcessing extends AWSService {
 		
 		if(sentiment != null) {
 			if(sentiment.equals("POSITIVE")) {
-				score = scores.getPositive();
+				score = scores.positive();
 			} else if(sentiment.equals("NEGATIVE")) {
-				score = scores.getNegative();
+				score = scores.negative();
 			} else if(sentiment.equals("NEUTRAL")) {
-				score = scores.getNeutral();
+				score = scores.neutral();
 			} else if(sentiment.equals("MIXED")) {
-				score = scores.getMixed();
+				score = scores.mixed();
 			}
-			
+
 		}
 		return score;
 	}

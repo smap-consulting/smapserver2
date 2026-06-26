@@ -1,29 +1,33 @@
 package org.smap.notifications.interfaces;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Level;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.transcribe.AmazonTranscribe;
-import com.amazonaws.services.transcribe.AmazonTranscribeClientBuilder;
-import com.amazonaws.services.transcribe.model.GetMedicalTranscriptionJobRequest;
-import com.amazonaws.services.transcribe.model.GetMedicalTranscriptionJobResult;
-import com.amazonaws.services.transcribe.model.GetTranscriptionJobRequest;
-import com.amazonaws.services.transcribe.model.GetTranscriptionJobResult;
-import com.amazonaws.services.transcribe.model.Media;
-import com.amazonaws.services.transcribe.model.MedicalTranscript;
-import com.amazonaws.services.transcribe.model.MedicalTranscriptionJob;
-import com.amazonaws.services.transcribe.model.Specialty;
-import com.amazonaws.services.transcribe.model.StartMedicalTranscriptionJobRequest;
-import com.amazonaws.services.transcribe.model.StartMedicalTranscriptionJobResult;
-import com.amazonaws.services.transcribe.model.StartTranscriptionJobRequest;
-import com.amazonaws.services.transcribe.model.StartTranscriptionJobResult;
-import com.amazonaws.services.transcribe.model.Transcript;
-import com.amazonaws.services.transcribe.model.TranscriptionJob;
-import com.amazonaws.services.transcribe.model.Type;
+
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetUrlRequest;
+import software.amazon.awssdk.services.transcribe.TranscribeClient;
+import software.amazon.awssdk.services.transcribe.model.GetMedicalTranscriptionJobRequest;
+import software.amazon.awssdk.services.transcribe.model.GetMedicalTranscriptionJobResponse;
+import software.amazon.awssdk.services.transcribe.model.GetTranscriptionJobRequest;
+import software.amazon.awssdk.services.transcribe.model.GetTranscriptionJobResponse;
+import software.amazon.awssdk.services.transcribe.model.Media;
+import software.amazon.awssdk.services.transcribe.model.MedicalTranscript;
+import software.amazon.awssdk.services.transcribe.model.MedicalTranscriptionJob;
+import software.amazon.awssdk.services.transcribe.model.Specialty;
+import software.amazon.awssdk.services.transcribe.model.StartMedicalTranscriptionJobRequest;
+import software.amazon.awssdk.services.transcribe.model.StartMedicalTranscriptionJobResponse;
+import software.amazon.awssdk.services.transcribe.model.StartTranscriptionJobRequest;
+import software.amazon.awssdk.services.transcribe.model.StartTranscriptionJobResponse;
+import software.amazon.awssdk.services.transcribe.model.Transcript;
+import software.amazon.awssdk.services.transcribe.model.TranscriptionJob;
+import software.amazon.awssdk.services.transcribe.model.Type;
 
 import tools.Utilities;
 
@@ -39,23 +43,25 @@ import tools.Utilities;
  */
 public class AudioProcessing extends AWSService {
 
-	AmazonTranscribe transcribeClient = null;
+	// Transcribe clients are thread-safe and expensive to create, so share one per region
+	private static final java.util.concurrent.ConcurrentHashMap<String, TranscribeClient> transcribeClients =
+			new java.util.concurrent.ConcurrentHashMap<>();
+
+	TranscribeClient transcribeClient = null;
 
 	public AudioProcessing(String r, String basePath) {
-		
+
 		super(r, basePath);
-		
-		// create a new transcribe client
-		ClientConfiguration clientConfig = new ClientConfiguration();
-        clientConfig.setConnectionTimeout(60000);
-        clientConfig.setMaxConnections(100);
-        clientConfig.setSocketTimeout(60000);
-        
-		transcribeClient = AmazonTranscribeClientBuilder.standard()
-				.withCredentials(DefaultAWSCredentialsProviderChain.getInstance())
-				.withRegion(region)
-				.withClientConfiguration(clientConfig)
-				.build();
+
+		transcribeClient = transcribeClients.computeIfAbsent(region, rg -> TranscribeClient.builder()
+				.credentialsProvider(DefaultCredentialsProvider.create())
+				.region(Region.of(rg))
+				.httpClientBuilder(ApacheHttpClient.builder()
+						.connectionTimeout(Duration.ofMillis(60000))
+						.socketTimeout(Duration.ofMillis(60000))
+						.maxConnections(100))
+				.overrideConfiguration(ClientOverrideConfiguration.builder().build())
+				.build());
 	}
 
 	/*
@@ -103,7 +109,8 @@ public class AudioProcessing extends AWSService {
 					
 					File tempFile = new File(tempFilePath);
 					log.info("Getting media file from s3 bucket: " + mediaBucket + " " + fileIdentifier + " to : " + tempFilePath);
-					s3.getObject(new GetObjectRequest(mediaBucket, fileIdentifier, null), tempFile);
+					s3.getObject(GetObjectRequest.builder().bucket(mediaBucket).key(fileIdentifier).build(),
+							tempFile.toPath());
 				} else {
 					tempFilePath = basePath + fileIdentifier;
 					convertedTempFilePath = "/smap/temp/" + UUID.randomUUID().toString() + ".mp3";					
@@ -129,27 +136,31 @@ public class AudioProcessing extends AWSService {
 			String status = null;
 			try {
 				log.info("Generating transcript for file: " + bucketName + fileIdentifier);
-				Media media=new Media().withMediaFileUri(s3.getUrl(bucketName, fileIdentifier).toString());
+				String mediaUri = s3.utilities().getUrl(GetUrlRequest.builder()
+						.bucket(bucketName).key(fileIdentifier).build()).toString();
+				Media media = Media.builder().mediaFileUri(mediaUri).build();
 				if(medical) {
 					Type type = (medType != null && medType.equals("conversation")) ? Type.CONVERSATION : Type.DICTATION;
-					StartMedicalTranscriptionJobRequest request = new StartMedicalTranscriptionJobRequest()
-							.withMedia(media)
-							.withLanguageCode(fromLang)
-							.withMedicalTranscriptionJobName(job)
-							.withOutputBucketName(bucketName)
-							.withType(type)
-							.withSpecialty(Specialty.PRIMARYCARE);	// TODO parameterise
-						
-					StartMedicalTranscriptionJobResult result = transcribeClient.startMedicalTranscriptionJob(request);
-					status = result.getMedicalTranscriptionJob().getTranscriptionJobStatus();
+					StartMedicalTranscriptionJobRequest request = StartMedicalTranscriptionJobRequest.builder()
+							.media(media)
+							.languageCode(fromLang)
+							.medicalTranscriptionJobName(job)
+							.outputBucketName(bucketName)
+							.type(type)
+							.specialty(Specialty.PRIMARYCARE)	// TODO parameterise
+							.build();
+
+					StartMedicalTranscriptionJobResponse result = transcribeClient.startMedicalTranscriptionJob(request);
+					status = result.medicalTranscriptionJob().transcriptionJobStatusAsString();
 				} else {
-					StartTranscriptionJobRequest request = new StartTranscriptionJobRequest()
-							.withMedia(media)
-							.withLanguageCode(fromLang)
-							.withTranscriptionJobName(job);
-						
-					StartTranscriptionJobResult result = transcribeClient.startTranscriptionJob(request);
-					status = result.getTranscriptionJob().getTranscriptionJobStatus();
+					StartTranscriptionJobRequest request = StartTranscriptionJobRequest.builder()
+							.media(media)
+							.languageCode(fromLang)
+							.transcriptionJobName(job)
+							.build();
+
+					StartTranscriptionJobResponse result = transcribeClient.startTranscriptionJob(request);
+					status = result.transcriptionJob().transcriptionJobStatusAsString();
 				}
 				log.info("Transcribe job status: " + status);	
 			} catch (Exception e) {
@@ -176,18 +187,18 @@ public class AudioProcessing extends AWSService {
 	public String getTranscriptUri(String job) {
 		String uri = null;
 		
-		GetTranscriptionJobRequest request = new GetTranscriptionJobRequest()
-				.withTranscriptionJobName(job);		
-		GetTranscriptionJobResult result = transcribeClient.getTranscriptionJob(request);
+		GetTranscriptionJobRequest request = GetTranscriptionJobRequest.builder()
+				.transcriptionJobName(job).build();
+		GetTranscriptionJobResponse result = transcribeClient.getTranscriptionJob(request);
 		if(result != null) {
-			TranscriptionJob tj = result.getTranscriptionJob();
-			String status = tj.getTranscriptionJobStatus();
-			
+			TranscriptionJob tj = result.transcriptionJob();
+			String status = tj.transcriptionJobStatusAsString();
+
 			if(status != null && status.equals("COMPLETED")) {
-				Transcript t = tj.getTranscript();
-				uri = t.getTranscriptFileUri();
+				Transcript t = tj.transcript();
+				uri = t.transcriptFileUri();
 			}
-			
+
 		}
 	
 		return uri;
@@ -199,18 +210,18 @@ public class AudioProcessing extends AWSService {
 	public String getMedicalTranscriptUri(String job) {
 		String uri = null;
 		
-		GetMedicalTranscriptionJobRequest request = new GetMedicalTranscriptionJobRequest()
-				.withMedicalTranscriptionJobName(job);		
-		GetMedicalTranscriptionJobResult result = transcribeClient.getMedicalTranscriptionJob(request);
+		GetMedicalTranscriptionJobRequest request = GetMedicalTranscriptionJobRequest.builder()
+				.medicalTranscriptionJobName(job).build();
+		GetMedicalTranscriptionJobResponse result = transcribeClient.getMedicalTranscriptionJob(request);
 		if(result != null) {
-			MedicalTranscriptionJob tj = result.getMedicalTranscriptionJob();
-			String status = tj.getTranscriptionJobStatus();
-			
+			MedicalTranscriptionJob tj = result.medicalTranscriptionJob();
+			String status = tj.transcriptionJobStatusAsString();
+
 			if(status != null && status.equals("COMPLETED")) {
-				MedicalTranscript t = tj.getTranscript();
-				uri = t.getTranscriptFileUri();
+				MedicalTranscript t = tj.transcript();
+				uri = t.transcriptFileUri();
 			}
-			
+
 		}
 	
 		return uri;

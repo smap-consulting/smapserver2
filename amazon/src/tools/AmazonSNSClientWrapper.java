@@ -21,14 +21,14 @@ import java.util.logging.Logger;
 
 import org.smap.notifications.interfaces.EmitNotifications;
 
-import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.model.CreatePlatformEndpointRequest;
-import com.amazonaws.services.sns.model.CreatePlatformEndpointResult;
-import com.amazonaws.services.sns.model.DeleteEndpointRequest;
-import com.amazonaws.services.sns.model.EndpointDisabledException;
-import com.amazonaws.services.sns.model.MessageAttributeValue;
-import com.amazonaws.services.sns.model.PublishRequest;
-import com.amazonaws.services.sns.model.PublishResult;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.CreatePlatformEndpointRequest;
+import software.amazon.awssdk.services.sns.model.CreatePlatformEndpointResponse;
+import software.amazon.awssdk.services.sns.model.DeleteEndpointRequest;
+import software.amazon.awssdk.services.sns.model.EndpointDisabledException;
+import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
+import software.amazon.awssdk.services.sns.model.PublishResponse;
 
 import model.DeviceTable;
 import tools.SampleMessageGenerator.Platform;
@@ -37,34 +37,35 @@ public class AmazonSNSClientWrapper {
 
 	private static Logger log = Logger.getLogger(EmitNotifications.class.getName());
 
-	private final AmazonSNS snsClient;
+	private final SnsClient snsClient;
 	private final DeviceTable deviceTable;
 
-	public AmazonSNSClientWrapper(AmazonSNS client, DeviceTable deviceTable) {
+	public AmazonSNSClientWrapper(SnsClient client, DeviceTable deviceTable) {
 		this.snsClient = client;
 		this.deviceTable = deviceTable;
 	}
 
-	private CreatePlatformEndpointResult createPlatformEndpoint(Platform platform, String customData,
+	private CreatePlatformEndpointResponse createPlatformEndpoint(Platform platform, String customData,
 			String platformToken, String applicationArn) {
 
-		CreatePlatformEndpointRequest platformEndpointRequest = new CreatePlatformEndpointRequest();
-		platformEndpointRequest.setCustomUserData(customData);
-		platformEndpointRequest.setToken(platformToken);
-		platformEndpointRequest.setPlatformApplicationArn(applicationArn);
+		CreatePlatformEndpointRequest platformEndpointRequest = CreatePlatformEndpointRequest.builder()
+				.customUserData(customData)
+				.token(platformToken)
+				.platformApplicationArn(applicationArn)
+				.build();
 		return snsClient.createPlatformEndpoint(platformEndpointRequest);
 	}
 
-	private PublishResult publish(String endpointArn, Platform platform,
+	private PublishResponse publish(String endpointArn, Platform platform,
 			Map<Platform, Map<String, MessageAttributeValue>> attributesMap, String platformToken) {
 
-		PublishRequest publishRequest = new PublishRequest();
+		PublishRequest.Builder publishRequest = PublishRequest.builder();
 		Map<String, MessageAttributeValue> notificationAttributes = getValidNotificationAttributes(
 				attributesMap.get(platform));
 		if (notificationAttributes != null && !notificationAttributes.isEmpty()) {
-			publishRequest.setMessageAttributes(notificationAttributes);
+			publishRequest.messageAttributes(notificationAttributes);
 		}
-		publishRequest.setMessageStructure("json");
+		publishRequest.messageStructure("json");
 		// If the message attributes are not set in the requisite method,
 		// notification is sent with default attributes
 		String message = getPlatformSampleMessage(platform);
@@ -72,24 +73,24 @@ public class AmazonSNSClientWrapper {
 		messageMap.put(platform.name(), message);
 		message = SampleMessageGenerator.jsonify(messageMap);
 		// For direct publish to mobile end points, topicArn is not relevant.
-		publishRequest.setTargetArn(endpointArn);
+		publishRequest.targetArn(endpointArn);
 
 		// Display the message that will be sent to the endpoint/
 		// log.info("{Message Body: " + message + "}");
 		StringBuilder builder = new StringBuilder();
 		builder.append("{Message Attributes: ");
 		for (Map.Entry<String, MessageAttributeValue> entry : notificationAttributes.entrySet()) {
-			builder.append("(\"" + entry.getKey() + "\": \"" + entry.getValue().getStringValue() + "\"),");
+			builder.append("(\"" + entry.getKey() + "\": \"" + entry.getValue().stringValue() + "\"),");
 		}
 		builder.deleteCharAt(builder.length() - 1);
 		builder.append("}");
 		// log.info(builder.toString());
 
-		publishRequest.setMessage(message);
+		publishRequest.message(message);
 
-		PublishResult result = null;
+		PublishResponse result = null;
 		try {
-			result = snsClient.publish(publishRequest);
+			result = snsClient.publish(publishRequest.build());
 		} catch (EndpointDisabledException e) {
 			log.info("End point disabled " + endpointArn + " deleting. " + e.getMessage());
 			deviceTable.deleteToken(platformToken);
@@ -106,15 +107,15 @@ public class AmazonSNSClientWrapper {
 
 		// Create an Endpoint. This corresponds to an app on a device.
 		try {
-			CreatePlatformEndpointResult platformEndpointResult = createPlatformEndpoint(platform, "smap", // Custom
+			CreatePlatformEndpointResponse platformEndpointResult = createPlatformEndpoint(platform, "smap", // Custom
 																											// data
 					platformToken, platformApplicationArn);
 
 			// Publish a push notification to an Endpoint.
-			PublishResult publishResult = publish(platformEndpointResult.getEndpointArn(), platform, attrsMap,
+			PublishResponse publishResult = publish(platformEndpointResult.endpointArn(), platform, attrsMap,
 					platformToken);
 			if (publishResult != null) {
-				log.info("Published! \n{MessageId=" + publishResult.getMessageId() + "}");
+				log.info("Published! \n{MessageId=" + publishResult.messageId() + "}");
 			}
 
 		} catch (Exception e) {
@@ -151,7 +152,7 @@ public class AmazonSNSClientWrapper {
 			return validAttributes;
 
 		for (Map.Entry<String, MessageAttributeValue> entry : notificationAttributes.entrySet()) {
-			if (!StringUtils.isBlank(entry.getValue().getStringValue())) {
+			if (!StringUtils.isBlank(entry.getValue().stringValue())) {
 				validAttributes.put(entry.getKey(), entry.getValue());
 			}
 		}
@@ -160,7 +161,7 @@ public class AmazonSNSClientWrapper {
 
 	private void deleteEndpoint(String endpointArn) {
 		// Delete the disabled platform endpoint
-		DeleteEndpointRequest deleteEndPointRequest = new DeleteEndpointRequest().withEndpointArn(endpointArn);
+		DeleteEndpointRequest deleteEndPointRequest = DeleteEndpointRequest.builder().endpointArn(endpointArn).build();
 		try {
 			snsClient.deleteEndpoint(deleteEndPointRequest);
 		} catch (Exception ex) {

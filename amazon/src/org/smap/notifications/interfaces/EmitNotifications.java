@@ -5,11 +5,11 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.AmazonSNSClient;
-import com.amazonaws.services.sns.model.PublishRequest;
-import com.amazonaws.services.sns.model.PublishResult;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
+import software.amazon.awssdk.services.sns.model.PublishResponse;
 
 
 
@@ -34,8 +34,25 @@ public class EmitNotifications {
 	private static Logger log =
 			 Logger.getLogger(EmitNotifications.class.getName());
 	
+	// SNS client is thread-safe and expensive to create, so share a single instance
+	private static volatile SnsClient sns;
+
 	Properties properties = new Properties();
-	
+
+	private static SnsClient getSnsClient() {
+		if(sns == null) {
+			synchronized (EmitNotifications.class) {
+				if(sns == null) {
+					sns = SnsClient.builder()
+							.region(Region.of("ap-southeast-1"))
+							.credentialsProvider(DefaultCredentialsProvider.create())
+							.build();
+				}
+			}
+		}
+		return sns;
+	}
+
 	public EmitNotifications() {
 		FileInputStream fis = null;
 		try {
@@ -54,19 +71,20 @@ public class EmitNotifications {
 	 */
 	public void publish(int event, String msg, String subject) {
 		
-		//create a new SNS client
-		AmazonSNS sns = AmazonSNSClient.builder()
-				.withRegion("ap-southeast-1")
-				.withCredentials(new DefaultAWSCredentialsProviderChain())
-				.build();
-		
+		// Reuse the shared SNS client
+		SnsClient sns = getSnsClient();
+
 		String topic = getTopic(event);
-		
+
 		if(topic != null) {
-			PublishRequest publishRequest = new PublishRequest(topic, msg, subject);
-			PublishResult publishResult = sns.publish(publishRequest);
-			log.info("Publish: " + subject + " MessageId - " + publishResult.getMessageId());
-		} 
+			PublishRequest publishRequest = PublishRequest.builder()
+					.topicArn(topic)
+					.message(msg)
+					.subject(subject)
+					.build();
+			PublishResponse publishResult = sns.publish(publishRequest);
+			log.info("Publish: " + subject + " MessageId - " + publishResult.messageId());
+		}
 		
 	}
 	

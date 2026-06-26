@@ -23,14 +23,17 @@ import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.S3Object;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -78,7 +81,7 @@ public class EmailResponseProcessor {
 		String basePath;
 		String hostname;
 		long pid;
-		AmazonS3 s3 = null;
+		S3Client s3 = null;
 		String lastRegion = null;
 
 		public ResponseLoop(String basePath, String hostname, long pid) {
@@ -105,9 +108,12 @@ public class EmailResponseProcessor {
 
 							// Reinitialise S3 client if region changed
 							if(s3 == null || !region.equals(lastRegion)) {
-								s3 = AmazonS3Client.builder()
-										.withRegion(region)
-										.withCredentials(DefaultAWSCredentialsProviderChain.getInstance())
+								if(s3 != null) {
+									try { s3.close(); } catch(Exception e) {}
+								}
+								s3 = S3Client.builder()
+										.region(Region.of(region))
+										.credentialsProvider(DefaultCredentialsProvider.create())
 										.build();
 								lastRegion = region;
 							}
@@ -154,24 +160,25 @@ public class EmailResponseProcessor {
 		return null;
 	}
 
-	private void processInbound(DatabaseConnections dbc, AmazonS3 s3, String bucket, String basePath) {
-		ListObjectsV2Request req = new ListObjectsV2Request()
-				.withBucketName(bucket)
-				.withPrefix(INBOUND_PREFIX)
-				.withDelimiter("/");   // skip error/ subfolder
-		ListObjectsV2Result listing = s3.listObjectsV2(req);
+	private void processInbound(DatabaseConnections dbc, S3Client s3, String bucket, String basePath) {
+		ListObjectsV2Request req = ListObjectsV2Request.builder()
+				.bucket(bucket)
+				.prefix(INBOUND_PREFIX)
+				.delimiter("/")   // skip error/ subfolder
+				.build();
+		ListObjectsV2Response listing = s3.listObjectsV2(req);
 
-		for(S3ObjectSummary obj : listing.getObjectSummaries()) {
-			String key = obj.getKey();
+		for(S3Object obj : listing.contents()) {
+			String key = obj.key();
 			if(key.equals(INBOUND_PREFIX)) continue;  // skip the prefix directory entry
 			processObject(dbc, s3, bucket, key, basePath);
 		}
 	}
 
-	private void processObject(DatabaseConnections dbc, AmazonS3 s3, String bucket, String key, String basePath) {
+	private void processObject(DatabaseConnections dbc, S3Client s3, String bucket, String key, String basePath) {
 		try {
-			S3Object s3obj = s3.getObject(bucket, key);
-			S3ObjectInputStream content = s3obj.getObjectContent();
+			ResponseInputStream<GetObjectResponse> content = s3.getObject(GetObjectRequest.builder()
+					.bucket(bucket).key(key).build());
 
 			Session session = Session.getDefaultInstance(new Properties());
 			MimeMessage mime = new MimeMessage(session, content);
@@ -218,7 +225,7 @@ public class EmailResponseProcessor {
 			// Idempotency: use this reply's own Message-ID, not In-Reply-To
 			if(reply.replyMessageId != null && isDuplicate(dbc.sd, reply.replyMessageId)) {
 				log.fine("Duplicate reply, skipping: " + reply.replyMessageId);
-				s3.deleteObject(bucket, key);
+				s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
 				return;
 			}
 
@@ -227,7 +234,7 @@ public class EmailResponseProcessor {
 			RecordEventManager rem = new RecordEventManager();
 			rem.writeEmailReply(dbc.sd, dbc.results, instanceId, surveyIdent, messageId, reply);
 
-			s3.deleteObject(bucket, key);
+			s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
 			log.info("Processed email reply from " + reply.fromAddress + " for instance " + instanceId);
 
 		} catch(Exception e) {
@@ -466,11 +473,14 @@ public class EmailResponseProcessor {
 		}
 	}
 
-	private void moveToError(AmazonS3 s3, String bucket, String key) {
+	private void moveToError(S3Client s3, String bucket, String key) {
 		try {
 			String destKey = ERROR_PREFIX + key.substring(INBOUND_PREFIX.length());
-			s3.copyObject(bucket, key, bucket, destKey);
-			s3.deleteObject(bucket, key);
+			s3.copyObject(CopyObjectRequest.builder()
+					.sourceBucket(bucket).sourceKey(key)
+					.destinationBucket(bucket).destinationKey(destKey)
+					.build());
+			s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
 		} catch(Exception e) {
 			log.log(Level.WARNING, "Could not move to error prefix: " + key, e);
 		}

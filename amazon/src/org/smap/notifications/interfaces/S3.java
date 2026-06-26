@@ -1,14 +1,13 @@
 package org.smap.notifications.interfaces;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URI;
 
-import com.amazonaws.Request;
-import com.amazonaws.services.s3.AmazonS3URI;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.S3Uri;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 /*****************************************************************************
  * 
@@ -22,31 +21,34 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
  */
 public class S3 extends AWSService {
 
-	//AmazonTranscribe transcribeClient = null;
-	AmazonS3URI s3uri = null;
-	
-	public S3(String r, String uri, String basePath) {	
+	S3Uri s3uri = null;
+
+	public S3(String r, String uri, String basePath) {
 		super(r, basePath);
-		s3uri = new AmazonS3URI(uri);
+		s3uri = s3.utilities().parseUri(URI.create(uri));
 	}
-	
+
 	/*
 	 * Get an s3 object as a string
 	 */
 	public String get() throws Exception {
-		 
+
 		StringBuilder sb = new StringBuilder();
 		if(s3uri != null) {
 			BufferedReader bufferedReader = null;
 			try {
-				
-				bufferedReader = new BufferedReader(new InputStreamReader(s3.getObject(new GetObjectRequest(s3uri.getBucket(), s3uri.getKey())).getObjectContent()));
-				
+
+				GetObjectRequest req = GetObjectRequest.builder()
+						.bucket(s3uri.bucket().orElse(null))
+						.key(s3uri.key().orElse(null))
+						.build();
+				bufferedReader = new BufferedReader(new InputStreamReader(s3.getObject(req)));
+
 				String line;
 				while ( (line = bufferedReader.readLine()) != null ) {
 					sb.append(line);
 				}
-	
+
 			} finally {
 				if(bufferedReader != null) try{bufferedReader.close();} catch(Exception e) {}
 			}
@@ -55,10 +57,13 @@ public class S3 extends AWSService {
 		}
 		return sb.toString();
 	}
-	
+
 	public void rm() throws IOException {
-		 
-		s3.deleteObject(s3uri.getBucket(), s3uri.getKey());
+
+		s3.deleteObject(DeleteObjectRequest.builder()
+				.bucket(s3uri.bucket().orElse(null))
+				.key(s3uri.key().orElse(null))
+				.build());
 		s3uri = null;
 	}
 	

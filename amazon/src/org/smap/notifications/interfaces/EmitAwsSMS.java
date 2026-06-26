@@ -8,12 +8,12 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.AmazonSNSClient;
-import com.amazonaws.services.sns.model.MessageAttributeValue;
-import com.amazonaws.services.sns.model.PublishRequest;
-import com.amazonaws.services.sns.model.PublishResult;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
+import software.amazon.awssdk.services.sns.model.PublishResponse;
 
 /*****************************************************************************
 
@@ -35,10 +35,27 @@ public class EmitAwsSMS extends EmitSMS {
 	
 	private static Logger log =
 			 Logger.getLogger(EmitAwsSMS.class.getName());
-	
+
+	// SNS client is thread-safe and expensive to create, so share a single instance
+	private static volatile SnsClient sns;
+
 	Properties properties = new Properties();
 	String senderId = "smap";
 	ResourceBundle localisation;
+
+	private static SnsClient getSnsClient() {
+		if(sns == null) {
+			synchronized (EmitAwsSMS.class) {
+				if(sns == null) {
+					sns = SnsClient.builder()
+							.region(Region.of("ap-southeast-1"))
+							.credentialsProvider(DefaultCredentialsProvider.create())
+							.build();
+				}
+			}
+		}
+		return sns;
+	}
 	
 	public EmitAwsSMS(String senderId, ResourceBundle l) {
 		localisation = l;
@@ -71,30 +88,29 @@ public class EmitAwsSMS extends EmitSMS {
 			throw new Exception(localisation.getString("msg_sms") + ": " + number);
 		}
 		
-		//create a new SNS client
-		AmazonSNS sns = AmazonSNSClient.builder()
-				.withRegion("ap-southeast-1")
-				.withCredentials(new DefaultAWSCredentialsProviderChain())
-				.build();	
-	
-		Map<String, MessageAttributeValue> smsAttributes = 
+		// Reuse the shared SNS client
+		SnsClient sns = getSnsClient();
+
+		Map<String, MessageAttributeValue> smsAttributes =
                 new HashMap<String, MessageAttributeValue>();
-		smsAttributes.put("AWS.SNS.SMS.SenderID", new MessageAttributeValue()
-		        .withStringValue(senderId) //The sender ID shown on the device.
-		        .withDataType("String"));
-		
+		smsAttributes.put("AWS.SNS.SMS.SenderID", MessageAttributeValue.builder()
+		        .stringValue(senderId) //The sender ID shown on the device.
+		        .dataType("String")
+		        .build());
+
         sendSMSMessage(sns, content, number, smsAttributes);
-		
+
 		return responseBody;
 	}
-	
-	private void sendSMSMessage(AmazonSNS snsClient, String message, 
+
+	private void sendSMSMessage(SnsClient snsClient, String message,
 			String phoneNumber, Map<String, MessageAttributeValue> smsAttributes) {
-		
-	    PublishResult result = snsClient.publish(new PublishRequest()
-	    		.withMessage(message)
-	        .withPhoneNumber(phoneNumber)
-	        .withMessageAttributes(smsAttributes));
+
+	    PublishResponse result = snsClient.publish(PublishRequest.builder()
+	    		.message(message)
+	        .phoneNumber(phoneNumber)
+	        .messageAttributes(smsAttributes)
+	        .build());
 	    log.info("Message Id:" + result); // Prints the message ID.
 	}
 

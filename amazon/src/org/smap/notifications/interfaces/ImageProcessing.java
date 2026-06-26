@@ -1,13 +1,15 @@
 package org.smap.notifications.interfaces;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.rekognition.AmazonRekognition;
-import com.amazonaws.services.rekognition.AmazonRekognitionClient;
-import com.amazonaws.services.rekognition.model.DetectLabelsRequest;
-import com.amazonaws.services.rekognition.model.DetectLabelsResult;
-import com.amazonaws.services.rekognition.model.Image;
-import com.amazonaws.services.rekognition.model.Label;
-import com.amazonaws.services.rekognition.model.S3Object;
+import java.util.concurrent.ConcurrentHashMap;
+
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.rekognition.RekognitionClient;
+import software.amazon.awssdk.services.rekognition.model.DetectLabelsRequest;
+import software.amazon.awssdk.services.rekognition.model.DetectLabelsResponse;
+import software.amazon.awssdk.services.rekognition.model.Image;
+import software.amazon.awssdk.services.rekognition.model.Label;
+import software.amazon.awssdk.services.rekognition.model.S3Object;
 
 /*****************************************************************************
  * 
@@ -21,8 +23,11 @@ import com.amazonaws.services.rekognition.model.S3Object;
  */
 public class ImageProcessing extends AWSService {
 
+	// Rekognition clients are thread-safe and expensive to create, so share one per region
+	private static final ConcurrentHashMap<String, RekognitionClient> rekognitionClients = new ConcurrentHashMap<>();
+
 	public ImageProcessing(String region, String basePath) {
-		super(region, basePath);	
+		super(region, basePath);
 	}
 
 	/*
@@ -40,31 +45,33 @@ public class ImageProcessing extends AWSService {
 		// Put local files into remote default bucket			
 		String bucketName = setBucket(mediaBucket, serverFilePath, fileIdentifier);	
 			
-		S3Object s3Object = new S3Object();
-		s3Object.setBucket(bucketName);
-		s3Object.setName(fileIdentifier);
-		Image image = new Image().withS3Object(s3Object);
-		DetectLabelsRequest request = new DetectLabelsRequest();
-		request.withImage(image)
-				.withMaxLabels(10)
-				.withMinConfidence(80F);
-			
-		AmazonRekognition rekognitionClient = AmazonRekognitionClient.builder()
-			.withRegion(region)
-			.withCredentials(DefaultAWSCredentialsProviderChain.getInstance())
-			.build();
-			
+		S3Object s3Object = S3Object.builder()
+				.bucket(bucketName)
+				.name(fileIdentifier)
+				.build();
+		Image image = Image.builder().s3Object(s3Object).build();
+		DetectLabelsRequest request = DetectLabelsRequest.builder()
+				.image(image)
+				.maxLabels(10)
+				.minConfidence(80F)
+				.build();
+
+		RekognitionClient rekognitionClient = rekognitionClients.computeIfAbsent(region, r -> RekognitionClient.builder()
+			.region(Region.of(r))
+			.credentialsProvider(DefaultCredentialsProvider.create())
+			.build());
+
 		log.info("get labels for region: " + region);
-		DetectLabelsResult result = rekognitionClient.detectLabels(request);
-			
+		DetectLabelsResponse result = rekognitionClient.detectLabels(request);
+
 		if(format.equals("params")) {
 			labels.append(result.toString());
 		} else {
-			for(Label l : result.getLabels()) {
+			for(Label l : result.labels()) {
 				if(labels.length() > 0) {
 					labels.append(", ");
 				}
-				labels.append(l.getName());
+				labels.append(l.name());
 			}
 		}
 		
