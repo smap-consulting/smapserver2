@@ -14,7 +14,6 @@ cp ~/deploy/fieldTask.apk ~/deploy/smap/deploy/version1
 cp ~/deploy/meqa.apk ~/deploy/smap/deploy/version1
 cp ~/deploy/fieldTaskPreJellyBean.apk ~/deploy/smap/deploy/version1
 cp ~/deploy/smapUploader.jar ~/deploy/smap/deploy/version1
-cp ~/deploy/codebook.jar ~/deploy/smap/deploy/version1
 
 #
 # amazon
@@ -38,6 +37,14 @@ cd ..
 cd sdDataAccess
 mvn clean install
 cd ..
+
+#
+# codebook jar
+#
+cd codebook
+mvn clean install
+cd ..
+cp codebook/target/codebook.jar ~/deploy/smap/deploy/version1
 
 #
 # surveyMobileAPI war file

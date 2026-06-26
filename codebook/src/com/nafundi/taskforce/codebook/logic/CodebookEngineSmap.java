@@ -103,7 +103,14 @@ public class CodebookEngineSmap  {
                     return args[0];
                 }});
 
-            fd.initialize(true, new InstanceInitializationFactory());
+            try {
+                fd.initialize(true, new InstanceInitializationFactory());
+            } catch (Exception e) {
+                // Evaluating calculates/defaults can fail on smap server-side values
+                // (eg linked geoshape references). The codebook only needs the form
+                // structure, so log and continue.
+                System.out.println("Warning: form initialize failed, continuing: " + e.getMessage());
+            }
         } else {
         	System.out.println("FormDef is null");
             return null;

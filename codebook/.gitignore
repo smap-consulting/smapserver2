@@ -1,2 +1,6 @@
 /target/
 .classpath
+dependency-reduced-pom.xml
+target/
+bin/
+dist/

@@ -3,7 +3,11 @@
   <groupId>Codebook2</groupId>
   <artifactId>Codebook2</artifactId>
   <version>0.0.1-SNAPSHOT</version>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
   <build>
+    <finalName>codebook</finalName>
     <sourceDirectory>src</sourceDirectory>
     <resources>
       <resource>
@@ -24,25 +28,78 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.6.1</version>
         <configuration>
-          <source/>
-          <target/>
+          <source>11</source>
+          <target>11</target>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.2.4</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>com.nafundi.taskforce.codebook.batch.Main</mainClass>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
   <dependencies>
-		<!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-core -->
-		<dependency>
-    			<groupId>org.slf4j</groupId>
-    			<artifactId>slf4j-log4j12</artifactId>
-   			 <version>1.7.25</version>
-			</dependency>
-			
-		<dependency>
-			<groupId>org.opendatakit</groupId>
-			<artifactId>opendatakit-javarosa</artifactId>
-			<version>2.17.0</version>
-		</dependency>
-			
-	</dependencies>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>1.7.25</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.opendatakit</groupId>
+      <artifactId>opendatakit-javarosa</artifactId>
+      <version>2.17.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.googlecode.jatl</groupId>
+      <artifactId>jatl</artifactId>
+      <version>0.2.2</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.lowagie</groupId>
+      <artifactId>itext</artifactId>
+      <version>2.0.8</version>
+    </dependency>
+
+    <dependency>
+      <groupId>net.sf.jtidy</groupId>
+      <artifactId>jtidy</artifactId>
+      <version>r938</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.xhtmlrenderer</groupId>
+      <artifactId>core-renderer</artifactId>
+      <version>R8</version>
+    </dependency>
+
+  </dependencies>
 </project>

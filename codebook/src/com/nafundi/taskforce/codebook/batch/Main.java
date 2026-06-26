@@ -63,10 +63,20 @@ public class Main {
 
         CodebookEngineSmap ce = new CodebookEngineSmap(inputFile.getAbsolutePath(), language);
         HashMap<String, ArrayList<CodebookEntry>> entries = ce.getEntry();
+        if(entries == null || entries.isEmpty()) {
+            throw new Exception("No codebook entries generated for " + inputFile.getName());
+        }
         ArrayList<CodebookEntry> entry = entries.get(language);
+        if(entry == null) {
+            // Requested language not a form locale (eg null/_default, or name mismatch).
+            // Fall back to the form default, else the first available locale.
+            String fallback = entries.containsKey("Default") ? "Default" : entries.keySet().iterator().next();
+            System.out.println("Language \"" + language + "\" not found, using \"" + fallback + "\"");
+            entry = entries.get(fallback);
+        }
 
         CodebookMakerSmap maker = new CodebookMakerSmap(entry, language,
-                inputFilename, outputFolderpath); 
+                inputFilename, outputFolderpath);
  
         maker.writeFile();
        
