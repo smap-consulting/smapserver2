@@ -790,6 +790,12 @@ public class AssignmentsManager {
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, tu.sIdent);
 				cm.assignRecord(sd, cResults, localisation, tableName, tu.uuid, request.getRemoteUser(), "release",
 						null, tu.task_comment, request.getRemoteUser());
+			} else if (tu.type != null && tu.type.equals("reference")) {
+				// Remove this user's reference link to a read only record - same as a device dereference
+				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, tu.sIdent);
+				ReferenceManager refMgr = new ReferenceManager(localisation);
+				refMgr.dereferenceByThread(sd, cResults, tableName, tu.uuid,
+						request.getRemoteUser(), request.getRemoteUser());
 			} else {
 
 				pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
