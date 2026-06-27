@@ -15,7 +15,13 @@ destfile="$destdir/$filename.$ext"
 destthumbnail="$destdir/thumbs/$filename.$ext.jpg"
 
 
-export PATH="$PATH:/usr/local/bin:/usr/bin"
+export PATH="$PATH:/usr/local/bin:/usr/bin:/bin:/snap/bin:/opt/homebrew/bin"
+
+# Resolve exiftool location (varies by OS / install method: apt, snap, brew)
+exiftool=`command -v exiftool`
+if [ -z "$exiftool" ]; then
+	echo "WARNING: exiftool not found on PATH ($PATH) - exif data will not be preserved. Install with: apt-get install libimage-exiftool-perl"
+fi
 
 # If content type is "image" create a thumbnail
 type=`echo $contenttype | cut -c 1-5`
@@ -24,15 +30,19 @@ if [ x"$type" = ximage ]; then
 	echo "Creating thumbnails $destthumbnail from $destfile"
 	rm $destthumbnail
 	sh -c "convert -thumbnail 100 -background white -alpha remove $destfile $destthumbnail"
-    
-    echo "Preserve exif data in thumbnail"
-    sh -c "exiftool -v -overwrite_original_in_place -tagsFromFile $destfile $destthumbnail"
-    
+
+    if [ -n "$exiftool" ]; then
+        echo "Preserve exif data in thumbnail"
+        sh -c "$exiftool -v -overwrite_original_in_place -tagsFromFile $destfile $destthumbnail"
+    fi
+
    	echo "processing image file for iText hack also set background white"
 	sh -c "convert -background white -alpha remove $destfile $destfile"
-	
-	echo "Preserving exif data in main file"
-    sh -c "exiftool -v -overwrite_original_in_place -tagsFromFile $destthumbnail $destfile"
+
+	if [ -n "$exiftool" ]; then
+		echo "Preserving exif data in main file"
+		sh -c "$exiftool -v -overwrite_original_in_place -tagsFromFile $destthumbnail $destfile"
+	fi
 fi
 
 #If content type is "video" create a thumbnail 
