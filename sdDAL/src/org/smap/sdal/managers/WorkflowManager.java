@@ -44,6 +44,7 @@ public class WorkflowManager {
 	// WorkItem type constants
 	private static final String TYPE_FORM      = "form";
 	private static final String TYPE_TASK      = "task";
+	private static final String TYPE_EMAILTASK = "emailtask";
 	private static final String TYPE_CASE      = "case";
 	private static final String TYPE_REFERENCE = "reference";
 	private static final String TYPE_PERIODIC  = "periodic";
@@ -408,11 +409,13 @@ public class WorkflowManager {
 				String tgAssignee   = null;
 				String tgAssigneeK  = "";
 				String tgFilterName = null;
+				boolean tgIsEmail   = false;
 				if (rule != null && !rule.trim().isEmpty()) {
 					AssignFromSurvey afs = new Gson().fromJson(rule, AssignFromSurvey.class);
 					if (afs != null) {
 						tgAssignee  = deriveAssignee(sd, afs);
 						tgAssigneeK = assigneeKey(tgAssignee);
+						tgIsEmail   = afs.emails != null && !afs.emails.trim().isEmpty();
 						if (afs.filter != null) {
 							tgFilterName = afs.filter.advanced != null ? afs.filter.advanced : afs.filter.qText;
 						}
@@ -427,7 +430,7 @@ public class WorkflowManager {
 				if (!itemMap.containsKey(dstKey)) {
 					WorkflowItem dst = new WorkflowItem();
 					dst.id       = dstKey;
-					dst.type     = TYPE_TASK;
+					dst.type     = tgIsEmail ? TYPE_EMAILTASK : TYPE_TASK;
 					dst.role     = ROLE_FORM;
 					dst.name     = targetSurvey != null ? targetSurvey : tgName;
 					dst.label    = tgName;
