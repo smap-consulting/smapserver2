@@ -117,6 +117,9 @@ public class EmailResponseProcessor {
 					} catch(Exception e) {
 						if(GeneralUtilityMethods.isTransientConnectionError(e)) {
 							log.log(Level.WARNING, "Email response processor: database unavailable, will retry: " + e.getMessage());
+						} else if(isTransientNetworkError(e)) {
+							// e.g. no DNS/network path to S3 (common on a dev box) - expected, will retry next poll
+							log.log(Level.INFO, "Email response processor: cannot reach mail store, will retry: " + e.getMessage());
 						} else {
 							log.log(Level.SEVERE, "Email response processor error", e);
 						}
@@ -152,6 +155,24 @@ public class EmailResponseProcessor {
 			try {if(pstmt != null) pstmt.close();} catch(Exception e) {}
 		}
 		return null;
+	}
+
+	/*
+	 * True for transient connectivity failures reaching the S3 mail store
+	 * (no DNS, host unreachable, connection reset/timeout). These are expected
+	 * when offline and should be logged briefly rather than as a SEVERE stack trace.
+	 */
+	private boolean isTransientNetworkError(Throwable e) {
+		while(e != null) {
+			if(e instanceof java.net.UnknownHostException
+					|| e instanceof java.net.ConnectException
+					|| e instanceof java.net.NoRouteToHostException
+					|| e instanceof java.net.SocketTimeoutException) {
+				return true;
+			}
+			e = e.getCause();
+		}
+		return false;
 	}
 
 	private void processInbound(DatabaseConnections dbc, AmazonS3 s3, String bucket, String basePath) {
