@@ -34,7 +34,6 @@ import java.util.logging.Logger;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
@@ -433,9 +432,8 @@ public class Workflow extends Application {
 	// ============================================================
 	@Path("/edit/notifications")
 	@PUT
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-	public Response updateNotifications(@Context HttpServletRequest request,
-			@FormParam("payload") String body) {
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Response updateNotifications(@Context HttpServletRequest request, String body) {
 
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editNotifications-put";
@@ -585,10 +583,9 @@ public class Workflow extends Application {
 	// ============================================================
 	@Path("/edit/notification")
 	@POST
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response createNotification(@Context HttpServletRequest request,
-			@FormParam("payload") String body) {
+	public Response createNotification(@Context HttpServletRequest request, String body) {
 
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editNotification-post";
@@ -778,9 +775,8 @@ public class Workflow extends Application {
 	// ============================================================
 	@Path("/edit/taskgroups")
 	@PUT
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-	public Response updateTaskGroups(@Context HttpServletRequest request,
-			@FormParam("payload") String body) {
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Response updateTaskGroups(@Context HttpServletRequest request, String body) {
 
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editTaskGroups-put";
@@ -953,10 +949,9 @@ public class Workflow extends Application {
 	// ============================================================
 	@Path("/edit/taskgroup")
 	@POST
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response createTaskGroup(@Context HttpServletRequest request,
-			@FormParam("payload") String body) {
+	public Response createTaskGroup(@Context HttpServletRequest request, String body) {
 
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editTaskGroup-post";
@@ -1049,10 +1044,9 @@ public class Workflow extends Application {
 	// ============================================================
 	@Path("/edit/form")
 	@POST
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response createForm(@Context HttpServletRequest request,
-			@FormParam("payload") String body) {
+	public Response createForm(@Context HttpServletRequest request, String body) {
 
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editForm-post";
@@ -1099,10 +1093,9 @@ public class Workflow extends Application {
 	// ============================================================
 	@Path("/edit/scheduled")
 	@POST
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response createScheduled(@Context HttpServletRequest request,
-			@FormParam("payload") String body) {
+	public Response createScheduled(@Context HttpServletRequest request, String body) {
 
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editScheduled-post";
@@ -1160,9 +1153,8 @@ public class Workflow extends Application {
 	// ============================================================
 	@Path("/edit/scheduled")
 	@PUT
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-	public Response updateScheduled(@Context HttpServletRequest request,
-			@FormParam("payload") String body) {
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Response updateScheduled(@Context HttpServletRequest request, String body) {
 
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editScheduled-put";
