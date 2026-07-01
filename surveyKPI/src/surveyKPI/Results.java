@@ -223,6 +223,7 @@ public class Results extends Application {
 			if(dateId != 0 && dateId != -1) {
 				date = new QuestionInfo(localisation, tz,
 						sId, dateId, sd, cResults, request.getRemoteUser(), false, lang, urlprefix, oId);
+				checkQuestion(date, dateId, localisation);
 				q.add(date);
 				tables.add(date.getTableName(), date.getFId(), date.getParentFId());
 				log.info("Date name: " + date.getColumnName() + " Date Table: " + date.getTableName());
@@ -230,7 +231,8 @@ public class Results extends Application {
 			
 			// Get group column information
 			if(hasGroup) {
-				group = new QuestionInfo(localisation, tz, sId, groupId, sd,cResults, request.getRemoteUser(), hasGeo, lang, urlprefix, oId);	
+				group = new QuestionInfo(localisation, tz, sId, groupId, sd,cResults, request.getRemoteUser(), hasGeo, lang, urlprefix, oId);
+				checkQuestion(group, groupId, localisation);
 				q.add(group);
 				tables.add(group.getTableName(), group.getFId(), group.getParentFId());
 			}
@@ -273,8 +275,9 @@ public class Results extends Application {
 			} else {
 				aQ = new QuestionInfo(localisation, tz, sId, qId, sd, cResults, request.getRemoteUser(), false, lang, urlprefix, oId);
 			}
+			checkQuestion(aQ, qId, localisation);
 			q.add(aQ);
-			tables.add(aQ.getTableName(), aQ.getFId(),  aQ.getParentFId());			
+			tables.add(aQ.getTableName(), aQ.getFId(),  aQ.getParentFId());
 			
 			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "View results for question " + aQ.getName(), 0, request.getServerName());
 			
@@ -286,7 +289,8 @@ public class Results extends Application {
 				Gson gson =  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 				filter = gson.fromJson(sFilter, type);
 
-				fQ = new QuestionInfo(localisation, tz, sId, filter.qId, sd, cResults, request.getRemoteUser(),  hasGeo, lang, urlprefix, oId);	
+				fQ = new QuestionInfo(localisation, tz, sId, filter.qId, sd, cResults, request.getRemoteUser(),  hasGeo, lang, urlprefix, oId);
+				checkQuestion(fQ, filter.qId, localisation);
 				q.add(fQ);
 				tables.add(fQ.getTableName(), fQ.getFId(), fQ.getParentFId());
 				sqlFilter.append(" and ").append(fQ.getFilterExpression(filter.value, null));
@@ -936,6 +940,20 @@ public class Results extends Application {
 	/*
 	 * Returns the SQL fragment that makes up the select
 	 */
+	/*
+	 * Validate that a requested question resolved to a real column/table.
+	 * A stale question id (deleted or from a replaced survey) leaves the
+	 * QuestionInfo fields null, which would otherwise build invalid SQL
+	 * containing literal "null" table/column references.
+	 */
+	private void checkQuestion(QuestionInfo qi, int qId, ResourceBundle localisation) throws ApplicationException {
+		if(qi == null || qi.getTableName() == null || qi.getColumnName() == null) {
+			String msg = localisation.getString("inv_qn_misc");
+			msg = msg.replace("%s1", String.valueOf(qId));
+			throw new ApplicationException(msg);
+		}
+	}
+
 	private String getSelect(ArrayList<QuestionInfo> q, boolean externalGeom) {
 		String sqlFrag = "";
 		
