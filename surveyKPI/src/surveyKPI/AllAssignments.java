@@ -53,6 +53,7 @@ import org.smap.sdal.legacy.UtilityMethods;
 import org.smap.sdal.managers.AssignmentsManager;
 import org.smap.sdal.managers.DocumentUploadManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
@@ -448,6 +449,23 @@ public class AllAssignments extends Application {
 								getTaskSql.append(" and ").append(filterSql);
 							}
 
+							/*
+							 * Record level security: only create tasks for source records the
+							 * creating user is permitted to access by the survey row filter (RBAC)
+							 * rules.  convertSqlFragsToSql reorders rfArray, so call it here and bind
+							 * its parameters (below) in that same order.
+							 */
+							ArrayList<SqlFrag> rfArray = new ArrayList<SqlFrag>();
+							if(!superUser) {
+								RoleManager taskRm = new RoleManager(localisation);
+								rfArray = taskRm.getSurveyRowFilter(sd,
+										GeneralUtilityMethods.getSurveyIdent(sd, sId), userName);
+								String rfSql = taskRm.convertSqlFragsToSql(rfArray);
+								if(rfSql.length() > 0) {
+									getTaskSql.append(" and ").append(rfSql);
+								}
+							}
+
 							if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 							pstmt = cResults.prepareStatement(getTaskSql.toString());
 
@@ -462,6 +480,9 @@ public class AllAssignments extends Application {
 							}
 							if(filterFrag != null) {
 								paramIdx = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, paramIdx, tz);
+							}
+							if(rfArray.size() > 0) {
+								paramIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramIdx, tz);
 							}
 
 							// log.info("SQL Get Tasks: ----------------------- " + pstmt.toString());
@@ -726,16 +747,46 @@ public class AllAssignments extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
-		for(int i = 0; i < aArray.size(); i++) {
 
-			Assignment ass = aArray.get(i);
+		/*
+		 * For each assignment validate both:
+		 *   1) survey level - the requester may administer the task / assignment
+		 *   2) record level (RBAC) - the assignee may access the record the task updates
+		 */
+		String rbacError = null;
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			String tz = GeneralUtilityMethods.getOrganisationTZ(sd, GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser()));
+			TaskManager tmRbac = new TaskManager(localisation, tz);
 
-			if(ass.assignment_id == 0) {	// New assignment
-				a.isValidTask(sd, request.getRemoteUser(), ass.task_id);
-			} else {	// update existing assignment
-				a.isValidAssignment(sd, request.getRemoteUser(), ass.assignment_id);
+			for(Assignment ass : aArray) {
+				String assigneeIdent = (ass.user != null && ass.user.id > 0)
+						? GeneralUtilityMethods.getUserIdent(sd, ass.user.id) : null;
+				if(ass.assignment_id == 0) {	// New assignment
+					a.isValidTask(sd, request.getRemoteUser(), ass.task_id);
+					if(assigneeIdent != null) {
+						tmRbac.checkTaskRecordAccess(sd, cResults, ass.task_id, assigneeIdent);
+					}
+				} else {						// Update existing assignment
+					a.isValidAssignment(sd, request.getRemoteUser(), ass.assignment_id);
+					if(assigneeIdent != null) {
+						tmRbac.checkAssignmentRecordAccess(sd, cResults, ass.assignment_id, assigneeIdent);
+					}
+				}
 			}
-
+		} catch (AuthorisationException e) {	// Survey level: Authorise has already closed sd
+			throw e;
+		} catch (Exception e) {					// Record level access denied - sd is still open
+			rbacError = e.getMessage();
+			log.log(Level.SEVERE, "", e);
+		} finally {
+			ResultsDataSource.closeConnection(connectionString, cResults);
+		}
+		if(rbacError != null) {
+			SDDataSource.closeConnection(connectionString, sd);
+			return Response.status(Status.FORBIDDEN).entity(rbacError).build();
 		}
 		// End Authorisation
 
