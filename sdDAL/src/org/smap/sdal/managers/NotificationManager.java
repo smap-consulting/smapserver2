@@ -37,7 +37,6 @@ import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.ServerData;
-import org.smap.sdal.model.SharePointColumnMap;
 import org.smap.sdal.model.PeriodicTime;
 import org.smap.sdal.model.ReportParameters;
 import org.smap.sdal.model.SendEmailResponse;
