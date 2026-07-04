@@ -732,6 +732,55 @@ public class RoleManager {
 	}
 	
 	/*
+	 * Return true if the user is permitted to access the specific record (instanceId) taking
+	 * account of record level (row filter) RBAC rules on the survey.
+	 * A super user, or a user with no row filter on the survey, can access any record.
+	 * Used to enforce record level security before a case/reference is assigned to a user so
+	 * that an assignment cannot grant access to a record the row filter would otherwise hide.
+	 */
+	public boolean canAccessRecord(Connection sd, Connection cResults, String sIdent,
+			String tableName, String instanceId, String user, String tz) throws Exception {
+
+		if(user == null || tableName == null || instanceId == null) {
+			return false;
+		}
+
+		// Super users are not restricted by row filters (matches the read path)
+		if(GeneralUtilityMethods.isSuperUser(sd, user)) {
+			return true;
+		}
+
+		ArrayList<SqlFrag> rfArray = getSurveyRowFilter(sd, sIdent, user);
+		String rFilter = convertSqlFragsToSql(rfArray);
+		if(rFilter.length() == 0) {
+			return true;		// No record level restriction for this user
+		}
+
+		if(!GeneralUtilityMethods.tableExists(cResults, tableName)) {
+			return false;
+		}
+
+		StringBuilder sql = new StringBuilder("select 1 from ")
+				.append(tableName)
+				.append(" where instanceid = ? and not _bad and ")
+				.append(rFilter)
+				.append(" limit 1");
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cResults.prepareStatement(sql.toString());
+			int idx = 1;
+			pstmt.setString(idx++, instanceId);
+			GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, idx, tz);
+			log.fine("Record access check: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next();
+		} finally {
+			try {if(pstmt != null) {pstmt.close();}} catch(Exception e) {}
+		}
+	}
+
+	/*
 	 * Combine SQL fragments in the same group with "OR"
 	 * Add each SQL fragment back to rfArray in the order that they are processed
 	 */

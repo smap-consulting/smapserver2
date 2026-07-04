@@ -1603,6 +1603,16 @@ public class OpsMonitorManager {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
 		}
 
+		// Record level security: do not assign to a user whose row filter (RBAC) rules would
+		// otherwise hide this record, as the assignment would grant access
+		if("assign".equals(type) && assignTo != null && !assignTo.equals("_none")) {
+			RoleManager roleMgr = new RoleManager(localisation);
+			String tz = GeneralUtilityMethods.getOrganisationTZ(sd, oId);
+			if(!roleMgr.canAccessRecord(sd, cResults, caseSurvey, table, instanceid, assignTo, tz)) {
+				throw new org.smap.sdal.Utilities.AuthorisationException();
+			}
+		}
+
 		CaseManager cm = new CaseManager(localisation);
 		return cm.assignRecord(sd, cResults, localisation, table, instanceid, assignTo, type, caseSurvey, null, requestingUser);
 	}
