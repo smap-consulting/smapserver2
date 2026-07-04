@@ -734,9 +734,11 @@ public class RoleManager {
 	/*
 	 * Return true if the user is permitted to access the specific record (instanceId) taking
 	 * account of record level (row filter) RBAC rules on the survey.
-	 * A super user, or a user with no row filter on the survey, can access any record.
-	 * Used to enforce record level security before a case/reference is assigned to a user so
-	 * that an assignment cannot grant access to a record the row filter would otherwise hide.
+	 * A super user can access any record.  If the survey has enabled roles the user must hold at
+	 * least one of them; if the survey has no roles, or the user's role(s) impose no row filter,
+	 * any record is accessible; otherwise the record must match the row filter.
+	 * Used to enforce record level security before a case/reference/task is assigned to a user so
+	 * that an assignment cannot grant access to a record the roles would otherwise hide.
 	 */
 	public boolean canAccessRecord(Connection sd, Connection cResults, String sIdent,
 			String tableName, String instanceId, String user, String tz) throws Exception {
@@ -750,10 +752,16 @@ public class RoleManager {
 			return true;
 		}
 
+		// If the survey has enabled roles the user must hold at least one of them, otherwise the
+		// survey is not visible to the user at all (matches getSurveyRBAC on the read path)
+		if(surveyHasRoles(sd, sIdent) && !userHasRoleOnSurvey(sd, sIdent, user)) {
+			return false;
+		}
+
 		ArrayList<SqlFrag> rfArray = getSurveyRowFilter(sd, sIdent, user);
 		String rFilter = convertSqlFragsToSql(rfArray);
 		if(rFilter.length() == 0) {
-			return true;		// No record level restriction for this user
+			return true;		// Survey has no roles, or the user's role(s) impose no row filter
 		}
 
 		if(!GeneralUtilityMethods.tableExists(cResults, tableName)) {
@@ -775,6 +783,38 @@ public class RoleManager {
 			log.fine("Record access check: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			return rs.next();
+		} finally {
+			try {if(pstmt != null) {pstmt.close();}} catch(Exception e) {}
+		}
+	}
+
+	/*
+	 * True if the survey has one or more enabled roles (record level RBAC is in force)
+	 */
+	private boolean surveyHasRoles(Connection sd, String sIdent) throws SQLException {
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement("select count(*) from survey_role where survey_ident = ? and enabled");
+			pstmt.setString(1, sIdent);
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() && rs.getInt(1) > 0;
+		} finally {
+			try {if(pstmt != null) {pstmt.close();}} catch(Exception e) {}
+		}
+	}
+
+	/*
+	 * True if the user holds at least one enabled role on the survey
+	 */
+	private boolean userHasRoleOnSurvey(Connection sd, String sIdent, String user) throws SQLException {
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement("select count(*) from survey_role sr, user_role ur, users u "
+					+ "where sr.survey_ident = ? and sr.enabled and sr.r_id = ur.r_id and ur.u_id = u.id and u.ident = ?");
+			pstmt.setString(1, sIdent);
+			pstmt.setString(2, user);
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() && rs.getInt(1) > 0;
 		} finally {
 			try {if(pstmt != null) {pstmt.close();}} catch(Exception e) {}
 		}
