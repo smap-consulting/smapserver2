@@ -58,4 +58,5 @@ public class SurveyDAO {
 	public SurveyLinks links;
 	public boolean turnstile;
 	public boolean showFormIndex;			// Show a form index panel for navigation
+	public int maxReferenceRecords;			// When used as a reference file, supply only the latest N records (0 = unlimited)
 }

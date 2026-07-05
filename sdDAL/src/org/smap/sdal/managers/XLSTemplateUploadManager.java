@@ -443,6 +443,14 @@ public class XLSTemplateUploadManager {
 				survey.surveyData.track_changes = getBooleanColumn(row, "track_changes", settingsHeader, lastCellNum, false);
 				survey.surveyData.compress_pdf = getBooleanColumn(row, "compress_pdf", settingsHeader, lastCellNum, false);
 				survey.surveyData.turnstile = getBooleanColumn(row, "turnstile", settingsHeader, lastCellNum, false);
+				String maxRefStr = XLSUtilities.getTextColumn(wb, row, "max_reference_records", settingsHeader, lastCellNum, null);
+				if(maxRefStr != null && maxRefStr.trim().length() > 0) {
+					try {
+						survey.surveyData.maxReferenceRecords = (int) Double.parseDouble(maxRefStr.trim());
+					} catch (NumberFormatException e) {
+						survey.surveyData.maxReferenceRecords = 0;
+					}
+				}
 
 				survey.surveyData.uk.key = XLSUtilities.getTextColumn(wb, row, "key", settingsHeader, lastCellNum, null);
 				
