@@ -1351,16 +1351,23 @@ public class SurveyTableManager {
 		boolean regenerate = false;
 		boolean tableExists = true;
 
-		String sql = "select count (*) from linked_forms " 
-				+ "where linked_s_id = ? " 
+		String sql = "select count (*), coalesce(max(max_records), 0) from linked_forms "
+				+ "where linked_s_id = ? "
 				+ "and linker_s_id = ? "
 				+ "and link_file = ? ";
 		PreparedStatement pstmt = null;
 
+		String sqlDelStale = "delete from linked_forms where linker_s_id = ? and link_file = ?";
+		PreparedStatement pstmtDelStale = null;
+
 		String sqlInsert = "insert into linked_forms "
-				+ "(Linked_s_id, linker_s_id, link_file, download_time) " 
-				+ "values(?, ?, ?, now())";
+				+ "(Linked_s_id, linker_s_id, link_file, download_time, max_records) "
+				+ "values(?, ?, ?, now(), ?)";
 		PreparedStatement pstmtInsert = null;
+
+		// The record cap only applies to plain reference files (chart / pulldata order and
+		// group differently and are not capped), so only they trigger a cap-change regenerate.
+		int currentMax = (!chart && !linked_s_pd) ? getMaxReferenceRecords() : 0;
 
 		try {
 
@@ -1383,10 +1390,20 @@ public class SurveyTableManager {
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				int count = rs.getInt(1);
-				if (count > 0) {
+				int storedMax = rs.getInt(2);
+				if (count > 0 && storedMax == currentMax) {
 					regenerate = false;
 					// log.fine("Regenerate is false");
 				} else {
+
+					// The record cap has changed - clear the stale entries so they are
+					// reinserted below with the new cap and the file is regenerated.
+					if (count > 0) {
+						pstmtDelStale = sd.prepareStatement(sqlDelStale);
+						pstmtDelStale.setInt(1, sId);
+						pstmtDelStale.setString(2, logicalFilePath);
+						pstmtDelStale.executeUpdate();
+					}
 
 					String table = GeneralUtilityMethods.getMainResultsTable(sd, cRel, linked_sId);
 
@@ -1395,7 +1412,7 @@ public class SurveyTableManager {
 						// log.fine("Need to regenerate");
 
 						pstmtInsert = sd.prepareStatement(sqlInsert);
-						
+
 						// Create an entry in linked forms for all grouped surveys that this this survey links to
 						String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, linked_sId );
 						HashMap<Integer, Integer> groupSurveys = GeneralUtilityMethods.getGroupSurveys(sd, groupSurveyIdent);
@@ -1404,6 +1421,7 @@ public class SurveyTableManager {
 								pstmtInsert.setInt(1, gSId);
 								pstmtInsert.setInt(2, sId);
 								pstmtInsert.setString(3, logicalFilePath);
+								pstmtInsert.setInt(4, currentMax);
 								pstmtInsert.executeUpdate();
 								// log.fine("Insert record: " + pstmtInsert.toString());
 							}
@@ -1425,6 +1443,7 @@ public class SurveyTableManager {
 		} finally {
 			try {sd.setAutoCommit(true);} catch(Exception e) {};
 			if (pstmt != null) {	try {pstmt.close();} catch (Exception e) {}}
+			if (pstmtDelStale != null) {try {pstmtDelStale.close();} catch (Exception e) {}}
 			if (pstmtInsert != null) {try {pstmtInsert.close();} catch (Exception e) {}}
 		}
 

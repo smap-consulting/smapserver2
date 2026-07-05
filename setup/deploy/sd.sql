@@ -403,3 +403,5 @@ DROP SEQUENCE IF EXISTS alert_seq CASCADE;
 -- Cap the number of records supplied by a survey when used as a reference file.
 -- 0 (default) = unlimited; N = only the latest N records by _upload_time.
 alter table survey add column if not exists max_reference_records integer default 0;
+-- Record the cap a linked file was generated with so it can be regenerated when the cap changes.
+alter table linked_forms add column if not exists max_records integer default 0;
