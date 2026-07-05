@@ -21,6 +21,7 @@ public class TrTask {
 	public String address;			// Key value pairs representing an unstructured address
 	public String status;
 	public int show_dist;
+	public long update_time;		// _upload_time of the latest record (epoch ms); device skips re-download of cases/references unless this increases
 	
 	
 	//public String pid;				// Project id
