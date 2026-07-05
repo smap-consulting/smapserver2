@@ -939,6 +939,32 @@ public class SurveyTableManager {
 	}
 	
 	/*
+	 * Get the record cap configured on the referenced (source) survey.
+	 * 0 = unlimited. Used to restrict a reference file to its latest N records.
+	 */
+	private int getMaxReferenceRecords() {
+		int maxRecords = 0;
+		if(linked_sIdent == null) {
+			return 0;
+		}
+		String sql = "select max_reference_records from survey where ident = ?";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, linked_sIdent);
+			ResultSet rsMax = pstmt.executeQuery();
+			if(rsMax.next()) {
+				maxRecords = rsMax.getInt(1);
+			}
+		} catch (SQLException e) {
+			log.log(Level.WARNING, "Failed to read max_reference_records for " + linked_sIdent, e);
+		} finally {
+			try {if(pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+		return maxRecords;
+	}
+
+	/*
 	 * Generate a CSV file from the survey reference data
 	 */
 	public boolean generateCsvFile(Connection cResults, File f, int sId, String userIdent, String basePath,
@@ -984,9 +1010,21 @@ public class SurveyTableManager {
 			}
 			
 			sqlBuild.append(sqlDef.order_by);
+
+			/*
+			 * Optionally cap a referenced survey to its latest N records.  The plain reference
+			 * paths order by prikey desc (latest first, monotonic with _upload_time), so a
+			 * trailing limit yields the most recent N submissions.  Skip chart / pulldata which
+			 * order and group differently.
+			 */
+			int maxRecords = (!chart && !linked_s_pd) ? getMaxReferenceRecords() : 0;
+			if(maxRecords > 0) {
+				sqlBuild.append(" limit ").append(maxRecords);
+			}
+
 			String sql = sqlBuild.toString();					// Escape quotes when passing sql to psql
 			String sqlNoEscapes = sql.replace("\\", "");		// Remove escaping of quotes when used in prepared statement
-			
+
 			if(sqlDef.colNames.size() == 0) {
 				log.fine("++++++ No column names present in table. Creating empty file");
 				

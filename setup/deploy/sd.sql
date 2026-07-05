@@ -399,3 +399,7 @@ ALTER TABLE ops_settings OWNER TO ws;
 -- cms_alert + case_alert_triggered, alert history lives in record_event)
 DROP TABLE IF EXISTS alert CASCADE;
 DROP SEQUENCE IF EXISTS alert_seq CASCADE;
+
+-- Cap the number of records supplied by a survey when used as a reference file.
+-- 0 (default) = unlimited; N = only the latest N records by _upload_time.
+alter table survey add column if not exists max_reference_records integer default 0;
