@@ -2,36 +2,41 @@ package org.smap.sdal.Utilities;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.managers.PDFTableManager;
-import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.User;
 
-import com.itextpdf.text.BaseColor;
-import com.itextpdf.text.Chunk;
-import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.Element;
-import com.itextpdf.text.Font;
-import com.itextpdf.text.Image;
-import com.itextpdf.text.Paragraph;
-import com.itextpdf.text.Phrase;
-import com.itextpdf.text.Rectangle;
-import com.itextpdf.text.Font.FontFamily;
-import com.itextpdf.text.pdf.ColumnText;
-import com.itextpdf.text.pdf.PdfContentByte;
-import com.itextpdf.text.pdf.PdfPCell;
-import com.itextpdf.text.pdf.PdfPTable;
-import com.itextpdf.text.pdf.PdfPageEventHelper;
-import com.itextpdf.text.pdf.PdfWriter;
+import com.itextpdf.io.font.constants.StandardFonts;
+import com.itextpdf.io.image.ImageDataFactory;
+import com.itextpdf.kernel.colors.ColorConstants;
+import com.itextpdf.kernel.events.Event;
+import com.itextpdf.kernel.events.IEventHandler;
+import com.itextpdf.kernel.events.PdfDocumentEvent;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
+import com.itextpdf.kernel.geom.Rectangle;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfPage;
+import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
+import com.itextpdf.layout.Canvas;
+import com.itextpdf.layout.element.Cell;
+import com.itextpdf.layout.element.Image;
+import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.properties.TextAlignment;
+import com.itextpdf.layout.properties.UnitValue;
 
 /*
- * Class to write headers and footers on each page
+ * Event handler to write headers and footers on each page (iText 8).
+ * Replaces the iText 5 PdfPageEventHelper.  Register with:
+ *   pdfDoc.addEventHandler(PdfDocumentEvent.END_PAGE, new PdfPageSizer(...));
+ *
+ * Note: iText 8 uses uniform document margins (no per-page margin change as the
+ * old onStartPage did).  The caller should set the top margin large enough for
+ * the page-1 title/logo band; this handler only draws, it does not alter margins.
  */
-public class PdfPageSizer extends PdfPageEventHelper {
-	int pagenumber = 0;
+public class PdfPageSizer implements IEventHandler {
 	User user = null;
 	String title;
 	String basePath;
@@ -42,12 +47,12 @@ public class PdfPageSizer extends PdfPageEventHelper {
 	String surveyIdent;
 	String defaultLogo;
 	ArrayList<String> tableHeader;
-	
+
 	private static Logger log =
 			 Logger.getLogger(PDFTableManager.class.getName());
-	
-	Font font = new Font(FontFamily.HELVETICA, 10);
-	
+
+	private PdfFont font;
+
 	public PdfPageSizer(String title, User user, String basePath,
 			ArrayList<String> tableHeader,
 			int marginLeft,
@@ -56,9 +61,7 @@ public class PdfPageSizer extends PdfPageEventHelper {
 			int marginBottom_2,
 			String surveyIdent,
 			String defaultLogo) {
-		
-		super();
-		
+
 		this.title = title;
 		this.user = user;
 		this.basePath = basePath;
@@ -69,135 +72,114 @@ public class PdfPageSizer extends PdfPageEventHelper {
 		this.tableHeader = tableHeader;
 		this.surveyIdent = surveyIdent;
 		this.defaultLogo = defaultLogo;
-		
-	}
-	
-	public void onStartPage(PdfWriter writer, Document document) {
-		pagenumber++;
 
-		document.setMargins(marginLeft, marginRight, marginTop_2, marginBottom_2);
-		if(tableHeader != null) {
-			PdfPTable table = new PdfPTable(tableHeader.size());	
-			for(String h : tableHeader) {
-				
-				PdfPCell cell = new PdfPCell();
-				cell.setBorderColor(BaseColor.LIGHT_GRAY);
-				cell.setBackgroundColor(BaseColor.LIGHT_GRAY);
-			 
-				// Set the content of the value cell
-				try {
-					Paragraph para = new Paragraph("", font);
-					para.add(new Chunk(GeneralUtilityMethods.unesc(h), font));
-					cell.addElement(para);
-					//updateValueCell(valueCell, kv.v, basePath);
-				} catch (Exception e) {
-					log.log(Level.SEVERE, "Exception", e);
-				}
-				
-				cell.setBorderColor(BaseColor.LIGHT_GRAY);
-				
-				table.addCell(cell);
-
-			}
-			try {
-				table.setWidthPercentage(100);
-				document.add(table);
-			} catch (DocumentException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
+		try {
+			font = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+		} catch (Exception e) {
+			log.fine("Failed to create Helvetica font for page sizer");
 		}
-		
 	}
-	public void onEndPage(PdfWriter writer, Document document) {
-		
-		Rectangle pageRect = writer.getPageSize();
-		
-		// Write header on first page only
-		if(pagenumber == 1) {
-			
-			// Add Title
-			Font titleFont = new Font();
-			titleFont.setSize(18);
-			Phrase titlePhrase = new Phrase();
-			titlePhrase.setFont(titleFont);
-			titlePhrase.add(title);
-			
-			ColumnText ct = new ColumnText(writer.getDirectContent());
-			ct.setSimpleColumn(titlePhrase, marginLeft, 0, pageRect.getRight() - marginRight, pageRect.getTop() - 100, 20, Element.ALIGN_CENTER);
-			try {
-				ct.go();
-			} catch (DocumentException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
+
+	@Override
+	public void handleEvent(Event event) {
+
+		PdfDocumentEvent docEvent = (PdfDocumentEvent) event;
+		PdfDocument pdf = docEvent.getDocument();
+		PdfPage page = docEvent.getPage();
+		int pageNumber = pdf.getPageNumber(page);
+		Rectangle pageRect = page.getPageSize();
+
+		PdfCanvas pdfCanvas = new PdfCanvas(page.newContentStreamAfter(), page.getResources(), pdf);
+		Canvas canvas = new Canvas(pdfCanvas, pageRect);
+
+		try {
+			// Optional repeating column header (drawn as a band under the top margin)
+			if (tableHeader != null) {
+				Table table = new Table(UnitValue.createPercentArray(tableHeader.size())).useAllAvailableWidth();
+				for (String h : tableHeader) {
+					Cell cell = new Cell()
+							.add(new Paragraph(GeneralUtilityMethods.unesc(h)).setFont(font).setFontSize(10))
+							.setBackgroundColor(ColorConstants.LIGHT_GRAY)
+							.setBorderTop(new com.itextpdf.layout.borders.SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f))
+							.setBorderBottom(new com.itextpdf.layout.borders.SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f));
+					table.addCell(cell);
+				}
+				table.setFixedPosition(marginLeft, pageRect.getTop() - marginTop_2 - 30,
+						pageRect.getWidth() - marginLeft - marginRight);
+				canvas.add(table);
 			}
-			
-			if(user != null) {
-				// Show the logo
-				String fileName = null;
-				File f = null;
-				try {
-					
-					if(defaultLogo != null && !defaultLogo.equals("none")) {
-						// Try survey folder
-						fileName = basePath + File.separator + "media" + File.separator +
-								surveyIdent + File.separator + defaultLogo;
-						f = new File(fileName);
-						
-						// Try organisation folder
-						if(!f.exists()) {
+
+			// Title and logo on the first page only
+			if (pageNumber == 1) {
+				canvas.showTextAligned(
+						new Paragraph(title == null ? "" : title).setFont(font).setFontSize(18),
+						(pageRect.getLeft() + pageRect.getRight()) / 2,
+						pageRect.getTop() - 100, TextAlignment.CENTER);
+
+				if (user != null) {
+					String fileName = null;
+					File f = null;
+					try {
+						if (defaultLogo != null && !defaultLogo.equals("none")) {
+							// Try survey folder
+							fileName = basePath + File.separator + "media" + File.separator +
+									surveyIdent + File.separator + defaultLogo;
+							f = new File(fileName);
+
+							// Try organisation folder
+							if (!f.exists()) {
+								fileName = basePath + File.separator + "media" + File.separator +
+										"organisation" + File.separator + user.o_id + File.separator +
+										defaultLogo;
+							}
+							f = new File(fileName);
+						}
+						if (f == null || !f.exists()) {
+							// try banner logo
 							fileName = basePath + File.separator + "media" + File.separator +
 									"organisation" + File.separator + user.o_id + File.separator +
-									defaultLogo;
+									"settings" + File.separator + "bannerLogo";
+							f = new File(fileName);
 						}
-						f = new File(fileName);
-					}
-					if(f == null || !f.exists()) {
-						// try banner logo
-						fileName = basePath + File.separator + "media" + File.separator +
-								"organisation" + File.separator + user.o_id + File.separator +
-								"settings" + File.separator + "bannerLogo";
-						f = new File(fileName);
-					}
-						
-					if(f.exists()) {
-						Image img = Image.getInstance(f.getAbsolutePath());
-						img.scaleToFit(200, 50);
-						float w = img.getScaledWidth();
-						img.setAbsolutePosition(
-								pageRect.getRight() - (marginRight + w),
-								pageRect.getTop() - 75);
-						document.add(img);
-					}
 
-				} catch (Exception e) {
-					log.fine("Error: Failed to add image " + fileName + " to pdf");
+						if (f.exists()) {
+							Image img = new Image(ImageDataFactory.create(f.getAbsolutePath()));
+							img.scaleToFit(200, 50);
+							float w = img.getImageScaledWidth();
+							img.setFixedPosition(
+									pageRect.getRight() - (marginRight + w),
+									pageRect.getTop() - 75);
+							canvas.add(img);
+						}
+					} catch (Exception e) {
+						log.fine("Error: Failed to add image " + fileName + " to pdf");
+					}
 				}
 			}
+
+			// Footer is always written
+			if (user != null) {
+				float mid = (pageRect.getLeft() + pageRect.getRight()) / 2;
+				showFooterLine(canvas, user.company_name, mid, pageRect.getBottom() + 80);
+				showFooterLine(canvas, user.company_address, mid, pageRect.getBottom() + 65);
+				showFooterLine(canvas, user.company_phone, mid, pageRect.getBottom() + 50);
+				showFooterLine(canvas, user.company_email, mid, pageRect.getBottom() + 35);
+			}
+
+			// Add page number
+			showFooterLine(canvas, String.format("page %d", pageNumber),
+					pageRect.getRight() - 100, pageRect.getBottom() + 25);
+
+		} finally {
+			canvas.close();
 		}
-		
-		// Footer is always written
-		if(user != null) {
-			// Add organisation
-			ColumnText.showTextAligned(writer.getDirectContent(), 
-					Element.ALIGN_CENTER, new Phrase(user.company_name), 
-					(pageRect.getLeft() + pageRect.getRight()) /2, pageRect.getBottom() + 80, 0);
-			// Add organisation address
-			ColumnText.showTextAligned(writer.getDirectContent(), 
-					Element.ALIGN_CENTER, new Phrase(user.company_address), 
-					(pageRect.getLeft() + pageRect.getRight()) /2, pageRect.getBottom() + 65, 0);
-			ColumnText.showTextAligned(writer.getDirectContent(), 
-					Element.ALIGN_CENTER, new Phrase(user.company_phone), 
-					(pageRect.getLeft() + pageRect.getRight()) /2, pageRect.getBottom() + 50, 0);
-			ColumnText.showTextAligned(writer.getDirectContent(), 
-					Element.ALIGN_CENTER, new Phrase(user.company_email), 
-					(pageRect.getLeft() + pageRect.getRight()) /2, pageRect.getBottom() + 35, 0);
+	}
+
+	private void showFooterLine(Canvas canvas, String text, float x, float y) {
+		if (text == null) {
+			text = "";
 		}
-		
-		// Add page number
-		ColumnText.showTextAligned(writer.getDirectContent(), 
-				Element.ALIGN_CENTER, new Phrase(String.format("page %d", pagenumber)), 
-				pageRect.getRight() - 100, pageRect.getBottom() + 25, 0);
+		canvas.showTextAligned(new Paragraph(text).setFont(font).setFontSize(10),
+				x, y, TextAlignment.CENTER);
 	}
 }

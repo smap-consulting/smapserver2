@@ -15,13 +15,10 @@
 package com.nafundi.taskforce.codebook.logic;
 
 import com.googlecode.jatl.Html;
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.pdf.BaseFont;
-import org.w3c.dom.Document;
-import org.w3c.tidy.Tidy;
-import org.xhtmlrenderer.pdf.ITextRenderer;
+import com.itextpdf.html2pdf.ConverterProperties;
+import com.itextpdf.html2pdf.HtmlConverter;
+import com.itextpdf.layout.font.FontProvider;
 
-import javax.swing.*;
 import java.io.*;
 import java.util.ArrayList;
 
@@ -131,20 +128,12 @@ public class CodebookMakerSmap  {
         String htmlFooter = "\n</html>";
         String htmlDocument = htmlHeader + writer.getBuffer().toString() + htmlFooter;
 
-        // make sure html entities aren't mangled in document building process
-        Tidy tidy = new Tidy();
-        tidy.setQuiet(true);
-        tidy.setXmlTags(false);
-        tidy.setShowWarnings(false);
-        tidy.setInputEncoding("UTF-8");
-        tidy.setOutputEncoding("UTF-8");
-        tidy.setXHTML(true);
-        Document document = tidy.parseDOM(new ByteArrayInputStream(htmlDocument.getBytes("UTF-8")), null);
+        // Render the HTML string to PDF using iText 8 html2pdf
+        ConverterProperties props = new ConverterProperties();
+        props.setFontProvider(buildFontProvider());
 
-        // create render of document
-        // ITextRender is not thread-safe
+        // HtmlConverter is not thread-safe with a shared FontProvider
         synchronized (this) {
-            ITextRenderer renderer = new ITextRenderer();
 
             
             /*
@@ -169,30 +158,23 @@ public class CodebookMakerSmap  {
             }
 			*/
             
-            renderer.setDocument(document, null);
-            renderer.layout();
-
             // write out document as pdf
             OutputStream outputStream = null;
             try {
                 outputStream = new FileOutputStream(outputFolderPath + File.separator + inputFilename + ".pdf");
-            } catch (FileNotFoundException e) {
+                HtmlConverter.convertToPdf(htmlDocument, outputStream, props);
+            } catch (Exception e) {
                 errorMsg = e.getMessage();
                 e.printStackTrace();
-            }
-            try {
-                renderer.createPDF(outputStream);
-            } catch (DocumentException e) {
-                errorMsg = e.getMessage();
-                e.printStackTrace();
-            }
-            try {
-                if (outputStream != null) {
-                    outputStream.close();
+            } finally {
+                try {
+                    if (outputStream != null) {
+                        outputStream.close();
+                    }
+                } catch (IOException e) {
+                    errorMsg = e.getMessage();
+                    e.printStackTrace();
                 }
-            } catch (IOException e) {
-                errorMsg = e.getMessage();
-                e.printStackTrace();
             }
 
         }
@@ -204,6 +186,21 @@ public class CodebookMakerSmap  {
 
         System.out.println("Finished making " + getLocale() + " codebook");
         return 0;
+    }
+
+    private FontProvider buildFontProvider() {
+        FontProvider fp = new FontProvider();
+        String fontDir = isMac() ? "/Library/Fonts/" : "/usr/share/fonts/truetype/";
+        try {
+            fp.addFont(fontDir + "NotoSans-Regular.ttf");
+            fp.addFont(fontDir + "NotoSans-Bold.ttf");
+            fp.addFont(fontDir + "NotoSansBengali-Regular.ttf");
+            fp.addFont(fontDir + "NotoSansBengali-Bold.ttf");
+            fp.addFont(fontDir + "NotoNaskhArabic-Regular.ttf");
+        } catch (Exception e) {
+            System.out.println("Warning: failed to register fonts; non-Latin characters may not display.");
+        }
+        return fp;
     }
 
     private void publishError(String errorMessage) {

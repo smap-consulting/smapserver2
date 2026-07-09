@@ -58,30 +58,32 @@ import org.w3c.dom.Document;
 
 import com.github.binodnme.dateconverter.converter.DateConverter;
 import com.github.binodnme.dateconverter.utils.DateBS;
-import com.itextpdf.text.Anchor;
-import com.itextpdf.text.BadElementException;
-import com.itextpdf.text.BaseColor;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.Element;
-import com.itextpdf.text.Font;
-import com.itextpdf.text.Image;
-import com.itextpdf.text.Rectangle;
-import com.itextpdf.text.pdf.AcroFields;
-import com.itextpdf.text.pdf.AcroFields.FieldPosition;
-import com.itextpdf.text.pdf.ColumnText;
-import com.itextpdf.text.pdf.PRStream;
-import com.itextpdf.text.pdf.PdfCopy;
-import com.itextpdf.text.pdf.PdfImportedPage;
-import com.itextpdf.text.pdf.PdfName;
-import com.itextpdf.text.pdf.PdfNumber;
-import com.itextpdf.text.pdf.PdfObject;
-import com.itextpdf.text.pdf.PdfReader;
-import com.itextpdf.text.pdf.PdfStamper;
-import com.itextpdf.text.pdf.PushbuttonField;
-import com.itextpdf.text.pdf.RandomAccessFileOrArray;
-import com.itextpdf.text.pdf.parser.LocationTextExtractionStrategy;
-import com.itextpdf.text.pdf.parser.PdfImageObject;
-import com.itextpdf.text.pdf.parser.PdfTextExtractor;
+import com.itextpdf.io.image.ImageData;
+import com.itextpdf.io.image.ImageDataFactory;
+import com.itextpdf.kernel.colors.DeviceRgb;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.geom.Rectangle;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfName;
+import com.itextpdf.kernel.pdf.PdfNumber;
+import com.itextpdf.kernel.pdf.PdfObject;
+import com.itextpdf.kernel.pdf.PdfReader;
+import com.itextpdf.kernel.pdf.PdfStream;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.pdf.action.PdfAction;
+import com.itextpdf.kernel.pdf.annot.PdfWidgetAnnotation;
+import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
+import com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor;
+import com.itextpdf.kernel.pdf.canvas.parser.listener.LocationTextExtractionStrategy;
+import com.itextpdf.kernel.pdf.xobject.PdfFormXObject;
+import com.itextpdf.kernel.pdf.xobject.PdfImageXObject;
+import com.itextpdf.forms.PdfAcroForm;
+import com.itextpdf.forms.fields.PdfButtonFormField;
+import com.itextpdf.forms.fields.PdfFormField;
+import com.itextpdf.layout.Canvas;
+import com.itextpdf.layout.element.Link;
+import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.properties.TextAlignment;
 
 public class PdfUtilities {
 
@@ -90,66 +92,69 @@ public class PdfUtilities {
 	
 	private static LogManager lm = new LogManager();		// Application log
 	
-	public static void addImageTemplate(AcroFields pdfForm, String fieldName, String basePath, 
-			String value, String serverRoot, PdfStamper stamper, Font symbols_font,
-			boolean stretch) throws IOException, DocumentException {
-		
-		PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
-		if(ad != null) {
-			ad.setLayout(PushbuttonField.LAYOUT_ICON_ONLY);
-			ad.setProportionalIcon(!stretch);
+	public static void addImageTemplate(PdfAcroForm pdfForm, String fieldName, String basePath,
+			String value, String serverRoot, PdfDocument pdfDoc, PdfFont symbols_font,
+			boolean stretch) throws IOException {
+
+		PdfFormField field = pdfForm.getField(fieldName);
+		if(field instanceof PdfButtonFormField) {
+			PdfButtonFormField ad = (PdfButtonFormField) field;
 			try {
 				File f = new File(basePath + "/" + value);
 				if(f.exists()) {
-					ad.setImage(Image.getInstance(basePath + "/" + value));
+					ad.setImage(basePath + "/" + value);
 				} else {
 					// must be on s3
-					ad.setImage(Image.getInstance(serverRoot + "/" + value));
+					ad.setImage(serverRoot + "/" + value);
 				}
-				pdfForm.replacePushbuttonField(fieldName, ad.getField());
 			} catch (Exception e) {
 				log.fine("Error: Failed to add image " + basePath + "/" + value + " to pdf: " + e.getMessage());
 			}
-			
+
 			log.fine("Adding image to: " + fieldName);
-		} else {
-	
+		} else if(field != null) {
+
 			String imageUrl = serverRoot + value;
 
-			List<FieldPosition> posList = pdfForm.getFieldPositions(fieldName);
-			if(posList == null) {
+			PdfWidgetAnnotation widget = field.getWidgets().isEmpty() ? null : field.getWidgets().get(0);
+			if(widget == null) {
 				log.fine("Field not found for: " + fieldName);
 			} else {
-				Rectangle targetPosition = posList.get(0).position;
-				int page = pdfForm.getFieldPositions(fieldName).get(0).page;
-			    Anchor url = new Anchor("\uf08e", symbols_font);
-			    url.setReference(imageUrl);
-			    ColumnText data = new ColumnText(stamper.getOverContent(page));
-			
-			    data.setSimpleColumn(url, targetPosition.getLeft(), targetPosition.getBottom(), targetPosition.getRight(), targetPosition.getTop(), 
-			    		(targetPosition.getHeight() + symbols_font.getSize()) / 2, Element.ALIGN_CENTER);
-			    data.go();
+				Rectangle targetPosition = widget.getRectangle().toRectangle();
+			    Link url = new Link("\uf08e", PdfAction.createURI(imageUrl));
+			    float fontSize = 12;
+			    Canvas data = new Canvas(new PdfCanvas(widget.getPage()), targetPosition);
+			    data.showTextAligned(
+			    		new Paragraph(url).setFont(symbols_font).setFontSize(fontSize),
+			    		(targetPosition.getLeft() + targetPosition.getRight()) / 2,
+			    		targetPosition.getBottom() + (targetPosition.getHeight() - fontSize) / 2,
+			    		TextAlignment.CENTER);
+			    data.close();
 			}
 		}
 	}
-	
-	public static void addMapImageTemplate(AcroFields pdfForm, PushbuttonField ad, String fieldName, Image img, boolean stretch) throws IOException, DocumentException {
-		
-		if(ad != null) {
-			ad.setLayout(PushbuttonField.LAYOUT_ICON_ONLY);
-			ad.setProportionalIcon(!stretch);
+
+	public static void addMapImageTemplate(PdfAcroForm pdfForm, String fieldName, ImageData img, boolean stretch,
+			PdfDocument pdfDoc) {
+
+		PdfFormField field = pdfForm.getField(fieldName);
+		if(field instanceof PdfButtonFormField && img != null) {
+			PdfButtonFormField ad = (PdfButtonFormField) field;
 			try {
-				ad.setImage(img);
+				// Build a form XObject holding the (in-memory) image and set it as the button appearance
+				PdfImageXObject imgXObj = new PdfImageXObject(img);
+				PdfFormXObject formXObj = new PdfFormXObject(new Rectangle(0, 0, imgXObj.getWidth(), imgXObj.getHeight()));
+				new PdfCanvas(formXObj, pdfDoc).addXObjectAt(imgXObj, 0, 0);
+				ad.setImageAsForm(formXObj);
 			} catch (Exception e) {
 				log.fine("Error: Failed to add image to pdf: " + e.getMessage());
 			}
-			pdfForm.replacePushbuttonField(fieldName, ad.getField());
 			log.fine("Adding image to: " + fieldName);
-		} 
+		}
 	}
 	
-	public static Image getMapImage(
-			Connection sd, 
+	public static ImageData getMapImage(
+			Connection sd,
 			String mapSource,
 			String map, 
 			String account,
@@ -204,19 +209,19 @@ public class PdfUtilities {
 	/*
 	 * Convert geospatial data into a mapbox map image
 	 */
-	private static Image getMapImageMapbox(Connection sd, 
-			String map, 
+	private static ImageData getMapImageMapbox(Connection sd,
+			String map,
 			String account,
-			PdfMapValues mapValues, 
-			String location, 
+			PdfMapValues mapValues,
+			String location,
 			String zoom,
 			String mapbox_key,
 			int sId,
 			String user,
 			String markerColor,
-			String basePath) throws BadElementException, MalformedURLException, IOException, SQLException {
-		
-		Image img = null;
+			String basePath) throws MalformedURLException, IOException, SQLException {
+
+		ImageData img = null;
 		
 		StringBuilder url = new StringBuilder();
 		boolean getMap = false;
@@ -277,9 +282,9 @@ public class PdfUtilities {
 				URL mapboxUrl = new URL(url.toString());
 				BufferedImage tempImg = ImageIO.read(mapboxUrl);
 				File file = new File(basePath + "/temp/pdfmap_" + UUID.randomUUID() + ".png");
-				ImageIO.write(tempImg, "png", file);			       
-				img = Image.getInstance(file.getAbsolutePath());
-			    
+				ImageIO.write(tempImg, "png", file);
+				img = ImageDataFactory.create(file.getAbsolutePath());
+
 				lm.writeLog(sd, sId, user, LogManager.MAPBOX_REQUEST, map, 0, null);
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Exception", e);
@@ -293,19 +298,19 @@ public class PdfUtilities {
 	/*
 	 * Convert geospatial data into a Google map image
 	 */
-	private static Image getMapImageGoogle(Connection sd, 
-			String map, 
+	private static ImageData getMapImageGoogle(Connection sd,
+			String map,
 			String account,
-			PdfMapValues mapValues, 
-			String location, 
+			PdfMapValues mapValues,
+			String location,
 			String zoom,
 			String google_key,
 			int sId,
 			String user,
 			String markerColor,
-			String basePath) throws BadElementException, MalformedURLException, IOException, SQLException {
-		
-		Image img = null;
+			String basePath) throws MalformedURLException, IOException, SQLException {
+
+		ImageData img = null;
 		
 		StringBuilder url = new StringBuilder();
 		boolean hasParam = false;
@@ -338,9 +343,9 @@ public class PdfUtilities {
 				URL googleUrl = new URL(url.toString());
 				BufferedImage tempImg = ImageIO.read(googleUrl);
 				File file = new File(basePath + "/temp/pdfmap_" + UUID.randomUUID() + ".png");
-				ImageIO.write(tempImg, "png", file);			       
-				img = Image.getInstance(file.getAbsolutePath());
-			    
+				ImageIO.write(tempImg, "png", file);
+				img = ImageDataFactory.create(file.getAbsolutePath());
+
 				lm.writeLog(sd, sId, user, LogManager.GOOGLE_REQUEST, map, 0, null);
 			} catch (Exception e) {
 				lm.writeLog(sd, sId, user, LogManager.ERROR, "Could not get google map image. You may need to enable billing on your google maps API at https://console.cloud.google.com/project/_/billing/enable", 0, null);
@@ -354,18 +359,18 @@ public class PdfUtilities {
 	/*
 	 * Convert geospatial data into a mapbox map image
 	 */
-	private static Image getMapImageMapTiler(Connection sd, 
-			String map, 
-			PdfMapValues mapValues, 
-			String location, 
+	private static ImageData getMapImageMapTiler(Connection sd,
+			String map,
+			PdfMapValues mapValues,
+			String location,
 			String zoom,
 			String maptiler_key,
 			int sId,
 			String user,
 			String markerColor,
-			String basePath) throws BadElementException, MalformedURLException, IOException, SQLException {
-		
-		Image img = null;
+			String basePath) throws MalformedURLException, IOException, SQLException {
+
+		ImageData img = null;
 		
 		StringBuilder url = new StringBuilder();
 		String lonLat = null;
@@ -432,7 +437,7 @@ public class PdfUtilities {
 				 * However maptiler required it or the request will be rejected
 				 */
 				URL mapUrl = new URL(url.toString());
-				img = Image.getInstance(mapUrl);
+				img = ImageDataFactory.create(mapUrl);
 				lm.writeLog(sd, sId, user, LogManager.MAPTILER_REQUEST, map, 0, null);
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Exception", e);
@@ -445,7 +450,7 @@ public class PdfUtilities {
 	/*
 	 * Convert geospatial data into an abstract image
 	 */
-	public static Image getLineImage(Connection sd, 
+	public static ImageData getLineImage(Connection sd,
 			PdfMapValues mapValues,
 			TrafficLightValues tlValues,
 			int sId,
@@ -453,9 +458,9 @@ public class PdfUtilities {
 			DisplayItem di,
 			String basePath,
 			Float width,
-			Float height) throws BadElementException, MalformedURLException, IOException, SQLException, TranscoderException {
-		
-		Image img = null;
+			Float height) throws MalformedURLException, IOException, SQLException, TranscoderException {
+
+		ImageData img = null;
 	
 		int margin = 10;	
 		String fontSize = "8";
@@ -550,9 +555,9 @@ public class PdfUtilities {
 			ostream = new FileOutputStream(file);
 			TranscoderOutput output = new TranscoderOutput(ostream);
 			t.transcode(input, output);
-			ostream.flush();	
-			
-			img = Image.getInstance(file.getAbsolutePath());
+			ostream.flush();
+
+			img = ImageDataFactory.create(file.getAbsolutePath());
 		} finally {
 			 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
 			 if(ostream != null)  try{ostream.close();} catch(Exception e) {}
@@ -1032,29 +1037,30 @@ public class PdfUtilities {
 	}
 	
 	// Uses code from https://stackoverflow.com/questions/20614350/compress-pdf-with-large-images-via-java
-	public static void resizePdf(String src, OutputStream os) throws IOException, DocumentException {
-	    
-	    // Read the file
-	    PdfReader reader = new PdfReader(src);
-	    int n = reader.getXrefSize();
-	    PdfObject object;
-	    PRStream stream;
+	public static void resizePdf(String src, OutputStream os) throws IOException {
+
+	    // Read the file (reader + writer to the output stream in one document)
+	    PdfDocument pdfDoc = new PdfDocument(new PdfReader(src), new PdfWriter(os));
+	    int n = pdfDoc.getNumberOfPdfObjects();
 
 	    // Look for image and manipulate image stream
-	    for (int i = 0; i < n; i++) {
-	        object = reader.getPdfObject(i);
+	    for (int i = 1; i < n; i++) {
+	        PdfObject object = pdfDoc.getPdfObject(i);
 	        if (object == null || !object.isStream())
 	            continue;
-	        stream = (PRStream)object;
-	       // if (value.equals(stream.get(key))) {
-	        PdfObject pdfsubtype = stream.get(PdfName.SUBTYPE);
-	        if (pdfsubtype != null && pdfsubtype.toString().equals(PdfName.IMAGE.toString())) {
-	            PdfImageObject image = new PdfImageObject(stream);
-	            BufferedImage bi = image.getBufferedImage();
+	        PdfStream stream = (PdfStream) object;
+	        PdfObject pdfsubtype = stream.get(PdfName.Subtype);
+	        if (pdfsubtype != null && pdfsubtype.equals(PdfName.Image)) {
+	            BufferedImage bi;
+	            try {
+	                bi = new PdfImageXObject(stream).getBufferedImage();
+	            } catch (Exception e) {
+	                continue;
+	            }
 	            if (bi == null) continue;
 	            int width = bi.getWidth();
 	            int height = bi.getHeight();
-	            
+
 	            /*
 	             * Calculate amount of compression
 	             */
@@ -1069,7 +1075,7 @@ public class PdfUtilities {
 	            }
 	            width = (int) (bi.getWidth() * factor);
 	            height = (int) (bi.getHeight() * factor);
-	            
+
 	            BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 	            AffineTransform at = AffineTransform.getScaleInstance(factor, factor);
 	            Graphics2D g = img.createGraphics();
@@ -1077,63 +1083,45 @@ public class PdfUtilities {
 	            ByteArrayOutputStream imgBytes = new ByteArrayOutputStream();
 	            ImageIO.write(img, "JPG", imgBytes);
 	            stream.clear();
-	            stream.setData(imgBytes.toByteArray(), false, PRStream.BEST_COMPRESSION);
-	            stream.put(PdfName.TYPE, PdfName.XOBJECT);
-	            stream.put(PdfName.SUBTYPE, PdfName.IMAGE);
-	            //stream.put(key, value);
-	            stream.put(PdfName.FILTER, PdfName.DCTDECODE);
-	            stream.put(PdfName.WIDTH, new PdfNumber(width));
-	            stream.put(PdfName.HEIGHT, new PdfNumber(height));
-	            stream.put(PdfName.BITSPERCOMPONENT, new PdfNumber(8));
-	            stream.put(PdfName.COLORSPACE, PdfName.DEVICERGB);
+	            stream.setData(imgBytes.toByteArray(), false);		// false: do not flate-compress, bytes are DCT (JPEG)
+	            stream.put(PdfName.Type, PdfName.XObject);
+	            stream.put(PdfName.Subtype, PdfName.Image);
+	            stream.put(PdfName.Filter, PdfName.DCTDecode);
+	            stream.put(PdfName.Width, new PdfNumber(width));
+	            stream.put(PdfName.Height, new PdfNumber(height));
+	            stream.put(PdfName.BitsPerComponent, new PdfNumber(8));
+	            stream.put(PdfName.ColorSpace, PdfName.DeviceRGB);
 	        }
 	    }
 	    // Save altered PDF
-	    PdfStamper stamper = new PdfStamper(reader, os);
-	    stamper.close();
-	    reader.close();
-	    
+	    pdfDoc.close();
+
 	}
 	
 	/*
 	 * https://stackoverflow.com/questions/2464166/how-can-i-remove-blank-page-from-pdf-in-itext/3309453
 	 */
-	public static void removeBlankPages(String pdfSourceFile, String pdfDestinationFile) throws IOException, DocumentException
+	public static void removeBlankPages(String pdfSourceFile, String pdfDestinationFile) throws IOException
 	{
 
-		// step 1: create new reader
-		PdfReader r = new PdfReader(pdfSourceFile);
-		RandomAccessFileOrArray raf = new RandomAccessFileOrArray(pdfSourceFile);
-		com.itextpdf.text.Document document = new com.itextpdf.text.Document(r.getPageSizeWithRotation(1));
-		// step 2: create a writer that listens to the document
-		PdfCopy writer = new PdfCopy(document, new FileOutputStream(pdfDestinationFile));
-		// step 3: we open the document
-		document.open();
-		// step 4: we add content
-		PdfImportedPage page = null;
+		// Open source and destination documents
+		PdfDocument src = new PdfDocument(new PdfReader(pdfSourceFile));
+		PdfDocument dest = new PdfDocument(new PdfWriter(pdfDestinationFile));
 
-
-		//loop through each page and if there is no text on the page then delete it
-		for (int i=1;i<=r.getNumberOfPages();i++)
+		//loop through each page and only copy pages that have text on them
+		int num = src.getNumberOfPages();
+		for (int i = 1; i <= num; i++)
 		{
-			//get the page content
-			ByteArrayOutputStream bs = new ByteArrayOutputStream();
-			//write the content to an output stream
-			
-			String text = PdfTextExtractor.getTextFromPage(r, i, new LocationTextExtractionStrategy());
-			
+			String text = PdfTextExtractor.getTextFromPage(src.getPage(i), new LocationTextExtractionStrategy());
+
 			//add the page to the new pdf
 			if (text != null && text.length() > 0) {
-				page = writer.getImportedPage(r, i);
-				writer.addPage(page);
+				src.copyPagesTo(i, i, dest);
 			}
-			bs.close();
 		}
 		//close everything
-		document.close();
-		writer.close();
-		raf.close();
-		r.close();
+		dest.close();
+		src.close();
 
 	}
 	
@@ -1309,16 +1297,16 @@ public class PdfUtilities {
 	 */
 	private static void setColor(String aValue, DisplayItem di, boolean isLabel) {
 
-		BaseColor color = null;
+		com.itextpdf.kernel.colors.Color color = null;
 
 		String [] parts = aValue.split("_");
 		if(parts.length >= 4) {
 			if(parts[1].startsWith("0x")) {
-				color = new BaseColor(Integer.decode(parts[1]), 
+				color = new DeviceRgb(Integer.decode(parts[1]),
 						Integer.decode(parts[2]),
 						Integer.decode(parts[3]));
 			} else {
-				color = new BaseColor(Integer.decode("0x" + parts[1]), 
+				color = new DeviceRgb(Integer.decode("0x" + parts[1]),
 						Integer.decode("0x" + parts[2]),
 						Integer.decode("0x" + parts[3]));
 			}
