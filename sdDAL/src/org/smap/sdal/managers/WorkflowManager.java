@@ -413,6 +413,16 @@ public class WorkflowManager {
 				if (rule != null && !rule.trim().isEmpty()) {
 					AssignFromSurvey afs = new Gson().fromJson(rule, AssignFromSurvey.class);
 					if (afs != null) {
+						// Skip ad-hoc task groups. These are created with "add from survey"
+						// unchecked so tasks are only created manually - never generated
+						// from a submission. The client guarantees add_current or add_future
+						// is set whenever "add from survey" is checked, so a rule with
+						// neither flag is ad-hoc and must not appear on the workflow page.
+						// (This mirrors the add_future gate in TaskManager.updateTasksForSubmission
+						//  that decides whether a submission generates new tasks.)
+						if (!afs.add_current && !afs.add_future) {
+							continue;
+						}
 						tgAssignee  = deriveAssignee(sd, afs);
 						tgAssigneeK = assigneeKey(tgAssignee);
 						tgIsEmail   = afs.emails != null && !afs.emails.trim().isEmpty();
