@@ -4041,13 +4041,42 @@ public class SurveyManager {
 				
 				sql = "update task_group "
 						+ "set target_s_id = ? "
-						+ "where target_s_id = ?";	
+						+ "where target_s_id = ?";
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, newSurveyId);
 				pstmt.setInt(2, sId);
 				log.fine("Update task groups 3: " + pstmt.toString());
 				pstmt.executeUpdate();
+
+				/*
+				 * Workflow node ids stored in wf_prev_node_id embed the survey id
+				 * (e.g. "form:s:<sId>" or "task:s:<sId>:a:<assignee>"). Remap these too,
+				 * otherwise a replaced survey leaves a task on the workflow page whose
+				 * triggering form node no longer exists.
+				 */
+				String oldForm = "form:s:" + sId;
+				String newForm = "form:s:" + newSurveyId;
+				String oldTaskPrefix = "task:s:" + sId + ":a:";
+				String newTaskPrefix = "task:s:" + newSurveyId + ":a:";
+				String[] wfTables = { "task_group", "forward" };
+				for (String t : wfTables) {
+					sql = "update " + t + " set wf_prev_node_id = ? where wf_prev_node_id = ?";
+					try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+					pstmt = sd.prepareStatement(sql);
+					pstmt.setString(1, newForm);
+					pstmt.setString(2, oldForm);
+					pstmt.executeUpdate();
+
+					sql = "update " + t + " set wf_prev_node_id = replace(wf_prev_node_id, ?, ?) "
+							+ "where wf_prev_node_id like ?";
+					try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+					pstmt = sd.prepareStatement(sql);
+					pstmt.setString(1, oldTaskPrefix);
+					pstmt.setString(2, newTaskPrefix);
+					pstmt.setString(3, oldTaskPrefix + "%");
+					pstmt.executeUpdate();
+				}
 			}
 			
 			/*
