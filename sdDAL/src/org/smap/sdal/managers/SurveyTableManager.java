@@ -28,6 +28,7 @@ import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.QuestionForm;
+import org.smap.sdal.model.ReferenceFilter;
 import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.SqlFrag;
 
@@ -91,6 +92,7 @@ public class SurveyTableManager {
 	private String requestingUser;
 	private String chart_key;
 	private boolean linked_s_pd = false;
+	private SqlFrag refFilterFrag = null;		// Reference data filter defined on the linker survey for this source survey
 	
 	/*
 	 * Constructor to create a table to hold the CSV data if it does not already exist
@@ -1008,7 +1010,30 @@ public class SurveyTableManager {
 				}
 				sqlBuild.append("_user = ?");
 			}
-			
+
+			/*
+			 * Apply the reference data filter defined on the linker survey for this source survey.
+			 * A static, top-form-only pseudo-SQL filter (like a role row filter).  Skip chart /
+			 * pulldata which order and group differently and are not intended to be filtered here.
+			 */
+			refFilterFrag = null;
+			if(!chart && !linked_s_pd) {
+				String linkerGroupIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+				String sourceGroupIdent = GeneralUtilityMethods.getGroupSurveyIdentFromIdent(sd, linked_sIdent);
+				ReferenceFilterManager rfm = new ReferenceFilterManager(localisation);
+				ReferenceFilter rf = rfm.getFilter(sd, linkerGroupIdent, sourceGroupIdent);
+				if(rf != null && rf.filter != null && rf.filter.trim().length() > 0) {
+					refFilterFrag = new SqlFrag();
+					refFilterFrag.addSqlFragment(rf.filter, false, localisation, 0);
+					if(sqlDef.hasWhere) {
+						sqlBuild.append(" and ");
+					} else {
+						sqlBuild.append(" where ");
+					}
+					sqlBuild.append(" ( ").append(refFilterFrag.sql).append(" ) ");
+				}
+			}
+
 			sqlBuild.append(sqlDef.order_by);
 
 			/*
@@ -1239,7 +1264,7 @@ public class SurveyTableManager {
 				}
 				String scriptPath = basePath + "_bin" + File.separator + "getshape.sh";
 				String[] cmd = { "/bin/sh", "-c",
-						scriptPath + " results linked " + "\"" + GeneralUtilityMethods.interpolateSql(sql, sqlDef.calcArray, cur, rfArray, userIdent, tz) + "\" "
+						scriptPath + " results linked " + "\"" + GeneralUtilityMethods.interpolateSql(sql, sqlDef.calcArray, cur, rfArray, userIdent, tz, refFilterFrag) + "\" "
 								+ filePath + " csvnozip" };
 				log.fine("Getting linked data: " + cmd[2]);
 				Process proc = Runtime.getRuntime().exec(cmd);
@@ -1307,9 +1332,14 @@ public class SurveyTableManager {
 		if (sqlDef.calcArray != null) {		// Set parameters from server calculates
 			paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDef.calcArray, paramCount, tz);
 		}
-		
-		// Set parameters from roles
-		cur.setFilterParams(pstmt, rfArray, paramCount, tz, userIdent);
+
+		// Set parameters from roles then my reference data
+		paramCount = cur.setFilterParams(pstmt, rfArray, paramCount, tz, userIdent);
+
+		// Set parameters from the reference data filter (appended last in the where clause)
+		if(refFilterFrag != null) {
+			paramCount = GeneralUtilityMethods.setFragParams(pstmt, refFilterFrag, paramCount, tz);
+		}
 	}
 	
 	/*

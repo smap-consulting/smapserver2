@@ -11332,6 +11332,12 @@ public class GeneralUtilityMethods {
 	 */
 	public static String interpolateSql(String sql, ArrayList<SqlFrag> calcArray,
 			CustomUserReference cur, ArrayList<SqlFrag> rfArray, String userIdent, String tz) throws Exception {
+		return interpolateSql(sql, calcArray, cur, rfArray, userIdent, tz, null);
+	}
+
+	public static String interpolateSql(String sql, ArrayList<SqlFrag> calcArray,
+			CustomUserReference cur, ArrayList<SqlFrag> rfArray, String userIdent, String tz,
+			SqlFrag refFilterFrag) throws Exception {
 		ArrayList<String> literals = new ArrayList<>();
 		if (calcArray != null) {
 			for (SqlFrag frag : calcArray) {
@@ -11350,6 +11356,12 @@ public class GeneralUtilityMethods {
 			}
 			if (cur.myReferenceData && userIdent != null) {
 				literals.add("'" + userIdent.replace("'", "''") + "'");
+			}
+		}
+		// Reference data filter params are appended last in the where clause
+		if (refFilterFrag != null) {
+			for (SqlFragParam p : refFilterFrag.params) {
+				literals.add(fragParamToLiteral(p, tz));
 			}
 		}
 		return substituteQuestionMarks(sql, literals);

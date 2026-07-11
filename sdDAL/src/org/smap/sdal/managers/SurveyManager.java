@@ -71,6 +71,7 @@ import org.smap.sdal.model.Question;
 import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.QuestionLite;
 import org.smap.sdal.model.Result;
+import org.smap.sdal.model.ReferenceFilter;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.SetValue;
@@ -1174,6 +1175,13 @@ public class SurveyManager {
 			ArrayList<Role> roles = rm.getSurveyRoles(sd, s.surveyData.ident, oId, true, user, superUser);	// Get enabled roles
 			for(Role r : roles) {
 				s.surveyData.roles.put(r.name, r);
+			}
+
+			// Get the reference data filters (defined at the group level, like roles)
+			ReferenceFilterManager rfm = new ReferenceFilterManager(localisation);
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, s.surveyData.id);
+			for(ReferenceFilter rf : rfm.getFilters(sd, groupSurveyIdent)) {
+				s.surveyData.referenceFilters.put(rf.linkedSIdent, rf);
 			}
 		}
 		

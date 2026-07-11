@@ -1301,6 +1301,21 @@ create TABLE survey_role (
 ALTER TABLE survey_role OWNER TO ws;
 CREATE UNIQUE INDEX survey_role_ident_index ON public.survey_role(survey_ident, r_id);
 
+DROP SEQUENCE IF EXISTS reference_filter_seq CASCADE;
+CREATE SEQUENCE reference_filter_seq START 1;
+ALTER SEQUENCE reference_filter_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS reference_filter CASCADE;
+create TABLE reference_filter (
+	id integer DEFAULT NEXTVAL('reference_filter_seq') CONSTRAINT pk_reference_filter PRIMARY KEY,
+	linker_s_ident text NOT NULL,		-- requesting survey group ident
+	linked_s_ident text NOT NULL,		-- source survey group ident
+	filter text,
+	enabled boolean default true
+	);
+ALTER TABLE reference_filter OWNER TO ws;
+CREATE UNIQUE INDEX reference_filter_idx ON public.reference_filter(linker_s_ident, linked_s_ident);
+
 -- Operations Monitor per-organisation settings (stale interval, RAG thresholds, trend window)
 DROP TABLE IF EXISTS ops_settings CASCADE;
 CREATE TABLE ops_settings (

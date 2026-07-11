@@ -34,6 +34,7 @@ public class SurveyDAO {
 	public ArrayList<ChangeLog> changes  = new ArrayList<> ();
 	public ArrayList<MetaItem> meta = new ArrayList<> ();
 	public HashMap<String, Role> roles = new HashMap<> ();
+	public HashMap<String, ReferenceFilter> referenceFilters = new HashMap<> ();	// Keyed by source (linked) survey ident
 	public InstanceResults instance = new InstanceResults();	// Data from an instance (a submitted survey)
 	public String pdfTemplateName;
 	public String default_logo;

@@ -47,6 +47,7 @@ import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
+import org.smap.sdal.model.ReferenceFilter;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.ServerCalculation;
@@ -125,6 +126,7 @@ public class XLSFormManager {
 		public static final int COL_TURNSTILE = 220;
 		public static final int COL_ROLE_GROUP = 221;
 		public static final int COL_SHOW_FORM_INDEX = 222;
+		public static final int COL_REFERENCE_FILTER = 223;
 
 		// Style sheet columns
 		public static final int COL_STYLE_LIST2 = 300;
@@ -469,10 +471,16 @@ public class XLSFormManager {
 					value = r.row_filter;
 				}
 
-			} else if(type == COL_ROLE_GROUP) {				
+			} else if(type == COL_ROLE_GROUP) {
 				Role r = survey.surveyData.roles.get(typeString);
 				if(r != null) {
 					value = r.role_group;
+				}
+
+			} else if(type == COL_REFERENCE_FILTER) {
+				ReferenceFilter rf = survey.surveyData.referenceFilters.get(typeString);
+				if(rf != null) {
+					value = rf.filter;
 				}
 
 			} else if(type == COL_ALLOW_IMPORT) {				
@@ -1192,7 +1200,12 @@ public class XLSFormManager {
 			cols.add(new Column(colNumber++,"role::" + role, Column.COL_ROLE_ROW, 0, role));
 			cols.add(new Column(colNumber++,"filter_group::" + role, Column.COL_ROLE_GROUP, 0, role));
 		}
-		
+
+		// Add reference data filter columns (one per source survey), keyed by source survey ident
+		for(String linkedSIdent : survey.surveyData.referenceFilters.keySet()) {
+			cols.add(new Column(colNumber++,"reference_filter::" + linkedSIdent, Column.COL_REFERENCE_FILTER, 0, linkedSIdent));
+		}
+
 		return cols;
 	}
 

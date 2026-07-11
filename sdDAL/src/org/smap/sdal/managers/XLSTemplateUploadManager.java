@@ -50,6 +50,7 @@ import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.QuestionForm;
+import org.smap.sdal.model.ReferenceFilter;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilterRef;
 import org.smap.sdal.model.ServerCalculation;
@@ -89,6 +90,7 @@ public class XLSTemplateUploadManager {
 	HashMap<String, Integer> columnRoleHeader = null;
 	HashMap<String, Integer> rowRoleHeader = null;
 	HashMap<String, Integer> filterGroupRoleHeader = null;
+	HashMap<String, Integer> referenceFilterHeader = null;
 	List<String> languageHeaderKeys = new ArrayList<>();	// Original XLS header form (e.g., "English (en)") for column lookups
 
 	HashMap<String, QuestionForm> questionNames;	// Mapping between question name and truncated name
@@ -518,6 +520,22 @@ public class XLSTemplateUploadManager {
 						}
 					}
 				}
+
+				// Add reference data filters (reference_filter::<source survey ident>).  The filter
+				// is validated against the source survey when it is written to the database.
+				if(referenceFilterHeader != null && referenceFilterHeader.size() > 0) {
+					for(String h : referenceFilterHeader.keySet()) {
+						String filter = XLSUtilities.getTextColumn(wb, row, h, settingsHeader, lastCellNum, null);
+						if(filter != null && filter.trim().length() > 0) {
+							String [] a = h.split("::");
+							if(a.length > 1) {
+								String linkedIdent = a[1];
+								survey.surveyData.referenceFilters.put(linkedIdent,
+										new ReferenceFilter(null, linkedIdent, filter));
+							}
+						}
+					}
+				}
 			}
 		}
 		
@@ -736,7 +754,13 @@ public class XLSTemplateUploadManager {
 							String name = roleA[1];
 							survey.surveyData.roles.put(name, new Role(name));
 						}
-					} 
+					}
+					if(h.startsWith("reference_filter::")) {
+						if(referenceFilterHeader == null) {
+							referenceFilterHeader = new HashMap<String, Integer> ();
+						}
+						referenceFilterHeader.put(h, settingsHeader.get(h));
+					}
 				}
 			}
 			

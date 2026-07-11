@@ -405,3 +405,17 @@ DROP SEQUENCE IF EXISTS alert_seq CASCADE;
 alter table survey add column if not exists max_reference_records integer default 0;
 -- Record the cap a linked file was generated with so it can be regenerated when the cap changes.
 alter table linked_forms add column if not exists max_records integer default 0;
+
+-- Static pseudo-SQL filter restricting the reference data a survey bundle pulls from a source
+-- survey.  Defined at the group level (like roles) per (linker group, source group) pair.
+create sequence if not exists reference_filter_seq start 1;
+alter sequence reference_filter_seq owner to ws;
+create table if not exists reference_filter (
+	id integer default nextval('reference_filter_seq') constraint pk_reference_filter primary key,
+	linker_s_ident text not null,		-- requesting survey group ident
+	linked_s_ident text not null,		-- source survey group ident
+	filter text,
+	enabled boolean default true
+);
+alter table reference_filter owner to ws;
+create unique index if not exists reference_filter_idx on reference_filter(linker_s_ident, linked_s_ident);
