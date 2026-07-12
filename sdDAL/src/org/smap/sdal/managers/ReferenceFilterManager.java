@@ -55,7 +55,7 @@ public class ReferenceFilterManager {
 
 		ArrayList<ReferenceFilter> filters = new ArrayList<>();
 
-		String sql = "select rf.id, rf.linker_s_ident, rf.linked_s_ident, rf.filter, rf.enabled, "
+		String sql = "select rf.id, rf.linker_s_ident, rf.linked_s_ident, rf.filter, rf.enabled, rf.max_records, "
 				+ "(select display_name from survey where ident = rf.linked_s_ident "
 				+ "and not deleted and not hidden limit 1) as linked_name "
 				+ "from reference_filter rf "
@@ -73,6 +73,7 @@ public class ReferenceFilterManager {
 				rf.linkedSIdent = rs.getString("linked_s_ident");
 				rf.filter = rs.getString("filter");
 				rf.enabled = rs.getBoolean("enabled");
+				rf.maxRecords = rs.getInt("max_records");
 				rf.linkedSName = rs.getString("linked_name");
 				filters.add(rf);
 			}
@@ -90,7 +91,7 @@ public class ReferenceFilterManager {
 
 		ReferenceFilter rf = null;
 
-		String sql = "select id, linker_s_ident, linked_s_ident, filter, enabled "
+		String sql = "select id, linker_s_ident, linked_s_ident, filter, enabled, max_records "
 				+ "from reference_filter "
 				+ "where linker_s_ident = ? "
 				+ "and linked_s_ident = ? "
@@ -108,6 +109,7 @@ public class ReferenceFilterManager {
 				rf.linkedSIdent = rs.getString("linked_s_ident");
 				rf.filter = rs.getString("filter");
 				rf.enabled = rs.getBoolean("enabled");
+				rf.maxRecords = rs.getInt("max_records");
 			}
 		} finally {
 			if (pstmt != null) try { pstmt.close(); } catch (Exception e) {}
@@ -122,19 +124,23 @@ public class ReferenceFilterManager {
 	public void saveFilter(Connection sd, ReferenceFilter rf) throws Exception {
 
 		validateFilter(sd, rf.linkedSIdent, rf.filter);
+		if (rf.maxRecords < 0) {
+			rf.maxRecords = 0;		// Treat a negative cap as unlimited
+		}
 
-		String sqlUpdate = "update reference_filter set filter = ?, enabled = ? "
+		String sqlUpdate = "update reference_filter set filter = ?, enabled = ?, max_records = ? "
 				+ "where linker_s_ident = ? and linked_s_ident = ?";
-		String sqlInsert = "insert into reference_filter (id, linker_s_ident, linked_s_ident, filter, enabled) "
-				+ "values (nextval('reference_filter_seq'), ?, ?, ?, ?)";
+		String sqlInsert = "insert into reference_filter (id, linker_s_ident, linked_s_ident, filter, enabled, max_records) "
+				+ "values (nextval('reference_filter_seq'), ?, ?, ?, ?, ?)";
 		PreparedStatement pstmtUpdate = null;
 		PreparedStatement pstmtInsert = null;
 		try {
 			pstmtUpdate = sd.prepareStatement(sqlUpdate);
 			pstmtUpdate.setString(1, rf.filter);
 			pstmtUpdate.setBoolean(2, rf.enabled);
-			pstmtUpdate.setString(3, rf.linkerSIdent);
-			pstmtUpdate.setString(4, rf.linkedSIdent);
+			pstmtUpdate.setInt(3, rf.maxRecords);
+			pstmtUpdate.setString(4, rf.linkerSIdent);
+			pstmtUpdate.setString(5, rf.linkedSIdent);
 			int count = pstmtUpdate.executeUpdate();
 			if (count == 0) {
 				pstmtInsert = sd.prepareStatement(sqlInsert);
@@ -142,6 +148,7 @@ public class ReferenceFilterManager {
 				pstmtInsert.setString(2, rf.linkedSIdent);
 				pstmtInsert.setString(3, rf.filter);
 				pstmtInsert.setBoolean(4, rf.enabled);
+				pstmtInsert.setInt(5, rf.maxRecords);
 				pstmtInsert.executeUpdate();
 			}
 		} finally {

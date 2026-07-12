@@ -419,3 +419,6 @@ create table if not exists reference_filter (
 );
 alter table reference_filter owner to ws;
 create unique index if not exists reference_filter_idx on reference_filter(linker_s_ident, linked_s_ident);
+-- Cap the number of records supplied over this connection.  0 (default) = unlimited.
+-- Replaces the shortcut survey.max_reference_records (now dormant) with a per-connection cap.
+alter table reference_filter add column if not exists max_records integer default 0;

@@ -91,6 +91,7 @@ public class XLSTemplateUploadManager {
 	HashMap<String, Integer> rowRoleHeader = null;
 	HashMap<String, Integer> filterGroupRoleHeader = null;
 	HashMap<String, Integer> referenceFilterHeader = null;
+	HashMap<String, Integer> referenceMaxRecordsHeader = null;
 	List<String> languageHeaderKeys = new ArrayList<>();	// Original XLS header form (e.g., "English (en)") for column lookups
 
 	HashMap<String, QuestionForm> questionNames;	// Mapping between question name and truncated name
@@ -445,14 +446,7 @@ public class XLSTemplateUploadManager {
 				survey.surveyData.track_changes = getBooleanColumn(row, "track_changes", settingsHeader, lastCellNum, false);
 				survey.surveyData.compress_pdf = getBooleanColumn(row, "compress_pdf", settingsHeader, lastCellNum, false);
 				survey.surveyData.turnstile = getBooleanColumn(row, "turnstile", settingsHeader, lastCellNum, false);
-				String maxRefStr = XLSUtilities.getTextColumn(wb, row, "max_reference_records", settingsHeader, lastCellNum, null);
-				if(maxRefStr != null && maxRefStr.trim().length() > 0) {
-					try {
-						survey.surveyData.maxReferenceRecords = (int) Double.parseDouble(maxRefStr.trim());
-					} catch (NumberFormatException e) {
-						survey.surveyData.maxReferenceRecords = 0;
-					}
-				}
+				// max_reference_records is now set per linker->source connection (reference_max_records::<ident>)
 
 				survey.surveyData.uk.key = XLSUtilities.getTextColumn(wb, row, "key", settingsHeader, lastCellNum, null);
 				
@@ -529,9 +523,24 @@ public class XLSTemplateUploadManager {
 						if(filter != null && filter.trim().length() > 0) {
 							String [] a = h.split("::");
 							if(a.length > 1) {
-								String linkedIdent = a[1];
-								survey.surveyData.referenceFilters.put(linkedIdent,
-										new ReferenceFilter(null, linkedIdent, filter));
+								getReferenceFilter(a[1]).filter = filter;
+							}
+						}
+					}
+				}
+
+				// Add reference record caps (reference_max_records::<source survey ident>)
+				if(referenceMaxRecordsHeader != null && referenceMaxRecordsHeader.size() > 0) {
+					for(String h : referenceMaxRecordsHeader.keySet()) {
+						String maxStr = XLSUtilities.getTextColumn(wb, row, h, settingsHeader, lastCellNum, null);
+						if(maxStr != null && maxStr.trim().length() > 0) {
+							String [] a = h.split("::");
+							if(a.length > 1) {
+								try {
+									getReferenceFilter(a[1]).maxRecords = (int) Double.parseDouble(maxStr.trim());
+								} catch (NumberFormatException e) {
+									// Ignore a non numeric cap
+								}
 							}
 						}
 					}
@@ -760,6 +769,12 @@ public class XLSTemplateUploadManager {
 							referenceFilterHeader = new HashMap<String, Integer> ();
 						}
 						referenceFilterHeader.put(h, settingsHeader.get(h));
+					}
+					if(h.startsWith("reference_max_records::")) {
+						if(referenceMaxRecordsHeader == null) {
+							referenceMaxRecordsHeader = new HashMap<String, Integer> ();
+						}
+						referenceMaxRecordsHeader.put(h, settingsHeader.get(h));
 					}
 				}
 			}
@@ -1858,6 +1873,19 @@ public class XLSTemplateUploadManager {
 		}
 	}
 	
+	/*
+	 * Get the reference filter for a source survey ident, creating an empty one if needed.
+	 * A connection may set a filter, a record cap, or both, from separate settings columns.
+	 */
+	private ReferenceFilter getReferenceFilter(String linkedIdent) {
+		ReferenceFilter rf = survey.surveyData.referenceFilters.get(linkedIdent);
+		if(rf == null) {
+			rf = new ReferenceFilter(null, linkedIdent, null);
+			survey.surveyData.referenceFilters.put(linkedIdent, rf);
+		}
+		return rf;
+	}
+
 	private void settingsQuestionInSurvey(ArrayList<String> names, String colname) throws ApplicationException {
 		for(String name : names) {
 			if(qNameMap.get(name) == null) {

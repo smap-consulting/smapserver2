@@ -941,27 +941,24 @@ public class SurveyTableManager {
 	}
 	
 	/*
-	 * Get the record cap configured on the referenced (source) survey.
+	 * Get the record cap configured on the linker -> source connection (reference_filter).
 	 * 0 = unlimited. Used to restrict a reference file to its latest N records.
 	 */
-	private int getMaxReferenceRecords() {
+	private int getMaxReferenceRecords(int sId) {
 		int maxRecords = 0;
 		if(linked_sIdent == null) {
 			return 0;
 		}
-		String sql = "select max_reference_records from survey where ident = ?";
-		PreparedStatement pstmt = null;
 		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, linked_sIdent);
-			ResultSet rsMax = pstmt.executeQuery();
-			if(rsMax.next()) {
-				maxRecords = rsMax.getInt(1);
+			String linkerGroupIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			String sourceGroupIdent = GeneralUtilityMethods.getGroupSurveyIdentFromIdent(sd, linked_sIdent);
+			ReferenceFilterManager rfm = new ReferenceFilterManager(localisation);
+			ReferenceFilter rf = rfm.getFilter(sd, linkerGroupIdent, sourceGroupIdent);
+			if(rf != null) {
+				maxRecords = rf.maxRecords;
 			}
-		} catch (SQLException e) {
-			log.log(Level.WARNING, "Failed to read max_reference_records for " + linked_sIdent, e);
-		} finally {
-			try {if(pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		} catch (Exception e) {
+			log.log(Level.WARNING, "Failed to read max_records for connection to " + linked_sIdent, e);
 		}
 		return maxRecords;
 	}
@@ -1042,7 +1039,7 @@ public class SurveyTableManager {
 			 * trailing limit yields the most recent N submissions.  Skip chart / pulldata which
 			 * order and group differently.
 			 */
-			int maxRecords = (!chart && !linked_s_pd) ? getMaxReferenceRecords() : 0;
+			int maxRecords = (!chart && !linked_s_pd) ? getMaxReferenceRecords(sId) : 0;
 			if(maxRecords > 0) {
 				sqlBuild.append(" limit ").append(maxRecords);
 			}
@@ -1397,7 +1394,7 @@ public class SurveyTableManager {
 
 		// The record cap only applies to plain reference files (chart / pulldata order and
 		// group differently and are not capped), so only they trigger a cap-change regenerate.
-		int currentMax = (!chart && !linked_s_pd) ? getMaxReferenceRecords() : 0;
+		int currentMax = (!chart && !linked_s_pd) ? getMaxReferenceRecords(sId) : 0;
 
 		try {
 

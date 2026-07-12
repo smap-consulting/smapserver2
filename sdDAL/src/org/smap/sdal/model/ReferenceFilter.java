@@ -28,6 +28,7 @@ public class ReferenceFilter {
 	public String linkedSIdent;		// Source survey group ident
 	public String filter;			// Pseudo-SQL filter e.g. ${status} = 'open'
 	public boolean enabled = true;
+	public int maxRecords = 0;		// Cap on records supplied over this connection.  0 = unlimited
 	public String linkedSName;		// Source survey display name (for the UI, not persisted)
 
 	public ReferenceFilter() {

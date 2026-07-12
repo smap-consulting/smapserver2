@@ -127,6 +127,7 @@ public class XLSFormManager {
 		public static final int COL_ROLE_GROUP = 221;
 		public static final int COL_SHOW_FORM_INDEX = 222;
 		public static final int COL_REFERENCE_FILTER = 223;
+		public static final int COL_REFERENCE_MAX_RECORDS = 224;
 
 		// Style sheet columns
 		public static final int COL_STYLE_LIST2 = 300;
@@ -481,6 +482,12 @@ public class XLSFormManager {
 				ReferenceFilter rf = survey.surveyData.referenceFilters.get(typeString);
 				if(rf != null) {
 					value = rf.filter;
+				}
+
+			} else if(type == COL_REFERENCE_MAX_RECORDS) {
+				ReferenceFilter rf = survey.surveyData.referenceFilters.get(typeString);
+				if(rf != null && rf.maxRecords > 0) {
+					value = String.valueOf(rf.maxRecords);
 				}
 
 			} else if(type == COL_ALLOW_IMPORT) {				
@@ -1204,6 +1211,7 @@ public class XLSFormManager {
 		// Add reference data filter columns (one per source survey), keyed by source survey ident
 		for(String linkedSIdent : survey.surveyData.referenceFilters.keySet()) {
 			cols.add(new Column(colNumber++,"reference_filter::" + linkedSIdent, Column.COL_REFERENCE_FILTER, 0, linkedSIdent));
+			cols.add(new Column(colNumber++,"reference_max_records::" + linkedSIdent, Column.COL_REFERENCE_MAX_RECORDS, 0, linkedSIdent));
 		}
 
 		return cols;

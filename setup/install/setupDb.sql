@@ -1311,7 +1311,8 @@ create TABLE reference_filter (
 	linker_s_ident text NOT NULL,		-- requesting survey group ident
 	linked_s_ident text NOT NULL,		-- source survey group ident
 	filter text,
-	enabled boolean default true
+	enabled boolean default true,
+	max_records integer default 0		-- 0 = unlimited; cap on records supplied over this connection
 	);
 ALTER TABLE reference_filter OWNER TO ws;
 CREATE UNIQUE INDEX reference_filter_idx ON public.reference_filter(linker_s_ident, linked_s_ident);
