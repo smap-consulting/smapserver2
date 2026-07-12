@@ -56,7 +56,8 @@ public class ReferenceFilterManager {
 		ArrayList<ReferenceFilter> filters = new ArrayList<>();
 
 		String sql = "select rf.id, rf.linker_s_ident, rf.linked_s_ident, rf.filter, rf.enabled, "
-				+ "(select display_name from survey where ident = rf.linked_s_ident) as linked_name "
+				+ "(select display_name from survey where ident = rf.linked_s_ident "
+				+ "and not deleted and not hidden limit 1) as linked_name "
 				+ "from reference_filter rf "
 				+ "where rf.linker_s_ident = ? "
 				+ "order by linked_name asc";
@@ -204,13 +205,18 @@ public class ReferenceFilterManager {
 
 		ArrayList<ReferenceFilter> sources = new ArrayList<>();
 
+		// form_dependencies retains rows for superseded survey versions (replaced surveys are
+		// kept hidden, deleted surveys are kept soft-deleted), so filter both the linker and the
+		// source down to live surveys - the same guard clearLinkedForms uses.
 		String sql = "select distinct src.group_survey_ident as ident, "
-				+ "(select display_name from survey where ident = src.group_survey_ident) as name "
+				+ "(select display_name from survey where ident = src.group_survey_ident "
+				+ "and not deleted and not hidden limit 1) as name "
 				+ "from form_dependencies fd "
 				+ "join survey linker on fd.linker_s_id = linker.s_id "
 				+ "join survey src on fd.linked_s_id = src.s_id "
 				+ "where linker.group_survey_ident = ? "
-				+ "and not src.deleted "
+				+ "and not linker.deleted and not linker.blocked and not linker.hidden "
+				+ "and not src.deleted and not src.blocked and not src.hidden "
 				+ "order by name asc";
 		PreparedStatement pstmt = null;
 		try {
