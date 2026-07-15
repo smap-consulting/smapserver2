@@ -1526,12 +1526,13 @@ public class SurveyTemplate {
 			String externalFilename = mi.filename;
 	
 			ArrayList<org.smap.sdal.model.Option> oList = GeneralUtilityMethods.getExternalChoices(
-					sd, 
-					cResults, 
-					localisation, 
-					user, 
-					oId, 
-					survey.getId(), q.getId(), null, survey.getIdent(), "UTC", filters, externalFilename);
+					sd,
+					cResults,
+					localisation,
+					user,
+					oId,
+					survey.getId(), q.getId(), null, survey.getIdent(), "UTC", filters, externalFilename,
+					true);	// Embedding external choices into the webform DOM - apply the connection filter and record cap
 			
 			int idx = 0;
 			if(oList != null) {

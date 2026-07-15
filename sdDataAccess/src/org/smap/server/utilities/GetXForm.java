@@ -1700,9 +1700,10 @@ public class GetXForm {
 		try {
 			stm.initData(pstmt, "all", null, null,
 					null,	// expression fragment
-					tz, 
-					null, 
-					null);
+					tz,
+					null,
+					null,
+					true);	// Inserting reference data into the DOM - apply the connection filter and record cap
 			line = stm.getLine();
 			while(line != null) {
 				// process line
