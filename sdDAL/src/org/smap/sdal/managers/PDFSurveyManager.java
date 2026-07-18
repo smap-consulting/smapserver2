@@ -68,6 +68,7 @@ import com.itextpdf.forms.PdfAcroForm;
 import com.itextpdf.forms.fields.PdfButtonFormField;
 import com.itextpdf.forms.fields.PdfFormField;
 import com.itextpdf.layout.Document;
+import com.itextpdf.layout.borders.Border;
 import com.itextpdf.layout.borders.SolidBorder;
 import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.IBlockElement;
@@ -81,6 +82,7 @@ import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.element.Text;
 import com.itextpdf.layout.font.FontProvider;
 import com.itextpdf.layout.properties.BaseDirection;
+import com.itextpdf.layout.properties.OverflowWrapPropertyValue;
 import com.itextpdf.layout.properties.Property;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
@@ -321,7 +323,7 @@ public class PDFSurveyManager {
 
 				// LibreOffice templates set NeedAppearances=true, which makes iText skip
 				// generating field appearance streams. Force generation so flattened values render.
-				stamper.getAcroFields().setGenerateAppearances(true);
+				pdfForm.setGenerateAppearance(true);
 
 				for(int i = 0; i < survey.surveyData.instance.results.size(); i++) {
 					fillTemplate(gv, pdfForm, survey.surveyData.instance.results.get(i),
@@ -1139,7 +1141,11 @@ public class PDFSurveyManager {
 					mAttachmentPrefix,
 					generateBlank,
 					gv, remoteUser, oId, startGeopointValue, hideLabel));
-			cell.setBorder(new SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f));
+			// No border on this wrapper cell: the nested label/value table draws the grid.
+			// A border here sits just outside the inner borders and renders as a doubled
+			// (thicker) horizontal line at each row junction.
+			cell.setBorder(Border.NO_BORDER);
+			cell.setPadding(0);
 			table.addCell(cell);
 
 			numberItems--;
@@ -1521,17 +1527,30 @@ public class PDFSurveyManager {
 		if(di.widthLabel == 10) {
 			widthValue = 1;	// Label and value in 1 column
 			di.widthLabel = 1;
-			tItem = new Table(1);
+			tItem = new Table(UnitValue.createPercentArray(new float[] {100f}));
 		} else {
 			// Label and value in 2 columns
 			widthValue = 10 - di.widthLabel;
-			tItem = new Table(10);
+			// Equal-width columns so colspans give consistent label/value proportions
+			// (iText 8's new Table(n) auto-sizes columns to content, unlike iText 5)
+			float[] cols = new float[10];
+			java.util.Arrays.fill(cols, 10f);
+			tItem = new Table(UnitValue.createPercentArray(cols));
 		}
+		// Fill the containing cell like iText 5 did so the row spans the full width
+		tItem.setWidth(UnitValue.createPercentValue(100));
+		// Fixed layout so columns strictly honour the label/value percentages. In the
+		// default auto layout a long unbreakable value (e.g. conversation JSON) forces
+		// the value column wider and squeezes the label, misaligning that row.
+		tItem.setFixedLayout();
 
 		Cell labelCell = new Cell(1, di.widthLabel);
 		Cell valueCell = new Cell(1, widthValue);
 		labelCell.setBorder(new SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f));
 		valueCell.setBorder(new SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f));
+		// Break long unbreakable tokens (e.g. conversation JSON, long URLs) so they wrap
+		// inside the fixed-width value column instead of overflowing the cell
+		valueCell.setProperty(Property.OVERFLOW_WRAP, OverflowWrapPropertyValue.ANYWHERE);
 
 		// Add label
 		if(!hideLabel) {
@@ -1683,6 +1702,9 @@ public class PDFSurveyManager {
 							img = new Image(ImageDataFactory.create(new URL(attachmentPrefix + di.value)));
 						}
 						img.setRotationAngle(Math.toRadians(angle));
+						// Scale to the cell width so large photos don't overflow
+						// (iText 5 auto-scaled images to the cell; iText 8 does not)
+						img.setAutoScaleWidth(true);
 						valueCell.add(img);
 					} catch(Exception e) {
 						log.fine("Error: image " + basePath + "/" + di.value + " not added: " + e.getMessage());
@@ -1729,7 +1751,9 @@ public class PDFSurveyManager {
 					basePath);
 
 			if(img != null) {
-				valueCell.add(new Image(img));
+				Image mapImg = new Image(img);
+				mapImg.setAutoScaleWidth(true);		// Fit the cell width like iText 5 did
+				valueCell.add(mapImg);
 			} else {
 				valueCell.add(getPara(" ", di, gv, deps, null));
 			}
@@ -1779,7 +1803,9 @@ public class PDFSurveyManager {
 				}
 
 				if(img != null) {
-					valueCell.add(new Image(img));
+					Image mapImg = new Image(img);
+					mapImg.setAutoScaleWidth(true);		// Fit the cell width like iText 5 did
+					valueCell.add(mapImg);
 				} else {
 					valueCell.add(getPara(" ", di, gv, deps, null));
 				}
@@ -2114,6 +2140,7 @@ public class PDFSurveyManager {
 						Image img = null;
 						if(imageFile.exists()) {
 							img = new Image(ImageDataFactory.create(filePath));
+							img.setAutoScaleWidth(true);		// Fit the cell width like iText 5 did
 						}
 						if(img != null) {
 							cell.add(img);
