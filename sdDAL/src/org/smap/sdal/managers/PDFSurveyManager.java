@@ -68,7 +68,6 @@ import com.itextpdf.forms.PdfAcroForm;
 import com.itextpdf.forms.fields.PdfButtonFormField;
 import com.itextpdf.forms.fields.PdfFormField;
 import com.itextpdf.layout.Document;
-import com.itextpdf.layout.borders.Border;
 import com.itextpdf.layout.borders.SolidBorder;
 import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.IBlockElement;
@@ -126,6 +125,9 @@ public class PDFSurveyManager {
 	public static PdfFont devanagariFontBold = null;
 	private static final String DEFAULT_CSS = "/resources/css/default_pdf.css";
 	private static int NUMBER_TABLE_COLS = 10;
+	// Fine columns per coarse column, so a question's label/value split (also out of 10)
+	// can be expressed within its coarse span in a single flattened table
+	private static final int SUB_COLS = 10;
 	private static int NUMBER_QUESTION_COLS = 10;
 
 	// iText 8 HTML rendering context (replaces xmlworker Parser); set up in createPdf
@@ -1109,14 +1111,22 @@ public class PDFSurveyManager {
 			String startGeopointValue,
 			boolean showSubFormIndex) throws MalformedURLException, IOException {
 
-		// Add a column for each level of repeats so that the repeat number can be shown
-		Table table = new Table((showSubFormIndex ? depth : 0) + NUMBER_TABLE_COLS);
+		// All label/value cells go directly into this single table (no nested per-item
+		// tables) so that every cell in a multi-question row stretches to the height of
+		// the tallest cell. Each coarse column (NUMBER_TABLE_COLS + repeat levels) is
+		// split into SUB fine columns so a question's label/value can be sub-divided.
+		int depthCols = showSubFormIndex ? depth : 0;
+		float[] cols = new float[(depthCols + NUMBER_TABLE_COLS) * SUB_COLS];
+		java.util.Arrays.fill(cols, 1f);
+		Table table = new Table(UnitValue.createPercentArray(cols));
+		table.setFixedLayout();
 
 		// Add the cells to record repeat indexes
 		if(showSubFormIndex) {
 			for(int i = 0; i < depth; i++) {
-				Cell c = new Cell().add(new Paragraph(String.valueOf(repIndexes[i] + 1)).setFont(defaultFont));
+				Cell c = new Cell(1, SUB_COLS).add(new Paragraph(String.valueOf(repIndexes[i] + 1)).setFont(defaultFont));
 				c.setBackgroundColor(ColorConstants.LIGHT_GRAY);
+				c.setBorder(new SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f));
 				table.addCell(c);
 			}
 		}
@@ -1135,18 +1145,14 @@ public class PDFSurveyManager {
 				di.width = spanCount;
 			}
 
-			Cell cell = new Cell(1, di.width).add(addDisplayItem(di,
+			for(Cell cell : addDisplayItem(di,
 					mBasePath,
 					mHyperlinkPrefix,
 					mAttachmentPrefix,
 					generateBlank,
-					gv, remoteUser, oId, startGeopointValue, hideLabel));
-			// No border on this wrapper cell: the nested label/value table draws the grid.
-			// A border here sits just outside the inner borders and renders as a doubled
-			// (thicker) horizontal line at each row junction.
-			cell.setBorder(Border.NO_BORDER);
-			cell.setPadding(0);
-			table.addCell(cell);
+					gv, remoteUser, oId, startGeopointValue, hideLabel)) {
+				table.addCell(cell);
+			}
 
 			numberItems--;
 			spanCount -= di.width;
@@ -1509,7 +1515,7 @@ public class PDFSurveyManager {
 	/*
 	 * Add the question label, hint, and any media
 	 */
-	private Table addDisplayItem(
+	private java.util.List<Cell> addDisplayItem(
 			DisplayItem di,
 			String basePath,
 			String hyperlinkPrefix,
@@ -1521,31 +1527,25 @@ public class PDFSurveyManager {
 			String startGeopointValue,
 			boolean hideLabel) throws MalformedURLException, IOException {
 
-		// Determine column layout up front (iText 8 colspan is fixed at cell construction)
-		int widthValue;
-		Table tItem;
-		if(di.widthLabel == 10) {
-			widthValue = 1;	// Label and value in 1 column
-			di.widthLabel = 1;
-			tItem = new Table(UnitValue.createPercentArray(new float[] {100f}));
-		} else {
-			// Label and value in 2 columns
-			widthValue = 10 - di.widthLabel;
-			// Equal-width columns so colspans give consistent label/value proportions
-			// (iText 8's new Table(n) auto-sizes columns to content, unlike iText 5)
-			float[] cols = new float[10];
-			java.util.Arrays.fill(cols, 10f);
-			tItem = new Table(UnitValue.createPercentArray(cols));
-		}
-		// Fill the containing cell like iText 5 did so the row spans the full width
-		tItem.setWidth(UnitValue.createPercentValue(100));
-		// Fixed layout so columns strictly honour the label/value percentages. In the
-		// default auto layout a long unbreakable value (e.g. conversation JSON) forces
-		// the value column wider and squeezes the label, misaligning that row.
-		tItem.setFixedLayout();
+		// Column spans within this question's coarse width (di.width). The label/value
+		// split (di.widthLabel out of 10) is expressed in fine columns so the cells can
+		// be added directly to the row's single table and stretch to the row height.
+		// widthLabel == 10 means the label is full width with the value shown below it.
+		int itemWidth = di.width;
+		boolean stacked = (di.widthLabel >= 10);
+		int widthLabel = stacked ? 10 : Math.max(1, di.widthLabel);
+		int widthValue = 10 - widthLabel;
 
-		Cell labelCell = new Cell(1, di.widthLabel);
-		Cell valueCell = new Cell(1, widthValue);
+		Cell labelCell;
+		Cell valueCell;
+		if(stacked) {
+			// One cell spanning the whole question width; label sits above the value
+			valueCell = new Cell(1, itemWidth * SUB_COLS);
+			labelCell = valueCell;
+		} else {
+			labelCell = new Cell(1, itemWidth * widthLabel);
+			valueCell = new Cell(1, itemWidth * widthValue);
+		}
 		labelCell.setBorder(new SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f));
 		valueCell.setBorder(new SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f));
 		// Break long unbreakable tokens (e.g. conversation JSON, long URLs) so they wrap
@@ -1655,9 +1655,12 @@ public class PDFSurveyManager {
 			valueCell.setBackgroundColor(di.valuebg);
 		}
 
-		tItem.addCell(labelCell);
-		tItem.addCell(valueCell);
-		return tItem;
+		java.util.List<Cell> cells = new ArrayList<Cell>();
+		cells.add(labelCell);
+		if(!stacked) {			// stacked shares one cell for label and value
+			cells.add(valueCell);
+		}
+		return cells;
 	}
 
 	/*
