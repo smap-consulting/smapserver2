@@ -860,7 +860,10 @@ public class PDFSurveyManager {
 	 */
 	private boolean addHtmlToCell(Cell cell, String html) {
 		try {
-			String styled = "<style>" + getCssStyle() + "</style>" + html;
+			// overflow-wrap confines long unbreakable tokens (e.g. a long URL in a label
+			// or hint) to the cell. HtmlConverter honours this CSS but ignores the
+			// equivalent layout OVERFLOW_WRAP property, so it must be set here as CSS.
+			String styled = "<style>" + getCssStyle() + " * { overflow-wrap: anywhere; }</style>" + html;
 			java.util.List<IElement> elements = HtmlConverter.convertToElements(styled, converterProps);
 			for(IElement element : elements) {
 				if(element instanceof IBlockElement) {
@@ -1548,8 +1551,9 @@ public class PDFSurveyManager {
 		}
 		labelCell.setBorder(new SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f));
 		valueCell.setBorder(new SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f));
-		// Break long unbreakable tokens (e.g. conversation JSON, long URLs) so they wrap
-		// inside the fixed-width value column instead of overflowing the cell
+		// Break long unbreakable tokens (e.g. conversation JSON, long URLs in a label or
+		// hint) so they wrap inside the fixed-width column instead of overflowing the cell
+		labelCell.setProperty(Property.OVERFLOW_WRAP, OverflowWrapPropertyValue.ANYWHERE);
 		valueCell.setProperty(Property.OVERFLOW_WRAP, OverflowWrapPropertyValue.ANYWHERE);
 
 		// Add label
