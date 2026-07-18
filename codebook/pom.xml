@@ -71,10 +71,12 @@
       <version>1.7.25</version>
     </dependency>
 
+    <!-- Custom JavaRosa built from ~/git/javarosa; its pom brings the transitive
+         deps (kxml2, joda-time, commons-io, ...) so they need not be listed here -->
     <dependency>
-      <groupId>org.opendatakit</groupId>
-      <artifactId>opendatakit-javarosa</artifactId>
-      <version>2.17.0</version>
+      <groupId>org.getodk</groupId>
+      <artifactId>javarosa</artifactId>
+      <version>5.1.4-smap</version>
     </dependency>
 
     <dependency>

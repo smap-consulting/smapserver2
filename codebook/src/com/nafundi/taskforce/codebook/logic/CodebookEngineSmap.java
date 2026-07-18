@@ -28,13 +28,26 @@ import org.javarosa.xform.parse.XFormParseException;
 import org.javarosa.xform.util.XFormUtils;
 
 import javax.swing.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Vector;
 import java.util.List;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 public class CodebookEngineSmap  {
 
@@ -57,15 +70,14 @@ public class CodebookEngineSmap  {
         FormDef fd = null;
 
         try {
-            FileInputStream fis = new FileInputStream(xml);
-            fd = XFormUtils.getFormFromInputStream(fis);
+            // Tolerate survey-definition issues that would otherwise abort the whole
+            // parse (eg a select with no choices), so a codebook is still produced.
+            InputStream is = sanitizeForm(xml);
+            fd = XFormUtils.getFormFromInputStream(is);
             if (fd == null) {
                 errorMsg = "Error reading XForm file";
             }
 
-        } catch (FileNotFoundException e) {
-            errorMsg = e.getMessage();
-            e.printStackTrace();
         } catch (XFormParseException e) {
             errorMsg = e.getMessage();
             e.printStackTrace();
@@ -143,6 +155,85 @@ public class CodebookEngineSmap  {
 
         return entries;
 
+    }
+
+    /*
+     * Return the form XML as a stream, first repairing definition issues that would
+     * otherwise make JavaRosa abort the entire parse. Currently: a select / select1
+     * with no <item> and no <itemset> (JavaRosa throws "Select question has no
+     * choices"). A placeholder choice is injected so the rest of the form is still
+     * documented. On any failure the original file is returned unchanged.
+     */
+    private InputStream sanitizeForm(File xml) {
+        try {
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setNamespaceAware(true);
+            // Harden against XXE
+            dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            dbf.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            Document doc = dbf.newDocumentBuilder().parse(xml);
+
+            int repaired = 0;
+            // select1, select and rank all parse literal <item> choices and JavaRosa
+            // rejects them when empty (matched by local name, so namespace-agnostic)
+            for (String tag : new String[] { "select1", "select", "rank" }) {
+                NodeList selects = doc.getElementsByTagNameNS("*", tag);
+                for (int i = 0; i < selects.getLength(); i++) {
+                    Element sel = (Element) selects.item(i);
+                    if (!hasChoiceChild(sel)) {
+                        appendPlaceholderChoice(doc, sel);
+                        repaired++;
+                    }
+                }
+            }
+
+            if (repaired == 0) {
+                return new FileInputStream(xml);
+            }
+            System.out.println("Warning: " + repaired + " select question(s) had no choices; inserted a placeholder so the codebook can be generated");
+
+            Transformer tf = TransformerFactory.newInstance().newTransformer();
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            tf.transform(new DOMSource(doc), new StreamResult(bos));
+            return new ByteArrayInputStream(bos.toByteArray());
+        } catch (Exception e) {
+            System.out.println("Warning: could not pre-process form, using it as-is: " + e.getMessage());
+            try {
+                return new FileInputStream(xml);
+            } catch (Exception e2) {
+                return null;
+            }
+        }
+    }
+
+    private boolean hasChoiceChild(Element select) {
+        NodeList children = select.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node c = children.item(i);
+            if (c.getNodeType() == Node.ELEMENT_NODE) {
+                String ln = c.getLocalName();
+                if ("item".equals(ln) || "itemset".equals(ln)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // item/label/value are always XForms elements, even inside an odk:rank control,
+    // so use the XForms namespace rather than the containing control's namespace
+    private static final String XFORMS_NS = "http://www.w3.org/2002/xforms";
+
+    private void appendPlaceholderChoice(Document doc, Element select) {
+        Element item = doc.createElementNS(XFORMS_NS, "item");
+        Element label = doc.createElementNS(XFORMS_NS, "label");
+        label.setTextContent("(no choices in survey definition)");
+        Element value = doc.createElementNS(XFORMS_NS, "value");
+        value.setTextContent("none");	// JavaRosa rejects an empty <value>
+        item.appendChild(label);
+        item.appendChild(value);
+        select.appendChild(item);
     }
 
     private void populateEntries(TreeElement t, FormDef fd, ArrayList<CodebookEntry> entries) {
