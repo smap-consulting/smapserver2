@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
@@ -343,6 +344,7 @@ public class CaseManager {
 	public static class CaseListItem {
 		public String title;
 		public String assigned;		// User ident in _assigned, null if unassigned
+		public long uploadTime;		// _upload_time of the latest record (epoch ms); used by the device to skip unchanged cases/references
 	}
 
 	/*
@@ -361,7 +363,7 @@ public class CaseManager {
 
 		PreparedStatement pstmt = null;
 		try {
-			String sql = "select instancename, _hrk, prikey, _assigned from " + tableName
+			String sql = "select instancename, _hrk, prikey, _assigned, _upload_time from " + tableName
 					+ " where not _bad and _thread = ? order by prikey desc limit 1";
 			pstmt = cResults.prepareStatement(sql);
 			pstmt.setString(1, thread);
@@ -382,6 +384,10 @@ public class CaseManager {
 				String assigned = rs.getString("_assigned");
 				if(assigned != null && assigned.trim().length() > 0) {
 					item.assigned = assigned;
+				}
+				Timestamp uploadTime = rs.getTimestamp("_upload_time");
+				if(uploadTime != null) {
+					item.uploadTime = uploadTime.getTime();
 				}
 			}
 		} finally {

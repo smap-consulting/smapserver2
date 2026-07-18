@@ -28,6 +28,7 @@ import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.QuestionForm;
+import org.smap.sdal.model.ReferenceFilter;
 import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.SqlFrag;
 
@@ -72,6 +73,7 @@ public class SurveyTableManager {
 		private ArrayList<SqlFrag> calcArray = null;
 		private boolean hasGeom = false;
 		private boolean hasDateTime = false;
+		private String capColumn = null;		// Top form prikey alias, used to select the latest N when a record cap applies
 	}
 	
 	LogManager lm = new LogManager(); // Application log
@@ -81,8 +83,9 @@ public class SurveyTableManager {
 	Connection cResults = null;
 	ResourceBundle localisation = null;
 	private int tableId = 0;
+	private int sId = 0;			// The linker survey that is requesting the reference data
 	ResultSet rs = null;
-	
+
 	// Global variables
 	private SqlDef sqlDef = null;
 	private boolean non_unique_key = false;
@@ -91,6 +94,7 @@ public class SurveyTableManager {
 	private String requestingUser;
 	private String chart_key;
 	private boolean linked_s_pd = false;
+	private SqlFrag refFilterFrag = null;		// Reference data filter defined on the linker survey for this source survey
 	
 	/*
 	 * Constructor to create a table to hold the CSV data if it does not already exist
@@ -102,7 +106,8 @@ public class SurveyTableManager {
 		this.cResults = cResults;
 		this.localisation = l;
 		this.requestingUser = user;
-		
+		this.sId = sId;
+
 		if(oId <= 0) {
 			log.fine("************************ Error: Create Survey Table Manager : Organisation id is less than or equal to 0");
 		} else {
@@ -192,24 +197,43 @@ public class SurveyTableManager {
 	 * type = lookup || choices
 	 */
 	public void initData(
-			PreparedStatement pstmt, 
-			String type, 
-			String selection, 
-			ArrayList<String> arguments, 
+			PreparedStatement pstmt,
+			String type,
+			String selection,
+			ArrayList<String> arguments,
 			SqlFrag expressionFrag,		// The expression in a lookup or search
 			String tz,
 			ArrayList<SqlFrag> qArray,
 			ArrayList<SqlFrag> fArray
 			) throws Exception {
-		
+		initData(pstmt, type, selection, arguments, expressionFrag, tz, qArray, fArray, false);
+	}
+
+	/*
+	 * applyReferenceCap should be true only when the reference data is being inserted into the form DOM
+	 * (webform pulldata / embedded external choices).  It applies the connection filter and record cap.
+	 * Online searches (runtime lookup / choices) pass false so live data is returned uncapped.
+	 */
+	public void initData(
+			PreparedStatement pstmt,
+			String type,
+			String selection,
+			ArrayList<String> arguments,
+			SqlFrag expressionFrag,		// The expression in a lookup or search
+			String tz,
+			ArrayList<SqlFrag> qArray,
+			ArrayList<SqlFrag> fArray,
+			boolean applyReferenceCap
+			) throws Exception {
+
 		boolean hasRbacFilter = false;
 		boolean superUser = false;		// Always filter
-		
+
 		if(sqlDef != null && sqlDef.colNames != null && sqlDef.colNames.size() > 0) {
 			boolean hasWhere = sqlDef.hasWhere;
 			StringBuilder sql = new StringBuilder(sqlDef.sql);
-			
-			if(expressionFrag != null || selection != null) { 
+
+			if(expressionFrag != null || selection != null) {
 				if(hasWhere) {
 					sql.append(" and ");
 				} else {
@@ -222,14 +246,14 @@ public class SurveyTableManager {
 					sql.append(selection);
 				}
 			}
-			
+
 			// RBAC filter
 			ArrayList<SqlFrag> rfArray = null;
 			RoleManager rm = new RoleManager(localisation);
-			if (!superUser && requestingUser != null) {			
-				
+			if (!superUser && requestingUser != null) {
+
 				rfArray = rm.getSurveyRowFilter(sd, linked_sIdent, requestingUser);
-				
+
 				if (rfArray.size() > 0) {
 					String rFilter = rm.convertSqlFragsToSql(rfArray);
 					if (rFilter.length() > 0) {
@@ -245,9 +269,49 @@ public class SurveyTableManager {
 				}
 			}
 
+			/*
+			 * Reference data filter + record cap - only when the data is being inserted into the DOM.
+			 * The filter frag is appended last in the where clause so its params bind last.
+			 */
+			refFilterFrag = null;
+			int maxRecords = 0;
+			if(applyReferenceCap) {
+				ReferenceFilter rf = getReferenceFilterForConnection();
+				if(rf != null) {
+					maxRecords = rf.maxRecords;
+					if(rf.filter != null && rf.filter.trim().length() > 0) {
+						refFilterFrag = new SqlFrag();
+						refFilterFrag.addSqlFragment(rf.filter, false, localisation, 0);
+						if(hasWhere) {
+							sql.append(" and ");
+						} else {
+							sql.append(" where ");
+							hasWhere = true;
+						}
+						sql.append(" ( ").append(refFilterFrag.sql).append(" ) ");
+					}
+				}
+			}
 
-			sql.append(sqlDef.order_by);
-			String sqlString = sql.toString();
+			/*
+			 * Assemble the final SQL.  When a cap applies restrict to the latest N by the top form
+			 * prikey.  For pulldata (linked_s_pd) wrap in a subquery so the _data_key output order is
+			 * preserved; otherwise the order is already prikey desc so a trailing limit is enough.
+			 */
+			StringBuilder finalSql = new StringBuilder();
+			if(maxRecords > 0 && linked_s_pd && sqlDef.capColumn != null) {
+				finalSql.append("select * from ( ")
+					.append(sql)
+					.append(" order by ").append(sqlDef.capColumn).append(" desc limit ").append(maxRecords)
+					.append(" ) as sub order by sub._data_key");
+			} else {
+				finalSql.append(sql).append(sqlDef.order_by);
+				if(maxRecords > 0) {
+					finalSql.append(" limit ").append(maxRecords);
+				}
+			}
+
+			String sqlString = finalSql.toString();
 			sqlString = sqlString.replace("\\", "");		// Extra \ escapes are required of the string is passed to PSQL for generation - we don't need them here
 			pstmt = cResults.prepareStatement(sqlString);
 			int paramCount = 1;
@@ -263,7 +327,7 @@ public class SurveyTableManager {
 			if (hasRbacFilter) {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount, tz);
 			}
-			
+
 			if(expressionFrag != null) {
 				paramCount = GeneralUtilityMethods.setFragParams(pstmt, expressionFrag, paramCount, tz);
 			} else if(arguments != null) {
@@ -273,11 +337,16 @@ public class SurveyTableManager {
 						pstmt.setString(paramCount++, arg);
 					} catch (Exception e) {
 						log.fine(pstmt.toString());
-						log.log(Level.SEVERE, e.getMessage(), e);	
+						log.log(Level.SEVERE, e.getMessage(), e);
 					}
 				}
-			}		
-			
+			}
+
+			// Reference filter params are appended last in the where clause
+			if(refFilterFrag != null) {
+				paramCount = GeneralUtilityMethods.setFragParams(pstmt, refFilterFrag, paramCount, tz);
+			}
+
 			log.fine("Init data: " + pstmt.toString());
 			try {
 				rs = pstmt.executeQuery();
@@ -759,6 +828,7 @@ public class SurveyTableManager {
 				.append(topForm.tableName)
 				.append(".prikey as prikey_").append(topForm.tableName);
 			order_cols.append(topForm.tableName  + ".prikey desc");
+			newSqlDef.capColumn = "prikey_" + topForm.tableName;	// Latest N ordering when a record cap applies
 			if (subTables.size() > 0) {
 				for (String subTable : subTables) {
 					sql.append(",")
@@ -939,6 +1009,33 @@ public class SurveyTableManager {
 	}
 	
 	/*
+	 * Get the filter + record cap configured on the linker -> source connection (reference_filter),
+	 * or null.  Keyed by the group idents of the linker (sId) and the source (linked_sIdent).
+	 */
+	private ReferenceFilter getReferenceFilterForConnection() {
+		if(linked_sIdent == null || sId <= 0) {
+			return null;
+		}
+		try {
+			String linkerGroupIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			String sourceGroupIdent = GeneralUtilityMethods.getGroupSurveyIdentFromIdent(sd, linked_sIdent);
+			ReferenceFilterManager rfm = new ReferenceFilterManager(localisation);
+			return rfm.getFilter(sd, linkerGroupIdent, sourceGroupIdent);
+		} catch (Exception e) {
+			log.log(Level.WARNING, "Failed to read reference filter for connection to " + linked_sIdent, e);
+		}
+		return null;
+	}
+
+	/*
+	 * Get the record cap configured on the linker -> source connection.  0 = unlimited.
+	 */
+	private int getMaxReferenceRecords() {
+		ReferenceFilter rf = getReferenceFilterForConnection();
+		return rf != null ? rf.maxRecords : 0;
+	}
+
+	/*
 	 * Generate a CSV file from the survey reference data
 	 */
 	public boolean generateCsvFile(Connection cResults, File f, int sId, String userIdent, String basePath,
@@ -982,11 +1079,46 @@ public class SurveyTableManager {
 				}
 				sqlBuild.append("_user = ?");
 			}
-			
+
+			/*
+			 * Apply the reference data filter defined on the linker survey for this source survey.
+			 * A static, top-form-only pseudo-SQL filter (like a role row filter).  Skip chart /
+			 * pulldata which order and group differently and are not intended to be filtered here.
+			 */
+			refFilterFrag = null;
+			if(!chart && !linked_s_pd) {
+				String linkerGroupIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+				String sourceGroupIdent = GeneralUtilityMethods.getGroupSurveyIdentFromIdent(sd, linked_sIdent);
+				ReferenceFilterManager rfm = new ReferenceFilterManager(localisation);
+				ReferenceFilter rf = rfm.getFilter(sd, linkerGroupIdent, sourceGroupIdent);
+				if(rf != null && rf.filter != null && rf.filter.trim().length() > 0) {
+					refFilterFrag = new SqlFrag();
+					refFilterFrag.addSqlFragment(rf.filter, false, localisation, 0);
+					if(sqlDef.hasWhere) {
+						sqlBuild.append(" and ");
+					} else {
+						sqlBuild.append(" where ");
+					}
+					sqlBuild.append(" ( ").append(refFilterFrag.sql).append(" ) ");
+				}
+			}
+
 			sqlBuild.append(sqlDef.order_by);
+
+			/*
+			 * Optionally cap a referenced survey to its latest N records.  The plain reference
+			 * paths order by prikey desc (latest first, monotonic with _upload_time), so a
+			 * trailing limit yields the most recent N submissions.  Skip chart / pulldata which
+			 * order and group differently.
+			 */
+			int maxRecords = (!chart && !linked_s_pd) ? getMaxReferenceRecords() : 0;
+			if(maxRecords > 0) {
+				sqlBuild.append(" limit ").append(maxRecords);
+			}
+
 			String sql = sqlBuild.toString();					// Escape quotes when passing sql to psql
 			String sqlNoEscapes = sql.replace("\\", "");		// Remove escaping of quotes when used in prepared statement
-			
+
 			if(sqlDef.colNames.size() == 0) {
 				log.fine("++++++ No column names present in table. Creating empty file");
 				
@@ -1201,7 +1333,7 @@ public class SurveyTableManager {
 				}
 				String scriptPath = basePath + "_bin" + File.separator + "getshape.sh";
 				String[] cmd = { "/bin/sh", "-c",
-						scriptPath + " results linked " + "\"" + GeneralUtilityMethods.interpolateSql(sql, sqlDef.calcArray, cur, rfArray, userIdent, tz) + "\" "
+						scriptPath + " results linked " + "\"" + GeneralUtilityMethods.interpolateSql(sql, sqlDef.calcArray, cur, rfArray, userIdent, tz, refFilterFrag) + "\" "
 								+ filePath + " csvnozip" };
 				log.fine("Getting linked data: " + cmd[2]);
 				Process proc = Runtime.getRuntime().exec(cmd);
@@ -1269,9 +1401,14 @@ public class SurveyTableManager {
 		if (sqlDef.calcArray != null) {		// Set parameters from server calculates
 			paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDef.calcArray, paramCount, tz);
 		}
-		
-		// Set parameters from roles
-		cur.setFilterParams(pstmt, rfArray, paramCount, tz, userIdent);
+
+		// Set parameters from roles then my reference data
+		paramCount = cur.setFilterParams(pstmt, rfArray, paramCount, tz, userIdent);
+
+		// Set parameters from the reference data filter (appended last in the where clause)
+		if(refFilterFrag != null) {
+			paramCount = GeneralUtilityMethods.setFragParams(pstmt, refFilterFrag, paramCount, tz);
+		}
 	}
 	
 	/*
@@ -1313,16 +1450,23 @@ public class SurveyTableManager {
 		boolean regenerate = false;
 		boolean tableExists = true;
 
-		String sql = "select count (*) from linked_forms " 
-				+ "where linked_s_id = ? " 
+		String sql = "select count (*), coalesce(max(max_records), 0) from linked_forms "
+				+ "where linked_s_id = ? "
 				+ "and linker_s_id = ? "
 				+ "and link_file = ? ";
 		PreparedStatement pstmt = null;
 
+		String sqlDelStale = "delete from linked_forms where linker_s_id = ? and link_file = ?";
+		PreparedStatement pstmtDelStale = null;
+
 		String sqlInsert = "insert into linked_forms "
-				+ "(Linked_s_id, linker_s_id, link_file, download_time) " 
-				+ "values(?, ?, ?, now())";
+				+ "(Linked_s_id, linker_s_id, link_file, download_time, max_records) "
+				+ "values(?, ?, ?, now(), ?)";
 		PreparedStatement pstmtInsert = null;
+
+		// The record cap only applies to plain reference files (chart / pulldata order and
+		// group differently and are not capped), so only they trigger a cap-change regenerate.
+		int currentMax = (!chart && !linked_s_pd) ? getMaxReferenceRecords() : 0;
 
 		try {
 
@@ -1345,10 +1489,20 @@ public class SurveyTableManager {
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				int count = rs.getInt(1);
-				if (count > 0) {
+				int storedMax = rs.getInt(2);
+				if (count > 0 && storedMax == currentMax) {
 					regenerate = false;
 					// log.fine("Regenerate is false");
 				} else {
+
+					// The record cap has changed - clear the stale entries so they are
+					// reinserted below with the new cap and the file is regenerated.
+					if (count > 0) {
+						pstmtDelStale = sd.prepareStatement(sqlDelStale);
+						pstmtDelStale.setInt(1, sId);
+						pstmtDelStale.setString(2, logicalFilePath);
+						pstmtDelStale.executeUpdate();
+					}
 
 					String table = GeneralUtilityMethods.getMainResultsTable(sd, cRel, linked_sId);
 
@@ -1357,7 +1511,7 @@ public class SurveyTableManager {
 						// log.fine("Need to regenerate");
 
 						pstmtInsert = sd.prepareStatement(sqlInsert);
-						
+
 						// Create an entry in linked forms for all grouped surveys that this this survey links to
 						String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, linked_sId );
 						HashMap<Integer, Integer> groupSurveys = GeneralUtilityMethods.getGroupSurveys(sd, groupSurveyIdent);
@@ -1366,6 +1520,7 @@ public class SurveyTableManager {
 								pstmtInsert.setInt(1, gSId);
 								pstmtInsert.setInt(2, sId);
 								pstmtInsert.setString(3, logicalFilePath);
+								pstmtInsert.setInt(4, currentMax);
 								pstmtInsert.executeUpdate();
 								// log.fine("Insert record: " + pstmtInsert.toString());
 							}
@@ -1387,6 +1542,7 @@ public class SurveyTableManager {
 		} finally {
 			try {sd.setAutoCommit(true);} catch(Exception e) {};
 			if (pstmt != null) {	try {pstmt.close();} catch (Exception e) {}}
+			if (pstmtDelStale != null) {try {pstmtDelStale.close();} catch (Exception e) {}}
 			if (pstmtInsert != null) {try {pstmtInsert.close();} catch (Exception e) {}}
 		}
 

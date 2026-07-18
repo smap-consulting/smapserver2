@@ -34,6 +34,7 @@ public class SurveyDAO {
 	public ArrayList<ChangeLog> changes  = new ArrayList<> ();
 	public ArrayList<MetaItem> meta = new ArrayList<> ();
 	public HashMap<String, Role> roles = new HashMap<> ();
+	public HashMap<String, ReferenceFilter> referenceFilters = new HashMap<> ();	// Keyed by source (linked) survey ident
 	public InstanceResults instance = new InstanceResults();	// Data from an instance (a submitted survey)
 	public String pdfTemplateName;
 	public String default_logo;
@@ -58,4 +59,5 @@ public class SurveyDAO {
 	public SurveyLinks links;
 	public boolean turnstile;
 	public boolean showFormIndex;			// Show a form index panel for navigation
+	public int maxReferenceRecords;			// When used as a reference file, supply only the latest N records (0 = unlimited)
 }

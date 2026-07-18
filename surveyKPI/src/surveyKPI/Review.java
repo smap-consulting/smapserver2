@@ -1424,50 +1424,56 @@ public class Review extends Application {
 		
 		ArrayList<KeyValue> names = new ArrayList<KeyValue>();
 		
+		// Use a dedicated scan cursor that always advances; never clobber it with the quote search
 		while((idx1 = relevance.indexOf("selected", idx1 + 1)) >= 0) {
-			idx1 = relevance.indexOf("(", idx1 + 1);
-			if(idx1 > 0) {
-				idx2 = relevance.indexOf(",", idx1);
-				if(idx2 > 0) {
-					rawName = relevance.substring(idx1+1, idx2);
+			name = null;
+			value = null;
+			int open = relevance.indexOf("(", idx1 + 1);
+			if(open > 0) {
+				int comma = relevance.indexOf(",", open);
+				if(comma > 0) {
+					rawName = relevance.substring(open+1, comma);
 					name = getName(rawName);
-					
-					idx1 = relevance.indexOf("'", idx2);
-					if(idx1 > 0) {
-						idx2 = relevance.indexOf("'", idx1 + 1);
-						if(idx2 > 0) {
-							value = relevance.substring(idx1+1, idx2).trim();
+
+					int q1 = relevance.indexOf("'", comma);
+					if(q1 > 0) {
+						int q2 = relevance.indexOf("'", q1 + 1);
+						if(q2 > 0) {
+							value = relevance.substring(q1+1, q2).trim();
 						}
 					}
 				}
 
 			}
-			
+
 			KeyValue kv = new KeyValue(name, value);
 			names.add(kv);
 		}
-		
+
 		/*
 		 * If no questions were found that used the selected() function then try other question names that start with ${
 		 */
 		if(names.isEmpty()) {
+			idx1 = -1;
 			while((idx1 = relevance.indexOf("${", idx1 + 1)) >= 0) {
-				idx1 = relevance.indexOf("{", idx1);
-				idx2 = relevance.indexOf("}", idx1);
-				if(idx2 > idx1) {
-					name = relevance.substring(idx1+1, idx2);
-					
-					idx1 = relevance.indexOf("'", idx2);
-					if(idx1 > 0) {
-						idx2 = relevance.indexOf("'", idx1 + 1);
-						if(idx2 > 0) {
-							value = relevance.substring(idx1+1, idx2).trim();
+				name = null;
+				value = null;
+				int open = relevance.indexOf("{", idx1);
+				int close = relevance.indexOf("}", open);
+				if(close > open) {
+					name = relevance.substring(open+1, close);
+
+					int q1 = relevance.indexOf("'", close);
+					if(q1 > 0) {
+						int q2 = relevance.indexOf("'", q1 + 1);
+						if(q2 > 0) {
+							value = relevance.substring(q1+1, q2).trim();
 						}
 					}
 				}
 				KeyValue kv = new KeyValue(name, value);
 				names.add(kv);
-			}	
+			}
 		}
 		
 		return names;

@@ -5315,18 +5315,41 @@ public class GeneralUtilityMethods {
 	 * Get choices from an external file
 	 */
 	public static ArrayList<Option> getExternalChoices(
-			Connection sd, 
+			Connection sd,
 			Connection cResults,
-			ResourceBundle localisation, 
+			ResourceBundle localisation,
 			String remoteUser,
-			int oId, 
-			int sId, 
-			int qId, 
+			int oId,
+			int sId,
+			int qId,
 			ArrayList<String> matches,
 			String surveyIdent,
 			String tz,
 			ArrayList<KeyValueSimp> wfFilters,
 			String filename) throws Exception {
+		// Default: online use (editor / admin / runtime) - do not apply the reference cap or filter
+		return getExternalChoices(sd, cResults, localisation, remoteUser, oId, sId, qId, matches,
+				surveyIdent, tz, wfFilters, filename, false);
+	}
+
+	/*
+	 * applyReferenceCap should be true only when the external choices are being embedded into the form
+	 * DOM (webform build).  It applies the linker -> source connection filter and record cap.
+	 */
+	public static ArrayList<Option> getExternalChoices(
+			Connection sd,
+			Connection cResults,
+			ResourceBundle localisation,
+			String remoteUser,
+			int oId,
+			int sId,
+			int qId,
+			ArrayList<String> matches,
+			String surveyIdent,
+			String tz,
+			ArrayList<KeyValueSimp> wfFilters,
+			String filename,
+			boolean applyReferenceCap) throws Exception {
 
 		ArrayList<Option> choices = null;
 		PreparedStatement pstmt = null;		// Used by SurveyTableManager initData
@@ -5410,7 +5433,7 @@ public class GeneralUtilityMethods {
 								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
 								stm.initData(pstmt, "choices", selection, matches,
 										null,	// expression fragment
-										tz, null, null);
+										tz, null, null, applyReferenceCap);
 								choices = stm.getChoices(ovalue, languageItems, wfFilters);
 
 							} else if(filename.startsWith("sharepointlist_")) {
@@ -11332,6 +11355,12 @@ public class GeneralUtilityMethods {
 	 */
 	public static String interpolateSql(String sql, ArrayList<SqlFrag> calcArray,
 			CustomUserReference cur, ArrayList<SqlFrag> rfArray, String userIdent, String tz) throws Exception {
+		return interpolateSql(sql, calcArray, cur, rfArray, userIdent, tz, null);
+	}
+
+	public static String interpolateSql(String sql, ArrayList<SqlFrag> calcArray,
+			CustomUserReference cur, ArrayList<SqlFrag> rfArray, String userIdent, String tz,
+			SqlFrag refFilterFrag) throws Exception {
 		ArrayList<String> literals = new ArrayList<>();
 		if (calcArray != null) {
 			for (SqlFrag frag : calcArray) {
@@ -11350,6 +11379,12 @@ public class GeneralUtilityMethods {
 			}
 			if (cur.myReferenceData && userIdent != null) {
 				literals.add("'" + userIdent.replace("'", "''") + "'");
+			}
+		}
+		// Reference data filter params are appended last in the where clause
+		if (refFilterFrag != null) {
+			for (SqlFragParam p : refFilterFrag.params) {
+				literals.add(fragParamToLiteral(p, tz));
 			}
 		}
 		return substituteQuestionMarks(sql, literals);

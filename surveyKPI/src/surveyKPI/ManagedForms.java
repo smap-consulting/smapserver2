@@ -31,6 +31,7 @@ import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
@@ -44,6 +45,7 @@ import org.smap.sdal.legacy.TableManager;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.ReferenceManager;
+import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.model.Action;
@@ -367,12 +369,23 @@ public class ManagedForms extends Application {
 			String surveyName = GeneralUtilityMethods.getSurveyName(sd, sId);
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			String projectName = GeneralUtilityMethods.getProjectNameFromSurvey(sd, sId);
-			int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);		
+			int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 			Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
 			if(tableName != null) {
-				
+
+				/*
+				 * Record level security: both the requester and the assignee must be permitted to
+				 * access this record by any row filter (RBAC) rules on the survey
+				 */
+				RoleManager roleMgr = new RoleManager(localisation);
+				if(!roleMgr.canAccessRecord(sd, cResults, surveyIdent, tableName, instanceId, request.getRemoteUser(), organisation.timeZone)
+						|| (!uIdent.equals("_none")
+								&& !roleMgr.canAccessRecord(sd, cResults, surveyIdent, tableName, instanceId, uIdent, organisation.timeZone))) {
+					return Response.status(Status.FORBIDDEN).entity(localisation.getString("rec_na")).build();
+				}
+
 				CaseManager cm = new CaseManager(localisation);
-				int count = cm.assignRecord(sd, cResults, localisation, tableName, instanceId, uIdent, "assign", 
+				int count = cm.assignRecord(sd, cResults, localisation, tableName, instanceId, uIdent, "assign",
 						surveyIdent, null, request.getRemoteUser());
 				if(count == 0) {
 					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
@@ -549,9 +562,21 @@ public class ManagedForms extends Application {
 				}
 			}
 			if(tableName != null && userList.size() > 0) {
-				// Validate each user belongs to the requesting user's organisation
+				int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
+				Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+				RoleManager roleMgr = new RoleManager(localisation);
+				// Record level security: the requester must be permitted to access this record
+				if(!roleMgr.canAccessRecord(sd, cResults, surveyIdent, tableName, instanceId, request.getRemoteUser(), organisation.timeZone)) {
+					return Response.status(Status.FORBIDDEN).entity(localisation.getString("rec_na")).build();
+				}
+				// Validate each user belongs to the requesting user's organisation and is permitted
+				// to access the record by any row filter (RBAC) rules, so a reference cannot grant
+				// access to a record the user's row filter would otherwise hide
 				for(String u : userList) {
 					a.isValidUser(sd, request.getRemoteUser(), GeneralUtilityMethods.getUserId(sd, u));
+					if(!roleMgr.canAccessRecord(sd, cResults, surveyIdent, tableName, instanceId, u, organisation.timeZone)) {
+						return Response.status(Status.FORBIDDEN).entity(localisation.getString("rec_na")).build();
+					}
 				}
 				ReferenceManager rm = new ReferenceManager(localisation);
 				rm.addReferences(sd, cResults, tableName, instanceId, surveyIdent, userList, request.getRemoteUser());

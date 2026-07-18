@@ -1634,7 +1634,24 @@ public class TaskManager {
 			}
 			
 			cResults = ResultsDataSource.getConnection(connectionString);
-			
+
+			/*
+			 * Record level security: when the task updates an existing record, both the creator
+			 * and any directly named assignee must be permitted to access that record by the
+			 * survey row filter (RBAC) rules.  Role member assignees are gated in applyAllAssignments.
+			 */
+			if(tp.update_id != null && tp.update_id.trim().length() > 0) {
+				RoleManager roleMgr = new RoleManager(localisation);
+				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, tp.survey_ident);
+				if(tableName != null) {
+					if(!roleMgr.canAccessRecord(sd, cResults, tp.survey_ident, tableName, tp.update_id, request.getRemoteUser(), tz)
+							|| (tp.assignee_ident != null
+									&& !roleMgr.canAccessRecord(sd, cResults, tp.survey_ident, tableName, tp.update_id, tp.assignee_ident, tz))) {
+						throw new ApplicationException(localisation.getString("rec_na"));
+					}
+				}
+			}
+
 			TaskFeature tf = new TaskFeature();
 			tf.properties = (TaskProperties) tp;
 			
@@ -2174,6 +2191,17 @@ public class TaskManager {
 			}
 			whereTasksSql += ")";
 			whereAssignmentsSql += ")";
+
+			/*
+			 * Record level security: for a reassign, verify up-front (before any changes or
+			 * notifications) that the target user is permitted to access every update record.
+			 */
+			if(action.action.equals("assign") && action.userId > 0) {
+				String assigneeIdent = GeneralUtilityMethods.getUserIdent(sd, action.userId);
+				for(Integer taskId : taskList) {
+					checkTaskRecordAccess(sd, cResults, taskId, assigneeIdent);
+				}
+			}
 
 			// Notify currently assigned users that are being modified
 			MessagingManager mm = new MessagingManager(localisation);
@@ -3188,7 +3216,20 @@ public class TaskManager {
 		String status = "accepted";
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		UserManager um = new UserManager(null);
-		
+
+		/*
+		 * Record level security: a user may only receive a task that updates an existing record
+		 * if their row filter (RBAC) rules permit access to that record.  A single assignee who
+		 * is not permitted leaves the task unassigned; role members who are not permitted are
+		 * skipped.  Email (external) tasks are not row filtered as there is no system user.
+		 */
+		if(userId > 0 && !assigneeCanAccessRecord(sd, cResults, sIdent, update_id,
+				GeneralUtilityMethods.getUserIdent(sd, userId))) {
+			log.info("Task " + taskId + " left unassigned: user " + userId
+					+ " not permitted to access record " + update_id);
+			userId = 0;
+		}
+
 		if(userId > 0) {		// Assign the user to the new task
 
 			String userIdent = GeneralUtilityMethods.getUserIdent(sd, userId);
@@ -3217,11 +3258,19 @@ public class TaskManager {
 			
 			int count = 0;
 			while(rsRoles.next()) {
-				count++;
-		
+
 				String userIdent = GeneralUtilityMethods.getUserIdent(sd, rsRoles.getInt(1));
-				insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 
-						rsRoles.getInt(1), userIdent, null, status, taskId, update_id, sIdent, 
+
+				// Record level security: skip role members not permitted to access the record
+				if(!assigneeCanAccessRecord(sd, cResults, sIdent, update_id, userIdent)) {
+					log.info("Role task " + taskId + ": skipping user " + userIdent
+							+ " - not permitted to access record " + update_id);
+					continue;
+				}
+				count++;
+
+				insertAssignment(sd, cResults, gson, pstmtAssign, task_name,
+						rsRoles.getInt(1), userIdent, null, status, taskId, update_id, sIdent,
 						remoteUser, scheduledAt, scheduledFinish,
 						assign_auto);
 				
@@ -3362,6 +3411,63 @@ public class TaskManager {
 		}
 	}
 	
+	/*
+	 * Record level security: return true if the user may receive a task that updates the given
+	 * existing record, taking account of any row filter (RBAC) rules on the survey.
+	 * A task with no update_id creates a new record so there is nothing to protect.
+	 */
+	private boolean assigneeCanAccessRecord(Connection sd, Connection cResults, String sIdent,
+			String update_id, String userIdent) throws Exception {
+		if(update_id == null || update_id.trim().length() == 0 || sIdent == null || userIdent == null) {
+			return true;		// New record task, or nothing to check
+		}
+		String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
+		if(tableName == null) {
+			return true;		// Record table does not exist yet
+		}
+		RoleManager rm = new RoleManager(localisation);
+		return rm.canAccessRecord(sd, cResults, sIdent, tableName, update_id, userIdent, tz);
+	}
+
+	/*
+	 * Record level security: throw if the user may not access the record updated by the given
+	 * task.  Used by reassignment paths that bind a user to an existing task outside
+	 * applyAllAssignments (bulk actions, console assignment edits).
+	 */
+	public void checkTaskRecordAccess(Connection sd, Connection cResults, int taskId, String userIdent)
+			throws Exception {
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement("select survey_ident, update_id from tasks where id = ?");
+			pstmt.setInt(1, taskId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next() && !assigneeCanAccessRecord(sd, cResults, rs.getString(1), rs.getString(2), userIdent)) {
+				throw new ApplicationException(localisation.getString("rec_na"));
+			}
+		} finally {
+			if(pstmt != null) try { pstmt.close(); } catch(SQLException e) {}
+		}
+	}
+
+	/*
+	 * As checkTaskRecordAccess but identifies the task via an existing assignment.
+	 */
+	public void checkAssignmentRecordAccess(Connection sd, Connection cResults, int assignmentId, String userIdent)
+			throws Exception {
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement("select t.survey_ident, t.update_id "
+					+ "from tasks t, assignments a where a.id = ? and a.task_id = t.id");
+			pstmt.setInt(1, assignmentId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next() && !assigneeCanAccessRecord(sd, cResults, rs.getString(1), rs.getString(2), userIdent)) {
+				throw new ApplicationException(localisation.getString("rec_na"));
+			}
+		} finally {
+			if(pstmt != null) try { pstmt.close(); } catch(SQLException e) {}
+		}
+	}
+
 	public PreparedStatement getRoles(Connection sd) throws SQLException {
 		String sql = "select u_id from user_role where r_id = ?";
 		return sd.prepareStatement(sql);

@@ -623,6 +623,7 @@ public class AssignmentsManager {
 					ta.task.initial_data_source = "survey";
 					ta.task.title = caseItem.title;
 					ta.task.assignee = caseItem.assigned;
+					ta.task.update_time = caseItem.uploadTime;	// Device skips re-download unless this increases
 					ta.assignment.assignment_status = TaskManager.STATUS_T_ACCEPTED;
 					ta.assignment.assignment_id = 0;
 					tr.taskAssignments.add(ta);

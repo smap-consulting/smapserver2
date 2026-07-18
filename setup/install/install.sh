@@ -343,14 +343,15 @@ sudo mkdir /smap_bin/resources/css
 echo '##### 13. Set up deployment script'
 chmod +x ../deploy/deploy.sh
 
-echo '##### 14. Add imagemagick,ffmpeg to generate thumbnails'
+echo '##### 14. Add imagemagick,ffmpeg,exiftool to generate thumbnails'
 if [ $(cat /etc/*-release | grep "DISTRIB_CODENAME=" | cut -d "=" -f2) = "trusty" ];
-then  
+then
 sudo add-apt-repository ppa:mc3man/trusty-media  && sudo apt-get update -y
 fi
 
 sudo apt-get install imagemagick -y
-sudo apt-get install ffmpeg -y 
+sudo apt-get install ffmpeg -y
+sudo apt-get install libimage-exiftool-perl -y
 #sudo apt-get install flvtool2 -y
 
 if [ "$DBHOST" = "127.0.0.1" ]; then

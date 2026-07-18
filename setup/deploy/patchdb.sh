@@ -426,6 +426,12 @@ if [ ! -f "/smap/settings/smap-logging.properties" ]; then
     sudo cp config_files/smap-logging.properties /smap/settings
 fi
 
+# Make sure exiftool is installed (used by processAttachment.sh to preserve exif data)
+if ! command -v exiftool >/dev/null 2>&1; then
+    echo "installing exiftool"
+    sudo apt-get install libimage-exiftool-perl -y
+fi
+
 systemctl daemon-reload
 cd ../deploy
  

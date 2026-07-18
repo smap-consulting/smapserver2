@@ -319,6 +319,10 @@ public class PDFSurveyManager {
 				pdfDoc = new PdfDocument(new PdfReader(templateName), new PdfWriter(outputStream));
 				PdfAcroForm pdfForm = PdfAcroForm.getAcroForm(pdfDoc, true);
 
+				// LibreOffice templates set NeedAppearances=true, which makes iText skip
+				// generating field appearance streams. Force generation so flattened values render.
+				stamper.getAcroFields().setGenerateAppearances(true);
+
 				for(int i = 0; i < survey.surveyData.instance.results.size(); i++) {
 					fillTemplate(gv, pdfForm, survey.surveyData.instance.results.get(i),
 							null, i, pdfDoc, oId);
@@ -490,6 +494,8 @@ public class PDFSurveyManager {
 			boolean hideLabel = false;
 			String fieldName = getFieldName(formName, repeatIndex, r.name);
 			String fieldNameQR = getFieldName(formName, repeatIndex, r.name + "_qr");
+			
+			System.out.println("FieldName: " + fieldName + " (" + r.type + ")");
 
 			DisplayItem di = new DisplayItem();
 			try {
@@ -696,7 +702,6 @@ public class PDFSurveyManager {
 						setQrOnField(pdfForm, fieldName, value, pdfDoc);
 					} else {
 						setFieldValue(pdfForm, fieldName, value);
-
 					}
 				}
 			}

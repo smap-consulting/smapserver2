@@ -71,6 +71,7 @@ import org.smap.sdal.model.Question;
 import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.QuestionLite;
 import org.smap.sdal.model.Result;
+import org.smap.sdal.model.ReferenceFilter;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.SetValue;
@@ -526,7 +527,8 @@ public class SurveyManager {
 				+ "s.pdf_template,"
 				+ "s.default_logo,"
 				+ "s.turnstile,"
-				+ "s.show_form_index ");
+				+ "s.show_form_index,"
+				+ "s.max_reference_records ");
 				
 		String userIdentifiedSql = "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
@@ -614,6 +616,7 @@ public class SurveyManager {
 				s.surveyData.default_logo = resultSet.getString("default_logo");
 				s.surveyData.turnstile = resultSet.getBoolean("turnstile");
 				s.surveyData.showFormIndex = resultSet.getBoolean("show_form_index");
+				s.surveyData.maxReferenceRecords = resultSet.getInt("max_reference_records");
 
 				KeyManager km = new KeyManager(localisation);
 				s.surveyData.uk = km.get(sd, s.surveyData.groupSurveyIdent);
@@ -1173,6 +1176,13 @@ public class SurveyManager {
 			for(Role r : roles) {
 				s.surveyData.roles.put(r.name, r);
 			}
+
+			// Get the reference data filters (defined at the group level, like roles)
+			ReferenceFilterManager rfm = new ReferenceFilterManager(localisation);
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, s.surveyData.id);
+			for(ReferenceFilter rf : rfm.getFilters(sd, groupSurveyIdent)) {
+				s.surveyData.referenceFilters.put(rf.linkedSIdent, rf);
+			}
 		}
 		
 		// Get the Meta Items
@@ -1208,7 +1218,8 @@ public class SurveyManager {
 				+ "s.group_survey_ident,"
 				+ "s.read_only_survey,"
 				+ "s.turnstile,"
-				+ "s.show_form_index "
+				+ "s.show_form_index,"
+				+ "s.max_reference_records "
 				+ "from survey s,"
 				+ "project p,"
 				+ "organisation o "
@@ -1251,6 +1262,7 @@ public class SurveyManager {
 				s.surveyData.readOnlySurvey = resultSet.getBoolean("read_only_survey");
 				s.surveyData.turnstile = resultSet.getBoolean("turnstile");
 				s.surveyData.showFormIndex = resultSet.getBoolean("show_form_index");
+				s.surveyData.maxReferenceRecords = resultSet.getInt("max_reference_records");
 
 				KeyManager km = new KeyManager(localisation);
 				s.surveyData.uk = km.get(sd, s.surveyData.groupSurveyIdent);
@@ -4037,13 +4049,42 @@ public class SurveyManager {
 				
 				sql = "update task_group "
 						+ "set target_s_id = ? "
-						+ "where target_s_id = ?";	
+						+ "where target_s_id = ?";
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, newSurveyId);
 				pstmt.setInt(2, sId);
 				log.fine("Update task groups 3: " + pstmt.toString());
 				pstmt.executeUpdate();
+
+				/*
+				 * Workflow node ids stored in wf_prev_node_id embed the survey id
+				 * (e.g. "form:s:<sId>" or "task:s:<sId>:a:<assignee>"). Remap these too,
+				 * otherwise a replaced survey leaves a task on the workflow page whose
+				 * triggering form node no longer exists.
+				 */
+				String oldForm = "form:s:" + sId;
+				String newForm = "form:s:" + newSurveyId;
+				String oldTaskPrefix = "task:s:" + sId + ":a:";
+				String newTaskPrefix = "task:s:" + newSurveyId + ":a:";
+				String[] wfTables = { "task_group", "forward" };
+				for (String t : wfTables) {
+					sql = "update " + t + " set wf_prev_node_id = ? where wf_prev_node_id = ?";
+					try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+					pstmt = sd.prepareStatement(sql);
+					pstmt.setString(1, newForm);
+					pstmt.setString(2, oldForm);
+					pstmt.executeUpdate();
+
+					sql = "update " + t + " set wf_prev_node_id = replace(wf_prev_node_id, ?, ?) "
+							+ "where wf_prev_node_id like ?";
+					try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+					pstmt = sd.prepareStatement(sql);
+					pstmt.setString(1, oldTaskPrefix);
+					pstmt.setString(2, newTaskPrefix);
+					pstmt.setString(3, oldTaskPrefix + "%");
+					pstmt.executeUpdate();
+				}
 			}
 			
 			/*

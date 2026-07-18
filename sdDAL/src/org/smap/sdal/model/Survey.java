@@ -15,6 +15,7 @@ import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.managers.ReferenceFilterManager;
 import org.smap.sdal.managers.RoleManager;
 
 import com.google.gson.Gson;
@@ -194,7 +195,8 @@ public class Survey {
 			writeForms(sd, localisation, groupForms, existingSurveyId);	
 			updateForms(sd);		// Set parent form id and parent question id for forms
 			writeRoles(sd, localisation, gson, userIdent);
-			
+			writeReferenceFilters(sd, localisation);
+
 			// If this survey has been added on top of existing tables then mark columns published if they already exist
 			GeneralUtilityMethods.setPublished(sd, cRel, surveyData.id);
 			
@@ -256,9 +258,10 @@ public class Survey {
 				+ "default_logo,"
 				+ "compress_pdf,"
 				+ "turnstile,"
-				+ "show_form_index) "
+				+ "show_form_index,"
+				+ "max_reference_records) "
 				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
@@ -304,6 +307,7 @@ public class Survey {
 			pstmt.setBoolean(28, surveyData.compress_pdf);
 			pstmt.setBoolean(29, surveyData.turnstile);
 			pstmt.setBoolean(30, surveyData.showFormIndex);
+			pstmt.setInt(31, surveyData.maxReferenceRecords);
 			pstmt.executeUpdate();
 			
 			// If an ident was not provided then assign a new ident based on the survey id
@@ -696,6 +700,25 @@ public class Survey {
 		}	
 	}
 	
+	/*
+	 * 2b. Write the reference data filters (defined at the group level, like roles)
+	 */
+	private void writeReferenceFilters(Connection sd, ResourceBundle localisation) throws Exception {
+
+		if(surveyData.referenceFilters == null || surveyData.referenceFilters.size() == 0) {
+			return;
+		}
+
+		String linkerGroupIdent = (surveyData.groupSurveyIdent != null && surveyData.groupSurveyIdent.trim().length() > 0)
+				? surveyData.groupSurveyIdent : surveyData.ident;
+
+		ReferenceFilterManager rfm = new ReferenceFilterManager(localisation);
+		for(ReferenceFilter rf : surveyData.referenceFilters.values()) {
+			rf.linkerSIdent = linkerGroupIdent;
+			rfm.saveFilter(sd, rf);		// Validates the filter and forces regeneration
+		}
+	}
+
 	/*
 	 * 3. Write a Question
 	 */
