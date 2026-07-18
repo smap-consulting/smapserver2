@@ -299,6 +299,7 @@ public class CodebookEngineSmap  {
                         break;
                     case Constants.CONTROL_SELECT_ONE:
                     case Constants.CONTROL_SELECT_MULTI:
+                    case Constants.CONTROL_RANK:
                         List<SelectChoice> choices = qd.getChoices();
                         questions.append("|");
                         if(choices != null) {
