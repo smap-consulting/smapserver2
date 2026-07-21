@@ -38,7 +38,10 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ReferenceFilterManager;
+import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ReferenceFilter;
+import org.smap.sdal.model.SettingChange;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -165,7 +168,24 @@ public class ReferenceFilters extends Application {
 			rf.linkerSIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 
 			ReferenceFilterManager rfm = new ReferenceFilterManager(localisation);
+
+			// Get the current settings first so only the fields that actually changed are logged
+			ReferenceFilter old = rfm.getFilter(sd, rf.linkerSIdent, rf.linkedSIdent, false);
+
 			rfm.saveFilter(sd, rf);
+
+			ArrayList<SettingChange> changes = new ArrayList<>();
+			String oldFilter = (old == null || old.filter == null) ? "" : old.filter;
+			String newFilter = rf.filter == null ? "" : rf.filter;
+			if(!oldFilter.equals(newFilter)) {
+				changes.add(new SettingChange(localisation.getString("rf_filter"), oldFilter, newFilter));
+			}
+			int oldMax = old == null ? 0 : old.maxRecords;
+			if(oldMax != rf.maxRecords) {
+				changes.add(new SettingChange(localisation.getString("ed_mrr"),
+						String.valueOf(oldMax), String.valueOf(rf.maxRecords)));
+			}
+			logChange(sd, localisation, sId, request.getRemoteUser(), rf.linkedSIdent, changes);
 
 			response = Response.ok().build();
 		} catch (ApplicationException e) {
@@ -213,7 +233,23 @@ public class ReferenceFilters extends Application {
 			String linkerSIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 
 			ReferenceFilterManager rfm = new ReferenceFilterManager(localisation);
+
+			// Get the current settings first so the removed values can be logged
+			ReferenceFilter old = rfm.getFilter(sd, linkerSIdent, linkedIdent, false);
+
 			rfm.deleteFilter(sd, linkerSIdent, linkedIdent);
+
+			if(old != null) {
+				ArrayList<SettingChange> changes = new ArrayList<>();
+				if(old.filter != null && old.filter.trim().length() > 0) {
+					changes.add(new SettingChange(localisation.getString("rf_filter"), old.filter, ""));
+				}
+				if(old.maxRecords > 0) {
+					changes.add(new SettingChange(localisation.getString("ed_mrr"),
+							String.valueOf(old.maxRecords), "0"));
+				}
+				logChange(sd, localisation, sId, request.getRemoteUser(), linkedIdent, changes);
+			}
 
 			response = Response.ok().build();
 		} catch (Exception e) {
@@ -224,5 +260,32 @@ public class ReferenceFilters extends Application {
 		}
 
 		return response;
+	}
+
+	/*
+	 * Record a reference filter change in the survey change log.
+	 * Does nothing if no setting actually changed.
+	 */
+	private void logChange(Connection sd, ResourceBundle localisation, int sId, String user,
+			String linkedIdent, ArrayList<SettingChange> changes) throws Exception {
+
+		if(changes.size() == 0) {
+			return;
+		}
+
+		ChangeElement change = new ChangeElement();
+		change.action = "reference_filter";
+		change.origSId = sId;
+		change.settingsChanges = changes;
+
+		// Plain text fallback for readers that do not understand the structured data
+		StringBuilder msg = new StringBuilder(GeneralUtilityMethods.getSurveyNameFromIdent(sd, linkedIdent));
+		for(SettingChange sc : changes) {
+			msg.append(", ").append(sc.label).append(": ")
+				.append(sc.oldVal).append(" -> ").append(sc.newVal);
+		}
+		change.msg = msg.toString();
+
+		new SurveyManager(localisation, "UTC").writeChangeLog(sd, sId, user, change);
 	}
 }
