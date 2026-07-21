@@ -143,7 +143,7 @@ public class PdfPageSizer implements IEventHandler {
 						}
 
 						if (f.exists()) {
-							Image img = new Image(ImageDataFactory.create(f.getAbsolutePath()));
+							Image img = new Image(PdfUtilities.createImageData(f));
 							img.scaleToFit(200, 50);
 							float w = img.getImageScaledWidth();
 							img.setFixedPosition(

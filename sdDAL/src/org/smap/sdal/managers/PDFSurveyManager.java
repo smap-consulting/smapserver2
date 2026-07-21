@@ -1703,10 +1703,10 @@ public class PDFSurveyManager {
 						File f = new File(basePath + "/" + di.value);
 						if(f.exists()) {
 							angle = getImageRotation(new FileInputStream(f));
-							img = new Image(ImageDataFactory.create(f.getAbsolutePath()));
+							img = new Image(PdfUtilities.createImageData(f));
 						} else {
 							angle = getImageRotation(new URL(attachmentPrefix + di.value).openStream());
-							img = new Image(ImageDataFactory.create(new URL(attachmentPrefix + di.value)));
+							img = new Image(PdfUtilities.createImageData(new URL(attachmentPrefix + di.value)));
 						}
 						img.setRotationAngle(Math.toRadians(angle));
 						// Scale to the cell width so large photos don't overflow
@@ -2146,7 +2146,7 @@ public class PDFSurveyManager {
 						File imageFile = new File(filePath);
 						Image img = null;
 						if(imageFile.exists()) {
-							img = new Image(ImageDataFactory.create(filePath));
+							img = new Image(PdfUtilities.createImageData(imageFile));
 							img.setAutoScaleWidth(true);		// Fit the cell width like iText 5 did
 						}
 						if(img != null) {
@@ -2187,7 +2187,7 @@ public class PDFSurveyManager {
 
 				fileName = basePath + "/media/users/" + user.id + "/sig/"  + user.signature;
 
-				Image img = new Image(ImageDataFactory.create(fileName));
+				Image img = new Image(PdfUtilities.createImageData(new File(fileName)));
 				img.scaleToFit(200, 50);
 				img.setMarginLeft(indent);
 
