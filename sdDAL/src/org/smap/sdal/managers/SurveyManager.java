@@ -183,7 +183,33 @@ public class SurveyManager {
 		}
 		this.tz = tz;
 	}
-	
+
+	/*
+	 * Write an entry to the survey change log, against the survey's current version.
+	 * Use this rather than repeating the insert - many services need to record a change.
+	 */
+	public void writeChangeLog(Connection sd, int sId, String userIdent, ChangeElement change) throws Exception {
+
+		String sql = "insert into survey_change " +
+				"(s_id, version, changes, user_id, apply_results, updated_time) " +
+				"values(?, ?, ?, ?, 'true', ?)";
+		PreparedStatement pstmt = null;
+
+		try {
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			pstmt.setInt(2, GeneralUtilityMethods.getSurveyVersion(sd, sId));
+			pstmt.setString(3, gson.toJson(change));
+			pstmt.setInt(4, GeneralUtilityMethods.getUserId(sd, userIdent));
+			pstmt.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
+			pstmt.execute();
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+	}
+
 	private String sqlGetOptions = "select o.o_id as o_id, "
 			+ "o.ovalue as value, "
 			+ "o.label_id, "

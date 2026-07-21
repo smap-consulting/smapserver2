@@ -88,6 +88,16 @@ public class ReferenceFilterManager {
 	 * Called during CSV generation.
 	 */
 	public ReferenceFilter getFilter(Connection sd, String linkerSIdent, String linkedSIdent) throws Exception {
+		return getFilter(sd, linkerSIdent, linkedSIdent, true);
+	}
+
+	/*
+	 * Get the filter for a (linker, source) pair, or null.
+	 * Set enabledOnly false to get the current setting whatever its enabled state - used
+	 * when logging a change so the old value can be reported.
+	 */
+	public ReferenceFilter getFilter(Connection sd, String linkerSIdent, String linkedSIdent,
+			boolean enabledOnly) throws Exception {
 
 		ReferenceFilter rf = null;
 
@@ -95,7 +105,7 @@ public class ReferenceFilterManager {
 				+ "from reference_filter "
 				+ "where linker_s_ident = ? "
 				+ "and linked_s_ident = ? "
-				+ "and enabled";
+				+ (enabledOnly ? "and enabled" : "");
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
