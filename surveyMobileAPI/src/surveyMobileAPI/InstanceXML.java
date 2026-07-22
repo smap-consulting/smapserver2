@@ -120,7 +120,9 @@ public class InstanceXML extends Application{
 			lm.writeLog(sd, survey.surveyData.id, request.getRemoteUser(), LogManager.ERROR,
 					"Rejected instance request by prikey: priKey=" + priKey + " key=" + key, 0, request.getServerName());
 			SDDataSource.closeConnection(connectionString, sd);
-			return Response.status(Status.FORBIDDEN).entity("Records must be identified by instanceid, not prikey").build();
+			String msg = localisation != null ? localisation.getString("rec_prikey")
+					: "This link is out of date. Please re-open the record from the data table.";
+			return Response.status(Status.FORBIDDEN).entity(msg).build();
 		}
 
 		lm.writeLog(sd, survey.surveyData.id, request.getRemoteUser(), LogManager.INSTANCE_VIEW, "Get results instance: priKey=" + priKey + " key=" + key + " keyval=" + keyval, 0, request.getServerName());

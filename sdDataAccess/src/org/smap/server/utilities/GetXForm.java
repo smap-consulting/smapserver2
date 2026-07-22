@@ -1808,7 +1808,7 @@ public class GetXForm {
 				if (key.equals("prikey")) {
 					// prikey is sequential and can be guessed/enumerated; a record must be
 					// addressed by its non-guessable instanceid, never by the primary key
-					throw new ApplicationException("Records must be identified by instanceid, not prikey");
+					throw new ApplicationException(localisation.getString("rec_prikey"));
 				} else {
 					priKey = getPrimaryKey(sd, cResults, firstForm, key, keyval, sId);
 				}
