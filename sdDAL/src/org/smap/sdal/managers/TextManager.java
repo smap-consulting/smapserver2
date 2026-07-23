@@ -12,7 +12,6 @@ import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Survey;
-import com.itextpdf.text.DocumentException;
 
 /*****************************************************************************
 
@@ -172,7 +171,7 @@ public class TextManager {
 			int repeatIndex,
 			Survey survey,
 			int languageIdx,
-			int oId) throws IOException, DocumentException {
+			int oId) throws IOException {
 		try {
 			
 			for(Result r : record) {

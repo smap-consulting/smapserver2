@@ -1806,10 +1806,9 @@ public class GetXForm {
 		try {
 			if (key != null && keyval != null) {
 				if (key.equals("prikey")) {
-					priKey = Integer.parseInt(keyval);
-					if (!priKeyValid(cResults, firstForm, priKey)) {
-						priKey = 0;
-					}
+					// prikey is sequential and can be guessed/enumerated; a record must be
+					// addressed by its non-guessable instanceid, never by the primary key
+					throw new ApplicationException(localisation.getString("rec_prikey"));
 				} else {
 					priKey = getPrimaryKey(sd, cResults, firstForm, key, keyval, sId);
 				}

@@ -749,44 +749,17 @@ public class AllAssignments extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 
 		/*
-		 * For each assignment validate both:
-		 *   1) survey level - the requester may administer the task / assignment
-		 *   2) record level (RBAC) - the assignee may access the record the task updates
+		 * Survey level authorisation - the requester may administer the task / assignment.
+		 * The assignee does NOT need record level (RBAC) access to the record: a task may be
+		 * assigned to a user who cannot see the record, including external email task recipients
+		 * with no logon.  The authorisation to assign is held by the requester, checked above.
 		 */
-		String rbacError = null;
-		Connection cResults = ResultsDataSource.getConnection(connectionString);
-		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			String tz = GeneralUtilityMethods.getOrganisationTZ(sd, GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser()));
-			TaskManager tmRbac = new TaskManager(localisation, tz);
-
-			for(Assignment ass : aArray) {
-				String assigneeIdent = (ass.user != null && ass.user.id > 0)
-						? GeneralUtilityMethods.getUserIdent(sd, ass.user.id) : null;
-				if(ass.assignment_id == 0) {	// New assignment
-					a.isValidTask(sd, request.getRemoteUser(), ass.task_id);
-					if(assigneeIdent != null) {
-						tmRbac.checkTaskRecordAccess(sd, cResults, ass.task_id, assigneeIdent);
-					}
-				} else {						// Update existing assignment
-					a.isValidAssignment(sd, request.getRemoteUser(), ass.assignment_id);
-					if(assigneeIdent != null) {
-						tmRbac.checkAssignmentRecordAccess(sd, cResults, ass.assignment_id, assigneeIdent);
-					}
-				}
+		for(Assignment ass : aArray) {
+			if(ass.assignment_id == 0) {	// New assignment
+				a.isValidTask(sd, request.getRemoteUser(), ass.task_id);
+			} else {						// Update existing assignment
+				a.isValidAssignment(sd, request.getRemoteUser(), ass.assignment_id);
 			}
-		} catch (AuthorisationException e) {	// Survey level: Authorise has already closed sd
-			throw e;
-		} catch (Exception e) {					// Record level access denied - sd is still open
-			rbacError = e.getMessage();
-			log.log(Level.SEVERE, "", e);
-		} finally {
-			ResultsDataSource.closeConnection(connectionString, cResults);
-		}
-		if(rbacError != null) {
-			SDDataSource.closeConnection(connectionString, sd);
-			return Response.status(Status.FORBIDDEN).entity(rbacError).build();
 		}
 		// End Authorisation
 

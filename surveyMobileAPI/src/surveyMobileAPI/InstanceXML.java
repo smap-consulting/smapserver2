@@ -110,9 +110,23 @@ public class InstanceXML extends Application{
 		}
 		a.isValidSurvey(sd, user, survey.surveyData.id, false, superUser);	// Validate that the user can access this survey
 		a.isBlocked(sd, survey.surveyData.id, false);			// Validate that the survey is not blocked
-		
+
+		/*
+		 * A record must be identified by its non-guessable instanceid, never by the sequential
+		 * primary key, which can be enumerated to read records the requester was not given.
+		 * Reject any attempt to address a record directly by prikey.
+		 */
+		if(priKey != 0 || (key != null && key.equalsIgnoreCase("prikey"))) {
+			lm.writeLog(sd, survey.surveyData.id, request.getRemoteUser(), LogManager.ERROR,
+					"Rejected instance request by prikey: priKey=" + priKey + " key=" + key, 0, request.getServerName());
+			SDDataSource.closeConnection(connectionString, sd);
+			String msg = localisation != null ? localisation.getString("rec_prikey")
+					: "This link is out of date. Please re-open the record from the data table.";
+			return Response.status(Status.FORBIDDEN).entity(msg).build();
+		}
+
 		lm.writeLog(sd, survey.surveyData.id, request.getRemoteUser(), LogManager.INSTANCE_VIEW, "Get results instance: priKey=" + priKey + " key=" + key + " keyval=" + keyval, 0, request.getServerName());
-		
+
 		SDDataSource.closeConnection(connectionString, sd);
 		// End Authorisation
 		 

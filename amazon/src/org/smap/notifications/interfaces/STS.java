@@ -1,13 +1,15 @@
 package org.smap.notifications.interfaces;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.BasicSessionCredentials;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
-import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
-import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
-import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
-import com.amazonaws.services.securitytoken.model.Credentials;
+import java.time.Duration;
+
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sts.StsClient;
+import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
+import software.amazon.awssdk.services.sts.model.AssumeRoleResponse;
+import software.amazon.awssdk.services.sts.model.Credentials;
 
 /*****************************************************************************
  * 
@@ -21,46 +23,42 @@ import com.amazonaws.services.securitytoken.model.Credentials;
  */
 public class STS extends AWSService {
 
-	AWSSecurityTokenService stsClient = null;
+	StsClient stsClient = null;
 
 	public STS(String r, String basePath) {
-		
+
 		super(r, basePath);
-		
-		// create a new transcribe client
-		ClientConfiguration clientConfig = new ClientConfiguration();
-        clientConfig.setConnectionTimeout(60000);
-        clientConfig.setMaxConnections(100);
-        clientConfig.setSocketTimeout(60000);
-        
-        
-        stsClient = AWSSecurityTokenServiceClientBuilder.standard()
-        		.withCredentials(DefaultAWSCredentialsProviderChain.getInstance())
-				.withRegion(region)
-				.withClientConfiguration(clientConfig)
+
+		// create a new STS client
+		stsClient = StsClient.builder()
+				.credentialsProvider(DefaultCredentialsProvider.create())
+				.region(Region.of(region))
+				.httpClientBuilder(ApacheHttpClient.builder()
+						.connectionTimeout(Duration.ofMillis(60000))
+						.socketTimeout(Duration.ofMillis(60000))
+						.maxConnections(100))
                 .build();
 	}
-	
-	public BasicSessionCredentials getSessionCredentials(String roleARN, String roleSessionName) {
-		
+
+	public AwsSessionCredentials getSessionCredentials(String roleARN, String roleSessionName) {
+
 		//final String roleARN = "arn:aws:iam::439804189189:role/dashboard_role";
 		//final String roleSessionName = "cuso";
-		
-		
-		AssumeRoleRequest roleRequest = new AssumeRoleRequest()
-                .withRoleArn(roleARN)
-                .withRoleSessionName(roleSessionName);
-				
-		AssumeRoleResult roleResponse = stsClient.assumeRole(roleRequest);
-		Credentials sessionCredentials = roleResponse.getCredentials();
-		
-		 // Create a BasicSessionCredentials object that contains the credentials you just retrieved.
-        BasicSessionCredentials awsCredentials = new BasicSessionCredentials(
-                sessionCredentials.getAccessKeyId(),
-                sessionCredentials.getSecretAccessKey(),
-                sessionCredentials.getSessionToken());
-        
-		return awsCredentials;
+
+
+		AssumeRoleRequest roleRequest = AssumeRoleRequest.builder()
+                .roleArn(roleARN)
+                .roleSessionName(roleSessionName)
+                .build();
+
+		AssumeRoleResponse roleResponse = stsClient.assumeRole(roleRequest);
+		Credentials sessionCredentials = roleResponse.credentials();
+
+		 // Create a session credentials object that contains the credentials you just retrieved.
+		return AwsSessionCredentials.create(
+                sessionCredentials.accessKeyId(),
+                sessionCredentials.secretAccessKey(),
+                sessionCredentials.sessionToken());
 	}
 
 }

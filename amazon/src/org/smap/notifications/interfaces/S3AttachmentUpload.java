@@ -4,15 +4,19 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.logging.Logger;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 /*
  * Static class to upload attachments to S3 
@@ -24,7 +28,7 @@ public class S3AttachmentUpload {
 		
 	}
 	
-	private static AmazonS3 s3;
+	private static S3Client s3;
 	private static String bucket;
 	private static String region;
 	private static boolean s3Enabled = true;
@@ -41,10 +45,11 @@ public class S3AttachmentUpload {
 				/*
 				 * Send the file
 				 */
-				File file = new File(filePath);	
+				File file = new File(filePath);
 				String s3Path = filePath.substring(basePath.length() + 1);
 				if(file.exists()) {
-					s3.putObject(new PutObjectRequest(bucket, s3Path, file));
+					s3.putObject(PutObjectRequest.builder().bucket(bucket).key(s3Path).build(),
+							Paths.get(filePath));
 				} else {
 					log.info("Error uploading to S3: File not found: " + file.getAbsolutePath());
 				}
@@ -64,8 +69,8 @@ public class S3AttachmentUpload {
 			 */
 			String s3Path = filePath.substring(basePath.length() + 1);
 			log.info("Getting archived XML file " + filePath + " from bucket " + bucket + " in region " + region);
-			S3Object o = s3.getObject(bucket, s3Path);
-			S3ObjectInputStream s3is = o.getObjectContent();
+			ResponseInputStream<GetObjectResponse> s3is = s3.getObject(GetObjectRequest.builder()
+					.bucket(bucket).key(s3Path).build());
 	        FileOutputStream fos = new FileOutputStream(new File(filePath));
 	        byte[] read_buf = new byte[1024];
 	        int read_len = 0;
@@ -91,9 +96,14 @@ public class S3AttachmentUpload {
 			
 			String s3Path = filePath.substring(basePath.length() + 1);
 			log.info("Checking for file on S3 " + filePath + " from bucket " + bucket + " in region " + region);
-			exists = s3.doesObjectExist(bucket, s3Path);
+			try {
+				s3.headObject(HeadObjectRequest.builder().bucket(bucket).key(s3Path).build());
+				exists = true;
+			} catch (NoSuchKeyException e) {
+				exists = false;
+			}
 		}
-		return exists;		
+		return exists;
 	}
 	
 	private static void initialise(String basePath) {
@@ -105,10 +115,10 @@ public class S3AttachmentUpload {
 				log.info("S3 not enabled");
 			} else {
 				region = getSettingFromFile(basePath + "/settings/region");
-				
-				s3 = AmazonS3Client.builder()
-						.withRegion(region)
-						.withCredentials(DefaultAWSCredentialsProviderChain.getInstance())
+
+				s3 = S3Client.builder()
+						.region(Region.of(region))
+						.credentialsProvider(DefaultCredentialsProvider.create())
 						.build();
 			}
 		}

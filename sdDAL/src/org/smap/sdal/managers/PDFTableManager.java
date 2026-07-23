@@ -1,7 +1,6 @@
 package org.smap.sdal.managers;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Type;
@@ -14,6 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfPageSizer;
+import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.Utilities.TableReportUtilities;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.KeyValue;
@@ -24,34 +24,25 @@ import org.smap.sdal.model.User;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.itextpdf.text.BadElementException;
-import com.itextpdf.text.BaseColor;
-import com.itextpdf.text.Chunk;
-import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.Font;
-import com.itextpdf.text.Font.FontFamily;
-import com.itextpdf.text.FontFactory;
-import com.itextpdf.text.Image;
-import com.itextpdf.text.PageSize;
-import com.itextpdf.text.Paragraph;
-import com.itextpdf.text.pdf.BarcodeQRCode;
-import com.itextpdf.text.pdf.BaseFont;
-import com.itextpdf.text.pdf.PdfPCell;
-import com.itextpdf.text.pdf.PdfPTable;
-import com.itextpdf.text.pdf.PdfWriter;
-import com.itextpdf.tool.xml.ElementList;
-import com.itextpdf.tool.xml.XMLWorker;
-import com.itextpdf.tool.xml.XMLWorkerHelper;
-import com.itextpdf.tool.xml.css.CssFile;
-import com.itextpdf.tool.xml.css.StyleAttrCSSResolver;
-import com.itextpdf.tool.xml.html.Tags;
-import com.itextpdf.tool.xml.parser.XMLParser;
-import com.itextpdf.tool.xml.pipeline.css.CSSResolver;
-import com.itextpdf.tool.xml.pipeline.css.CssResolverPipeline;
-import com.itextpdf.tool.xml.pipeline.end.ElementHandlerPipeline;
-import com.itextpdf.tool.xml.pipeline.html.HtmlPipeline;
-import com.itextpdf.tool.xml.pipeline.html.HtmlPipelineContext;
+import com.itextpdf.barcodes.BarcodeQRCode;
+import com.itextpdf.io.font.PdfEncodings;
+import com.itextpdf.kernel.colors.ColorConstants;
+import com.itextpdf.kernel.events.PdfDocumentEvent;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
+import com.itextpdf.kernel.geom.PageSize;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.pdf.xobject.PdfFormXObject;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.borders.SolidBorder;
+import com.itextpdf.layout.element.Cell;
+import com.itextpdf.layout.element.Image;
+import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.font.FontProvider;
+import com.itextpdf.layout.properties.Property;
+import com.itextpdf.layout.properties.UnitValue;
 
 /*****************************************************************************
 
@@ -76,22 +67,18 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  * Manage the table that stores details on the forwarding of data onto other systems
  */
 public class PDFTableManager {
-	
+
 	private static Logger log =
 			 Logger.getLogger(PDFTableManager.class.getName());
-	
-	public static Font Symbols = null;
-	public static Font defaultFont = null;
-	private static final String DEFAULT_CSS = "/resources/css/default_pdf.css";
-	
-	Font font = new Font(FontFamily.HELVETICA, 10);
-    Font fontbold = new Font(FontFamily.HELVETICA, 10, Font.BOLD);
 
-	private class Parser {
-		XMLParser xmlParser = null;
-		ElementList elements = null;
-	}
-	
+	private static final String DEFAULT_CSS = "/resources/css/default_pdf.css";
+
+	// iText 8 fonts and rendering context (set up in createPdf)
+	private PdfFont font;
+	private PdfFont fontbold;
+	private FontProvider fontProvider;
+	private PdfDocument pdfDoc;
+
 	int marginLeft = 50;
 	int marginRight = 50;
 	int marginTop_1 = 130;
@@ -105,10 +92,10 @@ public class PDFTableManager {
 	 */
 	public void createPdf(
 			Connection sd,
-			OutputStream outputStream, 
-			ArrayList<ArrayList<KeyValue>> dArray, 
+			OutputStream outputStream,
+			ArrayList<ArrayList<KeyValue>> dArray,
 			SurveyViewDefn mfc,
-			ResourceBundle localisation, 
+			ResourceBundle localisation,
 			String tz,
 			boolean landscape,
 			String remoteUser,
@@ -119,183 +106,113 @@ public class PDFTableManager {
 
 		User user = null;
 		UserManager um = new UserManager(localisation);
-		
-		try {
-			
-			user = um.getByIdent(sd, remoteUser);
-			
-			// Get fonts and embed them
-			String os = System.getProperty("os.name");
-			log.fine("Operating System:" + os);
-			
-			if(os.startsWith("Mac")) {
-				FontFactory.register("/Library/Fonts/fontawesome-webfont.ttf", "Symbols");
-				FontFactory.register("/Library/Fonts/Arial Unicode.ttf", "default");
-				FontFactory.register("/Library/Fonts/NotoNaskhArabic-Regular.ttf", "arabic");
-				FontFactory.register("/Library/Fonts/NotoSans-Regular.ttf", "notosans");
-			} else if(os.indexOf("nix") >= 0 || os.indexOf("nux") >= 0 || os.indexOf("aix") > 0) {
-				// Linux / Unix
-				FontFactory.register("/usr/share/fonts/truetype/fontawesome-webfont.ttf", "Symbols");
-				FontFactory.register("/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf", "default");
-				FontFactory.register("/usr/share/fonts/truetype/NotoNaskhArabic-Regular.ttf", "arabic");
-				FontFactory.register("/usr/share/fonts/truetype/NotoSans-Regular.ttf", "notosans");
-			}
-			
-			Symbols = FontFactory.getFont("Symbols", BaseFont.IDENTITY_H, 
-				    BaseFont.EMBEDDED, 12); 
-			defaultFont = FontFactory.getFont("default", BaseFont.IDENTITY_H, 
-				    BaseFont.EMBEDDED, 10); 
+		Document document = null;
 
-			
+		try {
+
+			user = um.getByIdent(sd, remoteUser);
+
+			// Set up fonts (font provider gives per-glyph fallback across scripts)
+			fontProvider = buildFontProvider();
+			font = createFont(notoSansPath());
+			fontbold = createFont(notoSansBoldPath());
+
 			ArrayList<TableReportsColumn> cols = TableReportUtilities.getTableReportColumnList(mfc, dArray, localisation);
 			ArrayList<String> tableHeader = new ArrayList<String> ();
 			for(TableReportsColumn col : cols) {
 				tableHeader.add(col.displayName);
 			}
-			
+
 			/*
 			 * Create a PDF without the stationary
-			 */				
-			PdfWriter writer = null;
-				
-			/*
-			 * If we need to add a letter head then create document in two passes, the second pass adds the letter head
-			 * Else just create the document directly in a single pass
 			 */
-			Parser parser = getXMLParser(basePath);
-			
-			// Step 1 - Create the underlying document as a byte array
-			Document document = null;
-			if(landscape) {
-				document = new Document(PageSize.A4.rotate());
-			} else {
-				document = new Document(PageSize.A4);
-			}
-			document.setMargins(marginLeft, marginRight, marginTop_1, marginBottom_1);
-			writer = PdfWriter.getInstance(document, outputStream);
-				
-			writer.setInitialLeading(12);	
-			writer.setPageEvent(new PdfPageSizer(title, 
-					user, basePath, 
+			PdfWriter writer = new PdfWriter(outputStream);
+			pdfDoc = new PdfDocument(writer);
+
+			pdfDoc.addEventHandler(PdfDocumentEvent.END_PAGE, new PdfPageSizer(title,
+					user, basePath,
 					tableHeader,
-					marginLeft, marginRight, marginTop_2, marginBottom_2, null, null)); 
-			
-			document.open();
-			document.add(new Chunk(""));	// Ensure there is something in the page so at least a blank document will be created
-			processResults(parser, document, dArray, cols, basePath);
+					marginLeft, marginRight, marginTop_2, marginBottom_2, null, null));
+
+			document = new Document(pdfDoc, landscape ? PageSize.A4.rotate() : PageSize.A4);
+			// iText 8 margin order is top, right, bottom, left
+			document.setMargins(marginTop_1, marginRight, marginBottom_1, marginLeft);
+			document.setFontProvider(fontProvider);
+			document.setProperty(Property.FONT, new String[]{"Noto Sans"});
+
+			processResults(document, dArray, cols, basePath);
 			document.close();
-				
-			
+
+
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "SQL Error", e);
-			
+
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
-			
+
+		} finally {
+			if(document != null) try {document.close();} catch (Exception e) {}
 		}
-	
+
 	}
-	
-	
+
+
 	private class UserSettings {
 		String title;
 		String license;
 	}
-	
-	
-	/*
-	 * Get an XML Parser
-	 */
-	private Parser getXMLParser(String basePath) {
-		
-		Parser parser = new Parser();
-		
-        // CSS
-		 CSSResolver cssResolver = new StyleAttrCSSResolver();
-		 FileInputStream fis = null;
-		 try {
-			 fis = new FileInputStream(basePath + "_bin" + DEFAULT_CSS);
-			 CssFile cssFile = XMLWorkerHelper.getCSS(fis);
-		     cssResolver.addCss(cssFile);
-		 } catch(Exception e) {
-			 log.log(Level.SEVERE, "Failed to get CSS file", e);
-			 cssResolver = XMLWorkerHelper.getInstance().getDefaultCssResolver(true);
-		 } finally {
-			 try {fis.close();} catch(Exception e) {}
-		 }
- 
-        // HTML
-        HtmlPipelineContext htmlContext = new HtmlPipelineContext(null);
-        htmlContext.setTagFactory(Tags.getHtmlTagProcessorFactory());
-        htmlContext.autoBookmark(false);
- 
-        // Pipelines
-        parser.elements = new ElementList();
-        ElementHandlerPipeline end = new ElementHandlerPipeline(parser.elements, null);
-        HtmlPipeline html = new HtmlPipeline(htmlContext, end);
-        CssResolverPipeline css = new CssResolverPipeline(cssResolver, html);
- 
-        // XML Worker
-        XMLWorker worker = new XMLWorker(css, true);        
-        parser.xmlParser = new XMLParser(worker);
-        
-        return parser;
-		
-	}
-	
+
 	/*
 	 * Process the results and write to a table
 	 */
 	private void processResults(
-			Parser parser,
-			Document document,  
-			ArrayList<ArrayList<KeyValue>> dArray, 
+			Document document,
+			ArrayList<ArrayList<KeyValue>> dArray,
 			ArrayList<TableReportsColumn> cols,
-			String basePath) throws DocumentException, IOException {
-		
-	
+			String basePath) throws IOException {
+
+
 		for(int index = 0; index < dArray.size(); index++) {
-			
+
 			ArrayList<KeyValue> record = dArray.get(index);
-			PdfPTable newTable = processRow(parser, record, cols, basePath);
-			newTable.setWidthPercentage(100);
+			Table newTable = processRow(record, cols, basePath);
 			document.add(newTable);
-			
+
 		}
-		
+
 		return;
 	}
-	
-	
+
+
 	/*
 	 * Add the table row to the document
 	 */
-	PdfPTable processRow(Parser parser, 
-			ArrayList<KeyValue> record, 
-			ArrayList<TableReportsColumn> cols, 
-			String basePath) throws BadElementException, MalformedURLException, IOException {
+	Table processRow(
+			ArrayList<KeyValue> record,
+			ArrayList<TableReportsColumn> cols,
+			String basePath) throws MalformedURLException, IOException {
 
-		PdfPTable table = new PdfPTable(cols.size());	
-		
+		Table table = new Table(UnitValue.createPercentArray(cols.size())).useAllAvailableWidth();
+
 		for(TableReportsColumn col : cols) {
-			
+
 			if(col.dataIndex >= 0) {
-				PdfPCell cell = addDisplayItem(parser, record.get(col.dataIndex), basePath, col.barcode, col.type);
-				cell.setBorderColor(BaseColor.LIGHT_GRAY);
-				
+				Cell cell = addDisplayItem(record.get(col.dataIndex), basePath, col.barcode, col.type);
+				cell.setBorder(new SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f));
+
 				table.addCell(cell);
 			}
 
 		}
 		return table;
 	}
-	
+
 	/*
 	 * Get the number of blank repeats to generate
 	 */
 	int getBlankRepeats(String appearance) {
 		int repeats = 1;
-		
+
 		if(appearance != null) {
 			String [] appValues = appearance.split(" ");
 			if(appearance != null) {
@@ -310,81 +227,80 @@ public class PDFTableManager {
 				}
 			}
 		}
-					
+
 		return repeats;
 	}
-	
+
 
 	/*
 	 * Set the widths of the label and the value
 	 * Appearance is:  pdflabelw_## where ## is a number from 0 to 10
 	 */
 	void setWidths(String aValue, DisplayItem di) {
-		
+
 		String [] parts = aValue.split("_");
 		if(parts.length >= 2) {
-			di.widthLabel = Integer.valueOf(parts[1]);   		
+			di.widthLabel = Integer.valueOf(parts[1]);
 		}
-		
+
 		// Do bounds checking
 		if(di.widthLabel < 0 || di.widthLabel > 10) {
-			di.widthLabel = 5;		
+			di.widthLabel = 5;
 		}
-		
+
 	}
-	
+
 	/*
 	 * Set the height of the value
 	 * Appearance is:  pdfheight_## where ## is the height
 	 */
 	void setHeight(String aValue, DisplayItem di) {
-		
+
 		String [] parts = aValue.split("_");
 		if(parts.length >= 2) {
-			di.valueHeight = Double.valueOf(parts[1]);   		
+			di.valueHeight = Double.valueOf(parts[1]);
 		}
-		
+
 	}
-	
+
 	/*
 	 * Set space before this item
 	 * Appearance is:  pdfheight_## where ## is the height
 	 */
 	void setSpace(String aValue, DisplayItem di) {
-		
+
 		String [] parts = aValue.split("_");
 		if(parts.length >= 2) {
-			di.space = Integer.valueOf(parts[1]);   		
+			di.space = Integer.valueOf(parts[1]);
 		}
-		
+
 	}
-	
+
 	/*
 	 * Add the question value
 	 */
-	private PdfPCell addDisplayItem(Parser parser, 
-			KeyValue kv, 
+	private Cell addDisplayItem(
+			KeyValue kv,
 			String basePath,
 			boolean barcode,
-			String type) throws BadElementException, MalformedURLException, IOException {
-		
-		PdfPCell valueCell = new PdfPCell();
-		valueCell.setBorderColor(BaseColor.LIGHT_GRAY);
-		
-		 
+			String type) throws MalformedURLException, IOException {
+
+		Cell valueCell = new Cell();
+		valueCell.setBorder(new SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f));
+
+
 		// Set the content of the value cell
 		try {
 			if(type != null && type.equals("image")) {
-				Image img = Image.getInstance(kv.v);
-				valueCell.addElement(img);
+				Image img = new Image(PdfUtilities.createImageData(kv.v));
+				valueCell.add(img);
 			} else if(barcode && kv.v.trim().length() > 0) {
-				BarcodeQRCode qrcode = new BarcodeQRCode(kv.v.trim(), 1, 1, null);
-		         Image qrcodeImage = qrcode.getImage();
-		         qrcodeImage.setAbsolutePosition(10,500);
-		         qrcodeImage.scalePercent(200);
-		         valueCell.addElement((qrcodeImage));
+				BarcodeQRCode qrcode = new BarcodeQRCode(kv.v.trim());
+				PdfFormXObject xObject = qrcode.createFormXObject(pdfDoc);
+				Image qrcodeImage = new Image(xObject);
+				valueCell.add(qrcodeImage);
 			} else {
-				valueCell.addElement(getPara(kv.v));
+				valueCell.add(getPara(kv.v));
 			}
 		} catch (Exception e) {
 			log.fine("Error updating value cell, continuing: " + basePath + " : " + kv.v);
@@ -393,137 +309,29 @@ public class PDFTableManager {
 
 		return valueCell;
 	}
-	
-	/*
-	 * Set the contents of the value cell
-	 *
-	private void updateValueCell(PdfPCell valueCell, 
-			String value,
-			String basePath
-			) throws BadElementException, MalformedURLException, IOException {
-	
-			
-		valueCell.addElement(getPara(value));
-	}
-	*/
-	
+
 	private Paragraph getPara(String value) {
-		
-		Paragraph para = new Paragraph("", font);
+
+		Paragraph para = new Paragraph().setFont(font);
 
 		if(value != null && value.trim().length() > 0) {
-			para.add(new Chunk(GeneralUtilityMethods.unesc(value), font));
+			para.add(GeneralUtilityMethods.unesc(value));
 		}
-		
+
 		return para;
 	}
-	
-	/*
-	private void processSelect(PdfPCell cell, DisplayItem di,
-			boolean generateBlank,
-			GlobalVariables gv) {
 
-		// If generating blank template
-		List list = new List();
-		list.setAutoindent(false);
-		list.setSymbolIndent(24);
-		
-		String stringValue = null;
-		
-		boolean isSelectMultiple = di.type.equals("select") ? true : false;
-		
-		// Questions that append their values to this question
-		ArrayList<String> deps = gv.addToList.get(di.fIdx + "_" + di.rec_number + "_" + di.name);
-		
-		
-		if(generateBlank) {
-			for(DisplayItem aChoice : di.choices) {
-				ListItem item = new ListItem(GeneralUtilityMethods.unesc(aChoice.text), font);
-			
-				if(isSelectMultiple) {
-					if(aChoice.isSet) {
-						item.setListSymbol(new Chunk("\uf046", Symbols)); 
-						list.add(item);	
-					} else {
-					
-						item.setListSymbol(new Chunk("\uf096", Symbols)); 
-						list.add(item);
-					}
-				
-				} else {
-					if(aChoice.isSet) {
-						item.setListSymbol(new Chunk("\uf111", Symbols)); 
-						list.add(item);
-
-					} else {
-						//item.setListSymbol(new Chunk("\241", Symbols)); 
-						item.setListSymbol(new Chunk("\uf10c", Symbols)); 
-						list.add(item);
-					}
-				}
-			}
-			
-			cell.addElement(list);
-			
-		} else {
-			stringValue = getSelectValue(isSelectMultiple, di, deps);
-			cell.addElement(getPara(stringValue));
-		}
-
-	}
-	*/
-	
-	/*
-	 * Get the value of a select question
-	 *
-	String getSelectValue(boolean isSelectMultiple, DisplayItem di, ArrayList<String> deps) {
-		StringBuffer sb = new StringBuffer("");
-		
-		for(DisplayItem aChoice : di.choices) {
-			ListItem item = new ListItem(GeneralUtilityMethods.unesc(aChoice.text));
-			
-			if(isSelectMultiple) {
-				if(aChoice.isSet) {
-				
-					if(deps == null || (aChoice.name != null && !aChoice.name.trim().toLowerCase().equals("other"))) {
-						if(sb.length() > 0) {
-							sb.append(", ");
-						}
-						sb.append(aChoice.text);
-					}
-					
-				} 
-			} else {
-				if(aChoice.isSet) {
-					
-					if(deps == null || (aChoice.name != null && !aChoice.name.trim().toLowerCase().equals("other"))) {
-						if(sb.length() > 0) {
-							sb.append(", ");
-						}
-						sb.append(aChoice.text);
-					}
-
-				}
-			}
-
-			
-		}
-			
-		return sb.toString();
-		
-	}
-	*/
-	
 	/*
 	 * Fill in user details for the output when their is no template
 	 */
-	private void fillNonTemplateUserDetails(Document document, User user, String basePath) throws IOException, DocumentException {
-		
+	@SuppressWarnings("unused")
+	private void fillNonTemplateUserDetails(Document document, User user, String basePath) throws IOException {
+
 		String settings = user.settings;
 		Type type = new TypeToken<UserSettings>(){}.getType();
 		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		UserSettings us = gson.fromJson(settings, type);
-		
+
 		float indent = (float) 20.0;
 		addValue(document, "Completed by:", (float) 0.0);
 		if(user.signature != null && user.signature.trim().length() > 0) {
@@ -531,12 +339,12 @@ public class PDFTableManager {
 			try {
 				fileName = basePath + File.separator + user.signature;
 
-					Image img = Image.getInstance(fileName);
+					Image img = new Image(PdfUtilities.createImageData(fileName));
 					img.scaleToFit(200, 50);
-					img.setIndentationLeft(indent);
-					
+					img.setMarginLeft(indent);
+
 				    document.add(img);
-					
+
 			} catch (Exception e) {
 				log.fine("Error: Failed to add image " + fileName + " to pdf");
 			}
@@ -549,31 +357,59 @@ public class PDFTableManager {
 		}
 
 	}
-	
+
 	/*
 	 * Format a key value pair into a paragraph
 	 */
-	private void addKeyValuePair(Document document, String key, String value) throws DocumentException {
-		Paragraph para = new Paragraph("", font);
-		
-		para.add(new Chunk(GeneralUtilityMethods.unesc(key), fontbold));
-		para.add(new Chunk(GeneralUtilityMethods.unesc(value), font));
-		
+	@SuppressWarnings("unused")
+	private void addKeyValuePair(Document document, String key, String value) {
+		Paragraph para = new Paragraph().setFont(font);
+
+		para.add(new com.itextpdf.layout.element.Text(GeneralUtilityMethods.unesc(key)).setFont(fontbold));
+		para.add(new com.itextpdf.layout.element.Text(GeneralUtilityMethods.unesc(value)).setFont(font));
+
 		document.add(para);
 	}
-	
+
 	/*
 	 * Format a single value into a paragraph
 	 */
-	private void addValue(Document document, String value, float indent) throws DocumentException {
-		
+	private void addValue(Document document, String value, float indent) {
+
 		if(value != null && value.trim().length() > 0) {
-			Paragraph para = new Paragraph("", font);	
-			para.setIndentationLeft(indent);
-			para.add(new Chunk(GeneralUtilityMethods.unesc(value), font));
+			Paragraph para = new Paragraph().setFont(font);
+			para.setMarginLeft(indent);
+			para.add(GeneralUtilityMethods.unesc(value));
 			document.add(para);
 		}
 	}
+
+	/*
+	 * Font helpers
+	 */
+	private boolean isMac() {
+		return System.getProperty("os.name").startsWith("Mac");
+	}
+
+	private String fontDir() {
+		return isMac() ? "/Library/Fonts/" : "/usr/share/fonts/truetype/";
+	}
+
+	private String notoSansPath() { return fontDir() + "NotoSans-Regular.ttf"; }
+	private String notoSansBoldPath() { return fontDir() + "NotoSans-Bold.ttf"; }
+	private String arabicPath() { return fontDir() + "NotoNaskhArabic-Regular.ttf"; }
+	private String fontawesomePath() { return fontDir() + "fontawesome-webfont.ttf"; }
+
+	private PdfFont createFont(String path) throws IOException {
+		return PdfFontFactory.createFont(path, PdfEncodings.IDENTITY_H);
+	}
+
+	private FontProvider buildFontProvider() {
+		FontProvider fp = new FontProvider();
+		fp.addFont(notoSansPath());
+		fp.addFont(notoSansBoldPath());
+		fp.addFont(arabicPath());
+		fp.addFont(fontawesomePath());
+		return fp;
+	}
 }
-
-

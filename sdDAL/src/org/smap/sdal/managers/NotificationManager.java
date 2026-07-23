@@ -1333,23 +1333,17 @@ public class NotificationManager {
 								surveyCase = msg.survey_ident;
 							}
 
-							// Record level security: do not assign to a user whose row filter (RBAC) rules
-							// would otherwise hide this record, as the assignment would grant access
-							RoleManager roleMgr = new RoleManager(localisation);
-							if(!roleMgr.canAccessRecord(sd, cResults, surveyCase, tableName, msg.instanceId, assignTo, tz)) {
-								notify_details = "Case " + msg.instanceId + " in " + survey.surveyData.displayName
-										+ " left unassigned: user " + assignTo + " is not permitted to access the record";
-								log.info("Escalate notification " + msg.notificationName + ": " + notify_details);
-							} else {
-								CaseManager cm = new CaseManager(localisation);
-								String requester = localisation.getString("c_notify") + " " + msg.notificationName;
-								int count = cm.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase,
-										notify_details, requester);
-								if(count == 0) {
-									status = "error";
-									error_details = "case not found, attempting: " + notify_details;
-									log.log(Level.SEVERE, "Error: " + error_details);
-								}
+							// An automatic notification assignment is authorised by the notification
+							// configuration, not by the assignee: the assignee does not need record
+							// level (RBAC) access to the record.
+							CaseManager cm = new CaseManager(localisation);
+							String requester = localisation.getString("c_notify") + " " + msg.notificationName;
+							int count = cm.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase,
+									notify_details, requester);
+							if(count == 0) {
+								status = "error";
+								error_details = "case not found, attempting: " + notify_details;
+								log.log(Level.SEVERE, "Error: " + error_details);
 							}
 						} catch (Exception e) {
 							status = "error";
@@ -1426,25 +1420,12 @@ public class NotificationManager {
 								surveyCase = msg.survey_ident;
 							}
 
-							// Record level security: only reference users whose row filter (RBAC) rules
-							// permit access to this record, as a reference would grant read access
-							RoleManager roleMgr = new RoleManager(localisation);
-							ArrayList<String> allowedUsers = new ArrayList<>();
-							for(String refUser : refUsers) {
-								if(roleMgr.canAccessRecord(sd, cResults, surveyCase, tableName, msg.instanceId, refUser, tz)) {
-									allowedUsers.add(refUser);
-								} else {
-									log.info("Reference notification " + msg.notificationName + ": skipping user "
-											+ refUser + " - not permitted to access record " + msg.instanceId);
-								}
-							}
-							refUsers = allowedUsers;
-
+							// An automatic notification reference is authorised by the notification
+							// configuration, not by the referenced users: they do not need record
+							// level (RBAC) access to the record.
 							ReferenceManager refm = new ReferenceManager(localisation);
 							String requester = localisation.getString("c_notify") + " " + msg.notificationName;
-							int count = refUsers.size() > 0
-									? refm.addReferences(sd, cResults, tableName, msg.instanceId, surveyCase, refUsers, requester)
-									: 0;
+							int count = refm.addReferences(sd, cResults, tableName, msg.instanceId, surveyCase, refUsers, requester);
 
 							notify_details = localisation.getString("esc_nd");
 							notify_details = notify_details.replace("%s1", msg.instanceId);

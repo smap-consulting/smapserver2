@@ -1,12 +1,13 @@
 package org.smap.notifications.interfaces;
 
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.translate.AmazonTranslate;
-import com.amazonaws.services.translate.AmazonTranslateClient;
-import com.amazonaws.services.translate.model.TranslateTextRequest;
-import com.amazonaws.services.translate.model.TranslateTextResult;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.translate.TranslateClient;
+import software.amazon.awssdk.services.translate.model.TranslateTextRequest;
+import software.amazon.awssdk.services.translate.model.TranslateTextResponse;
 
 /*****************************************************************************
  * 
@@ -21,9 +22,12 @@ import com.amazonaws.services.translate.model.TranslateTextResult;
 public class TextProcessing extends AWSService {
 
 	private final int MAX_LENGTH = 5000 - 2;		// Maximum number of bytes accepted by AWS, allow two bytes to add a new line back in
-	
+
+	// Translate clients are thread-safe and expensive to create, so share one per region
+	private static final ConcurrentHashMap<String, TranslateClient> translateClients = new ConcurrentHashMap<>();
+
 	public TextProcessing(String region, String basePath) {
-		super(region, basePath);	
+		super(region, basePath);
 	}
 
 	/*
@@ -34,11 +38,11 @@ public class TextProcessing extends AWSService {
 			String sourceLanguage,
 			String targetLanguage) throws Exception {
 			
-		AmazonTranslate translate = AmazonTranslateClient.builder()
-                .withCredentials(DefaultAWSCredentialsProviderChain.getInstance())
-                .withRegion(region)
-                .build();
-			
+		TranslateClient translate = translateClients.computeIfAbsent(region, r -> TranslateClient.builder()
+                .credentialsProvider(DefaultCredentialsProvider.create())
+                .region(Region.of(r))
+                .build());
+
 		String in = encodePlaceHolders(source);	// Add do not translates
 		
 		ArrayList<String> frags = getTextFragments(in);
@@ -47,13 +51,14 @@ public class TextProcessing extends AWSService {
 		for (int i = 0; i < frags.size(); i++) {
 			String frag = frags.get(i);
 			try {
-				TranslateTextRequest request = new TranslateTextRequest()
-		                .withText(frag)
-		                .withSourceLanguageCode(sourceLanguage)
-		                .withTargetLanguageCode(targetLanguage);
-		        TranslateTextResult result  = translate.translateText(request);
-			
-		        outBuf.append(result.getTranslatedText());
+				TranslateTextRequest request = TranslateTextRequest.builder()
+		                .text(frag)
+		                .sourceLanguageCode(sourceLanguage)
+		                .targetLanguageCode(targetLanguage)
+		                .build();
+		        TranslateTextResponse result  = translate.translateText(request);
+
+		        outBuf.append(result.translatedText());
 		        backoff = 1;
 			} catch (Exception e) {
 				String msg = e.getMessage();

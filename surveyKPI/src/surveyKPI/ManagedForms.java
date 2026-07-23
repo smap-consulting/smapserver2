@@ -374,13 +374,12 @@ public class ManagedForms extends Application {
 			if(tableName != null) {
 
 				/*
-				 * Record level security: both the requester and the assignee must be permitted to
-				 * access this record by any row filter (RBAC) rules on the survey
+				 * Record level security: the requester authorising the assignment must be permitted
+				 * to access this record by any row filter (RBAC) rules on the survey.  The assignee
+				 * is not checked - a case may be assigned to a user who cannot otherwise see it.
 				 */
 				RoleManager roleMgr = new RoleManager(localisation);
-				if(!roleMgr.canAccessRecord(sd, cResults, surveyIdent, tableName, instanceId, request.getRemoteUser(), organisation.timeZone)
-						|| (!uIdent.equals("_none")
-								&& !roleMgr.canAccessRecord(sd, cResults, surveyIdent, tableName, instanceId, uIdent, organisation.timeZone))) {
+				if(!roleMgr.canAccessRecord(sd, cResults, surveyIdent, tableName, instanceId, request.getRemoteUser(), organisation.timeZone)) {
 					return Response.status(Status.FORBIDDEN).entity(localisation.getString("rec_na")).build();
 				}
 
@@ -569,14 +568,11 @@ public class ManagedForms extends Application {
 				if(!roleMgr.canAccessRecord(sd, cResults, surveyIdent, tableName, instanceId, request.getRemoteUser(), organisation.timeZone)) {
 					return Response.status(Status.FORBIDDEN).entity(localisation.getString("rec_na")).build();
 				}
-				// Validate each user belongs to the requesting user's organisation and is permitted
-				// to access the record by any row filter (RBAC) rules, so a reference cannot grant
-				// access to a record the user's row filter would otherwise hide
+				// Validate each user belongs to the requesting user's organisation.  Referenced
+				// users do not need record level (RBAC) access - a record may be referenced to a
+				// user who cannot otherwise see it; the requester's access was checked above.
 				for(String u : userList) {
 					a.isValidUser(sd, request.getRemoteUser(), GeneralUtilityMethods.getUserId(sd, u));
-					if(!roleMgr.canAccessRecord(sd, cResults, surveyIdent, tableName, instanceId, u, organisation.timeZone)) {
-						return Response.status(Status.FORBIDDEN).entity(localisation.getString("rec_na")).build();
-					}
 				}
 				ReferenceManager rm = new ReferenceManager(localisation);
 				rm.addReferences(sd, cResults, tableName, instanceId, surveyIdent, userList, request.getRemoteUser());

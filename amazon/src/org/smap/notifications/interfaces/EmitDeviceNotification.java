@@ -2,19 +2,17 @@ package org.smap.notifications.interfaces;
 
 import java.io.FileInputStream;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.ItemCollection;
-import com.amazonaws.services.dynamodbv2.document.QueryOutcome;
-import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.AmazonSNSClient;
-import com.amazonaws.services.sns.model.MessageAttributeValue;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 
 import model.DeviceTable;
 import tools.AmazonSNSClientWrapper;
@@ -40,7 +38,7 @@ public class EmitDeviceNotification {
 	String tableName = null;
 	String region = null;
 	String platformApplicationArn = null;
-	AmazonSNS sns = null;
+	SnsClient sns = null;
 
 	public EmitDeviceNotification(String awsPropertiesFile) {
 
@@ -59,9 +57,9 @@ public class EmitDeviceNotification {
 		}
 
 		//create a new SNS client
-		sns = AmazonSNSClient.builder()
-				.withRegion(region)
-				.withCredentials(DefaultAWSCredentialsProviderChain.getInstance())
+		sns = SnsClient.builder()
+				.region(Region.of(region))
+				.credentialsProvider(DefaultCredentialsProvider.create())
 				.build();
 	}
 
@@ -77,17 +75,16 @@ public class EmitDeviceNotification {
 
 		// Get the device registration ids associated with this user on this server
 		DeviceTable deviceTable = new DeviceTable(region, tableName);
-		ItemCollection<QueryOutcome> items = deviceTable.getUserDevices(server, user);
+		List<Map<String, AttributeValue>> items = deviceTable.getUserDevices(server, user);
 
 		// Process the results
 		snsClientWrapper = new AmazonSNSClientWrapper(sns, deviceTable);
-		Iterator<Item> iter = items.iterator(); 
 		//ArrayList<String> obsoleteTokens = new ArrayList<String> ();
 		int count = 0;
-		while (iter.hasNext()) {
+		for (Map<String, AttributeValue> item : items) {
 			count++;
-			Item item = iter.next();
-			String token = item.getString("registrationId");
+			AttributeValue tokenAttr = item.get("registrationId");
+			String token = tokenAttr == null ? null : tokenAttr.s();
 			log.info("Token: " + token + " for " + server + ":" + user);
 
 			// Send the notification

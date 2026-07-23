@@ -1,7 +1,9 @@
 package org.smap.sdal.managers;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -9,7 +11,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,20 +21,26 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
-import com.itextpdf.text.BaseColor;
-import com.itextpdf.text.Document;
-import com.itextpdf.text.Font;
-import com.itextpdf.text.FontFactory;
-import com.itextpdf.text.PageSize;
-import com.itextpdf.text.pdf.AcroFields;
-import com.itextpdf.text.pdf.BaseFont;
-import com.itextpdf.text.pdf.PdfContentByte;
-import com.itextpdf.text.pdf.PdfImportedPage;
-import com.itextpdf.text.pdf.PdfPTable;
-import com.itextpdf.text.pdf.PdfPageEventHelper;
-import com.itextpdf.text.pdf.PdfReader;
-import com.itextpdf.text.pdf.PdfStamper;
-import com.itextpdf.text.pdf.PdfWriter;
+
+import com.itextpdf.forms.PdfAcroForm;
+import com.itextpdf.io.font.PdfEncodings;
+import com.itextpdf.kernel.colors.ColorConstants;
+import com.itextpdf.kernel.colors.DeviceRgb;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
+import com.itextpdf.kernel.geom.PageSize;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfReader;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
+import com.itextpdf.kernel.pdf.xobject.PdfFormXObject;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Cell;
+import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.font.FontProvider;
+import com.itextpdf.layout.properties.Property;
+import com.itextpdf.layout.properties.UnitValue;
 
 /*****************************************************************************
 
@@ -58,36 +65,19 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  * Manage the creation of PDFS on usage
  */
 public class MiscPDFManager {
-	
+
 	private static Logger log =
 			 Logger.getLogger(MiscPDFManager.class.getName());
-	
+
 	private ResourceBundle localisation = null;
 	private String tz;
-	
+
 	int marginLeft = 36;
 	int marginRight = 36;
 	int marginTop_1 = 300;
 	int marginBottom_1 = 200;
-	int marginTop_2 = 50;
-	int marginBottom_2 = 50;
-	
-	class PageSizer extends PdfPageEventHelper {
-		int pagenumber = 0;
-		public void onStartPage(PdfWriter writer, Document document) {
-			pagenumber++;
-			log.fine("Page number: " + pagenumber);
 
-			document.setMargins(marginLeft, marginRight, marginTop_2, marginBottom_2);
-			
-		}
-		public void onEndPage(PdfWriter writer, Document document) {
-			
-		}
-	}
-	public static Font Symbols = null;
-	public static Font defaultFont = null;
-	public static BaseColor VLG = new BaseColor(0xE8,0xE8,0xE8);
+	public static DeviceRgb VLG = new DeviceRgb(0xE8,0xE8,0xE8);
 
 	public MiscPDFManager(ResourceBundle l, String tz) {
 		localisation = l;
@@ -96,7 +86,28 @@ public class MiscPDFManager {
 		}
 		this.tz = tz;
 	}
-	
+
+	/*
+	 * Set up a font provider that gives per-glyph fallback across scripts
+	 */
+	private FontProvider buildFontProvider() {
+		String fontDir = System.getProperty("os.name").startsWith("Mac") ? "/Library/Fonts/" : "/usr/share/fonts/truetype/";
+		FontProvider fp = new FontProvider();
+		try {
+			fp.addFont(fontDir + "NotoSans-Regular.ttf");
+			fp.addFont(fontDir + "NotoNaskhArabic-Regular.ttf");
+			fp.addFont(fontDir + "fontawesome-webfont.ttf");
+		} catch (Exception e) {
+			log.fine("Failed to register fonts for pdf");
+		}
+		return fp;
+	}
+
+	private PdfFont defaultFont() throws IOException {
+		String fontDir = System.getProperty("os.name").startsWith("Mac") ? "/Library/Fonts/" : "/usr/share/fonts/truetype/";
+		return PdfFontFactory.createFont(fontDir + "NotoSans-Regular.ttf", PdfEncodings.IDENTITY_H);
+	}
+
 	/*
 	 * Call this function to create a PDF
 	 * Return a suggested name for the PDF file derived from the results
@@ -104,48 +115,28 @@ public class MiscPDFManager {
 	public void createUsagePdf(
 			Connection sd,
 			OutputStream outputStream,
-			String basePath, 
+			String basePath,
 			HttpServletResponse response,
 			int o_id,
 			int month,
 			int year,
 			String period,
 			String org_name) {
-		
+
 		PreparedStatement pstmt = null;
-		
+
 		if(org_name == null) {
 			org_name = "None";
 		}
-		
+
 		try {
-			
+
 			String filename;
-			
-			// Get fonts and embed them
-			String os = System.getProperty("os.name");
-			log.fine("Operating System:" + os);
-			
-			if(os.startsWith("Mac")) {
-				FontFactory.register("/Library/Fonts/fontawesome-webfont.ttf", "Symbols");
-				FontFactory.register("/Library/Fonts/Arial Unicode.ttf", "default");
-				FontFactory.register("/Library/Fonts/NotoNaskhArabic-Regular.ttf", "arabic");
-				FontFactory.register("/Library/Fonts/NotoSans-Regular.ttf", "notosans");
-			} else if(os.indexOf("nix") >= 0 || os.indexOf("nux") >= 0 || os.indexOf("aix") > 0) {
-				// Linux / Unix
-				FontFactory.register("/usr/share/fonts/truetype/fontawesome-webfont.ttf", "Symbols");
-				FontFactory.register("/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf", "default");
-				FontFactory.register("/usr/share/fonts/truetype/NotoNaskhArabic-Regular.ttf", "arabic");
-				FontFactory.register("/usr/share/fonts/truetype/NotoSans-Regular.ttf", "notosans");
-			}
-			
-			Symbols = FontFactory.getFont("Symbols", BaseFont.IDENTITY_H, 
-				    BaseFont.EMBEDDED, 12); 
-			defaultFont = FontFactory.getFont("default", BaseFont.IDENTITY_H, 
-				    BaseFont.EMBEDDED, 10); 
-			
+			FontProvider fontProvider = buildFontProvider();
+			PdfFont font = defaultFont();
+
 			filename = org_name + "_" + year + "_" + month + ".pdf";
-			
+
 			/*
 			 * Get the usage results
 			 */
@@ -160,79 +151,61 @@ public class MiscPDFManager {
 					+ "(select count (*) from upload_event ue "
 						+ "where ue.db_status = 'success' "
 						+ "and ue.user_name = users.ident) as all_time "
-					+ "from users "	
+					+ "from users "
 					+ "where users.o_id = ? "
-					+ "and not users.temporary " 
+					+ "and not users.temporary "
 					+ "order by users.ident;";
-			
+
 			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
 			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
-			
+
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setTimestamp(1, t1);
 			pstmt.setTimestamp(2, t2);
 			pstmt.setInt(3, o_id);
 			log.fine("Get Usage Data: " + pstmt.toString());
 
-			
+
 			// If the PDF is to be returned in an http response then set the file name now
 			if(response != null) {
 				log.fine("Setting filename to: " + filename);
 				GeneralUtilityMethods.setFilenameInResponse(filename, response);
 			}
-			
+
 			/*
 			 * Get a template for the PDF report if it exists
 			 * The template name will be the same as the XLS form name but with an extension of pdf
 			 */
 			String stationaryName = basePath + File.separator + "misc" + File.separator + "UsageReportTemplate.pdf";
 			File stationaryFile = new File(stationaryName);
-			
-			ByteArrayOutputStream baos = null;
-			ByteArrayOutputStream baos_s = null;
-			PdfWriter writer = null;			
-				
+
 			/*
 			 * Create document in two passes, the second pass adds the letter head
 			 */
-				
-			// Create the underlying document as a byte array
-			Document document = new Document(PageSize.A4);
-			document.setMargins(marginLeft, marginRight, marginTop_1, marginBottom_1);
-			
-			if(stationaryFile.exists()) {
-				baos = new ByteArrayOutputStream();
-				baos_s = new ByteArrayOutputStream();
-				writer = PdfWriter.getInstance(document, baos);
-			} else {
-				writer = PdfWriter.getInstance(document, outputStream);
-			}
-				
-			writer.setInitialLeading(12);
-			writer.setPageEvent(new PageSizer()); 
-			document.open();
-			
+			ByteArrayOutputStream baos = stationaryFile.exists() ? new ByteArrayOutputStream() : null;
+
+			PdfDocument pdf = new PdfDocument(new PdfWriter(baos != null ? baos : outputStream));
+			Document document = new Document(pdf, PageSize.A4);
+			// iText 8 margin order is top, right, bottom, left
+			document.setMargins(marginTop_1, marginRight, marginBottom_1, marginLeft);
+			document.setFontProvider(fontProvider);
+			document.setProperty(Property.FONT, new String[]{"Noto Sans"});
+
 			// Write the usage data
 			ResultSet resultSet = pstmt.executeQuery();
-			
-			PdfPTable table = new PdfPTable(4);
-			
+
+			Table table = new Table(UnitValue.createPercentArray(4)).useAllAvailableWidth();
+
 			// Add the header row
-			table.getDefaultCell().setBorderColor(BaseColor.LIGHT_GRAY);
-			table.getDefaultCell().setBackgroundColor(VLG);
-			
-			table.addCell("User Id");
-			table.addCell("User Name");
-			table.addCell("Usage in Period");
-			table.addCell("All Time Usage");
-			
-			table.setHeaderRows(1);
-			
+			table.addHeaderCell(headerCell("User Id", font));
+			table.addHeaderCell(headerCell("User Name", font));
+			table.addHeaderCell(headerCell("Usage in Period", font));
+			table.addHeaderCell(headerCell("All Time Usage", font));
+
 			// Add the user data
 			int total = 0;
 			int totalAllTime = 0;
-			
-			table.getDefaultCell().setBackgroundColor(null);
+
 			while(resultSet.next()) {
 				String ident = resultSet.getString("ident");
 				String name = resultSet.getString("name");
@@ -241,132 +214,108 @@ public class MiscPDFManager {
 				String allTime = resultSet.getString("all_time");
 				int allTimeInt = resultSet.getInt("all_time");
 
-				table.addCell(ident);
-				table.addCell(name);
-				table.addCell(monthUsage);
-				table.addCell(allTime);
-				
+				table.addCell(dataCell(ident, font));
+				table.addCell(dataCell(name, font));
+				table.addCell(dataCell(monthUsage, font));
+				table.addCell(dataCell(allTime, font));
+
 				total += monthUsageInt;
 				totalAllTime += allTimeInt;
-				
-			}
-			
-			// Add the totals
-			table.getDefaultCell().setBackgroundColor(VLG);
-			
-			table.addCell("Totals: ");
-			table.addCell(" ");
-			table.addCell(String.valueOf(total));
-			table.addCell(String.valueOf(totalAllTime));
-			
-			document.add(table);
-			document.close();
-				
-			if(stationaryFile.exists()) {
-					
-				// Step 2 - Populate the fields in the stationary
-				PdfReader s_reader = new PdfReader(stationaryName);
-				PdfStamper s_stamper = new PdfStamper(s_reader, baos_s);
-				
 
-				AcroFields pdfForm = s_stamper.getAcroFields();
-				Set<String> fields = pdfForm.getFields().keySet();
-				for(String key: fields) {
+			}
+
+			// Add the totals
+			table.addCell(headerCell("Totals: ", font));
+			table.addCell(headerCell(" ", font));
+			table.addCell(headerCell(String.valueOf(total), font));
+			table.addCell(headerCell(String.valueOf(totalAllTime), font));
+
+			document.add(table);
+			document.close();		// closes pdf and flushes underlying document
+
+			if(stationaryFile.exists()) {
+
+				// Step 2 - Populate the fields in the stationary
+				ByteArrayOutputStream baos_s = new ByteArrayOutputStream();
+				PdfDocument sPdf = new PdfDocument(new PdfReader(stationaryName), new PdfWriter(baos_s));
+
+				PdfAcroForm pdfForm = PdfAcroForm.getAcroForm(sPdf, true);
+				for(String key : pdfForm.getAllFormFields().keySet()) {
 					log.fine("Field: " + key);
 				}
-					
-				pdfForm.setField("billing_period", period);
-				pdfForm.setField("organisation", org_name);
-				
-				s_stamper.setFormFlattening(true);
-				s_stamper.close();
-				
-				// Step 3 - Apply the stationary to the underlying document
-				PdfReader reader = new PdfReader(baos.toByteArray());		// Underlying document
-				PdfReader f_reader = new PdfReader(baos_s.toByteArray());	// Filled in stationary
-				PdfStamper stamper = new PdfStamper(reader, outputStream);
-				PdfImportedPage letter1 = stamper.getImportedPage(f_reader, 1);
-				int n = reader.getNumberOfPages();
-				PdfContentByte background;
-				for(int i = 0; i < n; i++ ) {
-					background = stamper.getUnderContent(i + 1);
-					if(i == 0) {
-						background.addTemplate(letter1, 0, 0);
-					}
+
+				if(pdfForm.getField("billing_period") != null) {
+					pdfForm.getField("billing_period").setValue(period);
 				}
-		
-				stamper.close();
-				reader.close();
-				
+				if(pdfForm.getField("organisation") != null) {
+					pdfForm.getField("organisation").setValue(org_name);
+				}
+
+				pdfForm.flattenFields();
+				sPdf.close();
+
+				// Step 3 - Apply the stationary to the underlying document
+				PdfDocument dest = new PdfDocument(new PdfReader(new ByteArrayInputStream(baos.toByteArray())),
+						new PdfWriter(outputStream));							// Underlying document
+				PdfDocument src = new PdfDocument(new PdfReader(new ByteArrayInputStream(baos_s.toByteArray())));	// Filled in stationary
+
+				PdfFormXObject letter1 = src.getFirstPage().copyAsFormXObject(dest);
+				PdfCanvas background = new PdfCanvas(dest.getFirstPage().newContentStreamBefore(),
+						dest.getFirstPage().getResources(), dest);
+				background.addXObjectAt(letter1, 0, 0);
+
+				src.close();
+				dest.close();
+
 			}
-			
-			
+
+
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "SQL Error", e);
-			
+
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
-			
+
 		}  finally {
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 		}
 
-	
+
 	}
-	
-	
+
+
 	/*
 	 * Call this function to create a PDF with the list of tasks in it
 	 */
 	public void createTasksPdf(
 			Connection sd,
 			OutputStream outputStream,
-			String basePath, 
+			String basePath,
 			HttpServletRequest request,
 			HttpServletResponse response,
 			int tgId) {
-		
+
 		try {
-			
-			// Get fonts and embed them
-			String os = System.getProperty("os.name");
-			log.fine("Operating System:" + os);
-			
-			if(os.startsWith("Mac")) {
-				FontFactory.register("/Library/Fonts/fontawesome-webfont.ttf", "Symbols");
-				FontFactory.register("/Library/Fonts/Arial Unicode.ttf", "default");
-				FontFactory.register("/Library/Fonts/NotoNaskhArabic-Regular.ttf", "arabic");
-			} else if(os.indexOf("nix") >= 0 || os.indexOf("nux") >= 0 || os.indexOf("aix") > 0) {
-				// Linux / Unix
-				FontFactory.register("/usr/share/fonts/truetype/fontawesome-webfont.ttf", "Symbols");
-				FontFactory.register("/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf", "default");
-				FontFactory.register("/usr/share/fonts/truetype/NotoNaskhArabic-Regular.ttf", "arabic");
-				FontFactory.register("/usr/share/fonts/truetype/NotoSans-Regular.ttf", "notosans");
-			}
-			
-			Symbols = FontFactory.getFont("Symbols", BaseFont.IDENTITY_H, 
-				    BaseFont.EMBEDDED, 12); 
-			defaultFont = FontFactory.getFont("default", BaseFont.IDENTITY_H, 
-				    BaseFont.EMBEDDED, 10); 
-			
+
+			FontProvider fontProvider = buildFontProvider();
+			PdfFont font = defaultFont();
+
 			/*
 			 * Get the tasks for this task group
 			 */
 			String urlprefix = request.getScheme() + "://" + request.getServerName();
 			TaskManager tm = new TaskManager(localisation, tz);
-			TaskListGeoJson t = tm.getTasks(sd, 
-					urlprefix, 
-					0, 
-					tgId, 
+			TaskListGeoJson t = tm.getTasks(sd,
+					urlprefix,
+					0,
+					tgId,
 					0, 		// task id
 					0,		// assignment id
-					false, 
-					0, 
-					null, 
-					"all", 
-					0, 0, "scheduled", "desc", false);	
-			PdfWriter writer = null;			
-				
+					false,
+					0,
+					null,
+					"all",
+					0, 0, "scheduled", "desc", false);
 
 			String filename = "tasks.pdf";
 			// If the PDF is to be returned in an http response then set the file name now
@@ -374,55 +323,56 @@ public class MiscPDFManager {
 				log.fine("Setting filename to: " + filename);
 				GeneralUtilityMethods.setFilenameInResponse(filename, response);
 			}
-			
-			Document document = new Document(PageSize.A4);
-			document.setMargins(marginLeft, marginRight, marginTop_1, marginBottom_1);
-			writer = PdfWriter.getInstance(document, outputStream);
-				
-			writer.setInitialLeading(12);
-			writer.setPageEvent(new PageSizer()); 
-			document.open();
-			
-			PdfPTable table = new PdfPTable(4);
-			
+
+			PdfDocument pdf = new PdfDocument(new PdfWriter(outputStream));
+			Document document = new Document(pdf, PageSize.A4);
+			document.setMargins(marginTop_1, marginRight, marginBottom_1, marginLeft);
+			document.setFontProvider(fontProvider);
+			document.setProperty(Property.FONT, new String[]{"Noto Sans"});
+
+			Table table = new Table(UnitValue.createPercentArray(4)).useAllAvailableWidth();
+
 			// Add the header row
-			table.getDefaultCell().setBorderColor(BaseColor.LIGHT_GRAY);
-			table.getDefaultCell().setBackgroundColor(VLG);
-			
-			table.addCell("Form Name");
-			table.addCell("Task Name");
-			table.addCell("Status");
-			table.addCell("Assigned To");
-	
-			table.setHeaderRows(1);
-			
+			table.addHeaderCell(headerCell("Form Name", font));
+			table.addHeaderCell(headerCell("Task Name", font));
+			table.addHeaderCell(headerCell("Status", font));
+			table.addHeaderCell(headerCell("Assigned To", font));
+
 			// Add the task data
-			
-			table.getDefaultCell().setBackgroundColor(null);
 			for(TaskFeature tf : t.features) {
 				TaskProperties p = tf.properties;
 
-				table.addCell(p.survey_name);
-				table.addCell(p.name);
-				table.addCell(p.status);
-				table.addCell(p.assignee_name);
-				
+				table.addCell(dataCell(p.survey_name, font));
+				table.addCell(dataCell(p.name, font));
+				table.addCell(dataCell(p.status, font));
+				table.addCell(dataCell(p.assignee_name, font));
+
 			}
-			
 
 			document.add(table);
-			document.close();		
-			
+			document.close();
+
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "SQL Error", e);
-			
+
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
-			
-		}  
-	
+
+		}
+
+	}
+
+	private Cell headerCell(String text, PdfFont font) {
+		return new Cell()
+				.add(new Paragraph(text == null ? "" : text).setFont(font))
+				.setBackgroundColor(VLG)
+				.setBorder(new com.itextpdf.layout.borders.SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f));
+	}
+
+	private Cell dataCell(String text, PdfFont font) {
+		return new Cell()
+				.add(new Paragraph(text == null ? "" : text).setFont(font))
+				.setBorder(new com.itextpdf.layout.borders.SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f));
 	}
 
 }
-
-

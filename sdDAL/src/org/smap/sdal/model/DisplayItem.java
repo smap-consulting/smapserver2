@@ -3,7 +3,7 @@ package org.smap.sdal.model;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
-import com.itextpdf.text.BaseColor;
+import com.itextpdf.kernel.colors.Color;
 
 public class DisplayItem {
 	
@@ -21,8 +21,8 @@ public class DisplayItem {
 	public String type;
 	public boolean isSet = false;
 	public boolean isNewPage = false;
-	public BaseColor labelbg;
-	public BaseColor valuebg;
+	public Color labelbg;
+	public Color valuebg;
 	public String markerColor;
 	public boolean labelcaps = false;
 	public boolean labelbold = false;
