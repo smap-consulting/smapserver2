@@ -83,6 +83,9 @@ aws/target
 .LSOverride
 ~$*
 
+# Tools
+setup/tools
+
 # Icon must end with two \r
 Icon
 
