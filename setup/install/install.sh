@@ -15,7 +15,7 @@ filelocn="/smap"
 # Add a default setting of 127.0.0.1 as the DBHOST if it has not already been set
 dbhost_set=`grep DBHOST /etc/environment | wc -l`
 if [ $dbhost_set -eq 0 ]; then
-    echo "export DBHOST=127.0.0.1" >> /etc/environment
+    echo "DBHOST=127.0.0.1" >> /etc/environment
     DBHOST=127.0.0.1; export DBHOST;
 fi
 

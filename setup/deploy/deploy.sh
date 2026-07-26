@@ -37,7 +37,7 @@ fi
 # Update session password - generate a random 10 character alphanumeric string
 sed '/SESSPASS/d' /etc/environment > /etc/environment.temp
 mv /etc/environment.temp /etc/environment
-echo "export SESSPASS=\"`cat /dev/urandom | tr -dc '[:alnum:]' | head -c 10`\"" >> /etc/environment
+echo "SESSPASS=\"`cat /dev/urandom | tr -dc '[:alnum:]' | head -c 10`\"" >> /etc/environment
 
 # Get location of database
 if [ $DBHOST = "127.0.0.1" ]
