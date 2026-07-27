@@ -24,9 +24,11 @@ a_config_dir="/etc/apache2/sites-available"
 sudo cp $a_config_dir/smap-volatile.conf $a_config_dir/smap-volatile.conf.bu
 sudo cp config_files/a24-smap-volatile.conf $a_config_dir/smap-volatile.conf
 
-# Ensure apache loads the environment variables
+# Ensure apache loads the environment variables and export them
 avars_set=`grep "\. /etc/environment" /etc/apache2/envvars | wc -l`
 if [ $avars_set -eq 0 ]; then
+    echo "set -a"  >> /etc/apache2/envvars
     echo ". /etc/environment" >> /etc/apache2/envvars
+    echo "set +a"  >> /etc/apache2/envvars
 fi
 sudo service apache2 reload
