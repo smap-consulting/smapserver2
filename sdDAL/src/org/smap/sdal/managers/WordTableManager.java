@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
@@ -27,6 +26,7 @@ import org.apache.poi.xwpf.usermodel.XWPFStyles;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.smap.sdal.Utilities.AttachmentStore;
 import org.smap.sdal.Utilities.TableReportUtilities;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SurveyViewDefn;
@@ -185,18 +185,27 @@ public class WordTableManager {
 		paragraph.setAlignment(ParagraphAlignment.LEFT);
 		try {
 			if(type != null && type.equals("image")) {
-				
-				URL url = new URL(kv.v);
-				BufferedImage image = ImageIO.read(url);
-				
-				ByteArrayOutputStream os = new ByteArrayOutputStream();
-				ImageIO.write(image, "png", os);
-				InputStream is = new ByteArrayInputStream(os.toByteArray());
-				    
-				run.addPicture(is, XWPFDocument.PICTURE_TYPE_PNG, null, Units.toEMU(bcWidth), Units.toEMU(bcHeight)); 
-				is.close();
-				os.close();
-				
+
+				/*
+				 * Get the image from local disk or, if it has been archived, from S3 using the
+				 * credentials of this server.  It cannot be read over HTTP as the server has no
+				 * credentials to authenticate with itself
+				 */
+				byte [] imageBytes = AttachmentStore.getBytes(basePath, kv.v, null);
+				if(imageBytes == null) {
+					log.info("Error: Missing image file: " + kv.v);
+				} else {
+					BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
+
+					ByteArrayOutputStream os = new ByteArrayOutputStream();
+					ImageIO.write(image, "png", os);
+					InputStream is = new ByteArrayInputStream(os.toByteArray());
+
+					run.addPicture(is, XWPFDocument.PICTURE_TYPE_PNG, null, Units.toEMU(bcWidth), Units.toEMU(bcHeight));
+					is.close();
+					os.close();
+				}
+
 			} else if(barcode && kv.v.trim().length() > 0) {
 				BitMatrix matrix = qrCodeWriter.encode(kv.v, BarcodeFormat.QR_CODE, 100, 100);
 				BufferedImage image = MatrixToImageWriter.toBufferedImage(matrix);

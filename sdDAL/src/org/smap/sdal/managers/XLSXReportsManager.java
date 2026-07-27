@@ -408,8 +408,8 @@ public class XLSXReportsManager {
 					 */
 					if(dataItems != null ) {
 						dataRow = dataSheet.createRow(rowNumber++);	
-						writeOutData(dataItems, dataRow, wb, dataSheet, styles, embedImages, 
-								basePath, rowNumber);
+						writeOutData(dataItems, dataRow, wb, dataSheet, styles, embedImages,
+								basePath, attachmentPrefix, rowNumber);
 					}
 					
 					dataItems = new ArrayList<> ();
@@ -576,8 +576,8 @@ public class XLSXReportsManager {
 				
 				// Write the last row
 				dataRow = dataSheet.createRow(rowNumber++);	
-				writeOutData(dataItems, dataRow, wb, dataSheet, styles, embedImages, 
-						basePath, rowNumber);
+				writeOutData(dataItems, dataRow, wb, dataSheet, styles, embedImages,
+						basePath, attachmentPrefix, rowNumber);
 			
 
 			}  catch (Exception e) {
@@ -659,15 +659,16 @@ public class XLSXReportsManager {
 			Map<String, CellStyle> styles,
 			boolean embedImages,
 			String basePath,
+			String attachmentPrefix,
 			int rowNumber) {
-		
+
 		int colNumber = 0;
 		if(dataItems != null) {
 			for(ReadData item : dataItems) {
 				for(String v : item.values) {
 					Cell cell = dataRow.createCell(colNumber++);
-					XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v, 
-							item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+					XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v,
+							item.type, embedImages, basePath, attachmentPrefix, rowNumber, colNumber - 1, true);
 				}
 			}
 		}

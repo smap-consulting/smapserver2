@@ -1,8 +1,5 @@
 package org.smap.sdal.Utilities;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.net.URL;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -13,7 +10,6 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.poi.common.usermodel.HyperlinkType;
 import org.apache.poi.hssf.usermodel.HSSFDataFormat;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -442,14 +438,28 @@ public class XLSUtilities {
 		return new ApplicationException(msg);
 	}
 	
-	public static void setCellValue(Workbook wb, 
+	/*
+	 * Get the workbook picture type from the image content
+	 * Thumbnails are jpeg however the full size image is used if a thumbnail has not been created
+	 */
+	private static int getPictureType(byte [] imageBytes) {
+		int type = Workbook.PICTURE_TYPE_JPEG;
+		if(imageBytes != null && imageBytes.length > 3
+				&& (imageBytes[0] & 0xff) == 0x89 && imageBytes[1] == 'P' && imageBytes[2] == 'N' && imageBytes[3] == 'G') {
+			type = Workbook.PICTURE_TYPE_PNG;
+		}
+		return type;
+	}
+
+	public static void setCellValue(Workbook wb,
 			Sheet sheet,
 			Cell cell, 
 			Map<String, CellStyle> styles,
 			String value, 
 			String type,
-			boolean embedImages, 
+			boolean embedImages,
 			String basePath,
+			String attachmentPrefix,
 			int row,
 			int col,
 			boolean isXLSX) {
@@ -477,46 +487,35 @@ public class XLSUtilities {
 			CreationHelper createHelper = wb.getCreationHelper();
 			if(embedImages) {
 				if(value.endsWith(".jpeg") || value.endsWith(".jpg") || value.endsWith(".png")) {
-					InputStream inputStream = null;
-					ByteArrayOutputStream baos = null;
 						try {
-							String thumbsUrl = GeneralUtilityMethods.getThumbsUrl(value);
-							inputStream = new URL(thumbsUrl).openStream();
-							
-							byte[] imageBytes = IOUtils.toByteArray(inputStream);
-							if(sheet.getColumnWidth(col) != IMAGE_CELL_WIDTH) {
-								sheet.setColumnWidth(col, IMAGE_CELL_WIDTH);
-							}
-							
-							int pictureureIdx = wb.addPicture(imageBytes, Workbook.PICTURE_TYPE_JPEG);
+							/*
+							 * Read the image from local disk or S3.  It cannot be read over HTTP
+							 * as this server has no credentials to authenticate with itself
+							 */
+							byte[] imageBytes = AttachmentStore.getThumbnailBytes(basePath, value, attachmentPrefix);
 
-							ClientAnchor anchor = createHelper.createClientAnchor();
-							anchor.setCol1(col);
-							anchor.setRow1(row - 1);
-							anchor.setCol2(col + 1);
-							anchor.setRow2(row);
-							anchor.setAnchorType(ClientAnchor.AnchorType.MOVE_AND_RESIZE); 
-							
-							Drawing drawing = sheet.createDrawingPatriarch();
-							drawing.createPicture(anchor, pictureureIdx);
-							
+							if(imageBytes == null) {
+								log.info("Error: Missing image file: " + value);
+							} else {
+								if(sheet.getColumnWidth(col) != IMAGE_CELL_WIDTH) {
+									sheet.setColumnWidth(col, IMAGE_CELL_WIDTH);
+								}
+
+								int pictureureIdx = wb.addPicture(imageBytes, getPictureType(imageBytes));
+
+								ClientAnchor anchor = createHelper.createClientAnchor();
+								anchor.setCol1(col);
+								anchor.setRow1(row - 1);
+								anchor.setCol2(col + 1);
+								anchor.setRow2(row);
+								anchor.setAnchorType(ClientAnchor.AnchorType.MOVE_AND_RESIZE);
+
+								Drawing drawing = sheet.createDrawingPatriarch();
+								drawing.createPicture(anchor, pictureureIdx);
+							}
+
 						} catch (Exception e) {
-							log.log(Level.SEVERE, "Error: Missing image file: " + value, e);
-						} finally {
-							if(inputStream != null) {
-								try {
-									inputStream.close();
-								} catch (Exception ex) {
-									
-								}
-							}
-							if(baos != null) {
-								try {
-									baos.close();
-								} catch (Exception ex) {
-									
-								}
-							}
+							log.log(Level.SEVERE, "Error: adding image: " + value, e);
 						}
 
 				}

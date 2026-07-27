@@ -2,7 +2,6 @@ package surveyKPI;
 
 import java.io.File;
 import java.lang.reflect.Type;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
@@ -28,8 +27,8 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.ResponseBuilder;
 import jakarta.ws.rs.core.Response.Status;
-import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AttachmentStore;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.QueryGenerator;
@@ -310,21 +309,14 @@ public class ExportSurveyMedia extends Application {
 						 * Copy the file
 						 */
 						String mf = basePath + "/" + source_file;
-						File source = new File(mf);
 						File dest = new File(filePath + "/" + mediafilename);
-						if (source.exists()) {							
-							FileUtils.copyFile(source, dest);				
-						} else {
-							// File may have been moved to S3
-							try {
-								String url = attachmentPrefix + source_file;
-								log.info("Getting remote media: " + url);
-								FileUtils.copyURLToFile(new URL(url), dest);
-							} catch (Exception e) {
-								log.info("Error: media file does not exist: " + mf);
-								log.log(Level.SEVERE, e.getMessage(), e);
-							}
-					
+						/*
+						 * Get the media from local disk or, if it has been moved to S3, using
+						 * the credentials of this server.  It cannot be read over HTTP as the
+						 * server has no credentials to authenticate with itself
+						 */
+						if(!AttachmentStore.copyToFile(basePath, source_file, attachmentPrefix, dest)) {
+							log.info("Error: media file does not exist: " + mf);
 						}
 					}
 					

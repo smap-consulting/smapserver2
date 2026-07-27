@@ -23,9 +23,6 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URL;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.sql.Connection;
 import java.sql.Date;
@@ -48,8 +45,8 @@ import java.util.logging.Logger;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
-import org.apache.commons.io.FileUtils;
 import org.apache.poi.ss.usermodel.*;
+import org.smap.sdal.Utilities.AttachmentStore;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.constants.SmapServerMeta;
@@ -662,48 +659,30 @@ public class ExchangeManager {
 						
 						if(incMedia) {
 							// Path to attachment
-							String attachmentPath = basePath + "/" + value;
-						
+							String attachmentPath = value;
+
 							// Get name
 							int idx = value.lastIndexOf('/');
 							if(idx > -1) {
 								value = value.substring(idx + 1);
 							}
-						
-							// Copy file to temporary zip folder
 
-							File source = new File(attachmentPath);
+							// Copy file to temporary zip folder
 							String newPath = dirPath + "/" + value;
 							File dest = new File(newPath);
-							if (source.exists()) {
-								try {
-									log.info("Getting local media file: " + newPath);
-									FileUtils.copyFile(source, dest);				
-									files.add(new FileDescription(value, newPath));
-								} catch (Exception e) {
-									log.info("Error: Failed to add file " + attachmentPath + " to exchange export. " + e.getMessage());
-								}
+
+							/*
+							 * Get the media from local disk or, if it has been moved to long term
+							 * storage, from S3 using the credentials of this server.  It cannot be
+							 * read over HTTP as the server has no credentials to authenticate with itself
+							 */
+							if(AttachmentStore.copyToFile(basePath, attachmentPath, null, dest)) {
+								files.add(new FileDescription(value, newPath));
 							} else {
-								/*
-								 * The file has probably been moved to long term storage, get it by making a webservice call
-								 * From: https://www.baeldung.com/java-download-file
-								 */
-								FileOutputStream fileOutputStream = null;
-								try {
-									String urlPath = urlPrefix + "attachments/" + surveyIdent + "/" + value;
-									log.info("Getting remote media file: " + urlPath);
-									URL url = new URL(urlPath);
-									ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
-									fileOutputStream = new FileOutputStream(newPath);
-									fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-									files.add(new FileDescription(value, newPath));
-								} catch(Exception e) {
-									log.info("Error: Failed to add remote file " + attachmentPath + " to exchange export. " + e.getMessage());
-								} finally {
-									try {fileOutputStream.close();} catch (Exception e) {}
-								}
+								log.info("Error: Failed to add file " + basePath + "/" + attachmentPath
+										+ " to exchange export");
 							}
-						} 
+						}
 						
 					}
 					

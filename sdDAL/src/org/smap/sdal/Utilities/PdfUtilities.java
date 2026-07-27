@@ -119,6 +119,14 @@ public class PdfUtilities {
 		}
 	}
 
+	public static ImageData createImageData(byte [] bytes, String name) throws IOException {
+		try {
+			return ImageDataFactory.create(bytes);
+		} catch (com.itextpdf.io.exceptions.IOException e) {
+			return convertToPng(bytes, name);
+		}
+	}
+
 	public static ImageData createImageData(URL url) throws IOException {
 		try {
 			return ImageDataFactory.create(url);
