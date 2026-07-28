@@ -92,7 +92,31 @@ public class NotificationManager {
 			Logger.getLogger(NotificationManager.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
-	
+
+	private static int MAX_LOG_VALUE = 100;		// Truncate long values written to the log
+
+	// Columns and joins needed by addToList().  Callers add their own where clause
+	private static String SQL_SELECT_NOTIFICATION = "select f.id, f.s_id, f.enabled, "
+			+ "f.remote_host, f.remote_user,"
+			+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
+			+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value, f.alert_id,"
+			+ "f.p_id, f.periodic_time, f.periodic_period, f.periodic_day_of_week, "
+			+ "f.periodic_day_of_month, "
+			+ "f.periodic_local_day_of_month,"
+			+ "f.periodic_month, "
+			+ "f.periodic_local_month,"
+			+ "f.r_id,"
+			+ "f.bundle, f.bundle_ident,"
+			+ "a.name as alert_name,"
+			+ "s2.display_name as bundle_name "
+			+ "from forward f "
+			+ "left outer join survey s "
+			+ "on s.s_id = f.s_id "
+			+ "left outer join survey s2 "
+			+ "on s2.ident = f.bundle_ident "
+			+ "left outer join cms_alert a "
+			+ "on a.id = f.alert_id ";
+
 	private ResourceBundle localisation;
 
 	public NotificationManager(ResourceBundle l) {
@@ -185,8 +209,10 @@ public class NotificationManager {
 	 * Update a record to the forwarding table
 	 * A password may need to be updated if the target is a webhook
 	 */
-	public void updateNotification(Connection sd, PreparedStatement pstmt, String user, 
+	public void updateNotification(Connection sd, PreparedStatement pstmt, String user,
 			Notification n, String tz) throws Exception {
+
+		Notification existing = getNotification(sd, n.id, tz);		// Get the current values so that changes can be logged
 
 		String sql = null;
 		if(n.update_password) {
@@ -296,21 +322,267 @@ public class NotificationManager {
 		pstmt.setString(idx++, n.bundle_ident);
 		pstmt.setInt(idx++, n.id);
 		
-		// Log the change event
+		log.fine("Update Notifications: " + pstmt.toString());
+		pstmt.executeUpdate();
+
+		// Log the change event including the detail of what was changed
 		String logMessage = localisation.getString("lm_change_notification");
 		if(n.name == null) {
 			n.name = "";
 		}
 		logMessage = logMessage.replace("%s1", n.name);
-		if(n.notifyDetails.emails == null) {
-			logMessage = logMessage.replace("%s2", "");
-		} else {
-			logMessage = logMessage.replace("%s2", gson.toJson(n.notifyDetails.emails));
-		}
+		logMessage = logMessage.replace("%s2", getNotificationChanges(sd, existing, n));
 		lm.writeLog(sd, n.s_id, user, LogManager.CREATE, logMessage, 0, null);
-		
-		log.fine("Update Notifications: " + pstmt.toString());
-		pstmt.executeUpdate();
+	}
+
+	/*
+	 * Describe the difference between the stored notification and the updated version so that
+	 * the log shows what the user changed rather than just that a change was made
+	 */
+	private String getNotificationChanges(Connection sd, Notification o, Notification n) {
+
+		StringBuilder sb = new StringBuilder();
+
+		if(o == null) {
+			return localisation.getString("lm_nf_unknown");
+		}
+
+		NotifyDetails od = o.notifyDetails == null ? new NotifyDetails() : o.notifyDetails;
+		NotifyDetails nd = n.notifyDetails == null ? new NotifyDetails() : n.notifyDetails;
+
+		addChange(sb, "name", o.name, n.name);
+		addChange(sb, "lm_nf_enabled", o.enabled, n.enabled);
+		addChange(sb, "ar_survey", o.s_name, getSurveyName(sd, n.s_id));
+		addChange(sb, "lm_nf_any_in_bundle", o.bundle, n.bundle);
+		addChange(sb, "lm_nf_bundle", o.bundle_name, getSurveyNameFromIdent(sd, n.bundle_ident));
+		addChange(sb, "a_trigger", o.trigger, n.trigger);
+		addChange(sb, "a_target", o.target, n.target);
+		addChange(sb, "filters", o.filter, n.filter);
+		addChange(sb, "a_alert", o.alert_name, getAlertName(sd, n.alert_id));
+
+		// Trigger specific
+		if(isTrigger(o, n, "task_reminder")) {
+			addChange(sb, "t_tg", getTaskGroupName(sd, o.tgId), getTaskGroupName(sd, n.tgId));
+			addChange(sb, "lm_nf_period", o.period, n.period);
+		}
+		if(isTrigger(o, n, "periodic")) {
+			addChange(sb, "lm_nf_schedule", getSchedule(o), getSchedule(n));
+			addChange(sb, "lm_nf_report", o.r_id, n.r_id);
+			addChange(sb, "lm_nf_report_type", od.report_type, nd.report_type);
+		}
+		if(isTrigger(o, n, "server_calc")) {
+			addChange(sb, "lm_nf_calc_question", o.updateQuestion, n.updateQuestion);
+			addChange(sb, "lm_nf_calc_value", o.updateValue, n.updateValue);
+		}
+
+		// Target specific
+		if(isTarget(o, n, "email") || isTarget(o, n, "escalate")) {
+			addChange(sb, "email", getList(od.emails), getList(nd.emails));
+			addChange(sb, "a_eq", od.emailQuestionName, nd.emailQuestionName);
+			addChange(sb, "a_eq2", od.emailMeta, nd.emailMeta);
+			addChange(sb, "c_from", od.from, nd.from);
+			addChange(sb, "lm_nf_subject", od.subject, nd.subject);
+			addChange(sb, "lm_nf_content", od.content, nd.content);
+			addChange(sb, "attach", od.attach, nd.attach);
+			addChange(sb, "lm_nf_pdf_template", od.pdfTemplateId, nd.pdfTemplateId);
+			addChange(sb, "lm_nf_references", od.include_references, nd.include_references);
+			addChange(sb, "a_eqa", od.emailAssigned, nd.emailAssigned);
+			addChange(sb, "lm_nf_launched", od.launched_only, nd.launched_only);
+		}
+		if(isTarget(o, n, "sms") || isTarget(o, n, "conversation")) {
+			addChange(sb, "lm_nf_number", od.ourNumber, nd.ourNumber);
+			addChange(sb, "lm_nf_channel", od.msgChannel, nd.msgChannel);
+			addChange(sb, "lm_nf_content", od.content, nd.content);
+		}
+		if(isTarget(o, n, "webhook")) {
+			addChange(sb, "lm_nf_callback", od.callback_url, nd.callback_url);
+			addChange(sb, "lm_nf_host", o.remote_host, n.remote_host);
+			if(n.update_password) {
+				addDetail(sb, localisation.getString("lm_nf_password"));
+			}
+		}
+		if(isTarget(o, n, "escalate") || isTarget(o, n, "reference")) {
+			addChange(sb, "a_cs", getSurveyNameFromIdent(sd, od.survey_case),
+					getSurveyNameFromIdent(sd, nd.survey_case));
+			addChange(sb, "lm_nf_assign", getRemoteUserName(sd, o.remote_user), getRemoteUserName(sd, n.remote_user));
+			addChange(sb, "lm_nf_assign_question", od.assign_question, nd.assign_question);
+		}
+		if(isTarget(o, n, "sharepoint_list")) {
+			addChange(sb, "lm_nf_sp_list", od.sp_list_title, nd.sp_list_title);
+			addChange(sb, "lm_nf_sp_operation", od.sp_operation, nd.sp_operation);
+			addChange(sb, "lm_nf_sp_match_column", od.sp_match_column, nd.sp_match_column);
+			addChange(sb, "lm_nf_sp_match_field", od.sp_match_field, nd.sp_match_field);
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			addChange(sb, "lm_nf_sp_columns", gson.toJson(od.sp_column_map), gson.toJson(nd.sp_column_map));
+		}
+
+		return sb.length() == 0 ? localisation.getString("lm_nf_no_changes") : sb.toString();
+	}
+
+	private boolean isTrigger(Notification o, Notification n, String trigger) {
+		return trigger.equals(o.trigger) || trigger.equals(n.trigger);
+	}
+
+	private boolean isTarget(Notification o, Notification n, String target) {
+		return target.equals(o.target) || target.equals(n.target);
+	}
+
+	/*
+	 * Add "label: old -> new" to the change list if the value has changed
+	 */
+	private void addChange(StringBuilder sb, String labelKey, String o, String n) {
+		String oldValue = o == null ? "" : o.trim();
+		String newValue = n == null ? "" : n.trim();
+		if(!oldValue.equals(newValue)) {
+			addDetail(sb, localisation.getString(labelKey) + ": \"" + abbreviate(oldValue)
+					+ "\" -> \"" + abbreviate(newValue) + "\"");
+		}
+	}
+
+	private void addChange(StringBuilder sb, String labelKey, boolean o, boolean n) {
+		if(o != n) {
+			addChange(sb, labelKey, localisation.getString(o ? "rep_yes" : "rep_no"),
+					localisation.getString(n ? "rep_yes" : "rep_no"));
+		}
+	}
+
+	private void addChange(StringBuilder sb, String labelKey, int o, int n) {
+		if(o != n) {
+			addChange(sb, labelKey, String.valueOf(o), String.valueOf(n));
+		}
+	}
+
+	private void addDetail(StringBuilder sb, String detail) {
+		if(sb.length() > 0) {
+			sb.append("; ");
+		}
+		sb.append(detail);
+	}
+
+	/*
+	 * Keep long values, such as the email content, readable in the log
+	 */
+	private String abbreviate(String in) {
+		if(in != null && in.length() > MAX_LOG_VALUE) {
+			return in.substring(0, MAX_LOG_VALUE) + "...";
+		}
+		return in;
+	}
+
+	private String getList(ArrayList<String> in) {
+		return in == null ? "" : String.join(", ", in);
+	}
+
+	/*
+	 * The periodic schedule is reported as a single value as the individual settings
+	 * only make sense together
+	 */
+	private String getSchedule(Notification n) {
+		StringBuilder sb = new StringBuilder();
+		sb.append(n.periodic_period == null ? "" : n.periodic_period);
+		sb.append(" ").append(n.periodic_time == null ? "" : n.periodic_time);
+		if("weekly".equals(n.periodic_period)) {
+			sb.append(" day of week: ").append(n.periodic_week_day);
+		} else if("monthly".equals(n.periodic_period)) {
+			sb.append(" day of month: ").append(n.periodic_month_day);
+		} else if("yearly".equals(n.periodic_period) || "quarterly".equals(n.periodic_period)) {
+			sb.append(" month: ").append(n.periodic_month).append(" day of month: ").append(n.periodic_month_day);
+		}
+		return sb.toString();
+	}
+
+	/*
+	 * Get the name that the user sees for a user, role or one of the special assignment values
+	 */
+	private String getRemoteUserName(Connection sd, String remoteUser) {
+
+		String name = null;
+
+		if(remoteUser == null || remoteUser.equals("_none")) {
+			return "";
+		} else if(remoteUser.equals("_submitter")) {
+			return "Submitter";
+		} else if(remoteUser.equals("_data")) {
+			return "From data";
+		} else if(remoteUser.startsWith("_role:")) {
+			int roleId = 0;
+			try { roleId = Integer.parseInt(remoteUser.substring(6)); } catch(NumberFormatException ignored) {}
+			if(roleId > 0) {
+				name = getName(sd, "select name from role where id = ?", roleId);
+			}
+		} else {
+			name = getName(sd, "select name from users where ident = ?", remoteUser);
+			if(name == null) {
+				name = remoteUser;
+			}
+		}
+		return name;
+	}
+
+	private String getSurveyName(Connection sd, int sId) {
+		return sId > 0 ? getName(sd, "select display_name from survey where s_id = ?", sId) : null;
+	}
+
+	private String getSurveyNameFromIdent(Connection sd, String ident) {
+		return getName(sd, "select display_name from survey where ident = ?", ident);
+	}
+
+	private String getAlertName(Connection sd, int alertId) {
+		return alertId > 0 ? getName(sd, "select name from cms_alert where id = ?", alertId) : null;
+	}
+
+	private String getTaskGroupName(Connection sd, int tgId) {
+		return tgId > 0 ? getName(sd, "select name from task_group where tg_id = ?", tgId) : null;
+	}
+
+	/*
+	 * Get a single name value.  Only used to make log messages readable hence errors are ignored
+	 */
+	private String getName(Connection sd, String sql, Object key) {
+
+		String name = null;
+		PreparedStatement pstmt = null;
+
+		if(key == null) {
+			return null;
+		}
+		try {
+			pstmt = sd.prepareStatement(sql);
+			if(key instanceof Integer) {
+				pstmt.setInt(1, (Integer) key);
+			} else {
+				pstmt.setString(1, key.toString());
+			}
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				name = rs.getString(1);
+			}
+		} catch (SQLException e) {
+			log.info("Error getting name for log message: " + e.getMessage());
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		return name;
+	}
+
+	/*
+	 * Get a single notification.  Used to compare the stored notification with an updated
+	 * version so that the log can record what was changed
+	 */
+	public Notification getNotification(Connection sd, int id, String tz) throws Exception {
+
+		ArrayList<Notification> notifications = new ArrayList<Notification>();
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(SQL_SELECT_NOTIFICATION + "where f.id = ?");
+			pstmt.setInt(1, id);
+			addToList(sd, pstmt.executeQuery(), notifications, false, false, tz);
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return notifications.size() > 0 ? notifications.get(0) : null;
 	}
 
 	/*
@@ -324,26 +596,7 @@ public class NotificationManager {
 		ArrayList<Notification> notifications = new ArrayList<Notification>();	// Results of request
 
 		ResultSet resultSet = null;
-		String sql = "select f.id, f.s_id, f.enabled, "
-				+ "f.remote_host, f.remote_user,"
-				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
-				+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value, f.alert_id,"
-				+ "f.p_id, f.periodic_time, f.periodic_period, f.periodic_day_of_week, "
-				+ "f.periodic_day_of_month, "
-				+ "f.periodic_local_day_of_month,"
-				+ "f.periodic_month, "
-				+ "f.periodic_local_month,"
-				+ "f.r_id,"
-				+ "f.bundle, f.bundle_ident,"
-				+ "a.name as alert_name,"
-				+ "s2.display_name as bundle_name "
-				+ "from forward f "
-				+ "left outer join survey s "
-				+ "on s.s_id = f.s_id "
-				+ "left outer join survey s2 "
-				+ "on s2.ident = f.bundle_ident "
-				+ "left outer join cms_alert a "
-				+ "on a.id = f.alert_id "
+		String sql = SQL_SELECT_NOTIFICATION
 				+ "where (f.p_id = ? "
 				+ "or f.s_id in (select s_id from survey s where s.p_id = ? and not s.deleted) "
 				+ "or f.bundle_ident in (select group_survey_ident from survey s where s.p_id = ? and not s.deleted)) "
@@ -428,26 +681,7 @@ public class NotificationManager {
 		ArrayList<Notification> notifications = new ArrayList<Notification>();
 
 		ResultSet resultSet = null;
-		String sql = "select f.id, f.s_id, f.enabled, "
-				+ "f.remote_host, f.remote_user,"
-				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
-				+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value, f.alert_id,"
-				+ "f.p_id, f.periodic_time, f.periodic_period, f.periodic_day_of_week, "
-				+ "f.periodic_day_of_month, "
-				+ "f.periodic_local_day_of_month,"
-				+ "f.periodic_month, "
-				+ "f.periodic_local_month,"
-				+ "f.r_id,"
-				+ "f.bundle, f.bundle_ident,"
-				+ "a.name as alert_name,"
-				+ "s2.display_name as bundle_name "
-				+ "from forward f "
-				+ "left outer join survey s "
-				+ "on s.s_id = f.s_id "
-				+ "left outer join survey s2 "
-				+ "on s2.ident = f.bundle_ident "
-				+ "left outer join cms_alert a "
-				+ "on a.id = f.alert_id "
+		String sql = SQL_SELECT_NOTIFICATION
 				+ "where (f.p_id in (select p.id from project p, user_project up, users u "
 				+ "  where p.id = up.p_id and up.u_id = u.id and u.ident = ?) "
 				+ "or f.s_id in (select s.s_id from survey s, project p, user_project up, users u "
@@ -615,38 +849,7 @@ public class NotificationManager {
 					}
 				}
 				// Remote user readable name
-				if(n.remote_user == null || n.remote_user.equals("_none")) {
-					n.remote_user_name = "";
-				} else if(n.remote_user.equals("_submitter")) {
-					n.remote_user_name = "Submitter";
-				} else if(n.remote_user.equals("_data")) {
-					n.remote_user_name = "From data";
-				} else if(n.remote_user.startsWith("_role:")) {
-					int roleId = 0;
-					try { roleId = Integer.parseInt(n.remote_user.substring(6)); } catch(NumberFormatException ignored) {}
-					if(roleId > 0) {
-						PreparedStatement pstmtRole = null;
-						try {
-							pstmtRole = sd.prepareStatement("select name from role where id = ?");
-							pstmtRole.setInt(1, roleId);
-							ResultSet rsRole = pstmtRole.executeQuery();
-							if(rsRole.next()) n.remote_user_name = rsRole.getString(1);
-						} finally {
-							try { if(pstmtRole != null) pstmtRole.close(); } catch(SQLException ignored) {}
-						}
-					}
-				} else {
-					PreparedStatement pstmtUser = null;
-					try {
-						pstmtUser = sd.prepareStatement("select name from users where ident = ?");
-						pstmtUser.setString(1, n.remote_user);
-						ResultSet rsUser = pstmtUser.executeQuery();
-						if(rsUser.next()) n.remote_user_name = rsUser.getString(1);
-					} finally {
-						try { if(pstmtUser != null) pstmtUser.close(); } catch(SQLException ignored) {}
-					}
-					if(n.remote_user_name == null) n.remote_user_name = n.remote_user;
-				}
+				n.remote_user_name = getRemoteUserName(sd, n.remote_user);
 			}
 
 			n.filter = resultSet.getString("filter");
