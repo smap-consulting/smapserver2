@@ -468,6 +468,8 @@ public class Workflow extends Application {
 			pstmtGet = sd.prepareStatement(sqlGet);
 			pstmtUpd = sd.prepareStatement(sqlUpd);
 
+			NotificationManager nm = new NotificationManager(localisation);
+
 			for (WorkflowEditNotif n : notifs) {
 				// Fetch existing notify_details to preserve unedited fields
 				pstmtGet.setInt(1, n.id);
@@ -509,6 +511,9 @@ public class Workflow extends Application {
 					if (n.spColumnMap   != null) nd.sp_column_map   = n.spColumnMap;
 				}
 
+				// Get the stored notification so that the detail of the change can be logged
+				Notification before = nm.getNotification(sd, n.id, "UTC");
+
 				pstmtUpd.setString(1, n.name);
 				pstmtUpd.setString(2, n.remoteUser);
 				pstmtUpd.setString(3, n.filter);
@@ -518,10 +523,12 @@ public class Workflow extends Application {
 				pstmtUpd.setString(7, request.getRemoteUser());
 				pstmtUpd.setString(8, request.getRemoteUser());
 				pstmtUpd.executeUpdate();
+
 				lm.writeLog(sd, n.srcSurveyId, request.getRemoteUser(), LogManager.CREATE,
 						localisation.getString("lm_wf_update_notification")
 							.replace("%s1", n.name != null ? n.name : "")
-							.replace("%s2", String.valueOf(n.id)), 0, null);
+							.replace("%s2", nm.getNotificationChanges(sd, before,
+									nm.getNotification(sd, n.id, "UTC"))), 0, null);
 			}
 			response = Response.ok().build();
 		} catch (Exception e) {
@@ -1202,6 +1209,11 @@ public class Workflow extends Application {
 					: (s.reportName != null ? s.reportName : "");
 
 			String tz = (s.tz != null && !s.tz.trim().isEmpty()) ? s.tz : "UTC";
+
+			// Get the stored notification so that the detail of the change can be logged
+			NotificationManager nm = new NotificationManager(localisation);
+			Notification before = nm.getNotification(sd, s.id, tz);
+
 			PeriodicTime pt = new PeriodicTime(s.periodicPeriod, tz);
 			pt.setLocalTime(s.periodicTime, s.periodicWeekDay, s.periodicMonthDay, s.periodicMonth);
 
@@ -1230,7 +1242,8 @@ public class Workflow extends Application {
 			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.CREATE,
 					localisation.getString("lm_wf_update_notification")
 						.replace("%s1", name)
-						.replace("%s2", String.valueOf(s.id)), 0, null);
+						.replace("%s2", nm.getNotificationChanges(sd, before,
+								nm.getNotification(sd, s.id, tz))), 0, null);
 			response = Response.ok().build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error updating scheduled workflow step", e);

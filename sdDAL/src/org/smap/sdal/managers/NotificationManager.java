@@ -338,8 +338,10 @@ public class NotificationManager {
 	/*
 	 * Describe the difference between the stored notification and the updated version so that
 	 * the log shows what the user changed rather than just that a change was made
+	 * Callers that do not update via updateNotification() can get the two versions by calling
+	 * getNotification() before and after their update
 	 */
-	private String getNotificationChanges(Connection sd, Notification o, Notification n) {
+	public String getNotificationChanges(Connection sd, Notification o, Notification n) {
 
 		StringBuilder sb = new StringBuilder();
 
