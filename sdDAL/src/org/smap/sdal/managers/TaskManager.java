@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -655,8 +656,9 @@ public class TaskManager {
 	 * Only get tasks if the task group is set to auto allocate
 	 */
 	public TaskListGeoJson getUnassignedTasks(
-			Connection sd, 
-			int oId,	
+			Connection sd,
+			Connection cResults,
+			int oId,
 			int userId,
 			int limit,		// Maximum number of tasks to return
 			String userName
@@ -738,7 +740,9 @@ public class TaskManager {
 			pstmt.setInt(paramIdx++, oId);
 			pstmt.setInt(paramIdx++, userId);
 			pstmt.setString(paramIdx++, userName);
-			
+
+			RoleManager roleMgr = new RoleManager(localisation);
+
 			// Get the data
 			log.fine("Get unassigned tasks: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
@@ -815,9 +819,18 @@ public class TaskManager {
 
 				tf.properties.lat = rs.getDouble("lat");
 				tf.properties.lon = rs.getDouble("lon");
-				
+
+				/*
+				 * Record level security: do not offer a task for self assignment if the user is
+				 * not permitted to access the record that it updates
+				 */
+				if(!roleMgr.assignmentAllowed(sd, cResults, tf.properties.survey_ident,
+						tf.properties.update_id, userName, null, tz, null)) {
+					continue;
+				}
+
 				tl.features.add(tf);
-				
+
 				index++;
 				if (limit > 0 && index >= limit) {
 					break;
@@ -1636,19 +1649,24 @@ public class TaskManager {
 			cResults = ResultsDataSource.getConnection(connectionString);
 
 			/*
-			 * Record level security: when the task updates an existing record the creator
-			 * (the user authorising the assignment) must be permitted to access that record by
-			 * the survey row filter (RBAC) rules.  The assignee is NOT checked - a task may be
-			 * assigned to a user who cannot see the record, including external email task
-			 * recipients who have no logon.  Assignability of an internal user is governed by
-			 * project membership, not the row filter.
+			 * Record level security: when the task updates an existing record both the creator
+			 * (the user authorising the assignment) and the assignee must be permitted to access
+			 * that record by the survey row filter (RBAC) rules.  This is an interactive request
+			 * so a refusal is reported rather than silently dropped.
+			 * Email task recipients are not checked, they have no logon and hence no roles; for
+			 * those the creator of the assignment is the authority.
 			 */
 			if(tp.update_id != null && tp.update_id.trim().length() > 0) {
 				RoleManager roleMgr = new RoleManager(localisation);
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, tp.survey_ident);
-				if(tableName != null
-						&& !roleMgr.canAccessRecord(sd, cResults, tp.survey_ident, tableName, tp.update_id, request.getRemoteUser(), tz)) {
-					throw new ApplicationException(localisation.getString("rec_na"));
+				if(tableName != null) {
+					if(!roleMgr.canAccessRecord(sd, cResults, tp.survey_ident, tableName, tp.update_id, request.getRemoteUser(), tz)) {
+						throw new ApplicationException(localisation.getString("rec_na"));
+					}
+					if(tp.assignee_ident != null && tp.assignee_ident.trim().length() > 0
+							&& !roleMgr.canAccessRecord(sd, cResults, tp.survey_ident, tableName, tp.update_id, tp.assignee_ident, tz)) {
+						throw new ApplicationException(localisation.getString("rec_na_assignee"));
+					}
 				}
 			}
 
@@ -2169,7 +2187,27 @@ public class TaskManager {
 				}
 			}
 			List<Integer> taskList = new ArrayList<Integer>(hierarchyHash.keySet());
-			
+
+			/*
+			 * Record level security: when assigning, drop any task whose record the user being
+			 * assigned is not permitted to access.  A bulk action does not know the RBAC rules so
+			 * the task is left as it was and the refusal logged
+			 */
+			if(action.action.equals("assign") && action.userId > 0 && taskList.size() > 0) {
+				HashSet<Integer> refused = getRefusedTasks(sd, cResults, taskList,
+						GeneralUtilityMethods.getUserIdent(sd, action.userId), remoteUser);
+				if(refused.size() > 0) {
+					for(Integer taskId : refused) {
+						hierarchyHash.remove(taskId);
+					}
+					taskList = new ArrayList<Integer>(hierarchyHash.keySet());
+					if(taskList.size() == 0) {
+						log.info("Bulk assign: no tasks assigned, the user is not permitted to access the records");
+						return;
+					}
+				}
+			}
+
 			// Create a select list for affected tasks and assignments
 			for(Integer taskId : taskList) {
 				if(whereTasksSql.length() > 0) {
@@ -2419,9 +2457,101 @@ public class TaskManager {
 	}
 
 	/*
+	 * Return those tasks, from the list passed in, that update a record the assignee is not
+	 * permitted to access under the record level (row filter) RBAC rules.
+	 * Records are checked one survey at a time so that a bulk action over many tasks does not
+	 * result in a query per task.  Each refusal is logged.
+	 */
+	private HashSet<Integer> getRefusedTasks(Connection sd, Connection cResults, List<Integer> taskList,
+			String assignee, String requester) throws Exception {
+
+		HashSet<Integer> refused = new HashSet<Integer> ();
+
+		if(assignee == null || taskList == null || taskList.size() == 0) {
+			return refused;
+		}
+
+		StringBuilder taskIds = new StringBuilder();
+		for(Integer taskId : taskList) {
+			if(taskIds.length() > 0) {
+				taskIds.append(",");
+			}
+			taskIds.append(taskId.toString());
+		}
+
+		/*
+		 * Get the record updated by each task, grouped by survey
+		 * surveyIdent => (instanceId => tasks updating that record)
+		 */
+		HashMap<String, HashMap<String, ArrayList<Integer>>> surveys = new HashMap<> ();
+
+		String sql = "select id, survey_ident, update_id from tasks "
+				+ "where update_id is not null "
+				+ "and trim(update_id) != '' "
+				+ "and survey_ident is not null "
+				+ "and id in (" + taskIds.toString() + ")";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			log.fine("Get records updated by tasks: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String sIdent = rs.getString("survey_ident");
+				String updateId = rs.getString("update_id");
+				HashMap<String, ArrayList<Integer>> records = surveys.get(sIdent);
+				if(records == null) {
+					records = new HashMap<String, ArrayList<Integer>> ();
+					surveys.put(sIdent, records);
+				}
+				ArrayList<Integer> tasks = records.get(updateId);
+				if(tasks == null) {
+					tasks = new ArrayList<Integer> ();
+					records.put(updateId, tasks);
+				}
+				tasks.add(rs.getInt("id"));
+			}
+		} finally {
+			try {if(pstmt != null) {pstmt.close();}} catch(Exception e) {}
+		}
+
+		RoleManager roleMgr = new RoleManager(localisation);
+		for(String sIdent : surveys.keySet()) {
+			HashMap<String, ArrayList<Integer>> records = surveys.get(sIdent);
+			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
+			if(tableName == null) {
+				continue;			// No results table, nothing to check against
+			}
+
+			HashSet<String> accessible = roleMgr.filterAccessibleRecords(sd, cResults, sIdent,
+					tableName, records.keySet(), assignee, tz);
+
+			for(String updateId : records.keySet()) {
+				if(!accessible.contains(updateId)) {
+					refused.addAll(records.get(updateId));
+					StringBuilder note = new StringBuilder("Assignment of record ")
+							.append(updateId)
+							.append(" in survey ")
+							.append(sIdent)
+							.append(" to ")
+							.append(assignee)
+							.append(" dropped: the user is not permitted to access this record");
+					if(requester != null) {
+						note.append(". Requested by ").append(requester);
+					}
+					lm.writeLog(sd, GeneralUtilityMethods.getSurveyId(sd, sIdent),
+							requester != null ? requester : assignee,
+							LogManager.SECURITY, note.toString(), 0, null);
+				}
+			}
+		}
+
+		return refused;
+	}
+
+	/*
 	 * Update a task start date and time
 	 */
-	public void updateWhen(Connection sd, int pId, int taskId, 
+	public void updateWhen(Connection sd, int pId, int taskId,
 			Timestamp from,
 			Timestamp to) throws Exception {
 
@@ -3206,17 +3336,25 @@ public class TaskManager {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		UserManager um = new UserManager(null);
 
+		RoleManager roleMgr = new RoleManager(localisation);
+
 		if(userId > 0) {		// Assign the user to the new task
 
 			String userIdent = GeneralUtilityMethods.getUserIdent(sd, userId);
-			insertAssignment(sd, cResults, gson, pstmtAssign, task_name, userId, userIdent, null, status, taskId, update_id, sIdent, 
-					remoteUser, scheduledAt, scheduledFinish,
-					assign_auto);
-			
-			// Notify the user of their new assignment		
-			MessagingManager mm = new MessagingManager(localisation);
-			mm.userChange(sd, userIdent);
-			um.incrementTotalTasks(sd, userIdent);
+			/*
+			 * Record level security: drop the assignment if the assignee is not permitted to
+			 * access the record.  The assignment rule does not know the RBAC rules
+			 */
+			if(roleMgr.assignmentAllowed(sd, cResults, sIdent, update_id, userIdent, remoteUser, tz, null)) {
+				insertAssignment(sd, cResults, gson, pstmtAssign, task_name, userId, userIdent, null, status, taskId, update_id, sIdent,
+						remoteUser, scheduledAt, scheduledFinish,
+						assign_auto);
+
+				// Notify the user of their new assignment
+				MessagingManager mm = new MessagingManager(localisation);
+				mm.userChange(sd, userIdent);
+				um.incrementTotalTasks(sd, userIdent);
+			}
 
 		} else if(roleId > 0) {		// Assign all users with the current role
 
@@ -3234,14 +3372,22 @@ public class TaskManager {
 			
 			int count = 0;
 			while(rsRoles.next()) {
-				count++;
 
 				String userIdent = GeneralUtilityMethods.getUserIdent(sd, rsRoles.getInt(1));
+				/*
+				 * Record level security: assign only to those members of the role that are
+				 * permitted to access the record.  Members without access are dropped
+				 */
+				if(!roleMgr.assignmentAllowed(sd, cResults, sIdent, update_id, userIdent, remoteUser, tz, null)) {
+					continue;
+				}
+				count++;
+
 				insertAssignment(sd, cResults, gson, pstmtAssign, task_name,
 						rsRoles.getInt(1), userIdent, null, status, taskId, update_id, sIdent,
 						remoteUser, scheduledAt, scheduledFinish,
 						assign_auto);
-				
+
 				// Notify the user of their new assignment
 				MessagingManager mm = new MessagingManager(localisation);
 				mm.userChange(sd, userIdent);

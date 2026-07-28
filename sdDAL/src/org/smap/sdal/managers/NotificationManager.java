@@ -1490,8 +1490,9 @@ public class NotificationManager {
 							assignTo = userList.get(0);	// Only one user can be assigned
 						}
 					} else if(msg.remoteUser.startsWith("_role:")) {
-						// Assign to the first user (alphabetically) who has the specified role.
-						// If no user holds the role leave it unassigned (do not assign to the role placeholder)
+						// Assign to the first user (alphabetically) who has the specified role and
+						// is permitted to access the record by the row filter (RBAC) rules.
+						// If no such user is found leave it unassigned (do not assign to the role placeholder)
 						assignTo = null;
 						int roleId = 0;
 						try { roleId = Integer.parseInt(msg.remoteUser.substring(6)); } catch(NumberFormatException ignored) {}
@@ -1502,26 +1503,56 @@ public class NotificationManager {
 									"select u.ident from users u "
 									+ "join user_role ur on u.id = ur.u_id "
 									+ "where ur.r_id = ? and u.o_id = ? and u.temporary = false "
-									+ "order by u.ident limit 1");
+									+ "order by u.ident");
 								pstmtRole.setInt(1, roleId);
 								pstmtRole.setInt(2, organisation.id);
 								ResultSet rsRole = pstmtRole.executeQuery();
-								if(rsRole.next()) {
-									assignTo = rsRole.getString(1);
+								RoleManager roleRoleMgr = new RoleManager(localisation);
+								String roleTable = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
+								while(rsRole.next()) {
+									String candidate = rsRole.getString(1);
+									if(roleTable == null || roleRoleMgr.canAccessRecord(sd, cResults, msg.survey_ident,
+											roleTable, msg.instanceId, candidate, organisation.timeZone)) {
+										assignTo = candidate;
+										break;
+									}
 								}
 							} finally {
 								try { if(pstmtRole != null) pstmtRole.close(); } catch(SQLException ignored) {}
 							}
 						}
 					}
+
+					/*
+					 * Record level security: an assignment must not give a user access to a record
+					 * that the row filter (RBAC) rules hide from them.  Assignment rules are written
+					 * without knowledge of the RBAC rules, so where the resolved user may not access
+					 * this record the case is left unassigned and the refusal logged.  Unassigned
+					 * cases can be found from the console
+					 */
+					boolean refusedByRbac = false;
+					if(assignTo != null) {
+						RoleManager roleMgr = new RoleManager(localisation);
+						String rbacTable = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
+						if(rbacTable != null && !roleMgr.canAccessRecord(sd, cResults, msg.survey_ident,
+								rbacTable, msg.instanceId, assignTo, organisation.timeZone)) {
+							refusedByRbac = true;
+							assignTo = null;
+						}
+					}
 					
 					log.fine("+++++ escalate notification");
 
 					if(assignTo == null) {
-						// No user resolved (e.g. the role has no members) - leave the case unassigned
+						// No user resolved - leave the case unassigned
 						notify_details = "Case " + msg.instanceId + " in " + survey.surveyData.displayName
-								+ " left unassigned: no user holds the configured role";
+								+ " left unassigned: "
+								+ (refusedByRbac ? "the user is not permitted to access this record"
+										: "no user holds the configured role");
 						log.info("Escalate notification " + msg.notificationName + ": " + notify_details);
+						if(refusedByRbac) {
+							lm.writeLog(sd, surveyId, msg.user, LogManager.SECURITY, notify_details, 0, null);
+						}
 					} else {
 						notify_details = localisation.getString("esc_nd");
 						notify_details = notify_details.replace("%s1", msg.instanceId);
@@ -1536,9 +1567,6 @@ public class NotificationManager {
 								surveyCase = msg.survey_ident;
 							}
 
-							// An automatic notification assignment is authorised by the notification
-							// configuration, not by the assignee: the assignee does not need record
-							// level (RBAC) access to the record.
 							CaseManager cm = new CaseManager(localisation);
 							String requester = localisation.getString("c_notify") + " " + msg.notificationName;
 							int count = cm.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase,
@@ -1611,9 +1639,36 @@ public class NotificationManager {
 						}
 					}
 
+					/*
+					 * Record level security: a reference must not give a user access to a record
+					 * that the row filter (RBAC) rules hide from them.  Reference rules are written
+					 * without knowledge of the RBAC rules so users who may not access this record
+					 * are dropped from the list and the refusal logged
+					 */
+					if(refUsers.size() > 0) {
+						RoleManager refRoleMgr = new RoleManager(localisation);
+						String refTable = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
+						if(refTable != null) {
+							ArrayList<String> allowedUsers = new ArrayList<>();
+							for(String refUser : refUsers) {
+								if(refRoleMgr.canAccessRecord(sd, cResults, msg.survey_ident, refTable,
+										msg.instanceId, refUser, organisation.timeZone)) {
+									allowedUsers.add(refUser);
+								} else {
+									String refused = "Reference of record " + msg.instanceId + " in "
+											+ survey.surveyData.displayName + " to " + refUser
+											+ " dropped: the user is not permitted to access this record";
+									log.info("Reference notification " + msg.notificationName + ": " + refused);
+									lm.writeLog(sd, surveyId, refUser, LogManager.SECURITY, refused, 0, null);
+								}
+							}
+							refUsers = allowedUsers;
+						}
+					}
+
 					if(refUsers.size() == 0) {
 						notify_details = "Record " + msg.instanceId + " in " + survey.surveyData.displayName
-								+ " not referenced: no users resolved";
+								+ " not referenced: no users resolved, or none permitted to access the record";
 						log.info("Reference notification " + msg.notificationName + ": " + notify_details);
 					} else {
 						try {
@@ -1623,9 +1678,6 @@ public class NotificationManager {
 								surveyCase = msg.survey_ident;
 							}
 
-							// An automatic notification reference is authorised by the notification
-							// configuration, not by the referenced users: they do not need record
-							// level (RBAC) access to the record.
 							ReferenceManager refm = new ReferenceManager(localisation);
 							String requester = localisation.getString("c_notify") + " " + msg.notificationName;
 							int count = refm.addReferences(sd, cResults, tableName, msg.instanceId, surveyCase, refUsers, requester);

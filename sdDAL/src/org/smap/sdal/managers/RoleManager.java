@@ -7,7 +7,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -731,6 +733,115 @@ public class RoleManager {
 		return sqlFilter.toString();
 	}
 	
+	/*
+	 * Return true if a record may be assigned to a user, taking account of record level
+	 * (row filter) RBAC rules on the survey.
+	 *
+	 * Assignment rules in notifications and task groups are written without knowledge of the RBAC
+	 * rules.  Where a rule would assign a record that the assignee is not permitted to see, the
+	 * assignment is dropped and logged.  This is normal operation, not an error, so that every
+	 * rule does not have to duplicate the RBAC rules.  Unassigned records can be found from the
+	 * console.
+	 *
+	 * Returns true when there is no record to check, that is the task creates a new record rather
+	 * than updating an existing one.  Email task recipients are not checked by this method, they
+	 * have no logon and hence no roles; for those the creator of the assignment is the authority.
+	 */
+	public boolean assignmentAllowed(Connection sd, Connection cResults, String sIdent,
+			String updateId, String assignee, String requester, String tz, String serverName)
+					throws Exception {
+
+		if(updateId == null || updateId.trim().length() == 0 || assignee == null) {
+			return true;		// No record to check
+		}
+
+		String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
+		if(tableName == null) {
+			return true;		// No results table, nothing to check against
+		}
+
+		if(canAccessRecord(sd, cResults, sIdent, tableName, updateId, assignee, tz)) {
+			return true;
+		}
+
+		/*
+		 * Refused.  Log so that the dropped assignment can be traced
+		 */
+		StringBuilder note = new StringBuilder("Assignment of record ")
+				.append(updateId)
+				.append(" in survey ")
+				.append(sIdent)
+				.append(" to ")
+				.append(assignee)
+				.append(" dropped: the user is not permitted to access this record");
+		if(requester != null) {
+			note.append(". Requested by ").append(requester);
+		}
+		lm.writeLog(sd, GeneralUtilityMethods.getSurveyId(sd, sIdent), requester != null ? requester : assignee,
+				LogManager.SECURITY, note.toString(), 0, serverName);
+
+		return false;
+	}
+
+	/*
+	 * Return the subset of the passed in records (instanceIds) that the user is permitted to
+	 * access.  Equivalent to calling canAccessRecord() for each record but uses a single query,
+	 * for bulk actions which can cover a large number of records.
+	 */
+	public HashSet<String> filterAccessibleRecords(Connection sd, Connection cResults, String sIdent,
+			String tableName, Collection<String> instanceIds, String user, String tz) throws Exception {
+
+		HashSet<String> accessible = new HashSet<String> ();
+
+		if(user == null || tableName == null || instanceIds == null || instanceIds.size() == 0) {
+			return accessible;
+		}
+
+		// Super users are not restricted by row filters (matches the read path)
+		if(GeneralUtilityMethods.isSuperUser(sd, user)) {
+			accessible.addAll(instanceIds);
+			return accessible;
+		}
+
+		// If the survey has enabled roles the user must hold at least one of them
+		if(surveyHasRoles(sd, sIdent) && !userHasRoleOnSurvey(sd, sIdent, user)) {
+			return accessible;
+		}
+
+		ArrayList<SqlFrag> rfArray = getSurveyRowFilter(sd, sIdent, user);
+		String rFilter = convertSqlFragsToSql(rfArray);
+		if(rFilter.length() == 0) {
+			accessible.addAll(instanceIds);		// No roles, or no row filter
+			return accessible;
+		}
+
+		if(!GeneralUtilityMethods.tableExists(cResults, tableName)) {
+			return accessible;
+		}
+
+		StringBuilder sql = new StringBuilder("select instanceid from ")
+				.append(tableName)
+				.append(" where instanceid = any (?) and not _bad and ")
+				.append(rFilter);
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cResults.prepareStatement(sql.toString());
+			int idx = 1;
+			pstmt.setArray(idx++, cResults.createArrayOf("text", instanceIds.toArray()));
+			GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, idx, tz);
+			log.fine("Bulk record access check: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				accessible.add(rs.getString(1));
+			}
+		} finally {
+			try {if(pstmt != null) {pstmt.close();}} catch(Exception e) {}
+		}
+
+		return accessible;
+	}
+
 	/*
 	 * Return true if the user is permitted to access the specific record (instanceId) taking
 	 * account of record level (row filter) RBAC rules on the survey.

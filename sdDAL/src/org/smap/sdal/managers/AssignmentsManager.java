@@ -358,7 +358,7 @@ public class AssignmentsManager {
 				log.fine("ft_number_tasks: " + ft_number_tasks);
 				if (ft_number_tasks > 0) {
 					TaskManager tm = new TaskManager(localisation, tz);
-					TaskListGeoJson unassigned = tm.getUnassignedTasks(sd, oId, uId, ft_number_tasks, // Maximum number of tasks to return
+					TaskListGeoJson unassigned = tm.getUnassignedTasks(sd, cResults, oId, uId, ft_number_tasks, // Maximum number of tasks to return
 							userIdent);
 	
 					for (TaskFeature task : unassigned.features) {

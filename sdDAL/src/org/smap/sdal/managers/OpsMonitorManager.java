@@ -1603,14 +1603,16 @@ public class OpsMonitorManager {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
 		}
 
-		// Record level security: the requester authorising the assignment must be permitted to
-		// access this record by any row filter (RBAC) rules.  The assignee is not checked - a
-		// case may be assigned to a user who cannot otherwise see the record.
+		// Record level security: both the requester authorising the assignment and the assignee
+		// must be permitted to access this record by any row filter (RBAC) rules.
 		if("assign".equals(type) && assignTo != null && !assignTo.equals("_none")) {
 			RoleManager roleMgr = new RoleManager(localisation);
 			String tz = GeneralUtilityMethods.getOrganisationTZ(sd, oId);
 			if(!roleMgr.canAccessRecord(sd, cResults, caseSurvey, table, instanceid, requestingUser, tz)) {
 				throw new org.smap.sdal.Utilities.AuthorisationException();
+			}
+			if(!roleMgr.canAccessRecord(sd, cResults, caseSurvey, table, instanceid, assignTo, tz)) {
+				throw new org.smap.sdal.Utilities.ApplicationException(localisation.getString("rec_na_assignee"));
 			}
 		}
 
