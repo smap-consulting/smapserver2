@@ -72,6 +72,15 @@ cd ..
 cp surveyKPI/target/*.war ~/deploy/smap/deploy/version1/surveyKPI.war
 
 #
+# Shared libraries
+#
+# The war files exclude the libraries listed in shared-libs.txt, they are deployed to the
+# Tomcat shared classloader instead so that there is one copy rather than one per war.
+# surveyKPI has the largest dependency set so the jars are taken from there.
+#
+./shared_libs.sh
+
+#
 # subscribers runnable jar file
 #
 cd subscribers

@@ -186,6 +186,37 @@ if [ "$WEBSITE" != "no" ]
 then
 	# Ensure PostgreSQL JDBC driver is in Tomcat's shared lib before startup
 	cp -r $deploy_from/jdbc/* /var/lib/$TOMCAT_VERSION/lib/
+
+	#
+	# Libraries shared by all of the war files, rather than one copy inside each of them.
+	# The list is in shared-libs.txt in smapserver2, the war files exclude exactly these
+	# files.  Replaced completely on each deploy so that old versions do not accumulate
+	#
+	if [ -d $deploy_from/lib ]
+	then
+		SHARED_LIB=/var/lib/$TOMCAT_VERSION/smaplib
+		rm -rf $SHARED_LIB
+		mkdir -p $SHARED_LIB
+		cp $deploy_from/lib/*.jar $SHARED_LIB
+		chown -R $TOMCAT_USER $SHARED_LIB
+
+		# The shared classloader is a parent of every web application, so one copy serves
+		# all of the war files.  Tomcat only reads this at startup
+		CATALINA_PROPS=/var/lib/$TOMCAT_VERSION/conf/catalina.properties
+		if [ ! -f $CATALINA_PROPS ]
+		then
+			CATALINA_PROPS=/etc/$TOMCAT_VERSION/catalina.properties
+		fi
+		if grep -q "^shared.loader=.*smaplib" $CATALINA_PROPS
+		then
+			echo "...... shared libraries already configured in $CATALINA_PROPS"
+		else
+			grep -q "^shared.loader=" $CATALINA_PROPS || echo "shared.loader=" >> $CATALINA_PROPS
+			sed -i 's#^shared.loader=.*#shared.loader="${catalina.base}/smaplib/*.jar"#' $CATALINA_PROPS
+			echo "...... configured shared libraries in $CATALINA_PROPS"
+		fi
+	fi
+
 	service $TOMCAT_VERSION start
 	service apache2 start
 fi
