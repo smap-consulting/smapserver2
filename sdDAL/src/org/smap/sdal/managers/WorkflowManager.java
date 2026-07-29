@@ -23,9 +23,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -721,6 +724,10 @@ public class WorkflowManager {
 
 	/*
 	 * Overwrite x/y on items that have a saved position for this user+org.
+	 *
+	 * A node id contains data values, such as the assignee or the case survey, so editing a step
+	 * changes its id.  The saved position is then matched on the forward / task group records
+	 * backing the node, which do not change, so that editing a step does not move it.
 	 */
 	private void mergeUserPositions(Connection sd, String user, WorkflowData data) throws Exception {
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
@@ -734,8 +741,29 @@ public class WorkflowManager {
 				if (json != null) {
 					Map<String, WorkflowItem> saved = new Gson().fromJson(json,
 							new TypeToken<Map<String, WorkflowItem>>(){}.getType());
+
+					/*
+					 * Index on the backing records those saved positions whose node no longer
+					 * exists.  A saved position that still has its node is left out, otherwise a
+					 * node could be matched to the position of another node that shares a record,
+					 * such as a periodic trigger and the email step it points to
+					 */
+					Set<String> liveIds = new HashSet<>();
+					for (WorkflowItem item : data.items) {
+						liveIds.add(item.id);
+					}
+					Map<String, WorkflowItem> byRecord = new HashMap<>();
+					for (Map.Entry<String, WorkflowItem> entry : saved.entrySet()) {
+						if (!liveIds.contains(entry.getKey())) {
+							addRecordKeys(byRecord, entry.getValue());
+						}
+					}
+
 					for (WorkflowItem item : data.items) {
 						WorkflowItem pos = saved.get(item.id);
+						if (pos == null) {
+							pos = getPositionForRecord(byRecord, item);
+						}
 						if (pos != null) {
 							item.x = pos.x;
 							item.y = pos.y;
@@ -744,6 +772,49 @@ public class WorkflowManager {
 				}
 			}
 		}
+	}
+
+	/*
+	 * Index a saved position on each record that backs it.  The first position saved for a record
+	 * is kept, a record can only be in one place
+	 */
+	private void addRecordKeys(Map<String, WorkflowItem> byRecord, WorkflowItem pos) {
+		if (pos == null) {
+			return;
+		}
+		if (pos.fwdIds != null) {
+			for (Integer fwdId : pos.fwdIds) {
+				byRecord.putIfAbsent("f:" + fwdId, pos);
+			}
+		}
+		if (pos.tgIds != null) {
+			for (Integer tgId : pos.tgIds) {
+				byRecord.putIfAbsent("t:" + tgId, pos);
+			}
+		}
+	}
+
+	/*
+	 * Get the saved position of a node that shares a backing record with this item
+	 */
+	private WorkflowItem getPositionForRecord(Map<String, WorkflowItem> byRecord, WorkflowItem item) {
+		if (item.fwdIds != null) {
+			for (Integer fwdId : item.fwdIds) {
+				WorkflowItem pos = byRecord.get("f:" + fwdId);
+				if (pos != null) {
+					return pos;
+				}
+			}
+		}
+		if (item.tgIds != null) {
+			for (Integer tgId : item.tgIds) {
+				WorkflowItem pos = byRecord.get("t:" + tgId);
+				if (pos != null) {
+					return pos;
+				}
+			}
+		}
+		return null;
 	}
 
 	private static final int CARD_W    = 240;
