@@ -157,17 +157,19 @@ public class Subscriptions extends Application {
 						
 						String msg = localisation.getString("c_opt_in_content");
 						msg = msg.replace("%s1", o.name);
+						// A link styled as a button, a button element inside a link is not valid HTML
 						StringBuilder content = new StringBuilder();
 						content.append("<p>").append(localisation.getString("email_subs_s")).append("</p>")
 								.append("<p>").append(msg).append("</p>")
-								.append(" <a href=\"")
+								.append("<p style=\"text-align:center;\">")
+								.append("<a href=\"")
 								.append(request.getScheme()).append("://").append(request.getServerName())
 								.append("/app/subscriptions.html?subscribe=yes&token=")
 								.append(key)
-								.append("\">")
-								.append("<button type='button' style='margin:auto;style:block'>").append(localisation.getString("c_s"))
-								.append("</button>")
-								.append("</a> ");
+								.append("\" style=\"display:inline-block;padding:10px 20px;background-color:#337ab7;")
+								.append("color:#ffffff;text-decoration:none;border-radius:4px;\">")
+								.append(localisation.getString("c_s"))
+								.append("</a></p>");
 						
 						em.sendEmailHtml(
 								null,

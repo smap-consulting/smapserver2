@@ -273,19 +273,30 @@ public class MessagingManager {
 				
 				String msg = localisation.getString("c_opt_in_content");
 				msg = msg.replace("%s1", GeneralUtilityMethods.getOrganisationName(sd, oId) + " (" + server + ")");
-				
+
 				StringBuilder content = new StringBuilder("<p>")
 						.append(msg)
 						.append("</p>");
-				
-				content.append("<p>")
-					.append(" <a href=\"").append(scheme).append("://").append(server)
+
+				/*
+				 * Not all callers know the scheme.  Without a valid one the link is dropped by
+				 * email clients, leaving a button that does nothing
+				 */
+				if(scheme == null || scheme.trim().length() == 0) {
+					scheme = "https";
+				}
+
+				/*
+				 * A link styled as a button.  A button element inside a link is not valid HTML
+				 * and email clients handle it inconsistently
+				 */
+				content.append("<p style=\"text-align:center;\">")
+					.append("<a href=\"").append(scheme).append("://").append(server)
 					.append("/app/subscriptions.html?subscribe=yes&token=")
 					.append(emailKey)
-					.append("\">")
-					.append("<button type='button' style='margin:auto;style:block'>")
+					.append("\" style=\"display:inline-block;padding:10px 20px;background-color:#337ab7;")
+					.append("color:#ffffff;text-decoration:none;border-radius:4px;\">")
 					.append(localisation.getString("optin"))
-					.append("</button>")
 					.append("</a></p>");
 				
 				em.sendEmailHtml(

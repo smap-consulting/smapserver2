@@ -265,7 +265,7 @@ public class SubRelationalDB extends Subscriber {
 						emails,
 						wn.target,
 						submittingUser,
-						null,
+						"https",		// Scheme, used to create links in emails such as the opt in link
 						null,
 						null,
 						null,
