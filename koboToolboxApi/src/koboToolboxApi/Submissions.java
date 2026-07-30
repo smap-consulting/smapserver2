@@ -143,7 +143,7 @@ public class Submissions extends Application {
 		
 		if(tz == null) {
 			tz = GeneralUtilityMethods.getOrganisationTZ(sd, 
-					GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser()));
+					GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser()));
 		}
 		tz = (tz == null) ? "UTC" : tz;
 		
@@ -172,7 +172,7 @@ public class Submissions extends Application {
 			// Add feature data
 			outWriter.print("[");
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			SubmissionsManager subMgr = new SubmissionsManager(localisation, tz);
 			String whereClause = subMgr.getWhereClause(user, oId, dateId, startDate, endDate, stopat, survey_ident);	
 				

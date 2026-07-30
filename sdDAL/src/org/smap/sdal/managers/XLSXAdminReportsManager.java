@@ -183,7 +183,7 @@ public class XLSXAdminReportsManager {
 		}
 		String orgName = "";
 		if(oId <= 0) {
-			oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 		} else {
 			orgName = GeneralUtilityMethods.getOrganisationName(sd, oId);
 		}

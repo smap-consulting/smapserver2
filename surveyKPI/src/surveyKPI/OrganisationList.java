@@ -142,11 +142,11 @@ public class OrganisationList extends Application {
 			
 			// Use the users enterprise id if one was not specified
 			if(e_id == 0) {
-				e_id = GeneralUtilityMethods.getEnterpriseId(sd, request.getRemoteUser());
+				e_id = GeneralUtilityMethods.getEnterpriseId(sd, request, request.getRemoteUser());
 			}
 			
 			// Add a restriction to personal organsiations if the user is not an org administrator
-			int personalUserId = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ORG_ID) ? 0 : GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			int personalUserId = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ORG_ID) ? 0 : GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 
 			ResultSet resultSet = null;
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -322,7 +322,7 @@ public class OrganisationList extends Application {
 				if(o.id == -1) {
 					// New organisation
 						
-					o.e_id = GeneralUtilityMethods.getEnterpriseId(sd, request.getRemoteUser());
+					o.e_id = GeneralUtilityMethods.getEnterpriseId(sd, request, request.getRemoteUser());
 					om.createOrganisation(
 							sd, 
 							o, 
@@ -408,7 +408,7 @@ public class OrganisationList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			SensitiveData sensitiveData = new Gson().fromJson(sensitive, SensitiveData.class);	
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());		
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());		
 			OrganisationManager om = new OrganisationManager(localisation);
 			om.updateSensitiveData(sd, oId, sensitiveData);		
 			
@@ -451,7 +451,7 @@ public class OrganisationList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			OtherOrgData otherData = new Gson().fromJson(other, OtherOrgData.class);	
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());		
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());		
 			OrganisationManager om = new OrganisationManager(localisation);
 			om.updateOtherOrgData(sd, oId, otherData);		
 			
@@ -837,7 +837,7 @@ public class OrganisationList extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 	
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			
 			DeviceSettings d = new Gson().fromJson(settings, DeviceSettings.class);
 			
@@ -936,7 +936,7 @@ public class OrganisationList extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 	
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			
 			EmailSettings e = new Gson().fromJson(settings, EmailSettings.class);
 			
@@ -1094,7 +1094,7 @@ public class OrganisationList extends Application {
 				}
 			}
 		
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			String sql = "update organisation set " +			
 					" webform = ? " +
 					" where " +
@@ -1245,7 +1245,7 @@ public class OrganisationList extends Application {
 				}
 			}	
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setBoolean(1, ao.set_as_theme);
 			pstmt.setString(2, ao.navbar_color);

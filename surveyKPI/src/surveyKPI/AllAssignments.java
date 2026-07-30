@@ -195,7 +195,7 @@ public class AllAssignments extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-AllAssignments");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -650,7 +650,7 @@ public class AllAssignments extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -940,11 +940,11 @@ public class AllAssignments extends Application {
 			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			try {
-				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			} catch (Exception e) {
 			}
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			
 			String tz = "UTC";	// get default timezone
 			// Get the base path

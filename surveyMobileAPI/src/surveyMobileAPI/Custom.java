@@ -126,7 +126,7 @@ public class Custom extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 
 	    try {
-	    	int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+	    	int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 	    	FileManager fm = new FileManager();
 	    	String basePath = GeneralUtilityMethods.getBasePath(request);
 

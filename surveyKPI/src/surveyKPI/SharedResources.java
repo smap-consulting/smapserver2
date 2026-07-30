@@ -184,7 +184,7 @@ public class SharedResources extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 		
-			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			
 			if(map.id < 1) {
 						
@@ -272,7 +272,7 @@ public class SharedResources extends Application {
 		
 		
 		try {
-			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			
 			String sql = "delete from map where id = ? and o_id = ?; ";
 			pstmt = sd.prepareStatement(sql);	 			
@@ -328,7 +328,7 @@ public class SharedResources extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 		
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			String sIdent = null;
 			if(sId > 0) {
 				sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
@@ -386,7 +386,7 @@ public class SharedResources extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 		
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			
 			SharedResourceManager srm = new SharedResourceManager(localisation, tz);
@@ -428,7 +428,7 @@ public class SharedResources extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			CsvTableManager tm = new CsvTableManager(sd, localisation);
 
 			// Always include the organisation level CSV files
@@ -473,7 +473,7 @@ public class SharedResources extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());
@@ -484,7 +484,7 @@ public class SharedResources extends Application {
 		
 		try {
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			FileManager fm = new FileManager();
 			r = fm.getLatestSharedHistoryFile(sd,  response, oId, resourceName, sIdent, 
 					GeneralUtilityMethods.getBasePath(request)); 

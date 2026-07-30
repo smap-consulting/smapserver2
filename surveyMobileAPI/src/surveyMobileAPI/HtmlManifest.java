@@ -88,7 +88,7 @@ public class HtmlManifest extends Application{
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			survey = sm.getSurveyId(connectionSD, templateName);	// Get the survey id from the templateName / key
 			boolean superUser = false;
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request, request.getRemoteUser());
 			a.isValidSurvey(connectionSD, user, survey.surveyData.id, false, superUser);	// Validate that the user can access this survey
 			a.isBlocked(connectionSD, survey.surveyData.id, false);
 		} catch (Exception e) {

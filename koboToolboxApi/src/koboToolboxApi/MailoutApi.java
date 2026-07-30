@@ -100,7 +100,7 @@ public class MailoutApi extends Application {
 		}
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isValidSurveyIdent(sd, request.getRemoteUser(), mailout.survey_ident, false, superUser);
@@ -216,7 +216,7 @@ public class MailoutApi extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			MailoutManager mm = new MailoutManager(localisation);
 			data = mm.getMailoutPeople(sd, mailoutId, oId, dt);				
 			
@@ -354,7 +354,7 @@ public class MailoutApi extends Application {
 			
 			// Save mailout emails to the database
 			MailoutManager mm = new MailoutManager(localisation);
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());				
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());				
 			ArrayList<MailoutPerson> mop = new ArrayList<MailoutPerson> ();
 			mop.add(mailoutPerson);
 			int mailoutPersonId = mm.writeEmails(sd, oId, mop, mailoutId, initialStatus);

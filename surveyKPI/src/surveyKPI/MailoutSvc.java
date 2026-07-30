@@ -98,7 +98,7 @@ public class MailoutSvc extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			MailoutManager mm = new MailoutManager(localisation);	
 			mm.deleteMailout(sd, mailoutId, oId);
 			
@@ -300,7 +300,7 @@ public class MailoutSvc extends Application {
 				if(clear) {
 					mm.deleteUnsentEmails(sd, mailoutId);
 				}
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 				
 				mm.writeEmails(sd, oId, mop, mailoutId, "new");
 				

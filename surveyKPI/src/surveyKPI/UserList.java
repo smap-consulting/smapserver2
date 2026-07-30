@@ -143,7 +143,7 @@ public class UserList extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);	
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			boolean isOrgUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ORG_ID);
 			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.SECURITY_ID);
 			boolean isAdminUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ADMIN_ID);
@@ -190,7 +190,7 @@ public class UserList extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);	
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			boolean isOnlyViewData = GeneralUtilityMethods.isOnlyViewData(sd, request.getRemoteUser());
 			UserManager um = new UserManager(localisation);
 			users = um.getUserListSimple(sd, oId, true, isOnlyViewData, request.getRemoteUser(), false);		// Always sort by name
@@ -237,7 +237,7 @@ public class UserList extends Application {
 			
 			ActionManager am = new ActionManager(localisation, tz);
 			
-			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
 			ArrayList<User> users = am.getTemporaryUsers(sd, o_id, action, null, pId);			
@@ -286,7 +286,7 @@ public class UserList extends Application {
 		try {
 			String sql = null;
 			ResultSet resultSet = null;
-			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			
 			/*
 			 * Get the users for this project
@@ -355,7 +355,7 @@ public class UserList extends Application {
 		Connection sd = SDDataSource.getConnection(requestName);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 
@@ -683,7 +683,7 @@ public class UserList extends Application {
 			GeneralUtilityMethods.setFilenameInResponse(filename, response); // Set file name
 			
 			UserManager um = new UserManager(localisation);
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			boolean isOrgUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ORG_ID);
 			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.SECURITY_ID);
 			boolean isAdminUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ADMIN_ID);

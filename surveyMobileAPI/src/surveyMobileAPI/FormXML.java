@@ -91,7 +91,7 @@ public class FormXML extends Application{
 		Connection connectionSD = SDDataSource.getConnection("surveyMobileAPI-FormXML");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 

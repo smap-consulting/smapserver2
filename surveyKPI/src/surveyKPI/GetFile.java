@@ -173,7 +173,7 @@ public class GetFile extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);	
 		a.isAuthorised(sd, request.getRemoteUser());		
 		try {		
-			uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			uId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 		} catch(Exception e) {
 			// ignore error
 		}
@@ -228,7 +228,7 @@ public class GetFile extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -288,7 +288,7 @@ public class GetFile extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -344,7 +344,7 @@ public class GetFile extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -416,7 +416,7 @@ public class GetFile extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -427,7 +427,7 @@ public class GetFile extends Application {
 		
 		try {
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			FileManager fm = new FileManager();
 			r = fm.getSharedHistoryFile(sd,  response, oId, filename, sIdent, id); 
 			

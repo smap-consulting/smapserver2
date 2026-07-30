@@ -491,7 +491,7 @@ public class ProjectList extends Application {
 						sd.setAutoCommit(true);
 					}
 				}
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());				
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());				
 				ArrayList<String> added = pm.writeProjects(sd, projects, oId, request.getRemoteUser(), true);
 					
 				String note = localisation.getString("p_import");

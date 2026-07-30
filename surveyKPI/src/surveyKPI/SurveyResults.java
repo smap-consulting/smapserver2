@@ -121,9 +121,9 @@ public class SurveyResults extends Application {
 					}
 				}
 				
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 				connectionRel = ResultsDataSource.getConnection("surveyKPI-SurveyResults");
-				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 
 				// Delete tables associated with this survey
 				
@@ -306,7 +306,7 @@ public class SurveyResults extends Application {
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
 				cResults = ResultsDataSource.getConnection(connectionString);
-				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 				
 				/*
 				 * Get the surveys and tables that are part of the group that this survey belongs to
@@ -462,7 +462,7 @@ public class SurveyResults extends Application {
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
 				cResults = ResultsDataSource.getConnection(connectionString);
-				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 				
 				if(beforeDate == null) {
 					throw new ApplicationException(localisation.getString("arch_nd"));
@@ -550,7 +550,7 @@ public class SurveyResults extends Application {
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
-				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 				
 				/*
 				 * Get the surveys and tables that are part of the group that this survey belongs to

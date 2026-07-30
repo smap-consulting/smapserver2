@@ -97,7 +97,7 @@ public class DataSubjectAccess extends Application {
 
 			a.isAuthorised(sd, request.getRemoteUser());
 
-			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
@@ -105,7 +105,7 @@ public class DataSubjectAccess extends Application {
 			cResults = ResultsDataSource.getConnection(connectionName);
 
 			// Log before streaming (stream may fail partway through)
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			String note = "DSAR export: identifier='" + identifier + "'"
 					+ (field   != null ? ", field='" + field + "'" : "")
 					+ (partial ? ", partial=true" : "");

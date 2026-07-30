@@ -103,7 +103,7 @@ public class BackgroundReportSvc extends Application {
 			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			String sql = "select br.id, br.report_name, br.report_type, u.name, br.status,"
 					+ "br.status_msg, br.filename, "
 					+ "to_char(timezone(?, end_time), 'YYYY-MM-DD HH24:MI:SS') as end_time, "
@@ -191,8 +191,8 @@ public class BackgroundReportSvc extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			BackgroundReport br = gson.fromJson(sReport, BackgroundReport.class);
-			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int uId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			
 			/*
 			 * Apply additional security checks if this is a restore
@@ -227,7 +227,7 @@ public class BackgroundReportSvc extends Application {
 				if(sId > 0) {
 					boolean superUser = false;
 					try {
-						superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+						superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 					} catch (Exception e) {
 					}
 					a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);

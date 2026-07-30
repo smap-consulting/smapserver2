@@ -189,7 +189,7 @@ public class Audit extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		int sId = 0;
@@ -470,7 +470,7 @@ public class Audit extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}	
 		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);		// Ident - the correct way
@@ -603,7 +603,7 @@ public class Audit extends Application {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			pstmt = sd.prepareStatement(sql.toString());
 			int idx = 1;
 			pstmt.setString(idx++,  tz);

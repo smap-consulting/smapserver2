@@ -162,7 +162,7 @@ public class Items extends Application {
 		boolean superUser = false;
 		try {
 			sId = GeneralUtilityMethods.getSurveyIdForm(sd, fId);
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 			
 		}
@@ -203,7 +203,7 @@ public class Items extends Application {
 				/*
 				 * Check the rate limiter
 				 */
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 				RateLimiter.isPermitted(sd, oId, response);	
 				
 				// Get the users locale
@@ -846,13 +846,13 @@ public class Items extends Application {
 			 
 			try {
 				
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 				
 				/*
 				 * View data users can only see usage data on themselves
 				 */
 				if(GeneralUtilityMethods.isOnlyViewData(sd, request.getRemoteUser())) {
-					uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+					uId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 				}
 				
 				// Get the users locale
@@ -1124,7 +1124,7 @@ public class Items extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		
@@ -1216,7 +1216,7 @@ public class Items extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		

@@ -31,7 +31,7 @@ public class AuditManager {
 		 */
 		ArrayList<Survey> surveys = null;	
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
-		boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		surveys = sm.getSurveysAndForms(sd, request.getRemoteUser(), superUser);
 		
 		if(csv) {

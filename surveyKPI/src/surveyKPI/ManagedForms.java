@@ -183,7 +183,7 @@ public class ManagedForms extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		if(bulk) {
@@ -272,7 +272,7 @@ public class ManagedForms extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -346,7 +346,7 @@ public class ManagedForms extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		
@@ -472,7 +472,7 @@ public class ManagedForms extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -540,7 +540,7 @@ public class ManagedForms extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -624,7 +624,7 @@ public class ManagedForms extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -683,7 +683,7 @@ public class ManagedForms extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -732,7 +732,7 @@ public class ManagedForms extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -798,7 +798,7 @@ public class ManagedForms extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-managedForms");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aSuper.isAuthorised(sd, request.getRemoteUser());
@@ -812,7 +812,7 @@ public class ManagedForms extends Application {
 		
 		try {
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
@@ -1064,7 +1064,7 @@ public class ManagedForms extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-Get Action Link");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -1082,7 +1082,7 @@ public class ManagedForms extends Application {
 			
 			String tz = "UTC";
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			int pId = GeneralUtilityMethods.getProjectId(sd, sId);
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			ActionManager am = new ActionManager(localisation, tz);
@@ -1153,7 +1153,7 @@ public class ManagedForms extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-managedForms");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -1162,7 +1162,7 @@ public class ManagedForms extends Application {
 		
 		try {
 
-			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());	// Get user id
+			int uId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());	// Get user id
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, uId);
@@ -1207,7 +1207,7 @@ public class ManagedForms extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-ManagedForms-getLinks");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -1260,7 +1260,7 @@ public class ManagedForms extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-QuestionsInForm");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());

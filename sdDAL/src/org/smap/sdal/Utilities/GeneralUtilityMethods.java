@@ -40,9 +40,12 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -122,6 +125,7 @@ import org.smap.sdal.model.TableUpdateStatus;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TempUserFinal;
 import org.smap.sdal.model.User;
+import org.smap.sdal.model.UserContext;
 import org.smap.sdal.model.UserGroup;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
@@ -763,27 +767,94 @@ public class GeneralUtilityMethods {
 
 	}
 
+	private static final String USER_CONTEXT_ATTRIBUTE = "org.smap.sdal.userContext";
+
 	/*
-	 * Return the users language
+	 * The identity, organisation, language and security groups of the requesting user,
+	 * loaded in one query and cached on the request.
+	 *
+	 * Nearly every service needs several of these and used to run a query for each, so
+	 * a typical request made three to five round trips to the users table before doing
+	 * any work.  The cache is request scoped, so a change to a user's permissions still
+	 * takes effect on their next request exactly as it did before.
+	 *
+	 * request may be null when called from outside a service (batch code, tests); the
+	 * context is then loaded fresh each time.
 	 */
-	static public String getUserLanguage(Connection sd, HttpServletRequest request, String user) throws SQLException {
+	static public UserContext getUserContext(Connection sd, HttpServletRequest request, String user)
+			throws SQLException {
 
+		if(request != null) {
+			UserContext cached = (UserContext) request.getAttribute(USER_CONTEXT_ATTRIBUTE);
+			// Guard on ident: a few services act as another user part way through a request
+			if(cached != null && Objects.equals(cached.ident, user)) {
+				return cached;
+			}
+		}
+
+		UserContext context = loadUserContext(sd, request, user);
+
+		if(request != null) {
+			request.setAttribute(USER_CONTEXT_ATTRIBUTE, context);
+		}
+		return context;
+	}
+
+	/*
+	 * Discard the cached context.  Call after changing the requesting user's own
+	 * organisation, language or groups, so the rest of the request sees the new values.
+	 */
+	static public void clearUserContext(HttpServletRequest request) {
+		if(request != null) {
+			request.removeAttribute(USER_CONTEXT_ATTRIBUTE);
+		}
+	}
+
+	private static UserContext loadUserContext(Connection sd, HttpServletRequest request, String user)
+			throws SQLException {
+
+		String sql = "select u.id, u.o_id, u.language, o.id as org_id, o.e_id, ug.g_id, g.name "
+				+ "from users u "
+				+ "left join organisation o on o.id = u.o_id "
+				+ "left join user_group ug on ug.u_id = u.id "
+				+ "left join groups g on g.id = ug.g_id "
+				+ "where u.ident = ?";
+
+		int id = -1;
+		int oId = -1;
+		int eId = -1;
 		String language = null;
-
-		String sql = "select language from users u where u.ident = ?";
-
-		PreparedStatement pstmt = null;
+		Set<Integer> groupIds = new HashSet<>();
+		Set<String> groupNames = new HashSet<>();
 
 		if(user != null) {
+			PreparedStatement pstmt = null;
 			try {
-	
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, user);
 				ResultSet rs = pstmt.executeQuery();
-				if (rs.next()) {
-					language = rs.getString(1);
+				boolean first = true;
+				while (rs.next()) {
+					if(first) {
+						id = rs.getInt("id");
+						oId = rs.getInt("o_id");
+						language = rs.getString("language");
+						// getEnterpriseId inner joins organisation, so a user in no
+						// organisation has no enterprise rather than enterprise 0
+						rs.getInt("org_id");
+						boolean noOrganisation = rs.wasNull();
+						eId = noOrganisation ? -1 : rs.getInt("e_id");
+						first = false;
+					}
+					int gId = rs.getInt("g_id");
+					if(!rs.wasNull()) {
+						groupIds.add(gId);
+					}
+					String gName = rs.getString("name");
+					if(gName != null) {
+						groupNames.add(gName);
+					}
 				}
-	
 			} catch (SQLException e) {
 				log.log(Level.SEVERE, "Error", e);
 				throw e;
@@ -793,14 +864,22 @@ public class GeneralUtilityMethods {
 		}
 
 		if (language == null || language.trim().length() == 0) {
-			Locale locale = request.getLocale();
+			Locale locale = request == null ? null : request.getLocale();
 			if(locale == null) {
 				language = "en"; // Default to English
 			} else {
 				language = locale.getLanguage();
 			}
 		}
-		return language;
+
+		return new UserContext(id, user, oId, eId, language, groupIds, groupNames);
+	}
+
+	/*
+	 * Return the users language
+	 */
+	static public String getUserLanguage(Connection sd, HttpServletRequest request, String user) throws SQLException {
+		return getUserContext(sd, request, user).language;
 	}
 
 	/*
@@ -906,6 +985,15 @@ public class GeneralUtilityMethods {
 		return isOrg;
 	}
 	
+	/*
+	 * Return true if the user is a super user, reusing the context already loaded for
+	 * this request instead of querying again
+	 */
+	static public boolean isSuperUser(Connection sd, HttpServletRequest request, String user) throws SQLException {
+		UserContext context = getUserContext(sd, request, user);
+		return context.inGroup(Authorise.SECURITY_ID) || context.inGroup(Authorise.ORG_ID);
+	}
+
 	/*
 	 * Return true if the user is a super user
 	 */
@@ -1019,6 +1107,13 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the current enterprise id for the user 
 	 */
+	/*
+	 * Reuses the context already loaded for this request instead of querying again
+	 */
+	static public int getEnterpriseId(Connection sd, HttpServletRequest request, String user) throws SQLException {
+		return getUserContext(sd, request, user).eId;
+	}
+
 	static public int getEnterpriseId(Connection sd, String user) throws SQLException {
 
 		int e_id = -1;
@@ -1199,6 +1294,13 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the current organisation id for the user 
 	 */
+	/*
+	 * Reuses the context already loaded for this request instead of querying again
+	 */
+	static public int getOrganisationId(Connection sd, HttpServletRequest request, String user) throws SQLException {
+		return getUserContext(sd, request, user).oId;
+	}
+
 	static public int getOrganisationId(Connection sd, String user) throws SQLException {
 
 		int o_id = -1;
@@ -1776,6 +1878,13 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the user id from the user ident
 	 */
+	/*
+	 * Reuses the context already loaded for this request instead of querying again
+	 */
+	static public int getUserId(Connection sd, HttpServletRequest request, String user) throws SQLException {
+		return getUserContext(sd, request, user).id;
+	}
+
 	static public int getUserId(Connection sd, String user) throws SQLException {
 
 		int id = -1;

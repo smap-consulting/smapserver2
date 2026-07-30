@@ -173,7 +173,7 @@ public class UploadFiles extends Application {
 
 			deleteFile(request, sd, localisation, basePath, serverName, sIdent, 0, filename, request.getRemoteUser());
 			if(filename.endsWith(".csv")) {
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 				int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 				  // Delete the organisation shared resources - not necessary
 			    CsvTableManager tm = new CsvTableManager(sd, localisation);

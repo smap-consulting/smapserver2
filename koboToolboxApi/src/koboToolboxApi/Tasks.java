@@ -126,7 +126,7 @@ public class Tasks extends Application {
 			
 			int oId = 0;
 			if(tg_id == 0) {
-				oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			}
 			
 			// Parameters

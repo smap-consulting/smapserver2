@@ -72,7 +72,7 @@ public class ReportGen extends Application {
 		
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		
@@ -141,7 +141,7 @@ public class ReportGen extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-ReportGen");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -162,7 +162,7 @@ public class ReportGen extends Application {
 			
 			DocumentXLSManager rxm = new DocumentXLSManager();
 			String basePath = GeneralUtilityMethods.getBasePath(request);			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			rxm.create(sd, request.getRemoteUser(), data, response.getOutputStream(), basePath, oId);
 			
 			responseVal = Response.ok("").build();

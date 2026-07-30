@@ -90,7 +90,7 @@ public class OpsMonitor extends Application {
 
 		Connection cResults = null;
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
@@ -136,7 +136,7 @@ public class OpsMonitor extends Application {
 
 		Connection cResults = null;
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
@@ -173,7 +173,7 @@ public class OpsMonitor extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			OpsMonitorManager om = new OpsMonitorManager(null);
 			OpsSettings s = om.getSettings(sd, oId);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -200,7 +200,7 @@ public class OpsMonitor extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			OpsSettings s = gson.fromJson(settings, OpsSettings.class);
 			if(s == null) {
@@ -237,7 +237,7 @@ public class OpsMonitor extends Application {
 
 		Connection cResults = null;
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
@@ -286,7 +286,7 @@ public class OpsMonitor extends Application {
 
 		Connection cResults = null;
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			if(GeneralUtilityMethods.getOrganisationIdForGroupSurveyIdent(sd, groupSurveyIdent) != oId) {
 				return Response.status(Response.Status.FORBIDDEN).entity("Case not in your organisation").build();
 			}
@@ -325,7 +325,7 @@ public class OpsMonitor extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			OpsMonitorManager om = new OpsMonitorManager(null);
 			ArrayList<User> users = om.getAssignableUsers(sd, oId);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -359,7 +359,7 @@ public class OpsMonitor extends Application {
 
 		Connection cResults = null;
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			if(GeneralUtilityMethods.getOrganisationIdForGroupSurveyIdent(sd, groupSurveyIdent) != oId) {
 				return Response.status(Response.Status.FORBIDDEN).entity("Case not in your organisation").build();
 			}

@@ -194,7 +194,7 @@ public class Results extends Application {
 			sd = SDDataSource.getConnection("surveyKPI-Results");
 			boolean superUser = false;
 			try {
-				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			} catch (Exception e) {
 			}
 			a.isAuthorised(sd, request.getRemoteUser());
@@ -207,7 +207,7 @@ public class Results extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			
 			/*
 			 * Check that mandatory parameters have been set

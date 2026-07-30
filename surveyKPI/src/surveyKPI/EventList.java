@@ -150,7 +150,7 @@ public class EventList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 
 			MessagingManager mm = new MessagingManager(localisation);
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
 			EmailServer emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, null, request.getRemoteUser(), oId);
 			
@@ -210,7 +210,7 @@ public class EventList extends Application {
 		
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(),e);
 		}
@@ -696,7 +696,7 @@ public class EventList extends Application {
 		ResultSet resultSet = null;
 		try {
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			pstmtPending = sd.prepareStatement(sqlPending);
 			pstmtPending.setInt(1, oId);
 			

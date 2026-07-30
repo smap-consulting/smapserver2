@@ -142,7 +142,7 @@ public class Users extends Application {
 				log.log(Level.SEVERE, "invalid lat or lon value: " + latString + " : " + lonString, e);
 			}
 			if(!(lat == 0.0 && lon == 0.0)) {
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 				ulm.recordRefresh(sd, oId, request.getRemoteUser(), lat, lon, 
 						0L, null, null, null, false);
 				// log.info("User Location update: " + latString + " : " + lonString);
@@ -187,6 +187,9 @@ public class Users extends Application {
 			UserManager um = new UserManager(localisation);
 			int newOrgId = GeneralUtilityMethods.getOrganisationIdfromName(sd, orgName);
 			um.switchUsersOrganisation(sd, newOrgId, request.getRemoteUser(), true);
+			// The user just changed their own organisation, so drop the context loaded
+			// before the switch
+			GeneralUtilityMethods.clearUserContext(request);
 			response = Response.ok("{}").build();
 		} catch (Exception e) {
 			e.printStackTrace();

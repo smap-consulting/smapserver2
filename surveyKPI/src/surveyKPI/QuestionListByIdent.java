@@ -89,7 +89,7 @@ public class QuestionListByIdent extends Application {
 		boolean isOwner = false;
 		int sId = 0;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 			isAdmin = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ADMIN_ID);
 			isOwner = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.OWNER_ID);
@@ -224,7 +224,7 @@ public class QuestionListByIdent extends Application {
 		boolean superUser = false;
 		int sId = 0;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 		} catch (Exception e) {
 		}

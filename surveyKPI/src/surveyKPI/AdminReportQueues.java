@@ -70,7 +70,7 @@ public class AdminReportQueues extends Application {
 			QueueManager qm = new QueueManager();
 			ArrayList<QueueTime> data = qm.getHistory(sd, interval, tz, request.getRemoteUser());
 		
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());			
 		
 			XLSXAdminReportsQueues ru = new XLSXAdminReportsQueues(localisation);
 			responseVal = ru.getNewReport(sd, request, response, data, "queues", oId);

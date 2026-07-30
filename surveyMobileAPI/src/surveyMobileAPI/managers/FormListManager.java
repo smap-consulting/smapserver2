@@ -88,7 +88,7 @@ public class FormListManager {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			surveys = sm.getSurveys(sd, 
 					user, 
 					false, 

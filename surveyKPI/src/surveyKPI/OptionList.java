@@ -89,7 +89,7 @@ public class OptionList extends Application {
 			
 			if(external) {
 				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 				ArrayList<Option> oExternal = GeneralUtilityMethods.getExternalChoices(sd, 
 						cResults, localisation, request.getRemoteUser(), oId, sId, qId, null, surveyIdent, tz, null, null);
 				int idx = 0;

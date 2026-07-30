@@ -155,7 +155,7 @@ public class Surveys extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			
 			surveys = sm.getSurveys(sd,
 					request.getRemoteUser(), 
@@ -218,7 +218,7 @@ public class Surveys extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			
 			surveys = sm.getSurveyIdentListInProject(sd, request.getRemoteUser(), superUser, projectId);
 			String resp = gson.toJson(surveys);
@@ -256,7 +256,7 @@ public class Surveys extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString );	
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aUpdate.isAuthorised(sd, request.getRemoteUser());
@@ -377,7 +377,7 @@ public class Surveys extends Application {
 		aGet.isAuthorised(sd, request.getRemoteUser());
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
@@ -421,7 +421,7 @@ public class Surveys extends Application {
 		aGet.isAuthorised(sd, request.getRemoteUser());
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
@@ -504,7 +504,7 @@ public class Surveys extends Application {
 		
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		
@@ -562,7 +562,7 @@ public class Surveys extends Application {
 		aUpdate.isValidProject(sd, request.getRemoteUser(), projectId);
 		if(existing) {
 			try {
-				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			} catch (Exception e) {
 			}
 			aUpdate.isValidSurvey(sd, request.getRemoteUser(), existingSurveyId, false, superUser);	// Validate that the user can access the existing survey
@@ -658,7 +658,7 @@ public class Surveys extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aUpdate.isAuthorised(sd, request.getRemoteUser());
@@ -719,7 +719,7 @@ public class Surveys extends Application {
 			mm.surveyChange(sd, sId, 0);
 					
 			// Write to the change log
-			int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			int userId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 			ChangeElement change = new ChangeElement();
 			change.action = "language_update";
 			change.origSId = sId;
@@ -797,7 +797,7 @@ public class Surveys extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aUpdate.isAuthorised(sd, request.getRemoteUser());
@@ -864,7 +864,7 @@ public class Surveys extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aUpdate.isAuthorised(sd, request.getRemoteUser());	
@@ -947,7 +947,7 @@ public class Surveys extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aUpdate.isAuthorised(sd, request.getRemoteUser());
@@ -1050,7 +1050,7 @@ public class Surveys extends Application {
 			} else {
 				log.info("Info: Survey updated");
 				
-				int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+				int userId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 
 				// The client sends a list of only the settings that actually changed (old -> new)
 				List<SettingChange> settingsChanges = null;
@@ -1155,7 +1155,7 @@ public class Surveys extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aUpdate.isAuthorised(sd, request.getRemoteUser());
@@ -1220,7 +1220,7 @@ public class Surveys extends Application {
 
 				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);							
 				String filepath = writePdf(request, name, pdfItem, true, sIdent);	
-				int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+				int uId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 				
 				String sqlChangeLog = "insert into survey_change " +
 						"(s_id, version, changes, user_id, apply_results, updated_time, msg) " +
@@ -1322,7 +1322,7 @@ public class Surveys extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aUpdate.isAuthorised(sd, request.getRemoteUser());
@@ -1352,7 +1352,7 @@ public class Surveys extends Application {
 			 * that it can be recovered using the changes page
 			 */
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);								
-			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			int uId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 			String name = null;
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 				
@@ -1524,7 +1524,7 @@ public class Surveys extends Application {
 					pstmtClear.executeUpdate();
 				}
 				
-				int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+				int uId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 				pstmt = sd.prepareStatement(sql);
 				if(tp.property.equals("not_available") || tp.property.equals("default_template")) {
 					pstmt.setBoolean(1,  value);
@@ -1572,7 +1572,7 @@ public class Surveys extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aUpdate.isAuthorised(sd, request.getRemoteUser());
@@ -1665,7 +1665,7 @@ public class Surveys extends Application {
 			GeneralUtilityMethods.setPreloads(sd, sId, preloads);
 			
 			// Write the change log
-			int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			int userId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 				
 			ChangeElement change = new ChangeElement();
 			change.action = "add_preload";
@@ -1728,7 +1728,7 @@ public class Surveys extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aUpdate.isAuthorised(sd, request.getRemoteUser());
@@ -1779,7 +1779,7 @@ public class Surveys extends Application {
 			GeneralUtilityMethods.setPreloads(sd, sId, newPreloads);
 			
 			// Write the change log
-			int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			int userId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 				
 			ChangeElement change = new ChangeElement();
 			change.action = "del_preload";
@@ -1847,7 +1847,7 @@ public class Surveys extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-Survey");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aUpdate.isAuthorised(sd, request.getRemoteUser());
@@ -1916,7 +1916,7 @@ public class Surveys extends Application {
 			}
 				
 			// Write the change log
-			int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			int userId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 				
 			ChangeElement change = new ChangeElement();
 			change.action = "set_required";

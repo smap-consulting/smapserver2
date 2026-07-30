@@ -164,7 +164,7 @@ public class TaskStatistics extends Application {
 		
 		try {
 			
-			int orgId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int orgId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			
 			if(orgId > 0) {
 				TaskStatisticsManager sm = new TaskStatisticsManager(orgId);

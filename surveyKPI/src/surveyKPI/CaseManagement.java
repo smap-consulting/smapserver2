@@ -98,7 +98,7 @@ public class CaseManagement extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());	
@@ -148,7 +148,7 @@ public class CaseManagement extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());	
@@ -208,7 +208,7 @@ public class CaseManagement extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isValidBundle(sd, request.getRemoteUser(), groupSurveyIdent, false, superUser);
@@ -220,7 +220,7 @@ public class CaseManagement extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			
 			// Validate setting structure
 			UniqueKey keys = new Gson().fromJson(keyString, UniqueKey.class);
@@ -277,7 +277,7 @@ public class CaseManagement extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -345,7 +345,7 @@ public class CaseManagement extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			
 			CaseManager cm = new CaseManager(localisation);
 
@@ -403,7 +403,7 @@ public class CaseManagement extends Application {
 			
 			CaseManager cm = new CaseManager(localisation);
 			
-			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			cm.deleteAlert(sd, alert.id);
 			String msg = localisation.getString("cm_a_deleted");
 			msg = msg.replaceAll("%s1", String.valueOf(alert.id));

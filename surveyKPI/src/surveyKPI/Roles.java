@@ -131,7 +131,7 @@ public class Roles extends Application {
 			
 			RoleManager rm = new RoleManager(localisation);
 			
-			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			
 			ArrayList<Role> roles = rm.getRoles(sd, o_id);
 			String resp = gson.toJson(roles);
@@ -178,7 +178,7 @@ public class Roles extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			
 			RoleManager rm = new RoleManager(localisation);
 			
@@ -251,7 +251,7 @@ public class Roles extends Application {
 			
 			RoleManager rm = new RoleManager(localisation);
 			
-			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			rm.deleteRoles(sd, rArray, o_id, request.getRemoteUser());
 			
 			response = Response.ok().build();			
@@ -288,7 +288,7 @@ public class Roles extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aLowPriv.isAuthorised(sd, request.getRemoteUser());
@@ -304,7 +304,7 @@ public class Roles extends Application {
 			if(superUser || !superUserOnly) {
 				RoleManager rm = new RoleManager(localisation);
 				
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				roles = rm.getSurveyRoles(sd, sIdent, oId, enabledOnly, request.getRemoteUser(), superUser);
 			} else {
@@ -354,7 +354,7 @@ public class Roles extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-updateSurveyRoles");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aSM.isAuthorised(sd, request.getRemoteUser());
@@ -408,7 +408,7 @@ public class Roles extends Application {
 				 * the same role from the main bundle survey
 				 */
 				if("enabled".equals(property) && role.enabled) {
-					int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+					int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 					ArrayList<Role> roles = rm.getSurveyRoles(sd, bundleIdent, oId, true,  // enabled only 
 							request.getRemoteUser(), superUser);
 					if(roles.size() > 1) {		// One would be the newly enabled role
@@ -476,7 +476,7 @@ public class Roles extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-updateSurveyRoles");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		aSM.isAuthorised(sd, request.getRemoteUser());
@@ -516,7 +516,7 @@ public class Roles extends Application {
 	
 			String bundleIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-			int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			int userId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 			sd.setAutoCommit(false);
 			;
 			pstmtGetMatching = sd.prepareStatement(sqlGetMatching);
@@ -628,7 +628,7 @@ public class Roles extends Application {
 						
 			RoleManager rm = new RoleManager(localisation);
 						
-			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			
 			ArrayList<RoleName> roles = rm.getRoleNames(sd, o_id);
 			String resp = gson.toJson(roles);
@@ -674,7 +674,7 @@ public class Roles extends Application {
 			filename = localisation.getString("rep_roles") + ".xlsx";			
 			GeneralUtilityMethods.setFilenameInResponse(filename, response); // Set file name
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			RoleManager rm = new RoleManager(localisation);
 			ArrayList<Role> roles = rm.getRoles(sd, oId);
 
@@ -780,7 +780,7 @@ public class Roles extends Application {
 				ArrayList<Role> roles = xrm.getXLSRolesList(filetype, file.getInputStream(), localisation, tz);	
 						
 				RoleManager rm = new RoleManager(localisation);
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());				
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());				
 				int deletedCount = 0;
 				
 				// Delete previously imported roles

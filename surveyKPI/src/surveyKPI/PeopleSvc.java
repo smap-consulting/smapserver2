@@ -102,7 +102,7 @@ public class PeopleSvc extends Application {
 			
 			PeopleManager pm = new PeopleManager(localisation);
  
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			if(person.id <= 0) {
 				pm.addPerson(sd, oId, person);
 			} else {

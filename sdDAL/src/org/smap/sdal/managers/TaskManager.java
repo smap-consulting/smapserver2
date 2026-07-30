@@ -1583,7 +1583,7 @@ public class TaskManager {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 			
 		}
@@ -1674,7 +1674,7 @@ public class TaskManager {
 			tf.properties = (TaskProperties) tp;
 			
 			TaskServerDefn tsd = tm.convertTaskFeature(tf);
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			String urlprefix = request.getScheme() + "://" + request.getServerName();
 			CreateTaskResp resp = tm.writeTask(sd, cResults, tp.tg_id, tsd, request.getServerName(), 
 					false, 
@@ -2359,7 +2359,7 @@ public class TaskManager {
 				updateName = null;
 				
 			} else if(emailAction) {
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 				if(!GeneralUtilityMethods.emailTaskBlocked(sd, oId)) {			
 					
 					Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();

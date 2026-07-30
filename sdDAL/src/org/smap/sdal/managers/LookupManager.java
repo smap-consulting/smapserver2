@@ -486,7 +486,7 @@ public class LookupManager {
 		a.isAuthorised(sd, request.getRemoteUser());
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
 		} catch (Exception e) {
 		}

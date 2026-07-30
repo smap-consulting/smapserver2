@@ -211,7 +211,7 @@ public class Billing extends Application {
 			
 			boolean superUser = false;
 			try {
-				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			} catch (Exception e) {
 			}
 			if(!superUser) {
@@ -311,7 +311,7 @@ public class Billing extends Application {
 			
 			boolean superUser = false;
 			try {
-				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			} catch (Exception e) {
 			}
 			if(!superUser) {

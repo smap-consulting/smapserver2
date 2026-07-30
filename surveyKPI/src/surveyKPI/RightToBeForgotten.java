@@ -101,7 +101,7 @@ public class RightToBeForgotten extends Application {
 
 			a.isAuthorised(sd, request.getRemoteUser());
 
-			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 
 			Locale locale = new Locale(
 					GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
@@ -151,7 +151,7 @@ public class RightToBeForgotten extends Application {
 
 			a.isAuthorised(sd, request.getRemoteUser());
 
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			Organisation org = GeneralUtilityMethods.getOrganisation(sd, oId);
 			if (org == null || !org.enable_redact) {
 				return Response.status(Status.FORBIDDEN)

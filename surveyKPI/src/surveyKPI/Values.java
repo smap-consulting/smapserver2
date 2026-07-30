@@ -84,7 +84,7 @@ public class Values extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-Values");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 		}
@@ -101,7 +101,7 @@ public class Values extends Application {
 			
 			String tz = "UTC";
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			
 			/*
 			 * Get Survey meta data

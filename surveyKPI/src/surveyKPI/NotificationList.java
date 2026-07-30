@@ -234,7 +234,7 @@ public class NotificationList extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -312,7 +312,7 @@ public class NotificationList extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -403,7 +403,7 @@ public class NotificationList extends Application {
 				int pId = resultSet.getInt("p_id");
 				String bundle_ident = resultSet.getString("bundle_ident");
 				
-				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 				if(sId > 0) {
 					a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 				}
@@ -465,7 +465,7 @@ public class NotificationList extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -487,7 +487,7 @@ public class NotificationList extends Application {
 			NotifyDetails nd = n.notifyDetails;
 			int pId = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, n.sIdent);
 			String scheme = request.getScheme();
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			SubmissionMessage subMsg = new SubmissionMessage(
 					null,
 					"Immediate",		// Title

@@ -304,7 +304,11 @@ public class UserSvc extends Application {
 			
 			log.info("Update user details: " + pstmt.toString());
 			pstmt.executeUpdate();
-			
+
+			// The user just changed their own language and organisation, so anything
+			// later in this request must not see the context loaded before the update
+			GeneralUtilityMethods.clearUserContext(request);
+
 			// Write logs
 			log.info("userevent: " + request.getRemoteUser() + (u.password == null ? " : updated user details : " : " : updated password : ") + u.name);
 			lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.USER_DETAILS, localisation.getString("msg_ud_changed"), 0, request.getServerName());

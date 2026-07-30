@@ -75,9 +75,9 @@ public class AdminReportStructure extends Application {
 			if(enterpriseLevel) {
 				// No filtering by enterprise or organisation
 			} else if(organisationLevel) {
-				eId = GeneralUtilityMethods.getEnterpriseId(sd, request.getRemoteUser());
+				eId = GeneralUtilityMethods.getEnterpriseId(sd, request, request.getRemoteUser());
 			} else {
-				oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			}
 			
 			String filename = localisation.getString("ar_report_name");

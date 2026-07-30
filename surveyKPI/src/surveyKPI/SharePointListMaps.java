@@ -81,7 +81,7 @@ public class SharePointListMaps extends Application {
 		adminAuth.isAuthorised(sd, request.getRemoteUser());
 
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			ArrayList<SharePointListMap> maps = new SharePointListMapManager().getMappings(sd, oId);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			return Response.ok(gson.toJson(maps)).build();
@@ -111,7 +111,7 @@ public class SharePointListMaps extends Application {
 				return Response.status(Response.Status.BAD_REQUEST)
 						.entity("Smap name must not contain spaces").build();
 			}
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			int newId = new SharePointListMapManager().addMapping(sd, oId, m);
 			if (newId < 0) {
 				return Response.serverError().entity("Insert failed").build();
@@ -194,7 +194,7 @@ public class SharePointListMaps extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			ArrayList<SharePointListMap> maps = new SharePointListMapManager().getMappings(sd, oId);
 			SharePointListMap target = null;
 			for (SharePointListMap m : maps) {

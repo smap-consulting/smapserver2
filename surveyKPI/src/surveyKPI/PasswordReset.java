@@ -128,7 +128,7 @@ public class PasswordReset extends Application {
 					if(emailServer != null) {
 
 						String adminEmail = null;
-						int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+						int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 						Organisation o = GeneralUtilityMethods.getOrganisation(sd, oId);
 						if(o != null) {
 							adminEmail = o.getAdminEmail();

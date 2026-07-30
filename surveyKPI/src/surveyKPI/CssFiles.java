@@ -126,7 +126,7 @@ public class CssFiles extends Application {
 			
 			int orgId = 0;
 			if(org) {
-				orgId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				orgId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			}
 
 			String basePath = GeneralUtilityMethods.getBasePath(request);
@@ -218,7 +218,7 @@ public class CssFiles extends Application {
 			
 			int orgId = 0;
 			if(org) {
-				orgId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				orgId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			}
 			
 			/*
@@ -284,7 +284,7 @@ public class CssFiles extends Application {
 			
 			int orgId = 0;
 			if(org) {
-				orgId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				orgId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			}
 			
 			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request), localisation);

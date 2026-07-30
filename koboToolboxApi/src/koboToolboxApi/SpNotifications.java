@@ -150,7 +150,7 @@ public class SpNotifications extends Application {
 						.entity("survey_ident and sp_list_title are required").build();
 			}
 
-			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			auth.isValidSurveyIdent(sd, request.getRemoteUser(), spn.survey_ident, false, superUser);
 
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
@@ -202,7 +202,7 @@ public class SpNotifications extends Application {
 			}
 			spn.id = id;
 
-			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			auth.isValidSurveyIdent(sd, request.getRemoteUser(), spn.survey_ident, false, superUser);
 
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));

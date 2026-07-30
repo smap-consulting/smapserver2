@@ -120,7 +120,7 @@ public class TableReports extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -149,8 +149,8 @@ public class TableReports extends Application {
 		try {
 			
 			// Localisation
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
+			int uId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);

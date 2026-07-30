@@ -131,7 +131,7 @@ public class Survey extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -319,7 +319,7 @@ public class Survey extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
@@ -388,7 +388,7 @@ public class Survey extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
@@ -864,7 +864,7 @@ public class Survey extends Application {
 		Connection sd = SDDataSource.getConnection(connectionRequest);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -940,7 +940,7 @@ public class Survey extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-Survey");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -1037,7 +1037,7 @@ public class Survey extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		// Any user can do this as they are updating their own settings sp no need to check user groups
@@ -1060,7 +1060,7 @@ public class Survey extends Application {
 				Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 				HashMap<String, ConsoleColumn> columns = gson.fromJson(sColumns, type);
 				
-				int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+				int uId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				String vColumns = gson.toJson(columns);
 				
@@ -1119,7 +1119,7 @@ public class Survey extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());

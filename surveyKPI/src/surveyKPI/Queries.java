@@ -132,7 +132,7 @@ public class Queries extends Application {
 		// Validate that the user has access to the survey in this query
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		HashMap<Integer, String> checkedSurveys = new HashMap<Integer, String> ();
@@ -155,7 +155,7 @@ public class Queries extends Application {
 		
 		try {
 			
-			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			int uId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 			if(q.id <= 0) {
 				// Create a new query
 				pstmt = sd.prepareStatement(sqlInsert);

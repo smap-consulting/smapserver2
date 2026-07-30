@@ -88,7 +88,7 @@ public class Cases extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(),e);
 		}

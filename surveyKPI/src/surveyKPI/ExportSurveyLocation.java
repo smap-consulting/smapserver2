@@ -64,7 +64,7 @@ public class ExportSurveyLocation extends Application {
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-ExportSurvey");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		a.isAuthorised(connectionSD, request.getRemoteUser());

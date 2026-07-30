@@ -102,7 +102,7 @@ public class Charts extends Application {
 		
 		try {
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			int uId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, gson.toJson(chartDefns));

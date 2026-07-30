@@ -581,7 +581,7 @@ public class SharedResourceManager {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		String user = request.getRemoteUser();
@@ -726,7 +726,7 @@ public class SharedResourceManager {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		if(sId > 0) {
 			try {
-				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			} catch (Exception e) {
 			}
 			auth.isAuthorised(sd, request.getRemoteUser());
@@ -853,7 +853,7 @@ public class SharedResourceManager {
 			
 			boolean superUser = false;
 			try {
-				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			} catch (Exception e) {
 			}
 			
