@@ -107,7 +107,7 @@ public class Audit extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aSuper.isAuthorised(sd, request.getRemoteUser());
+		aSuper.isAuthorised(sd, request, request.getRemoteUser());
 		
 
 		try {
@@ -203,7 +203,7 @@ public class Audit extends Application {
 		} catch (SQLException e1) {
 			e1.printStackTrace();
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
@@ -474,7 +474,7 @@ public class Audit extends Application {
 		} catch (Exception e) {
 		}	
 		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);		// Ident - the correct way
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
@@ -552,7 +552,7 @@ public class Audit extends Application {
 		// Authorisation - Access
 		String connectionString = "Audit API - Get refresh records";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdmin.isAuthorised(sd, request.getRemoteUser());
+		aAdmin.isAuthorised(sd, request, request.getRemoteUser());
 
 		// End Authorisation
 

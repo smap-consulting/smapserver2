@@ -83,7 +83,7 @@ public class EventList extends Application {
 		String user = request.getRemoteUser();
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		if(messageId != 0) {
 			a.isValidMessage(sd, request.getRemoteUser(), messageId);
 		}
@@ -134,7 +134,7 @@ public class EventList extends Application {
 		String connectionString = "surveyKPI-optin - retry";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(id != 0) {
 			a.isValidOptin(sd, request.getRemoteUser(), id);
 		}
@@ -197,7 +197,7 @@ public class EventList extends Application {
 		String connectionString = "surveyKPI-submission - retry";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// Get the survey ident
 		String surveyIdent = null;
 		try {
@@ -279,7 +279,7 @@ public class EventList extends Application {
 		String user = request.getRemoteUser();
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-EventList");
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		if(projectId != 0) {
 			a.isValidProject(sd, request.getRemoteUser(), projectId);
 		}
@@ -527,7 +527,7 @@ public class EventList extends Application {
 		String user = request.getRemoteUser();
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		// End Authorisation
 		
 		if(rec_limit == 0) {
@@ -672,7 +672,7 @@ public class EventList extends Application {
 		String user = request.getRemoteUser();
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		// End Authorisation
 		
 		if(rec_limit == 0) {
@@ -836,7 +836,7 @@ public class EventList extends Application {
 		String user = request.getRemoteUser();
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		// End Authorisation
 		
 		HashMap<String,StatusTotal> sList = new HashMap<String,StatusTotal> ();
@@ -912,7 +912,7 @@ public class EventList extends Application {
 		String user = request.getRemoteUser();
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		// End Authorisation
 		
 		HashMap<String,StatusTotal> sList = new HashMap<String,StatusTotal> ();
@@ -988,7 +988,7 @@ public class EventList extends Application {
 		String user = request.getRemoteUser();
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-EventList");
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		if(projectId != 0) {	// 0 is not a valid project but represents all projects
 			a.isValidProject(sd, request.getRemoteUser(), projectId);
 		}
@@ -1457,7 +1457,7 @@ public class EventList extends Application {
 		String user = request.getRemoteUser();
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-EventList");
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		if(projectId != 0) {
 			a.isValidProject(sd, request.getRemoteUser(), projectId);
 		}

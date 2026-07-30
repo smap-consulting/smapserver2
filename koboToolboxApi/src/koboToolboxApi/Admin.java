@@ -107,7 +107,7 @@ public class Admin extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		ArrayList<Project> projects = null;
@@ -154,7 +154,7 @@ public class Admin extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		ArrayList<Survey> surveys = null;
@@ -211,7 +211,7 @@ public class Admin extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aOwner.isAuthorised(sd, request.getRemoteUser());
+		aOwner.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		// Check to see if any notifications are enabled for this survey

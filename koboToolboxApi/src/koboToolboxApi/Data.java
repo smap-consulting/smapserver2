@@ -269,7 +269,7 @@ public class Data extends Application {
 		
 		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);	
 		
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
@@ -344,7 +344,7 @@ public class Data extends Application {
 		
 		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);	
 		
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
@@ -410,7 +410,7 @@ public class Data extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 			
@@ -464,7 +464,7 @@ public class Data extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), creatingSurveyId, false, superUser);
 		a.isValidSurvey(sd, request.getRemoteUser(), changingSurveyId, false, superUser);
 		// End Authorisation

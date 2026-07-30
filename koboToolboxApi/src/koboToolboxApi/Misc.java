@@ -105,7 +105,7 @@ public class Misc extends Application {
 		// Authorisation - Access
 		String connectionString = "surveyKPI - AdminReports - Usage";
 		Connection sd = SDDataSource.getConnection(connectionString);		
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation		
 		
 		if(tz == null) {
@@ -192,7 +192,7 @@ public class Misc extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aSimpleList.isAuthorised(sd, request.getRemoteUser());
+		aSimpleList.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		ArrayList<UserSimple> users = null;
@@ -241,7 +241,7 @@ public class Misc extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString );	
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		boolean superUser = false;
@@ -350,7 +350,7 @@ public class Misc extends Application {
 		} catch (Exception e) {
 		}
 		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		
 		String errorMsg = null;
 		try {

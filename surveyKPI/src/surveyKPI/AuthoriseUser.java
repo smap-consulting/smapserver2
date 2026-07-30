@@ -65,7 +65,7 @@ public class AuthoriseUser extends Application {
 		Authorise a = new Authorise(authorisations, null);
 		
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		SDDataSource.closeConnection(connectionString, sd);
 		
 		return Response.ok().build();

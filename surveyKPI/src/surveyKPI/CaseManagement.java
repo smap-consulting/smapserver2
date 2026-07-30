@@ -101,7 +101,7 @@ public class CaseManagement extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());	
+		a.isAuthorised(sd, request, request.getRemoteUser());	
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
@@ -151,7 +151,7 @@ public class CaseManagement extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());	
+		a.isAuthorised(sd, request, request.getRemoteUser());	
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
@@ -205,7 +205,7 @@ public class CaseManagement extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
@@ -280,7 +280,7 @@ public class CaseManagement extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidBundle(sd, request.getRemoteUser(), groupSurveyIdent, false, superUser);
 		// End Authorisation
 			
@@ -335,7 +335,7 @@ public class CaseManagement extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(alert.id > 0) {
 			a.isValidCaseManagementAlert(sd, request.getRemoteUser(), alert.id);
 		}
@@ -393,7 +393,7 @@ public class CaseManagement extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requestName);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidCaseManagementAlert(sd, request.getRemoteUser(), alert.id);
 		// End Authorisation			
 		

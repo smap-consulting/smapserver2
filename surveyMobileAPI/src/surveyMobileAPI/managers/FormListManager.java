@@ -75,7 +75,7 @@ public class FormListManager {
 		if(user == null) {
 			throw new AuthorisationException("Unknown User");
 		}
-	    a.isAuthorised(sd, user);	//Authorisation - Access 
+	    a.isAuthorised(sd, request, user);	//Authorisation - Access 
 
 		String host = ServerConfig.getHost(request);
 		int portNumber = ServerConfig.getPortNumber(request);
@@ -173,7 +173,7 @@ public class FormListManager {
 			String tz = "UTC";
 
 			// Authorisation
-			a.isAuthorised(sd, user);
+			a.isAuthorised(sd, request, user);
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			survey = sm.getSurveyId(sd, templateName);	// Get the survey id from the templateName / key
 			a.isValidSurvey(sd, user, survey.surveyData.id, false, superUser);	// Validate that the user can access this survey

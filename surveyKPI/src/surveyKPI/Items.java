@@ -166,7 +166,7 @@ public class Items extends Application {
 		} catch (Exception e) {
 			
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 			
@@ -828,7 +828,7 @@ public class Items extends Application {
 	
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);		
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidUser(sd, request.getRemoteUser(), uId);
 		// End Authorisation
 		
@@ -1065,7 +1065,7 @@ public class Items extends Application {
 	
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);		
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.projectInUsersOrganisation(sd, request.getRemoteUser(), pId);
 		// End Authorisation
 		
@@ -1128,7 +1128,7 @@ public class Items extends Application {
 		} catch (Exception e) {
 		}
 		
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
@@ -1220,7 +1220,7 @@ public class Items extends Application {
 		} catch (Exception e) {
 		}
 		
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 

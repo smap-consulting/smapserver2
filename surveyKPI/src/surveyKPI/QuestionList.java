@@ -107,7 +107,7 @@ public class QuestionList extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aManage.isAuthorised(connectionSD, request.getRemoteUser());
+		aManage.isAuthorised(connectionSD, request, request.getRemoteUser());
 		aManage.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
@@ -232,7 +232,7 @@ public class QuestionList extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
@@ -274,7 +274,7 @@ public class QuestionList extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
@@ -373,7 +373,7 @@ public class QuestionList extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		a.isAuthorised(connectionSD, request, request.getRemoteUser());
 		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
@@ -466,7 +466,7 @@ public class QuestionList extends Application {
 			groupIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());				
+		a.isAuthorised(sd, request, request.getRemoteUser());				
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		

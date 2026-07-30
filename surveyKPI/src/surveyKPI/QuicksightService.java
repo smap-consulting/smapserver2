@@ -79,7 +79,7 @@ public class QuicksightService extends Application {
 		
 		// Authorisation - Access
 		sd = SDDataSource.getConnection(connection);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End authorisation
 	
 		try {

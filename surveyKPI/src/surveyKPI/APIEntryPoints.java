@@ -215,7 +215,7 @@ public class APIEntryPoints extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		aAdminAnalyst.isValidMailout(sd, request.getRemoteUser(), mailoutId);
 		// End authorisation
 		
@@ -272,7 +272,7 @@ public class APIEntryPoints extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		aAdminAnalyst.isValidSurveyIdent(sd, request.getRemoteUser(), surveyIdent, false, true);
 		// End Authorisation
 		
@@ -328,7 +328,7 @@ public class APIEntryPoints extends Application {
 	
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		if(mailout.id > 0) {
 			aAdminAnalyst.isValidMailout(sd, request.getRemoteUser(), mailout.id);
 		}
@@ -388,7 +388,7 @@ public class APIEntryPoints extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		aAdminAnalyst.isValidMailout(sd, request.getRemoteUser(), mailoutId);
 		// End authorisation
 		
@@ -438,7 +438,7 @@ public class APIEntryPoints extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aContacts.isAuthorised(sd, request.getRemoteUser());
+		aContacts.isAuthorised(sd, request, request.getRemoteUser());
 		
 		tz = (tz == null) ? "UTC" : tz;
 		
@@ -500,7 +500,7 @@ public class APIEntryPoints extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		
 		String sqlTotal = "select count(*) from log where o_id = ?";
 		PreparedStatement pstmtTotal = null;
@@ -659,7 +659,7 @@ public class APIEntryPoints extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 			
@@ -708,7 +708,7 @@ public class APIEntryPoints extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
@@ -765,7 +765,7 @@ public class APIEntryPoints extends Application {
 		String connectionString = "APIEntryPoints - getQueueStatus";
 
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aOwner.isAuthorised(sd, request.getRemoteUser());
+		aOwner.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			QueueManager qm = new QueueManager();
@@ -819,7 +819,7 @@ public class APIEntryPoints extends Application {
 		String connectionString = "APIEntryPoints - getQueueHistory";
 
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aOwner.isAuthorised(sd, request.getRemoteUser());
+		aOwner.isAuthorised(sd, request, request.getRemoteUser());
 
 		QueueManager qm = new QueueManager();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -854,7 +854,7 @@ public class APIEntryPoints extends Application {
 		String connectionString = "APIEntryPoints - getQueueItems";
 
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aOwner.isAuthorised(sd, request.getRemoteUser());
+		aOwner.isAuthorised(sd, request, request.getRemoteUser());
 
 		if(tz == null) { tz = "UTC"; }
 
@@ -912,7 +912,7 @@ public class APIEntryPoints extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(aId > 0) {
 			a.isValidAssignment(sd, request.getRemoteUser(), aId);
 		} else {

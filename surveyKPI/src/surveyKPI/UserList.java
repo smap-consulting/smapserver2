@@ -133,7 +133,7 @@ public class UserList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requestName);
-		aSimpleList.isAuthorised(sd, request.getRemoteUser());
+		aSimpleList.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -179,7 +179,7 @@ public class UserList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aSimpleList.isAuthorised(sd, request.getRemoteUser());
+		aSimpleList.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		ArrayList<UserSimple> users = null;
@@ -225,7 +225,7 @@ public class UserList extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requestName);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation			
 		
 		try {
@@ -273,7 +273,7 @@ public class UserList extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requestName);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		// End Authorisation
 		
@@ -361,7 +361,7 @@ public class UserList extends Application {
 
 		int sId = GeneralUtilityMethods.getSurveyIdFromIdentOrId(sd, sIdent);
 
-		aSimpleList.isAuthorised(sd, request.getRemoteUser());
+		aSimpleList.isAuthorised(sd, request, request.getRemoteUser());
 		aSimpleList.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
@@ -451,7 +451,7 @@ public class UserList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requestName);
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		
 		// That the user is in the administrators organisation is validated on update
 		
@@ -589,7 +589,7 @@ public class UserList extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requestName);
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		Type type = new TypeToken<ArrayList<User>>(){}.getType();		
@@ -668,7 +668,7 @@ public class UserList extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);	
 		
 		// Authorisation - Access
-		a.isAuthorised(sd, request.getRemoteUser());		
+		a.isAuthorised(sd, request, request.getRemoteUser());		
 		// End Authorisation 
 		
 		try {
@@ -738,7 +738,7 @@ public class UserList extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requester);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation	
 		
 		PreparedStatement pstmt = null;
@@ -800,7 +800,7 @@ public class UserList extends Application {
 	
 			if(file != null) {
 				// Authorisation - Access
-				a.isAuthorised(sd, request.getRemoteUser());			
+				a.isAuthorised(sd, request, request.getRemoteUser());			
 				// End authorisation
 				
 				/*
@@ -925,7 +925,7 @@ public class UserList extends Application {
 		
 		// Authorisation
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidUserIdent(sd, request.getRemoteUser(), user);
 		// End Authorisation	
 		try {
@@ -971,7 +971,7 @@ public class UserList extends Application {
 		
 		// Authorisation
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidUserIdent(sd, request.getRemoteUser(), user);
 		// End Authorisation	
 		try {
@@ -1011,7 +1011,7 @@ public class UserList extends Application {
 		
 		// Authorisation
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidUserIdent(sd, request.getRemoteUser(), user);
 		// End Authorisation	
 		try {

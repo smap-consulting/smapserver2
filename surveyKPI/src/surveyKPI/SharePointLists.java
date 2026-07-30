@@ -68,7 +68,7 @@ public class SharePointLists extends Application {
 
 		String conn = "surveyKPI-SharePointLists-get";
 		Connection sd = SDDataSource.getConnection(conn);
-		adminAuth.isAuthorised(sd, request.getRemoteUser());
+		adminAuth.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));

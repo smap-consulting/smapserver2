@@ -111,7 +111,7 @@ public class ManagedForms extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-GetManagedForms");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidProject(sd, request.getRemoteUser(), pId);
 		// End Authorisation
 		
@@ -187,9 +187,9 @@ public class ManagedForms extends Application {
 		} catch (Exception e) {
 		}
 		if(bulk) {
-			aBulk.isAuthorised(sd, request.getRemoteUser());
+			aBulk.isAuthorised(sd, request, request.getRemoteUser());
 		} else {
-			a.isAuthorised(sd, request.getRemoteUser());
+			a.isAuthorised(sd, request, request.getRemoteUser());
 		}
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		a.isValidOversightSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
@@ -275,7 +275,7 @@ public class ManagedForms extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
@@ -350,7 +350,7 @@ public class ManagedForms extends Application {
 		} catch (Exception e) {
 		}
 		
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		if(!uIdent.equals("_none")) {
 			a.isValidUser(sd, request.getRemoteUser(), GeneralUtilityMethods.getUserId(sd, uIdent));
@@ -475,7 +475,7 @@ public class ManagedForms extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
@@ -543,7 +543,7 @@ public class ManagedForms extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
@@ -627,7 +627,7 @@ public class ManagedForms extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
@@ -686,7 +686,7 @@ public class ManagedForms extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
@@ -735,7 +735,7 @@ public class ManagedForms extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
@@ -801,7 +801,7 @@ public class ManagedForms extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aSuper.isAuthorised(sd, request.getRemoteUser());
+		aSuper.isAuthorised(sd, request, request.getRemoteUser());
 		aSuper.isValidSurvey(sd, request.getRemoteUser(), am.sId, false, superUser);
 		// End Authorisation
 
@@ -1067,7 +1067,7 @@ public class ManagedForms extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		if(groupSurvey != null) {
 			a.isValidOversightSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
@@ -1156,7 +1156,7 @@ public class ManagedForms extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
@@ -1210,7 +1210,7 @@ public class ManagedForms extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
@@ -1263,7 +1263,7 @@ public class ManagedForms extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 

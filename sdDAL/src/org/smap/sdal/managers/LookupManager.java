@@ -126,7 +126,7 @@ public class LookupManager {
 		if(user == null) {
 			throw new AuthorisationException("Unknown User");
 		}
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, user);
@@ -350,7 +350,7 @@ public class LookupManager {
 		if(user == null) {
 			throw new AuthorisationException("Unknown User");
 		}
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, user);
@@ -420,7 +420,7 @@ public class LookupManager {
 		if(user == null) {
 			throw new AuthorisationException("Unknown User");
 		}
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, user);
@@ -483,7 +483,7 @@ public class LookupManager {
 		// Authorisation - Access
 		
 		Connection sd = SDDataSource.getConnection(connectionString);		
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());

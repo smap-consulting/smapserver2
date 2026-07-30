@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.MetaItem;
 
@@ -87,25 +89,75 @@ public class Authorise {
 	
 	/*
 	 * Check to see if the user has the rights to perform the requested action
+	 *
+	 * Uses the groups already loaded for this request rather than querying again.
+	 * Prefer this to the version without a request.
 	 */
-	public boolean isAuthorised(Connection sd, String user) {
-		
-		authoriseUser(sd, user, true);
- 		
+	public boolean isAuthorised(Connection sd, HttpServletRequest request, String user) {
+
+		authoriseUser(sd, request, user, true);
+
 		return true;
 	}
-	
+
+	/*
+	 * Check to see if the user has the rights to perform the requested action
+	 */
+	public boolean isAuthorised(Connection sd, String user) {
+
+		authoriseUser(sd, user, true);
+
+		return true;
+	}
+
+	/*
+	 * Check to see if the user has the rights to perform the requested action
+	 */
+	public boolean isAuthorisedNoClose(Connection sd, HttpServletRequest request, String user) {
+
+		authoriseUser(sd, request, user, false);
+
+		return true;
+	}
+
 	/*
 	 * Check to see if the user has the rights to perform the requested action
 	 */
 	public boolean isAuthorisedNoClose(Connection sd, String user) {
-		
+
 		authoriseUser(sd, user, false);
- 		
+
 		return true;
 	}
-	
-	
+
+	/*
+	 * Membership of the permitted groups is a set intersection against the context the
+	 * request has already loaded, so no query is needed.  Same outcome as the count(*)
+	 * over users/groups/user_group below: a user who does not exist, or who is in none
+	 * of the groups, has no matching group name and is refused.
+	 */
+	private void authoriseUser(Connection sd, HttpServletRequest request, String user,
+			boolean closeConnectionOnError) {
+
+		boolean authorised = false;
+		boolean sqlError = false;
+
+		try {
+			authorised = GeneralUtilityMethods.getUserContext(sd, request, user).inAnyGroup(permittedGroups);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Authorisation failed for: " + user + " groups required were one of: ");
+			for(int i = 0; i < permittedGroups.size(); i++) {
+				log.log(Level.SEVERE, "  ==== " + permittedGroups.get(i));
+			}
+			log.log(Level.SEVERE, "SQL Error during authorisation", e);
+			sqlError = true;
+		}
+
+		if(!authorised || sqlError) {
+			refuseAccess(sd, user, sqlError, closeConnectionOnError);
+		}
+	}
+
 	private void authoriseUser(Connection sd, String user, boolean closeConnectionOnError) {
 		ResultSet resultSet = null;
 		PreparedStatement pstmt = null;
@@ -159,30 +211,39 @@ public class Authorise {
 		
 		// Check to see if the user was authorised to access this service
  		if(count == 0 || sqlError) {
- 			StringBuffer msg = new StringBuffer("");
- 			msg.append("Authorisation failed for " + user + " group required was one of: ");
- 			for(int i = 0; i < permittedGroups.size(); i++) {
- 				if(i > 0) {
- 					msg.append(", ");
- 				}
-				msg.append(permittedGroups.get(i));
+ 			refuseAccess(sd, user, sqlError, closeConnectionOnError);
+		}
+	}
+
+	/*
+	 * Log the refusal and end the service call.  Shared by both authoriseUser paths so
+	 * they fail identically.
+	 */
+	private void refuseAccess(Connection sd, String user, boolean sqlError,
+			boolean closeConnectionOnError) {
+
+		StringBuffer msg = new StringBuffer("");
+		msg.append("Authorisation failed for " + user + " group required was one of: ");
+		for(int i = 0; i < permittedGroups.size(); i++) {
+			if(i > 0) {
+				msg.append(", ");
 			}
- 			log.log(Level.SEVERE, msg.toString());
- 			
- 			
- 			lm.writeLog(sd, 0, user, LogManager.ERROR, msg.toString(), 0, null);		// Write the application log
- 			
- 			// Close the connection as throwing an exception will end the service call			
- 			if(closeConnectionOnError) {
- 				SDDataSource.closeConnection("isAuthorised", sd);
- 			}
-			
-			if(sqlError) {
-				throw new ServerException();
-			} else {
-				throw new AuthorisationException(msg.toString());
-			}
-		} 
+			msg.append(permittedGroups.get(i));
+		}
+		log.log(Level.SEVERE, msg.toString());
+
+		lm.writeLog(sd, 0, user, LogManager.ERROR, msg.toString(), 0, null);		// Write the application log
+
+		// Close the connection as throwing an exception will end the service call
+		if(closeConnectionOnError) {
+			SDDataSource.closeConnection("isAuthorised", sd);
+		}
+
+		if(sqlError) {
+			throw new ServerException();
+		} else {
+			throw new AuthorisationException(msg.toString());
+		}
 	}
 	
 	/*

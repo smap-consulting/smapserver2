@@ -83,7 +83,7 @@ public class Server extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aServerLevel.isAuthorised(sd, request.getRemoteUser());
+		aServerLevel.isAuthorised(sd, request, request.getRemoteUser());
 		// End role based authorisation
 
 		try {
@@ -130,7 +130,7 @@ public class Server extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aServerLevel.isAuthorised(sd, request.getRemoteUser());
+		aServerLevel.isAuthorised(sd, request, request.getRemoteUser());
 		// End role based authorisation
 		
 		ServerData data = new Gson().fromJson(settings, ServerData.class);
@@ -279,7 +279,7 @@ public class Server extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aUserLevel.isAuthorised(sd, request.getRemoteUser());
+		aUserLevel.isAuthorised(sd, request, request.getRemoteUser());
 		// End role based authorisation
 
 		String sql = "select mapbox_default from server;";
@@ -322,7 +322,7 @@ public class Server extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aUserLevel.isAuthorised(sd, request.getRemoteUser());
+		aUserLevel.isAuthorised(sd, request, request.getRemoteUser());
 		// End role based authorisation
 
 		String sql = "select sms_url from server;";
@@ -372,7 +372,7 @@ public class Server extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aUserLevel.isAuthorised(sd, request.getRemoteUser());
+		aUserLevel.isAuthorised(sd, request, request.getRemoteUser());
 		// End role based authorisation
 
 		String sql = "select google_key from server;";
@@ -416,7 +416,7 @@ public class Server extends Application {
 		String connectionString = "surveyKPI-getSharePointRealm";
 
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aServerLevel.isAuthorised(sd, request.getRemoteUser());
+		aServerLevel.isAuthorised(sd, request, request.getRemoteUser());
 		SDDataSource.closeConnection(connectionString, sd);
 
 		try {
@@ -448,7 +448,7 @@ public class Server extends Application {
 		String connectionString = "surveyKPI-getSharePointListFields";
 
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aServerLevel.isAuthorised(sd, request.getRemoteUser());
+		aServerLevel.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));

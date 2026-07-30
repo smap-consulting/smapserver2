@@ -88,7 +88,7 @@ public class NotificationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		// End Authorisation
 		
@@ -137,7 +137,7 @@ public class NotificationList extends Application {
 		String connectionString = "surveyKPI-Notifications-user";
 
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		if(tz == null) {
 			tz = "UTC";
@@ -237,7 +237,7 @@ public class NotificationList extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(n.s_id > 0) {
 			a.isValidSurvey(sd, request.getRemoteUser(), n.s_id, false, superUser);
 		}
@@ -315,7 +315,7 @@ public class NotificationList extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(n.s_id > 0) {
 			a.isValidSurvey(sd, request.getRemoteUser(), n.s_id, false, superUser);
 		}
@@ -375,7 +375,7 @@ public class NotificationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -468,7 +468,7 @@ public class NotificationList extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(n.s_id > 0) {
 			a.isValidSurvey(sd, request.getRemoteUser(), n.s_id, false, superUser);
 		} else {

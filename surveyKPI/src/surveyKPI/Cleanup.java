@@ -70,7 +70,7 @@ public class Cleanup extends Application {
 		// Authorisation - Access
 		String connectionString = "surveyKPI - cleanup - template names";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -115,7 +115,7 @@ public class Cleanup extends Application {
 		// Authorisation - Access
 		String connectionString = "surveyKPI - cleanup - project surveys";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -163,7 +163,7 @@ public class Cleanup extends Application {
 		// Authorisation - Access
 		String connectionString = "surveyKPI - cleanup - survey details";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -233,7 +233,7 @@ public class Cleanup extends Application {
 		// Authorisation - Access
 		String connectionString = "surveyKPI - cleanup - survey details";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		log.info("Request to delete template: " + path);
@@ -282,7 +282,7 @@ public class Cleanup extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		ArrayList<Project> projects = null;

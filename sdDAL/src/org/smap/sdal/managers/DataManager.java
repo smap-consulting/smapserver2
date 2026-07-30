@@ -1081,7 +1081,7 @@ public class DataManager {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aSuper.isAuthorised(sd, request.getRemoteUser());
+		aSuper.isAuthorised(sd, request, request.getRemoteUser());
 		aSuper.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 

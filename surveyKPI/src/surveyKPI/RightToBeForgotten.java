@@ -99,7 +99,7 @@ public class RightToBeForgotten extends Application {
 			}
 			identifier = identifier.trim();
 
-			a.isAuthorised(sd, request.getRemoteUser());
+			a.isAuthorised(sd, request, request.getRemoteUser());
 
 			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 
@@ -149,7 +149,7 @@ public class RightToBeForgotten extends Application {
 						.build();
 			}
 
-			a.isAuthorised(sd, request.getRemoteUser());
+			a.isAuthorised(sd, request, request.getRemoteUser());
 
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			Organisation org = GeneralUtilityMethods.getOrganisation(sd, oId);

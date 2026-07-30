@@ -79,7 +79,7 @@ public class ManifestManager {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 		}
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		
 		boolean superUser = false;
 		ResourceBundle localisation = null;

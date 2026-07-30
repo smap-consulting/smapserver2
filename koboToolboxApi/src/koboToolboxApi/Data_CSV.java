@@ -91,7 +91,7 @@ public class Data_CSV extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("koboToolBoxApi-getDataCSV-1");
 		String remoteUser = request.getRemoteUser();
-		a.isAuthorised(sd, remoteUser);
+		a.isAuthorised(sd, request, remoteUser);
 
 		PrintWriter outWriter = null;
 

@@ -88,7 +88,7 @@ public class PeopleSvc extends Application {
 		log.info("Add Person:========== " + personString);
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(person.id > 0) {
 			a.isValidOptin(sd, request.getRemoteUser(), person.id);
 		}
@@ -159,7 +159,7 @@ public class PeopleSvc extends Application {
 			
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(id > 0) {
 			a.isValidOptin(sd, request.getRemoteUser(), id);
 		}

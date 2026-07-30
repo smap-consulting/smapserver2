@@ -68,7 +68,7 @@ public class OptionList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidQuestion(sd, request.getRemoteUser(), sId, qId);
 		// End Authorisation
 		

@@ -125,7 +125,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList-getOrganisations");
-		aAdminOrg.isAuthorised(sd, request.getRemoteUser());
+		aAdminOrg.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -296,7 +296,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList-updateOrganisation");
-		aAdminOrg.isAuthorised(sd, request.getRemoteUser());
+		aAdminOrg.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 
 		try {
@@ -400,7 +400,7 @@ public class OrganisationList extends Application {
 		String connectionString = "surveyKPI-updateSensitiveData";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aSecurity.isAuthorised(sd, request.getRemoteUser());
+		aSecurity.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 
 		try {
@@ -443,7 +443,7 @@ public class OrganisationList extends Application {
 		String connectionString = "surveyKPI-updateOtherData";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aSecurity.isAuthorised(sd, request.getRemoteUser());
+		aSecurity.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 
 		try {
@@ -477,7 +477,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		String sql = "select ft_delete, ft_send_location, ft_odk_style_menus, "
@@ -566,7 +566,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		String sql = "select email_type, aws_region, admin_email, smtp_host, email_domain, "
@@ -627,7 +627,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -662,7 +662,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -696,7 +696,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		String sql = "select sensitive_data "
@@ -741,7 +741,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		String sql = "select password_strength "
@@ -796,7 +796,7 @@ public class OrganisationList extends Application {
 		String connectionString = "surveyKPI-OrganisationList-updateDeviceSettings";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		String sql = "update organisation set "
@@ -911,7 +911,7 @@ public class OrganisationList extends Application {
 		String connectionString = "surveyKPI-OrganisationList-updateEmailSettings";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		String sql = "update organisation set "
@@ -996,7 +996,7 @@ public class OrganisationList extends Application {
 		String connectionString = "surveyKPI-OrganisationList-updateWebformSettings";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -1156,7 +1156,7 @@ public class OrganisationList extends Application {
 		String connectionString = "surveyKPI-OrganisationList-updateAppearanceSettings";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 
@@ -1294,7 +1294,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminOrg.isAuthorised(sd, request.getRemoteUser());
+		aAdminOrg.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		Type type = new TypeToken<ArrayList<Organisation>>(){}.getType();		
@@ -1418,7 +1418,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminOrg.isAuthorised(sd, request.getRemoteUser());
+		aAdminOrg.isAuthorised(sd, request, request.getRemoteUser());
 		// If the user is not an enterprise administrator make sure they can access this organisation
 		if(!GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ENTERPRISE_ID)) {
 			aAdminOrg.isOrganisationInEnterprise(sd, request.getRemoteUser(), orgId);
@@ -1540,7 +1540,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation	
 		
 		PreparedStatement pstmt = null;
@@ -1596,7 +1596,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		HashMap<String, Integer> usage = new HashMap<> ();

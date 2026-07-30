@@ -39,7 +39,7 @@ public class TestInboundSMS extends Application {
 		String connectionString = "sms test";
 		
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		
 		try {
 			Timestamp ts = new Timestamp(System.currentTimeMillis());

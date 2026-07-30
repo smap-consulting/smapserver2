@@ -85,7 +85,7 @@ public class MatchService extends Application {
 
 		// Authorisation
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());		
+		a.isAuthorised(sd, request, request.getRemoteUser());		
 		
 		if(threshold == 0.0) {
 			threshold = 30.0;
@@ -155,7 +155,7 @@ public class MatchService extends Application {
 
 		// Authorisation
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());		
+		a.isAuthorised(sd, request, request.getRemoteUser());		
 	
 		log.info("Get linkage items for survey: " + sIdent + " InstanceId: " + instanceId);
 		

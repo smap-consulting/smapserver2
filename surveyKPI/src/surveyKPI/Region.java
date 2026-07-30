@@ -64,7 +64,7 @@ public class Region extends Application {
 		authorisations.add(Authorise.VIEW_DATA);
 		authorisations.add(Authorise.ADMIN);
 		Authorise a = new Authorise(authorisations, null);
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		a.isAuthorised(connectionSD, request, request.getRemoteUser());
 		// End Authorisation
 
 		JSONObject jGeoJSON = new JSONObject();

@@ -136,9 +136,9 @@ public class Surveys extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		if(getDeleted) {
-			aUpdate.isAuthorised(sd, request.getRemoteUser());
+			aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		} else {
-			aGet.isAuthorised(sd, request.getRemoteUser());
+			aGet.isAuthorised(sd, request, request.getRemoteUser());
 		}
 		if(projectId > 0) {
 			aGet.isValidProject(sd, request.getRemoteUser(), projectId);
@@ -201,7 +201,7 @@ public class Surveys extends Application {
 		// Authorisation - Access
 		// We are not checking here to see if the user has the project so restrict to admins and owners
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aWholeOrg.isAuthorised(sd, request.getRemoteUser());
+		aWholeOrg.isAuthorised(sd, request, request.getRemoteUser());
 
 		if(projectId > 0) {
 			aWholeOrg.projectInUsersOrganisation(sd, request.getRemoteUser(), projectId);
@@ -259,7 +259,7 @@ public class Surveys extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
@@ -333,7 +333,7 @@ public class Surveys extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString );	
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.surveyInUsersOrganisation(sd, request.getRemoteUser(), sIdent);
 		// End Authorisation
 		
@@ -374,7 +374,7 @@ public class Surveys extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aGet.isAuthorised(sd, request.getRemoteUser());
+		aGet.isAuthorised(sd, request, request.getRemoteUser());
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
@@ -418,7 +418,7 @@ public class Surveys extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aGet.isAuthorised(sd, request.getRemoteUser());
+		aGet.isAuthorised(sd, request, request.getRemoteUser());
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
@@ -461,7 +461,7 @@ public class Surveys extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString );	
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		Response response = null;
@@ -499,7 +499,7 @@ public class Surveys extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString );	
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		boolean superUser = false;
@@ -558,7 +558,7 @@ public class Surveys extends Application {
 		// Authorisation - Access
 		boolean superUser = false;
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidProject(sd, request.getRemoteUser(), projectId);
 		if(existing) {
 			try {
@@ -661,7 +661,7 @@ public class Surveys extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
@@ -800,7 +800,7 @@ public class Surveys extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
@@ -867,7 +867,7 @@ public class Surveys extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(sd, request.getRemoteUser());	
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());	
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
@@ -950,7 +950,7 @@ public class Surveys extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
@@ -1158,7 +1158,7 @@ public class Surveys extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
@@ -1325,7 +1325,7 @@ public class Surveys extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		if(tId > 0) {
 			aUpdate.isValidPdfTemplate(sd, request.getRemoteUser(), tId);
@@ -1477,7 +1477,7 @@ public class Surveys extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidPdfTemplate(sd, request.getRemoteUser(), tp.id);	// Validate that the user can access this template
 		// End Authorisation
 
@@ -1575,7 +1575,7 @@ public class Surveys extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
@@ -1731,7 +1731,7 @@ public class Surveys extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
@@ -1850,7 +1850,7 @@ public class Surveys extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
@@ -1986,7 +1986,7 @@ public class Surveys extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString );
-		aUpdate.isAuthorised(sd, request.getRemoteUser());	
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());	
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, true);
 		// End Authorisation
 

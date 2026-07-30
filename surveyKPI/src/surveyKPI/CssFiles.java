@@ -112,9 +112,9 @@ public class CssFiles extends Application {
 		
 		// Authorisation - Access
 		if(org) {
-			auth.isAuthorised(sd, request.getRemoteUser());	
+			auth.isAuthorised(sd, request, request.getRemoteUser());	
 		} else {
-			authServer.isAuthorised(sd, request.getRemoteUser());	
+			authServer.isAuthorised(sd, request, request.getRemoteUser());	
 		}
 		// End authorisation
 
@@ -204,9 +204,9 @@ public class CssFiles extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		if(org) {
-			auth.isAuthorised(sd, request.getRemoteUser());	
+			auth.isAuthorised(sd, request, request.getRemoteUser());	
 		} else {
-			authServer.isAuthorised(sd, request.getRemoteUser());	
+			authServer.isAuthorised(sd, request, request.getRemoteUser());	
 		}
 		// End authorisation
 
@@ -269,9 +269,9 @@ public class CssFiles extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		if(org) {
-			auth.isAuthorised(sd, request.getRemoteUser());	
+			auth.isAuthorised(sd, request, request.getRemoteUser());	
 		} else {
-			authServer.isAuthorised(sd, request.getRemoteUser());	
+			authServer.isAuthorised(sd, request, request.getRemoteUser());	
 		}
 		// End authorisation
 		// End Authorisation

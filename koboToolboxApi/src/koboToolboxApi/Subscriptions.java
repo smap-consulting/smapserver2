@@ -77,7 +77,7 @@ public class Subscriptions extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		
 		tz = (tz == null) ? "UTC" : tz;
 		

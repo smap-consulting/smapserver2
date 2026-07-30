@@ -177,9 +177,9 @@ public class XLSXAdminReportsManager {
 
 		// start validation			
 		if(oId > 0) {
-			aOrg.isAuthorised(sd, request.getRemoteUser());
+			aOrg.isAuthorised(sd, request, request.getRemoteUser());
 		} else {
-			a.isAuthorised(sd, request.getRemoteUser());
+			a.isAuthorised(sd, request, request.getRemoteUser());
 		}
 		String orgName = "";
 		if(oId <= 0) {

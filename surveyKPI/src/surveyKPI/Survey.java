@@ -134,7 +134,7 @@ public class Survey extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidDelSurvey(sd, request.getRemoteUser(), sId, superUser);
 		// End Authorisation
 
@@ -316,7 +316,7 @@ public class Survey extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
@@ -385,7 +385,7 @@ public class Survey extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-Survey-deleteLink");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
@@ -451,7 +451,7 @@ public class Survey extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-Survey-getSurveyMeta");
-		aManage.isAuthorised(sd, request.getRemoteUser());
+		aManage.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		JSONObject jo = new JSONObject();
@@ -867,7 +867,7 @@ public class Survey extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 
@@ -943,7 +943,7 @@ public class Survey extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 
@@ -1122,7 +1122,7 @@ public class Survey extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		boolean surveyMustBeDeleted = undelete || hard;
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, surveyMustBeDeleted, superUser);  // Note if hard delete is set to true the survey should have already been soft deleted
 		// End Authorisation

@@ -139,7 +139,7 @@ public class ExportSurveyMisc extends Application {
 		} catch (Exception e) {
 		}
 
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		if(query) {
 			a.isValidQuery(sd, request.getRemoteUser(), targetId);

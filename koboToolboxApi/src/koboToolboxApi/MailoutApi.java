@@ -94,7 +94,7 @@ public class MailoutApi extends Application {
 	
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(mailout.id > 0) {
 			a.isValidMailout(sd, request.getRemoteUser(), mailout.id);
 		}
@@ -154,7 +154,7 @@ public class MailoutApi extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurveyIdent(sd, request.getRemoteUser(), surveyIdent, false, true);
 		// End Authorisation
 		
@@ -206,7 +206,7 @@ public class MailoutApi extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
 		// End authorisation
 		
@@ -263,7 +263,7 @@ public class MailoutApi extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
 		// End authorisation
 		
@@ -329,7 +329,7 @@ public class MailoutApi extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
 		// End Authorisation
 		

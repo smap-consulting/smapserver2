@@ -85,7 +85,7 @@ public class ReviewResultsText extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		a.isAuthorised(connectionSD, request, request.getRemoteUser());
 		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 					

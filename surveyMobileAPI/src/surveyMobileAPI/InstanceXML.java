@@ -102,7 +102,7 @@ public class InstanceXML extends Application{
 		
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		Survey survey = sm.getSurveyId(sd, templateName);	// Get the survey id from the templateName / key
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());

@@ -76,7 +76,7 @@ public class CustomReports extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-CustomReports");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidProject(sd, request.getRemoteUser(), pId);
 		// End Authorisation
 		
@@ -106,7 +106,7 @@ public class CustomReports extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-CustomReports");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		Response response = null;
@@ -141,7 +141,7 @@ public class CustomReports extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-CustomReports");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidCustomReport(sd, request.getRemoteUser(), id);
 		// End Authorisation
 		
@@ -202,7 +202,7 @@ public class CustomReports extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-CustomReports");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidProject(sd, request.getRemoteUser(), pId);
 		a.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, false);
 		if(id > 0) {

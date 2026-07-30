@@ -112,7 +112,7 @@ public class Tasks extends Application {
 		
 		// Authorisation - Access
 		sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		// End authorisation
 	
@@ -159,7 +159,7 @@ public class Tasks extends Application {
 		
 		// Authorisation - Access
 		sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 		// End authorisation
 	
@@ -206,7 +206,7 @@ public class Tasks extends Application {
 		
 		// Authorisation - Access
 		sd = SDDataSource.getConnection("surveyKPI - Tasks - getTasks");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 		// End authorisation
 	
@@ -268,7 +268,7 @@ public class Tasks extends Application {
 		
 		// Authorisation - Access
 		sd = SDDataSource.getConnection("surveyKPI - Tasks - getLocations");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End authorisation
 	
 		try {
@@ -325,7 +325,7 @@ public class Tasks extends Application {
 		
 		// Authorisation - Access
 		sd = SDDataSource.getConnection("surveyKPI - Tasks - getLocations");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End authorisation
 
 		try {
@@ -442,7 +442,7 @@ public class Tasks extends Application {
 		String connectionString = "Download Locations";
 		Connection sd = SDDataSource.getConnection(connectionString);	
 		// Authorisation - Access
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End authorisation
 		
 		// Set file type to "xlsx" unless "xls" has been specified
@@ -499,7 +499,7 @@ public class Tasks extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);	
 		// Authorisation - Access
 
-		a.isAuthorised(sd, request.getRemoteUser());		
+		a.isAuthorised(sd, request, request.getRemoteUser());		
 		if(tgId > 0) {
 			a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 		}
@@ -663,7 +663,7 @@ public class Tasks extends Application {
 	
 			if(file != null && tgId > 0) {
 				// Authorisation - Access
-				a.isAuthorised(sd, request.getRemoteUser());
+				a.isAuthorised(sd, request, request.getRemoteUser());
 				a.isValidProject(sd, request.getRemoteUser(), pId);
 				a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 				// End authorisation
@@ -764,7 +764,7 @@ public class Tasks extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		a.isValidProject(sd, user, pId);
 		// End Authorisation
 		
@@ -818,7 +818,7 @@ public class Tasks extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		a.isValidProject(sd, user, pId);
 		// End Authorisation
 		
@@ -867,7 +867,7 @@ public class Tasks extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);	
-		a.isAuthorised(sd, request.getRemoteUser());		
+		a.isAuthorised(sd, request, request.getRemoteUser());		
 		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 		// End Authorisation 
 		
@@ -927,7 +927,7 @@ public class Tasks extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		a.isValidProject(sd, user, pId);
 		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 		// End Authorisation

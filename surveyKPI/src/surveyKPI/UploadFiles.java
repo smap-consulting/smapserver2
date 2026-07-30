@@ -106,7 +106,7 @@ public class UploadFiles extends Application {
 		String connectionString = "surveyKPI-UploadFiles-deleteFiles";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		auth.isAuthorised(sd, request.getRemoteUser());
+		auth.isAuthorised(sd, request, request.getRemoteUser());
 		auth.isValidOrganisation(sd, request.getRemoteUser(), oId);
 		// End Authorisation		
 
@@ -160,7 +160,7 @@ public class UploadFiles extends Application {
 		String connectionString = "surveyKPI-UploadFiles-deleteMediaSurvey";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		auth.isAuthorised(sd, request.getRemoteUser());
+		auth.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation		
 
 		try {

@@ -87,7 +87,7 @@ public class MailoutSvc extends Application {
 	
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(mailoutId > 0) {
 			a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
 		}
@@ -138,7 +138,7 @@ public class MailoutSvc extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);	
 		// Authorisation - Access
 
-		a.isAuthorised(sd, request.getRemoteUser());		
+		a.isAuthorised(sd, request, request.getRemoteUser());		
 		if(mailoutId > 0) {
 			a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
 		} else {
@@ -282,7 +282,7 @@ public class MailoutSvc extends Application {
 	
 			if(file != null && mailoutId > 0) {
 				// Authorisation - Access
-				a.isAuthorised(sd, request.getRemoteUser());
+				a.isAuthorised(sd, request, request.getRemoteUser());
 				if(mailoutId > 0) {
 					a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
 				} else {
@@ -335,7 +335,7 @@ public class MailoutSvc extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
 		// End Authorisation
 		
@@ -376,7 +376,7 @@ public class MailoutSvc extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
 		// End Authorisation
 		

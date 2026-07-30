@@ -77,7 +77,7 @@ public class LanguageCodes extends Application {
 		String connectionString = "surveyKPI = get language codes";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());		
+		a.isAuthorised(sd, request, request.getRemoteUser());		
 		// End Authorisation
 		
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();

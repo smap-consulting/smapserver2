@@ -86,7 +86,7 @@ public class Reports extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requestName);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(pId > 0) {
 			a.isValidProject(sd, request.getRemoteUser(), pId);
 		}
@@ -157,7 +157,7 @@ public class Reports extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
@@ -227,7 +227,7 @@ public class Reports extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation			
 			
 		String sql = "delete from users where ident = ? and temporary = 'true' and o_id in "

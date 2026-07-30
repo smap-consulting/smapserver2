@@ -73,7 +73,7 @@ public class Languages extends Application {
 
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Languages");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		a.isAuthorised(connectionSD, request, request.getRemoteUser());
 		// End Authorisation
 			
 		ArrayList<String> langs = new ArrayList<String> ();	

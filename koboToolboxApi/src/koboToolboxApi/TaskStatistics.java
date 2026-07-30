@@ -69,7 +69,7 @@ public class TaskStatistics extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("KoboToolBoxAPI - Tasks - Endpoints");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		SDDataSource.closeConnection("KoboToolBoxAPI - Tasks - Endpoints", sd);
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
@@ -118,7 +118,7 @@ public class TaskStatistics extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("koboToolboxApi - get individual tasks");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		try {
@@ -159,7 +159,7 @@ public class TaskStatistics extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("koboToolboxApi - get task statistics");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		try {

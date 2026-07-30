@@ -97,7 +97,7 @@ public class MCP extends Application {
 			}
 
 			// Authorize user
-			a.isAuthorised(sd, user);
+			a.isAuthorised(sd, request, user);
 
 			// Parse JSON-RPC request
 			MCPRequest mcpRequest = null;

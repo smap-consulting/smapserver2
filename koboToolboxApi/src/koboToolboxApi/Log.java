@@ -89,7 +89,7 @@ public class Log extends Application {
 		
 		// Authorisation
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		
 		if(dirn == null) {
 			dirn = "desc";
@@ -164,7 +164,7 @@ public class Log extends Application {
 		
 		// Authorisation
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		
 		PreparedStatement pstmt = null;
 		
@@ -212,7 +212,7 @@ public class Log extends Application {
 		
 		// Authorisation
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aOrg.isAuthorised(sd, request.getRemoteUser());
+		aOrg.isAuthorised(sd, request, request.getRemoteUser());
 		
 		PreparedStatement pstmt = null;
 		
@@ -258,7 +258,7 @@ public class Log extends Application {
 		
 		// Authorisation
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aOrg.isAuthorised(sd, request.getRemoteUser());
+		aOrg.isAuthorised(sd, request, request.getRemoteUser());
 		
 		PreparedStatement pstmt = null;
 		

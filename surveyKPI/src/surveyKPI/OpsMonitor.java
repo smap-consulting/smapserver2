@@ -85,7 +85,7 @@ public class OpsMonitor extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 
 		Connection cResults = null;
@@ -132,7 +132,7 @@ public class OpsMonitor extends Application {
 		String connectionString = "surveyKPI-OpsMonitor-items";
 
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		Connection cResults = null;
 		try {
@@ -170,7 +170,7 @@ public class OpsMonitor extends Application {
 		String connectionString = "surveyKPI-OpsMonitor-getSettings";
 
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
@@ -197,7 +197,7 @@ public class OpsMonitor extends Application {
 		String connectionString = "surveyKPI-OpsMonitor-saveSettings";
 
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
@@ -232,7 +232,7 @@ public class OpsMonitor extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 
 		Connection cResults = null;
@@ -282,7 +282,7 @@ public class OpsMonitor extends Application {
 		String connectionString = "surveyKPI-OpsMonitor-case";
 
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		Connection cResults = null;
 		try {
@@ -322,7 +322,7 @@ public class OpsMonitor extends Application {
 		String connectionString = "surveyKPI-OpsMonitor-caseUsers";
 
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
@@ -355,7 +355,7 @@ public class OpsMonitor extends Application {
 		String connectionString = "surveyKPI-OpsMonitor-caseAssign";
 
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		Connection cResults = null;
 		try {

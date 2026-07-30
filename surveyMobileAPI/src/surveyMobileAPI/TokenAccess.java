@@ -383,7 +383,7 @@ public class TokenAccess extends Application {
 		if(user == null) {
 			throw new AuthorisationException("Unknown User");
 		}
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		a.isValidTask(sd, user, taskId);
 		// End authorisation
 

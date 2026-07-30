@@ -112,7 +112,7 @@ public class Tasks extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(tg_id > 0) {
 			a.isValidTaskGroup(sd, request.getRemoteUser(), tg_id);
 		}
@@ -194,7 +194,7 @@ public class Tasks extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(aId > 0) {
 			a.isValidAssignment(sd, request.getRemoteUser(), aId);
 		} else {
@@ -265,7 +265,7 @@ public class Tasks extends Application {
 		
 		// Authorisation - Access - Allow enumerators access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aEnum.isAuthorised(sd, request.getRemoteUser());
+		aEnum.isAuthorised(sd, request, request.getRemoteUser());
 		aEnum.isValidTask(sd, request.getRemoteUser(), taskId);
 		// End authorisation
 
@@ -350,7 +350,7 @@ public class Tasks extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		
 		boolean isAdminUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ADMIN_ID);
 		if(isAdminUser) {

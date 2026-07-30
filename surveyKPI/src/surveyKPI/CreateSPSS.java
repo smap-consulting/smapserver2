@@ -82,7 +82,7 @@ public class CreateSPSS extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());		
+		a.isAuthorised(connectionSD, request, request.getRemoteUser());		
 		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation 
 	

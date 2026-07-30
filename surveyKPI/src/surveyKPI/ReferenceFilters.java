@@ -99,7 +99,7 @@ public class ReferenceFilters extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
@@ -155,7 +155,7 @@ public class ReferenceFilters extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
@@ -222,7 +222,7 @@ public class ReferenceFilters extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isAuthorised(sd, request, request.getRemoteUser());
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 

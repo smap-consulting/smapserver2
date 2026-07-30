@@ -98,7 +98,7 @@ public class SharedResources extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());	
+		orgLevelAuth.isAuthorised(sd, request, request.getRemoteUser());	
 		// End Authorisation		
 		
 		PreparedStatement pstmt = null;
@@ -165,7 +165,7 @@ public class SharedResources extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());	
+		orgLevelAuth.isAuthorised(sd, request, request.getRemoteUser());	
 		// End Authorisation	
 		
 		
@@ -265,7 +265,7 @@ public class SharedResources extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());	
+		orgLevelAuth.isAuthorised(sd, request, request.getRemoteUser());	
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -320,7 +320,7 @@ public class SharedResources extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		orgLevelDelete.isAuthorised(sd, request.getRemoteUser());	
+		orgLevelDelete.isAuthorised(sd, request, request.getRemoteUser());	
 		// End Authorisation		
 		
 		try {
@@ -375,7 +375,7 @@ public class SharedResources extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		orgLevelAuth.isAuthorised(sd, user);
+		orgLevelAuth.isAuthorised(sd, request, user);
 		if(sId > 0) {
 			orgLevelAuth.isValidSurvey(sd, user, sId, false, false);
 		}
@@ -417,7 +417,7 @@ public class SharedResources extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());
+		orgLevelAuth.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
@@ -476,7 +476,7 @@ public class SharedResources extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());
+		orgLevelAuth.isAuthorised(sd, request, request.getRemoteUser());
 		if(sIdent != null) {
 			orgLevelAuth.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);
 		}

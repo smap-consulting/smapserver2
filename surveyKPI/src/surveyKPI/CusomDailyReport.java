@@ -79,7 +79,7 @@ public class CusomDailyReport extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);	
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidCustomReport(sd, request.getRemoteUser(), id);
 		// End Authorisation 
 		

@@ -171,7 +171,7 @@ public class GetFile extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);	
-		a.isAuthorised(sd, request.getRemoteUser());		
+		a.isAuthorised(sd, request, request.getRemoteUser());		
 		try {		
 			uId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 		} catch(Exception e) {
@@ -231,7 +231,7 @@ public class GetFile extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidDelSurvey(sd, request.getRemoteUser(), sId, superUser);
 		// End Authorisation 
 		
@@ -291,7 +291,7 @@ public class GetFile extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);
 		// End Authorisation 
 		
@@ -347,7 +347,7 @@ public class GetFile extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidDelSurvey(sd, request.getRemoteUser(), sId, superUser);
 		// End Authorisation 
 		
@@ -419,7 +419,7 @@ public class GetFile extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(sIdent != null) {
 			a.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);
 		}

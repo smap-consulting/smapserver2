@@ -83,7 +83,7 @@ public class Messages extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 			
 		Connection cResults = ResultsDataSource.getConnection(connectionString);

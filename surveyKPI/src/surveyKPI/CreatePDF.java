@@ -110,7 +110,7 @@ public class CreatePDF extends Application {
 		} catch (Exception e) {
 		}
 		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		
 		String errorMsg = null;
 		try {

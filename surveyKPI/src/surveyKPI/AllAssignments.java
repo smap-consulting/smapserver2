@@ -198,7 +198,7 @@ public class AllAssignments extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		if(sId > 0) {
 			a.isValidSurvey(sd, userName, sId, false, superUser);	// Validate that the user can access this survey
@@ -653,7 +653,7 @@ public class AllAssignments extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 		if(sId > 0) {
@@ -746,7 +746,7 @@ public class AllAssignments extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		/*
 		 * Survey level authorisation - the requester may administer the task / assignment.
@@ -871,7 +871,7 @@ public class AllAssignments extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-AllAssignments-LoadTasks From File");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End role based authorisation - Check access to the requested survey once the survey id has been extracted
 
 		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();	
@@ -1383,7 +1383,7 @@ public class AllAssignments extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(dbConnectionTitle);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End role based authorisation - Check access to the requested survey once the survey id has been extracted
 
 		DiskFileItemFactory  fileItemFactory = DiskFileItemFactory.builder().get();	
@@ -1488,7 +1488,7 @@ public class AllAssignments extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-AllAssignments");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidTaskGroup(sd, request.getRemoteUser(), tg_id);
 		// End Authorisation
 

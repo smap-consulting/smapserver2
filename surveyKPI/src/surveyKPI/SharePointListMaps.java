@@ -78,7 +78,7 @@ public class SharePointListMaps extends Application {
 
 		String conn = "surveyKPI-SharePointListMaps-get";
 		Connection sd = SDDataSource.getConnection(conn);
-		adminAuth.isAuthorised(sd, request.getRemoteUser());
+		adminAuth.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
@@ -103,7 +103,7 @@ public class SharePointListMaps extends Application {
 
 		String conn = "surveyKPI-SharePointListMaps-post";
 		Connection sd = SDDataSource.getConnection(conn);
-		adminAuth.isAuthorised(sd, request.getRemoteUser());
+		adminAuth.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			SharePointListMap m = new Gson().fromJson(body, SharePointListMap.class);
@@ -138,7 +138,7 @@ public class SharePointListMaps extends Application {
 
 		String conn = "surveyKPI-SharePointListMaps-put";
 		Connection sd = SDDataSource.getConnection(conn);
-		adminAuth.isAuthorised(sd, request.getRemoteUser());
+		adminAuth.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			SharePointListMap m = new Gson().fromJson(body, SharePointListMap.class);
@@ -164,7 +164,7 @@ public class SharePointListMaps extends Application {
 
 		String conn = "surveyKPI-SharePointListMaps-delete";
 		Connection sd = SDDataSource.getConnection(conn);
-		adminAuth.isAuthorised(sd, request.getRemoteUser());
+		adminAuth.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			new SharePointListMapManager().deleteMapping(sd, id);
@@ -188,7 +188,7 @@ public class SharePointListMaps extends Application {
 
 		String conn = "surveyKPI-SharePointListMaps-syncNow";
 		Connection sd = SDDataSource.getConnection(conn);
-		adminAuth.isAuthorised(sd, request.getRemoteUser());
+		adminAuth.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));

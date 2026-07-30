@@ -62,7 +62,7 @@ public class AdminReportHourly extends Application {
 		// Authorisation - Access
 		String connectionString = "surveyKPI - AdminReports - Logs = Hourly";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		try {

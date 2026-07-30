@@ -127,21 +127,21 @@ public class Billing extends Application {
 		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
 		Connection sd = SDDataSource.getConnection(connectionString);
 		if(oId > 0) {
-			aOrg.isAuthorised(sd, request.getRemoteUser());
+			aOrg.isAuthorised(sd, request, request.getRemoteUser());
 			
 			boolean 	orgUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ORG_ID);			
 			if(!orgUser) {
 				aOrg.isValidBillingOrganisation(sd, oId);
 			}
 		} else if(eId > 0) { 
-			aEnterprise.isAuthorised(sd, request.getRemoteUser());
+			aEnterprise.isAuthorised(sd, request, request.getRemoteUser());
 			
 			boolean entUser = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ENTERPRISE_ID);			
 			if(!entUser) {
 				aOrg.isValidBillingEnterprise(sd, eId);
 			}
 		} else {
-			aServer.isAuthorised(sd, request.getRemoteUser());
+			aServer.isAuthorised(sd, request, request.getRemoteUser());
 		}
 		
 		// End Authorisation
@@ -207,7 +207,7 @@ public class Billing extends Application {
 		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
 		Connection sd = SDDataSource.getConnection(connectionString);
 		if(oId > 0) {
-			aOrg.isAuthorised(sd, request.getRemoteUser());
+			aOrg.isAuthorised(sd, request, request.getRemoteUser());
 			
 			boolean superUser = false;
 			try {
@@ -218,7 +218,7 @@ public class Billing extends Application {
 				aOrg.isValidBillingOrganisation(sd, oId);
 			}
 		} else {
-			aServer.isAuthorised(sd, request.getRemoteUser());
+			aServer.isAuthorised(sd, request, request.getRemoteUser());
 		}	
 		// End Authorisation
 
@@ -307,7 +307,7 @@ public class Billing extends Application {
 		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
 		Connection sd = SDDataSource.getConnection(connectionString);
 		if(oId > 0) {
-			aOrg.isAuthorised(sd, request.getRemoteUser());
+			aOrg.isAuthorised(sd, request, request.getRemoteUser());
 			
 			boolean superUser = false;
 			try {
@@ -318,7 +318,7 @@ public class Billing extends Application {
 				aOrg.isValidBillingOrganisation(sd, oId);
 			}
 		} else {
-			aServer.isAuthorised(sd, request.getRemoteUser());
+			aServer.isAuthorised(sd, request, request.getRemoteUser());
 		}
 		
 		// End Authorisation
@@ -569,11 +569,11 @@ public class Billing extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		
 		if(level.equals("owner")) {
-			aServerManager.isAuthorised(sd, request.getRemoteUser());
+			aServerManager.isAuthorised(sd, request, request.getRemoteUser());
 		} else if(level.equals("ent")) {
-			aEnterpriseManager.isAuthorised(sd, request.getRemoteUser());
+			aEnterpriseManager.isAuthorised(sd, request, request.getRemoteUser());
 		} else if(level.equals("org")) {
-			aOrgManager.isAuthorised(sd, request.getRemoteUser());
+			aOrgManager.isAuthorised(sd, request, request.getRemoteUser());
 		} else {
 			SDDataSource.closeConnection(connectionString, sd);
 			throw new AuthorisationException();

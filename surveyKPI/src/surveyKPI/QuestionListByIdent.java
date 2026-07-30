@@ -95,7 +95,7 @@ public class QuestionListByIdent extends Application {
 			isOwner = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.OWNER_ID);
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		
 		/*
 		 * Check that the survey is accessible to the user
@@ -228,7 +228,7 @@ public class QuestionListByIdent extends Application {
 			sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation

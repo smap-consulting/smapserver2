@@ -593,7 +593,7 @@ public class SharedResourceManager {
 						log.log(Level.SEVERE, e.getMessage(), e);
 					}
 				}
-		aEnum.isAuthorised(sd, user);
+		aEnum.isAuthorised(sd, request, user);
 		aEnum.isValidSurvey(sd, user, sId, false, superUser);
 		// End Authorisation 
 		
@@ -675,14 +675,14 @@ public class SharedResourceManager {
 			aAdmin.isValidTemporaryUser(sd, user);
 		} 
 		
-		aAdmin.isAuthorised(sd, user);		
+		aAdmin.isAuthorised(sd, request, user);		
 		try {		
 			oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 		} catch(Exception e) {
 			// ignore error
 		}
 		if(requestedOrgId > 0 && requestedOrgId != oId) {
-			aOrg.isAuthorised(sd, user);	// Must be org admin to work on another organisations data
+			aOrg.isAuthorised(sd, request, user);	// Must be org admin to work on another organisations data
 			oId = requestedOrgId;
 		}
 		// End Authorisation 
@@ -729,10 +729,10 @@ public class SharedResourceManager {
 				superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 			} catch (Exception e) {
 			}
-			auth.isAuthorised(sd, request.getRemoteUser());
+			auth.isAuthorised(sd, request, request.getRemoteUser());
 			auth.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		} else {
-			auth.isAuthorised(sd, request.getRemoteUser());
+			auth.isAuthorised(sd, request, request.getRemoteUser());
 		}
 		// End Authorisation		
 
@@ -858,7 +858,7 @@ public class SharedResourceManager {
 			}
 			
 			// Authorise the user
-			auth.isAuthorised(sd, request.getRemoteUser());
+			auth.isAuthorised(sd, request, request.getRemoteUser());
 			
 			/*
 			 * Parse the request

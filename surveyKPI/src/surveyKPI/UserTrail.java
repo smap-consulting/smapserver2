@@ -100,7 +100,7 @@ public class UserTrail extends Application {
 		String connectionString = "usertrail - trail";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		a.isValidUser(sd, user, uId);
 		// End Authorisation
 		
@@ -166,7 +166,7 @@ public class UserTrail extends Application {
 		String connectionString = "usertrail - surveys";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, user);
+		a.isAuthorised(sd, request, user);
 		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		// End Authorisation
 		

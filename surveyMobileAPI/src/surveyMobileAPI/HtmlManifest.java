@@ -84,7 +84,7 @@ public class HtmlManifest extends Application{
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			a.isAuthorised(connectionSD, user);
+			a.isAuthorised(connectionSD, request, user);
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			survey = sm.getSurveyId(connectionSD, templateName);	// Get the survey id from the templateName / key
 			boolean superUser = false;

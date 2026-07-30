@@ -88,7 +88,7 @@ public class Values extends Application {
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 					

@@ -95,7 +95,7 @@ public class DataSubjectAccess extends Application {
 			}
 			identifier = identifier.trim();
 
-			a.isAuthorised(sd, request.getRemoteUser());
+			a.isAuthorised(sd, request, request.getRemoteUser());
 
 			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 

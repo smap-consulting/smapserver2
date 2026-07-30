@@ -93,7 +93,7 @@ public class BackgroundReportSvc extends Application {
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		Connection sd = SDDataSource.getConnection(requestName);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		
 		PreparedStatement pstmt = null;
 		
@@ -176,7 +176,7 @@ public class BackgroundReportSvc extends Application {
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		
 		PreparedStatement pstmtDuplicate = null;
 		PreparedStatement pstmt = null;
@@ -200,7 +200,7 @@ public class BackgroundReportSvc extends Application {
 			if(br.report_type.equals("restore")) {
 				if(GeneralUtilityMethods.isRestrictedDelete(sd)) {
 					try {
-						aRestricted.isAuthorised(sd, request.getRemoteUser());
+						aRestricted.isAuthorised(sd, request, request.getRemoteUser());
 					} catch(Exception e) {
 						log.info("Failed to delete as security manager privilege required");
 						throw new ApplicationException(localisation.getString("aedd"));

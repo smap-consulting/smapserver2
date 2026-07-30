@@ -62,7 +62,7 @@ public class GroupList extends Application {
 		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		a.isAuthorised(connectionSD, request, request.getRemoteUser());
 		// End Authorisation
 	
 		PreparedStatement pstmt = null;

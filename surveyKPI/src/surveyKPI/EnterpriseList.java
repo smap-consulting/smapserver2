@@ -79,7 +79,7 @@ public class EnterpriseList extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 
 		tz = (tz == null) ? "UTC" : tz;
@@ -150,7 +150,7 @@ public class EnterpriseList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList-updateOrganisation");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 
 		Response response = null;
@@ -219,7 +219,7 @@ public class EnterpriseList extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList-delOrganisation");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 
 		Type type = new TypeToken<ArrayList<Enterprise>>(){}.getType();		

@@ -180,7 +180,7 @@ public class Workflow extends Application {
 		String connectionString = "surveyKPI-Workflow-items";
 
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			WorkflowManager wm = new WorkflowManager();
@@ -214,7 +214,7 @@ public class Workflow extends Application {
 		String connectionString = "surveyKPI-Workflow-savePositions";
 
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			Map<String, WorkflowItem> positions = new Gson().fromJson(body,
@@ -243,7 +243,7 @@ public class Workflow extends Application {
 		String connectionString = "surveyKPI-Workflow-resetPositions";
 
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			WorkflowManager wm = new WorkflowManager();
@@ -271,7 +271,7 @@ public class Workflow extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editSurveys";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		String sql = "select s.s_id, s.display_name, s.ident, s.p_id, p.name as project_name "
 				+ "from survey s "
@@ -326,7 +326,7 @@ public class Workflow extends Application {
 		}
 		String connectionString = "surveyKPI-Workflow-editNotifications-get";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		String sql = "select f.id, f.name, f.trigger, f.s_id, "
 				+ "s.display_name as src_survey_name, "
@@ -438,7 +438,7 @@ public class Workflow extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editNotifications-put";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		List<WorkflowEditNotif> notifs = gson.fromJson(body,
@@ -554,7 +554,7 @@ public class Workflow extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editNotification-delete";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		String sql = "delete from forward where id = ? "
 				+ "and (p_id in (select p.id from project p, user_project up, users u "
@@ -597,7 +597,7 @@ public class Workflow extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editNotification-post";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		WorkflowEditNotif n = gson.fromJson(body, WorkflowEditNotif.class);
@@ -704,7 +704,7 @@ public class Workflow extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editTaskGroups-get";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		String sql = "select tg.tg_id, tg.name, tg.source_s_id, tg.target_s_id, tg.rule, tg.p_id, "
 				+ "s_src.display_name as src_survey_name, "
@@ -788,7 +788,7 @@ public class Workflow extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editTaskGroups-put";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		List<WorkflowEditTG> tgs = gson.fromJson(body,
@@ -911,7 +911,7 @@ public class Workflow extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editTaskGroup-delete";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		PreparedStatement pstmtFwd = null;
 		PreparedStatement pstmtTG  = null;
@@ -963,7 +963,7 @@ public class Workflow extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editTaskGroup-post";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		WorkflowEditTG tg = gson.fromJson(body, WorkflowEditTG.class);
@@ -1058,7 +1058,7 @@ public class Workflow extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editForm-post";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		WorkflowEditForm f = gson.fromJson(body, WorkflowEditForm.class);
@@ -1107,7 +1107,7 @@ public class Workflow extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editScheduled-post";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		WorkflowEditScheduled s = gson.fromJson(body, WorkflowEditScheduled.class);
@@ -1166,7 +1166,7 @@ public class Workflow extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editScheduled-put";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		WorkflowEditScheduled s = gson.fromJson(body, WorkflowEditScheduled.class);
@@ -1268,7 +1268,7 @@ public class Workflow extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-Workflow-editForm-delete";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		PreparedStatement pstmt = null;
 		try {

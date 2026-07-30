@@ -72,7 +72,7 @@ public class Regions extends Application {
 		String connectionString = "surveyKPI-Regions";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		JSONArray ja = new JSONArray();	
@@ -134,7 +134,7 @@ public class Regions extends Application {
 		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Regions");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		a.isAuthorised(connectionSD, request, request.getRemoteUser());
 		// End Authorisation
 		
 		// Escape any quotes
@@ -276,7 +276,7 @@ public class Regions extends Application {
 		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Regions");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		a.isAuthorised(connectionSD, request, request.getRemoteUser());
 		// End Authorisation
 		
 		// Escape any quotes

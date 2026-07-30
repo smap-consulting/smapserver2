@@ -89,7 +89,7 @@ public class SurveyResults extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-SurveyResults");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 
 		// End Authorisation
 		
@@ -114,7 +114,7 @@ public class SurveyResults extends Application {
 				 */
 				if(GeneralUtilityMethods.isRestrictedDelete(sd)) {
 					try {
-						aRestricted.isAuthorised(sd, request.getRemoteUser());
+						aRestricted.isAuthorised(sd, request, request.getRemoteUser());
 					} catch(Exception e) {
 						log.info("Failed to delete as security manager privilege required");
 						throw new ApplicationException(localisation.getString("aedd"));
@@ -284,7 +284,7 @@ public class SurveyResults extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.ARCHIVE, "Archive results", 0, request.getServerName());
@@ -446,7 +446,7 @@ public class SurveyResults extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		
@@ -535,7 +535,7 @@ public class SurveyResults extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-SurveyResults - getGroups");
-		aManage.isAuthorised(sd, request.getRemoteUser());
+		aManage.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		int sId = GeneralUtilityMethods.getSurveyIdFromIdentOrId(sd, sIdent);

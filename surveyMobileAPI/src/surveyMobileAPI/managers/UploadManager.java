@@ -121,7 +121,7 @@ public class UploadManager {
 		}
 		
 		if(user != null) {
-			a.isAuthorised(sd, user);
+			a.isAuthorised(sd, request, user);
 			log.info("User: " + user);
 		} 
 		

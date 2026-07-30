@@ -91,7 +91,7 @@ public class ProjectList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		ArrayList<Project> projects = null;
@@ -145,7 +145,7 @@ public class ProjectList extends Application {
 		// Authorisation - Access
 		String user = request.getRemoteUser();
 		Connection sd = SDDataSource.getConnection("surveyKPI-ProjectList");
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 		Type type = new TypeToken<ArrayList<Project>>(){}.getType();		
@@ -275,7 +275,7 @@ public class ProjectList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(pArray != null && pArray.size() > 0) {
 			for(Project p : pArray) {
 				a.projectInUsersOrganisation(sd, request.getRemoteUser(), p.id);
@@ -338,7 +338,7 @@ public class ProjectList extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);	
 		// Authorisation - Access
 
-		a.isAuthorised(sd, request.getRemoteUser());		
+		a.isAuthorised(sd, request, request.getRemoteUser());		
 		// End Authorisation 
 		
 		try {
@@ -409,7 +409,7 @@ public class ProjectList extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requester);
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation	
 		
 
@@ -462,7 +462,7 @@ public class ProjectList extends Application {
 	
 			if(file != null) {
 				// Authorisation - Access
-				a.isAuthorised(sd, request.getRemoteUser());
+				a.isAuthorised(sd, request, request.getRemoteUser());
 				
 				// End authorisation
 

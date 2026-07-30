@@ -90,7 +90,7 @@ public class SpNotifications extends Application {
 
 		String conn = "koboToolboxApi-SpNotifications-get";
 		Connection sd = SDDataSource.getConnection(conn);
-		auth.isAuthorised(sd, request.getRemoteUser());
+		auth.isAuthorised(sd, request, request.getRemoteUser());
 
 		if (tz == null) tz = "UTC";
 
@@ -137,7 +137,7 @@ public class SpNotifications extends Application {
 
 		String conn = "koboToolboxApi-SpNotifications-post";
 		Connection sd = SDDataSource.getConnection(conn);
-		auth.isAuthorised(sd, request.getRemoteUser());
+		auth.isAuthorised(sd, request, request.getRemoteUser());
 
 		if (tz == null) tz = "UTC";
 
@@ -189,7 +189,7 @@ public class SpNotifications extends Application {
 
 		String conn = "koboToolboxApi-SpNotifications-put";
 		Connection sd = SDDataSource.getConnection(conn);
-		auth.isAuthorised(sd, request.getRemoteUser());
+		auth.isAuthorised(sd, request, request.getRemoteUser());
 
 		if (tz == null) tz = "UTC";
 
@@ -236,7 +236,7 @@ public class SpNotifications extends Application {
 
 		String conn = "koboToolboxApi-SpNotifications-delete";
 		Connection sd = SDDataSource.getConnection(conn);
-		auth.isAuthorised(sd, request.getRemoteUser());
+		auth.isAuthorised(sd, request, request.getRemoteUser());
 
 		PreparedStatement pstmt = null;
 		try {

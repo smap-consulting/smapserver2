@@ -120,7 +120,7 @@ public class ExportSurveyMedia extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request, request.getRemoteUser());
 		if(queryList != null) {
 			HashMap<Integer, String> checkedSurveys = new HashMap<Integer, String> ();
 			for(int i = 0; i < queryList.size(); i++) {
