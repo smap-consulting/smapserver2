@@ -69,7 +69,7 @@ Smap is a web application and requires enterprise java.  We recommend using Apac
 
 *  Run the dep.sh script in $HOME/smapserver2 to deploy the modules to the $HOME/deploy
   *  Use "mvn clean install" or the eclipse export command to export surveyKPI, surveyMobileApi and koboToolboxApi. 
-  *  Run the ant build file subscriber3.xml in subscriber to create a runnable jar file in the $HOME/deploy directory
+  *  Run "mvn clean package" in subscribers to create a runnable jar file at subscribers/target/subscribers.jar
   *  Run the dep.sh script in smapserver2/setup to create a directory called "smap" in the deploy directory containing the install and deploy scripts for a Smap Server
 *  To create an installable tar file  
   * Copy the war files and runnable jar files into deploy/smap/deploy/version1

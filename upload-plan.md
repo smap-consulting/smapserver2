@@ -280,7 +280,7 @@ cd sdDAL && mvn clean install && cd ..
 cd surveyMobileAPI && mvn clean install && cd ..
 
 # Build subscribers
-cd subscribers && ant -f subscriber3.xml && cd ..
+cd subscribers && mvn clean package && cd ..
 ```
 
 **Phase 2 Build Verification** ✅

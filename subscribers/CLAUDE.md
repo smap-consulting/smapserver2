@@ -9,10 +9,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # Full build sequence (run in order)
 cd ../sdDAL && mvn clean install && cd ../subscribers
-mvn clean install
-ant -f subscriber3.xml
+mvn clean package
 
-# Output: ~/deploy/subscribers.jar
+# Output: target/subscribers.jar
 ```
 
 External dependency: `amazon` module from separate `smap2` repository must be cloned and built at `~/git/smap2/amazon`.
@@ -21,10 +20,10 @@ External dependency: `amazon` module from separate `smap2` repository must be cl
 
 ```bash
 # Upload mode (processes form submissions)
-java -jar ~/deploy/subscribers.jar default /smap upload
+java -jar target/subscribers.jar default /smap upload
 
 # Forward mode (processes notifications, reports, background tasks)
-java -jar ~/deploy/subscribers.jar default /smap forward
+java -jar target/subscribers.jar default /smap forward
 ```
 
 Arguments: `{smapId} {basePath} {mode}`
@@ -98,13 +97,16 @@ Each processor (SubmissionProcessor, MessageProcessor, etc.) spawns dedicated th
 - Threads run indefinitely with connection pooling
 - Graceful shutdown via `/smap/settings/subscriber` file
 
-### Ant Build Process
+### Shade Build Process
 
-`subscriber3.xml` creates uber-JAR with:
-- Manifest: `Main-Class: Manager`
-- All Maven dependencies from `~/.m2/repository`
+`maven-shade-plugin` is bound to the `package` phase and creates an uber-JAR with:
+- Manifest: `Main-Class: Manager` (ManifestResourceTransformer)
+- All Maven dependencies, with `META-INF/services` entries merged by ServicesResourceTransformer - Jersey service discovery needs this
 - Compiled classes from subscribers, sdDAL, amazon
-- Result: Single executable JAR at `~/deploy/subscribers.jar`
+- Signature files (`*.SF`, `*.DSA`, `*.RSA`) stripped so the shaded jar stays loadable
+- Result: single executable JAR at `target/subscribers.jar`
+
+`dep.sh` copies it to `~/deploy/smap/deploy/version1/subscribers.jar`.
 
 ## Key Implementation Details
 

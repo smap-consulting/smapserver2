@@ -20,8 +20,8 @@ cd surveyMobileAPI && mvn clean install && cd ..
 cd koboToolboxApi && mvn clean install && cd ..
 cd surveyKPI && mvn clean install && cd ..
 
-# Batch processor (JAR file)
-cd subscribers && ant -f subscriber3.xml && cd ..
+# Batch processor (uber-JAR at subscribers/target/subscribers.jar)
+cd subscribers && mvn clean package && cd ..
 ```
 
 ### Installing JavaRosa Dependency
@@ -551,7 +551,6 @@ Topic-based messaging via `forward` table with topics:
 ### Prerequisites
 - Java SDK 11
 - Maven 3.x
-- Ant (for subscribers build)
 - PostgreSQL with PostGIS and pgcrypto extensions
 - Apache Tomcat 9
 - Clone this repository: `smapserver2`

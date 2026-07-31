@@ -19,8 +19,8 @@ cd surveyMobileAPI && mvn clean install && cd ..
 cd koboToolboxApi && mvn clean install && cd ..
 cd surveyKPI && mvn clean install && cd ..
 
-# Batch processor (JAR file)
-cd subscribers && ant -f subscriber3.xml && cd ..
+# Batch processor (uber-JAR at subscribers/target/subscribers.jar)
+cd subscribers && mvn clean package && cd ..
 ```
 
 ### JavaRosa Dependency Installation
