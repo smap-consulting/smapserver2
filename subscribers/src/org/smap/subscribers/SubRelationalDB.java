@@ -66,7 +66,7 @@ import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.UniqueKey;
-import org.smap.server.exceptions.SQLInsertException;
+import org.smap.sdal.Utilities.SQLInsertException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 

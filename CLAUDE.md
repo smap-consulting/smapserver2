@@ -14,7 +14,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # Shared libraries (build in this order)
 cd sdDAL && mvn clean install && cd ..
-cd sdDataAccess && mvn clean install && cd ..
 
 # Web services (WAR files)
 cd surveyMobileAPI && mvn clean install && cd ..
@@ -45,7 +44,6 @@ Smap Server is a multi-module Java web application for survey management and dat
 
 ### Shared Libraries
 - **sdDAL** - Core data access layer containing 79+ Manager classes and 255+ model/DAO classes
-- **sdDataAccess** - Legacy JDBC wrapper for backward compatibility
 - **amazon** - AWS service integration
 - **sms** - SMS and WhatsApp messaging interface
 
@@ -207,7 +205,7 @@ ue.setInstanceId(thisInstanceId);
 ue.setStatus("success");
 // ... set all metadata fields
 
-JdbcUploadEventManager uem = new JdbcUploadEventManager(sd);
+UploadEventManager uem = new UploadEventManager(sd);
 uem.write(ue, false);  // results_db_applied = false
 ```
 
@@ -221,7 +219,7 @@ uem.write(ue, false);  // results_db_applied = false
 
 ### 4. Upload Event Table Write
 
-**File**: `sdDataAccess/src/JdbcManagers/JdbcUploadEventManager.java:119-152`
+**File**: `sdDAL/src/org/smap/sdal/managers/UploadEventManager.java:119-152`
 
 **SQL Insert** (lines 33-68):
 ```sql
@@ -252,7 +250,7 @@ INSERT INTO upload_event (
 List<UploadEvent> uel = uem.getPending();
 ```
 
-Uses query from JdbcUploadEventManager.java:99-104:
+Uses query from UploadEventManager.java:99-104:
 ```sql
 SELECT * FROM upload_event
 WHERE status = 'success'
@@ -459,7 +457,7 @@ This creates an entry in the submission event queue that triggers:
    - Save files to disk
    - Create UploadEvent object
    ↓
-5. JdbcUploadEventManager.write()
+5. UploadEventManager.write()
    INSERT INTO upload_event (..., results_db_applied=false, queued=false)
    ↓
    [Client receives 201 Created response - submission accepted]

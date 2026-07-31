@@ -33,13 +33,6 @@ mvn clean install
 cd ..
 
 #
-# sdDataAccess 
-#
-cd sdDataAccess
-mvn clean install
-cd ..
-
-#
 # codebook jar
 #
 cd codebook

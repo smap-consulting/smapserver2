@@ -44,7 +44,7 @@ import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Survey;
-import org.smap.server.utilities.GetXForm;
+import org.smap.sdal.managers.GetXForm;
 
 
 /*

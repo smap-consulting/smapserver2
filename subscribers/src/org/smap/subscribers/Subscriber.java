@@ -29,7 +29,7 @@ import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.Survey;
-import org.smap.server.entities.HostUnreachableException;
+import org.smap.sdal.Utilities.HostUnreachableException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 

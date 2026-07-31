@@ -17,7 +17,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  ******************************************************************************/
 
-package org.smap.server.entities;
+package org.smap.sdal.model;
 
 import java.io.Serializable;
 import java.sql.Timestamp;

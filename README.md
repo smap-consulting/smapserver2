@@ -16,7 +16,6 @@ collection system.
 ### Shared Libraries
 
 * sdDAL.  Access to the database.
-* sdDataAccess.  A legacy library to access the database.
 * amazon. This provides access to AWS services.
 * sms.  SMS and WhatsApp interface.
 
@@ -40,7 +39,7 @@ Smap is a web application and requires enterprise java.  We recommend using Apac
 
 ### Apache Netbeans IDE
 
-*  Set each project as a maven project: amazon, sdDAL, sdDataAccess, surveyMobileAPI, surveyKPI, koboToolboxApi
+*  Set each project as a maven project: amazon, sdDAL, surveyMobileAPI, surveyKPI, koboToolboxApi
 *  Run mvn clean install for all projects
 
 
@@ -54,19 +53,16 @@ Smap is a web application and requires enterprise java.  We recommend using Apac
     *  in java build path set the source folder to sdDAL/src
     *  Add amazon to projects/classpath in java build path
     *  Add amazon as a project in deployment assembly
-*  sdDataAccess
-    *  Add sdDAL to projects/classpath in java build path
-    *  In deployment assembly, set the deploy path of "/src" to "/"
 *  Amazon
 *  koboToolboxApi
     *  Add sdDAL to projects/classpath in java build path 
     *  Add sdDAL as a project in deployment assembly
 *  surveyMobileApi
-    *  Add sdDAL, sdDataAccess to projects to build path and to deployment assembly
+    *  Add sdDAL to projects to build path and to deployment assembly
 *  surveyKPI
-    *  Add sdDAL, sdDataAccess, amazon to projects to build path and to deployment assembly
+    *  Add sdDAL, amazon to projects to build path and to deployment assembly
 *  subscribers
-    *  Add sdDAL, sdDataAccess, amazon to projects to build path
+    *  Add sdDAL, amazon to projects to build path
 *  **Run "maven update project" for all projects**
 
 ## Build and Deployment

@@ -55,7 +55,7 @@ import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
-import org.smap.server.entities.UploadEvent;
+import org.smap.sdal.model.UploadEvent;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 

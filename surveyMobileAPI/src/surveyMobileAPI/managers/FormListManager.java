@@ -27,7 +27,7 @@ import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.ODKForm;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.XformsJavaRosa;
-import org.smap.server.utilities.GetXForm;
+import org.smap.sdal.managers.GetXForm;
 
 /*****************************************************************************
 

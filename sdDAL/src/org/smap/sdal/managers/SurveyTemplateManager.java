@@ -1,4 +1,4 @@
-package org.smap.model;
+package org.smap.sdal.managers;
 
 import java.io.File;
 import java.sql.Connection;
@@ -29,10 +29,6 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.legacy.SurveyTemplate;
-import org.smap.sdal.managers.LanguageCodeManager;
-import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.managers.XLSTemplateUploadManager;
 import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.Form;
@@ -42,8 +38,7 @@ import org.smap.sdal.model.Message;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.Survey;
-import org.smap.server.utilities.JavaRosaUtilities;
-import org.smap.server.utilities.PutXForm;
+import org.smap.sdal.Utilities.JavaRosaUtilities;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

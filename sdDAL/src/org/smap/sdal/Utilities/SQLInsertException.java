@@ -17,7 +17,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  ******************************************************************************/
 
-package exceptions;
+package org.smap.sdal.Utilities;
 
 /*
  * Thrown if the uploaded survey instance does not specify a template

@@ -64,7 +64,7 @@ Implemented functionality:
 - Validates survey exists and not deleted/blocked
 - Saves JSON to disk: `basePath/uploadedSurveys/surveyIdent/instanceId/instanceId.json`
 - Creates UploadEvent object with metadata
-- Writes to upload_event via JdbcUploadEventManager
+- Writes to upload_event via UploadEventManager
 
 ### Step 3: Modify upload_event Table Schema ✅
 
@@ -259,7 +259,7 @@ Additional test cases:
 From sdDAL:
 - SurveyManager (get survey by identifier)
 - GeneralUtilityMethods (getSurveyId, type conversions)
-- JdbcUploadEventManager (write upload_event)
+- UploadEventManager (write upload_event)
 - SubmissionEventManager (create submission events)
 - Authorise (authentication)
 - SDDataSource (connections)

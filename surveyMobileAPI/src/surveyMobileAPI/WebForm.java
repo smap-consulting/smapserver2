@@ -85,7 +85,7 @@ import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.SurveyData;
 import org.smap.sdal.model.TempUserFinal;
 import org.smap.sdal.model.WebformOptions;
-import org.smap.server.utilities.GetXForm;
+import org.smap.sdal.managers.GetXForm;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

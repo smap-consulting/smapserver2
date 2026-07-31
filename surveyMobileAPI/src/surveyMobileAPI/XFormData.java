@@ -65,9 +65,9 @@ import org.smap.sdal.model.Action;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Survey;
-import org.smap.server.entities.UploadEvent;
+import org.smap.sdal.model.UploadEvent;
 
-import JdbcManagers.JdbcUploadEventManager;
+import org.smap.sdal.managers.UploadEventManager;
 
 class SaveDetails {
 	String fileName = null;
@@ -429,9 +429,9 @@ public class XFormData {
 			ue.setInstanceName(thisInstanceName);
 			ue.setType(SMSManager.FORM_TYPE);
 
-			JdbcUploadEventManager uem = null;
+			UploadEventManager uem = null;
 			try {
-				uem = new JdbcUploadEventManager(sd);
+				uem = new UploadEventManager(sd);
 				uem.write(ue, false);
 			} finally {
 				if (uem != null) {
@@ -495,9 +495,9 @@ public class XFormData {
 		ue.setStatus("error"); // Not really needed any more as status is really set in the subscriber event
 		ue.setReason(reason);
 
-		JdbcUploadEventManager uem = null;
+		UploadEventManager uem = null;
 		try {
-			uem = new JdbcUploadEventManager(sd);
+			uem = new UploadEventManager(sd);
 			uem.write(ue, true);
 			
 		} finally {

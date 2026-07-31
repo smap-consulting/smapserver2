@@ -13,7 +13,6 @@ This file contains build commands, test procedures, and code style guidelines fo
 ```bash
 # Shared libraries (build in this order)
 cd sdDAL && mvn clean install && cd ..
-cd sdDataAccess && mvn clean install && cd ..
 
 # Web services (WAR files)
 cd surveyMobileAPI && mvn clean install && cd ..
@@ -226,12 +225,11 @@ Business logic resides in Manager classes in sdDAL:
 
 Build order is critical:
 1. **sdDAL** - Core data access layer
-2. **sdDataAccess** - Legacy JDBC wrapper
-3. **amazon** - AWS integration (external repo)
-4. **surveyMobileAPI** - Mobile client APIs
-5. **surveyKPI** - Admin console APIs
-6. **koboToolboxApi** - Kobo-compatible APIs
-7. **subscribers** - Batch processor
+2. **amazon** - AWS integration (external repo)
+3. **surveyMobileAPI** - Mobile client APIs
+4. **surveyKPI** - Admin console APIs
+5. **koboToolboxApi** - Kobo-compatible APIs
+6. **subscribers** - Batch processor
 
 ## Common Tasks
 

@@ -32,7 +32,7 @@ import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.ConversationItemDetails;
 import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.Survey;
-import org.smap.server.entities.UploadEvent;
+import org.smap.sdal.model.UploadEvent;
 import org.smap.subscribers.SubRelationalDB;
 import org.smap.subscribers.Subscriber;
 

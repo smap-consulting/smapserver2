@@ -143,10 +143,5 @@
 	      		</exclusion>
 	      	</exclusions>
       	</dependency>
-       	<dependency>
-	      	<groupId>smapserver</groupId>
-	      	<artifactId>sdDataAccess</artifactId>
-	      	<version>1.0.0</version>
-      	</dependency>      
 	</dependencies>
 </project>

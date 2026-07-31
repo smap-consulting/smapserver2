@@ -1,4 +1,4 @@
-package org.smap.server.utilities;
+package org.smap.sdal.managers;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -48,11 +48,7 @@ import org.smap.sdal.legacy.Survey;
 import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.legacy.Translation;
 import org.smap.sdal.legacy.UtilityMethods;
-import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.model.CsvHeader;
-import org.smap.sdal.managers.SurveyTableManager;
-import org.smap.sdal.managers.TaskManager;
-import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Line;
@@ -1787,7 +1783,7 @@ public class GetXForm {
 		gPaths = new ArrayList<String>();
 		gInstanceId = null;
 
-		log.info("Getting instance data (sdDataAccess): " + templateName + " : " + key + " : " + keyval);
+		log.info("Getting instance data: " + templateName + " : " + key + " : " + keyval);
 		
 		// Get template details
 		String firstFormRef = template.getFirstFormRef();

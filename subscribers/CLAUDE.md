@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Full build sequence (run in order)
-cd ../sdDAL && mvn clean install && cd ../sdDataAccess && mvn clean install && cd ../subscribers
+cd ../sdDAL && mvn clean install && cd ../subscribers
 mvn clean install
 ant -f subscriber3.xml
 
@@ -103,7 +103,7 @@ Each processor (SubmissionProcessor, MessageProcessor, etc.) spawns dedicated th
 `subscriber3.xml` creates uber-JAR with:
 - Manifest: `Main-Class: Manager`
 - All Maven dependencies from `~/.m2/repository`
-- Compiled classes from subscribers, sdDAL, sdDataAccess, amazon
+- Compiled classes from subscribers, sdDAL, amazon
 - Result: Single executable JAR at `~/deploy/subscribers.jar`
 
 ## Key Implementation Details
@@ -198,7 +198,6 @@ src/
 ## Dependencies on Other Modules
 
 - **sdDAL**: All Manager classes, database utilities, model objects
-- **sdDataAccess**: Legacy JDBC wrappers, UploadEvent JDBC manager
 - **amazon** (from smap2 repo): S3AttachmentUpload for media storage
 - **Vonage SDK**: SMS messaging via MessageProcessor
 

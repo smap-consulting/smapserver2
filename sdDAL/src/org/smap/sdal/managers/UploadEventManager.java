@@ -17,7 +17,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  ******************************************************************************/
 
-package JdbcManagers;
+package org.smap.sdal.managers;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -25,9 +25,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import org.smap.server.entities.UploadEvent;
+import org.smap.sdal.model.UploadEvent;
 
-public class JdbcUploadEventManager {
+public class UploadEventManager {
 	
 	PreparedStatement pstmtInsert = null;
 	String sql = "insert into upload_event ("
@@ -72,7 +72,7 @@ public class JdbcUploadEventManager {
 	/*
 	 * Constructor
 	 */
-	public JdbcUploadEventManager(Connection sd) throws SQLException {
+	public UploadEventManager(Connection sd) throws SQLException {
 		pstmtInsert = sd.prepareStatement(sql);
 	}
 	

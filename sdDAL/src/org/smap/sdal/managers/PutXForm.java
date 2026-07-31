@@ -1,4 +1,4 @@
-package org.smap.server.utilities;
+package org.smap.sdal.managers;
 
 import java.io.InputStream;
 import java.util.ResourceBundle;

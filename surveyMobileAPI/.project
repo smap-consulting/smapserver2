@@ -4,7 +4,6 @@
 	<comment></comment>
 	<projects>
 		<project>sdDAL</project>
-		<project>sdDataAccess</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
