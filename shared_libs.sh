@@ -61,4 +61,23 @@ do
 	done
 done
 
+#
+# subscribers.jar is shaded, so its dependencies are flattened into it and cannot be
+# listed by file name.  Check instead that none of the shared libraries were packaged,
+# using one marker package per excluded group in subscribers/pom.xml
+#
+SUBS=subscribers/target/subscribers.jar
+if [ -f "$SUBS" ]
+then
+	for pkg in software/amazon/awssdk com/itextpdf org/apache/poi io/netty org/slf4j \
+		org/apache/logging/log4j org/apache/commons/io org/apache/commons/codec
+	do
+		if unzip -Z1 "$SUBS" "$pkg/*" 2>/dev/null | grep -q .
+		then
+			echo "WARNING: subscribers.jar also contains shared library classes: $pkg"
+		fi
+	done
+	echo "subscribers.jar: `du -h $SUBS | cut -f1`"
+fi
+
 echo "Shared libraries: `ls $OUT | wc -l | tr -d ' '` jars, `du -sh $OUT | cut -f1`"

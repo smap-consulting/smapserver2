@@ -65,16 +65,8 @@ cd ..
 cp surveyKPI/target/*.war ~/deploy/smap/deploy/version1/surveyKPI.war
 
 #
-# Shared libraries
-#
-# The war files exclude the libraries listed in shared-libs.txt, they are deployed to the
-# Tomcat shared classloader instead so that there is one copy rather than one per war.
-# surveyKPI has the largest dependency set so the jars are taken from there.
-#
-./shared_libs.sh
-
-#
-# subscribers runnable jar file
+# subscribers jar file.  Not runnable on its own, it is started with -cp against the
+# shared libraries below - see setup/install/subscribers.sh
 #
 cd subscribers
 mvn clean package
@@ -82,4 +74,17 @@ cp target/subscribers.jar ~/deploy/smap/deploy/version1/subscribers.jar
 mkdir -p ~/deploy/smap/deploy/version1/subscribers
 cp -rf default ~/deploy/smap/deploy/version1/subscribers
 cd ..
+
+#
+# Shared libraries
+#
+# The war files and subscribers.jar exclude the libraries listed in shared-libs.txt, they
+# are deployed once to /smap_bin/lib instead so that there is one copy rather than one per
+# war plus another in the subscribers jar.  surveyKPI has the largest dependency set so
+# the jars are taken from there.
+#
+# Runs last so that it can check the war files and the subscribers jar that were just
+# built for libraries that should have been left out of them.
+#
+./shared_libs.sh
 
