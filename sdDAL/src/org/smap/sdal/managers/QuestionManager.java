@@ -532,13 +532,21 @@ public class QuestionManager {
 	 * Get the end group that closes a begin group
 	 * Normally the end group is named after its group.  However the two names can get out of step,
 	 * for example if the group was renamed, in which case find the end group from the nesting of the groups
-	 * Returns null if the group is not closed
+	 * Many forms have unbalanced groups so an end group is only returned if it can be attributed to this
+	 * group, that is it does not belong to a group that encloses this one
+	 * Returns null if the end group cannot be identified, the caller must not guess
 	 */
 	public static Question getEndGroup(Connection sd, int formId, String groupName, int startSeq) throws SQLException {
 
 		Question endGroup = null;
 
-		String sqlByName = "select seq, qname from question where f_id = ? and qname = ? and not soft_deleted";
+		String sqlByName = "select seq, qname from question "
+				+ "where f_id = ? "
+				+ "and qname = ? "
+				+ "and qtype = 'end group' "
+				+ "and seq > ? "
+				+ "and not soft_deleted "
+				+ "order by seq asc";
 		String sqlBySeq = "select seq, qname, qtype from question "
 				+ "where f_id = ? "
 				+ "and seq > ? "
@@ -550,6 +558,7 @@ public class QuestionManager {
 			pstmt = sd.prepareStatement(sqlByName);
 			pstmt.setInt(1, formId);
 			pstmt.setString(2, groupName + "_groupEnd");
+			pstmt.setInt(3, startSeq);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				endGroup = new Question();
@@ -559,25 +568,41 @@ public class QuestionManager {
 			pstmt.close();
 
 			if(endGroup == null) {
+				HashMap<String, Integer> beginGroups = getBeginGroups(sd, formId);
 				int depth = 0;
 				pstmt = sd.prepareStatement(sqlBySeq);
 				pstmt.setInt(1, formId);
 				pstmt.setInt(2, startSeq);
 
-				log.info("Get end group from question sequence: " + pstmt.toString());
 				rs = pstmt.executeQuery();
 				while(rs.next()) {
 					String qType = rs.getString(3);
 					if("begin group".equals(qType)) {
 						depth++;
 					} else if("end group".equals(qType)) {
-						if(depth == 0) {
-							endGroup = new Question();
-							endGroup.seq = rs.getInt(1);
-							endGroup.name = rs.getString(2);
+						if(depth > 0) {
+							depth--;			// Closes a group nested inside this one
+							continue;
+						}
+
+						String qName = rs.getString(2);
+						Integer ownerSeq = beginGroups.get(getGroupNameFromEnd(qName));
+						if(ownerSeq != null && ownerSeq < startSeq) {
+							/*
+							 * This end group closes a group that encloses this one, so this group has no end.
+							 * Do not use it, the questions between here and there are not in this group
+							 */
+							log.warning("End group not found for group " + groupName + " in form " + formId
+									+ ".  Reached " + qName + " which closes a group that starts at " + ownerSeq);
 							break;
 						}
-						depth--;
+
+						endGroup = new Question();
+						endGroup.seq = rs.getInt(1);
+						endGroup.name = qName;
+						log.warning("End group of " + groupName + " in form " + formId
+								+ " identified from the question sequence as " + endGroup.name);
+						break;
 					}
 				}
 			}
@@ -586,6 +611,48 @@ public class QuestionManager {
 		}
 
 		return endGroup;
+	}
+
+	/*
+	 * Get the name of the group that an end group closes
+	 */
+	private static String getGroupNameFromEnd(String endGroupName) {
+		String name = endGroupName;
+		if(name != null && name.endsWith("_groupEnd")) {
+			name = name.substring(0, name.length() - "_groupEnd".length());
+		}
+		return name;
+	}
+
+	/*
+	 * Get the sequence of each begin group in a form keyed by the group name
+	 */
+	private static HashMap<String, Integer> getBeginGroups(Connection sd, int formId) throws SQLException {
+
+		HashMap<String, Integer> groups = new HashMap<> ();
+
+		String sql = "select qname, seq from question "
+				+ "where f_id = ? "
+				+ "and qtype = 'begin group' "
+				+ "and not soft_deleted "
+				+ "order by seq asc";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, formId);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String name = rs.getString(1);
+				if(name != null && groups.get(name) == null) {		// Keep the first if the name is duplicated
+					groups.put(name, rs.getInt(2));
+				}
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return groups;
 	}
 
 	/*
@@ -835,15 +902,21 @@ public class QuestionManager {
 					published = rs.getBoolean(3);
 
 					/*
-					 * If the question is a group question then get its members and its end group
+					 * If the question is a group question then get its end group and its members
 					 * These have to be identified before the group question is deleted
 					 */
 					Question endGroup = null;
 					if(qType.equals("begin group")) {
-						if(getGroupContents) {
+						endGroup = getEndGroup(sd, q.fId, q.name, seq);
+						if(endGroup == null) {
+							/*
+							 * The group has no end.  Delete the group question on its own, the questions
+							 * that it contains cannot be identified so they are left in the form
+							 */
+							log.warning("Deleting group " + q.name + " in form " + q.fId + " that has no end group");
+						} else if(getGroupContents) {
 							groupContents = getQuestionsInGroup(sd, q, false);
 						}
-						endGroup = getEndGroup(sd, q.fId, q.name, seq);
 					}
 
 					if(published && !force) {
@@ -909,51 +982,44 @@ public class QuestionManager {
 					if(qType.equals("begin group")) {
 
 						if(endGroup != null) {
+							/*
+							 * Always delete the end group, even if the group itself was only soft deleted.
+							 * An end group never has results data and soft deleted questions are ignored
+							 * everywhere the survey is read, so leaving it would only allow duplicate
+							 * end group names to build up
+							 */
 							String endGroupName = endGroup.name;
 
-							if(published && !force) {
-								/*
-								 * The group was soft deleted, soft delete its end group as well
-								 * otherwise the group would be left without an end
-								 */
-								pstmtSoftDelete.setInt(1, q.fId);
-								pstmtSoftDelete.setString(2, endGroupName );
-								pstmtSoftDelete.setInt(3, sId );
+							// Get the sequence again as it will have changed if the group question was deleted
+							pstmtGetSeq.setString(2, endGroupName );
+							rs = pstmtGetSeq.executeQuery();
+							if(rs.next()) {
+								seq = rs.getInt(1);
 
-								log.fine("Soft Delete end group of question: " + pstmtSoftDelete.toString());
-								pstmtSoftDelete.executeUpdate();
-							} else {
-								// Get the sequence again as it will have changed if the group question was deleted
-								pstmtGetSeq.setString(2, endGroupName );
-								rs = pstmtGetSeq.executeQuery();
-								if(rs.next()) {
-									seq = rs.getInt(1);
+								// Delete the labels
+								pstmtDelLabels.setInt(1, sId);
+								pstmtDelLabels.setString(2, endGroupName );
+								pstmtDelLabels.setInt(3, q.fId);
+								pstmtDelLabels.setInt(4, sId );
 
-									// Delete the labels
-									pstmtDelLabels.setInt(1, sId);
-									pstmtDelLabels.setString(2, endGroupName );
-									pstmtDelLabels.setInt(3, q.fId);
-									pstmtDelLabels.setInt(4, sId );
+								log.fine("Delete end group labels: " + pstmtDelLabels.toString());
+								pstmtDelLabels.executeUpdate();
 
-									log.fine("Delete end group labels: " + pstmtDelLabels.toString());
-									pstmtDelLabels.executeUpdate();
+								// Delete the end group
+								pstmt.setInt(1, q.fId);
+								pstmt.setString(2, endGroupName);
+								pstmt.setInt(3, sId );
 
-									// Delete the end group
-									pstmt.setInt(1, q.fId);
-									pstmt.setString(2, endGroupName);
-									pstmt.setInt(3, sId );
+								log.fine("Delete End group of question: " + pstmt.toString());
+								pstmt.executeUpdate();
 
-									log.fine("Delete End group of question: " + pstmt.toString());
-									pstmt.executeUpdate();
+								// Update the sequences of questions after the deleted end group
+								pstmtUpdateSeq.setInt(1, q.fId);
+								pstmtUpdateSeq.setInt(2, seq);
+								pstmtUpdateSeq.setInt(3, sId);
 
-									// Update the sequences of questions after the deleted end group
-									pstmtUpdateSeq.setInt(1, q.fId);
-									pstmtUpdateSeq.setInt(2, seq);
-									pstmtUpdateSeq.setInt(3, sId);
-
-									log.fine("Update sequences: " + pstmtUpdateSeq.toString());
-									pstmtUpdateSeq.executeUpdate();
-								}
+								log.fine("Update sequences: " + pstmtUpdateSeq.toString());
+								pstmtUpdateSeq.executeUpdate();
 							}
 						}
 
