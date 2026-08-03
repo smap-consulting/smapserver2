@@ -163,6 +163,16 @@ public class GeneralUtilityMethods {
 	
 	 private static final String UTF8_BOM = "\uFEFF";
 
+	 private static final Pattern validQuestionName = Pattern.compile("^[A-Za-z_][A-Za-z0-9_\\-\\.]*$");
+
+	/*
+	 * Return true if the name can be used as a question / group / repeat name
+	 * These names become element names in the XForm hence they need to be valid XML names
+	 */
+	static public boolean isValidQuestionName(String in) {
+		return in != null && validQuestionName.matcher(in).matches();
+	}
+
 	/*
 	 * Remove any characters from the name that will prevent it being used as a
 	 * database column name

@@ -101,7 +101,6 @@ public class XLSTemplateUploadManager {
 	HashMap<String, Integer> qNameMap = new HashMap<> ();							// Use in question name validation
 	HashMap<String, Integer> qNameMapCaseInsensitive = new HashMap<> ();			// Use in question name uniqueness
 	HashMap<String, HashMap<String, Integer>> oNameMap = new HashMap<> ();		// Use in option name validation
-	Pattern validQname = Pattern.compile("^[A-Za-z_][A-Za-z0-9_\\-\\.]*$");
 	Pattern validChoiceName = Pattern.compile("^[A-Za-z0-9_@&\\-\\.\\+%,():/ ]*$");
 	Pattern validListName = Pattern.compile("^[A-Za-z0-9_@&\\-\\.\\+%,():/]*$");	// Like choices but spaces are not valid
 
@@ -1485,7 +1484,7 @@ public class XLSTemplateUploadManager {
 			// Check for a missing name
 			throw XLSUtilities.getApplicationException(localisation, "tu_mn", rowNumber, "survey", null, null, null);
 
-		} else if(!validQname.matcher(q.name).matches()) {
+		} else if(!GeneralUtilityMethods.isValidQuestionName(q.name)) {
 			// Check for a valid name
 			throw XLSUtilities.getApplicationException(localisation, "tu_qn", rowNumber, "survey", q.name, null, null);
 

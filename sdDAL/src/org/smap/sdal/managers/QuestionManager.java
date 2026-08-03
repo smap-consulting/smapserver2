@@ -16,6 +16,7 @@ import java.util.logging.Logger;
 
 import jakarta.ws.rs.core.Response;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -139,6 +140,12 @@ public class QuestionManager {
 			pstmtSetLabels.setInt(1, sId);
 			
 			for(Question q : questions) {
+
+				// The name becomes an element name in the XForm hence it must be a valid XML name
+				if(!GeneralUtilityMethods.isValidQuestionName(q.name)) {
+					throw new ApplicationException(localisation.getString("tu_qn")
+							.replace("%s1", String.valueOf(q.name)));
+				}
 
 				if(q.fId <= 0) {	// New Form, the formIndex can be used to retrieve the formId of this new form
 

@@ -58,6 +58,7 @@ import org.smap.sdal.model.NodesetFormDetails;
 import org.smap.sdal.model.Point;
 import org.smap.sdal.model.Polygon;
 import org.smap.sdal.model.SetValue;
+import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -252,7 +253,7 @@ public class GetXForm {
 			lsElement.setAttribute("id", "__last-saved");
 			lsElement.setAttribute("src", "jr://instance/last-saved");
 			for(Question q : gLastSavedQuestions) {
-				lsElement.appendChild(outputDoc.createElement(q.getName()));
+				lsElement.appendChild(createNamedElement(outputDoc, q.getName()));
 			}
 			parent.appendChild(lsElement);
 		}
@@ -457,6 +458,19 @@ public class GetXForm {
 	}
 
 	/*
+	 * Create an element using a name that comes from the survey definition
+	 * If the name is not a valid XML name then report the name that is at fault,
+	 * otherwise the DOM exception gives no clue as to which question needs to be fixed
+	 */
+	private Element createNamedElement(Document outputDoc, String name) throws ApplicationException {
+		try {
+			return outputDoc.createElement(name);
+		} catch (DOMException e) {
+			throw new ApplicationException(localisation.getString("tu_qn").replace("%s1", String.valueOf(name)));
+		}
+	}
+
+	/*
 	 * Method to add an XML fragment to another XML element
 	 */
 	private void addXmlFrag(Document outputDoc, Element main, Element frag) {
@@ -474,7 +488,7 @@ public class GetXForm {
 	public void populateInstance(Connection sd, Document outputDoc, Element parent) throws Exception {
 
 		if (firstForm != null) {
-			Element formElement = outputDoc.createElement(firstForm.getName());
+			Element formElement = createNamedElement(outputDoc, firstForm.getName());
 			if (modelInstanceOnly) {
 				// Namespaces as per enketo
 				formElement.setAttribute("xmlns:jr", "http://openrosa.org/javarosa");
@@ -702,13 +716,13 @@ public class GetXForm {
 
 					if (subForm.getRepeats(true, template.getQuestionPaths()) != null) {
 						// Add the calculation for repeat count
-						questionElement = outputDoc.createElement(q.getName() + "_count");
+						questionElement = createNamedElement(outputDoc, q.getName() + "_count");
 						currentParent.appendChild(questionElement);
 					}
 
 					// Add template
 					if(!inRealForm) {
-						Element template = outputDoc.createElement(subForm.getName());
+						Element template = createNamedElement(outputDoc, subForm.getName());
 						template.setAttribute("jr:template", ""); // The model requires a local name only
 						populateForm(sd, outputDoc, template, INSTANCE, subForm, true, false, isWebForms);
 						currentParent.appendChild(template);
@@ -716,7 +730,7 @@ public class GetXForm {
 					
 					// Add the real form
 					if(!inTemplate) {
-						Element form = outputDoc.createElement(subForm.getName());
+						Element form = createNamedElement(outputDoc, subForm.getName());
 						populateForm(sd, outputDoc, form, INSTANCE, subForm, false, true, isWebForms);
 						currentParent.appendChild(form);
 					}
@@ -724,7 +738,7 @@ public class GetXForm {
 				} else if (qType.equals("begin group")) {
 
 					// Write the question then make this element the new parent
-					questionElement = outputDoc.createElement(q.getName());
+					questionElement = createNamedElement(outputDoc, q.getName());
 					currentParent.appendChild(questionElement);
 
 					elementStack.push(currentParent);
@@ -753,11 +767,11 @@ public class GetXForm {
 					if(isWebForms) {
 						String calculate = q.getCalculate(true, template.getQuestionPaths(), template.getXFormFormName());
 						if(qType.equals(SmapQuestionTypes.IMAGE) && calculate != null && calculate.contains("get_image(")) {
-							currentParent.appendChild(outputDoc.createElement("_gic_" + q.getName()));
+							currentParent.appendChild(createNamedElement(outputDoc, "_gic_" + q.getName()));
 						}
 					}
 					
-					questionElement = outputDoc.createElement(q.getName());
+					questionElement = createNamedElement(outputDoc, q.getName());
 					String def = q.getDefaultAnswer();
 					if (def != null && def.length() > 0) {
 						if((qType.equals("image") || qType.equals("big-image"))  && !def.startsWith("jr://")) {
@@ -772,7 +786,7 @@ public class GetXForm {
 					if(isWebForms) {
 						String app = q.getAppearance(false, null);
 						if(app.contains("lookup_choices(")) {
-							questionElement = outputDoc.createElement(q.getName() + "__dynamic"
+							questionElement = createNamedElement(outputDoc, q.getName() + "__dynamic"
 									+ (q.getType().equals("select") ? "_mult" : ""));
 							currentParent.appendChild(questionElement);
 						}
@@ -1441,7 +1455,7 @@ public class GetXForm {
 
 			if (inGroup) {
 				if (qx.getType().startsWith("select")) {
-					labelsElement = outputXML.createElement(qx.getName() + "_table_list_labels");
+					labelsElement = createNamedElement(outputXML, qx.getName() + "_table_list_labels");
 					break; // Only need labels from one of the select questions
 				}
 
@@ -2102,7 +2116,7 @@ public class GetXForm {
 			}
 		}
 
-		Element currentParent = outputDoc.createElement(form.getName()); // Create a form element
+		Element currentParent = createNamedElement(outputDoc, form.getName()); // Create a form element
 
 		Results item = null;
 		Stack<Element> elementStack = new Stack<Element>(); // Store the elements for non repeat groups
@@ -2116,7 +2130,7 @@ public class GetXForm {
 			} else if (item.begin_group) {
 
 				Element childElement = null;
-				childElement = outputDoc.createElement(item.name);
+				childElement = createNamedElement(outputDoc, item.name);
 				currentParent.appendChild(childElement);
 
 				elementStack.push(currentParent);
@@ -2130,7 +2144,7 @@ public class GetXForm {
 
 				// Create the question element
 				Element childElement = null;
-				childElement = outputDoc.createElement(item.name);
+				childElement = createNamedElement(outputDoc, item.name);
 				childElement.setTextContent(item.value);
 				currentParent.appendChild(childElement);
 			}
@@ -2285,7 +2299,7 @@ public class GetXForm {
 			}
 		}
 
-		Element currentParent = outputDoc.createElement(form.getName()); // Create a form element
+		Element currentParent = createNamedElement(outputDoc, form.getName()); // Create a form element
 
 		Results item = null;
 		Stack<Element> elementStack = new Stack<Element>(); // Store the elements for non repeat groups
@@ -2313,7 +2327,7 @@ public class GetXForm {
 
 				// Create the question element
 				Element childElement = null;
-				childElement = outputDoc.createElement(item.name);
+				childElement = createNamedElement(outputDoc, item.name);
 				childElement.setTextContent(item.value);
 				currentParent.appendChild(childElement);
 				
@@ -2363,7 +2377,7 @@ public class GetXForm {
 		// For each record returned from the database add a form element
 		for (int i = 0; i < results.size(); i++) {
 
-			Element currentParent = outputDoc.createElement(form.getName()); // Create a form element
+			Element currentParent = createNamedElement(outputDoc, form.getName()); // Create a form element
 			List<Results> record = results.get(i);
 
 			Results priKey = record.get(0); // Get the primary key
@@ -2397,7 +2411,7 @@ public class GetXForm {
 					
 				} else if (item.begin_group) {
 					Element childElement = null;
-					childElement = outputDoc.createElement(item.name);
+					childElement = createNamedElement(outputDoc, item.name);
 					currentParent.appendChild(childElement);
 
 					elementStack.push(currentParent);
@@ -2418,7 +2432,7 @@ public class GetXForm {
 
 					// Create the question element
 					Element childElement = null;
-					childElement = outputDoc.createElement(item.name);
+					childElement = createNamedElement(outputDoc, item.name);
 					// Escape any single quotes if this is called by webforms as the output is
 					// stored as a string with single quotes around it
 					String escValue = item.value;

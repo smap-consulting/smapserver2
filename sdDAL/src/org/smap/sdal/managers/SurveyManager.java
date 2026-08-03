@@ -1816,6 +1816,11 @@ public class SurveyManager {
 						}
 						//onlyIfNotPublished = true;	allow type changes
 					} else if(ci.property.prop.equals("name") && !ci.property.type.equals("optionlist")) {
+						// The name becomes an element name in the XForm hence it must be a valid XML name
+						if(!GeneralUtilityMethods.isValidQuestionName(ci.property.newVal)) {
+							throw new ApplicationException(localisation.getString("tu_qn")
+									.replace("%s1", String.valueOf(ci.property.newVal)));
+						}
 						onlyIfNotPublished = true;
 					} else if(ci.property.prop.equals("list_name")) {
 						// Convert the passed in list name to the list id that needs to be updated
