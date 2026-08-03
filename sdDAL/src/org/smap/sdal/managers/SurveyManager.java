@@ -2243,7 +2243,8 @@ public class SurveyManager {
 							//String newPath = null;
 							String newTextId = null;
 							String newHintId = null;
-							String sqlGetQuestionDetails = "select f_id, path, qtype, qtext_id, infotext_id from question where q_id = ?";
+							int qSeq = 0;
+							String sqlGetQuestionDetails = "select f_id, path, qtype, qtext_id, infotext_id, seq from question where q_id = ?";
 							String sqlUpdateColumnName = "update question set column_name = ? where q_id = ?;";
 							String sqlUpdateLabelRef = "update question set qtext_id = ? where q_id = ?;";
 							String sqlUpdateHintRef = "update question set infotext_id = ? where q_id = ?;";
@@ -2261,6 +2262,7 @@ public class SurveyManager {
 								qType = rsQuestionDetails.getString(3);
 								qTextId = rsQuestionDetails.getString(4);
 								infoTextId = rsQuestionDetails.getString(5);
+								qSeq = rsQuestionDetails.getInt(6);
 								newTextId = fId + "_question_" + ci.property.newVal + ":label";
 								newHintId = fId + "_question_" + ci.property.newVal + ":hint";
 
@@ -2302,18 +2304,24 @@ public class SurveyManager {
 
 							// 5. If this is a begin group then update the end group
 							if(qType != null && qType.equals("begin group")) {
-								String sqlUpdateEndGroup = "update question set qname = ? "
-										+ "where f_id = ? "
-										+ "and qtype = 'end group' " 
-										+ "and qname = ?";
+								// Get the current name of the end group, it may not match the old group name
+								Question endGroup = QuestionManager.getEndGroup(sd, fId, ci.property.oldVal, qSeq);
+								if(endGroup != null) {
+									String sqlUpdateEndGroup = "update question set qname = ? "
+											+ "where f_id = ? "
+											+ "and qtype = 'end group' "
+											+ "and qname = ?";
 
-								pstmtUpdateEndGroup = sd.prepareStatement(sqlUpdateEndGroup);
-								pstmtUpdateEndGroup.setString(1,  ci.property.newVal + "_groupEnd");
-								pstmtUpdateEndGroup.setInt(2,  fId);
-								pstmtUpdateEndGroup.setString(3,  ci.property.oldVal + "_groupEnd");
+									pstmtUpdateEndGroup = sd.prepareStatement(sqlUpdateEndGroup);
+									pstmtUpdateEndGroup.setString(1,  ci.property.newVal + "_groupEnd");
+									pstmtUpdateEndGroup.setInt(2,  fId);
+									pstmtUpdateEndGroup.setString(3,  endGroup.name);
 
-								log.fine("Updating group end name: " + pstmtUpdateEndGroup.toString());
-								pstmtUpdateEndGroup.executeUpdate();
+									log.fine("Updating group end name: " + pstmtUpdateEndGroup.toString());
+									pstmtUpdateEndGroup.executeUpdate();
+								} else {
+									log.info("End group not found for group " + ci.property.oldVal + " in form " + fId);
+								}
 							}
 
 							// 6. If this is a begin repeat, geopolygon or geolinestring (that is a form) then update the form specification

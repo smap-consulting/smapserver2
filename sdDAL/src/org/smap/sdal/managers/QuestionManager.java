@@ -479,12 +479,11 @@ public class QuestionManager {
 
 			// Get end sequence
 			rsSeq.close();
-			pstmtGetSeq.setString(2, q.name + "_groupEnd");
-			rsSeq = pstmtGetSeq.executeQuery();
-			if(rsSeq.next()) {
-				endSeq = rsSeq.getInt(1);
+			Question endGroup = getEndGroup(sd, formId, q.name, startSeq);
+			if(endGroup != null) {
+				endSeq = endGroup.seq;
 			} else {
-				throw new Exception("End Sequence Not Found");
+				throw new Exception("End group not found for group " + q.name + " in form " + formId);
 			}
 
 			if(inclusive) {
@@ -527,6 +526,66 @@ public class QuestionManager {
 
 		return questions;
 
+	}
+
+	/*
+	 * Get the end group that closes a begin group
+	 * Normally the end group is named after its group.  However the two names can get out of step,
+	 * for example if the group was renamed, in which case find the end group from the nesting of the groups
+	 * Returns null if the group is not closed
+	 */
+	public static Question getEndGroup(Connection sd, int formId, String groupName, int startSeq) throws SQLException {
+
+		Question endGroup = null;
+
+		String sqlByName = "select seq, qname from question where f_id = ? and qname = ? and not soft_deleted";
+		String sqlBySeq = "select seq, qname, qtype from question "
+				+ "where f_id = ? "
+				+ "and seq > ? "
+				+ "and not soft_deleted "
+				+ "order by seq asc";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sqlByName);
+			pstmt.setInt(1, formId);
+			pstmt.setString(2, groupName + "_groupEnd");
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				endGroup = new Question();
+				endGroup.seq = rs.getInt(1);
+				endGroup.name = rs.getString(2);
+			}
+			pstmt.close();
+
+			if(endGroup == null) {
+				int depth = 0;
+				pstmt = sd.prepareStatement(sqlBySeq);
+				pstmt.setInt(1, formId);
+				pstmt.setInt(2, startSeq);
+
+				log.info("Get end group from question sequence: " + pstmt.toString());
+				rs = pstmt.executeQuery();
+				while(rs.next()) {
+					String qType = rs.getString(3);
+					if("begin group".equals(qType)) {
+						depth++;
+					} else if("end group".equals(qType)) {
+						if(depth == 0) {
+							endGroup = new Question();
+							endGroup.seq = rs.getInt(1);
+							endGroup.name = rs.getString(2);
+							break;
+						}
+						depth--;
+					}
+				}
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return endGroup;
 	}
 
 	/*
@@ -776,10 +835,15 @@ public class QuestionManager {
 					published = rs.getBoolean(3);
 
 					/*
-					 * If the question is a group question then get its members
+					 * If the question is a group question then get its members and its end group
+					 * These have to be identified before the group question is deleted
 					 */
-					if(qType.equals("begin group") && getGroupContents) {
-						groupContents = getQuestionsInGroup(sd, q, false);
+					Question endGroup = null;
+					if(qType.equals("begin group")) {
+						if(getGroupContents) {
+							groupContents = getQuestionsInGroup(sd, q, false);
+						}
+						endGroup = getEndGroup(sd, q.fId, q.name, seq);
 					}
 
 					if(published && !force) {
@@ -843,37 +907,54 @@ public class QuestionManager {
 
 					// If the question is a group question then also delete the end group
 					if(qType.equals("begin group")) {
-						String endGroupName = q.name + "_groupEnd";
 
-						pstmtGetSeq.setString(2, endGroupName );
-						rs = pstmtGetSeq.executeQuery();
-						if(rs.next()) {
-							seq = rs.getInt(1);
+						if(endGroup != null) {
+							String endGroupName = endGroup.name;
 
-							// Delete the labels
-							pstmtDelLabels.setInt(1, sId);
-							pstmtDelLabels.setString(2, endGroupName );
-							pstmtDelLabels.setInt(3, q.fId);
-							pstmtDelLabels.setInt(4, sId );
+							if(published && !force) {
+								/*
+								 * The group was soft deleted, soft delete its end group as well
+								 * otherwise the group would be left without an end
+								 */
+								pstmtSoftDelete.setInt(1, q.fId);
+								pstmtSoftDelete.setString(2, endGroupName );
+								pstmtSoftDelete.setInt(3, sId );
 
-							log.fine("Delete end group labels: " + pstmtDelLabels.toString());
-							pstmtDelLabels.executeUpdate();
+								log.fine("Soft Delete end group of question: " + pstmtSoftDelete.toString());
+								pstmtSoftDelete.executeUpdate();
+							} else {
+								// Get the sequence again as it will have changed if the group question was deleted
+								pstmtGetSeq.setString(2, endGroupName );
+								rs = pstmtGetSeq.executeQuery();
+								if(rs.next()) {
+									seq = rs.getInt(1);
 
-							// Delete the end group
-							pstmt.setInt(1, q.fId);
-							pstmt.setString(2, endGroupName);
-							pstmt.setInt(3, sId );
+									// Delete the labels
+									pstmtDelLabels.setInt(1, sId);
+									pstmtDelLabels.setString(2, endGroupName );
+									pstmtDelLabels.setInt(3, q.fId);
+									pstmtDelLabels.setInt(4, sId );
 
-							log.fine("Delete End group of question: " + pstmt.toString());
-							pstmt.executeUpdate();
+									log.fine("Delete end group labels: " + pstmtDelLabels.toString());
+									pstmtDelLabels.executeUpdate();
 
-							// Update the sequences of questions after the deleted end group
-							pstmtUpdateSeq.setInt(1, q.fId);
-							pstmtUpdateSeq.setInt(2, seq);
-							pstmtUpdateSeq.setInt(3, sId);
+									// Delete the end group
+									pstmt.setInt(1, q.fId);
+									pstmt.setString(2, endGroupName);
+									pstmt.setInt(3, sId );
 
-							log.fine("Update sequences: " + pstmtUpdateSeq.toString());
-							pstmtUpdateSeq.executeUpdate();
+									log.fine("Delete End group of question: " + pstmt.toString());
+									pstmt.executeUpdate();
+
+									// Update the sequences of questions after the deleted end group
+									pstmtUpdateSeq.setInt(1, q.fId);
+									pstmtUpdateSeq.setInt(2, seq);
+									pstmtUpdateSeq.setInt(3, sId);
+
+									log.fine("Update sequences: " + pstmtUpdateSeq.toString());
+									pstmtUpdateSeq.executeUpdate();
+								}
+							}
 						}
 
 						/*
