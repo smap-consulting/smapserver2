@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -219,6 +220,110 @@ public class FileManager {
 				.header("Content-Disposition", contentDisposition)
 				.header("Content-Length", f.length())
 				.build();
+	}
+
+	/*
+	 * Get a file, honouring a byte range request so that a download interrupted by a poor
+	 * connection can be resumed rather than started again.  Without a range header this
+	 * behaves the same as getFileResponse().
+	 */
+	public Response getRangeFileResponse(HttpServletRequest request, String filepath, String filename,
+			String etag) throws ApplicationException {
+
+		File f = new File(filepath);
+		if(!f.exists()) {
+			log.info("Error: File not found: " + f.getAbsolutePath());
+			throw new ApplicationException("File not found: " + f.getAbsolutePath());
+		}
+
+		long length = f.length();
+		String contentType = UtilityMethodsEmail.getContentType(filename);
+		String escapedFileName = GeneralUtilityMethods.urlEncode(filename != null ? filename : "file");
+		String contentDisposition = "attachment; filename=" + escapedFileName + "; filename*=UTF-8''" + escapedFileName;
+
+		String range = request.getHeader("Range");
+		long start = 0;
+		long end = length - 1;
+		boolean partial = false;
+
+		if(range != null && range.startsWith("bytes=")) {
+			String spec = range.substring("bytes=".length()).trim();
+			if(spec.indexOf(',') >= 0) {
+				spec = spec.substring(0, spec.indexOf(','));	// Only the first range is served
+			}
+			int dash = spec.indexOf('-');
+			if(dash >= 0) {
+				try {
+					String startStr = spec.substring(0, dash).trim();
+					String endStr = spec.substring(dash + 1).trim();
+					if(startStr.length() > 0) {
+						start = Long.parseLong(startStr);
+						if(endStr.length() > 0) {
+							end = Long.parseLong(endStr);
+						}
+					} else if(endStr.length() > 0) {
+						// Suffix range, the last n bytes
+						long suffix = Long.parseLong(endStr);
+						start = suffix >= length ? 0 : length - suffix;
+					} else {
+						throw new NumberFormatException("Empty range");
+					}
+					partial = true;
+				} catch (NumberFormatException e) {
+					partial = false;		// Ignore a malformed range and send the whole file
+					start = 0;
+					end = length - 1;
+				}
+			}
+		}
+
+		if(partial) {
+			if(end > length - 1) {
+				end = length - 1;
+			}
+			if(start > end || start >= length) {
+				return Response.status(416)		// Requested range not satisfiable
+						.header("Content-Range", "bytes */" + length)
+						.header("Accept-Ranges", "bytes")
+						.build();
+			}
+		}
+
+		final long from = start;
+		final long count = end - start + 1;
+
+		StreamingOutput rangeStream = output -> {
+			try (RandomAccessFile raf = new RandomAccessFile(f, "r")) {
+				raf.seek(from);
+				byte[] buffer = new byte[65536];
+				long remaining = count;
+				while(remaining > 0) {
+					int toRead = (int) Math.min(buffer.length, remaining);
+					int bytes = raf.read(buffer, 0, toRead);
+					if(bytes == -1) {
+						break;
+					}
+					output.write(buffer, 0, bytes);
+					remaining -= bytes;
+				}
+			}
+		};
+
+		Response.ResponseBuilder builder = partial
+				? Response.status(206).header("Content-Range", "bytes " + start + "-" + end + "/" + length)
+				: Response.ok();
+
+		builder.entity(rangeStream)
+				.type(contentType)
+				.header("Content-Disposition", contentDisposition)
+				.header("Accept-Ranges", "bytes")
+				.header("Content-Length", count);
+
+		if(etag != null) {
+			builder.header("ETag", "\"" + etag + "\"");
+		}
+
+		return builder.build();
 	}
 
 	/*

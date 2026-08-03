@@ -216,6 +216,7 @@ create TABLE organisation (
 	ft_bg_stop_menu boolean default false,
 	ft_review_final boolean default true,
 	ft_force_token boolean default false,
+	ft_offline_maps boolean default false,		-- Offline map layers are managed on the server
 	ft_send text,
 	ft_pw_policy integer default -1,
 	ft_number_tasks integer default 20,
@@ -472,6 +473,61 @@ create TABLE user_organisation (
 	);
 CREATE UNIQUE INDEX idx_user_organisation ON user_organisation(u_id,o_id);
 ALTER TABLE user_organisation OWNER TO ws;
+
+-- Offline map layers (mbtiles) managed on the server and downloaded by FieldTask
+DROP SEQUENCE IF EXISTS offline_layer_seq CASCADE;
+CREATE SEQUENCE offline_layer_seq START 1;
+ALTER SEQUENCE offline_layer_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS offline_layer CASCADE;
+CREATE TABLE offline_layer (
+	id INTEGER DEFAULT NEXTVAL('offline_layer_seq') CONSTRAINT pk_offline_layer PRIMARY KEY,
+	o_id INTEGER REFERENCES organisation(id) ON DELETE CASCADE,
+	name text NOT NULL,			-- name shown to the user, unique within the organisation
+	file_name text NOT NULL,	-- name of the file on disk
+	file_path text,				-- full path to the file on the server
+	file_size bigint default 0,
+	md5 text,					-- checksum, used by the device to skip unchanged files
+	version integer default 1,	-- incremented whenever the file is replaced
+	description text,
+	changed_by text,
+	changed_ts TIMESTAMP WITH TIME ZONE
+	);
+ALTER TABLE offline_layer OWNER TO ws;
+CREATE UNIQUE INDEX offline_layer_idx ON offline_layer(o_id, name);
+
+-- A layer is assigned to projects, everybody with access to one of those projects gets it
+DROP SEQUENCE IF EXISTS offline_layer_project_seq CASCADE;
+CREATE SEQUENCE offline_layer_project_seq START 1;
+ALTER SEQUENCE offline_layer_project_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS offline_layer_project CASCADE;
+CREATE TABLE offline_layer_project (
+	id INTEGER DEFAULT NEXTVAL('offline_layer_project_seq') CONSTRAINT pk_offline_layer_project PRIMARY KEY,
+	layer_id INTEGER REFERENCES offline_layer(id) ON DELETE CASCADE,
+	p_id INTEGER REFERENCES project(id) ON DELETE CASCADE
+	);
+ALTER TABLE offline_layer_project OWNER TO ws;
+CREATE UNIQUE INDEX offline_layer_project_idx ON offline_layer_project(layer_id, p_id);
+CREATE INDEX idx_olp_p ON offline_layer_project(p_id);
+
+-- Records which devices have reported that they hold a layer, so that an administrator can
+-- see how a large layer is rolling out before field teams lose coverage
+DROP SEQUENCE IF EXISTS offline_layer_device_seq CASCADE;
+CREATE SEQUENCE offline_layer_device_seq START 1;
+ALTER SEQUENCE offline_layer_device_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS offline_layer_device CASCADE;
+CREATE TABLE offline_layer_device (
+	id INTEGER DEFAULT NEXTVAL('offline_layer_device_seq') CONSTRAINT pk_offline_layer_device PRIMARY KEY,
+	layer_id INTEGER REFERENCES offline_layer(id) ON DELETE CASCADE,
+	u_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+	device_id text,
+	layer_version integer,		-- version of the layer that the device holds
+	downloaded_ts TIMESTAMP WITH TIME ZONE
+	);
+ALTER TABLE offline_layer_device OWNER TO ws;
+CREATE UNIQUE INDEX offline_layer_device_idx ON offline_layer_device(layer_id, u_id, device_id);
 
 DROP SEQUENCE IF EXISTS role_seq CASCADE;
 CREATE SEQUENCE role_seq START 1;

@@ -650,7 +650,8 @@ public class AssignmentsManager {
 						+ "o.ft_image_size," 
 						+ "o.ft_backward_navigation,"
 						+ "o.ft_navigation," + "o.ft_pw_policy," + "o.ft_high_res_video," + "o.ft_guidance,"
-						+ "o.ft_input_method," + "o.ft_im_ri," + "o.ft_im_acc " + "from organisation o, users u "
+						+ "o.ft_input_method," + "o.ft_im_ri," + "o.ft_im_acc,"
+						+ "o.ft_offline_maps " + "from organisation o, users u "
 						+ "where u.o_id = o.id " + "and u.ident = ?");
 	
 				pstmtGetSettings = sd.prepareStatement(sql.toString());
@@ -692,7 +693,17 @@ public class AssignmentsManager {
 					tr.settings.ft_im_ri = resultSet.getInt("ft_im_ri");
 					tr.settings.ft_im_acc = resultSet.getInt("ft_im_acc");
 					tr.settings.ft_location_trigger = true;
+					tr.settings.ft_offline_maps = resultSet.getBoolean("ft_offline_maps");
 				}
+			}
+
+			/*
+			 * Get the offline map layers assigned to this user.  Only sent when the
+			 * organisation has server managed offline maps enabled.
+			 */
+			if(tr.settings != null && tr.settings.ft_offline_maps && host != null) {
+				OfflineLayerManager olm = new OfflineLayerManager();
+				tr.offlineLayers = olm.getLayersForUser(sd, userIdent, protocol + host);
 			}
 
 			/*

@@ -19,6 +19,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
+import java.sql.Connection;
 import java.util.logging.Logger;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,7 +32,13 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.FileManager;
+import org.smap.sdal.managers.OfflineLayerManager;
 import org.smap.sdal.managers.SharedResourceManager;
 
 
@@ -81,6 +88,54 @@ public class Resource extends Application {
 		
 		SharedResourceManager srm = new SharedResourceManager(null, null);
 		return srm.getOrganisationFile(request, response, null, requestedOrgId, filename, settings, false, thumbs);
+	}
+
+	/*
+	 * Get an offline map layer.  These files are large so the response honours a byte
+	 * range request, allowing a device on a poor connection to resume a download.
+	 */
+	@GET
+	@Path("/layer/{id}")
+	@Produces("application/x-download")
+	public Response getOfflineLayer (
+			@Context HttpServletRequest request,
+			@PathParam("filename") String filename,
+			@PathParam("id") int id) throws Exception {
+
+		Response r = null;
+		String connectionString = "surveyMobileAPI-getOfflineLayer";
+		Connection sd = SDDataSource.getConnection(connectionString);
+
+		try {
+			String user = request.getRemoteUser();
+			if(user == null) {
+				user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
+			}
+
+			// Authorisation - Access
+			a.isAuthorised(sd, request, user);
+			// End Authorisation
+
+			OfflineLayerManager olm = new OfflineLayerManager();
+
+			// Only a user the layer has been assigned to can download it
+			String filepath = olm.getLayerPathForUser(sd, id, user);
+			if(filepath == null) {
+				log.info("Offline layer " + id + " not available to user " + user);
+				return Response.status(Status.NOT_FOUND).build();
+			}
+
+			FileManager fm = new FileManager();
+			r = fm.getRangeFileResponse(request, filepath, filename, olm.getMd5(sd, id));
+
+		} catch (ApplicationException e) {
+			log.info("Error: Failed to get layer: " + e.getMessage());
+			r = Response.status(Status.NOT_FOUND).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return r;
 	}
 
 }

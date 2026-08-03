@@ -497,7 +497,8 @@ public class OrganisationList extends Application {
 				+ "ft_meta_menu,"
 				+ "ft_input_method,"
 				+ "ft_im_ri,"
-				+ "ft_im_acc "
+				+ "ft_im_acc,"
+				+ "ft_offline_maps "
 				+ "from organisation "
 				+ "where "
 				+ "id = (select o_id from users where ident = ?)";
@@ -538,7 +539,8 @@ public class OrganisationList extends Application {
 				d.ft_input_method = rs.getString("ft_input_method");
 				d.ft_im_ri = rs.getInt("ft_im_ri");
 				d.ft_im_acc = rs.getInt("ft_im_acc");
-				
+				d.ft_offline_maps = rs.getBoolean("ft_offline_maps");
+
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				String resp = gson.toJson(d);
 				response = Response.ok(resp).build();
@@ -826,6 +828,7 @@ public class OrganisationList extends Application {
 				+ "ft_input_method = ?,"
 				+ "ft_im_ri = ?,"
 				+ "ft_im_acc = ?,"
+				+ "ft_offline_maps = ?,"
 				+ "changed_by = ?, "
 				+ "changed_ts = now() "
 				+ "where "
@@ -870,8 +873,9 @@ public class OrganisationList extends Application {
 			pstmt.setString(23, HtmlSanitise.checkCleanName(d.ft_input_method, localisation));
 			pstmt.setInt(24, d.ft_im_ri);
 			pstmt.setInt(25, d.ft_im_acc);
-			pstmt.setString(26, request.getRemoteUser());
-			pstmt.setInt(27, oId);
+			pstmt.setBoolean(26, d.ft_offline_maps);
+			pstmt.setString(27, request.getRemoteUser());
+			pstmt.setInt(28, oId);
 					
 			log.info("Update organisation with device details: " + pstmt.toString());
 			pstmt.executeUpdate();

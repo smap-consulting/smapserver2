@@ -30,7 +30,8 @@ public class FieldTaskSettings {
 	public String ft_input_method;
 	public int ft_im_ri;
 	public int ft_im_acc;
-	
+	public boolean ft_offline_maps;		// Offline map layers are managed on the server
+
 	public void setFtEnableGeofence(boolean v) {
 		if(v) {
 			ft_enable_geofence = "on";

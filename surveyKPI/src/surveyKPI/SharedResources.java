@@ -43,10 +43,15 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
+import org.apache.commons.fileupload2.core.FileItem;
+import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.FileManager;
+import org.smap.sdal.managers.OfflineLayerManager;
 import org.smap.sdal.managers.SharedResourceManager;
 import org.smap.sdal.model.CsvTable;
+import org.smap.sdal.model.OfflineLayer;
 import org.smap.sdal.model.SharedHistoryItem;
 
 import com.google.gson.Gson;
@@ -54,6 +59,8 @@ import com.google.gson.GsonBuilder;
 import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -497,6 +504,182 @@ public class SharedResources extends Application {
 		}
 		
 		return r;
+	}
+
+	/*
+	 * Get the offline map layers for the organisation
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/offlinemaps")
+	public Response getOfflineMaps(@Context HttpServletRequest request) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-SharedResources-getOfflineMaps";
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		orgLevelAuth.isAuthorised(sd, request, request.getRemoteUser());
+		// End Authorisation
+
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			OfflineLayerManager olm = new OfflineLayerManager();
+
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			response = Response.ok(gson.toJson(olm.getLayers(sd, oId))).build();
+
+		} catch(Exception ex) {
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			response = Response.serverError().build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+
+	/*
+	 * Add or update an offline map layer.  The file is optional, if it is not supplied
+	 * only the name and description are updated.
+	 */
+	@POST
+	@Path("/offlinemaps")
+	public Response updateOfflineMap(@Context HttpServletRequest request) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-SharedResources-updateOfflineMap";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+
+		// Authorisation - Access
+		orgLevelDelete.isAuthorised(sd, request, request.getRemoteUser());
+		// End Authorisation
+
+		DiskFileItemFactory fileItemFactory = DiskFileItemFactory.builder().get();
+		JakartaServletFileUpload uploadHandler = new JakartaServletFileUpload(fileItemFactory);
+
+		int id = 0;
+		String name = null;
+		String description = null;
+		String fileName = null;
+		FileItem fileItem = null;
+		ArrayList<Integer> projects = null;
+		String user = request.getRemoteUser();
+
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, user));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
+
+			List<?> items = uploadHandler.parseRequest(request);
+			Iterator<?> itr = items.iterator();
+			while(itr.hasNext()) {
+				FileItem item = (FileItem) itr.next();
+
+				if(item.isFormField()) {
+					String fieldName = item.getFieldName();
+					if(fieldName.equals("id")) {
+						try {
+							id = Integer.parseInt(item.getString());
+						} catch (Exception e) {
+							id = 0;
+						}
+					} else if(fieldName.equals("name")) {
+						name = item.getString(java.nio.charset.StandardCharsets.UTF_8).trim();
+					} else if(fieldName.equals("description")) {
+						description = item.getString(java.nio.charset.StandardCharsets.UTF_8).trim();
+					} else if(fieldName.equals("projects")) {
+						projects = new Gson().fromJson(item.getString(java.nio.charset.StandardCharsets.UTF_8),
+								new com.google.gson.reflect.TypeToken<ArrayList<Integer>>() {}.getType());
+					}
+				} else if(item.getName() != null && item.getName().trim().length() > 0) {
+					fileName = item.getName().trim();
+					// Only keep the file name, browsers on some platforms send a path
+					int sep = Math.max(fileName.lastIndexOf('/'), fileName.lastIndexOf('\\'));
+					if(sep >= 0) {
+						fileName = fileName.substring(sep + 1);
+					}
+					fileItem = item;
+				}
+			}
+
+			if(name == null || name.length() == 0) {
+				return Response.status(Status.BAD_REQUEST).entity("A name is required").build();
+			}
+			if(id <= 0 && fileItem == null) {
+				return Response.status(Status.BAD_REQUEST).entity("A file is required").build();
+			}
+
+			name = HtmlSanitise.checkCleanName(name, localisation);
+			description = HtmlSanitise.checkCleanName(description, localisation);
+
+			OfflineLayerManager olm = new OfflineLayerManager();
+			OfflineLayer ol = olm.save(sd, oId, user, id, name, description, fileName,
+					fileItem == null ? null : fileItem.getInputStream(),
+					GeneralUtilityMethods.getBasePath(request));
+
+			if(projects != null) {
+				olm.setProjects(sd, oId, ol.id, projects);
+			}
+
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			response = Response.ok(gson.toJson(ol)).build();
+
+		} catch (SQLException e) {
+			String state = e.getSQLState();
+			if(state != null && state.startsWith("23")) {
+				// Duplicate layer name
+				response = Response.status(Status.CONFLICT).build();
+			} else {
+				log.log(Level.SEVERE, "Error", e);
+				response = Response.serverError().build();
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error saving offline layer", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+
+
+	/*
+	 * Delete an offline map layer
+	 */
+	@Path("/offlinemaps/{id}")
+	@DELETE
+	public Response deleteOfflineMap(@Context HttpServletRequest request,
+			@PathParam("id") int id) {
+
+		Response response = null;
+		String connectionString = "surveyKPI-SharedResources-deleteOfflineMap";
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+
+		// Authorisation - Access
+		orgLevelDelete.isAuthorised(sd, request, request.getRemoteUser());
+		// End Authorisation
+
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+
+			OfflineLayerManager olm = new OfflineLayerManager();
+			olm.delete(sd, oId, id);
+
+			response = Response.ok().build();
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
 	}
 }
 

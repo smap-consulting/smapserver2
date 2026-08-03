@@ -41,6 +41,7 @@ import org.smap.sdal.managers.AssignmentsManager;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.ReferenceManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.OfflineLayerManager;
 import org.smap.sdal.managers.UserLocationManager;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskCompletionInfo;
@@ -51,6 +52,7 @@ import org.smap.sdal.model.TrTask;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -312,7 +314,17 @@ public class MyAssignments extends Application {
 			 */
 			UserLocationManager ulm = new UserLocationManager(localisation, "UTC");
 			ulm.recordUserTrail(sd, userId, tr.deviceId, tr.userTrail);
-			
+
+			/*
+			 * Record the offline map layers that this device holds so that an administrator
+			 * can see how a layer is rolling out
+			 */
+			if (tr.offlineLayersHeld != null) {
+				new OfflineLayerManager().setDownloadedLayers(sd, userName, tr.deviceId,
+						new ArrayList<Integer>(tr.offlineLayersHeld));
+			}
+
+
 			if (!sd.getAutoCommit()) {
 				sd.commit();
 			}

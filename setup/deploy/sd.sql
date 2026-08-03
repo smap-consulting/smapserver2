@@ -422,3 +422,52 @@ create unique index if not exists reference_filter_idx on reference_filter(linke
 -- Cap the number of records supplied over this connection.  0 (default) = unlimited.
 -- Replaces the shortcut survey.max_reference_records (now dormant) with a per-connection cap.
 alter table reference_filter add column if not exists max_records integer default 0;
+
+-- Offline map layers (mbtiles) managed on the server and pushed to devices.
+-- When ft_offline_maps is set the device cannot add or delete layers itself.
+alter table organisation add column if not exists ft_offline_maps boolean default false;
+
+create sequence if not exists offline_layer_seq start 1;
+alter sequence offline_layer_seq owner to ws;
+create table if not exists offline_layer (
+	id integer default nextval('offline_layer_seq') constraint pk_offline_layer primary key,
+	o_id integer references organisation(id) on delete cascade,
+	name text not null,			-- name shown to the user, unique within the organisation
+	file_name text not null,	-- name of the file on disk
+	file_path text,				-- full path to the file on the server
+	file_size bigint default 0,
+	md5 text,					-- checksum, used by the device to skip unchanged files
+	version integer default 1,	-- incremented whenever the file is replaced
+	description text,
+	changed_by text,
+	changed_ts timestamp with time zone
+);
+alter table offline_layer owner to ws;
+create unique index if not exists offline_layer_idx on offline_layer(o_id, name);
+
+-- A layer is assigned to projects, everybody with access to one of those projects gets it
+create sequence if not exists offline_layer_project_seq start 1;
+alter sequence offline_layer_project_seq owner to ws;
+create table if not exists offline_layer_project (
+	id integer default nextval('offline_layer_project_seq') constraint pk_offline_layer_project primary key,
+	layer_id integer references offline_layer(id) on delete cascade,
+	p_id integer references project(id) on delete cascade
+);
+alter table offline_layer_project owner to ws;
+create unique index if not exists offline_layer_project_idx on offline_layer_project(layer_id, p_id);
+create index if not exists idx_olp_p on offline_layer_project(p_id);
+
+-- Records which devices have reported that they hold a layer, so that an administrator can
+-- see how a large layer is rolling out before field teams lose coverage
+create sequence if not exists offline_layer_device_seq start 1;
+alter sequence offline_layer_device_seq owner to ws;
+create table if not exists offline_layer_device (
+	id integer default nextval('offline_layer_device_seq') constraint pk_offline_layer_device primary key,
+	layer_id integer references offline_layer(id) on delete cascade,
+	u_id integer references users(id) on delete cascade,
+	device_id text,
+	layer_version integer,		-- version of the layer that the device holds
+	downloaded_ts timestamp with time zone
+);
+alter table offline_layer_device owner to ws;
+create unique index if not exists offline_layer_device_idx on offline_layer_device(layer_id, u_id, device_id);
