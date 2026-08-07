@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.smap.sdal.Utilities.ApplicationException;
@@ -45,9 +46,27 @@ public class SqlFrag {
 	}
 	
 	/*
+	 * Add the table name to a column in the sql
+	 * Required when the fragment is used in a query that joins tables.  The meta columns, such as prikey,
+	 * are in every results table and hence are ambiguous unless they are qualified
+	 * Text values are held as parameters so only column names, functions and operators are in the sql
+	 */
+	public void qualifyColumn(String column, String tableName) {
+
+		if(column == null || column.length() == 0 || tableName == null) {
+			return;
+		}
+
+		// Ignore a column that is already qualified or that is part of a longer name
+		String regex = "(?<![\\w\\.])" + Pattern.quote(column) + "(?![\\w\\.])";
+		sql = new StringBuilder(sql.toString().replaceAll(regex,
+				Matcher.quoteReplacement(tableName + "." + column)));
+	}
+
+	/*
 	 * Add an SQL expression
 	 */
-	public void addSqlFragment(String in, boolean isCondition, 
+	public void addSqlFragment(String in, boolean isCondition,
 			ResourceBundle localisation, 
 			int rowNum				// Set non zero when processing a form definition in a spreadsheet
 			) throws Exception {
