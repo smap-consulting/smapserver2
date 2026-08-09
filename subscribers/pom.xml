@@ -43,6 +43,33 @@
 						                </transformer>
 						                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
 					                </transformers>
+					                <artifactSet>
+						                <excludes>
+							                <!-- Deployed to the shared library directory instead - see shared-libs.txt -->
+							                <exclude>software.amazon.awssdk:*</exclude>
+							                <exclude>software.amazon.eventstream:*</exclude>
+							                <exclude>com.itextpdf:*</exclude>
+							                <exclude>io.netty:*</exclude>
+							                <exclude>org.apache.poi:*</exclude>
+							                <exclude>org.apache.xmlbeans:*</exclude>
+							                <exclude>org.apache.httpcomponents.client5:*</exclude>
+							                <exclude>org.apache.httpcomponents.core5:*</exclude>
+							                <exclude>org.apache.logging.log4j:*</exclude>
+							                <exclude>log4j:*</exclude>
+							                <exclude>commons-logging:*</exclude>
+							                <exclude>commons-io:*</exclude>
+							                <exclude>commons-codec:*</exclude>
+							                <exclude>com.github.virtuald:*</exclude>
+							                <exclude>com.zaxxer:*</exclude>
+							                <exclude>org.reactivestreams:*</exclude>
+							                <exclude>org.apache.commons:commons-collections4</exclude>
+							                <exclude>org.apache.commons:commons-compress</exclude>
+							                <exclude>org.apache.commons:commons-math3</exclude>
+							                <exclude>org.apache.httpcomponents:httpclient</exclude>
+							                <exclude>org.apache.httpcomponents:httpcore</exclude>
+							                <exclude>org.slf4j:*</exclude>
+						                </excludes>
+					                </artifactSet>
 					                <filters>
 						                <filter>
 							                <artifact>*:*</artifact>
@@ -61,6 +88,27 @@
 		
 	</build>
 	<dependencies>
+
+		<!--
+			These three come from the shared library directory at run time, so pin them to
+			the versions in shared-libs.txt.  Left to transitive resolution subscribers
+			picks older ones and the build no longer matches what it runs against.
+		-->
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<version>2.18.0</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-codec</groupId>
+			<artifactId>commons-codec</artifactId>
+			<version>1.17.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.25</version>
+		</dependency>
 
 		<dependency>
 			<groupId>jakarta.servlet</groupId>

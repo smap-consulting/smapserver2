@@ -126,7 +126,8 @@ The subscribers module processes form submissions asynchronously:
 4. **Apply** - SubRelationalDB parses XML and inserts into results database
 5. **Notify** - NotificationManager creates forward records for downstream processing
 
-Run subscribers as: `java -jar subscribers.jar default /smap upload` (or `forward`)
+Run subscribers as: `java -cp "subscribers.jar:/smap_bin/lib/*" Manager default /smap upload` (or `forward`).
+The jar is not self contained - the libraries in shared-libs.txt live in `/smap_bin/lib`, shared with the war files, so `-jar` will not work.
 
 Multiple processor types handle different queues:
 - SubmissionProcessor - Form submissions

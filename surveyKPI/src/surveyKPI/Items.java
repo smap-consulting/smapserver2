@@ -429,12 +429,11 @@ public class Items extends Application {
 				}
 				// Add the advanced filter fragment
 				if(advancedFilterFrag != null) {
-					if(sqlFilter.length() > 0) {
-						sqlFilter += " and " + "(" + advancedFilterFrag.sql + ")";
-					} else {
-						sqlFilter = "(" + advancedFilterFrag.sql + ")";
-					}	
-					
+
+					/*
+					 * Add the tables referenced by the filter.  This has to be done before the filter sql
+					 * is used as the meta columns are qualified with the table that they are read from
+					 */
 					for(int i = 0; i < advancedFilterFrag.columns.size(); i++) {
 						int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, advancedFilterFrag.humanNames.get(i));
 						if(rqId > 0) {
@@ -444,7 +443,19 @@ public class Items extends Application {
 							// assume meta and hence include main table
 							Form tlf = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 							tables.add(tlf.tableName, tlf.id, tlf.parentform);
+
+							/*
+							 * Meta columns, such as prikey, are in every results table so the column
+							 * has to be qualified or the query will fail if tables are joined
+							 */
+							advancedFilterFrag.qualifyColumn(advancedFilterFrag.columns.get(i), tlf.tableName);
 						}
+					}
+
+					if(sqlFilter.length() > 0) {
+						sqlFilter += " and " + "(" + advancedFilterFrag.sql + ")";
+					} else {
+						sqlFilter = "(" + advancedFilterFrag.sql + ")";
 					}
 				}
 				
@@ -468,6 +479,9 @@ public class Items extends Application {
 										// Assume meta and get top level table
 										Form tlf = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 										tables.add(tlf.tableName, tlf.id, tlf.parentform);
+
+										// Qualify the meta column as it is in every results table
+										rf.qualifyColumn(rf.columns.get(i), tlf.tableName);
 									}
 								}
 								if(rfString.length() > 0) {

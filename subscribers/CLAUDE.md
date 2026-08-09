@@ -11,19 +11,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 cd ../sdDAL && mvn clean install && cd ../subscribers
 mvn clean package
 
-# Output: target/subscribers.jar
+# Output: target/subscribers.jar (~29MB, not self contained - see Shade Build Process)
 ```
 
 External dependency: `amazon` module from separate `smap2` repository must be cloned and built at `~/git/smap2/amazon`.
 
 ### Running Locally
 
+The shared libraries are not in the jar, so build them first and put them on the class
+path (`../shared_libs.sh` writes them to `~/deploy/smap/deploy/version1/lib`):
+
 ```bash
+LIB=~/deploy/smap/deploy/version1/lib
+
 # Upload mode (processes form submissions)
-java -jar target/subscribers.jar default /smap upload
+java -cp "target/subscribers.jar:$LIB/*" Manager default /smap upload
 
 # Forward mode (processes notifications, reports, background tasks)
-java -jar target/subscribers.jar default /smap forward
+java -cp "target/subscribers.jar:$LIB/*" Manager default /smap forward
 ```
 
 Arguments: `{smapId} {basePath} {mode}`
@@ -99,14 +104,25 @@ Each processor (SubmissionProcessor, MessageProcessor, etc.) spawns dedicated th
 
 ### Shade Build Process
 
-`maven-shade-plugin` is bound to the `package` phase and creates an uber-JAR with:
+`maven-shade-plugin` is bound to the `package` phase and creates the jar with:
 - Manifest: `Main-Class: Manager` (ManifestResourceTransformer)
-- All Maven dependencies, with `META-INF/services` entries merged by ServicesResourceTransformer - Jersey service discovery needs this
+- Most Maven dependencies, with `META-INF/services` entries merged by ServicesResourceTransformer - Jersey service discovery needs this
 - Compiled classes from subscribers, sdDAL, amazon
 - Signature files (`*.SF`, `*.DSA`, `*.RSA`) stripped so the shaded jar stays loadable
-- Result: single executable JAR at `target/subscribers.jar`
+- Result: `target/subscribers.jar`, about 29MB
 
-`dep.sh` copies it to `~/deploy/smap/deploy/version1/subscribers.jar`.
+The `artifactSet/excludes` leave out the libraries in `shared-libs.txt` - the AWS SDK,
+iText, POI, Netty and the logging jars, 87 of the 189 dependencies and 75MB of them.
+Those are deployed once to `/smap_bin/lib` and shared with the war files, so the jar is
+**not** self contained and cannot be started with `java -jar`. `shared_libs.sh` checks
+the built jar for classes that should have been excluded.
+
+commons-io, commons-codec and slf4j-api are pinned in the pom to the versions in
+shared-libs.txt. Transitive resolution picks older ones, which would mean building
+against a different version to the one it runs against.
+
+`dep.sh` copies it to `~/deploy/smap/deploy/version1/subscribers.jar`, and `deploy.sh`
+installs that to `/smap_bin/subscribers.jar` alongside `/smap_bin/lib`.
 
 ## Key Implementation Details
 

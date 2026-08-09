@@ -1,10 +1,12 @@
-# Libraries deployed to the Tomcat shared classloader instead of being packaged in
-# each war.  See dep.sh (builds the lib directory) and deploy.sh (installs it).
+# Libraries deployed once to /smap_bin/lib instead of being packaged inside each war and
+# inside subscribers.jar.  See dep.sh (builds the lib directory) and deploy.sh (installs
+# it, and points the Tomcat shared classloader at it).
 #
-# The war poms exclude exactly these files - keep the two in step.  A library here may
-# not depend on a library left in a war: the shared classloader cannot see webapp
-# classes.  The list is therefore the full transitive closure of the AWS SDK, iText and
-# POI, plus the logging jars that POI and the AWS SDK need.
+# The war poms exclude exactly these files, and the subscribers shade plugin excludes the
+# same artifacts by groupId - keep all three in step.  A library here may not depend on a
+# library left in a war: the shared classloader cannot see webapp classes.  The list is
+# therefore the full transitive closure of the AWS SDK, iText and POI, plus the logging
+# jars that POI and the AWS SDK need.
 #
 # Names are version specific.  After a version upgrade the file no longer matches, so
 # the library returns to each war - larger, but still correct.
