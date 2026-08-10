@@ -397,18 +397,26 @@ public class OfflineLayerManager {
 	public void setDownloadedLayers(Connection sd, String userIdent, String deviceId,
 			ArrayList<Integer> layerIds) throws SQLException {
 
-		if(deviceId == null) {
-			deviceId = "";
+		/*
+		 * A user can have several devices and each is tracked separately.  Without a device id
+		 * the reports from those devices would share a key and overwrite each other, so ignore
+		 * the report rather than record it against the wrong device.
+		 */
+		if(deviceId == null || deviceId.trim().length() == 0) {
+			log.info("Ignoring offline layer report from " + userIdent + " as it has no device id");
+			return;
 		}
 
 		String sqlDelete = "delete from offline_layer_device "
 				+ "where device_id = ? "
 				+ "and u_id in (select id from users where ident = ?)";
+		// A repeated layer id in the report must not fail the whole assignment update
 		String sqlInsert = "insert into offline_layer_device "
 				+ "(layer_id, u_id, device_id, layer_version, downloaded_ts) "
 				+ "select ol.id, u.id, ?, ol.version, now() "
 				+ "from offline_layer ol, users u "
-				+ "where ol.id = ? and u.ident = ? and ol.o_id = u.o_id";
+				+ "where ol.id = ? and u.ident = ? and ol.o_id = u.o_id "
+				+ "on conflict do nothing";
 
 		PreparedStatement pstmtDelete = null;
 		PreparedStatement pstmtInsert = null;
