@@ -86,5 +86,9 @@ cd ..
 # Runs last so that it can check the war files and the subscribers jar that were just
 # built for libraries that should have been left out of them.
 #
-./shared_libs.sh
+# Run through sh rather than relying on the execute bit: this step failing is easy to miss
+# at the end of a long build, and it leaves the lib directory empty, which breaks both the
+# deploy and any Eclipse Tomcat pointed at it.
+#
+sh ./shared_libs.sh || { echo "ERROR: shared library build failed"; exit 1; }
 

@@ -65,6 +65,42 @@ Smap is a web application and requires enterprise java.  We recommend using Apac
     *  Add sdDAL, amazon to projects to build path
 *  **Run "maven update project" for all projects**
 
+#### Shared libraries
+
+Some libraries (the AWS SDK, iText, POI and the logging jars they need) are not packaged inside
+each war file.  They are listed in `shared-libs.txt`, the war poms exclude exactly those file
+names, and on a server they are installed once into `/smap_bin/lib` with Tomcat's shared
+classloader pointed at them.  This keeps one copy rather than one per war plus another inside
+`subscribers.jar`.
+
+What this means when setting up Eclipse depends on how you run the code:
+
+*  **Running the projects directly from Eclipse** (Run on Server, using the m2e classpath
+   container) needs nothing extra.  Eclipse publishes the Maven dependencies to `WEB-INF/lib`
+   itself and does not apply the exclusions from the war pom.
+*  **Deploying a war built by Maven** into your Eclipse Tomcat does need them, otherwise the
+   webapp fails at run time with `NoClassDefFoundError` on the excluded libraries.
+
+To make them available:
+
+*  Build the library directory - it does not need a full build, and takes a few seconds:
+    *  `sh ./shared_libs.sh`
+    *  This writes about 90 jars to `~/deploy/smap/deploy/version1/lib`
+*  Point your Eclipse Tomcat at that directory:
+    *  Edit `<workspace>/Servers/<server name>-config/catalina.properties`
+    *  Set `shared.loader="<your home>/deploy/smap/deploy/version1/lib/*.jar"`
+    *  Restart the server in Eclipse
+*  Pointing at the build output rather than copying the jars means a rebuild refreshes them.
+   The names in `shared-libs.txt` are version specific, so a stale copy taken by hand will
+   silently go out of step the next time a dependency version changes.
+
+Note that `dep.sh` starts by deleting `~/deploy/smap`, so during a full build the directory is
+missing until the last step.  Re-run `sh ./shared_libs.sh` if you interrupt a build.
+
+The subscribers module needs no extra setup in Eclipse.  It is run from the project build path,
+so Maven supplies the libraries.  Only the packaged `subscribers.jar` relies on `/smap_bin/lib`,
+which is why it is started with `-cp` rather than `-jar` on a server.
+
 ## Build and Deployment
 
 *  Run the dep.sh script in $HOME/smapserver2 to deploy the modules to the $HOME/deploy
@@ -96,10 +132,11 @@ If you are developing on one of the support Ubuntu LTS versions you can follow t
     *  Run the commands in setup/install/setupDb.sql in the survey_definitions database
     *  Run the commands in setup/install/resultsDb.sql in survey_definitions
 *  Application Server
-     *  Install Tomcat 9
+     *  Install Tomcat 10.  Servers are migrated from Tomcat 9 by setup/deploy/patchdb.sh, and deploy.sh requires Tomcat 10
      *  Add Tomcat as an server in your IDE
      *  Edit the context.xml file in the tomcat conf directory.  Add the two resources "jdbc/survey_dfinitions" and "jdbc/results" from the source context.xml file "$HOME/git/smapserver2/setup/install/config_files/context.xml" 
-     *  Edit the server.xml file to open up the 8009 port.  Use the source server.xml file from "$HOME/git/smapserver2/setup/install/config_files/server.xml.tomcat9" as a template.   
+     *  Edit the server.xml file to open up the 8009 port.  Use the source server.xml file from "$HOME/git/smapserver2/setup/install/config_files/server.xml.tomcat10" as a template.   
+     *  If you deploy war files built by Maven rather than running the projects from the IDE, set "shared.loader" in catalina.properties - see [Shared libraries](#shared-libraries)
 *  Run surveyKPI, surveyMobileAPI and koboToolboxApi on the server
      
 *  HTTP Web Server
