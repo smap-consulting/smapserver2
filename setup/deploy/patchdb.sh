@@ -150,6 +150,34 @@ fi
 
 echo "Current Smap Version is $version"
 
+# Enable pg_stat_statements on a locally managed database.  install.sh only copies
+# postgresql.conf on a fresh install, so servers upgraded from an earlier release never
+# pick it up from there.  ALTER SYSTEM writes postgresql.auto.conf, which is left alone if
+# postgresql.conf is later replaced, so the setting survives future installs.
+#
+# shared_preload_libraries needs a restart, which deploy.sh already does for a local
+# database, so this takes effect on the next deploy and sd.sql creates the extension then.
+#
+# A remote database (RDS) cannot be changed this way - ALTER SYSTEM is blocked and the
+# setting belongs in a DB parameter group.  See RDS_TUNING.md.
+if [ $DBHOST = "127.0.0.1" ]; then
+    preload_now=`echo "show shared_preload_libraries" | sudo -i -u postgres $PSQL -tA -d survey_definitions 2>/dev/null`
+    preload_set=`echo "$preload_now" | grep -c pg_stat_statements`
+    if [ "$preload_set" -eq 0 ]; then
+        # Keep anything already preloaded - the setting is a list and is replaced, not added to
+        if [ -z "$preload_now" ]; then
+            preload_new="pg_stat_statements"
+        else
+            preload_new="$preload_now,pg_stat_statements"
+        fi
+        echo "Enabling pg_stat_statements (takes effect when postgres restarts)"
+        echo "alter system set shared_preload_libraries = '$preload_new'" | sudo -i -u postgres $PSQL -q -d survey_definitions
+        echo "alter system set pg_stat_statements.max = 10000" | sudo -i -u postgres $PSQL -q -d survey_definitions
+        echo "alter system set pg_stat_statements.track = 'top'" | sudo -i -u postgres $PSQL -q -d survey_definitions
+        echo "alter system set pg_stat_statements.track_utility = off" | sudo -i -u postgres $PSQL -q -d survey_definitions
+    fi
+fi
+
 # Apply database patches
 
 if [ $version -lt "1908" ]

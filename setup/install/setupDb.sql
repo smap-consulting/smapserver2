@@ -647,9 +647,22 @@ CREATE TABLE upload_event (
 create index idx_ue_ident on upload_event(user_name);
 create index idx_ue_upload_time on upload_event (upload_time);
 create index idx_ue_processed_time on upload_event (processed_time);
-CREATE index ue_survey_ident ON upload_event(ident);
-CREATE INDEX idx_ue_p_id ON upload_event(p_id);
 CREATE INDEX idx_ue_pending ON upload_event (results_db_applied, queued, incomplete, ue_id);
+-- Monitor totals by project.  p_id and db_status are equality filters, leaving the index
+-- ordered by ident, so the group by needs no sort and the heap is not touched.
+CREATE INDEX idx_ue_p_status_ident ON upload_event (p_id, db_status, ident, upload_time);
+-- Submissions API and per survey monitor tabs.  With ident fixed the index is ordered by
+-- ue_id, so "order by ue_id desc limit n" stops after n rows.
+CREATE INDEX idx_ue_ident_ueid ON upload_event (ident, ue_id);
+-- Nearly every row is 'success', so only the rare values are worth indexing
+CREATE INDEX idx_ue_db_status_rare ON upload_event (db_status) WHERE db_status IS DISTINCT FROM 'success';
+-- Rows are updated two or three times after insert as the subscriber records progress, and
+-- index only scans on the indexes above need the visibility map kept current
+ALTER TABLE upload_event SET (
+	autovacuum_vacuum_scale_factor = 0.02,
+	autovacuum_analyze_scale_factor = 0.01,
+	autovacuum_vacuum_insert_scale_factor = 0.02
+);
 ALTER TABLE upload_event OWNER TO ws;
 
 DROP TABLE IF EXISTS option CASCADE;

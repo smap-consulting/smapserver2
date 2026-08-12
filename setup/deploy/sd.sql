@@ -471,3 +471,75 @@ create table if not exists offline_layer_device (
 );
 alter table offline_layer_device owner to ws;
 create unique index if not exists offline_layer_device_idx on offline_layer_device(layer_id, u_id, device_id);
+
+-- Version 26.08 upload_event query performance
+--
+-- upload_event carries the whole submission history and is on the insert path for every
+-- submission, so it ends up both very large and heavily indexed.  The indexes below replace
+-- single column ones that could not serve the queries that actually run against the table:
+-- the monitor totals had to sort the whole project history, and the submissions API read a
+-- survey's entire history to return one page.
+--
+-- Builds are concurrent so a deploy does not lock out submissions, but on a large table they
+-- take a long time and the deploy waits for them.  This is a one off cost per server.
+
+-- A concurrent build that is interrupted leaves an invalid index behind.  "if not exists"
+-- would then match that invalid index and silently skip the retry forever, so clear it first.
+DO $$
+DECLARE r record;
+BEGIN
+	FOR r IN
+		SELECT c.relname
+		FROM pg_index i
+		JOIN pg_class c ON c.oid = i.indexrelid
+		WHERE NOT i.indisvalid
+		  AND c.relname IN ('idx_ue_p_status_ident', 'idx_ue_ident_ueid', 'idx_ue_db_status_rare')
+	LOOP
+		RAISE NOTICE 'dropping invalid index % left by an interrupted build', r.relname;
+		EXECUTE format('DROP INDEX %I', r.relname);
+	END LOOP;
+END $$;
+
+-- Monitor totals: p_id and db_status are equality filters so the index is already ordered by
+-- ident, which removes the sort as well as the heap access.  upload_time is included so the
+-- variants that restrict to the last 100 days stay index only.
+create index concurrently if not exists idx_ue_p_status_ident on upload_event (p_id, db_status, ident, upload_time);
+
+-- Submissions API and the per survey monitor tabs: with ident fixed the index is ordered by
+-- ue_id, so "order by ue_id desc limit n" is a backward scan that stops after n rows instead
+-- of reading every upload event for the survey and sorting them.
+create index concurrently if not exists idx_ue_ident_ueid on upload_event (ident, ue_id);
+
+-- Nearly every row is 'success', so an index over all values of db_status cannot help a query
+-- looking for one.  Only the rare values are worth indexing, which also makes the index small.
+create index concurrently if not exists idx_ue_db_status_rare on upload_event (db_status)
+	where db_status is distinct from 'success';
+
+-- Superseded by the indexes above, which have these as a leading column
+drop index concurrently if exists idx_ue_p_id;
+drop index concurrently if exists ue_survey_ident;
+drop index concurrently if exists idx_ue_db_status;
+-- Never selected by the planner: status has too few distinct values to narrow anything down
+drop index concurrently if exists idx_ue_status;
+
+-- Every row is inserted and then updated two or three times as the subscriber records progress,
+-- so the default 20% threshold leaves this table unvacuumed for long periods.  Index only scans
+-- need the visibility map to be current, so vacuum has to keep up for the indexes above to work.
+-- On an existing large server run "vacuum (analyze) upload_event" once, in a maintenance window,
+-- to populate the visibility map for the history that is already there.
+alter table upload_event set (
+	autovacuum_vacuum_scale_factor = 0.02,
+	autovacuum_analyze_scale_factor = 0.01,
+	autovacuum_vacuum_insert_scale_factor = 0.02
+);
+
+-- Query statistics, used to find which statements are actually costing time.  Needs the library
+-- in shared_preload_libraries, which patchdb.sh sets for a local database and which has to be set
+-- through a parameter group on RDS - see RDS_TUNING.md.  No-op until then.
+DO $$
+BEGIN
+	IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_stat_statements')
+		AND current_setting('shared_preload_libraries') LIKE '%pg_stat_statements%' THEN
+		CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+	END IF;
+END $$;

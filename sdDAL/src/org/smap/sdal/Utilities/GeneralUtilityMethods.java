@@ -7245,8 +7245,11 @@ public class GeneralUtilityMethods {
 	 * Return the SQL that does survey level Role Based Access Control (modified for use with upload event)
 	 */
 	public static String getSurveyRBACUploadEvent() {
-		return " ((ue.ident not in (select survey_ident from survey_role where enabled = true)) or " // No roles on survey
-				+ "(ue.ident in (select sr.survey_ident from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
+		// "not exists" rather than "not in": a null survey_ident makes "not in" return null for
+		// every row, which would hide surveys that have no roles from everybody.  It also lets
+		// the planner use an anti join instead of running a subplan for each candidate row.
+		return " ((not exists (select 1 from survey_role where survey_ident = ue.ident and enabled = true)) or " // No roles on survey
+				+ "(exists (select 1 from users u, user_role ur, survey_role sr where sr.survey_ident = ue.ident and u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
 				+ ") ";
 	}
 

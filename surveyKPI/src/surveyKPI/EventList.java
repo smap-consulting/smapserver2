@@ -1010,24 +1010,10 @@ public class EventList extends Application {
 				surveyIdent = sName;
 			}
 			
-			if(!hideSuccess) {
-				addStatusTotals("success", sName, surveyIdent, projectId, user, sd,	groupby, sList, is_forward, oId, false);	// Always all records 
-			}
-			if(!hideErrors) {
-				addStatusTotals("errors", sName, surveyIdent, projectId, user, sd,	groupby, sList, is_forward, oId, ignoreOld);		// Ignore old errors 
-			}
-			if(!hideDuplicates) {
-				addStatusTotals("duplicates", sName, surveyIdent, projectId, user, sd,	groupby, sList, is_forward, oId, ignoreOld); 
-			}
-			if(!hideMerged) {
-				addStatusTotals("merged", sName, surveyIdent, projectId, user, sd,	groupby, sList, is_forward, oId, ignoreOld); 
-			}
-			if(!hideNotLoaded) {
-				addStatusTotals("not_loaded", sName, surveyIdent, projectId, user, sd, groupby, sList, is_forward, oId, ignoreOld); 
-			}
-			if(!hideUploadErrors) {
-				addStatusTotals("upload_errors", sName, surveyIdent, projectId, user, sd, groupby, sList, is_forward, oId, ignoreOld); 
-			}
+			// One pass over the upload events counts every status.  The success total always
+			// covers all records, the others honour ignore_old_issues.
+			addStatusTotals(hideSuccess, hideErrors, hideDuplicates, hideMerged, hideNotLoaded, hideUploadErrors,
+					sName, surveyIdent, projectId, user, sd, groupby, sList, is_forward, oId, ignoreOld);
 			
 			
 			ArrayList<String> totals = new ArrayList<String> ();
@@ -1093,9 +1079,25 @@ public class EventList extends Application {
 		return jo.toString();
 	}
 	
+	/*
+	 * Get the totals for every status in one pass.
+	 *
+	 * Each status used to be queried separately, so opening the monitor page ran six scans over
+	 * the same project or survey history.  Counting with a filter per status gets the same
+	 * numbers from a single scan.
+	 *
+	 * The success total has always covered all records whatever ignore_old_issues is set to,
+	 * while the others honour it.  The age restriction therefore goes inside each filter rather
+	 * than into the where clause, where it would apply to every status alike.
+	 */
 	private void addStatusTotals(
-			String status, 
-			String sName, 
+			boolean hideSuccess,
+			boolean hideErrors,
+			boolean hideDuplicates,
+			boolean hideMerged,
+			boolean hideNotLoaded,
+			boolean hideUploadErrors,
+			String sName,
 			String surveyIdent,
 			int projectId,
 			String user,
@@ -1105,242 +1107,180 @@ public class EventList extends Application {
 			boolean isForward,
 			int oId,
 			boolean ignoreOld) throws SQLException {
-		
+
 		PreparedStatement pstmt = null;
-		
+
 		try {
-			
-			String selectStatus = null;
-			if(status.equals("success")) {
-				selectStatus = "AND ue.db_status = 'success' ";
-			} else if(status.equals("errors")) {
-				selectStatus = "AND (coalesce(ue.db_status,'') = 'error' AND coalesce(ue.db_reason,'') not like 'Duplicate survey:%') ";
-			} else if(status.equals("not_loaded")) {
-				selectStatus = "AND ue.status != 'error' and ue.db_status is null ";
-			} else if(status.equals("duplicates")) {
-				selectStatus = "AND ue.db_status = 'error' AND ue.db_reason like 'Duplicate survey:%' ";
-			} else if(status.equals("merged")) {
-				selectStatus = "AND ue.db_status = 'merged' ";
-			} else if(status.equals("upload_errors")) {
-				selectStatus = "AND ue.status = 'error' ";
+
+			StringBuffer counts = new StringBuffer("");
+			addStatusCount(counts, hideSuccess, "success", false);		// Always all records
+			addStatusCount(counts, hideErrors, "errors", ignoreOld);
+			addStatusCount(counts, hideDuplicates, "duplicates", ignoreOld);
+			addStatusCount(counts, hideMerged, "merged", ignoreOld);
+			addStatusCount(counts, hideNotLoaded, "not_loaded", ignoreOld);
+			addStatusCount(counts, hideUploadErrors, "upload_errors", ignoreOld);
+
+			if(counts.length() == 0) {
+				return;			// Every status hidden, nothing to count
 			}
-			
-			String sql = null;
-			if(sName == null || sName.equals("_all")) {
-				String projSelect = "";
-				if(projectId != 0) {	// set to 0 to get all available projects
-					projSelect = " AND up.p_id = ? ";
+
+			boolean allSurveys = (sName == null || sName.equals("_all"));
+			String aggregate = null;
+			String order = "desc";
+
+			// Parameters are bound below in the order the conditions are appended here
+			StringBuffer where = new StringBuffer("where u.ident = ? ");
+
+			if(allSurveys) {
+				aggregate = "ue.ident";
+				where.append("and p.o_id = ? ");
+				if(projectId != 0) {		// 0 is not a valid project but represents all projects
+					where.append("and up.p_id = ? ");
 				}
-				String aggregate;
-				String getDest;
-				if(isForward) {
-					aggregate = "ue.ident, se.dest";
-					getDest = ",se.dest ";
-				} else {
-					aggregate = "ue.ident";
-					getDest = "";
-				}
-				
-				sql = "SELECT count(*), ue.ident "
-						+ getDest
-						+ "from upload_event ue "
-						+ "inner join user_project up "
-						+ "on ue.p_id = up.p_id "
-						+ "inner join users u "
-						+ "on up.u_id = u.id "
-						+ "inner join project p "
-						+ "on up.p_id = p.id "
-						+ "where u.ident = ? "
-						+ "and p.o_id = ? "
-						+ getObsoleteFilter(ignoreOld)
-						+ selectStatus
-						+ projSelect
-						+ "GROUP BY " + aggregate
-						+ " ORDER BY " + aggregate + " desc";
-	
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, user);
-				pstmt.setInt(2, oId);
-				if(projectId != 0) {
-					pstmt.setInt(3, projectId);
-				}
-			} else if(groupby == null || groupby.equals("device")) {
-				
-				String aggregate;
-				String getDest;
-				if(isForward) {
-					aggregate = "ue.imei, se.dest";
-					getDest = ",se.dest ";
-				} else {
+			} else {
+				if(groupby == null || groupby.equals("device")) {
 					aggregate = "ue.imei";
-					getDest = "";
+					order = "asc";
+				} else if(groupby.equals("month")) {
+					aggregate = "extract(year from upload_time) || '-' || "
+							+ "lpad(cast(extract(month from upload_time) as varchar), 2, '0')";
+				} else if(groupby.equals("week")) {
+					aggregate = "extract(year from upload_time) || '-' || "
+							+ "lpad(cast(extract(week from upload_time) as varchar), 2, '0')";
+				} else if(groupby.equals("day")) {
+					aggregate = "extract(year from upload_time) || '-' || "
+							+ "lpad(cast(extract(month from upload_time) as varchar), 2, '0') || '-' || "
+							+ "lpad(cast(extract(day from upload_time) as varchar), 2, '0') ";
+				} else {
+					return;			// Unknown grouping
 				}
-				
-				sql = "SELECT count(*), ue.imei "
-						+ getDest
-						+ "from upload_event ue "
-						+ "inner join user_project up "
-						+ "on ue.p_id = up.p_id "
-						+ "inner join users u "
-						+ "on up.u_id = u.id "
-						+ "inner join project p "
-						+ "on up.p_id = p.id "
-						+ "where u.ident = ? "
-						+ "and ue.ident = ? "
-						+ "and up.p_id = ? "
-						+ "and p.o_id = ? "
-						+ getObsoleteFilter(ignoreOld)
-						+ selectStatus
-						+ " group by " + aggregate
-						+ " order by " + aggregate + " asc";
-				
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, user);
-				pstmt.setString(2, surveyIdent);
-				pstmt.setInt(3, projectId);
-				pstmt.setInt(4, oId);
-				
-			} else if(groupby.equals("month")) {
-				
-				String aggregate = "extract(year from upload_time) || '-' || lpad(cast(extract(month from upload_time) as varchar), 2, '0')";
-				
-				if(isForward) {
-	
-					aggregate += ",se.dest ";
-				} 
-				
-				sql = "SELECT count(*), " 
-						+ aggregate
-						+ " from upload_event ue "
-						+ "inner join user_project up "
-						+ "on ue.p_id = up.p_id "
-						+ "inner join users u "
-						+ "on up.u_id = u.id "
-						+ "inner join project p "
-						+ "on up.p_id = p.id "
-						+ "where u.ident = ? "
-						+ "and ue.ident = ? "
-						+ "and up.p_id = ? "
-						+ "and p.o_id = ? "
-						+ getObsoleteFilter(ignoreOld)
-						+ selectStatus
-						+ " group by " + aggregate
-						+ " order by " + aggregate + " desc";
-				
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, user);
-				pstmt.setString(2, surveyIdent);
-				pstmt.setInt(3, projectId);
-				pstmt.setInt(4, oId);
-			} else if(groupby.equals("week")) {			
-	
-				String aggregate = "extract(year from upload_time) || '-' || lpad(cast(extract(week from upload_time) as varchar), 2, '0')";
-				if(isForward) {			
-					aggregate += ", se.dest ";
-				} 
-				
-				sql = "SELECT count(*), " 
-						+ aggregate
-						+ " from upload_event ue "
-						+ "inner join user_project up "
-						+ "on ue.p_id = up.p_id "
-						+ "inner join users u "
-						+ "on up.u_id = u.id "
-						+ "inner join project p "
-						+ "on up.p_id = p.id "
-						+ "where u.ident = ? "
-						+ "and ue.ident = ? "
-						+ "and up.p_id = ? "
-						+ "and p.o_id = ? "
-						+ getObsoleteFilter(ignoreOld)
-						+ selectStatus
-						+ " group by " + aggregate
-						+ " order by " + aggregate + " desc";
-				
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, user);
-				pstmt.setString(2, surveyIdent);
-				pstmt.setInt(3, projectId);
-				pstmt.setInt(4, oId);
-				
-			} else if(groupby.equals("day")) {
-				
-				String aggregate = "extract(year from upload_time) || '-' || "
-						+ "lpad(cast(extract(month from upload_time) as varchar), 2, '0') || '-' || "
-						+ "lpad(cast(extract(day from upload_time) as varchar), 2, '0') ";	
-				if(isForward) {
-					aggregate += ",se.dest ";
-				}
-				
-				sql = "SELECT count(*), " 
-						+ aggregate
-						+ " from upload_event ue "
-						+ "inner join user_project up "
-						+ "on ue.p_id = up.p_id "
-						+ "inner join users u "
-						+ "on up.u_id = u.id "
-						+ "inner join project p "
-						+ "on up.p_id = p.id "
-						+ "where u.ident = ? "
-						+ "and ue.ident = ? "
-						+ "and up.p_id = ? "
-						+ "and p.o_id = ? "
-						+ getObsoleteFilter(ignoreOld)
-						+ selectStatus
-						+ " group by " + aggregate
-						+ " order by " + aggregate + " desc";
-				
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, user);
-				pstmt.setString(2, surveyIdent);
-				pstmt.setInt(3, projectId);
-				pstmt.setInt(4, oId);
+				where.append("and ue.ident = ? ")
+					.append("and up.p_id = ? ")
+					.append("and p.o_id = ? ");
 			}
-	
+
+			String selectDest = isForward ? ", se.dest" : "";
+			String groupOrder = isForward ? aggregate + ", se.dest" : aggregate;
+
+			String sql = "select " + aggregate + " as tkey" + selectDest + counts.toString() + " "
+					+ "from upload_event ue "
+					+ "inner join user_project up "
+					+ "on ue.p_id = up.p_id "
+					+ "inner join users u "
+					+ "on up.u_id = u.id "
+					+ "inner join project p "
+					+ "on up.p_id = p.id "
+					+ where.toString()
+					+ "group by " + groupOrder
+					+ " order by " + groupOrder + " " + order;
+
+			pstmt = sd.prepareStatement(sql);
+			int argIdx = 1;
+			pstmt.setString(argIdx++, user);
+			if(allSurveys) {
+				pstmt.setInt(argIdx++, oId);
+				if(projectId != 0) {
+					pstmt.setInt(argIdx++, projectId);
+				}
+			} else {
+				pstmt.setString(argIdx++, surveyIdent);
+				pstmt.setInt(argIdx++, projectId);
+				pstmt.setInt(argIdx++, oId);
+			}
+
 			log.info("Get totals for events: " + pstmt.toString());
-	
-			 ResultSet resultSet = pstmt.executeQuery();
-			 while (resultSet.next()) {
-				 int count = resultSet.getInt(1);
-				 String key = resultSet.getString(2);
-				 String dest = "";
-				 if(isForward) {
-					 dest = resultSet.getString(3);
-				 }
-				 
-				 if(sName == null || sName.equals("_all")) {
-					 // Convert survey ident to display name
-					 String sIdent = key;
-					 String nm = GeneralUtilityMethods.getSurveyNameFromIdent(sd, sIdent);
-					 if(nm != null) {
-						 key = nm;
-					 }
-				 }
-				 StatusTotal st = sList.get(key + dest);
-				
-				 if(st == null) {
-					 st = new StatusTotal();
-					 sList.put(key + dest, st);
-					 st.key = key;
-					 st.dest = dest;
-				 }
-				 if(status.equals("success")) {
-					 st.success = count;
-				 } else if(status.equals("errors")) {
-					 st.errors = count;
-				 } else if(status.equals("duplicates")) {
-					 st.duplicates = count;
-				 } else if(status.equals("merged")) {
-					 st.merged = count;
-				 } else if(status.equals("not_loaded")) {
-					 st.notLoaded = count;
-				 } else if(status.equals("upload_errors")) {
-					 st.uploadErrors = count;
-				 }
-			 }
+
+			HashMap<String, String> surveyNames = new HashMap<String, String> ();
+			ResultSet resultSet = pstmt.executeQuery();
+			while (resultSet.next()) {
+				String key = resultSet.getString("tkey");
+				String dest = "";
+				if(isForward) {
+					dest = resultSet.getString("dest");
+				}
+
+				if(allSurveys) {
+					// Convert survey ident to display name.  Cached because there is one lookup
+					// per group and an organisation can have a lot of surveys.
+					String sIdent = key;
+					String nm = surveyNames.get(sIdent);
+					if(nm == null) {
+						nm = GeneralUtilityMethods.getSurveyNameFromIdent(sd, sIdent);
+						if(nm == null) {
+							nm = sIdent;
+						}
+						surveyNames.put(sIdent, nm);
+					}
+					key = nm;
+				}
+
+				StatusTotal st = sList.get(key + dest);
+				if(st == null) {
+					st = new StatusTotal();
+					sList.put(key + dest, st);
+					st.key = key;
+					st.dest = dest;
+				}
+
+				if(!hideSuccess) {
+					st.success = resultSet.getInt("success");
+				}
+				if(!hideErrors) {
+					st.errors = resultSet.getInt("errors");
+				}
+				if(!hideDuplicates) {
+					st.duplicates = resultSet.getInt("duplicates");
+				}
+				if(!hideMerged) {
+					st.merged = resultSet.getInt("merged");
+				}
+				if(!hideNotLoaded) {
+					st.notLoaded = resultSet.getInt("not_loaded");
+				}
+				if(!hideUploadErrors) {
+					st.uploadErrors = resultSet.getInt("upload_errors");
+				}
+			}
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
+	}
+
+	/*
+	 * Add the "count(*) filter (...)" column for one status, unless it is hidden.
+	 *
+	 * ignoreOld restricts that status to recent uploads.  It is applied per status rather than
+	 * in the where clause because the success total covers all records regardless.
+	 */
+	private void addStatusCount(StringBuffer counts, boolean hide, String status, boolean ignoreOld) {
+
+		if(hide) {
+			return;
+		}
+
+		String condition = null;
+		if(status.equals("success")) {
+			condition = "ue.db_status = 'success'";
+		} else if(status.equals("errors")) {
+			// Written without coalesce() so that an index can be used.  coalesce(db_status,'')
+			// could never equal 'error' anyway, so this matches the same rows.
+			condition = "ue.db_status = 'error' "
+					+ "and (ue.db_reason is null or ue.db_reason not like 'Duplicate survey:%')";
+		} else if(status.equals("duplicates")) {
+			condition = "ue.db_status = 'error' and ue.db_reason like 'Duplicate survey:%'";
+		} else if(status.equals("merged")) {
+			condition = "ue.db_status = 'merged'";
+		} else if(status.equals("not_loaded")) {
+			condition = "ue.status != 'error' and ue.db_status is null";
+		} else if(status.equals("upload_errors")) {
+			condition = "ue.status = 'error'";
+		}
+
+		counts.append(", count(*) filter (where ").append(condition);
+		if(ignoreOld) {
+			counts.append(" and ue.upload_time > now() - interval '100 days'");
+		}
+		counts.append(") as ").append(status);
 	}
 	
 	private void addNotificationTotals(String status, 
