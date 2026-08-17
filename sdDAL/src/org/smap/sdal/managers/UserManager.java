@@ -142,7 +142,9 @@ public class UserManager {
 					+ "o.ft_im_ri, "
 					+ "o.ft_im_acc, "
 					+ "o.password_expiry, "
-					+ "u.basic_password "
+					+ "u.basic_password, "
+					+ "u.totp_secret, "
+					+ "u.totp_confirmed "
 					+ "from users u, organisation o, enterprise e "
 					+ "where u.ident = ? "
 					+ "and u.o_id = o.id "
@@ -208,6 +210,9 @@ public class UserManager {
 				user.ft_im_ri = resultSet.getInt("ft_im_ri");
 				user.ft_im_acc = resultSet.getInt("ft_im_acc");		
 				
+				user.twoFactorEnabled = resultSet.getString("totp_secret") != null
+						&& resultSet.getBoolean("totp_confirmed");
+
 				passwordAge = resultSet.getInt("password_age");
 				orgPasswordExpiry = resultSet.getInt("password_expiry");
 				noBasicPassword = resultSet.getString("basic_password") == null;
@@ -1743,7 +1748,8 @@ public class UserManager {
 				+ "u.email as u_email, "
 				+ "u.o_id as u_o_id, "
 				+ "o.name as o_name, "
-				+ "u.language "
+				+ "u.language, "
+				+ "u.totp_secret is not null and u.totp_confirmed as two_factor "
 				+ "from users u, organisation o "
 				+ "where (u.o_id = ? or u.id in (select uo.u_id from user_organisation uo where uo.o_id = ?)) "
 				+ "and not u.temporary "
@@ -1916,8 +1922,15 @@ public class UserManager {
 						}
 					}
 					
-				} 
-				
+				}
+
+				// Always take two factor from the live row.  The branch above may have
+				// rehydrated the user from the settings JSON archived in user_organisation,
+				// which would otherwise serve whatever was true when they left the organisation.
+				if(user != null) {
+					user.twoFactorEnabled = rs.getBoolean("two_factor");
+				}
+
 				// Always get Organisation list from the current settings
 				if((isOrgUser || isAdminUser) && user != null) {
 					if(rsOrgs != null) try {rsOrgs.close();} catch(Exception e) {};

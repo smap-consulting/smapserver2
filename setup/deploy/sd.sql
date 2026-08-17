@@ -543,3 +543,14 @@ BEGIN
 		CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 	END IF;
 END $$;
+
+-- Optional two factor authentication (TOTP).  Apache authenticates the password, the
+-- application then requires a code before it will serve the console.
+alter table users add column if not exists totp_secret text;			-- base32, null until the user enrols
+alter table users add column if not exists totp_confirmed boolean default false;	-- true once a code has been verified
+alter table users add column if not exists totp_enrolled timestamp with time zone;
+alter table users add column if not exists totp_last_counter bigint;	-- last accepted time step, stops a code being replayed
+
+-- Key used to sign the step up cookie.  Generated on first use, shared by every web app.
+-- Rotating it invalidates every outstanding step up.
+alter table server add column if not exists two_factor_key text;

@@ -90,6 +90,7 @@ public class LogManager {
 	public static String SUBMISSION_TASK = "task submissions";
 	public static String TASK = "task";
 	public static String TRANSCRIBE = "transcribe";
+	public static String TWO_FACTOR = "two factor";
 	public static String TRANSCRIBE_MEDICAL = "transcribe_medical";
 	public static String TRANSLATE = "translate";
 	public static String SENTIMENT = "sentiment";

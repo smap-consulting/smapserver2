@@ -76,7 +76,9 @@ public class User {
 	public int ft_im_ri;
 	public int ft_im_acc;
 	public boolean passwordExpired;
-	
+	public boolean twoFactorEnabled;	// Read only - two factor is changed through its own service, never by saving a user
+	public boolean twoFactorRequired;	// Set on the logged in user when a code is needed before the console can be used
+
 	public boolean hasSecurityGroup(int id) {
 		for(UserGroup ug : groups) {
 			if(ug.id == id) {

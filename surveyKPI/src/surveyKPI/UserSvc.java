@@ -44,6 +44,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.ServerSettings;
+import org.smap.sdal.Utilities.TwoFactorSession;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.UserManager;
@@ -103,6 +104,11 @@ public class UserSvc extends Application {
 				
 				UserManager um = new UserManager(localisation);
 				user = um.getByIdent(sd, request.getRemoteUser());
+
+				// This service is exempt from the two factor filter, because it is the call
+				// every console page makes on load and therefore how the console finds out
+				// that a code is needed
+				user.twoFactorRequired = TwoFactorSession.isRequired(sd, request);
 
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				String resp = gson.toJson(user);

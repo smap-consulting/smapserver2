@@ -111,6 +111,10 @@ public class XLSUsersManager {
 				} else {
 					value = user.language;
 				}
+			} else if(name.equals("2fa")) {
+				// Reported only.  getXLSUsersList ignores this column, so two factor can
+				// never be turned on or off by importing a spreadsheet.
+				value = user.twoFactorEnabled ? "yes" : "";
 			}
 			
 			if(value == null) {
@@ -185,6 +189,7 @@ public class XLSUsersManager {
 		cols.add(new Column(localisation, colNumber++, "projects", false, styles.get("header_tasks"), false));
 		cols.add(new Column(localisation, colNumber++, "roles", false, styles.get("header_tasks"), false));
 		cols.add(new Column(localisation, colNumber++, "language", false, styles.get("header_tasks"), false));
+		cols.add(new Column(localisation, colNumber++, "2fa", false, styles.get("header_tasks"), false));
 		
 		return cols;
 	}

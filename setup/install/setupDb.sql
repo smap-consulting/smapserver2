@@ -148,7 +148,8 @@ create TABLE server (
 	sharepoint_username text,					-- NTLM username
 	sharepoint_password text,					-- NTLM password
 	sharepoint_domain text,						-- NTLM Windows domain
-	record_user_backfilled boolean default false	-- One off backfill of record_user owner rows from _assigned has completed
+	record_user_backfilled boolean default false,	-- One off backfill of record_user owner rows from _assigned has completed
+	two_factor_key text							-- Signs the two factor step up cookie, generated on first use
 	);
 ALTER TABLE server OWNER TO ws;
 
@@ -381,6 +382,10 @@ CREATE TABLE users (
 	current_survey_id integer,		-- Set to the last survey the user selected - deprecate
 	current_survey_ident text,		-- Set to the last survey the user selected
 	current_task_group_id integer,	-- Set to the last task group the user selected
+	totp_secret text,				-- Two factor authentication, base32 secret, null until the user enrols
+	totp_confirmed boolean default false,	-- Two factor is only active once a code has been verified
+	totp_enrolled timestamp with time zone,
+	totp_last_counter bigint,		-- Last accepted time step, stops a code being replayed
 	one_time_password varchar(36),	-- For password reset
 	one_time_password_expiry timestamp with time zone,		-- Time and date one time password expires
 	one_time_password_sent timestamp with time zone,		-- Time and date one time password was sent
