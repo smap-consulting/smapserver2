@@ -78,7 +78,7 @@ public class User {
 	public boolean passwordExpired;
 	public boolean twoFactorEnabled;	// Read only - two factor is changed through its own service, never by saving a user
 	public boolean twoFactorRequired;	// Set on the logged in user when a code is needed before the console can be used
-	public boolean legacyPassword;		// Read only - password still held as the old unsalted SHA-1 rather than bcrypt
+	public boolean legacyPassword;		// Read only - no basic_password yet, so only the old MD5 digest can authenticate them
 
 	public boolean hasSecurityGroup(int id) {
 		for(UserGroup ug : groups) {

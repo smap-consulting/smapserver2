@@ -510,14 +510,17 @@ public class UserManager {
 
 		int u_id = -1;
 		/*
-		 * One password hash, bcrypt.  users.password held an unsalted MD5 digest HA1 and
-		 * basic_password an unsalted SHA-1, both of the same password and both fast enough
-		 * to be worth cracking from a database dump.  Apache validates every location
-		 * against basic_password now, and apr_password_validate reads bcrypt from it.
+		 * Both hashes.  basic_password is bcrypt and is what the console checks;
+		 * users.password is the MD5 digest HA1 the device and API locations still check.
+		 *
+		 * Writing only the bcrypt would leave a device accepting the previous password,
+		 * and dropping the digest entirely would lock out anyone who has never had a
+		 * basic_password set - see the section 5 comment in a24-smap-volatile.conf.
 		 */
 		String sql = "insert into users (ident, realm, name, email, o_id, imported, "
-				+ "language, basic_password, created, password_set) " +
+				+ "language, password, basic_password, created, password_set) " +
 				" values (?, ?, ?, ?, ?, ?, ?, "
+				+ "md5(?),"
 				+ "crypt(?, gen_salt('bf', 10)),"
 				+ " now(), now());";
 
@@ -543,7 +546,8 @@ public class UserManager {
 			pstmt.setInt(5, o_id);
 			pstmt.setBoolean(6,u.imported);
 			pstmt.setString(7,  HtmlSanitise.checkCleanName(language, localisation));
-			pstmt.setString(8, u.password);
+			pstmt.setString(8, u.ident + ":smap:" + u.password);		// Digest HA1 for the device locations
+			pstmt.setString(9, u.password);
 			log.fine("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 
@@ -796,6 +800,7 @@ public class UserManager {
 				if((adminUserOrgId == currentUserOrgId) || isSwitch) {
 					
 					// update the current settings for the user
+					String pwdString = null;
 					if(u.password == null) {
 						// Do not update the password
 						sql = "update users set "
@@ -817,10 +822,13 @@ public class UserManager {
 								+ "email = ?, "
 								+ "o_id = ?, "
 								+ "reset_total_tasks = true, "	// recalculate task count cache
+								+ "password = md5(?), "			// Digest HA1, still checked by the device locations
 								+ "basic_password = crypt(?, gen_salt('bf', 10)), "
 								+ "password_set = now() "
 								+ "where "
 								+ "id = ?";
+
+						pwdString = u.ident + ":smap:" + u.password;
 
 						// Delete any session keys for this user
 						GeneralUtilityMethods.deleteAccessKeys(sd, u.ident);
@@ -846,8 +854,9 @@ public class UserManager {
 					if(u.password == null) {
 						pstmt.setInt(6, u.id);
 					} else {
-						pstmt.setString(6, u.password);
-						pstmt.setInt(7, u.id);
+						pstmt.setString(6, pwdString);
+						pstmt.setString(7, u.password);
+						pstmt.setInt(8, u.id);
 					}
 
 					log.fine("Update user details: " + pstmt.toString());
@@ -902,6 +911,7 @@ public class UserManager {
 			pwm.checkStrength(pwd.password);
 
 			sql = "update users set "
+					+ "password = md5(?), "			// Digest HA1, still checked by the device locations
 					+ "basic_password = crypt(?, gen_salt('bf', 10)), "
 					+ "password_set = now() "
 					+ "where "
@@ -911,8 +921,9 @@ public class UserManager {
 			GeneralUtilityMethods.deleteAccessKeys(sd, ident);
 
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, pwd.password);
-			pstmt.setString(2, ident);
+			pstmt.setString(1, ident + ":smap:" + pwd.password);
+			pstmt.setString(2, pwd.password);
+			pstmt.setString(3, ident);
 		
 			log.fine("Update password: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -1622,10 +1633,11 @@ public class UserManager {
 				+ "o.name as o_name, "
 				+ "u.language, "
 				+ "u.totp_secret is not null and u.totp_confirmed as two_factor, "
-				// A password that has not been changed since the move to bcrypt is still
-				// held as an unsalted SHA-1.  Apache accepts both, so these accounts work;
-				// this is here so an administrator can see who still needs to reset.
-				+ "u.basic_password is not null and u.basic_password not like '$2%' as legacy_password "
+				// Accounts with no basic_password at all can only authenticate by the old
+				// MD5 digest, and are what stops that hash being dropped.  They migrate on
+				// their own the next time they use fieldTask - see PasswordMigrationManager -
+				// so this is a progress indicator rather than a list of people to chase.
+				+ "u.basic_password is null as legacy_password "
 				+ "from users u, organisation o "
 				+ "where (u.o_id = ? or u.id in (select uo.u_id from user_organisation uo where uo.o_id = ?)) "
 				+ "and not u.temporary "

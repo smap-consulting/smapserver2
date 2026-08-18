@@ -27,6 +27,7 @@ import java.util.logging.Logger;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.smap.sdal.managers.ApiTokenManager;
+import org.smap.sdal.managers.PasswordMigrationManager;
 
 /*
  * Who is making this request, resolved once.
@@ -60,6 +61,7 @@ public class RequestIdentity {
 	public static final String SCOPE_APP = ApiTokenManager.SCOPE_APP;	// fieldTask and other devices
 
 	private static final ApiTokenManager tokenManager = new ApiTokenManager();
+	private static final PasswordMigrationManager passwordMigration = new PasswordMigrationManager();
 
 	public enum Source {
 		APACHE,			// Apache authenticated the password and set REMOTE_USER
@@ -134,6 +136,15 @@ public class RequestIdentity {
 
 		if(identity == null && request != null && request.getRemoteUser() != null) {
 			identity = new RequestIdentity(request.getRemoteUser(), Source.APACHE, null, dynamicKey);
+
+			/*
+			 * A device request carries the password Apache just checked against the old
+			 * MD5 digest.  If this user has no bcrypt yet, take it - it is the only way
+			 * they will ever get one without being asked to reset, and the enumerators
+			 * this affects are the least able to arrange that.  Costs nothing once the
+			 * last account has moved across.
+			 */
+			passwordMigration.migrateIfNeeded(sd, request, identity.ident);
 		}
 
 		if(identity == null && request != null) {

@@ -597,10 +597,12 @@ insert into enterprise(id, name, changed_by, changed_ts) values(1, 'Default', ''
 insert into organisation(id, name, e_id, can_edit, owner) values(1, 'Smap', 1, 'true', 0);
 
 -- The initial administrator.  The password is 'admin' and must be changed on first use.
--- Hashed here rather than pasted as a literal so a new server starts on bcrypt; the
--- {SHA} and MD5 digest values this row used to carry were both unsalted.
-insert into users (id, ident, realm, basic_password, o_id, name, email)
-	values (1, 'admin', 'smap', crypt('admin', gen_salt('bf', 10)), 1, 'Administrator', '');
+-- Hashed here rather than pasted as literals so a new server starts on bcrypt for the
+-- console.  password is the MD5 digest HA1 that the device and API locations still check
+-- - see the section 5 comment in a24-smap-volatile.conf for why both are still needed.
+insert into users (id, ident, realm, password, basic_password, o_id, name, email)
+	values (1, 'admin', 'smap', md5('admin:smap:admin'), crypt('admin', gen_salt('bf', 10)),
+		1, 'Administrator', '');
 
 insert into groups(id,name) values(1,'admin');
 insert into groups(id,name) values(2,'analyst');
