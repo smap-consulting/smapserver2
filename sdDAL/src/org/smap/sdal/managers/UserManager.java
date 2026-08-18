@@ -1632,12 +1632,7 @@ public class UserManager {
 				+ "u.o_id as u_o_id, "
 				+ "o.name as o_name, "
 				+ "u.language, "
-				+ "u.totp_secret is not null and u.totp_confirmed as two_factor, "
-				// Accounts with no basic_password at all can only authenticate by the old
-				// MD5 digest, and are what stops that hash being dropped.  They migrate on
-				// their own the next time they use fieldTask - see PasswordMigrationManager -
-				// so this is a progress indicator rather than a list of people to chase.
-				+ "u.basic_password is null as legacy_password "
+				+ "u.totp_secret is not null and u.totp_confirmed as two_factor "
 				+ "from users u, organisation o "
 				+ "where (u.o_id = ? or u.id in (select uo.u_id from user_organisation uo where uo.o_id = ?)) "
 				+ "and not u.temporary "
@@ -1817,7 +1812,6 @@ public class UserManager {
 				// which would otherwise serve whatever was true when they left the organisation.
 				if(user != null) {
 					user.twoFactorEnabled = rs.getBoolean("two_factor");
-					user.legacyPassword = rs.getBoolean("legacy_password");
 				}
 
 				// Always get Organisation list from the current settings
