@@ -37,11 +37,11 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.LogManager;
@@ -91,10 +91,7 @@ public class Data_CSV2 extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("koboToolBoxApi-getDataCSV-2");
-		String remoteUser = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "api");
-		if(remoteUser == null) {
-			return Response.status(Status.UNAUTHORIZED).build();
-		}
+		String remoteUser = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_API);
 		a.isAuthorised(sd, remoteUser);
 
 		PrintWriter outWriter = null;
@@ -183,7 +180,7 @@ public class Data_CSV2 extends Application {
 		String connectionString = "Api - get data records 2 csv";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		String remoteUser = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "api");
+		String remoteUser = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_API);
 		
 		DataEntryPoints dep = new DataEntryPoints();
 		dep.getCSVData(VERSION, sd, connectionString, request, response, remoteUser, 

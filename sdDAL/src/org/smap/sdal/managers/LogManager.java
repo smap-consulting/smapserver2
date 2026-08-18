@@ -91,6 +91,7 @@ public class LogManager {
 	public static String TASK = "task";
 	public static String TRANSCRIBE = "transcribe";
 	public static String TWO_FACTOR = "two factor";
+	public static String API_TOKEN = "api token";
 	public static String TRANSCRIBE_MEDICAL = "transcribe_medical";
 	public static String TRANSLATE = "translate";
 	public static String SENTIMENT = "sentiment";

@@ -46,6 +46,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.AssignmentsManager;
 import org.smap.sdal.managers.LookupManager;
@@ -103,7 +104,9 @@ public class TokenAccess extends Application {
 			throws SQLException, ApplicationException {
 		
 		AssignmentsManager am = new AssignmentsManager();
-		return am.getTasks(request, request.getRemoteUser(), noProjects, getOrgs, 
+		// Null - everything under /token is granted by Apache, so getTasks resolves the
+		// caller from the x-api-key header rather than from REMOTE_USER
+		return am.getTasks(request, null, noProjects, getOrgs,
 				getLinkedRefDefns, getManifests, true);
 	}
 	
@@ -120,16 +123,10 @@ public class TokenAccess extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 
 		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			String user = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_APP);
 
-			String user = request.getRemoteUser();
-			if(user == null) {
-				user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-			}
-			if(user == null) {
-				throw new AuthorisationException("Unknown User");
-			}
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, user));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			log.info("Requesting instance as: " + user);
 			WebFormManager wfm = new WebFormManager(localisation, "UTC");
 			resp = wfm.getInstanceData(sd, request, formIdent, updateid, 0, user, true);
@@ -163,16 +160,10 @@ public class TokenAccess extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 
 		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			String user = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_APP);
 
-			String user = request.getRemoteUser();
-			if(user == null) {
-				user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-			}
-			if(user == null) {
-				throw new AuthorisationException("Unknown User");
-			}
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, user));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			log.info("Requesting instance as: " + user);
 			WebFormManager wfm = new WebFormManager(localisation, "UTC");
 			resp = wfm.getInstanceData(sd, request, formIdent, null, taskId, user, true);
@@ -279,10 +270,7 @@ public class TokenAccess extends Application {
 		
 		try {
 			sd = SDDataSource.getConnection(connectionString);
-			String user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-			if(user == null) {
-				throw new AuthorisationException("Unknown User");
-			}
+			String user = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_APP);
 			a.isAuthorised(sd, user);	//Authorisation - Access 
 			response = Response.ok("{}").build();
 		} finally {
@@ -376,13 +364,7 @@ public class TokenAccess extends Application {
 		
 		// Authorisation - Access - Allow enumerators access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		String user = request.getRemoteUser();
-		if(user == null) {
-			user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-		}
-		if(user == null) {
-			throw new AuthorisationException("Unknown User");
-		}
+		String user = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_APP);
 		a.isAuthorised(sd, request, user);
 		a.isValidTask(sd, user, taskId);
 		// End authorisation

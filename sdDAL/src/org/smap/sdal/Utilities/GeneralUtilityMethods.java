@@ -2952,50 +2952,6 @@ public class GeneralUtilityMethods {
 		return userIdent;
 	}
 	
-	/*
-	 * Get a dynamic user's details from the key passed in the request
-	 */
-	public static String getUserFromRequestKey(Connection sd, HttpServletRequest request, String keyName) throws ApplicationException {
-
-		String userIdent = null;
-
-		String sql = null;
-		if(keyName.equals("api")) {
-			sql = "select ident from users where api_key = ? ";
-		} else if(keyName.equals("app")) {
-			sql = "select ident from users where app_key = ? ";
-		} else {
-			throw new ApplicationException("Invalid Key Name: " + keyName);
-		}
-		PreparedStatement pstmt = null;
-
-		try {
-
-			/*
-			 * Get the key from the request
-			 */
-			String key = request.getHeader("x-api-key");
-			
-			/*
-			 * Get the user id
-			 */
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, key);
-			// log.fine("Get User Ident:" + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
-				userIdent = rs.getString(1);
-			} 
-
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			userIdent = null;
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-		}
-
-		return userIdent;
-	}
 
 	/*
 	 * Return true if this questions appearance means that choices come from an
@@ -10646,31 +10602,6 @@ public class GeneralUtilityMethods {
 		return md5;
 	}
 	
-	/*
-	 * Returns true if the provided password is correct for the user
-	 */
-	public static boolean isPasswordValid(Connection sd, String username, String password) throws SQLException {
-		boolean valid = false;
-		
-    	String sql = "select count(*) from users where ident = ? and password = md5(?) ";
-    	PreparedStatement pstmt = null;
-    	
-    	String pwdString = username + ":smap:" + password;
-    	try {
-    		pstmt = sd.prepareStatement(sql);
-    		pstmt.setString(1,  username);
-    		pstmt.setString(2, pwdString);
-    		ResultSet rs = pstmt.executeQuery();
-    		if(rs.next()) {
-    			valid = rs.getInt(1) > 0;
-    		}
-    		
-    	} finally {
-    		if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
-    	}
-		return valid;
-		
-	}
 	
 	/*
 	 * Return true if the throwable is a transient database-connection failure

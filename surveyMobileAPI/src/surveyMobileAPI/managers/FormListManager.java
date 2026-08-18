@@ -11,13 +11,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import jakarta.xml.bind.JAXBContext;
 
 import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.ServerConfig;
 import org.smap.sdal.legacy.SurveyTemplate;
@@ -68,27 +69,23 @@ public class FormListManager {
 		String connectionString = "surveyMobileAPI-FormList";
 		Connection sd = SDDataSource.getConnection(connectionString);
 		
-		String user = request.getRemoteUser();
-		if(user == null) {
-			user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-		}
-		if(user == null) {
-			throw new AuthorisationException("Unknown User");
-		}
-	    a.isAuthorised(sd, request, user);	//Authorisation - Access 
-
 		String host = ServerConfig.getHost(request);
 		int portNumber = ServerConfig.getPortNumber(request);
 		String javaRosaVersion = request.getHeader("X-OpenRosa-Version");
 		ArrayList<org.smap.sdal.model.Survey> surveys = null;
-		
+
 		try {
+			// Authorisation - Access.  Inside the try, so that a refusal returns the
+			// connection to the pool - this is the request an unauthenticated caller makes.
+			String user = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_APP);
+			a.isAuthorised(sd, request, user);
+
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, user));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
+
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
+			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request, user);
 			surveys = sm.getSurveys(sd, 
 					user, 
 					false, 
@@ -117,7 +114,9 @@ public class FormListManager {
 			resp = writer.toString();
 			
 			response = Response.ok(resp).header("X-OpenRosa-Version", javaRosaVersion).build();
-			
+
+		} catch (WebApplicationException wae) {		// Authentication and authorisation refusals carry their own response
+			throw wae;
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "SQL Error", e);
 			response = Response.serverError().entity(e.getMessage()).build();
@@ -154,17 +153,11 @@ public class FormListManager {
 
 		try {
 
-			user = request.getRemoteUser();
-			if(user == null) {
-				user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-			}
-			if(user == null) {
-				throw new AuthorisationException("Unknown User");
-			}
-			
+			user = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_APP);
+
 			try {
 				superUser = GeneralUtilityMethods.isSuperUser(sd, user);
-				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, user));
 				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			} catch (Exception e) {
 				log.info("Error getting localisation");
@@ -185,8 +178,8 @@ public class FormListManager {
 			response = xForm.get(template, false, true, false, user, request);
 			log.info("userevent: " + user + " : download survey : " + templateName);		
 
-		} catch (AuthorisationException ae) { 
-			throw ae;
+		} catch (WebApplicationException wae) {		// Authentication and authorisation refusals carry their own response
+			throw wae;
 		} catch (ApplicationException e) {
 			response = e.getMessage();
 			String msg = localisation.getString("msg_err_template");

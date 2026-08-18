@@ -15,6 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.core.Context;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.ServerConfig;
 import org.smap.sdal.managers.ExternalFileManager;
@@ -70,15 +71,7 @@ public class ManifestManager {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyMobileAPI-FormsManifest");
-		String user = request.getRemoteUser();
-		// If the user is still null try token authentication
-		if(user == null) {
-			try {
-				user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-			} catch (Exception e) {
-				log.log(Level.SEVERE, e.getMessage(), e);
-			}
-		}
+		String user = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_APP);
 		a.isAuthorised(sd, request, user);
 		
 		boolean superUser = false;

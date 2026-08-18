@@ -43,6 +43,8 @@ import org.smap.sdal.Utilities.LogonLimiter;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.ApiTokenManager;
+import org.smap.sdal.model.ApiToken;
 import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.Utilities.TwoFactorSession;
 import org.smap.sdal.managers.LogManager;
@@ -132,31 +134,42 @@ public class UserSvc extends Application {
 	class KeyDetails {
 		String apiKey;
 	}
-	
+
 	/*
-	 * Get the user's API key
-	 * In all cases these are called by a user to on their own keys and authorisation is not requried
-	 */	
+	 * The user's own API key.
+	 *
+	 * Superseded by /surveyKPI/token, which allows several named tokens and stores only
+	 * their hashes.  These three are kept so that a console that has not been rebuilt keeps
+	 * working, and they now operate on the newest api scope token rather than users.api_key.
+	 *
+	 * getMyApiKey can no longer return the value - it is not stored - so it reports whether
+	 * one exists.  Anything needing the value has to create a new token and read it once.
+	 */
 	@GET
 	@Path("/api_key")
 	@Produces("application/json")
-	public Response getMyApiKey(@Context HttpServletRequest request) { 
+	public Response getMyApiKey(@Context HttpServletRequest request) {
 
 		Response response = null;
 		String connectionString = "surveyKPI-UserSvc-GetApiKey";
 
-		// Authorisation - Not required
+		// Authorisation - Not required, a user may always see their own keys
 		Connection sd = SDDataSource.getConnection(connectionString);
-		
+
 		try {
 			KeyDetails key = new KeyDetails();
-			UserManager um = new UserManager(null);
-			key.apiKey = um.getKey(sd, request.getRemoteUser(), "api");
+			ApiTokenManager tm = new ApiTokenManager();
+			for(ApiToken t : tm.getTokens(sd, request.getRemoteUser(), ApiTokenManager.SCOPE_API)) {
+				if(t.revoked == null) {
+					key.apiKey = t.prefix + "...";		// Enough to show one is set, never the value
+					break;
+				}
+			}
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(key);
 			response = Response.ok(resp).build();
-			
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			response = Response.serverError().build();
@@ -166,76 +179,83 @@ public class UserSvc extends Application {
 
 		return response;
 	}
-	
-	
+
+	/*
+	 * Revoke every API token the user holds
+	 */
 	@DELETE
 	@Path("/api_key")
-	public Response deleteMyApiKey(@Context HttpServletRequest request) { 
+	public Response deleteMyApiKey(@Context HttpServletRequest request) {
 
 		Response response = null;
 		String connectionString = "surveyKPI-UserSvc-DeleteApiKey";
 
 		// Authorisation - Not required
 		Connection sd = SDDataSource.getConnection(connectionString);
-		
+
 		try {
-			UserManager um = new UserManager(null);
-			um.deleteKey(sd, request.getRemoteUser(), "api");
+			ApiTokenManager tm = new ApiTokenManager();
+			tm.revokeAll(sd, request.getRemoteUser(), ApiTokenManager.SCOPE_API,
+					request.getRemoteUser(), request.getServerName());
 
 			response = Response.ok("").build();
-			
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			response = Response.serverError().build();
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 		}
-		
+
 		return response;
 	}
-	
+
 	/*
-	 * Create a new API key
+	 * Issue a new API token.  The only call that ever returns the value.
 	 */
 	@POST
 	@Path("/api_key/create")
-	public Response createApiKey(@Context HttpServletRequest request) { 
-		
+	public Response createApiKey(@Context HttpServletRequest request) {
+
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
 			log.info("Error: Non ajax request");
-	        throw new AuthorisationException();   
-		} 
-		
+			throw new AuthorisationException();
+		}
+
 		Response response = null;
 		KeyDetails key = new KeyDetails();
 		String authString = "surveyKPI-UserSvc-CreateApiKey";
-		
+
 		// Authorisation - Not Required - the user is updating their own settings
 		Connection sd = SDDataSource.getConnection(authString);
-		
-		try {	
 
-			UserManager um = new UserManager(null);
-			key.apiKey = um.createKey(sd, request.getRemoteUser(), "api");
-				
+		try {
+			ApiTokenManager tm = new ApiTokenManager();
+			// Replace rather than accumulate, matching what this endpoint used to do
+			tm.revokeAll(sd, request.getRemoteUser(), ApiTokenManager.SCOPE_API,
+					request.getRemoteUser(), request.getServerName());
+			ApiToken token = tm.create(sd, request.getRemoteUser(), ApiTokenManager.SCOPE_API,
+					"console", null, request.getRemoteUser(), request.getServerName());
+			key.apiKey = token.value;
+
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(key);
 			response = Response.ok(resp).build();
-				
+
 		} catch (Exception e) {
 
 			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE,"Error", e);
-			
+
 		} finally {
-			
+
 			SDDataSource.closeConnection(authString, sd);
 		}
-		
+
 		return response;
 	}
-	
+
 	/*
 	 * Update the user settings
 	 */

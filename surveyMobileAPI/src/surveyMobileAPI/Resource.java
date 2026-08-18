@@ -36,6 +36,7 @@ import jakarta.ws.rs.core.Response.Status;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.FileManager;
 import org.smap.sdal.managers.OfflineLayerManager;
@@ -107,12 +108,8 @@ public class Resource extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 
 		try {
-			String user = request.getRemoteUser();
-			if(user == null) {
-				user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-			}
-
 			// Authorisation - Access
+			String user = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_APP);
 			a.isAuthorised(sd, request, user);
 			// End Authorisation
 

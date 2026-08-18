@@ -46,6 +46,7 @@ import jakarta.ws.rs.core.Response.Status;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.DataManager;
@@ -88,7 +89,7 @@ public class Data2 extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		String remoteUser = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "api");
+		String remoteUser = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_API);
 		
 		return dep.getData(VERSION,sd, connectionString, request, remoteUser);
 		
@@ -163,11 +164,8 @@ public class Data2 extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		String remoteUser = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "api");
-		if(remoteUser == null) {
-			return Response.status(Status.UNAUTHORIZED).build();
-		}
-		
+		String remoteUser = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_API);
+
 		// Authorisation, localisation and timezone are determined in getDataRecords
 		DataManager dm = new DataManager(null, "UTC");		
 		dm.getDataRecords(sd,
@@ -219,7 +217,7 @@ public class Data2 extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		String remoteUser = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "api");
+		String remoteUser = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_API);
 		
 		return dep.getSingleDataRecord(sd, connectionString, request, remoteUser,
 				sIdent, uuid, meta, hierarchy, merge, tz);
@@ -251,35 +249,36 @@ public class Data2 extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
+		String remoteUser = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_API);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, remoteUser);
 		} catch (Exception e) {
 		}
-		
-		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);	
-		
-		a.isAuthorised(sd, request, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+
+		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+
+		a.isAuthorised(sd, request, remoteUser);
+		a.isValidSurvey(sd, remoteUser, sId, false, superUser);
 		// End Authorisation
-		
+
 		try {
 			cResults = ResultsDataSource.getConnection(connectionString);
-			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, remoteUser));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
+
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 			String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
-			
-			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
+
+			if(!GeneralUtilityMethods.isApiEnabled(sd, remoteUser)) {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}
-			
+
 			DataManager dm = new DataManager(localisation, tz);
 
-			response = dm.getRecordHierarchy(sd, cResults, 
-					request.getRemoteUser(),
+			response = dm.getRecordHierarchy(sd, cResults,
+					remoteUser,
 					sIdent,
 					sId,
 					null,
@@ -320,15 +319,16 @@ public class Data2 extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
+		String remoteUser = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_API);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, remoteUser);
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		a.isAuthorised(sd, request, remoteUser);
+		a.isValidSurvey(sd, remoteUser, sId, false, superUser);
 		// End Authorisation
-			
+
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		try {			
@@ -374,22 +374,21 @@ public class Data2 extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
+		String remoteUser = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_API);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, remoteUser);
 		} catch (Exception e) {
 		}
-		a.isAuthorised(sd, request, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), creatingSurveyId, false, superUser);
-		a.isValidSurvey(sd, request.getRemoteUser(), changingSurveyId, false, superUser);
+		a.isAuthorised(sd, request, remoteUser);
+		a.isValidSurvey(sd, remoteUser, creatingSurveyId, false, superUser);
+		a.isValidSurvey(sd, remoteUser, changingSurveyId, false, superUser);
 		// End Authorisation
-			
+
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		try {
-			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
+
 			String creatingSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, creatingSurveyId);
 			String changingSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, changingSurveyId);
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, creatingSurveyId);
@@ -432,10 +431,10 @@ public class Data2 extends Application {
 
 		Response response;
 			
-			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_SINGLE_VIEW, "Managed Forms or the API. ", 0, request.getServerName());
+			lm.writeLog(sd, sId, RequestIdentity.effectiveIdent(request), LogManager.API_SINGLE_VIEW, "Managed Forms or the API. ", 0, request.getServerName());
 			
 			
-			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
+			if(!GeneralUtilityMethods.isApiEnabled(sd, RequestIdentity.effectiveIdent(request))) {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}
 
@@ -444,7 +443,7 @@ public class Data2 extends Application {
 			Survey s = sm.getById(
 					sd, 
 					cResults, 
-					request.getRemoteUser(),
+					RequestIdentity.effectiveIdent(request),
 					false,
 					sId, 
 					true, 		// full
@@ -510,10 +509,24 @@ public class Data2 extends Application {
 			@QueryParam("format") String format			// dt for datatables otherwise assume kobo
 			) { 
 
+		/*
+		 * Apache grants /api/v2 unauthenticated, so the caller is identified here from
+		 * the x-api-key header rather than by REMOTE_USER, which is always null
+		 */
+		String connectionString = "koboToolBoxAPI - get similar records";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		String remoteUser;
+		try {
+			remoteUser = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_API);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
 		DataManager dm = new DataManager(null, null);
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 		String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
-		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit, 
+		return dm.getSimilarDataRecords(request, remoteUser,
+				select, format, sId, fId, mgmt, start, limit,
 				urlprefix,
 				attachmentPrefix);
 	}

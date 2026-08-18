@@ -516,7 +516,8 @@ public class Data extends Application {
 		DataManager dm = new DataManager(null, null);
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 		String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
-		return dm.getSimilarDataRecords(request, select, format, sId, fId, mgmt, start, limit, 
+		return dm.getSimilarDataRecords(request, request.getRemoteUser(),	// Version 1 is authenticated by Apache
+				select, format, sId, fId, mgmt, start, limit,
 				urlprefix,
 				attachmentPrefix);
 	}

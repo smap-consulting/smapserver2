@@ -44,6 +44,8 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.ApiTokenManager;
+import org.smap.sdal.model.ApiToken;
 import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.ActionManager;
@@ -910,35 +912,46 @@ public class UserList extends Application {
 	 */
 	
 	/*
-	 * Get the users app key
+	 * The device tokens a user holds.
+	 *
+	 * Superseded by /surveyKPI/token, which allows several named tokens per user.  Kept so
+	 * that a console that has not been rebuilt keeps working.
+	 *
+	 * The value can no longer be returned - only its hash is stored - so this reports
+	 * whether a token exists and the QR code can only be rendered from the response to a
+	 * create.  A token that has been lost is replaced, not recovered.
 	 */
 	@GET
 	@Path("/app_key/{user}")
 	@Produces("application/json")
 	public Response getAppKey(@Context HttpServletRequest request,
-			@PathParam("user") String user) { 
+			@PathParam("user") String user) {
 
 		Response response = null;
 		String connectionString = "surveyKPI-UserSvc-GetAppKey";
 
 		HashMap<String, String> keys = new HashMap<>();
-		
+
 		// Authorisation
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidUserIdent(sd, request.getRemoteUser(), user);
-		// End Authorisation	
+		// End Authorisation
 		try {
-			UserManager um = new UserManager(null);
-			
-			keys.put("auth_token", um.getKey(sd, user, "app"));
+			ApiTokenManager tm = new ApiTokenManager();
+			for(ApiToken t : tm.getTokens(sd, user, ApiTokenManager.SCOPE_APP)) {
+				if(t.revoked == null) {
+					keys.put("prefix", t.prefix);		// Enough to show one is set, never the value
+					break;
+				}
+			}
 			keys.put("server_url", request.getScheme() + "://" + request.getServerName());
 			keys.put("username", user);
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(keys);
 			response = Response.ok(resp).build();
-			
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			response = Response.serverError().build();
@@ -948,43 +961,48 @@ public class UserList extends Application {
 
 		return response;
 	}
-	
+
 	/*
-	 * Create or replace the users app key
+	 * Issue a device token, replacing any the user already has.  The only call that ever
+	 * returns the value, which is what the QR code is built from.
 	 */
 	@POST
 	@Path("/app_key/{user}")
 	@Produces("application/json")
 	public Response createAppKey(@Context HttpServletRequest request,
-			@PathParam("user") String user) { 
+			@PathParam("user") String user) {
 
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
 			log.info("Error: Non ajax request");
-			throw new AuthorisationException();   
-		} 
-				
+			throw new AuthorisationException();
+		}
+
 		Response response = null;
 		String connectionString = "surveyKPI-UserSvc-CreateAppKey";
 
 		HashMap<String, String> keys = new HashMap<>();
-		
+
 		// Authorisation
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidUserIdent(sd, request.getRemoteUser(), user);
-		// End Authorisation	
+		// End Authorisation
 		try {
-			UserManager um = new UserManager(null);
-			
-			keys.put("auth_token", um.createKey(sd, user, "app"));
+			ApiTokenManager tm = new ApiTokenManager();
+			tm.revokeAll(sd, user, ApiTokenManager.SCOPE_APP,
+					request.getRemoteUser(), request.getServerName());
+			ApiToken token = tm.create(sd, user, ApiTokenManager.SCOPE_APP, "device", null,
+					request.getRemoteUser(), request.getServerName());
+
+			keys.put("auth_token", token.value);
 			keys.put("server_url", request.getScheme() + "://" + request.getServerName());
 			keys.put("username", user);
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(keys);
 			response = Response.ok(resp).build();
-			
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			response = Response.serverError().build();
@@ -994,34 +1012,35 @@ public class UserList extends Application {
 
 		return response;
 	}
-	
+
 	/*
-	 * Delete the users app key
+	 * Revoke every device token the user holds
 	 */
 	@DELETE
 	@Path("/app_key/{user}")
 	@Produces("application/json")
 	public Response deleteAppKey(@Context HttpServletRequest request,
-			@PathParam("user") String user) { 
-		
+			@PathParam("user") String user) {
+
 		Response response = null;
 		String connectionString = "surveyKPI-UserSvc-DeleteAppKey";
 
 		HashMap<String, String> keys = new HashMap<>();
-		
+
 		// Authorisation
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request, request.getRemoteUser());
 		a.isValidUserIdent(sd, request.getRemoteUser(), user);
-		// End Authorisation	
+		// End Authorisation
 		try {
-			UserManager um = new UserManager(null);
-			um.deleteKey(sd, user, "app");
-			
+			ApiTokenManager tm = new ApiTokenManager();
+			tm.revokeAll(sd, user, ApiTokenManager.SCOPE_APP,
+					request.getRemoteUser(), request.getServerName());
+
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(keys);
 			response = Response.ok(resp).build();
-			
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			response = Response.serverError().build();
@@ -1031,7 +1050,7 @@ public class UserList extends Application {
 
 		return response;
 	}
-	
+
 	private String getGroups(ArrayList<UserGroup> groups) {
 		StringBuffer g = new StringBuffer("");
 		if(groups != null) {

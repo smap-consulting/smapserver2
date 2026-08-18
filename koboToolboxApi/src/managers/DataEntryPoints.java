@@ -165,8 +165,8 @@ public class DataEntryPoints {
 			}
 			
 			if(includeHierarchy) {
-				response = dm.getRecordHierarchy(sd, cResults, 
-						request.getRemoteUser(),
+				response = dm.getRecordHierarchy(sd, cResults,
+						remoteUser,
 						sIdent,
 						sId,
 						uuid,
@@ -183,6 +183,7 @@ public class DataEntryPoints {
 						sd,
 						cResults,
 						request,
+						remoteUser,
 						sIdent,
 						sId,
 						uuid,

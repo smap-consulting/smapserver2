@@ -26,6 +26,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.model.SelectChoice;
@@ -119,13 +120,7 @@ public class LookupManager {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		String user = request.getRemoteUser();
-		if(user == null) {
-			user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-		}
-		if(user == null) {
-			throw new AuthorisationException("Unknown User");
-		}
+		String user = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_APP);
 		a.isAuthorised(sd, request, user);
 		boolean superUser = false;
 		try {
@@ -343,13 +338,7 @@ public class LookupManager {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);	
-		String user = request.getRemoteUser();
-		if(user == null) {
-			user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-		}
-		if(user == null) {
-			throw new AuthorisationException("Unknown User");
-		}
+		String user = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_APP);
 		a.isAuthorised(sd, request, user);
 		boolean superUser = false;
 		try {
@@ -413,13 +402,7 @@ public class LookupManager {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);	
-		String user = request.getRemoteUser();
-		if(user == null) {
-			user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-		}
-		if(user == null) {
-			throw new AuthorisationException("Unknown User");
-		}
+		String user = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_APP);
 		a.isAuthorised(sd, request, user);
 		boolean superUser = false;
 		try {

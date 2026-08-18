@@ -463,132 +463,11 @@ public class UserManager {
 	
 	
 	/*
-	 * Get one of the user's keys as identified by the key type
+	 * The per user api_key and app_key columns have been replaced by the api_token table -
+	 * see ApiTokenManager.  Tokens are hashed, may be issued more than one per user, and
+	 * carry a scope, an expiry and a record of use.
 	 */
-	public String getKey(
-			Connection connectionSD,
-			String ident,
-			String keyName			// api || app
-			) throws Exception {
 
-		PreparedStatement pstmt = null;
-
-		String key = null;
-
-		try {
-	
-			String sql = null;
-			if(keyName.equals("api")) {
-				sql = "select api_key from users where ident = ?";
-			} else if(keyName.equals("app")) {
-				sql = "select app_key from users where ident = ?";
-			} else {
-				throw new ApplicationException("Unknown keyName");
-			}
-				
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setString(1, ident);
-
-			log.fine("Get users api key: " + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
-
-			if(rs.next()) {
-				key = rs.getString(1);
-			}
-
-		} catch (Exception e) {
-			log.log(Level.SEVERE,"Error", e);
-			throw new Exception(e);
-
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
-		}
-
-		return key;
-
-	}
-
-	/*
-	 * Create a key
-	 */
-	public String createKey(
-			Connection connectionSD,
-			String ident,
-			String keyName			// api || app
-			) throws Exception {
-
-		PreparedStatement pstmt = null;
-
-		String key = UUID.randomUUID().toString();
-
-		try {
-	
-			String sql = null;
-			if(keyName.equals("api")) {
-				sql = "update users set api_key = ? where ident = ?";
-			} else if(keyName.equals("app")) {
-				sql = "update users set app_key = ? where ident = ?";
-			} else {
-				throw new ApplicationException("Unknown keyName");
-			}
-				
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setString(1, key);
-			pstmt.setString(2, ident);
-
-			log.fine("Create users key: " + pstmt.toString());
-			pstmt.executeUpdate();
-
-		} catch (Exception e) {
-			log.log(Level.SEVERE,"Error", e);
-			throw new Exception(e);
-
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
-		}
-
-		return key;
-
-	}
-	
-	/*
-	 * Delete the user's API key
-	 */
-	public void deleteKey(
-			Connection connectionSD,
-			String ident,
-			String keyName			// api || app
-			) throws Exception {
-
-		PreparedStatement pstmt = null;
-
-		try {
-	
-			String sql = null;
-			if(keyName.equals("api")) {
-				sql = "update users set api_key = null where ident = ?";
-			} else if(keyName.equals("app")) {
-				sql ="update users set app_key = null where ident = ?";
-			} else {
-				throw new ApplicationException("Unknown keyName");
-			}
-			
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setString(1, ident);
-
-			log.fine("Delete users key: " + pstmt.toString());
-			pstmt.executeUpdate();
-
-		} catch (Exception e) {
-			log.log(Level.SEVERE,"Error", e);
-			throw new Exception(e);
-
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
-		}
-
-	}
-	
 	/*
 	 * Create a new user Parameters:
 	 *   u: Details of the new user
@@ -630,11 +509,16 @@ public class UserManager {
 		}
 
 		int u_id = -1;
+		/*
+		 * One password hash, bcrypt.  users.password held an unsalted MD5 digest HA1 and
+		 * basic_password an unsalted SHA-1, both of the same password and both fast enough
+		 * to be worth cracking from a database dump.  Apache validates every location
+		 * against basic_password now, and apr_password_validate reads bcrypt from it.
+		 */
 		String sql = "insert into users (ident, realm, name, email, o_id, imported, "
-				+ "language, password, basic_password, created, password_set) " +
+				+ "language, basic_password, created, password_set) " +
 				" values (?, ?, ?, ?, ?, ?, ?, "
-				+ "md5(?),"
-				+ "'{SHA}'|| encode(digest(?,'sha1'),'base64'),"
+				+ "crypt(?, gen_salt('bf', 10)),"
 				+ " now(), now());";
 
 		PreparedStatement pstmt = null;
@@ -642,8 +526,7 @@ public class UserManager {
 		try {
 			PasswordManager pwm = new PasswordManager(sd, localisation.getLocale(), localisation, userIdent, serverName);	// For new users use the ident of the user creating this user
 			pwm.checkStrength(u.password);
-			
-			String pwdString = u.ident + ":smap:" + u.password;
+
 			String language = u.language;
 			if(language == null || language.trim().length() == 0) {
 				/*
@@ -660,8 +543,7 @@ public class UserManager {
 			pstmt.setInt(5, o_id);
 			pstmt.setBoolean(6,u.imported);
 			pstmt.setString(7,  HtmlSanitise.checkCleanName(language, localisation));
-			pstmt.setString(8, pwdString);
-			pstmt.setString(9, u.password);
+			pstmt.setString(8, u.password);
 			log.fine("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 
@@ -914,7 +796,6 @@ public class UserManager {
 				if((adminUserOrgId == currentUserOrgId) || isSwitch) {
 					
 					// update the current settings for the user
-					String pwdString = null;
 					if(u.password == null) {
 						// Do not update the password
 						sql = "update users set "
@@ -936,14 +817,11 @@ public class UserManager {
 								+ "email = ?, "
 								+ "o_id = ?, "
 								+ "reset_total_tasks = true, "	// recalculate task count cache
-								+ "password = md5(?), "
-								+ "basic_password = '{SHA}'|| encode(digest(?,'sha1'),'base64'), "
+								+ "basic_password = crypt(?, gen_salt('bf', 10)), "
 								+ "password_set = now() "
 								+ "where "
 								+ "id = ?";
-	
-						pwdString = u.ident + ":smap:" + u.password;
-						
+
 						// Delete any session keys for this user
 						GeneralUtilityMethods.deleteAccessKeys(sd, u.ident);
 					}
@@ -968,9 +846,8 @@ public class UserManager {
 					if(u.password == null) {
 						pstmt.setInt(6, u.id);
 					} else {
-						pstmt.setString(6, pwdString);
-						pstmt.setString(7, u.password);
-						pstmt.setInt(8, u.id);
+						pstmt.setString(6, u.password);
+						pstmt.setInt(7, u.id);
 					}
 
 					log.fine("Update user details: " + pstmt.toString());
@@ -1015,32 +892,27 @@ public class UserManager {
 			/*
 			 * Update what can be updated by the user, excluding the current project id, survey id, form id and task group
 			 */
-			String pwdString = null;
 			String sql = null;
 			PasswordManager pwm  = null;
-			
+
 			/*
 			 * Verify that the password is strong enough
 			 */
 			pwm = new PasswordManager(sd, locale, localisation, ident, serverName);
 			pwm.checkStrength(pwd.password);
-				
+
 			sql = "update users set "
-					+ "password = md5(?), "
-					+ "basic_password = '{SHA}'|| encode(digest(?,'sha1'),'base64'), "
+					+ "basic_password = crypt(?, gen_salt('bf', 10)), "
 					+ "password_set = now() "
 					+ "where "
 					+ "ident = ?";
-				
-			pwdString = ident + ":smap:" + pwd.password;
-				
+
 			// Delete any session keys for this user
 			GeneralUtilityMethods.deleteAccessKeys(sd, ident);
-			
+
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, pwdString);
-			pstmt.setString(2, pwd.password);
-			pstmt.setString(3, ident);
+			pstmt.setString(1, pwd.password);
+			pstmt.setString(2, ident);
 		
 			log.fine("Update password: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -1749,7 +1621,11 @@ public class UserManager {
 				+ "u.o_id as u_o_id, "
 				+ "o.name as o_name, "
 				+ "u.language, "
-				+ "u.totp_secret is not null and u.totp_confirmed as two_factor "
+				+ "u.totp_secret is not null and u.totp_confirmed as two_factor, "
+				// A password that has not been changed since the move to bcrypt is still
+				// held as an unsalted SHA-1.  Apache accepts both, so these accounts work;
+				// this is here so an administrator can see who still needs to reset.
+				+ "u.basic_password is not null and u.basic_password not like '$2%' as legacy_password "
 				+ "from users u, organisation o "
 				+ "where (u.o_id = ? or u.id in (select uo.u_id from user_organisation uo where uo.o_id = ?)) "
 				+ "and not u.temporary "
@@ -1929,6 +1805,7 @@ public class UserManager {
 				// which would otherwise serve whatever was true when they left the organisation.
 				if(user != null) {
 					user.twoFactorEnabled = rs.getBoolean("two_factor");
+					user.legacyPassword = rs.getBoolean("legacy_password");
 				}
 
 				// Always get Organisation list from the current settings

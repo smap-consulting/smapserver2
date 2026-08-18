@@ -58,6 +58,7 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.BlockedException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.NotFoundException;
@@ -168,10 +169,13 @@ public class WebForm extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 
 		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			// Resolve the user from the key first - REMOTE_USER is null here, the link is
+			// granted by Apache, so the locale has to come from whoever the key names
+			userIdent = GeneralUtilityMethods.getDynamicUser(sd, authorisationKey);
+
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, userIdent));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
-			userIdent = GeneralUtilityMethods.getDynamicUser(sd, authorisationKey);
 			WebFormManager wfm = new WebFormManager(localisation, "UTC");
 			resp = wfm.getInstanceData(sd, request, formIdent, updateid, 0, userIdent, false);
 		} catch (SQLException e) {

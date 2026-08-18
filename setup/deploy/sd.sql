@@ -554,3 +554,48 @@ alter table users add column if not exists totp_last_counter bigint;	-- last acc
 -- Key used to sign the step up cookie.  Generated on first use, shared by every web app.
 -- Rotating it invalidates every outstanding step up.
 alter table server add column if not exists two_factor_key text;
+
+-- API and device tokens.  api_key and app_key were UUIDs held in plaintext in users, one
+-- of each per user, with no expiry, no scope, no record of use and no index - so every
+-- token authenticated request also cost a sequential scan of users.
+--
+-- Only the sha256 of a token is stored now.  The existing values are hashed in place
+-- below, so every client that holds one keeps working and nothing has to be reissued.
+-- users.api_key and users.app_key are left in place for one release as a way back, and
+-- are no longer read or written.
+create sequence if not exists api_token_seq start 1;
+alter sequence api_token_seq owner to ws;
+
+create table if not exists api_token (
+	id integer default nextval('api_token_seq') constraint pk_api_token primary key,
+	u_id integer references users(id) on delete cascade,
+	scope text not null,			-- 'api' server to server || 'app' fieldTask and other devices
+	name text,						-- Label chosen by whoever created it
+	token_hash text not null,		-- sha256 of the token value, hex
+	prefix text not null,			-- Leading characters of the value, so a token can be named in the UI and the log
+	created timestamp with time zone default now(),
+	created_by text,
+	expires timestamp with time zone,		-- Null means no expiry
+	last_used timestamp with time zone,
+	last_used_ip text,
+	revoked timestamp with time zone,
+	revoked_by text
+);
+alter table api_token owner to ws;
+create unique index if not exists idx_api_token_hash on api_token(token_hash);
+create index if not exists idx_api_token_u_scope on api_token(u_id, scope) where revoked is null;
+
+-- Carry the existing keys over.  Safe to re-run: the unique index on token_hash means a
+-- second run inserts nothing.
+insert into api_token (u_id, scope, name, token_hash, prefix, created)
+select id, 'api', 'migrated', encode(digest(api_key, 'sha256'), 'hex'), left(api_key, 8), now()
+	from users where api_key is not null
+on conflict (token_hash) do nothing;
+
+insert into api_token (u_id, scope, name, token_hash, prefix, created)
+select id, 'app', 'migrated', encode(digest(app_key, 'sha256'), 'hex'), left(app_key, 8), now()
+	from users where app_key is not null
+on conflict (token_hash) do nothing;
+
+-- The dynamic user keys used by webform links and task assignments were also unindexed
+create index if not exists idx_dynamic_users_key on dynamic_users(access_key);

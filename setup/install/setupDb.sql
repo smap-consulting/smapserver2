@@ -429,7 +429,35 @@ CREATE TABLE dynamic_users (
 	access_key varchar(41),
 	expiry timestamp with time zone
 	);
+CREATE INDEX idx_dynamic_users_key ON dynamic_users(access_key);
 ALTER TABLE dynamic_users OWNER TO ws;
+
+-- Tokens used to authenticate the API and fieldTask.
+-- Only the sha256 of the token is stored, so a database dump does not yield working
+-- credentials and the value can only be shown to the person who created it, once.
+DROP SEQUENCE IF EXISTS api_token_seq CASCADE;
+CREATE SEQUENCE api_token_seq START 1;
+ALTER SEQUENCE api_token_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS api_token CASCADE;
+CREATE TABLE api_token (
+	id INTEGER DEFAULT NEXTVAL('api_token_seq') CONSTRAINT pk_api_token PRIMARY KEY,
+	u_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+	scope text NOT NULL,			-- 'api' server to server || 'app' fieldTask and other devices
+	name text,						-- Label chosen by whoever created it
+	token_hash text NOT NULL,		-- sha256 of the token value, hex
+	prefix text NOT NULL,			-- Leading characters of the value, so a token can be named in the UI and the log
+	created timestamp with time zone DEFAULT now(),
+	created_by text,
+	expires timestamp with time zone,		-- Null means no expiry
+	last_used timestamp with time zone,
+	last_used_ip text,
+	revoked timestamp with time zone,
+	revoked_by text
+	);
+CREATE UNIQUE INDEX idx_api_token_hash ON api_token(token_hash);
+CREATE INDEX idx_api_token_u_scope ON api_token(u_id, scope) WHERE revoked IS NULL;
+ALTER TABLE api_token OWNER TO ws;
 
 DROP TABLE IF EXISTS groups CASCADE;
 create TABLE groups (
@@ -568,8 +596,11 @@ insert into enterprise(id, name, changed_by, changed_ts) values(1, 'Default', ''
 -- Create an organisation with communal ownership
 insert into organisation(id, name, e_id, can_edit, owner) values(1, 'Smap', 1, 'true', 0);
 
-insert into users (id, ident, realm, password, basic_password, o_id, name, email) 
-	values (1, 'admin', 'smap', '9f12895fe9898cc306c45c9d3fcbc3d6', '{SHA}0DPiKuNIrrVmD8IUCuw1hQxNqZc=', 1, 'Administrator', '');
+-- The initial administrator.  The password is 'admin' and must be changed on first use.
+-- Hashed here rather than pasted as a literal so a new server starts on bcrypt; the
+-- {SHA} and MD5 digest values this row used to carry were both unsalted.
+insert into users (id, ident, realm, basic_password, o_id, name, email)
+	values (1, 'admin', 'smap', crypt('admin', gen_salt('bf', 10)), 1, 'Administrator', '');
 
 insert into groups(id,name) values(1,'admin');
 insert into groups(id,name) values(2,'analyst');

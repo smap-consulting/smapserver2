@@ -1054,6 +1054,7 @@ public class DataManager {
 	 * Get similar records for an individual survey in JSON format
 	 */
 	public Response getSimilarDataRecords(HttpServletRequest request,
+			String remoteUser,		// Resolved by the caller - null on the token authenticated paths if taken from the request
 			String select,
 			String format,
 			int sId,
@@ -1065,24 +1066,24 @@ public class DataManager {
 			String attachmentPrefix) {
 		Response response = null;
 
-		ArrayList<String> authorisationsSuper = new ArrayList<String> ();	
+		ArrayList<String> authorisationsSuper = new ArrayList<String> ();
 		authorisationsSuper.add(Authorise.ANALYST);
 		authorisationsSuper.add(Authorise.VIEW_DATA);
 		authorisationsSuper.add(Authorise.VIEW_OWN_DATA);
 		authorisationsSuper.add(Authorise.ADMIN);
 		Authorise aSuper = new Authorise(authorisationsSuper, null);
-		
+
 		String connectionString = "Get similar data records";
-		
+
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, remoteUser);
 		} catch (Exception e) {
 		}
-		aSuper.isAuthorised(sd, request, request.getRemoteUser());
-		aSuper.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		aSuper.isAuthorised(sd, request, remoteUser);
+		aSuper.isValidSurvey(sd, remoteUser, sId, false, superUser);
 		// End Authorisation
 
 		String language = "none";
@@ -1120,10 +1121,10 @@ public class DataManager {
 
 		try {
 			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, remoteUser));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
-			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
+			if(!GeneralUtilityMethods.isApiEnabled(sd, remoteUser)) {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}
 
@@ -1171,7 +1172,7 @@ public class DataManager {
 					language,
 					sId,
 					surveyIdent,
-					request.getRemoteUser(),
+					remoteUser,
 					null,
 					parentform,
 					fId,
@@ -1423,6 +1424,7 @@ public class DataManager {
 			Connection sd,
 			Connection cResults,
 			HttpServletRequest request,
+			String remoteUser,		// Resolved by the caller - REMOTE_USER is null on the token authenticated paths
 			String sIdent,
 			int sId,
 			String uuid,
@@ -1436,10 +1438,10 @@ public class DataManager {
 
 		Response response;
 			
-			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_SINGLE_VIEW, "Managed Forms or the API. ", 0, request.getServerName());
+			lm.writeLog(sd, sId, remoteUser, LogManager.API_SINGLE_VIEW, "Managed Forms or the API. ", 0, request.getServerName());
 			
 			
-			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
+			if(!GeneralUtilityMethods.isApiEnabled(sd, remoteUser)) {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}
 
@@ -1448,7 +1450,7 @@ public class DataManager {
 			Survey s = sm.getById(
 					sd, 
 					cResults, 
-					request.getRemoteUser(),
+					remoteUser,
 					false,
 					sId, 
 					true, 		// full

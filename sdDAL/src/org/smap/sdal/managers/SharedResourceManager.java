@@ -28,6 +28,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -579,20 +580,12 @@ public class SharedResourceManager {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
+		String user = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_APP);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, user);
 		} catch (Exception e) {
 		}
-		String user = request.getRemoteUser();
-		// If the user is still null try setting it using an authentication token
-				if(user == null) {
-					try {
-						user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-					} catch (Exception e) {
-						log.log(Level.SEVERE, e.getMessage(), e);
-					}
-				}
 		aEnum.isAuthorised(sd, request, user);
 		aEnum.isValidSurvey(sd, user, sId, false, superUser);
 		// End Authorisation 
@@ -658,19 +651,11 @@ public class SharedResourceManager {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		// If the passed in user was null try setting it to the authenticated user
+		// The caller may name the user itself; otherwise take whoever the request identifies
 		if(user == null) {
-			user = request.getRemoteUser();
+			user = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_APP);
 		}
-		// If the user is still null try setting it using an authentication token
-		if(user == null) {
-			try {
-				user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-			} catch (Exception e) {
-				log.log(Level.SEVERE, e.getMessage(), e);
-			}
-		}
-		
+
 		if (isTemporaryUser) {
 			aAdmin.isValidTemporaryUser(sd, user);
 		} 

@@ -622,9 +622,10 @@ public class APIEntryPoints extends Application {
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 		String attachmentPrefix = GeneralUtilityMethods.getAttachmentPrefix(request, forDevice);
 		
-		return dm.getSimilarDataRecords(request, select, format, 
-				sId, fId, mgmt, start, limit, 
-				urlprefix, 
+		return dm.getSimilarDataRecords(request, request.getRemoteUser(),	// Console, authenticated by Apache
+				select, format,
+				sId, fId, mgmt, start, limit,
+				urlprefix,
 				attachmentPrefix);
 	}
 	

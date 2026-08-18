@@ -21,6 +21,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.apache.commons.fileupload2.core.FileUploadException;
@@ -98,41 +99,25 @@ public class UploadManager {
 		 * Authenticate the user using either the user id associated with the key, if provided, or the
 		 *  user id they provided on login
 		 */
-		String user = null;
-		boolean isDynamicUser = false;
-		if(key != null) {
-			isDynamicUser = true;  // Do not require roles for a dynamic user
-			try {
-				user = GeneralUtilityMethods.getDynamicUser(sd, key);
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		} else {
-			user = request.getRemoteUser();
-		}
-		
-		// If the user is still null try token authentication
-		if(user == null) {
-			try {
-				user = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-			} catch (Exception e) {
-				log.log(Level.SEVERE, e.getMessage(), e);
-			}
-		}
-		
+		RequestIdentity identity = RequestIdentity.resolve(sd, request, key, RequestIdentity.SCOPE_APP);
+		String user = identity == null ? null : identity.ident;
+
+		// Do not require roles for a dynamic user - the key itself is the grant
+		boolean isDynamicUser = identity != null && identity.source == RequestIdentity.Source.DYNAMIC_KEY;
+
 		if(user != null) {
 			a.isAuthorised(sd, request, user);
 			log.info("User: " + user);
-		} 
+		}
 		
 		// End Authorisation
 
 		// Extract the data
 		ResourceBundle localisation = null;
 		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, user));
 			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
+
 			if(user == null) {
 				if(key == null) {
 					log.info("Error: Attempting to upload results: user not found");

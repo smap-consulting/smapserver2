@@ -115,6 +115,10 @@ public class XLSUsersManager {
 				// Reported only.  getXLSUsersList ignores this column, so two factor can
 				// never be turned on or off by importing a spreadsheet.
 				value = user.twoFactorEnabled ? "yes" : "";
+			} else if(name.equals("legacy_password")) {
+				// Reported only.  Password has not been changed since the move to bcrypt
+				// and is still held as an unsalted SHA-1.
+				value = user.legacyPassword ? "yes" : "";
 			}
 			
 			if(value == null) {
@@ -190,6 +194,7 @@ public class XLSUsersManager {
 		cols.add(new Column(localisation, colNumber++, "roles", false, styles.get("header_tasks"), false));
 		cols.add(new Column(localisation, colNumber++, "language", false, styles.get("header_tasks"), false));
 		cols.add(new Column(localisation, colNumber++, "2fa", false, styles.get("header_tasks"), false));
+		cols.add(new Column(localisation, colNumber++, "legacy_password", false, styles.get("header_tasks"), false));
 		
 		return cols;
 	}

@@ -23,6 +23,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.ServerConfig;
@@ -97,10 +98,7 @@ public class AssignmentsManager {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		if(userIdent == null) {
-			userIdent = GeneralUtilityMethods.getUserFromRequestKey(sd, request, "app");
-		}
-		if(userIdent == null) {
-			throw new AuthorisationException("Unknown User");
+			userIdent = RequestIdentity.requireIdent(sd, request, null, RequestIdentity.SCOPE_APP);
 		}
 		a.isAuthorised(sd, userIdent);
 		// End Authorisation
