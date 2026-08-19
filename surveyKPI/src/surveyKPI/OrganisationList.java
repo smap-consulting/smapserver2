@@ -1434,6 +1434,17 @@ public class OrganisationList extends Application {
 		PreparedStatement pstmtPrjUsers = null;
 		PreparedStatement pstmtUser = null;
 		try {	
+			
+			/*
+			 * Validate the target organisation.  orgId will be 0 if the client did not
+			 * send one, for example if the organisation select was empty
+			 */
+			if(orgId <= 0 || GeneralUtilityMethods.getOrganisationName(sd, orgId) == null) {
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				return Response.status(Status.BAD_REQUEST).entity(localisation.getString("msg_no_org_sel")).build();
+			}
+			
 			sd.setAutoCommit(false);
 					
 			String sql3 = "update project set o_id =  ? where id = ?";			
@@ -1555,16 +1566,28 @@ public class OrganisationList extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			String sql = "update organisation set e_id =  ? " +  
-					" WHERE id = ?; ";			
-			
+			/*
+			 * Validate the source organisation and the target enterprise.  An id will be 0
+			 * if the client did not send it, for example if a select was empty.
+			 * A target enterprise with no organisations is valid
+			 */
+			String orgName = GeneralUtilityMethods.getOrganisationName(sd, orgId);
+			if(orgId <= 0 || orgName == null) {
+				return Response.status(Status.BAD_REQUEST).entity(localisation.getString("msg_no_org_sel")).build();
+			}
+			if(entId <= 0 || GeneralUtilityMethods.getEnterpriseName(sd, entId) == null) {
+				return Response.status(Status.BAD_REQUEST).entity(localisation.getString("msg_no_ent_sel")).build();
+			}
+
+			String sql = "update organisation set e_id =  ? " +
+					" WHERE id = ?; ";
+
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1,  entId);
 			pstmt.setInt(2, orgId);
 			pstmt.executeUpdate();
 			log.info("Move organisation: " + pstmt.toString());
-			
-			String orgName = GeneralUtilityMethods.getOrganisationName(sd, orgId);
+
 			String entName = GeneralUtilityMethods.getEnterpriseName(sd, entId);
 			String msg = localisation.getString("org_move")
 					.replace("%s1", orgName)
