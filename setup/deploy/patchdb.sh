@@ -140,7 +140,7 @@ if [ $a24 -eq 0 ]; then
 	exit 1;
 fi
 
-version=2606
+version=2608
 if [ -e /smap_bin/smap_version ]; then
         version=`sudo cat /smap_bin/smap_version`
 elif [ -e ~/smap_version ]; then
@@ -475,4 +475,4 @@ full_version=`cat ./full_version`
 echo "update server set version = '$full_version'" | sudo -i -u postgres $PSQL -q -d survey_definitions 2>&1
 
 # update version reference
-echo "2606" > /smap_bin/smap_version
+echo "2608" > /smap_bin/smap_version
