@@ -97,6 +97,31 @@ To make them available:
 Note that `dep.sh` starts by deleting `~/deploy/smap`, so during a full build the directory is
 missing until the last step.  Re-run `sh ./shared_libs.sh` if you interrupt a build.
 
+#### Upgrading the version of a shared library
+
+The jar file name carries the version, so it appears in three places that must be changed
+together.  Change the version in only one of them and the library ends up either missing at
+run time or packaged twice:
+
+1.  The `<version>` of the dependency, usually in `sdDAL/pom.xml`.
+2.  `WEB-INF/lib/<name>-<version>.jar` in the `packagingExcludes` of `surveyKPI/pom.xml`,
+    `surveyMobileAPI/pom.xml` and `koboToolboxApi/pom.xml`.
+3.  `<name>-<version>.jar` in `shared-libs.txt`.
+
+Then rebuild and check:
+
+*  `cd sdDAL && mvn clean install && cd ..` so the new version is resolvable.
+*  `sh ./shared_libs.sh` - it stops with `ERROR: shared library not found` if step 3 was
+   missed, and prints `WARNING: ... also contains shared library` if step 2 was missed.
+   It must end with the jar count, and the count should not have dropped.
+*  Restart the Eclipse Tomcat.  A failed `shared_libs.sh` leaves the library out of
+   `~/deploy/smap/deploy/version1/lib` while the war files still exclude it, which shows up
+   as `NoClassDefFoundError` on a class from that library.
+
+Where a library is released as a set - log4j-api with log4j-core, the netty jars, the AWS
+SDK jars, the iText jars - upgrade the whole set to the same version rather than one member
+of it.
+
 The subscribers module needs no extra setup in Eclipse.  It is run from the project build path,
 so Maven supplies the libraries.  Only the packaged `subscribers.jar` relies on `/smap_bin/lib`,
 which is why it is started with `-cp` rather than `-jar` on a server.

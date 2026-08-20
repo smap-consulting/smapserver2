@@ -83,7 +83,7 @@
 					WEB-INF/lib/kernel-8.0.5.jar,
 					WEB-INF/lib/layout-8.0.5.jar,
 					WEB-INF/lib/log4j-1.2.17.jar,
-					WEB-INF/lib/log4j-api-2.25.3.jar,
+					WEB-INF/lib/log4j-api-2.25.5.jar,
 					WEB-INF/lib/log4j-core-2.25.4.jar,
 					WEB-INF/lib/metrics-spi-2.46.17.jar,
 					WEB-INF/lib/netty-buffer-4.1.135.Final.jar,
