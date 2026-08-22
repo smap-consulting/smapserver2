@@ -1566,6 +1566,28 @@ CREATE TABLE sharepoint_list_map (
 CREATE INDEX IF NOT EXISTS sharepoint_list_map_org_idx ON sharepoint_list_map(o_id);
 ALTER TABLE sharepoint_list_map OWNER TO ws;
 
+-- DHIS2 connections
+-- Held per organisation rather than per server so that one tenant can never write into
+-- another tenant's DHIS2.  A tenant may have more than one, for example staging and production
+DROP SEQUENCE IF EXISTS dhis2_server_seq CASCADE;
+CREATE SEQUENCE dhis2_server_seq START 1;
+ALTER SEQUENCE dhis2_server_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS dhis2_server CASCADE;
+CREATE TABLE dhis2_server (
+	id integer DEFAULT nextval('dhis2_server_seq') NOT NULL PRIMARY KEY,
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	label text NOT NULL,					-- Shown when choosing a connection
+	base_url text NOT NULL,					-- Root of the DHIS2 instance, no trailing /api
+	api_token text,							-- DHIS2 personal access token, sent as "ApiToken <token>"
+	api_version text,						-- Optional version pin, eg "42".  Null uses the default
+	last_tested TIMESTAMP WITH TIME ZONE,
+	last_test_result text,					-- Summary of the last connection test
+	enabled boolean DEFAULT true
+	);
+CREATE INDEX IF NOT EXISTS dhis2_server_org_idx ON dhis2_server(o_id);
+ALTER TABLE dhis2_server OWNER TO ws;
+
 CREATE SCHEMA csv AUTHORIZATION ws;
 
 DROP SEQUENCE IF EXISTS du_seq CASCADE;

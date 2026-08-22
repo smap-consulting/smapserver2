@@ -599,3 +599,23 @@ on conflict (token_hash) do nothing;
 
 -- The dynamic user keys used by webform links and task assignments were also unindexed
 create index if not exists idx_dynamic_users_key on dynamic_users(access_key);
+
+-- Version 26.09 DHIS2 connections
+-- Held per organisation rather than per server so that one tenant can never write into
+-- another tenant's DHIS2.  A tenant may have more than one, for example staging and production
+CREATE SEQUENCE IF NOT EXISTS dhis2_server_seq START 1;
+ALTER SEQUENCE dhis2_server_seq OWNER TO ws;
+
+CREATE TABLE IF NOT EXISTS dhis2_server (
+	id integer DEFAULT nextval('dhis2_server_seq') NOT NULL PRIMARY KEY,
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	label text NOT NULL,					-- Shown when choosing a connection
+	base_url text NOT NULL,					-- Root of the DHIS2 instance, no trailing /api
+	api_token text,							-- DHIS2 personal access token, sent as "ApiToken <token>"
+	api_version text,						-- Optional version pin, eg "42".  Null uses the default
+	last_tested TIMESTAMP WITH TIME ZONE,
+	last_test_result text,					-- Summary of the last connection test
+	enabled boolean DEFAULT true
+	);
+CREATE INDEX IF NOT EXISTS dhis2_server_org_idx ON dhis2_server(o_id);
+ALTER TABLE dhis2_server OWNER TO ws;
