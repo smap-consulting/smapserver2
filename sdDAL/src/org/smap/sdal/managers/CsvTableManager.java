@@ -89,6 +89,8 @@ public class CsvTableManager {
 	private final int ADD_ENTRY = 1;
 	private final int UPDATE_ENTRY = 2;
 	private final int DELETE_ENTRY = 3;
+
+	private static final int BATCH_SIZE = 1000;		// Rows sent to the database per round trip when loading
 	
 	private String sqlGetCsvTable = "select id, headers from csvtable where o_id = ? and s_id = ? and filename = ?";
 	
@@ -209,7 +211,15 @@ public class CsvTableManager {
 		PreparedStatement pstmtCreateSeq = null;
 		PreparedStatement pstmtCreateTable = null;
 		PreparedStatement pstmtAlterColumn = null;
-		
+
+		/*
+		 * The whole load runs in one transaction.  Without this each row is committed separately,
+		 * so a load that fails part way leaves a live table holding some of the rows and lookups
+		 * against it quietly return incomplete results
+		 */
+		boolean autoCommit = sd.getAutoCommit();
+		sd.setAutoCommit(false);
+
 		try {
 			// Open the files
 			FileReader readerNew = new FileReader(newFile);
@@ -238,13 +248,13 @@ public class CsvTableManager {
 			if(!tableExists) {
 				// Create the key sequence
 				String sequenceName = fullTableName + "_seq";
-				StringBuffer sqlCreate = new StringBuffer("create sequence ").append(sequenceName).append(" start 1");
+				/*
+				 * "if not exists" rather than catching the error.  Inside a transaction a swallowed
+				 * error still aborts the transaction, and every statement after it fails
+				 */
+				StringBuffer sqlCreate = new StringBuffer("create sequence if not exists ").append(sequenceName).append(" start 1");
 				pstmtCreateSeq = sd.prepareStatement(sqlCreate.toString());
-				try { 
-					pstmtCreateSeq.executeUpdate();
-				} catch(Exception e) {
-					log.fine(e.getMessage());  // Ignore error
-				}
+				pstmtCreateSeq.executeUpdate();
 				
 						// Create the table
 				sqlCreate = new StringBuffer("create table ").append(fullTableName).append("(");
@@ -291,9 +301,9 @@ public class CsvTableManager {
 			/*
 			 * 3. Upload the data
 			 */
-			truncate();
+			deleteAllRows();
 			insert(listNew, headers.size(), newFile.getName());
-			updateInitialisationTimetamp();	
+			updateInitialisationTimetamp();
 			
 			/*
 			 * 4. Delete any columns that are no longer used
@@ -320,8 +330,14 @@ public class CsvTableManager {
 					}
 				}
 			}
-			
+
+			sd.commit();
+
+		} catch(Exception e) {
+			try { sd.rollback(); } catch(Exception ex) { log.log(Level.SEVERE, "Rollback failed", ex); }
+			throw e;
 		} finally {
+			try { sd.setAutoCommit(autoCommit); } catch(Exception e) { log.log(Level.SEVERE, "Restoring autocommit", e); }
 			if(pstmtCreateSeq != null) {try{pstmtCreateSeq.close();} catch(Exception e) {}}
 			if(pstmtCreateTable != null) {try{pstmtCreateTable.close();} catch(Exception e) {}}
 			if(pstmtAlterColumn != null) {try{pstmtAlterColumn.close();} catch(Exception e) {}}
@@ -480,6 +496,14 @@ public class CsvTableManager {
 		PreparedStatement pstmtCreateTable = null;
 		PreparedStatement pstmtAlterColumn = null;
 
+		/*
+		 * The whole load runs in one transaction.  Without this each row is committed separately,
+		 * so a load that fails part way leaves a live table holding some of the rows and lookups
+		 * against it quietly return incomplete results
+		 */
+		boolean autoCommit = sd.getAutoCommit();
+		sd.setAutoCommit(false);
+
 		try {
 			// Derive column names from the keys of the first row
 			List<String> colNames = new ArrayList<>(rows.get(0).keySet());
@@ -495,9 +519,13 @@ public class CsvTableManager {
 			boolean tableExists = GeneralUtilityMethods.tableExistsInSchema(sd, tableName, schema);
 			if(!tableExists) {
 				String sequenceName = fullTableName + "_seq";
+				/*
+				 * "if not exists" rather than catching the error.  Inside a transaction a swallowed
+				 * error still aborts the transaction, and every statement after it fails
+				 */
 				pstmtCreateSeq = sd.prepareStatement(
-						"create sequence " + sequenceName + " start 1");
-				try { pstmtCreateSeq.executeUpdate(); } catch(Exception e) { log.fine(e.getMessage()); }
+						"create sequence if not exists " + sequenceName + " start 1");
+				pstmtCreateSeq.executeUpdate();
 
 				StringBuilder sqlCreate = new StringBuilder("create table ")
 						.append(fullTableName).append("(");
@@ -534,18 +562,25 @@ public class CsvTableManager {
 			}
 			sqlInsert.append(") values (").append(params).append(")");
 
-			truncate();
+			deleteAllRows();
 
 			PreparedStatement pstmtInsert = null;
 			try {
 				pstmtInsert = sd.prepareStatement(sqlInsert.toString());
+				int batched = 0;
 				for(Map<String, String> row : rows) {
 					int idx = 1;
 					for(CsvHeader h : headers) {
 						String val = row.get(h.fName);
 						pstmtInsert.setString(idx++, val != null ? val.trim() : "");
 					}
-					pstmtInsert.executeUpdate();
+					pstmtInsert.addBatch();
+					if(++batched % BATCH_SIZE == 0) {
+						pstmtInsert.executeBatch();
+					}
+				}
+				if(batched % BATCH_SIZE != 0) {
+					pstmtInsert.executeBatch();
 				}
 			} finally {
 				if(pstmtInsert != null) { try { pstmtInsert.close(); } catch(Exception e) {} }
@@ -553,7 +588,13 @@ public class CsvTableManager {
 
 			updateInitialisationTimetamp();
 
+			sd.commit();
+
+		} catch(Exception e) {
+			try { sd.rollback(); } catch(Exception ex) { log.log(Level.SEVERE, "Rollback failed", ex); }
+			throw e;
 		} finally {
+			try { sd.setAutoCommit(autoCommit); } catch(Exception e) { log.log(Level.SEVERE, "Restoring autocommit", e); }
 			if(pstmtCreateSeq   != null) { try { pstmtCreateSeq.close();   } catch(Exception e) {} }
 			if(pstmtCreateTable != null) { try { pstmtCreateTable.close(); } catch(Exception e) {} }
 			if(pstmtAlterColumn != null) { try { pstmtAlterColumn.close(); } catch(Exception e) {} }
@@ -1238,12 +1279,16 @@ public class CsvTableManager {
 	}
 	
 	/*
-	 * Truncate the csv table
+	 * Empty the table as part of a load that is running inside a transaction
+	 * Delete is used rather than truncate.  Truncate takes an exclusive lock that is held until the
+	 * transaction commits, which would block every lookup against this table for the length of the
+	 * load.  With delete the readers stay on the existing rows until the commit swaps them for the
+	 * new ones, so a lookup sees either the complete old table or the complete new one
 	 */
-	private void truncate() throws SQLException {
-		String sql = "truncate " + fullTableName;
+	private void deleteAllRows() throws SQLException {
+		String sql = "delete from " + fullTableName;
 		PreparedStatement pstmt = null;
-		
+
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.executeUpdate();
@@ -1285,6 +1330,7 @@ public class CsvTableManager {
 		try {
 			pstmt = sd.prepareStatement(sql.toString());
 			int idx = 0;
+			int batched = 0;
 			for(String[] data : records) {
 				if(data.length > 0) {
 					for(int i = 0; i < headerSize; i++) {
@@ -1299,10 +1345,16 @@ public class CsvTableManager {
 						log.fine("Insert first record of csv values: " + pstmt.toString());
 						log.fine("Number of records: " + records.size());
 					}
-					pstmt.executeUpdate();
+					pstmt.addBatch();
+					if(++batched % BATCH_SIZE == 0) {
+						pstmt.executeBatch();
+					}
 				}
 			}
-			
+			if(batched % BATCH_SIZE != 0) {
+				pstmt.executeBatch();
+			}
+
 		} finally {
 			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
 		}
