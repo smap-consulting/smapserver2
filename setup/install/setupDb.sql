@@ -1585,8 +1585,34 @@ CREATE TABLE dhis2_server (
 	last_test_result text,					-- Summary of the last connection test
 	enabled boolean DEFAULT true
 	);
-CREATE INDEX IF NOT EXISTS dhis2_server_org_idx ON dhis2_server(o_id);
+-- One connection per organisation.  A test setup belongs in its own organisation
+CREATE UNIQUE INDEX IF NOT EXISTS dhis2_server_org_unique ON dhis2_server(o_id);
 ALTER TABLE dhis2_server OWNER TO ws;
+
+-- DHIS2 reference data cached as organisation level CSV files
+DROP SEQUENCE IF EXISTS dhis2_map_seq CASCADE;
+CREATE SEQUENCE dhis2_map_seq START 1;
+ALTER SEQUENCE dhis2_map_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS dhis2_map CASCADE;
+CREATE TABLE dhis2_map (
+	id integer DEFAULT nextval('dhis2_map_seq') NOT NULL PRIMARY KEY,
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	dhis2_server_id integer REFERENCES dhis2_server(id) ON DELETE CASCADE,
+	smap_name text NOT NULL,				-- Referenced in a form as "dhis2_{smap_name}"
+	resource_type text NOT NULL,			-- orgunits | optionset | programs
+	dhis2_ref text,							-- The uid or code of the object, for a single object type
+	ou_filter text,							-- Optional org unit subtree, the uid of the root to sync
+	refresh_minutes integer DEFAULT 1440,	-- Metadata changes slowly, a day is plenty
+	last_sync TIMESTAMP WITH TIME ZONE,
+	last_sync_result text,
+	row_count integer,
+	csv_table_id integer REFERENCES csvtable(id) ON DELETE SET NULL,
+	enabled boolean DEFAULT true
+	);
+CREATE INDEX IF NOT EXISTS dhis2_map_org_idx ON dhis2_map(o_id);
+CREATE UNIQUE INDEX IF NOT EXISTS dhis2_map_name_idx ON dhis2_map(o_id, smap_name);
+ALTER TABLE dhis2_map OWNER TO ws;
 
 CREATE SCHEMA csv AUTHORIZATION ws;
 

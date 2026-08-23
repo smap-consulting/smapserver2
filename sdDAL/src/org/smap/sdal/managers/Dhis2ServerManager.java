@@ -23,17 +23,19 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.logging.Logger;
 
 import org.smap.sdal.model.Dhis2Server;
 
 /*
- * DHIS2 connections held by an organisation
+ * The DHIS2 connection belonging to an organisation
+ *
+ * One per organisation.  A test or staging setup belongs in its own Smap organisation rather than
+ * as a second connection here, which keeps a picker out of every screen that follows.
  *
  * The token is write only.  It is never returned by get(), because anything the API returns can
  * end up in a browser, a log or a support ticket.  Callers that need to make a request use
- * getWithToken(), which is package visible to the managers that talk to DHIS2
+ * getWithToken()
  */
 public class Dhis2ServerManager {
 
@@ -44,42 +46,17 @@ public class Dhis2ServerManager {
 			+ "last_test_result, enabled, (api_token is not null and api_token != '') as token_set";
 
 	/*
-	 * All the connections held by an organisation, without their tokens
+	 * The organisation's connection, without its token.  Null if none has been set up
 	 */
-	public ArrayList<Dhis2Server> getServers(Connection sd, int oId) throws SQLException {
-
-		ArrayList<Dhis2Server> servers = new ArrayList<>();
-		String sql = "select " + COLS + " from dhis2_server where o_id = ? order by label asc";
-		PreparedStatement pstmt = null;
-
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, oId);
-			ResultSet rs = pstmt.executeQuery();
-			while(rs.next()) {
-				servers.add(fromResultSet(rs));
-			}
-		} finally {
-			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
-		}
-
-		return servers;
-	}
-
-	/*
-	 * One connection, without its token
-	 * Scoped by organisation so a request cannot reach another tenant's connection by guessing an id
-	 */
-	public Dhis2Server getServer(Connection sd, int oId, int id) throws SQLException {
+	public Dhis2Server get(Connection sd, int oId) throws SQLException {
 
 		Dhis2Server server = null;
-		String sql = "select " + COLS + " from dhis2_server where o_id = ? and id = ?";
+		String sql = "select " + COLS + " from dhis2_server where o_id = ?";
 		PreparedStatement pstmt = null;
 
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
-			pstmt.setInt(2, id);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				server = fromResultSet(rs);
@@ -92,23 +69,22 @@ public class Dhis2ServerManager {
 	}
 
 	/*
-	 * One connection including its token, for making a request
+	 * The connection including its token, for making a request
 	 * Never hand the result of this to anything that serialises to a client
 	 */
-	public Dhis2Server getServerWithToken(Connection sd, int oId, int id) throws SQLException {
+	public Dhis2Server getWithToken(Connection sd, int oId) throws SQLException {
 
-		Dhis2Server server = getServer(sd, oId, id);
+		Dhis2Server server = get(sd, oId);
 		if(server == null) {
 			return null;
 		}
 
-		String sql = "select api_token from dhis2_server where o_id = ? and id = ?";
+		String sql = "select api_token from dhis2_server where o_id = ?";
 		PreparedStatement pstmt = null;
 
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
-			pstmt.setInt(2, id);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				server.api_token = rs.getString(1);
@@ -120,55 +96,32 @@ public class Dhis2ServerManager {
 		return server;
 	}
 
-	public int addServer(Connection sd, int oId, Dhis2Server server) throws SQLException {
-
-		int id = -1;
-		String sql = "insert into dhis2_server (o_id, label, base_url, api_token, api_version, enabled) "
-				+ "values (?, ?, ?, ?, ?, ?)";
-		PreparedStatement pstmt = null;
-
-		try {
-			pstmt = sd.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
-			pstmt.setInt(1, oId);
-			pstmt.setString(2, server.label);
-			pstmt.setString(3, normaliseUrl(server.base_url));
-			pstmt.setString(4, server.api_token);
-			pstmt.setString(5, server.api_version);
-			pstmt.setBoolean(6, server.enabled);
-			log.info("Add DHIS2 connection: " + pstmt.toString());
-			pstmt.executeUpdate();
-
-			ResultSet rs = pstmt.getGeneratedKeys();
-			if(rs.next()) {
-				id = rs.getInt(1);
-			}
-		} finally {
-			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
-		}
-
-		return id;
-	}
-
 	/*
-	 * Update a connection
+	 * Create or update the organisation's connection
+	 *
 	 * An empty token means "leave the one you have".  The UI never receives the token, so it
 	 * cannot send it back, and without this rule every edit would wipe it
 	 */
-	public void updateServer(Connection sd, int oId, Dhis2Server server) throws SQLException {
+	public void save(Connection sd, int oId, Dhis2Server server) throws SQLException {
 
 		boolean setToken = server.api_token != null && server.api_token.trim().length() > 0;
+		boolean exists = get(sd, oId) != null;
 
-		StringBuilder sql = new StringBuilder("update dhis2_server set label = ?, base_url = ?, "
-				+ "api_version = ?, enabled = ?");
-		if(setToken) {
-			sql.append(", api_token = ?");
+		String sql;
+		if(exists) {
+			sql = "update dhis2_server set label = ?, base_url = ?, api_version = ?, enabled = ?"
+					+ (setToken ? ", api_token = ?" : "")
+					+ " where o_id = ?";
+		} else {
+			sql = "insert into dhis2_server (label, base_url, api_version, enabled, "
+					+ (setToken ? "api_token, " : "")
+					+ "o_id) values (?, ?, ?, ?, " + (setToken ? "?, " : "") + "?)";
 		}
-		sql.append(" where o_id = ? and id = ?");
 
 		PreparedStatement pstmt = null;
 
 		try {
-			pstmt = sd.prepareStatement(sql.toString());
+			pstmt = sd.prepareStatement(sql);
 			int idx = 1;
 			pstmt.setString(idx++, server.label);
 			pstmt.setString(idx++, normaliseUrl(server.base_url));
@@ -178,22 +131,21 @@ public class Dhis2ServerManager {
 				pstmt.setString(idx++, server.api_token.trim());
 			}
 			pstmt.setInt(idx++, oId);
-			pstmt.setInt(idx++, server.id);
+			log.info("Save DHIS2 connection for organisation " + oId);
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
 		}
 	}
 
-	public void deleteServer(Connection sd, int oId, int id) throws SQLException {
+	public void delete(Connection sd, int oId) throws SQLException {
 
-		String sql = "delete from dhis2_server where o_id = ? and id = ?";
+		String sql = "delete from dhis2_server where o_id = ?";
 		PreparedStatement pstmt = null;
 
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
-			pstmt.setInt(2, id);
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
@@ -201,19 +153,17 @@ public class Dhis2ServerManager {
 	}
 
 	/*
-	 * Record the outcome of a connection test so it can be shown in the list
+	 * Record the outcome of a connection test so it can be shown without testing again
 	 */
-	public void recordTest(Connection sd, int oId, int id, String summary) throws SQLException {
+	public void recordTest(Connection sd, int oId, String summary) throws SQLException {
 
-		String sql = "update dhis2_server set last_tested = now(), last_test_result = ? "
-				+ "where o_id = ? and id = ?";
+		String sql = "update dhis2_server set last_tested = now(), last_test_result = ? where o_id = ?";
 		PreparedStatement pstmt = null;
 
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, summary);
 			pstmt.setInt(2, oId);
-			pstmt.setInt(3, id);
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}

@@ -619,3 +619,32 @@ CREATE TABLE IF NOT EXISTS dhis2_server (
 	);
 CREATE INDEX IF NOT EXISTS dhis2_server_org_idx ON dhis2_server(o_id);
 ALTER TABLE dhis2_server OWNER TO ws;
+
+-- Version 26.09 DHIS2 reference data sync
+-- Each row is one DHIS2 resource cached as an organisation level CSV, referenced in a form as
+-- "dhis2_{smap_name}".  Mirrors sharepoint_list_map, which does the same job for SharePoint lists
+CREATE SEQUENCE IF NOT EXISTS dhis2_map_seq START 1;
+ALTER SEQUENCE dhis2_map_seq OWNER TO ws;
+
+CREATE TABLE IF NOT EXISTS dhis2_map (
+	id integer DEFAULT nextval('dhis2_map_seq') NOT NULL PRIMARY KEY,
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	dhis2_server_id integer REFERENCES dhis2_server(id) ON DELETE CASCADE,
+	smap_name text NOT NULL,				-- Referenced in a form as "dhis2_{smap_name}"
+	resource_type text NOT NULL,			-- orgunits | optionset | programs
+	dhis2_ref text,							-- The uid or code of the object, for a single object type
+	ou_filter text,							-- Optional org unit subtree, the uid of the root to sync
+	refresh_minutes integer DEFAULT 1440,	-- Metadata changes slowly, a day is plenty
+	last_sync TIMESTAMP WITH TIME ZONE,
+	last_sync_result text,
+	row_count integer,
+	csv_table_id integer REFERENCES csvtable(id) ON DELETE SET NULL,
+	enabled boolean DEFAULT true
+	);
+CREATE INDEX IF NOT EXISTS dhis2_map_org_idx ON dhis2_map(o_id);
+CREATE UNIQUE INDEX IF NOT EXISTS dhis2_map_name_idx ON dhis2_map(o_id, smap_name);
+ALTER TABLE dhis2_map OWNER TO ws;
+
+-- One DHIS2 connection per organisation.  A test setup belongs in its own organisation rather
+-- than as a second connection, which keeps every screen that follows free of a picker
+CREATE UNIQUE INDEX IF NOT EXISTS dhis2_server_org_unique ON dhis2_server(o_id);

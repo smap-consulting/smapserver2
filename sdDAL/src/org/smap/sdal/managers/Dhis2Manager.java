@@ -83,9 +83,12 @@ public class Dhis2Manager {
 			result.reachable = true;
 			result.authenticated = false;
 			result.error = e.getMessage();
+			// Logged because a failed test is the thing someone will be trying to diagnose
+			log.info("DHIS2 test rejected for " + server.base_url + ": " + e.getMessage());
 			return result;
 		} catch (Exception e) {
 			result.error = e.getMessage();
+			log.info("DHIS2 test failed for " + server.base_url + ": " + e.getMessage());
 			return result;
 		}
 
@@ -190,14 +193,19 @@ public class Dhis2Manager {
 			conn = open(server, url, "GET");
 			int status = conn.getResponseCode();
 
-			if(status == HttpURLConnection.HTTP_UNAUTHORIZED || status == HttpURLConnection.HTTP_FORBIDDEN) {
-				throw new Dhis2AuthException("DHIS2 rejected the token (" + status + ")");
-			}
 			if(status < 200 || status > 299) {
-				// Read the error stream once, a second read returns nothing
+				/*
+				 * Read the error stream once, a second read returns nothing.  DHIS2 usually explains
+				 * a rejection in the body, and a token refused for an IP restriction looks exactly
+				 * like a token that is simply wrong unless that explanation is passed on
+				 */
 				String detail = readError(conn);
-				throw new Exception("DHIS2 returned " + status + " for " + path
-						+ (detail == null || detail.isEmpty() ? "" : ": " + detail));
+				String suffix = (detail == null || detail.isEmpty()) ? "" : ": " + detail;
+
+				if(status == HttpURLConnection.HTTP_UNAUTHORIZED || status == HttpURLConnection.HTTP_FORBIDDEN) {
+					throw new Dhis2AuthException("DHIS2 rejected the token (" + status + ")" + suffix);
+				}
+				throw new Exception("DHIS2 returned " + status + " for " + path + suffix);
 			}
 			return read(conn.getInputStream());
 

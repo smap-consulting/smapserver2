@@ -25,7 +25,6 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
@@ -49,39 +48,39 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /*
- * CRUD and connection test for the DHIS2 instances an organisation exchanges data with
- * All endpoints are org scoped (admin only)
+ * The DHIS2 connection belonging to an organisation
+ * One per organisation, so there is no id in any of these paths
  */
-@Path("/dhis2/servers")
-public class Dhis2Servers extends Application {
+@Path("/dhis2/server")
+public class Dhis2ServerConfig extends Application {
 
-	private static Logger log = Logger.getLogger(Dhis2Servers.class.getName());
+	private static Logger log = Logger.getLogger(Dhis2ServerConfig.class.getName());
 
 	Authorise adminAuth;
 
-	public Dhis2Servers() {
+	public Dhis2ServerConfig() {
 		ArrayList<String> auth = new ArrayList<>();
 		auth.add(Authorise.ADMIN);
 		adminAuth = new Authorise(auth, null);
 	}
 
 	// -------------------------------------------------------------------------
-	// GET, the connections held by the caller's organisation
+	// GET, the organisation's connection.  Empty body if none is set up
 	// -------------------------------------------------------------------------
 
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getServers(@Context HttpServletRequest request) {
+	public Response getServer(@Context HttpServletRequest request) {
 
-		String conn = "surveyKPI-Dhis2Servers-get";
+		String conn = "surveyKPI-Dhis2ServerConfig-get";
 		Connection sd = SDDataSource.getConnection(conn);
 		adminAuth.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
-			ArrayList<Dhis2Server> servers = new Dhis2ServerManager().getServers(sd, oId);
+			Dhis2Server server = new Dhis2ServerManager().get(sd, oId);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-			return Response.ok(gson.toJson(servers)).build();
+			return Response.ok(gson.toJson(server == null ? new Dhis2Server() : server)).build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			return Response.serverError().entity(e.getMessage()).build();
@@ -91,59 +90,18 @@ public class Dhis2Servers extends Application {
 	}
 
 	// -------------------------------------------------------------------------
-	// POST, add a connection
-	// -------------------------------------------------------------------------
-
-	@POST
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response addServer(@Context HttpServletRequest request, String body) {
-
-		String conn = "surveyKPI-Dhis2Servers-post";
-		Connection sd = SDDataSource.getConnection(conn);
-		adminAuth.isAuthorised(sd, request, request.getRemoteUser());
-
-		try {
-			Dhis2Server server = new Gson().fromJson(body, Dhis2Server.class);
-
-			String invalid = validate(server);
-			if(invalid != null) {
-				return Response.status(Response.Status.BAD_REQUEST).entity(invalid).build();
-			}
-
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
-			int newId = new Dhis2ServerManager().addServer(sd, oId, server);
-			if(newId < 0) {
-				return Response.serverError().entity("Insert failed").build();
-			}
-
-			// Return the stored version so the token never travels back
-			Dhis2Server stored = new Dhis2ServerManager().getServer(sd, oId, newId);
-			return Response.ok(new Gson().toJson(stored)).build();
-
-		} catch (Exception e) {
-			log.log(Level.SEVERE, e.getMessage(), e);
-			return Response.serverError().entity(e.getMessage()).build();
-		} finally {
-			SDDataSource.closeConnection(conn, sd);
-		}
-	}
-
-	// -------------------------------------------------------------------------
-	// PUT, update a connection.  An empty token leaves the stored one alone
+	// PUT, create or update.  An empty token leaves the stored one alone
 	// -------------------------------------------------------------------------
 
 	@PUT
-	@Path("/{id}")
-	public Response updateServer(@Context HttpServletRequest request,
-			@PathParam("id") int id, String body) {
+	public Response saveServer(@Context HttpServletRequest request, String body) {
 
-		String conn = "surveyKPI-Dhis2Servers-put";
+		String conn = "surveyKPI-Dhis2ServerConfig-put";
 		Connection sd = SDDataSource.getConnection(conn);
 		adminAuth.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			Dhis2Server server = new Gson().fromJson(body, Dhis2Server.class);
-			server.id = id;
 
 			String invalid = validate(server);
 			if(invalid != null) {
@@ -151,7 +109,7 @@ public class Dhis2Servers extends Application {
 			}
 
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
-			new Dhis2ServerManager().updateServer(sd, oId, server);
+			new Dhis2ServerManager().save(sd, oId, server);
 			return Response.ok().build();
 
 		} catch (Exception e) {
@@ -167,16 +125,15 @@ public class Dhis2Servers extends Application {
 	// -------------------------------------------------------------------------
 
 	@DELETE
-	@Path("/{id}")
-	public Response deleteServer(@Context HttpServletRequest request, @PathParam("id") int id) {
+	public Response deleteServer(@Context HttpServletRequest request) {
 
-		String conn = "surveyKPI-Dhis2Servers-delete";
+		String conn = "surveyKPI-Dhis2ServerConfig-delete";
 		Connection sd = SDDataSource.getConnection(conn);
 		adminAuth.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
-			new Dhis2ServerManager().deleteServer(sd, oId, id);
+			new Dhis2ServerManager().delete(sd, oId);
 			return Response.ok().build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
@@ -191,24 +148,25 @@ public class Dhis2Servers extends Application {
 	// -------------------------------------------------------------------------
 
 	@POST
-	@Path("/{id}/test")
+	@Path("/test")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response testServer(@Context HttpServletRequest request, @PathParam("id") int id) {
+	public Response testServer(@Context HttpServletRequest request) {
 
-		String conn = "surveyKPI-Dhis2Servers-test";
+		String conn = "surveyKPI-Dhis2ServerConfig-test";
 		Connection sd = SDDataSource.getConnection(conn);
 		adminAuth.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
-			Dhis2Server server = new Dhis2ServerManager().getServerWithToken(sd, oId, id);
+			Dhis2Server server = new Dhis2ServerManager().getWithToken(sd, oId);
 			if(server == null) {
-				return Response.status(Response.Status.NOT_FOUND).build();
+				return Response.status(Response.Status.NOT_FOUND)
+						.entity("No DHIS2 connection has been set up").build();
 			}
 
 			Dhis2Manager dhis2 = new Dhis2Manager();
 			Dhis2ConnectionTest result = dhis2.test(server);
-			new Dhis2ServerManager().recordTest(sd, oId, id, dhis2.summarise(result));
+			new Dhis2ServerManager().recordTest(sd, oId, dhis2.summarise(result));
 
 			return Response.ok(new Gson().toJson(result)).build();
 
