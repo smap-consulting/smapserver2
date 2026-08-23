@@ -36,6 +36,7 @@ import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.ServerManager;
+import org.smap.sdal.managers.Dhis2MapManager;
 import org.smap.sdal.managers.SharePointListMapManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
@@ -346,6 +347,7 @@ public class SubscriberBatch {
 				applyPeriodicNotifications(dbc.sd, dbc.results, basePath, serverName);
 				applyServerCalculateNotifications(dbc.sd, dbc.results, basePath, serverName);
 				syncSharePointLists(dbc.sd, localisation);
+				syncDhis2Resources(dbc.sd, localisation);
 				
 				// Delete linked csv files logically deleted more than 10 minutes age
 				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
@@ -2370,6 +2372,18 @@ public class SubscriberBatch {
 			new SharePointListMapManager().syncDue(sd, serverData, localisation);
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "SharePoint list sync error: " + e.getMessage(), e);
+		}
+	}
+
+	/*
+	 * Refresh any DHIS2 reference data whose cache has expired
+	 * Each organisation holds its own connection, so there is nothing server wide to check first
+	 */
+	private void syncDhis2Resources(Connection sd, ResourceBundle localisation) {
+		try {
+			new Dhis2MapManager().syncDue(sd, localisation);
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "DHIS2 reference data sync error: " + e.getMessage(), e);
 		}
 	}
 }

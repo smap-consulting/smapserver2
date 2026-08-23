@@ -25,7 +25,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -169,6 +175,198 @@ public class Dhis2Manager {
 	}
 
 	/*
+	 * The organisation unit hierarchy, flattened into rows ready for a CSV lookup
+	 *
+	 * DHIS2 gives each org unit a "path", a concatenation of ancestor uids.  A cascading select on
+	 * a device cannot walk parents, so the hierarchy is flattened here into a pair of columns per
+	 * level.  A form then filters on an ordinary column, level2_code for a district say, with no
+	 * recursion and nothing for the device to work out.
+	 *
+	 * Organisation unit group sets are a second, non hierarchical axis: facility type, ownership,
+	 * urban or rural.  Each becomes its own column so it can be used as a filter alongside the
+	 * levels rather than instead of them.
+	 *
+	 * ouFilter limits the sync to a subtree.  An organisation working in one province has no use
+	 * for a national hierarchy, and reducing the payload at source beats compressing it later
+	 */
+	public List<Map<String, String>> getOrgUnits(Dhis2Server server, String ouFilter) throws Exception {
+
+		// Level names, so columns can carry the client's own words rather than level1, level2
+		Map<Integer, String> levelNames = getOrgUnitLevelNames(server);
+
+		// Which group set does each group belong to
+		Map<String, String> groupToSet = new LinkedHashMap<>();
+		LinkedHashSet<String> groupSetNames = new LinkedHashSet<>();
+		loadGroupSets(server, groupToSet, groupSetNames);
+
+		StringBuilder path = new StringBuilder("/organisationUnits.json?paging=false")
+				.append("&fields=id,code,name,level,path,organisationUnitGroups[id,code,name]");
+		if(ouFilter != null && ouFilter.trim().length() > 0) {
+			// like rather than eq: path holds the whole ancestry, so this selects the subtree
+			path.append("&filter=path:like:").append(encode(ouFilter.trim()));
+		}
+
+		JsonObject response = getJsonObject(server, path.toString());
+		JsonArray units = response.getAsJsonArray("organisationUnits");
+		if(units == null) {
+			return new ArrayList<>();
+		}
+
+		/*
+		 * Index every unit by uid first, so an ancestor can be resolved without another request.
+		 * DHIS2 does not return the hierarchy in any useful order
+		 */
+		Map<String, JsonObject> byUid = new LinkedHashMap<>();
+		int maxLevel = 0;
+		for(JsonElement e : units) {
+			JsonObject ou = e.getAsJsonObject();
+			String uid = asString(ou, "id");
+			if(uid != null) {
+				byUid.put(uid, ou);
+			}
+			int level = asInt(ou, "level");
+			if(level > maxLevel) {
+				maxLevel = level;
+			}
+		}
+
+		List<Map<String, String>> rows = new ArrayList<>();
+
+		for(JsonElement e : units) {
+			JsonObject ou = e.getAsJsonObject();
+
+			// LinkedHashMap so the column order is stable between syncs
+			Map<String, String> row = new LinkedHashMap<>();
+			row.put("uid", nz(asString(ou, "id")));
+			row.put("code", nz(asString(ou, "code")));
+			row.put("name", nz(asString(ou, "name")));
+			int level = asInt(ou, "level");
+			row.put("level", level > 0 ? String.valueOf(level) : "");
+
+			/*
+			 * Ancestors, read from the path.  The last element is the unit itself, so a facility
+			 * fills every level column down to its own
+			 */
+			String[] ancestors = splitPath(asString(ou, "path"));
+			for(int l = 1; l <= maxLevel; l++) {
+				String levelCode = "";
+				String levelName = "";
+				if(l <= ancestors.length) {
+					JsonObject ancestor = byUid.get(ancestors[l - 1]);
+					if(ancestor != null) {
+						levelCode = nz(asString(ancestor, "code"));
+						levelName = nz(asString(ancestor, "name"));
+					}
+				}
+				row.put(levelColumn(levelNames, l) + "_code", levelCode);
+				row.put(levelColumn(levelNames, l) + "_name", levelName);
+			}
+
+			// One column per group set, holding the group this unit belongs to within that set
+			Map<String, String> setValues = new LinkedHashMap<>();
+			JsonArray groups = ou.getAsJsonArray("organisationUnitGroups");
+			if(groups != null) {
+				for(JsonElement g : groups) {
+					JsonObject group = g.getAsJsonObject();
+					String setName = groupToSet.get(asString(group, "id"));
+					if(setName == null) {
+						continue;		// A group that belongs to no set is not a usable filter
+					}
+					String value = asString(group, "code");
+					if(value == null) {
+						value = nz(asString(group, "name"));
+					}
+					if(setValues.containsKey(setName)) {
+						/*
+						 * Group sets are meant to be mutually exclusive but DHIS2 does not always
+						 * enforce it.  Keep the first and say so rather than choosing silently,
+						 * it usually means the client's metadata needs attention
+						 */
+						log.warning("DHIS2 org unit " + asString(ou, "id")
+								+ " is in more than one group of set " + setName
+								+ ", keeping " + setValues.get(setName));
+					} else {
+						setValues.put(setName, value);
+					}
+				}
+			}
+			for(String setName : groupSetNames) {
+				row.put("gs_" + cleanColumn(setName), nz(setValues.get(setName)));
+			}
+
+			rows.add(row);
+		}
+
+		return rows;
+	}
+
+	/*
+	 * Level number to level name, so a column can be called district rather than level3
+	 */
+	private Map<Integer, String> getOrgUnitLevelNames(Dhis2Server server) {
+
+		Map<Integer, String> names = new LinkedHashMap<>();
+		try {
+			JsonObject response = getJsonObject(server,
+					"/organisationUnitLevels.json?paging=false&fields=level,name");
+			JsonArray levels = response.getAsJsonArray("organisationUnitLevels");
+			if(levels != null) {
+				for(JsonElement e : levels) {
+					JsonObject l = e.getAsJsonObject();
+					int level = asInt(l, "level");
+					if(level > 0) {
+						names.put(level, asString(l, "name"));
+					}
+				}
+			}
+		} catch (Exception e) {
+			// Not fatal.  The columns fall back to level1, level2 and so on
+			log.log(Level.WARNING, "DHIS2: could not read org unit levels: " + e.getMessage(), e);
+		}
+		return names;
+	}
+
+	/*
+	 * Group uid to the name of the group set it belongs to
+	 */
+	private void loadGroupSets(Dhis2Server server, Map<String, String> groupToSet,
+			LinkedHashSet<String> groupSetNames) {
+
+		try {
+			JsonObject response = getJsonObject(server,
+					"/organisationUnitGroupSets.json?paging=false"
+					+ "&fields=id,code,name,organisationUnitGroups[id]");
+			JsonArray sets = response.getAsJsonArray("organisationUnitGroupSets");
+			if(sets == null) {
+				return;
+			}
+			for(JsonElement e : sets) {
+				JsonObject set = e.getAsJsonObject();
+				String setName = asString(set, "code");
+				if(setName == null) {
+					setName = asString(set, "name");
+				}
+				if(setName == null) {
+					continue;
+				}
+				groupSetNames.add(setName);
+				JsonArray groups = set.getAsJsonArray("organisationUnitGroups");
+				if(groups != null) {
+					for(JsonElement g : groups) {
+						String groupUid = asString(g.getAsJsonObject(), "id");
+						if(groupUid != null) {
+							groupToSet.put(groupUid, setName);
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			// Not fatal.  The hierarchy is still usable without the group set columns
+			log.log(Level.WARNING, "DHIS2: could not read org unit group sets: " + e.getMessage(), e);
+		}
+	}
+
+	/*
 	 * GET a path below /api and parse the response as a JSON object
 	 * The path starts with a slash, for example "/system/info"
 	 */
@@ -270,6 +468,77 @@ public class Dhis2Manager {
 
 	private int size(JsonArray a) {
 		return a == null ? 0 : a.size();
+	}
+
+	private int asInt(JsonObject o, String name) {
+		if(o == null) {
+			return 0;
+		}
+		JsonElement e = o.get(name);
+		if(e == null || e.isJsonNull() || !e.isJsonPrimitive()) {
+			return 0;
+		}
+		try {
+			return e.getAsInt();
+		} catch (Exception ex) {
+			return 0;
+		}
+	}
+
+	private String nz(String s) {
+		return s == null ? "" : s;
+	}
+
+	/*
+	 * A DHIS2 path is "/uid/uid/uid", root first, ending with the unit itself
+	 */
+	private String[] splitPath(String path) {
+		if(path == null || path.trim().length() == 0) {
+			return new String[0];
+		}
+		String p = path.trim();
+		if(p.startsWith("/")) {
+			p = p.substring(1);
+		}
+		if(p.length() == 0) {
+			return new String[0];
+		}
+		return p.split("/");
+	}
+
+	/*
+	 * The column prefix for a hierarchy level, using the client's own level name where they have
+	 * set one.  Falls back to level1, level2 and so on
+	 */
+	private String levelColumn(Map<Integer, String> levelNames, int level) {
+		String name = levelNames.get(level);
+		if(name == null || name.trim().length() == 0) {
+			return "level" + level;
+		}
+		return cleanColumn(name);
+	}
+
+	/*
+	 * Make a DHIS2 name safe to use as a CSV column and in a choice filter expression
+	 */
+	private String cleanColumn(String name) {
+		String c = name.trim().toLowerCase().replaceAll("[^a-z0-9]+", "_");
+		c = c.replaceAll("^_+", "").replaceAll("_+$", "");
+		if(c.length() == 0) {
+			c = "col";
+		}
+		if(Character.isDigit(c.charAt(0))) {
+			c = "c" + c;		// A column cannot start with a digit
+		}
+		return c;
+	}
+
+	private String encode(String value) {
+		try {
+			return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
+		} catch (Exception e) {
+			return value;
+		}
 	}
 
 	/*

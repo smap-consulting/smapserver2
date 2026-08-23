@@ -11,6 +11,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.OrgCachedResource;
 import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.SqlFrag;
 
@@ -117,8 +118,8 @@ public class ExternalFileManager {
 
 
 	/*
-	 * Create/refresh the physical CSV file for a SharePoint list cache.
-	 * Regenerates if the file is missing or older than the last SP sync.
+	 * Create/refresh the physical CSV file for an organisation level cached resource.
+	 * Regenerates if the file is missing or older than the last sync of its source.
 	 */
 	public boolean createSpListFile(Connection sd, int oId, String fileName, String filePath) {
 		boolean regenerate = false;
@@ -126,9 +127,15 @@ public class ExternalFileManager {
 			File f = new File(filePath);
 			boolean needsRegen = !f.exists();
 			if(!needsRegen) {
-				String smapName = fileName.startsWith("sharepointlist_")
-						? fileName.substring("sharepointlist_".length()) : fileName;
-				String sql = "select last_sync from sharepoint_list_map where o_id = ? and smap_name = ?";
+				String smapName = OrgCachedResource.withoutPrefix(fileName);
+
+				// Each source keeps its own mapping table, but the question asked of it is the same
+				String sql;
+				if(OrgCachedResource.TYPE_DHIS2.equals(OrgCachedResource.getType(fileName))) {
+					sql = "select last_sync from dhis2_map where o_id = ? and smap_name = ?";
+				} else {
+					sql = "select last_sync from sharepoint_list_map where o_id = ? and smap_name = ?";
+				}
 				PreparedStatement pstmt = null;
 				try {
 					pstmt = sd.prepareStatement(sql);

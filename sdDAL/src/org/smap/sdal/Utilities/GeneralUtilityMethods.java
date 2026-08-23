@@ -5511,12 +5511,11 @@ public class GeneralUtilityMethods {
 										tz, null, null, applyReferenceCap);
 								choices = stm.getChoices(ovalue, languageItems, wfFilters);
 
-							} else if(filename.startsWith("sharepointlist_")) {
-								// Stored at org level without .csv suffix
-								String spFileName = filename.endsWith(".csv")
-										? filename.substring(0, filename.length() - 4) : filename;
+							} else if(OrgCachedResource.isCached(filename)) {
+								// Cached reference data, stored at org level without a .csv suffix
 								CsvTableManager csvMgr = new CsvTableManager(sd, localisation);
-								choices = csvMgr.getChoices(oId, 0, spFileName, ovalue, languageItems, matches, wfFilters);
+								choices = csvMgr.getChoices(oId, 0, OrgCachedResource.baseName(filename),
+										ovalue, languageItems, matches, wfFilters);
 
 							} else {
 								// Get data from a csv table

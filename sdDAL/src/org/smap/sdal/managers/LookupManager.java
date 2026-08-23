@@ -26,6 +26,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.OrgCachedResource;
 import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -207,8 +208,8 @@ public class LookupManager {
 						resultsArray.add(line);
 					}
 					
-				} else if(fileName.startsWith("sharepointlist_")) {
-					// SharePoint list cache — stored without .csv suffix at org level (sId=0)
+				} else if(OrgCachedResource.isCached(fileName)) {
+					// Cached reference data, stored without a .csv suffix at org level (sId=0)
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);
 					resultsArray = ctm.lookup(oId, sId, fileName, keyColumn, keyValue, expression, tz, selection.toString(), arguments);
 				} else {
@@ -739,8 +740,8 @@ public class LookupManager {
 							}
 						}
 					}
-				} else if(fileName.startsWith("sharepointlist_")) {
-					// SharePoint list cache — stored without .csv suffix at org level (sId=0)
+				} else if(OrgCachedResource.isCached(fileName)) {
+					// Cached reference data, stored without a .csv suffix at org level (sId=0)
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);
 					results = ctm.lookupChoices(oId, 0, fileName, valueColumn, labelColumns, mlLabelColumns,
 							selectionString, arguments, frag);
