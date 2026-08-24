@@ -14,7 +14,6 @@ public class Dhis2Map {
 
 	public int id;
 	public int o_id;
-	public int dhis2_server_id;
 	public String smap_name;			// Referenced in a form as "dhis2_{smap_name}"
 	public String resource_type;		// One of the TYPE_ constants above
 	public String dhis2_ref;			// The uid or code of the object, where the type needs one

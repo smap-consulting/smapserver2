@@ -605,6 +605,48 @@ public class CsvTableManager {
 	 * Write all rows from the csv.csvN table to a physical CSV file on disk.
 	 * Used to materialise SharePoint cache data for FieldTask download.
 	 */
+	/*
+	 * The first few rows of the table, for showing what a cached resource actually holds
+	 *
+	 * Useful where the columns are generated rather than chosen, as they are for a DHIS2
+	 * hierarchy, because the names depend on the client's own level and group set names and
+	 * cannot be guessed when writing a choice filter
+	 */
+	public ArrayList<ArrayList<String>> getSampleRows(int limit) throws SQLException {
+
+		ArrayList<ArrayList<String>> rows = new ArrayList<>();
+		if(headers == null || headers.isEmpty()) {
+			return rows;
+		}
+
+		StringBuilder sqlSelect = new StringBuilder("select ");
+		for(int i = 0; i < headers.size(); i++) {
+			if(i > 0) sqlSelect.append(",");
+			sqlSelect.append(headers.get(i).tName);
+		}
+		sqlSelect.append(" from ").append(fullTableName)
+			.append(" order by ").append(PKCOL).append(" limit ?");
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sqlSelect.toString());
+			pstmt.setInt(1, limit);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				ArrayList<String> row = new ArrayList<>();
+				for(CsvHeader h : headers) {
+					String v = rs.getString(h.tName);
+					row.add(v == null ? "" : v);
+				}
+				rows.add(row);
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+
+		return rows;
+	}
+
 	public void writeCsvFile(File f) throws Exception {
 		if(headers == null || headers.isEmpty()) {
 			return;

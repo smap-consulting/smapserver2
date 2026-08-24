@@ -45,7 +45,7 @@ public class Dhis2MapManager {
 
 	private static Logger log = Logger.getLogger(Dhis2MapManager.class.getName());
 
-	private static final String COLS = "id, o_id, dhis2_server_id, smap_name, resource_type, "
+	private static final String COLS = "id, o_id, smap_name, resource_type, "
 			+ "dhis2_ref, ou_filter, refresh_minutes, "
 			+ "to_char(last_sync, 'YYYY-MM-DD HH24:MI:SS') as last_sync, "
 			+ "last_sync_result, coalesce(row_count, 0) as row_count, "
@@ -95,20 +95,19 @@ public class Dhis2MapManager {
 	public int addMapping(Connection sd, int oId, Dhis2Map m) throws SQLException {
 
 		int id = -1;
-		String sql = "insert into dhis2_map (o_id, dhis2_server_id, smap_name, resource_type, "
-				+ "dhis2_ref, ou_filter, refresh_minutes, enabled) values (?, ?, ?, ?, ?, ?, ?, ?)";
+		String sql = "insert into dhis2_map (o_id, smap_name, resource_type, "
+				+ "dhis2_ref, ou_filter, refresh_minutes, enabled) values (?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement pstmt = null;
 
 		try {
 			pstmt = sd.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
 			pstmt.setInt(1, oId);
-			pstmt.setInt(2, m.dhis2_server_id);
-			pstmt.setString(3, m.smap_name);
-			pstmt.setString(4, m.resource_type);
-			pstmt.setString(5, m.dhis2_ref);
-			pstmt.setString(6, m.ou_filter);
-			pstmt.setInt(7, m.refresh_minutes > 0 ? m.refresh_minutes : 1440);
-			pstmt.setBoolean(8, m.enabled);
+			pstmt.setString(2, m.smap_name);
+			pstmt.setString(3, m.resource_type);
+			pstmt.setString(4, m.dhis2_ref);
+			pstmt.setString(5, m.ou_filter);
+			pstmt.setInt(6, m.refresh_minutes > 0 ? m.refresh_minutes : 1440);
+			pstmt.setBoolean(7, m.enabled);
 			pstmt.executeUpdate();
 
 			ResultSet rs = pstmt.getGeneratedKeys();
@@ -294,7 +293,6 @@ public class Dhis2MapManager {
 		Dhis2Map m = new Dhis2Map();
 		m.id = rs.getInt("id");
 		m.o_id = rs.getInt("o_id");
-		m.dhis2_server_id = rs.getInt("dhis2_server_id");
 		m.smap_name = rs.getString("smap_name");
 		m.resource_type = rs.getString("resource_type");
 		m.dhis2_ref = rs.getString("dhis2_ref");

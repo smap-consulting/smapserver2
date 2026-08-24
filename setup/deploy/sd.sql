@@ -648,3 +648,7 @@ ALTER TABLE dhis2_map OWNER TO ws;
 -- One DHIS2 connection per organisation.  A test setup belongs in its own organisation rather
 -- than as a second connection, which keeps every screen that follows free of a picker
 CREATE UNIQUE INDEX IF NOT EXISTS dhis2_server_org_unique ON dhis2_server(o_id);
+
+-- One DHIS2 connection per organisation, so a resource does not need to name one.  The
+-- connection is found from the organisation, and a second copy of the link could only drift
+alter table dhis2_map drop column if exists dhis2_server_id;

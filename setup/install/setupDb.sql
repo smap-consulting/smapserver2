@@ -1598,7 +1598,6 @@ DROP TABLE IF EXISTS dhis2_map CASCADE;
 CREATE TABLE dhis2_map (
 	id integer DEFAULT nextval('dhis2_map_seq') NOT NULL PRIMARY KEY,
 	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
-	dhis2_server_id integer REFERENCES dhis2_server(id) ON DELETE CASCADE,
 	smap_name text NOT NULL,				-- Referenced in a form as "dhis2_{smap_name}"
 	resource_type text NOT NULL,			-- orgunits | optionset | programs
 	dhis2_ref text,							-- The uid or code of the object, for a single object type

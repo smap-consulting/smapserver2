@@ -34,8 +34,11 @@ import jakarta.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.OrgCachedResource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.Dhis2MapManager;
+import org.smap.sdal.model.CsvHeader;
 import org.smap.sdal.model.Dhis2Map;
 
 import com.google.gson.Gson;
@@ -57,6 +60,8 @@ import java.util.logging.Logger;
 public class Dhis2Maps extends Application {
 
 	private static Logger log = Logger.getLogger(Dhis2Maps.class.getName());
+
+	private static final int SAMPLE_ROWS = 20;		// Enough to see the shape of the data
 
 	Authorise adminAuth;
 
@@ -224,6 +229,60 @@ public class Dhis2Maps extends Application {
 				mm.updateSyncStatus(sd, m.id, 0, m.row_count, e.getMessage());
 				return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
 			}
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			return Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(conn, sd);
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// GET data, the columns and first few rows of a synchronised resource
+	// -------------------------------------------------------------------------
+
+	/*
+	 * The columns of a DHIS2 resource are generated rather than chosen: the hierarchy level
+	 * names come from the client's DHIS2 and the group set columns from their group set codes.
+	 * They cannot be guessed when writing a choice filter, so they need to be visible
+	 */
+	@GET
+	@Path("/{id}/data")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getMappingData(@Context HttpServletRequest request, @PathParam("id") int id) {
+
+		String conn = "surveyKPI-Dhis2Maps-data";
+		Connection sd = SDDataSource.getConnection(conn);
+		adminAuth.isAuthorised(sd, request, request.getRemoteUser());
+
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
+			Dhis2Map m = new Dhis2MapManager().getMapping(sd, oId, id);
+			if(m == null) {
+				return Response.status(Response.Status.NOT_FOUND).build();
+			}
+
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources",
+					new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser())));
+
+			String fileName = OrgCachedResource.DHIS2_PREFIX + m.smap_name;
+			CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, 0, fileName);
+
+			ArrayList<String> columns = new ArrayList<>();
+			if(csvMgr.getHeaders() != null) {
+				for(CsvHeader h : csvMgr.getHeaders()) {
+					columns.add(h.fName);
+				}
+			}
+
+			HashMap<String, Object> result = new HashMap<>();
+			result.put("name", fileName);
+			result.put("columns", columns);
+			result.put("rows", csvMgr.getSampleRows(SAMPLE_ROWS));
+			result.put("total", m.row_count);
+
+			return Response.ok(new Gson().toJson(result)).build();
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
