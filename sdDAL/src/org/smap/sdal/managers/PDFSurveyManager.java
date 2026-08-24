@@ -238,8 +238,10 @@ public class PDFSurveyManager {
 			String fontDir = os.startsWith("Mac") ? "/Library/Fonts/" : "/usr/share/fonts/truetype/";
 
 			Symbols = PdfFontFactory.createFont(fontDir + "fontawesome-webfont.ttf", PdfEncodings.IDENTITY_H);
-			defaultFontLink = Symbols;
 			defaultFont = PdfFontFactory.createFont(fontDir + "NotoSans-Regular.ttf", PdfEncodings.IDENTITY_H);
+			// The text of a link is a url, use a text font.  The symbol font has no glyphs for
+			//  ascii characters so it would show the url as a run of unprintable characters
+			defaultFontLink = defaultFont;
 			defaultFontBold = PdfFontFactory.createFont(fontDir + "NotoSans-Bold.ttf", PdfEncodings.IDENTITY_H);
 			arabicFont = PdfFontFactory.createFont(fontDir + "NotoNaskhArabic-Regular.ttf", PdfEncodings.IDENTITY_H);
 			bengaliFont = PdfFontFactory.createFont(fontDir + "NotoSansBengali-Regular.ttf", PdfEncodings.IDENTITY_H);
@@ -316,12 +318,20 @@ public class PDFSurveyManager {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
 
 			languageIdx = GeneralUtilityMethods.getLanguageIdx(survey, language);
+
+			// Get the title
+			String title = survey.getInstanceName();
+			if(title.equals("survey")) {
+				title = survey.surveyData.displayName;
+			}
+
 			if(templateFile != null && templateFile.exists()) {
 
 				log.fine("PDF Template Exists: " + templateFile.getAbsolutePath());
 				String templateName = templateFile.getAbsolutePath();
 
 				pdfDoc = new PdfDocument(new PdfReader(templateName), new PdfWriter(outputStream));
+				setDocumentMetadata(pdfDoc, survey, title);
 				PdfAcroForm pdfForm = PdfAcroForm.getAcroForm(pdfDoc, true);
 
 				// LibreOffice templates set NeedAppearances=true, which makes iText skip
@@ -347,12 +357,6 @@ public class PDFSurveyManager {
 				 */
 				PageSize pageSize = landscape ? PageSize.A4.rotate() : PageSize.A4;
 
-				// Get the title
-				String title = survey.getInstanceName();
-				if(title.equals("survey")) {
-					title = survey.surveyData.displayName;
-				}
-
 				// Determine the number of rows in the title and adjust the document margins accordingly
 				int fontHeight = 18;
 				float width = defaultFontBold.getWidth(title, fontHeight);
@@ -360,12 +364,14 @@ public class PDFSurveyManager {
 				int rows = Math.round((width / (pageSize.getWidth() - marginLeft - marginRight)) + 1) - 1;
 
 				pdfDoc = new PdfDocument(new PdfWriter(outputStream));
+				setDocumentMetadata(pdfDoc, survey, title);
 				pdfDoc.addEventHandler(PdfDocumentEvent.END_PAGE, new PdfPageSizer(title,
 						user, mBasePath, null,
 						marginLeft, marginRight, marginTop_2, marginBottom_2,
 						survey.surveyData.ident, survey.surveyData.default_logo));
 
 				document = new Document(pdfDoc, pageSize);
+				PdfUtilities.setLineSpacing(document);
 				// iText 8 margin order is top, right, bottom, left
 				document.setMargins(marginTop_1 + rows * fontHeight, marginRight, marginBottom_1, marginLeft);
 				document.setFontProvider(fontProvider);
@@ -427,6 +433,28 @@ public class PDFSurveyManager {
 
 		return filename;
 
+	}
+
+	/*
+	 * Record the survey identity in the pdf metadata so that a generated report
+	 * can be traced back to its survey and project
+	 */
+	private void setDocumentMetadata(PdfDocument pdfDoc, org.smap.sdal.model.Survey survey, String title) {
+		try {
+			StringBuilder keywords = new StringBuilder("s")
+					.append(survey.surveyData.id)
+					.append(" ").append(survey.surveyData.ident)
+					.append(" p").append(survey.surveyData.p_id);
+			if(survey.surveyData.projectName != null) {
+				keywords.append(" ").append(survey.surveyData.projectName);
+			}
+			pdfDoc.getDocumentInfo()
+					.setTitle(title)
+					.setSubject(survey.surveyData.displayName)
+					.setKeywords(keywords.toString());
+		} catch (Exception e) {
+			log.fine("Error: Failed to set pdf metadata: " + e.getMessage());
+		}
 	}
 
 	/*
@@ -685,15 +713,18 @@ public class PDFSurveyManager {
 				}
 
 
-			} else if(r.type.equals("image") || r.type.equals("video") || r.type.equals("audio")  || r.type.equals("file")) {
-				PdfUtilities.addImageTemplate(pdfForm, fieldName, mBasePath, value, mAttachmentPrefix, pdfDoc, defaultFontLink, di.stretch);
+			} else if(r.type.equals("image")) {
+				PdfUtilities.addImageTemplate(pdfForm, fieldName, mBasePath, value, mAttachmentPrefix, pdfDoc, Symbols, di.stretch);
+
+			} else if(r.type.equals("video") || r.type.equals("audio")  || r.type.equals("file")) {
+				PdfUtilities.addMediaTemplate(pdfForm, fieldName, mBasePath, value, mAttachmentPrefix, pdfDoc, defaultFont);
 
 			} else if(r.type.equals("select1") && di.showImage) {
 				String filePath = UtilityMethodsEmail.getMediaPath(survey.surveyData.ident, value, mBasePath, oId, survey.surveyData.id);
 				if(filePath != null) {
 					// remove base path from file path as it will be added in again
 					String remnantPath = filePath.substring(mBasePath.length());
-					PdfUtilities.addImageTemplate(pdfForm, fieldName, mBasePath, remnantPath, mAttachmentPrefix, pdfDoc, defaultFontLink, di.stretch);
+					PdfUtilities.addImageTemplate(pdfForm, fieldName, mBasePath, remnantPath, mAttachmentPrefix, pdfDoc, Symbols, di.stretch);
 				}
 			} else {
 				if(hideLabel) {

@@ -136,6 +136,7 @@ public class PDFTableManager {
 					marginLeft, marginRight, marginTop_2, marginBottom_2, null, null));
 
 			document = new Document(pdfDoc, landscape ? PageSize.A4.rotate() : PageSize.A4);
+			PdfUtilities.setLineSpacing(document);
 			// iText 8 margin order is top, right, bottom, left
 			document.setMargins(marginTop_1, marginRight, marginBottom_1, marginLeft);
 			document.setFontProvider(fontProvider);

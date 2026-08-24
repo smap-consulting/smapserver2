@@ -66,17 +66,21 @@ import com.github.binodnme.dateconverter.converter.DateConverter;
 import com.github.binodnme.dateconverter.utils.DateBS;
 import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
+import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.geom.Rectangle;
+import com.itextpdf.kernel.pdf.PdfArray;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfName;
+import com.itextpdf.kernel.pdf.PdfPage;
 import com.itextpdf.kernel.pdf.PdfNumber;
 import com.itextpdf.kernel.pdf.PdfObject;
 import com.itextpdf.kernel.pdf.PdfReader;
 import com.itextpdf.kernel.pdf.PdfStream;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.pdf.action.PdfAction;
+import com.itextpdf.kernel.pdf.annot.PdfLinkAnnotation;
 import com.itextpdf.kernel.pdf.annot.PdfWidgetAnnotation;
 import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
 import com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor;
@@ -87,8 +91,11 @@ import com.itextpdf.forms.PdfAcroForm;
 import com.itextpdf.forms.fields.PdfButtonFormField;
 import com.itextpdf.forms.fields.PdfFormField;
 import com.itextpdf.layout.Canvas;
+import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Link;
 import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.properties.Leading;
+import com.itextpdf.layout.properties.Property;
 import com.itextpdf.layout.properties.TextAlignment;
 
 public class PdfUtilities {
@@ -97,6 +104,27 @@ public class PdfUtilities {
 			 Logger.getLogger(PDFTableManager.class.getName());
 	
 	private static LogManager lm = new LogManager();		// Application log
+
+	public static final float FONT_SIZE = 12;			// iText's default font size
+	public static final float LINE_SPACING = 1.2f;		// Line spacing as a multiple of the font size
+
+	/*
+	 * Set the spacing between the lines of a paragraph
+	 *
+	 * iText 8 defaults to a leading of 2.2 times the font size which leaves large gaps
+	 *  between the wrapped lines of a value.  iText 5 table cells used a leading of exactly
+	 *  the font size.  Set LINE_SPACING to 1.0 to go back to that
+	 *
+	 * The leading is fixed rather than multiplied as a multiplied leading is applied to the
+	 *  ascender and descender of the font, which vary widely between the fonts used here.
+	 *  Hence the font size is set at the same time so that the two stay together
+	 *
+	 * Labels are not affected.  They are converted from html and carry their own line height
+	 */
+	public static void setLineSpacing(com.itextpdf.layout.Document document) {
+		document.setFontSize(FONT_SIZE);
+		document.setProperty(Property.LEADING, new Leading(Leading.FIXED, FONT_SIZE * LINE_SPACING));
+	}
 
 	/*
 	 * Create iText image data from a file or URL
@@ -214,6 +242,117 @@ public class PdfUtilities {
 			    data.close();
 			}
 		}
+	}
+
+	/*
+	 * Add a video, audio or other media file to a template field
+	 *
+	 * The media itself cannot be embedded in the pdf so show the thumbnail that was created
+	 *  when the attachment was uploaded, falling back to the media url when there is no
+	 *  thumbnail, and make the field area a link through to the media on the server
+	 *
+	 * iText's setImage() must not be used for these files.  It base64 encodes the file and sets
+	 *  that as the field value, then, when the encoded data cannot be read as an image, it
+	 *  shows the encoded data as the label of the field
+	 */
+	public static void addMediaTemplate(PdfAcroForm pdfForm, String fieldName, String basePath,
+			String value, String serverRoot, PdfDocument pdfDoc, PdfFont font) {
+
+		PdfFormField field = pdfForm.getField(fieldName);
+		if(field == null || field.getWidgets().isEmpty()) {
+			log.fine("Field not found for: " + fieldName);
+			return;
+		}
+
+		PdfWidgetAnnotation widget = field.getWidgets().get(0);
+		PdfPage page = widget.getPage();
+		Rectangle rect = widget.getRectangle().toRectangle();
+		String mediaUrl = serverRoot + value;
+
+		ImageData thumbnail = getMediaThumbnail(basePath, value, serverRoot);
+		boolean added = false;
+
+		if(thumbnail != null && field instanceof PdfButtonFormField) {
+			try {
+				PdfImageXObject imgXObj = new PdfImageXObject(thumbnail);
+				PdfFormXObject formXObj = new PdfFormXObject(new Rectangle(0, 0, imgXObj.getWidth(), imgXObj.getHeight()));
+				new PdfCanvas(formXObj, pdfDoc).addXObjectAt(imgXObj, 0, 0);
+				((PdfButtonFormField) field).setImageAsForm(formXObj);
+				added = true;
+			} catch (Exception e) {
+				log.fine("Error: Failed to add media thumbnail to " + fieldName + ": " + e.getMessage());
+			}
+		}
+
+		if(!added && page != null) {
+			/*
+			 * Either the field is not a push button or there is no thumbnail.  Draw into the
+			 *  field area and then remove the field so that flattening the form does not
+			 *  cover the drawing
+			 */
+			Canvas canvas = new Canvas(new PdfCanvas(page.newContentStreamAfter(), page.getResources(), pdfDoc), rect);
+			try {
+				if(thumbnail != null) {
+					Image img = new Image(thumbnail);
+					img.scaleToFit(rect.getWidth(), rect.getHeight());
+					canvas.add(img);
+				} else {
+					float fontSize = 8;
+					canvas.add(new Paragraph(mediaUrl)
+							.setFont(font)
+							.setFontSize(fontSize)
+							.setFixedLeading(fontSize * LINE_SPACING)
+							.setFontColor(ColorConstants.BLUE)
+							.setTextAlignment(TextAlignment.CENTER));
+				}
+			} catch (Exception e) {
+				log.fine("Error: Failed to add media " + value + " to " + fieldName + ": " + e.getMessage());
+			} finally {
+				canvas.close();
+			}
+
+			try {
+				pdfForm.removeField(fieldName);
+			} catch (Exception e) {
+				log.fine("Error removing field: " + fieldName + ": " + e.getMessage());
+			}
+		}
+
+		/*
+		 * Add the link to the page rather than to the field.  A link set on the field would be
+		 *  lost when the form is flattened
+		 */
+		if(page != null) {
+			try {
+				PdfLinkAnnotation link = new PdfLinkAnnotation(rect);
+				link.setAction(PdfAction.createURI(mediaUrl));
+				link.setBorder(new PdfArray(new float [] {0, 0, 0}));
+				page.addAnnotation(link);
+			} catch (Exception e) {
+				log.fine("Error: Failed to add media link for " + fieldName + ": " + e.getMessage());
+			}
+		}
+	}
+
+	/*
+	 * Get the thumbnail that was created for a media file when it was uploaded
+	 * Returns null if there is no thumbnail, which is the case for audio and for any other
+	 *  media that no thumbnail can be generated from
+	 */
+	private static ImageData getMediaThumbnail(String basePath, String value, String serverRoot) {
+
+		ImageData thumbnail = null;
+
+		try {
+			byte [] bytes = AttachmentStore.getThumbnailBytes(basePath, value, serverRoot, false);
+			if(bytes != null) {
+				thumbnail = createImageData(bytes, value);
+			}
+		} catch (Exception e) {
+			log.fine("Error: Failed to read thumbnail for " + value + ": " + e.getMessage());
+		}
+
+		return thumbnail;
 	}
 
 	public static void addMapImageTemplate(PdfAcroForm pdfForm, String fieldName, ImageData img, boolean stretch,
