@@ -118,10 +118,36 @@ public class ExternalFileManager {
 
 
 	/*
+	 * The directory holding the physical CSV files for an organisation's cached resources
+	 */
+	public String getOrgCachedDirPath(String basePath, int oId) {
+		return basePath + File.separator + "media" + File.separator
+				+ "organisation" + File.separator + oId;
+	}
+
+	/*
+	 * Make sure the physical CSV for an organisation level cached resource exists and is current,
+	 * and return its path
+	 *
+	 * Both the manifest served to third party JavaRosa clients and the Field Task refresh need
+	 * this, so the path convention lives here rather than in each of them
+	 */
+	public String ensureOrgCachedFile(Connection sd, int oId, String fileName, String basePath) {
+
+		String dirPath = getOrgCachedDirPath(basePath, oId);
+		new File(dirPath).mkdirs();
+
+		String filePath = dirPath + File.separator + fileName + ".csv";
+		createOrgCachedFile(sd, oId, fileName, filePath);
+
+		return filePath;
+	}
+
+	/*
 	 * Create/refresh the physical CSV file for an organisation level cached resource.
 	 * Regenerates if the file is missing or older than the last sync of its source.
 	 */
-	public boolean createSpListFile(Connection sd, int oId, String fileName, String filePath) {
+	public boolean createOrgCachedFile(Connection sd, int oId, String fileName, String filePath) {
 		boolean regenerate = false;
 		try {
 			File f = new File(filePath);
@@ -158,7 +184,7 @@ public class ExternalFileManager {
 				regenerate = true;
 			}
 		} catch(Exception e) {
-			log.log(Level.SEVERE, "createSpListFile: " + fileName, e);
+			log.log(Level.SEVERE, "createOrgCachedFile: " + fileName, e);
 		}
 		return regenerate;
 	}

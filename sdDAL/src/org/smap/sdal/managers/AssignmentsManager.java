@@ -516,13 +516,7 @@ public class AssignmentsManager {
 								}
 							}
 						} else if (OrgCachedResource.isCachedType(m.type)) {
-							String spFilePath = basepath + File.separator + "media" + File.separator
-									+ "organisation" + File.separator + oId + File.separator + m.fileName + ".csv";
-							File dir = new File(basepath + File.separator + "media" + File.separator
-									+ "organisation" + File.separator + oId);
-							dir.mkdirs();
-							efm.createSpListFile(sd, oId, m.fileName, spFilePath);
-							logicalFilePath = spFilePath;
+							logicalFilePath = efm.ensureOrgCachedFile(sd, oId, m.fileName, basepath);
 						}
 
 						/*
