@@ -179,6 +179,42 @@ public class Dhis2ServerConfig extends Application {
 	}
 
 	// -------------------------------------------------------------------------
+	// GET optionsets, what the connected instance offers
+	// -------------------------------------------------------------------------
+
+	/*
+	 * Asked of the DHIS2 instance rather than of Smap, so that someone setting up a resource
+	 * chooses from a list rather than having to know a uid
+	 */
+	@GET
+	@Path("/optionsets")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getOptionSets(@Context HttpServletRequest request) {
+
+		String conn = "surveyKPI-Dhis2ServerConfig-optionsets";
+		Connection sd = SDDataSource.getConnection(conn);
+		adminAuth.isAuthorised(sd, request, request.getRemoteUser());
+
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
+			Dhis2Server server = new Dhis2ServerManager().getWithToken(sd, oId);
+			if(server == null) {
+				return Response.status(Response.Status.BAD_REQUEST)
+						.entity("No DHIS2 connection has been set up").build();
+			}
+
+			return Response.ok(new Gson().toJson(new Dhis2Manager().listOptionSets(server))).build();
+
+		} catch (Exception e) {
+			// Reaching DHIS2 can fail for reasons the user can act on, so pass the reason back
+			log.info("DHIS2 option sets could not be read: " + e.getMessage());
+			return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(conn, sd);
+		}
+	}
+
+	// -------------------------------------------------------------------------
 	// Helpers
 	// -------------------------------------------------------------------------
 

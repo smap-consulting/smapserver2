@@ -301,6 +301,78 @@ public class Dhis2Manager {
 	}
 
 	/*
+	 * The option sets available on the instance, for choosing one to synchronise
+	 * Returns uid, code and name only, the options themselves are fetched when it is synced
+	 */
+	public List<Map<String, String>> listOptionSets(Dhis2Server server) throws Exception {
+
+		List<Map<String, String>> sets = new ArrayList<>();
+
+		JsonObject response = getJsonObject(server,
+				"/optionSets.json?paging=false&fields=id,code,name&order=name:asc");
+		JsonArray items = response.getAsJsonArray("optionSets");
+		if(items == null) {
+			return sets;
+		}
+
+		for(JsonElement e : items) {
+			JsonObject os = e.getAsJsonObject();
+			Map<String, String> set = new LinkedHashMap<>();
+			set.put("uid", nz(asString(os, "id")));
+			set.put("code", nz(asString(os, "code")));
+			set.put("name", nz(asString(os, "name")));
+			sets.add(set);
+		}
+
+		return sets;
+	}
+
+	/*
+	 * The options in one option set, as rows ready for a CSV lookup
+	 *
+	 * The value column is the DHIS2 code, because that is what DHIS2 expects back and it does not
+	 * change when an option is relabelled.  The label column is the name
+	 *
+	 * The order column is called sortby because Smap orders choices by a column of that name
+	 * without being asked.  It is zero padded so that a plain text sort puts 2 before 10
+	 */
+	public List<Map<String, String>> getOptionSetOptions(Dhis2Server server, String uid) throws Exception {
+
+		if(uid == null || uid.trim().length() == 0) {
+			throw new Exception("No DHIS2 option set has been chosen for this resource");
+		}
+
+		JsonObject response = getJsonObject(server, "/optionSets/" + encode(uid.trim())
+				+ ".json?fields=id,code,name,options[id,code,name,sortOrder]");
+
+		List<Map<String, String>> rows = new ArrayList<>();
+		JsonArray options = response.getAsJsonArray("options");
+		if(options == null) {
+			return rows;
+		}
+
+		int fallbackOrder = 0;
+		for(JsonElement e : options) {
+			JsonObject o = e.getAsJsonObject();
+
+			Map<String, String> row = new LinkedHashMap<>();
+			row.put("code", nz(asString(o, "code")));
+			row.put("name", nz(asString(o, "name")));
+			row.put("uid", nz(asString(o, "id")));
+
+			int order = asInt(o, "sortOrder");
+			if(order <= 0) {
+				order = ++fallbackOrder;		// Keep the order DHIS2 returned them in
+			}
+			row.put("sortby", String.format("%05d", order));
+
+			rows.add(row);
+		}
+
+		return rows;
+	}
+
+	/*
 	 * Level number to level name, so a column can be called district rather than level3
 	 */
 	private Map<Integer, String> getOrgUnitLevelNames(Dhis2Server server) {

@@ -213,6 +213,8 @@ public class Dhis2MapManager {
 
 		if(Dhis2Map.TYPE_ORGUNITS.equals(m.resource_type)) {
 			rows = dhis2.getOrgUnits(server, m.ou_filter);
+		} else if(Dhis2Map.TYPE_OPTIONSET.equals(m.resource_type)) {
+			rows = dhis2.getOptionSetOptions(server, m.dhis2_ref);
 		} else {
 			throw new Exception("DHIS2 resource type not supported yet: " + m.resource_type);
 		}
