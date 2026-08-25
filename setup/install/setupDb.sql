@@ -1637,6 +1637,49 @@ CREATE INDEX IF NOT EXISTS dhis2_metadata_org_idx ON dhis2_metadata(o_id, object
 CREATE UNIQUE INDEX IF NOT EXISTS dhis2_metadata_uid_idx ON dhis2_metadata(o_id, object_type, uid);
 ALTER TABLE dhis2_metadata OWNER TO ws;
 
+-- DHIS2 aggregate export
+-- Held at bundle level, keyed on group_survey_ident, because surveys in a bundle share data
+-- tables so a question name means the same thing across them.  Bound on question NAME rather
+-- than question id, so a mapping survives an XLSForm replacement as every other Smap rule does
+DROP SEQUENCE IF EXISTS dhis2_export_seq CASCADE;
+CREATE SEQUENCE dhis2_export_seq START 1;
+ALTER SEQUENCE dhis2_export_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS dhis2_export CASCADE;
+CREATE TABLE dhis2_export (
+	id integer DEFAULT nextval('dhis2_export_seq') NOT NULL PRIMARY KEY,
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	group_survey_ident text NOT NULL,
+	dataset_uid text NOT NULL,
+	dataset_name text,
+	period_type text,
+	period_question text,
+	orgunit_question text NOT NULL,
+	enabled boolean DEFAULT true,
+	last_export TIMESTAMP WITH TIME ZONE,
+	last_export_result text
+	);
+CREATE INDEX IF NOT EXISTS dhis2_export_org_idx ON dhis2_export(o_id);
+CREATE UNIQUE INDEX IF NOT EXISTS dhis2_export_bundle_idx ON dhis2_export(o_id, group_survey_ident, dataset_uid);
+ALTER TABLE dhis2_export OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS dhis2_export_item_seq CASCADE;
+CREATE SEQUENCE dhis2_export_item_seq START 1;
+ALTER SEQUENCE dhis2_export_item_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS dhis2_export_item CASCADE;
+CREATE TABLE dhis2_export_item (
+	id integer DEFAULT nextval('dhis2_export_item_seq') NOT NULL PRIMARY KEY,
+	e_id integer REFERENCES dhis2_export(id) ON DELETE CASCADE,
+	question_name text,
+	aggregation text NOT NULL,
+	data_element text NOT NULL,
+	category_option_combo text,
+	seq integer DEFAULT 0
+	);
+CREATE INDEX IF NOT EXISTS dhis2_export_item_idx ON dhis2_export_item(e_id);
+ALTER TABLE dhis2_export_item OWNER TO ws;
+
 CREATE SCHEMA csv AUTHORIZATION ws;
 
 DROP SEQUENCE IF EXISTS du_seq CASCADE;

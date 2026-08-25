@@ -23,6 +23,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -36,6 +37,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.model.Dhis2ConnectionTest;
+import org.smap.sdal.model.Dhis2ImportSummary;
 import org.smap.sdal.model.Dhis2Server;
 
 import com.google.gson.JsonArray;
@@ -482,6 +484,145 @@ public class Dhis2Manager {
 		} catch (Exception e) {
 			// Not fatal.  The hierarchy is still usable without the group set columns
 			log.log(Level.WARNING, "DHIS2: could not read org unit group sets: " + e.getMessage(), e);
+		}
+	}
+
+	/*
+	 * Send aggregate data values to DHIS2
+	 *
+	 * CREATE_AND_UPDATE because a data value is keyed by data element, period, org unit and
+	 * category option combo, so re-sending a period corrects it rather than duplicating it.
+	 * That is what makes a re-export the answer to late submissions.
+	 *
+	 * The identifier schemes are CODE, because codes are what a client agrees in advance and
+	 * what survives a rebuild of their DHIS2, whereas uids do not
+	 */
+	public Dhis2ImportSummary postDataValueSet(Dhis2Server server, JsonObject payload, boolean dryRun)
+			throws Exception {
+
+		StringBuilder path = new StringBuilder("/dataValueSets?importStrategy=CREATE_AND_UPDATE")
+				.append("&dataElementIdScheme=CODE")
+				.append("&orgUnitIdScheme=CODE")
+				.append("&categoryOptionComboIdScheme=CODE")
+				// The data set is identified by uid, unlike everything else here, so say so
+				// rather than leaving it to the default and to the reader to guess
+				.append("&dataSetIdScheme=UID");
+		if(dryRun) {
+			path.append("&dryRun=true");
+		}
+
+		String body = post(server, path.toString(), payload.toString());
+
+		Dhis2ImportSummary summary = new Dhis2ImportSummary();
+		summary.dry_run = dryRun;
+
+		JsonElement parsed = JsonParser.parseString(body);
+		if(!parsed.isJsonObject()) {
+			throw new Exception("Unexpected response from DHIS2 when sending data");
+		}
+		JsonObject response = parsed.getAsJsonObject();
+
+		summary.status = asString(response, "status");
+		summary.success = !"ERROR".equalsIgnoreCase(summary.status);
+		summary.description = asString(response, "description");
+
+		/*
+		 * DHIS2 has moved the counts around between versions, they have appeared under
+		 * importCount and under response.importCount.  Look in both rather than depending on one
+		 */
+		JsonObject counts = null;
+		if(response.has("importCount") && response.get("importCount").isJsonObject()) {
+			counts = response.getAsJsonObject("importCount");
+		} else if(response.has("response") && response.get("response").isJsonObject()) {
+			JsonObject inner = response.getAsJsonObject("response");
+			if(inner.has("importCount") && inner.get("importCount").isJsonObject()) {
+				counts = inner.getAsJsonObject("importCount");
+			}
+			if(summary.description == null) {
+				summary.description = asString(inner, "description");
+			}
+		}
+		if(counts != null) {
+			summary.imported = asInt(counts, "imported");
+			summary.updated = asInt(counts, "updated");
+			summary.ignored = asInt(counts, "ignored");
+			summary.deleted = asInt(counts, "deleted");
+		}
+
+		collectConflicts(response, summary);
+		if(response.has("response") && response.get("response").isJsonObject()) {
+			collectConflicts(response.getAsJsonObject("response"), summary);
+		}
+
+		return summary;
+	}
+
+	/*
+	 * The per value reasons, which are the useful part of a rejection
+	 */
+	private void collectConflicts(JsonObject source, Dhis2ImportSummary summary) {
+
+		JsonArray conflicts = source.getAsJsonArray("conflicts");
+		if(conflicts == null) {
+			return;
+		}
+		for(JsonElement e : conflicts) {
+			if(!e.isJsonObject()) {
+				continue;
+			}
+			JsonObject c = e.getAsJsonObject();
+			String object = asString(c, "object");
+			String value = asString(c, "value");
+			String text = (object == null ? "" : object + ": ") + nz(value);
+			if(text.trim().length() > 0 && !summary.conflicts.contains(text)) {
+				summary.conflicts.add(text);
+			}
+		}
+	}
+
+	/*
+	 * POST a JSON body to a path below /api and return the response
+	 */
+	public String post(Dhis2Server server, String path, String body) throws Exception {
+
+		String url = server.getApiUrl() + path;
+		HttpURLConnection conn = null;
+
+		try {
+			conn = open(server, url, "POST");
+			conn.setRequestProperty("Content-Type", "application/json");
+			conn.setDoOutput(true);
+
+			try (OutputStream os = conn.getOutputStream()) {
+				os.write(body.getBytes(StandardCharsets.UTF_8));
+			}
+
+			int status = conn.getResponseCode();
+
+			/*
+			 * A rejected import comes back as 409 with a body describing why, which is a result
+			 * rather than a failure, so it is read the same way as a success
+			 */
+			if(status == HttpURLConnection.HTTP_UNAUTHORIZED || status == HttpURLConnection.HTTP_FORBIDDEN) {
+				String detail = readError(conn);
+				throw new Dhis2AuthException("DHIS2 rejected the token (" + status + ")"
+						+ (detail == null || detail.isEmpty() ? "" : ": " + detail));
+			}
+			if(status == HttpURLConnection.HTTP_CONFLICT) {
+				return read(conn.getErrorStream());
+			}
+			if(status < 200 || status > 299) {
+				String detail = readError(conn);
+				throw new Exception("DHIS2 returned " + status + " for " + path
+						+ (detail == null || detail.isEmpty() ? "" : ": " + detail));
+			}
+
+			return read(conn.getInputStream());
+
+		} finally {
+			if(conn != null) {
+				try { conn.disconnect(); } catch(Exception e) {}
+			}
 		}
 	}
 

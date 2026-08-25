@@ -674,3 +674,42 @@ CREATE TABLE IF NOT EXISTS dhis2_metadata (
 CREATE INDEX IF NOT EXISTS dhis2_metadata_org_idx ON dhis2_metadata(o_id, object_type);
 CREATE UNIQUE INDEX IF NOT EXISTS dhis2_metadata_uid_idx ON dhis2_metadata(o_id, object_type, uid);
 ALTER TABLE dhis2_metadata OWNER TO ws;
+
+-- Version 26.09 DHIS2 aggregate export
+-- Held at bundle level, keyed on group_survey_ident, because surveys in a bundle share data
+-- tables so a question name means the same thing across them.  Bound on question NAME rather
+-- than question id, so a mapping survives an XLSForm replacement as every other Smap rule does
+CREATE SEQUENCE IF NOT EXISTS dhis2_export_seq START 1;
+ALTER SEQUENCE dhis2_export_seq OWNER TO ws;
+
+CREATE TABLE IF NOT EXISTS dhis2_export (
+	id integer DEFAULT nextval('dhis2_export_seq') NOT NULL PRIMARY KEY,
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	group_survey_ident text NOT NULL,		-- The bundle this export belongs to
+	dataset_uid text NOT NULL,				-- The DHIS2 data set values are written to
+	dataset_name text,						-- Held for display, refreshed with the metadata cache
+	period_type text,						-- Monthly | Weekly | Quarterly | Yearly | Daily
+	period_question text,					-- Question name supplying the period, null uses upload time
+	orgunit_question text NOT NULL,			-- Question name holding the DHIS2 org unit code
+	enabled boolean DEFAULT true,
+	last_export TIMESTAMP WITH TIME ZONE,
+	last_export_result text
+	);
+CREATE INDEX IF NOT EXISTS dhis2_export_org_idx ON dhis2_export(o_id);
+CREATE UNIQUE INDEX IF NOT EXISTS dhis2_export_bundle_idx ON dhis2_export(o_id, group_survey_ident, dataset_uid);
+ALTER TABLE dhis2_export OWNER TO ws;
+
+CREATE SEQUENCE IF NOT EXISTS dhis2_export_item_seq START 1;
+ALTER SEQUENCE dhis2_export_item_seq OWNER TO ws;
+
+CREATE TABLE IF NOT EXISTS dhis2_export_item (
+	id integer DEFAULT nextval('dhis2_export_item_seq') NOT NULL PRIMARY KEY,
+	e_id integer REFERENCES dhis2_export(id) ON DELETE CASCADE,
+	question_name text,						-- Null when counting records rather than a question
+	aggregation text NOT NULL,				-- one | count | sum
+	data_element text NOT NULL,				-- DHIS2 data element code
+	category_option_combo text,				-- Optional, required where the element is disaggregated
+	seq integer DEFAULT 0
+	);
+CREATE INDEX IF NOT EXISTS dhis2_export_item_idx ON dhis2_export_item(e_id);
+ALTER TABLE dhis2_export_item OWNER TO ws;
