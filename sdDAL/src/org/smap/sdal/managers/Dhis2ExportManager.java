@@ -196,6 +196,74 @@ public class Dhis2ExportManager {
 		return values;
 	}
 
+	/*
+	 * Run every export that is due to run unattended
+	 *
+	 * Each one covers the current period plus however many back it asks for.  Re-sending a
+	 * period corrects it rather than duplicating it, so a submission that arrives late is
+	 * picked up by the next run without anyone doing anything
+	 */
+	public void exportDue(Connection sd, Connection cResults) {
+
+		Dhis2ExportConfigManager cm = new Dhis2ExportConfigManager();
+
+		try {
+			for(Dhis2Export export : cm.getDue(sd)) {
+				try {
+					String start = startOfPeriodsBack(export);
+
+					Dhis2ImportSummary s = export(sd, cResults, export.o_id, export, start, null, false);
+
+					String result = s.imported + " imported, " + s.updated + " updated, "
+							+ s.ignored + " ignored"
+							+ (s.conflicts.isEmpty() ? "" : ", " + s.conflicts.size() + " conflicts");
+					cm.recordAutoExport(sd, export.id, result);
+					log.info("DHIS2 auto export " + export.id + ": " + result);
+
+				} catch (Exception e) {
+					/*
+					 * Record against the export as well as logging.  An unattended job that
+					 * fails silently is worse than one that does not run
+					 */
+					log.log(Level.SEVERE, "DHIS2 auto export " + export.id + " failed: " + e.getMessage(), e);
+					try {
+						cm.recordAutoExport(sd, export.id, e.getMessage());
+					} catch (Exception ex) {
+						log.log(Level.SEVERE, "Recording DHIS2 auto export failure", ex);
+					}
+				}
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "DHIS2 auto export error: " + e.getMessage(), e);
+		}
+	}
+
+	/*
+	 * The first day to include, going back whole periods from today
+	 */
+	private String startOfPeriodsBack(Dhis2Export export) {
+
+		int back = export.periods_back >= 0 ? export.periods_back : 1;
+		java.time.LocalDate today = java.time.LocalDate.now();
+		String type = export.period_type == null ? "Monthly" : export.period_type;
+		java.time.LocalDate start;
+
+		if("Monthly".equalsIgnoreCase(type)) {
+			start = today.withDayOfMonth(1).minusMonths(back);
+		} else if("Weekly".equalsIgnoreCase(type)) {
+			start = today.with(java.time.DayOfWeek.MONDAY).minusWeeks(back);
+		} else if("Quarterly".equalsIgnoreCase(type)) {
+			int q = (today.getMonthValue() - 1) / 3;
+			start = today.withDayOfYear(1).plusMonths(q * 3).minusMonths(back * 3L);
+		} else if("Yearly".equalsIgnoreCase(type)) {
+			start = today.withDayOfYear(1).minusYears(back);
+		} else {
+			start = today.minusDays(back);		// Daily
+		}
+
+		return start.toString();
+	}
+
 	// -------------------------------------------------------------------------
 	// Building the query
 	// -------------------------------------------------------------------------

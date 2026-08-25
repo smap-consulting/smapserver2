@@ -41,6 +41,10 @@ public class Dhis2ExportConfigManager {
 
 	private static final String COLS = "id, o_id, group_survey_ident, dataset_uid, dataset_name, "
 			+ "period_type, period_question, orgunit_question, enabled, "
+			+ "coalesce(auto_export, false) as auto_export, "
+			+ "coalesce(schedule_minutes, 1440) as schedule_minutes, "
+			+ "coalesce(periods_back, 1) as periods_back, "
+			+ "to_char(last_auto_export, 'YYYY-MM-DD HH24:MI:SS') as last_auto_export, "
 			+ "to_char(last_export, 'YYYY-MM-DD HH24:MI:SS') as last_export, last_export_result";
 
 	/*
@@ -146,7 +150,8 @@ public class Dhis2ExportConfigManager {
 
 			if(id > 0) {
 				String sql = "update dhis2_export set dataset_uid = ?, dataset_name = ?, "
-						+ "period_type = ?, period_question = ?, orgunit_question = ?, enabled = ? "
+						+ "period_type = ?, period_question = ?, orgunit_question = ?, enabled = ?, "
+						+ "auto_export = ?, schedule_minutes = ?, periods_back = ? "
 						+ "where o_id = ? and id = ?";
 				PreparedStatement pstmt = null;
 				try {
@@ -157,16 +162,20 @@ public class Dhis2ExportConfigManager {
 					pstmt.setString(4, emptyToNull(export.period_question));
 					pstmt.setString(5, export.orgunit_question);
 					pstmt.setBoolean(6, export.enabled);
-					pstmt.setInt(7, oId);
-					pstmt.setInt(8, id);
+					pstmt.setBoolean(7, export.auto_export);
+					pstmt.setInt(8, export.schedule_minutes > 0 ? export.schedule_minutes : 1440);
+					pstmt.setInt(9, export.periods_back >= 0 ? export.periods_back : 1);
+					pstmt.setInt(10, oId);
+					pstmt.setInt(11, id);
 					pstmt.executeUpdate();
 				} finally {
 					if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
 				}
 			} else {
 				String sql = "insert into dhis2_export (o_id, group_survey_ident, dataset_uid, "
-						+ "dataset_name, period_type, period_question, orgunit_question, enabled) "
-						+ "values (?, ?, ?, ?, ?, ?, ?, ?)";
+						+ "dataset_name, period_type, period_question, orgunit_question, enabled, "
+						+ "auto_export, schedule_minutes, periods_back) "
+						+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 				PreparedStatement pstmt = null;
 				try {
 					pstmt = sd.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
@@ -178,6 +187,9 @@ public class Dhis2ExportConfigManager {
 					pstmt.setString(6, emptyToNull(export.period_question));
 					pstmt.setString(7, export.orgunit_question);
 					pstmt.setBoolean(8, export.enabled);
+					pstmt.setBoolean(9, export.auto_export);
+					pstmt.setInt(10, export.schedule_minutes > 0 ? export.schedule_minutes : 1440);
+					pstmt.setInt(11, export.periods_back >= 0 ? export.periods_back : 1);
 					pstmt.executeUpdate();
 					ResultSet rs = pstmt.getGeneratedKeys();
 					if(rs.next()) {
@@ -253,6 +265,54 @@ public class Dhis2ExportConfigManager {
 	}
 
 	/*
+	 * The exports that are due to run unattended
+	 *
+	 * Only exports that have been enabled and had auto export switched on, which is deliberate:
+	 * a mapping is proved by hand with a dry run before it is left to write on its own
+	 */
+	public ArrayList<Dhis2Export> getDue(Connection sd) throws SQLException {
+
+		ArrayList<Dhis2Export> exports = new ArrayList<>();
+		String sql = "select " + COLS + " from dhis2_export "
+				+ "where enabled = true and auto_export = true "
+				+ "and (last_auto_export is null "
+				+ "  or last_auto_export < now() - (coalesce(schedule_minutes, 1440) || ' minutes')::interval)";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				exports.add(fromResultSet(rs));
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
+		}
+
+		for(Dhis2Export e : exports) {
+			e.items = getItems(sd, e.id);
+		}
+
+		return exports;
+	}
+
+	public void recordAutoExport(Connection sd, int id, String result) throws SQLException {
+
+		String sql = "update dhis2_export set last_auto_export = now(), last_export = now(), "
+				+ "last_export_result = ? where id = ?";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, result);
+			pstmt.setInt(2, id);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
+		}
+	}
+
+	/*
 	 * Record what happened, so the result is visible without reading the log
 	 */
 	public void recordExport(Connection sd, int oId, int id, String result) throws SQLException {
@@ -287,6 +347,10 @@ public class Dhis2ExportConfigManager {
 		e.period_question = rs.getString("period_question");
 		e.orgunit_question = rs.getString("orgunit_question");
 		e.enabled = rs.getBoolean("enabled");
+		e.auto_export = rs.getBoolean("auto_export");
+		e.schedule_minutes = rs.getInt("schedule_minutes");
+		e.periods_back = rs.getInt("periods_back");
+		e.last_auto_export = rs.getString("last_auto_export");
 		e.last_export = rs.getString("last_export");
 		e.last_export_result = rs.getString("last_export_result");
 		return e;

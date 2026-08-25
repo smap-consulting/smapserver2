@@ -713,3 +713,11 @@ CREATE TABLE IF NOT EXISTS dhis2_export_item (
 	);
 CREATE INDEX IF NOT EXISTS dhis2_export_item_idx ON dhis2_export_item(e_id);
 ALTER TABLE dhis2_export_item OWNER TO ws;
+
+-- Version 26.09 DHIS2 scheduled export
+-- An export that has been proved by hand can then run unattended.  Periods back exists because
+-- a submission for last month often arrives this month, and re-sending a period corrects it
+alter table dhis2_export add column if not exists auto_export boolean default false;
+alter table dhis2_export add column if not exists schedule_minutes integer default 1440;
+alter table dhis2_export add column if not exists periods_back integer default 1;
+alter table dhis2_export add column if not exists last_auto_export TIMESTAMP WITH TIME ZONE;

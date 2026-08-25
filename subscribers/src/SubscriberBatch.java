@@ -36,6 +36,7 @@ import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.ServerManager;
+import org.smap.sdal.managers.Dhis2ExportManager;
 import org.smap.sdal.managers.Dhis2MapManager;
 import org.smap.sdal.managers.SharePointListMapManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -348,6 +349,7 @@ public class SubscriberBatch {
 				applyServerCalculateNotifications(dbc.sd, dbc.results, basePath, serverName);
 				syncSharePointLists(dbc.sd, localisation);
 				syncDhis2Resources(dbc.sd, localisation);
+				exportDhis2Data(dbc.sd, dbc.results);
 				
 				// Delete linked csv files logically deleted more than 10 minutes age
 				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
@@ -2372,6 +2374,18 @@ public class SubscriberBatch {
 			new SharePointListMapManager().syncDue(sd, serverData, localisation);
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "SharePoint list sync error: " + e.getMessage(), e);
+		}
+	}
+
+	/*
+	 * Send any DHIS2 export that is due to run unattended
+	 * Only exports switched on for it run here, so a mapping is proved by hand first
+	 */
+	private void exportDhis2Data(Connection sd, Connection cResults) {
+		try {
+			new Dhis2ExportManager().exportDue(sd, cResults);
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "DHIS2 export error: " + e.getMessage(), e);
 		}
 	}
 

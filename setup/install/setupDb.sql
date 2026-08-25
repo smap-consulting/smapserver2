@@ -1656,8 +1656,12 @@ CREATE TABLE dhis2_export (
 	period_question text,
 	orgunit_question text NOT NULL,
 	enabled boolean DEFAULT true,
+	auto_export boolean DEFAULT false,		-- Run unattended once it has been proved by hand
+	schedule_minutes integer DEFAULT 1440,
+	periods_back integer DEFAULT 1,			-- Also re-send recent periods, late data corrects itself
 	last_export TIMESTAMP WITH TIME ZONE,
-	last_export_result text
+	last_export_result text,
+	last_auto_export TIMESTAMP WITH TIME ZONE
 	);
 CREATE INDEX IF NOT EXISTS dhis2_export_org_idx ON dhis2_export(o_id);
 CREATE UNIQUE INDEX IF NOT EXISTS dhis2_export_bundle_idx ON dhis2_export(o_id, group_survey_ident, dataset_uid);

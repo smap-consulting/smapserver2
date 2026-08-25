@@ -20,6 +20,13 @@ public class Dhis2Export {
 	public String period_question;			// Question name, null uses the upload time
 	public String orgunit_question;			// Question name holding the DHIS2 org unit code
 	public boolean enabled;
+
+	// Scheduling.  An export is proved by hand first, then left to run
+	public boolean auto_export;
+	public int schedule_minutes;
+	public int periods_back;			// Also re-send recent periods, so late data corrects itself
+	public String last_auto_export;
+
 	public String last_export;
 	public String last_export_result;
 
