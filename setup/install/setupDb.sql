@@ -1613,6 +1613,30 @@ CREATE INDEX IF NOT EXISTS dhis2_map_org_idx ON dhis2_map(o_id);
 CREATE UNIQUE INDEX IF NOT EXISTS dhis2_map_name_idx ON dhis2_map(o_id, smap_name);
 ALTER TABLE dhis2_map OWNER TO ws;
 
+-- DHIS2 metadata cache
+-- Configuration time metadata, read by the mapping screens rather than by a form, so it is
+-- cached here rather than in the csv schema.  The payload holds the object as DHIS2 returned
+-- it, which avoids modelling DHIS2's own structure a second time
+DROP SEQUENCE IF EXISTS dhis2_metadata_seq CASCADE;
+CREATE SEQUENCE dhis2_metadata_seq START 1;
+ALTER SEQUENCE dhis2_metadata_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS dhis2_metadata CASCADE;
+CREATE TABLE dhis2_metadata (
+	id integer DEFAULT nextval('dhis2_metadata_seq') NOT NULL PRIMARY KEY,
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	object_type text NOT NULL,				-- dataset | program
+	uid text NOT NULL,						-- The DHIS2 identifier
+	code text,
+	name text,
+	payload jsonb,							-- Null until the detail has been fetched
+	last_fetched TIMESTAMP WITH TIME ZONE,	-- When the detail was last read, null if never
+	last_listed TIMESTAMP WITH TIME ZONE
+	);
+CREATE INDEX IF NOT EXISTS dhis2_metadata_org_idx ON dhis2_metadata(o_id, object_type);
+CREATE UNIQUE INDEX IF NOT EXISTS dhis2_metadata_uid_idx ON dhis2_metadata(o_id, object_type, uid);
+ALTER TABLE dhis2_metadata OWNER TO ws;
+
 CREATE SCHEMA csv AUTHORIZATION ws;
 
 DROP SEQUENCE IF EXISTS du_seq CASCADE;

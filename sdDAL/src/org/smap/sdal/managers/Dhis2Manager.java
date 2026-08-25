@@ -301,30 +301,77 @@ public class Dhis2Manager {
 	}
 
 	/*
+	 * The data sets on the instance, uid, code and name only
+	 * The detail of one is fetched separately, because a data set with every data element and
+	 * category option combo is a large response and only one is looked at during a mapping
+	 */
+	public List<Map<String, String>> listDataSets(Dhis2Server server) throws Exception {
+		return listSummary(server, "dataSets", "/dataSets.json?paging=false&fields=id,code,name&order=name:asc");
+	}
+
+	/*
+	 * One data set with everything a mapping needs: its period type, and for each data element
+	 * the value type and the category option combos a value must be keyed by
+	 */
+	public JsonObject getDataSet(Dhis2Server server, String uid) throws Exception {
+		return getJsonObject(server, "/dataSets/" + encode(uid) + ".json?fields=id,code,name,periodType,"
+				+ "dataSetElements[dataElement[id,code,name,valueType,"
+				+ "categoryCombo[id,name,categoryOptionCombos[id,code,name]]]]");
+	}
+
+	/*
+	 * The programs on the instance, uid, code and name only
+	 */
+	public List<Map<String, String>> listPrograms(Dhis2Server server) throws Exception {
+		return listSummary(server, "programs", "/programs.json?paging=false&fields=id,code,name&order=name:asc");
+	}
+
+	/*
+	 * One program with its tracked entity attributes and the data elements of each stage, which
+	 * is what a form is generated from or mapped against
+	 */
+	public JsonObject getProgram(Dhis2Server server, String uid) throws Exception {
+		return getJsonObject(server, "/programs/" + encode(uid) + ".json?fields=id,code,name,programType,"
+				+ "trackedEntityType[id,name],"
+				+ "programTrackedEntityAttributes[trackedEntityAttribute[id,code,name,valueType,"
+				+ "optionSet[id,code,name]]],"
+				+ "programStages[id,code,name,programStageDataElements[compulsory,"
+				+ "dataElement[id,code,name,valueType,optionSet[id,code,name]]]]");
+	}
+
+	/*
+	 * Shared shape for the summary lists.  Each returns uid, code and name for a picker
+	 */
+	private List<Map<String, String>> listSummary(Dhis2Server server, String arrayName, String path)
+			throws Exception {
+
+		List<Map<String, String>> items = new ArrayList<>();
+
+		JsonObject response = getJsonObject(server, path);
+		JsonArray array = response.getAsJsonArray(arrayName);
+		if(array == null) {
+			return items;
+		}
+
+		for(JsonElement e : array) {
+			JsonObject o = e.getAsJsonObject();
+			Map<String, String> item = new LinkedHashMap<>();
+			item.put("uid", nz(asString(o, "id")));
+			item.put("code", nz(asString(o, "code")));
+			item.put("name", nz(asString(o, "name")));
+			items.add(item);
+		}
+
+		return items;
+	}
+
+	/*
 	 * The option sets available on the instance, for choosing one to synchronise
 	 * Returns uid, code and name only, the options themselves are fetched when it is synced
 	 */
 	public List<Map<String, String>> listOptionSets(Dhis2Server server) throws Exception {
-
-		List<Map<String, String>> sets = new ArrayList<>();
-
-		JsonObject response = getJsonObject(server,
+		return listSummary(server, "optionSets",
 				"/optionSets.json?paging=false&fields=id,code,name&order=name:asc");
-		JsonArray items = response.getAsJsonArray("optionSets");
-		if(items == null) {
-			return sets;
-		}
-
-		for(JsonElement e : items) {
-			JsonObject os = e.getAsJsonObject();
-			Map<String, String> set = new LinkedHashMap<>();
-			set.put("uid", nz(asString(os, "id")));
-			set.put("code", nz(asString(os, "code")));
-			set.put("name", nz(asString(os, "name")));
-			sets.add(set);
-		}
-
-		return sets;
 	}
 
 	/*
