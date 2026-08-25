@@ -56,6 +56,16 @@ public class Dhis2ExportManager {
 	 */
 	public Dhis2ImportSummary export(Connection sd, Connection cResults, int oId,
 			Dhis2Export export, String startDate, String endDate, boolean dryRun) throws Exception {
+		return export(sd, cResults, oId, export, startDate, endDate, null, dryRun);
+	}
+
+	/*
+	 * As above, limited to one organisation unit
+	 * Used when a single submission arrives and only its own totals need recalculating
+	 */
+	public Dhis2ImportSummary export(Connection sd, Connection cResults, int oId,
+			Dhis2Export export, String startDate, String endDate, String orgUnitCode,
+			boolean dryRun) throws Exception {
 
 		Dhis2Server server = new Dhis2ServerManager().getWithToken(sd, oId);
 		if(server == null) {
@@ -65,7 +75,7 @@ public class Dhis2ExportManager {
 			throw new Exception("The DHIS2 connection is disabled");
 		}
 
-		JsonArray dataValues = buildDataValues(sd, cResults, oId, export, startDate, endDate);
+		JsonArray dataValues = buildDataValues(sd, cResults, oId, export, startDate, endDate, orgUnitCode);
 		if(dataValues.size() == 0) {
 			throw new Exception("No data was found to export for that period");
 		}
@@ -97,6 +107,12 @@ public class Dhis2ExportManager {
 	 */
 	public JsonArray buildDataValues(Connection sd, Connection cResults, int oId,
 			Dhis2Export export, String startDate, String endDate) throws Exception {
+		return buildDataValues(sd, cResults, oId, export, startDate, endDate, null);
+	}
+
+	public JsonArray buildDataValues(Connection sd, Connection cResults, int oId,
+			Dhis2Export export, String startDate, String endDate, String orgUnitCode)
+			throws Exception {
 
 		JsonArray values = new JsonArray();
 
@@ -146,6 +162,9 @@ public class Dhis2ExportManager {
 			// Inclusive of the end date, so a caller can ask for a month by its first and last day
 			sql.append(" and ").append(dateCol).append(" < (?::date + interval '1 day')");
 		}
+		if(orgUnitCode != null && orgUnitCode.trim().length() > 0) {
+			sql.append(" and ").append(orgUnitCol).append(" = ?");
+		}
 
 		sql.append(" group by 1, 2 order by 1, 2");
 
@@ -158,6 +177,9 @@ public class Dhis2ExportManager {
 			}
 			if(endDate != null && endDate.trim().length() > 0) {
 				pstmt.setString(idx++, endDate.trim());
+			}
+			if(orgUnitCode != null && orgUnitCode.trim().length() > 0) {
+				pstmt.setString(idx++, orgUnitCode.trim());
 			}
 
 			log.info("DHIS2 export: " + pstmt.toString());
@@ -194,6 +216,114 @@ public class Dhis2ExportManager {
 		}
 
 		return values;
+	}
+
+	/*
+	 * Re-send the totals that one submission affects
+	 *
+	 * Called when a submission arrives.  Rather than sending that submission as a value, it
+	 * recalculates the period and organisation unit the submission belongs to and sends those
+	 * totals again.  DHIS2 keys a data value by data element, period, org unit and category
+	 * combo, so this corrects the total rather than adding to it, and the figure in DHIS2
+	 * converges on the right answer as submissions arrive.
+	 *
+	 * It also means a correction, or a submission that turns up weeks late, needs no special
+	 * handling: it is the same operation
+	 */
+	public String exportForSubmission(Connection sd, Connection cResults, int oId,
+			int surveyId, String instanceId) throws Exception {
+
+		String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, surveyId);
+		if(groupSurveyIdent == null) {
+			throw new Exception("No bundle found for this survey");
+		}
+
+		ArrayList<Dhis2Export> exports = new Dhis2ExportConfigManager()
+				.getExports(sd, oId, groupSurveyIdent);
+
+		StringBuilder details = new StringBuilder();
+		int run = 0;
+
+		for(Dhis2Export export : exports) {
+			if(!export.enabled) {
+				continue;
+			}
+
+			// Which organisation unit did this submission report against
+			ArrayList<String> ouValues = GeneralUtilityMethods.getResponseForQuestion(
+					sd, cResults, surveyId, export.orgunit_question, instanceId);
+			String orgUnit = ouValues.isEmpty() ? null : ouValues.get(0);
+			if(orgUnit == null || orgUnit.trim().length() == 0) {
+				continue;		// Nothing to send, the submission names no organisation unit
+			}
+
+			// And which period.  Fall back to today where the submission carries no date
+			String date = null;
+			if(export.period_question != null && export.period_question.trim().length() > 0) {
+				ArrayList<String> dateValues = GeneralUtilityMethods.getResponseForQuestion(
+						sd, cResults, surveyId, export.period_question, instanceId);
+				if(!dateValues.isEmpty()) {
+					date = dateValues.get(0);
+				}
+			}
+			String[] bounds = periodBounds(date, export.period_type);
+
+			Dhis2ImportSummary s = export(sd, cResults, oId, export,
+					bounds[0], bounds[1], orgUnit.trim(), false);
+
+			if(details.length() > 0) {
+				details.append("; ");
+			}
+			details.append(export.dataset_name == null ? export.dataset_uid : export.dataset_name)
+				.append(" ").append(bounds[0]).append(" ").append(orgUnit.trim())
+				.append(": ").append(s.imported).append(" imported, ")
+				.append(s.updated).append(" updated");
+			run++;
+		}
+
+		if(run == 0) {
+			return "No DHIS2 export applies to this submission";
+		}
+		return details.toString();
+	}
+
+	/*
+	 * The first and last day of the period containing a date
+	 */
+	private String[] periodBounds(String date, String periodType) {
+
+		java.time.LocalDate d;
+		try {
+			d = (date == null || date.trim().length() < 10)
+					? java.time.LocalDate.now()
+					: java.time.LocalDate.parse(date.trim().substring(0, 10));
+		} catch (Exception e) {
+			d = java.time.LocalDate.now();
+		}
+
+		String type = periodType == null ? "Monthly" : periodType;
+		java.time.LocalDate start;
+		java.time.LocalDate end;
+
+		if("Monthly".equalsIgnoreCase(type)) {
+			start = d.withDayOfMonth(1);
+			end = start.plusMonths(1).minusDays(1);
+		} else if("Weekly".equalsIgnoreCase(type)) {
+			start = d.with(java.time.DayOfWeek.MONDAY);
+			end = start.plusDays(6);
+		} else if("Quarterly".equalsIgnoreCase(type)) {
+			int q = (d.getMonthValue() - 1) / 3;
+			start = d.withDayOfYear(1).plusMonths(q * 3);
+			end = start.plusMonths(3).minusDays(1);
+		} else if("Yearly".equalsIgnoreCase(type)) {
+			start = d.withDayOfYear(1);
+			end = start.plusYears(1).minusDays(1);
+		} else {
+			start = d;
+			end = d;
+		}
+
+		return new String[] { start.toString(), end.toString() };
 	}
 
 	/*

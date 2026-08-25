@@ -728,6 +728,7 @@ public class NotificationManager {
 			types.add("escalate");
 			types.add("reference");
 			types.add("sharepoint_list");
+			types.add("dhis2");
 		}
 
 		boolean awsSMS = false;
@@ -1792,6 +1793,28 @@ public class NotificationManager {
 						status = "error";
 						error_details = e.getMessage();
 						log.log(Level.SEVERE, e.getMessage(), e);
+					}
+
+				} else if(msg.target.equals("dhis2")) {
+
+					/*
+					 * Rather than sending this submission as a value, recalculate the totals for
+					 * the period and organisation unit it belongs to and send those.  A DHIS2 data
+					 * value is keyed by data element, period, org unit and category combo, so this
+					 * corrects the total rather than adding to it, and the figure in DHIS2
+					 * converges on the right answer as submissions arrive.
+					 *
+					 * A correction, or a submission weeks late, then needs no special handling: it
+					 * is the same operation
+					 */
+					try {
+						notify_details = new Dhis2ExportManager().exportForSubmission(
+								sd, cResults, organisation.id, surveyId, msg.instanceId);
+
+					} catch(Exception e) {
+						status = "error";
+						error_details = e.getMessage();
+						log.log(Level.SEVERE, "DHIS2 notification: " + e.getMessage(), e);
 					}
 
 				} else {
