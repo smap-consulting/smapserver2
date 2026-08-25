@@ -499,8 +499,18 @@ public class Dhis2Manager {
 	 */
 	public Dhis2ImportSummary postDataValueSet(Dhis2Server server, JsonObject payload, boolean dryRun)
 			throws Exception {
+		return postDataValueSet(server, payload, dryRun, null);
+	}
 
-		StringBuilder path = new StringBuilder("/dataValueSets?importStrategy=CREATE_AND_UPDATE")
+	/*
+	 * As above with an explicit import strategy.  DELETE is used to remove the totals for a
+	 * period once the last record behind them has gone
+	 */
+	public Dhis2ImportSummary postDataValueSet(Dhis2Server server, JsonObject payload,
+			boolean dryRun, String importStrategy) throws Exception {
+
+		StringBuilder path = new StringBuilder("/dataValueSets?importStrategy="
+				+ (importStrategy == null ? "CREATE_AND_UPDATE" : importStrategy))
 				.append("&dataElementIdScheme=CODE")
 				.append("&orgUnitIdScheme=CODE")
 				.append("&categoryOptionComboIdScheme=CODE")

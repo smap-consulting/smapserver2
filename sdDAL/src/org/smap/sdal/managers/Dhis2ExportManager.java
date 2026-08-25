@@ -24,6 +24,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -67,17 +69,26 @@ public class Dhis2ExportManager {
 			Dhis2Export export, String startDate, String endDate, String orgUnitCode,
 			boolean dryRun) throws Exception {
 
+		JsonArray dataValues = buildDataValues(sd, cResults, oId, export, startDate, endDate, orgUnitCode);
+		if(dataValues.size() == 0) {
+			throw new Exception("No data was found to export for that period");
+		}
+
+		return send(sd, oId, export, dataValues, dryRun, null);
+	}
+
+	/*
+	 * Wrap the values in a data value set and send them
+	 */
+	private Dhis2ImportSummary send(Connection sd, int oId, Dhis2Export export,
+			JsonArray dataValues, boolean dryRun, String importStrategy) throws Exception {
+
 		Dhis2Server server = new Dhis2ServerManager().getWithToken(sd, oId);
 		if(server == null) {
 			throw new Exception("No DHIS2 connection has been set up for this organisation");
 		}
 		if(!server.enabled) {
 			throw new Exception("The DHIS2 connection is disabled");
-		}
-
-		JsonArray dataValues = buildDataValues(sd, cResults, oId, export, startDate, endDate, orgUnitCode);
-		if(dataValues.size() == 0) {
-			throw new Exception("No data was found to export for that period");
 		}
 
 		JsonObject payload = new JsonObject();
@@ -93,7 +104,8 @@ public class Dhis2ExportManager {
 		payload.addProperty("dataSet", export.dataset_uid);
 		payload.add("dataValues", dataValues);
 
-		Dhis2ImportSummary summary = new Dhis2Manager().postDataValueSet(server, payload, dryRun);
+		Dhis2ImportSummary summary = new Dhis2Manager()
+				.postDataValueSet(server, payload, dryRun, importStrategy);
 		summary.sent = dataValues.size();
 
 		return summary;
@@ -233,6 +245,90 @@ public class Dhis2ExportManager {
 	public String exportForSubmission(Connection sd, Connection cResults, int oId,
 			int surveyId, String instanceId) throws Exception {
 
+		ArrayList<String> one = new ArrayList<>();
+		one.add(instanceId);
+		return exportForRecords(sd, cResults, oId, surveyId, one);
+	}
+
+	/*
+	 * Tell DHIS2 that records have changed
+	 *
+	 * The entry point for the console: an edit, a bulk update, or a record marked bad, which is
+	 * how Smap deletes.  Marking bad drops the record out of the totals because the export query
+	 * ignores it, so a delete needs no separate handling.
+	 *
+	 * Never throws.  A DHIS2 problem must not fail the action the user asked for, so a failure
+	 * is logged and the console carries on.  The scheduled export will correct the totals on its
+	 * next run if one is configured
+	 */
+	public void recordsChanged(Connection sd, Connection cResults, int surveyId,
+			List<String> instanceIds) {
+
+		if(instanceIds == null || instanceIds.isEmpty()) {
+			return;
+		}
+
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, surveyId);
+			String details = exportForRecords(sd, cResults, oId, surveyId, instanceIds);
+			log.info("DHIS2 records changed: " + details);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "DHIS2 export after record change: " + e.getMessage(), e);
+		}
+	}
+
+	/*
+	 * As above where the caller has primary keys rather than instance identifiers
+	 */
+	public void recordsChangedByKey(Connection sd, Connection cResults, int surveyId,
+			String tableName, List<Integer> keys) {
+
+		if(keys == null || keys.isEmpty() || tableName == null) {
+			return;
+		}
+
+		ArrayList<String> instanceIds = new ArrayList<>();
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = cResults.prepareStatement("select instanceid from " + tableName + " where prikey = ?");
+			for(Integer key : keys) {
+				pstmt.setInt(1, key);
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					String iid = rs.getString(1);
+					if(iid != null) {
+						instanceIds.add(iid);
+					}
+				}
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "DHIS2: resolving instance ids: " + e.getMessage(), e);
+			return;
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
+		}
+
+		recordsChanged(sd, cResults, surveyId, instanceIds);
+	}
+
+	/*
+	 * Re-send the totals that a set of records affects
+	 *
+	 * Called whenever records change: a submission arriving, a console edit, a bulk update, or a
+	 * record being marked bad, which is how Smap deletes.  A record marked bad drops out of the
+	 * totals because the export query ignores it, so a delete is the same operation as an edit.
+	 *
+	 * The slices are worked out first and deduplicated, so a bulk update of two hundred records
+	 * in one facility and month is one request to DHIS2 rather than two hundred
+	 */
+	public String exportForRecords(Connection sd, Connection cResults, int oId,
+			int surveyId, List<String> instanceIds) throws Exception {
+
+		if(instanceIds == null || instanceIds.isEmpty()) {
+			return "No records to export";
+		}
+
 		String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, surveyId);
 		if(groupSurveyIdent == null) {
 			throw new Exception("No bundle found for this survey");
@@ -241,50 +337,126 @@ public class Dhis2ExportManager {
 		ArrayList<Dhis2Export> exports = new Dhis2ExportConfigManager()
 				.getExports(sd, oId, groupSurveyIdent);
 
-		StringBuilder details = new StringBuilder();
-		int run = 0;
+		// export id + period + org unit, so the same slice is only sent once
+		LinkedHashMap<String, Object[]> slices = new LinkedHashMap<>();
 
 		for(Dhis2Export export : exports) {
 			if(!export.enabled) {
 				continue;
 			}
+			for(String instanceId : instanceIds) {
 
-			// Which organisation unit did this submission report against
-			ArrayList<String> ouValues = GeneralUtilityMethods.getResponseForQuestion(
-					sd, cResults, surveyId, export.orgunit_question, instanceId);
-			String orgUnit = ouValues.isEmpty() ? null : ouValues.get(0);
-			if(orgUnit == null || orgUnit.trim().length() == 0) {
-				continue;		// Nothing to send, the submission names no organisation unit
-			}
+				ArrayList<String> ouValues = GeneralUtilityMethods.getResponseForQuestion(
+						sd, cResults, surveyId, export.orgunit_question, instanceId);
+				String orgUnit = ouValues.isEmpty() ? null : ouValues.get(0);
+				if(orgUnit == null || orgUnit.trim().length() == 0) {
+					continue;	// The record names no organisation unit, nothing to recalculate
+				}
 
-			// And which period.  Fall back to today where the submission carries no date
-			String date = null;
-			if(export.period_question != null && export.period_question.trim().length() > 0) {
-				ArrayList<String> dateValues = GeneralUtilityMethods.getResponseForQuestion(
-						sd, cResults, surveyId, export.period_question, instanceId);
-				if(!dateValues.isEmpty()) {
-					date = dateValues.get(0);
+				String date = null;
+				if(export.period_question != null && export.period_question.trim().length() > 0) {
+					ArrayList<String> dateValues = GeneralUtilityMethods.getResponseForQuestion(
+							sd, cResults, surveyId, export.period_question, instanceId);
+					if(!dateValues.isEmpty()) {
+						date = dateValues.get(0);
+					}
+				}
+				String[] bounds = periodBounds(date, export.period_type);
+
+				String key = export.id + "|" + bounds[0] + "|" + orgUnit.trim();
+				if(!slices.containsKey(key)) {
+					slices.put(key, new Object[] { export, bounds, orgUnit.trim() });
 				}
 			}
-			String[] bounds = periodBounds(date, export.period_type);
+		}
 
-			Dhis2ImportSummary s = export(sd, cResults, oId, export,
-					bounds[0], bounds[1], orgUnit.trim(), false);
+		if(slices.isEmpty()) {
+			return "No DHIS2 export applies to these records";
+		}
+
+		StringBuilder details = new StringBuilder();
+
+		for(Object[] slice : slices.values()) {
+			Dhis2Export export = (Dhis2Export) slice[0];
+			String[] bounds = (String[]) slice[1];
+			String orgUnit = (String) slice[2];
+
+			String outcome;
+			JsonArray values = buildDataValues(sd, cResults, oId, export,
+					bounds[0], bounds[1], orgUnit);
+
+			if(values.size() == 0) {
+				/*
+				 * Every record for this facility and period has gone, so the totals should go
+				 * too rather than being left at their old figures.  Only done on this path,
+				 * where a record really has changed: a scheduled export finding nothing is far
+				 * more likely to be a broken mapping than an emptied period, and should not
+				 * quietly remove a client's data
+				 */
+				outcome = removeValues(sd, oId, export, bounds[0], orgUnit);
+			} else {
+				Dhis2ImportSummary s = send(sd, oId, export, values, false, null);
+				outcome = s.imported + " imported, " + s.updated + " updated";
+			}
 
 			if(details.length() > 0) {
 				details.append("; ");
 			}
 			details.append(export.dataset_name == null ? export.dataset_uid : export.dataset_name)
-				.append(" ").append(bounds[0]).append(" ").append(orgUnit.trim())
-				.append(": ").append(s.imported).append(" imported, ")
-				.append(s.updated).append(" updated");
-			run++;
+				.append(" ").append(bounds[0]).append(" ").append(orgUnit)
+				.append(": ").append(outcome);
 		}
 
-		if(run == 0) {
-			return "No DHIS2 export applies to this submission";
-		}
 		return details.toString();
+	}
+
+	/*
+	 * Remove the values for one period and organisation unit, used when the last record behind
+	 * them has been deleted
+	 */
+	private String removeValues(Connection sd, int oId, Dhis2Export export,
+			String period, String orgUnit) throws Exception {
+
+		JsonArray values = new JsonArray();
+		for(Dhis2ExportItem item : export.items) {
+			JsonObject dv = new JsonObject();
+			dv.addProperty("dataElement", item.data_element);
+			dv.addProperty("period", toDhis2Period(period, export.period_type));
+			dv.addProperty("orgUnit", orgUnit);
+			if(item.category_option_combo != null && item.category_option_combo.trim().length() > 0) {
+				dv.addProperty("categoryOptionCombo", item.category_option_combo.trim());
+			}
+			dv.addProperty("value", "");
+			values.add(dv);
+		}
+
+		log.info("DHIS2: removing values for " + orgUnit + " " + period
+				+ ", no records remain behind them");
+
+		Dhis2ImportSummary s = send(sd, oId, export, values, false, "DELETE");
+		return s.deleted + " removed";
+	}
+
+	/*
+	 * The DHIS2 period identifier for the first day of a period
+	 * The query derives this in SQL, but a removal has no rows to derive it from
+	 */
+	private String toDhis2Period(String startDate, String periodType) {
+
+		java.time.LocalDate d = java.time.LocalDate.parse(startDate);
+		String type = periodType == null ? "Monthly" : periodType;
+
+		if("Monthly".equalsIgnoreCase(type)) {
+			return String.format("%04d%02d", d.getYear(), d.getMonthValue());
+		} else if("Weekly".equalsIgnoreCase(type)) {
+			java.time.temporal.WeekFields wf = java.time.temporal.WeekFields.ISO;
+			return String.format("%04dW%d", d.get(wf.weekBasedYear()), d.get(wf.weekOfWeekBasedYear()));
+		} else if("Quarterly".equalsIgnoreCase(type)) {
+			return String.format("%04dQ%d", d.getYear(), ((d.getMonthValue() - 1) / 3) + 1);
+		} else if("Yearly".equalsIgnoreCase(type)) {
+			return String.valueOf(d.getYear());
+		}
+		return String.format("%04d%02d%02d", d.getYear(), d.getMonthValue(), d.getDayOfMonth());
 	}
 
 	/*

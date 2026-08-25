@@ -42,6 +42,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.legacy.TableManager;
+import org.smap.sdal.managers.Dhis2ExportManager;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.ReferenceManager;
@@ -229,6 +230,13 @@ public class ManagedForms extends Application {
 						groupSurvey, groupForm, updatesString, bulk,
 						urlprefix);
 			}
+
+			/*
+			 * A console edit does not raise a submission, so nothing else would tell DHIS2 the
+			 * totals have moved.  Passed as a set so a bulk update of many records in one
+			 * facility and period is a single request rather than one each
+			 */
+			new Dhis2ExportManager().recordsChanged(sd, cResults, sId, instances);
 			
 			
 			GeneralUtilityMethods.clearLinkedForms(sd, sId, localisation);  // Clear any entries in linked_forms for this survey - The CSV files will need to be refreshed

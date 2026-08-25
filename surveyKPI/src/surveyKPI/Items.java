@@ -49,6 +49,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.Tables;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
+import org.smap.sdal.managers.Dhis2ExportManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SubmissionsManager;
@@ -1173,6 +1174,11 @@ public class Items extends Application {
 				boolean isChild = pId > 0;
 				UtilityMethodsEmail.markRecord(cRel, sd, localisation, tName, value, 
 						reason, key, sId, fId, false, isChild, request.getRemoteUser(), true, tz, true, true);
+
+				// Deleting or restoring a record moves the DHIS2 totals for its period
+				ArrayList<Integer> changedKeys = new ArrayList<>();
+				changedKeys.add(key);
+				new Dhis2ExportManager().recordsChangedByKey(sd, cRel, sId, tName, changedKeys);
 				
 				String msg = localisation.getString("msg_del_rec_form");
 				msg = msg.replace("%s1", String.valueOf(fId));
@@ -1254,6 +1260,11 @@ public class Items extends Application {
 			UtilityMethodsEmail.markRecord(cRel, sd, localisation, form.tableName, value, 
 						reason, key, sId, form.id, false, isChild, 
 						request.getRemoteUser(), true, tz, true, true);
+
+			// Deleting or restoring a record moves the DHIS2 totals for its period
+			ArrayList<String> changedRecords = new ArrayList<>();
+			changedRecords.add(instanceId);
+			new Dhis2ExportManager().recordsChanged(sd, cRel, sId, changedRecords);
 			String msg = localisation.getString("msg_del_rec");
 			msg = msg.replace("%s1", String.valueOf(key));
 			msg = msg.replace("%s2", reason == null ? "" : reason);
