@@ -234,6 +234,9 @@ public class Dhis2Manager {
 
 		List<Map<String, String>> rows = new ArrayList<>();
 
+		// Units in more than one group of a set, reported once rather than a line each
+		List<String> clashes = new ArrayList<>();
+
 		for(JsonElement e : units) {
 			JsonObject ou = e.getAsJsonObject();
 
@@ -264,8 +267,20 @@ public class Dhis2Manager {
 				row.put(levelColumn(levelNames, l) + "_name", levelName);
 			}
 
-			// One column per group set, holding the group this unit belongs to within that set
-			Map<String, String> setValues = new LinkedHashMap<>();
+			/*
+			 * One column per group set, holding the group this unit belongs to within that set
+			 *
+			 * Group sets are meant to be mutually exclusive and DHIS2 does not enforce it, so a
+			 * unit can appear in two groups of one set.  Every candidate is collected and the
+			 * first in sorted order wins.
+			 *
+			 * Sorted rather than whichever DHIS2 listed first, because DHIS2 does not return
+			 * groups in a consistent order between requests.  Taking the first as it arrives
+			 * would let the value flip from one sync to the next with nothing having changed,
+			 * which rewrites the file, changes its checksum, and sends every device off to
+			 * download the whole hierarchy again for nothing
+			 */
+			Map<String, java.util.TreeSet<String>> setCandidates = new LinkedHashMap<>();
 			JsonArray groups = ou.getAsJsonArray("organisationUnitGroups");
 			if(groups != null) {
 				for(JsonElement g : groups) {
@@ -278,25 +293,42 @@ public class Dhis2Manager {
 					if(value == null) {
 						value = nz(asString(group, "name"));
 					}
-					if(setValues.containsKey(setName)) {
-						/*
-						 * Group sets are meant to be mutually exclusive but DHIS2 does not always
-						 * enforce it.  Keep the first and say so rather than choosing silently,
-						 * it usually means the client's metadata needs attention
-						 */
-						log.warning("DHIS2 org unit " + asString(ou, "id")
-								+ " is in more than one group of set " + setName
-								+ ", keeping " + setValues.get(setName));
-					} else {
-						setValues.put(setName, value);
-					}
+					setCandidates.computeIfAbsent(setName, k -> new java.util.TreeSet<>()).add(value);
 				}
 			}
+
 			for(String setName : groupSetNames) {
-				row.put("gs_" + cleanColumn(setName), nz(setValues.get(setName)));
+				java.util.TreeSet<String> candidates = setCandidates.get(setName);
+				if(candidates == null || candidates.isEmpty()) {
+					row.put("gs_" + cleanColumn(setName), "");
+					continue;
+				}
+				if(candidates.size() > 1) {
+					// Counted and reported once at the end rather than a line per unit
+					clashes.add(asString(ou, "id") + " " + setName + " " + candidates);
+				}
+				row.put("gs_" + cleanColumn(setName), nz(candidates.first()));
 			}
 
 			rows.add(row);
+		}
+
+		/*
+		 * Said once, with examples.  This is the client's metadata to fix, and a line per unit
+		 * buries everything else in the log on every sync
+		 */
+		if(!clashes.isEmpty()) {
+			StringBuilder sb = new StringBuilder("DHIS2: ").append(clashes.size())
+				.append(" organisation units are in more than one group of a group set, which is "
+						+ "not what a group set means. The first in alphabetical order is used. "
+						+ "Examples: ");
+			for(int i = 0; i < clashes.size() && i < 3; i++) {
+				if(i > 0) {
+					sb.append("; ");
+				}
+				sb.append(clashes.get(i));
+			}
+			log.warning(sb.toString());
 		}
 
 		return rows;
