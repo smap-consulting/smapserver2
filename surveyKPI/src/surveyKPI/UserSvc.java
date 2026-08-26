@@ -261,6 +261,7 @@ public class UserSvc extends Application {
 	 */
 	@POST
 	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	@Produces("application/json")
 	public Response updateUser(@Context HttpServletRequest request,
 			@FormDataParam("user") String user) { 
 		
