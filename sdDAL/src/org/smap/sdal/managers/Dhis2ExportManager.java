@@ -593,11 +593,18 @@ public class Dhis2ExportManager {
 		if(Dhis2ExportItem.AGG_SUM.equals(item.aggregation)) {
 			String col = requireColumn(sd, export, item.question_name);
 			/*
-			 * Results columns for numeric questions are numeric, but a question whose type was
-			 * changed can leave a text column behind, so the cast is explicit and a value that
-			 * will not cast is a clear error rather than a silent zero
+			 * Cast before summing, not after
+			 *
+			 * A calculate is stored in a text column, and sum(text) is not a function, so
+			 * summing one would fail. Calculates matter here because they are how a condition
+			 * gets expressed: a calculation of if(condition, 1, 0) summed over a period is a
+			 * count of the records meeting that condition, which is otherwise beyond an
+			 * aggregation limited to counts and sums.
+			 *
+			 * Empty is treated as nothing rather than zero. A value that will not cast raises a
+			 * clear error rather than quietly counting as zero
 			 */
-			return "sum(" + col + ")::text";
+			return "sum(nullif(trim(" + col + "::text), '')::numeric)::text";
 		}
 
 		if(Dhis2ExportItem.AGG_ONE.equals(item.aggregation)) {
