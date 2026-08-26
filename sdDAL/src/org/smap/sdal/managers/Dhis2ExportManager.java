@@ -24,8 +24,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -33,10 +35,13 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Dhis2Export;
 import org.smap.sdal.model.Dhis2ExportItem;
 import org.smap.sdal.model.Dhis2ImportSummary;
+import org.smap.sdal.model.Dhis2Object;
 import org.smap.sdal.model.Dhis2Server;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 /*
  * Builds and sends aggregate data values from a survey bundle into a DHIS2 data set
@@ -69,12 +74,54 @@ public class Dhis2ExportManager {
 			Dhis2Export export, String startDate, String endDate, String orgUnitCode,
 			boolean dryRun) throws Exception {
 
-		JsonArray dataValues = buildDataValues(sd, cResults, oId, export, startDate, endDate, orgUnitCode);
-		if(dataValues.size() == 0) {
+		BuiltValues built = buildDataValues(sd, cResults, oId, export, startDate, endDate, orgUnitCode);
+		if(built.size() == 0) {
 			throw new Exception("No data was found to export for that period");
 		}
 
-		return send(sd, oId, export, dataValues, dryRun, null);
+		return sendBuilt(sd, oId, export, built, dryRun);
+	}
+
+	/*
+	 * Send what was built: the values as an update, and the insignificant zeros as a removal
+	 *
+	 * They cannot go in one request because they need different import strategies
+	 */
+	private Dhis2ImportSummary sendBuilt(Connection sd, int oId, Dhis2Export export,
+			BuiltValues built, boolean dryRun) throws Exception {
+
+		Dhis2ImportSummary summary = null;
+
+		if(built.values.size() > 0) {
+			summary = send(sd, oId, export, built.values, dryRun, null);
+		}
+
+		if(built.zeros.size() > 0) {
+			Dhis2ImportSummary z = send(sd, oId, export, built.zeros, dryRun, "DELETE");
+			summary = summary == null ? z : merge(summary, z);
+		}
+
+		summary.sent = built.size();
+		return summary;
+	}
+
+	/*
+	 * Fold the removal result into the update result so the caller sees one outcome
+	 */
+	private Dhis2ImportSummary merge(Dhis2ImportSummary a, Dhis2ImportSummary b) {
+
+		a.success = a.success && b.success;
+		a.imported += b.imported;
+		a.updated += b.updated;
+		a.ignored += b.ignored;
+		a.deleted += b.deleted;
+		a.conflicts.addAll(b.conflicts);
+
+		if(!b.success && b.description != null) {
+			a.description = (a.description == null ? "" : a.description + "; ") + b.description;
+		}
+
+		return a;
 	}
 
 	/*
@@ -117,16 +164,31 @@ public class Dhis2ExportManager {
 	 * Each mapped item becomes one aggregate expression, and the whole lot is grouped by period
 	 * and organisation unit in a single query rather than one query per item
 	 */
-	public JsonArray buildDataValues(Connection sd, Connection cResults, int oId,
+	/*
+	 * What one build produced, split by how it has to be sent
+	 *
+	 * A zero on a data element that does not treat zero as significant is a removal rather than
+	 * a value, so the two need separate requests
+	 */
+	public static class BuiltValues {
+		public JsonArray values = new JsonArray();		// Sent as CREATE_AND_UPDATE
+		public JsonArray zeros = new JsonArray();		// Sent as DELETE
+
+		public int size() {
+			return values.size() + zeros.size();
+		}
+	}
+
+	public BuiltValues buildDataValues(Connection sd, Connection cResults, int oId,
 			Dhis2Export export, String startDate, String endDate) throws Exception {
 		return buildDataValues(sd, cResults, oId, export, startDate, endDate, null);
 	}
 
-	public JsonArray buildDataValues(Connection sd, Connection cResults, int oId,
+	public BuiltValues buildDataValues(Connection sd, Connection cResults, int oId,
 			Dhis2Export export, String startDate, String endDate, String orgUnitCode)
 			throws Exception {
 
-		JsonArray values = new JsonArray();
+		BuiltValues built = new BuiltValues();
 
 		if(export.items.isEmpty()) {
 			throw new Exception("This export has no values mapped");
@@ -147,6 +209,8 @@ public class Dhis2ExportManager {
 
 		String periodExpr = getPeriodExpression(sd, export, tz);
 		String dateCol = getDateColumn(sd, export);
+
+		Map<String, Boolean> zeroSig = zeroSignificance(sd, oId, export);
 
 		/*
 		 * One query, grouped by period and org unit.  The aggregate expressions are built from
@@ -218,8 +282,27 @@ public class Dhis2ExportManager {
 					if(item.category_option_combo != null && item.category_option_combo.trim().length() > 0) {
 						dv.addProperty("categoryOptionCombo", item.category_option_combo.trim());
 					}
-					dv.addProperty("value", value);
-					values.add(dv);
+
+					/*
+					 * A zero on an element that does not treat zero as significant is removed
+					 * rather than stored
+					 *
+					 * This matters for a case form, where a condition is expressed as a marker
+					 * of if(condition, 1, 0) and most markers are zero for any one patient.
+					 * Storing those says only "this case was not in that category", which DHIS2
+					 * has already declared it does not want by setting zeroIsSignificant false.
+					 *
+					 * Removing rather than skipping is the point.  Skipping would leave an
+					 * earlier non zero total sitting in DHIS2 after the records behind it
+					 * changed, which is worse than sending the zero was
+					 */
+					if(isZero(value) && Boolean.FALSE.equals(zeroSig.get(item.data_element))) {
+						dv.addProperty("value", "");
+						built.zeros.add(dv);
+					} else {
+						dv.addProperty("value", value);
+						built.values.add(dv);
+					}
 				}
 			}
 
@@ -227,7 +310,110 @@ public class Dhis2ExportManager {
 			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
 		}
 
-		return values;
+		if(built.zeros.size() > 0) {
+			log.info("DHIS2 export: " + built.values.size() + " values, " + built.zeros.size()
+					+ " insignificant zeros to remove");
+		}
+
+		return built;
+	}
+
+	/*
+	 * True if the aggregate came out as zero
+	 */
+	private boolean isZero(String value) {
+
+		if(value == null || value.trim().length() == 0) {
+			return false;
+		}
+		try {
+			return new java.math.BigDecimal(value.trim()).signum() == 0;
+		} catch(NumberFormatException e) {
+			return false;		// Not a number, so not a zero to suppress
+		}
+	}
+
+	/*
+	 * Whether each data element of the data set treats zero as significant, keyed by both code
+	 * and uid because a mapping may be written in either
+	 *
+	 * Read from the cached data set metadata rather than from DHIS2 on every export.  If the
+	 * answer cannot be established the map is left empty, which sends zeros as before: never
+	 * drop a value because we could not find out whether it mattered
+	 */
+	private Map<String, Boolean> zeroSignificance(Connection sd, int oId, Dhis2Export export) {
+
+		Map<String, Boolean> sig = new HashMap<>();
+		if(export.dataset_uid == null) {
+			return sig;
+		}
+
+		try {
+			Dhis2MetadataManager mm = new Dhis2MetadataManager();
+			String payload = mm.getDetail(sd, oId, Dhis2Object.TYPE_DATASET, export.dataset_uid, false);
+
+			/*
+			 * A data set cached before this code asked for zeroIsSignificant will not carry it,
+			 * so fetch it once more.  Refreshing on a genuinely absent property would fetch on
+			 * every export, so this only refreshes when nothing at all was found
+			 */
+			if(!readZeroSignificance(payload, sig)) {
+				payload = mm.getDetail(sd, oId, Dhis2Object.TYPE_DATASET, export.dataset_uid, true);
+				sig.clear();
+				readZeroSignificance(payload, sig);
+			}
+
+		} catch(Exception e) {
+			log.info("DHIS2: could not read zeroIsSignificant, zeros will be sent: " + e.getMessage());
+		}
+
+		return sig;
+	}
+
+	/*
+	 * Returns true if the payload carried the property at all
+	 */
+	private boolean readZeroSignificance(String payload, Map<String, Boolean> sig) {
+
+		if(payload == null) {
+			return false;
+		}
+
+		boolean found = false;
+		JsonElement parsed = JsonParser.parseString(payload);
+		if(!parsed.isJsonObject()) {
+			return false;
+		}
+
+		JsonElement elements = parsed.getAsJsonObject().get("dataSetElements");
+		if(elements == null || !elements.isJsonArray()) {
+			return false;
+		}
+
+		for(JsonElement dse : elements.getAsJsonArray()) {
+			if(!dse.isJsonObject()) {
+				continue;
+			}
+			JsonElement de = dse.getAsJsonObject().get("dataElement");
+			if(de == null || !de.isJsonObject()) {
+				continue;
+			}
+			JsonObject deo = de.getAsJsonObject();
+			if(!deo.has("zeroIsSignificant") || deo.get("zeroIsSignificant").isJsonNull()) {
+				continue;
+			}
+
+			found = true;
+			boolean z = deo.get("zeroIsSignificant").getAsBoolean();
+			if(deo.has("code") && !deo.get("code").isJsonNull()) {
+				sig.put(deo.get("code").getAsString(), z);
+			}
+			if(deo.has("id") && !deo.get("id").isJsonNull()) {
+				sig.put(deo.get("id").getAsString(), z);
+			}
+		}
+
+		return found;
 	}
 
 	/*
@@ -382,10 +568,10 @@ public class Dhis2ExportManager {
 			String orgUnit = (String) slice[2];
 
 			String outcome;
-			JsonArray values = buildDataValues(sd, cResults, oId, export,
+			BuiltValues built = buildDataValues(sd, cResults, oId, export,
 					bounds[0], bounds[1], orgUnit);
 
-			if(values.size() == 0) {
+			if(built.size() == 0) {
 				/*
 				 * Every record for this facility and period has gone, so the totals should go
 				 * too rather than being left at their old figures.  Only done on this path,
@@ -395,8 +581,11 @@ public class Dhis2ExportManager {
 				 */
 				outcome = removeValues(sd, oId, export, bounds[0], orgUnit);
 			} else {
-				Dhis2ImportSummary s = send(sd, oId, export, values, false, null);
+				Dhis2ImportSummary s = sendBuilt(sd, oId, export, built, false);
 				outcome = s.imported + " imported, " + s.updated + " updated";
+				if(s.deleted > 0) {
+					outcome += ", " + s.deleted + " removed";
+				}
 			}
 
 			if(details.length() > 0) {

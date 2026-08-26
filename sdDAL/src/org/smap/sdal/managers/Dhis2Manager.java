@@ -349,7 +349,7 @@ public class Dhis2Manager {
 	 */
 	public JsonObject getDataSet(Dhis2Server server, String uid) throws Exception {
 		return getJsonObject(server, "/dataSets/" + encode(uid) + ".json?fields=id,code,name,periodType,"
-				+ "dataSetElements[dataElement[id,code,name,valueType,"
+				+ "dataSetElements[dataElement[id,code,name,valueType,zeroIsSignificant,"
 				+ "categoryCombo[id,name,categoryOptionCombos[id,code,name]]]]");
 	}
 
