@@ -65,13 +65,24 @@ public class AttachmentStore {
 	 * Returns null if the media is not hosted by this server or it cannot be found
 	 */
 	public static byte[] getThumbnailBytes(String basePath, String value, String attachmentPrefix) {
+		return getThumbnailBytes(basePath, value, attachmentPrefix, true);
+	}
+
+	/*
+	 * Get the thumbnail of a media file as a byte array
+	 * Only set allowFullSize for images.  The full size file cannot stand in for the thumbnail
+	 *  of a video or any other media that is not itself an image
+	 * Returns null if the media is not hosted by this server or it cannot be found
+	 */
+	public static byte[] getThumbnailBytes(String basePath, String value, String attachmentPrefix,
+			boolean allowFullSize) {
 
 		byte [] bytes = null;
 
 		String relPath = getRelativePath(value, attachmentPrefix);
 		if(relPath != null) {
 			bytes = getBytesForPath(basePath, GeneralUtilityMethods.getThumbsUrl(relPath));
-			if(bytes == null) {
+			if(bytes == null && allowFullSize) {
 				bytes = getBytesForPath(basePath, relPath);		// Thumbnail may not have been created
 			}
 		}

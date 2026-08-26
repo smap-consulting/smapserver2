@@ -18,6 +18,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
@@ -186,6 +187,7 @@ public class MiscPDFManager {
 
 			PdfDocument pdf = new PdfDocument(new PdfWriter(baos != null ? baos : outputStream));
 			Document document = new Document(pdf, PageSize.A4);
+			PdfUtilities.setLineSpacing(document);
 			// iText 8 margin order is top, right, bottom, left
 			document.setMargins(marginTop_1, marginRight, marginBottom_1, marginLeft);
 			document.setFontProvider(fontProvider);
@@ -326,6 +328,7 @@ public class MiscPDFManager {
 
 			PdfDocument pdf = new PdfDocument(new PdfWriter(outputStream));
 			Document document = new Document(pdf, PageSize.A4);
+			PdfUtilities.setLineSpacing(document);
 			document.setMargins(marginTop_1, marginRight, marginBottom_1, marginLeft);
 			document.setFontProvider(fontProvider);
 			document.setProperty(Property.FONT, new String[]{"Noto Sans"});
