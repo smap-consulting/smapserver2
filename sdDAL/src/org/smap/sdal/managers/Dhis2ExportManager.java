@@ -115,9 +115,18 @@ public class Dhis2ExportManager {
 		a.updated += b.updated;
 		a.ignored += b.ignored;
 		a.deleted += b.deleted;
-		a.conflicts.addAll(b.conflicts);
 
-		if(!b.success && b.description != null) {
+		/*
+		 * The values and the zeros go as two requests, so anything wrong with the connection or
+		 * the mapping is reported by both.  Listing it twice suggests two problems
+		 */
+		for(String c : b.conflicts) {
+			if(!a.conflicts.contains(c)) {
+				a.conflicts.add(c);
+			}
+		}
+
+		if(!b.success && b.description != null && !b.description.equals(a.description)) {
 			a.description = (a.description == null ? "" : a.description + "; ") + b.description;
 		}
 
@@ -154,8 +163,31 @@ public class Dhis2ExportManager {
 		Dhis2ImportSummary summary = new Dhis2Manager()
 				.postDataValueSet(server, payload, dryRun, importStrategy);
 		summary.sent = dataValues.size();
+		nameTheDataSet(summary, export);
 
 		return summary;
+	}
+
+	/*
+	 * DHIS2 names the data set by its identifier when it complains about one, which means
+	 * nothing to whoever set the mapping up.  Put the name they chose it by in its place
+	 */
+	private void nameTheDataSet(Dhis2ImportSummary summary, Dhis2Export export) {
+
+		if(export.dataset_uid == null || export.dataset_name == null
+				|| export.dataset_name.trim().length() == 0) {
+			return;
+		}
+
+		for(int i = 0; i < summary.conflicts.size(); i++) {
+			String c = summary.conflicts.get(i);
+			if(c != null && c.contains(export.dataset_uid)) {
+				summary.conflicts.set(i, c.replace(export.dataset_uid, export.dataset_name));
+			}
+		}
+		if(summary.description != null && summary.description.contains(export.dataset_uid)) {
+			summary.description = summary.description.replace(export.dataset_uid, export.dataset_name);
+		}
 	}
 
 	/*
