@@ -960,7 +960,17 @@ public class NotificationManager {
 			if(updateQuestion == null) {
 				sqlGetNotifications.append(" and n.trigger = 'submission' ");
 				if(thread != null) {
-					sqlGetNotifications.append(" and n.id not in (select n_id from notified_record where thread = ?) ");
+					/*
+					 * A notification fires once per thread, so a case that is updated does not
+					 * alert someone a second time about the same case.
+					 *
+					 * DHIS2 is exempt because it is not telling anyone anything, it is keeping a
+					 * total in step.  A case admitted and later closed as died has to send twice
+					 * or the death is never counted, which is the whole of the case management
+					 * argument for the integration
+					 */
+					sqlGetNotifications.append(" and (n.target = 'dhis2' "
+							+ "or n.id not in (select n_id from notified_record where thread = ?)) ");
 				}
 			} else {
 				sqlGetNotifications.append(" and n.trigger = 'console_update'");	// Only used for bulk updates
@@ -1098,8 +1108,12 @@ public class NotificationManager {
 						log.log(Level.WARNING, "localisation is null.");
 					}
 					
-					// Save the information that this thread has triggered this notification
-					if(thread != null) {
+					/*
+					 * Save the information that this thread has triggered this notification
+					 * Not recorded for DHIS2, which fires on every update, so the row would only
+					 * accumulate one per change and never be read
+					 */
+					if(thread != null && !"dhis2".equals(target)) {
 						pstmtNotified.setInt(1, nId);
 						pstmtNotified.setString(2, thread);
 						pstmtNotified.executeUpdate();
