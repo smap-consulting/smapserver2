@@ -206,6 +206,28 @@ public class Dhis2ExportManager {
 		public JsonArray values = new JsonArray();		// Sent as CREATE_AND_UPDATE
 		public JsonArray zeros = new JsonArray();		// Sent as DELETE
 
+		/*
+		 * What each value was, in terms the person who set the mapping up will recognise
+		 *
+		 * "2 updated" says something happened without saying what, which is no use when the
+		 * figure in DHIS2 is not the one that was expected.  Keyed by question name rather than
+		 * data element code because that is the end the reader can check
+		 */
+		public ArrayList<String> described = new ArrayList<>();
+
+		/*
+		 * Only the per record path reads this, where a slice is one period and organisation
+		 * unit.  A scheduled export of a year of data uses the same builder, so it is capped
+		 * rather than allowed to hold a string for every value it sends
+		 */
+		private static final int MAX_DESCRIBED = 200;
+
+		public void describe(String what) {
+			if(described.size() < MAX_DESCRIBED) {
+				described.add(what);
+			}
+		}
+
 		public int size() {
 			return values.size() + zeros.size();
 		}
@@ -328,12 +350,17 @@ public class Dhis2ExportManager {
 					 * earlier non zero total sitting in DHIS2 after the records behind it
 					 * changed, which is worse than sending the zero was
 					 */
+					String what = (item.question_name == null || item.question_name.trim().length() == 0
+							? item.data_element : item.question_name) + "=" + value;
+
 					if(isZero(value) && Boolean.FALSE.equals(zeroSig.get(item.data_element))) {
 						dv.addProperty("value", "");
 						built.zeros.add(dv);
+						built.describe(what + " removed");
 					} else {
 						dv.addProperty("value", value);
 						built.values.add(dv);
+						built.describe(what);
 					}
 				}
 			}
@@ -618,13 +645,21 @@ public class Dhis2ExportManager {
 				if(s.deleted > 0) {
 					outcome += ", " + s.deleted + " removed";
 				}
+				/*
+				 * One slice is one period and organisation unit, so this is bounded by the
+				 * number of mapped values and is worth writing out in full
+				 */
+				if(!built.described.isEmpty()) {
+					outcome += " [" + String.join(", ", built.described) + "]";
+				}
 			}
 
 			if(details.length() > 0) {
 				details.append("; ");
 			}
 			details.append(export.dataset_name == null ? export.dataset_uid : export.dataset_name)
-				.append(" ").append(bounds[0]).append(" ").append(orgUnit)
+				.append(" ").append(toDhis2Period(bounds[0], export.period_type))
+				.append(" ").append(orgUnit)
 				.append(": ").append(outcome);
 		}
 
