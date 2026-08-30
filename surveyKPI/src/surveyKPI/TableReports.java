@@ -61,6 +61,8 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.UUID;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
@@ -75,6 +77,16 @@ public class TableReports extends Application {
 	Authorise a = null;
 	
 	LogManager lm = new LogManager();		// Application log
+	
+	/*
+	 * Limit the number of reports that are created at the same time.  The data set posted by the
+	 * client is held in memory for the duration of the request, hence concurrent reports multiply
+	 * the heap that is used.  Wait for a slot rather than refuse immediately, however do not wait
+	 * for ever or a backlog of reports would consume every request handling thread.
+	 */
+	private static final int MAX_CONCURRENT_REPORTS = 2;
+	private static final int REPORT_WAIT_SECS = 120;
+	private static final Semaphore reportSlots = new Semaphore(MAX_CONCURRENT_REPORTS, true);
 
 	public TableReports() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
@@ -140,12 +152,13 @@ public class TableReports extends Application {
 		if(project == null) {
 			project = "Project";
 		}
-		Connection cResults = ResultsDataSource.getConnection(connectionString);
+		Connection cResults = null;
 		
 		if(tz == null) {
 			tz = "UTC";
 		}
 		
+		boolean gotSlot = false;
 		try {
 			
 			// Localisation
@@ -154,6 +167,22 @@ public class TableReports extends Application {
 			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			/*
+			 * Wait for a report slot before doing any of the work that uses memory
+			 */
+			gotSlot = reportSlots.tryAcquire(REPORT_WAIT_SECS, TimeUnit.SECONDS);
+			if(!gotSlot) {
+				String msg = localisation.getString("msg_reports_busy");
+				log.info(msg + " user: " + request.getRemoteUser());
+				response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+				response.setHeader("Retry-After", String.valueOf(REPORT_WAIT_SECS));
+				response.setContentType("text/plain; charset=UTF-8");
+				response.getWriter().print(msg);
+				return;
+			}
+			
+			cResults = ResultsDataSource.getConnection(connectionString);
 			
 			int fId = 0;
 			if(formName != null) {
@@ -306,6 +335,9 @@ public class TableReports extends Application {
 			
 		
 		} finally {
+			if(gotSlot) {
+				reportSlots.release();
+			}
 			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection(connectionString, cResults);
 		}

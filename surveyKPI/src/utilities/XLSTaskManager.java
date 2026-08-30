@@ -38,6 +38,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.apache.poi.xssf.usermodel.*;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.model.TaskFeature;
@@ -54,6 +55,12 @@ public class XLSTaskManager {
 	
 	private static Logger log =
 			 Logger.getLogger(XLSTaskManager.class.getName());
+	
+	/*
+	 * Number of rows kept in memory when writing an xlsx file.  Older rows are flushed to a
+	 * temporary file so that the heap used does not grow with the number of rows written.
+	 */
+	private static final int ROW_WINDOW = 100;
 	
 	Workbook wb = null;
 	int rowNumber = 1;		// Heading row is 0
@@ -164,7 +171,9 @@ public class XLSTaskManager {
 		if(type != null && type.equals("xls")) {
 			wb = new HSSFWorkbook();
 		} else {
-			wb = new XSSFWorkbook();
+			// Stream the sheet data.  Rows must be written to each sheet in order and a row that
+			// has already been flushed cannot be modified
+			wb = new SXSSFWorkbook(ROW_WINDOW);
 		}
 		this.scheme = scheme;
 		this.serverName = serverName;
@@ -322,18 +331,31 @@ public class XLSTaskManager {
 	public void createXLSTaskFile(OutputStream outputStream, TaskListGeoJson tl, ResourceBundle localisation, 
 			String tz) throws IOException {
 		
-		Sheet taskListSheet = wb.createSheet("tasks");
-		Sheet taskSettingsSheet = wb.createSheet("settings");
-		taskListSheet.createFreezePane(5, 1);	// Freeze header row and first 5 columns
-		
-		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
-
-		ArrayList<Column> cols = getColumnList(localisation);
-		createHeader(cols, taskListSheet, styles);	
-		processTaskListForXLS(tl, taskListSheet, taskSettingsSheet, styles, cols, tz);
-		
-		wb.write(outputStream);
-		outputStream.close();
+		try {
+			Sheet taskListSheet = wb.createSheet("tasks");
+			Sheet taskSettingsSheet = wb.createSheet("settings");
+			taskListSheet.createFreezePane(5, 1);	// Freeze header row and first 5 columns
+			
+			Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
+	
+			ArrayList<Column> cols = getColumnList(localisation);
+			createHeader(cols, taskListSheet, styles);	
+			processTaskListForXLS(tl, taskListSheet, taskSettingsSheet, styles, cols, tz);
+			
+			wb.write(outputStream);
+		} finally {
+			dispose();
+			outputStream.close();
+		}
+	}
+	
+	/*
+	 * Delete the temporary files used to hold the flushed rows
+	 */
+	private void dispose() {
+		if(wb instanceof SXSSFWorkbook) {
+			((SXSSFWorkbook) wb).dispose();
+		}
 	}
 	
 	/*
@@ -439,21 +461,24 @@ public class XLSTaskManager {
 		/*
 		 * Create the worksheets
 		 */
-		for(int i = 0; i < locations.size(); i++) {
-			Location l = locations.get(i);
-			Sheet ns = sheetMap.get(l.group);
-			if(ns == null) {
-				ns = wb.createSheet(l.group);
-				createHeader(cols, ns, styles);
-				sheetMap.put(l.group, ns);
-				rowMap.put(l.group, 1);
+		try {
+			for(int i = 0; i < locations.size(); i++) {
+				Location l = locations.get(i);
+				Sheet ns = sheetMap.get(l.group);
+				if(ns == null) {
+					ns = wb.createSheet(l.group);
+					createHeader(cols, ns, styles);
+					sheetMap.put(l.group, ns);
+					rowMap.put(l.group, 1);
+				}
+				addLocation(l, ns, styles, rowMap);
 			}
-			addLocation(l, ns, styles, rowMap);
+			
+			wb.write(outputStream);
+		} finally {
+			dispose();
+			outputStream.close();
 		}
-		
-		
-		wb.write(outputStream);
-		outputStream.close();
 	}
 
 	
