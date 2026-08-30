@@ -189,7 +189,7 @@ public class TableReports extends Application {
 				Type type = new TypeToken<ArrayList<ArrayList<KeyValue>>>(){}.getType();		
 				dArray = new Gson().fromJson(data, type);
 			}
-			log.info("xxxx memory: array size: " + dArray.size());
+			log.info("xxxx memory: array size: " + (dArray == null ? 0 : dArray.size()));
 			
 			// Convert charts to an array
 			ArrayList<Chart> chartArray = null;
