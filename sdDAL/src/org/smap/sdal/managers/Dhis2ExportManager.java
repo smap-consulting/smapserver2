@@ -654,11 +654,29 @@ public class Dhis2ExportManager {
 				}
 			}
 
+			String slicePeriod = toDhis2Period(bounds[0], export.period_type);
+
+			/*
+			 * Stamp the mapping as well as writing the notification log
+			 *
+			 * Without this "last export" on the mapping only ever describes a scheduled run or
+			 * someone pressing Send, so a mapping kept current by notifications, which is the
+			 * usual case, looks as though it has not run since the last sweep.  The mapping row
+			 * is meant to answer "when did this last reach DHIS2", by whatever route
+			 */
+			try {
+				new Dhis2ExportConfigManager().recordExport(sd, oId, export.id,
+						slicePeriod + " " + orgUnit + ": " + outcome);
+			} catch(Exception e) {
+				// Recording the outcome must never cost us the export that already succeeded
+				log.log(Level.WARNING, "Recording DHIS2 export against mapping " + export.id, e);
+			}
+
 			if(details.length() > 0) {
 				details.append("; ");
 			}
 			details.append(export.dataset_name == null ? export.dataset_uid : export.dataset_name)
-				.append(" ").append(toDhis2Period(bounds[0], export.period_type))
+				.append(" ").append(slicePeriod)
 				.append(" ").append(orgUnit)
 				.append(": ").append(outcome);
 		}
