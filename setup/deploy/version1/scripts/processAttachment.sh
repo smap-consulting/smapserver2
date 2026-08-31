@@ -29,22 +29,27 @@ if [ x"$type" = ximage ]; then
 	echo "--------------------------------------"
 	echo "Creating thumbnails $destthumbnail from $destfile"
 	rm $destthumbnail
-	sh -c "convert -thumbnail 100 -background white -alpha remove $destfile $destthumbnail"
 
-    if [ -n "$exiftool" ]; then
-        echo "Preserve exif data in thumbnail"
-        sh -c "$exiftool -overwrite_original_in_place -tagsFromFile $destfile $destthumbnail"
-    fi
-
-	# The iText hack flattens transparency so PDF reports render correctly. Only
-	# formats that can carry an alpha channel need it. Running it on a JPEG is a
-	# full decode/re-encode that changes nothing, strips the exif we then have to
-	# restore, and degrades the image, so skip it.
+	# The iText hack flattens transparency so PDF reports render correctly, and
+	# the exiftool calls exist only to restore the exif that convert strips.
+	# Neither is needed for jpeg: it cannot carry an alpha channel, so the hack
+	# is a full decode/re-encode that changes nothing and degrades the image,
+	# and -auto-orient bakes the exif rotation into the thumbnail pixels so the
+	# orientation tag no longer has to be copied back in. That drops two convert
+	# passes and two exiftool processes per photo, on the submission thread.
 	case `echo $ext | tr A-Z a-z` in
 	jpg|jpeg)
-		echo "skipping iText hack, $ext cannot have an alpha channel"
+		echo "$ext needs no iText hack or exif copy, orienting thumbnail in place"
+		sh -c "convert $destfile -auto-orient -thumbnail 100 -background white -alpha remove $destthumbnail"
 		;;
 	*)
+		sh -c "convert -thumbnail 100 -background white -alpha remove $destfile $destthumbnail"
+
+		if [ -n "$exiftool" ]; then
+			echo "Preserve exif data in thumbnail"
+			sh -c "$exiftool -overwrite_original_in_place -tagsFromFile $destfile $destthumbnail"
+		fi
+
 		echo "processing image file for iText hack also set background white"
 		sh -c "convert -background white -alpha remove $destfile $destfile"
 
