@@ -181,7 +181,10 @@ public class Dhis2Maps extends Application {
 
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
-			new Dhis2MapManager().deleteMapping(sd, oId, id);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources",
+					new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser())));
+			new Dhis2MapManager().deleteMapping(sd, oId, id,
+					GeneralUtilityMethods.getBasePath(request), localisation);
 			return Response.ok().build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);

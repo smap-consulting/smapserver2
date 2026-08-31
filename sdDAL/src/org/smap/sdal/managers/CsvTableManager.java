@@ -26,6 +26,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.CSVParser;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.OrgCachedResource;
 import org.smap.sdal.model.CsvTable;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.CsvHeader;
@@ -93,17 +94,37 @@ public class CsvTableManager {
 	private static final int BATCH_SIZE = 1000;		// Rows sent to the database per round trip when loading
 	
 	private String sqlGetCsvTable = "select id, headers from csvtable where o_id = ? and s_id = ? and filename = ?";
+
+	/*
+	 * Organisation cached resources are registered without the .csv suffix, so a lookup by the
+	 * suffixed name would miss the real entry.  Applied everywhere csvtable is searched by name
+	 */
+	private static String forLookup(String fileName) {
+		return OrgCachedResource.isCached(fileName) ? OrgCachedResource.baseName(fileName) : fileName;
+	}
 	
 	/*
 	 * Constructor to create a table to hold the CSV data if it does not already exist
 	 */
 	public CsvTableManager(Connection sd, ResourceBundle l, int oId, int sId, String fileName)
 			throws Exception {
-		
+
 		this.sd = sd;
 		this.localisation = l;
 		parser = new CSVParser(localisation);
-		
+
+		/*
+		 * An organisation cached resource is registered without the .csv suffix
+		 *
+		 * This constructor creates a registry entry when it does not find one, so a caller
+		 * asking by the suffixed name used to mint a second entry that no sync would ever
+		 * populate.  Any lookup against it then failed on a table that was never created.
+		 * Normalising here fixes every caller at once
+		 */
+		if(OrgCachedResource.isCached(fileName)) {
+			fileName = OrgCachedResource.baseName(fileName);
+		}
+
 		Type headersType = new TypeToken<ArrayList<CsvHeader>>() {}.getType();
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		
@@ -354,6 +375,7 @@ public class CsvTableManager {
 			ArrayList<String> matches,
 			ArrayList<KeyValueSimp> wfFilters) throws SQLException, ApplicationException {
 		
+		fileName = forLookup(fileName);
 		ArrayList<Option> choices = null;
 		
 		PreparedStatement pstmtGetCsvTable = null;	
@@ -394,6 +416,7 @@ public class CsvTableManager {
 	public ArrayList<HashMap<String, String>> lookup(int oId, int sId, String fileName, String key_column, 
 			String key_value, String expression, String tz, String selection, ArrayList<String> arguments) throws SQLException, ApplicationException {
 		
+		fileName = forLookup(fileName);
 		ArrayList<HashMap<String, String>> records = null;
 		
 		PreparedStatement pstmtGetCsvTable = null;	
@@ -434,6 +457,7 @@ public class CsvTableManager {
 			ArrayList<String> arguments,
 			SqlFrag expressionFrag) throws SQLException, ApplicationException {
 		
+		fileName = forLookup(fileName);
 		ArrayList<SelectChoice> choices = null;
 
 		PreparedStatement pstmtGetCsvTable = null;	
@@ -901,6 +925,20 @@ public class CsvTableManager {
 				}
 			}
 		} catch (Exception e) {
+			/*
+			 * A registry entry whose table was never created, or was dropped, costs this question
+			 * its choices and nothing more
+			 *
+			 * It used to throw, and the throw escaped as far as notifyForSubmission, so a single
+			 * dangling reference stopped every notification for that submission including the
+			 * DHIS2 export.  One stale choice list is not a reason to stop processing data
+			 */
+			if(isMissingTable(e)) {
+				log.log(Level.WARNING, "No table behind csv file '" + filename
+						+ "' (" + fullTableName + "), returning no choices. "
+						+ "The resource it came from has probably been deleted.");
+				return choices;
+			}
 			log.log(Level.SEVERE, e.getMessage(), e);
 			throw new ApplicationException("Error getting choices from csv file: " + filename + " " + e.getMessage());
 		} finally {
@@ -908,7 +946,22 @@ public class CsvTableManager {
 		}
 		return choices;
 	}
-	
+
+	/*
+	 * PostgreSQL undefined_table.  Matched on SQLState rather than on the message, which is
+	 * localised and would stop matching on a non English server
+	 */
+	private boolean isMissingTable(Exception e) {
+		Throwable t = e;
+		while(t != null) {
+			if(t instanceof SQLException && "42P01".equals(((SQLException) t).getSQLState())) {
+				return true;
+			}
+			t = t.getCause();
+		}
+		return false;
+	}
+
 	/*
 	 * Read data records from a csv table
 	 */

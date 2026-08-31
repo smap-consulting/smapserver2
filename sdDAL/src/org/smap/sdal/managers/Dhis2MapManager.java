@@ -143,7 +143,23 @@ public class Dhis2MapManager {
 		}
 	}
 
-	public void deleteMapping(Connection sd, int oId, int id) throws SQLException {
+	/*
+	 * Remove a mapping and everything it created
+	 *
+	 * The mapping row is the least of it.  The sync also created a table in the csv schema, a
+	 * registry entry in csvtable and a CSV file in the organisation media directory.  Deleting
+	 * only the mapping leaves a resource that no longer appears anywhere in the interface but
+	 * still answers lookups with data that will never be refreshed again
+	 */
+	public void deleteMapping(Connection sd, int oId, int id, String basePath,
+			ResourceBundle localisation) throws SQLException {
+
+		Dhis2Map m = null;
+		try {
+			m = getMapping(sd, oId, id);
+		} catch(Exception e) {
+			log.log(Level.WARNING, "Reading DHIS2 mapping " + id + " before delete", e);
+		}
 
 		String sql = "delete from dhis2_map where o_id = ? and id = ?";
 		PreparedStatement pstmt = null;
@@ -156,6 +172,41 @@ public class Dhis2MapManager {
 		} finally {
 			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
 		}
+
+		if(m == null || m.smap_name == null) {
+			return;
+		}
+		String fileName = OrgCachedResource.DHIS2_PREFIX + m.smap_name;
+
+		// Drops the table and the sequence as well as removing the csvtable row
+		try {
+			new CsvTableManager(sd, localisation).delete(oId, 0, fileName);
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "Deleting csv table for " + fileName, e);
+		}
+
+		// The generated CSV, which is what devices and third party clients download
+		if(basePath != null) {
+			try {
+				ExternalFileManager efm = new ExternalFileManager(localisation);
+				java.io.File f = new java.io.File(efm.getOrgCachedDirPath(basePath, oId)
+						+ java.io.File.separator + fileName + ".csv");
+				if(f.exists() && !f.delete()) {
+					log.log(Level.WARNING, "Could not delete " + f.getAbsolutePath());
+				}
+			} catch(Exception e) {
+				log.log(Level.SEVERE, "Deleting cached file for " + fileName, e);
+			}
+		}
+
+		// Tell devices the resource has gone, the same way a change to it is announced
+		try {
+			new MessagingManager(localisation).resourceChange(sd, oId, fileName);
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "Notifying devices of removal of " + fileName, e);
+		}
+
+		log.info("DHIS2: deleted mapping '" + m.smap_name + "' and its cached resource");
 	}
 
 	// -------------------------------------------------------------------------

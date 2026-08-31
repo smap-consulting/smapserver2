@@ -167,7 +167,10 @@ public class SharePointListMaps extends Application {
 		adminAuth.isAuthorised(sd, request, request.getRemoteUser());
 
 		try {
-			new SharePointListMapManager().deleteMapping(sd, id);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources",
+					new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser())));
+			new SharePointListMapManager().deleteMapping(sd, id,
+					GeneralUtilityMethods.getBasePath(request), localisation);
 			return Response.ok().build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);

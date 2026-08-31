@@ -19,6 +19,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  ******************************************************************************/
 
+import org.smap.sdal.Utilities.OrgCachedResource;
 import org.smap.sdal.model.CsvHeader;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SharePointListMap;
@@ -130,7 +131,33 @@ public class SharePointListMapManager {
 		}
 	}
 
-	public void deleteMapping(Connection sd, int id) throws SQLException {
+	/*
+	 * Remove a mapping and everything it created
+	 *
+	 * The sync also created a table in the csv schema, a registry entry in csvtable and a CSV
+	 * file in the organisation media directory.  Deleting only the mapping leaves a resource
+	 * that no longer appears anywhere in the interface but still answers lookups with data that
+	 * will never be refreshed again
+	 */
+	public void deleteMapping(Connection sd, int id, String basePath, ResourceBundle localisation)
+			throws SQLException {
+
+		int oId = 0;
+		String smapName = null;
+		String sqlGet = "select o_id, smap_name from sharepoint_list_map where id = ?";
+		PreparedStatement pstmtGet = null;
+		try {
+			pstmtGet = sd.prepareStatement(sqlGet);
+			pstmtGet.setInt(1, id);
+			ResultSet rs = pstmtGet.executeQuery();
+			if(rs.next()) {
+				oId = rs.getInt(1);
+				smapName = rs.getString(2);
+			}
+		} finally {
+			if(pstmtGet != null) try { pstmtGet.close(); } catch(SQLException e) {}
+		}
+
 		String sql = "delete from sharepoint_list_map where id = ?";
 		PreparedStatement pstmt = null;
 		try {
@@ -140,6 +167,39 @@ public class SharePointListMapManager {
 		} finally {
 			if(pstmt != null) try { pstmt.close(); } catch(SQLException e) {}
 		}
+
+		if(smapName == null) {
+			return;
+		}
+		String fileName = OrgCachedResource.SHAREPOINT_PREFIX + smapName;
+
+		// Drops the table and the sequence as well as removing the csvtable row
+		try {
+			new CsvTableManager(sd, localisation).delete(oId, 0, fileName);
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "Deleting csv table for " + fileName, e);
+		}
+
+		if(basePath != null) {
+			try {
+				ExternalFileManager efm = new ExternalFileManager(localisation);
+				java.io.File f = new java.io.File(efm.getOrgCachedDirPath(basePath, oId)
+						+ java.io.File.separator + fileName + ".csv");
+				if(f.exists() && !f.delete()) {
+					log.log(Level.WARNING, "Could not delete " + f.getAbsolutePath());
+				}
+			} catch(Exception e) {
+				log.log(Level.SEVERE, "Deleting cached file for " + fileName, e);
+			}
+		}
+
+		try {
+			new MessagingManager(localisation).resourceChange(sd, oId, fileName);
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "Notifying devices of removal of " + fileName, e);
+		}
+
+		log.info("SharePoint: deleted mapping '" + smapName + "' and its cached resource");
 	}
 
 	// -------------------------------------------------------------------------
