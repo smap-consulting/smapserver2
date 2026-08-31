@@ -215,17 +215,20 @@ public class Manager {
 			emailResponseProcessor.go(smapId, fileLocn, hostname, pid);
 
 		} else {
-			// Start the default submission queue processor in the upload subscriber
-			SubmissionProcessor subProcessor = new SubmissionProcessor();
-			subProcessor.go(smapId, fileLocn, "qu1", false, hostname, subscriberType, pid);
-
 			/*
-			 * Start a second submission queue processor for live uploads.
+			 * Start the submission queue processors for live uploads. Each one is a
+			 * thread holding its own sd and results connection. They spend most of
+			 * their time blocked on attachment processing and database round trips
+			 * rather than on cpu, so extra workers add throughput.
+			 *
 			 * Restores are deliberately excluded here - they can block for a long time
 			 * and are handled by qf2_restore in the forward subscriber.
 			 */
-			SubmissionProcessor subProcessor3 = new SubmissionProcessor();
-			subProcessor3.go(smapId, fileLocn, "qu2", false, hostname, subscriberType, pid);
+			int UPLOAD_WORKERS = 4;
+			for(int i = 1; i <= UPLOAD_WORKERS; i++) {
+				SubmissionProcessor subProcessor = new SubmissionProcessor();
+				subProcessor.go(smapId, fileLocn, "qu" + i, false, hostname, subscriberType, pid);
+			}
 
 			/*
 			 * Start the message processor in the upload processor
