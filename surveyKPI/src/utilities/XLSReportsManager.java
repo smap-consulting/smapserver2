@@ -29,6 +29,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.apache.poi.xssf.usermodel.*;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.common.usermodel.HyperlinkType;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -54,6 +55,12 @@ public class XLSReportsManager {
 			 Logger.getLogger(XLSReportsManager.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
+	
+	/*
+	 * Number of rows kept in memory when streaming an xlsx report.  Older rows are flushed to a
+	 * temporary file so that the heap used does not grow with the number of rows in the report.
+	 */
+	private static final int ROW_WINDOW = 100;
 	
 	Workbook wb = null;
 	boolean isXLSX = false;
@@ -91,7 +98,9 @@ public class XLSReportsManager {
 			wb = new HSSFWorkbook();
 			isXLSX = false;
 		} else {
-			wb = new XSSFWorkbook();
+			// Stream the sheet data.  Rows must be written in order and a row that has already
+			// been flushed cannot be modified
+			wb = new SXSSFWorkbook(ROW_WINDOW);
 			isXLSX = true;
 		}
 	}
@@ -110,18 +119,24 @@ public class XLSReportsManager {
 			String tz) throws IOException {
 		
 		this.localisation = l;
-		Sheet dataSheet = wb.createSheet(localisation.getString("rep_data"));
-		Sheet taskSettingsSheet = wb.createSheet(localisation.getString("rep_settings"));
-		
-		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
-
-		ArrayList<Column> cols = getColumnList(mfc, dArray);
-		
-		createHeader(cols, dataSheet, styles);	
-		processDataListForXLS(dArray, dataSheet, taskSettingsSheet, styles, cols, tz, settings, surveyName, formName);
-		
-		wb.write(outputStream);
-		outputStream.close();
+		try {
+			Sheet dataSheet = wb.createSheet(localisation.getString("rep_data"));
+			Sheet taskSettingsSheet = wb.createSheet(localisation.getString("rep_settings"));
+			
+			Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
+	
+			ArrayList<Column> cols = getColumnList(mfc, dArray);
+			
+			createHeader(cols, dataSheet, styles);	
+			processDataListForXLS(dArray, dataSheet, taskSettingsSheet, styles, cols, tz, settings, surveyName, formName);
+			
+			wb.write(outputStream);
+		} finally {
+			if(wb instanceof SXSSFWorkbook) {
+				((SXSSFWorkbook) wb).dispose();		// Delete the temporary files holding the flushed rows
+			}
+			outputStream.close();
+		}
 	}
 	
 	
