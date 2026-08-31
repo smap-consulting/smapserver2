@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -92,6 +93,8 @@ public class SubscriberBatch {
 	HashMap<String, String> autoErrorCheck = new HashMap<> ();
 	int autoErrorCheckDay = -1;  // Track day for cache cleanup
 
+	HashSet<Integer> deferredLogged = new HashSet<> ();	// ue_ids already reported as blocked by a duplicate instanceid
+
 	boolean mediaCheckDone = false;
 	boolean forDevice = false;			// URL prefixes should be in the client format
 	int infrequentRefreshInterval = 0;	// Only refresh timezone when this gets to 0, do it first time the batch job is run
@@ -108,6 +111,7 @@ public class SubscriberBatch {
 		int today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR);
 		if(autoErrorCheckDay != today) {
 			autoErrorCheck.clear();
+			deferredLogged.clear();
 			autoErrorCheckDay = today;
 		}
 
@@ -129,14 +133,17 @@ public class SubscriberBatch {
 				+ "server_name, s_id, p_id, o_id, e_id, form_status, file_path, "
 				+ "temporary_user, survey_notes, location_trigger, assignment_id, restore, submission_type, "
 				+ "audit_file_path "
-				+ "from upload_event "
-				+ "where status = 'success' "
-				+ "and s_id is not null "
-				+ "and not incomplete "
-				+ "and not results_db_applied "
-				+ "and not queued "
-				+ "order by ue_id asc "
-				+ "for update skip locked "
+				+ "from upload_event ue "
+				+ "where ue.status = 'success' "
+				+ "and ue.s_id is not null "
+				+ "and not ue.incomplete "
+				+ "and not ue.results_db_applied "
+				+ "and not ue.queued "
+				// Skip entries whose instanceid is already in the queue. Without this they
+				// hold the head of the batch window and no other upload can be enqueued.
+				+ "and not exists (select 1 from submission_queue q where q.instanceid = ue.instanceid) "
+				+ "order by ue.ue_id asc "
+				+ "for update of ue skip locked "
 				+ "limit " + UPLOAD_BATCH_SIZE;
 		PreparedStatement pstmtGetPendingUpload = null;
 
@@ -148,6 +155,14 @@ public class SubscriberBatch {
 				+ "values(gen_random_uuid(), current_timestamp, ?, ?, ?, ?::jsonb) "
 				+ "on conflict (instanceid) do nothing";
 		PreparedStatement pstmtEnqueue = null;
+
+		/*
+		 * SQL to identify the queue entry that is blocking a duplicate instanceid
+		 */
+		String sqlBlocker = "select ue_id, restore, time_inserted "
+				+ "from submission_queue "
+				+ "where instanceid = ?";
+		PreparedStatement pstmtBlocker = null;
 
 		/*
 		 * SQL to inform the upload event table that the submission has been moved to the queue
@@ -196,6 +211,7 @@ public class SubscriberBatch {
 
 			pstmtGetPendingUpload = dbc.sd.prepareStatement(sqlGetPendingUpload);
 			pstmtEnqueue = dbc.sd.prepareStatement(sqlEnqueue);
+			pstmtBlocker = dbc.sd.prepareStatement(sqlBlocker);
 			pstmtQueueDone = dbc.sd.prepareStatement(sqlQueueDone);
 
 			pstmtGetMessages = dbc.sd.prepareStatement(sqlGetMessages);
@@ -226,6 +242,7 @@ public class SubscriberBatch {
 					while (true) {
 						ResultSet rs = pstmtGetPendingUpload.executeQuery();
 						int batchCount = 0;
+						int enqueuedCount = 0;
 
 						while (rs.next()) {
 							batchCount++;
@@ -267,18 +284,38 @@ public class SubscriberBatch {
 							pstmtEnqueue.setString(4, gson.toJson(ue));
 							int enqueued = pstmtEnqueue.executeUpdate();
 							if (enqueued > 0) {
+								enqueuedCount++;
+								deferredLogged.remove(ue.getId());
 								log.fine("Enqueue new submission: " + ue.getId());
 								pstmtQueueDone.setInt(1, ue.getId());
 								pstmtQueueDone.executeUpdate();
 							} else {
-								log.info("Duplicate instanceid skipped for ue_id: " + ue.getId());
+								/*
+								 * Another submission with the same instanceid is still in the queue.
+								 * Leave queued = false so this one is retried on a later pass. Report
+								 * once per ue_id, with the blocking entry, so a permanently blocked
+								 * submission is visible without flooding the log every few seconds.
+								 */
+								if (deferredLogged.add(ue.getId())) {
+									String blocker = "no queue entry found";
+									pstmtBlocker.setString(1, ue.getInstanceId());
+									ResultSet rsBlocker = pstmtBlocker.executeQuery();
+									if (rsBlocker.next()) {
+										blocker = "blocked by ue_id " + rsBlocker.getInt("ue_id")
+												+ ", restore " + rsBlocker.getBoolean("restore")
+												+ ", in queue since " + rsBlocker.getTimestamp("time_inserted");
+									}
+									rsBlocker.close();
+									log.info("Deferred ue_id " + ue.getId()
+											+ " instanceid " + ue.getInstanceId() + ": " + blocker);
+								}
 							}
 						}
 
 						dbc.sd.commit();  // Release locks for this batch
 
-						if (batchCount < UPLOAD_BATCH_SIZE) {
-							break;  // No more pending uploads
+						if (batchCount < UPLOAD_BATCH_SIZE || enqueuedCount == 0) {
+							break;  // No more pending uploads, or the whole batch is waiting on duplicates
 						}
 						// Full batch processed, check for more
 					}
@@ -560,6 +597,7 @@ public class SubscriberBatch {
 		} finally {
 			try {if (pstmtGetPendingUpload != null) { pstmtGetPendingUpload.close();}} catch (SQLException e) {}
 			try {if (pstmtEnqueue != null) { pstmtEnqueue.close();}} catch (SQLException e) {}
+			try {if (pstmtBlocker != null) { pstmtBlocker.close();}} catch (SQLException e) {}
 			try {if (pstmtQueueDone != null) { pstmtQueueDone.close();}} catch (SQLException e) {}
 
 			try {if (pstmtGetMessages != null) { pstmtGetMessages.close();}} catch (SQLException e) {}

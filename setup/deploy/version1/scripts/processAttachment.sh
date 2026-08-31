@@ -33,16 +33,27 @@ if [ x"$type" = ximage ]; then
 
     if [ -n "$exiftool" ]; then
         echo "Preserve exif data in thumbnail"
-        sh -c "$exiftool -v -overwrite_original_in_place -tagsFromFile $destfile $destthumbnail"
+        sh -c "$exiftool -overwrite_original_in_place -tagsFromFile $destfile $destthumbnail"
     fi
 
-   	echo "processing image file for iText hack also set background white"
-	sh -c "convert -background white -alpha remove $destfile $destfile"
+	# The iText hack flattens transparency so PDF reports render correctly. Only
+	# formats that can carry an alpha channel need it. Running it on a JPEG is a
+	# full decode/re-encode that changes nothing, strips the exif we then have to
+	# restore, and degrades the image, so skip it.
+	case `echo $ext | tr A-Z a-z` in
+	jpg|jpeg)
+		echo "skipping iText hack, $ext cannot have an alpha channel"
+		;;
+	*)
+		echo "processing image file for iText hack also set background white"
+		sh -c "convert -background white -alpha remove $destfile $destfile"
 
-	if [ -n "$exiftool" ]; then
-		echo "Preserving exif data in main file"
-		sh -c "$exiftool -v -overwrite_original_in_place -tagsFromFile $destthumbnail $destfile"
-	fi
+		if [ -n "$exiftool" ]; then
+			echo "Preserving exif data in main file"
+			sh -c "$exiftool -overwrite_original_in_place -tagsFromFile $destthumbnail $destfile"
+		fi
+		;;
+	esac
 fi
 
 #If content type is "video" create a thumbnail 

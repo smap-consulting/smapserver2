@@ -219,7 +219,11 @@ public class Manager {
 			SubmissionProcessor subProcessor = new SubmissionProcessor();
 			subProcessor.go(smapId, fileLocn, "qu1", false, hostname, subscriberType, pid);
 
-			// Start a restore submission queue processor
+			/*
+			 * Start a second submission queue processor for live uploads.
+			 * Restores are deliberately excluded here - they can block for a long time
+			 * and are handled by qf2_restore in the forward subscriber.
+			 */
 			SubmissionProcessor subProcessor3 = new SubmissionProcessor();
 			subProcessor3.go(smapId, fileLocn, "qu2", false, hostname, subscriberType, pid);
 
