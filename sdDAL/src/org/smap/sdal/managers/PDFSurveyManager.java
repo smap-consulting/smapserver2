@@ -114,16 +114,23 @@ public class PDFSurveyManager {
 
 	LogManager lm = new LogManager();		// Application log
 
-	public static PdfFont Symbols = null;
-	public static PdfFont defaultFont = null;
-	public static PdfFont defaultFontBold = null;
-	public static PdfFont defaultFontLink = null;
-	public static Color defaultFontLinkColor = ColorConstants.BLUE;
-	public static PdfFont arabicFont = null;
-	public static PdfFont bengaliFont = null;
-	public static PdfFont bengaliFontBold = null;
-	public static PdfFont devanagariFont = null;
-	public static PdfFont devanagariFontBold = null;
+	/*
+	 * Fonts.  A PdfFont binds itself to the first PdfDocument it is written to, so it can
+	 * neither be shared between documents nor held in a static field: two threads building
+	 * pdfs at the same time would overwrite each other's fonts and the writer then fails
+	 * with "Pdf indirect object belongs to other PDF document".  They are created per
+	 * PDFSurveyManager, which is created per pdf.
+	 */
+	private PdfFont Symbols = null;
+	private PdfFont defaultFont = null;
+	private PdfFont defaultFontBold = null;
+	private PdfFont defaultFontLink = null;
+	private static final Color defaultFontLinkColor = ColorConstants.BLUE;
+	private PdfFont arabicFont = null;
+	private PdfFont bengaliFont = null;
+	private PdfFont bengaliFontBold = null;
+	private PdfFont devanagariFont = null;
+	private PdfFont devanagariFontBold = null;
 	private static final String DEFAULT_CSS = "/resources/css/default_pdf.css";
 	private static int NUMBER_TABLE_COLS = 10;
 	// Fine columns per coarse column, so a question's label/value split (also out of 10)
