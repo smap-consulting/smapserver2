@@ -14,6 +14,7 @@ import org.smap.sdal.managers.ConversationManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.model.DatabaseConnections;
+import org.smap.sdal.model.SmtpEmailServer;
 import com.vonage.client.VonageClient;
 
 /*****************************************************************************
@@ -172,6 +173,7 @@ public class MessageProcessor {
 
 			// Cleanup resources when loop exits
 			vonageClient = null;  // Release for GC
+			SmtpEmailServer.closeThreadConnection();
 			try {if (pstmtHeartbeat != null) { pstmtHeartbeat.close();}} catch (SQLException e) {}
 			try {if (dbc.sd != null) { dbc.sd.close();}} catch (SQLException e) {}
 			try {if (dbc.results != null) { dbc.results.close();}} catch (SQLException e) {}

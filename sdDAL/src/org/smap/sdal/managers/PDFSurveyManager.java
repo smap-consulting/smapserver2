@@ -527,8 +527,8 @@ public class PDFSurveyManager {
 			boolean hideLabel = false;
 			String fieldName = getFieldName(formName, repeatIndex, r.name);
 			String fieldNameQR = getFieldName(formName, repeatIndex, r.name + "_qr");
-			
-			System.out.println("FieldName: " + fieldName + " (" + r.type + ")");
+
+			log.fine("FieldName: " + fieldName + " (" + r.type + ")");
 
 			DisplayItem di = new DisplayItem();
 			try {

@@ -599,3 +599,8 @@ on conflict (token_hash) do nothing;
 
 -- The dynamic user keys used by webform links and task assignments were also unindexed
 create index if not exists idx_dynamic_users_key on dynamic_users(access_key);
+
+-- The message queue is dequeued with "order by time_inserted asc limit 1 for update skip
+-- locked", which sorted the whole table for every message taken off it.  Unnoticeable on an
+-- empty queue, expensive once a backlog builds up, which is exactly when it matters.
+create index if not exists message_queue_time_inserted_idx on message_queue(time_inserted);

@@ -14,6 +14,7 @@ import org.w3c.dom.Document;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.model.DatabaseConnections;
+import org.smap.sdal.model.SmtpEmailServer;
 
 /*****************************************************************************
 
@@ -39,9 +40,17 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 public class Manager {
-	
+
 	private static Logger log =
 			 Logger.getLogger(Manager.class.getName());
+
+	/*
+	 * Message workers started in each of the forward and upload subscribers, so twice this
+	 * many in total.  There was one in each, and a message spends nearly all of its time
+	 * waiting on the smtp relay and on database round trips rather than on cpu, so extra
+	 * workers add throughput.  They all draw from the one message_queue with skip locked.
+	 */
+	private static final int MESSAGE_WORKERS = 3;
 
 	/*
 	 * Resolve the hostname for this server.
@@ -152,6 +161,13 @@ public class Manager {
 		clearWorkers(smapId);
 
 		/*
+		 * The message workers send a continuous stream of notifications, so let them hold an
+		 * smtp connection open between messages rather than doing the tls handshake and the
+		 * authentication again for every email.
+		 */
+		SmtpEmailServer.enableConnectionReuse();
+
+		/*
 		 * Start asynchronous worker threads
 		 */
 		if(subscriberType.equals("forward")) {
@@ -203,10 +219,12 @@ public class Manager {
 			subProcessor2.go(smapId, fileLocn, "qf2_restore", true, hostname, subscriberType, pid);
 
 			/*
-			 * Start the message processor in the forward processor
+			 * Start the message processors in the forward processor
 			 */
-			MessageProcessor messageProcessor1 = new MessageProcessor();
-			messageProcessor1.go(smapId, fileLocn, "qm1", hostname, subscriberType, pid);
+			for(int i = 1; i <= MESSAGE_WORKERS; i++) {
+				MessageProcessor messageProcessor = new MessageProcessor();
+				messageProcessor.go(smapId, fileLocn, "qmf" + i, hostname, subscriberType, pid);
+			}
 
 			/*
 			 * Start the email response processor (polls S3 for inbound reply emails)
@@ -231,10 +249,12 @@ public class Manager {
 			}
 
 			/*
-			 * Start the message processor in the upload processor
+			 * Start the message processors in the upload processor
 			 */
-			MessageProcessor messageProcessor2 = new MessageProcessor();
-			messageProcessor2.go(smapId, fileLocn, "qm2", hostname, subscriberType, pid);
+			for(int i = 1; i <= MESSAGE_WORKERS; i++) {
+				MessageProcessor messageProcessor = new MessageProcessor();
+				messageProcessor.go(smapId, fileLocn, "qmu" + i, hostname, subscriberType, pid);
+			}
 		}
 		
 		

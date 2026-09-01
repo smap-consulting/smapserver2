@@ -2076,6 +2076,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS message_queue (
     data text
 );
 ALTER TABLE message_queue OWNER TO ws;
+CREATE INDEX message_queue_time_inserted_idx ON message_queue(time_inserted);
 
 DROP TABLE IF EXISTS key_queue;
 CREATE UNLOGGED TABLE IF NOT EXISTS key_queue
