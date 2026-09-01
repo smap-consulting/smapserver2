@@ -106,60 +106,6 @@ public class Subscriptions extends Application {
 
 
 	/*
-	 * Unsubscribe from a batched email.
-	 *
-	 * A batched email goes bcc to several people, so one body cannot carry a link for each of
-	 * them.  It carries a token for the message and the reader says which address to
-	 * unsubscribe; the address is checked against the recipients that message actually went
-	 * to, so a forwarded copy cannot be used to unsubscribe somebody else.
-	 */
-	@POST
-	@Path("/unsubscribeBatch")
-	public Response unsubscribeBatch(
-			@Context HttpServletRequest request,
-			@FormParam("batch") String batch,
-			@FormParam("email") String email) {
-
-		// Check for Ajax and reject if not
-		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
-			log.info("Error: Non ajax request");
-			throw new AuthorisationException();
-		}
-
-		Response response = null;
-
-		Connection sd = SDDataSource.getConnection("surveyKPI-Register");
-
-		try {
-
-			// Localisation
-			String hostname = request.getServerName();
-			String loc_code = "en";
-			if(hostname.contains("kontrolid")) {
-				loc_code = "es";
-			}
-			Locale locale = new Locale(loc_code);
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-			PeopleManager pm = new PeopleManager(localisation);
-			pm.unsubscribeFromBatch(sd, batch, email);
-
-			response = Response.ok().build();
-
-		} catch(ApplicationException e) {
-			response = Response.serverError().entity(e.getMessage()).build();
-		} catch(Exception e) {
-			response = Response.serverError().entity(e.getMessage()).build();
-			log.log(Level.SEVERE,"Error", e);
-		} finally {
-			SDDataSource.closeConnection("surveyKPI-Register", sd);
-		}
-
-		return response;
-	}
-
-
-	/*
 	 * Subscribe Step 1
 	 * Get an email
 	 */

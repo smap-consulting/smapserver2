@@ -2059,16 +2059,6 @@ CREATE UNLOGGED TABLE IF NOT EXISTS subscriber_worker (
 );
 ALTER TABLE subscriber_worker OWNER TO ws;
 
-DROP TABLE IF EXISTS email_batch_recipient;
-CREATE TABLE IF NOT EXISTS email_batch_recipient (
-	token uuid NOT NULL,
-	o_id integer NOT NULL,
-	email text NOT NULL,
-	created timestamptz DEFAULT now()
-);
-ALTER TABLE email_batch_recipient OWNER TO ws;
-CREATE INDEX idx_email_batch_recipient ON email_batch_recipient(token, email);
-
 DROP TABLE IF EXISTS monitor_data;
 CREATE UNLOGGED TABLE IF NOT EXISTS monitor_data
 (

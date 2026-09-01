@@ -610,17 +610,3 @@ create index if not exists message_queue_time_inserted_idx on message_queue(time
 -- drained rather than leaving it looking like a broken subscriber.
 alter table subscriber_worker add column if not exists email_paused_until timestamptz;
 alter table subscriber_worker add column if not exists email_paused_reason text;
-
--- Notification emails are now sent to their recipients as a single bcc message rather than
--- one message each, which is what the gmail daily limit counts.  One body cannot carry a
--- different unsubscribe link per person, so a batched message carries a token for the batch
--- and the unsubscribe page asks the reader which address to unsubscribe.  This records who
--- a batch was sent to, so only an address that was actually on it can be unsubscribed.
-create table if not exists email_batch_recipient (
-	token uuid not null,
-	o_id integer not null,
-	email text not null,
-	created timestamptz default now()
-);
-alter table email_batch_recipient owner to ws;
-create index if not exists idx_email_batch_recipient on email_batch_recipient(token, email);

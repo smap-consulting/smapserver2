@@ -8,9 +8,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.List;
 import java.util.ResourceBundle;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -59,12 +57,6 @@ public class EmailManager {
 	private ResourceBundle localisation;
 	
 	private HtmlSanitise sanitise = new HtmlSanitise();
-
-	/*
-	 * Recipients allowed on one message.  Gmail accepts 100 per message over smtp, a tenth of
-	 * what it allows from the web interface, and it is the lowest of the relays in use.
-	 */
-	private static final int MAX_RECIPIENTS_PER_EMAIL = 100;
 	
 
 
@@ -282,9 +274,6 @@ public class EmailManager {
 					PeopleManager peopleMgr = new PeopleManager(localisation);
 					InternetAddress[] emailArray = InternetAddress.parse(emails);
 
-					ArrayList<String> sendTo = new ArrayList<>();		// Addresses to send to
-					ArrayList<String> sendToKeys = new ArrayList<>();	// Their personal unsubscribe keys
-
 					for(InternetAddress ia : emailArray) {
 						SubscriptionStatus subStatus = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());
 						/*
@@ -298,13 +287,45 @@ public class EmailManager {
 						} else {
 							log.fine("#########: Email " + ia.getAddress() + " Opted in: " + subStatus.optedIn + "org:  " + !organisation.send_optin);
 							if(subStatus.optedIn || !organisation.send_optin) {
-								/*
-								 * Collect the recipients and send to them together below.  This
-								 * used to send one message each, and it is messages, not
-								 * recipients, that a relay's daily allowance is counted in.
-								 */
-								sendTo.add(ia.getAddress());
-								sendToKeys.add(subStatus.emailKey);
+								ArrayList<String> emailFilePaths = new ArrayList<>();
+								ArrayList<String> emailFilenames = new ArrayList<>();
+								if(filePath != null) {
+									emailFilePaths.add(filePath);
+									emailFilenames.add(filename);
+								}
+								if(msg != null && msg.extraFilePaths != null) {
+									log.info("Adding " + msg.extraFilePaths.size() + " extra attachment(s) to email");
+									for(int efi = 0; efi < msg.extraFilePaths.size(); efi++) {
+										String fp = msg.extraFilePaths.get(efi);
+										log.info("Extra attachment[" + efi + "]: " + fp + " exists=" + new java.io.File(fp).exists());
+										emailFilePaths.add(fp);
+										emailFilenames.add(msg.extraFileNames != null && efi < msg.extraFileNames.size()
+												? msg.extraFileNames.get(efi) : "attachment_" + efi);
+									}
+								} else {
+									log.info("No extra attachments on message (extraFilePaths=" + (msg == null ? "msg null" : "null") + ")");
+								}
+								String mid = sendEmailHtmlMulti(
+										msg != null ? msg.notificationName : null,
+										organisation.name,
+										null,
+										projectName,
+										ia.getAddress(),
+										"bcc",
+										subject,
+										content.toString(),
+										emailFilePaths,
+										emailFilenames,
+										emailServer,
+										serverName,
+										subStatus.emailKey,
+										localisation,
+										null,
+										organisation.getAdminEmail(),
+										organisation.getEmailFooter(),
+										GeneralUtilityMethods.getNextEmailId(sd, caseReference),
+										replyTo);
+								if(resp.awsSesMessageId == null) resp.awsSesMessageId = mid;
 
 							} else {
 								/*
@@ -326,81 +347,6 @@ public class EmailManager {
 
 								lm.writeLogOrganisation(sd, organisation.id, ia.getAddress(), LogManager.OPTIN, localisation.getString("mo_pending_saved2"), 0);
 							}
-						}
-					}
-
-					/*
-					 * Send to everybody who should get it.
-					 *
-					 * The attachments are the same for all of them so they are built once.
-					 * Recipients go out bcc, as they did when they were sent one at a time, so
-					 * nobody sees who else received it.
-					 */
-					if(sendTo.size() > 0) {
-						ArrayList<String> emailFilePaths = new ArrayList<>();
-						ArrayList<String> emailFilenames = new ArrayList<>();
-						if(filePath != null) {
-							emailFilePaths.add(filePath);
-							emailFilenames.add(filename);
-						}
-						if(msg != null && msg.extraFilePaths != null) {
-							log.info("Adding " + msg.extraFilePaths.size() + " extra attachment(s) to email");
-							for(int efi = 0; efi < msg.extraFilePaths.size(); efi++) {
-								String fp = msg.extraFilePaths.get(efi);
-								log.info("Extra attachment[" + efi + "]: " + fp + " exists=" + new java.io.File(fp).exists());
-								emailFilePaths.add(fp);
-								emailFilenames.add(msg.extraFileNames != null && efi < msg.extraFileNames.size()
-										? msg.extraFileNames.get(efi) : "attachment_" + efi);
-							}
-						} else {
-							log.info("No extra attachments on message (extraFilePaths=" + (msg == null ? "msg null" : "null") + ")");
-						}
-
-						for(int first = 0; first < sendTo.size(); first += MAX_RECIPIENTS_PER_EMAIL) {
-							int last = Math.min(first + MAX_RECIPIENTS_PER_EMAIL, sendTo.size());
-							List<String> chunk = sendTo.subList(first, last);
-
-							/*
-							 * One recipient keeps their own link, so the common case is still a
-							 * single click.  Several share one body, which cannot hold a link
-							 * each, so they get a link for the batch and the unsubscribe page
-							 * asks which address to act on.  Record who it went to so that only
-							 * an address that was on it can be unsubscribed with that token.
-							 */
-							String unsubscribeToken;
-							boolean batchToken;
-							if(chunk.size() == 1) {
-								unsubscribeToken = sendToKeys.get(first);
-								batchToken = false;
-							} else {
-								unsubscribeToken = UUID.randomUUID().toString();
-								batchToken = true;
-								peopleMgr.recordBatchRecipients(sd, unsubscribeToken, organisation.id,
-										new ArrayList<>(chunk));
-							}
-
-							String mid = sendEmailHtmlMulti(
-									msg != null ? msg.notificationName : null,
-									organisation.name,
-									null,
-									projectName,
-									String.join(",", chunk),
-									"bcc",
-									subject,
-									content.toString(),
-									emailFilePaths,
-									emailFilenames,
-									emailServer,
-									serverName,
-									unsubscribeToken,
-									localisation,
-									null,
-									organisation.getAdminEmail(),
-									organisation.getEmailFooter(),
-									GeneralUtilityMethods.getNextEmailId(sd, caseReference),
-									replyTo,
-									batchToken);
-							if(resp.awsSesMessageId == null) resp.awsSesMessageId = mid;
 						}
 					}
 					resp.status = "success";
@@ -484,36 +430,6 @@ public class EmailManager {
 			String orgFooter,
 			String emailId,
 			String replyTo) throws Exception  {
-		return sendEmailHtmlMulti(notificationName, orgName, tgName, projectName, email, ccType,
-				subject, template, filePaths, filenames, emailServer, serverName, emailKey,
-				localisation, tokens, adminEmail, orgFooter, emailId, replyTo, false);
-	}
-
-	/*
-	 * batchToken says the unsubscribe token identifies the message rather than one person,
-	 * which is the case when several recipients share one body
-	 */
-	public String sendEmailHtmlMulti(
-			String notificationName,
-			String orgName,
-			String tgName,
-			String projectName,
-			String email,
-			String ccType,
-			String subject,
-			String template,
-			ArrayList<String> filePaths,
-			ArrayList<String> filenames,
-			EmailServer emailServer,
-			String serverName,
-			String emailKey,
-			ResourceBundle localisation,
-			HashMap<String, String> tokens,
-			String adminEmail,
-			String orgFooter,
-			String emailId,
-			String replyTo,
-			boolean batchToken) throws Exception  {
 
 		/* 
 		 * Create the content
@@ -560,7 +476,7 @@ public class EmailManager {
 			unsubscribe.append("<br/><p style=\"color:blue;text-align:center;\">")
 					.append("<a href=\"https://")
 					.append(serverName)
-					.append(batchToken ? "/app/subscriptions.html?batch=" : "/app/subscriptions.html?token=")
+					.append("/app/subscriptions.html?token=")
 					.append(emailKey)
 					.append("\">")
 					.append(localisation.getString("c_unsubscribe"))

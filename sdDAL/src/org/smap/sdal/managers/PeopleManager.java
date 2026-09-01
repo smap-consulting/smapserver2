@@ -210,75 +210,9 @@ public class PeopleManager {
 	}
 	
 	/*
-	 * Record who a batched email went to.
-	 *
-	 * A batched message is one body sent bcc to several people, so it cannot carry a
-	 * different unsubscribe link for each of them.  It carries a link for the batch, the
-	 * unsubscribe page asks the reader which address to unsubscribe, and this is what that
-	 * address is checked against so that a forwarded email cannot be used to unsubscribe
-	 * somebody who was never on it.
-	 */
-	public void recordBatchRecipients(Connection sd, String token, int oId,
-			ArrayList<String> emails) throws SQLException {
-
-		String sql = "insert into email_batch_recipient (token, o_id, email) values(?, ?, ?)";
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = sd.prepareStatement(sql);
-			for(String email : emails) {
-				if(email != null) {
-					pstmt.setObject(1, java.util.UUID.fromString(token));
-					pstmt.setInt(2, oId);
-					pstmt.setString(3, email.toLowerCase());
-					pstmt.addBatch();
-				}
-			}
-			pstmt.executeBatch();
-		} finally {
-			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
-		}
-	}
-
-	/*
-	 * Unsubscribe an address that was one of the recipients of a batched email.  Resolves it
-	 * to that person's own key and then unsubscribes exactly as a personal link would.
-	 */
-	public String unsubscribeFromBatch(Connection sd, String token, String email)
-			throws SQLException, ApplicationException {
-
-		String sql = "select p.uuid "
-				+ "from email_batch_recipient r, people p "
-				+ "where r.token = ? "
-				+ "and r.email = ? "
-				+ "and p.o_id = r.o_id "
-				+ "and p.email = r.email";
-		PreparedStatement pstmt = null;
-		try {
-			if(email == null || token == null) {
-				throw new ApplicationException(localisation.getString("msg_uns_nr"));
-			}
-			try {
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setObject(1, java.util.UUID.fromString(token.trim()));
-			} catch (IllegalArgumentException e) {
-				throw new ApplicationException(localisation.getString("msg_uns_nr"));	// Not a token
-			}
-			pstmt.setString(2, email.trim().toLowerCase());
-
-			ResultSet rs = pstmt.executeQuery();
-			if(!rs.next()) {
-				throw new ApplicationException(localisation.getString("msg_uns_nr"));
-			}
-			return unsubscribe(sd, rs.getString(1));
-		} finally {
-			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
-		}
-	}
-
-	/*
 	 * Unsubscribe the user based on the key
 	 */
-	public String unsubscribe(Connection sd,
+	public String unsubscribe(Connection sd, 
 			String key) throws SQLException, ApplicationException {
 		
 		String sql = "update people "
