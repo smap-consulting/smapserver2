@@ -4,12 +4,14 @@ import java.net.URI;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.BasicCredentialsProvider;
@@ -18,6 +20,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.StringBody;
+import org.apache.http.util.EntityUtils;
 import org.smap.sdal.Utilities.ApplicationException;
 
 /*****************************************************************************
@@ -91,10 +94,6 @@ public class WebhookManager {
 					new UsernamePasswordCredentials(user, password));
 		}
 
-		CloseableHttpClient httpclient = HttpClients.custom()
-				.setDefaultCredentialsProvider(credsProvider)
-				.build();
-
 		HttpClientContext localContext = HttpClientContext.create();
 		HttpPost req = new HttpPost(URI.create(callbackUrl));
 
@@ -104,14 +103,54 @@ public class WebhookManager {
 		entityBuilder.addPart("data", sba);
 		req.setEntity(entityBuilder.build());
 		log.fine("	Info: Webhook request to: " + req.getURI().toString());
-		HttpResponse response = httpclient.execute(target, req, localContext);
-		int responseCode = response.getStatusLine().getStatusCode();
-		String responseReason = response.getStatusLine().getReasonPhrase(); 
-		log.fine("	Info: Webhook response: " + responseCode + " : " + responseReason);
-		if(responseCode != HttpStatus.SC_OK && responseCode != HttpStatus.SC_ACCEPTED && responseCode != HttpStatus.SC_CREATED) {
-			throw new ApplicationException(responseCode + " : " + responseReason);
+
+		/*
+		 * Close the client and the response.  Each call built its own client and left it
+		 * open, which leaks its connection pool, and left the response body unread, which
+		 * holds the connection out of that pool as well.
+		 */
+		try (CloseableHttpClient httpclient = HttpClients.custom()
+				.setDefaultCredentialsProvider(credsProvider)
+				.build();
+				CloseableHttpResponse response = httpclient.execute(target, req, localContext)) {
+
+			int responseCode = response.getStatusLine().getStatusCode();
+			String responseReason = response.getStatusLine().getReasonPhrase();
+			log.fine("	Info: Webhook response: " + responseCode + " : " + responseReason);
+			if(responseCode != HttpStatus.SC_OK && responseCode != HttpStatus.SC_ACCEPTED && responseCode != HttpStatus.SC_CREATED) {
+				/*
+				 * Name the endpoint and quote what it said.  A bare "400 : Bad Request" gives
+				 * no way to tell which webhook failed, or what it objected to.
+				 */
+				throw new ApplicationException(responseCode + " : " + responseReason
+						+ " from " + callbackUrl + describeBody(response));
+			}
 		}
 
+	}
+
+	/*
+	 * The start of the response body, for the failure message.  Capped because a rejecting
+	 * endpoint often answers with a full html error page.
+	 */
+	private String describeBody(HttpResponse response) {
+		try {
+			HttpEntity entity = response.getEntity();
+			if(entity == null) {
+				return "";
+			}
+			String body = EntityUtils.toString(entity);
+			if(body == null || body.trim().length() == 0) {
+				return "";
+			}
+			body = body.trim().replaceAll("\\s+", " ");
+			if(body.length() > 500) {
+				body = body.substring(0, 500) + "...";
+			}
+			return " : " + body;
+		} catch (Exception e) {
+			return "";		// The status code is the useful part, do not lose it to this
+		}
 	}
 }
 
