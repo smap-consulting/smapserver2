@@ -845,18 +845,33 @@ public class PDFSurveyManager {
 			if(us != null) {
 				setStaticFieldValue(pdfForm, "user_title", us.title);
 				setStaticFieldValue(pdfForm, "user_license", us.license);
+			}
 
+			/*
+			 * The signature is nothing to do with the user's settings, but it used to be added
+			 * inside the block above, so a user with no settings json got no signature on a
+			 * templated pdf while the same user's untemplated pdf had one.
+			 */
+			if(user.signature != null && user.signature.trim().length() > 0) {
 				PdfFormField sigField = pdfForm.getField("user_signature");
 				if(sigField instanceof PdfButtonFormField) {
-					String filename = null;
+					String filename = basePath + "/media/users/" + user.id + "/sig/"  + user.signature;
 					try {
-						filename = basePath + "/media/users/" + user.id + "/sig/"  + user.signature;
 						((PdfButtonFormField) sigField).setImage(filename);
 					} catch (Exception e) {
-						log.fine("Error: Failed to add signature " + filename + " to pdf");
+						// Worth seeing: the user has a signature and the template has a place for it
+						log.log(Level.WARNING, "Failed to add signature " + filename + " to pdf: "
+								+ e.getMessage(), e);
 					}
+				} else if(sigField == null) {
+					log.fine("No user_signature field in this template");
 				} else {
-					//log.fine("Picture field: user_signature not found");
+					/*
+					 * Only a push button can hold an image.  Say so rather than passing over it
+					 * in silence, which is how this went unnoticed.
+					 */
+					log.log(Level.WARNING, "Cannot add a signature to user_signature, it is a "
+							+ sigField.getFormType() + " field rather than a push button");
 				}
 			}
 
