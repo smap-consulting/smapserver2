@@ -69,7 +69,7 @@ public class StorageProcessor {
 			boolean loop = true;
 			while(loop) {
 
-				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/smap/settings/subscriber");
+				String subscriberControl = GeneralUtilityMethods.getSettingFromFile(basePath + "/settings/subscriber");
 				if(subscriberControl != null && subscriberControl.equals("stop")) {
 					log.info("---------- Message Processor Stopped");
 					loop = false;

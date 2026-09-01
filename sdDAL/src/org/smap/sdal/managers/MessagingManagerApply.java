@@ -120,6 +120,18 @@ public class MessagingManagerApply {
 					loop = false;
 					break;
 				}
+				/*
+				 * Give up the batch as soon as the subscriber is asked to stop.  The caller
+				 * only gets to look at the flag between batches, so without this a worker
+				 * carries on for up to batchLimit more messages after the stop, which is
+				 * minutes when there is a backlog.  Reading a small file once per message is
+				 * nothing beside sending one.
+				 */
+				String subscriberControl = GeneralUtilityMethods.getSettingFromFile(basePath + "/settings/subscriber");
+				if(subscriberControl != null && subscriberControl.equals("stop")) {
+					loop = false;
+					break;
+				}
 				rs = pstmtGetMessages.executeQuery();
 				if (rs.next()) {
 					batchCount++;

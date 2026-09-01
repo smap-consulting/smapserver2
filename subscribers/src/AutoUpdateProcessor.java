@@ -58,7 +58,7 @@ public class AutoUpdateProcessor {
 			boolean loop = true;
 			while(loop) {
 				
-				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/smap/settings/subscriber");
+				String subscriberControl = GeneralUtilityMethods.getSettingFromFile(basePath + "/settings/subscriber");
 				if(subscriberControl != null && subscriberControl.equals("stop")) {
 					log.info("========== Auto update Processor Stopped");
 					loop = false;

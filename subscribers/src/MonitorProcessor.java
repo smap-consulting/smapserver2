@@ -50,6 +50,11 @@ public class MonitorProcessor {
 	private class MonitorLoop implements Runnable {
 		DatabaseConnections dbc = new DatabaseConnections();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		String basePath;
+
+		public MonitorLoop(String basePath) {
+			this.basePath = basePath;
+		}
 
 		public void run() {
 
@@ -67,7 +72,7 @@ public class MonitorProcessor {
 			while(loop) {
 				
 				log.info("########## Monitor Process");
-				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/smap/settings/subscriber");
+				String subscriberControl = GeneralUtilityMethods.getSettingFromFile(basePath + "/settings/subscriber");
 				if(subscriberControl != null && subscriberControl.equals("stop")) {
 					log.info("---------- Monitor Processor Stopped");
 					loop = false;
@@ -140,7 +145,7 @@ public class MonitorProcessor {
 		try {
 			
 			// Record queue states
-			Thread t = new Thread(new MonitorLoop());
+			Thread t = new Thread(new MonitorLoop(basePath));
 			t.start();
 			
 

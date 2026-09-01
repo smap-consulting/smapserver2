@@ -52,7 +52,7 @@ public class ReportProcessor {
 			boolean loop = true;
 			while(loop) {
 				
-				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/smap/settings/subscriber");
+				String subscriberControl = GeneralUtilityMethods.getSettingFromFile(basePath + "/settings/subscriber");
 				if(subscriberControl != null && subscriberControl.equals("stop")) {
 					log.info("---------- Report Processor Stopped");
 					loop = false;
