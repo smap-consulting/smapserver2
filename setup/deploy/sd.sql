@@ -604,3 +604,9 @@ create index if not exists idx_dynamic_users_key on dynamic_users(access_key);
 -- locked", which sorted the whole table for every message taken off it.  Unnoticeable on an
 -- empty queue, expensive once a backlog builds up, which is exactly when it matters.
 create index if not exists message_queue_time_inserted_idx on message_queue(time_inserted);
+
+-- A message worker publishes on its heartbeat whether the relay has told it to stop
+-- sending, so the monitor can say why a message queue that is filling up is not being
+-- drained rather than leaving it looking like a broken subscriber.
+alter table subscriber_worker add column if not exists email_paused_until timestamptz;
+alter table subscriber_worker add column if not exists email_paused_reason text;

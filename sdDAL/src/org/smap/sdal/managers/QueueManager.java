@@ -63,7 +63,8 @@ public class QueueManager {
 	private ArrayList<WorkerInfo> getActiveWorkers(Connection sd, String workerFilter) throws SQLException {
 		ArrayList<WorkerInfo> workers = new ArrayList<>();
 		StringBuilder sql = new StringBuilder(
-				"select hostname, pid, subscriber_type, queue_name, started_time, heartbeat "
+				"select hostname, pid, subscriber_type, queue_name, started_time, heartbeat, "
+				+ "email_paused_until, email_paused_reason "
 				+ "from subscriber_worker "
 				+ "where heartbeat > now() - interval '5 minutes' ");
 		if(workerFilter != null) {
@@ -83,6 +84,8 @@ public class QueueManager {
 				w.queue_name = rs.getString("queue_name");
 				w.started_time = rs.getTimestamp("started_time");
 				w.heartbeat = rs.getTimestamp("heartbeat");
+				w.email_paused_until = rs.getTimestamp("email_paused_until");
+				w.email_paused_reason = rs.getString("email_paused_reason");
 				workers.add(w);
 			}
 		} finally {
@@ -286,6 +289,20 @@ public class QueueManager {
 			pstmtStats = sd.prepareStatement(sqlStats);
 
 			queue.workers = getActiveWorkers(sd, "queue_name like 'qm%'");
+
+			/*
+			 * Roll the workers' pause up onto the queue.  The pause is per process, so the
+			 * two subscribers can differ; report the one that has furthest to wait, which is
+			 * when the queue will actually start draining again.
+			 */
+			for(WorkerInfo w : queue.workers) {
+				if(w.email_paused_until != null
+						&& (queue.email_paused_until == null
+								|| w.email_paused_until.after(queue.email_paused_until))) {
+					queue.email_paused_until = w.email_paused_until;
+					queue.email_paused_reason = w.email_paused_reason;
+				}
+			}
 
 			rs = pstmtStats.executeQuery();
 			while(rs.next()) {

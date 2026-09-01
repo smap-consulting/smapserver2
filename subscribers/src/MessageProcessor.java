@@ -3,6 +3,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -75,8 +76,14 @@ public class MessageProcessor {
 			String sqlRegisterWorker = "insert into subscriber_worker "
 					+ "(hostname, pid, subscriber_type, queue_name, started_time, heartbeat) "
 					+ "values(?, ?, ?, ?, now(), now())";
+			/*
+			 * The heartbeat also publishes whether email is paused, so the monitor can say
+			 * why a message queue that is filling up is not being drained
+			 */
 			String sqlHeartbeat = "update subscriber_worker "
-					+ "set heartbeat = now() "
+					+ "set heartbeat = now(), "
+					+ "email_paused_until = ?, "
+					+ "email_paused_reason = ? "
 					+ "where hostname = ? and pid = ? and queue_name = ?";
 
 			MessagingManagerApply mma = new MessagingManagerApply();
@@ -121,9 +128,17 @@ public class MessageProcessor {
 						}
 
 						// Heartbeat
-						pstmtHeartbeat.setString(1, hostname);
-						pstmtHeartbeat.setLong(2, pid);
-						pstmtHeartbeat.setString(3, queueName);
+						long pausedUntil = SmtpEmailServer.getSendingPausedUntil();
+						if(pausedUntil > 0) {
+							pstmtHeartbeat.setTimestamp(1, new Timestamp(pausedUntil));
+							pstmtHeartbeat.setString(2, SmtpEmailServer.getSendingPausedReason());
+						} else {
+							pstmtHeartbeat.setTimestamp(1, null);
+							pstmtHeartbeat.setString(2, null);
+						}
+						pstmtHeartbeat.setString(3, hostname);
+						pstmtHeartbeat.setLong(4, pid);
+						pstmtHeartbeat.setString(5, queueName);
 						pstmtHeartbeat.executeUpdate();
 
 						/*

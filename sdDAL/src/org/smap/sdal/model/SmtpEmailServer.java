@@ -87,17 +87,41 @@ public class SmtpEmailServer extends EmailServer {
 	}
 
 	public static String getSendingPausedReason() {
-		return sendingPausedReason;
+		return isSendingPaused() ? sendingPausedReason : null;
+	}
+
+	/*
+	 * When sending resumes, as epoch millis, or 0 if it is not paused.  The batch workers
+	 * publish this on their heartbeat so the monitor page can say why a queue that is
+	 * filling up is not being drained.
+	 */
+	public static long getSendingPausedUntil() {
+		return isSendingPaused() ? sendingPausedUntil : 0;
 	}
 
 	private static synchronized void pauseSending(String reason) {
 		long until = System.currentTimeMillis() + (pauseMinutes * 60000L);
 		if(until > sendingPausedUntil) {
 			sendingPausedUntil = until;
-			sendingPausedReason = reason;
+			sendingPausedReason = tidyReason(reason);
 			log.log(Level.WARNING, "Relay is rate limiting, pausing email for " + pauseMinutes
-					+ " minutes: " + reason);
+					+ " minutes: " + sendingPausedReason);
 		}
+	}
+
+	/*
+	 * An smtp refusal arrives as several wrapped lines.  Flatten it so it reads as one
+	 * sentence in the monitor, and cap it so a talkative relay cannot bloat the worker row.
+	 */
+	private static String tidyReason(String reason) {
+		if(reason == null) {
+			return null;
+		}
+		String tidy = reason.trim().replaceAll("\\s+", " ");
+		if(tidy.length() > 200) {
+			tidy = tidy.substring(0, 200) + "...";
+		}
+		return tidy;
 	}
 
 	/*

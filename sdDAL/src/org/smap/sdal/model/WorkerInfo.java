@@ -11,4 +11,6 @@ public class WorkerInfo {
 	public Timestamp heartbeat;
 	public int processed_rpm;
 	public int error_rpm;
+	public Timestamp email_paused_until;	// Null unless the relay is rate limiting us
+	public String email_paused_reason;
 }
