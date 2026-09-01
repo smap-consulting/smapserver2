@@ -486,7 +486,7 @@ public class SmtpEmailServer extends EmailServer {
 		if(conn.pool != null) {
 			conn.pool.offer(conn);
 		} else {
-			closeQuietly(conn.transport);
+			closeQuietly(conn.transport);		// Reuse is off, so this one is not kept
 			clear(conn);
 		}
 	}
@@ -499,20 +499,28 @@ public class SmtpEmailServer extends EmailServer {
 		if(conn == null) {
 			return;
 		}
-		BlockingQueue<SmtpConnection> owner = conn.pool;
 		closeQuietly(conn.transport);
 		clear(conn);
-		if(owner != null) {
-			owner.offer(conn);
+		if(conn.pool != null) {
+			conn.pool.offer(conn);
 		}
 	}
 
+	/*
+	 * Forget the connection a slot was holding, leaving the slot itself intact.
+	 *
+	 * Deliberately does not touch conn.pool.  That field is which pool the slot belongs to,
+	 * not part of the connection, and clearing it here lost the slot for good: getConnection
+	 * calls this when it finds a stale connection to replace, and releaseConnection then saw
+	 * a null pool, treated the slot as unpooled and dropped it instead of handing it back.
+	 * With one slot per account that emptied the account's pool the first time its connection
+	 * went stale, and every send to it afterwards waited the full timeout and deferred.
+	 */
 	private static void clear(SmtpConnection conn) {
 		conn.transport = null;
 		conn.session = null;
 		conn.key = null;
 		conn.sends = 0;
-		conn.pool = null;
 	}
 
 	/*
