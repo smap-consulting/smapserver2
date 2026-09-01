@@ -28,7 +28,7 @@ type=`echo $contenttype | cut -c 1-5`
 if [ x"$type" = ximage ]; then
 	echo "--------------------------------------"
 	echo "Creating thumbnails $destthumbnail from $destfile"
-	rm $destthumbnail
+	rm -f $destthumbnail
 
 	# The iText hack flattens transparency so PDF reports render correctly, and
 	# the exiftool calls exist only to restore the exif that convert strips.
@@ -65,7 +65,7 @@ fi
 if [ x"$type" = xvideo ]; then
 	echo "--------------------------------------"
 	echo "Creating thumbnails $destthumbnail from $destfile"
-	rm $destthumbnail
+	rm -f $destthumbnail
 	sh -c "ffmpeg -i $destfile -vf scale=-1:100  $destthumbnail"
 fi
 
