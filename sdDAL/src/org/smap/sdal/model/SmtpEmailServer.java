@@ -26,6 +26,7 @@ import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import org.eclipse.angus.mail.smtp.SMTPSendFailedException;
+import org.smap.sdal.Utilities.EmailDeferredException;
 import org.smap.sdal.Utilities.EmailRateLimitException;
 
 public class SmtpEmailServer extends EmailServer {
@@ -62,8 +63,16 @@ public class SmtpEmailServer extends EmailServer {
 	private static final long MAX_IDLE_MS = 120000;
 	private static final int MAX_SENDS_PER_CONNECTION = 100;
 
-	// Long enough that only a leaked slot trips it, short enough to be visible in the log
-	private static final long SLOT_WAIT_MS = 120000;
+	/*
+	 * How long to wait for a free connection to an account before giving up on this message.
+	 *
+	 * Short, because giving up is cheap: the message goes back on the queue and the worker
+	 * moves on to the next one, which most likely belongs to an organisation on a different
+	 * relay that is free right now.  It was two minutes back when a timeout meant the
+	 * message was recorded as failed and lost, which was worth waiting a long time to avoid.
+	 * Now that it is a deferral, waiting that long just parks a worker doing nothing.
+	 */
+	private static final long SLOT_WAIT_MS = 15000;
 
 	/*
 	 * Rate limiting.
@@ -336,6 +345,9 @@ public class SmtpEmailServer extends EmailServer {
 						+ ", connection reused=" + wasReused + " sends=" + sends + ")", me);
 				String msg = me.getMessage();
 				throw new Exception(localisation.getString("email_cs") + ":  " + msg);
+			} catch(EmailDeferredException e) {
+				discardConnection(conn);		// No-op when the slot was never taken
+				throw e;						// Requeue, see EmailDeferredException
 			} catch(Exception e) {
 				discardConnection(conn);
 				log.log(Level.SEVERE, "Exception", e);
@@ -417,8 +429,14 @@ public class SmtpEmailServer extends EmailServer {
 			BlockingQueue<SmtpConnection> accountPool = poolFor(key);
 			conn = accountPool.poll(SLOT_WAIT_MS, TimeUnit.MILLISECONDS);
 			if(conn == null) {
-				throw new Exception("Timed out waiting for one of the " + poolSize
-						+ " smtp connection slot(s) for " + key);
+				/*
+				 * Every connection to this relay is busy.  Nothing is wrong with the message,
+				 * so defer it rather than record a failure: sending it was never attempted and
+				 * it will go out when one of them frees up.
+				 */
+				log.log(Level.WARNING, "No smtp connection free for " + key + " after "
+						+ (SLOT_WAIT_MS / 1000) + "s, deferring the message");
+				throw new EmailDeferredException("No connection free for " + key);
 			}
 			conn.pool = accountPool;
 		} else {

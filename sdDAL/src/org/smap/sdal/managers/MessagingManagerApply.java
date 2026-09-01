@@ -18,7 +18,7 @@ import jakarta.mail.internet.InternetAddress;
 import org.smap.notifications.interfaces.EmitDeviceNotification;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
-import org.smap.sdal.Utilities.EmailRateLimitException;
+import org.smap.sdal.Utilities.EmailDeferredException;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.SmtpEmailServer;
 import org.smap.sdal.model.EmailTaskMessage;
@@ -220,12 +220,12 @@ public class MessagingManagerApply {
 										attachmentPrefix,
 										hyperlinkPrefix
 										);
-							} catch (EmailRateLimitException e) {
+							} catch (EmailDeferredException e) {
 								/*
-								 * The message that discovered the limit is put back too, so
-								 * hitting it costs nothing but the work already done.  Carry on
-								 * with the batch: it was this organisation's relay that refused,
-								 * and the next message may go through a different one.
+								 * The send never happened, so put the message back rather than
+								 * record a failure.  Carry on with the batch: it was this
+								 * organisation's relay that was busy or refusing, and the next
+								 * message may go through a different one.
 								 */
 								processed = false;
 								continue;
@@ -407,6 +407,15 @@ public class MessagingManagerApply {
 							}
 							
 						}
+					} catch (EmailDeferredException e) {
+						/*
+						 * The topics other than a submission notification have no handler of
+						 * their own, so catch a deferral for all of them here.  Without this it
+						 * would run out through the finally below, which would record the
+						 * message as processed and successful, and then end the batch.
+						 */
+						processed = false;
+						continue;
 					} finally {
 						// Set the final status
 						if(processed) {

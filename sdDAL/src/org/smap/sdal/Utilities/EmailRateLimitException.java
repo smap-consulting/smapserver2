@@ -2,11 +2,10 @@ package org.smap.sdal.Utilities;
 
 /*
  * The relay is refusing mail because we have sent too much of it, not because there is
- * anything wrong with this message.  It is worth telling apart from an ordinary send
- * failure: the message should go back on the queue and be sent when the relay is willing
- * again, rather than being marked processed and lost.
+ * anything wrong with this message.  Deferred rather than failed: the message goes back on
+ * the queue and is sent when the relay is willing again.
  */
-public class EmailRateLimitException extends Exception {
+public class EmailRateLimitException extends EmailDeferredException {
 
 	private static final long serialVersionUID = 1L;
 

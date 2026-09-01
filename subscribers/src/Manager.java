@@ -14,6 +14,7 @@ import org.w3c.dom.Document;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.model.DatabaseConnections;
+import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.model.SmtpEmailServer;
 
 /*****************************************************************************
@@ -207,6 +208,14 @@ public class Manager {
 		 */
 		SmtpEmailServer.setRateLimitPauseMinutes(
 				getIntSetting(fileLocn, "smtp_retry_minutes", 60));
+
+		/*
+		 * Largest attachment to put on an email.  Bigger than the relay accepts and it is
+		 * refused only after the whole file has been pushed at it, so the notification goes
+		 * out with a link to the record instead.
+		 */
+		EmailManager.setMaxAttachmentMb(
+				getIntSetting(fileLocn, "max_email_attachment_mb", 20));
 
 		/*
 		 * Start asynchronous worker threads

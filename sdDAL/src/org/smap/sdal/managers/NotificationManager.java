@@ -26,7 +26,7 @@ import jakarta.mail.internet.InternetAddress;
 import org.codehaus.jettison.json.JSONArray;
 import org.smap.notifications.interfaces.EmitAwsSMS;
 import org.smap.notifications.interfaces.EmitSMS;
-import org.smap.sdal.Utilities.EmailRateLimitException;
+import org.smap.sdal.Utilities.EmailDeferredException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -1146,6 +1146,7 @@ public class NotificationManager {
 
 		String docURL = null;
 		String filePath = null;
+		String attachPath = null;			// The pdf to attach, dropped if it is too big to send
 		String originalFilePath = null;		// Track uncompressed file for cleanup
 		String filename = "instance";
 		String logContent = null;
@@ -1303,6 +1304,29 @@ public class NotificationManager {
 							}
 						}
 
+						/*
+						 * Attach the pdf only if a relay will take it.  Anything larger is
+						 * refused, but only after the whole file has been pushed at the relay,
+						 * which holds a connection for minutes and spends the day's sending
+						 * allowance on a message that cannot arrive.  Send the record's link
+						 * instead so the recipient can still see it.  The permanent copy above
+						 * is already saved, so the record timeline keeps its pdf either way.
+						 */
+						attachPath = filePath;
+						long pdfBytes = new File(filePath).length();
+						if(pdfBytes > EmailManager.getMaxAttachmentBytes()) {
+							log.log(Level.WARNING, "Notification pdf for " + msg.survey_ident
+									+ " instance " + msg.instanceId + " is " + (pdfBytes / (1024 * 1024))
+									+ "mb, over the " + (EmailManager.getMaxAttachmentBytes() / (1024 * 1024))
+									+ "mb limit, sending a link instead of the attachment");
+							attachPath = null;
+							docURL = "/app/myWork/webForm/" + msg.survey_ident +
+									"?datakey=instanceid&datakeyvalue=" + msg.instanceId;
+							logContent = docURL;
+							msg.content = (msg.content == null ? "" : msg.content)
+									+ "<p>" + localisation.getString("email_att_lg") + "</p>";
+						}
+
 					} else {
 						docURL = "/app/myWork/webForm/" + msg.survey_ident +
 								"?datakey=instanceid&datakeyvalue=" + msg.instanceId;
@@ -1338,9 +1362,9 @@ public class NotificationManager {
 							caseReference = "#" + surveyId + "-" + prikey;
 						}
 	 
-						SendEmailResponse resp = em.sendEmails(sd, cResults, log, emails, organisation, surveyId, 
+						SendEmailResponse resp = em.sendEmails(sd, cResults, log, emails, organisation, surveyId,
 								logContent, docURL, survey.surveyData.displayName, unsubscribedList,
-								filePath, filename, messageId, createPending, topic, msg.user, serverName, 
+								attachPath, filename, messageId, createPending, topic, msg.user, serverName,
 								survey.surveyData.displayName, survey.surveyData.projectName, msg.subject, msg.from, 
 								msg.content, 
 								caseReference,
@@ -1359,7 +1383,7 @@ public class NotificationManager {
 									status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null);
 							writeToMonitor = false;
 						}
-					} catch (EmailRateLimitException e) {
+					} catch (EmailDeferredException e) {
 						throw e;		// Requeue rather than record a failure, see EmailManager
 					} catch (Exception e) {
 						status = "error";
