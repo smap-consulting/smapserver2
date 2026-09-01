@@ -176,6 +176,13 @@ public class MessageProcessor {
 						registered = false;
 					}
 					
+					/*
+					 * Close relay connections nothing has used for a while.  An organisation
+					 * that sends one notification and then goes quiet would otherwise hold its
+					 * connection open all day.
+					 */
+					SmtpEmailServer.closeIdleConnections();
+
 					// Sleep and then go again
 					try {
 						Thread.sleep(delaySecs * 1000);
@@ -188,7 +195,7 @@ public class MessageProcessor {
 
 			// Cleanup resources when loop exits
 			vonageClient = null;  // Release for GC
-			SmtpEmailServer.closeIdleConnections();
+			SmtpEmailServer.closeAllConnections();
 			try {if (pstmtHeartbeat != null) { pstmtHeartbeat.close();}} catch (SQLException e) {}
 			try {if (dbc.sd != null) { dbc.sd.close();}} catch (SQLException e) {}
 			try {if (dbc.results != null) { dbc.results.close();}} catch (SQLException e) {}

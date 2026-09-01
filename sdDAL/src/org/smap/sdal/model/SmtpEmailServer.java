@@ -6,6 +6,7 @@ import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -37,12 +38,19 @@ public class SmtpEmailServer extends EmailServer {
 	 * trips per email, which is most of the cost of a notification.  The batch subscribers
 	 * send a continuous stream of them, so they hold connections open and reuse them.
 	 *
-	 * The connections live in a small fixed pool rather than one per sending thread.
-	 * Relays cap how many connections a mailbox may hold at once - office 365 allows three -
-	 * and a per thread connection quietly opens one for every worker, whether it is sending
-	 * or not.  A pool of n slots holds at most n sockets no matter how many workers draw on
-	 * it, and a worker waiting for a slot is not the bottleneck: the survey load and the pdf
-	 * render are the expensive part of a notification and they still run in parallel.
+	 * Everything here is per relay account, not per process.  Organisations configure their
+	 * own smtp server, so one subscriber talks to gmail for several of them, to office 365
+	 * for others and to turbo-smtp for the rest, and both the connection limit and the
+	 * sending allowance belong to the account rather than to us: office 365 allows three
+	 * connections per mailbox, gmail counts a daily quota per account.  A pool per account
+	 * keeps each within its own limit while letting organisations on different relays send
+	 * at the same time, and one account being throttled leaves the others alone.
+	 *
+	 * The connections live in a small fixed pool per account rather than one per sending
+	 * thread.  A per thread connection quietly opens one for every worker whether it is
+	 * sending or not; a pool of n slots holds at most n sockets no matter how many workers
+	 * draw on it, and a worker waiting for a slot is not the bottleneck since the survey
+	 * load and the pdf render still run in parallel.
 	 *
 	 * This is opt-in.  A web request thread sends the odd email and then sits in the Tomcat
 	 * pool, so holding a socket for it would just leak connections; the services leave reuse
@@ -64,16 +72,40 @@ public class SmtpEmailServer extends EmailServer {
 	 * "550 5.4.5 Daily user sending limit exceeded" and holds that until its rolling
 	 * twenty four hour window moves on.  Carrying on regardless costs a survey load and a
 	 * pdf render per message for a send that cannot succeed, and the message is marked
-	 * processed and lost.  So note the refusal, stop sending for a while, and let the
-	 * caller put the message back on the queue for when sending resumes.
+	 * processed and lost.  So note the refusal, stop sending on that account for a while,
+	 * and let the caller put the message back on the queue for when sending resumes.
+	 *
+	 * Held per account: one organisation exhausting its gmail quota must not stop the
+	 * organisations sending through office 365, turbo-smtp, or a different gmail account.
 	 *
 	 * The pause is a retry interval rather than a wait until midnight: nothing here knows
 	 * when the relay's window resets, so it tries again periodically until one gets
 	 * through.  Left alone overnight that is what "stopped and restarted the next day"
 	 * looks like, without having to guess the reset time.
 	 */
-	private static volatile long sendingPausedUntil = 0;
-	private static volatile String sendingPausedReason = null;
+	private static class Pause {
+		volatile long until;
+		volatile String reason;
+	}
+
+	/*
+	 * One slot in a relay account's pool.  It holds an open connection between sends, or
+	 * nothing when it has yet to be used or its connection has been closed.
+	 */
+	private static class SmtpConnection {
+		String key;
+		Session session;
+		Transport transport;		// null when the slot holds no open connection
+		long lastUsed;
+		int sends;
+		BlockingQueue<SmtpConnection> pool;		// The pool to hand the slot back to, null if unpooled
+	}
+
+	private static final ConcurrentHashMap<String, Pause> pauses = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<String, BlockingQueue<SmtpConnection>> pools =
+			new ConcurrentHashMap<>();
+
+	private static volatile int poolSize = 1;
 	private static volatile int pauseMinutes = 60;
 
 	public static void setRateLimitPauseMinutes(int minutes) {
@@ -82,31 +114,81 @@ public class SmtpEmailServer extends EmailServer {
 		}
 	}
 
-	public static boolean isSendingPaused() {
-		return System.currentTimeMillis() < sendingPausedUntil;
+	/*
+	 * True if this server's account is being rate limited.  Overrides EmailServer so a
+	 * caller can ask before doing the work of building a message it cannot send.
+	 */
+	@Override
+	public boolean isSendingPaused() {
+		return isAccountPaused(relayKey());
 	}
 
-	public static String getSendingPausedReason() {
-		return isSendingPaused() ? sendingPausedReason : null;
+	private static boolean isAccountPaused(String key) {
+		Pause p = pauses.get(key);
+		return p != null && System.currentTimeMillis() < p.until;
 	}
 
 	/*
-	 * When sending resumes, as epoch millis, or 0 if it is not paused.  The batch workers
-	 * publish this on their heartbeat so the monitor page can say why a queue that is
-	 * filling up is not being drained.
+	 * True if any account at all is paused.  Cheap, so a caller can check this before
+	 * looking up which relay an organisation actually uses.
 	 */
-	public static long getSendingPausedUntil() {
-		return isSendingPaused() ? sendingPausedUntil : 0;
+	public static boolean anySendingPaused() {
+		long now = System.currentTimeMillis();
+		for(Pause p : pauses.values()) {
+			if(now < p.until) {
+				return true;
+			}
+		}
+		return false;
 	}
 
-	private static synchronized void pauseSending(String reason) {
-		long until = System.currentTimeMillis() + (pauseMinutes * 60000L);
-		if(until > sendingPausedUntil) {
-			sendingPausedUntil = until;
-			sendingPausedReason = tidyReason(reason);
-			log.log(Level.WARNING, "Relay is rate limiting, pausing email for " + pauseMinutes
-					+ " minutes: " + sendingPausedReason);
+	/*
+	 * The account with furthest to wait, for the monitor, which shows one state for the
+	 * whole message queue.  0 and null when nothing is paused.
+	 */
+	public static long getSendingPausedUntil() {
+		long now = System.currentTimeMillis();
+		long furthest = 0;
+		for(Pause p : pauses.values()) {
+			if(p.until > now && p.until > furthest) {
+				furthest = p.until;
+			}
 		}
+		return furthest;
+	}
+
+	public static String getSendingPausedReason() {
+		long now = System.currentTimeMillis();
+		long furthest = 0;
+		String reason = null;
+		for(Pause p : pauses.values()) {
+			if(p.until > now && p.until > furthest) {
+				furthest = p.until;
+				reason = p.reason;
+			}
+		}
+		return reason;
+	}
+
+	private void pauseSending(String reason) {
+		String key = relayKey();
+		Pause p = pauses.computeIfAbsent(key, k -> new Pause());
+		long until = System.currentTimeMillis() + (pauseMinutes * 60000L);
+		synchronized(p) {
+			if(until > p.until) {
+				p.until = until;
+				p.reason = tidyReason(smtpHost + ": " + reason);
+				log.log(Level.WARNING, "Relay " + key + " is rate limiting, pausing email to it for "
+						+ pauseMinutes + " minutes: " + p.reason);
+			}
+		}
+	}
+
+	public static synchronized void enableConnectionReuse(int maxConnections) {
+		poolSize = maxConnections > 0 ? maxConnections : 1;
+		reuseConnections = true;
+		log.info("Smtp connection reuse enabled, at most " + poolSize
+				+ " connection(s) per relay account in this process");
 	}
 
 	/*
@@ -153,34 +235,21 @@ public class SmtpEmailServer extends EmailServer {
 		return false;
 	}
 
-	private static class SmtpConnection {
-		String key;
-		Session session;
-		Transport transport;		// null when the slot holds no open connection
-		long lastUsed;
-		int sends;
-		boolean pooled;				// must be handed back to the pool when done with
+	private String relayKey() {
+		return smtpHost + ":" + getPort() + ":" + (emailUser == null ? "" : emailUser);
 	}
 
-	private static volatile BlockingQueue<SmtpConnection> pool = null;
-	private static int poolSize = 0;
-
 	/*
-	 * Hold up to maxConnections open at once, shared by every sending thread in this jvm.
-	 * Size it below whatever the relay allows, remembering that the forward and the upload
-	 * subscriber are separate processes and so get a pool each.
+	 * The pool for one relay account, created the first time we send through it
 	 */
-	public static synchronized void enableConnectionReuse(int maxConnections) {
-		if(pool != null) {
-			return;				// Already set up
-		}
-		poolSize = maxConnections > 0 ? maxConnections : 1;
-		pool = new ArrayBlockingQueue<>(poolSize);
-		for(int i = 0; i < poolSize; i++) {
-			pool.add(new SmtpConnection());
-		}
-		reuseConnections = true;
-		log.info("Smtp connection reuse enabled, at most " + poolSize + " connection(s) in this process");
+	private static BlockingQueue<SmtpConnection> poolFor(String key) {
+		return pools.computeIfAbsent(key, k -> {
+			BlockingQueue<SmtpConnection> q = new ArrayBlockingQueue<>(poolSize);
+			for(int i = 0; i < poolSize; i++) {
+				q.add(new SmtpConnection());
+			}
+			return q;
+		});
 	}
 
 	/*
@@ -341,19 +410,20 @@ public class SmtpEmailServer extends EmailServer {
 	 */
 	private SmtpConnection getConnection() throws Exception {
 
-		String key = smtpHost + ":" + getPort() + ":" + (emailUser == null ? "" : emailUser);
+		String key = relayKey();
 
 		SmtpConnection conn;
 		if(reuseConnections) {
-			conn = pool.poll(SLOT_WAIT_MS, TimeUnit.MILLISECONDS);
+			BlockingQueue<SmtpConnection> accountPool = poolFor(key);
+			conn = accountPool.poll(SLOT_WAIT_MS, TimeUnit.MILLISECONDS);
 			if(conn == null) {
 				throw new Exception("Timed out waiting for one of the " + poolSize
-						+ " smtp connection slot(s)");
+						+ " smtp connection slot(s) for " + key);
 			}
-			conn.pooled = true;
+			conn.pool = accountPool;
 		} else {
 			conn = new SmtpConnection();
-			conn.pooled = false;
+			conn.pool = null;
 		}
 
 		try {
@@ -395,8 +465,8 @@ public class SmtpEmailServer extends EmailServer {
 		if(conn == null) {
 			return;
 		}
-		if(conn.pooled) {
-			pool.offer(conn);
+		if(conn.pool != null) {
+			conn.pool.offer(conn);
 		} else {
 			closeQuietly(conn.transport);
 			clear(conn);
@@ -411,10 +481,11 @@ public class SmtpEmailServer extends EmailServer {
 		if(conn == null) {
 			return;
 		}
+		BlockingQueue<SmtpConnection> owner = conn.pool;
 		closeQuietly(conn.transport);
 		clear(conn);
-		if(conn.pooled) {
-			pool.offer(conn);
+		if(owner != null) {
+			owner.offer(conn);
 		}
 	}
 
@@ -423,24 +494,39 @@ public class SmtpEmailServer extends EmailServer {
 		conn.session = null;
 		conn.key = null;
 		conn.sends = 0;
+		conn.pool = null;
 	}
 
 	/*
-	 * Close whatever connections are sitting idle in the pool, leaving the slots in place.
-	 * Called by the batch processors when their loop ends.
+	 * Close connections that have been sitting unused, leaving the slots in place.  Called
+	 * from the batch loop: an organisation that sends one notification and then nothing for
+	 * the rest of the day would otherwise hold its relay connection open indefinitely.
 	 */
 	public static void closeIdleConnections() {
-		if(pool == null) {
-			return;
-		}
-		for(int i = 0; i < poolSize; i++) {
-			SmtpConnection conn = pool.poll();
-			if(conn == null) {
-				break;			// The rest are in use by another thread
+		sweep(MAX_IDLE_MS);
+	}
+
+	/*
+	 * Close every connection not currently in use.  Called when a processor loop ends.
+	 */
+	public static void closeAllConnections() {
+		sweep(0);
+	}
+
+	private static void sweep(long idleMs) {
+		long now = System.currentTimeMillis();
+		for(BlockingQueue<SmtpConnection> accountPool : pools.values()) {
+			for(int i = 0; i < poolSize; i++) {
+				SmtpConnection conn = accountPool.poll();
+				if(conn == null) {
+					break;			// The rest are in use by another thread
+				}
+				if(conn.transport != null && (now - conn.lastUsed) >= idleMs) {
+					closeQuietly(conn.transport);
+					clear(conn);
+				}
+				accountPool.offer(conn);
 			}
-			closeQuietly(conn.transport);
-			clear(conn);
-			pool.offer(conn);
 		}
 	}
 

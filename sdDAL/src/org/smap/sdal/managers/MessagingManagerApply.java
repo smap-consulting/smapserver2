@@ -180,13 +180,25 @@ public class MessagingManagerApply {
 							SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
 
 							/*
-							 * While the relay is refusing mail there is no point loading the
-							 * survey and rendering a pdf for a send that cannot succeed.  Put
-							 * the message back and pick it up when sending resumes.
+							 * While this organisation's relay is refusing mail there is no point
+							 * loading the survey and rendering a pdf for a send that cannot
+							 * succeed.  Put the message back and pick it up when sending
+							 * resumes.
+							 *
+							 * Organisations configure their own smtp server, so the pause
+							 * belongs to the relay account rather than to the server: carry on
+							 * with the next message, which may well belong to an organisation
+							 * whose relay is perfectly happy.  Resolving which relay this
+							 * organisation uses costs a query, so only do it when something
+							 * somewhere is actually paused.
 							 */
-							if("email".equals(msg.target) && SmtpEmailServer.isSendingPaused()) {
-								processed = false;
-								break;			// The rest of the batch will be email too
+							if("email".equals(msg.target) && SmtpEmailServer.anySendingPaused()) {
+								EmailServer orgServer = UtilityMethodsEmail.getEmailServer(sd,
+										localisation, null, msg.user, organisation.id);
+								if(orgServer != null && orgServer.isSendingPaused()) {
+									processed = false;
+									continue;
+								}
 							}
 
 							NotificationManager nm = new NotificationManager(localisation);
@@ -211,10 +223,12 @@ public class MessagingManagerApply {
 							} catch (EmailRateLimitException e) {
 								/*
 								 * The message that discovered the limit is put back too, so
-								 * hitting it costs nothing but the work already done
+								 * hitting it costs nothing but the work already done.  Carry on
+								 * with the batch: it was this organisation's relay that refused,
+								 * and the next message may go through a different one.
 								 */
 								processed = false;
-								break;
+								continue;
 							} catch (Exception e) {
 								log.log(Level.SEVERE, e.getMessage(), e);
 								/*
