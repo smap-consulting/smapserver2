@@ -53,6 +53,27 @@ public class Manager {
 	private static final int MESSAGE_WORKERS = 3;
 
 	/*
+	 * How many smtp connections this process may hold open at once.  One by default: office
+	 * 365 allows a mailbox three concurrent connections, and the forward subscriber, the
+	 * upload subscriber and the web app all draw on the same mailbox.
+	 */
+	private static int getSmtpMaxConnections(String basePath) {
+		String setting = GeneralUtilityMethods.getSettingFromFile(basePath + "/settings/smtp_max_connections");
+		if(setting != null) {
+			try {
+				int max = Integer.parseInt(setting.trim());
+				if(max > 0) {
+					return max;
+				}
+				log.warning("Ignoring smtp_max_connections of " + max + ", it must be greater than zero");
+			} catch (NumberFormatException e) {
+				log.warning("Ignoring unreadable smtp_max_connections: " + setting);
+			}
+		}
+		return 1;
+	}
+
+	/*
 	 * Resolve the hostname for this server.
 	 * Tries basePath/settings/hostname first, then several system-level fallbacks.
 	 */
@@ -164,8 +185,13 @@ public class Manager {
 		 * The message workers send a continuous stream of notifications, so let them hold an
 		 * smtp connection open between messages rather than doing the tls handshake and the
 		 * authentication again for every email.
+		 *
+		 * The pool is deliberately smaller than the worker count.  Relays limit how many
+		 * connections a mailbox may hold at once and office 365 allows only three, counting
+		 * both subscribers and anything the web app sends, so one apiece leaves headroom.
+		 * Override in /smap/settings/smtp_max_connections if the relay is more generous.
 		 */
-		SmtpEmailServer.enableConnectionReuse();
+		SmtpEmailServer.enableConnectionReuse(getSmtpMaxConnections(fileLocn));
 
 		/*
 		 * Start asynchronous worker threads

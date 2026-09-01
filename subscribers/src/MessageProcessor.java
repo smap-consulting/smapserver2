@@ -173,7 +173,7 @@ public class MessageProcessor {
 
 			// Cleanup resources when loop exits
 			vonageClient = null;  // Release for GC
-			SmtpEmailServer.closeThreadConnection();
+			SmtpEmailServer.closeIdleConnections();
 			try {if (pstmtHeartbeat != null) { pstmtHeartbeat.close();}} catch (SQLException e) {}
 			try {if (dbc.sd != null) { dbc.sd.close();}} catch (SQLException e) {}
 			try {if (dbc.results != null) { dbc.results.close();}} catch (SQLException e) {}

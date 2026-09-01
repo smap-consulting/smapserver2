@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.ResourceBundle;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import jakarta.activation.DataHandler;
@@ -30,10 +33,17 @@ public class SmtpEmailServer extends EmailServer {
 	 * Transport.send() opens a socket, does the TLS handshake, authenticates, sends one
 	 * message and disconnects.  Against a remote relay that is a second or more of round
 	 * trips per email, which is most of the cost of a notification.  The batch subscribers
-	 * send a continuous stream of them, so they keep one connection per thread and reuse it.
+	 * send a continuous stream of them, so they hold connections open and reuse them.
+	 *
+	 * The connections live in a small fixed pool rather than one per sending thread.
+	 * Relays cap how many connections a mailbox may hold at once - office 365 allows three -
+	 * and a per thread connection quietly opens one for every worker, whether it is sending
+	 * or not.  A pool of n slots holds at most n sockets no matter how many workers draw on
+	 * it, and a worker waiting for a slot is not the bottleneck: the survey load and the pdf
+	 * render are the expensive part of a notification and they still run in parallel.
 	 *
 	 * This is opt-in.  A web request thread sends the odd email and then sits in the Tomcat
-	 * pool, so caching a socket on it would just leak connections; the services leave reuse
+	 * pool, so holding a socket for it would just leak connections; the services leave reuse
 	 * off and get a connection per send exactly as before.
 	 */
 	private static volatile boolean reuseConnections = false;
@@ -42,19 +52,38 @@ public class SmtpEmailServer extends EmailServer {
 	private static final long MAX_IDLE_MS = 120000;
 	private static final int MAX_SENDS_PER_CONNECTION = 100;
 
-	public static void enableConnectionReuse() {
-		reuseConnections = true;
-	}
+	// Long enough that only a leaked slot trips it, short enough to be visible in the log
+	private static final long SLOT_WAIT_MS = 120000;
 
 	private static class SmtpConnection {
 		String key;
 		Session session;
-		Transport transport;
+		Transport transport;		// null when the slot holds no open connection
 		long lastUsed;
 		int sends;
+		boolean pooled;				// must be handed back to the pool when done with
 	}
 
-	private static final ThreadLocal<SmtpConnection> threadConnection = new ThreadLocal<>();
+	private static volatile BlockingQueue<SmtpConnection> pool = null;
+	private static int poolSize = 0;
+
+	/*
+	 * Hold up to maxConnections open at once, shared by every sending thread in this jvm.
+	 * Size it below whatever the relay allows, remembering that the forward and the upload
+	 * subscriber are separate processes and so get a pool each.
+	 */
+	public static synchronized void enableConnectionReuse(int maxConnections) {
+		if(pool != null) {
+			return;				// Already set up
+		}
+		poolSize = maxConnections > 0 ? maxConnections : 1;
+		pool = new ArrayBlockingQueue<>(poolSize);
+		for(int i = 0; i < poolSize; i++) {
+			pool.add(new SmtpConnection());
+		}
+		reuseConnections = true;
+		log.info("Smtp connection reuse enabled, at most " + poolSize + " connection(s) in this process");
+	}
 
 	/*
 	 * Add an authenticator class
@@ -204,69 +233,111 @@ public class SmtpEmailServer extends EmailServer {
 	}
 
 	/*
-	 * Get a connected transport, reusing the one held by this thread if it is still good
+	 * Take a slot from the pool and make sure it holds a connection we can send on.  Waiting
+	 * here is what keeps the number of open connections within what the relay allows.
 	 */
-	private SmtpConnection getConnection() throws MessagingException {
+	private SmtpConnection getConnection() throws Exception {
 
 		String key = smtpHost + ":" + getPort() + ":" + (emailUser == null ? "" : emailUser);
 
+		SmtpConnection conn;
 		if(reuseConnections) {
-			SmtpConnection existing = threadConnection.get();
-			if(existing != null) {
-				boolean usable = existing.key.equals(key)
-						&& existing.transport.isConnected()
-						&& existing.sends < MAX_SENDS_PER_CONNECTION
-						&& (System.currentTimeMillis() - existing.lastUsed) < MAX_IDLE_MS;
-				if(usable) {
-					return existing;
-				}
-				threadConnection.remove();
-				closeQuietly(existing.transport);
+			conn = pool.poll(SLOT_WAIT_MS, TimeUnit.MILLISECONDS);
+			if(conn == null) {
+				throw new Exception("Timed out waiting for one of the " + poolSize
+						+ " smtp connection slot(s)");
 			}
+			conn.pooled = true;
+		} else {
+			conn = new SmtpConnection();
+			conn.pooled = false;
 		}
 
-		SmtpConnection conn = new SmtpConnection();
-		conn.key = key;
-		conn.session = getEmailSession();
-		conn.transport = conn.session.getTransport("smtp");
-		if(hasAuthentication()) {
-			conn.transport.connect(smtpHost, getPort(), emailUser + "@" + emailDomain, emailPassword);
-		} else {
-			conn.transport.connect(smtpHost, getPort(), null, null);
+		try {
+			if(conn.transport != null) {
+				boolean usable = key.equals(conn.key)
+						&& conn.transport.isConnected()
+						&& conn.sends < MAX_SENDS_PER_CONNECTION
+						&& (System.currentTimeMillis() - conn.lastUsed) < MAX_IDLE_MS;
+				if(!usable) {
+					closeQuietly(conn.transport);
+					clear(conn);
+				}
+			}
+
+			if(conn.transport == null) {
+				conn.key = key;
+				conn.session = getEmailSession();
+				conn.transport = conn.session.getTransport("smtp");
+				if(hasAuthentication()) {
+					conn.transport.connect(smtpHost, getPort(), emailUser + "@" + emailDomain, emailPassword);
+				} else {
+					conn.transport.connect(smtpHost, getPort(), null, null);
+				}
+				conn.sends = 0;
+			}
+			conn.lastUsed = System.currentTimeMillis();
+			return conn;
+
+		} catch (Exception e) {
+			discardConnection(conn);		// Never hold on to the slot on the way out
+			throw e;
 		}
-		conn.lastUsed = System.currentTimeMillis();
-		return conn;
 	}
 
 	/*
-	 * Hold the connection open for the next message, or close it if reuse is off
+	 * Hand the slot back with its connection still open, or close it if reuse is off
 	 */
 	private void releaseConnection(SmtpConnection conn) {
-		if(reuseConnections) {
-			threadConnection.set(conn);
+		if(conn == null) {
+			return;
+		}
+		if(conn.pooled) {
+			pool.offer(conn);
 		} else {
 			closeQuietly(conn.transport);
-		}
-	}
-
-	private void discardConnection(SmtpConnection conn) {
-		if(conn != null) {
-			if(threadConnection.get() == conn) {
-				threadConnection.remove();
-			}
-			closeQuietly(conn.transport);
+			clear(conn);
 		}
 	}
 
 	/*
-	 * Release the connection held by the calling thread.  Called by the batch processors
-	 * when their loop ends.
+	 * Close the connection and hand the empty slot back, so a failed send does not cost the
+	 * pool a slot for the life of the process
 	 */
-	public static void closeThreadConnection() {
-		SmtpConnection conn = threadConnection.get();
-		if(conn != null) {
-			threadConnection.remove();
+	private void discardConnection(SmtpConnection conn) {
+		if(conn == null) {
+			return;
+		}
+		closeQuietly(conn.transport);
+		clear(conn);
+		if(conn.pooled) {
+			pool.offer(conn);
+		}
+	}
+
+	private static void clear(SmtpConnection conn) {
+		conn.transport = null;
+		conn.session = null;
+		conn.key = null;
+		conn.sends = 0;
+	}
+
+	/*
+	 * Close whatever connections are sitting idle in the pool, leaving the slots in place.
+	 * Called by the batch processors when their loop ends.
+	 */
+	public static void closeIdleConnections() {
+		if(pool == null) {
+			return;
+		}
+		for(int i = 0; i < poolSize; i++) {
+			SmtpConnection conn = pool.poll();
+			if(conn == null) {
+				break;			// The rest are in use by another thread
+			}
 			closeQuietly(conn.transport);
+			clear(conn);
+			pool.offer(conn);
 		}
 	}
 

@@ -42,12 +42,12 @@ Batch processor that asynchronously applies form submissions to database and han
 
 **Upload Mode**: Enqueues and processes form submissions
 - SubscriberBatch: Polls `upload_event`, enqueues to `submission_queue`
-- SubmissionProcessor (qu1, qu2): Dequeues, writes to results DB
-- MessageProcessor (qm2): Sends outbound messages
+- SubmissionProcessor (qu1..qu4): Dequeues, writes to results DB
+- MessageProcessor (qmu1..qmu3): Sends outbound messages
 
 **Forward Mode**: Background processing and notifications
-- SubmissionProcessor (qf1, qf2): Additional submission queues
-- MessageProcessor (qm1): Message sending
+- SubmissionProcessor (qf1, qf2_restore): Additional submission queues
+- MessageProcessor (qmf1..qmf3): Message sending
 - SubEventProcessor: Post-submission events (notifications, tasks, case management)
 - ReportProcessor: Report generation
 - AutoUpdateProcessor: S3 sync
@@ -97,8 +97,11 @@ Configuration in `./default/metaDataModel.xml` and `./forward/metaDataModel.xml`
 ### Multi-Threading Pattern
 
 Each processor (SubmissionProcessor, MessageProcessor, etc.) spawns dedicated threads in Manager.java:
-- Multiple SubmissionProcessors on different queue names (qu1, qu2, qf1, qf2_restore)
-- MessageProcessors (qm1, qm2)
+- Multiple SubmissionProcessors on different queue names (qu1..qu4, qf1, qf2_restore)
+- MessageProcessors (qmf1..qmf3 in forward, qmu1..qmu3 in upload)
+- Worker counts are `UPLOAD_WORKERS` and `MESSAGE_WORKERS` in Manager.java
+- The message workers share a bounded pool of smtp connections, not one each, because
+  relays cap concurrent connections per mailbox (office 365 allows three)
 - Threads run indefinitely with connection pooling
 - Graceful shutdown via `/smap/settings/subscriber` file
 
@@ -192,6 +195,7 @@ In forward mode (runs every 60 seconds):
 - `/smap/settings/subscriber`: Control file (set to "stop" to halt)
 - `/smap/settings/bucket`: S3 bucket name
 - `/smap/settings/region`: AWS region
+- `/smap/settings/smtp_max_connections`: Open smtp connections allowed per subscriber process (default 1)
 
 ## Module Structure
 
