@@ -1286,6 +1286,7 @@ public class NotificationManager {
 						logContent = filePath;
 
 						// Save a permanent copy for the record timeline
+						String savedFragment = null;		// Where that copy went, for the log below
 						if(msg.instanceId != null) {
 							try {
 								String attachUuid = UUID.randomUUID().toString();
@@ -1299,6 +1300,7 @@ public class NotificationManager {
 								GeneralUtilityMethods.sendToS3(sd, attachDest, organisation.id, true);
 								if(msg.attachments == null) msg.attachments = new ArrayList<>();
 								msg.attachments.add(fragment);
+								savedFragment = fragment;
 							} catch(Exception e) {
 								log.log(Level.WARNING, "Failed to save notification PDF attachment", e);
 							}
@@ -1315,10 +1317,31 @@ public class NotificationManager {
 						attachPath = filePath;
 						long pdfBytes = new File(filePath).length();
 						if(pdfBytes > EmailManager.getMaxAttachmentBytes()) {
-							log.log(Level.WARNING, "Notification pdf for " + msg.survey_ident
-									+ " instance " + msg.instanceId + " is " + (pdfBytes / (1024 * 1024))
-									+ "mb, over the " + (EmailManager.getMaxAttachmentBytes() / (1024 * 1024))
-									+ "mb limit, sending a link instead of the attachment");
+							/*
+							 * Name everything needed to find the culprit without going back to the
+							 * logs a second time: which survey and record, which notification
+							 * asked for the pdf, whether the survey even has compression turned
+							 * on, and where the copy of the oversized file was kept so it can be
+							 * opened and looked at.
+							 */
+							int pdfMb = (int) (pdfBytes / (1024 * 1024));
+							String tooBig = "Notification pdf too large:"
+									+ " survey=" + surveyId + " (" + msg.survey_ident + ")"
+									+ " '" + survey.surveyData.displayName + "'"
+									+ " project='" + survey.surveyData.projectName + "'"
+									+ " instance=" + msg.instanceId
+									+ " notification='" + msg.notificationName + "'"
+									+ " size=" + pdfMb + "mb"
+									+ " limit=" + (EmailManager.getMaxAttachmentBytes() / (1024 * 1024)) + "mb"
+									+ " compress_pdf=" + survey.surveyData.compress_pdf
+									+ " saved=" + (savedFragment == null ? "not kept" : savedFragment);
+							log.log(Level.WARNING, tooBig + ", sending a link instead of the attachment");
+							/*
+							 * Also to the application log, under the limit topic so these can be
+							 * found and counted from the console.  The email itself still goes,
+							 * so nothing else records that this happened.
+							 */
+							lm.writeLog(sd, surveyId, "subscriber", LogManager.LIMIT, tooBig, pdfMb, null);
 							attachPath = null;
 							docURL = "/app/myWork/webForm/" + msg.survey_ident +
 									"?datakey=instanceid&datakeyvalue=" + msg.instanceId;
