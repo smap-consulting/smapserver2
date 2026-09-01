@@ -1,3 +1,4 @@
+import java.io.PrintStream;
 import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -5,6 +6,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
@@ -79,6 +81,54 @@ public class Manager {
 			}
 		}
 		return defaultValue;
+	}
+
+	/*
+	 * Find out what writes the iText AGPL notice.
+	 *
+	 * The notice turns up in the subscriber log without the timestamp and level that
+	 * SmapLogFormatter puts on everything else, so it is not going through the logging
+	 * framework at all and no logging configuration will silence it.  It is written straight
+	 * to stdout or stderr, and the text is not in any jar on the class path that a search for
+	 * it can find, so the only way left to identify the culprit is to catch it being written.
+	 *
+	 * Off unless /smap/settings/trace_agpl contains "on", so the streams are only wrapped
+	 * while somebody is looking.  Fires once and then stops checking.
+	 */
+	private static final AtomicBoolean agplNoticeFound = new AtomicBoolean(false);
+
+	private static void traceAgplNotice(String basePath) {
+		String setting = GeneralUtilityMethods.getSettingFromFile(basePath + "/settings/trace_agpl");
+		if(setting == null || !setting.trim().equalsIgnoreCase("on")) {
+			return;
+		}
+		/*
+		 * After LogConfig, deliberately.  Its ConsoleHandler already holds the real stderr, so
+		 * ordinary logging does not come back through here and only direct writes are examined.
+		 */
+		System.setOut(watchForAgpl(System.out));
+		System.setErr(watchForAgpl(System.err));
+		log.info("Watching stdout and stderr for the iText AGPL notice, "
+				+ "a stack trace will be written when it appears");
+	}
+
+	private static PrintStream watchForAgpl(final PrintStream target) {
+		return new PrintStream(target, true) {
+			@Override public void println(String s) { check(s); super.println(s); }
+			@Override public void print(String s) { check(s); super.print(s); }
+			@Override public void write(byte[] b, int off, int len) {
+				if(!agplNoticeFound.get()) {
+					check(new String(b, off, len));
+				}
+				super.write(b, off, len);
+			}
+			private void check(String s) {
+				if(s != null && s.contains("AGPL") && agplNoticeFound.compareAndSet(false, true)) {
+					// Straight to the wrapped stream, so reporting it does not come back here
+					new Throwable("The iText AGPL notice was written from here").printStackTrace(target);
+				}
+			}
+		};
 	}
 
 	/*
@@ -183,6 +233,7 @@ public class Manager {
 		// Set mode property before LogConfig so the formatter can read it
 		System.setProperty("smap.subscriber.mode", subscriberType);
 		LogConfig.init(fileLocn);
+		traceAgplNotice(fileLocn);
 
 		String hostname = getHostname(fileLocn);
 		long pid = ProcessHandle.current().pid();
