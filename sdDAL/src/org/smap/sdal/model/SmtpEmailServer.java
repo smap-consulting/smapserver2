@@ -24,6 +24,8 @@ import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
+import org.eclipse.angus.mail.smtp.SMTPSendFailedException;
+import org.smap.sdal.Utilities.EmailRateLimitException;
 
 public class SmtpEmailServer extends EmailServer {
 
@@ -54,6 +56,78 @@ public class SmtpEmailServer extends EmailServer {
 
 	// Long enough that only a leaked slot trips it, short enough to be visible in the log
 	private static final long SLOT_WAIT_MS = 120000;
+
+	/*
+	 * Rate limiting.
+	 *
+	 * A relay that has had enough says so and stops accepting mail - gmail answers
+	 * "550 5.4.5 Daily user sending limit exceeded" and holds that until its rolling
+	 * twenty four hour window moves on.  Carrying on regardless costs a survey load and a
+	 * pdf render per message for a send that cannot succeed, and the message is marked
+	 * processed and lost.  So note the refusal, stop sending for a while, and let the
+	 * caller put the message back on the queue for when sending resumes.
+	 *
+	 * The pause is a retry interval rather than a wait until midnight: nothing here knows
+	 * when the relay's window resets, so it tries again periodically until one gets
+	 * through.  Left alone overnight that is what "stopped and restarted the next day"
+	 * looks like, without having to guess the reset time.
+	 */
+	private static volatile long sendingPausedUntil = 0;
+	private static volatile String sendingPausedReason = null;
+	private static volatile int pauseMinutes = 60;
+
+	public static void setRateLimitPauseMinutes(int minutes) {
+		if(minutes > 0) {
+			pauseMinutes = minutes;
+		}
+	}
+
+	public static boolean isSendingPaused() {
+		return System.currentTimeMillis() < sendingPausedUntil;
+	}
+
+	public static String getSendingPausedReason() {
+		return sendingPausedReason;
+	}
+
+	private static synchronized void pauseSending(String reason) {
+		long until = System.currentTimeMillis() + (pauseMinutes * 60000L);
+		if(until > sendingPausedUntil) {
+			sendingPausedUntil = until;
+			sendingPausedReason = reason;
+			log.log(Level.WARNING, "Relay is rate limiting, pausing email for " + pauseMinutes
+					+ " minutes: " + reason);
+		}
+	}
+
+	/*
+	 * True if the relay is refusing because we have sent too much, rather than because
+	 * there is something wrong with this particular message.  The codes are a mixture:
+	 * gmail's daily limit arrives as a permanent 550 even though it clears by itself, so
+	 * the text matters as much as the number.  Deliberately not treating a concurrent
+	 * connection refusal as rate limiting - that one clears in seconds and the connection
+	 * pool already keeps us under the limit.
+	 */
+	private boolean isRateLimited(MessagingException me) {
+		String text = me.getMessage();
+		if(text != null) {
+			String t = text.toLowerCase();
+			if(t.contains("concurrent connections")) {
+				return false;
+			}
+			if(t.contains("sending limit") || t.contains("daily limit") || t.contains("rate limit")
+					|| t.contains("quota exceeded") || t.contains("too many messages")
+					|| t.contains("try again later") || t.contains("message rate")) {
+				return true;
+			}
+		}
+		if(me instanceof SMTPSendFailedException) {
+			int rc = ((SMTPSendFailedException) me).getReturnCode();
+			// Service unavailable, mailbox busy, local error, insufficient storage
+			return rc == 421 || rc == 450 || rc == 451 || rc == 452;
+		}
+		return false;
+	}
 
 	private static class SmtpConnection {
 		String key;
@@ -144,6 +218,11 @@ public class SmtpEmailServer extends EmailServer {
 			} catch(MessagingException me) {
 				int sends = (conn == null) ? 0 : conn.sends;
 				discardConnection(conn);
+
+				if(isRateLimited(me)) {
+					pauseSending(me.getMessage());
+					throw new EmailRateLimitException(me.getMessage());
+				}
 				/*
 				 * A socket error on a connection we had already used is almost always the relay
 				 * having dropped it while it was idle.  Nothing was delivered, so open a fresh

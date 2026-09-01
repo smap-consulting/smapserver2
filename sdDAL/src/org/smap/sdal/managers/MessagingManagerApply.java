@@ -18,7 +18,9 @@ import jakarta.mail.internet.InternetAddress;
 import org.smap.notifications.interfaces.EmitDeviceNotification;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.Utilities.EmailRateLimitException;
 import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.SmtpEmailServer;
 import org.smap.sdal.model.EmailTaskMessage;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.OrgResourceMessage;
@@ -176,7 +178,17 @@ public class MessagingManagerApply {
 							 * A submission notification is a notification associated with a record of data
 							 */
 							SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
-					
+
+							/*
+							 * While the relay is refusing mail there is no point loading the
+							 * survey and rendering a pdf for a send that cannot succeed.  Put
+							 * the message back and pick it up when sending resumes.
+							 */
+							if("email".equals(msg.target) && SmtpEmailServer.isSendingPaused()) {
+								processed = false;
+								break;			// The rest of the batch will be email too
+							}
+
 							NotificationManager nm = new NotificationManager(localisation);
 							try {
 								nm.processSubmissionNotification(
@@ -195,7 +207,14 @@ public class MessagingManagerApply {
 										urlprefix,
 										attachmentPrefix,
 										hyperlinkPrefix
-										); 
+										);
+							} catch (EmailRateLimitException e) {
+								/*
+								 * The message that discovered the limit is put back too, so
+								 * hitting it costs nothing but the work already done
+								 */
+								processed = false;
+								break;
 							} catch (Exception e) {
 								log.log(Level.SEVERE, e.getMessage(), e);
 								String details = localisation.getString("msg_err_not");

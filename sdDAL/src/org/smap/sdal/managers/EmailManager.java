@@ -16,6 +16,7 @@ import com.google.gson.JsonObject;
 
 import jakarta.mail.internet.InternetAddress;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.EmailRateLimitException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -349,6 +350,13 @@ public class EmailManager {
 						}
 					}
 					resp.status = "success";
+				} catch(EmailRateLimitException e) {
+					/*
+					 * Not this message's fault and not something retrying the same second
+					 * will fix, so let it out rather than recording a failure.  The caller
+					 * puts the message back on the queue for when the relay accepts mail again.
+					 */
+					throw e;
 				} catch(Exception e) {
 					resp.status = "error";
 					resp.error_details = e.getMessage();

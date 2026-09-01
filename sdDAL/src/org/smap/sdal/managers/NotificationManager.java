@@ -26,6 +26,7 @@ import jakarta.mail.internet.InternetAddress;
 import org.codehaus.jettison.json.JSONArray;
 import org.smap.notifications.interfaces.EmitAwsSMS;
 import org.smap.notifications.interfaces.EmitSMS;
+import org.smap.sdal.Utilities.EmailRateLimitException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -1358,6 +1359,8 @@ public class NotificationManager {
 									status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null);
 							writeToMonitor = false;
 						}
+					} catch (EmailRateLimitException e) {
+						throw e;		// Requeue rather than record a failure, see EmailManager
 					} catch (Exception e) {
 						status = "error";
 						error_details = e.getMessage();

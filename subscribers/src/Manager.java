@@ -58,19 +58,26 @@ public class Manager {
 	 * upload subscriber and the web app all draw on the same mailbox.
 	 */
 	private static int getSmtpMaxConnections(String basePath) {
-		String setting = GeneralUtilityMethods.getSettingFromFile(basePath + "/settings/smtp_max_connections");
+		return getIntSetting(basePath, "smtp_max_connections", 1);
+	}
+
+	/*
+	 * A positive integer from a settings file, or the default if it is absent or unreadable
+	 */
+	private static int getIntSetting(String basePath, String name, int defaultValue) {
+		String setting = GeneralUtilityMethods.getSettingFromFile(basePath + "/settings/" + name);
 		if(setting != null) {
 			try {
-				int max = Integer.parseInt(setting.trim());
-				if(max > 0) {
-					return max;
+				int value = Integer.parseInt(setting.trim());
+				if(value > 0) {
+					return value;
 				}
-				log.warning("Ignoring smtp_max_connections of " + max + ", it must be greater than zero");
+				log.warning("Ignoring " + name + " of " + value + ", it must be greater than zero");
 			} catch (NumberFormatException e) {
-				log.warning("Ignoring unreadable smtp_max_connections: " + setting);
+				log.warning("Ignoring unreadable " + name + ": " + setting);
 			}
 		}
-		return 1;
+		return defaultValue;
 	}
 
 	/*
@@ -192,6 +199,14 @@ public class Manager {
 		 * Override in /smap/settings/smtp_max_connections if the relay is more generous.
 		 */
 		SmtpEmailServer.enableConnectionReuse(getSmtpMaxConnections(fileLocn));
+
+		/*
+		 * How long to leave email alone after the relay says we have sent too much.  Gmail's
+		 * daily limit clears on a rolling twenty four hour window and nothing here knows when
+		 * that is, so retry periodically until one gets through rather than guessing.
+		 */
+		SmtpEmailServer.setRateLimitPauseMinutes(
+				getIntSetting(fileLocn, "smtp_retry_minutes", 60));
 
 		/*
 		 * Start asynchronous worker threads

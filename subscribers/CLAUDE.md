@@ -196,6 +196,7 @@ In forward mode (runs every 60 seconds):
 - `/smap/settings/bucket`: S3 bucket name
 - `/smap/settings/region`: AWS region
 - `/smap/settings/smtp_max_connections`: Open smtp connections allowed per subscriber process (default 1)
+- `/smap/settings/smtp_retry_minutes`: How long to pause email after the relay reports a sending limit (default 60)
 
 ## Module Structure
 
