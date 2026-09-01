@@ -113,6 +113,7 @@ public class SmtpEmailServer extends EmailServer {
 				log.log(Level.SEVERE, "Messaging Exception", ae);
 				throw new Exception(localisation.getString("email_cs") + ":  " + localisation.getString("ae"));
 			} catch(MessagingException me) {
+				int sends = (conn == null) ? 0 : conn.sends;
 				discardConnection(conn);
 				/*
 				 * A socket error on a connection we had already used is almost always the relay
@@ -124,7 +125,14 @@ public class SmtpEmailServer extends EmailServer {
 					log.log(Level.INFO, "Reopening smtp connection after: " + me.getMessage());
 					continue;
 				}
-				log.log(Level.SEVERE, "Messaging Exception", me);
+				/*
+				 * A broken pipe reads the same whether the relay dropped an idle connection,
+				 * refused an oversized message, or the write timeout closed the socket on us,
+				 * so say what was being sent and how the connection was being used
+				 */
+				log.log(Level.SEVERE, "Messaging Exception sending to " + smtpHost
+						+ " (" + describeAttachments(filePaths)
+						+ ", connection reused=" + wasReused + " sends=" + sends + ")", me);
 				String msg = me.getMessage();
 				throw new Exception(localisation.getString("email_cs") + ":  " + msg);
 			} catch(Exception e) {
@@ -273,6 +281,26 @@ public class SmtpEmailServer extends EmailServer {
 	}
 
 	/*
+	 * Attachment count and size, for the failure log.  A relay that closes the connection
+	 * part way through a large attachment looks identical to one that dropped an idle
+	 * connection until you know how much was being pushed at it.
+	 */
+	private String describeAttachments(ArrayList<String> filePaths) {
+		if(filePaths == null || filePaths.size() == 0) {
+			return "no attachments";
+		}
+		long bytes = 0;
+		for(String path : filePaths) {
+			try {
+				bytes += new java.io.File(path).length();
+			} catch (Exception e) {
+				// The size is only for the log, an unreadable path is not worth reporting here
+			}
+		}
+		return filePaths.size() + " attachment(s), " + (bytes / 1024) + "kb";
+	}
+
+	/*
 	 * True if the failure looks like the socket having gone away rather than the relay
 	 * rejecting the message
 	 */
@@ -340,14 +368,19 @@ public class SmtpEmailServer extends EmailServer {
 		}
 
 		/*
-		 * Timeouts.  These were 60 seconds, which parks a message worker for a minute on a
-		 * relay that has stopped answering.  Connecting is quick or it is broken, so that one
-		 * is short.  Reading and writing stay generous because a large pdf attachment takes a
-		 * while to push and the relay can be slow to acknowledge the end of the data.
+		 * Timeouts.  Only the connect timeout is short.  That is the one that parked a worker
+		 * for a minute on a relay that had stopped answering, and connecting either happens
+		 * quickly or is not going to happen at all.
+		 *
+		 * Read and write stay at 60 seconds.  They bound a transfer that is already in
+		 * progress, which is the slow part when a large pdf is attached, and angus implements
+		 * the write timeout by closing the socket underneath us: trip it and the send fails
+		 * with a broken pipe part way through the attachment.  Cutting these was a bad trade,
+		 * a relay slow to drain a big attachment is not the failure being guarded against.
 		 */
 		props.setProperty("mail.smtp.connectiontimeout", "10000");
-		props.setProperty("mail.smtp.timeout", "30000");
-		props.setProperty("mail.smtp.writetimeout", "30000");
+		props.setProperty("mail.smtp.timeout", "60000");
+		props.setProperty("mail.smtp.writetimeout", "60000");
 
 		//log.fine("Email properties: " + props.toString());
 
