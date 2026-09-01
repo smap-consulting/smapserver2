@@ -217,13 +217,21 @@ public class MessagingManagerApply {
 								break;
 							} catch (Exception e) {
 								log.log(Level.SEVERE, e.getMessage(), e);
+								/*
+								 * The notification failed, so record it as a failure.  status was
+								 * still on its "success" default here, so a notification that
+								 * threw was written to notification_log, and to the message row,
+								 * as a success with the reason tucked away in status_details.
+								 * The monitor page reads status, so the failure did not show.
+								 */
+								status = "error";
 								String details = localisation.getString("msg_err_not");
 								details = details.replace("%s1", msg.msgChannel == null ? "" : msg.msgChannel);
 								details = details.replace("%s2", msg.ourNumber == null ? "" : msg.ourNumber );
 								details = details.replace("%s3", msg.content == null ? "" : msg.content);
-								nm.writeToLog(sd, organisation.id, msg.pId, 
-										GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident), 
-										details, status, 
+								nm.writeToLog(sd, organisation.id, msg.pId,
+										GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident),
+										details, status,
 										e.getMessage(), id, msg.target);
 							}
 							
