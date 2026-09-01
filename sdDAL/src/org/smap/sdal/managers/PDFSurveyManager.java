@@ -724,7 +724,7 @@ public class PDFSurveyManager {
 				PdfUtilities.addImageTemplate(pdfForm, fieldName, mBasePath, value, mAttachmentPrefix, pdfDoc, Symbols, di.stretch);
 
 			} else if(r.type.equals("video") || r.type.equals("audio")  || r.type.equals("file")) {
-				PdfUtilities.addMediaTemplate(pdfForm, fieldName, mBasePath, value, mAttachmentPrefix, pdfDoc, defaultFont);
+				PdfUtilities.addMediaTemplate(pdfForm, fieldName, mBasePath, value, mAttachmentPrefix, pdfDoc, defaultFont, Symbols);
 
 			} else if(r.type.equals("select1") && di.showImage) {
 				String filePath = UtilityMethodsEmail.getMediaPath(survey.surveyData.ident, value, mBasePath, oId, survey.surveyData.id);
