@@ -586,6 +586,18 @@ public class Dhis2ExportManager {
 		ArrayList<Dhis2Export> exports = new Dhis2ExportConfigManager()
 				.getExports(sd, oId, groupSurveyIdent);
 
+		/*
+		 * Include the versions these records replaced
+		 *
+		 * A total is keyed by period and organisation unit, both of which come from answers a
+		 * user can change.  Move a case to another facility, or correct its date into another
+		 * month, and recalculating where it is now leaves the total it used to be counted in
+		 * still counting it.  The superseded version is the only thing that knows where that
+		 * was, and it is still in the table
+		 */
+		List<String> allVersions = GeneralUtilityMethods.getInstancesInThreads(cResults,
+				GeneralUtilityMethods.getMainResultsTable(sd, cResults, surveyId), instanceIds);
+
 		// export id + period + org unit, so the same slice is only sent once
 		LinkedHashMap<String, Object[]> slices = new LinkedHashMap<>();
 
@@ -593,7 +605,7 @@ public class Dhis2ExportManager {
 			if(!export.enabled) {
 				continue;
 			}
-			for(String instanceId : instanceIds) {
+			for(String instanceId : allVersions) {
 
 				ArrayList<String> ouValues = GeneralUtilityMethods.getResponseForQuestion(
 						sd, cResults, surveyId, export.orgunit_question, instanceId);
