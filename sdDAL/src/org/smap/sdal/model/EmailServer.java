@@ -38,6 +38,14 @@ abstract public class EmailServer {
 		return null;
 	}
 
+	/*
+	 * When this server's account will take mail again, as epoch milliseconds, or 0 when it is
+	 * not paused or pausing is not tracked
+	 */
+	public long getPauseUntil() {
+		return 0;
+	}
+
 	// Returns SES MessageId for AWS sends; null for SMTP
 	public abstract String send(String email, String ccType, String subject,
 			String emailId,

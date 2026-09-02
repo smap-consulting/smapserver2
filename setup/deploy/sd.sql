@@ -626,3 +626,8 @@ create index if not exists notification_log_message_idx on notification_log(mess
 -- long a message had been trying: nothing waits for a relay's pause to expire before putting
 -- the message back on the queue.  Record when the deferring started and give up on time.
 alter table message add column if not exists first_deferred timestamptz;
+
+-- A deferred message was put straight back on the queue and retried within seconds, which
+-- against a relay that is rate limiting us is both pointless and the reason the limit stays
+-- in force.  Hold it until the time whoever deferred it said to come back.
+alter table message add column if not exists retry_after timestamptz;

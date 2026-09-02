@@ -96,7 +96,7 @@ public class EventList extends Application {
 		 * Clear the deferral count as well.  A message that was abandoned has reached the
 		 * limit, so without this a retry would be given one turn and then abandoned again.
 		 */
-		String sqlMsg = "update message set processed_time = null, attempts = 0, first_deferred = null where id = ?";
+		String sqlMsg = "update message set processed_time = null, attempts = 0, first_deferred = null, retry_after = null where id = ?";
 		PreparedStatement pstmtMsg = null;
 		
 		try {

@@ -23,6 +23,21 @@ public class EmailDeferredException extends Exception {
 		super(message);
 	}
 
+	/*
+	 * When it is worth trying again, as epoch milliseconds, or 0 where whoever deferred it
+	 * has no idea.  A relay that is rate limiting us knows exactly when it will take mail
+	 * again, and retrying before then is what caused the limit in the first place.
+	 */
+	private long retryAfter;
+
+	public long getRetryAfter() {
+		return retryAfter;
+	}
+
+	public void setRetryAfter(long retryAfter) {
+		this.retryAfter = retryAfter;
+	}
+
 	public String getNotifyDetails() {
 		return notifyDetails;
 	}

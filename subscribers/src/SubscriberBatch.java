@@ -185,6 +185,8 @@ public class SubscriberBatch {
 				+ "where outbound "
 				+ "and not queued "
 				+ "and processed_time is null "
+				// A deferred message says when it is worth trying again.  Leave it alone until then
+				+ "and (retry_after is null or retry_after <= now()) "
 				+ "and topic != 'task' and topic != 'survey' and topic != 'user' and topic != 'project' and topic != 'resource' "
 				+ "order by id asc "
 				+ "for update skip locked "

@@ -73,6 +73,8 @@ public class SmtpEmailServer extends EmailServer {
 	 * Now that it is a deferral, waiting that long just parks a worker doing nothing.
 	 */
 	private static final long SLOT_WAIT_MS = 15000;
+	// How long a message waits when every connection to the relay was busy, not refusing
+	private static final long BUSY_RETRY_MS = 60000;
 
 	/*
 	 * Rate limiting.
@@ -142,6 +144,12 @@ public class SmtpEmailServer extends EmailServer {
 		return (p != null && System.currentTimeMillis() < p.until) ? p.reason : null;
 	}
 
+	@Override
+	public long getPauseUntil() {
+		Pause p = pauses.get(relayKey());
+		return (p != null && System.currentTimeMillis() < p.until) ? p.until : 0;
+	}
+
 	private static boolean isAccountPaused(String key) {
 		Pause p = pauses.get(key);
 		return p != null && System.currentTimeMillis() < p.until;
@@ -189,7 +197,11 @@ public class SmtpEmailServer extends EmailServer {
 		return reason;
 	}
 
-	private void pauseSending(String reason) {
+	/*
+	 * Returns when the account will take mail again, which is the existing pause where that
+	 * has longer to run than this one
+	 */
+	private long pauseSending(String reason) {
 		String key = relayKey();
 		Pause p = pauses.computeIfAbsent(key, k -> new Pause());
 		long until = System.currentTimeMillis() + (pauseMinutes * 60000L);
@@ -200,6 +212,7 @@ public class SmtpEmailServer extends EmailServer {
 				log.log(Level.WARNING, "Relay " + key + " is rate limiting, pausing email to it for "
 						+ pauseMinutes + " minutes: " + p.reason);
 			}
+			return p.until;
 		}
 	}
 
@@ -332,8 +345,14 @@ public class SmtpEmailServer extends EmailServer {
 				discardConnection(conn);
 
 				if(isRateLimited(me)) {
-					pauseSending(me.getMessage());
-					throw new EmailRateLimitException(me.getMessage());
+					/*
+					 * Do not come back before the pause is up.  Retrying into a relay that is
+					 * rate limiting us is what keeps it rate limiting us.
+					 */
+					long until = pauseSending(me.getMessage());
+					EmailRateLimitException rle = new EmailRateLimitException(me.getMessage());
+					rle.setRetryAfter(until);
+					throw rle;
 				}
 				/*
 				 * A socket error on a connection we had already used is almost always the relay
@@ -446,7 +465,13 @@ public class SmtpEmailServer extends EmailServer {
 				 */
 				log.log(Level.WARNING, "No smtp connection free for " + key + " after "
 						+ (SLOT_WAIT_MS / 1000) + "s, deferring the message");
-				throw new EmailDeferredException("No connection free for " + key);
+				EmailDeferredException e = new EmailDeferredException("No connection free for " + key);
+				/*
+				 * Busy is not refusing.  A short wait lets whatever is using the connections
+				 * finish, where a rate limit's wait is however long the relay said.
+				 */
+				e.setRetryAfter(System.currentTimeMillis() + BUSY_RETRY_MS);
+				throw e;
 			}
 			conn.pool = accountPool;
 		} else {

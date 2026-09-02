@@ -3,6 +3,7 @@ package org.smap.sdal.managers;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -79,6 +80,15 @@ public class MessagingManagerApply {
 	 */
 	private static final int DEFERRAL_LIMIT_HOURS = 24;
 
+	/*
+	 * How long a deferred message waits when nothing told us any better.  Whoever deferred it
+	 * usually knows: a relay that is rate limiting says when it will take mail again.  This is
+	 * for the rest, and it is minutes rather than the seconds the loop would otherwise take,
+	 * because a message that comes straight back is a message being retried thousands of times
+	 * a day into something that is already asking us to send less.
+	 */
+	private static final long DEFAULT_RETRY_MS = 5 * 60000L;
+
 	LogManager lm = new LogManager(); // Application log
 	
 	
@@ -120,10 +130,12 @@ public class MessagingManagerApply {
 		String sqlDefer = "update message "
 				+ "set queued = false, "
 				+ "attempts = attempts + 1, "
-				+ "first_deferred = coalesce(first_deferred, now()) "
+				+ "first_deferred = coalesce(first_deferred, now()), "
+				+ "retry_after = ? "
 				+ "where id = ? "
 				+ "returning attempts, "
 				+ "first_deferred < now() - (? * interval '1 hour') as give_up";
+
 
 		String sqlAbandon = "update message "
 				+ "set processed_time = now(), "
@@ -190,6 +202,8 @@ public class MessagingManagerApply {
 					 * would be abandoned before it was ever due.
 					 */
 					String deferralReason = null;
+					// When it is worth trying again, 0 where whoever deferred it did not say
+					long deferralRetryAfter = 0;
 					/*
 					 * What is waiting, in the words the monitor uses, and where it belongs, so
 					 * the notifications tab can show it while it waits and the survey and
@@ -256,6 +270,7 @@ public class MessagingManagerApply {
 									String pauseReason = orgServer.getPauseReason();
 									// Never null: a null reason would leave the turn uncounted
 									deferralReason = pauseReason == null ? "sending paused" : pauseReason;
+									deferralRetryAfter = orgServer.getPauseUntil();
 									deferralTarget = msg.target;
 									deferralProjectId = msg.pId;
 									deferralSurveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
@@ -292,6 +307,7 @@ public class MessagingManagerApply {
 								processed = false;
 								deferralReason = e.getMessage() == null ? "deferred" : e.getMessage();
 								deferralDetails = e.getNotifyDetails();
+								deferralRetryAfter = e.getRetryAfter();
 								deferralTarget = msg.target;
 								deferralProjectId = msg.pId;
 								deferralSurveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
@@ -484,6 +500,7 @@ public class MessagingManagerApply {
 						processed = false;
 						deferralReason = e.getMessage() == null ? "deferred" : e.getMessage();
 						deferralDetails = e.getNotifyDetails();
+						deferralRetryAfter = e.getRetryAfter();
 						continue;
 					} finally {
 						// Set the final status
@@ -502,8 +519,18 @@ public class MessagingManagerApply {
 							 * mail comes good long before the limit; one that never will is
 							 * reported instead of going round for ever.
 							 */
-							pstmtDefer.setInt(1, id);
-							pstmtDefer.setInt(2, DEFERRAL_LIMIT_HOURS);
+							/*
+							 * Hold it off the queue until then.  Without this the batch job puts
+							 * it straight back, the worker takes it seconds later and defers it
+							 * again, which against a relay that is rate limiting us is both
+							 * pointless and the reason the limit stays in force.
+							 */
+							long retryAt = deferralRetryAfter > 0
+									? deferralRetryAfter
+									: System.currentTimeMillis() + DEFAULT_RETRY_MS;
+							pstmtDefer.setTimestamp(1, new Timestamp(retryAt));
+							pstmtDefer.setInt(2, id);
+							pstmtDefer.setInt(3, DEFERRAL_LIMIT_HOURS);
 							int attempts = 0;
 							boolean giveUp = false;
 							ResultSet rsDefer = pstmtDefer.executeQuery();
