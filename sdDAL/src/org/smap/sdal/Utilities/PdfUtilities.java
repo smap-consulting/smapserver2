@@ -11,6 +11,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -63,6 +65,12 @@ import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
 
 import com.github.binodnme.dateconverter.converter.DateConverter;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
+
 import com.github.binodnme.dateconverter.utils.DateBS;
 import com.itextpdf.text.Anchor;
 import com.itextpdf.text.BadElementException;
@@ -95,6 +103,14 @@ public class PdfUtilities {
 			 Logger.getLogger(PDFTableManager.class.getName());
 	
 	private static LogManager lm = new LogManager();		// Application log
+
+	/*
+	 * Mapbox answers a request longer than 8192 characters with a 414 and no image.  The
+	 * overlay is a geojson document in the url, so a geotrace of a few hundred points goes
+	 * past that on its own: a single position costs about forty characters once url encoded.
+	 * Stay under the limit with room to spare for the parts of the url we do not measure.
+	 */
+	private static final int MAX_MAP_URL = 8000;
 
 	/*
 	 * Create an iText image from a file, a path or a url
@@ -309,23 +325,49 @@ public class PdfUtilities {
 		url.append("/static/");
 		
 		if((mapValues.hasGeometry() || mapValues.hasLine())) {
-			
-			url.append("geojson(")
-				.append(URLEncoder.encode(createGeoJsonMapValue(mapValues, markerColor), "UTF-8"))
-				.append(")/");
+
+			/*
+			 * Work out the centre before the overlay.  It, and the size and the key, are what
+			 * is left of the url once the overlay has had its share, and the overlay is the
+			 * part that has to be made to fit.
+			 */
+			StringBuilder centre = new StringBuilder();
 			if(zoom != null && zoom.trim().length() > 0) {
 				String centroidValue = mapValues.geometry;
 				if(centroidValue == null) {
 					centroidValue = mapValues.startGeometry;
 				}
-				url.append(GeneralUtilityMethods.getGeoJsonCentroid(centroidValue) + "," + zoom);
+				centre.append(GeneralUtilityMethods.getGeoJsonCentroid(centroidValue) + "," + zoom);
 			} else if(location != null) {
-				url.append(location);
+				centre.append(location);
 			} else {
-				url.append("auto");
+				centre.append("auto");
 			}
-			url.append("/");
-			getMap = true;
+
+			int room = MAX_MAP_URL - url.length() - "geojson()/".length() - centre.length()
+					- "/500x300?access_token=".length()
+					- (mapbox_key == null ? 0 : mapbox_key.length());
+			String overlay = fitMapOverlay(createGeoJsonMapValue(mapValues, markerColor), room);
+
+			if(overlay != null) {
+				url.append("geojson(").append(overlay).append(")/");
+				url.append(centre).append("/");
+				getMap = true;
+			} else if(!centre.toString().equals("auto")) {
+				/*
+				 * Nothing we can do to the geometry makes it fit, so ask for the map without
+				 * it.  A map of the right place with no track on it is worth more than the
+				 * blank space that a rejected request leaves in the pdf.
+				 */
+				log.warning("Map overlay too long for the mapbox url even simplified, "
+						+ "drawing the map without it");
+				url.append(centre).append("/");
+				getMap = true;
+			} else {
+				// Without an overlay there is nothing to say where the map should be
+				log.warning("Map overlay too long for the mapbox url and no centre to fall "
+						+ "back on, no map drawn");
+			}
 		} else {
 			// Attempt to get default map boundary from appearance
 			if(location != null) {
@@ -914,6 +956,147 @@ public class PdfUtilities {
 		return out.toString();
 	}
 	
+	/*
+	 * Url encode the geojson overlay, making it smaller until it fits the room it has in the
+	 * url.  Returns null when even the coarsest version is too big.
+	 *
+	 * Two things are tried in turn.  First the coordinates are rounded: a submitted position
+	 * carries seven decimal places, which is a centimetre, and this is a five hundred pixel
+	 * picture where five is already finer than a pixel.  Then points are dropped, evenly
+	 * along the line and always keeping its ends, which changes the shape of what is drawn
+	 * and so is only done when rounding was not enough.
+	 */
+	private static String fitMapOverlay(String geoJson, int room) {
+
+		try {
+			String encoded = URLEncoder.encode(geoJson, "UTF-8");
+			if(encoded.length() <= room) {
+				return encoded;
+			}
+
+			JsonElement fc = JsonParser.parseString(geoJson);
+			for(int precision = 6; precision >= 5; precision--) {
+				roundCoordinates(fc, precision);
+				encoded = URLEncoder.encode(fc.toString(), "UTF-8");
+				if(encoded.length() <= room) {
+					return encoded;
+				}
+			}
+
+			// Keep one position in every "step", from the rounded version, which is the smallest
+			JsonElement thinned = fc;
+			for(int step = 2; step <= 64; step *= 2) {
+				thinned = fc.deepCopy();
+				thinCoordinates(thinned, step);
+				encoded = URLEncoder.encode(thinned.toString(), "UTF-8");
+				if(encoded.length() <= room) {
+					log.warning("Map overlay reduced to one point in " + step + " to fit the url");
+					return encoded;
+				}
+			}
+
+			/*
+			 * The length is in the number of features rather than in any one of them, which is
+			 * a compound with a marker for every pit and fault along the line.  Drop them from
+			 * the end: the line and the first few markers say more than nothing at all does.
+			 */
+			for(JsonElement base : new JsonElement[] {fc, thinned}) {		// Whole line first, then thinned
+				if(!base.isJsonObject() || !base.getAsJsonObject().has("features")) {
+					continue;
+				}
+				JsonArray features = base.getAsJsonObject().getAsJsonArray("features");
+				for(int keep = features.size() / 2; keep >= 1; keep /= 2) {
+					JsonObject candidate = base.getAsJsonObject().deepCopy();
+					JsonArray kept = new JsonArray();
+					for(int i = 0; i < keep; i++) {
+						kept.add(features.get(i));
+					}
+					candidate.add("features", kept);
+					encoded = URLEncoder.encode(candidate.toString(), "UTF-8");
+					if(encoded.length() <= room) {
+						log.warning("Map overlay cut from " + features.size() + " features to "
+								+ keep + " to fit the url");
+						return encoded;
+					}
+				}
+			}
+			return null;
+		} catch (Exception e) {
+			log.log(Level.WARNING, "Could not simplify the map overlay: " + e.getMessage(), e);
+			return null;
+		}
+	}
+
+	/*
+	 * Every number in a geojson feature collection is part of a coordinate, so there is
+	 * nothing else here to round by mistake
+	 */
+	private static void roundCoordinates(JsonElement el, int precision) {
+		if(el.isJsonObject()) {
+			for(String key : el.getAsJsonObject().keySet()) {
+				roundCoordinates(el.getAsJsonObject().get(key), precision);
+			}
+		} else if(el.isJsonArray()) {
+			JsonArray a = el.getAsJsonArray();
+			for(int i = 0; i < a.size(); i++) {
+				JsonElement item = a.get(i);
+				if(item.isJsonPrimitive() && item.getAsJsonPrimitive().isNumber()) {
+					BigDecimal rounded = BigDecimal.valueOf(item.getAsDouble())
+							.setScale(precision, RoundingMode.HALF_UP)
+							.stripTrailingZeros();
+					// Back through the plain string, so a whole number cannot come out as 1.1E+1
+					a.set(i, new JsonPrimitive(new BigDecimal(rounded.toPlainString())));
+				} else {
+					roundCoordinates(item, precision);
+				}
+			}
+		}
+	}
+
+	private static void thinCoordinates(JsonElement el, int step) {
+		if(el.isJsonObject()) {
+			JsonObject o = el.getAsJsonObject();
+			for(String key : o.keySet()) {
+				if(key.equals("coordinates") && o.get(key).isJsonArray()) {
+					o.add(key, thinPositions(o.get(key).getAsJsonArray(), step));
+				} else {
+					thinCoordinates(o.get(key), step);
+				}
+			}
+		} else if(el.isJsonArray()) {
+			for(JsonElement item : el.getAsJsonArray()) {
+				thinCoordinates(item, step);
+			}
+		}
+	}
+
+	/*
+	 * A coordinates value is a position, a list of positions, or a list of those again for a
+	 * polygon's rings.  Only the list of positions is thinned; a point has nothing to lose.
+	 */
+	private static JsonArray thinPositions(JsonArray a, int step) {
+
+		if(a.size() == 0 || !a.get(0).isJsonArray()) {
+			return a;								// A single position
+		}
+		if(a.get(0).getAsJsonArray().size() > 0 && a.get(0).getAsJsonArray().get(0).isJsonArray()) {
+			JsonArray rings = new JsonArray();		// Rings, or several lines
+			for(JsonElement ring : a) {
+				rings.add(thinPositions(ring.getAsJsonArray(), step));
+			}
+			return rings;
+		}
+
+		JsonArray thinned = new JsonArray();
+		for(int i = 0; i < a.size(); i++) {
+			// The ends are the two points that say where the line starts and finishes
+			if(i % step == 0 || i == a.size() - 1) {
+				thinned.add(a.get(i));
+			}
+		}
+		return thinned;
+	}
+
 	private static String addGeoJsonFeature(String coords, String markerColor, String icon) {
 		
 		StringBuffer out = new StringBuffer("{\"type\":\"Feature\",\"geometry\":");
