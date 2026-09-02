@@ -1684,6 +1684,30 @@ CREATE TABLE dhis2_export_item (
 CREATE INDEX IF NOT EXISTS dhis2_export_item_idx ON dhis2_export_item(e_id);
 ALTER TABLE dhis2_export_item OWNER TO ws;
 
+DROP SEQUENCE IF EXISTS dhis2_export_retry_seq CASCADE;
+CREATE SEQUENCE dhis2_export_retry_seq START 1;
+ALTER SEQUENCE dhis2_export_retry_seq OWNER TO ws;
+
+-- Period and organisation unit slices whose last send to DHIS2 failed
+-- Holds the slice, never the action.  A queued removal replayed later would delete data that
+-- had since been restored, so a retry rebuilds the slice from the current records and sends
+-- whatever that now says: values if any remain, a removal if none do.  This also covers a
+-- failed send, which nothing retried before unless the export was on a schedule
+DROP TABLE IF EXISTS dhis2_export_retry CASCADE;
+CREATE TABLE dhis2_export_retry (
+	id integer DEFAULT nextval('dhis2_export_retry_seq') NOT NULL PRIMARY KEY,
+	e_id integer REFERENCES dhis2_export(id) ON DELETE CASCADE,
+	period text NOT NULL,					-- The DHIS2 period identifier, eg 202608
+	org_unit text NOT NULL,					-- The DHIS2 organisation unit code
+	first_failed TIMESTAMP WITH TIME ZONE DEFAULT now(),
+	last_attempt TIMESTAMP WITH TIME ZONE,
+	attempts integer DEFAULT 0,
+	last_error text
+	);
+CREATE UNIQUE INDEX IF NOT EXISTS dhis2_export_retry_idx
+	ON dhis2_export_retry(e_id, period, org_unit);
+ALTER TABLE dhis2_export_retry OWNER TO ws;
+
 CREATE SCHEMA csv AUTHORIZATION ws;
 
 DROP SEQUENCE IF EXISTS du_seq CASCADE;

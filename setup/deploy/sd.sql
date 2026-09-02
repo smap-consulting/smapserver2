@@ -732,3 +732,25 @@ create index if not exists message_queue_time_inserted_idx on message_queue(time
 -- drained rather than leaving it looking like a broken subscriber.
 alter table subscriber_worker add column if not exists email_paused_until timestamptz;
 alter table subscriber_worker add column if not exists email_paused_reason text;
+
+-- Version 26.09 DHIS2 slices whose last send failed
+-- Holds the slice, never the action.  A queued removal replayed later would delete data that
+-- had since been restored, so a retry rebuilds the slice from the current records and sends
+-- whatever that now says: values if any remain, a removal if none do
+DROP SEQUENCE IF EXISTS dhis2_export_retry_seq CASCADE;
+CREATE SEQUENCE dhis2_export_retry_seq START 1;
+ALTER SEQUENCE dhis2_export_retry_seq OWNER TO ws;
+
+CREATE TABLE IF NOT EXISTS dhis2_export_retry (
+	id integer DEFAULT nextval('dhis2_export_retry_seq') NOT NULL PRIMARY KEY,
+	e_id integer REFERENCES dhis2_export(id) ON DELETE CASCADE,
+	period text NOT NULL,
+	org_unit text NOT NULL,
+	first_failed TIMESTAMP WITH TIME ZONE DEFAULT now(),
+	last_attempt TIMESTAMP WITH TIME ZONE,
+	attempts integer DEFAULT 0,
+	last_error text
+	);
+CREATE UNIQUE INDEX IF NOT EXISTS dhis2_export_retry_idx
+	ON dhis2_export_retry(e_id, period, org_unit);
+ALTER TABLE dhis2_export_retry OWNER TO ws;

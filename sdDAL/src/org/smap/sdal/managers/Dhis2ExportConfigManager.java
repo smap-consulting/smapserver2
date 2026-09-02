@@ -28,6 +28,7 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.model.Dhis2Export;
 import org.smap.sdal.model.Dhis2ExportItem;
+import org.smap.sdal.model.Dhis2PendingSlice;
 
 /*
  * The export mappings belonging to a survey bundle
@@ -294,6 +295,130 @@ public class Dhis2ExportConfigManager {
 		}
 
 		return exports;
+	}
+
+	// -------------------------------------------------------------------------
+	// Slices whose last send failed
+	// -------------------------------------------------------------------------
+
+	/*
+	 * Remember that a slice failed to reach DHIS2, so a later pass can reconcile it
+	 *
+	 * The slice is recorded, never what was being sent.  Keyed on the slice, so repeated
+	 * failures update one row rather than piling up
+	 */
+	public void recordPendingSlice(Connection sd, int eId, String period, String orgUnit,
+			String error) throws SQLException {
+
+		String sql = "insert into dhis2_export_retry (e_id, period, org_unit, last_attempt, "
+				+ "attempts, last_error) values (?, ?, ?, now(), 1, ?) "
+				+ "on conflict (e_id, period, org_unit) do update set "
+				+ "last_attempt = now(), "
+				+ "attempts = dhis2_export_retry.attempts + 1, "
+				+ "last_error = excluded.last_error";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, eId);
+			pstmt.setString(2, period);
+			pstmt.setString(3, orgUnit);
+			pstmt.setString(4, error);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
+		}
+	}
+
+	/*
+	 * The slice agrees with DHIS2 again
+	 */
+	public void clearPendingSlice(Connection sd, int eId, String period, String orgUnit)
+			throws SQLException {
+
+		String sql = "delete from dhis2_export_retry where e_id = ? and period = ? and org_unit = ?";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, eId);
+			pstmt.setString(2, period);
+			pstmt.setString(3, orgUnit);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
+		}
+	}
+
+	/*
+	 * Slices worth trying again
+	 *
+	 * Held back for a few minutes after the last attempt, so a DHIS2 instance that is down does
+	 * not get hammered by every pass of the batch job
+	 */
+	public ArrayList<Dhis2PendingSlice> getPendingSlices(Connection sd, int retryAfterMinutes)
+			throws SQLException {
+
+		ArrayList<Dhis2PendingSlice> pending = new ArrayList<>();
+		String sql = "select d.id, d.e_id, e.o_id, d.period, d.org_unit, d.attempts, d.last_error "
+				+ "from dhis2_export_retry d, dhis2_export e "
+				+ "where d.e_id = e.id "
+				+ "and e.enabled = true "
+				+ "and (d.last_attempt is null "
+				+ "  or d.last_attempt < now() - (? || ' minutes')::interval) "
+				+ "order by d.first_failed asc";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, retryAfterMinutes);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				Dhis2PendingSlice p = new Dhis2PendingSlice();
+				p.id = rs.getInt("id");
+				p.e_id = rs.getInt("e_id");
+				p.o_id = rs.getInt("o_id");
+				p.period = rs.getString("period");
+				p.org_unit = rs.getString("org_unit");
+				p.attempts = rs.getInt("attempts");
+				p.last_error = rs.getString("last_error");
+				pending.add(p);
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
+		}
+
+		return pending;
+	}
+
+	public void recordPendingSliceAttempt(Connection sd, int id, String error) throws SQLException {
+
+		String sql = "update dhis2_export_retry set last_attempt = now(), "
+				+ "attempts = attempts + 1, last_error = ? where id = ?";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, error);
+			pstmt.setInt(2, id);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
+		}
+	}
+
+	public void deletePendingSlice(Connection sd, int id) throws SQLException {
+
+		String sql = "delete from dhis2_export_retry where id = ?";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, id);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
+		}
 	}
 
 	public void recordAutoExport(Connection sd, int id, String result) throws SQLException {

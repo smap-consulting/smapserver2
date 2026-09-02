@@ -2421,6 +2421,15 @@ public class SubscriberBatch {
 	 */
 	private void exportDhis2Data(Connection sd, Connection cResults) {
 		try {
+			/*
+			 * Slices whose last send failed are retried regardless of any schedule, because a
+			 * mapping with automatic sending switched off would otherwise have no way back
+			 */
+			new Dhis2ExportManager().retryPendingSlices(sd, cResults);
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "DHIS2 retry error: " + e.getMessage(), e);
+		}
+		try {
 			new Dhis2ExportManager().exportDue(sd, cResults);
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "DHIS2 export error: " + e.getMessage(), e);

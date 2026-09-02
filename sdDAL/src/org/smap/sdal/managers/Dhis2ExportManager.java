@@ -35,6 +35,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Dhis2Export;
 import org.smap.sdal.model.Dhis2ExportItem;
 import org.smap.sdal.model.Dhis2ImportSummary;
+import org.smap.sdal.model.Dhis2PendingSlice;
 import org.smap.sdal.model.Dhis2Object;
 import org.smap.sdal.model.Dhis2Server;
 
@@ -56,6 +57,9 @@ import com.google.gson.JsonParser;
 public class Dhis2ExportManager {
 
 	private static Logger log = Logger.getLogger(Dhis2ExportManager.class.getName());
+
+	// A DHIS2 instance that is down should not be hammered by every pass of the batch job
+	private static final int RETRY_AFTER_MINUTES = 15;
 
 	/*
 	 * Build the data values for a period range and send them
@@ -627,34 +631,35 @@ public class Dhis2ExportManager {
 			String orgUnit = (String) slice[2];
 
 			String outcome;
-			BuiltValues built = buildDataValues(sd, cResults, oId, export,
-					bounds[0], bounds[1], orgUnit);
-
-			if(built.size() == 0) {
+			String failure = null;
+			try {
+				outcome = reconcileSlice(sd, cResults, oId, export, bounds, orgUnit);
+			} catch(Exception e) {
 				/*
-				 * Every record for this facility and period has gone, so the totals should go
-				 * too rather than being left at their old figures.  Only done on this path,
-				 * where a record really has changed: a scheduled export finding nothing is far
-				 * more likely to be a broken mapping than an emptied period, and should not
-				 * quietly remove a client's data
+				 * Queue the slice rather than letting the failure end here
+				 *
+				 * A removal used to be unrecoverable, because the scheduled export only ever
+				 * sends, and a failed send was only recovered if the export happened to be on
+				 * a schedule.  Both are now retried
 				 */
-				outcome = removeValues(sd, oId, export, bounds[0], orgUnit);
-			} else {
-				Dhis2ImportSummary s = sendBuilt(sd, oId, export, built, false);
-				outcome = s.imported + " imported, " + s.updated + " updated";
-				if(s.deleted > 0) {
-					outcome += ", " + s.deleted + " removed";
-				}
-				/*
-				 * One slice is one period and organisation unit, so this is bounded by the
-				 * number of mapped values and is worth writing out in full
-				 */
-				if(!built.described.isEmpty()) {
-					outcome += " [" + String.join(", ", built.described) + "]";
-				}
+				failure = e.getMessage();
+				outcome = "failed, queued to retry: " + failure;
+				log.log(Level.WARNING, "DHIS2 export failed for " + orgUnit + " "
+						+ bounds[0] + ", queued to retry: " + failure, e);
 			}
 
 			String slicePeriod = toDhis2Period(bounds[0], export.period_type);
+
+			try {
+				Dhis2ExportConfigManager pm = new Dhis2ExportConfigManager();
+				if(failure == null) {
+					pm.clearPendingSlice(sd, export.id, slicePeriod, orgUnit);
+				} else {
+					pm.recordPendingSlice(sd, export.id, slicePeriod, orgUnit, failure);
+				}
+			} catch(Exception e) {
+				log.log(Level.SEVERE, "Recording DHIS2 retry state for " + orgUnit, e);
+			}
 
 			/*
 			 * Stamp the mapping as well as writing the notification log
@@ -682,6 +687,125 @@ public class Dhis2ExportManager {
 		}
 
 		return details.toString();
+	}
+
+	/*
+	 * Make DHIS2 agree with Smap for one period and organisation unit
+	 *
+	 * The slice is rebuilt from the records as they stand and whatever that says is sent, so
+	 * the caller never has to decide between sending and removing.  That is what makes a retry
+	 * safe: a queued slice replayed later acts on the records at that moment, so a record
+	 * deleted, restored and deleted again all reach the right answer without being tracked
+	 */
+	private String reconcileSlice(Connection sd, Connection cResults, int oId, Dhis2Export export,
+			String[] bounds, String orgUnit) throws Exception {
+
+		BuiltValues built = buildDataValues(sd, cResults, oId, export, bounds[0], bounds[1], orgUnit);
+
+		if(built.size() == 0) {
+			/*
+			 * Every record for this facility and period has gone, so the totals should go too
+			 * rather than being left at their old figures.  Only reached where a record really
+			 * has changed: a scheduled export finding nothing is far more likely to be a broken
+			 * mapping than an emptied period, and should not quietly remove a client's data
+			 */
+			return removeValues(sd, oId, export, bounds[0], orgUnit);
+		}
+
+		Dhis2ImportSummary s = sendBuilt(sd, oId, export, built, false);
+		String outcome = s.imported + " imported, " + s.updated + " updated";
+		if(s.deleted > 0) {
+			outcome += ", " + s.deleted + " removed";
+		}
+		if(!s.success) {
+			// A rejection is a failure worth retrying, not a result to record and forget
+			throw new Exception(outcome
+					+ (s.conflicts.isEmpty() ? "" : ": " + String.join("; ", s.conflicts)));
+		}
+		/*
+		 * One slice is one period and organisation unit, so this is bounded by the number of
+		 * mapped values and is worth writing out in full
+		 */
+		if(!built.described.isEmpty()) {
+			outcome += " [" + String.join(", ", built.described) + "]";
+		}
+		return outcome;
+	}
+
+	/*
+	 * Retry the slices whose last send failed
+	 *
+	 * Runs on every pass of the batch job rather than on an export's own schedule, because a
+	 * mapping with automatic sending switched off would otherwise have no way back
+	 */
+	public void retryPendingSlices(Connection sd, Connection cResults) {
+
+		Dhis2ExportConfigManager cm = new Dhis2ExportConfigManager();
+
+		try {
+			for(Dhis2PendingSlice p : cm.getPendingSlices(sd, RETRY_AFTER_MINUTES)) {
+				try {
+					Dhis2Export export = cm.getExport(sd, p.o_id, p.e_id);
+					if(export == null || !export.enabled) {
+						cm.deletePendingSlice(sd, p.id);
+						continue;
+					}
+
+					String[] bounds = periodBoundsForPeriod(p.period, export.period_type);
+					String outcome = reconcileSlice(sd, cResults, p.o_id, export, bounds, p.org_unit);
+
+					cm.deletePendingSlice(sd, p.id);
+					log.info("DHIS2 retry succeeded for " + p.org_unit + " " + p.period
+							+ " after " + p.attempts + " failed attempts: " + outcome);
+
+				} catch(Exception e) {
+					try {
+						cm.recordPendingSliceAttempt(sd, p.id, e.getMessage());
+					} catch(Exception ex) {
+						log.log(Level.SEVERE, "Recording DHIS2 retry attempt", ex);
+					}
+					log.log(Level.WARNING, "DHIS2 retry still failing for " + p.org_unit + " "
+							+ p.period + ": " + e.getMessage());
+				}
+			}
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "DHIS2 retry error: " + e.getMessage(), e);
+		}
+	}
+
+	/*
+	 * The first and last day of a DHIS2 period identifier, the reverse of toDhis2Period
+	 * A retry holds the period as DHIS2 names it, but the query works in dates
+	 */
+	private String[] periodBoundsForPeriod(String period, String periodType) throws Exception {
+
+		String type = periodType == null ? "Monthly" : periodType;
+		java.time.LocalDate start;
+
+		if("Monthly".equalsIgnoreCase(type)) {
+			start = java.time.LocalDate.parse(period.substring(0, 4) + "-" + period.substring(4, 6) + "-01");
+		} else if("Yearly".equalsIgnoreCase(type)) {
+			start = java.time.LocalDate.parse(period.substring(0, 4) + "-01-01");
+		} else if("Quarterly".equalsIgnoreCase(type)) {
+			int q = Integer.parseInt(period.substring(5));
+			start = java.time.LocalDate.parse(period.substring(0, 4) + "-01-01").plusMonths((q - 1) * 3L);
+		} else if("Weekly".equalsIgnoreCase(type)) {
+			/*
+			 * ISO weeks, to match toDhis2Period.  The 4th of January is always in ISO week 1 of
+			 * its own calendar year, which the 1st is not: week 1 is the week holding the first
+			 * Thursday, so 1 January can fall in the last week of the year before
+			 */
+			java.time.temporal.WeekFields wf = java.time.temporal.WeekFields.ISO;
+			int w = Integer.parseInt(period.substring(5));
+			start = java.time.LocalDate.of(Integer.parseInt(period.substring(0, 4)), 1, 4)
+					.with(wf.weekOfWeekBasedYear(), w)
+					.with(wf.dayOfWeek(), 1);
+		} else {		// Daily, yyyyMMdd
+			start = java.time.LocalDate.parse(period.substring(0, 4) + "-"
+					+ period.substring(4, 6) + "-" + period.substring(6, 8));
+		}
+
+		return periodBounds(start.toString(), periodType);
 	}
 
 	/*
