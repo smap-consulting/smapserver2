@@ -136,6 +136,19 @@ which is why it is started with `-cp` rather than `-jar` on a server.
   * Copy the war files and runnable jar files into deploy/smap/deploy/version1
   *  The deploy/smap directory can then be deployed to a server to install smap server or update an existing installation
 
+### Pdf tests
+
+The pdf code has acceptance tests that need no database.  After building sdDAL, run them
+from the sdDAL directory:
+
+```
+test/pdf/run.sh
+```
+
+They cover image handling including webp, filling and flattening a template, the html
+label pipeline against default_pdf.css, and the resize and blank page utilities.  Worth
+running after any change to PDFSurveyManager, PdfUtilities or the iText version.
+
 ### Building and deploying the entire Smap server
 
 To build the entire server
