@@ -342,6 +342,10 @@ public class PDFSurveyManager {
 				reader = new PdfReader(templateName);
 				stamper = new PdfStamper(reader, outputStream);
 
+				// LibreOffice templates set NeedAppearances=true, which makes iText skip
+				// generating field appearance streams. Force generation so flattened values render.
+				stamper.getAcroFields().setGenerateAppearances(true);
+
 				for(int i = 0; i < survey.surveyData.instance.results.size(); i++) {
 					fillTemplate(gv, stamper.getAcroFields(), survey.surveyData.instance.results.get(i), 
 							null, i, stamper, oId);
