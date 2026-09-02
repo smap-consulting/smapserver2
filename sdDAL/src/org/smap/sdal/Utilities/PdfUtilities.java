@@ -320,6 +320,7 @@ public class PdfUtilities {
 					 * and it knows where a url can be broken.
 					 */
 					Paragraph urlPara = null;
+					float urlHeight = 0;
 					for(float fontSize = URL_FONT_SIZE; fontSize >= MIN_URL_FONT_SIZE; fontSize -= 1) {
 						Paragraph candidate = new Paragraph(mediaUrl)
 								.setFont(font)
@@ -327,27 +328,42 @@ public class PdfUtilities {
 								.setFixedLeading(fontSize * LINE_SPACING)
 								.setFontColor(ColorConstants.BLUE)
 								.setTextAlignment(TextAlignment.CENTER);
-						if(fits(candidate, canvas, pdfDoc, page, rect)) {
+						LayoutResult result = layout(candidate, canvas, pdfDoc, page, rect);
+						if(result != null && result.getStatus() == LayoutResult.FULL) {
 							urlPara = candidate;
+							urlHeight = result.getOccupiedArea().getBBox().getHeight();
 							break;
 						}
 					}
 
 					if(urlPara != null) {
-						canvas.add(urlPara);
+						/*
+						 * A canvas lays out from the top of its area, so a url that does not
+						 * fill the field sits against the top of it.  Centre it in the field,
+						 * which is where the template author drew the box for it.
+						 */
+						canvas.add(urlPara.setMarginTop(Math.max(0, (rect.getHeight() - urlHeight) / 2)));
 					} else {
 						/*
 						 * No size shows the whole url, so mark the field as a link instead of
 						 * writing part of one.  The whole rectangle is a link annotation below,
 						 * so the marker only has to say that there is something here.
+						 *
+						 * Place it by its baseline as addImageTemplate does rather than adding it
+						 * to the canvas: the glyph needs more room than its font size and a
+						 * paragraph is laid out from the top of the field, so an added one sits
+						 * high and, in a field only as tall as the glyph, crosses the top of it.
 						 */
 						float iconSize = Math.min(12, rect.getHeight());
-						canvas.add(new Paragraph("\uf08e")
-								.setFont(symbols_font)
-								.setFontSize(iconSize)
-								.setFixedLeading(iconSize)
-								.setFontColor(ColorConstants.BLUE)
-								.setTextAlignment(TextAlignment.CENTER));
+						canvas.showTextAligned(
+								new Paragraph("\uf08e")
+										.setFont(symbols_font)
+										.setFontSize(iconSize)
+										.setFixedLeading(iconSize)
+										.setFontColor(ColorConstants.BLUE),
+								(rect.getLeft() + rect.getRight()) / 2,
+								rect.getBottom() + (rect.getHeight() - iconSize) / 2,
+								TextAlignment.CENTER);
 					}
 				}
 			} catch (Exception e) {
@@ -380,20 +396,22 @@ public class PdfUtilities {
 	}
 
 	/*
-	 * True if every line of the paragraph fits the rectangle.  Anything less than FULL means
-	 * the layout would silently drop the rest, which is how a url became "https:/".
+	 * Lay the paragraph out in the rectangle without drawing it, to find out whether all of it
+	 * fits and how much room it takes.  A status of anything less than FULL means the layout
+	 * would silently drop the rest, which is how a url became "https:/".
+	 *
+	 * Returns null when the layout could not be done, which the caller reads as not fitting.
 	 */
-	private static boolean fits(Paragraph para, Canvas canvas, PdfDocument pdfDoc, PdfPage page,
-			Rectangle rect) {
+	private static LayoutResult layout(Paragraph para, Canvas canvas, PdfDocument pdfDoc,
+			PdfPage page, Rectangle rect) {
 		try {
 			IRenderer renderer = para.createRendererSubTree().setParent(canvas.getRenderer());
-			LayoutResult result = renderer.layout(
+			return renderer.layout(
 					new LayoutContext(new LayoutArea(pdfDoc.getPageNumber(page), rect)));
-			return result.getStatus() == LayoutResult.FULL;
 		} catch (Exception e) {
 			// Could not tell, so assume not and show the marker rather than part of a url
 			log.fine("Could not measure media url for a template field: " + e.getMessage());
-			return false;
+			return null;
 		}
 	}
 
