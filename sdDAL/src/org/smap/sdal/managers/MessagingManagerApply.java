@@ -270,7 +270,14 @@ public class MessagingManagerApply {
 									String pauseReason = orgServer.getPauseReason();
 									// Never null: a null reason would leave the turn uncounted
 									deferralReason = pauseReason == null ? "sending paused" : pauseReason;
-									deferralRetryAfter = orgServer.getPauseUntil();
+									/*
+									 * The only way the pause has no end is that it ended between
+									 * the two calls, so this one can go straight back rather
+									 * than wait out the default for a pause that is over.
+									 */
+									long pauseUntil = orgServer.getPauseUntil();
+									deferralRetryAfter = pauseUntil > 0
+											? pauseUntil : System.currentTimeMillis();
 									deferralTarget = msg.target;
 									deferralProjectId = msg.pId;
 									deferralSurveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
