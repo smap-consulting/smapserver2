@@ -117,6 +117,14 @@ public class PdfUtilities {
 		}
 	}
 
+	public static Image createImage(byte [] bytes, String name) throws IOException, BadElementException {
+		try {
+			return Image.getInstance(bytes);
+		} catch (IOException e) {
+			return convertToPng(bytes, name);
+		}
+	}
+
 	private static byte[] readBytes(URL url) throws IOException {
 		try (InputStream is = url.openStream()) {
 			return is.readAllBytes();

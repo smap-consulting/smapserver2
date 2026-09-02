@@ -1,5 +1,6 @@
 package org.smap.sdal.managers;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -8,7 +9,6 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.lang.reflect.Type;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.text.DecimalFormat;
@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.smap.sdal.Utilities.AttachmentStore;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfPageSizer;
 import org.smap.sdal.Utilities.PdfUtilities;
@@ -1791,11 +1792,23 @@ public class PDFSurveyManager {
 							angle = getImageRotation(new FileInputStream(f));
 							img = PdfUtilities.createImage(f);
 						} else {
-							angle = getImageRotation(new URL(attachmentPrefix + di.value).openStream());
-							img = PdfUtilities.createImage(attachmentPrefix + di.value);
+							/*
+							 * The image has been archived to S3.  Get it using the credentials of
+							 * this server.  It cannot be read over HTTP as the server has no
+							 * credentials to authenticate with itself
+							 */
+							byte [] imageBytes = AttachmentStore.getBytes(basePath, di.value, attachmentPrefix);
+							if(imageBytes != null) {
+								angle = getImageRotation(new ByteArrayInputStream(imageBytes));
+								img = PdfUtilities.createImage(imageBytes, di.value);
+							}
 						}
-						img.setRotationDegrees(angle);
-						valueCell.addElement(img);	
+						if(img == null) {
+							log.info("Error: Missing image file: " + di.value);
+						} else {
+							img.setRotationDegrees(angle);
+							valueCell.addElement(img);
+						}
 					} catch(Exception e) {
 						log.fine("Error: image " + basePath + "/" + di.value + " not added: " + e.getMessage());
 						log.log(Level.SEVERE, "Adding image to pdf", e);

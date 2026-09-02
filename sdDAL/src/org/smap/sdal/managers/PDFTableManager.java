@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.smap.sdal.Utilities.AttachmentStore;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfPageSizer;
 import org.smap.sdal.Utilities.PdfUtilities;
@@ -376,8 +377,18 @@ public class PDFTableManager {
 		// Set the content of the value cell
 		try {
 			if(type != null && type.equals("image")) {
-				Image img = PdfUtilities.createImage(kv.v);
-				valueCell.addElement(img);
+				/*
+				 * Get the image from local disk or, if it has been archived, from S3 using the
+				 * credentials of this server.  It cannot be read over HTTP as the server has no
+				 * credentials to authenticate with itself
+				 */
+				byte [] imageBytes = AttachmentStore.getBytes(basePath, kv.v, null);
+				if(imageBytes == null) {
+					log.info("Error: Missing image file: " + kv.v);
+				} else {
+					Image img = PdfUtilities.createImage(imageBytes, kv.v);
+					valueCell.addElement(img);
+				}
 			} else if(barcode && kv.v.trim().length() > 0) {
 				BarcodeQRCode qrcode = new BarcodeQRCode(kv.v.trim(), 1, 1, null);
 		         Image qrcodeImage = qrcode.getImage();
