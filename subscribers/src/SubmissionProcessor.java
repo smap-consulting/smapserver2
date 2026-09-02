@@ -340,11 +340,23 @@ public class SubmissionProcessor {
 									se.setReason("No template named: " + e.getMessage() + " in database");
 	
 								} catch (Exception e) {
-	
-									e.printStackTrace();
+
+									/*
+									 * A duplicate is the idempotency check doing its job, not a
+									 * fault: the record is already in the results database and this
+									 * copy is dropped.  It was going to stderr as a bare untimed
+									 * stack trace, which reads like a failure in the log.  The
+									 * status stays "error" because that is what keeps it out of the
+									 * reports, which all select db_status = 'success'.
+									 */
+									if(e.getMessage() != null && e.getMessage().startsWith("Duplicate")) {
+										log.info("Dropped duplicate: " + e.getMessage());
+									} else {
+										log.log(Level.SEVERE, e.getMessage(), e);
+									}
 									se.setStatus("error");
 									se.setReason(e.getMessage());
-	
+
 								} finally {
 	
 									try {

@@ -1,3 +1,4 @@
+import java.io.PrintStream;
 import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -5,6 +6,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
@@ -14,6 +16,8 @@ import org.w3c.dom.Document;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.model.DatabaseConnections;
+import org.smap.sdal.managers.EmailManager;
+import org.smap.sdal.model.SmtpEmailServer;
 
 /*****************************************************************************
 
@@ -39,9 +43,93 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 public class Manager {
-	
+
 	private static Logger log =
 			 Logger.getLogger(Manager.class.getName());
+
+	/*
+	 * Message workers started in each of the forward and upload subscribers, so twice this
+	 * many in total.  There was one in each, and a message spends nearly all of its time
+	 * waiting on the smtp relay and on database round trips rather than on cpu, so extra
+	 * workers add throughput.  They all draw from the one message_queue with skip locked.
+	 */
+	private static final int MESSAGE_WORKERS = 3;
+
+	/*
+	 * How many smtp connections this process may hold open at once.  One by default: office
+	 * 365 allows a mailbox three concurrent connections, and the forward subscriber, the
+	 * upload subscriber and the web app all draw on the same mailbox.
+	 */
+	private static int getSmtpMaxConnections(String basePath) {
+		return getIntSetting(basePath, "smtp_max_connections", 1);
+	}
+
+	/*
+	 * A positive integer from a settings file, or the default if it is absent or unreadable
+	 */
+	private static int getIntSetting(String basePath, String name, int defaultValue) {
+		String setting = GeneralUtilityMethods.getSettingFromFile(basePath + "/settings/" + name);
+		if(setting != null) {
+			try {
+				int value = Integer.parseInt(setting.trim());
+				if(value > 0) {
+					return value;
+				}
+				log.warning("Ignoring " + name + " of " + value + ", it must be greater than zero");
+			} catch (NumberFormatException e) {
+				log.warning("Ignoring unreadable " + name + ": " + setting);
+			}
+		}
+		return defaultValue;
+	}
+
+	/*
+	 * Find out what writes the iText AGPL notice.
+	 *
+	 * The notice turns up in the subscriber log without the timestamp and level that
+	 * SmapLogFormatter puts on everything else, so it is not going through the logging
+	 * framework at all and no logging configuration will silence it.  It is written straight
+	 * to stdout or stderr, and the text is not in any jar on the class path that a search for
+	 * it can find, so the only way left to identify the culprit is to catch it being written.
+	 *
+	 * Off unless /smap/settings/trace_agpl contains "on", so the streams are only wrapped
+	 * while somebody is looking.  Fires once and then stops checking.
+	 */
+	private static final AtomicBoolean agplNoticeFound = new AtomicBoolean(false);
+
+	private static void traceAgplNotice(String basePath) {
+		String setting = GeneralUtilityMethods.getSettingFromFile(basePath + "/settings/trace_agpl");
+		if(setting == null || !setting.trim().equalsIgnoreCase("on")) {
+			return;
+		}
+		/*
+		 * After LogConfig, deliberately.  Its ConsoleHandler already holds the real stderr, so
+		 * ordinary logging does not come back through here and only direct writes are examined.
+		 */
+		System.setOut(watchForAgpl(System.out));
+		System.setErr(watchForAgpl(System.err));
+		log.info("Watching stdout and stderr for the iText AGPL notice, "
+				+ "a stack trace will be written when it appears");
+	}
+
+	private static PrintStream watchForAgpl(final PrintStream target) {
+		return new PrintStream(target, true) {
+			@Override public void println(String s) { check(s); super.println(s); }
+			@Override public void print(String s) { check(s); super.print(s); }
+			@Override public void write(byte[] b, int off, int len) {
+				if(!agplNoticeFound.get()) {
+					check(new String(b, off, len));
+				}
+				super.write(b, off, len);
+			}
+			private void check(String s) {
+				if(s != null && s.contains("AGPL") && agplNoticeFound.compareAndSet(false, true)) {
+					// Straight to the wrapped stream, so reporting it does not come back here
+					new Throwable("The iText AGPL notice was written from here").printStackTrace(target);
+				}
+			}
+		};
+	}
 
 	/*
 	 * Resolve the hostname for this server.
@@ -145,11 +233,40 @@ public class Manager {
 		// Set mode property before LogConfig so the formatter can read it
 		System.setProperty("smap.subscriber.mode", subscriberType);
 		LogConfig.init(fileLocn);
+		traceAgplNotice(fileLocn);
 
 		String hostname = getHostname(fileLocn);
 		long pid = ProcessHandle.current().pid();
 		log.info("Subscriber starting: hostname=" + hostname + " pid=" + pid + " type=" + subscriberType);
 		clearWorkers(smapId);
+
+		/*
+		 * The message workers send a continuous stream of notifications, so let them hold an
+		 * smtp connection open between messages rather than doing the tls handshake and the
+		 * authentication again for every email.
+		 *
+		 * The pool is deliberately smaller than the worker count.  Relays limit how many
+		 * connections a mailbox may hold at once and office 365 allows only three, counting
+		 * both subscribers and anything the web app sends, so one apiece leaves headroom.
+		 * Override in /smap/settings/smtp_max_connections if the relay is more generous.
+		 */
+		SmtpEmailServer.enableConnectionReuse(getSmtpMaxConnections(fileLocn));
+
+		/*
+		 * How long to leave email alone after the relay says we have sent too much.  Gmail's
+		 * daily limit clears on a rolling twenty four hour window and nothing here knows when
+		 * that is, so retry periodically until one gets through rather than guessing.
+		 */
+		SmtpEmailServer.setRateLimitPauseMinutes(
+				getIntSetting(fileLocn, "smtp_retry_minutes", 60));
+
+		/*
+		 * Largest attachment to put on an email.  Bigger than the relay accepts and it is
+		 * refused only after the whole file has been pushed at it, so the notification goes
+		 * out with a link to the record instead.
+		 */
+		EmailManager.setMaxAttachmentMb(
+				getIntSetting(fileLocn, "max_email_attachment_mb", 20));
 
 		/*
 		 * Start asynchronous worker threads
@@ -203,10 +320,12 @@ public class Manager {
 			subProcessor2.go(smapId, fileLocn, "qf2_restore", true, hostname, subscriberType, pid);
 
 			/*
-			 * Start the message processor in the forward processor
+			 * Start the message processors in the forward processor
 			 */
-			MessageProcessor messageProcessor1 = new MessageProcessor();
-			messageProcessor1.go(smapId, fileLocn, "qm1", hostname, subscriberType, pid);
+			for(int i = 1; i <= MESSAGE_WORKERS; i++) {
+				MessageProcessor messageProcessor = new MessageProcessor();
+				messageProcessor.go(smapId, fileLocn, "qmf" + i, hostname, subscriberType, pid);
+			}
 
 			/*
 			 * Start the email response processor (polls S3 for inbound reply emails)
@@ -215,19 +334,28 @@ public class Manager {
 			emailResponseProcessor.go(smapId, fileLocn, hostname, pid);
 
 		} else {
-			// Start the default submission queue processor in the upload subscriber
-			SubmissionProcessor subProcessor = new SubmissionProcessor();
-			subProcessor.go(smapId, fileLocn, "qu1", false, hostname, subscriberType, pid);
-
-			// Start a restore submission queue processor
-			SubmissionProcessor subProcessor3 = new SubmissionProcessor();
-			subProcessor3.go(smapId, fileLocn, "qu2", false, hostname, subscriberType, pid);
+			/*
+			 * Start the submission queue processors for live uploads. Each one is a
+			 * thread holding its own sd and results connection. They spend most of
+			 * their time blocked on attachment processing and database round trips
+			 * rather than on cpu, so extra workers add throughput.
+			 *
+			 * Restores are deliberately excluded here - they can block for a long time
+			 * and are handled by qf2_restore in the forward subscriber.
+			 */
+			int UPLOAD_WORKERS = 4;
+			for(int i = 1; i <= UPLOAD_WORKERS; i++) {
+				SubmissionProcessor subProcessor = new SubmissionProcessor();
+				subProcessor.go(smapId, fileLocn, "qu" + i, false, hostname, subscriberType, pid);
+			}
 
 			/*
-			 * Start the message processor in the upload processor
+			 * Start the message processors in the upload processor
 			 */
-			MessageProcessor messageProcessor2 = new MessageProcessor();
-			messageProcessor2.go(smapId, fileLocn, "qm2", hostname, subscriberType, pid);
+			for(int i = 1; i <= MESSAGE_WORKERS; i++) {
+				MessageProcessor messageProcessor = new MessageProcessor();
+				messageProcessor.go(smapId, fileLocn, "qmu" + i, hostname, subscriberType, pid);
+			}
 		}
 		
 		

@@ -26,6 +26,7 @@ import jakarta.mail.internet.InternetAddress;
 import org.codehaus.jettison.json.JSONArray;
 import org.smap.notifications.interfaces.EmitAwsSMS;
 import org.smap.notifications.interfaces.EmitSMS;
+import org.smap.sdal.Utilities.EmailDeferredException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -1160,6 +1161,7 @@ public class NotificationManager {
 
 		String docURL = null;
 		String filePath = null;
+		String attachPath = null;			// The pdf to attach, dropped if it is too big to send
 		String originalFilePath = null;		// Track uncompressed file for cleanup
 		String filename = "instance";
 		String logContent = null;
@@ -1299,6 +1301,7 @@ public class NotificationManager {
 						logContent = filePath;
 
 						// Save a permanent copy for the record timeline
+						String savedFragment = null;		// Where that copy went, for the log below
 						if(msg.instanceId != null) {
 							try {
 								String attachUuid = UUID.randomUUID().toString();
@@ -1312,9 +1315,54 @@ public class NotificationManager {
 								GeneralUtilityMethods.sendToS3(sd, attachDest, organisation.id, true);
 								if(msg.attachments == null) msg.attachments = new ArrayList<>();
 								msg.attachments.add(fragment);
+								savedFragment = fragment;
 							} catch(Exception e) {
 								log.log(Level.WARNING, "Failed to save notification PDF attachment", e);
 							}
+						}
+
+						/*
+						 * Attach the pdf only if a relay will take it.  Anything larger is
+						 * refused, but only after the whole file has been pushed at the relay,
+						 * which holds a connection for minutes and spends the day's sending
+						 * allowance on a message that cannot arrive.  Send the record's link
+						 * instead so the recipient can still see it.  The permanent copy above
+						 * is already saved, so the record timeline keeps its pdf either way.
+						 */
+						attachPath = filePath;
+						long pdfBytes = new File(filePath).length();
+						if(pdfBytes > EmailManager.getMaxAttachmentBytes()) {
+							/*
+							 * Name everything needed to find the culprit without going back to the
+							 * logs a second time: which survey and record, which notification
+							 * asked for the pdf, whether the survey even has compression turned
+							 * on, and where the copy of the oversized file was kept so it can be
+							 * opened and looked at.
+							 */
+							int pdfMb = (int) (pdfBytes / (1024 * 1024));
+							String tooBig = "Notification pdf too large:"
+									+ " survey=" + surveyId + " (" + msg.survey_ident + ")"
+									+ " '" + survey.surveyData.displayName + "'"
+									+ " project='" + survey.surveyData.projectName + "'"
+									+ " instance=" + msg.instanceId
+									+ " notification='" + msg.notificationName + "'"
+									+ " size=" + pdfMb + "mb"
+									+ " limit=" + (EmailManager.getMaxAttachmentBytes() / (1024 * 1024)) + "mb"
+									+ " compress_pdf=" + survey.surveyData.compress_pdf
+									+ " saved=" + (savedFragment == null ? "not kept" : savedFragment);
+							log.log(Level.WARNING, tooBig + ", sending a link instead of the attachment");
+							/*
+							 * Also to the application log, under the limit topic so these can be
+							 * found and counted from the console.  The email itself still goes,
+							 * so nothing else records that this happened.
+							 */
+							lm.writeLog(sd, surveyId, "subscriber", LogManager.LIMIT, tooBig, pdfMb, null);
+							attachPath = null;
+							docURL = "/app/myWork/webForm/" + msg.survey_ident +
+									"?datakey=instanceid&datakeyvalue=" + msg.instanceId;
+							logContent = docURL;
+							msg.content = (msg.content == null ? "" : msg.content)
+									+ "<p>" + localisation.getString("email_att_lg") + "</p>";
 						}
 
 					} else {
@@ -1352,9 +1400,9 @@ public class NotificationManager {
 							caseReference = "#" + surveyId + "-" + prikey;
 						}
 	 
-						SendEmailResponse resp = em.sendEmails(sd, cResults, log, emails, organisation, surveyId, 
+						SendEmailResponse resp = em.sendEmails(sd, cResults, log, emails, organisation, surveyId,
 								logContent, docURL, survey.surveyData.displayName, unsubscribedList,
-								filePath, filename, messageId, createPending, topic, msg.user, serverName, 
+								attachPath, filename, messageId, createPending, topic, msg.user, serverName,
 								survey.surveyData.displayName, survey.surveyData.projectName, msg.subject, msg.from, 
 								msg.content, 
 								caseReference,
@@ -1373,6 +1421,8 @@ public class NotificationManager {
 									status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null);
 							writeToMonitor = false;
 						}
+					} catch (EmailDeferredException e) {
+						throw e;		// Requeue rather than record a failure, see EmailManager
 					} catch (Exception e) {
 						status = "error";
 						error_details = e.getMessage();

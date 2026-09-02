@@ -18,7 +18,9 @@ import jakarta.mail.internet.InternetAddress;
 import org.smap.notifications.interfaces.EmitDeviceNotification;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.Utilities.EmailDeferredException;
 import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.SmtpEmailServer;
 import org.smap.sdal.model.EmailTaskMessage;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.OrgResourceMessage;
@@ -120,6 +122,18 @@ public class MessagingManagerApply {
 					loop = false;
 					break;
 				}
+				/*
+				 * Give up the batch as soon as the subscriber is asked to stop.  The caller
+				 * only gets to look at the flag between batches, so without this a worker
+				 * carries on for up to batchLimit more messages after the stop, which is
+				 * minutes when there is a backlog.  Reading a small file once per message is
+				 * nothing beside sending one.
+				 */
+				String subscriberControl = GeneralUtilityMethods.getSettingFromFile(basePath + "/settings/subscriber");
+				if(subscriberControl != null && subscriberControl.equals("stop")) {
+					loop = false;
+					break;
+				}
 				rs = pstmtGetMessages.executeQuery();
 				if (rs.next()) {
 					batchCount++;
@@ -164,7 +178,29 @@ public class MessagingManagerApply {
 							 * A submission notification is a notification associated with a record of data
 							 */
 							SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
-					
+
+							/*
+							 * While this organisation's relay is refusing mail there is no point
+							 * loading the survey and rendering a pdf for a send that cannot
+							 * succeed.  Put the message back and pick it up when sending
+							 * resumes.
+							 *
+							 * Organisations configure their own smtp server, so the pause
+							 * belongs to the relay account rather than to the server: carry on
+							 * with the next message, which may well belong to an organisation
+							 * whose relay is perfectly happy.  Resolving which relay this
+							 * organisation uses costs a query, so only do it when something
+							 * somewhere is actually paused.
+							 */
+							if("email".equals(msg.target) && SmtpEmailServer.anySendingPaused()) {
+								EmailServer orgServer = UtilityMethodsEmail.getEmailServer(sd,
+										localisation, null, msg.user, organisation.id);
+								if(orgServer != null && orgServer.isSendingPaused()) {
+									processed = false;
+									continue;
+								}
+							}
+
 							NotificationManager nm = new NotificationManager(localisation);
 							try {
 								nm.processSubmissionNotification(
@@ -183,16 +219,33 @@ public class MessagingManagerApply {
 										urlprefix,
 										attachmentPrefix,
 										hyperlinkPrefix
-										); 
+										);
+							} catch (EmailDeferredException e) {
+								/*
+								 * The send never happened, so put the message back rather than
+								 * record a failure.  Carry on with the batch: it was this
+								 * organisation's relay that was busy or refusing, and the next
+								 * message may go through a different one.
+								 */
+								processed = false;
+								continue;
 							} catch (Exception e) {
 								log.log(Level.SEVERE, e.getMessage(), e);
+								/*
+								 * The notification failed, so record it as a failure.  status was
+								 * still on its "success" default here, so a notification that
+								 * threw was written to notification_log, and to the message row,
+								 * as a success with the reason tucked away in status_details.
+								 * The monitor page reads status, so the failure did not show.
+								 */
+								status = "error";
 								String details = localisation.getString("msg_err_not");
 								details = details.replace("%s1", msg.msgChannel == null ? "" : msg.msgChannel);
 								details = details.replace("%s2", msg.ourNumber == null ? "" : msg.ourNumber );
 								details = details.replace("%s3", msg.content == null ? "" : msg.content);
-								nm.writeToLog(sd, organisation.id, msg.pId, 
-										GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident), 
-										details, status, 
+								nm.writeToLog(sd, organisation.id, msg.pId,
+										GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident),
+										details, status,
 										e.getMessage(), id, msg.target);
 							}
 							
@@ -354,6 +407,15 @@ public class MessagingManagerApply {
 							}
 							
 						}
+					} catch (EmailDeferredException e) {
+						/*
+						 * The topics other than a submission notification have no handler of
+						 * their own, so catch a deferral for all of them here.  Without this it
+						 * would run out through the finally below, which would record the
+						 * message as processed and successful, and then end the batch.
+						 */
+						processed = false;
+						continue;
 					} finally {
 						// Set the final status
 						if(processed) {

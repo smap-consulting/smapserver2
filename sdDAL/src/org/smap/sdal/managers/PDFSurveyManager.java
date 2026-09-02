@@ -114,16 +114,23 @@ public class PDFSurveyManager {
 
 	LogManager lm = new LogManager();		// Application log
 
-	public static PdfFont Symbols = null;
-	public static PdfFont defaultFont = null;
-	public static PdfFont defaultFontBold = null;
-	public static PdfFont defaultFontLink = null;
-	public static Color defaultFontLinkColor = ColorConstants.BLUE;
-	public static PdfFont arabicFont = null;
-	public static PdfFont bengaliFont = null;
-	public static PdfFont bengaliFontBold = null;
-	public static PdfFont devanagariFont = null;
-	public static PdfFont devanagariFontBold = null;
+	/*
+	 * Fonts.  A PdfFont binds itself to the first PdfDocument it is written to, so it can
+	 * neither be shared between documents nor held in a static field: two threads building
+	 * pdfs at the same time would overwrite each other's fonts and the writer then fails
+	 * with "Pdf indirect object belongs to other PDF document".  They are created per
+	 * PDFSurveyManager, which is created per pdf.
+	 */
+	private PdfFont Symbols = null;
+	private PdfFont defaultFont = null;
+	private PdfFont defaultFontBold = null;
+	private PdfFont defaultFontLink = null;
+	private static final Color defaultFontLinkColor = ColorConstants.BLUE;
+	private PdfFont arabicFont = null;
+	private PdfFont bengaliFont = null;
+	private PdfFont bengaliFontBold = null;
+	private PdfFont devanagariFont = null;
+	private PdfFont devanagariFontBold = null;
 	private static final String DEFAULT_CSS = "/resources/css/default_pdf.css";
 	private static int NUMBER_TABLE_COLS = 10;
 	// Fine columns per coarse column, so a question's label/value split (also out of 10)
@@ -527,8 +534,8 @@ public class PDFSurveyManager {
 			boolean hideLabel = false;
 			String fieldName = getFieldName(formName, repeatIndex, r.name);
 			String fieldNameQR = getFieldName(formName, repeatIndex, r.name + "_qr");
-			
-			System.out.println("FieldName: " + fieldName + " (" + r.type + ")");
+
+			log.fine("FieldName: " + fieldName + " (" + r.type + ")");
 
 			DisplayItem di = new DisplayItem();
 			try {
@@ -717,7 +724,7 @@ public class PDFSurveyManager {
 				PdfUtilities.addImageTemplate(pdfForm, fieldName, mBasePath, value, mAttachmentPrefix, pdfDoc, Symbols, di.stretch);
 
 			} else if(r.type.equals("video") || r.type.equals("audio")  || r.type.equals("file")) {
-				PdfUtilities.addMediaTemplate(pdfForm, fieldName, mBasePath, value, mAttachmentPrefix, pdfDoc, defaultFont);
+				PdfUtilities.addMediaTemplate(pdfForm, fieldName, mBasePath, value, mAttachmentPrefix, pdfDoc, defaultFont, Symbols);
 
 			} else if(r.type.equals("select1") && di.showImage) {
 				String filePath = UtilityMethodsEmail.getMediaPath(survey.surveyData.ident, value, mBasePath, oId, survey.surveyData.id);
@@ -838,18 +845,33 @@ public class PDFSurveyManager {
 			if(us != null) {
 				setStaticFieldValue(pdfForm, "user_title", us.title);
 				setStaticFieldValue(pdfForm, "user_license", us.license);
+			}
 
+			/*
+			 * The signature is nothing to do with the user's settings, but it used to be added
+			 * inside the block above, so a user with no settings json got no signature on a
+			 * templated pdf while the same user's untemplated pdf had one.
+			 */
+			if(user.signature != null && user.signature.trim().length() > 0) {
 				PdfFormField sigField = pdfForm.getField("user_signature");
 				if(sigField instanceof PdfButtonFormField) {
-					String filename = null;
+					String filename = basePath + "/media/users/" + user.id + "/sig/"  + user.signature;
 					try {
-						filename = basePath + "/media/users/" + user.id + "/sig/"  + user.signature;
 						((PdfButtonFormField) sigField).setImage(filename);
 					} catch (Exception e) {
-						log.fine("Error: Failed to add signature " + filename + " to pdf");
+						// Worth seeing: the user has a signature and the template has a place for it
+						log.log(Level.WARNING, "Failed to add signature " + filename + " to pdf: "
+								+ e.getMessage(), e);
 					}
+				} else if(sigField == null) {
+					log.fine("No user_signature field in this template");
 				} else {
-					//log.fine("Picture field: user_signature not found");
+					/*
+					 * Only a push button can hold an image.  Say so rather than passing over it
+					 * in silence, which is how this went unnoticed.
+					 */
+					log.log(Level.WARNING, "Cannot add a signature to user_signature, it is a "
+							+ sigField.getFormType() + " field rather than a push button");
 				}
 			}
 

@@ -16,6 +16,7 @@ import com.google.gson.JsonObject;
 
 import jakarta.mail.internet.InternetAddress;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.EmailDeferredException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -56,6 +57,37 @@ public class EmailManager {
 	private ResourceBundle localisation;
 	
 	private HtmlSanitise sanitise = new HtmlSanitise();
+
+	/*
+	 * Largest total attachment we will put on an email.  Relays reject anything bigger, and
+	 * they reject it only after the whole thing has been pushed at them, which holds a
+	 * connection for minutes and counts against the day's sending allowance for a message
+	 * that was never going to arrive.  Gmail's ceiling is 25mb and base64 adds a third, so
+	 * 20mb of files is about as much as will fit.
+	 */
+	private static volatile long maxAttachmentBytes = 20L * 1024L * 1024L;
+
+	public static void setMaxAttachmentMb(int mb) {
+		if(mb > 0) {
+			maxAttachmentBytes = mb * 1024L * 1024L;
+		}
+	}
+
+	public static long getMaxAttachmentBytes() {
+		return maxAttachmentBytes;
+	}
+
+	private static long totalSize(ArrayList<String> paths) {
+		long bytes = 0;
+		for(String path : paths) {
+			try {
+				bytes += new java.io.File(path).length();
+			} catch (Exception e) {
+				// Unreadable, treat as nothing; the send will report it if it matters
+			}
+		}
+		return bytes;
+	}
 	
 
 
@@ -293,16 +325,36 @@ public class EmailManager {
 									emailFilenames.add(filename);
 								}
 								if(msg != null && msg.extraFilePaths != null) {
-									log.info("Adding " + msg.extraFilePaths.size() + " extra attachment(s) to email");
+									log.fine("Adding " + msg.extraFilePaths.size() + " extra attachment(s) to email");
 									for(int efi = 0; efi < msg.extraFilePaths.size(); efi++) {
 										String fp = msg.extraFilePaths.get(efi);
-										log.info("Extra attachment[" + efi + "]: " + fp + " exists=" + new java.io.File(fp).exists());
+										/*
+										 * Only worth a line when the file is not there.  Having none
+										 * is the ordinary case for a notification and was being
+										 * reported once per recipient.
+										 */
+										if(!new java.io.File(fp).exists()) {
+											log.warning("Notification attachment is missing: " + fp);
+										}
 										emailFilePaths.add(fp);
 										emailFilenames.add(msg.extraFileNames != null && efi < msg.extraFileNames.size()
 												? msg.extraFileNames.get(efi) : "attachment_" + efi);
 									}
-								} else {
-									log.info("No extra attachments on message (extraFilePaths=" + (msg == null ? "msg null" : "null") + ")");
+								}
+
+								/*
+								 * Last line of defence.  The notification path checks the pdf it
+								 * generates, this catches everything else, so no path can spend
+								 * minutes pushing files the relay is certain to refuse.
+								 */
+								long attachmentBytes = totalSize(emailFilePaths);
+								if(attachmentBytes > maxAttachmentBytes) {
+									log.warning("Not attaching " + emailFilePaths.size() + " file(s) totalling "
+											+ (attachmentBytes / (1024 * 1024)) + "mb to email for survey "
+											+ surveyId + ", over the " + (maxAttachmentBytes / (1024 * 1024))
+											+ "mb limit: " + emailFilePaths);
+									emailFilePaths.clear();
+									emailFilenames.clear();
 								}
 								String mid = sendEmailHtmlMulti(
 										msg != null ? msg.notificationName : null,
@@ -349,6 +401,13 @@ public class EmailManager {
 						}
 					}
 					resp.status = "success";
+				} catch(EmailDeferredException e) {
+					/*
+					 * Not this message's fault and not something retrying the same second
+					 * will fix, so let it out rather than recording a failure.  The caller
+					 * puts the message back on the queue for when the relay accepts mail again.
+					 */
+					throw e;
 				} catch(Exception e) {
 					resp.status = "error";
 					resp.error_details = e.getMessage();

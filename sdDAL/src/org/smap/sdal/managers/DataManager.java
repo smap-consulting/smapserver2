@@ -407,17 +407,37 @@ public class DataManager {
 					// Get the data for sub forms
 					for(Form f : s.surveyData.forms) {
 						if(f.parentform == form.id) {
+							/*
+							 * The key is the name of the question the sub form repeats on.
+							 * parentQuestionIndex indexes into this form's questions and can be
+							 * out of step with the questions actually loaded, so fall back to
+							 * the form's own name rather than losing the repeat data.
+							 */
 							int parentQuestion = f.parentQuestionIndex;
-							Question q = form.questions.get(parentQuestion);
-							String name = q.name;
-							if(q.display_name != null && q.display_name.trim().length() > 0) {
-								name = q.display_name;
+							String name = f.name;
+							if(parentQuestion >= 0 && parentQuestion < form.questions.size()) {
+								Question q = form.questions.get(parentQuestion);
+								name = q.name;
+								if(q.display_name != null && q.display_name.trim().length() > 0) {
+									name = q.display_name;
+								}
+							} else {
+								log.warning("Sub form " + f.id + " of survey " + s.surveyData.id
+										+ " has parent question index " + parentQuestion
+										+ " but its parent form has " + form.questions.size()
+										+ " questions, keying the repeat on the form name");
 							}
+							/*
+							 * Recurse on the sub form we are already holding.  This used to look
+							 * it up again by parent question id, which returns null whenever
+							 * parentQuestionIndex and parentQuestion disagree, and the null then
+							 * came back as a NullPointerException one level down.
+							 */
 							data.put(name, getInstanceData(
 									sd,
 									cResults,
 									s,
-									s.getSubFormQId(form, q.id),
+									f,
 									prikey,
 									null,
 									null,

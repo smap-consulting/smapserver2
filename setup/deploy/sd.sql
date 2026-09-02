@@ -721,3 +721,14 @@ alter table dhis2_export add column if not exists auto_export boolean default fa
 alter table dhis2_export add column if not exists schedule_minutes integer default 1440;
 alter table dhis2_export add column if not exists periods_back integer default 1;
 alter table dhis2_export add column if not exists last_auto_export TIMESTAMP WITH TIME ZONE;
+
+-- The message queue is dequeued with "order by time_inserted asc limit 1 for update skip
+-- locked", which sorted the whole table for every message taken off it.  Unnoticeable on an
+-- empty queue, expensive once a backlog builds up, which is exactly when it matters.
+create index if not exists message_queue_time_inserted_idx on message_queue(time_inserted);
+
+-- A message worker publishes on its heartbeat whether the relay has told it to stop
+-- sending, so the monitor can say why a message queue that is filling up is not being
+-- drained rather than leaving it looking like a broken subscriber.
+alter table subscriber_worker add column if not exists email_paused_until timestamptz;
+alter table subscriber_worker add column if not exists email_paused_reason text;

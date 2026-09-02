@@ -4621,22 +4621,38 @@ public class SurveyManager {
 							if(instance.repeats == null) {
 								instance.repeats = new HashMap<String, ArrayList<Instance>> ();
 							}
+							/*
+							 * Key the repeat on the question it repeats on, falling back to the
+							 * form name when parentQuestionIndex is out of step with the
+							 * questions loaded, and recurse on the sub form already in hand.
+							 * Looking it up again by parent question id returns null whenever
+							 * parentQuestionIndex and parentQuestion disagree.  Same fix as
+							 * DataManager.getInstanceData, which crashed on it.
+							 */
 							int parentQuestion = f.parentQuestionIndex;
-							Question q = form.questions.get(parentQuestion);
-							String qName = q.name;
-							if(q.display_name != null && q.display_name.trim().length() > 0) {
-								qName = q.display_name;
+							String qName = f.name;
+							if(parentQuestion >= 0 && parentQuestion < form.questions.size()) {
+								Question q = form.questions.get(parentQuestion);
+								qName = q.name;
+								if(q.display_name != null && q.display_name.trim().length() > 0) {
+									qName = q.display_name;
+								}
+							} else {
+								log.warning("Sub form " + f.id + " of survey " + s.surveyData.id
+										+ " has parent question index " + parentQuestion
+										+ " but its parent form has " + form.questions.size()
+										+ " questions, keying the repeat on the form name");
 							}
 							if(instance.repeats.get(qName) == null) {
 								instance.repeats.put(qName, new ArrayList<Instance> ());
 							}
-							
+
 							ArrayList<Instance> repeats = instance.repeats.get(qName);
 							repeats.addAll(sm.getInstances(
 									sd,
 									cResults,
 									s,
-									s.getSubFormQId(form, q.id),
+									f,
 									prikey,
 									null,
 									null,

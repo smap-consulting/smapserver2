@@ -97,6 +97,10 @@ import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.properties.Leading;
 import com.itextpdf.layout.properties.Property;
 import com.itextpdf.layout.properties.TextAlignment;
+import com.itextpdf.layout.layout.LayoutArea;
+import com.itextpdf.layout.layout.LayoutContext;
+import com.itextpdf.layout.layout.LayoutResult;
+import com.itextpdf.layout.renderer.IRenderer;
 
 public class PdfUtilities {
 
@@ -106,6 +110,8 @@ public class PdfUtilities {
 	private static LogManager lm = new LogManager();		// Application log
 
 	public static final float FONT_SIZE = 12;			// iText's default font size
+	public static final float URL_FONT_SIZE = 8;			// Preferred size for a media url in a template field
+	public static final float MIN_URL_FONT_SIZE = 5;		// Smaller than this is not worth reading
 	public static final float LINE_SPACING = 1.2f;		// Line spacing as a multiple of the font size
 
 	/*
@@ -256,7 +262,7 @@ public class PdfUtilities {
 	 *  shows the encoded data as the label of the field
 	 */
 	public static void addMediaTemplate(PdfAcroForm pdfForm, String fieldName, String basePath,
-			String value, String serverRoot, PdfDocument pdfDoc, PdfFont font) {
+			String value, String serverRoot, PdfDocument pdfDoc, PdfFont font, PdfFont symbols_font) {
 
 		PdfFormField field = pdfForm.getField(fieldName);
 		if(field == null || field.getWidgets().isEmpty()) {
@@ -297,13 +303,52 @@ public class PdfUtilities {
 					img.scaleToFit(rect.getWidth(), rect.getHeight());
 					canvas.add(img);
 				} else {
-					float fontSize = 8;
-					canvas.add(new Paragraph(mediaUrl)
-							.setFont(font)
-							.setFontSize(fontSize)
-							.setFixedLeading(fontSize * LINE_SPACING)
-							.setFontColor(ColorConstants.BLUE)
-							.setTextAlignment(TextAlignment.CENTER));
+					/*
+					 * Show the url if the whole of it can be made to fit, and a link marker if
+					 * it cannot.
+					 *
+					 * A template field for an attachment is often only wide enough for an icon,
+					 * because an icon is what was drawn here before these fields showed a url at
+					 * all.  Given a ninety character url and thirty points to put it in, the
+					 * layout writes the lines that fit and silently drops the rest, which came
+					 * out as "https:/" in the field and nothing anywhere else.
+					 *
+					 * Try smaller sizes before giving up: a field with room for the url over two
+					 * or three lines is common, and shrinking a point or two is far better than
+					 * replacing the url with an icon.  Ask the layout engine rather than working
+					 * it out from font metrics, since it is the same code that does the drawing
+					 * and it knows where a url can be broken.
+					 */
+					Paragraph urlPara = null;
+					for(float fontSize = URL_FONT_SIZE; fontSize >= MIN_URL_FONT_SIZE; fontSize -= 1) {
+						Paragraph candidate = new Paragraph(mediaUrl)
+								.setFont(font)
+								.setFontSize(fontSize)
+								.setFixedLeading(fontSize * LINE_SPACING)
+								.setFontColor(ColorConstants.BLUE)
+								.setTextAlignment(TextAlignment.CENTER);
+						if(fits(candidate, canvas, pdfDoc, page, rect)) {
+							urlPara = candidate;
+							break;
+						}
+					}
+
+					if(urlPara != null) {
+						canvas.add(urlPara);
+					} else {
+						/*
+						 * No size shows the whole url, so mark the field as a link instead of
+						 * writing part of one.  The whole rectangle is a link annotation below,
+						 * so the marker only has to say that there is something here.
+						 */
+						float iconSize = Math.min(12, rect.getHeight());
+						canvas.add(new Paragraph("\uf08e")
+								.setFont(symbols_font)
+								.setFontSize(iconSize)
+								.setFixedLeading(iconSize)
+								.setFontColor(ColorConstants.BLUE)
+								.setTextAlignment(TextAlignment.CENTER));
+					}
 				}
 			} catch (Exception e) {
 				log.fine("Error: Failed to add media " + value + " to " + fieldName + ": " + e.getMessage());
@@ -331,6 +376,24 @@ public class PdfUtilities {
 			} catch (Exception e) {
 				log.fine("Error: Failed to add media link for " + fieldName + ": " + e.getMessage());
 			}
+		}
+	}
+
+	/*
+	 * True if every line of the paragraph fits the rectangle.  Anything less than FULL means
+	 * the layout would silently drop the rest, which is how a url became "https:/".
+	 */
+	private static boolean fits(Paragraph para, Canvas canvas, PdfDocument pdfDoc, PdfPage page,
+			Rectangle rect) {
+		try {
+			IRenderer renderer = para.createRendererSubTree().setParent(canvas.getRenderer());
+			LayoutResult result = renderer.layout(
+					new LayoutContext(new LayoutArea(pdfDoc.getPageNumber(page), rect)));
+			return result.getStatus() == LayoutResult.FULL;
+		} catch (Exception e) {
+			// Could not tell, so assume not and show the marker rather than part of a url
+			log.fine("Could not measure media url for a template field: " + e.getMessage());
+			return false;
 		}
 	}
 

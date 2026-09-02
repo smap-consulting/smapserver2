@@ -281,20 +281,10 @@ public class SubRelationalDB extends Subscriber {
 					subMsg.extraFilePaths = new ArrayList<>();
 					subMsg.extraFileNames = new ArrayList<>();
 					subMsg.extraAttachmentUrls = new ArrayList<>();
-					log.info("Processing " + wn.extraFileNames.size() + " notification attachment(s). basePath=" + gBasePath + " sIdent=" + survey.surveyData.ident);
-					// Log directory contents once for diagnostics
+					log.fine("Processing " + wn.extraFileNames.size() + " notification attachment(s). basePath=" + gBasePath + " sIdent=" + survey.surveyData.ident);
 					File xmlDir = xmlFile.getParentFile();
-					String[] dirFiles = xmlDir.list();
-					if (dirFiles != null) {
-						StringBuilder dirLog = new StringBuilder("Dir contents of " + xmlDir.getAbsolutePath() + ": ");
-						for (String df : dirFiles) dirLog.append("[").append(df).append("]");
-						log.info(dirLog.toString());
-					}
+					String[] dirFiles = xmlDir.list();		// Also used to match a name below
 					for (String fn : wn.extraFileNames) {
-						// Log hex bytes to diagnose encoding issues
-						StringBuilder hex = new StringBuilder("fn hex: ");
-						for (char c : fn.toCharArray()) hex.append(String.format("%04X ", (int) c));
-						log.info("Notification attachment fn=" + fn + " " + hex.toString().trim());
 						File extraFile = new File(xmlFile.getParent(), fn);
 						// If not found, try to match by normalizing Unicode spaces (e.g. U+202F vs U+0020)
 						if (!extraFile.exists() && dirFiles != null) {
@@ -303,21 +293,22 @@ public class SubRelationalDB extends Subscriber {
 								String normDf = df.replaceAll("[\\p{Zs}\\u00A0\\u202F\\u00E2\\u0080\\u00AF]", " ").trim();
 								if (normDf.equals(normFn)) {
 									extraFile = new File(xmlDir, df);
-									log.info("Matched by normalised name: " + df);
+									// Rare, and says the submission and the disk disagree on the name
+									log.info("Notification attachment matched by normalised name: " + df);
 									break;
 								}
 							}
 						}
-						log.info("Notification attachment: " + fn + " exists=" + extraFile.exists() + " path=" + extraFile.getAbsolutePath());
+						log.fine("Notification attachment: " + fn + " exists=" + extraFile.exists() + " path=" + extraFile.getAbsolutePath());
 						if (extraFile.exists()) {
 							try {
 								String fragment = GeneralUtilityMethods.createAttachments(
 										log, sd, fn, extraFile, gBasePath,
 										survey.surveyData.ident, null, null, survey.surveyData.o_id);
-								log.info("createAttachments returned: " + fragment);
+								log.fine("createAttachments returned: " + fragment);
 								if (fragment != null) {
 									String absPath = gBasePath + "/" + fragment;
-									log.info("Attachment processed: absPath=" + absPath + " exists=" + new java.io.File(absPath).exists());
+									log.fine("Attachment processed: absPath=" + absPath + " exists=" + new java.io.File(absPath).exists());
 									subMsg.extraFilePaths.add(absPath);
 									subMsg.extraFileNames.add(fn.startsWith("notif_") ? fn.substring(6) : fn);
 									subMsg.extraAttachmentUrls.add(fragment);
@@ -328,10 +319,18 @@ public class SubRelationalDB extends Subscriber {
 								subMsg.extraFileNames.add(fn.startsWith("notif_") ? fn.substring(6) : fn);
 							}
 						} else {
-							log.warning("Extra notification file not found: " + extraFile.getAbsolutePath());
+							/*
+							 * The name in the submission matches nothing on disk, even after
+							 * normalising the unicode spaces.  This is the one place the
+							 * directory listing and the character codes of the name earn their
+							 * keep, so report them here rather than for every attachment.
+							 */
+							log.warning("Extra notification file not found: " + extraFile.getAbsolutePath()
+									+ " name=" + describeChars(fn)
+									+ " dir=" + (dirFiles == null ? "unreadable" : java.util.Arrays.toString(dirFiles)));
 						}
 					}
-					log.info("Notification attachments result: extraFilePaths=" + subMsg.extraFilePaths + " extraAttachmentUrls=" + subMsg.extraAttachmentUrls);
+					log.fine("Notification attachments result: extraFilePaths=" + subMsg.extraFilePaths + " extraAttachmentUrls=" + subMsg.extraAttachmentUrls);
 				}
 				mm.createMessage(sd, survey.surveyData.o_id, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 				log.info("Queued webform notification: target=" + wn.target);
@@ -2335,6 +2334,19 @@ public class SubRelationalDB extends Subscriber {
 		return duplicateKeys;
 	}
 
+
+	/*
+	 * A file name with the character codes spelled out.  A name that will not match anything
+	 * on disk usually differs by an invisible character, a narrow no break space for a plain
+	 * one say, which the name alone does not show.
+	 */
+	private String describeChars(String name) {
+		StringBuilder sb = new StringBuilder(name).append(" [");
+		for(char c : name.toCharArray()) {
+			sb.append(String.format("%04X ", (int) c));
+		}
+		return sb.toString().trim() + "]";
+	}
 
 	private ArrayList<String> getColNames(List<IE> cols) {
 		ArrayList<String> colNames = new ArrayList<String> ();

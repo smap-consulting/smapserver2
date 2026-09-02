@@ -109,9 +109,20 @@ public class Survey {
 	// Get a name for the survey instance
 	public String getInstanceName() {
 		String instanceName = "survey";
-		
+
+		/*
+		 * No data was loaded for this instance, so keep the default name.  getInstanceMeta
+		 * below already guards this; here it was missing, and a record that came back with no
+		 * results failed the whole notification with an IndexOutOfBoundsException after the
+		 * pdf had been built.
+		 */
+		if(surveyData.instance == null || surveyData.instance.results == null
+				|| surveyData.instance.results.size() == 0) {
+			return instanceName;
+		}
+
 		ArrayList<Result> results = surveyData.instance.results.get(0);
-		
+
 		for(Result r : results) {
 			if(r.name.toLowerCase().equals("instancename")) {	
 				if(r.value != null && r.value.trim().length() != 0) {

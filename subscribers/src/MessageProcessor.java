@@ -3,6 +3,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -14,6 +15,7 @@ import org.smap.sdal.managers.ConversationManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.model.DatabaseConnections;
+import org.smap.sdal.model.SmtpEmailServer;
 import com.vonage.client.VonageClient;
 
 /*****************************************************************************
@@ -74,8 +76,14 @@ public class MessageProcessor {
 			String sqlRegisterWorker = "insert into subscriber_worker "
 					+ "(hostname, pid, subscriber_type, queue_name, started_time, heartbeat) "
 					+ "values(?, ?, ?, ?, now(), now())";
+			/*
+			 * The heartbeat also publishes whether email is paused, so the monitor can say
+			 * why a message queue that is filling up is not being drained
+			 */
 			String sqlHeartbeat = "update subscriber_worker "
-					+ "set heartbeat = now() "
+					+ "set heartbeat = now(), "
+					+ "email_paused_until = ?, "
+					+ "email_paused_reason = ? "
 					+ "where hostname = ? and pid = ? and queue_name = ?";
 
 			MessagingManagerApply mma = new MessagingManagerApply();
@@ -86,7 +94,7 @@ public class MessageProcessor {
 			boolean loop = true;
 			while(loop) {
 
-				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/smap/settings/subscriber");
+				String subscriberControl = GeneralUtilityMethods.getSettingFromFile(basePath + "/settings/subscriber");
 				if(subscriberControl != null && subscriberControl.equals("stop")) {
 					GeneralUtilityMethods.log(log, "---------- Message Processor Stopped", queueName, null);
 					loop = false;
@@ -120,9 +128,17 @@ public class MessageProcessor {
 						}
 
 						// Heartbeat
-						pstmtHeartbeat.setString(1, hostname);
-						pstmtHeartbeat.setLong(2, pid);
-						pstmtHeartbeat.setString(3, queueName);
+						long pausedUntil = SmtpEmailServer.getSendingPausedUntil();
+						if(pausedUntil > 0) {
+							pstmtHeartbeat.setTimestamp(1, new Timestamp(pausedUntil));
+							pstmtHeartbeat.setString(2, SmtpEmailServer.getSendingPausedReason());
+						} else {
+							pstmtHeartbeat.setTimestamp(1, null);
+							pstmtHeartbeat.setString(2, null);
+						}
+						pstmtHeartbeat.setString(3, hostname);
+						pstmtHeartbeat.setLong(4, pid);
+						pstmtHeartbeat.setString(5, queueName);
 						pstmtHeartbeat.executeUpdate();
 
 						/*
@@ -160,6 +176,13 @@ public class MessageProcessor {
 						registered = false;
 					}
 					
+					/*
+					 * Close relay connections nothing has used for a while.  An organisation
+					 * that sends one notification and then goes quiet would otherwise hold its
+					 * connection open all day.
+					 */
+					SmtpEmailServer.closeIdleConnections();
+
 					// Sleep and then go again
 					try {
 						Thread.sleep(delaySecs * 1000);
@@ -172,6 +195,7 @@ public class MessageProcessor {
 
 			// Cleanup resources when loop exits
 			vonageClient = null;  // Release for GC
+			SmtpEmailServer.closeAllConnections();
 			try {if (pstmtHeartbeat != null) { pstmtHeartbeat.close();}} catch (SQLException e) {}
 			try {if (dbc.sd != null) { dbc.sd.close();}} catch (SQLException e) {}
 			try {if (dbc.results != null) { dbc.results.close();}} catch (SQLException e) {}

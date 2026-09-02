@@ -22,6 +22,14 @@ abstract public class EmailServer {
 		this.localisation = localisation;
 	}
 	
+	/*
+	 * True when this server's account is being rate limited by the relay and there is no
+	 * point building a message for it yet.  Only smtp tracks this.
+	 */
+	public boolean isSendingPaused() {
+		return false;
+	}
+
 	// Returns SES MessageId for AWS sends; null for SMTP
 	public abstract String send(String email, String ccType, String subject,
 			String emailId,

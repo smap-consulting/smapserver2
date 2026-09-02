@@ -93,7 +93,7 @@ public class EmailResponseProcessor {
 		public void run() {
 			boolean loop = true;
 			while(loop) {
-				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/smap/settings/subscriber");
+				String subscriberControl = GeneralUtilityMethods.getSettingFromFile(basePath + "/settings/subscriber");
 				if(subscriberControl != null && subscriberControl.equals("stop")) {
 					GeneralUtilityMethods.log(log, "---------- Email Response Processor Stopped", "email-response", null);
 					loop = false;

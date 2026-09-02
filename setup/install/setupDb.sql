@@ -2171,7 +2171,9 @@ CREATE UNLOGGED TABLE IF NOT EXISTS subscriber_worker (
 	subscriber_type text,
 	queue_name text,
 	started_time timestamptz DEFAULT now(),
-	heartbeat timestamptz DEFAULT now()
+	heartbeat timestamptz DEFAULT now(),
+	email_paused_until timestamptz,		-- Set while the relay is rate limiting us
+	email_paused_reason text
 );
 ALTER TABLE subscriber_worker OWNER TO ws;
 
@@ -2194,6 +2196,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS message_queue (
     data text
 );
 ALTER TABLE message_queue OWNER TO ws;
+CREATE INDEX message_queue_time_inserted_idx ON message_queue(time_inserted);
 
 DROP TABLE IF EXISTS key_queue;
 CREATE UNLOGGED TABLE IF NOT EXISTS key_queue
