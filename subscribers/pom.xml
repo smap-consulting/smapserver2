@@ -49,6 +49,8 @@
 							                <exclude>software.amazon.awssdk:*</exclude>
 							                <exclude>software.amazon.eventstream:*</exclude>
 							                <exclude>com.itextpdf:*</exclude>
+							                <!-- xmlworker has its own group, com.itextpdf:* does not match it -->
+							                <exclude>com.itextpdf.tool:*</exclude>
 							                <exclude>io.netty:*</exclude>
 							                <exclude>org.apache.poi:*</exclude>
 							                <exclude>org.apache.xmlbeans:*</exclude>
