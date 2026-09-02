@@ -406,7 +406,11 @@ public class EmailManager {
 					 * Not this message's fault and not something retrying the same second
 					 * will fix, so let it out rather than recording a failure.  The caller
 					 * puts the message back on the queue for when the relay accepts mail again.
+					 *
+					 * Take the monitor's description of the email with it.  It was built above,
+					 * before the send, and it is the only place that knows who this one was for.
 					 */
+					e.setNotifyDetails(resp.notify_details);
 					throw e;
 				} catch(Exception e) {
 					resp.status = "error";

@@ -610,3 +610,14 @@ create index if not exists message_queue_time_inserted_idx on message_queue(time
 -- drained rather than leaving it looking like a broken subscriber.
 alter table subscriber_worker add column if not exists email_paused_until timestamptz;
 alter table subscriber_worker add column if not exists email_paused_reason text;
+
+-- A message that cannot be sent for a reason that may pass is put back on the queue, which
+-- left one whose reason never passes going round for ever: never reported, and holding a
+-- place in a queue the monitor shows as backed up without saying why.  Count the turns so
+-- it can be stopped and recorded as a failure.
+alter table message add column if not exists attempts integer default 0;
+alter table message add column if not exists status_details text;
+
+-- The monitor's retry deletes notification log rows by message id, and a notification that
+-- is waiting on a relay is now found the same way.  Neither had an index to use.
+create index if not exists notification_log_message_idx on notification_log(message_id);

@@ -88,6 +88,15 @@ public class NotificationManager {
 	public static String TOPIC_USER = "user";					// Data: String: user ident
 	public static String TOPIC_REMINDER = "reminder";			// Data: SubmissionMessage
 	public static String TOPIC_MAILOUT = "mailout";				// Data: MailoutMessage
+
+	/*
+	 * Notification log statuses.  Success and error are outcomes; waiting is a notification
+	 * that has not been sent yet and has not failed either, which is what a message that is
+	 * being deferred by a relay looks like from the monitor.
+	 */
+	public static String STATUS_SUCCESS = "success";
+	public static String STATUS_ERROR = "error";
+	public static String STATUS_WAITING = "waiting";
 	
 	private static Logger log =
 			Logger.getLogger(NotificationManager.class.getName());
@@ -2399,6 +2408,13 @@ public class NotificationManager {
 		}
 
 		try {
+			/*
+			 * The outcome replaces whatever the message was last saying about itself.  A
+			 * message that was waiting on a relay has a row on the monitor already, and it
+			 * would otherwise stay there beside this one, still saying it is waiting.
+			 */
+			clearWaitingLog(sd, messageId);
+
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
 			pstmt.setInt(2, pId);
@@ -2410,6 +2426,86 @@ public class NotificationManager {
 			pstmt.setString(8, target);
 			pstmt.setString(9, awsSesMessageId);
 
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+	}
+
+	/*
+	 * Show a notification that cannot be sent yet on the monitor, so a message being deferred
+	 * by a relay is visible while it waits instead of appearing nowhere until it either goes
+	 * or is given up on.
+	 *
+	 * One row per message, refreshed on each attempt with the latest reason, then replaced by
+	 * the outcome when there is one.
+	 */
+	public void writeWaitingToLog(Connection sd, int oId, int pId, int surveyId,
+			String notify_details, String reason, int messageId, String target) throws SQLException {
+
+		String sqlUpdate = "update notification_log "
+				+ "set status_details = ?, "
+				+ "notify_details = coalesce(?, notify_details), "
+				+ "event_time = now() "
+				+ "where message_id = ? "
+				+ "and status = '" + STATUS_WAITING + "'";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sqlUpdate);
+			pstmt.setString(1, reason);
+			pstmt.setString(2, notify_details);
+			pstmt.setInt(3, messageId);
+			if(pstmt.executeUpdate() == 0) {
+				writeToLog(sd, oId, pId, surveyId, notify_details, STATUS_WAITING, reason,
+						messageId, target);
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+	}
+
+	/*
+	 * The message is not waiting any more.  Give the row the outcome rather than deleting it
+	 * and writing another, so that what the monitor showed while it waited keeps its place.
+	 */
+	public void failWaitingLog(Connection sd, int oId, int pId, int surveyId,
+			String notify_details, String reason, int messageId, String target) throws SQLException {
+
+		String sql = "update notification_log "
+				+ "set status = '" + STATUS_ERROR + "', "
+				+ "status_details = ?, "
+				+ "notify_details = coalesce(notify_details, ?), "
+				+ "event_time = now() "
+				+ "where message_id = ? "
+				+ "and status = '" + STATUS_WAITING + "'";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, reason);
+			pstmt.setString(2, notify_details);
+			pstmt.setInt(3, messageId);
+			if(pstmt.executeUpdate() == 0) {
+				writeToLog(sd, oId, pId, surveyId, notify_details, STATUS_ERROR, reason,
+						messageId, target);
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+	}
+
+	private void clearWaitingLog(Connection sd, int messageId) throws SQLException {
+		if(messageId <= 0) {
+			return;
+		}
+		String sql = "delete from notification_log "
+				+ "where message_id = ? "
+				+ "and status = '" + STATUS_WAITING + "'";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, messageId);
 			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}

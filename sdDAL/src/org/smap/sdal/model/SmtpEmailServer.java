@@ -132,6 +132,16 @@ public class SmtpEmailServer extends EmailServer {
 		return isAccountPaused(relayKey());
 	}
 
+	/*
+	 * The reason this server's relay gave, as opposed to the static reason below, which is
+	 * whichever account has furthest to wait
+	 */
+	@Override
+	public String getPauseReason() {
+		Pause p = pauses.get(relayKey());
+		return (p != null && System.currentTimeMillis() < p.until) ? p.reason : null;
+	}
+
 	private static boolean isAccountPaused(String key) {
 		Pause p = pauses.get(key);
 		return p != null && System.currentTimeMillis() < p.until;

@@ -36,6 +36,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Organisation;
 
@@ -91,7 +92,11 @@ public class EventList extends Application {
 		String sqlNot = "delete from notification_log where message_id = ?";
 		PreparedStatement pstmtNot = null;
 		
-		String sqlMsg = "update message set processed_time = null where id = ?";
+		/*
+		 * Clear the deferral count as well.  A message that was abandoned has reached the
+		 * limit, so without this a retry would be given one turn and then abandoned again.
+		 */
+		String sqlMsg = "update message set processed_time = null, attempts = 0 where id = ?";
 		PreparedStatement pstmtMsg = null;
 		
 		try {
@@ -594,7 +599,14 @@ public class EventList extends Application {
 				 String status = resultSet.getString("status");
 				 if(
 						 (status != null && !hideSuccess && status.toLowerCase().equals("success")) ||
-						 (status != null && !hideErrors && status.toLowerCase().equals("error")) 
+						 (status != null && !hideErrors && status.toLowerCase().equals("error")) ||
+						 /*
+						  * A notification that has not been sent yet and has not failed either.
+						  * Neither of the hide options is about it, so it is always shown: there
+						  * are only ever a handful, and they are the ones somebody is looking for
+						  * when a queue is not draining.
+						  */
+						 (status != null && status.toLowerCase().equals(NotificationManager.STATUS_WAITING))
 						
 						 ) {
 					

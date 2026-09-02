@@ -64,6 +64,17 @@ public class MessagingManagerApply {
 
 	private static Logger log = Logger.getLogger(MessagingManagerApply.class.getName());
 
+	/*
+	 * How many times a message may be deferred before it is called a failure.
+	 *
+	 * A deferral puts the message back on the queue untouched, which is right for a relay
+	 * that is briefly refusing mail and wrong for one that will never take it: the message
+	 * goes round for ever, is never reported, and holds a place in a queue that the monitor
+	 * shows as backed up without saying why.  Relay pauses are an hour, so two dozen turns
+	 * is about a day of trying before we stop and say so.
+	 */
+	private static final int MAX_DEFERRALS = 24;
+
 	LogManager lm = new LogManager(); // Application log
 	
 	
@@ -84,6 +95,8 @@ public class MessagingManagerApply {
 		PreparedStatement pstmtGetMessages = null;
 		PreparedStatement pstmtConfirm = null;
 		PreparedStatement pstmtNotProcessed = null;
+		PreparedStatement pstmtDefer = null;
+		PreparedStatement pstmtAbandon = null;
 
 		String sqlConfirm = "update message "
 				+ "set processed_time = now(), "
@@ -94,6 +107,24 @@ public class MessagingManagerApply {
 
 		String sqlNotProcessed = "update message "
 				+ "set queued = false "
+				+ "where id = ? ";
+
+		/*
+		 * A deferral caused by a problem rather than by a send that is not due yet.  Counted,
+		 * so that one which never comes good can be stopped.
+		 */
+		String sqlDefer = "update message "
+				+ "set queued = false, "
+				+ "attempts = attempts + 1 "
+				+ "where id = ? "
+				+ "returning attempts";
+
+		String sqlAbandon = "update message "
+				+ "set processed_time = now(), "
+				+ "status = 'error', "
+				+ "status_details = ?, "
+				+ "worker_host = ?, "
+				+ "queued = false "
 				+ "where id = ? ";
 
 		// dequeue
@@ -111,6 +142,8 @@ public class MessagingManagerApply {
 			pstmtGetMessages = sd.prepareStatement(sql);
 			pstmtConfirm = sd.prepareStatement(sqlConfirm);
 			pstmtNotProcessed = sd.prepareStatement(sqlNotProcessed);
+			pstmtDefer = sd.prepareStatement(sqlDefer);
+			pstmtAbandon = sd.prepareStatement(sqlAbandon);
 			
 			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
@@ -143,10 +176,27 @@ public class MessagingManagerApply {
 					boolean processed = true;
 					ResourceBundle localisation = null;
 					int id = 0;
+					int o_id = 0;
+					/*
+					 * Set when the message is going back on the queue because something is
+					 * wrong, as against going back because its send time has not arrived.  Only
+					 * the first sort is counted, otherwise an email scheduled for next week
+					 * would be abandoned before it was ever due.
+					 */
+					String deferralReason = null;
+					/*
+					 * What is waiting, in the words the monitor uses, and where it belongs, so
+					 * the notifications tab can show it while it waits and the survey and
+					 * project filters there find it
+					 */
+					String deferralDetails = null;
+					String deferralTarget = null;
+					int deferralSurveyId = 0;
+					int deferralProjectId = 0;
 					
 					try {
 						id = rs.getInt("m_id");
-						int o_id = rs.getInt("o_id");
+						o_id = rs.getInt("o_id");
 						String topic = rs.getString("topic");
 						String data = rs.getString("data");
 						
@@ -197,6 +247,12 @@ public class MessagingManagerApply {
 										localisation, null, msg.user, organisation.id);
 								if(orgServer != null && orgServer.isSendingPaused()) {
 									processed = false;
+									String pauseReason = orgServer.getPauseReason();
+									// Never null: a null reason would leave the turn uncounted
+									deferralReason = pauseReason == null ? "sending paused" : pauseReason;
+									deferralTarget = msg.target;
+									deferralProjectId = msg.pId;
+									deferralSurveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
 									continue;
 								}
 							}
@@ -228,6 +284,11 @@ public class MessagingManagerApply {
 								 * message may go through a different one.
 								 */
 								processed = false;
+								deferralReason = e.getMessage() == null ? "deferred" : e.getMessage();
+								deferralDetails = e.getNotifyDetails();
+								deferralTarget = msg.target;
+								deferralProjectId = msg.pId;
+								deferralSurveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
 								continue;
 							} catch (Exception e) {
 								log.log(Level.SEVERE, e.getMessage(), e);
@@ -415,6 +476,8 @@ public class MessagingManagerApply {
 						 * message as processed and successful, and then end the batch.
 						 */
 						processed = false;
+						deferralReason = e.getMessage() == null ? "deferred" : e.getMessage();
+						deferralDetails = e.getNotifyDetails();
 						continue;
 					} finally {
 						// Set the final status
@@ -427,6 +490,49 @@ public class MessagingManagerApply {
 							pstmtConfirm.setInt(3, id);
 							GeneralUtilityMethods.log(log, pstmtConfirm.toString(), queueName, String.valueOf(id));
 							pstmtConfirm.executeUpdate();
+						} else if(deferralReason != null) {
+							/*
+							 * Put it back, but count the turn.  A relay that is briefly refusing
+							 * mail comes good long before the limit; one that never will is
+							 * reported instead of going round for ever.
+							 */
+							pstmtDefer.setInt(1, id);
+							int attempts = 0;
+							ResultSet rsDefer = pstmtDefer.executeQuery();
+							if(rsDefer.next()) {
+								attempts = rsDefer.getInt(1);
+							}
+							rsDefer.close();
+
+							NotificationManager nm = new NotificationManager(localisation);
+							if(attempts >= MAX_DEFERRALS) {
+								/*
+								 * Record the reason the send failed, not the fact that we gave
+								 * up counting.  Whoever is looking at the notifications tab
+								 * needs to know what the relay said, which is the same thing
+								 * they would have been told had it failed the first time.
+								 */
+								pstmtAbandon.setString(1, deferralReason);
+								pstmtAbandon.setString(2, workerHost);
+								pstmtAbandon.setInt(3, id);
+								pstmtAbandon.executeUpdate();
+
+								nm.failWaitingLog(sd, o_id, deferralProjectId, deferralSurveyId,
+										deferralDetails, deferralReason, id, deferralTarget);
+
+								// How long it went on for belongs in the log, not in front of a user
+								log.log(Level.SEVERE, "Message " + id + " abandoned after "
+										+ attempts + " attempts, last reason: " + deferralReason);
+							} else {
+								/*
+								 * Say on the monitor that it is waiting.  Until this the message
+								 * appeared nowhere at all between being raised and being sent,
+								 * so a notification held up by a relay looked like one that had
+								 * never been asked for.
+								 */
+								nm.writeWaitingToLog(sd, o_id, deferralProjectId, deferralSurveyId,
+										deferralDetails, deferralReason, id, deferralTarget);
+							}
 						} else {
 							pstmtNotProcessed.setInt(1, id);
 							pstmtNotProcessed.executeUpdate();   // Requeue
@@ -445,6 +551,8 @@ public class MessagingManagerApply {
 			try {if (pstmtGetMessages != null) {	pstmtGetMessages.close();}} catch (Exception e) {	}
 			try {if (pstmtConfirm != null) {	pstmtConfirm.close();}} catch (Exception e) {}
 			try {if (pstmtNotProcessed != null) {	pstmtNotProcessed.close();}} catch (Exception e) {}
+			try {if (pstmtDefer != null) {	pstmtDefer.close();}} catch (Exception e) {}
+			try {if (pstmtAbandon != null) {	pstmtAbandon.close();}} catch (Exception e) {}
 		}
 
 	}

@@ -1039,6 +1039,7 @@ CREATE TABLE public.notification_log (
 	aws_message_id text			-- Message ID from AWS email response queue
 	);
 ALTER TABLE notification_log OWNER TO ws;
+CREATE index notification_log_message_idx ON notification_log(message_id);
 
 -- Records that have triggered a notification - use to prevent a record triggering a notification twice
 DROP TABLE IF EXISTS notified_record;
@@ -1477,7 +1478,9 @@ create TABLE message (
 	status text,
 	queue_name text,
 	queued boolean default false,
-	worker_host text
+	worker_host text,
+	attempts integer default 0,		-- Times the message was put back on the queue after a problem
+	status_details text				-- Why, when the status is an error
 );
 CREATE index msg_outbound ON message(outbound);
 CREATE index msg_processing_time ON message(processed_time);
