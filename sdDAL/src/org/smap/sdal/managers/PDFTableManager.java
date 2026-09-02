@@ -14,6 +14,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfPageSizer;
+import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.Utilities.TableReportUtilities;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.KeyValue;
@@ -375,7 +376,7 @@ public class PDFTableManager {
 		// Set the content of the value cell
 		try {
 			if(type != null && type.equals("image")) {
-				Image img = Image.getInstance(kv.v);
+				Image img = PdfUtilities.createImage(kv.v);
 				valueCell.addElement(img);
 			} else if(barcode && kv.v.trim().length() > 0) {
 				BarcodeQRCode qrcode = new BarcodeQRCode(kv.v.trim(), 1, 1, null);
@@ -531,7 +532,7 @@ public class PDFTableManager {
 			try {
 				fileName = basePath + File.separator + user.signature;
 
-					Image img = Image.getInstance(fileName);
+					Image img = PdfUtilities.createImage(fileName);
 					img.scaleToFit(200, 50);
 					img.setIndentationLeft(indent);
 					

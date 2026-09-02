@@ -844,7 +844,7 @@ public class PDFSurveyManager {
 					ad.setProportionalIcon(true);
 					String filename = basePath + "/media/users/" + user.id + "/sig/"  + user.signature;
 					try {
-						ad.setImage(Image.getInstance(filename));
+						ad.setImage(PdfUtilities.createImage(filename));
 						pdfForm.replacePushbuttonField("user_signature", ad.getField());
 					} catch (Exception e) {
 						// Worth seeing: the user has a signature and the template has a place for it
@@ -1789,10 +1789,10 @@ public class PDFSurveyManager {
 						File f = new File(basePath + "/" + di.value);
 						if(f.exists()) {
 							angle = getImageRotation(new FileInputStream(f));
-							img = Image.getInstance(f.getAbsolutePath());
+							img = PdfUtilities.createImage(f);
 						} else {
 							angle = getImageRotation(new URL(attachmentPrefix + di.value).openStream());
-							img = Image.getInstance(attachmentPrefix + di.value);
+							img = PdfUtilities.createImage(attachmentPrefix + di.value);
 						}
 						img.setRotationDegrees(angle);
 						valueCell.addElement(img);	
@@ -2223,7 +2223,7 @@ public class PDFSurveyManager {
 						File imageFile = new File(filePath);
 						Image img = null;
 						if(imageFile.exists()) {
-							img = Image.getInstance(filePath);
+							img = PdfUtilities.createImage(filePath);
 						} 
 						if(img != null) {
 							cell.addElement(img);
@@ -2274,7 +2274,7 @@ public class PDFSurveyManager {
 
 				fileName = basePath + "/media/users/" + user.id + "/sig/"  + user.signature;
 
-				Image img = Image.getInstance(fileName);
+				Image img = PdfUtilities.createImage(fileName);
 				img.scaleToFit(200, 50);
 				img.setIndentationLeft(indent);
 

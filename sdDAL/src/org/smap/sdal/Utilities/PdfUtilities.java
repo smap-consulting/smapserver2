@@ -4,14 +4,17 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -32,6 +35,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+
+import com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi;
 
 import org.apache.batik.anim.dom.SVGDOMImplementation;
 import org.apache.batik.transcoder.TranscoderException;
@@ -89,7 +95,67 @@ public class PdfUtilities {
 			 Logger.getLogger(PDFTableManager.class.getName());
 	
 	private static LogManager lm = new LogManager();		// Application log
-	
+
+	/*
+	 * Create an iText image from a file, a path or a url
+	 * Formats that iText cannot read, such as webp, are converted to png first
+	 */
+	public static Image createImage(File f) throws IOException, BadElementException {
+		try {
+			return Image.getInstance(f.getAbsolutePath());
+		} catch (IOException e) {
+			return convertToPng(Files.readAllBytes(f.toPath()), f.getName());
+		}
+	}
+
+	public static Image createImage(String name) throws IOException, BadElementException {
+		try {
+			return Image.getInstance(name);
+		} catch (IOException e) {
+			File f = new File(name);
+			return convertToPng(f.exists() ? Files.readAllBytes(f.toPath()) : readBytes(new URL(name)), name);
+		}
+	}
+
+	private static byte[] readBytes(URL url) throws IOException {
+		try (InputStream is = url.openStream()) {
+			return is.readAllBytes();
+		}
+	}
+
+	private static Image convertToPng(byte[] bytes, String name) throws IOException, BadElementException {
+		BufferedImage bi = ImageIO.read(new ByteArrayInputStream(bytes));
+		if(bi == null && isWebp(bytes)) {
+			/*
+			 * ImageIO did not find the webp plugin.  This happens in a servlet container
+			 * where the plugin registry can be initialised before the webapp classloader
+			 * is scanned, so use the webp reader directly
+			 */
+			ImageReader reader = new WebPImageReaderSpi().createReaderInstance(null);
+			try {
+				reader.setInput(ImageIO.createImageInputStream(new ByteArrayInputStream(bytes)));
+				bi = reader.read(0, null);
+			} finally {
+				reader.dispose();
+			}
+		}
+		if(bi == null) {
+			throw new IOException("Unsupported image format: " + name);
+		}
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		ImageIO.write(bi, "png", os);
+		return Image.getInstance(os.toByteArray());
+	}
+
+	/*
+	 * webp files start with the RIFF container header followed by the WEBP fourcc
+	 */
+	private static boolean isWebp(byte[] b) {
+		return b.length > 12
+				&& b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F'
+				&& b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P';
+	}
+
 	public static void addImageTemplate(AcroFields pdfForm, String fieldName, String basePath, 
 			String value, String serverRoot, PdfStamper stamper, Font symbols_font,
 			boolean stretch) throws IOException, DocumentException {
@@ -101,10 +167,10 @@ public class PdfUtilities {
 			try {
 				File f = new File(basePath + "/" + value);
 				if(f.exists()) {
-					ad.setImage(Image.getInstance(basePath + "/" + value));
+					ad.setImage(createImage(basePath + "/" + value));
 				} else {
 					// must be on s3
-					ad.setImage(Image.getInstance(serverRoot + "/" + value));
+					ad.setImage(createImage(serverRoot + "/" + value));
 				}
 				pdfForm.replacePushbuttonField(fieldName, ad.getField());
 			} catch (Exception e) {

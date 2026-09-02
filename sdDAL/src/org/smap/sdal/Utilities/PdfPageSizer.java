@@ -162,7 +162,7 @@ public class PdfPageSizer extends PdfPageEventHelper {
 					}
 						
 					if(f.exists()) {
-						Image img = Image.getInstance(f.getAbsolutePath());
+						Image img = PdfUtilities.createImage(f);
 						img.scaleToFit(200, 50);
 						float w = img.getScaledWidth();
 						img.setAbsolutePosition(
