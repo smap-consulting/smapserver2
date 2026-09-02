@@ -1480,6 +1480,7 @@ create TABLE message (
 	queued boolean default false,
 	worker_host text,
 	attempts integer default 0,		-- Times the message was put back on the queue after a problem
+	first_deferred timestamptz,		-- When it was first put back, so giving up can be a matter of time
 	status_details text				-- Why, when the status is an error
 );
 CREATE index msg_outbound ON message(outbound);

@@ -65,15 +65,19 @@ public class MessagingManagerApply {
 	private static Logger log = Logger.getLogger(MessagingManagerApply.class.getName());
 
 	/*
-	 * How many times a message may be deferred before it is called a failure.
+	 * How long a message may go on being deferred before it is called a failure.
 	 *
 	 * A deferral puts the message back on the queue untouched, which is right for a relay
 	 * that is briefly refusing mail and wrong for one that will never take it: the message
 	 * goes round for ever, is never reported, and holds a place in a queue that the monitor
-	 * shows as backed up without saying why.  Relay pauses are an hour, so two dozen turns
-	 * is about a day of trying before we stop and say so.
+	 * shows as backed up without saying why.
+	 *
+	 * Measured in time rather than in turns.  Nothing waits for a relay's pause to expire
+	 * before trying again: the batch job puts a deferred message back on the queue within
+	 * seconds and the worker defers it again, so a count of turns is a count of how fast the
+	 * loop spins, which was minutes where a day was meant.
 	 */
-	private static final int MAX_DEFERRALS = 24;
+	private static final int DEFERRAL_LIMIT_HOURS = 24;
 
 	LogManager lm = new LogManager(); // Application log
 	
@@ -115,9 +119,11 @@ public class MessagingManagerApply {
 		 */
 		String sqlDefer = "update message "
 				+ "set queued = false, "
-				+ "attempts = attempts + 1 "
+				+ "attempts = attempts + 1, "
+				+ "first_deferred = coalesce(first_deferred, now()) "
 				+ "where id = ? "
-				+ "returning attempts";
+				+ "returning attempts, "
+				+ "first_deferred < now() - (? * interval '1 hour') as give_up";
 
 		String sqlAbandon = "update message "
 				+ "set processed_time = now(), "
@@ -497,15 +503,18 @@ public class MessagingManagerApply {
 							 * reported instead of going round for ever.
 							 */
 							pstmtDefer.setInt(1, id);
+							pstmtDefer.setInt(2, DEFERRAL_LIMIT_HOURS);
 							int attempts = 0;
+							boolean giveUp = false;
 							ResultSet rsDefer = pstmtDefer.executeQuery();
 							if(rsDefer.next()) {
-								attempts = rsDefer.getInt(1);
+								attempts = rsDefer.getInt("attempts");
+								giveUp = rsDefer.getBoolean("give_up");
 							}
 							rsDefer.close();
 
 							NotificationManager nm = new NotificationManager(localisation);
-							if(attempts >= MAX_DEFERRALS) {
+							if(giveUp) {
 								/*
 								 * Record the reason the send failed, not the fact that we gave
 								 * up counting.  Whoever is looking at the notifications tab
@@ -522,7 +531,8 @@ public class MessagingManagerApply {
 
 								// How long it went on for belongs in the log, not in front of a user
 								log.log(Level.SEVERE, "Message " + id + " abandoned after "
-										+ attempts + " attempts, last reason: " + deferralReason);
+										+ DEFERRAL_LIMIT_HOURS + " hours and " + attempts
+										+ " attempts, last reason: " + deferralReason);
 							} else {
 								/*
 								 * Say on the monitor that it is waiting.  Until this the message

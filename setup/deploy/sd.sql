@@ -621,3 +621,8 @@ alter table message add column if not exists status_details text;
 -- The monitor's retry deletes notification log rows by message id, and a notification that
 -- is waiting on a relay is now found the same way.  Neither had an index to use.
 create index if not exists notification_log_message_idx on notification_log(message_id);
+
+-- Counting deferrals turned out to count how fast the subscriber loop spins rather than how
+-- long a message had been trying: nothing waits for a relay's pause to expire before putting
+-- the message back on the queue.  Record when the deferring started and give up on time.
+alter table message add column if not exists first_deferred timestamptz;
