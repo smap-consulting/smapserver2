@@ -830,26 +830,58 @@ public class PDFSurveyManager {
 			if(us != null) {
 				pdfForm.setField("user_title", us.title);
 				pdfForm.setField("user_license", us.license);
+			}
 
+			/*
+			 * The signature is nothing to do with the user's settings, but it used to be added
+			 * inside the block above, so a user with no settings json got no signature on a
+			 * templated pdf while the same user's untemplated pdf had one.
+			 */
+			if(user.signature != null && user.signature.trim().length() > 0) {
 				PushbuttonField ad = pdfForm.getNewPushbuttonFromField("user_signature");
 				if(ad != null) {
 					ad.setLayout(PushbuttonField.LAYOUT_ICON_ONLY);
 					ad.setProportionalIcon(true);
-					String filename = null;
+					String filename = basePath + "/media/users/" + user.id + "/sig/"  + user.signature;
 					try {
-						filename = basePath + "/media/users/" + user.id + "/sig/"  + user.signature;
 						ad.setImage(Image.getInstance(filename));
+						pdfForm.replacePushbuttonField("user_signature", ad.getField());
 					} catch (Exception e) {
-						log.fine("Error: Failed to add signature " + filename + " to pdf");
+						// Worth seeing: the user has a signature and the template has a place for it
+						log.log(Level.WARNING, "Failed to add signature " + filename + " to pdf: "
+								+ e.getMessage(), e);
 					}
-					pdfForm.replacePushbuttonField("user_signature", ad.getField());
+				} else if(pdfForm.getFieldType("user_signature") == AcroFields.FIELD_TYPE_NONE) {
+					log.fine("No user_signature field in this template");
 				} else {
-					//log.fine("Picture field: user_signature not found");
+					/*
+					 * Only a push button can hold an image.  Say so rather than passing over it
+					 * in silence, which is how this went unnoticed.
+					 */
+					log.log(Level.WARNING, "Cannot add a signature to user_signature, it is a "
+							+ fieldTypeName(pdfForm.getFieldType("user_signature"))
+							+ " field rather than a push button");
 				}
 			}
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error filling template", e);
+		}
+	}
+
+	/*
+	 * Name an AcroFields field type so that a log message can say what was found
+	 */
+	private static String fieldTypeName(int fieldType) {
+		switch(fieldType) {
+		case AcroFields.FIELD_TYPE_PUSHBUTTON:	return "push button";
+		case AcroFields.FIELD_TYPE_CHECKBOX:	return "check box";
+		case AcroFields.FIELD_TYPE_RADIOBUTTON:	return "radio button";
+		case AcroFields.FIELD_TYPE_TEXT:		return "text";
+		case AcroFields.FIELD_TYPE_LIST:		return "list";
+		case AcroFields.FIELD_TYPE_COMBO:		return "combo";
+		case AcroFields.FIELD_TYPE_SIGNATURE:	return "signature";
+		default:								return "type " + fieldType;
 		}
 	}
 
