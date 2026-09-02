@@ -22,24 +22,13 @@ group {
 }
 
 .bengali { 
-	font-family: "noto sans bengali"; 
+	font-family: "noto sans bengali", "noto sans bengali bold"; 
 }
 
 .devanagari { 
-	font-family: "noto sans devanagari"; 
+	font-family: "noto sans devanagari light", "notosansdevanagari-bold"; 
 }
 
 * { 
-	font-family: "noto sans";
-}
-
-/*
- * iText 8's html2pdf applies a full HTML user agent stylesheet, which xmlworker did not.
- * Its heading and paragraph margins (h4 1.33em, h5 1.67em, p 1em, top and bottom) leave
- *  large gaps in a label, and they do not collapse because the converted elements are
- *  added to a table cell.  Reset them to a single small gap below each block
- */
-h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote {
-	margin-top: 0;
-	margin-bottom: 0.4em;
+	font-family: "noto sans", "noto sans bold";
 }
