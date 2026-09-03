@@ -32,6 +32,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.OrgCachedResource;
@@ -186,6 +187,13 @@ public class Dhis2Maps extends Application {
 			new Dhis2MapManager().deleteMapping(sd, oId, id,
 					GeneralUtilityMethods.getBasePath(request), localisation);
 			return Response.ok().build();
+		} catch (ApplicationException e) {
+			/*
+			 * Still in use is an answer, not a server fault.  Tell the caller plainly so the
+			 * page can show which surveys are holding it
+			 */
+			log.info("Refused delete: " + e.getMessage());
+			return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			return Response.serverError().entity(e.getMessage()).build();

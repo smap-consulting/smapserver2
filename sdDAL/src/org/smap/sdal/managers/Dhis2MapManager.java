@@ -30,6 +30,8 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.OrgCachedResource;
 import org.smap.sdal.model.Dhis2Map;
 import org.smap.sdal.model.Dhis2Server;
@@ -152,13 +154,28 @@ public class Dhis2MapManager {
 	 * still answers lookups with data that will never be refreshed again
 	 */
 	public void deleteMapping(Connection sd, int oId, int id, String basePath,
-			ResourceBundle localisation) throws SQLException {
+			ResourceBundle localisation) throws SQLException, ApplicationException {
 
 		Dhis2Map m = null;
 		try {
 			m = getMapping(sd, oId, id);
 		} catch(Exception e) {
 			log.log(Level.WARNING, "Reading DHIS2 mapping " + id + " before delete", e);
+		}
+
+		/*
+		 * Refuse while a form still references it.  The forms keep working afterwards, from a
+		 * file that nothing will refresh again, so the deletion looks harmless until someone
+		 * opens the question in the editor and is told its parameters are missing
+		 */
+		if(m != null && m.smap_name != null) {
+			String inUseName = OrgCachedResource.DHIS2_PREFIX + m.smap_name;
+			ArrayList<String> using = GeneralUtilityMethods.getSurveysUsingSharedResource(sd, oId, inUseName);
+			if(using.size() > 0) {
+				throw new ApplicationException(localisation.getString("sr_iu")
+						.replace("%s1", inUseName)
+						.replace("%s2", String.join(", ", using)));
+			}
 		}
 
 		String sql = "delete from dhis2_map where o_id = ? and id = ?";

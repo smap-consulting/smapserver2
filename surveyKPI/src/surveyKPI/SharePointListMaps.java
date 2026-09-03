@@ -33,6 +33,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -172,6 +173,13 @@ public class SharePointListMaps extends Application {
 			new SharePointListMapManager().deleteMapping(sd, id,
 					GeneralUtilityMethods.getBasePath(request), localisation);
 			return Response.ok().build();
+		} catch (ApplicationException e) {
+			/*
+			 * Still in use is an answer, not a server fault.  Tell the caller plainly so the
+			 * page can show which surveys are holding it
+			 */
+			log.info("Refused delete: " + e.getMessage());
+			return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			return Response.serverError().entity(e.getMessage()).build();

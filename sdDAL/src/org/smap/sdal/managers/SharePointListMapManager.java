@@ -19,6 +19,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  ******************************************************************************/
 
+import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.OrgCachedResource;
 import org.smap.sdal.model.CsvHeader;
 import org.smap.sdal.model.ServerData;
@@ -140,7 +142,7 @@ public class SharePointListMapManager {
 	 * will never be refreshed again
 	 */
 	public void deleteMapping(Connection sd, int id, String basePath, ResourceBundle localisation)
-			throws SQLException {
+			throws SQLException, ApplicationException {
 
 		int oId = 0;
 		String smapName = null;
@@ -156,6 +158,21 @@ public class SharePointListMapManager {
 			}
 		} finally {
 			if(pstmtGet != null) try { pstmtGet.close(); } catch(SQLException e) {}
+		}
+
+		/*
+		 * Refuse while a form still references it.  Same reasoning as the DHIS2 resource: the
+		 * forms keep working from a file nothing will refresh, so the damage only surfaces
+		 * later in the editor, as parameters that appear to have gone missing
+		 */
+		if(smapName != null) {
+			String inUseName = OrgCachedResource.SHAREPOINT_PREFIX + smapName;
+			ArrayList<String> using = GeneralUtilityMethods.getSurveysUsingSharedResource(sd, oId, inUseName);
+			if(using.size() > 0) {
+				throw new ApplicationException(localisation.getString("sr_iu")
+						.replace("%s1", inUseName)
+						.replace("%s2", String.join(", ", using)));
+			}
 		}
 
 		String sql = "delete from sharepoint_list_map where id = ?";

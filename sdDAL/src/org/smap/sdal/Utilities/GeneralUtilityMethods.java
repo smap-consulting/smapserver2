@@ -6018,6 +6018,68 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * The names of the surveys in an organisation that reference a shared resource
+	 *
+	 * Used before deleting an organisation level cached resource.  Deleting one that is still
+	 * referenced leaves forms that keep working from a file nothing will ever refresh, and an
+	 * online editor that cannot resolve the columns and reports the parameters as missing
+	 * instead of saying the resource has gone.
+	 *
+	 * The survey manifest is a JSON array of file names with a .csv suffix, maintained by
+	 * updateSurveyManifest() on every appearance and calculate change.  The LIKE only narrows
+	 * the rows to parse: a prefix match would report "ccc" as used by a form referencing
+	 * "ccc2", so membership is confirmed exactly against the parsed array.
+	 */
+	public static ArrayList<String> getSurveysUsingSharedResource(Connection sd, int oId, String fileName)
+			throws SQLException {
+
+		ArrayList<String> surveys = new ArrayList<String>();
+		if(fileName == null) {
+			return surveys;
+		}
+
+		String sql = "select s.display_name, s.manifest "
+				+ "from survey s, project p "
+				+ "where s.p_id = p.id "
+				+ "and p.o_id = ? "
+				+ "and not s.deleted "
+				+ "and s.manifest is not null "
+				+ "and s.manifest like ?";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, "%" + fileName + "%");
+			ResultSet rs = pstmt.executeQuery();
+
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			Type type = new TypeToken<ArrayList<String>>() {}.getType();
+
+			while(rs.next()) {
+				String name = rs.getString("display_name");
+				ArrayList<String> mArray = null;
+				try {
+					mArray = gson.fromJson(rs.getString("manifest"), type);
+				} catch(Exception e) {
+					// A manifest we cannot parse is not evidence that the resource is unused
+					log.log(Level.WARNING, "Parsing manifest of survey '" + name + "'", e);
+					surveys.add(name);
+					continue;
+				}
+				if(mArray != null
+						&& (mArray.contains(fileName + ".csv") || mArray.contains(fileName))) {
+					surveys.add(name);
+				}
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
+		}
+
+		return surveys;
+	}
+
+	/*
 	 * Update the form dependencies table from the survey manifest
 	 */
 	public static void updateFormDependencies(Connection sd, int sId) throws SQLException {
