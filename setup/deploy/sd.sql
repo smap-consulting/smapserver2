@@ -754,3 +754,24 @@ CREATE TABLE IF NOT EXISTS dhis2_export_retry (
 CREATE UNIQUE INDEX IF NOT EXISTS dhis2_export_retry_idx
 	ON dhis2_export_retry(e_id, period, org_unit);
 ALTER TABLE dhis2_export_retry OWNER TO ws;
+
+-- A message that cannot be sent for a reason that may pass is put back on the queue, which
+-- left one whose reason never passes going round for ever: never reported, and holding a
+-- place in a queue the monitor shows as backed up without saying why.  Count the turns so
+-- it can be stopped and recorded as a failure.
+alter table message add column if not exists attempts integer default 0;
+alter table message add column if not exists status_details text;
+
+-- The monitor's retry deletes notification log rows by message id, and a notification that
+-- is waiting on a relay is now found the same way.  Neither had an index to use.
+create index if not exists notification_log_message_idx on notification_log(message_id);
+
+-- Counting deferrals turned out to count how fast the subscriber loop spins rather than how
+-- long a message had been trying: nothing waits for a relay's pause to expire before putting
+-- the message back on the queue.  Record when the deferring started and give up on time.
+alter table message add column if not exists first_deferred timestamptz;
+
+-- A deferred message was put straight back on the queue and retried within seconds, which
+-- against a relay that is rate limiting us is both pointless and the reason the limit stays
+-- in force.  Hold it until the time whoever deferred it said to come back.
+alter table message add column if not exists retry_after timestamptz;

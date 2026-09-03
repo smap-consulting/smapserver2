@@ -11,6 +11,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -63,44 +65,37 @@ import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
 
 import com.github.binodnme.dateconverter.converter.DateConverter;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
+
 import com.github.binodnme.dateconverter.utils.DateBS;
-import com.itextpdf.io.image.ImageData;
-import com.itextpdf.io.image.ImageDataFactory;
-import com.itextpdf.kernel.colors.ColorConstants;
-import com.itextpdf.kernel.colors.DeviceRgb;
-import com.itextpdf.kernel.font.PdfFont;
-import com.itextpdf.kernel.geom.Rectangle;
-import com.itextpdf.kernel.pdf.PdfArray;
-import com.itextpdf.kernel.pdf.PdfDocument;
-import com.itextpdf.kernel.pdf.PdfName;
-import com.itextpdf.kernel.pdf.PdfPage;
-import com.itextpdf.kernel.pdf.PdfNumber;
-import com.itextpdf.kernel.pdf.PdfObject;
-import com.itextpdf.kernel.pdf.PdfReader;
-import com.itextpdf.kernel.pdf.PdfStream;
-import com.itextpdf.kernel.pdf.PdfWriter;
-import com.itextpdf.kernel.pdf.action.PdfAction;
-import com.itextpdf.kernel.pdf.annot.PdfLinkAnnotation;
-import com.itextpdf.kernel.pdf.annot.PdfWidgetAnnotation;
-import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
-import com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor;
-import com.itextpdf.kernel.pdf.canvas.parser.listener.LocationTextExtractionStrategy;
-import com.itextpdf.kernel.pdf.xobject.PdfFormXObject;
-import com.itextpdf.kernel.pdf.xobject.PdfImageXObject;
-import com.itextpdf.forms.PdfAcroForm;
-import com.itextpdf.forms.fields.PdfButtonFormField;
-import com.itextpdf.forms.fields.PdfFormField;
-import com.itextpdf.layout.Canvas;
-import com.itextpdf.layout.element.Image;
-import com.itextpdf.layout.element.Link;
-import com.itextpdf.layout.element.Paragraph;
-import com.itextpdf.layout.properties.Leading;
-import com.itextpdf.layout.properties.Property;
-import com.itextpdf.layout.properties.TextAlignment;
-import com.itextpdf.layout.layout.LayoutArea;
-import com.itextpdf.layout.layout.LayoutContext;
-import com.itextpdf.layout.layout.LayoutResult;
-import com.itextpdf.layout.renderer.IRenderer;
+import com.itextpdf.text.Anchor;
+import com.itextpdf.text.BadElementException;
+import com.itextpdf.text.BaseColor;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.Image;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.AcroFields;
+import com.itextpdf.text.pdf.AcroFields.FieldPosition;
+import com.itextpdf.text.pdf.ColumnText;
+import com.itextpdf.text.pdf.PRStream;
+import com.itextpdf.text.pdf.PdfCopy;
+import com.itextpdf.text.pdf.PdfImportedPage;
+import com.itextpdf.text.pdf.PdfName;
+import com.itextpdf.text.pdf.PdfNumber;
+import com.itextpdf.text.pdf.PdfObject;
+import com.itextpdf.text.pdf.PdfReader;
+import com.itextpdf.text.pdf.PdfStamper;
+import com.itextpdf.text.pdf.PushbuttonField;
+import com.itextpdf.text.pdf.RandomAccessFileOrArray;
+import com.itextpdf.text.pdf.parser.LocationTextExtractionStrategy;
+import com.itextpdf.text.pdf.parser.PdfImageObject;
+import com.itextpdf.text.pdf.parser.PdfTextExtractor;
 
 public class PdfUtilities {
 
@@ -109,63 +104,40 @@ public class PdfUtilities {
 	
 	private static LogManager lm = new LogManager();		// Application log
 
-	public static final float FONT_SIZE = 12;			// iText's default font size
-	public static final float URL_FONT_SIZE = 8;			// Preferred size for a media url in a template field
-	public static final float MIN_URL_FONT_SIZE = 5;		// Smaller than this is not worth reading
-	public static final float LINE_SPACING = 1.2f;		// Line spacing as a multiple of the font size
+	/*
+	 * Mapbox answers a request longer than 8192 characters with a 414 and no image.  The
+	 * overlay is a geojson document in the url, so a geotrace of a few hundred points goes
+	 * past that on its own: a single position costs about forty characters once url encoded.
+	 * Stay under the limit with room to spare for the parts of the url we do not measure.
+	 */
+	private static final int MAX_MAP_URL = 8000;
 
 	/*
-	 * Set the spacing between the lines of a paragraph
-	 *
-	 * iText 8 defaults to a leading of 2.2 times the font size which leaves large gaps
-	 *  between the wrapped lines of a value.  iText 5 table cells used a leading of exactly
-	 *  the font size.  Set LINE_SPACING to 1.0 to go back to that
-	 *
-	 * The leading is fixed rather than multiplied as a multiplied leading is applied to the
-	 *  ascender and descender of the font, which vary widely between the fonts used here.
-	 *  Hence the font size is set at the same time so that the two stay together
-	 *
-	 * Labels are not affected.  They are converted from html and carry their own line height
+	 * Create an iText image from a file, a path or a url
+	 * Formats that iText cannot read, such as webp, are converted to png first
 	 */
-	public static void setLineSpacing(com.itextpdf.layout.Document document) {
-		document.setFontSize(FONT_SIZE);
-		document.setProperty(Property.LEADING, new Leading(Leading.FIXED, FONT_SIZE * LINE_SPACING));
-	}
-
-	/*
-	 * Create iText image data from a file or URL
-	 * Formats that iText cannot read directly, such as webp, are converted to png first
-	 */
-	public static ImageData createImageData(File f) throws IOException {
+	public static Image createImage(File f) throws IOException, BadElementException {
 		try {
-			return ImageDataFactory.create(f.getAbsolutePath());
-		} catch (com.itextpdf.io.exceptions.IOException e) {
+			return Image.getInstance(f.getAbsolutePath());
+		} catch (IOException e) {
 			return convertToPng(Files.readAllBytes(f.toPath()), f.getName());
 		}
 	}
 
-	public static ImageData createImageData(String name) throws IOException {
+	public static Image createImage(String name) throws IOException, BadElementException {
 		try {
-			return ImageDataFactory.create(name);
-		} catch (com.itextpdf.io.exceptions.IOException e) {
+			return Image.getInstance(name);
+		} catch (IOException e) {
 			File f = new File(name);
 			return convertToPng(f.exists() ? Files.readAllBytes(f.toPath()) : readBytes(new URL(name)), name);
 		}
 	}
 
-	public static ImageData createImageData(byte [] bytes, String name) throws IOException {
+	public static Image createImage(byte [] bytes, String name) throws IOException, BadElementException {
 		try {
-			return ImageDataFactory.create(bytes);
-		} catch (com.itextpdf.io.exceptions.IOException e) {
+			return Image.getInstance(bytes);
+		} catch (IOException e) {
 			return convertToPng(bytes, name);
-		}
-	}
-
-	public static ImageData createImageData(URL url) throws IOException {
-		try {
-			return ImageDataFactory.create(url);
-		} catch (com.itextpdf.io.exceptions.IOException e) {
-			return convertToPng(readBytes(url), url.toString());
 		}
 	}
 
@@ -175,7 +147,7 @@ public class PdfUtilities {
 		}
 	}
 
-	private static ImageData convertToPng(byte[] bytes, String name) throws IOException {
+	private static Image convertToPng(byte[] bytes, String name) throws IOException, BadElementException {
 		BufferedImage bi = ImageIO.read(new ByteArrayInputStream(bytes));
 		if(bi == null && isWebp(bytes)) {
 			/*
@@ -196,7 +168,7 @@ public class PdfUtilities {
 		}
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		ImageIO.write(bi, "png", os);
-		return ImageDataFactory.create(os.toByteArray());
+		return Image.getInstance(os.toByteArray());
 	}
 
 	/*
@@ -208,237 +180,66 @@ public class PdfUtilities {
 				&& b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P';
 	}
 
-	public static void addImageTemplate(PdfAcroForm pdfForm, String fieldName, String basePath,
-			String value, String serverRoot, PdfDocument pdfDoc, PdfFont symbols_font,
-			boolean stretch) throws IOException {
-
-		PdfFormField field = pdfForm.getField(fieldName);
-		if(field instanceof PdfButtonFormField) {
-			PdfButtonFormField ad = (PdfButtonFormField) field;
+	public static void addImageTemplate(AcroFields pdfForm, String fieldName, String basePath, 
+			String value, String serverRoot, PdfStamper stamper, Font symbols_font,
+			boolean stretch) throws IOException, DocumentException {
+		
+		PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
+		if(ad != null) {
+			ad.setLayout(PushbuttonField.LAYOUT_ICON_ONLY);
+			ad.setProportionalIcon(!stretch);
 			try {
 				File f = new File(basePath + "/" + value);
 				if(f.exists()) {
-					ad.setImage(basePath + "/" + value);
+					ad.setImage(createImage(basePath + "/" + value));
 				} else {
 					// must be on s3
-					ad.setImage(serverRoot + "/" + value);
+					ad.setImage(createImage(serverRoot + "/" + value));
 				}
+				pdfForm.replacePushbuttonField(fieldName, ad.getField());
 			} catch (Exception e) {
 				log.fine("Error: Failed to add image " + basePath + "/" + value + " to pdf: " + e.getMessage());
 			}
-
+			
 			log.fine("Adding image to: " + fieldName);
-		} else if(field != null) {
-
+		} else {
+	
 			String imageUrl = serverRoot + value;
 
-			PdfWidgetAnnotation widget = field.getWidgets().isEmpty() ? null : field.getWidgets().get(0);
-			if(widget == null) {
+			List<FieldPosition> posList = pdfForm.getFieldPositions(fieldName);
+			if(posList == null) {
 				log.fine("Field not found for: " + fieldName);
 			} else {
-				Rectangle targetPosition = widget.getRectangle().toRectangle();
-			    Link url = new Link("\uf08e", PdfAction.createURI(imageUrl));
-			    float fontSize = 12;
-			    Canvas data = new Canvas(new PdfCanvas(widget.getPage()), targetPosition);
-			    data.showTextAligned(
-			    		new Paragraph(url).setFont(symbols_font).setFontSize(fontSize),
-			    		(targetPosition.getLeft() + targetPosition.getRight()) / 2,
-			    		targetPosition.getBottom() + (targetPosition.getHeight() - fontSize) / 2,
-			    		TextAlignment.CENTER);
-			    data.close();
+				Rectangle targetPosition = posList.get(0).position;
+				int page = pdfForm.getFieldPositions(fieldName).get(0).page;
+			    Anchor url = new Anchor("\uf08e", symbols_font);
+			    url.setReference(imageUrl);
+			    ColumnText data = new ColumnText(stamper.getOverContent(page));
+			
+			    data.setSimpleColumn(url, targetPosition.getLeft(), targetPosition.getBottom(), targetPosition.getRight(), targetPosition.getTop(), 
+			    		(targetPosition.getHeight() + symbols_font.getSize()) / 2, Element.ALIGN_CENTER);
+			    data.go();
 			}
-		}
-	}
-
-	/*
-	 * Add a video, audio or other media file to a template field
-	 *
-	 * The media itself cannot be embedded in the pdf so show the thumbnail that was created
-	 *  when the attachment was uploaded, falling back to the media url when there is no
-	 *  thumbnail, and make the field area a link through to the media on the server
-	 *
-	 * iText's setImage() must not be used for these files.  It base64 encodes the file and sets
-	 *  that as the field value, then, when the encoded data cannot be read as an image, it
-	 *  shows the encoded data as the label of the field
-	 */
-	public static void addMediaTemplate(PdfAcroForm pdfForm, String fieldName, String basePath,
-			String value, String serverRoot, PdfDocument pdfDoc, PdfFont font, PdfFont symbols_font) {
-
-		PdfFormField field = pdfForm.getField(fieldName);
-		if(field == null || field.getWidgets().isEmpty()) {
-			log.fine("Field not found for: " + fieldName);
-			return;
-		}
-
-		PdfWidgetAnnotation widget = field.getWidgets().get(0);
-		PdfPage page = widget.getPage();
-		Rectangle rect = widget.getRectangle().toRectangle();
-		String mediaUrl = serverRoot + value;
-
-		ImageData thumbnail = getMediaThumbnail(basePath, value, serverRoot);
-		boolean added = false;
-
-		if(thumbnail != null && field instanceof PdfButtonFormField) {
-			try {
-				PdfImageXObject imgXObj = new PdfImageXObject(thumbnail);
-				PdfFormXObject formXObj = new PdfFormXObject(new Rectangle(0, 0, imgXObj.getWidth(), imgXObj.getHeight()));
-				new PdfCanvas(formXObj, pdfDoc).addXObjectAt(imgXObj, 0, 0);
-				((PdfButtonFormField) field).setImageAsForm(formXObj);
-				added = true;
-			} catch (Exception e) {
-				log.fine("Error: Failed to add media thumbnail to " + fieldName + ": " + e.getMessage());
-			}
-		}
-
-		if(!added && page != null) {
-			/*
-			 * Either the field is not a push button or there is no thumbnail.  Draw into the
-			 *  field area and then remove the field so that flattening the form does not
-			 *  cover the drawing
-			 */
-			Canvas canvas = new Canvas(new PdfCanvas(page.newContentStreamAfter(), page.getResources(), pdfDoc), rect);
-			try {
-				if(thumbnail != null) {
-					Image img = new Image(thumbnail);
-					img.scaleToFit(rect.getWidth(), rect.getHeight());
-					canvas.add(img);
-				} else {
-					/*
-					 * Show the url if the whole of it can be made to fit, and a link marker if
-					 * it cannot.
-					 *
-					 * A template field for an attachment is often only wide enough for an icon,
-					 * because an icon is what was drawn here before these fields showed a url at
-					 * all.  Given a ninety character url and thirty points to put it in, the
-					 * layout writes the lines that fit and silently drops the rest, which came
-					 * out as "https:/" in the field and nothing anywhere else.
-					 *
-					 * Try smaller sizes before giving up: a field with room for the url over two
-					 * or three lines is common, and shrinking a point or two is far better than
-					 * replacing the url with an icon.  Ask the layout engine rather than working
-					 * it out from font metrics, since it is the same code that does the drawing
-					 * and it knows where a url can be broken.
-					 */
-					Paragraph urlPara = null;
-					for(float fontSize = URL_FONT_SIZE; fontSize >= MIN_URL_FONT_SIZE; fontSize -= 1) {
-						Paragraph candidate = new Paragraph(mediaUrl)
-								.setFont(font)
-								.setFontSize(fontSize)
-								.setFixedLeading(fontSize * LINE_SPACING)
-								.setFontColor(ColorConstants.BLUE)
-								.setTextAlignment(TextAlignment.CENTER);
-						if(fits(candidate, canvas, pdfDoc, page, rect)) {
-							urlPara = candidate;
-							break;
-						}
-					}
-
-					if(urlPara != null) {
-						canvas.add(urlPara);
-					} else {
-						/*
-						 * No size shows the whole url, so mark the field as a link instead of
-						 * writing part of one.  The whole rectangle is a link annotation below,
-						 * so the marker only has to say that there is something here.
-						 */
-						float iconSize = Math.min(12, rect.getHeight());
-						canvas.add(new Paragraph("\uf08e")
-								.setFont(symbols_font)
-								.setFontSize(iconSize)
-								.setFixedLeading(iconSize)
-								.setFontColor(ColorConstants.BLUE)
-								.setTextAlignment(TextAlignment.CENTER));
-					}
-				}
-			} catch (Exception e) {
-				log.fine("Error: Failed to add media " + value + " to " + fieldName + ": " + e.getMessage());
-			} finally {
-				canvas.close();
-			}
-
-			try {
-				pdfForm.removeField(fieldName);
-			} catch (Exception e) {
-				log.fine("Error removing field: " + fieldName + ": " + e.getMessage());
-			}
-		}
-
-		/*
-		 * Add the link to the page rather than to the field.  A link set on the field would be
-		 *  lost when the form is flattened
-		 */
-		if(page != null) {
-			try {
-				PdfLinkAnnotation link = new PdfLinkAnnotation(rect);
-				link.setAction(PdfAction.createURI(mediaUrl));
-				link.setBorder(new PdfArray(new float [] {0, 0, 0}));
-				page.addAnnotation(link);
-			} catch (Exception e) {
-				log.fine("Error: Failed to add media link for " + fieldName + ": " + e.getMessage());
-			}
-		}
-	}
-
-	/*
-	 * True if every line of the paragraph fits the rectangle.  Anything less than FULL means
-	 * the layout would silently drop the rest, which is how a url became "https:/".
-	 */
-	private static boolean fits(Paragraph para, Canvas canvas, PdfDocument pdfDoc, PdfPage page,
-			Rectangle rect) {
-		try {
-			IRenderer renderer = para.createRendererSubTree().setParent(canvas.getRenderer());
-			LayoutResult result = renderer.layout(
-					new LayoutContext(new LayoutArea(pdfDoc.getPageNumber(page), rect)));
-			return result.getStatus() == LayoutResult.FULL;
-		} catch (Exception e) {
-			// Could not tell, so assume not and show the marker rather than part of a url
-			log.fine("Could not measure media url for a template field: " + e.getMessage());
-			return false;
-		}
-	}
-
-	/*
-	 * Get the thumbnail that was created for a media file when it was uploaded
-	 * Returns null if there is no thumbnail, which is the case for audio and for any other
-	 *  media that no thumbnail can be generated from
-	 */
-	private static ImageData getMediaThumbnail(String basePath, String value, String serverRoot) {
-
-		ImageData thumbnail = null;
-
-		try {
-			byte [] bytes = AttachmentStore.getThumbnailBytes(basePath, value, serverRoot, false);
-			if(bytes != null) {
-				thumbnail = createImageData(bytes, value);
-			}
-		} catch (Exception e) {
-			log.fine("Error: Failed to read thumbnail for " + value + ": " + e.getMessage());
-		}
-
-		return thumbnail;
-	}
-
-	public static void addMapImageTemplate(PdfAcroForm pdfForm, String fieldName, ImageData img, boolean stretch,
-			PdfDocument pdfDoc) {
-
-		PdfFormField field = pdfForm.getField(fieldName);
-		if(field instanceof PdfButtonFormField && img != null) {
-			PdfButtonFormField ad = (PdfButtonFormField) field;
-			try {
-				// Build a form XObject holding the (in-memory) image and set it as the button appearance
-				PdfImageXObject imgXObj = new PdfImageXObject(img);
-				PdfFormXObject formXObj = new PdfFormXObject(new Rectangle(0, 0, imgXObj.getWidth(), imgXObj.getHeight()));
-				new PdfCanvas(formXObj, pdfDoc).addXObjectAt(imgXObj, 0, 0);
-				ad.setImageAsForm(formXObj);
-			} catch (Exception e) {
-				log.fine("Error: Failed to add image to pdf: " + e.getMessage());
-			}
-			log.fine("Adding image to: " + fieldName);
 		}
 	}
 	
-	public static ImageData getMapImage(
-			Connection sd,
+	public static void addMapImageTemplate(AcroFields pdfForm, PushbuttonField ad, String fieldName, Image img, boolean stretch) throws IOException, DocumentException {
+		
+		if(ad != null) {
+			ad.setLayout(PushbuttonField.LAYOUT_ICON_ONLY);
+			ad.setProportionalIcon(!stretch);
+			try {
+				ad.setImage(img);
+			} catch (Exception e) {
+				log.fine("Error: Failed to add image to pdf: " + e.getMessage());
+			}
+			pdfForm.replacePushbuttonField(fieldName, ad.getField());
+			log.fine("Adding image to: " + fieldName);
+		} 
+	}
+	
+	public static Image getMapImage(
+			Connection sd, 
 			String mapSource,
 			String map, 
 			String account,
@@ -493,19 +294,19 @@ public class PdfUtilities {
 	/*
 	 * Convert geospatial data into a mapbox map image
 	 */
-	private static ImageData getMapImageMapbox(Connection sd,
-			String map,
+	private static Image getMapImageMapbox(Connection sd, 
+			String map, 
 			String account,
-			PdfMapValues mapValues,
-			String location,
+			PdfMapValues mapValues, 
+			String location, 
 			String zoom,
 			String mapbox_key,
 			int sId,
 			String user,
 			String markerColor,
-			String basePath) throws MalformedURLException, IOException, SQLException {
-
-		ImageData img = null;
+			String basePath) throws BadElementException, MalformedURLException, IOException, SQLException {
+		
+		Image img = null;
 		
 		StringBuilder url = new StringBuilder();
 		boolean getMap = false;
@@ -524,23 +325,49 @@ public class PdfUtilities {
 		url.append("/static/");
 		
 		if((mapValues.hasGeometry() || mapValues.hasLine())) {
-			
-			url.append("geojson(")
-				.append(URLEncoder.encode(createGeoJsonMapValue(mapValues, markerColor), "UTF-8"))
-				.append(")/");
+
+			/*
+			 * Work out the centre before the overlay.  It, and the size and the key, are what
+			 * is left of the url once the overlay has had its share, and the overlay is the
+			 * part that has to be made to fit.
+			 */
+			StringBuilder centre = new StringBuilder();
 			if(zoom != null && zoom.trim().length() > 0) {
 				String centroidValue = mapValues.geometry;
 				if(centroidValue == null) {
 					centroidValue = mapValues.startGeometry;
 				}
-				url.append(GeneralUtilityMethods.getGeoJsonCentroid(centroidValue) + "," + zoom);
+				centre.append(GeneralUtilityMethods.getGeoJsonCentroid(centroidValue) + "," + zoom);
 			} else if(location != null) {
-				url.append(location);
+				centre.append(location);
 			} else {
-				url.append("auto");
+				centre.append("auto");
 			}
-			url.append("/");
-			getMap = true;
+
+			int room = MAX_MAP_URL - url.length() - "geojson()/".length() - centre.length()
+					- "/500x300?access_token=".length()
+					- (mapbox_key == null ? 0 : mapbox_key.length());
+			String overlay = fitMapOverlay(createGeoJsonMapValue(mapValues, markerColor), room);
+
+			if(overlay != null) {
+				url.append("geojson(").append(overlay).append(")/");
+				url.append(centre).append("/");
+				getMap = true;
+			} else if(!centre.toString().equals("auto")) {
+				/*
+				 * Nothing we can do to the geometry makes it fit, so ask for the map without
+				 * it.  A map of the right place with no track on it is worth more than the
+				 * blank space that a rejected request leaves in the pdf.
+				 */
+				log.warning("Map overlay too long for the mapbox url even simplified, "
+						+ "drawing the map without it");
+				url.append(centre).append("/");
+				getMap = true;
+			} else {
+				// Without an overlay there is nothing to say where the map should be
+				log.warning("Map overlay too long for the mapbox url and no centre to fall "
+						+ "back on, no map drawn");
+			}
 		} else {
 			// Attempt to get default map boundary from appearance
 			if(location != null) {
@@ -566,9 +393,9 @@ public class PdfUtilities {
 				URL mapboxUrl = new URL(url.toString());
 				BufferedImage tempImg = ImageIO.read(mapboxUrl);
 				File file = new File(basePath + "/temp/pdfmap_" + UUID.randomUUID() + ".png");
-				ImageIO.write(tempImg, "png", file);
-				img = ImageDataFactory.create(file.getAbsolutePath());
-
+				ImageIO.write(tempImg, "png", file);			       
+				img = Image.getInstance(file.getAbsolutePath());
+			    
 				lm.writeLog(sd, sId, user, LogManager.MAPBOX_REQUEST, map, 0, null);
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Exception", e);
@@ -582,19 +409,19 @@ public class PdfUtilities {
 	/*
 	 * Convert geospatial data into a Google map image
 	 */
-	private static ImageData getMapImageGoogle(Connection sd,
-			String map,
+	private static Image getMapImageGoogle(Connection sd, 
+			String map, 
 			String account,
-			PdfMapValues mapValues,
-			String location,
+			PdfMapValues mapValues, 
+			String location, 
 			String zoom,
 			String google_key,
 			int sId,
 			String user,
 			String markerColor,
-			String basePath) throws MalformedURLException, IOException, SQLException {
-
-		ImageData img = null;
+			String basePath) throws BadElementException, MalformedURLException, IOException, SQLException {
+		
+		Image img = null;
 		
 		StringBuilder url = new StringBuilder();
 		boolean hasParam = false;
@@ -627,9 +454,9 @@ public class PdfUtilities {
 				URL googleUrl = new URL(url.toString());
 				BufferedImage tempImg = ImageIO.read(googleUrl);
 				File file = new File(basePath + "/temp/pdfmap_" + UUID.randomUUID() + ".png");
-				ImageIO.write(tempImg, "png", file);
-				img = ImageDataFactory.create(file.getAbsolutePath());
-
+				ImageIO.write(tempImg, "png", file);			       
+				img = Image.getInstance(file.getAbsolutePath());
+			    
 				lm.writeLog(sd, sId, user, LogManager.GOOGLE_REQUEST, map, 0, null);
 			} catch (Exception e) {
 				lm.writeLog(sd, sId, user, LogManager.ERROR, "Could not get google map image. You may need to enable billing on your google maps API at https://console.cloud.google.com/project/_/billing/enable", 0, null);
@@ -643,18 +470,18 @@ public class PdfUtilities {
 	/*
 	 * Convert geospatial data into a mapbox map image
 	 */
-	private static ImageData getMapImageMapTiler(Connection sd,
-			String map,
-			PdfMapValues mapValues,
-			String location,
+	private static Image getMapImageMapTiler(Connection sd, 
+			String map, 
+			PdfMapValues mapValues, 
+			String location, 
 			String zoom,
 			String maptiler_key,
 			int sId,
 			String user,
 			String markerColor,
-			String basePath) throws MalformedURLException, IOException, SQLException {
-
-		ImageData img = null;
+			String basePath) throws BadElementException, MalformedURLException, IOException, SQLException {
+		
+		Image img = null;
 		
 		StringBuilder url = new StringBuilder();
 		String lonLat = null;
@@ -721,7 +548,7 @@ public class PdfUtilities {
 				 * However maptiler required it or the request will be rejected
 				 */
 				URL mapUrl = new URL(url.toString());
-				img = ImageDataFactory.create(mapUrl);
+				img = Image.getInstance(mapUrl);
 				lm.writeLog(sd, sId, user, LogManager.MAPTILER_REQUEST, map, 0, null);
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Exception", e);
@@ -734,7 +561,7 @@ public class PdfUtilities {
 	/*
 	 * Convert geospatial data into an abstract image
 	 */
-	public static ImageData getLineImage(Connection sd,
+	public static Image getLineImage(Connection sd, 
 			PdfMapValues mapValues,
 			TrafficLightValues tlValues,
 			int sId,
@@ -742,9 +569,9 @@ public class PdfUtilities {
 			DisplayItem di,
 			String basePath,
 			Float width,
-			Float height) throws MalformedURLException, IOException, SQLException, TranscoderException {
-
-		ImageData img = null;
+			Float height) throws BadElementException, MalformedURLException, IOException, SQLException, TranscoderException {
+		
+		Image img = null;
 	
 		int margin = 10;	
 		String fontSize = "8";
@@ -839,9 +666,9 @@ public class PdfUtilities {
 			ostream = new FileOutputStream(file);
 			TranscoderOutput output = new TranscoderOutput(ostream);
 			t.transcode(input, output);
-			ostream.flush();
-
-			img = ImageDataFactory.create(file.getAbsolutePath());
+			ostream.flush();	
+			
+			img = Image.getInstance(file.getAbsolutePath());
 		} finally {
 			 if(pstmt != null) try{pstmt.close();} catch(Exception e) {}
 			 if(ostream != null)  try{ostream.close();} catch(Exception e) {}
@@ -1129,6 +956,147 @@ public class PdfUtilities {
 		return out.toString();
 	}
 	
+	/*
+	 * Url encode the geojson overlay, making it smaller until it fits the room it has in the
+	 * url.  Returns null when even the coarsest version is too big.
+	 *
+	 * Two things are tried in turn.  First the coordinates are rounded: a submitted position
+	 * carries seven decimal places, which is a centimetre, and this is a five hundred pixel
+	 * picture where five is already finer than a pixel.  Then points are dropped, evenly
+	 * along the line and always keeping its ends, which changes the shape of what is drawn
+	 * and so is only done when rounding was not enough.
+	 */
+	private static String fitMapOverlay(String geoJson, int room) {
+
+		try {
+			String encoded = URLEncoder.encode(geoJson, "UTF-8");
+			if(encoded.length() <= room) {
+				return encoded;
+			}
+
+			JsonElement fc = JsonParser.parseString(geoJson);
+			for(int precision = 6; precision >= 5; precision--) {
+				roundCoordinates(fc, precision);
+				encoded = URLEncoder.encode(fc.toString(), "UTF-8");
+				if(encoded.length() <= room) {
+					return encoded;
+				}
+			}
+
+			// Keep one position in every "step", from the rounded version, which is the smallest
+			JsonElement thinned = fc;
+			for(int step = 2; step <= 64; step *= 2) {
+				thinned = fc.deepCopy();
+				thinCoordinates(thinned, step);
+				encoded = URLEncoder.encode(thinned.toString(), "UTF-8");
+				if(encoded.length() <= room) {
+					log.warning("Map overlay reduced to one point in " + step + " to fit the url");
+					return encoded;
+				}
+			}
+
+			/*
+			 * The length is in the number of features rather than in any one of them, which is
+			 * a compound with a marker for every pit and fault along the line.  Drop them from
+			 * the end: the line and the first few markers say more than nothing at all does.
+			 */
+			for(JsonElement base : new JsonElement[] {fc, thinned}) {		// Whole line first, then thinned
+				if(!base.isJsonObject() || !base.getAsJsonObject().has("features")) {
+					continue;
+				}
+				JsonArray features = base.getAsJsonObject().getAsJsonArray("features");
+				for(int keep = features.size() / 2; keep >= 1; keep /= 2) {
+					JsonObject candidate = base.getAsJsonObject().deepCopy();
+					JsonArray kept = new JsonArray();
+					for(int i = 0; i < keep; i++) {
+						kept.add(features.get(i));
+					}
+					candidate.add("features", kept);
+					encoded = URLEncoder.encode(candidate.toString(), "UTF-8");
+					if(encoded.length() <= room) {
+						log.warning("Map overlay cut from " + features.size() + " features to "
+								+ keep + " to fit the url");
+						return encoded;
+					}
+				}
+			}
+			return null;
+		} catch (Exception e) {
+			log.log(Level.WARNING, "Could not simplify the map overlay: " + e.getMessage(), e);
+			return null;
+		}
+	}
+
+	/*
+	 * Every number in a geojson feature collection is part of a coordinate, so there is
+	 * nothing else here to round by mistake
+	 */
+	private static void roundCoordinates(JsonElement el, int precision) {
+		if(el.isJsonObject()) {
+			for(String key : el.getAsJsonObject().keySet()) {
+				roundCoordinates(el.getAsJsonObject().get(key), precision);
+			}
+		} else if(el.isJsonArray()) {
+			JsonArray a = el.getAsJsonArray();
+			for(int i = 0; i < a.size(); i++) {
+				JsonElement item = a.get(i);
+				if(item.isJsonPrimitive() && item.getAsJsonPrimitive().isNumber()) {
+					BigDecimal rounded = BigDecimal.valueOf(item.getAsDouble())
+							.setScale(precision, RoundingMode.HALF_UP)
+							.stripTrailingZeros();
+					// Back through the plain string, so a whole number cannot come out as 1.1E+1
+					a.set(i, new JsonPrimitive(new BigDecimal(rounded.toPlainString())));
+				} else {
+					roundCoordinates(item, precision);
+				}
+			}
+		}
+	}
+
+	private static void thinCoordinates(JsonElement el, int step) {
+		if(el.isJsonObject()) {
+			JsonObject o = el.getAsJsonObject();
+			for(String key : o.keySet()) {
+				if(key.equals("coordinates") && o.get(key).isJsonArray()) {
+					o.add(key, thinPositions(o.get(key).getAsJsonArray(), step));
+				} else {
+					thinCoordinates(o.get(key), step);
+				}
+			}
+		} else if(el.isJsonArray()) {
+			for(JsonElement item : el.getAsJsonArray()) {
+				thinCoordinates(item, step);
+			}
+		}
+	}
+
+	/*
+	 * A coordinates value is a position, a list of positions, or a list of those again for a
+	 * polygon's rings.  Only the list of positions is thinned; a point has nothing to lose.
+	 */
+	private static JsonArray thinPositions(JsonArray a, int step) {
+
+		if(a.size() == 0 || !a.get(0).isJsonArray()) {
+			return a;								// A single position
+		}
+		if(a.get(0).getAsJsonArray().size() > 0 && a.get(0).getAsJsonArray().get(0).isJsonArray()) {
+			JsonArray rings = new JsonArray();		// Rings, or several lines
+			for(JsonElement ring : a) {
+				rings.add(thinPositions(ring.getAsJsonArray(), step));
+			}
+			return rings;
+		}
+
+		JsonArray thinned = new JsonArray();
+		for(int i = 0; i < a.size(); i++) {
+			// The ends are the two points that say where the line starts and finishes
+			if(i % step == 0 || i == a.size() - 1) {
+				thinned.add(a.get(i));
+			}
+		}
+		return thinned;
+	}
+
 	private static String addGeoJsonFeature(String coords, String markerColor, String icon) {
 		
 		StringBuffer out = new StringBuffer("{\"type\":\"Feature\",\"geometry\":");
@@ -1321,30 +1289,29 @@ public class PdfUtilities {
 	}
 	
 	// Uses code from https://stackoverflow.com/questions/20614350/compress-pdf-with-large-images-via-java
-	public static void resizePdf(String src, OutputStream os) throws IOException {
-
-	    // Read the file (reader + writer to the output stream in one document)
-	    PdfDocument pdfDoc = new PdfDocument(new PdfReader(src), new PdfWriter(os));
-	    int n = pdfDoc.getNumberOfPdfObjects();
+	public static void resizePdf(String src, OutputStream os) throws IOException, DocumentException {
+	    
+	    // Read the file
+	    PdfReader reader = new PdfReader(src);
+	    int n = reader.getXrefSize();
+	    PdfObject object;
+	    PRStream stream;
 
 	    // Look for image and manipulate image stream
-	    for (int i = 1; i < n; i++) {
-	        PdfObject object = pdfDoc.getPdfObject(i);
+	    for (int i = 0; i < n; i++) {
+	        object = reader.getPdfObject(i);
 	        if (object == null || !object.isStream())
 	            continue;
-	        PdfStream stream = (PdfStream) object;
-	        PdfObject pdfsubtype = stream.get(PdfName.Subtype);
-	        if (pdfsubtype != null && pdfsubtype.equals(PdfName.Image)) {
-	            BufferedImage bi;
-	            try {
-	                bi = new PdfImageXObject(stream).getBufferedImage();
-	            } catch (Exception e) {
-	                continue;
-	            }
+	        stream = (PRStream)object;
+	       // if (value.equals(stream.get(key))) {
+	        PdfObject pdfsubtype = stream.get(PdfName.SUBTYPE);
+	        if (pdfsubtype != null && pdfsubtype.toString().equals(PdfName.IMAGE.toString())) {
+	            PdfImageObject image = new PdfImageObject(stream);
+	            BufferedImage bi = image.getBufferedImage();
 	            if (bi == null) continue;
 	            int width = bi.getWidth();
 	            int height = bi.getHeight();
-
+	            
 	            /*
 	             * Calculate amount of compression
 	             */
@@ -1359,7 +1326,7 @@ public class PdfUtilities {
 	            }
 	            width = (int) (bi.getWidth() * factor);
 	            height = (int) (bi.getHeight() * factor);
-
+	            
 	            BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 	            AffineTransform at = AffineTransform.getScaleInstance(factor, factor);
 	            Graphics2D g = img.createGraphics();
@@ -1367,45 +1334,63 @@ public class PdfUtilities {
 	            ByteArrayOutputStream imgBytes = new ByteArrayOutputStream();
 	            ImageIO.write(img, "JPG", imgBytes);
 	            stream.clear();
-	            stream.setData(imgBytes.toByteArray(), false);		// false: do not flate-compress, bytes are DCT (JPEG)
-	            stream.put(PdfName.Type, PdfName.XObject);
-	            stream.put(PdfName.Subtype, PdfName.Image);
-	            stream.put(PdfName.Filter, PdfName.DCTDecode);
-	            stream.put(PdfName.Width, new PdfNumber(width));
-	            stream.put(PdfName.Height, new PdfNumber(height));
-	            stream.put(PdfName.BitsPerComponent, new PdfNumber(8));
-	            stream.put(PdfName.ColorSpace, PdfName.DeviceRGB);
+	            stream.setData(imgBytes.toByteArray(), false, PRStream.BEST_COMPRESSION);
+	            stream.put(PdfName.TYPE, PdfName.XOBJECT);
+	            stream.put(PdfName.SUBTYPE, PdfName.IMAGE);
+	            //stream.put(key, value);
+	            stream.put(PdfName.FILTER, PdfName.DCTDECODE);
+	            stream.put(PdfName.WIDTH, new PdfNumber(width));
+	            stream.put(PdfName.HEIGHT, new PdfNumber(height));
+	            stream.put(PdfName.BITSPERCOMPONENT, new PdfNumber(8));
+	            stream.put(PdfName.COLORSPACE, PdfName.DEVICERGB);
 	        }
 	    }
 	    // Save altered PDF
-	    pdfDoc.close();
-
+	    PdfStamper stamper = new PdfStamper(reader, os);
+	    stamper.close();
+	    reader.close();
+	    
 	}
 	
 	/*
 	 * https://stackoverflow.com/questions/2464166/how-can-i-remove-blank-page-from-pdf-in-itext/3309453
 	 */
-	public static void removeBlankPages(String pdfSourceFile, String pdfDestinationFile) throws IOException
+	public static void removeBlankPages(String pdfSourceFile, String pdfDestinationFile) throws IOException, DocumentException
 	{
 
-		// Open source and destination documents
-		PdfDocument src = new PdfDocument(new PdfReader(pdfSourceFile));
-		PdfDocument dest = new PdfDocument(new PdfWriter(pdfDestinationFile));
+		// step 1: create new reader
+		PdfReader r = new PdfReader(pdfSourceFile);
+		RandomAccessFileOrArray raf = new RandomAccessFileOrArray(pdfSourceFile);
+		com.itextpdf.text.Document document = new com.itextpdf.text.Document(r.getPageSizeWithRotation(1));
+		// step 2: create a writer that listens to the document
+		PdfCopy writer = new PdfCopy(document, new FileOutputStream(pdfDestinationFile));
+		// step 3: we open the document
+		document.open();
+		// step 4: we add content
+		PdfImportedPage page = null;
 
-		//loop through each page and only copy pages that have text on them
-		int num = src.getNumberOfPages();
-		for (int i = 1; i <= num; i++)
+
+		//loop through each page and if there is no text on the page then delete it
+		for (int i=1;i<=r.getNumberOfPages();i++)
 		{
-			String text = PdfTextExtractor.getTextFromPage(src.getPage(i), new LocationTextExtractionStrategy());
-
+			//get the page content
+			ByteArrayOutputStream bs = new ByteArrayOutputStream();
+			//write the content to an output stream
+			
+			String text = PdfTextExtractor.getTextFromPage(r, i, new LocationTextExtractionStrategy());
+			
 			//add the page to the new pdf
 			if (text != null && text.length() > 0) {
-				src.copyPagesTo(i, i, dest);
+				page = writer.getImportedPage(r, i);
+				writer.addPage(page);
 			}
+			bs.close();
 		}
 		//close everything
-		dest.close();
-		src.close();
+		document.close();
+		writer.close();
+		raf.close();
+		r.close();
 
 	}
 	
@@ -1581,16 +1566,16 @@ public class PdfUtilities {
 	 */
 	private static void setColor(String aValue, DisplayItem di, boolean isLabel) {
 
-		com.itextpdf.kernel.colors.Color color = null;
+		BaseColor color = null;
 
 		String [] parts = aValue.split("_");
 		if(parts.length >= 4) {
 			if(parts[1].startsWith("0x")) {
-				color = new DeviceRgb(Integer.decode(parts[1]),
+				color = new BaseColor(Integer.decode(parts[1]), 
 						Integer.decode(parts[2]),
 						Integer.decode(parts[3]));
 			} else {
-				color = new DeviceRgb(Integer.decode("0x" + parts[1]),
+				color = new BaseColor(Integer.decode("0x" + parts[1]), 
 						Integer.decode("0x" + parts[2]),
 						Integer.decode("0x" + parts[3]));
 			}

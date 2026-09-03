@@ -30,6 +30,22 @@ abstract public class EmailServer {
 		return false;
 	}
 
+	/*
+	 * Why this server's account is paused, for a message that has to be told apart from one
+	 * that failed.  Null when it is not paused, and always null where pausing is not tracked.
+	 */
+	public String getPauseReason() {
+		return null;
+	}
+
+	/*
+	 * When this server's account will take mail again, as epoch milliseconds, or 0 when it is
+	 * not paused or pausing is not tracked
+	 */
+	public long getPauseUntil() {
+		return 0;
+	}
+
 	// Returns SES MessageId for AWS sends; null for SMTP
 	public abstract String send(String email, String ccType, String subject,
 			String emailId,

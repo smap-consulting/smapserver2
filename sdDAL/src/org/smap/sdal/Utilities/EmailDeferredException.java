@@ -12,7 +12,39 @@ public class EmailDeferredException extends Exception {
 
 	private static final long serialVersionUID = 1L;
 
+	/*
+	 * What could not be sent, in the words the monitor uses, so that a message waiting on a
+	 * relay can be shown there as itself rather than as a bare id.  Set by whoever has the
+	 * detail on the way out, which is well below the code that decides what to do about it.
+	 */
+	private String notifyDetails;
+
 	public EmailDeferredException(String message) {
 		super(message);
+	}
+
+	/*
+	 * When it is worth trying again, as epoch milliseconds, or 0 where whoever deferred it
+	 * has no idea.  A relay that is rate limiting us knows exactly when it will take mail
+	 * again, and retrying before then is what caused the limit in the first place.
+	 */
+	private long retryAfter;
+
+	public long getRetryAfter() {
+		return retryAfter;
+	}
+
+	public void setRetryAfter(long retryAfter) {
+		this.retryAfter = retryAfter;
+	}
+
+	public String getNotifyDetails() {
+		return notifyDetails;
+	}
+
+	public void setNotifyDetails(String notifyDetails) {
+		if(notifyDetails != null) {
+			this.notifyDetails = notifyDetails;
+		}
 	}
 }
