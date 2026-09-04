@@ -602,6 +602,43 @@ public class MessagingManagerApply {
 	}
 	
 	/*
+	 * Discard device messages on a server that cannot send them
+	 *
+	 * Device notifications need aws.properties, holding the AWS credentials of whoever
+	 * runs the server.  It is optional configuration.  Without it applyDeviceMessages is
+	 * never called and these messages stay unprocessed for ever.  They are deliberately excluded from message_queue, so
+	 * nothing else clears them either.  Left alone they accumulate without limit and
+	 * slow the enqueue query in SubscriberBatch, which runs every few seconds and has
+	 * no index covering topic.
+	 *
+	 * Returns the number of messages discarded.
+	 */
+	public int skipDeviceMessages(Connection sd) {
+
+		int count = 0;
+
+		String sql = "update message "
+				+ "set processed_time = now(), "
+				+ "status = 'skipped', "
+				+ "queued = false "
+				+ "where outbound "
+				+ "and processed_time is null "
+				+ "and (topic = 'task' or topic = 'survey' or topic = 'user' or topic = 'project' or topic = 'resource') ";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			count = pstmt.executeUpdate();
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error discarding device messages", e);
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+
+		return count;
+	}
+
+	/*
 	 * Apply any device messages - these are done as a single queue
 	 */
 	public void applyDeviceMessages(Connection sd, Connection cResults, 

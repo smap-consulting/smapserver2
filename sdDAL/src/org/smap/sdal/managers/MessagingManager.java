@@ -1,5 +1,6 @@
 package org.smap.sdal.managers;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -57,9 +58,52 @@ public class MessagingManager {
 	}
 
 	/*
+	 * Device notifications need aws.properties, holding the AWS credentials of whoever
+	 * runs the server.  It is optional configuration: without it the subscriber never
+	 * calls applyDeviceMessages, and the device topics are deliberately excluded from
+	 * message_queue, so nothing consumes these messages and writing them is pure cost.
+	 *
+	 * Rechecked periodically rather than cached for the life of the process, so that an
+	 * administrator who adds the credentials gets device notifications without having to
+	 * restart tomcat, and one who removes them stops paying for the messages.
+	 */
+	private static final String AWS_PROPERTIES = "/smap_bin/resources/properties/aws.properties";
+	private static final long DEVICE_CHECK_INTERVAL_MS = 60000L;
+	private static volatile boolean deviceNotificationsEnabled = false;
+	private static volatile long deviceNotificationsCheckedAt = 0;
+
+	private static boolean deviceNotificationsEnabled() {
+		long now = System.currentTimeMillis();
+		if(now - deviceNotificationsCheckedAt > DEVICE_CHECK_INTERVAL_MS) {
+			boolean enabled = new File(AWS_PROPERTIES).exists();
+			// Only report the first check and any change, not every recheck
+			if(deviceNotificationsCheckedAt == 0 || enabled != deviceNotificationsEnabled) {
+				log.info("Device notifications " + (enabled ? "enabled" : "disabled, no " + AWS_PROPERTIES));
+			}
+			deviceNotificationsEnabled = enabled;
+			deviceNotificationsCheckedAt = now;
+		}
+		return deviceNotificationsEnabled;
+	}
+
+	/*
+	 * True for the topics that only exist to trigger a refresh of a mobile device
+	 */
+	private static boolean isDeviceTopic(String topic) {
+		return NotificationManager.TOPIC_TASK.equals(topic)
+				|| NotificationManager.TOPIC_SURVEY.equals(topic)
+				|| NotificationManager.TOPIC_USER.equals(topic)
+				|| NotificationManager.TOPIC_PROJECT.equals(topic)
+				|| NotificationManager.TOPIC_RESOURCE.equals(topic);
+	}
+
+	/*
 	 * Create a message resulting from a change to a task
 	 */
 	public void taskChange(Connection sd, int taskId) throws SQLException {
+		if(!deviceNotificationsEnabled()) {
+			return;
+		}
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		String data = gson.toJson(new TaskMessage(taskId));		
 		int oId = GeneralUtilityMethods.getOrganisationIdForTask(sd, taskId);	
@@ -72,6 +116,9 @@ public class MessagingManager {
 	 * Create a message resulting from a change to a user
 	 */
 	public void userChange(Connection sd, String userIdent) throws SQLException {
+		if(!deviceNotificationsEnabled()) {
+			return;
+		}
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		String data = gson.toJson(new UserMessage(userIdent));		
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);	
@@ -84,6 +131,9 @@ public class MessagingManager {
 	 * Create a message resulting from a change to a form
 	 */
 	public void surveyChange(Connection sd, int sId, int linkedId) throws SQLException {
+		if(!deviceNotificationsEnabled()) {
+			return;
+		}
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		SurveyMessage sm = new SurveyMessage(sId);
 		sm.linkedSurveyId = linkedId;
@@ -98,6 +148,9 @@ public class MessagingManager {
 	 * Create a message resulting from a change to a shared resource
 	 */
 	public void resourceChange(Connection sd, int oId, String fileName) throws SQLException {
+		if(!deviceNotificationsEnabled()) {
+			return;
+		}
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 
 		OrgResourceMessage sm = new OrgResourceMessage(oId, fileName);
@@ -111,6 +164,9 @@ public class MessagingManager {
 	 * Create a message resulting from a change to a project
 	 */
 	public void projectChange(Connection sd, int pId, int oId) throws SQLException {
+		if(!deviceNotificationsEnabled()) {
+			return;
+		}
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		ProjectMessage sm = new ProjectMessage(pId);
 		String data = gson.toJson(sm);
@@ -124,6 +180,14 @@ public class MessagingManager {
 	 */
 	public void createMessage(Connection sd, int oId, String topic, String msg, String data) throws SQLException {
 		
+		/*
+		 * Backstop for callers that pass a topic in a variable.  Nothing consumes a device
+		 * topic on a server that cannot send device notifications, so do not write the row.
+		 */
+		if(isDeviceTopic(topic) && !deviceNotificationsEnabled()) {
+			return;
+		}
+
 		String sqlMsg = "insert into message" 
 				+ "(o_id, topic, description, data, outbound, created_time) "
 				+ "values(?, ?, ?, ?, 'true', now())";

@@ -433,6 +433,18 @@ public class SubscriberBatch {
 								"Skipping Message Processing. No aws properties file at: " + pFile.getAbsolutePath(),
 								"device_message",
 								null);
+							/*
+							 * Discard the messages rather than leaving them unprocessed.  This
+							 * server cannot send device notifications, and nothing else consumes
+							 * these topics, so without this they accumulate for ever.
+							 */
+							int skipped = mma.skipDeviceMessages(dbc.sd);
+							if(skipped > 0) {
+								GeneralUtilityMethods.log(log,
+									"Discarded " + skipped + " device messages that cannot be sent",
+									"device_message",
+									null);
+							}
 						}
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
