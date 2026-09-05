@@ -759,11 +759,41 @@ public class MessagingManagerApply {
 			// For each user send a notification to each of their devices
 			if(awsProperties != null && usersImpacted.size() > 0 && serverNames != null) {
 				EmitDeviceNotification emitDevice = new EmitDeviceNotification(awsProperties);
-				for(String user : usersImpacted.keySet()) {
-					for(String serverName : serverNames) {
-						emitDevice.notify(serverName, user);
+
+				/*
+				 * Count what was reached as well as what was attempted.  A device that never
+				 * registered, or registered under a host name this server does not look up,
+				 * is silent in every other way, so without this there is no way to say how
+				 * much of the fleet a refresh actually gets to.
+				 */
+				int devicesNotified = 0;
+				int usersWithDevices = 0;
+				StringBuilder perHost = new StringBuilder();
+
+				for(String serverName : serverNames) {
+					int hostDevices = 0;
+					int hostUsers = 0;
+					for(String user : usersImpacted.keySet()) {
+						int devices = emitDevice.notify(serverName, user);
+						if(devices > 0) {
+							hostUsers++;
+							hostDevices += devices;
+						}
 					}
-				}	
+					devicesNotified += hostDevices;
+					usersWithDevices += hostUsers;
+					if(perHost.length() > 0) {
+						perHost.append(", ");
+					}
+					perHost.append(serverName).append(" ").append(hostUsers).append(" users ")
+							.append(hostDevices).append(" devices");
+				}
+
+				String summary = usersImpacted.size() + " users impacted, "
+						+ usersWithDevices + " reached, "
+						+ devicesNotified + " devices (" + perHost + ")";
+				log.info("Device refresh: " + summary);
+				lm.writeLogOrganisation(sd, 0, "system", LogManager.DEVICE_REFRESH, summary, devicesNotified);
 			}
 
 		} catch (Exception e) {

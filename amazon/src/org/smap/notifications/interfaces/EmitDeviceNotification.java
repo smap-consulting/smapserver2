@@ -65,8 +65,12 @@ public class EmitDeviceNotification {
 
 	/*
 	 * Send a message to users registered with a server, name combo
+	 *
+	 * Returns the number of devices notified, so the caller can report how much of the
+	 * fleet it is actually reaching.  Zero means the user has no device registered under
+	 * this host name.
 	 */
-	public void notify(String server, String user) {
+	public int notify(String server, String user) {
 
 		// For testing on local host - can leave in final code
 		if(server.equals("localhost")) {
@@ -85,7 +89,10 @@ public class EmitDeviceNotification {
 			count++;
 			AttributeValue tokenAttr = item.get("registrationId");
 			String token = tokenAttr == null ? null : tokenAttr.s();
-			log.info("Token: " + token + " for " + server + ":" + user);
+			if(log.isLoggable(Level.FINE)) {
+				String shortToken = (token == null || token.length() < 10) ? token : token.substring(0, 10) + "...";
+				log.fine("Token: " + shortToken + " for " + server + ":" + user);
+			}
 
 			// Send the notification
 			Map<Platform, Map<String, MessageAttributeValue>> attrsMap = new HashMap<Platform, Map<String, MessageAttributeValue>> ();
@@ -95,7 +102,7 @@ public class EmitDeviceNotification {
 		}
 		
 		if(count == 0) {
-			log.info("Token not found for " + server + ":" + user);
+			log.fine("Token not found for " + server + ":" + user);
 		} else if(count > 1) {
 			// Delete old tokens
 			// This relies on tokens being returned in the reverse order to which they were added
@@ -110,6 +117,7 @@ public class EmitDeviceNotification {
 			*/
 		}
 
+		return count;
 	}
 
 }

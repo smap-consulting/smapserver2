@@ -54,6 +54,7 @@ public class LogManager {
 	public static String CREATE_PDF = "create pdf";
 	public static String DASHBOARD_VIEW = "dashboard view";
 	public static String DELETE = "delete";
+	public static String DEVICE_REFRESH = "device refresh";
 	public static String DSAR = "dsar";
 	public static String EMAIL = "email";
 	public static String EMAIL_TASK = "email task";
