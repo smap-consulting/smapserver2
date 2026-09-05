@@ -16,6 +16,7 @@ package tools;
  */
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,6 +37,16 @@ import tools.SampleMessageGenerator.Platform;
 public class AmazonSNSClientWrapper {
 
 	private static Logger log = Logger.getLogger(EmitNotifications.class.getName());
+
+	/*
+	 * An endpoint is stable for the life of a token, and creating one is a management call
+	 * with a far lower rate limit than publishing.  Shared users have thousands of devices,
+	 * so calling create for every device on every run is the expensive part of a refresh.
+	 * Bounded, as the estate has tens of thousands of tokens and this must not grow without
+	 * limit in a process that runs for months.
+	 */
+	private static final int MAX_CACHED_ENDPOINTS = 100000;
+	private static final ConcurrentHashMap<String, String> endpointArns = new ConcurrentHashMap<>();
 
 	private final SnsClient snsClient;
 	private final DeviceTable deviceTable;
@@ -94,6 +105,7 @@ public class AmazonSNSClientWrapper {
 			result = snsClient.publish(publishRequest.build());
 		} catch (EndpointDisabledException e) {
 			log.info("End point disabled " + endpointArn + " deleting. " + e.getMessage());
+			endpointArns.remove(platformToken);
 			deviceTable.deleteToken(platformToken);
 			deleteEndpoint(endpointArn);
 		} catch (Exception e) {
@@ -107,17 +119,31 @@ public class AmazonSNSClientWrapper {
 			Map<Platform, Map<String, MessageAttributeValue>> attrsMap, String platformApplicationArn,
 			String server) {
 
-		// Create an Endpoint. This corresponds to an app on a device.
 		try {
-			CreatePlatformEndpointResponse platformEndpointResult = createPlatformEndpoint(platform, "smap", // Custom
-																											// data
-					platformToken, platformApplicationArn);
+			// An endpoint corresponds to an app on a device, and does not change
+			String endpointArn = endpointArns.get(platformToken);
+			if (endpointArn == null) {
+				endpointArn = createPlatformEndpoint(platform, "smap", platformToken, platformApplicationArn)
+						.endpointArn();
+				if (endpointArns.size() >= MAX_CACHED_ENDPOINTS) {
+					endpointArns.clear();
+				}
+				endpointArns.put(platformToken, endpointArn);
+			}
 
-			// Publish a push notification to an Endpoint.
-			PublishResponse publishResult = publish(platformEndpointResult.endpointArn(), platform, attrsMap,
-					platformToken, server);
-			if (publishResult != null) {
-				log.info("Published! \n{MessageId=" + publishResult.messageId() + "}");
+			try {
+				// Publish a push notification to an Endpoint.
+				PublishResponse publishResult = publish(endpointArn, platform, attrsMap, platformToken, server);
+				if (publishResult != null) {
+					log.fine("Published {MessageId=" + publishResult.messageId() + "}");
+				}
+			} catch (Exception e) {
+				/*
+				 * Forget the endpoint rather than keep publishing to one that may no longer
+				 * exist.  The next run creates it again.
+				 */
+				endpointArns.remove(platformToken);
+				throw e;
 			}
 
 		} catch (Exception e) {
