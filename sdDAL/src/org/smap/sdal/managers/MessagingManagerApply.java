@@ -640,9 +640,15 @@ public class MessagingManagerApply {
 
 	/*
 	 * Apply any device messages - these are done as a single queue
+	 *
+	 * serverNames holds every host name that devices may have registered under.  A device
+	 * registers one row keyed by its token, carrying the single host from its configured
+	 * server URL, so a server reachable by more than one name has its devices split across
+	 * those names and each has to be looked up.  The sets are disjoint, so no device is
+	 * notified twice.
 	 */
 	public void applyDeviceMessages(Connection sd, Connection cResults, 
-			String serverName,  
+			ArrayList<String> serverNames,  
 			String awsProperties) {
 
 		ResultSet rs = null;
@@ -751,10 +757,12 @@ public class MessagingManagerApply {
 			}
 			
 			// For each user send a notification to each of their devices
-			if(awsProperties != null && usersImpacted.size() > 0) {
+			if(awsProperties != null && usersImpacted.size() > 0 && serverNames != null) {
 				EmitDeviceNotification emitDevice = new EmitDeviceNotification(awsProperties);
 				for(String user : usersImpacted.keySet()) {
-					emitDevice.notify(serverName, user);
+					for(String serverName : serverNames) {
+						emitDevice.notify(serverName, user);
+					}
 				}	
 			}
 

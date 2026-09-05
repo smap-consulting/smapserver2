@@ -2,6 +2,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -99,6 +100,11 @@ public class SubscriberBatch {
 	boolean forDevice = false;			// URL prefixes should be in the client format
 	int infrequentRefreshInterval = 0;	// Only refresh timezone when this gets to 0, do it first time the batch job is run
 	int deviceRefreshInterval = 10;		// Only refresh devices once every 10 times through
+	String reportedDeviceServerNames = null;	// Report the device host names only when they change
+	ArrayList<String> cachedDeviceServerNames = null;	// Host names derived from submissions
+	long deviceServerNamesCachedAt = 0;
+	static final long DEVICE_SERVER_NAMES_TTL_MS = 3600000L;	// Host names change very rarely
+	static final int DEVICE_SERVER_NAMES_SAMPLE = 10000;	// Recent uploads to take the host names from
 
 	/**
 	 * @param args
@@ -426,7 +432,8 @@ public class SubscriberBatch {
 						File pFile = new File(basePath + "_bin/resources/properties/aws.properties");
 						if (pFile.exists()) {
 							awsPropertiesFile = pFile.getAbsolutePath();
-							mma.applyDeviceMessages(dbc.sd, dbc.results, serverName, 
+							mma.applyDeviceMessages(dbc.sd, dbc.results, 
+									getDeviceServerNames(basePath, dbc.sd, serverName), 
 									awsPropertiesFile);
 						} else {
 							GeneralUtilityMethods.log(log, 
@@ -641,6 +648,134 @@ public class SubscriberBatch {
 
 	}
 	
+	/*
+	 * The host names that devices registered themselves under
+	 *
+	 * A device records the host from its configured server URL, so a server reachable by
+	 * more than one name has its devices split across those names and every one has to be
+	 * looked up.  Derived from the hosts that have actually received submissions, so a new
+	 * name works as soon as one device uploads to it and nobody has to maintain a list.
+	 *
+	 * settings/device_hostnames overrides that, for a host that only ever serves downloads
+	 * or that differs in case or port from what devices recorded.  One per line or
+	 * separated by commas.  Not settings/hostname: that is this process's own identity for
+	 * worker_host, and Manager.getHostname and bu.sh both read it as a single value.
+	 */
+	private ArrayList<String> getDeviceServerNames(String basePath, Connection sd, String submissionServer) {
+
+		ArrayList<String> names = readDeviceHostnamesFile(basePath);
+		String source = "settings/device_hostnames";
+
+		if(names.size() == 0) {
+			names = getSubmissionServerNames(sd);
+			source = "the last " + DEVICE_SERVER_NAMES_SAMPLE + " submissions";
+		}
+
+		if(names.size() == 0) {
+			/*
+			 * Nothing has submitted, so fall back to the server name of the most recent
+			 * upload.  That is what this used to do always, and on a server with more than
+			 * one name it is whichever host submitted last.
+			 */
+			names.add(submissionServer);
+			source = "the last upload, no other source available";
+		}
+
+		// Report on the first run and whenever the set changes, not every time through
+		String report = source + ": " + String.join(", ", names);
+		if(!report.equals(reportedDeviceServerNames)) {
+			GeneralUtilityMethods.log(log, "Device host names from " + report, "device_message", null);
+			reportedDeviceServerNames = report;
+		}
+
+		return names;
+	}
+
+	/*
+	 * Host names listed by an administrator, empty if the file is absent or blank
+	 */
+	private ArrayList<String> readDeviceHostnamesFile(String basePath) {
+
+		ArrayList<String> names = new ArrayList<> ();
+
+		try {
+			File hostFile = new File(basePath + "/settings/device_hostnames");
+			if(hostFile.exists()) {
+				for(String line : Files.readAllLines(hostFile.toPath())) {
+					for(String name : line.split(",")) {
+						name = name.trim();
+						// A host may be listed twice, and one lookup for it is enough
+						if(name.length() > 0 && !names.contains(name)) {
+							names.add(name);
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Reading " + basePath + "/settings/device_hostnames", e);
+		}
+
+		return names;
+	}
+
+	/*
+	 * The hosts that devices have submitted to recently
+	 *
+	 * Taken from a fixed number of the most recent uploads rather than from a period, so
+	 * the work does not grow with the submission history.  A distinct over even a few days
+	 * of uploads is a scan of most of a large upload_event; walking the primary key
+	 * backwards for a bounded sample costs the same on any size of database.
+	 *
+	 * A host that appears in fewer than one in DEVICE_SERVER_NAMES_SAMPLE uploads may be
+	 * missed.  That is what settings/device_hostnames is for.
+	 *
+	 * Cached, as the answer changes only when a server gains or loses a name.
+	 */
+	private ArrayList<String> getSubmissionServerNames(Connection sd) {
+
+		long now = System.currentTimeMillis();
+		if(cachedDeviceServerNames != null && now - deviceServerNamesCachedAt < DEVICE_SERVER_NAMES_TTL_MS) {
+			return cachedDeviceServerNames;
+		}
+
+		ArrayList<String> names = new ArrayList<> ();
+		String sql = "select distinct server_name from ("
+				+ "select server_name "
+				+ "from upload_event "
+				+ "order by ue_id desc "
+				+ "limit ?"
+				+ ") as recent "
+				+ "where server_name is not null";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, DEVICE_SERVER_NAMES_SAMPLE);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String name = rs.getString(1);
+				if(name != null) {
+					name = name.trim();
+					if(name.length() > 0 && !names.contains(name)) {
+						names.add(name);
+					}
+				}
+			}
+			cachedDeviceServerNames = names;
+			deviceServerNamesCachedAt = now;
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Reading submission host names", e);
+			// Leave any earlier answer in place rather than losing notifications on one bad query
+			if(cachedDeviceServerNames != null) {
+				return cachedDeviceServerNames;
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+
+		return names;
+	}
+
 	/*
 	 * Erase deleted Survey templates more than a specified number of days old
 	 */
