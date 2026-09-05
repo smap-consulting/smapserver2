@@ -81,12 +81,27 @@ public class SampleMessageGenerator {
 		return jsonify(kindleMessageMap);
 	}
 
+	/*
+	 * How long FCM should keep trying to deliver a refresh to a device that is offline
+	 *
+	 * This was 125 seconds against a send interval of about 11 minutes, and nothing retries
+	 * a message once sent, so a device out of coverage for two minutes lost the refresh for
+	 * good.  Field devices are offline routinely.  All refreshes share a collapse key, so a
+	 * device that has been away for a while gets one refresh on reconnect rather than a
+	 * backlog, and a long life here costs nothing.
+	 */
+	private static final int REFRESH_TIME_TO_LIVE_SECS = 4 * 60 * 60;
+
 	public static String getSampleAndroidMessage() {
 		Map<String, Object> androidMessageMap = new HashMap<String, Object>();
 		androidMessageMap.put("collapse_key", "Welcome");
 		androidMessageMap.put("data", getData());
-		androidMessageMap.put("delay_while_idle", true);
-		androidMessageMap.put("time_to_live", 125);
+		/*
+		 * Without this FCM treats a data only message as normal priority and holds it while
+		 * the device is in doze, which the old two minute life then outlived.
+		 */
+		androidMessageMap.put("priority", "high");
+		androidMessageMap.put("time_to_live", REFRESH_TIME_TO_LIVE_SECS);
 		androidMessageMap.put("dry_run", false);
 		return jsonify(androidMessageMap);
 	}
