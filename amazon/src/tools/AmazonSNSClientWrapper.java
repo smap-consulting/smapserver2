@@ -57,7 +57,8 @@ public class AmazonSNSClientWrapper {
 	}
 
 	private PublishResponse publish(String endpointArn, Platform platform,
-			Map<Platform, Map<String, MessageAttributeValue>> attributesMap, String platformToken) {
+			Map<Platform, Map<String, MessageAttributeValue>> attributesMap, String platformToken,
+			String server) {
 
 		PublishRequest.Builder publishRequest = PublishRequest.builder();
 		Map<String, MessageAttributeValue> notificationAttributes = getValidNotificationAttributes(
@@ -68,7 +69,7 @@ public class AmazonSNSClientWrapper {
 		publishRequest.messageStructure("json");
 		// If the message attributes are not set in the requisite method,
 		// notification is sent with default attributes
-		String message = getPlatformSampleMessage(platform);
+		String message = getPlatformSampleMessage(platform, server);
 		Map<String, String> messageMap = new HashMap<String, String>();
 		messageMap.put(platform.name(), message);
 		message = SampleMessageGenerator.jsonify(messageMap);
@@ -103,7 +104,8 @@ public class AmazonSNSClientWrapper {
 	}
 
 	public void sendNotification(Platform platform, String platformToken,
-			Map<Platform, Map<String, MessageAttributeValue>> attrsMap, String platformApplicationArn) {
+			Map<Platform, Map<String, MessageAttributeValue>> attrsMap, String platformApplicationArn,
+			String server) {
 
 		// Create an Endpoint. This corresponds to an app on a device.
 		try {
@@ -113,7 +115,7 @@ public class AmazonSNSClientWrapper {
 
 			// Publish a push notification to an Endpoint.
 			PublishResponse publishResult = publish(platformEndpointResult.endpointArn(), platform, attrsMap,
-					platformToken);
+					platformToken, server);
 			if (publishResult != null) {
 				log.info("Published! \n{MessageId=" + publishResult.messageId() + "}");
 			}
@@ -123,16 +125,16 @@ public class AmazonSNSClientWrapper {
 		}
 	}
 
-	private String getPlatformSampleMessage(Platform platform) {
+	private String getPlatformSampleMessage(Platform platform, String server) {
 		switch (platform) {
 		case APNS:
 			return SampleMessageGenerator.getSampleAppleMessage();
 		case APNS_SANDBOX:
 			return SampleMessageGenerator.getSampleAppleMessage();
 		case GCM:
-			return SampleMessageGenerator.getSampleAndroidMessage();
+			return SampleMessageGenerator.getSampleAndroidMessage(server);
 		case ADM:
-			return SampleMessageGenerator.getSampleKindleMessage();
+			return SampleMessageGenerator.getSampleKindleMessage(server);
 		case BAIDU:
 			return SampleMessageGenerator.getSampleBaiduMessage();
 		case WNS:

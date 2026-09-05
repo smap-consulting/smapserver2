@@ -57,9 +57,24 @@ public class SampleMessageGenerator {
 		}
 	}
 
-	private static Map<String, String> getData() {
+	/*
+	 * The device ignores the message itself and just refreshes, but it needs to know which
+	 * server asked.  A device registers against one server at a time, and a server looks up
+	 * every host name it answers to, so a device that has been pointed somewhere else since
+	 * the row was written can still be sent a refresh that is not for it.
+	 */
+	private static Map<String, String> getData(String server) {
 		Map<String, String> payload = new HashMap<String, String>();
-		payload.put("message", "Hello World!");
+		/*
+		 * FieldTask 5 ignores this and just refreshes.  Kept, with the sample text it
+		 * arrived with replaced, only because FieldTask 4 devices are still in the field
+		 * sharing the same registrations and it is not known whether they read it.  Drop it
+		 * once they are gone or confirmed not to care.
+		 */
+		payload.put("message", "refresh");
+		if(server != null) {
+			payload.put("server", server);
+		}
 		return payload;
 	}
 
@@ -73,9 +88,9 @@ public class SampleMessageGenerator {
 		return jsonify(appleMessageMap);
 	}
 
-	public static String getSampleKindleMessage() {
+	public static String getSampleKindleMessage(String server) {
 		Map<String, Object> kindleMessageMap = new HashMap<String, Object>();
-		kindleMessageMap.put("data", getData());
+		kindleMessageMap.put("data", getData(server));
 		kindleMessageMap.put("consolidationKey", "Welcome");
 		kindleMessageMap.put("expiresAfter", 1000);
 		return jsonify(kindleMessageMap);
@@ -92,10 +107,10 @@ public class SampleMessageGenerator {
 	 */
 	private static final int REFRESH_TIME_TO_LIVE_SECS = 4 * 60 * 60;
 
-	public static String getSampleAndroidMessage() {
+	public static String getSampleAndroidMessage(String server) {
 		Map<String, Object> androidMessageMap = new HashMap<String, Object>();
 		androidMessageMap.put("collapse_key", "Welcome");
-		androidMessageMap.put("data", getData());
+		androidMessageMap.put("data", getData(server));
 		/*
 		 * Without this FCM treats a data only message as normal priority and holds it while
 		 * the device is in doze, which the old two minute life then outlived.

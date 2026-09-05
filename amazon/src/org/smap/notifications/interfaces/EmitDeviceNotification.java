@@ -89,7 +89,7 @@ public class EmitDeviceNotification {
 
 			// Send the notification
 			Map<Platform, Map<String, MessageAttributeValue>> attrsMap = new HashMap<Platform, Map<String, MessageAttributeValue>> ();
-			snsClientWrapper.sendNotification(Platform.GCM, token, attrsMap, platformApplicationArn);
+			snsClientWrapper.sendNotification(Platform.GCM, token, attrsMap, platformApplicationArn, server);
 			
 			//obsoleteTokens.add(token);
 		}
