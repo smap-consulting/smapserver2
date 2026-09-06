@@ -933,7 +933,8 @@ CREATE TABLE question (
 	autoplay text,
 	accuracy text,						-- gps accuracy at which a reading is automatically accepted
 	linked_target text,					-- Id of a survey whose hrk is populated here
-	compressed boolean default false,	-- Will put all answers to select multiples into a single column
+	compressed boolean default true,	-- Will put all answers to select multiples into a single column
+										-- False is the pre-2016 layout: one results column per option
 	external_choices text,				-- Set to yes if choices are external
 	external_table text,				-- The table containing the external choices
 	intent text,						-- ODK intent attribute

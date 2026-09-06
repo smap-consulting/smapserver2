@@ -631,3 +631,11 @@ alter table message add column if not exists first_deferred timestamptz;
 -- against a relay that is rate limiting us is both pointless and the reason the limit stays
 -- in force.  Hold it until the time whoever deferred it said to come back.
 alter table message add column if not exists retry_after timestamptz;
+
+-- Version 26.09 Default select multiple storage to a single column
+-- Per option results columns were replaced by one space separated column around ten years ago
+-- and QuestionManager has set compressed true on every question it inserts ever since.  The
+-- column default was never moved, so any code path that inserts a question without naming the
+-- flag silently builds a survey in the old layout.  Existing rows are left alone: a survey with
+-- compressed false has its data in per option columns and must keep reading it there.
+alter table question alter column compressed set default true;
