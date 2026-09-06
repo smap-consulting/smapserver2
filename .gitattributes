@@ -1,1 +1,22 @@
 * text=auto
+
+# 45 files predate the line above and are still stored CRLF in the index, including
+# 39 .java and setup/install/setupDb.sql, while setup/deploy/sd.sql beside it is LF.
+# Git will not renormalise a blob already committed as CRLF, so they stay as they are
+# and an edit to one of them still diffs as an edit rather than a whole-file rewrite.
+# To clean them up, do it deliberately and on its own commit:  git add --renormalize .
+
+# Binary formats: never diff, never convert.
+*.jar   binary
+*.ttf   binary
+*.png   binary
+*.webp  binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.xls   binary
+*.xlsx  binary
+*.zip   binary
+*.gz    binary
