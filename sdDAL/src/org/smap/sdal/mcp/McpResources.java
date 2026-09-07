@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Survey;
@@ -35,6 +36,13 @@ public class McpResources {
 	public static final String SCHEME = "smap://";
 
 	/*
+	 * Base64 costs about a third again on top of the file, and the whole thing has to sit in one
+	 * JSON-RPC response and then in a model's context. A survey photo is usually well under this;
+	 * anything over it is reported with the URL to fetch instead.
+	 */
+	private static final long MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+
+	/*
 	 * Held so the tool catalogue can be rendered from what is actually registered rather than from
 	 * a description of it kept somewhere else
 	 */
@@ -51,18 +59,28 @@ public class McpResources {
 		public final String uri;
 		public final String mimeType;
 		public final String text;
+		public final String blob;		// base64, for anything that is not text
 
 		Content(String uri, String mimeType, String text) {
+			this(uri, mimeType, text, null);
+		}
+
+		Content(String uri, String mimeType, String text, String blob) {
 			this.uri = uri;
 			this.mimeType = mimeType;
 			this.text = text;
+			this.blob = blob;
 		}
 
 		public Map<String, Object> toMap() {
 			Map<String, Object> m = new LinkedHashMap<>();
 			m.put("uri", uri);
 			m.put("mimeType", mimeType);
-			m.put("text", text);
+			if(blob != null) {
+				m.put("blob", blob);
+			} else {
+				m.put("text", text);
+			}
 			return m;
 		}
 	}
@@ -89,6 +107,10 @@ public class McpResources {
 		templates.add(template("smap://record/{ident}/{instanceId}", "One submitted record",
 				"A single record and its repeating groups, addressed by instance id.",
 				"application/json"));
+		templates.add(template("smap://attachment/{ident}/{instanceId}/{question}",
+				"An attachment on a record",
+				"A photo, audio or other file submitted with a record. The question name is the "
+				+ "column it was answered into, as returned by survey_data.", null));
 		return templates;
 	}
 
@@ -132,6 +154,9 @@ public class McpResources {
 		}
 		if(parts.length == 3 && "record".equals(parts[0])) {
 			return record(ctx, parts[1], parts[2]);
+		}
+		if(parts.length == 4 && "attachment".equals(parts[0])) {
+			return attachment(ctx, parts[1], parts[2], parts[3]);
 		}
 		throw new IllegalArgumentException("Unknown resource: " + uri);
 	}
@@ -180,6 +205,116 @@ public class McpResources {
 		Object entity = response.getEntity();
 		return new Content("smap://record/" + ident + "/" + instanceId, "application/json",
 				entity == null ? "[]" : entity.toString());
+	}
+
+	/*
+	 * One attachment, as bytes the client can actually look at.
+	 *
+	 * The alternative, which is what the data tool returns, is a URL under /app/attachments. That
+	 * is behind form authentication, so a client holding a bearer token cannot fetch it: it can see
+	 * that a record has a photo and never see the photo. Serving it here, through the endpoint the
+	 * client is already authenticated to, is the only way a model gets to look at one.
+	 *
+	 * The client names the survey, the record and the question. It never supplies a path. The
+	 * server looks the stored filename up itself, so there is no user supplied path to traverse
+	 * with, which is the failure mode a file serving endpoint usually has.
+	 *
+	 * This is also stricter than the existing /attachments location, which authenticates the caller
+	 * but does not check they may see the record the file belongs to.
+	 */
+	private Content attachment(McpToolContext ctx, String ident, String instanceId, String question)
+			throws Exception {
+
+		Survey survey = findSurvey(ctx, ident);
+
+		String table = GeneralUtilityMethods.getMainResultsTable(ctx.sd, ctx.cResults, survey.getId());
+		if(table == null) {
+			throw new IllegalArgumentException("That survey has no data");
+		}
+
+		/*
+		 * A column name cannot be a bind variable, so it is checked against the table's own columns
+		 * before being used. Belt and braces: the character check alone would be enough to stop
+		 * injection, and the existence check stops a caller probing for columns.
+		 */
+		if(!question.matches("[a-z0-9_]{1,64}")) {
+			throw new IllegalArgumentException("Not a question name: " + question);
+		}
+		if(!columnExists(ctx, table, question)) {
+			throw new IllegalArgumentException("No question called " + question + " in that survey");
+		}
+
+		String stored = null;
+		String sql = "select " + question + " from " + table
+				+ " where instanceid = ? and not coalesce(_bad, false)";
+		try (java.sql.PreparedStatement pstmt = ctx.cResults.prepareStatement(sql)) {
+			pstmt.setString(1, instanceId);
+			java.sql.ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				stored = rs.getString(1);
+			}
+		}
+		if(stored == null || stored.trim().length() == 0) {
+			throw new IllegalArgumentException("That record has no attachment for " + question);
+		}
+
+		java.io.File base = new java.io.File(
+				org.smap.sdal.Utilities.GeneralUtilityMethods.getBasePath(ctx.request));
+		java.io.File file = new java.io.File(base, stored);
+
+		/*
+		 * The value came from the database rather than from the caller, but it got there from an
+		 * upload, so it is still checked to be under the attachments directory before anything is
+		 * read from disk.
+		 */
+		String attachments = new java.io.File(base, "attachments").getCanonicalPath();
+		if(!file.getCanonicalPath().startsWith(attachments + java.io.File.separator)) {
+			log.warning("Attachment path outside the attachments directory: " + stored);
+			throw new IllegalArgumentException("That attachment cannot be read");
+		}
+		if(!file.exists()) {
+			throw new IllegalArgumentException("That attachment is no longer on this server");
+		}
+		if(file.length() > MAX_ATTACHMENT_BYTES) {
+			throw new IllegalArgumentException("That attachment is "
+					+ (file.length() / (1024 * 1024)) + "MB, too large to return. Fetch it from "
+					+ org.smap.sdal.Utilities.GeneralUtilityMethods.getAttachmentPrefix(ctx.request, false)
+					+ stored);
+		}
+
+		byte[] bytes = java.nio.file.Files.readAllBytes(file.toPath());
+		return new Content("smap://attachment/" + ident + "/" + instanceId + "/" + question,
+				mimeType(stored), null, java.util.Base64.getEncoder().encodeToString(bytes));
+	}
+
+	private boolean columnExists(McpToolContext ctx, String table, String column) throws Exception {
+		String sql = "select count(*) from information_schema.columns "
+				+ "where table_name = ? and column_name = ?";
+		try (java.sql.PreparedStatement pstmt = ctx.cResults.prepareStatement(sql)) {
+			pstmt.setString(1, table);
+			pstmt.setString(2, column);
+			java.sql.ResultSet rs = pstmt.executeQuery();
+			return rs.next() && rs.getInt(1) > 0;
+		}
+	}
+
+	/*
+	 * From the file name. The stored value is what the device uploaded, so the extension is the
+	 * only thing there is to go on, and an unknown one is reported as bytes rather than guessed at.
+	 */
+	private String mimeType(String path) {
+		String lower = path.toLowerCase();
+		if(lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+		if(lower.endsWith(".png")) return "image/png";
+		if(lower.endsWith(".gif")) return "image/gif";
+		if(lower.endsWith(".webp")) return "image/webp";
+		if(lower.endsWith(".mp4")) return "video/mp4";
+		if(lower.endsWith(".mp3")) return "audio/mpeg";
+		if(lower.endsWith(".m4a")) return "audio/mp4";
+		if(lower.endsWith(".3gp")) return "audio/3gpp";
+		if(lower.endsWith(".pdf")) return "application/pdf";
+		if(lower.endsWith(".txt")) return "text/plain";
+		return "application/octet-stream";
 	}
 
 	/*

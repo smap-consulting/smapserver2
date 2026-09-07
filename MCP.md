@@ -54,9 +54,19 @@ needed.
 | `smap://docs/tools` | What this connection can do, generated from the registry |
 | `smap://survey/{ident}/definition` | One survey's questions, options and settings |
 | `smap://record/{ident}/{instanceId}` | One submitted record and its repeating groups |
+| `smap://attachment/{ident}/{instanceId}/{question}` | A photo, audio or other file on a record, returned as bytes |
 
 Survey idents complete through `completion/complete`, so a client can offer them rather than having
 the model guess.
+
+Attachments are served here rather than linked, because the URLs in survey data point at
+`/app/attachments`, which is behind form authentication and cannot be fetched by a client holding a
+bearer token. The client names the survey, the record and the question and never supplies a path,
+so there is nothing to traverse with; the server looks the stored filename up itself and checks it
+resolves inside the attachments directory. This is stricter than `/app/attachments`, which
+authenticates the caller but does not check they may see the record. Anything over 5MB is reported
+with a URL rather than returned, because base64 costs a third again and it all has to fit in a
+model's context.
 
 ## Coverage against the console
 
