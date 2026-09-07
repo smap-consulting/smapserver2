@@ -21,6 +21,12 @@ import org.smap.sdal.model.MCPToolResult;
  * every user of the JVM.  Under the 2026-07-28 protocol there is nothing to hold: no handshake, no
  * session, and every request carries its own protocol version and capabilities.  So this class has
  * no mutable state at all, which is also what lets a Smap server sit behind a plain load balancer.
+ *
+ * Older revisions are still answered.  They open with an initialize handshake and then never
+ * mention the protocol version again, so a request without it in _meta is an older client rather
+ * than a malformed one.  The specification does say a 2026-07-28 request missing that field must be
+ * refused, but there is no way to tell the two apart, and refusing both would mean refusing every
+ * client that exists today.  Revisit when the twelve month deprecation window closes.
  */
 public class McpDispatcher {
 
@@ -68,13 +74,12 @@ public class McpDispatcher {
 			return null;
 		}
 
-		String versionError = checkMeta(request);
-		if(versionError != null) {
-			return error(request.getId(), McpProtocol.INVALID_PARAMS, versionError);
-		}
+
 
 		try {
 			switch(method) {
+			case "initialize":
+				return ok(request.getId(), initialize(request));
 			case "ping":
 				return ok(request.getId(), new HashMap<String, Object>());
 			case "server/discover":
@@ -101,44 +106,62 @@ public class McpDispatcher {
 	}
 
 	/*
-	 * Every request carries its own protocol version and capabilities, and a request missing either
-	 * is malformed rather than something to guess at.
+	 * The handshake older revisions open with.  2026-07-28 has no equivalent - there is nothing to
+	 * establish, because every request stands alone - so a client that sends this is telling us
+	 * which older revision it speaks.
 	 */
-	private String checkMeta(MCPRequest request) {
+	private Map<String, Object> initialize(MCPRequest request) {
 
-		Map<String, Object> meta = meta(request);
-		Object version = meta.get(McpProtocol.META_PROTOCOL_VERSION);
-		if(version == null) {
-			return "Missing " + McpProtocol.META_PROTOCOL_VERSION + " in _meta";
-		}
-		if(!meta.containsKey(McpProtocol.META_CLIENT_CAPABILITIES)) {
-			return "Missing " + McpProtocol.META_CLIENT_CAPABILITIES + " in _meta";
-		}
-		return null;
-	}
-
-	@SuppressWarnings("unchecked")
-	private Map<String, Object> meta(MCPRequest request) {
+		String asked = null;
 		Map<String, Object> params = request.getParams();
-		if(params != null && params.get("_meta") instanceof Map) {
-			return (Map<String, Object>) params.get("_meta");
+		if(params != null && params.get("protocolVersion") != null) {
+			asked = params.get("protocolVersion").toString();
 		}
-		return new HashMap<>();
+
+		/*
+		 * Answer in the version the client asked for when we speak it, so it does not have to
+		 * downgrade.  Otherwise name ours and let the client decide whether it can continue.
+		 */
+		String agreed = McpProtocol.isSupported(asked) ? asked : McpProtocol.VERSION;
+		if(asked != null && !agreed.equals(asked)) {
+			log.info("MCP client asked for protocol " + asked + ", answering with " + agreed);
+		}
+
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("protocolVersion", agreed);
+		result.put("capabilities", capabilities());
+
+		Map<String, Object> serverInfo = new LinkedHashMap<>();
+		serverInfo.put("name", McpProtocol.SERVER_NAME);
+		serverInfo.put("version", McpProtocol.VERSION);
+		result.put("serverInfo", serverInfo);
+
+		result.put("instructions", "Smap survey server. Call whoami first to see which user this "
+				+ "connection acts as and what it is allowed to do. Use survey_list to find a "
+				+ "survey id before reading its data.");
+		return result;
 	}
 
-	private Map<String, Object> discover() {
-		Map<String, Object> result = new LinkedHashMap<>();
-		result.put("protocolVersion", McpProtocol.VERSION);
-
+	private Map<String, Object> capabilities() {
 		Map<String, Object> capabilities = new LinkedHashMap<>();
 		Map<String, Object> tools = new LinkedHashMap<>();
 		/*
-		 * The tool list does not change under a caller, and telling a client otherwise would have
-		 * it open a subscription stream this server does not yet answer.
+		 * The tool list does not change under a caller, and saying otherwise would have a client
+		 * open a subscription stream this server does not yet answer.
 		 */
 		tools.put("listChanged", Boolean.FALSE);
 		capabilities.put("tools", tools);
-		result.put("capabilities", capabilities);
+		return capabilities;
+	}
+
+	/*
+	 * The 2026-07-28 replacement for initialize.  Optional, and asks nothing of the client, because
+	 * a stateless protocol has no handshake to complete.
+	 */
+	private Map<String, Object> discover() {
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("protocolVersion", McpProtocol.VERSION);
+		result.put("capabilities", capabilities());
 		return result;
 	}
 

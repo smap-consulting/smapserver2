@@ -12,6 +12,21 @@ public class McpProtocol {
 
 	public static final String VERSION = "2026-07-28";
 
+	/*
+	 * Revisions this server will speak, newest first.
+	 *
+	 * 2026-07-28 removed the initialize handshake and moved the protocol version into each
+	 * request's _meta, but it also set a twelve month deprecation window, and the clients in the
+	 * field today still open with initialize.  Refusing them would be reading the specification
+	 * correctly and being useless.
+	 */
+	public static final java.util.List<String> SUPPORTED_VERSIONS = java.util.Arrays.asList(
+			"2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05");
+
+	public static boolean isSupported(String version) {
+		return version != null && SUPPORTED_VERSIONS.contains(version);
+	}
+
 	public static final String SERVER_NAME = "Smap";
 
 	/* Reserved _meta keys, from the specification */
