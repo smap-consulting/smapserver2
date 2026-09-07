@@ -265,7 +265,11 @@ alter table server add column if not exists api_max_records integer default 0;
 
 -- Performance improvement to get tasks
 CREATE INDEX idx_tasks_tg_schedule_desc ON tasks(tg_id, schedule_at DESC);
-delete from groups where id = 15;
+-- Removed 2026-09-07.  This deleted the mcp access group, which was added prematurely and then
+-- withdrawn.  Group 15 is now created deliberately further down this file, and because this whole
+-- file is applied on every upgrade, the line ran every time: user_group.g_id cascades on delete, so
+-- each upgrade silently emptied the group of all its members and then recreated it empty.
+-- delete from groups where id = 15;
 
 -- Cloudflare Turnstile anti-bot support
 alter table server add column if not exists turnstile_site_key text;
