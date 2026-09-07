@@ -46,6 +46,21 @@ public class SurveyDataTool extends AbstractMcpTool {
 	}
 
 	@Override
+	public Map<String, Object> getOutputSchema() {
+		Map<String, Object> records = new java.util.LinkedHashMap<>();
+		records.put("type", "array");
+		records.put("description", "One entry per submitted record");
+
+		Map<String, Object> properties = new java.util.LinkedHashMap<>();
+		properties.put("records", records);
+
+		Map<String, Object> schema = new java.util.LinkedHashMap<>();
+		schema.put("type", "object");
+		schema.put("properties", properties);
+		return schema;
+	}
+
+	@Override
 	public Map<String, Object> getInputSchema() {
 		Map<String, Object> schema = schema(
 				"survey_id", property("integer", "The survey to read, from survey_list"),
@@ -108,11 +123,19 @@ public class SurveyDataTool extends AbstractMcpTool {
 		String json = entity == null ? "[]" : entity.toString();
 
 		MCPToolResult result = new MCPToolResult(json);
+
 		/*
-		 * The data manager has already produced JSON, so it is handed back as the structured half
-		 * of the result too rather than being parsed and rebuilt just to change its type.
+		 * Wrapped in an object rather than handed back as the bare array the data manager produced.
+		 *
+		 * 2026-07-28 allows structuredContent to be any JSON value, array included, but every
+		 * revision before it requires an object, and clients still negotiate those.  One that does
+		 * rejects the whole response before the caller sees any of it, which reads as the tool
+		 * being broken rather than as a protocol disagreement.  An object costs nothing and is
+		 * accepted by both.
 		 */
-		result.setStructuredContent(new com.google.gson.Gson().fromJson(json, Object.class));
+		Map<String, Object> structured = new java.util.LinkedHashMap<>();
+		structured.put("records", new com.google.gson.Gson().fromJson(json, Object.class));
+		result.setStructuredContent(structured);
 		return result;
 	}
 }
