@@ -38,7 +38,9 @@ public class SurveyDataTool extends AbstractMcpTool {
 	public String getDescription() {
 		return "Returns the submitted records for one survey, including any repeating groups. "
 				+ "Use survey_list first to find the survey id. Give an instance id to fetch a "
-				+ "single record.";
+				+ "single record. Attachments appear as https URLs that need a browser login; to "
+				+ "look at one, read the resource smap://attachment/{survey ident}/{file}, which "
+				+ "is the part of that URL after /attachments/.";
 	}
 
 	@Override

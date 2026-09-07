@@ -153,10 +153,11 @@ public class McpResources {
 		templates.add(template("smap://record/{ident}/{instanceId}", "One submitted record",
 				"A single record and its repeating groups, addressed by instance id.",
 				"application/json"));
-		templates.add(template("smap://attachment/{ident}/{instanceId}/{question}",
+		templates.add(template("smap://attachment/{ident}/{file}",
 				"An attachment on a record",
-				"A photo, audio or other file submitted with a record. The question name is the "
-				+ "column it was answered into, as returned by survey_data.", null));
+				"A photo, audio or other file submitted with a record. Take the part of the "
+				+ "attachment URL in survey data after /attachments/ and put smap://attachment/ "
+				+ "in front of it.", null));
 		return templates;
 	}
 
@@ -201,10 +202,13 @@ public class McpResources {
 		if(parts.length == 3 && "record".equals(parts[0])) {
 			return record(ctx, parts[1], parts[2]);
 		}
-		if(parts.length == 4 && "attachment".equals(parts[0])) {
-			return attachment(ctx, parts[1], parts[2], parts[3]);
+		if(parts.length >= 3 && "attachment".equals(parts[0])) {
+			String file = String.join("/", Arrays.copyOfRange(parts, 2, parts.length));
+			return attachment(ctx, parts[1], file);
 		}
-		throw new IllegalArgumentException("Unknown resource: " + uri);
+		throw new IllegalArgumentException("Not a resource this server serves: " + uri
+				+ ". Expected smap://docs/tools, smap://survey/{ident}/definition, "
+				+ "smap://record/{ident}/{instanceId} or smap://attachment/{ident}/{file}");
 	}
 
 	/* ------------------------------------------------------------------ readers */
@@ -256,92 +260,62 @@ public class McpResources {
 	/*
 	 * One attachment, as bytes the client can actually look at.
 	 *
-	 * The alternative, which is what the data tool returns, is a URL under /app/attachments. That
-	 * is behind form authentication, so a client holding a bearer token cannot fetch it: it can see
+	 * The alternative, which is what the data tool returns, is a URL under /app/attachments. That is
+	 * behind form authentication, so a client holding a bearer token cannot fetch it: it can see
 	 * that a record has a photo and never see the photo. Serving it here, through the endpoint the
 	 * client is already authenticated to, is the only way a model gets to look at one.
 	 *
-	 * The client names the survey, the record and the question. It never supplies a path. The
-	 * server looks the stored filename up itself, so there is no user supplied path to traverse
-	 * with, which is the failure mode a file serving endpoint usually has.
+	 * Addressed the way the data presents it. Attachments are stored at attachments/<ident>/<file>,
+	 * and that is what appears in the URL survey data returns, so the resource uri is the same thing
+	 * with smap://attachment/ in front. An earlier version asked for the instance id and the
+	 * question name instead, which was a worse fit for what a model has in its hands after reading
+	 * data - it holds the URL, not the column the answer went into - and it collided with the
+	 * thumbs subdirectory.
 	 *
-	 * This is also stricter than the existing /attachments location, which authenticates the caller
-	 * but does not check they may see the record the file belongs to.
+	 * The survey ident is the first segment, which is what authorises the read: the survey has to be
+	 * one this caller could have listed. That makes this stricter than /app/attachments, which
+	 * authenticates a caller but does not check they may see the survey the file belongs to.
 	 */
-	private Content attachment(McpToolContext ctx, String ident, String instanceId, String question)
-			throws Exception {
+	private Content attachment(McpToolContext ctx, String ident, String file) throws Exception {
 
-		Survey survey = findSurvey(ctx, ident);
-
-		String table = GeneralUtilityMethods.getMainResultsTable(ctx.sd, ctx.cResults, survey.getId());
-		if(table == null) {
-			throw new IllegalArgumentException("That survey has no data");
-		}
+		findSurvey(ctx, ident);		// Throws unless the caller can see this survey
 
 		/*
-		 * A column name cannot be a bind variable, so it is checked against the table's own columns
-		 * before being used. Belt and braces: the character check alone would be enough to stop
-		 * injection, and the existence check stops a caller probing for columns.
+		 * The file part comes from the caller, so it is checked rather than trusted. The character
+		 * set excludes a backslash and the segment check excludes any way back up the tree; the
+		 * canonical path is then confirmed to be inside this survey's own directory, so even a
+		 * traversal that got past both would land nowhere useful.
 		 */
-		if(!question.matches("[a-z0-9_]{1,64}")) {
-			throw new IllegalArgumentException("Not a question name: " + question);
+		if(file.isEmpty() || !file.matches("[A-Za-z0-9._/-]{1,255}")) {
+			throw new IllegalArgumentException("Not an attachment name: " + file);
 		}
-		if(!columnExists(ctx, table, question)) {
-			throw new IllegalArgumentException("No question called " + question + " in that survey");
-		}
-
-		String stored = null;
-		String sql = "select " + question + " from " + table
-				+ " where instanceid = ? and not coalesce(_bad, false)";
-		try (java.sql.PreparedStatement pstmt = ctx.cResults.prepareStatement(sql)) {
-			pstmt.setString(1, instanceId);
-			java.sql.ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				stored = rs.getString(1);
+		for(String segment : file.split("/")) {
+			if(segment.isEmpty() || ".".equals(segment) || "..".equals(segment)) {
+				throw new IllegalArgumentException("Not an attachment name: " + file);
 			}
 		}
-		if(stored == null || stored.trim().length() == 0) {
-			throw new IllegalArgumentException("That record has no attachment for " + question);
-		}
 
-		java.io.File base = new java.io.File(
-				org.smap.sdal.Utilities.GeneralUtilityMethods.getBasePath(ctx.request));
-		java.io.File file = new java.io.File(base, stored);
+		java.io.File base = new java.io.File(GeneralUtilityMethods.getBasePath(ctx.request));
+		java.io.File surveyDir = new java.io.File(base, "attachments/" + ident);
+		java.io.File target = new java.io.File(surveyDir, file);
 
-		/*
-		 * The value came from the database rather than from the caller, but it got there from an
-		 * upload, so it is still checked to be under the attachments directory before anything is
-		 * read from disk.
-		 */
-		String attachments = new java.io.File(base, "attachments").getCanonicalPath();
-		if(!file.getCanonicalPath().startsWith(attachments + java.io.File.separator)) {
-			log.warning("Attachment path outside the attachments directory: " + stored);
+		if(!target.getCanonicalPath().startsWith(surveyDir.getCanonicalPath() + java.io.File.separator)) {
+			log.warning("Attachment path escaped its survey directory: " + ident + "/" + file);
 			throw new IllegalArgumentException("That attachment cannot be read");
 		}
-		if(!file.exists()) {
-			throw new IllegalArgumentException("That attachment is no longer on this server");
+		if(!target.exists() || !target.isFile()) {
+			throw new IllegalArgumentException("No such attachment: " + file);
 		}
-		if(file.length() > MAX_ATTACHMENT_BYTES) {
+		if(target.length() > MAX_ATTACHMENT_BYTES) {
 			throw new IllegalArgumentException("That attachment is "
-					+ (file.length() / (1024 * 1024)) + "MB, too large to return. Fetch it from "
-					+ org.smap.sdal.Utilities.GeneralUtilityMethods.getAttachmentPrefix(ctx.request, false)
-					+ stored);
+					+ (target.length() / (1024 * 1024)) + "MB, too large to return. Fetch it from "
+					+ GeneralUtilityMethods.getAttachmentPrefix(ctx.request, false)
+					+ "attachments/" + ident + "/" + file);
 		}
 
-		byte[] bytes = java.nio.file.Files.readAllBytes(file.toPath());
-		return new Content("smap://attachment/" + ident + "/" + instanceId + "/" + question,
-				mimeType(stored), null, java.util.Base64.getEncoder().encodeToString(bytes));
-	}
-
-	private boolean columnExists(McpToolContext ctx, String table, String column) throws Exception {
-		String sql = "select count(*) from information_schema.columns "
-				+ "where table_name = ? and column_name = ?";
-		try (java.sql.PreparedStatement pstmt = ctx.cResults.prepareStatement(sql)) {
-			pstmt.setString(1, table);
-			pstmt.setString(2, column);
-			java.sql.ResultSet rs = pstmt.executeQuery();
-			return rs.next() && rs.getInt(1) > 0;
-		}
+		byte[] bytes = java.nio.file.Files.readAllBytes(target.toPath());
+		return new Content("smap://attachment/" + ident + "/" + file, mimeType(file), null,
+				java.util.Base64.getEncoder().encodeToString(bytes));
 	}
 
 	/*

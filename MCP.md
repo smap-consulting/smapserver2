@@ -54,7 +54,7 @@ needed.
 | `smap://docs/tools` | What this connection can do, generated from the registry |
 | `smap://survey/{ident}/definition` | One survey's questions, options and settings |
 | `smap://record/{ident}/{instanceId}` | One submitted record and its repeating groups |
-| `smap://attachment/{ident}/{instanceId}/{question}` | A photo, audio or other file on a record, returned as bytes |
+| `smap://attachment/{ident}/{file}` | A photo, audio or other file on a record, returned as bytes |
 
 A caller's own surveys are also listed individually, by name, so a client shows them without having
 to expand a template. That stops above a hundred surveys: at that size the list is no longer a menu
@@ -67,12 +67,14 @@ the model guess.
 
 Attachments are served here rather than linked, because the URLs in survey data point at
 `/app/attachments`, which is behind form authentication and cannot be fetched by a client holding a
-bearer token. The client names the survey, the record and the question and never supplies a path,
-so there is nothing to traverse with; the server looks the stored filename up itself and checks it
-resolves inside the attachments directory. This is stricter than `/app/attachments`, which
-authenticates the caller but does not check they may see the record. Anything over 5MB is reported
-with a URL rather than returned, because base64 costs a third again and it all has to fit in a
-model's context.
+bearer token. The uri is the attachment URL with everything up to and including `/attachments/`
+replaced by `smap://attachment/`, which is what a client already has in its hands after reading
+data. The first segment is the survey ident and that is what authorises the read: the survey has to
+be one the caller could have listed, which makes this stricter than `/app/attachments`, which
+authenticates a caller but does not check they may see the survey. The file part is checked for
+traversal and the resolved path confirmed to be inside that survey's own directory. Anything over
+5MB is reported with a URL rather than returned, because base64 costs a third again and it all has
+to fit in a model's context.
 
 ## Coverage against the console
 
