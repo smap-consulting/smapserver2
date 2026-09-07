@@ -172,7 +172,10 @@ public class McpResources {
 		DataManager dm = new DataManager(ctx.localisation, ctx.timezone);
 		jakarta.ws.rs.core.Response response = dm.getRecordHierarchy(ctx.sd, ctx.cResults, ctx.user,
 				survey.getIdent(), survey.getId(), instanceId, "no", ctx.localisation, ctx.timezone,
-				false, null, null, false);
+				false,
+				org.smap.sdal.Utilities.GeneralUtilityMethods.getUrlPrefix(ctx.request),
+				org.smap.sdal.Utilities.GeneralUtilityMethods.getAttachmentPrefix(ctx.request, false),
+				false);
 
 		Object entity = response.getEntity();
 		return new Content("smap://record/" + ident + "/" + instanceId, "application/json",

@@ -7,6 +7,7 @@ import java.util.Map;
 import jakarta.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.mcp.AbstractMcpTool;
@@ -115,8 +116,14 @@ public class SurveyDataTool extends AbstractMcpTool {
 				ctx.localisation,
 				ctx.timezone,
 				includeMeta,
-				null,					// urlprefix
-				null,					// attachmentPrefix
+				/*
+				 * The data manager concatenates these straight into the paths it builds, so a null
+				 * does not leave them out, it writes the word "null" into every attachment path.
+				 * Taken from the request, which is what the other callers of this method do, so a
+				 * server answering to several host names names the one the caller used.
+				 */
+				GeneralUtilityMethods.getUrlPrefix(ctx.request),
+				GeneralUtilityMethods.getAttachmentPrefix(ctx.request, false),
 				false);					// do not poll
 
 		Object entity = response.getEntity();
