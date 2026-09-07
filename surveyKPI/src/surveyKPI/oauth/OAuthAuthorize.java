@@ -3,6 +3,8 @@ package surveyKPI.oauth;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.sql.Connection;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -10,10 +12,11 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -22,6 +25,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.ApplicationException;
@@ -56,8 +60,26 @@ public class OAuthAuthorize extends Application {
 
 	private static Logger log = Logger.getLogger(OAuthAuthorize.class.getName());
 
-	private static final String CSRF_ATTRIBUTE = "org.smap.oauth.csrf";
-	private static final SecureRandom random = new SecureRandom();
+	/*
+	 * The consent form's CSRF token is signed rather than held in an HttpSession.
+	 *
+	 * A session would not survive the journey.  Tomcat scopes JSESSIONID to the webapp context
+	 * path, /surveyKPI, but Apache presents this endpoint at /oauth/authorize, so the browser never
+	 * sends the cookie back and every POST arrives sessionless.  Rewriting the cookie path in the
+	 * vhost would work, but it makes the consent screen depend on a proxy directive that is easy to
+	 * lose, for state that does not need to exist.
+	 *
+	 * Instead the token carries its own proof: an expiry and a MAC over the user, the client and
+	 * that expiry.  Another site cannot forge one without the key, cannot reuse one issued to a
+	 * different user or for a different client, and cannot use a stale one.  The key is per JVM, so
+	 * a restart invalidates forms that are still open, which is what the expiry message already
+	 * tells the user to do something about.
+	 */
+	private static final byte[] CSRF_KEY = new byte[32];
+	static {
+		new SecureRandom().nextBytes(CSRF_KEY);
+	}
+	private static final long CSRF_TTL_MS = 10 * 60 * 1000L;
 
 	@GET
 	@Produces(MediaType.TEXT_HTML)
@@ -140,16 +162,26 @@ public class OAuthAuthorize extends Application {
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Produces(MediaType.TEXT_HTML)
-	public Response decide(@Context HttpServletRequest request,
-			@FormParam("client_id") String clientId,
-			@FormParam("redirect_uri") String redirectUri,
-			@FormParam("scope") String scope,
-			@FormParam("state") String state,
-			@FormParam("code_challenge") String codeChallenge,
-			@FormParam("code_challenge_method") String codeChallengeMethod,
-			@FormParam("resource") String resource,
-			@FormParam("csrf") String csrf,
-			@FormParam("approve") String approve) {
+	public Response decide(@Context HttpServletRequest request, MultivaluedMap<String, String> form) {
+
+		/*
+		 * The whole form is taken as one entity rather than field by field.
+		 *
+		 * Reading some fields with @FormParam and the rest with request.getParameter() does not
+		 * work: Jersey consumes the request body to populate the annotated parameters, and the
+		 * servlet container then has nothing left to parse, so every getParameter() comes back
+		 * null.  That is silent - the checkboxes simply read as unticked and the user is told they
+		 * granted no permissions after they plainly ticked them.
+		 */
+		String clientId = form.getFirst("client_id");
+		String redirectUri = form.getFirst("redirect_uri");
+		String scope = form.getFirst("scope");
+		String state = form.getFirst("state");
+		String codeChallenge = form.getFirst("code_challenge");
+		String codeChallengeMethod = form.getFirst("code_challenge_method");
+		String resource = form.getFirst("resource");
+		String csrf = form.getFirst("csrf");
+		String approve = form.getFirst("approve");
 
 		String connectionString = "surveyKPI-OAuthDecide";
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -169,9 +201,10 @@ public class OAuthAuthorize extends Application {
 			 * The consent form is a state changing POST inside an authenticated browser session, so
 			 * without this a page on another site could submit it and collect the code.
 			 */
-			HttpSession session = request.getSession(false);
-			Object expected = session == null ? null : session.getAttribute(CSRF_ATTRIBUTE);
-			if(expected == null || csrf == null || !expected.equals(csrf)) {
+			if(!checkCsrf(csrf, user, clientId)) {
+				log.warning("Consent form rejected for " + user
+						+ ", csrf " + (csrf == null ? "missing" : "not valid")
+						+ ", client_id " + (clientId == null ? "missing" : "present"));
 				return page("This form has expired", "<p>Please start the authorisation again.</p>");
 			}
 
@@ -201,7 +234,7 @@ public class OAuthAuthorize extends Application {
 			 */
 			List<String> granted = new ArrayList<>();
 			for(String s : MCPScope.parse(scope)) {
-				if(request.getParameter("scope_" + s.replace(':', '_')) != null) {
+				if(form.getFirst("scope_" + s.replace(':', '_')) != null) {
 					granted.add(s);
 				}
 			}
@@ -247,7 +280,7 @@ public class OAuthAuthorize extends Application {
 			List<String> requested, String rawScope, String state, String codeChallenge,
 			String codeChallengeMethod, String resource, String clientId) {
 
-		String csrf = newCsrf(request);
+		String csrf = newCsrf(request.getRemoteUser(), clientId);
 		String host = hostOf(redirectUri);
 
 		StringBuilder h = new StringBuilder();
@@ -347,12 +380,49 @@ public class OAuthAuthorize extends Application {
 		}
 	}
 
-	private String newCsrf(HttpServletRequest request) {
-		byte[] bytes = new byte[24];
-		random.nextBytes(bytes);
-		String value = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-		request.getSession(true).setAttribute(CSRF_ATTRIBUTE, value);
-		return value;
+	private String newCsrf(String user, String clientId) {
+		long expires = System.currentTimeMillis() + CSRF_TTL_MS;
+		return expires + "." + mac(user, clientId, expires);
+	}
+
+	private boolean checkCsrf(String value, String user, String clientId) {
+
+		if(value == null) {
+			return false;
+		}
+		int dot = value.indexOf('.');
+		if(dot < 1) {
+			return false;
+		}
+		long expires;
+		try {
+			expires = Long.parseLong(value.substring(0, dot));
+		} catch (NumberFormatException e) {
+			return false;
+		}
+		if(expires < System.currentTimeMillis()) {
+			return false;
+		}
+
+		String expected = mac(user, clientId, expires);
+		// Constant time, so the comparison does not report how much of a guess was right
+		return MessageDigest.isEqual(
+				expected.getBytes(StandardCharsets.UTF_8),
+				value.substring(dot + 1).getBytes(StandardCharsets.UTF_8));
+	}
+
+	private String mac(String user, String clientId, long expires) {
+		try {
+			Mac mac = Mac.getInstance("HmacSHA256");
+			mac.init(new SecretKeySpec(CSRF_KEY, "HmacSHA256"));
+			String message = (user == null ? "" : user) + "|"
+					+ (clientId == null ? "" : clientId) + "|" + expires;
+			return Base64.getUrlEncoder().withoutPadding()
+					.encodeToString(mac.doFinal(message.getBytes(StandardCharsets.UTF_8)));
+		} catch (Exception e) {
+			// HmacSHA256 is required of every JVM, so this cannot happen
+			throw new IllegalStateException("HmacSHA256 unavailable", e);
+		}
 	}
 
 	private String hidden(String name, String value) {
