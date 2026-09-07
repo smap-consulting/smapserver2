@@ -48,6 +48,30 @@ public class ServerManager {
 	
 	ResourceBundle localisation;
 
+	/*
+	 * Is the MCP server switched on
+	 *
+	 * Read on every MCP and OAuth request so that turning it off stops sessions and tokens that are
+	 * already live, and consulted wherever the mcp access group could be granted.  A server with no
+	 * row in the server table, or one that predates the column, is off.
+	 */
+	public static boolean isMcpEnabled(Connection sd) {
+
+		boolean enabled = false;
+		String sql = "select mcp_enabled from server";
+
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				enabled = rs.getBoolean(1);
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Reading mcp_enabled", e);
+		}
+
+		return enabled;
+	}
+
 	public ServerData getServer(Connection sd, ResourceBundle l) {
 
 		localisation = l;
@@ -82,7 +106,11 @@ public class ServerManager {
 				+ "coalesce(sharepoint_auth_type, 's2s') as sharepoint_auth_type,"
 				+ "sharepoint_username,"
 				+ "sharepoint_password,"
-				+ "sharepoint_domain "
+				+ "sharepoint_domain,"
+				+ "mcp_enabled,"
+				+ "mcp_client_registration,"
+				+ "mcp_max_rows,"
+				+ "mcp_token_ttl "
 				+ "from server;";
 		PreparedStatement pstmt = null;
 		ServerData data = new ServerData();
@@ -122,6 +150,10 @@ public class ServerManager {
 				data.sharepoint_username = rs.getString("sharepoint_username");
 				data.sharepoint_password = rs.getString("sharepoint_password");
 				data.sharepoint_domain = rs.getString("sharepoint_domain");
+				data.mcp_enabled = rs.getBoolean("mcp_enabled");
+				data.mcp_client_registration = rs.getString("mcp_client_registration");
+				data.mcp_max_rows = rs.getInt("mcp_max_rows");
+				data.mcp_token_ttl = rs.getInt("mcp_token_ttl");
 			}
 
 		}  catch (Exception e) {

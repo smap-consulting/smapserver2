@@ -639,3 +639,12 @@ alter table message add column if not exists retry_after timestamptz;
 -- flag silently builds a survey in the old layout.  Existing rows are left alone: a survey with
 -- compressed false has its data in per option columns and must keep reading it there.
 alter table question alter column compressed set default true;
+
+-- Version 26.09 MCP server
+-- Off on every server, new and existing.  Only a server owner can turn it on, and only then can
+-- the mcp access group be granted.
+alter table server add column if not exists mcp_enabled boolean default false;
+alter table server add column if not exists mcp_client_registration text default 'cimd+dcr';
+alter table server add column if not exists mcp_max_rows integer default 0;
+alter table server add column if not exists mcp_token_ttl integer default 3600;
+insert into groups(id,name) values(15,'mcp access') on conflict do nothing;

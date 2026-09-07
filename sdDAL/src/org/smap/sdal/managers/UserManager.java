@@ -1033,25 +1033,40 @@ public class UserManager {
 			 */
 			// log.fine("Set autocommit false");
 			sd.setAutoCommit(false);
+			/*
+			 * The mcp access group is only offered to a server owner, and only while the server
+			 * level switch is on.  Groups are saved by deleting them and re-inserting whatever the
+			 * console submitted, so anybody who cannot see the group would otherwise strip it by
+			 * saving an unrelated change to the user.  Exclude it from their delete instead, and
+			 * treat the submitted list as authoritative only for an owner who could actually see
+			 * the checkbox.
+			 */
+			boolean canSetMcp = isServerOwner && ServerManager.isMcpEnabled(sd);
+			String keepMcp = canSetMcp ? "" : " and g_id != " + Authorise.MCP_ACCESS_ID;
+
 			if(isServerOwner || isEnterpriseManager) {	// Cannot remove server owner
 				sql = "delete from user_group where u_id = ? "
-						+ " and g_id != " + Authorise.OWNER_ID;	
+						+ " and g_id != " + Authorise.OWNER_ID
+						+ keepMcp;	
 			} else if(isOrgUser) {		// Cannot remove enterprise admin and server owner
 				sql = "delete from user_group where u_id = ? "
 						+ " and g_id != " + Authorise.ENTERPRISE_ID 
-						+ " and g_id != " + Authorise.OWNER_ID;
+						+ " and g_id != " + Authorise.OWNER_ID
+						+ keepMcp;
 			} else if(isSecurityManager) {	// Cannot remove org admin, enterprise admin and server owner
 				sql = "delete from user_group where u_id = ? "
 						+ " and g_id != " + Authorise.ORG_ID 
 						+ " and g_id != " + Authorise.ENTERPRISE_ID 
-						+ " and g_id != " + Authorise.OWNER_ID;	
+						+ " and g_id != " + Authorise.OWNER_ID
+						+ keepMcp;	
 			}  else {		// Admin user
 				sql = "delete from user_group where u_id = ? "
 						+ " and g_id != " + Authorise.ORG_ID
 						+ " and g_id != " + Authorise.SECURITY_ID
 						+ " and g_id != " + Authorise.DPO_ID
 						+ " and g_id != " + Authorise.ENTERPRISE_ID
-						+ " and g_id != " + Authorise.OWNER_ID;
+						+ " and g_id != " + Authorise.OWNER_ID
+						+ keepMcp;
 			}
 
 			if(u.groups != null) {
@@ -1065,6 +1080,9 @@ public class UserManager {
 					
 					if(g.id == Authorise.OWNER_ID) {
 						continue;	// Owner id not managed via this service
+					}
+					if(g.id == Authorise.MCP_ACCESS_ID && !canSetMcp) {
+						continue;	// Only a server owner grants mcp access, and only while MCP is on
 					}
 					// Only insert security groups that the user is authorised to insert
 					if(isServerOwner 

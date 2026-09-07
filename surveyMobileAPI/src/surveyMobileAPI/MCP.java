@@ -37,6 +37,7 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.MCPManager;
+import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.mcp.tools.EchoTool;
 import org.smap.sdal.mcp.tools.GetSurveyDataTool;
 import org.smap.sdal.mcp.tools.GetSurveySubmissionsTool;
@@ -88,6 +89,15 @@ public class MCP extends Application {
 		try {
 			// Get database connection
 			sd = SDDataSource.getConnection(connectionString);
+
+			/*
+			 * MCP is off unless a server owner has switched it on.  Answer as though the endpoint
+			 * does not exist rather than advertising that it is there but disabled.  Checked on
+			 * every request so that switching it off stops sessions that are already running.
+			 */
+			if(!ServerManager.isMcpEnabled(sd)) {
+				return Response.status(Response.Status.NOT_FOUND).build();
+			}
 
 			// Get authenticated user
 			String user = request.getRemoteUser();

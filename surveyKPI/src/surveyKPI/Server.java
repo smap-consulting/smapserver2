@@ -113,6 +113,26 @@ public class Server extends Application {
 	}
 	
 	/*
+	 * Only the three registration policies mean anything.  Anything else, including a null from an
+	 * older console that does not know about the setting, falls back to the default rather than
+	 * being written through to the database.
+	 */
+	private static String mcpRegistration(ServerData data) {
+		String v = data.mcp_client_registration;
+		if("cimd".equals(v) || "cimd+dcr".equals(v) || "off".equals(v)) {
+			return v;
+		}
+		return "cimd+dcr";
+	}
+
+	/*
+	 * A zero or negative token lifetime would issue tokens that are already expired
+	 */
+	private static int mcpTokenTtl(ServerData data) {
+		return data.mcp_token_ttl > 0 ? data.mcp_token_ttl : 3600;
+	}
+
+	/*
 	 * Save updated server settings
 	 */
 	@POST
@@ -163,7 +183,11 @@ public class Server extends Application {
 				+ "sharepoint_auth_type = ?,"
 				+ "sharepoint_username = ?,"
 				+ "sharepoint_password = ?,"
-				+ "sharepoint_domain = ? ";
+				+ "sharepoint_domain = ?,"
+				+ "mcp_enabled = ?,"
+				+ "mcp_client_registration = ?,"
+				+ "mcp_max_rows = ?,"
+				+ "mcp_token_ttl = ? ";
 
 		PreparedStatement pstmt = null;
 
@@ -172,8 +196,9 @@ public class Server extends Application {
 				+ "vonage_webhook_secret, sms_url, max_rate, password_strength, css,"
 				+ "email_type, aws_region, sec_mgr_del, api_max_records, turnstile_site_key, turnstile_secret_key,"
 				+ "sharepoint_url, sharepoint_client_id, sharepoint_realm, sharepoint_cert_pem,"
-				+ "sharepoint_auth_type, sharepoint_username, sharepoint_password, sharepoint_domain)"
-				+ " values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "sharepoint_auth_type, sharepoint_username, sharepoint_password, sharepoint_domain,"
+				+ "mcp_enabled, mcp_client_registration, mcp_max_rows, mcp_token_ttl)"
+				+ " values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement pstmtInsert = null;
 		
 		try {
@@ -212,6 +237,10 @@ public class Server extends Application {
 			pstmt.setString(26, data.sharepoint_username);
 			pstmt.setString(27, data.sharepoint_password);
 			pstmt.setString(28, data.sharepoint_domain);
+			pstmt.setBoolean(29, data.mcp_enabled);
+			pstmt.setString(30, mcpRegistration(data));
+			pstmt.setInt(31, data.mcp_max_rows);
+			pstmt.setInt(32, mcpTokenTtl(data));
 			int count = pstmt.executeUpdate();
 
 			if(count == 0) {
@@ -244,6 +273,10 @@ public class Server extends Application {
 				pstmtInsert.setString(26, data.sharepoint_username);
 				pstmtInsert.setString(27, data.sharepoint_password);
 				pstmtInsert.setString(28, data.sharepoint_domain);
+				pstmtInsert.setBoolean(29, data.mcp_enabled);
+				pstmtInsert.setString(30, mcpRegistration(data));
+				pstmtInsert.setInt(31, data.mcp_max_rows);
+				pstmtInsert.setInt(32, mcpTokenTtl(data));
 				pstmtInsert.executeUpdate();
 			}
 			
