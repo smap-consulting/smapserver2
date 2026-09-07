@@ -45,6 +45,7 @@ public class LogManager {
 	// Event types
 	public static String API_CSV_VIEW = "API CSV view";
 	public static String API_VIEW = "API view";
+	public static String MCP = "mcp";
 	public static String API_AUDIT_VIEW = "API audit view";
 	public static String API_SINGLE_VIEW = "API single record view";
 	public static String ARCHIVE = "archive";

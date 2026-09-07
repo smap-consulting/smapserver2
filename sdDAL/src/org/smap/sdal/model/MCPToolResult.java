@@ -10,6 +10,22 @@ public class MCPToolResult {
 	private List<MCPToolContent> content;
 	private boolean isError;
 
+	/*
+	 * The machine readable half of a result.  A model reading prose has to parse it back out again
+	 * and will sometimes get it wrong; structuredContent is the same answer as data, validated
+	 * against the tool's outputSchema.  The text block is kept alongside it because the
+	 * specification asks for both.
+	 */
+	private Object structuredContent;
+
+	public Object getStructuredContent() {
+		return structuredContent;
+	}
+
+	public void setStructuredContent(Object structuredContent) {
+		this.structuredContent = structuredContent;
+	}
+
 	public MCPToolResult() {
 		this.content = new ArrayList<>();
 		this.isError = false;
