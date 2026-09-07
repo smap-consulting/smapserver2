@@ -33,6 +33,7 @@ import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
+import org.smap.sdal.managers.OAuthManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.NotificationManager;
@@ -482,6 +483,9 @@ public class SubscriberBatch {
 					// Prune fire-once alert guards for cases that are now closed
 					pruneClosedCaseAlerts(dbc.results);
 
+					// Clear out OAuth clients that registered and were never used, and spent codes
+					reapOAuth(dbc.sd);
+
 					infrequentRefreshInterval = 2000;	// Every 2,000 times through these operations will be done, about 1.5 days
 				}
 				
@@ -774,6 +778,27 @@ public class SubscriberBatch {
 		}
 
 		return names;
+	}
+
+	/*
+	 * OAuth housekeeping.
+	 *
+	 * Client registration is open, so without this the client table is somewhere anyone on the
+	 * internet can write to for ever.  A registration that never led to a grant is of no use to
+	 * anybody after a week.  Authorization codes live for a minute and are single use, so a spent
+	 * one is only kept long enough to be useful in a log.
+	 */
+	private void reapOAuth(Connection sd) {
+		try {
+			OAuthManager om = new OAuthManager();
+			int clients = om.reapUnusedClients(sd);
+			int codes = om.reapExpiredCodes(sd);
+			if(clients > 0 || codes > 0) {
+				log.info("Reaped " + clients + " unused oauth clients and " + codes + " spent codes");
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Reaping oauth records", e);
+		}
 	}
 
 	/*

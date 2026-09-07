@@ -66,7 +66,8 @@ public class RequestIdentity {
 	public enum Source {
 		APACHE,			// Apache authenticated the password and set REMOTE_USER
 		TOKEN,			// x-api-key header
-		DYNAMIC_KEY		// A time limited key in the URL, used by webform links and task assignments
+		DYNAMIC_KEY,	// A time limited key in the URL, used by webform links and task assignments
+		OAUTH			// Authorization: Bearer, an MCP client acting for a user
 	}
 
 	public final String ident;
@@ -191,6 +192,25 @@ public class RequestIdentity {
 			log.log(Level.SEVERE, "Resolving request token", e);
 			return null;
 		}
+	}
+
+	/*
+	 * Record that this request was identified by an OAuth bearer token.
+	 *
+	 * Deliberately not part of resolve().  Bearer tokens are accepted only where they have been
+	 * wired in, which for now is the MCP endpoint alone; opening every service to them is its own
+	 * piece of work with its own scope to group mapping.  The MCP endpoint validates the token,
+	 * which gives it the scope and organisation it needs anyway, and then calls this so that
+	 * everything downstream - the user context cache, the language, super user status - sees the
+	 * same identity rather than falling back to an empty getRemoteUser().
+	 */
+	public static RequestIdentity fromOauth(HttpServletRequest request, String ident, String scope) {
+
+		RequestIdentity identity = new RequestIdentity(ident, Source.OAUTH, scope, null);
+		if(request != null) {
+			request.setAttribute(ATTRIBUTE, identity);
+		}
+		return identity;
 	}
 
 	/*

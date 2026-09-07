@@ -35,9 +35,14 @@ import jakarta.ws.rs.core.Response;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.TokenThrottle;
 import org.smap.sdal.managers.MCPManager;
+import org.smap.sdal.managers.OAuthTokenManager;
 import org.smap.sdal.managers.ServerManager;
+import org.smap.sdal.mcp.MCPScope;
 import org.smap.sdal.mcp.tools.EchoTool;
 import org.smap.sdal.mcp.tools.GetSurveyDataTool;
 import org.smap.sdal.mcp.tools.GetSurveySubmissionsTool;
@@ -76,6 +81,53 @@ public class MCP extends Application {
 		mcpManager.getToolRegistry().register(new ListTopicsTool());
 	}
 
+	private String bearerToken(HttpServletRequest request) {
+		String header = request.getHeader("Authorization");
+		if(header == null || !header.regionMatches(true, 0, "Bearer ", 0, 7)) {
+			return null;
+		}
+		String value = header.substring(7).trim();
+		return value.length() == 0 ? null : value;
+	}
+
+	private boolean isThisResource(HttpServletRequest request, String resource) {
+		if(resource == null) {
+			return false;
+		}
+		String host = request.getHeader("X-Forwarded-Host");
+		if(host == null || host.trim().length() == 0) {
+			host = request.getServerName();
+		}
+		int comma = host.indexOf(',');
+		if(comma > 0) {
+			host = host.substring(0, comma);
+		}
+		String expected = "https://" + host.trim() + "/mcp";
+		String given = resource.trim();
+		while(given.endsWith("/")) {
+			given = given.substring(0, given.length() - 1);
+		}
+		return given.equalsIgnoreCase(expected);
+	}
+
+	/*
+	 * RFC 9728 wants the 401 to say where the protected resource metadata lives, so a client that
+	 * has never spoken to this server can discover how to authorise without being told out of band.
+	 */
+	private Response unauthorized(HttpServletRequest request, String description) {
+		String host = request.getHeader("X-Forwarded-Host");
+		if(host == null || host.trim().length() == 0) {
+			host = request.getServerName();
+		}
+		String challenge = "Bearer resource_metadata=\"https://" + host
+				+ "/.well-known/oauth-protected-resource\", scope=\""
+				+ String.join(" ", MCPScope.SUPPORTED) + "\", error=\"invalid_token\""
+				+ ", error_description=\"" + description.replace('"', '\'') + "\"";
+		return Response.status(Response.Status.UNAUTHORIZED)
+				.header("WWW-Authenticate", challenge)
+				.build();
+	}
+
 	@POST
 	@Produces({MediaType.APPLICATION_JSON})
 	public Response mcpHandler(@Context HttpServletRequest request, String jsonQuery) throws IOException, ApplicationException {
@@ -99,15 +151,58 @@ public class MCP extends Application {
 				return Response.status(Response.Status.NOT_FOUND).build();
 			}
 
-			// Get authenticated user
-			String user = request.getRemoteUser();
-			
-			if (user == null) {
-				throw new AuthorisationException("Unknown User");
+			/*
+			 * Authenticate with an OAuth 2.1 bearer token, and nothing else.
+			 *
+			 * The x-api-key header is deliberately not accepted here.  Two ways in would mean the
+			 * weaker one becomes the way in, and an api token carries no MCP scopes, so honouring
+			 * one would hand a client everything its holder can do and throw away the containment
+			 * the scopes exist to provide.
+			 */
+			String bearer = bearerToken(request);
+			if(bearer == null) {
+				return unauthorized(request, "A bearer token is required");
+			}
+			if(!TokenThrottle.isPermitted(request)) {
+				return unauthorized(request, "Too many attempts");
 			}
 
-			// Authorize user
+			OAuthTokenManager tm = new OAuthTokenManager();
+			OAuthTokenManager.Resolved token = tm.resolve(sd, bearer);
+			if(token == null) {
+				TokenThrottle.failed(request);
+				return unauthorized(request, "The token is not valid");
+			}
+
+			/*
+			 * A token is for this server or it is for nothing.  RFC 8707 audience binding is what
+			 * stops a token issued for another MCP server, by an authorization server both trust,
+			 * being replayed here.
+			 */
+			if(!isThisResource(request, token.resource)) {
+				log.warning("MCP token presented with audience " + token.resource);
+				return unauthorized(request, "The token was not issued for this server");
+			}
+
+			String user = token.ident;
+
+			/*
+			 * Re-checked on every request rather than trusted from when the token was issued, so
+			 * that removing the group, or the user moving organisation, takes effect at once.  The
+			 * server level switch was already checked above, which is what makes it a kill switch.
+			 */
 			a.isAuthorised(sd, request, user);
+			if(GeneralUtilityMethods.getOrganisationId(sd, user) != token.oId) {
+				return unauthorized(request, "Your organisation has changed, please authorise again");
+			}
+
+			/*
+			 * Tell the rest of the request who this is.  Without it everything downstream would
+			 * call getRemoteUser(), which is empty on a bearer authenticated request, and quietly
+			 * lose the user's language and super user status.
+			 */
+			RequestIdentity.fromOauth(request, user, token.scope);
+			tm.touch(sd, token.tokenId, request.getRemoteAddr());
 
 			// Parse JSON-RPC request
 			MCPRequest mcpRequest = null;

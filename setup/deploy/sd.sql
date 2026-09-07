@@ -648,3 +648,82 @@ alter table server add column if not exists mcp_client_registration text default
 alter table server add column if not exists mcp_max_rows integer default 0;
 alter table server add column if not exists mcp_token_ttl integer default 3600;
 insert into groups(id,name) values(15,'mcp access') on conflict do nothing;
+
+-- Version 26.09 OAuth 2.1 for MCP clients
+create sequence if not exists oauth_client_seq start 1;
+alter sequence oauth_client_seq owner to ws;
+create table if not exists oauth_client (
+	id integer default nextval('oauth_client_seq') constraint pk_oauth_client primary key,
+	client_id text not null,
+	source text not null,
+	client_secret_hash text,
+	client_name text,
+	redirect_uris text,
+	grant_types text,
+	token_endpoint_auth_method text,
+	application_type text,
+	scope text,
+	software_id text,
+	status text default 'active',
+	client_id_issued_at timestamp with time zone default now(),
+	client_secret_expires_at timestamp with time zone,
+	registration_ip text,
+	metadata_fetched timestamp with time zone,
+	last_grant timestamp with time zone
+	);
+create unique index if not exists idx_oauth_client_id on oauth_client(client_id);
+alter table oauth_client owner to ws;
+
+create sequence if not exists oauth_grant_seq start 1;
+alter sequence oauth_grant_seq owner to ws;
+create table if not exists oauth_grant (
+	id integer default nextval('oauth_grant_seq') constraint pk_oauth_grant primary key,
+	code_hash text not null,
+	client_id text not null,
+	u_id integer references users(id) on delete cascade,
+	o_id integer,
+	scope text,
+	resource text,
+	redirect_uri text,
+	code_challenge text,
+	code_challenge_method text,
+	created timestamp with time zone default now(),
+	expires timestamp with time zone,
+	consumed timestamp with time zone
+	);
+create unique index if not exists idx_oauth_grant_code on oauth_grant(code_hash);
+alter table oauth_grant owner to ws;
+
+create sequence if not exists oauth_token_seq start 1;
+alter sequence oauth_token_seq owner to ws;
+create table if not exists oauth_token (
+	id integer default nextval('oauth_token_seq') constraint pk_oauth_token primary key,
+	token_hash text not null,
+	type text not null,
+	client_id text,
+	u_id integer references users(id) on delete cascade,
+	o_id integer,
+	scope text,
+	resource text,
+	name text,
+	issued timestamp with time zone default now(),
+	expires timestamp with time zone,
+	revoked timestamp with time zone,
+	revoked_by text,
+	last_used timestamp with time zone,
+	last_used_ip text,
+	parent_id integer
+	);
+create unique index if not exists idx_oauth_token_hash on oauth_token(token_hash);
+create index if not exists idx_oauth_token_user on oauth_token(u_id) where revoked is null;
+create index if not exists idx_oauth_token_parent on oauth_token(parent_id);
+alter table oauth_token owner to ws;
+
+create table if not exists oauth_consent (
+	u_id integer references users(id) on delete cascade,
+	client_id text not null,
+	scope text,
+	updated timestamp with time zone default now()
+	);
+create unique index if not exists idx_oauth_consent on oauth_consent(u_id, client_id);
+alter table oauth_consent owner to ws;

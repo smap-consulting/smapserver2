@@ -463,6 +463,99 @@ CREATE UNIQUE INDEX idx_api_token_hash ON api_token(token_hash);
 CREATE INDEX idx_api_token_u_scope ON api_token(u_id, scope) WHERE revoked IS NULL;
 ALTER TABLE api_token OWNER TO ws;
 
+-- OAuth 2.1 authorization server, used by MCP clients
+--
+-- A client is anonymous at registration time, so oauth_client carries no organisation.  The
+-- organisation belongs to the grant and to the token, because it is the user consenting who has
+-- one, and a grant does not survive that user moving organisation.
+DROP SEQUENCE IF EXISTS oauth_client_seq CASCADE;
+CREATE SEQUENCE oauth_client_seq START 1;
+ALTER SEQUENCE oauth_client_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS oauth_client CASCADE;
+CREATE TABLE oauth_client (
+	id INTEGER DEFAULT NEXTVAL('oauth_client_seq') CONSTRAINT pk_oauth_client PRIMARY KEY,
+	client_id text NOT NULL,					-- An https URL for CIMD, an opaque value for DCR
+	source text NOT NULL,					-- 'cimd' || 'dcr'
+	client_secret_hash text,				-- Null for a public client
+	client_name text,
+	redirect_uris text,						-- JSON array
+	grant_types text,						-- JSON array
+	token_endpoint_auth_method text,
+	application_type text,					-- 'native' allows a loopback redirect
+	scope text,
+	software_id text,
+	status text default 'active',			-- 'active' || 'pending' || 'disabled'
+	client_id_issued_at timestamp with time zone DEFAULT now(),
+	client_secret_expires_at timestamp with time zone,
+	registration_ip text,
+	metadata_fetched timestamp with time zone,	-- When the CIMD document was last read
+	last_grant timestamp with time zone
+	);
+CREATE UNIQUE INDEX idx_oauth_client_id ON oauth_client(client_id);
+ALTER TABLE oauth_client OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS oauth_grant_seq CASCADE;
+CREATE SEQUENCE oauth_grant_seq START 1;
+ALTER SEQUENCE oauth_grant_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS oauth_grant CASCADE;
+CREATE TABLE oauth_grant (
+	id INTEGER DEFAULT NEXTVAL('oauth_grant_seq') CONSTRAINT pk_oauth_grant PRIMARY KEY,
+	code_hash text NOT NULL,
+	client_id text NOT NULL,
+	u_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+	o_id INTEGER,							-- Organisation the consent was given in
+	scope text,
+	resource text,							-- RFC 8707 audience
+	redirect_uri text,
+	code_challenge text,
+	code_challenge_method text,
+	created timestamp with time zone DEFAULT now(),
+	expires timestamp with time zone,		-- At most a minute away
+	consumed timestamp with time zone
+	);
+CREATE UNIQUE INDEX idx_oauth_grant_code ON oauth_grant(code_hash);
+ALTER TABLE oauth_grant OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS oauth_token_seq CASCADE;
+CREATE SEQUENCE oauth_token_seq START 1;
+ALTER SEQUENCE oauth_token_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS oauth_token CASCADE;
+CREATE TABLE oauth_token (
+	id INTEGER DEFAULT NEXTVAL('oauth_token_seq') CONSTRAINT pk_oauth_token PRIMARY KEY,
+	token_hash text NOT NULL,
+	type text NOT NULL,						-- 'access' || 'refresh'
+	client_id text,							-- Null for a token minted in the console
+	u_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+	o_id INTEGER,							-- Organisation the grant was given in
+	scope text,
+	resource text,
+	name text,								-- Label, for a console minted token
+	issued timestamp with time zone DEFAULT now(),
+	expires timestamp with time zone,
+	revoked timestamp with time zone,
+	revoked_by text,
+	last_used timestamp with time zone,
+	last_used_ip text,
+	parent_id INTEGER						-- Refresh rotation chain
+	);
+CREATE UNIQUE INDEX idx_oauth_token_hash ON oauth_token(token_hash);
+CREATE INDEX idx_oauth_token_user ON oauth_token(u_id) WHERE revoked IS NULL;
+CREATE INDEX idx_oauth_token_parent ON oauth_token(parent_id);
+ALTER TABLE oauth_token OWNER TO ws;
+
+DROP TABLE IF EXISTS oauth_consent CASCADE;
+CREATE TABLE oauth_consent (
+	u_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+	client_id text NOT NULL,
+	scope text,								-- Scopes already consented to.  Never records smap:access
+	updated timestamp with time zone DEFAULT now()
+	);
+CREATE UNIQUE INDEX idx_oauth_consent ON oauth_consent(u_id, client_id);
+ALTER TABLE oauth_consent OWNER TO ws;
+
 DROP TABLE IF EXISTS groups CASCADE;
 create TABLE groups (
 	id INTEGER CONSTRAINT pk_groups PRIMARY KEY,
