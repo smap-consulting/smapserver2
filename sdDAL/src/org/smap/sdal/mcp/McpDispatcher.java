@@ -33,10 +33,12 @@ public class McpDispatcher {
 	private static Logger log = Logger.getLogger(McpDispatcher.class.getName());
 
 	private final McpToolRegistry registry;
+	private final McpResources resources;
 	private final LogManager lm = new LogManager();
 
 	public McpDispatcher(McpToolRegistry registry) {
 		this.registry = registry;
+		this.resources = new McpResources(registry);
 	}
 
 	/*
@@ -88,6 +90,14 @@ public class McpDispatcher {
 				return ok(request.getId(), toolsList(ctx));
 			case "tools/call":
 				return toolsCall(ctx, request);
+			case "resources/list":
+				return ok(request.getId(), map("resources", resources.list(ctx)));
+			case "resources/templates/list":
+				return ok(request.getId(), map("resourceTemplates", resources.templates()));
+			case "resources/read":
+				return resourcesRead(ctx, request);
+			case "completion/complete":
+				return ok(request.getId(), complete(ctx, request));
 			default:
 				return error(request.getId(), McpProtocol.METHOD_NOT_FOUND, "Unknown method: " + method);
 			}
@@ -142,6 +152,53 @@ public class McpDispatcher {
 		return result;
 	}
 
+	private Map<String, Object> map(String key, Object value) {
+		Map<String, Object> m = new LinkedHashMap<>();
+		m.put(key, value);
+		return m;
+	}
+
+	/*
+	 * Reading a resource goes through the same access check as a tool: the survey has to be one the
+	 * caller could have listed.  A resource is a different way in, not a different set of rights.
+	 */
+	private MCPResponse resourcesRead(McpToolContext ctx, MCPRequest request) throws Exception {
+
+		Map<String, Object> params = request.getParams();
+		String uri = params == null ? null : (String) params.get("uri");
+		if(uri == null) {
+			return error(request.getId(), McpProtocol.INVALID_PARAMS, "A uri is required");
+		}
+		try {
+			McpResources.Content content = resources.read(ctx, uri);
+			return ok(request.getId(), map("contents",
+					java.util.Collections.singletonList(content.toMap())));
+		} catch (IllegalArgumentException e) {
+			// A resource that is unknown and one the caller may not see answer the same way
+			return error(request.getId(), McpProtocol.INVALID_PARAMS, e.getMessage());
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> complete(McpToolContext ctx, MCPRequest request) {
+
+		Map<String, Object> params = request.getParams();
+		String name = null;
+		String value = null;
+		if(params != null && params.get("argument") instanceof Map) {
+			Map<String, Object> argument = (Map<String, Object>) params.get("argument");
+			name = (String) argument.get("name");
+			value = (String) argument.get("value");
+		}
+
+		List<String> values = resources.complete(ctx, name, value);
+		Map<String, Object> completion = new LinkedHashMap<>();
+		completion.put("values", values);
+		completion.put("total", values.size());
+		completion.put("hasMore", Boolean.FALSE);
+		return map("completion", completion);
+	}
+
 	private Map<String, Object> capabilities() {
 		Map<String, Object> capabilities = new LinkedHashMap<>();
 		Map<String, Object> tools = new LinkedHashMap<>();
@@ -151,6 +208,17 @@ public class McpDispatcher {
 		 */
 		tools.put("listChanged", Boolean.FALSE);
 		capabilities.put("tools", tools);
+
+		Map<String, Object> resourceCapability = new LinkedHashMap<>();
+		/*
+		 * No subscriptions and no list changed notifications.  Both need a stream this server does
+		 * not yet answer, and claiming them would have a client open one and wait.
+		 */
+		resourceCapability.put("subscribe", Boolean.FALSE);
+		resourceCapability.put("listChanged", Boolean.FALSE);
+		capabilities.put("resources", resourceCapability);
+
+		capabilities.put("completions", new LinkedHashMap<String, Object>());
 		return capabilities;
 	}
 
@@ -259,10 +327,30 @@ public class McpDispatcher {
 		Map<String, Object> out = new LinkedHashMap<>();
 		out.put("content", result.getContent());
 		if(result.getStructuredContent() != null) {
-			out.put("structuredContent", result.getStructuredContent());
+			out.put("structuredContent", asObject(name, result.getStructuredContent()));
 		}
 		out.put("isError", result.isError());
 		return ok(request.getId(), out);
+	}
+
+	/*
+	 * Structured content is always sent as a JSON object.
+	 *
+	 * 2026-07-28 permits any JSON value there, arrays included, but every revision before it
+	 * requires an object and clients still negotiate those.  One that does rejects the entire
+	 * response before the caller sees any of it, which reads as the tool being broken rather than
+	 * as a disagreement about the protocol.  A tool that hands back something else is wrapped here
+	 * rather than left to fail on the wire, and the wrapping is logged so it gets fixed at source.
+	 */
+	private Object asObject(String toolName, Object structured) {
+		if(structured instanceof Map) {
+			return structured;
+		}
+		log.warning("MCP tool " + toolName + " returned structured content that is not an object; "
+				+ "wrapping it. Give the tool an outputSchema and return an object.");
+		Map<String, Object> wrapped = new LinkedHashMap<>();
+		wrapped.put("result", structured);
+		return wrapped;
 	}
 
 	/*

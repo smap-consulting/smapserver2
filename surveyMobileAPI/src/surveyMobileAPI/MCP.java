@@ -50,6 +50,8 @@ import org.smap.sdal.mcp.McpDispatcher;
 import org.smap.sdal.mcp.McpProtocol;
 import org.smap.sdal.mcp.McpToolContext;
 import org.smap.sdal.mcp.McpToolRegistry;
+import org.smap.sdal.mcp.tools.ProjectListTool;
+import org.smap.sdal.mcp.tools.ServerInfoTool;
 import org.smap.sdal.mcp.tools.SurveyDataTool;
 import org.smap.sdal.mcp.tools.SurveyListTool;
 import org.smap.sdal.mcp.tools.SurveySubmissionCountTool;
@@ -85,6 +87,8 @@ public class MCP extends Application {
 	private static final McpToolRegistry registry = new McpToolRegistry();
 	static {
 		registry.register(new WhoAmITool());
+		registry.register(new ServerInfoTool());
+		registry.register(new ProjectListTool());
 		registry.register(new SurveyListTool());
 		registry.register(new SurveySubmissionCountTool());
 		registry.register(new SurveyDataTool());
