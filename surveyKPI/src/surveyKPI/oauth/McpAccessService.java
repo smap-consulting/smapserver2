@@ -16,8 +16,8 @@ import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
@@ -71,8 +71,7 @@ public class McpAccessService extends Application {
 			String user = request.getRemoteUser();
 			a.isAuthorised(sd, request, user);
 
-			boolean orgWide = GeneralUtilityMethods.hasSecurityGroup(sd, user, Authorise.SECURITY_ID)
-					|| GeneralUtilityMethods.hasSecurityGroup(sd, user, Authorise.ORG_ID);
+			boolean orgWide = canSeeOthers(sd, user);
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 			int uId = GeneralUtilityMethods.getUserId(sd, user);
 
@@ -119,10 +118,10 @@ public class McpAccessService extends Application {
 	 * the client has to ask again from the beginning rather than silently picking up where it was.
 	 */
 	@DELETE
-	@Path("/grants/{clientId}")
+	@Path("/grants")
 	public Response revokeGrant(@Context HttpServletRequest request,
-			@PathParam("clientId") String clientId,
-			@jakarta.ws.rs.QueryParam("user") String targetUser) {
+			@QueryParam("client_id") String clientId,
+			@QueryParam("user") String targetUser) {
 
 		String connectionString = "surveyKPI-McpRevokeGrant";
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -134,14 +133,17 @@ public class McpAccessService extends Application {
 			String user = request.getRemoteUser();
 			a.isAuthorised(sd, request, user);
 
+			if(clientId == null || clientId.trim().length() == 0) {
+				return Response.status(Response.Status.BAD_REQUEST).build();
+			}
+
 			String owner = user;
 			if(targetUser != null && !targetUser.equals(user)) {
 				/*
 				 * Revoking somebody else's access is a security manager's job, and only within
 				 * their own organisation
 				 */
-				if(!GeneralUtilityMethods.hasSecurityGroup(sd, user, Authorise.SECURITY_ID)
-						&& !GeneralUtilityMethods.hasSecurityGroup(sd, user, Authorise.ORG_ID)) {
+				if(!canSeeOthers(sd, user)) {
 					return Response.status(Response.Status.FORBIDDEN).build();
 				}
 				if(GeneralUtilityMethods.getOrganisationId(sd, targetUser)
@@ -166,6 +168,21 @@ public class McpAccessService extends Application {
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 		}
+	}
+
+	/*
+	 * Who may see and withdraw somebody else's client access.
+	 *
+	 * A security manager or an organisation administrator, because taking back a departing
+	 * colleague's access is their job rather than something to wait for that person to do.  The
+	 * server owner is included because they are the only one who can grant mcp access in the first
+	 * place, and an administrator who cannot see the consequences of what they hand out is not
+	 * really administering it.
+	 */
+	private boolean canSeeOthers(Connection sd, String user) throws Exception {
+		return GeneralUtilityMethods.hasSecurityGroup(sd, user, Authorise.SECURITY_ID)
+				|| GeneralUtilityMethods.hasSecurityGroup(sd, user, Authorise.ORG_ID)
+				|| GeneralUtilityMethods.hasSecurityGroup(sd, user, Authorise.OWNER_ID);
 	}
 
 	/*
