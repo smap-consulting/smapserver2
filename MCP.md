@@ -56,6 +56,12 @@ needed.
 | `smap://record/{ident}/{instanceId}` | One submitted record and its repeating groups |
 | `smap://attachment/{ident}/{instanceId}/{question}` | A photo, audio or other file on a record, returned as bytes |
 
+A caller's own surveys are also listed individually, by name, so a client shows them without having
+to expand a template. That stops above a hundred surveys: at that size the list is no longer a menu
+a model can choose from, and some clients put the whole thing in front of it, which costs more
+context than the work. Above the threshold nothing is listed and the template plus completion are
+the way in, which `smap://docs/tools` says explicitly so a model knows which it is dealing with.
+
 Survey idents complete through `completion/complete`, so a client can offer them rather than having
 the model guess.
 

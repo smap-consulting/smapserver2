@@ -43,6 +43,21 @@ public class McpResources {
 	private static final long MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 
 	/*
+	 * How many surveys are worth naming one by one in resources/list.
+	 *
+	 * Below this the list is exhaustive and useful: a client shows the surveys by name, and nothing
+	 * has to expand a template to find them.  Above it the same list stops being a menu and becomes
+	 * noise - a model choosing from a thousand near-identical entries is worse off than one that
+	 * calls survey_list and reads a filtered answer, and some clients put the whole list in front of
+	 * the model, which at that size costs more context than the work does.
+	 *
+	 * So it is a clean cut rather than a truncated list.  A half list with no nextCursor would be a
+	 * lie, and paginating a thousand entries is the case being avoided.  Above the threshold the
+	 * templates and completion do the work, which is what they are for.
+	 */
+	private static final int MAX_LISTED_SURVEYS = 100;
+
+	/*
 	 * Held so the tool catalogue can be rendered from what is actually registered rather than from
 	 * a description of it kept somewhere else
 	 */
@@ -95,7 +110,38 @@ public class McpResources {
 		List<Map<String, Object>> resources = new ArrayList<>();
 		resources.add(resource("smap://docs/tools", "Available tools",
 				"What this connection can do, and what each tool is for", "text/markdown"));
+
+		try {
+			ArrayList<Survey> surveys = userSurveys(ctx);
+			if(surveys.size() <= MAX_LISTED_SURVEYS) {
+				for(Survey s : surveys) {
+					resources.add(resource("smap://survey/" + s.getIdent() + "/definition",
+							s.getDisplayName(),
+							"The questions, options and settings of " + s.getDisplayName()
+							+ " (project " + s.getProjectName() + ")",
+							"application/json"));
+				}
+			} else {
+				log.info("Not listing " + surveys.size() + " surveys as resources for " + ctx.user
+						+ "; over the threshold, so the template and completion are the way in");
+			}
+		} catch (Exception e) {
+			// A resource list that cannot be built is an empty one, not a failed request
+			log.warning("Listing survey resources for " + ctx.user + ": " + e.getMessage());
+		}
+
 		return resources;
+	}
+
+	/*
+	 * Whether this caller's surveys are named individually in resources/list
+	 */
+	public boolean listsSurveys(McpToolContext ctx) {
+		try {
+			return userSurveys(ctx).size() <= MAX_LISTED_SURVEYS;
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	public List<Map<String, Object>> templates() {
@@ -329,6 +375,15 @@ public class McpResources {
 		md.append("# Smap tools available to you\n\n");
 		md.append("Acting as **").append(ctx.user).append("**");
 		md.append(" with permissions: ").append(ctx.scope).append("\n\n");
+
+		if(listsSurveys(ctx)) {
+			md.append("Your surveys are listed individually as resources, so you can read a "
+					+ "definition without looking its ident up first.\n\n");
+		} else {
+			md.append("You have more surveys than are worth listing one by one, so they are not "
+					+ "named in the resource list. Use `survey_list` to find one, then read "
+					+ "`smap://survey/{ident}/definition`.\n\n");
+		}
 
 		for(McpTool tool : registry.visibleTo(ctx.sd, ctx)) {
 			md.append("## ").append(tool.getName()).append("\n\n");
