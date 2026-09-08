@@ -161,6 +161,27 @@ caller may see are listed.
 Which questions hold files is decided by the question type, not by whether a value looks like a
 path, so a text answer that happens to resemble one is not offered as a file.
 
+## A record can have more than one row
+
+Smap never removes a row. It marks it `_bad`, and that covers two different things: a record somebody
+deleted, and an earlier version of a record that has since been updated. An update writes a new row
+with a new instance id and marks the old one with a reason naming its replacement, such as
+"Merged with 11". Both rows stay, and both belong to the same thread.
+
+So `data_count`, `data_query` and `data_aggregate` all leave `_bad` rows out unless
+`include_deleted` says otherwise, which is what the console shows and what makes an updated record
+count once rather than twice. `data_count` says so in its answer, and says superseded rather than
+deleted, because a reader told a record was deleted will go looking for data that was never lost.
+
+`survey_submission_counts` answers a different question again: it counts `upload_event` rows, so it
+reports every submission the server ever accepted, including the ones later superseded. A survey
+with one updated record therefore reports one more submission than it has records, and both numbers
+are true.
+
+This is why `data_audit` is keyed on the thread. The history of a record outlives the row that
+carried it, so asking about the current instance still returns the original submission and every
+change since, with the values before and after.
+
 ## History is per thread, not per submission
 
 `data_audit` returns a record's history: the submission, every later change with old and new values,

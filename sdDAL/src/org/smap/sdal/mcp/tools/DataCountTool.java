@@ -94,10 +94,26 @@ public class DataCountTool extends AbstractMcpTool {
 		long count = new DataAggregateManager(ctx.localisation, ctx.timezone)
 				.count(ctx.sd, ctx.cResults, q);
 
+		/*
+		 * Say what was left out, rather than returning a bare number that quietly disagrees with the
+		 * total someone can see elsewhere.  Cheap to say and it costs no second query.
+		 *
+		 * Not called deleted, because the flag covers two different things.  A record marked _bad is
+		 * either one somebody deleted or an earlier version of a record that has since been updated:
+		 * an update writes a new row and marks the old one with a reason like "Merged with 11".
+		 * Excluding those is not hiding data, it is refusing to count one record twice, and saying
+		 * "deleted" would send a reader looking for something that was never lost.
+		 */
+		String excluded = "none".equals(q.includeBad)
+				? " Superseded and deleted records are not counted, so a record updated since it"
+					+ " was submitted counts once; pass include_deleted to include them."
+				: "";
+
 		Map<String, Object> structured = new LinkedHashMap<>();
 		structured.put("count", count);
+		structured.put("include_deleted", q.includeBad);
 
-		MCPToolResult result = new MCPToolResult(count + " record(s) match.");
+		MCPToolResult result = new MCPToolResult(count + " record(s) match." + excluded);
 		result.setStructuredContent(structured);
 		return result;
 	}
