@@ -59,6 +59,7 @@ import org.smap.sdal.mcp.tools.DataCountTool;
 import org.smap.sdal.mcp.tools.DataDeleteRecordTool;
 import org.smap.sdal.mcp.tools.DataRestoreRecordTool;
 import org.smap.sdal.mcp.tools.DataSubmitTool;
+import org.smap.sdal.mcp.tools.DataUpdateRecordTool;
 import org.smap.sdal.mcp.tools.DataGetRecordTool;
 import org.smap.sdal.mcp.tools.DataQueryTool;
 import org.smap.sdal.mcp.tools.SurveyEffectsTool;
@@ -110,6 +111,7 @@ public class MCP extends Application {
 		registry.register(new DataDeleteRecordTool());
 		registry.register(new DataRestoreRecordTool());
 		registry.register(new DataSubmitTool());
+		registry.register(new DataUpdateRecordTool());
 		registry.register(new TopicListTool());
 	}
 

@@ -368,23 +368,37 @@ public class RecordEventManager {
 		
 		ArrayList<DataItemChangeEvent> events = new ArrayList<DataItemChangeEvent> ();
 		
+		/*
+		 * Every column is qualified because of the join below.  oauth_client has a status of its
+		 * own, so an unqualified one is ambiguous and the whole query fails - which is what happened
+		 * the first time this join was added.
+		 */
 		String sql = "select "
-				+ "event, "
-				+ "status,"
-				+ "changes,"
-				+ "task, "
-				+ "message, "
-				+ "notification, "
-				+ "description, "
-				+ "changed_by, "
-				+ "change_survey, "
-				+ "change_survey_version, "
-				+ "agent, "
-				+ "to_char(timezone(?, event_time), 'YYYY-MM-DD HH24:MI:SS') as event_time "
-				+ "from record_event "
-				+ "where table_name = ? "
-				+ "and key = ? "
-				+ "order by event_time desc";
+				+ "re.event, "
+				+ "re.status,"
+				+ "re.changes,"
+				+ "re.task, "
+				+ "re.message, "
+				+ "re.notification, "
+				+ "re.description, "
+				+ "re.changed_by, "
+				+ "re.change_survey, "
+				+ "re.change_survey_version, "
+				+ "re.agent, "
+				/*
+				 * The application's name if it is still registered, so a person reading a record's
+				 * history sees what acted rather than an identifier. The id stays in the column and
+				 * is returned beside the name: the name is how somebody recognises it, the id is
+				 * what the trail is actually anchored to, and a client that has since been removed
+				 * still has to be identifiable.
+				 */
+				+ "c.client_name, "
+				+ "to_char(timezone(?, re.event_time), 'YYYY-MM-DD HH24:MI:SS') as event_time "
+				+ "from record_event re "
+				+ "left join oauth_client c on c.client_id = re.agent "
+				+ "where re.table_name = ? "
+				+ "and re.key = ? "
+				+ "order by re.event_time desc";
 		PreparedStatement pstmt = null;
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -440,7 +454,15 @@ public class RecordEventManager {
 				}
 
 				event.description = rs.getString("description");
-				event.agent = rs.getString("agent");
+				/*
+				 * Null for a change a person made directly, which is most of them, so the field is
+				 * simply absent rather than saying "none" in every entry.
+				 */
+				event.agentId = rs.getString("agent");
+				if(event.agentId != null) {
+					String clientName = rs.getString("client_name");
+					event.agent = clientName != null ? clientName : event.agentId;
+				}
 				
 				String sIdent = rs.getString("change_survey");
 				if(sIdent != null) {				

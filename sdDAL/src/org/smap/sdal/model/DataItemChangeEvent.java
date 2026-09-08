@@ -26,4 +26,10 @@ public class DataItemChangeEvent {
 	 * the person either way, and for an agent that is who approved it.
 	 */
 	public String agent;
+
+	/*
+	 * The application's registered identifier, which agent is the readable name of. Kept beside it
+	 * because a client can be renamed or removed and the trail still has to say what acted.
+	 */
+	public String agentId;
 }

@@ -74,12 +74,26 @@ public class ActionManager {
 	private ResourceBundle localisation;
 	private String tz;
 
+	/*
+	 * The application asking for a change, when it is not a person working directly.
+	 *
+	 * Set on the manager rather than added to processUpdateGroupSurvey, which already takes eleven
+	 * arguments, and so that the fourteen places constructing this class carry on saying what they
+	 * said before and record nothing.
+	 */
+	private String agent = null;
+
 	public ActionManager(ResourceBundle l, String tz) {
 		localisation = l;
 		if (tz == null) {
 			tz = "UTC";
 		}
 		this.tz = tz;
+	}
+
+	public ActionManager(ResourceBundle l, String tz, String agent) {
+		this(l, tz);
+		this.agent = agent;
 	}
 
 	/*
@@ -698,7 +712,8 @@ public class ActionManager {
 			/*
 			 * save change log
 			 */
-			RecordEventManager rem = new RecordEventManager();
+			/* Records the application beside the person, when something acted for them */
+			RecordEventManager rem = new RecordEventManager(agent);
 			String changesJson;
 			if (isSubForm) {
 				ArrayList<SubFormRowChange> subRowChanges = new ArrayList<>();

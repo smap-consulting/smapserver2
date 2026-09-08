@@ -62,6 +62,7 @@ may do.
 | `data_delete_record` | write | analyst, admin | done |
 | `data_restore_record` | write | analyst, admin | done |
 | `data_submit` | write | analyst, admin | done |
+| `data_update_record` | write | analyst, admin | done |
 | `topic_list` | read | analyst, admin, view data, manage | done |
 
 ## Resources
@@ -101,7 +102,7 @@ not done.
 | Console area | Tools | State |
 | --- | --- | --- |
 | Surveys, list and structure | `survey_list`, `survey_submission_counts` | read only |
-| Data | `data_query`, `data_get_record`, `data_count`, `data_attachments`, `data_audit`, `data_delete_record`, `data_restore_record`, `data_submit` | read and write |
+| Data | `data_query`, `data_get_record`, `data_count`, `data_attachments`, `data_audit`, `data_delete_record`, `data_restore_record`, `data_submit`, `data_update_record` | read and write |
 | Analysis | `data_aggregate` | read only |
 | Projects | `project_list` | read only |
 | Topics / bundles | `topic_list` | read only |
@@ -285,6 +286,20 @@ which is the whole of the escape a quoted identifier needs in Postgres. Quoted r
 against a pattern, because `cleanName` strips a list of punctuation and lowercases the rest, so a
 column name can legitimately hold any other unicode letter and a rule strict enough to be safe would
 refuse real names.
+
+## Who changed a record, and what with
+
+A record changed through MCP records both the person and the application. `changed_by` is the person,
+who for an agent is whoever approved it, and `agent` is the program. Either alone leaves a question
+that cannot be settled later: the person's name cannot say whether they typed it or approved it, and
+the program's cannot say who let it.
+
+`data_audit` returns the application's registered name, with `agentId` beside it. The name is how
+somebody recognises it; the id is what the trail is anchored to and survives the client being renamed
+or removed. Both are absent on a change a person made directly, which is most of them.
+
+The console shows none of this yet. `/surveyKPI/api/data/changes` returns it, so the record history
+panel has it and drops it - see the console section of the plan.
 
 ## A record can have more than one row
 
