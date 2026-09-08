@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.McpConfirmationManager;
 import org.smap.sdal.model.MCPError;
 import org.smap.sdal.model.MCPRequest;
 import org.smap.sdal.model.MCPResponse;
@@ -297,7 +298,7 @@ public class McpDispatcher {
 		if(!ctx.hasScope(tool.getRequiredScope())) {
 			throw new ScopeRequired(tool.getRequiredScope());
 		}
-		if(!registry.permitted(ctx.sd, ctx, tool)) {
+		if(!registry.inPermittedGroup(ctx.sd, ctx, tool)) {
 			log.info("MCP tool " + name + " refused for " + ctx.user + ", not in a permitted group");
 			return error(request.getId(), McpProtocol.INVALID_PARAMS, "Unknown tool: " + name);
 		}
@@ -305,6 +306,39 @@ public class McpDispatcher {
 		Map<String, Object> arguments = params.get("arguments") instanceof Map
 				? (Map<String, Object>) params.get("arguments")
 				: new HashMap<>();
+
+		/*
+		 * A retry carrying answers to something this tool asked on an earlier call.
+		 *
+		 * There is no session, so the two calls are related only by what the client sends back: the
+		 * same arguments, the answers, and the handle.  The handle is checked here rather than in
+		 * the tool, so no tool can forget to, and it is checked against this call - the same person,
+		 * unexpired, same tool, same arguments - so a confirmation shown for one thing cannot be
+		 * redeemed against another.
+		 */
+		ctx.clientCapabilities = request.getClientCapabilities();
+		ctx.inputResponses = params.get("inputResponses") instanceof Map
+				? (Map<String, Object>) params.get("inputResponses")
+				: null;
+
+		Object state = params.get("requestState");
+		if(state != null) {
+			McpConfirmationManager cm = new McpConfirmationManager();
+			McpConfirmationManager.Outcome outcome =
+					cm.consume(ctx.sd, state.toString(), ctx.uId, name, arguments);
+			ctx.confirmed = outcome == McpConfirmationManager.Outcome.VALID;
+			if(!ctx.confirmed) {
+				/*
+				 * Told plainly, because every one of these is recoverable by asking again, and a
+				 * client that cannot tell why it was refused will retry the same way.
+				 */
+				log.warning("MCP confirmation rejected for " + ctx.user + " on " + name
+						+ ": " + outcome);
+				return ok(request.getId(), toolResult(new MCPToolResult(
+						"That confirmation is no longer valid (" + reason(outcome)
+						+ "). Run the tool again to be asked afresh.", true), tool));
+			}
+		}
 
 		long started = System.currentTimeMillis();
 		MCPToolResult result;
@@ -334,13 +368,48 @@ public class McpDispatcher {
 
 		audit(ctx, name, arguments, result, System.currentTimeMillis() - started);
 
+		/*
+		 * The tool wants to ask before it acts.  The call ends here and the client is expected to
+		 * put the question to somebody and call again with the answer and the handle.
+		 *
+		 * The handle is stored rather than signed into the response.  What it decides is whether a
+		 * thing is done or refused, which is the case the specification says must be protected from
+		 * the client, and a stored row can also be spent: an approval to send two emails must not be
+		 * redeemable twice, which signing alone does not give.
+		 */
+		if(result.isInputRequired()) {
+			McpConfirmationManager cm = new McpConfirmationManager();
+			String stateId = cm.create(ctx.sd, ctx.uId, ctx.clientId, name, arguments);
+
+			Map<String, Object> out = new LinkedHashMap<>();
+			out.put("inputRequests", result.getInputRequests());
+			out.put("requestState", stateId);
+			return inputRequired(request.getId(), out);
+		}
+
+		return ok(request.getId(), toolResult(result, tool));
+	}
+
+	/* The ordinary shape of a finished tool call */
+	private Map<String, Object> toolResult(MCPToolResult result, McpTool tool) {
 		Map<String, Object> out = new LinkedHashMap<>();
 		out.put("content", result.getContent());
 		if(result.getStructuredContent() != null) {
-			out.put("structuredContent", asObject(name, result.getStructuredContent()));
+			out.put("structuredContent",
+					asObject(tool == null ? "unknown" : tool.getName(), result.getStructuredContent()));
 		}
 		out.put("isError", result.isError());
-		return ok(request.getId(), out);
+		return out;
+	}
+
+	/* Why a confirmation was refused, in words a client can act on */
+	private String reason(McpConfirmationManager.Outcome outcome) {
+		switch(outcome) {
+			case EXPIRED: return "it expired";
+			case WRONG_USER: return "it was issued to somebody else";
+			case WRONG_CALL: return "it was for a different call";
+			default: return "it is not recognised, or has already been used";
+		}
 	}
 
 	/*
@@ -395,10 +464,22 @@ public class McpDispatcher {
 		}
 	}
 
+	/*
+	 * A result that is not an answer but a question.  Same envelope, different resultType, so a
+	 * client that understands 2026-07-28 knows to gather the input and call again.
+	 */
+	private MCPResponse inputRequired(Object id, Map<String, Object> result) {
+		return respond(id, result, McpProtocol.RESULT_INPUT_REQUIRED);
+	}
+
 	private MCPResponse ok(Object id, Map<String, Object> result) {
+		return respond(id, result, McpProtocol.RESULT_COMPLETE);
+	}
+
+	private MCPResponse respond(Object id, Map<String, Object> result, String resultType) {
 
 		// Every result says what kind it is, and identifies the server that produced it
-		result.put("resultType", McpProtocol.RESULT_COMPLETE);
+		result.put("resultType", resultType);
 
 		Map<String, Object> serverInfo = new LinkedHashMap<>();
 		serverInfo.put("name", McpProtocol.SERVER_NAME);

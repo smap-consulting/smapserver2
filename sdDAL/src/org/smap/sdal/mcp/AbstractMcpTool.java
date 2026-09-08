@@ -6,6 +6,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.smap.sdal.model.MCPToolResult;
+
 /*
  * Boilerplate every tool would otherwise repeat: building a JSON Schema by hand, and reading an
  * argument that arrived as whatever JSON happened to contain.
@@ -35,6 +37,56 @@ public abstract class AbstractMcpTool implements McpTool {
 		 */
 		a.put("openWorldHint", Boolean.FALSE);
 		return a;
+	}
+
+	/*
+	 * The number of records above which a change stops being something a person can check by eye and
+	 * becomes something they are trusting the agent about.  Below it a mistake is a nuisance to undo;
+	 * above it, undoing is a project.
+	 */
+	protected static final int BULK_THRESHOLD = 20;
+
+	/*
+	 * Ask before acting, and stop.
+	 *
+	 * The message has to carry the whole of what is about to happen, because the form beneath it is
+	 * only a yes: there is no confirm mode in this revision of the protocol, and a client renders
+	 * the message and one checkbox. Say what will be sent and what cannot be taken back.
+	 */
+	protected MCPToolResult ask(McpToolContext ctx, String message) {
+
+		/*
+		 * A client that cannot put a question to its user is refused rather than acted for. The
+		 * specification forbids sending it an elicitation it has not declared, and proceeding
+		 * unasked would be worse than refusing: the approval exists precisely because nobody can
+		 * take the consequence back.
+		 */
+		if(!ctx.canElicit()) {
+			return new MCPToolResult("This needs a person to approve it, and this client cannot ask "
+					+ "one. Do it in the Smap console, or use a client that supports elicitation.",
+					true);
+		}
+
+		MCPToolResult result = new MCPToolResult(message);
+		result.setInputRequests(McpElicit.confirmation(message));
+		return result;
+	}
+
+	/*
+	 * Whether this call is the approved one coming back.
+	 *
+	 * Both halves are needed and neither is sufficient. The dispatcher has checked the handle, which
+	 * says this exact call was put to this person and has not been answered before; accepted() says
+	 * what they answered, since a client can return an accept with the box unticked, or a decline,
+	 * or a cancel.
+	 */
+	protected boolean approved(McpToolContext ctx) {
+		return ctx.confirmed && McpElicit.accepted(ctx.inputResponses);
+	}
+
+	/* The person answered, and said no */
+	protected boolean refused(McpToolContext ctx) {
+		return ctx.confirmed && !McpElicit.accepted(ctx.inputResponses);
 	}
 
 	protected static List<String> groups(String... names) {

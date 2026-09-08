@@ -735,3 +735,19 @@ alter table oauth_consent owner to ws;
 -- Record which application made a change, as distinct from which person it acted for.
 -- changed_by already holds the person; for an agent that is the person who approved the change.
 alter table record_event add column if not exists agent text;
+
+-- A confirmation a person has been shown but not yet given, for the MCP multi round trip flow.
+-- The client echoes back the id as requestState. Nothing else about the call is stored here: the
+-- arguments come back on the retry and are checked against the digest, so a tampered row can cause
+-- a refusal and nothing else.
+create table if not exists mcp_pending_action (
+	state_id text primary key,
+	u_id integer references users(id) on delete cascade,
+	client_id text,
+	tool text not null,
+	arguments_hash text not null,
+	created timestamp with time zone default now(),
+	expires timestamp with time zone not null
+	);
+create index if not exists idx_mcp_pending_expires on mcp_pending_action(expires);
+alter table mcp_pending_action owner to ws;

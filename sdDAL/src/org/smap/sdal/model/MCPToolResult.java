@@ -41,6 +41,28 @@ public class MCPToolResult {
 		this.isError = isError;
 	}
 
+	/*
+	 * When set, this is not an answer but a request for the caller to go and ask somebody.
+	 *
+	 * The dispatcher turns it into an input_required result carrying these requests and a state
+	 * handle; the client puts them to the user and calls again with the answers.  Kept on the same
+	 * class as an ordinary result so a tool can decide, part way through, that it needs to ask -
+	 * which is exactly when it knows enough to say what it is about to do.
+	 */
+	private Object inputRequests;
+
+	public Object getInputRequests() {
+		return inputRequests;
+	}
+
+	public void setInputRequests(Object inputRequests) {
+		this.inputRequests = inputRequests;
+	}
+
+	public boolean isInputRequired() {
+		return inputRequests != null;
+	}
+
 	public void addTextContent(String text) {
 		content.add(new MCPToolContent("text", text));
 	}

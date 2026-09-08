@@ -70,5 +70,33 @@ public interface McpTool {
 		return null;
 	}
 
+	/*
+	 * Whether this tool stops to ask a person before it acts.
+	 *
+	 * Scoped to what cannot be taken back rather than to everything that changes.  A tool whose
+	 * effect is undoable, audited and confined to one record does not ask: if every field edit
+	 * asked, nobody would read any of them, and the one prompt that matters - this will send two
+	 * emails that cannot be recalled - would be clicked through with the rest.  Rarity is what makes
+	 * the question worth answering.
+	 *
+	 * Note this is the server's own gate, not the client's.  Clients like Claude Code already ask
+	 * before each tool call, but another client need not, so anything that must be approved has to
+	 * be approved here.
+	 */
+	default Confirmation getConfirmation() {
+		return Confirmation.NONE;
+	}
+
+	enum Confirmation {
+		/* Reversible, audited, one record at a time */
+		NONE,
+
+		/* The tool works out per call whether this one escapes: a send, or a bulk change */
+		CONDITIONAL,
+
+		/* Nothing this tool does can be taken back */
+		ALWAYS
+	}
+
 	MCPToolResult execute(McpToolContext ctx, Map<String, Object> arguments) throws Exception;
 }

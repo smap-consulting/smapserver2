@@ -1,6 +1,7 @@
 package org.smap.sdal.mcp;
 
 import java.sql.Connection;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -62,6 +63,32 @@ public class McpToolContext {
 		this.timezone = timezone;
 		this.maxRows = maxRows;
 		this.clientId = clientId;
+	}
+
+	/*
+	 * The answers to a question this tool asked on an earlier call, if it asked one.
+	 *
+	 * The protocol has no session, so a confirmed call is not a continuation of the first one: it is
+	 * a fresh call carrying the same arguments plus the answers.  A tool therefore reads these to
+	 * find out whether it is being run for the first time or for real.
+	 */
+	public Map<String, Object> inputResponses;
+
+	/* Whether the handle that came back with those answers was genuine, checked by the dispatcher */
+	public boolean confirmed;
+
+	/* What the client says it can do.  A question cannot be asked of a client that cannot ask it */
+	public Map<String, Object> clientCapabilities;
+
+	/*
+	 * Whether this client can put a question to its user at all.
+	 *
+	 * The specification forbids sending an elicitation to a client that has not declared it, so a
+	 * tool needing approval has to refuse rather than ask when it cannot be asked.  An empty
+	 * elicitation object means form mode, which is all a confirmation needs.
+	 */
+	public boolean canElicit() {
+		return clientCapabilities != null && clientCapabilities.get("elicitation") instanceof Map;
 	}
 
 	public boolean hasScope(String required) {

@@ -35,6 +35,15 @@ Only `smap:read` is advertised. A tool needing more answers `403` naming the sco
 re-authorises for that as well as what it already had, so it never holds a permission it has not
 needed.
 
+Which is why `tools/list` is filtered by the caller's groups and not by their token's scopes. The two
+refusals are not alike: a group is a property of the person, and no amount of re-authorising gives an
+enumerator an administrator's rights, so a tool they can never run is better never seen. A scope is a
+property of the token and is meant to be escalated. Filtering the listing by scope as well made that
+impossible - a tool the client cannot see is one it never calls, so it never receives the challenge
+that tells it what to ask for, and a session could sit on a read-only token with no way to find out
+that writing was available. The listing says what the person may do; the call decides what this token
+may do.
+
 ## Tools
 
 | Tool | Scope | Groups | Status |
@@ -50,6 +59,8 @@ needed.
 | `data_aggregate` | read | analyst, admin, view data | done |
 | `data_attachments` | read | analyst, admin, view data | done |
 | `data_audit` | read | analyst, admin, view data | done |
+| `data_delete_record` | write | analyst, admin | done |
+| `data_restore_record` | write | analyst, admin | done |
 | `topic_list` | read | analyst, admin, view data, manage | done |
 
 ## Resources
@@ -89,7 +100,7 @@ not done.
 | Console area | Tools | State |
 | --- | --- | --- |
 | Surveys, list and structure | `survey_list`, `survey_submission_counts` | read only |
-| Data | `data_query`, `data_get_record`, `data_count`, `data_attachments`, `data_audit` | read only |
+| Data | `data_query`, `data_get_record`, `data_count`, `data_attachments`, `data_audit`, `data_delete_record`, `data_restore_record` | read, delete and restore |
 | Analysis | `data_aggregate` | read only |
 | Projects | `project_list` | read only |
 | Topics / bundles | `topic_list` | read only |
@@ -160,6 +171,43 @@ caller may see are listed.
 
 Which questions hold files is decided by the question type, not by whether a value looks like a
 path, so a text answer that happens to resemble one is not offered as a file.
+
+## Asking before acting
+
+A tool that needs a person's agreement returns an input_required result carrying an elicitation, and
+the client puts the question to somebody and calls again with the answer. There is no session, so the
+second call is not a continuation of the first: it is a fresh call carrying the same arguments, the
+answer, and a handle.
+
+The handle is a row rather than a signed blob. The specification allows either, and encoding the
+state into the handle is the more idiomatic choice, but what this handle decides is whether something
+irrevocable happens, which is exactly the case the specification says must be protected from the
+client. Signing that would mean a key to generate, store and rotate; a row needs none, and it can be
+spent. The specification notes that signing bounds the replay window without making a state single
+use, and an approval to send two emails must not be redeemable twice - deleting the row on use is the
+whole of that guarantee.
+
+The row holds only a digest of the call. The arguments come back on the retry and are checked against
+it, so a confirmation shown for one record cannot be redeemed against another, and tampering with a
+row causes a refusal and nothing worse. It is consumed whatever the verdict, so a client cannot try
+one handle against varying arguments until something matches.
+
+Only an explicit yes counts. A client can return a decline, a cancel, or an accept with the box
+unticked, and none of those is agreement.
+
+### What asks, and what does not
+
+Scoped to what cannot be taken back, not to everything that changes. Deleting one record is confined,
+audited and undoable, so it does not ask. If every field edit asked, nobody would read any of them,
+and the prompt that matters - this will send two emails that cannot be recalled - would be waved
+through with the rest. Rarity is what makes the question worth answering.
+
+Each tool declares which it is, and the registry refuses at startup both a mutating tool that does not
+say how it is undone and a read only tool that asks for confirmation. The second is the inverse
+mistake and worth catching for the same reason.
+
+A client that has not declared elicitation is refused rather than acted for. The specification forbids
+sending it a question it cannot ask, and proceeding unasked would be worse than refusing.
 
 ## What a submission sets off, before it is made
 

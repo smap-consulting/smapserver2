@@ -38,6 +38,17 @@ public class McpToolRegistry {
 			throw new IllegalStateException("MCP tool " + tool.getName()
 					+ " does not declare a known scope");
 		}
+
+		/*
+		 * A tool that only reads has nothing to confirm, so asking would be a mistake rather than
+		 * caution: it would train whoever answers to click through prompts that never mattered, and
+		 * the prompts that do matter are the ones that follow.  Caught at startup for the same
+		 * reason the reversal is - a rule enforced only by memory is one that erodes.
+		 */
+		if(!tool.isMutating() && tool.getConfirmation() != McpTool.Confirmation.NONE) {
+			throw new IllegalStateException("MCP tool " + tool.getName()
+					+ " reads but asks for confirmation");
+		}
 		tools.put(tool.getName(), tool);
 	}
 
@@ -46,28 +57,38 @@ public class McpToolRegistry {
 	}
 
 	/*
-	 * The tools this caller may actually run.
+	 * The tools this caller is shown.
 	 *
-	 * Effective permission is the user's security groups intersected with the token's scopes, so a
-	 * token naming a scope its holder's groups do not support shows nothing extra, and a user whose
-	 * groups would allow a tool still cannot see it through a token that was not granted the scope.
+	 * Filtered by the caller's security groups and deliberately not by their token's scopes, because
+	 * the two refusals are not alike. A group is a property of the person: no amount of
+	 * re-authorising will give an enumerator an administrator's rights, so a tool they can never run
+	 * is better never seen. A scope is a property of the token and is meant to be escalated - only
+	 * smap:read is ever advertised, and everything else is reached by asking for it.
+	 *
+	 * Filtering the listing by scope as well made that impossible. A tool the client cannot see is a
+	 * tool it never calls, so it never receives the insufficient_scope challenge that exists to tell
+	 * it what to ask for, and a session could sit on a read-only token with no way to discover that
+	 * writing was available at all. The listing therefore shows what the person may do, and the call
+	 * decides what this token may do.
 	 */
 	public List<McpTool> visibleTo(Connection sd, McpToolContext ctx) {
 
 		List<McpTool> visible = new ArrayList<>();
 		for(McpTool tool : tools.values()) {
-			if(permitted(sd, ctx, tool)) {
+			if(inPermittedGroup(sd, ctx, tool)) {
 				visible.add(tool);
 			}
 		}
 		return visible;
 	}
 
+	/* Both questions, for the call path, which has to answer them separately to say which failed */
 	public boolean permitted(Connection sd, McpToolContext ctx, McpTool tool) {
+		return ctx.hasScope(tool.getRequiredScope()) && inPermittedGroup(sd, ctx, tool);
+	}
 
-		if(!ctx.hasScope(tool.getRequiredScope())) {
-			return false;
-		}
+	public boolean inPermittedGroup(Connection sd, McpToolContext ctx, McpTool tool) {
+
 		List<String> groups = tool.getRequiredGroups();
 		if(groups == null || groups.isEmpty()) {
 			return true;

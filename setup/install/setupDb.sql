@@ -2216,3 +2216,17 @@ CREATE TABLE timezone (
     utc_offset text
 );
 ALTER TABLE timezone OWNER TO ws;
+
+-- A confirmation a person has been shown but not yet given, for the MCP multi round trip flow
+DROP TABLE IF EXISTS mcp_pending_action CASCADE;
+CREATE TABLE mcp_pending_action (
+	state_id text PRIMARY KEY,					-- Echoed back by the client as requestState
+	u_id integer references users(id) on delete cascade,	-- Who was asked; only they may complete it
+	client_id text,								-- Which application asked
+	tool text not null,							-- The tool the confirmation was for
+	arguments_hash text not null,				-- Digest of what was shown, so the retry cannot differ
+	created timestamp with time zone default now(),
+	expires timestamp with time zone not null
+	);
+CREATE INDEX idx_mcp_pending_expires ON mcp_pending_action(expires);
+ALTER TABLE mcp_pending_action OWNER TO ws;

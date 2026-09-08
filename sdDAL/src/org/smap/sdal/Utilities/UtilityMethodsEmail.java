@@ -67,6 +67,37 @@ public class UtilityMethodsEmail {
 			boolean writeToEventManager
 			) throws Exception {
 
+		/* A person working directly, so there is no agent to record */
+		markRecord(cResults, sd, localisation, tName, value, reason, key, sId, fId, modified,
+				isChild, user, updateChildren, tz, overideModifiedFlag, writeToEventManager, null);
+	}
+
+	/*
+	 * As above, but recording the application that asked for it.
+	 *
+	 * An overload rather than another parameter on a method that already takes thirteen, and so that
+	 * the three existing callers keep saying exactly what they said before.
+	 */
+	static public void markRecord(
+			Connection cResults,
+			Connection sd,
+			ResourceBundle localisation,
+			String tName,
+			boolean value,
+			String reason,
+			int key,
+			int sId,
+			int fId,
+			boolean modified,
+			boolean isChild,
+			String user,
+			boolean updateChildren,
+			String tz,
+			boolean overideModifiedFlag,
+			boolean writeToEventManager,
+			String agent
+			) throws Exception {
+
 		String sql = "update " + tName
 				+ " set _bad = ?, _bad_reason = ?, _modified = ? where prikey = ?";
 		if(!overideModifiedFlag) {
@@ -98,7 +129,7 @@ public class UtilityMethodsEmail {
 
 			if(!isChild && writeToEventManager) {
 				String instanceId = GeneralUtilityMethods.getInstanceId(cResults, tName, key);
-				RecordEventManager rem = new RecordEventManager();
+				RecordEventManager rem = new RecordEventManager(agent);
 				rem.writeEvent(sd, cResults,
 						value ? RecordEventManager.DELETED : RecordEventManager.RESTORED,
 						RecordEventManager.STATUS_SUCCESS,
