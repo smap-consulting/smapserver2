@@ -51,6 +51,20 @@ public class SubmissionEffectsManager {
 			return emails == 0 && smsMessages == 0 && webhooks == 0 && tasks == 0;
 		}
 
+		/*
+		 * What a caller has to restate to show they were told.
+		 *
+		 * The counts rather than a token, because the point is that the numbers pass through the
+		 * conversation where a person can see them before approving the call. A token would prove
+		 * only that the tool had been called twice.
+		 */
+		public boolean matches(Integer emails, Integer sms, Integer webhooks, Integer tasks) {
+			return emails != null && emails == this.emails
+					&& sms != null && sms == this.smsMessages
+					&& webhooks != null && webhooks == this.webhooks
+					&& tasks != null && tasks == this.tasks;
+		}
+
 		/* A sentence for somebody deciding whether to allow it */
 		public String describe() {
 			if(isEmpty()) {

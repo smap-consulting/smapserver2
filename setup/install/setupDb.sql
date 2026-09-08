@@ -751,6 +751,7 @@ CREATE TABLE upload_event (
 	audit_file_path text,
 	survey_name text,
 	imei text,
+	agent text,									-- Application that submitted, when not a person filling in a form
 	orig_survey_ident text,
 	update_id varchar(41),
 	assignment_id INTEGER,

@@ -69,6 +69,16 @@ public class WhoAmITool extends AbstractMcpTool {
 		data.put("name", name);
 		data.put("organisation", organisation);
 		data.put("scopes", scopes);
+		data.put("client", ctx.clientId);
+
+		/*
+		 * What the client told us it can do, and whether that includes putting a question to its
+		 * user.  Reported because it changes what this connection can be asked to do rather than
+		 * only how: a tool that must be approved cannot run at all through a client that cannot
+		 * carry the question, and without this the refusal is the first anyone hears of it.
+		 */
+		data.put("client_capabilities", ctx.clientCapabilities);
+		data.put("can_ask_for_approval", ctx.canElicit());
 
 		StringBuilder text = new StringBuilder();
 		text.append("You are acting as ").append(ctx.user);
@@ -77,6 +87,13 @@ public class WhoAmITool extends AbstractMcpTool {
 		}
 		text.append(" in the organisation ").append(organisation).append(".\n");
 		text.append("Permissions granted to this connection: ").append(String.join(", ", scopes));
+		text.append("\n");
+		if(ctx.canElicit()) {
+			text.append("This client can ask you to approve something before it happens.");
+		} else {
+			text.append("This client cannot put a question to you mid-request, so anything needing "
+					+ "approval has to be acknowledged in the call itself.");
+		}
 
 		MCPToolResult result = new MCPToolResult(text.toString());
 		result.setStructuredContent(data);

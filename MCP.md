@@ -61,6 +61,7 @@ may do.
 | `data_audit` | read | analyst, admin, view data | done |
 | `data_delete_record` | write | analyst, admin | done |
 | `data_restore_record` | write | analyst, admin | done |
+| `data_submit` | write | analyst, admin | done |
 | `topic_list` | read | analyst, admin, view data, manage | done |
 
 ## Resources
@@ -100,7 +101,7 @@ not done.
 | Console area | Tools | State |
 | --- | --- | --- |
 | Surveys, list and structure | `survey_list`, `survey_submission_counts` | read only |
-| Data | `data_query`, `data_get_record`, `data_count`, `data_attachments`, `data_audit`, `data_delete_record`, `data_restore_record` | read, delete and restore |
+| Data | `data_query`, `data_get_record`, `data_count`, `data_attachments`, `data_audit`, `data_delete_record`, `data_restore_record`, `data_submit` | read and write |
 | Analysis | `data_aggregate` | read only |
 | Projects | `project_list` | read only |
 | Topics / bundles | `topic_list` | read only |
@@ -194,6 +195,22 @@ one handle against varying arguments until something matches.
 
 Only an explicit yes counts. A client can return a decline, a cancel, or an accept with the box
 unticked, and none of those is agreement.
+
+### When the client cannot be asked
+
+Asking mid-request needs the 2026-07-28 protocol, and almost nothing speaks it yet: the clients in
+the field still open with the handshake that revision removed, and they send no capabilities per
+request at all. Refusing outright would mean no survey that sends anything could ever be submitted
+to, which is most of the ones worth submitting to.
+
+So `data_submit` accepts an `acknowledge` argument carrying the counts the caller says it has been
+shown. They are checked against what the server has just worked out, so they cannot be guessed or
+carried over from a survey that has since changed, and restating them is what puts the consequence
+into the conversation where the person approving the call can read it. Counts rather than a token,
+because a token would prove only that the tool had been called twice.
+
+Weaker than being asked, and only used when asking is impossible: as clients adopt 2026-07-28 the
+elicitation takes over, with no change here. `whoami` reports which of the two applies.
 
 ### What asks, and what does not
 

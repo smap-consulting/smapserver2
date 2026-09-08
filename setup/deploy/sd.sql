@@ -751,3 +751,8 @@ create table if not exists mcp_pending_action (
 	);
 create index if not exists idx_mcp_pending_expires on mcp_pending_action(expires);
 alter table mcp_pending_action owner to ws;
+
+-- Which application made a submission, when it was not a person filling in a form.  Carried on the
+-- upload because the record's created event is written by the subscriber, long after the request
+-- that made the submission has finished.
+alter table upload_event add column if not exists agent text;
