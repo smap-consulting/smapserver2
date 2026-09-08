@@ -190,9 +190,14 @@ which trusts the stored name without the second check.
 `sort` is matched against the known columns and falls back to the primary key when it matches none,
 so an unrecognised sort orders by key rather than becoming part of the query.
 
-One primitive is worth remembering: `GeneralUtilityMethods.getDateRange` concatenates the column name
-it is given. It is safe only because every caller checks that column exists first. Anything new that
-calls it has to do the same.
+`GeneralUtilityMethods.getDateRange` used to concatenate the column name it was given, and was safe
+only because all nine of its callers happened to check that column existed first. That was a property
+of the callers rather than of the method, so one that forgot would have written whatever it was given
+into a query with nothing to show for it. It now quotes the name itself, doubling any embedded quote,
+which is the whole of the escape a quoted identifier needs in Postgres. Quoted rather than checked
+against a pattern, because `cleanName` strips a list of punctuation and lowercases the rest, so a
+column name can legitimately hold any other unicode letter and a rule strict enough to be safe would
+refuse real names.
 
 ## A record can have more than one row
 
