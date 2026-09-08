@@ -32,4 +32,10 @@ public class DataItemChangeEvent {
 	 * because a client can be renamed or removed and the trail still has to say what acted.
 	 */
 	public String agentId;
+
+	/*
+	 * Set when this change was one of many made together, and the same on all of them, so the whole
+	 * can be undone as the single action it was.
+	 */
+	public String changeSet;
 }

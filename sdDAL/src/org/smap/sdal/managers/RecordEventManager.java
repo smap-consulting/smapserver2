@@ -91,6 +91,20 @@ public class RecordEventManager {
 	public RecordEventManager(String agent) {
 		this.agent = agent;
 	}
+
+	/*
+	 * For one change out of many made together.
+	 *
+	 * The identifier is the same on every record the change touched, which is what lets the whole
+	 * thing be undone as the one action it was. Without it a bulk change is only a pile of unrelated
+	 * edits that happen to share a timestamp.
+	 */
+	public RecordEventManager(String agent, String changeSet) {
+		this.agent = agent;
+		this.changeSet = changeSet;
+	}
+
+	private String changeSet;
 	
 	/*
 	 * Save a change
@@ -133,8 +147,9 @@ public class RecordEventManager {
 				+ "task_id, "
 				+ "assignment_id, "
 				+ "agent, "
+				+ "change_set, "
 				+ "event_time) "
-				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmt = null;
 		
 		String sqlSurvey = "select version " 
@@ -181,6 +196,7 @@ public class RecordEventManager {
 			pstmt.setInt(16,  taskId);
 			pstmt.setInt(17,  assignmentId);
 			pstmt.setString(18, agent);		// null unless something acted for the person
+			pstmt.setString(19, changeSet);	// null unless this was one of many changes made together
 			log.fine("Update history: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
@@ -385,6 +401,7 @@ public class RecordEventManager {
 				+ "re.change_survey, "
 				+ "re.change_survey_version, "
 				+ "re.agent, "
+				+ "re.change_set, "
 				/*
 				 * The application's name if it is still registered, so a person reading a record's
 				 * history sees what acted rather than an identifier. The id stays in the column and
@@ -458,6 +475,7 @@ public class RecordEventManager {
 				 * Null for a change a person made directly, which is most of them, so the field is
 				 * simply absent rather than saying "none" in every entry.
 				 */
+				event.changeSet = rs.getString("change_set");
 				event.agentId = rs.getString("agent");
 				if(event.agentId != null) {
 					String clientName = rs.getString("client_name");

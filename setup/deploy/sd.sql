@@ -756,3 +756,8 @@ alter table mcp_pending_action owner to ws;
 -- upload because the record's created event is written by the subscriber, long after the request
 -- that made the submission has finished.
 alter table upload_event add column if not exists agent text;
+
+-- Groups the record events written by a single bulk change, so it can be undone as the one thing it
+-- was rather than record by record.
+alter table record_event add column if not exists change_set text;
+create index if not exists idx_record_event_change_set on record_event(change_set) where change_set is not null;

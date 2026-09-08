@@ -63,6 +63,8 @@ may do.
 | `data_restore_record` | write | analyst, admin | done |
 | `data_submit` | write | analyst, admin | done |
 | `data_update_record` | write | analyst, admin | done |
+| `data_bulk_update` | write | analyst, admin | done |
+| `data_bulk_undo` | write | analyst, admin | done |
 | `topic_list` | read | analyst, admin, view data, manage | done |
 
 ## Resources
@@ -102,7 +104,7 @@ not done.
 | Console area | Tools | State |
 | --- | --- | --- |
 | Surveys, list and structure | `survey_list`, `survey_submission_counts` | read only |
-| Data | `data_query`, `data_get_record`, `data_count`, `data_attachments`, `data_audit`, `data_delete_record`, `data_restore_record`, `data_submit`, `data_update_record` | read and write |
+| Data | `data_query`, `data_get_record`, `data_count`, `data_attachments`, `data_audit`, `data_delete_record`, `data_restore_record`, `data_submit`, `data_update_record`, `data_bulk_update`, `data_bulk_undo` | read and write |
 | Analysis | `data_aggregate` | read only |
 | Projects | `project_list` | read only |
 | Topics / bundles | `topic_list` | read only |
@@ -286,6 +288,23 @@ which is the whole of the escape a quoted identifier needs in Postgres. Quoted r
 against a pattern, because `cleanName` strips a list of punctuation and lowercases the rest, so a
 column name can legitimately hold any other unicode letter and a rule strict enough to be safe would
 refuse real names.
+
+## A bulk change is one thing, and can be undone as one
+
+Every record a bulk update touches records the same change set id, so what happened is a single
+action rather than a pile of edits that share a timestamp. `data_bulk_undo` takes that id and puts
+each record back to the value its own history says it held, and records a change set of its own, so
+an undo can be undone.
+
+The id is generated before the first record is written. A run that stops half way still leaves the
+part that happened undoable, which is when it matters most.
+
+The undo checks access to each record again rather than trusting the change set. Knowing what was
+done is not permission to do it again: a record that has moved out of the caller's reach is left
+alone and counted.
+
+Above twenty records the update asks first. Below that a mistake is a nuisance to undo and above it
+undoing is a project even with the tool, which is a reason to be sure rather than a reason not to ask.
 
 ## Who changed a record, and what with
 

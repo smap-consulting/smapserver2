@@ -38,6 +38,34 @@ public class RecordSubmitManager {
 
 	private static Logger log = Logger.getLogger(RecordSubmitManager.class.getName());
 
+	/*
+	 * The same XML with the survey version named on its root element.
+	 *
+	 * Parsed rather than patched as text: the root tag is the first element but it is not the first
+	 * thing in the document, and a regular expression over XML is a bug waiting for the first survey
+	 * whose name contains something unexpected.
+	 */
+	private String withVersion(String xml, int version) throws Exception {
+
+		javax.xml.parsers.DocumentBuilder builder =
+				GeneralUtilityMethods.getDocumentBuilderFactory().newDocumentBuilder();
+		org.w3c.dom.Document doc = builder.parse(
+				new java.io.ByteArrayInputStream(xml.getBytes("UTF-8")));
+
+		org.w3c.dom.Element root = doc.getDocumentElement();
+		if(root == null) {
+			return xml;
+		}
+		root.setAttribute("version", String.valueOf(version));
+
+		javax.xml.transform.Transformer transformer =
+				javax.xml.transform.TransformerFactory.newInstance().newTransformer();
+		java.io.StringWriter out = new java.io.StringWriter();
+		transformer.transform(new javax.xml.transform.dom.DOMSource(doc),
+				new javax.xml.transform.stream.StreamResult(out));
+		return out.toString();
+	}
+
 	/* The name the meta question carries in the form definition, and so the key an answer needs */
 	private static final String INSTANCE_ID = "instanceID";
 
@@ -106,6 +134,18 @@ public class RecordSubmitManager {
 		if(instanceXml == null || instanceXml.trim().isEmpty()) {
 			throw new ApplicationException("The survey definition could not be turned into a record");
 		}
+
+		/*
+		 * Say which version of the survey this record answers.
+		 *
+		 * SurveyInstance reads it from a version attribute on the root element and falls back to 1
+		 * when there is none, so without this every record submitted here claims to answer version
+		 * one of a survey that may be on its fifth. A device carries the attribute because the form
+		 * definition it downloaded has it and it echoes it back; there is no form definition in this
+		 * path, so the version is put on here instead.
+		 */
+		instanceXml = withVersion(instanceXml,
+				GeneralUtilityMethods.getSurveyVersion(sd, survey.getId()));
 
 		/*
 		 * Written where an upload would have been written, under a fresh identifier.

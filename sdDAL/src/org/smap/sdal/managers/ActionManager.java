@@ -97,6 +97,17 @@ public class ActionManager {
 	}
 
 	/*
+	 * For one record out of many being changed together. Every record the change touches carries the
+	 * same identifier, which is what lets it be undone as one action.
+	 */
+	public ActionManager(ResourceBundle l, String tz, String agent, String changeSet) {
+		this(l, tz, agent);
+		this.changeSet = changeSet;
+	}
+
+	private String changeSet = null;
+
+	/*
 	 * Update a data record from an anonymous form
 	 */
 	class Update {
@@ -713,7 +724,7 @@ public class ActionManager {
 			 * save change log
 			 */
 			/* Records the application beside the person, when something acted for them */
-			RecordEventManager rem = new RecordEventManager(agent);
+			RecordEventManager rem = new RecordEventManager(agent, changeSet);
 			String changesJson;
 			if (isSubForm) {
 				ArrayList<SubFormRowChange> subRowChanges = new ArrayList<>();
