@@ -161,6 +161,19 @@ caller may see are listed.
 Which questions hold files is decided by the question type, not by whether a value looks like a
 path, so a text answer that happens to resemble one is not offered as a file.
 
+## Ask for the questions you want
+
+`data_query` takes `select`, and it narrows what is read rather than what is returned: the questions
+nobody asked for are never fetched and their attachment URLs never built. A survey with fifty
+questions costs fifty columns per record otherwise, and an agent pays that twice, once in the
+database and again in the context the answer has to fit into.
+
+Three things survive whatever is selected, because dropping them would break the request rather than
+narrow it. The primary key is what paging follows. The instance id is how every other tool names a
+record. And a column named by `filter` or `sort` has to be there, because the read path validates the
+filter against the same list and refuses a name it cannot find, so selecting one question while
+filtering on another would fail rather than answer.
+
 ## A record can have more than one row
 
 Smap never removes a row. It marks it `_bad`, and that covers two different things: a record somebody

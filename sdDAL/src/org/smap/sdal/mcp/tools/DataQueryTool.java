@@ -51,6 +51,9 @@ public class DataQueryTool extends AbstractMcpTool {
 		return "Returns submitted records for one survey, with filtering, sorting and paging. "
 				+ "Use survey_list first to find the survey id, and the resource "
 				+ "smap://survey/{ident}/definition to learn the question names. "
+				+ "Pass select to return only the questions you need; a survey can have dozens of "
+				+ "questions and reading them all when you want two is slow and fills your "
+				+ "context. "
 				+ "filter is an expression over question names written as "
 				+ "${question} = 'value', combined with and, or and not, for example "
 				+ "${age} > 30 and ${district} = 'North'. Returns at most "
@@ -70,6 +73,7 @@ public class DataQueryTool extends AbstractMcpTool {
 	public Map<String, Object> getInputSchema() {
 		Map<String, Object> schema = schema(
 				"survey_id", property("integer", "The survey to read, from survey_list"),
+				"select", selectProperty(),
 				"filter", property("string",
 						"Optional. An expression over question names, such as "
 						+ "${status} = 'complete' and ${age} > 30. Every name must be a question "
@@ -123,6 +127,46 @@ public class DataQueryTool extends AbstractMcpTool {
 		return schema;
 	}
 
+	/* An array of question names, described so a model offers names rather than a comma joined string */
+	private static Map<String, Object> selectProperty() {
+		Map<String, Object> items = new LinkedHashMap<>();
+		items.put("type", "string");
+
+		Map<String, Object> p = new LinkedHashMap<>();
+		p.put("type", "array");
+		p.put("items", items);
+		p.put("description", "Optional. The question names to return, such as [\"q1\", \"q3\"]. "
+				+ "Omit for every question. Questions named in filter or sort are returned as well, "
+				+ "and the instance id always is, so the records can be followed up.");
+		return p;
+	}
+
+	/*
+	 * A list argument, tolerating the string a client sends when it flattens an array rather than
+	 * refusing it, since the intent is not in doubt.
+	 */
+	private static List<String> stringList(Map<String, Object> args, String name) {
+		Object v = args.get(name);
+		if(v == null) {
+			return null;
+		}
+		List<String> out = new ArrayList<>();
+		if(v instanceof List) {
+			for(Object o : (List<?>) v) {
+				if(o != null && !o.toString().trim().isEmpty()) {
+					out.add(o.toString().trim());
+				}
+			}
+		} else {
+			for(String part : v.toString().split(",")) {
+				if(!part.trim().isEmpty()) {
+					out.add(part.trim());
+				}
+			}
+		}
+		return out.isEmpty() ? null : out;
+	}
+
 	@Override
 	public MCPToolResult execute(McpToolContext ctx, Map<String, Object> arguments) throws Exception {
 
@@ -148,6 +192,7 @@ public class DataQueryTool extends AbstractMcpTool {
 			r.limit = DEFAULT_LIMIT;
 		}
 		r.includeMeta = boolArg(arguments, "include_meta", true);
+		r.select = stringList(arguments, "select");
 		String includeDeleted = stringArg(arguments, "include_deleted");
 		r.includeDeleted = (includeDeleted == null || includeDeleted.trim().isEmpty())
 				? "none" : includeDeleted;
