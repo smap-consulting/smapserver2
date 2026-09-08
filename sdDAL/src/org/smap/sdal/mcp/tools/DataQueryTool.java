@@ -193,9 +193,7 @@ public class DataQueryTool extends AbstractMcpTool {
 		}
 		r.includeMeta = boolArg(arguments, "include_meta", true);
 		r.select = stringList(arguments, "select");
-		String includeDeleted = stringArg(arguments, "include_deleted");
-		r.includeDeleted = (includeDeleted == null || includeDeleted.trim().isEmpty())
-				? "none" : includeDeleted;
+		r.includeDeleted = McpData.includeDeleted(stringArg(arguments, "include_deleted"));
 		r.dateQuestion = stringArg(arguments, "date_question");
 		r.startDate = McpRead.parseDate(stringArg(arguments, "start_date"));
 		r.endDate = McpRead.parseDate(stringArg(arguments, "end_date"));

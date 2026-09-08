@@ -2,6 +2,7 @@ package org.smap.sdal.mcp;
 
 import java.util.ArrayList;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.DataAggregateManager;
 import org.smap.sdal.managers.RoleManager;
@@ -143,10 +144,7 @@ public class McpData {
 			return null;
 		}
 
-		String includeDeleted = arg(arguments, "include_deleted");
-		if(includeDeleted == null || includeDeleted.trim().isEmpty()) {
-			includeDeleted = "none";
-		}
+		String includeDeleted = includeDeleted(arg(arguments, "include_deleted"));
 		boolean includeBad = includeDeleted.equals("yes") || includeDeleted.equals("only");
 
 		DataAggregateManager.Query q = new DataAggregateManager.Query();
@@ -174,6 +172,26 @@ public class McpData {
 			q.dateRange = GeneralUtilityMethods.getDateRange(q.startDate, q.endDate, q.dateName);
 		}
 		return q;
+	}
+
+	/*
+	 * The deleted-records setting, checked rather than trusted.
+	 *
+	 * Every consumer of this value tests it for "none" and for "only" and does nothing when it is
+	 * neither, so an unrecognised word does not fail, it quietly drops the restriction and returns
+	 * the deleted rows as well.  A caller who mistypes gets more records than they asked for and no
+	 * indication of it, which is the wrong way round for a default that exists to exclude things.
+	 */
+	public static String includeDeleted(String value) throws Exception {
+		if(value == null || value.trim().isEmpty()) {
+			return "none";
+		}
+		String v = value.trim().toLowerCase();
+		if(v.equals("none") || v.equals("yes") || v.equals("only")) {
+			return v;
+		}
+		throw new ApplicationException("include_deleted must be none, yes or only, not \""
+				+ value + "\".");
 	}
 
 	private static String arg(java.util.Map<String, Object> args, String name) {

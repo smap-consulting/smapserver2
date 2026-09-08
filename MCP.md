@@ -174,6 +174,26 @@ record. And a column named by `filter` or `sort` has to be there, because the re
 filter against the same list and refuses a name it cannot find, so selecting one question while
 filtering on another would fail rather than answer.
 
+## How caller input reaches SQL
+
+Values are bound as parameters. Filters go through `SqlFrag`, the parser the rest of Smap uses,
+which validates every question name against the survey before any of it becomes SQL.
+
+Three things cannot be bound, because they are identifiers rather than values: the table name, and
+the columns `data_aggregate` groups and summarises by. The table name comes from the database and
+never from the caller. The two column names are resolved against the caller's own column list and
+the stored name is what reaches the query, never the string that arrived; each is then confirmed to
+exist with `hasColumn`, a parameterised lookup against `information_schema`, so a name carrying SQL
+does not match a column and never gets that far. That makes this path stricter than the read path,
+which trusts the stored name without the second check.
+
+`sort` is matched against the known columns and falls back to the primary key when it matches none,
+so an unrecognised sort orders by key rather than becoming part of the query.
+
+One primitive is worth remembering: `GeneralUtilityMethods.getDateRange` concatenates the column name
+it is given. It is safe only because every caller checks that column exists first. Anything new that
+calls it has to do the same.
+
 ## A record can have more than one row
 
 Smap never removes a row. It marks it `_bad`, and that covers two different things: a record somebody
