@@ -183,6 +183,27 @@ public class OAuthAuthorize extends Application {
 		String csrf = form.getFirst("csrf");
 		String approve = form.getFirst("approve");
 
+		/*
+		 * A sign in, not a decision.
+		 *
+		 * The login form is served in place of this page and posts back to it, so once the password
+		 * is accepted the original request arrives here as a POST carrying only httpd_username and
+		 * httpd_password.  It has none of the consent fields, so without this it fails the CSRF
+		 * check and the user is told the form has expired, having done nothing wrong.
+		 *
+		 * The authorize parameters are still in the query string, where they have been all along, so
+		 * the answer is to send the browser back to the same address as a GET and let the consent
+		 * page render.  Rebuilt from the public host rather than from the request path, which behind
+		 * the proxy is the internal one.
+		 */
+		if(clientId == null) {
+			String query = request.getQueryString();
+			if(query != null && query.contains("client_id=")) {
+				return Response.seeOther(java.net.URI.create(
+						OAuthUrls.base(request) + "/oauth/authorize?" + query)).build();
+			}
+		}
+
 		String connectionString = "surveyKPI-OAuthDecide";
 		Connection sd = SDDataSource.getConnection(connectionString);
 
