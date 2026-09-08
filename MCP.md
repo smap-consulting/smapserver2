@@ -48,6 +48,8 @@ needed.
 | `data_get_record` | read | analyst, admin, view data | done |
 | `data_count` | read | analyst, admin, view data | done |
 | `data_aggregate` | read | analyst, admin, view data | done |
+| `data_attachments` | read | analyst, admin, view data | done |
+| `data_audit` | read | analyst, admin, view data | done |
 | `topic_list` | read | analyst, admin, view data, manage | done |
 
 ## Resources
@@ -87,7 +89,7 @@ not done.
 | Console area | Tools | State |
 | --- | --- | --- |
 | Surveys, list and structure | `survey_list`, `survey_submission_counts` | read only |
-| Data | `data_query`, `data_get_record`, `data_count` | read only |
+| Data | `data_query`, `data_get_record`, `data_count`, `data_attachments`, `data_audit` | read only |
 | Analysis | `data_aggregate` | read only |
 | Projects | `project_list` | read only |
 | Topics / bundles | `topic_list` | read only |
@@ -143,6 +145,29 @@ after the access is removed, and names travel outside MCP in notification emails
 are properties of the existing attachment URLs rather than of this resource. A per-record check would
 need the results table searched for the file name; worth doing if attachment names ever start being
 shared more widely than the records that carry them.
+
+## Attachments are listed with the uri that fetches them
+
+`data_attachments` returns the `smap://attachment/...` uri alongside the browser URL, rather than
+leaving a model to build one. Turning a stored URL into a readable resource means stripping
+everything up to `/attachments/` and prefixing the scheme, and a rule a model has to be told is a
+rule it can get wrong.
+
+It also supplies what the attachment resource cannot know by itself. A stored path names the survey
+and the file and not the record, which is why that resource is authorised at survey level; this tool
+reads through the row filtered path, so the owning record is known and only files on records the
+caller may see are listed.
+
+Which questions hold files is decided by the question type, not by whether a value looks like a
+path, so a text answer that happens to resemble one is not offered as a file.
+
+## History is per thread, not per submission
+
+`data_audit` returns a record's history: the submission, every later change with old and new values,
+who made it, and any task or notification that touched it. Correcting a record writes a new instance
+into the same thread, so asking about any instance returns the whole story rather than that
+instance's part in it. The console reaches the same history through a survey level check; here the
+row filters are applied first, because the history of a record is the record.
 
 ## Counting and grouping happen in the database
 

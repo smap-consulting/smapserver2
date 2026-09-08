@@ -53,6 +53,8 @@ import org.smap.sdal.mcp.McpToolRegistry;
 import org.smap.sdal.mcp.tools.ProjectListTool;
 import org.smap.sdal.mcp.tools.ServerInfoTool;
 import org.smap.sdal.mcp.tools.DataAggregateTool;
+import org.smap.sdal.mcp.tools.DataAttachmentsTool;
+import org.smap.sdal.mcp.tools.DataAuditTool;
 import org.smap.sdal.mcp.tools.DataCountTool;
 import org.smap.sdal.mcp.tools.DataGetRecordTool;
 import org.smap.sdal.mcp.tools.DataQueryTool;
@@ -98,6 +100,8 @@ public class MCP extends Application {
 		registry.register(new DataGetRecordTool());
 		registry.register(new DataCountTool());
 		registry.register(new DataAggregateTool());
+		registry.register(new DataAttachmentsTool());
+		registry.register(new DataAuditTool());
 		registry.register(new TopicListTool());
 	}
 

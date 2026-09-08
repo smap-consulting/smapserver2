@@ -1,7 +1,5 @@
 package org.smap.sdal.mcp.tools;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -10,15 +8,12 @@ import java.util.Map;
 import org.codehaus.jettison.json.JSONObject;
 
 import org.smap.sdal.Utilities.Authorise;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.mcp.AbstractMcpTool;
 import org.smap.sdal.mcp.McpData;
+import org.smap.sdal.mcp.McpRead;
 import org.smap.sdal.mcp.McpToolContext;
-import org.smap.sdal.model.Form;
 import org.smap.sdal.model.MCPToolResult;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TableColumn;
 
 /*
  * Submitted records for one survey, filtered, sorted and paged.
@@ -140,212 +135,52 @@ public class DataQueryTool extends AbstractMcpTool {
 			return new MCPToolResult("No such survey, or you do not have access to it.", true);
 		}
 
-		int limit = ctx.cap(intArg(arguments, "limit", DEFAULT_LIMIT));
-		if(limit <= 0) {
-			limit = DEFAULT_LIMIT;
-		}
-		int cursor = intArg(arguments, "cursor", 0);
-		boolean includeMeta = boolArg(arguments, "include_meta", true);
-
-		String sort = stringArg(arguments, "sort");
+		McpRead.Request r = new McpRead.Request();
+		r.survey = survey;
+		r.formName = stringArg(arguments, "form");
+		r.filter = stringArg(arguments, "filter");
+		r.sort = stringArg(arguments, "sort");
 		String direction = stringArg(arguments, "direction");
-		direction = (direction != null && direction.equalsIgnoreCase("desc")) ? "desc" : "asc";
-
+		r.direction = (direction != null && direction.equalsIgnoreCase("desc")) ? "desc" : "asc";
+		r.cursor = intArg(arguments, "cursor", 0);
+		r.limit = ctx.cap(intArg(arguments, "limit", DEFAULT_LIMIT));
+		if(r.limit <= 0) {
+			r.limit = DEFAULT_LIMIT;
+		}
+		r.includeMeta = boolArg(arguments, "include_meta", true);
 		String includeDeleted = stringArg(arguments, "include_deleted");
-		if(includeDeleted == null || includeDeleted.trim().isEmpty()) {
-			includeDeleted = "none";
-		}
-		boolean includeBad = includeDeleted.equals("yes") || includeDeleted.equals("only");
+		r.includeDeleted = (includeDeleted == null || includeDeleted.trim().isEmpty())
+				? "none" : includeDeleted;
+		r.dateQuestion = stringArg(arguments, "date_question");
+		r.startDate = McpRead.parseDate(stringArg(arguments, "start_date"));
+		r.endDate = McpRead.parseDate(stringArg(arguments, "end_date"));
 
-		/*
-		 * Which form to read.  The main form unless a repeating group was named, in which case the
-		 * manager joins back up to the top level form so the row filters still reach it.
-		 *
-		 * The form id matters even for the main form: the columns are looked up per form, so
-		 * leaving it at zero finds no questions and returns records made entirely of metadata.
-		 */
-		Form topForm = GeneralUtilityMethods.getTopLevelForm(ctx.sd, surveyId);
-		String formName = stringArg(arguments, "form");
-		int fId = topForm.id;
-		String tableName = topForm.tableName;
-		int parentForm = 0;
-		boolean isChildForm = false;
-		if(formName != null && !formName.trim().isEmpty()) {
-			int childId = GeneralUtilityMethods.getFormId(ctx.sd, surveyId, formName.trim());
-			Form child = childId > 0 ? McpData.form(ctx, surveyId, childId) : null;
-			if(child == null) {
-				return new MCPToolResult("No repeating group called " + formName
-						+ " in this survey. Read smap://survey/" + survey.getIdent()
-						+ "/definition to see which there are.", true);
-			}
-			fId = child.id;
-			tableName = child.tableName;
-			parentForm = child.parentform;
-			isChildForm = true;
+		McpRead.Result read = McpRead.read(ctx, r);
+		if(read.noData) {
+			return new MCPToolResult("This survey has no data yet.", false);
 		}
 
-		ArrayList<TableColumn> columns = McpData.columns(ctx, survey, parentForm, fId,
-				tableName, isChildForm, includeBad, includeMeta);
-
-		/*
-		 * One record more than asked for, so the presence of a next page is known rather than
-		 * guessed.  Asking for exactly the limit cannot tell a full page from the last one.
-		 */
-		int fetch = limit + 1;
-
-		TableDataManager tdm = new TableDataManager(ctx.localisation, ctx.timezone);
-		PreparedStatement pstmt = null;
 		List<Object> records = new ArrayList<>();
-		Integer lastKey = null;
-
-		boolean autoCommit = ctx.cResults.getAutoCommit();
-		try {
-			pstmt = tdm.getPreparedStatement(
-					ctx.sd,
-					ctx.cResults,
-					columns,
-					GeneralUtilityMethods.getUrlPrefix(ctx.request),
-					GeneralUtilityMethods.getAttachmentPrefix(ctx.request, false),
-					surveyId,
-					survey.getIdent(),
-					fId,
-					tableName,
-					0,						// parkey
-					null,					// hrk
-					ctx.user,				// the user whose row filters apply
-					null,					// roles: taken from the user
-					sort,
-					direction,
-					false,					// mgmt
-					false,					// group
-					false,					// isDt
-					cursor,					// start: the primary key to begin at, inclusive
-					isChildForm,			// getParkey
-					0,						// start_parkey
-					ctx.superUser,
-					false,					// specificPrikey: records are never addressed by key
-					includeDeleted,
-					"yes",					// include_completed
-					null,					// case management settings, not needed to read data
-					null,					// custom filter
-					null,					// key filters
-					ctx.timezone,
-					null,					// instanceId: data_get_record does single records
-					stringArg(arguments, "filter"),
-					stringArg(arguments, "date_question"),
-					parseDate(stringArg(arguments, "start_date")),
-					parseDate(stringArg(arguments, "end_date")));
-
-			if(pstmt == null) {
-				return new MCPToolResult("This survey has no data yet.", false);
-			}
-
-			/*
-			 * Postgres only honours a fetch size inside a transaction; outside one the driver
-			 * buffers the entire result set before the first row is read.  The query carries no
-			 * LIMIT of its own - it is bounded by this loop stopping early - so without this a
-			 * question asked against a large survey would pull the whole table into memory to
-			 * return a hundred rows.  DataManager does the same thing for the same reason.
-			 */
-			ctx.cResults.setAutoCommit(false);
-			pstmt.setFetchSize(100);
-			ResultSet rs = pstmt.executeQuery();
-			boolean viewOwnDataOnly = GeneralUtilityMethods.isOnlyViewOwnData(ctx.sd, ctx.user);
-
-			JSONObject row = new JSONObject();
-			while(row != null && records.size() < fetch) {
-				row = tdm.getNextRecord(ctx.sd, rs, columns,
-						GeneralUtilityMethods.getUrlPrefix(ctx.request),
-						false,				// group
-						false,				// isDt
-						fetch,
-						true,				// merge select multiples into one value
-						false,				// geoJson
-						null,				// geomQuestion
-						false,				// links
-						survey.getIdent(),
-						viewOwnDataOnly,
-						false);				// view links
-				if(row != null) {
-					if(records.size() < limit) {
-						records.add(toPlain(row));
-						Integer key = key(row);
-						if(key != null) {
-							lastKey = key;
-						}
-					} else {
-						/*
-						 * The extra record is read but never returned.  It exists only to answer
-						 * whether there is another page.
-						 */
-						records.add(null);
-					}
-				}
-			}
-		} finally {
-			try {if(pstmt != null) {pstmt.close();}} catch (Exception e) {}
-			/*
-			 * The connection is the dispatcher's and is reused by whatever runs next in this
-			 * request, so it is handed back in the state it was borrowed in.
-			 */
-			try {ctx.cResults.setAutoCommit(autoCommit);} catch (Exception e) {}
+		for(JSONObject row : read.rows) {
+			records.add(McpRead.toPlain(row));
 		}
-
-		boolean more = records.size() > limit;
-		List<Object> page = more ? records.subList(0, limit) : records;
 
 		Map<String, Object> structured = new LinkedHashMap<>();
-		structured.put("records", page);
-		structured.put("count", page.size());
+		structured.put("records", records);
+		structured.put("count", records.size());
 		/*
 		 * Paging follows the primary key, so it only works while the rows come back in key order.
 		 * A caller who asked for a different sort gets no cursor rather than one that would silently
 		 * skip records.
 		 */
-		if(more && sort == null && lastKey != null) {
-			structured.put("next_cursor", lastKey + 1);
-		} else if(more) {
+		if(read.more && r.sort == null && read.lastKey != null) {
+			structured.put("next_cursor", read.lastKey + 1);
+		} else if(read.more) {
 			structured.put("truncated", Boolean.TRUE);
 		}
 
 		MCPToolResult result = new MCPToolResult(new com.google.gson.Gson().toJson(structured));
 		result.setStructuredContent(structured);
 		return result;
-	}
-
-	/*
-	 * The primary key of a row, if it is there.
-	 *
-	 * Read as a string and parsed rather than through getInt, because the record builder writes
-	 * every column as text, so the key arrives as "1" rather than 1.
-	 */
-	private Integer key(JSONObject row) {
-		if(!row.has("prikey")) {
-			return null;
-		}
-		try {
-			return Integer.valueOf(row.get("prikey").toString().trim());
-		} catch (Exception e) {
-			return null;
-		}
-	}
-
-	/*
-	 * JSONObject serialises through Gson as its internal map field rather than as the object it
-	 * represents, so rows are converted to plain maps before they go anywhere near the result.
-	 */
-	private Object toPlain(JSONObject row) {
-		return new com.google.gson.Gson().fromJson(row.toString(), Object.class);
-	}
-
-	private java.sql.Date parseDate(String value) {
-		if(value == null || value.trim().isEmpty()) {
-			return null;
-		}
-		try {
-			return java.sql.Date.valueOf(value.trim());
-		} catch (IllegalArgumentException e) {
-			return null;
-		}
 	}
 }
