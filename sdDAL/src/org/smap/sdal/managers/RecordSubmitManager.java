@@ -140,9 +140,18 @@ public class RecordSubmitManager {
 		ue.setFilePath(filePath);
 		ue.setFileName(fileName);
 		ue.setOrigSurveyIdent(fileName);
-		ue.setProjectId(survey.getPId());
-		ue.setOrganisationId(survey.surveyData.o_id);
-		ue.setEnterpriseId(survey.surveyData.e_id);
+		/*
+		 * Looked up rather than taken from the Survey object.
+		 *
+		 * The survey came from the caller's own list, which is built by a query that fills in what a
+		 * list needs and leaves the rest at zero. Writing those zeros produced an upload event whose
+		 * organisation did not exist, and the failure surfaced nowhere near here: the record was
+		 * created, and then the subscriber that turns a submission into notifications and tasks fell
+		 * over on a null organisation, so nothing was sent and nothing said so.
+		 */
+		ue.setProjectId(GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, templateName));
+		ue.setOrganisationId(GeneralUtilityMethods.getOrganisationIdForSurvey(sd, survey.getId()));
+		ue.setEnterpriseId(GeneralUtilityMethods.getEnterpriseId(sd, user));
 		ue.setUploadTime(new Date());
 		ue.setSurveyName(survey.getDisplayName());
 		ue.setInstanceId(instanceId);
