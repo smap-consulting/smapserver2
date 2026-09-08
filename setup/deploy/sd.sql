@@ -731,3 +731,7 @@ create table if not exists oauth_consent (
 	);
 create unique index if not exists idx_oauth_consent on oauth_consent(u_id, client_id);
 alter table oauth_consent owner to ws;
+
+-- Record which application made a change, as distinct from which person it acted for.
+-- changed_by already holds the person; for an agent that is the person who approved the change.
+alter table record_event add column if not exists agent text;

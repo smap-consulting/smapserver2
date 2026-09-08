@@ -916,7 +916,8 @@ CREATE TABLE record_event (
 	description text,
 	success boolean default false,				-- Set true of the event was a success
 	msg text,									-- Error messages
-	changed_by integer,							-- Person who made a change	
+	changed_by integer,							-- Person who made a change, and the person who approved it when an agent acted	
+	agent text,									-- The application that made the change, when it was not a person working directly
 	change_survey text,							-- Survey ident that applied the change
 	change_survey_version integer,				-- Survey version that made the change	
 	assignment_id integer,						-- Record if this is an task event	

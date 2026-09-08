@@ -68,8 +68,28 @@ public class RecordEventManager {
 	public static String STATUS_SUCCESS = "success";
 	public static String STATUS_NEW = "new";
 	
+	/*
+	 * The application acting, or null when a person is working directly.
+	 *
+	 * Carried on the manager rather than added to writeEvent, whose signature already has sixteen
+	 * parameters and twenty six callers, none of which has an agent to declare.
+	 */
+	private String agent;
+
 	public RecordEventManager() {
 		
+	}
+
+	/*
+	 * For a change made by something acting on a person's behalf.
+	 *
+	 * The pair is what makes the trail answerable: changed_by is the person, who for an agent is
+	 * whoever approved the change, and agent is the program that made it. Either alone leaves a
+	 * question that cannot be settled later - the person's name on its own cannot say whether they
+	 * typed it or approved it, and the program's cannot say who let it.
+	 */
+	public RecordEventManager(String agent) {
+		this.agent = agent;
 	}
 	
 	/*
@@ -112,8 +132,9 @@ public class RecordEventManager {
 				+ "change_survey_version, "
 				+ "task_id, "
 				+ "assignment_id, "
+				+ "agent, "
 				+ "event_time) "
-				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmt = null;
 		
 		String sqlSurvey = "select version " 
@@ -159,6 +180,7 @@ public class RecordEventManager {
 			pstmt.setInt(15,  sVersion);
 			pstmt.setInt(16,  taskId);
 			pstmt.setInt(17,  assignmentId);
+			pstmt.setString(18, agent);		// null unless something acted for the person
 			log.fine("Update history: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
@@ -357,6 +379,7 @@ public class RecordEventManager {
 				+ "changed_by, "
 				+ "change_survey, "
 				+ "change_survey_version, "
+				+ "agent, "
 				+ "to_char(timezone(?, event_time), 'YYYY-MM-DD HH24:MI:SS') as event_time "
 				+ "from record_event "
 				+ "where table_name = ? "
@@ -417,6 +440,7 @@ public class RecordEventManager {
 				}
 
 				event.description = rs.getString("description");
+				event.agent = rs.getString("agent");
 				
 				String sIdent = rs.getString("change_survey");
 				if(sIdent != null) {				

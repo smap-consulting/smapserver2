@@ -20,4 +20,10 @@ public class DataItemChangeEvent {
 	public SubmissionMessage notification;
 	public EmailReplyData emailReply;
 	public String description;
+
+	/*
+	 * The application that made the change, when it was not a person working directly. userName is
+	 * the person either way, and for an agent that is who approved it.
+	 */
+	public String agent;
 }
