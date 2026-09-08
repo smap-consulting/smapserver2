@@ -231,10 +231,11 @@ public class MCP extends Application {
 		}
 
 		/*
-		 * The MCP cap if one is set, otherwise the API cap, otherwise unbounded.  A tool asked for
-		 * everything should return a bounded answer rather than spending the server trying.
+		 * The MCP cap, which is its own setting and never the API's.  A tool asked for everything
+		 * returns a bounded answer rather than spending the server trying, and there is no value of
+		 * the setting that removes the bound: zero means the built in default, not "no limit".
 		 */
-		int maxRows = server.mcp_max_rows > 0 ? server.mcp_max_rows : server.getMaxRecords();
+		int maxRows = server.mcp_max_rows > 0 ? server.mcp_max_rows : McpProtocol.DEFAULT_MAX_ROWS;
 
 		int uId = GeneralUtilityMethods.getUserId(sd, user);
 

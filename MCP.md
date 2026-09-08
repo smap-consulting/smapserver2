@@ -141,6 +141,26 @@ are properties of the existing attachment URLs rather than of this resource. A p
 need the results table searched for the file name; worth doing if attachment names ever start being
 shared more widely than the records that carry them.
 
+## Limits are MCP's own
+
+`mcp_max_rows` on the server bounds how many rows one tool call returns. It is a separate setting
+from `api_max_records` and never falls back to it, because the two answer different questions: the
+API limit bounds what a program will page through, and is reasonably left unset since a program can
+be trusted to ask again, whereas this one bounds what goes into a model's context in a single reply,
+where an unbounded answer is not a large answer but a failed one. Zero means the built in default of
+1000, not "no limit", so there is no configuration in which a tool is unbounded.
+
+Reaching the limit is always visible. `data_query` returns `next_cursor` when the rest can be paged
+to and `truncated` when it cannot.
+
+## The API suspension switch does not apply
+
+A user whose API access is suspended can still use MCP. The suspension governs the v1 and v2 REST
+API, which is a different surface with different credentials, and MCP grants are withdrawn on their
+own terms: by removing the `mcp access` group, by revoking the token at **AI access**, or by turning
+the server setting off, which stops live tokens on the next request. Data reads go through
+`TableDataManager` directly and so never pass the API's check.
+
 ## Records are addressed by instance id
 
 Never by `prikey`. That is sequential and can be guessed by counting, so accepting one would let a

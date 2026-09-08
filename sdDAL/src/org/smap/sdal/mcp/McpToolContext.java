@@ -30,6 +30,10 @@ public class McpToolContext {
 	/*
 	 * The most rows any one tool call may return.  An agent asking for "all the data" should get a
 	 * bounded answer rather than the server spending itself trying to produce an unbounded one.
+	 *
+	 * Always a real number.  MCP has its own limit rather than borrowing the API's, and a server
+	 * setting of zero resolves to McpProtocol.DEFAULT_MAX_ROWS before it reaches here, so there is
+	 * no configuration in which a tool is unbounded.
 	 */
 	public final int maxRows;
 
@@ -56,11 +60,12 @@ public class McpToolContext {
 	/*
 	 * Cap whatever limit a tool was asked for.  A tool that ignores this is a tool that can be
 	 * asked to read a whole results table into memory.
+	 *
+	 * The zero branch is kept as a guard rather than as a supported setting: a context built with a
+	 * limit of zero by some future caller should refuse to be unbounded, not silently become so.
 	 */
 	public int cap(int requested) {
-		if(maxRows <= 0) {
-			return requested;
-		}
-		return requested <= 0 || requested > maxRows ? maxRows : requested;
+		int ceiling = maxRows > 0 ? maxRows : McpProtocol.DEFAULT_MAX_ROWS;
+		return requested <= 0 || requested > ceiling ? ceiling : requested;
 	}
 }

@@ -649,7 +649,7 @@ alter table question alter column compressed set default true;
 -- the mcp access group be granted.
 alter table server add column if not exists mcp_enabled boolean default false;
 alter table server add column if not exists mcp_client_registration text default 'cimd+dcr';
-alter table server add column if not exists mcp_max_rows integer default 0;
+alter table server add column if not exists mcp_max_rows integer default 0;	-- 0 means the built in default, never unlimited
 alter table server add column if not exists mcp_token_ttl integer default 3600;
 insert into groups(id,name) values(15,'mcp access') on conflict do nothing;
 

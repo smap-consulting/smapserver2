@@ -46,7 +46,7 @@ public class ServerInfoTool extends AbstractMcpTool {
 		Map<String, Object> props = new LinkedHashMap<>();
 		props.put("version", property("string", "Smap version"));
 		props.put("protocol_version", property("string", "MCP revision this server implements"));
-		props.put("max_rows", property("integer", "Most rows any one tool will return, 0 for no limit"));
+		props.put("max_rows", property("integer", "Most rows any one tool will return"));
 
 		Map<String, Object> schema = new LinkedHashMap<>();
 		schema.put("type", "object");
@@ -67,11 +67,7 @@ public class ServerInfoTool extends AbstractMcpTool {
 		StringBuilder text = new StringBuilder();
 		text.append("Smap version ").append(server.version)
 				.append(", MCP revision ").append(McpProtocol.VERSION).append(".\n");
-		if(ctx.maxRows > 0) {
-			text.append("Tools return at most ").append(ctx.maxRows).append(" rows per call.");
-		} else {
-			text.append("No row limit is set on this server.");
-		}
+		text.append("Tools return at most ").append(ctx.maxRows).append(" rows per call.");
 
 		MCPToolResult result = new MCPToolResult(text.toString());
 		result.setStructuredContent(data);

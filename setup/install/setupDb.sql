@@ -140,7 +140,7 @@ create TABLE server (
 	api_max_records integer default 0,				-- Maximum number of records to return via API
 	mcp_enabled boolean default false,				-- MCP server off unless a server owner turns it on
 	mcp_client_registration text default 'cimd+dcr',	-- cimd || cimd+dcr || off
-	mcp_max_rows integer default 0,					-- Max rows an MCP tool may return, 0 means use api_max_records
+	mcp_max_rows integer default 0,					-- Max rows an MCP tool may return, 0 means the built in default
 	mcp_token_ttl integer default 3600,				-- Lifetime in seconds of an MCP access token
 	turnstile_site_key text,
 	turnstile_secret_key text,

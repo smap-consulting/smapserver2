@@ -29,6 +29,18 @@ public class McpProtocol {
 
 	public static final String SERVER_NAME = "Smap";
 
+	/*
+	 * The most rows any one tool call returns when the server has not set mcp_max_rows.
+	 *
+	 * MCP carries its own limit rather than borrowing the API's.  The two are answering different
+	 * questions: api_max_records bounds what a program will page through, and is reasonably left
+	 * unset because a program can be trusted to ask again, whereas this bounds what goes into a
+	 * model's context in one go, where an unbounded answer is not a large answer but a failed one.
+	 * So there is no configuration that makes an MCP tool unbounded: a server setting of zero means
+	 * this number, not "no limit".
+	 */
+	public static final int DEFAULT_MAX_ROWS = 1000;
+
 	/* Reserved _meta keys, from the specification */
 	public static final String META_PROTOCOL_VERSION = "io.modelcontextprotocol/protocolVersion";
 	public static final String META_CLIENT_INFO = "io.modelcontextprotocol/clientInfo";
