@@ -244,6 +244,19 @@ public class McpResources {
 
 		Survey survey = findSurvey(ctx, ident);
 
+		/*
+		 * Being able to see the survey is not the same as being able to see this record.  A role can
+		 * restrict a user to their own submissions inside a survey they otherwise have full access
+		 * to, and the hierarchy view below applies no row filter of its own - it reads the survey as
+		 * a super user - so the filter has to be applied here or not at all.
+		 *
+		 * The same answer whether the record is outside those filters or does not exist, so that
+		 * asking cannot be used to find out which records are there.
+		 */
+		if(!McpData.canSeeRecord(ctx, survey, instanceId)) {
+			throw new IllegalArgumentException("No such record, or you do not have access to it");
+		}
+
 		DataManager dm = new DataManager(ctx.localisation, ctx.timezone);
 		jakarta.ws.rs.core.Response response = dm.getRecordHierarchy(ctx.sd, ctx.cResults, ctx.user,
 				survey.getIdent(), survey.getId(), instanceId, "no", ctx.localisation, ctx.timezone,

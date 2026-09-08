@@ -44,7 +44,8 @@ needed.
 | `project_list` | read | analyst, admin, view data, manage | done |
 | `survey_list` | read | analyst, admin, view data, manage | done |
 | `survey_submission_counts` | read | analyst, admin, view data | done |
-| `survey_data` | read | analyst, admin, view data | done |
+| `data_query` | read | analyst, admin, view data | done |
+| `data_get_record` | read | analyst, admin, view data | done |
 | `topic_list` | read | analyst, admin, view data, manage | done |
 
 ## Resources
@@ -83,7 +84,8 @@ not done.
 
 | Console area | Tools | State |
 | --- | --- | --- |
-| Surveys, list and structure | `survey_list`, `survey_data`, `survey_submission_counts` | read only |
+| Surveys, list and structure | `survey_list`, `survey_submission_counts` | read only |
+| Data | `data_query`, `data_get_record` | read only |
 | Projects | `project_list` | read only |
 | Topics / bundles | `topic_list` | read only |
 | Survey design | — | not started |
@@ -111,10 +113,40 @@ person's behalf.
 | Changing the acting user's own permissions | An agent must not widen its own lane |
 | Question type change on a published question holding data | Cannot be reversed without data loss |
 
+## Two access questions, not one
+
+Whether a caller may see a survey and whether they may see a record inside it are separate
+questions. A role can restrict a user to their own submissions within a survey they otherwise have
+full access to, so answering only the first is not enough.
+
+Every data path here answers both. The survey has to be one the caller could have listed, and the
+record has to pass the role row filters, checked the same way the console checks them. Data reads go
+through `TableDataManager`, which applies those filters as part of the query; single records go
+through the hierarchy view, which does not - it reads the survey as an administrator - so the check
+is made before it is called rather than left to it.
+
+`smap://attachment/{ident}/{file}` is checked at the survey level only, because the stored path
+holds the survey ident and the file name and does not say which record owns the file. The file name
+carries the rest: attachments are saved as a random UUID
+(`GeneralUtilityMethods.processAttachment`), so a name cannot be guessed or counted to, and the only
+way to learn one is to be given it in a record. Every path here that hands out record content is row
+filtered, so a user restricted to their own rows is never shown a name belonging to a record they
+cannot see.
+
+That makes the name the capability, which is the same model `/app/attachments` already relies on, and
+this endpoint is the stricter of the two because it also checks the caller could have listed the
+survey. Where it is weaker than a per-record check: a name learnt while access was held still works
+after the access is removed, and names travel outside MCP in notification emails and exports. Both
+are properties of the existing attachment URLs rather than of this resource. A per-record check would
+need the results table searched for the file name; worth doing if attachment names ever start being
+shared more widely than the records that carry them.
+
 ## Records are addressed by instance id
 
 Never by `prikey`. That is sequential and can be guessed by counting, so accepting one would let a
-caller walk a table they were never shown.
+caller walk a table they were never shown. `data_query` pages with an opaque `next_cursor` that is
+derived from the key, which reveals nothing: it only moves forward through rows the row filters have
+already allowed.
 
 ## Managing access
 
