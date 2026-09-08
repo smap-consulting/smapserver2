@@ -46,6 +46,8 @@ needed.
 | `survey_submission_counts` | read | analyst, admin, view data | done |
 | `data_query` | read | analyst, admin, view data | done |
 | `data_get_record` | read | analyst, admin, view data | done |
+| `data_count` | read | analyst, admin, view data | done |
+| `data_aggregate` | read | analyst, admin, view data | done |
 | `topic_list` | read | analyst, admin, view data, manage | done |
 
 ## Resources
@@ -85,7 +87,8 @@ not done.
 | Console area | Tools | State |
 | --- | --- | --- |
 | Surveys, list and structure | `survey_list`, `survey_submission_counts` | read only |
-| Data | `data_query`, `data_get_record` | read only |
+| Data | `data_query`, `data_get_record`, `data_count` | read only |
+| Analysis | `data_aggregate` | read only |
 | Projects | `project_list` | read only |
 | Topics / bundles | `topic_list` | read only |
 | Survey design | — | not started |
@@ -140,6 +143,39 @@ after the access is removed, and names travel outside MCP in notification emails
 are properties of the existing attachment URLs rather than of this resource. A per-record check would
 need the results table searched for the file name; worth doing if attachment names ever start being
 shared more widely than the records that carry them.
+
+## Counting and grouping happen in the database
+
+Smap has no server side aggregation over results: the console fetches rows and adds them up in the
+browser. That is fine for a browser and useless for an agent, which would have to read every record
+into a model's context to count them. `data_count` and `data_aggregate` do the arithmetic in
+Postgres and return the answer.
+
+They do not share the read path's query builder. `TableDataManager.getPreparedStatement` assembles
+its SELECT list and its WHERE clause in one pass, so reusing it for a different SELECT would have
+meant restructuring a method the console and the REST API both depend on, to add something that is
+off by default. `DataAggregateManager` instead builds its restriction from the same primitives that
+method uses - `RoleManager` row filters, `SqlFrag` for the caller's own filter, `getDateRange`, the
+`_bad` clause - so the two agree because they are made of the same parts. The assembly is
+duplicated; the access logic is not.
+
+Column names cannot be bound as parameters, so a name that arrives from a caller is resolved against
+the caller's own column list and the stored name is used, never the string that was sent. A name that
+does not resolve is refused. The column list is the role filtered one, so a question a role hides is
+not groupable either.
+
+Two kinds of column resolve but still cannot be grouped, and both say so rather than failing oddly.
+Some are computed when data is read and have no column behind them - survey duration is one - so
+grouping by them names something the database has never heard of. Geometry is stored as PostGIS
+binary, so grouping by it returns unreadable hex, and every location is distinct anyway, so it would
+not summarise anything.
+
+An answer that was never given comes back as one group with an empty name, because null and empty
+mean the same thing in survey results and a null would otherwise reach the reader as a count
+attached to no group at all.
+
+Both are top level form only for now. Aggregating across a repeating group needs the join tree
+`QueryManager` builds, which is worth doing when something asks for it.
 
 ## Limits are MCP's own
 

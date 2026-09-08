@@ -184,36 +184,8 @@ public class DataQueryTool extends AbstractMcpTool {
 			isChildForm = true;
 		}
 
-		ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
-				ctx.sd,
-				ctx.cResults,
-				ctx.localisation,
-				"none",					// language
-				surveyId,
-				survey.getIdent(),
-				ctx.user,				// the caller, so role column filtering applies
-				null,					// roles are looked up from the user
-				parentForm,
-				fId,
-				tableName,
-				true,					// include read only
-				isChildForm,			// include the parent key on a repeating group
-				includeBad,
-				includeMeta,			// instance id
-				includeMeta,			// prikey, which is what paging follows
-				includeMeta,			// HRK
-				includeMeta,			// other metadata
-				includeMeta,			// preloads
-				true,					// instance name
-				includeMeta,			// survey duration
-				includeMeta,			// case management
-				ctx.superUser,
-				false,					// HXL
-				false,					// audit
-				ctx.timezone,
-				false,					// mgmt
-				false,					// accuracy and altitude
-				true);					// server calculates
+		ArrayList<TableColumn> columns = McpData.columns(ctx, survey, parentForm, fId,
+				tableName, isChildForm, includeBad, includeMeta);
 
 		/*
 		 * One record more than asked for, so the presence of a next page is known rather than

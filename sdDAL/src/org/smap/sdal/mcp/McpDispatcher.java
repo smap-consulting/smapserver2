@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.MCPError;
 import org.smap.sdal.model.MCPRequest;
@@ -311,6 +312,15 @@ public class McpDispatcher {
 			result = tool.execute(ctx, arguments);
 		} catch (ScopeRequired e) {
 			throw e;
+		} catch (ApplicationException e) {
+			/*
+			 * The message of an ApplicationException is written to be read by whoever asked - an
+			 * unknown question name, a value out of range - so it is handed back as it is.  A tool
+			 * raises one deliberately; anything else it throws falls to the branch below and becomes
+			 * a reference, because a message nobody wrote for this audience is as likely to describe
+			 * the schema as the mistake.
+			 */
+			result = new MCPToolResult(e.getMessage(), true);
 		} catch (Exception e) {
 			/*
 			 * A business failure is reported as a tool result rather than a protocol error, because

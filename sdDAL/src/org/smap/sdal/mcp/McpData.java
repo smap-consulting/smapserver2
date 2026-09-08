@@ -3,10 +3,12 @@ package org.smap.sdal.mcp;
 import java.util.ArrayList;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.managers.DataAggregateManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.TableColumn;
 
 /*
  * The access rules every data path in this package goes through, in one place.
@@ -73,6 +75,120 @@ public class McpData {
 			f.parentform = rs.getInt(2);
 			f.tableName = rs.getString(3);
 			return f;
+		}
+	}
+
+	/*
+	 * The columns of one form, as this caller may see them.
+	 *
+	 * The user is passed rather than left null so that role column filtering applies: a role can
+	 * hide individual questions, and a tool that looked those up as nobody in particular would
+	 * offer columns the caller is not allowed to read.
+	 *
+	 * The form id matters even for the main form.  Columns are found per form, so leaving it at
+	 * zero finds no questions and yields records made entirely of metadata.
+	 */
+	public static ArrayList<TableColumn> columns(McpToolContext ctx, Survey survey, int parentForm,
+			int fId, String tableName, boolean isChildForm, boolean includeBad, boolean includeMeta)
+			throws Exception {
+
+		return GeneralUtilityMethods.getColumnsInForm(
+				ctx.sd,
+				ctx.cResults,
+				ctx.localisation,
+				"none",					// language
+				survey.getId(),
+				survey.getIdent(),
+				ctx.user,				// the caller, so role column filtering applies
+				null,					// roles are looked up from the user
+				parentForm,
+				fId,
+				tableName,
+				true,					// include read only
+				isChildForm,			// include the parent key on a repeating group
+				includeBad,
+				includeMeta,			// instance id
+				includeMeta,			// prikey, which is what paging follows
+				includeMeta,			// HRK
+				includeMeta,			// other metadata
+				includeMeta,			// preloads
+				true,					// instance name
+				includeMeta,			// survey duration
+				includeMeta,			// case management
+				ctx.superUser,
+				false,					// HXL
+				false,					// audit
+				ctx.timezone,
+				false,					// mgmt
+				false,					// accuracy and altitude
+				true);					// server calculates
+	}
+
+	/*
+	 * The scope of a count or an aggregate: which table, which rows, and who is asking.
+	 *
+	 * Built here rather than in each tool so that data_count and data_aggregate cannot come to mean
+	 * different things by the same arguments, and so the access facts - the caller's own columns,
+	 * their super user flag, their view own data setting - are filled in from the context rather
+	 * than from anything the caller sent.
+	 *
+	 * Returns null when the survey has no results table, which is not an error: a survey that has
+	 * never been submitted to has a legitimate count of zero.
+	 */
+	public static DataAggregateManager.Query aggregateQuery(McpToolContext ctx, Survey survey,
+			java.util.Map<String, Object> arguments) throws Exception {
+
+		Form topForm = GeneralUtilityMethods.getTopLevelForm(ctx.sd, survey.getId());
+		if(topForm == null || topForm.tableName == null) {
+			return null;
+		}
+
+		String includeDeleted = arg(arguments, "include_deleted");
+		if(includeDeleted == null || includeDeleted.trim().isEmpty()) {
+			includeDeleted = "none";
+		}
+		boolean includeBad = includeDeleted.equals("yes") || includeDeleted.equals("only");
+
+		DataAggregateManager.Query q = new DataAggregateManager.Query();
+		q.sId = survey.getId();
+		q.sIdent = survey.getIdent();
+		q.tableName = topForm.tableName;
+		q.user = ctx.user;
+		q.superUser = ctx.superUser;
+		q.viewOwnDataOnly = GeneralUtilityMethods.isOnlyViewOwnData(ctx.sd, ctx.user);
+		q.includeBad = includeDeleted;
+		q.advancedFilter = arg(arguments, "filter");
+		q.columns = columns(ctx, survey, 0, topForm.id, topForm.tableName, false, includeBad, true);
+
+		/*
+		 * The date restriction is built here because getDateRange needs to know the column is really
+		 * there, and that is a question about the results database.  A date question that does not
+		 * exist leaves the range empty rather than failing, which matches how the read path behaves.
+		 */
+		String dateName = arg(arguments, "date_question");
+		if(dateName != null && !dateName.trim().isEmpty()
+				&& GeneralUtilityMethods.hasColumn(ctx.cResults, topForm.tableName, dateName.trim())) {
+			q.dateName = dateName.trim();
+			q.startDate = date(arg(arguments, "start_date"));
+			q.endDate = date(arg(arguments, "end_date"));
+			q.dateRange = GeneralUtilityMethods.getDateRange(q.startDate, q.endDate, q.dateName);
+		}
+		return q;
+	}
+
+	private static String arg(java.util.Map<String, Object> args, String name) {
+		Object v = args.get(name);
+		return v == null ? null : v.toString();
+	}
+
+	private static java.sql.Date date(String value) {
+		if(value == null || value.trim().isEmpty()) {
+			return null;
+		}
+		try {
+			return java.sql.Date.valueOf(value.trim());
+		} catch (IllegalArgumentException e) {
+			return null;
 		}
 	}
 
