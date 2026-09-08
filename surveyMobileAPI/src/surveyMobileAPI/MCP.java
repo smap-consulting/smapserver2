@@ -58,6 +58,7 @@ import org.smap.sdal.mcp.tools.DataAuditTool;
 import org.smap.sdal.mcp.tools.DataCountTool;
 import org.smap.sdal.mcp.tools.DataGetRecordTool;
 import org.smap.sdal.mcp.tools.DataQueryTool;
+import org.smap.sdal.mcp.tools.SurveyEffectsTool;
 import org.smap.sdal.mcp.tools.SurveyListTool;
 import org.smap.sdal.mcp.tools.SurveySubmissionCountTool;
 import org.smap.sdal.mcp.tools.TopicListTool;
@@ -96,6 +97,7 @@ public class MCP extends Application {
 		registry.register(new ProjectListTool());
 		registry.register(new SurveyListTool());
 		registry.register(new SurveySubmissionCountTool());
+		registry.register(new SurveyEffectsTool());
 		registry.register(new DataQueryTool());
 		registry.register(new DataGetRecordTool());
 		registry.register(new DataCountTool());
@@ -248,7 +250,7 @@ public class MCP extends Application {
 		int uId = GeneralUtilityMethods.getUserId(sd, user);
 
 		return new McpToolContext(sd, cResults, request, user, uId, token.oId, token.scope,
-				false, localisation, tz, maxRows);
+				false, localisation, tz, maxRows, token.clientId);
 	}
 
 	/*

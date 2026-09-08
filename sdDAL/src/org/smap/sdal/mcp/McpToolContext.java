@@ -24,6 +24,16 @@ public class McpToolContext {
 	public final String scope;			// Space separated scopes on the token
 	public final boolean superUser;
 
+	/*
+	 * Which application is acting, as distinct from who it acts for.
+	 *
+	 * Both belong in the audit trail of anything this writes.  A record changed through MCP was
+	 * changed by a program on a person's instruction, and a trail naming only the person cannot
+	 * later answer whether they typed it or approved it.  Null for a token minted in the console,
+	 * where there is no third party involved.
+	 */
+	public final String clientId;
+
 	public final ResourceBundle localisation;
 	public final String timezone;
 
@@ -39,7 +49,7 @@ public class McpToolContext {
 
 	public McpToolContext(Connection sd, Connection cResults, HttpServletRequest request,
 			String user, int uId, int oId, String scope, boolean superUser,
-			ResourceBundle localisation, String timezone, int maxRows) {
+			ResourceBundle localisation, String timezone, int maxRows, String clientId) {
 		this.sd = sd;
 		this.cResults = cResults;
 		this.request = request;
@@ -51,6 +61,7 @@ public class McpToolContext {
 		this.localisation = localisation;
 		this.timezone = timezone;
 		this.maxRows = maxRows;
+		this.clientId = clientId;
 	}
 
 	public boolean hasScope(String required) {

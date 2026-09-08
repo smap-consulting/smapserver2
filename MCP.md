@@ -161,6 +161,28 @@ caller may see are listed.
 Which questions hold files is decided by the question type, not by whether a value looks like a
 path, so a text answer that happens to resemble one is not offered as a file.
 
+## What a submission sets off, before it is made
+
+Adding a record is not only a row. `SubmissionEventManager` hands every new record to
+`NotificationManager` and then to `TaskManager`, so it can send email and SMS, call a webhook and
+create tasks. The row can be undone; a sent message cannot. `survey_submission_effects` reports what
+a survey will set off, so that anything submitting on a person's behalf can say what it is about to
+do before it does it.
+
+Every figure is the most that can happen. A notification carries a filter and a task group carries a
+rule, both evaluated against the finished record, so before it exists there is nothing to test them
+against. Recipients addressed from the record - whoever answered a question, whoever a case is
+assigned to - count as one each, so the total is never lower than what is actually sent.
+
+Recipients are counted rather than notifications, because one notification addressed to forty people
+is forty emails, and forty is the number somebody approving needs. Each notification says where its
+recipients come from, so the total can be checked against the console rather than believed. That is
+not decoration: the first version counted a recipient for `emailQuestionName` whenever it was not
+empty, and the value is `"-1"` when nobody chose a question, so a notification with two addresses
+reported three emails. Over-counting is the safe direction for an approval, but a number that cannot
+be reconciled with what the console shows is one that gets clicked through, which defeats the point
+of asking.
+
 ## Ask for the questions you want
 
 `data_query` takes `select`, and it narrows what is read rather than what is returned: the questions

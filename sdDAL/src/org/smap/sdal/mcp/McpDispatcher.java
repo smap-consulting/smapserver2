@@ -377,6 +377,14 @@ public class McpDispatcher {
 			if(!arguments.isEmpty()) {
 				note.append(" (").append(String.join(", ", arguments.keySet())).append(")");
 			}
+			/*
+			 * Which application asked, not only which person it asked as.  Without it the log says a
+			 * user did something at a time they may well have been asleep, and cannot distinguish
+			 * one agent from another when a person has authorised several.
+			 */
+			note.append(ctx.clientId == null
+					? " via a token minted in the console"
+					: " via client " + ctx.clientId);
 			if(result.isError()) {
 				note.append(" failed");
 			}
