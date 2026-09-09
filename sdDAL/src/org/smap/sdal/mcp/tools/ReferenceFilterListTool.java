@@ -112,7 +112,7 @@ public class ReferenceFilterListTool extends AbstractMcpTool {
 
 				if(rf == null) {
 					row.put("filter", null);
-					text.append(": no filter, every record is available");
+					text.append(": no filter and no cap, so every record is available");
 				} else {
 					row.put("filter", rf.filter);
 					row.put("enabled", rf.enabled);
@@ -122,16 +122,25 @@ public class ReferenceFilterListTool extends AbstractMcpTool {
 					 */
 					row.put("maxRecords", rf.maxRecords > 0 ? (Object) rf.maxRecords : "no cap");
 
-					if(rf.filter != null && !rf.filter.trim().isEmpty()) {
+					boolean hasExpression = rf.filter != null && !rf.filter.trim().isEmpty();
+					if(hasExpression) {
 						text.append(": ").append(rf.filter);
+					} else if(rf.maxRecords > 0) {
+						/*
+						 * A cap with no expression still restricts, so this cannot say every record
+						 * is available and then name a limit in the same breath.  Which records
+						 * arrive is not decided here, only how many.
+						 */
+						text.append(": no filter, but at most ").append(rf.maxRecords)
+								.append(" record(s) are supplied");
 					} else {
-						text.append(": no filter, every record is available");
+						text.append(": no filter and no cap, so every record is available");
 					}
 					if(!rf.enabled) {
 						text.append(" (turned off, so it is not being applied)");
 					}
-					if(rf.maxRecords > 0) {
-						text.append(", at most ").append(rf.maxRecords).append(" record(s)");
+					if(hasExpression && rf.maxRecords > 0) {
+						text.append(", and at most ").append(rf.maxRecords).append(" record(s)");
 					}
 				}
 				rows.add(row);
