@@ -83,6 +83,8 @@ may do.
 | `survey_questions` | read | analyst, admin, manage | done |
 | `survey_options` | read | analyst, admin, manage | done |
 | `survey_history` | read | analyst, admin, manage | done |
+| `survey_add_question` | write | analyst, admin | done |
+| `survey_delete_question` | write | analyst, admin | done |
 | `topic_list` | read | analyst, admin, view data, manage | done |
 
 ## Resources
@@ -126,7 +128,7 @@ not done.
 | Analysis | `data_aggregate` | read only |
 | Projects | `project_list` | read only |
 | Topics / bundles | `topic_list` | read only |
-| Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history` | read only |
+| Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history`, `survey_add_question`, `survey_delete_question` | read, and questions can be added and removed |
 | Tasks and assignments | — | not started |
 | Cases and workflow | — | not started |
 | Notifications and messaging | — | not started |
@@ -358,6 +360,45 @@ are true.
 This is why `data_audit` is keyed on the thread. The history of a record outlives the row that
 carried it, so asking about the current instance still returns the original submission and every
 change since, with the values before and after.
+
+## A change says it came from MCP
+
+`survey_change.source` was `editor` or `file`; it now also takes **`mcp`**. Without it a question
+added through a tool recorded itself as having been typed into the editor, which is the one thing the
+change log exists not to do.
+
+The value goes on the **change item**, not only the change set. `ChangeElement`, which is what is
+serialised into the log, reads `source` from the item, so setting it on the set alone is dropped
+without complaint and the change quietly claims the editor made it. Nothing reads `source` to decide
+behaviour, on the server or in the console, so the new value is safe to add and is there to be read
+by a person.
+
+That is separate from `agent`, and both are wanted. `source` says what kind of thing made the change;
+`agent` says which application, by name. A change with `source` mcp and no `agent` would be a
+console-minted token acting with no registered client.
+
+## Adding a question
+
+`survey_add_question` builds the change set the online editor sends and hands it to
+`applyChangeSetArray`, so the question added is the one the editor would have added: the same
+sanitising of labels, the same reordering, the same log entry.
+
+The tool's own work is refusing before it starts. The editor has a person looking at the form who can
+see that a name is taken or that a choice list does not exist; a model cannot, so the name, the type,
+the form and the choice list are checked here and answered in words rather than surfaced as a
+constraint violation.
+
+Three things it does not do. It will not add a group or a repeat, because those change the shape of
+the form and the tables beneath it and a tool that cannot also place the matching end can leave a
+form that will not open. It appends by default rather than inserting, because any other position
+renumbers questions the caller did not mention. And it does not stop to ask, because adding a
+question can be undone.
+
+Deleting is where the two outcomes differ and the answer says which happened. A question that has
+collected answers is soft deleted: the row stays, the results column stays, and the answers stay.
+Adding a question of the same name back to the same form **reuses that column**, so the data comes
+back with it. A question that never collected anything is removed outright, and nothing is lost that
+was not only a definition. A group is refused, because deleting one takes everything inside it.
 
 ## A survey is read in parts, not whole
 
