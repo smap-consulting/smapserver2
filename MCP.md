@@ -79,6 +79,7 @@ may do.
 | `data_update_record` | write | analyst, admin | done |
 | `data_bulk_update` | write | analyst, admin | done |
 | `data_bulk_undo` | write | analyst, admin | done |
+| `survey_history` | read | analyst, admin, manage | done |
 | `topic_list` | read | analyst, admin, view data, manage | done |
 
 ## Resources
@@ -117,12 +118,12 @@ not done.
 
 | Console area | Tools | State |
 | --- | --- | --- |
-| Surveys, list and structure | `survey_list`, `survey_submission_counts` | read only |
+| Surveys, list and structure | `survey_list`, `survey_submission_counts`, `survey_history` | read only |
 | Data | `data_query`, `data_get_record`, `data_count`, `data_attachments`, `data_audit`, `data_delete_record`, `data_restore_record`, `data_submit`, `data_update_record`, `data_bulk_update`, `data_bulk_undo` | read and write |
 | Analysis | `data_aggregate` | read only |
 | Projects | `project_list` | read only |
 | Topics / bundles | `topic_list` | read only |
-| Survey design | — | not started |
+| Survey design | `survey_history` | history only |
 | Tasks and assignments | — | not started |
 | Cases and workflow | — | not started |
 | Notifications and messaging | — | not started |
@@ -354,6 +355,24 @@ are true.
 This is why `data_audit` is keyed on the thread. The history of a record outlives the row that
 carried it, so asking about the current instance still returns the original submission and every
 change since, with the values before and after.
+
+## Every change says which application made it
+
+A change made through MCP is attributed twice: to the person it was made for, and to the application
+that made it. `record_event` carries the agent for a submitted record, `survey_change` for a survey's
+design, and both are shown in the console - the record history panel and the changes page - as the
+user's name with the application beneath it.
+
+Null means a person did it themselves in the console, which is what most changes are, so the absence
+is a fact rather than a gap. The name is resolved through `oauth_client` and falls back to the raw
+client id, so withdrawing an application's access does not erase what it did.
+
+`data_audit` and `survey_history` are the same question asked of a record and of a form, and they are
+how an agent's work is reviewed without opening the console.
+
+Reversing a survey change is deliberately not part of this. Undo for survey definitions is a future
+feature covering the online editor and XLSForm uploads as well as MCP, rather than something built
+for MCP alone; what MCP owes in the meantime is a complete and honest record of what it did.
 
 ## Repeating groups can be read but not written
 

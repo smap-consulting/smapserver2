@@ -65,6 +65,7 @@ import org.smap.sdal.mcp.tools.DataUpdateRecordTool;
 import org.smap.sdal.mcp.tools.DataGetRecordTool;
 import org.smap.sdal.mcp.tools.DataQueryTool;
 import org.smap.sdal.mcp.tools.SurveyEffectsTool;
+import org.smap.sdal.mcp.tools.SurveyHistoryTool;
 import org.smap.sdal.mcp.tools.SurveyListTool;
 import org.smap.sdal.mcp.tools.SurveySubmissionCountTool;
 import org.smap.sdal.mcp.tools.TopicListTool;
@@ -104,6 +105,7 @@ public class MCP extends Application {
 		registry.register(new SurveyListTool());
 		registry.register(new SurveySubmissionCountTool());
 		registry.register(new SurveyEffectsTool());
+		registry.register(new SurveyHistoryTool());
 		registry.register(new DataQueryTool());
 		registry.register(new DataGetRecordTool());
 		registry.register(new DataCountTool());
