@@ -93,6 +93,24 @@ public class McpData {
 		return s;
 	}
 
+	/*
+	 * A survey's choice lists, and nothing else.
+	 *
+	 * The outline first, because the option labels are read once per language and the survey has to
+	 * be carrying its languages before they can be.
+	 */
+	public static Survey optionLists(McpToolContext ctx, int surveyId) throws Exception {
+
+		Survey s = outline(ctx, surveyId);
+		if(s == null) {
+			return null;
+		}
+		SurveyManager sm = new SurveyManager(ctx.localisation, ctx.timezone);
+		int oId = GeneralUtilityMethods.getOrganisationId(ctx.sd, ctx.user);
+		sm.populateOptionLists(ctx.sd, ctx.cResults, s, ctx.user, oId, null, "real");
+		return s;
+	}
+
 	public static Survey definition(McpToolContext ctx, int surveyId) throws Exception {
 
 		Survey listed = surveyById(ctx, surveyId);

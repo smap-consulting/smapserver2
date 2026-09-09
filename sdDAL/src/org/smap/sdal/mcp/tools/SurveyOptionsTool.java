@@ -70,7 +70,11 @@ public class SurveyOptionsTool extends AbstractMcpTool {
 		if(surveyId <= 0) {
 			return new MCPToolResult("A survey_id is required. Use survey_list to find one.", true);
 		}
-		Survey s = McpData.definition(ctx, surveyId);
+		/*
+		 * The lists alone. This tool never reports a question, so loading the design to reach the
+		 * choices attached to it would be work thrown away.
+		 */
+		Survey s = McpData.optionLists(ctx, surveyId);
 		if(s == null) {
 			return new MCPToolResult("No such survey, or you do not have access to it.", true);
 		}

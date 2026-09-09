@@ -197,6 +197,133 @@ public class SurveyManager {
 	}
 
 	/*
+	 * The choice lists in a survey, and the cascade filters they declare.
+	 *
+	 * Fills the survey rather than returning a map, because it sets two things: the lists
+	 * themselves, and surveyData.filters, which records that a cascade filter of that name exists.
+	 * A caller that took only the lists would silently lose the second.
+	 *
+	 * Needs the survey to carry its languages already, because an option label is read once per
+	 * language and positionally.
+	 */
+	public void populateOptionLists(Connection sd, Connection cResults, Survey s, String user,
+			int oId, String basePath, String getExternalOptions) throws Exception {
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		String sqlGetLists = "select l_id, "
+				+ "name "
+				+ "from listname "
+				+ "where s_id = ?;";
+		PreparedStatement pstmtGetLists = sd.prepareStatement(sqlGetLists);
+		PreparedStatement pstmtGetOptions = sd.prepareStatement(sqlGetOptions);
+		ResultSet rsGetLists = null;
+		ResultSet rsGetOptions = null;
+
+		try {
+			pstmtGetLists.setInt(1, s.surveyData.id);
+			// log.fine("Get lists for survey: " + pstmtGetLists.toString());
+			rsGetLists = pstmtGetLists.executeQuery();
+
+			int idx = 0;
+			while(rsGetLists.next()) {
+
+				int listId = rsGetLists.getInt(1);
+				String listName = rsGetLists.getString(2);
+
+				OptionList optionList = new OptionList ();
+
+				boolean external = false;
+				if(getExternalOptions != null) {
+					if(getExternalOptions.equals("external")) {
+						external = true;
+					} else if(getExternalOptions.equals("internal")) {
+						external = false;
+					} else if(getExternalOptions.equals("real")) {
+						external = GeneralUtilityMethods.listHasExternalChoices(sd, s.surveyData.id, listId);
+					}
+				}
+
+				// Get external options if required
+				ArrayList<Option> externalOptions = new ArrayList<> ();
+				if(external) {
+					int qId = GeneralUtilityMethods.getQuestionFromList(sd, s.surveyData.id, listId);
+					externalOptions = GeneralUtilityMethods.getExternalChoices(sd, 
+							cResults, localisation, user, oId, s.surveyData.id, qId, null, s.surveyData.ident, tz, null, null);
+				} 
+			
+				// Get options from meta definition - insert external if required when not a numeric option
+				optionList.options = new ArrayList<Option> ();
+				pstmtGetOptions.setInt(1, listId);
+			
+				if(idx++ == 0) {
+					// log.fine("SQL Get options: " + pstmtGetOptions.toString());
+				}
+				rsGetOptions = pstmtGetOptions.executeQuery();
+	
+				Type hmType = new TypeToken<HashMap<String, String>>(){}.getType();		// Used to translate cascade filters json
+				boolean externalAdded = false;
+				while(rsGetOptions.next()) {
+					Option o = new Option();
+					o.id = rsGetOptions.getInt(1);
+					o.value = rsGetOptions.getString(2);
+					o.text_id = rsGetOptions.getString(3);
+					o.externalFile = rsGetOptions.getBoolean(4);
+					String cascade_filters = rsGetOptions.getString(5);
+					if(cascade_filters != null && !cascade_filters.equals("null")) {
+						try {
+							o.cascade_filters = gson.fromJson(cascade_filters, hmType);
+							for (String key : o.cascade_filters.keySet()) {
+								s.surveyData.filters.put(key, true);
+							}
+	
+						} catch (Exception e) {
+							log.log(Level.SEVERE, e.getMessage(), e);		// Ignore errors as this service does not support the old non json cascade format
+						}
+					} else {
+						o.cascade_filters = new HashMap<String, String> ();	// An empty object
+					}
+					o.columnName = rsGetOptions.getString(6);
+					o.display_name = rsGetOptions.getString(7);
+					o.published = rsGetOptions.getBoolean(8);
+	
+					// Get the labels for the option
+					PreparedStatement pstmtLabels = null;
+					try {
+						pstmtLabels = UtilityMethodsEmail.getLabelsStatement(sd, s.surveyData.id);
+						UtilityMethodsEmail.getLabels(pstmtLabels, s, o.text_id, o.labels, basePath, oId);
+					} finally {
+						if(pstmtLabels != null) {try{pstmtLabels.close();}catch(Exception e) {}}
+					}
+				
+					// Check for numeric value - if external options are required then a numeric value indicates a static choice
+					boolean isInteger = false;
+					if(external) {
+						try {
+							Integer.parseInt(o.value);
+							isInteger = true;
+						} catch (Exception e) {
+						
+						}
+					}
+				
+					if(!external || isInteger) {
+						optionList.options.add(o);
+					} else if(!externalAdded) {
+						externalAdded = true;		// Don't double up if someone uses a non numeric static by mistake
+						optionList.options.addAll(externalOptions);
+					}
+				}
+
+				s.surveyData.optionLists.put(listName, optionList);
+
+			}
+		} finally {
+			try { if (pstmtGetOptions != null) {pstmtGetOptions.close();}} catch (SQLException e) {}
+			try { if (pstmtGetLists != null) {pstmtGetLists.close();}} catch (SQLException e) {}
+		}
+	}
+
+	/*
 	 * The forms in a survey, without their questions.
 	 *
 	 * A form is the unit a repeating group is stored as, so this answers what shape is this survey
@@ -1087,14 +1214,6 @@ public class SurveyManager {
 
 		// SQL to get the forms belonging to this survey
 
-		// SQL to get the choice lists in this survey
-		ResultSet rsGetLists = null;
-		String sqlGetLists = "select l_id, "
-				+ "name "
-				+ "from listname "
-				+ "where s_id = ?;";
-		PreparedStatement pstmtGetLists = sd.prepareStatement(sqlGetLists);
-		
 		// SQL to get the styles in this survey
 		ResultSet rsGetStyles = null;
 		String sqlGetStyles = "select id, "
@@ -1103,10 +1222,6 @@ public class SurveyManager {
 				+ "from style "
 				+ "where s_id = ?;";
 		PreparedStatement pstmtGetStyles = sd.prepareStatement(sqlGetStyles);
-
-		// SQL to get the options belonging to a choice list		
-		ResultSet rsGetOptions = null;
-		PreparedStatement pstmtGetOptions = sd.prepareStatement(sqlGetOptions);
 
 		// Get the available languages
 		s.surveyData.languages = GeneralUtilityMethods.getLanguages(sd, s.surveyData.id);
@@ -1169,106 +1284,7 @@ public class SurveyManager {
 			}
 		}
 
-		/*
-		 * Get the option lists
-		 */
-		pstmtGetLists.setInt(1, s.surveyData.id);
-		// log.fine("Get lists for survey: " + pstmtGetLists.toString());
-		rsGetLists = pstmtGetLists.executeQuery();
-
-		int idx = 0;
-		while(rsGetLists.next()) {
-
-			int listId = rsGetLists.getInt(1);
-			String listName = rsGetLists.getString(2);
-
-			OptionList optionList = new OptionList ();
-
-			boolean external = false;
-			if(getExternalOptions != null) {
-				if(getExternalOptions.equals("external")) {
-					external = true;
-				} else if(getExternalOptions.equals("internal")) {
-					external = false;
-				} else if(getExternalOptions.equals("real")) {
-					external = GeneralUtilityMethods.listHasExternalChoices(sd, s.surveyData.id, listId);
-				}
-			}
-
-			// Get external options if required
-			ArrayList<Option> externalOptions = new ArrayList<> ();
-			if(external) {
-				int qId = GeneralUtilityMethods.getQuestionFromList(sd, s.surveyData.id, listId);
-				externalOptions = GeneralUtilityMethods.getExternalChoices(sd, 
-						cResults, localisation, user, oId, s.surveyData.id, qId, null, s.surveyData.ident, tz, null, null);
-			} 
-			
-			// Get options from meta definition - insert external if required when not a numeric option
-			optionList.options = new ArrayList<Option> ();
-			pstmtGetOptions.setInt(1, listId);
-			
-			if(idx++ == 0) {
-				// log.fine("SQL Get options: " + pstmtGetOptions.toString());
-			}
-			rsGetOptions = pstmtGetOptions.executeQuery();
-	
-			Type hmType = new TypeToken<HashMap<String, String>>(){}.getType();		// Used to translate cascade filters json
-			boolean externalAdded = false;
-			while(rsGetOptions.next()) {
-				Option o = new Option();
-				o.id = rsGetOptions.getInt(1);
-				o.value = rsGetOptions.getString(2);
-				o.text_id = rsGetOptions.getString(3);
-				o.externalFile = rsGetOptions.getBoolean(4);
-				String cascade_filters = rsGetOptions.getString(5);
-				if(cascade_filters != null && !cascade_filters.equals("null")) {
-					try {
-						o.cascade_filters = gson.fromJson(cascade_filters, hmType);
-						for (String key : o.cascade_filters.keySet()) {
-							s.surveyData.filters.put(key, true);
-						}
-	
-					} catch (Exception e) {
-						log.log(Level.SEVERE, e.getMessage(), e);		// Ignore errors as this service does not support the old non json cascade format
-					}
-				} else {
-					o.cascade_filters = new HashMap<String, String> ();	// An empty object
-				}
-				o.columnName = rsGetOptions.getString(6);
-				o.display_name = rsGetOptions.getString(7);
-				o.published = rsGetOptions.getBoolean(8);
-	
-				// Get the labels for the option
-				PreparedStatement pstmtLabels = null;
-				try {
-					pstmtLabels = UtilityMethodsEmail.getLabelsStatement(sd, s.surveyData.id);
-					UtilityMethodsEmail.getLabels(pstmtLabels, s, o.text_id, o.labels, basePath, oId);
-				} finally {
-					if(pstmtLabels != null) {try{pstmtLabels.close();}catch(Exception e) {}}
-				}
-				
-				// Check for numeric value - if external options are required then a numeric value indicates a static choice
-				boolean isInteger = false;
-				if(external) {
-					try {
-						Integer.parseInt(o.value);
-						isInteger = true;
-					} catch (Exception e) {
-						
-					}
-				}
-				
-				if(!external || isInteger) {
-					optionList.options.add(o);
-				} else if(!externalAdded) {
-					externalAdded = true;		// Don't double up if someone uses a non numeric static by mistake
-					optionList.options.addAll(externalOptions);
-				}
-			}
-
-			s.surveyData.optionLists.put(listName, optionList);
-
-		}
+		populateOptionLists(sd, cResults, s, user, oId, basePath, getExternalOptions);
 
 		/*
 		 * Get the style lists
@@ -1316,8 +1332,6 @@ public class SurveyManager {
 
 
 		// Close statements
-		try { if (pstmtGetOptions != null) {pstmtGetOptions.close();}} catch (SQLException e) {}
-		try { if (pstmtGetLists != null) {pstmtGetLists.close();}} catch (SQLException e) {}
 		try { if (pstmtGetStyles != null) {pstmtGetStyles.close();}} catch (SQLException e) {}
 	}
 
