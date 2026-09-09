@@ -387,6 +387,12 @@ stays with whoever is accountable for it.
 
 Two facts get confused and the report keeps them apart.
 
+**A question with no column can change type freely.** That is the exemption, and it is decided by
+the column rather than by the published flag: a question marked published whose column is still
+pending has nothing to lose either, and a flag that has fallen out of step must never be able to
+report a column full of answers as safe to convert. The flag is Smap's record of the fact; the column
+is the fact.
+
 **Smap does not convert the column.** There is no `ALTER COLUMN ... TYPE` anywhere in Smap, only
 `add column`. A type change on a published question updates the definition and leaves the results
 column exactly as it was, holding exactly what it held. The type change on a published question is

@@ -26,7 +26,11 @@ import org.smap.sdal.model.Survey;
  * ones.  Working that out is what an agent is good at; the act that cannot be undone stays with
  * whoever is accountable for it.
  *
- * Two separate facts get confused here and the report keeps them apart.
+ * A question with no column in the results table has never stored an answer, so its type can be
+ * changed freely.  That is the exemption, and it is decided by the column rather than by the
+ * published flag: the flag is Smap's record of the fact, the column is the fact.
+ *
+ * Where there is a column, two separate facts get confused and the report keeps them apart.
  *
  *  1. Smap changes the definition and does not touch the results column.  There is no
  *     ALTER COLUMN ... TYPE anywhere in Smap; only add column.  So after a type change the answers
@@ -148,20 +152,15 @@ public class SurveyCheckTypeChangeTool extends AbstractMcpTool {
 				.append(listed.getDisplayName()).append("\".\n\n");
 
 		/*
-		 * An unpublished question has no column and no answers, so there is nothing to lose and
-		 * nothing to check.  This is the exemption named in the reversibility rule.
+		 * The column decides this, not the published flag.
+		 *
+		 * If no column has been created in the results table then the question has never stored an
+		 * answer and its type can be changed freely.  published is Smap's record of the same fact
+		 * and is usually the same answer, but it is a flag and the column is the thing itself: a
+		 * question marked published whose column is still pending has nothing to lose either, and a
+		 * flag that has fallen out of step must not be able to report a column full of answers as
+		 * safe to convert.
 		 */
-		if(!q.published) {
-			data.put("verdict", "safe");
-			data.put("reason", "The question has never collected an answer");
-			text.append("Safe. This question has never collected an answer, so there is no data to "
-					+ "convert and no column to be left behind. The change can be made in the "
-					+ "console without consequence.");
-			MCPToolResult result = new MCPToolResult(text.toString());
-			result.setStructuredContent(data);
-			return result;
-		}
-
 		String tableName = form.tableName;
 		String columnName = q.columnName != null ? q.columnName : q.name;
 		if(!SurveyManager.isValidTableName(tableName) || !columnName.matches("[A-Za-z_][A-Za-z0-9_]*")) {
@@ -171,14 +170,20 @@ public class SurveyCheckTypeChangeTool extends AbstractMcpTool {
 		String currentColType = GeneralUtilityMethods.columnType(ctx.cResults, tableName, columnName);
 		if(currentColType == null) {
 			data.put("verdict", "safe");
-			data.put("reason", "The question is marked published but has no column yet");
-			text.append("The question is marked as published but its column has not been added to "
-					+ "the data tables yet, so there is nothing stored to lose. survey_history will "
-					+ "show that change as pending.");
+			data.put("reason", "No column has been created for this question yet");
+			text.append("Safe. No column has been created for this question in the data tables, so "
+					+ "there is nothing stored to convert and nothing to be left behind. The type "
+					+ "can be changed freely.");
+			if(q.published) {
+				text.append(" The question is marked as published, but the column that would hold "
+						+ "its answers has not been added yet - survey_history shows that change as "
+						+ "pending.");
+			}
 			MCPToolResult result = new MCPToolResult(text.toString());
 			result.setStructuredContent(data);
 			return result;
 		}
+
 		String proposedColType = normalise(GeneralUtilityMethods.getPostgresColType(newType));
 		String currentNormalised = normalise(currentColType);
 
