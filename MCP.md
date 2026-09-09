@@ -79,6 +79,9 @@ may do.
 | `data_update_record` | write | analyst, admin | done |
 | `data_bulk_update` | write | analyst, admin | done |
 | `data_bulk_undo` | write | analyst, admin | done |
+| `survey_get` | read | analyst, admin, manage | done |
+| `survey_questions` | read | analyst, admin, manage | done |
+| `survey_options` | read | analyst, admin, manage | done |
 | `survey_history` | read | analyst, admin, manage | done |
 | `topic_list` | read | analyst, admin, view data, manage | done |
 
@@ -123,7 +126,7 @@ not done.
 | Analysis | `data_aggregate` | read only |
 | Projects | `project_list` | read only |
 | Topics / bundles | `topic_list` | read only |
-| Survey design | `survey_history` | history only |
+| Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history` | read only |
 | Tasks and assignments | — | not started |
 | Cases and workflow | — | not started |
 | Notifications and messaging | — | not started |
@@ -355,6 +358,25 @@ are true.
 This is why `data_audit` is keyed on the thread. The history of a record outlives the row that
 carried it, so asking about the current instance still returns the original submission and every
 change since, with the values before and after.
+
+## A survey is read in parts, not whole
+
+`smap://survey/{ident}/definition` returns everything, which is right for a client that wants the
+form in one piece. The tools deliberately do not: `survey_get` answers what shape is this,
+`survey_questions` what does it ask, `survey_options` what may be answered, `survey_history` what has
+been done to it. A survey of any size spends a model's context quickly, and most questions asked
+about a form need one of those four and not the other three.
+
+All of them read through the same access rule as the data tools - a survey the caller could not have
+listed does not exist - and with `superUser` false, so an administrator's view is never what comes
+back. They share one loader in `McpData` so the flags cannot drift apart from the ones behind the
+resource; two ways of reading a design that disagreed about soft deleted questions would be worse
+than one.
+
+Deleted questions are not returned. A published question that has been deleted still owns its
+results column, so it is a real thing a designer sometimes needs to see, but showing it beside live
+questions is a distinction that has to be unmistakable to be safe, and these tools read a form as it
+stands.
 
 ## Every change says which application made it
 

@@ -50,6 +50,43 @@ public class McpData {
 		return null;
 	}
 
+	/*
+	 * A survey's full design, for the tools that read its structure rather than its data.
+	 *
+	 * Goes through surveyById first, so the same rule applies as everywhere else here: a survey the
+	 * caller could not have listed does not exist.  The flags match the ones behind
+	 * smap://survey/{ident}/definition, because two ways of reading the same design that disagree
+	 * about soft deleted questions or external options would be worse than one.
+	 *
+	 * superUser stays false. getById will happily read a survey as an administrator and the design
+	 * tools must not, for the same reason the data tools must not.
+	 */
+	public static Survey definition(McpToolContext ctx, int surveyId) throws Exception {
+
+		Survey listed = surveyById(ctx, surveyId);
+		if(listed == null) {
+			return null;
+		}
+		SurveyManager sm = new SurveyManager(ctx.localisation, ctx.timezone);
+		return sm.getById(ctx.sd, ctx.cResults, ctx.user, false, surveyId,
+				true,			// full definition
+				null,			// basePath
+				null,			// instanceId
+				false,			// getResults
+				false,			// generateDummyValues
+				false,			// getPropertyTypeQuestions
+				false,			// getSoftDeleted
+				true,			// getHrk
+				"real",			// external options if they exist
+				false,			// getChangeHistory
+				false,			// getRoles
+				false,			// superUser - the caller's own rights, not an administrator's
+				"geojson",
+				false,			// referenceSurveys
+				false,			// onlyGetLaunched
+				false);			// mergeDefaultSetValue
+	}
+
 	public static ArrayList<Survey> userSurveys(McpToolContext ctx) throws Exception {
 		SurveyManager sm = new SurveyManager(ctx.localisation, ctx.timezone);
 		return sm.getSurveys(ctx.sd, ctx.user, false, false, 0, false, false, false, false, false, null);
