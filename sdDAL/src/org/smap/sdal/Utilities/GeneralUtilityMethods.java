@@ -34,6 +34,7 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -4665,7 +4666,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Returns the SQL fragment that makes up the date range restriction
 	 */
-	public static String getDateRange(Date startDate, Date endDate, String dateName) {
+	public static String getDateRange(java.util.Date startDate, java.util.Date endDate, String dateName) {
 		String sqlFrag = "";
 		boolean needAnd = false;
 
@@ -7228,15 +7229,19 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Set the time on a java date to 23:59 and convert to a Timestamp
+	 * Set the time on a java date to the last instant of the day and convert to a Timestamp
 	 * Use the passed in timezone as the basis for determining hour
+	 * The seconds are included, otherwise a record submitted in the final minute of the
+	 * end date of a filter would be excluded from the results
 	 */
-	public static Timestamp endOfDay(Date d, String tz) {
+	public static Timestamp endOfDay(java.util.Date d, String tz) {
 		
 		Calendar cal = new GregorianCalendar();
 		cal.setTime(d);
 		cal.set(Calendar.HOUR_OF_DAY, 23);
 		cal.set(Calendar.MINUTE, 59);
+		cal.set(Calendar.SECOND, 59);
+		cal.set(Calendar.MILLISECOND, 999);
 		
 		TimeZone timeZone = TimeZone.getTimeZone(tz);
 		int offsetFromUTC = timeZone.getOffset(d.getTime());
@@ -7251,12 +7256,14 @@ public class GeneralUtilityMethods {
 	 * Set the time on a java date to 00:00 and convert to a Timestamp
 	 * Use the passed in timezone as the basis for determining hour
 	 */
-	public static Timestamp startOfDay(Date d, String tz) {
+	public static Timestamp startOfDay(java.util.Date d, String tz) {
 
 		Calendar cal = new GregorianCalendar();
 		cal.setTime(d);
 		cal.set(Calendar.HOUR_OF_DAY, 0);
 		cal.set(Calendar.MINUTE, 0);
+		cal.set(Calendar.SECOND, 0);
+		cal.set(Calendar.MILLISECOND, 0);
 		
 		TimeZone timeZone = TimeZone.getTimeZone(tz);
 		int offsetFromUTC = timeZone.getOffset(d.getTime());
@@ -7266,6 +7273,75 @@ public class GeneralUtilityMethods {
 		Timestamp startOfDay = new Timestamp(cal.getTime().getTime());
 
 		return startOfDay;
+	}
+	
+	/*
+	 * Relative date ranges, as set by the analysis dashboard
+	 */
+	public static final String RANGE_LAST_DAY = "1d";
+	public static final String RANGE_LAST_WEEK = "1w";
+	public static final String RANGE_LAST_MONTH = "1m";
+	
+	public static boolean isRelativeRange(String range) {
+		return range != null && (range.equals(RANGE_LAST_DAY) 
+				|| range.equals(RANGE_LAST_WEEK) 
+				|| range.equals(RANGE_LAST_MONTH));
+	}
+	
+	/*
+	 * Get the start of a date filter
+	 * A relative range, such as the last day, is measured back from the current time so that it 
+	 * ends at "now" and hence includes data that has only just been received.  Otherwise the
+	 * filter starts at the beginning of the specified day in the user's timezone.
+	 * Returns null if there is no start to the filter
+	 */
+	public static Timestamp filterStartTime(java.util.Date startDate, String range, String tz) {
+		
+		if(isRelativeRange(range)) {
+			ZonedDateTime now = ZonedDateTime.now(getZoneId(tz));
+			ZonedDateTime start;
+			if(range.equals(RANGE_LAST_DAY)) {
+				start = now.minusDays(1);
+			} else if(range.equals(RANGE_LAST_WEEK)) {
+				start = now.minusWeeks(1);
+			} else {
+				start = now.minusMonths(1);
+			}
+			return Timestamp.from(start.toInstant());
+		} else if(startDate != null) {
+			return startOfDay(startDate, tz);
+		}
+		return null;
+	}
+	
+	/*
+	 * Get the end of a date filter
+	 * A relative range always ends at the current time, otherwise the filter ends at the end of
+	 * the specified day in the user's timezone
+	 * Returns null if there is no end to the filter
+	 */
+	public static Timestamp filterEndTime(java.util.Date endDate, String range, String tz) {
+		
+		if(isRelativeRange(range)) {
+			return new Timestamp(System.currentTimeMillis());
+		} else if(endDate != null) {
+			return endOfDay(endDate, tz);
+		}
+		return null;
+	}
+	
+	/*
+	 * Get a zone id from a timezone name, defaulting to UTC if the name is not recognised
+	 */
+	public static ZoneId getZoneId(String tz) {
+		if(tz != null) {
+			try {
+				return ZoneId.of(tz);
+			} catch (Exception e) {
+				// Fall through to UTC
+			}
+		}
+		return ZoneOffset.UTC;
 	}
 	
 	/*

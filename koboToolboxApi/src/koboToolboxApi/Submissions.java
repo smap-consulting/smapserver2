@@ -26,6 +26,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -148,6 +149,10 @@ public class Submissions extends Application {
 		tz = (tz == null) ? "UTC" : tz;
 		
 		int dateId = 1;			// Upload time
+		
+		// Expand the supplied dates to cover the whole of the first and last day in the user's timezone
+		Timestamp startTime = GeneralUtilityMethods.filterStartTime(startDate, null, tz);
+		Timestamp endTime = GeneralUtilityMethods.filterEndTime(endDate, null, tz);
 
 		PrintWriter outWriter = null;
 		try {
@@ -174,7 +179,7 @@ public class Submissions extends Application {
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			SubmissionsManager subMgr = new SubmissionsManager(localisation, tz);
-			String whereClause = subMgr.getWhereClause(user, oId, dateId, startDate, endDate, stopat, survey_ident);	
+			String whereClause = subMgr.getWhereClause(user, oId, dateId, startTime, endTime, stopat, survey_ident);	
 				
 			// page the results to reduce memory usage
 			log.info("---------------------- paging results to postgres");
@@ -188,8 +193,8 @@ public class Submissions extends Application {
 					oId,			// oId to filter on
 					request.getRemoteUser(),
 					dateId,
-					startDate,
-					endDate,
+					startTime,
+					endTime,
 					stopat,
 					survey_ident);
 			pstmt.setFetchSize(100);	

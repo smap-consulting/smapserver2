@@ -123,6 +123,7 @@ public class Items extends Application {
 			@QueryParam("dateId") int dateId,		// Id of question containing the date to filter by
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
+			@QueryParam("dateRange") String dateRange,	// Relative range, last day / week / month, measured back from now
 			@QueryParam("filter") String sFilter,
 			@QueryParam("advanced_filter") String advanced_filter,
 			@QueryParam("inc_ro") boolean inc_ro,
@@ -171,6 +172,10 @@ public class Items extends Application {
 		// End Authorisation
 			
 		tz = (tz == null) ? "UTC" : tz;
+		
+		// The date filter is either a relative range measured back from now or the supplied dates
+		Timestamp startTime = GeneralUtilityMethods.filterStartTime(startDate, dateRange, tz);
+		Timestamp endTime = GeneralUtilityMethods.filterEndTime(endDate, dateRange, tz);
 		
 		HashMap<String, String> geomQuestionMap = null;
 		if(geomQuestions != null) {
@@ -506,7 +511,7 @@ public class Items extends Application {
 				 */
 				// Get date column information
 				QuestionInfo date = null;
-				if((dateId != 0) && (startDate != null || endDate != null)) {
+				if((dateId != 0) && (startTime != null || endTime != null)) {
 					date = new QuestionInfo(localisation, tz, sId, dateId, sd, cResults, request.getRemoteUser(), false, "", attachmentPrefix, oId);	// Not interested in label any language will do
 					tables.add(date.getTableName(), date.getFId(), date.getParentFId());
 					log.info("Date name: " + date.getColumnName() + " Date Table: " + date.getTableName());
@@ -532,7 +537,7 @@ public class Items extends Application {
 				boolean doneWhere = false;
 				
 				if(date != null) {
-					String sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, date.getColumnName());
+					String sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startTime, endTime, date.getColumnName());
 					if(sqlRestrictToDateRange.trim().length() > 0) {
 						if(sqlFilter.trim().length() > 0) {
 							sqlFilter += " and ";
@@ -599,11 +604,11 @@ public class Items extends Application {
 					}				
 					// dates
 					if(dateId != 0) {
-						if(startDate != null) {
-							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+						if(startTime != null) {
+							pstmt.setTimestamp(attribIdx++, startTime);
 						}
-						if(endDate != null) {
-							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+						if(endTime != null) {
+							pstmt.setTimestamp(attribIdx++, endTime);
 						}
 					}
 					log.info("Get the number of filtered records: " + pstmt.toString());
@@ -644,11 +649,11 @@ public class Items extends Application {
 				
 				// dates
 				if(dateId != 0) {
-					if(startDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+					if(startTime != null) {
+						pstmt.setTimestamp(attribIdx++, startTime);
 					}
-					if(endDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+					if(endTime != null) {
+						pstmt.setTimestamp(attribIdx++, endTime);
 					}
 				}
 				
@@ -752,11 +757,11 @@ public class Items extends Application {
 					attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx, tz);
 				}
 				if(dateId != 0) {
-					if(startDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+					if(startTime != null) {
+						pstmt.setTimestamp(attribIdx++, startTime);
 					}
-					if(endDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+					if(endTime != null) {
+						pstmt.setTimestamp(attribIdx++, endTime);
 					}
 				}
 				
@@ -830,6 +835,7 @@ public class Items extends Application {
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("dateId") int dateId,
 			@QueryParam("endDate") Date endDate,
+			@QueryParam("dateRange") String dateRange,	// Relative range, last day / week / month, measured back from now
 			@QueryParam("tz") String tz) { 
 		
 		String connectionString = "surveyKPI-Items-Users";
@@ -849,6 +855,10 @@ public class Items extends Application {
 		lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.USER_ACTIVITY_VIEW, "User Activity for " + uId, 0, request.getServerName());
 	
 		tz = (tz == null) ? "UTC" : tz;
+		
+		// The date filter is either a relative range measured back from now or the supplied dates
+		Timestamp startTime = GeneralUtilityMethods.filterStartTime(startDate, dateRange, tz);
+		Timestamp endTime = GeneralUtilityMethods.filterEndTime(endDate, dateRange, tz);
 		
 		StringBuffer message = new StringBuffer("");
 		
@@ -894,7 +904,7 @@ public class Items extends Application {
 				
 
 				SubmissionsManager subMgr = new SubmissionsManager(localisation, tz);
-				String whereClause = subMgr.getWhereClause(user, oId, dateId, startDate, endDate, 0, null);			
+				String whereClause = subMgr.getWhereClause(user, oId, dateId, startTime, endTime, 0, null);			
 		
 				// Get count of available records
 				StringBuffer sqlFC = new StringBuffer("select count(*) from upload_event ue ");				
@@ -916,11 +926,11 @@ public class Items extends Application {
 						
 					// dates
 					if(dateId > 0 && dateId < 5) {
-						if(startDate != null) {
-							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+						if(startTime != null) {
+							pstmt.setTimestamp(attribIdx++, startTime);
 						}
-						if(endDate != null) {
-							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+						if(endTime != null) {
+							pstmt.setTimestamp(attribIdx++, endTime);
 						}
 					}
 
@@ -943,8 +953,8 @@ public class Items extends Application {
 						oId,
 						request.getRemoteUser(),
 						dateId,
-						startDate,
-						endDate,
+						startTime,
+						endTime,
 						0,
 						null);
 				
@@ -1011,11 +1021,11 @@ public class Items extends Application {
 			
 				// dates
 				if(dateId > 0 && dateId < 5) {
-					if(startDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+					if(startTime != null) {
+						pstmt.setTimestamp(attribIdx++, startTime);
 					}
-					if(endDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+					if(endTime != null) {
+						pstmt.setTimestamp(attribIdx++, endTime);
 					}
 				}
 				

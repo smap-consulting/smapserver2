@@ -1,11 +1,11 @@
 package org.smap.sdal.managers;
 
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.ResourceBundle;
@@ -54,7 +54,7 @@ public class SubmissionsManager {
 		this.tz = tz;
 	}
 
-	public String getWhereClause(String user, int oId, int dateId, Date startDate, Date endDate, 
+	public String getWhereClause(String user, int oId, int dateId, Timestamp startTime, Timestamp endTime, 
 			int stopat, String survey_ident) {
 		
 		StringBuffer whereClause =  new StringBuffer("");
@@ -104,7 +104,7 @@ public class SubmissionsManager {
 			}
 			
 			// Add start and end dates
-			String sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, dateName);
+			String sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startTime, endTime, dateName);
 			if(sqlRestrictToDateRange.trim().length() > 0) {
 				if(sqlFilter.length() > 0) {
 					sqlFilter.append(" and ");
@@ -132,8 +132,8 @@ public class SubmissionsManager {
 			int oId,
 			String requestingUser,
 			int dateId,
-			Date startDate,
-			Date endDate,
+			Timestamp startTime,
+			Timestamp endTime,
 			int stopat,
 			String survey_ident) throws SQLException {
 		
@@ -204,11 +204,11 @@ public class SubmissionsManager {
 		
 		// dates
 		if(dateId > 0 && dateId < 5) {
-			if(startDate != null) {
-				pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+			if(startTime != null) {
+				pstmt.setTimestamp(attribIdx++, startTime);
 			}
-			if(endDate != null) {
-				pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+			if(endTime != null) {
+				pstmt.setTimestamp(attribIdx++, endTime);
 			}
 		}
 		

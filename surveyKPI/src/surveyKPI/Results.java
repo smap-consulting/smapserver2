@@ -130,6 +130,7 @@ public class Results extends Application {
 			@QueryParam("rId") int rId,				// Restrict results to a single record
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
+			@QueryParam("dateRange") String dateRange,	// Relative range, last day / week / month, measured back from now
 			@QueryParam("filter") String sFilter,
 			@QueryParam("advanced_filter") String advanced_filter,
 			@QueryParam("selected_geom_question") String selectedGeomQuestion
@@ -158,6 +159,10 @@ public class Results extends Application {
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";
 
 		String tz = "UTC";		// default to UTC
+		
+		// The date filter is either a relative range measured back from now or the supplied dates
+		Timestamp startTime = GeneralUtilityMethods.filterStartTime(startDate, dateRange, tz);
+		Timestamp endTime = GeneralUtilityMethods.filterEndTime(endDate, dateRange, tz);
 		
 		if(groupId != 0) {
 			hasGroup = true;
@@ -382,7 +387,7 @@ public class Results extends Application {
 			String sqlRestrictToRecordId = restrictToRecordId(aQ, rId);
 			String sqlRestrictToDateRange = "";
 			if(date != null) {
-				sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, date.getColumnName());
+				sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startTime, endTime, date.getColumnName());
 			} 
 			if(externalGeom) {
 				sqlGeom = getGeometryJoin(q);
@@ -426,11 +431,11 @@ public class Results extends Application {
 			pstmt = cResults.prepareStatement(sql.toString());
 			int attribIdx = 1;
 			if(dateId != 0 && dateId != -1) {
-				if(startDate != null) {
-					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+				if(startTime != null) {
+					pstmt.setTimestamp(attribIdx++, startTime);
 				}
-				if(endDate != null) {
-					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+				if(endTime != null) {
+					pstmt.setTimestamp(attribIdx++, endTime);
 				}
 			}
 			
