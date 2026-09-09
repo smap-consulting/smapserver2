@@ -61,7 +61,8 @@ public class SurveyHistoryTool extends AbstractMcpTool {
 	@Override
 	public Map<String, Object> getOutputSchema() {
 		Map<String, Object> properties = new LinkedHashMap<>();
-		properties.put("changes", property("array", "The changes, newest first"));
+		properties.put("changes", property("array", "The changes, newest first. resultsStatus is "
+				+ "pending, applied or failed, for whether the change reached the data tables"));
 		properties.put("count", property("integer", "How many changes were returned"));
 
 		Map<String, Object> schema = new LinkedHashMap<>();
@@ -121,12 +122,24 @@ public class SurveyHistoryTool extends AbstractMcpTool {
 				row.put("changedTime", cl.updatedTime == null ? null : cl.updatedTime.toString());
 				row.put("change", cl.change);
 				/*
-				 * A change that has to reach the results tables is reported whether or not it got
-				 * there.  Saying only that a change was made, when applying it failed, would be the
-				 * half of the story that reassures.
+				 * Whether the change reached the results tables, in the three states it can be in
+				 * rather than the two a boolean allows.
+				 *
+				 * apply_results is set false when the change is processed, whether it worked or
+				 * not, so it left true means nobody has processed it yet.  Reporting that as a
+				 * failure would raise an alarm about a change that is merely waiting, and reporting
+				 * it as success would claim something that has not happened.  A message is only
+				 * written when applying it went wrong, so that is what separates the other two.
 				 */
-				row.put("appliedToResults", cl.apply_results);
-				row.put("succeeded", cl.success);
+				String resultsStatus;
+				if(cl.apply_results) {
+					resultsStatus = "pending";
+				} else if(cl.msg != null && cl.msg.length() > 0) {
+					resultsStatus = "failed";
+				} else {
+					resultsStatus = "applied";
+				}
+				row.put("resultsStatus", resultsStatus);
 				if(cl.msg != null && cl.msg.length() > 0) {
 					row.put("message", cl.msg);
 				}
@@ -138,12 +151,10 @@ public class SurveyHistoryTool extends AbstractMcpTool {
 				if(cl.agent != null) {
 					text.append(" via ").append(cl.agent);
 				}
-				if(!cl.success) {
-					text.append(" (not applied to the data tables");
-					if(cl.msg != null && cl.msg.length() > 0) {
-						text.append(": ").append(cl.msg);
-					}
-					text.append(")");
+				if(cl.apply_results) {
+					text.append(" (not yet applied to the data tables)");
+				} else if(cl.msg != null && cl.msg.length() > 0) {
+					text.append(" (applying it to the data tables failed: ").append(cl.msg).append(")");
 				}
 			}
 		}
