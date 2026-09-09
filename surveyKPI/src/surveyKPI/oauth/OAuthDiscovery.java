@@ -77,12 +77,13 @@ public class OAuthDiscovery extends Application {
 		doc.put("authorization_servers", new String[] { base });
 		doc.put("bearer_methods_supported", new String[] { "header" });
 		/*
-		 * Only the minimal scope is advertised.  Everything else is reached by step up: a tool the
-		 * token cannot run answers 403 naming the scope it needs, and the client re-authorises for
-		 * that as well as what it already had.  A client therefore never holds a permission it has
-		 * not yet had a use for.
+		 * Every scope a tool can challenge for, because this document is where a client sent by an
+		 * insufficient_scope challenge comes to find out how to ask.  Naming fewer scopes here than
+		 * the challenges can name strands the client: it re-authorises for what it already had and
+		 * is refused again.  What it asks for first is still its own choice, and the consent form
+		 * still lets the person clear anything they do not want to grant.
 		 */
-		doc.put("scopes_supported", MCPScope.SUPPORTED.toArray(new String[0]));
+		doc.put("scopes_supported", MCPScope.ADVERTISED.toArray(new String[0]));
 		doc.put("resource_documentation", "https://www.smap.com.au/docs/");
 
 		return Response.ok(gson.toJson(doc)).build();

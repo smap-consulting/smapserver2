@@ -35,10 +35,10 @@ import java.util.Set;
  * They are deliberately not hierarchical.  A broader scope does not imply a narrower one, so
  * enforcement stays a set membership test and there is no implication chain to get wrong.
  *
- * Only SMAP_READ is advertised in scopes_supported.  A client asks for that, and when it reaches a
- * tool needing more the server answers 403 with an insufficient_scope challenge naming what is
- * required; the client unions that with what it holds and re-authorises.  That way a client never
- * holds a permission it has not yet needed.
+ * A tool needing more than the token carries answers 403 with an insufficient_scope challenge
+ * naming what is required; the client unions that with what it holds and re-authorises.  See
+ * ADVERTISED for what a client is told it may ask for, which is a different question from what it
+ * asks for first.
  */
 public class MCPScope {
 
@@ -52,10 +52,30 @@ public class MCPScope {
 	private static final List<String> ALL = Arrays.asList(READ, WRITE, ADMIN, ACCESS, SERVER, PRIVACY);
 
 	/*
-	 * What a client is told to ask for when it has nothing else to go on.  The minimal set that
-	 * makes the server useful; everything else arrives by step up.
+	 * What a client is granted when it has nothing else to go on: an authorisation request naming
+	 * no scope, or a console minted token with none chosen.  The minimal set that makes the server
+	 * useful.
 	 */
 	public static final List<String> SUPPORTED = Arrays.asList(READ);
+
+	/*
+	 * What a client is told it may ask for, in the protected resource metadata.
+	 *
+	 * This has to name every scope a tool can challenge for.  A 403 naming smap:write sends the
+	 * client to that document to learn how to ask for it (RFC 9728); if the scope is not listed
+	 * there the client asks again for what it already held, is refused again, and gives up.
+	 * Advertising READ alone made every write tool unreachable from any client that discovers
+	 * scopes rather than being handed an authorisation URL by hand - the challenge named a
+	 * permission the metadata said could not be requested.
+	 *
+	 * Least privilege still holds, in the two places it can be enforced rather than assumed: the
+	 * consent form lists each scope with its own checkbox, so a person grants only what they mean
+	 * to, and the token is intersected with the user's groups on every call.
+	 *
+	 * Scopes are added here as their increments land, so a client is never offered a permission no
+	 * tool yet uses.
+	 */
+	public static final List<String> ADVERTISED = Arrays.asList(READ, WRITE);
 
 	/*
 	 * Consent for this scope is never remembered, so granting it is always a deliberate act rather

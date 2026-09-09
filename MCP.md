@@ -25,15 +25,29 @@ permission is the user's security groups intersected with the scopes on their to
 | Scope | Covers | Advertised |
 | --- | --- | --- |
 | `smap:read` | Everything the user can see, read only | yes |
-| `smap:write` | Surveys, data, tasks, cases, mailout preparation | by step up |
+| `smap:write` | Surveys, data, tasks, cases, mailout preparation | yes |
 | `smap:admin` | Users, projects, organisation records | by step up |
 | `smap:access` | Who can reach what | by step up, never remembered |
 | `smap:server` | Server settings | by step up |
 | `smap:privacy` | Subject access exports | by step up |
 
-Only `smap:read` is advertised. A tool needing more answers `403` naming the scope, and the client
-re-authorises for that as well as what it already had, so it never holds a permission it has not
-needed.
+Advertised means named in `/.well-known/oauth-protected-resource`, which is where a client looks to
+find out what it may ask for. A tool needing a scope the token lacks answers `403` naming it, and the
+client re-authorises for that as well as what it already had.
+
+The two have to agree, and at first they did not. Only `smap:read` was advertised, on the reasoning
+that a client should never hold a permission it has not yet needed. But a client sent by a `403`
+naming `smap:write` goes to that same document to learn how to ask for it, finds the scope missing,
+asks again for the read token it already had, is refused again and gives up. Every write tool was
+unreachable from any client that discovers scopes instead of being handed an authorisation URL by
+hand, which is how the write tools came to be tested without this showing up. A scope a challenge can
+name must be a scope the metadata offers.
+
+So least privilege is enforced where it can be rather than assumed: the consent form gives each scope
+its own checkbox, so a person grants only what they mean to, and every call intersects the token with
+the user's security groups. Scopes join the advertised set as their increments land, so nothing is
+offered that no tool yet uses - `smap:admin` and below stay out until 5.8, and will need this decided
+again, because step up on its own does not appear to work with any client shipping today.
 
 Which is why `tools/list` is filtered by the caller's groups and not by their token's scopes. The two
 refusals are not alike: a group is a property of the person, and no amount of re-authorising gives an
