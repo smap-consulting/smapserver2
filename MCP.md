@@ -369,9 +369,26 @@ about a form need one of those four and not the other three.
 
 All of them read through the same access rule as the data tools - a survey the caller could not have
 listed does not exist - and with `superUser` false, so an administrator's view is never what comes
-back. They share one loader in `McpData` so the flags cannot drift apart from the ones behind the
-resource; two ways of reading a design that disagreed about soft deleted questions would be worse
-than one.
+back.
+
+Each reads only its own part, through a reader in `McpData` that asks for that part and no more:
+`outline` for the settings, languages and forms, `optionLists` for the choices, `questions` for the
+design, `SurveyManager.getChangeLog` for the history. There is no call here that loads a whole
+survey, and that is deliberate - the coarse one was removed rather than left beside them, because
+leaving it there is an invitation to load a form to answer a question about part of it.
+
+The underlying functions are still Smap's own. Where a reader did not exist it was **extracted from
+the method that had it inline, and that method now calls the extraction**, so the console and MCP run
+one implementation rather than two that drift. That matters more here than the saving: a second way
+of reading a design, disagreeing about soft deleted questions or external choices, is a bug waiting
+for the day the two are compared.
+
+The shape being corrected is worth naming. Smap's managers were built for a person moving through
+screens, so they answer at the granularity of a screenful - `getById` returns forms, questions,
+options, styles and labels together because the survey editor needs all of it at once. A model
+usually wants one fact, and the coarse call makes it pay for the rest in the context it has to think
+in. The same correction was already made on the data side, where the tools go to
+`TableDataManager.getPreparedStatement` rather than `DataManager.getDataRecords`.
 
 Deleted questions are not returned. A published question that has been deleted still owns its
 results column, so it is a real thing a designer sometimes needs to see, but showing it beside live
