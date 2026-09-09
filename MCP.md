@@ -87,6 +87,7 @@ may do.
 | `reference_filter_list` | read | analyst, admin, manage | done |
 | `survey_check_type_change` | read | analyst, admin | done |
 | `survey_create` | write | analyst, admin | done |
+| `survey_set_settings` | write | analyst, admin | done |
 | `survey_delete` | write | analyst, admin | done |
 | `survey_undelete` | write | analyst, admin | done |
 | `reference_filter_set` | write | analyst, admin | done |
@@ -99,6 +100,7 @@ may do.
 | URI | What |
 | --- | --- |
 | `smap://docs/tools` | What this connection can do, generated from the registry |
+| `smap://docs/tasks` | The order to use tools in for jobs that take more than one, and what cannot be done at all |
 | `smap://survey/{ident}/definition` | One survey's questions, options and settings |
 | `smap://record/{ident}/{instanceId}` | One submitted record and its repeating groups |
 | `smap://attachment/{ident}/{file}` | A photo, audio or other file on a record, returned as bytes |
@@ -384,6 +386,38 @@ by a person.
 That is separate from `agent`, and both are wanted. `source` says what kind of thing made the change;
 `agent` says which application, by name. A change with `source` mcp and no `agent` would be a
 console-minted token acting with no registered client.
+
+## A survey's project is one of its settings
+
+`survey_set_settings` changes everything about a survey that is not its questions, and the project is
+one of those things. Moving a survey between projects is one field on the survey, the same kind of
+act as renaming it, and a separate tool for it would suggest otherwise. The save re-points the upload
+events afterwards, so the monitor still shows the survey's history where the survey now is.
+
+Only the settings named are changed. The underlying save writes the whole row, so everything
+unmentioned is read first and written back as it was - a tool that passed a half filled object would
+quietly clear every setting the caller did not think to mention. For the same reason a boolean is
+changed only when the caller actually named it: absent and false are different things here, and
+treating them alike would turn off every option not mentioned.
+
+The before and after of each setting changed goes to the change log and comes back in the answer, so
+any of it can be set back.
+
+**This is where `saveSettings` came from.** It lived only in the console's endpoint, some 380 lines of
+it, and was extracted into `SurveyManager` so MCP and the survey editor change a survey the same way.
+The endpoint now parses, authorises, and calls it.
+
+## Knowing how to do a job, not just what a tool does
+
+`smap://docs/tools` is generated from the registry, so it cannot drift from what is offered.
+`smap://docs/tasks` is written by hand and says the thing a list of tools cannot: which order to use
+them in, and which jobs need three of them.
+
+It names what is **not** possible as plainly as what is - creating a project, giving someone access to
+one, uploading an XLSForm, changing a question's type - so a model does not spend a conversation
+hunting for a tool that was never built. A reorganisation needing a new project is therefore honest
+about its shape: a person makes the project and adds the people in the console, and the surveys are
+moved from here.
 
 ## Making a survey, and unmaking one
 

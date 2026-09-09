@@ -110,6 +110,9 @@ public class McpResources {
 		List<Map<String, Object>> resources = new ArrayList<>();
 		resources.add(resource("smap://docs/tools", "Available tools",
 				"What this connection can do, and what each tool is for", "text/markdown"));
+		resources.add(resource("smap://docs/tasks", "How to do things",
+				"The order to use tools in for jobs that take more than one, and what cannot be "
+				+ "done from here", "text/markdown"));
 
 		try {
 			ArrayList<Survey> surveys = userSurveys(ctx);
@@ -358,6 +361,10 @@ public class McpResources {
 	 */
 	private Content docs(McpToolContext ctx, String topic) {
 
+		if("tasks".equals(topic)) {
+			return tasks(ctx);
+		}
+
 		StringBuilder md = new StringBuilder();
 		md.append("# Smap tools available to you\n\n");
 		md.append("Acting as **").append(ctx.user).append("**");
@@ -380,6 +387,84 @@ public class McpResources {
 			}
 		}
 		return new Content("smap://docs/" + topic, "text/markdown", md.toString());
+	}
+
+	/*
+	 * How to do the things that take more than one tool.
+	 *
+	 * Written by hand rather than generated, because it is the part a list of tools cannot say: each
+	 * tool describes itself, and none of them says which order to use them in or which job needs
+	 * three of them.  It names what is not possible as plainly as what is, so a model does not spend
+	 * a conversation looking for a tool that has not been built.
+	 */
+	private Content tasks(McpToolContext ctx) {
+
+		StringBuilder md = new StringBuilder();
+		md.append("# Doing things on this Smap server\n\n");
+		md.append("Read `smap://docs/tools` for what each tool does. This is the order to use them "
+				+ "in for jobs that take more than one, and what cannot be done here at all.\n\n");
+
+		md.append("## Building a survey\n\n");
+		md.append("`survey_create` makes one, empty or as a copy of an existing survey. Then "
+				+ "`survey_add_question` for each question, in the order you want them asked - each "
+				+ "one goes at the end of the form unless you give a position.\n\n");
+		md.append("Choice lists for select questions have to exist already: `survey_options` lists "
+				+ "the ones a survey has, and a new list is made in the console. A question of type "
+				+ "`select1` or `select` without an `option_list` is refused.\n\n");
+		md.append("Groups and repeats cannot be added here. They change the shape of the form and "
+				+ "the tables underneath it, so they are made in the console.\n\n");
+		md.append("Uploading an XLSForm is not offered. Building a survey question by question is "
+				+ "the way to do it from here.\n\n");
+
+		md.append("## Changing a survey that already has data\n\n");
+		md.append("Adding a question is safe: the column that holds its answers is added the next "
+				+ "time a record is submitted, which `survey_history` reports as pending until it "
+				+ "happens.\n\n");
+		md.append("Deleting a question that has collected answers keeps them - it is marked deleted "
+				+ "rather than removed, and adding a question of the same name back to the same form "
+				+ "brings the answers back with it.\n\n");
+		md.append("**Changing a question's type is not offered, and `survey_check_type_change` says "
+				+ "why in any particular case.** Smap changes the definition and never the column, "
+				+ "so the danger is not what you would expect: answers of the new type can be "
+				+ "refused by a column that is still the old type, which fails on somebody's device "
+				+ "long after the change looked like it worked. The safe alternative is to add a new "
+				+ "question of the type you want and leave the old one holding its answers.\n\n");
+
+		md.append("## Reorganising surveys and projects\n\n");
+		md.append("A survey's project is one of its settings, so moving a survey between projects is "
+				+ "`survey_set_settings` with `project_id`. The data moves with it and the survey's "
+				+ "history stays intact.\n\n");
+		md.append("`project_list` shows the projects you are a member of, and those are the only "
+				+ "ones you can move a survey into.\n\n");
+		md.append("**Creating a project, and giving a user access to one, are not available "
+				+ "here yet.** Both are done in the console. So a reorganisation that needs a new "
+				+ "project is: someone makes the project and adds the people to it in the console, "
+				+ "and then you move the surveys with `survey_set_settings`.\n\n");
+
+		md.append("## Reference data between surveys\n\n");
+		md.append("A survey can read another survey's records as the choices for a question. "
+				+ "`reference_filter_list` shows every such connection a survey has, including the "
+				+ "ones with no filter, which hand over everything the source holds. "
+				+ "`reference_filter_set` narrows one, and returns what it was so you can put it "
+				+ "back.\n\n");
+
+		md.append("## Correcting data\n\n");
+		md.append("`data_query` to find records, `data_update_record` to change one, "
+				+ "`data_bulk_update` to change many at once - which returns a change set id that "
+				+ "`data_bulk_undo` takes to put them all back. `data_audit` shows a record's whole "
+				+ "history, with who and what made each change.\n\n");
+		md.append("Deleting a record marks it rather than removing it, so `data_restore_record` "
+				+ "brings it back.\n\n");
+
+		md.append("## What is never done from here\n\n");
+		md.append("Sending anything. Email, SMS and webhooks cannot be recalled, so a mailout is "
+				+ "prepared and a person sends it. Anything that erases data for good: the hard "
+				+ "erase of a survey, the right to be forgotten, deleting media files. And "
+				+ "changing your own permissions, or the organisation you are acting in.\n\n");
+		md.append("If a tool you expect is missing, it is either one of these or it has not been "
+				+ "built yet. `smap://docs/tools` is the list of what exists for you.\n\n");
+
+		return new Content("smap://docs/tasks", "text/markdown", md.toString());
 	}
 
 	/* ------------------------------------------------------------------ helpers */

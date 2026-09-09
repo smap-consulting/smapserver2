@@ -78,6 +78,7 @@ import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.SettingChange;
 import org.smap.sdal.model.SurveyDAO;
 import org.smap.sdal.model.SurveyIdent;
 import org.smap.sdal.model.SurveyLinks;
@@ -320,6 +321,169 @@ public class SurveyManager {
 		} finally {
 			try { if (pstmtGetOptions != null) {pstmtGetOptions.close();}} catch (SQLException e) {}
 			try { if (pstmtGetLists != null) {pstmtGetLists.close();}} catch (SQLException e) {}
+		}
+	}
+
+	/*
+	 * Save a survey's settings: everything about a survey that is not its questions.
+	 *
+	 * Extracted from the console's save_settings endpoint, which is the only place this lived, so
+	 * that MCP and the survey editor change a survey the same way rather than two ways that drift.
+	 * The endpoint now calls this and does the parsing and the authorising it was always doing.
+	 *
+	 * The project is one of these settings rather than a move of its own.  Nothing about changing it
+	 * is special except the upload events, which are re-pointed afterwards so the monitor still
+	 * shows a survey's history after it moves.
+	 *
+	 * settingsChanges is what gets written to the change log, and it is the caller's to supply
+	 * because only the caller knows what it changed: the console compares the form on screen with
+	 * what was loaded into it, and a tool compares the arguments it was given with what it read.
+	 * Passing none writes no log entry, which is right for a save that changed nothing.
+	 */
+	public void saveSettings(Connection sd, int sId, SurveyDAO surveyData,
+			List<SettingChange> settingsChanges, String user) throws Exception {
+
+		String sqlGet = "select p_id, version from survey where s_id = ?";
+		String sql = "update survey set display_name = ?, def_lang = ?, task_file = ?, "
+				+ "timing_data = ?, "
+				+ "p_id = ?, "
+				+ "instance_name = ?, "
+				+ "version = ?, "
+				+ "class = ?,"
+				+ "exclude_empty = ?, "
+				+ "compress_pdf = ?, "
+				+ "hide_on_device = ?, "
+				+ "search_local_data = ?, "
+				+ "data_survey = ?, "
+				+ "oversight_survey = ?, "
+				+ "read_only_survey = ?, "
+				+ "my_reference_data = ?, "
+				+ "audit_location_data = ?, "
+				+ "track_changes = ?,"
+				+ "default_logo = ?,"
+				+ "turnstile = ?,"
+				+ "show_form_index = ?, "
+				+ "max_reference_records = ? "
+				+ "where s_id = ?";
+		String sqlChangeLog = "insert into survey_change "
+				+ "(s_id, version, changes, user_id, apply_results, updated_time, agent) "
+				+ "values(?, ?, ?, ?, 'true', ?, ?)";
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		PreparedStatement pstmtGet = null;
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtChangeLog = null;
+		boolean autoCommitSetFalse = false;
+		int originalProjectId = 0;
+		int version = 0;
+
+		try {
+			pstmtGet = sd.prepareStatement(sqlGet);
+			pstmtGet.setInt(1, sId);
+			ResultSet rs = pstmtGet.executeQuery();
+			if(rs.next()) {
+				originalProjectId = rs.getInt("p_id");
+				version = rs.getInt("version") + 1;
+			}
+
+			if(sd.getAutoCommit()) {
+				autoCommitSetFalse = true;
+				sd.setAutoCommit(false);
+			}
+
+			if(surveyData.surveyClass != null && surveyData.surveyClass.equals("none")) {
+				surveyData.surveyClass = null;
+			}
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(surveyData.displayName, localisation));
+			pstmt.setString(2, HtmlSanitise.checkCleanName(surveyData.def_lang, localisation));
+			pstmt.setBoolean(3, surveyData.task_file);
+			pstmt.setBoolean(4, surveyData.timing_data);
+			pstmt.setInt(5, surveyData.p_id);
+			pstmt.setString(6, surveyData.instanceNameDefn);
+			pstmt.setInt(7, version);
+			pstmt.setString(8, HtmlSanitise.checkCleanName(surveyData.surveyClass, localisation));
+			pstmt.setBoolean(9, surveyData.exclude_empty);
+			pstmt.setBoolean(10, surveyData.compress_pdf);
+			pstmt.setBoolean(11, surveyData.hideOnDevice);
+			pstmt.setBoolean(12, surveyData.searchLocalData);
+			pstmt.setBoolean(13, surveyData.dataSurvey);
+			pstmt.setBoolean(14, surveyData.oversightSurvey);
+			pstmt.setBoolean(15, surveyData.readOnlySurvey);
+			pstmt.setBoolean(16, surveyData.myReferenceData);
+			pstmt.setBoolean(17, surveyData.audit_location_data);
+			pstmt.setBoolean(18, surveyData.track_changes);
+			pstmt.setString(19, surveyData.default_logo);
+			pstmt.setBoolean(20, surveyData.turnstile);
+			pstmt.setBoolean(21, surveyData.showFormIndex);
+			pstmt.setInt(22, surveyData.maxReferenceRecords);
+			pstmt.setInt(23, sId);
+
+			log.info("Saving survey: " + pstmt.toString());
+			int count = pstmt.executeUpdate();
+
+			if(count == 0) {
+				log.info("Error: Failed to update survey");
+			} else {
+				int userId = GeneralUtilityMethods.getUserId(sd, user);
+
+				// In case my_reference_data changed
+				GeneralUtilityMethods.clearLinkedForms(sd, sId, localisation);
+
+				if(settingsChanges != null && settingsChanges.size() > 0) {
+
+					ChangeElement change = new ChangeElement();
+					change.action = "settings_update";
+					change.origSId = sId;
+					change.settingsChanges = settingsChanges;
+
+					// Plain text as a fallback for readers that do not understand the structured data
+					StringBuilder msg = new StringBuilder();
+					for(SettingChange sc : settingsChanges) {
+						if(msg.length() > 0) {
+							msg.append(", ");
+						}
+						msg.append(sc.label).append(": ").append(sc.oldVal).append(" -> ").append(sc.newVal);
+					}
+					change.msg = msg.toString();
+
+					pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+					pstmtChangeLog.setInt(1, sId);
+					pstmtChangeLog.setInt(2, version);
+					pstmtChangeLog.setString(3, gson.toJson(change));
+					pstmtChangeLog.setInt(4, userId);
+					pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
+					pstmtChangeLog.setString(6, agent);		// null unless something acted for the person
+					pstmtChangeLog.execute();
+				}
+			}
+
+			sd.commit();
+			if(autoCommitSetFalse) {
+				sd.setAutoCommit(true);
+				autoCommitSetFalse = false;
+			}
+
+			/*
+			 * Re-point the upload events, so the monitor still shows everything this survey has
+			 * received after it moves to another project.
+			 */
+			if(originalProjectId != surveyData.p_id) {
+				GeneralUtilityMethods.updateUploadEvent(sd, surveyData.p_id, sId);
+			}
+
+			new MessagingManager(localisation).surveyChange(sd, sId, 0);
+
+		} catch (Exception e) {
+			try {sd.rollback();} catch(Exception ex) {}
+			throw e;
+		} finally {
+			if(autoCommitSetFalse) {
+				try {sd.setAutoCommit(true);} catch(Exception e) {}
+			}
+			if(pstmtGet != null) try {pstmtGet.close();} catch (SQLException e) {}
+			if(pstmt != null) try {pstmt.close();} catch (SQLException e) {}
+			if(pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
 		}
 	}
 

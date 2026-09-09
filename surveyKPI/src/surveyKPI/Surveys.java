@@ -955,177 +955,35 @@ public class Surveys extends Application {
 		// End Authorisation
 		
 		String fileName = null;
-		int version = 0;
-				
-		PreparedStatement pstmt = null;
-		PreparedStatement pstmtGet = null;
-		PreparedStatement pstmtChangeLog = null;
-		PreparedStatement pstmtAddHrk = null;
-		
-		Connection cResults = null;
+
 		try {
-				
+
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
+
 			SurveyDAO surveyData = gson.fromJson(settings, SurveyDAO.class);
-			
-			// Start transaction
-			sd.setAutoCommit(false);
-			
-			// Get the existing survey display name, plain old name and project id
-			String sqlGet = "select display_name, p_id, version from survey where s_id = ?";
-			pstmtGet = sd.prepareStatement(sqlGet);	
-			pstmtGet.setInt(1, sId);
-			
-			int originalProjectId = 0;
 
-			ResultSet rs = pstmtGet.executeQuery();
-			if(rs.next()) {
-				originalProjectId = rs.getInt("p_id");
-				version = rs.getInt("version") + 1;
+			/*
+			 * The client sends a list of only the settings that actually changed, old to new, and
+			 * that list is what the change log records.
+			 */
+			List<SettingChange> settingsChanges = null;
+			if(changeList != null && changeList.trim().length() > 0) {
+				Type listType = new TypeToken<ArrayList<SettingChange>>() {}.getType();
+				settingsChanges = gson.fromJson(changeList, listType);
 			}
-			
-			String sqlChangeLog = "insert into survey_change " +
-					"(s_id, version, changes, user_id, apply_results, updated_time) " +
-					"values(?, ?, ?, ?, 'true', ?)";
-			
-			// Update the settings
-			String sql = "update survey set display_name = ?, def_lang = ?, task_file = ?, "
-					+ "timing_data = ?, "
-					+ "p_id = ?, "
-					+ "instance_name = ?, "
-					+ "version = ?, "
-					+ "class = ?,"
-					+ "exclude_empty = ?, "
-					+ "compress_pdf = ?, "
-					+ "hide_on_device = ?, "
-					+ "search_local_data = ?, "
-					+ "data_survey = ?, "
-					+ "oversight_survey = ?, "
-					+ "read_only_survey = ?, "
-					+ "my_reference_data = ?, "
-					+ "audit_location_data = ?, "
-					+ "track_changes = ?,"
-					+ "default_logo = ?,"
-					+ "turnstile = ?,"
-					+ "show_form_index = ?, "
-					+ "max_reference_records = ? "
-					+ "where s_id = ?";
-		
-			if(surveyData.surveyClass != null && surveyData.surveyClass.equals("none")) {
-				surveyData.surveyClass = null;
-			}
-			pstmt = sd.prepareStatement(sql);	
-			pstmt.setString(1, HtmlSanitise.checkCleanName(surveyData.displayName, localisation));
-			pstmt.setString(2, HtmlSanitise.checkCleanName(surveyData.def_lang, localisation));
-			pstmt.setBoolean(3, surveyData.task_file);
-			pstmt.setBoolean(4, surveyData.timing_data);
-			pstmt.setInt(5, surveyData.p_id);
-			pstmt.setString(6, surveyData.instanceNameDefn);
-			pstmt.setInt(7, version);
-			pstmt.setString(8, HtmlSanitise.checkCleanName(surveyData.surveyClass, localisation));
-			pstmt.setBoolean(9, surveyData.exclude_empty);
-			pstmt.setBoolean(10, surveyData.compress_pdf);
-			pstmt.setBoolean(11, surveyData.hideOnDevice);
-			pstmt.setBoolean(12, surveyData.searchLocalData);
-			pstmt.setBoolean(13, surveyData.dataSurvey);
-			pstmt.setBoolean(14, surveyData.oversightSurvey);
-			pstmt.setBoolean(15, surveyData.readOnlySurvey);
-			pstmt.setBoolean(16, surveyData.myReferenceData);
-			pstmt.setBoolean(17, surveyData.audit_location_data);
-			pstmt.setBoolean(18, surveyData.track_changes);
-			pstmt.setString(19, surveyData.default_logo);
-			pstmt.setBoolean(20, surveyData.turnstile);
-			pstmt.setBoolean(21, surveyData.showFormIndex);
-			pstmt.setInt(22, surveyData.maxReferenceRecords);
-			pstmt.setInt(23, sId);
-			
-			log.info("Saving survey: " + pstmt.toString());
-			int count = pstmt.executeUpdate();
 
-			if(count == 0) {
-				log.info("Error: Failed to update survey");
-			} else {
-				log.info("Info: Survey updated");
-				
-				int userId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			sm.saveSettings(sd, sId, surveyData, settingsChanges, request.getRemoteUser());
 
-				// The client sends a list of only the settings that actually changed (old -> new)
-				List<SettingChange> settingsChanges = null;
-				if(changeList != null && changeList.trim().length() > 0) {
-					Type listType = new TypeToken<ArrayList<SettingChange>>() {}.getType();
-					settingsChanges = gson.fromJson(changeList, listType);
-				}
-
-				// Clear any entries in linked_forms for this survey - this is in case the myReferenceData setting has changed
-				GeneralUtilityMethods.clearLinkedForms(sd, sId, localisation);
-
-				// Only write a change log entry if something actually changed
-				if(settingsChanges != null && settingsChanges.size() > 0) {
-
-					ChangeElement change = new ChangeElement();
-					change.action = "settings_update";
-					change.origSId = sId;
-					change.settingsChanges = settingsChanges;
-
-					// Build a plain text message as a fallback for readers that do not understand the structured data
-					StringBuilder msg = new StringBuilder();
-					for(SettingChange sc : settingsChanges) {
-						if(msg.length() > 0) {
-							msg.append(", ");
-						}
-						msg.append(sc.label).append(": ").append(sc.oldVal).append(" -> ").append(sc.newVal);
-					}
-					change.msg = msg.toString();
-
-					// Write to the change log
-					pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
-					pstmtChangeLog.setInt(1, sId);
-					pstmtChangeLog.setInt(2, version);
-					pstmtChangeLog.setString(3, gson.toJson(change));
-					pstmtChangeLog.setInt(4, userId);
-					pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
-					pstmtChangeLog.execute();
-				}
-			}
-			
-			sd.commit();
-			sd.setAutoCommit(true);
-			
-			// If the project id has changed update the project in the upload events so that the monitor will still show all events
-			if(originalProjectId != surveyData.p_id) {
-				GeneralUtilityMethods.updateUploadEvent(sd, surveyData.p_id, sId);
-			}
-			
-			// Record the message so that devices can be notified
-			MessagingManager mm = new MessagingManager(localisation);
-			mm.surveyChange(sd, sId, 0);
-		
 			response = Response.ok(fileName).build();
-			
-		} catch (SQLException e) {
-			log.log(Level.SEVERE,"sql error", e);
-			try{sd.rollback();} catch(Exception ex) {};
-		    response = Response.serverError().entity(e.getMessage()).build();
-		    try {sd.setAutoCommit(true);} catch(Exception ex) {}
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Exception loading settings", e);
-			try{sd.rollback();} catch(Exception ex) {};
 		    response = Response.serverError().entity(e.getMessage()).build();
-		    try {sd.setAutoCommit(true);} catch(Exception ex) {}
 		} finally {
-			
-			if (pstmtGet != null) try {pstmtGet.close();} catch (SQLException e) {}
-			if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
-			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
-			if (pstmtAddHrk != null) try {pstmtAddHrk.close();} catch (SQLException e) {}
-			
-			try {sd.setAutoCommit(true);} catch(Exception e) {}
 			SDDataSource.closeConnection(connectionString, sd);
-			ResultsDataSource.closeConnection(connectionString, cResults);
-			
 		}
 
 		return response;
