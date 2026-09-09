@@ -61,6 +61,38 @@ public class McpData {
 	 * superUser stays false. getById will happily read a survey as an administrator and the design
 	 * tools must not, for the same reason the data tools must not.
 	 */
+	/*
+	 * A survey's settings and shape, without its design.
+	 *
+	 * The header getById returns when it is not asked for the full survey, plus the languages and
+	 * the forms.  Reading a whole design to answer how many forms does this have, or what languages,
+	 * is what the coarser call does, and those are the questions most often asked of a survey.
+	 */
+	public static Survey outline(McpToolContext ctx, int surveyId) throws Exception {
+
+		Survey listed = surveyById(ctx, surveyId);
+		if(listed == null) {
+			return null;
+		}
+		SurveyManager sm = new SurveyManager(ctx.localisation, ctx.timezone);
+		Survey s = sm.getById(ctx.sd, ctx.cResults, ctx.user, false, surveyId,
+				false,			// not the full definition: no questions, options or labels
+				null, null,
+				false, false, false, false, false,
+				"real",
+				false,			// getChangeHistory
+				false,			// getRoles
+				false,			// superUser - the caller's own rights, not an administrator's
+				"geojson",
+				false, false, false);
+		if(s == null) {
+			return null;
+		}
+		s.surveyData.languages = GeneralUtilityMethods.getLanguages(ctx.sd, surveyId);
+		s.surveyData.forms = sm.getForms(ctx.sd, surveyId);
+		return s;
+	}
+
 	public static Survey definition(McpToolContext ctx, int surveyId) throws Exception {
 
 		Survey listed = surveyById(ctx, surveyId);

@@ -197,6 +197,83 @@ public class SurveyManager {
 	}
 
 	/*
+	 * The forms in a survey, without their questions.
+	 *
+	 * A form is the unit a repeating group is stored as, so this answers what shape is this survey
+	 * without reading the design.  populateSurvey fills the questions in afterwards; a caller that
+	 * only wants the shape does not pay for them.
+	 */
+	public ArrayList<Form> getForms(Connection sd, int sId) throws SQLException {
+
+		String sql = "select f.f_id, "
+				+ "f.name, "
+				+ "f.parentform, "
+				+ "f.parentquestion, "
+				+ "f.table_name, "
+				+ "f.reference, "
+				+ "f.merge,"
+				+ "f.replace,"
+				+ "f.append "
+				+ "from form f where f.s_id = ?;";
+
+		ArrayList<Form> forms = new ArrayList<Form> ();
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				Form f = new Form();
+				f.id = rs.getInt(1);
+				f.name = rs.getString(2);
+				f.parentform = rs.getInt(3);
+				f.parentQuestion = rs.getInt(4);
+				f.tableName = rs.getString(5);
+				f.reference = rs.getBoolean(6);
+				f.merge = rs.getBoolean(7);
+				f.replace = rs.getBoolean(8);
+				f.append = rs.getBoolean(9);
+				forms.add(f);
+			}
+		}
+		return forms;
+	}
+
+	/*
+	 * How many questions each form holds, keyed by form id.
+	 *
+	 * Counted rather than loaded, for a caller that wants the size of a form and not its contents.
+	 *
+	 * The predicate has to match the one getQuestionsInForm applies or the two disagree, and a
+	 * survey reported as having more questions than can be listed is the kind of quiet
+	 * inconsistency nobody chases until it has confused someone.  Soft deleted questions are
+	 * excluded in SQL, as they are there; property types cannot be, because whether a question is
+	 * one is decided in Java from its name and source, so those columns are read and the same test
+	 * applied here.
+	 */
+	public HashMap<Integer, Integer> getQuestionCounts(Connection sd, int sId) throws SQLException {
+
+		String sql = "select q.f_id, q.source_param, q.qname "
+				+ "from question q "
+				+ "inner join form f on f.f_id = q.f_id "
+				+ "where f.s_id = ? "
+				+ "and q.soft_deleted = 'false'";
+
+		HashMap<Integer, Integer> counts = new HashMap<Integer, Integer> ();
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				if(GeneralUtilityMethods.isPropertyType(rs.getString(2), rs.getString(3))) {
+					continue;
+				}
+				int fId = rs.getInt(1);
+				Integer existing = counts.get(fId);
+				counts.put(fId, existing == null ? 1 : existing + 1);
+			}
+		}
+		return counts;
+	}
+
+	/*
 	 * The change log for one survey, newest first.
 	 *
 	 * Its own method because it is wanted on its own.  It used to live inside populateSurvey, which
@@ -1009,18 +1086,6 @@ public class SurveyManager {
 		 */
 
 		// SQL to get the forms belonging to this survey
-		ResultSet rsGetForms = null;
-		String sqlGetForms = "select f.f_id, "
-				+ "f.name, "
-				+ "f.parentform, "
-				+ "f.parentquestion, "
-				+ "f.table_name, "
-				+ "f.reference, "
-				+ "f.merge,"
-				+ "f.replace,"
-				+ "f.append "
-				+ "from form f where f.s_id = ?;";
-		PreparedStatement pstmtGetForms = sd.prepareStatement(sqlGetForms);	
 
 		// SQL to get the choice lists in this survey
 		ResultSet rsGetLists = null;
@@ -1060,22 +1125,8 @@ public class SurveyManager {
 
 		QuestionManager qm = new QuestionManager(localisation);
 
-		// Get the Forms
-		pstmtGetForms.setInt(1, s.surveyData.id);
-		// log.fine("Get forms: " + pstmtGetForms.toString());
-		rsGetForms = pstmtGetForms.executeQuery();
-
-		while (rsGetForms.next()) {								
-			Form f = new Form();
-			f.id = rsGetForms.getInt(1);
-			f.name = rsGetForms.getString(2);
-			f.parentform =rsGetForms.getInt(3); 
-			f.parentQuestion = rsGetForms.getInt(4);
-			f.tableName = rsGetForms.getString(5);
-			f.reference = rsGetForms.getBoolean(6);
-			f.merge = rsGetForms.getBoolean(7);
-			f.replace = rsGetForms.getBoolean(8);
-			f.append = rsGetForms.getBoolean(9);
+		// Get the Forms, then the questions in each
+		for(Form f : getForms(sd, s.surveyData.id)) {
 
 			f.questions = qm.getQuestionsInForm(sd, 
 					cResults,
@@ -1265,7 +1316,6 @@ public class SurveyManager {
 
 
 		// Close statements
-		try { if (pstmtGetForms != null) {pstmtGetForms.close();}} catch (SQLException e) {}
 		try { if (pstmtGetOptions != null) {pstmtGetOptions.close();}} catch (SQLException e) {}
 		try { if (pstmtGetLists != null) {pstmtGetLists.close();}} catch (SQLException e) {}
 		try { if (pstmtGetStyles != null) {pstmtGetStyles.close();}} catch (SQLException e) {}

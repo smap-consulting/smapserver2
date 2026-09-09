@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.mcp.AbstractMcpTool;
 import org.smap.sdal.mcp.McpData;
 import org.smap.sdal.mcp.McpToolContext;
@@ -61,7 +62,11 @@ public class SurveyGetTool extends AbstractMcpTool {
 		if(surveyId <= 0) {
 			return new MCPToolResult("A survey_id is required. Use survey_list to find one.", true);
 		}
-		Survey s = McpData.definition(ctx, surveyId);
+		/*
+		 * outline, not definition: this tool reports the survey's shape and never its questions, so
+		 * reading them would be work whose result is thrown away.
+		 */
+		Survey s = McpData.outline(ctx, surveyId);
 		if(s == null) {
 			return new MCPToolResult("No such survey, or you do not have access to it.", true);
 		}
@@ -93,20 +98,26 @@ public class SurveyGetTool extends AbstractMcpTool {
 		 */
 		List<Map<String, Object>> forms = new ArrayList<>();
 		StringBuilder formText = new StringBuilder();
+		/*
+		 * Counted, not loaded. The forms arrive without their questions, so the size of each is
+		 * asked for separately rather than measured from a list that was never filled.
+		 */
+		Map<Integer, Integer> counts = new SurveyManager(ctx.localisation, ctx.timezone)
+				.getQuestionCounts(ctx.sd, surveyId);
 		if(s.surveyData.forms != null) {
 			for(Form f : s.surveyData.forms) {
+				int questions = counts.containsKey(f.id) ? counts.get(f.id) : 0;
 				Map<String, Object> row = new LinkedHashMap<>();
 				row.put("name", f.name);
 				row.put("repeatingGroup", f.parentform > 0);
-				row.put("questions", f.questions == null ? 0 : f.questions.size());
+				row.put("questions", questions);
 				forms.add(row);
 
 				formText.append("\n- ").append(f.name);
 				if(f.parentform > 0) {
 					formText.append(" (repeating group)");
 				}
-				formText.append(", ").append(f.questions == null ? 0 : f.questions.size())
-						.append(" question(s)");
+				formText.append(", ").append(questions).append(" question(s)");
 			}
 		}
 		data.put("forms", forms);
