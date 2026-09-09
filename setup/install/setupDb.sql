@@ -872,6 +872,7 @@ CREATE TABLE survey_change (
 	success boolean default false,				-- Set true if the update was a success
 	msg text,									-- Error messages
 	user_id integer,								-- Person who made the changes
+	agent text,									-- Application that made the change, null if a person did it themselves
 	visible boolean default true,				-- set false if the change should not be displayed 				
 	updated_time TIMESTAMP WITH TIME ZONE		-- Time and date of change
 	);

@@ -176,12 +176,24 @@ public class SurveyManager {
 			+ "and q.f_id in "
 			+ "(select f_id from form where s_id in (select s_id from survey where group_survey_ident = ? and deleted = 'false'))";
 	
+	/*
+	 * The application acting for the user, written to the change log so a survey change made by an
+	 * agent can be told apart from one the person made in the console.  Null for the console, which
+	 * is why the two argument constructor is left as it was rather than made to supply it.
+	 */
+	private String agent;
+
 	public SurveyManager(ResourceBundle l, String tz) {
+		this(l, tz, null);
+	}
+
+	public SurveyManager(ResourceBundle l, String tz, String agent) {
 		localisation = l;
 		if(tz == null) {
 			tz = "UTC";
 		}
 		this.tz = tz;
+		this.agent = agent;
 	}
 
 	/*
@@ -191,8 +203,8 @@ public class SurveyManager {
 	public void writeChangeLog(Connection sd, int sId, String userIdent, ChangeElement change) throws Exception {
 
 		String sql = "insert into survey_change " +
-				"(s_id, version, changes, user_id, apply_results, updated_time) " +
-				"values(?, ?, ?, ?, 'true', ?)";
+				"(s_id, version, changes, user_id, apply_results, updated_time, agent) " +
+				"values(?, ?, ?, ?, 'true', ?, ?)";
 		PreparedStatement pstmt = null;
 
 		try {
@@ -204,6 +216,7 @@ public class SurveyManager {
 			pstmt.setString(3, gson.toJson(change));
 			pstmt.setInt(4, GeneralUtilityMethods.getUserId(sd, userIdent));
 			pstmt.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
+			pstmt.setString(6, agent);		// null unless something acted for the person
 			pstmt.execute();
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
@@ -962,6 +975,15 @@ public class SurveyManager {
 
 		// Get the changes that have been made to this survey
 		ResultSet rsGetChanges = null;
+		/*
+		 * Written as explicit joins rather than the comma form it grew from, because the agent
+		 * lookup adds a third table and every column here is qualified: an unqualified name that
+		 * becomes ambiguous when a join is widened fails at run time, not compile time.
+		 *
+		 * The join to oauth_client is left, and on the client id rather than a key, because agent
+		 * is null for a console change and an application that has since been removed should still
+		 * leave its change readable.
+		 */
 		String sqlGetChanges = "SELECT c.changes, "
 				+ "c.c_id, "
 				+ "c.version, "
@@ -969,12 +991,15 @@ public class SurveyManager {
 				+ "c.updated_time at time zone '" + tz + "',"
 				+ "c.apply_results, "
 				+ "c.success, "
-				+ "c.msg " 
-				+ "from survey_change c, users u "
+				+ "c.msg, "
+				+ "c.agent, "
+				+ "oc.client_name "
+				+ "from survey_change c "
+				+ "inner join users u on c.user_id = u.id "
+				+ "left join oauth_client oc on oc.client_id = c.agent "
 				+ "where c.s_id = ? "
-				+ "and c.user_id = u.id "
 				+ "and c.visible = true "
-				+ "order by c_id desc ";
+				+ "order by c.c_id desc ";
 		PreparedStatement pstmtGetChanges = sd.prepareStatement(sqlGetChanges);
 		
 		// Get the available languages
@@ -1191,6 +1216,16 @@ public class SurveyManager {
 				cl.success = rsGetChanges.getBoolean(7) || !cl.apply_results;	// Set the update of the results database to success automatically if a change does not need to be applied
 				cl.msg = rsGetChanges.getString(8);
 
+				/*
+				 * The readable name when the application is still registered, otherwise the raw
+				 * identifier, so a change never loses who made it just because access was withdrawn.
+				 */
+				cl.agentId = rsGetChanges.getString(9);
+				if(cl.agentId != null) {
+					String clientName = rsGetChanges.getString(10);
+					cl.agent = clientName != null ? clientName : cl.agentId;
+				}
+
 				s.surveyData.changes.add(cl);
 			}
 		}
@@ -1326,8 +1361,8 @@ public class SurveyManager {
 		try {
 
 			String sqlChangeLog = "insert into survey_change " +
-					"(s_id, version, changes, user_id, apply_results, visible, updated_time) " +
-					"values(?, ?, ?, ?, 'true', ?, ?)";
+					"(s_id, version, changes, user_id, apply_results, visible, updated_time, agent) " +
+					"values(?, ?, ?, ?, 'true', ?, ?, ?)";
 			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
 
 			/*
@@ -1617,6 +1652,7 @@ public class SurveyManager {
 				pstmtChangeLog.setInt(4,userId);
 				pstmtChangeLog.setBoolean(5, logIndividualChangeSets);
 				pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
+				pstmtChangeLog.setString(7, agent);		// null unless something acted for the person
 				pstmtChangeLog.execute();
 
 			}
@@ -2445,6 +2481,7 @@ public class SurveyManager {
 				pstmtChangeLog.setInt(4, userId);	
 				pstmtChangeLog.setBoolean(5,logIndividualChangeSets);	
 				pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
+				pstmtChangeLog.setString(7, agent);		// null unless something acted for the person
 				pstmtChangeLog.execute();
 			}
 
@@ -2555,6 +2592,7 @@ public class SurveyManager {
 				pstmtChangeLog.setInt(4, userId);
 				pstmtChangeLog.setBoolean(5, logIndividualChangeSets);
 				pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
+				pstmtChangeLog.setString(7, agent);		// null unless something acted for the person
 				pstmtChangeLog.execute();
 			} 
 
@@ -2616,6 +2654,7 @@ public class SurveyManager {
 				pstmtChangeLog.setInt(4, userId);
 				pstmtChangeLog.setBoolean(5, logIndividualChangeSets);
 				pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
+				pstmtChangeLog.setString(7, agent);		// null unless something acted for the person
 				pstmtChangeLog.execute();
 
 
@@ -2678,6 +2717,7 @@ public class SurveyManager {
 				pstmtChangeLog.setInt(4, userId);
 				pstmtChangeLog.setBoolean(5, logIndividualChangeSets);				
 				pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
+				pstmtChangeLog.setString(7, agent);		// null unless something acted for the person
 				pstmtChangeLog.execute();
 			} 
 

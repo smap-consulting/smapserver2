@@ -761,3 +761,8 @@ alter table upload_event add column if not exists agent text;
 -- was rather than record by record.
 alter table record_event add column if not exists change_set text;
 create index if not exists idx_record_event_change_set on record_event(change_set) where change_set is not null;
+
+-- Which application made a survey definition change, as distinct from which person it acted for.
+-- user_id already holds the person; for an agent that is whoever approved the change.  Null for a
+-- change made by a person in the console, which is what most of them are.
+alter table survey_change add column if not exists agent text;
