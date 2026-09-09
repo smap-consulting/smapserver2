@@ -83,6 +83,7 @@ may do.
 | `survey_questions` | read | analyst, admin, manage | done |
 | `survey_options` | read | analyst, admin, manage | done |
 | `survey_history` | read | analyst, admin, manage | done |
+| `survey_check_type_change` | read | analyst, admin | done |
 | `survey_add_question` | write | analyst, admin | done |
 | `survey_delete_question` | write | analyst, admin | done |
 | `topic_list` | read | analyst, admin, view data, manage | done |
@@ -128,7 +129,7 @@ not done.
 | Analysis | `data_aggregate` | read only |
 | Projects | `project_list` | read only |
 | Topics / bundles | `topic_list` | read only |
-| Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history`, `survey_add_question`, `survey_delete_question` | read, and questions can be added and removed |
+| Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history`, `survey_check_type_change`, `survey_add_question`, `survey_delete_question` | read, and questions can be added and removed |
 | Tasks and assignments | — | not started |
 | Cases and workflow | — | not started |
 | Notifications and messaging | — | not started |
@@ -376,6 +377,35 @@ by a person.
 That is separate from `agent`, and both are wanted. `source` says what kind of thing made the change;
 `agent` says which application, by name. A change with `source` mcp and no `agent` would be a
 console-minted token acting with no registered client.
+
+## Changing a question's type is investigated here and done elsewhere
+
+`survey_check_type_change` reads and never writes. The change itself belongs to a person in the
+console, and this exists so the person deciding has the numbers: how many stored answers would not
+survive, and which ones. Working that out is what an agent is good at; the act that cannot be undone
+stays with whoever is accountable for it.
+
+Two facts get confused and the report keeps them apart.
+
+**Smap does not convert the column.** There is no `ALTER COLUMN ... TYPE` anywhere in Smap, only
+`add column`. A type change on a published question updates the definition and leaves the results
+column exactly as it was, holding exactly what it held. The type change on a published question is
+deliberately permitted - the constraint is commented out in `SurveyManager` - so this succeeds
+quietly.
+
+**The damage is in the two directions that follow.** Answers already stored may not survive if
+anyone ever does convert that column, which is the count and the examples. And answers the *new*
+type produces may not fit the column that is still there - which is the one that bites first, and
+the one nobody expects, because it fails at submission time on somebody's device long after the
+change appeared to work. A text column takes anything; any other is a column that will start
+refusing what it is given.
+
+The conversion test is `pg_input_is_valid`, which answers exactly this question without raising. It
+arrived in PostgreSQL 16, so on an older server the tool says the count cannot be given rather than
+offering a guess dressed as a number.
+
+Every answer ends the same way: MCP will not make the change, and the alternative that loses nothing
+is to add a new question of the wanted type and leave the old one holding its answers.
 
 ## Adding a question
 
