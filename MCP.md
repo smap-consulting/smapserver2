@@ -86,6 +86,10 @@ may do.
 | `survey_media_list` | read | analyst, admin, manage | done |
 | `reference_filter_list` | read | analyst, admin, manage | done |
 | `survey_check_type_change` | read | analyst, admin | done |
+| `survey_create` | write | analyst, admin | done |
+| `survey_delete` | write | analyst, admin | done |
+| `survey_undelete` | write | analyst, admin | done |
+| `reference_filter_set` | write | analyst, admin | done |
 | `survey_add_question` | write | analyst, admin | done |
 | `survey_delete_question` | write | analyst, admin | done |
 | `topic_list` | read | analyst, admin, view data, manage | done |
@@ -131,8 +135,8 @@ not done.
 | Analysis | `data_aggregate` | read only |
 | Projects | `project_list` | read only |
 | Topics / bundles | `topic_list` | read only |
-| Reference data | `reference_filter_list` | read only |
-| Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history`, `survey_media_list`, `survey_check_type_change`, `survey_add_question`, `survey_delete_question` | read, and questions can be added and removed |
+| Reference data | `reference_filter_list`, `reference_filter_set` | read and write |
+| Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history`, `survey_media_list`, `survey_check_type_change`, `survey_create`, `survey_delete`, `survey_undelete`, `survey_add_question`, `survey_delete_question` | read and write |
 | Tasks and assignments | — | not started |
 | Cases and workflow | — | not started |
 | Notifications and messaging | — | not started |
@@ -380,6 +384,27 @@ by a person.
 That is separate from `agent`, and both are wanted. `source` says what kind of thing made the change;
 `agent` says which application, by name. A change with `source` mcp and no `agent` would be a
 console-minted token acting with no registered client.
+
+## Making a survey, and unmaking one
+
+`survey_create` makes a survey empty or as a copy of one that exists; in Smap those are one call and
+the difference is only whether a survey to copy is named, so they are one tool rather than two
+wrapping the same manager with the same arguments. A copy takes the design and none of the answers.
+
+**The XLSForm path is deliberately not exposed.** An agent cannot produce a spreadsheet it has never
+seen, so a tool taking one would be a tool nothing can call. The way a model builds a form here is
+`survey_create` and then `survey_add_question`, which is what the online editor does. Importing an
+XLSForm remains something a person does in the console, where they have the file.
+
+`survey_delete` is always the soft delete. The survey and everything submitted to it are kept, the
+subscriber erases them after the server's retention period, and until then `survey_undelete` brings
+both back. Deleting the data along with the survey is not offered, and neither is the hard erase.
+Both tools tell the devices, as the console does, so a form leaves and returns to the phones that
+have it rather than lingering until somebody notices.
+
+`survey_undelete` is the one place in this package that asks for deleted surveys. Everywhere else a
+deleted survey is not in the caller's list and so does not exist; here it has to be reachable
+precisely because it is deleted, and the access rule is otherwise unchanged.
 
 ## Two kinds of file, and two kinds of nothing
 

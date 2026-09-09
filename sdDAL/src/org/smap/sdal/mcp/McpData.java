@@ -42,6 +42,25 @@ public class McpData {
 		return null;
 	}
 
+	/*
+	 * The same rule, for the one tool that has to reach a survey precisely because it is deleted.
+	 * Undeleting is otherwise unreachable: a deleted survey is not in the caller's ordinary list, so
+	 * asking for it by id would answer that it does not exist.
+	 */
+	public static Survey deletedSurveyById(McpToolContext ctx, int surveyId) throws Exception {
+
+		SurveyManager sm = new SurveyManager(ctx.localisation, ctx.timezone);
+		ArrayList<Survey> surveys = sm.getSurveys(ctx.sd, ctx.user,
+				true,			// getDeleted
+				false, 0, false, false, false, false, false, null);
+		for(Survey s : surveys) {
+			if(s.getId() == surveyId) {
+				return s;
+			}
+		}
+		return null;
+	}
+
 	public static Survey surveyByIdent(McpToolContext ctx, String ident) throws Exception {
 		for(Survey s : userSurveys(ctx)) {
 			if(ident.equals(s.getIdent())) {
