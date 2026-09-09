@@ -82,35 +82,13 @@ public class SurveyHistoryTool extends AbstractMcpTool {
 			return new MCPToolResult("No such survey, or you do not have access to it.", true);
 		}
 		/*
-		 * full false, because the change log is fetched outside the block that reads the questions,
-		 * options and labels.  Asking for the design as well to get the history would read the whole
-		 * survey to answer a question about its history.
+		 * The change log on its own. This tool used to call getById asking for the history and not
+		 * the design, which returned an empty list every time: the history is read inside
+		 * populateSurvey, and that is reached only when the full survey is asked for.
 		 */
 		SurveyManager sm = new SurveyManager(ctx.localisation, ctx.timezone);
-		Survey s = sm.getById(
-				ctx.sd,
-				ctx.cResults,
-				ctx.user,
-				false,			// temporaryUser
-				surveyId,
-				false,			// full
-				null,			// basePath
-				null,			// instanceId
-				false,			// getResults
-				false,			// generateDummyValues
-				false,			// getPropertyTypeQuestions
-				false,			// getSoftDeleted
-				false,			// getHrk
-				"real",
-				true,			// getChangeHistory - the whole point of this tool
-				false,			// getRoles
-				false,			// superUser - the caller's own rights, not an administrator's
-				"geojson",
-				false,			// referenceSurveys
-				false,			// onlyGetLaunched
-				false);			// mergeDefaultSetValue
+		List<ChangeLog> changes = sm.getChangeLog(ctx.sd, surveyId);
 
-		List<ChangeLog> changes = s.surveyData.changes;
 		List<Map<String, Object>> rows = new ArrayList<>();
 		StringBuilder text = new StringBuilder();
 

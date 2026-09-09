@@ -197,6 +197,76 @@ public class SurveyManager {
 	}
 
 	/*
+	 * The change log for one survey, newest first.
+	 *
+	 * Its own method because it is wanted on its own.  It used to live inside populateSurvey, which
+	 * is reached only when getById is asked for the full survey, so getChangeHistory quietly did
+	 * nothing unless full was also set - a caller that wanted the history and not the design got an
+	 * empty list rather than an error, which is the kind of nothing that reads as an answer.
+	 *
+	 * Written as explicit joins rather than the comma form it grew from, because the agent lookup
+	 * adds a third table and every column here is qualified: an unqualified name that becomes
+	 * ambiguous when a join is widened fails at run time, not compile time.
+	 *
+	 * The join to oauth_client is left, and on the client id rather than a key, because agent is
+	 * null for a console change and an application that has since been removed should still leave
+	 * its change readable.
+	 */
+	public ArrayList<ChangeLog> getChangeLog(Connection sd, int sId) throws SQLException {
+
+		String sql = "SELECT c.changes, "
+				+ "c.c_id, "
+				+ "c.version, "
+				+ "u.name, "
+				+ "c.updated_time at time zone '" + tz + "',"
+				+ "c.apply_results, "
+				+ "c.success, "
+				+ "c.msg, "
+				+ "c.agent, "
+				+ "oc.client_name "
+				+ "from survey_change c "
+				+ "inner join users u on c.user_id = u.id "
+				+ "left join oauth_client oc on oc.client_id = c.agent "
+				+ "where c.s_id = ? "
+				+ "and c.visible = true "
+				+ "order by c.c_id desc ";
+
+		ArrayList<ChangeLog> changes = new ArrayList<ChangeLog> ();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setInt(1, sId);
+			log.fine("Get change log: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+
+			while (rs.next()) {
+				ChangeLog cl = new ChangeLog();
+				cl.change = gson.fromJson(rs.getString(1), ChangeElement.class);
+				cl.cId = rs.getInt(2);
+				cl.version = rs.getInt(3);
+				cl.userName = rs.getString(4);
+				cl.updatedTime = rs.getTimestamp(5);
+				cl.apply_results = rs.getBoolean(6);
+				// A change that never needed applying to the results database counts as applied
+				cl.success = rs.getBoolean(7) || !cl.apply_results;
+				cl.msg = rs.getString(8);
+
+				/*
+				 * The readable name when the application is still registered, otherwise the raw
+				 * identifier, so a change never loses who made it just because access was withdrawn.
+				 */
+				cl.agentId = rs.getString(9);
+				if(cl.agentId != null) {
+					String clientName = rs.getString(10);
+					cl.agent = clientName != null ? clientName : cl.agentId;
+				}
+				changes.add(cl);
+			}
+		}
+		return changes;
+	}
+
+	/*
 	 * Write an entry to the survey change log, against the survey's current version.
 	 * Use this rather than repeating the insert - many services need to record a change.
 	 */
@@ -973,35 +1043,6 @@ public class SurveyManager {
 		ResultSet rsGetOptions = null;
 		PreparedStatement pstmtGetOptions = sd.prepareStatement(sqlGetOptions);
 
-		// Get the changes that have been made to this survey
-		ResultSet rsGetChanges = null;
-		/*
-		 * Written as explicit joins rather than the comma form it grew from, because the agent
-		 * lookup adds a third table and every column here is qualified: an unqualified name that
-		 * becomes ambiguous when a join is widened fails at run time, not compile time.
-		 *
-		 * The join to oauth_client is left, and on the client id rather than a key, because agent
-		 * is null for a console change and an application that has since been removed should still
-		 * leave its change readable.
-		 */
-		String sqlGetChanges = "SELECT c.changes, "
-				+ "c.c_id, "
-				+ "c.version, "
-				+ "u.name, "
-				+ "c.updated_time at time zone '" + tz + "',"
-				+ "c.apply_results, "
-				+ "c.success, "
-				+ "c.msg, "
-				+ "c.agent, "
-				+ "oc.client_name "
-				+ "from survey_change c "
-				+ "inner join users u on c.user_id = u.id "
-				+ "left join oauth_client oc on oc.client_id = c.agent "
-				+ "where c.s_id = ? "
-				+ "and c.visible = true "
-				+ "order by c.c_id desc ";
-		PreparedStatement pstmtGetChanges = sd.prepareStatement(sqlGetChanges);
-		
 		// Get the available languages
 		s.surveyData.languages = GeneralUtilityMethods.getLanguages(sd, s.surveyData.id);
 
@@ -1198,36 +1239,7 @@ public class SurveyManager {
 
 		// Add the change log
 		if(getChangeHistory) {
-			pstmtGetChanges.setInt(1, s.getId());
-			log.fine("Get change log: " + pstmtGetChanges.toString());
-			rsGetChanges = pstmtGetChanges.executeQuery();
-
-			while (rsGetChanges.next()) {
-
-				ChangeLog cl = new ChangeLog();
-
-				cl.change = gson.fromJson(rsGetChanges.getString(1), ChangeElement.class);
-
-				cl.cId = rsGetChanges.getInt(2);
-				cl.version = rsGetChanges.getInt(3);
-				cl.userName = rsGetChanges.getString(4);
-				cl.updatedTime = rsGetChanges.getTimestamp(5);
-				cl.apply_results = rsGetChanges.getBoolean(6);
-				cl.success = rsGetChanges.getBoolean(7) || !cl.apply_results;	// Set the update of the results database to success automatically if a change does not need to be applied
-				cl.msg = rsGetChanges.getString(8);
-
-				/*
-				 * The readable name when the application is still registered, otherwise the raw
-				 * identifier, so a change never loses who made it just because access was withdrawn.
-				 */
-				cl.agentId = rsGetChanges.getString(9);
-				if(cl.agentId != null) {
-					String clientName = rsGetChanges.getString(10);
-					cl.agent = clientName != null ? clientName : cl.agentId;
-				}
-
-				s.surveyData.changes.add(cl);
-			}
+			s.surveyData.changes = getChangeLog(sd, s.getId());
 		}
 		
 		// Get the roles
@@ -1255,7 +1267,6 @@ public class SurveyManager {
 		// Close statements
 		try { if (pstmtGetForms != null) {pstmtGetForms.close();}} catch (SQLException e) {}
 		try { if (pstmtGetOptions != null) {pstmtGetOptions.close();}} catch (SQLException e) {}
-		try { if (pstmtGetChanges != null) {pstmtGetChanges.close();}} catch (SQLException e) {}
 		try { if (pstmtGetLists != null) {pstmtGetLists.close();}} catch (SQLException e) {}
 		try { if (pstmtGetStyles != null) {pstmtGetStyles.close();}} catch (SQLException e) {}
 	}
