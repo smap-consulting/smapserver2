@@ -41,7 +41,8 @@ public class SurveyHistoryTool extends AbstractMcpTool {
 		return "The history of changes to one survey's design: what changed, which version it "
 				+ "applied to, who made it and which application made it if one did. Use this to "
 				+ "review what has been done to a form, including changes made by an AI client. "
-				+ "For the history of a submitted record rather than the form, use data_audit.";
+				+ "Returns the whole history, newest first. For the history of a submitted record "
+				+ "rather than the form, use data_audit.";
 	}
 
 	@Override
@@ -52,9 +53,7 @@ public class SurveyHistoryTool extends AbstractMcpTool {
 	@Override
 	public Map<String, Object> getInputSchema() {
 		Map<String, Object> schema = schema(
-				"survey_id", property("integer", "The survey to report on, from survey_list"),
-				"limit", property("integer",
-						"Optional. Most changes to return, newest first. Default 50."));
+				"survey_id", property("integer", "The survey to report on, from survey_list"));
 		schema.put("required", new String[] { "survey_id" });
 		return schema;
 	}
@@ -82,12 +81,6 @@ public class SurveyHistoryTool extends AbstractMcpTool {
 		if(survey == null) {
 			return new MCPToolResult("No such survey, or you do not have access to it.", true);
 		}
-		int limit = intArg(arguments, "limit", 50);
-		if(limit <= 0) {
-			limit = 50;
-		}
-		limit = ctx.cap(limit);
-
 		/*
 		 * full false, because the change log is fetched outside the block that reads the questions,
 		 * options and labels.  Asking for the design as well to get the history would read the whole
@@ -125,13 +118,19 @@ public class SurveyHistoryTool extends AbstractMcpTool {
 			text.append("No changes have been recorded for \"")
 					.append(survey.getDisplayName()).append("\".");
 		} else {
-			boolean truncated = changes.size() > limit;
-			int shown = truncated ? limit : changes.size();
-
-			text.append(shown).append(" change(s) to \"").append(survey.getDisplayName())
+			/*
+			 * Every change, with no limit and no paging.
+			 *
+			 * The row cap exists for survey data, where the number of records is unbounded and a
+			 * caller asking for all of them rarely means it. A survey's history is bounded by what
+			 * has been done to one form, and a partial history is worse than none: the point of
+			 * reading it is to see everything that happened, and a reader shown the recent half has
+			 * no way to tell that is what they are looking at.
+			 */
+			text.append(changes.size()).append(" change(s) to \"").append(survey.getDisplayName())
 					.append("\", newest first:");
 
-			for(int i = 0; i < shown; i++) {
+			for(int i = 0; i < changes.size(); i++) {
 				ChangeLog cl = changes.get(i);
 
 				Map<String, Object> row = new LinkedHashMap<>();
@@ -168,10 +167,6 @@ public class SurveyHistoryTool extends AbstractMcpTool {
 					}
 					text.append(")");
 				}
-			}
-			if(truncated) {
-				text.append("\n\n").append(changes.size() - shown)
-						.append(" older change(s) not shown. Ask for a larger limit to see them.");
 			}
 		}
 

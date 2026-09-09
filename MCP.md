@@ -465,6 +465,13 @@ where an unbounded answer is not a large answer but a failed one. Zero means the
 Reaching the limit is always visible. `data_query` returns `next_cursor` when the rest can be paged
 to and `truncated` when it cannot.
 
+It bounds **data**, and deliberately not a survey's design. `survey_questions`, `survey_options` and
+`survey_history` return everything, because the two are not the same kind of thing. The number of
+records in a survey is unbounded and a caller asking for all of them rarely means it; a form and its
+history are bounded by the form itself. A half read form is worse than none - the reader has no way
+to tell that a question they cannot see is missing rather than absent, and a partial history hides
+exactly the change someone went looking for.
+
 ## The API suspension switch does not apply
 
 A user whose API access is suspended can still use MCP. The suspension governs the v1 and v2 REST
