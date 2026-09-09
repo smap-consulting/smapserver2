@@ -83,6 +83,8 @@ may do.
 | `survey_questions` | read | analyst, admin, manage | done |
 | `survey_options` | read | analyst, admin, manage | done |
 | `survey_history` | read | analyst, admin, manage | done |
+| `survey_media_list` | read | analyst, admin, manage | done |
+| `reference_filter_list` | read | analyst, admin, manage | done |
 | `survey_check_type_change` | read | analyst, admin | done |
 | `survey_add_question` | write | analyst, admin | done |
 | `survey_delete_question` | write | analyst, admin | done |
@@ -129,7 +131,8 @@ not done.
 | Analysis | `data_aggregate` | read only |
 | Projects | `project_list` | read only |
 | Topics / bundles | `topic_list` | read only |
-| Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history`, `survey_check_type_change`, `survey_add_question`, `survey_delete_question` | read, and questions can be added and removed |
+| Reference data | `reference_filter_list` | read only |
+| Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history`, `survey_media_list`, `survey_check_type_change`, `survey_add_question`, `survey_delete_question` | read, and questions can be added and removed |
 | Tasks and assignments | — | not started |
 | Cases and workflow | — | not started |
 | Notifications and messaging | — | not started |
@@ -377,6 +380,24 @@ by a person.
 That is separate from `agent`, and both are wanted. `source` says what kind of thing made the change;
 `agent` says which application, by name. A change with `source` mcp and no `agent` would be a
 console-minted token acting with no registered client.
+
+## Two kinds of file, and two kinds of nothing
+
+`survey_media_list` reports the files a survey was published with - images, audio and video used in
+questions, and the csv a question reads its choices from. `data_attachments` reports what people
+photographed and recorded while answering. Both are files on a survey and they are not the same
+thing: one is part of the form and identical for everyone filling it in, the other belongs to a
+record and is different every time.
+
+`reference_filter_list` lists **every** connection a survey has to another survey's data, not only
+the filtered ones. A source with no filter hands over everything it holds, and that is what somebody
+asking this question most needs to see - listing only the filters would show an empty list for a
+survey pulling an entire register of people and look reassuring. For the same reason a cap of zero is
+reported as "no cap" rather than as the number nought, which reads as the opposite.
+
+Filters belong to the survey group, as roles do, so the group ident is looked up rather than read off
+the listed survey: `getSurveys` is a list query and leaves what a list does not need unset, and a
+blank ident here would report a survey as having no connections at all.
 
 ## Changing a question's type is investigated here and done elsewhere
 
