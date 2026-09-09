@@ -6,6 +6,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.DataAggregateManager;
 import org.smap.sdal.managers.RoleManager;
+import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Survey;
@@ -50,17 +51,6 @@ public class McpData {
 		return null;
 	}
 
-	/*
-	 * A survey's full design, for the tools that read its structure rather than its data.
-	 *
-	 * Goes through surveyById first, so the same rule applies as everywhere else here: a survey the
-	 * caller could not have listed does not exist.  The flags match the ones behind
-	 * smap://survey/{ident}/definition, because two ways of reading the same design that disagree
-	 * about soft deleted questions or external options would be worse than one.
-	 *
-	 * superUser stays false. getById will happily read a survey as an administrator and the design
-	 * tools must not, for the same reason the data tools must not.
-	 */
 	/*
 	 * A survey's settings and shape, without its design.
 	 *
@@ -111,30 +101,41 @@ public class McpData {
 		return s;
 	}
 
-	public static Survey definition(McpToolContext ctx, int surveyId) throws Exception {
+	/*
+	 * A survey's forms with their questions, and no choice lists or styles.
+	 *
+	 * The same reader populateSurvey uses, called per form, with the flags the full definition used
+	 * so the questions returned are the same ones: soft deleted left out, property types left out,
+	 * the human readable key included where the survey has one.
+	 *
+	 * outline first, because getQuestionsInForm reads a label once per language and takes the count
+	 * from the survey it is handed, so a survey without its languages yields questions without
+	 * their labels.
+	 */
+	public static Survey questions(McpToolContext ctx, int surveyId) throws Exception {
 
-		Survey listed = surveyById(ctx, surveyId);
-		if(listed == null) {
+		Survey s = outline(ctx, surveyId);
+		if(s == null) {
 			return null;
 		}
-		SurveyManager sm = new SurveyManager(ctx.localisation, ctx.timezone);
-		return sm.getById(ctx.sd, ctx.cResults, ctx.user, false, surveyId,
-				true,			// full definition
-				null,			// basePath
-				null,			// instanceId
-				false,			// getResults
-				false,			// generateDummyValues
-				false,			// getPropertyTypeQuestions
-				false,			// getSoftDeleted
-				true,			// getHrk
-				"real",			// external options if they exist
-				false,			// getChangeHistory
-				false,			// getRoles
-				false,			// superUser - the caller's own rights, not an administrator's
-				"geojson",
-				false,			// referenceSurveys
-				false,			// onlyGetLaunched
-				false);			// mergeDefaultSetValue
+		QuestionManager qm = new QuestionManager(ctx.localisation);
+		int oId = GeneralUtilityMethods.getOrganisationId(ctx.sd, ctx.user);
+
+		for(Form f : s.surveyData.forms) {
+			f.questions = qm.getQuestionsInForm(ctx.sd, ctx.cResults, surveyId, f.id,
+					false,			// getSoftDeleted
+					false,			// getPropertyTypeQuestions
+					true,			// getHrk
+					f.parentform,
+					s.surveyData.uk == null ? null : s.surveyData.uk.key,
+					s.surveyData.languages.size(),
+					f.tableName,
+					null,			// basePath
+					oId,
+					s,
+					false);			// mergeDefaultSetValue
+		}
+		return s;
 	}
 
 	public static ArrayList<Survey> userSurveys(McpToolContext ctx) throws Exception {
