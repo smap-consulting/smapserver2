@@ -355,6 +355,22 @@ This is why `data_audit` is keyed on the thread. The history of a record outlive
 carried it, so asking about the current instance still returns the original submission and every
 change since, with the values before and after.
 
+## Repeating groups can be read but not written
+
+`data_query` and `data_get_record` both reach a repeating group: the first through `form`, naming
+the group, the second by nesting its rows inside the record. Nothing writes one. `data_submit`
+builds a flat instance out of the main form's questions, and `data_update_record` passes 0 as the
+sub form key and null as the group form, which is to say the top level record and the main form.
+
+The asymmetry is worth stating because it does not announce itself. A caller who has just read an
+answer out of a repeat, and asks to change it, is told the survey has no question of that name -
+true of the main form, and misleading about the survey. Addressing a repeat needs a row key as well
+as a question name, since the whole point of a repeat is that the same question holds several
+answers, and that argument does not exist on these tools yet.
+
+Untested rather than decided: no survey reachable during the write tests had a repeat at all, so
+this is what the code says, not what a run showed.
+
 ## History is per thread, not per submission
 
 `data_audit` returns a record's history: the submission, every later change with old and new values,
