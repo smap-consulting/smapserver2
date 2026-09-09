@@ -388,10 +388,15 @@ stays with whoever is accountable for it.
 Two facts get confused and the report keeps them apart.
 
 **A question with no column can change type freely.** That is the exemption, and it is decided by
-the column rather than by the published flag: a question marked published whose column is still
-pending has nothing to lose either, and a flag that has fallen out of step must never be able to
-report a column full of answers as safe to convert. The flag is Smap's record of the fact; the column
-is the fact.
+the column rather than by the published flag.
+
+`published` means the column exists, and it exists for speed: it saves the editor a look at the
+results table on every change. The two should always agree. This tool is a read-only diagnostic
+making a single `information_schema` lookup, so the speed the flag protects is not in play and the
+column can be asked directly - which also makes it the one place that reads both and can say when
+they have come apart. A question marked published whose column is merely pending has nothing to lose
+either, and a flag that has fallen out of step must never be able to report a column full of answers
+as safe to convert.
 
 **Smap does not convert the column.** There is no `ALTER COLUMN ... TYPE` anywhere in Smap, only
 `add column`. A type change on a published question updates the definition and leaves the results

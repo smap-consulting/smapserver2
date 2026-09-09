@@ -28,7 +28,13 @@ import org.smap.sdal.model.Survey;
  *
  * A question with no column in the results table has never stored an answer, so its type can be
  * changed freely.  That is the exemption, and it is decided by the column rather than by the
- * published flag: the flag is Smap's record of the fact, the column is the fact.
+ * published flag.
+ *
+ * published exists for speed: it saves the editor a look at the results table on every change, and
+ * it means the column exists.  The two should always agree.  This tool is a read only diagnostic
+ * making one information_schema lookup, so the speed the flag protects is not in play here and the
+ * column can be asked directly - and since it reads both, it is the one place that can notice when
+ * they have come apart, which is worth saying rather than quietly working around.
  *
  * Where there is a column, two separate facts get confused and the report keeps them apart.
  *
@@ -168,6 +174,17 @@ public class SurveyCheckTypeChangeTool extends AbstractMcpTool {
 		}
 
 		String currentColType = GeneralUtilityMethods.columnType(ctx.cResults, tableName, columnName);
+
+		/*
+		 * The flag says a column exists and none does, or none should and one does.  Neither stops
+		 * this tool answering, because it goes on the column either way, but a flag out of step with
+		 * the table is worth reporting to whoever can look into it.
+		 */
+		if(currentColType != null && !q.published) {
+			data.put("publishedFlagDisagrees", "The question is not marked published but its column "
+					+ "exists in " + tableName + ". The answer below goes on the column.");
+		}
+
 		if(currentColType == null) {
 			data.put("verdict", "safe");
 			data.put("reason", "No column has been created for this question yet");
