@@ -1685,9 +1685,14 @@ public class TaskManager {
 				if(!roleMgr.canAccessRecord(sd, cResults, tp.survey_ident, tableName, tp.update_id, user, timezone)) {
 					throw new ApplicationException(localisation.getString("rec_na"));
 				}
-				if(tp.assignee_ident != null && tp.assignee_ident.trim().length() > 0
-						&& !roleMgr.canAccessRecord(sd, cResults, tp.survey_ident, tableName, tp.update_id, tp.assignee_ident, timezone)) {
-					throw new ApplicationException(localisation.getString("rec_na_assignee"));
+				/*
+				 * The assignee needs project membership, not access to the record. Assigning work
+				 * to somebody whose row filter hides the record is the ordinary case, not the
+				 * suspicious one - it is not theirs yet, which is why it is being given to them.
+				 */
+				if(!roleMgr.assignmentAllowed(sd, cResults, tp.survey_ident, tp.update_id,
+						tp.assignee_ident, user, timezone, serverName)) {
+					throw new ApplicationException(localisation.getString("rec_na_assignee_project"));
 				}
 			}
 		}
