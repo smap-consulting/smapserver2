@@ -81,6 +81,9 @@ import org.smap.sdal.mcp.tools.SurveyQuestionsTool;
 import org.smap.sdal.mcp.tools.SurveySetSettingsTool;
 import org.smap.sdal.mcp.tools.SurveyListTool;
 import org.smap.sdal.mcp.tools.SurveySubmissionCountTool;
+import org.smap.sdal.mcp.tools.TaskActionTool;
+import org.smap.sdal.mcp.tools.TaskCreateTool;
+import org.smap.sdal.mcp.tools.TaskGroupCreateTool;
 import org.smap.sdal.mcp.tools.TaskGroupListTool;
 import org.smap.sdal.mcp.tools.TaskListTool;
 import org.smap.sdal.mcp.tools.TopicListTool;
@@ -147,7 +150,10 @@ public class MCP extends Application {
 		registry.register(new DataBulkUpdateTool());
 		registry.register(new DataBulkUndoTool());
 		registry.register(new TaskGroupListTool());
+		registry.register(new TaskGroupCreateTool());
 		registry.register(new TaskListTool());
+		registry.register(new TaskCreateTool());
+		registry.register(new TaskActionTool());
 		registry.register(new TopicListTool());
 	}
 

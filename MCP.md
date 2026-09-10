@@ -94,7 +94,10 @@ may do.
 | `survey_add_question` | write | analyst, admin | done |
 | `survey_delete_question` | write | analyst, admin | done |
 | `task_group_list` | read | analyst, admin, manage, manage tasks | done |
+| `task_group_create` | write | admin, manage, manage tasks | done |
 | `task_list` | read | analyst, admin, manage, manage tasks | done |
+| `task_create` | write | admin, manage, manage tasks | done |
+| `task_action` | write | admin, manage, manage tasks | done |
 | `topic_list` | read | analyst, admin, view data, manage | done |
 
 ## Resources
@@ -141,7 +144,7 @@ not done.
 | Topics / bundles | `topic_list` | read only |
 | Reference data | `reference_filter_list`, `reference_filter_set` | read and write |
 | Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history`, `survey_media_list`, `survey_check_type_change`, `survey_create`, `survey_delete`, `survey_undelete`, `survey_add_question`, `survey_delete_question` | read and write |
-| Tasks and assignments | `task_group_list`, `task_list` | read only |
+| Tasks and assignments | `task_group_list`, `task_group_create`, `task_list`, `task_create`, `task_action` | read and write |
 | Cases and workflow | — | not started |
 | Notifications and messaging | — | not started |
 | Reporting and monitoring | — | not started |
@@ -388,6 +391,35 @@ by a person.
 That is separate from `agent`, and both are wanted. `source` says what kind of thing made the change;
 `agent` says which application, by name. A change with `source` mcp and no `agent` would be a
 console-minted token acting with no registered client.
+
+## Who may be given work
+
+**The person authorising the assignment must be able to see the record; the assignee needs only to be
+a member of the project.**
+
+It used to be both. An assignee had to pass the record's row filters as well, and that was the wrong
+test: a filter limiting an enumerator to their own submissions is exactly the case where assigning
+them the work is the point, because the record is not theirs yet - which is why somebody is giving it
+to them. The rule made those assignments impossible in the console and silently dropped them where
+tasks were generated automatically, while buying nothing, since the record reaches the assignee
+through the task either way.
+
+The rule now lives in `RoleManager.assignmentAllowed` and the assignment paths call it - creating a
+task, assigning a case from the operations monitor, assigning one from managed forms.
+
+Adding a **reference** to a record deliberately keeps the stricter test. A reference is read access
+with no work attached, so it must not hand over a record the filters were hiding; an assignment gives
+somebody a record in order that they work on it. Same-looking check, opposite justification.
+
+`applyBulkAction` never asked the question at all - the single task path asked and the bulk path did
+not - so `task_action` asks it before assigning. It also builds the task and assignment pairs from
+what the server returns rather than from what the caller sent, because that call acts on the pairs it
+is handed and an invented pair would act on somebody else's assignment.
+
+`task_action` covers assigning, accepting and cancelling, because underneath they are one call with a
+different word in it, and a list of one task is how a single task is dealt with. The manager's
+"status" action only ever sets accepted, so it is offered as `accept` rather than as a status setter
+it is not.
 
 ## A task belongs to a project, not to a survey
 
