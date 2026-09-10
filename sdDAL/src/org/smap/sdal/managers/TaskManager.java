@@ -1608,98 +1608,100 @@ public class TaskManager {
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			TaskManager tm = new TaskManager(localisation, tz);
-			SurveyManager sm = new SurveyManager(localisation, tz);
-			if(tp.tg_id <= 0) {
-				
-				Survey s = sm.getById(sd, cResults, request.getRemoteUser(), false, tp.form_id, 
-						false, null, null, false, false, 
-						false, false, false, null, false, false, 
-						superUser, 	// Super user
-						null, 		// Geom Format
-						false, 		// Referenced Surveys
-						false,		// Launched surveys
-						false		// Don't merge set value into default values
-					);
-				
-				if(s == null) {
-					throw new ApplicationException(localisation.getString("mf_snfpriv"));
-				}
-				// Create a task group based on the survey
-				tp.tg_id = tm.createTaskGroup(sd, s.surveyData.displayName, 
-						s.surveyData.p_id,
-						null,	// address columns
-						null,	// setting
-						0,	// source survey id
-						0,	// Target survey id
-						0,	// Download distance
-						tp.complete_all,
-						tp.assign_auto,
-						true		// Use an existing task group of the same name
-						);	
-			}
-			
-			tp.survey_ident = GeneralUtilityMethods.getSurveyIdent(sd, tp.form_id);
-			
-			if(tz == null) {
-				tz = "UTC";	// Set default for timezone
-			}
-			
+
 			cResults = ResultsDataSource.getConnection(connectionString);
 
-			/*
-			 * Record level security: when the task updates an existing record both the creator
-			 * (the user authorising the assignment) and the assignee must be permitted to access
-			 * that record by the survey row filter (RBAC) rules.  This is an interactive request
-			 * so a refusal is reported rather than silently dropped.
-			 * Email task recipients are not checked, they have no logon and hence no roles; for
-			 * those the creator of the assignment is the authority.
-			 */
-			if(tp.update_id != null && tp.update_id.trim().length() > 0) {
-				RoleManager roleMgr = new RoleManager(localisation);
-				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, tp.survey_ident);
-				if(tableName != null) {
-					if(!roleMgr.canAccessRecord(sd, cResults, tp.survey_ident, tableName, tp.update_id, request.getRemoteUser(), tz)) {
-						throw new ApplicationException(localisation.getString("rec_na"));
-					}
-					if(tp.assignee_ident != null && tp.assignee_ident.trim().length() > 0
-							&& !roleMgr.canAccessRecord(sd, cResults, tp.survey_ident, tableName, tp.update_id, tp.assignee_ident, tz)) {
-						throw new ApplicationException(localisation.getString("rec_na_assignee"));
-					}
-				}
-			}
-
-			TaskFeature tf = new TaskFeature();
-			tf.properties = (TaskProperties) tp;
-			
-			TaskServerDefn tsd = tm.convertTaskFeature(tf);
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
+			TaskManager tm = new TaskManager(localisation, tz);
 			String urlprefix = request.getScheme() + "://" + request.getServerName();
-			CreateTaskResp resp = tm.writeTask(sd, cResults, tp.tg_id, tsd, request.getServerName(), 
-					false, 
-					oId, 
-					true, 
-					request.getRemoteUser(),
-					false,
-					urlprefix,
-					preserveInitialData);
-			
+			CreateTaskResp resp = tm.createTask(sd, cResults, tp, request.getRemoteUser(),
+					request.getServerName(), urlprefix, preserveInitialData, superUser);
+
 			response = Response.ok(gson.toJson(resp)).build();
-		
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE,e.getMessage(), e);
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
-	
+
 			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection(connectionString, cResults);
-			
+
 		}
-		
+
 		return response;
 	}
 	
+	/*
+	 * Create a task, with no HTTP anywhere in the argument list.
+	 *
+	 * Extracted from the endpoint shaped createTask above, which parses a JSON string and answers
+	 * with an HTTP response.  A caller that is not a web request had to build the one and unpick the
+	 * other; this is the same work with the plumbing left out, and createTask now calls it.
+	 *
+	 * Behaviour is deliberately unchanged by the extraction, the record checks included.  Whether
+	 * the assignee should have to hold access to the record, as well as the person authorising the
+	 * assignment, is a real question - but it is a question about what the rule should be, and
+	 * answering it while moving code is how a refactor becomes a change nobody reviewed.
+	 */
+	public CreateTaskResp createTask(Connection sd, Connection cResults, TaskProperties tp,
+			String user, String serverName, String urlprefix, boolean preserveInitialData,
+			boolean superUser) throws Exception {
+
+		SurveyManager sm = new SurveyManager(localisation, tz);
+
+		if(tp.tg_id <= 0) {
+			Survey s = sm.getById(sd, cResults, user, false, tp.form_id,
+					false, null, null, false, false,
+					false, false, false, null, false, false,
+					superUser,
+					null, false, false, false);
+
+			if(s == null) {
+				throw new ApplicationException(localisation.getString("mf_snfpriv"));
+			}
+			// A task group named after the survey, reusing one of that name if it is already there
+			tp.tg_id = createTaskGroup(sd, s.surveyData.displayName,
+					s.surveyData.p_id,
+					null, null, 0, 0, 0,
+					tp.complete_all,
+					tp.assign_auto,
+					true);
+		}
+
+		tp.survey_ident = GeneralUtilityMethods.getSurveyIdent(sd, tp.form_id);
+		String timezone = tz == null ? "UTC" : tz;
+
+		/*
+		 * Record level security: when the task updates an existing record both the creator (the
+		 * user authorising the assignment) and the assignee must be permitted to access that record
+		 * by the survey row filter rules.  A refusal is reported rather than silently dropped.
+		 * Email task recipients are not checked; they have no logon and hence no roles, and for
+		 * those the creator of the assignment is the authority.
+		 */
+		if(tp.update_id != null && tp.update_id.trim().length() > 0) {
+			RoleManager roleMgr = new RoleManager(localisation);
+			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, tp.survey_ident);
+			if(tableName != null) {
+				if(!roleMgr.canAccessRecord(sd, cResults, tp.survey_ident, tableName, tp.update_id, user, timezone)) {
+					throw new ApplicationException(localisation.getString("rec_na"));
+				}
+				if(tp.assignee_ident != null && tp.assignee_ident.trim().length() > 0
+						&& !roleMgr.canAccessRecord(sd, cResults, tp.survey_ident, tableName, tp.update_id, tp.assignee_ident, timezone)) {
+					throw new ApplicationException(localisation.getString("rec_na_assignee"));
+				}
+			}
+		}
+
+		TaskFeature tf = new TaskFeature();
+		tf.properties = tp;
+
+		TaskServerDefn tsd = convertTaskFeature(tf);
+		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
+
+		return writeTask(sd, cResults, tp.tg_id, tsd, serverName,
+				false, oId, true, user, false, urlprefix, preserveInitialData);
+	}
+
 	/*
 	 * Write a task to the database
 	 */
