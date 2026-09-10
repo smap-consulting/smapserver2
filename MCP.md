@@ -94,6 +94,7 @@ may do.
 | `survey_add_question` | write | analyst, admin | done |
 | `survey_delete_question` | write | analyst, admin | done |
 | `case_settings` | read | analyst, admin, manage | done |
+| `case_settings_set` | write | admin, manage | done |
 | `case_assign` | write | admin, manage, manage tasks | done |
 | `workflow_list` | read | admin, manage, manage tasks | done |
 | `task_group_list` | read | analyst, admin, manage, manage tasks | done |
@@ -148,7 +149,7 @@ not done.
 | Reference data | `reference_filter_list`, `reference_filter_set` | read and write |
 | Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history`, `survey_media_list`, `survey_check_type_change`, `survey_create`, `survey_delete`, `survey_undelete`, `survey_add_question`, `survey_delete_question` | read and write |
 | Tasks and assignments | `task_group_list`, `task_group_create`, `task_list`, `task_create`, `task_action` | read and write |
-| Cases and workflow | `case_settings`, `case_assign`, `workflow_list` | read, and cases can be assigned |
+| Cases and workflow | `case_settings`, `case_settings_set`, `case_assign`, `workflow_list` | read and write |
 | Notifications and messaging | — | not started |
 | Reporting and monitoring | — | not started |
 | Users, roles and access | — | not started |
@@ -407,6 +408,17 @@ handle.
 What could not be known from outside is which question closing depends on, and what value closes it,
 because that is configuration rather than data. `case_settings` answers exactly that, and names the
 alerts watching. After it, the ordinary data tools do the rest.
+
+**Turning a survey into a case survey** is `case_settings_set`: name the question that holds a case's
+status and the answer that means it is finished. Nothing about the records changes - `_assigned` and
+`_case_closed` are already beside them. What changes is that the server now knows which answer to
+watch, and writes the closing date itself when an update sets it.
+
+Which is why that tool checks harder than most. A status question that does not exist, or a final
+status no answer can ever hold, leaves a survey that looks like it manages cases and has no case that
+ever closes, and nothing complains, because every part of it is individually plausible. A person
+doing this in the console picks from lists and cannot make either mistake; a model can, so the
+question is checked against the survey and the final status against that question's own choices.
 
 `case_assign` exists because assigning is not an ordinary update: it asks the two access questions,
 and `CaseManager.assignRecord` asks neither - the checking lives in the endpoints that call it, so a

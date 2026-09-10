@@ -59,6 +59,7 @@ import org.smap.sdal.mcp.tools.SurveyUndeleteTool;
 import org.smap.sdal.mcp.tools.SurveyMediaListTool;
 import org.smap.sdal.mcp.tools.ServerInfoTool;
 import org.smap.sdal.mcp.tools.CaseAssignTool;
+import org.smap.sdal.mcp.tools.CaseSettingsSetTool;
 import org.smap.sdal.mcp.tools.CaseSettingsTool;
 import org.smap.sdal.mcp.tools.WorkflowListTool;
 import org.smap.sdal.mcp.tools.DataAggregateTool;
@@ -158,6 +159,7 @@ public class MCP extends Application {
 		registry.register(new TaskCreateTool());
 		registry.register(new TaskActionTool());
 		registry.register(new CaseSettingsTool());
+		registry.register(new CaseSettingsSetTool());
 		registry.register(new CaseAssignTool());
 		registry.register(new WorkflowListTool());
 		registry.register(new TopicListTool());
