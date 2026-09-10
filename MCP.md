@@ -93,6 +93,9 @@ may do.
 | `reference_filter_set` | write | analyst, admin | done |
 | `survey_add_question` | write | analyst, admin | done |
 | `survey_delete_question` | write | analyst, admin | done |
+| `notification_list` | read | admin, manage, manage tasks | done |
+| `notification_enable` | write | admin, manage | done |
+| `mailout_list` | read | admin, manage | done |
 | `case_settings` | read | analyst, admin, manage | done |
 | `case_settings_set` | write | admin, manage | done |
 | `case_assign` | write | admin, manage, manage tasks | done |
@@ -150,7 +153,7 @@ not done.
 | Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history`, `survey_media_list`, `survey_check_type_change`, `survey_create`, `survey_delete`, `survey_undelete`, `survey_add_question`, `survey_delete_question` | read and write |
 | Tasks and assignments | `task_group_list`, `task_group_create`, `task_list`, `task_create`, `task_action` | read and write |
 | Cases and workflow | `case_settings`, `case_settings_set`, `case_assign`, `workflow_list` | read and write |
-| Notifications and messaging | — | not started |
+| Notifications and messaging | `notification_list`, `notification_enable`, `mailout_list` | read, and notifications can be switched on and off |
 | Reporting and monitoring | — | not started |
 | Users, roles and access | — | not started |
 | Server administration | — | not started |
@@ -395,6 +398,29 @@ by a person.
 That is separate from `agent`, and both are wanted. `source` says what kind of thing made the change;
 `agent` says which application, by name. A change with `source` mcp and no `agent` would be a
 console-minted token acting with no registered client.
+
+## Preparing, and never sending
+
+Email, SMS and webhooks cannot be recalled, so nothing here sends anything and nothing here ever
+will. There is no `mailout_send`, no way to fire a notification by hand, and no SMS out. A mailout is
+prepared and a person sends it from the console.
+
+What is offered instead is the ability to see and to stop. `notification_list` shows the rules -
+what each reacts to, what it sends, and whether it is switched on - and lists the disabled ones too,
+because "why did nobody get an email" is answered by a rule that exists and is off far more often
+than by one that was never made. `mailout_list` counts a campaign's people by state, since the
+number waiting to be sent to is the number that would leave if somebody pressed send.
+
+`notification_enable` is the one write, and it sits squarely inside the rule. Switching a
+notification off stops things going out and is what somebody reaches for in a hurry; switching one on
+sends nothing either, though it means the next matching submission will, and the answer says so. Off
+does not recall what is already queued, and says that too.
+
+Two traps in that tool, both the kind that look like working code. `getNotification` will fetch any
+notification on the server given its number, so the one being switched is found in the caller's own
+projects rather than by id alone. And `updateNotification` writes the whole row, so the notification
+is read first and written back with one flag changed - a half filled object would quietly empty
+everything the caller did not know to supply.
 
 ## A case is a record, so most of it needs no tools
 
