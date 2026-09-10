@@ -1,14 +1,18 @@
 package org.smap.sdal.mcp;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.DataAggregateManager;
+import org.smap.sdal.managers.ProjectManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumn;
 
@@ -155,6 +159,24 @@ public class McpData {
 					false);			// mergeDefaultSetValue
 		}
 		return s;
+	}
+
+	/*
+	 * The projects this caller is a member of, and the one access question the task tools ask.
+	 *
+	 * A task belongs to a project, not to a survey, so the survey rule does not answer it: someone
+	 * can be in a project and see its tasks without being able to read every record those tasks
+	 * point at.  Whether they may see a record is asked separately, where a task is being made from
+	 * one - see the note on who authorises a task.
+	 */
+	public static Map<Integer, String> userProjects(McpToolContext ctx) throws Exception {
+
+		Map<Integer, String> projects = new LinkedHashMap<>();
+		for(Project p : new ProjectManager(ctx.localisation)
+				.getProjects(ctx.sd, ctx.user, false, false, null, false, false)) {
+			projects.put(p.id, p.name);
+		}
+		return projects;
 	}
 
 	public static ArrayList<Survey> userSurveys(McpToolContext ctx) throws Exception {

@@ -93,6 +93,8 @@ may do.
 | `reference_filter_set` | write | analyst, admin | done |
 | `survey_add_question` | write | analyst, admin | done |
 | `survey_delete_question` | write | analyst, admin | done |
+| `task_group_list` | read | analyst, admin, manage, manage tasks | done |
+| `task_list` | read | analyst, admin, manage, manage tasks | done |
 | `topic_list` | read | analyst, admin, view data, manage | done |
 
 ## Resources
@@ -139,7 +141,7 @@ not done.
 | Topics / bundles | `topic_list` | read only |
 | Reference data | `reference_filter_list`, `reference_filter_set` | read and write |
 | Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history`, `survey_media_list`, `survey_check_type_change`, `survey_create`, `survey_delete`, `survey_undelete`, `survey_add_question`, `survey_delete_question` | read and write |
-| Tasks and assignments | — | not started |
+| Tasks and assignments | `task_group_list`, `task_list` | read only |
 | Cases and workflow | — | not started |
 | Notifications and messaging | — | not started |
 | Reporting and monitoring | — | not started |
@@ -386,6 +388,24 @@ by a person.
 That is separate from `agent`, and both are wanted. `source` says what kind of thing made the change;
 `agent` says which application, by name. A change with `source` mcp and no `agent` would be a
 console-minted token acting with no registered client.
+
+## A task belongs to a project, not to a survey
+
+Which is a different access question from everything above it. The survey rule - a survey the caller
+could not have listed does not exist - does not answer this one: somebody can be in a project and see
+its tasks without being able to read every record those tasks point at. So the task tools ask about
+project membership, and where a task is made from a record the record question is asked separately.
+
+`getTasks` takes a task group as a number and says in its own comment that it assumes the check has
+already happened, so the check happens in the tool. Asking without a group asks by **organisation**,
+which is wider than a person, so the answer is filtered back to the projects the caller is in.
+
+A task and an assignment are not the same thing: the task is the work and the assignment is that work
+given to a particular person, so one task can carry several. They are reported together rather than
+as two tools, because a task with no assignment and an assignment with no task are both meaningless.
+The assignment id comes back beside the task id, and it is the assignment id the write tools take.
+`mine` narrows the list to the caller's own work, which is why there is no separate tool for that
+either.
 
 ## A survey's project is one of its settings
 
