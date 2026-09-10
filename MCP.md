@@ -94,6 +94,8 @@ may do.
 | `survey_add_question` | write | analyst, admin | done |
 | `survey_delete_question` | write | analyst, admin | done |
 | `notification_list` | read | admin, manage, manage tasks | done |
+| `notification_create` | write | admin, manage | done |
+| `notification_delete` | write | admin, manage | done |
 | `notification_enable` | write | admin, manage | done |
 | `mailout_list` | read | admin, manage | done |
 | `case_settings` | read | analyst, admin, manage | done |
@@ -153,7 +155,7 @@ not done.
 | Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history`, `survey_media_list`, `survey_check_type_change`, `survey_create`, `survey_delete`, `survey_undelete`, `survey_add_question`, `survey_delete_question` | read and write |
 | Tasks and assignments | `task_group_list`, `task_group_create`, `task_list`, `task_create`, `task_action` | read and write |
 | Cases and workflow | `case_settings`, `case_settings_set`, `case_assign`, `workflow_list` | read and write |
-| Notifications and messaging | `notification_list`, `notification_enable`, `mailout_list` | read, and notifications can be switched on and off |
+| Notifications and messaging | `notification_list`, `notification_create`, `notification_enable`, `notification_delete`, `mailout_list` | read and write, but nothing sends |
 | Reporting and monitoring | — | not started |
 | Users, roles and access | — | not started |
 | Server administration | — | not started |
@@ -416,7 +418,28 @@ notification off stops things going out and is what somebody reaches for in a hu
 sends nothing either, though it means the next matching submission will, and the answer says so. Off
 does not recall what is already queued, and says that too.
 
-Two traps in that tool, both the kind that look like working code. `getNotification` will fetch any
+**A notification is created switched off, and that is not a default the caller can override.** A rule
+that started sending the moment it was made would be a send in everything but name: nobody would have
+read the subject, checked the addresses or seen the filter before mail began arriving. Made off, it
+is a draft - somebody reads it and turns it on, which is a separate call that a separate person can
+refuse. Two steps rather than one, on purpose.
+
+`notification_create` makes **only** an email, **only** on submission, **only** to addresses given in
+the call. A notification can also fire on a timer, send SMS, call a webhook, escalate a case, write to
+SharePoint, or take its recipients from an answer in the form, and each of those goes wrong
+differently. One set of arguments covering all of them is how a plausible-looking call sends the
+wrong thing to the wrong people. The rest are built in the console, where whoever is choosing can see
+what each option means.
+
+Addresses are checked one at a time and the bad ones named. An address wrong in a list of six is not
+found by being told the list is wrong.
+
+`notification_delete` is a real delete - the row goes, unlike a survey or a record, which are kept
+and marked. So it returns what the notification was in enough detail to rebuild it, because that is
+the only form its undo can take. It also says what deleting does not do: mail already sent stays
+sent, anything queued still goes, and switching off is what somebody usually wants instead.
+
+Two traps in the enable tool, both the kind that look like working code. `getNotification` will fetch any
 notification on the server given its number, so the one being switched is found in the caller's own
 projects rather than by id alone. And `updateNotification` writes the whole row, so the notification
 is read first and written back with one flag changed - a half filled object would quietly empty

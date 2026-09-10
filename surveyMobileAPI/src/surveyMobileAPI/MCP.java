@@ -51,6 +51,8 @@ import org.smap.sdal.mcp.McpProtocol;
 import org.smap.sdal.mcp.McpToolContext;
 import org.smap.sdal.mcp.McpToolRegistry;
 import org.smap.sdal.mcp.tools.MailoutListTool;
+import org.smap.sdal.mcp.tools.NotificationCreateTool;
+import org.smap.sdal.mcp.tools.NotificationDeleteTool;
 import org.smap.sdal.mcp.tools.NotificationEnableTool;
 import org.smap.sdal.mcp.tools.NotificationListTool;
 import org.smap.sdal.mcp.tools.ProjectListTool;
@@ -166,7 +168,9 @@ public class MCP extends Application {
 		registry.register(new CaseAssignTool());
 		registry.register(new WorkflowListTool());
 		registry.register(new NotificationListTool());
+		registry.register(new NotificationCreateTool());
 		registry.register(new NotificationEnableTool());
+		registry.register(new NotificationDeleteTool());
 		registry.register(new MailoutListTool());
 		registry.register(new TopicListTool());
 	}
