@@ -210,18 +210,26 @@ public class TwoFactorSession {
 	 * The Set-Cookie header for the step up cookie.
 	 *
 	 * Built by hand rather than with NewCookie because SameSite is not in the JAX-RS cookie
-	 * API.  No Max-Age, so it lasts for the browser session and no longer.  Secure is always
-	 * set - the console is only served over https.
+	 * API.  No Max-Age, so it lasts for the browser session and no longer.
+	 *
+	 * Secure is set only when the request arrived over https.  A server installed without a
+	 * certificate is still allowed, and a browser will not send a secure cookie back over
+	 * http, so setting it unconditionally would leave such a user stuck at the challenge.
 	 */
-	public static String cookieHeader(String value) {
-		return COOKIE_NAME + "=" + value + "; Path=/; HttpOnly; Secure; SameSite=Strict";
+	public static String cookieHeader(HttpServletRequest request, String value) {
+		return COOKIE_NAME + "=" + value + "; Path=/; HttpOnly" + secureAttribute(request) + "; SameSite=Strict";
 	}
 
 	/*
-	 * Header that removes the cookie
+	 * Header that removes the cookie.  The attributes other than Max-Age must match those
+	 * used when it was set.
 	 */
-	public static String clearCookieHeader() {
-		return COOKIE_NAME + "=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0";
+	public static String clearCookieHeader(HttpServletRequest request) {
+		return COOKIE_NAME + "=; Path=/; HttpOnly" + secureAttribute(request) + "; SameSite=Strict; Max-Age=0";
+	}
+
+	private static String secureAttribute(HttpServletRequest request) {
+		return request.isSecure() ? "; Secure" : "";
 	}
 
 	/*

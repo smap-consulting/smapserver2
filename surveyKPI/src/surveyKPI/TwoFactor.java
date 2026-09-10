@@ -156,7 +156,7 @@ public class TwoFactor extends Application {
 			// of the page they enrolled from
 			return Response.ok("{}")
 					.header(HttpHeaders.SET_COOKIE,
-							TwoFactorSession.cookieHeader(TwoFactorSession.issue(sd, ident)))
+							TwoFactorSession.cookieHeader(request, TwoFactorSession.issue(sd, ident)))
 					.build();
 
 		} catch (ApplicationException e) {
@@ -189,7 +189,7 @@ public class TwoFactor extends Application {
 
 			return Response.ok("{}")
 					.header(HttpHeaders.SET_COOKIE,
-							TwoFactorSession.cookieHeader(TwoFactorSession.issue(sd, ident)))
+							TwoFactorSession.cookieHeader(request, TwoFactorSession.issue(sd, ident)))
 					.build();
 
 		} catch (ApplicationException e) {
@@ -222,7 +222,7 @@ public class TwoFactor extends Application {
 			tfm.remove(sd, ident, code, GeneralUtilityMethods.getOrganisationId(sd, request, ident));
 
 			return Response.ok("{}")
-					.header(HttpHeaders.SET_COOKIE, TwoFactorSession.clearCookieHeader())
+					.header(HttpHeaders.SET_COOKIE, TwoFactorSession.clearCookieHeader(request))
 					.build();
 
 		} catch (ApplicationException e) {
