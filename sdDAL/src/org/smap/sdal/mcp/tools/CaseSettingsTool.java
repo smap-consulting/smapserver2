@@ -81,11 +81,28 @@ public class CaseSettingsTool extends AbstractMcpTool {
 					+ "management, so its records are not cases.", false);
 		}
 
+		/*
+		 * A settings row can exist with nothing in it, so having one is not the same as using case
+		 * management.  What decides it is a status question: without one no case is ever marked
+		 * finished, whatever else is configured.
+		 */
+		boolean inUse = cms.settings.statusQuestion != null
+				&& cms.settings.statusQuestion.trim().length() > 0;
+
 		Map<String, Object> data = new LinkedHashMap<>();
 		data.put("survey", survey.getDisplayName());
-		data.put("statusQuestion", cms.settings.statusQuestion);
-		data.put("finalStatus", cms.settings.finalStatus);
-		data.put("criticalityQuestion", cms.settings.criticalityQuestion);
+		/*
+		 * Said outright rather than left to be inferred from a missing key.  Null fields are dropped
+		 * on the way out, so a survey that does not use cases and one whose settings failed to load
+		 * would otherwise look identical - both an object with a name and nothing else.
+		 */
+		data.put("usesCaseManagement", inUse);
+		data.put("statusQuestion", cms.settings.statusQuestion == null
+				? "(none set)" : cms.settings.statusQuestion);
+		data.put("finalStatus", cms.settings.finalStatus == null
+				? "(none set)" : cms.settings.finalStatus);
+		data.put("criticalityQuestion", cms.settings.criticalityQuestion == null
+				? "(none set)" : cms.settings.criticalityQuestion);
 
 		List<Map<String, Object>> alerts = new ArrayList<>();
 		if(cms.alerts != null) {
@@ -100,6 +117,16 @@ public class CaseSettingsTool extends AbstractMcpTool {
 		data.put("alerts", alerts);
 
 		StringBuilder text = new StringBuilder();
+		if(!inUse) {
+			text.append("\"").append(survey.getDisplayName()).append("\" does not use case "
+					+ "management: no question is set to hold a case's status, so no record in it "
+					+ "is ever marked finished as a case.");
+			if(cms.alerts != null && !cms.alerts.isEmpty()) {
+				text.append(" It does have ").append(cms.alerts.size())
+						.append(" alert(s) configured, listed below.");
+			}
+			text.append("\n");
+		}
 		text.append("Cases in \"").append(survey.getDisplayName()).append("\":");
 		if(cms.settings.statusQuestion != null) {
 			text.append("\n- status is held in ").append(cms.settings.statusQuestion);
