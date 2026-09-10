@@ -17,6 +17,7 @@ import org.smap.sdal.model.MCPToolResult;
 import org.smap.sdal.model.TaskBulkAction;
 import org.smap.sdal.model.TaskAssignmentPair;
 import org.smap.sdal.model.TaskFeature;
+import org.smap.sdal.model.TaskGroup;
 import org.smap.sdal.model.TaskListGeoJson;
 
 /*
@@ -140,6 +141,19 @@ public class TaskActionTool extends AbstractMcpTool {
 		 */
 		TaskManager tm = new TaskManager(ctx.localisation, ctx.timezone);
 		int oId = GeneralUtilityMethods.getOrganisationId(ctx.sd, ctx.user);
+
+		/*
+		 * Which project each task group belongs to.  getTasks leaves p_id at zero - only
+		 * getUnassignedTasks fills it in - so a task cannot say which project it is in and the
+		 * group has to be asked instead.  Reading it off the task rejected every task there was.
+		 */
+		Map<Integer, Integer> groupProject = new LinkedHashMap<>();
+		for(Integer projectKey : projects.keySet()) {
+			for(TaskGroup tg : tm.getTaskGroups(ctx.sd, projectKey)) {
+				groupProject.put(tg.tg_id, projectKey);
+			}
+		}
+
 		TaskListGeoJson all = tm.getTasks(ctx.sd, null, oId, 0, 0, 0, true, 0,
 				null, null, 0, 0, "scheduled", "desc", false);
 
@@ -152,7 +166,8 @@ public class TaskActionTool extends AbstractMcpTool {
 				if(f.properties == null || !wanted.contains(f.properties.id)) {
 					continue;
 				}
-				if(!projects.containsKey(f.properties.p_id)) {
+				Integer taskProject = groupProject.get(f.properties.tg_id);
+				if(taskProject == null) {
 					continue;		// Somebody else's project, so not one of theirs to act on
 				}
 				TaskAssignmentPair pair = new TaskAssignmentPair();
@@ -160,7 +175,7 @@ public class TaskActionTool extends AbstractMcpTool {
 				pair.assignmentId = f.properties.a_id;
 				pairs.add(pair);
 				notFound.remove(Integer.valueOf(f.properties.id));
-				pId = f.properties.p_id;
+				pId = taskProject;
 				tgId = f.properties.tg_id;
 			}
 		}

@@ -115,6 +115,19 @@ public class TaskListTool extends AbstractMcpTool {
 		int userId = mine ? GeneralUtilityMethods.getUserId(ctx.sd, ctx.user) : 0;
 		int oId = GeneralUtilityMethods.getOrganisationId(ctx.sd, ctx.user);
 
+		/*
+		 * Which project each task group belongs to.
+		 *
+		 * getTasks does not fill in p_id - getUnassignedTasks does, getTasks does not - so the task
+		 * itself cannot say which project it is in.  The task group can, and every task has one.
+		 */
+		Map<Integer, Integer> groupProject = new LinkedHashMap<>();
+		for(Integer pId : projects.keySet()) {
+			for(TaskGroup tg : tm.getTaskGroups(ctx.sd, pId)) {
+				groupProject.put(tg.tg_id, pId);
+			}
+		}
+
 		TaskListGeoJson tasks = tm.getTasks(ctx.sd, null,
 				taskGroupId > 0 ? 0 : oId,
 				taskGroupId,
@@ -142,10 +155,11 @@ public class TaskListTool extends AbstractMcpTool {
 				 * Tasks are asked for by organisation when no group is named, so they are filtered
 				 * back to the projects this caller is in.  An organisation is wider than a person.
 				 */
-				if(f.properties.p_id > 0 && !projects.containsKey(f.properties.p_id)) {
-					continue;
+				Integer taskProject = groupProject.get(f.properties.tg_id);
+				if(taskProject == null) {
+					continue;		// A group outside this caller's projects
 				}
-				if(projectId > 0 && f.properties.p_id != projectId) {
+				if(projectId > 0 && taskProject != projectId) {
 					continue;
 				}
 
@@ -159,7 +173,7 @@ public class TaskListTool extends AbstractMcpTool {
 				row.put("assignee", f.properties.assignee_ident);
 				row.put("assigneeName", f.properties.assignee_name);
 				row.put("scheduledAt", f.properties.from == null ? null : f.properties.from.toString());
-				row.put("project", projects.get(f.properties.p_id));
+				row.put("project", projects.get(taskProject));
 				rows.add(row);
 
 				text.append("\n- ").append(f.properties.name);
