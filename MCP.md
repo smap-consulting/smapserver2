@@ -93,6 +93,9 @@ may do.
 | `reference_filter_set` | write | analyst, admin | done |
 | `survey_add_question` | write | analyst, admin | done |
 | `survey_delete_question` | write | analyst, admin | done |
+| `case_settings` | read | analyst, admin, manage | done |
+| `case_assign` | write | admin, manage, manage tasks | done |
+| `workflow_list` | read | admin, manage, manage tasks | done |
 | `task_group_list` | read | analyst, admin, manage, manage tasks | done |
 | `task_group_create` | write | admin, manage, manage tasks | done |
 | `task_list` | read | analyst, admin, manage, manage tasks | done |
@@ -145,7 +148,7 @@ not done.
 | Reference data | `reference_filter_list`, `reference_filter_set` | read and write |
 | Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history`, `survey_media_list`, `survey_check_type_change`, `survey_create`, `survey_delete`, `survey_undelete`, `survey_add_question`, `survey_delete_question` | read and write |
 | Tasks and assignments | `task_group_list`, `task_group_create`, `task_list`, `task_create`, `task_action` | read and write |
-| Cases and workflow | — | not started |
+| Cases and workflow | `case_settings`, `case_assign`, `workflow_list` | read, and cases can be assigned |
 | Notifications and messaging | — | not started |
 | Reporting and monitoring | — | not started |
 | Users, roles and access | — | not started |
@@ -391,6 +394,30 @@ by a person.
 That is separate from `agent`, and both are wanted. `source` says what kind of thing made the change;
 `agent` says which application, by name. A change with `source` mcp and no `agent` would be a
 console-minted token acting with no registered client.
+
+## A case is a record, so most of it needs no tools
+
+A case lives in the survey's own table with `_assigned` and `_case_closed` beside it. `data_query`
+and `data_get_record` already read cases; `data_update_record` already closes one, because the
+closing date is written by the server when the update touches the question the case settings name as
+its status. There is no `case_list` or `case_get` or `case_close` here, and their absence is the
+design rather than a gap - each would be a second way to read or write rows the data tools already
+handle.
+
+What could not be known from outside is which question closing depends on, and what value closes it,
+because that is configuration rather than data. `case_settings` answers exactly that, and names the
+alerts watching. After it, the ordinary data tools do the rest.
+
+`case_assign` exists because assigning is not an ordinary update: it asks the two access questions,
+and `CaseManager.assignRecord` asks neither - the checking lives in the endpoints that call it, so a
+tool calling it directly has to do the same or it would be the one way into a case that asks nothing.
+
+`workflow_list` is read only, deliberately. A workflow is not a thing in Smap; it is what you get
+when the notifications, task groups and case rules are read together and the arrows drawn between
+them. Setting one means creating those, which are their own tools in their own increments - a tool
+claiming to "set a workflow" would be one that quietly did several other things. The positions of the
+boxes are not reported either: they are where somebody dragged them on a screen and say nothing about
+what the server does.
 
 ## Who may be given work
 
