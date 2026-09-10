@@ -103,8 +103,20 @@ public class SurveyUndeleteTool extends AbstractMcpTool {
 		data.put("survey_id", surveyId);
 		data.put("name", survey.getDisplayName());
 
-		MCPToolResult result = new MCPToolResult("Brought back \"" + survey.getDisplayName()
-				+ "\", with the data submitted to it.");
+		/*
+		 * Deleting renames a survey with the time it went, and restoring does not rename it back -
+		 * that is Smap's behaviour, not something undone here.  Said plainly, because a caller who
+		 * expects the old name back will otherwise think the restore only half worked.
+		 */
+		StringBuilder text = new StringBuilder();
+		text.append("Brought back \"").append(survey.getDisplayName())
+				.append("\", with the data submitted to it.");
+		if(survey.getDisplayName() != null && survey.getDisplayName().matches(".*\\(\\d{4}_\\d{2}_\\d{2} .*\\)$")) {
+			text.append("\n\nDeleting added the time to its name and restoring does not take it off "
+					+ "again. survey_set_settings will rename it if you want the old name back.");
+		}
+
+		MCPToolResult result = new MCPToolResult(text.toString());
 		result.setStructuredContent(data);
 		return result;
 	}

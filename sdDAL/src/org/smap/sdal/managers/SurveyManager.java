@@ -436,6 +436,14 @@ public class SurveyManager {
 					change.action = "settings_update";
 					change.origSId = sId;
 					change.settingsChanges = settingsChanges;
+					/*
+					 * Marked the same way a question change is, so the whole log answers "what made
+					 * this" in one place rather than only where a tool remembered to say so. agent
+					 * being set is what says something acted for the person.
+					 */
+					if(agent != null) {
+						change.source = "mcp";
+					}
 
 					// Plain text as a fallback for readers that do not understand the structured data
 					StringBuilder msg = new StringBuilder();
