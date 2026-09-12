@@ -66,6 +66,7 @@ may do.
 | `server_info` | read | any | done |
 | `event_list` | read | admin, owner | done |
 | `ops_status` | read | admin, manage, owner | done |
+| `usage_report` | read | admin, owner | done |
 | `project_list` | read | analyst, admin, view data, manage | done |
 | `survey_list` | read | analyst, admin, view data, manage | done |
 | `survey_submission_counts` | read | analyst, admin, view data | done |
@@ -158,7 +159,7 @@ not done.
 | Tasks and assignments | `task_group_list`, `task_group_create`, `task_list`, `task_create`, `task_action` | read and write |
 | Cases and workflow | `case_settings`, `case_settings_set`, `case_assign`, `workflow_list` | read and write |
 | Notifications and messaging | `notification_list`, `notification_create`, `notification_enable`, `notification_delete`, `mailout_list` | read and write, but nothing sends |
-| Reporting and monitoring | `event_list`, `ops_status` | read only |
+| Reporting and monitoring | `event_list`, `ops_status`, `usage_report` | read only |
 | Users, roles and access | — | not started |
 | Server administration | — | not started |
 
@@ -424,6 +425,15 @@ put.
 
 Alerts come back sorted by priority. An overview whose most urgent line is fourth has to be read in
 full before it can be used.
+
+`usage_report` counts submissions and the metered services month by month. Submissions come from
+`upload_event` and the services from the log's measures, which answer two different questions - what
+arrived, and what was spent doing something with it - so they are reported side by side and never
+added together, a total across them being a number of nothing in particular.
+
+**Nothing here is money, and there is deliberately no billing tool.** What a month cost depends on
+the plan, and a tool that multiplied a count by a rate it had guessed would produce a figure somebody
+might repeat.
 
 ## Preparing, and never sending
 
