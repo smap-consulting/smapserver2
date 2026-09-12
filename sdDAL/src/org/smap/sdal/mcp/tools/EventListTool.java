@@ -79,10 +79,16 @@ public class EventListTool extends AbstractMcpTool {
 		 */
 		int fetch = contains == null ? limit : ctx.cap(limit * 10);
 
+		/*
+		 * start is a cursor, not an offset.  Read descending the query is "id < start", so zero asks
+		 * for entries below the first one there has ever been and returns nothing at all - which is
+		 * exactly what it did.  Newest first means starting above every id, and the console's own
+		 * endpoint makes the same translation.
+		 */
 		ArrayList<LogItemDt> entries = new LogManager().getLogEntries(ctx.sd, ctx.localisation,
 				oId,
 				"desc",
-				0,				// start
+				Integer.MAX_VALUE,	// from the newest, not from zero
 				"log_time",
 				fetch,
 				false,			// forHtml
