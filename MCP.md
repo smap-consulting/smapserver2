@@ -410,14 +410,13 @@ console-minted token acting with no registered client.
 ## Making a project, and not filling it
 
 A project is the unit access is granted in: surveys live in one, tasks belong to one, and membership
-of it is what lets somebody reach any of that. So `project_create` is the first half of reorganising
-and the second half - putting people in it - is deliberately absent. Widening who can reach what is
-the change that lets every other change happen unnoticed, and it belongs behind its own permission
-rather than arriving with the ability to make a folder.
+of it is what lets somebody reach any of that.
 
-A new project therefore has no members, **including the person who made it**, and the answer says so
-in as many words: a project nobody is in looks broken rather than new, and somebody who did not
-expect it would go looking for a fault that is not there.
+The person creating it becomes a member, because `createProject` does that itself - the same manager
+method the console calls, so a project made here and one made in the user interface end up the same.
+Adding anybody **else** is deliberately absent: widening who can reach what is the change that lets
+every other change happen unnoticed, and it belongs behind its own permission rather than arriving
+with the ability to make a folder.
 
 `project_delete` is safe because Smap makes it safe - it refuses a project that still holds surveys,
 naming what is in the way. That check is Smap's, not this tool's, and it is why `project_create` can

@@ -17,14 +17,13 @@ import org.smap.sdal.model.Project;
  * Make a project.
  *
  * A project is the unit access is granted in: surveys live in one, tasks belong to one, and being a
- * member of it is what lets somebody reach any of that.  So making one is the first half of
- * reorganising, and the second half - putting people in it - is deliberately not here.  Widening who
- * can reach what is the change that lets every other change happen unnoticed, and it belongs behind
- * its own permission rather than arriving with the ability to make a folder.
+ * member of it is what lets somebody reach any of that.
  *
- * Which means a new project starts empty of people, including the person who made it.  That is said
- * plainly in the answer, because a project nobody is in looks broken rather than new, and somebody
- * who did not expect it would go looking for the fault.
+ * The person creating it is made a member, by createProject itself - the same manager method the
+ * console calls, so a project made here and one made in the user interface end up the same.  Adding
+ * anybody *else* is not offered: widening who can reach what is the change that lets every other
+ * change happen unnoticed, and it belongs behind its own permission rather than arriving with the
+ * ability to make a folder.
  */
 public class ProjectCreateTool extends AbstractMcpTool {
 
@@ -41,8 +40,9 @@ public class ProjectCreateTool extends AbstractMcpTool {
 	@Override
 	public String getDescription() {
 		return "Creates a project: the folder surveys and tasks live in, and the unit people are "
-				+ "given access by. It starts with no members, not even you - adding people to a "
-				+ "project is done in the console. Move surveys into it with survey_set_settings.";
+				+ "given access by. You are added to it, as you would be creating one in the "
+				+ "console; adding anyone else is done there. Move surveys into it with "
+				+ "survey_set_settings.";
 	}
 
 	@Override
@@ -108,12 +108,13 @@ public class ProjectCreateTool extends AbstractMcpTool {
 		data.put("created", Boolean.TRUE);
 		data.put("project_id", pId);
 		data.put("name", name);
-		data.put("members", 0);
+		data.put("members", 1);
+		data.put("memberIsCaller", Boolean.TRUE);
 
 		MCPToolResult result = new MCPToolResult("Created project \"" + name + "\" (" + pId + ").\n\n"
-				+ "It has no members yet, not even you, so nobody can see anything in it until "
-				+ "somebody is added to it in the console. Surveys are moved into it with "
-				+ "survey_set_settings.");
+				+ "You are a member of it, as you would be if you had made it in the console. "
+				+ "Nobody else is - adding other people to a project is done there. Surveys are "
+				+ "moved into it with survey_set_settings.");
 		result.setStructuredContent(data);
 		return result;
 	}
