@@ -26,7 +26,7 @@ permission is the user's security groups intersected with the scopes on their to
 | --- | --- | --- |
 | `smap:read` | Everything the user can see, read only | yes |
 | `smap:write` | Surveys, data, tasks, cases, mailout preparation | yes |
-| `smap:admin` | Users, projects, organisation records | by step up |
+| `smap:admin` | Users, projects, organisation records | yes |
 | `smap:access` | Who can reach what | by step up, never remembered |
 | `smap:server` | Server settings | by step up |
 | `smap:privacy` | Subject access exports | by step up |
@@ -68,6 +68,9 @@ may do.
 | `ops_status` | read | admin, manage, owner | done |
 | `usage_report` | read | admin, owner | done |
 | `project_list` | read | analyst, admin, view data, manage | done |
+| `project_create` | admin | admin, owner | done |
+| `project_delete` | admin | admin, owner | done |
+| `user_list` | admin | admin, owner | done |
 | `survey_list` | read | analyst, admin, view data, manage | done |
 | `survey_submission_counts` | read | analyst, admin, view data | done |
 | `data_query` | read | analyst, admin, view data | done |
@@ -152,7 +155,7 @@ not done.
 | Surveys, list and structure | `survey_list`, `survey_submission_counts`, `survey_history` | read only |
 | Data | `data_query`, `data_get_record`, `data_count`, `data_attachments`, `data_audit`, `data_delete_record`, `data_restore_record`, `data_submit`, `data_update_record`, `data_bulk_update`, `data_bulk_undo` | read and write |
 | Analysis | `data_aggregate` | read only |
-| Projects | `project_list` | read only |
+| Projects | `project_list`, `project_create`, `project_delete` | read and write |
 | Topics / bundles | `topic_list` | read only |
 | Reference data | `reference_filter_list`, `reference_filter_set` | read and write |
 | Survey design | `survey_get`, `survey_questions`, `survey_options`, `survey_history`, `survey_media_list`, `survey_check_type_change`, `survey_create`, `survey_delete`, `survey_undelete`, `survey_add_question`, `survey_delete_question` | read and write |
@@ -160,7 +163,7 @@ not done.
 | Cases and workflow | `case_settings`, `case_settings_set`, `case_assign`, `workflow_list` | read and write |
 | Notifications and messaging | `notification_list`, `notification_create`, `notification_enable`, `notification_delete`, `mailout_list` | read and write, but nothing sends |
 | Reporting and monitoring | `event_list`, `ops_status`, `usage_report` | read only |
-| Users, roles and access | — | not started |
+| Users, roles and access | `user_list` | read only; granting access is not offered |
 | Server administration | — | not started |
 
 ## Deliberately not exposed
@@ -403,6 +406,35 @@ by a person.
 That is separate from `agent`, and both are wanted. `source` says what kind of thing made the change;
 `agent` says which application, by name. A change with `source` mcp and no `agent` would be a
 console-minted token acting with no registered client.
+
+## Making a project, and not filling it
+
+A project is the unit access is granted in: surveys live in one, tasks belong to one, and membership
+of it is what lets somebody reach any of that. So `project_create` is the first half of reorganising
+and the second half - putting people in it - is deliberately absent. Widening who can reach what is
+the change that lets every other change happen unnoticed, and it belongs behind its own permission
+rather than arriving with the ability to make a folder.
+
+A new project therefore has no members, **including the person who made it**, and the answer says so
+in as many words: a project nobody is in looks broken rather than new, and somebody who did not
+expect it would go looking for a fault that is not there.
+
+`project_delete` is safe because Smap makes it safe - it refuses a project that still holds surveys,
+naming what is in the way. That check is Smap's, not this tool's, and it is why `project_create` can
+honestly say its reversal is "delete it while it is still empty". The refusal is reported as an
+answer rather than a failure: the server is saying move those first, and `survey_set_settings` is
+how.
+
+`user_list` reports each person's groups and projects, because "who can see this survey" and "who
+could I assign this to" are the questions actually asked of a user list and neither is answerable
+from names. It asks as an administrator of one organisation and no more - `getUserList` also takes
+flags for an organisational user and a security manager, which widen the answer to other
+organisations and to security detail, and a list tool that quietly answered more than it was asked is
+how a boundary stops being one.
+
+**`smap:admin` is now advertised**, because these are the first tools to need it. Leaving it out
+would have made every one of them unreachable - the same fault the advertised list was widened to fix
+in the first place.
 
 ## What happened, and how things stand
 

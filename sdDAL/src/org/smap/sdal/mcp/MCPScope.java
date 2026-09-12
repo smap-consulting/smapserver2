@@ -73,9 +73,10 @@ public class MCPScope {
 	 * to, and the token is intersected with the user's groups on every call.
 	 *
 	 * Scopes are added here as their increments land, so a client is never offered a permission no
-	 * tool yet uses.
+	 * tool yet uses.  ADMIN joined when the users and projects tools did: leaving it out would have
+	 * made every one of them unreachable, which is the fault this list was widened to fix.
 	 */
-	public static final List<String> ADVERTISED = Arrays.asList(READ, WRITE);
+	public static final List<String> ADVERTISED = Arrays.asList(READ, WRITE, ADMIN);
 
 	/*
 	 * Consent for this scope is never remembered, so granting it is always a deliberate act rather
