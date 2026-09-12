@@ -64,6 +64,8 @@ may do.
 | --- | --- | --- | --- |
 | `whoami` | read | any | done |
 | `server_info` | read | any | done |
+| `event_list` | read | admin, owner | done |
+| `ops_status` | read | admin, manage, owner | done |
 | `project_list` | read | analyst, admin, view data, manage | done |
 | `survey_list` | read | analyst, admin, view data, manage | done |
 | `survey_submission_counts` | read | analyst, admin, view data | done |
@@ -156,7 +158,7 @@ not done.
 | Tasks and assignments | `task_group_list`, `task_group_create`, `task_list`, `task_create`, `task_action` | read and write |
 | Cases and workflow | `case_settings`, `case_settings_set`, `case_assign`, `workflow_list` | read and write |
 | Notifications and messaging | `notification_list`, `notification_create`, `notification_enable`, `notification_delete`, `mailout_list` | read and write, but nothing sends |
-| Reporting and monitoring | — | not started |
+| Reporting and monitoring | `event_list`, `ops_status` | read only |
 | Users, roles and access | — | not started |
 | Server administration | — | not started |
 
@@ -400,6 +402,28 @@ by a person.
 That is separate from `agent`, and both are wanted. `source` says what kind of thing made the change;
 `agent` says which application, by name. A change with `source` mcp and no `agent` would be a
 console-minted token acting with no registered client.
+
+## What happened, and how things stand
+
+`event_list` is the organisation's log - surveys created and changed, users added, errors, refused
+access - and it answers "what happened last week", which is a question an agent is good at and a
+person usually has to go looking for.
+
+It is scoped to the caller's organisation and no wider. `getLogEntries` takes a flag for entries
+belonging to no organisation at all, which are server level things, and that flag is false here: an
+organisation administrator is not a server administrator, and that is exactly the distinction lost
+when one tool answers both questions. When a filter is given it asks for more rows than it returns,
+because the filter is applied after the query - fetching exactly the limit and then discarding most
+of it would return a handful of matches and call them all of them.
+
+`ops_status` is the operations overview in words: what is open, what is late, which teams are behind,
+what is shouting. **It deliberately does not use the cache.** `OpsMonitorManager` keeps a copy per
+user for the page, which is right when somebody is clicking between tabs and wrong here - an agent
+asked how things stand is asking now, and a number from an earlier minute answers a question nobody
+put.
+
+Alerts come back sorted by priority. An overview whose most urgent line is fourth has to be read in
+full before it can be used.
 
 ## Preparing, and never sending
 

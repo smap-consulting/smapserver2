@@ -62,6 +62,8 @@ import org.smap.sdal.mcp.tools.SurveyCreateTool;
 import org.smap.sdal.mcp.tools.SurveyDeleteTool;
 import org.smap.sdal.mcp.tools.SurveyUndeleteTool;
 import org.smap.sdal.mcp.tools.SurveyMediaListTool;
+import org.smap.sdal.mcp.tools.EventListTool;
+import org.smap.sdal.mcp.tools.OpsStatusTool;
 import org.smap.sdal.mcp.tools.ServerInfoTool;
 import org.smap.sdal.mcp.tools.CaseAssignTool;
 import org.smap.sdal.mcp.tools.CaseSettingsSetTool;
@@ -128,6 +130,8 @@ public class MCP extends Application {
 	static {
 		registry.register(new WhoAmITool());
 		registry.register(new ServerInfoTool());
+		registry.register(new EventListTool());
+		registry.register(new OpsStatusTool());
 		registry.register(new ProjectListTool());
 		registry.register(new SurveyListTool());
 		registry.register(new SurveySubmissionCountTool());
