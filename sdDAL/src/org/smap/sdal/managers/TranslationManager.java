@@ -34,6 +34,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.Utilities.OrgCachedResource;
 import org.smap.sdal.model.ManifestValue;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -206,8 +207,8 @@ public class TranslationManager {
 						m.fileName = m.fileName.replace("chart_self", "chart_" + surveyIdent);
 					}
 					
-					if(m.fileName.startsWith("sharepointlist_")) {
-						m.type = "sharepoint";
+					if(OrgCachedResource.isCached(m.fileName)) {
+						m.type = OrgCachedResource.getType(m.fileName);
 						String urlBase = forDevice ? "/resource/" : "/surveyKPI/file/";
 						m.url = urlBase + m.fileName + ".csv/organisation";
 						manifests.add(m);
@@ -280,12 +281,10 @@ public class TranslationManager {
 				m.fileName = fileName;
 				m.sId = surveyId;
 
-				if(fileName.startsWith("sharepointlist_")) {
-					m.type = "sharepoint";
+				if(OrgCachedResource.isCached(fileName)) {
+					m.type = OrgCachedResource.getType(fileName);
 					// strip .csv suffix if present so baseName matches the pulldata() argument
-					m.baseName = fileName.endsWith(".csv")
-							? fileName.substring(0, fileName.length() - 4)
-							: fileName;
+					m.baseName = OrgCachedResource.baseName(fileName);
 				} else if(fileName.endsWith(".csv")) {
 					m.type = "csv";
 					m.baseName = fileName.substring(0, fileName.length() - 4);

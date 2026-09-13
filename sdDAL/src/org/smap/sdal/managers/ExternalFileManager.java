@@ -11,6 +11,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.OrgCachedResource;
 import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.SqlFrag;
 
@@ -117,18 +118,50 @@ public class ExternalFileManager {
 
 
 	/*
-	 * Create/refresh the physical CSV file for a SharePoint list cache.
-	 * Regenerates if the file is missing or older than the last SP sync.
+	 * The directory holding the physical CSV files for an organisation's cached resources
 	 */
-	public boolean createSpListFile(Connection sd, int oId, String fileName, String filePath) {
+	public String getOrgCachedDirPath(String basePath, int oId) {
+		return basePath + File.separator + "media" + File.separator
+				+ "organisation" + File.separator + oId;
+	}
+
+	/*
+	 * Make sure the physical CSV for an organisation level cached resource exists and is current,
+	 * and return its path
+	 *
+	 * Both the manifest served to third party JavaRosa clients and the Field Task refresh need
+	 * this, so the path convention lives here rather than in each of them
+	 */
+	public String ensureOrgCachedFile(Connection sd, int oId, String fileName, String basePath) {
+
+		String dirPath = getOrgCachedDirPath(basePath, oId);
+		new File(dirPath).mkdirs();
+
+		String filePath = dirPath + File.separator + fileName + ".csv";
+		createOrgCachedFile(sd, oId, fileName, filePath);
+
+		return filePath;
+	}
+
+	/*
+	 * Create/refresh the physical CSV file for an organisation level cached resource.
+	 * Regenerates if the file is missing or older than the last sync of its source.
+	 */
+	public boolean createOrgCachedFile(Connection sd, int oId, String fileName, String filePath) {
 		boolean regenerate = false;
 		try {
 			File f = new File(filePath);
 			boolean needsRegen = !f.exists();
 			if(!needsRegen) {
-				String smapName = fileName.startsWith("sharepointlist_")
-						? fileName.substring("sharepointlist_".length()) : fileName;
-				String sql = "select last_sync from sharepoint_list_map where o_id = ? and smap_name = ?";
+				String smapName = OrgCachedResource.withoutPrefix(fileName);
+
+				// Each source keeps its own mapping table, but the question asked of it is the same
+				String sql;
+				if(OrgCachedResource.TYPE_DHIS2.equals(OrgCachedResource.getType(fileName))) {
+					sql = "select last_sync from dhis2_map where o_id = ? and smap_name = ?";
+				} else {
+					sql = "select last_sync from sharepoint_list_map where o_id = ? and smap_name = ?";
+				}
 				PreparedStatement pstmt = null;
 				try {
 					pstmt = sd.prepareStatement(sql);
@@ -151,7 +184,7 @@ public class ExternalFileManager {
 				regenerate = true;
 			}
 		} catch(Exception e) {
-			log.log(Level.SEVERE, "createSpListFile: " + fileName, e);
+			log.log(Level.SEVERE, "createOrgCachedFile: " + fileName, e);
 		}
 		return regenerate;
 	}

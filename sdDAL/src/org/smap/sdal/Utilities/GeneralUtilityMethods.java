@@ -5560,12 +5560,11 @@ public class GeneralUtilityMethods {
 										tz, null, null, applyReferenceCap);
 								choices = stm.getChoices(ovalue, languageItems, wfFilters);
 
-							} else if(filename.startsWith("sharepointlist_")) {
-								// Stored at org level without .csv suffix
-								String spFileName = filename.endsWith(".csv")
-										? filename.substring(0, filename.length() - 4) : filename;
+							} else if(OrgCachedResource.isCached(filename)) {
+								// Cached reference data, stored at org level without a .csv suffix
 								CsvTableManager csvMgr = new CsvTableManager(sd, localisation);
-								choices = csvMgr.getChoices(oId, 0, spFileName, ovalue, languageItems, matches, wfFilters);
+								choices = csvMgr.getChoices(oId, 0, OrgCachedResource.baseName(filename),
+										ovalue, languageItems, matches, wfFilters);
 
 							} else {
 								// Get data from a csv table
@@ -6065,6 +6064,68 @@ public class GeneralUtilityMethods {
 
 		mi.manifest = gson.toJson(mArray);
 
+	}
+
+	/*
+	 * The names of the surveys in an organisation that reference a shared resource
+	 *
+	 * Used before deleting an organisation level cached resource.  Deleting one that is still
+	 * referenced leaves forms that keep working from a file nothing will ever refresh, and an
+	 * online editor that cannot resolve the columns and reports the parameters as missing
+	 * instead of saying the resource has gone.
+	 *
+	 * The survey manifest is a JSON array of file names with a .csv suffix, maintained by
+	 * updateSurveyManifest() on every appearance and calculate change.  The LIKE only narrows
+	 * the rows to parse: a prefix match would report "ccc" as used by a form referencing
+	 * "ccc2", so membership is confirmed exactly against the parsed array.
+	 */
+	public static ArrayList<String> getSurveysUsingSharedResource(Connection sd, int oId, String fileName)
+			throws SQLException {
+
+		ArrayList<String> surveys = new ArrayList<String>();
+		if(fileName == null) {
+			return surveys;
+		}
+
+		String sql = "select s.display_name, s.manifest "
+				+ "from survey s, project p "
+				+ "where s.p_id = p.id "
+				+ "and p.o_id = ? "
+				+ "and not s.deleted "
+				+ "and s.manifest is not null "
+				+ "and s.manifest like ?";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, "%" + fileName + "%");
+			ResultSet rs = pstmt.executeQuery();
+
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			Type type = new TypeToken<ArrayList<String>>() {}.getType();
+
+			while(rs.next()) {
+				String name = rs.getString("display_name");
+				ArrayList<String> mArray = null;
+				try {
+					mArray = gson.fromJson(rs.getString("manifest"), type);
+				} catch(Exception e) {
+					// A manifest we cannot parse is not evidence that the resource is unused
+					log.log(Level.WARNING, "Parsing manifest of survey '" + name + "'", e);
+					surveys.add(name);
+					continue;
+				}
+				if(mArray != null
+						&& (mArray.contains(fileName + ".csv") || mArray.contains(fileName))) {
+					surveys.add(name);
+				}
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
+		}
+
+		return surveys;
 	}
 
 	/*
@@ -8881,6 +8942,55 @@ public class GeneralUtilityMethods {
 	 * This is a UUID which identifies a series of changes to a record.
 	 * Ie if you start with Record A and then Update it then the two records will have the same thread id.
 	 */
+	/*
+	 * Every version of the records named by these instance ids, superseded ones included
+	 *
+	 * A change to a record is stored as a new record sharing the thread, with the version it
+	 * replaced left in place and marked bad.  Anything derived from a record's answers, an
+	 * aggregate above all, cannot be corrected by redoing the work for the current version
+	 * alone: if an answer that decides where the record counts has been changed, the place it
+	 * used to count still has to be revisited, and only the superseded version knows where that
+	 * was.
+	 *
+	 * The passed ids are always included, so a caller can use the result unconditionally
+	 */
+	public static ArrayList<String> getInstancesInThreads(Connection cResults, String table,
+			List<String> instanceIds) throws SQLException {
+
+		ArrayList<String> all = new ArrayList<String>();
+		if(instanceIds == null || instanceIds.isEmpty()) {
+			return all;
+		}
+		all.addAll(instanceIds);
+
+		// Legacy tables predate threads, in which case a record has only ever had one version
+		if(table == null || !tableExists(cResults, table) || !hasColumn(cResults, table, "_thread")) {
+			return all;
+		}
+
+		String sql = "select distinct instanceid from " + table + " "
+				+ "where _thread is not null "
+				+ "and _thread in (select _thread from " + table + " "
+				+ "  where instanceid = any(?) and _thread is not null)";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = cResults.prepareStatement(sql);
+			pstmt.setArray(1, cResults.createArrayOf("text", instanceIds.toArray()));
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String id = rs.getString(1);
+				if(id != null && !all.contains(id)) {
+					all.add(id);
+				}
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(SQLException e) {}}
+		}
+
+		return all;
+	}
+
 	public static String getThread(Connection cResults, String table, String instanceId) throws SQLException {
 		
 		if(!GeneralUtilityMethods.tableExists(cResults, table)) {

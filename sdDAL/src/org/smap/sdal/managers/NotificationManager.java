@@ -738,6 +738,7 @@ public class NotificationManager {
 			types.add("escalate");
 			types.add("reference");
 			types.add("sharepoint_list");
+			types.add("dhis2");
 		}
 
 		boolean awsSMS = false;
@@ -969,7 +970,17 @@ public class NotificationManager {
 			if(updateQuestion == null) {
 				sqlGetNotifications.append(" and n.trigger = 'submission' ");
 				if(thread != null) {
-					sqlGetNotifications.append(" and n.id not in (select n_id from notified_record where thread = ?) ");
+					/*
+					 * A notification fires once per thread, so a case that is updated does not
+					 * alert someone a second time about the same case.
+					 *
+					 * DHIS2 is exempt because it is not telling anyone anything, it is keeping a
+					 * total in step.  A case admitted and later closed as died has to send twice
+					 * or the death is never counted, which is the whole of the case management
+					 * argument for the integration
+					 */
+					sqlGetNotifications.append(" and (n.target = 'dhis2' "
+							+ "or n.id not in (select n_id from notified_record where thread = ?)) ");
 				}
 			} else {
 				sqlGetNotifications.append(" and n.trigger = 'console_update'");	// Only used for bulk updates
@@ -1107,8 +1118,12 @@ public class NotificationManager {
 						log.log(Level.WARNING, "localisation is null.");
 					}
 					
-					// Save the information that this thread has triggered this notification
-					if(thread != null) {
+					/*
+					 * Save the information that this thread has triggered this notification
+					 * Not recorded for DHIS2, which fires on every update, so the row would only
+					 * accumulate one per change and never be read
+					 */
+					if(thread != null && !"dhis2".equals(target)) {
 						pstmtNotified.setInt(1, nId);
 						pstmtNotified.setString(2, thread);
 						pstmtNotified.executeUpdate();
@@ -1851,6 +1866,28 @@ public class NotificationManager {
 						status = "error";
 						error_details = e.getMessage();
 						log.log(Level.SEVERE, e.getMessage(), e);
+					}
+
+				} else if(msg.target.equals("dhis2")) {
+
+					/*
+					 * Rather than sending this submission as a value, recalculate the totals for
+					 * the period and organisation unit it belongs to and send those.  A DHIS2 data
+					 * value is keyed by data element, period, org unit and category combo, so this
+					 * corrects the total rather than adding to it, and the figure in DHIS2
+					 * converges on the right answer as submissions arrive.
+					 *
+					 * A correction, or a submission weeks late, then needs no special handling: it
+					 * is the same operation
+					 */
+					try {
+						notify_details = new Dhis2ExportManager().exportForSubmission(
+								sd, cResults, organisation.id, surveyId, msg.instanceId);
+
+					} catch(Exception e) {
+						status = "error";
+						error_details = e.getMessage();
+						log.log(Level.SEVERE, "DHIS2 notification: " + e.getMessage(), e);
 					}
 
 				} else {

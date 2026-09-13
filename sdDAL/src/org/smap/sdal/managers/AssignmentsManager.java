@@ -27,6 +27,7 @@ import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.ServerConfig;
+import org.smap.sdal.Utilities.OrgCachedResource;
 import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.FieldTaskSettings;
 import org.smap.sdal.model.FormLocator;
@@ -514,14 +515,8 @@ public class AssignmentsManager {
 									tr.refSurveys.add(ref);
 								}
 							}
-						} else if (m.type.equals("sharepoint")) {
-							String spFilePath = basepath + File.separator + "media" + File.separator
-									+ "organisation" + File.separator + oId + File.separator + m.fileName + ".csv";
-							File dir = new File(basepath + File.separator + "media" + File.separator
-									+ "organisation" + File.separator + oId);
-							dir.mkdirs();
-							efm.createSpListFile(sd, oId, m.fileName, spFilePath);
-							logicalFilePath = spFilePath;
+						} else if (OrgCachedResource.isCachedType(m.type)) {
+							logicalFilePath = efm.ensureOrgCachedFile(sd, oId, m.fileName, basepath);
 						}
 
 						/*
@@ -534,7 +529,7 @@ public class AssignmentsManager {
 								physicalFilePath = efm.getLinkedPhysicalFilePath(sd, logicalFilePath) + ".csv";
 								m.fileName += ".csv";
 								log.fine("%%%%%: Referencing: " + physicalFilePath);
-							} else if (m.type.equals("sharepoint")) {
+							} else if (OrgCachedResource.isCachedType(m.type)) {
 								physicalFilePath = logicalFilePath;
 								m.fileName += ".csv";
 							} else {

@@ -36,15 +36,31 @@
     <Valve className="org.apache.catalina.valves.CometConnectionManagerValve" />
     -->
 
+    <!--
+      Connection pools.
+
+      These defaults suit the install this file is written for: a small server, around 2GB
+      of memory, with postgres on the same machine.  A larger deployment raises maxActive,
+      and one with the database on another host should also read the note below the second
+      pool about socket timeouts.
+
+      Every value here that ends a wait is deliberate.  A pool left to wait forever does not
+      fail when it runs out, it stops: request threads park in getConnection with nothing
+      logged, tomcat keeps accepting and spawning more, and the server goes unresponsive
+      while the machine sits idle and the database looks healthy.  Failing a request is
+      recoverable, hanging every request is not.
+    -->
     <Resource name="jdbc/survey_definitions" auth="Container"
     	  factory="org.apache.tomcat.jdbc.pool.DataSourceFactory"
           type="javax.sql.DataSource" driverClassName="org.postgresql.Driver"
-          url="jdbc:postgresql://127.0.0.1:5432/survey_definitions"
+          url="jdbc:postgresql://127.0.0.1:5432/survey_definitions?reWriteBatchedInserts=true"
           username="ws" password="ws1234" maxActive="60" maxIdle="10"
-          logAbandoned="false"
-          removeAbandoned="false"
+
+          maxWait="20000"
+          removeAbandoned="true"
           removeAbandonedTimeout="600"
-          maxWait="-1"
+          logAbandoned="true"
+
           testOnBorrow="true"
           testWhileIdle="true"
           validationQuery="SELECT 1"
@@ -56,17 +72,50 @@
     <Resource name="jdbc/results" auth="Container"
           factory="org.apache.tomcat.jdbc.pool.DataSourceFactory"
           type="javax.sql.DataSource" driverClassName="org.postgresql.Driver"
-          url="jdbc:postgresql://127.0.0.1:5432/results"
+          url="jdbc:postgresql://127.0.0.1:5432/results?reWriteBatchedInserts=true"
           username="ws" password="ws1234" maxActive="60" maxIdle="10"
-          logAbandoned="false"
-          removeAbandoned="false"
+
+          maxWait="20000"
+          removeAbandoned="true"
           removeAbandonedTimeout="600"
-          maxWait="-1"
+          logAbandoned="true"
+
           testOnBorrow="true"
           testWhileIdle="true"
           validationQuery="SELECT 1"
           validationInterval="30000"
           timeBetweenEvictionRunsMillis="30000"
           minEvictableIdleTimeMillis="60000"/>
+
+    <!--
+      What each of the above does, since getting one of them wrong takes the server down
+      rather than slowing it:
+
+      maxWait               How long a request waits for a free connection before giving up.
+                            -1 means forever, which is how a pool that has run out takes the
+                            whole server with it.  20 seconds is longer than any healthy
+                            request needs and short enough that the server recovers by itself
+                            once the pressure passes.
+
+      removeAbandoned       Reclaim a connection borrowed and never returned.  Without this a
+      removeAbandonedTimeout leak is permanent and only a restart clears it.  Ten minutes is
+      logAbandoned          well beyond any web request, so nothing legitimate is reclaimed,
+                            and logAbandoned records the stack that borrowed it, which is what
+                            identifies the code at fault.
+
+      testOnBorrow          Check a connection is alive before handing it out, and check idle
+      testWhileIdle         ones periodically.  Cheap against a local database, and without it
+      validationQuery       a connection the database has closed is handed to a request that
+                            then blocks on it.
+
+      For a database on another host, add socket level timeouts to the url as well, since a
+      connection killed by a failover or a network drop is otherwise read from until tcp
+      gives up, which can be hours:
+
+        ...&amp;connectTimeout=10&amp;socketTimeout=300&amp;tcpKeepAlive=true
+
+      Keep socketTimeout comfortably longer than the slowest export, it is a per read
+      timeout and will cut off a long running query that has yet to return a row.
+    -->
 
 </Context>

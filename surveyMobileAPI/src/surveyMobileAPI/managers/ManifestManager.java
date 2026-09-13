@@ -15,6 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.core.Context;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.OrgCachedResource;
 import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.ServerConfig;
@@ -130,9 +131,19 @@ public class ManifestManager {
 				if(m.type.equals("linked")) {
 					ExternalFileManager efm = new ExternalFileManager(null);
 					CustomUserReference cur = GeneralUtilityMethods.hasCustomUserReferenceData(sd, m.linkedSurveyIdent);
-					filepath = efm.getLinkedPhysicalFilePath(sd, 
-							efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent, user, cur.needCustomFile()), m.fileName)) 
+					filepath = efm.getLinkedPhysicalFilePath(sd,
+							efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent, user, cur.needCustomFile()), m.fileName))
 							+ ".csv";
+					m.fileName += ".csv";
+				} else if(OrgCachedResource.isCachedType(m.type)) {
+					/*
+					 * Reference data cached at organisation level, from SharePoint or DHIS2.
+					 * Field Task gets these through its own refresh, but they belong in the
+					 * standard manifest too so that any JavaRosa client can use them
+					 */
+					ExternalFileManager efm = new ExternalFileManager(null);
+					int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
+					filepath = efm.ensureOrgCachedFile(sd, oId, m.fileName, basepath);
 					m.fileName += ".csv";
 				} else {
 					filepath = m.filePath;

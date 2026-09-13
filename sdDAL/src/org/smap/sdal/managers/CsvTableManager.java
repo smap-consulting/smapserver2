@@ -26,6 +26,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.CSVParser;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.OrgCachedResource;
 import org.smap.sdal.model.CsvTable;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.CsvHeader;
@@ -89,19 +90,41 @@ public class CsvTableManager {
 	private final int ADD_ENTRY = 1;
 	private final int UPDATE_ENTRY = 2;
 	private final int DELETE_ENTRY = 3;
+
+	private static final int BATCH_SIZE = 1000;		// Rows sent to the database per round trip when loading
 	
 	private String sqlGetCsvTable = "select id, headers from csvtable where o_id = ? and s_id = ? and filename = ?";
+
+	/*
+	 * Organisation cached resources are registered without the .csv suffix, so a lookup by the
+	 * suffixed name would miss the real entry.  Applied everywhere csvtable is searched by name
+	 */
+	private static String forLookup(String fileName) {
+		return OrgCachedResource.isCached(fileName) ? OrgCachedResource.baseName(fileName) : fileName;
+	}
 	
 	/*
 	 * Constructor to create a table to hold the CSV data if it does not already exist
 	 */
 	public CsvTableManager(Connection sd, ResourceBundle l, int oId, int sId, String fileName)
 			throws Exception {
-		
+
 		this.sd = sd;
 		this.localisation = l;
 		parser = new CSVParser(localisation);
-		
+
+		/*
+		 * An organisation cached resource is registered without the .csv suffix
+		 *
+		 * This constructor creates a registry entry when it does not find one, so a caller
+		 * asking by the suffixed name used to mint a second entry that no sync would ever
+		 * populate.  Any lookup against it then failed on a table that was never created.
+		 * Normalising here fixes every caller at once
+		 */
+		if(OrgCachedResource.isCached(fileName)) {
+			fileName = OrgCachedResource.baseName(fileName);
+		}
+
 		Type headersType = new TypeToken<ArrayList<CsvHeader>>() {}.getType();
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		
@@ -209,7 +232,15 @@ public class CsvTableManager {
 		PreparedStatement pstmtCreateSeq = null;
 		PreparedStatement pstmtCreateTable = null;
 		PreparedStatement pstmtAlterColumn = null;
-		
+
+		/*
+		 * The whole load runs in one transaction.  Without this each row is committed separately,
+		 * so a load that fails part way leaves a live table holding some of the rows and lookups
+		 * against it quietly return incomplete results
+		 */
+		boolean autoCommit = sd.getAutoCommit();
+		sd.setAutoCommit(false);
+
 		try {
 			// Open the files
 			FileReader readerNew = new FileReader(newFile);
@@ -238,13 +269,13 @@ public class CsvTableManager {
 			if(!tableExists) {
 				// Create the key sequence
 				String sequenceName = fullTableName + "_seq";
-				StringBuffer sqlCreate = new StringBuffer("create sequence ").append(sequenceName).append(" start 1");
+				/*
+				 * "if not exists" rather than catching the error.  Inside a transaction a swallowed
+				 * error still aborts the transaction, and every statement after it fails
+				 */
+				StringBuffer sqlCreate = new StringBuffer("create sequence if not exists ").append(sequenceName).append(" start 1");
 				pstmtCreateSeq = sd.prepareStatement(sqlCreate.toString());
-				try { 
-					pstmtCreateSeq.executeUpdate();
-				} catch(Exception e) {
-					log.fine(e.getMessage());  // Ignore error
-				}
+				pstmtCreateSeq.executeUpdate();
 				
 						// Create the table
 				sqlCreate = new StringBuffer("create table ").append(fullTableName).append("(");
@@ -291,9 +322,9 @@ public class CsvTableManager {
 			/*
 			 * 3. Upload the data
 			 */
-			truncate();
+			deleteAllRows();
 			insert(listNew, headers.size(), newFile.getName());
-			updateInitialisationTimetamp();	
+			updateInitialisationTimetamp();
 			
 			/*
 			 * 4. Delete any columns that are no longer used
@@ -320,8 +351,14 @@ public class CsvTableManager {
 					}
 				}
 			}
-			
+
+			sd.commit();
+
+		} catch(Exception e) {
+			try { sd.rollback(); } catch(Exception ex) { log.log(Level.SEVERE, "Rollback failed", ex); }
+			throw e;
 		} finally {
+			try { sd.setAutoCommit(autoCommit); } catch(Exception e) { log.log(Level.SEVERE, "Restoring autocommit", e); }
 			if(pstmtCreateSeq != null) {try{pstmtCreateSeq.close();} catch(Exception e) {}}
 			if(pstmtCreateTable != null) {try{pstmtCreateTable.close();} catch(Exception e) {}}
 			if(pstmtAlterColumn != null) {try{pstmtAlterColumn.close();} catch(Exception e) {}}
@@ -338,6 +375,7 @@ public class CsvTableManager {
 			ArrayList<String> matches,
 			ArrayList<KeyValueSimp> wfFilters) throws SQLException, ApplicationException {
 		
+		fileName = forLookup(fileName);
 		ArrayList<Option> choices = null;
 		
 		PreparedStatement pstmtGetCsvTable = null;	
@@ -378,6 +416,7 @@ public class CsvTableManager {
 	public ArrayList<HashMap<String, String>> lookup(int oId, int sId, String fileName, String key_column, 
 			String key_value, String expression, String tz, String selection, ArrayList<String> arguments) throws SQLException, ApplicationException {
 		
+		fileName = forLookup(fileName);
 		ArrayList<HashMap<String, String>> records = null;
 		
 		PreparedStatement pstmtGetCsvTable = null;	
@@ -418,6 +457,7 @@ public class CsvTableManager {
 			ArrayList<String> arguments,
 			SqlFrag expressionFrag) throws SQLException, ApplicationException {
 		
+		fileName = forLookup(fileName);
 		ArrayList<SelectChoice> choices = null;
 
 		PreparedStatement pstmtGetCsvTable = null;	
@@ -480,6 +520,14 @@ public class CsvTableManager {
 		PreparedStatement pstmtCreateTable = null;
 		PreparedStatement pstmtAlterColumn = null;
 
+		/*
+		 * The whole load runs in one transaction.  Without this each row is committed separately,
+		 * so a load that fails part way leaves a live table holding some of the rows and lookups
+		 * against it quietly return incomplete results
+		 */
+		boolean autoCommit = sd.getAutoCommit();
+		sd.setAutoCommit(false);
+
 		try {
 			// Derive column names from the keys of the first row
 			List<String> colNames = new ArrayList<>(rows.get(0).keySet());
@@ -495,9 +543,13 @@ public class CsvTableManager {
 			boolean tableExists = GeneralUtilityMethods.tableExistsInSchema(sd, tableName, schema);
 			if(!tableExists) {
 				String sequenceName = fullTableName + "_seq";
+				/*
+				 * "if not exists" rather than catching the error.  Inside a transaction a swallowed
+				 * error still aborts the transaction, and every statement after it fails
+				 */
 				pstmtCreateSeq = sd.prepareStatement(
-						"create sequence " + sequenceName + " start 1");
-				try { pstmtCreateSeq.executeUpdate(); } catch(Exception e) { log.fine(e.getMessage()); }
+						"create sequence if not exists " + sequenceName + " start 1");
+				pstmtCreateSeq.executeUpdate();
 
 				StringBuilder sqlCreate = new StringBuilder("create table ")
 						.append(fullTableName).append("(");
@@ -534,18 +586,25 @@ public class CsvTableManager {
 			}
 			sqlInsert.append(") values (").append(params).append(")");
 
-			truncate();
+			deleteAllRows();
 
 			PreparedStatement pstmtInsert = null;
 			try {
 				pstmtInsert = sd.prepareStatement(sqlInsert.toString());
+				int batched = 0;
 				for(Map<String, String> row : rows) {
 					int idx = 1;
 					for(CsvHeader h : headers) {
 						String val = row.get(h.fName);
 						pstmtInsert.setString(idx++, val != null ? val.trim() : "");
 					}
-					pstmtInsert.executeUpdate();
+					pstmtInsert.addBatch();
+					if(++batched % BATCH_SIZE == 0) {
+						pstmtInsert.executeBatch();
+					}
+				}
+				if(batched % BATCH_SIZE != 0) {
+					pstmtInsert.executeBatch();
 				}
 			} finally {
 				if(pstmtInsert != null) { try { pstmtInsert.close(); } catch(Exception e) {} }
@@ -553,7 +612,13 @@ public class CsvTableManager {
 
 			updateInitialisationTimetamp();
 
+			sd.commit();
+
+		} catch(Exception e) {
+			try { sd.rollback(); } catch(Exception ex) { log.log(Level.SEVERE, "Rollback failed", ex); }
+			throw e;
 		} finally {
+			try { sd.setAutoCommit(autoCommit); } catch(Exception e) { log.log(Level.SEVERE, "Restoring autocommit", e); }
 			if(pstmtCreateSeq   != null) { try { pstmtCreateSeq.close();   } catch(Exception e) {} }
 			if(pstmtCreateTable != null) { try { pstmtCreateTable.close(); } catch(Exception e) {} }
 			if(pstmtAlterColumn != null) { try { pstmtAlterColumn.close(); } catch(Exception e) {} }
@@ -564,6 +629,48 @@ public class CsvTableManager {
 	 * Write all rows from the csv.csvN table to a physical CSV file on disk.
 	 * Used to materialise SharePoint cache data for FieldTask download.
 	 */
+	/*
+	 * The first few rows of the table, for showing what a cached resource actually holds
+	 *
+	 * Useful where the columns are generated rather than chosen, as they are for a DHIS2
+	 * hierarchy, because the names depend on the client's own level and group set names and
+	 * cannot be guessed when writing a choice filter
+	 */
+	public ArrayList<ArrayList<String>> getSampleRows(int limit) throws SQLException {
+
+		ArrayList<ArrayList<String>> rows = new ArrayList<>();
+		if(headers == null || headers.isEmpty()) {
+			return rows;
+		}
+
+		StringBuilder sqlSelect = new StringBuilder("select ");
+		for(int i = 0; i < headers.size(); i++) {
+			if(i > 0) sqlSelect.append(",");
+			sqlSelect.append(headers.get(i).tName);
+		}
+		sqlSelect.append(" from ").append(fullTableName)
+			.append(" order by ").append(PKCOL).append(" limit ?");
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sqlSelect.toString());
+			pstmt.setInt(1, limit);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				ArrayList<String> row = new ArrayList<>();
+				for(CsvHeader h : headers) {
+					String v = rs.getString(h.tName);
+					row.add(v == null ? "" : v);
+				}
+				rows.add(row);
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+
+		return rows;
+	}
+
 	public void writeCsvFile(File f) throws Exception {
 		if(headers == null || headers.isEmpty()) {
 			return;
@@ -818,6 +925,20 @@ public class CsvTableManager {
 				}
 			}
 		} catch (Exception e) {
+			/*
+			 * A registry entry whose table was never created, or was dropped, costs this question
+			 * its choices and nothing more
+			 *
+			 * It used to throw, and the throw escaped as far as notifyForSubmission, so a single
+			 * dangling reference stopped every notification for that submission including the
+			 * DHIS2 export.  One stale choice list is not a reason to stop processing data
+			 */
+			if(isMissingTable(e)) {
+				log.log(Level.WARNING, "No table behind csv file '" + filename
+						+ "' (" + fullTableName + "), returning no choices. "
+						+ "The resource it came from has probably been deleted.");
+				return choices;
+			}
 			log.log(Level.SEVERE, e.getMessage(), e);
 			throw new ApplicationException("Error getting choices from csv file: " + filename + " " + e.getMessage());
 		} finally {
@@ -825,7 +946,22 @@ public class CsvTableManager {
 		}
 		return choices;
 	}
-	
+
+	/*
+	 * PostgreSQL undefined_table.  Matched on SQLState rather than on the message, which is
+	 * localised and would stop matching on a non English server
+	 */
+	private boolean isMissingTable(Exception e) {
+		Throwable t = e;
+		while(t != null) {
+			if(t instanceof SQLException && "42P01".equals(((SQLException) t).getSQLState())) {
+				return true;
+			}
+			t = t.getCause();
+		}
+		return false;
+	}
+
 	/*
 	 * Read data records from a csv table
 	 */
@@ -1238,12 +1374,16 @@ public class CsvTableManager {
 	}
 	
 	/*
-	 * Truncate the csv table
+	 * Empty the table as part of a load that is running inside a transaction
+	 * Delete is used rather than truncate.  Truncate takes an exclusive lock that is held until the
+	 * transaction commits, which would block every lookup against this table for the length of the
+	 * load.  With delete the readers stay on the existing rows until the commit swaps them for the
+	 * new ones, so a lookup sees either the complete old table or the complete new one
 	 */
-	private void truncate() throws SQLException {
-		String sql = "truncate " + fullTableName;
+	private void deleteAllRows() throws SQLException {
+		String sql = "delete from " + fullTableName;
 		PreparedStatement pstmt = null;
-		
+
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.executeUpdate();
@@ -1285,6 +1425,7 @@ public class CsvTableManager {
 		try {
 			pstmt = sd.prepareStatement(sql.toString());
 			int idx = 0;
+			int batched = 0;
 			for(String[] data : records) {
 				if(data.length > 0) {
 					for(int i = 0; i < headerSize; i++) {
@@ -1299,10 +1440,16 @@ public class CsvTableManager {
 						log.fine("Insert first record of csv values: " + pstmt.toString());
 						log.fine("Number of records: " + records.size());
 					}
-					pstmt.executeUpdate();
+					pstmt.addBatch();
+					if(++batched % BATCH_SIZE == 0) {
+						pstmt.executeBatch();
+					}
 				}
 			}
-			
+			if(batched % BATCH_SIZE != 0) {
+				pstmt.executeBatch();
+			}
+
 		} finally {
 			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
 		}

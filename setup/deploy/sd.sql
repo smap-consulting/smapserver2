@@ -604,6 +604,128 @@ on conflict (token_hash) do nothing;
 -- The dynamic user keys used by webform links and task assignments were also unindexed
 create index if not exists idx_dynamic_users_key on dynamic_users(access_key);
 
+-- Version 26.09 DHIS2 connections
+-- Held per organisation rather than per server so that one tenant can never write into
+-- another tenant's DHIS2.  A tenant may have more than one, for example staging and production
+CREATE SEQUENCE IF NOT EXISTS dhis2_server_seq START 1;
+ALTER SEQUENCE dhis2_server_seq OWNER TO ws;
+
+CREATE TABLE IF NOT EXISTS dhis2_server (
+	id integer DEFAULT nextval('dhis2_server_seq') NOT NULL PRIMARY KEY,
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	label text NOT NULL,					-- Shown when choosing a connection
+	base_url text NOT NULL,					-- Root of the DHIS2 instance, no trailing /api
+	api_token text,							-- DHIS2 personal access token, sent as "ApiToken <token>"
+	api_version text,						-- Optional version pin, eg "42".  Null uses the default
+	last_tested TIMESTAMP WITH TIME ZONE,
+	last_test_result text,					-- Summary of the last connection test
+	enabled boolean DEFAULT true
+	);
+CREATE INDEX IF NOT EXISTS dhis2_server_org_idx ON dhis2_server(o_id);
+ALTER TABLE dhis2_server OWNER TO ws;
+
+-- Version 26.09 DHIS2 reference data sync
+-- Each row is one DHIS2 resource cached as an organisation level CSV, referenced in a form as
+-- "dhis2_{smap_name}".  Mirrors sharepoint_list_map, which does the same job for SharePoint lists
+CREATE SEQUENCE IF NOT EXISTS dhis2_map_seq START 1;
+ALTER SEQUENCE dhis2_map_seq OWNER TO ws;
+
+CREATE TABLE IF NOT EXISTS dhis2_map (
+	id integer DEFAULT nextval('dhis2_map_seq') NOT NULL PRIMARY KEY,
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	dhis2_server_id integer REFERENCES dhis2_server(id) ON DELETE CASCADE,
+	smap_name text NOT NULL,				-- Referenced in a form as "dhis2_{smap_name}"
+	resource_type text NOT NULL,			-- orgunits | optionset | programs
+	dhis2_ref text,							-- The uid or code of the object, for a single object type
+	ou_filter text,							-- Optional org unit subtree, the uid of the root to sync
+	refresh_minutes integer DEFAULT 1440,	-- Metadata changes slowly, a day is plenty
+	last_sync TIMESTAMP WITH TIME ZONE,
+	last_sync_result text,
+	row_count integer,
+	csv_table_id integer REFERENCES csvtable(id) ON DELETE SET NULL,
+	enabled boolean DEFAULT true
+	);
+CREATE INDEX IF NOT EXISTS dhis2_map_org_idx ON dhis2_map(o_id);
+CREATE UNIQUE INDEX IF NOT EXISTS dhis2_map_name_idx ON dhis2_map(o_id, smap_name);
+ALTER TABLE dhis2_map OWNER TO ws;
+
+-- One DHIS2 connection per organisation.  A test setup belongs in its own organisation rather
+-- than as a second connection, which keeps every screen that follows free of a picker
+CREATE UNIQUE INDEX IF NOT EXISTS dhis2_server_org_unique ON dhis2_server(o_id);
+
+-- One DHIS2 connection per organisation, so a resource does not need to name one.  The
+-- connection is found from the organisation, and a second copy of the link could only drift
+alter table dhis2_map drop column if exists dhis2_server_id;
+
+-- Version 26.09 DHIS2 metadata cache
+-- Configuration time metadata, read by the mapping screens rather than by a form, so it is
+-- cached here rather than in the csv schema.  The payload holds the object as DHIS2 returned
+-- it, which avoids modelling DHIS2's own structure a second time
+CREATE SEQUENCE IF NOT EXISTS dhis2_metadata_seq START 1;
+ALTER SEQUENCE dhis2_metadata_seq OWNER TO ws;
+
+CREATE TABLE IF NOT EXISTS dhis2_metadata (
+	id integer DEFAULT nextval('dhis2_metadata_seq') NOT NULL PRIMARY KEY,
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	object_type text NOT NULL,				-- dataset | program
+	uid text NOT NULL,						-- The DHIS2 identifier
+	code text,
+	name text,
+	payload jsonb,							-- Null until the detail has been fetched
+	last_fetched TIMESTAMP WITH TIME ZONE,	-- When the detail was last read, null if never
+	last_listed TIMESTAMP WITH TIME ZONE
+	);
+CREATE INDEX IF NOT EXISTS dhis2_metadata_org_idx ON dhis2_metadata(o_id, object_type);
+CREATE UNIQUE INDEX IF NOT EXISTS dhis2_metadata_uid_idx ON dhis2_metadata(o_id, object_type, uid);
+ALTER TABLE dhis2_metadata OWNER TO ws;
+
+-- Version 26.09 DHIS2 aggregate export
+-- Held at bundle level, keyed on group_survey_ident, because surveys in a bundle share data
+-- tables so a question name means the same thing across them.  Bound on question NAME rather
+-- than question id, so a mapping survives an XLSForm replacement as every other Smap rule does
+CREATE SEQUENCE IF NOT EXISTS dhis2_export_seq START 1;
+ALTER SEQUENCE dhis2_export_seq OWNER TO ws;
+
+CREATE TABLE IF NOT EXISTS dhis2_export (
+	id integer DEFAULT nextval('dhis2_export_seq') NOT NULL PRIMARY KEY,
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	group_survey_ident text NOT NULL,		-- The bundle this export belongs to
+	dataset_uid text NOT NULL,				-- The DHIS2 data set values are written to
+	dataset_name text,						-- Held for display, refreshed with the metadata cache
+	period_type text,						-- Monthly | Weekly | Quarterly | Yearly | Daily
+	period_question text,					-- Question name supplying the period, null uses upload time
+	orgunit_question text NOT NULL,			-- Question name holding the DHIS2 org unit code
+	enabled boolean DEFAULT true,
+	last_export TIMESTAMP WITH TIME ZONE,
+	last_export_result text
+	);
+CREATE INDEX IF NOT EXISTS dhis2_export_org_idx ON dhis2_export(o_id);
+CREATE UNIQUE INDEX IF NOT EXISTS dhis2_export_bundle_idx ON dhis2_export(o_id, group_survey_ident, dataset_uid);
+ALTER TABLE dhis2_export OWNER TO ws;
+
+CREATE SEQUENCE IF NOT EXISTS dhis2_export_item_seq START 1;
+ALTER SEQUENCE dhis2_export_item_seq OWNER TO ws;
+
+CREATE TABLE IF NOT EXISTS dhis2_export_item (
+	id integer DEFAULT nextval('dhis2_export_item_seq') NOT NULL PRIMARY KEY,
+	e_id integer REFERENCES dhis2_export(id) ON DELETE CASCADE,
+	question_name text,						-- Null when counting records rather than a question
+	aggregation text NOT NULL,				-- one | count | sum
+	data_element text NOT NULL,				-- DHIS2 data element code
+	category_option_combo text,				-- Optional, required where the element is disaggregated
+	seq integer DEFAULT 0
+	);
+CREATE INDEX IF NOT EXISTS dhis2_export_item_idx ON dhis2_export_item(e_id);
+ALTER TABLE dhis2_export_item OWNER TO ws;
+
+-- Version 26.09 DHIS2 scheduled export
+-- An export that has been proved by hand can then run unattended.  Periods back exists because
+-- a submission for last month often arrives this month, and re-sending a period corrects it
+alter table dhis2_export add column if not exists auto_export boolean default false;
+alter table dhis2_export add column if not exists schedule_minutes integer default 1440;
+alter table dhis2_export add column if not exists periods_back integer default 1;
+alter table dhis2_export add column if not exists last_auto_export TIMESTAMP WITH TIME ZONE;
+
 -- The message queue is dequeued with "order by time_inserted asc limit 1 for update skip
 -- locked", which sorted the whole table for every message taken off it.  Unnoticeable on an
 -- empty queue, expensive once a backlog builds up, which is exactly when it matters.
@@ -614,6 +736,28 @@ create index if not exists message_queue_time_inserted_idx on message_queue(time
 -- drained rather than leaving it looking like a broken subscriber.
 alter table subscriber_worker add column if not exists email_paused_until timestamptz;
 alter table subscriber_worker add column if not exists email_paused_reason text;
+
+-- Version 26.09 DHIS2 slices whose last send failed
+-- Holds the slice, never the action.  A queued removal replayed later would delete data that
+-- had since been restored, so a retry rebuilds the slice from the current records and sends
+-- whatever that now says: values if any remain, a removal if none do
+DROP SEQUENCE IF EXISTS dhis2_export_retry_seq CASCADE;
+CREATE SEQUENCE dhis2_export_retry_seq START 1;
+ALTER SEQUENCE dhis2_export_retry_seq OWNER TO ws;
+
+CREATE TABLE IF NOT EXISTS dhis2_export_retry (
+	id integer DEFAULT nextval('dhis2_export_retry_seq') NOT NULL PRIMARY KEY,
+	e_id integer REFERENCES dhis2_export(id) ON DELETE CASCADE,
+	period text NOT NULL,
+	org_unit text NOT NULL,
+	first_failed TIMESTAMP WITH TIME ZONE DEFAULT now(),
+	last_attempt TIMESTAMP WITH TIME ZONE,
+	attempts integer DEFAULT 0,
+	last_error text
+	);
+CREATE UNIQUE INDEX IF NOT EXISTS dhis2_export_retry_idx
+	ON dhis2_export_retry(e_id, period, org_unit);
+ALTER TABLE dhis2_export_retry OWNER TO ws;
 
 -- A message that cannot be sent for a reason that may pass is put back on the queue, which
 -- left one whose reason never passes going round for ever: never reported, and holding a

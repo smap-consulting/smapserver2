@@ -39,6 +39,8 @@ import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.ServerManager;
+import org.smap.sdal.managers.Dhis2ExportManager;
+import org.smap.sdal.managers.Dhis2MapManager;
 import org.smap.sdal.managers.SharePointListMapManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
@@ -398,6 +400,8 @@ public class SubscriberBatch {
 				applyPeriodicNotifications(dbc.sd, dbc.results, basePath, serverName);
 				applyServerCalculateNotifications(dbc.sd, dbc.results, basePath, serverName);
 				syncSharePointLists(dbc.sd, localisation);
+				syncDhis2Resources(dbc.sd, localisation);
+				exportDhis2Data(dbc.sd, dbc.results);
 				
 				// Delete linked csv files logically deleted more than 10 minutes age
 				deleteOldLinkedCSVFiles(dbc.sd, dbc.results, localisation, basePath);
@@ -2588,6 +2592,39 @@ public class SubscriberBatch {
 			new SharePointListMapManager().syncDue(sd, serverData, localisation);
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "SharePoint list sync error: " + e.getMessage(), e);
+		}
+	}
+
+	/*
+	 * Send any DHIS2 export that is due to run unattended
+	 * Only exports switched on for it run here, so a mapping is proved by hand first
+	 */
+	private void exportDhis2Data(Connection sd, Connection cResults) {
+		try {
+			/*
+			 * Slices whose last send failed are retried regardless of any schedule, because a
+			 * mapping with automatic sending switched off would otherwise have no way back
+			 */
+			new Dhis2ExportManager().retryPendingSlices(sd, cResults);
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "DHIS2 retry error: " + e.getMessage(), e);
+		}
+		try {
+			new Dhis2ExportManager().exportDue(sd, cResults);
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "DHIS2 export error: " + e.getMessage(), e);
+		}
+	}
+
+	/*
+	 * Refresh any DHIS2 reference data whose cache has expired
+	 * Each organisation holds its own connection, so there is nothing server wide to check first
+	 */
+	private void syncDhis2Resources(Connection sd, ResourceBundle localisation) {
+		try {
+			new Dhis2MapManager().syncDue(sd, localisation);
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "DHIS2 reference data sync error: " + e.getMessage(), e);
 		}
 	}
 }
