@@ -16,9 +16,12 @@ import org.smap.sdal.model.MCPToolResult;
 /*
  * Withdraw an application's access.
  *
- * Revokes every live token it holds for that person and forgets the remembered consent, so it has to
- * ask from the beginning rather than quietly picking up where it left off.  Both halves matter: the
- * tokens alone would let a remembered consent hand out a new one without anybody being asked.
+ * Revokes every live token it holds for that person, and clears the consent record with them.
+ *
+ * The consent record is not what lets an application back in - the form is shown every time, for every
+ * scope, because nothing consults the record.  It is cleared anyway so that what is stored matches
+ * what is true, but the honest description of this tool is that it stops the tokens.  Coming back
+ * means being authorised again by a person either way.
  *
  * It takes effect at once.  A token is checked on every request, so an application loses access
  * mid-conversation rather than at the end of one - which is the point, since this is the tool
@@ -44,9 +47,9 @@ public class TokenRevokeTool extends AbstractMcpTool {
 	@Override
 	public String getDescription() {
 		return "Withdraws an application's access for one person: every token it holds stops "
-				+ "working immediately and the remembered permission is forgotten, so it has to ask "
-				+ "again from the beginning. Use token_list to find the application. If you revoke "
-				+ "the application you are speaking through, this conversation ends.";
+				+ "working immediately, so it has to be authorised again by a person before it can "
+				+ "do anything. Use token_list to find the application. If you revoke the "
+				+ "application you are speaking through, this conversation ends.";
 	}
 
 	@Override
@@ -131,8 +134,8 @@ public class TokenRevokeTool extends AbstractMcpTool {
 
 		if(revoked == 0) {
 			return new MCPToolResult("That application had no live access as " + username
-					+ ", so nothing was withdrawn. Any remembered permission has been forgotten "
-					+ "anyway, so it will ask again if it comes back.", false);
+					+ ", so there was nothing to stop. If it comes back it will have to be "
+					+ "authorised by a person, as it would have been anyway.", false);
 		}
 
 		Map<String, Object> data = new LinkedHashMap<>();
@@ -144,8 +147,8 @@ public class TokenRevokeTool extends AbstractMcpTool {
 
 		StringBuilder text = new StringBuilder();
 		text.append("Withdrew that application's access as ").append(username).append(". ")
-				.append(revoked).append(" token(s) stopped working, and the remembered permission "
-						+ "is forgotten, so it has to ask again from the beginning.");
+				.append(revoked).append(" token(s) stopped working immediately, so it can do nothing "
+						+ "until a person authorises it again.");
 		if(itsMe) {
 			text.append("\n\n**That was the application you are speaking through.** This "
 					+ "conversation has just lost its access and will need authorising again.");

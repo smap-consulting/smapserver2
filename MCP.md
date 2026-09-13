@@ -827,6 +827,41 @@ Completion now asks what kind of reference it is being completed for. It was ans
 from the resource templates, so a prompt argument expecting a project name would have been offered
 survey idents.
 
+## What the security review changed
+
+Three findings, all fixed. The rest of the authorisation server held up: tokens are 32 random bytes
+stored as sha256, refresh is single use with chain revocation on replay, codes are single use and
+bound to client and redirect, PKCE is S256 only and compared in constant time, redirect uris are
+matched exactly and tied to the client id's origin, and the consent form's CSRF token is a MAC over
+user, client and expiry. Confirmation handles are consumed with `delete ... returning`, so redemption
+is atomic. Every identifier interpolated into SQL comes from the schema, never from a caller.
+
+**A valid token had no rate limit at all.** `TokenThrottle` counts failures, which is right for
+somebody working through token values and no use here - a valid token fails nothing. Every call is a
+query or several; `dsar_find` runs one per personal data column per form. So an authenticated client
+could spend the server without ever presenting a bad credential, and the realistic cause is not an
+attacker but an agent that retries or loops a call per row.
+
+`McpCallThrottle` now caps one token at 120 calls a minute, or the server's API rate if that is
+lower. Generous on purpose: this interface is interactive, so 120 is already far past what a person
+can read, and anything reaching the ceiling has stopped being a conversation. Keyed on the token
+rather than the address, so one runaway client cannot exhaust everybody behind the same proxy.
+
+**Remembered consent was recorded and never read.** `getConsentedScope` has no callers, so the form
+is shown every time for every scope - which is the safer behaviour, but two places said otherwise.
+The form's "you will be asked about this every time" beside `smap:access` implied the others were
+remembered, and `token_revoke` promised to forget a remembered permission "so it has to ask from the
+beginning". Neither distinction existed. The form now says plainly that nothing is remembered on
+anybody's behalf, and the `smap:access` note says what that scope actually does instead of how often
+it is asked. `token_revoke` now describes what it really achieves: it stops the tokens.
+
+Worth keeping in view: this was security-relevant copy telling somebody deciding whether to revoke
+something untrue. Nothing was exploitable, and the fix is still a fix.
+
+**The redirect binding at token exchange was skippable.** `if(redirectUri != null && ...)` meant a
+client that omitted the parameter skipped the check - the binding could be opted out of by the party
+it constrains, which is not a check. It is now driven by what the grant recorded.
+
 ## What happened, and how things stand
 
 `event_list` is the organisation's log - surveys created and changed, users added, errors, refused

@@ -545,7 +545,13 @@ public class OAuthManager {
 				log.warning("Authorization code presented by the wrong client");
 				return null;
 			}
-			if(redirectUri != null && !redirectUri.equals(rs.getString("redirect_uri"))) {
+			/*
+			 * Checked whenever the grant recorded one, rather than only when the client bothers to
+			 * send it back.  Skipping the check for a client that omits the parameter lets the
+			 * binding be opted out of by the party it constrains, which is not a check.
+			 */
+			String boundRedirect = rs.getString("redirect_uri");
+			if(boundRedirect != null && !boundRedirect.equals(redirectUri)) {
 				log.warning("Authorization code redeemed against a different redirect uri");
 				return null;
 			}

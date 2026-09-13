@@ -46,6 +46,7 @@ import org.smap.sdal.Utilities.TokenThrottle;
 import org.smap.sdal.managers.OAuthTokenManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.mcp.MCPScope;
+import org.smap.sdal.mcp.McpCallThrottle;
 import org.smap.sdal.mcp.McpDispatcher;
 import org.smap.sdal.mcp.McpProtocol;
 import org.smap.sdal.mcp.McpToolContext;
@@ -286,6 +287,24 @@ public class MCP extends Application {
 			a.isAuthorised(sd, request, user);
 			if(GeneralUtilityMethods.getOrganisationId(sd, user) != token.oId) {
 				return unauthorized(request, "Your organisation has changed, please authorise again");
+			}
+
+			/*
+			 * A ceiling on how fast one token may call.  The failure throttle above never sees a
+			 * valid token, and every call here is a query or several, so without this an
+			 * authenticated client - usually an agent retrying, or looping a call per row - can
+			 * spend the server without presenting a single bad credential.
+			 */
+			if(!McpCallThrottle.consume(token.tokenId, server.ratelimit)) {
+				log.warning("MCP rate limit reached for " + user + " on token " + token.tokenId);
+				return Response.status(429)
+						.header("Retry-After", "60")
+						.entity(gson.toJson(new MCPResponse(null, new MCPError(
+								McpProtocol.INVALID_REQUEST,
+								"Too many calls. This connection is limited to "
+								+ McpCallThrottle.effectiveLimit(server.ratelimit)
+								+ " calls a minute; wait a minute and continue."))))
+						.build();
 			}
 
 			RequestIdentity.fromOauth(request, user, token.scope);

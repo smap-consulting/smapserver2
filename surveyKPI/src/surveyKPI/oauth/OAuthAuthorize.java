@@ -338,12 +338,15 @@ public class OAuthAuthorize extends Application {
 					.append("\" id=\"").append(id).append("\" checked> ")
 					.append(esc(describe(s)));
 			if(MCPScope.isAlwaysReconsented(s)) {
-				h.append(" <span class=\"warn\">You will be asked about this every time.</span>");
+				h.append(" <span class=\"warn\">This one lets it change what people are allowed "
+						+ "to do, including creating and removing accounts.</span>");
 			}
 			h.append("</label></li>");
 		}
 		h.append("</ul>");
-		h.append("<p class=\"note\">It can never do more than your own account is allowed to do.</p>");
+		h.append("<p class=\"note\">It can never do more than your own account is allowed to do. "
+				+ "You will be asked again next time it needs authorising - nothing here is "
+				+ "remembered on your behalf.</p>");
 
 		h.append(hidden("client_id", clientId));
 		h.append(hidden("redirect_uri", redirectUri));

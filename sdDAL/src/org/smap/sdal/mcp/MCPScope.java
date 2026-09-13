@@ -126,8 +126,12 @@ public class MCPScope {
 	}
 
 	/*
-	 * Consent for this scope is never remembered, so granting it is always a deliberate act rather
-	 * than something a returning client picks up silently.
+	 * The scope that needs saying out loud on the consent form.
+	 *
+	 * It was named for a distinction that does not exist: nothing is remembered on anybody's behalf,
+	 * because getConsentedScope has no callers and the form is shown every time for every scope. What
+	 * makes this one different is not how often it is asked but what it does - it changes what people
+	 * are allowed to do - so that is what the form now says.
 	 */
 	public static boolean isAlwaysReconsented(String scope) {
 		return ACCESS.equals(scope);
