@@ -100,21 +100,42 @@ public class ProjectDeleteTool extends AbstractMcpTool {
 		ArrayList<Project> toDelete = new ArrayList<>();
 		toDelete.add(found);
 
+		/*
+		 * deleteProjects commits inside itself and leaves the transaction to its caller to open,
+		 * which both console callers do immediately before calling it.  Without this it fails with
+		 * "Cannot commit when autoCommit is enabled" - an error about the connection that says
+		 * nothing about projects, after the delete has already been attempted.
+		 */
+		boolean autoCommitSetFalse = false;
 		try {
+			if(ctx.sd.getAutoCommit()) {
+				ctx.sd.setAutoCommit(false);
+				autoCommitSetFalse = true;
+			}
 			pm.deleteProjects(ctx.sd, ctx.cResults,
 					new Authorise(null, Authorise.ADMIN),
 					toDelete,
 					ctx.user,
 					GeneralUtilityMethods.getBasePath(ctx.request));
 		} catch (Exception e) {
+			try {ctx.sd.rollback();} catch (Exception ignored) {}
 			/*
 			 * Smap refuses a project that still has surveys, and that refusal is the answer rather
-			 * than a failure of the call.
+			 * than a failure of the call.  Anything else is a failure, and the advice about moving
+			 * surveys is only offered when surveys are what is actually in the way - appended to
+			 * every error it would send somebody to tidy a project that has nothing in it.
 			 */
-			return new MCPToolResult("\"" + found.name + "\" was not deleted: "
-					+ (e.getMessage() == null ? "it could not be removed" : e.getMessage())
-					+ "\n\nMove its surveys to another project with survey_set_settings, or delete "
-					+ "them, and then try again.", true);
+			String message = e.getMessage() == null ? "it could not be removed" : e.getMessage();
+			boolean aboutSurveys = message.toLowerCase().contains("survey");
+			return new MCPToolResult("\"" + found.name + "\" was not deleted: " + message
+					+ (aboutSurveys
+							? "\n\nMove its surveys to another project with survey_set_settings, or "
+									+ "delete them, and then try again."
+							: ""), true);
+		} finally {
+			if(autoCommitSetFalse) {
+				try {ctx.sd.setAutoCommit(true);} catch (Exception ignored) {}
+			}
 		}
 
 		Map<String, Object> data = new LinkedHashMap<>();
