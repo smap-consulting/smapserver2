@@ -15,6 +15,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.model.Role;
@@ -231,6 +232,43 @@ public class RoleManager {
 
 	}
 	
+	/*
+	 * Change a role's name or description, and nothing else.
+	 *
+	 * updateRole finishes by calling setUsersForRole, which deletes every holder of the role before
+	 * looking at the list it was given - and does that even when the list is null.  So renaming a role
+	 * through the ordinary update strips it from everybody who had it.
+	 *
+	 * That failure is invisible.  A role decides which records its holders may see, so the symptom is
+	 * not an error: it is people quietly seeing fewer records, or none, with nothing to connect it to
+	 * the rename.  The console gets away with it because its screen submits the holders back every
+	 * time; a caller that only wanted to fix a spelling does not.
+	 */
+	public void updateRoleDetails(Connection sd, int rId, int oId, String name, String description,
+			String ident) throws Exception {
+
+		String sql = "update role set name = ?, "
+				+ "description = ?, "
+				+ "changed_by = ?, "
+				+ "changed_ts = now() "
+				+ "where o_id = ? "
+				+ "and id = ?";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(name, localisation));
+			pstmt.setString(2, HtmlSanitise.checkCleanName(description, localisation));
+			pstmt.setString(3, ident);
+			pstmt.setInt(4, oId);
+			pstmt.setInt(5, rId);
+			log.fine("Update role details: " + pstmt.toString());
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+	}
+
 	/*
 	 * delete roles
 	 */
@@ -734,38 +772,45 @@ public class RoleManager {
 	}
 	
 	/*
-	 * Return true if a record may be assigned to a user, taking account of record level
-	 * (row filter) RBAC rules on the survey.
+	 * Whether work on a record may be assigned to someone.
 	 *
-	 * Assignment rules in notifications and task groups are written without knowledge of the RBAC
-	 * rules.  Where a rule would assign a record that the assignee is not permitted to see, the
-	 * assignment is dropped and logged.  This is normal operation, not an error, so that every
-	 * rule does not have to duplicate the RBAC rules.  Unassigned records can be found from the
-	 * console.
+	 * The rule: **the person authorising the assignment** must be able to see the record; the
+	 * assignee needs only to be a member of the project the work is in.
 	 *
-	 * Returns true when there is no record to check, that is the task creates a new record rather
-	 * than updating an existing one.  Email task recipients are not checked by this method, they
-	 * have no logon and hence no roles; for those the creator of the assignment is the authority.
+	 * It used to require the assignee to pass the record's row filters as well, and that was the
+	 * wrong test.  A row filter that limits an enumerator to their own submissions is exactly the
+	 * case where assigning them the work is the point: the record is not theirs yet, which is why
+	 * somebody is giving it to them.  Requiring it made those assignments impossible in the console
+	 * and silently dropped them where they were generated automatically - and the record still
+	 * reaches the assignee through the task, so the check bought nothing while breaking the ordinary
+	 * case.
+	 *
+	 * The caller's own access is checked by the caller, which is where the requester is known.  This
+	 * answers only the question about the assignee.
+	 *
+	 * Granting somebody a *reference* to a record is a different act and keeps the stricter test: a
+	 * reference is read access with no work attached, so it must not hand over a record the filters
+	 * were hiding.
 	 */
 	public boolean assignmentAllowed(Connection sd, Connection cResults, String sIdent,
 			String updateId, String assignee, String requester, String tz, String serverName)
 					throws Exception {
 
-		if(updateId == null || updateId.trim().length() == 0 || assignee == null) {
-			return true;		// No record to check
+		if(assignee == null || assignee.trim().length() == 0) {
+			return true;		// Nobody to check
 		}
 
-		String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
-		if(tableName == null) {
-			return true;		// No results table, nothing to check against
+		int pId = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, sIdent);
+		if(pId <= 0) {
+			return true;		// No project to check against
 		}
-
-		if(canAccessRecord(sd, cResults, sIdent, tableName, updateId, assignee, tz)) {
+		if(new Authorise(null, null).isValidProject(sd, assignee, pId)) {
 			return true;
 		}
 
 		/*
-		 * Refused.  Log so that the dropped assignment can be traced
+		 * Refused.  Logged so that a dropped assignment can be traced, as it always was - an
+		 * assignment that quietly does not happen is worse than one that is refused out loud.
 		 */
 		StringBuilder note = new StringBuilder("Assignment of record ")
 				.append(updateId)
@@ -773,7 +818,7 @@ public class RoleManager {
 				.append(sIdent)
 				.append(" to ")
 				.append(assignee)
-				.append(" dropped: the user is not permitted to access this record");
+				.append(" dropped: the user is not a member of the project this work is in");
 		if(requester != null) {
 			note.append(". Requested by ").append(requester);
 		}

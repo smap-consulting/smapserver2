@@ -74,6 +74,15 @@ public class ActionManager {
 	private ResourceBundle localisation;
 	private String tz;
 
+	/*
+	 * The application asking for a change, when it is not a person working directly.
+	 *
+	 * Set on the manager rather than added to processUpdateGroupSurvey, which already takes eleven
+	 * arguments, and so that the fourteen places constructing this class carry on saying what they
+	 * said before and record nothing.
+	 */
+	private String agent = null;
+
 	public ActionManager(ResourceBundle l, String tz) {
 		localisation = l;
 		if (tz == null) {
@@ -81,6 +90,22 @@ public class ActionManager {
 		}
 		this.tz = tz;
 	}
+
+	public ActionManager(ResourceBundle l, String tz, String agent) {
+		this(l, tz);
+		this.agent = agent;
+	}
+
+	/*
+	 * For one record out of many being changed together. Every record the change touches carries the
+	 * same identifier, which is what lets it be undone as one action.
+	 */
+	public ActionManager(ResourceBundle l, String tz, String agent, String changeSet) {
+		this(l, tz, agent);
+		this.changeSet = changeSet;
+	}
+
+	private String changeSet = null;
 
 	/*
 	 * Update a data record from an anonymous form
@@ -698,7 +723,8 @@ public class ActionManager {
 			/*
 			 * save change log
 			 */
-			RecordEventManager rem = new RecordEventManager();
+			/* Records the application beside the person, when something acted for them */
+			RecordEventManager rem = new RecordEventManager(agent, changeSet);
 			String changesJson;
 			if (isSubForm) {
 				ArrayList<SubFormRowChange> subRowChanges = new ArrayList<>();

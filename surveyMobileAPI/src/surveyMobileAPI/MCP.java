@@ -21,9 +21,13 @@ package surveyMobileAPI;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -33,119 +37,437 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RequestIdentity;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.managers.MCPManager;
-import org.smap.sdal.mcp.tools.EchoTool;
-import org.smap.sdal.mcp.tools.GetSurveyDataTool;
-import org.smap.sdal.mcp.tools.GetSurveySubmissionsTool;
-import org.smap.sdal.mcp.tools.ListSurveysTool;
-import org.smap.sdal.mcp.tools.ListTopicsTool;
+import org.smap.sdal.Utilities.TokenThrottle;
+import org.smap.sdal.managers.OAuthTokenManager;
+import org.smap.sdal.managers.ServerManager;
+import org.smap.sdal.mcp.MCPScope;
+import org.smap.sdal.mcp.McpCallThrottle;
+import org.smap.sdal.mcp.McpDispatcher;
+import org.smap.sdal.mcp.McpProtocol;
+import org.smap.sdal.mcp.McpToolContext;
+import org.smap.sdal.mcp.McpToolRegistry;
+import org.smap.sdal.mcp.tools.MailoutListTool;
+import org.smap.sdal.mcp.tools.NotificationCreateTool;
+import org.smap.sdal.mcp.tools.NotificationDeleteTool;
+import org.smap.sdal.mcp.tools.NotificationEnableTool;
+import org.smap.sdal.mcp.tools.NotificationListTool;
+import org.smap.sdal.mcp.tools.ProjectCreateTool;
+import org.smap.sdal.mcp.tools.RoleCreateTool;
+import org.smap.sdal.mcp.tools.RoleDeleteTool;
+import org.smap.sdal.mcp.tools.RoleListTool;
+import org.smap.sdal.mcp.tools.RoleUpdateTool;
+import org.smap.sdal.mcp.tools.ProjectDeleteTool;
+import org.smap.sdal.mcp.tools.ProjectListTool;
+import org.smap.sdal.mcp.tools.ProjectUpdateTool;
+import org.smap.sdal.mcp.tools.GroupListTool;
+import org.smap.sdal.mcp.tools.OrganisationGetTool;
+import org.smap.sdal.mcp.tools.OrganisationUpdateTool;
+import org.smap.sdal.mcp.tools.UserCreateTool;
+import org.smap.sdal.mcp.tools.UserDeleteTool;
+import org.smap.sdal.mcp.tools.UserListTool;
+import org.smap.sdal.mcp.tools.UserSetGroupsTool;
+import org.smap.sdal.mcp.tools.UserSetProjectsTool;
+import org.smap.sdal.mcp.tools.UserSetRolesTool;
+import org.smap.sdal.mcp.tools.UserUpdateTool;
+import org.smap.sdal.mcp.tools.ReferenceFilterListTool;
+import org.smap.sdal.mcp.tools.ReferenceFilterSetTool;
+import org.smap.sdal.mcp.tools.SurveyCreateTool;
+import org.smap.sdal.mcp.tools.SurveyDeleteTool;
+import org.smap.sdal.mcp.tools.SurveyUndeleteTool;
+import org.smap.sdal.mcp.tools.SurveyMediaListTool;
+import org.smap.sdal.mcp.tools.EventListTool;
+import org.smap.sdal.mcp.tools.OpsStatusTool;
+import org.smap.sdal.mcp.tools.DsarFindTool;
+import org.smap.sdal.mcp.tools.ServerInfoTool;
+import org.smap.sdal.mcp.tools.ServerSettingsGetTool;
+import org.smap.sdal.mcp.tools.ServerSettingsSetTool;
+import org.smap.sdal.mcp.tools.UsageReportTool;
+import org.smap.sdal.mcp.tools.CaseAssignTool;
+import org.smap.sdal.mcp.tools.CaseSettingsSetTool;
+import org.smap.sdal.mcp.tools.CaseSettingsTool;
+import org.smap.sdal.mcp.tools.WorkflowListTool;
+import org.smap.sdal.mcp.tools.DataAggregateTool;
+import org.smap.sdal.mcp.tools.DataAttachmentsTool;
+import org.smap.sdal.mcp.tools.DataAuditTool;
+import org.smap.sdal.mcp.tools.DataCountTool;
+import org.smap.sdal.mcp.tools.DataDeleteRecordTool;
+import org.smap.sdal.mcp.tools.DataRestoreRecordTool;
+import org.smap.sdal.mcp.tools.DataSubmitTool;
+import org.smap.sdal.mcp.tools.DataBulkUndoTool;
+import org.smap.sdal.mcp.tools.DataBulkUpdateTool;
+import org.smap.sdal.mcp.tools.DataUpdateRecordTool;
+import org.smap.sdal.mcp.tools.DataGetRecordTool;
+import org.smap.sdal.mcp.tools.DataQueryTool;
+import org.smap.sdal.mcp.tools.SurveyEffectsTool;
+import org.smap.sdal.mcp.tools.SurveyAddQuestionTool;
+import org.smap.sdal.mcp.tools.SurveyCheckTypeChangeTool;
+import org.smap.sdal.mcp.tools.SurveyDeleteQuestionTool;
+import org.smap.sdal.mcp.tools.SurveyGetTool;
+import org.smap.sdal.mcp.tools.SurveyHistoryTool;
+import org.smap.sdal.mcp.tools.SurveyOptionsTool;
+import org.smap.sdal.mcp.tools.SurveyQuestionsTool;
+import org.smap.sdal.mcp.tools.SurveySetSettingsTool;
+import org.smap.sdal.mcp.tools.SurveyListTool;
+import org.smap.sdal.mcp.tools.SurveySubmissionCountTool;
+import org.smap.sdal.mcp.tools.TaskActionTool;
+import org.smap.sdal.mcp.tools.TaskCreateTool;
+import org.smap.sdal.mcp.tools.TaskGroupCreateTool;
+import org.smap.sdal.mcp.tools.TaskGroupListTool;
+import org.smap.sdal.mcp.tools.TaskListTool;
+import org.smap.sdal.mcp.tools.TokenListTool;
+import org.smap.sdal.mcp.tools.TwoFactorResetTool;
+import org.smap.sdal.mcp.tools.TokenRevokeTool;
+import org.smap.sdal.mcp.tools.TopicListTool;
+import org.smap.sdal.mcp.tools.WhoAmITool;
 import org.smap.sdal.model.MCPError;
 import org.smap.sdal.model.MCPRequest;
 import org.smap.sdal.model.MCPResponse;
+import org.smap.sdal.model.ServerData;
 
 import com.google.gson.Gson;
 
-
 /*
- * Handle Model Context Protocol (MCP) requests
- * Implements JSON-RPC 2.0 protocol for MCP
+ * The Model Context Protocol endpoint, revision 2026-07-28.
+ *
+ * That revision is stateless: no handshake, no session, and every request carries its own protocol
+ * version and capabilities.  So this resource holds nothing between requests except the registry of
+ * tools, which is fixed at class load.  The prototype it replaces kept a mutable "initialized" flag
+ * on a static manager shared by every user of the JVM.
  */
-
 @Path("/mcp")
-
 public class MCP extends Application {
 
-	private Gson gson = new Gson();
 	private static Logger log = Logger.getLogger(MCP.class.getName());
+
+	private Gson gson = new Gson();
 	private Authorise a = new Authorise(null, Authorise.MCP_ACCESS);
 
-	// Singleton MCP manager with registered tools
-	private static MCPManager mcpManager;
-
+	/*
+	 * Registered once.  The registry itself is immutable after this runs; which tools a caller can
+	 * see is decided per request from their groups and their token's scopes.
+	 */
+	private static final McpToolRegistry registry = new McpToolRegistry();
 	static {
-		// Initialize MCP manager and register tools
-		mcpManager = new MCPManager();
-		mcpManager.getToolRegistry().register(new EchoTool());
-		mcpManager.getToolRegistry().register(new ListSurveysTool());
-		mcpManager.getToolRegistry().register(new GetSurveySubmissionsTool());
-		mcpManager.getToolRegistry().register(new GetSurveyDataTool());
-		mcpManager.getToolRegistry().register(new ListTopicsTool());
+		registry.register(new WhoAmITool());
+		registry.register(new ServerInfoTool());
+		registry.register(new ServerSettingsGetTool());
+		registry.register(new ServerSettingsSetTool());
+		registry.register(new DsarFindTool());
+		registry.register(new EventListTool());
+		registry.register(new OpsStatusTool());
+		registry.register(new UsageReportTool());
+		registry.register(new ProjectListTool());
+		registry.register(new ProjectCreateTool());
+		registry.register(new ProjectUpdateTool());
+		registry.register(new ProjectDeleteTool());
+		registry.register(new UserListTool());
+		registry.register(new UserUpdateTool());
+		registry.register(new GroupListTool());
+		registry.register(new RoleListTool());
+		registry.register(new UserSetGroupsTool());
+		registry.register(new UserSetProjectsTool());
+		registry.register(new UserSetRolesTool());
+		registry.register(new UserCreateTool());
+		registry.register(new UserDeleteTool());
+		registry.register(new RoleCreateTool());
+		registry.register(new RoleUpdateTool());
+		registry.register(new RoleDeleteTool());
+		registry.register(new TwoFactorResetTool());
+		registry.register(new OrganisationGetTool());
+		registry.register(new OrganisationUpdateTool());
+		registry.register(new TokenListTool());
+		registry.register(new TokenRevokeTool());
+		registry.register(new SurveyListTool());
+		registry.register(new SurveySubmissionCountTool());
+		registry.register(new SurveyEffectsTool());
+		registry.register(new SurveyGetTool());
+		registry.register(new SurveyQuestionsTool());
+		registry.register(new SurveyOptionsTool());
+		registry.register(new SurveyHistoryTool());
+		registry.register(new SurveyMediaListTool());
+		registry.register(new ReferenceFilterListTool());
+		registry.register(new SurveyCheckTypeChangeTool());
+		registry.register(new SurveyCreateTool());
+		registry.register(new SurveySetSettingsTool());
+		registry.register(new SurveyDeleteTool());
+		registry.register(new SurveyUndeleteTool());
+		registry.register(new ReferenceFilterSetTool());
+		registry.register(new SurveyAddQuestionTool());
+		registry.register(new SurveyDeleteQuestionTool());
+		registry.register(new DataQueryTool());
+		registry.register(new DataGetRecordTool());
+		registry.register(new DataCountTool());
+		registry.register(new DataAggregateTool());
+		registry.register(new DataAttachmentsTool());
+		registry.register(new DataAuditTool());
+		registry.register(new DataDeleteRecordTool());
+		registry.register(new DataRestoreRecordTool());
+		registry.register(new DataSubmitTool());
+		registry.register(new DataUpdateRecordTool());
+		registry.register(new DataBulkUpdateTool());
+		registry.register(new DataBulkUndoTool());
+		registry.register(new TaskGroupListTool());
+		registry.register(new TaskGroupCreateTool());
+		registry.register(new TaskListTool());
+		registry.register(new TaskCreateTool());
+		registry.register(new TaskActionTool());
+		registry.register(new CaseSettingsTool());
+		registry.register(new CaseSettingsSetTool());
+		registry.register(new CaseAssignTool());
+		registry.register(new WorkflowListTool());
+		registry.register(new NotificationListTool());
+		registry.register(new NotificationCreateTool());
+		registry.register(new NotificationEnableTool());
+		registry.register(new NotificationDeleteTool());
+		registry.register(new MailoutListTool());
+		registry.register(new TopicListTool());
 	}
 
 	@POST
+	@Consumes({MediaType.APPLICATION_JSON})
 	@Produces({MediaType.APPLICATION_JSON})
-	public Response mcpHandler(@Context HttpServletRequest request, String jsonQuery) throws IOException, ApplicationException {
-
-		log.info("MCP request: " + jsonQuery);
+	public Response mcpHandler(@Context HttpServletRequest request, String jsonQuery)
+			throws IOException, ApplicationException {
 
 		Connection sd = null;
-		MCPResponse mcpResponse = null;
+		Connection cResults = null;
 		String connectionString = "surveyMobileAPI-MCP";
+		String method = null;
+		String toolName = null;
 
 		try {
-			// Get database connection
 			sd = SDDataSource.getConnection(connectionString);
 
-			// Get authenticated user
-			String user = request.getRemoteUser();
-			
-			if (user == null) {
-				throw new AuthorisationException("Unknown User");
+			/*
+			 * MCP is off unless a server owner has switched it on.  Answered as though the endpoint
+			 * does not exist rather than advertising that it is there but disabled, and checked on
+			 * every request so that switching it off stops sessions that are already running.
+			 */
+			ServerData server = new ServerManager().getServer(sd, null);
+			if(!server.mcp_enabled) {
+				return Response.status(Response.Status.NOT_FOUND).build();
 			}
 
-			// Authorize user
-			a.isAuthorised(sd, request, user);
+			/*
+			 * Authenticate with an OAuth 2.1 bearer token, and nothing else.  The x-api-key header
+			 * is deliberately not accepted: two ways in means the weaker one becomes the way in,
+			 * and an api token carries no MCP scopes, so honouring one would hand a client
+			 * everything its holder can do and discard the containment the scopes exist for.
+			 */
+			String bearer = bearerToken(request);
+			if(bearer == null) {
+				return unauthorized(request, "A bearer token is required");
+			}
+			if(!TokenThrottle.isPermitted(request)) {
+				return unauthorized(request, "Too many attempts");
+			}
 
-			// Parse JSON-RPC request
-			MCPRequest mcpRequest = null;
+			OAuthTokenManager tm = new OAuthTokenManager();
+			OAuthTokenManager.Resolved token = tm.resolve(sd, bearer);
+			if(token == null) {
+				TokenThrottle.failed(request);
+				return unauthorized(request, "The token is not valid");
+			}
+			if(!isThisResource(request, token.resource)) {
+				log.warning("MCP token presented with audience " + token.resource);
+				return unauthorized(request, "The token was not issued for this server");
+			}
+
+			String user = token.ident;
+
+			/*
+			 * Re-checked every request rather than trusted from when the token was issued, so that
+			 * removing the group, or the user moving organisation, takes effect at once.
+			 */
+			a.isAuthorised(sd, request, user);
+			if(GeneralUtilityMethods.getOrganisationId(sd, user) != token.oId) {
+				return unauthorized(request, "Your organisation has changed, please authorise again");
+			}
+
+			/*
+			 * A ceiling on how fast one token may call.  The failure throttle above never sees a
+			 * valid token, and every call here is a query or several, so without this an
+			 * authenticated client - usually an agent retrying, or looping a call per row - can
+			 * spend the server without presenting a single bad credential.
+			 */
+			if(!McpCallThrottle.consume(token.tokenId, server.ratelimit)) {
+				log.warning("MCP rate limit reached for " + user + " on token " + token.tokenId);
+				return Response.status(429)
+						.header("Retry-After", "60")
+						.entity(gson.toJson(new MCPResponse(null, new MCPError(
+								McpProtocol.INVALID_REQUEST,
+								"Too many calls. This connection is limited to "
+								+ McpCallThrottle.effectiveLimit(server.ratelimit)
+								+ " calls a minute; wait a minute and continue."))))
+						.build();
+			}
+
+			RequestIdentity.fromOauth(request, user, token.scope);
+			tm.touch(sd, token.tokenId, request.getRemoteAddr());
+
+			MCPRequest mcpRequest;
 			try {
 				mcpRequest = gson.fromJson(jsonQuery, MCPRequest.class);
 			} catch (Exception e) {
-				log.severe("Failed to parse MCP request: " + e.getMessage());
-				mcpResponse = new MCPResponse(
-					null,
-					new MCPError(MCPError.PARSE_ERROR, "Parse error: " + e.getMessage())
-				);
-				return Response.ok(gson.toJson(mcpResponse)).build();
+				return Response.ok(gson.toJson(new MCPResponse(null,
+						new MCPError(McpProtocol.PARSE_ERROR, "The request could not be parsed"))))
+						.build();
+			}
+			if(mcpRequest != null) {
+				method = mcpRequest.getMethod();
+				if(mcpRequest.getParams() != null) {
+					Object name = mcpRequest.getParams().get("name");
+					toolName = name == null ? null : name.toString();
+				}
 			}
 
-			// Process the request
-			mcpResponse = mcpManager.processRequest(sd, user, mcpRequest);
+			cResults = ResultsDataSource.getConnection(connectionString);
 
-			// If response is null, this was a notification that expects no response
-			if (mcpResponse == null) {
-				log.info("Notification processed, no response needed");
+			McpToolContext ctx = context(sd, cResults, request, user, token, server);
+			MCPResponse mcpResponse = new McpDispatcher(registry).process(ctx, mcpRequest);
+
+			// A notification expects no reply
+			if(mcpResponse == null) {
 				return Response.status(Response.Status.NO_CONTENT).build();
 			}
 
-		} catch (AuthorisationException e) {
-			log.warning("Authorization failed: " + e.getMessage());
-			mcpResponse = new MCPResponse(
-				null,
-				new MCPError(MCPError.INTERNAL_ERROR, "Authorization failed: " + e.getMessage())
-			);
+			return withRoutingHeaders(Response.ok(gson.toJson(mcpResponse)), method, toolName).build();
+
+		} catch (McpDispatcher.ScopeRequired e) {
+			/*
+			 * The one refusal a client can do something about.  A 403 naming the missing scope is
+			 * what tells it to step up and come back, rather than to report a failure to the user.
+			 */
+			return withRoutingHeaders(insufficientScope(request, e.scope), method, toolName).build();
+
 		} catch (Exception e) {
-			log.severe("Error processing MCP request: " + e.getMessage());
-			e.printStackTrace();
-			mcpResponse = new MCPResponse(
-				null,
-				new MCPError(MCPError.INTERNAL_ERROR, "Internal error: " + e.getMessage())
-			);
+			log.log(Level.SEVERE, "MCP request failed", e);
+			return Response.ok(gson.toJson(new MCPResponse(null,
+					new MCPError(McpProtocol.INTERNAL_ERROR, "The request could not be completed"))))
+					.build();
 		} finally {
-			// Clean up database connection
-			if (sd != null) {
+			if(cResults != null) {
+				try {
+					ResultsDataSource.closeConnection(connectionString, cResults);
+				} catch (Exception e) {
+					log.log(Level.WARNING, "Closing results connection", e);
+				}
+			}
+			if(sd != null) {
 				try {
 					SDDataSource.closeConnection(connectionString, sd);
 				} catch (Exception e) {
-					log.severe("Error closing connection: " + e.getMessage());
+					log.log(Level.WARNING, "Closing connection", e);
 				}
 			}
 		}
+	}
 
-		return Response.ok(gson.toJson(mcpResponse)).build();
+	private McpToolContext context(Connection sd, Connection cResults, HttpServletRequest request,
+			String user, OAuthTokenManager.Resolved token, ServerData server) throws Exception {
+
+		Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, user));
+		ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+		String tz = GeneralUtilityMethods.getOrganisationTZ(sd, token.oId);
+		if(tz == null) {
+			tz = "UTC";
+		}
+
+		/*
+		 * The MCP cap, which is its own setting and never the API's.  A tool asked for everything
+		 * returns a bounded answer rather than spending the server trying, and there is no value of
+		 * the setting that removes the bound: zero means the built in default, not "no limit".
+		 */
+		int maxRows = server.mcp_max_rows > 0 ? server.mcp_max_rows : McpProtocol.DEFAULT_MAX_ROWS;
+
+		int uId = GeneralUtilityMethods.getUserId(sd, user);
+
+		McpToolContext ctx = new McpToolContext(sd, cResults, request, user, uId, token.oId,
+				token.scope, false, localisation, tz, maxRows, token.clientId);
+		/*
+		 * Whether this server issues smap:access at all.  A tool needing a scope nobody here can be
+		 * granted is not listed and cannot be called, rather than being offered and then refused with
+		 * a challenge the client has no way to satisfy.
+		 */
+		ctx.accessAllowed = server.mcp_allow_access;
+		return ctx;
+	}
+
+	/*
+	 * Mcp-Method and Mcp-Name let a gateway route, rate limit or meter per tool without parsing the
+	 * JSON body, which is why the specification added them.
+	 */
+	private Response.ResponseBuilder withRoutingHeaders(Response.ResponseBuilder builder,
+			String method, String toolName) {
+		if(method != null) {
+			builder.header(McpProtocol.HEADER_METHOD, method);
+		}
+		if(toolName != null) {
+			builder.header(McpProtocol.HEADER_NAME, toolName);
+		}
+		return builder;
+	}
+
+	private String bearerToken(HttpServletRequest request) {
+		String header = request.getHeader("Authorization");
+		if(header == null || !header.regionMatches(true, 0, "Bearer ", 0, 7)) {
+			return null;
+		}
+		String value = header.substring(7).trim();
+		return value.length() == 0 ? null : value;
+	}
+
+	private boolean isThisResource(HttpServletRequest request, String resource) {
+		if(resource == null) {
+			return false;
+		}
+		String given = resource.trim();
+		while(given.endsWith("/")) {
+			given = given.substring(0, given.length() - 1);
+		}
+		return given.equalsIgnoreCase("https://" + host(request) + "/mcp");
+	}
+
+	private String host(HttpServletRequest request) {
+		String host = request.getHeader("X-Forwarded-Host");
+		if(host == null || host.trim().length() == 0) {
+			host = request.getServerName();
+		}
+		int comma = host.indexOf(',');
+		if(comma > 0) {
+			host = host.substring(0, comma);
+		}
+		return host.trim();
+	}
+
+	/*
+	 * RFC 9728.  The challenge says where the protected resource metadata lives, so a client that
+	 * has never spoken to this server can discover how to authorise without being told out of band.
+	 */
+	private Response unauthorized(HttpServletRequest request, String description) {
+		return Response.status(Response.Status.UNAUTHORIZED)
+				.header("WWW-Authenticate", challenge(request, MCPScope.SUPPORTED.get(0),
+						"invalid_token", description))
+				.build();
+	}
+
+	private Response.ResponseBuilder insufficientScope(HttpServletRequest request, String scope) {
+		return Response.status(Response.Status.FORBIDDEN)
+				.header("WWW-Authenticate", challenge(request, scope, "insufficient_scope",
+						"This tool needs the " + scope + " permission"));
+	}
+
+	private String challenge(HttpServletRequest request, String scope, String error, String description) {
+		return "Bearer resource_metadata=\"https://" + host(request)
+				+ "/.well-known/oauth-protected-resource\""
+				+ ", scope=\"" + scope + "\""
+				+ ", error=\"" + error + "\""
+				+ ", error_description=\"" + description.replace('"', '\'') + "\"";
 	}
 }
-

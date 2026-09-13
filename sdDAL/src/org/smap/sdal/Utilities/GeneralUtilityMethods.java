@@ -4670,18 +4670,66 @@ public class GeneralUtilityMethods {
 		String sqlFrag = "";
 		boolean needAnd = false;
 
+		/*
+		 * No dates means no restriction, and the column is then irrelevant - callers pass a null
+		 * name in that case, so it must not be looked at before this point.
+		 */
+		if (startDate == null && endDate == null) {
+			return sqlFrag;
+		}
+
+		/*
+		 * The dates are bound, but the column name is part of the SQL text and cannot be, so it is
+		 * quoted here rather than trusted.  Every caller happens to check the column exists first,
+		 * which is what made this safe, but that was a property of the callers and not of this
+		 * method: one that forgot would have concatenated whatever it was given straight into a
+		 * query, with no sign that anything was wrong.
+		 */
+		String column = quoteIdentifier(dateName);
+
 		if (startDate != null) {
-			sqlFrag += dateName + " >= ? ";
+			sqlFrag += column + " >= ? ";
 			needAnd = true;
 		}
 		if (endDate != null) {
 			if (needAnd) {
 				sqlFrag += "and ";
 			}
-			sqlFrag += dateName + " <= ? ";
+			sqlFrag += column + " <= ? ";
 		}
 
 		return sqlFrag;
+	}
+
+	/*
+	 * A column name made safe to write into SQL.
+	 *
+	 * Quoting rather than checking the characters, because a Smap column name is not restricted to
+	 * ASCII letters - cleanName strips a list of punctuation and lowercases what is left, so any
+	 * other unicode letter survives into the column name - and a rule strict enough to be safe would
+	 * refuse names that are perfectly real.  Doubling any embedded quote is the whole of the escape
+	 * that a quoted identifier needs in Postgres, and it cannot then be read as anything but a name.
+	 *
+	 * A qualified name arrives as table.column, and both halves are quoted separately so the dot
+	 * keeps its meaning.  Column names themselves never contain a dot: cleanName replaces it.
+	 */
+	public static String quoteIdentifier(String name) {
+
+		if (name == null || name.trim().length() == 0) {
+			throw new IllegalArgumentException("A column name is required");
+		}
+
+		StringBuilder out = new StringBuilder();
+		for (String part : name.trim().split("\\.", -1)) {
+			if (part.length() == 0) {
+				throw new IllegalArgumentException("Invalid column name: " + name);
+			}
+			if (out.length() > 0) {
+				out.append(".");
+			}
+			out.append('"').append(part.replace("\"", "\"\"")).append('"');
+		}
+		return out.toString();
 	}
 
 	/*

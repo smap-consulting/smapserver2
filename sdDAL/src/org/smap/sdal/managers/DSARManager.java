@@ -26,6 +26,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
@@ -83,98 +84,12 @@ public class DSARManager {
 			CellStyle historyStyle   = styles.get("yellow");             // yellow
 			CellStyle deletedStyle   = styles.get("bad");                // coral
 
-			StringBuilder sqlSurveys = new StringBuilder(
-					"select s.s_id, s.display_name, p.name as project_name "
-					+ "from survey s "
-					+ "join user_project up on s.p_id = up.p_id "
-					+ "join users u on u.id = up.u_id "
-					+ "join project p on p.id = up.p_id and p.o_id = u.o_id "
-					+ "where u.ident = ? "
-					+ "and s.deleted = 'false' "
-					+ "and s.blocked = 'false' ");
-			if (!superUser) {
-				sqlSurveys.append(GeneralUtilityMethods.getSurveyRBAC());
-			}
-			sqlSurveys.append("order by p.name, s.display_name");
-
-			String sqlForms = "select f_id, name, table_name "
-					+ "from form where s_id = ? "
-					+ "order by parentform, f_id";
-
-			String sqlPiiCols = "select column_name, qname "
-					+ "from question "
-					+ "where f_id = ? "
-					+ "and pii is not null "
-					+ "and soft_deleted = 'false' "
-					+ "and column_name is not null";
-
-			PreparedStatement pstmtSurveys = null;
-			PreparedStatement pstmtForms   = null;
-			PreparedStatement pstmtPiiCols = null;
-
-			try {
-				pstmtSurveys = sd.prepareStatement(sqlSurveys.toString());
-				pstmtForms   = sd.prepareStatement(sqlForms);
-				pstmtPiiCols = sd.prepareStatement(sqlPiiCols);
-
-				int idx = 1;
-				pstmtSurveys.setString(idx++, user);
-				if (!superUser) {
-					pstmtSurveys.setString(idx++, user);
-				}
-
-				ResultSet rsSurveys = pstmtSurveys.executeQuery();
-				while (rsSurveys.next()) {
-					int sId = rsSurveys.getInt("s_id");
-					String surveyName  = rsSurveys.getString("display_name");
-					String projectName = rsSurveys.getString("project_name");
-
-					pstmtForms.setInt(1, sId);
-					ResultSet rsForms = pstmtForms.executeQuery();
-					while (rsForms.next()) {
-						int    fId       = rsForms.getInt("f_id");
-						String formName  = rsForms.getString("name");
-						String tableName = rsForms.getString("table_name");
-
-						if (tableName == null || !GeneralUtilityMethods.tableExists(cResults, tableName)) {
-							continue;
-						}
-
-						// Collect PII column names that exist in the actual table
-						pstmtPiiCols.setInt(1, fId);
-						ResultSet rsPii = pstmtPiiCols.executeQuery();
-						ArrayList<String> searchCols = new ArrayList<>();
-						HashSet<String>   piiColSet  = new HashSet<>();
-						while (rsPii.next()) {
-							String colName = rsPii.getString("column_name");
-							String qName   = rsPii.getString("qname");
-							if (fieldName != null
-									&& !fieldName.equals(qName)
-									&& !fieldName.equals(colName)) {
-								continue;
-							}
-							if (GeneralUtilityMethods.hasColumn(cResults, tableName, colName)) {
-								searchCols.add(colName);
-								piiColSet.add(colName);
-							}
-						}
-
-						if (searchCols.isEmpty()) {
-							continue;
-						}
-
-						writeSheet(wb, cResults, tableName, searchCols, piiColSet,
-								identifier, partial,
-								projectName, surveyName, formName,
-								headerStyle, piiHeaderStyle, plainStyle, piiStyle,
-								liveStyle, historyStyle, deletedStyle);
-					}
-				}
-
-			} finally {
-				try { if (pstmtSurveys != null) pstmtSurveys.close(); } catch (SQLException e) {}
-				try { if (pstmtForms   != null) pstmtForms.close();   } catch (SQLException e) {}
-				try { if (pstmtPiiCols != null) pstmtPiiCols.close(); } catch (SQLException e) {}
+			for (Target t : findTargets(sd, cResults, user, fieldName, superUser)) {
+				writeSheet(wb, cResults, t.tableName, t.searchCols, t.piiCols,
+						identifier, partial,
+						t.projectName, t.surveyName, t.formName,
+						headerStyle, piiHeaderStyle, plainStyle, piiStyle,
+						liveStyle, historyStyle, deletedStyle);
 			}
 
 			// If nothing matched, add a placeholder sheet so the file is valid
@@ -190,6 +105,188 @@ public class DSARManager {
 			wb.close();
 			wb.dispose();
 		}
+	}
+
+	/*
+	 * One form table that could hold personal data about somebody, and the columns to look in.
+	 *
+	 * Lifted out of export so the same walk can answer a different question.  The spreadsheet is one
+	 * rendering of it; "what do we hold about this person" is another, and re-implementing the walk
+	 * for the second would have given two definitions of which columns count as personal data.
+	 */
+	public static class Target {
+		public String projectName;
+		public String surveyName;
+		public String formName;
+		public String tableName;
+		public ArrayList<String> searchCols = new ArrayList<>();
+		public HashSet<String> piiCols = new HashSet<>();
+	}
+
+	/*
+	 * Every form table this user may read, with its personal data columns.
+	 *
+	 * The row filters are the caller's own unless they are a superuser: a data subject request is
+	 * answered from what the person answering it can see, which is the same rule as everywhere else.
+	 */
+	public ArrayList<Target> findTargets(
+			Connection sd,
+			Connection cResults,
+			String user,
+			String fieldName,
+			boolean superUser) throws Exception {
+
+		StringBuilder sqlSurveys = new StringBuilder(
+				"select s.s_id, s.display_name, p.name as project_name "
+				+ "from survey s "
+				+ "join user_project up on s.p_id = up.p_id "
+				+ "join users u on u.id = up.u_id "
+				+ "join project p on p.id = up.p_id and p.o_id = u.o_id "
+				+ "where u.ident = ? "
+				+ "and s.deleted = 'false' "
+				+ "and s.blocked = 'false' ");
+		if (!superUser) {
+			sqlSurveys.append(GeneralUtilityMethods.getSurveyRBAC());
+		}
+		sqlSurveys.append("order by p.name, s.display_name");
+
+		String sqlForms = "select f_id, name, table_name "
+				+ "from form where s_id = ? "
+				+ "order by parentform, f_id";
+
+		String sqlPiiCols = "select column_name, qname "
+				+ "from question "
+				+ "where f_id = ? "
+				+ "and pii is not null "
+				+ "and soft_deleted = 'false' "
+				+ "and column_name is not null";
+
+		ArrayList<Target> targets = new ArrayList<>();
+
+		PreparedStatement pstmtSurveys = null;
+		PreparedStatement pstmtForms   = null;
+		PreparedStatement pstmtPiiCols = null;
+
+		try {
+			pstmtSurveys = sd.prepareStatement(sqlSurveys.toString());
+			pstmtForms   = sd.prepareStatement(sqlForms);
+			pstmtPiiCols = sd.prepareStatement(sqlPiiCols);
+
+			int idx = 1;
+			pstmtSurveys.setString(idx++, user);
+			if (!superUser) {
+				pstmtSurveys.setString(idx++, user);
+			}
+
+			ResultSet rsSurveys = pstmtSurveys.executeQuery();
+			while (rsSurveys.next()) {
+				int sId = rsSurveys.getInt("s_id");
+				String surveyName  = rsSurveys.getString("display_name");
+				String projectName = rsSurveys.getString("project_name");
+
+				pstmtForms.setInt(1, sId);
+				ResultSet rsForms = pstmtForms.executeQuery();
+				while (rsForms.next()) {
+					int    fId       = rsForms.getInt("f_id");
+					String formName  = rsForms.getString("name");
+					String tableName = rsForms.getString("table_name");
+
+					if (tableName == null || !GeneralUtilityMethods.tableExists(cResults, tableName)) {
+						continue;
+					}
+
+					// Collect PII column names that exist in the actual table
+					pstmtPiiCols.setInt(1, fId);
+					ResultSet rsPii = pstmtPiiCols.executeQuery();
+					Target t = new Target();
+					t.projectName = projectName;
+					t.surveyName  = surveyName;
+					t.formName    = formName;
+					t.tableName   = tableName;
+					while (rsPii.next()) {
+						String colName = rsPii.getString("column_name");
+						String qName   = rsPii.getString("qname");
+						if (fieldName != null
+								&& !fieldName.equals(qName)
+								&& !fieldName.equals(colName)) {
+							continue;
+						}
+						if (GeneralUtilityMethods.hasColumn(cResults, tableName, colName)) {
+							t.searchCols.add(colName);
+							t.piiCols.add(colName);
+						}
+					}
+
+					if (t.searchCols.isEmpty()) {
+						continue;
+					}
+					targets.add(t);
+				}
+			}
+
+		} finally {
+			try { if (pstmtSurveys != null) pstmtSurveys.close(); } catch (SQLException e) {}
+			try { if (pstmtForms   != null) pstmtForms.close();   } catch (SQLException e) {}
+			try { if (pstmtPiiCols != null) pstmtPiiCols.close(); } catch (SQLException e) {}
+		}
+
+		return targets;
+	}
+
+	/*
+	 * How many rows in one target mention the identifier, and in which columns.
+	 *
+	 * The same predicate writeSheet searches with, so a count and a spreadsheet cannot disagree about
+	 * what matched.  Counted per column as well as in total, because "which field holds their name"
+	 * is most of what somebody answering a request needs to know next.
+	 */
+	public LinkedHashMap<String, Integer> countMatches(
+			Connection cResults,
+			Target t,
+			String identifier,
+			boolean partial) throws SQLException {
+
+		String matchVal = partial ? "%" + identifier + "%" : identifier;
+		LinkedHashMap<String, Integer> counts = new LinkedHashMap<>();
+		if (t.searchCols.isEmpty()) {
+			return counts;
+		}
+
+		/*
+		 * One statement for the whole form, counting each column in its own aggregate, rather than a
+		 * statement per column.  A form with a dozen personal data columns was a dozen prepares and a
+		 * dozen scans of the same table to answer one question - and dsar_find asks it of every form
+		 * the caller can see.
+		 */
+		StringBuilder sql = new StringBuilder("select ");
+		for (int i = 0; i < t.searchCols.size(); i++) {
+			if (i > 0) {
+				sql.append(", ");
+			}
+			sql.append("count(*) filter (where ").append(t.searchCols.get(i))
+					.append("::text ilike ?)");
+		}
+		sql.append(" from ").append(t.tableName);
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cResults.prepareStatement(sql.toString());
+			for (int i = 0; i < t.searchCols.size(); i++) {
+				pstmt.setString(i + 1, matchVal);
+			}
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				for (int i = 0; i < t.searchCols.size(); i++) {
+					int n = rs.getInt(i + 1);
+					if (n > 0) {
+						counts.put(t.searchCols.get(i), n);
+					}
+				}
+			}
+		} finally {
+			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
+		}
+		return counts;
 	}
 
 	/*

@@ -467,11 +467,16 @@ public class SurveyTemplateManager {
 			int newVersion = existingVersion;
 			if(action.equals("replace")) {
 				newVersion++;
+				/*
+				 * agent is carried across with the rest. A replace copies the history rather than
+				 * restating it, so leaving it out would quietly turn every change an application
+				 * made into one the person appears to have made by hand.
+				 */
 				String sqlUpdateChangeLog = "insert into survey_change "
-						+ "(s_id, version, changes, user_id, apply_results, visible, updated_time) "
+						+ "(s_id, version, changes, user_id, apply_results, visible, updated_time, agent) "
 						+ "select "
 						+ s.surveyData.id
-						+ ",version, changes, user_id, apply_results, visible, updated_time "
+						+ ",version, changes, user_id, apply_results, visible, updated_time, agent "
 						+ "from survey_change where s_id = ? "
 						+ "order by version asc";
 				pstmtUpdateChangeLog = sd.prepareStatement(sqlUpdateChangeLog);

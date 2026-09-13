@@ -848,6 +848,24 @@ public class QuestionManager {
 	/*
 	 * Delete
 	 */
+	/*
+	 * The sequence number that puts a new question at the end of a form.
+	 *
+	 * Every row in the form is counted, soft deleted ones included, because save() calls
+	 * cleanQuestionSequences first and that renumbers every row from zero regardless of whether it
+	 * is deleted.  Counting only the live questions would return a number already in use and insert
+	 * the new question into the middle of somebody's form.
+	 */
+	public int getNextSeq(Connection sd, int fId) throws SQLException {
+
+		String sql = "select count(*) from question where f_id = ?";
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setInt(1, fId);
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() ? rs.getInt(1) : 0;
+		}
+	}
+
 	public void delete(Connection sd, Connection cResults,
 			int sId, ArrayList<Question> questions, boolean force, 
 			boolean getGroupContents) throws Exception {

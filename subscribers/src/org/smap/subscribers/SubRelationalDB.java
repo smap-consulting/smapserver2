@@ -82,6 +82,19 @@ public class SubRelationalDB extends Subscriber {
 	String gBasePath = null;
 	String gFilePath = null;
 	String gAuditFilePath = null;
+
+	/*
+	 * The application that submitted this, when it was not a person filling in a form.
+	 *
+	 * Held as a field rather than passed down, because the record's created event is written four
+	 * calls deep and every signature on the way already carries a dozen arguments. Set from the
+	 * upload before the work starts, alongside the base path and the survey.
+	 */
+	private String agent = null;
+
+	public void setAgent(String agent) {
+		this.agent = agent;
+	}
 	AdvisoryLock lockTableChange;
 	AdvisoryLock lockRecordUpdate;
 	boolean isCaseClosed = false;		// Set to true if this update closes a case /(the case may already be closed)
@@ -609,7 +622,12 @@ public class SubRelationalDB extends Subscriber {
 			 * If this is a simple create without an HRK then write to the record event manager
 			 */
 			if(updateId == null && (!hasHrk || hasHrk && keyPolicy.equals(SurveyManager.KP_NONE))) {
-				RecordEventManager rem = new RecordEventManager();
+				/*
+				 * The application that submitted this, if it was not a person filling in a form.
+				 * Carried on the upload rather than looked up, because by the time this runs the
+				 * request that made the submission is long finished.
+				 */
+				RecordEventManager rem = new RecordEventManager(agent);
 				rem.writeEvent(sd, cResults, 
 						RecordEventManager.CREATED, 
 						RecordEventManager.STATUS_SUCCESS,

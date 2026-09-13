@@ -138,6 +138,11 @@ create TABLE server (
 	vonage_webhook_secret text,
 	sec_mgr_del boolean default false,
 	api_max_records integer default 0,				-- Maximum number of records to return via API
+	mcp_enabled boolean default false,				-- MCP server off unless a server owner turns it on
+	mcp_client_registration text default 'cimd+dcr',	-- cimd || cimd+dcr || off
+	mcp_max_rows integer default 0,					-- Max rows an MCP tool may return, 0 means the built in default
+	mcp_token_ttl integer default 3600,				-- Lifetime in seconds of an MCP access token
+	mcp_allow_access boolean default false,			-- Whether MCP clients may ask for smap:access at all
 	turnstile_site_key text,
 	turnstile_secret_key text,
 	sharepoint_url text,						-- SharePoint server base URL
@@ -459,6 +464,99 @@ CREATE UNIQUE INDEX idx_api_token_hash ON api_token(token_hash);
 CREATE INDEX idx_api_token_u_scope ON api_token(u_id, scope) WHERE revoked IS NULL;
 ALTER TABLE api_token OWNER TO ws;
 
+-- OAuth 2.1 authorization server, used by MCP clients
+--
+-- A client is anonymous at registration time, so oauth_client carries no organisation.  The
+-- organisation belongs to the grant and to the token, because it is the user consenting who has
+-- one, and a grant does not survive that user moving organisation.
+DROP SEQUENCE IF EXISTS oauth_client_seq CASCADE;
+CREATE SEQUENCE oauth_client_seq START 1;
+ALTER SEQUENCE oauth_client_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS oauth_client CASCADE;
+CREATE TABLE oauth_client (
+	id INTEGER DEFAULT NEXTVAL('oauth_client_seq') CONSTRAINT pk_oauth_client PRIMARY KEY,
+	client_id text NOT NULL,					-- An https URL for CIMD, an opaque value for DCR
+	source text NOT NULL,					-- 'cimd' || 'dcr'
+	client_secret_hash text,				-- Null for a public client
+	client_name text,
+	redirect_uris text,						-- JSON array
+	grant_types text,						-- JSON array
+	token_endpoint_auth_method text,
+	application_type text,					-- 'native' allows a loopback redirect
+	scope text,
+	software_id text,
+	status text default 'active',			-- 'active' || 'pending' || 'disabled'
+	client_id_issued_at timestamp with time zone DEFAULT now(),
+	client_secret_expires_at timestamp with time zone,
+	registration_ip text,
+	metadata_fetched timestamp with time zone,	-- When the CIMD document was last read
+	last_grant timestamp with time zone
+	);
+CREATE UNIQUE INDEX idx_oauth_client_id ON oauth_client(client_id);
+ALTER TABLE oauth_client OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS oauth_grant_seq CASCADE;
+CREATE SEQUENCE oauth_grant_seq START 1;
+ALTER SEQUENCE oauth_grant_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS oauth_grant CASCADE;
+CREATE TABLE oauth_grant (
+	id INTEGER DEFAULT NEXTVAL('oauth_grant_seq') CONSTRAINT pk_oauth_grant PRIMARY KEY,
+	code_hash text NOT NULL,
+	client_id text NOT NULL,
+	u_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+	o_id INTEGER,							-- Organisation the consent was given in
+	scope text,
+	resource text,							-- RFC 8707 audience
+	redirect_uri text,
+	code_challenge text,
+	code_challenge_method text,
+	created timestamp with time zone DEFAULT now(),
+	expires timestamp with time zone,		-- At most a minute away
+	consumed timestamp with time zone
+	);
+CREATE UNIQUE INDEX idx_oauth_grant_code ON oauth_grant(code_hash);
+ALTER TABLE oauth_grant OWNER TO ws;
+
+DROP SEQUENCE IF EXISTS oauth_token_seq CASCADE;
+CREATE SEQUENCE oauth_token_seq START 1;
+ALTER SEQUENCE oauth_token_seq OWNER TO ws;
+
+DROP TABLE IF EXISTS oauth_token CASCADE;
+CREATE TABLE oauth_token (
+	id INTEGER DEFAULT NEXTVAL('oauth_token_seq') CONSTRAINT pk_oauth_token PRIMARY KEY,
+	token_hash text NOT NULL,
+	type text NOT NULL,						-- 'access' || 'refresh'
+	client_id text,							-- Null for a token minted in the console
+	u_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+	o_id INTEGER,							-- Organisation the grant was given in
+	scope text,
+	resource text,
+	name text,								-- Label, for a console minted token
+	issued timestamp with time zone DEFAULT now(),
+	expires timestamp with time zone,
+	revoked timestamp with time zone,
+	revoked_by text,
+	last_used timestamp with time zone,
+	last_used_ip text,
+	parent_id INTEGER						-- Refresh rotation chain
+	);
+CREATE UNIQUE INDEX idx_oauth_token_hash ON oauth_token(token_hash);
+CREATE INDEX idx_oauth_token_user ON oauth_token(u_id) WHERE revoked IS NULL;
+CREATE INDEX idx_oauth_token_parent ON oauth_token(parent_id);
+ALTER TABLE oauth_token OWNER TO ws;
+
+DROP TABLE IF EXISTS oauth_consent CASCADE;
+CREATE TABLE oauth_consent (
+	u_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+	client_id text NOT NULL,
+	scope text,								-- Scopes already consented to.  Never records smap:access
+	updated timestamp with time zone DEFAULT now()
+	);
+CREATE UNIQUE INDEX idx_oauth_consent ON oauth_consent(u_id, client_id);
+ALTER TABLE oauth_consent OWNER TO ws;
+
 DROP TABLE IF EXISTS groups CASCADE;
 create TABLE groups (
 	id INTEGER CONSTRAINT pk_groups PRIMARY KEY,
@@ -654,6 +752,7 @@ CREATE TABLE upload_event (
 	audit_file_path text,
 	survey_name text,
 	imei text,
+	agent text,									-- Application that submitted, when not a person filling in a form
 	orig_survey_ident text,
 	update_id varchar(41),
 	assignment_id INTEGER,
@@ -774,6 +873,7 @@ CREATE TABLE survey_change (
 	success boolean default false,				-- Set true if the update was a success
 	msg text,									-- Error messages
 	user_id integer,								-- Person who made the changes
+	agent text,									-- Application that made the change, null if a person did it themselves
 	visible boolean default true,				-- set false if the change should not be displayed 				
 	updated_time TIMESTAMP WITH TIME ZONE		-- Time and date of change
 	);
@@ -819,7 +919,9 @@ CREATE TABLE record_event (
 	description text,
 	success boolean default false,				-- Set true of the event was a success
 	msg text,									-- Error messages
-	changed_by integer,							-- Person who made a change	
+	changed_by integer,							-- Person who made a change, and the person who approved it when an agent acted	
+	agent text,									-- The application that made the change, when it was not a person working directly
+	change_set text,							-- Groups the events written by one bulk change, so it can be undone as a set
 	change_survey text,							-- Survey ident that applied the change
 	change_survey_version integer,				-- Survey version that made the change	
 	assignment_id integer,						-- Record if this is an task event	
@@ -933,7 +1035,8 @@ CREATE TABLE question (
 	autoplay text,
 	accuracy text,						-- gps accuracy at which a reading is automatically accepted
 	linked_target text,					-- Id of a survey whose hrk is populated here
-	compressed boolean default false,	-- Will put all answers to select multiples into a single column
+	compressed boolean default true,	-- Will put all answers to select multiples into a single column
+										-- False is the pre-2016 layout: one results column per option
 	external_choices text,				-- Set to yes if choices are external
 	external_table text,				-- The table containing the external choices
 	intent text,						-- ODK intent attribute
@@ -2117,3 +2220,17 @@ CREATE TABLE timezone (
     utc_offset text
 );
 ALTER TABLE timezone OWNER TO ws;
+
+-- A confirmation a person has been shown but not yet given, for the MCP multi round trip flow
+DROP TABLE IF EXISTS mcp_pending_action CASCADE;
+CREATE TABLE mcp_pending_action (
+	state_id text PRIMARY KEY,					-- Echoed back by the client as requestState
+	u_id integer references users(id) on delete cascade,	-- Who was asked; only they may complete it
+	client_id text,								-- Which application asked
+	tool text not null,							-- The tool the confirmation was for
+	arguments_hash text not null,				-- Digest of what was shown, so the retry cannot differ
+	created timestamp with time zone default now(),
+	expires timestamp with time zone not null
+	);
+CREATE INDEX idx_mcp_pending_expires ON mcp_pending_action(expires);
+ALTER TABLE mcp_pending_action OWNER TO ws;

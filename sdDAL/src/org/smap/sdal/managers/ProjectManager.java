@@ -185,6 +185,44 @@ public class ProjectManager {
 	}
 	
 	/*
+	 * Change a project's name and description, and nothing else.
+	 *
+	 * Deliberately narrower than the console's own project save, which updates the name and then
+	 * deletes every non temporary member of the project so it can re-add whoever was on the form.
+	 * That is right for a screen where the membership list was on display and is being submitted
+	 * back; it is wrong for anything that only means to rename, which would empty the project
+	 * without ever mentioning it.
+	 *
+	 * Renaming and replacing are different operations and this is the first.  The devices are told,
+	 * because a project's name is on them.
+	 */
+	public void updateProject(Connection sd, int pId, String name, String description,
+			String remoteUser, int oId) throws SQLException, ApplicationException {
+
+		String sql = "update project set "
+				+ "name = ?, "
+				+ "description = ?, "
+				+ "changed_by = ?, "
+				+ "changed_ts = now() "
+				+ "where id = ?";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(name, localisation));
+			pstmt.setString(2, HtmlSanitise.checkCleanName(description, localisation));
+			pstmt.setString(3, remoteUser);
+			pstmt.setInt(4, pId);
+			log.info("Update project: " + pstmt.toString());
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		new MessagingManager(localisation).projectChange(sd, pId, oId);
+	}
+
+	/*
 	 * Add a user to a project
 	 */
 	public int addUser(
@@ -233,6 +271,19 @@ public class ProjectManager {
 	/*
 	 * Delete projects
 	 */
+	/*
+	 * Delete projects.
+	 *
+	 * This owns its transaction.  It has always ended with a commit, but left opening the
+	 * transaction to whoever called it, and a caller that did not open one was not simply refused:
+	 * with autoCommit on, every statement here commits as it runs, so the deletes were applied
+	 * permanently and then the commit threw.  The work was done and the caller was told it had
+	 * failed - and a rollback in that state does nothing, there being no transaction to undo.
+	 *
+	 * A caller that has already opened one keeps it, and gets to decide when to commit; only the
+	 * connection this opened is restored, so nothing here hands a connection back to the pool in a
+	 * state its next borrower did not ask for.
+	 */
 	public void deleteProjects(Connection sd, Connection cResults,
 			Authorise a, 
 			ArrayList<Project> pArray, 
@@ -240,8 +291,13 @@ public class ProjectManager {
 			String basePath) throws Exception {
 
 		PreparedStatement pstmt = null;
+		boolean autoCommitSetFalse = false;
 		
 		try {	
+			if(sd.getAutoCommit()) {
+				sd.setAutoCommit(false);
+				autoCommitSetFalse = true;
+			}
 			String sql = null;
 			ResultSet resultSet = null;
 			
@@ -341,8 +397,18 @@ public class ProjectManager {
 			
 			sd.commit();
 					
+		} catch (Exception e) {
+			/*
+			 * Rolled back here rather than left to the caller, because the caller cannot know how
+			 * far through this got.
+			 */
+			try {sd.rollback();} catch (Exception ignored) {}
+			throw e;
 		} finally {	
 			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
+			if(autoCommitSetFalse) {
+				try {sd.setAutoCommit(true);} catch (Exception ignored) {}
+			}
 		}
 		
 	}

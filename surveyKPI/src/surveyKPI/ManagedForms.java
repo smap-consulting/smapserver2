@@ -382,8 +382,10 @@ public class ManagedForms extends Application {
 				if(!roleMgr.canAccessRecord(sd, cResults, surveyIdent, tableName, instanceId, request.getRemoteUser(), organisation.timeZone)) {
 					return Response.status(Status.FORBIDDEN).entity(localisation.getString("rec_na")).build();
 				}
-				if(!roleMgr.canAccessRecord(sd, cResults, surveyIdent, tableName, instanceId, uIdent, organisation.timeZone)) {
-					return Response.status(Status.FORBIDDEN).entity(localisation.getString("rec_na_assignee")).build();
+				// The assignee needs project membership, not access to the record
+				if(!roleMgr.assignmentAllowed(sd, cResults, surveyIdent, instanceId, uIdent,
+						request.getRemoteUser(), organisation.timeZone, null)) {
+					return Response.status(Status.FORBIDDEN).entity(localisation.getString("rec_na_assignee_project")).build();
 				}
 
 				CaseManager cm = new CaseManager(localisation);
@@ -574,6 +576,11 @@ public class ManagedForms extends Application {
 				// Validate each user belongs to the requesting user's organisation and is permitted
 				// to access this record.  A reference must not give a user access to a record that
 				// the row filter (RBAC) rules hide from them.
+				//
+				// Deliberately stricter than assigning work, which asks only for project
+				// membership.  A reference is read access with nothing attached to do, so it cannot
+				// be allowed to hand over a record the filters were hiding; an assignment gives the
+				// record to somebody in order that they work on it.
 				for(String u : userList) {
 					a.isValidUser(sd, request.getRemoteUser(), GeneralUtilityMethods.getUserId(sd, u));
 					if(!roleMgr.canAccessRecord(sd, cResults, surveyIdent, tableName, instanceId, u, organisation.timeZone)) {

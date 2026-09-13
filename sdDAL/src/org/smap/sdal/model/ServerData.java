@@ -30,6 +30,11 @@ public class ServerData {
 	public String sharepoint_username;
 	public String sharepoint_password;
 	public String sharepoint_domain;
+	public boolean mcp_enabled;
+	public String mcp_client_registration;
+	public int mcp_max_rows;
+	public int mcp_token_ttl;
+	public boolean mcp_allow_access;
 	private int api_max_records;
 
 	public void setMaxRecords(int v) {

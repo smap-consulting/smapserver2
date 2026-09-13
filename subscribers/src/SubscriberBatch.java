@@ -33,6 +33,7 @@ import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
+import org.smap.sdal.managers.OAuthManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.NotificationManager;
@@ -138,7 +139,7 @@ public class SubscriberBatch {
 				+ "imei, orig_survey_ident, update_id, ident, instanceid, status, reason, location, "
 				+ "server_name, s_id, p_id, o_id, e_id, form_status, file_path, "
 				+ "temporary_user, survey_notes, location_trigger, assignment_id, restore, submission_type, "
-				+ "audit_file_path "
+				+ "audit_file_path, agent "
 				+ "from upload_event ue "
 				+ "where ue.status = 'success' "
 				+ "and ue.s_id is not null "
@@ -264,6 +265,12 @@ public class SubscriberBatch {
 							ue.setFileName(rs.getString("file_name"));
 							ue.setSurveyName(rs.getString("survey_name"));
 							ue.setImei(rs.getString("imei"));
+							/*
+							 * Which application submitted this, if it was not a person filling in a
+							 * form.  Read back out of the upload event because the queue payload is
+							 * built from it here, and the record's history is written later still.
+							 */
+							ue.setAgent(rs.getString("agent"));
 							ue.setOrigSurveyIdent(rs.getString("orig_survey_ident"));
 							ue.setUpdateId(rs.getString("update_id"));
 							ue.setIdent(rs.getString("ident"));
@@ -481,6 +488,9 @@ public class SubscriberBatch {
 
 					// Prune fire-once alert guards for cases that are now closed
 					pruneClosedCaseAlerts(dbc.results);
+
+					// Clear out OAuth clients that registered and were never used, and spent codes
+					reapOAuth(dbc.sd);
 
 					infrequentRefreshInterval = 2000;	// Every 2,000 times through these operations will be done, about 1.5 days
 				}
@@ -774,6 +784,27 @@ public class SubscriberBatch {
 		}
 
 		return names;
+	}
+
+	/*
+	 * OAuth housekeeping.
+	 *
+	 * Client registration is open, so without this the client table is somewhere anyone on the
+	 * internet can write to for ever.  A registration that never led to a grant is of no use to
+	 * anybody after a week.  Authorization codes live for a minute and are single use, so a spent
+	 * one is only kept long enough to be useful in a log.
+	 */
+	private void reapOAuth(Connection sd) {
+		try {
+			OAuthManager om = new OAuthManager();
+			int clients = om.reapUnusedClients(sd);
+			int codes = om.reapExpiredCodes(sd);
+			if(clients > 0 || codes > 0) {
+				log.info("Reaped " + clients + " unused oauth clients and " + codes + " spent codes");
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Reaping oauth records", e);
+		}
 	}
 
 	/*

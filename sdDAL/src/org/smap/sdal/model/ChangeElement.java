@@ -15,7 +15,7 @@ public class ChangeElement {
 	
 	public String action;			// move | add | delete | update | external option
 	public String type;				// question | option
-	public String source;			// editor | file
+	public String source;			// editor | file | mcp
 	
 	// Reference data about the survey or question or option to be updated or properties of a new element
 	public PropertyChangeElement property;	// Details of a change to a question or option property

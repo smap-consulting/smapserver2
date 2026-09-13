@@ -278,6 +278,101 @@ public class OrganisationManager {
 	}
 	
 	/*
+	 * Change an organisation's descriptive details, and nothing else.
+	 *
+	 * updateOrganisation writes thirty seven columns out of one object, because the settings screen
+	 * shows all of them and submits all of them back.  Handing it a part filled object does not leave
+	 * the rest alone - it writes whatever the object happens to hold, and for a boolean nobody set
+	 * that is false.  Correcting a postal address through it would switch off submissions, the API,
+	 * SMS and notifications, blank the mail relay password, set the storage limits to nothing, and
+	 * report success.
+	 *
+	 * So this writes the named columns only.  Everything deciding what the organisation is allowed to
+	 * do, and every credential it holds, is out of reach here rather than merely left unmentioned.
+	 */
+	public void updateOrganisationDetails(
+			Connection sd,
+			int oId,
+			String name,
+			String companyName,
+			String companyAddress,
+			String companyPhone,
+			String companyEmail,
+			String website,
+			String locale,
+			String timeZone,
+			String userIdent) throws SQLException, ApplicationException {
+
+		String sql = "update organisation set "
+				+ "name = ?, "
+				+ "company_name = ?, "
+				+ "company_address = ?, "
+				+ "company_phone = ?, "
+				+ "company_email = ?, "
+				+ "website = ?, "
+				+ "locale = ?, "
+				+ "timezone = ?, "
+				+ "changed_by = ?, "
+				+ "changed_ts = now() "
+				+ "where id = ?";
+
+		/*
+		 * Read first so the log can say what actually changed.  A log line saying only that somebody
+		 * updated the organisation is no use to whoever is asking later why the time zone moved.
+		 */
+		Organisation original = GeneralUtilityMethods.getOrganisation(sd, oId);
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(name, localisation));
+			pstmt.setString(2, HtmlSanitise.checkCleanName(companyName, localisation));
+			pstmt.setString(3, HtmlSanitise.checkCleanName(companyAddress, localisation));
+			pstmt.setString(4, HtmlSanitise.checkCleanName(companyPhone, localisation));
+			pstmt.setString(5, HtmlSanitise.checkCleanName(companyEmail, localisation));
+			pstmt.setString(6, website);
+			pstmt.setString(7, HtmlSanitise.checkCleanName(locale, localisation));
+			pstmt.setString(8, HtmlSanitise.checkCleanName(timeZone, localisation));
+			pstmt.setString(9, userIdent);
+			pstmt.setInt(10, oId);
+
+			log.fine("Update organisation details: " + pstmt.toString());
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+
+		StringBuilder note = new StringBuilder();
+		if(original != null) {
+			addChange(note, "name", original.name, name);
+			addChange(note, "company name", original.company_name, companyName);
+			addChange(note, "address", original.company_address, companyAddress);
+			addChange(note, "phone", original.company_phone, companyPhone);
+			addChange(note, "email", original.company_email, companyEmail);
+			addChange(note, "website", original.website, website);
+			addChange(note, "locale", original.locale, locale);
+			addChange(note, "time zone", original.timeZone, timeZone);
+		}
+		if(note.length() == 0) {
+			note.append("details updated");
+		}
+		lm.writeLogOrganisation(sd, oId, userIdent, LogManager.ORGANISATION_UPDATE, note.toString(), 0);
+	}
+
+	private void addChange(StringBuilder note, String what, String from, String to) {
+		if(from == null ? to == null : from.equals(to)) {
+			return;
+		}
+		if(note.length() > 0) {
+			note.append(", ");
+		}
+		note.append(what).append(": ")
+				.append(from == null || from.isEmpty() ? "(none)" : from)
+				.append(" to ")
+				.append(to == null || to.isEmpty() ? "(none)" : to);
+	}
+	
+	/*
 	 * Create a new organisation
 	 */
 	public int createOrganisation(

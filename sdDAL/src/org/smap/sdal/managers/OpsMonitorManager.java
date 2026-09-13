@@ -1611,8 +1611,10 @@ public class OpsMonitorManager {
 			if(!roleMgr.canAccessRecord(sd, cResults, caseSurvey, table, instanceid, requestingUser, tz)) {
 				throw new org.smap.sdal.Utilities.AuthorisationException();
 			}
-			if(!roleMgr.canAccessRecord(sd, cResults, caseSurvey, table, instanceid, assignTo, tz)) {
-				throw new org.smap.sdal.Utilities.ApplicationException(localisation.getString("rec_na_assignee"));
+			// The assignee needs project membership, not access to the record
+			if(!roleMgr.assignmentAllowed(sd, cResults, caseSurvey, instanceid, assignTo,
+					requestingUser, tz, null)) {
+				throw new org.smap.sdal.Utilities.ApplicationException(localisation.getString("rec_na_assignee_project"));
 			}
 		}
 

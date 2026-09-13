@@ -27,7 +27,9 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.model.UserGroup;
 
 import com.google.gson.Gson;
@@ -69,6 +71,15 @@ public class GroupList extends Application {
 		ArrayList<UserGroup> groups = new ArrayList<UserGroup> ();
 		
 		try {
+			/*
+			 * mcp access is only offered to a server owner, and only while MCP is switched on for
+			 * the server.  Anyone else never sees it, so cannot grant it and cannot remove it by
+			 * saving a user.
+			 */
+			boolean showMcp = ServerManager.isMcpEnabled(connectionSD)
+					&& GeneralUtilityMethods.hasSecurityGroup(connectionSD, request.getRemoteUser(),
+							Authorise.OWNER_ID);
+
 			String sql = "select id, name "
 					+ "from groups "  
 					+ "order by name asc";				
@@ -79,6 +90,9 @@ public class GroupList extends Application {
 			while(resultSet.next()) {
 				UserGroup group = new UserGroup();
 				group.id = resultSet.getInt("id");
+				if(group.id == Authorise.MCP_ACCESS_ID && !showMcp) {
+					continue;
+				}
 				group.name = resultSet.getString("name");
 				groups.add(group);
 			}

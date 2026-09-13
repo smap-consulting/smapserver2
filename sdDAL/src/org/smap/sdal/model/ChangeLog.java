@@ -18,4 +18,12 @@ public class ChangeLog {
 	public boolean  apply_results;	// Set true once the change has been attempted to be applied to the results database
 	public boolean success;			// Set true if the change item has been successfully applied to the results database
 	public String msg;				// Error messages
+
+	/*
+	 * The application that made the change, and the identifier it is the readable name of.  Both
+	 * null when a person made the change themselves in the console, which is what most changes are.
+	 * userName stays the person either way; for an agent that is whoever approved it.
+	 */
+	public String agent;
+	public String agentId;
 }

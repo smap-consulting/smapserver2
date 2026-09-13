@@ -290,14 +290,19 @@ public class ProjectList extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
-			sd.setAutoCommit(false);			
+			/*
+			 * The transaction belongs to deleteProjects, which opens it, commits it and rolls it
+			 * back.  This used to open one here and never restore autoCommit in the finally below,
+			 * so the connection went back to the pool still in manual commit mode: the pool is not
+			 * configured to reset connection state, so whoever borrowed it next would have written
+			 * without committing and lost the lot on close.
+			 */
 			ProjectManager pm = new ProjectManager(localisation);			
 			pm.deleteProjects(sd, cResults,
 					a,
 					pArray, 
 					request.getRemoteUser(),
 					GeneralUtilityMethods.getBasePath(request));		
-			sd.commit();
 			
 			response = Response.ok().build();
 				
@@ -306,13 +311,10 @@ public class ProjectList extends Application {
 			log.info("sql state:" + state);
 			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE,"Error", e);
-			try { sd.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
 			
 		} catch (Exception ex) {
 			log.info(ex.getMessage());
 			response = Response.serverError().entity(ex.getMessage()).build();
-			
-			try{sd.rollback();} catch(Exception e2) {}
 			
 		} finally {
 			

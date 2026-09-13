@@ -68,9 +68,43 @@ public class RecordEventManager {
 	public static String STATUS_SUCCESS = "success";
 	public static String STATUS_NEW = "new";
 	
+	/*
+	 * The application acting, or null when a person is working directly.
+	 *
+	 * Carried on the manager rather than added to writeEvent, whose signature already has sixteen
+	 * parameters and twenty six callers, none of which has an agent to declare.
+	 */
+	private String agent;
+
 	public RecordEventManager() {
 		
 	}
+
+	/*
+	 * For a change made by something acting on a person's behalf.
+	 *
+	 * The pair is what makes the trail answerable: changed_by is the person, who for an agent is
+	 * whoever approved the change, and agent is the program that made it. Either alone leaves a
+	 * question that cannot be settled later - the person's name on its own cannot say whether they
+	 * typed it or approved it, and the program's cannot say who let it.
+	 */
+	public RecordEventManager(String agent) {
+		this.agent = agent;
+	}
+
+	/*
+	 * For one change out of many made together.
+	 *
+	 * The identifier is the same on every record the change touched, which is what lets the whole
+	 * thing be undone as the one action it was. Without it a bulk change is only a pile of unrelated
+	 * edits that happen to share a timestamp.
+	 */
+	public RecordEventManager(String agent, String changeSet) {
+		this.agent = agent;
+		this.changeSet = changeSet;
+	}
+
+	private String changeSet;
 	
 	/*
 	 * Save a change
@@ -112,8 +146,10 @@ public class RecordEventManager {
 				+ "change_survey_version, "
 				+ "task_id, "
 				+ "assignment_id, "
+				+ "agent, "
+				+ "change_set, "
 				+ "event_time) "
-				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmt = null;
 		
 		String sqlSurvey = "select version " 
@@ -159,6 +195,8 @@ public class RecordEventManager {
 			pstmt.setInt(15,  sVersion);
 			pstmt.setInt(16,  taskId);
 			pstmt.setInt(17,  assignmentId);
+			pstmt.setString(18, agent);		// null unless something acted for the person
+			pstmt.setString(19, changeSet);	// null unless this was one of many changes made together
 			log.fine("Update history: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
@@ -346,22 +384,38 @@ public class RecordEventManager {
 		
 		ArrayList<DataItemChangeEvent> events = new ArrayList<DataItemChangeEvent> ();
 		
+		/*
+		 * Every column is qualified because of the join below.  oauth_client has a status of its
+		 * own, so an unqualified one is ambiguous and the whole query fails - which is what happened
+		 * the first time this join was added.
+		 */
 		String sql = "select "
-				+ "event, "
-				+ "status,"
-				+ "changes,"
-				+ "task, "
-				+ "message, "
-				+ "notification, "
-				+ "description, "
-				+ "changed_by, "
-				+ "change_survey, "
-				+ "change_survey_version, "
-				+ "to_char(timezone(?, event_time), 'YYYY-MM-DD HH24:MI:SS') as event_time "
-				+ "from record_event "
-				+ "where table_name = ? "
-				+ "and key = ? "
-				+ "order by event_time desc";
+				+ "re.event, "
+				+ "re.status,"
+				+ "re.changes,"
+				+ "re.task, "
+				+ "re.message, "
+				+ "re.notification, "
+				+ "re.description, "
+				+ "re.changed_by, "
+				+ "re.change_survey, "
+				+ "re.change_survey_version, "
+				+ "re.agent, "
+				+ "re.change_set, "
+				/*
+				 * The application's name if it is still registered, so a person reading a record's
+				 * history sees what acted rather than an identifier. The id stays in the column and
+				 * is returned beside the name: the name is how somebody recognises it, the id is
+				 * what the trail is actually anchored to, and a client that has since been removed
+				 * still has to be identifiable.
+				 */
+				+ "c.client_name, "
+				+ "to_char(timezone(?, re.event_time), 'YYYY-MM-DD HH24:MI:SS') as event_time "
+				+ "from record_event re "
+				+ "left join oauth_client c on c.client_id = re.agent "
+				+ "where re.table_name = ? "
+				+ "and re.key = ? "
+				+ "order by re.event_time desc";
 		PreparedStatement pstmt = null;
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -417,6 +471,16 @@ public class RecordEventManager {
 				}
 
 				event.description = rs.getString("description");
+				/*
+				 * Null for a change a person made directly, which is most of them, so the field is
+				 * simply absent rather than saying "none" in every entry.
+				 */
+				event.changeSet = rs.getString("change_set");
+				event.agentId = rs.getString("agent");
+				if(event.agentId != null) {
+					String clientName = rs.getString("client_name");
+					event.agent = clientName != null ? clientName : event.agentId;
+				}
 				
 				String sIdent = rs.getString("change_survey");
 				if(sIdent != null) {				

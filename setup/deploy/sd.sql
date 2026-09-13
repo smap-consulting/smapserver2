@@ -265,7 +265,11 @@ alter table server add column if not exists api_max_records integer default 0;
 
 -- Performance improvement to get tasks
 CREATE INDEX idx_tasks_tg_schedule_desc ON tasks(tg_id, schedule_at DESC);
-delete from groups where id = 15;
+-- Removed 2026-09-07.  This deleted the mcp access group, which was added prematurely and then
+-- withdrawn.  Group 15 is now created deliberately further down this file, and because this whole
+-- file is applied on every upgrade, the line ran every time: user_group.g_id cascades on delete, so
+-- each upgrade silently emptied the group of all its members and then recreated it empty.
+-- delete from groups where id = 15;
 
 -- Cloudflare Turnstile anti-bot support
 alter table server add column if not exists turnstile_site_key text;
@@ -631,3 +635,139 @@ alter table message add column if not exists first_deferred timestamptz;
 -- against a relay that is rate limiting us is both pointless and the reason the limit stays
 -- in force.  Hold it until the time whoever deferred it said to come back.
 alter table message add column if not exists retry_after timestamptz;
+
+-- Version 26.09 Default select multiple storage to a single column
+-- Per option results columns were replaced by one space separated column around ten years ago
+-- and QuestionManager has set compressed true on every question it inserts ever since.  The
+-- column default was never moved, so any code path that inserts a question without naming the
+-- flag silently builds a survey in the old layout.  Existing rows are left alone: a survey with
+-- compressed false has its data in per option columns and must keep reading it there.
+alter table question alter column compressed set default true;
+
+-- Version 26.09 MCP server
+-- Off on every server, new and existing.  Only a server owner can turn it on, and only then can
+-- the mcp access group be granted.
+alter table server add column if not exists mcp_enabled boolean default false;
+alter table server add column if not exists mcp_client_registration text default 'cimd+dcr';
+alter table server add column if not exists mcp_max_rows integer default 0;	-- 0 means the built in default, never unlimited
+alter table server add column if not exists mcp_token_ttl integer default 3600;
+insert into groups(id,name) values(15,'mcp access') on conflict do nothing;
+
+-- Version 26.09 OAuth 2.1 for MCP clients
+create sequence if not exists oauth_client_seq start 1;
+alter sequence oauth_client_seq owner to ws;
+create table if not exists oauth_client (
+	id integer default nextval('oauth_client_seq') constraint pk_oauth_client primary key,
+	client_id text not null,
+	source text not null,
+	client_secret_hash text,
+	client_name text,
+	redirect_uris text,
+	grant_types text,
+	token_endpoint_auth_method text,
+	application_type text,
+	scope text,
+	software_id text,
+	status text default 'active',
+	client_id_issued_at timestamp with time zone default now(),
+	client_secret_expires_at timestamp with time zone,
+	registration_ip text,
+	metadata_fetched timestamp with time zone,
+	last_grant timestamp with time zone
+	);
+create unique index if not exists idx_oauth_client_id on oauth_client(client_id);
+alter table oauth_client owner to ws;
+
+create sequence if not exists oauth_grant_seq start 1;
+alter sequence oauth_grant_seq owner to ws;
+create table if not exists oauth_grant (
+	id integer default nextval('oauth_grant_seq') constraint pk_oauth_grant primary key,
+	code_hash text not null,
+	client_id text not null,
+	u_id integer references users(id) on delete cascade,
+	o_id integer,
+	scope text,
+	resource text,
+	redirect_uri text,
+	code_challenge text,
+	code_challenge_method text,
+	created timestamp with time zone default now(),
+	expires timestamp with time zone,
+	consumed timestamp with time zone
+	);
+create unique index if not exists idx_oauth_grant_code on oauth_grant(code_hash);
+alter table oauth_grant owner to ws;
+
+create sequence if not exists oauth_token_seq start 1;
+alter sequence oauth_token_seq owner to ws;
+create table if not exists oauth_token (
+	id integer default nextval('oauth_token_seq') constraint pk_oauth_token primary key,
+	token_hash text not null,
+	type text not null,
+	client_id text,
+	u_id integer references users(id) on delete cascade,
+	o_id integer,
+	scope text,
+	resource text,
+	name text,
+	issued timestamp with time zone default now(),
+	expires timestamp with time zone,
+	revoked timestamp with time zone,
+	revoked_by text,
+	last_used timestamp with time zone,
+	last_used_ip text,
+	parent_id integer
+	);
+create unique index if not exists idx_oauth_token_hash on oauth_token(token_hash);
+create index if not exists idx_oauth_token_user on oauth_token(u_id) where revoked is null;
+create index if not exists idx_oauth_token_parent on oauth_token(parent_id);
+alter table oauth_token owner to ws;
+
+create table if not exists oauth_consent (
+	u_id integer references users(id) on delete cascade,
+	client_id text not null,
+	scope text,
+	updated timestamp with time zone default now()
+	);
+create unique index if not exists idx_oauth_consent on oauth_consent(u_id, client_id);
+alter table oauth_consent owner to ws;
+
+-- Record which application made a change, as distinct from which person it acted for.
+-- changed_by already holds the person; for an agent that is the person who approved the change.
+alter table record_event add column if not exists agent text;
+
+-- A confirmation a person has been shown but not yet given, for the MCP multi round trip flow.
+-- The client echoes back the id as requestState. Nothing else about the call is stored here: the
+-- arguments come back on the retry and are checked against the digest, so a tampered row can cause
+-- a refusal and nothing else.
+create table if not exists mcp_pending_action (
+	state_id text primary key,
+	u_id integer references users(id) on delete cascade,
+	client_id text,
+	tool text not null,
+	arguments_hash text not null,
+	created timestamp with time zone default now(),
+	expires timestamp with time zone not null
+	);
+create index if not exists idx_mcp_pending_expires on mcp_pending_action(expires);
+alter table mcp_pending_action owner to ws;
+
+-- Which application made a submission, when it was not a person filling in a form.  Carried on the
+-- upload because the record's created event is written by the subscriber, long after the request
+-- that made the submission has finished.
+alter table upload_event add column if not exists agent text;
+
+-- Groups the record events written by a single bulk change, so it can be undone as the one thing it
+-- was rather than record by record.
+alter table record_event add column if not exists change_set text;
+create index if not exists idx_record_event_change_set on record_event(change_set) where change_set is not null;
+
+-- Which application made a survey definition change, as distinct from which person it acted for.
+-- user_id already holds the person; for an agent that is whoever approved the change.  Null for a
+-- change made by a person in the console, which is what most of them are.
+alter table survey_change add column if not exists agent text;
+
+-- Whether an MCP client may ask for smap:access, the scope that changes who can reach what.  Off on
+-- every server, new and existing: with it off the scope is not advertised, is stripped from any
+-- authorisation request that names it anyway, and no tool needing it can be reached.
+alter table server add column if not exists mcp_allow_access boolean default false;

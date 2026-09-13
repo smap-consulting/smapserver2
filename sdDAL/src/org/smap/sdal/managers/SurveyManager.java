@@ -78,6 +78,7 @@ import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.SettingChange;
 import org.smap.sdal.model.SurveyDAO;
 import org.smap.sdal.model.SurveyIdent;
 import org.smap.sdal.model.SurveyLinks;
@@ -176,12 +177,469 @@ public class SurveyManager {
 			+ "and q.f_id in "
 			+ "(select f_id from form where s_id in (select s_id from survey where group_survey_ident = ? and deleted = 'false'))";
 	
+	/*
+	 * The application acting for the user, written to the change log so a survey change made by an
+	 * agent can be told apart from one the person made in the console.  Null for the console, which
+	 * is why the two argument constructor is left as it was rather than made to supply it.
+	 */
+	private String agent;
+
 	public SurveyManager(ResourceBundle l, String tz) {
+		this(l, tz, null);
+	}
+
+	public SurveyManager(ResourceBundle l, String tz, String agent) {
 		localisation = l;
 		if(tz == null) {
 			tz = "UTC";
 		}
 		this.tz = tz;
+		this.agent = agent;
+	}
+
+	/*
+	 * The choice lists in a survey, and the cascade filters they declare.
+	 *
+	 * Fills the survey rather than returning a map, because it sets two things: the lists
+	 * themselves, and surveyData.filters, which records that a cascade filter of that name exists.
+	 * A caller that took only the lists would silently lose the second.
+	 *
+	 * Needs the survey to carry its languages already, because an option label is read once per
+	 * language and positionally.
+	 */
+	public void populateOptionLists(Connection sd, Connection cResults, Survey s, String user,
+			int oId, String basePath, String getExternalOptions) throws Exception {
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		String sqlGetLists = "select l_id, "
+				+ "name "
+				+ "from listname "
+				+ "where s_id = ?;";
+		PreparedStatement pstmtGetLists = sd.prepareStatement(sqlGetLists);
+		PreparedStatement pstmtGetOptions = sd.prepareStatement(sqlGetOptions);
+		ResultSet rsGetLists = null;
+		ResultSet rsGetOptions = null;
+
+		try {
+			pstmtGetLists.setInt(1, s.surveyData.id);
+			// log.fine("Get lists for survey: " + pstmtGetLists.toString());
+			rsGetLists = pstmtGetLists.executeQuery();
+
+			int idx = 0;
+			while(rsGetLists.next()) {
+
+				int listId = rsGetLists.getInt(1);
+				String listName = rsGetLists.getString(2);
+
+				OptionList optionList = new OptionList ();
+
+				boolean external = false;
+				if(getExternalOptions != null) {
+					if(getExternalOptions.equals("external")) {
+						external = true;
+					} else if(getExternalOptions.equals("internal")) {
+						external = false;
+					} else if(getExternalOptions.equals("real")) {
+						external = GeneralUtilityMethods.listHasExternalChoices(sd, s.surveyData.id, listId);
+					}
+				}
+
+				// Get external options if required
+				ArrayList<Option> externalOptions = new ArrayList<> ();
+				if(external) {
+					int qId = GeneralUtilityMethods.getQuestionFromList(sd, s.surveyData.id, listId);
+					externalOptions = GeneralUtilityMethods.getExternalChoices(sd, 
+							cResults, localisation, user, oId, s.surveyData.id, qId, null, s.surveyData.ident, tz, null, null);
+				} 
+			
+				// Get options from meta definition - insert external if required when not a numeric option
+				optionList.options = new ArrayList<Option> ();
+				pstmtGetOptions.setInt(1, listId);
+			
+				if(idx++ == 0) {
+					// log.fine("SQL Get options: " + pstmtGetOptions.toString());
+				}
+				rsGetOptions = pstmtGetOptions.executeQuery();
+	
+				Type hmType = new TypeToken<HashMap<String, String>>(){}.getType();		// Used to translate cascade filters json
+				boolean externalAdded = false;
+				while(rsGetOptions.next()) {
+					Option o = new Option();
+					o.id = rsGetOptions.getInt(1);
+					o.value = rsGetOptions.getString(2);
+					o.text_id = rsGetOptions.getString(3);
+					o.externalFile = rsGetOptions.getBoolean(4);
+					String cascade_filters = rsGetOptions.getString(5);
+					if(cascade_filters != null && !cascade_filters.equals("null")) {
+						try {
+							o.cascade_filters = gson.fromJson(cascade_filters, hmType);
+							for (String key : o.cascade_filters.keySet()) {
+								s.surveyData.filters.put(key, true);
+							}
+	
+						} catch (Exception e) {
+							log.log(Level.SEVERE, e.getMessage(), e);		// Ignore errors as this service does not support the old non json cascade format
+						}
+					} else {
+						o.cascade_filters = new HashMap<String, String> ();	// An empty object
+					}
+					o.columnName = rsGetOptions.getString(6);
+					o.display_name = rsGetOptions.getString(7);
+					o.published = rsGetOptions.getBoolean(8);
+	
+					// Get the labels for the option
+					PreparedStatement pstmtLabels = null;
+					try {
+						pstmtLabels = UtilityMethodsEmail.getLabelsStatement(sd, s.surveyData.id);
+						UtilityMethodsEmail.getLabels(pstmtLabels, s, o.text_id, o.labels, basePath, oId);
+					} finally {
+						if(pstmtLabels != null) {try{pstmtLabels.close();}catch(Exception e) {}}
+					}
+				
+					// Check for numeric value - if external options are required then a numeric value indicates a static choice
+					boolean isInteger = false;
+					if(external) {
+						try {
+							Integer.parseInt(o.value);
+							isInteger = true;
+						} catch (Exception e) {
+						
+						}
+					}
+				
+					if(!external || isInteger) {
+						optionList.options.add(o);
+					} else if(!externalAdded) {
+						externalAdded = true;		// Don't double up if someone uses a non numeric static by mistake
+						optionList.options.addAll(externalOptions);
+					}
+				}
+
+				s.surveyData.optionLists.put(listName, optionList);
+
+			}
+		} finally {
+			try { if (pstmtGetOptions != null) {pstmtGetOptions.close();}} catch (SQLException e) {}
+			try { if (pstmtGetLists != null) {pstmtGetLists.close();}} catch (SQLException e) {}
+		}
+	}
+
+	/*
+	 * Save a survey's settings: everything about a survey that is not its questions.
+	 *
+	 * Extracted from the console's save_settings endpoint, which is the only place this lived, so
+	 * that MCP and the survey editor change a survey the same way rather than two ways that drift.
+	 * The endpoint now calls this and does the parsing and the authorising it was always doing.
+	 *
+	 * The project is one of these settings rather than a move of its own.  Nothing about changing it
+	 * is special except the upload events, which are re-pointed afterwards so the monitor still
+	 * shows a survey's history after it moves.
+	 *
+	 * settingsChanges is what gets written to the change log, and it is the caller's to supply
+	 * because only the caller knows what it changed: the console compares the form on screen with
+	 * what was loaded into it, and a tool compares the arguments it was given with what it read.
+	 * Passing none writes no log entry, which is right for a save that changed nothing.
+	 */
+	public void saveSettings(Connection sd, int sId, SurveyDAO surveyData,
+			List<SettingChange> settingsChanges, String user) throws Exception {
+
+		String sqlGet = "select p_id, version from survey where s_id = ?";
+		String sql = "update survey set display_name = ?, def_lang = ?, task_file = ?, "
+				+ "timing_data = ?, "
+				+ "p_id = ?, "
+				+ "instance_name = ?, "
+				+ "version = ?, "
+				+ "class = ?,"
+				+ "exclude_empty = ?, "
+				+ "compress_pdf = ?, "
+				+ "hide_on_device = ?, "
+				+ "search_local_data = ?, "
+				+ "data_survey = ?, "
+				+ "oversight_survey = ?, "
+				+ "read_only_survey = ?, "
+				+ "my_reference_data = ?, "
+				+ "audit_location_data = ?, "
+				+ "track_changes = ?,"
+				+ "default_logo = ?,"
+				+ "turnstile = ?,"
+				+ "show_form_index = ?, "
+				+ "max_reference_records = ? "
+				+ "where s_id = ?";
+		String sqlChangeLog = "insert into survey_change "
+				+ "(s_id, version, changes, user_id, apply_results, updated_time, agent) "
+				+ "values(?, ?, ?, ?, 'true', ?, ?)";
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		PreparedStatement pstmtGet = null;
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtChangeLog = null;
+		boolean autoCommitSetFalse = false;
+		int originalProjectId = 0;
+		int version = 0;
+
+		try {
+			pstmtGet = sd.prepareStatement(sqlGet);
+			pstmtGet.setInt(1, sId);
+			ResultSet rs = pstmtGet.executeQuery();
+			if(rs.next()) {
+				originalProjectId = rs.getInt("p_id");
+				version = rs.getInt("version") + 1;
+			}
+
+			if(sd.getAutoCommit()) {
+				autoCommitSetFalse = true;
+				sd.setAutoCommit(false);
+			}
+
+			if(surveyData.surveyClass != null && surveyData.surveyClass.equals("none")) {
+				surveyData.surveyClass = null;
+			}
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(surveyData.displayName, localisation));
+			pstmt.setString(2, HtmlSanitise.checkCleanName(surveyData.def_lang, localisation));
+			pstmt.setBoolean(3, surveyData.task_file);
+			pstmt.setBoolean(4, surveyData.timing_data);
+			pstmt.setInt(5, surveyData.p_id);
+			pstmt.setString(6, surveyData.instanceNameDefn);
+			pstmt.setInt(7, version);
+			pstmt.setString(8, HtmlSanitise.checkCleanName(surveyData.surveyClass, localisation));
+			pstmt.setBoolean(9, surveyData.exclude_empty);
+			pstmt.setBoolean(10, surveyData.compress_pdf);
+			pstmt.setBoolean(11, surveyData.hideOnDevice);
+			pstmt.setBoolean(12, surveyData.searchLocalData);
+			pstmt.setBoolean(13, surveyData.dataSurvey);
+			pstmt.setBoolean(14, surveyData.oversightSurvey);
+			pstmt.setBoolean(15, surveyData.readOnlySurvey);
+			pstmt.setBoolean(16, surveyData.myReferenceData);
+			pstmt.setBoolean(17, surveyData.audit_location_data);
+			pstmt.setBoolean(18, surveyData.track_changes);
+			pstmt.setString(19, surveyData.default_logo);
+			pstmt.setBoolean(20, surveyData.turnstile);
+			pstmt.setBoolean(21, surveyData.showFormIndex);
+			pstmt.setInt(22, surveyData.maxReferenceRecords);
+			pstmt.setInt(23, sId);
+
+			log.info("Saving survey: " + pstmt.toString());
+			int count = pstmt.executeUpdate();
+
+			if(count == 0) {
+				log.info("Error: Failed to update survey");
+			} else {
+				int userId = GeneralUtilityMethods.getUserId(sd, user);
+
+				// In case my_reference_data changed
+				GeneralUtilityMethods.clearLinkedForms(sd, sId, localisation);
+
+				if(settingsChanges != null && settingsChanges.size() > 0) {
+
+					ChangeElement change = new ChangeElement();
+					change.action = "settings_update";
+					change.origSId = sId;
+					change.settingsChanges = settingsChanges;
+					/*
+					 * Marked the same way a question change is, so the whole log answers "what made
+					 * this" in one place rather than only where a tool remembered to say so. agent
+					 * being set is what says something acted for the person.
+					 */
+					if(agent != null) {
+						change.source = "mcp";
+					}
+
+					// Plain text as a fallback for readers that do not understand the structured data
+					StringBuilder msg = new StringBuilder();
+					for(SettingChange sc : settingsChanges) {
+						if(msg.length() > 0) {
+							msg.append(", ");
+						}
+						msg.append(sc.label).append(": ").append(sc.oldVal).append(" -> ").append(sc.newVal);
+					}
+					change.msg = msg.toString();
+
+					pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+					pstmtChangeLog.setInt(1, sId);
+					pstmtChangeLog.setInt(2, version);
+					pstmtChangeLog.setString(3, gson.toJson(change));
+					pstmtChangeLog.setInt(4, userId);
+					pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
+					pstmtChangeLog.setString(6, agent);		// null unless something acted for the person
+					pstmtChangeLog.execute();
+				}
+			}
+
+			sd.commit();
+			if(autoCommitSetFalse) {
+				sd.setAutoCommit(true);
+				autoCommitSetFalse = false;
+			}
+
+			/*
+			 * Re-point the upload events, so the monitor still shows everything this survey has
+			 * received after it moves to another project.
+			 */
+			if(originalProjectId != surveyData.p_id) {
+				GeneralUtilityMethods.updateUploadEvent(sd, surveyData.p_id, sId);
+			}
+
+			new MessagingManager(localisation).surveyChange(sd, sId, 0);
+
+		} catch (Exception e) {
+			try {sd.rollback();} catch(Exception ex) {}
+			throw e;
+		} finally {
+			if(autoCommitSetFalse) {
+				try {sd.setAutoCommit(true);} catch(Exception e) {}
+			}
+			if(pstmtGet != null) try {pstmtGet.close();} catch (SQLException e) {}
+			if(pstmt != null) try {pstmt.close();} catch (SQLException e) {}
+			if(pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
+		}
+	}
+
+	/*
+	 * The forms in a survey, without their questions.
+	 *
+	 * A form is the unit a repeating group is stored as, so this answers what shape is this survey
+	 * without reading the design.  populateSurvey fills the questions in afterwards; a caller that
+	 * only wants the shape does not pay for them.
+	 */
+	public ArrayList<Form> getForms(Connection sd, int sId) throws SQLException {
+
+		String sql = "select f.f_id, "
+				+ "f.name, "
+				+ "f.parentform, "
+				+ "f.parentquestion, "
+				+ "f.table_name, "
+				+ "f.reference, "
+				+ "f.merge,"
+				+ "f.replace,"
+				+ "f.append "
+				+ "from form f where f.s_id = ?;";
+
+		ArrayList<Form> forms = new ArrayList<Form> ();
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				Form f = new Form();
+				f.id = rs.getInt(1);
+				f.name = rs.getString(2);
+				f.parentform = rs.getInt(3);
+				f.parentQuestion = rs.getInt(4);
+				f.tableName = rs.getString(5);
+				f.reference = rs.getBoolean(6);
+				f.merge = rs.getBoolean(7);
+				f.replace = rs.getBoolean(8);
+				f.append = rs.getBoolean(9);
+				forms.add(f);
+			}
+		}
+		return forms;
+	}
+
+	/*
+	 * How many questions each form holds, keyed by form id.
+	 *
+	 * Counted rather than loaded, for a caller that wants the size of a form and not its contents.
+	 *
+	 * The predicate has to match the one getQuestionsInForm applies or the two disagree, and a
+	 * survey reported as having more questions than can be listed is the kind of quiet
+	 * inconsistency nobody chases until it has confused someone.  Soft deleted questions are
+	 * excluded in SQL, as they are there; property types cannot be, because whether a question is
+	 * one is decided in Java from its name and source, so those columns are read and the same test
+	 * applied here.
+	 */
+	public HashMap<Integer, Integer> getQuestionCounts(Connection sd, int sId) throws SQLException {
+
+		String sql = "select q.f_id, q.source_param, q.qname "
+				+ "from question q "
+				+ "inner join form f on f.f_id = q.f_id "
+				+ "where f.s_id = ? "
+				+ "and q.soft_deleted = 'false'";
+
+		HashMap<Integer, Integer> counts = new HashMap<Integer, Integer> ();
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				if(GeneralUtilityMethods.isPropertyType(rs.getString(2), rs.getString(3))) {
+					continue;
+				}
+				int fId = rs.getInt(1);
+				Integer existing = counts.get(fId);
+				counts.put(fId, existing == null ? 1 : existing + 1);
+			}
+		}
+		return counts;
+	}
+
+	/*
+	 * The change log for one survey, newest first.
+	 *
+	 * Its own method because it is wanted on its own.  It used to live inside populateSurvey, which
+	 * is reached only when getById is asked for the full survey, so getChangeHistory quietly did
+	 * nothing unless full was also set - a caller that wanted the history and not the design got an
+	 * empty list rather than an error, which is the kind of nothing that reads as an answer.
+	 *
+	 * Written as explicit joins rather than the comma form it grew from, because the agent lookup
+	 * adds a third table and every column here is qualified: an unqualified name that becomes
+	 * ambiguous when a join is widened fails at run time, not compile time.
+	 *
+	 * The join to oauth_client is left, and on the client id rather than a key, because agent is
+	 * null for a console change and an application that has since been removed should still leave
+	 * its change readable.
+	 */
+	public ArrayList<ChangeLog> getChangeLog(Connection sd, int sId) throws SQLException {
+
+		String sql = "SELECT c.changes, "
+				+ "c.c_id, "
+				+ "c.version, "
+				+ "u.name, "
+				+ "c.updated_time at time zone '" + tz + "',"
+				+ "c.apply_results, "
+				+ "c.success, "
+				+ "c.msg, "
+				+ "c.agent, "
+				+ "oc.client_name "
+				+ "from survey_change c "
+				+ "inner join users u on c.user_id = u.id "
+				+ "left join oauth_client oc on oc.client_id = c.agent "
+				+ "where c.s_id = ? "
+				+ "and c.visible = true "
+				+ "order by c.c_id desc ";
+
+		ArrayList<ChangeLog> changes = new ArrayList<ChangeLog> ();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setInt(1, sId);
+			log.fine("Get change log: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+
+			while (rs.next()) {
+				ChangeLog cl = new ChangeLog();
+				cl.change = gson.fromJson(rs.getString(1), ChangeElement.class);
+				cl.cId = rs.getInt(2);
+				cl.version = rs.getInt(3);
+				cl.userName = rs.getString(4);
+				cl.updatedTime = rs.getTimestamp(5);
+				cl.apply_results = rs.getBoolean(6);
+				// A change that never needed applying to the results database counts as applied
+				cl.success = rs.getBoolean(7) || !cl.apply_results;
+				cl.msg = rs.getString(8);
+
+				/*
+				 * The readable name when the application is still registered, otherwise the raw
+				 * identifier, so a change never loses who made it just because access was withdrawn.
+				 */
+				cl.agentId = rs.getString(9);
+				if(cl.agentId != null) {
+					String clientName = rs.getString(10);
+					cl.agent = clientName != null ? clientName : cl.agentId;
+				}
+				changes.add(cl);
+			}
+		}
+		return changes;
 	}
 
 	/*
@@ -191,8 +649,8 @@ public class SurveyManager {
 	public void writeChangeLog(Connection sd, int sId, String userIdent, ChangeElement change) throws Exception {
 
 		String sql = "insert into survey_change " +
-				"(s_id, version, changes, user_id, apply_results, updated_time) " +
-				"values(?, ?, ?, ?, 'true', ?)";
+				"(s_id, version, changes, user_id, apply_results, updated_time, agent) " +
+				"values(?, ?, ?, ?, 'true', ?, ?)";
 		PreparedStatement pstmt = null;
 
 		try {
@@ -204,6 +662,7 @@ public class SurveyManager {
 			pstmt.setString(3, gson.toJson(change));
 			pstmt.setInt(4, GeneralUtilityMethods.getUserId(sd, userIdent));
 			pstmt.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
+			pstmt.setString(6, agent);		// null unless something acted for the person
 			pstmt.execute();
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
@@ -926,27 +1385,7 @@ public class SurveyManager {
 		 */
 
 		// SQL to get the forms belonging to this survey
-		ResultSet rsGetForms = null;
-		String sqlGetForms = "select f.f_id, "
-				+ "f.name, "
-				+ "f.parentform, "
-				+ "f.parentquestion, "
-				+ "f.table_name, "
-				+ "f.reference, "
-				+ "f.merge,"
-				+ "f.replace,"
-				+ "f.append "
-				+ "from form f where f.s_id = ?;";
-		PreparedStatement pstmtGetForms = sd.prepareStatement(sqlGetForms);	
 
-		// SQL to get the choice lists in this survey
-		ResultSet rsGetLists = null;
-		String sqlGetLists = "select l_id, "
-				+ "name "
-				+ "from listname "
-				+ "where s_id = ?;";
-		PreparedStatement pstmtGetLists = sd.prepareStatement(sqlGetLists);
-		
 		// SQL to get the styles in this survey
 		ResultSet rsGetStyles = null;
 		String sqlGetStyles = "select id, "
@@ -956,27 +1395,6 @@ public class SurveyManager {
 				+ "where s_id = ?;";
 		PreparedStatement pstmtGetStyles = sd.prepareStatement(sqlGetStyles);
 
-		// SQL to get the options belonging to a choice list		
-		ResultSet rsGetOptions = null;
-		PreparedStatement pstmtGetOptions = sd.prepareStatement(sqlGetOptions);
-
-		// Get the changes that have been made to this survey
-		ResultSet rsGetChanges = null;
-		String sqlGetChanges = "SELECT c.changes, "
-				+ "c.c_id, "
-				+ "c.version, "
-				+ "u.name, "
-				+ "c.updated_time at time zone '" + tz + "',"
-				+ "c.apply_results, "
-				+ "c.success, "
-				+ "c.msg " 
-				+ "from survey_change c, users u "
-				+ "where c.s_id = ? "
-				+ "and c.user_id = u.id "
-				+ "and c.visible = true "
-				+ "order by c_id desc ";
-		PreparedStatement pstmtGetChanges = sd.prepareStatement(sqlGetChanges);
-		
 		// Get the available languages
 		s.surveyData.languages = GeneralUtilityMethods.getLanguages(sd, s.surveyData.id);
 
@@ -994,22 +1412,8 @@ public class SurveyManager {
 
 		QuestionManager qm = new QuestionManager(localisation);
 
-		// Get the Forms
-		pstmtGetForms.setInt(1, s.surveyData.id);
-		// log.fine("Get forms: " + pstmtGetForms.toString());
-		rsGetForms = pstmtGetForms.executeQuery();
-
-		while (rsGetForms.next()) {								
-			Form f = new Form();
-			f.id = rsGetForms.getInt(1);
-			f.name = rsGetForms.getString(2);
-			f.parentform =rsGetForms.getInt(3); 
-			f.parentQuestion = rsGetForms.getInt(4);
-			f.tableName = rsGetForms.getString(5);
-			f.reference = rsGetForms.getBoolean(6);
-			f.merge = rsGetForms.getBoolean(7);
-			f.replace = rsGetForms.getBoolean(8);
-			f.append = rsGetForms.getBoolean(9);
+		// Get the Forms, then the questions in each
+		for(Form f : getForms(sd, s.surveyData.id)) {
 
 			f.questions = qm.getQuestionsInForm(sd, 
 					cResults,
@@ -1052,106 +1456,7 @@ public class SurveyManager {
 			}
 		}
 
-		/*
-		 * Get the option lists
-		 */
-		pstmtGetLists.setInt(1, s.surveyData.id);
-		// log.fine("Get lists for survey: " + pstmtGetLists.toString());
-		rsGetLists = pstmtGetLists.executeQuery();
-
-		int idx = 0;
-		while(rsGetLists.next()) {
-
-			int listId = rsGetLists.getInt(1);
-			String listName = rsGetLists.getString(2);
-
-			OptionList optionList = new OptionList ();
-
-			boolean external = false;
-			if(getExternalOptions != null) {
-				if(getExternalOptions.equals("external")) {
-					external = true;
-				} else if(getExternalOptions.equals("internal")) {
-					external = false;
-				} else if(getExternalOptions.equals("real")) {
-					external = GeneralUtilityMethods.listHasExternalChoices(sd, s.surveyData.id, listId);
-				}
-			}
-
-			// Get external options if required
-			ArrayList<Option> externalOptions = new ArrayList<> ();
-			if(external) {
-				int qId = GeneralUtilityMethods.getQuestionFromList(sd, s.surveyData.id, listId);
-				externalOptions = GeneralUtilityMethods.getExternalChoices(sd, 
-						cResults, localisation, user, oId, s.surveyData.id, qId, null, s.surveyData.ident, tz, null, null);
-			} 
-			
-			// Get options from meta definition - insert external if required when not a numeric option
-			optionList.options = new ArrayList<Option> ();
-			pstmtGetOptions.setInt(1, listId);
-			
-			if(idx++ == 0) {
-				// log.fine("SQL Get options: " + pstmtGetOptions.toString());
-			}
-			rsGetOptions = pstmtGetOptions.executeQuery();
-	
-			Type hmType = new TypeToken<HashMap<String, String>>(){}.getType();		// Used to translate cascade filters json
-			boolean externalAdded = false;
-			while(rsGetOptions.next()) {
-				Option o = new Option();
-				o.id = rsGetOptions.getInt(1);
-				o.value = rsGetOptions.getString(2);
-				o.text_id = rsGetOptions.getString(3);
-				o.externalFile = rsGetOptions.getBoolean(4);
-				String cascade_filters = rsGetOptions.getString(5);
-				if(cascade_filters != null && !cascade_filters.equals("null")) {
-					try {
-						o.cascade_filters = gson.fromJson(cascade_filters, hmType);
-						for (String key : o.cascade_filters.keySet()) {
-							s.surveyData.filters.put(key, true);
-						}
-	
-					} catch (Exception e) {
-						log.log(Level.SEVERE, e.getMessage(), e);		// Ignore errors as this service does not support the old non json cascade format
-					}
-				} else {
-					o.cascade_filters = new HashMap<String, String> ();	// An empty object
-				}
-				o.columnName = rsGetOptions.getString(6);
-				o.display_name = rsGetOptions.getString(7);
-				o.published = rsGetOptions.getBoolean(8);
-	
-				// Get the labels for the option
-				PreparedStatement pstmtLabels = null;
-				try {
-					pstmtLabels = UtilityMethodsEmail.getLabelsStatement(sd, s.surveyData.id);
-					UtilityMethodsEmail.getLabels(pstmtLabels, s, o.text_id, o.labels, basePath, oId);
-				} finally {
-					if(pstmtLabels != null) {try{pstmtLabels.close();}catch(Exception e) {}}
-				}
-				
-				// Check for numeric value - if external options are required then a numeric value indicates a static choice
-				boolean isInteger = false;
-				if(external) {
-					try {
-						Integer.parseInt(o.value);
-						isInteger = true;
-					} catch (Exception e) {
-						
-					}
-				}
-				
-				if(!external || isInteger) {
-					optionList.options.add(o);
-				} else if(!externalAdded) {
-					externalAdded = true;		// Don't double up if someone uses a non numeric static by mistake
-					optionList.options.addAll(externalOptions);
-				}
-			}
-
-			s.surveyData.optionLists.put(listName, optionList);
-
-		}
+		populateOptionLists(sd, cResults, s, user, oId, basePath, getExternalOptions);
 
 		/*
 		 * Get the style lists
@@ -1173,26 +1478,7 @@ public class SurveyManager {
 
 		// Add the change log
 		if(getChangeHistory) {
-			pstmtGetChanges.setInt(1, s.getId());
-			log.fine("Get change log: " + pstmtGetChanges.toString());
-			rsGetChanges = pstmtGetChanges.executeQuery();
-
-			while (rsGetChanges.next()) {
-
-				ChangeLog cl = new ChangeLog();
-
-				cl.change = gson.fromJson(rsGetChanges.getString(1), ChangeElement.class);
-
-				cl.cId = rsGetChanges.getInt(2);
-				cl.version = rsGetChanges.getInt(3);
-				cl.userName = rsGetChanges.getString(4);
-				cl.updatedTime = rsGetChanges.getTimestamp(5);
-				cl.apply_results = rsGetChanges.getBoolean(6);
-				cl.success = rsGetChanges.getBoolean(7) || !cl.apply_results;	// Set the update of the results database to success automatically if a change does not need to be applied
-				cl.msg = rsGetChanges.getString(8);
-
-				s.surveyData.changes.add(cl);
-			}
+			s.surveyData.changes = getChangeLog(sd, s.getId());
 		}
 		
 		// Get the roles
@@ -1218,10 +1504,6 @@ public class SurveyManager {
 
 
 		// Close statements
-		try { if (pstmtGetForms != null) {pstmtGetForms.close();}} catch (SQLException e) {}
-		try { if (pstmtGetOptions != null) {pstmtGetOptions.close();}} catch (SQLException e) {}
-		try { if (pstmtGetChanges != null) {pstmtGetChanges.close();}} catch (SQLException e) {}
-		try { if (pstmtGetLists != null) {pstmtGetLists.close();}} catch (SQLException e) {}
 		try { if (pstmtGetStyles != null) {pstmtGetStyles.close();}} catch (SQLException e) {}
 	}
 
@@ -1326,8 +1608,8 @@ public class SurveyManager {
 		try {
 
 			String sqlChangeLog = "insert into survey_change " +
-					"(s_id, version, changes, user_id, apply_results, visible, updated_time) " +
-					"values(?, ?, ?, ?, 'true', ?, ?)";
+					"(s_id, version, changes, user_id, apply_results, visible, updated_time, agent) " +
+					"values(?, ?, ?, ?, 'true', ?, ?, ?)";
 			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
 
 			/*
@@ -1617,6 +1899,7 @@ public class SurveyManager {
 				pstmtChangeLog.setInt(4,userId);
 				pstmtChangeLog.setBoolean(5, logIndividualChangeSets);
 				pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
+				pstmtChangeLog.setString(7, agent);		// null unless something acted for the person
 				pstmtChangeLog.execute();
 
 			}
@@ -2445,6 +2728,7 @@ public class SurveyManager {
 				pstmtChangeLog.setInt(4, userId);	
 				pstmtChangeLog.setBoolean(5,logIndividualChangeSets);	
 				pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
+				pstmtChangeLog.setString(7, agent);		// null unless something acted for the person
 				pstmtChangeLog.execute();
 			}
 
@@ -2555,6 +2839,7 @@ public class SurveyManager {
 				pstmtChangeLog.setInt(4, userId);
 				pstmtChangeLog.setBoolean(5, logIndividualChangeSets);
 				pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
+				pstmtChangeLog.setString(7, agent);		// null unless something acted for the person
 				pstmtChangeLog.execute();
 			} 
 
@@ -2616,6 +2901,7 @@ public class SurveyManager {
 				pstmtChangeLog.setInt(4, userId);
 				pstmtChangeLog.setBoolean(5, logIndividualChangeSets);
 				pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
+				pstmtChangeLog.setString(7, agent);		// null unless something acted for the person
 				pstmtChangeLog.execute();
 
 
@@ -2678,6 +2964,7 @@ public class SurveyManager {
 				pstmtChangeLog.setInt(4, userId);
 				pstmtChangeLog.setBoolean(5, logIndividualChangeSets);				
 				pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
+				pstmtChangeLog.setString(7, agent);		// null unless something acted for the person
 				pstmtChangeLog.execute();
 			} 
 

@@ -62,10 +62,11 @@ public class UploadEventManager {
 			+ "scheduled_start,"
 			+ "temporary_user,"
 			+ "results_db_applied,"
-			+ "submission_type) "
+			+ "submission_type, "
+			+ "agent) "
 			+ "values (nextval('ue_seq'), now(), ?, ?, ?, ?, ?, ?, ?, ?, ?"
 			+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-			+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+			+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 	
 	
 	
@@ -110,6 +111,11 @@ public class UploadEventManager {
 		pstmtInsert.setBoolean(28, ue.getTemporaryUser());
 		pstmtInsert.setBoolean(29, results_db_applied);
 		pstmtInsert.setString(30, ue.getType());
+		/*
+		 * Appended rather than slotted in beside imei, because every parameter here is positional
+		 * and inserting one would move twenty six others by hand.
+		 */
+		pstmtInsert.setString(31, ue.getAgent());
 	
 		pstmtInsert.executeUpdate();
 	}

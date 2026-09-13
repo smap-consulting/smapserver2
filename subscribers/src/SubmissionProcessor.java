@@ -304,6 +304,17 @@ public class SubmissionProcessor {
 											ue.getInstanceId());
 	
 									is3 = new FileInputStream(uploadFile);	// Get an input stream for the file in case the subscriber uses that rather than an Instance object
+
+									/*
+									 * Which application submitted this, if it was not a person
+									 * filling in a form. Carried on the upload because the record's
+									 * history is written here, long after the request that made the
+									 * submission has finished.
+									 */
+									if(subscriber instanceof SubRelationalDB) {
+										((SubRelationalDB) subscriber).setAgent(ue.getAgent());
+									}
+
 									mediaChanges = subscriber.upload(log, instance, 
 											is3, 
 											ue.getUserName(), 

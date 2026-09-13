@@ -413,6 +413,19 @@ public class WorkflowManager {
 				String tgAssigneeK  = "";
 				String tgFilterName = null;
 				boolean tgIsEmail   = false;
+				/*
+				 * A task group with no rule at all is ad-hoc: nothing was ever configured to
+				 * generate tasks into it, so every task it holds was made by hand.  It is skipped
+				 * for the same reason as the rule-with-neither-flag case below - the page shows the
+				 * rules that create tasks, not the tasks themselves.
+				 *
+				 * Without this it fell through the guard beneath, which only runs when there IS a
+				 * rule to inspect, and appeared on the page dragging a "form:s:0" node with it: a
+				 * box standing for survey zero, which is to say for nothing.
+				 */
+				if (rule == null || rule.trim().isEmpty()) {
+					continue;
+				}
 				if (rule != null && !rule.trim().isEmpty()) {
 					AssignFromSurvey afs = new Gson().fromJson(rule, AssignFromSurvey.class);
 					if (afs != null) {

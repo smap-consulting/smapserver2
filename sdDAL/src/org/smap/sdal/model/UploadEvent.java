@@ -58,6 +58,24 @@ public class UploadEvent implements Serializable {
 	private int e_id;
 	
 	private String imei;
+
+	/*
+	 * The application that submitted this, when it was not a person filling in a form.
+	 *
+	 * Travels the whole way to the subscriber, because the record's created event is written there
+	 * and not here: a submission is applied asynchronously, so the only way the agent reaches the
+	 * record's history is by riding along with the upload.  The queue payload is this object as
+	 * JSON, so it carries without anything else being changed.
+	 */
+	private String agent;
+
+	public String getAgent() {
+		return agent;
+	}
+
+	public void setAgent(String agent) {
+		this.agent = agent;
+	}
 	
 	private String origSurveyIdent;
 

@@ -53,6 +53,7 @@ public class Authorise {
 	public static String LINKS = "links";
 	public static String CONSOLE_ADMIN = "console admin";
 	public static String MCP_ACCESS = "mcp access";
+	public static String DPO = "dpo";		// Data protection officer
 	
 	public static int ADMIN_ID = 1;
 	public static int ANALYST_ID = 2;
@@ -71,6 +72,29 @@ public class Authorise {
 	public static final int MCP_ACCESS_ID = 15;
 	public static final int DPO_ID = 16;
 	
+	/*
+	 * The name and the id of every group are both declared above, but nothing tied the two
+	 * together, so a caller holding a name had no way to ask whether a user is in that group.
+	 */
+	public static int getGroupId(String group) {
+		if(ADMIN.equals(group)) return ADMIN_ID;
+		if(ANALYST.equals(group)) return ANALYST_ID;
+		if(ENUM.equals(group)) return ENUM_ID;
+		if(ORG.equals(group)) return ORG_ID;
+		if(MANAGE.equals(group)) return MANAGE_ID;
+		if(SECURITY.equals(group)) return SECURITY_ID;
+		if(VIEW_DATA.equals(group)) return VIEW_DATA_ID;
+		if(ENTERPRISE.equals(group)) return ENTERPRISE_ID;
+		if(OWNER.equals(group)) return OWNER_ID;
+		if(VIEW_OWN_DATA.equals(group)) return VIEW_OWN_DATA_ID;
+		if(MANAGE_TASKS.equals(group)) return MANAGE_TASKS_ID;
+		if(DASHBOARD.equals(group)) return DASHBOARD_ID;
+		if(CONSOLE_ADMIN.equals(group)) return CONSOLE_ADMIN_ID;
+		if(MCP_ACCESS.equals(group)) return MCP_ACCESS_ID;
+		if(DPO.equals(group)) return DPO_ID;
+		return -1;		// No such group, so nobody is in it
+	}
+
 	//private String requiredGroup;
 	ArrayList<String> permittedGroups; 
 	

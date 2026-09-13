@@ -31,7 +31,13 @@ public class Survey {
 	public SurveyDAO surveyData = new SurveyDAO();	// Store data in a DAO for conversion to JSON
 	
 	private static Logger log = Logger.getLogger(Survey.class.getName());
-	private HtmlSanitise sanitise = new HtmlSanitise();
+	/*
+	 * Transient because this object is handed to Gson, and Gson reflects over every non static,
+	 * non transient field.  The sanitiser holds an OWASP PolicyFactory whose CSS schema names every
+	 * colour literal it accepts, so serialising it added 2.5MB to a survey whose own definition is
+	 * four kilobytes.  It is behaviour, not data; only surveyData is meant to leave here as JSON.
+	 */
+	private transient HtmlSanitise sanitise = new HtmlSanitise();
 	
 	// Getters
 	public int getId() {return surveyData.id;}; 
