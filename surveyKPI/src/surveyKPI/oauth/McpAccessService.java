@@ -30,6 +30,7 @@ import org.smap.sdal.managers.OAuthManager;
 import org.smap.sdal.managers.OAuthTokenManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.mcp.MCPScope;
+import org.smap.sdal.model.ServerData;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -206,7 +207,9 @@ public class McpAccessService extends Application {
 			 * A token can only carry scopes this user could have consented to anyway.  Unknown ones
 			 * are dropped rather than refused, and an empty request gets the minimal scope.
 			 */
-			String granted = MCPScope.join(MCPScope.parse(scope));
+			ServerData mcpServer = new ServerManager().getServer(sd, null);
+			String granted = MCPScope.join(
+					MCPScope.permitted(MCPScope.parse(scope), mcpServer.mcp_allow_access));
 			if(granted.length() == 0) {
 				granted = MCPScope.join(MCPScope.SUPPORTED);
 			}

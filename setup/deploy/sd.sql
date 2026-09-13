@@ -766,3 +766,8 @@ create index if not exists idx_record_event_change_set on record_event(change_se
 -- user_id already holds the person; for an agent that is whoever approved the change.  Null for a
 -- change made by a person in the console, which is what most of them are.
 alter table survey_change add column if not exists agent text;
+
+-- Whether an MCP client may ask for smap:access, the scope that changes who can reach what.  Off on
+-- every server, new and existing: with it off the scope is not advertised, is stripped from any
+-- authorisation request that names it anyway, and no tool needing it can be reached.
+alter table server add column if not exists mcp_allow_access boolean default false;

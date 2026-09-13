@@ -142,6 +142,7 @@ create TABLE server (
 	mcp_client_registration text default 'cimd+dcr',	-- cimd || cimd+dcr || off
 	mcp_max_rows integer default 0,					-- Max rows an MCP tool may return, 0 means the built in default
 	mcp_token_ttl integer default 3600,				-- Lifetime in seconds of an MCP access token
+	mcp_allow_access boolean default false,			-- Whether MCP clients may ask for smap:access at all
 	turnstile_site_key text,
 	turnstile_secret_key text,
 	sharepoint_url text,						-- SharePoint server base URL

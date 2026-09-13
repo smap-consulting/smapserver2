@@ -21,6 +21,7 @@ import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -35,6 +36,7 @@ import jakarta.ws.rs.core.Response;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.mcp.MCPScope;
+import org.smap.sdal.model.ServerData;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -66,7 +68,8 @@ public class OAuthDiscovery extends Application {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response protectedResource(@Context HttpServletRequest request) {
 
-		if(!enabled(request)) {
+		ServerData server = server(request);
+		if(server == null || !server.mcp_enabled) {
 			return Response.status(Response.Status.NOT_FOUND).build();
 		}
 
@@ -83,7 +86,7 @@ public class OAuthDiscovery extends Application {
 		 * is refused again.  What it asks for first is still its own choice, and the consent form
 		 * still lets the person clear anything they do not want to grant.
 		 */
-		doc.put("scopes_supported", MCPScope.ADVERTISED.toArray(new String[0]));
+		doc.put("scopes_supported", MCPScope.advertised(server.mcp_allow_access).toArray(new String[0]));
 		doc.put("resource_documentation", "https://www.smap.com.au/docs/");
 
 		return Response.ok(gson.toJson(doc)).build();
@@ -97,7 +100,8 @@ public class OAuthDiscovery extends Application {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response authorizationServer(@Context HttpServletRequest request) {
 
-		if(!enabled(request)) {
+		ServerData server = server(request);
+		if(server == null || !server.mcp_enabled) {
 			return Response.status(Response.Status.NOT_FOUND).build();
 		}
 
@@ -109,7 +113,12 @@ public class OAuthDiscovery extends Application {
 		doc.put("token_endpoint", base + "/oauth/token");
 		doc.put("revocation_endpoint", base + "/oauth/revoke");
 		doc.put("registration_endpoint", base + "/oauth/register");
-		doc.put("scopes_supported", MCPScope.all().toArray(new String[0]));
+		/*
+		 * The same list the protected resource metadata gives.  It used to name every scope the code
+		 * knows about, which told a client it could ask for permissions no tool uses and, once the
+		 * switch existed, for one this server would strip on the way through.
+		 */
+		doc.put("scopes_supported", MCPScope.advertised(server.mcp_allow_access).toArray(new String[0]));
 		doc.put("response_types_supported", new String[] { "code" });
 		doc.put("grant_types_supported", new String[] { "authorization_code", "refresh_token" });
 		/*
@@ -128,11 +137,14 @@ public class OAuthDiscovery extends Application {
 		return Response.ok(gson.toJson(doc)).build();
 	}
 
-	private boolean enabled(HttpServletRequest request) {
+	private ServerData server(HttpServletRequest request) {
 		String connectionString = "surveyKPI-OAuthDiscovery";
 		Connection sd = SDDataSource.getConnection(connectionString);
 		try {
-			return ServerManager.isMcpEnabled(sd);
+			return new ServerManager().getServer(sd, null);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Reading server settings", e);
+			return null;
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 		}

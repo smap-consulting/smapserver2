@@ -187,7 +187,8 @@ public class Server extends Application {
 				+ "mcp_enabled = ?,"
 				+ "mcp_client_registration = ?,"
 				+ "mcp_max_rows = ?,"
-				+ "mcp_token_ttl = ? ";
+				+ "mcp_token_ttl = ?,"
+				+ "mcp_allow_access = ? ";
 
 		PreparedStatement pstmt = null;
 
@@ -197,8 +198,8 @@ public class Server extends Application {
 				+ "email_type, aws_region, sec_mgr_del, api_max_records, turnstile_site_key, turnstile_secret_key,"
 				+ "sharepoint_url, sharepoint_client_id, sharepoint_realm, sharepoint_cert_pem,"
 				+ "sharepoint_auth_type, sharepoint_username, sharepoint_password, sharepoint_domain,"
-				+ "mcp_enabled, mcp_client_registration, mcp_max_rows, mcp_token_ttl)"
-				+ " values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "mcp_enabled, mcp_client_registration, mcp_max_rows, mcp_token_ttl, mcp_allow_access)"
+				+ " values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement pstmtInsert = null;
 		
 		try {
@@ -241,6 +242,7 @@ public class Server extends Application {
 			pstmt.setString(30, mcpRegistration(data));
 			pstmt.setInt(31, data.mcp_max_rows);
 			pstmt.setInt(32, mcpTokenTtl(data));
+			pstmt.setBoolean(33, data.mcp_allow_access);
 			int count = pstmt.executeUpdate();
 
 			if(count == 0) {
@@ -277,6 +279,7 @@ public class Server extends Application {
 				pstmtInsert.setString(30, mcpRegistration(data));
 				pstmtInsert.setInt(31, data.mcp_max_rows);
 				pstmtInsert.setInt(32, mcpTokenTtl(data));
+				pstmtInsert.setBoolean(33, data.mcp_allow_access);
 				pstmtInsert.executeUpdate();
 			}
 			

@@ -75,16 +75,37 @@ public class McpToolRegistry {
 
 		List<McpTool> visible = new ArrayList<>();
 		for(McpTool tool : tools.values()) {
-			if(inPermittedGroup(sd, ctx, tool)) {
+			if(grantable(ctx, tool) && inPermittedGroup(sd, ctx, tool)) {
 				visible.add(tool);
 			}
 		}
 		return visible;
 	}
 
+	/*
+	 * Whether this server could ever issue the scope this tool needs.
+	 *
+	 * The paragraph above is about scopes a client can escalate to, and it holds - but smap:access is
+	 * not always one of them.  With mcp_allow_access off the scope is not advertised and is stripped
+	 * from any request naming it, so a client shown one of those tools would call it, receive a
+	 * challenge naming smap:access, go to the metadata to find out how to ask, and find it absent.
+	 * That is the same dead end that advertising read alone produced for the write tools.
+	 *
+	 * So a tool whose scope this server will not issue is hidden, for the reason given above for
+	 * groups: a tool that can never be run is better never seen.
+	 */
+	private boolean grantable(McpToolContext ctx, McpTool tool) {
+		return MCPScope.advertised(ctx.accessAllowed).contains(tool.getRequiredScope());
+	}
+
 	/* Both questions, for the call path, which has to answer them separately to say which failed */
 	public boolean permitted(Connection sd, McpToolContext ctx, McpTool tool) {
-		return ctx.hasScope(tool.getRequiredScope()) && inPermittedGroup(sd, ctx, tool);
+		return grantable(ctx, tool) && ctx.hasScope(tool.getRequiredScope())
+				&& inPermittedGroup(sd, ctx, tool);
+	}
+
+	public boolean isGrantable(McpToolContext ctx, McpTool tool) {
+		return grantable(ctx, tool);
 	}
 
 	public boolean inPermittedGroup(Connection sd, McpToolContext ctx, McpTool tool) {

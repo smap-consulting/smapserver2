@@ -74,9 +74,52 @@ public class MCPScope {
 	 *
 	 * Scopes are added here as their increments land, so a client is never offered a permission no
 	 * tool yet uses.  ADMIN joined when the users and projects tools did: leaving it out would have
-	 * made every one of them unreachable, which is the fault this list was widened to fix.
+	 * made every one of them unreachable, which is the fault this list was widened to fix.  ACCESS is
+	 * not here because it depends on a server setting - see advertised().
 	 */
-	public static final List<String> ADVERTISED = Arrays.asList(READ, WRITE, ADMIN);
+	private static final List<String> ADVERTISED = Arrays.asList(READ, WRITE, ADMIN);
+
+	/*
+	 * What a client is told it may ask for, on this server.
+	 *
+	 * ACCESS is added only when a server owner has switched it on.  The plan had it never advertised
+	 * at all, reachable only by a client stepping up when challenged - but a scope this document does
+	 * not list is a scope a client cannot ask for, so the tools would have been built and unreachable,
+	 * which is exactly the fault the list was widened to fix for WRITE and ADMIN.  A switch keeps what
+	 * that was for: on a server where nobody has turned it on, there is no way to ask.
+	 *
+	 * SERVER and PRIVACY stay out until something uses them.
+	 */
+	public static List<String> advertised(boolean allowAccess) {
+		if(!allowAccess) {
+			return ADVERTISED;
+		}
+		List<String> out = new ArrayList<>(ADVERTISED);
+		out.add(ACCESS);
+		return out;
+	}
+
+	/*
+	 * Drop anything this server will not grant.
+	 *
+	 * Applied wherever a scope arrives from outside - the authorisation request, the consent form
+	 * coming back, a console minted token - because the metadata not naming a scope is a statement to
+	 * well behaved clients and nothing more.  A request naming smap:access on a server with it
+	 * switched off is not refused, it is granted without it: the client gets what it may legitimately
+	 * have, and finds out what it cannot do when it tries.
+	 */
+	public static List<String> permitted(List<String> scopes, boolean allowAccess) {
+		if(allowAccess || scopes == null) {
+			return scopes;
+		}
+		List<String> out = new ArrayList<>();
+		for(String s : scopes) {
+			if(!ACCESS.equals(s)) {
+				out.add(s);
+			}
+		}
+		return out;
+	}
 
 	/*
 	 * Consent for this scope is never remembered, so granting it is always a deliberate act rather

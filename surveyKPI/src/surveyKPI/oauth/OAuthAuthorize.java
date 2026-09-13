@@ -142,7 +142,11 @@ public class OAuthAuthorize extends Application {
 						"The resource parameter must name this server's MCP endpoint", request);
 			}
 
-			List<String> requested = MCPScope.parse(scope);
+			/*
+			 * Anything this server will not grant is dropped before the form is built, so a person is
+			 * never shown a checkbox for a permission that would be stripped after they ticked it.
+			 */
+			List<String> requested = MCPScope.permitted(MCPScope.parse(scope), server.mcp_allow_access);
 			if(requested.isEmpty()) {
 				requested = new ArrayList<>(MCPScope.SUPPORTED);
 			}
@@ -254,7 +258,12 @@ public class OAuthAuthorize extends Application {
 			 * simply is not granted; the client will ask again if it turns out to need it.
 			 */
 			List<String> granted = new ArrayList<>();
-			for(String s : MCPScope.parse(scope)) {
+			/*
+			 * Filtered again here rather than trusted from the form.  The scope and the checkboxes
+			 * both arrive as posted fields, so a form that was not the one we rendered can name
+			 * anything it likes; the switch is read from the server either way.
+			 */
+			for(String s : MCPScope.permitted(MCPScope.parse(scope), server.mcp_allow_access)) {
 				if(form.getFirst("scope_" + s.replace(':', '_')) != null) {
 					granted.add(s);
 				}

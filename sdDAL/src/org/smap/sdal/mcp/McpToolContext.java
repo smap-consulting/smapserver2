@@ -72,6 +72,14 @@ public class McpToolContext {
 	 * a fresh call carrying the same arguments plus the answers.  A tool therefore reads these to
 	 * find out whether it is being run for the first time or for real.
 	 */
+	/*
+	 * Whether this server will issue smap:access at all.
+	 *
+	 * Not a property of the caller but of the server, which is why it decides visibility rather than
+	 * permission: a scope nobody can be granted is a tool nobody can ever run.
+	 */
+	public boolean accessAllowed;
+
 	public Map<String, Object> inputResponses;
 
 	/* Whether the handle that came back with those answers was genuine, checked by the dispatcher */
