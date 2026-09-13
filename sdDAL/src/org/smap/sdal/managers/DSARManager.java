@@ -248,20 +248,43 @@ public class DSARManager {
 
 		String matchVal = partial ? "%" + identifier + "%" : identifier;
 		LinkedHashMap<String, Integer> counts = new LinkedHashMap<>();
+		if (t.searchCols.isEmpty()) {
+			return counts;
+		}
 
-		for (String col : t.searchCols) {
-			String sql = "select count(*) from " + t.tableName + " where " + col + "::text ilike ?";
-			PreparedStatement pstmt = null;
-			try {
-				pstmt = cResults.prepareStatement(sql);
-				pstmt.setString(1, matchVal);
-				ResultSet rs = pstmt.executeQuery();
-				if (rs.next() && rs.getInt(1) > 0) {
-					counts.put(col, rs.getInt(1));
-				}
-			} finally {
-				try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
+		/*
+		 * One statement for the whole form, counting each column in its own aggregate, rather than a
+		 * statement per column.  A form with a dozen personal data columns was a dozen prepares and a
+		 * dozen scans of the same table to answer one question - and dsar_find asks it of every form
+		 * the caller can see.
+		 */
+		StringBuilder sql = new StringBuilder("select ");
+		for (int i = 0; i < t.searchCols.size(); i++) {
+			if (i > 0) {
+				sql.append(", ");
 			}
+			sql.append("count(*) filter (where ").append(t.searchCols.get(i))
+					.append("::text ilike ?)");
+		}
+		sql.append(" from ").append(t.tableName);
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cResults.prepareStatement(sql.toString());
+			for (int i = 0; i < t.searchCols.size(); i++) {
+				pstmt.setString(i + 1, matchVal);
+			}
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				for (int i = 0; i < t.searchCols.size(); i++) {
+					int n = rs.getInt(i + 1);
+					if (n > 0) {
+						counts.put(t.searchCols.get(i), n);
+					}
+				}
+			}
+		} finally {
+			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
 		}
 		return counts;
 	}

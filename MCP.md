@@ -862,6 +862,35 @@ something untrue. Nothing was exploitable, and the fix is still a fix.
 client that omitted the parameter skipped the check - the binding could be opted out of by the party
 it constrains, which is not a check. It is now driven by what the grant recorded.
 
+## Hardening
+
+**Prepared statements in loops.** A brace-accurate scan of the MCP package found none - and one in a
+manager written for it. `DSARManager.countMatches` prepared a statement per personal data column,
+scanning the same table once per column to answer one question, and `dsar_find` asks it of every form
+the caller can see. It is now one statement per form, counting each column in its own aggregate.
+
+Three remain in code this work did not touch (`UserManager.getUserList`, two in `ServerManager`).
+Noted rather than changed.
+
+**Connections.** No tool opens its own; every one uses the two the request already holds, closed in a
+`finally` that covers the 403 and the 429 paths as well. A throttled request never reaches the results
+connection at all.
+
+Worth stating for whoever runs the load test: each MCP request takes **one connection from each
+pool**, both sized `maxActive="60"` with `maxWait="-1"`. Saturation therefore appears as requests
+hanging rather than failing, which is a property of the pool configuration rather than of this work,
+but it is what a load test will see first and it is easy to misread as a deadlock.
+
+**Rate limiting interacts with that.** The cap is per token, so the interesting load case is many
+tokens rather than one busy one - a single client cannot exceed 120 calls a minute, but sixty of them
+can still hold every connection in the pool.
+
+**sd.sql.** Every statement in the MCP section is `if not exists` or `on conflict`, so the migration
+re-runs safely, and `mcp_allow_access` is appended with nothing depending on it.
+
+**Release notes** belong to a tagged release, which this branch is not yet. They are generated from
+the commit range at the point the version is cut, not written by hand now.
+
 ## What happened, and how things stand
 
 `event_list` is the organisation's log - surveys created and changed, users added, errors, refused
